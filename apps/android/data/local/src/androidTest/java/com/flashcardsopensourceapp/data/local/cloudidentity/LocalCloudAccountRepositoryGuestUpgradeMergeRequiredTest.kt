@@ -140,6 +140,7 @@ class LocalCloudAccountRepositoryGuestUpgradeMergeRequiredTest {
                     .toString(),
                 clientUpdatedAtIso = "2026-04-02T15:50:57.000Z",
                 createdAtMillis = 300L,
+                affectsReviewSchedule = true,
                 attemptCount = 0,
                 lastError = null
             )
@@ -161,6 +162,7 @@ class LocalCloudAccountRepositoryGuestUpgradeMergeRequiredTest {
                     .toString(),
                 clientUpdatedAtIso = "2026-04-02T15:50:57.000Z",
                 createdAtMillis = 301L,
+                affectsReviewSchedule = false,
                 attemptCount = 0,
                 lastError = null
             )
@@ -182,6 +184,7 @@ class LocalCloudAccountRepositoryGuestUpgradeMergeRequiredTest {
                     .toString(),
                 clientUpdatedAtIso = "2026-04-02T15:50:57.000Z",
                 createdAtMillis = 302L,
+                affectsReviewSchedule = false,
                 attemptCount = 0,
                 lastError = null
             )
@@ -203,6 +206,7 @@ class LocalCloudAccountRepositoryGuestUpgradeMergeRequiredTest {
                     .toString(),
                 clientUpdatedAtIso = "2026-04-02T15:51:57.000Z",
                 createdAtMillis = 303L,
+                affectsReviewSchedule = false,
                 attemptCount = 0,
                 lastError = null
             )
@@ -225,6 +229,7 @@ class LocalCloudAccountRepositoryGuestUpgradeMergeRequiredTest {
                     .toString(),
                 clientUpdatedAtIso = "2026-04-02T15:50:57.000Z",
                 createdAtMillis = 304L,
+                affectsReviewSchedule = false,
                 attemptCount = 0,
                 lastError = null
             )
@@ -514,6 +519,7 @@ private fun createGuestUpgradeCardOutboxEntry(
             .toString(),
         clientUpdatedAtIso = "2026-04-02T15:50:57.000Z",
         createdAtMillis = createdAtMillis,
+        affectsReviewSchedule = true,
         attemptCount = 0,
         lastError = null
     )
@@ -543,6 +549,7 @@ private fun createGuestUpgradeSchedulerSettingsOutboxEntry(
             .toString(),
         clientUpdatedAtIso = "2026-04-02T15:50:57.000Z",
         createdAtMillis = createdAtMillis,
+        affectsReviewSchedule = false,
         attemptCount = 0,
         lastError = null
     )

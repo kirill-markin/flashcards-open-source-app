@@ -2,8 +2,13 @@ package com.flashcardsopensourceapp.feature.progress
 
 import androidx.lifecycle.Lifecycle
 import com.flashcardsopensourceapp.data.local.model.CloudDailyReviewPoint
+import com.flashcardsopensourceapp.data.local.model.CloudProgressReviewSchedule
+import com.flashcardsopensourceapp.data.local.model.CloudProgressReviewScheduleBucket
 import com.flashcardsopensourceapp.data.local.model.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.CloudProgressSummary
+import com.flashcardsopensourceapp.data.local.model.ProgressReviewScheduleBucketKey
+import com.flashcardsopensourceapp.data.local.model.ProgressReviewScheduleScopeKey
+import com.flashcardsopensourceapp.data.local.model.ProgressReviewScheduleSnapshot
 import com.flashcardsopensourceapp.data.local.model.ProgressSeriesScopeKey
 import com.flashcardsopensourceapp.data.local.model.ProgressSeriesSnapshot
 import com.flashcardsopensourceapp.data.local.model.ProgressSnapshotSource
@@ -66,6 +71,9 @@ class ProgressViewModelTest {
             repository.emitSeriesSnapshot(
                 snapshot = createProgressSeriesSnapshot()
             )
+            repository.emitReviewScheduleSnapshot(
+                snapshot = createProgressReviewScheduleSnapshot()
+            )
             advanceUntilIdle()
 
             val uiState = viewModel.uiState.value
@@ -76,13 +84,54 @@ class ProgressViewModelTest {
             assertEquals(12, summaryState.summary.currentStreakDays)
             assertEquals(1, loadedState.reviewsSection.pages.size)
             assertEquals(4, loadedState.reviewsSection.pages.single().upperBound)
+            val reviewScheduleSection = checkNotNull(loadedState.reviewScheduleSection)
+            assertEquals(4, reviewScheduleSection.totalCards)
+            assertEquals(
+                ProgressReviewScheduleBucketKey.NEW,
+                reviewScheduleSection.buckets.first().key
+            )
         } finally {
             Dispatchers.resetMain()
         }
     }
 
     @Test
-    fun refreshIfInvalidatedDelegatesToBothRepositoryFlows() = runTest(dispatcher) {
+    fun reviewScheduleSnapshotDoesNotGateLoadedUiStateAndUpdatesLater() = runTest(dispatcher) {
+        Dispatchers.setMain(dispatcher)
+        try {
+            val repository = FakeProgressRepository()
+            val viewModel = ProgressViewModel(
+                progressRepository = repository
+            )
+
+            repository.emitSummarySnapshot(
+                snapshot = createProgressSummarySnapshot()
+            )
+            repository.emitSeriesSnapshot(
+                snapshot = createProgressSeriesSnapshot()
+            )
+            advanceUntilIdle()
+
+            val uiState = viewModel.uiState.value
+            assertTrue(uiState is ProgressUiState.Loaded)
+            val loadedState = uiState as ProgressUiState.Loaded
+            assertEquals(null, loadedState.reviewScheduleSection)
+
+            repository.emitReviewScheduleSnapshot(
+                snapshot = createProgressReviewScheduleSnapshot()
+            )
+            advanceUntilIdle()
+
+            val updatedUiState = viewModel.uiState.value as ProgressUiState.Loaded
+            val reviewScheduleSection = checkNotNull(updatedUiState.reviewScheduleSection)
+            assertEquals(4, reviewScheduleSection.totalCards)
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
+    fun refreshIfInvalidatedDelegatesToProgressRepositoryFlows() = runTest(dispatcher) {
         Dispatchers.setMain(dispatcher)
         try {
             val repository = FakeProgressRepository()
@@ -96,15 +145,17 @@ class ProgressViewModelTest {
 
             assertEquals(1, repository.refreshSummaryIfInvalidatedCallCount)
             assertEquals(1, repository.refreshSeriesIfInvalidatedCallCount)
+            assertEquals(1, repository.refreshReviewScheduleIfInvalidatedCallCount)
             assertEquals(0, repository.refreshSummaryManuallyCallCount)
             assertEquals(0, repository.refreshSeriesManuallyCallCount)
+            assertEquals(0, repository.refreshReviewScheduleManuallyCallCount)
         } finally {
             Dispatchers.resetMain()
         }
     }
 
     @Test
-    fun refreshManuallyDelegatesToBothRepositoryFlows() = runTest(dispatcher) {
+    fun refreshManuallyDelegatesToProgressRepositoryFlows() = runTest(dispatcher) {
         Dispatchers.setMain(dispatcher)
         try {
             val repository = FakeProgressRepository()
@@ -118,8 +169,10 @@ class ProgressViewModelTest {
 
             assertEquals(0, repository.refreshSummaryIfInvalidatedCallCount)
             assertEquals(0, repository.refreshSeriesIfInvalidatedCallCount)
+            assertEquals(0, repository.refreshReviewScheduleIfInvalidatedCallCount)
             assertEquals(1, repository.refreshSummaryManuallyCallCount)
             assertEquals(1, repository.refreshSeriesManuallyCallCount)
+            assertEquals(1, repository.refreshReviewScheduleManuallyCallCount)
         } finally {
             Dispatchers.resetMain()
         }
@@ -134,6 +187,9 @@ class ProgressViewModelTest {
                 progressRepository = repository
             )
 
+            repository.emitReviewScheduleSnapshot(
+                snapshot = createProgressReviewScheduleSnapshot()
+            )
             val baseSeriesSnapshot = createProgressSeriesSnapshot()
             repository.emitSeriesSnapshot(
                 snapshot = baseSeriesSnapshot.copy(
@@ -197,6 +253,9 @@ class ProgressViewModelTest {
                     )
                 )
             )
+            repository.emitReviewScheduleSnapshot(
+                snapshot = createProgressReviewScheduleSnapshot()
+            )
             advanceUntilIdle()
 
             val uiState = viewModel.uiState.value as ProgressUiState.Loaded
@@ -236,6 +295,9 @@ class ProgressViewModelTest {
                     )
                 )
             )
+            repository.emitReviewScheduleSnapshot(
+                snapshot = createProgressReviewScheduleSnapshot()
+            )
             advanceUntilIdle()
 
             val uiState = viewModel.uiState.value as ProgressUiState.Loaded
@@ -254,13 +316,18 @@ class ProgressViewModelTest {
 private class FakeProgressRepository : ProgressRepository {
     private val summarySnapshots = MutableStateFlow<ProgressSummarySnapshot?>(null)
     private val seriesSnapshots = MutableStateFlow<ProgressSeriesSnapshot?>(null)
+    private val reviewScheduleSnapshots = MutableStateFlow<ProgressReviewScheduleSnapshot?>(null)
     var refreshSummaryIfInvalidatedCallCount: Int = 0
         private set
     var refreshSeriesIfInvalidatedCallCount: Int = 0
         private set
+    var refreshReviewScheduleIfInvalidatedCallCount: Int = 0
+        private set
     var refreshSummaryManuallyCallCount: Int = 0
         private set
     var refreshSeriesManuallyCallCount: Int = 0
+        private set
+    var refreshReviewScheduleManuallyCallCount: Int = 0
         private set
 
     fun emitSummarySnapshot(
@@ -275,12 +342,22 @@ private class FakeProgressRepository : ProgressRepository {
         seriesSnapshots.value = snapshot
     }
 
+    fun emitReviewScheduleSnapshot(
+        snapshot: ProgressReviewScheduleSnapshot
+    ) {
+        reviewScheduleSnapshots.value = snapshot
+    }
+
     override fun observeSummarySnapshot(): Flow<ProgressSummarySnapshot?> {
         return summarySnapshots
     }
 
     override fun observeSeriesSnapshot(): Flow<ProgressSeriesSnapshot?> {
         return seriesSnapshots
+    }
+
+    override fun observeReviewScheduleSnapshot(): Flow<ProgressReviewScheduleSnapshot?> {
+        return reviewScheduleSnapshots
     }
 
     override suspend fun refreshSummaryIfInvalidated() {
@@ -291,12 +368,20 @@ private class FakeProgressRepository : ProgressRepository {
         refreshSeriesIfInvalidatedCallCount += 1
     }
 
+    override suspend fun refreshReviewScheduleIfInvalidated() {
+        refreshReviewScheduleIfInvalidatedCallCount += 1
+    }
+
     override suspend fun refreshSummaryManually() {
         refreshSummaryManuallyCallCount += 1
     }
 
     override suspend fun refreshSeriesManually() {
         refreshSeriesManuallyCallCount += 1
+    }
+
+    override suspend fun refreshReviewScheduleManually() {
+        refreshReviewScheduleManuallyCallCount += 1
     }
 }
 
@@ -377,6 +462,44 @@ private fun createProgressSeriesSnapshot(
             generatedAt = null,
             summary = null
         ),
+        source = ProgressSnapshotSource.LOCAL_ONLY,
+        isApproximate = true
+    )
+}
+
+private fun createProgressReviewScheduleSnapshot(): ProgressReviewScheduleSnapshot {
+    val scopeKey = ProgressReviewScheduleScopeKey(
+        scopeId = "local:installation-1",
+        timeZone = "Europe/Madrid",
+        workspaceMembershipKey = "workspace-1",
+        referenceLocalDate = "2026-04-18"
+    )
+    val schedule = CloudProgressReviewSchedule(
+        timeZone = scopeKey.timeZone,
+        generatedAt = null,
+        totalCards = 4,
+        buckets = ProgressReviewScheduleBucketKey.orderedEntries.map { key ->
+            CloudProgressReviewScheduleBucket(
+                key = key,
+                count = when (key) {
+                    ProgressReviewScheduleBucketKey.NEW -> 2
+                    ProgressReviewScheduleBucketKey.TODAY -> 1
+                    ProgressReviewScheduleBucketKey.DAYS_1_TO_7 -> 1
+                    ProgressReviewScheduleBucketKey.DAYS_8_TO_30,
+                    ProgressReviewScheduleBucketKey.DAYS_31_TO_90,
+                    ProgressReviewScheduleBucketKey.DAYS_91_TO_360,
+                    ProgressReviewScheduleBucketKey.YEARS_1_TO_2,
+                    ProgressReviewScheduleBucketKey.LATER -> 0
+                }
+            )
+        }
+    )
+
+    return ProgressReviewScheduleSnapshot(
+        scopeKey = scopeKey,
+        renderedSchedule = schedule,
+        localFallback = schedule,
+        serverBase = null,
         source = ProgressSnapshotSource.LOCAL_ONLY,
         isApproximate = true
     )

@@ -7,7 +7,9 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.data.local.model.CloudDailyReviewPoint
+import com.flashcardsopensourceapp.data.local.model.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.CloudProgressSeries
+import com.flashcardsopensourceapp.data.local.model.ProgressReviewScheduleSnapshot
 import com.flashcardsopensourceapp.data.local.model.ProgressSeriesSnapshot
 import com.flashcardsopensourceapp.data.local.model.ProgressSummarySnapshot
 import com.flashcardsopensourceapp.data.local.repository.ProgressRepository
@@ -40,11 +42,13 @@ class ProgressViewModel(
         viewModelScope.launch {
             combine(
                 progressRepository.observeSummarySnapshot(),
-                progressRepository.observeSeriesSnapshot()
-            ) { summarySnapshot, seriesSnapshot ->
+                progressRepository.observeSeriesSnapshot(),
+                progressRepository.observeReviewScheduleSnapshot()
+            ) { summarySnapshot, seriesSnapshot, reviewScheduleSnapshot ->
                 createProgressUiState(
                     summarySnapshot = summarySnapshot,
-                    seriesSnapshot = seriesSnapshot
+                    seriesSnapshot = seriesSnapshot,
+                    reviewScheduleSnapshot = reviewScheduleSnapshot
                 )
             }.collect { uiState ->
                 uiStateMutable.value = uiState
@@ -55,11 +59,13 @@ class ProgressViewModel(
     fun refreshIfInvalidated() {
         viewModelScope.launch { progressRepository.refreshSummaryIfInvalidated() }
         viewModelScope.launch { progressRepository.refreshSeriesIfInvalidated() }
+        viewModelScope.launch { progressRepository.refreshReviewScheduleIfInvalidated() }
     }
 
     fun refreshManually() {
         viewModelScope.launch { progressRepository.refreshSummaryManually() }
         viewModelScope.launch { progressRepository.refreshSeriesManually() }
+        viewModelScope.launch { progressRepository.refreshReviewScheduleManually() }
     }
 }
 
@@ -75,7 +81,8 @@ private data class ProgressWeekContext(
 
 private fun createProgressUiState(
     summarySnapshot: ProgressSummarySnapshot?,
-    seriesSnapshot: ProgressSeriesSnapshot?
+    seriesSnapshot: ProgressSeriesSnapshot?,
+    reviewScheduleSnapshot: ProgressReviewScheduleSnapshot?
 ): ProgressUiState {
     if (seriesSnapshot == null) {
         return ProgressUiState.Loading
@@ -84,12 +91,14 @@ private fun createProgressUiState(
     return runCatching {
         createLoadedProgressUiState(
             summarySnapshot = summarySnapshot,
-            seriesSnapshot = seriesSnapshot
+            seriesSnapshot = seriesSnapshot,
+            reviewScheduleSnapshot = reviewScheduleSnapshot
         )
     }.getOrElse { error ->
         logProgressUiStateMappingFailure(
             summarySnapshot = summarySnapshot,
             seriesSnapshot = seriesSnapshot,
+            reviewScheduleSnapshot = reviewScheduleSnapshot,
             error = error
         )
         ProgressUiState.Error(message = null)
@@ -98,20 +107,23 @@ private fun createProgressUiState(
 
 private fun createLoadedProgressUiState(
     summarySnapshot: ProgressSummarySnapshot?,
-    seriesSnapshot: ProgressSeriesSnapshot
+    seriesSnapshot: ProgressSeriesSnapshot,
+    reviewScheduleSnapshot: ProgressReviewScheduleSnapshot?
 ): ProgressUiState {
     val today = LocalDate.parse(seriesSnapshot.renderedSeries.to)
     return seriesSnapshot.renderedSeries.toUiState(
         locale = Locale.getDefault(),
         today = today,
-        summary = summarySnapshot?.toUiState() ?: ProgressSummaryUiState.Loading
+        summary = summarySnapshot?.toUiState() ?: ProgressSummaryUiState.Loading,
+        reviewSchedule = reviewScheduleSnapshot?.renderedSchedule?.toUiState()
     )
 }
 
 private fun CloudProgressSeries.toUiState(
     locale: Locale,
     today: LocalDate,
-    summary: ProgressSummaryUiState
+    summary: ProgressSummaryUiState,
+    reviewSchedule: ProgressReviewScheduleSectionUiState?
 ): ProgressUiState {
     val parsedPoints = dailyReviews
         .map { point ->
@@ -139,13 +151,32 @@ private fun CloudProgressSeries.toUiState(
     return ProgressUiState.Loaded(
         summary = summary,
         streakSection = streakSection,
-        reviewsSection = reviewsSection
+        reviewsSection = reviewsSection,
+        reviewScheduleSection = reviewSchedule
     )
 }
 
 private fun ProgressSummarySnapshot.toUiState(): ProgressSummaryUiState {
     return ProgressSummaryUiState.Loaded(
         summary = renderedSummary
+    )
+}
+
+private fun CloudProgressReviewSchedule.toUiState(): ProgressReviewScheduleSectionUiState {
+    return ProgressReviewScheduleSectionUiState(
+        totalCards = totalCards,
+        buckets = buckets.map { bucket ->
+            ProgressReviewScheduleBucketUiState(
+                key = bucket.key,
+                count = bucket.count,
+                percentage = if (totalCards == 0) {
+                    0f
+                } else {
+                    bucket.count.toFloat() / totalCards.toFloat()
+                }
+            )
+        },
+        hasCards = totalCards > 0
     )
 }
 
@@ -323,6 +354,7 @@ private fun ProgressWeekContext.isStartOfWeek(
 private fun logProgressUiStateMappingFailure(
     summarySnapshot: ProgressSummarySnapshot?,
     seriesSnapshot: ProgressSeriesSnapshot,
+    reviewScheduleSnapshot: ProgressReviewScheduleSnapshot?,
     error: Throwable
 ) {
     val message = buildProgressViewModelLogMessage(
@@ -333,6 +365,9 @@ private fun logProgressUiStateMappingFailure(
             "timeZone" to seriesSnapshot.scopeKey.timeZone,
             "from" to seriesSnapshot.scopeKey.from,
             "to" to seriesSnapshot.scopeKey.to,
+            "reviewScheduleScopeId" to reviewScheduleSnapshot?.scopeKey?.scopeId,
+            "reviewScheduleSource" to reviewScheduleSnapshot?.source?.name,
+            "reviewScheduleTotalCards" to reviewScheduleSnapshot?.renderedSchedule?.totalCards?.toString(),
             "source" to seriesSnapshot.source.name,
             "dailyReviewCount" to seriesSnapshot.renderedSeries.dailyReviews.size.toString()
         )

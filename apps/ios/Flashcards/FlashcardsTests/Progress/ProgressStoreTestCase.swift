@@ -148,6 +148,33 @@ class ProgressStoreTestCase: XCTestCase {
     ) throws -> ProgressStoreTestContext {
         let suiteName = "progress-merge-\(UUID().uuidString.lowercased())"
         let userDefaults = UserDefaults(suiteName: suiteName)!
+        return try self.makeProgressStoreContext(
+            database: database,
+            workspaceId: workspaceId,
+            installationId: installationId,
+            serverSummary: serverSummary,
+            serverSeries: serverSeries,
+            loadProgressSummaryError: loadProgressSummaryError,
+            loadProgressSeriesError: loadProgressSeriesError,
+            cloudState: cloudState,
+            suiteName: suiteName,
+            userDefaults: userDefaults
+        )
+    }
+
+    @MainActor
+    func makeProgressStoreContext(
+        database: LocalDatabase,
+        workspaceId: String,
+        installationId: String,
+        serverSummary: UserProgressSummary,
+        serverSeries: UserProgressSeries,
+        loadProgressSummaryError: Error?,
+        loadProgressSeriesError: Error?,
+        cloudState: CloudAccountState,
+        suiteName: String,
+        userDefaults: UserDefaults
+    ) throws -> ProgressStoreTestContext {
         let cloudSyncService = ProgressCloudSyncService(
             serverSummary: serverSummary,
             serverSeries: serverSeries,

@@ -102,6 +102,48 @@ struct UserProgressSeries: Codable, Hashable, Sendable {
     }
 }
 
+enum ReviewScheduleBucketKey: String, Codable, CaseIterable, Identifiable, Sendable {
+    case new
+    case today
+    case days1To7
+    case days8To30
+    case days31To90
+    case days91To360
+    case years1To2
+    case later
+
+    static let stableOrder: [ReviewScheduleBucketKey] = [
+        .new,
+        .today,
+        .days1To7,
+        .days8To30,
+        .days31To90,
+        .days91To360,
+        .years1To2,
+        .later,
+    ]
+
+    var id: String {
+        self.rawValue
+    }
+}
+
+struct ReviewScheduleBucket: Codable, Hashable, Identifiable, Sendable {
+    let key: ReviewScheduleBucketKey
+    let count: Int
+
+    var id: ReviewScheduleBucketKey {
+        self.key
+    }
+}
+
+struct UserReviewSchedule: Codable, Hashable, Sendable {
+    let timeZone: String
+    let generatedAt: String?
+    let totalCards: Int
+    let buckets: [ReviewScheduleBucket]
+}
+
 enum ProgressSourceState: String, Codable, Hashable, Sendable {
     case localOnly = "local_only"
     case serverBase = "server_base"
@@ -139,6 +181,28 @@ struct ProgressSummaryScopeKey: Codable, Hashable, Sendable {
     let timeZone: String
     /// Summary fields such as hasReviewedToday and currentStreakDays are relative to a local "today".
     /// Keep the cache keyed by that local date so yesterday's summary is never reused after midnight.
+    let referenceLocalDate: String
+
+    var storageKey: String {
+        let cloudStateKey = self.cloudState?.rawValue ?? "none"
+        let linkedUserIdKey = self.linkedUserId ?? "none"
+        return [
+            cloudStateKey,
+            linkedUserIdKey,
+            self.workspaceMembershipKey,
+            self.timeZone,
+            self.referenceLocalDate,
+        ].joined(separator: "|")
+    }
+}
+
+struct ReviewScheduleScopeKey: Codable, Hashable, Sendable {
+    let cloudState: CloudAccountState?
+    let linkedUserId: String?
+    let workspaceMembershipKey: String
+    let timeZone: String
+    /// Schedule buckets are relative to the user's local "today".
+    /// Keep the cache keyed by that local date so "Today" rotates cleanly after midnight.
     let referenceLocalDate: String
 
     var storageKey: String {
@@ -204,6 +268,14 @@ struct ProgressSnapshot: Hashable, Sendable {
     let generatedAt: String?
 }
 
+struct ReviewScheduleSnapshot: Hashable, Sendable {
+    let scopeKey: ReviewScheduleScopeKey
+    let schedule: UserReviewSchedule
+    let sourceState: ProgressSourceState
+    let isApproximate: Bool
+    let generatedAt: String?
+}
+
 struct ReviewProgressBadgeState: Hashable, Sendable {
     let streakDays: Int
     let hasReviewedToday: Bool
@@ -248,8 +320,13 @@ enum ProgressPresentationError: LocalizedError {
     case invalidTimeZone(String)
     case invalidRange(String, String)
     case negativeReviewCount(String, Int)
+    case duplicateReviewScheduleBucket(String)
+    case invalidReviewScheduleBucketOrder([String])
+    case negativeReviewScheduleBucketCount(String, Int)
+    case reviewScheduleTotalMismatch(expected: Int, actual: Int)
     case summaryMetadataMismatch(expectedTimeZone: String, actualTimeZone: String)
     case seriesMetadataMismatch(expected: ProgressScopeKey, actualTimeZone: String, actualFrom: String, actualTo: String)
+    case reviewScheduleMetadataMismatch(expectedTimeZone: String, actualTimeZone: String)
 
     var errorDescription: String? {
         switch self {
@@ -263,10 +340,20 @@ enum ProgressPresentationError: LocalizedError {
             return "Progress contained an invalid date range from \(from) to \(to)."
         case .negativeReviewCount(let localDate, let reviewCount):
             return "Progress contained a negative review count for \(localDate): \(reviewCount)."
+        case .duplicateReviewScheduleBucket(let bucketKey):
+            return "Review schedule contained a duplicate bucket: \(bucketKey)."
+        case .invalidReviewScheduleBucketOrder(let bucketKeys):
+            return "Review schedule bucket order is invalid: \(bucketKeys.joined(separator: ", "))."
+        case .negativeReviewScheduleBucketCount(let bucketKey, let count):
+            return "Review schedule contained a negative count for \(bucketKey): \(count)."
+        case .reviewScheduleTotalMismatch(let expected, let actual):
+            return "Review schedule totalCards mismatched bucket counts. Expected \(expected), received \(actual)."
         case .summaryMetadataMismatch(let expectedTimeZone, let actualTimeZone):
             return "Progress summary metadata mismatched the current scope. Expected \(expectedTimeZone), received \(actualTimeZone)."
         case .seriesMetadataMismatch(let expected, let actualTimeZone, let actualFrom, let actualTo):
             return "Progress series metadata mismatched the current scope. Expected \(expected.timeZone) \(expected.from)...\(expected.to), received \(actualTimeZone) \(actualFrom)...\(actualTo)."
+        case .reviewScheduleMetadataMismatch(let expectedTimeZone, let actualTimeZone):
+            return "Review schedule metadata mismatched the current scope. Expected \(expectedTimeZone), received \(actualTimeZone)."
         }
     }
 }
@@ -326,6 +413,22 @@ func makeProgressSnapshot(
         seriesSourceState: seriesSourceState,
         isApproximate: summarySourceState == .localOnly || seriesSourceState == .localOnly,
         generatedAt: series.generatedAt
+    )
+}
+
+func makeReviewScheduleSnapshot(
+    schedule: UserReviewSchedule,
+    scopeKey: ReviewScheduleScopeKey,
+    sourceState: ProgressSourceState
+) throws -> ReviewScheduleSnapshot {
+    try validateReviewSchedule(schedule: schedule, scopeKey: scopeKey)
+
+    return ReviewScheduleSnapshot(
+        scopeKey: scopeKey,
+        schedule: schedule,
+        sourceState: sourceState,
+        isApproximate: sourceState != .serverBase,
+        generatedAt: schedule.generatedAt
     )
 }
 
@@ -432,6 +535,20 @@ func makeProgressSeries(
     )
 }
 
+func makeReviewSchedule(
+    timeZone: String,
+    generatedAt: String?,
+    totalCards: Int,
+    buckets: [ReviewScheduleBucket]
+) -> UserReviewSchedule {
+    UserReviewSchedule(
+        timeZone: timeZone,
+        generatedAt: generatedAt,
+        totalCards: totalCards,
+        buckets: buckets
+    )
+}
+
 func validateProgressSummaryMetadata(
     summary: UserProgressSummary,
     scopeKey: ProgressSummaryScopeKey
@@ -444,6 +561,49 @@ func validateProgressSummaryMetadata(
         throw ProgressPresentationError.summaryMetadataMismatch(
             expectedTimeZone: scopeKey.timeZone,
             actualTimeZone: actualTimeZone
+        )
+    }
+}
+
+func validateReviewSchedule(
+    schedule: UserReviewSchedule,
+    scopeKey: ReviewScheduleScopeKey
+) throws {
+    guard schedule.timeZone == scopeKey.timeZone else {
+        throw ProgressPresentationError.reviewScheduleMetadataMismatch(
+            expectedTimeZone: scopeKey.timeZone,
+            actualTimeZone: schedule.timeZone
+        )
+    }
+
+    let actualKeys = schedule.buckets.map(\.key)
+    guard actualKeys == ReviewScheduleBucketKey.stableOrder else {
+        throw ProgressPresentationError.invalidReviewScheduleBucketOrder(
+            actualKeys.map(\.rawValue)
+        )
+    }
+
+    var seenKeys: Set<ReviewScheduleBucketKey> = []
+    var bucketCountSum = 0
+    for bucket in schedule.buckets {
+        guard seenKeys.insert(bucket.key).inserted else {
+            throw ProgressPresentationError.duplicateReviewScheduleBucket(bucket.key.rawValue)
+        }
+
+        guard bucket.count >= 0 else {
+            throw ProgressPresentationError.negativeReviewScheduleBucketCount(
+                bucket.key.rawValue,
+                bucket.count
+            )
+        }
+
+        bucketCountSum += bucket.count
+    }
+
+    guard schedule.totalCards == bucketCountSum else {
+        throw ProgressPresentationError.reviewScheduleTotalMismatch(
+            expected: bucketCountSum,
+            actual: schedule.totalCards
         )
     }
 }

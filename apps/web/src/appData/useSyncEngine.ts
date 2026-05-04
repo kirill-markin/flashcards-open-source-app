@@ -48,6 +48,7 @@ import type {
   Deck,
   SessionInfo,
   SyncBootstrapEntry,
+  SyncPushResult,
   UpdateCardInput,
   UpdateDeckInput,
   WorkspaceSchedulerSettings,
@@ -71,6 +72,7 @@ import {
   buildReviewedCard,
   buildUpdatedCard,
   buildUpdatedDeck,
+  doesCardMutationAffectReviewSchedule,
   getErrorMessage,
   normalizeCreateCardInput,
   normalizeCreateDeckInput,
@@ -79,7 +81,11 @@ import {
   nowIso,
   toReviewableCardState,
 } from "./domain";
-import { invalidateLocalProgress, invalidateProgress } from "./progress/progressInvalidation";
+import {
+  invalidateLocalProgress,
+  invalidateLocalReviewSchedule,
+  invalidateProgress,
+} from "./progress/progressInvalidation";
 import type { TestSeedCardInput, TestSeedRequest, TestSeedResult } from "./testSeedBridge";
 import type { SessionLoadState } from "./types";
 import type { SessionVerificationState } from "./warmStart";
@@ -164,6 +170,36 @@ function isProgressReviewEventOperation(
   record: PersistedOutboxRecord,
 ): boolean {
   return record.operation.entityType === "review_event" && record.operation.action === "append";
+}
+
+function isProgressReviewScheduleCardOperation(
+  record: PersistedOutboxRecord,
+): boolean {
+  return record.operation.entityType === "card"
+    && record.operation.action === "upsert"
+    && (record.affectsReviewSchedule ?? true);
+}
+
+function isAcknowledgedPushStatus(status: SyncPushResult["operations"][number]["status"]): boolean {
+  return status === "applied" || status === "ignored" || status === "duplicate";
+}
+
+async function doHotSyncEntriesAffectReviewSchedule(
+  workspaceId: string,
+  entries: ReadonlyArray<SyncBootstrapEntry>,
+): Promise<boolean> {
+  for (const entry of entries) {
+    if (entry.entityType !== "card") {
+      continue;
+    }
+
+    const existingCard = await loadCardById(workspaceId, entry.payload.cardId);
+    if (doesCardMutationAffectReviewSchedule(existingCard, entry.payload)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function requireSeedTimestamp(label: string, value: string): number {
@@ -323,6 +359,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     const syncTask = (async (): Promise<void> => {
       try {
         let didChangeProgressHistory = false;
+        let didChangeReviewSchedule = false;
         const cloudSettings = await loadCloudSettings();
         const installationId = requireCloudInstallationId(cloudSettings);
         const hotStateHydrated = await hasHydratedHotState(workspaceId);
@@ -338,6 +375,10 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
               bootstrapCursor,
               syncPageSize,
             );
+
+            if (await doHotSyncEntriesAffectReviewSchedule(workspaceId, bootstrapResult.entries)) {
+              didChangeReviewSchedule = true;
+            }
 
             await applyHotSyncPage(
               workspaceId,
@@ -369,6 +410,11 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         while (currentOutbox.length > 0) {
           const batch = currentOutbox.slice(0, 100);
           const batchIncludesProgressReviewEvents = batch.some(isProgressReviewEventOperation);
+          const reviewScheduleOperationIds = new Set(
+            batch
+              .filter(isProgressReviewScheduleCardOperation)
+              .map((record) => record.operationId),
+          );
           try {
             const pushResult = await pushSyncOperations(
               workspaceId,
@@ -379,8 +425,11 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
             );
 
             for (const result of pushResult.operations) {
-              if (result.status === "applied" || result.status === "ignored" || result.status === "duplicate") {
+              if (isAcknowledgedPushStatus(result.status)) {
                 await deleteOutboxRecord(workspaceId, result.operationId);
+                if (reviewScheduleOperationIds.has(result.operationId)) {
+                  didChangeReviewSchedule = true;
+                }
               }
             }
 
@@ -412,6 +461,10 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
             afterHotChangeId,
             syncPageSize,
           );
+
+          if (await doHotSyncEntriesAffectReviewSchedule(workspaceId, pullResult.changes)) {
+            didChangeReviewSchedule = true;
+          }
 
           await applyHotSyncPage(workspaceId, pullResult.changes, {
             lastAppliedHotChangeId: pullResult.nextHotChangeId,
@@ -463,6 +516,9 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         await refreshWorkspaceView(workspaceId);
         if (didChangeProgressHistory) {
           invalidateProgress();
+        }
+        if (didChangeReviewSchedule) {
+          invalidateLocalReviewSchedule();
         }
         setErrorMessage("");
       } catch (error) {
@@ -603,12 +659,14 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     const operationId = crypto.randomUUID().toLowerCase();
     const installationId = requireCloudInstallationId(await loadCloudSettings());
     const nextCard = buildInitialCard(normalizedInput, clientUpdatedAt, installationId, operationId);
+    const affectsReviewSchedule = doesCardMutationAffectReviewSchedule(null, nextCard);
     const nextOutboxRecord: PersistedOutboxRecord = {
       operationId,
       workspaceId: activeWorkspaceId,
       createdAt: clientUpdatedAt,
       attemptCount: 0,
       lastError: "",
+      affectsReviewSchedule,
       operation: buildCardUpsertOperation(nextCard),
     };
 
@@ -679,6 +737,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
       createdAt: reviewedAtClient,
       attemptCount: 0,
       lastError: "",
+      affectsReviewSchedule: doesCardMutationAffectReviewSchedule(existingCard, nextCard),
       operation: buildCardUpsertOperation(nextCard),
     };
 
@@ -696,6 +755,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
     const nextCard = await createCardItemLocally(input, nowIso());
     bumpLocalReadVersion();
+    invalidateLocalReviewSchedule();
     void runSyncForWorkspace(activeWorkspace);
     return nextCard;
   }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, createCardItemLocally, runSyncForWorkspace]);
@@ -740,18 +800,23 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     const operationId = crypto.randomUUID().toLowerCase();
     const installationId = requireCloudInstallationId(await loadCloudSettings());
     const nextCard = buildUpdatedCard(existingCard, normalizedInput, clientUpdatedAt, installationId, operationId);
+    const affectsReviewSchedule = doesCardMutationAffectReviewSchedule(existingCard, nextCard);
     const nextOutboxRecord: PersistedOutboxRecord = {
       operationId,
       workspaceId: activeWorkspaceId,
       createdAt: clientUpdatedAt,
       attemptCount: 0,
       lastError: "",
+      affectsReviewSchedule,
       operation: buildCardUpsertOperation(nextCard),
     };
 
     await putCard(activeWorkspaceId, nextCard);
     await putOutboxRecord(nextOutboxRecord);
     bumpLocalReadVersion();
+    if (affectsReviewSchedule) {
+      invalidateLocalReviewSchedule();
+    }
     void runSyncForWorkspace(activeWorkspace);
     return nextCard;
   }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runSyncForWorkspace]);
@@ -793,18 +858,23 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     const operationId = crypto.randomUUID().toLowerCase();
     const installationId = requireCloudInstallationId(await loadCloudSettings());
     const nextCard = buildDeletedCard(existingCard, clientUpdatedAt, installationId, operationId);
+    const affectsReviewSchedule = doesCardMutationAffectReviewSchedule(existingCard, nextCard);
     const nextOutboxRecord: PersistedOutboxRecord = {
       operationId,
       workspaceId: activeWorkspaceId,
       createdAt: clientUpdatedAt,
       attemptCount: 0,
       lastError: "",
+      affectsReviewSchedule,
       operation: buildCardUpsertOperation(nextCard),
     };
 
     await putCard(activeWorkspaceId, nextCard);
     await putOutboxRecord(nextOutboxRecord);
     bumpLocalReadVersion();
+    if (affectsReviewSchedule) {
+      invalidateLocalReviewSchedule();
+    }
     void runSyncForWorkspace(activeWorkspace);
     return nextCard;
   }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runSyncForWorkspace]);
@@ -846,6 +916,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     const nextCard = await submitReviewItemLocally(cardId, rating, nowIso());
     bumpLocalReadVersion();
     invalidateLocalProgress();
+    invalidateLocalReviewSchedule();
     void runSyncForWorkspace(activeWorkspace);
     return nextCard;
   }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runSyncForWorkspace, submitReviewItemLocally]);
@@ -887,6 +958,9 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     }
 
     bumpLocalReadVersion();
+    if (request.cards.length > 0) {
+      invalidateLocalReviewSchedule();
+    }
     if (didChangeProgressHistory) {
       invalidateLocalProgress();
     }

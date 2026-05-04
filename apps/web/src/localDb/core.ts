@@ -5,7 +5,7 @@ import type {
   ReviewEvent,
   WorkspaceSchedulerSettings,
 } from "../types";
-import { deriveDueAtMillis } from "../appData/dueAt";
+import { deriveDueAtBucketMillis, deriveDueAtMillis } from "../appData/dueAt";
 
 export type StoredCard = Readonly<{
   workspaceId: string;
@@ -16,6 +16,7 @@ export type StoredCard = Readonly<{
   effortLevel: Card["effortLevel"];
   dueAt: string | null;
   dueAtMillis: number | null;
+  dueAtBucketMillis: number;
   createdAt: string;
   reps: number;
   lapses: number;
@@ -78,11 +79,12 @@ export type DatabaseStores =
   | "meta";
 
 const databaseName = "flashcards-web-sync";
-const databaseVersion = 10;
+const databaseVersion = 12;
 
-type StoredCardDueAtMigrationRecord = Omit<StoredCard, "dueAt" | "dueAtMillis"> & Readonly<{
+type StoredCardDueAtMigrationRecord = Omit<StoredCard, "dueAt" | "dueAtMillis" | "dueAtBucketMillis"> & Readonly<{
   dueAt?: string | null;
   dueAtMillis?: number | null;
+  dueAtBucketMillis?: number;
 }>;
 
 function isQuotaExceededError(error: unknown): boolean {
@@ -132,6 +134,12 @@ function createCardsDueAtMillisIndex(cardsStore: IDBObjectStore): void {
   }
 }
 
+function createCardsDueAtBucketMillisIndex(cardsStore: IDBObjectStore): void {
+  if (!cardsStore.indexNames.contains("workspaceId_dueAtBucketMillis_cardId")) {
+    cardsStore.createIndex("workspaceId_dueAtBucketMillis_cardId", ["workspaceId", "dueAtBucketMillis", "cardId"], { unique: false });
+  }
+}
+
 function createCardsStore(database: IDBDatabase): void {
   const cardsStore = database.createObjectStore("cards", { keyPath: ["workspaceId", "cardId"] });
   cardsStore.createIndex("workspaceId_createdAt_cardId", ["workspaceId", "createdAt", "cardId"], { unique: false });
@@ -139,6 +147,7 @@ function createCardsStore(database: IDBDatabase): void {
   cardsStore.createIndex("workspaceId_dueAt_cardId", ["workspaceId", "dueAt", "cardId"], { unique: false });
   cardsStore.createIndex("workspaceId_effort_createdAt_cardId", ["workspaceId", "effortLevel", "createdAt", "cardId"], { unique: false });
   createCardsDueAtMillisIndex(cardsStore);
+  createCardsDueAtBucketMillisIndex(cardsStore);
   createCardsUpdatedAtIndexes(cardsStore);
 }
 
@@ -230,19 +239,20 @@ function upgradeToVersion9(database: IDBDatabase): void {
   }
 }
 
-function normalizeStoredCardDueAtMillis(record: StoredCardDueAtMigrationRecord): StoredCard {
+function normalizeStoredCardDueAtDerivedFields(record: StoredCardDueAtMigrationRecord): StoredCard {
   const dueAt = record.dueAt ?? null;
   return {
     ...record,
     dueAt,
     dueAtMillis: deriveDueAtMillis(dueAt),
+    dueAtBucketMillis: deriveDueAtBucketMillis(dueAt),
   };
 }
 
-function migrateCardsDueAtMillis(cardsStore: IDBObjectStore): void {
+function migrateCardsDueAtDerivedFields(cardsStore: IDBObjectStore, errorPrefix: string): void {
   const request = cardsStore.openCursor();
   request.onerror = () => {
-    throw describeIndexedDbError("IndexedDB dueAtMillis migration failed", request.error);
+    throw describeIndexedDbError(errorPrefix, request.error);
   };
   request.onsuccess = () => {
     const cursor = request.result;
@@ -250,15 +260,34 @@ function migrateCardsDueAtMillis(cardsStore: IDBObjectStore): void {
       return;
     }
 
-    cursor.update(normalizeStoredCardDueAtMillis(cursor.value as StoredCardDueAtMigrationRecord));
+    cursor.update(normalizeStoredCardDueAtDerivedFields(cursor.value as StoredCardDueAtMigrationRecord));
     cursor.continue();
   };
+}
+
+function migrateCardsDueAtMillis(cardsStore: IDBObjectStore): void {
+  migrateCardsDueAtDerivedFields(cardsStore, "IndexedDB dueAtMillis migration failed");
 }
 
 function upgradeToVersion10(transaction: IDBTransaction): void {
   const cardsStore = transaction.objectStore("cards");
   createCardsDueAtMillisIndex(cardsStore);
   migrateCardsDueAtMillis(cardsStore);
+}
+
+function migrateCardsDueAtBucketMillis(cardsStore: IDBObjectStore): void {
+  migrateCardsDueAtDerivedFields(cardsStore, "IndexedDB dueAtBucketMillis migration failed");
+}
+
+function upgradeToVersion11(transaction: IDBTransaction): void {
+  const cardsStore = transaction.objectStore("cards");
+  createCardsDueAtBucketMillisIndex(cardsStore);
+  migrateCardsDueAtBucketMillis(cardsStore);
+}
+
+function upgradeToVersion12(transaction: IDBTransaction): void {
+  const cardsStore = transaction.objectStore("cards");
+  migrateCardsDueAtDerivedFields(cardsStore, "IndexedDB dueAt sentinel migration failed");
 }
 
 export function openDatabase(): Promise<IDBDatabase> {
@@ -313,6 +342,24 @@ export function openDatabase(): Promise<IDBDatabase> {
         }
 
         upgradeToVersion10(transaction);
+      }
+
+      if (oldVersion < 11) {
+        const transaction = request.transaction;
+        if (transaction === null) {
+          throw new Error("IndexedDB upgrade transaction is unavailable");
+        }
+
+        upgradeToVersion11(transaction);
+      }
+
+      if (oldVersion < 12) {
+        const transaction = request.transaction;
+        if (transaction === null) {
+          throw new Error("IndexedDB upgrade transaction is unavailable");
+        }
+
+        upgradeToVersion12(transaction);
       }
     };
 

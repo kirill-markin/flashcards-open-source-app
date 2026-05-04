@@ -321,7 +321,8 @@ private suspend fun assertPendingGuestUpgradeBlocksLocalOutboxWrites(
     try {
         syncLocalStore.enqueueCardUpsert(
             card = createPendingGuestUpgradeBlockedCard(workspaceId = workspaceId),
-            tags = emptyList()
+            tags = emptyList(),
+            affectsReviewSchedule = true
         )
         throw AssertionError("Expected pending guest upgrade recovery to block local outbox writes.")
     } catch (error: IllegalStateException) {

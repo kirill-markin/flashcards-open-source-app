@@ -130,6 +130,21 @@ const esEsCatalog: TranslationCatalog = {
     previousWeek: "Semana anterior",
     nextWeek: "Semana siguiente",
     emptyWeek: "Todavía no hay repasos en esta semana.",
+    reviewSchedule: {
+      title: "Calendario de repasos",
+      totalCards: "Tarjetas totales: {{count}}",
+      legendLabel: "Intervalos del calendario de repasos",
+      buckets: {
+        new: "Nuevas",
+        today: "Hoy",
+        days1To7: "1-7 días",
+        days8To30: "8-30 días",
+        days31To90: "31-90 días",
+        days91To360: "91-360 días",
+        years1To2: "1-2 años",
+        later: "Más tarde",
+      },
+    },
     labels: {
       totalReviews: "Repasos totales",
       activeDays: "Días activos",

@@ -16,6 +16,7 @@ import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeReconciliation
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeSelection
 import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
+import com.flashcardsopensourceapp.data.local.model.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.CloudSendCodeResult
@@ -505,6 +506,14 @@ internal class FakeCloudRemoteGateway private constructor(
         from: String,
         to: String
     ): CloudProgressSeries {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun loadProgressReviewSchedule(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        timeZone: String
+    ): CloudProgressReviewSchedule {
         throw UnsupportedOperationException()
     }
 

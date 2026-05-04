@@ -128,6 +128,21 @@ const enCatalog = {
     previousWeek: "Previous week",
     nextWeek: "Next week",
     emptyWeek: "No reviews yet in this week.",
+    reviewSchedule: {
+      title: "Review schedule",
+      totalCards: "Total cards: {{count}}",
+      legendLabel: "Review schedule buckets",
+      buckets: {
+        new: "New",
+        today: "Today",
+        days1To7: "1-7 days",
+        days8To30: "8-30 days",
+        days31To90: "31-90 days",
+        days91To360: "91-360 days",
+        years1To2: "1-2 years",
+        later: "Later",
+      },
+    },
     labels: {
       totalReviews: "Total reviews",
       activeDays: "Active days",

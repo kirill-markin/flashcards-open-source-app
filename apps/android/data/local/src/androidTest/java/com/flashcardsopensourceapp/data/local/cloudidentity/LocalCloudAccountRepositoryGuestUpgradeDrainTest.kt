@@ -168,7 +168,8 @@ class LocalCloudAccountRepositoryGuestUpgradeDrainTest {
         try {
             syncLocalStore.enqueueCardUpsert(
                 card = createBlockedGuestUpgradeCard(workspaceId = guestWorkspaceId),
-                tags = emptyList()
+                tags = emptyList(),
+                affectsReviewSchedule = true
             )
             throw AssertionError("Expected guest upgrade drain to block local outbox writes.")
         } catch (error: IllegalStateException) {
@@ -254,7 +255,8 @@ class LocalCloudAccountRepositoryGuestUpgradeDrainTest {
                     releaseOutboxInsert.await()
                     syncLocalStore.enqueueCardUpsert(
                         card = createBlockedGuestUpgradeCard(workspaceId = guestWorkspaceId),
-                        tags = emptyList()
+                        tags = emptyList(),
+                        affectsReviewSchedule = true
                     )
                     outboxInsertedInsideTransaction.complete(Unit)
                     releaseTransactionCommit.await()

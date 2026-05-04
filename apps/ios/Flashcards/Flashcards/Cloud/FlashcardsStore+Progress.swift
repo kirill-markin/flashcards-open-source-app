@@ -60,10 +60,12 @@ extension FlashcardsStore {
         do {
             let scopeKey = try self.prepareProgressSnapshot(now: now)
             let summaryScopeKey = progressSummaryScopeKey(seriesScopeKey: scopeKey)
+            let scheduleScopeKey = reviewScheduleScopeKey(seriesScopeKey: scopeKey)
             let shouldRefreshSummary = self.shouldRefreshProgressSummary(scopeKey: summaryScopeKey)
             let shouldRefreshSeries = self.shouldRefreshProgressSeries(scopeKey: scopeKey)
+            let shouldRefreshReviewSchedule = self.shouldRefreshProgressReviewSchedule(scopeKey: scheduleScopeKey)
 
-            guard shouldRefreshSummary || shouldRefreshSeries else {
+            guard shouldRefreshSummary || shouldRefreshSeries || shouldRefreshReviewSchedule else {
                 return
             }
 
@@ -71,30 +73,40 @@ extension FlashcardsStore {
                 return
             }
 
-            if shouldRefreshSummary && shouldRefreshSeries {
-                async let refreshSummary: Void = self.refreshProgressSummaryServerBase(
-                    scopeKey: summaryScopeKey,
-                    linkedSession: activeSession
-                )
-                async let refreshSeries: Void = self.refreshProgressSeriesServerBase(
-                    scopeKey: scopeKey,
-                    linkedSession: activeSession
-                )
-                _ = await (refreshSummary, refreshSeries)
-            } else if shouldRefreshSummary {
-                await self.refreshProgressSummaryServerBase(
-                    scopeKey: summaryScopeKey,
-                    linkedSession: activeSession
-                )
-            } else {
-                await self.refreshProgressSeriesServerBase(
-                    scopeKey: scopeKey,
+            if shouldRefreshSummary || shouldRefreshSeries {
+                if shouldRefreshSummary && shouldRefreshSeries {
+                    async let refreshSummary: Void = self.refreshProgressSummaryServerBase(
+                        scopeKey: summaryScopeKey,
+                        linkedSession: activeSession
+                    )
+                    async let refreshSeries: Void = self.refreshProgressSeriesServerBase(
+                        scopeKey: scopeKey,
+                        linkedSession: activeSession
+                    )
+                    _ = await (refreshSummary, refreshSeries)
+                } else if shouldRefreshSummary {
+                    await self.refreshProgressSummaryServerBase(
+                        scopeKey: summaryScopeKey,
+                        linkedSession: activeSession
+                    )
+                } else if shouldRefreshSeries {
+                    await self.refreshProgressSeriesServerBase(
+                        scopeKey: scopeKey,
+                        linkedSession: activeSession
+                    )
+                }
+            }
+
+            if shouldRefreshReviewSchedule {
+                await self.refreshProgressReviewScheduleServerBase(
+                    scopeKey: scheduleScopeKey,
                     linkedSession: activeSession
                 )
             }
 
             if self.progressObservedScopeKey == scopeKey {
                 try self.publishProgressSnapshot(scopeKey: scopeKey)
+                self.publishReviewScheduleSnapshotIsolatingErrors(scopeKey: scheduleScopeKey)
             }
         } catch {
             if isRequestCancellationError(error: error) {
@@ -109,6 +121,7 @@ extension FlashcardsStore {
         do {
             let scopeKey = try self.prepareProgressSnapshot(now: now)
             let summaryScopeKey = progressSummaryScopeKey(seriesScopeKey: scopeKey)
+            let scheduleScopeKey = reviewScheduleScopeKey(seriesScopeKey: scopeKey)
 
             self.invalidateProgress(scopeKey: scopeKey, summaryScopeKey: summaryScopeKey)
             guard let activeSession = self.activeProgressCloudSession(scopeKey: scopeKey) else {
@@ -123,7 +136,11 @@ extension FlashcardsStore {
                 scopeKey: scopeKey,
                 linkedSession: activeSession
             )
-            _ = await (refreshSummary, refreshSeries)
+            async let refreshReviewSchedule: Void = self.refreshProgressReviewScheduleServerBase(
+                scopeKey: scheduleScopeKey,
+                linkedSession: activeSession
+            )
+            _ = await (refreshSummary, refreshSeries, refreshReviewSchedule)
         } catch {
             if isRequestCancellationError(error: error) {
                 return
@@ -143,11 +160,16 @@ extension FlashcardsStore {
     ) {
         do {
             let scopeKey = try self.prepareProgressScope(now: now)
-            self.invalidateProgress(
+            let scheduleScopeKey = reviewScheduleScopeKey(seriesScopeKey: scopeKey)
+            self.invalidateProgressSummaryAndSeries(
                 scopeKey: scopeKey,
                 summaryScopeKey: progressSummaryScopeKey(seriesScopeKey: scopeKey)
             )
+            self.markProgressReviewSchedulePendingLocalOverlay(scopeKey: scheduleScopeKey)
             try self.publishReviewProgressBadgeState(scopeKey: scopeKey)
+            self.publishReviewScheduleSnapshotIsolatingErrors(
+                scopeKey: scheduleScopeKey
+            )
 
             guard let progressSnapshot = self.progressSnapshot else {
                 self.clearProgressErrorMessage()
@@ -166,6 +188,21 @@ extension FlashcardsStore {
         }
     }
 
+    func handleReviewScheduleLocalCardStateDidChange(now: Date) {
+        do {
+            let scopeKey = try self.prepareProgressScope(now: now)
+            let scheduleScopeKey = reviewScheduleScopeKey(seriesScopeKey: scopeKey)
+            self.markProgressReviewSchedulePendingLocalOverlay(scopeKey: scheduleScopeKey)
+            guard self.currentVisibleTab == .progress else {
+                return
+            }
+
+            self.publishReviewScheduleSnapshotIsolatingErrors(scopeKey: scheduleScopeKey)
+        } catch {
+            self.replaceProgressErrorMessage(message: Flashcards.errorMessage(error: error))
+        }
+    }
+
     func handleProgressSyncCompletion(
         now: Date,
         syncResult: CloudSyncResult
@@ -179,16 +216,29 @@ extension FlashcardsStore {
                 scopeKey = try self.prepareProgressSnapshot(now: now)
             }
             let summaryScopeKey = progressSummaryScopeKey(seriesScopeKey: scopeKey)
+            let scheduleScopeKey = reviewScheduleScopeKey(seriesScopeKey: scopeKey)
 
-            guard syncResult.reviewProgressDataChanged else {
+            let reviewScheduleDataChanged = syncResult.reviewScheduleDataChanged
+            guard syncResult.reviewProgressDataChanged || reviewScheduleDataChanged else {
                 return
             }
 
-            self.invalidateProgress(scopeKey: scopeKey, summaryScopeKey: summaryScopeKey)
-            if isReviewVisible {
-                try self.publishReviewProgressBadgeState(scopeKey: scopeKey)
-            } else if self.progressSummaryServerBaseCache == nil || self.progressSeriesServerBaseCache == nil {
-                try self.publishProgressSnapshot(scopeKey: scopeKey)
+            if syncResult.reviewProgressDataChanged {
+                self.invalidateProgressSummaryAndSeries(scopeKey: scopeKey, summaryScopeKey: summaryScopeKey)
+                if reviewScheduleDataChanged {
+                    self.invalidateProgressReviewSchedule(scopeKey: scheduleScopeKey)
+                }
+                if isReviewVisible {
+                    try self.publishReviewProgressBadgeState(scopeKey: scopeKey)
+                } else if self.progressSummaryServerBaseCache == nil || self.progressSeriesServerBaseCache == nil {
+                    try self.publishProgressSnapshot(scopeKey: scopeKey)
+                }
+            } else {
+                self.invalidateProgressReviewSchedule(scopeKey: scheduleScopeKey)
+            }
+
+            if reviewScheduleDataChanged && isReviewVisible == false {
+                self.publishReviewScheduleSnapshotIsolatingErrors(scopeKey: scheduleScopeKey)
             }
 
             guard isProgressConsumerTab(tab: self.currentVisibleTab) else {

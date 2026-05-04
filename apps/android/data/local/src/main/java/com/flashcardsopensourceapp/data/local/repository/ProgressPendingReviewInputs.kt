@@ -67,6 +67,19 @@ internal fun createProgressPendingReviewLocalDates(
     }
 }
 
+internal fun hasPendingProgressReviewScheduleCardChanges(
+    pendingCardUpsertOutboxEntries: List<OutboxEntryEntity>,
+    workspaceIds: List<String>
+): Boolean {
+    val workspaceIdSet = workspaceIds.toSet()
+    return pendingCardUpsertOutboxEntries.any { entry ->
+        workspaceIdSet.contains(entry.workspaceId) &&
+            entry.entityType == "card" &&
+            entry.operationType == "upsert" &&
+            entry.affectsReviewSchedule
+    }
+}
+
 private fun OutboxEntryEntity.toPendingReviewLocalDate(
     zoneId: ZoneId
 ): String {

@@ -6,6 +6,7 @@ import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeCompletion
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeSelection
 import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
+import com.flashcardsopensourceapp.data.local.model.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.CloudSendCodeResult
@@ -89,6 +90,11 @@ interface CloudRemoteGateway {
         from: String,
         to: String
     ): CloudProgressSeries
+    suspend fun loadProgressReviewSchedule(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        timeZone: String
+    ): CloudProgressReviewSchedule
 
     suspend fun deleteAccount(apiBaseUrl: String, bearerToken: String, confirmationText: String)
     suspend fun listAgentConnections(apiBaseUrl: String, bearerToken: String): AgentApiKeyConnectionsResult
