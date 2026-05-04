@@ -302,7 +302,10 @@ struct CloudSyncRunner {
             acknowledgedReviewScheduleImpactingOperationCount: 0,
             cleanedUpOperationCount: deletionSummary.operationCount,
             cleanedUpReviewEventOperationCount: deletionSummary.operationCount,
-            cleanedUpReviewScheduleImpactingOperationCount: deletionSummary.reviewScheduleImpactingOperationCount
+            // Review-event outbox rows are always enqueued non-impacting (see
+            // OutboxStore.enqueueReviewEventAppendOperation), so cleanup never
+            // touches the schedule-impacting counter.
+            cleanedUpReviewScheduleImpactingOperationCount: 0
         )
     }
 
@@ -625,8 +628,11 @@ struct CloudSyncRunner {
                 )
             }
 
+            // Only the network call goes through the transport-failure catch so we don't
+            // double-bump attempt_count when handling per-operation rejections below.
+            let pushResponse: SyncPushResponse
             do {
-                let pushResponse: SyncPushResponse = try await self.transport.request(
+                pushResponse = try await self.transport.request(
                     apiBaseUrl: linkedSession.apiBaseUrl,
                     authorizationHeader: linkedSession.authorization.headerValue,
                     path: "\(syncBasePath)/push",
@@ -640,53 +646,53 @@ struct CloudSyncRunner {
                         }
                     )
                 )
-
-                let acknowledgedOperationIds = pushResponse.operations.compactMap { result -> String? in
-                    switch result.status {
-                    case "applied", "ignored", "duplicate":
-                        return result.operationId
-                    case "rejected":
-                        return nil
-                    default:
-                        return nil
-                    }
-                }
-                let rejectedResults = pushResponse.operations.filter { result in
-                    result.status == "rejected"
-                }
-
-                if acknowledgedOperationIds.isEmpty == false {
-                    let acknowledgedOperationIdSet = Set(acknowledgedOperationIds)
-                    let acknowledgedReviewEventCount = outboxEntries.filter { entry in
-                        acknowledgedOperationIdSet.contains(entry.operationId)
-                            && entry.operation.entityType == .reviewEvent
-                    }.count
-                    let acknowledgedReviewScheduleImpactingCount = outboxEntries.filter { entry in
-                        acknowledgedOperationIdSet.contains(entry.operationId) && entry.reviewScheduleImpact
-                    }.count
-                    try self.database.deleteOutboxEntries(operationIds: acknowledgedOperationIds)
-                    acknowledgedOperationCount += acknowledgedOperationIds.count
-                    acknowledgedReviewEventOperationCount += acknowledgedReviewEventCount
-                    acknowledgedReviewScheduleImpactingOperationCount += acknowledgedReviewScheduleImpactingCount
-                }
-
-                if rejectedResults.isEmpty == false {
-                    let rejectionMessage = rejectedResults.map { result in
-                        let errorMessage = result.error ?? "Unknown rejection"
-                        return "\(result.operationId): \(errorMessage)"
-                    }.joined(separator: "; ")
-                    try self.database.markOutboxEntriesFailed(
-                        operationIds: rejectedResults.map(\.operationId),
-                        message: rejectionMessage
-                    )
-                    throw LocalStoreError.validation("Cloud sync rejected one or more operations: \(rejectionMessage)")
-                }
             } catch {
                 try self.database.markOutboxEntriesFailed(
                     operationIds: outboxEntries.map(\.operationId),
                     message: error.localizedDescription
                 )
                 throw error
+            }
+
+            let acknowledgedOperationIds = pushResponse.operations.compactMap { result -> String? in
+                switch result.status {
+                case "applied", "ignored", "duplicate":
+                    return result.operationId
+                case "rejected":
+                    return nil
+                default:
+                    return nil
+                }
+            }
+            let rejectedResults = pushResponse.operations.filter { result in
+                result.status == "rejected"
+            }
+
+            if acknowledgedOperationIds.isEmpty == false {
+                let acknowledgedOperationIdSet = Set(acknowledgedOperationIds)
+                let acknowledgedReviewEventCount = outboxEntries.filter { entry in
+                    acknowledgedOperationIdSet.contains(entry.operationId)
+                        && entry.operation.entityType == .reviewEvent
+                }.count
+                let acknowledgedReviewScheduleImpactingCount = outboxEntries.filter { entry in
+                    acknowledgedOperationIdSet.contains(entry.operationId) && entry.reviewScheduleImpact
+                }.count
+                try self.database.deleteOutboxEntries(operationIds: acknowledgedOperationIds)
+                acknowledgedOperationCount += acknowledgedOperationIds.count
+                acknowledgedReviewEventOperationCount += acknowledgedReviewEventCount
+                acknowledgedReviewScheduleImpactingOperationCount += acknowledgedReviewScheduleImpactingCount
+            }
+
+            if rejectedResults.isEmpty == false {
+                let rejectionMessage = rejectedResults.map { result in
+                    let errorMessage = result.error ?? "Unknown rejection"
+                    return "\(result.operationId): \(errorMessage)"
+                }.joined(separator: "; ")
+                try self.database.markOutboxEntriesFailed(
+                    operationIds: rejectedResults.map(\.operationId),
+                    message: rejectionMessage
+                )
+                throw LocalStoreError.validation("Cloud sync rejected one or more operations: \(rejectionMessage)")
             }
         }
     }
