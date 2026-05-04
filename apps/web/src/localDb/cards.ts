@@ -7,7 +7,7 @@ import {
   matchesCardFilter,
   matchesDeckFilterDefinition,
 } from "../appData/domain";
-import { deriveDueAtMillis } from "../appData/dueAt";
+import { deriveDueAtBucketMillis, deriveDueAtMillis } from "../appData/dueAt";
 import { loadAllowedCardIdsForTags, putCardTagRecords, writeCardTagRecords } from "./cardTags";
 import {
   closeDatabaseAfter,
@@ -48,6 +48,7 @@ function toStoredCard(workspaceId: string, card: Card): StoredCard {
     // TODO: Drop boundary-facing legacy dueAt after the domain/wire split.
     dueAt: card.dueAt,
     dueAtMillis: deriveDueAtMillis(card.dueAt),
+    dueAtBucketMillis: deriveDueAtBucketMillis(card.dueAt),
     createdAt: card.createdAt,
     reps: card.reps,
     lapses: card.lapses,

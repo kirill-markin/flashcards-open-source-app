@@ -18,6 +18,11 @@ enum ProgressPendingLocalOverlayState: Hashable, Sendable {
     case present
 }
 
+enum ReviewScheduleLocalCoverage: Hashable, Sendable {
+    case userWide
+    case partialOrUnknown
+}
+
 struct ProgressRenderedSummary: Hashable, Sendable {
     let summary: ProgressSummary
     let sourceState: ProgressSourceState
@@ -28,8 +33,23 @@ struct ProgressRenderedSeries: Hashable, Sendable {
     let sourceState: ProgressSourceState
 }
 
+struct ProgressRenderedReviewSchedule: Hashable, Sendable {
+    let schedule: UserReviewSchedule
+    let sourceState: ProgressSourceState
+}
+
 func progressSummaryScopeKey(seriesScopeKey: ProgressScopeKey) -> ProgressSummaryScopeKey {
     ProgressSummaryScopeKey(
+        cloudState: seriesScopeKey.cloudState,
+        linkedUserId: seriesScopeKey.linkedUserId,
+        workspaceMembershipKey: seriesScopeKey.workspaceMembershipKey,
+        timeZone: seriesScopeKey.timeZone,
+        referenceLocalDate: seriesScopeKey.to
+    )
+}
+
+func reviewScheduleScopeKey(seriesScopeKey: ProgressScopeKey) -> ReviewScheduleScopeKey {
+    ReviewScheduleScopeKey(
         cloudState: seriesScopeKey.cloudState,
         linkedUserId: seriesScopeKey.linkedUserId,
         workspaceMembershipKey: seriesScopeKey.workspaceMembershipKey,
@@ -88,6 +108,43 @@ func makeProgressRenderedSeries(
         ),
         sourceState: progressSeriesSourceState(pendingLocalOverlayState: pendingLocalOverlayState)
     )
+}
+
+func makeProgressRenderedReviewSchedule(
+    serverBase: PersistedReviewScheduleServerBase?,
+    scopeKey: ReviewScheduleScopeKey,
+    localFallbackSchedule: UserReviewSchedule,
+    localFallbackCoverage: ReviewScheduleLocalCoverage,
+    pendingLocalOverlayState: ProgressPendingLocalOverlayState
+) -> ProgressRenderedReviewSchedule {
+    guard let serverBaseSchedule = serverBase?.serverBase,
+          serverBase?.scopeKey == scopeKey else {
+        return ProgressRenderedReviewSchedule(
+            schedule: localFallbackSchedule,
+            sourceState: .localOnly
+        )
+    }
+
+    switch pendingLocalOverlayState {
+    case .present:
+        let schedule: UserReviewSchedule
+        switch localFallbackCoverage {
+        case .userWide:
+            schedule = localFallbackSchedule
+        case .partialOrUnknown:
+            schedule = serverBaseSchedule
+        }
+
+        return ProgressRenderedReviewSchedule(
+            schedule: schedule,
+            sourceState: .serverBaseWithPendingLocalOverlay
+        )
+    case .empty:
+        return ProgressRenderedReviewSchedule(
+            schedule: serverBaseSchedule,
+            sourceState: .serverBase
+        )
+    }
 }
 
 private func progressSeriesSourceState(

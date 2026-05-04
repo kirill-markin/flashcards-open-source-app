@@ -53,6 +53,9 @@ struct LocalDatabaseMigrator {
             case 12:
                 try self.migrateSchemaVersion12To13()
                 schemaVersion = 13
+            case 13:
+                try self.migrateSchemaVersion13To14()
+                schemaVersion = 14
             default:
                 throw LocalStoreError.database("Unsupported local schema version: \(schemaVersion)")
             }
@@ -434,6 +437,33 @@ struct LocalDatabaseMigrator {
         try self.core.execute(sql: "DROP INDEX IF EXISTS idx_cards_workspace_due_active", values: [])
         try self.core.execute(sql: "DROP INDEX IF EXISTS idx_cards_workspace_due_created_active", values: [])
         try self.createDueAtMillisIndexes()
+    }
+
+    private func migrateSchemaVersion13To14() throws {
+        if try self.core.columnExists(tableName: "outbox", columnName: "review_schedule_impact") {
+            try self.backfillLegacyOutboxReviewScheduleImpact()
+            return
+        }
+
+        try self.core.execute(
+            sql: """
+            ALTER TABLE outbox
+            ADD COLUMN review_schedule_impact INTEGER NOT NULL DEFAULT 1 CHECK (review_schedule_impact IN (0, 1))
+            """,
+            values: []
+        )
+        try self.backfillLegacyOutboxReviewScheduleImpact()
+    }
+
+    private func backfillLegacyOutboxReviewScheduleImpact() throws {
+        try self.core.execute(
+            sql: """
+            UPDATE outbox
+            SET review_schedule_impact = 0
+            WHERE entity_type IN ('deck', 'workspace_scheduler_settings', 'review_event')
+            """,
+            values: []
+        )
     }
 
     private func populateDueAtMillisFromDueAtText() throws {

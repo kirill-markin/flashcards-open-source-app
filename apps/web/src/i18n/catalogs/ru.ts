@@ -130,6 +130,21 @@ export const ruCatalog = {
     previousWeek: "Предыдущая неделя",
     nextWeek: "Следующая неделя",
     emptyWeek: "На этой неделе пока нет повторений.",
+    reviewSchedule: {
+      title: "Расписание повторений",
+      totalCards: "Всего карточек: {{count}}",
+      legendLabel: "Интервалы расписания повторений",
+      buckets: {
+        new: "Новые",
+        today: "Сегодня",
+        days1To7: "1-7 дней",
+        days8To30: "8-30 дней",
+        days31To90: "31-90 дней",
+        days91To360: "91-360 дней",
+        years1To2: "1-2 года",
+        later: "Позже",
+      },
+    },
     labels: {
       totalReviews: "Всего повторений",
       activeDays: "Активные дни",

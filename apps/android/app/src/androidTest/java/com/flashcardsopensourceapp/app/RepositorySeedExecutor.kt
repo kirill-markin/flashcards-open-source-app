@@ -165,7 +165,11 @@ internal class RepositorySeedExecutor(
                 cardId = cardId,
                 tags = seedCard.tags
             )
-            appGraph.syncLocalStore.enqueueCardUpsert(card = card, tags = resolvedTags)
+            appGraph.syncLocalStore.enqueueCardUpsert(
+                card = card,
+                tags = resolvedTags,
+                affectsReviewSchedule = true
+            )
             resolvedTags
         }
         return RepositorySeededCard(

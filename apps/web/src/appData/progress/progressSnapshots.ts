@@ -1,6 +1,10 @@
 import type {
   DailyReviewPoint,
   ProgressChartData,
+  ProgressReviewSchedule,
+  ProgressReviewScheduleBucket,
+  ProgressReviewScheduleSnapshot,
+  ProgressReviewScheduleSourceState,
   ProgressSeries,
   ProgressSeriesInput,
   ProgressSeriesSnapshot,
@@ -93,6 +97,21 @@ export function createProgressSeriesSnapshot(
   };
 }
 
+export function createProgressReviewScheduleSnapshot(
+  reviewSchedule: ProgressReviewSchedule,
+  source: ProgressReviewScheduleSnapshot["source"],
+  isApproximate: boolean,
+): ProgressReviewScheduleSnapshot {
+  return {
+    timeZone: reviewSchedule.timeZone,
+    generatedAt: reviewSchedule.generatedAt,
+    totalCards: reviewSchedule.totalCards,
+    buckets: reviewSchedule.buckets,
+    source,
+    isApproximate,
+  };
+}
+
 export function buildLocalFallbackSeries(
   input: ProgressSeriesInput,
   dailyReviews: ReadonlyArray<DailyReviewPoint>,
@@ -145,6 +164,26 @@ function hasPendingOverlayActivity(overlay: ProgressChartData | null): boolean {
   return overlay?.dailyReviews.some((day) => day.reviewCount > 0) ?? false;
 }
 
+function isProgressReviewScheduleServerBaseStale(
+  serverBaseProgressScheduleLocalVersion: number | null,
+  progressScheduleLocalVersion: number,
+): boolean {
+  return serverBaseProgressScheduleLocalVersion !== null
+    && serverBaseProgressScheduleLocalVersion < progressScheduleLocalVersion;
+}
+
+function canRenderLocalReviewScheduleForServerBase(
+  serverBase: ProgressReviewScheduleSnapshot | null,
+  localFallback: ProgressReviewScheduleSnapshot | null,
+  hasCompleteLocalCardState: boolean,
+  localCardTotalDelta: number,
+): boolean {
+  return serverBase !== null
+    && hasCompleteLocalCardState
+    && localFallback !== null
+    && localFallback.totalCards - localCardTotalDelta === serverBase.totalCards;
+}
+
 function buildRenderedSummary(
   serverBase: ProgressSummarySnapshot | null,
   localFallback: ProgressSummarySnapshot | null,
@@ -170,6 +209,118 @@ function buildRenderedSeries(
   }
 
   return localFallback;
+}
+
+function buildRenderedReviewSchedule(
+  serverBase: ProgressReviewScheduleSnapshot | null,
+  localFallback: ProgressReviewScheduleSnapshot | null,
+  hasPendingLocalCardChanges: boolean,
+  hasCompleteLocalCardState: boolean,
+  pendingLocalCardTotalDelta: number,
+  progressScheduleLocalVersion: number,
+  serverBaseProgressScheduleLocalVersion: number | null,
+  serverBaseLocalCardTotalDelta: number,
+  canRenderServerBase: boolean,
+): ProgressReviewScheduleSnapshot | null {
+  if (canRenderServerBase && serverBase !== null) {
+    if (hasPendingLocalCardChanges && canRenderLocalReviewScheduleForServerBase(
+      serverBase,
+      localFallback,
+      hasCompleteLocalCardState,
+      pendingLocalCardTotalDelta,
+    )) {
+      return localFallback;
+    }
+
+    if (isProgressReviewScheduleServerBaseStale(
+      serverBaseProgressScheduleLocalVersion,
+      progressScheduleLocalVersion,
+    ) && canRenderLocalReviewScheduleForServerBase(
+      serverBase,
+      localFallback,
+      hasCompleteLocalCardState,
+      serverBaseLocalCardTotalDelta,
+    )) {
+      return localFallback;
+    }
+
+    if (hasPendingLocalCardChanges) {
+      return createProgressReviewScheduleSnapshot(serverBase, "server", true);
+    }
+
+    return serverBase;
+  }
+
+  return localFallback;
+}
+
+export function resolveProgressReviewScheduleServerBaseLocalCardTotalDelta(
+  currentState: ProgressReviewScheduleSourceState,
+  localFallback: ProgressReviewScheduleSnapshot,
+  hasCompleteLocalCardState: boolean,
+  pendingLocalCardTotalDelta: number,
+  progressScheduleLocalVersion: number,
+): number {
+  const serverBase = currentState.serverBase;
+  const serverBaseProgressScheduleLocalVersion = currentState.serverBaseProgressScheduleLocalVersion;
+  if (
+    serverBase === null
+    || serverBaseProgressScheduleLocalVersion === null
+    || isProgressReviewScheduleServerBaseStale(
+      serverBaseProgressScheduleLocalVersion,
+      progressScheduleLocalVersion,
+    ) === false
+  ) {
+    return 0;
+  }
+
+  if (canRenderLocalReviewScheduleForServerBase(
+    serverBase,
+    localFallback,
+    hasCompleteLocalCardState,
+    pendingLocalCardTotalDelta,
+  )) {
+    return pendingLocalCardTotalDelta;
+  }
+
+  if (canRenderLocalReviewScheduleForServerBase(
+    serverBase,
+    currentState.localFallback,
+    currentState.hasCompleteLocalCardState,
+    currentState.serverBaseLocalCardTotalDelta,
+  )) {
+    return localFallback.totalCards - serverBase.totalCards;
+  }
+
+  if (canRenderLocalReviewScheduleForServerBase(
+    serverBase,
+    localFallback,
+    hasCompleteLocalCardState,
+    currentState.serverBaseLocalCardTotalDelta,
+  )) {
+    return currentState.serverBaseLocalCardTotalDelta;
+  }
+
+  return 0;
+}
+
+export function resolveProgressReviewScheduleLoadedServerBaseLocalCardTotalDelta(
+  currentState: ProgressReviewScheduleSourceState,
+  serverBase: ProgressReviewScheduleSnapshot,
+): number {
+  if (
+    currentState.hasPendingLocalCardChanges
+    && canRenderLocalReviewScheduleForServerBase(
+      serverBase,
+      currentState.localFallback,
+      currentState.hasCompleteLocalCardState,
+      currentState.pendingLocalCardTotalDelta,
+    )
+  ) {
+    return currentState.pendingLocalCardTotalDelta;
+  }
+
+  return 0;
 }
 
 function areDailyReviewsEqual(
@@ -278,6 +429,61 @@ function areProgressSeriesSnapshotsEqual(
     && left.isApproximate === right.isApproximate;
 }
 
+function areProgressReviewScheduleBucketsEqual(
+  left: ReadonlyArray<ProgressReviewScheduleBucket>,
+  right: ReadonlyArray<ProgressReviewScheduleBucket>,
+): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  for (let index = 0; index < left.length; index += 1) {
+    const leftBucket = left[index];
+    const rightBucket = right[index];
+
+    if (leftBucket?.key !== rightBucket?.key || leftBucket?.count !== rightBucket?.count) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function areProgressReviewSchedulesEqual(
+  left: ProgressReviewSchedule | null,
+  right: ProgressReviewSchedule | null,
+): boolean {
+  if (left === right) {
+    return true;
+  }
+
+  if (left === null || right === null) {
+    return false;
+  }
+
+  return left.timeZone === right.timeZone
+    && left.generatedAt === right.generatedAt
+    && left.totalCards === right.totalCards
+    && areProgressReviewScheduleBucketsEqual(left.buckets, right.buckets);
+}
+
+function areProgressReviewScheduleSnapshotsEqual(
+  left: ProgressReviewScheduleSnapshot | null,
+  right: ProgressReviewScheduleSnapshot | null,
+): boolean {
+  if (left === right) {
+    return true;
+  }
+
+  if (left === null || right === null) {
+    return false;
+  }
+
+  return areProgressReviewSchedulesEqual(left, right)
+    && left.source === right.source
+    && left.isApproximate === right.isApproximate;
+}
+
 function areProgressSummarySourceStatesEqual(
   left: ProgressSummarySourceState,
   right: ProgressSummarySourceState,
@@ -304,9 +510,28 @@ function areProgressSeriesSourceStatesEqual(
     && areProgressSeriesSnapshotsEqual(left.renderedSnapshot, right.renderedSnapshot);
 }
 
+function areProgressReviewScheduleSourceStatesEqual(
+  left: ProgressReviewScheduleSourceState,
+  right: ProgressReviewScheduleSourceState,
+): boolean {
+  return left.scopeKey === right.scopeKey
+    && left.progressScheduleLocalVersion === right.progressScheduleLocalVersion
+    && left.serverBaseProgressScheduleLocalVersion === right.serverBaseProgressScheduleLocalVersion
+    && left.serverBaseLocalCardTotalDelta === right.serverBaseLocalCardTotalDelta
+    && left.hasPendingLocalCardChanges === right.hasPendingLocalCardChanges
+    && left.hasCompleteLocalCardState === right.hasCompleteLocalCardState
+    && left.pendingLocalCardTotalDelta === right.pendingLocalCardTotalDelta
+    && left.isLoading === right.isLoading
+    && left.errorMessage === right.errorMessage
+    && areProgressReviewScheduleSnapshotsEqual(left.localFallback, right.localFallback)
+    && areProgressReviewScheduleSnapshotsEqual(left.serverBase, right.serverBase)
+    && areProgressReviewScheduleSnapshotsEqual(left.renderedSnapshot, right.renderedSnapshot);
+}
+
 export function areProgressSourceStatesEqual(left: ProgressSourceState, right: ProgressSourceState): boolean {
   return areProgressSummarySourceStatesEqual(left.summary, right.summary)
-    && areProgressSeriesSourceStatesEqual(left.series, right.series);
+    && areProgressSeriesSourceStatesEqual(left.series, right.series)
+    && areProgressReviewScheduleSourceStatesEqual(left.reviewSchedule, right.reviewSchedule);
 }
 
 export function createEmptyProgressSummarySourceState(): ProgressSummarySourceState {
@@ -333,10 +558,28 @@ export function createEmptyProgressSeriesSourceState(): ProgressSeriesSourceStat
   };
 }
 
+export function createEmptyProgressReviewScheduleSourceState(): ProgressReviewScheduleSourceState {
+  return {
+    scopeKey: null,
+    localFallback: null,
+    serverBase: null,
+    progressScheduleLocalVersion: 0,
+    serverBaseProgressScheduleLocalVersion: null,
+    serverBaseLocalCardTotalDelta: 0,
+    hasPendingLocalCardChanges: false,
+    hasCompleteLocalCardState: false,
+    pendingLocalCardTotalDelta: 0,
+    renderedSnapshot: null,
+    isLoading: false,
+    errorMessage: "",
+  };
+}
+
 export function createEmptyProgressSourceState(): ProgressSourceState {
   return {
     summary: createEmptyProgressSummarySourceState(),
     series: createEmptyProgressSeriesSourceState(),
+    reviewSchedule: createEmptyProgressReviewScheduleSourceState(),
   };
 }
 
@@ -377,6 +620,32 @@ export function createNextSeriesState(
       nextStateWithoutRenderedSnapshot.serverBase,
       nextStateWithoutRenderedSnapshot.localFallback,
       nextStateWithoutRenderedSnapshot.pendingLocalOverlay,
+      canRenderServerBase,
+    ),
+  };
+}
+
+export function createNextReviewScheduleState(
+  currentState: ProgressReviewScheduleSourceState,
+  patch: Readonly<Partial<Omit<ProgressReviewScheduleSourceState, "renderedSnapshot">>>,
+  canRenderServerBase: boolean,
+): ProgressReviewScheduleSourceState {
+  const nextStateWithoutRenderedSnapshot = {
+    ...currentState,
+    ...patch,
+  };
+
+  return {
+    ...nextStateWithoutRenderedSnapshot,
+    renderedSnapshot: buildRenderedReviewSchedule(
+      nextStateWithoutRenderedSnapshot.serverBase,
+      nextStateWithoutRenderedSnapshot.localFallback,
+      nextStateWithoutRenderedSnapshot.hasPendingLocalCardChanges,
+      nextStateWithoutRenderedSnapshot.hasCompleteLocalCardState,
+      nextStateWithoutRenderedSnapshot.pendingLocalCardTotalDelta,
+      nextStateWithoutRenderedSnapshot.progressScheduleLocalVersion,
+      nextStateWithoutRenderedSnapshot.serverBaseProgressScheduleLocalVersion,
+      nextStateWithoutRenderedSnapshot.serverBaseLocalCardTotalDelta,
       canRenderServerBase,
     ),
   };

@@ -188,7 +188,11 @@ class LocalCardsRepository(
                 cardId = cardId,
                 tags = cardDraft.tags
             )
-            syncLocalStore.enqueueCardUpsert(card = card, tags = cardDraft.tags)
+            syncLocalStore.enqueueCardUpsert(
+                card = card,
+                tags = cardDraft.tags,
+                affectsReviewSchedule = true
+            )
         }
     }
 
@@ -215,7 +219,11 @@ class LocalCardsRepository(
                 cardId = cardId,
                 tags = cardDraft.tags
             )
-            syncLocalStore.enqueueCardUpsert(card = updatedCard, tags = cardDraft.tags)
+            syncLocalStore.enqueueCardUpsert(
+                card = updatedCard,
+                tags = cardDraft.tags,
+                affectsReviewSchedule = currentCard.deletedAtMillis != null
+            )
         }
     }
 
@@ -234,7 +242,11 @@ class LocalCardsRepository(
             )
             val cardTags = database.cardDao().observeCardWithRelations(cardId = cardId).first()?.tags?.map(TagEntity::name) ?: emptyList()
             database.cardDao().updateCard(card = deletedCard)
-            syncLocalStore.enqueueCardUpsert(card = deletedCard, tags = cardTags)
+            syncLocalStore.enqueueCardUpsert(
+                card = deletedCard,
+                tags = cardTags,
+                affectsReviewSchedule = true
+            )
         }
     }
 }
@@ -940,7 +952,8 @@ class LocalReviewRepository(
                     fsrsLastReviewedAtMillis = schedule.fsrsLastReviewedAtMillis,
                     fsrsScheduledDays = schedule.fsrsScheduledDays
                 ),
-                tags = cardSummary.tags
+                tags = cardSummary.tags,
+                affectsReviewSchedule = true
             )
         }
     }

@@ -1,5 +1,6 @@
 import type {
   ProgressChartData,
+  ProgressReviewScheduleSnapshot,
   ProgressScopeKey,
   ProgressSeriesSnapshot,
   ProgressSourceState,
@@ -7,16 +8,21 @@ import type {
 } from "../../types";
 import {
   areProgressSourceStatesEqual,
+  createEmptyProgressReviewScheduleSourceState,
   createEmptyProgressSeriesSourceState,
   createEmptyProgressSourceState,
   createEmptyProgressSummarySourceState,
+  createNextReviewScheduleState,
   createNextSeriesState,
   createNextSummaryState,
+  resolveProgressReviewScheduleLoadedServerBaseLocalCardTotalDelta,
+  resolveProgressReviewScheduleServerBaseLocalCardTotalDelta,
 } from "./progressSnapshots";
 
 export type ProgressSourceAction =
   | Readonly<{ type: "summary_scope_reset" }>
   | Readonly<{ type: "series_scope_reset" }>
+  | Readonly<{ type: "review_schedule_scope_reset" }>
   | Readonly<{
     type: "summary_scope_initialized";
     scopeKey: ProgressScopeKey;
@@ -30,6 +36,13 @@ export type ProgressSourceAction =
     canRenderServerBase: boolean;
   }>
   | Readonly<{
+    type: "review_schedule_scope_initialized";
+    scopeKey: ProgressScopeKey;
+    serverBase: ProgressReviewScheduleSnapshot | null;
+    progressScheduleLocalVersion: number;
+    canRenderServerBase: boolean;
+  }>
+  | Readonly<{
     type: "summary_local_load_succeeded";
     scopeKey: ProgressScopeKey;
     localFallback: ProgressSummarySnapshot;
@@ -40,6 +53,23 @@ export type ProgressSourceAction =
     type: "summary_local_load_failed";
     scopeKey: ProgressScopeKey;
     errorMessage: string;
+    canRenderServerBase: boolean;
+  }>
+  | Readonly<{
+    type: "review_schedule_local_load_succeeded";
+    scopeKey: ProgressScopeKey;
+    localFallback: ProgressReviewScheduleSnapshot;
+    hasPendingLocalCardChanges: boolean;
+    hasCompleteLocalCardState: boolean;
+    pendingLocalCardTotalDelta: number;
+    progressScheduleLocalVersion: number;
+    canRenderServerBase: boolean;
+  }>
+  | Readonly<{
+    type: "review_schedule_local_load_failed";
+    scopeKey: ProgressScopeKey;
+    errorMessage: string;
+    progressScheduleLocalVersion: number;
     canRenderServerBase: boolean;
   }>
   | Readonly<{
@@ -80,9 +110,25 @@ export type ProgressSourceAction =
     canRenderServerBase: boolean;
   }>
   | Readonly<{
+    type: "review_schedule_server_load_succeeded";
+    scopeKey: ProgressScopeKey;
+    serverBase: ProgressReviewScheduleSnapshot;
+    progressScheduleLocalVersion: number;
+    canRenderServerBase: boolean;
+  }>
+  | Readonly<{
+    type: "review_schedule_server_load_failed";
+    scopeKey: ProgressScopeKey;
+    errorMessage: string;
+    progressScheduleLocalVersion: number;
+    canRenderServerBase: boolean;
+  }>
+  | Readonly<{
     type: "refresh_started";
     summaryScopeKey: ProgressScopeKey | null;
     seriesScopeKey: ProgressScopeKey | null;
+    reviewScheduleScopeKey: ProgressScopeKey | null;
+    progressScheduleLocalVersion: number;
     canRenderServerBase: boolean;
   }>
   | Readonly<{ type: "errors_cleared"; canRenderServerBase: boolean }>;
@@ -106,6 +152,11 @@ function reduceProgressSourceState(
         ...state,
         series: createEmptyProgressSeriesSourceState(),
       };
+    case "review_schedule_scope_reset":
+      return {
+        ...state,
+        reviewSchedule: createEmptyProgressReviewScheduleSourceState(),
+      };
     case "summary_scope_initialized":
       return {
         ...state,
@@ -126,6 +177,25 @@ function reduceProgressSourceState(
           localFallback: null,
           serverBase: action.serverBase,
           pendingLocalOverlay: null,
+          isLoading: true,
+          errorMessage: "",
+        }, action.canRenderServerBase),
+      };
+    case "review_schedule_scope_initialized":
+      return {
+        ...state,
+        reviewSchedule: createNextReviewScheduleState(state.reviewSchedule, {
+          scopeKey: action.scopeKey,
+          localFallback: null,
+          serverBase: action.serverBase,
+          progressScheduleLocalVersion: action.progressScheduleLocalVersion,
+          serverBaseProgressScheduleLocalVersion: action.serverBase === null
+            ? null
+            : action.progressScheduleLocalVersion,
+          serverBaseLocalCardTotalDelta: 0,
+          hasPendingLocalCardChanges: false,
+          hasCompleteLocalCardState: false,
+          pendingLocalCardTotalDelta: 0,
           isLoading: true,
           errorMessage: "",
         }, action.canRenderServerBase),
@@ -188,6 +258,50 @@ function reduceProgressSourceState(
           errorMessage: action.errorMessage,
         }, action.canRenderServerBase),
       };
+    case "review_schedule_local_load_succeeded":
+      if (state.reviewSchedule.scopeKey !== action.scopeKey) {
+        return state;
+      }
+
+      const serverBaseLocalCardTotalDelta = resolveProgressReviewScheduleServerBaseLocalCardTotalDelta(
+        state.reviewSchedule,
+        action.localFallback,
+        action.hasCompleteLocalCardState,
+        action.pendingLocalCardTotalDelta,
+        action.progressScheduleLocalVersion,
+      );
+
+      return {
+        ...state,
+        reviewSchedule: createNextReviewScheduleState(state.reviewSchedule, {
+          scopeKey: action.scopeKey,
+          localFallback: action.localFallback,
+          progressScheduleLocalVersion: action.progressScheduleLocalVersion,
+          serverBaseLocalCardTotalDelta,
+          hasPendingLocalCardChanges: action.hasPendingLocalCardChanges,
+          hasCompleteLocalCardState: action.hasCompleteLocalCardState,
+          pendingLocalCardTotalDelta: action.pendingLocalCardTotalDelta,
+          isLoading: false,
+        }, action.canRenderServerBase),
+      };
+    case "review_schedule_local_load_failed":
+      if (state.reviewSchedule.scopeKey !== action.scopeKey) {
+        return state;
+      }
+
+      return {
+        ...state,
+        reviewSchedule: createNextReviewScheduleState(state.reviewSchedule, {
+          scopeKey: action.scopeKey,
+          localFallback: null,
+          progressScheduleLocalVersion: action.progressScheduleLocalVersion,
+          hasPendingLocalCardChanges: false,
+          hasCompleteLocalCardState: false,
+          pendingLocalCardTotalDelta: 0,
+          isLoading: false,
+          errorMessage: action.errorMessage,
+        }, action.canRenderServerBase),
+      };
     case "summary_server_load_succeeded":
       if (state.summary.scopeKey !== action.scopeKey) {
         return state;
@@ -242,6 +356,42 @@ function reduceProgressSourceState(
           errorMessage: action.errorMessage,
         }, action.canRenderServerBase),
       };
+    case "review_schedule_server_load_succeeded":
+      if (state.reviewSchedule.scopeKey !== action.scopeKey) {
+        return state;
+      }
+
+      const loadedServerBaseLocalCardTotalDelta = resolveProgressReviewScheduleLoadedServerBaseLocalCardTotalDelta(
+        state.reviewSchedule,
+        action.serverBase,
+      );
+
+      return {
+        ...state,
+        reviewSchedule: createNextReviewScheduleState(state.reviewSchedule, {
+          scopeKey: action.scopeKey,
+          serverBase: action.serverBase,
+          progressScheduleLocalVersion: action.progressScheduleLocalVersion,
+          serverBaseProgressScheduleLocalVersion: action.progressScheduleLocalVersion,
+          serverBaseLocalCardTotalDelta: loadedServerBaseLocalCardTotalDelta,
+          isLoading: false,
+          errorMessage: "",
+        }, action.canRenderServerBase),
+      };
+    case "review_schedule_server_load_failed":
+      if (state.reviewSchedule.scopeKey !== action.scopeKey) {
+        return state;
+      }
+
+      return {
+        ...state,
+        reviewSchedule: createNextReviewScheduleState(state.reviewSchedule, {
+          scopeKey: action.scopeKey,
+          progressScheduleLocalVersion: action.progressScheduleLocalVersion,
+          isLoading: false,
+          errorMessage: action.errorMessage,
+        }, action.canRenderServerBase),
+      };
     case "refresh_started":
       return {
         summary: action.summaryScopeKey === null
@@ -258,6 +408,14 @@ function reduceProgressSourceState(
             isLoading: true,
             errorMessage: "",
           }, action.canRenderServerBase),
+        reviewSchedule: action.reviewScheduleScopeKey === null
+          ? state.reviewSchedule
+          : createNextReviewScheduleState(state.reviewSchedule, {
+            scopeKey: action.reviewScheduleScopeKey,
+            progressScheduleLocalVersion: action.progressScheduleLocalVersion,
+            isLoading: true,
+            errorMessage: "",
+          }, action.canRenderServerBase),
       };
     case "errors_cleared":
       return {
@@ -265,6 +423,9 @@ function reduceProgressSourceState(
           errorMessage: "",
         }, action.canRenderServerBase),
         series: createNextSeriesState(state.series, {
+          errorMessage: "",
+        }, action.canRenderServerBase),
+        reviewSchedule: createNextReviewScheduleState(state.reviewSchedule, {
           errorMessage: "",
         }, action.canRenderServerBase),
       };

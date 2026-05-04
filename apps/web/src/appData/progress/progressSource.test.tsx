@@ -4,6 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type {
   CloudSettings,
+  ProgressReviewSchedule,
   ProgressScopeKey,
   ProgressSeries,
   ProgressSeriesInput,
@@ -12,6 +13,7 @@ import type {
   WorkspaceSummary,
 } from "../../types";
 import {
+  invalidateLocalReviewSchedule,
   resetProgressInvalidationStateForTests,
   useProgressInvalidationRefresh,
   useProgressInvalidationState,
@@ -32,22 +34,33 @@ import type { SessionVerificationState } from "../warmStart";
 const {
   loadProgressSummaryMock,
   loadProgressSeriesMock,
+  loadProgressReviewScheduleMock,
   hasPendingProgressReviewEventsMock,
   loadLocalProgressSummaryMock,
   loadLocalProgressDailyReviewsMock,
   loadPendingProgressDailyReviewsMock,
+  hasCompleteLocalProgressReviewScheduleCoverageMock,
+  hasPendingProgressReviewScheduleCardChangesMock,
+  calculatePendingProgressReviewScheduleCardTotalDeltaMock,
+  loadLocalProgressReviewScheduleMock,
 } = vi.hoisted(() => ({
   loadProgressSummaryMock: vi.fn<(input: Readonly<{ timeZone: string; today: string }>) => Promise<ProgressSummaryPayload>>(),
   loadProgressSeriesMock: vi.fn<(input: Readonly<{ timeZone: string; from: string; to: string }>) => Promise<ProgressSeries>>(),
+  loadProgressReviewScheduleMock: vi.fn<(input: Readonly<{ timeZone: string; today: string }>) => Promise<ProgressReviewSchedule>>(),
   hasPendingProgressReviewEventsMock: vi.fn<(workspaceIds: ReadonlyArray<string>) => Promise<boolean>>(),
   loadLocalProgressSummaryMock: vi.fn<(workspaceIds: ReadonlyArray<string>, input: Readonly<{ timeZone: string; today: string }>) => Promise<ProgressSummary>>(),
   loadLocalProgressDailyReviewsMock: vi.fn<(workspaceIds: ReadonlyArray<string>, input: Readonly<{ timeZone: string; from: string; to: string }>) => Promise<ReadonlyArray<Readonly<{ date: string; reviewCount: number }>>>>(),
   loadPendingProgressDailyReviewsMock: vi.fn<(workspaceIds: ReadonlyArray<string>, input: Readonly<{ timeZone: string; from: string; to: string }>) => Promise<ReadonlyArray<Readonly<{ date: string; reviewCount: number }>>>>(),
+  hasCompleteLocalProgressReviewScheduleCoverageMock: vi.fn<(workspaceIds: ReadonlyArray<string>) => Promise<boolean>>(),
+  hasPendingProgressReviewScheduleCardChangesMock: vi.fn<(workspaceIds: ReadonlyArray<string>) => Promise<boolean>>(),
+  calculatePendingProgressReviewScheduleCardTotalDeltaMock: vi.fn<(workspaceIds: ReadonlyArray<string>) => Promise<number>>(),
+  loadLocalProgressReviewScheduleMock: vi.fn<(workspaceIds: ReadonlyArray<string>, input: Readonly<{ timeZone: string; today: string }>) => Promise<ProgressReviewSchedule>>(),
 }));
 
 vi.mock("../../api", () => ({
   loadProgressSummary: loadProgressSummaryMock,
   loadProgressSeries: loadProgressSeriesMock,
+  loadProgressReviewSchedule: loadProgressReviewScheduleMock,
 }));
 
 vi.mock("../../localDb/progress", () => ({
@@ -55,6 +68,13 @@ vi.mock("../../localDb/progress", () => ({
   loadLocalProgressSummary: loadLocalProgressSummaryMock,
   loadLocalProgressDailyReviews: loadLocalProgressDailyReviewsMock,
   loadPendingProgressDailyReviews: loadPendingProgressDailyReviewsMock,
+}));
+
+vi.mock("../../localDb/reviewSchedule", () => ({
+  calculatePendingProgressReviewScheduleCardTotalDelta: calculatePendingProgressReviewScheduleCardTotalDeltaMock,
+  hasCompleteLocalProgressReviewScheduleCoverage: hasCompleteLocalProgressReviewScheduleCoverageMock,
+  hasPendingProgressReviewScheduleCardChanges: hasPendingProgressReviewScheduleCardChangesMock,
+  loadLocalProgressReviewSchedule: loadLocalProgressReviewScheduleMock,
 }));
 
 type ProgressSourceApi = ReturnType<typeof useProgressSource>;
@@ -66,6 +86,7 @@ type HarnessProps = Readonly<{
   sections: Readonly<{
     includeSummary: boolean;
     includeSeries: boolean;
+    includeReviewSchedule: boolean;
   }>;
 }>;
 
@@ -136,23 +157,33 @@ const linkingReadyCloudSettings: CloudSettings = {
 const summaryAndSeriesSections = {
   includeSummary: true,
   includeSeries: true,
+  includeReviewSchedule: false,
 } as const;
 
 const summaryOnlySections = {
   includeSummary: true,
   includeSeries: false,
+  includeReviewSchedule: false,
 } as const;
 const seriesOnlySections = {
   includeSummary: false,
   includeSeries: true,
+  includeReviewSchedule: false,
+} as const;
+const reviewScheduleOnlySections = {
+  includeSummary: false,
+  includeSeries: false,
+  includeReviewSchedule: true,
 } as const;
 const summaryAndSeriesWithInvalidationSections = {
   includeSummary: true,
   includeSeries: true,
+  includeReviewSchedule: false,
 } as const;
 const noProgressSections = {
   includeSummary: false,
   includeSeries: false,
+  includeReviewSchedule: false,
 } as const;
 
 let root: Root | null = null;
@@ -171,6 +202,7 @@ function renderHarness(props: HarnessProps): Readonly<{
       cloudSettings: currentProps.cloudSettings,
       sessionVerificationState: currentProps.sessionVerificationState,
       progressLocalVersion: 0,
+      progressScheduleLocalVersion: 0,
       progressServerInvalidationVersion: currentProps.progressServerInvalidationVersion,
       sections: currentProps.sections,
     });
@@ -207,13 +239,18 @@ function renderInvalidationHarness(props: HarnessProps): Readonly<{
 
   function Harness(currentProps: HarnessProps): null {
     useProgressInvalidationRefresh();
-    const { progressLocalVersion, progressServerInvalidationVersion } = useProgressInvalidationState();
+    const {
+      progressLocalVersion,
+      progressScheduleLocalVersion,
+      progressServerInvalidationVersion,
+    } = useProgressInvalidationState();
     latestApi = useProgressSource({
       activeWorkspace: workspace,
       availableWorkspaces,
       cloudSettings: currentProps.cloudSettings,
       sessionVerificationState: currentProps.sessionVerificationState,
       progressLocalVersion,
+      progressScheduleLocalVersion,
       progressServerInvalidationVersion,
       sections: currentProps.sections,
     });
@@ -287,12 +324,65 @@ function buildServerSeries(reviewCount: number, generatedAt: string): ProgressSe
   };
 }
 
+function buildServerReviewSchedule(newCount: number, generatedAt: string | null): ProgressReviewSchedule {
+  return {
+    timeZone: "Europe/Madrid",
+    generatedAt,
+    totalCards: newCount + 3,
+    buckets: [
+      { key: "new", count: newCount },
+      { key: "today", count: 1 },
+      { key: "days1To7", count: 1 },
+      { key: "days8To30", count: 1 },
+      { key: "days31To90", count: 0 },
+      { key: "days91To360", count: 0 },
+      { key: "years1To2", count: 0 },
+      { key: "later", count: 0 },
+    ],
+  };
+}
+
+function replaceProgressReviewScheduleBucketCount(
+  schedule: ProgressReviewSchedule,
+  bucketIndex: number,
+  count: number,
+): ProgressReviewSchedule {
+  return {
+    ...schedule,
+    buckets: schedule.buckets.map((bucket, index) => index === bucketIndex ? {
+      ...bucket,
+      count,
+    } : bucket),
+  };
+}
+
+function swapFirstProgressReviewScheduleBuckets(schedule: ProgressReviewSchedule): ProgressReviewSchedule {
+  const firstBucket = schedule.buckets[0];
+  const secondBucket = schedule.buckets[1];
+  if (firstBucket === undefined || secondBucket === undefined) {
+    throw new Error("Progress review schedule test fixture must include at least two buckets");
+  }
+
+  return {
+    ...schedule,
+    buckets: [
+      secondBucket,
+      firstBucket,
+      ...schedule.buckets.slice(2),
+    ],
+  };
+}
+
 function buildCurrentProgressDateContext(): ReturnType<typeof buildProgressDateContext> {
   return buildProgressDateContext(new Date("2026-04-20T12:00:00.000Z"));
 }
 
 function buildCurrentSeriesInput(): ProgressSeriesInput {
   return buildProgressSeriesInputForDateContext(buildCurrentProgressDateContext());
+}
+
+function buildCurrentReviewScheduleInput(): Readonly<{ timeZone: string; today: string }> {
+  return buildProgressSummaryInputForDateContext(buildCurrentProgressDateContext());
 }
 
 function buildCurrentSummaryScopeKey(): ProgressScopeKey {
@@ -306,6 +396,13 @@ function buildCurrentSeriesScopeKey(): ProgressScopeKey {
   return buildProgressScopeKey(
     [workspace.workspaceId],
     buildCurrentSeriesInput(),
+  );
+}
+
+function buildCurrentReviewScheduleScopeKey(): ProgressScopeKey {
+  return buildProgressSummaryScopeKey(
+    [workspace.workspaceId],
+    buildProgressSummaryInputForDateContext(buildCurrentProgressDateContext()),
   );
 }
 
@@ -326,6 +423,18 @@ function storePersistedProgressSeriesForTest(
   serverBase: ProgressSeries,
 ): void {
   window.localStorage.setItem(`flashcards-progress-server-series:${scopeKey}`, JSON.stringify({
+    version: 1,
+    scopeKey,
+    savedAt: "2026-04-18T09:00:00.000Z",
+    serverBase,
+  }));
+}
+
+function storePersistedProgressReviewScheduleForTest(
+  scopeKey: ProgressScopeKey,
+  serverBase: ProgressReviewSchedule,
+): void {
+  window.localStorage.setItem(`flashcards-progress-server-review-schedule:${scopeKey}`, JSON.stringify({
     version: 1,
     scopeKey,
     savedAt: "2026-04-18T09:00:00.000Z",
@@ -371,11 +480,19 @@ beforeEach(() => {
   resetProgressTimeContextStateForTests(new Date("2026-04-20T12:00:00.000Z"));
   loadProgressSummaryMock.mockReset();
   loadProgressSeriesMock.mockReset();
+  loadProgressReviewScheduleMock.mockReset();
   hasPendingProgressReviewEventsMock.mockReset();
   loadLocalProgressSummaryMock.mockReset();
   loadLocalProgressDailyReviewsMock.mockReset();
   loadPendingProgressDailyReviewsMock.mockReset();
+  hasCompleteLocalProgressReviewScheduleCoverageMock.mockReset();
+  hasPendingProgressReviewScheduleCardChangesMock.mockReset();
+  calculatePendingProgressReviewScheduleCardTotalDeltaMock.mockReset();
+  loadLocalProgressReviewScheduleMock.mockReset();
   hasPendingProgressReviewEventsMock.mockResolvedValue(false);
+  hasCompleteLocalProgressReviewScheduleCoverageMock.mockResolvedValue(false);
+  hasPendingProgressReviewScheduleCardChangesMock.mockResolvedValue(false);
+  calculatePendingProgressReviewScheduleCardTotalDeltaMock.mockResolvedValue(0);
   loadLocalProgressSummaryMock.mockResolvedValue({
     currentStreakDays: 0,
     hasReviewedToday: false,
@@ -384,8 +501,10 @@ beforeEach(() => {
   });
   loadLocalProgressDailyReviewsMock.mockResolvedValue([]);
   loadPendingProgressDailyReviewsMock.mockResolvedValue([]);
+  loadLocalProgressReviewScheduleMock.mockResolvedValue(buildServerReviewSchedule(0, null));
   loadProgressSummaryMock.mockResolvedValue(buildServerSummary(1, "2026-04-18T09:15:00.000Z"));
   loadProgressSeriesMock.mockResolvedValue(buildServerSeries(1, "2026-04-18T09:15:00.000Z"));
+  loadProgressReviewScheduleMock.mockResolvedValue(buildServerReviewSchedule(1, "2026-04-18T09:15:00.000Z"));
 });
 
 afterEach(() => {
@@ -548,6 +667,117 @@ describe("useProgressSource", () => {
     }
   });
 
+  const invalidProgressReviewScheduleCacheCases: ReadonlyArray<Readonly<{
+    name: string;
+    serverBase: ProgressReviewSchedule;
+  }>> = [
+    {
+      name: "negative bucket count",
+      serverBase: replaceProgressReviewScheduleBucketCount(buildServerReviewSchedule(4, "2026-04-18T09:10:00.000Z"), 0, -1),
+    },
+    {
+      name: "fractional bucket count",
+      serverBase: replaceProgressReviewScheduleBucketCount(buildServerReviewSchedule(4, "2026-04-18T09:10:00.000Z"), 0, 1.5),
+    },
+    {
+      name: "negative totalCards",
+      serverBase: {
+        ...buildServerReviewSchedule(4, "2026-04-18T09:10:00.000Z"),
+        totalCards: -1,
+      },
+    },
+    {
+      name: "fractional totalCards",
+      serverBase: {
+        ...buildServerReviewSchedule(4, "2026-04-18T09:10:00.000Z"),
+        totalCards: 7.5,
+      },
+    },
+    {
+      name: "totalCards mismatch",
+      serverBase: {
+        ...buildServerReviewSchedule(4, "2026-04-18T09:10:00.000Z"),
+        totalCards: 99,
+      },
+    },
+    {
+      name: "unstable bucket order",
+      serverBase: swapFirstProgressReviewScheduleBuckets(buildServerReviewSchedule(4, "2026-04-18T09:10:00.000Z")),
+    },
+  ];
+
+  for (const invalidCase of invalidProgressReviewScheduleCacheCases) {
+    it(`treats cached review schedule with ${invalidCase.name} as an invalid-shape miss before loading remote schedule`, async () => {
+      const warningSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+      const deferredReviewSchedule = createDeferredPromise<ProgressReviewSchedule>();
+      const reviewScheduleScopeKey = buildCurrentReviewScheduleScopeKey();
+      storePersistedProgressReviewScheduleForTest(reviewScheduleScopeKey, invalidCase.serverBase);
+      loadProgressReviewScheduleMock.mockImplementation(() => deferredReviewSchedule.promise);
+
+      try {
+        const harness = renderHarness({
+          sessionVerificationState: "verified",
+          cloudSettings: linkedCloudSettings,
+          progressServerInvalidationVersion: 0,
+          sections: reviewScheduleOnlySections,
+        });
+
+        await flushEffects();
+
+        expect(warningSpy).toHaveBeenCalledWith("progress_cache_miss", expect.objectContaining({
+          reason: "invalid_shape",
+          section: "review_schedule",
+        }));
+        expect(loadProgressReviewScheduleMock).toHaveBeenCalledWith(buildCurrentReviewScheduleInput());
+        expect(harness.getApi().progressSourceState.reviewSchedule.serverBase).toBeNull();
+
+        deferredReviewSchedule.resolve(buildServerReviewSchedule(8, "2026-04-18T09:24:00.000Z"));
+        await flushEffects();
+
+        expect(harness.getApi().progressSourceState.reviewSchedule.serverBase?.generatedAt).toBe("2026-04-18T09:24:00.000Z");
+        expect(harness.getApi().progressSourceState.reviewSchedule.serverBase?.buckets[0]?.count).toBe(8);
+      } finally {
+        warningSpy.mockRestore();
+      }
+    });
+  }
+
+  it("treats cached review schedules for another timezone as misses before loading remote schedule", async () => {
+    const warningSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const deferredReviewSchedule = createDeferredPromise<ProgressReviewSchedule>();
+    const reviewScheduleScopeKey = buildCurrentReviewScheduleScopeKey();
+    storePersistedProgressReviewScheduleForTest(reviewScheduleScopeKey, {
+      ...buildServerReviewSchedule(4, "2026-04-18T09:10:00.000Z"),
+      timeZone: "UTC",
+    });
+    loadProgressReviewScheduleMock.mockImplementation(() => deferredReviewSchedule.promise);
+
+    try {
+      const harness = renderHarness({
+        sessionVerificationState: "verified",
+        cloudSettings: linkedCloudSettings,
+        progressServerInvalidationVersion: 0,
+        sections: reviewScheduleOnlySections,
+      });
+
+      await flushEffects();
+
+      expect(warningSpy).toHaveBeenCalledWith("progress_cache_miss", expect.objectContaining({
+        reason: "time_zone_mismatch",
+        section: "review_schedule",
+      }));
+      expect(harness.getApi().progressSourceState.reviewSchedule.serverBase).toBeNull();
+
+      deferredReviewSchedule.resolve(buildServerReviewSchedule(8, "2026-04-18T09:24:00.000Z"));
+      await flushEffects();
+
+      expect(harness.getApi().progressSourceState.reviewSchedule.serverBase?.timeZone).toBe("Europe/Madrid");
+      expect(harness.getApi().progressSourceState.reviewSchedule.serverBase?.buckets[0]?.count).toBe(8);
+    } finally {
+      warningSpy.mockRestore();
+    }
+  });
+
   it("keeps linking-ready sessions local-only and skips both remote progress endpoints", async () => {
     const harness = renderHarness({
       sessionVerificationState: "verified",
@@ -564,6 +794,316 @@ describe("useProgressSource", () => {
     expect(harness.getApi().progressSourceState.series.serverBase).toBeNull();
     expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.source).toBe("local_only");
     expect(harness.getApi().progressSourceState.series.renderedSnapshot?.source).toBe("local_only");
+  });
+
+  it("loads review schedule independently and renders local counts when pending totals reconcile with server", async () => {
+    hasPendingProgressReviewScheduleCardChangesMock.mockResolvedValue(true);
+    hasCompleteLocalProgressReviewScheduleCoverageMock.mockResolvedValue(true);
+    calculatePendingProgressReviewScheduleCardTotalDeltaMock.mockResolvedValue(5);
+    loadLocalProgressReviewScheduleMock.mockResolvedValue(buildServerReviewSchedule(7, null));
+    loadProgressReviewScheduleMock.mockResolvedValue(buildServerReviewSchedule(2, "2026-04-18T09:18:00.000Z"));
+
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: reviewScheduleOnlySections,
+    });
+
+    await flushEffects();
+
+    expect(loadProgressSummaryMock).not.toHaveBeenCalled();
+    expect(loadProgressSeriesMock).not.toHaveBeenCalled();
+    expect(loadLocalProgressReviewScheduleMock).toHaveBeenCalledWith(
+      [workspace.workspaceId],
+      buildCurrentReviewScheduleInput(),
+    );
+    expect(calculatePendingProgressReviewScheduleCardTotalDeltaMock).toHaveBeenCalledWith([workspace.workspaceId]);
+    expect(loadProgressReviewScheduleMock).toHaveBeenCalledWith(buildCurrentReviewScheduleInput());
+    expect(harness.getApi().progressSourceState.reviewSchedule.serverBase?.source).toBe("server");
+    expect(harness.getApi().progressSourceState.reviewSchedule.serverBase?.buckets[0]?.count).toBe(2);
+    expect(harness.getApi().progressSourceState.reviewSchedule.pendingLocalCardTotalDelta).toBe(5);
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.source).toBe("local_only");
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.isApproximate).toBe(true);
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.buckets[0]?.count).toBe(7);
+  });
+
+  it("keeps user-wide server review schedule totals when covered local workspaces are only partial", async () => {
+    hasPendingProgressReviewScheduleCardChangesMock.mockResolvedValue(true);
+    hasCompleteLocalProgressReviewScheduleCoverageMock.mockResolvedValue(true);
+    calculatePendingProgressReviewScheduleCardTotalDeltaMock.mockResolvedValue(0);
+    loadLocalProgressReviewScheduleMock.mockResolvedValue(buildServerReviewSchedule(1, null));
+    loadProgressReviewScheduleMock.mockResolvedValue(buildServerReviewSchedule(8, "2026-04-18T09:18:00.000Z"));
+
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: reviewScheduleOnlySections,
+    });
+
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.reviewSchedule.hasPendingLocalCardChanges).toBe(true);
+    expect(harness.getApi().progressSourceState.reviewSchedule.hasCompleteLocalCardState).toBe(true);
+    expect(harness.getApi().progressSourceState.reviewSchedule.pendingLocalCardTotalDelta).toBe(0);
+    expect(harness.getApi().progressSourceState.reviewSchedule.localFallback?.totalCards).toBe(4);
+    expect(harness.getApi().progressSourceState.reviewSchedule.serverBase?.totalCards).toBe(11);
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.source).toBe("server");
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.isApproximate).toBe(true);
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.totalCards).toBe(11);
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.buckets[0]?.count).toBe(8);
+  });
+
+  it("keeps server review schedule totals while pending card hot-state coverage is partial", async () => {
+    hasPendingProgressReviewScheduleCardChangesMock.mockResolvedValue(true);
+    hasCompleteLocalProgressReviewScheduleCoverageMock.mockResolvedValue(false);
+    loadLocalProgressReviewScheduleMock.mockResolvedValue(buildServerReviewSchedule(7, null));
+    loadProgressReviewScheduleMock.mockResolvedValue(buildServerReviewSchedule(2, "2026-04-18T09:18:00.000Z"));
+
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: reviewScheduleOnlySections,
+    });
+
+    await flushEffects();
+
+    expect(loadLocalProgressReviewScheduleMock).toHaveBeenCalledWith(
+      [workspace.workspaceId],
+      buildCurrentReviewScheduleInput(),
+    );
+    expect(hasCompleteLocalProgressReviewScheduleCoverageMock).toHaveBeenCalledWith([workspace.workspaceId]);
+    expect(harness.getApi().progressSourceState.reviewSchedule.hasPendingLocalCardChanges).toBe(true);
+    expect(harness.getApi().progressSourceState.reviewSchedule.hasCompleteLocalCardState).toBe(false);
+    expect(harness.getApi().progressSourceState.reviewSchedule.localFallback?.buckets[0]?.count).toBe(7);
+    expect(harness.getApi().progressSourceState.reviewSchedule.serverBase?.buckets[0]?.count).toBe(2);
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.source).toBe("server");
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.isApproximate).toBe(true);
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.buckets[0]?.count).toBe(2);
+  });
+
+  it("keeps local review schedule fallback when server schedule is unavailable", async () => {
+    hasPendingProgressReviewScheduleCardChangesMock.mockResolvedValue(true);
+    hasCompleteLocalProgressReviewScheduleCoverageMock.mockResolvedValue(false);
+    loadLocalProgressReviewScheduleMock.mockResolvedValue(buildServerReviewSchedule(7, null));
+
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkingReadyCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: reviewScheduleOnlySections,
+    });
+
+    await flushEffects();
+
+    expect(loadProgressReviewScheduleMock).not.toHaveBeenCalled();
+    expect(harness.getApi().progressSourceState.reviewSchedule.serverBase).toBeNull();
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.source).toBe("local_only");
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.buckets[0]?.count).toBe(7);
+  });
+
+  it("keeps complete local review schedule rendered after pending sync clears before server refresh succeeds", async () => {
+    hasCompleteLocalProgressReviewScheduleCoverageMock.mockResolvedValue(true);
+    loadLocalProgressReviewScheduleMock.mockResolvedValue(buildServerReviewSchedule(1, null));
+    loadProgressReviewScheduleMock.mockResolvedValue(buildServerReviewSchedule(1, "2026-04-18T09:18:00.000Z"));
+
+    const harness = renderInvalidationHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: reviewScheduleOnlySections,
+    });
+
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.source).toBe("server");
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.totalCards).toBe(4);
+
+    const firstRefresh = createDeferredPromise<ProgressReviewSchedule>();
+    const secondRefresh = createDeferredPromise<ProgressReviewSchedule>();
+    loadProgressReviewScheduleMock.mockReset();
+    loadProgressReviewScheduleMock
+      .mockImplementationOnce(() => firstRefresh.promise)
+      .mockImplementationOnce(() => secondRefresh.promise);
+    hasPendingProgressReviewScheduleCardChangesMock.mockResolvedValue(true);
+    calculatePendingProgressReviewScheduleCardTotalDeltaMock.mockResolvedValue(1);
+    loadLocalProgressReviewScheduleMock.mockResolvedValue(buildServerReviewSchedule(2, null));
+
+    act(() => {
+      invalidateLocalReviewSchedule();
+    });
+    await flushEffects();
+
+    expect(loadProgressReviewScheduleMock).toHaveBeenCalledTimes(1);
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.source).toBe("local_only");
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.totalCards).toBe(5);
+    expect(harness.getApi().progressSourceState.reviewSchedule.serverBase?.totalCards).toBe(4);
+
+    hasPendingProgressReviewScheduleCardChangesMock.mockResolvedValue(false);
+    calculatePendingProgressReviewScheduleCardTotalDeltaMock.mockResolvedValue(0);
+
+    act(() => {
+      invalidateLocalReviewSchedule();
+    });
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.reviewSchedule.hasPendingLocalCardChanges).toBe(false);
+    expect(harness.getApi().progressSourceState.reviewSchedule.pendingLocalCardTotalDelta).toBe(0);
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.source).toBe("local_only");
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.totalCards).toBe(5);
+
+    firstRefresh.reject(new Error("Stale review schedule refresh failed"));
+    await flushEffects();
+
+    expect(loadProgressReviewScheduleMock).toHaveBeenCalledTimes(2);
+
+    secondRefresh.reject(new Error("Latest review schedule refresh failed"));
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.reviewSchedule.errorMessage).toBe("Latest review schedule refresh failed");
+    expect(harness.getApi().progressSourceState.reviewSchedule.serverBase?.totalCards).toBe(4);
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.source).toBe("local_only");
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.totalCards).toBe(5);
+  });
+
+  it("keeps local review schedule after ack when the previous server refresh completed during pending changes", async () => {
+    hasCompleteLocalProgressReviewScheduleCoverageMock.mockResolvedValue(true);
+    loadLocalProgressReviewScheduleMock.mockResolvedValue(buildServerReviewSchedule(1, null));
+    loadProgressReviewScheduleMock.mockResolvedValue(buildServerReviewSchedule(1, "2026-04-18T09:18:00.000Z"));
+
+    const harness = renderInvalidationHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: reviewScheduleOnlySections,
+    });
+
+    await flushEffects();
+
+    const pendingRefresh = createDeferredPromise<ProgressReviewSchedule>();
+    const ackRefresh = createDeferredPromise<ProgressReviewSchedule>();
+    loadProgressReviewScheduleMock.mockReset();
+    loadProgressReviewScheduleMock
+      .mockImplementationOnce(() => pendingRefresh.promise)
+      .mockImplementationOnce(() => ackRefresh.promise);
+    hasPendingProgressReviewScheduleCardChangesMock.mockResolvedValue(true);
+    calculatePendingProgressReviewScheduleCardTotalDeltaMock.mockResolvedValue(1);
+    loadLocalProgressReviewScheduleMock.mockResolvedValue(buildServerReviewSchedule(2, null));
+
+    act(() => {
+      invalidateLocalReviewSchedule();
+    });
+    await flushEffects();
+
+    pendingRefresh.resolve(buildServerReviewSchedule(1, "2026-04-18T09:19:00.000Z"));
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.reviewSchedule.serverBase?.totalCards).toBe(4);
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.source).toBe("local_only");
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.totalCards).toBe(5);
+
+    hasPendingProgressReviewScheduleCardChangesMock.mockResolvedValue(false);
+    calculatePendingProgressReviewScheduleCardTotalDeltaMock.mockResolvedValue(0);
+
+    act(() => {
+      invalidateLocalReviewSchedule();
+    });
+    await flushEffects();
+
+    expect(loadProgressReviewScheduleMock).toHaveBeenCalledTimes(2);
+    expect(harness.getApi().progressSourceState.reviewSchedule.hasPendingLocalCardChanges).toBe(false);
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.source).toBe("local_only");
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.totalCards).toBe(5);
+
+    ackRefresh.resolve(buildServerReviewSchedule(2, "2026-04-18T09:20:00.000Z"));
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.reviewSchedule.serverBase?.totalCards).toBe(5);
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.source).toBe("server");
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.totalCards).toBe(5);
+  });
+
+  it("keeps complete local review schedule after pull invalidation when the server refresh fails", async () => {
+    hasCompleteLocalProgressReviewScheduleCoverageMock.mockResolvedValue(true);
+    loadLocalProgressReviewScheduleMock.mockResolvedValue(buildServerReviewSchedule(1, null));
+    loadProgressReviewScheduleMock.mockResolvedValue(buildServerReviewSchedule(1, "2026-04-18T09:18:00.000Z"));
+
+    const harness = renderInvalidationHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: reviewScheduleOnlySections,
+    });
+
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.source).toBe("server");
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.totalCards).toBe(4);
+
+    const refresh = createDeferredPromise<ProgressReviewSchedule>();
+    loadProgressReviewScheduleMock.mockReset();
+    loadProgressReviewScheduleMock.mockImplementation(() => refresh.promise);
+    loadLocalProgressReviewScheduleMock.mockResolvedValue(buildServerReviewSchedule(2, null));
+
+    act(() => {
+      invalidateLocalReviewSchedule();
+    });
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.reviewSchedule.hasPendingLocalCardChanges).toBe(false);
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.source).toBe("local_only");
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.totalCards).toBe(5);
+
+    refresh.reject(new Error("Pulled review schedule refresh failed"));
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.reviewSchedule.errorMessage).toBe("Pulled review schedule refresh failed");
+    expect(harness.getApi().progressSourceState.reviewSchedule.serverBase?.totalCards).toBe(4);
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.source).toBe("local_only");
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.totalCards).toBe(5);
+  });
+
+  it("keeps stale server review schedule when local totals never reconciled with server totals", async () => {
+    hasCompleteLocalProgressReviewScheduleCoverageMock.mockResolvedValue(true);
+    loadLocalProgressReviewScheduleMock.mockResolvedValue(buildServerReviewSchedule(1, null));
+    loadProgressReviewScheduleMock.mockResolvedValue(buildServerReviewSchedule(8, "2026-04-18T09:18:00.000Z"));
+
+    const harness = renderInvalidationHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: reviewScheduleOnlySections,
+    });
+
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.reviewSchedule.localFallback?.totalCards).toBe(4);
+    expect(harness.getApi().progressSourceState.reviewSchedule.serverBase?.totalCards).toBe(11);
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.source).toBe("server");
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.totalCards).toBe(11);
+
+    const refresh = createDeferredPromise<ProgressReviewSchedule>();
+    loadProgressReviewScheduleMock.mockReset();
+    loadProgressReviewScheduleMock.mockImplementation(() => refresh.promise);
+    loadLocalProgressReviewScheduleMock.mockResolvedValue(buildServerReviewSchedule(2, null));
+
+    act(() => {
+      invalidateLocalReviewSchedule();
+    });
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.reviewSchedule.localFallback?.totalCards).toBe(5);
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.source).toBe("server");
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.totalCards).toBe(11);
+
+    refresh.reject(new Error("Review schedule refresh failed"));
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.reviewSchedule.errorMessage).toBe("Review schedule refresh failed");
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.source).toBe("server");
+    expect(harness.getApi().progressSourceState.reviewSchedule.renderedSnapshot?.totalCards).toBe(11);
   });
 
   it("keeps local progress visible when server eligibility turns off during an in-flight refresh", async () => {
@@ -680,6 +1220,20 @@ describe("useProgressSource", () => {
       isLoading: false,
       errorMessage: "",
     });
+    expect(harness.getApi().progressSourceState.reviewSchedule).toEqual({
+      scopeKey: null,
+      localFallback: null,
+      serverBase: null,
+      progressScheduleLocalVersion: 0,
+      serverBaseProgressScheduleLocalVersion: null,
+      serverBaseLocalCardTotalDelta: 0,
+      hasPendingLocalCardChanges: false,
+      hasCompleteLocalCardState: false,
+      pendingLocalCardTotalDelta: 0,
+      renderedSnapshot: null,
+      isLoading: false,
+      errorMessage: "",
+    });
   });
 
   it("updates summary and series independently when remote responses arrive in different orders", async () => {
@@ -786,6 +1340,20 @@ describe("useProgressSource", () => {
       localFallback: null,
       serverBase: null,
       pendingLocalOverlay: null,
+      renderedSnapshot: null,
+      isLoading: false,
+      errorMessage: "",
+    });
+    expect(harness.getApi().progressSourceState.reviewSchedule).toEqual({
+      scopeKey: null,
+      localFallback: null,
+      serverBase: null,
+      progressScheduleLocalVersion: 0,
+      serverBaseProgressScheduleLocalVersion: null,
+      serverBaseLocalCardTotalDelta: 0,
+      hasPendingLocalCardChanges: false,
+      hasCompleteLocalCardState: false,
+      pendingLocalCardTotalDelta: 0,
       renderedSnapshot: null,
       isLoading: false,
       errorMessage: "",

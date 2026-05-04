@@ -1,7 +1,10 @@
 package com.flashcardsopensourceapp.data.local.repository
 
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 internal enum class ProgressRemoteRefreshSyncMode {
     SKIP_SYNC,
@@ -55,19 +58,63 @@ internal class ProgressRefreshCoordinator {
     }
 }
 
+internal sealed class ProgressLocalCacheRebuildLease {
+    // The current caller owns the rebuild and must run it, then call completeRebuild.
+    internal data class Owner(
+        val completion: CompletableDeferred<Unit>
+    ) : ProgressLocalCacheRebuildLease()
+
+    // Another caller is rebuilding for this timezone. The current caller must await this Deferred.
+    // Awaiting propagates failure and cancellation from the in-flight rebuild instead of silently
+    // returning an unfinished cache state.
+    internal data class Waiter(
+        val inFlight: CompletableDeferred<Unit>
+    ) : ProgressLocalCacheRebuildLease()
+}
+
 internal class ProgressLocalCacheRebuildCoordinator {
     private val rebuildMutex = Mutex()
-    private val rebuildingTimeZones = mutableSetOf<String>()
+    private val inFlightRebuildsByTimeZone = mutableMapOf<String, CompletableDeferred<Unit>>()
 
-    suspend fun beginRebuild(timeZone: String): Boolean {
+    // Acquire a lease for a timezone-scoped local cache rebuild.
+    // If no rebuild is in flight, the caller becomes the Owner and is responsible for running
+    // the rebuild and signalling completion via completeRebuild. Otherwise the caller becomes
+    // a Waiter and must await the returned Deferred so the same logical refresh that the
+    // first caller started is observed instead of being silently dropped.
+    suspend fun acquireRebuildLease(timeZone: String): ProgressLocalCacheRebuildLease {
         return rebuildMutex.withLock {
-            rebuildingTimeZones.add(timeZone)
+            val existing = inFlightRebuildsByTimeZone[timeZone]
+            if (existing != null) {
+                return@withLock ProgressLocalCacheRebuildLease.Waiter(inFlight = existing)
+            }
+
+            val completion = CompletableDeferred<Unit>()
+            inFlightRebuildsByTimeZone[timeZone] = completion
+            ProgressLocalCacheRebuildLease.Owner(completion = completion)
         }
     }
 
-    suspend fun endRebuild(timeZone: String) {
-        rebuildMutex.withLock {
-            rebuildingTimeZones.remove(timeZone)
+    // Release the lease for a timezone and signal the awaited Deferred so any concurrent
+    // waiters resume. The owner must call this exactly once per Owner lease, even on failure
+    // or cancellation, otherwise waiters will block indefinitely. The map cleanup runs under
+    // NonCancellable so a cancelled owner still releases the slot for follow-up callers.
+    suspend fun completeRebuild(
+        timeZone: String,
+        completion: CompletableDeferred<Unit>,
+        error: Throwable?
+    ) {
+        withContext(NonCancellable) {
+            rebuildMutex.withLock {
+                val tracked = inFlightRebuildsByTimeZone[timeZone]
+                if (tracked === completion) {
+                    inFlightRebuildsByTimeZone.remove(timeZone)
+                }
+            }
+        }
+        if (error != null) {
+            completion.completeExceptionally(error)
+        } else {
+            completion.complete(Unit)
         }
     }
 }

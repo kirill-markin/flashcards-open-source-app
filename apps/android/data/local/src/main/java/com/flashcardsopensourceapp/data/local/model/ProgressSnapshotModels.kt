@@ -13,6 +13,13 @@ data class ProgressSeriesScopeKey(
     val to: String
 )
 
+data class ProgressReviewScheduleScopeKey(
+    val scopeId: String,
+    val timeZone: String,
+    val workspaceMembershipKey: String,
+    val referenceLocalDate: String
+)
+
 enum class ProgressSnapshotSource {
     LOCAL_ONLY,
     SERVER_BASE,
@@ -34,6 +41,15 @@ data class ProgressSeriesSnapshot(
     val localFallback: CloudProgressSeries,
     val serverBase: CloudProgressSeries?,
     val pendingLocalOverlay: CloudProgressSeries,
+    val source: ProgressSnapshotSource,
+    val isApproximate: Boolean
+)
+
+data class ProgressReviewScheduleSnapshot(
+    val scopeKey: ProgressReviewScheduleScopeKey,
+    val renderedSchedule: CloudProgressReviewSchedule,
+    val localFallback: CloudProgressReviewSchedule,
+    val serverBase: CloudProgressReviewSchedule?,
     val source: ProgressSnapshotSource,
     val isApproximate: Boolean
 )

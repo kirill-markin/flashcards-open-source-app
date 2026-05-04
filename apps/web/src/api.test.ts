@@ -10,6 +10,7 @@ import {
   getSession,
   loadProgressSummary,
   loadProgressSeries,
+  loadProgressReviewSchedule,
   resetApiClientStateForTests,
   setNavigationHandlerForTests,
   startChatRun,
@@ -19,6 +20,7 @@ import {
 import { isAuthResetRequired } from "./accountDeletion";
 import { INSTALLATION_ID_STORAGE_KEY } from "./clientIdentity";
 import { LOCALE_PREFERENCE_STORAGE_KEY, persistLocalePreference } from "./i18n/runtime";
+import type { ProgressReviewSchedule } from "./types";
 
 function createStorageMock(): Storage {
   const state = new Map<string, string>();
@@ -228,6 +230,64 @@ function createStopChatRunResponse(): Response {
       "Content-Type": "application/json",
     },
   });
+}
+
+function createProgressReviewScheduleResponseValue(): ProgressReviewSchedule {
+  return {
+    timeZone: "Europe/Madrid",
+    generatedAt: "2026-04-18T09:15:00.000Z",
+    totalCards: 12,
+    buckets: [
+      { key: "new", count: 2 },
+      { key: "today", count: 3 },
+      { key: "days1To7", count: 1 },
+      { key: "days8To30", count: 2 },
+      { key: "days31To90", count: 1 },
+      { key: "days91To360", count: 1 },
+      { key: "years1To2", count: 1 },
+      { key: "later", count: 1 },
+    ],
+  };
+}
+
+function createProgressReviewScheduleResponse(responseValue: ProgressReviewSchedule): Response {
+  return new Response(JSON.stringify(responseValue), {
+    status: 200,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+}
+
+function replaceProgressReviewScheduleBucketCount(
+  schedule: ProgressReviewSchedule,
+  bucketIndex: number,
+  count: number,
+): ProgressReviewSchedule {
+  return {
+    ...schedule,
+    buckets: schedule.buckets.map((bucket, index) => index === bucketIndex ? {
+      ...bucket,
+      count,
+    } : bucket),
+  };
+}
+
+function swapFirstProgressReviewScheduleBuckets(schedule: ProgressReviewSchedule): ProgressReviewSchedule {
+  const firstBucket = schedule.buckets[0];
+  const secondBucket = schedule.buckets[1];
+  if (firstBucket === undefined || secondBucket === undefined) {
+    throw new Error("Progress review schedule test fixture must include at least two buckets");
+  }
+
+  return {
+    ...schedule,
+    buckets: [
+      secondBucket,
+      firstBucket,
+      ...schedule.buckets.slice(2),
+    ],
+  };
 }
 
 beforeEach(() => {
@@ -519,6 +579,185 @@ describe("progress API decoding", () => {
         },
       ],
     });
+  });
+
+  it("decodes review schedule responses and sends only the timezone query", async () => {
+    const responseValue = createProgressReviewScheduleResponseValue();
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createProgressReviewScheduleResponse(responseValue));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressReviewSchedule({
+      timeZone: "Europe/Madrid",
+      today: "2026-04-18",
+    })).resolves.toEqual(responseValue);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/v1/me/progress/review-schedule?timeZone=Europe%2FMadrid",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
+  const invalidProgressReviewScheduleCases: ReadonlyArray<Readonly<{
+    name: string;
+    responseValue: ProgressReviewSchedule;
+    expectedErrorMessage: string;
+  }>> = [
+    {
+      name: "negative bucket count",
+      responseValue: replaceProgressReviewScheduleBucketCount(createProgressReviewScheduleResponseValue(), 0, -1),
+      expectedErrorMessage: "Invalid API response for GET /me/progress/review-schedule: buckets[0].count must be non-negative integer",
+    },
+    {
+      name: "fractional bucket count",
+      responseValue: replaceProgressReviewScheduleBucketCount(createProgressReviewScheduleResponseValue(), 0, 1.5),
+      expectedErrorMessage: "Invalid API response for GET /me/progress/review-schedule: buckets[0].count must be non-negative integer",
+    },
+    {
+      name: "negative totalCards",
+      responseValue: {
+        ...createProgressReviewScheduleResponseValue(),
+        totalCards: -1,
+      },
+      expectedErrorMessage: "Invalid API response for GET /me/progress/review-schedule: totalCards must be non-negative integer",
+    },
+    {
+      name: "fractional totalCards",
+      responseValue: {
+        ...createProgressReviewScheduleResponseValue(),
+        totalCards: 12.5,
+      },
+      expectedErrorMessage: "Invalid API response for GET /me/progress/review-schedule: totalCards must be non-negative integer",
+    },
+    {
+      name: "totalCards that does not equal the bucket sum",
+      responseValue: {
+        ...createProgressReviewScheduleResponseValue(),
+        totalCards: 13,
+      },
+      expectedErrorMessage: "Invalid API response for GET /me/progress/review-schedule: totalCards must be sum of bucket counts (12)",
+    },
+    {
+      name: "unstable bucket order",
+      responseValue: swapFirstProgressReviewScheduleBuckets(createProgressReviewScheduleResponseValue()),
+      expectedErrorMessage: "Invalid API response for GET /me/progress/review-schedule: buckets[0].key must be bucket key new",
+    },
+    {
+      name: "mismatched timezone",
+      responseValue: {
+        ...createProgressReviewScheduleResponseValue(),
+        timeZone: "UTC",
+      },
+      expectedErrorMessage: "Invalid API response for GET /me/progress/review-schedule: timeZone must be \"Europe/Madrid\"",
+    },
+  ];
+
+  for (const invalidCase of invalidProgressReviewScheduleCases) {
+    it(`rejects review schedule responses with ${invalidCase.name}`, async () => {
+      const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+        .mockResolvedValueOnce(createProgressReviewScheduleResponse(invalidCase.responseValue));
+      vi.stubGlobal("fetch", fetchMock);
+
+      await expect(loadProgressReviewSchedule({
+        timeZone: "Europe/Madrid",
+        today: "2026-04-18",
+      })).rejects.toThrow(invalidCase.expectedErrorMessage);
+    });
+  }
+
+  // Backend always emits `generatedAt` as a non-null string for the progress endpoints.
+  // The wire parser must fail loud (no silent null fallback) when the field is missing
+  // or null on the wire.
+  it("rejects review schedule responses with missing generatedAt", async () => {
+    const baseResponse = createProgressReviewScheduleResponseValue();
+    const responseWithoutGeneratedAt = {
+      timeZone: baseResponse.timeZone,
+      totalCards: baseResponse.totalCards,
+      buckets: baseResponse.buckets,
+    };
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(JSON.stringify(responseWithoutGeneratedAt), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressReviewSchedule({
+      timeZone: "Europe/Madrid",
+      today: "2026-04-18",
+    })).rejects.toThrow(
+      "Invalid API response for GET /me/progress/review-schedule: generatedAt must be string",
+    );
+  });
+
+  it("rejects review schedule responses with null generatedAt", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        ...createProgressReviewScheduleResponseValue(),
+        generatedAt: null,
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressReviewSchedule({
+      timeZone: "Europe/Madrid",
+      today: "2026-04-18",
+    })).rejects.toThrow(
+      "Invalid API response for GET /me/progress/review-schedule: generatedAt must be string",
+    );
+  });
+
+  it("rejects progress summary responses with missing generatedAt", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        timeZone: "Europe/Madrid",
+        summary: {
+          currentStreakDays: 1,
+          hasReviewedToday: true,
+          lastReviewedOn: "2026-04-03",
+          activeReviewDays: 2,
+        },
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressSummary({
+      timeZone: "Europe/Madrid",
+      today: "2026-04-18",
+    })).rejects.toThrow(
+      "Invalid API response for GET /me/progress/summary: generatedAt must be string",
+    );
+  });
+
+  it("rejects progress series responses with null generatedAt", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        timeZone: "Europe/Madrid",
+        from: "2026-04-01",
+        to: "2026-04-03",
+        generatedAt: null,
+        dailyReviews: [
+          { date: "2026-04-01", reviewCount: 0 },
+          { date: "2026-04-02", reviewCount: 0 },
+          { date: "2026-04-03", reviewCount: 0 },
+        ],
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressSeries({
+      timeZone: "Europe/Madrid",
+      from: "2026-04-01",
+      to: "2026-04-03",
+    })).rejects.toThrow(
+      "Invalid API response for GET /me/progress/series: generatedAt must be string",
+    );
   });
 });
 

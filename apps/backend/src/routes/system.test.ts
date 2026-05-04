@@ -5,6 +5,8 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 import type { AppEnv } from "../app";
 import { HttpError } from "../errors";
 import type {
+  ProgressReviewSchedule,
+  ProgressReviewScheduleRequest,
   ProgressSeries,
   ProgressSeriesRequest,
   ProgressSummaryResponse,
@@ -14,6 +16,7 @@ import type { RequestContext } from "../server/requestContext";
 
 type SystemTestAppOptions = Readonly<{
   transport: RequestContext["transport"];
+  loadUserProgressReviewScheduleFn?: (args: ProgressReviewScheduleRequest) => Promise<ProgressReviewSchedule>;
   loadUserProgressSeriesFn?: (args: ProgressSeriesRequest) => Promise<ProgressSeries>;
   loadUserProgressSummaryFn?: (args: Readonly<{ userId: string; timeZone: string }>) => Promise<ProgressSummaryResponse>;
 }>;
@@ -64,6 +67,24 @@ function createProgressSeries(): ProgressSeries {
   };
 }
 
+function createProgressReviewSchedule(): ProgressReviewSchedule {
+  return {
+    timeZone: "Europe/Madrid",
+    generatedAt: "2026-04-17T10:11:12.000Z",
+    totalCards: 72,
+    buckets: [
+      { key: "new", count: 2 },
+      { key: "today", count: 4 },
+      { key: "days1To7", count: 6 },
+      { key: "days8To30", count: 8 },
+      { key: "days31To90", count: 10 },
+      { key: "days91To360", count: 12 },
+      { key: "years1To2", count: 14 },
+      { key: "later", count: 16 },
+    ],
+  };
+}
+
 function createSystemTestApp(options: SystemTestAppOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   app.use("*", async (context, next) => {
@@ -93,6 +114,7 @@ function createSystemTestApp(options: SystemTestAppOptions): Hono<AppEnv> {
       requestAuthInputs: {} as never,
       requestContext: createRequestContext(options.transport),
     }),
+    loadUserProgressReviewScheduleFn: options.loadUserProgressReviewScheduleFn,
     loadUserProgressSeriesFn: options.loadUserProgressSeriesFn,
     loadUserProgressSummaryFn: options.loadUserProgressSummaryFn,
   }));
@@ -122,6 +144,31 @@ test("GET /me/progress/summary returns 200 for Session, Bearer, and Guest authen
 
     assert.equal(response.status, 200);
     assert.deepEqual(await response.json(), createProgressSummaryResponse());
+  }
+});
+
+test("GET /me/progress/review-schedule returns 200 for Session, Bearer, and Guest authentication", async () => {
+  const transports: ReadonlyArray<RequestContext["transport"]> = [
+    "session",
+    "bearer",
+    "guest",
+  ];
+
+  for (const transport of transports) {
+    const app = createSystemTestApp({
+      transport,
+      loadUserProgressReviewScheduleFn: async ({ userId, timeZone }) => {
+        assert.equal(userId, "user-1");
+        assert.equal(timeZone, "Europe/Madrid");
+        return createProgressReviewSchedule();
+      },
+    });
+    const response = await app.request(
+      "http://localhost/me/progress/review-schedule?timeZone=Europe/Madrid",
+    );
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), createProgressReviewSchedule());
   }
 });
 
@@ -155,6 +202,7 @@ test("GET /me/progress/series returns 200 for Session, Bearer, and Guest authent
 test("progress endpoints reject ApiKey authentication", async () => {
   const cases = [
     "http://localhost/me/progress/summary?timeZone=Europe/Madrid",
+    "http://localhost/me/progress/review-schedule?timeZone=Europe/Madrid",
     "http://localhost/me/progress/series?timeZone=Europe/Madrid&from=2026-04-11&to=2026-04-17",
   ] as const;
 
@@ -165,6 +213,10 @@ test("progress endpoints reject ApiKey authentication", async () => {
       loadUserProgressSeriesFn: async () => {
         called = true;
         return createProgressSeries();
+      },
+      loadUserProgressReviewScheduleFn: async () => {
+        called = true;
+        return createProgressReviewSchedule();
       },
       loadUserProgressSummaryFn: async () => {
         called = true;
@@ -209,6 +261,32 @@ test("GET /me/progress/summary validates required and malformed query parameters
     },
     {
       url: "http://localhost/me/progress/summary?timeZone=Mars/Olympus",
+      status: 400,
+      code: "PROGRESS_TIMEZONE_INVALID",
+    },
+  ] as const;
+
+  for (const invalidCase of invalidCases) {
+    const response = await app.request(invalidCase.url);
+    const payload = await response.json() as Readonly<{ code: string | null }>;
+    assert.equal(response.status, invalidCase.status);
+    assert.equal(payload.code, invalidCase.code);
+  }
+});
+
+test("GET /me/progress/review-schedule validates required and malformed query parameters", async () => {
+  const app = createSystemTestApp({
+    transport: "session",
+    loadUserProgressReviewScheduleFn: async () => createProgressReviewSchedule(),
+  });
+  const invalidCases = [
+    {
+      url: "http://localhost/me/progress/review-schedule",
+      status: 400,
+      code: "PROGRESS_TIMEZONE_REQUIRED",
+    },
+    {
+      url: "http://localhost/me/progress/review-schedule?timeZone=Mars/Olympus",
       status: 400,
       code: "PROGRESS_TIMEZONE_INVALID",
     },

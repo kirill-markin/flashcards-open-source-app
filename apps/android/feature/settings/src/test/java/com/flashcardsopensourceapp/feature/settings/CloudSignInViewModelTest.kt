@@ -6,6 +6,7 @@ import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
+import com.flashcardsopensourceapp.data.local.model.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.CloudSendCodeResult
@@ -382,6 +383,10 @@ private class FakeCloudAccountRepository : CloudAccountRepository {
     }
 
     override suspend fun loadProgressSeries(timeZone: String, from: String, to: String): CloudProgressSeries {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun loadProgressReviewSchedule(timeZone: String): CloudProgressReviewSchedule {
         throw UnsupportedOperationException()
     }
 

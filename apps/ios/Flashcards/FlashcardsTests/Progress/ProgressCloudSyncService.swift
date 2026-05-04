@@ -16,22 +16,33 @@ struct ProgressSeriesLoadRequest: Equatable {
     let to: String
 }
 
+struct ProgressReviewScheduleLoadRequest: Equatable {
+    let apiBaseUrl: String
+    let authorizationHeader: String
+    let timeZone: String
+}
+
 enum ProgressCloudOperation: Equatable {
     case loadProgressSummary
     case loadProgressSeries
+    case loadProgressReviewSchedule
 }
 
 @MainActor
 final class ProgressCloudSyncService: CloudSyncServing {
     var serverSummary: UserProgressSummary
     var serverSeries: UserProgressSeries
+    var serverReviewSchedule: UserReviewSchedule
     var loadProgressSummaryError: Error?
     var loadProgressSeriesError: Error?
+    var loadProgressReviewScheduleError: Error?
     private(set) var lastLoadProgressSummaryRequest: ProgressSummaryLoadRequest?
     private(set) var lastLoadProgressSeriesRequest: ProgressSeriesLoadRequest?
+    private(set) var lastLoadProgressReviewScheduleRequest: ProgressReviewScheduleLoadRequest?
     private(set) var recordedOperations: [ProgressCloudOperation]
     private(set) var loadProgressSummaryCallCount: Int
     private(set) var loadProgressSeriesCallCount: Int
+    private(set) var loadProgressReviewScheduleCallCount: Int
 
     init(
         serverSummary: UserProgressSummary,
@@ -41,13 +52,40 @@ final class ProgressCloudSyncService: CloudSyncServing {
     ) {
         self.serverSummary = serverSummary
         self.serverSeries = serverSeries
+        self.serverReviewSchedule = makeEmptyReviewScheduleForTests(timeZone: serverSeries.timeZone)
         self.loadProgressSummaryError = loadProgressSummaryError
         self.loadProgressSeriesError = loadProgressSeriesError
+        self.loadProgressReviewScheduleError = nil
         self.lastLoadProgressSummaryRequest = nil
         self.lastLoadProgressSeriesRequest = nil
+        self.lastLoadProgressReviewScheduleRequest = nil
         self.recordedOperations = []
         self.loadProgressSummaryCallCount = 0
         self.loadProgressSeriesCallCount = 0
+        self.loadProgressReviewScheduleCallCount = 0
+    }
+
+    init(
+        serverSummary: UserProgressSummary,
+        serverSeries: UserProgressSeries,
+        serverReviewSchedule: UserReviewSchedule,
+        loadProgressSummaryError: Error?,
+        loadProgressSeriesError: Error?,
+        loadProgressReviewScheduleError: Error?
+    ) {
+        self.serverSummary = serverSummary
+        self.serverSeries = serverSeries
+        self.serverReviewSchedule = serverReviewSchedule
+        self.loadProgressSummaryError = loadProgressSummaryError
+        self.loadProgressSeriesError = loadProgressSeriesError
+        self.loadProgressReviewScheduleError = loadProgressReviewScheduleError
+        self.lastLoadProgressSummaryRequest = nil
+        self.lastLoadProgressSeriesRequest = nil
+        self.lastLoadProgressReviewScheduleRequest = nil
+        self.recordedOperations = []
+        self.loadProgressSummaryCallCount = 0
+        self.loadProgressSeriesCallCount = 0
+        self.loadProgressReviewScheduleCallCount = 0
     }
 
     func fetchCloudAccount(apiBaseUrl: String, bearerToken: String) async throws -> CloudAccountSnapshot {
@@ -96,6 +134,25 @@ final class ProgressCloudSyncService: CloudSyncServing {
         }
 
         return self.serverSeries
+    }
+
+    func loadProgressReviewSchedule(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        timeZone: String
+    ) async throws -> UserReviewSchedule {
+        self.recordedOperations.append(.loadProgressReviewSchedule)
+        self.loadProgressReviewScheduleCallCount += 1
+        self.lastLoadProgressReviewScheduleRequest = ProgressReviewScheduleLoadRequest(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: authorizationHeader,
+            timeZone: timeZone
+        )
+        if let loadProgressReviewScheduleError {
+            throw loadProgressReviewScheduleError
+        }
+
+        return self.serverReviewSchedule
     }
 
     func createWorkspace(apiBaseUrl: String, bearerToken: String, name: String) async throws -> CloudWorkspaceSummary {

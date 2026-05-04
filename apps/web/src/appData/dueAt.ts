@@ -1,4 +1,6 @@
 const dueAtTimestampPattern = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?(Z|[+-]\d{2}:\d{2})$/;
+export const nullDueAtBucketMillis: number = Number.MIN_SAFE_INTEGER;
+export const malformedDueAtBucketMillis: number = Number.MIN_SAFE_INTEGER + 1;
 
 type ParsedDueAtParts = Readonly<{
   year: number;
@@ -136,6 +138,15 @@ export function deriveDueAtMillis(dueAt: string | null): number | null {
   }
 
   return parseDueAtMillis(dueAt);
+}
+
+export function deriveDueAtBucketMillis(dueAt: string | null): number {
+  if (dueAt === null) {
+    return nullDueAtBucketMillis;
+  }
+
+  const dueAtMillis = parseDueAtMillis(dueAt);
+  return dueAtMillis ?? malformedDueAtBucketMillis;
 }
 
 export function canonicalizeDueAtForSync(cardId: string, dueAt: string | null): string | null {

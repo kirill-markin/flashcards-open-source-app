@@ -208,6 +208,7 @@ data class OutboxEntryEntity(
     val payloadJson: String,
     val clientUpdatedAtIso: String,
     val createdAtMillis: Long,
+    val affectsReviewSchedule: Boolean,
     val attemptCount: Int,
     val lastError: String?
 )
@@ -248,6 +249,18 @@ data class ProgressSeriesCacheEntity(
     val toLocalDate: String,
     val generatedAt: String?,
     val dailyReviewsJson: String,
+    val updatedAtMillis: Long
+)
+
+@Entity(tableName = "progress_review_schedule_cache")
+data class ProgressReviewScheduleCacheEntity(
+    @PrimaryKey val scopeKey: String,
+    val scopeId: String,
+    val timeZone: String,
+    val referenceLocalDate: String,
+    val generatedAt: String?,
+    val totalCards: Int,
+    val bucketsJson: String,
     val updatedAtMillis: Long
 )
 
@@ -308,6 +321,12 @@ data class ProgressLocalCacheStateEntity(
     val workspaceId: String,
     val historyVersion: Long,
     val updatedAtMillis: Long
+)
+
+data class ProgressReviewScheduleCardDueEntity(
+    val cardId: String,
+    val workspaceId: String,
+    val dueAtMillis: Long?
 )
 
 data class CardWithRelations(

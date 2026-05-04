@@ -28,6 +28,14 @@ extension FlashcardsStore {
         )
     }
 
+    func beginProgressReviewScheduleRefreshErrorScope() {
+        self.applyProgressErrorState(
+            state: progressErrorStateClearingGeneralMessage(
+                state: self.progressErrorState
+            )
+        )
+    }
+
     func clearProgressSummaryRefreshErrorMessage() {
         self.applyProgressErrorState(
             state: progressErrorStateClearingSummaryRefreshMessage(
@@ -39,6 +47,22 @@ extension FlashcardsStore {
     func clearProgressSeriesRefreshErrorMessage() {
         self.applyProgressErrorState(
             state: progressErrorStateClearingSeriesRefreshMessage(
+                state: self.progressErrorState
+            )
+        )
+    }
+
+    func clearProgressReviewScheduleRefreshErrorMessage() {
+        self.applyProgressErrorState(
+            state: progressErrorStateClearingReviewScheduleRefreshMessage(
+                state: self.progressErrorState
+            )
+        )
+    }
+
+    func clearProgressReviewScheduleRenderErrorMessage() {
+        self.applyProgressErrorState(
+            state: progressErrorStateClearingReviewScheduleRenderMessage(
                 state: self.progressErrorState
             )
         )
@@ -56,6 +80,24 @@ extension FlashcardsStore {
     func replaceProgressSeriesRefreshErrorMessage(message: String) {
         self.applyProgressErrorState(
             state: progressErrorStateWithSeriesRefreshMessage(
+                state: self.progressErrorState,
+                message: message
+            )
+        )
+    }
+
+    func replaceProgressReviewScheduleRefreshErrorMessage(message: String) {
+        self.applyProgressErrorState(
+            state: progressErrorStateWithReviewScheduleRefreshMessage(
+                state: self.progressErrorState,
+                message: message
+            )
+        )
+    }
+
+    func replaceProgressReviewScheduleRenderErrorMessage(message: String) {
+        self.applyProgressErrorState(
+            state: progressErrorStateWithReviewScheduleRenderMessage(
                 state: self.progressErrorState,
                 message: message
             )

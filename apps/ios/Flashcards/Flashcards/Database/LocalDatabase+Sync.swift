@@ -57,7 +57,7 @@ extension LocalDatabase {
         }
     }
 
-    func deleteStaleReviewEventOutboxEntries(workspaceId: String) throws -> Int {
+    func deleteStaleReviewEventOutboxEntries(workspaceId: String) throws -> DeletedOutboxEntriesSummary {
         try self.core.inTransaction {
             let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
             return try self.outboxStore.deleteStaleReviewEventOutboxEntries(
@@ -151,6 +151,41 @@ extension LocalDatabase {
         return pendingReviewEvents
     }
 
+    func hasPendingCardOperation(
+        workspaceId: String,
+        installationId: String
+    ) throws -> Bool {
+        try self.outboxStore.hasPendingCardOperation(
+            workspaceId: workspaceId,
+            installationId: installationId
+        )
+    }
+
+    func hasPendingReviewScheduleImpactingCardOperation(
+        workspaceId: String,
+        installationId: String
+    ) throws -> Bool {
+        try self.outboxStore.hasPendingReviewScheduleImpactingCardOperation(
+            workspaceId: workspaceId,
+            installationId: installationId
+        )
+    }
+
+    func loadPendingReviewScheduleCardTotalDelta(
+        workspaceIds: [String],
+        installationId: String
+    ) throws -> Int {
+        var totalDelta = 0
+        for workspaceId in workspaceIds {
+            totalDelta += try self.outboxStore.loadPendingReviewScheduleCardTotalDelta(
+                workspaceId: workspaceId,
+                installationId: installationId
+            )
+        }
+
+        return totalDelta
+    }
+
     func loadJournalMode() throws -> String {
         try self.core.scalarText(sql: "PRAGMA journal_mode;", values: [])
     }
@@ -185,7 +220,7 @@ extension LocalDatabase {
     }
 
     /// Applies one bootstrap entry from the hot current-state lane.
-    func applySyncBootstrapEntry(workspaceId: String, entry: SyncBootstrapEntry) throws {
+    func applySyncBootstrapEntry(workspaceId: String, entry: SyncBootstrapEntry) throws -> SyncApplyResult {
         try self.core.inTransaction {
             try self.syncApplier.applySyncBootstrapEntry(workspaceId: workspaceId, entry: entry)
         }
@@ -210,7 +245,7 @@ extension LocalDatabase {
     /// `apps/backend/src/sync.ts`,
     /// `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/cloud/SyncLocalStore.kt`,
     /// and the iOS sync tests that assert hot-state application semantics.
-    func applySyncChange(workspaceId: String, change: SyncChange) throws {
+    func applySyncChange(workspaceId: String, change: SyncChange) throws -> SyncApplyResult {
         try self.core.inTransaction {
             try self.syncApplier.applySyncChange(workspaceId: workspaceId, change: change)
         }
