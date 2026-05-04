@@ -557,6 +557,9 @@ private struct ProgressReviewsSection: View {
 private struct ProgressReviewScheduleSection: View {
     let snapshot: ReviewScheduleSnapshot
 
+    @State private var selectedBucketKey: ReviewScheduleBucketKey?
+    @State private var selectedAngle: Int?
+
     private var buckets: [ReviewScheduleBucket] {
         self.snapshot.schedule.buckets
     }
@@ -585,9 +588,11 @@ private struct ProgressReviewScheduleSection: View {
                         SectorMark(
                             angle: .value("Cards", bucket.count),
                             innerRadius: .ratio(0.62),
+                            outerRadius: .ratio(self.outerRadiusRatio(for: bucket.key)),
                             angularInset: 1.4
                         )
                         .foregroundStyle(progressReviewScheduleBucketColor(key: bucket.key))
+                        .opacity(self.segmentOpacity(for: bucket.key))
                         .accessibilityLabel(progressReviewScheduleBucketTitle(key: bucket.key))
                         .accessibilityValue(
                             progressReviewScheduleBucketAccessibilityValue(
@@ -598,16 +603,23 @@ private struct ProgressReviewScheduleSection: View {
                     }
                 }
                 .chartLegend(.hidden)
+                .chartAngleSelection(value: self.$selectedAngle)
                 .frame(height: progressReviewScheduleChartHeight)
                 .accessibilityElement(children: .contain)
                 .accessibilityLabel(progressReviewScheduleChartAccessibilityLabel())
-                .accessibilityValue(progressReviewScheduleAccessibilitySummary(snapshot: self.snapshot))
+                .accessibilityValue(self.chartAccessibilityValue)
+                .onChange(of: self.selectedAngle) { _, newValue in
+                    self.handleChartAngleSelection(newValue)
+                }
 
                 VStack(alignment: .leading, spacing: 10) {
                     ForEach(self.buckets) { bucket in
                         ProgressReviewScheduleLegendRow(
                             bucket: bucket,
-                            totalCards: self.snapshot.schedule.totalCards
+                            totalCards: self.snapshot.schedule.totalCards,
+                            isSelected: self.selectedBucketKey == bucket.key,
+                            isAnySelected: self.selectedBucketKey != nil,
+                            onTap: { self.toggleSelection(for: bucket.key) }
                         )
                     }
                 }
@@ -625,12 +637,97 @@ private struct ProgressReviewScheduleSection: View {
             }
         }
         .padding(.vertical, 4)
+        .background(
+            // Background tap layer — only fires when no foreground view (chart, legend row)
+            // claims the tap, so it doesn't compete with the Charts framework's selection gesture.
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    self.selectedBucketKey = nil
+                }
+        )
     }
+
+    private var chartAccessibilityValue: String {
+        let summary = progressReviewScheduleAccessibilitySummary(snapshot: self.snapshot)
+        guard let selected = self.selectedBucketKey else {
+            return summary
+        }
+        let selectedTitle = progressReviewScheduleBucketTitle(key: selected)
+        return "\(selectedTitle), \(summary)"
+    }
+
+    private func isDimmed(_ key: ReviewScheduleBucketKey) -> Bool {
+        guard let selected = self.selectedBucketKey else {
+            return false
+        }
+        return selected != key
+    }
+
+    private func segmentOpacity(for key: ReviewScheduleBucketKey) -> Double {
+        self.isDimmed(key) ? 0.35 : 1.0
+    }
+
+    private func outerRadiusRatio(for key: ReviewScheduleBucketKey) -> Double {
+        self.isDimmed(key) ? 0.94 : 1.0
+    }
+
+    private func toggleSelection(for key: ReviewScheduleBucketKey) {
+        if self.selectedBucketKey == key {
+            self.selectedBucketKey = nil
+        } else {
+            self.selectedBucketKey = key
+        }
+    }
+
+    private func handleChartAngleSelection(_ angleValue: Int?) {
+        guard let angleValue else {
+            return
+        }
+        let totalCards = self.snapshot.schedule.totalCards
+        guard totalCards > 0 else {
+            return
+        }
+        let tappedKey = bucketKeyForChartAngle(
+            angleValue: angleValue,
+            buckets: self.nonEmptyBuckets
+        )
+        guard let tappedKey else {
+            return
+        }
+        self.toggleSelection(for: tappedKey)
+        // Reset so a tap on the same segment fires another onChange (toggle-off).
+        self.selectedAngle = nil
+    }
+}
+
+// Boundary policy: an exact tap on a wedge boundary maps to the earlier wedge.
+// Pure mapping from a Swift Charts angle-selection value (running cards count)
+// to the bucket whose wedge it falls inside.
+private func bucketKeyForChartAngle(
+    angleValue: Int,
+    buckets: [ReviewScheduleBucket]
+) -> ReviewScheduleBucketKey? {
+    guard buckets.isEmpty == false else {
+        return nil
+    }
+    var runningTotal: Int = 0
+    for bucket in buckets {
+        runningTotal += bucket.count
+        if angleValue <= runningTotal {
+            return bucket.key
+        }
+    }
+    assertionFailure("bucketKeyForChartAngle: angleValue \(angleValue) exceeded running total \(runningTotal); Charts may have changed its angle-binding clamping behavior")
+    return buckets.last?.key
 }
 
 private struct ProgressReviewScheduleLegendRow: View {
     let bucket: ReviewScheduleBucket
     let totalCards: Int
+    let isSelected: Bool
+    let isAnySelected: Bool
+    let onTap: () -> Void
 
     var body: some View {
         HStack(spacing: 10) {
@@ -652,7 +749,22 @@ private struct ProgressReviewScheduleLegendRow: View {
                 .font(.subheadline.monospacedDigit())
                 .foregroundStyle(.secondary)
         }
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(self.isSelected ? Color.accentColor.opacity(0.12) : Color.clear)
+                .padding(.horizontal, -8)
+                .padding(.vertical, -4)
+        )
+        .opacity(self.isAnySelected && self.isSelected == false ? 0.35 : 1.0)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard self.bucket.count > 0 else {
+                return
+            }
+            self.onTap()
+        }
         .accessibilityElement(children: .ignore)
+        .accessibilityAddTraits(self.bucket.count > 0 ? .isButton : [])
         .accessibilityLabel(progressReviewScheduleBucketTitle(key: self.bucket.key))
         .accessibilityValue(
             progressReviewScheduleBucketAccessibilityValue(
@@ -893,24 +1005,26 @@ private func progressReviewScheduleBucketTitle(key: ReviewScheduleBucketKey) -> 
     }
 }
 
+// Canonical palette — see docs/progress-pie-palette.md.
+// Keep the hex values in sync with the Android and Web clients.
 private func progressReviewScheduleBucketColor(key: ReviewScheduleBucketKey) -> Color {
     switch key {
     case .new:
-        return .accentColor
+        return Color(red: 0xE6 / 255, green: 0x9F / 255, blue: 0x00 / 255)
     case .today:
-        return .red
+        return Color(red: 0xD7 / 255, green: 0x26 / 255, blue: 0x3D / 255)
     case .days1To7:
-        return .blue
+        return Color(red: 0xF2 / 255, green: 0xA6 / 255, blue: 0x5A / 255)
     case .days8To30:
-        return .green
+        return Color(red: 0x2B / 255, green: 0xB6 / 255, blue: 0x73 / 255)
     case .days31To90:
-        return .mint
+        return Color(red: 0x1F / 255, green: 0xB5 / 255, blue: 0xC1 / 255)
     case .days91To360:
-        return .purple
+        return Color(red: 0x3F / 255, green: 0x7C / 255, blue: 0xC8 / 255)
     case .years1To2:
-        return .pink
+        return Color(red: 0x8E / 255, green: 0x5B / 255, blue: 0xD9 / 255)
     case .later:
-        return .gray
+        return Color(red: 0x7A / 255, green: 0x80 / 255, blue: 0x88 / 255)
     }
 }
 
