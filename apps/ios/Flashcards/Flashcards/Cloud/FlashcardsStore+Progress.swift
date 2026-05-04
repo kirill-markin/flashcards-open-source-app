@@ -221,18 +221,19 @@ extension FlashcardsStore {
             let summaryScopeKey = progressSummaryScopeKey(seriesScopeKey: scopeKey)
             let scheduleScopeKey = reviewScheduleScopeKey(seriesScopeKey: scopeKey)
 
+            let reviewProgressDataChanged = syncResult.reviewProgressDataChanged
             let reviewScheduleDataChanged = syncResult.reviewScheduleDataChanged
-            guard syncResult.reviewProgressDataChanged || reviewScheduleDataChanged else {
+            guard reviewProgressDataChanged || reviewScheduleDataChanged else {
                 return
             }
-            if syncResult.reviewProgressDataChanged {
+            if reviewProgressDataChanged {
                 self.progressReviewedAtClientRevision += 1
             }
             if reviewScheduleDataChanged {
                 self.progressReviewScheduleLocalRevision += 1
             }
 
-            if syncResult.reviewProgressDataChanged {
+            if reviewProgressDataChanged {
                 self.invalidateProgressSummaryAndSeries(scopeKey: scopeKey, summaryScopeKey: summaryScopeKey)
                 if reviewScheduleDataChanged {
                     self.invalidateProgressReviewSchedule(scopeKey: scheduleScopeKey)
