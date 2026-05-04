@@ -47,7 +47,6 @@ private struct ReviewEventOutboxPayload: Codable {
 private struct ReviewEventOutboxCandidate {
     let operationId: String
     let payloadJson: String
-    let reviewScheduleImpact: Bool
 }
 
 private struct PendingReviewScheduleCardTotalDeltaEntry {
@@ -64,7 +63,6 @@ private struct PendingReviewScheduleCardTotalChange {
 
 struct DeletedOutboxEntriesSummary: Hashable {
     let operationCount: Int
-    let reviewScheduleImpactingOperationCount: Int
 }
 
 private struct SyncStateRow {
@@ -148,7 +146,7 @@ struct OutboxStore {
     ) throws -> DeletedOutboxEntriesSummary {
         let candidates = try self.core.query(
             sql: """
-            SELECT operation_id, payload_json, review_schedule_impact
+            SELECT operation_id, payload_json
             FROM outbox
             WHERE workspace_id = ? AND entity_type = 'review_event'
             """,
@@ -156,8 +154,7 @@ struct OutboxStore {
         ) { statement in
             ReviewEventOutboxCandidate(
                 operationId: DatabaseCore.columnText(statement: statement, index: 0),
-                payloadJson: DatabaseCore.columnText(statement: statement, index: 1),
-                reviewScheduleImpact: DatabaseCore.columnInt64(statement: statement, index: 2) != 0
+                payloadJson: DatabaseCore.columnText(statement: statement, index: 1)
             )
         }
 
@@ -171,10 +168,7 @@ struct OutboxStore {
 
         let staleOperationIds = staleCandidates.map(\.operationId)
         try self.deleteOutboxEntries(operationIds: staleOperationIds)
-        return DeletedOutboxEntriesSummary(
-            operationCount: staleOperationIds.count,
-            reviewScheduleImpactingOperationCount: staleCandidates.filter(\.reviewScheduleImpact).count
-        )
+        return DeletedOutboxEntriesSummary(operationCount: staleOperationIds.count)
     }
 
     func hasPendingCardOperation(
@@ -440,6 +434,12 @@ struct OutboxStore {
         }
     }
 
+    // Initial-create invariant: when this enqueues the very first upsert for a card,
+    // `clientUpdatedAt` MUST equal `card.createdAt` (same instant string, produced by a
+    // single `nowIsoTimestamp()` reused at the call site). All later upserts for the
+    // same cardId (edits, tombstones, review-applied schedule writes) MUST pass a
+    // `clientUpdatedAt` strictly later than `cards.created_at`. The create-detection in
+    // parsePendingReviewScheduleCardTotalChange relies on that string equality.
     func enqueueCardUpsertOperation(
         workspaceId: String,
         installationId: String,
@@ -719,6 +719,7 @@ struct OutboxStore {
         }
 
         let createdAt = try self.loadCardCreatedAt(workspaceId: workspaceId, cardId: entry.entityId)
+        // Initial-create marker: see enqueueCardUpsertOperation contract.
         return PendingReviewScheduleCardTotalChange(
             hasLocalCreate: createdAt == entry.clientUpdatedAt,
             finalIsDeleted: payload.deletedAt != nil
