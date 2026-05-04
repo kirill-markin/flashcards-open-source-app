@@ -122,11 +122,19 @@ extension FlashcardsStore {
         try self.assertLocalOutboxMutationAllowedDuringPendingGuestUpgrade()
 
         let workspaceId = try requireWorkspaceId(workspace: self.workspace)
+        let currentReviewState = self.currentReviewPublishedState()
+        let reviewContext = makeReviewSubmissionContext(
+            selectedReviewFilter: currentReviewState.selectedReviewFilter,
+            decks: self.decks,
+            cards: self.cards
+        )
         let nextReviewState = try self.reviewRuntime.enqueueReviewSubmission(
-            publishedState: self.currentReviewPublishedState(),
+            publishedState: currentReviewState,
             workspaceId: workspaceId,
             cardId: cardId,
-            rating: rating
+            rating: rating,
+            reviewContext: reviewContext,
+            schedulerSettings: self.schedulerSettings
         )
         self.applyReviewPublishedState(reviewState: nextReviewState)
         self.startReviewQueueChunkLoadIfNeeded(now: Date())

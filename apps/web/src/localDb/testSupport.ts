@@ -1,4 +1,9 @@
-import { compareCardsForReviewOrder, matchesCardFilter, matchesDeckFilterDefinition } from "../appData/domain";
+import {
+  compareCardsForReviewOrder,
+  matchesCardFilter,
+  matchesDeckFilterDefinition,
+  normalizeTagKey,
+} from "../appData/domain";
 import { parseDueAtMillis } from "../appData/dueAt";
 import { clearWebSyncCache } from "./cache";
 import { replaceCards } from "./cards";
@@ -181,8 +186,13 @@ function resolveLegacyReviewFilter(
     return reviewFilter;
   }
 
-  return cards.some((card) => card.tags.includes(reviewFilter.tag))
-    ? reviewFilter
+  const requestedTagKey = normalizeTagKey(reviewFilter.tag);
+  const matchingTag = cards
+    .flatMap((card) => card.tags)
+    .find((tag) => normalizeTagKey(tag) === requestedTagKey);
+
+  return matchingTag !== undefined
+    ? { kind: "tag", tag: matchingTag }
     : { kind: "allCards" };
 }
 
@@ -212,7 +222,10 @@ export function legacyReviewCards(
       })
       : resolvedReviewFilter.kind === "effort"
         ? activeCards.filter((card) => card.effortLevel === resolvedReviewFilter.effortLevel)
-      : activeCards.filter((card) => card.tags.includes(resolvedReviewFilter.tag));
+      : activeCards.filter((card) => {
+        const requestedTagKey = normalizeTagKey(resolvedReviewFilter.tag);
+        return card.tags.some((tag) => normalizeTagKey(tag) === requestedTagKey);
+      });
 
   return [...matchingCards].sort((leftCard, rightCard) => compareCardsForReviewOrder(leftCard, rightCard, nowTimestamp));
 }

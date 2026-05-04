@@ -100,6 +100,98 @@ final class FsrsReviewPresentationTests: XCTestCase {
         XCTAssertEqual(reviewTimeline.map(\.cardId), ["matching-active", "matching-future"])
     }
 
+    func testReviewFilterTagMatchesUnicodeStoredTagByNormalizedKey() throws {
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
+        let cards = [
+            FsrsSchedulerTestSupport.makeTestCard(
+                cardId: "matching-active",
+                tags: ["Éclair"],
+                effortLevel: .fast,
+                dueAt: "2026-03-09T08:00:00.000Z",
+                updatedAt: "2026-03-09T08:00:00.000Z"
+            ),
+            FsrsSchedulerTestSupport.makeTestCard(
+                cardId: "matching-active-lowercase",
+                tags: ["éclair"],
+                effortLevel: .fast,
+                dueAt: "2026-03-09T08:15:00.000Z",
+                updatedAt: "2026-03-09T07:30:00.000Z"
+            ),
+            FsrsSchedulerTestSupport.makeTestCard(
+                cardId: "other-active",
+                tags: ["plain"],
+                effortLevel: .fast,
+                dueAt: "2026-03-09T07:30:00.000Z",
+                updatedAt: "2026-03-09T07:00:00.000Z"
+            )
+        ]
+
+        let reviewQueue = makeReviewQueue(
+            reviewFilter: .tag(tag: "éclair"),
+            decks: [],
+            cards: cards,
+            now: now
+        )
+        let submissionContext = makeReviewSubmissionContext(
+            selectedReviewFilter: .tag(tag: "éclair"),
+            decks: [],
+            cards: cards
+        )
+
+        XCTAssertEqual(resolveReviewFilter(reviewFilter: .tag(tag: "éclair"), decks: [], cards: cards), .tag(tag: "Éclair"))
+        XCTAssertEqual(reviewQueue.map(\.cardId), ["matching-active", "matching-active-lowercase"])
+        XCTAssertEqual(submissionContext.selectedReviewFilter, .tag(tag: "Éclair"))
+        XCTAssertEqual(submissionContext.reviewQueryDefinition, .tag(exactTagNames: ["Éclair", "éclair"]))
+    }
+
+    func testDeckFilterTagMatchesUnicodeStoredTagByNormalizedKey() throws {
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
+        let decks = [
+            FsrsSchedulerTestSupport.makeDeck(
+                deckId: "desserts",
+                name: "Desserts",
+                filterDefinition: buildDeckFilterDefinition(
+                    effortLevels: [],
+                    tags: ["éclair"]
+                )
+            )
+        ]
+        let cards = [
+            FsrsSchedulerTestSupport.makeTestCard(
+                cardId: "matching-active",
+                tags: ["Éclair"],
+                effortLevel: .fast,
+                dueAt: "2026-03-09T08:00:00.000Z",
+                updatedAt: "2026-03-09T08:00:00.000Z"
+            ),
+            FsrsSchedulerTestSupport.makeTestCard(
+                cardId: "other-active",
+                tags: ["plain"],
+                effortLevel: .fast,
+                dueAt: "2026-03-09T07:30:00.000Z",
+                updatedAt: "2026-03-09T07:00:00.000Z"
+            )
+        ]
+
+        let reviewQueue = makeReviewQueue(
+            reviewFilter: .deck(deckId: "desserts"),
+            decks: decks,
+            cards: cards,
+            now: now
+        )
+        let submissionContext = makeReviewSubmissionContext(
+            selectedReviewFilter: .deck(deckId: "desserts"),
+            decks: decks,
+            cards: cards
+        )
+
+        XCTAssertEqual(reviewQueue.map(\.cardId), ["matching-active"])
+        XCTAssertEqual(
+            submissionContext.reviewQueryDefinition,
+            .deck(filterDefinition: buildDeckFilterDefinition(effortLevels: [], tags: ["Éclair"]))
+        )
+    }
+
     func testMakeReviewTimelineForEffortFilterKeepsVirtualFilterActiveWithoutMatchingCards() throws {
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
         let cards = [

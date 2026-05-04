@@ -8,6 +8,42 @@ func normalizeTagKey(tag: String) -> String {
     normalizeTag(rawValue: tag).lowercased()
 }
 
+func resolveExactStoredTagNames(requestedTagNames: [String], storedTagNames: [String]) -> [String] {
+    let requestedTagKeys = requestedTagNames.reduce(into: [String]()) { result, tagName in
+        let tagKey = normalizeTagKey(tag: tagName)
+        guard tagKey.isEmpty == false else {
+            return
+        }
+        guard result.contains(tagKey) == false else {
+            return
+        }
+
+        result.append(tagKey)
+    }
+    if requestedTagKeys.isEmpty {
+        return []
+    }
+
+    let requestedTagKeySet = Set(requestedTagKeys)
+    return storedTagNames.reduce(into: [String]()) { result, storedTagName in
+        guard requestedTagKeySet.contains(normalizeTagKey(tag: storedTagName)) else {
+            return
+        }
+        guard result.contains(storedTagName) == false else {
+            return
+        }
+
+        result.append(storedTagName)
+    }
+}
+
+func hasTagMatchingRequest(storedTagNames: [String], requestedTagName: String) -> Bool {
+    resolveExactStoredTagNames(
+        requestedTagNames: [requestedTagName],
+        storedTagNames: storedTagNames
+    ).isEmpty == false
+}
+
 func canonicalTagValue(rawValue: String, referenceTags: [String]) -> String? {
     let normalizedValue = normalizeTag(rawValue: rawValue)
     if normalizedValue.isEmpty {

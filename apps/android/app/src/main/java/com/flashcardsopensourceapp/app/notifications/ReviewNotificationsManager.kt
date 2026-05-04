@@ -19,7 +19,6 @@ import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.decodeDeckFilterDefinitionJson
 import com.flashcardsopensourceapp.data.local.model.normalizeTagKey
-import com.flashcardsopensourceapp.data.local.model.normalizeTags
 import com.flashcardsopensourceapp.data.local.notifications.CurrentReviewNotificationCard
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationMode
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
@@ -138,9 +137,24 @@ class ReviewNotificationsManager(
         val selectedReviewFilter = reviewPreferencesStore.loadSelectedReviewFilter(
             workspaceId = workspace.workspaceId
         )
+        val reviewNotificationFilterPlan = loadReviewNotificationFilterPlan(
+            workspaceId = workspace.workspaceId,
+            selectedReviewFilter = selectedReviewFilter
+        )
+        val resolvedReviewFilter = when (reviewNotificationFilterPlan) {
+            is ReviewNotificationFilterPlan.Schedule -> reviewNotificationFilterPlan.reviewFilter
+            ReviewNotificationFilterPlan.SuppressScheduledPayloads -> {
+                reviewNotificationsStore.saveScheduledPayloads(
+                    workspaceId = workspace.workspaceId,
+                    payloads = emptyList()
+                )
+                return
+            }
+        }
+
         val currentCard = loadCurrentReviewNotificationCard(
             workspaceId = workspace.workspaceId,
-            reviewFilter = selectedReviewFilter,
+            reviewFilter = resolvedReviewFilter,
             nowMillis = nowMillis
         )
 
@@ -172,7 +186,7 @@ class ReviewNotificationsManager(
                 }
             }
         } else {
-            val persistedReviewFilter = makePersistedReviewFilter(reviewFilter = selectedReviewFilter)
+            val persistedReviewFilter = makePersistedReviewFilter(reviewFilter = resolvedReviewFilter)
             val fallbackFrontText = reviewTextProvider(context = context).notificationFallbackFrontText
             when (settings.selectedMode) {
                 ReviewNotificationMode.DAILY -> buildFallbackDailyReminderPayloads(
@@ -327,6 +341,40 @@ class ReviewNotificationsManager(
         }
     }
 
+    private suspend fun loadReviewNotificationFilterPlan(
+        workspaceId: String,
+        selectedReviewFilter: ReviewFilter
+    ): ReviewNotificationFilterPlan {
+        val selectedDeckFilterDefinition = when (selectedReviewFilter) {
+            is ReviewFilter.Deck -> loadCurrentWorkspaceDeckFilterDefinitionOrNull(
+                workspaceId = workspaceId,
+                deckId = selectedReviewFilter.deckId
+            )
+
+            ReviewFilter.AllCards,
+            is ReviewFilter.Effort,
+            is ReviewFilter.Tag -> null
+        }
+
+        return resolveReviewNotificationFilterPlan(
+            selectedReviewFilter = selectedReviewFilter,
+            activeReviewTagNames = loadActiveReviewTagNames(workspaceId = workspaceId),
+            selectedDeckFilterDefinition = selectedDeckFilterDefinition
+        )
+    }
+
+    private suspend fun loadCurrentWorkspaceDeckFilterDefinitionOrNull(
+        workspaceId: String,
+        deckId: String
+    ): DeckFilterDefinition? {
+        val deck = database.deckDao().loadDeck(deckId = deckId) ?: return null
+        if (deck.workspaceId != workspaceId || deck.deletedAtMillis != null) {
+            return null
+        }
+
+        return decodeDeckFilterDefinitionJson(filterDefinitionJson = deck.filterDefinitionJson)
+    }
+
     private suspend fun loadCurrentAllCardsReviewNotificationCard(
         workspaceId: String,
         nowMillis: Long
@@ -349,7 +397,7 @@ class ReviewNotificationsManager(
         nowMillis: Long
     ): CurrentReviewNotificationCard? {
         val deck = database.deckDao().loadDeck(deckId = deckId)
-        if (deck == null || deck.deletedAtMillis != null) {
+        if (deck == null || deck.workspaceId != workspaceId || deck.deletedAtMillis != null) {
             return loadCurrentAllCardsReviewNotificationCard(
                 workspaceId = workspaceId,
                 nowMillis = nowMillis
@@ -395,11 +443,11 @@ class ReviewNotificationsManager(
         tag: String,
         nowMillis: Long
     ): CurrentReviewNotificationCard? {
-        val hasTag = database.tagDao().hasTag(
+        val exactTagNames = loadExactStoredReviewTagNames(
             workspaceId = workspaceId,
-            tagName = tag
+            requestedTagNames = listOf(tag)
         )
-        if (hasTag.not()) {
+        if (exactTagNames.isEmpty()) {
             return loadCurrentAllCardsReviewNotificationCard(
                 workspaceId = workspaceId,
                 nowMillis = nowMillis
@@ -409,7 +457,7 @@ class ReviewNotificationsManager(
         val card = database.cardDao().loadTopReviewCardByAnyTags(
             workspaceId = workspaceId,
             nowMillis = nowMillis,
-            normalizedTagNames = listOf(normalizeTagKey(tag = tag))
+            tagNames = exactTagNames
         ) ?: return null
 
         return CurrentReviewNotificationCard(
@@ -424,22 +472,24 @@ class ReviewNotificationsManager(
         nowMillis: Long,
         filterDefinition: DeckFilterDefinition
     ): com.flashcardsopensourceapp.data.local.database.CardEntity? {
-        val normalizedTagNames = normalizeTags(
-            values = filterDefinition.tags,
-            referenceTags = emptyList()
-        ).map { tag ->
-            normalizeTagKey(tag = tag)
+        val exactTagNames = loadExactStoredReviewTagNames(
+            workspaceId = workspaceId,
+            requestedTagNames = filterDefinition.tags
+        )
+        val hasTagPredicate = filterDefinition.tags.isNotEmpty()
+        if (hasTagPredicate && exactTagNames.isEmpty()) {
+            return null
         }
 
         return when {
-            filterDefinition.effortLevels.isEmpty() && normalizedTagNames.isEmpty() -> {
+            filterDefinition.effortLevels.isEmpty() && hasTagPredicate.not() -> {
                 database.cardDao().loadTopReviewCard(
                     workspaceId = workspaceId,
                     nowMillis = nowMillis
                 )
             }
 
-            filterDefinition.effortLevels.isNotEmpty() && normalizedTagNames.isEmpty() -> {
+            filterDefinition.effortLevels.isNotEmpty() && hasTagPredicate.not() -> {
                 database.cardDao().loadTopReviewCardByEffortLevels(
                     workspaceId = workspaceId,
                     nowMillis = nowMillis,
@@ -447,11 +497,11 @@ class ReviewNotificationsManager(
                 )
             }
 
-            filterDefinition.effortLevels.isEmpty() && normalizedTagNames.isNotEmpty() -> {
+            filterDefinition.effortLevels.isEmpty() -> {
                 database.cardDao().loadTopReviewCardByAnyTags(
                     workspaceId = workspaceId,
                     nowMillis = nowMillis,
-                    normalizedTagNames = normalizedTagNames
+                    tagNames = exactTagNames
                 )
             }
 
@@ -460,11 +510,100 @@ class ReviewNotificationsManager(
                     workspaceId = workspaceId,
                     nowMillis = nowMillis,
                     effortLevels = filterDefinition.effortLevels,
-                    normalizedTagNames = normalizedTagNames
+                    tagNames = exactTagNames
                 )
             }
         }
     }
+
+    private suspend fun loadExactStoredReviewTagNames(
+        workspaceId: String,
+        requestedTagNames: List<String>
+    ): List<String> {
+        return resolveExactStoredReviewTagNames(
+            requestedTagNames = requestedTagNames,
+            storedTagNames = loadActiveReviewTagNames(workspaceId = workspaceId)
+        )
+    }
+
+    private suspend fun loadActiveReviewTagNames(workspaceId: String): List<String> {
+        return database.tagDao().loadReviewTagNames(workspaceId = workspaceId)
+    }
+}
+
+internal sealed interface ReviewNotificationFilterPlan {
+    data class Schedule(
+        val reviewFilter: ReviewFilter
+    ) : ReviewNotificationFilterPlan
+
+    data object SuppressScheduledPayloads : ReviewNotificationFilterPlan
+}
+
+internal fun resolveReviewNotificationFilterPlan(
+    selectedReviewFilter: ReviewFilter,
+    activeReviewTagNames: List<String>,
+    selectedDeckFilterDefinition: DeckFilterDefinition?
+): ReviewNotificationFilterPlan {
+    return when (selectedReviewFilter) {
+        ReviewFilter.AllCards -> ReviewNotificationFilterPlan.Schedule(reviewFilter = ReviewFilter.AllCards)
+        is ReviewFilter.Effort -> ReviewNotificationFilterPlan.Schedule(reviewFilter = selectedReviewFilter)
+        is ReviewFilter.Tag -> {
+            val exactTagName = resolveExactStoredReviewTagNames(
+                requestedTagNames = listOf(selectedReviewFilter.tag),
+                storedTagNames = activeReviewTagNames
+            ).firstOrNull()
+            val resolvedReviewFilter = exactTagName?.let { tagName ->
+                ReviewFilter.Tag(tag = tagName)
+            } ?: ReviewFilter.AllCards
+
+            ReviewNotificationFilterPlan.Schedule(reviewFilter = resolvedReviewFilter)
+        }
+
+        is ReviewFilter.Deck -> {
+            if (selectedDeckFilterDefinition == null) {
+                return ReviewNotificationFilterPlan.Schedule(reviewFilter = ReviewFilter.AllCards)
+            }
+
+            if (hasImpossibleStoredTagDeckPredicate(
+                    filterDefinition = selectedDeckFilterDefinition,
+                    storedTagNames = activeReviewTagNames
+                )
+            ) {
+                ReviewNotificationFilterPlan.SuppressScheduledPayloads
+            } else {
+                ReviewNotificationFilterPlan.Schedule(reviewFilter = selectedReviewFilter)
+            }
+        }
+    }
+}
+
+internal fun hasImpossibleStoredTagDeckPredicate(
+    filterDefinition: DeckFilterDefinition,
+    storedTagNames: List<String>
+): Boolean {
+    return filterDefinition.tags.isNotEmpty() && resolveExactStoredReviewTagNames(
+        requestedTagNames = filterDefinition.tags,
+        storedTagNames = storedTagNames
+    ).isEmpty()
+}
+
+internal fun resolveExactStoredReviewTagNames(
+    requestedTagNames: List<String>,
+    storedTagNames: List<String>
+): List<String> {
+    val requestedTagKeys: List<String> = requestedTagNames.map { tagName ->
+        normalizeTagKey(tag = tagName)
+    }.filter { tagKey ->
+        tagKey.isNotEmpty()
+    }.distinct()
+    if (requestedTagKeys.isEmpty()) {
+        return emptyList()
+    }
+
+    val requestedTagKeySet: Set<String> = requestedTagKeys.toSet()
+    return storedTagNames.filter { storedTagName ->
+        requestedTagKeySet.contains(normalizeTagKey(tag = storedTagName))
+    }.distinct()
 }
 
 fun hasNotificationPermission(context: Context): Boolean {

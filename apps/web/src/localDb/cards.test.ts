@@ -78,6 +78,46 @@ describe("localDb cards", () => {
     ]);
   });
 
+  it("matches query card tag filters by normalized Unicode tag keys", async () => {
+    const cards: ReadonlyArray<Card> = [
+      makeCard({
+        cardId: "unicode-tag-card",
+        frontText: "Unicode tag",
+        backText: "back",
+        tags: ["Éclair"],
+        effortLevel: "fast",
+        dueAt: null,
+        createdAt: "2025-01-01T00:00:00.000Z",
+        updatedAt: "2025-01-05T00:00:00.000Z",
+      }),
+      makeCard({
+        cardId: "other-tag-card",
+        frontText: "Other tag",
+        backText: "back",
+        tags: ["code"],
+        effortLevel: "fast",
+        dueAt: null,
+        createdAt: "2025-01-02T00:00:00.000Z",
+        updatedAt: "2025-01-04T00:00:00.000Z",
+      }),
+    ];
+    await replaceCards(workspaceId, cards);
+
+    const result = await queryLocalCardsPage(workspaceId, {
+      searchText: null,
+      cursor: null,
+      limit: 10,
+      sorts: [],
+      filter: {
+        tags: ["éclair"],
+        effort: [],
+      },
+    });
+
+    expect(result.cards.map((card) => card.cardId)).toEqual(["unicode-tag-card"]);
+    expect(result.totalCount).toBe(1);
+  });
+
   it("keeps pagination stable when multiple cards share the same updatedAt", async () => {
     const cards: ReadonlyArray<Card> = [
       makeCard({

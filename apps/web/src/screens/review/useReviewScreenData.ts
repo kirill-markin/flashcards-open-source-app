@@ -4,6 +4,7 @@ import {
   isCardDue,
   isReviewFilterEqual,
   matchesDeckFilterDefinition,
+  normalizeTagKey,
 } from "../../appData/domain";
 import { useI18n } from "../../i18n";
 import { loadDecksListSnapshot } from "../../localDb/decks";
@@ -39,10 +40,36 @@ type UseReviewScreenDataParams = Readonly<{
   submitReviewItem: (cardId: string, rating: 0 | 1 | 2 | 3) => Promise<Card>;
 }>;
 
+type PendingReviewSnapshot = Readonly<{
+  card: Card;
+}>;
+
+type ReviewSessionCardSignature = Readonly<{
+  cardId: string;
+  updatedAt: string;
+}>;
+
+type ReviewSessionSignature = Readonly<{
+  activeQueue: ReadonlyArray<ReviewSessionCardSignature>;
+  queueCards: ReadonlyArray<ReviewSessionCardSignature>;
+  selectedReviewFilterKey: string;
+}>;
+
+type ReviewSubmissionContext = Readonly<{
+  cardId: string;
+  deckSummaries: ReadonlyArray<DeckSummary>;
+  reviewSessionGeneration: number;
+  resolvedReviewFilter: ReviewFilter;
+  selectedReviewFilterKey: string;
+  workspaceId: string | null;
+}>;
+
+export type ReviewSubmissionOutcome = "saved" | "failed" | "stale";
+
 export type UseReviewScreenDataResult = Readonly<{
   activeReviewQueue: ReadonlyArray<Card>;
   deckSummaries: ReadonlyArray<DeckSummary>;
-  handleReview: (card: Card, rating: 0 | 1 | 2 | 3) => Promise<boolean>;
+  handleReview: (card: Card, rating: 0 | 1 | 2 | 3) => Promise<ReviewSubmissionOutcome>;
   hasLoadedReviewData: boolean;
   isInitialReviewLoad: boolean;
   isReviewLoading: boolean;
@@ -100,11 +127,8 @@ function buildDisplayedReviewQueue(
     return canonicalReviewQueue;
   }
 
-  const canonicalPresentedCard = canonicalReviewQueue.find((card) => card.cardId === presentedCard.cardId);
-  const displayedPresentedCard = canonicalPresentedCard ?? presentedCard;
-
   return [
-    displayedPresentedCard,
+    presentedCard,
     ...canonicalReviewQueue.filter((card) => card.cardId !== presentedCard.cardId),
   ];
 }
@@ -156,7 +180,8 @@ function matchesResolvedReviewFilterForPreservation(
     return card.effortLevel === resolvedReviewFilter.effortLevel;
   }
 
-  return card.tags.includes(resolvedReviewFilter.tag);
+  const requestedTagKey = normalizeTagKey(resolvedReviewFilter.tag);
+  return card.tags.some((tag) => normalizeTagKey(tag) === requestedTagKey);
 }
 
 function isPreservablePresentedCard(
@@ -168,8 +193,278 @@ function isPreservablePresentedCard(
   return isCardDue(card, nowTimestamp) && matchesResolvedReviewFilterForPreservation(card, resolvedReviewFilter, deckSummaries);
 }
 
+function isStringSetEqual(left: ReadonlyArray<string>, right: ReadonlyArray<string>): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  const sortedLeft = [...left].sort((leftValue, rightValue) => leftValue.localeCompare(rightValue));
+  const sortedRight = [...right].sort((leftValue, rightValue) => leftValue.localeCompare(rightValue));
+  return sortedLeft.every((leftValue, index) => leftValue === sortedRight[index]);
+}
+
+function isDeckFilterDefinitionEqual(
+  left: DeckSummary["filterDefinition"],
+  right: DeckSummary["filterDefinition"],
+): boolean {
+  return isStringSetEqual(left.effortLevels, right.effortLevels)
+    && isStringSetEqual(left.tags, right.tags);
+}
+
+function findDeckSummaryByReviewFilter(
+  reviewFilter: ReviewFilter,
+  deckSummaries: ReadonlyArray<DeckSummary>,
+): DeckSummary | null {
+  if (reviewFilter.kind !== "deck") {
+    return null;
+  }
+
+  return deckSummaries.find((deckSummary) => deckSummary.deckId === reviewFilter.deckId) ?? null;
+}
+
+function buildReviewSessionCardSignature(card: Card): ReviewSessionCardSignature {
+  return {
+    cardId: card.cardId,
+    updatedAt: card.updatedAt,
+  };
+}
+
+function buildReviewSessionSignature(
+  selectedReviewFilterKey: string,
+  activeReviewQueue: ReadonlyArray<Card>,
+  queueCards: ReadonlyArray<Card>,
+): ReviewSessionSignature {
+  return {
+    activeQueue: activeReviewQueue.map(buildReviewSessionCardSignature),
+    queueCards: queueCards.map(buildReviewSessionCardSignature),
+    selectedReviewFilterKey,
+  };
+}
+
+function isReviewSessionCardSignatureEqual(
+  left: ReviewSessionCardSignature,
+  right: ReviewSessionCardSignature,
+): boolean {
+  return left.cardId === right.cardId && left.updatedAt === right.updatedAt;
+}
+
+function isReviewSessionCardSignatureListEqual(
+  left: ReadonlyArray<ReviewSessionCardSignature>,
+  right: ReadonlyArray<ReviewSessionCardSignature>,
+): boolean {
+  return left.length === right.length
+    && left.every((leftCardSignature, index) => {
+      const rightCardSignature = right[index];
+      return rightCardSignature !== undefined
+        && isReviewSessionCardSignatureEqual(leftCardSignature, rightCardSignature);
+    });
+}
+
+function isReviewSessionSignatureEqual(
+  left: ReviewSessionSignature,
+  right: ReviewSessionSignature,
+): boolean {
+  return left.selectedReviewFilterKey === right.selectedReviewFilterKey
+    && isReviewSessionCardSignatureListEqual(left.activeQueue, right.activeQueue)
+    && isReviewSessionCardSignatureListEqual(left.queueCards, right.queueCards);
+}
+
+function filterReviewSessionCardSignatures(
+  cardSignatures: ReadonlyArray<ReviewSessionCardSignature>,
+  excludedCardIds: ReadonlySet<string>,
+): ReadonlyArray<ReviewSessionCardSignature> {
+  if (excludedCardIds.size === 0) {
+    return cardSignatures;
+  }
+
+  return cardSignatures.filter((cardSignature) => excludedCardIds.has(cardSignature.cardId) === false);
+}
+
+function isReviewSessionCardSignaturePrefix(
+  prefix: ReadonlyArray<ReviewSessionCardSignature>,
+  cardSignatures: ReadonlyArray<ReviewSessionCardSignature>,
+): boolean {
+  if (prefix.length > cardSignatures.length) {
+    return false;
+  }
+
+  return prefix.every((prefixCardSignature, index) => {
+    const cardSignature = cardSignatures[index];
+    return cardSignature !== undefined
+      && isReviewSessionCardSignatureEqual(prefixCardSignature, cardSignature);
+  });
+}
+
+function isReviewSessionSignatureCompatible(
+  previousSignature: ReviewSessionSignature,
+  nextSignature: ReviewSessionSignature,
+  pendingReviewSnapshots: ReadonlyMap<string, PendingReviewSnapshot>,
+): boolean {
+  if (previousSignature.selectedReviewFilterKey !== nextSignature.selectedReviewFilterKey) {
+    return false;
+  }
+
+  const pendingCardIds: ReadonlySet<string> = new Set(pendingReviewSnapshots.keys());
+  const comparablePreviousActiveQueue = filterReviewSessionCardSignatures(previousSignature.activeQueue, pendingCardIds);
+  const comparablePreviousQueueCards = filterReviewSessionCardSignatures(previousSignature.queueCards, pendingCardIds);
+
+  return isReviewSessionCardSignaturePrefix(comparablePreviousActiveQueue, nextSignature.activeQueue)
+    && isReviewSessionCardSignaturePrefix(comparablePreviousQueueCards, nextSignature.queueCards);
+}
+
+function isReviewSubmissionContextCurrent(
+  submissionContext: ReviewSubmissionContext,
+  activeWorkspaceId: string | null,
+  selectedReviewFilterKey: string,
+  reviewSessionGeneration: number,
+  resolvedReviewFilter: ReviewFilter,
+  deckSummaries: ReadonlyArray<DeckSummary>,
+): boolean {
+  if (activeWorkspaceId !== submissionContext.workspaceId) {
+    return false;
+  }
+
+  if (selectedReviewFilterKey !== submissionContext.selectedReviewFilterKey) {
+    return false;
+  }
+
+  if (reviewSessionGeneration !== submissionContext.reviewSessionGeneration) {
+    return false;
+  }
+
+  if (isReviewFilterEqual(resolvedReviewFilter, submissionContext.resolvedReviewFilter) === false) {
+    return false;
+  }
+
+  if (submissionContext.resolvedReviewFilter.kind !== "deck") {
+    return true;
+  }
+
+  const submittedDeckSummary = findDeckSummaryByReviewFilter(
+    submissionContext.resolvedReviewFilter,
+    submissionContext.deckSummaries,
+  );
+  const currentDeckSummary = findDeckSummaryByReviewFilter(resolvedReviewFilter, deckSummaries);
+  return submittedDeckSummary !== null
+    && currentDeckSummary !== null
+    && isDeckFilterDefinitionEqual(submittedDeckSummary.filterDefinition, currentDeckSummary.filterDefinition);
+}
+
 function isMissingPresentedCardError(error: unknown, cardId: string): boolean {
   return error instanceof Error && error.message === `Card not found: ${cardId}`;
+}
+
+function toReviewErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function buildSubmitFailureMessage(
+  originalSubmitErrorMessage: string,
+  rollbackLookupErrorMessage: string | null,
+): string {
+  if (rollbackLookupErrorMessage === null) {
+    return originalSubmitErrorMessage;
+  }
+
+  return `${originalSubmitErrorMessage}\nRollback lookup failed: ${rollbackLookupErrorMessage}`;
+}
+
+function buildChunkReplenishmentFailureMessage(chunkLoadErrorMessage: string): string {
+  return `Failed to load more cards after submit: ${chunkLoadErrorMessage}`;
+}
+
+function removeCardFromReviewQueue(cards: ReadonlyArray<Card>, cardId: string): ReadonlyArray<Card> {
+  return cards.filter((card) => card.cardId !== cardId);
+}
+
+function addPendingReviewSnapshot(
+  pendingReviewSnapshots: ReadonlyMap<string, PendingReviewSnapshot>,
+  card: Card,
+): ReadonlyMap<string, PendingReviewSnapshot> {
+  return new Map([
+    ...pendingReviewSnapshots,
+    [card.cardId, { card }],
+  ]);
+}
+
+function removePendingReviewSnapshot(
+  pendingReviewSnapshots: ReadonlyMap<string, PendingReviewSnapshot>,
+  cardId: string,
+): ReadonlyMap<string, PendingReviewSnapshot> {
+  return new Map([...pendingReviewSnapshots].filter(([pendingCardId]) => pendingCardId !== cardId));
+}
+
+function filterPendingReviewCards(
+  cards: ReadonlyArray<Card>,
+  pendingReviewSnapshots: ReadonlyMap<string, PendingReviewSnapshot>,
+): ReadonlyArray<Card> {
+  if (pendingReviewSnapshots.size === 0) {
+    return cards;
+  }
+
+  return cards.filter((card) => pendingReviewSnapshots.has(card.cardId) === false);
+}
+
+function filterExcludedReviewCards(
+  cards: ReadonlyArray<Card>,
+  pendingReviewSnapshots: ReadonlyMap<string, PendingReviewSnapshot>,
+  explicitCardIds: ReadonlySet<string>,
+): ReadonlyArray<Card> {
+  if (pendingReviewSnapshots.size === 0 && explicitCardIds.size === 0) {
+    return cards;
+  }
+
+  return cards.filter((card) => (
+    pendingReviewSnapshots.has(card.cardId) === false
+    && explicitCardIds.has(card.cardId) === false
+  ));
+}
+
+function getCanonicalCardById(cards: ReadonlyArray<Card>, cardId: string): Card | null {
+  return cards.find((card) => card.cardId === cardId) ?? null;
+}
+
+function resolveFilteredPresentedCard(
+  canonicalReviewQueue: ReadonlyArray<Card>,
+  candidatePresentedCard: Card | null,
+  pendingReviewSnapshots: ReadonlyMap<string, PendingReviewSnapshot>,
+  explicitCardIds: ReadonlySet<string>,
+): Card | null {
+  if (candidatePresentedCard === null) {
+    return canonicalReviewQueue[0] ?? null;
+  }
+
+  if (
+    pendingReviewSnapshots.has(candidatePresentedCard.cardId)
+    || explicitCardIds.has(candidatePresentedCard.cardId)
+  ) {
+    return canonicalReviewQueue[0] ?? null;
+  }
+
+  return getCanonicalCardById(canonicalReviewQueue, candidatePresentedCard.cardId) ?? candidatePresentedCard;
+}
+
+function buildReviewQueueChunkExcludedCardIds(
+  canonicalReviewQueue: ReadonlyArray<Card>,
+  presentedCard: Card | null,
+  pendingReviewSnapshots: ReadonlyMap<string, PendingReviewSnapshot>,
+  explicitCardIds: ReadonlySet<string>,
+): ReadonlySet<string> {
+  const excludedCardIds: Set<string> = new Set(canonicalReviewQueue.map((queuedCard) => queuedCard.cardId));
+
+  if (presentedCard !== null) {
+    excludedCardIds.add(presentedCard.cardId);
+  }
+
+  for (const pendingCardId of pendingReviewSnapshots.keys()) {
+    excludedCardIds.add(pendingCardId);
+  }
+
+  for (const explicitCardId of explicitCardIds) {
+    excludedCardIds.add(explicitCardId);
+  }
+
+  return excludedCardIds;
 }
 
 async function loadPresentedCardForPreservation(
@@ -232,17 +527,87 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
   const [reviewLoadErrorMessage, setReviewLoadErrorMessage] = useState<string>("");
   const [hasLoadedReviewData, setHasLoadedReviewData] = useState<boolean>(false);
   const [presentedCard, setPresentedCard] = useState<Card | null>(null);
+  const activeWorkspaceIdRef = useRef<string | null>(activeWorkspaceId);
   const previousReviewFilterRef = useRef<ReviewFilter | null>(null);
+  const canonicalReviewQueueRef = useRef<ReadonlyArray<Card>>([]);
+  const deckSummariesRef = useRef<ReadonlyArray<DeckSummary>>([]);
+  const pendingReviewSnapshotsRef = useRef<ReadonlyMap<string, PendingReviewSnapshot>>(new Map());
   const presentedCardRef = useRef<Card | null>(null);
+  const queueCardsRef = useRef<ReadonlyArray<Card>>([]);
+  const resolvedReviewFilterRef = useRef<ReviewFilter>(ALL_CARDS_REVIEW_FILTER);
+  const reviewQueueCursorRef = useRef<string | null>(null);
+  const reviewSessionGenerationRef = useRef<number>(0);
+  const reviewSessionSignatureRef = useRef<ReviewSessionSignature | null>(null);
+  const selectedReviewFilterKey = serializeReviewFilterKey(selectedReviewFilter);
+  const selectedReviewFilterKeyRef = useRef<string>(selectedReviewFilterKey);
   const reviewLoadingSnapshot = activeWorkspaceId === null
     ? null
     : readReviewLoadingSnapshot(activeWorkspaceId, selectedReviewFilter);
   const isInitialReviewLoad = isReviewLoading && hasLoadedReviewData === false;
   const activeReviewQueue = buildDisplayedReviewQueue(canonicalReviewQueue, presentedCard);
 
-  useEffect(() => {
-    presentedCardRef.current = presentedCard;
-  }, [presentedCard]);
+  function setCanonicalReviewQueueState(nextCanonicalReviewQueue: ReadonlyArray<Card>): void {
+    canonicalReviewQueueRef.current = nextCanonicalReviewQueue;
+    setCanonicalReviewQueue(nextCanonicalReviewQueue);
+  }
+
+  function setDeckSummariesState(nextDeckSummaries: ReadonlyArray<DeckSummary>): void {
+    deckSummariesRef.current = nextDeckSummaries;
+    setDeckSummaries(nextDeckSummaries);
+  }
+
+  function setPresentedCardState(nextPresentedCard: Card | null): void {
+    presentedCardRef.current = nextPresentedCard;
+    setPresentedCard(nextPresentedCard);
+  }
+
+  function setQueueCardsState(nextQueueCards: ReadonlyArray<Card>): void {
+    queueCardsRef.current = nextQueueCards;
+    setQueueCards(nextQueueCards);
+  }
+
+  function setResolvedReviewFilterState(nextResolvedReviewFilter: ReviewFilter): void {
+    resolvedReviewFilterRef.current = nextResolvedReviewFilter;
+    setResolvedReviewFilter(nextResolvedReviewFilter);
+  }
+
+  function setReviewQueueCursorState(nextReviewQueueCursor: string | null): void {
+    reviewQueueCursorRef.current = nextReviewQueueCursor;
+    setReviewQueueCursor(nextReviewQueueCursor);
+  }
+
+  useEffect((): void => {
+    activeWorkspaceIdRef.current = activeWorkspaceId;
+    selectedReviewFilterKeyRef.current = selectedReviewFilterKey;
+  }, [activeWorkspaceId, selectedReviewFilterKey]);
+
+  function applyFreshReviewSessionSignature(nextReviewSessionSignature: ReviewSessionSignature): void {
+    const previousReviewSessionSignature = reviewSessionSignatureRef.current;
+    if (
+      previousReviewSessionSignature !== null
+      && isReviewSessionSignatureEqual(previousReviewSessionSignature, nextReviewSessionSignature) === false
+      && isReviewSessionSignatureCompatible(
+        previousReviewSessionSignature,
+        nextReviewSessionSignature,
+        pendingReviewSnapshotsRef.current,
+      ) === false
+    ) {
+      reviewSessionGenerationRef.current += 1;
+    }
+
+    reviewSessionSignatureRef.current = nextReviewSessionSignature;
+  }
+
+  function setCurrentReviewSessionSignature(
+    activeQueue: ReadonlyArray<Card>,
+    visibleQueueCards: ReadonlyArray<Card>,
+  ): void {
+    reviewSessionSignatureRef.current = buildReviewSessionSignature(
+      selectedReviewFilterKeyRef.current,
+      activeQueue,
+      visibleQueueCards,
+    );
+  }
 
   useEffect(() => {
     let isCancelled = false;
@@ -277,6 +642,11 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
           return;
         }
 
+        const pendingReviewSnapshotsBeforePresentation = pendingReviewSnapshotsRef.current;
+        const canonicalReviewQueueBeforePresentation = filterPendingReviewCards(
+          reviewQueueSnapshot.cards,
+          pendingReviewSnapshotsBeforePresentation,
+        );
         const nextResolvedReviewFilter = reviewQueueSnapshot.resolvedReviewFilter;
         const nextSelectedReviewFilterTitle = resolveReviewFilterTitle(
           nextResolvedReviewFilter,
@@ -284,9 +654,10 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
           t("filters.allCards"),
           (effortLevel) => formatEffortLevelLabel(t, effortLevel),
         );
-        const nextPresentedCard = await resolvePresentedCard(
-          reviewQueueSnapshot.cards,
-          shouldShowBlockingLoader ? null : presentedCardRef.current,
+        const previousPresentedCard = shouldShowBlockingLoader ? null : presentedCardRef.current;
+        const resolvedPresentedCard = await resolvePresentedCard(
+          canonicalReviewQueueBeforePresentation,
+          previousPresentedCard,
           nextResolvedReviewFilter,
           decksSnapshot.deckSummaries,
           getCardById,
@@ -294,18 +665,48 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
         if (isCancelled) {
           return;
         }
-        const nextActiveReviewQueue = buildDisplayedReviewQueue(reviewQueueSnapshot.cards, nextPresentedCard);
+        const pendingReviewSnapshotsAfterPresentation = pendingReviewSnapshotsRef.current;
+        const currentPresentedCard = presentedCardRef.current;
+        // Drop the previously presented card if a concurrent handleReview already advanced past it,
+        // so this snapshot completion does not undo a submit that landed while we were resolving.
+        const stalePresentedCardIds: ReadonlySet<string> = previousPresentedCard !== null
+          && currentPresentedCard?.cardId !== previousPresentedCard.cardId
+          ? new Set([previousPresentedCard.cardId])
+          : new Set();
+        const nextCanonicalReviewQueue = filterExcludedReviewCards(
+          reviewQueueSnapshot.cards,
+          pendingReviewSnapshotsAfterPresentation,
+          stalePresentedCardIds,
+        );
+        const nextReviewTimelineCards = filterExcludedReviewCards(
+          reviewTimelinePage.cards,
+          pendingReviewSnapshotsAfterPresentation,
+          stalePresentedCardIds,
+        );
+        const nextPresentedCard = resolveFilteredPresentedCard(
+          nextCanonicalReviewQueue,
+          stalePresentedCardIds.size === 0 ? resolvedPresentedCard : currentPresentedCard,
+          pendingReviewSnapshotsAfterPresentation,
+          stalePresentedCardIds,
+        );
+        const nextActiveReviewQueue = buildDisplayedReviewQueue(nextCanonicalReviewQueue, nextPresentedCard);
+        const nextQueueCards = buildDisplayedReviewTimeline(nextReviewTimelineCards, nextActiveReviewQueue);
+        applyFreshReviewSessionSignature(buildReviewSessionSignature(
+          selectedReviewFilterKey,
+          nextActiveReviewQueue,
+          nextQueueCards,
+        ));
 
-        setResolvedReviewFilter(nextResolvedReviewFilter);
+        setResolvedReviewFilterState(nextResolvedReviewFilter);
         setSelectedReviewFilterTitle(nextSelectedReviewFilterTitle);
-        setCanonicalReviewQueue(reviewQueueSnapshot.cards);
-        setPresentedCard(nextPresentedCard);
+        setCanonicalReviewQueueState(nextCanonicalReviewQueue);
+        setPresentedCardState(nextPresentedCard);
         setReviewCounts(reviewQueueSnapshot.reviewCounts);
-        setReviewQueueCursor(reviewQueueSnapshot.nextCursor);
-        setQueueCards(buildDisplayedReviewTimeline(reviewTimelinePage.cards, nextActiveReviewQueue));
+        setReviewQueueCursorState(reviewQueueSnapshot.nextCursor);
+        setQueueCardsState(nextQueueCards);
         setReviewTagSummaries(tagsSummary.tags);
         setTagSuggestions(toTagSuggestions(tagsSummary.tags));
-        setDeckSummaries(decksSnapshot.deckSummaries);
+        setDeckSummariesState(decksSnapshot.deckSummaries);
         writeReviewLoadingSnapshot({
           version: 1,
           workspaceId: activeWorkspaceId,
@@ -313,7 +714,7 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
           resolvedReviewFilterTitle: nextSelectedReviewFilterTitle,
           reviewCounts: reviewQueueSnapshot.reviewCounts,
           currentCard: nextActiveReviewQueue[0] === undefined ? null : buildReviewLoadingCardPreview(nextActiveReviewQueue[0]),
-          queuePreview: buildDisplayedReviewTimeline(reviewTimelinePage.cards, nextActiveReviewQueue)
+          queuePreview: nextQueueCards
             .slice(0, 6)
             .map((card) => buildReviewLoadingCardPreview(card)),
           savedAt: new Date().toISOString(),
@@ -339,48 +740,222 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     };
   }, [activeWorkspaceId, getCardById, localReadVersion, selectedReviewFilter]);
 
-  async function handleReview(card: Card, rating: 0 | 1 | 2 | 3): Promise<boolean> {
+  async function handleReview(card: Card, rating: 0 | 1 | 2 | 3): Promise<ReviewSubmissionOutcome> {
+    const submissionContext: ReviewSubmissionContext = {
+      cardId: card.cardId,
+      deckSummaries: deckSummariesRef.current,
+      reviewSessionGeneration: reviewSessionGenerationRef.current,
+      resolvedReviewFilter: resolvedReviewFilterRef.current,
+      selectedReviewFilterKey: selectedReviewFilterKeyRef.current,
+      workspaceId: activeWorkspaceIdRef.current,
+    };
+
     setErrorMessage("");
+    pendingReviewSnapshotsRef.current = addPendingReviewSnapshot(pendingReviewSnapshotsRef.current, card);
+
+    const optimisticCanonicalReviewQueue = removeCardFromReviewQueue(canonicalReviewQueueRef.current, submissionContext.cardId);
+    const optimisticPresentedCard = resolveCanonicalPresentedCard(optimisticCanonicalReviewQueue, null);
+    const optimisticActiveReviewQueue = buildDisplayedReviewQueue(optimisticCanonicalReviewQueue, optimisticPresentedCard);
+    const optimisticQueueCards = buildDisplayedReviewTimeline(
+      removeCardFromReviewQueue(queueCardsRef.current, submissionContext.cardId),
+      optimisticActiveReviewQueue,
+    );
+
+    setCanonicalReviewQueueState(optimisticCanonicalReviewQueue);
+    setPresentedCardState(optimisticPresentedCard);
+    setQueueCardsState(optimisticQueueCards);
+    setCurrentReviewSessionSignature(optimisticActiveReviewQueue, optimisticQueueCards);
 
     try {
-      await submitReviewItem(card.cardId, rating);
-      const nextCanonicalReviewQueue = canonicalReviewQueue.filter((queuedCard) => queuedCard.cardId !== card.cardId);
-      const nextPresentedCard = resolveCanonicalPresentedCard(nextCanonicalReviewQueue, null);
-      const nextActiveReviewQueue = buildDisplayedReviewQueue(nextCanonicalReviewQueue, nextPresentedCard);
+      await submitReviewItem(submissionContext.cardId, rating);
+    } catch (error) {
+      const originalSubmitErrorMessage = toReviewErrorMessage(error);
+      pendingReviewSnapshotsRef.current = removePendingReviewSnapshot(
+        pendingReviewSnapshotsRef.current,
+        submissionContext.cardId,
+      );
+      if (
+        isReviewSubmissionContextCurrent(
+          submissionContext,
+          activeWorkspaceIdRef.current,
+          selectedReviewFilterKeyRef.current,
+          reviewSessionGenerationRef.current,
+          resolvedReviewFilterRef.current,
+          deckSummariesRef.current,
+        ) === false
+      ) {
+        return "stale";
+      }
 
-      setCanonicalReviewQueue(nextCanonicalReviewQueue);
-      setPresentedCard(nextPresentedCard);
-      setQueueCards((currentCards) => buildDisplayedReviewTimeline(
-        currentCards.filter((queuedCard) => queuedCard.cardId !== card.cardId),
-        nextActiveReviewQueue,
-      ));
-      setReviewCounts((currentCounts) => ({
-        dueCount: Math.max(0, currentCounts.dueCount - 1),
-        totalCount: Math.max(0, currentCounts.totalCount - 1),
-      }));
+      let freshRollbackCard: Card | null = null;
+      let rollbackLookupErrorMessage: string | null = null;
+      try {
+        freshRollbackCard = await loadPresentedCardForPreservation(submissionContext.cardId, getCardById);
+      } catch (lookupError) {
+        rollbackLookupErrorMessage = toReviewErrorMessage(lookupError);
+      }
+      const currentResolvedReviewFilter = resolvedReviewFilterRef.current;
+      const currentDeckSummaries = deckSummariesRef.current;
+      if (
+        isReviewSubmissionContextCurrent(
+          submissionContext,
+          activeWorkspaceIdRef.current,
+          selectedReviewFilterKeyRef.current,
+          reviewSessionGenerationRef.current,
+          currentResolvedReviewFilter,
+          currentDeckSummaries,
+        ) === false
+      ) {
+        return "stale";
+      }
 
-      if (nextCanonicalReviewQueue.length <= 4 && reviewQueueCursor !== null) {
-        if (activeWorkspaceId === null) {
+      const isFreshRollbackCardPreservable = freshRollbackCard !== null
+        && isPreservablePresentedCard(freshRollbackCard, currentResolvedReviewFilter, currentDeckSummaries, Date.now());
+      const rollbackCanonicalReviewQueue = removeCardFromReviewQueue(
+        canonicalReviewQueueRef.current,
+        submissionContext.cardId,
+      );
+      const rollbackPresentedCard = isFreshRollbackCardPreservable
+        ? freshRollbackCard
+        : resolveCanonicalPresentedCard(rollbackCanonicalReviewQueue, null);
+      const rollbackActiveReviewQueue = buildDisplayedReviewQueue(rollbackCanonicalReviewQueue, rollbackPresentedCard);
+      const rollbackQueueCards = buildDisplayedReviewTimeline(
+        removeCardFromReviewQueue(queueCardsRef.current, submissionContext.cardId),
+        rollbackActiveReviewQueue,
+      );
+
+      setCanonicalReviewQueueState(rollbackCanonicalReviewQueue);
+      setPresentedCardState(rollbackPresentedCard);
+      setQueueCardsState(rollbackQueueCards);
+      setCurrentReviewSessionSignature(rollbackActiveReviewQueue, rollbackQueueCards);
+      setErrorMessage(buildSubmitFailureMessage(originalSubmitErrorMessage, rollbackLookupErrorMessage));
+      return "failed";
+    }
+
+    if (
+      isReviewSubmissionContextCurrent(
+        submissionContext,
+        activeWorkspaceIdRef.current,
+        selectedReviewFilterKeyRef.current,
+        reviewSessionGenerationRef.current,
+        resolvedReviewFilterRef.current,
+        deckSummariesRef.current,
+      ) === false
+    ) {
+      pendingReviewSnapshotsRef.current = removePendingReviewSnapshot(
+        pendingReviewSnapshotsRef.current,
+        submissionContext.cardId,
+      );
+      return "stale";
+    }
+
+    const pendingReviewSnapshotsBeforeClear = pendingReviewSnapshotsRef.current;
+    pendingReviewSnapshotsRef.current = removePendingReviewSnapshot(pendingReviewSnapshotsRef.current, submissionContext.cardId);
+    const nextCanonicalReviewQueue = removeCardFromReviewQueue(canonicalReviewQueueRef.current, submissionContext.cardId);
+    const nextPresentedCard = presentedCardRef.current?.cardId === submissionContext.cardId
+      ? resolveCanonicalPresentedCard(nextCanonicalReviewQueue, null)
+      : presentedCardRef.current;
+    const nextActiveReviewQueue = buildDisplayedReviewQueue(nextCanonicalReviewQueue, nextPresentedCard);
+    const nextQueueCards = buildDisplayedReviewTimeline(
+      removeCardFromReviewQueue(queueCardsRef.current, submissionContext.cardId),
+      nextActiveReviewQueue,
+    );
+
+    setCanonicalReviewQueueState(nextCanonicalReviewQueue);
+    setPresentedCardState(nextPresentedCard);
+    setQueueCardsState(nextQueueCards);
+    setCurrentReviewSessionSignature(nextActiveReviewQueue, nextQueueCards);
+    setReviewCounts((currentCounts) => ({
+      dueCount: Math.max(0, currentCounts.dueCount - 1),
+      totalCount: currentCounts.totalCount,
+    }));
+
+    if (nextCanonicalReviewQueue.length <= 4 && reviewQueueCursorRef.current !== null) {
+      try {
+        const currentWorkspaceId = activeWorkspaceIdRef.current;
+        const requestedReviewQueueCursor = reviewQueueCursorRef.current;
+        if (currentWorkspaceId === null) {
           throw new Error("Workspace is unavailable");
         }
 
-        const nextChunk = await loadReviewQueueChunk(
-          activeWorkspaceId,
-          resolvedReviewFilter,
-          reviewQueueCursor,
-          8 - nextCanonicalReviewQueue.length,
-          new Set(nextCanonicalReviewQueue.map((queuedCard) => queuedCard.cardId)),
+        const excludedCardIds = buildReviewQueueChunkExcludedCardIds(
+          nextCanonicalReviewQueue,
+          nextPresentedCard,
+          pendingReviewSnapshotsBeforeClear,
+          new Set([submissionContext.cardId]),
         );
-        const replenishedCanonicalReviewQueue = [...nextCanonicalReviewQueue, ...nextChunk.cards];
-        setCanonicalReviewQueue(replenishedCanonicalReviewQueue);
-        setReviewQueueCursor(nextChunk.nextCursor);
-      }
+        const nextChunk = await loadReviewQueueChunk(
+          currentWorkspaceId,
+          resolvedReviewFilterRef.current,
+          requestedReviewQueueCursor,
+          8 - nextCanonicalReviewQueue.length,
+          excludedCardIds,
+        );
+        if (
+          isReviewSubmissionContextCurrent(
+            submissionContext,
+            activeWorkspaceIdRef.current,
+            selectedReviewFilterKeyRef.current,
+            reviewSessionGenerationRef.current,
+            resolvedReviewFilterRef.current,
+            deckSummariesRef.current,
+          ) === false
+        ) {
+          return "stale";
+        }
 
-      return true;
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : String(error));
-      return false;
+        const refreshedCanonicalReviewQueue = removeCardFromReviewQueue(
+          canonicalReviewQueueRef.current,
+          submissionContext.cardId,
+        );
+        const refreshedPresentedCard = presentedCardRef.current?.cardId === submissionContext.cardId
+          ? resolveCanonicalPresentedCard(refreshedCanonicalReviewQueue, null)
+          : presentedCardRef.current;
+        const refreshedPendingReviewSnapshots = pendingReviewSnapshotsRef.current;
+        const refreshedExcludedCardIds = buildReviewQueueChunkExcludedCardIds(
+          refreshedCanonicalReviewQueue,
+          refreshedPresentedCard,
+          refreshedPendingReviewSnapshots,
+          new Set([submissionContext.cardId]),
+        );
+        const remainingCapacity = Math.max(0, 8 - refreshedCanonicalReviewQueue.length);
+        const eligibleChunkCards = nextChunk.cards.filter((chunkCard) => refreshedExcludedCardIds.has(chunkCard.cardId) === false);
+        const chunkCards = eligibleChunkCards.slice(0, remainingCapacity);
+        const nextReviewQueueCursor = chunkCards.length < eligibleChunkCards.length
+          ? requestedReviewQueueCursor
+          : nextChunk.nextCursor;
+        const replenishedCanonicalReviewQueue = [...refreshedCanonicalReviewQueue, ...chunkCards];
+        const replenishedActiveReviewQueue = buildDisplayedReviewQueue(replenishedCanonicalReviewQueue, refreshedPresentedCard);
+        const replenishedQueueCards = buildDisplayedReviewTimeline(
+          removeCardFromReviewQueue(queueCardsRef.current, submissionContext.cardId),
+          replenishedActiveReviewQueue,
+        );
+
+        setCanonicalReviewQueueState(replenishedCanonicalReviewQueue);
+        setPresentedCardState(refreshedPresentedCard);
+        setReviewQueueCursorState(nextReviewQueueCursor);
+        setQueueCardsState(replenishedQueueCards);
+        setCurrentReviewSessionSignature(replenishedActiveReviewQueue, replenishedQueueCards);
+      } catch (error) {
+        if (
+          isReviewSubmissionContextCurrent(
+            submissionContext,
+            activeWorkspaceIdRef.current,
+            selectedReviewFilterKeyRef.current,
+            reviewSessionGenerationRef.current,
+            resolvedReviewFilterRef.current,
+            deckSummariesRef.current,
+          ) === false
+        ) {
+          return "stale";
+        }
+
+        setErrorMessage(buildChunkReplenishmentFailureMessage(toReviewErrorMessage(error)));
+        return "saved";
+      }
     }
+
+    return "saved";
   }
 
   return {

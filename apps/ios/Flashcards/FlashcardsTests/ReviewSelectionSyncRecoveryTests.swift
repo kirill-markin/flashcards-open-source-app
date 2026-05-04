@@ -42,7 +42,7 @@ final class ReviewSelectionSyncRecoveryTests: LocalWorkspaceSyncTestCase {
         store.cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
         store.selectedReviewFilter = .tag(tag: "tag")
         store.reviewQueue = [savedCard]
-        store.presentedReviewCardId = savedCard.cardId
+        store.presentedReviewCard = savedCard
         store.persistSelectedReviewFilter(reviewFilter: .tag(tag: "tag"))
         XCTAssertEqual(.tag(tag: "tag"), store.selectedReviewFilter)
         XCTAssertEqual(
@@ -84,7 +84,7 @@ final class ReviewSelectionSyncRecoveryTests: LocalWorkspaceSyncTestCase {
         )
 
         XCTAssertEqual(.allCards, store.selectedReviewFilter)
-        XCTAssertNil(store.presentedReviewCardId)
+        XCTAssertNil(store.presentedReviewCard)
         XCTAssertTrue(store.reviewQueue.isEmpty)
         XCTAssertEqual(
             .allCards,
@@ -168,7 +168,7 @@ final class ReviewSelectionSyncRecoveryTests: LocalWorkspaceSyncTestCase {
         store.cloudRuntime.setActiveCloudSession(linkedSession: self.makeLinkedSession(workspaceId: workspace.workspaceId))
         store.selectedReviewFilter = .tag(tag: "tag")
         store.reviewQueue = [savedCard]
-        store.presentedReviewCardId = savedCard.cardId
+        store.presentedReviewCard = savedCard
         store.persistSelectedReviewFilter(reviewFilter: .tag(tag: "tag"))
 
         do {
@@ -180,7 +180,7 @@ final class ReviewSelectionSyncRecoveryTests: LocalWorkspaceSyncTestCase {
 
         XCTAssertEqual(1, cloudSyncService.runLinkedSyncCallCount)
         XCTAssertEqual(.allCards, store.selectedReviewFilter)
-        XCTAssertNil(store.presentedReviewCardId)
+        XCTAssertNil(store.presentedReviewCard)
         XCTAssertTrue(store.reviewQueue.isEmpty)
         XCTAssertEqual(
             .allCards,
@@ -254,7 +254,7 @@ final class ReviewSelectionSyncRecoveryTests: LocalWorkspaceSyncTestCase {
         store.cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
         store.selectedReviewFilter = .tag(tag: "tag")
         store.reviewQueue = [savedCard]
-        store.presentedReviewCardId = savedCard.cardId
+        store.presentedReviewCard = savedCard
         store.persistSelectedReviewFilter(reviewFilter: .tag(tag: "tag"))
 
         do {
@@ -268,7 +268,7 @@ final class ReviewSelectionSyncRecoveryTests: LocalWorkspaceSyncTestCase {
 
         XCTAssertEqual(1, cloudSyncService.runLinkedSyncCallCount)
         XCTAssertEqual(.allCards, store.selectedReviewFilter)
-        XCTAssertNil(store.presentedReviewCardId)
+        XCTAssertNil(store.presentedReviewCard)
         XCTAssertTrue(store.reviewQueue.isEmpty)
         XCTAssertEqual(
             .allCards,

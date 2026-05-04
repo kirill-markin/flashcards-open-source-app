@@ -25,7 +25,7 @@ import {
 } from "./reviewHardReminder";
 import { useReviewCardEditor } from "./useReviewCardEditor";
 import { useReviewKeyboardShortcuts } from "./useReviewKeyboardShortcuts";
-import { useReviewScreenData } from "./useReviewScreenData";
+import { useReviewScreenData, type ReviewSubmissionOutcome } from "./useReviewScreenData";
 import { makeReviewSpeakableText, type ReviewSpeechSide, useReviewSpeech } from "./reviewSpeech";
 import { isCardFormStateDirty } from "../cards/CardForm";
 import { formatEffortLevelLabel, formatNullableDateTime, formatTagSummary } from "../shared/featureFormatting";
@@ -575,11 +575,11 @@ export function ReviewScreen(): ReactElement {
       cardId: card.cardId,
       rating,
     });
-    let didSaveReview = false;
+    let reviewSubmissionOutcome: ReviewSubmissionOutcome = "failed";
 
     try {
-      didSaveReview = await handleReviewData(card, rating);
-      if (didSaveReview === false) {
+      reviewSubmissionOutcome = await handleReviewData(card, rating);
+      if (reviewSubmissionOutcome !== "saved") {
         return;
       }
 
@@ -597,7 +597,12 @@ export function ReviewScreen(): ReactElement {
       }
     } finally {
       setIsSubmitting(false);
-      setReviewSubmitState(didSaveReview ? "settled" : "failed");
+      if (reviewSubmissionOutcome === "stale") {
+        setLastSubmittedReview(null);
+        setReviewSubmitState("idle");
+      } else {
+        setReviewSubmitState(reviewSubmissionOutcome === "saved" ? "settled" : "failed");
+      }
     }
   }
 
