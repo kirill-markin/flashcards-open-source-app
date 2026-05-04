@@ -115,3 +115,31 @@ export function resolveProgressRefreshKey(
 
   return buildProgressRefreshKey(scopeKey, progressServerInvalidationVersion, manualRefreshVersion);
 }
+
+export function buildProgressReviewScheduleRefreshKey(
+  scopeKey: ProgressScopeKey,
+  progressServerInvalidationVersion: number,
+  progressScheduleLocalVersion: number,
+  manualRefreshVersion: number,
+): string {
+  return `${scopeKey}::${progressServerInvalidationVersion}::${progressScheduleLocalVersion}::${manualRefreshVersion}`;
+}
+
+export function resolveProgressReviewScheduleRefreshKey(
+  scopeKey: ProgressScopeKey | null,
+  canLoadServerBase: boolean,
+  progressServerInvalidationVersion: number,
+  progressScheduleLocalVersion: number,
+  manualRefreshVersion: number,
+): string | null {
+  if (scopeKey === null || canLoadServerBase === false) {
+    return null;
+  }
+
+  return buildProgressReviewScheduleRefreshKey(
+    scopeKey,
+    progressServerInvalidationVersion,
+    progressScheduleLocalVersion,
+    manualRefreshVersion,
+  );
+}

@@ -41,9 +41,11 @@ import {
 } from "./progressReducer";
 import {
   buildProgressRefreshKey,
+  buildProgressReviewScheduleRefreshKey,
   canLoadProgressServerBase,
   collectAccessibleWorkspaceIds,
   resolveProgressRefreshKey,
+  resolveProgressReviewScheduleRefreshKey,
   resolveProgressReviewScheduleScopeKey,
   resolveProgressSeriesScopeKey,
   resolveProgressSummaryScopeKey,
@@ -89,34 +91,6 @@ type ProgressReviewScheduleRefreshRequest = Readonly<{
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
-}
-
-function buildProgressReviewScheduleRefreshKey(
-  scopeKey: ProgressScopeKey,
-  progressServerInvalidationVersion: number,
-  progressScheduleLocalVersion: number,
-  manualRefreshVersion: number,
-): string {
-  return `${scopeKey}::${progressServerInvalidationVersion}::${progressScheduleLocalVersion}::${manualRefreshVersion}`;
-}
-
-function resolveProgressReviewScheduleRefreshKey(
-  scopeKey: ProgressScopeKey | null,
-  canLoadServerBase: boolean,
-  progressServerInvalidationVersion: number,
-  progressScheduleLocalVersion: number,
-  manualRefreshVersion: number,
-): string | null {
-  if (scopeKey === null || canLoadServerBase === false) {
-    return null;
-  }
-
-  return buildProgressReviewScheduleRefreshKey(
-    scopeKey,
-    progressServerInvalidationVersion,
-    progressScheduleLocalVersion,
-    manualRefreshVersion,
-  );
 }
 
 export function useProgressSource(params: UseProgressSourceParams): UseProgressSourceResult {
