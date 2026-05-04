@@ -10,16 +10,16 @@ Ordered by `ReviewScheduleBucketKey.stableOrder`:
 
 | # | Bucket key      | Hex       | Note                                  |
 |---|-----------------|-----------|---------------------------------------|
-| 1 | `new`           | `#E69F00` | Honey amber — warm, kindred to brand  |
+| 1 | `new`           | `#F4C430` | Sunglow yellow — fresh, untouched     |
 | 2 | `today`         | `#D7263D` | Crimson — urgent, distinct from brand |
-| 3 | `days1To7`      | `#F2A65A` | Peach — near-term warm                |
-| 4 | `days8To30`     | `#2BB673` | Emerald                               |
-| 5 | `days31To90`    | `#1FB5C1` | Cyan-teal                             |
-| 6 | `days91To360`   | `#3F7CC8` | Steel blue                            |
-| 7 | `years1To2`     | `#8E5BD9` | Violet                                |
+| 3 | `days1To7`      | `#1FB5C1` | Cyan-teal                             |
+| 4 | `days8To30`     | `#8E5BD9` | Violet                                |
+| 5 | `days31To90`    | `#2BB673` | Emerald                               |
+| 6 | `days91To360`   | `#E69F00` | Honey amber                           |
+| 7 | `years1To2`     | `#3F7CC8` | Steel blue                            |
 | 8 | `later`         | `#7A8088` | Slate graphite — neutral / archived   |
 
-Properties: 8 hues spaced ~30–45° apart on the wheel, mid saturation, mid lightness — readable on dark and light backgrounds. Brand orange (`#C44B2D`) is intentionally **not** in the palette so wedges don't blend into surrounding accents (titles, buttons). The accent color returns only as the *selection emphasis ring*.
+Properties: 8 distinct hues arranged so that **adjacent** buckets alternate warm/cool families and sit ≥ 56° apart on the hue wheel — the goal is sharp contrast between every neighbouring legend row and donut wedge, not a smooth gradient. The legend swatch wraps each fill in a thin neutral outline so that high-luminance hues like sunglow stay defined against pale surfaces (`box-shadow` on Web, `Color.primary.opacity(0.08)` on iOS, `outlineVariant` on Android). Brand orange (`#C44B2D`) is intentionally **not** in the palette so wedges don't blend into surrounding accents (titles, buttons). The accent color returns only as the *selection emphasis ring*.
 
 ## Selection emphasis
 
