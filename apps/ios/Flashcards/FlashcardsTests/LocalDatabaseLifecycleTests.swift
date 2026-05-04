@@ -386,12 +386,13 @@ final class LocalDatabaseLifecycleTests: XCTestCase {
             )
         )
         // The fresh-create card upsert (cards.created_at == client_updated_at)
-        // is backfilled to is_initial_create = 1.
+        // is backfilled to is_initial_create = 1. MIN catches a regression where
+        // the WHERE clause unexpectedly matches multiple rows of mixed values.
         XCTAssertEqual(
             1,
             try migratedDatabase.core.scalarInt(
                 sql: """
-                SELECT is_initial_create
+                SELECT MIN(is_initial_create)
                 FROM outbox
                 WHERE workspace_id = ?
                     AND entity_id = ?
@@ -407,7 +408,7 @@ final class LocalDatabaseLifecycleTests: XCTestCase {
             0,
             try migratedDatabase.core.scalarInt(
                 sql: """
-                SELECT is_initial_create
+                SELECT COALESCE(SUM(is_initial_create), 0)
                 FROM outbox
                 WHERE workspace_id = ?
                     AND entity_id = ?
