@@ -121,6 +121,9 @@ extension LocalDatabase {
         now: String
     ) throws -> Card {
         let operationId = UUID().uuidString.lowercased()
+        // For new cards (cardId == nil), saveCard uses `now` for cards.created_at and the
+        // outbox row is enqueued with clientUpdatedAt == `now` — keep the same string for
+        // both writes so OutboxStore's create-marker invariant holds.
         let persistedCard = try self.cardStore.saveCard(
             workspaceId: workspaceId,
             input: input,
