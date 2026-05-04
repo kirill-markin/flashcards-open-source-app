@@ -37,5 +37,6 @@ tmp/
 temp/
 .codex-tmp-run/
 
-# local settings
+# Claude Code local state (per-developer)
 .claude/settings.local.json
+.claude/worktrees/
