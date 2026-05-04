@@ -12,6 +12,7 @@ import com.flashcardsopensourceapp.data.local.model.PersistedOutboxEntry
 import com.flashcardsopensourceapp.data.local.model.ReviewEventSyncPayload
 import com.flashcardsopensourceapp.data.local.model.SyncEntityType
 import com.flashcardsopensourceapp.data.local.repository.LocalProgressCacheStore
+import com.flashcardsopensourceapp.data.local.repository.TimeProvider
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import kotlinx.coroutines.flow.Flow
 import org.json.JSONArray
@@ -26,12 +27,14 @@ class SyncLocalStore(
     database: AppDatabase,
     preferencesStore: CloudPreferencesStore,
     reviewPreferencesStore: ReviewPreferencesStore,
-    localProgressCacheStore: LocalProgressCacheStore
+    localProgressCacheStore: LocalProgressCacheStore,
+    timeProvider: TimeProvider
 ) {
     private val reviewHistoryChangePublisher = ReviewHistoryChangePublisher()
     private val outboxLocalStore = SyncOutboxLocalStore(
         database = database,
-        preferencesStore = preferencesStore
+        preferencesStore = preferencesStore,
+        timeProvider = timeProvider
     )
     private val syncStateLocalStore = SyncStateLocalStore(database = database)
     private val hotStateLocalStore = SyncHotStateLocalStore(database = database)

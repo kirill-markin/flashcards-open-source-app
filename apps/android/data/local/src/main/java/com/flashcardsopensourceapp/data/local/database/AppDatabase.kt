@@ -717,6 +717,9 @@ val migration15To16: Migration = object : Migration(15, 16) {
         )
         db.execSQL(
             """
+            -- Conservative backfill: legacy card/upsert outbox rows pre-date the
+            -- affectsReviewSchedule column, so mark them as schedule-affecting to
+            -- avoid skipping FSRS/queue invalidations on first sync after upgrade.
             UPDATE outbox_entries
             SET affectsReviewSchedule = 1
             WHERE entityType = 'card' AND operationType = 'upsert'

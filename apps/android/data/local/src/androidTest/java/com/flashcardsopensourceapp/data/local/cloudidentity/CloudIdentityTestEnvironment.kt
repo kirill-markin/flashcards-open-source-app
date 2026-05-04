@@ -30,7 +30,7 @@ import com.flashcardsopensourceapp.data.local.repository.CloudOperationCoordinat
 import com.flashcardsopensourceapp.data.local.repository.LocalCloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.LocalProgressCacheStore
 import com.flashcardsopensourceapp.data.local.repository.LocalSyncRepository
-import com.flashcardsopensourceapp.data.local.repository.SystemProgressTimeProvider
+import com.flashcardsopensourceapp.data.local.repository.SystemTimeProvider
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.review.SharedPreferencesReviewPreferencesStore
 import kotlinx.coroutines.Dispatchers
@@ -135,8 +135,9 @@ internal class CloudIdentityTestEnvironment private constructor(
             reviewPreferencesStore = reviewPreferencesStore,
             localProgressCacheStore = LocalProgressCacheStore(
                 database = database,
-                timeProvider = SystemProgressTimeProvider
-            )
+                timeProvider = SystemTimeProvider
+            ),
+            timeProvider = SystemTimeProvider
         )
         val repository = LocalCloudAccountRepository(
             database = database,
@@ -178,8 +179,9 @@ internal class CloudIdentityTestEnvironment private constructor(
             reviewPreferencesStore = reviewPreferencesStore,
             localProgressCacheStore = LocalProgressCacheStore(
                 database = database,
-                timeProvider = SystemProgressTimeProvider
-            )
+                timeProvider = SystemTimeProvider
+            ),
+            timeProvider = SystemTimeProvider
         )
         val coordinator = CloudGuestSessionCoordinator(
             database = database,
@@ -323,8 +325,9 @@ internal class CloudIdentityTestEnvironment private constructor(
             reviewPreferencesStore = reviewPreferencesStore,
             localProgressCacheStore = LocalProgressCacheStore(
                 database = database,
-                timeProvider = SystemProgressTimeProvider
-            )
+                timeProvider = SystemTimeProvider
+            ),
+            timeProvider = SystemTimeProvider
         )
     }
 }

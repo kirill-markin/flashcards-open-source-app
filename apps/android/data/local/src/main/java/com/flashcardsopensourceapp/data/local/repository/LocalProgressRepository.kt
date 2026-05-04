@@ -101,7 +101,7 @@ class LocalProgressRepository(
     private val cloudAccountRepository: CloudAccountRepository,
     private val syncRepository: SyncRepository,
     private val localProgressCacheStore: LocalProgressCacheStore,
-    private val timeProvider: ProgressTimeProvider
+    private val timeProvider: TimeProvider
 ) : ProgressRepository {
     private val summarySnapshotMutable = MutableStateFlow<ProgressSummarySnapshot?>(null)
     private val seriesSnapshotMutable = MutableStateFlow<ProgressSeriesSnapshot?>(null)
