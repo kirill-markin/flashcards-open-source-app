@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.app.di
 
 import android.content.Context
+import android.util.Log
 import com.flashcardsopensourceapp.app.AutoSyncController
 import com.flashcardsopensourceapp.app.navigation.AppPackageInfo
 import com.flashcardsopensourceapp.app.navigation.loadPackageInfo
@@ -53,6 +54,7 @@ import com.flashcardsopensourceapp.data.local.repository.SystemProgressTimeProvi
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -65,6 +67,8 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.ZoneId
+
+private const val appGraphLogTag: String = "AppGraph"
 
 sealed interface AppStartupState {
     data object Loading : AppStartupState
@@ -80,7 +84,13 @@ class AppGraph(
     context: Context
 ) {
     private val appJob = SupervisorJob()
-    private val appScope = CoroutineScope(appJob + Dispatchers.IO)
+    // Backstop for any uncaught exception escaping an appScope.launch site so the
+    // process never crashes on a missed try/catch. Coroutine machinery filters
+    // CancellationException out before it reaches this handler.
+    private val appScopeExceptionHandler = CoroutineExceptionHandler { _, error ->
+        Log.w(appGraphLogTag, "event=app_scope_uncaught_exception", error)
+    }
+    private val appScope = CoroutineScope(appJob + Dispatchers.IO + appScopeExceptionHandler)
     private val startupStateMutable = MutableStateFlow<AppStartupState>(AppStartupState.Loading)
     private var startupJob: Job? = null
     private var reviewHistoryAppliedObserverJob: Job? = null
