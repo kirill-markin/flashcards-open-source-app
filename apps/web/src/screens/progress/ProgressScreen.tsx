@@ -71,13 +71,13 @@ type ReviewScheduleDonutSegment = Readonly<{
 // Canonical palette — see docs/progress-pie-palette.md.
 // Keep the hex values in sync with the iOS and Android clients.
 const reviewScheduleBucketColors: Readonly<Record<ProgressReviewScheduleBucketKey, string>> = {
-  new: "#E69F00",
+  new: "#F4C430",
   today: "#D7263D",
-  days1To7: "#F2A65A",
-  days8To30: "#2BB673",
-  days31To90: "#1FB5C1",
-  days91To360: "#3F7CC8",
-  years1To2: "#8E5BD9",
+  days1To7: "#1FB5C1",
+  days8To30: "#8E5BD9",
+  days31To90: "#2BB673",
+  days91To360: "#E69F00",
+  years1To2: "#3F7CC8",
   later: "#7A8088",
 };
 

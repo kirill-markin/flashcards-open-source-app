@@ -977,8 +977,12 @@ private fun ReviewScheduleLegendRow(
         Box(
             modifier = Modifier
                 .size(12.dp)
-                .clip(CircleShape)
-                .background(color)
+                .background(color, CircleShape)
+                .border(
+                    width = 0.5.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                    shape = CircleShape
+                )
         )
         Text(
             text = reviewScheduleBucketLabel(bucketKey = bucket.key),
@@ -1002,13 +1006,13 @@ private fun ReviewScheduleLegendRow(
 // Canonical palette — see docs/progress-pie-palette.md.
 // Keep the hex values in sync with the iOS and Web clients.
 private val reviewScheduleBucketColors: Map<ProgressReviewScheduleBucketKey, Color> = mapOf(
-    ProgressReviewScheduleBucketKey.NEW to Color(0xFFE69F00),
+    ProgressReviewScheduleBucketKey.NEW to Color(0xFFF4C430),
     ProgressReviewScheduleBucketKey.TODAY to Color(0xFFD7263D),
-    ProgressReviewScheduleBucketKey.DAYS_1_TO_7 to Color(0xFFF2A65A),
-    ProgressReviewScheduleBucketKey.DAYS_8_TO_30 to Color(0xFF2BB673),
-    ProgressReviewScheduleBucketKey.DAYS_31_TO_90 to Color(0xFF1FB5C1),
-    ProgressReviewScheduleBucketKey.DAYS_91_TO_360 to Color(0xFF3F7CC8),
-    ProgressReviewScheduleBucketKey.YEARS_1_TO_2 to Color(0xFF8E5BD9),
+    ProgressReviewScheduleBucketKey.DAYS_1_TO_7 to Color(0xFF1FB5C1),
+    ProgressReviewScheduleBucketKey.DAYS_8_TO_30 to Color(0xFF8E5BD9),
+    ProgressReviewScheduleBucketKey.DAYS_31_TO_90 to Color(0xFF2BB673),
+    ProgressReviewScheduleBucketKey.DAYS_91_TO_360 to Color(0xFFE69F00),
+    ProgressReviewScheduleBucketKey.YEARS_1_TO_2 to Color(0xFF3F7CC8),
     ProgressReviewScheduleBucketKey.LATER to Color(0xFF7A8088),
 )
 
