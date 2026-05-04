@@ -57,6 +57,7 @@ extension LocalDatabase {
                 operationId: cardOperationId,
                 clientUpdatedAt: reviewSubmission.reviewedAtClient,
                 card: updatedCard,
+                isInitialCreate: false,
                 reviewScheduleImpact: true
             )
             return updatedCard
