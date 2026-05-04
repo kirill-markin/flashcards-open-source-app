@@ -105,16 +105,18 @@ type ReviewScheduleCountRow = Readonly<{
   later_count: string | number;
 }>;
 
-type ReviewScheduleBucketCounts = Readonly<{
-  new: number;
-  today: number;
-  days1To7: number;
-  days8To30: number;
-  days31To90: number;
-  days91To360: number;
-  years1To2: number;
-  later: number;
-}>;
+type ReviewScheduleBucketCounts = Readonly<Record<ReviewScheduleBucketKey, number>>;
+
+const reviewScheduleSqlColumnByBucketKey: Readonly<Record<ReviewScheduleBucketKey, keyof ReviewScheduleCountRow>> = {
+  new: "new_count",
+  today: "today_count",
+  days1To7: "days_1_to_7_count",
+  days8To30: "days_8_to_30_count",
+  days31To90: "days_31_to_90_count",
+  days91To360: "days_91_to_360_count",
+  years1To2: "years_1_to_2_count",
+  later: "later_count",
+};
 
 type WorkspaceProgressSummaryRequest = Readonly<{
   workspaceId: string;
@@ -346,75 +348,31 @@ function createInclusiveLocalDateRange(from: string, to: string): ReadonlyArray<
   return dates;
 }
 
-function normalizeReviewCount(value: string | number, reviewDate: string): number {
+function normalizeNonNegativeIntegerFromQuery(value: string | number, fieldName: string): number {
   const normalizedValue = typeof value === "number" ? value : Number.parseInt(value, 10);
   if (!Number.isInteger(normalizedValue) || normalizedValue < 0) {
-    throw new Error(`Invalid review count returned for ${reviewDate}`);
-  }
-
-  return normalizedValue;
-}
-
-function normalizeAggregateCount(value: string | number, fieldName: string): number {
-  const normalizedValue = typeof value === "number" ? value : Number.parseInt(value, 10);
-  if (!Number.isInteger(normalizedValue) || normalizedValue < 0) {
-    throw new Error(`Invalid aggregate count returned for ${fieldName}`);
+    throw new Error(`Invalid non-negative integer returned for ${fieldName}`);
   }
 
   return normalizedValue;
 }
 
 function createEmptyReviewScheduleBucketCounts(): ReviewScheduleBucketCounts {
-  return {
-    new: 0,
-    today: 0,
-    days1To7: 0,
-    days8To30: 0,
-    days31To90: 0,
-    days91To360: 0,
-    years1To2: 0,
-    later: 0,
-  };
+  return Object.fromEntries(
+    reviewScheduleBucketKeys.map((key) => [key, 0]),
+  ) as ReviewScheduleBucketCounts;
 }
 
 function addReviewScheduleCountRow(
   counts: ReviewScheduleBucketCounts,
   row: ReviewScheduleCountRow,
 ): ReviewScheduleBucketCounts {
-  return {
-    new: counts.new + normalizeAggregateCount(row.new_count, "new_count"),
-    today: counts.today + normalizeAggregateCount(row.today_count, "today_count"),
-    days1To7: counts.days1To7 + normalizeAggregateCount(row.days_1_to_7_count, "days_1_to_7_count"),
-    days8To30: counts.days8To30 + normalizeAggregateCount(row.days_8_to_30_count, "days_8_to_30_count"),
-    days31To90: counts.days31To90 + normalizeAggregateCount(row.days_31_to_90_count, "days_31_to_90_count"),
-    days91To360: counts.days91To360 + normalizeAggregateCount(row.days_91_to_360_count, "days_91_to_360_count"),
-    years1To2: counts.years1To2 + normalizeAggregateCount(row.years_1_to_2_count, "years_1_to_2_count"),
-    later: counts.later + normalizeAggregateCount(row.later_count, "later_count"),
-  };
-}
-
-function getReviewScheduleBucketCount(
-  counts: ReviewScheduleBucketCounts,
-  key: ReviewScheduleBucketKey,
-): number {
-  switch (key) {
-    case "new":
-      return counts.new;
-    case "today":
-      return counts.today;
-    case "days1To7":
-      return counts.days1To7;
-    case "days8To30":
-      return counts.days8To30;
-    case "days31To90":
-      return counts.days31To90;
-    case "days91To360":
-      return counts.days91To360;
-    case "years1To2":
-      return counts.years1To2;
-    case "later":
-      return counts.later;
-  }
+  return Object.fromEntries(
+    reviewScheduleBucketKeys.map((key) => {
+      const column = reviewScheduleSqlColumnByBucketKey[key];
+      return [key, counts[key] + normalizeNonNegativeIntegerFromQuery(row[column], column)];
+    }),
+  ) as ReviewScheduleBucketCounts;
 }
 
 function createReviewScheduleBuckets(
@@ -422,13 +380,13 @@ function createReviewScheduleBuckets(
 ): ReadonlyArray<ReviewScheduleBucket> {
   return reviewScheduleBucketKeys.map((key) => ({
     key,
-    count: getReviewScheduleBucketCount(counts, key),
+    count: counts[key],
   }));
 }
 
 function calculateReviewScheduleTotalCards(counts: ReviewScheduleBucketCounts): number {
   return reviewScheduleBucketKeys.reduce(
-    (total, key) => total + getReviewScheduleBucketCount(counts, key),
+    (total, key) => total + counts[key],
     0,
   );
 }
@@ -439,7 +397,7 @@ function accumulateDailyReviewCounts(
 ): void {
   for (const row of rows) {
     const reviewDate = row.review_date;
-    const reviewCount = normalizeReviewCount(row.review_count, reviewDate);
+    const reviewCount = normalizeNonNegativeIntegerFromQuery(row.review_count, reviewDate);
     aggregate.set(reviewDate, (aggregate.get(reviewDate) ?? 0) + reviewCount);
   }
 }
@@ -613,7 +571,6 @@ async function buildUserProgressSummaryInExecutor(
   request: ProgressSummaryRequest,
   generatedAtDate: Date,
 ): Promise<ProgressSummaryResponse> {
-  const validatedInput = validateProgressSummaryInput(request);
   const reviewDates = new Set<string>();
   await applyUserDatabaseScopeInExecutor(executor, { userId: request.userId });
   // Human progress stays intentionally user-wide across every workspace the
@@ -628,20 +585,20 @@ async function buildUserProgressSummaryInExecutor(
     });
     const rows = await loadAllReviewDateRowsInExecutor(executor, {
       workspaceId,
-      timeZone: validatedInput.timeZone,
+      timeZone: request.timeZone,
     });
     accumulateReviewDates(reviewDates, rows);
     lastReviewedOn = findLatestReviewedOn(lastReviewedOn, rows[0]?.review_date ?? null);
   }
 
-  const today = formatDateAsTimeZoneLocalDate(generatedAtDate, validatedInput.timeZone);
+  const today = formatDateAsTimeZoneLocalDate(generatedAtDate, request.timeZone);
   // Future-dated rows can appear when a client clock is ahead, so today must
   // be checked against the full normalized date set instead of the latest date.
   const hasReviewedToday = reviewDates.has(today);
-  const currentStreakInfo = calculateCurrentStreakInfo(reviewDates, validatedInput.timeZone, generatedAtDate);
+  const currentStreakInfo = calculateCurrentStreakInfo(reviewDates, request.timeZone, generatedAtDate);
 
   return {
-    timeZone: validatedInput.timeZone,
+    timeZone: request.timeZone,
     summary: createProgressSummary(
       reviewDates.size,
       currentStreakInfo.streakDayCount,
@@ -657,7 +614,6 @@ async function buildUserProgressReviewScheduleInExecutor(
   request: ProgressReviewScheduleRequest,
   generatedAtDate: Date,
 ): Promise<ProgressReviewSchedule> {
-  const validatedInput = validateProgressReviewScheduleInput(request);
   let counts = createEmptyReviewScheduleBucketCounts();
   await applyUserDatabaseScopeInExecutor(executor, { userId: request.userId });
   const workspaceIds = await listUserWorkspaceIdsInExecutor(executor, request.userId);
@@ -669,14 +625,14 @@ async function buildUserProgressReviewScheduleInExecutor(
     });
     const row = await loadReviewScheduleCountRowInExecutor(executor, {
       workspaceId,
-      timeZone: validatedInput.timeZone,
+      timeZone: request.timeZone,
       generatedAt: generatedAtDate,
     });
     counts = addReviewScheduleCountRow(counts, row);
   }
 
   return {
-    timeZone: validatedInput.timeZone,
+    timeZone: request.timeZone,
     generatedAt: generatedAtDate.toISOString(),
     totalCards: calculateReviewScheduleTotalCards(counts),
     buckets: createReviewScheduleBuckets(counts),
@@ -688,7 +644,6 @@ async function buildUserProgressSeriesInExecutor(
   request: ProgressSeriesRequest,
   generatedAtDate: Date,
 ): Promise<ProgressSeries> {
-  const validatedInput = validateProgressSeriesInput(request);
   const dailyReviewCounts = new Map<string, number>();
   await applyUserDatabaseScopeInExecutor(executor, { userId: request.userId });
   const workspaceIds = await listUserWorkspaceIdsInExecutor(executor, request.userId);
@@ -702,19 +657,19 @@ async function buildUserProgressSeriesInExecutor(
     });
     const rows = await loadDailyReviewCountRowsInExecutor(executor, {
       workspaceId,
-      timeZone: validatedInput.timeZone,
-      from: validatedInput.from,
-      to: validatedInput.to,
+      timeZone: request.timeZone,
+      from: request.from,
+      to: request.to,
     });
     accumulateDailyReviewCounts(dailyReviewCounts, rows);
   }
 
   return {
-    timeZone: validatedInput.timeZone,
-    from: validatedInput.from,
-    to: validatedInput.to,
+    timeZone: request.timeZone,
+    from: request.from,
+    to: request.to,
     dailyReviews: createDailyReviews(
-      createInclusiveLocalDateRange(validatedInput.from, validatedInput.to),
+      createInclusiveLocalDateRange(request.from, request.to),
       dailyReviewCounts,
     ),
     generatedAt: generatedAtDate.toISOString(),
