@@ -17,6 +17,23 @@ export type PersistedOutboxRecord = Readonly<{
   operation: SyncPushOperation;
 }>;
 
+type CardUpsertOutboxOperation = Extract<
+  SyncPushOperation,
+  Readonly<{ entityType: "card"; action: "upsert" }>
+>;
+
+export type ScheduleRelevantCardOutboxRecord = PersistedOutboxRecord & Readonly<{
+  operation: CardUpsertOutboxOperation;
+}>;
+
+export function isScheduleRelevantCardOutboxRecord(
+  record: PersistedOutboxRecord,
+): record is ScheduleRelevantCardOutboxRecord {
+  return record.operation.entityType === "card"
+    && record.operation.action === "upsert"
+    && (record.affectsReviewSchedule ?? true);
+}
+
 export async function putOutboxRecord(record: PersistedOutboxRecord): Promise<void> {
   await closeDatabaseAfterWrite(async (database) => {
     await runReadwrite(database, ["outbox"], (transaction) => transaction.objectStore("outbox").put(record));

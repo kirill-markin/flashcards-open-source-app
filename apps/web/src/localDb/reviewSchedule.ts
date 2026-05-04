@@ -15,7 +15,12 @@ import {
   describeIndexedDbError,
   type StoredCard,
 } from "./core";
-import { listOutboxRecordsForWorkspaces, type PersistedOutboxRecord } from "./outbox";
+import {
+  isScheduleRelevantCardOutboxRecord,
+  listOutboxRecordsForWorkspaces,
+  type PersistedOutboxRecord,
+  type ScheduleRelevantCardOutboxRecord,
+} from "./outbox";
 import { hasHydratedHotState } from "./workspace";
 
 type LocalDateParts = Readonly<{
@@ -45,21 +50,14 @@ type ReviewScheduleBoundaryMillis = Readonly<{
   startOfDay721Millis: number;
 }>;
 
-type PendingReviewScheduleCardOperation = Extract<
-  PersistedOutboxRecord["operation"],
-  Readonly<{ entityType: "card"; action: "upsert" }>
->;
-
-type PendingReviewScheduleCardOutboxRecord = PersistedOutboxRecord & Readonly<{
-  operation: PendingReviewScheduleCardOperation;
-}>;
-
-type PendingReviewScheduleCardTotalChange = Readonly<{
+type ScheduleRelevantCardTotalChange = Readonly<{
   hasLocalCreate: boolean;
   finalIsDeleted: boolean;
 }>;
 
 const localDatePattern = /^(\d{4})-(\d{2})-(\d{2})$/;
+// Module-scoped cache: Intl.DateTimeFormat allocation is hot during per-card
+// bucket assignment, so reuse a formatter per timeZone across calls.
 const dateTimeFormatters = new Map<string, Intl.DateTimeFormat>();
 
 function parseIntegerPart(value: string): number {
@@ -247,26 +245,9 @@ function isValidTimedDueAtBucketMillis(dueAtBucketMillis: number): boolean {
     && isMalformedDueAtBucketMillis(dueAtBucketMillis) === false;
 }
 
-function isPendingReviewScheduleCardChange(outboxRecord: PersistedOutboxRecord): boolean {
-  const operation = outboxRecord.operation;
-  if (operation.entityType !== "card" || operation.action !== "upsert") {
-    return false;
-  }
-
-  return outboxRecord.affectsReviewSchedule ?? true;
-}
-
-function isPendingReviewScheduleCardOutboxRecord(
-  outboxRecord: PersistedOutboxRecord,
-): outboxRecord is PendingReviewScheduleCardOutboxRecord {
-  return outboxRecord.operation.entityType === "card"
-    && outboxRecord.operation.action === "upsert"
-    && (outboxRecord.affectsReviewSchedule ?? true);
-}
-
-function comparePendingReviewScheduleCardOutboxRecords(
-  left: PendingReviewScheduleCardOutboxRecord,
-  right: PendingReviewScheduleCardOutboxRecord,
+function compareScheduleRelevantCardOutboxRecords(
+  left: ScheduleRelevantCardOutboxRecord,
+  right: ScheduleRelevantCardOutboxRecord,
 ): number {
   if (left.operation.clientUpdatedAt < right.operation.clientUpdatedAt) {
     return -1;
@@ -279,9 +260,9 @@ function comparePendingReviewScheduleCardOutboxRecords(
   return left.operationId.localeCompare(right.operationId);
 }
 
-function parsePendingReviewScheduleCardTotalChange(
-  outboxRecord: PendingReviewScheduleCardOutboxRecord,
-): PendingReviewScheduleCardTotalChange {
+function parseScheduleRelevantCardTotalChange(
+  outboxRecord: ScheduleRelevantCardOutboxRecord,
+): ScheduleRelevantCardTotalChange {
   const operation = outboxRecord.operation;
 
   if (operation.payload.cardId !== operation.entityId) {
@@ -299,13 +280,13 @@ function parsePendingReviewScheduleCardTotalChange(
 function calculatePendingReviewScheduleCardTotalDelta(
   outboxRecords: ReadonlyArray<PersistedOutboxRecord>,
 ): number {
-  const changesByCardId = new Map<string, PendingReviewScheduleCardTotalChange>();
+  const changesByCardId = new Map<string, ScheduleRelevantCardTotalChange>();
   const cardOutboxRecords = outboxRecords
-    .filter(isPendingReviewScheduleCardOutboxRecord)
-    .sort(comparePendingReviewScheduleCardOutboxRecords);
+    .filter(isScheduleRelevantCardOutboxRecord)
+    .sort(compareScheduleRelevantCardOutboxRecords);
 
   for (const outboxRecord of cardOutboxRecords) {
-    const parsedChange = parsePendingReviewScheduleCardTotalChange(outboxRecord);
+    const parsedChange = parseScheduleRelevantCardTotalChange(outboxRecord);
     const existingChange = changesByCardId.get(outboxRecord.operation.entityId);
     changesByCardId.set(outboxRecord.operation.entityId, {
       hasLocalCreate: existingChange?.hasLocalCreate === true || parsedChange.hasLocalCreate,
@@ -425,6 +406,19 @@ function makeEmptyBucketCounts(): Map<ProgressReviewScheduleBucketKey, number> {
   }
 
   return counts;
+}
+
+function makeZeroBucketRecord(): Record<ProgressReviewScheduleBucketKey, number> {
+  return {
+    new: 0,
+    today: 0,
+    days1To7: 0,
+    days8To30: 0,
+    days31To90: 0,
+    days91To360: 0,
+    years1To2: 0,
+    later: 0,
+  };
 }
 
 function readBucketCount(
@@ -572,17 +566,6 @@ function readReviewScheduleSnapshot(
   });
 }
 
-function addBucketCounts(
-  left: ReadonlyArray<ProgressReviewScheduleBucket>,
-  right: ReadonlyArray<ProgressReviewScheduleBucket>,
-): ReadonlyArray<ProgressReviewScheduleBucket> {
-  return progressReviewScheduleBucketKeys.map((bucketKey): ProgressReviewScheduleBucket => ({
-    key: bucketKey,
-    count: (left.find((bucket) => bucket.key === bucketKey)?.count ?? 0)
-      + (right.find((bucket) => bucket.key === bucketKey)?.count ?? 0),
-  }));
-}
-
 function sumBucketCounts(buckets: ReadonlyArray<ProgressReviewScheduleBucket>): number {
   return buckets.reduce((totalCards, bucket) => totalCards + bucket.count, 0);
 }
@@ -590,18 +573,18 @@ function sumBucketCounts(buckets: ReadonlyArray<ProgressReviewScheduleBucket>): 
 function mergeWorkspaceBucketCounts(
   bucketCountsByWorkspace: ReviewScheduleBucketCountsByWorkspace,
 ): ReadonlyArray<ProgressReviewScheduleBucket> {
-  let mergedBuckets: ReadonlyArray<ProgressReviewScheduleBucket> = progressReviewScheduleBucketKeys
-    .map((bucketKey): ProgressReviewScheduleBucket => ({ key: bucketKey, count: 0 }));
+  const totals = makeZeroBucketRecord();
 
   for (const [workspaceId, workspaceCounts] of bucketCountsByWorkspace) {
-    const workspaceBuckets = progressReviewScheduleBucketKeys.map((bucketKey): ProgressReviewScheduleBucket => ({
-      key: bucketKey,
-      count: readBucketCount(workspaceCounts, bucketKey, workspaceId),
-    }));
-    mergedBuckets = addBucketCounts(mergedBuckets, workspaceBuckets);
+    for (const bucketKey of progressReviewScheduleBucketKeys) {
+      totals[bucketKey] += readBucketCount(workspaceCounts, bucketKey, workspaceId);
+    }
   }
 
-  return mergedBuckets;
+  return progressReviewScheduleBucketKeys.map((bucketKey): ProgressReviewScheduleBucket => ({
+    key: bucketKey,
+    count: totals[bucketKey],
+  }));
 }
 
 export async function loadLocalProgressReviewSchedule(
@@ -643,7 +626,7 @@ export async function hasPendingProgressReviewScheduleCardChanges(
   }
 
   const outboxRecords = await listOutboxRecordsForWorkspaces(workspaceIds);
-  return outboxRecords.some(isPendingReviewScheduleCardChange);
+  return outboxRecords.some(isScheduleRelevantCardOutboxRecord);
 }
 
 export async function calculatePendingProgressReviewScheduleCardTotalDelta(

@@ -15,6 +15,7 @@ import {
 import { webAppVersion } from "../clientIdentity";
 import {
   loadCardById,
+  loadCardsByIds,
   putCard,
 } from "../localDb/cards";
 import {
@@ -26,6 +27,7 @@ import {
 } from "../localDb/decks";
 import {
   deleteOutboxRecord,
+  isScheduleRelevantCardOutboxRecord,
   listOutboxRecords,
   putOutboxRecord,
   type PersistedOutboxRecord,
@@ -172,14 +174,6 @@ function isProgressReviewEventOperation(
   return record.operation.entityType === "review_event" && record.operation.action === "append";
 }
 
-function isProgressReviewScheduleCardOperation(
-  record: PersistedOutboxRecord,
-): boolean {
-  return record.operation.entityType === "card"
-    && record.operation.action === "upsert"
-    && (record.affectsReviewSchedule ?? true);
-}
-
 function isAcknowledgedPushStatus(status: SyncPushResult["operations"][number]["status"]): boolean {
   return status === "applied" || status === "ignored" || status === "duplicate";
 }
@@ -188,18 +182,20 @@ async function doHotSyncEntriesAffectReviewSchedule(
   workspaceId: string,
   entries: ReadonlyArray<SyncBootstrapEntry>,
 ): Promise<boolean> {
-  for (const entry of entries) {
-    if (entry.entityType !== "card") {
-      continue;
-    }
-
-    const existingCard = await loadCardById(workspaceId, entry.payload.cardId);
-    if (doesCardMutationAffectReviewSchedule(existingCard, entry.payload)) {
-      return true;
-    }
+  const cardEntries = entries.filter((entry) => entry.entityType === "card");
+  if (cardEntries.length === 0) {
+    return false;
   }
 
-  return false;
+  const existingCards = await loadCardsByIds(
+    workspaceId,
+    cardEntries.map((entry) => entry.payload.cardId),
+  );
+
+  return cardEntries.some((entry) => doesCardMutationAffectReviewSchedule(
+    existingCards.get(entry.payload.cardId) ?? null,
+    entry.payload,
+  ));
 }
 
 function requireSeedTimestamp(label: string, value: string): number {
@@ -412,7 +408,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
           const batchIncludesProgressReviewEvents = batch.some(isProgressReviewEventOperation);
           const reviewScheduleOperationIds = new Set(
             batch
-              .filter(isProgressReviewScheduleCardOperation)
+              .filter(isScheduleRelevantCardOutboxRecord)
               .map((record) => record.operationId),
           );
           try {

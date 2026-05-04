@@ -949,6 +949,60 @@ export async function loadCardById(workspaceId: string, cardId: string): Promise
   return toCard(card);
 }
 
+export async function loadCardsByIds(
+  workspaceId: string,
+  cardIds: ReadonlyArray<string>,
+): Promise<ReadonlyMap<string, Card>> {
+  if (cardIds.length === 0) {
+    return new Map();
+  }
+
+  const uniqueCardIds = [...new Set(cardIds)];
+
+  return closeDatabaseAfter((database) => new Promise<ReadonlyMap<string, Card>>((resolve, reject) => {
+    const transaction = database.transaction(["cards"], "readonly");
+    const cardsStore = transaction.objectStore("cards");
+    const cardsByCardId = new Map<string, Card>();
+    let firstRequestError: Error | null = null;
+
+    function rememberRequestError(error: Error): void {
+      if (firstRequestError === null) {
+        firstRequestError = error;
+      }
+    }
+
+    transaction.onerror = () => {
+      reject(firstRequestError ?? describeIndexedDbError("IndexedDB cards batch read failed", transaction.error));
+    };
+
+    transaction.onabort = () => {
+      reject(firstRequestError ?? describeIndexedDbError("IndexedDB cards batch read aborted", transaction.error));
+    };
+
+    transaction.oncomplete = () => {
+      resolve(cardsByCardId);
+    };
+
+    for (const cardId of uniqueCardIds) {
+      const request = cardsStore.get([workspaceId, cardId]);
+      request.onerror = () => {
+        rememberRequestError(describeIndexedDbError(
+          `IndexedDB cards batch get failed: workspaceId=${workspaceId}, cardId=${cardId}`,
+          request.error,
+        ));
+      };
+      request.onsuccess = () => {
+        const record = request.result as StoredCard | undefined;
+        if (record === undefined || record.deletedAt !== null) {
+          return;
+        }
+
+        cardsByCardId.set(cardId, toCard(record));
+      };
+    }
+  }));
+}
+
 export async function loadCardsMatchingDeck(
   workspaceId: string,
   filterDefinition: Readonly<{
