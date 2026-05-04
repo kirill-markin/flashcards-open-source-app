@@ -118,7 +118,8 @@ function openIndexedCursor(
   return store.index(options.indexName).openCursor(options.keyRange, options.direction);
 }
 
-function makeWorkspaceIndexRange(workspaceId: string): IDBKeyRange {
+/** Compound-key range matching every key prefixed by `workspaceId`: lower `[workspaceId]` is shorter than any real key, and upper `[workspaceId, []]` exploits IDB's type ordering (Array > String/Number) to sort above every primitive second component. */
+function makeWorkspaceKeyRange(workspaceId: string): IDBKeyRange {
   return IDBKeyRange.bound([workspaceId], [workspaceId, []]);
 }
 
@@ -222,7 +223,7 @@ async function iterateCardsByCreatedAtDescMapped<CardValue extends Card>(
     {
       indexName: "workspaceId_createdAt_cardId",
       direction: "prev",
-      keyRange: makeWorkspaceIndexRange(workspaceId),
+      keyRange: makeWorkspaceKeyRange(workspaceId),
     },
     mapRecord,
     (card) => {
@@ -301,7 +302,7 @@ export async function iterateCardsByUpdatedAtDesc(
     {
       indexName: "workspaceId_updatedAt_cardId",
       direction: "prev",
-      keyRange: makeWorkspaceIndexRange(workspaceId),
+      keyRange: makeWorkspaceKeyRange(workspaceId),
     },
     toCard,
     (card) => {
@@ -346,7 +347,7 @@ export async function iterateCardsByDueAtAsc(
     {
       indexName: "workspaceId_dueAt_cardId",
       direction: "next",
-      keyRange: makeWorkspaceIndexRange(workspaceId),
+      keyRange: makeWorkspaceKeyRange(workspaceId),
     },
     toCard,
     onCard,
@@ -445,7 +446,7 @@ async function iterateCardsByEffortAndCreatedAtDesc(
     {
       indexName: "workspaceId_effort_createdAt_cardId",
       direction: "prev",
-      keyRange: makeWorkspaceIndexRange(workspaceId),
+      keyRange: makeWorkspaceKeyRange(workspaceId),
     },
     toCard,
     (card) => {
@@ -513,7 +514,7 @@ async function iterateCardsByEffortAndUpdatedAtDesc(
     {
       indexName: "workspaceId_effort_updatedAt_cardId",
       direction: "prev",
-      keyRange: makeWorkspaceIndexRange(workspaceId),
+      keyRange: makeWorkspaceKeyRange(workspaceId),
     },
     toCard,
     (card) => {
@@ -731,23 +732,6 @@ function insertCardIntoSortedWindow(
   }
 
   return nextWindow;
-}
-
-function deleteWorkspaceScopedRecords(
-  store: IDBObjectStore,
-  workspaceId: string,
-): IDBRequest<IDBValidKey[]> {
-  const request = store.getAllKeys();
-  request.onsuccess = () => {
-    for (const key of request.result) {
-      if (!Array.isArray(key) || key[0] !== workspaceId) {
-        continue;
-      }
-
-      store.delete(key);
-    }
-  };
-  return request;
 }
 
 export async function loadActiveCardCountWithDatabase(database: IDBDatabase, workspaceId: string): Promise<number> {
@@ -977,29 +961,17 @@ export async function replaceCards(workspaceId: string, cards: ReadonlyArray<Car
     await runReadwrite(database, ["cards", "cardTags"], (transaction) => {
       const cardsStore = transaction.objectStore("cards");
       const cardTagsStore = transaction.objectStore("cardTags");
-      const deleteCardsRequest = cardsStore.getAllKeys();
-      deleteCardsRequest.onsuccess = () => {
-        for (const key of deleteCardsRequest.result) {
-          if (!Array.isArray(key) || key[0] !== workspaceId) {
-            continue;
-          }
+      const workspaceKeyRange = makeWorkspaceKeyRange(workspaceId);
 
-          cardsStore.delete(key);
-        }
+      const deleteCardsRequest = cardsStore.delete(workspaceKeyRange);
+      cardTagsStore.delete(workspaceKeyRange);
 
-        deleteWorkspaceScopedRecords(cardTagsStore, workspaceId);
-      };
-      return deleteCardsRequest;
-    });
-
-    await runReadwrite(database, ["cards", "cardTags"], (transaction) => {
-      const store = transaction.objectStore("cards");
-      const cardTagsStore = transaction.objectStore("cardTags");
       for (const card of cards) {
-        store.put(toStoredCard(workspaceId, card));
+        cardsStore.put(toStoredCard(workspaceId, card));
         putCardTagRecords(cardTagsStore, workspaceId, card);
       }
-      return null;
+
+      return deleteCardsRequest;
     });
   });
 }
