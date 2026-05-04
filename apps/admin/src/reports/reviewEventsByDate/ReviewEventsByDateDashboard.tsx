@@ -110,12 +110,13 @@ function formatCompactDateLabel(date: string): string {
   }).format(parseCalendarDate(date));
 }
 
-function formatGeneratedAt(value: string, timezone: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
+function formatGeneratedAt(value: string): string {
+  const formatted = new Intl.DateTimeFormat("en-US", {
+    timeZone: "UTC",
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+  return `${formatted} UTC`;
 }
 
 function escapeHtml(value: string): string {
@@ -734,11 +735,12 @@ export function ReviewEventsByDateDashboard(
           <h1>Review Events By Date</h1>
         </div>
         <p className="subhead">
-          Daily unique reviewers and stacked review-event volume by calendar date. The first two charts show overall user activity and per-user event volume. The two platform charts below compare active users and review events across <strong>web</strong>, <strong>android</strong>, and <strong>ios</strong>. Dates are grouped in the <strong>{props.report.timezone}</strong> timezone.
+          Daily unique reviewers and stacked review-event volume by calendar date. The first two charts show overall user activity and per-user event volume. The two platform charts below compare active users and review events across <strong>web</strong>, <strong>android</strong>, and <strong>ios</strong>. Dates are grouped in <strong>UTC</strong>.
         </p>
         <div className="hero-meta">
           <span className="hero-badge">Signed in as {props.adminEmail}</span>
           <span className="hero-badge">Range {formatDateRangeLabel(props.report.from)} to {formatDateRangeLabel(props.report.to)}</span>
+          <span className="hero-badge">All dates and times in UTC</span>
         </div>
       </section>
 
@@ -812,7 +814,7 @@ export function ReviewEventsByDateDashboard(
           <div className="chart-meta">
             <span>Stacked review events by user</span>
             <div className="chart-meta-right">
-              <span>Generated {formatGeneratedAt(props.report.generatedAtUtc, props.report.timezone)}</span>
+              <span>Generated {formatGeneratedAt(props.report.generatedAtUtc)}</span>
             </div>
           </div>
           <div className="chart-scroll">

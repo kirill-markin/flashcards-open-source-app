@@ -217,7 +217,6 @@ function buildPlatformReviewEventTotals(
 function buildReviewEventsByDateReport(
   resultSet: AdminQueryResultSet,
   executedAtUtc: string,
-  timezone: string,
   from: string,
   to: string,
 ): ReviewEventsByDateReport {
@@ -255,7 +254,6 @@ function buildReviewEventsByDateReport(
 
   return {
     generatedAtUtc: executedAtUtc,
-    timezone,
     from,
     to,
     totalReviewEvents,
@@ -267,29 +265,24 @@ function buildReviewEventsByDateReport(
   };
 }
 
-export function buildReviewEventsByDateDefaultRangeSql(timezone: string): string {
-  const escapedTimezone = escapeSqlStringLiteral(timezone);
-
+export function buildReviewEventsByDateDefaultRangeSql(): string {
   return [
     "SELECT",
     "  COALESCE(",
-    `    to_char(MIN(timezone(${escapedTimezone}, review_events.reviewed_at_server)::date), 'YYYY-MM-DD'),`,
-    `    to_char(timezone(${escapedTimezone}, now())::date, 'YYYY-MM-DD')`,
+    "    to_char(MIN((review_events.reviewed_at_server AT TIME ZONE 'UTC')::date), 'YYYY-MM-DD'),",
+    "    to_char((now() AT TIME ZONE 'UTC')::date, 'YYYY-MM-DD')",
     "  ) AS from_date,",
-    `  to_char(timezone(${escapedTimezone}, now())::date, 'YYYY-MM-DD') AS to_date`,
+    "  to_char((now() AT TIME ZONE 'UTC')::date, 'YYYY-MM-DD') AS to_date",
     "FROM content.review_events AS review_events",
   ].join("\n");
 }
 
-export function buildReviewEventsByDateSql(timezone: string, from: string, to: string): string {
+export function buildReviewEventsByDateSql(from: string, to: string): string {
   assertValidDateRange({ from, to }, "report");
 
   return [
     "SELECT",
-    "  to_char(timezone(",
-    `    ${escapeSqlStringLiteral(timezone)},`,
-    "    review_events.reviewed_at_server",
-    "  )::date, 'YYYY-MM-DD') AS review_date,",
+    "  to_char((review_events.reviewed_at_server AT TIME ZONE 'UTC')::date, 'YYYY-MM-DD') AS review_date,",
     "  workspace_replicas.user_id,",
     "  COALESCE(NULLIF(btrim(user_settings.email), ''), '(no email)') AS email,",
     "  workspace_replicas.platform,",
@@ -300,15 +293,15 @@ export function buildReviewEventsByDateSql(timezone: string, from: string, to: s
     "LEFT JOIN org.user_settings AS user_settings",
     "  ON user_settings.user_id = workspace_replicas.user_id",
     "WHERE review_events.reviewed_at_server >= (",
-    `  ${escapeSqlStringLiteral(from)}::date::timestamp AT TIME ZONE ${escapeSqlStringLiteral(timezone)}`,
+    `  ${escapeSqlStringLiteral(from)}::date::timestamp AT TIME ZONE 'UTC'`,
     ")",
     "  AND review_events.reviewed_at_server < (",
-    `    (${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE ${escapeSqlStringLiteral(timezone)}`,
+    `    (${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
     "  )",
     "  AND workspace_replicas.actor_kind = 'client_installation'",
     "  AND workspace_replicas.platform IN ('web', 'android', 'ios')",
     "GROUP BY",
-    `  timezone(${escapeSqlStringLiteral(timezone)}, review_events.reviewed_at_server)::date,`,
+    "  (review_events.reviewed_at_server AT TIME ZONE 'UTC')::date,",
     "  workspace_replicas.user_id,",
     "  COALESCE(NULLIF(btrim(user_settings.email), ''), '(no email)'),",
     "  workspace_replicas.platform",
@@ -322,9 +315,8 @@ export function buildReviewEventsByDateSql(timezone: string, from: string, to: s
 
 export async function loadReviewEventsByDateDefaultRange(
   config: AdminAppConfig,
-  timezone: string,
 ): Promise<ReviewEventsByDateRange> {
-  const response = await runAdminQuery(config, buildReviewEventsByDateDefaultRangeSql(timezone));
+  const response = await runAdminQuery(config, buildReviewEventsByDateDefaultRangeSql());
   if (response.resultSets.length !== 1) {
     throw new Error("Review events default range query must return exactly one result set.");
   }
@@ -352,11 +344,10 @@ export async function loadReviewEventsByDateDefaultRange(
 
 export async function loadReviewEventsByDateReport(
   config: AdminAppConfig,
-  timezone: string,
   from: string,
   to: string,
 ): Promise<ReviewEventsByDateReport> {
-  const response = await runAdminQuery(config, buildReviewEventsByDateSql(timezone, from, to));
+  const response = await runAdminQuery(config, buildReviewEventsByDateSql(from, to));
   if (response.resultSets.length !== 1) {
     throw new Error("Review events report must return exactly one result set.");
   }
@@ -366,5 +357,5 @@ export async function loadReviewEventsByDateReport(
     throw new Error("Review events report result set is missing.");
   }
 
-  return buildReviewEventsByDateReport(resultSet, response.executedAtUtc, timezone, from, to);
+  return buildReviewEventsByDateReport(resultSet, response.executedAtUtc, from, to);
 }

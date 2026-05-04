@@ -70,7 +70,6 @@ export type ReviewEventsByDateRow = Readonly<{
 
 export type ReviewEventsByDateReport = Readonly<{
   generatedAtUtc: string;
-  timezone: string;
   from: string;
   to: string;
   totalReviewEvents: number;
