@@ -217,6 +217,7 @@ enum AIChatStoreTestSupport {
         var startRunRequests: [AIChatStartRunRequestBody]
         var createNewSessionRequests: [AIChatNewSessionRequestBody]
         var stopRunRequests: [(sessionId: String, runId: String?)]
+        var stopRunGate: AsyncGate?
         var loadBootstrapHandler: ((String?) throws -> AIChatBootstrapResponse)?
         var startRunHandler: ((AIChatStartRunRequestBody) throws -> AIChatStartRunResponse)?
         var createNewSessionHandler: ((AIChatNewSessionRequestBody) throws -> AIChatNewSessionResponse)?
@@ -234,6 +235,7 @@ enum AIChatStoreTestSupport {
             self.startRunRequests = []
             self.createNewSessionRequests = []
             self.stopRunRequests = []
+            self.stopRunGate = nil
             self.loadBootstrapHandler = nil
             self.startRunHandler = nil
             self.createNewSessionHandler = nil
@@ -317,12 +319,16 @@ enum AIChatStoreTestSupport {
             _ = session
             self.events.append("stopRun:\(sessionId):\(runId ?? "nil")")
             self.stopRunRequests.append((sessionId: sessionId, runId: runId))
+            if let stopRunGate = self.stopRunGate {
+                await stopRunGate.wait()
+                self.stopRunGate = nil
+            }
             if let stopRunHandler {
                 return try stopRunHandler(sessionId, runId)
             }
             return AIChatStopRunResponse(
                 sessionId: sessionId,
-                stopped: false,
+                stopped: true,
                 stillRunning: false
             )
         }
@@ -663,6 +669,16 @@ enum AIChatStoreTestSupport {
         }
     }
 
+    /// One-shot suspension primitive used by the test fakes to inject races at
+    /// known async boundaries (loadBootstrap, runLinkedSync, stopRun).
+    ///
+    /// Usage convention across the fakes: the property holding the gate is
+    /// read with `if let gate = self.gateField`, awaited via `gate.wait()`,
+    /// and then that property is cleared to nil so that subsequent calls to
+    /// the same fake method pass through unblocked. The nil-out is
+    /// intentional — tests typically only need to gate the first call. If a
+    /// future test needs to gate every call, omit the nil-out at the call
+    /// site rather than changing this type.
     actor AsyncGate {
         private var continuation: CheckedContinuation<Void, Never>?
         private var isReleased: Bool
