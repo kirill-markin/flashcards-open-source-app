@@ -134,6 +134,7 @@ export type ProgressSeries = Readonly<{
   dailyReviews: ReadonlyArray<DailyReviewPoint>;
 }>;
 
+/** Canonical bucket order for the progress chart and the runtime validation set for incoming bucket keys. Reordering or removing entries is a breaking change for the UI. */
 export const progressReviewScheduleBucketKeys = [
   "new",
   "today",
