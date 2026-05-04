@@ -62,17 +62,27 @@ type ReviewScheduleBucketView = Readonly<{
   percentageLabel: string;
   color: string;
 }>;
+type ReviewScheduleDonutSegment = Readonly<{
+  key: ProgressReviewScheduleBucketKey;
+  color: string;
+  pathD: string;
+}>;
 
+// Canonical palette — see docs/progress-pie-palette.md.
+// Keep the hex values in sync with the iOS and Android clients.
 const reviewScheduleBucketColors: Readonly<Record<ProgressReviewScheduleBucketKey, string>> = {
-  new: "#7dd3fc",
-  today: "#f97316",
-  days1To7: "#22c55e",
-  days8To30: "#14b8a6",
-  days31To90: "#a78bfa",
-  days91To360: "#f59e0b",
-  years1To2: "#f43f5e",
-  later: "#94a3b8",
+  new: "#E69F00",
+  today: "#D7263D",
+  days1To7: "#F2A65A",
+  days8To30: "#2BB673",
+  days31To90: "#1FB5C1",
+  days91To360: "#3F7CC8",
+  years1To2: "#8E5BD9",
+  later: "#7A8088",
 };
+
+const reviewScheduleDonutOuterRadius = 100;
+const reviewScheduleDonutInnerRadius = 62;
 
 const futureStreakDayStyle: Readonly<CSSProperties> = {
   borderStyle: "dashed",
@@ -357,23 +367,58 @@ function buildReviewScheduleBucketViews(
   }));
 }
 
-function buildReviewScheduleDonutBackground(bucketViews: ReadonlyArray<ReviewScheduleBucketView>): string {
+function polarToCartesian(angleDegrees: number, radius: number): { x: number; y: number } {
+  const angleRadians = ((angleDegrees - 90) * Math.PI) / 180;
+  return {
+    x: radius * Math.cos(angleRadians),
+    y: radius * Math.sin(angleRadians),
+  };
+}
+
+function buildAnnulusSegmentPath(startAngle: number, endAngle: number): string {
+  const sweep = endAngle - startAngle;
+  // Use `>=` (not `===`) to absorb floating-point drift in `(count / total) * 360`.
+  if (sweep >= 360) {
+    // Single full ring: split into two semicircle annulus arcs so the path is non-degenerate.
+    const half = startAngle + 180;
+    return [
+      buildAnnulusSegmentPath(startAngle, half),
+      buildAnnulusSegmentPath(half, startAngle + 360),
+    ].join(" ");
+  }
+  const outerStart = polarToCartesian(startAngle, reviewScheduleDonutOuterRadius);
+  const outerEnd = polarToCartesian(endAngle, reviewScheduleDonutOuterRadius);
+  const innerStart = polarToCartesian(endAngle, reviewScheduleDonutInnerRadius);
+  const innerEnd = polarToCartesian(startAngle, reviewScheduleDonutInnerRadius);
+  const largeArcFlag = sweep > 180 ? 1 : 0;
+  return [
+    `M ${outerStart.x} ${outerStart.y}`,
+    `A ${reviewScheduleDonutOuterRadius} ${reviewScheduleDonutOuterRadius} 0 ${largeArcFlag} 1 ${outerEnd.x} ${outerEnd.y}`,
+    `L ${innerStart.x} ${innerStart.y}`,
+    `A ${reviewScheduleDonutInnerRadius} ${reviewScheduleDonutInnerRadius} 0 ${largeArcFlag} 0 ${innerEnd.x} ${innerEnd.y}`,
+    "Z",
+  ].join(" ");
+}
+
+function buildReviewScheduleDonutSegments(
+  bucketViews: ReadonlyArray<ReviewScheduleBucketView>,
+): ReadonlyArray<ReviewScheduleDonutSegment> {
   const totalCount = bucketViews.reduce((totalCards, bucket) => totalCards + bucket.count, 0);
   if (totalCount <= 0) {
-    return "conic-gradient(rgba(255, 255, 255, 0.12) 0% 100%)";
+    return [];
   }
-
-  let currentOffset = 0;
-  const segments = bucketViews
-    .filter((bucket) => bucket.count > 0)
-    .map((bucket): string => {
-      const startOffset = currentOffset;
-      const endOffset = currentOffset + ((bucket.count / totalCount) * 100);
-      currentOffset = endOffset;
-      return `${bucket.color} ${startOffset}% ${endOffset}%`;
-    });
-
-  return `conic-gradient(${segments.join(", ")})`;
+  const nonEmpty = bucketViews.filter((bucket) => bucket.count > 0);
+  let currentAngle = 0;
+  return nonEmpty.map((bucket): ReviewScheduleDonutSegment => {
+    const startAngle = currentAngle;
+    const endAngle = currentAngle + (bucket.count / totalCount) * 360;
+    currentAngle = endAngle;
+    return {
+      key: bucket.key,
+      color: bucket.color,
+      pathD: buildAnnulusSegmentPath(startAngle, endAngle),
+    };
+  });
 }
 
 export function ProgressScreen(): ReactElement {
@@ -404,6 +449,7 @@ export function ProgressScreen(): ReactElement {
   });
   const { locale, matchedBrowserLanguageTag, direction, t, formatDate, formatNumber } = useI18n();
   const [selectedPageStartLocalDate, setSelectedPageStartLocalDate] = useState<string | null>(null);
+  const [selectedReviewScheduleBucket, setSelectedReviewScheduleBucket] = useState<ProgressReviewScheduleBucketKey | null>(null);
   const progressSummary = progressSourceState.summary.renderedSnapshot;
   const progress = progressSourceState.series.renderedSnapshot;
   const reviewSchedule = progressSourceState.reviewSchedule.renderedSnapshot;
@@ -420,6 +466,10 @@ export function ProgressScreen(): ReactElement {
   useEffect(() => {
     setSelectedPageStartLocalDate(null);
   }, [progressSourceState.series.renderedSnapshot]);
+
+  useEffect(() => {
+    setSelectedReviewScheduleBucket(null);
+  }, [progressSourceState.reviewSchedule.renderedSnapshot]);
 
   const dailyReviews = progress === null ? [] : sortDailyReviews(progress.dailyReviews);
   const today = progress === null ? "" : progress.to;
@@ -448,10 +498,20 @@ export function ProgressScreen(): ReactElement {
   });
   const previousWeekArrow = resolveChartNavigationArrow(direction, "previous");
   const nextWeekArrow = resolveChartNavigationArrow(direction, "next");
+  // The bucket views and donut segments are derived from the snapshot on every render.
+  // The work is cheap (8 buckets, short string concats and arc math); a useMemo here
+  // would be a no-op because t/formatNumber from useI18n are rebuilt per render.
   const reviewScheduleBucketViews = reviewSchedule === null
     ? []
     : buildReviewScheduleBucketViews(reviewSchedule, t, formatNumber);
-  const reviewScheduleDonutBackground = buildReviewScheduleDonutBackground(reviewScheduleBucketViews);
+  const reviewScheduleDonutSegments = buildReviewScheduleDonutSegments(reviewScheduleBucketViews);
+  const reviewScheduleHasSelection = selectedReviewScheduleBucket !== null;
+  const handleSelectReviewScheduleBucket = (bucketKey: ProgressReviewScheduleBucketKey): void => {
+    setSelectedReviewScheduleBucket((previous) => (previous === bucketKey ? null : bucketKey));
+  };
+  const handleClearReviewScheduleSelection = (): void => {
+    setSelectedReviewScheduleBucket(null);
+  };
 
   return (
     <main className="container">
@@ -658,7 +718,11 @@ export function ProgressScreen(): ReactElement {
             </section>
 
             {reviewSchedule !== null ? (
-              <section className="content-card progress-section" data-testid="progress-review-schedule-card">
+              <section
+                className="content-card progress-section"
+                data-testid="progress-review-schedule-card"
+                onClick={handleClearReviewScheduleSelection}
+              >
                 <div className="progress-section-head">
                   <div className="progress-chart-heading">
                     <h2 className="progress-section-title">{t("progressScreen.reviewSchedule.title")}</h2>
@@ -671,36 +735,81 @@ export function ProgressScreen(): ReactElement {
                 </div>
 
                 <div className="progress-review-schedule">
-                  <div
-                    className="progress-review-schedule-donut"
-                    style={{ background: reviewScheduleDonutBackground }}
-                    aria-hidden="true"
-                  >
-                    <span className="progress-review-schedule-donut-hole" />
-                  </div>
+                  {reviewScheduleDonutSegments.length > 0 ? (
+                    <svg
+                      className="progress-review-schedule-donut"
+                      viewBox="-110 -110 220 220"
+                      role="img"
+                      aria-label={t("progressScreen.reviewSchedule.title")}
+                    >
+                      {reviewScheduleDonutSegments.map((segment) => {
+                        const isSelected = selectedReviewScheduleBucket === segment.key;
+                        const segmentClassName = !reviewScheduleHasSelection
+                          ? "progress-donut-segment"
+                          : isSelected
+                            ? "progress-donut-segment is-selected"
+                            : "progress-donut-segment is-dimmed";
+                        return (
+                          <path
+                            key={segment.key}
+                            d={segment.pathD}
+                            fill={segment.color}
+                            className={segmentClassName}
+                            data-testid={`progress-review-schedule-segment-${segment.key}`}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleSelectReviewScheduleBucket(segment.key);
+                            }}
+                          />
+                        );
+                      })}
+                    </svg>
+                  ) : (
+                    <div className="progress-review-schedule-donut progress-review-schedule-donut-empty" aria-hidden="true" />
+                  )}
 
                   <ul
                     className="progress-review-schedule-list"
                     aria-label={t("progressScreen.reviewSchedule.legendLabel")}
                   >
-                    {reviewScheduleBucketViews.map((bucket) => (
-                      <li
-                        key={bucket.key}
-                        className="progress-review-schedule-row"
-                        data-testid={`progress-review-schedule-bucket-${bucket.key}`}
-                      >
-                        <span
-                          className="progress-review-schedule-swatch"
-                          style={{ backgroundColor: bucket.color }}
-                          aria-hidden="true"
-                        />
-                        <span className="progress-review-schedule-label">{bucket.label}</span>
-                        <span className="progress-review-schedule-values">
-                          <span className="progress-review-schedule-count">{formatNumber(bucket.count)}</span>
-                          <span className="progress-review-schedule-percent">{bucket.percentageLabel}</span>
-                        </span>
-                      </li>
-                    ))}
+                    {reviewScheduleBucketViews.map((bucket) => {
+                      const isSelected = selectedReviewScheduleBucket === bucket.key;
+                      const isInteractive = bucket.count > 0;
+                      const rowClassName = !reviewScheduleHasSelection
+                        ? "progress-review-schedule-row"
+                        : isSelected
+                          ? "progress-review-schedule-row is-selected"
+                          : "progress-review-schedule-row is-dimmed";
+                      return (
+                        <li
+                          key={bucket.key}
+                          className={rowClassName}
+                          data-testid={`progress-review-schedule-bucket-${bucket.key}`}
+                        >
+                          <button
+                            type="button"
+                            className="progress-review-schedule-row-button"
+                            disabled={!isInteractive}
+                            aria-pressed={isInteractive ? isSelected : undefined}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleSelectReviewScheduleBucket(bucket.key);
+                            }}
+                          >
+                            <span
+                              className="progress-review-schedule-swatch"
+                              style={{ backgroundColor: bucket.color }}
+                              aria-hidden="true"
+                            />
+                            <span className="progress-review-schedule-label">{bucket.label}</span>
+                            <span className="progress-review-schedule-values">
+                              <span className="progress-review-schedule-count">{formatNumber(bucket.count)}</span>
+                              <span className="progress-review-schedule-percent">{bucket.percentageLabel}</span>
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               </section>
