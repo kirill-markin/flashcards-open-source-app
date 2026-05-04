@@ -14,6 +14,8 @@ import com.flashcardsopensourceapp.data.local.model.ProgressSeriesSnapshot
 import com.flashcardsopensourceapp.data.local.model.ProgressSummarySnapshot
 import com.flashcardsopensourceapp.data.local.repository.ProgressRepository
 import com.flashcardsopensourceapp.data.local.repository.progressHistoryDayCount
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -57,15 +59,44 @@ class ProgressViewModel(
     }
 
     fun refreshIfInvalidated() {
-        viewModelScope.launch { progressRepository.refreshSummaryIfInvalidated() }
-        viewModelScope.launch { progressRepository.refreshSeriesIfInvalidated() }
-        viewModelScope.launch { progressRepository.refreshReviewScheduleIfInvalidated() }
+        launchAndLogFailure(event = "progress_summary_refresh_if_invalidated_failed") {
+            progressRepository.refreshSummaryIfInvalidated()
+        }
+        launchAndLogFailure(event = "progress_series_refresh_if_invalidated_failed") {
+            progressRepository.refreshSeriesIfInvalidated()
+        }
+        launchAndLogFailure(event = "progress_review_schedule_refresh_if_invalidated_failed") {
+            progressRepository.refreshReviewScheduleIfInvalidated()
+        }
     }
 
     fun refreshManually() {
-        viewModelScope.launch { progressRepository.refreshSummaryManually() }
-        viewModelScope.launch { progressRepository.refreshSeriesManually() }
-        viewModelScope.launch { progressRepository.refreshReviewScheduleManually() }
+        launchAndLogFailure(event = "progress_summary_refresh_manually_failed") {
+            progressRepository.refreshSummaryManually()
+        }
+        launchAndLogFailure(event = "progress_series_refresh_manually_failed") {
+            progressRepository.refreshSeriesManually()
+        }
+        launchAndLogFailure(event = "progress_review_schedule_refresh_manually_failed") {
+            progressRepository.refreshReviewScheduleManually()
+        }
+    }
+
+    // viewModelScope has a SupervisorJob but no CoroutineExceptionHandler, so any
+    // uncaught throw from the suspend body would crash the process. This helper
+    // re-throws CancellationException to keep structured concurrency intact and
+    // logs anything else as a warning. Errors (OOM/StackOverflow) are not caught
+    // here on purpose — there is no scope-level handler downstream to recover them.
+    private fun launchAndLogFailure(event: String, block: suspend () -> Unit): Job {
+        return viewModelScope.launch {
+            try {
+                block()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                logProgressViewModelWarning(event = event, error = error)
+            }
+        }
     }
 }
 
@@ -349,6 +380,23 @@ private fun ProgressWeekContext.isStartOfWeek(
     date: LocalDate
 ): Boolean {
     return startOfWeek(date = date) == date
+}
+
+private fun logProgressViewModelWarning(
+    event: String,
+    error: Throwable
+) {
+    val message = buildProgressViewModelLogMessage(
+        event = event,
+        fields = emptyList()
+    )
+    val didLog = runCatching {
+        Log.w(progressViewModelLogTag, message, error)
+    }.isSuccess
+    if (didLog.not()) {
+        println("$progressViewModelLogTag W $message")
+        println(error.stackTraceToString())
+    }
 }
 
 private fun logProgressUiStateMappingFailure(

@@ -20,6 +20,7 @@ import com.flashcardsopensourceapp.data.local.model.ProgressSummarySnapshot
 import com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -115,11 +116,16 @@ class LocalProgressRepository(
     private val localCacheRebuildCoordinator = ProgressLocalCacheRebuildCoordinator()
     private var reviewScheduleSyncRefreshTrackerState: ProgressReviewScheduleSyncRefreshTrackerState? = null
 
-    init {
-        appScope.launch {
-            observeProgressInputs().collect { inputs ->
-                handleProgressInputs(inputs = inputs)
-            }
+    // Captured handle for the input-observation flow so the lifecycle of this
+    // long-running collector is explicit rather than hidden inside an init block.
+    // Cancellation flows through appJob today; the handle is here so the collector
+    // is no longer anonymous and can be disposed independently in the future.
+    private val observeInputsJob: Job = launchAndLogFailure(
+        event = "progress_inputs_collect_failed",
+        fields = emptyList()
+    ) {
+        observeProgressInputs().collect { inputs ->
+            handleProgressInputs(inputs = inputs)
         }
     }
 
@@ -438,7 +444,10 @@ class LocalProgressRepository(
         reviewScheduleSyncRefreshTrackerState = reviewScheduleSyncRefreshTrackerResult.state
 
         if (currentSummaryStoreState.isLocalCacheReady.not() || currentSeriesStoreState.isLocalCacheReady.not()) {
-            appScope.launch {
+            launchAndLogFailure(
+                event = "progress_local_cache_ready_background_failed",
+                fields = listOf("timeZone" to currentSummaryStoreState.scopeKey.timeZone)
+            ) {
                 ensureLocalCacheReady(timeZone = currentSummaryStoreState.scopeKey.timeZone)
             }
         }
@@ -451,7 +460,12 @@ class LocalProgressRepository(
                 currentReviewHistoryFingerprint = currentSummaryStoreState.reviewHistoryFingerprint
             )
         ) {
-            appScope.launch {
+            launchAndLogFailure(
+                event = "progress_summary_background_refresh_failed",
+                fields = listOf(
+                    "scopeKey" to serializeProgressSummaryScopeKey(scopeKey = currentSummaryStoreState.scopeKey)
+                )
+            ) {
                 refreshSummaryFromStoreState(
                     storeState = currentSummaryStoreState,
                     refreshReason = ProgressRefreshReason.SYNC_COMPLETED_WITH_REVIEW_HISTORY_CHANGE
@@ -467,7 +481,12 @@ class LocalProgressRepository(
                 currentReviewHistoryFingerprint = currentSeriesStoreState.reviewHistoryFingerprint
             )
         ) {
-            appScope.launch {
+            launchAndLogFailure(
+                event = "progress_series_background_refresh_failed",
+                fields = listOf(
+                    "scopeKey" to serializeProgressSeriesScopeKey(scopeKey = currentSeriesStoreState.scopeKey)
+                )
+            ) {
                 refreshSeriesFromStoreState(
                     storeState = currentSeriesStoreState,
                     refreshReason = ProgressRefreshReason.SYNC_COMPLETED_WITH_REVIEW_HISTORY_CHANGE
@@ -483,7 +502,12 @@ class LocalProgressRepository(
                 currentReviewScheduleFingerprint = currentReviewScheduleStoreState.reviewScheduleFingerprint
             ) || reviewScheduleSyncRefreshTrackerResult.shouldRefresh
         ) {
-            appScope.launch {
+            launchAndLogFailure(
+                event = "progress_review_schedule_background_refresh_failed",
+                fields = listOf(
+                    "scopeKey" to serializeProgressReviewScheduleScopeKey(scopeKey = currentReviewScheduleStoreState.scopeKey)
+                )
+            ) {
                 refreshReviewScheduleFromStoreState(
                     storeState = currentReviewScheduleStoreState,
                     refreshReason = ProgressRefreshReason.SYNC_COMPLETED_WITH_REVIEW_HISTORY_CHANGE
@@ -519,10 +543,11 @@ class LocalProgressRepository(
                     initialStoreState = storeState,
                     syncMode = syncMode
                 )
-            } catch (error: CancellationException) {
-                summaryRefreshCoordinator.endRefresh(scopeKey = serializedScopeKey)
-                throw error
-            } catch (error: Exception) {
+            } catch (error: Throwable) {
+                // Cleanup-and-rethrow: always release the coordinator before propagating,
+                // including for CancellationException (preserves structured concurrency)
+                // and Error (so OOM/StackOverflow does not leave the coordinator in
+                // inFlight forever).
                 summaryRefreshCoordinator.endRefresh(scopeKey = serializedScopeKey)
                 throw error
             }
@@ -575,10 +600,7 @@ class LocalProgressRepository(
                     initialStoreState = storeState,
                     syncMode = syncMode
                 )
-            } catch (error: CancellationException) {
-                seriesRefreshCoordinator.endRefresh(scopeKey = serializedScopeKey)
-                throw error
-            } catch (error: Exception) {
+            } catch (error: Throwable) {
                 seriesRefreshCoordinator.endRefresh(scopeKey = serializedScopeKey)
                 throw error
             }
@@ -631,10 +653,7 @@ class LocalProgressRepository(
                     initialStoreState = storeState,
                     syncMode = syncMode
                 )
-            } catch (error: CancellationException) {
-                reviewScheduleRefreshCoordinator.endRefresh(scopeKey = serializedScopeKey)
-                throw error
-            } catch (error: Exception) {
+            } catch (error: Throwable) {
                 reviewScheduleRefreshCoordinator.endRefresh(scopeKey = serializedScopeKey)
                 throw error
             }
@@ -1112,6 +1131,31 @@ class LocalProgressRepository(
             today = clockSnapshot.today,
             zoneId = clockSnapshot.zoneId
         )
+    }
+
+    // Single entry point for every appScope.launch in this class. It re-throws
+    // CancellationException to keep structured concurrency intact, and swallows any
+    // other Exception after a structured warning. Errors (OOM/StackOverflow) are
+    // intentionally not caught here — they bubble up to the appScope's
+    // CoroutineExceptionHandler in AppGraph.
+    private fun launchAndLogFailure(
+        event: String,
+        fields: List<Pair<String, String?>>,
+        block: suspend () -> Unit
+    ): Job {
+        return appScope.launch {
+            try {
+                block()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                logProgressRepositoryWarning(
+                    event = event,
+                    fields = fields,
+                    error = error
+                )
+            }
+        }
     }
 }
 
