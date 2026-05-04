@@ -733,6 +733,9 @@ private struct ProgressReviewScheduleLegendRow: View {
         HStack(spacing: 10) {
             Circle()
                 .fill(progressReviewScheduleBucketColor(key: self.bucket.key))
+                .overlay(
+                    Circle().strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
+                )
                 .frame(
                     width: progressReviewScheduleLegendMarkerSize,
                     height: progressReviewScheduleLegendMarkerSize
@@ -1010,19 +1013,19 @@ private func progressReviewScheduleBucketTitle(key: ReviewScheduleBucketKey) -> 
 private func progressReviewScheduleBucketColor(key: ReviewScheduleBucketKey) -> Color {
     switch key {
     case .new:
-        return Color(red: 0xE6 / 255, green: 0x9F / 255, blue: 0x00 / 255)
+        return Color(red: 0xF4 / 255, green: 0xC4 / 255, blue: 0x30 / 255)
     case .today:
         return Color(red: 0xD7 / 255, green: 0x26 / 255, blue: 0x3D / 255)
     case .days1To7:
-        return Color(red: 0xF2 / 255, green: 0xA6 / 255, blue: 0x5A / 255)
-    case .days8To30:
-        return Color(red: 0x2B / 255, green: 0xB6 / 255, blue: 0x73 / 255)
-    case .days31To90:
         return Color(red: 0x1F / 255, green: 0xB5 / 255, blue: 0xC1 / 255)
-    case .days91To360:
-        return Color(red: 0x3F / 255, green: 0x7C / 255, blue: 0xC8 / 255)
-    case .years1To2:
+    case .days8To30:
         return Color(red: 0x8E / 255, green: 0x5B / 255, blue: 0xD9 / 255)
+    case .days31To90:
+        return Color(red: 0x2B / 255, green: 0xB6 / 255, blue: 0x73 / 255)
+    case .days91To360:
+        return Color(red: 0xE6 / 255, green: 0x9F / 255, blue: 0x00 / 255)
+    case .years1To2:
+        return Color(red: 0x3F / 255, green: 0x7C / 255, blue: 0xC8 / 255)
     case .later:
         return Color(red: 0x7A / 255, green: 0x80 / 255, blue: 0x88 / 255)
     }
