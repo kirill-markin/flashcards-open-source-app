@@ -131,6 +131,23 @@ final class GuestUpgradeDrainCloudSyncService: CloudSyncServing {
         )
     }
 
+    func loadProgressReviewSchedule(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        timeZone: String
+    ) async throws -> UserReviewSchedule {
+        _ = apiBaseUrl
+        _ = authorizationHeader
+        return makeReviewSchedule(
+            timeZone: timeZone,
+            generatedAt: "2026-04-25T00:00:00.000Z",
+            totalCards: 0,
+            buckets: ReviewScheduleBucketKey.stableOrder.map { bucketKey in
+                ReviewScheduleBucket(key: bucketKey, count: 0)
+            }
+        )
+    }
+
     func createWorkspace(apiBaseUrl: String, bearerToken: String, name: String) async throws -> CloudWorkspaceSummary {
         _ = apiBaseUrl
         _ = bearerToken

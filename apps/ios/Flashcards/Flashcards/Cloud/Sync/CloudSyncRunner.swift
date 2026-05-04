@@ -249,12 +249,15 @@ struct CloudSyncRunner {
     private func makeLocalIdRepairSyncResult(changedEntityTypes: Set<SyncEntityType>) -> CloudSyncResult {
         CloudSyncResult(
             appliedPullChangeCount: 0,
+            reviewScheduleImpactingPullChangeCount: 0,
             changedEntityTypes: changedEntityTypes,
             localIdRepairEntityTypes: changedEntityTypes,
             acknowledgedOperationCount: 0,
             acknowledgedReviewEventOperationCount: 0,
+            acknowledgedReviewScheduleImpactingOperationCount: 0,
             cleanedUpOperationCount: 0,
-            cleanedUpReviewEventOperationCount: 0
+            cleanedUpReviewEventOperationCount: 0,
+            cleanedUpReviewScheduleImpactingOperationCount: 0
         )
     }
 
@@ -276,8 +279,8 @@ struct CloudSyncRunner {
         workspaceId: String,
         installationId: String
     ) throws -> CloudSyncResult {
-        let removedReviewEventCount = try self.database.deleteStaleReviewEventOutboxEntries(workspaceId: workspaceId)
-        if removedReviewEventCount == 0 {
+        let deletionSummary = try self.database.deleteStaleReviewEventOutboxEntries(workspaceId: workspaceId)
+        if deletionSummary.operationCount == 0 {
             return .noChanges
         }
 
@@ -286,17 +289,20 @@ struct CloudSyncRunner {
             outcome: "self_heal",
             workspaceId: workspaceId,
             installationId: installationId,
-            operationsCount: removedReviewEventCount
+            operationsCount: deletionSummary.operationCount
         )
 
         return CloudSyncResult(
             appliedPullChangeCount: 0,
+            reviewScheduleImpactingPullChangeCount: 0,
             changedEntityTypes: [],
             localIdRepairEntityTypes: [],
             acknowledgedOperationCount: 0,
             acknowledgedReviewEventOperationCount: 0,
-            cleanedUpOperationCount: removedReviewEventCount,
-            cleanedUpReviewEventOperationCount: removedReviewEventCount
+            acknowledgedReviewScheduleImpactingOperationCount: 0,
+            cleanedUpOperationCount: deletionSummary.operationCount,
+            cleanedUpReviewEventOperationCount: deletionSummary.operationCount,
+            cleanedUpReviewScheduleImpactingOperationCount: deletionSummary.reviewScheduleImpactingOperationCount
         )
     }
 
@@ -360,6 +366,7 @@ struct CloudSyncRunner {
         syncBasePath: String
     ) async throws -> InitialHotStateSyncResult {
         var appliedPullChangeCount = 0
+        var reviewScheduleImpactingPullChangeCount = 0
         var changedEntityTypes = Set<SyncEntityType>()
         var currentPage = firstPage
         var pendingLocalHotEntityKeys = Set<PendingLocalHotEntityKey>()
@@ -383,14 +390,20 @@ struct CloudSyncRunner {
                     continue
                 }
 
-                try self.database.applySyncBootstrapEntry(
+                let applyResult = try self.database.applySyncBootstrapEntry(
                     workspaceId: workspaceId,
                     entry: CloudSyncMapper.makeSyncBootstrapEntry(workspaceId: workspaceId, entry: entry)
                 )
+                if applyResult.didApply == false {
+                    continue
+                }
                 if let entryKey {
                     appliedBootstrapHotEntityKeys.insert(entryKey)
                 }
                 appliedPullChangeCount += 1
+                if applyResult.reviewScheduleImpact {
+                    reviewScheduleImpactingPullChangeCount += 1
+                }
                 changedEntityTypes.insert(entry.entityType)
             }
 
@@ -406,12 +419,15 @@ struct CloudSyncRunner {
                 return InitialHotStateSyncResult(
                     syncResult: CloudSyncResult(
                         appliedPullChangeCount: appliedPullChangeCount,
+                        reviewScheduleImpactingPullChangeCount: reviewScheduleImpactingPullChangeCount,
                         changedEntityTypes: changedEntityTypes,
                         localIdRepairEntityTypes: [],
                         acknowledgedOperationCount: 0,
                         acknowledgedReviewEventOperationCount: 0,
+                        acknowledgedReviewScheduleImpactingOperationCount: 0,
                         cleanedUpOperationCount: 0,
-                        cleanedUpReviewEventOperationCount: 0
+                        cleanedUpReviewEventOperationCount: 0,
+                        cleanedUpReviewScheduleImpactingOperationCount: 0
                     ),
                     requiresPostPushHotHydration: requiresPostPushHotHydration
                 )
@@ -493,6 +509,7 @@ struct CloudSyncRunner {
         let pendingReviewEventOutboxCount = pendingOutboxEntries.filter { entry in
             entry.operation.entityType == .reviewEvent
         }.count
+        let pendingReviewScheduleImpactingOutboxCount = pendingOutboxEntries.filter(\.reviewScheduleImpact).count
 
         var bootstrapHotChangeId: Int64 = 0
         if bootstrapEntries.isEmpty == false {
@@ -569,12 +586,15 @@ struct CloudSyncRunner {
 
         return CloudSyncResult(
             appliedPullChangeCount: 0,
+            reviewScheduleImpactingPullChangeCount: 0,
             changedEntityTypes: changedEntityTypes,
             localIdRepairEntityTypes: [],
             acknowledgedOperationCount: 0,
             acknowledgedReviewEventOperationCount: 0,
+            acknowledgedReviewScheduleImpactingOperationCount: 0,
             cleanedUpOperationCount: pendingOutboxCount,
-            cleanedUpReviewEventOperationCount: pendingReviewEventOutboxCount
+            cleanedUpReviewEventOperationCount: pendingReviewEventOutboxCount,
+            cleanedUpReviewScheduleImpactingOperationCount: pendingReviewScheduleImpactingOutboxCount
         )
     }
 
@@ -586,18 +606,22 @@ struct CloudSyncRunner {
     ) async throws -> CloudSyncResult {
         var acknowledgedOperationCount = 0
         var acknowledgedReviewEventOperationCount = 0
+        var acknowledgedReviewScheduleImpactingOperationCount = 0
 
         while true {
             let outboxEntries = try self.database.loadOutboxEntries(workspaceId: workspaceId, limit: 100)
             if outboxEntries.isEmpty {
                 return CloudSyncResult(
                     appliedPullChangeCount: 0,
+                    reviewScheduleImpactingPullChangeCount: 0,
                     changedEntityTypes: [],
                     localIdRepairEntityTypes: [],
                     acknowledgedOperationCount: acknowledgedOperationCount,
                     acknowledgedReviewEventOperationCount: acknowledgedReviewEventOperationCount,
+                    acknowledgedReviewScheduleImpactingOperationCount: acknowledgedReviewScheduleImpactingOperationCount,
                     cleanedUpOperationCount: 0,
-                    cleanedUpReviewEventOperationCount: 0
+                    cleanedUpReviewEventOperationCount: 0,
+                    cleanedUpReviewScheduleImpactingOperationCount: 0
                 )
             }
 
@@ -637,9 +661,13 @@ struct CloudSyncRunner {
                         acknowledgedOperationIdSet.contains(entry.operationId)
                             && entry.operation.entityType == .reviewEvent
                     }.count
+                    let acknowledgedReviewScheduleImpactingCount = outboxEntries.filter { entry in
+                        acknowledgedOperationIdSet.contains(entry.operationId) && entry.reviewScheduleImpact
+                    }.count
                     try self.database.deleteOutboxEntries(operationIds: acknowledgedOperationIds)
                     acknowledgedOperationCount += acknowledgedOperationIds.count
                     acknowledgedReviewEventOperationCount += acknowledgedReviewEventCount
+                    acknowledgedReviewScheduleImpactingOperationCount += acknowledgedReviewScheduleImpactingCount
                 }
 
                 if rejectedResults.isEmpty == false {
@@ -695,6 +723,7 @@ struct CloudSyncRunner {
     ) async throws -> CloudSyncResult {
         var afterHotChangeId = try self.database.loadLastAppliedHotChangeId(workspaceId: workspaceId)
         var appliedPullChangeCount = 0
+        var reviewScheduleImpactingPullChangeCount = 0
         var changedEntityTypes = Set<SyncEntityType>()
 
         while true {
@@ -713,14 +742,21 @@ struct CloudSyncRunner {
             )
 
             for change in pullEnvelope.changes {
-                try self.database.applySyncChange(
+                let applyResult = try self.database.applySyncChange(
                     workspaceId: workspaceId,
                     change: CloudSyncMapper.makeSyncChange(workspaceId: workspaceId, change: change)
                 )
+                if applyResult.didApply == false {
+                    continue
+                }
+
+                appliedPullChangeCount += 1
+                if applyResult.reviewScheduleImpact {
+                    reviewScheduleImpactingPullChangeCount += 1
+                }
                 changedEntityTypes.insert(change.entityType)
             }
 
-            appliedPullChangeCount += pullEnvelope.changes.count
             afterHotChangeId = pullEnvelope.nextHotChangeId
             try self.database.setLastAppliedHotChangeId(
                 workspaceId: workspaceId,
@@ -730,12 +766,15 @@ struct CloudSyncRunner {
             if pullEnvelope.hasMore == false {
                 return CloudSyncResult(
                     appliedPullChangeCount: appliedPullChangeCount,
+                    reviewScheduleImpactingPullChangeCount: reviewScheduleImpactingPullChangeCount,
                     changedEntityTypes: changedEntityTypes,
                     localIdRepairEntityTypes: [],
                     acknowledgedOperationCount: 0,
                     acknowledgedReviewEventOperationCount: 0,
+                    acknowledgedReviewScheduleImpactingOperationCount: 0,
                     cleanedUpOperationCount: 0,
-                    cleanedUpReviewEventOperationCount: 0
+                    cleanedUpReviewEventOperationCount: 0,
+                    cleanedUpReviewScheduleImpactingOperationCount: 0
                 )
             }
         }
@@ -789,12 +828,15 @@ struct CloudSyncRunner {
 
                 return CloudSyncResult(
                     appliedPullChangeCount: appliedReviewEventCount,
+                    reviewScheduleImpactingPullChangeCount: 0,
                     changedEntityTypes: appliedReviewEventCount == 0 ? [] : [.reviewEvent],
                     localIdRepairEntityTypes: [],
                     acknowledgedOperationCount: 0,
                     acknowledgedReviewEventOperationCount: 0,
+                    acknowledgedReviewScheduleImpactingOperationCount: 0,
                     cleanedUpOperationCount: 0,
-                    cleanedUpReviewEventOperationCount: 0
+                    cleanedUpReviewEventOperationCount: 0,
+                    cleanedUpReviewScheduleImpactingOperationCount: 0
                 )
             }
         }

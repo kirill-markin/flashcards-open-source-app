@@ -1,15 +1,21 @@
 import type {
   DailyReviewPoint,
+  ProgressReviewSchedule,
+  ProgressReviewScheduleBucket,
   ProgressScopeKey,
   ProgressSeries,
   ProgressSummaryPayload,
 } from "../../types";
+import { progressReviewScheduleBucketKeys } from "../../types";
+import { findProgressReviewScheduleValidationIssue } from "../../progress/progressReviewScheduleValidation";
 import { normalizeProgressSeries } from "./progressSnapshots";
 
 const progressSummaryStorageKeyPrefix = "flashcards-progress-server-summary";
 const progressSeriesStorageKeyPrefix = "flashcards-progress-server-series";
+const progressReviewScheduleStorageKeyPrefix = "flashcards-progress-server-review-schedule";
 const progressServerSummaryVersion = 1;
 const progressServerSeriesVersion = 1;
+const progressServerReviewScheduleVersion = 1;
 
 type PersistedProgressSummary = Readonly<{
   version: 1;
@@ -25,13 +31,20 @@ type PersistedProgressSeries = Readonly<{
   serverBase: ProgressSeries;
 }>;
 
+type PersistedProgressReviewSchedule = Readonly<{
+  version: 1;
+  scopeKey: ProgressScopeKey;
+  savedAt: string;
+  serverBase: ProgressReviewSchedule;
+}>;
+
 type LocalStorageLike = Storage & Record<string, string | undefined> & Readonly<{
   getItem?: (key: string) => string | null;
   setItem?: (key: string, value: string) => void;
 }>;
 
-type ProgressCacheSection = "summary" | "series";
-type ProgressCacheMissReason = "empty" | "invalid_json" | "invalid_shape" | "scope_mismatch";
+type ProgressCacheSection = "summary" | "series" | "review_schedule";
+type ProgressCacheMissReason = "empty" | "invalid_json" | "invalid_shape" | "scope_mismatch" | "time_zone_mismatch";
 
 type ProgressCacheReadResult<TValue> =
   | Readonly<{ status: "hit"; value: TValue }>
@@ -99,6 +112,10 @@ function buildProgressSummaryStorageKey(scopeKey: ProgressScopeKey): string {
 
 function buildProgressSeriesStorageKey(scopeKey: ProgressScopeKey): string {
   return `${progressSeriesStorageKeyPrefix}:${scopeKey}`;
+}
+
+function buildProgressReviewScheduleStorageKey(scopeKey: ProgressScopeKey): string {
+  return `${progressReviewScheduleStorageKeyPrefix}:${scopeKey}`;
 }
 
 function readLocalStorageValue(key: string): string | null {
@@ -289,6 +306,92 @@ function parsePersistedProgressSeries(rawValue: string | null): ProgressCacheRea
   };
 }
 
+function isProgressReviewScheduleBucketKey(value: unknown): value is ProgressReviewScheduleBucket["key"] {
+  return typeof value === "string" && progressReviewScheduleBucketKeys.includes(value as ProgressReviewScheduleBucket["key"]);
+}
+
+function parsePersistedProgressReviewSchedule(
+  rawValue: string | null,
+): ProgressCacheReadResult<PersistedProgressReviewSchedule> {
+  if (rawValue === null) {
+    return {
+      status: "miss",
+      reason: "empty",
+    };
+  }
+
+  const parsedRecord = parseJsonRecord(rawValue);
+  if (parsedRecord.status === "miss") {
+    return parsedRecord;
+  }
+
+  const parsedValue = parsedRecord.value;
+  if (
+    parsedValue.version !== progressServerReviewScheduleVersion
+    || typeof parsedValue.scopeKey !== "string"
+    || typeof parsedValue.savedAt !== "string"
+    || isRecord(parsedValue.serverBase) === false
+    || typeof parsedValue.serverBase.timeZone !== "string"
+    || (parsedValue.serverBase.generatedAt !== null && typeof parsedValue.serverBase.generatedAt !== "string")
+    || typeof parsedValue.serverBase.totalCards !== "number"
+    || Array.isArray(parsedValue.serverBase.buckets) === false
+  ) {
+    return {
+      status: "miss",
+      reason: "invalid_shape",
+    };
+  }
+
+  const buckets = parsedValue.serverBase.buckets
+    .map((bucket): ProgressReviewScheduleBucket | null => {
+      if (
+        isRecord(bucket) === false
+        || isProgressReviewScheduleBucketKey(bucket.key) === false
+        || typeof bucket.count !== "number"
+      ) {
+        return null;
+      }
+
+      return {
+        key: bucket.key,
+        count: bucket.count,
+      };
+    })
+    .filter((bucket): bucket is ProgressReviewScheduleBucket => bucket !== null);
+
+  if (buckets.length !== parsedValue.serverBase.buckets.length) {
+    return {
+      status: "miss",
+      reason: "invalid_shape",
+    };
+  }
+
+  const serverBase: ProgressReviewSchedule = {
+    timeZone: parsedValue.serverBase.timeZone,
+    generatedAt: parsedValue.serverBase.generatedAt,
+    totalCards: parsedValue.serverBase.totalCards,
+    buckets,
+  };
+  const validationIssue = findProgressReviewScheduleValidationIssue(serverBase, "serverBase");
+
+  if (validationIssue !== null) {
+    return {
+      status: "miss",
+      reason: "invalid_shape",
+    };
+  }
+
+  return {
+    status: "hit",
+    value: {
+      version: 1,
+      scopeKey: parsedValue.scopeKey,
+      savedAt: parsedValue.savedAt,
+      serverBase,
+    },
+  };
+}
+
 export function loadPersistedProgressSummary(scopeKey: ProgressScopeKey): ProgressSummaryPayload | null {
   const storageKey = buildProgressSummaryStorageKey(scopeKey);
   const persistedValue = parsePersistedProgressSummary(readLocalStorageValue(storageKey));
@@ -329,6 +432,43 @@ export function loadPersistedProgressSeries(scopeKey: ProgressScopeKey): Progres
   return persistedValue.value.serverBase;
 }
 
+export function loadPersistedProgressReviewSchedule(
+  scopeKey: ProgressScopeKey,
+  expectedTimeZone: string,
+): ProgressReviewSchedule | null {
+  const storageKey = buildProgressReviewScheduleStorageKey(scopeKey);
+  const persistedValue = parsePersistedProgressReviewSchedule(readLocalStorageValue(storageKey));
+
+  if (persistedValue.status === "miss") {
+    if (persistedValue.reason !== "empty") {
+      warnProgressCacheMiss("review_schedule", storageKey, scopeKey, persistedValue.reason);
+    }
+
+    return null;
+  }
+
+  if (persistedValue.value.scopeKey !== scopeKey) {
+    warnProgressCacheMiss("review_schedule", storageKey, scopeKey, "scope_mismatch");
+    return null;
+  }
+
+  if (persistedValue.value.serverBase.timeZone !== expectedTimeZone) {
+    warnProgressCacheMiss("review_schedule", storageKey, scopeKey, "time_zone_mismatch");
+    return null;
+  }
+
+  return persistedValue.value.serverBase;
+}
+
+function assertProgressReviewScheduleTimeZone(
+  serverBase: ProgressReviewSchedule,
+  expectedTimeZone: string,
+): void {
+  if (serverBase.timeZone !== expectedTimeZone) {
+    throw new Error(`Invalid progress review schedule cache write: timeZone must be ${JSON.stringify(expectedTimeZone)}`);
+  }
+}
+
 export function storePersistedProgressSummary(scopeKey: ProgressScopeKey, serverBase: ProgressSummaryPayload): void {
   const persistedValue: PersistedProgressSummary = {
     version: 1,
@@ -349,4 +489,21 @@ export function storePersistedProgressSeries(scopeKey: ProgressScopeKey, serverB
   };
 
   writeLocalStorageValue(buildProgressSeriesStorageKey(scopeKey), JSON.stringify(persistedValue));
+}
+
+export function storePersistedProgressReviewSchedule(
+  scopeKey: ProgressScopeKey,
+  serverBase: ProgressReviewSchedule,
+  expectedTimeZone: string,
+): void {
+  assertProgressReviewScheduleTimeZone(serverBase, expectedTimeZone);
+
+  const persistedValue: PersistedProgressReviewSchedule = {
+    version: 1,
+    scopeKey,
+    savedAt: new Date().toISOString(),
+    serverBase,
+  };
+
+  writeLocalStorageValue(buildProgressReviewScheduleStorageKey(scopeKey), JSON.stringify(persistedValue));
 }

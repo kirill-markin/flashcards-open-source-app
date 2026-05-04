@@ -38,6 +38,116 @@ extension CardStore {
         return counts.first ?? 0
     }
 
+    func loadReviewSchedule(
+        workspaceIds: [String],
+        timeZone: String,
+        referenceLocalDate: String
+    ) throws -> UserReviewSchedule {
+        let workspacePredicate = try makeCardStoreWorkspacePredicate(workspaceIds: workspaceIds)
+        let resolvedTimeZone = try progressTimeZone(identifier: timeZone)
+        let boundaries = try makeReviewScheduleBucketBoundaries(
+            referenceLocalDate: referenceLocalDate,
+            timeZone: resolvedTimeZone
+        )
+        let invalidScheduledCardCount = try self.loadActiveReviewScheduleCardCount(
+            workspacePredicate: workspacePredicate,
+            bucketClause: "due_at IS NOT NULL AND due_at_millis IS NULL",
+            bucketValues: []
+        )
+        guard invalidScheduledCardCount == 0 else {
+            throw LocalStoreError.validation(
+                """
+                Review schedule cannot bucket \(invalidScheduledCardCount) active cards with due_at but no due_at_millis \
+                for workspaces \(workspaceIds.sorted().joined(separator: ",")).
+                """
+            )
+        }
+
+        let bucketCountsByKey: [ReviewScheduleBucketKey: Int] = [
+            .new: try self.loadActiveReviewScheduleCardCount(
+                workspacePredicate: workspacePredicate,
+                bucketClause: "due_at IS NULL",
+                bucketValues: []
+            ),
+            .today: try self.loadActiveReviewScheduleCardCount(
+                workspacePredicate: workspacePredicate,
+                bucketClause: "due_at IS NOT NULL AND due_at_millis IS NOT NULL AND due_at_millis < ?",
+                bucketValues: [.integer(boundaries.startOfTomorrowMillis)]
+            ),
+            .days1To7: try self.loadActiveReviewScheduleCardCount(
+                workspacePredicate: workspacePredicate,
+                bucketClause: "due_at IS NOT NULL AND due_at_millis >= ? AND due_at_millis < ?",
+                bucketValues: [
+                    .integer(boundaries.startOfTomorrowMillis),
+                    .integer(boundaries.startOfDay8Millis),
+                ]
+            ),
+            .days8To30: try self.loadActiveReviewScheduleCardCount(
+                workspacePredicate: workspacePredicate,
+                bucketClause: "due_at IS NOT NULL AND due_at_millis >= ? AND due_at_millis < ?",
+                bucketValues: [
+                    .integer(boundaries.startOfDay8Millis),
+                    .integer(boundaries.startOfDay31Millis),
+                ]
+            ),
+            .days31To90: try self.loadActiveReviewScheduleCardCount(
+                workspacePredicate: workspacePredicate,
+                bucketClause: "due_at IS NOT NULL AND due_at_millis >= ? AND due_at_millis < ?",
+                bucketValues: [
+                    .integer(boundaries.startOfDay31Millis),
+                    .integer(boundaries.startOfDay91Millis),
+                ]
+            ),
+            .days91To360: try self.loadActiveReviewScheduleCardCount(
+                workspacePredicate: workspacePredicate,
+                bucketClause: "due_at IS NOT NULL AND due_at_millis >= ? AND due_at_millis < ?",
+                bucketValues: [
+                    .integer(boundaries.startOfDay91Millis),
+                    .integer(boundaries.startOfDay361Millis),
+                ]
+            ),
+            .years1To2: try self.loadActiveReviewScheduleCardCount(
+                workspacePredicate: workspacePredicate,
+                bucketClause: "due_at IS NOT NULL AND due_at_millis >= ? AND due_at_millis < ?",
+                bucketValues: [
+                    .integer(boundaries.startOfDay361Millis),
+                    .integer(boundaries.startOfDay721Millis),
+                ]
+            ),
+            .later: try self.loadActiveReviewScheduleCardCount(
+                workspacePredicate: workspacePredicate,
+                bucketClause: "due_at IS NOT NULL AND due_at_millis >= ?",
+                bucketValues: [.integer(boundaries.startOfDay721Millis)]
+            ),
+        ]
+        let buckets = ReviewScheduleBucketKey.stableOrder.map { bucketKey in
+            ReviewScheduleBucket(
+                key: bucketKey,
+                count: bucketCountsByKey[bucketKey] ?? 0
+            )
+        }
+        let totalCards = buckets.reduce(0) { partialResult, bucket in
+            partialResult + bucket.count
+        }
+        let schedule = makeReviewSchedule(
+            timeZone: timeZone,
+            generatedAt: nil,
+            totalCards: totalCards,
+            buckets: buckets
+        )
+        try validateReviewSchedule(
+            schedule: schedule,
+            scopeKey: ReviewScheduleScopeKey(
+                cloudState: nil,
+                linkedUserId: nil,
+                workspaceMembershipKey: workspaceIds.sorted().joined(separator: ","),
+                timeZone: timeZone,
+                referenceLocalDate: referenceLocalDate
+            )
+        )
+        return schedule
+    }
+
     func loadCardsIncludingDeleted(workspaceId: String) throws -> [Card] {
         try self.core.query(
             sql: """
@@ -543,4 +653,38 @@ extension CardStore {
             try self.mapCard(statement: statement)
         }
     }
+
+    private func loadActiveReviewScheduleCardCount(
+        workspacePredicate: CardStoreWorkspacePredicate,
+        bucketClause: String,
+        bucketValues: [SQLiteValue]
+    ) throws -> Int {
+        try self.core.scalarInt(
+            sql: """
+            SELECT COUNT(*)
+            FROM cards
+            WHERE \(workspacePredicate.clause)
+                AND deleted_at IS NULL
+                AND \(bucketClause)
+            """,
+            values: workspacePredicate.values + bucketValues
+        )
+    }
+}
+
+private struct CardStoreWorkspacePredicate {
+    let clause: String
+    let values: [SQLiteValue]
+}
+
+private func makeCardStoreWorkspacePredicate(workspaceIds: [String]) throws -> CardStoreWorkspacePredicate {
+    let sortedWorkspaceIds = workspaceIds.sorted()
+    guard sortedWorkspaceIds.isEmpty == false else {
+        throw LocalStoreError.validation("Review schedule requires at least one workspace")
+    }
+
+    return CardStoreWorkspacePredicate(
+        clause: "workspace_id IN (\(Array(repeating: "?", count: sortedWorkspaceIds.count).joined(separator: ", ")))",
+        values: sortedWorkspaceIds.map(SQLiteValue.text)
+    )
 }

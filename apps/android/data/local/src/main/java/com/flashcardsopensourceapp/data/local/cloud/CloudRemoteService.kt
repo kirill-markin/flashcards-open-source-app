@@ -6,6 +6,7 @@ import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeCompletion
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeSelection
 import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
+import com.flashcardsopensourceapp.data.local.model.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.CloudSendCodeResult
@@ -208,6 +209,18 @@ class CloudRemoteService : CloudRemoteGateway {
             timeZone = timeZone,
             from = from,
             to = to
+        )
+    }
+
+    override suspend fun loadProgressReviewSchedule(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        timeZone: String
+    ): CloudProgressReviewSchedule {
+        return progressApi.loadProgressReviewSchedule(
+            apiBaseUrl = apiBaseUrl,
+            authorizationHeader = authorizationHeader,
+            timeZone = timeZone
         )
     }
 

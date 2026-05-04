@@ -8,7 +8,12 @@ import { useProgressInvalidationState } from "../../appData/progress/progressInv
 import { useProgressSource } from "../../appData/progress/progressSource";
 import { resolveLocaleWeekContext, useI18n, type LocaleDirection } from "../../i18n";
 import { parseLocalDate, shiftLocalDate } from "../../progress/progressDates";
-import type { DailyReviewPoint, ProgressSeriesSnapshot } from "../../types";
+import type {
+  DailyReviewPoint,
+  ProgressReviewScheduleBucketKey,
+  ProgressReviewScheduleSnapshot,
+  ProgressSeriesSnapshot,
+} from "../../types";
 import { ReviewProgressBadgeIcon } from "../shared/ReviewProgressBadgeIcon";
 
 const streakWeekCount = 5;
@@ -18,6 +23,7 @@ const chartGuideLineCount = 3;
 type LocaleValue = ReturnType<typeof useI18n>["locale"];
 type DateFormatter = ReturnType<typeof useI18n>["formatDate"];
 type NumberFormatter = ReturnType<typeof useI18n>["formatNumber"];
+type Translate = ReturnType<typeof useI18n>["t"];
 type WeekContext = ReturnType<typeof resolveLocaleWeekContext>;
 type DailyReview = ProgressSeriesSnapshot["dailyReviews"][number];
 type ChartNavigationDirection = "previous" | "next";
@@ -49,6 +55,24 @@ type ChartPage = Readonly<{
   upperBound: number;
   hasReviewActivity: boolean;
 }>;
+type ReviewScheduleBucketView = Readonly<{
+  key: ProgressReviewScheduleBucketKey;
+  label: string;
+  count: number;
+  percentageLabel: string;
+  color: string;
+}>;
+
+const reviewScheduleBucketColors: Readonly<Record<ProgressReviewScheduleBucketKey, string>> = {
+  new: "#7dd3fc",
+  today: "#f97316",
+  days1To7: "#22c55e",
+  days8To30: "#14b8a6",
+  days31To90: "#a78bfa",
+  days91To360: "#f59e0b",
+  years1To2: "#f43f5e",
+  later: "#94a3b8",
+};
 
 const futureStreakDayStyle: Readonly<CSSProperties> = {
   borderStyle: "dashed",
@@ -273,6 +297,85 @@ function resolveChartNavigationArrow(
   return localeDirection === "rtl" ? "<" : ">";
 }
 
+function getReviewScheduleBucketLabel(bucketKey: ProgressReviewScheduleBucketKey, t: Translate): string {
+  if (bucketKey === "new") {
+    return t("progressScreen.reviewSchedule.buckets.new");
+  }
+
+  if (bucketKey === "today") {
+    return t("progressScreen.reviewSchedule.buckets.today");
+  }
+
+  if (bucketKey === "days1To7") {
+    return t("progressScreen.reviewSchedule.buckets.days1To7");
+  }
+
+  if (bucketKey === "days8To30") {
+    return t("progressScreen.reviewSchedule.buckets.days8To30");
+  }
+
+  if (bucketKey === "days31To90") {
+    return t("progressScreen.reviewSchedule.buckets.days31To90");
+  }
+
+  if (bucketKey === "days91To360") {
+    return t("progressScreen.reviewSchedule.buckets.days91To360");
+  }
+
+  if (bucketKey === "years1To2") {
+    return t("progressScreen.reviewSchedule.buckets.years1To2");
+  }
+
+  return t("progressScreen.reviewSchedule.buckets.later");
+}
+
+function formatReviewSchedulePercentage(count: number, totalCards: number, formatNumber: NumberFormatter): string {
+  if (totalCards <= 0 || count <= 0) {
+    return formatNumber(0, {
+      style: "percent",
+      maximumFractionDigits: 0,
+    });
+  }
+
+  return formatNumber(count / totalCards, {
+    style: "percent",
+    maximumFractionDigits: 1,
+  });
+}
+
+function buildReviewScheduleBucketViews(
+  reviewSchedule: ProgressReviewScheduleSnapshot,
+  t: Translate,
+  formatNumber: NumberFormatter,
+): ReadonlyArray<ReviewScheduleBucketView> {
+  return reviewSchedule.buckets.map((bucket): ReviewScheduleBucketView => ({
+    key: bucket.key,
+    label: getReviewScheduleBucketLabel(bucket.key, t),
+    count: bucket.count,
+    percentageLabel: formatReviewSchedulePercentage(bucket.count, reviewSchedule.totalCards, formatNumber),
+    color: reviewScheduleBucketColors[bucket.key],
+  }));
+}
+
+function buildReviewScheduleDonutBackground(bucketViews: ReadonlyArray<ReviewScheduleBucketView>): string {
+  const totalCount = bucketViews.reduce((totalCards, bucket) => totalCards + bucket.count, 0);
+  if (totalCount <= 0) {
+    return "conic-gradient(rgba(255, 255, 255, 0.12) 0% 100%)";
+  }
+
+  let currentOffset = 0;
+  const segments = bucketViews
+    .filter((bucket) => bucket.count > 0)
+    .map((bucket): string => {
+      const startOffset = currentOffset;
+      const endOffset = currentOffset + ((bucket.count / totalCount) * 100);
+      currentOffset = endOffset;
+      return `${bucket.color} ${startOffset}% ${endOffset}%`;
+    });
+
+  return `conic-gradient(${segments.join(", ")})`;
+}
+
 export function ProgressScreen(): ReactElement {
   const {
     activeWorkspace,
@@ -280,27 +383,38 @@ export function ProgressScreen(): ReactElement {
     cloudSettings,
     sessionVerificationState,
   } = useAppData();
-  const { progressLocalVersion, progressServerInvalidationVersion } = useProgressInvalidationState();
+  const {
+    progressLocalVersion,
+    progressScheduleLocalVersion,
+    progressServerInvalidationVersion,
+  } = useProgressInvalidationState();
   const { progressSourceState, refreshProgress } = useProgressSource({
     activeWorkspace,
     availableWorkspaces,
     cloudSettings,
     sessionVerificationState,
     progressLocalVersion,
+    progressScheduleLocalVersion,
     progressServerInvalidationVersion,
     sections: {
       includeSummary: true,
       includeSeries: true,
+      includeReviewSchedule: true,
     },
   });
   const { locale, matchedBrowserLanguageTag, direction, t, formatDate, formatNumber } = useI18n();
   const [selectedPageStartLocalDate, setSelectedPageStartLocalDate] = useState<string | null>(null);
   const progressSummary = progressSourceState.summary.renderedSnapshot;
   const progress = progressSourceState.series.renderedSnapshot;
-  const isLoading = progressSourceState.summary.isLoading || progressSourceState.series.isLoading;
+  const reviewSchedule = progressSourceState.reviewSchedule.renderedSnapshot;
+  const isLoading = progressSourceState.summary.isLoading
+    || progressSourceState.series.isLoading
+    || progressSourceState.reviewSchedule.isLoading;
   const errorMessage = progressSourceState.summary.errorMessage !== ""
     ? progressSourceState.summary.errorMessage
-    : progressSourceState.series.errorMessage;
+    : progressSourceState.series.errorMessage !== ""
+      ? progressSourceState.series.errorMessage
+      : progressSourceState.reviewSchedule.errorMessage;
   const reviewProgressBadge = buildReviewProgressBadgeStateFromSummarySnapshot(progressSummary);
 
   useEffect(() => {
@@ -334,6 +448,10 @@ export function ProgressScreen(): ReactElement {
   });
   const previousWeekArrow = resolveChartNavigationArrow(direction, "previous");
   const nextWeekArrow = resolveChartNavigationArrow(direction, "next");
+  const reviewScheduleBucketViews = reviewSchedule === null
+    ? []
+    : buildReviewScheduleBucketViews(reviewSchedule, t, formatNumber);
+  const reviewScheduleDonutBackground = buildReviewScheduleDonutBackground(reviewScheduleBucketViews);
 
   return (
     <main className="container">
@@ -538,6 +656,55 @@ export function ProgressScreen(): ReactElement {
                 </div>
               )}
             </section>
+
+            {reviewSchedule !== null ? (
+              <section className="content-card progress-section" data-testid="progress-review-schedule-card">
+                <div className="progress-section-head">
+                  <div className="progress-chart-heading">
+                    <h2 className="progress-section-title">{t("progressScreen.reviewSchedule.title")}</h2>
+                    <p className="progress-chart-range">
+                      {t("progressScreen.reviewSchedule.totalCards", {
+                        count: formatNumber(reviewSchedule.totalCards),
+                      })}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="progress-review-schedule">
+                  <div
+                    className="progress-review-schedule-donut"
+                    style={{ background: reviewScheduleDonutBackground }}
+                    aria-hidden="true"
+                  >
+                    <span className="progress-review-schedule-donut-hole" />
+                  </div>
+
+                  <ul
+                    className="progress-review-schedule-list"
+                    aria-label={t("progressScreen.reviewSchedule.legendLabel")}
+                  >
+                    {reviewScheduleBucketViews.map((bucket) => (
+                      <li
+                        key={bucket.key}
+                        className="progress-review-schedule-row"
+                        data-testid={`progress-review-schedule-bucket-${bucket.key}`}
+                      >
+                        <span
+                          className="progress-review-schedule-swatch"
+                          style={{ backgroundColor: bucket.color }}
+                          aria-hidden="true"
+                        />
+                        <span className="progress-review-schedule-label">{bucket.label}</span>
+                        <span className="progress-review-schedule-values">
+                          <span className="progress-review-schedule-count">{formatNumber(bucket.count)}</span>
+                          <span className="progress-review-schedule-percent">{bucket.percentageLabel}</span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </section>
+            ) : null}
           </div>
         ) : null}
       </section>

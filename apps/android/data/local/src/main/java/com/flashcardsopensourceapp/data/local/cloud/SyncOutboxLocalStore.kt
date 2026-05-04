@@ -20,14 +20,15 @@ internal class SyncOutboxLocalStore(
     private val database: AppDatabase,
     private val preferencesStore: CloudPreferencesStore
 ) {
-    suspend fun enqueueCardUpsert(card: CardEntity, tags: List<String>) {
+    suspend fun enqueueCardUpsert(card: CardEntity, tags: List<String>, affectsReviewSchedule: Boolean) {
         insertOutboxEntry(
             workspaceId = card.workspaceId,
             entityType = SyncEntityType.CARD,
             entityId = card.cardId,
             action = SyncAction.UPSERT,
             clientUpdatedAtIso = formatIsoTimestamp(card.updatedAtMillis),
-            payloadJson = buildCardOutboxPayloadJson(card = card, tags = tags).toString()
+            payloadJson = buildCardOutboxPayloadJson(card = card, tags = tags).toString(),
+            affectsReviewSchedule = affectsReviewSchedule
         )
     }
 
@@ -38,7 +39,8 @@ internal class SyncOutboxLocalStore(
             entityId = deck.deckId,
             action = SyncAction.UPSERT,
             clientUpdatedAtIso = formatIsoTimestamp(deck.updatedAtMillis),
-            payloadJson = buildDeckOutboxPayloadJson(deck = deck).toString()
+            payloadJson = buildDeckOutboxPayloadJson(deck = deck).toString(),
+            affectsReviewSchedule = false
         )
     }
 
@@ -49,7 +51,8 @@ internal class SyncOutboxLocalStore(
             entityId = settings.workspaceId,
             action = SyncAction.UPSERT,
             clientUpdatedAtIso = formatIsoTimestamp(settings.updatedAtMillis),
-            payloadJson = buildWorkspaceSchedulerSettingsOutboxPayloadJson(settings = settings).toString()
+            payloadJson = buildWorkspaceSchedulerSettingsOutboxPayloadJson(settings = settings).toString(),
+            affectsReviewSchedule = false
         )
     }
 
@@ -60,7 +63,8 @@ internal class SyncOutboxLocalStore(
             entityId = reviewLog.reviewLogId,
             action = SyncAction.APPEND,
             clientUpdatedAtIso = formatIsoTimestamp(reviewLog.reviewedAtMillis),
-            payloadJson = buildReviewEventOutboxPayloadJson(reviewLog = reviewLog).toString()
+            payloadJson = buildReviewEventOutboxPayloadJson(reviewLog = reviewLog).toString(),
+            affectsReviewSchedule = false
         )
     }
 
@@ -119,7 +123,8 @@ internal class SyncOutboxLocalStore(
         entityId: String,
         action: SyncAction,
         clientUpdatedAtIso: String,
-        payloadJson: String
+        payloadJson: String,
+        affectsReviewSchedule: Boolean
     ) {
         preferencesStore.runWithLocalOutboxWritesAllowed {
             database.outboxDao().insertOutboxEntry(
@@ -133,6 +138,7 @@ internal class SyncOutboxLocalStore(
                     payloadJson = payloadJson,
                     clientUpdatedAtIso = clientUpdatedAtIso,
                     createdAtMillis = System.currentTimeMillis(),
+                    affectsReviewSchedule = affectsReviewSchedule,
                     attemptCount = 0,
                     lastError = null
                 )

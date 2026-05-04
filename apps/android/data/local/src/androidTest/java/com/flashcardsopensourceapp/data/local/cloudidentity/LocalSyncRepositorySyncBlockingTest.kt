@@ -182,6 +182,7 @@ class LocalSyncRepositorySyncBlockingTest {
                     .toString(),
                 clientUpdatedAtIso = "2026-04-02T15:50:57.000Z",
                 createdAtMillis = 300L,
+                affectsReviewSchedule = false,
                 attemptCount = 0,
                 lastError = null
             )

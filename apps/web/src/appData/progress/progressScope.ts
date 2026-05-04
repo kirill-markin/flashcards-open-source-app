@@ -1,5 +1,6 @@
 import type {
   CloudSettings,
+  ProgressReviewScheduleInput,
   ProgressScopeKey,
   ProgressSeriesInput,
   ProgressSummaryInput,
@@ -10,6 +11,7 @@ import type { SessionVerificationState } from "../warmStart";
 export type ProgressSourceSections = Readonly<{
   includeSummary: boolean;
   includeSeries: boolean;
+  includeReviewSchedule: boolean;
 }>;
 
 export function collectAccessibleWorkspaceIds(
@@ -43,6 +45,13 @@ export function buildProgressSummaryScopeKey(
   return `${workspaceIds.join(",")}::${input.timeZone}::${input.today}`;
 }
 
+export function buildProgressReviewScheduleScopeKey(
+  workspaceIds: ReadonlyArray<string>,
+  input: ProgressReviewScheduleInput,
+): ProgressScopeKey {
+  return `${workspaceIds.join(",")}::${input.timeZone}::${input.today}`;
+}
+
 export function resolveProgressSummaryScopeKey(
   includeSummary: boolean,
   accessibleWorkspaceIds: ReadonlyArray<string>,
@@ -65,6 +74,18 @@ export function resolveProgressSeriesScopeKey(
   }
 
   return buildProgressScopeKey(accessibleWorkspaceIds, input);
+}
+
+export function resolveProgressReviewScheduleScopeKey(
+  includeReviewSchedule: boolean,
+  accessibleWorkspaceIds: ReadonlyArray<string>,
+  input: ProgressReviewScheduleInput,
+): ProgressScopeKey | null {
+  if (includeReviewSchedule === false || accessibleWorkspaceIds.length === 0) {
+    return null;
+  }
+
+  return buildProgressReviewScheduleScopeKey(accessibleWorkspaceIds, input);
 }
 
 export function canLoadProgressServerBase(

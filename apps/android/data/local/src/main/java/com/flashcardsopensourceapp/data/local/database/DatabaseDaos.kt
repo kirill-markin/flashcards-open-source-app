@@ -272,6 +272,16 @@ interface CardDao {
     @Query("SELECT COUNT(*) FROM cards WHERE deletedAtMillis IS NULL")
     suspend fun countActiveCards(): Int
 
+    @Query(
+        """
+        SELECT cardId, workspaceId, dueAtMillis
+        FROM cards
+        WHERE deletedAtMillis IS NULL
+        ORDER BY workspaceId ASC, dueAtMillis ASC, cardId ASC
+        """
+    )
+    fun observeProgressReviewScheduleCardDueDates(): Flow<List<ProgressReviewScheduleCardDueEntity>>
+
     @Query("DELETE FROM cards")
     suspend fun deleteAllCards()
 
@@ -430,6 +440,17 @@ interface OutboxDao {
     )
     fun observePendingReviewEventOutboxEntries(): Flow<List<OutboxEntryEntity>>
 
+    @Query(
+        """
+        SELECT * FROM outbox_entries
+        WHERE entityType = 'card'
+            AND operationType = 'upsert'
+            AND affectsReviewSchedule = 1
+        ORDER BY workspaceId ASC, createdAtMillis ASC, rowid ASC
+        """
+    )
+    fun observePendingReviewScheduleCardUpsertOutboxEntries(): Flow<List<OutboxEntryEntity>>
+
     @Query("DELETE FROM outbox_entries WHERE workspaceId = :workspaceId")
     suspend fun deleteOutboxEntriesForWorkspace(workspaceId: String)
 
@@ -488,11 +509,17 @@ interface ProgressRemoteCacheDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertProgressSeriesCache(entry: ProgressSeriesCacheEntity)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertProgressReviewScheduleCache(entry: ProgressReviewScheduleCacheEntity)
+
     @Query("SELECT * FROM progress_summary_cache ORDER BY updatedAtMillis DESC, scopeKey DESC")
     fun observeProgressSummaryCaches(): Flow<List<ProgressSummaryCacheEntity>>
 
     @Query("SELECT * FROM progress_series_cache ORDER BY updatedAtMillis DESC, scopeKey DESC")
     fun observeProgressSeriesCaches(): Flow<List<ProgressSeriesCacheEntity>>
+
+    @Query("SELECT * FROM progress_review_schedule_cache ORDER BY updatedAtMillis DESC, scopeKey DESC")
+    fun observeProgressReviewScheduleCaches(): Flow<List<ProgressReviewScheduleCacheEntity>>
 }
 
 @Dao

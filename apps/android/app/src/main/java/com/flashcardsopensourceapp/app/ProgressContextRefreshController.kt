@@ -60,6 +60,17 @@ class ProgressContextRefreshController(
                         error = error
                     )
                 }
+
+                try {
+                    progressRepository.refreshReviewScheduleIfInvalidated()
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Exception) {
+                    logProgressContextRefreshFailure(
+                        message = "Failed to refresh invalidated progress review schedule.",
+                        error = error
+                    )
+                }
             }
         }
     }

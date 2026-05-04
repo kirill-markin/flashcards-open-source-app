@@ -337,6 +337,95 @@
   line-height: 1.3;
 }
 
+.progress-review-schedule {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+}
+
+.progress-review-schedule-donut {
+  position: relative;
+  width: min(100%, 220px);
+  aspect-ratio: 1;
+  justify-self: center;
+  border-radius: 50%;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 18px 36px rgba(0, 0, 0, 0.18);
+}
+
+.progress-review-schedule-donut-hole {
+  position: absolute;
+  inset: 28%;
+  border-radius: 50%;
+  background: var(--panel);
+  box-shadow:
+    inset 0 0 0 1px var(--panel-border),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.progress-review-schedule-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.progress-review-schedule-row {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 38px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.progress-review-schedule-row:last-child {
+  border-bottom: 0;
+}
+
+.progress-review-schedule-swatch {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08);
+}
+
+.progress-review-schedule-label {
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+.progress-review-schedule-values {
+  display: inline-grid;
+  grid-template-columns: minmax(3ch, auto) minmax(5ch, auto);
+  gap: 10px;
+  align-items: baseline;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.progress-review-schedule-count {
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.progress-review-schedule-percent {
+  color: var(--text-tertiary);
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 600;
+}
+
 @media (max-width: 768px) {
   .progress-section {
     padding: 16px;
@@ -359,5 +448,17 @@
 
   .progress-chart-columns {
     gap: 8px;
+  }
+
+  .progress-review-schedule {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .progress-review-schedule-donut {
+    max-width: 180px;
+  }
+
+  .progress-review-schedule-row {
+    grid-template-columns: 12px minmax(0, 1fr) auto;
   }
 }

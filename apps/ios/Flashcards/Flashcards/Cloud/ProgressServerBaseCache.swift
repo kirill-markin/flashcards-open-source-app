@@ -12,8 +12,15 @@ struct PersistedProgressSeriesServerBase: Codable, Hashable, Sendable {
     let storedAt: String
 }
 
+struct PersistedReviewScheduleServerBase: Codable, Hashable, Sendable {
+    let scopeKey: ReviewScheduleScopeKey
+    let serverBase: UserReviewSchedule
+    let storedAt: String
+}
+
 private let progressSummaryServerBaseCacheUserDefaultsKeyPrefix: String = "progress-summary-server-base"
 private let progressSeriesServerBaseCacheUserDefaultsKeyPrefix: String = "progress-series-server-base"
+private let reviewScheduleServerBaseCacheUserDefaultsKeyPrefix: String = "progress-review-schedule-server-base"
 
 @MainActor
 extension FlashcardsStore {
@@ -30,6 +37,20 @@ extension FlashcardsStore {
         self.userDefaults.set(
             data,
             forKey: progressSeriesServerBaseUserDefaultsKey(scopeKey: serverBase.scopeKey)
+        )
+    }
+
+    func persistReviewScheduleServerBase(serverBase: PersistedReviewScheduleServerBase) throws {
+        let data = try self.encoder.encode(serverBase)
+        self.userDefaults.set(
+            data,
+            forKey: reviewScheduleServerBaseUserDefaultsKey(scopeKey: serverBase.scopeKey)
+        )
+    }
+
+    func removePersistedReviewScheduleServerBase(scopeKey: ReviewScheduleScopeKey) {
+        self.userDefaults.removeObject(
+            forKey: reviewScheduleServerBaseUserDefaultsKey(scopeKey: scopeKey)
         )
     }
 
@@ -122,6 +143,59 @@ extension FlashcardsStore {
         }
     }
 
+    func loadPersistedReviewScheduleServerBase(
+        scopeKey: ReviewScheduleScopeKey
+    ) -> PersistedReviewScheduleServerBase? {
+        let key = reviewScheduleServerBaseUserDefaultsKey(scopeKey: scopeKey)
+        guard let data = self.userDefaults.data(forKey: key) else {
+            return nil
+        }
+
+        do {
+            let serverBase = try self.decoder.decode(PersistedReviewScheduleServerBase.self, from: data)
+            guard serverBase.scopeKey == scopeKey else {
+                self.removeProgressServerBaseCache(
+                    key: key,
+                    cacheKind: "review_schedule",
+                    reason: "scope_mismatch",
+                    expectedScopeKey: scopeKey.storageKey,
+                    actualScopeKey: serverBase.scopeKey.storageKey,
+                    errorMessage: nil
+                )
+                return nil
+            }
+
+            do {
+                try validateReviewSchedule(
+                    schedule: serverBase.serverBase,
+                    scopeKey: scopeKey
+                )
+            } catch {
+                self.removeProgressServerBaseCache(
+                    key: key,
+                    cacheKind: "review_schedule",
+                    reason: "validation_failed",
+                    expectedScopeKey: scopeKey.storageKey,
+                    actualScopeKey: serverBase.scopeKey.storageKey,
+                    errorMessage: Flashcards.errorMessage(error: error)
+                )
+                return nil
+            }
+
+            return serverBase
+        } catch {
+            self.removeProgressServerBaseCache(
+                key: key,
+                cacheKind: "review_schedule",
+                reason: "decode_failed",
+                expectedScopeKey: scopeKey.storageKey,
+                actualScopeKey: nil,
+                errorMessage: Flashcards.errorMessage(error: error)
+            )
+            return nil
+        }
+    }
+
     private func removeProgressServerBaseCache(
         key: String,
         cacheKind: String,
@@ -158,4 +232,8 @@ private func progressSummaryServerBaseUserDefaultsKey(scopeKey: ProgressSummaryS
 
 private func progressSeriesServerBaseUserDefaultsKey(scopeKey: ProgressScopeKey) -> String {
     "\(progressSeriesServerBaseCacheUserDefaultsKeyPrefix)|\(scopeKey.storageKey)"
+}
+
+private func reviewScheduleServerBaseUserDefaultsKey(scopeKey: ReviewScheduleScopeKey) -> String {
+    "\(reviewScheduleServerBaseCacheUserDefaultsKeyPrefix)|\(scopeKey.storageKey)"
 }
