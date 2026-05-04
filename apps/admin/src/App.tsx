@@ -22,7 +22,6 @@ type AppState =
       status: "ready";
       config: AdminAppConfig;
       session: AdminSession;
-      timezone: string;
       defaultRange: ReviewEventsByDateRange;
       report: ReviewEventsByDateReport;
       isReportLoading: boolean;
@@ -30,14 +29,6 @@ type AppState =
     }>;
 
 const calendarDatePattern = /^(\d{4})-(\d{2})-(\d{2})$/u;
-
-function resolveBrowserTimezone(): string {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-  } catch {
-    return "UTC";
-  }
-}
 
 function parseCalendarDate(date: string, fieldName: string): Date {
   const match = calendarDatePattern.exec(date);
@@ -171,9 +162,8 @@ export default function App(): JSX.Element {
       try {
         config = getAdminAppConfig();
         const session = await fetchAdminSession(config);
-        const timezone = resolveBrowserTimezone();
-        const defaultRange = await loadReviewEventsByDateDefaultRange(config, timezone);
-        const report = await loadReviewEventsByDateReport(config, timezone, defaultRange.from, defaultRange.to);
+        const defaultRange = await loadReviewEventsByDateDefaultRange(config);
+        const report = await loadReviewEventsByDateReport(config, defaultRange.from, defaultRange.to);
 
         if (cancelled) {
           return;
@@ -183,7 +173,6 @@ export default function App(): JSX.Element {
           status: "ready",
           config,
           session,
-          timezone,
           defaultRange,
           report,
           isReportLoading: false,
@@ -236,7 +225,6 @@ export default function App(): JSX.Element {
     try {
       const report = await loadReviewEventsByDateReport(
         readyState.config,
-        readyState.timezone,
         range.from,
         range.to,
       );
