@@ -123,9 +123,8 @@ extension LocalDatabase {
         let operationId = UUID().uuidString.lowercased()
         let isInitialCreate = cardId == nil
         // Fresh creates install the card into the review queue; text/tag edits
-        // via this path don't touch FSRS fields, so the schedule is unaffected.
-        // Both intents happen to coincide here but are computed independently
-        // so a future change to either side stays surgical.
+        // don't touch FSRS fields. Kept as two separate locals — both happen to
+        // derive from `cardId == nil` today but encode independent intents.
         let reviewScheduleImpact = cardId == nil
         let persistedCard = try self.cardStore.saveCard(
             workspaceId: workspaceId,
