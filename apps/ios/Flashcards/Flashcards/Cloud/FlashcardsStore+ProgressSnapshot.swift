@@ -8,6 +8,7 @@ extension FlashcardsStore {
 
         if previousScopeKey != scopeKey {
             self.progressObservedScopeKey = scopeKey
+            self.progressLocalFallbackRevision += 1
             self.progressSummaryServerBaseCache = self.loadPersistedProgressSummaryServerBase(
                 scopeKey: progressSummaryScopeKey(seriesScopeKey: scopeKey)
             )
@@ -99,8 +100,7 @@ extension FlashcardsStore {
         let workspaceIds = try self.loadCanonicalProgressWorkspaceIds(database: database)
         let localFallbackSchedule = try self.loadReviewScheduleLocalFallback(
             database: database,
-            workspaceIds: workspaceIds,
-            scopeKey: scopeKey
+            workspaceIds: workspaceIds
         )
         try self.publishReviewScheduleSnapshot(
             schedule: localFallbackSchedule,
@@ -167,8 +167,7 @@ extension FlashcardsStore {
 
         let localFallbackSchedule = try self.loadReviewScheduleLocalFallback(
             database: database,
-            workspaceIds: workspaceIds,
-            scopeKey: scopeKey
+            workspaceIds: workspaceIds
         )
         let pendingLocalCardTotalDelta = try self.loadReviewSchedulePendingLocalCardTotalDelta(
             database: database,
@@ -251,6 +250,130 @@ extension FlashcardsStore {
     private func loadProgressReviewedAtClientSources() throws -> ProgressReviewedAtClientSources {
         let database = try requireLocalDatabase(database: self.database)
         let workspaceIds = try self.loadCanonicalProgressWorkspaceIds(database: database)
+        return try self.ensureProgressReviewedAtClientCacheEntry(
+            database: database,
+            workspaceIds: workspaceIds
+        ).sources
+    }
+
+    private func loadReviewSchedulePendingLocalOverlayState(
+        database: LocalDatabase,
+        workspaceIds: [String]
+    ) throws -> ProgressPendingLocalOverlayState {
+        try self.ensureProgressReviewScheduleLocalCacheEntry(
+            database: database,
+            workspaceIds: workspaceIds
+        ).pendingOverlayState
+    }
+
+    private func loadReviewSchedulePendingLocalCardTotalDelta(
+        database: LocalDatabase,
+        workspaceIds: [String]
+    ) throws -> Int {
+        try self.ensureProgressReviewScheduleLocalCacheEntry(
+            database: database,
+            workspaceIds: workspaceIds
+        ).pendingCardTotalDelta
+    }
+
+    private func loadReviewScheduleLocalFallback(
+        database: LocalDatabase,
+        workspaceIds: [String]
+    ) throws -> UserReviewSchedule {
+        try self.ensureProgressReviewScheduleLocalCacheEntry(
+            database: database,
+            workspaceIds: workspaceIds
+        ).reviewSchedule
+    }
+
+    private func loadReviewScheduleLocalCoverage(
+        database: LocalDatabase,
+        workspaceIds: [String]
+    ) throws -> ReviewScheduleLocalCoverage {
+        try self.ensureProgressReviewScheduleLocalCacheEntry(
+            database: database,
+            workspaceIds: workspaceIds
+        ).localCoverage
+    }
+
+    private func ensureProgressReviewedAtClientCacheEntry(
+        database: LocalDatabase,
+        workspaceIds: [String]
+    ) throws -> ProgressReviewedAtClientCacheEntry {
+        guard let scopeKey = self.progressObservedScopeKey else {
+            throw LocalStoreError.database(
+                "Progress reviewed-at-client cache requires a prepared progress scope"
+            )
+        }
+        let cacheKey = ProgressReviewedAtClientCacheKey(
+            workspaceMembershipKey: scopeKey.workspaceMembershipKey,
+            installationId: self.cloudSettings?.installationId,
+            revision: self.progressLocalFallbackRevision
+        )
+        if let entry = self.progressReviewedAtClientCache, entry.key == cacheKey {
+            return entry
+        }
+
+        let entry = ProgressReviewedAtClientCacheEntry(
+            key: cacheKey,
+            sources: try self.computeProgressReviewedAtClientSources(
+                database: database,
+                workspaceIds: workspaceIds
+            )
+        )
+        self.progressReviewedAtClientCache = entry
+        return entry
+    }
+
+    private func ensureProgressReviewScheduleLocalCacheEntry(
+        database: LocalDatabase,
+        workspaceIds: [String]
+    ) throws -> ProgressReviewScheduleLocalCacheEntry {
+        guard let scopeKey = self.progressObservedScopeKey else {
+            throw LocalStoreError.database(
+                "Progress review-schedule local cache requires a prepared progress scope"
+            )
+        }
+        let scheduleScopeKey = reviewScheduleScopeKey(seriesScopeKey: scopeKey)
+        let cacheKey = ProgressReviewScheduleLocalCacheKey(
+            workspaceMembershipKey: scopeKey.workspaceMembershipKey,
+            timeZone: scheduleScopeKey.timeZone,
+            referenceLocalDate: scheduleScopeKey.referenceLocalDate,
+            installationId: self.cloudSettings?.installationId,
+            revision: self.progressLocalFallbackRevision
+        )
+        if let entry = self.progressReviewScheduleLocalCache, entry.key == cacheKey {
+            return entry
+        }
+
+        let entry = ProgressReviewScheduleLocalCacheEntry(
+            key: cacheKey,
+            reviewSchedule: try self.computeReviewScheduleLocalFallback(
+                database: database,
+                workspaceIds: workspaceIds,
+                scopeKey: scheduleScopeKey
+            ),
+            pendingOverlayState: try self.computeReviewSchedulePendingLocalOverlayState(
+                database: database,
+                workspaceIds: workspaceIds
+            ),
+            pendingCardTotalDelta: try self.computeReviewSchedulePendingLocalCardTotalDelta(
+                database: database,
+                workspaceIds: workspaceIds
+            ),
+            localCoverage: try self.computeReviewScheduleLocalCoverage(
+                database: database,
+                workspaceIds: workspaceIds
+            )
+        )
+        self.progressReviewScheduleLocalCache = entry
+        return entry
+    }
+
+    private func computeProgressReviewedAtClientSources(
+        database: LocalDatabase,
+        workspaceIds: [String]
+    ) throws -> ProgressReviewedAtClientSources {
         let canonicalReviewedAtClients = try workspaceIds.flatMap { workspaceId in
             try database.loadReviewEvents(workspaceId: workspaceId).map(\.reviewedAtClient)
         }
@@ -272,7 +395,7 @@ extension FlashcardsStore {
         )
     }
 
-    private func loadReviewSchedulePendingLocalOverlayState(
+    private func computeReviewSchedulePendingLocalOverlayState(
         database: LocalDatabase,
         workspaceIds: [String]
     ) throws -> ProgressPendingLocalOverlayState {
@@ -292,7 +415,7 @@ extension FlashcardsStore {
         return .empty
     }
 
-    private func loadReviewSchedulePendingLocalCardTotalDelta(
+    private func computeReviewSchedulePendingLocalCardTotalDelta(
         database: LocalDatabase,
         workspaceIds: [String]
     ) throws -> Int {
@@ -306,7 +429,7 @@ extension FlashcardsStore {
         )
     }
 
-    private func loadReviewScheduleLocalFallback(
+    private func computeReviewScheduleLocalFallback(
         database: LocalDatabase,
         workspaceIds: [String],
         scopeKey: ReviewScheduleScopeKey
@@ -318,7 +441,7 @@ extension FlashcardsStore {
         )
     }
 
-    private func loadReviewScheduleLocalCoverage(
+    private func computeReviewScheduleLocalCoverage(
         database: LocalDatabase,
         workspaceIds: [String]
     ) throws -> ReviewScheduleLocalCoverage {
