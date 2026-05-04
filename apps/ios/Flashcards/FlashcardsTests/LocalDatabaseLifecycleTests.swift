@@ -36,6 +36,7 @@ final class LocalDatabaseLifecycleTests: XCTestCase {
             )
         )
         XCTAssertTrue(try self.hasColumn(database: database, tableName: "cards", columnName: "due_at_millis"))
+        XCTAssertTrue(try self.hasColumn(database: database, tableName: "outbox", columnName: "review_schedule_impact"))
         XCTAssertTrue(
             try self.hasIndex(
                 database: database,
@@ -254,6 +255,82 @@ final class LocalDatabaseLifecycleTests: XCTestCase {
         XCTAssertNil(rowsByCardId["new-card"] ?? nil)
         XCTAssertEqual(reviewHead.seedReviewQueue.map(\.cardId), ["canonical-valid", "noncanonical-valid", "new-card"])
         XCTAssertEqual(reviewCounts, ReviewCounts(dueCount: 3, totalCount: 5))
+    }
+
+    func testSchemaVersion13MigrationBackfillsExistingOutboxScheduleImpact() throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let card = try database.saveCard(
+            workspaceId: workspace.workspaceId,
+            input: CardEditorInput(
+                frontText: "Question",
+                backText: "Answer",
+                tags: [],
+                effortLevel: .medium
+            ),
+            cardId: nil
+        )
+        _ = try database.createDeck(
+            workspaceId: workspace.workspaceId,
+            input: DeckEditorInput(
+                name: "Deck",
+                filterDefinition: buildDeckFilterDefinition(effortLevels: [.medium], tags: [])
+            )
+        )
+        try database.updateWorkspaceSchedulerSettings(
+            workspaceId: workspace.workspaceId,
+            desiredRetention: 0.9,
+            learningStepsMinutes: [1, 10],
+            relearningStepsMinutes: [10],
+            maximumIntervalDays: 365,
+            enableFuzz: true
+        )
+        _ = try database.submitReview(
+            workspaceId: workspace.workspaceId,
+            reviewSubmission: ReviewSubmission(
+                cardId: card.cardId,
+                rating: .good,
+                reviewedAtClient: "2026-04-18T12:00:00.000Z"
+            )
+        )
+        try database.close()
+        self.database = nil
+
+        try self.prepareSchemaVersion13Database(databaseURL: try XCTUnwrap(self.databaseURL))
+
+        let migratedDatabase = try LocalDatabase(databaseURL: try XCTUnwrap(self.databaseURL))
+        self.database = migratedDatabase
+
+        XCTAssertEqual(LocalDatabaseSchema.currentVersion, try self.loadSchemaVersion(database: migratedDatabase))
+        XCTAssertTrue(
+            try self.hasColumn(
+                database: migratedDatabase,
+                tableName: "outbox",
+                columnName: "review_schedule_impact"
+            )
+        )
+        XCTAssertEqual(
+            1,
+            try migratedDatabase.core.scalarInt(
+                sql: """
+                SELECT MIN(review_schedule_impact)
+                FROM outbox
+                WHERE workspace_id = ? AND entity_type = 'card'
+                """,
+                values: [.text(workspace.workspaceId)]
+            )
+        )
+        XCTAssertEqual(
+            0,
+            try migratedDatabase.core.scalarInt(
+                sql: """
+                SELECT COALESCE(SUM(review_schedule_impact), 0)
+                FROM outbox
+                WHERE workspace_id = ? AND entity_type IN ('deck', 'workspace_scheduler_settings', 'review_event')
+                """,
+                values: [.text(workspace.workspaceId)]
+            )
+        )
     }
 
     private func makeDatabase() throws -> LocalDatabase {
@@ -511,6 +588,78 @@ final class LocalDatabaseLifecycleTests: XCTestCase {
         guard execResult == SQLITE_OK else {
             let message = String(cString: sqlite3_errmsg(connection))
             throw LocalStoreError.database("Failed to prepare schema v12 fixture: \(message)")
+        }
+    }
+
+    private func prepareSchemaVersion13Database(databaseURL: URL) throws {
+        var connection: OpaquePointer?
+        let openResult = sqlite3_open_v2(
+            databaseURL.path,
+            &connection,
+            SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX,
+            nil
+        )
+        guard openResult == SQLITE_OK, let connection else {
+            throw LocalStoreError.database("Failed to open schema v13 test database")
+        }
+        defer {
+            sqlite3_close_v2(connection)
+        }
+
+        let downgradeSQL = """
+        PRAGMA legacy_alter_table = ON;
+        DROP INDEX IF EXISTS idx_outbox_workspace_created_at;
+        ALTER TABLE outbox RENAME TO outbox_v14;
+        CREATE TABLE outbox (
+            operation_id TEXT PRIMARY KEY,
+            workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id) ON DELETE CASCADE,
+            installation_id TEXT NOT NULL,
+            entity_type TEXT NOT NULL,
+            entity_id TEXT NOT NULL,
+            operation_type TEXT NOT NULL,
+            payload_json TEXT NOT NULL,
+            client_updated_at TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            attempt_count INTEGER NOT NULL DEFAULT 0,
+            last_error TEXT
+        );
+        INSERT INTO outbox (
+            operation_id,
+            workspace_id,
+            installation_id,
+            entity_type,
+            entity_id,
+            operation_type,
+            payload_json,
+            client_updated_at,
+            created_at,
+            attempt_count,
+            last_error
+        )
+        SELECT
+            operation_id,
+            workspace_id,
+            installation_id,
+            entity_type,
+            entity_id,
+            operation_type,
+            payload_json,
+            client_updated_at,
+            created_at,
+            attempt_count,
+            last_error
+        FROM outbox_v14;
+        DROP TABLE outbox_v14;
+        CREATE INDEX IF NOT EXISTS idx_outbox_workspace_created_at
+            ON outbox(workspace_id, created_at ASC);
+        PRAGMA legacy_alter_table = OFF;
+        PRAGMA user_version = 13;
+        """
+
+        let execResult = sqlite3_exec(connection, downgradeSQL, nil, nil, nil)
+        guard execResult == SQLITE_OK else {
+            let message = String(cString: sqlite3_errmsg(connection))
+            throw LocalStoreError.database("Failed to prepare schema v13 fixture: \(message)")
         }
     }
 

@@ -99,6 +99,35 @@ func makeTestProgressSummary(
     )
 }
 
+func makeTestReviewSchedule(
+    timeZone: String,
+    countsByBucketKey: [ReviewScheduleBucketKey: Int],
+    generatedAt: String
+) -> UserReviewSchedule {
+    let buckets = ReviewScheduleBucketKey.stableOrder.map { bucketKey in
+        ReviewScheduleBucket(
+            key: bucketKey,
+            count: countsByBucketKey[bucketKey] ?? 0
+        )
+    }
+    return makeReviewSchedule(
+        timeZone: timeZone,
+        generatedAt: generatedAt,
+        totalCards: buckets.reduce(0) { partialResult, bucket in
+            partialResult + bucket.count
+        },
+        buckets: buckets
+    )
+}
+
+func makeEmptyReviewScheduleForTests(timeZone: String) -> UserReviewSchedule {
+    makeTestReviewSchedule(
+        timeZone: timeZone,
+        countsByBucketKey: [:],
+        generatedAt: "2026-04-25T00:00:00.000Z"
+    )
+}
+
 func makeProgressScopeKeyForTests(
     timeZone: String,
     from: String,
@@ -154,4 +183,13 @@ func progressReviewCount(
     snapshot.chartData.chartDays.first { chartDay in
         chartDay.localDate == localDate
     }?.reviewCount ?? 0
+}
+
+func reviewScheduleCount(
+    snapshot: ReviewScheduleSnapshot,
+    key: ReviewScheduleBucketKey
+) -> Int {
+    snapshot.schedule.buckets.first { bucket in
+        bucket.key == key
+    }?.count ?? 0
 }

@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.feature.progress
 
 import com.flashcardsopensourceapp.data.local.model.CloudProgressSummary
+import com.flashcardsopensourceapp.data.local.model.ProgressReviewScheduleBucketKey
 import java.time.LocalDate
 
 data class ProgressHistoryDayUiState(
@@ -40,6 +41,18 @@ data class ProgressReviewsSectionUiState(
     val pages: List<ProgressReviewPageUiState>
 )
 
+data class ProgressReviewScheduleBucketUiState(
+    val key: ProgressReviewScheduleBucketKey,
+    val count: Int,
+    val percentage: Float
+)
+
+data class ProgressReviewScheduleSectionUiState(
+    val totalCards: Int,
+    val buckets: List<ProgressReviewScheduleBucketUiState>,
+    val hasCards: Boolean
+)
+
 sealed interface ProgressSummaryUiState {
     data object Loading : ProgressSummaryUiState
 
@@ -62,6 +75,7 @@ sealed interface ProgressUiState {
     data class Loaded(
         val summary: ProgressSummaryUiState,
         val streakSection: ProgressStreakSectionUiState,
-        val reviewsSection: ProgressReviewsSectionUiState
+        val reviewsSection: ProgressReviewsSectionUiState,
+        val reviewScheduleSection: ProgressReviewScheduleSectionUiState?
     ) : ProgressUiState
 }

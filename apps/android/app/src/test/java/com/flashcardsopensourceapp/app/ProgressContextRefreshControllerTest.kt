@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.app
 
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
+import com.flashcardsopensourceapp.data.local.model.ProgressReviewScheduleSnapshot
 import com.flashcardsopensourceapp.data.local.model.ProgressSeriesSnapshot
 import com.flashcardsopensourceapp.data.local.model.ProgressSummarySnapshot
 import com.flashcardsopensourceapp.data.local.repository.ProgressRepository
@@ -36,10 +37,11 @@ class ProgressContextRefreshControllerTest {
 
         assertEquals(1, repository.summaryRefreshCallCount)
         assertEquals(0, repository.seriesRefreshCallCount)
+        assertEquals(0, repository.reviewScheduleRefreshCallCount)
     }
 
     @Test
-    fun refreshIfInvalidatedRefreshesSummaryAndSeriesOnProgressScreen() = runBlocking {
+    fun refreshIfInvalidatedRefreshesAllProgressSectionsOnProgressScreen() = runBlocking {
         val repository = FakeProgressRepository()
         val appScope = CoroutineScope(context = Dispatchers.Default)
         val controller = ProgressContextRefreshController(
@@ -52,7 +54,8 @@ class ProgressContextRefreshControllerTest {
 
             awaitUntil {
                 repository.summaryRefreshCallCount == 1 &&
-                    repository.seriesRefreshCallCount == 1
+                    repository.seriesRefreshCallCount == 1 &&
+                    repository.reviewScheduleRefreshCallCount == 1
             }
         } finally {
             appScope.cancel()
@@ -60,6 +63,7 @@ class ProgressContextRefreshControllerTest {
 
         assertEquals(1, repository.summaryRefreshCallCount)
         assertEquals(1, repository.seriesRefreshCallCount)
+        assertEquals(1, repository.reviewScheduleRefreshCallCount)
     }
 
     @Test
@@ -81,12 +85,14 @@ class ProgressContextRefreshControllerTest {
 
             assertEquals(1, repository.summaryRefreshCallCount)
             assertEquals(0, repository.seriesRefreshCallCount)
+            assertEquals(0, repository.reviewScheduleRefreshCallCount)
 
             repository.releaseFirstSummaryRefresh()
 
             awaitUntil {
                 repository.summaryRefreshCallCount == 2 &&
-                    repository.seriesRefreshCallCount == 0
+                    repository.seriesRefreshCallCount == 0 &&
+                    repository.reviewScheduleRefreshCallCount == 0
             }
         } finally {
             appScope.cancel()
@@ -94,6 +100,7 @@ class ProgressContextRefreshControllerTest {
 
         assertEquals(2, repository.summaryRefreshCallCount)
         assertEquals(0, repository.seriesRefreshCallCount)
+        assertEquals(0, repository.reviewScheduleRefreshCallCount)
     }
 
     @Test
@@ -109,13 +116,15 @@ class ProgressContextRefreshControllerTest {
             controller.refreshIfInvalidated(visibleScreen = VisibleAppScreen.PROGRESS)
             awaitUntil {
                 repository.summaryRefreshCallCount == 1 &&
-                    repository.seriesRefreshCallCount == 1
+                    repository.seriesRefreshCallCount == 1 &&
+                    repository.reviewScheduleRefreshCallCount == 1
             }
 
             controller.refreshIfInvalidated(visibleScreen = VisibleAppScreen.PROGRESS)
             awaitUntil {
                 repository.summaryRefreshCallCount == 2 &&
-                    repository.seriesRefreshCallCount == 2
+                    repository.seriesRefreshCallCount == 2 &&
+                    repository.reviewScheduleRefreshCallCount == 2
             }
         } finally {
             appScope.cancel()
@@ -123,6 +132,7 @@ class ProgressContextRefreshControllerTest {
 
         assertEquals(2, repository.summaryRefreshCallCount)
         assertEquals(2, repository.seriesRefreshCallCount)
+        assertEquals(2, repository.reviewScheduleRefreshCallCount)
     }
 }
 
@@ -138,11 +148,18 @@ private class FakeProgressRepository(
     @Volatile
     var seriesRefreshCallCount: Int = 0
 
+    @Volatile
+    var reviewScheduleRefreshCallCount: Int = 0
+
     override fun observeSummarySnapshot(): Flow<ProgressSummarySnapshot?> {
         return emptyFlow()
     }
 
     override fun observeSeriesSnapshot(): Flow<ProgressSeriesSnapshot?> {
+        return emptyFlow()
+    }
+
+    override fun observeReviewScheduleSnapshot(): Flow<ProgressReviewScheduleSnapshot?> {
         return emptyFlow()
     }
 
@@ -160,11 +177,19 @@ private class FakeProgressRepository(
         seriesRefreshCallCount += 1
     }
 
+    override suspend fun refreshReviewScheduleIfInvalidated() {
+        reviewScheduleRefreshCallCount += 1
+    }
+
     override suspend fun refreshSummaryManually() {
         throw UnsupportedOperationException("Not used in ProgressContextRefreshControllerTest.")
     }
 
     override suspend fun refreshSeriesManually() {
+        throw UnsupportedOperationException("Not used in ProgressContextRefreshControllerTest.")
+    }
+
+    override suspend fun refreshReviewScheduleManually() {
         throw UnsupportedOperationException("Not used in ProgressContextRefreshControllerTest.")
     }
 

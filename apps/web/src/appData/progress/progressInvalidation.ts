@@ -6,6 +6,7 @@ import {
 
 type ProgressInvalidationSnapshot = Readonly<{
   progressLocalVersion: number;
+  progressScheduleLocalVersion: number;
   progressServerInvalidationVersion: number;
 }>;
 
@@ -13,6 +14,7 @@ type ProgressInvalidationListener = () => void;
 
 let progressInvalidationSnapshot: ProgressInvalidationSnapshot = {
   progressLocalVersion: 0,
+  progressScheduleLocalVersion: 0,
   progressServerInvalidationVersion: 0,
 };
 
@@ -46,6 +48,7 @@ function getProgressInvalidationSnapshot(): ProgressInvalidationSnapshot {
 export function resetProgressInvalidationStateForTests(): void {
   progressInvalidationSnapshot = {
     progressLocalVersion: 0,
+    progressScheduleLocalVersion: 0,
     progressServerInvalidationVersion: 0,
   };
   notifyProgressInvalidationListeners();
@@ -58,6 +61,13 @@ export function invalidateLocalProgress(): void {
   }));
 }
 
+export function invalidateLocalReviewSchedule(): void {
+  updateProgressInvalidationSnapshot((currentSnapshot) => ({
+    ...currentSnapshot,
+    progressScheduleLocalVersion: currentSnapshot.progressScheduleLocalVersion + 1,
+  }));
+}
+
 export function invalidateServerProgress(): void {
   updateProgressInvalidationSnapshot((currentSnapshot) => ({
     ...currentSnapshot,
@@ -67,6 +77,7 @@ export function invalidateServerProgress(): void {
 
 export function invalidateProgress(): void {
   updateProgressInvalidationSnapshot((currentSnapshot) => ({
+    ...currentSnapshot,
     progressLocalVersion: currentSnapshot.progressLocalVersion + 1,
     progressServerInvalidationVersion: currentSnapshot.progressServerInvalidationVersion + 1,
   }));

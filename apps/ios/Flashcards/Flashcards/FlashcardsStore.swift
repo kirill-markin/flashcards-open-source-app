@@ -72,6 +72,7 @@ final class FlashcardsStore {
     var isReviewQueueChunkLoading: Bool
     var homeSnapshot: HomeSnapshot
     var progressSnapshot: ProgressSnapshot?
+    var reviewScheduleSnapshot: ReviewScheduleSnapshot?
     var reviewProgressBadgeState: ReviewProgressBadgeState
     var progressErrorMessage: String
     var isProgressRefreshing: Bool
@@ -116,18 +117,24 @@ final class FlashcardsStore {
     @ObservationIgnored var reviewHardReminderLastShownAt: Date?
     @ObservationIgnored var progressSummaryServerBaseCache: PersistedProgressSummaryServerBase?
     @ObservationIgnored var progressSeriesServerBaseCache: PersistedProgressSeriesServerBase?
+    @ObservationIgnored var progressReviewScheduleServerBaseCache: PersistedReviewScheduleServerBase?
     @ObservationIgnored var progressObservedScopeKey: ProgressScopeKey?
     @ObservationIgnored var progressErrorState: ProgressErrorState
     @ObservationIgnored var progressSummaryInvalidatedScopeKeys: Set<ProgressSummaryScopeKey>
     @ObservationIgnored var progressSeriesInvalidatedScopeKeys: Set<ProgressScopeKey>
+    @ObservationIgnored var progressReviewScheduleInvalidatedScopeKeys: Set<ReviewScheduleScopeKey>
     @ObservationIgnored var progressSummaryRefreshToken: Int
     @ObservationIgnored var progressSeriesRefreshToken: Int
+    @ObservationIgnored var progressReviewScheduleRefreshToken: Int
     @ObservationIgnored var progressActiveSummaryRefreshScopeKey: ProgressSummaryScopeKey?
     @ObservationIgnored var progressActiveSeriesRefreshScopeKey: ProgressScopeKey?
+    @ObservationIgnored var progressActiveReviewScheduleRefreshScopeKey: ReviewScheduleScopeKey?
     @ObservationIgnored var progressActiveSummaryRefreshToken: Int?
     @ObservationIgnored var progressActiveSeriesRefreshToken: Int?
+    @ObservationIgnored var progressActiveReviewScheduleRefreshToken: Int?
     @ObservationIgnored var isProgressSummaryRefreshing: Bool
     @ObservationIgnored var isProgressSeriesRefreshing: Bool
+    @ObservationIgnored var isProgressReviewScheduleRefreshing: Bool
 
     var aiChatStore: AIChatStore {
         if let cachedAIChatStore {
@@ -325,6 +332,7 @@ final class FlashcardsStore {
             reviewedCount: 0
         )
         self.progressSnapshot = nil
+        self.reviewScheduleSnapshot = nil
         self.reviewProgressBadgeState = makeEmptyReviewProgressBadgeState()
         self.progressErrorMessage = ""
         self.isProgressRefreshing = false
@@ -380,18 +388,24 @@ final class FlashcardsStore {
         self.reviewHardReminderLastShownAt = loadReviewHardReminderLastShownAt(userDefaults: userDefaults)
         self.progressSummaryServerBaseCache = nil
         self.progressSeriesServerBaseCache = nil
+        self.progressReviewScheduleServerBaseCache = nil
         self.progressObservedScopeKey = nil
         self.progressErrorState = makeEmptyProgressErrorState()
         self.progressSummaryInvalidatedScopeKeys = []
         self.progressSeriesInvalidatedScopeKeys = []
+        self.progressReviewScheduleInvalidatedScopeKeys = []
         self.progressSummaryRefreshToken = 0
         self.progressSeriesRefreshToken = 0
+        self.progressReviewScheduleRefreshToken = 0
         self.progressActiveSummaryRefreshScopeKey = nil
         self.progressActiveSeriesRefreshScopeKey = nil
+        self.progressActiveReviewScheduleRefreshScopeKey = nil
         self.progressActiveSummaryRefreshToken = nil
         self.progressActiveSeriesRefreshToken = nil
+        self.progressActiveReviewScheduleRefreshToken = nil
         self.isProgressSummaryRefreshing = false
         self.isProgressSeriesRefreshing = false
+        self.isProgressReviewScheduleRefreshing = false
 
         if database != nil && initialGlobalErrorMessage.isEmpty {
             do {

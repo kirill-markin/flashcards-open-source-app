@@ -131,6 +131,71 @@ extension FlashcardsStore {
         }
     }
 
+    func refreshProgressReviewScheduleServerBase(
+        scopeKey: ReviewScheduleScopeKey,
+        linkedSession: CloudLinkedSession
+    ) async {
+        let refreshToken = self.progressReviewScheduleRefreshToken
+        if self.progressActiveReviewScheduleRefreshScopeKey == scopeKey,
+           self.progressActiveReviewScheduleRefreshToken == refreshToken {
+            return
+        }
+
+        self.progressActiveReviewScheduleRefreshScopeKey = scopeKey
+        self.progressActiveReviewScheduleRefreshToken = refreshToken
+        self.isProgressReviewScheduleRefreshing = true
+        self.updateProgressRefreshingState()
+        self.beginProgressReviewScheduleRefreshErrorScope()
+
+        defer {
+            if self.progressActiveReviewScheduleRefreshScopeKey == scopeKey,
+               self.progressActiveReviewScheduleRefreshToken == refreshToken {
+                self.progressActiveReviewScheduleRefreshScopeKey = nil
+                self.progressActiveReviewScheduleRefreshToken = nil
+                self.isProgressReviewScheduleRefreshing = false
+                self.updateProgressRefreshingState()
+            }
+        }
+
+        do {
+            let serverBase = try await self.loadProgressReviewScheduleServerBase(
+                scopeKey: scopeKey,
+                linkedSession: linkedSession
+            )
+
+            guard self.isCurrentProgressReviewScheduleRefresh(scopeKey: scopeKey, refreshToken: refreshToken) else {
+                return
+            }
+
+            let persistedServerBase = PersistedReviewScheduleServerBase(
+                scopeKey: scopeKey,
+                serverBase: serverBase,
+                storedAt: nowIsoTimestamp()
+            )
+            try self.persistReviewScheduleServerBase(serverBase: persistedServerBase)
+            self.progressReviewScheduleServerBaseCache = persistedServerBase
+            self.progressReviewScheduleInvalidatedScopeKeys.remove(scopeKey)
+            self.clearProgressReviewScheduleRefreshErrorMessage()
+
+            guard let observedScopeKey = self.progressObservedScopeKey,
+                  reviewScheduleScopeKey(seriesScopeKey: observedScopeKey) == scopeKey else {
+                return
+            }
+
+            self.publishReviewScheduleSnapshotIsolatingErrors(scopeKey: scopeKey)
+        } catch {
+            if isRequestCancellationError(error: error) {
+                return
+            }
+
+            guard self.isCurrentProgressReviewScheduleRefresh(scopeKey: scopeKey, refreshToken: refreshToken) else {
+                return
+            }
+
+            self.replaceProgressReviewScheduleRefreshErrorMessage(message: Flashcards.errorMessage(error: error))
+        }
+    }
+
     func shouldRefreshProgressSummary(scopeKey: ProgressSummaryScopeKey) -> Bool {
         guard self.progressSummaryServerBaseCache?.scopeKey == scopeKey else {
             return true
@@ -145,6 +210,14 @@ extension FlashcardsStore {
         }
 
         return self.progressSeriesInvalidatedScopeKeys.contains(scopeKey)
+    }
+
+    func shouldRefreshProgressReviewSchedule(scopeKey: ReviewScheduleScopeKey) -> Bool {
+        guard self.progressReviewScheduleServerBaseCache?.scopeKey == scopeKey else {
+            return true
+        }
+
+        return self.progressReviewScheduleInvalidatedScopeKeys.contains(scopeKey)
     }
 
     func activeProgressCloudSession(scopeKey: ProgressScopeKey) -> CloudLinkedSession? {
@@ -174,6 +247,15 @@ extension FlashcardsStore {
         scopeKey: ProgressScopeKey,
         summaryScopeKey: ProgressSummaryScopeKey
     ) {
+        let scheduleScopeKey = reviewScheduleScopeKey(seriesScopeKey: scopeKey)
+        self.invalidateProgressSummaryAndSeries(scopeKey: scopeKey, summaryScopeKey: summaryScopeKey)
+        self.invalidateProgressReviewSchedule(scopeKey: scheduleScopeKey)
+    }
+
+    func invalidateProgressSummaryAndSeries(
+        scopeKey: ProgressScopeKey,
+        summaryScopeKey: ProgressSummaryScopeKey
+    ) {
         self.progressSummaryInvalidatedScopeKeys.insert(summaryScopeKey)
         self.progressSeriesInvalidatedScopeKeys.insert(scopeKey)
         self.progressSummaryRefreshToken += 1
@@ -187,8 +269,32 @@ extension FlashcardsStore {
         self.updateProgressRefreshingState()
     }
 
-    private func updateProgressRefreshingState() {
-        let isRefreshing = self.isProgressSummaryRefreshing || self.isProgressSeriesRefreshing
+    func invalidateProgressReviewSchedule(scopeKey: ReviewScheduleScopeKey) {
+        self.progressReviewScheduleInvalidatedScopeKeys.insert(scopeKey)
+        self.removePersistedReviewScheduleServerBase(scopeKey: scopeKey)
+        if self.progressReviewScheduleServerBaseCache?.scopeKey == scopeKey {
+            self.progressReviewScheduleServerBaseCache = nil
+        }
+        self.progressReviewScheduleRefreshToken += 1
+        self.progressActiveReviewScheduleRefreshScopeKey = nil
+        self.progressActiveReviewScheduleRefreshToken = nil
+        self.isProgressReviewScheduleRefreshing = false
+        self.updateProgressRefreshingState()
+    }
+
+    func markProgressReviewSchedulePendingLocalOverlay(scopeKey: ReviewScheduleScopeKey) {
+        self.progressReviewScheduleInvalidatedScopeKeys.insert(scopeKey)
+        self.progressReviewScheduleRefreshToken += 1
+        self.progressActiveReviewScheduleRefreshScopeKey = nil
+        self.progressActiveReviewScheduleRefreshToken = nil
+        self.isProgressReviewScheduleRefreshing = false
+        self.updateProgressRefreshingState()
+    }
+
+    func updateProgressRefreshingState() {
+        let isRefreshing = self.isProgressSummaryRefreshing
+            || self.isProgressSeriesRefreshing
+            || self.isProgressReviewScheduleRefreshing
         if self.isProgressRefreshing != isRefreshing {
             self.isProgressRefreshing = isRefreshing
         }
@@ -229,6 +335,23 @@ extension FlashcardsStore {
         return series
     }
 
+    private func loadProgressReviewScheduleServerBase(
+        scopeKey: ReviewScheduleScopeKey,
+        linkedSession: CloudLinkedSession
+    ) async throws -> UserReviewSchedule {
+        let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.dependencies.cloudSyncService)
+        let schedule = try await cloudSyncService.loadProgressReviewSchedule(
+            apiBaseUrl: linkedSession.apiBaseUrl,
+            authorizationHeader: linkedSession.authorizationHeaderValue,
+            timeZone: scopeKey.timeZone
+        )
+        try validateReviewSchedule(
+            schedule: schedule,
+            scopeKey: scopeKey
+        )
+        return schedule
+    }
+
     private func isCurrentProgressSummaryRefresh(
         scopeKey: ProgressSummaryScopeKey,
         refreshToken: Int
@@ -245,5 +368,14 @@ extension FlashcardsStore {
         self.progressActiveSeriesRefreshScopeKey == scopeKey
             && self.progressActiveSeriesRefreshToken == refreshToken
             && self.progressSeriesRefreshToken == refreshToken
+    }
+
+    private func isCurrentProgressReviewScheduleRefresh(
+        scopeKey: ReviewScheduleScopeKey,
+        refreshToken: Int
+    ) -> Bool {
+        self.progressActiveReviewScheduleRefreshScopeKey == scopeKey
+            && self.progressActiveReviewScheduleRefreshToken == refreshToken
+            && self.progressReviewScheduleRefreshToken == refreshToken
     }
 }

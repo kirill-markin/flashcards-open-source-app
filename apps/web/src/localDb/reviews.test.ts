@@ -2,6 +2,7 @@
 
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
+import { malformedDueAtBucketMillis, nullDueAtBucketMillis } from "../appData/dueAt";
 import { replaceCards } from "./cards";
 import { clearWebSyncCache } from "./cache";
 import { getAllFromStore, openDatabase, type StoredCard } from "./core";
@@ -28,11 +29,13 @@ import {
 } from "./testSupport";
 import type { Card } from "../types";
 
-type LegacyStoredCard = Omit<StoredCard, "dueAt" | "dueAtMillis"> & Readonly<{
+type LegacyStoredCard = Omit<StoredCard, "dueAt" | "dueAtMillis" | "dueAtBucketMillis"> & Readonly<{
   dueAt?: string | null;
 }>;
 
 const webSyncDatabaseName = "flashcards-web-sync";
+const legacyNullDueAtBucketMillis = -1;
+const legacyMalformedDueAtBucketMillis = -2;
 
 function createLegacyCardsStore(database: IDBDatabase): void {
   const cardsStore = database.createObjectStore("cards", { keyPath: ["workspaceId", "cardId"] });
@@ -72,6 +75,12 @@ function createLegacyVersion9Schema(database: IDBDatabase): void {
   database.createObjectStore("meta", { keyPath: "key" });
 }
 
+function createLegacyDueAtIndexes(transaction: IDBTransaction): void {
+  const cardsStore = transaction.objectStore("cards");
+  cardsStore.createIndex("workspaceId_dueAtMillis_cardId", ["workspaceId", "dueAtMillis", "cardId"], { unique: false });
+  cardsStore.createIndex("workspaceId_dueAtBucketMillis_cardId", ["workspaceId", "dueAtBucketMillis", "cardId"], { unique: false });
+}
+
 function makeLegacyStoredCard(card: Card): LegacyStoredCard {
   return {
     workspaceId,
@@ -95,6 +104,19 @@ function makeLegacyStoredCard(card: Card): LegacyStoredCard {
     lastOperationId: card.lastOperationId,
     updatedAt: card.updatedAt,
     deletedAt: card.deletedAt,
+  };
+}
+
+function makeLegacyVersion11StoredCard(
+  card: Card,
+  dueAtMillis: number | null,
+  dueAtBucketMillis: number,
+): StoredCard {
+  return {
+    ...makeLegacyStoredCard(card),
+    dueAt: card.dueAt,
+    dueAtMillis,
+    dueAtBucketMillis,
   };
 }
 
@@ -152,6 +174,35 @@ async function seedLegacyVersion9Database(
   });
 }
 
+async function seedLegacyVersion11Database(cards: ReadonlyArray<StoredCard>): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const request = indexedDB.open(webSyncDatabaseName, 11);
+    request.onerror = () => {
+      reject(new Error(`Legacy IndexedDB open failed: ${request.error?.message ?? "unknown error"}`));
+    };
+    request.onupgradeneeded = () => {
+      createLegacyVersion9Schema(request.result);
+      const transaction = request.transaction;
+      if (transaction === null) {
+        throw new Error("Legacy IndexedDB upgrade transaction is unavailable");
+      }
+      createLegacyDueAtIndexes(transaction);
+    };
+    request.onsuccess = () => {
+      const database = request.result;
+      putLegacyRecords(database, cards, [])
+        .then(() => {
+          database.close();
+          resolve();
+        })
+        .catch((error: unknown) => {
+          database.close();
+          reject(error);
+        });
+    };
+  });
+}
+
 async function loadStoredCardsForTest(): Promise<ReadonlyArray<StoredCard>> {
   const database = await openDatabase();
   try {
@@ -185,7 +236,7 @@ describe("localDb reviews", () => {
     await seedCursorFixtures();
   });
 
-  it("migrates legacy dueAt into dueAtMillis and keeps pending card upserts uploadable", async () => {
+  it("migrates legacy dueAt into numeric due fields and keeps pending card upserts uploadable", async () => {
     await clearWebSyncCache();
     const nowTimestamp = Date.parse("2026-03-10T12:00:00.100Z");
     const originalNow = Date.now;
@@ -274,16 +325,22 @@ describe("localDb reviews", () => {
       const storedCards = await loadStoredCardsForTest();
       const cardsStoreIndexNames = await loadCardsStoreIndexNamesForTest();
       const dueAtMillisByCardId = new Map(storedCards.map((card) => [card.cardId, card.dueAtMillis]));
+      const dueAtBucketMillisByCardId = new Map(storedCards.map((card) => [card.cardId, card.dueAtBucketMillis]));
       const migratedCalendarInvalidDueAt = storedCards.find((card) => card.cardId === "calendar-invalid-due");
       const migratedMissingDueAt = storedCards.find((card) => card.cardId === "missing-due-at");
 
       expect(cardsStoreIndexNames).toContain("workspaceId_dueAtMillis_cardId");
+      expect(cardsStoreIndexNames).toContain("workspaceId_dueAtBucketMillis_cardId");
       expect(dueAtMillisByCardId.get("canonical-due")).toBe(Date.parse("2026-03-10T12:00:00.000Z"));
+      expect(dueAtBucketMillisByCardId.get("canonical-due")).toBe(Date.parse("2026-03-10T12:00:00.000Z"));
       expect(dueAtMillisByCardId.get("short-fraction-due")).toBe(Date.parse("2026-03-10T12:00:00.100Z"));
+      expect(dueAtBucketMillisByCardId.get("short-fraction-due")).toBe(Date.parse("2026-03-10T12:00:00.100Z"));
       expect(migratedCalendarInvalidDueAt?.dueAt).toBe("2026-02-31T12:00:00.000Z");
       expect(dueAtMillisByCardId.get("calendar-invalid-due")).toBeNull();
+      expect(dueAtBucketMillisByCardId.get("calendar-invalid-due")).toBe(malformedDueAtBucketMillis);
       expect(migratedMissingDueAt?.dueAt).toBeNull();
       expect(migratedMissingDueAt?.dueAtMillis).toBeNull();
+      expect(migratedMissingDueAt?.dueAtBucketMillis).toBe(nullDueAtBucketMillis);
 
       const queueSnapshot = await loadReviewQueueSnapshot(workspaceId, { kind: "allCards" }, 10);
       expect(queueSnapshot.cards.map((card) => card.cardId)).toEqual([
@@ -307,6 +364,80 @@ describe("localDb reviews", () => {
     } finally {
       Date.now = originalNow;
     }
+  });
+
+  it("migrates legacy due bucket sentinels without colliding with pre-1970 due dates", async () => {
+    await clearWebSyncCache();
+    const pre1970DueAt = "1969-12-31T23:59:59.999Z";
+    const canonicalDueAt = "2026-03-10T12:00:00.000Z";
+
+    await seedLegacyVersion11Database([
+      makeLegacyVersion11StoredCard(
+        makeCard({
+          cardId: "legacy-null-due",
+          frontText: "Legacy null due",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: null,
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        legacyNullDueAtBucketMillis,
+        legacyNullDueAtBucketMillis,
+      ),
+      makeLegacyVersion11StoredCard(
+        makeCard({
+          cardId: "legacy-malformed-due",
+          frontText: "Legacy malformed due",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-02-31T12:00:00.000Z",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        legacyMalformedDueAtBucketMillis,
+        legacyMalformedDueAtBucketMillis,
+      ),
+      makeLegacyVersion11StoredCard(
+        makeCard({
+          cardId: "pre-1970-due",
+          frontText: "Pre 1970 due",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: pre1970DueAt,
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        legacyNullDueAtBucketMillis,
+        legacyNullDueAtBucketMillis,
+      ),
+      makeLegacyVersion11StoredCard(
+        makeCard({
+          cardId: "canonical-due",
+          frontText: "Canonical due",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: canonicalDueAt,
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        legacyNullDueAtBucketMillis,
+        legacyNullDueAtBucketMillis,
+      ),
+    ]);
+
+    const storedCards = await loadStoredCardsForTest();
+    const dueAtMillisByCardId = new Map(storedCards.map((card) => [card.cardId, card.dueAtMillis]));
+    const dueAtBucketMillisByCardId = new Map(storedCards.map((card) => [card.cardId, card.dueAtBucketMillis]));
+
+    expect(dueAtMillisByCardId.get("legacy-null-due")).toBeNull();
+    expect(dueAtBucketMillisByCardId.get("legacy-null-due")).toBe(nullDueAtBucketMillis);
+    expect(dueAtMillisByCardId.get("legacy-malformed-due")).toBeNull();
+    expect(dueAtBucketMillisByCardId.get("legacy-malformed-due")).toBe(malformedDueAtBucketMillis);
+    expect(dueAtMillisByCardId.get("pre-1970-due")).toBe(Date.parse(pre1970DueAt));
+    expect(dueAtBucketMillisByCardId.get("pre-1970-due")).toBe(Date.parse(pre1970DueAt));
+    expect(dueAtMillisByCardId.get("canonical-due")).toBe(Date.parse(canonicalDueAt));
+    expect(dueAtBucketMillisByCardId.get("canonical-due")).toBe(Date.parse(canonicalDueAt));
   });
 
   it("matches legacy review snapshot ordering and counts for all, deck, and tag filters", async () => {

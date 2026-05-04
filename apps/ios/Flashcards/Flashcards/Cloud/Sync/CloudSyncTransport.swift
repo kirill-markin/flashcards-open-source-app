@@ -83,6 +83,22 @@ struct CloudSyncTransport {
         return path
     }
 
+    func progressReviewSchedulePath(timeZone: String) throws -> String {
+        guard var components = URLComponents(string: "/me/progress/review-schedule") else {
+            throw LocalStoreError.validation("Review schedule path could not be constructed")
+        }
+
+        components.queryItems = [
+            URLQueryItem(name: "timeZone", value: timeZone),
+        ]
+
+        guard let path = components.string else {
+            throw LocalStoreError.validation("Review schedule query could not be constructed")
+        }
+
+        return path
+    }
+
     func request<Response: Decodable, Body: Encodable>(
         apiBaseUrl: String,
         authorizationHeader: String,

@@ -1,9 +1,12 @@
 package com.flashcardsopensourceapp.data.local.cloud
 
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeSelection
+import com.flashcardsopensourceapp.data.local.model.ProgressReviewScheduleBucketKey
 import com.flashcardsopensourceapp.data.local.model.SyncEntityType
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CloudRemoteServiceTest {
@@ -92,6 +95,125 @@ class CloudRemoteServiceTest {
             response = response,
             fieldPath = "progressSummary"
         )
+    }
+
+    @Test
+    fun parseCloudProgressReviewScheduleResponseReadsStableBuckets() {
+        val response = JSONObject(
+            """
+            {
+              "timeZone": "Europe/Madrid",
+              "generatedAt": "2026-05-03T12:00:00Z",
+              "totalCards": 8,
+              "buckets": [
+                { "key": "new", "count": 1 },
+                { "key": "today", "count": 1 },
+                { "key": "days1To7", "count": 1 },
+                { "key": "days8To30", "count": 1 },
+                { "key": "days31To90", "count": 1 },
+                { "key": "days91To360", "count": 1 },
+                { "key": "years1To2", "count": 1 },
+                { "key": "later", "count": 1 }
+              ]
+            }
+            """.trimIndent()
+        )
+
+        val schedule = parseCloudProgressReviewScheduleResponse(
+            response = response,
+            fieldPath = "progress.reviewSchedule"
+        )
+
+        assertEquals("Europe/Madrid", schedule.timeZone)
+        assertEquals("2026-05-03T12:00:00Z", schedule.generatedAt)
+        assertEquals(8, schedule.totalCards)
+        assertEquals(ProgressReviewScheduleBucketKey.orderedEntries, schedule.buckets.map { bucket -> bucket.key })
+    }
+
+    @Test(expected = CloudContractMismatchException::class)
+    fun parseCloudProgressReviewScheduleResponseRequiresStableBucketOrder() {
+        val response = JSONObject(
+            """
+            {
+              "timeZone": "Europe/Madrid",
+              "generatedAt": "2026-05-03T12:00:00Z",
+              "totalCards": 2,
+              "buckets": [
+                { "key": "today", "count": 1 },
+                { "key": "new", "count": 1 }
+              ]
+            }
+            """.trimIndent()
+        )
+
+        parseCloudProgressReviewScheduleResponse(
+            response = response,
+            fieldPath = "progress.reviewSchedule"
+        )
+    }
+
+    @Test
+    fun parseCloudProgressReviewScheduleResponseRejectsNegativeBucketCount() {
+        val response = JSONObject(
+            """
+            {
+              "timeZone": "Europe/Madrid",
+              "generatedAt": "2026-05-03T12:00:00Z",
+              "totalCards": 0,
+              "buckets": [
+                { "key": "new", "count": -1 },
+                { "key": "today", "count": 1 },
+                { "key": "days1To7", "count": 0 },
+                { "key": "days8To30", "count": 0 },
+                { "key": "days31To90", "count": 0 },
+                { "key": "days91To360", "count": 0 },
+                { "key": "years1To2", "count": 0 },
+                { "key": "later", "count": 0 }
+              ]
+            }
+            """.trimIndent()
+        )
+
+        val error = assertThrows(CloudContractMismatchException::class.java) {
+            parseCloudProgressReviewScheduleResponse(
+                response = response,
+                fieldPath = "progress.reviewSchedule"
+            )
+        }
+
+        assertTrue(error.message.orEmpty().contains("progress.reviewSchedule.buckets[0].count"))
+    }
+
+    @Test
+    fun parseCloudProgressReviewScheduleResponseRejectsNegativeTotalCards() {
+        val response = JSONObject(
+            """
+            {
+              "timeZone": "Europe/Madrid",
+              "generatedAt": "2026-05-03T12:00:00Z",
+              "totalCards": -1,
+              "buckets": [
+                { "key": "new", "count": 0 },
+                { "key": "today", "count": 0 },
+                { "key": "days1To7", "count": 0 },
+                { "key": "days8To30", "count": 0 },
+                { "key": "days31To90", "count": 0 },
+                { "key": "days91To360", "count": 0 },
+                { "key": "years1To2", "count": 0 },
+                { "key": "later", "count": 0 }
+              ]
+            }
+            """.trimIndent()
+        )
+
+        val error = assertThrows(CloudContractMismatchException::class.java) {
+            parseCloudProgressReviewScheduleResponse(
+                response = response,
+                fieldPath = "progress.reviewSchedule"
+            )
+        }
+
+        assertTrue(error.message.orEmpty().contains("progress.reviewSchedule.totalCards"))
     }
 
     @Test

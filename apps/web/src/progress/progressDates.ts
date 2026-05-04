@@ -1,4 +1,5 @@
 import type {
+  ProgressReviewScheduleInput,
   ProgressSeriesInput,
   ProgressSummaryInput,
 } from "../types";
@@ -93,6 +94,15 @@ export function buildProgressSeriesInputForDateContext(
     timeZone: timeContext.timeZone,
     from: shiftLocalDate(timeContext.today, progressRangeStartOffsetDays),
     to: timeContext.today,
+  };
+}
+
+export function buildProgressReviewScheduleInputForDateContext(
+  timeContext: ProgressDateContext,
+): ProgressReviewScheduleInput {
+  return {
+    timeZone: timeContext.timeZone,
+    today: timeContext.today,
   };
 }
 

@@ -56,7 +56,8 @@ extension LocalDatabase {
                 installationId: cloudSettings.installationId,
                 operationId: cardOperationId,
                 clientUpdatedAt: reviewSubmission.reviewedAtClient,
-                card: updatedCard
+                card: updatedCard,
+                reviewScheduleImpact: true
             )
             return updatedCard
         }

@@ -134,7 +134,8 @@ extension LocalDatabase {
             installationId: cloudSettings.installationId,
             operationId: operationId,
             clientUpdatedAt: now,
-            card: persistedCard
+            card: persistedCard,
+            reviewScheduleImpact: cardId == nil
         )
         return persistedCard
     }
@@ -158,7 +159,8 @@ extension LocalDatabase {
             installationId: cloudSettings.installationId,
             operationId: operationId,
             clientUpdatedAt: now,
-            card: deletedCard
+            card: deletedCard,
+            reviewScheduleImpact: true
         )
         return deletedCard
     }

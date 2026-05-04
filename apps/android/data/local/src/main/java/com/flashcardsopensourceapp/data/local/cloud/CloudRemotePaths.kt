@@ -34,6 +34,13 @@ internal fun buildProgressSeriesCloudPath(
     }
 }
 
+internal fun buildProgressReviewScheduleCloudPath(timeZone: String): String {
+    return buildString {
+        append("/me/progress/review-schedule?timeZone=")
+        append(encodeCloudQueryValue(value = timeZone))
+    }
+}
+
 private fun encodeCloudQueryValue(value: String): String {
     return URLEncoder.encode(value, StandardCharsets.UTF_8)
 }

@@ -130,6 +130,21 @@ export const jaCatalog = {
     previousWeek: "前の週",
     nextWeek: "次の週",
     emptyWeek: "この週にはまだ復習がありません。",
+    reviewSchedule: {
+      title: "復習スケジュール",
+      totalCards: "合計カード数: {{count}}",
+      legendLabel: "復習スケジュールの区分",
+      buckets: {
+        new: "新規",
+        today: "今日",
+        days1To7: "1-7日",
+        days8To30: "8-30日",
+        days31To90: "31-90日",
+        days91To360: "91-360日",
+        years1To2: "1-2年",
+        later: "それ以降",
+      },
+    },
     labels: {
       totalReviews: "総復習回数",
       activeDays: "学習した日数",

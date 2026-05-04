@@ -5,6 +5,8 @@ import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.OutboxEntryEntity
 import com.flashcardsopensourceapp.data.local.database.ProgressLocalCacheStateEntity
 import com.flashcardsopensourceapp.data.local.database.ProgressLocalDayCountEntity
+import com.flashcardsopensourceapp.data.local.database.ProgressReviewScheduleCacheEntity
+import com.flashcardsopensourceapp.data.local.database.ProgressReviewScheduleCardDueEntity
 import com.flashcardsopensourceapp.data.local.database.ProgressReviewHistoryStateEntity
 import com.flashcardsopensourceapp.data.local.database.ProgressSeriesCacheEntity
 import com.flashcardsopensourceapp.data.local.database.ProgressSummaryCacheEntity
@@ -12,6 +14,7 @@ import com.flashcardsopensourceapp.data.local.database.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.database.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.ProgressReviewScheduleSnapshot
 import com.flashcardsopensourceapp.data.local.model.ProgressSeriesSnapshot
 import com.flashcardsopensourceapp.data.local.model.ProgressSummarySnapshot
 import com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot
@@ -37,11 +40,14 @@ private data class ProgressObservedInputs(
     val localDayCounts: List<ProgressLocalDayCountEntity>,
     val reviewHistoryStates: List<ProgressReviewHistoryStateEntity>,
     val localCacheStates: List<ProgressLocalCacheStateEntity>,
+    val reviewScheduleCards: List<ProgressReviewScheduleCardDueEntity>,
     val pendingReviewOutboxEntries: List<OutboxEntryEntity>,
+    val pendingCardUpsertOutboxEntries: List<OutboxEntryEntity>,
     val syncStates: List<SyncStateEntity>,
     val syncStatus: SyncStatusSnapshot,
     val summaryCaches: List<ProgressSummaryCacheEntity>,
-    val seriesCaches: List<ProgressSeriesCacheEntity>
+    val seriesCaches: List<ProgressSeriesCacheEntity>,
+    val reviewScheduleCaches: List<ProgressReviewScheduleCacheEntity>
 )
 
 private data class ProgressObservedBaseInputs(
@@ -50,7 +56,9 @@ private data class ProgressObservedBaseInputs(
     val localDayCounts: List<ProgressLocalDayCountEntity>,
     val reviewHistoryStates: List<ProgressReviewHistoryStateEntity>,
     val localCacheStates: List<ProgressLocalCacheStateEntity>,
+    val reviewScheduleCards: List<ProgressReviewScheduleCardDueEntity>,
     val pendingReviewOutboxEntries: List<OutboxEntryEntity>,
+    val pendingCardUpsertOutboxEntries: List<OutboxEntryEntity>,
     val syncStates: List<SyncStateEntity>,
     val syncStatus: SyncStatusSnapshot
 )
@@ -64,11 +72,13 @@ private data class ProgressLocalCacheObservedInputs(
 private data class ProgressPrimaryObservedInputs(
     val cloudSettings: CloudSettings,
     val workspaces: List<WorkspaceEntity>,
-    val localCacheInputs: ProgressLocalCacheObservedInputs
+    val localCacheInputs: ProgressLocalCacheObservedInputs,
+    val reviewScheduleCards: List<ProgressReviewScheduleCardDueEntity>
 )
 
 private data class ProgressSyncObservedInputs(
     val pendingReviewOutboxEntries: List<OutboxEntryEntity>,
+    val pendingCardUpsertOutboxEntries: List<OutboxEntryEntity>,
     val syncStates: List<SyncStateEntity>,
     val syncStatus: SyncStatusSnapshot
 )
@@ -76,6 +86,11 @@ private data class ProgressSyncObservedInputs(
 private data class ProgressObservedSummaryInputs(
     val baseInputs: ProgressObservedBaseInputs,
     val summaryCaches: List<ProgressSummaryCacheEntity>
+)
+
+private data class ProgressObservedSeriesInputs(
+    val summaryInputs: ProgressObservedSummaryInputs,
+    val seriesCaches: List<ProgressSeriesCacheEntity>
 )
 
 class LocalProgressRepository(
@@ -89,12 +104,16 @@ class LocalProgressRepository(
 ) : ProgressRepository {
     private val summarySnapshotMutable = MutableStateFlow<ProgressSummarySnapshot?>(null)
     private val seriesSnapshotMutable = MutableStateFlow<ProgressSeriesSnapshot?>(null)
+    private val reviewScheduleSnapshotMutable = MutableStateFlow<ProgressReviewScheduleSnapshot?>(null)
     private val latestInputsMutable = MutableStateFlow<ProgressObservedInputs?>(null)
     private val latestSummaryStoreStateMutable = MutableStateFlow<ProgressSummaryStoreState?>(null)
     private val latestSeriesStoreStateMutable = MutableStateFlow<ProgressSeriesStoreState?>(null)
+    private val latestReviewScheduleStoreStateMutable = MutableStateFlow<ProgressReviewScheduleStoreState?>(null)
     private val summaryRefreshCoordinator = ProgressRefreshCoordinator()
     private val seriesRefreshCoordinator = ProgressRefreshCoordinator()
+    private val reviewScheduleRefreshCoordinator = ProgressRefreshCoordinator()
     private val localCacheRebuildCoordinator = ProgressLocalCacheRebuildCoordinator()
+    private var reviewScheduleSyncRefreshTrackerState: ProgressReviewScheduleSyncRefreshTrackerState? = null
 
     init {
         appScope.launch {
@@ -110,6 +129,10 @@ class LocalProgressRepository(
 
     override fun observeSeriesSnapshot(): Flow<ProgressSeriesSnapshot?> {
         return seriesSnapshotMutable.asStateFlow()
+    }
+
+    override fun observeReviewScheduleSnapshot(): Flow<ProgressReviewScheduleSnapshot?> {
+        return reviewScheduleSnapshotMutable.asStateFlow()
     }
 
     override suspend fun refreshSummaryIfInvalidated() {
@@ -184,6 +207,32 @@ class LocalProgressRepository(
         )
     }
 
+    override suspend fun refreshReviewScheduleIfInvalidated() {
+        val storeState = currentReviewScheduleStoreState() ?: return
+        val snapshot = storeState.snapshot
+        val existingSnapshot = reviewScheduleSnapshotMutable.value
+        val refreshReason = when {
+            supportsServerRefresh(cloudState = storeState.cloudState).not() -> null
+            existingSnapshot == null -> {
+                if (snapshot.serverBase == null) {
+                    ProgressRefreshReason.MISSING_SERVER_BASE
+                } else {
+                    null
+                }
+            }
+            existingSnapshot.scopeKey != storeState.scopeKey -> ProgressRefreshReason.LOCAL_CONTEXT_CHANGED
+            snapshot.serverBase == null -> ProgressRefreshReason.MISSING_SERVER_BASE
+            else -> null
+        }
+        publishReviewScheduleSnapshotIfChanged(snapshot = snapshot)
+        val resolvedRefreshReason = refreshReason ?: return
+
+        refreshReviewScheduleFromStoreState(
+            storeState = storeState,
+            refreshReason = resolvedRefreshReason
+        )
+    }
+
     override suspend fun refreshSummaryManually() {
         var storeState = currentSummaryStoreState() ?: return
         if (storeState.isLocalCacheReady.not()) {
@@ -234,6 +283,19 @@ class LocalProgressRepository(
         )
     }
 
+    override suspend fun refreshReviewScheduleManually() {
+        val storeState = currentReviewScheduleStoreState() ?: return
+        publishReviewScheduleSnapshotIfChanged(snapshot = storeState.snapshot)
+        if (supportsServerRefresh(cloudState = storeState.cloudState).not()) {
+            return
+        }
+
+        refreshReviewScheduleFromStoreState(
+            storeState = storeState,
+            refreshReason = ProgressRefreshReason.MANUAL
+        )
+    }
+
     private fun observeProgressInputs(): Flow<ProgressObservedInputs> {
         val localCacheDao = database.progressLocalCacheDao()
         val remoteCacheDao = database.progressRemoteCacheDao()
@@ -251,21 +313,25 @@ class LocalProgressRepository(
         val primaryInputsFlow = combine(
             preferencesStore.observeCloudSettings(),
             database.workspaceDao().observeWorkspaces(),
-            localCacheInputsFlow
-        ) { cloudSettings, workspaces, localCacheInputs ->
+            localCacheInputsFlow,
+            database.cardDao().observeProgressReviewScheduleCardDueDates()
+        ) { cloudSettings, workspaces, localCacheInputs, reviewScheduleCards ->
             ProgressPrimaryObservedInputs(
                 cloudSettings = cloudSettings,
                 workspaces = workspaces,
-                localCacheInputs = localCacheInputs
+                localCacheInputs = localCacheInputs,
+                reviewScheduleCards = reviewScheduleCards
             )
         }
         val syncInputsFlow = combine(
             database.outboxDao().observePendingReviewEventOutboxEntries(),
+            database.outboxDao().observePendingReviewScheduleCardUpsertOutboxEntries(),
             database.syncStateDao().observeSyncStates(),
             syncRepository.observeSyncStatus()
-        ) { pendingReviewOutboxEntries, syncStates, syncStatus ->
+        ) { pendingReviewOutboxEntries, pendingCardUpsertOutboxEntries, syncStates, syncStatus ->
             ProgressSyncObservedInputs(
                 pendingReviewOutboxEntries = pendingReviewOutboxEntries,
+                pendingCardUpsertOutboxEntries = pendingCardUpsertOutboxEntries,
                 syncStates = syncStates,
                 syncStatus = syncStatus
             )
@@ -280,7 +346,9 @@ class LocalProgressRepository(
                 localDayCounts = primaryInputs.localCacheInputs.localDayCounts,
                 reviewHistoryStates = primaryInputs.localCacheInputs.reviewHistoryStates,
                 localCacheStates = primaryInputs.localCacheInputs.localCacheStates,
+                reviewScheduleCards = primaryInputs.reviewScheduleCards,
                 pendingReviewOutboxEntries = syncInputs.pendingReviewOutboxEntries,
+                pendingCardUpsertOutboxEntries = syncInputs.pendingCardUpsertOutboxEntries,
                 syncStates = syncInputs.syncStates,
                 syncStatus = syncInputs.syncStatus
             )
@@ -294,20 +362,32 @@ class LocalProgressRepository(
             )
         }
 
-        return summaryInputsFlow.combine(
+        val seriesInputsFlow = summaryInputsFlow.combine(
             remoteCacheDao.observeProgressSeriesCaches()
         ) { summaryInputs, seriesCaches ->
-            ProgressObservedInputs(
-                cloudSettings = summaryInputs.baseInputs.cloudSettings,
-                workspaces = summaryInputs.baseInputs.workspaces,
-                localDayCounts = summaryInputs.baseInputs.localDayCounts,
-                reviewHistoryStates = summaryInputs.baseInputs.reviewHistoryStates,
-                localCacheStates = summaryInputs.baseInputs.localCacheStates,
-                pendingReviewOutboxEntries = summaryInputs.baseInputs.pendingReviewOutboxEntries,
-                syncStates = summaryInputs.baseInputs.syncStates,
-                syncStatus = summaryInputs.baseInputs.syncStatus,
-                summaryCaches = summaryInputs.summaryCaches,
+            ProgressObservedSeriesInputs(
+                summaryInputs = summaryInputs,
                 seriesCaches = seriesCaches
+            )
+        }
+
+        return seriesInputsFlow.combine(
+            remoteCacheDao.observeProgressReviewScheduleCaches()
+        ) { seriesInputs, reviewScheduleCaches ->
+            ProgressObservedInputs(
+                cloudSettings = seriesInputs.summaryInputs.baseInputs.cloudSettings,
+                workspaces = seriesInputs.summaryInputs.baseInputs.workspaces,
+                localDayCounts = seriesInputs.summaryInputs.baseInputs.localDayCounts,
+                reviewHistoryStates = seriesInputs.summaryInputs.baseInputs.reviewHistoryStates,
+                localCacheStates = seriesInputs.summaryInputs.baseInputs.localCacheStates,
+                reviewScheduleCards = seriesInputs.summaryInputs.baseInputs.reviewScheduleCards,
+                pendingReviewOutboxEntries = seriesInputs.summaryInputs.baseInputs.pendingReviewOutboxEntries,
+                pendingCardUpsertOutboxEntries = seriesInputs.summaryInputs.baseInputs.pendingCardUpsertOutboxEntries,
+                syncStates = seriesInputs.summaryInputs.baseInputs.syncStates,
+                syncStatus = seriesInputs.summaryInputs.baseInputs.syncStatus,
+                summaryCaches = seriesInputs.summaryInputs.summaryCaches,
+                seriesCaches = seriesInputs.seriesCaches,
+                reviewScheduleCaches = reviewScheduleCaches
             )
         }
     }
@@ -335,6 +415,27 @@ class LocalProgressRepository(
         )
         latestSeriesStoreStateMutable.value = currentSeriesStoreState
         publishSeriesSnapshotIfChanged(snapshot = currentSeriesStoreState.snapshot)
+
+        val previousReviewScheduleStoreState = latestReviewScheduleStoreStateMutable.value
+        val currentReviewScheduleStoreState = createProgressReviewScheduleStoreState(
+            inputs = createProgressReviewScheduleStoreInputs(
+                inputs = inputs,
+                clockSnapshot = clockSnapshot
+            )
+        )
+        latestReviewScheduleStoreStateMutable.value = currentReviewScheduleStoreState
+        publishReviewScheduleSnapshotIfChanged(snapshot = currentReviewScheduleStoreState.snapshot)
+        val reviewScheduleSyncRefreshTrackerResult = updateProgressReviewScheduleSyncRefreshTrackerState(
+            previousState = reviewScheduleSyncRefreshTrackerState,
+            serializedScopeKey = serializeProgressReviewScheduleScopeKey(
+                scopeKey = currentReviewScheduleStoreState.scopeKey
+            ),
+            reviewScheduleFingerprint = currentReviewScheduleStoreState.reviewScheduleFingerprint,
+            hasPendingScheduleImpactingCardChanges =
+                currentReviewScheduleStoreState.hasPendingScheduleImpactingCardChanges,
+            currentSuccessfulSyncAtMillis = currentReviewScheduleStoreState.syncStatus.lastSuccessfulSyncAtMillis
+        )
+        reviewScheduleSyncRefreshTrackerState = reviewScheduleSyncRefreshTrackerResult.state
 
         if (currentSummaryStoreState.isLocalCacheReady.not() || currentSeriesStoreState.isLocalCacheReady.not()) {
             appScope.launch {
@@ -369,6 +470,22 @@ class LocalProgressRepository(
             appScope.launch {
                 refreshSeriesFromStoreState(
                     storeState = currentSeriesStoreState,
+                    refreshReason = ProgressRefreshReason.SYNC_COMPLETED_WITH_REVIEW_HISTORY_CHANGE
+                )
+            }
+        }
+
+        if (
+            didSyncCompleteWithReviewScheduleChange(
+                previousSuccessfulSyncAtMillis = previousReviewScheduleStoreState?.syncStatus?.lastSuccessfulSyncAtMillis,
+                currentSuccessfulSyncAtMillis = currentReviewScheduleStoreState.syncStatus.lastSuccessfulSyncAtMillis,
+                previousReviewScheduleFingerprint = previousReviewScheduleStoreState?.reviewScheduleFingerprint,
+                currentReviewScheduleFingerprint = currentReviewScheduleStoreState.reviewScheduleFingerprint
+            ) || reviewScheduleSyncRefreshTrackerResult.shouldRefresh
+        ) {
+            appScope.launch {
+                refreshReviewScheduleFromStoreState(
+                    storeState = currentReviewScheduleStoreState,
                     refreshReason = ProgressRefreshReason.SYNC_COMPLETED_WITH_REVIEW_HISTORY_CHANGE
                 )
             }
@@ -480,6 +597,62 @@ class LocalProgressRepository(
             }
             if (supportsServerRefresh(cloudState = latestStoreState.cloudState).not()) {
                 seriesRefreshCoordinator.endRefresh(scopeKey = serializedScopeKey)
+                return
+            }
+            refreshStoreState = latestStoreState
+            syncMode = queuedSyncMode
+        }
+    }
+
+    private suspend fun refreshReviewScheduleFromStoreState(
+        storeState: ProgressReviewScheduleStoreState,
+        refreshReason: ProgressRefreshReason
+    ) {
+        if (supportsServerRefresh(cloudState = storeState.cloudState).not()) {
+            return
+        }
+
+        val serializedScopeKey = serializeProgressReviewScheduleScopeKey(scopeKey = storeState.scopeKey)
+        var syncMode = createProgressRemoteRefreshSyncMode(refreshReason = refreshReason)
+        if (
+            reviewScheduleRefreshCoordinator.beginRefresh(
+                scopeKey = serializedScopeKey,
+                syncMode = syncMode
+            ).not()
+        ) {
+            return
+        }
+
+        var refreshStoreState = storeState
+        while (true) {
+            try {
+                performReviewScheduleRefresh(
+                    refreshStoreState = refreshStoreState,
+                    initialStoreState = storeState,
+                    syncMode = syncMode
+                )
+            } catch (error: CancellationException) {
+                reviewScheduleRefreshCoordinator.endRefresh(scopeKey = serializedScopeKey)
+                throw error
+            } catch (error: Exception) {
+                reviewScheduleRefreshCoordinator.endRefresh(scopeKey = serializedScopeKey)
+                throw error
+            }
+
+            val queuedSyncMode = reviewScheduleRefreshCoordinator.completeRefreshIteration(
+                scopeKey = serializedScopeKey
+            ) ?: return
+            val latestStoreState = currentReviewScheduleStoreState()
+            if (latestStoreState == null) {
+                reviewScheduleRefreshCoordinator.endRefresh(scopeKey = serializedScopeKey)
+                return
+            }
+            if (serializeProgressReviewScheduleScopeKey(scopeKey = latestStoreState.scopeKey) != serializedScopeKey) {
+                reviewScheduleRefreshCoordinator.endRefresh(scopeKey = serializedScopeKey)
+                return
+            }
+            if (supportsServerRefresh(cloudState = latestStoreState.cloudState).not()) {
+                reviewScheduleRefreshCoordinator.endRefresh(scopeKey = serializedScopeKey)
                 return
             }
             refreshStoreState = latestStoreState
@@ -629,18 +802,126 @@ class LocalProgressRepository(
         )
     }
 
-    private suspend fun ensureLocalCacheReady(timeZone: String) {
-        if (localCacheRebuildCoordinator.beginRebuild(timeZone = timeZone).not()) {
+    private suspend fun performReviewScheduleRefresh(
+        refreshStoreState: ProgressReviewScheduleStoreState,
+        initialStoreState: ProgressReviewScheduleStoreState,
+        syncMode: ProgressRemoteRefreshSyncMode
+    ) {
+        var resolvedRefreshStoreState = refreshStoreState
+        if (syncMode == ProgressRemoteRefreshSyncMode.SYNC_BEFORE_REMOTE_LOAD) {
+            try {
+                syncRepository.syncNow()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                logProgressRepositoryWarning(
+                    event = "progress_review_schedule_sync_before_remote_load_failed",
+                    fields = listOf(
+                        "scopeKey" to serializeProgressReviewScheduleScopeKey(scopeKey = resolvedRefreshStoreState.scopeKey),
+                        "timeZone" to resolvedRefreshStoreState.scopeKey.timeZone
+                    ),
+                    error = error
+                )
+                return
+            }
+            resolvedRefreshStoreState = currentReviewScheduleStoreState() ?: return
+            if (resolvedRefreshStoreState.scopeKey != initialStoreState.scopeKey) {
+                return
+            }
+            if (supportsServerRefresh(cloudState = resolvedRefreshStoreState.cloudState).not()) {
+                return
+            }
+        }
+
+        val remoteSchedule = try {
+            cloudAccountRepository.loadProgressReviewSchedule(
+                timeZone = resolvedRefreshStoreState.scopeKey.timeZone
+            )
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            logProgressRepositoryWarning(
+                event = "progress_review_schedule_remote_load_failed",
+                fields = listOf(
+                    "scopeKey" to serializeProgressReviewScheduleScopeKey(scopeKey = resolvedRefreshStoreState.scopeKey),
+                    "timeZone" to resolvedRefreshStoreState.scopeKey.timeZone
+                ),
+                error = error
+            )
+            return
+        }
+        try {
+            validateProgressReviewScheduleResponseTimeZone(
+                schedule = remoteSchedule,
+                scopeKey = resolvedRefreshStoreState.scopeKey
+            )
+            validateProgressReviewScheduleBuckets(
+                buckets = remoteSchedule.buckets,
+                totalCards = remoteSchedule.totalCards
+            )
+        } catch (error: IllegalArgumentException) {
+            logProgressRepositoryWarning(
+                event = "progress_review_schedule_remote_response_invalid",
+                fields = listOf(
+                    "scopeKey" to serializeProgressReviewScheduleScopeKey(scopeKey = resolvedRefreshStoreState.scopeKey),
+                    "timeZone" to resolvedRefreshStoreState.scopeKey.timeZone,
+                    "responseTimeZone" to remoteSchedule.timeZone
+                ),
+                error = error
+            )
             return
         }
 
+        val latestStoreState = currentReviewScheduleStoreState() ?: return
+        if (latestStoreState.scopeKey != resolvedRefreshStoreState.scopeKey) {
+            return
+        }
+
+        database.progressRemoteCacheDao().insertProgressReviewScheduleCache(
+            entry = remoteSchedule.toCacheEntity(
+                scopeKey = latestStoreState.scopeKey,
+                updatedAtMillis = timeProvider.currentTimeMillis()
+            )
+        )
+    }
+
+    private suspend fun ensureLocalCacheReady(timeZone: String) {
+        // If another caller is already rebuilding the cache for this timezone, await its result
+        // instead of returning early. Returning early would let a follow-up refresh see
+        // isLocalCacheReady = false and silently bail, dropping the user-initiated refresh.
+        val lease = localCacheRebuildCoordinator.acquireRebuildLease(timeZone = timeZone)
+        when (lease) {
+            is ProgressLocalCacheRebuildLease.Waiter -> {
+                lease.inFlight.await()
+            }
+            is ProgressLocalCacheRebuildLease.Owner -> {
+                runOwnedLocalCacheRebuild(timeZone = timeZone, lease = lease)
+            }
+        }
+    }
+
+    private suspend fun runOwnedLocalCacheRebuild(
+        timeZone: String,
+        lease: ProgressLocalCacheRebuildLease.Owner
+    ) {
+        var failure: Throwable? = null
         try {
             localProgressCacheStore.rebuildTimeZoneCache(
                 timeZone = timeZone,
                 updatedAtMillis = timeProvider.currentTimeMillis()
             )
+        } catch (error: Throwable) {
+            failure = error
+            throw error
         } finally {
-            localCacheRebuildCoordinator.endRebuild(timeZone = timeZone)
+            // completeRebuild is invoked in the finally block so concurrent waiters always
+            // observe completion. If the rebuild failed or was cancelled, the same throwable
+            // propagates to waiters so they do not silently see an empty cache.
+            localCacheRebuildCoordinator.completeRebuild(
+                timeZone = timeZone,
+                completion = lease.completion,
+                error = failure
+            )
         }
     }
 
@@ -664,6 +945,16 @@ class LocalProgressRepository(
         seriesSnapshotMutable.value = snapshot
     }
 
+    private fun publishReviewScheduleSnapshotIfChanged(
+        snapshot: ProgressReviewScheduleSnapshot?
+    ) {
+        if (reviewScheduleSnapshotMutable.value == snapshot) {
+            return
+        }
+
+        reviewScheduleSnapshotMutable.value = snapshot
+    }
+
     private fun currentSummaryStoreState(): ProgressSummaryStoreState? {
         val latestInputs = latestInputsMutable.value ?: return null
         return createProgressSummaryStoreState(
@@ -678,6 +969,16 @@ class LocalProgressRepository(
         val latestInputs = latestInputsMutable.value ?: return null
         return createProgressSeriesStoreState(
             inputs = createProgressSeriesStoreInputs(
+                inputs = latestInputs,
+                clockSnapshot = createProgressClockSnapshot(timeProvider = timeProvider)
+            )
+        )
+    }
+
+    private fun currentReviewScheduleStoreState(): ProgressReviewScheduleStoreState? {
+        val latestInputs = latestInputsMutable.value ?: return null
+        return createProgressReviewScheduleStoreState(
+            inputs = createProgressReviewScheduleStoreInputs(
                 inputs = latestInputs,
                 clockSnapshot = createProgressClockSnapshot(timeProvider = timeProvider)
             )
@@ -769,6 +1070,47 @@ class LocalProgressRepository(
                 workspaceIds = workspaceIds
             ),
             syncStatus = inputs.syncStatus
+        )
+    }
+
+    private fun createProgressReviewScheduleStoreInputs(
+        inputs: ProgressObservedInputs,
+        clockSnapshot: ProgressClockSnapshot
+    ): ProgressReviewScheduleStoreInputs {
+        val workspaceIds = inputs.workspaces.map(WorkspaceEntity::workspaceId)
+        val scopeKey = createProgressReviewScheduleScopeKey(
+            cloudSettings = inputs.cloudSettings,
+            today = clockSnapshot.today,
+            zoneId = clockSnapshot.zoneId,
+            workspaceIds = workspaceIds
+        )
+        val hasPendingScheduleImpactingCardChanges = hasPendingProgressReviewScheduleCardChanges(
+            pendingCardUpsertOutboxEntries = inputs.pendingCardUpsertOutboxEntries,
+            workspaceIds = workspaceIds
+        )
+        return ProgressReviewScheduleStoreInputs(
+            scopeKey = scopeKey,
+            cloudState = inputs.cloudSettings.cloudState,
+            workspaceIds = workspaceIds,
+            reviewScheduleCards = inputs.reviewScheduleCards,
+            serverBase = findProgressReviewScheduleServerBase(
+                reviewScheduleCaches = inputs.reviewScheduleCaches,
+                scopeKey = scopeKey
+            ),
+            hasPendingScheduleImpactingCardChanges = hasPendingScheduleImpactingCardChanges,
+            pendingCardUpsertOutboxEntries = inputs.pendingCardUpsertOutboxEntries,
+            isLocalReviewScheduleScopeHydrated = isProgressReviewScheduleLocalScopeHydrated(
+                syncStates = inputs.syncStates,
+                workspaceIds = workspaceIds
+            ),
+            reviewScheduleFingerprint = createReviewScheduleFingerprint(
+                reviewScheduleCards = inputs.reviewScheduleCards,
+                pendingCardUpsertOutboxEntries = inputs.pendingCardUpsertOutboxEntries,
+                workspaceIds = workspaceIds
+            ),
+            syncStatus = inputs.syncStatus,
+            today = clockSnapshot.today,
+            zoneId = clockSnapshot.zoneId
         )
     }
 }

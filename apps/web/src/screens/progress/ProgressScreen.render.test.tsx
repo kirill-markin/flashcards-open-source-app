@@ -4,7 +4,11 @@ import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "../../i18n";
 import type { AppDataContextValue } from "../../appData/types";
-import type { ProgressSeriesSnapshot, ProgressSummarySnapshot } from "../../types";
+import type {
+  ProgressReviewScheduleSnapshot,
+  ProgressSeriesSnapshot,
+  ProgressSummarySnapshot,
+} from "../../types";
 
 const {
   refreshProgressMock,
@@ -188,6 +192,26 @@ function createProgressSeriesSnapshot(): ProgressSeriesSnapshot {
   };
 }
 
+function createReviewScheduleSnapshot(): ProgressReviewScheduleSnapshot {
+  return {
+    timeZone: "UTC",
+    generatedAt: "2026-04-21T10:00:00.000Z",
+    totalCards: 10,
+    buckets: [
+      { key: "new", count: 2 },
+      { key: "today", count: 3 },
+      { key: "days1To7", count: 1 },
+      { key: "days8To30", count: 1 },
+      { key: "days31To90", count: 1 },
+      { key: "days91To360", count: 1 },
+      { key: "years1To2", count: 0 },
+      { key: "later", count: 1 },
+    ],
+    source: "server",
+    isApproximate: false,
+  };
+}
+
 describe("ProgressScreen", () => {
   let container: HTMLDivElement;
   let root: ReactDOM.Root;
@@ -209,6 +233,7 @@ describe("ProgressScreen", () => {
     useAppDataMock.mockReturnValue(createAppData());
     useProgressInvalidationStateMock.mockReturnValue({
       progressLocalVersion: 0,
+      progressScheduleLocalVersion: 0,
       progressServerInvalidationVersion: 0,
     });
     useProgressSourceMock.mockReturnValue({
@@ -228,6 +253,20 @@ describe("ProgressScreen", () => {
           serverBase: createProgressSeriesSnapshot(),
           pendingLocalOverlay: null,
           renderedSnapshot: createProgressSeriesSnapshot(),
+          isLoading: false,
+          errorMessage: "",
+        },
+        reviewSchedule: {
+          scopeKey: "progress::review-schedule::UTC::2026-04-21",
+          localFallback: null,
+          serverBase: createReviewScheduleSnapshot(),
+          progressScheduleLocalVersion: 0,
+          serverBaseProgressScheduleLocalVersion: 0,
+          serverBaseLocalCardTotalDelta: 0,
+          hasPendingLocalCardChanges: false,
+          hasCompleteLocalCardState: false,
+          pendingLocalCardTotalDelta: 0,
+          renderedSnapshot: createReviewScheduleSnapshot(),
           isLoading: false,
           errorMessage: "",
         },
@@ -263,6 +302,32 @@ describe("ProgressScreen", () => {
     const streakMarkerIcons = [...container.querySelectorAll(".progress-streak-marker-flame .review-progress-badge-icon")];
     expect(streakMarkerIcons.length).toBeGreaterThan(0);
     expect(streakMarkerIcons.every((icon) => icon instanceof SVGSVGElement)).toBe(true);
+  });
+
+  it("uses the schedule-specific progress version for review schedule refreshes", async () => {
+    useAppDataMock.mockReturnValue({
+      ...createAppData(),
+      localReadVersion: 7,
+    });
+    useProgressInvalidationStateMock.mockReturnValue({
+      progressLocalVersion: 2,
+      progressScheduleLocalVersion: 3,
+      progressServerInvalidationVersion: 5,
+    });
+
+    await act(async () => {
+      root.render(
+        <I18nProvider>
+          <ProgressScreen />
+        </I18nProvider>,
+      );
+    });
+
+    expect(useProgressSourceMock).toHaveBeenCalledWith(expect.objectContaining({
+      progressLocalVersion: 2,
+      progressScheduleLocalVersion: 3,
+      progressServerInvalidationVersion: 5,
+    }));
   });
 
   it("uses the active week local maximum for y-axis labels and bar heights", async () => {
@@ -323,6 +388,43 @@ describe("ProgressScreen", () => {
     }
 
     expect(chartRange.textContent).toBe(createNativeWeekRangeLabel("en", "2026-04-19", "2026-04-21"));
+  });
+
+  it("renders the review schedule donut and ordered bucket list", async () => {
+    await act(async () => {
+      root.render(
+        <I18nProvider>
+          <ProgressScreen />
+        </I18nProvider>,
+      );
+    });
+
+    const reviewScheduleCard = container.querySelector("[data-testid='progress-review-schedule-card']");
+    if (!(reviewScheduleCard instanceof HTMLElement)) {
+      throw new Error("Review schedule card was not found");
+    }
+
+    expect(reviewScheduleCard.textContent).toContain("Review schedule");
+    expect(reviewScheduleCard.textContent).toContain("Total cards: 10");
+
+    const bucketRows = [...reviewScheduleCard.querySelectorAll(".progress-review-schedule-row")];
+    expect(bucketRows.map((row) => row.textContent)).toEqual([
+      "New220%",
+      "Today330%",
+      "1-7 days110%",
+      "8-30 days110%",
+      "31-90 days110%",
+      "91-360 days110%",
+      "1-2 years00%",
+      "Later110%",
+    ]);
+
+    const donut = reviewScheduleCard.querySelector(".progress-review-schedule-donut");
+    if (!(donut instanceof HTMLDivElement)) {
+      throw new Error("Review schedule donut was not found");
+    }
+    expect(donut.getAttribute("aria-hidden")).toBe("true");
+    expect(donut.getAttribute("style")).toContain("conic-gradient");
   });
 
   it("mirrors week navigation arrows for rtl locales", async () => {
@@ -419,6 +521,20 @@ describe("ProgressScreen", () => {
               ],
             },
           },
+          isLoading: false,
+          errorMessage: "",
+        },
+        reviewSchedule: {
+          scopeKey: "progress::review-schedule::UTC::2026-04-21",
+          localFallback: null,
+          serverBase: createReviewScheduleSnapshot(),
+          progressScheduleLocalVersion: 0,
+          serverBaseProgressScheduleLocalVersion: 0,
+          serverBaseLocalCardTotalDelta: 0,
+          hasPendingLocalCardChanges: false,
+          hasCompleteLocalCardState: false,
+          pendingLocalCardTotalDelta: 0,
+          renderedSnapshot: createReviewScheduleSnapshot(),
           isLoading: false,
           errorMessage: "",
         },
