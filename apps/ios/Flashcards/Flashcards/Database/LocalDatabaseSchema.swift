@@ -1,7 +1,7 @@
 import Foundation
 
 enum LocalDatabaseSchema {
-    static let currentVersion: Int = 14
+    static let currentVersion: Int = 15
 
     static var baseMigrationSQL: String {
         let defaultEnableFuzzValue: Int = defaultSchedulerSettingsConfig.enableFuzz ? 1 : 0
@@ -100,6 +100,7 @@ enum LocalDatabaseSchema {
             created_at TEXT NOT NULL, -- when the pending operation entered the local outbox
             attempt_count INTEGER NOT NULL DEFAULT 0, -- retry counter for sync diagnostics and exponential backoff decisions
             review_schedule_impact INTEGER NOT NULL DEFAULT 1 CHECK (review_schedule_impact IN (0, 1)), -- whether this pending operation must force the local review schedule overlay
+            is_initial_create INTEGER NOT NULL DEFAULT 0 CHECK (is_initial_create IN (0, 1)), -- whether this is the very first local upsert for the entity, used by pending card-total deltas to count creates that have not yet been acknowledged
             last_error TEXT -- most recent sync failure message for debugging and user-facing diagnostics
         );
 
