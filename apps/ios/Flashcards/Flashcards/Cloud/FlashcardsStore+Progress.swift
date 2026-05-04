@@ -161,6 +161,8 @@ extension FlashcardsStore {
         do {
             let scopeKey = try self.prepareProgressScope(now: now)
             let scheduleScopeKey = reviewScheduleScopeKey(seriesScopeKey: scopeKey)
+            self.progressReviewedAtClientRevision += 1
+            self.progressReviewScheduleLocalRevision += 1
             self.invalidateProgressSummaryAndSeries(
                 scopeKey: scopeKey,
                 summaryScopeKey: progressSummaryScopeKey(seriesScopeKey: scopeKey)
@@ -192,6 +194,7 @@ extension FlashcardsStore {
         do {
             let scopeKey = try self.prepareProgressScope(now: now)
             let scheduleScopeKey = reviewScheduleScopeKey(seriesScopeKey: scopeKey)
+            self.progressReviewScheduleLocalRevision += 1
             self.markProgressReviewSchedulePendingLocalOverlay(scopeKey: scheduleScopeKey)
             guard self.currentVisibleTab == .progress else {
                 return
@@ -218,12 +221,19 @@ extension FlashcardsStore {
             let summaryScopeKey = progressSummaryScopeKey(seriesScopeKey: scopeKey)
             let scheduleScopeKey = reviewScheduleScopeKey(seriesScopeKey: scopeKey)
 
+            let reviewProgressDataChanged = syncResult.reviewProgressDataChanged
             let reviewScheduleDataChanged = syncResult.reviewScheduleDataChanged
-            guard syncResult.reviewProgressDataChanged || reviewScheduleDataChanged else {
+            guard reviewProgressDataChanged || reviewScheduleDataChanged else {
                 return
             }
+            if reviewProgressDataChanged {
+                self.progressReviewedAtClientRevision += 1
+            }
+            if reviewScheduleDataChanged {
+                self.progressReviewScheduleLocalRevision += 1
+            }
 
-            if syncResult.reviewProgressDataChanged {
+            if reviewProgressDataChanged {
                 self.invalidateProgressSummaryAndSeries(scopeKey: scopeKey, summaryScopeKey: summaryScopeKey)
                 if reviewScheduleDataChanged {
                     self.invalidateProgressReviewSchedule(scopeKey: scheduleScopeKey)
