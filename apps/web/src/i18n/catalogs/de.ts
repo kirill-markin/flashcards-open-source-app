@@ -129,7 +129,6 @@ const deCatalog: TranslationCatalog = {
     weekRangeValue: "{{from}} - {{to}}",
     previousWeek: "Vorherige Woche",
     nextWeek: "Nächste Woche",
-    emptyWeek: "In dieser Woche gibt es noch keine Wiederholungen.",
     reviewSchedule: {
       title: "Wiederholungsplan",
       totalCards: "Karten gesamt: {{count}}",

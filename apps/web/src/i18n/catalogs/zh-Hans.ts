@@ -129,7 +129,6 @@ export const zhHansCatalog = {
     weekRangeValue: "{{from}} - {{to}}",
     previousWeek: "上一周",
     nextWeek: "下一周",
-    emptyWeek: "本周还没有复习。",
     reviewSchedule: {
       title: "复习计划",
       totalCards: "卡片总数：{{count}}",

@@ -16,7 +16,6 @@ data class ProgressReviewPageUiState(
     val endDate: LocalDate,
     val startDateKey: String,
     val days: List<ProgressHistoryDayUiState>,
-    val hasReviewActivity: Boolean,
     val upperBound: Int
 )
 

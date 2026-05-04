@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 
-private let progressDaysPerWeek: Int = 7
+let progressDaysPerWeek: Int = 7
 private let progressStreakWeekCount: Int = 5
 let reviewProgressBadgeOverflowThreshold: Int = 99
 
@@ -779,7 +779,7 @@ private func progressDate(localDate: String, calendar: Calendar) throws -> Date 
     return date
 }
 
-private func progressLocalDateString(date: Date, calendar: Calendar) -> String {
+func progressLocalDateString(date: Date, calendar: Calendar) -> String {
     let components = calendar.dateComponents([.year, .month, .day], from: date)
 
     guard let year = components.year, let month = components.month, let day = components.day else {

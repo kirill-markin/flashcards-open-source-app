@@ -259,10 +259,13 @@ private fun List<ParsedProgressPoint>.toReviewPages(
 
     for (day in reviewDays) {
         val weekStart = weekContext.startOfWeek(date = day.date)
-        if (currentWeekStart != null && currentWeekStart != weekStart) {
+        val activeWeekStart = currentWeekStart
+        if (activeWeekStart != null && activeWeekStart != weekStart) {
             pages.add(
                 createReviewPage(
-                    days = currentPageDays
+                    weekStart = activeWeekStart,
+                    days = currentPageDays,
+                    today = today
                 )
             )
             currentPageDays = mutableListOf(day)
@@ -274,10 +277,13 @@ private fun List<ParsedProgressPoint>.toReviewPages(
         currentWeekStart = weekStart
     }
 
-    if (currentPageDays.isNotEmpty()) {
+    val finalWeekStart = currentWeekStart
+    if (finalWeekStart != null && currentPageDays.isNotEmpty()) {
         pages.add(
             createReviewPage(
-                days = currentPageDays
+                weekStart = finalWeekStart,
+                days = currentPageDays,
+                today = today
             )
         )
     }
@@ -286,20 +292,44 @@ private fun List<ParsedProgressPoint>.toReviewPages(
 }
 
 private fun createReviewPage(
-    days: List<ProgressHistoryDayUiState>
+    weekStart: LocalDate,
+    days: List<ProgressHistoryDayUiState>,
+    today: LocalDate
 ): ProgressReviewPageUiState {
-    val startDate = days.first().date
-    val endDate = days.last().date
-    val maximumReviewCount = days.maxOfOrNull { day -> day.reviewCount } ?: 0
+    val paddedDays = padReviewPageDaysToFullWeek(
+        weekStart = weekStart,
+        days = days,
+        today = today
+    )
+    val startDate = paddedDays.first().date
+    val endDate = paddedDays.last().date
+    val maximumReviewCount = paddedDays.maxOfOrNull { day -> day.reviewCount } ?: 0
 
     return ProgressReviewPageUiState(
         startDate = startDate,
         endDate = endDate,
         startDateKey = startDate.toString(),
-        days = days,
-        hasReviewActivity = days.any { day -> day.reviewCount > 0 },
+        days = paddedDays,
         upperBound = calculateReviewChartUpperBound(maximumReviewCount = maximumReviewCount)
     )
+}
+
+private fun padReviewPageDaysToFullWeek(
+    weekStart: LocalDate,
+    days: List<ProgressHistoryDayUiState>,
+    today: LocalDate
+): List<ProgressHistoryDayUiState> {
+    val existingByDate = days.associateBy { day -> day.date }
+
+    return (0 until daysPerWeek).map { dayIndex ->
+        val date = weekStart.plusDays(dayIndex.toLong())
+        existingByDate[date] ?: ProgressHistoryDayUiState(
+            date = date,
+            dayOfMonthLabel = date.dayOfMonth.toString(),
+            reviewCount = 0,
+            isToday = date == today
+        )
+    }
 }
 
 private fun calculateReviewChartUpperBound(

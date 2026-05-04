@@ -363,9 +363,11 @@ private struct ProgressReviewsSection: View {
     }
 
     private var chartPages: [ProgressReviewChartPage] {
-        makeProgressReviewChartPages(
+        let today = self.chartDays.first(where: { day in day.isToday })?.date
+        return makeProgressReviewChartPages(
             chartDays: self.chartDays,
-            calendar: self.chartCalendar
+            calendar: self.chartCalendar,
+            today: today
         )
     }
 
@@ -467,68 +469,64 @@ private struct ProgressReviewsSection: View {
             }
 
             if let visiblePage = self.visiblePage {
-                if visiblePage.hasReviewActivity {
-                    Chart {
-                        ForEach(visiblePage.days) { day in
-                            BarMark(
+                Chart {
+                    ForEach(visiblePage.days) { day in
+                        if day.isToday && day.reviewCount == 0 {
+                            RectangleMark(
                                 x: .value("Day", day.localDate),
-                                y: .value("Reviews", day.reviewCount)
+                                yStart: .value("Floor", 0),
+                                yEnd: .value("Ceiling", self.visiblePageUpperBound)
                             )
-                            .foregroundStyle(progressChartBarStyle(day: day))
+                            .foregroundStyle(Color.accentColor.opacity(0.12))
+                            .cornerRadius(8)
                         }
+                        BarMark(
+                            x: .value("Day", day.localDate),
+                            y: .value("Reviews", day.reviewCount)
+                        )
+                        .foregroundStyle(progressChartBarStyle(day: day))
                     }
-                    .chartYScale(domain: 0 ... self.visiblePageUpperBound)
-                    .chartXAxis {
-                        AxisMarks(values: visiblePage.xAxisValues) { value in
-                            AxisTick()
-                                .foregroundStyle(Color(uiColor: .separator).opacity(0.35))
-                            AxisValueLabel {
-                                if let localDate = value.as(String.self), let day = visiblePage.day(localDate: localDate) {
-                                    VStack(spacing: 2) {
-                                        Text(
-                                            progressWeekdayLabel(
-                                                date: day.date,
-                                                calendar: self.chartCalendar
-                                            )
+                }
+                .chartYScale(domain: 0 ... self.visiblePageUpperBound)
+                .chartXAxis {
+                    AxisMarks(values: visiblePage.xAxisValues) { value in
+                        AxisTick()
+                            .foregroundStyle(Color(uiColor: .separator).opacity(0.35))
+                        AxisValueLabel {
+                            if let localDate = value.as(String.self), let day = visiblePage.day(localDate: localDate) {
+                                VStack(spacing: 2) {
+                                    Text(
+                                        progressWeekdayLabel(
+                                            date: day.date,
+                                            calendar: self.chartCalendar
                                         )
-                                        Text(
-                                            progressReviewChartDayLabel(
-                                                date: day.date,
-                                                calendar: self.chartCalendar
-                                            )
+                                    )
+                                    Text(
+                                        progressReviewChartDayLabel(
+                                            date: day.date,
+                                            calendar: self.chartCalendar
                                         )
-                                    }
+                                    )
                                 }
                             }
                         }
                     }
-                    .chartYAxis {
-                        AxisMarks(position: .leading) { value in
-                            AxisGridLine()
-                                .foregroundStyle(Color(uiColor: .separator).opacity(0.18))
-                            AxisTick()
-                                .foregroundStyle(Color(uiColor: .separator).opacity(0.35))
-                            AxisValueLabel()
-                        }
-                    }
-                    .chartPlotStyle { plotArea in
-                        plotArea
-                            .background(Color(uiColor: .secondarySystemGroupedBackground).opacity(0.45))
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    }
-                    .frame(height: progressChartHeight)
-                } else {
-                    Text(
-                        String(
-                            localized: "progress.screen.reviews.empty",
-                            defaultValue: "No reviews yet in this week.",
-                            table: progressStringsTableName,
-                            comment: "Progress reviews section empty caption"
-                        )
-                    )
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
                 }
+                .chartYAxis {
+                    AxisMarks(position: .leading) { value in
+                        AxisGridLine()
+                            .foregroundStyle(Color(uiColor: .separator).opacity(0.18))
+                        AxisTick()
+                            .foregroundStyle(Color(uiColor: .separator).opacity(0.35))
+                        AxisValueLabel()
+                    }
+                }
+                .chartPlotStyle { plotArea in
+                    plotArea
+                        .background(Color(uiColor: .secondarySystemGroupedBackground).opacity(0.45))
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                .frame(height: progressChartHeight)
             }
         }
         .padding(.vertical, 4)
@@ -800,12 +798,6 @@ private struct ProgressReviewChartPage: Identifiable {
         self.startLocalDate
     }
 
-    var hasReviewActivity: Bool {
-        self.days.contains(where: { day in
-            day.reviewCount > 0
-        })
-    }
-
     var xAxisValues: [String] {
         self.days.map(\.localDate)
     }
@@ -824,7 +816,8 @@ private struct ProgressReviewChartSelectionResetToken: Equatable {
 
 private func makeProgressReviewChartPages(
     chartDays: [ProgressChartDay],
-    calendar: Calendar
+    calendar: Calendar,
+    today: Date?
 ) -> [ProgressReviewChartPage] {
     guard chartDays.isEmpty == false else {
         return []
@@ -841,7 +834,16 @@ private func makeProgressReviewChartPages(
 
         let weekStart = calendar.startOfDay(for: weekInterval.start)
         if let activeWeekStart = currentWeekStart, activeWeekStart != weekStart {
-            pages.append(ProgressReviewChartPage(days: currentPageDays))
+            pages.append(
+                ProgressReviewChartPage(
+                    days: padReviewChartPageToFullWeek(
+                        currentPageDays: currentPageDays,
+                        weekStart: activeWeekStart,
+                        calendar: calendar,
+                        today: today
+                    )
+                )
+            )
             currentPageDays = [day]
             currentWeekStart = weekStart
             continue
@@ -851,11 +853,58 @@ private func makeProgressReviewChartPages(
         currentWeekStart = weekStart
     }
 
-    if currentPageDays.isEmpty == false {
-        pages.append(ProgressReviewChartPage(days: currentPageDays))
+    if let weekStart = currentWeekStart, currentPageDays.isEmpty == false {
+        pages.append(
+            ProgressReviewChartPage(
+                days: padReviewChartPageToFullWeek(
+                    currentPageDays: currentPageDays,
+                    weekStart: weekStart,
+                    calendar: calendar,
+                    today: today
+                )
+            )
+        )
     }
 
     return pages
+}
+
+private func padReviewChartPageToFullWeek(
+    currentPageDays: [ProgressChartDay],
+    weekStart: Date,
+    calendar: Calendar,
+    today: Date?
+) -> [ProgressChartDay] {
+    let existingByLocalDate = Dictionary(uniqueKeysWithValues: currentPageDays.map { day in
+        (day.localDate, day)
+    })
+
+    return (0 ..< progressDaysPerWeek).map { offset in
+        guard let rawDate = calendar.date(byAdding: .day, value: offset, to: weekStart) else {
+            preconditionFailure("Failed to advance week start by \(offset) days")
+        }
+
+        let date = calendar.startOfDay(for: rawDate)
+        let localDate = progressLocalDateString(date: date, calendar: calendar)
+
+        if let existing = existingByLocalDate[localDate] {
+            return existing
+        }
+
+        let isToday: Bool
+        if let today {
+            isToday = calendar.isDate(date, inSameDayAs: today)
+        } else {
+            isToday = false
+        }
+
+        return ProgressChartDay(
+            date: date,
+            localDate: localDate,
+            reviewCount: 0,
+            isToday: isToday
+        )
+    }
 }
 
 private func progressReviewChartPageDateRange(
@@ -929,15 +978,7 @@ private func progressReviewChartDayLabel(date: Date, calendar: Calendar) -> Stri
 }
 
 private func progressChartBarStyle(day: ProgressChartDay) -> AnyShapeStyle {
-    if day.reviewCount > 0 && day.isToday {
-        return AnyShapeStyle(Color.accentColor)
-    }
-
     if day.reviewCount > 0 {
-        return AnyShapeStyle(Color.accentColor)
-    }
-
-    if day.isToday {
         return AnyShapeStyle(Color.accentColor)
     }
 

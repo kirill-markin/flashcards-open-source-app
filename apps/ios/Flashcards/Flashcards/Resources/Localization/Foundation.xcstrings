@@ -3659,65 +3659,6 @@
         }
       }
     },
-    "progress.screen.reviews.empty" : {
-      "comment" : "Progress reviews section empty caption",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "لا توجد مراجعات بعد في هذا الأسبوع."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "In dieser Woche gibt es noch keine Wiederholungen."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No reviews yet in this week."
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Todavía no hay repasos en esta semana."
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Todavía no hay repasos en esta semana."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "इस सप्ताह अभी तक कोई रिव्यू नहीं है।"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "この週にはまだ復習がありません。"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "На этой неделе пока нет повторений."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "本周还没有复习。"
-          }
-        }
-      }
-    },
     "progress.screen.reviews.next_week" : {
       "comment" : "Accessibility label for the next reviews week button",
       "localizations" : {
