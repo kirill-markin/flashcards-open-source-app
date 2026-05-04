@@ -533,7 +533,6 @@ private fun ReviewsSectionCard(
     val chartGridLineColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
     val previousWeekLabel = stringResource(id = R.string.progress_reviews_previous_week)
     val nextWeekLabel = stringResource(id = R.string.progress_reviews_next_week)
-    val emptyWeekLabel = stringResource(id = R.string.progress_reviews_empty_week)
 
     LaunchedEffect(pageStartDateKeys) {
         if (selectedPageStartDateKey == null) {
@@ -640,89 +639,81 @@ private fun ReviewsSectionCard(
             }
 
             visiblePage?.let { page ->
-                if (page.hasReviewActivity) {
-                    Row(
-                        verticalAlignment = Alignment.Top,
-                        modifier = Modifier.fillMaxWidth()
+                Row(
+                    verticalAlignment = Alignment.Top,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    ReviewsYAxis(
+                        upperBound = page.upperBound,
+                        modifier = Modifier
+                            .padding(top = 6.dp)
+                            .width(reviewChartAxisWidth)
+                    )
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column(
+                        modifier = Modifier.weight(1f)
                     ) {
-                        ReviewsYAxis(
-                            upperBound = page.upperBound,
+                        Box(
                             modifier = Modifier
-                                .padding(top = 6.dp)
-                                .width(reviewChartAxisWidth)
-                        )
+                                .fillMaxWidth()
+                                .height(reviewChartHeight)
+                                .testTag(progressReviewsActivityChartTag)
+                                .clip(RoundedCornerShape(22.dp))
+                                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                                .drawBehind {
+                                    val lineStep = size.height / reviewChartVisibleGridLines.toFloat()
 
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        Column(
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(reviewChartHeight)
-                                    .testTag(progressReviewsActivityChartTag)
-                                    .clip(RoundedCornerShape(22.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                                    .drawBehind {
-                                        val lineStep = size.height / reviewChartVisibleGridLines.toFloat()
-
-                                        repeat(reviewChartVisibleGridLines) { index ->
-                                            val y = lineStep * index
-                                            drawLine(
-                                                color = chartGridLineColor,
-                                                start = androidx.compose.ui.geometry.Offset(0f, y),
-                                                end = androidx.compose.ui.geometry.Offset(size.width, y),
-                                                strokeWidth = 1.dp.toPx()
-                                            )
-                                        }
-                                    }
-                                    .padding(
-                                        horizontal = reviewChartHorizontalPadding,
-                                        vertical = reviewChartVerticalPadding
-                                    )
-                            ) {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(reviewChartColumnSpacing),
-                                    verticalAlignment = Alignment.Bottom,
-                                    modifier = Modifier.fillMaxSize()
-                                ) {
-                                    page.days.forEach { day ->
-                                        ReviewBarColumn(
-                                            day = day,
-                                            upperBound = page.upperBound,
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .fillMaxHeight()
+                                    repeat(reviewChartVisibleGridLines) { index ->
+                                        val y = lineStep * index
+                                        drawLine(
+                                            color = chartGridLineColor,
+                                            start = androidx.compose.ui.geometry.Offset(0f, y),
+                                            end = androidx.compose.ui.geometry.Offset(size.width, y),
+                                            strokeWidth = 1.dp.toPx()
                                         )
                                     }
                                 }
-                            }
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
+                                .padding(
+                                    horizontal = reviewChartHorizontalPadding,
+                                    vertical = reviewChartVerticalPadding
+                                )
+                        ) {
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(reviewChartColumnSpacing),
-                                verticalAlignment = Alignment.Top,
-                                modifier = Modifier.fillMaxWidth()
+                                verticalAlignment = Alignment.Bottom,
+                                modifier = Modifier.fillMaxSize()
                             ) {
                                 page.days.forEach { day ->
-                                    ReviewChartLabel(
+                                    ReviewBarColumn(
                                         day = day,
+                                        upperBound = page.upperBound,
                                         modifier = Modifier
                                             .weight(1f)
-                                            .height(reviewChartLabelHeight)
+                                            .fillMaxHeight()
                                     )
                                 }
                             }
                         }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(reviewChartColumnSpacing),
+                            verticalAlignment = Alignment.Top,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            page.days.forEach { day ->
+                                ReviewChartLabel(
+                                    day = day,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(reviewChartLabelHeight)
+                                )
+                            }
+                        }
                     }
-                } else {
-                    Text(
-                        text = emptyWeekLabel,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
                 }
             }
         }

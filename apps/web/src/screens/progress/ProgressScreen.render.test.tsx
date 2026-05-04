@@ -387,7 +387,7 @@ describe("ProgressScreen", () => {
       throw new Error("Progress chart range was not found");
     }
 
-    expect(chartRange.textContent).toBe(createNativeWeekRangeLabel("en", "2026-04-19", "2026-04-21"));
+    expect(chartRange.textContent).toBe(createNativeWeekRangeLabel("en", "2026-04-19", "2026-04-25"));
   });
 
   it("renders the review schedule donut and ordered bucket list", async () => {
@@ -453,7 +453,7 @@ describe("ProgressScreen", () => {
     expect(nextWeekButton.textContent).toBe("<");
   });
 
-  it("shows an empty state instead of a fake y-axis for inactive weeks", async () => {
+  it("renders a full seven-column chart even when the week has no review activity", async () => {
     useProgressSourceMock.mockReturnValue({
       progressSourceState: {
         summary: {
@@ -568,7 +568,9 @@ describe("ProgressScreen", () => {
       previousWeekButton.click();
     });
 
-    expect(container.textContent).toContain("No reviews yet in this week.");
-    expect(container.querySelector("[data-testid='progress-chart-y-label-max']")).toBeNull();
+    expect(container.textContent).not.toContain("No reviews yet in this week.");
+    expect(container.querySelector("[data-testid='progress-chart-y-label-max']")).not.toBeNull();
+    const inactiveWeekBars = container.querySelectorAll("[data-testid^='progress-chart-bar-']");
+    expect(inactiveWeekBars).toHaveLength(7);
   });
 });

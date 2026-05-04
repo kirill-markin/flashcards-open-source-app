@@ -129,7 +129,6 @@ const esEsCatalog: TranslationCatalog = {
     weekRangeValue: "{{from}} - {{to}}",
     previousWeek: "Semana anterior",
     nextWeek: "Semana siguiente",
-    emptyWeek: "Todavía no hay repasos en esta semana.",
     reviewSchedule: {
       title: "Calendario de repasos",
       totalCards: "Tarjetas totales: {{count}}",

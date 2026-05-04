@@ -53,7 +53,6 @@ type ChartPage = Readonly<{
   endDate: string;
   startLocalDate: string;
   upperBound: number;
-  hasReviewActivity: boolean;
 }>;
 type ReviewScheduleBucketView = Readonly<{
   key: ProgressReviewScheduleBucketKey;
@@ -228,8 +227,25 @@ function buildChartPage(
     endDate: dailyReviews[dailyReviews.length - 1]?.date ?? "",
     startLocalDate: dailyReviews[0]?.date ?? "",
     upperBound,
-    hasReviewActivity: dailyReviews.some((day) => day.reviewCount > 0),
   };
+}
+
+function padPageDaysToFullWeek(
+  pageDays: ReadonlyArray<DailyReview>,
+  weekStart: string,
+): ReadonlyArray<DailyReview> {
+  const reviewCounts = createDailyReviewCountMap(pageDays);
+  const fullWeek: Array<DailyReview> = [];
+
+  for (let dayOffset = 0; dayOffset < streakWeekLength; dayOffset += 1) {
+    const date = shiftLocalDate(weekStart, dayOffset);
+    fullWeek.push({
+      date,
+      reviewCount: reviewCounts.get(date) ?? 0,
+    });
+  }
+
+  return fullWeek;
 }
 
 function buildChartPages(
@@ -250,7 +266,7 @@ function buildChartPages(
     const weekStart = getStartOfWeek(day.date, weekContext);
 
     if (currentWeekStart !== null && currentWeekStart !== weekStart) {
-      chartPages.push(buildChartPage(currentPageDays, today, formatDate));
+      chartPages.push(buildChartPage(padPageDaysToFullWeek(currentPageDays, currentWeekStart), today, formatDate));
       currentPageDays = [day];
       currentWeekStart = weekStart;
       continue;
@@ -260,8 +276,8 @@ function buildChartPages(
     currentWeekStart = weekStart;
   }
 
-  if (currentPageDays.length > 0) {
-    chartPages.push(buildChartPage(currentPageDays, today, formatDate));
+  if (currentPageDays.length > 0 && currentWeekStart !== null) {
+    chartPages.push(buildChartPage(padPageDaysToFullWeek(currentPageDays, currentWeekStart), today, formatDate));
   }
 
   return chartPages;
@@ -644,9 +660,7 @@ export function ProgressScreen(): ReactElement {
                 ) : null}
               </div>
 
-              {visiblePage !== null && visiblePage.hasReviewActivity === false ? (
-                <p className="progress-chart-empty">{t("progressScreen.emptyWeek")}</p>
-              ) : (
+              {visiblePage !== null && (
                 <div className="progress-chart-shell">
                   <div className="progress-chart-y-axis" aria-hidden="true">
                     {chartGuideLabels.map((label, index) => (
@@ -667,11 +681,8 @@ export function ProgressScreen(): ReactElement {
                       ))}
                     </div>
 
-                    <div
-                      className="progress-chart-columns"
-                      style={visiblePage === null ? undefined : { gridTemplateColumns: `repeat(${visiblePage.days.length}, minmax(0, 1fr))` }}
-                    >
-                      {(visiblePage?.days ?? []).map((day) => {
+                    <div className="progress-chart-columns">
+                      {visiblePage.days.map((day) => {
                         const columnClassName = [
                           "progress-chart-column",
                           day.isToday && day.reviewCount === 0 ? "progress-chart-column-today" : "",
