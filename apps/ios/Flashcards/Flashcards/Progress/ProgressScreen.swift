@@ -588,8 +588,7 @@ private struct ProgressReviewScheduleSection: View {
                         SectorMark(
                             angle: .value("Cards", bucket.count),
                             innerRadius: .ratio(0.62),
-                            outerRadius: .ratio(self.outerRadiusRatio(for: bucket.key)),
-                            angularInset: 1.4
+                            outerRadius: .ratio(self.outerRadiusRatio(for: bucket.key))
                         )
                         .foregroundStyle(progressReviewScheduleBucketColor(key: bucket.key))
                         .opacity(self.segmentOpacity(for: bucket.key))
