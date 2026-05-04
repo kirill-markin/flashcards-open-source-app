@@ -25,11 +25,12 @@ private const val androidInstallationId: String = "android-installation"
         SyncStateEntity::class,
         ProgressSummaryCacheEntity::class,
         ProgressSeriesCacheEntity::class,
+        ProgressReviewScheduleCacheEntity::class,
         ProgressLocalDayCountEntity::class,
         ProgressReviewHistoryStateEntity::class,
         ProgressLocalCacheStateEntity::class
     ],
-    version = 14,
+    version = 16,
     exportSchema = false
 )
 @TypeConverters(DatabaseTypeConverters::class)
@@ -72,7 +73,9 @@ fun createAppDatabaseMigrations(): Array<Migration> {
         migration10To11,
         migration11To12,
         migration12To13,
-        migration13To14
+        migration13To14,
+        migration14To15,
+        migration15To16
     )
 }
 
@@ -683,6 +686,40 @@ val migration13To14: Migration = object : Migration(13, 14) {
             """
             CREATE INDEX IF NOT EXISTS $cardsReviewQueueIndexName
             ON cards(workspaceId, dueAtMillis, createdAtMillis, cardId)
+            """.trimIndent()
+        )
+    }
+}
+
+val migration14To15: Migration = object : Migration(14, 15) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS progress_review_schedule_cache (
+                scopeKey TEXT NOT NULL PRIMARY KEY,
+                scopeId TEXT NOT NULL,
+                timeZone TEXT NOT NULL,
+                referenceLocalDate TEXT NOT NULL,
+                generatedAt TEXT,
+                totalCards INTEGER NOT NULL,
+                bucketsJson TEXT NOT NULL,
+                updatedAtMillis INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+    }
+}
+
+val migration15To16: Migration = object : Migration(15, 16) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "ALTER TABLE outbox_entries ADD COLUMN affectsReviewSchedule INTEGER NOT NULL DEFAULT 0"
+        )
+        db.execSQL(
+            """
+            UPDATE outbox_entries
+            SET affectsReviewSchedule = 1
+            WHERE entityType = 'card' AND operationType = 'upsert'
             """.trimIndent()
         )
     }

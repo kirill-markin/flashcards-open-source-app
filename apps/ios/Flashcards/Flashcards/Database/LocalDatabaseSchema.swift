@@ -1,7 +1,7 @@
 import Foundation
 
 enum LocalDatabaseSchema {
-    static let currentVersion: Int = 13
+    static let currentVersion: Int = 14
 
     static var baseMigrationSQL: String {
         let defaultEnableFuzzValue: Int = defaultSchedulerSettingsConfig.enableFuzz ? 1 : 0
@@ -99,6 +99,7 @@ enum LocalDatabaseSchema {
             client_updated_at TEXT NOT NULL, -- client-side LWW timestamp associated with the pending operation
             created_at TEXT NOT NULL, -- when the pending operation entered the local outbox
             attempt_count INTEGER NOT NULL DEFAULT 0, -- retry counter for sync diagnostics and exponential backoff decisions
+            review_schedule_impact INTEGER NOT NULL DEFAULT 1 CHECK (review_schedule_impact IN (0, 1)), -- whether this pending operation must force the local review schedule overlay
             last_error TEXT -- most recent sync failure message for debugging and user-facing diagnostics
         );
 

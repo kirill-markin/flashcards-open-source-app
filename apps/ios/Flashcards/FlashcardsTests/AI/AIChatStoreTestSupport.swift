@@ -349,6 +349,12 @@ enum AIChatStoreTestSupport {
         let to: String
     }
 
+    struct ProgressReviewScheduleRequest: Equatable {
+        let apiBaseUrl: String
+        let authorizationHeader: String
+        let timeZone: String
+    }
+
     @MainActor
     final class CloudSyncService: CloudSyncServing {
         var runLinkedSyncCallCount: Int
@@ -359,6 +365,7 @@ enum AIChatStoreTestSupport {
         var isWorkspaceEmptyForBootstrapRequests: [WorkspaceBootstrapEmptinessRequest]
         var progressSummaryRequests: [ProgressSummaryRequest]
         var progressSeriesRequests: [ProgressSeriesRequest]
+        var progressReviewScheduleRequests: [ProgressReviewScheduleRequest]
 
         init() {
             self.runLinkedSyncCallCount = 0
@@ -369,6 +376,7 @@ enum AIChatStoreTestSupport {
             self.isWorkspaceEmptyForBootstrapRequests = []
             self.progressSummaryRequests = []
             self.progressSeriesRequests = []
+            self.progressReviewScheduleRequests = []
         }
 
         func fetchCloudAccount(apiBaseUrl: String, bearerToken: String) async throws -> CloudAccountSnapshot {
@@ -429,6 +437,28 @@ enum AIChatStoreTestSupport {
                     activeReviewDays: 0
                 ),
                 generatedAt: "2026-04-25T00:00:00.000Z"
+            )
+        }
+
+        func loadProgressReviewSchedule(
+            apiBaseUrl: String,
+            authorizationHeader: String,
+            timeZone: String
+        ) async throws -> UserReviewSchedule {
+            self.progressReviewScheduleRequests.append(
+                ProgressReviewScheduleRequest(
+                    apiBaseUrl: apiBaseUrl,
+                    authorizationHeader: authorizationHeader,
+                    timeZone: timeZone
+                )
+            )
+            return makeReviewSchedule(
+                timeZone: timeZone,
+                generatedAt: "2026-04-25T00:00:00.000Z",
+                totalCards: 0,
+                buckets: ReviewScheduleBucketKey.stableOrder.map { bucketKey in
+                    ReviewScheduleBucket(key: bucketKey, count: 0)
+                }
             )
         }
 
@@ -569,12 +599,15 @@ enum AIChatStoreTestSupport {
             }
             return CloudSyncResult(
                 appliedPullChangeCount: 0,
+                reviewScheduleImpactingPullChangeCount: 0,
                 changedEntityTypes: [],
                 localIdRepairEntityTypes: [],
                 acknowledgedOperationCount: 0,
                 acknowledgedReviewEventOperationCount: 0,
+                acknowledgedReviewScheduleImpactingOperationCount: 0,
                 cleanedUpOperationCount: 0,
-                cleanedUpReviewEventOperationCount: 0
+                cleanedUpReviewEventOperationCount: 0,
+                cleanedUpReviewScheduleImpactingOperationCount: 0
             )
         }
     }

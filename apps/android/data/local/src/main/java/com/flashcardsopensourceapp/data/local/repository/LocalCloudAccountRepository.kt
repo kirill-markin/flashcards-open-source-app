@@ -12,6 +12,7 @@ import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeMode
+import com.flashcardsopensourceapp.data.local.model.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
@@ -470,6 +471,19 @@ class LocalCloudAccountRepository(
                 apiBaseUrl = progressSession.apiBaseUrl,
                 authorizationHeader = progressSession.authorizationHeader,
                 timeZone = timeZone,
+            )
+        }
+    }
+
+    override suspend fun loadProgressReviewSchedule(
+        timeZone: String
+    ): CloudProgressReviewSchedule {
+        return operationCoordinator.runExclusive {
+            val progressSession = progressSession()
+            remoteService.loadProgressReviewSchedule(
+                apiBaseUrl = progressSession.apiBaseUrl,
+                authorizationHeader = progressSession.authorizationHeader,
+                timeZone = timeZone
             )
         }
     }

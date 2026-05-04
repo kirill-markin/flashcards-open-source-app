@@ -69,8 +69,12 @@ class SyncLocalStore(
         reviewHistoryChangePublisher.discardReviewHistoryChangeBatch()
     }
 
-    suspend fun enqueueCardUpsert(card: CardEntity, tags: List<String>) {
-        outboxLocalStore.enqueueCardUpsert(card = card, tags = tags)
+    suspend fun enqueueCardUpsert(card: CardEntity, tags: List<String>, affectsReviewSchedule: Boolean) {
+        outboxLocalStore.enqueueCardUpsert(
+            card = card,
+            tags = tags,
+            affectsReviewSchedule = affectsReviewSchedule
+        )
     }
 
     suspend fun enqueueDeckUpsert(deck: DeckEntity) {

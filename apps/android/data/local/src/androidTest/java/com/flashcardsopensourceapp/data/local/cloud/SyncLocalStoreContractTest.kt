@@ -188,7 +188,11 @@ class SyncLocalStoreContractTest {
         database.tagDao().insertCardTags(
             listOf(CardTagEntity(cardId = dirtyCard.cardId, tagId = "tag-local"))
         )
-        syncLocalStore.enqueueCardUpsert(card = dirtyCard, tags = listOf("local"))
+        syncLocalStore.enqueueCardUpsert(
+            card = dirtyCard,
+            tags = listOf("local"),
+            affectsReviewSchedule = true
+        )
         syncLocalStore.enqueueDeckUpsert(deck = dirtyDeck)
 
         syncLocalStore.applyBootstrapEntries(
@@ -314,6 +318,7 @@ class SyncLocalStoreContractTest {
                     .toString(),
                 clientUpdatedAtIso = "2026-03-27T19:01:00Z",
                 createdAtMillis = 1L,
+                affectsReviewSchedule = true,
                 attemptCount = 0,
                 lastError = null
             )
@@ -377,7 +382,11 @@ class SyncLocalStoreContractTest {
             workspaceId = workspaceId,
             reviewFilter = ReviewFilter.Tag(tag = "android")
         )
-        syncLocalStore.enqueueCardUpsert(card = originalCard, tags = listOf("android"))
+        syncLocalStore.enqueueCardUpsert(
+            card = originalCard,
+            tags = listOf("android"),
+            affectsReviewSchedule = true
+        )
         syncLocalStore.enqueueReviewEventAppend(reviewLog = originalReviewLog)
 
         val reidentifiedCardId = syncLocalStore.reidentifyWorkspaceForkConflictEntity(
@@ -604,7 +613,11 @@ class SyncLocalStoreContractTest {
                 blockedInstallationId = null
             )
         )
-        syncLocalStore.enqueueCardUpsert(card = originalCard, tags = listOf("android"))
+        syncLocalStore.enqueueCardUpsert(
+            card = originalCard,
+            tags = listOf("android"),
+            affectsReviewSchedule = true
+        )
         syncLocalStore.enqueueDeckUpsert(deck = originalDeck)
         syncLocalStore.enqueueReviewEventAppend(reviewLog = originalReviewLog)
 
@@ -746,7 +759,11 @@ class SyncLocalStoreContractTest {
                 blockedInstallationId = null
             )
         )
-        syncLocalStore.enqueueCardUpsert(card = originalCard, tags = emptyList())
+        syncLocalStore.enqueueCardUpsert(
+            card = originalCard,
+            tags = emptyList(),
+            affectsReviewSchedule = true
+        )
         syncLocalStore.enqueueReviewEventAppend(reviewLog = originalReviewLog)
 
         syncLocalStore.forkWorkspaceIdentity(
@@ -838,7 +855,11 @@ class SyncLocalStoreContractTest {
         )
         database.cardDao().insertCard(originalCard)
         database.reviewLogDao().insertReviewLog(originalReviewLog)
-        syncLocalStore.enqueueCardUpsert(card = originalCard, tags = emptyList())
+        syncLocalStore.enqueueCardUpsert(
+            card = originalCard,
+            tags = emptyList(),
+            affectsReviewSchedule = true
+        )
         syncLocalStore.enqueueReviewEventAppend(reviewLog = originalReviewLog)
 
         syncLocalStore.forkWorkspaceIdentity(

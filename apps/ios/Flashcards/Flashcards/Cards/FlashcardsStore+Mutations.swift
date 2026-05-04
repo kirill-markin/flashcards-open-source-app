@@ -25,6 +25,9 @@ extension FlashcardsStore {
             input: input,
             cardId: editingCardId
         )
+        if editingCardId == nil {
+            self.handleReviewScheduleLocalCardStateDidChange(now: now)
+        }
         self.refreshLocalReadModels(now: now)
         self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
     }
@@ -33,6 +36,7 @@ extension FlashcardsStore {
         let context = try self.requireLocalOutboxMutationContext()
         let now = Date()
         let createdCards = try context.database.createCards(workspaceId: context.workspaceId, inputs: inputs)
+        self.handleReviewScheduleLocalCardStateDidChange(now: now)
         try self.reload()
         self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
         return createdCards
@@ -42,6 +46,7 @@ extension FlashcardsStore {
         let context = try self.requireLocalOutboxMutationContext()
         let now = Date()
         _ = try context.database.deleteCard(workspaceId: context.workspaceId, cardId: cardId)
+        self.handleReviewScheduleLocalCardStateDidChange(now: now)
         self.refreshLocalReadModels(now: now)
         self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
     }
@@ -59,6 +64,7 @@ extension FlashcardsStore {
         let context = try self.requireLocalOutboxMutationContext()
         let now = Date()
         let result = try context.database.deleteCards(workspaceId: context.workspaceId, cardIds: cardIds)
+        self.handleReviewScheduleLocalCardStateDidChange(now: now)
         try self.reload()
         self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
         return result
@@ -103,6 +109,7 @@ extension FlashcardsStore {
                 reviewedAtClient: nowIsoTimestamp()
             )
         )
+        self.handleReviewScheduleLocalCardStateDidChange(now: now)
         self.refreshLocalReadModels(now: now)
         self.recordSuccessfulStrictReminderReview(reviewedAt: now, now: now)
         self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))

@@ -12,9 +12,17 @@ export type ProgressSummaryInput = Readonly<{
   timeZone: string;
 }>;
 
+export type ProgressReviewScheduleInput = Readonly<{
+  timeZone: string;
+}>;
+
 export type ProgressSummaryRequest = Readonly<{
   userId: string;
 }> & ProgressSummaryInput;
+
+export type ProgressReviewScheduleRequest = Readonly<{
+  userId: string;
+}> & ProgressReviewScheduleInput;
 
 export type ProgressSeriesInput = Readonly<{
   timeZone: string;
@@ -29,6 +37,24 @@ export type ProgressSeriesRequest = Readonly<{
 export type DailyReviewPoint = Readonly<{
   date: string;
   reviewCount: number;
+}>;
+
+export const reviewScheduleBucketKeys = [
+  "new",
+  "today",
+  "days1To7",
+  "days8To30",
+  "days31To90",
+  "days91To360",
+  "years1To2",
+  "later",
+] as const;
+
+export type ReviewScheduleBucketKey = typeof reviewScheduleBucketKeys[number];
+
+export type ReviewScheduleBucket = Readonly<{
+  key: ReviewScheduleBucketKey;
+  count: number;
 }>;
 
 export type ProgressSummary = Readonly<{
@@ -52,6 +78,13 @@ export type ProgressSeries = Readonly<{
   generatedAt: string;
 }>;
 
+export type ProgressReviewSchedule = Readonly<{
+  timeZone: string;
+  generatedAt: string;
+  totalCards: number;
+  buckets: ReadonlyArray<ReviewScheduleBucket>;
+}>;
+
 type DailyReviewCountRow = Readonly<{
   review_date: string;
   review_count: string | number;
@@ -61,9 +94,37 @@ type ReviewDateRow = Readonly<{
   review_date: string;
 }>;
 
+type ReviewScheduleCountRow = Readonly<{
+  new_count: string | number;
+  today_count: string | number;
+  days_1_to_7_count: string | number;
+  days_8_to_30_count: string | number;
+  days_31_to_90_count: string | number;
+  days_91_to_360_count: string | number;
+  years_1_to_2_count: string | number;
+  later_count: string | number;
+}>;
+
+type ReviewScheduleBucketCounts = Readonly<{
+  new: number;
+  today: number;
+  days1To7: number;
+  days8To30: number;
+  days31To90: number;
+  days91To360: number;
+  years1To2: number;
+  later: number;
+}>;
+
 type WorkspaceProgressSummaryRequest = Readonly<{
   workspaceId: string;
   timeZone: string;
+}>;
+
+type WorkspaceProgressReviewScheduleRequest = Readonly<{
+  workspaceId: string;
+  timeZone: string;
+  generatedAt: Date;
 }>;
 
 type WorkspaceProgressSeriesRequest = Readonly<{
@@ -100,6 +161,12 @@ function validateTimeZone(value: string): string {
 }
 
 function validateProgressSummaryInput(input: ProgressSummaryInput): ProgressSummaryInput {
+  return {
+    timeZone: validateTimeZone(input.timeZone),
+  };
+}
+
+function validateProgressReviewScheduleInput(input: ProgressReviewScheduleInput): ProgressReviewScheduleInput {
   return {
     timeZone: validateTimeZone(input.timeZone),
   };
@@ -228,6 +295,19 @@ export function parseProgressSummaryInputFromRequest(request: Request): Progress
   });
 }
 
+export function parseProgressReviewScheduleInputFromRequest(request: Request): ProgressReviewScheduleInput {
+  const url = new URL(request.url);
+  const rawTimeZone = url.searchParams.get("timeZone");
+
+  if (rawTimeZone === null) {
+    throwProgressValidationError("timeZone is required", "PROGRESS_TIMEZONE_REQUIRED");
+  }
+
+  return validateProgressReviewScheduleInput({
+    timeZone: rawTimeZone,
+  });
+}
+
 export function parseProgressSeriesInputFromRequest(request: Request): ProgressSeriesInput {
   const url = new URL(request.url);
   const rawTimeZone = url.searchParams.get("timeZone");
@@ -273,6 +353,84 @@ function normalizeReviewCount(value: string | number, reviewDate: string): numbe
   }
 
   return normalizedValue;
+}
+
+function normalizeAggregateCount(value: string | number, fieldName: string): number {
+  const normalizedValue = typeof value === "number" ? value : Number.parseInt(value, 10);
+  if (!Number.isInteger(normalizedValue) || normalizedValue < 0) {
+    throw new Error(`Invalid aggregate count returned for ${fieldName}`);
+  }
+
+  return normalizedValue;
+}
+
+function createEmptyReviewScheduleBucketCounts(): ReviewScheduleBucketCounts {
+  return {
+    new: 0,
+    today: 0,
+    days1To7: 0,
+    days8To30: 0,
+    days31To90: 0,
+    days91To360: 0,
+    years1To2: 0,
+    later: 0,
+  };
+}
+
+function addReviewScheduleCountRow(
+  counts: ReviewScheduleBucketCounts,
+  row: ReviewScheduleCountRow,
+): ReviewScheduleBucketCounts {
+  return {
+    new: counts.new + normalizeAggregateCount(row.new_count, "new_count"),
+    today: counts.today + normalizeAggregateCount(row.today_count, "today_count"),
+    days1To7: counts.days1To7 + normalizeAggregateCount(row.days_1_to_7_count, "days_1_to_7_count"),
+    days8To30: counts.days8To30 + normalizeAggregateCount(row.days_8_to_30_count, "days_8_to_30_count"),
+    days31To90: counts.days31To90 + normalizeAggregateCount(row.days_31_to_90_count, "days_31_to_90_count"),
+    days91To360: counts.days91To360 + normalizeAggregateCount(row.days_91_to_360_count, "days_91_to_360_count"),
+    years1To2: counts.years1To2 + normalizeAggregateCount(row.years_1_to_2_count, "years_1_to_2_count"),
+    later: counts.later + normalizeAggregateCount(row.later_count, "later_count"),
+  };
+}
+
+function getReviewScheduleBucketCount(
+  counts: ReviewScheduleBucketCounts,
+  key: ReviewScheduleBucketKey,
+): number {
+  switch (key) {
+    case "new":
+      return counts.new;
+    case "today":
+      return counts.today;
+    case "days1To7":
+      return counts.days1To7;
+    case "days8To30":
+      return counts.days8To30;
+    case "days31To90":
+      return counts.days31To90;
+    case "days91To360":
+      return counts.days91To360;
+    case "years1To2":
+      return counts.years1To2;
+    case "later":
+      return counts.later;
+  }
+}
+
+function createReviewScheduleBuckets(
+  counts: ReviewScheduleBucketCounts,
+): ReadonlyArray<ReviewScheduleBucket> {
+  return reviewScheduleBucketKeys.map((key) => ({
+    key,
+    count: getReviewScheduleBucketCount(counts, key),
+  }));
+}
+
+function calculateReviewScheduleTotalCards(counts: ReviewScheduleBucketCounts): number {
+  return reviewScheduleBucketKeys.reduce(
+    (total, key) => total + getReviewScheduleBucketCount(counts, key),
+    0,
+  );
 }
 
 function accumulateDailyReviewCounts(
@@ -331,6 +489,50 @@ async function loadDailyReviewCountRowsInExecutor(
   );
 
   return result.rows;
+}
+
+async function loadReviewScheduleCountRowInExecutor(
+  executor: DatabaseExecutor,
+  request: WorkspaceProgressReviewScheduleRequest,
+): Promise<ReviewScheduleCountRow> {
+  const queryParams: ReadonlyArray<SqlValue> = [
+    request.workspaceId,
+    request.timeZone,
+    request.generatedAt,
+  ];
+  const result = await executor.query<ReviewScheduleCountRow>(
+    [
+      "WITH schedule_boundaries AS (",
+      "SELECT",
+      "((timezone($2, $3::timestamptz)::date + 1)::timestamp AT TIME ZONE $2) AS tomorrow_start,",
+      "((timezone($2, $3::timestamptz)::date + 8)::timestamp AT TIME ZONE $2) AS days_8_start,",
+      "((timezone($2, $3::timestamptz)::date + 31)::timestamp AT TIME ZONE $2) AS days_31_start,",
+      "((timezone($2, $3::timestamptz)::date + 91)::timestamp AT TIME ZONE $2) AS days_91_start,",
+      "((timezone($2, $3::timestamptz)::date + 361)::timestamp AT TIME ZONE $2) AS days_361_start,",
+      "((timezone($2, $3::timestamptz)::date + 721)::timestamp AT TIME ZONE $2) AS days_721_start",
+      ")",
+      "SELECT",
+      "COUNT(*) FILTER (WHERE cards.due_at IS NULL)::int AS new_count,",
+      "COUNT(*) FILTER (WHERE cards.due_at IS NOT NULL AND cards.due_at < schedule_boundaries.tomorrow_start)::int AS today_count,",
+      "COUNT(*) FILTER (WHERE cards.due_at >= schedule_boundaries.tomorrow_start AND cards.due_at < schedule_boundaries.days_8_start)::int AS days_1_to_7_count,",
+      "COUNT(*) FILTER (WHERE cards.due_at >= schedule_boundaries.days_8_start AND cards.due_at < schedule_boundaries.days_31_start)::int AS days_8_to_30_count,",
+      "COUNT(*) FILTER (WHERE cards.due_at >= schedule_boundaries.days_31_start AND cards.due_at < schedule_boundaries.days_91_start)::int AS days_31_to_90_count,",
+      "COUNT(*) FILTER (WHERE cards.due_at >= schedule_boundaries.days_91_start AND cards.due_at < schedule_boundaries.days_361_start)::int AS days_91_to_360_count,",
+      "COUNT(*) FILTER (WHERE cards.due_at >= schedule_boundaries.days_361_start AND cards.due_at < schedule_boundaries.days_721_start)::int AS years_1_to_2_count,",
+      "COUNT(*) FILTER (WHERE cards.due_at >= schedule_boundaries.days_721_start)::int AS later_count",
+      "FROM content.cards AS cards",
+      "CROSS JOIN schedule_boundaries",
+      "WHERE cards.workspace_id = $1 AND cards.deleted_at IS NULL",
+    ].join(" "),
+    queryParams,
+  );
+
+  const row = result.rows[0];
+  if (row === undefined) {
+    throw new Error("Review schedule query did not return a row");
+  }
+
+  return row;
 }
 
 async function loadAllReviewDateRowsInExecutor(
@@ -450,6 +652,37 @@ async function buildUserProgressSummaryInExecutor(
   };
 }
 
+async function buildUserProgressReviewScheduleInExecutor(
+  executor: DatabaseExecutor,
+  request: ProgressReviewScheduleRequest,
+  generatedAtDate: Date,
+): Promise<ProgressReviewSchedule> {
+  const validatedInput = validateProgressReviewScheduleInput(request);
+  let counts = createEmptyReviewScheduleBucketCounts();
+  await applyUserDatabaseScopeInExecutor(executor, { userId: request.userId });
+  const workspaceIds = await listUserWorkspaceIdsInExecutor(executor, request.userId);
+
+  for (const workspaceId of workspaceIds) {
+    await applyWorkspaceDatabaseScopeInExecutor(executor, {
+      userId: request.userId,
+      workspaceId,
+    });
+    const row = await loadReviewScheduleCountRowInExecutor(executor, {
+      workspaceId,
+      timeZone: validatedInput.timeZone,
+      generatedAt: generatedAtDate,
+    });
+    counts = addReviewScheduleCountRow(counts, row);
+  }
+
+  return {
+    timeZone: validatedInput.timeZone,
+    generatedAt: generatedAtDate.toISOString(),
+    totalCards: calculateReviewScheduleTotalCards(counts),
+    buckets: createReviewScheduleBuckets(counts),
+  };
+}
+
 async function buildUserProgressSeriesInExecutor(
   executor: DatabaseExecutor,
   request: ProgressSeriesRequest,
@@ -495,6 +728,13 @@ export async function loadUserProgressSummaryInExecutor(
   return buildUserProgressSummaryInExecutor(executor, request, new Date());
 }
 
+export async function loadUserProgressReviewScheduleInExecutor(
+  executor: DatabaseExecutor,
+  request: ProgressReviewScheduleRequest,
+): Promise<ProgressReviewSchedule> {
+  return buildUserProgressReviewScheduleInExecutor(executor, request, new Date());
+}
+
 export async function loadUserProgressSeriesInExecutor(
   executor: DatabaseExecutor,
   request: ProgressSeriesRequest,
@@ -504,6 +744,12 @@ export async function loadUserProgressSeriesInExecutor(
 
 export async function loadUserProgressSummary(request: ProgressSummaryRequest): Promise<ProgressSummaryResponse> {
   return unsafeTransaction(async (executor) => loadUserProgressSummaryInExecutor(executor, request));
+}
+
+export async function loadUserProgressReviewSchedule(
+  request: ProgressReviewScheduleRequest,
+): Promise<ProgressReviewSchedule> {
+  return unsafeTransaction(async (executor) => loadUserProgressReviewScheduleInExecutor(executor, request));
 }
 
 export async function loadUserProgressSeries(request: ProgressSeriesRequest): Promise<ProgressSeries> {

@@ -8,6 +8,7 @@ import {
   parseDeleteWorkspaceResponse,
   parseQueryCardsPageResponse,
   parseNewChatSessionResponse,
+  parseProgressReviewScheduleResponse,
   parseProgressSummaryResponse,
   parseProgressSeriesResponse,
   parseSessionInfoResponse,
@@ -43,6 +44,8 @@ import type {
   QueryCardsPage,
   NewChatSessionRequestBody,
   NewChatSessionResponse,
+  ProgressReviewSchedule,
+  ProgressReviewScheduleInput,
   ProgressSummaryPayload,
   ProgressSeries,
   ProgressSummaryInput,
@@ -650,6 +653,27 @@ export async function loadProgressSeries(input: ProgressSeriesInput): Promise<Pr
     }, allowAuthRecovery),
     "GET /me/progress/series",
   );
+}
+
+export async function loadProgressReviewSchedule(
+  input: ProgressReviewScheduleInput,
+): Promise<ProgressReviewSchedule> {
+  const searchParams = new URLSearchParams({
+    timeZone: input.timeZone,
+  });
+  const endpoint = "GET /me/progress/review-schedule";
+  const schedule = parseProgressReviewScheduleResponse(
+    await requestJson(`/me/progress/review-schedule?${searchParams.toString()}`, {
+      method: "GET",
+    }, allowAuthRecovery),
+    endpoint,
+  );
+
+  if (schedule.timeZone !== input.timeZone) {
+    throw new ApiContractError(endpoint, "timeZone", JSON.stringify(input.timeZone));
+  }
+
+  return schedule;
 }
 
 export async function pushSyncOperations(

@@ -86,6 +86,7 @@ internal fun createSyncCardOutboxEntry(
             .toString(),
         clientUpdatedAtIso = "2026-04-02T15:50:57.000Z",
         createdAtMillis = createdAtMillis,
+        affectsReviewSchedule = true,
         attemptCount = 0,
         lastError = null
     )

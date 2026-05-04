@@ -13,6 +13,7 @@ const EMPTY_REVIEW_PROGRESS_BADGE_STATE: ReviewProgressBadgeState = {
 const REVIEW_PROGRESS_BADGE_SECTIONS = {
   includeSummary: true,
   includeSeries: false,
+  includeReviewSchedule: false,
 } as const;
 
 export function buildReviewProgressBadgeStateFromSummarySnapshot(
@@ -59,6 +60,7 @@ export function useReviewProgressBadge(): ReviewProgressBadgeState {
     cloudSettings,
     sessionVerificationState,
     progressLocalVersion,
+    progressScheduleLocalVersion: 0,
     progressServerInvalidationVersion,
     sections: REVIEW_PROGRESS_BADGE_SECTIONS,
   });

@@ -5,10 +5,13 @@ import { createAgentDiscoveryEnvelope } from "../agent/discovery";
 import { createAgentAccountEnvelope, shouldUseAgentSetupEnvelope } from "../agent/setup";
 import { HttpError } from "../errors";
 import {
+  loadUserProgressReviewSchedule,
   loadUserProgressSeries,
   loadUserProgressSummary,
+  parseProgressReviewScheduleInputFromRequest,
   parseProgressSeriesInputFromRequest,
   parseProgressSummaryInputFromRequest,
+  type ProgressReviewSchedule,
   type ProgressSeries,
   type ProgressSummaryResponse,
 } from "../progress";
@@ -28,6 +31,7 @@ import type { AppEnv } from "../app";
 type SystemRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
   loadRequestContextFromRequestFn?: typeof loadRequestContextFromRequest;
+  loadUserProgressReviewScheduleFn?: typeof loadUserProgressReviewSchedule;
   loadUserProgressSeriesFn?: typeof loadUserProgressSeries;
   loadUserProgressSummaryFn?: typeof loadUserProgressSummary;
 }>;
@@ -59,6 +63,7 @@ function assertProgressHumanTransport(transport: string): void {
 export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   const loadRequestContextFromRequestFn = options.loadRequestContextFromRequestFn ?? loadRequestContextFromRequest;
+  const loadUserProgressReviewScheduleFn = options.loadUserProgressReviewScheduleFn ?? loadUserProgressReviewSchedule;
   const loadUserProgressSeriesFn = options.loadUserProgressSeriesFn ?? loadUserProgressSeries;
   const loadUserProgressSummaryFn = options.loadUserProgressSummaryFn ?? loadUserProgressSummary;
 
@@ -135,6 +140,52 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
       return context.json(progress satisfies ProgressSummaryResponse);
     } catch (error) {
       logCloudRouteEvent("me_progress_summary_error", {
+        requestId,
+        route: context.req.path,
+        statusCode: error instanceof HttpError ? error.statusCode : 500,
+        userId: requestContext.userId,
+        authTransport: requestContext.transport,
+        timeZone: requestedParameters.timeZone,
+        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
+        validationIssues: summarizeValidationIssues(error),
+      }, true);
+      throw error;
+    }
+  });
+
+  app.get("/me/progress/review-schedule", async (context) => {
+    const { requestContext } = await loadRequestContextFromRequestFn(
+      context.req.raw,
+      options.allowedOrigins,
+    );
+    const requestId = context.get("requestId");
+    const requestUrl = new URL(context.req.url);
+    const requestedParameters = readRequestedProgressParameters(requestUrl);
+
+    try {
+      assertProgressHumanTransport(requestContext.transport);
+
+      const progressInput = parseProgressReviewScheduleInputFromRequest(context.req.raw);
+      const progress = await loadUserProgressReviewScheduleFn({
+        userId: requestContext.userId,
+        timeZone: progressInput.timeZone,
+      });
+
+      logCloudRouteEvent("me_progress_review_schedule", {
+        requestId,
+        route: context.req.path,
+        statusCode: 200,
+        userId: requestContext.userId,
+        authTransport: requestContext.transport,
+        timeZone: progress.timeZone,
+        bucketCount: progress.buckets.length,
+        totalCards: progress.totalCards,
+        generatedAt: progress.generatedAt,
+      }, false);
+
+      return context.json(progress satisfies ProgressReviewSchedule);
+    } catch (error) {
+      logCloudRouteEvent("me_progress_review_schedule_error", {
         requestId,
         route: context.req.path,
         statusCode: error instanceof HttpError ? error.statusCode : 500,

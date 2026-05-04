@@ -130,6 +130,21 @@ export const zhHansCatalog = {
     previousWeek: "上一周",
     nextWeek: "下一周",
     emptyWeek: "本周还没有复习。",
+    reviewSchedule: {
+      title: "复习计划",
+      totalCards: "卡片总数：{{count}}",
+      legendLabel: "复习计划分组",
+      buckets: {
+        new: "新卡",
+        today: "今天",
+        days1To7: "1-7 天",
+        days8To30: "8-30 天",
+        days31To90: "31-90 天",
+        days91To360: "91-360 天",
+        years1To2: "1-2 年",
+        later: "更晚",
+      },
+    },
     labels: {
       totalReviews: "总复习次数",
       activeDays: "活跃天数",

@@ -47,6 +47,24 @@ private struct ReviewEventOutboxPayload: Codable {
 private struct ReviewEventOutboxCandidate {
     let operationId: String
     let payloadJson: String
+    let reviewScheduleImpact: Bool
+}
+
+private struct PendingReviewScheduleCardTotalDeltaEntry {
+    let operationId: String
+    let entityId: String
+    let clientUpdatedAt: String
+    let payloadJson: String
+}
+
+private struct PendingReviewScheduleCardTotalChange {
+    let hasLocalCreate: Bool
+    let finalIsDeleted: Bool
+}
+
+struct DeletedOutboxEntriesSummary: Hashable {
+    let operationCount: Int
+    let reviewScheduleImpactingOperationCount: Int
 }
 
 private struct SyncStateRow {
@@ -62,7 +80,7 @@ struct OutboxStore {
     func loadOutboxEntries(workspaceId: String, limit: Int) throws -> [PersistedOutboxEntry] {
         try self.core.query(
             sql: """
-            SELECT operation_id, workspace_id, entity_type, entity_id, operation_type, payload_json, client_updated_at, created_at, attempt_count, last_error
+            SELECT operation_id, workspace_id, entity_type, entity_id, operation_type, payload_json, client_updated_at, created_at, attempt_count, last_error, review_schedule_impact
             FROM outbox
             WHERE workspace_id = ?
             ORDER BY created_at ASC
@@ -94,6 +112,7 @@ struct OutboxStore {
                 createdAt: DatabaseCore.columnText(statement: statement, index: 7),
                 attemptCount: Int(DatabaseCore.columnInt64(statement: statement, index: 8)),
                 lastError: DatabaseCore.columnOptionalText(statement: statement, index: 9) ?? "",
+                reviewScheduleImpact: DatabaseCore.columnInt64(statement: statement, index: 10) != 0,
                 operation: try self.decodeOutboxOperation(
                     workspaceId: workspaceId,
                     operationId: operationId,
@@ -123,10 +142,13 @@ struct OutboxStore {
         )
     }
 
-    func deleteStaleReviewEventOutboxEntries(workspaceId: String, currentInstallationId: String) throws -> Int {
+    func deleteStaleReviewEventOutboxEntries(
+        workspaceId: String,
+        currentInstallationId: String
+    ) throws -> DeletedOutboxEntriesSummary {
         let candidates = try self.core.query(
             sql: """
-            SELECT operation_id, payload_json
+            SELECT operation_id, payload_json, review_schedule_impact
             FROM outbox
             WHERE workspace_id = ? AND entity_type = 'review_event'
             """,
@@ -134,20 +156,114 @@ struct OutboxStore {
         ) { statement in
             ReviewEventOutboxCandidate(
                 operationId: DatabaseCore.columnText(statement: statement, index: 0),
-                payloadJson: DatabaseCore.columnText(statement: statement, index: 1)
+                payloadJson: DatabaseCore.columnText(statement: statement, index: 1),
+                reviewScheduleImpact: DatabaseCore.columnInt64(statement: statement, index: 2) != 0
             )
         }
 
-        let staleOperationIds = try candidates.compactMap { candidate in
+        let staleCandidates = try candidates.filter { candidate in
             let payload = try self.core.decoder.decode(
                 ReviewEventOutboxPayload.self,
                 from: Data(candidate.payloadJson.utf8)
             )
-            return payload.installationId == currentInstallationId ? nil : candidate.operationId
+            return payload.installationId != currentInstallationId
         }
 
+        let staleOperationIds = staleCandidates.map(\.operationId)
         try self.deleteOutboxEntries(operationIds: staleOperationIds)
-        return staleOperationIds.count
+        return DeletedOutboxEntriesSummary(
+            operationCount: staleOperationIds.count,
+            reviewScheduleImpactingOperationCount: staleCandidates.filter(\.reviewScheduleImpact).count
+        )
+    }
+
+    func hasPendingCardOperation(
+        workspaceId: String,
+        installationId: String
+    ) throws -> Bool {
+        try self.hasPendingReviewScheduleImpactingCardOperation(
+            workspaceId: workspaceId,
+            installationId: installationId
+        )
+    }
+
+    func hasPendingReviewScheduleImpactingCardOperation(
+        workspaceId: String,
+        installationId: String
+    ) throws -> Bool {
+        try self.core.scalarInt(
+            sql: """
+            SELECT EXISTS(
+                SELECT 1
+                FROM outbox
+                WHERE workspace_id = ?
+                    AND installation_id = ?
+                    AND entity_type = 'card'
+                    AND review_schedule_impact = 1
+                LIMIT 1
+            )
+            """,
+            values: [
+                .text(workspaceId),
+                .text(installationId),
+            ]
+        ) == 1
+    }
+
+    func loadPendingReviewScheduleCardTotalDelta(
+        workspaceId: String,
+        installationId: String
+    ) throws -> Int {
+        let entries = try self.core.query(
+            sql: """
+            SELECT operation_id, entity_id, client_updated_at, payload_json
+            FROM outbox
+            WHERE workspace_id = ?
+                AND installation_id = ?
+                AND entity_type = 'card'
+                AND operation_type = 'upsert'
+                AND review_schedule_impact = 1
+            ORDER BY created_at ASC, operation_id ASC
+            """,
+            values: [
+                .text(workspaceId),
+                .text(installationId),
+            ]
+        ) { statement in
+            PendingReviewScheduleCardTotalDeltaEntry(
+                operationId: DatabaseCore.columnText(statement: statement, index: 0),
+                entityId: DatabaseCore.columnText(statement: statement, index: 1),
+                clientUpdatedAt: DatabaseCore.columnText(statement: statement, index: 2),
+                payloadJson: DatabaseCore.columnText(statement: statement, index: 3)
+            )
+        }
+
+        var changesByCardId: [String: PendingReviewScheduleCardTotalChange] = [:]
+        for entry in entries {
+            let parsedChange = try self.parsePendingReviewScheduleCardTotalChange(
+                workspaceId: workspaceId,
+                entry: entry
+            )
+            let existingChange = changesByCardId[entry.entityId]
+            changesByCardId[entry.entityId] = PendingReviewScheduleCardTotalChange(
+                hasLocalCreate: existingChange?.hasLocalCreate == true || parsedChange.hasLocalCreate,
+                finalIsDeleted: parsedChange.finalIsDeleted
+            )
+        }
+
+        return changesByCardId.values.reduce(0) { total, change in
+            if change.hasLocalCreate && change.finalIsDeleted {
+                return total
+            }
+            if change.hasLocalCreate {
+                return total + 1
+            }
+            if change.finalIsDeleted {
+                return total - 1
+            }
+
+            return total
+        }
     }
 
     func markOutboxEntriesFailed(operationIds: [String], message: String) throws {
@@ -329,7 +445,8 @@ struct OutboxStore {
         installationId: String,
         operationId: String,
         clientUpdatedAt: String,
-        card: Card
+        card: Card,
+        reviewScheduleImpact: Bool
     ) throws {
         let payloadJson = try self.core.encodeJsonString(
             value: CardOutboxPayload(
@@ -358,7 +475,8 @@ struct OutboxStore {
             entityId: card.cardId,
             operationType: "upsert",
             payloadJson: payloadJson,
-            clientUpdatedAt: clientUpdatedAt
+            clientUpdatedAt: clientUpdatedAt,
+            reviewScheduleImpact: reviewScheduleImpact
         )
     }
 
@@ -386,7 +504,8 @@ struct OutboxStore {
             entityId: deck.deckId,
             operationType: "upsert",
             payloadJson: payloadJson,
-            clientUpdatedAt: clientUpdatedAt
+            clientUpdatedAt: clientUpdatedAt,
+            reviewScheduleImpact: false
         )
     }
 
@@ -415,7 +534,8 @@ struct OutboxStore {
             entityId: workspaceId,
             operationType: "upsert",
             payloadJson: payloadJson,
-            clientUpdatedAt: clientUpdatedAt
+            clientUpdatedAt: clientUpdatedAt,
+            reviewScheduleImpact: false
         )
     }
 
@@ -444,7 +564,8 @@ struct OutboxStore {
             entityId: reviewEvent.reviewEventId,
             operationType: "append",
             payloadJson: payloadJson,
-            clientUpdatedAt: clientUpdatedAt
+            clientUpdatedAt: clientUpdatedAt,
+            reviewScheduleImpact: false
         )
     }
 
@@ -456,7 +577,8 @@ struct OutboxStore {
         entityId: String,
         operationType: String,
         payloadJson: String,
-        clientUpdatedAt: String
+        clientUpdatedAt: String,
+        reviewScheduleImpact: Bool
     ) throws {
         try self.core.execute(
             sql: """
@@ -471,9 +593,10 @@ struct OutboxStore {
                 client_updated_at,
                 created_at,
                 attempt_count,
+                review_schedule_impact,
                 last_error
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, NULL)
             """,
             values: [
                 .text(operationId),
@@ -484,7 +607,8 @@ struct OutboxStore {
                 .text(operationType),
                 .text(payloadJson),
                 .text(clientUpdatedAt),
-                .text(nowIsoTimestamp())
+                .text(nowIsoTimestamp()),
+                .integer(reviewScheduleImpact ? 1 : 0)
             ]
         )
     }
@@ -578,6 +702,27 @@ struct OutboxStore {
                 deletedAt: legacyPayload.deletedAt
             )
         }
+    }
+
+    private func parsePendingReviewScheduleCardTotalChange(
+        workspaceId: String,
+        entry: PendingReviewScheduleCardTotalDeltaEntry
+    ) throws -> PendingReviewScheduleCardTotalChange {
+        let payload = try self.core.decoder.decode(
+            CardOutboxPayload.self,
+            from: Data(entry.payloadJson.utf8)
+        )
+        guard payload.cardId == entry.entityId else {
+            throw LocalStoreError.database(
+                "Pending card outbox entry \(entry.operationId) entityId \(entry.entityId) does not match payload cardId \(payload.cardId)"
+            )
+        }
+
+        let createdAt = try self.loadCardCreatedAt(workspaceId: workspaceId, cardId: entry.entityId)
+        return PendingReviewScheduleCardTotalChange(
+            hasLocalCreate: createdAt == entry.clientUpdatedAt,
+            finalIsDeleted: payload.deletedAt != nil
+        )
     }
 
     private func loadCardCreatedAt(workspaceId: String, cardId: String) throws -> String {

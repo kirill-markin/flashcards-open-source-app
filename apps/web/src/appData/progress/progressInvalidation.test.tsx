@@ -3,6 +3,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  invalidateLocalReviewSchedule,
   resetProgressInvalidationStateForTests,
   useProgressInvalidationRefresh,
   useProgressInvalidationState,
@@ -85,6 +86,7 @@ describe("useProgressInvalidationRefresh", () => {
 
     expect(harness.getSnapshot()).toEqual({
       progressLocalVersion: 0,
+      progressScheduleLocalVersion: 0,
       progressServerInvalidationVersion: 0,
     });
 
@@ -97,6 +99,7 @@ describe("useProgressInvalidationRefresh", () => {
 
     expect(harness.getSnapshot()).toEqual({
       progressLocalVersion: 1,
+      progressScheduleLocalVersion: 0,
       progressServerInvalidationVersion: 1,
     });
   });
@@ -108,6 +111,7 @@ describe("useProgressInvalidationRefresh", () => {
 
     expect(harness.getSnapshot()).toEqual({
       progressLocalVersion: 0,
+      progressScheduleLocalVersion: 0,
       progressServerInvalidationVersion: 0,
     });
 
@@ -118,7 +122,22 @@ describe("useProgressInvalidationRefresh", () => {
 
     expect(harness.getSnapshot()).toEqual({
       progressLocalVersion: 1,
+      progressScheduleLocalVersion: 0,
       progressServerInvalidationVersion: 1,
+    });
+  });
+
+  it("tracks review schedule local invalidation independently from shared progress refreshes", () => {
+    const harness = renderHarness();
+
+    act(() => {
+      invalidateLocalReviewSchedule();
+    });
+
+    expect(harness.getSnapshot()).toEqual({
+      progressLocalVersion: 0,
+      progressScheduleLocalVersion: 1,
+      progressServerInvalidationVersion: 0,
     });
   });
 });

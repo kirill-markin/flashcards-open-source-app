@@ -4,6 +4,8 @@ import SwiftUI
 private let progressStringsTableName: String = "Foundation"
 private let progressCalendarColumnCount: Int = 7
 private let progressChartHeight: CGFloat = 220
+private let progressReviewScheduleChartHeight: CGFloat = 220
+private let progressReviewScheduleLegendMarkerSize: CGFloat = 10
 private let progressStreakBadgeSize: CGFloat = 34
 private let progressStreakBadgeHorizontalPadding: CGFloat = 8
 private let progressReviewCardsStringsTableName: String = "ReviewCards"
@@ -57,6 +59,14 @@ struct ProgressScreen: View {
                     }
                     .accessibilityIdentifier(UITestIdentifier.progressReviewsSection)
                     .modifier(ProgressCardModifier())
+
+                    if let reviewScheduleSnapshot = self.store.reviewScheduleSnapshot {
+                        VStack(alignment: .leading, spacing: 0) {
+                            ProgressReviewScheduleSection(snapshot: reviewScheduleSnapshot)
+                        }
+                        .accessibilityIdentifier(UITestIdentifier.progressReviewScheduleSection)
+                        .modifier(ProgressCardModifier())
+                    }
                 } else if self.store.isProgressRefreshing == false {
                     VStack(alignment: .leading, spacing: 0) {
                         ContentUnavailableView(
@@ -544,6 +554,119 @@ private struct ProgressReviewsSection: View {
     }
 }
 
+private struct ProgressReviewScheduleSection: View {
+    let snapshot: ReviewScheduleSnapshot
+
+    private var buckets: [ReviewScheduleBucket] {
+        self.snapshot.schedule.buckets
+    }
+
+    private var nonEmptyBuckets: [ReviewScheduleBucket] {
+        self.buckets.filter { bucket in
+            bucket.count > 0
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(
+                String(
+                    localized: "progress.screen.review_schedule.section_title",
+                    defaultValue: "Review schedule",
+                    table: progressStringsTableName,
+                    comment: "Progress review schedule section title"
+                )
+            )
+            .font(.headline)
+
+            if self.snapshot.schedule.totalCards > 0 {
+                Chart {
+                    ForEach(self.nonEmptyBuckets) { bucket in
+                        SectorMark(
+                            angle: .value("Cards", bucket.count),
+                            innerRadius: .ratio(0.62),
+                            angularInset: 1.4
+                        )
+                        .foregroundStyle(progressReviewScheduleBucketColor(key: bucket.key))
+                        .accessibilityLabel(progressReviewScheduleBucketTitle(key: bucket.key))
+                        .accessibilityValue(
+                            progressReviewScheduleBucketAccessibilityValue(
+                                bucket: bucket,
+                                totalCards: self.snapshot.schedule.totalCards
+                            )
+                        )
+                    }
+                }
+                .chartLegend(.hidden)
+                .frame(height: progressReviewScheduleChartHeight)
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel(progressReviewScheduleChartAccessibilityLabel())
+                .accessibilityValue(progressReviewScheduleAccessibilitySummary(snapshot: self.snapshot))
+
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(self.buckets) { bucket in
+                        ProgressReviewScheduleLegendRow(
+                            bucket: bucket,
+                            totalCards: self.snapshot.schedule.totalCards
+                        )
+                    }
+                }
+            } else {
+                Text(
+                    String(
+                        localized: "progress.screen.review_schedule.empty",
+                        defaultValue: "No active cards yet.",
+                        table: progressStringsTableName,
+                        comment: "Progress review schedule empty caption"
+                    )
+                )
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+private struct ProgressReviewScheduleLegendRow: View {
+    let bucket: ReviewScheduleBucket
+    let totalCards: Int
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Circle()
+                .fill(progressReviewScheduleBucketColor(key: self.bucket.key))
+                .frame(
+                    width: progressReviewScheduleLegendMarkerSize,
+                    height: progressReviewScheduleLegendMarkerSize
+                )
+                .accessibilityHidden(true)
+
+            Text(progressReviewScheduleBucketTitle(key: self.bucket.key))
+                .font(.subheadline)
+                .foregroundStyle(.primary)
+
+            Spacer(minLength: 12)
+
+            Text(self.detailText)
+                .font(.subheadline.monospacedDigit())
+                .foregroundStyle(.secondary)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(progressReviewScheduleBucketTitle(key: self.bucket.key))
+        .accessibilityValue(
+            progressReviewScheduleBucketAccessibilityValue(
+                bucket: self.bucket,
+                totalCards: self.totalCards
+            )
+        )
+    }
+
+    private var detailText: String {
+        "\(self.bucket.count.formatted()) · \(progressReviewScheduleBucketPercentage(bucket: self.bucket, totalCards: self.totalCards))"
+    }
+}
+
 private struct ProgressReviewChartPage: Identifiable {
     let days: [ProgressChartDay]
     let startLocalDate: String
@@ -707,6 +830,134 @@ private func progressChartBarStyle(day: ProgressChartDay) -> AnyShapeStyle {
     }
 
     return AnyShapeStyle(Color(uiColor: .tertiarySystemFill))
+}
+
+private func progressReviewScheduleBucketTitle(key: ReviewScheduleBucketKey) -> String {
+    switch key {
+    case .new:
+        return String(
+            localized: "progress.screen.review_schedule.bucket.new",
+            defaultValue: "New",
+            table: progressStringsTableName,
+            comment: "Review schedule bucket label for cards without a due date"
+        )
+    case .today:
+        return String(
+            localized: "progress.screen.review_schedule.bucket.today",
+            defaultValue: "Today",
+            table: progressStringsTableName,
+            comment: "Review schedule bucket label for overdue and due-today cards"
+        )
+    case .days1To7:
+        return String(
+            localized: "progress.screen.review_schedule.bucket.days_1_to_7",
+            defaultValue: "1-7 days",
+            table: progressStringsTableName,
+            comment: "Review schedule bucket label for cards due in one to seven days"
+        )
+    case .days8To30:
+        return String(
+            localized: "progress.screen.review_schedule.bucket.days_8_to_30",
+            defaultValue: "8-30 days",
+            table: progressStringsTableName,
+            comment: "Review schedule bucket label for cards due in eight to thirty days"
+        )
+    case .days31To90:
+        return String(
+            localized: "progress.screen.review_schedule.bucket.days_31_to_90",
+            defaultValue: "31-90 days",
+            table: progressStringsTableName,
+            comment: "Review schedule bucket label for cards due in thirty-one to ninety days"
+        )
+    case .days91To360:
+        return String(
+            localized: "progress.screen.review_schedule.bucket.days_91_to_360",
+            defaultValue: "91-360 days",
+            table: progressStringsTableName,
+            comment: "Review schedule bucket label for cards due in ninety-one to three hundred sixty days"
+        )
+    case .years1To2:
+        return String(
+            localized: "progress.screen.review_schedule.bucket.years_1_to_2",
+            defaultValue: "1-2 years",
+            table: progressStringsTableName,
+            comment: "Review schedule bucket label for cards due in one to two years"
+        )
+    case .later:
+        return String(
+            localized: "progress.screen.review_schedule.bucket.later",
+            defaultValue: "Later",
+            table: progressStringsTableName,
+            comment: "Review schedule bucket label for cards due later than two years"
+        )
+    }
+}
+
+private func progressReviewScheduleBucketColor(key: ReviewScheduleBucketKey) -> Color {
+    switch key {
+    case .new:
+        return .accentColor
+    case .today:
+        return .red
+    case .days1To7:
+        return .blue
+    case .days8To30:
+        return .green
+    case .days31To90:
+        return .mint
+    case .days91To360:
+        return .purple
+    case .years1To2:
+        return .pink
+    case .later:
+        return .gray
+    }
+}
+
+private func progressReviewScheduleBucketPercentage(
+    bucket: ReviewScheduleBucket,
+    totalCards: Int
+) -> String {
+    guard totalCards > 0 else {
+        return Double(0).formatted(.percent.precision(.fractionLength(0)))
+    }
+
+    let ratio = Double(bucket.count) / Double(totalCards)
+    return ratio.formatted(.percent.precision(.fractionLength(0)))
+}
+
+private func progressReviewScheduleChartAccessibilityLabel() -> String {
+    String(
+        localized: "progress.screen.review_schedule.section_title",
+        defaultValue: "Review schedule",
+        table: progressStringsTableName,
+        comment: "Progress review schedule section title"
+    )
+}
+
+private func progressReviewScheduleBucketAccessibilityValue(
+    bucket: ReviewScheduleBucket,
+    totalCards: Int
+) -> String {
+    let localizedFormat = String(
+        localized: "progress.screen.review_schedule.bucket.accessibility_value",
+        defaultValue: "%lld cards, %@",
+        table: progressStringsTableName,
+        comment: "Accessibility value for a review schedule bucket with card count and percentage"
+    )
+    return String(
+        format: localizedFormat,
+        locale: Locale.current,
+        Int64(bucket.count),
+        progressReviewScheduleBucketPercentage(bucket: bucket, totalCards: totalCards)
+    )
+}
+
+private func progressReviewScheduleAccessibilitySummary(snapshot: ReviewScheduleSnapshot) -> String {
+    snapshot.schedule.buckets.map { bucket in
+        "\(progressReviewScheduleBucketTitle(key: bucket.key)): \(progressReviewScheduleBucketAccessibilityValue(bucket: bucket, totalCards: snapshot.schedule.totalCards))"
+    }
+    .joined(separator: ", ")
 }
 
 #Preview {
