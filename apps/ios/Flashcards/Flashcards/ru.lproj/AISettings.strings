@@ -400,6 +400,8 @@
 "settings.notifications.section.reviewReminders" = "Напоминания о повторении для рабочего пространства";
 "settings.notifications.reviewReminders.description" = "Эти напоминания используют только текущее рабочее пространство и остаются на этом устройстве.";
 "settings.notifications.enableWorkspaceReminders" = "Включить напоминания рабочего пространства";
+"settings.notifications.appIconBadge.toggle" = "Показывать значок на иконке приложения";
+"settings.notifications.appIconBadge.description" = "Когда срабатывает напоминание о повторении, а вы ещё не повторили ни одной карточки сегодня, на иконке приложения появляется красная единица. Значок исчезает, как только вы повторите карточку или откроете приложение.";
 "settings.notifications.section.strictReminders" = "Строгие напоминания";
 "settings.notifications.enableStrictReminders" = "Включить строгие напоминания";
 "settings.notifications.strictReminders.description" = "Если в течение локального дня вы нигде в приложении не повторяли, Flashcards напомнит за 4, 3 и 2 часа до конца этого дня.";

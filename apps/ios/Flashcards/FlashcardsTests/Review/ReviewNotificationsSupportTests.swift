@@ -56,7 +56,8 @@ final class ReviewNotificationsSupportTests: XCTestCase {
                 windowEndHour: 19,
                 windowEndMinute: 0,
                 idleMinutes: 60
-            )
+            ),
+            showAppIconBadge: true
         )
 
         let persistedData = try JSONEncoder().encode(disabledSettings)

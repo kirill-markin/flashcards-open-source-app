@@ -23,7 +23,8 @@ extension FlashcardsStore {
                 isEnabled: isEnabled,
                 selectedMode: self.reviewNotificationsSettings.selectedMode,
                 daily: self.reviewNotificationsSettings.daily,
-                inactivity: self.reviewNotificationsSettings.inactivity
+                inactivity: self.reviewNotificationsSettings.inactivity,
+                showAppIconBadge: self.reviewNotificationsSettings.showAppIconBadge
             )
         )
     }
@@ -34,7 +35,8 @@ extension FlashcardsStore {
                 isEnabled: self.reviewNotificationsSettings.isEnabled,
                 selectedMode: selectedMode,
                 daily: self.reviewNotificationsSettings.daily,
-                inactivity: self.reviewNotificationsSettings.inactivity
+                inactivity: self.reviewNotificationsSettings.inactivity,
+                showAppIconBadge: self.reviewNotificationsSettings.showAppIconBadge
             )
         )
     }
@@ -45,7 +47,8 @@ extension FlashcardsStore {
                 isEnabled: self.reviewNotificationsSettings.isEnabled,
                 selectedMode: self.reviewNotificationsSettings.selectedMode,
                 daily: DailyReviewNotificationsSettings(hour: hour, minute: minute),
-                inactivity: self.reviewNotificationsSettings.inactivity
+                inactivity: self.reviewNotificationsSettings.inactivity,
+                showAppIconBadge: self.reviewNotificationsSettings.showAppIconBadge
             )
         )
     }
@@ -68,9 +71,34 @@ extension FlashcardsStore {
                     windowEndHour: windowEndHour,
                     windowEndMinute: windowEndMinute,
                     idleMinutes: idleMinutes
-                )
+                ),
+                showAppIconBadge: self.reviewNotificationsSettings.showAppIconBadge
             )
         )
+    }
+
+    func updateReviewNotificationsAppIconBadgeEnabled(isEnabled: Bool) {
+        self.updateReviewNotificationsSettings(
+            settings: ReviewNotificationsSettings(
+                isEnabled: self.reviewNotificationsSettings.isEnabled,
+                selectedMode: self.reviewNotificationsSettings.selectedMode,
+                daily: self.reviewNotificationsSettings.daily,
+                inactivity: self.reviewNotificationsSettings.inactivity,
+                showAppIconBadge: isEnabled
+            )
+        )
+        // When the toggle is turned off, drop any badge currently shown on the icon
+        // so the user gets immediate feedback rather than waiting for the next reminder.
+        if isEnabled == false {
+            self.clearAppIconBadge()
+        }
+    }
+
+    /// Clears the app icon badge. Safe to call from any path; resets to zero unconditionally.
+    func clearAppIconBadge() {
+        Task { @MainActor in
+            try? await UNUserNotificationCenter.current().setBadgeCount(0)
+        }
     }
 
     func dismissReviewNotificationPrePrompt(markDismissed: Bool) {
@@ -166,6 +194,8 @@ extension FlashcardsStore {
         self.userDefaults.set(nextCount, forKey: reviewNotificationSuccessfulReviewCountUserDefaultsKey)
         self.userDefaults.set(now.timeIntervalSince1970, forKey: reviewNotificationLastActiveAtUserDefaultsKey)
         self.reconcileReviewNotifications(trigger: .reviewRecorded, now: now)
+        // Reconcile clears the badge asynchronously via .reviewRecorded; this gives instant feedback before that Task runs.
+        self.clearAppIconBadge()
         self.recordSuccessfulStrictReminderReview(reviewedAt: reviewedAt, now: now)
         let reviewCount = self.loadReviewNotificationPromptReviewCount(persistedReviewCount: nextCount)
         Task { @MainActor in
@@ -294,9 +324,9 @@ extension FlashcardsStore {
             lastActiveAt: lastActiveAt
         )
 
-        let payloads: [ScheduledReviewNotificationPayload]
+        let loadResult: ScheduledReviewNotificationLoadResult
         do {
-            payloads = try await loadScheduledReviewNotificationPayloads(snapshot: snapshot)
+            loadResult = try await loadScheduledReviewNotificationPayloads(snapshot: snapshot)
         } catch {
             logFlashcardsError(
                 domain: "ios_notifications",
@@ -316,6 +346,14 @@ extension FlashcardsStore {
             return
         }
 
+        let payloads = loadResult.payloads
+        // Once the user has reviewed today, every reminder that fires later TODAY must
+        // not raise the icon badge. Future-day reminders still attach the badge because
+        // we do not yet know whether the user will review on those days. The reschedule
+        // path runs on every review submission so this stays current.
+        let badgeCalendar = Calendar.autoupdatingCurrent
+        let hasReviewedToday = loadResult.hasReviewedToday
+
         for payload in payloads {
             guard self.reviewNotificationsRescheduleGeneration == generation else {
                 return
@@ -328,6 +366,13 @@ extension FlashcardsStore {
             content.body = payload.notificationBodyText
             content.sound = .default
             content.userInfo = buildAppNotificationUserInfo(notificationType: .reviewReminder)
+            let scheduledAt = Date(timeIntervalSince1970: TimeInterval(payload.scheduledAtMillis) / 1000)
+            let isScheduledForToday = badgeCalendar.isDate(scheduledAt, inSameDayAs: now)
+            let attachBadge = self.reviewNotificationsSettings.showAppIconBadge
+                && !(isScheduledForToday && hasReviewedToday)
+            if attachBadge {
+                content.badge = NSNumber(value: 1)
+            }
 
             let interval = max(1, TimeInterval(payload.scheduledAtMillis) / 1000 - now.timeIntervalSince1970)
             let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
