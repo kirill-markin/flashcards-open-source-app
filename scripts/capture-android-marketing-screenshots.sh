@@ -5,8 +5,8 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 android_dir="$repo_root/apps/android"
 locale_prefix="${FLASHCARDS_MARKETING_LOCALE_PREFIX:-en}"
-script_class="com.flashcardsopensourceapp.app.MarketingAllScreenshotsScript"
-cleanup_script_class="com.flashcardsopensourceapp.app.MarketingScreenshotGuestCleanupScript"
+script_class="com.flashcardsopensourceapp.app.marketing.screenshots.MarketingAllScreenshotsScript"
+cleanup_script_class="com.flashcardsopensourceapp.app.marketing.screenshots.MarketingScreenshotGuestCleanupScript"
 output_dir="$repo_root/apps/android/docs/media/play-store-screenshots"
 remote_screenshot_dir="/sdcard/Download/flashcards-marketing-screenshots"
 file_names=(

@@ -4,7 +4,7 @@ This document tracks repeatable Android screenshot scripts for marketing assets.
 
 For the operational capture procedure, clean-emulator workflow, and verification checklist, use [`marketing-screenshot-runbook.md`](marketing-screenshot-runbook.md).
 
-The locale-specific screenshot texts, file-name prefixes, and UI labels currently live in `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingScreenshotCatalog.kt`.
+The locale-specific screenshot texts, file-name prefixes, and UI labels currently live in `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/marketing/screenshots/MarketingScreenshotCatalog.kt`.
 Screenshot-only translated app resources belong in `apps/android/app/src/marketingScreenshot/res` and are packaged only in the dedicated `marketingScreenshot` build type used by the wrapper scripts.
 
 ## Current inventory
@@ -34,9 +34,9 @@ The unified screenshot flow captures an exam-prep concept card about opportunity
 - AI handoff screen with the handed-off card attached plus an unsent draft request
 - cards list with the shared opportunity-cost prompt pinned to the top
 
-- Manual screenshot entrypoint: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingAllScreenshotsScript.kt`
-- Manual guest cleanup entrypoint: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingScreenshotGuestCleanupScript.kt`
-- Shared screenshot helpers: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingScreenshotTestSupport.kt`
+- Manual screenshot entrypoint: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/marketing/screenshots/MarketingAllScreenshotsScript.kt`
+- Manual guest cleanup entrypoint: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/marketing/screenshots/MarketingScreenshotGuestCleanupScript.kt`
+- Shared screenshot helpers: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/marketing/screenshots/MarketingScreenshotTestSupport.kt`
 - Supported manual wrapper script: `scripts/capture-android-marketing-screenshots.sh`
 - Expected generated output PNG targets:
   - `apps/android/docs/media/play-store-screenshots/en-1_review-card-front-google-play-opportunity-cost.png`

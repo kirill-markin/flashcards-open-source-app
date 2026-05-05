@@ -171,7 +171,7 @@ Current examples worth checking:
 - `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/AccountDeletionBlockingSurfaceTest.kt`
 - `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/livesmoke/LiveSmokeScenarioHelpers.kt`
 - `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/livesmoke/LiveSmokeWorkspaceFlows.kt`
-- `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingScreenshotTestSupport.kt`
+- `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/marketing/screenshots/MarketingScreenshotTestSupport.kt`
 - `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/ReviewPreviewRouteTest.kt`
 
 When updating tests:
