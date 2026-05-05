@@ -1,4 +1,4 @@
-import { parseChatSessionSnapshotResponse } from "../../apiContracts";
+import { parseChatSessionSnapshotResponse } from "../../apiContracts/chat";
 import type { ChatConfig, ChatSessionSnapshot } from "../../types";
 
 const CHAT_SESSION_WARM_START_STORAGE_KEY = "flashcards-chat-session-snapshot";
