@@ -400,6 +400,8 @@
 "settings.notifications.section.reviewReminders" = "Arbeitsbereichsbezogene Wiederholungserinnerungen";
 "settings.notifications.reviewReminders.description" = "Diese Erinnerungen verwenden nur den aktuellen Arbeitsbereich und bleiben auf diesem Gerät.";
 "settings.notifications.enableWorkspaceReminders" = "Arbeitsbereichserinnerungen aktivieren";
+"settings.notifications.appIconBadge.toggle" = "App-Symbol-Badge anzeigen";
+"settings.notifications.appIconBadge.description" = "Wenn eine Wiederholungserinnerung ausgelöst wird und du heute noch keine Karte wiederholt hast, erscheint eine rote 1 auf dem App-Symbol. Das Badge verschwindet, sobald du eine Karte wiederholst oder die App öffnest.";
 "settings.notifications.section.strictReminders" = "Strikte Erinnerungen";
 "settings.notifications.enableStrictReminders" = "Strikte Erinnerungen aktivieren";
 "settings.notifications.strictReminders.description" = "Wenn du an einem lokalen Tag nirgendwo in der App wiederholt hast, erinnert dich Flashcards 4, 3 und 2 Stunden vor Tagesende.";

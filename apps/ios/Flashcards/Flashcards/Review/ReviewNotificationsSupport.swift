@@ -59,13 +59,15 @@ enum ReviewNotificationsReconcileTrigger: Hashable, Sendable {
     case filterChanged
     case workspaceChanged
 
-    /// Only `appActive` clears delivered reminders because the user has already returned
-    /// to the app and the old reminders have served their purpose.
+    /// `appActive` clears delivered reminders because the user has returned to the
+    /// app and the old reminders have served their purpose. `reviewRecorded` also
+    /// clears them because the moment a card is reviewed, any "review reminder"
+    /// notification (and the icon badge it carries) is no longer relevant.
     var shouldClearDeliveredReviewNotifications: Bool {
         switch self {
-        case .appActive:
+        case .appActive, .reviewRecorded:
             return true
-        case .appBackground, .settingsChanged, .permissionChanged, .reviewRecorded, .filterChanged, .workspaceChanged:
+        case .appBackground, .settingsChanged, .permissionChanged, .filterChanged, .workspaceChanged:
             return false
         }
     }
@@ -84,11 +86,41 @@ struct InactivityReviewNotificationsSettings: Codable, Hashable, Sendable {
     let idleMinutes: Int
 }
 
-struct ReviewNotificationsSettings: Codable, Hashable, Sendable {
+struct ReviewNotificationsSettings: Hashable, Sendable {
     let isEnabled: Bool
     let selectedMode: ReviewNotificationMode
     let daily: DailyReviewNotificationsSettings
     let inactivity: InactivityReviewNotificationsSettings
+    let showAppIconBadge: Bool
+}
+
+extension ReviewNotificationsSettings: Codable {
+    private enum CodingKeys: String, CodingKey {
+        case isEnabled
+        case selectedMode
+        case daily
+        case inactivity
+        case showAppIconBadge
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.isEnabled = try container.decode(Bool.self, forKey: .isEnabled)
+        self.selectedMode = try container.decode(ReviewNotificationMode.self, forKey: .selectedMode)
+        self.daily = try container.decode(DailyReviewNotificationsSettings.self, forKey: .daily)
+        self.inactivity = try container.decode(InactivityReviewNotificationsSettings.self, forKey: .inactivity)
+        // Missing key defaults to ON so existing users get the badge automatically.
+        self.showAppIconBadge = try container.decodeIfPresent(Bool.self, forKey: .showAppIconBadge) ?? true
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.isEnabled, forKey: .isEnabled)
+        try container.encode(self.selectedMode, forKey: .selectedMode)
+        try container.encode(self.daily, forKey: .daily)
+        try container.encode(self.inactivity, forKey: .inactivity)
+        try container.encode(self.showAppIconBadge, forKey: .showAppIconBadge)
+    }
 }
 
 struct NotificationPermissionPromptState: Codable, Hashable, Sendable {
@@ -261,6 +293,11 @@ struct ReviewNotificationSchedulingSnapshot: Sendable {
     let lastActiveAt: Date?
 }
 
+struct ScheduledReviewNotificationLoadResult: Sendable {
+    let payloads: [ScheduledReviewNotificationPayload]
+    let hasReviewedToday: Bool
+}
+
 enum ReviewNotificationPermissionStatus: Hashable, Sendable {
     case allowed
     case notRequested
@@ -323,7 +360,8 @@ func makeDefaultReviewNotificationsSettings() -> ReviewNotificationsSettings {
             windowEndHour: defaultInactivityReminderWindowEndHour,
             windowEndMinute: defaultInactivityReminderWindowEndMinute,
             idleMinutes: 120
-        )
+        ),
+        showAppIconBadge: true
     )
 }
 
@@ -653,9 +691,9 @@ private func buildRepeatedReviewNotificationPayloads(
 
 func loadScheduledReviewNotificationPayloads(
     snapshot: ReviewNotificationSchedulingSnapshot
-) async throws -> [ScheduledReviewNotificationPayload] {
+) async throws -> ScheduledReviewNotificationLoadResult {
     guard let databaseURL = snapshot.databaseURL else {
-        return []
+        return ScheduledReviewNotificationLoadResult(payloads: [], hasReviewedToday: false)
     }
 
     return try await Task.detached(priority: .utility) {
@@ -682,7 +720,7 @@ func loadScheduledReviewNotificationPayloads(
             )
         case .inactivity:
             guard let lastActiveAt = snapshot.lastActiveAt else {
-                return []
+                return ScheduledReviewNotificationLoadResult(payloads: [], hasReviewedToday: false)
             }
             scheduledDates = buildInactivityReviewNotificationDates(
                 lastActiveAt: lastActiveAt,
@@ -692,23 +730,42 @@ func loadScheduledReviewNotificationPayloads(
             )
         }
 
+        // Compute `hasReviewedToday` on the same connection so the rescheduler
+        // does not need to reopen the database. On the (improbable) failure
+        // path of `Calendar.date(byAdding: .day, value: 1, to:)` we default to
+        // `false` so the badge still attaches per the user's setting; the user
+        // retains control and can clear it by opening the app or reviewing.
+        let startOfToday = calendar.startOfDay(for: snapshot.now)
+        let hasReviewedToday: Bool
+        if let startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday) {
+            hasReviewedToday = (try? database.hasAppWideReviewEvent(start: startOfToday, end: startOfTomorrow)) ?? false
+        } else {
+            hasReviewedToday = false
+        }
+
         let limitedScheduledDates = Array(scheduledDates.prefix(reviewNotificationPendingRequestsLimit))
+        let payloads: [ScheduledReviewNotificationPayload]
         if let currentCard {
-            return buildRepeatedReviewNotificationPayloads(
+            payloads = buildRepeatedReviewNotificationPayloads(
                 workspaceId: snapshot.workspaceId,
                 currentCard: currentCard,
                 scheduledDates: limitedScheduledDates,
                 calendar: calendar,
                 mode: mode
             )
+        } else {
+            payloads = buildFallbackReviewNotificationPayloads(
+                workspaceId: snapshot.workspaceId,
+                reviewFilter: makePersistedReviewFilter(reviewFilter: snapshot.reviewFilter),
+                scheduledDates: limitedScheduledDates,
+                calendar: calendar,
+                mode: mode
+            )
         }
 
-        return buildFallbackReviewNotificationPayloads(
-            workspaceId: snapshot.workspaceId,
-            reviewFilter: makePersistedReviewFilter(reviewFilter: snapshot.reviewFilter),
-            scheduledDates: limitedScheduledDates,
-            calendar: calendar,
-            mode: mode
+        return ScheduledReviewNotificationLoadResult(
+            payloads: payloads,
+            hasReviewedToday: hasReviewedToday
         )
     }.value
 }

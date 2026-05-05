@@ -400,6 +400,8 @@
 "settings.notifications.section.reviewReminders" = "वर्कस्पेस रिव्यू रिमाइंडर";
 "settings.notifications.reviewReminders.description" = "ये रिमाइंडर केवल मौजूदा वर्कस्पेस का उपयोग करते हैं और इसी डिवाइस पर रहते हैं।";
 "settings.notifications.enableWorkspaceReminders" = "वर्कस्पेस रिमाइंडर चालू करें";
+"settings.notifications.appIconBadge.toggle" = "ऐप आइकन बैज दिखाएं";
+"settings.notifications.appIconBadge.description" = "जब रिव्यू रिमाइंडर ट्रिगर होता है और आपने आज तक किसी कार्ड का रिव्यू नहीं किया है, तो ऐप आइकन पर लाल 1 दिखाई देता है। जैसे ही आप किसी कार्ड का रिव्यू करते हैं या ऐप खोलते हैं, बैज हट जाता है।";
 "settings.notifications.section.strictReminders" = "स्ट्रिक्ट रिमाइंडर";
 "settings.notifications.enableStrictReminders" = "स्ट्रिक्ट रिमाइंडर चालू करें";
 "settings.notifications.strictReminders.description" = "अगर आपने किसी स्थानीय दिन ऐप में कहीं भी रिव्यू नहीं किया है, तो Flashcards उस दिन के खत्म होने से 4, 3 और 2 घंटे पहले याद दिलाता है।";

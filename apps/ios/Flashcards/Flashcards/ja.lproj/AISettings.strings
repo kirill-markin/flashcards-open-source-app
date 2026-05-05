@@ -400,6 +400,8 @@
 "settings.notifications.section.reviewReminders" = "ワークスペースの復習リマインダー";
 "settings.notifications.reviewReminders.description" = "これらのリマインダーは現在のワークスペースだけを使い、このデバイスに保存されます。";
 "settings.notifications.enableWorkspaceReminders" = "ワークスペースのリマインダーを有効にする";
+"settings.notifications.appIconBadge.toggle" = "アプリアイコンにバッジを表示";
+"settings.notifications.appIconBadge.description" = "復習リマインダーが届き、まだ今日カードを復習していない場合、アプリアイコンに赤い 1 が表示されます。カードを復習するかアプリを開くとバッジは消えます。";
 "settings.notifications.section.strictReminders" = "ストリクトリマインダー";
 "settings.notifications.enableStrictReminders" = "ストリクトリマインダーを有効にする";
 "settings.notifications.strictReminders.description" = "ローカル日のあいだにアプリ内のどこでも復習していない場合、Flashcards はその日が終わる 4 時間前、3 時間前、2 時間前に通知します。";
