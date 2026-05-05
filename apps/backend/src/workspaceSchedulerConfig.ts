@@ -1,6 +1,6 @@
 export type SchedulerAlgorithm = "fsrs-6";
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FlashcardsTypes.swift::WorkspaceSchedulerSettings.
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/FsrsTypes.swift::WorkspaceSchedulerSettings.
 export type WorkspaceSchedulerSettings = Readonly<{
   algorithm: SchedulerAlgorithm;
   desiredRetention: number;

@@ -1,7 +1,8 @@
 /**
  * Keep web settings navigation aligned with:
- * - apps/ios/Flashcards/Flashcards/FlashcardsTypes.swift
- * - apps/android/app/src/main/java/com/flashcardsopensourceapp/app/navigation/AppDestination.kt
+ * - apps/ios/Flashcards/Flashcards/App/AppNavigationTypes.swift
+ * - apps/android/app/src/main/java/com/flashcardsopensourceapp/app/navigation/TopLevelDestinations.kt
+ * - apps/android/app/src/main/java/com/flashcardsopensourceapp/app/navigation/SettingsDestinations.kt
  */
 export const reviewRoute: string = "/review";
 export const chatRoute: string = "/chat";

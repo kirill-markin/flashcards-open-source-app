@@ -13,7 +13,7 @@ import com.flashcardsopensourceapp.app.R
 /*
  Keep Android navigation destinations aligned with:
  - apps/web/src/routes.ts
- - apps/ios/Flashcards/Flashcards/FlashcardsTypes.swift
+ - apps/ios/Flashcards/Flashcards/App/AppNavigationTypes.swift
  */
 
 sealed interface TopLevelDestination {
