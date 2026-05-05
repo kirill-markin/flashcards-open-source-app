@@ -1,6 +1,8 @@
-package com.flashcardsopensourceapp.app
+package com.flashcardsopensourceapp.app.marketing.screenshots
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.flashcardsopensourceapp.app.ManualOnlyAndroidTest
+import com.flashcardsopensourceapp.app.createRepositorySeedExecutor
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
 import org.junit.Rule

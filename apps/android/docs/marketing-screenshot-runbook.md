@@ -154,7 +154,7 @@ That prevents an already-open notification shade from being captured on top of a
 The unified wrapper runs one shared entrypoint, seeds the guest workspace once, and pulls screenshots 1, 2, 3, 4, and 5 from the same instrumentation run.
 The seed uses one deterministic 30-day-ish study-history pattern with gaps, a final streak of 8 days, `hasReviewedToday = true`, and `activeReviewDays = 16`.
 
-The locale-specific card texts, AI draft texts, file-name prefixes, and UI labels used by these screenshot flows are defined in `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingScreenshotCatalog.kt`.
+The locale-specific card texts, AI draft texts, file-name prefixes, and UI labels used by these screenshot flows are defined in `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/marketing/screenshots/MarketingScreenshotCatalog.kt`.
 
 The screenshot-only variant exists to package repository-owned screenshot translations without leaking them into shipping builds.
 Keep normal Android UI localization Play-first, and limit repository-managed screenshot overlays to screenshot capture only.
