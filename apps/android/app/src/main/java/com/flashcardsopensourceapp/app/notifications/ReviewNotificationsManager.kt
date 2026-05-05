@@ -29,7 +29,7 @@ import com.flashcardsopensourceapp.data.local.notifications.buildFallbackInactiv
 import com.flashcardsopensourceapp.data.local.notifications.buildDailyReminderPayloads
 import com.flashcardsopensourceapp.data.local.notifications.buildInactivityReminderPayloads
 import com.flashcardsopensourceapp.data.local.notifications.makePersistedReviewFilter
-import com.flashcardsopensourceapp.data.local.repository.loadCurrentWorkspaceOrNull
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.loadCurrentWorkspaceOrNull
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.feature.review.reviewTextProvider
 import kotlinx.coroutines.CoroutineScope
