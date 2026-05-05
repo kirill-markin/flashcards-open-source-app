@@ -421,13 +421,14 @@ final class AIChatLiveStreamClientTests: XCTestCase {
     }
 
     func testLiveStreamKeepsConnectionAliveAcrossKeepaliveComments() async throws {
+        let inactivityTimeoutSeconds: TimeInterval = 1.5
         let client = AIChatLiveStreamClient(
             urlSession: self.makeURLSession(),
             decoder: makeFlashcardsRemoteJSONDecoder(),
             configuration: AIChatLiveStreamConfiguration(
                 requestTimeoutSeconds: 600,
                 resourceTimeoutSeconds: 600,
-                inactivityTimeoutSeconds: 0.15
+                inactivityTimeoutSeconds: inactivityTimeoutSeconds
             )
         )
         AIChatLiveStreamTestURLProtocol.loadingHandler = { liveProtocol, request in
@@ -439,13 +440,21 @@ final class AIChatLiveStreamClientTests: XCTestCase {
             )!
             liveProtocol.emit(response: response)
             liveProtocol.scheduleLoading {
-                try? await Task.sleep(for: .milliseconds(50))
+                // The terminal event arrives after the first inactivity deadline,
+                // so this verifies that keepalive comments reset the timer.
+                try? await Task.sleep(for: .milliseconds(250))
                 guard Task.isCancelled == false else {
                     return
                 }
                 liveProtocol.emit(data: Data(": keepalive\n\n".utf8))
 
-                try? await Task.sleep(for: .milliseconds(50))
+                try? await Task.sleep(for: .milliseconds(800))
+                guard Task.isCancelled == false else {
+                    return
+                }
+                liveProtocol.emit(data: Data(": keepalive\n\n".utf8))
+
+                try? await Task.sleep(for: .milliseconds(800))
                 guard Task.isCancelled == false else {
                     return
                 }
