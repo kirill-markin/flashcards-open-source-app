@@ -27,7 +27,7 @@ The JSON contract is:
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "generatedAtUtc": "2026-04-23T01:00:12.345Z",
   "asOfUtc": "2026-04-23T00:00:00.000Z",
   "from": "2026-04-21",
@@ -47,6 +47,8 @@ The JSON contract is:
     {
       "date": "2026-04-21",
       "uniqueReviewingUsers": 2,
+      "newReviewingUsers": 2,
+      "returningReviewingUsers": 0,
       "reviewEvents": {
         "total": 3,
         "byPlatform": {
@@ -59,6 +61,8 @@ The JSON contract is:
     {
       "date": "2026-04-22",
       "uniqueReviewingUsers": 2,
+      "newReviewingUsers": 1,
+      "returningReviewingUsers": 1,
       "reviewEvents": {
         "total": 2,
         "byPlatform": {
@@ -74,14 +78,18 @@ The JSON contract is:
 
 Contract rules:
 
-- `schemaVersion` is currently `1`.
+- `schemaVersion` is currently `2`.
 - `generatedAtUtc` is the canonical UTC timestamp when the snapshot was generated.
 - `asOfUtc` is the UTC midnight boundary used to cut off included data.
 - `from` and `to` are inclusive UTC dates for the `days` array.
 - `totals.uniqueReviewingUsers` is a number.
 - `totals.reviewEvents.total` is a number and must equal the sum of `totals.reviewEvents.byPlatform`.
 - `days` is an ordered, zero-filled all-time UTC date series from `from` through `to`.
-- Each `days[]` entry contains `date`, `uniqueReviewingUsers`, and `reviewEvents`.
+- Each `days[]` entry contains `date`, `uniqueReviewingUsers`, `newReviewingUsers`, `returningReviewingUsers`, and `reviewEvents`.
+- For every `days[]` entry, `uniqueReviewingUsers === newReviewingUsers + returningReviewingUsers`.
+- `newReviewingUsers` counts users whose first qualifying review (across all-time history) falls on this UTC day.
+- `returningReviewingUsers` counts users who had at least one qualifying review on a prior UTC day and at least one on this UTC day.
+- The first `days[]` entry (date equal to `from`) always has `returningReviewingUsers === 0` because no prior qualifying review can exist before the historical start date.
 - `to` is always the UTC day immediately before `asOfUtc`.
 - `from` is the earliest included UTC day with qualifying persisted review activity before `asOfUtc`.
 - If there is no qualifying review activity before `asOfUtc`, `from` equals `to` and `days` contains one zero-value UTC day.
@@ -97,8 +105,8 @@ The snapshot uses `content.review_events.reviewed_at_server` and UTC calendar da
 - `reviewEvents.byPlatform` contains `web`, `android`, and `ios`.
 - Do not infer per-platform unique user counts from review-event volume.
 
-`uniqueReviewingUsers` is derived from the current `sync.workspace_replicas.user_id` label attached to each joined `review_events.replica_id`.
-That means these counts are not immutable historical authorship: if the current replica-to-user label changes later, historical aggregate counts can be attributed to that newer label.
+`uniqueReviewingUsers`, `newReviewingUsers`, and `returningReviewingUsers` are all derived from the current `sync.workspace_replicas.user_id` label attached to each joined `review_events.replica_id`.
+That means these counts are not immutable historical authorship: if the current replica-to-user label changes later, historical aggregate counts can be attributed to that newer label, and the first-review date used for the new/returning split moves with it.
 
 ## Consumer Guidance
 

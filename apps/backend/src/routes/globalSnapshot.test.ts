@@ -31,6 +31,8 @@ function createSnapshotFixture(): GlobalMetricsSnapshot {
       {
         review_date: "2026-03-07",
         unique_reviewing_users: 2,
+        new_reviewing_users: 2,
+        returning_reviewing_users: 0,
         total_review_events: 3,
         web_review_events: 1,
         android_review_events: 1,
@@ -39,6 +41,8 @@ function createSnapshotFixture(): GlobalMetricsSnapshot {
       {
         review_date: "2026-04-22",
         unique_reviewing_users: 2,
+        new_reviewing_users: 1,
+        returning_reviewing_users: 1,
         total_review_events: 2,
         web_review_events: 1,
         android_review_events: 1,

@@ -39,11 +39,13 @@ test("generateGlobalMetricsSnapshotWithDependencies uses all-time totals before 
         ]) as unknown as pg.QueryResult<Row>;
       }
 
-      if (text.includes("to_char((review_events.reviewed_at_server AT TIME ZONE 'UTC')::date")) {
+      if (text.includes("to_char(daily_user_activity.review_date")) {
         return createQueryResult([
           {
             review_date: "2026-03-07",
             unique_reviewing_users: 2,
+            new_reviewing_users: 2,
+            returning_reviewing_users: 0,
             total_review_events: 3,
             web_review_events: 1,
             android_review_events: 1,
@@ -52,6 +54,8 @@ test("generateGlobalMetricsSnapshotWithDependencies uses all-time totals before 
           {
             review_date: "2026-04-22",
             unique_reviewing_users: 2,
+            new_reviewing_users: 1,
+            returning_reviewing_users: 1,
             total_review_events: 2,
             web_review_events: 1,
             android_review_events: 1,
@@ -96,6 +100,7 @@ test("generateGlobalMetricsSnapshotWithDependencies uses all-time totals before 
 
   assert.match(daySeriesQuery?.text ?? "", /WHERE review_events\.reviewed_at_server >= \$1::timestamptz/);
   assert.match(daySeriesQuery?.text ?? "", /AND review_events\.reviewed_at_server < \$2::timestamptz/);
+  assert.match(daySeriesQuery?.text ?? "", /WITH user_first_review_date AS/);
   assert.deepEqual(daySeriesQuery?.params, [
     "2026-03-07T00:00:00.000Z",
     "2026-04-23T00:00:00.000Z",
@@ -125,7 +130,7 @@ test("generateGlobalMetricsSnapshotWithDependencies emits a single zero day when
         ]) as unknown as pg.QueryResult<Row>;
       }
 
-      if (text.includes("to_char((review_events.reviewed_at_server AT TIME ZONE 'UTC')::date")) {
+      if (text.includes("to_char(daily_user_activity.review_date")) {
         return createQueryResult([]) as unknown as pg.QueryResult<Row>;
       }
 
@@ -164,6 +169,8 @@ test("generateGlobalMetricsSnapshotWithDependencies emits a single zero day when
     {
       date: "2026-04-22",
       uniqueReviewingUsers: 0,
+      newReviewingUsers: 0,
+      returningReviewingUsers: 0,
       reviewEvents: {
         total: 0,
         byPlatform: {
