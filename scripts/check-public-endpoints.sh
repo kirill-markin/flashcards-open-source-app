@@ -390,7 +390,7 @@ def validate_review_events(node: object, label: str) -> None:
 
 require(isinstance(payload, dict), "global metrics snapshot response must be a JSON object")
 require(all(key in payload for key in required_top_level_keys), f"snapshot payload is missing one of {required_top_level_keys!r}")
-require(payload["schemaVersion"] == 1, f"schemaVersion must be 1, received {payload['schemaVersion']!r}")
+require(payload["schemaVersion"] == 2, f"schemaVersion must be 2, received {payload['schemaVersion']!r}")
 require(isinstance(payload["generatedAtUtc"], str), "generatedAtUtc must be a string")
 generated_at = datetime.datetime.fromisoformat(payload["generatedAtUtc"].replace("Z", "+00:00"))
 require(isinstance(payload["asOfUtc"], str), "asOfUtc must be a string")
@@ -421,10 +421,11 @@ day_review_total = 0
 day_review_web_total = 0
 day_review_android_total = 0
 day_review_ios_total = 0
+required_day_keys = ["date", "uniqueReviewingUsers", "newReviewingUsers", "returningReviewingUsers", "reviewEvents"]
 for index, entry in enumerate(days):
     label = f"days[{index}]"
     require(isinstance(entry, dict), f"{label} must be an object")
-    require("date" in entry and "uniqueReviewingUsers" in entry and "reviewEvents" in entry, f"{label} must contain date, uniqueReviewingUsers, and reviewEvents")
+    require(all(key in entry for key in required_day_keys), f"{label} must contain {required_day_keys!r}")
     require(isinstance(entry["date"], str), f"{label}.date must be a string")
     current_date = datetime.date.fromisoformat(entry["date"])
     require(entry["date"] not in seen_dates, f"{label}.date must be unique")
@@ -434,7 +435,12 @@ for index, entry in enumerate(days):
     require(current_date == expected_date, f"{label}.date must equal {expected_date.isoformat()}")
     seen_dates.add(entry["date"])
     previous_date = current_date
-    require_non_negative_int(entry["uniqueReviewingUsers"], f"{label}.uniqueReviewingUsers")
+    unique_count = require_non_negative_int(entry["uniqueReviewingUsers"], f"{label}.uniqueReviewingUsers")
+    new_count = require_non_negative_int(entry["newReviewingUsers"], f"{label}.newReviewingUsers")
+    returning_count = require_non_negative_int(entry["returningReviewingUsers"], f"{label}.returningReviewingUsers")
+    require(unique_count == new_count + returning_count, f"{label}.uniqueReviewingUsers must equal newReviewingUsers + returningReviewingUsers")
+    if index == 0:
+        require(returning_count == 0, f"{label}.returningReviewingUsers must be 0 for the first day")
     validate_review_events(entry["reviewEvents"], f"{label}.reviewEvents")
     day_review_total += entry["reviewEvents"]["total"]
     day_review_web_total += entry["reviewEvents"]["byPlatform"]["web"]

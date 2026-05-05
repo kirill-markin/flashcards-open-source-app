@@ -4,7 +4,6 @@ import {
   buildGlobalMetricsSnapshot,
   createGlobalMetricsSnapshotWindow,
   globalMetricsSnapshotSchemaVersion,
-  parseGlobalMetricsSnapshotJson,
 } from "./snapshot";
 
 test("createGlobalMetricsSnapshotWindow uses the historical all-time UTC day window", () => {
@@ -42,6 +41,8 @@ test("buildGlobalMetricsSnapshot zero-fills missing UTC dates and keeps unique u
       {
         review_date: "2026-03-07",
         unique_reviewing_users: 2,
+        new_reviewing_users: 2,
+        returning_reviewing_users: 0,
         total_review_events: 3,
         web_review_events: 1,
         android_review_events: 1,
@@ -50,6 +51,8 @@ test("buildGlobalMetricsSnapshot zero-fills missing UTC dates and keeps unique u
       {
         review_date: "2026-04-22",
         unique_reviewing_users: 2,
+        new_reviewing_users: 1,
+        returning_reviewing_users: 1,
         total_review_events: 2,
         web_review_events: 1,
         android_review_events: 1,
@@ -74,6 +77,8 @@ test("buildGlobalMetricsSnapshot zero-fills missing UTC dates and keeps unique u
   assert.deepEqual(snapshot.days[0], {
     date: "2026-03-07",
     uniqueReviewingUsers: 2,
+    newReviewingUsers: 2,
+    returningReviewingUsers: 0,
     reviewEvents: {
       total: 3,
       byPlatform: {
@@ -86,6 +91,8 @@ test("buildGlobalMetricsSnapshot zero-fills missing UTC dates and keeps unique u
   assert.deepEqual(snapshot.days[1], {
     date: "2026-03-08",
     uniqueReviewingUsers: 0,
+    newReviewingUsers: 0,
+    returningReviewingUsers: 0,
     reviewEvents: {
       total: 0,
       byPlatform: {
@@ -98,6 +105,8 @@ test("buildGlobalMetricsSnapshot zero-fills missing UTC dates and keeps unique u
   assert.deepEqual(snapshot.days[46], {
     date: "2026-04-22",
     uniqueReviewingUsers: 2,
+    newReviewingUsers: 1,
+    returningReviewingUsers: 1,
     reviewEvents: {
       total: 2,
       byPlatform: {
@@ -160,6 +169,8 @@ test("buildGlobalMetricsSnapshot emits a zero-filled single day when no qualifyi
     {
       date: "2026-04-22",
       uniqueReviewingUsers: 0,
+      newReviewingUsers: 0,
+      returningReviewingUsers: 0,
       reviewEvents: {
         total: 0,
         byPlatform: {
@@ -172,77 +183,3 @@ test("buildGlobalMetricsSnapshot emits a zero-filled single day when no qualifyi
   ]);
 });
 
-// TODO: Remove this rollout compatibility case after production no longer serves the legacy 90-day snapshot shape.
-test("parseGlobalMetricsSnapshotJson tolerates the legacy trailing-window snapshot during rollout", () => {
-  const days = Array.from({ length: 90 }, (_, index) => {
-    const date = new Date(Date.UTC(2026, 0, 23 + index)).toISOString().slice(0, 10);
-    if (index === 0) {
-      return {
-        date,
-        uniqueReviewingUsers: 2,
-        reviewEvents: {
-          total: 3,
-          byPlatform: {
-            web: 1,
-            android: 1,
-            ios: 1,
-          },
-        },
-      };
-    }
-
-    if (index === 89) {
-      return {
-        date,
-        uniqueReviewingUsers: 2,
-        reviewEvents: {
-          total: 2,
-          byPlatform: {
-            web: 1,
-            android: 1,
-            ios: 0,
-          },
-        },
-      };
-    }
-
-    return {
-      date,
-      uniqueReviewingUsers: 0,
-      reviewEvents: {
-        total: 0,
-        byPlatform: {
-          web: 0,
-          android: 0,
-          ios: 0,
-        },
-      },
-    };
-  });
-
-  const snapshot = parseGlobalMetricsSnapshotJson(JSON.stringify({
-    schemaVersion: globalMetricsSnapshotSchemaVersion,
-    generatedAtUtc: "2026-04-23T09:30:00.000Z",
-    asOfUtc: "2026-04-23T00:00:00.000Z",
-    from: "2026-01-23",
-    to: "2026-04-22",
-    totals: {
-      uniqueReviewingUsers: 8,
-      reviewEvents: {
-        total: 12,
-        byPlatform: {
-          web: 4,
-          android: 5,
-          ios: 3,
-        },
-      },
-    },
-    days,
-  }));
-
-  assert.equal(snapshot.schemaVersion, globalMetricsSnapshotSchemaVersion);
-  assert.equal(snapshot.from, "2026-01-23");
-  assert.equal(snapshot.to, "2026-04-22");
-  assert.equal(snapshot.days.length, 90);
-  assert.equal(snapshot.totals.reviewEvents.total, 12);
-});

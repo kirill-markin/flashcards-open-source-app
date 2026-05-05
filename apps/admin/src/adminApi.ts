@@ -48,6 +48,12 @@ export type ReviewEventsByDateTotal = Readonly<{
   totalReviewEvents: number;
 }>;
 
+export type ReviewEventsByDateUniqueUserCohort = Readonly<{
+  date: string;
+  newReviewingUsers: number;
+  returningReviewingUsers: number;
+}>;
+
 export type ReviewEventsByDatePlatformActiveUserTotal = Readonly<{
   date: string;
   platform: ReviewEventPlatform;
@@ -66,6 +72,7 @@ export type ReviewEventsByDateRow = Readonly<{
   email: string;
   platform: ReviewEventPlatform;
   reviewEventCount: number;
+  firstReviewDate: string;
 }>;
 
 export type ReviewEventsByDateReport = Readonly<{
@@ -75,6 +82,7 @@ export type ReviewEventsByDateReport = Readonly<{
   totalReviewEvents: number;
   users: ReadonlyArray<ReviewEventsByDateUser>;
   dateTotals: ReadonlyArray<ReviewEventsByDateTotal>;
+  dailyUniqueUserCohorts: ReadonlyArray<ReviewEventsByDateUniqueUserCohort>;
   platformActiveUserTotals: ReadonlyArray<ReviewEventsByDatePlatformActiveUserTotal>;
   platformReviewEventTotals: ReadonlyArray<ReviewEventsByDatePlatformReviewEventTotal>;
   rows: ReadonlyArray<ReviewEventsByDateRow>;

@@ -2,8 +2,7 @@ import { z } from "zod";
 
 const millisecondsPerDay = 86_400_000;
 const utcDatePattern = /^\d{4}-\d{2}-\d{2}$/;
-const legacyGlobalMetricsSnapshotTrailingUtcDayCount = 90;
-export const globalMetricsSnapshotSchemaVersion = 1 as const;
+export const globalMetricsSnapshotSchemaVersion = 2 as const;
 
 export type GlobalMetricsReviewEventsByPlatform = Readonly<{
   web: number;
@@ -19,6 +18,8 @@ export type GlobalMetricsReviewEvents = Readonly<{
 export type GlobalMetricsSnapshotDay = Readonly<{
   date: string;
   uniqueReviewingUsers: number;
+  newReviewingUsers: number;
+  returningReviewingUsers: number;
   reviewEvents: GlobalMetricsReviewEvents;
 }>;
 
@@ -56,6 +57,8 @@ export type GlobalMetricsSnapshotTotalsRow = Readonly<{
 export type GlobalMetricsSnapshotDayRow = Readonly<{
   review_date: string;
   unique_reviewing_users: number | string;
+  new_reviewing_users: number | string;
+  returning_reviewing_users: number | string;
   total_review_events: number | string;
   web_review_events: number | string;
   android_review_events: number | string;
@@ -78,6 +81,8 @@ const globalMetricsReviewEventsSchema = z.object({
 const globalMetricsSnapshotDaySchema = z.object({
   date: z.string().regex(utcDatePattern),
   uniqueReviewingUsers: z.number().int().nonnegative(),
+  newReviewingUsers: z.number().int().nonnegative(),
+  returningReviewingUsers: z.number().int().nonnegative(),
   reviewEvents: globalMetricsReviewEventsSchema,
 }).strict();
 
@@ -192,6 +197,8 @@ function createEmptySnapshotDay(date: string): GlobalMetricsSnapshotDay {
   return {
     date,
     uniqueReviewingUsers: 0,
+    newReviewingUsers: 0,
+    returningReviewingUsers: 0,
     reviewEvents: createReviewEvents(0, 0, 0, 0),
   };
 }
@@ -199,12 +206,29 @@ function createEmptySnapshotDay(date: string): GlobalMetricsSnapshotDay {
 function createSnapshotDayFromRow(row: GlobalMetricsSnapshotDayRow): GlobalMetricsSnapshotDay {
   parseUtcDate(row.review_date, "days.date");
 
+  const uniqueReviewingUsers = normalizeNonNegativeInteger(
+    row.unique_reviewing_users,
+    `days.${row.review_date}.unique_reviewing_users`,
+  );
+  const newReviewingUsers = normalizeNonNegativeInteger(
+    row.new_reviewing_users,
+    `days.${row.review_date}.new_reviewing_users`,
+  );
+  const returningReviewingUsers = normalizeNonNegativeInteger(
+    row.returning_reviewing_users,
+    `days.${row.review_date}.returning_reviewing_users`,
+  );
+  if (uniqueReviewingUsers !== newReviewingUsers + returningReviewingUsers) {
+    throw new Error(
+      `Global metrics snapshot days.${row.review_date}.uniqueReviewingUsers must equal newReviewingUsers + returningReviewingUsers: unique=${uniqueReviewingUsers}, new=${newReviewingUsers}, returning=${returningReviewingUsers}.`,
+    );
+  }
+
   return {
     date: row.review_date,
-    uniqueReviewingUsers: normalizeNonNegativeInteger(
-      row.unique_reviewing_users,
-      `days.${row.review_date}.unique_reviewing_users`,
-    ),
+    uniqueReviewingUsers,
+    newReviewingUsers,
+    returningReviewingUsers,
     reviewEvents: createReviewEvents(
       normalizeNonNegativeInteger(
         row.total_review_events,
@@ -328,18 +352,21 @@ function assertSnapshotReviewEventSeriesMatchesDays(snapshot: GlobalMetricsSnaps
   }
 }
 
+function assertSnapshotUniqueUserCohortSums(snapshot: GlobalMetricsSnapshot): void {
+  for (const day of snapshot.days) {
+    if (day.uniqueReviewingUsers !== day.newReviewingUsers + day.returningReviewingUsers) {
+      throw new Error(
+        `Global metrics snapshot days.${day.date}.uniqueReviewingUsers must equal newReviewingUsers + returningReviewingUsers: unique=${day.uniqueReviewingUsers}, new=${day.newReviewingUsers}, returning=${day.returningReviewingUsers}.`,
+      );
+    }
+  }
+}
+
 function assertGlobalMetricsSnapshotStructuralInvariants(snapshot: GlobalMetricsSnapshot): void {
   assertSnapshotTimeWindow(snapshot);
   assertSnapshotDayRange(snapshot);
   assertSnapshotReviewEventShapes(snapshot);
-}
-
-function isLegacyTrailingWindowSnapshot(snapshot: GlobalMetricsSnapshot): boolean {
-  // Existing deployments can still hold the old bounded snapshot until the first
-  // post-deploy seed rewrites the same S3 key with the all-time payload.
-  const asOfDate = parseCanonicalUtcTimestamp(snapshot.asOfUtc, "asOfUtc");
-  const expectedLegacyFrom = formatUtcDate(shiftUtcDate(asOfDate, -legacyGlobalMetricsSnapshotTrailingUtcDayCount));
-  return snapshot.from === expectedLegacyFrom && snapshot.days.length === legacyGlobalMetricsSnapshotTrailingUtcDayCount;
+  assertSnapshotUniqueUserCohortSums(snapshot);
 }
 
 export function createGlobalMetricsSnapshotWindow(params: Readonly<{
@@ -452,14 +479,6 @@ export function parseGlobalMetricsSnapshotJson(value: string): GlobalMetricsSnap
 
   const snapshot: GlobalMetricsSnapshot = parsedSnapshot.data;
   assertGlobalMetricsSnapshotStructuralInvariants(snapshot);
-
-  try {
-    assertSnapshotReviewEventSeriesMatchesDays(snapshot);
-  } catch (error) {
-    if (!isLegacyTrailingWindowSnapshot(snapshot)) {
-      throw error;
-    }
-  }
-
+  assertSnapshotReviewEventSeriesMatchesDays(snapshot);
   return snapshot;
 }

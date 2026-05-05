@@ -6,6 +6,7 @@ import {
   type ReviewEventsByDatePlatformActiveUserTotal,
   type ReviewEventsByDatePlatformReviewEventTotal,
   type ReviewEventsByDateReport,
+  type ReviewEventsByDateUniqueUserCohort,
 } from "../../adminApi";
 import type { ReviewEventsByDateRange } from "./query";
 
@@ -70,6 +71,17 @@ const platformColors: Readonly<Record<ReviewEventPlatform, string>> = {
   ios: "#f28e2b",
 };
 
+const uniqueUserCohortKeys = ["returning", "new"] as const;
+type UniqueUserCohortKey = (typeof uniqueUserCohortKeys)[number];
+const uniqueUserCohortLabels: Readonly<Record<UniqueUserCohortKey, string>> = {
+  returning: "Returning",
+  new: "New",
+};
+const uniqueUserCohortColors: Readonly<Record<UniqueUserCohortKey, string>> = {
+  returning: "var(--accent)",
+  new: "#2e6f95",
+};
+
 function parseCalendarDate(date: string): Date {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
   if (match === null) {
@@ -128,18 +140,15 @@ function escapeHtml(value: string): string {
     .replaceAll("'", "&#39;");
 }
 
-function buildDailyUniqueUsers(report: ReviewEventsByDateReport): ReadonlyArray<DailyValueEntry> {
-  const usersByDate = new Map<string, Set<string>>();
-
-  for (const row of report.rows) {
-    const users = usersByDate.get(row.date) ?? new Set<string>();
-    users.add(row.userId);
-    usersByDate.set(row.date, users);
-  }
-
-  return report.dateTotals.map((item) => ({
-    date: item.date,
-    value: usersByDate.get(item.date)?.size ?? 0,
+function buildDailyUniqueUserCohortMatrix(
+  cohorts: ReadonlyArray<ReviewEventsByDateUniqueUserCohort>,
+): ReadonlyArray<MatrixChartEntry> {
+  return cohorts.map((cohort) => ({
+    date: cohort.date,
+    valuesByKey: {
+      returning: cohort.returningReviewingUsers,
+      new: cohort.newReviewingUsers,
+    },
   }));
 }
 
@@ -327,6 +336,19 @@ function PlatformKey(): JSX.Element {
   );
 }
 
+function UniqueUserCohortKey(): JSX.Element {
+  return (
+    <div className="platform-key" aria-label="Unique users cohort color key">
+      {uniqueUserCohortKeys.map((cohort) => (
+        <span key={cohort} className="platform-key-item">
+          <span className="platform-key-swatch" style={{ backgroundColor: uniqueUserCohortColors[cohort] }} />
+          <span>{uniqueUserCohortLabels[cohort]}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export function ReviewEventsByDateDashboard(
   props: Readonly<{
     report: ReviewEventsByDateReport;
@@ -402,9 +424,16 @@ export function ReviewEventsByDateDashboard(
     () => getUserColorScale(userIds),
     [userIds],
   );
-  const dailyUniqueUsers = useMemo(
-    () => buildDailyUniqueUsers(props.report),
-    [props.report],
+  const dailyUniqueUserCohortMatrix = useMemo(
+    () => buildDailyUniqueUserCohortMatrix(props.report.dailyUniqueUserCohorts),
+    [props.report.dailyUniqueUserCohorts],
+  );
+  const dailyUniqueUserTotals = useMemo<ReadonlyArray<DailyValueEntry>>(
+    () => props.report.dailyUniqueUserCohorts.map((item) => ({
+      date: item.date,
+      value: item.newReviewingUsers + item.returningReviewingUsers,
+    })),
+    [props.report.dailyUniqueUserCohorts],
   );
   const userMatrix = useMemo(
     () => buildUserMatrix(props.report),
@@ -427,16 +456,16 @@ export function ReviewEventsByDateDashboard(
     [props.report.users],
   );
   const dailyUniqueUsersByDate = useMemo(
-    () => new Map(dailyUniqueUsers.map((item) => [item.date, item.value])),
-    [dailyUniqueUsers],
+    () => new Map(dailyUniqueUserTotals.map((item) => [item.date, item.value])),
+    [dailyUniqueUserTotals],
   );
   const totalPlatformReviewEventsByDate = useMemo(
     () => buildTotalsByDate(platformReviewEventsMatrix),
     [platformReviewEventsMatrix],
   );
   const peakDailyUniqueUsers = useMemo(
-    () => getPeakDailyValue(dailyUniqueUsers),
-    [dailyUniqueUsers],
+    () => getPeakDailyValue(dailyUniqueUserTotals),
+    [dailyUniqueUserTotals],
   );
   const peakDailyVolume = useMemo(
     () => d3.max(props.report.dateTotals, (item) => item.totalReviewEvents) ?? 0,
@@ -518,23 +547,41 @@ export function ReviewEventsByDateDashboard(
       yAxisLabel: "Unique users",
     });
 
-    uniqueUsersGroup.selectAll("rect.daily-unique-users")
-      .data(dailyUniqueUsers)
+    const uniqueUsersSeries = d3.stack<MatrixChartEntry>()
+      .keys(uniqueUserCohortKeys)
+      .value((entry, key) => entry.valuesByKey[key] ?? 0)(dailyUniqueUserCohortMatrix);
+
+    uniqueUsersGroup.selectAll(".series")
+      .data(uniqueUsersSeries)
+      .join("g")
+      .attr("class", "series")
+      .attr("fill", (segment) => uniqueUserCohortColors[segment.key as UniqueUserCohortKey])
+      .selectAll("rect")
+      .data((segment) => segment.map((entry) => ({
+        key: segment.key,
+        date: entry.data.date,
+        y0: entry[0],
+        y1: entry[1],
+        value: entry.data.valuesByKey[segment.key] ?? 0,
+      })).filter((entry) => entry.value > 0))
       .join("rect")
       .attr("class", "bar-segment daily-unique-users")
       .attr("x", (entry) => x(entry.date) ?? 0)
-      .attr("y", (entry) => uniqueUsersY(entry.value))
+      .attr("y", (entry) => uniqueUsersY(entry.y1))
       .attr("width", x.bandwidth())
-      .attr("height", (entry) => Math.max(0, simpleInnerHeight - uniqueUsersY(entry.value)))
+      .attr("height", (entry) => Math.max(0, uniqueUsersY(entry.y0) - uniqueUsersY(entry.y1)))
       .attr("rx", 3)
-      .attr("fill", "var(--accent)")
       .attr("stroke", "rgba(255, 255, 255, 0.18)")
       .attr("stroke-width", 1)
-      .on("mousemove", (event, entry) => {
+      .on("mousemove", (event, entry: StackedChartRectEntry) => {
+        const cohortKey = entry.key as UniqueUserCohortKey;
+        const totalUniqueUsers = dailyUniqueUsersByDate.get(entry.date) ?? entry.value;
         showTooltip(
           [
             `<p class="tooltip-title">${escapeHtml(formatDateRangeLabel(entry.date))}</p>`,
-            `<div class="tooltip-metric"><span>Unique users</span><strong>${numberFormatter(entry.value)}</strong></div>`,
+            `<p class="tooltip-subtitle">${escapeHtml(uniqueUserCohortLabels[cohortKey])}</p>`,
+            `<div class="tooltip-metric"><span>Unique users in this cohort</span><strong>${numberFormatter(entry.value)}</strong></div>`,
+            `<div class="tooltip-metric"><span>Total unique users</span><strong>${numberFormatter(totalUniqueUsers)}</strong></div>`,
             `<div class="tooltip-metric"><span>Total review events</span><strong>${numberFormatter(totalReviewEventsByDate.get(entry.date) ?? 0)}</strong></div>`,
           ].join(""),
           event.clientX,
@@ -701,7 +748,7 @@ export function ReviewEventsByDateDashboard(
       })
       .on("mouseleave", hideTooltip);
   }, [
-    dailyUniqueUsers,
+    dailyUniqueUserCohortMatrix,
     dates,
     peakDailyPlatformReviewEvents,
     peakDailyPlatformUsers,
@@ -803,7 +850,10 @@ export function ReviewEventsByDateDashboard(
       <section className="chart-column">
         <div className="chart-shell">
           <div className="chart-meta">
-            <span>Daily unique users with at least 1 review event</span>
+            <span>Daily unique users with at least 1 review event &mdash; new vs returning</span>
+            <div className="chart-meta-right">
+              <UniqueUserCohortKey />
+            </div>
           </div>
           <div className="chart-scroll">
             <svg ref={uniqueUsersChartRef} />
