@@ -1,7 +1,7 @@
 import {
   parseChatComposerSuggestionArray,
   parseContentPartArray,
-} from "../apiContracts";
+} from "../apiContracts/chat";
 import { webAppVersion } from "../clientIdentity";
 import type {
   ChatComposerSuggestion,

@@ -1,31 +1,41 @@
 import {
-  ApiContractError,
   parseAgentApiKeyConnectionsEnvelopeResponse,
   parseAgentApiKeyRevokeResponse,
-  parseChatSessionSnapshotResponse,
-  parseChatTranscriptionResponse,
   parseDeleteAccountResponse,
   parseDeleteWorkspaceResponse,
-  parseQueryCardsPageResponse,
+  parseResetWorkspaceProgressResponse,
+  parseSessionInfoResponse,
+  parseWorkspaceDeletePreviewResponse,
+  parseWorkspaceEnvelopeResponse,
+  parseWorkspaceResetProgressPreviewResponse,
+  parseWorkspacesEnvelopeResponse,
+} from "./apiContracts/account";
+import {
+  parseChatSessionSnapshotResponse,
+  parseChatTranscriptionResponse,
   parseNewChatSessionResponse,
+  parseStartChatRunResponse,
+  parseStopChatRunResponse,
+} from "./apiContracts/chat";
+import {
+  ApiContractError,
+} from "./apiContracts/core";
+import {
+  parseQueryCardsPageResponse,
+} from "./apiContracts/cards";
+import {
   parseProgressReviewScheduleResponse,
   parseProgressSummaryResponse,
   parseProgressSeriesResponse,
-  parseSessionInfoResponse,
-  parseResetWorkspaceProgressResponse,
-  parseStartChatRunResponse,
-  parseStopChatRunResponse,
+} from "./apiContracts/progress";
+import {
   parseSyncBootstrapPullResultResponse,
   parseSyncBootstrapPushResultResponse,
   parseSyncPullResultResponse,
   parseSyncPushResultResponse,
   parseSyncReviewHistoryImportResultResponse,
   parseSyncReviewHistoryPullResultResponse,
-  parseWorkspaceResetProgressPreviewResponse,
-  parseWorkspaceDeletePreviewResponse,
-  parseWorkspaceEnvelopeResponse,
-  parseWorkspacesEnvelopeResponse,
-} from "./apiContracts";
+} from "./apiContracts/sync";
 import { markAuthResetRequired, runPendingAuthResetCleanup } from "./accountDeletion";
 import { getAppConfig } from "./config";
 import { webAppVersion } from "./clientIdentity";
