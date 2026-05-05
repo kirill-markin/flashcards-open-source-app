@@ -277,6 +277,14 @@ export function buildReviewEventsByDateDefaultRangeSql(): string {
   ].join("\n");
 }
 
+// Per-user breakdown for the admin "Review events by date" report (chart + table).
+// The user-identity filters here (the `actor_kind` / `platform` allowlist and the
+// `@example.com` email exclusion) are the same rules encoded in
+// `clientInstallationActivityWhereSqlFragments` and `exampleComEmailExclusionSqlFragments`
+// in `apps/backend/src/globalMetrics/reporting.ts`, which back the public
+// `/v1/global/snapshot` endpoint and the scheduled snapshot Lambda. This admin query
+// lives in a separate package, so the rules are intentionally restated here. If any
+// rule changes, update both files.
 export function buildReviewEventsByDateSql(from: string, to: string): string {
   assertValidDateRange({ from, to }, "report");
 
@@ -300,6 +308,10 @@ export function buildReviewEventsByDateSql(from: string, to: string): string {
     "  )",
     "  AND workspace_replicas.actor_kind = 'client_installation'",
     "  AND workspace_replicas.platform IN ('web', 'android', 'ios')",
+    "  AND (",
+    "    user_settings.email IS NULL",
+    "    OR LOWER(btrim(user_settings.email)) NOT LIKE '%@example.com'",
+    "  )",
     "GROUP BY",
     "  (review_events.reviewed_at_server AT TIME ZONE 'UTC')::date,",
     "  workspace_replicas.user_id,",

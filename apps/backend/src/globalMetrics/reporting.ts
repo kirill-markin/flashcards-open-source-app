@@ -9,6 +9,40 @@ import {
   type GlobalMetricsSnapshotTotalsRow,
 } from "./snapshot";
 
+// The three SQL builders below back the public anonymized endpoint
+// (`apps/backend/src/routes/globalSnapshot.ts`) and the scheduled snapshot Lambda
+// (`apps/backend/src/lambda-global-metrics-snapshot.ts`).
+//
+// The two fragment constants below are the canonical encoding of the user-identity
+// filters shared by those three queries. The same rules are restated in the admin
+// per-user query at `apps/admin/src/reports/reviewEventsByDate/query.ts`
+// (`buildReviewEventsByDateSql`), which lives in a separate package. If any rule
+// changes, update both files.
+
+// WHERE-fragment that restricts review activity to real client-app installations on
+// supported user-facing platforms (excludes system actors and the 'system' platform).
+const clientInstallationActivityWhereSqlFragments = [
+  "  AND workspace_replicas.actor_kind = 'client_installation'",
+  "  AND workspace_replicas.platform IN ('web', 'android', 'ios')",
+] as const;
+
+// SQL fragments that exclude users whose known email ends with `@example.com`.
+// `joinFragments` and `whereFragments` MUST be spread together into the same query:
+// the WHERE fragment references `user_settings.email`, which is only in scope after
+// the JOIN fragment brings `org.user_settings` in.
+const exampleComEmailExclusionSqlFragments = {
+  joinFragments: [
+    "LEFT JOIN org.user_settings AS user_settings",
+    "  ON user_settings.user_id = workspace_replicas.user_id",
+  ],
+  whereFragments: [
+    "  AND (",
+    "    user_settings.email IS NULL",
+    "    OR LOWER(btrim(user_settings.email)) NOT LIKE '%@example.com'",
+    "  )",
+  ],
+} as const;
+
 type GlobalMetricsSnapshotHistoricalStartDateRow = Readonly<{
   historical_start_date: string | null;
 }>;
@@ -20,9 +54,10 @@ function buildGlobalMetricsSnapshotHistoricalStartDateSql(): string {
     "FROM content.review_events AS review_events",
     "INNER JOIN sync.workspace_replicas AS workspace_replicas",
     "  ON workspace_replicas.replica_id = review_events.replica_id",
+    ...exampleComEmailExclusionSqlFragments.joinFragments,
     "WHERE review_events.reviewed_at_server < $1::timestamptz",
-    "  AND workspace_replicas.actor_kind = 'client_installation'",
-    "  AND workspace_replicas.platform IN ('web', 'android', 'ios')",
+    ...clientInstallationActivityWhereSqlFragments,
+    ...exampleComEmailExclusionSqlFragments.whereFragments,
   ].join(" ");
 }
 
@@ -37,9 +72,10 @@ function buildGlobalMetricsSnapshotTotalsSql(): string {
     "FROM content.review_events AS review_events",
     "INNER JOIN sync.workspace_replicas AS workspace_replicas",
     "  ON workspace_replicas.replica_id = review_events.replica_id",
+    ...exampleComEmailExclusionSqlFragments.joinFragments,
     "WHERE review_events.reviewed_at_server < $1::timestamptz",
-    "  AND workspace_replicas.actor_kind = 'client_installation'",
-    "  AND workspace_replicas.platform IN ('web', 'android', 'ios')",
+    ...clientInstallationActivityWhereSqlFragments,
+    ...exampleComEmailExclusionSqlFragments.whereFragments,
   ].join(" ");
 }
 
@@ -55,10 +91,11 @@ function buildGlobalMetricsSnapshotDaysSql(): string {
     "FROM content.review_events AS review_events",
     "INNER JOIN sync.workspace_replicas AS workspace_replicas",
     "  ON workspace_replicas.replica_id = review_events.replica_id",
+    ...exampleComEmailExclusionSqlFragments.joinFragments,
     "WHERE review_events.reviewed_at_server >= $1::timestamptz",
     "  AND review_events.reviewed_at_server < $2::timestamptz",
-    "  AND workspace_replicas.actor_kind = 'client_installation'",
-    "  AND workspace_replicas.platform IN ('web', 'android', 'ios')",
+    ...clientInstallationActivityWhereSqlFragments,
+    ...exampleComEmailExclusionSqlFragments.whereFragments,
     "GROUP BY (review_events.reviewed_at_server AT TIME ZONE 'UTC')::date",
     "ORDER BY review_date ASC",
   ].join(" ");
