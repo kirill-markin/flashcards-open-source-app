@@ -39,6 +39,7 @@ When proposing a test plan, treat "real testing" as one of these two options onl
 
 For iOS local testing details, see [docs/ios-local-setup.md](docs/ios-local-setup.md).
 For Android local testing details, see [docs/android-ci-cd.md](docs/android-ci-cd.md).
+Running `./gradlew` is resource-heavy in this repository. Run Gradle tasks only when they are genuinely needed, choose the narrowest task that validates the change, and avoid broad Gradle runs without a clear reason.
 For the optional private analytical DB access path, granted reporting permissions, and operator setup flow, see [docs/analytics-db-access.md](docs/analytics-db-access.md).
 
 ## Release Gates and Monitoring
