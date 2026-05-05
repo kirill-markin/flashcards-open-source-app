@@ -20,7 +20,7 @@ import {
  * Backend FSRS parity tests.
  *
  * Keep in sync with:
- * - apps/ios/Flashcards/FlashcardsTests/FsrsSchedulerParityTests.swift
+ * - apps/ios/Flashcards/FlashcardsTests/Review/FsrsSchedulerParityTests.swift
  * - tests/fsrs-full-vectors.json
  * - docs/fsrs-scheduling-logic.md
  */

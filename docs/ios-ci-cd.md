@@ -24,7 +24,7 @@ The shared scheme for cloud builds is:
 
 - `apps/ios/Flashcards/Flashcards Open Source App.xcodeproj/xcshareddata/xcschemes/Flashcards Open Source App.xcscheme`
 
-The shared cloud scheme runs the UI smoke bundle only. FSRS parity tests remain in `apps/ios/Flashcards/FlashcardsTests` for focused local/native verification and are not part of the Xcode Cloud release gate.
+The shared cloud scheme runs the UI smoke bundle only. FSRS parity tests remain in `apps/ios/Flashcards/FlashcardsTests/Review` for focused local/native verification and are not part of the Xcode Cloud release gate.
 
 ## Xcode Cloud inputs
 
