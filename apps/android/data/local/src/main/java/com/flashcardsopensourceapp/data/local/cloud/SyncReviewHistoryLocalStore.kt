@@ -5,7 +5,7 @@ import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.parseIsoTimestamp
-import com.flashcardsopensourceapp.data.local.repository.LocalProgressCacheStore
+import com.flashcardsopensourceapp.data.local.repository.progress.LocalProgressCacheStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull

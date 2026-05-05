@@ -16,7 +16,7 @@ import com.flashcardsopensourceapp.data.local.repository.CardsRepository
 import com.flashcardsopensourceapp.data.local.repository.DecksRepository
 import com.flashcardsopensourceapp.data.local.repository.LocalCardsRepository
 import com.flashcardsopensourceapp.data.local.repository.LocalDecksRepository
-import com.flashcardsopensourceapp.data.local.repository.LocalProgressCacheStore
+import com.flashcardsopensourceapp.data.local.repository.progress.LocalProgressCacheStore
 import com.flashcardsopensourceapp.data.local.repository.LocalReviewRepository
 import com.flashcardsopensourceapp.data.local.repository.LocalWorkspaceRepository
 import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
