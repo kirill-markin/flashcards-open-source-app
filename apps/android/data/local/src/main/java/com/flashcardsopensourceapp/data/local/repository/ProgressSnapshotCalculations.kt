@@ -776,8 +776,8 @@ internal fun validateProgressReviewScheduleCacheTimeZone(
 //
 // Why totals-equality is sufficient (the bucket-equality invariant):
 //   Every outbox entry whose card mutation can shift the review schedule is enqueued with
-//   affectsReviewSchedule = true (see LocalRepositories.kt::createCard / deleteCard /
-//   recordCardReview, and the iOS/web equivalents). Specifically:
+//   affectsReviewSchedule = true (see LocalCardsRepository.createCard/deleteCard,
+//   LocalReviewRepository.recordReview, and the iOS/web equivalents). Specifically:
 //     - card creates set the flag to true,
 //     - card deletes set the flag to true,
 //     - card reviews set the flag to true (these update due-date and FSRS state in the
