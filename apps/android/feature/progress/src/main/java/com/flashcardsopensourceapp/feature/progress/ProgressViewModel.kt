@@ -13,7 +13,7 @@ import com.flashcardsopensourceapp.data.local.model.ProgressReviewScheduleSnapsh
 import com.flashcardsopensourceapp.data.local.model.ProgressSeriesSnapshot
 import com.flashcardsopensourceapp.data.local.model.ProgressSummarySnapshot
 import com.flashcardsopensourceapp.data.local.repository.ProgressRepository
-import com.flashcardsopensourceapp.data.local.repository.progressHistoryDayCount
+import com.flashcardsopensourceapp.data.local.repository.progress.progressHistoryDayCount
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.combine
