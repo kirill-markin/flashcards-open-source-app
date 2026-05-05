@@ -109,7 +109,7 @@ xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" -
 
 The iOS app uses native Apple test tooling only:
 
-- FSRS parity and scheduler-focused tests live in `apps/ios/Flashcards/FlashcardsTests` as targeted native verification, not as an exhaustive safety net
+- FSRS parity and scheduler-focused tests live in `apps/ios/Flashcards/FlashcardsTests/Review` as targeted native verification, not as an exhaustive safety net
 - release-gate UI coverage lives in the grouped `apps/ios/Flashcards/FlashcardsUITests/LiveSmoke*Tests.swift` files, with shared smoke infrastructure in `apps/ios/Flashcards/FlashcardsUITests/LiveSmokeSupport`
 - accessibility identifiers used by the live smoke flows live in `apps/ios/Flashcards/Flashcards/UITestIdentifiers.swift`
 
