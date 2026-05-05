@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.app
+package com.flashcardsopensourceapp.app.marketing.screenshots
 
 import androidx.test.platform.app.InstrumentationRegistry
 

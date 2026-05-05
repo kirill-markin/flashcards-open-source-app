@@ -1,8 +1,11 @@
-package com.flashcardsopensourceapp.app
+package com.flashcardsopensourceapp.app.marketing.screenshots
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.flashcardsopensourceapp.app.FlashcardsApplication
+import com.flashcardsopensourceapp.app.ManualOnlyAndroidTest
+import com.flashcardsopensourceapp.app.resetAndroidTestAppState
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Test
