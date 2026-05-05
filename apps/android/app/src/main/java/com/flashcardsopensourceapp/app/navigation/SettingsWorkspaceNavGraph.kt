@@ -108,6 +108,9 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
                             trigger = StrictRemindersReconcileTrigger.SETTINGS_CHANGED,
                             nowMillis = System.currentTimeMillis()
                         )
+                    },
+                    onAppIconBadgeDisabled = {
+                        appGraph.reviewNotificationsManager.clearDeliveredReviewReminderNotifications()
                     }
                 )
             )
@@ -121,6 +124,7 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
                 onUpdateInactivityWindowStart = reviewNotificationsViewModel::updateInactivityWindowStart,
                 onUpdateInactivityWindowEnd = reviewNotificationsViewModel::updateInactivityWindowEnd,
                 onUpdateIdleMinutes = reviewNotificationsViewModel::updateIdleMinutes,
+                onUpdateShowAppIconBadge = reviewNotificationsViewModel::updateShowAppIconBadge,
                 onUpdateStrictRemindersEnabled = reviewNotificationsViewModel::updateStrictRemindersEnabled,
                 onMarkSystemPermissionRequested = reviewNotificationsViewModel::markSystemPermissionRequested,
                 onPermissionGranted = {

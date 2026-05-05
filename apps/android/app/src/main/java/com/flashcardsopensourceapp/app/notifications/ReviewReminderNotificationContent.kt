@@ -35,7 +35,8 @@ data class ReviewReminderNotificationContent(
 fun buildReviewReminderNotificationContent(
     context: Context,
     frontText: String,
-    requestId: String
+    requestId: String,
+    showAppIconBadge: Boolean
 ): ReviewReminderNotificationContent {
     ensureReviewNotificationChannel(context = context)
     val pendingIntent = createReviewReminderPendingIntent(
@@ -48,7 +49,7 @@ fun buildReviewReminderNotificationContent(
         text = frontText,
         locale = locale
     )
-    val notification = NotificationCompat.Builder(context, reviewNotificationChannelId)
+    val builder = NotificationCompat.Builder(context, reviewNotificationChannelId)
         .setSmallIcon(android.R.drawable.ic_dialog_info)
         .setContentTitle(appName)
         .setContentText(bidiSafeFrontText)
@@ -56,7 +57,13 @@ fun buildReviewReminderNotificationContent(
         .setContentIntent(pendingIntent)
         .setAutoCancel(true)
         .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-        .build()
+    if (showAppIconBadge) {
+        // Launcher support varies by OEM (Pixel/Samsung honor this; some do not).
+        // Best-effort red dot or "1" on the app icon while the user has not reviewed today.
+        builder.setNumber(1)
+        builder.setBadgeIconType(NotificationCompat.BADGE_ICON_SMALL)
+    }
+    val notification = builder.build()
 
     return ReviewReminderNotificationContent(
         notificationTag = reviewReminderNotificationTag(requestId = requestId),
@@ -71,7 +78,8 @@ fun buildReviewReminderNotificationContent(
 fun showReviewReminderNotification(
     context: Context,
     frontText: String,
-    requestId: String
+    requestId: String,
+    showAppIconBadge: Boolean
 ): Int {
     if (hasNotificationPermission(context = context).not()) {
         throw SecurityException("POST_NOTIFICATIONS is not granted for package '${context.packageName}'.")
@@ -80,7 +88,8 @@ fun showReviewReminderNotification(
     val notificationContent = buildReviewReminderNotificationContent(
         context = context,
         frontText = frontText,
-        requestId = requestId
+        requestId = requestId,
+        showAppIconBadge = showAppIconBadge
     )
     notifyReviewReminder(
         context = context,

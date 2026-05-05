@@ -45,6 +45,7 @@ import java.util.concurrent.atomic.AtomicLong
 const val reviewNotificationChannelId: String = "review-reminders"
 const val reviewNotificationFrontTextDataKey: String = "frontText"
 const val reviewNotificationRequestIdDataKey: String = "requestId"
+const val reviewNotificationWorkspaceIdDataKey: String = "workspaceId"
 const val reviewNotificationWorkTag: String = "review-notification"
 
 class ReviewNotificationsManager(
@@ -245,8 +246,11 @@ class ReviewNotificationsManager(
      * Review reminders are identified by the dedicated review channel and the
      * `review-notification::` tag namespace. Legacy reminders without a tag are
      * also removed as long as they are still posted on the review channel.
+     *
+     * Public so callers can drop the launcher icon badge synchronously, e.g. when
+     * the user disables the "Show app icon badge" toggle.
      */
-    private fun clearDeliveredReviewReminderNotifications() {
+    fun clearDeliveredReviewReminderNotifications() {
         val notificationManager = context.getSystemService(NotificationManager::class.java)
         val deliveredNotifications = notificationManager.activeNotifications.filter { notification ->
             isReviewReminderNotification(notification = notification)
@@ -280,11 +284,15 @@ class ReviewNotificationsManager(
         return tag.startsWith(reviewReminderNotificationTagPrefix)
     }
 
-    private fun enqueuePayload(payload: ScheduledReviewNotificationPayload, nowMillis: Long) {
+    private fun enqueuePayload(
+        payload: ScheduledReviewNotificationPayload,
+        nowMillis: Long
+    ) {
         val delayMillis = maxOf(1L, payload.scheduledAtMillis - nowMillis)
         val inputData = Data.Builder()
             .putString(reviewNotificationFrontTextDataKey, payload.frontText)
             .putString(reviewNotificationRequestIdDataKey, payload.requestId)
+            .putString(reviewNotificationWorkspaceIdDataKey, payload.workspaceId)
             .build()
         val request = OneTimeWorkRequestBuilder<ReviewNotificationWorker>()
             .setInitialDelay(delayMillis, TimeUnit.MILLISECONDS)

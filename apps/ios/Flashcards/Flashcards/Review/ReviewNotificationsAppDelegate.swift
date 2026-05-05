@@ -29,6 +29,13 @@ final class ReviewNotificationsAppDelegate: NSObject, UIApplicationDelegate, UNU
             return
         }
 
+        // Clear the app icon badge as soon as the user taps the notification — even
+        // before the app finishes foregrounding — so the icon stops nagging the
+        // user the moment they react to it.
+        Task { @MainActor in
+            try? await UNUserNotificationCenter.current().setBadgeCount(0)
+        }
+
         let appState = Self.currentApplicationStateString()
         if request == .openStrictReminder
             && isCurrentStrictReminderNotification(userInfo: userInfo, userDefaults: .standard) == false {

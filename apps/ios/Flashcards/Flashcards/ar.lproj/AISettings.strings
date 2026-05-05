@@ -400,6 +400,8 @@
 "settings.notifications.section.reviewReminders" = "تذكيرات مراجعة مساحة العمل";
 "settings.notifications.reviewReminders.description" = "تستخدم هذه التذكيرات مساحة العمل الحالية فقط وتبقى على هذا الجهاز.";
 "settings.notifications.enableWorkspaceReminders" = "تفعيل تذكيرات مساحة العمل";
+"settings.notifications.appIconBadge.toggle" = "إظهار شارة أيقونة التطبيق";
+"settings.notifications.appIconBadge.description" = "عندما يصدر تذكير بالمراجعة ولم تراجع أي بطاقة بعد اليوم، يظهر رقم 1 أحمر على أيقونة التطبيق. تختفي الشارة بمجرد مراجعة بطاقة أو فتح التطبيق.";
 "settings.notifications.section.strictReminders" = "تذكيرات صارمة";
 "settings.notifications.enableStrictReminders" = "تفعيل التذكيرات الصارمة";
 "settings.notifications.strictReminders.description" = "إذا لم تراجع في أي مكان داخل التطبيق خلال يوم محلي، فسيذكرك Flashcards قبل نهاية ذلك اليوم بـ 4 و3 و2 ساعة.";

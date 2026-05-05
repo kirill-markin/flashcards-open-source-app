@@ -400,6 +400,8 @@
 "settings.notifications.section.reviewReminders" = "工作区复习提醒";
 "settings.notifications.reviewReminders.description" = "这些提醒只使用当前工作区，并且仅保留在此设备上。";
 "settings.notifications.enableWorkspaceReminders" = "启用工作区提醒";
+"settings.notifications.appIconBadge.toggle" = "在应用图标上显示徽章";
+"settings.notifications.appIconBadge.description" = "当复习提醒触发且您今天还未复习任何卡片时,应用图标上会出现红色的 1。一旦您复习一张卡片或打开应用,徽章就会消失。";
 "settings.notifications.section.strictReminders" = "严格提醒";
 "settings.notifications.enableStrictReminders" = "启用严格提醒";
 "settings.notifications.strictReminders.description" = "如果你在某个本地日没有在应用中的任何地方复习，Flashcards 会在当天结束前 4、3、2 小时提醒你。";

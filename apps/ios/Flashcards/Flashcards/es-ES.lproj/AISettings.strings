@@ -400,6 +400,8 @@
 "settings.notifications.section.reviewReminders" = "Recordatorios de repaso del espacio de trabajo";
 "settings.notifications.reviewReminders.description" = "Estos recordatorios usan solo el espacio de trabajo actual y se quedan en este dispositivo.";
 "settings.notifications.enableWorkspaceReminders" = "Activar recordatorios del espacio de trabajo";
+"settings.notifications.appIconBadge.toggle" = "Mostrar la insignia en el icono de la app";
+"settings.notifications.appIconBadge.description" = "Cuando se dispara un recordatorio de repaso y aún no has repasado ninguna tarjeta hoy, aparece un 1 rojo en el icono de la app. La insignia desaparece en cuanto repasas una tarjeta o abres la app.";
 "settings.notifications.section.strictReminders" = "Recordatorios estrictos";
 "settings.notifications.enableStrictReminders" = "Activar recordatorios estrictos";
 "settings.notifications.strictReminders.description" = "Si no has repasado en ninguna parte de la app durante un dia local, Flashcards te recuerda 4, 3 y 2 horas antes de que termine ese dia.";

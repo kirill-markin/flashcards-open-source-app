@@ -24,7 +24,8 @@ class ReviewNotificationsViewModel(
     private val reviewNotificationsStore: ReviewNotificationsStore,
     private val strictRemindersStore: StrictRemindersStore,
     private val onReviewSettingsChanged: () -> Unit,
-    private val onStrictRemindersSettingsChanged: () -> Unit
+    private val onStrictRemindersSettingsChanged: () -> Unit,
+    private val onAppIconBadgeDisabled: () -> Unit
 ) : ViewModel() {
     private val refreshVersion = MutableStateFlow(value = 0)
 
@@ -103,6 +104,17 @@ class ReviewNotificationsViewModel(
         }
     }
 
+    fun updateShowAppIconBadge(value: Boolean) {
+        updateSettings { settings ->
+            settings.copy(showAppIconBadge = value)
+        }
+        // When the toggle is turned off, drop any badge currently shown so the
+        // user gets immediate feedback rather than waiting for a future event.
+        if (value.not()) {
+            onAppIconBadgeDisabled()
+        }
+    }
+
     fun updateStrictRemindersEnabled(isEnabled: Boolean) {
         val nextSettings = StrictRemindersSettings(isEnabled = isEnabled)
         strictRemindersStore.saveStrictRemindersSettings(settings = nextSettings)
@@ -136,7 +148,8 @@ fun createReviewNotificationsViewModelFactory(
     reviewNotificationsStore: ReviewNotificationsStore,
     strictRemindersStore: StrictRemindersStore,
     onReviewSettingsChanged: () -> Unit,
-    onStrictRemindersSettingsChanged: () -> Unit
+    onStrictRemindersSettingsChanged: () -> Unit,
+    onAppIconBadgeDisabled: () -> Unit
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
@@ -145,7 +158,8 @@ fun createReviewNotificationsViewModelFactory(
                 reviewNotificationsStore = reviewNotificationsStore,
                 strictRemindersStore = strictRemindersStore,
                 onReviewSettingsChanged = onReviewSettingsChanged,
-                onStrictRemindersSettingsChanged = onStrictRemindersSettingsChanged
+                onStrictRemindersSettingsChanged = onStrictRemindersSettingsChanged,
+                onAppIconBadgeDisabled = onAppIconBadgeDisabled
             )
         }
     }
