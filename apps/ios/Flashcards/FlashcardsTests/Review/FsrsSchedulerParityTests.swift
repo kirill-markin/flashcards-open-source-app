@@ -608,7 +608,15 @@ final class FsrsSchedulerParityTests: XCTestCase {
 
 private extension FsrsSchedulerParityTests {
     static func fixtureURL() throws -> URL {
-        if let bundledFixtureURL = Bundle(for: Self.self).url(
+        let testBundle = Bundle(for: Self.self)
+        if let reviewBundledFixtureURL = testBundle.url(
+            forResource: "fsrs-full-vectors",
+            withExtension: "json",
+            subdirectory: "Review"
+        ) {
+            return reviewBundledFixtureURL
+        }
+        if let bundledFixtureURL = testBundle.url(
             forResource: "fsrs-full-vectors",
             withExtension: "json"
         ) {
@@ -617,6 +625,7 @@ private extension FsrsSchedulerParityTests {
 
         let currentFileURL = URL(fileURLWithPath: #filePath)
         let repositoryFixtureURL = currentFileURL
+            .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
