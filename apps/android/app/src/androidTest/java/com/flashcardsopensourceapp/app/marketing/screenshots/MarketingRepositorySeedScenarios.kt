@@ -1,5 +1,8 @@
-package com.flashcardsopensourceapp.app
+package com.flashcardsopensourceapp.app.marketing.screenshots
 
+import com.flashcardsopensourceapp.app.RepositorySeedCard
+import com.flashcardsopensourceapp.app.RepositorySeedReview
+import com.flashcardsopensourceapp.app.RepositorySeedScenario
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import java.time.Instant
