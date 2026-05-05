@@ -6,7 +6,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test": "vitest run src/appData/domain.test.ts src/localDb/reviews.test.ts src/localDb/reviewSchedule.test.ts src/localDb/cards.test.ts src/screens/review/ReviewScreen.test.tsx src/appData/progress/progressSource.test.tsx src/appData/progress/progressInvalidation.test.tsx src/api.test.ts",
+    "test": "vitest run src/appData/domain.test.ts src/localDb/reviews.test.ts src/localDb/reviewSchedule.test.ts src/localDb/cards.test.ts src/screens/review/*.test.tsx src/appData/progress/progressSource.test.tsx src/appData/progress/progressInvalidation.test.tsx src/api.test.ts",
     "test:e2e": "FLASHCARDS_E2E_TARGET=prod playwright test",
     "test:e2e:local": "node ./scripts/check-local-e2e-stack.mjs && FLASHCARDS_E2E_TARGET=local playwright test",
     "test:e2e:prod": "FLASHCARDS_E2E_TARGET=prod playwright test"

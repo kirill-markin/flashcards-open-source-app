@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { act } from "react";
+import { act, useEffect, type ReactElement } from "react";
 import ReactDOM from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, vi } from "vitest";
@@ -55,6 +55,10 @@ vi.mock("../../localDb/workspace", () => ({
 }));
 
 import { ReviewScreen } from "./ReviewScreen";
+import {
+  useReviewScreenData,
+  type UseReviewScreenDataResult,
+} from "./useReviewScreenData";
 
 type Mutable<Type> = {
   -readonly [Key in keyof Type]: Type[Key];
@@ -80,6 +84,62 @@ type ReviewScreenTestHarness = Readonly<{
   rerenderReviewScreen: () => Promise<void>;
   revealAnswer: () => Promise<void>;
 }>;
+
+export type DeferredPromise<Value> = Readonly<{
+  promise: Promise<Value>;
+  reject: (error: Error) => void;
+  resolve: (value: Value) => void;
+}>;
+
+export type ReviewQueueChunkResult = Readonly<{
+  cards: ReadonlyArray<Card>;
+  nextCursor: string | null;
+}>;
+
+type ReviewScreenDataHarnessProps = Readonly<{
+  onResult: (result: UseReviewScreenDataResult) => void;
+  state: ReviewScreenTestState;
+}>;
+
+export function createDeferredPromise<Value>(): DeferredPromise<Value> {
+  let rejectPromise: ((error: Error) => void) | null = null;
+  let resolvePromise: ((value: Value) => void) | null = null;
+  const promise = new Promise<Value>((resolve, reject) => {
+    rejectPromise = reject;
+    resolvePromise = resolve;
+  });
+
+  if (rejectPromise === null || resolvePromise === null) {
+    throw new Error("Deferred promise callbacks were not initialized");
+  }
+
+  return {
+    promise,
+    reject: rejectPromise,
+    resolve: resolvePromise,
+  };
+}
+
+export function ReviewScreenDataHarness(props: ReviewScreenDataHarnessProps): ReactElement {
+  const {
+    onResult,
+    state,
+  } = props;
+  const result = useReviewScreenData({
+    activeWorkspaceId: state.appData.activeWorkspace?.workspaceId ?? null,
+    getCardById: state.appData.getCardById,
+    localReadVersion: state.appData.localReadVersion,
+    selectedReviewFilter: state.appData.selectedReviewFilter,
+    setErrorMessage: state.appData.setErrorMessage,
+    submitReviewItem: state.appData.submitReviewItem,
+  });
+
+  useEffect(() => {
+    onResult(result);
+  }, [onResult, result]);
+
+  return <div data-testid="review-screen-data-harness" />;
+}
 
 function createWorkspaceSettings(): NonNullable<AppDataContextValue["workspaceSettings"]> {
   return {
