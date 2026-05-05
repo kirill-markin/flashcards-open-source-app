@@ -5,7 +5,7 @@ import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import kotlinx.coroutines.Dispatchers
 
-internal const val AI_CHAT_TEST_APP_VERSION: String = "1.2.2"
+internal const val AI_CHAT_TEST_APP_VERSION: String = "1.3.0"
 internal const val AI_CHAT_TEST_UI_LOCALE: String = "es-ES"
 internal const val AI_CHAT_TEST_WORKSPACE_ID: String = "workspace-1"
 
