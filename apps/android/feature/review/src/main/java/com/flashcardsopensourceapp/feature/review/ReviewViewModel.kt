@@ -10,18 +10,12 @@ import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenRepository
 import com.flashcardsopensourceapp.data.local.model.PendingReviewedCard
-import com.flashcardsopensourceapp.data.local.model.ReviewAnswerOption
-import com.flashcardsopensourceapp.data.local.model.ReviewCard
-import com.flashcardsopensourceapp.data.local.model.ReviewDeckFilterOption
-import com.flashcardsopensourceapp.data.local.model.ReviewEffortFilterOption
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.ReviewSessionSnapshot
-import com.flashcardsopensourceapp.data.local.model.ReviewTagFilterOption
 import com.flashcardsopensourceapp.data.local.notifications.NotificationPermissionPromptState
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsStore
-import com.flashcardsopensourceapp.data.local.notifications.defaultNotificationPermissionPromptState
 import com.flashcardsopensourceapp.data.local.notifications.reviewNotificationPermissionPromptThreshold
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncCompletion
@@ -44,96 +38,9 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-private const val reviewPreviewPageSize: Int = 20
-
 private fun hasEnoughReviewHistoryForNotificationPrompt(reviewCount: Int): Boolean {
     return reviewCount >= reviewNotificationPermissionPromptThreshold
 }
-
-internal fun clearPendingReviewedCard(
-    pendingReviewedCards: Set<PendingReviewedCard>,
-    pendingReviewedCard: PendingReviewedCard
-): Set<PendingReviewedCard> {
-    return pendingReviewedCards - pendingReviewedCard
-}
-
-internal data class ReviewDraftState(
-    val requestedFilter: ReviewFilter,
-    val presentedCard: ReviewCard?,
-    val revealedCardId: String?,
-    val reviewedInSessionCount: Int,
-    val pendingReviewedCards: Set<PendingReviewedCard>,
-    val optimisticPreparedCurrentCard: PreparedReviewCardPresentation?,
-    val previewCards: List<ReviewCard>,
-    val nextPreviewOffset: Int,
-    val hasMorePreviewCards: Boolean,
-    val isPreviewLoading: Boolean,
-    val previewErrorMessage: String,
-    val errorMessage: String,
-    val isNotificationPermissionPromptVisible: Boolean,
-    val isHardAnswerReminderVisible: Boolean
-)
-
-internal data class ReviewSubmissionSessionContext(
-    val requestedFilter: ReviewFilter,
-    val observedRequestedFilter: ReviewFilter,
-    val selectedFilter: ReviewFilter,
-    val sessionGeneration: Long,
-    val filterGeneration: Long
-)
-
-internal enum class OwnedReviewSubmissionObservationState {
-    LOCAL_WRITE_PENDING,
-    COMMIT_PENDING_OBSERVATION
-}
-
-internal data class OwnedReviewSubmission(
-    val pendingReviewedCard: PendingReviewedCard,
-    val reviewedCard: ReviewCard,
-    val presentedCard: ReviewCard?,
-    val observationState: OwnedReviewSubmissionObservationState
-)
-
-internal data class OwnedReviewSessionObservationSuppression(
-    val consumedPendingReviewedCards: Set<PendingReviewedCard>
-)
-
-internal data class FailedReviewSubmissionRollbackLookup(
-    val currentContext: ReviewSubmissionSessionContext,
-    val rollbackCard: ReviewCard?
-)
-
-private data class ObservedReviewSessionState(
-    val requestedFilter: ReviewFilter,
-    val sessionSnapshot: ReviewSessionSnapshot
-)
-
-internal data class ObservedReviewSessionSignature(
-    val requestedFilter: ReviewFilter,
-    val selectedFilter: ReviewFilter,
-    val selectedFilterTitle: String,
-    val reviewCards: List<ReviewCard>,
-    val presentedCard: ReviewCard?,
-    val dueCount: Int,
-    val remainingCount: Int,
-    val totalCount: Int,
-    val hasMoreCards: Boolean,
-    val availableDeckFilters: List<ReviewDeckFilterOption>,
-    val availableEffortFilters: List<ReviewEffortFilterOption>,
-    val availableTagFilters: List<ReviewTagFilterOption>
-)
-
-private data class VisibleAutoSyncChangeSignature(
-    val selectedFilterTitle: String,
-    val reviewCardIds: List<String>,
-    val preparedCurrentCard: PreparedReviewCardPresentation?,
-    val remainingCount: Int,
-    val totalCount: Int,
-    val hasMoreCards: Boolean,
-    val availableDeckFilters: List<ReviewDeckFilterOption>,
-    val availableEffortFilters: List<ReviewEffortFilterOption>,
-    val availableTagFilters: List<ReviewTagFilterOption>
-)
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ReviewViewModel(
@@ -152,22 +59,7 @@ class ReviewViewModel(
     private val textProvider: ReviewTextProvider
 ) : ViewModel() {
     private val draftState = MutableStateFlow(
-        value = ReviewDraftState(
-            requestedFilter = ReviewFilter.AllCards,
-            presentedCard = null,
-            revealedCardId = null,
-            reviewedInSessionCount = 0,
-            pendingReviewedCards = emptySet(),
-            optimisticPreparedCurrentCard = null,
-            previewCards = emptyList(),
-            nextPreviewOffset = 0,
-            hasMorePreviewCards = true,
-            isPreviewLoading = false,
-            previewErrorMessage = "",
-            errorMessage = "",
-            isNotificationPermissionPromptVisible = false,
-            isHardAnswerReminderVisible = false
-        )
+        value = makeWorkspaceScopedDraftState(reviewFilter = ReviewFilter.AllCards)
     )
 
     private val reviewSessionState = draftState.flatMapLatest { state ->
@@ -202,16 +94,7 @@ class ReviewViewModel(
     private val appMetadataState = workspaceRepository.observeAppMetadata().stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
-        initialValue = com.flashcardsopensourceapp.data.local.model.AppMetadataSummary(
-            currentWorkspaceName = textProvider.loadingLabel,
-            workspaceName = textProvider.loadingLabel,
-            deckCount = 0,
-            cardCount = 0,
-            localStorage = com.flashcardsopensourceapp.data.local.model.AppMetadataStorage.ROOM_SQLITE,
-            syncStatus = com.flashcardsopensourceapp.data.local.model.AppMetadataSyncStatus.Message(
-                text = textProvider.loadingLabel
-            )
-        )
+        initialValue = initialReviewAppMetadataSummary(textProvider = textProvider)
     )
 
     private var pendingAutoSyncRequestId: String? = null
@@ -234,102 +117,17 @@ class ReviewViewModel(
         appMetadataState,
         progressRepository.observeSummarySnapshot()
     ) { reviewSessionState, state, appMetadata, progressSummarySnapshot ->
-        val sessionSnapshot = reviewSessionState.sessionSnapshot
-        val displayedCurrentCard = state.optimisticPreparedCurrentCard?.card
-            ?: resolveDisplayedCurrentCard(
-                sessionCards = sessionSnapshot.cards,
-                presentedCard = sessionSnapshot.presentedCard
-            )
-        val displayedQueue = buildDisplayedReviewQueue(
-            sessionCards = sessionSnapshot.cards,
-            displayedCurrentCard = displayedCurrentCard
-        )
-        val sessionPreparedCurrentCard = if (state.optimisticPreparedCurrentCard == null) {
-            prepareDisplayedSessionCardPresentation(
-                displayedCard = displayedCurrentCard,
-                answerOptionsByCardId = sessionSnapshot.answerOptionsByCardId,
-                textProvider = textProvider
-            )
-        } else {
-            null
-        }
-        val currentPreparedCard = if (state.optimisticPreparedCurrentCard != null) {
-            state.optimisticPreparedCurrentCard
-        } else {
-            sessionPreparedCurrentCard
-        }
-        val displayedNextCard = displayedQueue.getOrNull(index = 1)
-        val preparedNextCard = prepareDisplayedSessionCardPresentation(
-            displayedCard = displayedNextCard,
-            answerOptionsByCardId = sessionSnapshot.answerOptionsByCardId,
+        mapToReviewUiState(
+            sessionSnapshot = reviewSessionState.sessionSnapshot,
+            state = state,
+            appMetadata = appMetadata,
+            progressSummarySnapshot = progressSummarySnapshot,
             textProvider = textProvider
-        )
-        val emptyState = resolveReviewEmptyState(
-            selectedFilter = sessionSnapshot.selectedFilter,
-            remainingCount = sessionSnapshot.remainingCount,
-            totalCount = sessionSnapshot.totalCount,
-            workspaceCardCount = appMetadata.cardCount
-        )
-
-        ReviewUiState(
-            isLoading = sessionSnapshot.isLoading,
-            selectedFilter = sessionSnapshot.selectedFilter,
-            selectedFilterTitle = textProvider.filterTitle(
-                selectedFilter = sessionSnapshot.selectedFilter,
-                availableDeckFilters = sessionSnapshot.availableDeckFilters
-            ),
-            remainingCount = sessionSnapshot.remainingCount,
-            totalCount = sessionSnapshot.totalCount,
-            reviewedInSessionCount = state.reviewedInSessionCount,
-            isAnswerVisible = state.revealedCardId == currentPreparedCard?.card?.cardId,
-            currentCardIdForEditing = currentPreparedCard?.card?.cardId,
-            preparedCurrentCard = currentPreparedCard,
-            preparedNextCard = preparedNextCard,
-            availableDeckFilters = sessionSnapshot.availableDeckFilters,
-            availableEffortFilters = sessionSnapshot.availableEffortFilters,
-            availableTagFilters = sessionSnapshot.availableTagFilters,
-            reviewProgressBadge = progressSummarySnapshot?.toReviewProgressBadgeState()
-                ?: createEmptyReviewProgressBadgeState(),
-            isPreviewLoading = state.isPreviewLoading,
-            previewItems = buildReviewPreviewItems(
-                cards = state.previewCards,
-                currentCardId = currentPreparedCard?.card?.cardId,
-                textProvider = textProvider
-            ),
-            hasMorePreviewCards = state.hasMorePreviewCards,
-            emptyState = emptyState,
-            previewErrorMessage = state.previewErrorMessage,
-            errorMessage = state.errorMessage,
-            isNotificationPermissionPromptVisible = state.isNotificationPermissionPromptVisible,
-            isHardAnswerReminderVisible = state.isHardAnswerReminderVisible
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
-        initialValue = ReviewUiState(
-            isLoading = true,
-            selectedFilter = ReviewFilter.AllCards,
-            selectedFilterTitle = textProvider.allCardsTitle(),
-            remainingCount = 0,
-            totalCount = 0,
-            reviewedInSessionCount = 0,
-            isAnswerVisible = false,
-            currentCardIdForEditing = null,
-            preparedCurrentCard = null,
-            preparedNextCard = null,
-            availableDeckFilters = emptyList(),
-            availableEffortFilters = emptyList(),
-            availableTagFilters = emptyList(),
-            reviewProgressBadge = createEmptyReviewProgressBadgeState(),
-            isPreviewLoading = false,
-            previewItems = emptyList(),
-            hasMorePreviewCards = true,
-            emptyState = null,
-            previewErrorMessage = "",
-            errorMessage = "",
-            isNotificationPermissionPromptVisible = false,
-            isHardAnswerReminderVisible = false
-        )
+        initialValue = initialReviewUiState(textProvider = textProvider)
     )
 
     init {
@@ -433,40 +231,26 @@ class ReviewViewModel(
 
     fun startPreview() {
         val currentState = draftState.value
-        if (currentState.isPreviewLoading) {
+        if (shouldStartReviewPreview(state = currentState).not()) {
             return
         }
 
-        draftState.update { state ->
-            state.copy(
-                previewCards = emptyList(),
-                nextPreviewOffset = 0,
-                hasMorePreviewCards = true,
-                isPreviewLoading = true,
-                previewErrorMessage = ""
-            )
-        }
+        draftState.update(::applyStartReviewPreview)
         loadPreviewPage(offset = 0, replaceCards = true)
     }
 
     fun loadNextPreviewPageIfNeeded(itemCardId: String) {
         val currentState = draftState.value
-        if (currentState.isPreviewLoading) {
-            return
-        }
-        if (currentState.hasMorePreviewCards.not()) {
-            return
-        }
-        if (currentState.previewCards.lastOrNull()?.cardId != itemCardId) {
+        if (
+            shouldLoadNextReviewPreviewPage(
+                state = currentState,
+                itemCardId = itemCardId
+            ).not()
+        ) {
             return
         }
 
-        draftState.update { state ->
-            state.copy(
-                isPreviewLoading = true,
-                previewErrorMessage = ""
-            )
-        }
+        draftState.update(::applyReviewPreviewPageLoading)
         loadPreviewPage(
             offset = currentState.nextPreviewOffset,
             replaceCards = false
@@ -499,17 +283,11 @@ class ReviewViewModel(
         )
 
         draftState.update { state ->
-            state.copy(
-                presentedCard = nextPresentedCard,
-                revealedCardId = null,
-                pendingReviewedCards = state.pendingReviewedCards + pendingReviewedCard,
-                optimisticPreparedCurrentCard = optimisticPreparedCurrentCard,
-                previewCards = emptyList(),
-                nextPreviewOffset = 0,
-                hasMorePreviewCards = true,
-                isPreviewLoading = false,
-                previewErrorMessage = "",
-                errorMessage = ""
+            applyOptimisticReviewSubmission(
+                state = state,
+                nextPresentedCard = nextPresentedCard,
+                pendingReviewedCard = pendingReviewedCard,
+                optimisticPreparedCurrentCard = optimisticPreparedCurrentCard
             )
         }
 
@@ -609,26 +387,20 @@ class ReviewViewModel(
         rating: ReviewRating,
         reviewedAtMillis: Long
     ): Boolean {
-        recentReviewRatings = appendRecentReviewRatings(
+        val decision = reduceHardAnswerReminderDecision(
             recentReviewRatings = recentReviewRatings,
-            nextRating = rating
+            nextRating = rating,
+            reviewedAtMillis = reviewedAtMillis,
+            lastShownAtMillis = hardAnswerReminderLastShownAtMillis
         )
-
-        if (rating != ReviewRating.HARD) {
-            return false
-        }
-        if (shouldShowHardAnswerReminder(recentReviewRatings = recentReviewRatings).not()) {
-            return false
-        }
-        if (isHardAnswerReminderOnCooldown(
-                lastShownAtMillis = hardAnswerReminderLastShownAtMillis,
-                nowMillis = reviewedAtMillis
-            )) {
+        recentReviewRatings = decision.recentReviewRatings
+        if (decision.shouldShowReminder.not()) {
             return false
         }
 
-        hardAnswerReminderLastShownAtMillis = reviewedAtMillis
-        reviewPreferencesStore.saveHardAnswerReminderLastShownAt(timestampMillis = reviewedAtMillis)
+        val nextLastShownAtMillis = checkNotNull(decision.nextLastShownAtMillis)
+        hardAnswerReminderLastShownAtMillis = nextLastShownAtMillis
+        reviewPreferencesStore.saveHardAnswerReminderLastShownAt(timestampMillis = nextLastShownAtMillis)
         draftState.update { state ->
             state.copy(isHardAnswerReminderVisible = true)
         }
@@ -695,20 +467,10 @@ class ReviewViewModel(
                 }
 
                 draftState.update { state ->
-                    val mergedCards = if (replaceCards) {
-                        page.cards
-                    } else {
-                        (state.previewCards + page.cards).distinctBy { card ->
-                            card.cardId
-                        }
-                    }
-
-                    state.copy(
-                        previewCards = mergedCards,
-                        nextPreviewOffset = mergedCards.size,
-                        hasMorePreviewCards = page.hasMoreCards,
-                        isPreviewLoading = false,
-                        previewErrorMessage = ""
+                    applyLoadedReviewPreviewPage(
+                        state = state,
+                        page = page,
+                        replaceCards = replaceCards
                     )
                 }
             } catch (error: Throwable) {
@@ -719,9 +481,9 @@ class ReviewViewModel(
                     return@launch
                 }
                 draftState.update { state ->
-                    state.copy(
-                        isPreviewLoading = false,
-                        previewErrorMessage = error.message ?: textProvider.reviewQueueCouldNotBeLoaded
+                    applyFailedReviewPreviewPage(
+                        state = state,
+                        errorMessage = error.message ?: textProvider.reviewQueueCouldNotBeLoaded
                     )
                 }
             }
@@ -910,6 +672,7 @@ class ReviewViewModel(
         if (visibleSignatureBeforeSync == null) {
             return
         }
+
         val displayedCurrentCardAfterSync = resolveDisplayedCurrentCard(
             sessionCards = sessionSnapshot.cards,
             presentedCard = sessionSnapshot.presentedCard
@@ -923,66 +686,25 @@ class ReviewViewModel(
             sessionSnapshot = sessionSnapshot,
             preparedCurrentCard = preparedCurrentCardAfterSync
         )
-        if (visibleSignatureBeforeSync == nextVisibleChangeSignature) {
-            return
-        }
-        if (nextVisibleChangeSignature == lastVisibleAutoSyncChangeSignature) {
+        if (
+            shouldShowVisibleAutoSyncChangeMessage(
+                visibleSignatureBeforeSync = visibleSignatureBeforeSync,
+                nextVisibleChangeSignature = nextVisibleChangeSignature,
+                lastVisibleAutoSyncChangeSignature = lastVisibleAutoSyncChangeSignature
+            ).not()
+        ) {
             return
         }
 
         draftState.update { state ->
-            val nextPresentedCard = sessionSnapshot.presentedCard
-            state.copy(
-                presentedCard = nextPresentedCard,
-                revealedCardId = if (state.revealedCardId == nextPresentedCard?.cardId) {
-                    state.revealedCardId
-                } else {
-                    null
-                },
-                // Auto-sync must rebuild the visible card from the fresh review
-                // snapshot so same-card content changes are rendered immediately.
-                optimisticPreparedCurrentCard = null,
-                previewCards = emptyList(),
-                nextPreviewOffset = 0,
-                hasMorePreviewCards = true,
-                isPreviewLoading = false,
-                previewErrorMessage = ""
+            applySuccessfulAutoSyncReviewState(
+                state = state,
+                sessionSnapshot = sessionSnapshot
             )
         }
         lastVisibleAutoSyncChangeSignature = nextVisibleChangeSignature
         messageController.showMessage(message = textProvider.reviewUpdatedOnAnotherDeviceMessage)
     }
-}
-
-private fun makeVisibleAutoSyncChangeSignature(
-    sessionSnapshot: ReviewSessionSnapshot,
-    preparedCurrentCard: PreparedReviewCardPresentation?
-): VisibleAutoSyncChangeSignature {
-    return VisibleAutoSyncChangeSignature(
-        selectedFilterTitle = sessionSnapshot.selectedFilterTitle,
-        reviewCardIds = sessionSnapshot.cards.map(ReviewCard::cardId),
-        preparedCurrentCard = preparedCurrentCard,
-        remainingCount = sessionSnapshot.remainingCount,
-        totalCount = sessionSnapshot.totalCount,
-        hasMoreCards = sessionSnapshot.hasMoreCards,
-        availableDeckFilters = sessionSnapshot.availableDeckFilters,
-        availableEffortFilters = sessionSnapshot.availableEffortFilters,
-        availableTagFilters = sessionSnapshot.availableTagFilters
-    )
-}
-
-private object NoOpReviewNotificationsStore : ReviewNotificationsStore {
-    override fun loadSettings(workspaceId: String) = throw UnsupportedOperationException("Notifications store is unavailable.")
-    override fun saveSettings(workspaceId: String, settings: com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsSettings) = Unit
-    override fun loadPromptState(): NotificationPermissionPromptState = defaultNotificationPermissionPromptState()
-    override fun savePromptState(state: NotificationPermissionPromptState) = Unit
-    override fun loadSuccessfulReviewCount(): Int = 0
-    override fun saveSuccessfulReviewCount(count: Int) = Unit
-    override fun loadLastActiveAtMillis(): Long? = null
-    override fun saveLastActiveAtMillis(timestampMillis: Long) = Unit
-    override fun clearLastActiveAtMillis() = Unit
-    override fun loadScheduledPayloads(workspaceId: String) = emptyList<com.flashcardsopensourceapp.data.local.notifications.ScheduledReviewNotificationPayload>()
-    override fun saveScheduledPayloads(workspaceId: String, payloads: List<com.flashcardsopensourceapp.data.local.notifications.ScheduledReviewNotificationPayload>) = Unit
 }
 
 fun createReviewViewModelFactory(
@@ -1021,654 +743,6 @@ fun createReviewViewModelFactory(
     }
 }
 
-private fun makeWorkspaceScopedDraftState(reviewFilter: ReviewFilter): ReviewDraftState {
-    return ReviewDraftState(
-        requestedFilter = reviewFilter,
-        presentedCard = null,
-        revealedCardId = null,
-        reviewedInSessionCount = 0,
-        pendingReviewedCards = emptySet(),
-        optimisticPreparedCurrentCard = null,
-        previewCards = emptyList(),
-        nextPreviewOffset = 0,
-        hasMorePreviewCards = true,
-        isPreviewLoading = false,
-        previewErrorMessage = "",
-        errorMessage = "",
-        isNotificationPermissionPromptVisible = false,
-        isHardAnswerReminderVisible = false
-    )
-}
-
-private fun applyReviewFilterChange(
-    state: ReviewDraftState,
-    reviewFilter: ReviewFilter
-): ReviewDraftState {
-    return state.copy(
-        requestedFilter = reviewFilter,
-        presentedCard = null,
-        revealedCardId = null,
-        optimisticPreparedCurrentCard = null,
-        previewCards = emptyList(),
-        nextPreviewOffset = 0,
-        hasMorePreviewCards = true,
-        isPreviewLoading = false,
-        previewErrorMessage = "",
-        errorMessage = "",
-        isNotificationPermissionPromptVisible = false,
-        isHardAnswerReminderVisible = false
-    )
-}
-
-private fun applyResolvedReviewFilter(
-    state: ReviewDraftState,
-    reviewFilter: ReviewFilter
-): ReviewDraftState {
-    return state.copy(
-        requestedFilter = reviewFilter,
-        presentedCard = null,
-        revealedCardId = null,
-        optimisticPreparedCurrentCard = null,
-        previewCards = emptyList(),
-        nextPreviewOffset = 0,
-        hasMorePreviewCards = true,
-        isPreviewLoading = false,
-        previewErrorMessage = "",
-        errorMessage = "",
-        isNotificationPermissionPromptVisible = false,
-        isHardAnswerReminderVisible = false
-    )
-}
-
-internal fun nextReviewFilterGenerationAfterSelection(
-    requestedFilter: ReviewFilter,
-    selectedFilter: ReviewFilter,
-    currentFilterGeneration: Long
-): Long {
-    if (requestedFilter == selectedFilter) {
-        return currentFilterGeneration
-    }
-
-    return currentFilterGeneration + 1L
-}
-
-private fun makeObservedReviewSessionSignature(
-    observedState: ObservedReviewSessionState
-): ObservedReviewSessionSignature {
-    val sessionSnapshot = observedState.sessionSnapshot
-    return ObservedReviewSessionSignature(
-        requestedFilter = observedState.requestedFilter,
-        selectedFilter = sessionSnapshot.selectedFilter,
-        selectedFilterTitle = sessionSnapshot.selectedFilterTitle,
-        reviewCards = sessionSnapshot.cards,
-        presentedCard = sessionSnapshot.presentedCard,
-        dueCount = sessionSnapshot.dueCount,
-        remainingCount = sessionSnapshot.remainingCount,
-        totalCount = sessionSnapshot.totalCount,
-        hasMoreCards = sessionSnapshot.hasMoreCards,
-        availableDeckFilters = sessionSnapshot.availableDeckFilters,
-        availableEffortFilters = sessionSnapshot.availableEffortFilters,
-        availableTagFilters = sessionSnapshot.availableTagFilters
-    )
-}
-
-internal fun shouldAdvanceReviewSessionGeneration(
-    previousSignature: ObservedReviewSessionSignature?,
-    nextSignature: ObservedReviewSessionSignature,
-    state: ReviewDraftState,
-    ownedReviewSubmissions: Map<PendingReviewedCard, OwnedReviewSubmission>
-): Boolean {
-    val previous = previousSignature ?: return false
-    if (previous == nextSignature) {
-        return false
-    }
-    return findOwnedReviewSessionObservationSuppression(
-        previousSignature = previous,
-        nextSignature = nextSignature,
-        state = state,
-        ownedReviewSubmissions = ownedReviewSubmissions
-    ) == null
-}
-
-internal fun findOwnedReviewSessionObservationSuppression(
-    previousSignature: ObservedReviewSessionSignature?,
-    nextSignature: ObservedReviewSessionSignature,
-    state: ReviewDraftState,
-    ownedReviewSubmissions: Map<PendingReviewedCard, OwnedReviewSubmission>
-): OwnedReviewSessionObservationSuppression? {
-    val previous = previousSignature ?: return null
-    if (previous == nextSignature) {
-        return null
-    }
-    if (hasSameReviewSessionIdentity(
-            previousSignature = previous,
-            nextSignature = nextSignature,
-        ).not()
-    ) {
-        return null
-    }
-
-    return findOwnedReviewQueueObservationSuppression(
-        previousSignature = previous,
-        nextSignature = nextSignature,
-        state = state,
-        ownedReviewSubmissions = ownedReviewSubmissions
-    ) ?: findOwnedReviewCommitObservationSuppression(
-        previousSignature = previous,
-        nextSignature = nextSignature,
-        ownedReviewSubmissions = ownedReviewSubmissions
-    )
-}
-
-private fun hasSameReviewSessionIdentity(
-    previousSignature: ObservedReviewSessionSignature,
-    nextSignature: ObservedReviewSessionSignature
-): Boolean {
-    return previousSignature.requestedFilter == nextSignature.requestedFilter &&
-        previousSignature.selectedFilter == nextSignature.selectedFilter &&
-        previousSignature.selectedFilterTitle == nextSignature.selectedFilterTitle &&
-        previousSignature.totalCount == nextSignature.totalCount
-}
-
-private fun findOwnedReviewQueueObservationSuppression(
-    previousSignature: ObservedReviewSessionSignature,
-    nextSignature: ObservedReviewSessionSignature,
-    state: ReviewDraftState,
-    ownedReviewSubmissions: Map<PendingReviewedCard, OwnedReviewSubmission>
-): OwnedReviewSessionObservationSuppression? {
-    if (nextSignature.presentedCard != state.presentedCard) {
-        return null
-    }
-    val removedSubmissions = findOwnedReviewSubmissionsRemovedFromQueue(
-        previousCards = previousSignature.reviewCards,
-        nextCards = nextSignature.reviewCards,
-        ownedReviewSubmissions = ownedReviewSubmissions
-    ) ?: return null
-    if (removedSubmissions.isEmpty()) {
-        return null
-    }
-    if (removedSubmissions.any { submission ->
-            submission.presentedCard == nextSignature.presentedCard
-        }.not()
-    ) {
-        return null
-    }
-    val committedSubmissions = removedSubmissions.filter { submission ->
-        submission.observationState == OwnedReviewSubmissionObservationState.COMMIT_PENDING_OBSERVATION
-    }
-    if (isOwnedReviewCountChange(
-            previousSignature = previousSignature,
-            nextSignature = nextSignature,
-            queueSubmissionCount = removedSubmissions.size,
-            committedSubmissionCount = committedSubmissions.size
-        ).not()
-    ) {
-        return null
-    }
-    if (isOwnedReviewFilterOptionChange(
-            previousSignature = previousSignature,
-            nextSignature = nextSignature,
-            committedReviewedCards = committedSubmissions.map(OwnedReviewSubmission::reviewedCard)
-        ).not()
-    ) {
-        return null
-    }
-
-    return OwnedReviewSessionObservationSuppression(
-        consumedPendingReviewedCards = committedSubmissions.map { submission ->
-            submission.pendingReviewedCard
-        }.toSet()
-    )
-}
-
-private fun findOwnedReviewCommitObservationSuppression(
-    previousSignature: ObservedReviewSessionSignature,
-    nextSignature: ObservedReviewSessionSignature,
-    ownedReviewSubmissions: Map<PendingReviewedCard, OwnedReviewSubmission>
-): OwnedReviewSessionObservationSuppression? {
-    if (previousSignature.reviewCards != nextSignature.reviewCards) {
-        return null
-    }
-    if (previousSignature.presentedCard != nextSignature.presentedCard) {
-        return null
-    }
-    val dueCountDelta = previousSignature.dueCount - nextSignature.dueCount
-    val remainingCountDelta = previousSignature.remainingCount - nextSignature.remainingCount
-    val observedReviewCount = maxOf(dueCountDelta, remainingCountDelta)
-    if (observedReviewCount <= 0) {
-        return null
-    }
-    val observableOwnedSubmissions = ownedReviewSubmissions.values.filter { submission ->
-        submission.observationState == OwnedReviewSubmissionObservationState.COMMIT_PENDING_OBSERVATION
-    }
-    if (observedReviewCount > observableOwnedSubmissions.size) {
-        return null
-    }
-
-    val submissionCombinations = makeOwnedReviewSubmissionCombinations(
-        ownedReviewSubmissions = observableOwnedSubmissions,
-        size = observedReviewCount
-    )
-    val matchingSubmissions = submissionCombinations.firstOrNull { submissions ->
-        isOwnedReviewCountChange(
-            previousSignature = previousSignature,
-            nextSignature = nextSignature,
-            queueSubmissionCount = submissions.size,
-            committedSubmissionCount = submissions.size
-        ) && isOwnedReviewFilterOptionChange(
-            previousSignature = previousSignature,
-            nextSignature = nextSignature,
-            committedReviewedCards = submissions.map(OwnedReviewSubmission::reviewedCard)
-        )
-    } ?: return null
-
-    return OwnedReviewSessionObservationSuppression(
-        consumedPendingReviewedCards = matchingSubmissions.map { submission ->
-            submission.pendingReviewedCard
-        }.toSet()
-    )
-}
-
-/** Returns null if `nextCards` introduces a card not in `previousCards`, since the canonical queue must only shrink between observations during owned reviews. */
-private fun findOwnedReviewSubmissionsRemovedFromQueue(
-    previousCards: List<ReviewCard>,
-    nextCards: List<ReviewCard>,
-    ownedReviewSubmissions: Map<PendingReviewedCard, OwnedReviewSubmission>
-): List<OwnedReviewSubmission>? {
-    val ownedReviewSubmissionsByCardId = ownedReviewSubmissions.values.associateBy { submission ->
-        submission.reviewedCard.cardId
-    }
-    val removedSubmissions = mutableListOf<OwnedReviewSubmission>()
-    var nextCardIndex: Int = 0
-    previousCards.forEach { previousCard ->
-        val nextCard = nextCards.getOrNull(index = nextCardIndex)
-        if (nextCard == previousCard) {
-            nextCardIndex += 1
-        } else {
-            val ownedSubmission = ownedReviewSubmissionsByCardId[previousCard.cardId] ?: return null
-            removedSubmissions.add(ownedSubmission)
-        }
-    }
-
-    return removedSubmissions
-}
-
-private const val maxOwnedReviewSubmissionCombinationInputSize: Int = 8
-
-private fun makeOwnedReviewSubmissionCombinations(
-    ownedReviewSubmissions: List<OwnedReviewSubmission>,
-    size: Int
-): List<List<OwnedReviewSubmission>> {
-    // Guard against combinatorial blowup: the recursion grows as C(n, size).
-    // Skip suppression entirely when the input set exceeds the bound rather
-    // than risk freezing the UI thread when many submissions queue up.
-    if (ownedReviewSubmissions.size > maxOwnedReviewSubmissionCombinationInputSize) {
-        return emptyList()
-    }
-    if (size == 0) {
-        return listOf(emptyList())
-    }
-    if (ownedReviewSubmissions.size < size) {
-        return emptyList()
-    }
-
-    val firstSubmission = ownedReviewSubmissions.first()
-    val remainingSubmissions = ownedReviewSubmissions.drop(n = 1)
-    val combinationsWithFirst = makeOwnedReviewSubmissionCombinations(
-        ownedReviewSubmissions = remainingSubmissions,
-        size = size - 1
-    ).map { combination ->
-        listOf(firstSubmission) + combination
-    }
-    val combinationsWithoutFirst = makeOwnedReviewSubmissionCombinations(
-        ownedReviewSubmissions = remainingSubmissions,
-        size = size
-    )
-
-    return combinationsWithFirst + combinationsWithoutFirst
-}
-
-private fun isOwnedReviewCountChange(
-    previousSignature: ObservedReviewSessionSignature,
-    nextSignature: ObservedReviewSessionSignature,
-    queueSubmissionCount: Int,
-    committedSubmissionCount: Int
-): Boolean {
-    val dueCountDelta = previousSignature.dueCount - nextSignature.dueCount
-    val remainingCountDelta = previousSignature.remainingCount - nextSignature.remainingCount
-    if (dueCountDelta < 0 || dueCountDelta > committedSubmissionCount) {
-        return false
-    }
-    if (remainingCountDelta < 0 || remainingCountDelta > queueSubmissionCount) {
-        return false
-    }
-
-    return dueCountDelta > 0 || remainingCountDelta > 0
-}
-
-private fun isOwnedReviewFilterOptionChange(
-    previousSignature: ObservedReviewSessionSignature,
-    nextSignature: ObservedReviewSessionSignature,
-    committedReviewedCards: List<ReviewCard>
-): Boolean {
-    val dueCountDelta = previousSignature.dueCount - nextSignature.dueCount
-    if (dueCountDelta == 0) {
-        return previousSignature.availableDeckFilters == nextSignature.availableDeckFilters &&
-            previousSignature.availableEffortFilters == nextSignature.availableEffortFilters &&
-            previousSignature.availableTagFilters == nextSignature.availableTagFilters
-    }
-
-    return hasOwnedDeckFilterOptionChange(
-        previousOptions = previousSignature.availableDeckFilters,
-        nextOptions = nextSignature.availableDeckFilters,
-        committedReviewedCards = committedReviewedCards
-    ) && hasOwnedEffortFilterOptionChange(
-        previousOptions = previousSignature.availableEffortFilters,
-        nextOptions = nextSignature.availableEffortFilters,
-        committedReviewedCards = committedReviewedCards
-    ) && hasOwnedTagFilterOptionChange(
-        previousOptions = previousSignature.availableTagFilters,
-        nextOptions = nextSignature.availableTagFilters,
-        committedReviewedCards = committedReviewedCards
-    )
-}
-
-private fun hasOwnedDeckFilterOptionChange(
-    previousOptions: List<ReviewDeckFilterOption>,
-    nextOptions: List<ReviewDeckFilterOption>,
-    committedReviewedCards: List<ReviewCard>
-): Boolean {
-    if (previousOptions.size != nextOptions.size) {
-        return false
-    }
-
-    val nextOptionsByDeckId = nextOptions.associateBy { option ->
-        option.deckId
-    }
-    return previousOptions.all { previousOption ->
-        val nextOption = nextOptionsByDeckId[previousOption.deckId] ?: return false
-        val countDelta = previousOption.totalCount - nextOption.totalCount
-        nextOption.title == previousOption.title &&
-            countDelta >= 0 &&
-            countDelta <= committedReviewedCards.size
-    }
-}
-
-private fun hasOwnedEffortFilterOptionChange(
-    previousOptions: List<ReviewEffortFilterOption>,
-    nextOptions: List<ReviewEffortFilterOption>,
-    committedReviewedCards: List<ReviewCard>
-): Boolean {
-    if (previousOptions.size != nextOptions.size) {
-        return false
-    }
-
-    val nextOptionsByEffort = nextOptions.associateBy { option ->
-        option.effortLevel
-    }
-    return previousOptions.all { previousOption ->
-        val nextOption = nextOptionsByEffort[previousOption.effortLevel] ?: return false
-        val expectedDelta = committedReviewedCards.count { reviewedCard ->
-            previousOption.effortLevel == reviewedCard.effortLevel
-        }
-        nextOption.title == previousOption.title &&
-            previousOption.totalCount - nextOption.totalCount == expectedDelta
-    }
-}
-
-private fun hasOwnedTagFilterOptionChange(
-    previousOptions: List<ReviewTagFilterOption>,
-    nextOptions: List<ReviewTagFilterOption>,
-    committedReviewedCards: List<ReviewCard>
-): Boolean {
-    val previousOptionsByTag = previousOptions.associateBy { option ->
-        option.tag
-    }
-    val nextOptionsByTag = nextOptions.associateBy { option ->
-        option.tag
-    }
-    if (nextOptionsByTag.keys.any { tag ->
-            previousOptionsByTag.containsKey(tag).not()
-        }
-    ) {
-        return false
-    }
-    val committedReviewTags = committedReviewedCards.flatMap { reviewedCard ->
-        reviewedCard.tags
-    }
-
-    return previousOptions.all { previousOption ->
-        val expectedDelta = committedReviewTags.count { tag ->
-            tag == previousOption.tag
-        }
-        val expectedCount = previousOption.totalCount - expectedDelta
-        val nextOption = nextOptionsByTag[previousOption.tag]
-        if (expectedCount <= 0) {
-            nextOption == null
-        } else {
-            nextOption?.totalCount == expectedCount
-        }
-    }
-}
-
-internal fun markOwnedReviewSubmissionCommitPendingObservation(
-    ownedReviewSubmissions: Map<PendingReviewedCard, OwnedReviewSubmission>,
-    pendingReviewedCard: PendingReviewedCard
-): Map<PendingReviewedCard, OwnedReviewSubmission> {
-    val ownedReviewSubmission = ownedReviewSubmissions[pendingReviewedCard] ?: return ownedReviewSubmissions
-    return ownedReviewSubmissions + (
-        pendingReviewedCard to ownedReviewSubmission.copy(
-            observationState = OwnedReviewSubmissionObservationState.COMMIT_PENDING_OBSERVATION
-        )
-    )
-}
-
-internal suspend fun resolveFailedReviewSubmissionRollback(
-    submittedContext: ReviewSubmissionSessionContext,
-    currentContextBeforeLookup: ReviewSubmissionSessionContext,
-    cardId: String,
-    loadRollbackCard: suspend (ReviewFilter, String) -> ReviewCard?,
-    captureCurrentContext: () -> ReviewSubmissionSessionContext
-): FailedReviewSubmissionRollbackLookup {
-    if (isCurrentReviewSubmissionContext(
-            submittedContext = submittedContext,
-            currentContext = currentContextBeforeLookup
-        ).not()
-    ) {
-        return FailedReviewSubmissionRollbackLookup(
-            currentContext = currentContextBeforeLookup,
-            rollbackCard = null
-        )
-    }
-
-    val rollbackCard = try {
-        loadRollbackCard(
-            currentContextBeforeLookup.selectedFilter,
-            cardId
-        )
-    } catch (error: Throwable) {
-        if (error is CancellationException) {
-            throw error
-        }
-        null
-    }
-
-    return FailedReviewSubmissionRollbackLookup(
-        currentContext = captureCurrentContext(),
-        rollbackCard = rollbackCard
-    )
-}
-
-internal fun isCurrentReviewSubmissionContext(
-    submittedContext: ReviewSubmissionSessionContext,
-    currentContext: ReviewSubmissionSessionContext
-): Boolean {
-    return submittedContext == currentContext
-}
-
-internal fun applySuccessfulReviewSubmission(
-    state: ReviewDraftState,
-    submittedContext: ReviewSubmissionSessionContext,
-    currentContext: ReviewSubmissionSessionContext,
-    pendingReviewedCard: PendingReviewedCard
-): ReviewDraftState {
-    val pendingReviewedCards = clearPendingReviewedCard(
-        pendingReviewedCards = state.pendingReviewedCards,
-        pendingReviewedCard = pendingReviewedCard
-    )
-    if (isCurrentReviewSubmissionContext(
-            submittedContext = submittedContext,
-            currentContext = currentContext
-        ).not()
-    ) {
-        return state.copy(pendingReviewedCards = pendingReviewedCards)
-    }
-
-    return state.copy(
-        reviewedInSessionCount = state.reviewedInSessionCount + 1,
-        pendingReviewedCards = pendingReviewedCards,
-        optimisticPreparedCurrentCard = null
-    )
-}
-
-internal fun applyFailedReviewSubmission(
-    state: ReviewDraftState,
-    submittedContext: ReviewSubmissionSessionContext,
-    currentContext: ReviewSubmissionSessionContext,
-    rollbackCard: ReviewCard?,
-    pendingReviewedCard: PendingReviewedCard,
-    errorMessage: String
-): ReviewDraftState {
-    val pendingReviewedCards = clearPendingReviewedCard(
-        pendingReviewedCards = state.pendingReviewedCards,
-        pendingReviewedCard = pendingReviewedCard
-    )
-    if (isCurrentReviewSubmissionContext(
-            submittedContext = submittedContext,
-            currentContext = currentContext
-        ).not()
-    ) {
-        return state.copy(pendingReviewedCards = pendingReviewedCards)
-    }
-    val validRollbackCard = rollbackCard ?: return state.copy(
-        pendingReviewedCards = pendingReviewedCards,
-        errorMessage = errorMessage
-    )
-
-    return state.copy(
-        presentedCard = validRollbackCard,
-        pendingReviewedCards = pendingReviewedCards,
-        optimisticPreparedCurrentCard = null,
-        errorMessage = errorMessage
-    )
-}
-
-private fun resolveReviewEmptyState(
-    selectedFilter: ReviewFilter,
-    remainingCount: Int,
-    totalCount: Int,
-    workspaceCardCount: Int
-): ReviewEmptyState? {
-    if (remainingCount > 0) {
-        return null
-    }
-
-    if (totalCount > 0) {
-        return ReviewEmptyState.SESSION_COMPLETE
-    }
-
-    if (workspaceCardCount == 0) {
-        return ReviewEmptyState.NO_CARDS_YET
-    }
-
-    return if (selectedFilter == ReviewFilter.AllCards) {
-        ReviewEmptyState.SESSION_COMPLETE
-    } else {
-        ReviewEmptyState.FILTER_EMPTY
-    }
-}
-
 private fun CreationExtras.requireApplication(): android.app.Application {
     return checkNotNull(this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY])
-}
-
-private fun loadingReviewSessionSnapshot(textProvider: ReviewTextProvider): ReviewSessionSnapshot {
-    return ReviewSessionSnapshot(
-        selectedFilter = ReviewFilter.AllCards,
-        selectedFilterTitle = textProvider.allCardsTitle(),
-        cards = emptyList(),
-        presentedCard = null,
-        answerOptions = emptyList(),
-        nextAnswerOptions = emptyList(),
-        answerOptionsByCardId = emptyMap(),
-        dueCount = 0,
-        remainingCount = 0,
-        totalCount = 0,
-        hasMoreCards = false,
-        availableDeckFilters = emptyList(),
-        availableEffortFilters = emptyList(),
-        availableTagFilters = emptyList(),
-        isLoading = true
-    )
-}
-
-internal fun resolveDisplayedCurrentCard(
-    sessionCards: List<ReviewCard>,
-    presentedCard: ReviewCard?
-): ReviewCard? {
-    val presentedCardId = presentedCard?.cardId
-    return sessionCards.firstOrNull { card ->
-        card.cardId == presentedCardId
-    } ?: presentedCard ?: sessionCards.firstOrNull()
-}
-
-internal fun buildDisplayedReviewQueue(
-    sessionCards: List<ReviewCard>,
-    displayedCurrentCard: ReviewCard?
-): List<ReviewCard> {
-    if (displayedCurrentCard == null) {
-        return sessionCards
-    }
-
-    return buildList {
-        add(displayedCurrentCard)
-        sessionCards.forEach { card ->
-            if (card.cardId != displayedCurrentCard.cardId) {
-                add(card)
-            }
-        }
-    }
-}
-
-internal fun resolveDisplayedSessionAnswerOptions(
-    displayedCard: ReviewCard?,
-    answerOptionsByCardId: Map<String, List<ReviewAnswerOption>>
-): List<ReviewAnswerOption>? {
-    val card = displayedCard ?: return null
-    return answerOptionsByCardId[card.cardId]
-}
-
-private fun prepareDisplayedSessionCardPresentation(
-    displayedCard: ReviewCard?,
-    answerOptionsByCardId: Map<String, List<ReviewAnswerOption>>,
-    textProvider: ReviewTextProvider
-): PreparedReviewCardPresentation? {
-    val card = displayedCard ?: return null
-    val answerOptions = requireNotNull(
-        resolveDisplayedSessionAnswerOptions(
-            displayedCard = card,
-            answerOptionsByCardId = answerOptionsByCardId
-        )
-    ) {
-        "Review answer options are missing for displayed card: ${card.cardId}"
-    }
-    require(answerOptions.isNotEmpty()) {
-        "Review answer options are empty for displayed card: ${card.cardId}"
-    }
-
-    return prepareReviewCardPresentation(
-        card = card,
-        answerOptions = answerOptions,
-        textProvider = textProvider
-    )
 }

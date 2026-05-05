@@ -6,6 +6,12 @@ internal const val hardAnswerReminderRecentRatingWindowSize: Int = 8
 internal const val hardAnswerReminderHardCountThreshold: Int = 5
 internal const val hardAnswerReminderCooldownMillis: Long = 3L * 24L * 60L * 60L * 1000L
 
+internal data class HardAnswerReminderDecision(
+    val recentReviewRatings: List<ReviewRating>,
+    val nextLastShownAtMillis: Long?,
+    val shouldShowReminder: Boolean
+)
+
 /**
  * Appends a review rating to the in-memory reminder window and trims it to the
  * configured window size.
@@ -46,4 +52,32 @@ internal fun isHardAnswerReminderOnCooldown(
     }
 
     return nowMillis - lastShownAtMillis < hardAnswerReminderCooldownMillis
+}
+
+internal fun reduceHardAnswerReminderDecision(
+    recentReviewRatings: List<ReviewRating>,
+    nextRating: ReviewRating,
+    reviewedAtMillis: Long,
+    lastShownAtMillis: Long?
+): HardAnswerReminderDecision {
+    val nextRecentReviewRatings = appendRecentReviewRatings(
+        recentReviewRatings = recentReviewRatings,
+        nextRating = nextRating
+    )
+    val shouldShowReminder = nextRating == ReviewRating.HARD &&
+        shouldShowHardAnswerReminder(recentReviewRatings = nextRecentReviewRatings) &&
+        isHardAnswerReminderOnCooldown(
+            lastShownAtMillis = lastShownAtMillis,
+            nowMillis = reviewedAtMillis
+        ).not()
+
+    return HardAnswerReminderDecision(
+        recentReviewRatings = nextRecentReviewRatings,
+        nextLastShownAtMillis = if (shouldShowReminder) {
+            reviewedAtMillis
+        } else {
+            lastShownAtMillis
+        },
+        shouldShowReminder = shouldShowReminder
+    )
 }
