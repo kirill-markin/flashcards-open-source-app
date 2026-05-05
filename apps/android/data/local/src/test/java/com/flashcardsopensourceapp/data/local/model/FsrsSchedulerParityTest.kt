@@ -15,7 +15,7 @@ import org.junit.Test
  *
  * Keep in sync with:
  * - apps/backend/src/schedule.test.ts
- * - apps/ios/Flashcards/FlashcardsTests/FsrsSchedulerParityTests.swift
+ * - apps/ios/Flashcards/FlashcardsTests/Review/FsrsSchedulerParityTests.swift
  * - tests/fsrs-full-vectors.json
  * - docs/fsrs-scheduling-logic.md
  */

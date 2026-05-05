@@ -48,7 +48,7 @@ Supporting mirrors around the scheduler contract:
 - Android scheduler settings: `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/WorkspaceSchedulerSettingsSupport.kt`
 - shared parity vectors: `tests/fsrs-full-vectors.json`
 - backend parity tests: `apps/backend/src/schedule.test.ts`
-- iOS parity tests: `apps/ios/Flashcards/FlashcardsTests/FsrsSchedulerParityTests.swift`
+- iOS parity tests: `apps/ios/Flashcards/FlashcardsTests/Review/FsrsSchedulerParityTests.swift`
 - Android parity tests: `apps/android/data/local/src/test/java/com/flashcardsopensourceapp/data/local/model/FsrsSchedulerParityTest.kt`
 
 Any scheduler change must update the backend copy, the iOS copy, the Android copy, this document, and the parity vectors plus all three test suites in the same PR.
