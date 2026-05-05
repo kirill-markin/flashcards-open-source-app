@@ -74,7 +74,8 @@ internal fun LiveSmokeContext.postReviewReminderNotification(
     val notificationId = showReviewReminderNotification(
         context = context,
         frontText = frontText,
-        requestId = requestId
+        requestId = requestId,
+        showAppIconBadge = true
     )
     waitForNotificationCondition(
         timeoutMillis = externalUiTimeoutMillis,

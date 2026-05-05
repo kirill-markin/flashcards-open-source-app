@@ -60,7 +60,8 @@ data class ReviewNotificationsSettings(
     val isEnabled: Boolean,
     val selectedMode: ReviewNotificationMode,
     val daily: DailyReviewNotificationsSettings,
-    val inactivity: InactivityReviewNotificationsSettings
+    val inactivity: InactivityReviewNotificationsSettings,
+    val showAppIconBadge: Boolean
 )
 
 data class NotificationPermissionPromptState(
@@ -105,7 +106,8 @@ fun defaultReviewNotificationsSettings(): ReviewNotificationsSettings {
             windowEndHour = defaultInactivityReminderWindowEndHour,
             windowEndMinute = defaultInactivityReminderWindowEndMinute,
             idleMinutes = 120
-        )
+        ),
+        showAppIconBadge = true
     )
 }
 
@@ -702,6 +704,7 @@ private fun encodeSettings(settings: ReviewNotificationsSettings): String {
                 put("idleMinutes", settings.inactivity.idleMinutes)
             }
         )
+        put("showAppIconBadge", settings.showAppIconBadge)
     }.toString()
 }
 
@@ -733,7 +736,10 @@ private fun decodeSettings(rawValue: String): ReviewNotificationsSettings {
             windowEndHour = inactivityPayload.getInt("windowEndHour"),
             windowEndMinute = inactivityPayload.getInt("windowEndMinute"),
             idleMinutes = inactivityPayload.getInt("idleMinutes")
-        )
+        ),
+        // Missing key in stored payloads written before this field existed defaults to ON,
+        // so users get the badge automatically on upgrade.
+        showAppIconBadge = payload.optBoolean("showAppIconBadge", true)
     )
 }
 

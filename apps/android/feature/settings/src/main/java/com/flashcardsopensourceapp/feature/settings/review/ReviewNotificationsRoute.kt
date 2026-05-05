@@ -46,6 +46,7 @@ fun ReviewNotificationsRoute(
     onUpdateInactivityWindowStart: (Int, Int) -> Unit,
     onUpdateInactivityWindowEnd: (Int, Int) -> Unit,
     onUpdateIdleMinutes: (Int) -> Unit,
+    onUpdateShowAppIconBadge: (Boolean) -> Unit,
     onUpdateStrictRemindersEnabled: (Boolean) -> Unit,
     onMarkSystemPermissionRequested: () -> Unit,
     onPermissionGranted: () -> Unit,
@@ -163,6 +164,25 @@ fun ReviewNotificationsRoute(
                             Switch(
                                 checked = uiState.settings.isEnabled,
                                 onCheckedChange = onUpdateEnabled
+                            )
+                        }
+                    )
+                }
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    ListItem(
+                        headlineContent = {
+                            Text(stringResource(R.string.settings_notifications_show_app_icon_badge_title))
+                        },
+                        supportingContent = {
+                            Text(stringResource(R.string.settings_notifications_show_app_icon_badge_body))
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = uiState.settings.showAppIconBadge,
+                                onCheckedChange = onUpdateShowAppIconBadge
                             )
                         }
                     )

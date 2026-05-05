@@ -71,6 +71,26 @@ struct ReviewNotificationsSettingsView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+
+                Toggle(
+                    aiSettingsLocalized("settings.notifications.appIconBadge.toggle", "Show app icon badge"),
+                    isOn: Binding(
+                        get: {
+                            store.reviewNotificationsSettings.showAppIconBadge
+                        },
+                        set: { isEnabled in
+                            store.updateReviewNotificationsAppIconBadgeEnabled(isEnabled: isEnabled)
+                        }
+                    )
+                )
+
+                Text(
+                    aiSettingsLocalized(
+                        "settings.notifications.appIconBadge.description",
+                        "When a review reminder fires and you haven't reviewed any card yet today, a red 1 appears on the app icon. The badge clears as soon as you review a card or open the app."
+                    )
+                )
+                    .foregroundStyle(.secondary)
             }
 
             Section(aiSettingsLocalized("settings.notifications.section.strictReminders", "Strict reminders")) {

@@ -35,7 +35,7 @@ data class AppNotificationTapFallback(
     val details: String?
 )
 
-private const val appNotificationLogTag: String = "FlashcardsAppNotification"
+internal const val appNotificationLogTag: String = "FlashcardsAppNotification"
 
 fun logAppNotificationTapFallback(fallback: AppNotificationTapFallback) {
     val message = buildAppNotificationTapLogMessage(fallback = fallback)

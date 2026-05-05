@@ -193,6 +193,8 @@
     <string name="settings_notifications_strict_reminders_device_note">Applies to this device only.</string>
     <string name="settings_notifications_reminders_title">Workspace review reminders</string>
     <string name="settings_notifications_reminders_body">Send study cards from the current workspace review filter on this device.</string>
+    <string name="settings_notifications_show_app_icon_badge_title">Show app icon badge</string>
+    <string name="settings_notifications_show_app_icon_badge_body">When a review reminder fires and you haven\'t reviewed any card yet today, a red 1 appears on the app icon. The badge clears as soon as you review a card or open the app.</string>
     <string name="settings_notifications_mode_daily">Daily</string>
     <string name="settings_notifications_mode_inactivity">Inactivity</string>
     <string name="settings_notifications_daily_title">Daily reminder</string>
