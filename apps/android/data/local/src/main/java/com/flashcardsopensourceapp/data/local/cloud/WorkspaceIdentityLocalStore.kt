@@ -15,8 +15,8 @@ import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.SyncEntityType
 import com.flashcardsopensourceapp.data.local.model.encodeSchedulerStepListJson
 import com.flashcardsopensourceapp.data.local.model.makeDefaultWorkspaceSchedulerSettings
-import com.flashcardsopensourceapp.data.local.repository.LocalProgressCacheStore
-import com.flashcardsopensourceapp.data.local.repository.loadCurrentWorkspaceOrNull
+import com.flashcardsopensourceapp.data.local.repository.progress.LocalProgressCacheStore
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.loadCurrentWorkspaceOrNull
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import java.util.UUID
 

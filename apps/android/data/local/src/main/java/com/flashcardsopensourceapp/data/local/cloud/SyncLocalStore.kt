@@ -11,7 +11,7 @@ import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.PersistedOutboxEntry
 import com.flashcardsopensourceapp.data.local.model.ReviewEventSyncPayload
 import com.flashcardsopensourceapp.data.local.model.SyncEntityType
-import com.flashcardsopensourceapp.data.local.repository.LocalProgressCacheStore
+import com.flashcardsopensourceapp.data.local.repository.progress.LocalProgressCacheStore
 import com.flashcardsopensourceapp.data.local.repository.TimeProvider
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import kotlinx.coroutines.flow.Flow
