@@ -62,7 +62,8 @@ The main Android consumers of that runtime value are:
 
 Tests that assert the Android client version must stay aligned too, especially:
 
-- `apps/android/data/local/src/test/java/com/flashcardsopensourceapp/data/local/ai/AiChatRemoteWireTest.kt`
+- `apps/android/data/local/src/test/java/com/flashcardsopensourceapp/data/local/ai/AiChatRemoteTestFixtures.kt`
+- `apps/android/data/local/src/test/java/com/flashcardsopensourceapp/data/local/ai/AiChatRemoteTransportRequestTest.kt`
 
 Search for additional Android test fixtures or AndroidTest support files that
 embed the app version as request metadata or expected wire values, and keep
