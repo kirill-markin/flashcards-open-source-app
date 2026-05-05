@@ -11,6 +11,7 @@ import type {
   ReviewEventsByDateReport,
   ReviewEventsByDateRow,
   ReviewEventsByDateTotal,
+  ReviewEventsByDateUniqueUserCohort,
   ReviewEventsByDateUser,
 } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
@@ -22,6 +23,7 @@ type ReviewEventsByDateQueryRow = Readonly<{
   email: string;
   platform: ReviewEventPlatform;
   review_event_count: string | number;
+  user_first_review_date: string;
 }>;
 
 export type ReviewEventsByDateRange = Readonly<{
@@ -117,6 +119,7 @@ function toReviewEventsByDateQueryRow(resultSetRow: Readonly<Record<string, Admi
     email: assertIsString(resultSetRow.email ?? null, "email"),
     platform: assertPlatform(resultSetRow.platform ?? null, "platform"),
     review_event_count: toInteger(resultSetRow.review_event_count ?? null, "review_event_count"),
+    user_first_review_date: assertIsString(resultSetRow.user_first_review_date ?? null, "user_first_review_date"),
   };
 }
 
@@ -214,6 +217,28 @@ function buildPlatformReviewEventTotals(
   })));
 }
 
+function buildDailyUniqueUserCohorts(
+  rows: ReadonlyArray<ReviewEventsByDateRow>,
+  dates: ReadonlyArray<string>,
+): ReadonlyArray<ReviewEventsByDateUniqueUserCohort> {
+  const newUsersByDate = new Map<string, Set<string>>();
+  const returningUsersByDate = new Map<string, Set<string>>();
+
+  for (const row of rows) {
+    const isNew = row.firstReviewDate === row.date;
+    const usersByDate = isNew ? newUsersByDate : returningUsersByDate;
+    const users = usersByDate.get(row.date) ?? new Set<string>();
+    users.add(row.userId);
+    usersByDate.set(row.date, users);
+  }
+
+  return dates.map((date) => ({
+    date,
+    newReviewingUsers: newUsersByDate.get(date)?.size ?? 0,
+    returningReviewingUsers: returningUsersByDate.get(date)?.size ?? 0,
+  }));
+}
+
 function buildReviewEventsByDateReport(
   resultSet: AdminQueryResultSet,
   executedAtUtc: string,
@@ -228,6 +253,7 @@ function buildReviewEventsByDateReport(
       email: row.email,
       platform: row.platform,
       reviewEventCount: toInteger(row.review_event_count, "review_event_count"),
+      firstReviewDate: row.user_first_review_date,
     }))
     .sort((left, right) => {
       if (left.date !== right.date) {
@@ -247,6 +273,7 @@ function buildReviewEventsByDateReport(
 
   const dates = buildRequestedDateRange(from, to);
   const dateTotals = buildReviewEventsByDateTotals(rows, dates);
+  const dailyUniqueUserCohorts = buildDailyUniqueUserCohorts(rows, dates);
   const platformActiveUserTotals = buildPlatformActiveUserTotals(rows, dates);
   const platformReviewEventTotals = buildPlatformReviewEventTotals(rows, dates);
   const users = buildReviewEventsByDateUsers(rows);
@@ -259,6 +286,7 @@ function buildReviewEventsByDateReport(
     totalReviewEvents,
     users,
     dateTotals,
+    dailyUniqueUserCohorts,
     platformActiveUserTotals,
     platformReviewEventTotals,
     rows,
@@ -282,24 +310,50 @@ export function buildReviewEventsByDateDefaultRangeSql(): string {
 // `@example.com` email exclusion) are the same rules encoded in
 // `clientInstallationActivityWhereSqlFragments` and `exampleComEmailExclusionSqlFragments`
 // in `apps/backend/src/globalMetrics/reporting.ts`, which back the public
-// `/v1/global/snapshot` endpoint and the scheduled snapshot Lambda. This admin query
-// lives in a separate package, so the rules are intentionally restated here. If any
-// rule changes, update both files.
+// `/v1/global/snapshot` endpoint and the scheduled snapshot Lambda. The
+// `user_first_review_date` CTE below mirrors the equivalent CTE in the public snapshot
+// days SQL so that the new/returning cohort split shown in the admin dashboard matches
+// the `newReviewingUsers` / `returningReviewingUsers` series exposed in the snapshot.
+// This admin query lives in a separate package, so the rules are intentionally restated
+// here. If any rule changes, update both files.
 export function buildReviewEventsByDateSql(from: string, to: string): string {
   assertValidDateRange({ from, to }, "report");
 
   return [
+    "WITH user_first_review_date AS (",
+    "  SELECT",
+    "    workspace_replicas.user_id,",
+    "    MIN((review_events.reviewed_at_server AT TIME ZONE 'UTC')::date) AS first_review_date",
+    "  FROM content.review_events AS review_events",
+    "  INNER JOIN sync.workspace_replicas AS workspace_replicas",
+    "    ON workspace_replicas.replica_id = review_events.replica_id",
+    "  LEFT JOIN org.user_settings AS user_settings",
+    "    ON user_settings.user_id = workspace_replicas.user_id",
+    "  WHERE review_events.reviewed_at_server < (",
+    `    (${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
+    "  )",
+    "    AND workspace_replicas.actor_kind = 'client_installation'",
+    "    AND workspace_replicas.platform IN ('web', 'android', 'ios')",
+    "    AND (",
+    "      user_settings.email IS NULL",
+    "      OR LOWER(btrim(user_settings.email)) NOT LIKE '%@example.com'",
+    "    )",
+    "  GROUP BY workspace_replicas.user_id",
+    ")",
     "SELECT",
     "  to_char((review_events.reviewed_at_server AT TIME ZONE 'UTC')::date, 'YYYY-MM-DD') AS review_date,",
     "  workspace_replicas.user_id,",
     "  COALESCE(NULLIF(btrim(user_settings.email), ''), '(no email)') AS email,",
     "  workspace_replicas.platform,",
-    "  COUNT(*)::int AS review_event_count",
+    "  COUNT(*)::int AS review_event_count,",
+    "  to_char(user_first_review_date.first_review_date, 'YYYY-MM-DD') AS user_first_review_date",
     "FROM content.review_events AS review_events",
     "INNER JOIN sync.workspace_replicas AS workspace_replicas",
     "  ON workspace_replicas.replica_id = review_events.replica_id",
     "LEFT JOIN org.user_settings AS user_settings",
     "  ON user_settings.user_id = workspace_replicas.user_id",
+    "INNER JOIN user_first_review_date",
+    "  ON user_first_review_date.user_id = workspace_replicas.user_id",
     "WHERE review_events.reviewed_at_server >= (",
     `  ${escapeSqlStringLiteral(from)}::date::timestamp AT TIME ZONE 'UTC'`,
     ")",
@@ -316,7 +370,8 @@ export function buildReviewEventsByDateSql(from: string, to: string): string {
     "  (review_events.reviewed_at_server AT TIME ZONE 'UTC')::date,",
     "  workspace_replicas.user_id,",
     "  COALESCE(NULLIF(btrim(user_settings.email), ''), '(no email)'),",
-    "  workspace_replicas.platform",
+    "  workspace_replicas.platform,",
+    "  user_first_review_date.first_review_date",
     "ORDER BY",
     "  review_date ASC,",
     "  review_event_count DESC,",
