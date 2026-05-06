@@ -16,6 +16,11 @@ export interface DatabaseResult {
   reportingDbSecret: cdk.aws_secretsmanager.Secret;
 }
 
+const postgresEngineVersion = rds.PostgresEngineVersion.of("18.3", "18", {
+  s3Export: true,
+  s3Import: true,
+});
+
 export function database(scope: Construct, props: DatabaseProps): DatabaseResult {
   const dbCredentials = rds.Credentials.fromGeneratedSecret("flashcards_owner", {
     secretName: "flashcards-open-source-app/db-credentials",
@@ -24,7 +29,7 @@ export function database(scope: Construct, props: DatabaseProps): DatabaseResult
 
   const parameterGroup = new rds.ParameterGroup(scope, "DbParams", {
     engine: rds.DatabaseInstanceEngine.postgres({
-      version: rds.PostgresEngineVersion.VER_18,
+      version: postgresEngineVersion,
     }),
     parameters: {
       "log_connections": "all",
@@ -35,7 +40,7 @@ export function database(scope: Construct, props: DatabaseProps): DatabaseResult
 
   const db = new rds.DatabaseInstance(scope, "Db", {
     engine: rds.DatabaseInstanceEngine.postgres({
-      version: rds.PostgresEngineVersion.VER_18,
+      version: postgresEngineVersion,
     }),
     instanceType: ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.MICRO),
     vpc: props.vpc,
