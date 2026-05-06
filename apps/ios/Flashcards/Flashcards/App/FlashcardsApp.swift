@@ -227,7 +227,6 @@ struct FlashcardsApp: App {
                         )
                         store.reconcileReviewNotifications(trigger: .appActive, now: now)
                         store.reconcileStrictReminders(trigger: .appActive, now: now)
-                        store.clearAppIconBadge()
                     } else if nextPhase == .background || nextPhase == .inactive {
                         store.reconcileReviewNotifications(trigger: .appBackground, now: Date())
                         store.reconcileStrictReminders(trigger: .appBackground, now: Date())
@@ -306,7 +305,6 @@ struct FlashcardsApp: App {
             }
             self.store.reconcileReviewNotifications(trigger: .appActive, now: now)
             self.store.reconcileStrictReminders(trigger: .appActive, now: now)
-            self.store.clearAppIconBadge()
 
             if let launchScenario = self.uiTestLaunchScenario {
                 self.store.uiTestLaunchPreparationStatus = .ready(launchScenario: launchScenario)
