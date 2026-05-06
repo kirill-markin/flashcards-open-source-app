@@ -194,7 +194,6 @@ extension FlashcardsStore {
         self.userDefaults.set(nextCount, forKey: reviewNotificationSuccessfulReviewCountUserDefaultsKey)
         self.userDefaults.set(now.timeIntervalSince1970, forKey: reviewNotificationLastActiveAtUserDefaultsKey)
         self.reconcileReviewNotifications(trigger: .reviewRecorded, now: now)
-        // Reconcile clears the badge asynchronously via .reviewRecorded; this gives instant feedback before that Task runs.
         self.clearAppIconBadge()
         self.recordSuccessfulStrictReminderReview(reviewedAt: reviewedAt, now: now)
         let reviewCount = self.loadReviewNotificationPromptReviewCount(persistedReviewCount: nextCount)
@@ -347,12 +346,6 @@ extension FlashcardsStore {
         }
 
         let payloads = loadResult.payloads
-        // Once the user has reviewed today, every reminder that fires later TODAY must
-        // not raise the icon badge. Future-day reminders still attach the badge because
-        // we do not yet know whether the user will review on those days. The reschedule
-        // path runs on every review submission so this stays current.
-        let badgeCalendar = Calendar.autoupdatingCurrent
-        let hasReviewedToday = loadResult.hasReviewedToday
 
         for payload in payloads {
             guard self.reviewNotificationsRescheduleGeneration == generation else {
@@ -366,11 +359,7 @@ extension FlashcardsStore {
             content.body = payload.notificationBodyText
             content.sound = .default
             content.userInfo = buildAppNotificationUserInfo(notificationType: .reviewReminder)
-            let scheduledAt = Date(timeIntervalSince1970: TimeInterval(payload.scheduledAtMillis) / 1000)
-            let isScheduledForToday = badgeCalendar.isDate(scheduledAt, inSameDayAs: now)
-            let attachBadge = self.reviewNotificationsSettings.showAppIconBadge
-                && !(isScheduledForToday && hasReviewedToday)
-            if attachBadge {
+            if self.reviewNotificationsSettings.showAppIconBadge {
                 content.badge = NSNumber(value: 1)
             }
 
