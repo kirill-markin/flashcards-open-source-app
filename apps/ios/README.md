@@ -80,6 +80,7 @@ Only test the app against the final supported iOS target.
 - Prefer background CLI runs with `simctl` and `xcodebuild` instead of opening heavy Xcode UI flows
 - Do not open a visible Simulator window for test runs unless the user explicitly asks for a visible simulator at that time
 - Prefer `xcodebuild ... test` so each run validates the current sources and build settings on the selected simulator
+- Pass `-derivedDataPath "tmp/ios-derived-data"` for local CLI builds and tests so repeated runs reuse repo-local build artifacts instead of creating new global DerivedData directories
 - If a test fails, inspect the generated `.xcresult` bundle and read the relevant screenshots, attachments, and logs before changing code
 - If no suitable local runtime is already installed, stop and ask the user how to proceed instead of downloading extra simulator runtimes
 
@@ -101,8 +102,8 @@ Preferred command pattern:
 ```bash
 xcrun simctl list devices available
 xcrun simctl bootstatus <device-uuid> -b
-xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" -scheme "Flashcards Open Source App" -destination 'platform=iOS Simulator,id=<device-uuid>' test
-xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" -scheme "Flashcards Open Source App" -destination 'platform=iOS Simulator,id=<device-uuid>' -only-testing:'Flashcards Open Source App UI Tests/LiveSmokeSettingsTests/testLiveSmokeLocalNavigationFlow' test
+xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" -scheme "Flashcards Open Source App" -derivedDataPath "tmp/ios-derived-data" -destination 'platform=iOS Simulator,id=<device-uuid>' test
+xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" -scheme "Flashcards Open Source App" -derivedDataPath "tmp/ios-derived-data" -destination 'platform=iOS Simulator,id=<device-uuid>' -only-testing:'Flashcards Open Source App UI Tests/LiveSmokeSettingsTests/testLiveSmokeLocalNavigationFlow' test
 ```
 
 ## Native Test Stack
