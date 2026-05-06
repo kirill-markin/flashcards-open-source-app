@@ -295,7 +295,6 @@ struct ReviewNotificationSchedulingSnapshot: Sendable {
 
 struct ScheduledReviewNotificationLoadResult: Sendable {
     let payloads: [ScheduledReviewNotificationPayload]
-    let hasReviewedToday: Bool
 }
 
 enum ReviewNotificationPermissionStatus: Hashable, Sendable {
@@ -693,7 +692,7 @@ func loadScheduledReviewNotificationPayloads(
     snapshot: ReviewNotificationSchedulingSnapshot
 ) async throws -> ScheduledReviewNotificationLoadResult {
     guard let databaseURL = snapshot.databaseURL else {
-        return ScheduledReviewNotificationLoadResult(payloads: [], hasReviewedToday: false)
+        return ScheduledReviewNotificationLoadResult(payloads: [])
     }
 
     return try await Task.detached(priority: .utility) {
@@ -720,7 +719,7 @@ func loadScheduledReviewNotificationPayloads(
             )
         case .inactivity:
             guard let lastActiveAt = snapshot.lastActiveAt else {
-                return ScheduledReviewNotificationLoadResult(payloads: [], hasReviewedToday: false)
+                return ScheduledReviewNotificationLoadResult(payloads: [])
             }
             scheduledDates = buildInactivityReviewNotificationDates(
                 lastActiveAt: lastActiveAt,
@@ -728,19 +727,6 @@ func loadScheduledReviewNotificationPayloads(
                 calendar: calendar,
                 settings: snapshot.settings.inactivity
             )
-        }
-
-        // Compute `hasReviewedToday` on the same connection so the rescheduler
-        // does not need to reopen the database. On the (improbable) failure
-        // path of `Calendar.date(byAdding: .day, value: 1, to:)` we default to
-        // `false` so the badge still attaches per the user's setting; the user
-        // retains control and can clear it by opening the app or reviewing.
-        let startOfToday = calendar.startOfDay(for: snapshot.now)
-        let hasReviewedToday: Bool
-        if let startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday) {
-            hasReviewedToday = (try? database.hasAppWideReviewEvent(start: startOfToday, end: startOfTomorrow)) ?? false
-        } else {
-            hasReviewedToday = false
         }
 
         let limitedScheduledDates = Array(scheduledDates.prefix(reviewNotificationPendingRequestsLimit))
@@ -763,10 +749,7 @@ func loadScheduledReviewNotificationPayloads(
             )
         }
 
-        return ScheduledReviewNotificationLoadResult(
-            payloads: payloads,
-            hasReviewedToday: hasReviewedToday
-        )
+        return ScheduledReviewNotificationLoadResult(payloads: payloads)
     }.value
 }
 
