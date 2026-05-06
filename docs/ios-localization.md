@@ -273,6 +273,7 @@ Preferred build check:
 ```bash
 xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" \
   -scheme "Flashcards Open Source App" \
+  -derivedDataPath "tmp/ios-derived-data" \
   -destination 'generic/platform=iOS Simulator' \
   CODE_SIGNING_ALLOWED=NO \
   build
