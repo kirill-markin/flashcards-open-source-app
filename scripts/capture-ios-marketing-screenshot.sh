@@ -152,6 +152,7 @@ localization_code="$(resolve_requested_locale "$requested_locale")"
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 project_path="$repo_root/apps/ios/Flashcards/Flashcards Open Source App.xcodeproj"
 scheme_name="Flashcards Open Source App"
+derived_data_path="$repo_root/tmp/ios-derived-data"
 runtime_configuration_path="/tmp/flashcards-open-source-app-ios-marketing-screenshot-config.json"
 screenshot_run_marker_path=""
 
@@ -201,6 +202,7 @@ run_ios_marketing_xcodebuild_test() {
     xcodebuild \
       -project "$project_path" \
       -scheme "$scheme_name" \
+      -derivedDataPath "$derived_data_path" \
       -destination "platform=iOS Simulator,id=$simulator_id" \
       "-only-testing:Flashcards Open Source App UI Tests/$selected_test_identifier" \
       test
