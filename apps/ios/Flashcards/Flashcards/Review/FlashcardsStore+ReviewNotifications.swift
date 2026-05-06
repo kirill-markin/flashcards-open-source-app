@@ -194,7 +194,6 @@ extension FlashcardsStore {
         self.userDefaults.set(nextCount, forKey: reviewNotificationSuccessfulReviewCountUserDefaultsKey)
         self.userDefaults.set(now.timeIntervalSince1970, forKey: reviewNotificationLastActiveAtUserDefaultsKey)
         self.reconcileReviewNotifications(trigger: .reviewRecorded, now: now)
-        // Reconcile clears the badge asynchronously via .reviewRecorded; this gives instant feedback before that Task runs.
         self.clearAppIconBadge()
         self.recordSuccessfulStrictReminderReview(reviewedAt: reviewedAt, now: now)
         let reviewCount = self.loadReviewNotificationPromptReviewCount(persistedReviewCount: nextCount)
