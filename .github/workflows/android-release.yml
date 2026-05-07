@@ -497,7 +497,7 @@ jobs:
           "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" \
             "platform-tools" \
             "platforms;android-36" \
-            "build-tools;36.0.0"
+            "build-tools;37.0.0"
 
       - name: Validate Android signing secrets
         env:
