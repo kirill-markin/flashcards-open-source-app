@@ -36,7 +36,7 @@ jobs:
           "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" \
             "platform-tools" \
             "platforms;android-36" \
-            "build-tools;36.0.0"
+            "build-tools;37.0.0"
 
       - name: Run Android unit tests, build debug artifacts, and lint
         env:
@@ -96,7 +96,7 @@ jobs:
             "platform-tools" \
             "emulator" \
             "platforms;android-36" \
-            "build-tools;36.0.0" \
+            "build-tools;37.0.0" \
             "system-images;android-36;google_apis;x86_64"
 
       - name: Enable KVM access
