@@ -13,8 +13,8 @@
   },
   "dependencies": {
     "heic-to": "^1.4.2",
-    "react": "^19.2.5",
-    "react-dom": "^19.2.5",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.15.0"
   },
