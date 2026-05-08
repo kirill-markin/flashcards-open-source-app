@@ -36,6 +36,16 @@ type ReviewEventsByDateDefaultRangeQueryRow = Readonly<{
   to_date: string;
 }>;
 
+type ReviewEventsByDateAggregateFields = Readonly<Pick<
+  ReviewEventsByDateReport,
+  | "totalReviewEvents"
+  | "users"
+  | "dateTotals"
+  | "dailyUniqueUserCohorts"
+  | "platformActiveUserTotals"
+  | "platformReviewEventTotals"
+>>;
+
 function parseCalendarDate(date: string): Date {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/u.exec(date);
   if (match === null) {
@@ -239,6 +249,20 @@ function buildDailyUniqueUserCohorts(
   }));
 }
 
+function buildReviewEventsByDateAggregateFields(
+  rows: ReadonlyArray<ReviewEventsByDateRow>,
+  dates: ReadonlyArray<string>,
+): ReviewEventsByDateAggregateFields {
+  return {
+    totalReviewEvents: rows.reduce((sum, row) => sum + row.reviewEventCount, 0),
+    users: buildReviewEventsByDateUsers(rows),
+    dateTotals: buildReviewEventsByDateTotals(rows, dates),
+    dailyUniqueUserCohorts: buildDailyUniqueUserCohorts(rows, dates),
+    platformActiveUserTotals: buildPlatformActiveUserTotals(rows, dates),
+    platformReviewEventTotals: buildPlatformReviewEventTotals(rows, dates),
+  };
+}
+
 function buildReviewEventsByDateReport(
   resultSet: AdminQueryResultSet,
   executedAtUtc: string,
@@ -272,24 +296,34 @@ function buildReviewEventsByDateReport(
     });
 
   const dates = buildRequestedDateRange(from, to);
-  const dateTotals = buildReviewEventsByDateTotals(rows, dates);
-  const dailyUniqueUserCohorts = buildDailyUniqueUserCohorts(rows, dates);
-  const platformActiveUserTotals = buildPlatformActiveUserTotals(rows, dates);
-  const platformReviewEventTotals = buildPlatformReviewEventTotals(rows, dates);
-  const users = buildReviewEventsByDateUsers(rows);
-  const totalReviewEvents = rows.reduce((sum, row) => sum + row.reviewEventCount, 0);
+  const aggregateFields = buildReviewEventsByDateAggregateFields(rows, dates);
 
   return {
     generatedAtUtc: executedAtUtc,
     from,
     to,
-    totalReviewEvents,
-    users,
-    dateTotals,
-    dailyUniqueUserCohorts,
-    platformActiveUserTotals,
-    platformReviewEventTotals,
+    ...aggregateFields,
     rows,
+  };
+}
+
+export function filterReviewEventsByDateReportByUsers(
+  report: ReviewEventsByDateReport,
+  selectedUserIds: ReadonlyArray<string>,
+): ReviewEventsByDateReport {
+  if (selectedUserIds.length === 0) {
+    return report;
+  }
+
+  const selectedUserIdSet = new Set(selectedUserIds);
+  const rows = report.rows.filter((row) => selectedUserIdSet.has(row.userId));
+  const dates = buildRequestedDateRange(report.from, report.to);
+  const aggregateFields = buildReviewEventsByDateAggregateFields(rows, dates);
+
+  return {
+    ...report,
+    rows,
+    ...aggregateFields,
   };
 }
 
