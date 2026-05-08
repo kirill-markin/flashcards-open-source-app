@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.ai.runtime
 
+import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
@@ -26,6 +27,7 @@ class AiUiStateMapperTest {
         assertTrue(uiState.isStreaming)
         assertTrue(uiState.isComposerBusy)
         assertTrue(uiState.isCardHandoffReady)
+        assertTrue(uiState.canEditDraftText)
         assertTrue(uiState.canEditDraft)
         assertTrue(uiState.canManageDraftAttachments)
         assertTrue(uiState.canAddDraftAttachment)
@@ -58,6 +60,7 @@ class AiUiStateMapperTest {
             val uiState = mapRuntimeState(runtimeState = runtimeState)
 
             assertFalse(uiState.isCardHandoffReady)
+            assertFalse(uiState.canEditDraftText)
             assertFalse(uiState.canEditDraft)
             assertFalse(uiState.canManageDraftAttachments)
             assertFalse(uiState.canAddDraftAttachment)
@@ -83,10 +86,56 @@ class AiUiStateMapperTest {
 
         val uiState = mapRuntimeState(runtimeState = runtimeState)
 
+        assertTrue(uiState.canEditDraftText)
         assertTrue(uiState.canEditDraft)
         assertTrue(uiState.canManageDraftAttachments)
         assertFalse(uiState.canAddDraftAttachment)
         assertFalse(uiState.canToggleDictation)
+    }
+
+    @Test
+    fun activeDictationKeepsTextEditableButLocksDraftActions() {
+        val activeStates: List<AiChatDictationState> = listOf(
+            AiChatDictationState.REQUESTING_PERMISSION,
+            AiChatDictationState.RECORDING,
+            AiChatDictationState.TRANSCRIBING
+        )
+        val editableComposerPhases: List<AiComposerPhase> = listOf(
+            AiComposerPhase.IDLE,
+            AiComposerPhase.STOPPING
+        )
+
+        activeStates.forEach { dictationState ->
+            editableComposerPhases.forEach { composerPhase ->
+                val runtimeState = makeAiDraftState(
+                    workspaceId = defaultTestWorkspaceId,
+                    persistedState = makeDefaultAiChatPersistedState()
+                ).copy(
+                    activeRun = if (composerPhase == AiComposerPhase.STOPPING) {
+                        makeActiveRun(runId = "run-1", cursor = "0")
+                    } else {
+                        null
+                    },
+                    composerPhase = composerPhase,
+                    dictationState = dictationState,
+                    draftMessage = "Typed while recording"
+                )
+
+                val uiState = mapRuntimeState(runtimeState = runtimeState)
+
+                assertTrue(uiState.canEditDraftText)
+                assertFalse(uiState.canEditDraft)
+                assertFalse(uiState.canManageDraftAttachments)
+                assertFalse(uiState.canAddDraftAttachment)
+                if (dictationState == AiChatDictationState.RECORDING) {
+                    assertTrue(uiState.canToggleDictation)
+                } else {
+                    assertFalse(uiState.canToggleDictation)
+                }
+                assertFalse(uiState.canSend)
+                assertFalse(uiState.canStartNewChat)
+            }
+        }
     }
 
     private fun mapRuntimeState(runtimeState: AiChatRuntimeState): AiUiState {
