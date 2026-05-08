@@ -27,6 +27,7 @@ data class AiUiState(
     val isComposerBusy: Boolean,
     val isStreaming: Boolean,
     val canStopStreaming: Boolean,
+    val canEditDraftText: Boolean,
     val canEditDraft: Boolean,
     val canManageDraftAttachments: Boolean,
     val canAddDraftAttachment: Boolean,

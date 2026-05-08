@@ -119,7 +119,7 @@ internal class AiChatRuntime(
     }
 
     fun updateDraftMessage(draftMessage: String) {
-        if (canEditAiDraft(state = runtimeStateMutable.value).not()) {
+        if (canEditAiDraftText(state = runtimeStateMutable.value).not()) {
             return
         }
         runtimeStateMutable.update { state ->

@@ -72,6 +72,7 @@ internal fun mapToAiUiState(
     val canEditConversation = isComposerBusy.not()
         && isConversationReady
         && runtimeState.dictationState == AiChatDictationState.IDLE
+    val canEditDraftText = canEditAiDraftText(state = runtimeState)
     val canEditDraft = canEditAiDraft(state = runtimeState)
     val canManageDraftAttachments = canManageAiDraftAttachments(state = runtimeState)
     val composerSuggestions = if (
@@ -106,6 +107,7 @@ internal fun mapToAiUiState(
         isComposerBusy = isComposerBusy,
         isStreaming = isStreaming,
         canStopStreaming = hasActiveRun && runtimeState.composerPhase != AiComposerPhase.STOPPING,
+        canEditDraftText = canEditDraftText,
         canEditDraft = canEditDraft,
         canManageDraftAttachments = canManageDraftAttachments,
         canAddDraftAttachment = canManageDraftAttachments && chatConfig.features.attachmentsEnabled,
@@ -148,6 +150,7 @@ internal fun makeInitialAiUiState(hasConsent: Boolean, textProvider: AiTextProvi
         isComposerBusy = false,
         isStreaming = false,
         canStopStreaming = false,
+        canEditDraftText = false,
         canEditDraft = false,
         canManageDraftAttachments = false,
         canAddDraftAttachment = false,

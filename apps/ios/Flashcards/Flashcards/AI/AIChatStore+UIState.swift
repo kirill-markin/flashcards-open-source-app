@@ -10,9 +10,19 @@ extension AIChatStore {
     }
 
     var canEditDraft: Bool {
-        self.isChatInteractive
+        self.canEditDraftText
             && self.dictationState == .idle
-            && aiChatComposerPhaseAllowsDraftPreparation(self.composerPhase)
+    }
+
+    /// Text editing intentionally stays available during dictation so the keyboard and cursor remain active.
+    var canEditDraftText: Bool {
+        guard self.isChatInteractive else {
+            return false
+        }
+        if aiChatDictationStateKeepsDraftTextEditable(self.dictationState) {
+            return true
+        }
+        return aiChatComposerPhaseAllowsDraftPreparation(self.composerPhase)
     }
 
     var canModifyDraftAttachments: Bool {
@@ -49,6 +59,19 @@ extension AIChatStore {
     var canStopResponse: Bool {
         self.isChatInteractive
             && (self.composerPhase == .startingRun || self.composerPhase == .running)
+    }
+
+    var canStartNewChat: Bool {
+        guard self.isChatInteractive else {
+            return false
+        }
+        guard self.dictationState == .idle else {
+            return false
+        }
+        return self.messages.isEmpty == false
+            || self.pendingAttachments.isEmpty == false
+            || self.trimmedInputText().isEmpty == false
+            || self.isStreaming
     }
 
     var isComposerBusy: Bool {
@@ -206,6 +229,15 @@ func aiChatComposerPhaseAllowsDraftPreparation(_ phase: AIChatComposerPhase) -> 
         return true
     case .preparingSend, .startingRun, .stopping:
         return false
+    }
+}
+
+func aiChatDictationStateKeepsDraftTextEditable(_ state: AIChatDictationState) -> Bool {
+    switch state {
+    case .idle:
+        return false
+    case .requestingPermission, .recording, .transcribing:
+        return true
     }
 }
 
