@@ -176,6 +176,53 @@ class AiChatRuntimeConversationResetAndSendTest {
     }
 
     @Test
+    fun draftMessageCanChangeWhileDictationIsActive() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.persistedStates[defaultTestWorkspaceId] = makeDefaultAiChatPersistedState().copy(
+            chatSessionId = "session-1"
+        )
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
+        repository.transcribeAudioGates += CompletableDeferred<Unit>()
+        repository.transcribeAudioResponse = AiChatTranscriptionResult(
+            text = "late transcript",
+            sessionId = "session-1"
+        )
+        val runtime = makeRuntime(scope = this, repository = repository)
+
+        runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
+        advanceUntilIdle()
+
+        runtime.startDictationPermissionRequest()
+        runtime.updateDraftMessage(draftMessage = "Typed while requesting permission")
+
+        assertEquals(AiChatDictationState.REQUESTING_PERMISSION, runtime.state.value.dictationState)
+        assertEquals("Typed while requesting permission", runtime.state.value.draftMessage)
+
+        runtime.startDictationRecording()
+        runtime.updateDraftMessage(draftMessage = "Typed while recording")
+
+        assertEquals(AiChatDictationState.RECORDING, runtime.state.value.dictationState)
+        assertEquals("Typed while recording", runtime.state.value.draftMessage)
+
+        runtime.transcribeRecordedAudio(
+            fileName = "clip.m4a",
+            mediaType = "audio/m4a",
+            audioBytes = byteArrayOf(1, 2, 3)
+        )
+        runCurrent()
+        runtime.updateDraftMessage(draftMessage = "Typed while transcribing")
+
+        assertEquals(AiChatDictationState.TRANSCRIBING, runtime.state.value.dictationState)
+        assertEquals("Typed while transcribing", runtime.state.value.draftMessage)
+
+        runtime.cancelDictation()
+        runCurrent()
+    }
+
+    @Test
     fun cancelDictationDuringTranscribingPreventsTranscriptAppend() = runTest {
         val repository = FakeAiChatRepository()
         repository.nextEnsureSessionId = "dictation-session-1"

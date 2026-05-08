@@ -216,7 +216,7 @@ internal fun AiComposer(
                 },
                 minLines = 1,
                 maxLines = aiComposerMaximumLineCount,
-                enabled = uiState.canEditDraft,
+                enabled = uiState.canEditDraftText,
                 trailingIcon = {
                     FilledIconButton(
                         onClick = if (uiState.canStopStreaming) {

@@ -258,6 +258,6 @@ extension AIChatView {
     }
 
     var composerTextFieldDisabled: Bool {
-        self.chatStore.canEditDraft == false
+        self.chatStore.canEditDraftText == false
     }
 }

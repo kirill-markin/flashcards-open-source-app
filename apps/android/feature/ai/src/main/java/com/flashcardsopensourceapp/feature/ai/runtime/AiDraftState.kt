@@ -91,14 +91,30 @@ internal data class AiDraftState(
 
 internal typealias AiChatRuntimeState = AiDraftState
 
-internal fun canEditAiDraft(state: AiChatRuntimeState): Boolean {
+/**
+ * Text editing intentionally stays available during dictation so the IME and cursor remain active.
+ */
+internal fun canEditAiDraftText(state: AiChatRuntimeState): Boolean {
     if (state.conversationBootstrapState != AiConversationBootstrapState.READY) {
+        return false
+    }
+    if (
+        state.dictationState != AiChatDictationState.IDLE &&
+        state.composerPhase == AiComposerPhase.STOPPING
+    ) {
+        return true
+    }
+    return canPrepareAiDraftInComposerPhase(composerPhase = state.composerPhase)
+}
+
+internal fun canEditAiDraft(state: AiChatRuntimeState): Boolean {
+    if (canEditAiDraftText(state = state).not()) {
         return false
     }
     if (state.dictationState != AiChatDictationState.IDLE) {
         return false
     }
-    return canPrepareAiDraftInComposerPhase(composerPhase = state.composerPhase)
+    return true
 }
 
 internal fun canManageAiDraftAttachments(state: AiChatRuntimeState): Boolean {

@@ -600,8 +600,9 @@ private fun makeAiUiState(
     showOpenAccountStatusForConversationError: Boolean = false,
     focusComposerRequestVersion: Long = 0L
 ): AiUiState {
-    val canUseDraft = isConversationReady &&
-        isConversationLoading.not() &&
+    val canUseDraftText = isConversationReady &&
+        isConversationLoading.not()
+    val canUseDraft = canUseDraftText &&
         isComposerBusy.not() &&
         isStreaming.not()
     return AiUiState(
@@ -622,6 +623,7 @@ private fun makeAiUiState(
         isComposerBusy = isComposerBusy,
         isStreaming = isStreaming,
         canStopStreaming = canStopStreaming,
+        canEditDraftText = canUseDraftText,
         canEditDraft = canUseDraft,
         canManageDraftAttachments = canUseDraft,
         canAddDraftAttachment = canUseDraft,
