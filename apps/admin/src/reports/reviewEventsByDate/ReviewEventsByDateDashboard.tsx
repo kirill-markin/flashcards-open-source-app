@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type JSX } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type JSX } from "react";
 import * as d3 from "d3";
 import {
   reviewEventPlatforms,
@@ -7,8 +7,12 @@ import {
   type ReviewEventsByDatePlatformReviewEventTotal,
   type ReviewEventsByDateReport,
   type ReviewEventsByDateUniqueUserCohort,
+  type ReviewEventsByDateUser,
 } from "../../adminApi";
-import type { ReviewEventsByDateRange } from "./query";
+import {
+  filterReviewEventsByDateReportByUsers,
+  type ReviewEventsByDateRange,
+} from "./query";
 
 type ChartTooltipState = Readonly<{
   visible: boolean;
@@ -39,6 +43,18 @@ type GroupedChartRectEntry = Readonly<{
   key: ReviewEventPlatform;
   date: string;
   value: number;
+}>;
+
+type ActiveUserFilter = Readonly<{
+  userId: string;
+  label: string;
+  secondaryLabel: string;
+  hasUserInReport: boolean;
+}>;
+
+type SearchableUserFilterOption = Readonly<{
+  user: ReviewEventsByDateUser;
+  searchableValue: string;
 }>;
 
 type ChartFrameParams = Readonly<{
@@ -81,6 +97,16 @@ const uniqueUserCohortColors: Readonly<Record<UniqueUserCohortKey, string>> = {
   returning: "var(--accent)",
   new: "#2e6f95",
 };
+const userColorPalette: ReadonlyArray<string> = [
+  ...d3.schemeTableau10,
+  ...d3.schemeSet2,
+  ...d3.schemeDark2,
+  "#e15759",
+  "#76b7b2",
+  "#f28e2b",
+  "#59a14f",
+];
+const visibleUserFilterOptionLimit = 50;
 
 function parseCalendarDate(date: string): Date {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
@@ -215,17 +241,19 @@ function getPeakGroupedValue(items: ReadonlyArray<MatrixChartEntry>): number {
 }
 
 function getUserColorScale(userIds: ReadonlyArray<string>): d3.ScaleOrdinal<string, string> {
-  const palette = [
-    ...d3.schemeTableau10,
-    ...d3.schemeSet2,
-    ...d3.schemeDark2,
-    "#e15759",
-    "#76b7b2",
-    "#f28e2b",
-    "#59a14f",
-  ].slice(0, userIds.length);
+  const colors = userIds.map((userId) => userColorPalette[getUserColorPaletteIndex(userId)]);
 
-  return d3.scaleOrdinal<string, string>(userIds, palette);
+  return d3.scaleOrdinal<string, string>(userIds, colors);
+}
+
+function getUserColorPaletteIndex(userId: string): number {
+  let hash = 0;
+
+  for (const character of userId) {
+    hash = ((hash << 5) - hash + character.charCodeAt(0)) | 0;
+  }
+
+  return Math.abs(hash) % userColorPalette.length;
 }
 
 function getPlatformColor(platform: string): string {
@@ -234,6 +262,34 @@ function getPlatformColor(platform: string): string {
   }
 
   return platformColors[platform as ReviewEventPlatform];
+}
+
+function getUserFilterLabel(user: ReviewEventsByDateUser): string {
+  return user.email === "(no email)" ? user.userId : user.email;
+}
+
+function getUserFilterSecondaryLabel(user: ReviewEventsByDateUser): string {
+  return user.email === "(no email)" ? user.email : user.userId;
+}
+
+function getNormalizedSearchValue(value: string): string {
+  return value.trim().toLocaleLowerCase("en-US");
+}
+
+function getUserFilterSearchableValue(user: ReviewEventsByDateUser): string {
+  return getNormalizedSearchValue([
+    getUserFilterLabel(user),
+    user.userId,
+    user.email,
+  ].join(" "));
+}
+
+function doesUserMatchSearch(option: SearchableUserFilterOption, normalizedSearchValue: string): boolean {
+  return normalizedSearchValue === "" || option.searchableValue.includes(normalizedSearchValue);
+}
+
+function getStableUserColorDomain(users: ReadonlyArray<ReviewEventsByDateUser>): ReadonlyArray<string> {
+  return users.map((user) => user.userId).sort((leftUserId, rightUserId) => leftUserId.localeCompare(rightUserId));
 }
 
 function createTickDates(dates: ReadonlyArray<string>): ReadonlyArray<string> {
@@ -374,6 +430,8 @@ export function ReviewEventsByDateDashboard(
     from: props.report.from,
     to: props.report.to,
   });
+  const [selectedUserIds, setSelectedUserIds] = useState<ReadonlyArray<string>>([]);
+  const [userFilterSearchValue, setUserFilterSearchValue] = useState<string>("");
 
   useEffect(() => {
     setDraftRange({
@@ -389,6 +447,42 @@ export function ReviewEventsByDateDashboard(
       from,
     }));
   }
+
+  function handleUserFilterSearchChange(event: ChangeEvent<HTMLInputElement>): void {
+    setUserFilterSearchValue(event.currentTarget.value);
+  }
+
+  function handleUserFilterChange(event: ChangeEvent<HTMLInputElement>): void {
+    const userId = event.currentTarget.value;
+    const isChecked = event.currentTarget.checked;
+    setSelectedUserIds((currentUserIds) => {
+      if (isChecked) {
+        if (currentUserIds.includes(userId)) {
+          return currentUserIds;
+        }
+
+        return [...currentUserIds, userId];
+      }
+
+      return currentUserIds.filter((currentUserId) => currentUserId !== userId);
+    });
+  }
+
+  function handleUserFilterRemove(userId: string): void {
+    setSelectedUserIds((currentUserIds) => currentUserIds.filter((currentUserId) => currentUserId !== userId));
+  }
+
+  function handleUserFilterClear(): void {
+    setSelectedUserIds([]);
+  }
+
+  const handleChartUserFilterApply = useCallback((userId: string): void => {
+    setSelectedUserIds([userId]);
+    setTooltipState((currentState) => ({
+      ...currentState,
+      visible: false,
+    }));
+  }, []);
 
   function handleToDateChange(event: ChangeEvent<HTMLInputElement>): void {
     const to = event.currentTarget.value;
@@ -408,52 +502,98 @@ export function ReviewEventsByDateDashboard(
     props.onDateRangeReset();
   }
 
+  const filteredReport = useMemo(
+    () => filterReviewEventsByDateReportByUsers(props.report, selectedUserIds),
+    [props.report, selectedUserIds],
+  );
+  const selectedUserIdSet = useMemo(
+    () => new Set(selectedUserIds),
+    [selectedUserIds],
+  );
+  const rawUserById = useMemo(
+    () => new Map(props.report.users.map((user) => [user.userId, user])),
+    [props.report.users],
+  );
+  const activeUserFilters = useMemo(
+    (): ReadonlyArray<ActiveUserFilter> => selectedUserIds.map((userId) => {
+      const user = rawUserById.get(userId);
+      return {
+        userId,
+        label: user === undefined ? userId : getUserFilterLabel(user),
+        secondaryLabel: user === undefined ? "No review events in range" : getUserFilterSecondaryLabel(user),
+        hasUserInReport: user !== undefined,
+      };
+    }),
+    [rawUserById, selectedUserIds],
+  );
+  const normalizedUserFilterSearchValue = useMemo(
+    () => getNormalizedSearchValue(userFilterSearchValue),
+    [userFilterSearchValue],
+  );
+  const searchableUserFilterOptions = useMemo(
+    (): ReadonlyArray<SearchableUserFilterOption> => props.report.users.map((user) => ({
+      user,
+      searchableValue: getUserFilterSearchableValue(user),
+    })),
+    [props.report.users],
+  );
+  const matchingUserFilterOptions = useMemo(
+    () => searchableUserFilterOptions
+      .filter((option) => doesUserMatchSearch(option, normalizedUserFilterSearchValue))
+      .map((option) => option.user),
+    [normalizedUserFilterSearchValue, searchableUserFilterOptions],
+  );
+  const visibleUserFilterOptions = useMemo(
+    () => matchingUserFilterOptions.slice(0, visibleUserFilterOptionLimit),
+    [matchingUserFilterOptions],
+  );
+  const hiddenUserFilterOptionCount = matchingUserFilterOptions.length - visibleUserFilterOptions.length;
   const dates = useMemo(
-    () => props.report.dateTotals.map((item) => item.date),
-    [props.report.dateTotals],
+    () => filteredReport.dateTotals.map((item) => item.date),
+    [filteredReport.dateTotals],
   );
   const tickDates = useMemo(
     () => createTickDates(dates),
     [dates],
   );
-  const userIds = useMemo(
-    () => props.report.users.map((user) => user.userId),
+  const allUserIds = useMemo(
+    () => getStableUserColorDomain(props.report.users),
     [props.report.users],
   );
+  const userIds = useMemo(
+    () => filteredReport.users.map((user) => user.userId),
+    [filteredReport.users],
+  );
   const userColorScale = useMemo(
-    () => getUserColorScale(userIds),
-    [userIds],
+    () => getUserColorScale(allUserIds),
+    [allUserIds],
   );
   const dailyUniqueUserCohortMatrix = useMemo(
-    () => buildDailyUniqueUserCohortMatrix(props.report.dailyUniqueUserCohorts),
-    [props.report.dailyUniqueUserCohorts],
+    () => buildDailyUniqueUserCohortMatrix(filteredReport.dailyUniqueUserCohorts),
+    [filteredReport.dailyUniqueUserCohorts],
   );
   const dailyUniqueUserTotals = useMemo<ReadonlyArray<DailyValueEntry>>(
-    () => props.report.dailyUniqueUserCohorts.map((item) => ({
+    () => filteredReport.dailyUniqueUserCohorts.map((item) => ({
       date: item.date,
       value: item.newReviewingUsers + item.returningReviewingUsers,
     })),
-    [props.report.dailyUniqueUserCohorts],
+    [filteredReport.dailyUniqueUserCohorts],
   );
   const userMatrix = useMemo(
-    () => buildUserMatrix(props.report),
-    [props.report],
+    () => buildUserMatrix(filteredReport),
+    [filteredReport],
   );
   const platformActiveUsersMatrix = useMemo(
-    () => buildPlatformMatrix(props.report.platformActiveUserTotals, (item) => item.activeUserCount, dates),
-    [dates, props.report.platformActiveUserTotals],
+    () => buildPlatformMatrix(filteredReport.platformActiveUserTotals, (item) => item.activeUserCount, dates),
+    [dates, filteredReport.platformActiveUserTotals],
   );
   const platformReviewEventsMatrix = useMemo(
-    () => buildPlatformMatrix(props.report.platformReviewEventTotals, (item) => item.reviewEventCount, dates),
-    [dates, props.report.platformReviewEventTotals],
+    () => buildPlatformMatrix(filteredReport.platformReviewEventTotals, (item) => item.reviewEventCount, dates),
+    [dates, filteredReport.platformReviewEventTotals],
   );
   const totalReviewEventsByDate = useMemo(
-    () => new Map(props.report.dateTotals.map((item) => [item.date, item.totalReviewEvents])),
-    [props.report.dateTotals],
-  );
-  const userById = useMemo(
-    () => new Map(props.report.users.map((user) => [user.userId, user])),
-    [props.report.users],
+    () => new Map(filteredReport.dateTotals.map((item) => [item.date, item.totalReviewEvents])),
+    [filteredReport.dateTotals],
   );
   const dailyUniqueUsersByDate = useMemo(
     () => new Map(dailyUniqueUserTotals.map((item) => [item.date, item.value])),
@@ -468,8 +608,8 @@ export function ReviewEventsByDateDashboard(
     [dailyUniqueUserTotals],
   );
   const peakDailyVolume = useMemo(
-    () => d3.max(props.report.dateTotals, (item) => item.totalReviewEvents) ?? 0,
-    [props.report.dateTotals],
+    () => d3.max(filteredReport.dateTotals, (item) => item.totalReviewEvents) ?? 0,
+    [filteredReport.dateTotals],
   );
   const peakDailyPlatformUsers = useMemo(
     () => getPeakGroupedValue(platformActiveUsersMatrix),
@@ -609,7 +749,7 @@ export function ReviewEventsByDateDashboard(
       .keys(userIds)
       .value((entry, key) => entry.valuesByKey[key] ?? 0)(userMatrix);
 
-    userReviewEventsGroup.selectAll(".series")
+    const userReviewEventBars = userReviewEventsGroup.selectAll(".series")
       .data(userSeries)
       .join("g")
       .attr("class", "series")
@@ -623,14 +763,14 @@ export function ReviewEventsByDateDashboard(
         value: entry.data.valuesByKey[segment.key] ?? 0,
       })).filter((entry) => entry.value > 0))
       .join("rect")
-      .attr("class", "bar-segment")
+      .attr("class", `bar-segment user-review-events${props.isReportLoading ? "" : " clickable"}`)
       .attr("x", (entry) => x(entry.date) ?? 0)
       .attr("y", (entry) => userReviewEventsY(entry.y1))
       .attr("width", x.bandwidth())
       .attr("height", (entry) => Math.max(0, userReviewEventsY(entry.y0) - userReviewEventsY(entry.y1)))
       .attr("rx", 2)
       .on("mousemove", (event, entry: StackedChartRectEntry) => {
-        const user = userById.get(entry.key);
+        const user = rawUserById.get(entry.key);
         if (user === undefined) {
           return;
         }
@@ -649,6 +789,15 @@ export function ReviewEventsByDateDashboard(
         );
       })
       .on("mouseleave", hideTooltip);
+
+    if (props.isReportLoading === false) {
+      userReviewEventBars
+        .on("click", (_event: MouseEvent, entry: StackedChartRectEntry) => {
+          handleChartUserFilterApply(entry.key);
+        });
+    } else {
+      userReviewEventBars.on("click", null);
+    }
 
     const platformUsersY = d3.scaleLinear()
       .domain([0, Math.max(1, peakDailyPlatformUsers)])
@@ -760,16 +909,18 @@ export function ReviewEventsByDateDashboard(
     tickDates,
     totalPlatformReviewEventsByDate,
     totalReviewEventsByDate,
-    userById,
+    handleChartUserFilterApply,
+    props.isReportLoading,
+    rawUserById,
     userColorScale,
     userIds,
     userMatrix,
   ]);
 
   const summaryCards = [
-    { label: "Total Review Events", value: props.report.totalReviewEvents.toLocaleString("en-US") },
-    { label: "Users With Review Events", value: props.report.users.length.toLocaleString("en-US") },
-    { label: "Days In Range", value: props.report.dateTotals.length.toLocaleString("en-US") },
+    { label: "Total Review Events", value: filteredReport.totalReviewEvents.toLocaleString("en-US") },
+    { label: "Users With Review Events", value: filteredReport.users.length.toLocaleString("en-US") },
+    { label: "Days In Range", value: filteredReport.dateTotals.length.toLocaleString("en-US") },
     { label: "Peak Daily Volume", value: peakDailyVolume.toLocaleString("en-US") },
     { label: "Peak Daily Unique Users", value: peakDailyUniqueUsers.toLocaleString("en-US") },
   ];
@@ -791,11 +942,11 @@ export function ReviewEventsByDateDashboard(
         </div>
       </section>
 
-      <section className="filter-panel" aria-labelledby="review-date-range-title">
+      <section className="filter-panel" aria-labelledby="review-filters-title">
         <div className="filter-panel-header">
           <div>
             <p className="eyebrow">Filters</p>
-            <h2 id="review-date-range-title">Date Range</h2>
+            <h2 id="review-filters-title">Filters</h2>
           </div>
           <span className={`filter-status${props.isReportLoading ? " active" : ""}`} aria-live="polite">
             {props.isReportLoading ? "Updating" : `Default ${props.defaultRange.from} to ${props.defaultRange.to}`}
@@ -833,6 +984,101 @@ export function ReviewEventsByDateDashboard(
             </button>
           </div>
         </form>
+        <div className="user-filter-section" aria-label="User filter">
+          <div className="user-filter-header">
+            <span>User</span>
+            <span>
+              {selectedUserIds.length === 0
+                ? "All users"
+                : `${selectedUserIds.length} selected`}
+            </span>
+          </div>
+          {props.report.users.length > 0 ? (
+            <>
+              <label className="user-filter-search">
+                <span>Search users</span>
+                <input
+                  type="search"
+                  value={userFilterSearchValue}
+                  placeholder="Email or user ID"
+                  disabled={props.isReportLoading}
+                  onChange={handleUserFilterSearchChange}
+                />
+              </label>
+              {visibleUserFilterOptions.length > 0 ? (
+                <div className="user-filter-options">
+                  {visibleUserFilterOptions.map((user) => (
+                    <label
+                      key={user.userId}
+                      className={`user-filter-option${selectedUserIdSet.has(user.userId) ? " selected" : ""}`}
+                    >
+                      <input
+                        type="checkbox"
+                        value={user.userId}
+                        checked={selectedUserIdSet.has(user.userId)}
+                        disabled={props.isReportLoading}
+                        onChange={handleUserFilterChange}
+                      />
+                      <span className="user-filter-swatch" style={{ backgroundColor: userColorScale(user.userId) }} />
+                      <span className="user-filter-option-text">
+                        <span className="user-filter-option-primary">{getUserFilterLabel(user)}</span>
+                        <span className="user-filter-option-secondary">
+                          {user.userId} - {user.totalReviewEvents.toLocaleString("en-US")} events
+                        </span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <p className="user-filter-empty">No users match this search.</p>
+              )}
+              {hiddenUserFilterOptionCount > 0 ? (
+                <p className="user-filter-limit">
+                  Showing {visibleUserFilterOptions.length.toLocaleString("en-US")} of {matchingUserFilterOptions.length.toLocaleString("en-US")} matching users.
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <p className="user-filter-empty">No users with review events in this range.</p>
+          )}
+          {activeUserFilters.length > 0 ? (
+            <div className="active-filter-chips" aria-label="Active user filters">
+              {activeUserFilters.map((filter) => (
+                <span key={filter.userId} className="active-filter-chip">
+                  <span
+                    className="active-filter-swatch"
+                    style={{
+                      backgroundColor: filter.hasUserInReport
+                        ? userColorScale(filter.userId)
+                        : "rgba(255, 255, 255, 0.36)",
+                    }}
+                  />
+                  <span className="active-filter-text">
+                    <span>{filter.label}</span>
+                    <span>{filter.secondaryLabel}</span>
+                  </span>
+                  <button
+                    className="active-filter-remove"
+                    type="button"
+                    disabled={props.isReportLoading}
+                    aria-label={`Remove user filter ${filter.label}`}
+                    onClick={() => handleUserFilterRemove(filter.userId)}
+                  >
+                    x
+                  </button>
+                </span>
+              ))}
+              <button
+                className="filter-button filter-button-compact"
+                type="button"
+                disabled={props.isReportLoading}
+                onClick={handleUserFilterClear}
+              >
+                Clear users
+              </button>
+            </div>
+          ) : null}
+        </div>
         {props.dateRangeError !== "" ? (
           <p className="filter-error" role="alert">{props.dateRangeError}</p>
         ) : null}
