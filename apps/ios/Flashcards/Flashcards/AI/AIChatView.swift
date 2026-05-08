@@ -134,11 +134,7 @@ struct AIChatView: View {
     }
 
     var isNewChatDisabled: Bool {
-        self.chatStore.messages.isEmpty
-            && self.chatStore.pendingAttachments.isEmpty
-            && self.chatStore.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && self.chatStore.isStreaming == false
-            && self.chatStore.dictationState == .idle
+        self.chatStore.canStartNewChat == false
     }
 
     var isAlertPresentedBinding: Binding<Bool> {

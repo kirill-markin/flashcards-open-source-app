@@ -2,7 +2,7 @@ import Foundation
 
 extension AIChatStore {
     func clearHistory() {
-        guard self.isChatInteractive else {
+        guard self.canStartNewChat else {
             return
         }
 
