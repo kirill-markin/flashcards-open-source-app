@@ -3,12 +3,19 @@ package com.flashcardsopensourceapp.app
 import android.content.ClipboardManager
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.Text
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusManager
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -43,6 +50,7 @@ import com.flashcardsopensourceapp.feature.ai.aiConversationSurfaceTag
 import com.flashcardsopensourceapp.feature.ai.aiUserMessageBubbleTag
 import com.flashcardsopensourceapp.feature.ai.formatAiConsentWorkspaceDisclosureText
 import com.flashcardsopensourceapp.feature.ai.R as AiFeatureR
+import java.util.concurrent.atomic.AtomicBoolean
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -307,6 +315,71 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
 
         composeRule.onNodeWithContentDescription(sendLabel).assertIsDisplayed()
         composeRule.onNodeWithTag(aiComposerSendButtonTag).assertIsEnabled()
+    }
+
+    @Test
+    fun sendClearsComposerFocusBeforeDispatchingMessage() {
+        var didSend = false
+        val didRequestForcedFocusClear = AtomicBoolean(false)
+        var didRequestForcedFocusClearAtDispatch: Boolean? = null
+        composeRule.setContent {
+            val delegateFocusManager = LocalFocusManager.current
+            val recordingFocusManager = remember(delegateFocusManager) {
+                RecordingFocusManager(
+                    delegateFocusManager = delegateFocusManager,
+                    didRequestForcedClearFocus = didRequestForcedFocusClear
+                )
+            }
+            CompositionLocalProvider(LocalFocusManager provides recordingFocusManager) {
+                FlashcardsTheme {
+                    AiRoute(
+                        uiState = makeAiUiState(
+                            draftMessage = "hello",
+                            canSend = true
+                        ),
+                        onAcceptConsent = {},
+                        onDraftMessageChange = {},
+                        onApplyComposerSuggestion = {},
+                        onSendMessage = {
+                            didRequestForcedFocusClearAtDispatch = didRequestForcedFocusClear.get()
+                            didSend = true
+                        },
+                        onCancelStreaming = {},
+                        onNewChat = {},
+                        onOpenAccountStatus = {},
+                        onDismissErrorMessage = {},
+                        onDismissAlert = {},
+                        onAddPendingAttachment = {},
+                        onRemovePendingAttachment = {},
+                        onStartDictationPermissionRequest = {},
+                        onStartDictationRecording = {},
+                        onTranscribeRecordedAudio = { _, _, _ -> },
+                        onCancelDictation = {},
+                        onScreenVisible = {},
+                        onScreenHidden = {},
+                        onWarmUpSessionIfNeeded = {},
+                        onRetryConversationLoad = {},
+                        onShowAlert = {},
+                        onShowErrorMessage = {}
+                    )
+                }
+            }
+        }
+
+        composeRule.onNodeWithTag(aiComposerMessageFieldTag).performClick()
+        composeRule.onNodeWithTag(aiComposerMessageFieldTag).assertIsFocused()
+        assertTrue(
+            "Expected no forced focus clear before tapping send.",
+            didRequestForcedFocusClear.get().not()
+        )
+
+        composeRule.onNodeWithTag(aiComposerSendButtonTag).performClick()
+        assertTrue(
+            "Expected the AI composer focus to request forced clear before send dispatch.",
+            didRequestForcedFocusClearAtDispatch == true
+        )
+        composeRule.onNodeWithTag(aiComposerMessageFieldTag).assertIsNotFocused()
+        assertTrue(didSend)
     }
 
     @Test
@@ -636,4 +709,20 @@ private fun makeAiUiState(
         activeAlert = null,
         errorMessage = ""
     )
+}
+
+private class RecordingFocusManager(
+    private val delegateFocusManager: FocusManager,
+    private val didRequestForcedClearFocus: AtomicBoolean
+) : FocusManager {
+    override fun clearFocus(force: Boolean) {
+        delegateFocusManager.clearFocus(force = force)
+        if (force) {
+            didRequestForcedClearFocus.set(true)
+        }
+    }
+
+    override fun moveFocus(focusDirection: FocusDirection): Boolean {
+        return delegateFocusManager.moveFocus(focusDirection = focusDirection)
+    }
 }
