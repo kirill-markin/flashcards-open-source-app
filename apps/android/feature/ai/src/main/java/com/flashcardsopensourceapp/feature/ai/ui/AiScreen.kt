@@ -404,7 +404,10 @@ internal fun AiRouteContent(
                         uiState = uiState,
                         onDraftMessageChange = onDraftMessageChange,
                         onApplyComposerSuggestion = onApplyComposerSuggestion,
-                        onSendMessage = onSendMessage,
+                        onSendMessage = {
+                            dismissComposerFocus()
+                            onSendMessage()
+                        },
                         onCancelStreaming = onCancelStreaming,
                         onRemovePendingAttachment = onRemovePendingAttachment,
                         onOpenAttachmentMenu = {
