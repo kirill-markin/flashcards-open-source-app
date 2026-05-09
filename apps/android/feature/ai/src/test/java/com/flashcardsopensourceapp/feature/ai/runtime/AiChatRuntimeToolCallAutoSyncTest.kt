@@ -23,14 +23,13 @@ class AiChatRuntimeToolCallAutoSyncTest {
         val repository = FakeAiChatRepository()
         val autoSyncEventRepository = FakeAutoSyncEventRepository()
         val liveEvents = MutableSharedFlow<AiChatLiveEvent>()
-        repository.bootstrapResponses += makeBootstrapResponse(
-            sessionId = "session-1",
+        val sessionId = repository.nextEnsureSessionId
+        val bootstrapResponse = makeBootstrapResponse(
+            sessionId = sessionId,
             activeRun = makeActiveRun(runId = "run-1", cursor = "5")
-        ).copy(
-            conversation = makeBootstrapResponse(
-                sessionId = "session-1",
-                activeRun = makeActiveRun(runId = "run-1", cursor = "5")
-            ).conversation.copy(
+        )
+        repository.bootstrapResponses += bootstrapResponse.copy(
+            conversation = bootstrapResponse.conversation.copy(
                 messages = listOf(
                     makeAssistantStatusMessage(timestampMillis = 1L).copy(
                         content = listOf(
@@ -68,7 +67,11 @@ class AiChatRuntimeToolCallAutoSyncTest {
 
         liveEvents.emit(
             AiChatLiveEvent.RunTerminal(
-                metadata = makeMetadata(runId = "run-1", cursor = "6"),
+                metadata = makeMetadataForSession(
+                    sessionId = sessionId,
+                    runId = "run-1",
+                    cursor = "6"
+                ),
                 outcome = AiChatRunTerminalOutcome.COMPLETED,
                 message = null,
                 assistantItemId = null,

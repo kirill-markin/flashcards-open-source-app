@@ -11,6 +11,8 @@
 "ai.loading.description" = "Estamos cargando el ultimo chat de IA de esta cuenta antes de habilitar el compositor.";
 "ai.failed.title" = "Chat no disponible";
 "ai.failed.message" = "No se pudo cargar el chat de IA.";
+"ai.failed.networkMessage" = "La conexion se interrumpio mientras se cargaba el chat de IA. Comprueba tu conexion e intentalo de nuevo.";
+"ai.failed.accountStatusMessage" = "El chat de IA necesita que resuelvas el estado de tu cuenta en la nube antes de cargarse.";
 "ai.failed.openAccountStatus" = "Abrir estado de la cuenta";
 "ai.emptyState.title" = "Inicia un nuevo chat de IA";
 "ai.emptyState.description" = "Pregunta sobre tarjetas, historial de repaso o adjunta notas para extraer contenido.";
@@ -43,6 +45,8 @@
 "ai.error.detail.debug" = "Depuracion: %@";
 "ai.error.detail.status" = "Estado: %d";
 "ai.error.detail.code" = "Codigo: %@";
+"ai.error.detail.type" = "Tipo: %@";
+"ai.error.detail.reason" = "Motivo: %@";
 "ai.error.detail.stage" = "Fase: %@";
 "ai.error.detail.resumeAttempt" = "Intento de reanudacion: %d";
 "ai.error.detail.details" = "Detalles: %@";

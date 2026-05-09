@@ -165,11 +165,18 @@ interface CloudAccountRepository {
     suspend fun resetToOfficialServer()
 }
 
+data class AiChatPreparedRemoteSession(
+    val workspaceId: String,
+    val apiBaseUrl: String,
+    val authorizationHeader: String
+)
+
 interface AiChatRepository {
     fun observeConsent(): Flow<Boolean>
     fun hasConsent(): Boolean
     fun updateConsent(hasConsent: Boolean)
-    suspend fun prepareSessionForAi(workspaceId: String?)
+    fun makeExplicitSessionId(): String
+    suspend fun prepareSessionForAi(workspaceId: String?): AiChatPreparedRemoteSession
     suspend fun ensureReadyForSend(workspaceId: String?)
     suspend fun loadPersistedState(workspaceId: String?): AiChatPersistedState
     suspend fun savePersistedState(workspaceId: String?, state: AiChatPersistedState)
@@ -181,6 +188,7 @@ interface AiChatRepository {
     suspend fun ensureSessionId(
         workspaceId: String?,
         persistedState: AiChatPersistedState,
+        provisionalSessionId: String?,
         uiLocale: String?
     ): AiChatSessionProvisioningResult
     suspend fun loadBootstrap(
@@ -189,8 +197,19 @@ interface AiChatRepository {
         limit: Int,
         resumeDiagnostics: AiChatResumeDiagnostics?
     ): AiChatBootstrapResponse
+    suspend fun loadBootstrapFromPreparedSession(
+        preparedSession: AiChatPreparedRemoteSession,
+        sessionId: String,
+        limit: Int,
+        resumeDiagnostics: AiChatResumeDiagnostics?
+    ): AiChatBootstrapResponse
     suspend fun createNewSession(
         workspaceId: String?,
+        sessionId: String,
+        uiLocale: String?
+    ): AiChatSessionSnapshot
+    suspend fun createNewSessionFromPreparedSession(
+        preparedSession: AiChatPreparedRemoteSession,
         sessionId: String,
         uiLocale: String?
     ): AiChatSessionSnapshot

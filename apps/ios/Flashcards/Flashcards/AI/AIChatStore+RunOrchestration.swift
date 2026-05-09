@@ -66,6 +66,13 @@ extension AIChatStore {
         if self.chatSessionId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             self.prepareExplicitRemoteSessionProvisioning(sessionId: makeAIChatSessionId())
         }
+        let foregroundProvisioningSessionId = aiChatResolvedSessionId(
+            workspaceId: self.historyWorkspaceId(),
+            sessionId: self.chatSessionId
+        )
+        self.preemptPendingNewSessionProvisioningForForegroundSessionProvisioning(
+            sessionId: foregroundProvisioningSessionId
+        )
         let preSendSnapshot = AIChatPreSendSnapshot(
             persistedState: self.currentPersistedState(),
             requiresRemoteSessionProvisioning: self.requiresRemoteSessionProvisioning,
@@ -231,8 +238,7 @@ extension AIChatStore {
     }
 
     func shutdownForTests() {
-        self.activeBootstrapTask?.cancel()
-        self.activeBootstrapTask = nil
+        self.invalidateActiveBootstrapTask()
         self.activeWarmUpTask?.cancel()
         self.activeWarmUpTask = nil
         self.invalidatePendingNewSessionRequest()
@@ -380,8 +386,7 @@ extension AIChatStore {
         forceReloadState: Bool,
         resumeAttemptDiagnostics: AIChatResumeAttemptDiagnostics?
     ) {
-        self.activeBootstrapTask?.cancel()
-        self.activeBootstrapTask = nil
+        let requestSequence = self.beginBootstrapRequestSequence()
         if forceReloadState {
             self.historyStore.activateWorkspace(workspaceId: self.historyWorkspaceId())
             self.restorePersistedState(self.historyStore.loadState())
@@ -395,28 +400,29 @@ extension AIChatStore {
         self.bootstrapPhase = .loading
 
         let bootstrapContext = self.surfaceState.activeAccessContext ?? self.currentAccessContext()
+        let preservesPendingLocalSessionDraft = self.shouldPreservePendingLocalSessionDraftOnBootstrapFailure()
         self.activeBootstrapTask = Task {
             defer {
-                self.activeBootstrapTask = nil
+                if self.isCurrentBootstrapRequest(sequence: requestSequence) {
+                    self.activeBootstrapTask = nil
+                }
             }
 
             do {
-                let session = try await self.flashcardsStore.cloudSessionForAI()
-                let explicitSessionId = try await self.ensureRemoteSessionIfNeeded(session: session)
-                let bootstrap = try await self.chatService.loadBootstrap(
-                    session: session,
-                    sessionId: explicitSessionId,
-                    limit: aiChatBootstrapPageLimit,
+                let bootstrapResult = try await self.loadBootstrapWithBoundedRetry(
                     resumeAttemptDiagnostics: resumeAttemptDiagnostics
                 )
-                guard self.surfaceState.activeAccessContext == bootstrapContext else {
+                guard self.isCurrentLinkedBootstrapRequest(
+                    sequence: requestSequence,
+                    accessContext: bootstrapContext
+                ) else {
                     return
                 }
-                self.applyBootstrap(bootstrap)
+                self.applyBootstrap(bootstrapResult.response)
                 self.bootstrapPhase = .ready
                 self.attachBootstrapLiveIfNeeded(
-                    response: bootstrap,
-                    session: session,
+                    response: bootstrapResult.response,
+                    session: bootstrapResult.session,
                     resumeAttemptDiagnostics: resumeAttemptDiagnostics
                 )
             } catch is CancellationError {
@@ -424,22 +430,86 @@ extension AIChatStore {
                 if isAIChatRequestCancellationError(error: error) {
                     return
                 }
-                guard self.surfaceState.activeAccessContext == bootstrapContext else {
+                guard self.isCurrentLinkedBootstrapRequest(
+                    sequence: requestSequence,
+                    accessContext: bootstrapContext
+                ) else {
                     return
                 }
-                self.messages = []
-                self.clearOptimisticOutgoingTurnState()
-                let resolvedSessionId = aiChatResolvedSessionId(
-                    workspaceId: self.historyWorkspaceId(),
-                    sessionId: self.chatSessionId
-                )
-                self.chatSessionId = resolvedSessionId
-                self.conversationScopeId = resolvedSessionId
-                self.applyComposerDraft(inputText: "", pendingAttachments: [])
-                self.schedulePersistCurrentDraftState()
+                if preservesPendingLocalSessionDraft == false {
+                    self.messages = []
+                    self.clearOptimisticOutgoingTurnState()
+                    let resolvedSessionId = aiChatResolvedSessionId(
+                        workspaceId: self.historyWorkspaceId(),
+                        sessionId: self.chatSessionId
+                    )
+                    self.chatSessionId = resolvedSessionId
+                    self.conversationScopeId = resolvedSessionId
+                    self.applyComposerDraft(inputText: "", pendingAttachments: [])
+                    self.schedulePersistCurrentDraftState()
+                }
                 self.transitionToIdle()
+                self.activeAlert = nil
                 self.repairStatus = nil
-                self.bootstrapPhase = .failed(Flashcards.errorMessage(error: error))
+                self.bootstrapPhase = .failed(
+                    makeAIChatBootstrapErrorPresentation(
+                        error: error,
+                        showsLocalValidationMessage: self.flashcardsStore.isCloudSyncBlocked
+                    )
+                )
+            }
+        }
+    }
+
+    private func shouldPreservePendingLocalSessionDraftOnBootstrapFailure() -> Bool {
+        self.chatSessionId.isEmpty == false
+            && self.conversationScopeId == self.chatSessionId
+            && self.messages.isEmpty
+            && self.activeRunId == nil
+            && self.currentComposerDraft().isEmpty == false
+    }
+
+    private func loadBootstrapWithBoundedRetry(
+        resumeAttemptDiagnostics: AIChatResumeAttemptDiagnostics?
+    ) async throws -> AIChatBootstrapLoadResult {
+        let session = try await self.flashcardsStore.cloudSessionForAI()
+        var attemptNumber = 0
+        while true {
+            do {
+                let explicitSessionId = try await self.ensureRemoteSessionIfNeeded(session: session)
+                let bootstrap = try await self.chatService.loadBootstrap(
+                    session: session,
+                    sessionId: explicitSessionId,
+                    limit: aiChatBootstrapPageLimit,
+                    resumeAttemptDiagnostics: resumeAttemptDiagnostics
+                )
+                try validateAIChatBootstrapSessionContract(
+                    response: bootstrap,
+                    requestedSessionId: explicitSessionId
+                )
+                return AIChatBootstrapLoadResult(session: session, response: bootstrap)
+            } catch {
+                let nextAttemptNumber = attemptNumber + 1
+                guard aiChatBootstrapAllowsRetry(nextAttemptNumber: nextAttemptNumber, error: error) else {
+                    throw error
+                }
+
+                let delayNanoseconds = aiChatBootstrapRetryDelay(attemptIndex: attemptNumber)
+                var metadata: [String: String] = [
+                    "nextAttempt": String(nextAttemptNumber),
+                    "delayNanoseconds": String(delayNanoseconds),
+                    "error": Flashcards.errorMessage(error: error),
+                    "errorType": String(reflecting: type(of: error)),
+                ]
+                if let resumeAttemptDiagnostics {
+                    metadata["resumeAttempt"] = resumeAttemptDiagnostics.headerValue
+                }
+                for (key, value) in aiChatErrorLogMetadata(error: error) {
+                    metadata[key] = value
+                }
+                logAIChatStoreEvent(action: "ai_bootstrap_retry_scheduled", metadata: metadata)
+                attemptNumber = nextAttemptNumber
+                try await Task.sleep(nanoseconds: delayNanoseconds)
             }
         }
     }
@@ -651,10 +721,12 @@ extension AIChatStore {
     }
 
     func reloadCanonicalConversationAfterAcceptedTerminalEnvelope() {
-        self.activeBootstrapTask?.cancel()
+        let requestSequence = self.beginBootstrapRequestSequence()
         self.activeBootstrapTask = Task {
             defer {
-                self.activeBootstrapTask = nil
+                if self.isCurrentBootstrapRequest(sequence: requestSequence) {
+                    self.activeBootstrapTask = nil
+                }
             }
 
             do {
@@ -666,9 +738,15 @@ extension AIChatStore {
                     limit: aiChatBootstrapPageLimit,
                     resumeAttemptDiagnostics: nil
                 )
-                guard self.chatSessionId == requestedSessionId else {
+                guard self.isCurrentBootstrapRequest(sequence: requestSequence),
+                      self.chatSessionId == requestedSessionId
+                else {
                     return
                 }
+                try validateAIChatBootstrapSessionContract(
+                    response: response,
+                    requestedSessionId: requestedSessionId
+                )
                 self.applyBootstrap(response)
                 self.attachBootstrapLiveIfNeeded(
                     response: response,
@@ -678,6 +756,9 @@ extension AIChatStore {
             } catch is CancellationError {
             } catch {
                 if isAIChatRequestCancellationError(error: error) {
+                    return
+                }
+                guard self.isCurrentBootstrapRequest(sequence: requestSequence) else {
                     return
                 }
                 self.finalizeAcceptedTerminalEnvelopeWhilePreservingOptimisticTurn()

@@ -60,8 +60,11 @@ internal class AiChatRuntime(
                     resumeDiagnostics = resumeDiagnostics
                 )
             },
-            applyActiveBootstrap = { response ->
-                bootstrapCoordinator.applyActiveBootstrap(response = response)
+            applyActiveBootstrap = { response, expectedSessionId ->
+                bootstrapCoordinator.applyActiveBootstrap(
+                    response = response,
+                    expectedSessionId = expectedSessionId
+                )
             }
         )
         sessionCoordinator = AiChatSessionCoordinator(

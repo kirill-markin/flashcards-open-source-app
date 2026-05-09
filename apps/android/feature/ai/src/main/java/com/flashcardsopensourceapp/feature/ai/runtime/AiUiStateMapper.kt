@@ -11,6 +11,7 @@ import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.effectiveAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.isSendableAiChatAttachment
 import com.flashcardsopensourceapp.feature.ai.AiUiState
+import com.flashcardsopensourceapp.feature.ai.emptyAiBootstrapErrorPresentation
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
 
 internal fun initialAiAppMetadataSummary(textProvider: AiTextProvider): AppMetadataSummary {
@@ -101,7 +102,7 @@ internal fun mapToAiUiState(
         isConversationReady = isConversationReady,
         isConversationLoading = isConversationLoading,
         isCardHandoffReady = isCardHandoffReady,
-        conversationErrorMessage = runtimeState.conversationBootstrapErrorMessage,
+        conversationErrorPresentation = runtimeState.conversationBootstrapErrorPresentation,
         canRetryConversationLoad = isCloudIdentityBlocked.not(),
         showOpenAccountStatusForConversationError = isCloudIdentityBlocked,
         isComposerBusy = isComposerBusy,
@@ -144,7 +145,7 @@ internal fun makeInitialAiUiState(hasConsent: Boolean, textProvider: AiTextProvi
         isConversationReady = false,
         isConversationLoading = true,
         isCardHandoffReady = false,
-        conversationErrorMessage = "",
+        conversationErrorPresentation = emptyAiBootstrapErrorPresentation(),
         canRetryConversationLoad = true,
         showOpenAccountStatusForConversationError = false,
         isComposerBusy = false,

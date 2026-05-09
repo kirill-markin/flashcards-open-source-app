@@ -19,8 +19,9 @@ class AiChatRuntimeLiveAttachmentTest {
     fun bootstrapWhileVisibleWithActiveRunStartsLiveCollection() = runTest {
         val repository = FakeAiChatRepository()
         val liveEvents = MutableSharedFlow<AiChatLiveEvent>()
+        val sessionId = repository.nextEnsureSessionId
         repository.bootstrapResponses += makeBootstrapResponse(
-            sessionId = "session-1",
+            sessionId = sessionId,
             activeRun = makeActiveRun(runId = "run-1", cursor = "5")
         )
         repository.liveFlows["run-1"] = liveEvents
@@ -74,12 +75,13 @@ class AiChatRuntimeLiveAttachmentTest {
     @Test
     fun unexpectedLiveDetachTriggersBootstrapRecoveryError() = runTest {
         val repository = FakeAiChatRepository()
+        val sessionId = repository.nextEnsureSessionId
         repository.bootstrapResponses += makeBootstrapResponse(
-            sessionId = "session-1",
+            sessionId = sessionId,
             activeRun = makeActiveRun(runId = "run-1", cursor = "5")
         )
         repository.bootstrapResponses += makeBootstrapResponse(
-            sessionId = "session-1",
+            sessionId = sessionId,
             activeRun = makeActiveRun(runId = "run-1", cursor = "6")
         )
         repository.liveFlows["run-1"] = emptyFlow()

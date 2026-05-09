@@ -109,12 +109,12 @@ extension AIChatStore {
         self.bootstrapPhase == .ready
     }
 
-    var bootstrapFailureMessage: String? {
-        guard case .failed(let message) = self.bootstrapPhase else {
+    var bootstrapFailurePresentation: AIChatBootstrapErrorPresentation? {
+        guard case .failed(let presentation) = self.bootstrapPhase else {
             return nil
         }
 
-        return message
+        return presentation
     }
 
     func appendAttachment(_ attachment: AIChatAttachment) {

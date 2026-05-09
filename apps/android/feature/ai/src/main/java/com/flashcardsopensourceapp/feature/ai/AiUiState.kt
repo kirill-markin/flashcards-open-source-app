@@ -8,6 +8,18 @@ import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
 import com.flashcardsopensourceapp.data.local.model.AiChatServerConfig
 import com.flashcardsopensourceapp.feature.ai.runtime.AiAlertState
 
+data class AiBootstrapErrorPresentation(
+    val message: String,
+    val technicalDetails: String?
+)
+
+fun emptyAiBootstrapErrorPresentation(): AiBootstrapErrorPresentation {
+    return AiBootstrapErrorPresentation(
+        message = "",
+        technicalDetails = null
+    )
+}
+
 data class AiUiState(
     val currentWorkspaceName: String,
     val messages: List<AiChatMessage>,
@@ -21,7 +33,7 @@ data class AiUiState(
     val isConversationReady: Boolean,
     val isConversationLoading: Boolean,
     val isCardHandoffReady: Boolean,
-    val conversationErrorMessage: String,
+    val conversationErrorPresentation: AiBootstrapErrorPresentation,
     val canRetryConversationLoad: Boolean,
     val showOpenAccountStatusForConversationError: Boolean,
     val isComposerBusy: Boolean,

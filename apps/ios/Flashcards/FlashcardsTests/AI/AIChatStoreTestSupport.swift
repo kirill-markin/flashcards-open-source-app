@@ -388,7 +388,18 @@ enum AIChatStoreTestSupport {
         func fetchCloudAccount(apiBaseUrl: String, bearerToken: String) async throws -> CloudAccountSnapshot {
             _ = apiBaseUrl
             _ = bearerToken
-            fatalError("Not used in AIChatStoreTestSupport.")
+            return CloudAccountSnapshot(
+                userId: "user-1",
+                email: "user@example.com",
+                workspaces: [
+                    CloudWorkspaceSummary(
+                        workspaceId: "workspace-1",
+                        name: "Workspace",
+                        createdAt: "2026-04-08T10:00:00Z",
+                        isSelected: true
+                    )
+                ]
+            )
         }
 
         func loadProgressSummary(
