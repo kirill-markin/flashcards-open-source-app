@@ -11,7 +11,9 @@
 "ai.loading.description" = "我们正在加载此帐户在启用 Composer 之前的最后一次 AI 聊天。";
 "ai.failed.title" = "聊天不可用";
 "ai.failed.message" = "AI聊天无法加载。";
-"ai.failed.openAccountStatus" = "开户状态";
+"ai.failed.networkMessage" = "加载AI聊天时连接中断。请检查连接后重试。";
+"ai.failed.accountStatusMessage" = "AI聊天需要先解决你的云账户状态，然后才能加载。";
+"ai.failed.openAccountStatus" = "打开账户状态";
 "ai.emptyState.title" = "开始新的人工智能聊天";
 "ai.emptyState.description" = "询问抽认卡、查看历史记录或附加注释以提取内容。";
 "ai.composer.placeholder" = "询问卡片、查看历史记录或提出更改...";
@@ -43,6 +45,8 @@
 "ai.error.detail.debug" = "调试：%@";
 "ai.error.detail.status" = "状态：%d";
 "ai.error.detail.code" = "代码：%@";
+"ai.error.detail.type" = "类型：%@";
+"ai.error.detail.reason" = "原因：%@";
 "ai.error.detail.stage" = "相位：%@";
 "ai.error.detail.resumeAttempt" = "恢复尝试：%d";
 "ai.error.detail.details" = "详细信息：%@";

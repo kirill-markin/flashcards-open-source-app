@@ -245,7 +245,8 @@ data class AiChatPersistedState(
     val messages: List<AiChatMessage>,
     val chatSessionId: String,
     val lastKnownChatConfig: AiChatServerConfig?,
-    val pendingToolRunPostSync: Boolean
+    val pendingToolRunPostSync: Boolean,
+    val requiresRemoteSessionProvisioning: Boolean
 )
 
 data class AiChatSessionProvisioningResult(
@@ -357,7 +358,8 @@ fun makeDefaultAiChatPersistedState(): AiChatPersistedState {
         messages = emptyList(),
         chatSessionId = "",
         lastKnownChatConfig = null,
-        pendingToolRunPostSync = false
+        pendingToolRunPostSync = false,
+        requiresRemoteSessionProvisioning = false
     )
 }
 

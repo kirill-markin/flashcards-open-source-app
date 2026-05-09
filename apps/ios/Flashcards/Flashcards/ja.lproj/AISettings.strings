@@ -11,6 +11,8 @@
 "ai.loading.description" = "Composer を有効にする前に、このアカウントの最後の AI チャットをロードしています。";
 "ai.failed.title" = "チャットは利用できません";
 "ai.failed.message" = "AI チャットを読み込めませんでした。";
+"ai.failed.networkMessage" = "AI チャットの読み込み中に接続が中断されました。接続を確認してからもう一度お試しください。";
+"ai.failed.accountStatusMessage" = "AIチャットを読み込むには、先にクラウドアカウントの状態を解決する必要があります。";
 "ai.failed.openAccountStatus" = "アカウント状況を開く";
 "ai.emptyState.title" = "新しい AI チャットを開始する";
 "ai.emptyState.description" = "フラッシュカードについて質問したり、履歴を確認したり、メモを添付してコンテンツを抽出したりできます。";
@@ -43,6 +45,8 @@
 "ai.error.detail.debug" = "デバッグ: %@";
 "ai.error.detail.status" = "ステータス: %d";
 "ai.error.detail.code" = "コード: %@";
+"ai.error.detail.type" = "種類: %@";
+"ai.error.detail.reason" = "理由: %@";
 "ai.error.detail.stage" = "フェーズ: %@";
 "ai.error.detail.resumeAttempt" = "試行を再開: %d";
 "ai.error.detail.details" = "詳細: %@";

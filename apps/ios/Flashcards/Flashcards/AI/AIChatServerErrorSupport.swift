@@ -69,6 +69,15 @@ func aiChatAvailabilityMessage(
     }
 }
 
+func isAIChatAvailabilityErrorCode(code: String, surface: AIChatErrorSurface) -> Bool {
+    switch surface {
+    case .chat:
+        return aiChatAvailabilityErrorCodes.contains(code)
+    case .dictation:
+        return aiChatDictationAvailabilityErrorCodes.contains(code)
+    }
+}
+
 /**
  Converts backend error payloads into user-facing text while keeping request
  references intact for support and debugging. Known availability codes always

@@ -8,6 +8,8 @@ import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
+import com.flashcardsopensourceapp.feature.ai.AiBootstrapErrorPresentation
+import com.flashcardsopensourceapp.feature.ai.emptyAiBootstrapErrorPresentation
 import java.util.UUID
 
 internal enum class AiComposerPhase {
@@ -83,7 +85,7 @@ internal data class AiDraftState(
     val composerPhase: AiComposerPhase,
     val dictationState: AiChatDictationState,
     val conversationBootstrapState: AiConversationBootstrapState,
-    val conversationBootstrapErrorMessage: String,
+    val conversationBootstrapErrorPresentation: AiBootstrapErrorPresentation,
     val repairStatus: AiChatRepairAttemptStatus?,
     val activeAlert: AiAlertState?,
     val errorMessage: String
@@ -142,7 +144,7 @@ internal fun makeDefaultAiDraftState(): AiDraftState {
         composerPhase = AiComposerPhase.IDLE,
         dictationState = AiChatDictationState.IDLE,
         conversationBootstrapState = AiConversationBootstrapState.LOADING,
-        conversationBootstrapErrorMessage = "",
+        conversationBootstrapErrorPresentation = emptyAiBootstrapErrorPresentation(),
         repairStatus = null,
         activeAlert = null,
         errorMessage = ""
@@ -173,7 +175,7 @@ internal fun makeAiDraftState(
         composerPhase = AiComposerPhase.IDLE,
         dictationState = AiChatDictationState.IDLE,
         conversationBootstrapState = AiConversationBootstrapState.READY,
-        conversationBootstrapErrorMessage = "",
+        conversationBootstrapErrorPresentation = emptyAiBootstrapErrorPresentation(),
         repairStatus = null,
         activeAlert = null,
         errorMessage = ""
@@ -203,7 +205,7 @@ internal fun normalizeAiChatPersistedStateForWorkspace(
 
     return normalizedSessionId?.let { sessionId ->
         persistedState.copy(chatSessionId = sessionId)
-    } ?: persistedState
+    } ?: persistedState.copy(requiresRemoteSessionProvisioning = false)
 }
 
 internal fun makeAiChatSessionId(): String {

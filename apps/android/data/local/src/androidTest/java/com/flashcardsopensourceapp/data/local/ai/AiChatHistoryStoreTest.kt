@@ -149,7 +149,8 @@ class AiChatHistoryStoreTest {
             ),
             chatSessionId = "session-1",
             lastKnownChatConfig = null,
-            pendingToolRunPostSync = true
+            pendingToolRunPostSync = true,
+            requiresRemoteSessionProvisioning = true
         )
 
         store.saveState(workspaceId = "workspace-1", state = state)

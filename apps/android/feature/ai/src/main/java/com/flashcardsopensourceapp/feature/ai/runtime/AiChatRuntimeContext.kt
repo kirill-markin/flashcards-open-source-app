@@ -60,7 +60,6 @@ internal class AiChatRuntimeContext(
     var activeAccessContext: AiAccessContext? = null
     var isScreenVisible: Boolean = false
     var nextResumeAttemptId: Long = 0L
-
     val state: StateFlow<AiChatRuntimeState> = runtimeStateMutable.asStateFlow()
 
     fun nextResumeDiagnostics(): AiChatResumeDiagnostics {

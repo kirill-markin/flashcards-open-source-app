@@ -80,6 +80,13 @@ extension AIChatStore {
         }
 
         self.dictationState = .transcribing
+        let foregroundProvisioningSessionId = aiChatResolvedSessionId(
+            workspaceId: self.historyWorkspaceId(),
+            sessionId: self.chatSessionId
+        )
+        self.preemptPendingNewSessionProvisioningForForegroundSessionProvisioning(
+            sessionId: foregroundProvisioningSessionId
+        )
         self.activeDictationTask = Task { @MainActor in
             defer {
                 self.activeDictationTask = nil
