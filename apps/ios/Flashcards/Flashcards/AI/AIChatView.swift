@@ -534,7 +534,7 @@ struct AIChatView: View {
             return
         }
         self.chatStore.sendMessage()
-        self.isComposerFocused = true
+        self.dismissComposerFocus()
     }
 
     func dismissComposerFocus() {
