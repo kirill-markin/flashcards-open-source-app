@@ -22,7 +22,7 @@ private enum class AiLiveAttachDisposition {
 internal class AiChatLiveStreamCoordinator(
     private val context: AiChatRuntimeContext,
     private val restartConversationBootstrap: (Boolean, com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics?) -> Unit,
-    private val applyActiveBootstrap: suspend (AiChatBootstrapResponse) -> Unit
+    private val applyActiveBootstrap: suspend (AiChatBootstrapResponse, String) -> Unit
 ) {
     fun attachBootstrapLiveIfNeeded(
         workspaceId: String,
@@ -399,7 +399,7 @@ internal class AiChatLiveStreamCoordinator(
                 limit = aiChatBootstrapPageLimit,
                 resumeDiagnostics = null
             )
-            applyActiveBootstrap(bootstrap)
+            applyActiveBootstrap(bootstrap, sessionId)
 
             val errorMessage = latestAssistantErrorMessage(messages = bootstrap.conversation.messages)
             if (errorMessage != null) {

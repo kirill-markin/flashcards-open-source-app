@@ -27,16 +27,19 @@ import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
+import com.flashcardsopensourceapp.data.local.repository.AiChatPreparedRemoteSession
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncEvent
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncRequest
 import com.flashcardsopensourceapp.feature.ai.strings.testAiTextProvider
 import java.util.ArrayDeque
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.withContext
 
 internal const val defaultTestWorkspaceId: String = "workspace-1"
 internal const val secondaryTestWorkspaceId: String = "workspace-2"
@@ -114,9 +117,21 @@ internal fun makeAccessContext(workspaceId: String): AiAccessContext {
 }
 
 internal fun makeMetadata(runId: String, cursor: String): AiChatLiveEventMetadata {
-    return AiChatLiveEventMetadata(
+    return makeMetadataForSession(
         sessionId = "session-1",
-        conversationScopeId = "session-1",
+        runId = runId,
+        cursor = cursor
+    )
+}
+
+internal fun makeMetadataForSession(
+    sessionId: String,
+    runId: String,
+    cursor: String
+): AiChatLiveEventMetadata {
+    return AiChatLiveEventMetadata(
+        sessionId = sessionId,
+        conversationScopeId = sessionId,
         runId = runId,
         cursor = cursor,
         sequenceNumber = 1,
@@ -208,14 +223,21 @@ internal class FakeAiChatRepository : AiChatRepository {
     val consent: MutableStateFlow<Boolean> = MutableStateFlow(value = true)
     val bootstrapResponses: ArrayDeque<AiChatBootstrapResponse> = ArrayDeque()
     val loadBootstrapGates: ArrayDeque<CompletableDeferred<Unit>> = ArrayDeque()
+    val loadBootstrapNonCancellableGates: ArrayDeque<CompletableDeferred<Unit>> = ArrayDeque()
     val liveFlows: MutableMap<String, Flow<AiChatLiveEvent>> = mutableMapOf()
     val attachRunIds: MutableList<String> = mutableListOf()
+    val remoteCallEvents: MutableList<String> = mutableListOf()
     val loadBootstrapSessionIds: MutableList<String> = mutableListOf()
     val createNewSessionRequests: MutableList<String> = mutableListOf()
     val createNewSessionUiLocales: MutableList<String?> = mutableListOf()
     val prepareSessionRequests: MutableList<String?> = mutableListOf()
     val prepareSessionGates: ArrayDeque<CompletableDeferred<Unit>> = ArrayDeque()
+    val prepareSessionErrors: ArrayDeque<Exception> = ArrayDeque()
     val createNewSessionGates: ArrayDeque<CompletableDeferred<Unit>> = ArrayDeque()
+    val createNewSessionErrors: ArrayDeque<Exception> = ArrayDeque()
+    val loadBootstrapErrors: ArrayDeque<Exception> = ArrayDeque()
+    val loadDraftStateErrors: ArrayDeque<Exception> = ArrayDeque()
+    val savePersistedStateErrors: ArrayDeque<Exception> = ArrayDeque()
     val transcribeAudioGates: ArrayDeque<CompletableDeferred<Unit>> = ArrayDeque()
     val createNewSessionResponses: ArrayDeque<AiChatSessionSnapshot> = ArrayDeque()
     val savePersistedStateGates: ArrayDeque<CompletableDeferred<Unit>> = ArrayDeque()
@@ -270,11 +292,23 @@ internal class FakeAiChatRepository : AiChatRepository {
         consent.value = hasConsent
     }
 
-    override suspend fun prepareSessionForAi(workspaceId: String?) {
+    override fun makeExplicitSessionId(): String {
+        return nextEnsureSessionId
+    }
+
+    override suspend fun prepareSessionForAi(workspaceId: String?): AiChatPreparedRemoteSession {
         prepareSessionRequests += workspaceId
         if (prepareSessionGates.isNotEmpty()) {
             prepareSessionGates.removeFirst().await()
         }
+        if (prepareSessionErrors.isNotEmpty()) {
+            throw prepareSessionErrors.removeFirst()
+        }
+        return AiChatPreparedRemoteSession(
+            workspaceId = workspaceId ?: "",
+            apiBaseUrl = "https://api.example.test",
+            authorizationHeader = "Guest test-token"
+        )
     }
 
     override suspend fun ensureReadyForSend(workspaceId: String?) {
@@ -292,6 +326,9 @@ internal class FakeAiChatRepository : AiChatRepository {
         if (savePersistedStateGates.isNotEmpty()) {
             savePersistedStateGates.removeFirst().await()
         }
+        if (savePersistedStateErrors.isNotEmpty()) {
+            throw savePersistedStateErrors.removeFirst()
+        }
         persistedStates[workspaceId] = state
     }
 
@@ -300,6 +337,9 @@ internal class FakeAiChatRepository : AiChatRepository {
     }
 
     override suspend fun loadDraftState(workspaceId: String?, sessionId: String?): AiChatDraftState {
+        if (loadDraftStateErrors.isNotEmpty()) {
+            throw loadDraftStateErrors.removeFirst()
+        }
         return draftStates[workspaceId to sessionId] ?: AiChatDraftState(
             draftMessage = "",
             pendingAttachments = emptyList()
@@ -327,6 +367,7 @@ internal class FakeAiChatRepository : AiChatRepository {
     override suspend fun ensureSessionId(
         workspaceId: String?,
         persistedState: AiChatPersistedState,
+        provisionalSessionId: String?,
         uiLocale: String?
     ): AiChatSessionProvisioningResult {
         val normalizedSessionId = persistedState.chatSessionId.trim()
@@ -338,7 +379,7 @@ internal class FakeAiChatRepository : AiChatRepository {
             )
         }
 
-        val sessionId = nextEnsureSessionId
+        val sessionId = provisionalSessionId ?: nextEnsureSessionId
         val snapshot = createNewSession(
             workspaceId = workspaceId,
             sessionId = sessionId,
@@ -358,10 +399,33 @@ internal class FakeAiChatRepository : AiChatRepository {
     ): AiChatBootstrapResponse {
         loadBootstrapCalls += 1
         loadBootstrapSessionIds += sessionId
+        remoteCallEvents += "loadBootstrap:$sessionId"
         if (loadBootstrapGates.isNotEmpty()) {
             loadBootstrapGates.removeFirst().await()
         }
+        if (loadBootstrapNonCancellableGates.isNotEmpty()) {
+            withContext(NonCancellable) {
+                loadBootstrapNonCancellableGates.removeFirst().await()
+            }
+        }
+        if (loadBootstrapErrors.isNotEmpty()) {
+            throw loadBootstrapErrors.removeFirst()
+        }
         return bootstrapResponses.removeFirst()
+    }
+
+    override suspend fun loadBootstrapFromPreparedSession(
+        preparedSession: AiChatPreparedRemoteSession,
+        sessionId: String,
+        limit: Int,
+        resumeDiagnostics: AiChatResumeDiagnostics?
+    ): AiChatBootstrapResponse {
+        return loadBootstrap(
+            workspaceId = preparedSession.workspaceId,
+            sessionId = sessionId,
+            limit = limit,
+            resumeDiagnostics = resumeDiagnostics
+        )
     }
 
     override suspend fun createNewSession(
@@ -369,10 +433,27 @@ internal class FakeAiChatRepository : AiChatRepository {
         sessionId: String,
         uiLocale: String?
     ): AiChatSessionSnapshot {
+        val preparedSession = prepareSessionForAi(workspaceId = workspaceId)
+        return createNewSessionFromPreparedSession(
+            preparedSession = preparedSession,
+            sessionId = sessionId,
+            uiLocale = uiLocale
+        )
+    }
+
+    override suspend fun createNewSessionFromPreparedSession(
+        preparedSession: AiChatPreparedRemoteSession,
+        sessionId: String,
+        uiLocale: String?
+    ): AiChatSessionSnapshot {
         createNewSessionRequests += sessionId
         createNewSessionUiLocales += uiLocale
+        remoteCallEvents += "createNewSession:$sessionId"
         if (createNewSessionGates.isNotEmpty()) {
             createNewSessionGates.removeFirst().await()
+        }
+        if (createNewSessionErrors.isNotEmpty()) {
+            throw createNewSessionErrors.removeFirst()
         }
         if (createNewSessionResponses.isNotEmpty()) {
             return createNewSessionResponses.removeFirst()
@@ -423,6 +504,7 @@ internal class FakeAiChatRepository : AiChatRepository {
         uiLocale: String?
     ): AiChatStartRunResponse {
         startRunCalls += 1
+        remoteCallEvents += "startRun:${state.chatSessionId}"
         lastStartRunState = state
         lastStartRunUiLocale = uiLocale
         if (startRunGates.isNotEmpty()) {

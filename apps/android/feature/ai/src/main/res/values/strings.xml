@@ -4,6 +4,11 @@
     <string name="ai_loading_chat_title">Loading chat</string>
     <string name="ai_loading_chat_body">We are loading the latest AI chat for this account before enabling the composer.</string>
     <string name="ai_chat_unavailable_title">Chat unavailable</string>
+    <string name="ai_bootstrap_network_error_message">We could not connect to AI. Check your connection and try again.</string>
+    <string name="ai_bootstrap_generic_error_message">AI chat could not be loaded. Try again.</string>
+    <string name="ai_bootstrap_account_status_error_message">AI chat needs your cloud account status to be resolved before it can load.</string>
+    <string name="ai_error_show_details">Show technical details</string>
+    <string name="ai_error_hide_details">Hide technical details</string>
     <string name="ai_retry">Retry</string>
     <string name="ai_open_account_status">Open account status</string>
     <string name="ai_open_settings">Open Settings</string>

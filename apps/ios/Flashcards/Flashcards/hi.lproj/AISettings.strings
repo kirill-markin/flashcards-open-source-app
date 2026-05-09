@@ -11,7 +11,9 @@
 "ai.loading.description" = "हम कंपोज़र को सक्षम करने से पहले इस खाते के लिए अंतिम AI चैट लोड कर रहे हैं।";
 "ai.failed.title" = "चैट उपलब्ध नहीं है";
 "ai.failed.message" = "AI चैट लोड नहीं किया जा सका.";
-"ai.failed.openAccountStatus" = "खाता खोलने की स्थिति";
+"ai.failed.networkMessage" = "AI चैट लोड करते समय कनेक्शन बाधित हो गया. अपना कनेक्शन जांचें और फिर से प्रयास करें.";
+"ai.failed.accountStatusMessage" = "AI चैट लोड होने से पहले आपके क्लाउड खाते की स्थिति का समाधान होना चाहिए.";
+"ai.failed.openAccountStatus" = "खाते की स्थिति खोलें";
 "ai.emptyState.title" = "एक नई AI चैट प्रारंभ करें";
 "ai.emptyState.description" = "फ़्लैशकार्ड के बारे में पूछें, इतिहास की समीक्षा करें, या सामग्री निकालने के लिए नोट्स संलग्न करें।";
 "ai.composer.placeholder" = "कार्ड के बारे में पूछें, इतिहास की समीक्षा करें या बदलाव का प्रस्ताव रखें...";
@@ -43,6 +45,8 @@
 "ai.error.detail.debug" = "डिबगिंग: %@";
 "ai.error.detail.status" = "स्थिति: %d";
 "ai.error.detail.code" = "कोड: %@";
+"ai.error.detail.type" = "प्रकार: %@";
+"ai.error.detail.reason" = "कारण: %@";
 "ai.error.detail.stage" = "चरण: %@";
 "ai.error.detail.resumeAttempt" = "फिर से शुरू करने का प्रयास: %d";
 "ai.error.detail.details" = "विवरण: %@";

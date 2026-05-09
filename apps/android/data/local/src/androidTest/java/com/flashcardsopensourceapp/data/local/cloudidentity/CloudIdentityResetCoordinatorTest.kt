@@ -53,7 +53,8 @@ class CloudIdentityResetCoordinatorTest {
                 messages = emptyList(),
                 chatSessionId = "session-1",
                 lastKnownChatConfig = null,
-                pendingToolRunPostSync = false
+                pendingToolRunPostSync = false,
+                requiresRemoteSessionProvisioning = false
             )
         )
         environment.guestAiSessionStore.saveSession(

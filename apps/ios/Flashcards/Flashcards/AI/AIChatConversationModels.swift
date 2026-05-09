@@ -72,7 +72,7 @@ enum AIChatComposerPhase: String, Hashable, Sendable {
 enum AIChatBootstrapPhase: Hashable, Sendable {
     case ready
     case loading
-    case failed(String)
+    case failed(AIChatBootstrapErrorPresentation)
 }
 
 struct AIChatConversation: Hashable, Sendable {

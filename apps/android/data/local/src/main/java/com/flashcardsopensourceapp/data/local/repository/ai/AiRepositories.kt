@@ -28,6 +28,7 @@ import com.flashcardsopensourceapp.data.local.model.buildAiChatRequestContent
 import com.flashcardsopensourceapp.data.local.model.shouldRefreshCloudIdToken
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteGateway
+import com.flashcardsopensourceapp.data.local.repository.AiChatPreparedRemoteSession
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.CloudGuestSessionCoordinator
@@ -65,8 +66,18 @@ class LocalAiChatRepository(
         aiChatPreferencesStore.updateConsent(hasConsent = hasConsent)
     }
 
-    override suspend fun prepareSessionForAi(workspaceId: String?) {
-        authorizedSession(workspaceId = workspaceId)
+    override fun makeExplicitSessionId(): String {
+        return UUID.randomUUID().toString().lowercase()
+    }
+
+    override suspend fun prepareSessionForAi(workspaceId: String?): AiChatPreparedRemoteSession {
+        val remoteWorkspaceId = requireRemoteWorkspaceId(workspaceId = workspaceId)
+        val session = authorizedSession(workspaceId = remoteWorkspaceId)
+        return AiChatPreparedRemoteSession(
+            workspaceId = remoteWorkspaceId,
+            apiBaseUrl = session.apiBaseUrl,
+            authorizationHeader = session.authorizationHeader
+        )
     }
 
     override suspend fun ensureReadyForSend(workspaceId: String?) {
@@ -163,6 +174,7 @@ class LocalAiChatRepository(
     override suspend fun ensureSessionId(
         workspaceId: String?,
         persistedState: AiChatPersistedState,
+        provisionalSessionId: String?,
         uiLocale: String?
     ): AiChatSessionProvisioningResult {
         val normalizedSessionId = resolveAiChatSessionIdOrNull(
@@ -175,7 +187,7 @@ class LocalAiChatRepository(
             )
         }
 
-        val explicitSessionId = UUID.randomUUID().toString().lowercase()
+        val explicitSessionId = provisionalSessionId ?: makeExplicitSessionId()
         val snapshot = createNewSession(
             workspaceId = workspaceId,
             sessionId = explicitSessionId,
@@ -196,14 +208,27 @@ class LocalAiChatRepository(
         limit: Int,
         resumeDiagnostics: AiChatResumeDiagnostics?
     ): AiChatBootstrapResponse {
-        val remoteWorkspaceId = requireRemoteWorkspaceId(workspaceId = workspaceId)
-        val session = authorizedSession(workspaceId = remoteWorkspaceId)
-        return aiChatRemoteService.loadBootstrap(
-            apiBaseUrl = session.apiBaseUrl,
-            authorizationHeader = session.authorizationHeader,
+        val preparedSession = prepareSessionForAi(workspaceId = workspaceId)
+        return loadBootstrapFromPreparedSession(
+            preparedSession = preparedSession,
             sessionId = sessionId,
             limit = limit,
-            workspaceId = remoteWorkspaceId,
+            resumeDiagnostics = resumeDiagnostics
+        )
+    }
+
+    override suspend fun loadBootstrapFromPreparedSession(
+        preparedSession: AiChatPreparedRemoteSession,
+        sessionId: String,
+        limit: Int,
+        resumeDiagnostics: AiChatResumeDiagnostics?
+    ): AiChatBootstrapResponse {
+        return aiChatRemoteService.loadBootstrap(
+            apiBaseUrl = preparedSession.apiBaseUrl,
+            authorizationHeader = preparedSession.authorizationHeader,
+            sessionId = sessionId,
+            limit = limit,
+            workspaceId = preparedSession.workspaceId,
             resumeDiagnostics = resumeDiagnostics
         )
     }
@@ -213,14 +238,25 @@ class LocalAiChatRepository(
         sessionId: String,
         uiLocale: String?
     ): AiChatSessionSnapshot {
-        val remoteWorkspaceId = requireRemoteWorkspaceId(workspaceId = workspaceId)
-        val session = authorizedSession(workspaceId = remoteWorkspaceId)
+        val preparedSession = prepareSessionForAi(workspaceId = workspaceId)
+        return createNewSessionFromPreparedSession(
+            preparedSession = preparedSession,
+            sessionId = sessionId,
+            uiLocale = uiLocale
+        )
+    }
+
+    override suspend fun createNewSessionFromPreparedSession(
+        preparedSession: AiChatPreparedRemoteSession,
+        sessionId: String,
+        uiLocale: String?
+    ): AiChatSessionSnapshot {
         return aiChatRemoteService.createNewSession(
-            apiBaseUrl = session.apiBaseUrl,
-            authorizationHeader = session.authorizationHeader,
+            apiBaseUrl = preparedSession.apiBaseUrl,
+            authorizationHeader = preparedSession.authorizationHeader,
             request = AiChatNewSessionRequest(
                 sessionId = sessionId,
-                workspaceId = remoteWorkspaceId,
+                workspaceId = preparedSession.workspaceId,
                 uiLocale = uiLocale
             )
         )

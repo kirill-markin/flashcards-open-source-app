@@ -184,6 +184,7 @@ final class AIChatStore {
     @ObservationIgnored var pendingToolRunPostSync: Bool
     @ObservationIgnored var activeToolRunPostSyncTask: Task<Void, Never>?
     @ObservationIgnored var nextResumeAttemptSequence: Int
+    @ObservationIgnored var nextBootstrapRequestSequence: Int
     @ObservationIgnored var nextNewSessionRequestSequence: Int
     @ObservationIgnored var activeResumeErrorAttemptSequence: Int?
     @ObservationIgnored var activeLiveResumeAttemptSequence: Int?
@@ -749,6 +750,7 @@ final class AIChatStore {
         self.suppressDraftRestore = shouldSuppressInitialDraftRestore
         self.activeToolRunPostSyncTask = nil
         self.nextResumeAttemptSequence = 0
+        self.nextBootstrapRequestSequence = 0
         self.nextNewSessionRequestSequence = 0
         self.activeResumeErrorAttemptSequence = nil
         self.activeLiveResumeAttemptSequence = nil

@@ -55,6 +55,10 @@ extension AIChatStore {
     }
 
     func applyBootstrap(_ response: AIChatBootstrapResponse) {
+        guard self.canApplyBootstrapResponse(response) else {
+            return
+        }
+
         self.applyEnvelope(response)
         self.markRunHadToolCallsFromSnapshot(
             activeRun: response.activeRun,
@@ -70,6 +74,13 @@ extension AIChatStore {
         session: CloudLinkedSession,
         resumeAttemptDiagnostics: AIChatResumeAttemptDiagnostics?
     ) {
+        guard self.canApplyBootstrapResponse(response) else {
+            self.activeLiveResumeAttemptSequence = nil
+            Task {
+                await self.runtime.detach()
+            }
+            return
+        }
         guard self.shouldKeepLiveAttached else {
             self.activeLiveResumeAttemptSequence = nil
             Task {
@@ -245,6 +256,10 @@ extension AIChatStore {
                 guard self.chatSessionId == requestedSessionId else {
                     return
                 }
+                try validateAIChatBootstrapSessionContract(
+                    response: response,
+                    requestedSessionId: requestedSessionId
+                )
                 self.applyBootstrap(response)
                 self.attachBootstrapLiveIfNeeded(
                     response: response,
@@ -308,6 +323,10 @@ extension AIChatStore {
                     return
                 }
             }
+            try validateAIChatBootstrapSessionContract(
+                response: response,
+                requestedSessionId: sessionId
+            )
 
             if let errorMessage = aiChatLatestAssistantErrorMessage(messages: response.conversation.messages) {
                 self.applyBootstrap(response)
@@ -362,6 +381,10 @@ extension AIChatStore {
             guard self.chatSessionId == sessionId else {
                 return
             }
+            try validateAIChatBootstrapSessionContract(
+                response: response,
+                requestedSessionId: sessionId
+            )
             self.applyBootstrap(response)
 
             if let errorMessage = aiChatLatestAssistantErrorMessage(messages: response.conversation.messages) {
@@ -386,6 +409,10 @@ extension AIChatStore {
 
 extension AIChatStore {
     func applyBootstrapMetadataPreservingMessages(_ response: AIChatBootstrapResponse) {
+        guard self.canApplyBootstrapResponse(response) else {
+            return
+        }
+
         self.chatSessionId = response.sessionId
         self.conversationScopeId = response.conversationScopeId
         self.requiresRemoteSessionProvisioning = false
@@ -394,6 +421,46 @@ extension AIChatStore {
         self.hasOlderMessages = response.conversation.hasOlder
         self.oldestCursor = response.conversation.oldestCursor
         self.repairStatus = nil
+    }
+
+    func canApplyBootstrapResponse(_ response: AIChatBootstrapResponse) -> Bool {
+        let expectedSessionId = aiChatResolvedSessionId(
+            workspaceId: self.historyWorkspaceId(),
+            sessionId: self.chatSessionId
+        )
+        let expectedConversationScopeId = aiChatResolvedSessionId(
+            workspaceId: self.historyWorkspaceId(),
+            sessionId: self.conversationScopeId
+        )
+
+        if expectedSessionId.isEmpty && expectedConversationScopeId.isEmpty {
+            return true
+        }
+
+        let responseSessionId = aiChatResolvedSessionId(
+            workspaceId: self.historyWorkspaceId(),
+            sessionId: response.sessionId
+        )
+        let responseConversationScopeId = aiChatResolvedSessionId(
+            workspaceId: self.historyWorkspaceId(),
+            sessionId: response.conversationScopeId
+        )
+        guard responseSessionId == expectedSessionId,
+              responseConversationScopeId == expectedConversationScopeId
+        else {
+            logAIChatStoreEvent(
+                action: "ai_bootstrap_session_contract_mismatch",
+                metadata: [
+                    "expectedSessionId": expectedSessionId,
+                    "expectedConversationScopeId": expectedConversationScopeId,
+                    "actualSessionId": responseSessionId,
+                    "actualConversationScopeId": responseConversationScopeId
+                ]
+            )
+            return false
+        }
+
+        return true
     }
 }
 
@@ -437,4 +504,41 @@ func aiChatShouldApplyFailedLiveOptimisticFallback(
     return messagesAfterAnchor.contains(where: { message in
         message.role == .assistant
     }) == false
+}
+
+func validateAIChatBootstrapSessionContract(
+    response: AIChatBootstrapResponse,
+    requestedSessionId: String
+) throws {
+    let expectedSessionId = aiChatResolvedSessionId(
+        workspaceId: nil,
+        sessionId: requestedSessionId
+    )
+    let actualSessionId = aiChatResolvedSessionId(
+        workspaceId: nil,
+        sessionId: response.sessionId
+    )
+    let actualConversationScopeId = aiChatResolvedSessionId(
+        workspaceId: nil,
+        sessionId: response.conversationScopeId
+    )
+
+    guard expectedSessionId.isEmpty == false else {
+        throw LocalStoreError.validation(
+            "AI chat bootstrap validation requires a requested session id."
+        )
+    }
+
+    guard actualSessionId == expectedSessionId,
+          actualConversationScopeId == expectedSessionId
+    else {
+        throw LocalStoreError.validation(
+            """
+            AI chat bootstrap returned an unexpected session contract. \
+            expectedSessionId=\(expectedSessionId) \
+            actualSessionId=\(actualSessionId) \
+            actualConversationScopeId=\(actualConversationScopeId)
+            """
+        )
+    }
 }
