@@ -205,6 +205,7 @@ class AiChatHistoryStore(
             .put("chatSessionId", state.chatSessionId)
             .put("lastKnownChatConfig", state.lastKnownChatConfig?.let(::encodeChatConfig))
             .put("pendingToolRunPostSync", state.pendingToolRunPostSync)
+            .put("requiresRemoteSessionProvisioning", state.requiresRemoteSessionProvisioning)
     }
 
     private fun decodeState(rawValue: String): AiChatPersistedState {
@@ -226,7 +227,8 @@ class AiChatHistoryStore(
             messages = messages,
             chatSessionId = chatSessionId,
             lastKnownChatConfig = lastKnownChatConfig,
-            pendingToolRunPostSync = jsonObject.optBoolean("pendingToolRunPostSync", false)
+            pendingToolRunPostSync = jsonObject.optBoolean("pendingToolRunPostSync", false),
+            requiresRemoteSessionProvisioning = jsonObject.optBoolean("requiresRemoteSessionProvisioning", false)
         )
     }
 

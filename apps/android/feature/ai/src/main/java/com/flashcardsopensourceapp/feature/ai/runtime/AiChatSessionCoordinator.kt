@@ -9,6 +9,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
 import com.flashcardsopensourceapp.data.local.model.AiChatSessionProvisioningResult
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
+import com.flashcardsopensourceapp.feature.ai.emptyAiBootstrapErrorPresentation
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.update
@@ -33,7 +34,8 @@ internal class AiChatSessionCoordinator(
                 persistedState = state.persistedState.copy(
                     messages = emptyList(),
                     chatSessionId = targetSessionId,
-                    pendingToolRunPostSync = false
+                    pendingToolRunPostSync = false,
+                    requiresRemoteSessionProvisioning = true
                 ),
                 conversationScopeId = targetSessionId,
                 hasOlder = false,
@@ -52,7 +54,7 @@ internal class AiChatSessionCoordinator(
                 composerPhase = AiComposerPhase.IDLE,
                 dictationState = AiChatDictationState.IDLE,
                 conversationBootstrapState = AiConversationBootstrapState.READY,
-                conversationBootstrapErrorMessage = "",
+                conversationBootstrapErrorPresentation = emptyAiBootstrapErrorPresentation(),
                 repairStatus = null,
                 activeAlert = null,
                 errorMessage = ""
@@ -91,14 +93,62 @@ internal class AiChatSessionCoordinator(
     private suspend fun ensureSessionIdIfNeeded(
         persistEnsuredSessionState: () -> Unit
     ): AiChatSessionProvisioningResult {
-        val currentState = context.runtimeStateMutable.value
-        val currentSessionId = currentState.persistedState.chatSessionId
-        if (currentSessionId.isNotBlank()) {
+        var currentState: AiChatRuntimeState = context.runtimeStateMutable.value
+        var currentSessionId: String = currentState.persistedState.chatSessionId
+        if (
+            currentSessionId.isNotBlank()
+            && currentState.persistedState.requiresRemoteSessionProvisioning
+        ) {
+            cancelActiveFreshSessionProvisioningIfNeeded(targetSessionId = currentSessionId)
+        } else if (currentSessionId.isNotBlank()) {
             awaitActiveFreshSessionProvisioningIfNeeded(targetSessionId = currentSessionId)
+        }
+        currentState = context.runtimeStateMutable.value
+        currentSessionId = currentState.persistedState.chatSessionId
+        if (
+            currentSessionId.isNotBlank()
+            && currentState.persistedState.requiresRemoteSessionProvisioning
+        ) {
+            val snapshot = createNewAiChatSessionOnce(
+                context = context,
+                workspaceId = currentState.workspaceId,
+                targetSessionId = currentSessionId
+            )
+            var didApplyProvisionedSession: Boolean = false
+            context.runtimeStateMutable.update { state ->
+                if (
+                    state.workspaceId != currentState.workspaceId
+                    || state.persistedState.chatSessionId != currentSessionId
+                ) {
+                    return@update state
+                }
+                didApplyProvisionedSession = true
+                updateComposerSuggestions(
+                    state = state.copy(
+                        persistedState = state.persistedState.copy(
+                            lastKnownChatConfig = snapshot.chatConfig,
+                            requiresRemoteSessionProvisioning = false
+                        ),
+                        conversationScopeId = snapshot.conversationScopeId,
+                        activeAlert = null,
+                        errorMessage = ""
+                    ),
+                    nextSuggestions = snapshot.composerSuggestions
+                )
+            }
+            if (didApplyProvisionedSession.not()) {
+                throw CancellationException("AI pending session provisioning was superseded.")
+            }
+            persistEnsuredSessionState()
+            return AiChatSessionProvisioningResult(
+                sessionId = currentSessionId,
+                snapshot = snapshot
+            )
         }
         val ensuredSession = context.aiChatRepository.ensureSessionId(
             workspaceId = currentState.workspaceId,
             persistedState = currentState.persistedState,
+            provisionalSessionId = null,
             uiLocale = context.currentUiLocaleTag()
         )
         val ensuredSnapshot = ensuredSession.snapshot
@@ -111,7 +161,8 @@ internal class AiChatSessionCoordinator(
                     state = state.copy(
                         persistedState = state.persistedState.copy(
                             chatSessionId = ensuredSession.sessionId,
-                            lastKnownChatConfig = ensuredSnapshot.chatConfig
+                            lastKnownChatConfig = ensuredSnapshot.chatConfig,
+                            requiresRemoteSessionProvisioning = false
                         ),
                         conversationScopeId = ensuredSnapshot.conversationScopeId,
                         activeAlert = null,
@@ -134,6 +185,22 @@ internal class AiChatSessionCoordinator(
             return
         }
         activeFreshSessionJob.join()
+    }
+
+    private fun cancelActiveFreshSessionProvisioningIfNeeded(targetSessionId: String) {
+        if (context.activeFreshSessionTargetSessionId != targetSessionId) {
+            return
+        }
+        val activeFreshSessionJob = context.activeFreshSessionJob
+        if (activeFreshSessionJob?.isActive == true) {
+            activeFreshSessionJob.cancel(
+                cause = CancellationException(
+                    "AI fresh session creation cancelled because a user action is provisioning the session."
+                )
+            )
+        }
+        context.activeFreshSessionJob = null
+        context.activeFreshSessionTargetSessionId = null
     }
 
     private fun initializeFreshConversation(
@@ -160,14 +227,17 @@ internal class AiChatSessionCoordinator(
         var freshSessionJob: Job? = null
         freshSessionJob = context.scope.launch {
             try {
-                val snapshot = context.aiChatRepository.createNewSession(
+                val snapshot = createNewAiChatSessionWithBootstrapRetry(
+                    context = context,
                     workspaceId = workspaceId,
-                    sessionId = targetSessionId,
-                    uiLocale = context.currentUiLocaleTag()
+                    targetSessionId = targetSessionId,
+                    retryEvent = "new_chat_session_retrying"
                 )
+                if (context.activeFreshSessionJob !== freshSessionJob) {
+                    return@launch
+                }
                 if (
-                    snapshot.sessionId != targetSessionId
-                    || context.runtimeStateMutable.value.workspaceId != workspaceId
+                    context.runtimeStateMutable.value.workspaceId != workspaceId
                     || canApplySessionScopedResult(targetSessionId = targetSessionId).not()
                 ) {
                     return@launch
@@ -177,7 +247,8 @@ internal class AiChatSessionCoordinator(
                         state = state.copy(
                             workspaceId = workspaceId,
                             persistedState = state.persistedState.copy(
-                                lastKnownChatConfig = snapshot.chatConfig
+                                lastKnownChatConfig = snapshot.chatConfig,
+                                requiresRemoteSessionProvisioning = false
                             ),
                             conversationScopeId = snapshot.conversationScopeId,
                             activeAlert = null,
@@ -199,6 +270,9 @@ internal class AiChatSessionCoordinator(
                 )
                 throw error
             } catch (error: Exception) {
+                if (context.activeFreshSessionJob !== freshSessionJob) {
+                    return@launch
+                }
                 handleNewChatFailure(
                     workspaceId = workspaceId,
                     targetSessionId = targetSessionId,
@@ -226,9 +300,8 @@ internal class AiChatSessionCoordinator(
             return
         }
         val remoteError = error as? AiChatRemoteException
-        val message = makeAiUserFacingErrorMessage(
+        val presentation = makeAiBootstrapErrorPresentation(
             error = error,
-            surface = AiErrorSurface.CHAT,
             configuration = currentServerConfiguration(),
             textProvider = context.textProvider
         )
@@ -240,7 +313,7 @@ internal class AiChatSessionCoordinator(
                 "cloudState" to currentCloudState().name,
                 "chatSessionId" to context.runtimeStateMutable.value.persistedState.chatSessionId,
                 "messageCount" to context.runtimeStateMutable.value.persistedState.messages.size.toString(),
-                "userFacingMessage" to message
+                "userFacingMessage" to presentation.message
             ) + remoteErrorFields(error = remoteError),
             throwable = error
         )
@@ -248,8 +321,8 @@ internal class AiChatSessionCoordinator(
         context.runtimeStateMutable.update { state ->
             state.copy(
                 conversationBootstrapState = AiConversationBootstrapState.FAILED,
-                conversationBootstrapErrorMessage = message,
-                activeAlert = context.textProvider.generalError(message = message),
+                conversationBootstrapErrorPresentation = presentation,
+                activeAlert = null,
                 errorMessage = ""
             )
         }

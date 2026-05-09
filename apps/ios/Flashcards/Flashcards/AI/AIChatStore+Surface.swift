@@ -186,8 +186,7 @@ extension AIChatStore {
         self.surfaceState.activeAccessContext = nextAccessContext
         self.invalidatePendingNewSessionRequest()
         self.invalidatePendingRemoteSessionProvisionRequest()
-        self.activeBootstrapTask?.cancel()
-        self.activeBootstrapTask = nil
+        self.invalidateActiveBootstrapTask()
         self.cancelStreaming()
         self.cancelDictation()
         self.historyStore.activateWorkspace(workspaceId: self.historyWorkspaceId())
@@ -326,10 +325,52 @@ extension AIChatStore {
         return self.nextNewSessionRequestSequence
     }
 
+    func beginBootstrapRequestSequence() -> Int {
+        self.activeBootstrapTask?.cancel()
+        self.activeBootstrapTask = nil
+        self.nextBootstrapRequestSequence += 1
+        return self.nextBootstrapRequestSequence
+    }
+
+    func invalidateActiveBootstrapTask() {
+        self.activeBootstrapTask?.cancel()
+        self.activeBootstrapTask = nil
+        self.nextBootstrapRequestSequence += 1
+    }
+
+    func isCurrentBootstrapRequest(sequence: Int) -> Bool {
+        self.nextBootstrapRequestSequence == sequence
+    }
+
+    func isCurrentLinkedBootstrapRequest(
+        sequence: Int,
+        accessContext: AIChatAccessContext
+    ) -> Bool {
+        self.isCurrentBootstrapRequest(sequence: sequence)
+            && self.surfaceState.activeAccessContext == accessContext
+    }
+
     func invalidatePendingNewSessionRequest() {
         self.activeNewSessionTask?.cancel()
         self.activeNewSessionTask = nil
         self.nextNewSessionRequestSequence += 1
+    }
+
+    func preemptPendingNewSessionProvisioningForForegroundSessionProvisioning(sessionId: String) {
+        guard self.activeNewSessionTask != nil else {
+            return
+        }
+        guard self.requiresRemoteSessionProvisioning else {
+            return
+        }
+        guard sessionId.isEmpty == false else {
+            return
+        }
+        guard self.chatSessionId == sessionId && self.conversationScopeId == sessionId else {
+            return
+        }
+
+        self.invalidatePendingNewSessionRequest()
     }
 
     func isCurrentNewSessionRequest(
@@ -340,9 +381,23 @@ extension AIChatStore {
             && self.surfaceState.activeAccessContext == accessContext
     }
 
+    func isCurrentNewSessionProvisioningRequest(
+        sequence: Int,
+        accessContext: AIChatAccessContext,
+        sessionId: String
+    ) -> Bool {
+        self.isCurrentNewSessionRequest(
+            sequence: sequence,
+            accessContext: accessContext
+        )
+            && self.chatSessionId == sessionId
+            && self.conversationScopeId == sessionId
+            && self.activeSendTask == nil
+            && self.activeDictationTask == nil
+    }
+
     func resetLocalHistoryState() {
-        self.activeBootstrapTask?.cancel()
-        self.activeBootstrapTask = nil
+        self.invalidateActiveBootstrapTask()
         self.activeWarmUpTask?.cancel()
         self.activeWarmUpTask = nil
         self.invalidatePendingRemoteSessionProvisionRequest()
@@ -379,8 +434,7 @@ extension AIChatStore {
         inputText: String,
         pendingAttachments: [AIChatAttachment]
     ) {
-        self.activeBootstrapTask?.cancel()
-        self.activeBootstrapTask = nil
+        self.invalidateActiveBootstrapTask()
         self.activeWarmUpTask?.cancel()
         self.activeWarmUpTask = nil
         self.activeSendTask?.cancel()
@@ -452,33 +506,109 @@ extension AIChatStore {
 
             do {
                 let session = try await self.flashcardsStore.cloudSessionForAI()
-                let provisionedSessionId = try await self.ensureRemoteSessionIfNeeded(session: session)
-                guard self.isCurrentNewSessionRequest(
-                    sequence: requestSequence,
+                let provisionedSessionId = try await self.provisionNewSessionWithBoundedBootstrapRetry(
+                    session: session,
+                    sessionId: sessionId,
+                    requestSequence: requestSequence,
                     accessContext: requestedAccessContext
+                )
+                guard self.isCurrentNewSessionProvisioningRequest(
+                    sequence: requestSequence,
+                    accessContext: requestedAccessContext,
+                    sessionId: sessionId
                 ) else {
                     return
                 }
                 guard provisionedSessionId == sessionId else {
-                    return
+                    throw LocalStoreError.validation(
+                        "AI chat new session provisioning returned an unexpected session id. expected=\(sessionId) actual=\(provisionedSessionId)"
+                    )
                 }
             } catch is CancellationError {
             } catch {
                 if isAIChatRequestCancellationError(error: error) {
                     return
                 }
-                guard self.isCurrentNewSessionRequest(
+                guard self.isCurrentNewSessionProvisioningRequest(
                     sequence: requestSequence,
-                    accessContext: requestedAccessContext
+                    accessContext: requestedAccessContext,
+                    sessionId: sessionId
                 ) else {
                     return
                 }
 
-                self.showGeneralError(error: error)
+                self.activeAlert = nil
+                self.repairStatus = nil
+                self.bootstrapPhase = .failed(
+                    makeAIChatBootstrapErrorPresentation(
+                        error: error,
+                        showsLocalValidationMessage: self.flashcardsStore.isCloudSyncBlocked
+                    )
+                )
             }
         }
 
         self.activeNewSessionTask = task
+    }
+
+    private func provisionNewSessionWithBoundedBootstrapRetry(
+        session: CloudLinkedSession,
+        sessionId: String,
+        requestSequence: Int,
+        accessContext: AIChatAccessContext
+    ) async throws -> String {
+        var attemptNumber = 0
+        while true {
+            guard self.isCurrentNewSessionProvisioningRequest(
+                sequence: requestSequence,
+                accessContext: accessContext,
+                sessionId: sessionId
+            ) else {
+                throw CancellationError()
+            }
+
+            do {
+                let provisionedSessionId = try await self.ensureRemoteSessionIfNeeded(session: session)
+                guard self.isCurrentNewSessionProvisioningRequest(
+                    sequence: requestSequence,
+                    accessContext: accessContext,
+                    sessionId: sessionId
+                ) else {
+                    throw CancellationError()
+                }
+                return provisionedSessionId
+            } catch {
+                if isAIChatRequestCancellationError(error: error) {
+                    throw error
+                }
+                guard self.isCurrentNewSessionProvisioningRequest(
+                    sequence: requestSequence,
+                    accessContext: accessContext,
+                    sessionId: sessionId
+                ) else {
+                    throw CancellationError()
+                }
+
+                let nextAttemptNumber = attemptNumber + 1
+                guard aiChatBootstrapAllowsRetry(nextAttemptNumber: nextAttemptNumber, error: error) else {
+                    throw error
+                }
+
+                let delayNanoseconds = aiChatBootstrapRetryDelay(attemptIndex: attemptNumber)
+                logAIChatStoreEvent(
+                    action: "ai_new_session_retry_scheduled",
+                    metadata: aiChatNewSessionRetryLogMetadata(
+                        sessionId: sessionId,
+                        accessContext: accessContext,
+                        nextAttemptNumber: nextAttemptNumber,
+                        delayNanoseconds: delayNanoseconds,
+                        error: error
+                    )
+                )
+                attemptNumber = nextAttemptNumber
+                try await Task.sleep(nanoseconds: delayNanoseconds)
+            }
+        }
     }
 
     func startPassiveSnapshotRefreshIfPossible() {
@@ -510,6 +640,32 @@ extension AIChatStore {
             }
         }
     }
+}
+
+private func aiChatNewSessionRetryLogMetadata(
+    sessionId: String,
+    accessContext: AIChatAccessContext,
+    nextAttemptNumber: Int,
+    delayNanoseconds: UInt64,
+    error: Error
+) -> [String: String] {
+    var metadata: [String: String] = [
+        "chatSessionId": sessionId,
+        "nextAttempt": String(nextAttemptNumber),
+        "delayNanoseconds": String(delayNanoseconds),
+        "error": Flashcards.errorMessage(error: error),
+        "errorType": String(reflecting: type(of: error))
+    ]
+    if let workspaceId = accessContext.workspaceId {
+        metadata["workspaceId"] = workspaceId
+    }
+    if let cloudState = accessContext.cloudState {
+        metadata["cloudState"] = cloudState.rawValue
+    }
+    for (key, value) in aiChatErrorLogMetadata(error: error) {
+        metadata[key] = value
+    }
+    return metadata
 }
 
 private func aiChatSurfaceShouldCancelDictation(activity: AIChatSurfaceActivity) -> Bool {

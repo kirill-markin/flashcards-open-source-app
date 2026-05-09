@@ -16,8 +16,9 @@ class AiChatRuntimeStopStreamingTest {
     fun stopStreamingSendsActiveRunIdWhenKnown() = runTest {
         val repository = FakeAiChatRepository()
         val liveEvents = MutableSharedFlow<AiChatLiveEvent>()
+        val sessionId = repository.nextEnsureSessionId
         repository.bootstrapResponses += makeBootstrapResponse(
-            sessionId = "session-1",
+            sessionId = sessionId,
             activeRun = makeActiveRun(runId = "run-1", cursor = "5")
         )
         repository.liveFlows["run-1"] = liveEvents
@@ -33,7 +34,7 @@ class AiChatRuntimeStopStreamingTest {
         advanceUntilIdle()
 
         assertEquals(listOf(defaultTestWorkspaceId), repository.stopRunWorkspaceIds)
-        assertEquals(listOf("session-1"), repository.stopRunSessionIds)
+        assertEquals(listOf(sessionId), repository.stopRunSessionIds)
         assertEquals(listOf("run-1"), repository.stopRunIds)
 
         runtime.onScreenHidden()
@@ -45,18 +46,19 @@ class AiChatRuntimeStopStreamingTest {
         val repository = FakeAiChatRepository()
         val liveEvents = MutableSharedFlow<AiChatLiveEvent>()
         val replacementLiveEvents = MutableSharedFlow<AiChatLiveEvent>()
+        val sessionId = repository.nextEnsureSessionId
         repository.bootstrapResponses += makeBootstrapResponse(
-            sessionId = "session-1",
+            sessionId = sessionId,
             activeRun = makeActiveRun(runId = "run-1", cursor = "5")
         )
         repository.bootstrapResponses += makeBootstrapResponse(
-            sessionId = "session-1",
+            sessionId = sessionId,
             activeRun = makeActiveRun(runId = "run-2", cursor = "8")
         )
         repository.liveFlows["run-1"] = liveEvents
         repository.liveFlows["run-2"] = replacementLiveEvents
         repository.stopRunResponse = AiChatStopRunResponse(
-            sessionId = "session-1",
+            sessionId = sessionId,
             stopped = false,
             stillRunning = true
         )
@@ -72,7 +74,7 @@ class AiChatRuntimeStopStreamingTest {
         runtime.stopStreaming()
         advanceUntilIdle()
 
-        assertEquals(listOf("ensured-session-1", "session-1"), repository.loadBootstrapSessionIds)
+        assertEquals(listOf(sessionId, sessionId), repository.loadBootstrapSessionIds)
         assertEquals(listOf("run-1", "run-2"), repository.attachRunIds)
         assertEquals(AiComposerPhase.RUNNING, runtime.state.value.composerPhase)
         assertEquals("run-2", runtime.state.value.activeRun?.runId)

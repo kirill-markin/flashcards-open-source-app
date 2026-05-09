@@ -159,12 +159,13 @@ class AiChatRuntimeLiveRunTerminalTest {
     fun runTerminalResetRequiredForcesBootstrapReload() = runTest {
         val repository = FakeAiChatRepository()
         val liveEvents = MutableSharedFlow<AiChatLiveEvent>()
+        val sessionId = repository.nextEnsureSessionId
         repository.bootstrapResponses += makeBootstrapResponse(
-            sessionId = "session-1",
+            sessionId = sessionId,
             activeRun = makeActiveRun(runId = "run-1", cursor = "5")
         )
         repository.bootstrapResponses += makeBootstrapResponse(
-            sessionId = "session-1",
+            sessionId = sessionId,
             activeRun = null
         )
         repository.liveFlows["run-1"] = liveEvents
@@ -176,7 +177,11 @@ class AiChatRuntimeLiveRunTerminalTest {
 
         liveEvents.emit(
             AiChatLiveEvent.RunTerminal(
-                metadata = makeMetadata(runId = "run-1", cursor = "6"),
+                metadata = makeMetadataForSession(
+                    sessionId = sessionId,
+                    runId = "run-1",
+                    cursor = "6"
+                ),
                 outcome = AiChatRunTerminalOutcome.RESET_REQUIRED,
                 message = "refresh",
                 assistantItemId = null,

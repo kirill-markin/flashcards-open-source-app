@@ -274,7 +274,7 @@ class AiChatRuntimeWorkspaceSessionTest {
             state = makeDefaultAiChatPersistedState().copy(chatSessionId = "persisted-session-2")
         )
         repository.bootstrapResponses += makeBootstrapResponse(
-            sessionId = "session-2",
+            sessionId = "persisted-session-2",
             activeRun = null
         )
         val runtime = makeRuntime(scope = this, repository = repository)
@@ -294,7 +294,7 @@ class AiChatRuntimeWorkspaceSessionTest {
         advanceUntilIdle()
 
         assertEquals(secondaryTestWorkspaceId, runtime.state.value.workspaceId)
-        assertEquals("session-2", runtime.state.value.persistedState.chatSessionId)
+        assertEquals("persisted-session-2", runtime.state.value.persistedState.chatSessionId)
         assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
         assertEquals(2, repository.loadBootstrapCalls)
     }

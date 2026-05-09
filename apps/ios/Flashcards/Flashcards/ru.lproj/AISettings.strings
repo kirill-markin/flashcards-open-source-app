@@ -11,7 +11,9 @@
 "ai.loading.description" = "Перед включением композитора мы загружаем последний чат AI для этой учетной записи.";
 "ai.failed.title" = "Чат недоступен";
 "ai.failed.message" = "Не удалось загрузить AI-чат.";
-"ai.failed.openAccountStatus" = "Статус открытого счета";
+"ai.failed.networkMessage" = "Соединение прервалось при загрузке AI-чата. Проверьте подключение и попробуйте снова.";
+"ai.failed.accountStatusMessage" = "Для загрузки AI-чата сначала нужно устранить проблему со статусом вашей облачной учетной записи.";
+"ai.failed.openAccountStatus" = "Открыть статус аккаунта";
 "ai.emptyState.title" = "Начать новый чат с ИИ";
 "ai.emptyState.description" = "Спрашивайте о карточках, просматривайте историю или прикрепляйте заметки для извлечения содержимого.";
 "ai.composer.placeholder" = "Спросите о карточках, просмотрите историю или предложите изменения...";
@@ -43,6 +45,8 @@
 "ai.error.detail.debug" = "Отладка: %@";
 "ai.error.detail.status" = "Статус: %d";
 "ai.error.detail.code" = "Код: %@";
+"ai.error.detail.type" = "Тип: %@";
+"ai.error.detail.reason" = "Причина: %@";
 "ai.error.detail.stage" = "Фаза: %@";
 "ai.error.detail.resumeAttempt" = "Попытка возобновления: %d";
 "ai.error.detail.details" = "Подробности: %@";

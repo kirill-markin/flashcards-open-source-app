@@ -11,7 +11,9 @@
 "ai.loading.description" = "نقوم الآن بتحميل آخر دردشة AI لهذا الحساب قبل تمكين الملحن.";
 "ai.failed.title" = "الدردشة غير متاحة";
 "ai.failed.message" = "تعذر تحميل دردشة الذكاء الاصطناعي.";
-"ai.failed.openAccountStatus" = "حالة الحساب المفتوح";
+"ai.failed.networkMessage" = "انقطع الاتصال أثناء تحميل دردشة الذكاء الاصطناعي. تحقق من اتصالك وحاول مرة أخرى.";
+"ai.failed.accountStatusMessage" = "تحتاج دردشة الذكاء الاصطناعي إلى حل حالة حسابك السحابي قبل تحميلها.";
+"ai.failed.openAccountStatus" = "فتح حالة الحساب";
 "ai.emptyState.title" = "ابدأ دردشة ذكاء اصطناعي جديدة";
 "ai.emptyState.description" = "اسأل عن البطاقات التعليمية، أو قم بمراجعة السجل، أو قم بإرفاق الملاحظات لاستخراج المحتوى.";
 "ai.composer.placeholder" = "اسأل عن البطاقات أو راجع التاريخ أو اقترح تغييرًا...";
@@ -43,6 +45,8 @@
 "ai.error.detail.debug" = "تصحيح الأخطاء: %@";
 "ai.error.detail.status" = "الحالة: %d";
 "ai.error.detail.code" = "الرمز: %@";
+"ai.error.detail.type" = "النوع: %@";
+"ai.error.detail.reason" = "السبب: %@";
 "ai.error.detail.stage" = "المرحلة: %@";
 "ai.error.detail.resumeAttempt" = "محاولة الاستئناف: %d";
 "ai.error.detail.details" = "التفاصيل: %@";

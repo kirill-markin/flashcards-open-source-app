@@ -11,7 +11,9 @@
 "ai.loading.description" = "Wir laden den letzten KI-Chat für dieses Konto, bevor wir Composer aktivieren.";
 "ai.failed.title" = "Chat nicht verfügbar";
 "ai.failed.message" = "AI-Chat konnte nicht geladen werden.";
-"ai.failed.openAccountStatus" = "Offener Kontostatus";
+"ai.failed.networkMessage" = "Die Verbindung wurde beim Laden des KI-Chats unterbrochen. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.";
+"ai.failed.accountStatusMessage" = "Der KI-Chat muss zuerst den Status Ihres Cloud-Kontos klären, bevor er geladen werden kann.";
+"ai.failed.openAccountStatus" = "Kontostatus öffnen";
 "ai.emptyState.title" = "Starten Sie einen neuen KI-Chat";
 "ai.emptyState.description" = "Fragen Sie nach Karteikarten, überprüfen Sie den Verlauf oder fügen Sie Notizen hinzu, um Inhalte zu extrahieren.";
 "ai.composer.placeholder" = "Fragen Sie nach Karten, überprüfen Sie den Verlauf oder schlagen Sie eine Änderung vor...";
@@ -43,6 +45,8 @@
 "ai.error.detail.debug" = "Debuggen: %@";
 "ai.error.detail.status" = "Status: %d";
 "ai.error.detail.code" = "Code: %@";
+"ai.error.detail.type" = "Typ: %@";
+"ai.error.detail.reason" = "Grund: %@";
 "ai.error.detail.stage" = "Phase: %@";
 "ai.error.detail.resumeAttempt" = "Fortsetzungsversuch: %d";
 "ai.error.detail.details" = "Details: %@";

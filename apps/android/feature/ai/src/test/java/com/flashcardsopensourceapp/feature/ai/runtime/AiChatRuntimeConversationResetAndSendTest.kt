@@ -13,6 +13,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatTranscriptionResult
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
+import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -137,6 +138,44 @@ class AiChatRuntimeConversationResetAndSendTest {
     }
 
     @Test
+    fun sendPendingRemoteSessionProvisioningFailureAttemptsCreateNewSessionOnceAndRestoresDraft() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.persistedStates[defaultTestWorkspaceId] = makeDefaultAiChatPersistedState().copy(
+            chatSessionId = "pending-session-1",
+            requiresRemoteSessionProvisioning = true
+        )
+        repository.createNewSessionErrors += IOException("connection reset")
+        val runtime = makeRuntimeWithCloudState(
+            scope = this,
+            repository = repository,
+            autoSyncEventRepository = FakeAutoSyncEventRepository(),
+            cloudState = CloudAccountState.DISCONNECTED
+        )
+
+        runtime.updateAccessContext(
+            makeAccessContext(workspaceId = defaultTestWorkspaceId).copy(
+                cloudState = CloudAccountState.DISCONNECTED
+            )
+        )
+        advanceUntilIdle()
+
+        runtime.updateDraftMessage(draftMessage = "retry me")
+        runtime.sendMessage()
+        advanceUntilIdle()
+
+        assertEquals(listOf("pending-session-1"), repository.createNewSessionRequests)
+        assertEquals(0, repository.startRunCalls)
+        assertEquals("pending-session-1", runtime.state.value.persistedState.chatSessionId)
+        assertTrue(runtime.state.value.persistedState.requiresRemoteSessionProvisioning)
+        assertEquals("retry me", runtime.state.value.draftMessage)
+        assertEquals(AiComposerPhase.IDLE, runtime.state.value.composerPhase)
+        assertEquals(
+            "retry me",
+            repository.draftStates[defaultTestWorkspaceId to "pending-session-1"]?.draftMessage
+        )
+    }
+
+    @Test
     fun firstDictationAlwaysUsesExplicitSessionId() = runTest {
         val repository = FakeAiChatRepository()
         repository.nextEnsureSessionId = "dictation-session-1"
@@ -173,6 +212,88 @@ class AiChatRuntimeConversationResetAndSendTest {
         assertEquals(0, repository.loadBootstrapCalls)
         assertEquals("dictation-session-1", runtime.state.value.persistedState.chatSessionId)
         assertEquals("dictated text", runtime.state.value.draftMessage)
+    }
+
+    @Test
+    fun dictationPendingRemoteSessionProvisioningFailureAttemptsCreateNewSessionOnceAndSkipsTranscription() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.persistedStates[defaultTestWorkspaceId] = makeDefaultAiChatPersistedState().copy(
+            chatSessionId = "pending-session-1",
+            requiresRemoteSessionProvisioning = true
+        )
+        repository.createNewSessionErrors += IOException("connection reset")
+        val runtime = makeRuntimeWithCloudState(
+            scope = this,
+            repository = repository,
+            autoSyncEventRepository = FakeAutoSyncEventRepository(),
+            cloudState = CloudAccountState.DISCONNECTED
+        )
+
+        runtime.updateAccessContext(
+            makeAccessContext(workspaceId = defaultTestWorkspaceId).copy(
+                cloudState = CloudAccountState.DISCONNECTED
+            )
+        )
+        advanceUntilIdle()
+
+        runtime.startDictationRecording()
+        runtime.transcribeRecordedAudio(
+            fileName = "clip.m4a",
+            mediaType = "audio/m4a",
+            audioBytes = byteArrayOf(1, 2, 3)
+        )
+        advanceUntilIdle()
+
+        assertEquals(listOf("pending-session-1"), repository.createNewSessionRequests)
+        assertTrue(repository.transcribeAudioSessionIds.isEmpty())
+        assertEquals("pending-session-1", runtime.state.value.persistedState.chatSessionId)
+        assertTrue(runtime.state.value.persistedState.requiresRemoteSessionProvisioning)
+        assertEquals(AiChatDictationState.IDLE, runtime.state.value.dictationState)
+        assertTrue(runtime.state.value.activeAlert is AiAlertState.GeneralError)
+    }
+
+    @Test
+    fun dictationPreemptsRetryingFreshSessionProvisioningAndSkipsTranscriptionWhenOneShotFails() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.persistedStates[defaultTestWorkspaceId] = makeDefaultAiChatPersistedState().copy(
+            chatSessionId = "session-1"
+        )
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
+        repository.createNewSessionErrors += IOException("connection reset")
+        repository.createNewSessionErrors += IOException("still unavailable")
+        val runtime = makeRuntime(scope = this, repository = repository)
+
+        runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
+        advanceUntilIdle()
+        repository.remoteCallEvents.clear()
+
+        runtime.clearConversation()
+        runCurrent()
+        val freshSessionId = repository.createNewSessionRequests.single()
+        assertTrue(runtime.state.value.persistedState.requiresRemoteSessionProvisioning)
+
+        runtime.startDictationRecording()
+        runtime.transcribeRecordedAudio(
+            fileName = "clip.m4a",
+            mediaType = "audio/m4a",
+            audioBytes = byteArrayOf(1, 2, 3)
+        )
+        runCurrent()
+
+        assertEquals(listOf(freshSessionId, freshSessionId), repository.createNewSessionRequests)
+        assertTrue(repository.transcribeAudioSessionIds.isEmpty())
+        assertEquals(freshSessionId, runtime.state.value.persistedState.chatSessionId)
+        assertTrue(runtime.state.value.persistedState.requiresRemoteSessionProvisioning)
+        assertEquals(AiChatDictationState.IDLE, runtime.state.value.dictationState)
+        assertTrue(runtime.state.value.activeAlert is AiAlertState.GeneralError)
+
+        advanceUntilIdle()
+
+        assertEquals(listOf(freshSessionId, freshSessionId), repository.createNewSessionRequests)
+        assertTrue(repository.transcribeAudioSessionIds.isEmpty())
     }
 
     @Test
@@ -812,7 +933,7 @@ class AiChatRuntimeConversationResetAndSendTest {
     }
 
     @Test
-    fun sendMessageWaitsForFreshSessionProvisioningAfterClearConversation() = runTest {
+    fun sendMessagePreemptsRetryingFreshSessionProvisioningAfterClearConversation() = runTest {
         val repository = FakeAiChatRepository()
         repository.persistedStates[defaultTestWorkspaceId] = makeDefaultAiChatPersistedState().copy(
             chatSessionId = "session-1"
@@ -821,16 +942,17 @@ class AiChatRuntimeConversationResetAndSendTest {
             sessionId = "session-1",
             activeRun = null
         )
-        val createSessionGate = CompletableDeferred<Unit>()
-        repository.createNewSessionGates += createSessionGate
+        repository.createNewSessionErrors += IOException("connection reset")
         val runtime = makeRuntime(scope = this, repository = repository)
 
         runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
         advanceUntilIdle()
+        repository.remoteCallEvents.clear()
 
         runtime.clearConversation()
         runCurrent()
         val freshSessionId = repository.createNewSessionRequests.single()
+        assertTrue(runtime.state.value.persistedState.requiresRemoteSessionProvisioning)
         repository.startRunResponse = makeAcceptedStartRunResponse(
             sessionId = freshSessionId,
             activeRun = null,
@@ -849,18 +971,25 @@ class AiChatRuntimeConversationResetAndSendTest {
         runtime.sendMessage()
         runCurrent()
 
-        assertEquals(0, repository.startRunCalls)
-        assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
-        assertEquals(AiComposerPhase.PREPARING_SEND, runtime.state.value.composerPhase)
-
-        createSessionGate.complete(Unit)
-        advanceUntilIdle()
-
+        assertEquals(
+            listOf(
+                "createNewSession:$freshSessionId",
+                "createNewSession:$freshSessionId",
+                "startRun:$freshSessionId"
+            ),
+            repository.remoteCallEvents
+        )
+        assertEquals(listOf(freshSessionId, freshSessionId), repository.createNewSessionRequests)
         assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
         assertEquals(1, repository.startRunCalls)
         assertEquals(freshSessionId, repository.lastStartRunState?.chatSessionId)
         assertEquals(freshSessionId, runtime.state.value.persistedState.chatSessionId)
+        assertFalse(runtime.state.value.persistedState.requiresRemoteSessionProvisioning)
         assertEquals("", runtime.state.value.draftMessage)
+
+        advanceUntilIdle()
+
+        assertEquals(listOf(freshSessionId, freshSessionId), repository.createNewSessionRequests)
     }
 
     @Test

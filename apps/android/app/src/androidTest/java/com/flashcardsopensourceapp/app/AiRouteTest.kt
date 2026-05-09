@@ -41,6 +41,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
 import com.flashcardsopensourceapp.data.local.model.aiChatOptimisticAssistantStatusToken
 import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
+import com.flashcardsopensourceapp.feature.ai.AiBootstrapErrorPresentation
 import com.flashcardsopensourceapp.feature.ai.AiRoute
 import com.flashcardsopensourceapp.feature.ai.AiUiState
 import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
@@ -555,11 +556,16 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         val chatUnavailableTitle = composeRule.activity.getString(AiFeatureR.string.ai_chat_unavailable_title)
         val retry = composeRule.activity.getString(AiFeatureR.string.ai_retry)
         val openAccountStatus = composeRule.activity.getString(AiFeatureR.string.ai_open_account_status)
+        val accountStatusMessage = composeRule.activity.getString(AiFeatureR.string.ai_bootstrap_account_status_error_message)
+        val showDetails = composeRule.activity.getString(AiFeatureR.string.ai_error_show_details)
         composeRule.setContent {
             FlashcardsTheme {
                 AiRoute(
                     uiState = makeAiUiState(
-                        conversationErrorMessage = "Cloud sync is blocked for this installation.",
+                        conversationErrorPresentation = AiBootstrapErrorPresentation(
+                            message = accountStatusMessage,
+                            technicalDetails = "Cloud sync is blocked for this installation."
+                        ),
                         isConversationReady = false,
                         canRetryConversationLoad = false,
                         showOpenAccountStatusForConversationError = true
@@ -590,6 +596,9 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         }
 
         composeRule.onNodeWithText(chatUnavailableTitle).assertIsDisplayed()
+        composeRule.onNodeWithText(accountStatusMessage).assertIsDisplayed()
+        assertTrue(composeRule.onAllNodesWithText("Cloud sync is blocked for this installation.").fetchSemanticsNodes().isEmpty())
+        composeRule.onNodeWithText(showDetails).performClick()
         composeRule.onNodeWithText("Cloud sync is blocked for this installation.").assertIsDisplayed()
         assertTrue(composeRule.onAllNodesWithText(retry).fetchSemanticsNodes().isEmpty())
         composeRule.onNodeWithText(openAccountStatus).assertIsDisplayed()
@@ -668,7 +677,10 @@ private fun makeAiUiState(
     isConversationReady: Boolean = true,
     isConversationLoading: Boolean = false,
     isCardHandoffReady: Boolean = true,
-    conversationErrorMessage: String = "",
+    conversationErrorPresentation: AiBootstrapErrorPresentation = AiBootstrapErrorPresentation(
+        message = "",
+        technicalDetails = null
+    ),
     canRetryConversationLoad: Boolean = true,
     showOpenAccountStatusForConversationError: Boolean = false,
     focusComposerRequestVersion: Long = 0L
@@ -690,7 +702,7 @@ private fun makeAiUiState(
         isConversationReady = isConversationReady,
         isConversationLoading = isConversationLoading,
         isCardHandoffReady = isCardHandoffReady,
-        conversationErrorMessage = conversationErrorMessage,
+        conversationErrorPresentation = conversationErrorPresentation,
         canRetryConversationLoad = canRetryConversationLoad,
         showOpenAccountStatusForConversationError = showOpenAccountStatusForConversationError,
         isComposerBusy = isComposerBusy,

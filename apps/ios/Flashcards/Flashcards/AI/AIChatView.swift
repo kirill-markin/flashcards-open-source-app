@@ -287,11 +287,14 @@ struct AIChatView: View {
     }
 
     var failedChatState: some View {
-        ContentUnavailableView {
+        let presentation = self.chatStore.bootstrapFailurePresentation
+
+        return ContentUnavailableView {
             Label(aiSettingsLocalized("ai.failed.title", "Chat unavailable"), systemImage: "exclamationmark.triangle")
         } description: {
             VStack(spacing: 12) {
-                Text(self.chatStore.bootstrapFailureMessage ?? aiSettingsLocalized("ai.failed.message", "Failed to load AI chat."))
+                Text(presentation?.message ?? aiSettingsLocalized("ai.failed.message", "Failed to load AI chat."))
+                    .textSelection(.enabled)
                 if self.flashcardsStore.isCloudSyncBlocked {
                     Button(aiSettingsLocalized("ai.failed.openAccountStatus", "Open account status")) {
                         self.navigation.openSettings(destination: .accountStatus)
@@ -302,6 +305,22 @@ struct AIChatView: View {
                         self.chatStore.retryLinkedBootstrap()
                     }
                     .buttonStyle(.glassProminent)
+                }
+                if let technicalDetails = presentation?.technicalDetails, technicalDetails.isEmpty == false {
+                    DisclosureGroup(aiSettingsLocalized("settings.account.cloudSignIn.technicalDetails", "Technical details")) {
+                        Text(technicalDetails)
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .textSelection(.enabled)
+                            .padding(.top, 4)
+                            .contextMenu {
+                                Button(aiSettingsLocalized("settings.account.cloudSignIn.copyTechnicalDetails", "Copy technical details")) {
+                                    UIPasteboard.general.string = technicalDetails
+                                }
+                            }
+                    }
+                    .tint(.secondary)
                 }
             }
         }
