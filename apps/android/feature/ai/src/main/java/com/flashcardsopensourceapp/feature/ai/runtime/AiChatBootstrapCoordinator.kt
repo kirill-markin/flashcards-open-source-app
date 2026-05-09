@@ -869,13 +869,17 @@ private fun isLikelyTransientBootstrapIoException(error: IOException): Boolean {
     if (error is SSLException) {
         return isTransportLikeSslException(error = error)
     }
-    return false
+    return hasTransientTransportMessage(error = error)
 }
 
 private fun isTransportLikeSslException(error: SSLException): Boolean {
     if (hasTransientTransportCause(error = error)) {
         return true
     }
+    return hasTransientTransportMessage(error = error)
+}
+
+private fun hasTransientTransportMessage(error: Throwable): Boolean {
     val message = error.message?.lowercase() ?: return false
     val transportMessageFragments: List<String> = listOf(
         "connection reset",
