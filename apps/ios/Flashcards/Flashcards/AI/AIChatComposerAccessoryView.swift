@@ -133,14 +133,15 @@ extension AIChatView {
                     .disabled(self.composerTextFieldDisabled)
                     .autocorrectionDisabled(true)
                     .focused(self.$isComposerFocused)
-                    .onTapGesture {
-                        self.isComposerFocused = true
-                    }
                     .lineLimit(1...aiChatComposerMaximumLineCount)
                     .padding(.leading, 12)
                     .padding(.top, self.chatStore.dictationState == .idle ? 12 : aiChatComposerDictationTextFieldTopPadding)
                     .padding(.trailing, aiChatComposerSendButtonReservedTrailingPadding)
                     .padding(.bottom, 12)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        self.isComposerFocused = true
+                    }
                     .accessibilityIdentifier(UITestIdentifier.aiComposerTextField)
 
                     Button {
@@ -171,12 +172,6 @@ extension AIChatView {
                             .padding(.trailing, aiChatComposerSendButtonReservedTrailingPadding)
                     }
                 }
-                .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .simultaneousGesture(
-                    TapGesture().onEnded {
-                        self.isComposerFocused = true
-                    }
-                )
 
                 HStack {
                     self.composerModelControl
