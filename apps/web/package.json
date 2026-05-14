@@ -19,22 +19,22 @@
     "react-router-dom": "^7.15.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.59.1",
+    "@playwright/test": "^1.60.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^29.1.1",
     "typescript": "^6.0.3",
-    "vite": "^8.0.11",
-    "vitest": "^4.1.5"
+    "vite": "^8.0.12",
+    "vitest": "^4.1.6"
   },
   "overrides": {
     "jsdom": {
-      "cssstyle": "6.0.1"
+      "cssstyle": "6.2.0"
     },
     "cssstyle": {
-      "@asamuzakjp/css-color": "5.0.1"
+      "@asamuzakjp/css-color": "5.1.11"
     }
   },
   "engines": {
