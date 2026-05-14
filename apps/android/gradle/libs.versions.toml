@@ -1,7 +1,7 @@
 [versions]
 agp = "9.2.1"
 kotlin = "2.3.21"
-ksp = "2.3.7"
+ksp = "2.3.8"
 coreKtx = "1.18.0"
 splashscreen = "1.2.0"
 activityCompose = "1.13.0"
