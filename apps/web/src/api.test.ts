@@ -778,6 +778,84 @@ describe("AI chat transport", () => {
     expect(new Headers(chatRequestInit?.headers).get("X-CSRF-Token")).toBe("csrf-token-1");
   });
 
+  it("reloads the session CSRF token and retries once after a stale CSRF rejection", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createSessionResponse({
+        csrfToken: "csrf-token-1",
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        error: "Invalid X-CSRF-Token header",
+        code: "SESSION_CSRF_TOKEN_INVALID",
+      }), {
+        status: 403,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }))
+      .mockResolvedValueOnce(createSessionResponse({
+        csrfToken: "csrf-token-2",
+      }))
+      .mockResolvedValueOnce(createNewChatSessionResponse());
+    vi.stubGlobal("fetch", fetchMock);
+
+    await createNewChatSession("session-1", "workspace-1", "en");
+
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("http://localhost:8080/v1/me");
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("http://localhost:8080/v1/chat/new");
+    expect(fetchMock.mock.calls[2]?.[0]).toBe("http://localhost:8080/v1/me");
+    expect(fetchMock.mock.calls[3]?.[0]).toBe("http://localhost:8080/v1/chat/new");
+
+    const staleRequestInit = fetchMock.mock.calls[1]?.[1] as RequestInit | undefined;
+    const retriedRequestInit = fetchMock.mock.calls[3]?.[1] as RequestInit | undefined;
+    expect(new Headers(staleRequestInit?.headers).get("X-CSRF-Token")).toBe("csrf-token-1");
+    expect(new Headers(retriedRequestInit?.headers).get("X-CSRF-Token")).toBe("csrf-token-2");
+  });
+
+  it("uses normal auth recovery when the retry after stale CSRF returns unauthorized", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createSessionResponse({
+        csrfToken: "csrf-token-1",
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        error: "Invalid X-CSRF-Token header",
+        code: "SESSION_CSRF_TOKEN_INVALID",
+      }), {
+        status: 403,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }))
+      .mockResolvedValueOnce(createSessionResponse({
+        csrfToken: "csrf-token-2",
+      }))
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(new Response(null, { status: 200 }))
+      .mockResolvedValueOnce(createSessionResponse({
+        csrfToken: "csrf-token-3",
+      }))
+      .mockResolvedValueOnce(createNewChatSessionResponse());
+    vi.stubGlobal("fetch", fetchMock);
+
+    await createNewChatSession("session-1", "workspace-1", "en");
+
+    expect(fetchMock).toHaveBeenCalledTimes(7);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("http://localhost:8080/v1/me");
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("http://localhost:8080/v1/chat/new");
+    expect(fetchMock.mock.calls[2]?.[0]).toBe("http://localhost:8080/v1/me");
+    expect(fetchMock.mock.calls[3]?.[0]).toBe("http://localhost:8080/v1/chat/new");
+    expect(fetchMock.mock.calls[4]?.[0]).toBe("http://localhost:8081/api/refresh-session");
+    expect(fetchMock.mock.calls[5]?.[0]).toBe("http://localhost:8080/v1/me");
+    expect(fetchMock.mock.calls[6]?.[0]).toBe("http://localhost:8080/v1/chat/new");
+
+    const firstRequestInit = fetchMock.mock.calls[1]?.[1] as RequestInit | undefined;
+    const csrfRetriedRequestInit = fetchMock.mock.calls[3]?.[1] as RequestInit | undefined;
+    const authRetriedRequestInit = fetchMock.mock.calls[6]?.[1] as RequestInit | undefined;
+    expect(new Headers(firstRequestInit?.headers).get("X-CSRF-Token")).toBe("csrf-token-1");
+    expect(new Headers(csrfRetriedRequestInit?.headers).get("X-CSRF-Token")).toBe("csrf-token-2");
+    expect(new Headers(authRetriedRequestInit?.headers).get("X-CSRF-Token")).toBe("csrf-token-3");
+  });
+
   it("deduplicates session transport bootstrap for parallel unsafe requests", async () => {
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(createSessionResponse())

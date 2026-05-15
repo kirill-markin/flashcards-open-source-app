@@ -104,8 +104,12 @@ type AdminSessionState = Readonly<{
   csrfToken: string | null;
 }>;
 
+const staleSessionCsrfTokenErrorCode = "SESSION_CSRF_TOKEN_INVALID";
+const staleSessionCsrfTokenErrorMessage = "Invalid X-CSRF-Token header";
+
 let adminSessionState: AdminSessionState | undefined;
 let adminSessionRecoveryPromise: Promise<AdminSession> | undefined;
+let adminSessionCsrfRecoveryPromise: Promise<void> | undefined;
 
 async function parseApiError(response: Response): Promise<never> {
   let message = `Request failed with status ${response.status}`;
@@ -125,6 +129,37 @@ async function parseApiError(response: Response): Promise<never> {
   }
 
   throw new AdminApiError(response.status, message, code);
+}
+
+function isRecoverableAdminCsrfPayload(value: unknown): boolean {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return value === staleSessionCsrfTokenErrorMessage;
+  }
+
+  const objectValue = value as Record<string, unknown>;
+  return objectValue.code === staleSessionCsrfTokenErrorCode
+    || objectValue.error === staleSessionCsrfTokenErrorMessage;
+}
+
+async function readAdminJsonResponse(response: Response): Promise<unknown> {
+  const text = await response.text();
+  if (text === "") {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return text;
+  }
+}
+
+async function isRecoverableAdminCsrfResponse(response: Response): Promise<boolean> {
+  if (response.status !== 403) {
+    return false;
+  }
+
+  return isRecoverableAdminCsrfPayload(await readAdminJsonResponse(response.clone()));
 }
 
 function resetAdminSessionState(): void {
@@ -253,6 +288,23 @@ async function recoverAdminSession(config: AdminAppConfig): Promise<AdminSession
   return adminSessionRecoveryPromise;
 }
 
+async function recoverAdminSessionCsrf(config: AdminAppConfig): Promise<void> {
+  const activeRecoveryPromise = adminSessionCsrfRecoveryPromise;
+  if (activeRecoveryPromise !== undefined) {
+    return activeRecoveryPromise;
+  }
+
+  const recoveryPromise = (async (): Promise<void> => {
+    await fetchAdminSession(config);
+  })();
+
+  adminSessionCsrfRecoveryPromise = recoveryPromise.finally(() => {
+    adminSessionCsrfRecoveryPromise = undefined;
+  });
+
+  return adminSessionCsrfRecoveryPromise;
+}
+
 async function ensureAdminSessionLoaded(config: AdminAppConfig): Promise<void> {
   if (adminSessionState !== undefined) {
     return;
@@ -290,9 +342,24 @@ export async function runAdminQuery(
 
   let response = await performAdminFetch(config, "/admin/reports/query", requestInit);
 
-  if (response.status === 401) {
-    await recoverAdminSession(config);
-    response = await performAdminFetch(config, "/admin/reports/query", requestInit);
+  let didRecoverSession: boolean = false;
+  let didRecoverSessionCsrf: boolean = false;
+  while (true) {
+    if (response.status === 401 && didRecoverSession === false) {
+      didRecoverSession = true;
+      await recoverAdminSession(config);
+      response = await performAdminFetch(config, "/admin/reports/query", requestInit);
+      continue;
+    }
+
+    if (didRecoverSessionCsrf === false && await isRecoverableAdminCsrfResponse(response)) {
+      didRecoverSessionCsrf = true;
+      await recoverAdminSessionCsrf(config);
+      response = await performAdminFetch(config, "/admin/reports/query", requestInit);
+      continue;
+    }
+
+    break;
   }
 
   if (!response.ok) {

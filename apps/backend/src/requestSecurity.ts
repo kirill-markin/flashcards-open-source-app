@@ -157,6 +157,6 @@ export async function enforceSessionCsrfProtection(
 
   const expectedToken = await getSessionCsrfToken(sessionToken);
   if (!isMatchingToken(expectedToken, csrfToken)) {
-    throw new HttpError(403, "Invalid X-CSRF-Token header");
+    throw new HttpError(403, "Invalid X-CSRF-Token header", "SESSION_CSRF_TOKEN_INVALID");
   }
 }
