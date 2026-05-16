@@ -23,6 +23,7 @@ export type AuthPublicErrorCode =
   | "REFRESH_TOKEN_FAILED"
   | "REVOKE_TOKEN_MISSING"
   | "REVOKE_TOKEN_FAILED"
+  | "SERVICE_UNAVAILABLE"
   | "INTERNAL_ERROR";
 
 export function getRequestId(context: Context<AuthAppEnv>): string {

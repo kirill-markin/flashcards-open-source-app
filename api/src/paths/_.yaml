@@ -39,8 +39,8 @@ get:
             instructions: >-
               Start with email OTP authentication. First call POST
               /api/agent/send-code with the user's email. Then call POST
-              /api/agent/verify-code with the email and code to obtain a
-              long-lived API key. After login, call GET /v1/agent/me, then GET
+              /api/agent/verify-code with the otpSessionToken, code, and label
+              to obtain a long-lived API key. After login, call GET /v1/agent/me, then GET
               /v1/agent/workspaces?limit=100. If no workspace is selected,
               select one before using POST /v1/agent/sql. For routine low-risk
               writes, a clear user request already counts as permission. Ask

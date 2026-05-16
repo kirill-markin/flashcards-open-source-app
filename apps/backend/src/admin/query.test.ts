@@ -24,6 +24,12 @@ function createQueryResult(
   } as pg.QueryResult<pg.QueryResultRow>;
 }
 
+function createCodedError(code: string, message: string): Error & Readonly<{ code: string }> {
+  const error = new Error(message) as Error & { code: string };
+  error.code = code;
+  return error;
+}
+
 test("splitAdminQueryStatements preserves comments and strings while splitting top-level statements", () => {
   const statements = splitAdminQueryStatements([
     "SELECT 'one;still one' AS value;",
@@ -93,6 +99,28 @@ test("executeAdminQuery returns ordered result sets for multi-statement reads", 
   assert.equal(auditEvents.length, 1);
   assert.equal(auditEvents[0]?.success, true);
   assert.equal(auditEvents[0]?.statementCount, 2);
+});
+
+test("executeAdminQuery retries transient reporting database failures", async () => {
+  let calls = 0;
+  const response = await executeAdminQuery({
+    sql: "SELECT 1 AS total",
+    adminEmail: "admin@example.com",
+    requestId: "request-retry",
+    executedAt: new Date("2026-04-17T12:34:56Z"),
+    executeStatementBatchFn: async () => {
+      calls += 1;
+      if (calls < 3) {
+        throw createCodedError("57P01", "admin shutdown");
+      }
+
+      return [createQueryResult([{ total: 1 }])];
+    },
+    logAdminQueryEventFn: () => {},
+  });
+
+  assert.equal(calls, 3);
+  assert.deepEqual(response.resultSets[0]?.rows, [{ total: 1 }]);
 });
 
 test("executeAdminQuery serializes Date values to ISO strings", async () => {

@@ -5,3 +5,5 @@ required:
 properties:
   openapiUrl:
     type: string
+  swaggerUrl:
+    type: string

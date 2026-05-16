@@ -14,6 +14,7 @@ import { verifyEmailOtp } from "../server/cognitoAuth.js";
 import { setBrowserSessionCookies } from "../server/browserSession.js";
 import { getNormalizedCognitoErrorType } from "../server/cognitoErrors.js";
 import { verify } from "../server/crypto.js";
+import { isTransientDatabaseError } from "../server/databaseErrors.js";
 import { log } from "../server/logger.js";
 import {
   getOtpVerifyAttemptState,
@@ -25,6 +26,7 @@ import {
 
 const CODE_RE = /^\d{8}$/;
 const OTP_TTL_MS = 180_000; // 3 minutes
+const INVALID_CODE_RECORD_DB_FAILURE_MESSAGE = "The code was rejected, but the invalid attempt could not be recorded.";
 
 type OtpPayload = Readonly<{
   s: string;   // Cognito session
@@ -179,13 +181,37 @@ export function createVerifyCodeApp(dependencies: VerifyCodeDependencies): Hono<
       const message = err instanceof Error ? err.message : String(err);
 
       if (failure.code === "OTP_CODE_INVALID") {
-        const result = await dependencies.recordOtpVerifyFailure(
-          payload.e,
-          payload.s,
-          expiresAt,
-          nowMs,
-          MAX_OTP_VERIFY_ATTEMPTS,
-        );
+        let result: OtpVerifyFailureRecordResult;
+        try {
+          result = await dependencies.recordOtpVerifyFailure(
+            payload.e,
+            payload.s,
+            expiresAt,
+            nowMs,
+            MAX_OTP_VERIFY_ATTEMPTS,
+          );
+        } catch (error) {
+          if (!isTransientDatabaseError(error)) {
+            throw error;
+          }
+
+          log({
+            domain: "auth",
+            action: "verify_code_error",
+            requestId,
+            route: c.req.path,
+            statusCode: 503,
+            code: "SERVICE_UNAVAILABLE",
+            reasonCategory: "invalid_code_record_database_error",
+            error: error instanceof Error ? error.message : String(error),
+          });
+          // Avoid Retry-After here because replaying verify-code can consume Cognito attempts.
+          return c.json({
+            error: INVALID_CODE_RECORD_DB_FAILURE_MESSAGE,
+            requestId,
+            code: "SERVICE_UNAVAILABLE",
+          }, 503);
+        }
         if (result.locked) {
           logLockedVerifyAttempt(requestId, c.req.path, message);
           return jsonAuthError(c, 429, "OTP_TOO_MANY_ATTEMPTS", "Too many invalid attempts. Request a new code.");

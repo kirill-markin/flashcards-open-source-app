@@ -79,6 +79,37 @@ function getDatabaseSqlState(error: unknown): string | null {
   return typeof code === "string" && code !== "" ? code : null;
 }
 
+function readErrorStringField(error: unknown, fieldName: string): string | null {
+  if (typeof error !== "object" || error === null || !(fieldName in error)) {
+    return null;
+  }
+
+  const fieldValue = (error as Readonly<Record<string, unknown>>)[fieldName];
+  return typeof fieldValue === "string" && fieldValue !== "" ? fieldValue : null;
+}
+
+function getDatabaseErrorLogContext(error: unknown): Record<string, string | null> {
+  const sqlState = readErrorStringField(error, "sqlState");
+  const errorCode = readErrorStringField(error, "errorCode");
+  const databaseErrorClass = readErrorStringField(error, "databaseErrorClass");
+  const databaseErrorMessage = readErrorStringField(error, "databaseErrorMessage");
+  if (
+    sqlState === null
+    && errorCode === null
+    && databaseErrorClass === null
+    && databaseErrorMessage === null
+  ) {
+    return {};
+  }
+
+  return {
+    sqlState,
+    errorCode,
+    databaseErrorClass,
+    databaseErrorMessage,
+  };
+}
+
 export function logRequestError(
   requestId: string,
   path: string,
@@ -111,6 +142,7 @@ export function logRequestError(
       code: error.code,
       details: error.details,
       validationIssues: error.details?.validationIssues ?? [],
+      ...getDatabaseErrorLogContext(error),
       ...errorContext,
     }));
     return;

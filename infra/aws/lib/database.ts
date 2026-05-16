@@ -53,6 +53,10 @@ export function database(scope: Construct, props: DatabaseProps): DatabaseResult
     maxAllocatedStorage: 50,
     storageEncrypted: true,
     backupRetention: cdk.Duration.days(7),
+    preferredBackupWindow: "01:30-02:00",
+    preferredMaintenanceWindow: "sun:03:00-sun:03:30",
+    autoMinorVersionUpgrade: false,
+    applyImmediately: false,
     deletionProtection: true,
     removalPolicy: cdk.RemovalPolicy.SNAPSHOT,
   });
