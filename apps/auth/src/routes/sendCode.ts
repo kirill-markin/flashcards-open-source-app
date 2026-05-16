@@ -24,9 +24,11 @@ import {
   recordOtpSendDecision,
 } from "../server/otpRateLimit.js";
 import { log, maskEmail } from "../server/logger.js";
+import { isTransientDatabaseError } from "../server/databaseErrors.js";
 import { isRejectedPasswordSignIn } from "../server/passwordSignInErrors.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const POST_EMAIL_DB_FAILURE_MESSAGE = "A verification email may have been sent, but sign-in could not be prepared.";
 
 const JITTER_MIN_MS = 200;
 const JITTER_MAX_MS = 800;
@@ -202,7 +204,32 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
       });
 
       signed = dependencies.signPayload(payload);
-      await dependencies.recordOtpSendDecision(email, ipAddress, "sent", signed);
+      try {
+        await dependencies.recordOtpSendDecision(email, ipAddress, "sent", signed);
+      } catch (error) {
+        if (!isTransientDatabaseError(error)) {
+          throw error;
+        }
+
+        log({
+          domain: "auth",
+          action: "send_code_error",
+          requestId,
+          route: c.req.path,
+          maskedEmail: maskEmail(email),
+          ipAddress,
+          statusCode: 503,
+          code: "SERVICE_UNAVAILABLE",
+          reasonCategory: "post_email_database_error",
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Avoid Retry-After here because replaying send-code can duplicate email delivery.
+        return c.json({
+          error: POST_EMAIL_DB_FAILURE_MESSAGE,
+          requestId,
+          code: "SERVICE_UNAVAILABLE",
+        }, 503);
+      }
     }
 
     setCookie(c, "otp_session", signed, {

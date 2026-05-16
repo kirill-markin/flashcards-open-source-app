@@ -11,6 +11,10 @@ import {
   processSyncPush,
   processSyncReviewHistoryImport,
   processSyncReviewHistoryPull,
+  type SyncPullInput,
+  type SyncPullResult,
+  type SyncReviewHistoryPullInput,
+  type SyncReviewHistoryPullResult,
 } from "../sync";
 import {
   assertUserHasWorkspaceAccess,
@@ -18,20 +22,83 @@ import {
 import {
   loadRequestContextFromRequest,
   parseWorkspaceIdParam,
+  type RequestContext,
 } from "../server/requestContext";
 import { parseJsonBody } from "../server/requestParsing";
 import {
   logCloudRouteEvent,
   summarizeValidationIssues,
 } from "../server/logging";
+import { withTransientDatabaseRetry } from "../dbTransient";
 import type { AppEnv } from "../app";
 
 type SyncRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
+  loadRequestContextFromRequestFn?: typeof loadRequestContextFromRequest;
+  assertUserHasWorkspaceAccessFn?: typeof assertUserHasWorkspaceAccess;
+  processSyncPullFn?: typeof processSyncPull;
+  processSyncReviewHistoryPullFn?: typeof processSyncReviewHistoryPull;
+  withTransientDatabaseRetryFn?: typeof withTransientDatabaseRetry;
+}>;
+
+type SyncPullRouteState = Readonly<{
+  requestContext: RequestContext;
+  workspaceId: string;
+  input: SyncPullInput;
+  result: SyncPullResult;
+}>;
+
+type SyncReviewHistoryPullRouteState = Readonly<{
+  requestContext: RequestContext;
+  workspaceId: string;
+  input: SyncReviewHistoryPullInput;
+  result: SyncReviewHistoryPullResult;
 }>;
 
 function getInternalErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function getRequestContextUserId(requestContext: RequestContext | null): string | null {
+  return requestContext === null ? null : requestContext.userId;
+}
+
+function getSyncPullInputLogContext(input: SyncPullInput | null): Record<string, unknown> {
+  if (input === null) {
+    return {
+      installationId: null,
+      platform: null,
+      appVersion: null,
+      afterHotChangeId: null,
+    };
+  }
+
+  return {
+    installationId: input.installationId,
+    platform: input.platform,
+    appVersion: input.appVersion ?? null,
+    afterHotChangeId: input.afterHotChangeId,
+  };
+}
+
+function getSyncReviewHistoryPullInputLogContext(
+  input: SyncReviewHistoryPullInput | null,
+): Record<string, unknown> {
+  if (input === null) {
+    return {
+      installationId: null,
+      platform: null,
+      appVersion: null,
+      afterReviewSequenceId: null,
+    };
+  }
+
+  return {
+    installationId: input.installationId,
+    platform: input.platform,
+    appVersion: input.appVersion ?? null,
+    afterReviewSequenceId: input.afterReviewSequenceId,
+  };
 }
 
 function getSyncConflictLogContext(error: HttpError | unknown): Record<string, unknown> {
@@ -60,11 +127,16 @@ function getSyncConflictLogContext(error: HttpError | unknown): Record<string, u
 
 export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
+  const loadRequestContextFromRequestFn = options.loadRequestContextFromRequestFn ?? loadRequestContextFromRequest;
+  const assertUserHasWorkspaceAccessFn = options.assertUserHasWorkspaceAccessFn ?? assertUserHasWorkspaceAccess;
+  const processSyncPullFn = options.processSyncPullFn ?? processSyncPull;
+  const processSyncReviewHistoryPullFn = options.processSyncReviewHistoryPullFn ?? processSyncReviewHistoryPull;
+  const withTransientDatabaseRetryFn = options.withTransientDatabaseRetryFn ?? withTransientDatabaseRetry;
 
   app.post("/workspaces/:workspaceId/sync/push", async (context) => {
-    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, options.allowedOrigins);
+    const { requestContext } = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
     const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
-    await assertUserHasWorkspaceAccess(requestContext.userId, workspaceId);
+    await assertUserHasWorkspaceAccessFn(requestContext.userId, workspaceId);
     const input = parseSyncPushInput(await parseJsonBody(context.req.raw));
     const requestId = context.get("requestId");
     const entityTypes = [...new Set(input.operations.map((operation) => operation.entityType))];
@@ -106,39 +178,61 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
   });
 
   app.post("/workspaces/:workspaceId/sync/pull", async (context) => {
-    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, options.allowedOrigins);
-    const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
-    await assertUserHasWorkspaceAccess(requestContext.userId, workspaceId);
-    const input = parseSyncPullInput(await parseJsonBody(context.req.raw));
     const requestId = context.get("requestId");
+    let requestContext: RequestContext | null = null;
+    let workspaceId: string | null = null;
+    let input: SyncPullInput | null = null;
+    let parsedBody: unknown;
+    let parsedBodyLoaded = false;
+
+    async function loadSyncPullInput(): Promise<SyncPullInput> {
+      if (!parsedBodyLoaded) {
+        parsedBody = await parseJsonBody(context.req.raw);
+        parsedBodyLoaded = true;
+      }
+
+      return parseSyncPullInput(parsedBody);
+    }
 
     try {
-      const result = await processSyncPull(workspaceId, requestContext.userId, input);
+      const routeState = await withTransientDatabaseRetryFn(
+        async (): Promise<SyncPullRouteState> => {
+          const loadedContext = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
+          requestContext = loadedContext.requestContext;
+          workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
+          await assertUserHasWorkspaceAccessFn(requestContext.userId, workspaceId);
+          input = await loadSyncPullInput();
+          const result = await processSyncPullFn(workspaceId, requestContext.userId, input);
+          return {
+            requestContext,
+            workspaceId,
+            input,
+            result,
+          };
+        },
+      );
       logCloudRouteEvent("sync_pull", {
         requestId,
         route: context.req.path,
         statusCode: 200,
-        userId: requestContext.userId,
-        workspaceId,
-        installationId: input.installationId,
-        platform: input.platform,
-        appVersion: input.appVersion ?? null,
-        afterHotChangeId: input.afterHotChangeId,
-        nextHotChangeId: result.nextHotChangeId,
-        changesCount: result.changes.length,
+        userId: routeState.requestContext.userId,
+        workspaceId: routeState.workspaceId,
+        installationId: routeState.input.installationId,
+        platform: routeState.input.platform,
+        appVersion: routeState.input.appVersion ?? null,
+        afterHotChangeId: routeState.input.afterHotChangeId,
+        nextHotChangeId: routeState.result.nextHotChangeId,
+        changesCount: routeState.result.changes.length,
       }, false);
-      return context.json(result);
+      return context.json(routeState.result);
     } catch (error) {
       logCloudRouteEvent("sync_pull_error", {
         requestId,
         route: context.req.path,
         statusCode: error instanceof HttpError ? error.statusCode : 500,
-        userId: requestContext.userId,
+        userId: getRequestContextUserId(requestContext),
         workspaceId,
-        installationId: input.installationId,
-        platform: input.platform,
-        appVersion: input.appVersion ?? null,
-        afterHotChangeId: input.afterHotChangeId,
+        ...getSyncPullInputLogContext(input),
         code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
         message: getInternalErrorMessage(error),
         validationIssues: summarizeValidationIssues(error),
@@ -148,9 +242,9 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
   });
 
   app.post("/workspaces/:workspaceId/sync/bootstrap", async (context) => {
-    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, options.allowedOrigins);
+    const { requestContext } = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
     const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
-    await assertUserHasWorkspaceAccess(requestContext.userId, workspaceId);
+    await assertUserHasWorkspaceAccessFn(requestContext.userId, workspaceId);
     const input = parseSyncBootstrapInput(await parseJsonBody(context.req.raw));
     const requestId = context.get("requestId");
 
@@ -189,39 +283,61 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
   });
 
   app.post("/workspaces/:workspaceId/sync/review-history/pull", async (context) => {
-    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, options.allowedOrigins);
-    const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
-    await assertUserHasWorkspaceAccess(requestContext.userId, workspaceId);
-    const input = parseSyncReviewHistoryPullInput(await parseJsonBody(context.req.raw));
     const requestId = context.get("requestId");
+    let requestContext: RequestContext | null = null;
+    let workspaceId: string | null = null;
+    let input: SyncReviewHistoryPullInput | null = null;
+    let parsedBody: unknown;
+    let parsedBodyLoaded = false;
+
+    async function loadSyncReviewHistoryPullInput(): Promise<SyncReviewHistoryPullInput> {
+      if (!parsedBodyLoaded) {
+        parsedBody = await parseJsonBody(context.req.raw);
+        parsedBodyLoaded = true;
+      }
+
+      return parseSyncReviewHistoryPullInput(parsedBody);
+    }
 
     try {
-      const result = await processSyncReviewHistoryPull(workspaceId, requestContext.userId, input);
+      const routeState = await withTransientDatabaseRetryFn(
+        async (): Promise<SyncReviewHistoryPullRouteState> => {
+          const loadedContext = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
+          requestContext = loadedContext.requestContext;
+          workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
+          await assertUserHasWorkspaceAccessFn(requestContext.userId, workspaceId);
+          input = await loadSyncReviewHistoryPullInput();
+          const result = await processSyncReviewHistoryPullFn(workspaceId, requestContext.userId, input);
+          return {
+            requestContext,
+            workspaceId,
+            input,
+            result,
+          };
+        },
+      );
       logCloudRouteEvent("sync_review_history_pull", {
         requestId,
         route: context.req.path,
         statusCode: 200,
-        userId: requestContext.userId,
-        workspaceId,
-        installationId: input.installationId,
-        platform: input.platform,
-        appVersion: input.appVersion ?? null,
-        afterReviewSequenceId: input.afterReviewSequenceId,
-        nextReviewSequenceId: result.nextReviewSequenceId,
-        reviewEventsCount: result.reviewEvents.length,
+        userId: routeState.requestContext.userId,
+        workspaceId: routeState.workspaceId,
+        installationId: routeState.input.installationId,
+        platform: routeState.input.platform,
+        appVersion: routeState.input.appVersion ?? null,
+        afterReviewSequenceId: routeState.input.afterReviewSequenceId,
+        nextReviewSequenceId: routeState.result.nextReviewSequenceId,
+        reviewEventsCount: routeState.result.reviewEvents.length,
       }, false);
-      return context.json(result);
+      return context.json(routeState.result);
     } catch (error) {
       logCloudRouteEvent("sync_review_history_pull_error", {
         requestId,
         route: context.req.path,
         statusCode: error instanceof HttpError ? error.statusCode : 500,
-        userId: requestContext.userId,
+        userId: getRequestContextUserId(requestContext),
         workspaceId,
-        installationId: input.installationId,
-        platform: input.platform,
-        appVersion: input.appVersion ?? null,
-        afterReviewSequenceId: input.afterReviewSequenceId,
+        ...getSyncReviewHistoryPullInputLogContext(input),
         code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
         message: getInternalErrorMessage(error),
         validationIssues: summarizeValidationIssues(error),
@@ -231,9 +347,9 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
   });
 
   app.post("/workspaces/:workspaceId/sync/review-history/import", async (context) => {
-    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, options.allowedOrigins);
+    const { requestContext } = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
     const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
-    await assertUserHasWorkspaceAccess(requestContext.userId, workspaceId);
+    await assertUserHasWorkspaceAccessFn(requestContext.userId, workspaceId);
     const input = parseSyncReviewHistoryImportInput(await parseJsonBody(context.req.raw));
     const requestId = context.get("requestId");
 

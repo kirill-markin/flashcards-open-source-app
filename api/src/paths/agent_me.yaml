@@ -37,6 +37,27 @@ get:
               full contract.
             docs:
               openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+    '503':
+      description: Service temporarily unavailable
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying the same account request.
+          schema:
+            type: string
+          example: '1'
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentErrorEnvelope.yaml
+          example:
+            ok: false
+            data: {}
+            instructions: Wait for the Retry-After header before retrying the same request.
+            docs:
+              openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+            error:
+              code: SERVICE_UNAVAILABLE
+              message: Service is temporarily unavailable. Retry shortly.
     default:
       description: Agent error envelope
       content:

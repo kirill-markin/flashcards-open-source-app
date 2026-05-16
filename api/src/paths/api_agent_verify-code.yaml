@@ -34,6 +34,33 @@ post:
                 createdAt: '2026-03-11T08:55:00.000Z'
                 lastUsedAt: null
                 revokedAt: null
+            actions:
+              - name: load_account
+                method: GET
+                url: https://api.flashcards-open-source-app.com/v1/agent/me
+                auth:
+                  scheme: ApiKey
+              - name: list_workspaces
+                method: GET
+                url: https://api.flashcards-open-source-app.com/v1/agent/workspaces?limit=100
+                auth:
+                  scheme: ApiKey
+              - name: create_workspace
+                method: POST
+                url: https://api.flashcards-open-source-app.com/v1/agent/workspaces
+                input:
+                  required:
+                    - name
+                auth:
+                  scheme: ApiKey
+              - name: select_workspace
+                method: POST
+                urlTemplate: https://api.flashcards-open-source-app.com/v1/agent/workspaces/{workspaceId}/select
+                input:
+                  required:
+                    - workspaceId
+                auth:
+                  scheme: ApiKey
             instructions: >-
               Store this API key outside chat memory now. Use it in the
               Authorization header as 'ApiKey <key>'. Prefer exporting it first
@@ -52,3 +79,65 @@ post:
               docs.openapiUrl for the full contract.
             docs:
               openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+              swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json
+    '503':
+      description: >-
+        Service temporarily unavailable. Follow the response envelope
+        instructions: retry only when it says to retry the same action shortly.
+        Retryable transient failures may include a Retry-After header. If the
+        code was rejected or already accepted, follow the envelope instructions
+        instead of blindly replaying verify-code.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentErrorEnvelope.yaml
+          examples:
+            transient:
+              summary: Retryable transient failure
+              description: A Retry-After header may be present for this retryable variant.
+              value:
+                ok: false
+                data: {}
+                actions: []
+                instructions: Retry the same action shortly.
+                docs:
+                  openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+                  swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json
+                error:
+                  code: SERVICE_UNAVAILABLE
+                  message: Service is temporarily unavailable. Retry shortly.
+            postCognitoDatabaseFailure:
+              summary: Code accepted, restart required
+              value:
+                ok: false
+                data: {}
+                actions: []
+                instructions: >-
+                  Start a fresh auth flow by calling POST /api/agent/send-code
+                  again. Do not retry verify_code with the same code or
+                  otpSessionToken because the code may already be consumed.
+                docs:
+                  openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+                  swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json
+                error:
+                  code: SERVICE_UNAVAILABLE
+                  message: Authentication could not be completed after the code was accepted.
+            invalidCodeRecordFailure:
+              summary: Code rejected, do not retry same code
+              value:
+                ok: false
+                data: {}
+                actions: []
+                instructions: >-
+                  Cognito rejected this code, and the invalid attempt could not
+                  be recorded. Do not retry verify_code with the same invalid
+                  code. Ask the user for the latest 8-digit email code and
+                  retry verify_code only with a newer code. If the latest code
+                  is unclear or expired, start a fresh flow with POST
+                  /api/agent/send-code.
+                docs:
+                  openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+                  swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json
+                error:
+                  code: SERVICE_UNAVAILABLE
+                  message: The code was rejected, but the invalid attempt could not be recorded.
