@@ -1,5 +1,11 @@
 import pg from "pg";
 import { getDatabaseUrl } from "./config";
+import {
+  getDatabaseErrorFields,
+  logDatabasePoolError,
+  toDatabaseBoundaryError,
+  toDatabaseCommitBoundaryError,
+} from "./dbTransient";
 
 let pool: pg.Pool | undefined;
 
@@ -26,6 +32,9 @@ async function getPool(): Promise<pg.Pool> {
     const connectionString = await getDatabaseUrl();
     const ssl = process.env.DB_SECRET_ARN ? true : false;
     pool = new pg.Pool({ connectionString, ssl });
+    pool.on("error", (error: Error): void => {
+      logDatabasePoolError("main", error);
+    });
   }
   return pool;
 }
@@ -35,7 +44,11 @@ async function executeQuery<Row extends pg.QueryResultRow>(
   text: string,
   params: ReadonlyArray<SqlValue>,
 ): Promise<pg.QueryResult<Row>> {
-  return executor.query<Row>(text, params as Array<unknown>);
+  try {
+    return await executor.query<Row>(text, params as Array<unknown>);
+  } catch (error) {
+    throw toDatabaseBoundaryError(error);
+  }
 }
 
 async function applyDatabaseScopeInExecutor(
@@ -51,6 +64,49 @@ async function applyDatabaseScopeInExecutor(
     ].join(" "),
     [userId, workspaceId ?? ""],
   );
+}
+
+async function commitTransaction(client: pg.PoolClient): Promise<unknown | null> {
+  try {
+    await client.query("COMMIT");
+    return null;
+  } catch (error) {
+    return error;
+  }
+}
+
+async function rollbackTransaction(client: pg.PoolClient): Promise<unknown | null> {
+  try {
+    await client.query("ROLLBACK");
+    return null;
+  } catch (rollbackError) {
+    return rollbackError;
+  }
+}
+
+function toClientReleaseError(error: unknown): Error {
+  if (error instanceof Error) {
+    return error;
+  }
+
+  return new Error(String(error));
+}
+
+function logUnsafeTransactionRollbackFailure(originalError: unknown, rollbackError: unknown): void {
+  const originalFields = getDatabaseErrorFields(originalError);
+  const rollbackFields = getDatabaseErrorFields(rollbackError);
+  console.warn(JSON.stringify({
+    domain: "backend",
+    action: "unsafe_transaction_rollback_failed",
+    originalSqlState: originalFields.sqlState,
+    originalErrorCode: originalFields.errorCode,
+    originalErrorClass: originalFields.errorClass,
+    originalErrorMessage: originalFields.errorMessage,
+    rollbackSqlState: rollbackFields.sqlState,
+    rollbackErrorCode: rollbackFields.errorCode,
+    rollbackErrorClass: rollbackFields.errorClass,
+    rollbackErrorMessage: rollbackFields.errorMessage,
+  }));
 }
 
 export async function applyUserDatabaseScopeInExecutor(
@@ -85,7 +141,13 @@ export async function unsafeQuery<Row extends pg.QueryResultRow>(
 export async function unsafeTransaction<Result>(
   callback: (executor: DatabaseExecutor) => Promise<Result>,
 ): Promise<Result> {
-  const client = await (await getPool()).connect();
+  let client: pg.PoolClient;
+  try {
+    client = await (await getPool()).connect();
+  } catch (error) {
+    throw toDatabaseBoundaryError(error);
+  }
+
   const executor: DatabaseExecutor = {
     query<Row extends pg.QueryResultRow>(
       text: string,
@@ -95,15 +157,41 @@ export async function unsafeTransaction<Result>(
     },
   };
 
+  let releaseError: Error | undefined;
   try {
-    await client.query("BEGIN");
-    const result = await callback(executor);
-    await client.query("COMMIT");
+    try {
+      await client.query("BEGIN");
+    } catch (error) {
+      releaseError = toClientReleaseError(error);
+      throw toDatabaseBoundaryError(error);
+    }
+
+    let result: Result;
+    try {
+      result = await callback(executor);
+    } catch (error) {
+      const rollbackError = await rollbackTransaction(client);
+      if (rollbackError !== null) {
+        logUnsafeTransactionRollbackFailure(error, rollbackError);
+        releaseError = toClientReleaseError(rollbackError);
+        throw toDatabaseBoundaryError(error);
+      }
+
+      throw toDatabaseBoundaryError(error);
+    }
+
+    const commitError = await commitTransaction(client);
+    if (commitError !== null) {
+      releaseError = toClientReleaseError(commitError);
+      throw toDatabaseCommitBoundaryError(commitError);
+    }
+
     return result;
-  } catch (error) {
-    await client.query("ROLLBACK");
-    throw error;
   } finally {
-    client.release();
+    if (releaseError === undefined) {
+      client.release();
+    } else {
+      client.release(releaseError);
+    }
   }
 }

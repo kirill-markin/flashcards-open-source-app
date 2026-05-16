@@ -1,0 +1,42 @@
+type: object
+additionalProperties: false
+required:
+  - name
+  - method
+properties:
+  name:
+    type: string
+    enum:
+      - send_code
+      - verify_code
+      - load_account
+      - list_workspaces
+      - create_workspace
+      - select_workspace
+  method:
+    type: string
+    enum:
+      - GET
+      - POST
+  url:
+    type: string
+  urlTemplate:
+    type: string
+  input:
+    type: object
+    additionalProperties: false
+    properties:
+      required:
+        type: array
+        items:
+          type: string
+  auth:
+    type: object
+    additionalProperties: false
+    required:
+      - scheme
+    properties:
+      scheme:
+        type: string
+        enum:
+          - ApiKey

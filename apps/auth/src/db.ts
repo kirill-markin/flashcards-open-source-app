@@ -1,5 +1,12 @@
 import pg from "pg";
 import { getDatabaseUrl } from "./config.js";
+import {
+  getDatabaseErrorClass,
+  getDatabaseErrorCode,
+  getDatabaseErrorMessage,
+  getDatabaseErrorSqlState,
+} from "./server/databaseErrors.js";
+import { logWarning } from "./server/logger.js";
 
 let pool: pg.Pool | undefined;
 
@@ -29,6 +36,17 @@ async function getPool(): Promise<pg.Pool> {
   const connectionString = await getDatabaseUrl();
   const ssl = process.env.DB_SECRET_ARN ? true : false;
   pool = new pg.Pool({ connectionString, ssl });
+  pool.on("error", (error: Error) => {
+    logWarning({
+      domain: "auth",
+      action: "database_pool_error",
+      poolName: "auth",
+      sqlState: getDatabaseErrorSqlState(error),
+      errorCode: getDatabaseErrorCode(error),
+      errorClass: getDatabaseErrorClass(error),
+      errorMessage: getDatabaseErrorMessage(error),
+    });
+  });
   return pool;
 }
 

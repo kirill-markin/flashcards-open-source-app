@@ -22,6 +22,7 @@ import robots from "./routes/robots.js";
 import { type AuthAppEnv, getRequestId, jsonAuthError } from "./server/apiErrors.js";
 import { getDemoEmailAccessConfig } from "./server/demoEmailAccess.js";
 import { createAgentErrorEnvelope } from "./server/agentEnvelope.js";
+import { isTransientDatabaseError } from "./server/databaseErrors.js";
 import { log } from "./server/logger.js";
 
 function getMountPaths(basePath: string): ReadonlyArray<string> {
@@ -62,7 +63,35 @@ function setApiCorsHeaders(c: Context<AuthAppEnv>, origin: string): void {
   c.header("Access-Control-Allow-Credentials", "true");
   c.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   c.header("Access-Control-Allow-Headers", "content-type, authorization, x-csrf-token");
+  c.header("Access-Control-Expose-Headers", "retry-after");
   c.header("Vary", appendVaryHeader(c.res.headers.get("Vary") ?? undefined, "Origin"));
+}
+
+type ApiRouteKind = "agent" | "api" | "non-api";
+
+function stripApiStagePrefix(path: string): string {
+  if (path === "/v1") {
+    return "/";
+  }
+
+  if (path.startsWith("/v1/")) {
+    return path.slice(3);
+  }
+
+  return path;
+}
+
+function getApiRouteKind(path: string): ApiRouteKind {
+  const routePath = stripApiStagePrefix(path);
+  if (routePath === "/api/agent" || routePath.startsWith("/api/agent/")) {
+    return "agent";
+  }
+
+  if (routePath === "/api" || routePath.startsWith("/api/")) {
+    return "api";
+  }
+
+  return "non-api";
 }
 
 function createMountedApp(basePath: string): Hono<AuthAppEnv> {
@@ -110,6 +139,46 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
 
   app.onError((error, c) => {
     const requestId = getRequestId(c);
+    const routeKind = getApiRouteKind(c.req.path);
+    if (isTransientDatabaseError(error)) {
+      const statusCode = 503;
+      const code = "SERVICE_UNAVAILABLE";
+      const message = "Service is temporarily unavailable. Retry shortly.";
+      log({
+        domain: "auth",
+        action: "request_error",
+        requestId,
+        route: c.req.path,
+        statusCode,
+        code,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      c.header("Retry-After", "1");
+      c.header("Access-Control-Expose-Headers", "retry-after");
+
+      if (routeKind === "agent") {
+        return c.json(
+          createAgentErrorEnvelope(
+            c.req.url,
+            code,
+            message,
+            "Retry the same action shortly.",
+          ),
+          statusCode,
+        );
+      }
+
+      if (routeKind === "api") {
+        return c.json({
+          error: message,
+          requestId,
+          code,
+        }, statusCode);
+      }
+
+      return c.text(`Request failed. Reference: ${requestId}`, statusCode);
+    }
+
     log({
       domain: "auth",
       action: "request_error",
@@ -120,8 +189,8 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
       error: error instanceof Error ? error.message : String(error),
     });
 
-    if (c.req.path.startsWith("/api/")) {
-      if (c.req.path.startsWith("/api/agent")) {
+    if (routeKind === "agent" || routeKind === "api") {
+      if (routeKind === "agent") {
         return c.json(
           createAgentErrorEnvelope(
             c.req.url,

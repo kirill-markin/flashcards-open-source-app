@@ -14,6 +14,11 @@ properties:
   data:
     type: object
     additionalProperties: false
+  actions:
+    type: array
+    maxItems: 0
+    items:
+      $ref: ./AgentAction.yaml
   instructions:
     type: string
   docs:
