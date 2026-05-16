@@ -27,8 +27,11 @@ import {
   type OtpVerifyAttemptState,
   type OtpVerifyFailureRecordResult,
 } from "../server/otpVerifyAttempts.js";
+import { isTransientDatabaseError } from "../server/databaseErrors.js";
 
 const CODE_RE = /^\d{8}$/;
+const POST_COGNITO_RESTART_INSTRUCTIONS = "Start a fresh auth flow by calling POST /api/agent/send-code again. Do not retry verify_code with the same code or otpSessionToken because the code may already be consumed.";
+const INVALID_CODE_RECORD_FAILURE_INSTRUCTIONS = "Cognito rejected this code, and the invalid attempt could not be recorded. Do not retry verify_code with the same invalid code. Ask the user for the latest 8-digit email code and retry verify_code only with a newer code. If the latest code is unclear or expired, start a fresh flow with POST /api/agent/send-code.";
 
 type VerifyFailureResult = Readonly<{
   code: "OTP_SESSION_EXPIRED" | "OTP_CHALLENGE_CONSUMED" | "OTP_CODE_INVALID" | "OTP_VERIFY_FAILED";
@@ -192,75 +195,49 @@ export function createAgentVerifyCodeApp(dependencies: AgentVerifyCodeDependenci
       );
     }
 
+    const demoPassword = await dependencies.getDemoEmailPassword(challenge.email);
+    let tokens: TokenResult;
     try {
-      const demoPassword = await dependencies.getDemoEmailPassword(challenge.email);
-      const tokens = demoPassword === null
+      tokens = demoPassword === null
         ? await dependencies.verifyEmailOtp(challenge.email, code, challenge.cognitoSession)
         : await dependencies.signInWithPassword(challenge.email, demoPassword);
-      await dependencies.markAgentOtpChallengeUsed(challenge.email, challenge.cognitoSession, dependencies.now());
-      const createdKey = await dependencies.createAgentApiKeyFromIdToken(tokens.idToken, label);
-      const apiBaseUrl = getPublicApiBaseUrl(c.req.url);
-
-      return c.json(createAgentEnvelope(
-        c.req.url,
-        {
-          apiKey: createdKey.apiKey,
-          authorizationScheme: "ApiKey",
-          apiBaseUrl,
-          connection: createdKey.connection,
-        },
-        [
-          {
-            name: "load_account",
-            method: "GET",
-            url: `${apiBaseUrl}/agent/me`,
-            auth: {
-              scheme: "ApiKey",
-            },
-          },
-          {
-            name: "list_workspaces",
-            method: "GET",
-            url: `${apiBaseUrl}/agent/workspaces`,
-            auth: {
-              scheme: "ApiKey",
-            },
-          },
-          {
-            name: "create_workspace",
-            method: "POST",
-            url: `${apiBaseUrl}/agent/workspaces`,
-            input: {
-              required: ["name"],
-            },
-            auth: {
-              scheme: "ApiKey",
-            },
-          },
-          {
-            name: "select_workspace",
-            method: "POST",
-            urlTemplate: `${apiBaseUrl}/agent/workspaces/{workspaceId}/select`,
-            input: {
-              required: ["workspaceId"],
-            },
-            auth: {
-              scheme: "ApiKey",
-            },
-          },
-        ],
-        `Store this long-lived API key now and do not rely on chat history alone. A new dialog or session on the same machine will not have this key unless it was saved outside this conversation. Prefer exporting it first as FLASHCARDS_OPEN_SOURCE_API_KEY; if needed, save it in a local .env file or another local file. If the user already allowed saving or writing in this conversation, do not ask again. Otherwise, ask only when the write is risky, more persistent than the user requested, or the destination is unclear. At minimum, save it somewhere persistent outside chat memory. Then bootstrap workspace selection with explicit endpoints: GET ${apiBaseUrl}/agent/me, GET ${apiBaseUrl}/agent/workspaces, and if selection is required call POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select (or POST ${apiBaseUrl}/agent/workspaces with {\"name\":\"Personal\"} when no workspaces exist). For routine low-risk writes, a clear user request already counts as permission. Ask again only for risky or unclear actions. Read payload from data.* and do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions. Example: export FLASHCARDS_OPEN_SOURCE_API_KEY='<PASTE_KEY_HERE>' && curl -H 'Authorization: ApiKey $FLASHCARDS_OPEN_SOURCE_API_KEY' '${apiBaseUrl}/agent/me'.`,
-      ));
     } catch (error) {
       const failure = classifyVerifyFailure(error);
       if (failure.code === "OTP_CODE_INVALID") {
-        const result = await dependencies.recordOtpVerifyFailure(
-          challenge.email,
-          challenge.cognitoSession,
-          challenge.expiresAt,
-          dependencies.now(),
-          MAX_OTP_VERIFY_ATTEMPTS,
-        );
+        let result: OtpVerifyFailureRecordResult;
+        try {
+          result = await dependencies.recordOtpVerifyFailure(
+            challenge.email,
+            challenge.cognitoSession,
+            challenge.expiresAt,
+            dependencies.now(),
+            MAX_OTP_VERIFY_ATTEMPTS,
+          );
+        } catch (recordError) {
+          if (!isTransientDatabaseError(recordError)) {
+            throw recordError;
+          }
+
+          log({
+            domain: "auth",
+            action: "agent_verify_code_error",
+            requestId,
+            route: c.req.path,
+            statusCode: 503,
+            code: "SERVICE_UNAVAILABLE",
+            reasonCategory: "invalid_code_record_database_error",
+            error: recordError instanceof Error ? recordError.message : String(recordError),
+          });
+          return c.json(
+            createAgentErrorEnvelope(
+              c.req.url,
+              "SERVICE_UNAVAILABLE",
+              "The code was rejected, but the invalid attempt could not be recorded.",
+              INVALID_CODE_RECORD_FAILURE_INSTRUCTIONS,
+            ),
+            503,
+          );
+        }
         if (result.locked) {
           log({
             domain: "auth",
@@ -305,6 +282,90 @@ export function createAgentVerifyCodeApp(dependencies: AgentVerifyCodeDependenci
         400,
       );
     }
+
+    let createdKey: CreatedAgentApiKey;
+    try {
+      await dependencies.markAgentOtpChallengeUsed(challenge.email, challenge.cognitoSession, dependencies.now());
+      createdKey = await dependencies.createAgentApiKeyFromIdToken(tokens.idToken, label);
+    } catch (error) {
+      const isTransient = isTransientDatabaseError(error);
+      const statusCode = isTransient ? 503 : 500;
+      const code = isTransient ? "SERVICE_UNAVAILABLE" : "INTERNAL_ERROR";
+      const message = isTransient
+        ? "Authentication could not be completed after the code was accepted."
+        : "Agent authentication request failed after the code was accepted.";
+      log({
+        domain: "auth",
+        action: "agent_verify_code_error",
+        requestId,
+        route: c.req.path,
+        statusCode,
+        code,
+        reasonCategory: "post_cognito_database_error",
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return c.json(
+        createAgentErrorEnvelope(
+          c.req.url,
+          code,
+          message,
+          POST_COGNITO_RESTART_INSTRUCTIONS,
+        ),
+        statusCode,
+      );
+    }
+    const apiBaseUrl = getPublicApiBaseUrl(c.req.url);
+
+    return c.json(createAgentEnvelope(
+      c.req.url,
+      {
+        apiKey: createdKey.apiKey,
+        authorizationScheme: "ApiKey",
+        apiBaseUrl,
+        connection: createdKey.connection,
+      },
+      [
+        {
+          name: "load_account",
+          method: "GET",
+          url: `${apiBaseUrl}/agent/me`,
+          auth: {
+            scheme: "ApiKey",
+          },
+        },
+        {
+          name: "list_workspaces",
+          method: "GET",
+          url: `${apiBaseUrl}/agent/workspaces?limit=100`,
+          auth: {
+            scheme: "ApiKey",
+          },
+        },
+        {
+          name: "create_workspace",
+          method: "POST",
+          url: `${apiBaseUrl}/agent/workspaces`,
+          input: {
+            required: ["name"],
+          },
+          auth: {
+            scheme: "ApiKey",
+          },
+        },
+        {
+          name: "select_workspace",
+          method: "POST",
+          urlTemplate: `${apiBaseUrl}/agent/workspaces/{workspaceId}/select`,
+          input: {
+            required: ["workspaceId"],
+          },
+          auth: {
+            scheme: "ApiKey",
+          },
+        },
+      ],
+      `Store this long-lived API key now and do not rely on chat history alone. A new dialog or session on the same machine will not have this key unless it was saved outside this conversation. Prefer exporting it first as FLASHCARDS_OPEN_SOURCE_API_KEY; if needed, save it in a local .env file or another local file. If the user already allowed saving or writing in this conversation, do not ask again. Otherwise, ask only when the write is risky, more persistent than the user requested, or the destination is unclear. At minimum, save it somewhere persistent outside chat memory. Then bootstrap workspace selection with explicit endpoints: GET ${apiBaseUrl}/agent/me, GET ${apiBaseUrl}/agent/workspaces?limit=100, and if selection is required call POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select (or POST ${apiBaseUrl}/agent/workspaces with {\"name\":\"Personal\"} when no workspaces exist). For routine low-risk writes, a clear user request already counts as permission. Ask again only for risky or unclear actions. Read payload from data.* and do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions. Example: export FLASHCARDS_OPEN_SOURCE_API_KEY='<PASTE_KEY_HERE>' && curl -H 'Authorization: ApiKey $FLASHCARDS_OPEN_SOURCE_API_KEY' '${apiBaseUrl}/agent/me'.`,
+    ));
   });
 
   return app;

@@ -22,6 +22,7 @@ type AuthAction =
   | "refresh_session_missing_cookie"
   | "revoke_token"
   | "revoke_token_error"
+  | "database_pool_error"
   | "request_error"
   | "error";
 
@@ -32,6 +33,11 @@ type LogEvent = Readonly<{
   route?: string;
   statusCode?: number;
   code?: string;
+  poolName?: string;
+  sqlState?: string | null;
+  errorCode?: string | null;
+  errorClass?: string;
+  errorMessage?: string;
   reasonCategory?: string;
   maskedEmail?: string;
   ipAddress?: string;
@@ -46,4 +52,8 @@ export const maskEmail = (email: string): string => {
 
 export const log = (event: LogEvent): void => {
   console.log(JSON.stringify(event));
+};
+
+export const logWarning = (event: LogEvent): void => {
+  console.warn(JSON.stringify(event));
 };

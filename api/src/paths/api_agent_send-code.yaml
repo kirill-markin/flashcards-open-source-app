@@ -29,10 +29,66 @@ post:
               expiresInSeconds: 180
               authBaseUrl: https://auth.flashcards-open-source-app.com
               apiBaseUrl: https://api.flashcards-open-source-app.com/v1
+            actions:
+              - name: verify_code
+                method: POST
+                url: https://auth.flashcards-open-source-app.com/api/agent/verify-code
+                input:
+                  required:
+                    - code
+                    - otpSessionToken
+                    - label
             instructions: >-
               A verification code has been sent. Next call POST
-              /api/agent/verify-code with the email, otpSessionToken, code, and
-              connection label. Read payload from data.* and use
-              docs.openapiUrl for the full contract.
+              /api/agent/verify-code with the otpSessionToken, code, and
+              connection label. Read payload from data.* and use docs.openapiUrl
+              for the full contract.
             docs:
               openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+              swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json
+    '503':
+      description: >-
+        Service temporarily unavailable. Follow the response envelope
+        instructions: retry only when it says to retry the same action shortly.
+        Retryable transient failures may include a Retry-After header. If an
+        email may already have been sent, do not immediately replay send-code
+        because that can send another email.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentErrorEnvelope.yaml
+          examples:
+            transient:
+              summary: Retryable transient failure
+              description: A Retry-After header may be present for this retryable variant.
+              value:
+                ok: false
+                data: {}
+                actions: []
+                instructions: Retry the same action shortly.
+                docs:
+                  openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+                  swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json
+                error:
+                  code: SERVICE_UNAVAILABLE
+                  message: Service is temporarily unavailable. Retry shortly.
+            postEmailDatabaseFailure:
+              summary: Email may be sent, restart carefully
+              value:
+                ok: false
+                data: {}
+                actions: []
+                instructions: >-
+                  A verification email may already be in the user's inbox, but
+                  this response could not create a usable agent verification
+                  handle. Do not retry this same send-code request immediately
+                  because it may send another email. Ask the user to wait
+                  briefly and check their email. If sign-in is still needed,
+                  start a fresh flow with POST /api/agent/send-code and use
+                  only the latest email code and latest otpSessionToken.
+                docs:
+                  openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+                  swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json
+                error:
+                  code: SERVICE_UNAVAILABLE
+                  message: A verification email may have been sent, but the agent verification flow could not be completed.

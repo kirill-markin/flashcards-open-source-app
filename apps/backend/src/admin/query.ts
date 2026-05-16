@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import type pg from "pg";
+import { withTransientDatabaseRetry } from "../dbTransient";
 import { HttpError } from "../errors";
 import { logAdminQueryEvent } from "../server/logging";
 import { withReportingReadOnlyTransaction } from "./reportingDb";
@@ -525,7 +526,9 @@ export async function executeAdminQuery(
     }
 
     const resultSets: Array<AdminQueryResultSet> = [];
-    const statementResults = await executeStatementBatchFn(statementSqlList);
+    const statementResults = await withTransientDatabaseRetry(
+      async () => executeStatementBatchFn(statementSqlList),
+    );
     if (statementResults.length !== statementSqlList.length) {
       throw new Error("Admin query executor returned a mismatched number of statement results.");
     }

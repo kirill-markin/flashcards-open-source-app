@@ -40,7 +40,8 @@ get:
               https://auth.flashcards-open-source-app.com/api/agent/send-code
               using the user's email, then POST
               https://auth.flashcards-open-source-app.com/api/agent/verify-code
-              to obtain an API key. After login, call GET
+              with the otpSessionToken, code, and label to obtain an API key.
+              After login, call GET
               https://api.flashcards-open-source-app.com/v1/agent/me, then GET
               https://api.flashcards-open-source-app.com/v1/agent/workspaces?limit=100.
               If no workspace is selected for this API key, call POST

@@ -19,8 +19,10 @@ import {
 } from "../server/otpRateLimit.js";
 import { log, maskEmail } from "../server/logger.js";
 import { getPublicAuthBaseUrl, getPublicApiBaseUrl } from "../server/publicUrls.js";
+import { isTransientDatabaseError } from "../server/databaseErrors.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const POST_EMAIL_DELIVERY_DB_FAILURE_INSTRUCTIONS = "A verification email may already be in the user's inbox, but this response could not create a usable agent verification handle. Do not retry this same send-code request immediately because it may send another email. Ask the user to wait briefly and check their email. If sign-in is still needed, start a fresh flow with POST /api/agent/send-code and use only the latest email code and latest otpSessionToken.";
 
 type AgentSendCodeDependencies = Readonly<{
   initiateEmailOtp: (email: string) => Promise<Readonly<{ session: string }>>;
@@ -173,10 +175,9 @@ export function createAgentSendCodeApp(dependencies: AgentSendCodeDependencies):
       }
       await dependencies.recordOtpSendDecision(email, ipAddress, "suppressed_email_limit", null);
     } else {
+      let session: string;
       try {
-        const session = (await dependencies.initiateEmailOtp(email)).session;
-        otpSessionToken = await dependencies.createAgentOtpChallenge(email, session, dependencies.now());
-        await dependencies.recordOtpSendDecision(email, ipAddress, "sent", null);
+        session = (await dependencies.initiateEmailOtp(email)).session;
       } catch (error) {
         log({
           domain: "auth",
@@ -196,6 +197,37 @@ export function createAgentSendCodeApp(dependencies: AgentSendCodeDependencies):
             "Retry POST /api/agent/send-code with the same email. If the issue persists, try later.",
           ),
           500,
+        );
+      }
+
+      try {
+        otpSessionToken = await dependencies.createAgentOtpChallenge(email, session, dependencies.now());
+        await dependencies.recordOtpSendDecision(email, ipAddress, "sent", null);
+      } catch (error) {
+        if (!isTransientDatabaseError(error)) {
+          throw error;
+        }
+
+        log({
+          domain: "auth",
+          action: "agent_send_code_error",
+          requestId,
+          route: c.req.path,
+          maskedEmail: maskEmail(email),
+          ipAddress,
+          statusCode: 503,
+          code: "SERVICE_UNAVAILABLE",
+          reasonCategory: "post_email_database_error",
+          error: error instanceof Error ? error.message : String(error),
+        });
+        return c.json(
+          createAgentErrorEnvelope(
+            c.req.url,
+            "SERVICE_UNAVAILABLE",
+            "A verification email may have been sent, but the agent verification flow could not be completed.",
+            POST_EMAIL_DELIVERY_DB_FAILURE_INSTRUCTIONS,
+          ),
+          503,
         );
       }
     }

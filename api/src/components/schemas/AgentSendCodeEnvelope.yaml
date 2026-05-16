@@ -3,6 +3,7 @@ additionalProperties: false
 required:
   - ok
   - data
+  - actions
   - instructions
   - docs
 properties:
@@ -12,6 +13,10 @@ properties:
       - true
   data:
     $ref: ./AgentSendCodeData.yaml
+  actions:
+    type: array
+    items:
+      $ref: ./AgentAction.yaml
   instructions:
     type: string
   docs:

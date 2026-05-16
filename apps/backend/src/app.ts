@@ -1,5 +1,6 @@
 import { cors } from "hono/cors";
 import { Hono } from "hono";
+import type { Context } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { AuthError } from "./auth";
 import { getAuthConfig } from "./authConfig";
@@ -60,8 +61,10 @@ function isAgentConnectionManagementPath(pathname: string): boolean {
   return pathname.endsWith("/agent-api-keys") || pathname.includes("/agent-api-keys/");
 }
 
-function createAgentInstructions(code: string | null, statusCode: number): string {
+export function createAgentInstructions(code: string | null, statusCode: number): string {
   switch (code) {
+    case "SERVICE_UNAVAILABLE":
+      return "Retry the same request after the Retry-After delay. If it fails again, treat it as a server-side error and stop changing the request. Use requestId when debugging.";
     case "AUTH_UNAUTHORIZED":
     case "AGENT_API_KEY_INVALID":
       return "Use a valid non-revoked API key in the Authorization header as: ApiKey $FLASHCARDS_OPEN_SOURCE_API_KEY after exporting it once. If needed, restart from GET /v1/agent.";
@@ -73,6 +76,8 @@ function createAgentInstructions(code: string | null, statusCode: number): strin
     case "WORKSPACE_ID_REQUIRED":
     case "WORKSPACE_ID_INVALID":
       return "Provide a valid workspaceId UUID in the request URL, then retry the action.";
+    case "DATABASE_COMMIT_OUTCOME_UNKNOWN":
+      return "Do not blindly replay the same request. Reload and check the current state first, then retry only if the requested change is confirmed absent. Use requestId when debugging.";
   }
 
   if (statusCode >= 500) {
@@ -88,6 +93,23 @@ function createAgentInstructions(code: string | null, statusCode: number): strin
   }
 
   return "If the issue persists, reload account context from GET /v1/agent/me or restart from GET /v1/agent.";
+}
+
+export function getHttpErrorResponseHeaders(error: HttpError): ReadonlyArray<readonly [string, string]> {
+  if (error.statusCode === 503 && error.code === "SERVICE_UNAVAILABLE") {
+    return [["Retry-After", "1"]];
+  }
+
+  return [];
+}
+
+function applyHttpErrorResponseHeaders(
+  context: Context<AppEnv>,
+  error: HttpError,
+): void {
+  for (const [name, value] of getHttpErrorResponseHeaders(error)) {
+    context.header(name, value);
+  }
 }
 
 function createAgentConnectionManagementInstructions(code: string | null, statusCode: number): string {
@@ -125,6 +147,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
   app.use(globalSnapshotPath, cors({
     origin: "*",
     allowMethods: ["GET", "OPTIONS"],
+    exposeHeaders: ["retry-after"],
   }));
   app.use("*", cors({
     origin: allowedOrigins,
@@ -139,6 +162,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
       "x-amz-apigw-id",
       "x-amzn-requestid",
       "x-chat-request-id",
+      "retry-after",
     ],
     credentials: true,
   }));
@@ -181,6 +205,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
 
     if (error instanceof HttpError) {
       context.status(error.statusCode as ContentfulStatusCode);
+      applyHttpErrorResponseHeaders(context, error);
       if (apiKeyRequest) {
         return context.json(
           createAgentSetupErrorEnvelope(

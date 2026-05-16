@@ -1,4 +1,9 @@
 import pg from "pg";
+import {
+  getDatabaseErrorFields,
+  logDatabasePoolError,
+  toDatabaseBoundaryError,
+} from "../dbTransient";
 import { getDatabaseCredentialsSecret } from "../secrets";
 
 const reportingPoolMaxConnections = 4;
@@ -42,15 +47,73 @@ async function getReportingPool(): Promise<pg.Pool> {
   const ssl = process.env.REPORTING_DB_SECRET_ARN !== undefined && process.env.REPORTING_DB_SECRET_ARN !== "";
   // Keep the pool below the reporting_readonly role connection limit.
   reportingPool = new pg.Pool({ connectionString, ssl, max: reportingPoolMaxConnections });
+  reportingPool.on("error", (error: Error): void => {
+    logDatabasePoolError("reporting", error);
+  });
   return reportingPool;
+}
+
+async function connectReportingClient(): Promise<pg.PoolClient> {
+  try {
+    return await (await getReportingPool()).connect();
+  } catch (error) {
+    throw toDatabaseBoundaryError(error);
+  }
+}
+
+async function executeReportingTransactionCommand(
+  client: pg.PoolClient,
+  command: string,
+): Promise<void> {
+  try {
+    await client.query(command);
+  } catch (error) {
+    throw toDatabaseBoundaryError(error);
+  }
+}
+
+function logReportingRollbackFailure(originalError: unknown, rollbackError: unknown): void {
+  const originalFields = getDatabaseErrorFields(originalError);
+  const rollbackFields = getDatabaseErrorFields(rollbackError);
+  console.warn(JSON.stringify({
+    domain: "backend",
+    action: "reporting_read_only_transaction_rollback_failed",
+    originalSqlState: originalFields.sqlState,
+    originalErrorCode: originalFields.errorCode,
+    originalErrorClass: originalFields.errorClass,
+    originalErrorMessage: originalFields.errorMessage,
+    rollbackSqlState: rollbackFields.sqlState,
+    rollbackErrorCode: rollbackFields.errorCode,
+    rollbackErrorClass: rollbackFields.errorClass,
+    rollbackErrorMessage: rollbackFields.errorMessage,
+  }));
+}
+
+async function rollbackReportingTransaction(client: pg.PoolClient): Promise<unknown | null> {
+  try {
+    await client.query("ROLLBACK");
+    return null;
+  } catch (rollbackError) {
+    return rollbackError;
+  }
+}
+
+function toClientReleaseError(error: unknown): Error {
+  if (error instanceof Error) {
+    return error;
+  }
+
+  return new Error(String(error));
 }
 
 export async function withReportingClient<Result>(
   run: (client: pg.PoolClient) => Promise<Result>,
 ): Promise<Result> {
-  const client = await (await getReportingPool()).connect();
+  const client = await connectReportingClient();
   try {
     return await run(client);
+  } catch (error) {
+    throw toDatabaseBoundaryError(error);
   } finally {
     client.release();
   }
@@ -59,16 +122,27 @@ export async function withReportingClient<Result>(
 export async function withReportingReadOnlyTransaction<Result>(
   run: (client: pg.PoolClient) => Promise<Result>,
 ): Promise<Result> {
-  const client = await (await getReportingPool()).connect();
+  const client = await connectReportingClient();
+  let releaseError: Error | undefined;
   try {
-    await client.query("BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");
+    await executeReportingTransactionCommand(client, "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");
     const result = await run(client);
-    await client.query("COMMIT");
+    await executeReportingTransactionCommand(client, "COMMIT");
     return result;
   } catch (error) {
-    await client.query("ROLLBACK");
-    throw error;
+    const rollbackError = await rollbackReportingTransaction(client);
+    if (rollbackError !== null) {
+      logReportingRollbackFailure(error, rollbackError);
+      releaseError = toClientReleaseError(rollbackError);
+      throw toDatabaseBoundaryError(error);
+    }
+
+    throw toDatabaseBoundaryError(error);
   } finally {
-    client.release();
+    if (releaseError === undefined) {
+      client.release();
+    } else {
+      client.release(releaseError);
+    }
   }
 }
