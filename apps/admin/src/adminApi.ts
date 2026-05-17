@@ -37,6 +37,10 @@ export const reviewEventPlatforms = ["web", "android", "ios"] as const;
 
 export type ReviewEventPlatform = (typeof reviewEventPlatforms)[number];
 
+export const reviewEventCohorts = ["returning", "new"] as const;
+
+export type ReviewEventCohort = (typeof reviewEventCohorts)[number];
+
 export type ReviewEventsByDateUser = Readonly<{
   userId: string;
   email: string;
