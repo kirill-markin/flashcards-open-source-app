@@ -11,6 +11,7 @@ The generator is a small manual pipeline built from:
 - deterministic localized fixture data used by both the UI tests and app-side UI-test seeding
 
 It writes into the directories used for committed App Store marketing PNG assets and derived marketing compositions, but it is not part of CI or release-gate validation.
+Because this generator drives local iOS simulator-backed XCUITest flows, do not run screenshot-generation scripts unless the user explicitly allows that simulator-backed run for the current task.
 The generator configuration now targets five-shot outputs. Existing repository media can still contain the previous four-shot assets until the screenshot flows and derived-material builder are run and the generated PNGs are reviewed.
 
 ## What is included

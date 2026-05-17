@@ -73,9 +73,10 @@ Only test the app against the final supported iOS target.
 - Do not try to cover the iOS app exhaustively with tests
 - Do not add isolated unit tests by default
 - Prefer native integration, parity, or UI tests when they validate a real module boundary or user flow
+- Do not run iOS simulator-backed tests, UI tests, screenshot-generation, or local smoke flows unless the user explicitly allows that simulator-backed run for the current task
 - Do not spend time validating older iOS versions
 - Do not add compatibility code for older iOS versions unless explicitly requested
-- If tests are requested, use one locally available iPhone simulator runtime only
+- If an iOS simulator-backed run is explicitly allowed, use one locally available iPhone simulator runtime only
 - Prefer an already booted local iPhone simulator on the final supported runtime
 - Prefer background CLI runs with `simctl` and `xcodebuild` instead of opening heavy Xcode UI flows
 - Do not open a visible Simulator window for test runs unless the user explicitly asks for a visible simulator at that time
@@ -88,7 +89,7 @@ The most trusted iOS checks are the simulator-backed native smoke flows because 
 
 ## Local Test Workflow
 
-For local iOS test runs, prefer this sequence:
+When the user has explicitly allowed a local iOS simulator-backed test run for the current task, prefer this sequence:
 
 1. Reuse an already booted iPhone simulator when available.
 2. Wait for that simulator with `xcrun simctl bootstatus <device-uuid> -b`.
