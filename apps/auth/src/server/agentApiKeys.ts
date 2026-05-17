@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import {
   applyWorkspaceDatabaseScopeInExecutor,
+  query,
   queryWithUserScope,
   transactionWithUserScope,
   type DatabaseExecutor,
@@ -26,6 +27,10 @@ type AgentApiKeyRow = Readonly<{
 
 type WorkspaceMembershipRow = Readonly<{
   workspace_id: string;
+}>;
+
+type IdentityMappingRow = Readonly<{
+  user_id: string;
 }>;
 
 export type AgentApiKeyConnection = Readonly<{
@@ -144,22 +149,37 @@ function mapConnection(row: AgentApiKeyRow): AgentApiKeyConnection {
   };
 }
 
+async function resolveCanonicalUserId(providerSubject: string): Promise<string> {
+  const result = await query<IdentityMappingRow>(
+    [
+      "SELECT user_id",
+      "FROM auth.user_identities",
+      "WHERE provider_type = 'cognito' AND provider_subject = $1",
+      "LIMIT 1",
+    ].join(" "),
+    [providerSubject],
+  );
+
+  return result.rows[0]?.user_id ?? providerSubject;
+}
+
 /**
  * Creates a full-user long-lived API key from a freshly issued Cognito ID
  * token. The key is shown once and only its hash is persisted.
  */
 export async function createAgentApiKeyFromIdToken(idToken: string, label: string): Promise<CreatedAgentApiKey> {
   const identity = await verifySessionTokenIdentity(idToken);
+  const userId = await resolveCanonicalUserId(identity.userId);
   const normalizedLabel = normalizeAgentApiKeyLabel(label);
   const connectionId = randomUUID();
   const keyId = createKeyId();
   const keySecret = createKeySecret();
   const keyHash = hashKeySecret(keySecret);
 
-  const result = await transactionWithUserScope({ userId: identity.userId }, async (executor) => {
+  const result = await transactionWithUserScope({ userId }, async (executor) => {
     await executor.query(
       upsertUserSettingsSql,
-      [identity.userId, identity.email],
+      [userId, identity.email],
     );
     const membershipResult = await executor.query<WorkspaceMembershipRow>(
       [
@@ -168,11 +188,11 @@ export async function createAgentApiKeyFromIdToken(idToken: string, label: strin
         "WHERE user_id = $1",
         "ORDER BY created_at ASC, workspace_id ASC",
       ].join(" "),
-      [identity.userId],
+      [userId],
     );
     let selectedWorkspaceId: string | null;
     if (membershipResult.rows.length === 0) {
-      selectedWorkspaceId = await createWorkspaceInExecutor(executor, identity.userId);
+      selectedWorkspaceId = await createWorkspaceInExecutor(executor, userId);
     } else if (membershipResult.rows.length === 1) {
       const onlyWorkspace = membershipResult.rows[0];
       if (onlyWorkspace === undefined) {
@@ -190,7 +210,7 @@ export async function createAgentApiKeyFromIdToken(idToken: string, label: strin
         "VALUES ($1, $2, $3, $4, $5, $6)",
         "RETURNING connection_id, user_id, label, key_id, selected_workspace_id, created_at, last_used_at, revoked_at",
       ].join(" "),
-      [connectionId, identity.userId, normalizedLabel, keyId, keyHash, selectedWorkspaceId],
+      [connectionId, userId, normalizedLabel, keyId, keyHash, selectedWorkspaceId],
     );
     const row = inserted.rows[0];
     if (row === undefined) {

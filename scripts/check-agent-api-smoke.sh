@@ -34,8 +34,8 @@ request_json() {
   local headers_file
   local status
 
-  body_file="$(mktemp "${TMP_DIR}/body.XXXXXX.json")"
-  headers_file="$(mktemp "${TMP_DIR}/headers.XXXXXX.txt")"
+  body_file="$(mktemp "${TMP_DIR}/body.XXXXXX")"
+  headers_file="$(mktemp "${TMP_DIR}/headers.XXXXXX")"
 
   if [[ -n "${body}" ]]; then
     if [[ -n "${auth_header}" ]]; then
@@ -248,11 +248,12 @@ assert payload["data"]["apiBaseUrl"] == api_base_url
 assert payload["actions"][0]["name"] == "verify_code"
 assert payload["actions"][0]["url"] == f"{auth_base_url}/api/agent/verify-code"
 assert payload["docs"]["openapiUrl"] == f"{api_base_url}/agent/openapi.json"
+assert "00000000" in payload["instructions"]
 print(otp_session_token)
 PY
 )"
 
-request_json "POST" "${AUTH_BASE_URL%/}/api/agent/verify-code" "{\"code\":\"12345678\",\"otpSessionToken\":\"${OTP_SESSION_TOKEN}\",\"label\":\"${CONNECTION_LABEL}\"}" ""
+request_json "POST" "${AUTH_BASE_URL%/}/api/agent/verify-code" "{\"code\":\"00000000\",\"otpSessionToken\":\"${OTP_SESSION_TOKEN}\",\"label\":\"${CONNECTION_LABEL}\"}" ""
 assert_status "200" "POST /api/agent/verify-code"
 VERIFY_CODE_BODY="${LAST_BODY_FILE}"
 AGENT_API_KEY="$(
