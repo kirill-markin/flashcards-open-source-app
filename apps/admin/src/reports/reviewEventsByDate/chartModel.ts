@@ -1,6 +1,8 @@
 import * as d3 from "d3";
 import {
+  reviewEventCohorts,
   reviewEventPlatforms,
+  type ReviewEventCohort,
   type ReviewEventPlatform,
   type ReviewEventsByDateReport,
   type ReviewEventsByDateUniqueUserCohort,
@@ -73,8 +75,8 @@ const platformColors: Readonly<Record<ReviewEventPlatform, string>> = {
   ios: "#f28e2b",
 };
 
-export const uniqueUserCohortKeys = ["returning", "new"] as const;
-export type UniqueUserCohortKey = (typeof uniqueUserCohortKeys)[number];
+export const uniqueUserCohortKeys = reviewEventCohorts;
+export type UniqueUserCohortKey = ReviewEventCohort;
 
 export const uniqueUserCohortLabels: Readonly<Record<UniqueUserCohortKey, string>> = {
   returning: "Returning",
