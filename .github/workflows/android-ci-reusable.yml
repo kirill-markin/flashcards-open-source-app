@@ -26,7 +26,7 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - uses: gradle/actions/setup-gradle@v6
+      - uses: gradle/actions/setup-gradle@v6.1.0
 
       - name: Install Android SDK packages
         env:
@@ -85,7 +85,7 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - uses: gradle/actions/setup-gradle@v6
+      - uses: gradle/actions/setup-gradle@v6.1.0
 
       - name: Install Android SDK packages
         env:
@@ -106,7 +106,7 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       - name: Run data:local instrumentation suite on emulator
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@v2.37.0
         with:
           api-level: 36
           target: google_apis
