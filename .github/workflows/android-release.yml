@@ -479,7 +479,7 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - uses: gradle/actions/setup-gradle@v6
+      - uses: gradle/actions/setup-gradle@v6.1.0
 
       - uses: google-github-actions/auth@v3
         id: auth
@@ -559,7 +559,7 @@ jobs:
           path: apps/android/app/build/outputs/bundle/release/app-release.aab
 
       - name: Upload bundle to Google Play production track as draft release
-        uses: r0adkll/upload-google-play@v1
+        uses: r0adkll/upload-google-play@v1.1.5
         with:
           serviceAccountJson: ${{ steps.auth.outputs.credentials_file_path }}
           packageName: ${{ vars.ANDROID_PLAY_PACKAGE_NAME }}
