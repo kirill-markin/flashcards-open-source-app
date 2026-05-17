@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useState, type JSX } from "react";
-import type { ReviewEventsByDateReport } from "../../adminApi";
+import {
+  reviewEventCohorts,
+  reviewEventPlatforms,
+  type ReviewEventCohort,
+  type ReviewEventPlatform,
+  type ReviewEventsByDateReport,
+} from "../../adminApi";
 import { buildReviewEventsByDateChartModel } from "./chartModel";
 import { ReviewEventsByDateCharts } from "./ReviewEventsByDateCharts";
 import { ReviewEventsByDateFilters } from "./ReviewEventsByDateFilters";
@@ -16,9 +22,57 @@ import {
   visibleUserFilterOptionLimit,
 } from "./userFilters";
 import {
-  filterReviewEventsByDateReportByUsers,
+  filterReviewEventsByDateReport,
   type ReviewEventsByDateRange,
 } from "./query";
+
+function getUpdatedUserFilterSelection(
+  currentUserIds: ReadonlyArray<string>,
+  userId: string,
+  isChecked: boolean,
+): ReadonlyArray<string> {
+  if (isChecked) {
+    if (currentUserIds.includes(userId)) {
+      return currentUserIds;
+    }
+
+    return [...currentUserIds, userId];
+  }
+
+  return currentUserIds.filter((currentUserId) => currentUserId !== userId);
+}
+
+function getUpdatedCohortFilterSelection(
+  currentCohorts: ReadonlyArray<ReviewEventCohort>,
+  cohort: ReviewEventCohort,
+  isChecked: boolean,
+): ReadonlyArray<ReviewEventCohort> {
+  if (isChecked) {
+    if (currentCohorts.includes(cohort)) {
+      return currentCohorts;
+    }
+
+    return [...currentCohorts, cohort];
+  }
+
+  return currentCohorts.filter((currentCohort) => currentCohort !== cohort);
+}
+
+function getUpdatedPlatformFilterSelection(
+  currentPlatforms: ReadonlyArray<ReviewEventPlatform>,
+  platform: ReviewEventPlatform,
+  isChecked: boolean,
+): ReadonlyArray<ReviewEventPlatform> {
+  if (isChecked) {
+    if (currentPlatforms.includes(platform)) {
+      return currentPlatforms;
+    }
+
+    return [...currentPlatforms, platform];
+  }
+
+  return currentPlatforms.filter((currentPlatform) => currentPlatform !== platform);
+}
 
 export function ReviewEventsByDateDashboard(
   props: Readonly<{
@@ -36,6 +90,8 @@ export function ReviewEventsByDateDashboard(
     to: props.report.to,
   });
   const [selectedUserIds, setSelectedUserIds] = useState<ReadonlyArray<string>>([]);
+  const [selectedCohorts, setSelectedCohorts] = useState<ReadonlyArray<ReviewEventCohort>>([...reviewEventCohorts]);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<ReadonlyArray<ReviewEventPlatform>>([...reviewEventPlatforms]);
   const [userFilterSearchValue, setUserFilterSearchValue] = useState<string>("");
 
   useEffect(() => {
@@ -69,17 +125,7 @@ export function ReviewEventsByDateDashboard(
   }
 
   function handleUserFilterChange(userId: string, isChecked: boolean): void {
-    setSelectedUserIds((currentUserIds) => {
-      if (isChecked) {
-        if (currentUserIds.includes(userId)) {
-          return currentUserIds;
-        }
-
-        return [...currentUserIds, userId];
-      }
-
-      return currentUserIds.filter((currentUserId) => currentUserId !== userId);
-    });
+    setSelectedUserIds((currentUserIds) => getUpdatedUserFilterSelection(currentUserIds, userId, isChecked));
   }
 
   function handleUserFilterRemove(userId: string): void {
@@ -90,25 +136,58 @@ export function ReviewEventsByDateDashboard(
     setSelectedUserIds([]);
   }
 
+  function handleCohortFilterChange(cohort: ReviewEventCohort, isChecked: boolean): void {
+    setSelectedCohorts((currentCohorts) => getUpdatedCohortFilterSelection(currentCohorts, cohort, isChecked));
+  }
+
+  function handlePlatformFilterChange(platform: ReviewEventPlatform, isChecked: boolean): void {
+    setSelectedPlatforms((currentPlatforms) => getUpdatedPlatformFilterSelection(currentPlatforms, platform, isChecked));
+  }
+
+  function handleAllFiltersReset(): void {
+    setDraftRange(props.defaultRange);
+    setSelectedUserIds([]);
+    setSelectedCohorts([...reviewEventCohorts]);
+    setSelectedPlatforms([...reviewEventPlatforms]);
+    setUserFilterSearchValue("");
+    props.onDateRangeReset();
+  }
+
   const handleChartUserFilterApply = useCallback((userId: string): void => {
     setSelectedUserIds([userId]);
   }, []);
 
   const filteredReport = useMemo(
-    () => filterReviewEventsByDateReportByUsers(props.report, selectedUserIds),
-    [props.report, selectedUserIds],
+    () => filterReviewEventsByDateReport(props.report, {
+      selectedUserIds,
+      selectedCohorts,
+      selectedPlatforms,
+    }),
+    [props.report, selectedCohorts, selectedPlatforms, selectedUserIds],
   );
   const selectedUserIdSet = useMemo(
     () => new Set(selectedUserIds),
     [selectedUserIds],
   );
-  const userById = useMemo(
+  const selectedCohortSet = useMemo(
+    () => new Set(selectedCohorts),
+    [selectedCohorts],
+  );
+  const selectedPlatformSet = useMemo(
+    () => new Set(selectedPlatforms),
+    [selectedPlatforms],
+  );
+  const reportUserById = useMemo(
     () => new Map(props.report.users.map((user) => [user.userId, user])),
     [props.report.users],
   );
+  const filteredUserById = useMemo(
+    () => new Map(filteredReport.users.map((user) => [user.userId, user])),
+    [filteredReport.users],
+  );
   const activeUserFilters = useMemo(
-    () => buildActiveUserFilters(selectedUserIds, userById),
-    [selectedUserIds, userById],
+    () => buildActiveUserFilters(selectedUserIds, reportUserById),
+    [selectedUserIds, reportUserById],
   );
   const normalizedUserFilterSearchValue = useMemo(
     () => getNormalizedSearchValue(userFilterSearchValue),
@@ -161,12 +240,20 @@ export function ReviewEventsByDateDashboard(
 
       <ReviewEventsByDateFilters
         defaultRange={props.defaultRange}
+        appliedRange={{
+          from: props.report.from,
+          to: props.report.to,
+        }}
         draftRange={draftRange}
         isReportLoading={props.isReportLoading}
         dateRangeError={props.dateRangeError}
         reportUsers={props.report.users}
         selectedUserIds={selectedUserIds}
         selectedUserIdSet={selectedUserIdSet}
+        selectedCohorts={selectedCohorts}
+        selectedCohortSet={selectedCohortSet}
+        selectedPlatforms={selectedPlatforms}
+        selectedPlatformSet={selectedPlatformSet}
         userFilterSearchValue={userFilterSearchValue}
         visibleUserFilterOptions={visibleUserFilterOptions}
         matchingUserFilterOptionCount={matchingUserFilterOptions.length}
@@ -181,6 +268,9 @@ export function ReviewEventsByDateDashboard(
         onUserFilterChange={handleUserFilterChange}
         onUserFilterRemove={handleUserFilterRemove}
         onUserFilterClear={handleUserFilterClear}
+        onCohortFilterChange={handleCohortFilterChange}
+        onPlatformFilterChange={handlePlatformFilterChange}
+        onAllFiltersReset={handleAllFiltersReset}
       />
 
       <ReviewEventsByDateSummary cards={summaryCards} />
@@ -189,7 +279,7 @@ export function ReviewEventsByDateDashboard(
         chartModel={chartModel}
         generatedAtUtc={props.report.generatedAtUtc}
         isReportLoading={props.isReportLoading}
-        userById={userById}
+        userById={filteredUserById}
         onUserFilterApply={handleChartUserFilterApply}
       />
     </main>

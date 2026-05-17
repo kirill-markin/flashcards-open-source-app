@@ -1,10 +1,12 @@
 import {
+  reviewEventCohorts,
   reviewEventPlatforms,
   runAdminQuery,
 } from "../../adminApi";
 import type {
   AdminQueryResultSet,
   AdminQueryValue,
+  ReviewEventCohort,
   ReviewEventPlatform,
   ReviewEventsByDatePlatformActiveUserTotal,
   ReviewEventsByDatePlatformReviewEventTotal,
@@ -29,6 +31,12 @@ type ReviewEventsByDateQueryRow = Readonly<{
 export type ReviewEventsByDateRange = Readonly<{
   from: string;
   to: string;
+}>;
+
+export type ReviewEventsByDateFilterState = Readonly<{
+  selectedUserIds: ReadonlyArray<string>;
+  selectedCohorts: ReadonlyArray<ReviewEventCohort>;
+  selectedPlatforms: ReadonlyArray<ReviewEventPlatform>;
 }>;
 
 type ReviewEventsByDateDefaultRangeQueryRow = Readonly<{
@@ -307,16 +315,50 @@ function buildReviewEventsByDateReport(
   };
 }
 
-export function filterReviewEventsByDateReportByUsers(
+function getReviewEventsByDateRowCohort(row: ReviewEventsByDateRow): ReviewEventCohort {
+  return row.firstReviewDate === row.date ? "new" : "returning";
+}
+
+function isUnfilteredReviewEventsByDateReport(filters: ReviewEventsByDateFilterState): boolean {
+  return filters.selectedUserIds.length === 0
+    && filters.selectedCohorts.length === reviewEventCohorts.length
+    && filters.selectedPlatforms.length === reviewEventPlatforms.length;
+}
+
+function shouldIncludeReviewEventsByDateRow(
+  row: ReviewEventsByDateRow,
+  selectedUserIdSet: ReadonlySet<string>,
+  selectedCohortSet: ReadonlySet<ReviewEventCohort>,
+  selectedPlatformSet: ReadonlySet<ReviewEventPlatform>,
+): boolean {
+  if (selectedUserIdSet.size > 0 && selectedUserIdSet.has(row.userId) === false) {
+    return false;
+  }
+
+  if (selectedCohortSet.has(getReviewEventsByDateRowCohort(row)) === false) {
+    return false;
+  }
+
+  return selectedPlatformSet.has(row.platform);
+}
+
+export function filterReviewEventsByDateReport(
   report: ReviewEventsByDateReport,
-  selectedUserIds: ReadonlyArray<string>,
+  filters: ReviewEventsByDateFilterState,
 ): ReviewEventsByDateReport {
-  if (selectedUserIds.length === 0) {
+  if (isUnfilteredReviewEventsByDateReport(filters)) {
     return report;
   }
 
-  const selectedUserIdSet = new Set(selectedUserIds);
-  const rows = report.rows.filter((row) => selectedUserIdSet.has(row.userId));
+  const selectedUserIdSet = new Set(filters.selectedUserIds);
+  const selectedCohortSet = new Set(filters.selectedCohorts);
+  const selectedPlatformSet = new Set(filters.selectedPlatforms);
+  const rows = report.rows.filter((row) => shouldIncludeReviewEventsByDateRow(
+    row,
+    selectedUserIdSet,
+    selectedCohortSet,
+    selectedPlatformSet,
+  ));
   const dates = buildRequestedDateRange(report.from, report.to);
   const aggregateFields = buildReviewEventsByDateAggregateFields(rows, dates);
 
