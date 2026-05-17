@@ -30,6 +30,7 @@ import {
 import { isTransientDatabaseError } from "../server/databaseErrors.js";
 
 const CODE_RE = /^\d{8}$/;
+const DEMO_AGENT_PLACEHOLDER_CODE = "00000000";
 const POST_COGNITO_RESTART_INSTRUCTIONS = "Start a fresh auth flow by calling POST /api/agent/send-code again. Do not retry verify_code with the same code or otpSessionToken because the code may already be consumed.";
 const INVALID_CODE_RECORD_FAILURE_INSTRUCTIONS = "Cognito rejected this code, and the invalid attempt could not be recorded. Do not retry verify_code with the same invalid code. Ask the user for the latest 8-digit email code and retry verify_code only with a newer code. If the latest code is unclear or expired, start a fresh flow with POST /api/agent/send-code.";
 
@@ -196,6 +197,18 @@ export function createAgentVerifyCodeApp(dependencies: AgentVerifyCodeDependenci
     }
 
     const demoPassword = await dependencies.getDemoEmailPassword(challenge.email);
+    if (demoPassword !== null && code !== DEMO_AGENT_PLACEHOLDER_CODE) {
+      return c.json(
+        createAgentErrorEnvelope(
+          c.req.url,
+          "OTP_CODE_INVALID",
+          "Enter the configured review/demo placeholder code.",
+          "Use deterministic placeholder code 00000000 for configured review/demo accounts, then retry verify_code with the same otpSessionToken.",
+        ),
+        400,
+      );
+    }
+
     let tokens: TokenResult;
     try {
       tokens = demoPassword === null

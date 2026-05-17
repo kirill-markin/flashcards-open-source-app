@@ -22,7 +22,9 @@ import { getPublicAuthBaseUrl, getPublicApiBaseUrl } from "../server/publicUrls.
 import { isTransientDatabaseError } from "../server/databaseErrors.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const POST_EMAIL_DELIVERY_DB_FAILURE_INSTRUCTIONS = "A verification email may already be in the user's inbox, but this response could not create a usable agent verification handle. Do not retry this same send-code request immediately because it may send another email. Ask the user to wait briefly and check their email. If sign-in is still needed, start a fresh flow with POST /api/agent/send-code and use only the latest email code and latest otpSessionToken.";
+const POST_EMAIL_DELIVERY_DB_FAILURE_INSTRUCTIONS = "A verification email may already be in the user's inbox, but this response could not create a usable agent verification handle. Do not retry this same send-code request immediately because it may send another email. Ask the user to wait briefly and check their email, including spam or junk. If sign-in is still needed, start a fresh flow with POST /api/agent/send-code and use only the latest email code and latest otpSessionToken.";
+const REAL_OTP_SEND_CODE_INSTRUCTIONS = "A verification code has been sent to the user's email. Ask for the 8-digit code from the email. If the user does not see it, tell them to check spam or junk before requesting another code. Do not immediately call send-code again. Then call verify_code with code, otpSessionToken, and a label for this agent connection. Read payload from data.* and do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions.";
+const DEMO_SEND_CODE_INSTRUCTIONS = "This configured review/demo account uses a preconfigured demo verification flow, so no email was sent. Use the deterministic 8-digit placeholder code 00000000. Do not wait for an email or ask the user for a code. Then call verify_code with code, otpSessionToken, and a label for this agent connection. Read payload from data.* and do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions.";
 
 type AgentSendCodeDependencies = Readonly<{
   initiateEmailOtp: (email: string) => Promise<Readonly<{ session: string }>>;
@@ -130,7 +132,7 @@ export function createAgentSendCodeApp(dependencies: AgentSendCodeDependencies):
             required: ["code", "otpSessionToken", "label"],
           },
         }],
-        "A verification code has been sent to the user's email. Ask for the 8-digit code from the email, then call verify_code with code, otpSessionToken, and a label for this agent connection. Read payload from data.* and do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions.",
+        DEMO_SEND_CODE_INSTRUCTIONS,
       ));
     }
 
@@ -249,7 +251,7 @@ export function createAgentSendCodeApp(dependencies: AgentSendCodeDependencies):
           required: ["code", "otpSessionToken", "label"],
         },
       }],
-      "A verification code has been sent to the user's email. Ask for the 8-digit code from the email, then call verify_code with code, otpSessionToken, and a label for this agent connection. Read payload from data.* and do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions.",
+      REAL_OTP_SEND_CODE_INSTRUCTIONS,
     ));
   });
 

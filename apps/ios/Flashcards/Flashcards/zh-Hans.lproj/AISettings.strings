@@ -267,7 +267,7 @@
 "settings.account.cloudSignIn.codeRequired" = "代码为必填";
 "settings.account.cloudSignIn.codeStillLoading" = "代码仍在加载";
 "settings.account.cloudSignIn.resendCode" = "重新发送代码";
-"settings.account.cloudSignIn.challengePrompt.active" = "输入您通过电子邮件收到的 8 位代码。";
+"settings.account.cloudSignIn.challengePrompt.active" = "输入您通过电子邮件收到的 8 位代码。如果没有看到，请检查垃圾邮件文件夹。";
 "settings.account.cloudSignIn.challengePrompt.consumed" = "该代码已被使用。请求新的继续。";
 "settings.account.cloudSignIn.challengePrompt.expired" = "该代码已过期。请求新的继续。";
 "settings.account.cloudSignIn.workspaceDescription" = "选择一个选项继续：将此设备链接到现有云工作区或创建一个新的云工作区。";

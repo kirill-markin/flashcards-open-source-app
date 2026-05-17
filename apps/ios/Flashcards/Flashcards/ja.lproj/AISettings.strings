@@ -267,7 +267,7 @@
 "settings.account.cloudSignIn.codeRequired" = "コードは必須です";
 "settings.account.cloudSignIn.codeStillLoading" = "コードはまだ読み込み中です";
 "settings.account.cloudSignIn.resendCode" = "コードを再送信";
-"settings.account.cloudSignIn.challengePrompt.active" = "メールで受け取った 8 桁のコードを入力してください。";
+"settings.account.cloudSignIn.challengePrompt.active" = "メールで受け取った 8 桁のコードを入力してください。見つからない場合は、迷惑メールフォルダを確認してください。";
 "settings.account.cloudSignIn.challengePrompt.consumed" = "このコードはすでに使用されています。続行するには、新しいリクエストをリクエストしてください。";
 "settings.account.cloudSignIn.challengePrompt.expired" = "このコードの有効期限は切れています。続行するには、新しいリクエストをリクエストしてください。";
 "settings.account.cloudSignIn.workspaceDescription" = "オプションを選択して続行します: このデバイスを既存のクラウド ワークスペースにリンクするか、新しいクラウド ワークスペースを作成します。";

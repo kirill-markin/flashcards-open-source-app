@@ -257,6 +257,8 @@ test("agent send-code issues an opaque challenge for allowlisted demo emails wit
   assert.equal(response.status, 200);
   assert.equal(payload.ok, true);
   assert.equal(payload.data.otpSessionToken, "DEMO-AGENT-OTP");
+  assert.match(payload.instructions, /placeholder code 00000000/);
+  assert.match(payload.instructions, /Do not wait for an email or ask the user for a code/);
   assert.equal(createdChallengeSession, "demo-agent-session:google-review@example.com");
   assert.equal(decideOtpRateLimitCalled, false);
   assert.equal(recordOtpSendDecisionCalled, false);
@@ -351,7 +353,7 @@ test("agent verify-code signs in with the demo password for allowlisted demo ema
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      code: "87654321",
+      code: "00000000",
       otpSessionToken: "DEMO-TOKEN",
       label: "agent smoke",
     }),
@@ -364,6 +366,50 @@ test("agent verify-code signs in with the demo password for allowlisted demo ema
   assert.equal(payload.data.connection.label, "agent smoke");
   assert.equal(signInWithPasswordEmail, "google-review@example.com:demo-password");
   assert.equal(createdKeyIdToken, "demo-id-token");
+});
+
+test("agent verify-code rejects non-placeholder demo account codes", async () => {
+  let signInWithPasswordCalled = false;
+
+  const app = createAgentVerifyCodeApp({
+    lookupAgentOtpChallenge: async () => createActiveChallenge("google-review@example.com", "demo-agent-session:google-review@example.com"),
+    getOtpVerifyAttemptState: async () => createActiveAttemptState(),
+    recordOtpVerifyFailure: async () => createUnusedFailureResult(),
+    verifyEmailOtp: async () => {
+      throw new Error("verifyEmailOtp must not run for demo emails");
+    },
+    signInWithPassword: async () => {
+      signInWithPasswordCalled = true;
+      throw new Error("signInWithPassword must not run for wrong demo placeholder");
+    },
+    getDemoEmailPassword: async () => "demo-password",
+    markAgentOtpChallengeUsed: async () => undefined,
+    normalizeAgentApiKeyLabel: (label) => label.trim(),
+    createAgentApiKeyFromIdToken: async () => {
+      throw new Error("createAgentApiKeyFromIdToken must not run for wrong demo placeholder");
+    },
+    now: () => 1,
+  });
+
+  const response = await app.request("https://auth.flashcards-open-source-app.com/api/agent/verify-code", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      code: "87654321",
+      otpSessionToken: "DEMO-TOKEN",
+      label: "agent smoke",
+    }),
+  });
+
+  const payload = await readJsonResponse<AgentErrorResponse>(response);
+
+  assert.equal(response.status, 400);
+  assert.equal(payload.ok, false);
+  assert.equal(payload.error.code, "OTP_CODE_INVALID");
+  assert.match(payload.instructions, /00000000/);
+  assert.equal(signInWithPasswordCalled, false);
 });
 
 test("agent verify-code rejects invalid code format before any auth call", async () => {
