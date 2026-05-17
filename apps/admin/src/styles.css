@@ -164,9 +164,107 @@ h2 {
   background: rgba(196, 75, 45, 0.16);
 }
 
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filter-popover-anchor {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+}
+
+.filter-menu-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  max-width: min(100%, 460px);
+  padding: 0 15px;
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filter-menu-button.filtered {
+  border-color: rgba(214, 90, 56, 0.48);
+  background: rgba(196, 75, 45, 0.14);
+}
+
+.filter-menu-button.active {
+  border-color: rgba(214, 90, 56, 0.78);
+  box-shadow: 0 0 0 3px rgba(196, 75, 45, 0.18);
+}
+
+.filter-menu-button:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+.filter-menu-button:not(:disabled):hover {
+  border-color: rgba(255, 255, 255, 0.24);
+  transform: translateY(-1px);
+}
+
+.filter-popover {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 8px);
+  display: grid;
+  gap: 12px;
+  width: min(360px, calc(100vw - 48px));
+  max-width: calc(100vw - 48px);
+  max-height: min(560px, calc(100vh - 180px));
+  padding: 14px;
+  overflow: auto;
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  background: rgba(20, 20, 24, 0.98);
+  box-shadow: var(--shadow);
+}
+
+.filter-popover-anchor-wide .filter-popover {
+  width: min(620px, calc(100vw - 48px));
+}
+
+.filter-popover-anchor-start .filter-popover {
+  left: 0;
+}
+
+.filter-popover-anchor-center .filter-popover {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.filter-popover-anchor-end .filter-popover {
+  right: 0;
+}
+
+.filter-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
 .date-filter-form {
   display: grid;
-  grid-template-columns: repeat(2, minmax(180px, 240px)) auto;
+  grid-template-columns: repeat(2, minmax(160px, 1fr)) auto;
   align-items: end;
   gap: 12px;
 }
@@ -245,11 +343,57 @@ h2 {
   font-size: 12px;
 }
 
+.filter-button-reset-all {
+  background: rgba(255, 255, 255, 0.04);
+}
+
 .filter-error {
   margin: 0;
   color: #ffb6a6;
   font-size: 13px;
   font-weight: 700;
+}
+
+.filter-popover-error {
+  grid-column: 1 / -1;
+}
+
+.filter-option-list {
+  display: grid;
+  gap: 8px;
+}
+
+.filter-checkbox-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.filter-checkbox-option.selected {
+  border-color: rgba(214, 90, 56, 0.62);
+  background: rgba(196, 75, 45, 0.14);
+}
+
+.filter-checkbox-option input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: var(--accent);
+}
+
+.filter-checkbox-option:has(input:disabled) {
+  cursor: wait;
+  opacity: 0.68;
 }
 
 .user-filter-section {
@@ -277,6 +421,10 @@ h2 {
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
+}
+
+.filter-popover .user-filter-search {
+  max-width: none;
 }
 
 .user-filter-search input {
@@ -312,7 +460,7 @@ h2 {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
   gap: 8px;
-  max-height: 224px;
+  max-height: 260px;
   overflow: auto;
   padding: 2px 2px 4px;
 }
@@ -653,6 +801,38 @@ h2 {
   padding: 28px;
 }
 
+@media (max-width: 1100px) {
+  .filter-bar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .filter-popover,
+  .filter-popover-anchor-wide .filter-popover {
+    right: auto;
+    left: 0;
+    width: 100%;
+    max-width: 100%;
+    transform: none;
+  }
+
+  .filter-popover-anchor {
+    display: block;
+    width: 100%;
+  }
+
+  .filter-menu-button {
+    justify-content: flex-start;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .date-filter-form {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 768px) {
   .shell {
     padding: 24px 14px 40px;
@@ -667,8 +847,13 @@ h2 {
     flex-direction: column;
   }
 
-  .date-filter-form {
+  .filter-bar {
+    align-items: stretch;
     grid-template-columns: 1fr;
+  }
+
+  .filter-popover {
+    transform: none;
   }
 
   .date-filter-actions {

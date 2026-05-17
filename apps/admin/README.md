@@ -61,5 +61,6 @@ The dashboard shows four review charts:
 - daily review events by platform
 
 The default chart range starts on the first calendar day with any `content.review_events.reviewed_at_server` row and ends on today, inclusive, in the dashboard timezone. The dashboard includes date range filters that can narrow the chart range and reset back to that default.
+The filter panel keeps date, user, new/returning cohort, and platform filters in one compact row. User emails and user IDs are shown only inside the user filter popup and chart tooltips, not as a persistent page list.
 
 Its SQL lives in the admin frontend as a chart-owned query and runs through the generic admin reporting endpoint.
