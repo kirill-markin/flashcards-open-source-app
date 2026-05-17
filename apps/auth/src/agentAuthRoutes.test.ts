@@ -407,6 +407,7 @@ test("agent verify-code rejects non-placeholder demo account codes", async () =>
 
   assert.equal(response.status, 400);
   assert.equal(payload.ok, false);
+  assert.ok(payload.error);
   assert.equal(payload.error.code, "OTP_CODE_INVALID");
   assert.match(payload.instructions, /00000000/);
   assert.equal(signInWithPasswordCalled, false);
