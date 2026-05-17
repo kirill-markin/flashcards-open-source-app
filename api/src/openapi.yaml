@@ -12,14 +12,15 @@ servers:
       Canonical API host for discovery, bootstrap, docs, and external agent
       tools
   - url: https://auth.flashcards-open-source-app.com
-    description: Auth host for email OTP bootstrap
+    description: Auth host for agent auth bootstrap
 tags:
   - name: discovery
     description: Entry points and documentation aliases for the external AI-agent contract.
   - name: auth
     description: >-
-      Email OTP bootstrap on the auth host. These routes issue long-lived ApiKey
-      credentials.
+      Agent auth bootstrap on the auth host. Normal accounts use email OTP;
+      configured review/demo accounts use a deterministic placeholder code.
+      These routes issue long-lived ApiKey credentials.
   - name: bootstrap
     description: >-
       Agent-oriented account and workspace bootstrap after ApiKey

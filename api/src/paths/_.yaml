@@ -37,10 +37,16 @@ get:
                 workspacesUrl: https://api.flashcards-open-source-app.com/v1/agent/workspaces
                 sqlUrl: https://api.flashcards-open-source-app.com/v1/agent/sql
             instructions: >-
-              Start with email OTP authentication. First call POST
-              /api/agent/send-code with the user's email. Then call POST
-              /api/agent/verify-code with the otpSessionToken, code, and label
-              to obtain a long-lived API key. After login, call GET /v1/agent/me, then GET
+              Start with agent auth bootstrap. First call POST
+              https://auth.flashcards-open-source-app.com/api/agent/send-code
+              with the user's email. After send-code, follow the returned
+              instructions: normal accounts require the 8-digit email code,
+              while configured review/demo accounts use a deterministic 8-digit
+              placeholder and do not send email. Do not immediately replay
+              send-code. Then call POST
+              https://auth.flashcards-open-source-app.com/api/agent/verify-code
+              with the otpSessionToken, code, and label to obtain a long-lived
+              API key. After login, call GET /v1/agent/me, then GET
               /v1/agent/workspaces?limit=100. If no workspace is selected,
               select one before using POST /v1/agent/sql. For routine low-risk
               writes, a clear user request already counts as permission. Ask

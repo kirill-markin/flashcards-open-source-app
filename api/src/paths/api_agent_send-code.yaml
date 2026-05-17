@@ -1,13 +1,15 @@
 post:
   tags:
     - auth
-  summary: Send OTP code
+  summary: Start agent auth challenge
   description: >-
-    Starts the external AI-agent auth flow by emailing an 8-digit OTP code and
-    returning a short opaque otpSessionToken.
+    Starts the external AI-agent auth flow and returns a short opaque
+    otpSessionToken. Normal accounts receive an 8-digit OTP by email.
+    Configured review/demo accounts do not send email and instead instruct the
+    agent to use a deterministic 8-digit placeholder code.
   servers:
     - url: https://auth.flashcards-open-source-app.com
-      description: Auth host for email OTP bootstrap
+      description: Auth host for agent auth bootstrap
   requestBody:
     required: true
     content:
@@ -21,31 +23,68 @@ post:
         application/json:
           schema:
             $ref: ../components/schemas/AgentSendCodeEnvelope.yaml
-          example:
-            ok: true
-            data:
-              email: user@example.com
-              otpSessionToken: ABCD-EFGH-IJKL-MNPQ-1234
-              expiresInSeconds: 180
-              authBaseUrl: https://auth.flashcards-open-source-app.com
-              apiBaseUrl: https://api.flashcards-open-source-app.com/v1
-            actions:
-              - name: verify_code
-                method: POST
-                url: https://auth.flashcards-open-source-app.com/api/agent/verify-code
-                input:
-                  required:
-                    - code
-                    - otpSessionToken
-                    - label
-            instructions: >-
-              A verification code has been sent. Next call POST
-              /api/agent/verify-code with the otpSessionToken, code, and
-              connection label. Read payload from data.* and use docs.openapiUrl
-              for the full contract.
-            docs:
-              openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
-              swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json
+          examples:
+            realEmail:
+              summary: Normal email OTP account
+              value:
+                ok: true
+                data:
+                  email: user@example.com
+                  otpSessionToken: ABCD-EFGH-IJKL-MNPQ-1234
+                  expiresInSeconds: 180
+                  authBaseUrl: https://auth.flashcards-open-source-app.com
+                  apiBaseUrl: https://api.flashcards-open-source-app.com/v1
+                actions:
+                  - name: verify_code
+                    method: POST
+                    url: https://auth.flashcards-open-source-app.com/api/agent/verify-code
+                    input:
+                      required:
+                        - code
+                        - otpSessionToken
+                        - label
+                instructions: >-
+                  A verification code has been sent. Ask for the 8-digit code
+                  from email. If the user does not see it, tell them to check
+                  spam or junk before requesting another code. Do not
+                  immediately call send-code again. Next call POST
+                  /api/agent/verify-code with the otpSessionToken, code, and
+                  connection label. Read payload from data.* and use
+                  docs.openapiUrl for the full contract.
+                docs:
+                  openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+                  swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json
+            demo:
+              summary: Configured review/demo account
+              value:
+                ok: true
+                data:
+                  email: google-review@example.com
+                  otpSessionToken: ABCD-EFGH-IJKL-MNPQ-1234
+                  expiresInSeconds: 180
+                  authBaseUrl: https://auth.flashcards-open-source-app.com
+                  apiBaseUrl: https://api.flashcards-open-source-app.com/v1
+                actions:
+                  - name: verify_code
+                    method: POST
+                    url: https://auth.flashcards-open-source-app.com/api/agent/verify-code
+                    input:
+                      required:
+                        - code
+                        - otpSessionToken
+                        - label
+                instructions: >-
+                  This configured review/demo account uses a preconfigured demo
+                  verification flow, so no email was sent. Use the
+                  deterministic 8-digit placeholder code 00000000. Do not wait
+                  for an email or ask the user for a code. Then call
+                  verify_code with code, otpSessionToken, and a label for this
+                  agent connection. Read payload from data.* and do not expect
+                  resource fields at the top level. Select the next endpoint
+                  from instructions and confirm it with actions.
+                docs:
+                  openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+                  swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json
     '503':
       description: >-
         Service temporarily unavailable. Follow the response envelope
@@ -83,9 +122,10 @@ post:
                   this response could not create a usable agent verification
                   handle. Do not retry this same send-code request immediately
                   because it may send another email. Ask the user to wait
-                  briefly and check their email. If sign-in is still needed,
-                  start a fresh flow with POST /api/agent/send-code and use
-                  only the latest email code and latest otpSessionToken.
+                  briefly and check their email, including spam or junk. If
+                  sign-in is still needed, start a fresh flow with POST
+                  /api/agent/send-code and use only the latest email code and
+                  latest otpSessionToken.
                 docs:
                   openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
                   swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json

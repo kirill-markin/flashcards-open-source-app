@@ -673,7 +673,7 @@ private struct CloudOtpVerificationSheet: View {
     private var challengePrompt: String {
         switch self.challengeState {
         case .active:
-            return aiSettingsLocalized("settings.account.cloudSignIn.challengePrompt.active", "Enter the 8-digit code from your email.")
+            return aiSettingsLocalized("settings.account.cloudSignIn.challengePrompt.active", "Enter the 8-digit code from your email. If you don't see it, check your spam folder.")
         case .consumed:
             return aiSettingsLocalized("settings.account.cloudSignIn.challengePrompt.consumed", "This code was already used. Request a new code to continue.")
         case .expired:

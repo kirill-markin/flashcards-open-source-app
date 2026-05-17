@@ -3,12 +3,14 @@ post:
     - auth
   summary: Verify OTP code and issue API key
   description: >-
-    Completes email OTP authentication and returns a long-lived ApiKey plus a
+    Completes the agent auth challenge and returns a long-lived ApiKey plus a
     connection descriptor for the external AI agent, followed by explicit
-    account/workspace bootstrap instructions.
+    account/workspace bootstrap instructions. Normal accounts verify the email
+    OTP code; configured review/demo accounts accept the deterministic
+    placeholder from send-code instructions.
   servers:
     - url: https://auth.flashcards-open-source-app.com
-      description: Auth host for email OTP bootstrap
+      description: Auth host for agent auth bootstrap
   requestBody:
     required: true
     content:

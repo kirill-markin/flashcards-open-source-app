@@ -267,7 +267,7 @@
 "settings.account.cloudSignIn.codeRequired" = "कोड अनिवार्य है";
 "settings.account.cloudSignIn.codeStillLoading" = "कोड अभी भी लोड हो रहा है";
 "settings.account.cloudSignIn.resendCode" = "कोड पुनः भेजें";
-"settings.account.cloudSignIn.challengePrompt.active" = "आपको ईमेल द्वारा प्राप्त 8-अंकीय कोड दर्ज करें।";
+"settings.account.cloudSignIn.challengePrompt.active" = "आपको ईमेल द्वारा प्राप्त 8-अंकीय कोड दर्ज करें। अगर यह न दिखे, तो स्पैम फ़ोल्डर देखें।";
 "settings.account.cloudSignIn.challengePrompt.consumed" = "इस कोड का उपयोग पहले ही किया जा चुका है. जारी रखने के लिए एक नए का अनुरोध करें।";
 "settings.account.cloudSignIn.challengePrompt.expired" = "यह कोड समाप्त हो गया है. जारी रखने के लिए एक नए का अनुरोध करें।";
 "settings.account.cloudSignIn.workspaceDescription" = "जारी रखने के लिए एक विकल्प चुनें: इस डिवाइस को मौजूदा क्लाउड वर्कस्पेस से लिंक करें या एक नया बनाएं।";

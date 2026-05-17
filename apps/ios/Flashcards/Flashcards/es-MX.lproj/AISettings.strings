@@ -267,7 +267,7 @@
 "settings.account.cloudSignIn.codeRequired" = "El codigo es obligatorio";
 "settings.account.cloudSignIn.codeStillLoading" = "El codigo aun se esta cargando";
 "settings.account.cloudSignIn.resendCode" = "Reenviar codigo";
-"settings.account.cloudSignIn.challengePrompt.active" = "Introduce el codigo de 8 digitos que recibiste por correo.";
+"settings.account.cloudSignIn.challengePrompt.active" = "Introduce el codigo de 8 digitos que recibiste por correo. Si no lo ves, revisa la carpeta de spam.";
 "settings.account.cloudSignIn.challengePrompt.consumed" = "Este codigo ya se ha usado. Solicita uno nuevo para continuar.";
 "settings.account.cloudSignIn.challengePrompt.expired" = "Este codigo ha caducado. Solicita uno nuevo para continuar.";
 "settings.account.cloudSignIn.workspaceDescription" = "Elige una opcion para continuar: vincular este dispositivo a un espacio de trabajo en la nube existente o crear uno nuevo.";

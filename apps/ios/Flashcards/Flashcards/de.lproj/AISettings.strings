@@ -267,7 +267,7 @@
 "settings.account.cloudSignIn.codeRequired" = "Der Code ist obligatorisch";
 "settings.account.cloudSignIn.codeStillLoading" = "Der Code wird immer noch geladen";
 "settings.account.cloudSignIn.resendCode" = "Code erneut senden";
-"settings.account.cloudSignIn.challengePrompt.active" = "Geben Sie den 8-stelligen Code ein, den Sie per E-Mail erhalten haben.";
+"settings.account.cloudSignIn.challengePrompt.active" = "Geben Sie den 8-stelligen Code ein, den Sie per E-Mail erhalten haben. Wenn Sie ihn nicht sehen, prüfen Sie den Spam-Ordner.";
 "settings.account.cloudSignIn.challengePrompt.consumed" = "Dieser Code wurde bereits verwendet. Fordern Sie ein neues an, um fortzufahren.";
 "settings.account.cloudSignIn.challengePrompt.expired" = "Dieser Code ist abgelaufen. Fordern Sie ein neues an, um fortzufahren.";
 "settings.account.cloudSignIn.workspaceDescription" = "Wählen Sie eine Option, um fortzufahren: Verknüpfen Sie dieses Gerät mit einem vorhandenen Cloud-Arbeitsbereich oder erstellen Sie einen neuen.";
