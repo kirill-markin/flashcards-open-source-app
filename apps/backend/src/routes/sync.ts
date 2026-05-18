@@ -26,10 +26,20 @@ import {
 } from "../server/requestContext";
 import { parseJsonBody } from "../server/requestParsing";
 import {
-  logCloudRouteEvent,
   summarizeValidationIssues,
 } from "../server/logging";
 import { withTransientDatabaseRetry } from "../dbTransient";
+import {
+  addBackendBreadcrumb,
+  createBackendObservationScope,
+  normalizeCaughtError,
+  type BackendFailureDetails,
+  type BackendObservationScope,
+  type BackendSyncConflictDetails,
+  type SyncPullDetails,
+  type SyncReviewHistoryPullDetails,
+} from "../observability/sentry";
+import { reportBackendExceptionOrBreadcrumb } from "../observability/reporting";
 import type { AppEnv } from "../app";
 
 type SyncRoutesOptions = Readonly<{
@@ -63,7 +73,9 @@ function getRequestContextUserId(requestContext: RequestContext | null): string 
   return requestContext === null ? null : requestContext.userId;
 }
 
-function getSyncPullInputLogContext(input: SyncPullInput | null): Record<string, unknown> {
+function getSyncPullInputDetails(
+  input: SyncPullInput | null,
+): Pick<SyncPullDetails, "installationId" | "platform" | "appVersion" | "afterHotChangeId"> {
   if (input === null) {
     return {
       installationId: null,
@@ -81,9 +93,9 @@ function getSyncPullInputLogContext(input: SyncPullInput | null): Record<string,
   };
 }
 
-function getSyncReviewHistoryPullInputLogContext(
+function getSyncReviewHistoryPullInputDetails(
   input: SyncReviewHistoryPullInput | null,
-): Record<string, unknown> {
+): Pick<SyncReviewHistoryPullDetails, "installationId" | "platform" | "appVersion" | "afterReviewSequenceId"> {
   if (input === null) {
     return {
       installationId: null,
@@ -101,14 +113,14 @@ function getSyncReviewHistoryPullInputLogContext(
   };
 }
 
-function getSyncConflictLogContext(error: HttpError | unknown): Record<string, unknown> {
+function getSyncConflictLogContext(error: HttpError | unknown): BackendSyncConflictDetails {
   if (!(error instanceof HttpError)) {
-    return {};
+    return emptySyncConflictDetails();
   }
 
   const syncConflict = error.details?.syncConflict;
   if (syncConflict === undefined) {
-    return {};
+    return emptySyncConflictDetails();
   }
 
   return {
@@ -122,6 +134,50 @@ function getSyncConflictLogContext(error: HttpError | unknown): Record<string, u
     entryIndex: syncConflict.entryIndex ?? null,
     reviewEventIndex: syncConflict.reviewEventIndex ?? null,
     syncConflictRecoverable: syncConflict.recoverable,
+  };
+}
+
+function emptySyncConflictDetails(): BackendSyncConflictDetails {
+  return {
+    syncConflictPhase: null,
+    syncConflictEntityType: null,
+    syncConflictEntityId: null,
+    conflictingWorkspaceId: null,
+    constraint: null,
+    sqlState: null,
+    table: null,
+    entryIndex: null,
+    reviewEventIndex: null,
+    syncConflictRecoverable: null,
+  };
+}
+
+function createSyncScope(
+  requestId: string,
+  route: string,
+  method: string,
+  userId: string | null,
+  workspaceId: string | null,
+): BackendObservationScope {
+  return createBackendObservationScope(
+    "backend-api",
+    requestId,
+    route,
+    method,
+    userId,
+    workspaceId,
+    null,
+    null,
+    null,
+  );
+}
+
+function createFailureDetails(error: unknown): BackendFailureDetails {
+  return {
+    statusCode: error instanceof HttpError ? error.statusCode : 500,
+    code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
+    message: getInternalErrorMessage(error),
+    validationIssues: summarizeValidationIssues(error),
   };
 }
 
@@ -143,36 +199,35 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
 
     try {
       const result = await processSyncPush(workspaceId, requestContext.userId, input);
-      logCloudRouteEvent("sync_push", {
-        requestId,
-        route: context.req.path,
-        statusCode: 200,
-        userId: requestContext.userId,
-        workspaceId,
-        installationId: input.installationId,
-        platform: input.platform,
-        appVersion: input.appVersion ?? null,
-        operationsCount: input.operations.length,
-        entityTypes,
-      }, false);
+      addBackendBreadcrumb({
+        action: "sync_push",
+        scope: createSyncScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId),
+        details: {
+          statusCode: 200,
+          installationId: input.installationId,
+          platform: input.platform,
+          appVersion: input.appVersion ?? null,
+          operationsCount: input.operations.length,
+          entityTypes,
+        },
+      });
       return context.json(result);
     } catch (error) {
-      logCloudRouteEvent("sync_push_error", {
-        requestId,
-        route: context.req.path,
-        statusCode: error instanceof HttpError ? error.statusCode : 500,
-        userId: requestContext.userId,
-        workspaceId,
+      const scope = createSyncScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
+      const details = {
         installationId: input.installationId,
         platform: input.platform,
         appVersion: input.appVersion ?? null,
         operationsCount: input.operations.length,
         entityTypes,
-        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
-        message: getInternalErrorMessage(error),
-        validationIssues: summarizeValidationIssues(error),
+        ...createFailureDetails(error),
         ...getSyncConflictLogContext(error),
-      }, true);
+      };
+      reportBackendExceptionOrBreadcrumb(
+        error,
+        { action: "sync_push_error", error: normalizeCaughtError(error), scope, details },
+        { action: "sync_push_error", scope, details },
+      );
       throw error;
     }
   });
@@ -211,32 +266,45 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
           };
         },
       );
-      logCloudRouteEvent("sync_pull", {
-        requestId,
-        route: context.req.path,
-        statusCode: 200,
-        userId: routeState.requestContext.userId,
-        workspaceId: routeState.workspaceId,
-        installationId: routeState.input.installationId,
-        platform: routeState.input.platform,
-        appVersion: routeState.input.appVersion ?? null,
-        afterHotChangeId: routeState.input.afterHotChangeId,
-        nextHotChangeId: routeState.result.nextHotChangeId,
-        changesCount: routeState.result.changes.length,
-      }, false);
+      addBackendBreadcrumb({
+        action: "sync_pull",
+        scope: createSyncScope(
+          requestId,
+          context.req.path,
+          context.req.method,
+          routeState.requestContext.userId,
+          routeState.workspaceId,
+        ),
+        details: {
+          statusCode: 200,
+          installationId: routeState.input.installationId,
+          platform: routeState.input.platform,
+          appVersion: routeState.input.appVersion ?? null,
+          afterHotChangeId: routeState.input.afterHotChangeId,
+          nextHotChangeId: routeState.result.nextHotChangeId,
+          changesCount: routeState.result.changes.length,
+        },
+      });
       return context.json(routeState.result);
     } catch (error) {
-      logCloudRouteEvent("sync_pull_error", {
+      const scope = createSyncScope(
         requestId,
-        route: context.req.path,
-        statusCode: error instanceof HttpError ? error.statusCode : 500,
-        userId: getRequestContextUserId(requestContext),
+        context.req.path,
+        context.req.method,
+        getRequestContextUserId(requestContext),
         workspaceId,
-        ...getSyncPullInputLogContext(input),
-        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
-        message: getInternalErrorMessage(error),
-        validationIssues: summarizeValidationIssues(error),
-      }, true);
+      );
+      const details = {
+        ...getSyncPullInputDetails(input),
+        nextHotChangeId: null,
+        changesCount: null,
+        ...createFailureDetails(error),
+      };
+      reportBackendExceptionOrBreadcrumb(
+        error,
+        { action: "sync_pull_error", error: normalizeCaughtError(error), scope, details },
+        { action: "sync_pull_error", scope, details },
+      );
       throw error;
     }
   });
@@ -250,34 +318,33 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
 
     try {
       const result = await processSyncBootstrap(workspaceId, requestContext.userId, input);
-      logCloudRouteEvent("sync_bootstrap", {
-        requestId,
-        route: context.req.path,
-        statusCode: 200,
-        userId: requestContext.userId,
-        workspaceId,
-        installationId: input.installationId,
-        platform: input.platform,
-        appVersion: input.appVersion ?? null,
-        mode: input.mode,
-      }, false);
+      addBackendBreadcrumb({
+        action: "sync_bootstrap",
+        scope: createSyncScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId),
+        details: {
+          statusCode: 200,
+          installationId: input.installationId,
+          platform: input.platform,
+          appVersion: input.appVersion ?? null,
+          mode: input.mode,
+        },
+      });
       return context.json(result);
     } catch (error) {
-      logCloudRouteEvent("sync_bootstrap_error", {
-        requestId,
-        route: context.req.path,
-        statusCode: error instanceof HttpError ? error.statusCode : 500,
-        userId: requestContext.userId,
-        workspaceId,
+      const scope = createSyncScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
+      const details = {
         installationId: input.installationId,
         platform: input.platform,
         appVersion: input.appVersion ?? null,
         mode: input.mode,
-        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
-        message: getInternalErrorMessage(error),
-        validationIssues: summarizeValidationIssues(error),
+        ...createFailureDetails(error),
         ...getSyncConflictLogContext(error),
-      }, true);
+      };
+      reportBackendExceptionOrBreadcrumb(
+        error,
+        { action: "sync_bootstrap_error", error: normalizeCaughtError(error), scope, details },
+        { action: "sync_bootstrap_error", scope, details },
+      );
       throw error;
     }
   });
@@ -316,32 +383,45 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
           };
         },
       );
-      logCloudRouteEvent("sync_review_history_pull", {
-        requestId,
-        route: context.req.path,
-        statusCode: 200,
-        userId: routeState.requestContext.userId,
-        workspaceId: routeState.workspaceId,
-        installationId: routeState.input.installationId,
-        platform: routeState.input.platform,
-        appVersion: routeState.input.appVersion ?? null,
-        afterReviewSequenceId: routeState.input.afterReviewSequenceId,
-        nextReviewSequenceId: routeState.result.nextReviewSequenceId,
-        reviewEventsCount: routeState.result.reviewEvents.length,
-      }, false);
+      addBackendBreadcrumb({
+        action: "sync_review_history_pull",
+        scope: createSyncScope(
+          requestId,
+          context.req.path,
+          context.req.method,
+          routeState.requestContext.userId,
+          routeState.workspaceId,
+        ),
+        details: {
+          statusCode: 200,
+          installationId: routeState.input.installationId,
+          platform: routeState.input.platform,
+          appVersion: routeState.input.appVersion ?? null,
+          afterReviewSequenceId: routeState.input.afterReviewSequenceId,
+          nextReviewSequenceId: routeState.result.nextReviewSequenceId,
+          reviewEventsCount: routeState.result.reviewEvents.length,
+        },
+      });
       return context.json(routeState.result);
     } catch (error) {
-      logCloudRouteEvent("sync_review_history_pull_error", {
+      const scope = createSyncScope(
         requestId,
-        route: context.req.path,
-        statusCode: error instanceof HttpError ? error.statusCode : 500,
-        userId: getRequestContextUserId(requestContext),
+        context.req.path,
+        context.req.method,
+        getRequestContextUserId(requestContext),
         workspaceId,
-        ...getSyncReviewHistoryPullInputLogContext(input),
-        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
-        message: getInternalErrorMessage(error),
-        validationIssues: summarizeValidationIssues(error),
-      }, true);
+      );
+      const details = {
+        ...getSyncReviewHistoryPullInputDetails(input),
+        nextReviewSequenceId: null,
+        reviewEventsCount: null,
+        ...createFailureDetails(error),
+      };
+      reportBackendExceptionOrBreadcrumb(
+        error,
+        { action: "sync_review_history_pull_error", error: normalizeCaughtError(error), scope, details },
+        { action: "sync_review_history_pull_error", scope, details },
+      );
       throw error;
     }
   });
@@ -355,36 +435,37 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
 
     try {
       const result = await processSyncReviewHistoryImport(workspaceId, requestContext.userId, input);
-      logCloudRouteEvent("sync_review_history_import", {
-        requestId,
-        route: context.req.path,
-        statusCode: 200,
-        userId: requestContext.userId,
-        workspaceId,
-        installationId: input.installationId,
-        platform: input.platform,
-        appVersion: input.appVersion ?? null,
-        reviewEventsCount: input.reviewEvents.length,
-        importedCount: result.importedCount,
-        duplicateCount: result.duplicateCount,
-      }, false);
+      addBackendBreadcrumb({
+        action: "sync_review_history_import",
+        scope: createSyncScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId),
+        details: {
+          statusCode: 200,
+          installationId: input.installationId,
+          platform: input.platform,
+          appVersion: input.appVersion ?? null,
+          reviewEventsCount: input.reviewEvents.length,
+          importedCount: result.importedCount,
+          duplicateCount: result.duplicateCount,
+        },
+      });
       return context.json(result);
     } catch (error) {
-      logCloudRouteEvent("sync_review_history_import_error", {
-        requestId,
-        route: context.req.path,
-        statusCode: error instanceof HttpError ? error.statusCode : 500,
-        userId: requestContext.userId,
-        workspaceId,
+      const scope = createSyncScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
+      const details = {
         installationId: input.installationId,
         platform: input.platform,
         appVersion: input.appVersion ?? null,
         reviewEventsCount: input.reviewEvents.length,
-        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
-        message: getInternalErrorMessage(error),
-        validationIssues: summarizeValidationIssues(error),
+        importedCount: null,
+        duplicateCount: null,
+        ...createFailureDetails(error),
         ...getSyncConflictLogContext(error),
-      }, true);
+      };
+      reportBackendExceptionOrBreadcrumb(
+        error,
+        { action: "sync_review_history_import_error", error: normalizeCaughtError(error), scope, details },
+        { action: "sync_review_history_import_error", scope, details },
+      );
       throw error;
     }
   });

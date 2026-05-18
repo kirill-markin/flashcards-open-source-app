@@ -58,8 +58,16 @@ import {
   parseJsonBody,
 } from "../server/requestParsing";
 import type { AppEnv } from "../app";
-import { logCloudRouteEvent } from "../server/logging";
 import { isChatSessionRequestedSessionIdConflictError } from "../chat/errors";
+import {
+  captureBackendException,
+  captureBackendWarning,
+  createBackendObservationScope,
+  getBackendTraceCarrier,
+  normalizeCaughtError,
+  startBackendSpan,
+  type BackendTraceCarrier,
+} from "../observability/sentry";
 
 type ChatTextContentPart = Readonly<{
   type: "text";
@@ -459,24 +467,65 @@ function readChatResumeDiagnosticsHeaders(request: Request): ChatResumeDiagnosti
   };
 }
 
+type ChatResumeContractViolationDetails = Readonly<{
+  violationReason: string;
+  requestId: string | null;
+  userId: string;
+  workspaceId: string;
+  sessionId: string;
+  resolvedLiveCursor: string | null;
+  snapshotRunState: string | null;
+  latestAssistantItemId: string | null;
+  latestAssistantItemOrder: number | null;
+  latestAssistantState: string | null;
+  inProgressAssistantItemId: string | null;
+  inProgressAssistantItemOrder: number | null;
+  terminationReason: string | null;
+}>;
+
 function logChatResumeContractViolation(
   request: Request,
   diagnostics: ChatResumeDiagnosticsHeaders,
-  payload: Record<string, unknown>,
+  details: ChatResumeContractViolationDetails,
 ): void {
-  logCloudRouteEvent("chat_resume_contract_violation", {
-    path: new URL(request.url).pathname,
-    method: request.method,
-    resumeAttemptId: diagnostics.resumeAttemptId,
-    clientPlatform: diagnostics.clientPlatform,
-    clientVersion: diagnostics.clientVersion,
-    ...payload,
-  }, true);
+  const path = new URL(request.url).pathname;
+  captureBackendWarning({
+    action: "chat_resume_contract_violation",
+    message: "Chat live resume contract violation.",
+    scope: createBackendObservationScope(
+      "backend-api",
+      details.requestId,
+      path,
+      request.method,
+      details.userId,
+      details.workspaceId,
+      null,
+      null,
+      details.sessionId,
+    ),
+    details: {
+      path,
+      method: request.method,
+      resumeAttemptId: diagnostics.resumeAttemptId,
+      clientPlatform: diagnostics.clientPlatform,
+      clientVersion: diagnostics.clientVersion,
+      violationReason: details.violationReason,
+      resolvedLiveCursor: details.resolvedLiveCursor,
+      snapshotRunState: details.snapshotRunState,
+      latestAssistantItemId: details.latestAssistantItemId,
+      latestAssistantItemOrder: details.latestAssistantItemOrder,
+      latestAssistantState: details.latestAssistantState,
+      inProgressAssistantItemId: details.inProgressAssistantItemId,
+      inProgressAssistantItemOrder: details.inProgressAssistantItemOrder,
+      terminationReason: details.terminationReason,
+    },
+  });
 }
 
 async function assertRunningSnapshotInvariant(
   request: Request,
   diagnostics: ChatResumeDiagnosticsHeaders,
+  requestId: string | null,
   snapshot: ChatSessionSnapshot,
   userId: string,
   workspaceId: string,
@@ -494,7 +543,7 @@ async function assertRunningSnapshotInvariant(
 
   logChatResumeContractViolation(request, diagnostics, {
     violationReason: "running_without_in_progress_item",
-    requestId: null,
+    requestId,
     userId,
     workspaceId,
     sessionId: snapshot.sessionId,
@@ -554,6 +603,8 @@ async function buildConversationEnvelopeWithActiveRun(
   snapshot: ChatSessionSnapshot,
   userId: string,
   workspaceId: string,
+  requestId: string | null,
+  traceContext: BackendTraceCarrier | null,
   createChatLiveStreamEnvelopeFn: typeof createChatLiveStreamEnvelope,
   resolveLiveCursorFn: typeof resolveLiveCursor,
   request: Request,
@@ -577,10 +628,10 @@ async function buildConversationEnvelopeWithActiveRun(
   const liveStream = snapshot.runState === "running"
     ? (snapshot.activeRunId === null
       ? null
-      : await createChatLiveStreamEnvelopeFn(userId, workspaceId, snapshot.sessionId, snapshot.activeRunId))
+      : await createChatLiveStreamEnvelopeFn(userId, workspaceId, snapshot.sessionId, snapshot.activeRunId, traceContext))
     : null;
   assertRunningLiveStreamInvariant(request, diagnostics, {
-    requestId: null,
+    requestId,
     userId,
     workspaceId,
     sessionId: snapshot.sessionId,
@@ -608,6 +659,8 @@ async function buildPaginatedConversationEnvelopeWithActiveRun(
   result: RecoveredPaginatedSession,
   userId: string,
   workspaceId: string,
+  requestId: string | null,
+  traceContext: BackendTraceCarrier | null,
   createChatLiveStreamEnvelopeFn: typeof createChatLiveStreamEnvelope,
   resolveLiveCursorFn: typeof resolveLiveCursor,
   request: Request,
@@ -618,6 +671,8 @@ async function buildPaginatedConversationEnvelopeWithActiveRun(
     result.snapshot,
     userId,
     workspaceId,
+    requestId,
+    traceContext,
     createChatLiveStreamEnvelopeFn,
     resolveLiveCursorFn,
     request,
@@ -638,6 +693,8 @@ async function buildStartConversationEnvelope(
     snapshot: ChatSessionSnapshot;
     userId: string;
     workspaceId: string;
+    requestId: string | null;
+    traceContext: BackendTraceCarrier | null;
     createChatLiveStreamEnvelopeFn: typeof createChatLiveStreamEnvelope;
     resolveLiveCursorFn: typeof resolveLiveCursor;
     interruptPreparedChatRunFn: typeof interruptPreparedChatRun;
@@ -651,6 +708,8 @@ async function buildStartConversationEnvelope(
       params.snapshot,
       params.userId,
       params.workspaceId,
+      params.requestId,
+      params.traceContext,
       params.createChatLiveStreamEnvelopeFn,
       params.resolveLiveCursorFn,
       params.request,
@@ -668,6 +727,18 @@ async function buildStartConversationEnvelope(
       ...(params.preparedRun.deduplicated ? { deduplicated: true } : {}),
     };
   } catch (error) {
+    if (!(error instanceof HttpError)) {
+      captureUnexpectedChatLiveEnvelopeError(
+        params.request,
+        params.requestId,
+        params.userId,
+        params.workspaceId,
+        params.snapshot.sessionId,
+        params.snapshot.activeRunId ?? params.preparedRun.runId,
+        error,
+      );
+    }
+
     const runIdToInterrupt = params.snapshot.activeRunId ?? params.preparedRun.runId;
     await params.interruptPreparedChatRunFn(
       params.userId,
@@ -682,6 +753,39 @@ async function buildStartConversationEnvelope(
 
     throw new HttpError(500, "Chat live resume contract violation", chatResumeContractViolationCode);
   }
+}
+
+function captureUnexpectedChatLiveEnvelopeError(
+  request: Request,
+  requestId: string | null,
+  userId: string,
+  workspaceId: string,
+  sessionId: string,
+  runId: string,
+  error: unknown,
+): void {
+  const path = new URL(request.url).pathname;
+  captureBackendException({
+    action: "request_failed",
+    error: normalizeCaughtError(error),
+    scope: createBackendObservationScope(
+      "backend-api",
+      requestId,
+      path,
+      request.method,
+      userId,
+      workspaceId,
+      null,
+      runId,
+      sessionId,
+    ),
+    details: {
+      statusCode: 500,
+      code: chatResumeContractViolationCode,
+      message: "Unexpected chat live envelope creation failure.",
+      validationIssues: [],
+    },
+  });
 }
 
 /**
@@ -776,6 +880,8 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
     const sessionId = parseOptionalSessionIdQuery(context.req.query("sessionId") ?? undefined);
     const limitParam = context.req.query("limit") ?? undefined;
     const resumeDiagnostics = readChatResumeDiagnosticsHeaders(context.req.raw);
+    const requestId = context.get("requestId") ?? null;
+    const traceContext = getBackendTraceCarrier();
 
     if (limitParam !== undefined) {
       const limit = Math.min(Math.max(Number.parseInt(limitParam, 10) || 7, 1), MAX_CHAT_PAGE_LIMIT);
@@ -799,6 +905,8 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
           result,
           requestContext.userId,
           workspaceId,
+          requestId,
+          traceContext,
           createChatLiveStreamEnvelopeFn,
           resolveLiveCursorFn,
           context.req.raw,
@@ -819,6 +927,7 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
         await assertRunningSnapshotInvariant(
           context.req.raw,
           resumeDiagnostics,
+          requestId,
           snapshot,
           requestContext.userId,
           workspaceId,
@@ -828,6 +937,8 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
           snapshot,
           requestContext.userId,
           workspaceId,
+          requestId,
+          traceContext,
           createChatLiveStreamEnvelopeFn,
           resolveLiveCursorFn,
           context.req.raw,
@@ -848,11 +959,13 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
     const body = parseChatRequestBody(await parseJsonBody(context.req.raw));
     const workspaceId = await resolveAccessibleChatWorkspaceIdFn(requestContext, body.workspaceId);
     const resumeDiagnostics = readChatResumeDiagnosticsHeaders(context.req.raw);
+    const requestId = context.get("requestId") ?? null;
+    const traceContext = getBackendTraceCarrier();
     context.header("X-Chat-Request-Id", body.clientRequestId);
 
     let preparedRun: PreparedChatRun;
     try {
-      preparedRun = await prepareChatRunFn(
+      preparedRun = await startBackendSpan("chat.prepare_run", "app.chat", () => prepareChatRunFn(
         requestContext.userId,
         workspaceId,
         body.sessionId,
@@ -862,17 +975,20 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
         // Older clients still omit uiLocale, so keep the null fallback until
         // every supported app version has migrated to the explicit field.
         body.uiLocale ?? null,
-      );
+      ));
     } catch (error) {
       return mapStoreError(error);
     }
 
     if (preparedRun.shouldInvokeWorker) {
-      await invokeChatWorkerFn({
+      await startBackendSpan("chat.worker.invoke", "faas.invoke", () => invokeChatWorkerFn({
         runId: preparedRun.runId,
         userId: requestContext.userId,
         workspaceId,
-      });
+        routeRequestId: requestId,
+        chatRequestId: body.clientRequestId,
+        sessionId: preparedRun.sessionId,
+      }));
     }
 
     try {
@@ -887,6 +1003,8 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
         snapshot,
         userId: requestContext.userId,
         workspaceId,
+        requestId,
+        traceContext,
         createChatLiveStreamEnvelopeFn,
         resolveLiveCursorFn,
         interruptPreparedChatRunFn,

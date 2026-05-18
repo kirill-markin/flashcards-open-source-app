@@ -5,10 +5,65 @@ import {
   type ExecutedChatToolCall,
 } from "./tools";
 
-function sanitizeToolOutputForTelemetry(output: string): string {
-  return output.length <= 4_000
-    ? output
-    : `${output.slice(0, 4_000)}...`;
+type ToolTelemetryMetadata = Readonly<{
+  toolName: string;
+  toolCallId: string;
+  argumentLength: number;
+  hasArguments: boolean;
+  durationMs: number | null;
+  outputLength: number | null;
+  ok: boolean | null;
+  errorClass: string | null;
+  errorMessage: string | null;
+}>;
+
+function getToolArgumentLength(argumentsJson: string): number {
+  return argumentsJson.length;
+}
+
+function hasToolArguments(argumentsJson: string): boolean {
+  return argumentsJson.trim().length > 0 && argumentsJson.trim() !== "{}";
+}
+
+function getErrorClass(error: unknown): string {
+  return error instanceof Error ? error.name : "NonErrorThrow";
+}
+
+function getSafeErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim() !== "") {
+    return "tool execution failed";
+  }
+
+  if (error instanceof Error) {
+    return "tool execution failed without message";
+  }
+
+  return "tool execution failed with non-error throw";
+}
+
+function buildToolTelemetryMetadata(
+  params: Readonly<{
+    toolName: string;
+    toolCallId: string;
+    argumentsJson: string;
+    durationMs: number | null;
+    outputLength: number | null;
+    ok: boolean | null;
+    errorClass: string | null;
+    errorMessage: string | null;
+  }>,
+): ToolTelemetryMetadata {
+  return {
+    toolName: params.toolName,
+    toolCallId: params.toolCallId,
+    argumentLength: getToolArgumentLength(params.argumentsJson),
+    hasArguments: hasToolArguments(params.argumentsJson),
+    durationMs: params.durationMs,
+    outputLength: params.outputLength,
+    ok: params.ok,
+    errorClass: params.errorClass,
+    errorMessage: params.errorMessage,
+  };
 }
 
 /**
@@ -26,12 +81,19 @@ export async function runOneToolCall(
     params.item.name,
     {
       input: {
-        arguments: params.item.arguments,
+        argumentLength: getToolArgumentLength(params.item.arguments),
+        hasArguments: hasToolArguments(params.item.arguments),
       },
-      metadata: {
+      metadata: buildToolTelemetryMetadata({
         toolName: params.item.name,
         toolCallId: params.item.call_id,
-      },
+        argumentsJson: params.item.arguments,
+        durationMs: null,
+        outputLength: null,
+        ok: null,
+        errorClass: null,
+        errorMessage: null,
+      }),
     },
     {
       asType: "tool",
@@ -52,26 +114,37 @@ export async function runOneToolCall(
 
     toolObservation?.updateOtelSpanAttributes({
       output: {
-        output: sanitizeToolOutputForTelemetry(result.output),
+        ok: true,
+        outputLength: result.output.length,
       },
-      metadata: {
+      metadata: buildToolTelemetryMetadata({
         toolName: params.item.name,
         toolCallId: params.item.call_id,
-        durationMs: String(Date.now() - startedAt),
-      },
+        argumentsJson: params.item.arguments,
+        durationMs: Date.now() - startedAt,
+        outputLength: result.output.length,
+        ok: true,
+        errorClass: null,
+        errorMessage: null,
+      }),
     });
     toolObservation?.end();
     return result;
   } catch (error) {
     toolObservation?.updateOtelSpanAttributes({
       output: {
-        error: error instanceof Error ? error.message : String(error),
+        ok: false,
       },
-      metadata: {
+      metadata: buildToolTelemetryMetadata({
         toolName: params.item.name,
         toolCallId: params.item.call_id,
-        durationMs: String(Date.now() - startedAt),
-      },
+        argumentsJson: params.item.arguments,
+        durationMs: Date.now() - startedAt,
+        outputLength: null,
+        ok: false,
+        errorClass: getErrorClass(error),
+        errorMessage: getSafeErrorMessage(error),
+      }),
     });
     toolObservation?.end();
     throw error;

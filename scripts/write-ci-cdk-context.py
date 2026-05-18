@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import math
 import os
 import pathlib
 import re
@@ -13,6 +14,49 @@ def get_trimmed_env(name: str) -> str:
 
 def get_raw_env(name: str) -> str:
     return os.environ.get(name, "")
+
+
+def require_non_empty_context_value(values: dict[str, str], key: str, env_name: str) -> None:
+    if values.get(key, "") == "":
+        raise ValueError(f"{env_name} is required for CI AWS deploy context")
+
+
+def validate_sentry_traces_sample_rate(value: str) -> None:
+    try:
+        traces_sample_rate = float(value)
+    except ValueError as exc:
+        raise ValueError("CDK_CONTEXT_SENTRY_TRACES_SAMPLE_RATE must be a number between 0 and 1") from exc
+
+    if not math.isfinite(traces_sample_rate) or traces_sample_rate < 0 or traces_sample_rate > 1:
+        raise ValueError("CDK_CONTEXT_SENTRY_TRACES_SAMPLE_RATE must be a number between 0 and 1")
+
+
+def validate_required_backend_sentry_context(values: dict[str, str], aws_deploy_role_arn: str) -> None:
+    sentry_context_env_names = {
+        "sentryDsnSecretArn": "CDK_CONTEXT_SENTRY_DSN_SECRET_ARN",
+        "sentryEnvironment": "CDK_CONTEXT_SENTRY_ENVIRONMENT",
+        "sentryRelease": "CDK_CONTEXT_SENTRY_RELEASE",
+        "sentryTracesSampleRate": "CDK_CONTEXT_SENTRY_TRACES_SAMPLE_RATE",
+    }
+
+    if aws_deploy_role_arn == "":
+        configured_values = [values[key] for key in sentry_context_env_names if values[key] != ""]
+        if len(configured_values) == 0:
+            return
+    else:
+        for key, env_name in sentry_context_env_names.items():
+            require_non_empty_context_value(values, key, env_name)
+
+    missing_env_names = [
+        env_name
+        for key, env_name in sentry_context_env_names.items()
+        if values[key] == ""
+    ]
+    if len(missing_env_names) > 0:
+        joined_missing_env_names = ", ".join(missing_env_names)
+        raise ValueError(f"Backend Sentry context must be configured all-or-none. Missing: {joined_missing_env_names}")
+
+    validate_sentry_traces_sample_rate(values["sentryTracesSampleRate"])
 
 
 def build_github_oidc_provider_arn(aws_deploy_role_arn: str) -> str:
@@ -59,8 +103,13 @@ def build_context_values(aws_deploy_role_arn: str) -> dict[str, str]:
         "region": get_trimmed_env("CDK_CONTEXT_REGION"),
         "resendApiKeySecretArn": get_trimmed_env("CDK_CONTEXT_RESEND_API_KEY_SECRET_ARN"),
         "resendSenderEmail": get_trimmed_env("CDK_CONTEXT_RESEND_SENDER_EMAIL"),
+        "sentryDsnSecretArn": get_trimmed_env("CDK_CONTEXT_SENTRY_DSN_SECRET_ARN"),
+        "sentryEnvironment": get_trimmed_env("CDK_CONTEXT_SENTRY_ENVIRONMENT"),
+        "sentryRelease": get_trimmed_env("CDK_CONTEXT_SENTRY_RELEASE"),
+        "sentryTracesSampleRate": get_trimmed_env("CDK_CONTEXT_SENTRY_TRACES_SAMPLE_RATE"),
         "webCertificateArnUsEast1": get_trimmed_env("CDK_CONTEXT_WEB_CERTIFICATE_ARN_US_EAST_1"),
     }
+    validate_required_backend_sentry_context(values, aws_deploy_role_arn)
     return {key: value for key, value in values.items() if value != ""}
 
 

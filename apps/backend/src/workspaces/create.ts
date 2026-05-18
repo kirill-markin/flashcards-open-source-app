@@ -6,7 +6,14 @@ import {
   type DatabaseExecutor,
 } from "../db";
 import { HttpError } from "../errors";
-import { logCloudRouteEvent } from "../server/logging";
+import {
+  addBackendBreadcrumb,
+  captureBackendException,
+  normalizeCaughtError,
+  type BackendObservationScope,
+  type WorkspaceTransactionDetails,
+} from "../observability/sentry";
+import { markBackendExceptionWrapperAsReported } from "../observability/reporting";
 import {
   buildSystemWorkspaceReplicaId,
   ensureSystemWorkspaceReplicaInExecutor,
@@ -15,6 +22,7 @@ import { insertSyncChange } from "../syncChanges";
 import {
   createWorkspaceCreateFailedError,
   createWorkspaceInvariantError,
+  createWorkspaceTransactionScope,
   getDatabaseErrorDetails,
 } from "./shared";
 import { loadWorkspaceSummaryInExecutor } from "./queries";
@@ -60,32 +68,64 @@ function handleWorkspaceCreateFailure(
   userId: string,
   workspaceId: string,
   stage: WorkspaceCreateFailureStage,
+  observationScope: BackendObservationScope | null,
 ): never {
+  const scope = createWorkspaceTransactionScope(userId, workspaceId, observationScope);
   if (error instanceof HttpError) {
-    logCloudRouteEvent("workspace_create_transaction_error", {
+    const details: WorkspaceTransactionDetails = {
       userId,
       workspaceId,
       stage,
       code: error.code,
-    }, true);
+      cardsResetCount: null,
+      memberCount: null,
+      selectedWorkspaceIdBeforeDelete: null,
+      selectedWorkspaceIdAfterPreparation: null,
+      deletedCardsCount: null,
+      sqlState: null,
+      constraint: null,
+      table: null,
+      detail: null,
+    };
+    addBackendBreadcrumb({ action: "workspace_create_transaction_error", scope, details });
     throw error;
   }
 
   const databaseErrorDetails = getDatabaseErrorDetails(error);
-  logCloudRouteEvent("workspace_create_transaction_error", {
+  const details: WorkspaceTransactionDetails = {
     userId,
     workspaceId,
     stage,
     code: "WORKSPACE_CREATE_FAILED",
     ...databaseErrorDetails,
-  }, true);
-  throw createWorkspaceCreateFailedError();
+    cardsResetCount: null,
+    memberCount: null,
+    selectedWorkspaceIdBeforeDelete: null,
+    selectedWorkspaceIdAfterPreparation: null,
+    deletedCardsCount: null,
+  };
+  captureBackendException({
+    action: "workspace_create_transaction_error",
+    error: normalizeCaughtError(error),
+    scope,
+    details,
+  });
+  throw markBackendExceptionWrapperAsReported(createWorkspaceCreateFailedError());
 }
 
 export async function createWorkspaceInExecutor(
   executor: DatabaseExecutor,
   userId: string,
   name: string,
+): Promise<string> {
+  return createWorkspaceInExecutorWithObservationScope(executor, userId, name, null);
+}
+
+export async function createWorkspaceInExecutorWithObservationScope(
+  executor: DatabaseExecutor,
+  userId: string,
+  name: string,
+  observationScope: BackendObservationScope | null,
 ): Promise<string> {
   await ensureUserSettingsRowInExecutor(executor, userId);
 
@@ -170,13 +210,21 @@ export async function createWorkspaceInExecutor(
 
     return workspaceId;
   } catch (error) {
-    handleWorkspaceCreateFailure(error, userId, workspaceId, stage);
+    handleWorkspaceCreateFailure(error, userId, workspaceId, stage, observationScope);
   }
 }
 
 export async function createWorkspaceForUser(userId: string, name: string): Promise<WorkspaceSummary> {
+  return createWorkspaceForUserWithObservationScope(userId, name, null);
+}
+
+export async function createWorkspaceForUserWithObservationScope(
+  userId: string,
+  name: string,
+  observationScope: BackendObservationScope | null,
+): Promise<WorkspaceSummary> {
   return transactionWithUserScope({ userId }, async (executor) => {
-    const workspaceId = await createWorkspaceInExecutor(executor, userId, name);
+    const workspaceId = await createWorkspaceInExecutorWithObservationScope(executor, userId, name, observationScope);
     let stage: WorkspaceCreateFailureStage = "select_workspace";
 
     try {
@@ -185,7 +233,7 @@ export async function createWorkspaceForUser(userId: string, name: string): Prom
       stage = "load_workspace_summary";
       return loadWorkspaceSummaryInExecutor(executor, userId, workspaceId, workspaceId);
     } catch (error) {
-      handleWorkspaceCreateFailure(error, userId, workspaceId, stage);
+      handleWorkspaceCreateFailure(error, userId, workspaceId, stage, observationScope);
     }
   });
 }
@@ -195,8 +243,17 @@ export async function createWorkspaceForApiKeyConnection(
   connectionId: string,
   name: string,
 ): Promise<WorkspaceSummary> {
+  return createWorkspaceForApiKeyConnectionWithObservationScope(userId, connectionId, name, null);
+}
+
+export async function createWorkspaceForApiKeyConnectionWithObservationScope(
+  userId: string,
+  connectionId: string,
+  name: string,
+  observationScope: BackendObservationScope | null,
+): Promise<WorkspaceSummary> {
   return transactionWithUserScope({ userId }, async (executor) => {
-    const workspaceId = await createWorkspaceInExecutor(executor, userId, name);
+    const workspaceId = await createWorkspaceInExecutorWithObservationScope(executor, userId, name, observationScope);
     let stage: WorkspaceCreateFailureStage = "select_workspace";
 
     try {
@@ -205,7 +262,7 @@ export async function createWorkspaceForApiKeyConnection(
       stage = "load_workspace_summary";
       return loadWorkspaceSummaryInExecutor(executor, userId, workspaceId, workspaceId);
     } catch (error) {
-      handleWorkspaceCreateFailure(error, userId, workspaceId, stage);
+      handleWorkspaceCreateFailure(error, userId, workspaceId, stage, observationScope);
     }
   });
 }

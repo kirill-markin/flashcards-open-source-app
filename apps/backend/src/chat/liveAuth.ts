@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { HttpError } from "../errors";
+import type { BackendTraceCarrier } from "../observability/sentry";
 import { getBackendChatLiveAuthSecret } from "../secrets";
 
 const CHAT_LIVE_AUTH_TOKEN_VERSION = 1;
@@ -12,6 +13,7 @@ type ChatLiveAuthPayload = Readonly<{
   sessionId: string;
   runId: string;
   expiresAt: number;
+  traceContext?: BackendTraceCarrier | null;
 }>;
 
 export type ChatLiveStreamEnvelope = Readonly<{
@@ -25,6 +27,7 @@ type VerifiedChatLiveAuth = Readonly<{
   workspaceId: string;
   sessionId: string;
   runId: string;
+  traceContext?: BackendTraceCarrier | null;
 }>;
 
 function getChatLiveUrl(): string {
@@ -55,6 +58,24 @@ function signPayload(encodedPayload: string, secret: string): string {
     .digest("base64url");
 }
 
+function decodeTraceContext(value: BackendTraceCarrier | null | undefined): BackendTraceCarrier | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  if (
+    typeof value.sentryTrace !== "string" && value.sentryTrace !== null
+    || typeof value.baggage !== "string" && value.baggage !== null
+  ) {
+    throw new Error("Chat live trace context is invalid");
+  }
+
+  return {
+    sentryTrace: value.sentryTrace,
+    baggage: value.baggage,
+  };
+}
+
 function decodePayload(encodedPayload: string): ChatLiveAuthPayload {
   try {
     const decoded = Buffer.from(encodedPayload, "base64url").toString("utf8");
@@ -82,6 +103,7 @@ function decodePayload(encodedPayload: string): ChatLiveAuthPayload {
       sessionId: parsed.sessionId,
       runId: parsed.runId,
       expiresAt: parsed.expiresAt,
+      traceContext: decodeTraceContext(parsed.traceContext),
     };
   } catch {
     throw new HttpError(401, "Chat live auth token is invalid", "CHAT_LIVE_AUTH_INVALID");
@@ -101,6 +123,7 @@ export async function createChatLiveStreamEnvelope(
   workspaceId: string,
   sessionId: string,
   runId: string,
+  traceContext: BackendTraceCarrier | null,
 ): Promise<ChatLiveStreamEnvelope> {
   const expiresAt = Date.now() + CHAT_LIVE_AUTH_TTL_MS;
   const payload: ChatLiveAuthPayload = {
@@ -110,6 +133,7 @@ export async function createChatLiveStreamEnvelope(
     sessionId,
     runId,
     expiresAt,
+    traceContext,
   };
   const secret = await getBackendChatLiveAuthSecret(getBackendChatLiveAuthSecretArn());
   const encodedPayload = encodePayload(payload);
@@ -171,5 +195,6 @@ export async function verifyChatLiveAuthorizationHeader(
     workspaceId: payload.workspaceId,
     sessionId: payload.sessionId,
     runId: payload.runId,
+    traceContext: payload.traceContext ?? null,
   };
 }

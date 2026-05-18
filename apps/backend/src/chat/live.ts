@@ -11,7 +11,16 @@ import {
   type ChatLiveEventPayload,
 } from "./contract";
 import type { ChatComposerSuggestion } from "./composerSuggestions";
-import { getErrorLogContext, logCloudRouteEvent } from "../server/logging";
+import { getErrorLogContext } from "../server/logging";
+import {
+  addBackendBreadcrumb,
+  captureBackendException,
+  captureBackendWarning,
+  createBackendObservationScope,
+  normalizeCaughtError,
+  type BackendObservationScope,
+  type ChatLiveLifecycleDetails,
+} from "../observability/sentry";
 import {
   getChatRunSnapshot,
   getRecoveredChatSessionSnapshot,
@@ -46,6 +55,10 @@ type ChatLiveStreamDependencies = Readonly<{
   waitForNextPollInterval: typeof waitForNextPollInterval;
 }>;
 
+export type ChatLiveStreamResult = Readonly<{
+  capturedSentryEvent: boolean;
+}>;
+
 type AssistantMessageDonePayload = Extract<ChatLiveEventPayload, Readonly<{ type: "assistant_message_done" }>>;
 type ComposerSuggestionsUpdatedPayload = Extract<ChatLiveEventPayload, Readonly<{ type: "composer_suggestions_updated" }>>;
 type AssistantReasoningDonePayload = Extract<ChatLiveEventPayload, Readonly<{ type: "assistant_reasoning_done" }>>;
@@ -64,6 +77,7 @@ type BacklogReplayState = Readonly<{
   previousAssistantContent: ReadonlyArray<ContentPart>;
   shouldStop: boolean;
   terminationReason: string | null;
+  capturedSentryEvent: boolean;
 }>;
 
 const defaultChatLiveStreamDependencies: ChatLiveStreamDependencies = {
@@ -74,24 +88,120 @@ const defaultChatLiveStreamDependencies: ChatLiveStreamDependencies = {
   waitForNextPollInterval,
 };
 
-function logLiveLifecycleEvent(
-  action: string,
+type ChatLiveLifecycleAction =
+  | "chat_live_backlog_failed"
+  | "chat_live_write_failed"
+  | "chat_live_client_disconnected"
+  | "chat_live_stream_closed";
+
+type ChatLiveLifecycleErrorDetails = Readonly<{
+  errorClass: string;
+  errorMessage: string;
+  errorStack: string | null;
+  sourceFile: string | null;
+  sourceLine: number | null;
+  sourceColumn: number | null;
+}>;
+
+type ChatLiveLifecyclePayload = Readonly<{
+  connectionDurationMs: number | null;
+  terminationReason: string | null;
+  closeReason: string | null;
+  errorDetails: ChatLiveLifecycleErrorDetails | null;
+}>;
+
+function getChatLiveLifecycleErrorDetails(error: unknown): ChatLiveLifecycleErrorDetails {
+  const errorContext = getErrorLogContext(error);
+
+  return {
+    errorClass: errorContext.errorClass,
+    errorMessage: errorContext.errorMessage,
+    errorStack: errorContext.errorStack,
+    sourceFile: errorContext.sourceFile,
+    sourceLine: errorContext.sourceLine,
+    sourceColumn: errorContext.sourceColumn,
+  };
+}
+
+function buildChatLiveLifecycleDetails(
   params: LiveStreamParams,
-  payload: Record<string, unknown>,
-  isError: boolean,
-): void {
-  logCloudRouteEvent(action, {
-    requestId: params.requestId ?? null,
-    sessionId: params.sessionId,
-    runId: params.runId,
-    userId: params.userId,
-    workspaceId: params.workspaceId,
+  payload: ChatLiveLifecyclePayload,
+): ChatLiveLifecycleDetails {
+  if (payload.errorDetails === null) {
+    return {
+      afterCursor: params.afterCursor ?? null,
+      resumeAttemptId: params.resumeAttemptId ?? null,
+      clientPlatform: params.clientPlatform ?? null,
+      clientVersion: params.clientVersion ?? null,
+      connectionDurationMs: payload.connectionDurationMs,
+      terminationReason: payload.terminationReason,
+      closeReason: payload.closeReason,
+      errorClass: null,
+      errorMessage: null,
+      errorStack: null,
+      sourceFile: null,
+      sourceLine: null,
+      sourceColumn: null,
+    };
+  }
+
+  return {
     afterCursor: params.afterCursor ?? null,
     resumeAttemptId: params.resumeAttemptId ?? null,
     clientPlatform: params.clientPlatform ?? null,
     clientVersion: params.clientVersion ?? null,
-    ...payload,
-  }, isError);
+    connectionDurationMs: payload.connectionDurationMs,
+    terminationReason: payload.terminationReason,
+    closeReason: payload.closeReason,
+    errorClass: payload.errorDetails.errorClass,
+    errorMessage: payload.errorDetails.errorMessage,
+    errorStack: payload.errorDetails.errorStack,
+    sourceFile: payload.errorDetails.sourceFile,
+    sourceLine: payload.errorDetails.sourceLine,
+    sourceColumn: payload.errorDetails.sourceColumn,
+  };
+}
+
+function createChatLiveObservationScope(
+  params: LiveStreamParams,
+): BackendObservationScope {
+  return createBackendObservationScope(
+    "chat-live",
+    params.requestId ?? null,
+    null,
+    "GET",
+    params.userId,
+    params.workspaceId,
+    null,
+    params.runId,
+    params.sessionId,
+  );
+}
+
+function logLiveLifecycleEvent(
+  action: ChatLiveLifecycleAction,
+  params: LiveStreamParams,
+  payload: ChatLiveLifecyclePayload,
+): boolean {
+  const scope = createChatLiveObservationScope(params);
+  const details = buildChatLiveLifecycleDetails(params, payload);
+
+  if (action === "chat_live_backlog_failed" || action === "chat_live_write_failed") {
+    captureBackendWarning({
+      action,
+      message: `${action} warning`,
+      scope,
+      details,
+    });
+    return true;
+  }
+
+  addBackendBreadcrumb({
+    action,
+    scope,
+    details,
+  });
+  return false;
 }
 
 function cursorOrNull(lastEmittedCursor: number): string | null {
@@ -322,6 +432,7 @@ async function replayBacklogEvents(
       previousAssistantContent,
       shouldStop: false,
       terminationReason: null,
+      capturedSentryEvent: false,
     };
   }
 
@@ -346,6 +457,7 @@ async function replayBacklogEvents(
         previousAssistantContent,
         shouldStop: true,
         terminationReason: "backlog_reset_required",
+        capturedSentryEvent: false,
       };
     }
 
@@ -373,6 +485,7 @@ async function replayBacklogEvents(
           previousAssistantContent: nextPreviousContent,
           shouldStop: true,
           terminationReason: "client_disconnect",
+          capturedSentryEvent: false,
         };
       }
     }
@@ -383,11 +496,15 @@ async function replayBacklogEvents(
       previousAssistantContent: nextPreviousContent,
       shouldStop: false,
       terminationReason: null,
+      capturedSentryEvent: false,
     };
   } catch (error) {
-    logLiveLifecycleEvent("chat_live_backlog_failed", params, {
-      ...getErrorLogContext(error),
-    }, true);
+    const capturedSentryEvent = logLiveLifecycleEvent("chat_live_backlog_failed", params, {
+      connectionDurationMs: null,
+      terminationReason: null,
+      closeReason: null,
+      errorDetails: getChatLiveLifecycleErrorDetails(error),
+    });
     emitTerminal(buildResetRequiredPayload(lastDeliveredCursor, assistantItemId));
     return {
       lastObservedCursor,
@@ -395,6 +512,7 @@ async function replayBacklogEvents(
       previousAssistantContent,
       shouldStop: true,
       terminationReason: "backlog_reset_required",
+      capturedSentryEvent,
     };
   }
 }
@@ -405,7 +523,7 @@ async function replayBacklogEvents(
 export async function runLiveStream(
   stream: Writable,
   params: LiveStreamParams,
-): Promise<void> {
+): Promise<ChatLiveStreamResult> {
   return runLiveStreamWithDependencies(stream, params, defaultChatLiveStreamDependencies);
 }
 
@@ -413,7 +531,7 @@ export async function runLiveStreamWithDependencies(
   stream: Writable,
   params: LiveStreamParams,
   dependencies: ChatLiveStreamDependencies,
-): Promise<void> {
+): Promise<ChatLiveStreamResult> {
   const connectionState = createLiveConnectionState(stream);
   const serialize = createChatLiveEventSerializer({
     sessionId: params.sessionId,
@@ -429,6 +547,11 @@ export async function runLiveStreamWithDependencies(
   let hasEmittedComposerSuggestions = false;
   let terminationReason = "completed";
   let terminalEventEmitted = false;
+  let capturedSentryEvent = false;
+
+  const buildLiveStreamResult = (): ChatLiveStreamResult => ({
+    capturedSentryEvent,
+  });
 
   const emit = (data: string): boolean => {
     if (isStreamWritable(stream, connectionState) === false) {
@@ -439,11 +562,12 @@ export async function runLiveStreamWithDependencies(
       stream.write(data);
       return true;
     } catch (error) {
-      logLiveLifecycleEvent("chat_live_write_failed", params, {
+      capturedSentryEvent = logLiveLifecycleEvent("chat_live_write_failed", params, {
         connectionDurationMs: Date.now() - connectionStart,
+        terminationReason: null,
         closeReason: "write_error",
-        ...getErrorLogContext(error),
-      }, true);
+        errorDetails: getChatLiveLifecycleErrorDetails(error),
+      }) || capturedSentryEvent;
       return false;
     }
   };
@@ -472,7 +596,7 @@ export async function runLiveStreamWithDependencies(
     if (initialRun === null || initialRun.sessionId !== params.sessionId) {
       emitTerminal(buildResetRequiredPayload(lastDeliveredCursor));
       terminationReason = "missing_run";
-      return;
+      return buildLiveStreamResult();
     }
 
     const backlogState = await replayBacklogEvents(
@@ -488,9 +612,10 @@ export async function runLiveStreamWithDependencies(
     lastObservedCursor = backlogState.lastObservedCursor;
     lastDeliveredCursor = backlogState.lastDeliveredCursor;
     previousAssistantContent = backlogState.previousAssistantContent;
+    capturedSentryEvent = capturedSentryEvent || backlogState.capturedSentryEvent;
     if (backlogState.shouldStop) {
       terminationReason = backlogState.terminationReason ?? terminationReason;
-      return;
+      return buildLiveStreamResult();
     }
 
     while (isStreamWritable(stream, connectionState)) {
@@ -678,10 +803,18 @@ export async function runLiveStreamWithDependencies(
     }
   } catch (error) {
     terminationReason = "poll_error";
-    logLiveLifecycleEvent("chat_live_poll_failed", params, {
-      connectionDurationMs: Date.now() - connectionStart,
-      ...getErrorLogContext(error),
-    }, true);
+    captureBackendException({
+      action: "chat_live_poll_failed",
+      error: normalizeCaughtError(error),
+      scope: createChatLiveObservationScope(params),
+      details: buildChatLiveLifecycleDetails(params, {
+        connectionDurationMs: Date.now() - connectionStart,
+        terminationReason: "poll_error",
+        closeReason: null,
+        errorDetails: getChatLiveLifecycleErrorDetails(error),
+      }),
+    });
+    capturedSentryEvent = true;
     emitTerminal({
       type: "run_terminal",
       cursor: cursorOrNull(lastDeliveredCursor),
@@ -703,17 +836,19 @@ export async function runLiveStreamWithDependencies(
     if (terminationReason === "client_disconnect") {
       logLiveLifecycleEvent("chat_live_client_disconnected", params, {
         connectionDurationMs,
+        terminationReason: null,
         closeReason,
-        ...(closeError === null ? {} : getErrorLogContext(closeError)),
-      }, true);
-      return;
+        errorDetails: closeError === null ? null : getChatLiveLifecycleErrorDetails(closeError),
+      });
+    } else {
+      logLiveLifecycleEvent("chat_live_stream_closed", params, {
+        connectionDurationMs,
+        terminationReason,
+        closeReason,
+        errorDetails: closeError === null ? null : getChatLiveLifecycleErrorDetails(closeError),
+      });
     }
-
-    logLiveLifecycleEvent("chat_live_stream_closed", params, {
-      connectionDurationMs,
-      terminationReason,
-      closeReason,
-      ...(closeError === null ? {} : getErrorLogContext(closeError)),
-    }, terminationReason === "poll_error" || terminationReason === "max_duration_reset_required");
   }
+
+  return buildLiveStreamResult();
 }

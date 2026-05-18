@@ -7,9 +7,16 @@ import {
 import { HttpError } from "../errors";
 import { CARD_COLUMNS, mapCard, recordCardSyncChange } from "../cards/shared";
 import type { CardRow } from "../cards/types";
-import { logCloudRouteEvent } from "../server/logging";
+import {
+  addBackendBreadcrumb,
+  captureBackendException,
+  normalizeCaughtError,
+  type BackendObservationScope,
+  type WorkspaceTransactionDetails,
+} from "../observability/sentry";
+import { markBackendExceptionWrapperAsReported } from "../observability/reporting";
 import { ensureSystemWorkspaceReplicaInExecutor } from "../syncIdentity";
-import { createWorkspaceInExecutor } from "./create";
+import { createWorkspaceInExecutorWithObservationScope } from "./create";
 import {
   listUserWorkspaceIdsInExecutor,
   loadActiveCardCountInExecutor,
@@ -30,6 +37,7 @@ import {
   createWorkspaceDeletePreviewFailedError,
   createWorkspaceResetProgressFailedError,
   createWorkspaceResetProgressPreviewFailedError,
+  createWorkspaceTransactionScope,
   getDatabaseErrorDetails,
 } from "./shared";
 import { persistSelectedWorkspaceForUserInExecutor } from "./state";
@@ -56,6 +64,108 @@ type WorkspaceResetProgressFailureStage =
   | "load_management_row"
   | "count_resettable_cards"
   | "reset_workspace_cards";
+
+type WorkspaceTransactionErrorAction =
+  | "workspace_delete_preview_transaction_error"
+  | "workspace_reset_progress_preview_transaction_error"
+  | "workspace_reset_progress_transaction_error"
+  | "workspace_delete_transaction_error";
+
+function createWorkspaceTransactionDetails(
+  userId: string,
+  workspaceId: string,
+  stage: string | null,
+  code: string | null,
+  cardsResetCount: number | null,
+  memberCount: number | null,
+  selectedWorkspaceIdBeforeDelete: string | null,
+  selectedWorkspaceIdAfterPreparation: string | null,
+  deletedCardsCount: number | null,
+  databaseErrorDetails: Readonly<{
+    sqlState: string | null;
+    constraint: string | null;
+    table: string | null;
+    detail: string | null;
+  }>,
+): WorkspaceTransactionDetails {
+  return {
+    userId,
+    workspaceId,
+    stage,
+    code,
+    cardsResetCount,
+    memberCount,
+    selectedWorkspaceIdBeforeDelete,
+    selectedWorkspaceIdAfterPreparation,
+    deletedCardsCount,
+    ...databaseErrorDetails,
+  };
+}
+
+function reportWorkspaceTransactionError(
+  action: WorkspaceTransactionErrorAction,
+  details: WorkspaceTransactionDetails,
+  observationScope: BackendObservationScope | null,
+): void {
+  const scope = createWorkspaceTransactionScope(details.userId, details.workspaceId, observationScope);
+  switch (action) {
+    case "workspace_delete_preview_transaction_error":
+      addBackendBreadcrumb({ action: "workspace_delete_preview_transaction_error", scope, details });
+      return;
+    case "workspace_reset_progress_preview_transaction_error":
+      addBackendBreadcrumb({ action: "workspace_reset_progress_preview_transaction_error", scope, details });
+      return;
+    case "workspace_reset_progress_transaction_error":
+      addBackendBreadcrumb({ action: "workspace_reset_progress_transaction_error", scope, details });
+      return;
+    case "workspace_delete_transaction_error":
+      addBackendBreadcrumb({ action: "workspace_delete_transaction_error", scope, details });
+      return;
+  }
+}
+
+function captureWorkspaceTransactionError(
+  action: WorkspaceTransactionErrorAction,
+  error: unknown,
+  details: WorkspaceTransactionDetails,
+  observationScope: BackendObservationScope | null,
+): void {
+  const scope = createWorkspaceTransactionScope(details.userId, details.workspaceId, observationScope);
+  switch (action) {
+    case "workspace_delete_preview_transaction_error":
+      captureBackendException({
+        action: "workspace_delete_preview_transaction_error",
+        error: normalizeCaughtError(error),
+        scope,
+        details,
+      });
+      return;
+    case "workspace_reset_progress_preview_transaction_error":
+      captureBackendException({
+        action: "workspace_reset_progress_preview_transaction_error",
+        error: normalizeCaughtError(error),
+        scope,
+        details,
+      });
+      return;
+    case "workspace_reset_progress_transaction_error":
+      captureBackendException({
+        action: "workspace_reset_progress_transaction_error",
+        error: normalizeCaughtError(error),
+        scope,
+        details,
+      });
+      return;
+    case "workspace_delete_transaction_error":
+      captureBackendException({
+        action: "workspace_delete_transaction_error",
+        error: normalizeCaughtError(error),
+        scope,
+        details,
+      });
+      return;
+  }
+}
 
 type DeletedWorkspaceRow = Readonly<{
   workspace_id: string;
@@ -97,6 +207,7 @@ async function prepareSelectedWorkspaceForDeletionInExecutor(
   executor: DatabaseExecutor,
   userId: string,
   deletedWorkspaceId: string,
+  observationScope: BackendObservationScope | null,
 ): Promise<Readonly<{
   selectedWorkspaceIdBeforeDelete: string | null;
   selectedWorkspaceIdAfterPreparation: string | null;
@@ -111,7 +222,7 @@ async function prepareSelectedWorkspaceForDeletionInExecutor(
 
   const accessibleWorkspaceIds = await listUserWorkspaceIdsInExecutor(executor, userId);
   const replacementWorkspaceId = accessibleWorkspaceIds.find((workspaceId) => workspaceId !== deletedWorkspaceId)
-    ?? await createWorkspaceInExecutor(executor, userId, AUTO_CREATED_WORKSPACE_NAME);
+    ?? await createWorkspaceInExecutorWithObservationScope(executor, userId, AUTO_CREATED_WORKSPACE_NAME, observationScope);
   await persistSelectedWorkspaceForUserInExecutor(executor, userId, replacementWorkspaceId);
 
   return {
@@ -158,6 +269,15 @@ export async function loadWorkspaceDeletePreviewInExecutor(
   userId: string,
   workspaceId: string,
 ): Promise<WorkspaceDeletePreview> {
+  return loadWorkspaceDeletePreviewInExecutorWithObservationScope(executor, userId, workspaceId, null);
+}
+
+async function loadWorkspaceDeletePreviewInExecutorWithObservationScope(
+  executor: DatabaseExecutor,
+  userId: string,
+  workspaceId: string,
+  observationScope: BackendObservationScope | null,
+): Promise<WorkspaceDeletePreview> {
   try {
     const managedWorkspace = await loadWorkspaceManagementRowInExecutor(executor, userId, workspaceId);
     assertWorkspaceOwner(managedWorkspace.role);
@@ -177,14 +297,24 @@ export async function loadWorkspaceDeletePreviewInExecutor(
       throw error;
     }
 
-    const databaseErrorDetails = getDatabaseErrorDetails(error);
-    logCloudRouteEvent("workspace_delete_preview_transaction_error", {
-      userId,
-      workspaceId,
-      code: "WORKSPACE_DELETE_PREVIEW_FAILED",
-      ...databaseErrorDetails,
-    }, true);
-    throw createWorkspaceDeletePreviewFailedError();
+    captureWorkspaceTransactionError(
+      "workspace_delete_preview_transaction_error",
+      error,
+      createWorkspaceTransactionDetails(
+        userId,
+        workspaceId,
+        null,
+        "WORKSPACE_DELETE_PREVIEW_FAILED",
+        null,
+        null,
+        null,
+        null,
+        null,
+        getDatabaseErrorDetails(error),
+      ),
+      observationScope,
+    );
+    throw markBackendExceptionWrapperAsReported(createWorkspaceDeletePreviewFailedError());
   }
 }
 
@@ -192,10 +322,19 @@ export async function loadWorkspaceDeletePreviewForUser(
   userId: string,
   workspaceId: string,
 ): Promise<WorkspaceDeletePreview> {
-  return transactionWithUserScope({ userId }, async (executor) => loadWorkspaceDeletePreviewInExecutor(
+  return loadWorkspaceDeletePreviewForUserWithObservationScope(userId, workspaceId, null);
+}
+
+export async function loadWorkspaceDeletePreviewForUserWithObservationScope(
+  userId: string,
+  workspaceId: string,
+  observationScope: BackendObservationScope | null,
+): Promise<WorkspaceDeletePreview> {
+  return transactionWithUserScope({ userId }, async (executor) => loadWorkspaceDeletePreviewInExecutorWithObservationScope(
     executor,
     userId,
     workspaceId,
+    observationScope,
   ));
 }
 
@@ -203,6 +342,15 @@ export async function loadWorkspaceResetProgressPreviewInExecutor(
   executor: DatabaseExecutor,
   userId: string,
   workspaceId: string,
+): Promise<WorkspaceResetProgressPreview> {
+  return loadWorkspaceResetProgressPreviewInExecutorWithObservationScope(executor, userId, workspaceId, null);
+}
+
+async function loadWorkspaceResetProgressPreviewInExecutorWithObservationScope(
+  executor: DatabaseExecutor,
+  userId: string,
+  workspaceId: string,
+  observationScope: BackendObservationScope | null,
 ): Promise<WorkspaceResetProgressPreview> {
   try {
     const managedWorkspace = await loadWorkspaceManagementRowInExecutor(executor, userId, workspaceId);
@@ -222,14 +370,24 @@ export async function loadWorkspaceResetProgressPreviewInExecutor(
       throw error;
     }
 
-    const databaseErrorDetails = getDatabaseErrorDetails(error);
-    logCloudRouteEvent("workspace_reset_progress_preview_transaction_error", {
-      userId,
-      workspaceId,
-      code: "WORKSPACE_RESET_PROGRESS_PREVIEW_FAILED",
-      ...databaseErrorDetails,
-    }, true);
-    throw createWorkspaceResetProgressPreviewFailedError();
+    captureWorkspaceTransactionError(
+      "workspace_reset_progress_preview_transaction_error",
+      error,
+      createWorkspaceTransactionDetails(
+        userId,
+        workspaceId,
+        null,
+        "WORKSPACE_RESET_PROGRESS_PREVIEW_FAILED",
+        null,
+        null,
+        null,
+        null,
+        null,
+        getDatabaseErrorDetails(error),
+      ),
+      observationScope,
+    );
+    throw markBackendExceptionWrapperAsReported(createWorkspaceResetProgressPreviewFailedError());
   }
 }
 
@@ -237,10 +395,19 @@ export async function loadWorkspaceResetProgressPreviewForUser(
   userId: string,
   workspaceId: string,
 ): Promise<WorkspaceResetProgressPreview> {
-  return transactionWithUserScope({ userId }, async (executor) => loadWorkspaceResetProgressPreviewInExecutor(
+  return loadWorkspaceResetProgressPreviewForUserWithObservationScope(userId, workspaceId, null);
+}
+
+export async function loadWorkspaceResetProgressPreviewForUserWithObservationScope(
+  userId: string,
+  workspaceId: string,
+  observationScope: BackendObservationScope | null,
+): Promise<WorkspaceResetProgressPreview> {
+  return transactionWithUserScope({ userId }, async (executor) => loadWorkspaceResetProgressPreviewInExecutorWithObservationScope(
     executor,
     userId,
     workspaceId,
+    observationScope,
   ));
 }
 
@@ -249,6 +416,7 @@ async function resetWorkspaceProgressInExecutor(
   userId: string,
   workspaceId: string,
   confirmationText: string,
+  observationScope: BackendObservationScope | null,
 ): Promise<ResetWorkspaceProgressResult> {
   assertResetWorkspaceProgressConfirmationText(confirmationText);
   let stage: WorkspaceResetProgressFailureStage = "load_management_row";
@@ -297,26 +465,48 @@ async function resetWorkspaceProgressInExecutor(
     };
   } catch (error) {
     if (error instanceof HttpError) {
-      logCloudRouteEvent("workspace_reset_progress_transaction_error", {
-        userId,
-        workspaceId,
-        cardsResetCount,
-        stage,
-        code: error.code,
-      }, true);
+      reportWorkspaceTransactionError(
+        "workspace_reset_progress_transaction_error",
+        createWorkspaceTransactionDetails(
+          userId,
+          workspaceId,
+          stage,
+          error.code,
+          cardsResetCount,
+          null,
+          null,
+          null,
+          null,
+          {
+            sqlState: null,
+            constraint: null,
+            table: null,
+            detail: null,
+          },
+        ),
+        observationScope,
+      );
       throw error;
     }
 
-    const databaseErrorDetails = getDatabaseErrorDetails(error);
-    logCloudRouteEvent("workspace_reset_progress_transaction_error", {
-      userId,
-      workspaceId,
-      cardsResetCount,
-      stage,
-      code: "WORKSPACE_RESET_PROGRESS_FAILED",
-      ...databaseErrorDetails,
-    }, true);
-    throw createWorkspaceResetProgressFailedError();
+    captureWorkspaceTransactionError(
+      "workspace_reset_progress_transaction_error",
+      error,
+      createWorkspaceTransactionDetails(
+        userId,
+        workspaceId,
+        stage,
+        "WORKSPACE_RESET_PROGRESS_FAILED",
+        cardsResetCount,
+        null,
+        null,
+        null,
+        null,
+        getDatabaseErrorDetails(error),
+      ),
+      observationScope,
+    );
+    throw markBackendExceptionWrapperAsReported(createWorkspaceResetProgressFailedError());
   }
 }
 
@@ -325,11 +515,21 @@ export async function resetWorkspaceProgressForUser(
   workspaceId: string,
   confirmationText: string,
 ): Promise<ResetWorkspaceProgressResult> {
+  return resetWorkspaceProgressForUserWithObservationScope(userId, workspaceId, confirmationText, null);
+}
+
+export async function resetWorkspaceProgressForUserWithObservationScope(
+  userId: string,
+  workspaceId: string,
+  confirmationText: string,
+  observationScope: BackendObservationScope | null,
+): Promise<ResetWorkspaceProgressResult> {
   return transactionWithUserScope({ userId }, async (executor) => resetWorkspaceProgressInExecutor(
     executor,
     userId,
     workspaceId,
     confirmationText,
+    observationScope,
   ));
 }
 
@@ -338,6 +538,16 @@ export async function deleteWorkspaceInExecutor(
   userId: string,
   workspaceId: string,
   confirmationText: string,
+): Promise<DeleteWorkspaceResult> {
+  return deleteWorkspaceInExecutorWithObservationScope(executor, userId, workspaceId, confirmationText, null);
+}
+
+async function deleteWorkspaceInExecutorWithObservationScope(
+  executor: DatabaseExecutor,
+  userId: string,
+  workspaceId: string,
+  confirmationText: string,
+  observationScope: BackendObservationScope | null,
 ): Promise<DeleteWorkspaceResult> {
   assertDeleteWorkspaceConfirmationText(confirmationText);
   let stage: WorkspaceDeleteFailureStage = "load_management_row";
@@ -354,6 +564,7 @@ export async function deleteWorkspaceInExecutor(
       executor,
       userId,
       workspaceId,
+      observationScope,
     );
     selectedWorkspaceIdBeforeDelete = selectionPreparation.selectedWorkspaceIdBeforeDelete;
     selectedWorkspaceIdAfterPreparation = selectionPreparation.selectedWorkspaceIdAfterPreparation;
@@ -385,32 +596,48 @@ export async function deleteWorkspaceInExecutor(
     };
   } catch (error) {
     if (error instanceof HttpError) {
-      logCloudRouteEvent("workspace_delete_transaction_error", {
-        userId,
-        workspaceId,
-        memberCount: managedWorkspace.member_count,
-        selectedWorkspaceIdBeforeDelete,
-        selectedWorkspaceIdAfterPreparation,
-        deletedCardsCount,
-        stage,
-        code: error.code,
-      }, true);
+      reportWorkspaceTransactionError(
+        "workspace_delete_transaction_error",
+        createWorkspaceTransactionDetails(
+          userId,
+          workspaceId,
+          stage,
+          error.code,
+          null,
+          managedWorkspace.member_count,
+          selectedWorkspaceIdBeforeDelete,
+          selectedWorkspaceIdAfterPreparation,
+          deletedCardsCount,
+          {
+            sqlState: null,
+            constraint: null,
+            table: null,
+            detail: null,
+          },
+        ),
+        observationScope,
+      );
       throw error;
     }
 
-    const databaseErrorDetails = getDatabaseErrorDetails(error);
-    logCloudRouteEvent("workspace_delete_transaction_error", {
-      userId,
-      workspaceId,
-      memberCount: managedWorkspace.member_count,
-      selectedWorkspaceIdBeforeDelete,
-      selectedWorkspaceIdAfterPreparation,
-      deletedCardsCount,
-      stage,
-      code: "WORKSPACE_DELETE_FAILED",
-      ...databaseErrorDetails,
-    }, true);
-    throw createWorkspaceDeleteFailedError();
+    captureWorkspaceTransactionError(
+      "workspace_delete_transaction_error",
+      error,
+      createWorkspaceTransactionDetails(
+        userId,
+        workspaceId,
+        stage,
+        "WORKSPACE_DELETE_FAILED",
+        null,
+        managedWorkspace.member_count,
+        selectedWorkspaceIdBeforeDelete,
+        selectedWorkspaceIdAfterPreparation,
+        deletedCardsCount,
+        getDatabaseErrorDetails(error),
+      ),
+      observationScope,
+    );
+    throw markBackendExceptionWrapperAsReported(createWorkspaceDeleteFailedError());
   }
 }
 
@@ -419,10 +646,20 @@ export async function deleteWorkspaceForUser(
   workspaceId: string,
   confirmationText: string,
 ): Promise<DeleteWorkspaceResult> {
-  return transactionWithUserScope({ userId }, async (executor) => deleteWorkspaceInExecutor(
+  return deleteWorkspaceForUserWithObservationScope(userId, workspaceId, confirmationText, null);
+}
+
+export async function deleteWorkspaceForUserWithObservationScope(
+  userId: string,
+  workspaceId: string,
+  confirmationText: string,
+  observationScope: BackendObservationScope | null,
+): Promise<DeleteWorkspaceResult> {
+  return transactionWithUserScope({ userId }, async (executor) => deleteWorkspaceInExecutorWithObservationScope(
     executor,
     userId,
     workspaceId,
     confirmationText,
+    observationScope,
   ));
 }

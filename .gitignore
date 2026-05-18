@@ -29,6 +29,16 @@ pnpm-debug.log*
 apps/web/playwright-report/
 apps/web/test-results/
 
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+.mypy_cache/
+.pytest_cache/
+.pyre/
+.pytype/
+.ruff_cache/
+
 # macOS
 .DS_Store
 

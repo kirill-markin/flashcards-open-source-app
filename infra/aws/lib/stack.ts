@@ -35,6 +35,66 @@ function getOptionalRawContextValue(stack: cdk.Stack, key: string): string | und
   return value;
 }
 
+interface BackendSentryContext {
+  sentryDsnSecretArn: string;
+  sentryEnvironment: string;
+  sentryRelease: string;
+  sentryTracesSampleRate: string;
+}
+
+interface BackendSentryContextInput {
+  sentryDsnSecretArn: string | undefined;
+  sentryEnvironment: string | undefined;
+  sentryRelease: string | undefined;
+  sentryTracesSampleRate: string | undefined;
+}
+
+function hasConfiguredValue(value: string | undefined): value is string {
+  return value !== undefined && value !== "";
+}
+
+function validateSentryTracesSampleRate(value: string): void {
+  const tracesSampleRate = Number(value);
+  if (!Number.isFinite(tracesSampleRate) || tracesSampleRate < 0 || tracesSampleRate > 1) {
+    throw new Error("sentryTracesSampleRate must be a number between 0 and 1");
+  }
+}
+
+function validateBackendSentryContext(context: BackendSentryContextInput): BackendSentryContext {
+  const contextValues = [
+    ["sentryDsnSecretArn", context.sentryDsnSecretArn],
+    ["sentryEnvironment", context.sentryEnvironment],
+    ["sentryRelease", context.sentryRelease],
+    ["sentryTracesSampleRate", context.sentryTracesSampleRate],
+  ] as const;
+  const missingContextKeys = contextValues
+    .filter(([_key, value]) => !hasConfiguredValue(value))
+    .map(([key, _value]) => key);
+  if (missingContextKeys.length > 0) {
+    throw new Error(
+      `Backend Sentry context is required for stack configuration because AWS Lambda backend runtimes require SENTRY_DSN. Missing: ${missingContextKeys.join(", ")}`,
+    );
+  }
+
+  const { sentryDsnSecretArn, sentryEnvironment, sentryRelease, sentryTracesSampleRate } = context;
+  if (
+    !hasConfiguredValue(sentryDsnSecretArn) ||
+    !hasConfiguredValue(sentryEnvironment) ||
+    !hasConfiguredValue(sentryRelease) ||
+    !hasConfiguredValue(sentryTracesSampleRate)
+  ) {
+    throw new Error("Backend Sentry context validation failed unexpectedly.");
+  }
+
+  validateSentryTracesSampleRate(sentryTracesSampleRate);
+  return {
+    sentryDsnSecretArn,
+    sentryEnvironment,
+    sentryRelease,
+    sentryTracesSampleRate,
+  };
+}
+
 function parseCommaSeparatedValue(value: string): ReadonlyArray<string> {
   return value
     .split(",")
@@ -66,6 +126,12 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const langfusePublicKeySecretArn = getOptionalContextValue(this, "langfusePublicKeySecretArn");
     const langfuseSecretKeySecretArn = getOptionalContextValue(this, "langfuseSecretKeySecretArn");
     const langfuseBaseUrl = getOptionalContextValue(this, "langfuseBaseUrl");
+    const sentryContext = validateBackendSentryContext({
+      sentryDsnSecretArn: getOptionalContextValue(this, "sentryDsnSecretArn"),
+      sentryEnvironment: getOptionalContextValue(this, "sentryEnvironment"),
+      sentryRelease: getOptionalContextValue(this, "sentryRelease"),
+      sentryTracesSampleRate: getOptionalContextValue(this, "sentryTracesSampleRate"),
+    });
     const demoEmailDostip = getOptionalContextValue(this, "demoEmailDostip");
     const demoPasswordSecretArn = getOptionalContextValue(this, "demoPasswordSecretArn");
     const adminEmails = getOptionalContextValue(this, "adminEmails");
@@ -91,6 +157,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       lambdaSg: net.lambdaSg,
       db: dbResult.db,
       reportingDbSecret: dbResult.reportingDbSecret,
+      ...sentryContext,
     });
     let analyticsAccessResult: AnalyticsAccessResult | undefined;
     if (analyticsAccessRequested) {
@@ -149,6 +216,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       authDbSecret: dbResult.authDbSecret,
       reportingDbSecret: dbResult.reportingDbSecret,
       adminEmails,
+      ...sentryContext,
     });
     const api = apiGateway(this, {
       vpc: net.vpc,
@@ -162,6 +230,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       langfusePublicKeySecretArn,
       langfuseSecretKeySecretArn,
       langfuseBaseUrl,
+      ...sentryContext,
       demoEmailDostip,
       guestAiWeightedMonthlyTokenCap,
       globalMetricsVisible,

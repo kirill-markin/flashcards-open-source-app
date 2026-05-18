@@ -9,6 +9,7 @@ import * as s3 from "aws-cdk-lib/aws-s3";
 import { Construct } from "constructs";
 import { backendNodejsProjectPaths, resolveFromRepoRoot } from "./nodejs-project-paths";
 import { createSafeApiGatewayAccessLogFormat } from "./api-gateway-access-log";
+import { createSentrySourceMapUploadCommand } from "./sentry-source-maps";
 
 export interface ApiGatewayProps {
   vpc: ec2.Vpc;
@@ -22,6 +23,10 @@ export interface ApiGatewayProps {
   langfusePublicKeySecretArn: string | undefined;
   langfuseSecretKeySecretArn: string | undefined;
   langfuseBaseUrl: string | undefined;
+  sentryDsnSecretArn: string | undefined;
+  sentryEnvironment: string | undefined;
+  sentryRelease: string | undefined;
+  sentryTracesSampleRate: string | undefined;
   demoEmailDostip: string | undefined;
   guestAiWeightedMonthlyTokenCap: string | undefined;
   globalMetricsVisible: boolean;
@@ -59,6 +64,7 @@ interface BackendFunctionProps {
   langfusePublicKeySecretArn: string | undefined;
   langfuseSecretKeySecretArn: string | undefined;
   langfuseBaseUrl: string | undefined;
+  sentryConfig: BackendSentryConfig;
   demoEmailDostip: string | undefined;
   guestAiWeightedMonthlyTokenCap: string | undefined;
   globalMetricsConfig: GlobalMetricsConfig | undefined;
@@ -71,6 +77,20 @@ interface GlobalMetricsConfig {
   snapshotObjectKey: string;
 }
 
+export interface BackendSentryConfig {
+  dsnSecretArn: string | undefined;
+  environment: string | undefined;
+  release: string | undefined;
+  tracesSampleRate: string | undefined;
+}
+
+interface ResolvedBackendSentryConfig {
+  dsnSecretArn: string;
+  environment: string;
+  release: string;
+  tracesSampleRate: string;
+}
+
 const chatResumeCorsHeaders = [
   "content-type",
   "authorization",
@@ -78,11 +98,14 @@ const chatResumeCorsHeaders = [
   "x-chat-resume-attempt-id",
   "x-client-platform",
   "x-client-version",
+  "sentry-trace",
+  "baggage",
 ] as const;
 
 const globalMetricsCorsPreflightOptions: apigw.CorsOptions = {
   allowOrigins: ["*"],
   allowMethods: ["GET", "OPTIONS"],
+  allowHeaders: ["authorization", "sentry-trace", "baggage"],
 };
 
 function createBrowserCorsPreflightOptions(allowedOrigins: string[]): apigw.CorsOptions {
@@ -104,6 +127,7 @@ const lambdaBundling: lambdaNodejs.BundlingOptions = {
       `curl -sfo ${outputDir}/rds-global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem`,
       `mkdir -p ${outputDir}/api/dist`,
       `cp ${resolveFromRepoRoot("api", "dist", "openapi.json")} ${outputDir}/api/dist/openapi.json`,
+      createSentrySourceMapUploadCommand(outputDir),
     ],
   },
 };
@@ -164,6 +188,55 @@ function addGlobalMetricsEnvironment(
     actions: ["s3:GetObject"],
     resources: [config.snapshotBucket.arnForObjects(config.snapshotObjectKey)],
   }));
+}
+
+function hasConfiguredValue(value: string | undefined): value is string {
+  return value !== undefined && value !== "";
+}
+
+function getResolvedBackendSentryConfig(config: BackendSentryConfig): ResolvedBackendSentryConfig | null {
+  if (!hasConfiguredValue(config.dsnSecretArn)) {
+    return null;
+  }
+
+  if (!hasConfiguredValue(config.environment)) {
+    throw new Error("sentryEnvironment is required when sentryDsnSecretArn is configured");
+  }
+  if (!hasConfiguredValue(config.release)) {
+    throw new Error("sentryRelease is required when sentryDsnSecretArn is configured");
+  }
+  if (!hasConfiguredValue(config.tracesSampleRate)) {
+    throw new Error("sentryTracesSampleRate is required when sentryDsnSecretArn is configured");
+  }
+
+  const tracesSampleRate = Number(config.tracesSampleRate);
+  if (!Number.isFinite(tracesSampleRate) || tracesSampleRate < 0 || tracesSampleRate > 1) {
+    throw new Error("sentryTracesSampleRate must be a number between 0 and 1");
+  }
+
+  return {
+    dsnSecretArn: config.dsnSecretArn,
+    environment: config.environment,
+    release: config.release,
+    tracesSampleRate: config.tracesSampleRate,
+  };
+}
+
+function addBackendSentryEnvironment(
+  scope: Construct,
+  fn: lambdaNodejs.NodejsFunction,
+  config: BackendSentryConfig,
+  constructId: string,
+): void {
+  const resolvedConfig = getResolvedBackendSentryConfig(config);
+  if (resolvedConfig === null) {
+    return;
+  }
+
+  addLambdaSecretEnvironment(scope, fn, resolvedConfig.dsnSecretArn, `${constructId}SentryDsnSecret`, "SENTRY_DSN");
+  fn.addEnvironment("SENTRY_ENVIRONMENT", resolvedConfig.environment);
+  fn.addEnvironment("SENTRY_RELEASE", resolvedConfig.release);
+  fn.addEnvironment("SENTRY_TRACES_SAMPLE_RATE", resolvedConfig.tracesSampleRate);
 }
 
 /**
@@ -236,6 +309,7 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
       "LANGFUSE_SECRET_KEY",
     );
   }
+  addBackendSentryEnvironment(scope, fn, props.sentryConfig, props.constructId);
   if (props.demoEmailDostip !== undefined && props.demoEmailDostip !== "") {
     fn.addEnvironment("DEMO_EMAIL_DOSTIP", props.demoEmailDostip);
   }
@@ -300,6 +374,12 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     langfusePublicKeySecretArn: props.langfusePublicKeySecretArn,
     langfuseSecretKeySecretArn: props.langfuseSecretKeySecretArn,
     langfuseBaseUrl: props.langfuseBaseUrl,
+    sentryConfig: {
+      dsnSecretArn: props.sentryDsnSecretArn,
+      environment: props.sentryEnvironment,
+      release: props.sentryRelease,
+      tracesSampleRate: props.sentryTracesSampleRate,
+    },
     demoEmailDostip: props.demoEmailDostip,
     guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
     globalMetricsConfig: {
@@ -328,6 +408,12 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     langfusePublicKeySecretArn: props.langfusePublicKeySecretArn,
     langfuseSecretKeySecretArn: props.langfuseSecretKeySecretArn,
     langfuseBaseUrl: props.langfuseBaseUrl,
+    sentryConfig: {
+      dsnSecretArn: props.sentryDsnSecretArn,
+      environment: props.sentryEnvironment,
+      release: props.sentryRelease,
+      tracesSampleRate: props.sentryTracesSampleRate,
+    },
     demoEmailDostip: props.demoEmailDostip,
     guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
     globalMetricsConfig: undefined,
@@ -352,6 +438,12 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     langfusePublicKeySecretArn: props.langfusePublicKeySecretArn,
     langfuseSecretKeySecretArn: props.langfuseSecretKeySecretArn,
     langfuseBaseUrl: props.langfuseBaseUrl,
+    sentryConfig: {
+      dsnSecretArn: props.sentryDsnSecretArn,
+      environment: props.sentryEnvironment,
+      release: props.sentryRelease,
+      tracesSampleRate: props.sentryTracesSampleRate,
+    },
     demoEmailDostip: props.demoEmailDostip,
     guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
     globalMetricsConfig: undefined,

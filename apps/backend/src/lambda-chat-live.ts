@@ -5,17 +5,28 @@
  */
 import { randomUUID } from "node:crypto";
 import type { Writable } from "node:stream";
-import type { APIGatewayProxyEventV2 } from "aws-lambda";
-import { runLiveStream } from "./chat/live";
-import { createChatLiveErrorResponse } from "./chat/liveErrors";
-import { handleLiveRequest } from "./chat/liveRequest";
-import { getErrorLogContext, logCloudRouteEvent } from "./server/logging";
-import { initializeLangfuseTelemetry } from "./telemetry/langfuse";
+import type { APIGatewayProxyEventV2, StreamifyHandler } from "aws-lambda";
+import type { LiveStreamParams } from "./chat/liveRequest";
+import {
+  addBackendBreadcrumb,
+  captureBackendException,
+  type ChatLiveBootstrapFailureDetails,
+  continueBackendTrace,
+  createBackendObservationScope,
+  flushBackendSentry,
+  type BackendTraceCarrier,
+  initializeBackendSentry,
+  normalizeCaughtError,
+  startBackendSpan,
+  wrapBackendStreamHandler,
+} from "./observability/sentry";
 
-initializeLangfuseTelemetry();
+initializeBackendSentry("chat-live");
 
 declare const awslambda: {
-  streamifyResponse: (handler: (event: APIGatewayProxyEventV2, responseStream: Writable) => Promise<void>) => unknown;
+  streamifyResponse: (
+    handler: StreamifyHandler<APIGatewayProxyEventV2, void>,
+  ) => StreamifyHandler<APIGatewayProxyEventV2, void>;
   HttpResponseStream: {
     from: (stream: Writable, metadata: Record<string, unknown>) => Writable;
   };
@@ -49,103 +60,406 @@ function getLiveAuthorizationScheme(authorizationHeader: string | undefined): st
   return "unknown";
 }
 
-export const handler = awslambda.streamifyResponse(
-  async (event: APIGatewayProxyEventV2, responseStream: Writable) => {
-    const requestId = getLiveRequestId(event);
-    const url = new URL(event.rawPath + "?" + (event.rawQueryString ?? ""), "http://localhost");
-    const authorizationHeader = event.headers?.authorization;
-    const origin = event.headers?.origin ?? null;
-    const method = event.requestContext.http.method;
+function hasLiveTraceCarrierValue(traceCarrier: BackendTraceCarrier | null | undefined): traceCarrier is BackendTraceCarrier {
+  return traceCarrier !== null
+    && traceCarrier !== undefined
+    && (traceCarrier.sentryTrace !== null || traceCarrier.baggage !== null);
+}
 
-    let params;
+function isPresentHeaderValue(value: string | undefined): value is string {
+  return value !== undefined && value !== "";
+}
 
-    try {
-      params = await handleLiveRequest(url, authorizationHeader, event.headers ?? {});
-    } catch (error) {
-      const errorResponse = createChatLiveErrorResponse(error, requestId);
-      logCloudRouteEvent("chat_live_request_error", {
-        requestId,
-        path: event.rawPath,
-        method,
-        rawQueryString: event.rawQueryString,
-        sessionId: url.searchParams.get("sessionId"),
-        runId: url.searchParams.get("runId"),
-        afterCursor: url.searchParams.get("afterCursor"),
-        origin,
-        authScheme: getLiveAuthorizationScheme(authorizationHeader),
-        resumeAttemptId: event.headers?.["x-chat-resume-attempt-id"] ?? null,
-        clientPlatform: event.headers?.["x-client-platform"] ?? null,
-        clientVersion: event.headers?.["x-client-version"] ?? null,
-        statusCode: errorResponse.statusCode,
-        code: errorResponse.body.code,
-        ...getErrorLogContext(error),
-      }, true);
-      const metadata = {
-        statusCode: errorResponse.statusCode,
-        headers: { "Content-Type": "application/json", "X-Request-Id": requestId },
-      };
-      const stream = awslambda.HttpResponseStream.from(responseStream, metadata);
-      stream.write(JSON.stringify(errorResponse.body));
-      stream.end();
-      return;
+function compareHeaderNames(left: string, right: string): number {
+  if (left < right) {
+    return -1;
+  }
+
+  if (left > right) {
+    return 1;
+  }
+
+  return 0;
+}
+
+function readApiGatewayHeader(headers: APIGatewayProxyEventV2["headers"] | undefined, name: string): string | null {
+  if (headers === undefined) {
+    return null;
+  }
+
+  const exactValue = headers[name];
+  if (isPresentHeaderValue(exactValue)) {
+    return exactValue;
+  }
+
+  const normalizedName = name.toLowerCase();
+  const matchingNames = Object.keys(headers)
+    .filter((headerName) => headerName.toLowerCase() === normalizedName)
+    .sort(compareHeaderNames);
+
+  for (const headerName of matchingNames) {
+    const value = headers[headerName];
+    if (isPresentHeaderValue(value)) {
+      return value;
     }
+  }
 
+  return null;
+}
+
+function getRequestTraceCarrier(headers: APIGatewayProxyEventV2["headers"] | undefined): BackendTraceCarrier | null {
+  const sentryTrace = readApiGatewayHeader(headers, "sentry-trace");
+  const baggage = readApiGatewayHeader(headers, "baggage");
+  if (sentryTrace === null && baggage === null) {
+    return null;
+  }
+
+  return {
+    sentryTrace,
+    baggage,
+  };
+}
+
+function resolveLiveTraceCarrier(
+  tokenTraceCarrier: BackendTraceCarrier | null | undefined,
+  headers: APIGatewayProxyEventV2["headers"] | undefined,
+): BackendTraceCarrier | null {
+  if (hasLiveTraceCarrierValue(tokenTraceCarrier)) {
+    return tokenTraceCarrier;
+  }
+
+  return getRequestTraceCarrier(headers);
+}
+
+type LiveRequestSafeQueryDetails = Readonly<{
+  sessionId: string | null;
+  runId: string | null;
+  afterCursor: string | null;
+  hasToken: boolean;
+  hasWorkspaceId: boolean;
+}>;
+
+type ChatLiveRuntime = Readonly<{
+  runLiveStream: typeof import("./chat/live").runLiveStream;
+  createChatLiveErrorResponse: typeof import("./chat/liveErrors").createChatLiveErrorResponse;
+  handleLiveRequest: typeof import("./chat/liveRequest").handleLiveRequest;
+  flushLangfuseTelemetry: typeof import("./telemetry/langfuse").flushLangfuseTelemetry;
+}>;
+
+type ChatLiveBootstrapErrorBody = Readonly<{
+  error: string;
+  requestId: string;
+  code: "INTERNAL_ERROR";
+}>;
+
+let chatLiveRuntimePromise: Promise<ChatLiveRuntime> | null = null;
+
+async function createChatLiveRuntime(): Promise<ChatLiveRuntime> {
+  const [
+    { flushLangfuseTelemetry, initializeLangfuseTelemetry },
+    { runLiveStream },
+    { createChatLiveErrorResponse },
+    { handleLiveRequest },
+  ] = await Promise.all([
+    import("./telemetry/langfuse"),
+    import("./chat/live"),
+    import("./chat/liveErrors"),
+    import("./chat/liveRequest"),
+  ]);
+  initializeLangfuseTelemetry();
+  return {
+    runLiveStream,
+    createChatLiveErrorResponse,
+    handleLiveRequest,
+    flushLangfuseTelemetry,
+  };
+}
+
+function getChatLiveRuntime(): Promise<ChatLiveRuntime> {
+  if (chatLiveRuntimePromise === null) {
+    chatLiveRuntimePromise = createChatLiveRuntime();
+  }
+
+  return chatLiveRuntimePromise;
+}
+
+function createLiveRequestUrl(event: APIGatewayProxyEventV2): URL {
+  const querySuffix = event.rawQueryString === "" ? "" : `?${event.rawQueryString}`;
+  return new URL(`${event.rawPath}${querySuffix}`, "http://localhost");
+}
+
+function getLiveRequestSafeQueryDetails(url: URL): LiveRequestSafeQueryDetails {
+  return {
+    sessionId: url.searchParams.get("sessionId"),
+    runId: url.searchParams.get("runId"),
+    afterCursor: url.searchParams.get("afterCursor"),
+    hasToken: url.searchParams.has("token"),
+    hasWorkspaceId: url.searchParams.has("workspaceId"),
+  };
+}
+
+function createChatLiveBootstrapFailureDetails(
+  event: APIGatewayProxyEventV2,
+  error: Error,
+): ChatLiveBootstrapFailureDetails {
+  const requestId = getLiveRequestId(event);
+  const url = createLiveRequestUrl(event);
+  const safeQueryDetails = getLiveRequestSafeQueryDetails(url);
+  const authorizationHeader = readApiGatewayHeader(event.headers, "authorization") ?? undefined;
+
+  return {
+    statusCode: 500,
+    path: event.rawPath,
+    ...safeQueryDetails,
+    origin: readApiGatewayHeader(event.headers, "origin"),
+    authScheme: getLiveAuthorizationScheme(authorizationHeader),
+    resumeAttemptId: readApiGatewayHeader(event.headers, "x-chat-resume-attempt-id"),
+    clientPlatform: readApiGatewayHeader(event.headers, "x-client-platform"),
+    clientVersion: readApiGatewayHeader(event.headers, "x-client-version"),
+    code: "INTERNAL_ERROR",
+    message: error.message,
+  };
+}
+
+function createChatLiveBootstrapErrorBody(requestId: string): ChatLiveBootstrapErrorBody {
+  return {
+    error: "Request failed. Try again.",
+    requestId,
+    code: "INTERNAL_ERROR",
+  };
+}
+
+function writeChatLiveBootstrapErrorResponse(responseStream: Writable, requestId: string): void {
+  if (responseStream.destroyed || responseStream.writableEnded) {
+    return;
+  }
+
+  const metadata = {
+    statusCode: 500,
+    headers: { "Content-Type": "application/json", "X-Request-Id": requestId },
+  };
+  const stream = awslambda.HttpResponseStream.from(responseStream, metadata);
+  stream.write(JSON.stringify(createChatLiveBootstrapErrorBody(requestId)));
+  stream.end();
+}
+
+async function liveStreamHandler(
+  event: APIGatewayProxyEventV2,
+  responseStream: Writable,
+  runtime: ChatLiveRuntime,
+): Promise<void> {
+  const {
+    runLiveStream,
+    createChatLiveErrorResponse,
+    handleLiveRequest,
+    flushLangfuseTelemetry,
+  } = runtime;
+  const requestId = getLiveRequestId(event);
+  const url = createLiveRequestUrl(event);
+  const safeQueryDetails = getLiveRequestSafeQueryDetails(url);
+  const authorizationHeader = readApiGatewayHeader(event.headers, "authorization") ?? undefined;
+  const origin = readApiGatewayHeader(event.headers, "origin");
+  const resumeAttemptId = readApiGatewayHeader(event.headers, "x-chat-resume-attempt-id");
+  const clientPlatform = readApiGatewayHeader(event.headers, "x-client-platform");
+  const clientVersion = readApiGatewayHeader(event.headers, "x-client-version");
+  const method = event.requestContext.http.method;
+
+  let params: LiveStreamParams;
+
+  try {
+    params = await handleLiveRequest(url, authorizationHeader, event.headers ?? {});
+  } catch (error) {
+    const errorResponse = createChatLiveErrorResponse(error, requestId);
+    const scope = createBackendObservationScope(
+      "chat-live",
+      requestId,
+      event.rawPath,
+      method,
+      null,
+      null,
+      null,
+      url.searchParams.get("runId"),
+      url.searchParams.get("sessionId"),
+    );
+    const details = {
+      statusCode: errorResponse.statusCode,
+      path: event.rawPath,
+      ...safeQueryDetails,
+      origin,
+      authScheme: getLiveAuthorizationScheme(authorizationHeader),
+      resumeAttemptId,
+      clientPlatform,
+      clientVersion,
+      code: errorResponse.body.code,
+      message: error instanceof Error ? error.message : String(error),
+    };
+    if (errorResponse.statusCode >= 500) {
+      captureBackendException({
+        action: "chat_live_request_error",
+        error: normalizeCaughtError(error),
+        scope,
+        details,
+      });
+    } else {
+      addBackendBreadcrumb({
+        action: "chat_live_request_error",
+        scope,
+        details,
+      });
+    }
     const metadata = {
-      statusCode: 200,
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache, no-store",
-        "Connection": "keep-alive",
-        "X-Request-Id": requestId,
-      },
+      statusCode: errorResponse.statusCode,
+      headers: { "Content-Type": "application/json", "X-Request-Id": requestId },
     };
     const stream = awslambda.HttpResponseStream.from(responseStream, metadata);
+    stream.write(JSON.stringify(errorResponse.body));
+    stream.end();
+    if (errorResponse.statusCode >= 500) {
+      await Promise.all([
+        flushLangfuseTelemetry(),
+        flushBackendSentry(2000),
+      ]);
+    } else {
+      await flushLangfuseTelemetry();
+    }
+    return;
+  }
 
-    logCloudRouteEvent("chat_live_attach_start", {
+  const metadata = {
+    statusCode: 200,
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache, no-store",
+      "Connection": "keep-alive",
+      "X-Request-Id": requestId,
+    },
+  };
+  const stream = awslambda.HttpResponseStream.from(responseStream, metadata);
+
+  addBackendBreadcrumb({
+    action: "chat_live_attach_start",
+    scope: createBackendObservationScope(
+      "chat-live",
       requestId,
-      path: event.rawPath,
+      event.rawPath,
       method,
-      rawQueryString: event.rawQueryString,
+      params.userId,
+      params.workspaceId,
+      null,
+      params.runId,
+      params.sessionId,
+    ),
+    details: {
+      statusCode: 200,
+      path: event.rawPath,
       sessionId: params.sessionId,
       runId: params.runId,
       afterCursor: params.afterCursor ?? null,
-      userId: params.userId,
-      workspaceId: params.workspaceId,
+      hasToken: safeQueryDetails.hasToken,
+      hasWorkspaceId: safeQueryDetails.hasWorkspaceId,
       origin,
       authScheme: getLiveAuthorizationScheme(authorizationHeader),
       resumeAttemptId: params.resumeAttemptId ?? null,
       clientPlatform: params.clientPlatform ?? null,
       clientVersion: params.clientVersion ?? null,
-      statusCode: 200,
-    }, false);
+    },
+  });
 
-    try {
-      await runLiveStream(stream, {
+  try {
+    const traceCarrier = resolveLiveTraceCarrier(params.traceContext ?? null, event.headers);
+    await continueBackendTrace(traceCarrier, async () => startBackendSpan(
+      "chat.live.stream",
+      "http.server.sse",
+      async () => runLiveStream(stream, {
         ...params,
         requestId,
-      });
-    } catch (error) {
-      logCloudRouteEvent("chat_live_stream_crashed", {
+      }),
+    ));
+    await Promise.all([
+      flushLangfuseTelemetry(),
+      flushBackendSentry(2000),
+    ]);
+  } catch (error) {
+    captureBackendException({
+      action: "chat_live_stream_crashed",
+      error: normalizeCaughtError(error),
+      scope: createBackendObservationScope(
+        "chat-live",
         requestId,
-        path: event.rawPath,
+        event.rawPath,
         method,
-        rawQueryString: event.rawQueryString,
+        params.userId,
+        params.workspaceId,
+        null,
+        params.runId,
+        params.sessionId,
+      ),
+      details: {
+        statusCode: 500,
+        path: event.rawPath,
         sessionId: params.sessionId,
         runId: params.runId,
         afterCursor: params.afterCursor ?? null,
-        userId: params.userId,
-        workspaceId: params.workspaceId,
+        hasToken: safeQueryDetails.hasToken,
+        hasWorkspaceId: safeQueryDetails.hasWorkspaceId,
         origin,
         authScheme: getLiveAuthorizationScheme(authorizationHeader),
         resumeAttemptId: params.resumeAttemptId ?? null,
         clientPlatform: params.clientPlatform ?? null,
         clientVersion: params.clientVersion ?? null,
-        statusCode: 500,
-        ...getErrorLogContext(error),
-      }, true);
-      if (stream.destroyed === false && stream.writableEnded === false) {
-        stream.end();
+      },
+    });
+    await Promise.all([
+      flushLangfuseTelemetry(),
+      flushBackendSentry(2000),
+    ]);
+    if (stream.destroyed === false && stream.writableEnded === false) {
+      stream.end();
+    }
+  }
+}
+
+const chatLiveStreamHandler: StreamifyHandler<APIGatewayProxyEventV2, void> = async (
+  event: APIGatewayProxyEventV2,
+  responseStream: awslambda.HttpResponseStream,
+): Promise<void> => {
+  let flushLangfuseTelemetry: (() => Promise<void>) | null = null;
+  try {
+    const runtime = await getChatLiveRuntime();
+    flushLangfuseTelemetry = runtime.flushLangfuseTelemetry;
+    await liveStreamHandler(event, responseStream, runtime);
+  } catch (error) {
+    const normalizedError = normalizeCaughtError(error);
+    const requestId = getLiveRequestId(event);
+    captureBackendException({
+      action: "chat_live_bootstrap_failed",
+      error: normalizedError,
+      scope: createBackendObservationScope(
+        "chat-live",
+        requestId,
+        event.rawPath,
+        event.requestContext.http.method,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ),
+      details: createChatLiveBootstrapFailureDetails(event, normalizedError),
+    });
+    try {
+      writeChatLiveBootstrapErrorResponse(responseStream, requestId);
+    } finally {
+      if (flushLangfuseTelemetry === null) {
+        await flushBackendSentry(2000);
+      } else {
+        await Promise.all([
+          flushLangfuseTelemetry(),
+          flushBackendSentry(2000),
+        ]);
       }
     }
-  },
-);
+  }
+};
+
+export const handler = wrapBackendStreamHandler(awslambda.streamifyResponse(chatLiveStreamHandler));

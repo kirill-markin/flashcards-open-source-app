@@ -10,6 +10,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 STACK_NAME="FlashcardsOpenSourceApp"
 REPO=""
+SENTRY_DSN_SECRET_NAME="flashcards-open-source-app/sentry-dsn"
 
 # shellcheck disable=SC1091
 source "${SCRIPT_DIR}/lib/deploy-config.sh"
@@ -52,6 +53,54 @@ set_variable_if_missing() {
   gh variable set "$variable_name" --body "$variable_value" --repo "$REPO"
 }
 
+validate_sentry_traces_sample_rate() {
+  local value="$1"
+
+  python3 - "$value" <<'PY'
+import math
+import sys
+
+value = sys.argv[1]
+
+try:
+    traces_sample_rate = float(value)
+except ValueError:
+    print("ERROR: Set SENTRY_TRACES_SAMPLE_RATE to a number between 0 and 1.", file=sys.stderr)
+    sys.exit(1)
+
+if not math.isfinite(traces_sample_rate) or traces_sample_rate < 0 or traces_sample_rate > 1:
+    print("ERROR: Set SENTRY_TRACES_SAMPLE_RATE to a number between 0 and 1.", file=sys.stderr)
+    sys.exit(1)
+PY
+}
+
+set_required_variable_if_missing() {
+  local variable_name="$1"
+  local variable_value="$2"
+  local error_message="$3"
+
+  if has_variable "$variable_name"; then
+    return
+  fi
+
+  variable_value="$(require_non_empty_value "$variable_value" "$error_message")"
+  gh variable set "$variable_name" --body "$variable_value" --repo "$REPO"
+}
+
+set_required_sentry_traces_sample_rate_variable_if_missing() {
+  local variable_name="$1"
+  local variable_value="$2"
+  local error_message="$3"
+
+  if has_variable "$variable_name"; then
+    return
+  fi
+
+  variable_value="$(require_non_empty_value "$variable_value" "$error_message")"
+  validate_sentry_traces_sample_rate "$variable_value"
+  gh variable set "$variable_name" --body "$variable_value" --repo "$REPO"
+}
+
 has_secret() {
   local secret_name="$1"
 
@@ -70,7 +119,20 @@ set_secret_if_missing() {
     return
   fi
 
-  gh secret set "$secret_name" --body "$secret_value" --repo "$REPO"
+  printf '%s' "$secret_value" | gh secret set "$secret_name" --repo "$REPO"
+}
+
+set_required_secret_if_missing() {
+  local secret_name="$1"
+  local secret_value="$2"
+  local error_message="$3"
+
+  if has_secret "$secret_name"; then
+    return
+  fi
+
+  secret_value="$(require_non_empty_value "$secret_value" "$error_message")"
+  printf '%s' "$secret_value" | gh secret set "$secret_name" --repo "$REPO"
 }
 
 get_output() {
@@ -97,10 +159,16 @@ LANGFUSE_PUBLIC_KEY_SECRET_ARN="$(find_secret_arn "$REGION" "flashcards-open-sou
 LANGFUSE_SECRET_KEY_SECRET_ARN="$(find_secret_arn "$REGION" "flashcards-open-source-app/langfuse-secret-key")"
 RESEND_SECRET_ARN="$(find_secret_arn "$REGION" "flashcards-open-source-app/resend-api-key")"
 DEMO_PASSWORD_SECRET_ARN="$(find_secret_arn "$REGION" "flashcards-open-source-app/demo-password-dostip")"
+SENTRY_DSN_SECRET_ARN="${SENTRY_DSN_SECRET_ARN:-$(find_secret_arn "$REGION" "$SENTRY_DSN_SECRET_NAME")}"
 DEMO_EMAIL_DOSTIP="${DEMO_EMAIL_DOSTIP:-}"
 GUEST_AI_QUOTA_CAP="${GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP:-}"
 ADMIN_EMAILS="${ADMIN_EMAILS:-}"
 LANGFUSE_BASE_URL="${LANGFUSE_BASE_URL:-}"
+SENTRY_ENVIRONMENT="${SENTRY_ENVIRONMENT:-production}"
+SENTRY_TRACES_SAMPLE_RATE="${SENTRY_TRACES_SAMPLE_RATE:-0}"
+SENTRY_ORG="${SENTRY_ORG:-}"
+SENTRY_BACKEND_PROJECT="${SENTRY_BACKEND_PROJECT:-}"
+SENTRY_AUTH_TOKEN="${SENTRY_AUTH_TOKEN:-}"
 ANALYTICS_SSH_PUBLIC_KEYS="${ANALYTICS_SSH_PUBLIC_KEYS:-}"
 ANALYTICS_SSH_ALLOWED_CIDRS="${ANALYTICS_SSH_ALLOWED_CIDRS:-}"
 ANALYTICS_SSH_USERNAME="${ANALYTICS_SSH_USERNAME:-}"
@@ -139,6 +207,11 @@ set_variable_if_missing CDK_OPENAI_API_KEY_SECRET_ARN "$OPENAI_SECRET_ARN"
 set_variable_if_missing CDK_LANGFUSE_PUBLIC_KEY_SECRET_ARN "$LANGFUSE_PUBLIC_KEY_SECRET_ARN"
 set_variable_if_missing CDK_LANGFUSE_SECRET_KEY_SECRET_ARN "$LANGFUSE_SECRET_KEY_SECRET_ARN"
 set_variable_if_missing CDK_LANGFUSE_BASE_URL "$LANGFUSE_BASE_URL"
+set_required_variable_if_missing CDK_SENTRY_DSN_SECRET_ARN "$SENTRY_DSN_SECRET_ARN" "Set SENTRY_DSN_SECRET_ARN in root .env or create the AWS secret ${SENTRY_DSN_SECRET_NAME} before running setup-github.sh."
+set_required_variable_if_missing CDK_SENTRY_ENVIRONMENT "$SENTRY_ENVIRONMENT" "Set SENTRY_ENVIRONMENT in root .env before running setup-github.sh."
+set_required_sentry_traces_sample_rate_variable_if_missing CDK_SENTRY_TRACES_SAMPLE_RATE "$SENTRY_TRACES_SAMPLE_RATE" "Set SENTRY_TRACES_SAMPLE_RATE in root .env before running setup-github.sh."
+set_required_variable_if_missing SENTRY_ORG "$SENTRY_ORG" "Set SENTRY_ORG in root .env before running setup-github.sh."
+set_required_variable_if_missing SENTRY_BACKEND_PROJECT "$SENTRY_BACKEND_PROJECT" "Set SENTRY_BACKEND_PROJECT in root .env before running setup-github.sh."
 set_variable_if_missing CDK_DEMO_EMAIL_DOSTIP "$DEMO_EMAIL_DOSTIP"
 set_variable_if_missing CDK_DEMO_PASSWORD_SECRET_ARN "$DEMO_PASSWORD_SECRET_ARN"
 set_variable_if_missing CDK_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP "$GUEST_AI_QUOTA_CAP"
@@ -152,6 +225,7 @@ set_variable_if_missing CDK_ANALYTICS_SSH_ALLOWED_CIDRS "$ANALYTICS_SSH_ALLOWED_
 set_variable_if_missing CDK_ANALYTICS_SSH_USERNAME "$ANALYTICS_SSH_USERNAME"
 
 set_secret_if_missing AWS_DEPLOY_ROLE_ARN "$DEPLOY_ROLE_ARN"
+set_required_secret_if_missing SENTRY_AUTH_TOKEN "$SENTRY_AUTH_TOKEN" "Set SENTRY_AUTH_TOKEN in root .env before running setup-github.sh."
 
 echo "Global metrics visibility input: root .env GLOBAL_METRICS_VISIBLE -> GitHub variable CDK_GLOBAL_METRICS_VISIBLE."
 echo "Only the exact raw string 'true' exposes GET /v1/global/snapshot; any other value or an unset variable keeps it hidden."

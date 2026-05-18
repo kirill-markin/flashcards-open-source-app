@@ -5,6 +5,7 @@ import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as rds from "aws-cdk-lib/aws-rds";
 import { Construct } from "constructs";
 import { backendNodejsProjectPaths, resolveFromRepoRoot } from "./nodejs-project-paths";
+import { createSentrySourceMapUploadCommand } from "./sentry-source-maps";
 
 export interface MigrationRunnerProps {
   vpc: ec2.Vpc;
@@ -15,6 +16,10 @@ export interface MigrationRunnerProps {
   authDbSecret: cdk.aws_secretsmanager.Secret;
   reportingDbSecret: cdk.aws_secretsmanager.ISecret;
   adminEmails: string | undefined;
+  sentryDsnSecretArn: string | undefined;
+  sentryEnvironment: string | undefined;
+  sentryRelease: string | undefined;
+  sentryTracesSampleRate: string | undefined;
 }
 
 const dbAssetPaths = {
@@ -34,9 +39,47 @@ const lambdaBundling: lambdaNodejs.BundlingOptions = {
       `mkdir -p ${outputDir}/db/views`,
       `cp ${dbAssetPaths.migrations}/*.sql ${outputDir}/db/migrations/`,
       `cp ${dbAssetPaths.views}/*.sql ${outputDir}/db/views/`,
+      createSentrySourceMapUploadCommand(outputDir),
     ],
   },
 };
+
+function hasConfiguredValue(value: string | undefined): value is string {
+  return value !== undefined && value !== "";
+}
+
+function addOptionalSentryEnvironment(
+  scope: Construct,
+  fn: lambdaNodejs.NodejsFunction,
+  props: MigrationRunnerProps,
+): void {
+  if (!hasConfiguredValue(props.sentryDsnSecretArn)) {
+    return;
+  }
+  if (
+    !hasConfiguredValue(props.sentryEnvironment) ||
+    !hasConfiguredValue(props.sentryRelease) ||
+    !hasConfiguredValue(props.sentryTracesSampleRate)
+  ) {
+    throw new Error("sentryEnvironment, sentryRelease, and sentryTracesSampleRate are required when sentryDsnSecretArn is configured");
+  }
+
+  const tracesSampleRate = Number(props.sentryTracesSampleRate);
+  if (!Number.isFinite(tracesSampleRate) || tracesSampleRate < 0 || tracesSampleRate > 1) {
+    throw new Error("sentryTracesSampleRate must be a number between 0 and 1");
+  }
+
+  const secret = cdk.aws_secretsmanager.Secret.fromSecretCompleteArn(
+    scope,
+    "MigrationRunnerSentryDsnSecret",
+    props.sentryDsnSecretArn,
+  );
+  secret.grantRead(fn);
+  fn.addEnvironment("SENTRY_DSN", secret.secretValue.unsafeUnwrap());
+  fn.addEnvironment("SENTRY_ENVIRONMENT", props.sentryEnvironment);
+  fn.addEnvironment("SENTRY_RELEASE", props.sentryRelease);
+  fn.addEnvironment("SENTRY_TRACES_SAMPLE_RATE", props.sentryTracesSampleRate);
+}
 
 /**
  * Creates the migration Lambda that owns schema changes and runtime role
@@ -70,6 +113,7 @@ export function migrationRunner(scope: Construct, props: MigrationRunnerProps): 
   props.backendDbSecret.grantRead(migrationFn);
   props.authDbSecret.grantRead(migrationFn);
   props.reportingDbSecret.grantRead(migrationFn);
+  addOptionalSentryEnvironment(scope, migrationFn, props);
 
   return migrationFn;
 }

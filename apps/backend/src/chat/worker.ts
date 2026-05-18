@@ -5,11 +5,16 @@
 import { claimChatRun } from "./runs";
 import { runPersistedChatSession, type ChatWorkerRunResult } from "./runtime";
 import { logChatWorkerLifecycleEvent } from "./workerLogging";
+import type { BackendTraceCarrier } from "../observability/sentry";
 
 export type ChatWorkerEvent = Readonly<{
   runId: string;
   userId: string;
   workspaceId: string;
+  routeRequestId?: string | null;
+  chatRequestId?: string | null;
+  sessionId?: string | null;
+  traceContext?: BackendTraceCarrier | null;
 }>;
 
 type ChatWorkerExecutionContext = Readonly<{
@@ -28,9 +33,9 @@ export async function handleChatWorkerEvent(
   if (claimedRun === null) {
     logChatWorkerLifecycleEvent("chat_worker_skip", {
       lambdaRequestId: executionContext.lambdaRequestId,
-      chatRequestId: null,
+      chatRequestId: event.chatRequestId ?? null,
       runId: event.runId,
-      sessionId: null,
+      sessionId: event.sessionId ?? null,
       userId: event.userId,
       workspaceId: event.workspaceId,
     }, {
@@ -46,6 +51,7 @@ export async function handleChatWorkerEvent(
       heartbeatAt: null,
       startedAt: null,
       finishedAt: null,
+      outcome: null,
     }, false);
     return;
   }
@@ -72,6 +78,7 @@ export async function handleChatWorkerEvent(
     heartbeatAt: null,
     startedAt: null,
     finishedAt: null,
+    outcome: null,
   }, false);
 
   const result: ChatWorkerRunResult = await runPersistedChatSession({

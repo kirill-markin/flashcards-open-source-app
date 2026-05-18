@@ -117,6 +117,7 @@ test("handleLiveRequest prefers an explicit workspaceId for non-Live auth fallba
     resumeAttemptId: "resume-1",
     clientPlatform: "web",
     clientVersion: "web-test",
+    traceContext: null,
   });
 });
 

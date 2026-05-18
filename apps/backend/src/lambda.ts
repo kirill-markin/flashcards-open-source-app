@@ -1,9 +1,125 @@
-import { handle } from "hono/aws-lambda";
-import { createApp } from "./app";
-import { initializeLangfuseTelemetry } from "./telemetry/langfuse";
+import type { Context } from "aws-lambda";
+import type { APIGatewayProxyResult, LambdaEvent } from "hono/aws-lambda";
+import {
+  captureBackendException,
+  createBackendObservationScope,
+  initializeBackendSentry,
+  normalizeCaughtError,
+  wrapBackendHandler,
+} from "./observability/sentry";
 
-initializeLangfuseTelemetry();
-const app = createApp("");
+initializeBackendSentry("backend-api");
+
+type BackendApiHandler = (
+  event: LambdaEvent,
+  context: Context,
+) => Promise<APIGatewayProxyResult>;
+
+type BackendApiRuntime = Readonly<{
+  handleRequest: BackendApiHandler;
+  flushLangfuseTelemetry: typeof import("./telemetry/langfuse").flushLangfuseTelemetry;
+}>;
+
+type BackendApiRequestContext = Readonly<{
+  requestId: string | null;
+  route: string | null;
+  method: string | null;
+}>;
+
+let backendApiRuntimePromise: Promise<BackendApiRuntime> | null = null;
+
+async function createBackendApiRuntime(): Promise<BackendApiRuntime> {
+  const [
+    { flushLangfuseTelemetry, initializeLangfuseTelemetry },
+    { handle },
+    { createApp },
+  ] = await Promise.all([
+    import("./telemetry/langfuse"),
+    import("hono/aws-lambda"),
+    import("./app"),
+  ]);
+  initializeLangfuseTelemetry();
+  const app = createApp("");
+  return {
+    handleRequest: handle(app),
+    flushLangfuseTelemetry,
+  };
+}
+
+function getBackendApiRuntime(): Promise<BackendApiRuntime> {
+  if (backendApiRuntimePromise === null) {
+    backendApiRuntimePromise = createBackendApiRuntime();
+  }
+
+  return backendApiRuntimePromise;
+}
+
+function getBackendApiRequestContext(event: LambdaEvent, context: Context): BackendApiRequestContext {
+  const lambdaRequestId = context.awsRequestId ?? null;
+  if ("rawPath" in event) {
+    return {
+      requestId: event.requestContext.requestId ?? lambdaRequestId,
+      route: event.rawPath,
+      method: event.requestContext.http.method,
+    };
+  }
+
+  if ("httpMethod" in event) {
+    const requestId = "requestId" in event.requestContext
+      ? event.requestContext.requestId
+      : lambdaRequestId;
+    return {
+      requestId,
+      route: event.path,
+      method: event.httpMethod,
+    };
+  }
+
+  return {
+    requestId: lambdaRequestId,
+    route: event.path,
+    method: event.method,
+  };
+}
+
+const backendApiBootstrapHandler: BackendApiHandler = async (event, context) => {
+  let runtime: BackendApiRuntime | null = null;
+  try {
+    runtime = await getBackendApiRuntime();
+    return await runtime.handleRequest(event, context);
+  } catch (error) {
+    if (runtime === null) {
+      const normalizedError = normalizeCaughtError(error);
+      const requestContext = getBackendApiRequestContext(event, context);
+      captureBackendException({
+        action: "request_failed",
+        error: normalizedError,
+        scope: createBackendObservationScope(
+          "backend-api",
+          requestContext.requestId,
+          requestContext.route,
+          requestContext.method,
+          null,
+          null,
+          null,
+          null,
+          null,
+        ),
+        details: {
+          statusCode: 500,
+          code: "INTERNAL_ERROR",
+          message: normalizedError.message,
+          validationIssues: [],
+        },
+      });
+    }
+    throw error;
+  } finally {
+    if (runtime !== null) {
+      await runtime.flushLangfuseTelemetry();
+    }
+  }
+};
 
 /**
  * Keeps the default buffered Lambda proxy behavior for the main backend
@@ -14,4 +130,4 @@ const app = createApp("");
  * benefit and would make API Gateway treat every route as a streaming
  * integration.
  */
-export const handler = handle(app);
+export const handler = wrapBackendHandler(backendApiBootstrapHandler);

@@ -20,9 +20,16 @@ import {
   parseJsonBody,
 } from "../server/requestParsing";
 import {
-  logCloudRouteEvent,
   summarizeValidationIssues,
 } from "../server/logging";
+import {
+  addBackendBreadcrumb,
+  createBackendObservationScope,
+  normalizeCaughtError,
+  type BackendFailureDetails,
+  type BackendObservationScope,
+} from "../observability/sentry";
+import { reportBackendExceptionOrBreadcrumb } from "../observability/reporting";
 import { assertUserHasWorkspaceAccess } from "../workspaces";
 import type { AppEnv } from "../app";
 
@@ -53,6 +60,35 @@ const allowedCardQuerySortKeys: ReadonlyArray<CardQuerySortKey> = [
 
 function getInternalErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function createCardsScope(
+  requestId: string,
+  route: string,
+  method: string,
+  userId: string,
+  workspaceId: string,
+): BackendObservationScope {
+  return createBackendObservationScope(
+    "backend-api",
+    requestId,
+    route,
+    method,
+    userId,
+    workspaceId,
+    null,
+    null,
+    null,
+  );
+}
+
+function createFailureDetails(error: unknown): BackendFailureDetails {
+  return {
+    statusCode: error instanceof HttpError ? error.statusCode : 500,
+    code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
+    message: getInternalErrorMessage(error),
+    validationIssues: summarizeValidationIssues(error),
+  };
 }
 
 function expectSortDirection(value: unknown): CardQuerySortDirection {
@@ -116,27 +152,28 @@ export function createCardsRoutes(options: CardsRoutesOptions): Hono<AppEnv> {
 
     try {
       const result = await listWorkspaceTagsSummary(requestContext.userId, workspaceId);
-      logCloudRouteEvent("workspace_tags_list", {
-        requestId,
-        route: context.req.path,
-        statusCode: 200,
-        userId: requestContext.userId,
-        workspaceId,
-        tagsCount: result.tags.length,
-        totalCards: result.totalCards,
-      }, false);
+      addBackendBreadcrumb({
+        action: "workspace_tags_list",
+        scope: createCardsScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId),
+        details: {
+          statusCode: 200,
+          tagsCount: result.tags.length,
+          totalCards: result.totalCards,
+        },
+      });
       return context.json(result satisfies WorkspaceTagsSummaryResponse);
     } catch (error) {
-      logCloudRouteEvent("workspace_tags_list_error", {
-        requestId,
-        route: context.req.path,
-        statusCode: error instanceof HttpError ? error.statusCode : 500,
-        userId: requestContext.userId,
-        workspaceId,
-        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
-        message: getInternalErrorMessage(error),
-        validationIssues: summarizeValidationIssues(error),
-      }, true);
+      const scope = createCardsScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
+      const details = {
+        tagsCount: null,
+        totalCards: null,
+        ...createFailureDetails(error),
+      };
+      reportBackendExceptionOrBreadcrumb(
+        error,
+        { action: "workspace_tags_list_error", error: normalizeCaughtError(error), scope, details },
+        { action: "workspace_tags_list_error", scope, details },
+      );
       throw error;
     }
   });
@@ -150,36 +187,38 @@ export function createCardsRoutes(options: CardsRoutesOptions): Hono<AppEnv> {
 
     try {
       const result = await queryCardsPage(requestContext.userId, workspaceId, body);
-      logCloudRouteEvent("cards_query", {
-        requestId,
-        route: context.req.path,
-        statusCode: 200,
-        userId: requestContext.userId,
-        workspaceId,
-        limit: body.limit,
-        sortsCount: body.sorts.length,
-        hasSearch: body.searchText !== null,
-        hasFilter: body.filter !== null,
-        resultsCount: result.cards.length,
-        totalCount: result.totalCount,
-        hasMore: result.nextCursor !== null,
-      }, false);
+      addBackendBreadcrumb({
+        action: "cards_query",
+        scope: createCardsScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId),
+        details: {
+          statusCode: 200,
+          limit: body.limit,
+          sortsCount: body.sorts.length,
+          hasSearch: body.searchText !== null,
+          hasFilter: body.filter !== null,
+          resultsCount: result.cards.length,
+          totalCount: result.totalCount,
+          hasMore: result.nextCursor !== null,
+        },
+      });
       return context.json(result);
     } catch (error) {
-      logCloudRouteEvent("cards_query_error", {
-        requestId,
-        route: context.req.path,
-        statusCode: error instanceof HttpError ? error.statusCode : 500,
-        userId: requestContext.userId,
-        workspaceId,
+      const scope = createCardsScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
+      const details = {
         limit: body.limit,
         sortsCount: body.sorts.length,
         hasSearch: body.searchText !== null,
         hasFilter: body.filter !== null,
-        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
-        message: getInternalErrorMessage(error),
-        validationIssues: summarizeValidationIssues(error),
-      }, true);
+        resultsCount: null,
+        totalCount: null,
+        hasMore: null,
+        ...createFailureDetails(error),
+      };
+      reportBackendExceptionOrBreadcrumb(
+        error,
+        { action: "cards_query_error", error: normalizeCaughtError(error), scope, details },
+        { action: "cards_query_error", scope, details },
+      );
       throw error;
     }
   });

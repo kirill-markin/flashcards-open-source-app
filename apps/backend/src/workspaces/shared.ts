@@ -1,4 +1,8 @@
 import { HttpError } from "../errors";
+import {
+  createBackendObservationScope,
+  type BackendObservationScope,
+} from "../observability/sentry";
 import { decodeOpaqueCursor } from "../pagination";
 import {
   deleteWorkspaceConfirmationText,
@@ -111,8 +115,26 @@ export function getDatabaseErrorDetails(error: unknown): DatabaseErrorDetails {
     sqlState: typeof errorRecord.code === "string" && errorRecord.code !== "" ? errorRecord.code : null,
     constraint: typeof errorRecord.constraint === "string" && errorRecord.constraint !== "" ? errorRecord.constraint : null,
     table: typeof errorRecord.table === "string" && errorRecord.table !== "" ? errorRecord.table : null,
-    detail: typeof errorRecord.detail === "string" && errorRecord.detail !== "" ? errorRecord.detail : null,
+    detail: null,
   };
+}
+
+export function createWorkspaceTransactionScope(
+  userId: string,
+  workspaceId: string,
+  observationScope: BackendObservationScope | null,
+): BackendObservationScope {
+  return createBackendObservationScope(
+    observationScope?.service ?? "backend-api",
+    observationScope?.requestId ?? null,
+    observationScope?.route ?? null,
+    observationScope?.method ?? null,
+    userId,
+    workspaceId,
+    observationScope?.chatRequestId ?? null,
+    observationScope?.runId ?? null,
+    observationScope?.sessionId ?? null,
+  );
 }
 
 export function createWorkspaceDeleteFailedError(): HttpError {

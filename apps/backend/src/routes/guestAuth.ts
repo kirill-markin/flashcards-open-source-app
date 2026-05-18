@@ -15,7 +15,15 @@ import {
   expectRecord,
   parseJsonBody,
 } from "../server/requestParsing";
-import { logCloudRouteEvent, summarizeValidationIssues } from "../server/logging";
+import { summarizeValidationIssues } from "../server/logging";
+import {
+  addBackendBreadcrumb,
+  createBackendObservationScope,
+  normalizeCaughtError,
+  type BackendFailureDetails,
+  type BackendObservationScope,
+} from "../observability/sentry";
+import { reportBackendExceptionOrBreadcrumb } from "../observability/reporting";
 import { extractRequestAuthInputs, toAuthRequest } from "../requestSecurity";
 import type { AppEnv } from "../app";
 
@@ -106,6 +114,34 @@ function expectGuestAuthorizationToken(authorizationHeader: string | undefined):
   return guestToken;
 }
 
+function createGuestUpgradeScope(
+  requestId: string,
+  route: string,
+  method: string,
+  userId: string,
+): BackendObservationScope {
+  return createBackendObservationScope(
+    "backend-api",
+    requestId,
+    route,
+    method,
+    userId,
+    null,
+    null,
+    null,
+    null,
+  );
+}
+
+function createFailureDetails(error: unknown): BackendFailureDetails {
+  return {
+    statusCode: error instanceof HttpError ? error.statusCode : 500,
+    code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
+    message: error instanceof Error ? error.message : String(error),
+    validationIssues: summarizeValidationIssues(error),
+  };
+}
+
 export function createGuestAuthRoutes(options: GuestAuthRoutesOptions = {}): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   const authenticateRequestFn = options.authenticateRequestFn ?? authenticateRequest;
@@ -167,20 +203,22 @@ export function createGuestAuthRoutes(options: GuestAuthRoutesOptions = {}): Hon
 
     try {
       const result = await completeGuestUpgradeFn(guestToken, auth.subjectUserId, selection, capabilities);
-      logCloudRouteEvent("guest_upgrade_complete", {
-        requestId,
-        route: context.req.path,
-        statusCode: 200,
-        selectionType: selection.type,
-        guestWorkspaceSyncedAndOutboxDrained: capabilities.guestWorkspaceSyncedAndOutboxDrained,
-        requiresGuestWorkspaceSyncedAndOutboxDrained: capabilities.requiresGuestWorkspaceSyncedAndOutboxDrained,
-        supportsDroppedEntities: capabilities.supportsDroppedEntities,
-        targetSubjectUserId: result.targetSubjectUserId,
-        guestSessionId: result.guestSessionId,
-        targetUserId: result.targetUserId,
-        targetWorkspaceId: result.targetWorkspaceId,
-        completionKind: result.outcome,
-      }, false);
+      addBackendBreadcrumb({
+        action: "guest_upgrade_complete",
+        scope: createGuestUpgradeScope(requestId, context.req.path, context.req.method, result.targetUserId),
+        details: {
+          statusCode: 200,
+          selectionType: selection.type,
+          guestWorkspaceSyncedAndOutboxDrained: capabilities.guestWorkspaceSyncedAndOutboxDrained,
+          requiresGuestWorkspaceSyncedAndOutboxDrained: capabilities.requiresGuestWorkspaceSyncedAndOutboxDrained,
+          supportsDroppedEntities: capabilities.supportsDroppedEntities,
+          targetSubjectUserId: result.targetSubjectUserId,
+          guestSessionId: result.guestSessionId,
+          targetUserId: result.targetUserId,
+          targetWorkspaceId: result.targetWorkspaceId,
+          completionKind: result.outcome,
+        },
+      });
 
       const response: GuestUpgradeCompleteEnvelope = result.droppedEntities === undefined
         ? {
@@ -192,19 +230,24 @@ export function createGuestAuthRoutes(options: GuestAuthRoutesOptions = {}): Hon
         };
       return context.json(response);
     } catch (error) {
-      logCloudRouteEvent("guest_upgrade_complete_error", {
-        requestId,
-        route: context.req.path,
-        statusCode: error instanceof HttpError ? error.statusCode : 500,
+      const scope = createGuestUpgradeScope(requestId, context.req.path, context.req.method, auth.userId);
+      const details = {
         selectionType: selection.type,
         guestWorkspaceSyncedAndOutboxDrained: capabilities.guestWorkspaceSyncedAndOutboxDrained,
         requiresGuestWorkspaceSyncedAndOutboxDrained: capabilities.requiresGuestWorkspaceSyncedAndOutboxDrained,
         supportsDroppedEntities: capabilities.supportsDroppedEntities,
         targetSubjectUserId: auth.subjectUserId,
-        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
-        message: error instanceof Error ? error.message : String(error),
-        validationIssues: summarizeValidationIssues(error),
-      }, true);
+        guestSessionId: null,
+        targetUserId: auth.userId,
+        targetWorkspaceId: null,
+        completionKind: null,
+        ...createFailureDetails(error),
+      };
+      reportBackendExceptionOrBreadcrumb(
+        error,
+        { action: "guest_upgrade_complete_error", error: normalizeCaughtError(error), scope, details },
+        { action: "guest_upgrade_complete_error", scope, details },
+      );
       throw error;
     }
   });

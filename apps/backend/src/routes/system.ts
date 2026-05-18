@@ -25,7 +25,15 @@ import {
 } from "../requestSecurity";
 import { expectRecord, parseJsonBody } from "../server/requestParsing";
 import { loadRequestContextFromRequest } from "../server/requestContext";
-import { logCloudRouteEvent, summarizeValidationIssues } from "../server/logging";
+import { summarizeValidationIssues } from "../server/logging";
+import {
+  addBackendBreadcrumb,
+  createBackendObservationScope,
+  normalizeCaughtError,
+  type BackendFailureDetails,
+  type BackendObservationScope,
+} from "../observability/sentry";
+import { reportBackendExceptionOrBreadcrumb } from "../observability/reporting";
 import type { AppEnv } from "../app";
 
 type SystemRoutesOptions = Readonly<{
@@ -58,6 +66,34 @@ function assertProgressHumanTransport(transport: string): void {
       "PROGRESS_HUMAN_AUTH_REQUIRED",
     );
   }
+}
+
+function createSystemScope(
+  requestId: string,
+  route: string,
+  method: string,
+  userId: string,
+): BackendObservationScope {
+  return createBackendObservationScope(
+    "backend-api",
+    requestId,
+    route,
+    method,
+    userId,
+    null,
+    null,
+    null,
+    null,
+  );
+}
+
+function createFailureDetails(error: unknown): BackendFailureDetails {
+  return {
+    statusCode: error instanceof HttpError ? error.statusCode : 500,
+    code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
+    message: error instanceof Error ? error.message : String(error),
+    validationIssues: summarizeValidationIssues(error),
+  };
 }
 
 export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
@@ -123,32 +159,39 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
         timeZone: progressInput.timeZone,
       });
 
-      logCloudRouteEvent("me_progress_summary", {
-        requestId,
-        route: context.req.path,
-        statusCode: 200,
-        userId: requestContext.userId,
-        authTransport: requestContext.transport,
-        timeZone: progress.timeZone,
-        currentStreakDays: progress.summary.currentStreakDays,
-        hasReviewedToday: progress.summary.hasReviewedToday,
-        lastReviewedOn: progress.summary.lastReviewedOn,
-        activeReviewDays: progress.summary.activeReviewDays,
-        generatedAt: progress.generatedAt,
-      }, false);
+      addBackendBreadcrumb({
+        action: "me_progress_summary",
+        scope: createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId),
+        details: {
+          statusCode: 200,
+          authTransport: requestContext.transport,
+          timeZone: progress.timeZone,
+          currentStreakDays: progress.summary.currentStreakDays,
+          hasReviewedToday: progress.summary.hasReviewedToday,
+          lastReviewedOn: progress.summary.lastReviewedOn,
+          activeReviewDays: progress.summary.activeReviewDays,
+          generatedAt: progress.generatedAt,
+        },
+      });
 
       return context.json(progress satisfies ProgressSummaryResponse);
     } catch (error) {
-      logCloudRouteEvent("me_progress_summary_error", {
-        requestId,
-        route: context.req.path,
-        statusCode: error instanceof HttpError ? error.statusCode : 500,
-        userId: requestContext.userId,
+      const scope = createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId);
+      const details = {
         authTransport: requestContext.transport,
         timeZone: requestedParameters.timeZone,
-        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
-        validationIssues: summarizeValidationIssues(error),
-      }, true);
+        currentStreakDays: null,
+        hasReviewedToday: null,
+        lastReviewedOn: null,
+        activeReviewDays: null,
+        generatedAt: null,
+        ...createFailureDetails(error),
+      };
+      reportBackendExceptionOrBreadcrumb(
+        error,
+        { action: "me_progress_summary_error", error: normalizeCaughtError(error), scope, details },
+        { action: "me_progress_summary_error", scope, details },
+      );
       throw error;
     }
   });
@@ -171,30 +214,35 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
         timeZone: progressInput.timeZone,
       });
 
-      logCloudRouteEvent("me_progress_review_schedule", {
-        requestId,
-        route: context.req.path,
-        statusCode: 200,
-        userId: requestContext.userId,
-        authTransport: requestContext.transport,
-        timeZone: progress.timeZone,
-        bucketCount: progress.buckets.length,
-        totalCards: progress.totalCards,
-        generatedAt: progress.generatedAt,
-      }, false);
+      addBackendBreadcrumb({
+        action: "me_progress_review_schedule",
+        scope: createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId),
+        details: {
+          statusCode: 200,
+          authTransport: requestContext.transport,
+          timeZone: progress.timeZone,
+          bucketCount: progress.buckets.length,
+          totalCards: progress.totalCards,
+          generatedAt: progress.generatedAt,
+        },
+      });
 
       return context.json(progress satisfies ProgressReviewSchedule);
     } catch (error) {
-      logCloudRouteEvent("me_progress_review_schedule_error", {
-        requestId,
-        route: context.req.path,
-        statusCode: error instanceof HttpError ? error.statusCode : 500,
-        userId: requestContext.userId,
+      const scope = createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId);
+      const details = {
         authTransport: requestContext.transport,
         timeZone: requestedParameters.timeZone,
-        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
-        validationIssues: summarizeValidationIssues(error),
-      }, true);
+        bucketCount: null,
+        totalCards: null,
+        generatedAt: null,
+        ...createFailureDetails(error),
+      };
+      reportBackendExceptionOrBreadcrumb(
+        error,
+        { action: "me_progress_review_schedule_error", error: normalizeCaughtError(error), scope, details },
+        { action: "me_progress_review_schedule_error", scope, details },
+      );
       throw error;
     }
   });
@@ -220,34 +268,39 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
       });
       const hasNonZeroReviewDays = progress.dailyReviews.some((day) => day.reviewCount > 0);
 
-      logCloudRouteEvent("me_progress_series", {
-        requestId,
-        route: context.req.path,
-        statusCode: 200,
-        userId: requestContext.userId,
-        authTransport: requestContext.transport,
-        timeZone: progress.timeZone,
-        from: progress.from,
-        to: progress.to,
-        returnedDayCount: progress.dailyReviews.length,
-        hasNonZeroReviewDays,
-        generatedAt: progress.generatedAt,
-      }, false);
+      addBackendBreadcrumb({
+        action: "me_progress_series",
+        scope: createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId),
+        details: {
+          statusCode: 200,
+          authTransport: requestContext.transport,
+          timeZone: progress.timeZone,
+          from: progress.from,
+          to: progress.to,
+          returnedDayCount: progress.dailyReviews.length,
+          hasNonZeroReviewDays,
+          generatedAt: progress.generatedAt,
+        },
+      });
 
       return context.json(progress satisfies ProgressSeries);
     } catch (error) {
-      logCloudRouteEvent("me_progress_series_error", {
-        requestId,
-        route: context.req.path,
-        statusCode: error instanceof HttpError ? error.statusCode : 500,
-        userId: requestContext.userId,
+      const scope = createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId);
+      const details = {
         authTransport: requestContext.transport,
         timeZone: requestedParameters.timeZone,
         from: requestedParameters.from,
         to: requestedParameters.to,
-        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
-        validationIssues: summarizeValidationIssues(error),
-      }, true);
+        returnedDayCount: null,
+        hasNonZeroReviewDays: null,
+        generatedAt: null,
+        ...createFailureDetails(error),
+      };
+      reportBackendExceptionOrBreadcrumb(
+        error,
+        { action: "me_progress_series_error", error: normalizeCaughtError(error), scope, details },
+        { action: "me_progress_series_error", scope, details },
+      );
       throw error;
     }
   });
@@ -286,24 +339,26 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
         cognitoUsername: auth.cognitoUsername,
         confirmationText: body.confirmationText,
       });
-      logCloudRouteEvent("account_delete", {
-        requestId,
-        route: context.req.path,
-        statusCode: 200,
-        userId: auth.userId,
-        transport: auth.transport,
-      }, false);
+      addBackendBreadcrumb({
+        action: "account_delete",
+        scope: createSystemScope(requestId, context.req.path, context.req.method, auth.userId),
+        details: {
+          statusCode: 200,
+          transport: auth.transport,
+        },
+      });
       return context.json({ ok: true } as const);
     } catch (error) {
-      logCloudRouteEvent("account_delete_error", {
-        requestId,
-        route: context.req.path,
-        statusCode: error instanceof HttpError ? error.statusCode : 500,
-        userId: auth.userId,
+      const scope = createSystemScope(requestId, context.req.path, context.req.method, auth.userId);
+      const details = {
         transport: auth.transport,
-        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
-        validationIssues: summarizeValidationIssues(error),
-      }, true);
+        ...createFailureDetails(error),
+      };
+      reportBackendExceptionOrBreadcrumb(
+        error,
+        { action: "account_delete_error", error: normalizeCaughtError(error), scope, details },
+        { action: "account_delete_error", scope, details },
+      );
       throw error;
     }
   });
