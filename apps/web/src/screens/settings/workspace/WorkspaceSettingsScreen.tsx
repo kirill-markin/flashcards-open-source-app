@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactElement } from "react";
+import { useEffect, useRef, useState, type ReactElement } from "react";
+import { ApiContractError } from "../../../api";
 import { useAppData } from "../../../appData";
 import { useI18n } from "../../../i18n";
 import { resetWorkspaceProgressConfirmationText, type WorkspaceResetProgressPreview } from "../../../types";
@@ -12,7 +13,8 @@ import {
 } from "../../../routes";
 import { loadDecksListSnapshot } from "../../../localDb/decks";
 import { loadWorkspaceTagsSummary } from "../../../localDb/workspace";
-import { captureApiContractError, isApiContractErrorForEndpoint } from "../../../observability/apiContractObservation";
+import { captureApiContractError } from "../../../observability/apiContractObservation";
+import { captureAppOperationError } from "../../../observability/appOperationObservation";
 import { SettingsActionCard, SettingsGroup, SettingsNavigationCard, SettingsShell } from "../SettingsShared";
 
 type ResetDialogState = "confirmation" | "preview-loading" | "preview-ready" | "executing";
@@ -42,6 +44,13 @@ export function WorkspaceSettingsScreen(): ReactElement {
   const [resetErrorMessage, setResetErrorMessage] = useState<string>("");
   const [isResetPreviewLoading, setIsResetPreviewLoading] = useState<boolean>(false);
   const [isResetExecuting, setIsResetExecuting] = useState<boolean>(false);
+  const observationIdentityRef = useRef<Readonly<{
+    userId: string | null;
+    installationId: string | null;
+  }>>({
+    userId: null,
+    installationId: null,
+  });
 
   const isResetAvailable = isSessionVerified
     && cloudSettings?.cloudState === "linked"
@@ -67,6 +76,10 @@ export function WorkspaceSettingsScreen(): ReactElement {
     one: t("settingsWorkspace.countLabels.tag.one"),
     other: t("settingsWorkspace.countLabels.tag.other"),
   });
+  observationIdentityRef.current = {
+    userId: session?.userId ?? null,
+    installationId: cloudSettings?.installationId ?? null,
+  };
 
   useEffect(() => {
     let isCancelled = false;
@@ -95,6 +108,17 @@ export function WorkspaceSettingsScreen(): ReactElement {
           return;
         }
 
+        if (activeWorkspace !== null) {
+          const observationIdentity = observationIdentityRef.current;
+          captureAppOperationError(error, {
+            feature: "settings",
+            operation: "workspace_settings_load",
+            userId: observationIdentity.userId,
+            workspaceId: activeWorkspace.workspaceId,
+            installationId: observationIdentity.installationId,
+            entityId: activeWorkspace.workspaceId,
+          });
+        }
         setErrorMessage(error instanceof Error ? error.message : String(error));
       }
     }
@@ -165,13 +189,27 @@ export function WorkspaceSettingsScreen(): ReactElement {
       const preview = await loadWorkspaceResetProgressPreview(activeWorkspace.workspaceId);
       setResetPreview(preview);
     } catch (error) {
-      if (isApiContractErrorForEndpoint(error, "/reset-progress-preview")) {
+      if (error instanceof ApiContractError) {
         captureApiContractError(error, {
           feature: "settings",
           sourceAction: "workspace_reset_progress_preview_load",
           userId: session?.userId ?? null,
           workspaceId: activeWorkspace.workspaceId,
           installationId: cloudSettings?.installationId ?? null,
+        });
+      } else {
+        captureAppOperationError(error, {
+          feature: "settings",
+          operation: "workspace_reset_preview_load",
+          userId: session?.userId ?? null,
+          workspaceId: activeWorkspace.workspaceId,
+          installationId: cloudSettings?.installationId ?? null,
+          entityId: activeWorkspace.workspaceId,
+          expectedErrorMessages: [
+            t("app.sessionUnavailable"),
+            t("app.sessionRestoringActionLocked"),
+            t("settingsWorkspace.resetProgress.availabilityHint"),
+          ],
         });
       }
       setResetErrorMessage(error instanceof Error ? error.message : String(error));
@@ -195,13 +233,27 @@ export function WorkspaceSettingsScreen(): ReactElement {
         setAppErrorMessage(error instanceof Error ? error.message : String(error));
       });
     } catch (error) {
-      if (isApiContractErrorForEndpoint(error, "/reset-progress")) {
+      if (error instanceof ApiContractError) {
         captureApiContractError(error, {
           feature: "settings",
           sourceAction: "workspace_reset_progress_execute",
           userId: session?.userId ?? null,
           workspaceId: activeWorkspace.workspaceId,
           installationId: cloudSettings?.installationId ?? null,
+        });
+      } else {
+        captureAppOperationError(error, {
+          feature: "settings",
+          operation: "workspace_reset_execute",
+          userId: session?.userId ?? null,
+          workspaceId: activeWorkspace.workspaceId,
+          installationId: cloudSettings?.installationId ?? null,
+          entityId: activeWorkspace.workspaceId,
+          expectedErrorMessages: [
+            t("app.sessionUnavailable"),
+            t("app.sessionRestoringActionLocked"),
+            t("settingsWorkspace.resetProgress.availabilityHint"),
+          ],
         });
       }
       setResetErrorMessage(error instanceof Error ? error.message : String(error));

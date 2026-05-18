@@ -1,8 +1,9 @@
 import { useEffect, useState, type ReactElement } from "react";
-import { listAgentApiKeys, revokeAgentApiKey } from "../../../api";
+import { ApiContractError, listAgentApiKeys, revokeAgentApiKey } from "../../../api";
 import { useAppData } from "../../../appData";
 import { useI18n } from "../../../i18n";
 import { captureApiContractError } from "../../../observability/apiContractObservation";
+import { captureAppOperationError } from "../../../observability/appOperationObservation";
 import type { AgentApiKeyConnection } from "../../../types";
 import { SettingsShell } from "../SettingsShared";
 
@@ -39,6 +40,16 @@ export function AgentConnectionsScreen(): ReactElement {
         workspaceId: activeWorkspace?.workspaceId ?? null,
         installationId: cloudSettings?.installationId ?? null,
       });
+      if (error instanceof ApiContractError === false) {
+        captureAppOperationError(error, {
+          feature: "settings",
+          operation: "agent_connections_load",
+          userId: session?.userId ?? null,
+          workspaceId: activeWorkspace?.workspaceId ?? null,
+          installationId: cloudSettings?.installationId ?? null,
+          entityId: null,
+        });
+      }
       setErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setIsLoading(false);
@@ -66,6 +77,16 @@ export function AgentConnectionsScreen(): ReactElement {
         workspaceId: activeWorkspace?.workspaceId ?? null,
         installationId: cloudSettings?.installationId ?? null,
       });
+      if (error instanceof ApiContractError === false) {
+        captureAppOperationError(error, {
+          feature: "settings",
+          operation: "agent_connection_revoke",
+          userId: session?.userId ?? null,
+          workspaceId: activeWorkspace?.workspaceId ?? null,
+          installationId: cloudSettings?.installationId ?? null,
+          entityId: connectionId,
+        });
+      }
       setErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setBusyConnectionId(null);

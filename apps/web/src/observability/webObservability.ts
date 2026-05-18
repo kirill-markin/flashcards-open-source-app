@@ -171,6 +171,42 @@ export type AuthResetCleanupFailureDetails = Readonly<{
   operation: "auth_reset_cleanup_failed";
 }>;
 
+export type WebAppOperation =
+  | "account_deletion_submit"
+  | "agent_connections_load"
+  | "agent_connection_revoke"
+  | "card_form_load"
+  | "card_save"
+  | "card_delete"
+  | "cards_list_load"
+  | "cards_page_load"
+  | "cards_inline_save"
+  | "review_data_load"
+  | "review_submit"
+  | "review_rollback_lookup"
+  | "review_replenish"
+  | "review_card_save"
+  | "review_card_delete"
+  | "review_schedule_preview"
+  | "deck_list_load"
+  | "deck_detail_load"
+  | "deck_save"
+  | "deck_delete"
+  | "tags_load"
+  | "workspace_overview_load"
+  | "workspace_rename"
+  | "workspace_delete_preview_load"
+  | "workspace_delete_preview_retry"
+  | "workspace_settings_load"
+  | "workspace_reset_preview_load"
+  | "workspace_reset_execute"
+  | "workspace_export";
+
+export type WebAppOperationFailureDetails = Readonly<{
+  operation: WebAppOperation;
+  entityId: string | null;
+}>;
+
 export type WebExceptionEvent =
   | Readonly<{
     action: "api_contract_failed";
@@ -225,6 +261,12 @@ export type WebExceptionEvent =
     error: Error;
     scope: WebObservationScope;
     details: AuthResetCleanupFailureDetails;
+  }>
+  | Readonly<{
+    action: "app_operation_failed";
+    error: Error;
+    scope: WebObservationScope;
+    details: WebAppOperationFailureDetails;
   }>;
 
 export type ApiContractWarningDetails = Readonly<{
@@ -335,10 +377,19 @@ export function captureWebException(event: WebExceptionEvent): void {
 
   Sentry.withScope((scope: Scope): void => {
     applyObservationScope(scope, event.scope, event.action);
+    scope.setFingerprint(buildExceptionFingerprint(event));
     scope.setContext("web.exception", detailsToContext(event.details));
     scope.setContext("web.error", errorMetadataToContext(readErrorMetadata(event.error)));
     Sentry.captureException(toSafeCapturedError(event.action, event.error));
   });
+}
+
+function buildExceptionFingerprint(event: WebExceptionEvent): Array<string> {
+  if (event.action === "app_operation_failed") {
+    return ["{{ default }}", event.action, event.details.operation];
+  }
+
+  return ["{{ default }}", event.action];
 }
 
 function isErrorMetadataObject(value: unknown): value is ErrorMetadataObject {

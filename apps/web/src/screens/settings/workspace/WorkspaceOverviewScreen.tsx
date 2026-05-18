@@ -1,9 +1,10 @@
-import { useEffect, useState, type FormEvent, type ReactElement } from "react";
-import { loadWorkspaceDeletePreview } from "../../../api";
+import { useEffect, useRef, useState, type FormEvent, type ReactElement } from "react";
+import { ApiContractError, loadWorkspaceDeletePreview } from "../../../api";
 import { useAppData } from "../../../appData";
 import { useI18n } from "../../../i18n";
 import { loadWorkspaceOverviewSnapshot } from "../../../localDb/workspace";
-import { captureApiContractError, isApiContractErrorForEndpoint } from "../../../observability/apiContractObservation";
+import { captureApiContractError } from "../../../observability/apiContractObservation";
+import { captureAppOperationError } from "../../../observability/appOperationObservation";
 import type { WorkspaceDeletePreview, WorkspaceOverviewSnapshot } from "../../../types";
 import { SettingsShell } from "../SettingsShared";
 
@@ -41,6 +42,17 @@ export function WorkspaceOverviewScreen(): ReactElement {
   const [deletePreviewErrorMessage, setDeletePreviewErrorMessage] = useState<string>("");
   const [deleteConfirmationValue, setDeleteConfirmationValue] = useState<string>("");
   const [isDeleteSubmitting, setIsDeleteSubmitting] = useState<boolean>(false);
+  const observationIdentityRef = useRef<Readonly<{
+    userId: string | null;
+    installationId: string | null;
+  }>>({
+    userId: null,
+    installationId: null,
+  });
+  observationIdentityRef.current = {
+    userId: session?.userId ?? null,
+    installationId: cloudSettings?.installationId ?? null,
+  };
 
   useEffect(() => {
     let isCancelled = false;
@@ -72,6 +84,17 @@ export function WorkspaceOverviewScreen(): ReactElement {
           return;
         }
 
+        if (activeWorkspace !== null) {
+          const observationIdentity = observationIdentityRef.current;
+          captureAppOperationError(error, {
+            feature: "settings",
+            operation: "workspace_overview_load",
+            userId: observationIdentity.userId,
+            workspaceId: activeWorkspace.workspaceId,
+            installationId: observationIdentity.installationId,
+            entityId: activeWorkspace.workspaceId,
+          });
+        }
         setErrorMessage(error instanceof Error ? error.message : String(error));
       } finally {
         if (!isCancelled) {
@@ -129,6 +152,21 @@ export function WorkspaceOverviewScreen(): ReactElement {
     try {
       await renameWorkspace(activeWorkspace.workspaceId, trimmedWorkspaceName);
     } catch (error) {
+      if (error instanceof ApiContractError === false) {
+        captureAppOperationError(error, {
+          feature: "settings",
+          operation: "workspace_rename",
+          userId: session?.userId ?? null,
+          workspaceId: activeWorkspace.workspaceId,
+          installationId: cloudSettings?.installationId ?? null,
+          entityId: activeWorkspace.workspaceId,
+          expectedErrorMessages: [
+            t("app.sessionUnavailable"),
+            t("app.sessionRestoringActionLocked"),
+            t("settingsCurrentWorkspace.workspaceNameRequired"),
+          ],
+        });
+      }
       setRenameErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setIsRenameSubmitting(false);
@@ -156,13 +194,22 @@ export function WorkspaceOverviewScreen(): ReactElement {
       const preview = await loadWorkspaceDeletePreview(activeWorkspace.workspaceId);
       setDeletePreview(preview);
     } catch (error) {
-      if (isApiContractErrorForEndpoint(error, "/delete-preview")) {
+      if (error instanceof ApiContractError) {
         captureApiContractError(error, {
           feature: "settings",
           sourceAction: "workspace_delete_preview_load",
           userId: session?.userId ?? null,
           workspaceId: activeWorkspace.workspaceId,
           installationId: cloudSettings?.installationId ?? null,
+        });
+      } else {
+        captureAppOperationError(error, {
+          feature: "settings",
+          operation: "workspace_delete_preview_load",
+          userId: session?.userId ?? null,
+          workspaceId: activeWorkspace.workspaceId,
+          installationId: cloudSettings?.installationId ?? null,
+          entityId: activeWorkspace.workspaceId,
         });
       }
       setDeletePreviewErrorMessage(error instanceof Error ? error.message : String(error));
@@ -182,13 +229,22 @@ export function WorkspaceOverviewScreen(): ReactElement {
       const preview = await loadWorkspaceDeletePreview(activeWorkspace.workspaceId);
       setDeletePreview(preview);
     } catch (error) {
-      if (isApiContractErrorForEndpoint(error, "/delete-preview")) {
+      if (error instanceof ApiContractError) {
         captureApiContractError(error, {
           feature: "settings",
           sourceAction: "workspace_delete_preview_retry",
           userId: session?.userId ?? null,
           workspaceId: activeWorkspace.workspaceId,
           installationId: cloudSettings?.installationId ?? null,
+        });
+      } else {
+        captureAppOperationError(error, {
+          feature: "settings",
+          operation: "workspace_delete_preview_retry",
+          userId: session?.userId ?? null,
+          workspaceId: activeWorkspace.workspaceId,
+          installationId: cloudSettings?.installationId ?? null,
+          entityId: activeWorkspace.workspaceId,
         });
       }
       setDeletePreviewErrorMessage(error instanceof Error ? error.message : String(error));

@@ -1,10 +1,11 @@
-import { useEffect, useState, type ReactElement } from "react";
+import { useEffect, useRef, useState, type ReactElement } from "react";
 import { Link } from "react-router-dom";
 import { useAppData } from "../../../../appData";
 import { ALL_CARDS_DECK_SLUG } from "../../../../deckFilters";
 import { useI18n } from "../../../../i18n";
 import { buildSettingsDeckDetailRoute, settingsDeckNewRoute } from "../../../../routes";
 import { loadDecksListSnapshot } from "../../../../localDb/decks";
+import { captureAppOperationError } from "../../../../observability/appOperationObservation";
 import type { DeckCardStats, DecksListSnapshot } from "../../../../types";
 import { formatDeckFilterSummary } from "../../../shared/featureFormatting";
 
@@ -52,11 +53,22 @@ const emptyDecksSnapshot: DecksListSnapshot = {
 };
 
 export function DecksScreen(): ReactElement {
-  const { activeWorkspace, localReadVersion, refreshLocalData } = useAppData();
+  const { activeWorkspace, cloudSettings, localReadVersion, refreshLocalData, session } = useAppData();
   const { t, formatNumber } = useI18n();
   const [decksSnapshot, setDecksSnapshot] = useState<DecksListSnapshot>(emptyDecksSnapshot);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const observationIdentityRef = useRef<Readonly<{
+    userId: string | null;
+    installationId: string | null;
+  }>>({
+    userId: null,
+    installationId: null,
+  });
+  observationIdentityRef.current = {
+    userId: session?.userId ?? null,
+    installationId: cloudSettings?.installationId ?? null,
+  };
 
   useEffect(() => {
     let isCancelled = false;
@@ -81,6 +93,17 @@ export function DecksScreen(): ReactElement {
           return;
         }
 
+        if (activeWorkspace !== null) {
+          const observationIdentity = observationIdentityRef.current;
+          captureAppOperationError(error, {
+            feature: "settings",
+            operation: "deck_list_load",
+            userId: observationIdentity.userId,
+            workspaceId: activeWorkspace.workspaceId,
+            installationId: observationIdentity.installationId,
+            entityId: null,
+          });
+        }
         setErrorMessage(error instanceof Error ? error.message : String(error));
       } finally {
         if (!isCancelled) {

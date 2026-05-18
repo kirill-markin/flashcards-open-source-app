@@ -8,6 +8,7 @@ import { CardTagsInput, type CardTagsInputHandle } from "./CardTagsInput";
 import { EditableCardEffortCell, EditableCardTagsCell, EditableCardTextCell } from "./CardsTableEditors";
 import { queryLocalCardsPage } from "../../localDb/cards";
 import { loadWorkspaceTagsSummary } from "../../localDb/workspace";
+import { captureAppOperationError } from "../../observability/appOperationObservation";
 import type { Card, CardFilter, CardQuerySort, CardQuerySortDirection, CardQuerySortKey, QueryCardsPage, TagSuggestion, UpdateCardInput } from "../../types";
 import {
   buildCardsLoadingRowPreview,
@@ -123,8 +124,9 @@ function mergeCardsPage(
 export function CardsScreen(): ReactElement {
   const {
     activeWorkspace,
+    cloudSettings,
     localReadVersion,
-    refreshLocalData,
+    session,
     updateCardItem,
     setErrorMessage,
   } = useAppData();
@@ -142,6 +144,13 @@ export function CardsScreen(): ReactElement {
   const filterWrapRef = useRef<HTMLDivElement | null>(null);
   const filterPopoverRef = useRef<HTMLDivElement | null>(null);
   const filterTagsInputRef = useRef<CardTagsInputHandle | null>(null);
+  const observationIdentityRef = useRef<Readonly<{
+    userId: string | null;
+    installationId: string | null;
+  }>>({
+    userId: null,
+    installationId: null,
+  });
   const requestSequenceRef = useRef<number>(0);
   const [tagSuggestions, setTagSuggestions] = useState<ReadonlyArray<TagSuggestion>>([]);
 
@@ -151,6 +160,10 @@ export function CardsScreen(): ReactElement {
   const draftFilterValue = draftCardFilter ?? createEmptyCardFilter();
   const cardsLoadingSnapshot = activeWorkspace === null ? null : readCardsLoadingSnapshot(activeWorkspace.workspaceId);
   const isInitialCardsLoad = cardsQueryState.isLoading && cardsQueryState.hasLoaded === false;
+  observationIdentityRef.current = {
+    userId: session?.userId ?? null,
+    installationId: cloudSettings?.installationId ?? null,
+  };
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -217,6 +230,15 @@ export function CardsScreen(): ReactElement {
         return;
       }
 
+      const observationIdentity = observationIdentityRef.current;
+      captureAppOperationError(error, {
+        feature: "cards",
+        operation: "cards_list_load",
+        userId: observationIdentity.userId,
+        workspaceId: activeWorkspace.workspaceId,
+        installationId: observationIdentity.installationId,
+        entityId: null,
+      });
       setCardsQueryState((currentState) => ({
         ...currentState,
         hasLoaded: currentState.hasLoaded,
@@ -265,6 +287,15 @@ export function CardsScreen(): ReactElement {
         return;
       }
 
+      const observationIdentity = observationIdentityRef.current;
+      captureAppOperationError(error, {
+        feature: "cards",
+        operation: "cards_page_load",
+        userId: observationIdentity.userId,
+        workspaceId: activeWorkspace.workspaceId,
+        installationId: observationIdentity.installationId,
+        entityId: null,
+      });
       setCardsQueryState((currentState) => ({
         ...currentState,
         isLoadingMore: false,
@@ -346,11 +377,27 @@ export function CardsScreen(): ReactElement {
     setErrorMessage("");
 
     try {
-      await updateCardItem(card.cardId, patch);
-      await refreshLocalData();
-      await loadFirstPage();
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : String(error));
+      try {
+        await updateCardItem(card.cardId, patch);
+      } catch (error) {
+        const observationIdentity = observationIdentityRef.current;
+        captureAppOperationError(error, {
+          feature: "cards",
+          operation: "cards_inline_save",
+          userId: observationIdentity.userId,
+          workspaceId: activeWorkspace?.workspaceId ?? null,
+          installationId: observationIdentity.installationId,
+          entityId: card.cardId,
+        });
+        setErrorMessage(error instanceof Error ? error.message : String(error));
+        return;
+      }
+
+      try {
+        await loadFirstPage();
+      } catch (error) {
+        setErrorMessage(error instanceof Error ? error.message : String(error));
+      }
     } finally {
       setSavingCardId("");
     }

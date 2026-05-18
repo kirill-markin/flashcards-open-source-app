@@ -1,11 +1,12 @@
 import { useState, type ReactElement } from "react";
 import { useAppData } from "../../../appData";
 import { useI18n } from "../../../i18n";
+import { captureAppOperationError } from "../../../observability/appOperationObservation";
 import { exportWorkspaceCardsCsv } from "../../../workspaceExport";
 import { SettingsShell } from "../SettingsShared";
 
 export function WorkspaceExportScreen(): ReactElement {
-  const { activeWorkspace } = useAppData();
+  const { activeWorkspace, cloudSettings, session } = useAppData();
   const { t } = useI18n();
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -32,6 +33,14 @@ export function WorkspaceExportScreen(): ReactElement {
       });
       setSuccessMessage(t("workspaceExport.success"));
     } catch (error) {
+      captureAppOperationError(error, {
+        feature: "settings",
+        operation: "workspace_export",
+        userId: session?.userId ?? null,
+        workspaceId: activeWorkspace.workspaceId,
+        installationId: cloudSettings?.installationId ?? null,
+        entityId: activeWorkspace.workspaceId,
+      });
       setErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setIsExporting(false);

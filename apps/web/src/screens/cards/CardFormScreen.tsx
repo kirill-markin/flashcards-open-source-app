@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactElement } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAppData } from "../../appData";
 import { useAiCardHandoff } from "../../chat/useAiCardHandoff";
@@ -6,6 +6,7 @@ import { useI18n } from "../../i18n";
 import { CardFormFields, isCardFormStateDirty, toCardFormState, type CardFormState } from "./CardForm";
 import type { Card, CreateCardInput, TagSuggestion, UpdateCardInput } from "../../types";
 import { loadWorkspaceTagsSummary } from "../../localDb/workspace";
+import { captureAppOperationError } from "../../observability/appOperationObservation";
 import { cardsRoute } from "../../routes";
 
 function toTagSuggestions(tags: Awaited<ReturnType<typeof loadWorkspaceTagsSummary>>["tags"]): ReadonlyArray<TagSuggestion> {
@@ -20,7 +21,17 @@ export function CardFormScreen(): ReactElement {
   const { cardId } = useParams();
   const navigate = useNavigate();
   const { t } = useI18n();
-  const { activeWorkspace, getCardById, createCardItem, updateCardItem, deleteCardItem, setErrorMessage, localReadVersion } = useAppData();
+  const {
+    activeWorkspace,
+    cloudSettings,
+    getCardById,
+    createCardItem,
+    updateCardItem,
+    deleteCardItem,
+    setErrorMessage,
+    localReadVersion,
+    session,
+  } = useAppData();
   const [currentCard, setCurrentCard] = useState<Card | null>(null);
   const [formState, setFormState] = useState<CardFormState>(toCardFormState(null));
   const [tagSuggestions, setTagSuggestions] = useState<ReadonlyArray<TagSuggestion>>([]);
@@ -29,8 +40,19 @@ export function CardFormScreen(): ReactElement {
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [loadErrorMessage, setLoadErrorMessage] = useState<string>("");
   const [actionErrorMessage, setActionErrorMessage] = useState<string>("");
+  const observationIdentityRef = useRef<Readonly<{
+    userId: string | null;
+    installationId: string | null;
+  }>>({
+    userId: null,
+    installationId: null,
+  });
   const isCreateMode = cardId === undefined;
   const handoffCardToAi = useAiCardHandoff();
+  observationIdentityRef.current = {
+    userId: session?.userId ?? null,
+    installationId: cloudSettings?.installationId ?? null,
+  };
 
   const loadScreenData = useCallback(async function loadScreenData(): Promise<void> {
     setLoadErrorMessage("");
@@ -52,6 +74,17 @@ export function CardFormScreen(): ReactElement {
         setFormState(toCardFormState(loadedCard));
       }
     } catch (error) {
+      if (activeWorkspace !== null) {
+        const observationIdentity = observationIdentityRef.current;
+        captureAppOperationError(error, {
+          feature: "cards",
+          operation: "card_form_load",
+          userId: observationIdentity.userId,
+          workspaceId: activeWorkspace.workspaceId,
+          installationId: observationIdentity.installationId,
+          entityId: cardId ?? null,
+        });
+      }
       setLoadErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setIsLoading(false);
@@ -87,6 +120,14 @@ export function CardFormScreen(): ReactElement {
       setFormState(toCardFormState(savedCard));
       return savedCard;
     } catch (error) {
+      captureAppOperationError(error, {
+        feature: "cards",
+        operation: "card_save",
+        userId: session?.userId ?? null,
+        workspaceId: activeWorkspace?.workspaceId ?? null,
+        installationId: cloudSettings?.installationId ?? null,
+        entityId: cardId,
+      });
       setActionErrorMessage(error instanceof Error ? error.message : String(error));
       return null;
     } finally {
@@ -114,6 +155,14 @@ export function CardFormScreen(): ReactElement {
 
       navigate(cardsRoute);
     } catch (error) {
+      captureAppOperationError(error, {
+        feature: "cards",
+        operation: "card_save",
+        userId: session?.userId ?? null,
+        workspaceId: activeWorkspace?.workspaceId ?? null,
+        installationId: cloudSettings?.installationId ?? null,
+        entityId: cardId ?? null,
+      });
       setActionErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setIsSaving(false);
@@ -156,6 +205,14 @@ export function CardFormScreen(): ReactElement {
       await deleteCardItem(cardId);
       navigate(cardsRoute);
     } catch (error) {
+      captureAppOperationError(error, {
+        feature: "cards",
+        operation: "card_delete",
+        userId: session?.userId ?? null,
+        workspaceId: activeWorkspace?.workspaceId ?? null,
+        installationId: cloudSettings?.installationId ?? null,
+        entityId: cardId,
+      });
       setActionErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setIsDeleting(false);

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ChangeEvent, type ReactElement } from "react";
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type ReactElement } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAppData } from "../../../../appData";
 import { ALL_CARDS_DECK_SLUG, buildDeckFilterDefinition, EFFORT_LEVELS } from "../../../../deckFilters";
@@ -6,6 +6,7 @@ import { useI18n } from "../../../../i18n";
 import { buildSettingsDeckDetailRoute, settingsDecksRoute } from "../../../../routes";
 import { CardFormTagsField } from "../../../cards/CardFormTagsField";
 import { loadWorkspaceTagsSummary } from "../../../../localDb/workspace";
+import { captureAppOperationError } from "../../../../observability/appOperationObservation";
 import type { EffortLevel, TagSuggestion, UpdateDeckInput } from "../../../../types";
 import { formatDeckFilterSummary, formatEffortLevelLabel } from "../../../shared/featureFormatting";
 
@@ -40,8 +41,10 @@ export function DeckFormScreen(): ReactElement {
   const { t } = useI18n();
   const {
     activeWorkspace,
+    cloudSettings,
     createDeckItem,
     getDeckById,
+    session,
     updateDeckItem,
     setErrorMessage,
     localReadVersion,
@@ -51,12 +54,23 @@ export function DeckFormScreen(): ReactElement {
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [screenErrorMessage, setScreenErrorMessage] = useState<string>("");
+  const observationIdentityRef = useRef<Readonly<{
+    userId: string | null;
+    installationId: string | null;
+  }>>({
+    userId: null,
+    installationId: null,
+  });
   const filterDefinition = buildDeckFilterDefinition(formState.effortLevels, formState.tags);
   const nameFieldId = "deck-name";
   const tagsFieldId = "deck-tags-input";
   const isCreateMode = deckId === undefined;
   const screenTitle = isCreateMode ? t("deckForm.title.new") : t("deckForm.title.edit");
   const backHref = isCreateMode || deckId === undefined ? settingsDecksRoute : buildSettingsDeckDetailRoute(deckId);
+  observationIdentityRef.current = {
+    userId: session?.userId ?? null,
+    installationId: cloudSettings?.installationId ?? null,
+  };
 
   const loadScreenData = useCallback(async function loadScreenData(): Promise<void> {
     setIsLoading(true);
@@ -91,6 +105,17 @@ export function DeckFormScreen(): ReactElement {
         });
       }
     } catch (error) {
+      if (activeWorkspace !== null && deckId !== ALL_CARDS_DECK_SLUG) {
+        const observationIdentity = observationIdentityRef.current;
+        captureAppOperationError(error, {
+          feature: "settings",
+          operation: "deck_detail_load",
+          userId: observationIdentity.userId,
+          workspaceId: activeWorkspace.workspaceId,
+          installationId: observationIdentity.installationId,
+          entityId: deckId ?? null,
+        });
+      }
       setScreenErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setIsLoading(false);
@@ -126,6 +151,14 @@ export function DeckFormScreen(): ReactElement {
         navigate(buildSettingsDeckDetailRoute(updatedDeck.deckId));
       }
     } catch (error) {
+      captureAppOperationError(error, {
+        feature: "settings",
+        operation: "deck_save",
+        userId: session?.userId ?? null,
+        workspaceId: activeWorkspace?.workspaceId ?? null,
+        installationId: cloudSettings?.installationId ?? null,
+        entityId: deckId ?? null,
+      });
       setErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setIsSaving(false);

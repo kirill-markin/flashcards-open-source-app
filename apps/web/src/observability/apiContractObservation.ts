@@ -4,7 +4,7 @@ import {
   type WebObservationScope,
 } from "./webObservability";
 
-export type ApiContractObservationFeature = "cards" | "review" | "progress" | "settings" | "sync";
+export type ApiContractObservationFeature = "auth" | "cards" | "review" | "progress" | "settings" | "sync";
 
 type ApiContractObservationContext = Readonly<{
   feature: ApiContractObservationFeature;
@@ -90,10 +90,6 @@ function captureApiContractErrorWithRoute(
       sourceAction: context.sourceAction,
     },
   });
-}
-
-export function isApiContractErrorForEndpoint(error: unknown, endpointSuffix: string): boolean {
-  return error instanceof ApiContractError && error.endpoint.endsWith(endpointSuffix);
 }
 
 export function captureApiContractError(error: unknown, context: ApiContractObservationContext): void {

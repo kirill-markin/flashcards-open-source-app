@@ -11,6 +11,7 @@ import {
 import { AppDataProvider, useAppData } from "./appData";
 import {
   ApiError,
+  ApiContractError,
   buildLoginUrl,
   buildLogoutLocalUrl,
   buildLogoutUrl,
@@ -22,6 +23,8 @@ import { ChatLayoutProvider, useChatLayout } from "./chat/ChatLayoutContext";
 import { ChatSessionControllerProvider } from "./chat/sessionController";
 import { ChatToggle } from "./chat/ChatToggle";
 import { type TranslationKey, useI18n } from "./i18n";
+import { captureApiContractError } from "./observability/apiContractObservation";
+import { captureAppOperationError } from "./observability/appOperationObservation";
 import { AppErrorBoundary, wrapRoutesComponent } from "./observability/instrument";
 import {
   accountAgentConnectionsRoute,
@@ -260,6 +263,7 @@ export function AppShell(): ReactElement {
     sessionVerificationState,
     isSessionVerified,
     sessionErrorMessage,
+    session,
     activeWorkspace,
     availableWorkspaces,
     isChoosingWorkspace,
@@ -303,11 +307,28 @@ export function AppShell(): ReactElement {
         return;
       }
 
+      captureApiContractError(error, {
+        feature: "auth",
+        sourceAction: "account_deletion_submit",
+        userId: session?.userId ?? null,
+        workspaceId: activeWorkspace?.workspaceId ?? null,
+        installationId: cloudSettings?.installationId ?? null,
+      });
+      if (error instanceof ApiContractError === false) {
+        captureAppOperationError(error, {
+          feature: "auth",
+          operation: "account_deletion_submit",
+          userId: session?.userId ?? null,
+          workspaceId: activeWorkspace?.workspaceId ?? null,
+          installationId: cloudSettings?.installationId ?? null,
+          entityId: null,
+        });
+      }
       setAccountDeletionErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setIsAccountDeletionSubmitting(false);
     }
-  }, [isSessionVerified]);
+  }, [activeWorkspace?.workspaceId, cloudSettings?.installationId, isSessionVerified, session?.userId]);
 
   useEffect(() => subscribeToAccountDeletionPending(() => {
     setIsAccountDeletionPendingState(isAccountDeletionPending());

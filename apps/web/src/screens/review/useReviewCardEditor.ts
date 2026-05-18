@@ -1,10 +1,12 @@
 import { useState } from "react";
 import type { TranslationKey } from "../../i18n";
+import { captureAppOperationError } from "../../observability/appOperationObservation";
 import { toCardFormState, type CardFormState } from "../cards/CardForm";
-import type { Card, TagSuggestion } from "../../types";
+import type { Card } from "../../types";
 
 type UseReviewCardEditorParams = Readonly<{
   deleteCardItem: (cardId: string) => Promise<Card>;
+  installationId: string | null;
   queueCards: ReadonlyArray<Card>;
   selectedCard: Card | null;
   setErrorMessage: (message: string) => void;
@@ -15,6 +17,8 @@ type UseReviewCardEditorParams = Readonly<{
     tags: ReadonlyArray<string>;
     effortLevel: Card["effortLevel"];
   }>) => Promise<Card>;
+  userId: string | null;
+  workspaceId: string | null;
 }>;
 
 export type UseReviewCardEditorResult = Readonly<{
@@ -34,11 +38,14 @@ export type UseReviewCardEditorResult = Readonly<{
 export function useReviewCardEditor(params: UseReviewCardEditorParams): UseReviewCardEditorResult {
   const {
     deleteCardItem,
+    installationId,
     queueCards,
     selectedCard,
     setErrorMessage,
     t,
     updateCardItem,
+    userId,
+    workspaceId,
   } = params;
   const [isEditorPresented, setIsEditorPresented] = useState<boolean>(false);
   const [editingCardId, setEditingCardId] = useState<string>("");
@@ -73,6 +80,14 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
       });
       setIsEditorPresented(false);
     } catch (error) {
+      captureAppOperationError(error, {
+        feature: "review",
+        operation: "review_card_save",
+        userId,
+        workspaceId,
+        installationId,
+        entityId: editingCardId,
+      });
       setEditorErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setIsEditorSaving(false);
@@ -98,6 +113,14 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
       });
       return savedCard;
     } catch (error) {
+      captureAppOperationError(error, {
+        feature: "review",
+        operation: "review_card_save",
+        userId,
+        workspaceId,
+        installationId,
+        entityId: editingCardId,
+      });
       setEditorErrorMessage(error instanceof Error ? error.message : String(error));
       return null;
     } finally {
@@ -123,6 +146,14 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
       await deleteCardItem(editingCardId);
       setIsEditorPresented(false);
     } catch (error) {
+      captureAppOperationError(error, {
+        feature: "review",
+        operation: "review_card_delete",
+        userId,
+        workspaceId,
+        installationId,
+        entityId: editingCardId,
+      });
       setEditorErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setIsEditorSaving(false);
