@@ -6,6 +6,7 @@ import {
   type SetStateAction,
 } from "react";
 import {
+  ApiContractError,
   ApiError,
   bootstrapPullSyncState,
   isAuthRedirectError,
@@ -14,6 +15,7 @@ import {
   pushSyncOperations,
 } from "../api";
 import { webAppVersion } from "../clientIdentity";
+import { captureApiContractError } from "../observability/apiContractObservation";
 import {
   loadCardById,
   loadCardsByIds,
@@ -57,6 +59,11 @@ import type {
   WorkspaceSchedulerSettings,
   WorkspaceSummary,
 } from "../types";
+import {
+  captureWebException,
+  normalizeCaughtError,
+  type WebObservationScope,
+} from "../observability/webObservability";
 // Keep local web review scheduling aligned with the backend source of truth and
 // the mirrored native copies:
 // - apps/backend/src/schedule.ts
@@ -203,6 +210,124 @@ function isWorkspaceNotFoundError(error: unknown): error is ApiError {
   return error instanceof ApiError
     && error.statusCode === 404
     && error.code === workspaceNotFoundErrorCode;
+}
+
+function getCurrentRoute(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
+
+function buildSyncObservationScope(
+  error: Error,
+  userId: string,
+  workspaceId: string,
+  installationId: string | null,
+): WebObservationScope {
+  const requestMetadata = error instanceof ApiError || error instanceof ApiContractError
+    ? {
+      requestId: error.requestId,
+      statusCode: error.statusCode,
+      code: error.code,
+    }
+    : {
+      requestId: null,
+      statusCode: null,
+      code: null,
+    };
+
+  return {
+    app: "web",
+    feature: "sync",
+    userId,
+    workspaceId,
+    installationId,
+    route: getCurrentRoute(),
+    requestId: requestMetadata.requestId,
+    statusCode: requestMetadata.statusCode,
+    code: requestMetadata.code,
+  };
+}
+
+function isExpectedSyncProductErrorCode(code: string | null): boolean {
+  switch (code) {
+    case "ACCOUNT_DELETED":
+    case "AUTH_UNAUTHORIZED":
+    case "GUEST_AUTH_INVALID":
+    case "SESSION_CSRF_TOKEN_INVALID":
+    case "SYNC_BOOTSTRAP_NOT_EMPTY":
+    case "SYNC_BOOTSTRAP_REQUIRED":
+    case "SYNC_INVALID_INPUT":
+    case "SYNC_WORKSPACE_FORK_REQUIRED":
+    case "WORKSPACE_NOT_FOUND":
+    case "WORKSPACE_SELECTION_REQUIRED":
+      return true;
+  }
+
+  return false;
+}
+
+function isExpectedSyncValidationError(error: ApiError): boolean {
+  return error.statusCode === 400
+    && error.code === null
+    && error.responseBodyKind === "json";
+}
+
+function shouldCaptureUnexpectedSyncError(error: Error): boolean {
+  if (error instanceof ApiContractError) {
+    return true;
+  }
+
+  if (isAuthRedirectError(error)) {
+    return false;
+  }
+
+  if (error instanceof ApiError) {
+    if (error.statusCode >= 500) {
+      return true;
+    }
+
+    if (isExpectedSyncProductErrorCode(error.code)) {
+      return false;
+    }
+
+    if (error.statusCode === 401) {
+      return false;
+    }
+
+    if (isExpectedSyncValidationError(error)) {
+      return false;
+    }
+
+    if (error.statusCode >= 400 && error.statusCode < 500) {
+      return true;
+    }
+  }
+
+  return true;
+}
+
+function captureUnexpectedSyncError(
+  error: Error,
+  userId: string,
+  workspaceId: string,
+  installationId: string | null,
+): void {
+  if (shouldCaptureUnexpectedSyncError(error) === false) {
+    return;
+  }
+
+  captureWebException({
+    action: "sync_failed",
+    error,
+    scope: buildSyncObservationScope(error, userId, workspaceId, installationId),
+    details: {
+      operation: "sync_workspace_refresh",
+      workspaceId,
+    },
+  });
 }
 
 async function doHotSyncEntriesAffectReviewSchedule(
@@ -407,6 +532,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     refreshSyncIndicator();
 
     const syncTask = (async (): Promise<void> => {
+      let syncInstallationId: string | null = null;
       try {
         let didChangeProgressHistory = false;
         let didChangeReviewSchedule = false;
@@ -414,6 +540,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         const cloudSettings = await loadCloudSettings();
         requireWorkspaceSyncNotDiscarded(workspaceId);
         const installationId = requireCloudInstallationId(cloudSettings);
+        syncInstallationId = installationId;
         const hotStateHydrated = await hasHydratedHotState(workspaceId);
         requireWorkspaceSyncNotDiscarded(workspaceId);
         if (hotStateHydrated === false) {
@@ -612,6 +739,22 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
           return;
         }
 
+        const normalizedError = normalizeCaughtError(error);
+        captureApiContractError(normalizedError, {
+          feature: "sync",
+          sourceAction: "sync_workspace_refresh",
+          userId: session.userId,
+          workspaceId,
+          installationId: syncInstallationId,
+        });
+        if (normalizedError instanceof ApiContractError === false) {
+          captureUnexpectedSyncError(
+            normalizedError,
+            session.userId,
+            workspaceId,
+            syncInstallationId,
+          );
+        }
         reportSyncError(getErrorMessage(error));
         throw error;
       } finally {

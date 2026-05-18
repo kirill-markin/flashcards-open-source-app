@@ -157,6 +157,9 @@ const arCatalog: TranslationCatalog = {
   },
   app: {
     title: "Flashcards",
+    crashTitle: "حدث خطأ ما",
+    crashMessage: "أعد تحميل التطبيق لاستعادة هذه الشاشة.",
+    crashReload: "إعادة تحميل التطبيق",
     accountDeleted: "تم حذف حسابك.",
     deleteAccountTitle: "جارٍ حذف الحساب",
     deleteAccountInProgress: "عملية حذف حسابك قيد التنفيذ. لا تغلق هذه الصفحة إلا إذا كنت تنوي العودة والمحاولة مرة أخرى.",

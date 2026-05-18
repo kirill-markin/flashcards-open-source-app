@@ -27,7 +27,7 @@ function createEventMetadata(
   };
 }
 
-function createLiveStreamResponse(body: string): Response {
+function createLiveStreamResponseWithHeaders(body: string, headers: HeadersInit): Response {
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
@@ -38,9 +38,13 @@ function createLiveStreamResponse(body: string): Response {
 
   return new Response(stream, {
     status: 200,
-    headers: {
-      "Content-Type": "text/event-stream",
-    },
+    headers,
+  });
+}
+
+function createLiveStreamResponse(body: string): Response {
+  return createLiveStreamResponseWithHeaders(body, {
+    "Content-Type": "text/event-stream",
   });
 }
 
@@ -129,6 +133,72 @@ describe("consumeChatLiveStream", () => {
       signal: new AbortController().signal,
       onEvent: vi.fn(),
     })).rejects.toBeInstanceOf(ChatLiveContractError);
+  });
+
+  it("keeps response metadata on malformed SSE payload errors", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(createLiveStreamResponseWithHeaders(
+      "event: assistant_delta\n"
+        + "data: {\"cursor\":\"1\",\"itemId\":\"item-1\",\"code\":\"LIVE_CONTRACT_FAILED\"}\n\n",
+      {
+        "Content-Type": "text/event-stream",
+        "X-Request-Id": "live-request-id",
+      },
+    ));
+
+    await expect(consumeChatLiveStream({
+      liveStream: {
+        url: "https://chat-live.example.com",
+        authorization: "Live token",
+        expiresAt: Date.now() + 60_000,
+      },
+      sessionId: "session-1",
+      runId: "run-1",
+      afterCursor: null,
+      resumeAttemptId: null,
+      signal: new AbortController().signal,
+      onEvent: vi.fn(),
+    })).rejects.toMatchObject({
+      requestId: "live-request-id",
+      statusCode: 200,
+      code: "LIVE_CONTRACT_FAILED",
+    } satisfies Partial<ChatLiveContractError>);
+  });
+
+  it("wraps nested parser contract failures as live contract errors with response metadata", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(createLiveStreamResponseWithHeaders(
+      "event: assistant_message_done\n"
+        + `data: ${JSON.stringify({
+          ...createEventMetadata({ cursor: "1" }),
+          itemId: "item-1",
+          content: "not-an-array",
+          isError: false,
+          isStopped: false,
+          code: "LIVE_CONTRACT_FAILED",
+        })}\n\n`,
+      {
+        "Content-Type": "text/event-stream",
+        "X-Request-Id": "live-request-id",
+      },
+    ));
+
+    await expect(consumeChatLiveStream({
+      liveStream: {
+        url: "https://chat-live.example.com",
+        authorization: "Live token",
+        expiresAt: Date.now() + 60_000,
+      },
+      sessionId: "session-1",
+      runId: "run-1",
+      afterCursor: null,
+      resumeAttemptId: 2,
+      signal: new AbortController().signal,
+      onEvent: vi.fn(),
+    })).rejects.toMatchObject({
+      eventType: "assistant_message_done",
+      requestId: "live-request-id",
+      statusCode: 200,
+      code: "LIVE_CONTRACT_FAILED",
+    } satisfies Partial<ChatLiveContractError>);
   });
 
   it("sends resume diagnostics headers for resumed live attaches", async () => {

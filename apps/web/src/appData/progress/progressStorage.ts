@@ -6,6 +6,8 @@ import type {
   ProgressSeries,
   ProgressSummaryPayload,
 } from "../../types";
+import { INSTALLATION_ID_STORAGE_KEY } from "../../clientIdentity";
+import { addWebBreadcrumb, type WebObservationScope } from "../../observability/webObservability";
 import { progressReviewScheduleBucketKeys } from "../../types";
 import { findProgressReviewScheduleValidationIssue } from "../../progress/progressReviewScheduleValidation";
 import { normalizeProgressSeries } from "./progressSnapshots";
@@ -137,17 +139,59 @@ function writeLocalStorageValue(key: string, value: string): void {
   fallbackLocalStorageState.set(key, value);
 }
 
-function warnProgressCacheMiss(
+function getCurrentRoute(): string | null {
+  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
+
+function loadExistingInstallationId(): string | null {
+  const installationId = readLocalStorageValue(INSTALLATION_ID_STORAGE_KEY);
+  if (installationId === null || installationId.trim() === "") {
+    return null;
+  }
+
+  return installationId;
+}
+
+function extractWorkspaceIdsFromProgressScopeKey(scopeKey: ProgressScopeKey): ReadonlyArray<string> {
+  const workspaceScopePart = scopeKey.split("::")[0] ?? "";
+  if (workspaceScopePart === "") {
+    return [];
+  }
+
+  return workspaceScopePart
+    .split(",")
+    .filter((workspaceId) => workspaceId !== "");
+}
+
+function buildProgressCacheMissScope(scopeKey: ProgressScopeKey): WebObservationScope {
+  const workspaceIds = extractWorkspaceIdsFromProgressScopeKey(scopeKey);
+  return {
+    app: "web",
+    feature: "progress",
+    userId: null,
+    workspaceId: workspaceIds.length === 1 ? workspaceIds[0] ?? null : null,
+    installationId: loadExistingInstallationId(),
+    route: getCurrentRoute(),
+    requestId: null,
+    statusCode: null,
+    code: null,
+  };
+}
+
+function addProgressCacheMissBreadcrumb(
   section: ProgressCacheSection,
-  storageKey: string,
   scopeKey: ProgressScopeKey,
   reason: Exclude<ProgressCacheMissReason, "empty">,
 ): void {
-  console.warn("progress_cache_miss", {
-    section,
-    storageKey,
-    scopeKey,
-    reason,
+  addWebBreadcrumb({
+    action: "progress_cache_miss",
+    scope: buildProgressCacheMissScope(scopeKey),
+    details: {
+      eventName: "progress_cache_miss",
+      section,
+      reason,
+      workspaceIds: extractWorkspaceIdsFromProgressScopeKey(scopeKey),
+    },
   });
 }
 
@@ -398,14 +442,14 @@ export function loadPersistedProgressSummary(scopeKey: ProgressScopeKey): Progre
 
   if (persistedValue.status === "miss") {
     if (persistedValue.reason !== "empty") {
-      warnProgressCacheMiss("summary", storageKey, scopeKey, persistedValue.reason);
+      addProgressCacheMissBreadcrumb("summary", scopeKey, persistedValue.reason);
     }
 
     return null;
   }
 
   if (persistedValue.value.scopeKey !== scopeKey) {
-    warnProgressCacheMiss("summary", storageKey, scopeKey, "scope_mismatch");
+    addProgressCacheMissBreadcrumb("summary", scopeKey, "scope_mismatch");
     return null;
   }
 
@@ -418,14 +462,14 @@ export function loadPersistedProgressSeries(scopeKey: ProgressScopeKey): Progres
 
   if (persistedValue.status === "miss") {
     if (persistedValue.reason !== "empty") {
-      warnProgressCacheMiss("series", storageKey, scopeKey, persistedValue.reason);
+      addProgressCacheMissBreadcrumb("series", scopeKey, persistedValue.reason);
     }
 
     return null;
   }
 
   if (persistedValue.value.scopeKey !== scopeKey) {
-    warnProgressCacheMiss("series", storageKey, scopeKey, "scope_mismatch");
+    addProgressCacheMissBreadcrumb("series", scopeKey, "scope_mismatch");
     return null;
   }
 
@@ -441,19 +485,19 @@ export function loadPersistedProgressReviewSchedule(
 
   if (persistedValue.status === "miss") {
     if (persistedValue.reason !== "empty") {
-      warnProgressCacheMiss("review_schedule", storageKey, scopeKey, persistedValue.reason);
+      addProgressCacheMissBreadcrumb("review_schedule", scopeKey, persistedValue.reason);
     }
 
     return null;
   }
 
   if (persistedValue.value.scopeKey !== scopeKey) {
-    warnProgressCacheMiss("review_schedule", storageKey, scopeKey, "scope_mismatch");
+    addProgressCacheMissBreadcrumb("review_schedule", scopeKey, "scope_mismatch");
     return null;
   }
 
   if (persistedValue.value.serverBase.timeZone !== expectedTimeZone) {
-    warnProgressCacheMiss("review_schedule", storageKey, scopeKey, "time_zone_mismatch");
+    addProgressCacheMissBreadcrumb("review_schedule", scopeKey, "time_zone_mismatch");
     return null;
   }
 

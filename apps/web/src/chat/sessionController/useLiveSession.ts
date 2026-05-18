@@ -1,6 +1,16 @@
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from "react";
 import type { ChatLiveStream } from "../../types";
-import { consumeChatLiveStream, type ChatLiveEvent } from "../liveStream";
+import {
+  ChatLiveContractError,
+  ChatLiveHttpError,
+  consumeChatLiveStream,
+  type ChatLiveEvent,
+} from "../liveStream";
+import {
+  captureWebException,
+  normalizeCaughtError,
+  type WebObservationScope,
+} from "../../observability/webObservability";
 
 type ActiveLiveStreamConnection = Readonly<{
   sessionId: string;
@@ -38,6 +48,74 @@ function isDocumentVisible(): boolean {
   }
 
   return document.visibilityState === "visible";
+}
+
+function getCurrentRoute(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
+
+function getLiveErrorRequestId(error: Error): string | null {
+  return error instanceof ChatLiveContractError || error instanceof ChatLiveHttpError ? error.requestId : null;
+}
+
+function getLiveErrorStatusCode(error: Error): number | null {
+  return error instanceof ChatLiveContractError || error instanceof ChatLiveHttpError ? error.statusCode : null;
+}
+
+function getLiveErrorCode(error: Error): string | null {
+  return error instanceof ChatLiveContractError || error instanceof ChatLiveHttpError ? error.code : null;
+}
+
+function buildChatLiveScope(error: Error): WebObservationScope {
+  return {
+    app: "web",
+    feature: "chat",
+    userId: null,
+    workspaceId: null,
+    installationId: null,
+    route: getCurrentRoute(),
+    requestId: getLiveErrorRequestId(error),
+    statusCode: getLiveErrorStatusCode(error),
+    code: getLiveErrorCode(error),
+  };
+}
+
+function captureLiveStreamError(
+  error: Error,
+  sessionId: string,
+  runId: string,
+  resumeAttemptId: number | null,
+): void {
+  const scope = buildChatLiveScope(error);
+  if (error instanceof ChatLiveContractError) {
+    captureWebException({
+      action: "chat_live_contract_failed",
+      error,
+      scope,
+      details: {
+        eventType: error.eventType,
+        sessionId,
+        runId,
+        resumeAttemptId,
+      },
+    });
+    return;
+  }
+
+  captureWebException({
+    action: "chat_live_stream_failed",
+    error,
+    scope,
+    details: {
+      sessionId,
+      runId,
+      resumeAttemptId,
+    },
+  });
 }
 
 /**
@@ -189,7 +267,9 @@ export function useChatLiveSession(
 
       activeLiveConnectionRef.current = null;
       setIsLiveStreamConnected(false);
-      finalizeInterruptedRunRef.current(error instanceof Error ? error.message : String(error));
+      const normalizedError = normalizeCaughtError(error);
+      captureLiveStreamError(normalizedError, sessionId, runId, resumeAttemptId);
+      finalizeInterruptedRunRef.current(normalizedError.message);
     });
   }, [detachLiveStream]);
 

@@ -25,6 +25,19 @@ import { createAgentErrorEnvelope } from "./server/agentEnvelope.js";
 import { isTransientDatabaseError } from "./server/databaseErrors.js";
 import { log } from "./server/logger.js";
 
+const apiCorsAllowHeaders = [
+  "content-type",
+  "authorization",
+  "x-csrf-token",
+  "sentry-trace",
+  "baggage",
+] as const;
+
+const apiCorsExposeHeaders = [
+  "retry-after",
+  "x-request-id",
+] as const;
+
 function getMountPaths(basePath: string): ReadonlyArray<string> {
   if (basePath === "/v1") {
     return ["/", "/v1"];
@@ -62,8 +75,8 @@ function setApiCorsHeaders(c: Context<AuthAppEnv>, origin: string): void {
   c.header("Access-Control-Allow-Origin", origin);
   c.header("Access-Control-Allow-Credentials", "true");
   c.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  c.header("Access-Control-Allow-Headers", "content-type, authorization, x-csrf-token");
-  c.header("Access-Control-Expose-Headers", "retry-after");
+  c.header("Access-Control-Allow-Headers", apiCorsAllowHeaders.join(", "));
+  c.header("Access-Control-Expose-Headers", apiCorsExposeHeaders.join(", "));
   c.header("Vary", appendVaryHeader(c.res.headers.get("Vary") ?? undefined, "Origin"));
 }
 
@@ -154,7 +167,7 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
         error: error instanceof Error ? error.message : String(error),
       });
       c.header("Retry-After", "1");
-      c.header("Access-Control-Expose-Headers", "retry-after");
+      c.header("Access-Control-Expose-Headers", apiCorsExposeHeaders.join(", "));
 
       if (routeKind === "agent") {
         return c.json(

@@ -1,3 +1,4 @@
+import { buildReactRootOptions } from "./observability/instrument";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
@@ -10,7 +11,7 @@ if (rootElement === null) {
   throw new Error("Missing root element");
 }
 
-ReactDOM.createRoot(rootElement).render(
+ReactDOM.createRoot(rootElement, buildReactRootOptions()).render(
   <React.StrictMode>
     <I18nProvider>
       <App />

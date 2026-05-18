@@ -1,5 +1,16 @@
 import { useCallback, useEffect, useRef, type Dispatch, type MutableRefObject } from "react";
-import { getChatSnapshot, getChatSnapshotWithResumeDiagnostics } from "../../api";
+import {
+  ApiContractError,
+  ApiError,
+  AuthRedirectError,
+  getChatSnapshot,
+  getChatSnapshotWithResumeDiagnostics,
+} from "../../api";
+import {
+  captureWebException,
+  normalizeCaughtError,
+  type WebObservationScope,
+} from "../../observability/webObservability";
 import type { ChatActiveRun, ChatSessionHistoryMessage, ContentPart } from "../../types";
 import { storeChatConfig } from "./config";
 import {
@@ -41,6 +52,12 @@ type SnapshotRequestTrigger =
   | "terminal_reconcile"
   | "unexpected_stream_end"
   | "visible_resume";
+
+type ChatApiObservationMetadata = Readonly<{
+  requestId: string | null;
+  statusCode: number | null;
+  code: string | null;
+}>;
 
 export type ChatSessionSnapshotRuntimeRefs = Readonly<{
   currentWorkspaceIdRef: MutableRefObject<string | null>;
@@ -90,6 +107,142 @@ export type ChatSessionSnapshotSync = Readonly<{
 
 function toSnapshotRunState(snapshot: ChatSessionSnapshot): ChatSessionControllerState["runState"] {
   return snapshot.activeRun === null ? "idle" : "running";
+}
+
+function getCurrentRoute(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
+
+function getChatApiObservationMetadata(error: Error): ChatApiObservationMetadata {
+  if (error instanceof ApiError || error instanceof ApiContractError) {
+    return {
+      requestId: error.requestId,
+      statusCode: error.statusCode,
+      code: error.code,
+    };
+  }
+
+  return {
+    requestId: null,
+    statusCode: null,
+    code: null,
+  };
+}
+
+function buildChatSnapshotScope(workspaceId: string | null, error: Error): WebObservationScope {
+  const metadata = getChatApiObservationMetadata(error);
+  return {
+    app: "web",
+    feature: "chat",
+    userId: null,
+    workspaceId,
+    installationId: null,
+    route: getCurrentRoute(),
+    requestId: metadata.requestId,
+    statusCode: metadata.statusCode,
+    code: metadata.code,
+  };
+}
+
+function isExpectedChatSnapshotErrorCode(code: string | null): boolean {
+  switch (code) {
+    case "ACCOUNT_DELETED":
+    case "AI_CHAT_V2_HUMAN_AUTH_REQUIRED":
+    case "AUTH_UNAUTHORIZED":
+    case "CHAT_ACTIVE_RUN_IN_PROGRESS":
+    case "CHAT_SESSION_ID_CONFLICT":
+    case "GUEST_AUTH_INVALID":
+    case "WORKSPACE_NOT_FOUND":
+    case "WORKSPACE_SELECTION_REQUIRED":
+      return true;
+  }
+
+  return false;
+}
+
+function isExpectedChatValidationError(error: ApiError): boolean {
+  return error.statusCode === 400
+    && error.code === null
+    && error.responseBodyKind === "json";
+}
+
+function shouldCaptureChatSnapshotError(error: Error): boolean {
+  if (error instanceof ApiContractError) {
+    return true;
+  }
+
+  if (error instanceof AuthRedirectError) {
+    return false;
+  }
+
+  if (error instanceof ApiError) {
+    if (error.statusCode >= 500) {
+      return true;
+    }
+
+    if (isExpectedChatSnapshotErrorCode(error.code)) {
+      return false;
+    }
+
+    if (error.statusCode === 401) {
+      return false;
+    }
+
+    if (isExpectedChatValidationError(error)) {
+      return false;
+    }
+
+    if (error.statusCode >= 400 && error.statusCode < 500) {
+      return true;
+    }
+  }
+
+  return true;
+}
+
+function captureChatSnapshotError(
+  caughtError: unknown,
+  workspaceId: string | null,
+  sessionId: string,
+  trigger: SnapshotRequestTrigger,
+  resumeAttemptId: number | null,
+): void {
+  const error = normalizeCaughtError(caughtError);
+  if (shouldCaptureChatSnapshotError(error) === false) {
+    return;
+  }
+
+  const scope = buildChatSnapshotScope(workspaceId, error);
+  if (error instanceof ApiContractError) {
+    captureWebException({
+      action: "api_contract_failed",
+      error,
+      scope,
+      details: {
+        endpoint: error.endpoint,
+        fieldPath: error.fieldPath,
+        expected: error.expected,
+        sourceAction: trigger,
+      },
+    });
+    return;
+  }
+
+  captureWebException({
+    action: "chat_snapshot_failed",
+    error,
+    scope,
+    details: {
+      sessionId,
+      workspaceId,
+      trigger,
+      resumeAttemptId,
+    },
+  });
 }
 
 /**
@@ -750,8 +903,8 @@ export function useChatSessionSnapshotSync(
         replaceHistory,
         requestVersion,
         trigger,
-        message: toErrorMessage(error, uiMessages.errorFallbacks),
       });
+      captureChatSnapshotError(error, workspaceId, sessionId, trigger, resumeAttemptId);
       throw error;
     }
   }, [

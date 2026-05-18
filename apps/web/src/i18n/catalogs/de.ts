@@ -157,6 +157,9 @@ const deCatalog: TranslationCatalog = {
   },
   app: {
     title: "Flashcards",
+    crashTitle: "Etwas ist schiefgelaufen",
+    crashMessage: "Lade die App neu, um diesen Bildschirm wiederherzustellen.",
+    crashReload: "App neu laden",
     accountDeleted: "Dein Konto wurde gelöscht.",
     deleteAccountTitle: "Konto wird gelöscht",
     deleteAccountInProgress: "Die Löschung deines Kontos läuft. Schließe diese Seite nicht, außer du willst später zurückkommen und es erneut versuchen.",

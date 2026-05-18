@@ -157,6 +157,9 @@ export const zhHansCatalog = {
   },
   app: {
     title: "Flashcards",
+    crashTitle: "出现问题",
+    crashMessage: "请重新加载应用以恢复此屏幕。",
+    crashReload: "重新加载应用",
     accountDeleted: "您的账户已被删除。",
     deleteAccountTitle: "正在删除账户",
     deleteAccountInProgress: "您的账户删除正在进行中。除非您打算稍后回来重试，否则请不要关闭此页面。",

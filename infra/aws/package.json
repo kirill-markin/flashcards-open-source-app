@@ -9,7 +9,7 @@
     "destroy": "cdk destroy --all",
     "diff": "cdk diff",
     "synth": "cdk synth",
-    "test": "npm run build && node --test dist/lambda/**/*.test.js"
+    "test": "npm run build && node --test \"dist/**/*.test.js\""
   },
   "dependencies": {
     "@aws-crypto/client-node": "^5.0.0",

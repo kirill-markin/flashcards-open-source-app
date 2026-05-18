@@ -1,6 +1,11 @@
 import { INSTALLATION_ID_STORAGE_KEY } from "./clientIdentity";
 import { LOCALE_PREFERENCE_STORAGE_KEY } from "./i18n/runtime";
 import { clearWebSyncCache } from "./localDb/cache";
+import {
+  addWebBreadcrumb,
+  captureWebException,
+  type WebObservationScope,
+} from "./observability/webObservability";
 
 export const deleteAccountConfirmationText: string = "delete my account";
 
@@ -39,6 +44,55 @@ function getBrowserStorage(): Storage | null {
 
 function dispatchAccountDeletionChange(): void {
   window.dispatchEvent(new Event(ACCOUNT_DELETION_EVENT_NAME));
+}
+
+function getCurrentRoute(): string | null {
+  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
+
+function loadExistingInstallationId(browserStorage: Storage | null): string | null {
+  const installationId = browserStorage?.getItem(INSTALLATION_ID_STORAGE_KEY) ?? null;
+  if (installationId === null || installationId.trim() === "") {
+    return null;
+  }
+
+  return installationId;
+}
+
+function buildAuthResetCleanupScope(): WebObservationScope {
+  return {
+    app: "web",
+    feature: "auth",
+    userId: null,
+    workspaceId: null,
+    installationId: loadExistingInstallationId(getBrowserStorage()),
+    route: getCurrentRoute(),
+    requestId: null,
+    statusCode: null,
+    code: null,
+  };
+}
+
+function addAuthResetCleanupDeferredBreadcrumb(error: Error): void {
+  addWebBreadcrumb({
+    action: "auth_reset_cleanup_deferred",
+    scope: buildAuthResetCleanupScope(),
+    details: {
+      eventName: "auth_reset_cleanup_deferred",
+      errorMessage: error.message,
+    },
+  });
+}
+
+function captureAuthResetCleanupFailure(error: Error): void {
+  captureWebException({
+    action: "auth_reset_cleanup_failed",
+    error,
+    scope: buildAuthResetCleanupScope(),
+    details: {
+      operation: "auth_reset_cleanup_failed",
+    },
+  });
 }
 
 export function isAccountDeletionPending(): boolean {
@@ -213,13 +267,9 @@ export async function runPendingAuthResetCleanup(): Promise<AuthResetCleanupResu
     if (isBlockedIndexedDbDeleteError(normalizedError)) {
       // Future improvement: notify sibling tabs via BroadcastChannel or a
       // storage signal so they release IndexedDB handles and join the reset.
-      console.warn("auth_reset_cleanup_deferred", {
-        errorMessage: normalizedError.message,
-      });
+      addAuthResetCleanupDeferredBreadcrumb(normalizedError);
     } else {
-      console.error("auth_reset_cleanup_failed", {
-        errorMessage: normalizedError.message,
-      });
+      captureAuthResetCleanupFailure(normalizedError);
     }
 
     return {

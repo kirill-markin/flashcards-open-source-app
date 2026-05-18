@@ -12,6 +12,7 @@ import {
 } from "../../../routes";
 import { loadDecksListSnapshot } from "../../../localDb/decks";
 import { loadWorkspaceTagsSummary } from "../../../localDb/workspace";
+import { captureApiContractError, isApiContractErrorForEndpoint } from "../../../observability/apiContractObservation";
 import { SettingsActionCard, SettingsGroup, SettingsNavigationCard, SettingsShell } from "../SettingsShared";
 
 type ResetDialogState = "confirmation" | "preview-loading" | "preview-ready" | "executing";
@@ -27,6 +28,7 @@ export function WorkspaceSettingsScreen(): ReactElement {
     setErrorMessage: setAppErrorMessage,
     refreshLocalData,
     resetWorkspaceProgress,
+    session,
     workspaceSettings,
   } = useAppData();
   const { t, formatCount } = useI18n();
@@ -163,6 +165,15 @@ export function WorkspaceSettingsScreen(): ReactElement {
       const preview = await loadWorkspaceResetProgressPreview(activeWorkspace.workspaceId);
       setResetPreview(preview);
     } catch (error) {
+      if (isApiContractErrorForEndpoint(error, "/reset-progress-preview")) {
+        captureApiContractError(error, {
+          feature: "settings",
+          sourceAction: "workspace_reset_progress_preview_load",
+          userId: session?.userId ?? null,
+          workspaceId: activeWorkspace.workspaceId,
+          installationId: cloudSettings?.installationId ?? null,
+        });
+      }
       setResetErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setIsResetPreviewLoading(false);
@@ -184,6 +195,15 @@ export function WorkspaceSettingsScreen(): ReactElement {
         setAppErrorMessage(error instanceof Error ? error.message : String(error));
       });
     } catch (error) {
+      if (isApiContractErrorForEndpoint(error, "/reset-progress")) {
+        captureApiContractError(error, {
+          feature: "settings",
+          sourceAction: "workspace_reset_progress_execute",
+          userId: session?.userId ?? null,
+          workspaceId: activeWorkspace.workspaceId,
+          installationId: cloudSettings?.installationId ?? null,
+        });
+      }
       setResetErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setIsResetExecuting(false);

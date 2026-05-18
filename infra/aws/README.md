@@ -41,6 +41,8 @@ Keep these values in root `.env` before running setup or deploy scripts:
 - `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, and optionally `LANGFUSE_BASE_URL` when Langfuse tracing is enabled
 - Required backend Sentry setup:
   `SENTRY_DSN` for bootstrap-created AWS secret `flashcards-open-source-app/sentry-dsn`, or `SENTRY_DSN_SECRET_ARN` for an existing AWS Secrets Manager secret; `SENTRY_ENVIRONMENT`; `SENTRY_RELEASE` (CI should use the deployed GitHub SHA; manual/local context can use the target commit SHA); `SENTRY_TRACES_SAMPLE_RATE`; `SENTRY_ORG`; `SENTRY_BACKEND_PROJECT`; and `SENTRY_AUTH_TOKEN` for backend source map uploads
+- Optional web Sentry setup:
+  `VITE_SENTRY_DSN`; `VITE_SENTRY_TRACES_SAMPLE_RATE`; and `SENTRY_WEB_PROJECT` for web source map uploads. Web source map uploads reuse `SENTRY_ORG` and `SENTRY_AUTH_TOKEN`.
 - `DEMO_EMAIL_DOSTIP` and `DEMO_PASSWORD_DOSTIP` when review/demo bypass is enabled
 - `GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP` when you want deployed guest AI enabled
 - `GLOBAL_METRICS_VISIBLE` when you want `GET /v1/global/snapshot` exposed externally; use the exact raw string `true`, and leave it unset or use any other value to keep the endpoint hidden
@@ -98,10 +100,11 @@ This script:
 - reads operator config from root `.env`
 - discovers AWS secret ARNs and ACM certificate ARNs
 - writes missing non-secret deploy config to GitHub repository variables
-- writes missing `AWS_DEPLOY_ROLE_ARN` and `SENTRY_AUTH_TOKEN` GitHub secrets; `SENTRY_AUTH_TOKEN` is required for backend source map uploads
+- writes missing `AWS_DEPLOY_ROLE_ARN` and `SENTRY_AUTH_TOKEN` GitHub secrets; `SENTRY_AUTH_TOKEN` is required for backend source map uploads and for web source map uploads when `VITE_SENTRY_DSN` is set
 - leaves existing GitHub variables and secrets untouched
 
 The deploy workflow assembles its own `cdk.context.local.json` from those GitHub variables inside CI.
+Backend source map uploads use `SENTRY_BACKEND_PROJECT`; web source map uploads use `SENTRY_WEB_PROJECT` when `VITE_SENTRY_DSN` enables web Sentry.
 
 `bash scripts/setup-github.sh` is intentionally bootstrap-oriented: it sets missing GitHub Actions variables and secrets, but it does not remove values that already exist in GitHub. If you need to disable an optional feature that was previously enabled through a GitHub variable, delete that GitHub variable explicitly and then redeploy.
 This also applies to `CDK_ADMIN_EMAILS`: root `.env` is not the deployed CI source of truth after bootstrap, so later changes to the deployed bootstrap admin list must be made manually in GitHub and then redeployed.

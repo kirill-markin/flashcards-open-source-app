@@ -157,6 +157,9 @@ export const jaCatalog = {
   },
   app: {
     title: "Flashcards",
+    crashTitle: "問題が発生しました",
+    crashMessage: "この画面を復元するにはアプリを再読み込みしてください。",
+    crashReload: "アプリを再読み込み",
     accountDeleted: "アカウントは削除されました。",
     deleteAccountTitle: "アカウントを削除しています",
     deleteAccountInProgress: "アカウント削除を進めています。後でもう一度試す予定がない限り、このページを閉じないでください。",

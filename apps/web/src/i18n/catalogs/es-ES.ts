@@ -157,6 +157,9 @@ const esEsCatalog: TranslationCatalog = {
   },
   app: {
     title: "Flashcards",
+    crashTitle: "Algo ha salido mal",
+    crashMessage: "Recarga la app para restaurar esta pantalla.",
+    crashReload: "Recargar app",
     accountDeleted: "Tu cuenta ha sido eliminada.",
     deleteAccountTitle: "Eliminando la cuenta",
     deleteAccountInProgress: "La eliminación de tu cuenta está en curso. No cierres esta página salvo que pienses volver y reintentarlo.",

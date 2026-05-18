@@ -1,9 +1,18 @@
 import { useCallback, useRef, type Dispatch } from "react";
 import {
+  ApiContractError,
+  ApiError,
+  AuthRedirectError,
   createNewChatSession,
   startChatRun,
   stopChatRun,
 } from "../../api";
+import {
+  captureWebException,
+  normalizeCaughtError,
+  type ChatRunRequestFailureDetails,
+  type WebObservationScope,
+} from "../../observability/webObservability";
 import type { Locale } from "../../i18n/types";
 import type { NewChatSessionResponse } from "../../types";
 import { loadStoredChatConfig, storeChatConfig } from "./config";
@@ -52,6 +61,141 @@ type ChatSessionActions = Readonly<{
   ensureFreshSessionWithRefreshError: (sessionId: string, requestSequence: number) => void;
   getFreshSessionRequestSequence: () => number;
 }>;
+
+type ChatApiObservationMetadata = Readonly<{
+  requestId: string | null;
+  statusCode: number | null;
+  code: string | null;
+}>;
+
+function getCurrentRoute(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
+
+function getChatApiObservationMetadata(error: Error): ChatApiObservationMetadata {
+  if (error instanceof ApiError || error instanceof ApiContractError) {
+    return {
+      requestId: error.requestId,
+      statusCode: error.statusCode,
+      code: error.code,
+    };
+  }
+
+  return {
+    requestId: null,
+    statusCode: null,
+    code: null,
+  };
+}
+
+function buildChatRequestScope(workspaceId: string | null, error: Error): WebObservationScope {
+  const metadata = getChatApiObservationMetadata(error);
+  return {
+    app: "web",
+    feature: "chat",
+    userId: null,
+    workspaceId,
+    installationId: null,
+    route: getCurrentRoute(),
+    requestId: metadata.requestId,
+    statusCode: metadata.statusCode,
+    code: metadata.code,
+  };
+}
+
+function isExpectedChatProductErrorCode(code: string | null): boolean {
+  switch (code) {
+    case "ACCOUNT_DELETED":
+    case "AI_CHAT_V2_HUMAN_AUTH_REQUIRED":
+    case "AUTH_UNAUTHORIZED":
+    case "CHAT_ACTIVE_RUN_IN_PROGRESS":
+    case "CHAT_SESSION_ID_CONFLICT":
+    case "GUEST_AUTH_INVALID":
+    case "WORKSPACE_NOT_FOUND":
+    case "WORKSPACE_SELECTION_REQUIRED":
+      return true;
+  }
+
+  return false;
+}
+
+function isExpectedChatValidationError(error: ApiError): boolean {
+  return error.statusCode === 400
+    && error.code === null
+    && error.responseBodyKind === "json";
+}
+
+function shouldCaptureChatRunRequestError(error: Error): boolean {
+  if (error instanceof ApiContractError) {
+    return true;
+  }
+
+  if (error instanceof AuthRedirectError) {
+    return false;
+  }
+
+  if (error instanceof ApiError) {
+    if (error.statusCode >= 500) {
+      return true;
+    }
+
+    if (isExpectedChatProductErrorCode(error.code)) {
+      return false;
+    }
+
+    if (error.statusCode === 401) {
+      return false;
+    }
+
+    if (isExpectedChatValidationError(error)) {
+      return false;
+    }
+
+    if (error.statusCode >= 400 && error.statusCode < 500) {
+      return true;
+    }
+  }
+
+  return true;
+}
+
+function captureChatRunRequestError(
+  caughtError: unknown,
+  workspaceId: string | null,
+  details: ChatRunRequestFailureDetails,
+): void {
+  const error = normalizeCaughtError(caughtError);
+  if (shouldCaptureChatRunRequestError(error) === false) {
+    return;
+  }
+
+  const scope = buildChatRequestScope(workspaceId, error);
+  if (error instanceof ApiContractError) {
+    captureWebException({
+      action: "api_contract_failed",
+      error,
+      scope,
+      details: {
+        endpoint: error.endpoint,
+        fieldPath: error.fieldPath,
+        expected: error.expected,
+        sourceAction: details.operation,
+      },
+    });
+    return;
+  }
+
+  captureWebException({
+    action: "chat_run_request_failed",
+    error,
+    scope,
+    details,
+  });
+}
 
 export function useChatSessionActions(
   params: UseChatSessionActionsParams,
@@ -225,6 +369,12 @@ export function useChatSessionActions(
           return;
         }
 
+        captureChatRunRequestError(error, workspaceId, {
+          operation: "chat_fresh_session_failed",
+          sessionId,
+          workspaceId,
+        });
+
         if (errorPresentation === "silent") {
           return;
         }
@@ -238,7 +388,7 @@ export function useChatSessionActions(
         });
       }
     })();
-  }, [dispatch, isFreshSessionEnsureCurrent, provisionRemoteSession, uiMessages]);
+  }, [dispatch, isFreshSessionEnsureCurrent, provisionRemoteSession, uiMessages, workspaceId]);
 
   const ensureFreshSessionInBackground = useCallback((sessionId: string, requestSequence: number): void => {
     ensureFreshSession(sessionId, requestSequence, "silent");
@@ -385,6 +535,11 @@ export function useChatSessionActions(
         return { accepted: false, sessionId: runtimeRefs.currentSessionIdRef.current };
       }
 
+      captureChatRunRequestError(error, workspaceId, {
+        operation: "chat_remote_session_failed",
+        sessionId: runtimeRefs.currentSessionIdRef.current,
+        workspaceId,
+      });
       dispatch({
         type: "error_shown",
         message: `${uiMessages.requestFailedPrefix} ${toErrorMessage(error, uiMessages.errorFallbacks)}`,
@@ -464,6 +619,11 @@ export function useChatSessionActions(
         return { accepted: false, sessionId: state.currentSessionId };
       }
 
+      captureChatRunRequestError(error, workspaceId, {
+        operation: "chat_start_run_failed",
+        sessionId,
+        workspaceId,
+      });
       dispatch({
         type: "error_shown",
         message: `${uiMessages.requestFailedPrefix} ${toErrorMessage(error, uiMessages.errorFallbacks)}`,
@@ -525,6 +685,11 @@ export function useChatSessionActions(
         });
       }
     } catch (error) {
+      captureChatRunRequestError(error, workspaceId, {
+        operation: "chat_stop_run_failed",
+        sessionId: state.currentSessionId,
+        workspaceId,
+      });
       dispatch({
         type: "run_interrupted",
         message: `${uiMessages.stopFailedPrefix} ${toErrorMessage(error, uiMessages.errorFallbacks)}`,

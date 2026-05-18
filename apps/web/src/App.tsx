@@ -1,5 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState, type ReactElement } from "react";
-import { BrowserRouter, NavLink, Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
+import { BrowserRouter, NavLink, Navigate, Route, Routes as RouterRoutes, useLocation, useParams } from "react-router-dom";
 import { AccountMenu } from "./AccountMenu";
 import {
   clearAllLocalBrowserData,
@@ -22,6 +22,7 @@ import { ChatLayoutProvider, useChatLayout } from "./chat/ChatLayoutContext";
 import { ChatSessionControllerProvider } from "./chat/sessionController";
 import { ChatToggle } from "./chat/ChatToggle";
 import { type TranslationKey, useI18n } from "./i18n";
+import { AppErrorBoundary, wrapRoutesComponent } from "./observability/instrument";
 import {
   accountAgentConnectionsRoute,
   accountDangerZoneRoute,
@@ -54,6 +55,8 @@ import { CardFormScreen } from "./screens/cards/CardFormScreen";
 import { CardsScreen } from "./screens/cards/CardsScreen";
 import { ProgressScreen } from "./screens/progress/ProgressScreen";
 import { ReviewScreen } from "./screens/review/ReviewScreen";
+
+const SentryRoutes = wrapRoutesComponent(RouterRoutes);
 
 const ChatPanel = lazy(async () => import("./chat/ChatPanel").then((module) => ({ default: module.ChatPanel })));
 const AccessPermissionDetailScreen = lazy(async () => import("./screens/settings/access/AccessPermissionDetailScreen").then((module) => ({
@@ -196,6 +199,26 @@ function FullscreenChatFallback(): ReactElement {
         </div>
       </div>
     </section>
+  );
+}
+
+function AppCrashFallback(): ReactElement {
+  const { t } = useI18n();
+
+  function reloadPage(): void {
+    window.location.reload();
+  }
+
+  return (
+    <main className="page-state">
+      <section className="panel panel-center state-panel" role="alert" aria-live="assertive">
+        <h1 className="title">{t("app.crashTitle")}</h1>
+        <p className="subtitle">{t("app.crashMessage")}</p>
+        <button className="primary-btn" type="button" onClick={reloadPage}>
+          {t("app.crashReload")}
+        </button>
+      </section>
+    </main>
   );
 }
 
@@ -501,7 +524,7 @@ export function RoutedShell(): ReactElement {
         </Suspense>
       ) : null}
       <div ref={contentRef} className={contentClassName}>
-        <Routes>
+        <SentryRoutes>
           <Route path="/" element={<Navigate replace to={reviewRoute} />} />
           <Route path={cardsRoute} element={<CardsScreen />} />
           <Route path={`${cardsRoute}/new`} element={<CardFormScreen />} />
@@ -552,7 +575,7 @@ export function RoutedShell(): ReactElement {
               </Suspense>
             )}
           />
-        </Routes>
+        </SentryRoutes>
       </div>
       {!isFullscreenChat && !isOpen ? <ChatToggle /> : null}
     </div>
@@ -561,16 +584,18 @@ export function RoutedShell(): ReactElement {
 
 export default function App(): ReactElement {
   return (
-    <AppDataProvider>
-      <ChatLayoutProvider>
-        <ChatSessionControllerProvider>
-          <ChatDraftProvider>
-            <BrowserRouter>
-              <AppShell />
-            </BrowserRouter>
-          </ChatDraftProvider>
-        </ChatSessionControllerProvider>
-      </ChatLayoutProvider>
-    </AppDataProvider>
+    <AppErrorBoundary fallback={<AppCrashFallback />}>
+      <AppDataProvider>
+        <ChatLayoutProvider>
+          <ChatSessionControllerProvider>
+            <ChatDraftProvider>
+              <BrowserRouter>
+                <AppShell />
+              </BrowserRouter>
+            </ChatDraftProvider>
+          </ChatSessionControllerProvider>
+        </ChatLayoutProvider>
+      </AppDataProvider>
+    </AppErrorBoundary>
   );
 }

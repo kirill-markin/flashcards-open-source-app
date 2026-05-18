@@ -4,6 +4,7 @@ import { useI18n } from "../../../i18n";
 import { useTransientMessage } from "../../../useTransientMessage";
 import { isWorkspaceManagementLocked } from "../../../workspaceManagement";
 import { SettingsActionCard, SettingsGroup, SettingsShell } from "../SettingsShared";
+import { addWebBreadcrumb } from "../../../observability/webObservability";
 
 export function CurrentWorkspaceScreen(): ReactElement {
   const {
@@ -80,7 +81,36 @@ export function CurrentWorkspaceScreen(): ReactElement {
 
   function handleWorkspaceRowClick(): void {
     if (isWorkspaceLocked) {
-      console.info("workspace_management_interaction_blocked", buildWorkspaceInteractionLogDetails(null, null));
+      const details = buildWorkspaceInteractionLogDetails(null, null);
+      addWebBreadcrumb({
+        action: "workspace_transition",
+        scope: {
+          app: "web",
+          feature: "workspace",
+          userId: session?.userId ?? null,
+          workspaceId: activeWorkspace?.workspaceId ?? null,
+          installationId: cloudSettings?.installationId ?? null,
+          route: `${window.location.pathname}${window.location.search}${window.location.hash}`,
+          requestId: null,
+          statusCode: null,
+          code: null,
+        },
+        details: {
+          eventName: "workspace_management_interaction_blocked",
+          sessionVerificationState: details.sessionVerificationState,
+          isSessionVerified: details.isSessionVerified,
+          cloudState: details.cloudState,
+          workspaceId: details.workspaceId,
+          deletedWorkspaceId: null,
+          replacementWorkspaceId: null,
+          selectedWorkspaceId: details.selectedWorkspaceId,
+          activeWorkspaceId: details.activeWorkspaceId,
+          availableWorkspaceIds: details.availableWorkspaceIds,
+          nextWorkspaceIds: [],
+          redirected: false,
+          errorMessage: details.errorMessage,
+        },
+      });
       showMessage(workspaceManagementLockedMessage);
       return;
     }

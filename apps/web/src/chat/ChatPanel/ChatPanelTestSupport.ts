@@ -10,6 +10,12 @@ import { ChatSessionControllerProvider } from "../sessionController";
 
 const {
   ApiErrorMock,
+  AuthRedirectErrorMock,
+  ApiContractErrorMock,
+  addWebBreadcrumbMock,
+  captureWebExceptionMock,
+  captureWebWarningMock,
+  setWebObservabilityUserMock,
   useChatLayoutMock,
   useAppDataMock,
   getChatSnapshotMock,
@@ -27,13 +33,40 @@ const {
   ApiErrorMock: class ApiError extends Error {
     readonly statusCode: number;
     readonly code: string | null;
+    readonly requestId: string | null;
 
     constructor(statusCode: number, message: string, code: string | null = null) {
       super(message);
       this.statusCode = statusCode;
       this.code = code;
+      this.requestId = null;
     }
   },
+  AuthRedirectErrorMock: class AuthRedirectError extends Error {
+    readonly redirectUrl: string;
+
+    constructor(redirectUrl: string) {
+      super("Browser session expired. Redirecting to sign in.");
+      this.redirectUrl = redirectUrl;
+    }
+  },
+  ApiContractErrorMock: class ApiContractError extends Error {
+    readonly endpoint: string;
+    readonly fieldPath: string;
+    readonly expected: string;
+
+    constructor(endpoint: string, fieldPath: string, expected: string) {
+      super(`Invalid API response for ${endpoint}: ${fieldPath} must be ${expected}`);
+      this.name = "ApiContractError";
+      this.endpoint = endpoint;
+      this.fieldPath = fieldPath;
+      this.expected = expected;
+    }
+  },
+  addWebBreadcrumbMock: vi.fn(),
+  captureWebExceptionMock: vi.fn(),
+  captureWebWarningMock: vi.fn(),
+  setWebObservabilityUserMock: vi.fn(),
   useChatLayoutMock: vi.fn(),
   useAppDataMock: vi.fn(),
   getChatSnapshotMock: vi.fn(),
@@ -59,12 +92,28 @@ vi.mock("../ChatLayoutContext", () => ({
 
 vi.mock("../../api", () => ({
   ApiError: ApiErrorMock,
+  AuthRedirectError: AuthRedirectErrorMock,
+  ApiContractError: ApiContractErrorMock,
   getChatSnapshot: getChatSnapshotMock,
   getChatSnapshotWithResumeDiagnostics: getChatSnapshotMock,
   startChatRun: startChatRunMock,
   createNewChatSession: createNewChatSessionMock,
   stopChatRun: stopChatRunMock,
   transcribeChatAudio: transcribeChatAudioMock,
+}));
+
+vi.mock("../../observability/webObservability", () => ({
+  addWebBreadcrumb: addWebBreadcrumbMock,
+  captureWebException: captureWebExceptionMock,
+  captureWebWarning: captureWebWarningMock,
+  normalizeCaughtError: (error: unknown): Error => {
+    if (error instanceof Error) {
+      return error;
+    }
+
+    return new Error(`Caught non-Error value of type ${typeof error}`);
+  },
+  setWebObservabilityUser: setWebObservabilityUserMock,
 }));
 
 vi.mock("../../localDb/outbox", () => ({
@@ -144,7 +193,13 @@ type TextareaKeyboardParams = Readonly<{
 }>;
 
 export {
+  ApiContractErrorMock,
   ApiErrorMock,
+  AuthRedirectErrorMock,
+  addWebBreadcrumbMock,
+  captureWebExceptionMock,
+  captureWebWarningMock,
+  setWebObservabilityUserMock,
   checkFileSizeMock,
   getChatSnapshotMock,
   listOutboxRecordsMock,
@@ -423,6 +478,10 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
 
     useChatLayoutMock.mockReset();
     useAppDataMock.mockReset();
+    addWebBreadcrumbMock.mockReset();
+    captureWebExceptionMock.mockReset();
+    captureWebWarningMock.mockReset();
+    setWebObservabilityUserMock.mockReset();
     getChatSnapshotMock.mockReset();
     startChatRunMock.mockReset();
     createNewChatSessionMock.mockReset();

@@ -157,6 +157,9 @@ export const ruCatalog = {
   },
   app: {
     title: "Flashcards",
+    crashTitle: "Что-то пошло не так",
+    crashMessage: "Перезагрузите приложение, чтобы восстановить этот экран.",
+    crashReload: "Перезагрузить приложение",
     accountDeleted: "Ваш аккаунт удален.",
     deleteAccountTitle: "Удаление аккаунта",
     deleteAccountInProgress: "Удаление аккаунта выполняется. Не закрывайте эту страницу, если не планируете вернуться и повторить попытку позже.",

@@ -19,6 +19,7 @@ import {
 } from "./apiContracts/chat";
 import {
   ApiContractError,
+  enrichApiContractError,
 } from "./apiContracts/core";
 import {
   parseQueryCardsPageResponse,
@@ -80,14 +81,31 @@ import type {
   WorkspaceSummary,
 } from "./types";
 
+export type ApiResponseBodyKind = "empty" | "json" | "text" | "invalid_json";
+
+type ApiErrorParams = Readonly<{
+  statusCode: number;
+  message: string;
+  code: string | null;
+  requestId: string | null;
+  endpoint: string;
+  responseBodyKind: ApiResponseBodyKind;
+}>;
+
 export class ApiError extends Error {
   readonly statusCode: number;
   readonly code: string | null;
+  readonly requestId: string | null;
+  readonly endpoint: string;
+  readonly responseBodyKind: ApiResponseBodyKind;
 
-  constructor(statusCode: number, message: string, code: string | null = null) {
-    super(message);
-    this.statusCode = statusCode;
-    this.code = code;
+  constructor(params: ApiErrorParams) {
+    super(params.message);
+    this.statusCode = params.statusCode;
+    this.code = params.code;
+    this.requestId = params.requestId;
+    this.endpoint = params.endpoint;
+    this.responseBodyKind = params.responseBodyKind;
   }
 }
 
@@ -113,11 +131,23 @@ type RequestOptions = Readonly<{
 type ChatResumeRequestDiagnostics = Readonly<{
   resumeAttemptId: number;
 }>;
+type ParsedResponsePayload = Readonly<{
+  value: unknown;
+  bodyKind: ApiResponseBodyKind;
+  requestId: string | null;
+  statusCode: number;
+  code: string | null;
+}>;
+type JsonObject = Readonly<{
+  readonly [key: string]: unknown;
+}>;
+type ContractResponseParser<ParsedValue> = (value: unknown, endpoint: string) => ParsedValue;
 export type AuthUiLocale = Locale;
 
 const collectionPageLimit = 100;
 const staleSessionCsrfTokenErrorCode = "SESSION_CSRF_TOKEN_INVALID";
 const staleSessionCsrfTokenErrorMessage = "Invalid X-CSRF-Token header";
+const refreshSessionEndpoint = "POST /api/refresh-session";
 
 let sessionCsrfToken: string | null = null;
 let sessionCsrfState: SessionCsrfState = "unknown";
@@ -212,6 +242,11 @@ function getMethod(init: RequestInit): string {
   return typeof init.method === "string" && init.method !== "" ? init.method.toUpperCase() : "GET";
 }
 
+function buildRequestEndpoint(pathname: string, init: RequestInit): string {
+  const pathOnly = pathname.split("?", 1)[0] ?? pathname;
+  return `${getMethod(init)} ${pathOnly}`;
+}
+
 function createHeaders(init: RequestInit): Headers {
   const headers = new Headers(init.headers);
 
@@ -298,22 +333,30 @@ async function redirectToLogin(prepareForAuthRedirect: PrepareForAuthRedirect | 
   throw new AuthRedirectError(redirectUrl);
 }
 
-function getJsonErrorMessage(value: unknown, fallbackMessage: string): string {
+function isJsonObject(value: unknown): value is JsonObject {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+
+  return true;
+}
+
+function getJsonErrorMessage(value: unknown, fallbackMessage: string): string {
+  if (isJsonObject(value) === false) {
     return fallbackMessage;
   }
 
-  const objectValue = value as Record<string, unknown>;
+  const objectValue = value;
   const errorValue = objectValue.error;
   return typeof errorValue === "string" && errorValue !== "" ? errorValue : fallbackMessage;
 }
 
 function getJsonErrorCode(value: unknown): string | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+  if (isJsonObject(value) === false) {
     return null;
   }
 
-  const objectValue = value as Record<string, unknown>;
+  const objectValue = value;
   return typeof objectValue.code === "string" && objectValue.code !== "" ? objectValue.code : null;
 }
 
@@ -327,25 +370,73 @@ function isRecoverableSessionCsrfPayload(value: unknown): boolean {
     || objectValue.error === staleSessionCsrfTokenErrorMessage;
 }
 
-async function readJsonResponse(response: Response): Promise<unknown> {
-  const text = await response.text();
-  if (text === "") {
+function getJsonRequestId(value: unknown): string | null {
+  if (isJsonObject(value) === false) {
     return null;
   }
 
+  const requestId = value.requestId;
+  return typeof requestId === "string" && requestId.trim() !== "" ? requestId : null;
+}
+
+function getHeaderRequestId(response: Response): string | null {
+  const requestId = response.headers.get("X-Request-Id")
+    ?? response.headers.get("X-Amzn-RequestId")
+    ?? response.headers.get("X-Amz-Apigw-Id");
+  return requestId === null || requestId.trim() === "" ? null : requestId;
+}
+
+function resolveResponseBodyKind(response: Response): ApiResponseBodyKind {
+  const contentType = response.headers.get("Content-Type") ?? "";
+  return contentType.toLowerCase().includes("json") ? "invalid_json" : "text";
+}
+
+async function readJsonResponse(response: Response): Promise<ParsedResponsePayload> {
+  const text = await response.text();
+  const headerRequestId = getHeaderRequestId(response);
+  if (text === "") {
+    return {
+      value: null,
+      bodyKind: "empty",
+      requestId: headerRequestId,
+      statusCode: response.status,
+      code: null,
+    };
+  }
+
   try {
-    return JSON.parse(text) as unknown;
+    const value = JSON.parse(text) as unknown;
+    return {
+      value,
+      bodyKind: "json",
+      requestId: headerRequestId ?? getJsonRequestId(value),
+      statusCode: response.status,
+      code: getJsonErrorCode(value),
+    };
   } catch {
-    return text;
+    return {
+      value: text,
+      bodyKind: resolveResponseBodyKind(response),
+      requestId: headerRequestId,
+      statusCode: response.status,
+      code: null,
+    };
   }
 }
 
-async function parseJsonPayload(response: Response): Promise<unknown> {
+async function parseJsonPayload(response: Response, endpoint: string): Promise<ParsedResponsePayload> {
   const payload = await readJsonResponse(response);
 
   if (!response.ok) {
-    const fallbackMessage = typeof payload === "string" ? payload : `Request failed with status ${response.status}`;
-    throw new ApiError(response.status, getJsonErrorMessage(payload, fallbackMessage), getJsonErrorCode(payload));
+    const fallbackMessage = typeof payload.value === "string" ? payload.value : `Request failed with status ${response.status}`;
+    throw new ApiError({
+      statusCode: response.status,
+      message: getJsonErrorMessage(payload.value, fallbackMessage),
+      code: payload.code,
+      requestId: payload.requestId,
+      endpoint,
+      responseBodyKind: payload.bodyKind,
+    });
   }
 
   return payload;
@@ -356,7 +447,28 @@ async function isRecoverableSessionCsrfResponse(response: Response): Promise<boo
     return false;
   }
 
-  return isRecoverableSessionCsrfPayload(await readJsonResponse(response.clone()));
+  return isRecoverableSessionCsrfPayload((await readJsonResponse(response.clone())).value);
+}
+
+function parseContractResponse<ParsedValue>(
+  payload: ParsedResponsePayload,
+  endpoint: string,
+  parsePayload: ContractResponseParser<ParsedValue>,
+): ParsedValue {
+  try {
+    return parsePayload(payload.value, endpoint);
+  } catch (error) {
+    if (error instanceof ApiContractError) {
+      throw enrichApiContractError(error, {
+        requestId: payload.requestId,
+        statusCode: payload.statusCode,
+        code: payload.code,
+        responseBodyKind: payload.bodyKind,
+      });
+    }
+
+    throw error;
+  }
 }
 
 /**
@@ -365,7 +477,11 @@ async function isRecoverableSessionCsrfResponse(response: Response): Promise<boo
  */
 async function loadSessionInfoWithoutRecovery(): Promise<SessionInfo> {
   const response = await performFetch("/me", { method: "GET" });
-  const session = parseSessionInfoResponse(await parseJsonPayload(response), "GET /me");
+  const session = parseContractResponse(
+    await parseJsonPayload(response, "GET /me"),
+    "GET /me",
+    parseSessionInfoResponse,
+  );
   setSessionCsrfToken(session.csrfToken, session.authTransport);
   redirectInFlight = false;
   return session;
@@ -386,7 +502,14 @@ async function refreshBrowserSession(): Promise<boolean> {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`The auth service is unavailable. Try again. (/api/refresh-session; ${message})`);
+    throw new ApiError({
+      statusCode: 0,
+      message: `The auth service is unavailable. Try again. (/api/refresh-session; ${message})`,
+      code: null,
+      requestId: null,
+      endpoint: refreshSessionEndpoint,
+      responseBodyKind: "empty",
+    });
   }
 
   if (response.ok) {
@@ -399,8 +522,15 @@ async function refreshBrowserSession(): Promise<boolean> {
   }
 
   const payload = await readJsonResponse(response);
-  const fallbackMessage = typeof payload === "string" ? payload : `Request failed with status ${response.status}`;
-  throw new Error(getJsonErrorMessage(payload, fallbackMessage));
+  const fallbackMessage = typeof payload.value === "string" ? payload.value : `Request failed with status ${response.status}`;
+  throw new ApiError({
+    statusCode: response.status,
+    message: getJsonErrorMessage(payload.value, fallbackMessage),
+    code: payload.code,
+    requestId: payload.requestId,
+    endpoint: refreshSessionEndpoint,
+    responseBodyKind: payload.bodyKind,
+  });
 }
 
 /**
@@ -539,9 +669,9 @@ async function requestJson(
   pathname: string,
   init: RequestInit,
   options: RequestOptions,
-): Promise<unknown> {
+): Promise<ParsedResponsePayload> {
   const response = await requestResponse(pathname, init, options);
-  return parseJsonPayload(response);
+  return parseJsonPayload(response, buildRequestEndpoint(pathname, init));
 }
 
 /**
@@ -565,9 +695,9 @@ export async function revalidateSession(): Promise<SessionInfo> {
  * from one expired session token without forcing a full page reload.
  */
 async function loadSessionInfoWithRecovery(): Promise<SessionInfo> {
-  const session = parseSessionInfoResponse(await requestJson("/me", {
+  const session = parseContractResponse(await requestJson("/me", {
     method: "GET",
-  }, allowAuthRecovery), "GET /me");
+  }, allowAuthRecovery), "GET /me", parseSessionInfoResponse);
   setSessionCsrfToken(session.csrfToken, session.authTransport);
   redirectInFlight = false;
   return session;
@@ -585,9 +715,10 @@ export async function listWorkspaces(): Promise<ReadonlyArray<WorkspaceSummary>>
       searchParams.set("cursor", nextCursor);
     }
 
-    const payload = parseWorkspacesEnvelopeResponse(
+    const payload = parseContractResponse(
       await requestJson(`/workspaces?${searchParams.toString()}`, { method: "GET" }, allowAuthRecovery),
       "GET /workspaces",
+      parseWorkspacesEnvelopeResponse,
     );
     workspaces.push(...payload.workspaces);
     nextCursor = payload.nextCursor;
@@ -597,49 +728,50 @@ export async function listWorkspaces(): Promise<ReadonlyArray<WorkspaceSummary>>
 }
 
 export async function createWorkspace(name: string): Promise<WorkspaceSummary> {
-  const payload = parseWorkspaceEnvelopeResponse(await requestJson("/workspaces", {
+  const payload = parseContractResponse(await requestJson("/workspaces", {
     method: "POST",
     body: JSON.stringify({ name }),
-  }, allowAuthRecovery), "POST /workspaces");
+  }, allowAuthRecovery), "POST /workspaces", parseWorkspaceEnvelopeResponse);
   return payload.workspace;
 }
 
 export async function selectWorkspace(workspaceId: string): Promise<WorkspaceSummary> {
-  const payload = parseWorkspaceEnvelopeResponse(await requestJson(`/workspaces/${workspaceId}/select`, {
+  const payload = parseContractResponse(await requestJson(`/workspaces/${workspaceId}/select`, {
     method: "POST",
-  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/select`);
+  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/select`, parseWorkspaceEnvelopeResponse);
   return payload.workspace;
 }
 
 export async function renameWorkspace(workspaceId: string, name: string): Promise<WorkspaceSummary> {
-  const payload = parseWorkspaceEnvelopeResponse(await requestJson(`/workspaces/${workspaceId}/rename`, {
+  const payload = parseContractResponse(await requestJson(`/workspaces/${workspaceId}/rename`, {
     method: "POST",
     body: JSON.stringify({ name }),
-  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/rename`);
+  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/rename`, parseWorkspaceEnvelopeResponse);
   return payload.workspace;
 }
 
 export async function loadWorkspaceDeletePreview(workspaceId: string): Promise<WorkspaceDeletePreview> {
-  return parseWorkspaceDeletePreviewResponse(await requestJson(`/workspaces/${workspaceId}/delete-preview`, {
+  return parseContractResponse(await requestJson(`/workspaces/${workspaceId}/delete-preview`, {
     method: "GET",
-  }, allowAuthRecovery), `GET /workspaces/${workspaceId}/delete-preview`);
+  }, allowAuthRecovery), `GET /workspaces/${workspaceId}/delete-preview`, parseWorkspaceDeletePreviewResponse);
 }
 
 export async function deleteWorkspace(workspaceId: string, confirmationText: string): Promise<DeleteWorkspaceResponse> {
-  return parseDeleteWorkspaceResponse(await requestJson(`/workspaces/${workspaceId}/delete`, {
+  return parseContractResponse(await requestJson(`/workspaces/${workspaceId}/delete`, {
     method: "POST",
     body: JSON.stringify({ confirmationText }),
-  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/delete`);
+  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/delete`, parseDeleteWorkspaceResponse);
 }
 
 export async function loadWorkspaceResetProgressPreview(
   workspaceId: string,
 ): Promise<WorkspaceResetProgressPreview> {
-  return parseWorkspaceResetProgressPreviewResponse(
+  return parseContractResponse(
     await requestJson(`/workspaces/${workspaceId}/reset-progress-preview`, {
       method: "GET",
     }, allowAuthRecovery),
     `GET /workspaces/${workspaceId}/reset-progress-preview`,
+    parseWorkspaceResetProgressPreviewResponse,
   );
 }
 
@@ -647,12 +779,13 @@ export async function resetWorkspaceProgress(
   workspaceId: string,
   confirmationText: string,
 ): Promise<ResetWorkspaceProgressResponse> {
-  return parseResetWorkspaceProgressResponse(
+  return parseContractResponse(
     await requestJson(`/workspaces/${workspaceId}/reset-progress`, {
       method: "POST",
       body: JSON.stringify({ confirmationText }),
     }, allowAuthRecovery),
     `POST /workspaces/${workspaceId}/reset-progress`,
+    parseResetWorkspaceProgressResponse,
   );
 }
 
@@ -669,9 +802,10 @@ export async function listAgentApiKeys(): Promise<AgentApiKeyConnectionsResponse
       searchParams.set("cursor", nextCursor);
     }
 
-    const payload = parseAgentApiKeyConnectionsEnvelopeResponse(
+    const payload = parseContractResponse(
       await requestJson(`/agent-api-keys?${searchParams.toString()}`, { method: "GET" }, allowAuthRecovery),
       "GET /agent-api-keys",
+      parseAgentApiKeyConnectionsEnvelopeResponse,
     );
     connections.push(...payload.connections);
     instructions = payload.instructions;
@@ -685,19 +819,20 @@ export async function listAgentApiKeys(): Promise<AgentApiKeyConnectionsResponse
 }
 
 export async function revokeAgentApiKey(connectionId: string): Promise<AgentApiKeyRevokeResponse> {
-  return parseAgentApiKeyRevokeResponse(
+  return parseContractResponse(
     await requestJson(`/agent-api-keys/${connectionId}/revoke`, { method: "POST" }, allowAuthRecovery),
     `POST /agent-api-keys/${connectionId}/revoke`,
+    parseAgentApiKeyRevokeResponse,
   );
 }
 
 export async function deleteMyAccount(confirmationText: string): Promise<Readonly<{ ok: true }>> {
-  return parseDeleteAccountResponse(await requestJson("/me/delete", {
+  return parseContractResponse(await requestJson("/me/delete", {
     method: "POST",
     body: JSON.stringify({
       confirmationText,
     }),
-  }, allowAuthRecovery), "POST /me/delete");
+  }, allowAuthRecovery), "POST /me/delete", parseDeleteAccountResponse);
 }
 
 export async function loadProgressSummary(input: ProgressSummaryInput): Promise<ProgressSummaryPayload> {
@@ -705,11 +840,12 @@ export async function loadProgressSummary(input: ProgressSummaryInput): Promise<
     timeZone: input.timeZone,
   });
 
-  return parseProgressSummaryResponse(
+  return parseContractResponse(
     await requestJson(`/me/progress/summary?${searchParams.toString()}`, {
       method: "GET",
     }, allowAuthRecovery),
     "GET /me/progress/summary",
+    parseProgressSummaryResponse,
   );
 }
 
@@ -720,11 +856,12 @@ export async function loadProgressSeries(input: ProgressSeriesInput): Promise<Pr
     to: input.to,
   });
 
-  return parseProgressSeriesResponse(
+  return parseContractResponse(
     await requestJson(`/me/progress/series?${searchParams.toString()}`, {
       method: "GET",
     }, allowAuthRecovery),
     "GET /me/progress/series",
+    parseProgressSeriesResponse,
   );
 }
 
@@ -735,18 +872,20 @@ export async function loadProgressReviewSchedule(
     timeZone: input.timeZone,
   });
   const endpoint = "GET /me/progress/review-schedule";
-  const schedule = parseProgressReviewScheduleResponse(
+  return parseContractResponse(
     await requestJson(`/me/progress/review-schedule?${searchParams.toString()}`, {
       method: "GET",
     }, allowAuthRecovery),
     endpoint,
+    (value: unknown, parseEndpoint: string): ProgressReviewSchedule => {
+      const schedule = parseProgressReviewScheduleResponse(value, parseEndpoint);
+      if (schedule.timeZone !== input.timeZone) {
+        throw new ApiContractError(parseEndpoint, "timeZone", JSON.stringify(input.timeZone));
+      }
+
+      return schedule;
+    },
   );
-
-  if (schedule.timeZone !== input.timeZone) {
-    throw new ApiContractError(endpoint, "timeZone", JSON.stringify(input.timeZone));
-  }
-
-  return schedule;
 }
 
 export async function pushSyncOperations(
@@ -756,7 +895,7 @@ export async function pushSyncOperations(
   appVersion: string,
   operations: ReadonlyArray<SyncPushOperation>,
 ): Promise<SyncPushResult> {
-  return parseSyncPushResultResponse(await requestJson(`/workspaces/${workspaceId}/sync/push`, {
+  return parseContractResponse(await requestJson(`/workspaces/${workspaceId}/sync/push`, {
     method: "POST",
     body: JSON.stringify({
       installationId,
@@ -764,7 +903,7 @@ export async function pushSyncOperations(
       appVersion,
       operations,
     }),
-  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/sync/push`);
+  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/sync/push`, parseSyncPushResultResponse);
 }
 
 export async function pullSyncChanges(
@@ -775,7 +914,7 @@ export async function pullSyncChanges(
   afterHotChangeId: number,
   limit: number,
 ): Promise<SyncPullResult> {
-  return parseSyncPullResultResponse(await requestJson(`/workspaces/${workspaceId}/sync/pull`, {
+  return parseContractResponse(await requestJson(`/workspaces/${workspaceId}/sync/pull`, {
     method: "POST",
     body: JSON.stringify({
       installationId,
@@ -784,7 +923,7 @@ export async function pullSyncChanges(
       afterHotChangeId,
       limit,
     }),
-  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/sync/pull`);
+  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/sync/pull`, parseSyncPullResultResponse);
 }
 
 export async function bootstrapPullSyncState(
@@ -795,7 +934,7 @@ export async function bootstrapPullSyncState(
   cursor: string | null,
   limit: number,
 ): Promise<SyncBootstrapPullResult> {
-  return parseSyncBootstrapPullResultResponse(await requestJson(`/workspaces/${workspaceId}/sync/bootstrap`, {
+  return parseContractResponse(await requestJson(`/workspaces/${workspaceId}/sync/bootstrap`, {
     method: "POST",
     body: JSON.stringify({
       mode: "pull",
@@ -805,7 +944,7 @@ export async function bootstrapPullSyncState(
       cursor,
       limit,
     }),
-  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/sync/bootstrap`);
+  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/sync/bootstrap`, parseSyncBootstrapPullResultResponse);
 }
 
 export async function bootstrapPushSyncState(
@@ -815,7 +954,7 @@ export async function bootstrapPushSyncState(
   appVersion: string,
   entries: ReadonlyArray<SyncBootstrapEntry>,
 ): Promise<SyncBootstrapPushResult> {
-  return parseSyncBootstrapPushResultResponse(await requestJson(`/workspaces/${workspaceId}/sync/bootstrap`, {
+  return parseContractResponse(await requestJson(`/workspaces/${workspaceId}/sync/bootstrap`, {
     method: "POST",
     body: JSON.stringify({
       mode: "push",
@@ -824,7 +963,7 @@ export async function bootstrapPushSyncState(
       appVersion,
       entries,
     }),
-  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/sync/bootstrap`);
+  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/sync/bootstrap`, parseSyncBootstrapPushResultResponse);
 }
 
 export async function pullReviewHistorySync(
@@ -835,7 +974,7 @@ export async function pullReviewHistorySync(
   afterReviewSequenceId: number,
   limit: number,
 ): Promise<SyncReviewHistoryPullResult> {
-  return parseSyncReviewHistoryPullResultResponse(await requestJson(`/workspaces/${workspaceId}/sync/review-history/pull`, {
+  return parseContractResponse(await requestJson(`/workspaces/${workspaceId}/sync/review-history/pull`, {
     method: "POST",
     body: JSON.stringify({
       installationId,
@@ -844,7 +983,7 @@ export async function pullReviewHistorySync(
       afterReviewSequenceId,
       limit,
     }),
-  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/sync/review-history/pull`);
+  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/sync/review-history/pull`, parseSyncReviewHistoryPullResultResponse);
 }
 
 export async function importReviewHistorySync(
@@ -854,7 +993,7 @@ export async function importReviewHistorySync(
   appVersion: string,
   reviewEvents: ReadonlyArray<ReviewEvent>,
 ): Promise<SyncReviewHistoryImportResult> {
-  return parseSyncReviewHistoryImportResultResponse(await requestJson(`/workspaces/${workspaceId}/sync/review-history/import`, {
+  return parseContractResponse(await requestJson(`/workspaces/${workspaceId}/sync/review-history/import`, {
     method: "POST",
     body: JSON.stringify({
       installationId,
@@ -862,17 +1001,17 @@ export async function importReviewHistorySync(
       appVersion,
       reviewEvents,
     }),
-  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/sync/review-history/import`);
+  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/sync/review-history/import`, parseSyncReviewHistoryImportResultResponse);
 }
 
 export async function queryCards(
   workspaceId: string,
   input: QueryCardsInput,
 ): Promise<QueryCardsPage> {
-  return parseQueryCardsPageResponse(await requestJson(`/workspaces/${workspaceId}/cards/query`, {
+  return parseContractResponse(await requestJson(`/workspaces/${workspaceId}/cards/query`, {
     method: "POST",
     body: JSON.stringify(input),
-  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/cards/query`);
+  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/cards/query`, parseQueryCardsPageResponse);
 }
 
 function buildChatSnapshotPath(sessionId: string, workspaceId: string): string {
@@ -884,9 +1023,9 @@ function buildChatSnapshotPath(sessionId: string, workspaceId: string): string {
 }
 
 export async function getChatSnapshot(sessionId: string, workspaceId: string): Promise<ChatSessionSnapshot> {
-  return parseChatSessionSnapshotResponse(await requestJson(buildChatSnapshotPath(sessionId, workspaceId), {
+  return parseContractResponse(await requestJson(buildChatSnapshotPath(sessionId, workspaceId), {
     method: "GET",
-  }, allowAuthRecovery), "GET /chat");
+  }, allowAuthRecovery), "GET /chat", parseChatSessionSnapshotResponse);
 }
 
 export async function getChatSnapshotWithResumeDiagnostics(
@@ -894,21 +1033,21 @@ export async function getChatSnapshotWithResumeDiagnostics(
   workspaceId: string,
   diagnostics: ChatResumeRequestDiagnostics,
 ): Promise<ChatSessionSnapshot> {
-  return parseChatSessionSnapshotResponse(await requestJson(buildChatSnapshotPath(sessionId, workspaceId), {
+  return parseContractResponse(await requestJson(buildChatSnapshotPath(sessionId, workspaceId), {
     method: "GET",
     headers: {
       "X-Chat-Resume-Attempt-Id": String(diagnostics.resumeAttemptId),
       "X-Client-Platform": "web",
       "X-Client-Version": webAppVersion,
     },
-  }, allowAuthRecovery), "GET /chat");
+  }, allowAuthRecovery), "GET /chat", parseChatSessionSnapshotResponse);
 }
 
 export async function startChatRun(body: StartChatRunRequestBody): Promise<StartChatRunResponse> {
-  return parseStartChatRunResponse(await requestJson("/chat", {
+  return parseContractResponse(await requestJson("/chat", {
     method: "POST",
     body: JSON.stringify(body),
-  }, allowAuthRecovery), "POST /chat");
+  }, allowAuthRecovery), "POST /chat", parseStartChatRunResponse);
 }
 
 export async function createNewChatSession(
@@ -922,10 +1061,10 @@ export async function createNewChatSession(
     uiLocale,
   };
 
-  return parseNewChatSessionResponse(await requestJson("/chat/new", {
+  return parseContractResponse(await requestJson("/chat/new", {
     method: "POST",
     body: JSON.stringify(requestBody),
-  }, allowAuthRecovery), "POST /chat/new");
+  }, allowAuthRecovery), "POST /chat/new", parseNewChatSessionResponse);
 }
 
 export async function stopChatRun(
@@ -944,10 +1083,10 @@ export async function stopChatRun(
       runId,
     };
 
-  return parseStopChatRunResponse(await requestJson("/chat/stop", {
+  return parseContractResponse(await requestJson("/chat/stop", {
     method: "POST",
     body: JSON.stringify(requestBody),
-  }, allowAuthRecovery), "POST /chat/stop");
+  }, allowAuthRecovery), "POST /chat/stop", parseStopChatRunResponse);
 }
 
 function extensionForAudioMediaType(mediaType: string): string {
@@ -991,10 +1130,10 @@ export async function transcribeChatAudio(
   formData.append("sessionId", sessionId);
   formData.append("workspaceId", workspaceId);
 
-  return parseChatTranscriptionResponse(await requestJson("/chat/transcriptions", {
+  return parseContractResponse(await requestJson("/chat/transcriptions", {
     method: "POST",
     body: formData,
-  }, allowAuthRecovery), "POST /chat/transcriptions");
+  }, allowAuthRecovery), "POST /chat/transcriptions", parseChatTranscriptionResponse);
 }
 
 /**
