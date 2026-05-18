@@ -1,0 +1,132 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import * as cdk from "aws-cdk-lib";
+import * as apigw from "aws-cdk-lib/aws-apigateway";
+import * as lambda from "aws-cdk-lib/aws-lambda";
+import { Template } from "aws-cdk-lib/assertions";
+import {
+  createChatLiveFunctionUrlCorsOptions,
+  createGatewayErrorResponseHeaders,
+  globalMetricsCorsPreflightOptions,
+} from "./api-gateway";
+
+test("global snapshot API Gateway mock preflight allows content type and Sentry trace headers", () => {
+  const stack = new cdk.Stack();
+  const restApi = new apigw.RestApi(stack, "Api");
+  const globalResource = restApi.root.addResource("global");
+  globalResource.addResource("snapshot", {
+    defaultCorsPreflightOptions: globalMetricsCorsPreflightOptions,
+  });
+
+  const template = Template.fromStack(stack);
+  const methods = template.findResources("AWS::ApiGateway::Method", {
+    Properties: {
+      HttpMethod: "OPTIONS",
+    },
+  });
+  const optionsMethods = Object.values(methods);
+
+  assert.equal(optionsMethods.length, 1);
+  assert.deepEqual(optionsMethods[0]?.Properties?.Integration?.IntegrationResponses?.[0]?.ResponseParameters, {
+    "method.response.header.Access-Control-Allow-Headers": "'content-type,authorization,sentry-trace,baggage'",
+    "method.response.header.Access-Control-Allow-Methods": "'GET,OPTIONS'",
+    "method.response.header.Access-Control-Allow-Origin": "'*'",
+  });
+  assert.equal(
+    optionsMethods[0]?.Properties?.MethodResponses?.[0]?.ResponseParameters?.[
+      "method.response.header.Access-Control-Allow-Headers"
+    ],
+    true,
+  );
+});
+
+test("chat live Lambda Function URL CORS exposes request id header", () => {
+  const stack = new cdk.Stack();
+  const fn = new lambda.Function(stack, "ChatLiveHandler", {
+    runtime: lambda.Runtime.NODEJS_24_X,
+    handler: "index.handler",
+    code: lambda.Code.fromInline("exports.handler = async () => ({ statusCode: 200 });"),
+  });
+
+  fn.addFunctionUrl({
+    authType: lambda.FunctionUrlAuthType.NONE,
+    invokeMode: lambda.InvokeMode.RESPONSE_STREAM,
+    cors: createChatLiveFunctionUrlCorsOptions(["https://app.example.test"]),
+  });
+
+  const template = Template.fromStack(stack);
+
+  template.hasResourceProperties("AWS::Lambda::Url", {
+    AuthType: "NONE",
+    InvokeMode: "RESPONSE_STREAM",
+    Cors: {
+      AllowCredentials: true,
+      AllowHeaders: [
+        "content-type",
+        "authorization",
+        "x-csrf-token",
+        "sentry-trace",
+        "baggage",
+        "x-chat-resume-attempt-id",
+        "x-client-platform",
+        "x-client-version",
+      ],
+      AllowMethods: ["GET"],
+      AllowOrigins: ["https://app.example.test"],
+      ExposeHeaders: ["x-request-id"],
+    },
+  });
+});
+
+test("default API Gateway generated errors expose supported request id headers", () => {
+  const stack = new cdk.Stack();
+  const restApi = new apigw.RestApi(stack, "Api");
+  restApi.root.addMethod("GET", new apigw.MockIntegration({
+    integrationResponses: [{ statusCode: "204" }],
+    requestTemplates: { "application/json": "{\"statusCode\": 204}" },
+  }), {
+    methodResponses: [{ statusCode: "204" }],
+  });
+  const gatewayErrorResponseHeaders = createGatewayErrorResponseHeaders();
+
+  new apigw.GatewayResponse(stack, "ApiDefault4xxGatewayResponse", {
+    restApi,
+    type: apigw.ResponseType.DEFAULT_4XX,
+    responseHeaders: gatewayErrorResponseHeaders,
+  });
+
+  new apigw.GatewayResponse(stack, "ApiDefault5xxGatewayResponse", {
+    restApi,
+    type: apigw.ResponseType.DEFAULT_5XX,
+    responseHeaders: gatewayErrorResponseHeaders,
+  });
+
+  const template = Template.fromStack(stack);
+  const allowHeaders = [
+    "content-type",
+    "authorization",
+    "x-csrf-token",
+    "sentry-trace",
+    "baggage",
+    "x-chat-resume-attempt-id",
+    "x-client-platform",
+    "x-client-version",
+  ].join(",");
+  const responseParameters = {
+    "gatewayresponse.header.Access-Control-Allow-Credentials": "'true'",
+    "gatewayresponse.header.Access-Control-Allow-Headers": `'${allowHeaders}'`,
+    "gatewayresponse.header.Access-Control-Allow-Methods": "'GET,POST,OPTIONS'",
+    "gatewayresponse.header.Access-Control-Allow-Origin": "method.request.header.Origin",
+    "gatewayresponse.header.Access-Control-Expose-Headers": "'x-request-id,x-amzn-requestid,x-amz-apigw-id'",
+    "gatewayresponse.header.Vary": "'Origin'",
+  };
+
+  template.hasResourceProperties("AWS::ApiGateway::GatewayResponse", {
+    ResponseType: "DEFAULT_4XX",
+    ResponseParameters: responseParameters,
+  });
+  template.hasResourceProperties("AWS::ApiGateway::GatewayResponse", {
+    ResponseType: "DEFAULT_5XX",
+    ResponseParameters: responseParameters,
+  });
+});

@@ -2,10 +2,21 @@ export type JsonObject = Readonly<Record<string, unknown>>;
 export type LiteralValue = string | number | boolean | null;
 export type ValueParser<ParsedValue> = (value: unknown, endpoint: string, path: string) => ParsedValue;
 
+export type ApiContractErrorMetadata = Readonly<{
+  requestId: string | null;
+  statusCode: number | null;
+  code: string | null;
+  responseBodyKind: string | null;
+}>;
+
 export class ApiContractError extends Error {
   readonly endpoint: string;
   readonly fieldPath: string;
   readonly expected: string;
+  requestId: string | null;
+  statusCode: number | null;
+  code: string | null;
+  responseBodyKind: string | null;
 
   constructor(endpoint: string, fieldPath: string, expected: string) {
     super(`Invalid API response for ${endpoint}: ${fieldPath} must be ${expected}`);
@@ -13,7 +24,22 @@ export class ApiContractError extends Error {
     this.endpoint = endpoint;
     this.fieldPath = fieldPath;
     this.expected = expected;
+    this.requestId = null;
+    this.statusCode = null;
+    this.code = null;
+    this.responseBodyKind = null;
   }
+}
+
+export function enrichApiContractError(
+  error: ApiContractError,
+  metadata: ApiContractErrorMetadata,
+): ApiContractError {
+  error.requestId = metadata.requestId;
+  error.statusCode = metadata.statusCode;
+  error.code = metadata.code;
+  error.responseBodyKind = metadata.responseBodyKind;
+  return error;
 }
 
 export function joinPath(parentPath: string, key: string): string {

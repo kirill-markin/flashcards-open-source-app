@@ -155,6 +155,9 @@ const enCatalog = {
   },
   app: {
     title: "Flashcards",
+    crashTitle: "Something went wrong",
+    crashMessage: "Reload the app to restore this screen.",
+    crashReload: "Reload app",
     accountDeleted: "Your account has been deleted.",
     deleteAccountTitle: "Deleting account",
     deleteAccountInProgress: "Your account deletion is in progress. Do not close this page unless you plan to come back and retry.",

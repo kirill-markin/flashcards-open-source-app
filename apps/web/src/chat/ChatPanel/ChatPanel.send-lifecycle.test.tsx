@@ -4,6 +4,8 @@ import { describe, expect, it, vi } from "vitest";
 import { persistLocalePreference } from "../../i18n/runtime";
 import {
   ApiErrorMock,
+  AuthRedirectErrorMock,
+  captureWebExceptionMock,
   consumeChatLiveStreamMock,
   createChatActiveRun,
   createDropEvent,
@@ -251,6 +253,47 @@ describe("ChatPanel send lifecycle", () => {
     expect(getChatSnapshotMock).toHaveBeenCalledTimes(1);
     expect(getChatSnapshotMock.mock.calls[0]?.[0]).toBe(createNewChatSessionMock.mock.calls[0]?.[0]);
     expect(createNewChatSessionMock.mock.invocationCallOrder[0]).toBeLessThan(getChatSnapshotMock.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY);
+  });
+
+  it("captures unexpected silent fresh-session failures", async () => {
+    const staleTimestamp = Date.UTC(2026, 0, 1, 0, 0, 0);
+    vi.setSystemTime(new Date(staleTimestamp + (6 * 60 * 60 * 1000) + 1_000));
+    storeChatSessionWarmStartSnapshot("workspace-1", createChatSnapshot({
+      sessionId: "session-stale",
+      conversationScopeId: "session-stale",
+      conversation: {
+        updatedAt: staleTimestamp,
+        mainContentInvalidationVersion: 0,
+        messages: [{
+          role: "user",
+          content: [{ type: "text", text: "Old question" }],
+          timestamp: staleTimestamp,
+          isError: false,
+          isStopped: false,
+        }],
+      },
+    }), false);
+    const freshSessionError = Object.assign(
+      new ApiErrorMock(503, "Fresh session failed.", "INTERNAL_ERROR"),
+      { responseBodyKind: "json" as const },
+    );
+    createNewChatSessionMock.mockRejectedValue(freshSessionError);
+
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    const sessionId = createNewChatSessionMock.mock.calls[0]?.[0];
+    expect(captureWebExceptionMock).toHaveBeenCalledTimes(1);
+    expect(captureWebExceptionMock).toHaveBeenCalledWith(expect.objectContaining({
+      action: "chat_run_request_failed",
+      error: freshSessionError,
+      details: {
+        operation: "chat_fresh_session_failed",
+        sessionId,
+        workspaceId: "workspace-1",
+      },
+    }));
   });
 
   it("shows a disabled send button until the draft has text or attachments", async () => {
@@ -667,6 +710,44 @@ describe("ChatPanel send lifecycle", () => {
     await flushAsync();
   });
 
+  it("captures unexpected stop failures with the stop chat operation", async () => {
+    const stopError = new ApiErrorMock(500, "Request failed. Try again.", "INTERNAL_ERROR");
+    getChatSnapshotMock.mockResolvedValue(createChatSnapshot({
+      activeRun: createChatActiveRun(),
+    }));
+    stopChatRunMock.mockRejectedValue(stopError);
+
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    await clickStop();
+    await flushAsync();
+
+    expect(captureWebExceptionMock).toHaveBeenCalledTimes(1);
+    expect(captureWebExceptionMock).toHaveBeenCalledWith({
+      action: "chat_run_request_failed",
+      error: stopError,
+      scope: {
+        app: "web",
+        feature: "chat",
+        userId: null,
+        workspaceId: "workspace-1",
+        installationId: null,
+        route: "/",
+        requestId: null,
+        statusCode: 500,
+        code: "INTERNAL_ERROR",
+      },
+      details: {
+        operation: "chat_stop_run_failed",
+        sessionId: "session-1",
+        workspaceId: "workspace-1",
+      },
+    });
+    expect(getContainer().textContent).toContain("Chat stop failed.");
+  });
+
   it("keeps draft preparation controls enabled while an assistant run is active", async () => {
     getChatSnapshotMock.mockResolvedValue(createChatSnapshot({
       activeRun: createChatActiveRun(),
@@ -1017,6 +1098,77 @@ describe("ChatPanel send lifecycle", () => {
     expect(getContainer().querySelector(".chat-msg-error")).toBeNull();
     expect(getContainer().querySelector('[role="dialog"]')).not.toBeNull();
     expect(getContainer().textContent).toContain("A response is already in progress.");
+  });
+
+  it("does not capture expected chat request failures", async () => {
+    startChatRunMock.mockRejectedValue(Object.assign(
+      new ApiErrorMock(400, "content must be a non-empty array", null),
+      { responseBodyKind: "json" as const },
+    ));
+
+    await renderChatPanel();
+    await flushAsync();
+    await sendMessage("invalid request");
+    await flushAsync();
+    await flushAsync();
+
+    expect(captureWebExceptionMock).not.toHaveBeenCalled();
+    expect(getContainer().textContent).toContain("Chat request failed.");
+  });
+
+  it("captures unknown coded 4xx chat request failures", async () => {
+    const requestError = Object.assign(
+      new ApiErrorMock(400, "Unexpected chat state.", "CHAT_NEW_CLIENT_STATE"),
+      { responseBodyKind: "json" as const },
+    );
+    startChatRunMock.mockRejectedValue(requestError);
+
+    await renderChatPanel();
+    await flushAsync();
+    await sendMessage("unknown client state");
+    await flushAsync();
+    await flushAsync();
+
+    expect(captureWebExceptionMock).toHaveBeenCalledTimes(1);
+    expect(captureWebExceptionMock).toHaveBeenCalledWith(expect.objectContaining({
+      action: "chat_run_request_failed",
+      error: requestError,
+    }));
+    expect(getContainer().textContent).toContain("Chat request failed.");
+  });
+
+  it("captures non-json 4xx chat request failures", async () => {
+    const requestError = Object.assign(
+      new ApiErrorMock(400, "Bad request", null),
+      { responseBodyKind: "text" as const },
+    );
+    startChatRunMock.mockRejectedValue(requestError);
+
+    await renderChatPanel();
+    await flushAsync();
+    await sendMessage("non-json client error");
+    await flushAsync();
+    await flushAsync();
+
+    expect(captureWebExceptionMock).toHaveBeenCalledTimes(1);
+    expect(captureWebExceptionMock).toHaveBeenCalledWith(expect.objectContaining({
+      action: "chat_run_request_failed",
+      error: requestError,
+    }));
+    expect(getContainer().textContent).toContain("Chat request failed.");
+  });
+
+  it("does not capture auth redirect chat request failures", async () => {
+    startChatRunMock.mockRejectedValue(new AuthRedirectErrorMock("https://auth.example.com/login"));
+
+    await renderChatPanel();
+    await flushAsync();
+    await sendMessage("expired session");
+    await flushAsync();
+    await flushAsync();
+
+    expect(captureWebExceptionMock).not.toHaveBeenCalled();
+    expect(getContainer().textContent).toContain("Chat request failed.");
   });
 
   it("does not open an error dialog when assistant_message_done is followed by stream close", async () => {

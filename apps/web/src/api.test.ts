@@ -2,6 +2,8 @@
 import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  ApiContractError,
+  ApiError,
   AuthRedirectError,
   buildLoginUrl,
   createNewChatSession,
@@ -21,6 +23,21 @@ import { isAuthResetRequired } from "./accountDeletion";
 import { INSTALLATION_ID_STORAGE_KEY } from "./clientIdentity";
 import { LOCALE_PREFERENCE_STORAGE_KEY, persistLocalePreference } from "./i18n/runtime";
 import type { ProgressReviewSchedule } from "./types";
+
+const observabilityMocks = vi.hoisted(() => ({
+  addWebBreadcrumbMock: vi.fn(),
+  captureWebExceptionMock: vi.fn(),
+  captureWebWarningMock: vi.fn(),
+  setWebObservabilityUserMock: vi.fn(),
+}));
+
+vi.mock("./observability/webObservability", () => ({
+  addWebBreadcrumb: observabilityMocks.addWebBreadcrumbMock,
+  captureWebException: observabilityMocks.captureWebExceptionMock,
+  captureWebWarning: observabilityMocks.captureWebWarningMock,
+  normalizeCaughtError: (error: unknown): Error => error instanceof Error ? error : new Error(`Caught non-Error value of type ${typeof error}`),
+  setWebObservabilityUser: observabilityMocks.setWebObservabilityUserMock,
+}));
 
 function createStorageMock(): Storage {
   const state = new Map<string, string>();
@@ -297,6 +314,10 @@ beforeEach(() => {
   });
   window.localStorage.clear();
   resetApiClientStateForTests();
+  observabilityMocks.addWebBreadcrumbMock.mockReset();
+  observabilityMocks.captureWebExceptionMock.mockReset();
+  observabilityMocks.captureWebWarningMock.mockReset();
+  observabilityMocks.setWebObservabilityUserMock.mockReset();
 });
 
 afterEach(() => {
@@ -408,10 +429,12 @@ describe("auth locale login URL plumbing", () => {
       .mockResolvedValueOnce(new Response(JSON.stringify({
         error: "Authentication failed. Try again.",
         code: "INTERNAL_ERROR",
+        requestId: "body-refresh-request-id",
       }), {
         status: 500,
         headers: {
           "Content-Type": "application/json",
+          "X-Request-Id": "header-refresh-request-id",
         },
       }));
     vi.stubGlobal("fetch", fetchMock);
@@ -421,12 +444,93 @@ describe("auth locale login URL plumbing", () => {
       redirectedUrl = url;
     });
 
-    await expect(getSession()).rejects.toThrow("Authentication failed. Try again.");
+    await expect(getSession()).rejects.toMatchObject({
+      statusCode: 500,
+      message: "Authentication failed. Try again.",
+      code: "INTERNAL_ERROR",
+      requestId: "header-refresh-request-id",
+      endpoint: "POST /api/refresh-session",
+      responseBodyKind: "json",
+    } satisfies Partial<ApiError>);
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(deleteDatabaseSpy).not.toHaveBeenCalled();
     expect(redirectedUrl).toBe("");
     expectLocalBrowserStatePreserved();
+  });
+
+  it("keeps request metadata on API errors with header requestId priority", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        error: "Session metadata failed.",
+        code: "SESSION_METADATA_FAILED",
+        requestId: "body-request-id",
+      }), {
+        status: 503,
+        headers: {
+          "Content-Type": "application/json",
+          "X-Request-Id": "header-request-id",
+        },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(getSession()).rejects.toMatchObject({
+      statusCode: 503,
+      message: "Session metadata failed.",
+      code: "SESSION_METADATA_FAILED",
+      requestId: "header-request-id",
+      endpoint: "GET /me",
+      responseBodyKind: "json",
+    } satisfies Partial<ApiError>);
+  });
+
+  it("uses API Gateway request id headers when Lambda request id is absent", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(null, {
+        status: 503,
+        headers: {
+          "X-Amzn-RequestId": "gateway-request-id",
+          "X-Amz-Apigw-Id": "gateway-execution-id",
+        },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(getSession()).rejects.toMatchObject({
+      statusCode: 503,
+      message: "Request failed with status 503",
+      code: null,
+      requestId: "gateway-request-id",
+      endpoint: "GET /me",
+      responseBodyKind: "empty",
+    } satisfies Partial<ApiError>);
+  });
+
+  it("keeps request metadata on API contract errors after successful responses", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        selectedWorkspaceId: "workspace-1",
+        authTransport: "session",
+        csrfToken: "csrf-token-1",
+        code: "SESSION_CONTRACT_FAILED",
+        requestId: "body-request-id",
+      }), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "X-Request-Id": "header-request-id",
+        },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(getSession()).rejects.toMatchObject({
+      endpoint: "GET /me",
+      fieldPath: "profile",
+      expected: "object",
+      requestId: "header-request-id",
+      statusCode: 200,
+      code: "SESSION_CONTRACT_FAILED",
+      responseBodyKind: "json",
+    } satisfies Partial<ApiContractError>);
   });
 
   it("deduplicates cleanup for parallel requests that end in one auth redirect", async () => {
@@ -465,7 +569,6 @@ describe("auth locale login URL plumbing", () => {
   it("redirects to login even when IndexedDB cleanup is blocked", async () => {
     seedLocalBrowserState();
     const deleteDatabaseSpy = mockBlockedDeleteDatabase();
-    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(new Response(null, { status: 401 }))
       .mockResolvedValueOnce(new Response(null, { status: 401 }));
@@ -485,8 +588,23 @@ describe("auth locale login URL plumbing", () => {
       expectLocalBrowserStateCleared();
       expect(isAuthResetRequired()).toBe(true);
     });
-    expect(consoleWarnSpy).toHaveBeenCalledWith("auth_reset_cleanup_deferred", {
-      errorMessage: "Failed to delete IndexedDB: delete request was blocked",
+    expect(observabilityMocks.addWebBreadcrumbMock).toHaveBeenCalledWith({
+      action: "auth_reset_cleanup_deferred",
+      scope: {
+        app: "web",
+        feature: "auth",
+        userId: null,
+        workspaceId: null,
+        installationId: "installation-1",
+        route: "/",
+        requestId: null,
+        statusCode: null,
+        code: null,
+      },
+      details: {
+        eventName: "auth_reset_cleanup_deferred",
+        errorMessage: "Failed to delete IndexedDB: delete request was blocked",
+      },
     });
   });
 });

@@ -1,4 +1,5 @@
 import { ApiError } from "../../api";
+import { addWebBreadcrumb, type WebObservationScope } from "../../observability/webObservability";
 import type {
   ChatComposerSuggestion,
   ChatConfig,
@@ -9,9 +10,6 @@ import type {
 import { sanitizeErrorTextWithFallbackMessages, type ChatErrorFallbackMessages } from "../chatHelpers";
 import type { ChatLiveEvent } from "../liveStream";
 import type { StoredMessage } from "../useChatHistory";
-
-const CHAT_DEBUG_LOG_PREFIX = "chat_debug ";
-const CHAT_DEBUG_STORAGE_KEY = "flashcards-chat-debug";
 
 type ChatDebugDetailValue = string | number | boolean | null;
 export type ChatDebugDetails = Readonly<Record<string, ChatDebugDetailValue>>;
@@ -294,17 +292,41 @@ export function resolveInitialHydrationSessionId(
   return trimmedSessionId === "" ? undefined : trimmedSessionId;
 }
 
-function isChatDebugLoggingEnabled(): boolean {
+function getCurrentRoute(): string | null {
   if (typeof window === "undefined") {
-    return false;
+    return null;
   }
 
-  const searchParams = new URLSearchParams(window.location.search);
-  if (searchParams.get("chatDebug") === "1") {
-    return true;
-  }
+  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
 
-  return window.localStorage.getItem(CHAT_DEBUG_STORAGE_KEY) === "true";
+function readStringDebugDetail(details: ChatDebugDetails, key: string): string | null {
+  const value = details[key];
+  return typeof value === "string" ? value : null;
+}
+
+function readNumberDebugDetail(details: ChatDebugDetails, key: string): number | null {
+  const value = details[key];
+  return typeof value === "number" ? value : null;
+}
+
+function readBooleanDebugDetail(details: ChatDebugDetails, key: string): boolean | null {
+  const value = details[key];
+  return typeof value === "boolean" ? value : null;
+}
+
+function buildChatDebugScope(details: ChatDebugDetails): WebObservationScope {
+  return {
+    app: "web",
+    feature: "chat",
+    userId: null,
+    workspaceId: readStringDebugDetail(details, "workspaceId"),
+    installationId: null,
+    route: getCurrentRoute(),
+    requestId: null,
+    statusCode: null,
+    code: null,
+  };
 }
 
 export function logChatControllerDebug(
@@ -312,16 +334,25 @@ export function logChatControllerDebug(
   event: string,
   details: ChatDebugDetails,
 ): void {
-  if (isChatDebugLoggingEnabled() === false) {
-    return;
-  }
-
-  console.info(`${CHAT_DEBUG_LOG_PREFIX}${JSON.stringify({
-    source: "useChatSessionController",
-    controllerId,
-    event,
-    ...details,
-  })}`);
+  addWebBreadcrumb({
+    action: "chat_controller_debug",
+    scope: buildChatDebugScope(details),
+    details: {
+      controllerId,
+      eventName: event,
+      workspaceId: readStringDebugDetail(details, "workspaceId"),
+      currentSessionId: readStringDebugDetail(details, "currentSessionId"),
+      runId: readStringDebugDetail(details, "runId"),
+      requestVersion: readNumberDebugDetail(details, "requestVersion"),
+      trigger: readStringDebugDetail(details, "trigger"),
+      replaceHistory: readBooleanDebugDetail(details, "replaceHistory"),
+      runState: readStringDebugDetail(details, "runState"),
+      messageCount: readNumberDebugDetail(details, "messageCount"),
+      composerSuggestionCount: readNumberDebugDetail(details, "composerSuggestionCount"),
+      isRemoteReady: readBooleanDebugDetail(details, "isRemoteReady"),
+      isHistoryLoaded: readBooleanDebugDetail(details, "isHistoryLoaded"),
+    },
+  });
 }
 
 export function toAssistantToolCallContentPart(

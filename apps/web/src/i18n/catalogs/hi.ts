@@ -157,6 +157,9 @@ const hiCatalog: TranslationCatalog = {
   },
   app: {
     title: "Flashcards",
+    crashTitle: "कुछ गलत हो गया",
+    crashMessage: "इस स्क्रीन को वापस लाने के लिए ऐप फिर से लोड करें।",
+    crashReload: "ऐप फिर से लोड करें",
     accountDeleted: "आपका खाता हटा दिया गया है।",
     deleteAccountTitle: "खाता हटाया जा रहा है",
     deleteAccountInProgress: "आपके खाते को हटाने की प्रक्रिया चल रही है। जब तक आप बाद में वापस आकर फिर से कोशिश करने की योजना न बना रहे हों, इस पेज को बंद न करें।",

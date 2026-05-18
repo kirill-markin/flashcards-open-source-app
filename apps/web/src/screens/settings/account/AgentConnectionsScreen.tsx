@@ -2,11 +2,12 @@ import { useEffect, useState, type ReactElement } from "react";
 import { listAgentApiKeys, revokeAgentApiKey } from "../../../api";
 import { useAppData } from "../../../appData";
 import { useI18n } from "../../../i18n";
+import { captureApiContractError } from "../../../observability/apiContractObservation";
 import type { AgentApiKeyConnection } from "../../../types";
 import { SettingsShell } from "../SettingsShared";
 
 export function AgentConnectionsScreen(): ReactElement {
-  const { isSessionVerified } = useAppData();
+  const { activeWorkspace, cloudSettings, isSessionVerified, session } = useAppData();
   const { t, formatDateTime } = useI18n();
   const [connections, setConnections] = useState<ReadonlyArray<AgentApiKeyConnection>>([]);
   const [instructions, setInstructions] = useState<string>("");
@@ -31,6 +32,13 @@ export function AgentConnectionsScreen(): ReactElement {
       setInstructions(result.instructions);
       setErrorMessage("");
     } catch (error) {
+      captureApiContractError(error, {
+        feature: "settings",
+        sourceAction: "agent_connections_load",
+        userId: session?.userId ?? null,
+        workspaceId: activeWorkspace?.workspaceId ?? null,
+        installationId: cloudSettings?.installationId ?? null,
+      });
       setErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setIsLoading(false);
@@ -51,6 +59,13 @@ export function AgentConnectionsScreen(): ReactElement {
       setInstructions(result.instructions);
       setErrorMessage("");
     } catch (error) {
+      captureApiContractError(error, {
+        feature: "settings",
+        sourceAction: "agent_connection_revoke",
+        userId: session?.userId ?? null,
+        workspaceId: activeWorkspace?.workspaceId ?? null,
+        installationId: cloudSettings?.installationId ?? null,
+      });
       setErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setBusyConnectionId(null);

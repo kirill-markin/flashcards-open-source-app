@@ -16,6 +16,21 @@ import type { SessionLoadState } from "./types";
 import type { SessionVerificationState } from "./warmStart";
 import { clearWebSyncCache } from "../localDb/cache";
 
+const observabilityMocks = vi.hoisted(() => ({
+  addWebBreadcrumbMock: vi.fn(),
+  captureWebExceptionMock: vi.fn(),
+  captureWebWarningMock: vi.fn(),
+  setWebObservabilityUserMock: vi.fn(),
+}));
+
+vi.mock("../observability/webObservability", () => ({
+  addWebBreadcrumb: observabilityMocks.addWebBreadcrumbMock,
+  captureWebException: observabilityMocks.captureWebExceptionMock,
+  captureWebWarning: observabilityMocks.captureWebWarningMock,
+  normalizeCaughtError: (error: unknown): Error => error instanceof Error ? error : new Error(`Caught non-Error value of type ${typeof error}`),
+  setWebObservabilityUser: observabilityMocks.setWebObservabilityUserMock,
+}));
+
 type HarnessSnapshot = Readonly<{
   sessionLoadState: SessionLoadState;
   sessionVerificationState: SessionVerificationState;
@@ -309,6 +324,10 @@ describe("useWorkspaceSession bootstrap", () => {
     root = ReactDOM.createRoot(container);
     latestState = null;
     redirectedUrl = null;
+    observabilityMocks.addWebBreadcrumbMock.mockReset();
+    observabilityMocks.captureWebExceptionMock.mockReset();
+    observabilityMocks.captureWebWarningMock.mockReset();
+    observabilityMocks.setWebObservabilityUserMock.mockReset();
     setNavigationHandlerForTests((url: string) => {
       redirectedUrl = url;
     });
@@ -452,7 +471,6 @@ describe("useWorkspaceSession bootstrap", () => {
     await seedIndexedDbState();
     markAuthResetRequired();
     const deleteDatabaseSpy = mockBlockedDeleteDatabase();
-    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
@@ -492,8 +510,23 @@ describe("useWorkspaceSession bootstrap", () => {
     expect(window.localStorage.getItem(INSTALLATION_ID_STORAGE_KEY)).toBe("installation-1");
     expect(window.localStorage.getItem(LOCALE_PREFERENCE_STORAGE_KEY)).toBe("es-MX");
     expect(isAuthResetRequired()).toBe(true);
-    expect(consoleWarnSpy).toHaveBeenCalledWith("auth_reset_cleanup_deferred", {
-      errorMessage: "Failed to delete IndexedDB: delete request was blocked",
+    expect(observabilityMocks.addWebBreadcrumbMock).toHaveBeenCalledWith({
+      action: "auth_reset_cleanup_deferred",
+      scope: {
+        app: "web",
+        feature: "auth",
+        userId: null,
+        workspaceId: null,
+        installationId: "installation-1",
+        route: "/review",
+        requestId: null,
+        statusCode: null,
+        code: null,
+      },
+      details: {
+        eventName: "auth_reset_cleanup_deferred",
+        errorMessage: "Failed to delete IndexedDB: delete request was blocked",
+      },
     });
   });
 

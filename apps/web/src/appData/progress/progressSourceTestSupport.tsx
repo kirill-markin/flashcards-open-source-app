@@ -41,6 +41,10 @@ const progressSourceMocks = vi.hoisted(() => ({
   hasPendingProgressReviewScheduleCardChangesMock: vi.fn<(workspaceIds: ReadonlyArray<string>) => Promise<boolean>>(),
   calculatePendingProgressReviewScheduleCardTotalDeltaMock: vi.fn<(workspaceIds: ReadonlyArray<string>) => Promise<number>>(),
   loadLocalProgressReviewScheduleMock: vi.fn<(workspaceIds: ReadonlyArray<string>, input: Readonly<{ timeZone: string; today: string }>) => Promise<ProgressReviewSchedule>>(),
+  addWebBreadcrumbMock: vi.fn(),
+  captureWebExceptionMock: vi.fn(),
+  captureWebWarningMock: vi.fn(),
+  setWebObservabilityUserMock: vi.fn(),
 }));
 
 const {
@@ -55,12 +59,29 @@ const {
   hasPendingProgressReviewScheduleCardChangesMock,
   calculatePendingProgressReviewScheduleCardTotalDeltaMock,
   loadLocalProgressReviewScheduleMock,
+  addWebBreadcrumbMock,
+  captureWebExceptionMock,
+  captureWebWarningMock,
+  setWebObservabilityUserMock,
 } = progressSourceMocks;
 
-vi.mock("../../api", () => ({
-  loadProgressSummary: progressSourceMocks.loadProgressSummaryMock,
-  loadProgressSeries: progressSourceMocks.loadProgressSeriesMock,
-  loadProgressReviewSchedule: progressSourceMocks.loadProgressReviewScheduleMock,
+vi.mock("../../api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../api")>();
+
+  return {
+    ApiContractError: actual.ApiContractError,
+    loadProgressSummary: progressSourceMocks.loadProgressSummaryMock,
+    loadProgressSeries: progressSourceMocks.loadProgressSeriesMock,
+    loadProgressReviewSchedule: progressSourceMocks.loadProgressReviewScheduleMock,
+  };
+});
+
+vi.mock("../../observability/webObservability", () => ({
+  addWebBreadcrumb: progressSourceMocks.addWebBreadcrumbMock,
+  captureWebException: progressSourceMocks.captureWebExceptionMock,
+  captureWebWarning: progressSourceMocks.captureWebWarningMock,
+  normalizeCaughtError: (error: unknown): Error => error instanceof Error ? error : new Error(`Caught non-Error value of type ${typeof error}`),
+  setWebObservabilityUser: progressSourceMocks.setWebObservabilityUserMock,
 }));
 
 vi.mock("../../localDb/progress", () => ({
@@ -494,6 +515,10 @@ beforeEach(() => {
   hasPendingProgressReviewScheduleCardChangesMock.mockReset();
   calculatePendingProgressReviewScheduleCardTotalDeltaMock.mockReset();
   loadLocalProgressReviewScheduleMock.mockReset();
+  addWebBreadcrumbMock.mockReset();
+  captureWebExceptionMock.mockReset();
+  captureWebWarningMock.mockReset();
+  setWebObservabilityUserMock.mockReset();
   hasPendingProgressReviewEventsMock.mockResolvedValue(false);
   hasCompleteLocalProgressReviewScheduleCoverageMock.mockResolvedValue(false);
   hasPendingProgressReviewScheduleCardChangesMock.mockResolvedValue(false);
@@ -526,7 +551,10 @@ afterEach(() => {
 });
 
 export {
+  addWebBreadcrumbMock,
   calculatePendingProgressReviewScheduleCardTotalDeltaMock,
+  captureWebExceptionMock,
+  captureWebWarningMock,
   hasCompleteLocalProgressReviewScheduleCoverageMock,
   hasPendingProgressReviewEventsMock,
   hasPendingProgressReviewScheduleCardChangesMock,
@@ -537,4 +565,5 @@ export {
   loadProgressReviewScheduleMock,
   loadProgressSeriesMock,
   loadProgressSummaryMock,
+  setWebObservabilityUserMock,
 };

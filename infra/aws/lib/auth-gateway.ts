@@ -28,6 +28,42 @@ export interface AuthGatewayResult {
   accessLogGroup: logs.LogGroup;
 }
 
+export interface AuthGatewayErrorResponseHeaders {
+  readonly [headerName: string]: string;
+  readonly "Access-Control-Allow-Origin": string;
+  readonly Vary: string;
+  readonly "Access-Control-Allow-Headers": string;
+  readonly "Access-Control-Allow-Methods": string;
+  readonly "Access-Control-Allow-Credentials": string;
+  readonly "Access-Control-Expose-Headers": string;
+}
+
+const authCorsAllowHeaders = [
+  "content-type",
+  "authorization",
+  "x-csrf-token",
+  "sentry-trace",
+  "baggage",
+] as const;
+
+const authGatewayErrorCorsExposeHeaders = [
+  "retry-after",
+  "x-request-id",
+  "x-amzn-requestid",
+  "x-amz-apigw-id",
+] as const;
+
+export function createAuthGatewayErrorResponseHeaders(): AuthGatewayErrorResponseHeaders {
+  return {
+    "Access-Control-Allow-Origin": "method.request.header.Origin",
+    "Vary": "'Origin'",
+    "Access-Control-Allow-Headers": `'${authCorsAllowHeaders.join(",")}'`,
+    "Access-Control-Allow-Methods": "'GET,POST,OPTIONS'",
+    "Access-Control-Allow-Credentials": "'true'",
+    "Access-Control-Expose-Headers": `'${authGatewayErrorCorsExposeHeaders.join(",")}'`,
+  };
+}
+
 function addLambdaSecretArnEnvironment(
   scope: Construct,
   fn: lambdaNodejs.NodejsFunction,
@@ -135,6 +171,19 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
   const integration = new apigw.LambdaIntegration(authFn);
   restApi.root.addMethod("ANY", integration);
   restApi.root.addResource("{proxy+}").addMethod("ANY", integration);
+  const gatewayErrorResponseHeaders = createAuthGatewayErrorResponseHeaders();
+
+  new apigw.GatewayResponse(scope, "AuthApiDefault4xxGatewayResponse", {
+    restApi,
+    type: apigw.ResponseType.DEFAULT_4XX,
+    responseHeaders: gatewayErrorResponseHeaders,
+  });
+
+  new apigw.GatewayResponse(scope, "AuthApiDefault5xxGatewayResponse", {
+    restApi,
+    type: apigw.ResponseType.DEFAULT_5XX,
+    responseHeaders: gatewayErrorResponseHeaders,
+  });
 
   if (props.authCertificateArn) {
     const authDomainName = `auth.${props.baseDomain}`;

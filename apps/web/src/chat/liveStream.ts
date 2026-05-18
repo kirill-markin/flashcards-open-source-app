@@ -2,6 +2,7 @@ import {
   parseChatComposerSuggestionArray,
   parseContentPartArray,
 } from "../apiContracts/chat";
+import { ApiContractError } from "../apiContracts/core";
 import { webAppVersion } from "../clientIdentity";
 import type {
   ChatComposerSuggestion,
@@ -91,15 +92,41 @@ type ConsumeChatLiveStreamParams = Readonly<{
 
 type JsonObject = Readonly<Record<string, unknown>>;
 
+type ChatLiveErrorMetadata = Readonly<{
+  requestId: string | null;
+  statusCode: number | null;
+  code: string | null;
+}>;
+
 export class ChatLiveContractError extends Error {
   readonly eventType: string | null;
   readonly payloadSnippet: string;
+  requestId: string | null;
+  statusCode: number | null;
+  code: string | null;
 
   constructor(message: string, eventType: string | null, payload: string) {
     super(message);
     this.name = "ChatLiveContractError";
     this.eventType = eventType;
     this.payloadSnippet = payload.trim().slice(0, 240);
+    this.requestId = null;
+    this.statusCode = null;
+    this.code = readLivePayloadCode(payload);
+  }
+}
+
+export class ChatLiveHttpError extends Error {
+  readonly statusCode: number;
+  readonly requestId: string | null;
+  readonly code: string | null;
+
+  constructor(message: string, statusCode: number, requestId: string | null, code: string | null) {
+    super(message);
+    this.name = "ChatLiveHttpError";
+    this.statusCode = statusCode;
+    this.requestId = requestId;
+    this.code = code;
   }
 }
 
@@ -119,6 +146,34 @@ function parseJsonObject(value: string): JsonObject | null {
 function readStringField(objectValue: JsonObject, key: string): string | null {
   const value = objectValue[key];
   return typeof value === "string" ? value : null;
+}
+
+function readLivePayloadCode(payload: string): string | null {
+  const objectValue = parseJsonObject(payload);
+  return objectValue === null ? null : readStringField(objectValue, "code");
+}
+
+function normalizeMetadataString(value: string | null): string | null {
+  return value === null || value.trim() === "" ? null : value;
+}
+
+function enrichChatLiveContractError(
+  error: ChatLiveContractError,
+  metadata: ChatLiveErrorMetadata,
+): ChatLiveContractError {
+  error.requestId = metadata.requestId;
+  error.statusCode = metadata.statusCode;
+  error.code = metadata.code ?? error.code;
+  return error;
+}
+
+function wrapNestedApiContractError(
+  error: ApiContractError,
+  eventType: string | null,
+  payload: string,
+): ChatLiveContractError {
+  const resolvedEventType = eventType ?? error.endpoint;
+  return new ChatLiveContractError(error.message, resolvedEventType, payload);
 }
 
 function readNullableStringField(objectValue: JsonObject, key: string): string | null | undefined {
@@ -415,33 +470,56 @@ function buildLiveStreamUrl(
   return url.toString();
 }
 
-function buildLiveStreamHttpErrorMessage(statusCode: number, responseText: string): string {
+function buildLiveStreamHttpError(statusCode: number, responseText: string, headerRequestId: string | null): ChatLiveHttpError {
   const payload = parseJsonObject(responseText);
+  const normalizedHeaderRequestId = normalizeMetadataString(headerRequestId);
   const backendMessage = payload === null
     ? responseText.trim()
     : readStringField(payload, "error");
-  const requestId = payload === null
+  const bodyRequestId = payload === null
     ? null
     : readStringField(payload, "requestId");
+  const requestId = normalizedHeaderRequestId ?? bodyRequestId;
+  const code = payload === null
+    ? null
+    : readStringField(payload, "code");
   const baseMessage = backendMessage !== null && backendMessage !== ""
     ? backendMessage
     : `Request failed with status ${String(statusCode)}`;
 
-  return requestId === null || requestId === ""
+  const message = requestId === null || requestId === ""
     ? `AI live stream failed with status ${String(statusCode)}: ${baseMessage}`
     : `AI live stream failed with status ${String(statusCode)}: ${baseMessage} (requestId: ${requestId})`;
+
+  return new ChatLiveHttpError(message, statusCode, requestId, code);
 }
 
 function consumeSSEBlock(
   eventType: string | null,
   dataLines: ReadonlyArray<string>,
   onEvent: (event: ChatLiveEvent) => void,
+  metadata: ChatLiveErrorMetadata,
 ): void {
   if (dataLines.length === 0) {
     return;
   }
 
-  onEvent(parseChatLiveEvent(eventType, dataLines.join("\n")));
+  try {
+    onEvent(parseChatLiveEvent(eventType, dataLines.join("\n")));
+  } catch (error) {
+    if (error instanceof ChatLiveContractError) {
+      throw enrichChatLiveContractError(error, metadata);
+    }
+
+    if (error instanceof ApiContractError) {
+      throw enrichChatLiveContractError(
+        wrapNestedApiContractError(error, eventType, dataLines.join("\n")),
+        metadata,
+      );
+    }
+
+    throw error;
+  }
 }
 
 /**
@@ -474,16 +552,22 @@ export async function consumeChatLiveStream(
   });
 
   if (response.ok === false) {
-    throw new Error(buildLiveStreamHttpErrorMessage(
+    throw buildLiveStreamHttpError(
       response.status,
       await response.text(),
-    ));
+      response.headers.get("X-Request-Id"),
+    );
   }
 
   if (response.body === null) {
     throw new Error("AI live stream response body is missing.");
   }
 
+  const responseMetadata: ChatLiveErrorMetadata = {
+    requestId: normalizeMetadataString(response.headers.get("X-Request-Id")),
+    statusCode: response.status,
+    code: null,
+  };
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
@@ -516,7 +600,7 @@ export async function consumeChatLiveStream(
       }
 
       if (line === "") {
-        consumeSSEBlock(currentEventType, currentDataLines, params.onEvent);
+        consumeSSEBlock(currentEventType, currentDataLines, params.onEvent, responseMetadata);
         currentEventType = null;
         currentDataLines = [];
       }
@@ -538,5 +622,5 @@ export async function consumeChatLiveStream(
     }
   }
 
-  consumeSSEBlock(currentEventType, currentDataLines, params.onEvent);
+  consumeSSEBlock(currentEventType, currentDataLines, params.onEvent, responseMetadata);
 }

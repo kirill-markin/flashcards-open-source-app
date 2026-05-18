@@ -67,7 +67,7 @@ test("transient database errors return retryable 503 API responses", async () =>
 
   assert.equal(response.status, 503);
   assert.equal(response.headers.get("retry-after"), "1");
-  assert.equal(response.headers.get("access-control-expose-headers"), "retry-after");
+  assert.equal(response.headers.get("access-control-expose-headers"), "retry-after, x-request-id");
   assert.equal(payload.code, "SERVICE_UNAVAILABLE");
   assert.equal(payload.error, serviceUnavailableMessage);
   assert.notEqual(payload.requestId, "");
@@ -85,7 +85,7 @@ test("transient database errors return retryable 503 API responses for execute-a
 
   assert.equal(response.status, 503);
   assert.equal(response.headers.get("retry-after"), "1");
-  assert.equal(response.headers.get("access-control-expose-headers"), "retry-after");
+  assert.equal(response.headers.get("access-control-expose-headers"), "retry-after, x-request-id");
   assert.equal(payload.code, "SERVICE_UNAVAILABLE");
   assert.equal(payload.error, serviceUnavailableMessage);
   assert.notEqual(payload.requestId, "");
@@ -103,7 +103,7 @@ test("transient database errors return agent envelopes for execute-api paths", a
 
   assert.equal(response.status, 503);
   assert.equal(response.headers.get("retry-after"), "1");
-  assert.equal(response.headers.get("access-control-expose-headers"), "retry-after");
+  assert.equal(response.headers.get("access-control-expose-headers"), "retry-after, x-request-id");
   assert.equal(payload.ok, false);
   assert.equal(payload.error?.code, "SERVICE_UNAVAILABLE");
   assert.equal(payload.error?.message, serviceUnavailableMessage);

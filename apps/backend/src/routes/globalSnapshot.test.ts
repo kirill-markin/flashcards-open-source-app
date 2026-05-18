@@ -73,11 +73,12 @@ function createMountedGlobalSnapshotTestApp(options: Readonly<{
   app.use(globalSnapshotPath, cors({
     origin: "*",
     allowMethods: ["GET", "OPTIONS"],
+    allowHeaders: ["content-type", "authorization", "sentry-trace", "baggage"],
   }));
   app.use("*", cors({
     origin: ["https://app.flashcards-open-source-app.com"],
     allowMethods: ["GET", "POST", "PATCH", "PUT", "OPTIONS"],
-    allowHeaders: ["content-type", "authorization", "x-csrf-token"],
+    allowHeaders: ["content-type", "authorization", "x-csrf-token", "sentry-trace", "baggage"],
     exposeHeaders: [
       "cache-control",
       "content-encoding",
@@ -123,6 +124,13 @@ function createCrossOriginRequestInit(): RequestInit {
       origin: "https://example.com",
     },
   };
+}
+
+function parseCommaSeparatedHeader(headerValue: string): readonly string[] {
+  return headerValue
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter((value) => value !== "");
 }
 
 function restoreEnvironmentVariable(name: string, value: string | undefined): void {
@@ -298,14 +306,22 @@ test("OPTIONS /v1/global/snapshot returns public preflight headers on the mounte
     headers: {
       origin: "https://example.com",
       "access-control-request-method": "GET",
-      "access-control-request-headers": "authorization",
+      "access-control-request-headers": "content-type,authorization,sentry-trace,baggage",
     },
   });
 
   assert.equal(response.status, 204);
   assert.equal(response.headers.get("access-control-allow-origin"), "*");
   assert.equal(response.headers.get("access-control-allow-methods"), "GET,OPTIONS");
-  assert.equal(response.headers.get("access-control-allow-headers"), "authorization,sentry-trace,baggage");
+  const allowHeaders = response.headers.get("access-control-allow-headers");
+  assert.notEqual(allowHeaders, null);
+  if (allowHeaders === null) {
+    throw new Error("Expected access-control-allow-headers on global snapshot preflight response.");
+  }
+  assert.deepEqual(
+    parseCommaSeparatedHeader(allowHeaders),
+    ["content-type", "authorization", "sentry-trace", "baggage"],
+  );
   assert.equal(response.headers.get("access-control-allow-credentials"), null);
   assert.notEqual(response.headers.get("x-request-id"), null);
 });

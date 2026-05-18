@@ -36,6 +36,21 @@ export type AppEnv = {
   };
 };
 
+const browserCorsAllowHeaders = [
+  "content-type",
+  "authorization",
+  "x-csrf-token",
+  "sentry-trace",
+  "baggage",
+] as const;
+
+const globalSnapshotCorsAllowHeaders = [
+  "content-type",
+  "authorization",
+  "sentry-trace",
+  "baggage",
+] as const;
+
 export function getRouteMountPaths(basePath: string): ReadonlyArray<string> {
   if (basePath === "") {
     return ["/", "/v1"];
@@ -180,13 +195,13 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
   app.use(globalSnapshotPath, cors({
     origin: "*",
     allowMethods: ["GET", "OPTIONS"],
-    allowHeaders: ["authorization", "sentry-trace", "baggage"],
+    allowHeaders: [...globalSnapshotCorsAllowHeaders],
     exposeHeaders: ["retry-after"],
   }));
   app.use("*", cors({
     origin: allowedOrigins,
     allowMethods: ["GET", "POST", "PATCH", "PUT", "OPTIONS"],
-    allowHeaders: ["content-type", "authorization", "x-csrf-token", "sentry-trace", "baggage"],
+    allowHeaders: [...browserCorsAllowHeaders],
     exposeHeaders: [
       "cache-control",
       "content-encoding",

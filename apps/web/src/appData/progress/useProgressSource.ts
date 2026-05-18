@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 import { loadProgressReviewSchedule, loadProgressSeries, loadProgressSummary } from "../../api";
+import { captureApiContractError } from "../../observability/apiContractObservation";
 import {
   hasPendingProgressReviewEvents,
   loadLocalProgressDailyReviews,
@@ -447,6 +448,13 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
                 errorMessage: getErrorMessage(error),
                 canRenderServerBase: canLoadServerBaseRef.current,
               });
+              captureApiContractError(error, {
+                feature: "progress",
+                sourceAction: "progress_summary_server_load",
+                userId: null,
+                workspaceId: activeWorkspaceId,
+                installationId: cloudSettings?.installationId ?? null,
+              });
             }
           }
 
@@ -462,7 +470,7 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
 
     summaryServerRefreshPromisesRef.current.set(targetScopeKey, refreshPromise);
     return refreshPromise;
-  }, []);
+  }, [activeWorkspaceId, cloudSettings?.installationId]);
 
   const refreshProgressSeries = useCallback(async function refreshProgressSeries(
     targetScopeKey: ProgressScopeKey,
@@ -523,6 +531,13 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
                 errorMessage: getErrorMessage(error),
                 canRenderServerBase: canLoadServerBaseRef.current,
               });
+              captureApiContractError(error, {
+                feature: "progress",
+                sourceAction: "progress_series_server_load",
+                userId: null,
+                workspaceId: activeWorkspaceId,
+                installationId: cloudSettings?.installationId ?? null,
+              });
             }
           }
 
@@ -538,7 +553,7 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
 
     seriesServerRefreshPromisesRef.current.set(targetScopeKey, refreshPromise);
     return refreshPromise;
-  }, []);
+  }, [activeWorkspaceId, cloudSettings?.installationId]);
 
   const refreshProgressReviewSchedule = useCallback(async function refreshProgressReviewSchedule(
     targetScopeKey: ProgressScopeKey,
@@ -605,6 +620,13 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
                 progressScheduleLocalVersion: requestedRefresh.progressScheduleLocalVersion,
                 canRenderServerBase: canLoadServerBaseRef.current,
               });
+              captureApiContractError(error, {
+                feature: "progress",
+                sourceAction: "progress_review_schedule_server_load",
+                userId: null,
+                workspaceId: activeWorkspaceId,
+                installationId: cloudSettings?.installationId ?? null,
+              });
             }
           }
 
@@ -623,7 +645,7 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
 
     reviewScheduleServerRefreshPromisesRef.current.set(targetScopeKey, refreshPromise);
     return refreshPromise;
-  }, []);
+  }, [activeWorkspaceId, cloudSettings?.installationId]);
 
   useEffect(() => {
     if (summaryScopeKey === null || summaryRefreshKey === null) {

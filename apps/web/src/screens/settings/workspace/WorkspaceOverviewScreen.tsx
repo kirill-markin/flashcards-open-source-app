@@ -3,6 +3,7 @@ import { loadWorkspaceDeletePreview } from "../../../api";
 import { useAppData } from "../../../appData";
 import { useI18n } from "../../../i18n";
 import { loadWorkspaceOverviewSnapshot } from "../../../localDb/workspace";
+import { captureApiContractError, isApiContractErrorForEndpoint } from "../../../observability/apiContractObservation";
 import type { WorkspaceDeletePreview, WorkspaceOverviewSnapshot } from "../../../types";
 import { SettingsShell } from "../SettingsShared";
 
@@ -19,11 +20,13 @@ const emptyOverviewSnapshot: WorkspaceOverviewSnapshot = {
 export function WorkspaceOverviewScreen(): ReactElement {
   const {
     activeWorkspace,
+    cloudSettings,
     isSessionVerified,
     localReadVersion,
     refreshLocalData,
     renameWorkspace,
     deleteWorkspace,
+    session,
   } = useAppData();
   const { t, formatCount, formatNumber } = useI18n();
   const workspaceUnavailableMessage = t("workspaceOverview.workspaceUnavailable");
@@ -153,6 +156,15 @@ export function WorkspaceOverviewScreen(): ReactElement {
       const preview = await loadWorkspaceDeletePreview(activeWorkspace.workspaceId);
       setDeletePreview(preview);
     } catch (error) {
+      if (isApiContractErrorForEndpoint(error, "/delete-preview")) {
+        captureApiContractError(error, {
+          feature: "settings",
+          sourceAction: "workspace_delete_preview_load",
+          userId: session?.userId ?? null,
+          workspaceId: activeWorkspace.workspaceId,
+          installationId: cloudSettings?.installationId ?? null,
+        });
+      }
       setDeletePreviewErrorMessage(error instanceof Error ? error.message : String(error));
     }
   }
@@ -170,6 +182,15 @@ export function WorkspaceOverviewScreen(): ReactElement {
       const preview = await loadWorkspaceDeletePreview(activeWorkspace.workspaceId);
       setDeletePreview(preview);
     } catch (error) {
+      if (isApiContractErrorForEndpoint(error, "/delete-preview")) {
+        captureApiContractError(error, {
+          feature: "settings",
+          sourceAction: "workspace_delete_preview_retry",
+          userId: session?.userId ?? null,
+          workspaceId: activeWorkspace.workspaceId,
+          installationId: cloudSettings?.installationId ?? null,
+        });
+      }
       setDeletePreviewErrorMessage(error instanceof Error ? error.message : String(error));
     }
   }

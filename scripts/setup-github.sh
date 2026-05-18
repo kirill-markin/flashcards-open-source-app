@@ -54,22 +54,24 @@ set_variable_if_missing() {
 }
 
 validate_sentry_traces_sample_rate() {
-  local value="$1"
+  local variable_name="$1"
+  local value="$2"
 
-  python3 - "$value" <<'PY'
+  python3 - "$variable_name" "$value" <<'PY'
 import math
 import sys
 
-value = sys.argv[1]
+variable_name = sys.argv[1]
+value = sys.argv[2]
 
 try:
     traces_sample_rate = float(value)
 except ValueError:
-    print("ERROR: Set SENTRY_TRACES_SAMPLE_RATE to a number between 0 and 1.", file=sys.stderr)
+    print(f"ERROR: Set {variable_name} to a number between 0 and 1.", file=sys.stderr)
     sys.exit(1)
 
 if not math.isfinite(traces_sample_rate) or traces_sample_rate < 0 or traces_sample_rate > 1:
-    print("ERROR: Set SENTRY_TRACES_SAMPLE_RATE to a number between 0 and 1.", file=sys.stderr)
+    print(f"ERROR: Set {variable_name} to a number between 0 and 1.", file=sys.stderr)
     sys.exit(1)
 PY
 }
@@ -97,7 +99,7 @@ set_required_sentry_traces_sample_rate_variable_if_missing() {
   fi
 
   variable_value="$(require_non_empty_value "$variable_value" "$error_message")"
-  validate_sentry_traces_sample_rate "$variable_value"
+  validate_sentry_traces_sample_rate "$variable_name" "$variable_value"
   gh variable set "$variable_name" --body "$variable_value" --repo "$REPO"
 }
 
@@ -168,6 +170,9 @@ SENTRY_ENVIRONMENT="${SENTRY_ENVIRONMENT:-production}"
 SENTRY_TRACES_SAMPLE_RATE="${SENTRY_TRACES_SAMPLE_RATE:-0}"
 SENTRY_ORG="${SENTRY_ORG:-}"
 SENTRY_BACKEND_PROJECT="${SENTRY_BACKEND_PROJECT:-}"
+VITE_SENTRY_DSN="${VITE_SENTRY_DSN:-}"
+VITE_SENTRY_TRACES_SAMPLE_RATE="${VITE_SENTRY_TRACES_SAMPLE_RATE:-0}"
+SENTRY_WEB_PROJECT="${SENTRY_WEB_PROJECT:-}"
 SENTRY_AUTH_TOKEN="${SENTRY_AUTH_TOKEN:-}"
 ANALYTICS_SSH_PUBLIC_KEYS="${ANALYTICS_SSH_PUBLIC_KEYS:-}"
 ANALYTICS_SSH_ALLOWED_CIDRS="${ANALYTICS_SSH_ALLOWED_CIDRS:-}"
@@ -212,6 +217,13 @@ set_required_variable_if_missing CDK_SENTRY_ENVIRONMENT "$SENTRY_ENVIRONMENT" "S
 set_required_sentry_traces_sample_rate_variable_if_missing CDK_SENTRY_TRACES_SAMPLE_RATE "$SENTRY_TRACES_SAMPLE_RATE" "Set SENTRY_TRACES_SAMPLE_RATE in root .env before running setup-github.sh."
 set_required_variable_if_missing SENTRY_ORG "$SENTRY_ORG" "Set SENTRY_ORG in root .env before running setup-github.sh."
 set_required_variable_if_missing SENTRY_BACKEND_PROJECT "$SENTRY_BACKEND_PROJECT" "Set SENTRY_BACKEND_PROJECT in root .env before running setup-github.sh."
+set_variable_if_missing VITE_SENTRY_DSN "$VITE_SENTRY_DSN"
+set_required_sentry_traces_sample_rate_variable_if_missing VITE_SENTRY_TRACES_SAMPLE_RATE "$VITE_SENTRY_TRACES_SAMPLE_RATE" "Set VITE_SENTRY_TRACES_SAMPLE_RATE in root .env before running setup-github.sh."
+if [[ -n "$VITE_SENTRY_DSN" ]]; then
+  set_required_variable_if_missing SENTRY_WEB_PROJECT "$SENTRY_WEB_PROJECT" "Set SENTRY_WEB_PROJECT in root .env before running setup-github.sh when VITE_SENTRY_DSN is set."
+else
+  set_variable_if_missing SENTRY_WEB_PROJECT "$SENTRY_WEB_PROJECT"
+fi
 set_variable_if_missing CDK_DEMO_EMAIL_DOSTIP "$DEMO_EMAIL_DOSTIP"
 set_variable_if_missing CDK_DEMO_PASSWORD_SECRET_ARN "$DEMO_PASSWORD_SECRET_ARN"
 set_variable_if_missing CDK_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP "$GUEST_AI_QUOTA_CAP"

@@ -14,6 +14,21 @@ import { loadCloudSettings, putCloudSettings } from "./localDb/cloudSettings";
 import { clearWebSyncCache } from "./localDb/cache";
 import type { CloudSettings } from "./types";
 
+const observabilityMocks = vi.hoisted(() => ({
+  addWebBreadcrumbMock: vi.fn(),
+  captureWebExceptionMock: vi.fn(),
+  captureWebWarningMock: vi.fn(),
+  setWebObservabilityUserMock: vi.fn(),
+}));
+
+vi.mock("./observability/webObservability", () => ({
+  addWebBreadcrumb: observabilityMocks.addWebBreadcrumbMock,
+  captureWebException: observabilityMocks.captureWebExceptionMock,
+  captureWebWarning: observabilityMocks.captureWebWarningMock,
+  normalizeCaughtError: (error: unknown): Error => error instanceof Error ? error : new Error(`Caught non-Error value of type ${typeof error}`),
+  setWebObservabilityUser: observabilityMocks.setWebObservabilityUserMock,
+}));
+
 const seededCloudSettings: CloudSettings = {
   installationId: "installation-1",
   cloudState: "linked",
@@ -85,6 +100,10 @@ beforeEach(async () => {
   });
   window.localStorage.clear();
   clearAuthResetRequired();
+  observabilityMocks.addWebBreadcrumbMock.mockReset();
+  observabilityMocks.captureWebExceptionMock.mockReset();
+  observabilityMocks.captureWebWarningMock.mockReset();
+  observabilityMocks.setWebObservabilityUserMock.mockReset();
 });
 
 afterEach(async () => {
@@ -122,7 +141,6 @@ describe("account deletion local cleanup helpers", () => {
     seedLocalBrowserState();
     markAuthResetRequired();
     mockBlockedDeleteDatabase();
-    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     const cleanupResult = await runPendingAuthResetCleanup();
 
@@ -130,8 +148,23 @@ describe("account deletion local cleanup helpers", () => {
     expect(cleanupResult.error?.message).toBe("Failed to delete IndexedDB: delete request was blocked");
     expectLocalBrowserStateCleared();
     expect(isAuthResetRequired()).toBe(true);
-    expect(consoleWarnSpy).toHaveBeenCalledWith("auth_reset_cleanup_deferred", {
-      errorMessage: "Failed to delete IndexedDB: delete request was blocked",
+    expect(observabilityMocks.addWebBreadcrumbMock).toHaveBeenCalledWith({
+      action: "auth_reset_cleanup_deferred",
+      scope: {
+        app: "web",
+        feature: "auth",
+        userId: null,
+        workspaceId: null,
+        installationId: "installation-1",
+        route: "/",
+        requestId: null,
+        statusCode: null,
+        code: null,
+      },
+      details: {
+        eventName: "auth_reset_cleanup_deferred",
+        errorMessage: "Failed to delete IndexedDB: delete request was blocked",
+      },
     });
   });
 });

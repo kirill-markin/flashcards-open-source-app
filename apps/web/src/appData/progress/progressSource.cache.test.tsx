@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import type {
   ProgressReviewSchedule,
   ProgressSeries,
   ProgressSummaryPayload,
 } from "../../types";
 import {
+  addWebBreadcrumbMock,
   buildCurrentReviewScheduleInput,
   buildCurrentReviewScheduleScopeKey,
   buildCurrentSeriesInput,
@@ -30,6 +31,31 @@ import {
   summaryAndSeriesSections,
   swapFirstProgressReviewScheduleBuckets,
 } from "./progressSourceTestSupport";
+
+type ExpectedProgressCacheMissSection = "summary" | "series" | "review_schedule";
+type ExpectedProgressCacheMissReason = "invalid_json" | "invalid_shape" | "scope_mismatch" | "time_zone_mismatch";
+
+function expectProgressCacheMissBreadcrumb(
+  section: ExpectedProgressCacheMissSection,
+  reason: ExpectedProgressCacheMissReason,
+): void {
+  expect(addWebBreadcrumbMock).toHaveBeenCalledWith(expect.objectContaining({
+    action: "progress_cache_miss",
+    scope: expect.objectContaining({
+      app: "web",
+      feature: "progress",
+      installationId: null,
+      route: "/",
+      workspaceId: "workspace-1",
+    }),
+    details: expect.objectContaining({
+      eventName: "progress_cache_miss",
+      reason,
+      section,
+      workspaceIds: ["workspace-1"],
+    }),
+  }));
+}
 
 describe("useProgressSource cache", () => {
   it("hydrates matching server cache before remote refresh completes", async () => {
@@ -71,7 +97,6 @@ describe("useProgressSource cache", () => {
   });
 
   it("treats corrupt and mismatched cache entries as misses", async () => {
-    const warningSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const deferredSummary = createDeferredPromise<ProgressSummaryPayload>();
     const deferredSeries = createDeferredPromise<ProgressSeries>();
     const summaryScopeKey = buildCurrentSummaryScopeKey();
@@ -93,20 +118,11 @@ describe("useProgressSource cache", () => {
 
     expect(harness.getApi().progressSourceState.summary.serverBase).toBeNull();
     expect(harness.getApi().progressSourceState.series.serverBase).toBeNull();
-    expect(warningSpy).toHaveBeenCalledWith("progress_cache_miss", expect.objectContaining({
-      reason: "scope_mismatch",
-      section: "summary",
-    }));
-    expect(warningSpy).toHaveBeenCalledWith("progress_cache_miss", expect.objectContaining({
-      reason: "invalid_json",
-      section: "series",
-    }));
-
-    warningSpy.mockRestore();
+    expectProgressCacheMissBreadcrumb("summary", "scope_mismatch");
+    expectProgressCacheMissBreadcrumb("series", "invalid_json");
   });
 
   it("treats malformed cached series dates as invalid-shape misses before loading remote series", async () => {
-    const warningSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const currentSeriesInput = buildCurrentSeriesInput();
     const seriesScopeKey = buildCurrentSeriesScopeKey();
     const malformedCachedSeries = {
@@ -132,29 +148,22 @@ describe("useProgressSource cache", () => {
       JSON.stringify(malformedCachedSeries),
     );
 
-    try {
-      const harness = renderHarness({
-        sessionVerificationState: "verified",
-        cloudSettings: linkedCloudSettings,
-        progressServerInvalidationVersion: 0,
-        sections: seriesOnlySections,
-      });
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: seriesOnlySections,
+    });
 
-      await flushEffects();
+    await flushEffects();
 
-      expect(warningSpy).toHaveBeenCalledWith("progress_cache_miss", expect.objectContaining({
-        reason: "invalid_shape",
-        section: "series",
-      }));
-      expect(loadProgressSeriesMock).toHaveBeenCalledWith(currentSeriesInput);
-      expect(harness.getApi().progressSourceState.series.serverBase?.generatedAt).toBe("2026-04-18T09:23:00.000Z");
-      expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
-        date: currentSeriesInput.to,
-        reviewCount: 8,
-      });
-    } finally {
-      warningSpy.mockRestore();
-    }
+    expectProgressCacheMissBreadcrumb("series", "invalid_shape");
+    expect(loadProgressSeriesMock).toHaveBeenCalledWith(currentSeriesInput);
+    expect(harness.getApi().progressSourceState.series.serverBase?.generatedAt).toBe("2026-04-18T09:23:00.000Z");
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
+      date: currentSeriesInput.to,
+      reviewCount: 8,
+    });
   });
 
   const invalidProgressReviewScheduleCacheCases: ReadonlyArray<Readonly<{
@@ -198,51 +207,11 @@ describe("useProgressSource cache", () => {
 
   for (const invalidCase of invalidProgressReviewScheduleCacheCases) {
     it(`treats cached review schedule with ${invalidCase.name} as an invalid-shape miss before loading remote schedule`, async () => {
-      const warningSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
       const deferredReviewSchedule = createDeferredPromise<ProgressReviewSchedule>();
       const reviewScheduleScopeKey = buildCurrentReviewScheduleScopeKey();
       storePersistedProgressReviewScheduleForTest(reviewScheduleScopeKey, invalidCase.serverBase);
       loadProgressReviewScheduleMock.mockImplementation(() => deferredReviewSchedule.promise);
 
-      try {
-        const harness = renderHarness({
-          sessionVerificationState: "verified",
-          cloudSettings: linkedCloudSettings,
-          progressServerInvalidationVersion: 0,
-          sections: reviewScheduleOnlySections,
-        });
-
-        await flushEffects();
-
-        expect(warningSpy).toHaveBeenCalledWith("progress_cache_miss", expect.objectContaining({
-          reason: "invalid_shape",
-          section: "review_schedule",
-        }));
-        expect(loadProgressReviewScheduleMock).toHaveBeenCalledWith(buildCurrentReviewScheduleInput());
-        expect(harness.getApi().progressSourceState.reviewSchedule.serverBase).toBeNull();
-
-        deferredReviewSchedule.resolve(buildServerReviewSchedule(8, "2026-04-18T09:24:00.000Z"));
-        await flushEffects();
-
-        expect(harness.getApi().progressSourceState.reviewSchedule.serverBase?.generatedAt).toBe("2026-04-18T09:24:00.000Z");
-        expect(harness.getApi().progressSourceState.reviewSchedule.serverBase?.buckets[0]?.count).toBe(8);
-      } finally {
-        warningSpy.mockRestore();
-      }
-    });
-  }
-
-  it("treats cached review schedules for another timezone as misses before loading remote schedule", async () => {
-    const warningSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    const deferredReviewSchedule = createDeferredPromise<ProgressReviewSchedule>();
-    const reviewScheduleScopeKey = buildCurrentReviewScheduleScopeKey();
-    storePersistedProgressReviewScheduleForTest(reviewScheduleScopeKey, {
-      ...buildServerReviewSchedule(4, "2026-04-18T09:10:00.000Z"),
-      timeZone: "UTC",
-    });
-    loadProgressReviewScheduleMock.mockImplementation(() => deferredReviewSchedule.promise);
-
-    try {
       const harness = renderHarness({
         sessionVerificationState: "verified",
         cloudSettings: linkedCloudSettings,
@@ -252,19 +221,43 @@ describe("useProgressSource cache", () => {
 
       await flushEffects();
 
-      expect(warningSpy).toHaveBeenCalledWith("progress_cache_miss", expect.objectContaining({
-        reason: "time_zone_mismatch",
-        section: "review_schedule",
-      }));
+      expectProgressCacheMissBreadcrumb("review_schedule", "invalid_shape");
+      expect(loadProgressReviewScheduleMock).toHaveBeenCalledWith(buildCurrentReviewScheduleInput());
       expect(harness.getApi().progressSourceState.reviewSchedule.serverBase).toBeNull();
 
       deferredReviewSchedule.resolve(buildServerReviewSchedule(8, "2026-04-18T09:24:00.000Z"));
       await flushEffects();
 
-      expect(harness.getApi().progressSourceState.reviewSchedule.serverBase?.timeZone).toBe("Europe/Madrid");
+      expect(harness.getApi().progressSourceState.reviewSchedule.serverBase?.generatedAt).toBe("2026-04-18T09:24:00.000Z");
       expect(harness.getApi().progressSourceState.reviewSchedule.serverBase?.buckets[0]?.count).toBe(8);
-    } finally {
-      warningSpy.mockRestore();
-    }
+    });
+  }
+
+  it("treats cached review schedules for another timezone as misses before loading remote schedule", async () => {
+    const deferredReviewSchedule = createDeferredPromise<ProgressReviewSchedule>();
+    const reviewScheduleScopeKey = buildCurrentReviewScheduleScopeKey();
+    storePersistedProgressReviewScheduleForTest(reviewScheduleScopeKey, {
+      ...buildServerReviewSchedule(4, "2026-04-18T09:10:00.000Z"),
+      timeZone: "UTC",
+    });
+    loadProgressReviewScheduleMock.mockImplementation(() => deferredReviewSchedule.promise);
+
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: reviewScheduleOnlySections,
+    });
+
+    await flushEffects();
+
+    expectProgressCacheMissBreadcrumb("review_schedule", "time_zone_mismatch");
+    expect(harness.getApi().progressSourceState.reviewSchedule.serverBase).toBeNull();
+
+    deferredReviewSchedule.resolve(buildServerReviewSchedule(8, "2026-04-18T09:24:00.000Z"));
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.reviewSchedule.serverBase?.timeZone).toBe("Europe/Madrid");
+    expect(harness.getApi().progressSourceState.reviewSchedule.serverBase?.buckets[0]?.count).toBe(8);
   });
 });

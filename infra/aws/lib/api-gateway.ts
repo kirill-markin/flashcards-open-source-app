@@ -91,29 +91,72 @@ interface ResolvedBackendSentryConfig {
   tracesSampleRate: string;
 }
 
-const chatResumeCorsHeaders = [
+export interface GatewayErrorResponseHeaders {
+  readonly [headerName: string]: string;
+  readonly "Access-Control-Allow-Origin": string;
+  readonly Vary: string;
+  readonly "Access-Control-Allow-Headers": string;
+  readonly "Access-Control-Allow-Methods": string;
+  readonly "Access-Control-Allow-Credentials": string;
+  readonly "Access-Control-Expose-Headers": string;
+}
+
+const browserCorsAllowHeaders = [
   "content-type",
   "authorization",
   "x-csrf-token",
+  "sentry-trace",
+  "baggage",
   "x-chat-resume-attempt-id",
   "x-client-platform",
   "x-client-version",
-  "sentry-trace",
-  "baggage",
 ] as const;
 
-const globalMetricsCorsPreflightOptions: apigw.CorsOptions = {
+const browserCorsExposeHeaders = [
+  "x-request-id",
+] as const;
+
+const gatewayErrorCorsExposeHeaders = [
+  ...browserCorsExposeHeaders,
+  "x-amzn-requestid",
+  "x-amz-apigw-id",
+] as const;
+
+export const globalMetricsCorsPreflightOptions: apigw.CorsOptions = {
   allowOrigins: ["*"],
   allowMethods: ["GET", "OPTIONS"],
-  allowHeaders: ["authorization", "sentry-trace", "baggage"],
+  allowHeaders: ["content-type", "authorization", "sentry-trace", "baggage"],
 };
 
 function createBrowserCorsPreflightOptions(allowedOrigins: string[]): apigw.CorsOptions {
   return {
     allowOrigins: allowedOrigins,
     allowMethods: ["GET", "POST", "OPTIONS"],
-    allowHeaders: [...chatResumeCorsHeaders],
+    allowHeaders: [...browserCorsAllowHeaders],
     allowCredentials: true,
+  };
+}
+
+export function createChatLiveFunctionUrlCorsOptions(
+  allowedOrigins: readonly string[],
+): lambda.FunctionUrlCorsOptions {
+  return {
+    allowedOrigins: [...allowedOrigins],
+    allowedMethods: [lambda.HttpMethod.GET],
+    allowedHeaders: [...browserCorsAllowHeaders],
+    exposedHeaders: [...browserCorsExposeHeaders],
+    allowCredentials: true,
+  };
+}
+
+export function createGatewayErrorResponseHeaders(): GatewayErrorResponseHeaders {
+  return {
+    "Access-Control-Allow-Origin": "method.request.header.Origin",
+    "Vary": "'Origin'",
+    "Access-Control-Allow-Headers": `'${browserCorsAllowHeaders.join(",")}'`,
+    "Access-Control-Allow-Methods": "'GET,POST,OPTIONS'",
+    "Access-Control-Allow-Credentials": "'true'",
+    "Access-Control-Expose-Headers": `'${gatewayErrorCorsExposeHeaders.join(",")}'`,
   };
 }
 
@@ -452,12 +495,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   const chatLiveFunctionUrl = chatLiveFn.addFunctionUrl({
     authType: lambda.FunctionUrlAuthType.NONE,
     invokeMode: lambda.InvokeMode.RESPONSE_STREAM,
-    cors: {
-      allowedOrigins: allowedOrigins,
-      allowedMethods: [lambda.HttpMethod.GET],
-      allowedHeaders: [...chatResumeCorsHeaders],
-      allowCredentials: true,
-    },
+    cors: createChatLiveFunctionUrlCorsOptions(allowedOrigins),
   });
 
   backendFn.addEnvironment("CHAT_WORKER_FUNCTION_NAME", chatWorkerFn.functionName);
@@ -483,13 +521,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     },
     defaultCorsPreflightOptions: createBrowserCorsPreflightOptions(allowedOrigins),
   });
-  const gatewayErrorResponseHeaders = {
-    "Access-Control-Allow-Origin": "method.request.header.Origin",
-    "Vary": "'Origin'",
-    "Access-Control-Allow-Headers": `'${chatResumeCorsHeaders.join(",")}'`,
-    "Access-Control-Allow-Methods": "'GET,POST,OPTIONS'",
-    "Access-Control-Allow-Credentials": "'true'",
-  };
+  const gatewayErrorResponseHeaders = createGatewayErrorResponseHeaders();
 
   new apigw.GatewayResponse(scope, "ApiDefault4xxGatewayResponse", {
     restApi,

@@ -78,6 +78,8 @@ Keep the operator config in root `.env`. The important deploy-time values are:
 - `CLOUDFLARE_ZONE_ID`
 - `RESEND_API_KEY`
 - `RESEND_ADMIN_API_KEY`
+- backend Sentry: `SENTRY_DSN` or `SENTRY_DSN_SECRET_ARN`, `SENTRY_ENVIRONMENT`, `SENTRY_RELEASE`, `SENTRY_TRACES_SAMPLE_RATE`, `SENTRY_ORG`, `SENTRY_BACKEND_PROJECT`, and `SENTRY_AUTH_TOKEN`
+- optional web Sentry: `VITE_SENTRY_DSN`, `VITE_SENTRY_TRACES_SAMPLE_RATE`, and `SENTRY_WEB_PROJECT`; web source map uploads reuse `SENTRY_ORG` and `SENTRY_AUTH_TOKEN`
 - optional `OPENAI_API_KEY`
 - optional `DEMO_EMAIL_DOSTIP`
 - optional `DEMO_PASSWORD_DOSTIP`
@@ -176,11 +178,14 @@ GitHub Actions uses one dedicated `AWS/Web Release` workflow on push to `main`. 
 
 - GitHub variables for all non-secret deploy config, including certificate ARNs and secret ARNs
 - `CDK_ADMIN_EMAILS` as the GitHub-managed deploy input for bootstrap admin grants
-- one GitHub secret for `AWS_DEPLOY_ROLE_ARN`
+- `SENTRY_BACKEND_PROJECT` for backend source map uploads
+- `SENTRY_WEB_PROJECT` for web source map uploads when `VITE_SENTRY_DSN` is set
+- GitHub secrets for `AWS_DEPLOY_ROLE_ARN` and `SENTRY_AUTH_TOKEN`
 
 The release workflow assembles its own `cdk.context.local.json` inside the job from GitHub deploy config.
 Root `.env` is not the live CI source of truth after bootstrap. If `CDK_ADMIN_EMAILS` must change for deployed environments, edit it manually in GitHub before the next release.
 The same rule applies to `CDK_GLOBAL_METRICS_VISIBLE`: after bootstrap, change the GitHub variable directly when you want to flip endpoint visibility in deployed environments.
+The same split applies to Sentry projects: backend source map uploads use `SENTRY_BACKEND_PROJECT`, and web source map uploads use `SENTRY_WEB_PROJECT`.
 
 For AWS-backed changes, the main-branch order is:
 
