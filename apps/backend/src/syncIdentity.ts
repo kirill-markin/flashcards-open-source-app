@@ -5,6 +5,7 @@ import {
   type DatabaseExecutor,
 } from "./db";
 import { HttpError } from "./errors";
+import { lockWorkspaceAccessLifecycleInExecutor } from "./workspaceAccessLocks";
 
 export type SyncClientPlatform = "ios" | "android" | "web";
 export type WorkspaceReplicaActorKind =
@@ -185,13 +186,16 @@ async function lockWorkspaceAccessInExecutor(
   userId: string,
   workspaceId: string,
 ): Promise<void> {
+  await lockWorkspaceAccessLifecycleInExecutor(executor, userId, workspaceId);
+
   const result = await executor.query<WorkspaceAccessLockRow>(
     [
       "SELECT workspaces.workspace_id",
-      "FROM org.workspace_memberships AS memberships",
-      "INNER JOIN org.workspaces AS workspaces ON workspaces.workspace_id = memberships.workspace_id",
-      "WHERE memberships.user_id = $1 AND memberships.workspace_id = $2",
-      "FOR KEY SHARE OF workspaces, memberships",
+      "FROM org.workspaces AS workspaces",
+      "WHERE security.current_user_id() = $1",
+      "AND workspaces.workspace_id = $2",
+      "AND security.user_has_workspace_access(workspaces.workspace_id)",
+      "FOR KEY SHARE OF workspaces",
     ].join(" "),
     [userId, workspaceId],
   );

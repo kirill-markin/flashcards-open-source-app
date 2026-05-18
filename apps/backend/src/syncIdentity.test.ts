@@ -33,6 +33,17 @@ function createQueryResult<Row extends pg.QueryResultRow>(rows: ReadonlyArray<Ro
   };
 }
 
+function isWorkspaceAccessLockQuery(text: string): boolean {
+  return text.includes("FROM org.workspaces AS workspaces")
+    && text.includes("security.user_has_workspace_access(workspaces.workspace_id)")
+    && text.includes("FOR KEY SHARE OF workspaces");
+}
+
+function isWorkspaceAccessLifecycleLockQuery(text: string): boolean {
+  return text.includes("pg_advisory_xact_lock")
+    && text.includes("hashtextextended");
+}
+
 function createSyncIdentityExecutor(
   options: SyncIdentityExecutorOptions,
 ): Readonly<{
@@ -61,6 +72,11 @@ function createSyncIdentityExecutor(
         return createQueryResult<Row>([]);
       }
 
+      if (isWorkspaceAccessLifecycleLockQuery(text)) {
+        requireCurrentWorkspaceScope(String(params[0]), String(params[1]));
+        return createQueryResult<Row>([]);
+      }
+
       if (text.includes("FROM sync.claim_installation")) {
         return createQueryResult<Row>([{
           claim_status: options.claimStatus,
@@ -71,7 +87,7 @@ function createSyncIdentityExecutor(
         } as unknown as Row]);
       }
 
-      if (text.includes("FROM org.workspace_memberships AS memberships")) {
+      if (isWorkspaceAccessLockQuery(text)) {
         requireCurrentWorkspaceScope(String(params[0]), String(params[1]));
         return createQueryResult<Row>(options.workspaceAccessAllowed
           ? [{
@@ -123,16 +139,17 @@ test("ensureWorkspaceReplicaInExecutor accepts inserted, refreshed, and reassign
       appVersion: "1.2.3",
     });
 
-    assert.equal(recordedQueries.length, 4);
+    assert.equal(recordedQueries.length, 5);
     assert.match(recordedQueries[0]!.text, /set_config\('app\.user_id'/);
     assert.deepEqual(recordedQueries[0]!.params, ["user-b", "workspace-1"]);
-    assert.match(recordedQueries[1]!.text, /FROM org\.workspace_memberships AS memberships/);
-    assert.match(recordedQueries[1]!.text, /FOR KEY SHARE OF workspaces, memberships/);
+    assert.ok(isWorkspaceAccessLifecycleLockQuery(recordedQueries[1]!.text));
     assert.deepEqual(recordedQueries[1]!.params, ["user-b", "workspace-1"]);
-    assert.match(recordedQueries[2]!.text, /FROM sync\.claim_installation/);
-    assert.deepEqual(recordedQueries[2]!.params, ["installation-1", "ios", "user-b", "1.2.3"]);
-    assert.match(recordedQueries[3]!.text, /INSERT INTO sync\.workspace_replicas/);
-    assert.equal(replicaId, recordedQueries[3]!.params[0]);
+    assert.ok(isWorkspaceAccessLockQuery(recordedQueries[2]!.text));
+    assert.deepEqual(recordedQueries[2]!.params, ["user-b", "workspace-1"]);
+    assert.match(recordedQueries[3]!.text, /FROM sync\.claim_installation/);
+    assert.deepEqual(recordedQueries[3]!.params, ["installation-1", "ios", "user-b", "1.2.3"]);
+    assert.match(recordedQueries[4]!.text, /INSERT INTO sync\.workspace_replicas/);
+    assert.equal(replicaId, recordedQueries[4]!.params[0]);
   }
 });
 
@@ -159,10 +176,11 @@ test("ensureWorkspaceReplicaInExecutor raises platform mismatch without touching
     },
   );
 
-  assert.equal(recordedQueries.length, 3);
+  assert.equal(recordedQueries.length, 4);
   assert.match(recordedQueries[0]!.text, /set_config\('app\.user_id'/);
-  assert.match(recordedQueries[1]!.text, /FROM org\.workspace_memberships AS memberships/);
-  assert.match(recordedQueries[2]!.text, /FROM sync\.claim_installation/);
+  assert.ok(isWorkspaceAccessLifecycleLockQuery(recordedQueries[1]!.text));
+  assert.ok(isWorkspaceAccessLockQuery(recordedQueries[2]!.text));
+  assert.match(recordedQueries[3]!.text, /FROM sync\.claim_installation/);
 });
 
 test("ensureWorkspaceReplicaInExecutor raises workspace not found before registering replicas", async () => {
@@ -188,10 +206,10 @@ test("ensureWorkspaceReplicaInExecutor raises workspace not found before registe
     },
   );
 
-  assert.equal(recordedQueries.length, 2);
+  assert.equal(recordedQueries.length, 3);
   assert.match(recordedQueries[0]!.text, /set_config\('app\.user_id'/);
-  assert.match(recordedQueries[1]!.text, /FROM org\.workspace_memberships AS memberships/);
-  assert.match(recordedQueries[1]!.text, /FOR KEY SHARE OF workspaces, memberships/);
+  assert.ok(isWorkspaceAccessLifecycleLockQuery(recordedQueries[1]!.text));
+  assert.ok(isWorkspaceAccessLockQuery(recordedQueries[2]!.text));
 });
 
 test("ensureSystemWorkspaceReplicaInExecutor does not claim installations", async () => {
@@ -215,7 +233,13 @@ test("ensureSystemWorkspaceReplicaInExecutor does not claim installations", asyn
         throw new Error("System actors must not claim client installations");
       }
 
-      if (text.includes("FROM org.workspace_memberships AS memberships")) {
+      if (isWorkspaceAccessLifecycleLockQuery(text)) {
+        assert.equal(currentUserId, String(params[0]));
+        assert.equal(currentWorkspaceId, String(params[1]));
+        return createQueryResult<Row>([]);
+      }
+
+      if (isWorkspaceAccessLockQuery(text)) {
         assert.equal(currentUserId, String(params[0]));
         assert.equal(currentWorkspaceId, String(params[1]));
         return createQueryResult<Row>([{
@@ -250,11 +274,11 @@ test("ensureSystemWorkspaceReplicaInExecutor does not claim installations", asyn
   });
 
   assert.equal(replicaId, buildSystemWorkspaceReplicaId("workspace-1", "ai_chat", "chat-session-1"));
-  assert.equal(recordedQueries.length, 3);
+  assert.equal(recordedQueries.length, 4);
   assert.match(recordedQueries[0]!.text, /set_config\('app\.user_id'/);
-  assert.match(recordedQueries[1]!.text, /FROM org\.workspace_memberships AS memberships/);
-  assert.match(recordedQueries[1]!.text, /FOR KEY SHARE OF workspaces, memberships/);
-  assert.match(recordedQueries[2]!.text, /INSERT INTO sync\.workspace_replicas/);
+  assert.ok(isWorkspaceAccessLifecycleLockQuery(recordedQueries[1]!.text));
+  assert.ok(isWorkspaceAccessLockQuery(recordedQueries[2]!.text));
+  assert.match(recordedQueries[3]!.text, /INSERT INTO sync\.workspace_replicas/);
 });
 
 test("ensureSystemWorkspaceReplicaInExecutor accepts workspace_reset actors", async () => {
@@ -278,7 +302,13 @@ test("ensureSystemWorkspaceReplicaInExecutor accepts workspace_reset actors", as
         throw new Error("System actors must not claim client installations");
       }
 
-      if (text.includes("FROM org.workspace_memberships AS memberships")) {
+      if (isWorkspaceAccessLifecycleLockQuery(text)) {
+        assert.equal(currentUserId, String(params[0]));
+        assert.equal(currentWorkspaceId, String(params[1]));
+        return createQueryResult<Row>([]);
+      }
+
+      if (isWorkspaceAccessLockQuery(text)) {
         assert.equal(currentUserId, String(params[0]));
         assert.equal(currentWorkspaceId, String(params[1]));
         return createQueryResult<Row>([{
@@ -313,12 +343,12 @@ test("ensureSystemWorkspaceReplicaInExecutor accepts workspace_reset actors", as
   });
 
   assert.equal(replicaId, buildSystemWorkspaceReplicaId("workspace-1", "workspace_reset", "reset-progress"));
-  assert.equal(recordedQueries.length, 3);
+  assert.equal(recordedQueries.length, 4);
   assert.match(recordedQueries[0]!.text, /set_config\('app\.user_id'/);
-  assert.match(recordedQueries[1]!.text, /FROM org\.workspace_memberships AS memberships/);
-  assert.match(recordedQueries[1]!.text, /FOR KEY SHARE OF workspaces, memberships/);
-  assert.match(recordedQueries[2]!.text, /INSERT INTO sync\.workspace_replicas/);
-  assert.deepEqual(recordedQueries[2]!.params, [
+  assert.ok(isWorkspaceAccessLifecycleLockQuery(recordedQueries[1]!.text));
+  assert.ok(isWorkspaceAccessLockQuery(recordedQueries[2]!.text));
+  assert.match(recordedQueries[3]!.text, /INSERT INTO sync\.workspace_replicas/);
+  assert.deepEqual(recordedQueries[3]!.params, [
     replicaId,
     "workspace-1",
     "user-b",
@@ -354,10 +384,10 @@ test("ensureSystemWorkspaceReplicaInExecutor raises workspace not found before r
     },
   );
 
-  assert.equal(recordedQueries.length, 2);
+  assert.equal(recordedQueries.length, 3);
   assert.match(recordedQueries[0]!.text, /set_config\('app\.user_id'/);
-  assert.match(recordedQueries[1]!.text, /FROM org\.workspace_memberships AS memberships/);
-  assert.match(recordedQueries[1]!.text, /FOR KEY SHARE OF workspaces, memberships/);
+  assert.ok(isWorkspaceAccessLifecycleLockQuery(recordedQueries[1]!.text));
+  assert.ok(isWorkspaceAccessLockQuery(recordedQueries[2]!.text));
 });
 
 test("ensureBootstrapSystemWorkspaceReplicaInExecutor uses provided bootstrap replica without workspace access lock", async () => {
@@ -377,8 +407,12 @@ test("ensureBootstrapSystemWorkspaceReplicaInExecutor uses provided bootstrap re
         return createQueryResult<Row>([]);
       }
 
-      if (text.includes("FROM org.workspace_memberships AS memberships")) {
+      if (isWorkspaceAccessLockQuery(text)) {
         throw new Error("Bootstrap replica creation must not require a pre-existing workspace access lock");
+      }
+
+      if (isWorkspaceAccessLifecycleLockQuery(text)) {
+        throw new Error("Bootstrap replica creation must not require a workspace access lifecycle lock");
       }
 
       if (text.includes("sync.claim_installation")) {
