@@ -1,5 +1,9 @@
 import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { HttpError } from "../errors";
+import {
+  addBackendBreadcrumb,
+  type BackendObservationScope,
+} from "../observability/sentry";
 import { parseGlobalMetricsSnapshotJson, type GlobalMetricsSnapshot } from "./snapshot";
 
 export type GlobalMetricsStorageConfig = Readonly<{
@@ -91,6 +95,7 @@ async function runS3OperationWithRetries<Result>(params: Readonly<{
   operation: "get_object" | "put_object";
   bucketName: string;
   objectKey: string;
+  observationScope: BackendObservationScope;
   run: () => Promise<Result>;
 }>): Promise<Result> {
   let lastError: unknown = null;
@@ -104,17 +109,20 @@ async function runS3OperationWithRetries<Result>(params: Readonly<{
         break;
       }
 
-      console.warn(JSON.stringify({
-        domain: "backend",
+      addBackendBreadcrumb({
         action: "global_metrics_s3_retry",
-        operation: params.operation,
-        attempt,
-        bucketName: params.bucketName,
-        objectKey: params.objectKey,
-        errorName: getS3ErrorName(error),
-        errorMessage: getS3ErrorMessage(error),
-        statusCode: getS3ErrorStatusCode(error),
-      }));
+        scope: params.observationScope,
+        details: {
+          operation: params.operation,
+          attempt,
+          maxAttempts: maxS3AttemptCount,
+          bucketName: params.bucketName,
+          objectKey: params.objectKey,
+          statusCode: getS3ErrorStatusCode(error),
+          errorClass: getS3ErrorName(error),
+          errorMessage: getS3ErrorMessage(error),
+        },
+      });
     }
   }
 
@@ -142,6 +150,7 @@ function createGlobalMetricsSnapshotUnavailableError(
 }
 
 export async function loadGlobalMetricsSnapshotFromS3WithDependencies(
+  observationScope: BackendObservationScope,
   dependencies: LoadGlobalMetricsSnapshotDependencies,
 ): Promise<GlobalMetricsSnapshot> {
   let config: GlobalMetricsStorageConfig | null = null;
@@ -153,6 +162,7 @@ export async function loadGlobalMetricsSnapshotFromS3WithDependencies(
       operation: "get_object",
       bucketName: resolvedConfig.bucketName,
       objectKey: resolvedConfig.objectKey,
+      observationScope,
       run: async () => dependencies.s3Client.send(new GetObjectCommand({
         Bucket: resolvedConfig.bucketName,
         Key: resolvedConfig.objectKey,
@@ -170,8 +180,10 @@ export async function loadGlobalMetricsSnapshotFromS3WithDependencies(
   }
 }
 
-export async function loadGlobalMetricsSnapshotFromS3(): Promise<GlobalMetricsSnapshot> {
-  return loadGlobalMetricsSnapshotFromS3WithDependencies({
+export async function loadGlobalMetricsSnapshotFromS3(
+  observationScope: BackendObservationScope,
+): Promise<GlobalMetricsSnapshot> {
+  return loadGlobalMetricsSnapshotFromS3WithDependencies(observationScope, {
     s3Client: getGlobalMetricsS3Client(),
     getGlobalMetricsStorageConfigFn: getGlobalMetricsStorageConfig,
     parseGlobalMetricsSnapshotJsonFn: parseGlobalMetricsSnapshotJson,
@@ -179,6 +191,7 @@ export async function loadGlobalMetricsSnapshotFromS3(): Promise<GlobalMetricsSn
 }
 
 export async function writeGlobalMetricsSnapshotToS3WithDependencies(
+  observationScope: BackendObservationScope,
   snapshot: GlobalMetricsSnapshot,
   dependencies: WriteGlobalMetricsSnapshotDependencies,
 ): Promise<GlobalMetricsSnapshotWriteResult> {
@@ -189,6 +202,7 @@ export async function writeGlobalMetricsSnapshotToS3WithDependencies(
       operation: "put_object",
       bucketName: config.bucketName,
       objectKey: config.objectKey,
+      observationScope,
       run: async () => dependencies.s3Client.send(new PutObjectCommand({
         Bucket: config.bucketName,
         Key: config.objectKey,
@@ -210,9 +224,10 @@ export async function writeGlobalMetricsSnapshotToS3WithDependencies(
 }
 
 export async function writeGlobalMetricsSnapshotToS3(
+  observationScope: BackendObservationScope,
   snapshot: GlobalMetricsSnapshot,
 ): Promise<GlobalMetricsSnapshotWriteResult> {
-  return writeGlobalMetricsSnapshotToS3WithDependencies(snapshot, {
+  return writeGlobalMetricsSnapshotToS3WithDependencies(observationScope, snapshot, {
     s3Client: getGlobalMetricsS3Client(),
     getGlobalMetricsStorageConfigFn: getGlobalMetricsStorageConfig,
   });

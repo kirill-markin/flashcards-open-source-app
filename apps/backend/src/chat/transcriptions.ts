@@ -5,6 +5,13 @@
 import { Buffer } from "node:buffer";
 import { toFile } from "openai";
 import { HttpError } from "../errors";
+import {
+  addBackendBreadcrumb,
+  captureBackendWarning,
+  createBackendObservationScope,
+  getBackendErrorLogDetails,
+  type ChatTranscriptionFailureDetails,
+} from "../observability/sentry";
 import { expectUuidString } from "../server/requestParsing";
 import { getObservedOpenAIClient } from "./openai/client";
 import {
@@ -52,21 +59,6 @@ const SUPPORTED_AUDIO_MEDIA_TYPES = new Set([
   "audio/x-wav",
   "audio/webm",
 ]);
-
-type ChatTranscriptionFailureDetails = Readonly<{
-  requestId: string;
-  sessionId: string;
-  source: ChatTranscriptionSource;
-  fileName: string;
-  fileSize: number;
-  fileExtension: string | null;
-  provider: string;
-  mediaType: string;
-  upstreamStatus: number | null;
-  upstreamMessage: string | null;
-  upstreamRequestId: string | null;
-  error: string;
-}>;
 
 type ChatTranscriptionDependencies = Readonly<{
   getObservedOpenAIClient: () => OpenAITranscriptionClient;
@@ -192,22 +184,43 @@ function isInvalidAudioFailure(error: unknown): boolean {
  * Logs transcription failures with structured provider metadata for debugging.
  */
 function logChatTranscriptionFailure(details: ChatTranscriptionFailureDetails): void {
-  console.error(JSON.stringify({
-    domain: "chat",
+  captureBackendWarning({
     action: "chat_transcription_failed",
-    requestId: details.requestId,
-    sessionId: details.sessionId,
-    source: details.source,
-    provider: details.provider,
-    fileName: details.fileName,
-    fileSize: details.fileSize,
-    fileExtension: details.fileExtension,
-    mediaType: details.mediaType,
-    upstreamStatus: details.upstreamStatus,
-    upstreamMessage: details.upstreamMessage,
-    upstreamRequestId: details.upstreamRequestId,
-    error: details.error,
-  }));
+    message: "Chat transcription failed.",
+    scope: createBackendObservationScope(
+      "backend-api",
+      details.requestId,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      details.sessionId,
+    ),
+    details,
+  });
+}
+
+/**
+ * Logs expected invalid audio provider failures without creating Sentry warning issues.
+ */
+function logChatTranscriptionInvalidAudio(details: ChatTranscriptionFailureDetails): void {
+  addBackendBreadcrumb({
+    action: "chat_transcription_invalid_audio",
+    scope: createBackendObservationScope(
+      "backend-api",
+      details.requestId,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      details.sessionId,
+    ),
+    details,
+  });
 }
 
 const DEFAULT_CHAT_TRANSCRIPTION_DEPENDENCIES: ChatTranscriptionDependencies = {
@@ -258,22 +271,23 @@ export async function transcribeChatAudioUploadWithDependencies(
     return trimmedText;
   } catch (error) {
     const metadata = getAIProviderFailureMetadata(error);
-    logChatTranscriptionFailure({
+    const errorDetails = getBackendErrorLogDetails(error);
+    const failureDetails: ChatTranscriptionFailureDetails = {
       requestId: requestContext.requestId,
       sessionId: requestContext.sessionId,
       source: upload.source,
       provider: "openai",
-      fileName: upload.file.name,
       fileSize: upload.file.size,
       fileExtension: normalizeFileExtension(upload.file.name),
       mediaType: upload.file.type.trim().toLowerCase(),
       upstreamStatus: metadata.upstreamStatus,
-      upstreamMessage: metadata.upstreamMessage,
       upstreamRequestId: metadata.upstreamRequestId,
-      error: metadata.originalMessage,
-    });
+      errorClass: errorDetails.errorClass,
+      errorMessage: errorDetails.errorMessage,
+    };
 
     if (isInvalidAudioFailure(error)) {
+      logChatTranscriptionInvalidAudio(failureDetails);
       throw new HttpError(
         422,
         CHAT_TRANSCRIPTION_INVALID_AUDIO_ERROR_MESSAGE,
@@ -281,6 +295,7 @@ export async function transcribeChatAudioUploadWithDependencies(
       );
     }
 
+    logChatTranscriptionFailure(failureDetails);
     const normalizedFailure = classifyChatTranscriptionFailure(error);
     throw new HttpError(
       normalizedFailure.statusCode,

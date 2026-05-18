@@ -10,6 +10,7 @@ import type { LiveStreamParams } from "./chat/liveRequest";
 import {
   addBackendBreadcrumb,
   captureBackendException,
+  type BackendObservationScope,
   type ChatLiveBootstrapFailureDetails,
   continueBackendTrace,
   createBackendObservationScope,
@@ -146,6 +147,8 @@ type ChatLiveRuntime = Readonly<{
   flushLangfuseTelemetry: typeof import("./telemetry/langfuse").flushLangfuseTelemetry;
 }>;
 
+type FlushLangfuseTelemetry = ChatLiveRuntime["flushLangfuseTelemetry"];
+
 type ChatLiveBootstrapErrorBody = Readonly<{
   error: string;
   requestId: string;
@@ -181,6 +184,14 @@ function getChatLiveRuntime(): Promise<ChatLiveRuntime> {
   }
 
   return chatLiveRuntimePromise;
+}
+
+async function flushLiveTelemetry(
+  flushLangfuseTelemetry: FlushLangfuseTelemetry,
+  observationScope: BackendObservationScope,
+): Promise<void> {
+  await flushLangfuseTelemetry(observationScope);
+  await flushBackendSentry(2000);
 }
 
 function createLiveRequestUrl(event: APIGatewayProxyEventV2): URL {
@@ -263,6 +274,17 @@ async function liveStreamHandler(
   const clientPlatform = readApiGatewayHeader(event.headers, "x-client-platform");
   const clientVersion = readApiGatewayHeader(event.headers, "x-client-version");
   const method = event.requestContext.http.method;
+  const requestObservationScope = createBackendObservationScope(
+    "chat-live",
+    requestId,
+    event.rawPath,
+    method,
+    null,
+    null,
+    null,
+    url.searchParams.get("runId"),
+    url.searchParams.get("sessionId"),
+  );
 
   let params: LiveStreamParams;
 
@@ -270,17 +292,6 @@ async function liveStreamHandler(
     params = await handleLiveRequest(url, authorizationHeader, event.headers ?? {});
   } catch (error) {
     const errorResponse = createChatLiveErrorResponse(error, requestId);
-    const scope = createBackendObservationScope(
-      "chat-live",
-      requestId,
-      event.rawPath,
-      method,
-      null,
-      null,
-      null,
-      url.searchParams.get("runId"),
-      url.searchParams.get("sessionId"),
-    );
     const details = {
       statusCode: errorResponse.statusCode,
       path: event.rawPath,
@@ -297,13 +308,13 @@ async function liveStreamHandler(
       captureBackendException({
         action: "chat_live_request_error",
         error: normalizeCaughtError(error),
-        scope,
+        scope: requestObservationScope,
         details,
       });
     } else {
       addBackendBreadcrumb({
         action: "chat_live_request_error",
-        scope,
+        scope: requestObservationScope,
         details,
       });
     }
@@ -314,16 +325,21 @@ async function liveStreamHandler(
     const stream = awslambda.HttpResponseStream.from(responseStream, metadata);
     stream.write(JSON.stringify(errorResponse.body));
     stream.end();
-    if (errorResponse.statusCode >= 500) {
-      await Promise.all([
-        flushLangfuseTelemetry(),
-        flushBackendSentry(2000),
-      ]);
-    } else {
-      await flushLangfuseTelemetry();
-    }
+    await flushLiveTelemetry(flushLangfuseTelemetry, requestObservationScope);
     return;
   }
+
+  const streamObservationScope = createBackendObservationScope(
+    "chat-live",
+    requestId,
+    event.rawPath,
+    method,
+    params.userId,
+    params.workspaceId,
+    null,
+    params.runId,
+    params.sessionId,
+  );
 
   const metadata = {
     statusCode: 200,
@@ -338,17 +354,7 @@ async function liveStreamHandler(
 
   addBackendBreadcrumb({
     action: "chat_live_attach_start",
-    scope: createBackendObservationScope(
-      "chat-live",
-      requestId,
-      event.rawPath,
-      method,
-      params.userId,
-      params.workspaceId,
-      null,
-      params.runId,
-      params.sessionId,
-    ),
+    scope: streamObservationScope,
     details: {
       statusCode: 200,
       path: event.rawPath,
@@ -375,25 +381,12 @@ async function liveStreamHandler(
         requestId,
       }),
     ));
-    await Promise.all([
-      flushLangfuseTelemetry(),
-      flushBackendSentry(2000),
-    ]);
+    await flushLiveTelemetry(flushLangfuseTelemetry, streamObservationScope);
   } catch (error) {
     captureBackendException({
       action: "chat_live_stream_crashed",
       error: normalizeCaughtError(error),
-      scope: createBackendObservationScope(
-        "chat-live",
-        requestId,
-        event.rawPath,
-        method,
-        params.userId,
-        params.workspaceId,
-        null,
-        params.runId,
-        params.sessionId,
-      ),
+      scope: streamObservationScope,
       details: {
         statusCode: 500,
         path: event.rawPath,
@@ -409,10 +402,7 @@ async function liveStreamHandler(
         clientVersion: params.clientVersion ?? null,
       },
     });
-    await Promise.all([
-      flushLangfuseTelemetry(),
-      flushBackendSentry(2000),
-    ]);
+    await flushLiveTelemetry(flushLangfuseTelemetry, streamObservationScope);
     if (stream.destroyed === false && stream.writableEnded === false) {
       stream.end();
     }
@@ -423,7 +413,7 @@ const chatLiveStreamHandler: StreamifyHandler<APIGatewayProxyEventV2, void> = as
   event: APIGatewayProxyEventV2,
   responseStream: awslambda.HttpResponseStream,
 ): Promise<void> => {
-  let flushLangfuseTelemetry: (() => Promise<void>) | null = null;
+  let flushLangfuseTelemetry: ((observationScope: BackendObservationScope) => Promise<void>) | null = null;
   try {
     const runtime = await getChatLiveRuntime();
     flushLangfuseTelemetry = runtime.flushLangfuseTelemetry;
@@ -431,20 +421,21 @@ const chatLiveStreamHandler: StreamifyHandler<APIGatewayProxyEventV2, void> = as
   } catch (error) {
     const normalizedError = normalizeCaughtError(error);
     const requestId = getLiveRequestId(event);
+    const observationScope = createBackendObservationScope(
+      "chat-live",
+      requestId,
+      event.rawPath,
+      event.requestContext.http.method,
+      null,
+      null,
+      null,
+      null,
+      null,
+    );
     captureBackendException({
       action: "chat_live_bootstrap_failed",
       error: normalizedError,
-      scope: createBackendObservationScope(
-        "chat-live",
-        requestId,
-        event.rawPath,
-        event.requestContext.http.method,
-        null,
-        null,
-        null,
-        null,
-        null,
-      ),
+      scope: observationScope,
       details: createChatLiveBootstrapFailureDetails(event, normalizedError),
     });
     try {
@@ -453,10 +444,7 @@ const chatLiveStreamHandler: StreamifyHandler<APIGatewayProxyEventV2, void> = as
       if (flushLangfuseTelemetry === null) {
         await flushBackendSentry(2000);
       } else {
-        await Promise.all([
-          flushLangfuseTelemetry(),
-          flushBackendSentry(2000),
-        ]);
+        await flushLiveTelemetry(flushLangfuseTelemetry, observationScope);
       }
     }
   }

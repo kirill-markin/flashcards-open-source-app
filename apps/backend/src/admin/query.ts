@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import type pg from "pg";
 import { withTransientDatabaseRetry } from "../dbTransient";
 import { HttpError } from "../errors";
+import { createBackendObservationScope } from "../observability/sentry";
 import { logAdminQueryEvent } from "../server/logging";
 import { withReportingReadOnlyTransaction } from "./reportingDb";
 
@@ -510,6 +511,17 @@ export async function executeAdminQuery(
 ): Promise<AdminQueryResponse> {
   const executeStatementBatchFn = params.executeStatementBatchFn ?? executeReportingStatementBatch;
   const logAdminQueryEventFn = params.logAdminQueryEventFn ?? logAdminQueryEvent;
+  const observationScope = createBackendObservationScope(
+    "backend-api",
+    params.requestId,
+    "/admin/reports/query",
+    "POST",
+    null,
+    null,
+    null,
+    null,
+    null,
+  );
   const sqlFingerprint = getAdminQueryFingerprint(params.sql);
   const startedAt = Date.now();
   let statementCount = 0;
@@ -528,6 +540,7 @@ export async function executeAdminQuery(
     const resultSets: Array<AdminQueryResultSet> = [];
     const statementResults = await withTransientDatabaseRetry(
       async () => executeStatementBatchFn(statementSqlList),
+      () => observationScope,
     );
     if (statementResults.length !== statementSqlList.length) {
       throw new Error("Admin query executor returned a mismatched number of statement results.");

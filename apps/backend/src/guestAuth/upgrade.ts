@@ -1,6 +1,10 @@
 import type { DatabaseExecutor } from "../db";
 import { HttpError } from "../errors";
 import {
+  captureBackendWarning,
+  createBackendObservationScope,
+} from "../observability/sentry";
+import {
   AUTO_CREATED_WORKSPACE_NAME,
   createWorkspaceInExecutor,
 } from "../workspaces";
@@ -67,14 +71,27 @@ function logSuspiciousGuestUpgradeReplay(
   targetSubjectUserId: string,
   historyTargetSubjectUserId: string | null,
 ): void {
-  console.error(JSON.stringify({
-    domain: "backend",
+  captureBackendWarning({
     action: "guest_upgrade_complete_suspicious",
-    reason,
-    guestSessionId,
-    targetSubjectUserId,
-    historyTargetSubjectUserId,
-  }));
+    message: "Guest upgrade completion hit a suspicious replay state.",
+    scope: createBackendObservationScope(
+      "backend-api",
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      guestSessionId,
+    ),
+    details: {
+      reason,
+      guestSessionId,
+      targetSubjectUserId,
+      historyTargetSubjectUserId,
+    },
+  });
 }
 
 async function createGuestUpgradeReplayCompletionInExecutor(

@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import pg from "pg";
+import {
+  initializeBackendSentryWithDeps,
+  resetBackendSentryForTests,
+} from "../observability/sentry";
 
 function createCodedError(code: string, message: string): Error & Readonly<{ code: string }> {
   const error = new Error(message) as Error & { code: string };
@@ -42,6 +46,7 @@ test("withReportingReadOnlyTransaction preserves original error when rollback cl
   process.env.REPORTING_DATABASE_URL = "postgresql://user:pass@localhost:5432/reporting";
   delete process.env.REPORTING_DB_SECRET_ARN;
   pg.Pool.prototype.connect = async (): Promise<pg.PoolClient> => client as pg.PoolClient;
+  initializeBackendSentryWithDeps("backend-api", {}, { init: () => {} });
   console.warn = (message?: unknown): void => {
     if (typeof message !== "string") {
       throw new Error("Expected rollback warning log to be a JSON string.");
@@ -62,6 +67,7 @@ test("withReportingReadOnlyTransaction preserves original error when rollback cl
   } finally {
     pg.Pool.prototype.connect = originalConnect;
     console.warn = originalWarn;
+    resetBackendSentryForTests();
     if (originalReportingDatabaseUrl === undefined) {
       delete process.env.REPORTING_DATABASE_URL;
     } else {
@@ -84,6 +90,15 @@ test("withReportingReadOnlyTransaction preserves original error when rollback cl
     {
       domain: "backend",
       action: "reporting_read_only_transaction_rollback_failed",
+      service: "backend-api",
+      requestId: null,
+      route: null,
+      method: null,
+      userId: null,
+      workspaceId: null,
+      chatRequestId: null,
+      runId: null,
+      sessionId: null,
       originalSqlState: "42601",
       originalErrorCode: "42601",
       originalErrorClass: "Error",

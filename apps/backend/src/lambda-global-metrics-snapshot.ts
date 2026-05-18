@@ -70,23 +70,24 @@ const globalMetricsSnapshotHandler: Handler<
   unknown,
   GlobalMetricsSnapshotResponse
 > = async (_event, context) => {
+  const observationScope = createBackendObservationScope(
+    "global-metrics-snapshot",
+    context.awsRequestId ?? null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+  );
   try {
     const runtime = await getGlobalMetricsSnapshotRuntime();
-    const result = await runtime.generateAndWriteGlobalMetricsSnapshot();
+    const result = await runtime.generateAndWriteGlobalMetricsSnapshot(observationScope);
 
     addBackendBreadcrumb({
       action: "global_metrics_snapshot_generated",
-      scope: createBackendObservationScope(
-        "global-metrics-snapshot",
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-      ),
+      scope: observationScope,
       details: {
         bucketName: result.bucketName,
         objectKey: result.objectKey,
@@ -113,17 +114,7 @@ const globalMetricsSnapshotHandler: Handler<
     captureBackendException({
       action: "global_metrics_snapshot_failed",
       error: normalizedError,
-      scope: createBackendObservationScope(
-        "global-metrics-snapshot",
-        context.awsRequestId ?? null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-      ),
+      scope: observationScope,
       details: createGlobalMetricsSnapshotFailureDetails(normalizedError),
     });
     throw error;

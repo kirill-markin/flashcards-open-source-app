@@ -6,6 +6,10 @@ import {
   toDatabaseBoundaryError,
   toDatabaseCommitBoundaryError,
 } from "./dbTransient";
+import {
+  captureBackendWarning,
+  createBackendRuntimeObservationScope,
+} from "./observability/sentry";
 
 let pool: pg.Pool | undefined;
 
@@ -95,18 +99,28 @@ function toClientReleaseError(error: unknown): Error {
 function logUnsafeTransactionRollbackFailure(originalError: unknown, rollbackError: unknown): void {
   const originalFields = getDatabaseErrorFields(originalError);
   const rollbackFields = getDatabaseErrorFields(rollbackError);
-  console.warn(JSON.stringify({
-    domain: "backend",
+  captureBackendWarning({
     action: "unsafe_transaction_rollback_failed",
-    originalSqlState: originalFields.sqlState,
-    originalErrorCode: originalFields.errorCode,
-    originalErrorClass: originalFields.errorClass,
-    originalErrorMessage: originalFields.errorMessage,
-    rollbackSqlState: rollbackFields.sqlState,
-    rollbackErrorCode: rollbackFields.errorCode,
-    rollbackErrorClass: rollbackFields.errorClass,
-    rollbackErrorMessage: rollbackFields.errorMessage,
-  }));
+    scope: createBackendRuntimeObservationScope(),
+    details: {
+      originalSqlState: originalFields.sqlState,
+      originalErrorCode: originalFields.errorCode,
+      originalErrorClass: originalFields.errorClass,
+      originalErrorMessage: originalFields.errorMessage,
+      rollbackSqlState: rollbackFields.sqlState,
+      rollbackErrorCode: rollbackFields.errorCode,
+      rollbackErrorClass: rollbackFields.errorClass,
+      rollbackErrorMessage: rollbackFields.errorMessage,
+    },
+  });
+}
+
+function tryLogUnsafeTransactionRollbackFailure(originalError: unknown, rollbackError: unknown): void {
+  try {
+    logUnsafeTransactionRollbackFailure(originalError, rollbackError);
+  } catch {
+    // Observability must not mask the original transaction failure.
+  }
 }
 
 export async function applyUserDatabaseScopeInExecutor(
@@ -172,8 +186,8 @@ export async function unsafeTransaction<Result>(
     } catch (error) {
       const rollbackError = await rollbackTransaction(client);
       if (rollbackError !== null) {
-        logUnsafeTransactionRollbackFailure(error, rollbackError);
         releaseError = toClientReleaseError(rollbackError);
+        tryLogUnsafeTransactionRollbackFailure(error, rollbackError);
         throw toDatabaseBoundaryError(error);
       }
 

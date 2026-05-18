@@ -265,6 +265,13 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
             result,
           };
         },
+        () => createSyncScope(
+          requestId,
+          context.req.path,
+          context.req.method,
+          getRequestContextUserId(requestContext),
+          workspaceId,
+        ),
       );
       addBackendBreadcrumb({
         action: "sync_pull",
@@ -382,6 +389,13 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
             result,
           };
         },
+        () => createSyncScope(
+          requestId,
+          context.req.path,
+          context.req.method,
+          getRequestContextUserId(requestContext),
+          workspaceId,
+        ),
       );
       addBackendBreadcrumb({
         action: "sync_review_history_pull",

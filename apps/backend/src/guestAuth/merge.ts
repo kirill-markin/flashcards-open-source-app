@@ -16,6 +16,10 @@ import {
   type SyncConflictEntityType,
 } from "../errors";
 import {
+  captureBackendWarning,
+  createBackendObservationScope,
+} from "../observability/sentry";
+import {
   compareLwwMetadata,
 } from "../lww";
 import {
@@ -121,14 +125,27 @@ function logGuestMergeFsrsStateReset(
   cardId: string,
   reason: string,
 ): void {
-  console.error(JSON.stringify({
-    domain: "cards",
+  captureBackendWarning({
     action: "reset_invalid_fsrs_state",
-    workspaceId,
-    cardId,
-    reason,
-    repair: "reset",
-  }));
+    message: "Invalid FSRS state was reset.",
+    scope: createBackendObservationScope(
+      "backend-api",
+      null,
+      null,
+      null,
+      null,
+      workspaceId,
+      null,
+      null,
+      null,
+    ),
+    details: {
+      workspaceId,
+      cardId,
+      reason,
+      repair: "reset",
+    },
+  });
 }
 
 function repairGuestCardSnapshotInput(
@@ -345,16 +362,29 @@ function logGuestMergeDroppedEntity(
   targetWorkspaceId: string,
   conflictingWorkspaceId: string,
 ): void {
-  console.error(JSON.stringify({
-    domain: "guest_auth",
+  captureBackendWarning({
     action: "guest_merge_drop_third_workspace_conflict",
-    entityType,
-    entityId,
-    sourceGuestWorkspaceId,
-    targetWorkspaceId,
-    conflictingWorkspaceId,
-    resolution: "drop_guest_entity",
-  }));
+    message: "Guest merge dropped an entity because its id belongs to a third workspace.",
+    scope: createBackendObservationScope(
+      "backend-api",
+      null,
+      null,
+      null,
+      null,
+      targetWorkspaceId,
+      null,
+      null,
+      null,
+    ),
+    details: {
+      entityType,
+      entityId,
+      sourceGuestWorkspaceId,
+      targetWorkspaceId,
+      conflictingWorkspaceId,
+      resolution: "drop_guest_entity",
+    },
+  });
 }
 
 function logGuestMergeDroppedReviewEventForMissingCard(
@@ -363,15 +393,28 @@ function logGuestMergeDroppedReviewEventForMissingCard(
   sourceGuestWorkspaceId: string,
   targetWorkspaceId: string,
 ): void {
-  console.error(JSON.stringify({
-    domain: "guest_auth",
+  captureBackendWarning({
     action: "guest_merge_drop_review_event_missing_target_card",
-    reviewEventId,
-    cardId,
-    sourceGuestWorkspaceId,
-    targetWorkspaceId,
-    resolution: "drop_guest_entity",
-  }));
+    message: "Guest merge dropped a review event because its target card was not merged.",
+    scope: createBackendObservationScope(
+      "backend-api",
+      null,
+      null,
+      null,
+      null,
+      targetWorkspaceId,
+      null,
+      null,
+      null,
+    ),
+    details: {
+      reviewEventId,
+      cardId,
+      sourceGuestWorkspaceId,
+      targetWorkspaceId,
+      resolution: "drop_guest_entity",
+    },
+  });
 }
 
 async function writeGuestEntityIntoTargetInExecutor(

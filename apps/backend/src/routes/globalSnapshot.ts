@@ -9,6 +9,7 @@ import {
 import {
   captureBackendWarning,
   createBackendObservationScope,
+  type BackendObservationScope,
 } from "../observability/sentry";
 
 export const globalSnapshotPath = "/global/snapshot";
@@ -16,7 +17,7 @@ const globalMetricsSnapshotUnavailableCode = "GLOBAL_METRICS_SNAPSHOT_UNAVAILABL
 const globalMetricsSnapshotUnavailableMessage = "Global metrics snapshot is unavailable.";
 
 type GlobalSnapshotRoutesOptions = Readonly<{
-  loadGlobalMetricsSnapshotFn?: () => Promise<GlobalMetricsSnapshot>;
+  loadGlobalMetricsSnapshotFn?: (observationScope: BackendObservationScope) => Promise<GlobalMetricsSnapshot>;
   isGlobalMetricsVisibleFn?: () => boolean;
 }>;
 
@@ -56,8 +57,19 @@ export function createGlobalSnapshotRoutes(options: GlobalSnapshotRoutesOptions)
 
   app.get(globalSnapshotPath, async (context) => {
     assertGlobalMetricsVisible(isGlobalMetricsVisibleFn());
+    const observationScope = createBackendObservationScope(
+      "backend-api",
+      context.get("requestId"),
+      context.req.path,
+      context.req.method,
+      null,
+      null,
+      null,
+      null,
+      null,
+    );
     try {
-      const response = context.json(await loadGlobalMetricsSnapshotFn());
+      const response = context.json(await loadGlobalMetricsSnapshotFn(observationScope));
       return applyGlobalSnapshotCorsHeaders(response);
     } catch (error) {
       if (!isGlobalMetricsSnapshotUnavailableError(error)) {
@@ -67,17 +79,7 @@ export function createGlobalSnapshotRoutes(options: GlobalSnapshotRoutesOptions)
       captureBackendWarning({
         action: "global_snapshot_error",
         message: "Global metrics snapshot is unavailable.",
-        scope: createBackendObservationScope(
-          "backend-api",
-          context.get("requestId"),
-          context.req.path,
-          context.req.method,
-          null,
-          null,
-          null,
-          null,
-          null,
-        ),
+        scope: observationScope,
         details: {
           statusCode: error.statusCode,
           code: error.code,
