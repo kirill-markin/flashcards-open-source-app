@@ -398,6 +398,7 @@ extension AIChatStore {
         self.chatSessionId = resolvedSessionId
         self.conversationScopeId = resolvedSessionId
         self.bootstrapPhase = .loading
+        self.lastBootstrapFailureWasRetryable = false
 
         let bootstrapContext = self.surfaceState.activeAccessContext ?? self.currentAccessContext()
         let preservesPendingLocalSessionDraft = self.shouldPreservePendingLocalSessionDraftOnBootstrapFailure()
@@ -420,6 +421,7 @@ extension AIChatStore {
                 }
                 self.applyBootstrap(bootstrapResult.response)
                 self.bootstrapPhase = .ready
+                self.lastBootstrapFailureWasRetryable = false
                 self.attachBootstrapLiveIfNeeded(
                     response: bootstrapResult.response,
                     session: bootstrapResult.session,
@@ -451,6 +453,7 @@ extension AIChatStore {
                 self.transitionToIdle()
                 self.activeAlert = nil
                 self.repairStatus = nil
+                self.lastBootstrapFailureWasRetryable = aiChatBootstrapShouldRetry(error: error)
                 self.bootstrapPhase = .failed(
                     makeAIChatBootstrapErrorPresentation(
                         error: error,
@@ -472,10 +475,10 @@ extension AIChatStore {
     private func loadBootstrapWithBoundedRetry(
         resumeAttemptDiagnostics: AIChatResumeAttemptDiagnostics?
     ) async throws -> AIChatBootstrapLoadResult {
-        let session = try await self.flashcardsStore.cloudSessionForAI()
         var attemptNumber = 0
         while true {
             do {
+                let session = try await self.flashcardsStore.cloudSessionForAI()
                 let explicitSessionId = try await self.ensureRemoteSessionIfNeeded(session: session)
                 let bootstrap = try await self.chatService.loadBootstrap(
                     session: session,

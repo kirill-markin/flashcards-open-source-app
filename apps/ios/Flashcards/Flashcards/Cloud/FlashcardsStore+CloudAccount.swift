@@ -180,6 +180,10 @@ extension FlashcardsStore {
 
         if isAlreadyGuestLinked {
             self.cloudRuntime.setActiveCloudSession(linkedSession: guestSession)
+            if case .failed = self.syncStatus {
+                try await self.performSameWorkspaceCloudRestore(linkedSession: guestSession, trigger: trigger)
+                return (guestSession, true)
+            }
             return (guestSession, false)
         }
 

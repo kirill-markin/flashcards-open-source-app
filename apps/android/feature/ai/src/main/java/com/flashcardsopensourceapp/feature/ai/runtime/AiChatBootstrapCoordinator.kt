@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.feature.ai.runtime
 
 import com.flashcardsopensourceapp.data.local.ai.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
+import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.model.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
@@ -88,6 +89,7 @@ internal class AiChatBootstrapCoordinator(
         }
 
         val bootstrapRequestToken = nextBootstrapRequestToken()
+        context.lastBootstrapFailureRetryable = false
         context.activeBootstrapJob?.cancel(
             cause = CancellationException("AI bootstrap restarted.")
         )
@@ -172,24 +174,8 @@ internal class AiChatBootstrapCoordinator(
                     throw AiChatBootstrapBlockedException(blockedSyncMessage)
                 }
 
-                val preparedSession = context.aiChatRepository.prepareSessionForAi(workspaceId = workspaceId)
-                if (
-                    isCurrentBootstrapRequest(
-                        expectedContext = accessContext,
-                        expectedRequestToken = bootstrapRequestToken,
-                        expectedJob = bootstrapJob
-                    ).not()
-                ) {
-                    logBootstrapSuperseded(
-                        workspaceId = workspaceId,
-                        expectedContext = accessContext,
-                        stage = "prepare_session"
-                    )
-                    return@launch
-                }
-
                 val remoteBootstrap = loadBootstrapRemoteResultWithRetry(
-                    preparedSession = preparedSession,
+                    workspaceId = workspaceId,
                     persistedState = persistedState,
                     bootstrapProvisionalSessionId = bootstrapProvisionalSessionId,
                     resumeDiagnostics = resumeDiagnostics,
@@ -244,6 +230,7 @@ internal class AiChatBootstrapCoordinator(
                 if (didApplyBootstrap.not()) {
                     return@launch
                 }
+                context.lastBootstrapFailureRetryable = false
                 if (
                     isCurrentBootstrapRequest(
                         expectedContext = accessContext,
@@ -289,6 +276,7 @@ internal class AiChatBootstrapCoordinator(
                     configuration = context.currentServerConfiguration(),
                     textProvider = context.textProvider
                 )
+                context.lastBootstrapFailureRetryable = isRetryableBootstrapFailure(error = error)
                 AiChatDiagnosticsLogger.error(
                     event = "conversation_bootstrap_failed",
                     fields = listOf(
@@ -457,8 +445,8 @@ internal class AiChatBootstrapCoordinator(
     }
 
     private suspend fun loadBootstrapRemoteResultWithRetry(
-        preparedSession: AiChatPreparedRemoteSession,
-        persistedState: com.flashcardsopensourceapp.data.local.model.AiChatPersistedState,
+        workspaceId: String,
+        persistedState: AiChatPersistedState,
         bootstrapProvisionalSessionId: String?,
         resumeDiagnostics: com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics?,
         accessContext: AiAccessContext,
@@ -471,6 +459,22 @@ internal class AiChatBootstrapCoordinator(
         var retryCount: Int = 0
         while (true) {
             try {
+                val preparedSession = context.aiChatRepository.prepareSessionForAi(workspaceId = workspaceId)
+                if (
+                    isCurrentBootstrapRequest(
+                        expectedContext = accessContext,
+                        expectedRequestToken = bootstrapRequestToken,
+                        expectedJob = bootstrapJob
+                    ).not()
+                ) {
+                    logBootstrapSuperseded(
+                        workspaceId = workspaceId,
+                        expectedContext = accessContext,
+                        stage = "prepare_session"
+                    )
+                    return null
+                }
+
                 val ensuredSession = resolveRemoteBootstrapSession(
                     preparedSession = preparedSession,
                     persistedState = persistedState,
@@ -487,7 +491,7 @@ internal class AiChatBootstrapCoordinator(
                     ).not()
                 ) {
                     logBootstrapSuperseded(
-                        workspaceId = preparedSession.workspaceId,
+                        workspaceId = workspaceId,
                         expectedContext = accessContext,
                         stage = "ensure_session"
                     )
@@ -508,7 +512,7 @@ internal class AiChatBootstrapCoordinator(
                     ).not()
                 ) {
                     logBootstrapSuperseded(
-                        workspaceId = preparedSession.workspaceId,
+                        workspaceId = workspaceId,
                         expectedContext = accessContext,
                         stage = "load_bootstrap"
                     )
@@ -525,7 +529,7 @@ internal class AiChatBootstrapCoordinator(
                     throw error
                 }
                 logBootstrapRetry(
-                    workspaceId = preparedSession.workspaceId,
+                    workspaceId = workspaceId,
                     accessContext = accessContext,
                     retryCount = retryCount,
                     error = error
@@ -540,7 +544,7 @@ internal class AiChatBootstrapCoordinator(
                     ).not()
                 ) {
                     logBootstrapSuperseded(
-                        workspaceId = preparedSession.workspaceId,
+                        workspaceId = workspaceId,
                         expectedContext = accessContext,
                         stage = "retry_delay"
                     )
@@ -839,11 +843,33 @@ internal fun shouldRetryBootstrap(error: Exception, retryCount: Int): Boolean {
     if (retryCount >= aiBootstrapMaxRetryCount) {
         return false
     }
+    return isRetryableBootstrapFailure(error = error)
+}
+
+internal fun isRetryableBootstrapFailure(error: Exception): Boolean {
+    if (error is CancellationException) {
+        return false
+    }
     val remoteError = error as? AiChatRemoteException
     if (remoteError != null) {
-        return shouldRetryRemoteBootstrapError(error = remoteError)
+        return shouldRetryHttpStatus(statusCode = remoteError.statusCode)
+    }
+    val cloudRemoteError = error as? CloudRemoteException ?: findCloudRemoteCause(error = error)
+    if (cloudRemoteError != null) {
+        return shouldRetryHttpStatus(statusCode = cloudRemoteError.statusCode)
     }
     return error is IOException && isLikelyTransientBootstrapIoException(error = error)
+}
+
+private fun findCloudRemoteCause(error: Throwable): CloudRemoteException? {
+    var currentCause: Throwable? = error.cause
+    while (currentCause != null) {
+        if (currentCause is CloudRemoteException) {
+            return currentCause
+        }
+        currentCause = currentCause.cause
+    }
+    return null
 }
 
 private fun isLikelyTransientBootstrapIoException(error: IOException): Boolean {
@@ -925,10 +951,10 @@ internal suspend fun createNewAiChatSessionWithBootstrapRetry(
     targetSessionId: String,
     retryEvent: String
 ): AiChatSessionSnapshot {
-    val preparedSession = context.aiChatRepository.prepareSessionForAi(workspaceId = workspaceId)
     var retryCount: Int = 0
     while (true) {
         try {
+            val preparedSession = context.aiChatRepository.prepareSessionForAi(workspaceId = workspaceId)
             return createNewAiChatSessionFromPreparedSessionOnce(
                 context = context,
                 preparedSession = preparedSession,
@@ -1014,9 +1040,9 @@ private fun logAiChatSessionProvisioningRetry(
     )
 }
 
-private fun shouldRetryRemoteBootstrapError(error: AiChatRemoteException): Boolean {
-    val statusCode = error.statusCode ?: return false
-    return statusCode == 408 || statusCode == 429 || statusCode in 500..599
+private fun shouldRetryHttpStatus(statusCode: Int?): Boolean {
+    val resolvedStatusCode = statusCode ?: return false
+    return resolvedStatusCode == 408 || resolvedStatusCode == 429 || resolvedStatusCode in 500..599
 }
 
 private fun nextBootstrapRetryDelayMillis(retryCount: Int): Long {

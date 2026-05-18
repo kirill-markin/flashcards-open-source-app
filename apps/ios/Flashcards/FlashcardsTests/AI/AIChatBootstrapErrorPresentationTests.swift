@@ -220,6 +220,73 @@ final class AIChatBootstrapErrorPresentationTests: XCTestCase {
 
         XCTAssertFalse(aiChatBootstrapShouldRetry(error: error))
     }
+
+    func testTransientCloudSetupHTTPFailuresRetry() {
+        let statusCodes: [Int] = [408, 429, 500, 503, 599]
+
+        for statusCode in statusCodes {
+            XCTAssertTrue(
+                aiChatBootstrapShouldRetry(
+                    error: CloudAuthError.invalidResponse(
+                        makeCloudSetupErrorDetails(requestId: "cloud-auth-\(statusCode)"),
+                        statusCode
+                    )
+                )
+            )
+            XCTAssertTrue(
+                aiChatBootstrapShouldRetry(
+                    error: CloudSyncError.invalidResponse(
+                        makeCloudSetupErrorDetails(requestId: "cloud-sync-\(statusCode)"),
+                        statusCode
+                    )
+                )
+            )
+            XCTAssertTrue(
+                aiChatBootstrapShouldRetry(
+                    error: GuestCloudAuthError.invalidResponse(
+                        makeCloudSetupErrorDetails(requestId: "guest-auth-\(statusCode)"),
+                        statusCode
+                    )
+                )
+            )
+        }
+    }
+
+    func testPermanentCloudSetupHTTPFailuresDoNotRetry() {
+        let statusCodes: [Int] = [400, 401, 403, 404, 410]
+
+        for statusCode in statusCodes {
+            XCTAssertFalse(
+                aiChatBootstrapShouldRetry(
+                    error: CloudAuthError.invalidResponse(
+                        makeCloudSetupErrorDetails(requestId: "cloud-auth-\(statusCode)"),
+                        statusCode
+                    )
+                )
+            )
+            XCTAssertFalse(
+                aiChatBootstrapShouldRetry(
+                    error: CloudSyncError.invalidResponse(
+                        makeCloudSetupErrorDetails(requestId: "cloud-sync-\(statusCode)"),
+                        statusCode
+                    )
+                )
+            )
+            XCTAssertFalse(
+                aiChatBootstrapShouldRetry(
+                    error: GuestCloudAuthError.invalidResponse(
+                        makeCloudSetupErrorDetails(requestId: "guest-auth-\(statusCode)"),
+                        statusCode
+                    )
+                )
+            )
+        }
+    }
+
+    func testCancellationDoesNotRetry() {
+        XCTAssertFalse(aiChatBootstrapShouldRetry(error: CancellationError()))
+        XCTAssertFalse(aiChatBootstrapShouldRetry(error: URLError(.cancelled)))
+    }
 }
 
 private struct BootstrapSecretError: Error, CustomStringConvertible {
@@ -248,5 +315,14 @@ private func makeDiagnostics(
         decoderSummary: decoderSummary,
         continuationAttempt: nil,
         continuationToolCallIds: []
+    )
+}
+
+private func makeCloudSetupErrorDetails(requestId: String) -> CloudApiErrorDetails {
+    CloudApiErrorDetails(
+        message: "setup failed",
+        requestId: requestId,
+        code: "SETUP_FAILED",
+        syncConflict: nil
     )
 }

@@ -103,6 +103,10 @@ func aiChatBootstrapShouldRetry(error: Error) -> Bool {
         return true
     }
 
+    if let setupStatusCode = aiChatBootstrapSetupHTTPStatus(error: error) {
+        return aiChatBootstrapCanRetryHTTPStatus(setupStatusCode)
+    }
+
     guard let serviceError = error as? AIChatServiceError else {
         return false
     }
@@ -316,6 +320,27 @@ private func aiChatFailureTechnicalDetails(
 
 private func aiChatBootstrapCanRetryHTTPStatus(_ statusCode: Int) -> Bool {
     statusCode == 408 || statusCode == 429 || (statusCode >= 500 && statusCode <= 599)
+}
+
+private func aiChatBootstrapSetupHTTPStatus(error: Error) -> Int? {
+    if let authError = error as? CloudAuthError {
+        return authError.statusCode
+    }
+
+    if let syncError = error as? CloudSyncError {
+        return syncError.statusCode
+    }
+
+    guard let guestAuthError = error as? GuestCloudAuthError else {
+        return nil
+    }
+
+    switch guestAuthError {
+    case .invalidResponse(_, let statusCode):
+        return statusCode
+    case .invalidBaseUrl, .invalidResponseBody:
+        return nil
+    }
 }
 
 private func isAIChatRetryableTransportFailure(error: Error) -> Bool {

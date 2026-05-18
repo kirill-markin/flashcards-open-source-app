@@ -29,6 +29,7 @@ internal class AiChatSessionCoordinator(
         val currentState = context.runtimeStateMutable.value
         context.persistDraft(snapshot = currentState)
         val targetSessionId = makeAiChatSessionId()
+        context.lastBootstrapFailureRetryable = false
         context.runtimeStateMutable.update { state ->
             state.copy(
                 persistedState = state.persistedState.copy(
@@ -140,6 +141,7 @@ internal class AiChatSessionCoordinator(
                 throw CancellationException("AI pending session provisioning was superseded.")
             }
             persistEnsuredSessionState()
+            context.lastBootstrapFailureRetryable = false
             return AiChatSessionProvisioningResult(
                 sessionId = currentSessionId,
                 snapshot = snapshot
@@ -172,6 +174,7 @@ internal class AiChatSessionCoordinator(
                 )
             }
             persistEnsuredSessionState()
+            context.lastBootstrapFailureRetryable = false
         }
         return ensuredSession
     }
@@ -242,6 +245,7 @@ internal class AiChatSessionCoordinator(
                 ) {
                     return@launch
                 }
+                context.lastBootstrapFailureRetryable = false
                 context.runtimeStateMutable.update { state ->
                     updateComposerSuggestions(
                         state = state.copy(
@@ -305,6 +309,7 @@ internal class AiChatSessionCoordinator(
             configuration = currentServerConfiguration(),
             textProvider = context.textProvider
         )
+        context.lastBootstrapFailureRetryable = isRetryableBootstrapFailure(error = error)
 
         AiChatDiagnosticsLogger.error(
             event = "new_chat_failure_handled",
