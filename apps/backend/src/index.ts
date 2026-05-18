@@ -1,8 +1,10 @@
 import { serve } from "@hono/node-server";
 import { createApp } from "./app";
+import { initializeBackendSentry } from "./observability/sentry";
 import { initializeLangfuseTelemetry } from "./telemetry/langfuse";
 
 async function main(): Promise<void> {
+  initializeBackendSentry("backend-api");
   initializeLangfuseTelemetry();
   const app = createApp("/v1");
   const port = Number.parseInt(process.env.PORT ?? "8080", 10);

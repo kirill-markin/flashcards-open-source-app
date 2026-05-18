@@ -2,12 +2,14 @@ import { AuthError } from "../auth";
 import { HttpError } from "../errors";
 import { sanitizeBackendTelemetryValue } from "../observability/sanitizer";
 import {
+  addBackendBreadcrumb,
   addBackendSentryBreadcrumb,
   createBackendObservationScope,
   getBackendErrorLogDetails,
   type AdminQueryDetails,
   type BackendObservationScope,
   type BackendErrorLogDetails,
+  type RequestErrorDetails,
 } from "../observability/sentry";
 
 function getInternalErrorMessage(error: unknown): string {
@@ -29,12 +31,81 @@ export function getErrorLogContext(error: unknown): ErrorLogContext {
 }
 
 function getDatabaseSqlState(error: unknown): string | null {
-  if (typeof error !== "object" || error === null || !("code" in error)) {
+  if (typeof error !== "object" || error === null) {
+    return null;
+  }
+
+  if ("sqlState" in error) {
+    const sqlState = (error as Readonly<{ sqlState?: unknown }>).sqlState;
+    return typeof sqlState === "string" && sqlState !== "" ? sqlState : null;
+  }
+
+  if (!("code" in error)) {
     return null;
   }
 
   const code = (error as Readonly<{ code?: unknown }>).code;
-  return typeof code === "string" && code !== "" ? code : null;
+  return typeof code === "string" && /^[0-9A-Z]{5}$/.test(code) ? code : null;
+}
+
+function shouldLogRequestErrorAtErrorLevel(error: AuthError | HttpError | unknown): boolean {
+  if (error instanceof AuthError) {
+    return false;
+  }
+
+  if (error instanceof HttpError) {
+    return error.statusCode >= 500;
+  }
+
+  return true;
+}
+
+function getRequestErrorStatusCode(error: AuthError | HttpError | unknown): number {
+  if (error instanceof AuthError || error instanceof HttpError) {
+    return error.statusCode;
+  }
+
+  return 500;
+}
+
+function getRequestErrorCode(error: AuthError | HttpError | unknown): string | null {
+  if (error instanceof AuthError) {
+    return "AUTH_UNAUTHORIZED";
+  }
+
+  if (error instanceof HttpError) {
+    return error.code;
+  }
+
+  return "INTERNAL_ERROR";
+}
+
+function createRequestErrorDetails(error: AuthError | HttpError | unknown): RequestErrorDetails {
+  return {
+    statusCode: getRequestErrorStatusCode(error),
+    code: getRequestErrorCode(error),
+    message: getInternalErrorMessage(error),
+    validationIssues: summarizeValidationIssues(error),
+    sqlState: getDatabaseSqlState(error),
+    ...getErrorLogContext(error),
+  };
+}
+
+function createErrorLevelRequestErrorDetails(
+  details: RequestErrorDetails,
+): Omit<RequestErrorDetails, "message"> {
+  return {
+    statusCode: details.statusCode,
+    code: details.code,
+    validationIssues: details.validationIssues,
+    sqlState: details.sqlState,
+    errorClass: details.errorClass,
+    errorMessage: details.errorMessage,
+    errorStack: details.errorStack,
+    sourceFile: details.sourceFile,
+    sourceLine: details.sourceLine,
+    sourceColumn: details.sourceColumn,
+  };
 }
 
 function redactAdminEmailForCloudWatch(adminEmail: string): string {
@@ -62,7 +133,26 @@ export function logRequestError(
   method: string,
   error: AuthError | HttpError | unknown,
 ): void {
-  const errorContext = getErrorLogContext(error);
+  const details = createRequestErrorDetails(error);
+  if (shouldLogRequestErrorAtErrorLevel(error) === false) {
+    addBackendBreadcrumb({
+      action: "request_error",
+      scope: createBackendObservationScope(
+        "backend-api",
+        requestId,
+        path,
+        method,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ),
+      details,
+    });
+    return;
+  }
+
   const baseRecord = {
     domain: "backend",
     action: "request_error",
@@ -71,33 +161,9 @@ export function logRequestError(
     method,
   };
 
-  if (error instanceof AuthError) {
-    console.error(JSON.stringify({
-      ...baseRecord,
-      statusCode: error.statusCode,
-      code: "AUTH_UNAUTHORIZED",
-      ...errorContext,
-    }));
-    return;
-  }
-
-  if (error instanceof HttpError) {
-    console.error(JSON.stringify({
-      ...baseRecord,
-      statusCode: error.statusCode,
-      code: error.code,
-      validationIssues: summarizeValidationIssues(error),
-      ...errorContext,
-    }));
-    return;
-  }
-
   console.error(JSON.stringify({
     ...baseRecord,
-    statusCode: 500,
-    code: "INTERNAL_ERROR",
-    sqlState: getDatabaseSqlState(error),
-    ...errorContext,
+    ...createErrorLevelRequestErrorDetails(details),
   }));
 }
 

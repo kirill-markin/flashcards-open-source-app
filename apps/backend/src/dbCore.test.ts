@@ -2,6 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import pg from "pg";
 import { HttpError } from "./errors";
+import {
+  initializeBackendSentryWithDeps,
+  resetBackendSentryForTests,
+} from "./observability/sentry";
 
 type CodedError = Error & Readonly<{ code: string }>;
 
@@ -74,6 +78,7 @@ test("unsafeTransaction classifies transaction failures and discards clients whe
   process.env.DATABASE_URL = "postgresql://user:pass@localhost:5432/test";
   delete process.env.DB_SECRET_ARN;
   (pg as unknown as { Pool: typeof pg.Pool }).Pool = FakePool as unknown as typeof pg.Pool;
+  initializeBackendSentryWithDeps("backend-api", {}, { init: () => {} });
   console.warn = (message?: unknown): void => {
     if (typeof message !== "string") {
       throw new Error("Expected rollback warning log to be a JSON string.");
@@ -181,6 +186,15 @@ test("unsafeTransaction classifies transaction failures and discards clients whe
       {
         domain: "backend",
         action: "unsafe_transaction_rollback_failed",
+        service: "backend-api",
+        requestId: null,
+        route: null,
+        method: null,
+        userId: null,
+        workspaceId: null,
+        chatRequestId: null,
+        runId: null,
+        sessionId: null,
         originalSqlState: "23514",
         originalErrorCode: "23514",
         originalErrorClass: "Error",
@@ -194,6 +208,7 @@ test("unsafeTransaction classifies transaction failures and discards clients whe
   } finally {
     (pg as unknown as { Pool: typeof pg.Pool }).Pool = originalPool;
     console.warn = originalWarn;
+    resetBackendSentryForTests();
     if (originalDatabaseUrl === undefined) {
       delete process.env.DATABASE_URL;
     } else {

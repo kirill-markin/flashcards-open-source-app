@@ -1,5 +1,9 @@
 import type { DatabaseExecutor } from "../db";
 import { HttpError } from "../errors";
+import {
+  captureBackendWarning,
+  createBackendObservationScope,
+} from "../observability/sentry";
 import { CARD_COLUMNS, REVIEWABLE_CARD_COLUMNS } from "./shared";
 import type { CardRow, FsrsStateSnapshot, ReviewableCardRow } from "./types";
 
@@ -62,14 +66,27 @@ export function assertConsistentFsrsState(card: FsrsStateSnapshot): void {
 }
 
 function logFsrsStateReset(workspaceId: string, cardId: string, reason: string): void {
-  console.error(JSON.stringify({
-    domain: "cards",
+  captureBackendWarning({
     action: "reset_invalid_fsrs_state",
-    workspaceId,
-    cardId,
-    reason,
-    repair: "reset",
-  }));
+    message: "Invalid FSRS state was reset.",
+    scope: createBackendObservationScope(
+      "backend-api",
+      null,
+      null,
+      null,
+      null,
+      workspaceId,
+      null,
+      null,
+      null,
+    ),
+    details: {
+      workspaceId,
+      cardId,
+      reason,
+      repair: "reset",
+    },
+  });
 }
 
 async function resetCardRow(

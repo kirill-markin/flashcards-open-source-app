@@ -10,6 +10,7 @@ import {
   toDatabaseCommitBoundaryError,
   toDatabaseCommitOutcomeUnknownError,
 } from "./dbTransient";
+import { createBackendObservationScope } from "./observability/sentry";
 
 function createCodedError(code: string, message: string): Error & Readonly<{ code: string }> {
   const error = new Error(message) as Error & { code: string };
@@ -90,16 +91,27 @@ test("toDatabaseCommitBoundaryError keeps non-transient commit failures on norma
 
 test("retryTransientDatabaseOperationWithDependencies retries transient DB errors with full jitter", async () => {
   const delays: Array<number> = [];
-  const warningRecords: Array<Readonly<Record<string, unknown>>> = [];
-  const originalWarn = console.warn;
+  const breadcrumbRecords: Array<Readonly<Record<string, unknown>>> = [];
+  const originalLog = console.log;
   let calls = 0;
+  const observationScope = createBackendObservationScope(
+    "chat-worker",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+  );
 
-  console.warn = (message?: unknown): void => {
+  console.log = (message?: unknown): void => {
     if (typeof message !== "string") {
-      throw new Error("Expected retry warning log to be a JSON string.");
+      throw new Error("Expected retry breadcrumb log to be a JSON string.");
     }
 
-    warningRecords.push(JSON.parse(message) as Readonly<Record<string, unknown>>);
+    breadcrumbRecords.push(JSON.parse(message) as Readonly<Record<string, unknown>>);
   };
 
   try {
@@ -112,6 +124,7 @@ test("retryTransientDatabaseOperationWithDependencies retries transient DB error
 
         return "ok";
       },
+      () => observationScope,
       {
         sleep: async (delayMs) => {
           delays.push(delayMs);
@@ -122,15 +135,24 @@ test("retryTransientDatabaseOperationWithDependencies retries transient DB error
 
     assert.equal(result, "ok");
   } finally {
-    console.warn = originalWarn;
+    console.log = originalLog;
   }
 
   assert.equal(calls, 3);
   assert.deepEqual(delays, [50, 100]);
-  assert.deepEqual(warningRecords, [
+  assert.deepEqual(breadcrumbRecords, [
     {
       domain: "backend",
       action: "database_transient_retry",
+      service: "chat-worker",
+      requestId: null,
+      route: null,
+      method: null,
+      userId: null,
+      workspaceId: null,
+      chatRequestId: null,
+      runId: null,
+      sessionId: null,
       attempt: 1,
       maxAttempts: 3,
       delayMs: 50,
@@ -142,6 +164,15 @@ test("retryTransientDatabaseOperationWithDependencies retries transient DB error
     {
       domain: "backend",
       action: "database_transient_retry",
+      service: "chat-worker",
+      requestId: null,
+      route: null,
+      method: null,
+      userId: null,
+      workspaceId: null,
+      chatRequestId: null,
+      runId: null,
+      sessionId: null,
       attempt: 2,
       maxAttempts: 3,
       delayMs: 100,
@@ -162,6 +193,17 @@ test("retryTransientDatabaseOperationWithDependencies does not retry non-transie
         calls += 1;
         throw createCodedError("23505", "duplicate key");
       },
+      () => createBackendObservationScope(
+        "backend-api",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ),
       {
         sleep: async () => {},
         random: () => 0.5,

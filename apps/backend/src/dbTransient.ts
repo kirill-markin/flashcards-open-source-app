@@ -1,4 +1,10 @@
 import { HttpError } from "./errors";
+import {
+  addBackendBreadcrumb,
+  captureBackendWarning,
+  createBackendRuntimeObservationScope,
+  type BackendObservationScope,
+} from "./observability/sentry";
 
 const transientDatabaseSqlStates: ReadonlySet<string> = new Set([
   "40001",
@@ -37,6 +43,8 @@ type TransientDatabaseRetryDependencies = Readonly<{
   sleep: (delayMs: number) => Promise<void>;
   random: () => number;
 }>;
+
+type TransientDatabaseRetryObservationScopeProvider = () => BackendObservationScope;
 
 type DatabaseErrorFields = Readonly<{
   sqlState: string | null;
@@ -128,18 +136,34 @@ function toDatabaseBoundaryErrorFields(error: unknown): DatabaseBoundaryErrorFie
 }
 
 function logDatabaseTransientRetry(
+  getObservationScope: TransientDatabaseRetryObservationScopeProvider,
   attempt: number,
   delayMs: number,
   error: unknown,
 ): void {
-  console.warn(JSON.stringify({
-    domain: "backend",
+  addBackendBreadcrumb({
     action: "database_transient_retry",
-    attempt,
-    maxAttempts: transientDatabaseRetryMaxAttempts,
-    delayMs,
-    ...getDatabaseErrorFields(error),
-  }));
+    scope: getObservationScope(),
+    details: {
+      attempt,
+      maxAttempts: transientDatabaseRetryMaxAttempts,
+      delayMs,
+      ...getDatabaseErrorFields(error),
+    },
+  });
+}
+
+function tryLogDatabaseTransientRetry(
+  getObservationScope: TransientDatabaseRetryObservationScopeProvider,
+  attempt: number,
+  delayMs: number,
+  error: unknown,
+): void {
+  try {
+    logDatabaseTransientRetry(getObservationScope, attempt, delayMs, error);
+  } catch {
+    // Observability must not interrupt the transient database retry path.
+  }
 }
 
 export class TransientDatabaseHttpError extends HttpError implements DatabaseBoundaryErrorFields {
@@ -230,16 +254,23 @@ export function toDatabaseCommitBoundaryError(error: unknown): unknown {
 }
 
 export function logDatabasePoolError(poolName: string, error: unknown): void {
-  console.warn(JSON.stringify({
-    domain: "backend",
-    action: "database_pool_error",
-    poolName,
-    ...getDatabaseErrorFields(error),
-  }));
+  try {
+    captureBackendWarning({
+      action: "database_pool_error",
+      scope: createBackendRuntimeObservationScope(),
+      details: {
+        poolName,
+        ...getDatabaseErrorFields(error),
+      },
+    });
+  } catch {
+    // Pool error events are already reported by pg; observability must not throw from the event handler.
+  }
 }
 
 export async function retryTransientDatabaseOperationWithDependencies<Result>(
   operation: () => Promise<Result>,
+  getObservationScope: TransientDatabaseRetryObservationScopeProvider,
   dependencies: TransientDatabaseRetryDependencies,
 ): Promise<Result> {
   let attempt = 1;
@@ -259,7 +290,7 @@ export async function retryTransientDatabaseOperationWithDependencies<Result>(
       }
 
       const delayMs = calculateTransientDatabaseRetryDelayMs(attempt, dependencies.random);
-      logDatabaseTransientRetry(attempt, delayMs, error);
+      tryLogDatabaseTransientRetry(getObservationScope, attempt, delayMs, error);
       await dependencies.sleep(delayMs);
       attempt += 1;
     }
@@ -270,9 +301,14 @@ export async function retryTransientDatabaseOperationWithDependencies<Result>(
 
 export async function withTransientDatabaseRetry<Result>(
   operation: () => Promise<Result>,
+  getObservationScope: TransientDatabaseRetryObservationScopeProvider,
 ): Promise<Result> {
-  return retryTransientDatabaseOperationWithDependencies(operation, {
-    sleep,
-    random: Math.random,
-  });
+  return retryTransientDatabaseOperationWithDependencies(
+    operation,
+    getObservationScope,
+    {
+      sleep,
+      random: Math.random,
+    },
+  );
 }

@@ -71,6 +71,17 @@ function createChatWorkerFailureDetails(
 
 const chatWorkerHandler: Handler<ChatWorkerEvent, void> = async (event, context) => {
   const lambdaRequestId = context.awsRequestId ?? null;
+  const observationScope = createBackendObservationScope(
+    "chat-worker",
+    lambdaRequestId,
+    null,
+    null,
+    event.userId,
+    event.workspaceId,
+    event.chatRequestId ?? null,
+    event.runId,
+    event.sessionId ?? null,
+  );
   let runtimeHttpError: HttpErrorClass | null = null;
   let runtime: ChatWorkerRuntime | null = null;
   try {
@@ -92,23 +103,13 @@ const chatWorkerHandler: Handler<ChatWorkerEvent, void> = async (event, context)
     captureBackendException({
       action: "chat_worker_failed",
       error: normalizedError,
-      scope: createBackendObservationScope(
-        "chat-worker",
-        lambdaRequestId,
-        null,
-        null,
-        event.userId,
-        event.workspaceId,
-        event.chatRequestId ?? null,
-        event.runId,
-        event.sessionId ?? null,
-      ),
+      scope: observationScope,
       details: createChatWorkerFailureDetails(event, lambdaRequestId, normalizedError, runtimeHttpError),
     });
     throw error;
   } finally {
     if (runtime !== null) {
-      await runtime.flushLangfuseTelemetry();
+      await runtime.flushLangfuseTelemetry(observationScope);
     }
   }
 };

@@ -4,6 +4,10 @@ import {
   logDatabasePoolError,
   toDatabaseBoundaryError,
 } from "../dbTransient";
+import {
+  captureBackendWarning,
+  createBackendRuntimeObservationScope,
+} from "../observability/sentry";
 import { getDatabaseCredentialsSecret } from "../secrets";
 
 const reportingPoolMaxConnections = 4;
@@ -75,18 +79,28 @@ async function executeReportingTransactionCommand(
 function logReportingRollbackFailure(originalError: unknown, rollbackError: unknown): void {
   const originalFields = getDatabaseErrorFields(originalError);
   const rollbackFields = getDatabaseErrorFields(rollbackError);
-  console.warn(JSON.stringify({
-    domain: "backend",
+  captureBackendWarning({
     action: "reporting_read_only_transaction_rollback_failed",
-    originalSqlState: originalFields.sqlState,
-    originalErrorCode: originalFields.errorCode,
-    originalErrorClass: originalFields.errorClass,
-    originalErrorMessage: originalFields.errorMessage,
-    rollbackSqlState: rollbackFields.sqlState,
-    rollbackErrorCode: rollbackFields.errorCode,
-    rollbackErrorClass: rollbackFields.errorClass,
-    rollbackErrorMessage: rollbackFields.errorMessage,
-  }));
+    scope: createBackendRuntimeObservationScope(),
+    details: {
+      originalSqlState: originalFields.sqlState,
+      originalErrorCode: originalFields.errorCode,
+      originalErrorClass: originalFields.errorClass,
+      originalErrorMessage: originalFields.errorMessage,
+      rollbackSqlState: rollbackFields.sqlState,
+      rollbackErrorCode: rollbackFields.errorCode,
+      rollbackErrorClass: rollbackFields.errorClass,
+      rollbackErrorMessage: rollbackFields.errorMessage,
+    },
+  });
+}
+
+function tryLogReportingRollbackFailure(originalError: unknown, rollbackError: unknown): void {
+  try {
+    logReportingRollbackFailure(originalError, rollbackError);
+  } catch {
+    // Observability must not mask the original reporting transaction failure.
+  }
 }
 
 async function rollbackReportingTransaction(client: pg.PoolClient): Promise<unknown | null> {
@@ -132,8 +146,8 @@ export async function withReportingReadOnlyTransaction<Result>(
   } catch (error) {
     const rollbackError = await rollbackReportingTransaction(client);
     if (rollbackError !== null) {
-      logReportingRollbackFailure(error, rollbackError);
       releaseError = toClientReleaseError(rollbackError);
+      tryLogReportingRollbackFailure(error, rollbackError);
       throw toDatabaseBoundaryError(error);
     }
 

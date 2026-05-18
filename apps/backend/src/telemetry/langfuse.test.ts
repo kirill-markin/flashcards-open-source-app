@@ -4,6 +4,7 @@ import type { BasicTracerProvider, Sampler } from "@opentelemetry/sdk-trace-base
 import { NoopSpanProcessor, SamplingDecision } from "@opentelemetry/sdk-trace-base";
 import { LangfuseSpanProcessor } from "@langfuse/otel";
 import {
+  createBackendObservationScope,
   initializeBackendSentryWithDeps,
   resetBackendSentryForTests,
 } from "../observability/sentry";
@@ -238,7 +239,17 @@ test("Langfuse flush no-ops before telemetry starts", async () => {
   resetLangfuseTelemetryForTests();
 
   try {
-    await flushLangfuseTelemetry();
+    await flushLangfuseTelemetry(createBackendObservationScope(
+      "backend-api",
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+    ));
   } finally {
     resetLangfuseTelemetryForTests();
   }
@@ -263,7 +274,17 @@ test("Langfuse flush force-flushes the isolated provider", async () => {
       setLangfuseTracerProvider: () => {},
     });
 
-    await flushLangfuseTelemetry();
+    await flushLangfuseTelemetry(createBackendObservationScope(
+      "backend-api",
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+    ));
 
     assert.equal(flushCount, 1);
   } finally {
@@ -299,14 +320,35 @@ test("Langfuse flush logs and swallows force-flush failures", async () => {
       setLangfuseTracerProvider: () => {},
     });
 
-    await flushLangfuseTelemetry();
+    await flushLangfuseTelemetry(createBackendObservationScope(
+      "chat-live",
+      "request-1",
+      "/v1/chat/live",
+      "GET",
+      "user-1",
+      "workspace-1",
+      "chat-request-1",
+      "run-1",
+      "session-1",
+    ));
 
     assert.deepEqual(warningRecords, [
       {
         domain: "backend",
         action: "langfuse_telemetry_flush_failed",
+        service: "chat-live",
+        requestId: "request-1",
+        route: "/v1/chat/live",
+        method: "GET",
+        userId: "user-1",
+        workspaceId: "workspace-1",
+        chatRequestId: "chat-request-1",
+        runId: "run-1",
+        sessionId: "session-1",
         errorClass: "Error",
-        error: "Langfuse export failed",
+        errorMessage: "Langfuse export failed",
+        telemetryStarted: true,
+        hasTracerProvider: true,
       },
     ]);
   } finally {

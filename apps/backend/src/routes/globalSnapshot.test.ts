@@ -12,6 +12,7 @@ import {
   createGlobalMetricsSnapshotWindow,
   type GlobalMetricsSnapshot,
 } from "../globalMetrics/snapshot";
+import type { BackendObservationScope } from "../observability/sentry";
 import { createGlobalSnapshotRoutes, globalSnapshotPath } from "./globalSnapshot";
 
 function createSnapshotFixture(): GlobalMetricsSnapshot {
@@ -54,14 +55,14 @@ function createSnapshotFixture(): GlobalMetricsSnapshot {
 
 function createGlobalSnapshotTestApp(options: Readonly<{
   isGlobalMetricsVisible: boolean;
-  loadGlobalMetricsSnapshotFn: () => Promise<GlobalMetricsSnapshot>;
+  loadGlobalMetricsSnapshotFn: (observationScope: BackendObservationScope) => Promise<GlobalMetricsSnapshot>;
 }>): Hono<AppEnv> {
   return createMountedGlobalSnapshotTestApp(options);
 }
 
 function createMountedGlobalSnapshotTestApp(options: Readonly<{
   isGlobalMetricsVisible: boolean;
-  loadGlobalMetricsSnapshotFn: () => Promise<GlobalMetricsSnapshot>;
+  loadGlobalMetricsSnapshotFn: (observationScope: BackendObservationScope) => Promise<GlobalMetricsSnapshot>;
 }>): Hono<AppEnv> {
   const app = new Hono<AppEnv>({ strict: false }).basePath("/v1");
 
@@ -155,9 +156,13 @@ function createMountedAppTestCleanup(): () => void {
 
 test("GET /v1/global/snapshot returns the snapshot when visible", async () => {
   const snapshot = createSnapshotFixture();
+  let capturedObservationScope: BackendObservationScope | null = null;
   const app = createGlobalSnapshotTestApp({
     isGlobalMetricsVisible: true,
-    loadGlobalMetricsSnapshotFn: async () => snapshot,
+    loadGlobalMetricsSnapshotFn: async (observationScope) => {
+      capturedObservationScope = observationScope;
+      return snapshot;
+    },
   });
 
   const response = await app.request(
@@ -169,6 +174,17 @@ test("GET /v1/global/snapshot returns the snapshot when visible", async () => {
   assert.equal(response.headers.get("access-control-allow-origin"), "*");
   assert.equal(response.headers.get("access-control-allow-credentials"), null);
   assert.deepEqual(await response.json(), snapshot);
+  assert.deepEqual(capturedObservationScope, {
+    service: "backend-api",
+    requestId: "request-1",
+    route: "/v1/global/snapshot",
+    method: "GET",
+    userId: null,
+    workspaceId: null,
+    chatRequestId: null,
+    runId: null,
+    sessionId: null,
+  });
 });
 
 test("GET /v1/global/snapshot returns 404 when global metrics are not visible", async () => {

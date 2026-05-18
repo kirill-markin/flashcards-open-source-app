@@ -83,6 +83,18 @@ function getBackendApiRequestContext(event: LambdaEvent, context: Context): Back
 }
 
 const backendApiBootstrapHandler: BackendApiHandler = async (event, context) => {
+  const requestContext = getBackendApiRequestContext(event, context);
+  const observationScope = createBackendObservationScope(
+    "backend-api",
+    requestContext.requestId,
+    requestContext.route,
+    requestContext.method,
+    null,
+    null,
+    null,
+    null,
+    null,
+  );
   let runtime: BackendApiRuntime | null = null;
   try {
     runtime = await getBackendApiRuntime();
@@ -90,21 +102,10 @@ const backendApiBootstrapHandler: BackendApiHandler = async (event, context) => 
   } catch (error) {
     if (runtime === null) {
       const normalizedError = normalizeCaughtError(error);
-      const requestContext = getBackendApiRequestContext(event, context);
       captureBackendException({
         action: "request_failed",
         error: normalizedError,
-        scope: createBackendObservationScope(
-          "backend-api",
-          requestContext.requestId,
-          requestContext.route,
-          requestContext.method,
-          null,
-          null,
-          null,
-          null,
-          null,
-        ),
+        scope: observationScope,
         details: {
           statusCode: 500,
           code: "INTERNAL_ERROR",
@@ -116,7 +117,7 @@ const backendApiBootstrapHandler: BackendApiHandler = async (event, context) => 
     throw error;
   } finally {
     if (runtime !== null) {
-      await runtime.flushLangfuseTelemetry();
+      await runtime.flushLangfuseTelemetry(observationScope);
     }
   }
 };

@@ -50,6 +50,10 @@ export type BackendFailureDetails = Readonly<{
   validationIssues: ReadonlyArray<BackendValidationIssueDetail>;
 }>;
 
+export type RequestErrorDetails = BackendFailureDetails & BackendErrorLogDetails & Readonly<{
+  sqlState: string | null;
+}>;
+
 export type BackendDatabaseDetails = Readonly<{
   sqlState: string | null;
   constraint: string | null;
@@ -193,6 +197,40 @@ export type GuestUpgradeCompleteDetails = Readonly<{
   targetUserId: string | null;
   targetWorkspaceId: string | null;
   completionKind: string | null;
+}>;
+
+export type ResetInvalidFsrsStateDetails = Readonly<{
+  workspaceId: string;
+  cardId: string;
+  reason: string;
+  repair: "reset";
+}>;
+
+export type GuestMergeDropThirdWorkspaceConflictDetails = Readonly<{
+  entityType: "card" | "deck" | "review_event";
+  entityId: string;
+  sourceGuestWorkspaceId: string;
+  targetWorkspaceId: string;
+  conflictingWorkspaceId: string;
+  resolution: "drop_guest_entity";
+}>;
+
+export type GuestMergeDropReviewEventMissingTargetCardDetails = Readonly<{
+  reviewEventId: string;
+  cardId: string;
+  sourceGuestWorkspaceId: string;
+  targetWorkspaceId: string;
+  resolution: "drop_guest_entity";
+}>;
+
+export type GuestUpgradeCompleteSuspiciousDetails = Readonly<{
+  reason:
+    | "deleted_session_subject_mismatch"
+    | "revoked_session_without_history"
+    | "revoked_session_subject_mismatch";
+  guestSessionId: string | null;
+  targetSubjectUserId: string;
+  historyTargetSubjectUserId: string | null;
 }>;
 
 export type WorkspacesListDetails = Readonly<{
@@ -357,6 +395,75 @@ export type ChatWorkerFailureDetails = Readonly<{
   message: string;
 }>;
 
+export type ChatTranscriptionFailureDetails = Readonly<{
+  requestId: string;
+  sessionId: string;
+  source: "android" | "ios" | "web";
+  provider: "openai";
+  fileSize: number;
+  fileExtension: string | null;
+  mediaType: string;
+  upstreamStatus: number | null;
+  upstreamRequestId: string | null;
+  errorClass: string;
+  errorMessage: string;
+}>;
+
+export type LangfuseTelemetryFlushFailureDetails = Readonly<{
+  errorClass: string;
+  errorMessage: string;
+  telemetryStarted: boolean;
+  hasTracerProvider: boolean;
+}>;
+
+export type LangfuseChatTurnExportFailureDetails = Readonly<{
+  requestId: string;
+  userId: string;
+  workspaceId: string;
+  sessionId: string;
+  model: string;
+  turnIndex: number;
+  runState: string;
+  errorClass: string;
+  errorMessage: string;
+}>;
+
+export type LangfuseChatTurnStartFailureDetails = Readonly<{
+  requestId: string;
+  userId: string;
+  workspaceId: string;
+  sessionId: string;
+  model: string;
+  turnIndex: number;
+  runState: string;
+  errorClass: string;
+  errorMessage: string;
+}>;
+
+export type LangfuseChatTranscriptionExportFailureDetails = Readonly<{
+  requestId: string;
+  userId: string;
+  sessionId: string;
+  source: string;
+  fileExtension: string | null;
+  mediaType: string;
+  fileSize: number;
+  errorClass: string;
+  errorMessage: string;
+}>;
+
+export type LangfuseChatTranscriptionStartFailureDetails = Readonly<{
+  requestId: string;
+  userId: string;
+  sessionId: string;
+  source: string;
+  fileExtension: string | null;
+  mediaType: string;
+  fileSize: number;
+  errorClass: string;
+  errorMessage: string;
+}>;
+
 export type GlobalMetricsSnapshotGeneratedDetails = Readonly<{
   bucketName: string;
   objectKey: string;
@@ -372,6 +479,46 @@ export type GlobalMetricsSnapshotFailureDetails = Readonly<{
   bucketName: string | null;
   objectKey: string | null;
   message: string;
+}>;
+
+export type DatabaseTransientRetryDetails = Readonly<{
+  attempt: number;
+  maxAttempts: number;
+  delayMs: number;
+  sqlState: string | null;
+  errorCode: string | null;
+  errorClass: string;
+  errorMessage: string;
+}>;
+
+export type DatabasePoolErrorDetails = Readonly<{
+  poolName: string;
+  sqlState: string | null;
+  errorCode: string | null;
+  errorClass: string;
+  errorMessage: string;
+}>;
+
+export type DatabaseRollbackFailureDetails = Readonly<{
+  originalSqlState: string | null;
+  originalErrorCode: string | null;
+  originalErrorClass: string;
+  originalErrorMessage: string;
+  rollbackSqlState: string | null;
+  rollbackErrorCode: string | null;
+  rollbackErrorClass: string;
+  rollbackErrorMessage: string;
+}>;
+
+export type GlobalMetricsS3RetryDetails = Readonly<{
+  operation: "get_object" | "put_object";
+  attempt: number;
+  maxAttempts: number;
+  bucketName: string;
+  objectKey: string;
+  statusCode: number | null;
+  errorClass: string;
+  errorMessage: string;
 }>;
 
 export type MigrationFailureDetails = Readonly<{
@@ -391,7 +538,10 @@ type SyncConflictFailureDetailsFor<Details> = FailureDetailsFor<Details> & Backe
 
 export type BackendBreadcrumbEvent =
   | EventByAction<"admin_query", AdminQueryDetails>
+  | EventByAction<"request_error", RequestErrorDetails>
   | EventByAction<"global_metrics_snapshot_generated", GlobalMetricsSnapshotGeneratedDetails>
+  | EventByAction<"database_transient_retry", DatabaseTransientRetryDetails>
+  | EventByAction<"global_metrics_s3_retry", GlobalMetricsS3RetryDetails>
   | EventByAction<"sync_push", SyncPushDetails>
   | EventByAction<"sync_push_error", SyncConflictFailureDetailsFor<SyncPushDetails>>
   | EventByAction<"sync_pull", SyncPullDetails>
@@ -448,7 +598,8 @@ export type BackendBreadcrumbEvent =
   | EventByAction<"chat_worker_provider_call_started", ChatWorkerLifecycleDetails>
   | EventByAction<"chat_worker_provider_call_aborted", ChatWorkerLifecycleDetails>
   | EventByAction<"chat_worker_terminal_state_persisted", ChatWorkerLifecycleDetails>
-  | EventByAction<"chat_worker_composer_suggestions_failed", ChatWorkerLifecycleDetails>;
+  | EventByAction<"chat_worker_composer_suggestions_failed", ChatWorkerLifecycleDetails>
+  | EventByAction<"chat_transcription_invalid_audio", ChatTranscriptionFailureDetails>;
 
 export type BackendWarningEvent =
   | (EventByAction<"global_snapshot_error", Readonly<{
@@ -456,10 +607,19 @@ export type BackendWarningEvent =
     code: string | null;
     storageErrorMessage: string;
   }>> & Readonly<{ message: string }>)
+  | EventByAction<"unsafe_transaction_rollback_failed", DatabaseRollbackFailureDetails>
+  | EventByAction<"database_pool_error", DatabasePoolErrorDetails>
+  | EventByAction<"reporting_read_only_transaction_rollback_failed", DatabaseRollbackFailureDetails>
   | (EventByAction<"chat_live_backlog_failed", ChatLiveLifecycleDetails> & Readonly<{ message: string }>)
   | (EventByAction<"chat_live_write_failed", ChatLiveLifecycleDetails> & Readonly<{ message: string }>)
   | (EventByAction<"chat_worker_terminal_state_persisted", ChatWorkerLifecycleDetails> & Readonly<{ message: string }>)
   | (EventByAction<"chat_worker_composer_suggestions_failed", ChatWorkerLifecycleDetails> & Readonly<{ message: string }>)
+  | (EventByAction<"chat_transcription_failed", ChatTranscriptionFailureDetails> & Readonly<{ message: string }>)
+  | EventByAction<"langfuse_telemetry_flush_failed", LangfuseTelemetryFlushFailureDetails>
+  | EventByAction<"langfuse_chat_turn_export_failed", LangfuseChatTurnExportFailureDetails>
+  | EventByAction<"langfuse_chat_turn_start_failed", LangfuseChatTurnStartFailureDetails>
+  | EventByAction<"langfuse_chat_transcription_export_failed", LangfuseChatTranscriptionExportFailureDetails>
+  | EventByAction<"langfuse_chat_transcription_start_failed", LangfuseChatTranscriptionStartFailureDetails>
   | (EventByAction<"chat_resume_contract_violation", Readonly<{
     path: string;
     method: string;
@@ -475,7 +635,22 @@ export type BackendWarningEvent =
     inProgressAssistantItemId: string | null;
     inProgressAssistantItemOrder: number | null;
     terminationReason: string | null;
-  }>> & Readonly<{ message: string }>);
+  }>> & Readonly<{ message: string }>)
+  | (EventByAction<"reset_invalid_fsrs_state", ResetInvalidFsrsStateDetails> & Readonly<{ message: string }>)
+  | (
+    EventByAction<"guest_merge_drop_third_workspace_conflict", GuestMergeDropThirdWorkspaceConflictDetails>
+    & Readonly<{ message: string }>
+  )
+  | (
+    EventByAction<
+      "guest_merge_drop_review_event_missing_target_card",
+      GuestMergeDropReviewEventMissingTargetCardDetails
+    >
+    & Readonly<{ message: string }>
+  )
+  | (EventByAction<"guest_upgrade_complete_suspicious", GuestUpgradeCompleteSuspiciousDetails> & Readonly<{
+    message: string;
+  }>);
 
 export type BackendExceptionEvent =
   | (EventByAction<"request_failed", BackendFailureDetails> & Readonly<{ error: Error }>)
@@ -543,6 +718,7 @@ type BackendSentryConfig =
   }>;
 
 const initializedServices = new Set<BackendService>();
+let currentBackendService: BackendService | null = null;
 const capturedExceptionSet = new WeakSet<Error>();
 const normalizedNonErrorObjectMap = new WeakMap<object, Error>();
 const normalizedNonErrorPrimitiveMap = new Map<NonErrorPrimitive, Error>();
@@ -730,6 +906,7 @@ export function initializeBackendSentryWithDeps(
   env: NodeJS.ProcessEnv,
   dependencies: InitializeBackendSentryDependencies,
 ): void {
+  currentBackendService = service;
   if (initializedServices.has(service)) {
     return;
   }
@@ -763,6 +940,7 @@ export function initializeBackendSentry(service: BackendService): void {
 
 export function resetBackendSentryForTests(): void {
   initializedServices.clear();
+  currentBackendService = null;
   backendSentryInitializedForOpenTelemetry = false;
 }
 
@@ -1104,6 +1282,24 @@ export function createBackendObservationScope(
     runId,
     sessionId,
   };
+}
+
+export function createBackendRuntimeObservationScope(): BackendObservationScope {
+  if (currentBackendService === null) {
+    throw new Error("Backend Sentry must be initialized before creating runtime observation scope.");
+  }
+
+  return createBackendObservationScope(
+    currentBackendService,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+  );
 }
 
 export function getBackendErrorLogDetails(error: unknown): BackendErrorLogDetails {

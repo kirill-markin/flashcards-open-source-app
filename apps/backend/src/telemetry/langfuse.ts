@@ -8,6 +8,17 @@ import {
   setLangfuseTracerProvider,
   startObservation,
 } from "@langfuse/tracing";
+import {
+  captureBackendWarning,
+  createBackendObservationScope,
+  getBackendErrorLogDetails,
+  type BackendObservationScope,
+  type LangfuseChatTranscriptionExportFailureDetails,
+  type LangfuseChatTranscriptionStartFailureDetails,
+  type LangfuseChatTurnExportFailureDetails,
+  type LangfuseChatTurnStartFailureDetails,
+  type LangfuseTelemetryFlushFailureDetails,
+} from "../observability/sentry";
 
 type TelemetryMetadata = Readonly<Record<string, string>>;
 type LangfuseSanitizedObject = Readonly<{
@@ -168,27 +179,164 @@ function sanitizeLangfuseTelemetryEntry(
   return sanitizeTelemetryValue(value);
 }
 
-function logTelemetryFailure(
-  action: string,
-  error: unknown,
-): void {
-  console.error(JSON.stringify({
-    domain: "backend",
-    action,
-    error: error instanceof Error ? error.message : String(error),
-  }));
+function getLangfuseFailureErrorDetails(error: unknown): Readonly<{
+  errorClass: string;
+  errorMessage: string;
+}> {
+  const errorDetails = getBackendErrorLogDetails(error);
+  return {
+    errorClass: errorDetails.errorClass,
+    errorMessage: errorDetails.errorMessage,
+  };
 }
 
-function logTelemetryWarning(
-  action: string,
+function getFileExtension(fileName: string): string | null {
+  const lastDotIndex = fileName.lastIndexOf(".");
+  if (lastDotIndex <= 0 || lastDotIndex === fileName.length - 1) {
+    return null;
+  }
+
+  return fileName.slice(lastDotIndex + 1).toLowerCase();
+}
+
+function logTelemetryFlushFailure(
+  observationScope: BackendObservationScope,
   error: unknown,
 ): void {
-  console.warn(JSON.stringify({
-    domain: "backend",
-    action,
-    errorClass: error instanceof Error ? error.name : null,
-    error: error instanceof Error ? error.message : String(error),
-  }));
+  const details: LangfuseTelemetryFlushFailureDetails = {
+    ...getLangfuseFailureErrorDetails(error),
+    telemetryStarted,
+    hasTracerProvider: telemetryTracerProvider !== null,
+  };
+  captureBackendWarning({
+    action: "langfuse_telemetry_flush_failed",
+    scope: observationScope,
+    details,
+  });
+}
+
+function logChatTurnExportFailure(
+  params: ChatTurnTelemetryParams,
+  error: unknown,
+): void {
+  const details: LangfuseChatTurnExportFailureDetails = {
+    requestId: params.requestId,
+    userId: params.userId,
+    workspaceId: params.workspaceId,
+    sessionId: params.sessionId,
+    model: params.model,
+    turnIndex: params.turnIndex,
+    runState: params.runState,
+    ...getLangfuseFailureErrorDetails(error),
+  };
+  captureBackendWarning({
+    action: "langfuse_chat_turn_export_failed",
+    scope: createBackendObservationScope(
+      "chat-worker",
+      params.requestId,
+      null,
+      null,
+      params.userId,
+      params.workspaceId,
+      null,
+      null,
+      params.sessionId,
+    ),
+    details,
+  });
+}
+
+function logChatTurnStartFailure(
+  params: ChatTurnTelemetryParams,
+  error: unknown,
+): void {
+  const details: LangfuseChatTurnStartFailureDetails = {
+    requestId: params.requestId,
+    userId: params.userId,
+    workspaceId: params.workspaceId,
+    sessionId: params.sessionId,
+    model: params.model,
+    turnIndex: params.turnIndex,
+    runState: params.runState,
+    ...getLangfuseFailureErrorDetails(error),
+  };
+  captureBackendWarning({
+    action: "langfuse_chat_turn_start_failed",
+    scope: createBackendObservationScope(
+      "chat-worker",
+      params.requestId,
+      null,
+      null,
+      params.userId,
+      params.workspaceId,
+      null,
+      null,
+      params.sessionId,
+    ),
+    details,
+  });
+}
+
+function logChatTranscriptionExportFailure(
+  params: ChatTranscriptionTelemetryParams,
+  error: unknown,
+): void {
+  const details: LangfuseChatTranscriptionExportFailureDetails = {
+    requestId: params.requestId,
+    userId: params.userId,
+    sessionId: params.sessionId,
+    source: params.source,
+    fileExtension: getFileExtension(params.fileName),
+    mediaType: params.mediaType,
+    fileSize: params.fileSize,
+    ...getLangfuseFailureErrorDetails(error),
+  };
+  captureBackendWarning({
+    action: "langfuse_chat_transcription_export_failed",
+    scope: createBackendObservationScope(
+      "backend-api",
+      params.requestId,
+      null,
+      null,
+      params.userId,
+      null,
+      null,
+      null,
+      params.sessionId,
+    ),
+    details,
+  });
+}
+
+function logChatTranscriptionStartFailure(
+  params: ChatTranscriptionTelemetryParams,
+  error: unknown,
+): void {
+  const details: LangfuseChatTranscriptionStartFailureDetails = {
+    requestId: params.requestId,
+    userId: params.userId,
+    sessionId: params.sessionId,
+    source: params.source,
+    fileExtension: getFileExtension(params.fileName),
+    mediaType: params.mediaType,
+    fileSize: params.fileSize,
+    ...getLangfuseFailureErrorDetails(error),
+  };
+  captureBackendWarning({
+    action: "langfuse_chat_transcription_start_failed",
+    scope: createBackendObservationScope(
+      "backend-api",
+      params.requestId,
+      null,
+      null,
+      params.userId,
+      null,
+      null,
+      null,
+      params.sessionId,
+    ),
+    details,
+  });
 }
 
 function buildChatTurnMetadata(
@@ -221,7 +369,7 @@ function buildChatTranscriptionMetadata(
     userId: metadataValue(params.userId),
     sessionId: metadataValue(params.sessionId),
     source: metadataValue(params.source),
-    fileName: metadataValue(params.fileName),
+    fileExtension: metadataValue(getFileExtension(params.fileName) ?? "none"),
     mediaType: metadataValue(params.mediaType),
     fileSize: metadataValue(params.fileSize),
   };
@@ -367,7 +515,7 @@ export function initializeLangfuseTelemetry(): void {
   initializeLangfuseTelemetryWithDeps(DEFAULT_INITIALIZE_LANGFUSE_TELEMETRY_DEPENDENCIES);
 }
 
-export async function flushLangfuseTelemetry(): Promise<void> {
+export async function flushLangfuseTelemetry(observationScope: BackendObservationScope): Promise<void> {
   if (!telemetryStarted || telemetryTracerProvider === null) {
     return;
   }
@@ -375,7 +523,7 @@ export async function flushLangfuseTelemetry(): Promise<void> {
   try {
     await telemetryTracerProvider.forceFlush();
   } catch (error) {
-    logTelemetryWarning("langfuse_telemetry_flush_failed", error);
+    logTelemetryFlushFailure(observationScope, error);
   }
 }
 
@@ -451,11 +599,11 @@ export async function startChatTurnObservationWithDeps(
     }
 
     if (callbackStarted) {
-      logTelemetryFailure("langfuse_chat_turn_export_failed", error);
+      logChatTurnExportFailure(params, error);
       return;
     }
 
-    logTelemetryFailure("langfuse_chat_turn_start_failed", error);
+    logChatTurnStartFailure(params, error);
     await fn(null);
   }
 }
@@ -507,7 +655,7 @@ export async function startChatTranscriptionObservationWithDeps<Result>(
             input: {
               sessionId: params.sessionId,
               source: params.source,
-              fileName: params.fileName,
+              fileExtension: getFileExtension(params.fileName),
               mediaType: params.mediaType,
               fileSize: params.fileSize,
             },
@@ -548,14 +696,14 @@ export async function startChatTranscriptionObservationWithDeps<Result>(
     }
 
     if (callbackStarted) {
-      logTelemetryFailure("langfuse_chat_transcription_export_failed", error);
+      logChatTranscriptionExportFailure(params, error);
       if (callbackResult !== null) {
         return callbackResult;
       }
       return fn();
     }
 
-    logTelemetryFailure("langfuse_chat_transcription_start_failed", error);
+    logChatTranscriptionStartFailure(params, error);
     return fn();
   }
 }
