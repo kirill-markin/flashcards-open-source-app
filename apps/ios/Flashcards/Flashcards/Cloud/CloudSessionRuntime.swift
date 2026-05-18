@@ -323,6 +323,17 @@ final class CloudSessionRuntime {
         self.state.activeCloudSession = linkedSession
     }
 
+    func clearActiveCloudSessionIfMatchingStableContext(linkedSession: CloudLinkedSession) {
+        guard let activeCloudSession = self.state.activeCloudSession else {
+            return
+        }
+        guard cloudLinkedSessionsMatchStableContext(activeCloudSession, linkedSession) else {
+            return
+        }
+
+        self.state.activeCloudSession = nil
+    }
+
     func runLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
         let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.cloudSyncService)
         return try await self.runCloudSyncTask {
@@ -465,4 +476,15 @@ final class CloudSessionRuntime {
     func activeCloudSession() -> CloudLinkedSession? {
         self.state.activeCloudSession
     }
+}
+
+private func cloudLinkedSessionsMatchStableContext(
+    _ lhs: CloudLinkedSession,
+    _ rhs: CloudLinkedSession
+) -> Bool {
+    lhs.userId == rhs.userId
+        && lhs.workspaceId == rhs.workspaceId
+        && lhs.configurationMode == rhs.configurationMode
+        && lhs.apiBaseUrl == rhs.apiBaseUrl
+        && lhs.authorization.isGuest == rhs.authorization.isGuest
 }

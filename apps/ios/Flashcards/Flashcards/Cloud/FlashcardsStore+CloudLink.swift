@@ -925,6 +925,7 @@ extension FlashcardsStore {
             )
             self.userDefaults.removeObject(forKey: pendingCloudServerBootstrapUserDefaultsKey)
         } catch {
+            self.cloudRuntime.clearActiveCloudSessionIfMatchingStableContext(linkedSession: linkedSession)
             logCloudFlowPhase(
                 phase: .linkedSync,
                 outcome: "failure",

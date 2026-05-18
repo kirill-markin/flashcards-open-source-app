@@ -57,6 +57,7 @@ internal class AiChatRuntimeContext(
     var activeFreshSessionJob: Job? = null
     var activeFreshSessionTargetSessionId: String? = null
     var pendingWarmUpAfterWorkspaceSwitch: Boolean = false
+    var lastBootstrapFailureRetryable: Boolean = false
     var activeAccessContext: AiAccessContext? = null
     var isScreenVisible: Boolean = false
     var nextResumeAttemptId: Long = 0L

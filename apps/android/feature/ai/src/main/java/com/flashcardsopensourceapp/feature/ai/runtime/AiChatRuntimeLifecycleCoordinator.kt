@@ -4,6 +4,7 @@ import com.flashcardsopensourceapp.data.local.ai.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -149,9 +150,15 @@ internal class AiChatRuntimeLifecycleCoordinator(
         if (context.activeWarmUpJob != null) {
             return
         }
+        if (
+            currentState.conversationBootstrapState == AiConversationBootstrapState.FAILED
+            && context.lastBootstrapFailureRetryable.not()
+        ) {
+            return
+        }
 
-        var warmUpJob: Job? = null
-        warmUpJob = context.scope.launch {
+        lateinit var warmUpJob: Job
+        warmUpJob = context.scope.launch(start = CoroutineStart.LAZY) {
             try {
                 if (shouldPrepareGuestAccess(
                         accessContext = accessContext,
@@ -214,6 +221,7 @@ internal class AiChatRuntimeLifecycleCoordinator(
             }
         }
         context.activeWarmUpJob = warmUpJob
+        warmUpJob.start()
     }
 
     private fun retryBootstrapIfLoadingWithoutOwner(accessContext: AiAccessContext) {

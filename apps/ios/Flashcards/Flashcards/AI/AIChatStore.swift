@@ -189,6 +189,7 @@ final class AIChatStore {
     @ObservationIgnored var activeResumeErrorAttemptSequence: Int?
     @ObservationIgnored var activeLiveResumeAttemptSequence: Int?
     @ObservationIgnored var requiresRemoteSessionProvisioning: Bool
+    @ObservationIgnored var lastBootstrapFailureWasRetryable: Bool
     @ObservationIgnored var suppressDraftRestore: Bool
     @ObservationIgnored var optimisticOutgoingTurnState: AIChatOptimisticOutgoingTurnState?
 
@@ -755,6 +756,7 @@ final class AIChatStore {
         self.activeResumeErrorAttemptSequence = nil
         self.activeLiveResumeAttemptSequence = nil
         self.requiresRemoteSessionProvisioning = persistedState.requiresRemoteSessionProvisioning
+        self.lastBootstrapFailureWasRetryable = false
         self.optimisticOutgoingTurnState = restoredAIChatOptimisticOutgoingTurnState(
             messages: persistedState.messages
         )

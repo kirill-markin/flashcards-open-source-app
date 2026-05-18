@@ -149,10 +149,31 @@ extension AIChatStore {
         ) && (didBecomeVisible || didAccessContextChange) {
             self.warmUpSessionIfNeeded()
         }
+
+        if self.shouldRestartFailedBootstrapOnVisibleSurface(activity: activity) {
+            self.retryLinkedBootstrap()
+        }
     }
 
     func retryLinkedBootstrap() {
         self.startLinkedBootstrap(forceReloadState: false, resumeAttemptDiagnostics: nil)
+    }
+
+    func shouldRestartFailedBootstrapOnVisibleSurface(activity: AIChatSurfaceActivity) -> Bool {
+        guard activity.isVisible else {
+            return false
+        }
+        guard case .failed = self.bootstrapPhase else {
+            return false
+        }
+        guard self.lastBootstrapFailureWasRetryable else {
+            return false
+        }
+        guard self.activeBootstrapTask == nil && self.activeNewSessionTask == nil else {
+            return false
+        }
+
+        return true
     }
 
     func currentAccessContext() -> AIChatAccessContext {
@@ -427,6 +448,7 @@ extension AIChatStore {
         self.activeResumeErrorAttemptSequence = nil
         self.activeLiveResumeAttemptSequence = nil
         self.requiresRemoteSessionProvisioning = false
+        self.lastBootstrapFailureWasRetryable = false
     }
 
     func resetConversationForNewSession(
@@ -467,6 +489,7 @@ extension AIChatStore {
         self.activeResumeErrorAttemptSequence = nil
         self.activeLiveResumeAttemptSequence = nil
         self.requiresRemoteSessionProvisioning = true
+        self.lastBootstrapFailureWasRetryable = false
         self.schedulePersistCurrentState()
     }
 
@@ -505,9 +528,7 @@ extension AIChatStore {
             }
 
             do {
-                let session = try await self.flashcardsStore.cloudSessionForAI()
                 let provisionedSessionId = try await self.provisionNewSessionWithBoundedBootstrapRetry(
-                    session: session,
                     sessionId: sessionId,
                     requestSequence: requestSequence,
                     accessContext: requestedAccessContext
@@ -539,6 +560,7 @@ extension AIChatStore {
 
                 self.activeAlert = nil
                 self.repairStatus = nil
+                self.lastBootstrapFailureWasRetryable = aiChatBootstrapShouldRetry(error: error)
                 self.bootstrapPhase = .failed(
                     makeAIChatBootstrapErrorPresentation(
                         error: error,
@@ -552,7 +574,6 @@ extension AIChatStore {
     }
 
     private func provisionNewSessionWithBoundedBootstrapRetry(
-        session: CloudLinkedSession,
         sessionId: String,
         requestSequence: Int,
         accessContext: AIChatAccessContext
@@ -568,6 +589,7 @@ extension AIChatStore {
             }
 
             do {
+                let session = try await self.flashcardsStore.cloudSessionForAI()
                 let provisionedSessionId = try await self.ensureRemoteSessionIfNeeded(session: session)
                 guard self.isCurrentNewSessionProvisioningRequest(
                     sequence: requestSequence,
