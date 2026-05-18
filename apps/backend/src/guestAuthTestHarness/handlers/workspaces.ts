@@ -18,10 +18,22 @@ export function handleWorkspaceExecutorQuery<Row extends pg.QueryResultRow>(
 ): pg.QueryResult<Row> | null {
   const { scope, state } = context;
 
+  if (text.includes("pg_advisory_xact_lock") && text.includes("hashtextextended")) {
+    const userId = params[0];
+    const workspaceId = params[1];
+    if (typeof userId !== "string" || typeof workspaceId !== "string") {
+      return createQueryResult<Row>([]);
+    }
+
+    scope.requireCurrentWorkspaceScope(userId, workspaceId);
+    return createQueryResult<Row>([]);
+  }
+
   if (
     text.startsWith("SELECT")
-    && text.includes("FROM org.workspace_memberships AS memberships")
-    && text.includes("FOR KEY SHARE OF workspaces, memberships")
+    && text.includes("FROM org.workspaces AS workspaces")
+    && text.includes("security.user_has_workspace_access(workspaces.workspace_id)")
+    && text.includes("FOR KEY SHARE OF workspaces")
   ) {
     const userId = params[0];
     const workspaceId = params[1];

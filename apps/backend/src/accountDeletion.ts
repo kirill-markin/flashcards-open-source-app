@@ -3,6 +3,7 @@ import { transactionWithUserScope, type DatabaseExecutor } from "./db";
 import { isDeletedSubject, markDeletedSubjectInExecutor } from "./deletedSubjects";
 import { isConfiguredDemoEmail } from "./demoEmailAccess";
 import { HttpError } from "./errors";
+import { lockUserWorkspaceAccessLifecyclesInExecutor } from "./workspaceAccessLocks";
 
 export const deleteAccountConfirmationText: string = "delete my account";
 
@@ -72,7 +73,7 @@ async function deleteAccountDataInExecutor(
     [appUserId],
   );
   const workspaceRows = await executor.query<WorkspaceIdRow>(
-    "SELECT workspace_id FROM org.workspace_memberships WHERE user_id = $1 FOR UPDATE",
+    "SELECT workspace_id FROM org.workspace_memberships WHERE user_id = $1",
     [appUserId],
   );
   const workspaceIds = workspaceRows.rows.map((row) => row.workspace_id);
@@ -80,6 +81,13 @@ async function deleteAccountDataInExecutor(
   const soleMemberWorkspaceIds: Array<string> = [];
 
   if (workspaceIds.length > 0) {
+    await lockUserWorkspaceAccessLifecyclesInExecutor(executor, appUserId, workspaceIds);
+
+    await executor.query(
+      "SELECT workspace_id FROM org.workspace_memberships WHERE user_id = $1 FOR UPDATE",
+      [appUserId],
+    );
+
     const workspaceMembershipRows = await executor.query<WorkspaceMembershipRow>(
       [
         "SELECT workspace_id, user_id",

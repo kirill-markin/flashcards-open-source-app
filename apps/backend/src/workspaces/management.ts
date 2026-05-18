@@ -16,6 +16,7 @@ import {
 } from "../observability/sentry";
 import { markBackendExceptionWrapperAsReported } from "../observability/reporting";
 import { ensureSystemWorkspaceReplicaInExecutor } from "../syncIdentity";
+import { lockWorkspaceAccessLifecycleInExecutor } from "../workspaceAccessLocks";
 import { createWorkspaceInExecutorWithObservationScope } from "./create";
 import {
   listUserWorkspaceIdsInExecutor,
@@ -550,6 +551,7 @@ async function deleteWorkspaceInExecutorWithObservationScope(
   observationScope: BackendObservationScope | null,
 ): Promise<DeleteWorkspaceResult> {
   assertDeleteWorkspaceConfirmationText(confirmationText);
+  await lockWorkspaceAccessLifecycleInExecutor(executor, userId, workspaceId);
   let stage: WorkspaceDeleteFailureStage = "load_management_row";
   const managedWorkspace = await loadWorkspaceManagementRowInExecutor(executor, userId, workspaceId);
   assertWorkspaceOwner(managedWorkspace.role);
