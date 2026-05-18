@@ -39,7 +39,7 @@ When proposing a test plan, treat "real testing" as one of these two options onl
 
 For iOS local testing details, see [docs/ios-local-setup.md](docs/ios-local-setup.md).
 For Android local testing details, see [docs/android-ci-cd.md](docs/android-ci-cd.md).
-Running `./gradlew` is resource-heavy in this repository. Do not run `./gradlew` locally unless the user explicitly allows it for the current task. When allowed, choose the narrowest Gradle task that validates the change, and avoid broad Gradle runs without a clear reason.
+Running `./gradlew` is resource-heavy in this repository. Do not run `./gradlew` locally unless the user explicitly allows that Gradle run for the current task. This applies even when a Gradle run seems necessary to validate a change: ask the user for permission first when validation genuinely requires it, wait for approval, and otherwise report that the Gradle check was not run. When allowed, choose the narrowest Gradle task that validates the change, and avoid broad Gradle runs without a clear reason.
 Running iOS simulator-backed tests or local smoke flows is resource-heavy in this repository. Do not run iOS simulator `xcodebuild test`, XCUITest, screenshot-generation, or local smoke flows unless the user explicitly allows that simulator-backed run for the current task. When allowed, choose the narrowest iOS simulator run that validates the change, and avoid broad iOS test runs without a clear reason.
 For the optional private analytical DB access path, granted reporting permissions, and operator setup flow, see [docs/analytics-db-access.md](docs/analytics-db-access.md).
 
