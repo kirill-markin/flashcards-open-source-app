@@ -289,7 +289,7 @@ test("OPTIONS /v1/global/snapshot returns public preflight headers on the mounte
   assert.equal(response.status, 204);
   assert.equal(response.headers.get("access-control-allow-origin"), "*");
   assert.equal(response.headers.get("access-control-allow-methods"), "GET,OPTIONS");
-  assert.equal(response.headers.get("access-control-allow-headers"), "authorization");
+  assert.equal(response.headers.get("access-control-allow-headers"), "authorization,sentry-trace,baggage");
   assert.equal(response.headers.get("access-control-allow-credentials"), null);
   assert.notEqual(response.headers.get("x-request-id"), null);
 });

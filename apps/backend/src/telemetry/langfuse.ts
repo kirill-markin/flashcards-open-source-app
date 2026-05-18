@@ -1,10 +1,26 @@
-import type { ReadableSpan } from "@opentelemetry/sdk-trace-base";
-import { NodeSDK } from "@opentelemetry/sdk-node";
+import type { ReadableSpan, SpanProcessor } from "@opentelemetry/sdk-trace-base";
+import { AlwaysOnSampler, BasicTracerProvider } from "@opentelemetry/sdk-trace-base";
 import { LangfuseSpanProcessor, isDefaultExportSpan } from "@langfuse/otel";
 import type { LangfuseObservation } from "@langfuse/tracing";
-import { createTraceId, propagateAttributes, startObservation } from "@langfuse/tracing";
+import {
+  createTraceId,
+  propagateAttributes,
+  setLangfuseTracerProvider,
+  startObservation,
+} from "@langfuse/tracing";
 
 type TelemetryMetadata = Readonly<Record<string, string>>;
+type LangfuseSanitizedObject = Readonly<{
+  [key: string]: LangfuseSanitizedTelemetryValue;
+}>;
+type LangfuseSanitizedTelemetryValue =
+  | string
+  | number
+  | boolean
+  | undefined
+  | null
+  | ReadonlyArray<LangfuseSanitizedTelemetryValue>
+  | LangfuseSanitizedObject;
 
 type ChatTurnTelemetryParams = Readonly<{
   requestId: string;
@@ -41,31 +57,9 @@ type StartChatTranscriptionObservationDependencies = Readonly<{
 
 type InitializeLangfuseTelemetryDependencies = Readonly<{
   createLangfuseSpanProcessor: () => LangfuseSpanProcessor | null;
-  createNodeSdk: (spanProcessor: LangfuseSpanProcessor) => NodeSDK;
-  startNodeSdk: (sdk: NodeSDK) => void | Promise<void>;
+  createLangfuseTracerProvider: (spanProcessor: SpanProcessor) => BasicTracerProvider;
+  setLangfuseTracerProvider: typeof setLangfuseTracerProvider;
 }>;
-
-const MASK_PATTERNS: ReadonlyArray<Readonly<{
-  pattern: RegExp;
-  replacement: string;
-}>> = [
-  {
-    pattern: /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,
-    replacement: "<masked-email>",
-  },
-  {
-    pattern: /\b(?:\+?\d[\d\s().-]{7,}\d)\b/g,
-    replacement: "<masked-phone>",
-  },
-  {
-    pattern: /\b(?:sk|pk|rk)_[A-Za-z0-9_-]{16,}\b/g,
-    replacement: "<masked-api-key>",
-  },
-  {
-    pattern: /\b\d{12,19}\b/g,
-    replacement: "<masked-number>",
-  },
-];
 
 const DEFAULT_START_CHAT_TURN_OBSERVATION_DEPENDENCIES: StartChatTurnObservationDependencies = {
   createTraceId,
@@ -81,16 +75,51 @@ const DEFAULT_START_CHAT_TRANSCRIPTION_OBSERVATION_DEPENDENCIES: StartChatTransc
 
 const DEFAULT_INITIALIZE_LANGFUSE_TELEMETRY_DEPENDENCIES: InitializeLangfuseTelemetryDependencies = {
   createLangfuseSpanProcessor,
-  createNodeSdk: (spanProcessor: LangfuseSpanProcessor): NodeSDK =>
-    new NodeSDK({
-      spanProcessors: [spanProcessor],
-    }),
-  startNodeSdk: (sdk: NodeSDK): void => {
-    void sdk.start();
-  },
+  createLangfuseTracerProvider,
+  setLangfuseTracerProvider,
 };
 
-let telemetrySdk: NodeSDK | null = null;
+const langfuseRedactedSecretValue = "<redacted-secret>";
+
+const langfuseSecretKeyFragments: ReadonlyArray<string> = [
+  "authorization",
+  "cookie",
+  "csrf",
+  "otp",
+  "password",
+  "secret",
+  "token",
+  "apikey",
+];
+
+const langfuseOperationalTokenMetricKeyNames: ReadonlySet<string> = new Set([
+  "completiontokens",
+  "inputtokens",
+  "outputtokens",
+  "prompttokens",
+  "tokencount",
+  "totaltokens",
+]);
+
+const langfuseMaskPatterns: ReadonlyArray<Readonly<{
+  pattern: RegExp;
+  replacement: string;
+}>> = [
+  {
+    pattern: /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,
+    replacement: "<masked-email>",
+  },
+  {
+    pattern: /\b(?:sk|pk|rk)[_-][A-Za-z0-9_-]{16,}\b/g,
+    replacement: "<masked-api-key>",
+  },
+  {
+    pattern: /\b(Bearer|ApiKey|Guest|Live)\s+[A-Za-z0-9._~+/=-]{8,}\b/g,
+    replacement: "$1 <redacted-secret>",
+  },
+];
+
+let telemetryTracerProvider: BasicTracerProvider | null = null;
 let telemetryStarted = false;
 
 function getPresentConfigValueCount(
@@ -103,11 +132,40 @@ function metadataValue(value: string | number | boolean): string {
   return String(value).slice(0, 200);
 }
 
-function sanitizeString(value: string): string {
-  return MASK_PATTERNS.reduce(
+function normalizeLangfuseTelemetryKey(key: string): string {
+  return key.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function isLangfuseOperationalTokenMetricKey(key: string): boolean {
+  return langfuseOperationalTokenMetricKeyNames.has(normalizeLangfuseTelemetryKey(key));
+}
+
+function shouldRedactLangfuseSecretEntry(key: string, value: unknown): boolean {
+  if (typeof value === "number" && isLangfuseOperationalTokenMetricKey(key)) {
+    return false;
+  }
+
+  const normalizedKey = normalizeLangfuseTelemetryKey(key);
+  return typeof value !== "boolean"
+    && langfuseSecretKeyFragments.some((fragment) => normalizedKey.includes(fragment));
+}
+
+function maskLangfuseString(value: string): string {
+  return langfuseMaskPatterns.reduce(
     (currentValue, rule) => currentValue.replace(rule.pattern, rule.replacement),
     value,
   );
+}
+
+function sanitizeLangfuseTelemetryEntry(
+  key: string,
+  value: unknown,
+): LangfuseSanitizedTelemetryValue {
+  if (shouldRedactLangfuseSecretEntry(key, value)) {
+    return langfuseRedactedSecretValue;
+  }
+
+  return sanitizeTelemetryValue(value);
 }
 
 function logTelemetryFailure(
@@ -117,6 +175,18 @@ function logTelemetryFailure(
   console.error(JSON.stringify({
     domain: "backend",
     action,
+    error: error instanceof Error ? error.message : String(error),
+  }));
+}
+
+function logTelemetryWarning(
+  action: string,
+  error: unknown,
+): void {
+  console.warn(JSON.stringify({
+    domain: "backend",
+    action,
+    errorClass: error instanceof Error ? error.name : null,
     error: error instanceof Error ? error.message : String(error),
   }));
 }
@@ -210,9 +280,14 @@ export function isLangfuseConfigured(
   return getLangfuseConfig(env) !== null;
 }
 
-export function sanitizeTelemetryValue(value: unknown): unknown {
+// Langfuse intentionally keeps raw AI/product input and output for debugging while stripping credentials and emails.
+export function sanitizeTelemetryValue(value: unknown): LangfuseSanitizedTelemetryValue {
   if (typeof value === "string") {
-    return sanitizeString(value);
+    return maskLangfuseString(value);
+  }
+
+  if (typeof value === "number" || typeof value === "boolean" || value === null) {
+    return value;
   }
 
   if (Array.isArray(value)) {
@@ -223,14 +298,12 @@ export function sanitizeTelemetryValue(value: unknown): unknown {
     return Object.fromEntries(
       Object.entries(value).map(([key, childValue]) => [
         key,
-        key === "base64Data"
-          ? "<redacted-base64>"
-          : sanitizeTelemetryValue(childValue),
+        sanitizeLangfuseTelemetryEntry(key, childValue),
       ]),
     );
   }
 
-  return value;
+  return undefined;
 }
 
 export function createLangfuseSpanProcessor(): LangfuseSpanProcessor | null {
@@ -253,8 +326,16 @@ export function createLangfuseSpanProcessor(): LangfuseSpanProcessor | null {
   });
 }
 
+export function createLangfuseTracerProvider(spanProcessor: SpanProcessor): BasicTracerProvider {
+  return new BasicTracerProvider({
+    sampler: new AlwaysOnSampler(),
+    spanProcessors: [spanProcessor],
+  });
+}
+
 export function resetLangfuseTelemetryForTests(): void {
-  telemetrySdk = null;
+  setLangfuseTracerProvider(null);
+  telemetryTracerProvider = null;
   telemetryStarted = false;
 }
 
@@ -277,13 +358,25 @@ export function initializeLangfuseTelemetryWithDeps(
     return;
   }
 
-  telemetrySdk = dependencies.createNodeSdk(spanProcessor);
-  dependencies.startNodeSdk(telemetrySdk);
+  telemetryTracerProvider = dependencies.createLangfuseTracerProvider(spanProcessor);
+  dependencies.setLangfuseTracerProvider(telemetryTracerProvider);
   telemetryStarted = true;
 }
 
 export function initializeLangfuseTelemetry(): void {
   initializeLangfuseTelemetryWithDeps(DEFAULT_INITIALIZE_LANGFUSE_TELEMETRY_DEPENDENCIES);
+}
+
+export async function flushLangfuseTelemetry(): Promise<void> {
+  if (!telemetryStarted || telemetryTracerProvider === null) {
+    return;
+  }
+
+  try {
+    await telemetryTracerProvider.forceFlush();
+  } catch (error) {
+    logTelemetryWarning("langfuse_telemetry_flush_failed", error);
+  }
 }
 
 export async function startChatTurnObservationWithDeps(

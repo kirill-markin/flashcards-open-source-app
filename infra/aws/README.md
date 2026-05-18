@@ -39,6 +39,8 @@ Keep these values in root `.env` before running setup or deploy scripts:
 - `RESEND_ADMIN_API_KEY`
 - `OPENAI_API_KEY` when needed
 - `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, and optionally `LANGFUSE_BASE_URL` when Langfuse tracing is enabled
+- Required backend Sentry setup:
+  `SENTRY_DSN` for bootstrap-created AWS secret `flashcards-open-source-app/sentry-dsn`, or `SENTRY_DSN_SECRET_ARN` for an existing AWS Secrets Manager secret; `SENTRY_ENVIRONMENT`; `SENTRY_RELEASE` (CI should use the deployed GitHub SHA; manual/local context can use the target commit SHA); `SENTRY_TRACES_SAMPLE_RATE`; `SENTRY_ORG`; `SENTRY_BACKEND_PROJECT`; and `SENTRY_AUTH_TOKEN` for backend source map uploads
 - `DEMO_EMAIL_DOSTIP` and `DEMO_PASSWORD_DOSTIP` when review/demo bypass is enabled
 - `GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP` when you want deployed guest AI enabled
 - `GLOBAL_METRICS_VISIBLE` when you want `GET /v1/global/snapshot` exposed externally; use the exact raw string `true`, and leave it unset or use any other value to keep the endpoint hidden
@@ -96,7 +98,7 @@ This script:
 - reads operator config from root `.env`
 - discovers AWS secret ARNs and ACM certificate ARNs
 - writes missing non-secret deploy config to GitHub repository variables
-- writes only a missing `AWS_DEPLOY_ROLE_ARN` as a GitHub secret
+- writes missing `AWS_DEPLOY_ROLE_ARN` and `SENTRY_AUTH_TOKEN` GitHub secrets; `SENTRY_AUTH_TOKEN` is required for backend source map uploads
 - leaves existing GitHub variables and secrets untouched
 
 The deploy workflow assembles its own `cdk.context.local.json` from those GitHub variables inside CI.

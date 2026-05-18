@@ -10,6 +10,7 @@ REGION_OVERRIDE=""
 DOMAIN_OVERRIDE=""
 ALERT_EMAIL_OVERRIDE=""
 GITHUB_REPO_OVERRIDE=""
+SENTRY_DSN_SECRET_NAME="flashcards-open-source-app/sentry-dsn"
 
 # shellcheck disable=SC1091
 source "${SCRIPT_DIR}/lib/deploy-config.sh"
@@ -31,6 +32,27 @@ DOMAIN_NAME="$(require_non_empty_value "${DOMAIN_OVERRIDE:-${DOMAIN_NAME:-}}" "S
 ALERT_EMAIL="$(require_non_empty_value "${ALERT_EMAIL_OVERRIDE:-${ALERT_EMAIL:-}}" "Set ALERT_EMAIL in root .env or pass --alert-email.")"
 GITHUB_REPO="$(require_non_empty_value "${GITHUB_REPO_OVERRIDE:-${GITHUB_REPO:-}}" "Set GITHUB_REPO in root .env or pass --github-repo.")"
 
+validate_sentry_traces_sample_rate() {
+  local value="$1"
+
+  python3 - "$value" <<'PY'
+import math
+import sys
+
+value = sys.argv[1]
+
+try:
+    traces_sample_rate = float(value)
+except ValueError:
+    print("ERROR: Set SENTRY_TRACES_SAMPLE_RATE to a number between 0 and 1.", file=sys.stderr)
+    sys.exit(1)
+
+if not math.isfinite(traces_sample_rate) or traces_sample_rate < 0 or traces_sample_rate > 1:
+    print("ERROR: Set SENTRY_TRACES_SAMPLE_RATE to a number between 0 and 1.", file=sys.stderr)
+    sys.exit(1)
+PY
+}
+
 API_CERTIFICATE_ARN="$(find_certificate_arn "${REGION}" "api.${DOMAIN_NAME}" "api-domain")"
 AUTH_CERTIFICATE_ARN="$(find_certificate_arn "${REGION}" "auth.${DOMAIN_NAME}" "auth-domain")"
 WEB_CERTIFICATE_ARN="$(find_certificate_arn "us-east-1" "app.${DOMAIN_NAME}" "web-domain")"
@@ -42,6 +64,12 @@ LANGFUSE_PUBLIC_KEY_SECRET_ARN="$(find_secret_arn "${REGION}" "flashcards-open-s
 LANGFUSE_SECRET_KEY_SECRET_ARN="$(find_secret_arn "${REGION}" "flashcards-open-source-app/langfuse-secret-key")"
 RESEND_SECRET_ARN="$(find_secret_arn "${REGION}" "flashcards-open-source-app/resend-api-key")"
 DEMO_PASSWORD_SECRET_ARN="$(find_secret_arn "${REGION}" "flashcards-open-source-app/demo-password-dostip")"
+SENTRY_DSN_SECRET_ARN="${SENTRY_DSN_SECRET_ARN:-$(find_secret_arn "${REGION}" "${SENTRY_DSN_SECRET_NAME}")}"
+SENTRY_ENVIRONMENT="$(require_non_empty_value "${SENTRY_ENVIRONMENT:-}" "Set SENTRY_ENVIRONMENT in root .env before generating a deploy CDK context.")"
+SENTRY_RELEASE="$(require_non_empty_value "${SENTRY_RELEASE:-}" "Set SENTRY_RELEASE in root .env before generating a deploy CDK context.")"
+SENTRY_TRACES_SAMPLE_RATE="$(require_non_empty_value "${SENTRY_TRACES_SAMPLE_RATE:-}" "Set SENTRY_TRACES_SAMPLE_RATE in root .env before generating a deploy CDK context.")"
+require_non_empty_value "${SENTRY_DSN_SECRET_ARN}" "Set SENTRY_DSN_SECRET_ARN in root .env or create the AWS secret ${SENTRY_DSN_SECRET_NAME} before generating a deploy CDK context." >/dev/null
+validate_sentry_traces_sample_rate "${SENTRY_TRACES_SAMPLE_RATE}"
 ANALYTICS_SSH_PUBLIC_KEYS="${ANALYTICS_SSH_PUBLIC_KEYS:-}"
 ANALYTICS_SSH_ALLOWED_CIDRS="${ANALYTICS_SSH_ALLOWED_CIDRS:-}"
 ANALYTICS_SSH_USERNAME="${ANALYTICS_SSH_USERNAME:-}"
@@ -75,6 +103,10 @@ export LANGFUSE_SECRET_KEY_SECRET_ARN
 export RESEND_SECRET_ARN
 export RESEND_SENDER_EMAIL
 export DEMO_PASSWORD_SECRET_ARN
+export SENTRY_DSN_SECRET_ARN
+export SENTRY_ENVIRONMENT
+export SENTRY_RELEASE
+export SENTRY_TRACES_SAMPLE_RATE
 export ANALYTICS_SSH_PUBLIC_KEYS
 export ANALYTICS_SSH_ALLOWED_CIDRS
 export ANALYTICS_SSH_USERNAME
@@ -107,6 +139,10 @@ values = {
     "resendSenderEmail": os.environ.get("RESEND_SENDER_EMAIL", ""),
     "demoEmailDostip": os.environ.get("DEMO_EMAIL_DOSTIP", ""),
     "demoPasswordSecretArn": os.environ.get("DEMO_PASSWORD_SECRET_ARN", ""),
+    "sentryDsnSecretArn": os.environ.get("SENTRY_DSN_SECRET_ARN", ""),
+    "sentryEnvironment": os.environ.get("SENTRY_ENVIRONMENT", ""),
+    "sentryRelease": os.environ.get("SENTRY_RELEASE", ""),
+    "sentryTracesSampleRate": os.environ.get("SENTRY_TRACES_SAMPLE_RATE", ""),
     "guestAiWeightedMonthlyTokenCap": os.environ.get("GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP", ""),
     "adminEmails": os.environ.get("ADMIN_EMAILS", ""),
     "analyticsSshPublicKeys": os.environ.get("ANALYTICS_SSH_PUBLIC_KEYS", ""),

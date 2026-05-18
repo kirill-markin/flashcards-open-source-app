@@ -5,7 +5,10 @@ import type { ChatRuntimeDependencies, StartPersistedChatRunParams } from "../ru
 import { runPersistedChatSessionWithDeps } from "../runtime";
 import type { OpenAILoopCompletion, OpenAILoopEventSink, StartOpenAILoopParams } from "../openai/loop";
 
-type StructuredLogRecord = Readonly<Record<string, unknown>>;
+type ConsoleMethod = "log" | "warn" | "error";
+type StructuredLogRecord = Readonly<Record<string, unknown> & {
+  consoleMethod: ConsoleMethod;
+}>;
 
 type DependencyOverrides = Partial<ChatRuntimeDependencies>;
 
@@ -32,6 +35,20 @@ function createAbortError(): Error {
   const error = new Error("Request was aborted.");
   error.name = "AbortError";
   return error;
+}
+
+function createProviderApiError(rawMessage: string): Error & Readonly<{
+  status: number;
+  code: string;
+  requestID: string;
+}> {
+  const error = new Error(rawMessage);
+  error.name = "RateLimitError";
+  return Object.assign(error, {
+    status: 429,
+    code: "rate_limit_exceeded",
+    requestID: "req_provider_123",
+  });
 }
 
 function createParams(): StartPersistedChatRunParams {
@@ -100,26 +117,34 @@ async function withCapturedLogs(
   execute: () => Promise<void>,
 ): Promise<ReadonlyArray<StructuredLogRecord>> {
   const originalLog = console.log;
+  const originalWarn = console.warn;
   const originalError = console.error;
   const records: Array<StructuredLogRecord> = [];
 
-  console.log = (...args: unknown[]): void => {
-    const message = args[0];
+  const captureMessage = (message: unknown, consoleMethod: ConsoleMethod): void => {
     if (typeof message === "string") {
-      records.push(JSON.parse(message) as StructuredLogRecord);
+      records.push({
+        ...(JSON.parse(message) as Record<string, unknown>),
+        consoleMethod,
+      });
     }
   };
+
+  console.log = (...args: unknown[]): void => {
+    captureMessage(args[0], "log");
+  };
   console.error = (...args: unknown[]): void => {
-    const message = args[0];
-    if (typeof message === "string") {
-      records.push(JSON.parse(message) as StructuredLogRecord);
-    }
+    captureMessage(args[0], "error");
+  };
+  console.warn = (...args: unknown[]): void => {
+    captureMessage(args[0], "warn");
   };
 
   try {
     await execute();
   } finally {
     console.log = originalLog;
+    console.warn = originalWarn;
     console.error = originalError;
   }
 
@@ -204,6 +229,16 @@ function findLog(
   action: string,
 ): StructuredLogRecord | undefined {
   return records.find((record) => record.action === action);
+}
+
+function requireTerminalPersistParams(
+  params: PersistAssistantTerminalErrorParams | null,
+): PersistAssistantTerminalErrorParams {
+  if (params === null) {
+    throw new Error("Expected terminal persist params");
+  }
+
+  return params;
 }
 
 test("runPersistedChatSessionWithDeps finalizes a cancelled run when the user stops during the provider call", async () => {
@@ -841,6 +876,8 @@ test("runPersistedChatSessionWithDeps interrupts gracefully on the soft deadline
 
 test("runPersistedChatSessionWithDeps persists a failed run for real provider errors", async () => {
   let terminalPersistCount = 0;
+  let terminalPersistParams: PersistAssistantTerminalErrorParams | null = null;
+  const rawProviderMessage = "provider leaked raw prompt: user asked about private study notes";
 
   const logs = await withCapturedLogs(async () => {
     const result = await runPersistedChatSessionWithDeps(
@@ -858,10 +895,11 @@ test("runPersistedChatSessionWithDeps persists a failed run for real provider er
             contentIndex: 0,
             sequenceNumber: 1,
           });
-          throw new Error("provider exploded");
+          throw createProviderApiError(rawProviderMessage);
         },
-        persistAssistantTerminalError: async () => {
+        persistAssistantTerminalError: async (_userId, _workspaceId, params) => {
           terminalPersistCount += 1;
+          terminalPersistParams = params;
         },
       }),
     );
@@ -875,8 +913,110 @@ test("runPersistedChatSessionWithDeps persists a failed run for real provider er
   });
 
   assert.equal(terminalPersistCount, 1);
+  assert.equal(
+    requireTerminalPersistParams(terminalPersistParams).errorMessage,
+    "The AI provider is rate limited right now. Please try again in a few minutes.",
+  );
   assert.equal(findLog(logs, "chat_worker_provider_call_aborted"), undefined);
-  assert.equal(findLog(logs, "chat_worker_terminal_state_persisted")?.runStatus, "failed");
+  const terminalLog = findLog(logs, "chat_worker_terminal_state_persisted");
+  assert.equal(terminalLog?.consoleMethod, "warn");
+  assert.equal(terminalLog?.runStatus, "failed");
+  assert.equal(terminalLog?.providerErrorClass, "RateLimitError");
+  assert.equal(terminalLog?.providerErrorMessage, null);
+  assert.equal(terminalLog?.providerErrorStatus, 429);
+  assert.equal(terminalLog?.providerErrorCode, "rate_limit_exceeded");
+  assert.equal(terminalLog?.providerErrorCategory, "provider_rate_limited");
+  assert.equal(terminalLog?.providerRequestId, "req_provider_123");
+  assert.equal(terminalLog?.lambdaRequestId, "lambda-request-1");
+  assert.equal(terminalLog?.errorClass, undefined);
+  assert.equal(terminalLog?.errorMessage, undefined);
+  assert.equal(JSON.stringify(terminalLog).includes(rawProviderMessage), false);
+});
+
+test("runPersistedChatSessionWithDeps captures unexpected runtime failures as backend exceptions", async () => {
+  const runtimeError = new Error("assistant content reducer exploded");
+  let terminalPersistParams: PersistAssistantTerminalErrorParams | null = null;
+
+  const logs = await withCapturedLogs(async () => {
+    const result = await runPersistedChatSessionWithDeps(
+      createParams(),
+      createDependencies({
+        startOpenAILoop: async (): Promise<OpenAILoopCompletion> => {
+          throw runtimeError;
+        },
+        persistAssistantTerminalError: async (_userId, _workspaceId, params) => {
+          terminalPersistParams = params;
+        },
+      }),
+    );
+
+    assert.deepEqual(result, {
+      outcome: "failed",
+      abortReason: null,
+      runStatus: "failed",
+      sessionState: "idle",
+    });
+  });
+
+  assert.equal(
+    requireTerminalPersistParams(terminalPersistParams).errorMessage,
+    "The AI response failed before it could finish. Please try again.",
+  );
+  const terminalLogs = logs.filter((record) => record.action === "chat_worker_terminal_state_persisted");
+  assert.equal(terminalLogs.length, 1);
+  const terminalLog = terminalLogs[0];
+  assert.equal(terminalLog?.consoleMethod, "error");
+  assert.equal(terminalLog?.runStatus, "failed");
+  assert.equal(terminalLog?.providerErrorCategory, "runtime_error");
+  assert.equal(terminalLog?.errorClass, "Error");
+  assert.equal(terminalLog?.errorMessage, "assistant content reducer exploded");
+  assert.equal(terminalLog?.lambdaRequestId, "lambda-request-1");
+});
+
+test("runPersistedChatSessionWithDeps does not log raw provider terminal event messages", async () => {
+  const rawProviderMessage = "provider terminal event included private prompt text";
+  let terminalPersistParams: PersistAssistantTerminalErrorParams | null = null;
+
+  const logs = await withCapturedLogs(async () => {
+    const result = await runPersistedChatSessionWithDeps(
+      createParams(),
+      createDependencies({
+        startOpenAILoop: async (
+          _params: StartOpenAILoopParams,
+          onEvent: OpenAILoopEventSink,
+        ): Promise<OpenAILoopCompletion> => {
+          await onEvent({
+            type: "error",
+            message: rawProviderMessage,
+          });
+          return createCompletedLoopCompletion();
+        },
+        persistAssistantTerminalError: async (_userId, _workspaceId, params) => {
+          terminalPersistParams = params;
+        },
+      }),
+    );
+
+    assert.deepEqual(result, {
+      outcome: "failed",
+      abortReason: null,
+      runStatus: "failed",
+      sessionState: "idle",
+    });
+  });
+
+  assert.equal(
+    requireTerminalPersistParams(terminalPersistParams).errorMessage,
+    "The AI provider could not complete the response. Please try again.",
+  );
+  const terminalLog = findLog(logs, "chat_worker_terminal_state_persisted");
+  assert.equal(terminalLog?.consoleMethod, "warn");
+  assert.equal(terminalLog?.providerErrorClass, "ChatProviderTerminalEventError");
+  assert.equal(terminalLog?.providerErrorMessage, null);
+  assert.equal(terminalLog?.providerErrorCategory, "provider_error");
+  assert.equal(terminalLog?.errorClass, undefined);
+  assert.equal(terminalLog?.errorMessage, undefined);
+  assert.equal(JSON.stringify(terminalLog).includes(rawProviderMessage), false);
 });
 
 test("runPersistedChatSessionWithDeps exits without failing when the claimed run disappears before completion persistence", async () => {

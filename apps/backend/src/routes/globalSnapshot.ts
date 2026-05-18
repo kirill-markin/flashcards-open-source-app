@@ -6,7 +6,10 @@ import {
   isGlobalMetricsVisible,
   loadGlobalMetricsSnapshotFromS3,
 } from "../globalMetrics/storage";
-import { logCloudRouteEvent } from "../server/logging";
+import {
+  captureBackendWarning,
+  createBackendObservationScope,
+} from "../observability/sentry";
 
 export const globalSnapshotPath = "/global/snapshot";
 const globalMetricsSnapshotUnavailableCode = "GLOBAL_METRICS_SNAPSHOT_UNAVAILABLE";
@@ -61,13 +64,26 @@ export function createGlobalSnapshotRoutes(options: GlobalSnapshotRoutesOptions)
         throw error;
       }
 
-      logCloudRouteEvent("global_snapshot_error", {
-        requestId: context.get("requestId"),
-        route: context.req.path,
-        statusCode: error.statusCode,
-        code: error.code,
-        storageErrorMessage: error.message,
-      }, true);
+      captureBackendWarning({
+        action: "global_snapshot_error",
+        message: "Global metrics snapshot is unavailable.",
+        scope: createBackendObservationScope(
+          "backend-api",
+          context.get("requestId"),
+          context.req.path,
+          context.req.method,
+          null,
+          null,
+          null,
+          null,
+          null,
+        ),
+        details: {
+          statusCode: error.statusCode,
+          code: error.code,
+          storageErrorMessage: error.message,
+        },
+      });
 
       return applyGlobalSnapshotCorsHeaders(context.json({
         error: globalMetricsSnapshotUnavailableMessage,

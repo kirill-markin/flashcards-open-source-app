@@ -5,6 +5,7 @@ import {
   parseOptionalWorkspaceIdParam,
   resolveAccessibleChatWorkspaceId,
 } from "../server/requestContext";
+import type { BackendTraceCarrier } from "../observability/sentry";
 import { assertChatLiveRunAccess } from "./liveAccess";
 import {
   CHAT_LIVE_AFTER_CURSOR_INVALID_CODE,
@@ -20,6 +21,7 @@ export type LiveStreamParams = Readonly<{
   afterCursor: number | undefined;
   userId: string;
   workspaceId: string;
+  traceContext?: BackendTraceCarrier | null;
   requestId?: string;
   resumeAttemptId?: string;
   clientPlatform?: string;
@@ -107,6 +109,7 @@ export async function handleLiveRequest(
       afterCursor,
       userId: verifiedLiveAuth.userId,
       workspaceId: verifiedLiveAuth.workspaceId,
+      traceContext: verifiedLiveAuth.traceContext ?? null,
       resumeAttemptId: readOptionalHeader(headers, "X-Chat-Resume-Attempt-Id"),
       clientPlatform: readOptionalHeader(headers, "X-Client-Platform"),
       clientVersion: readOptionalHeader(headers, "X-Client-Version"),
@@ -156,6 +159,7 @@ export async function handleLiveRequest(
     afterCursor,
     userId: authResult.userId,
     workspaceId,
+    traceContext: null,
     resumeAttemptId: readOptionalHeader(headers, "X-Chat-Resume-Attempt-Id"),
     clientPlatform: readOptionalHeader(headers, "X-Client-Platform"),
     clientVersion: readOptionalHeader(headers, "X-Client-Version"),

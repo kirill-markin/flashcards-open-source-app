@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { PassThrough } from "node:stream";
-import { runLiveStreamWithDependencies } from "../live";
+import {
+  runLiveStreamWithDependencies,
+  type ChatLiveStreamResult,
+} from "../live";
 import type { ChatComposerSuggestion } from "../composerSuggestions";
 import type { ChatRunSnapshot } from "../runs";
 import type { PersistedChatMessageItem } from "../store";
@@ -108,6 +111,32 @@ async function collectStreamOutput(
   }
 
   return output;
+}
+
+async function collectStreamResult(
+  execute: (stream: PassThrough) => Promise<ChatLiveStreamResult>,
+): Promise<Readonly<{
+  output: string;
+  result: ChatLiveStreamResult;
+}>> {
+  const stream = new PassThrough();
+  stream.setEncoding("utf8");
+  let output = "";
+  stream.on("data", (chunk: string) => {
+    output += chunk;
+  });
+
+  const result = await execute(stream);
+  if (stream.readableEnded === false) {
+    await new Promise<void>((resolve) => {
+      stream.on("end", () => resolve());
+    });
+  }
+
+  return {
+    output,
+    result,
+  };
 }
 
 function parseLiveEvents(output: string): ReadonlyArray<unknown> {
@@ -776,6 +805,51 @@ test("recovered session read emits reset_required immediately when the attached 
       streamEpoch: "run-1",
       outcome: "reset_required",
       assistantItemId: "assistant-8",
+    },
+  ]);
+});
+
+test("poll failures mark the stream result for Sentry flush and keep the terminal SSE contract", async () => {
+  const { output, result } = await collectStreamResult(async (stream) =>
+    runLiveStreamWithDependencies(stream, {
+      sessionId: "session-1",
+      runId: "run-1",
+      userId: "user-1",
+      workspaceId: "workspace-1",
+      afterCursor: undefined,
+      requestId: "request-poll-error-1",
+    }, {
+      getChatRunSnapshot: async () => createRunSnapshot({
+        status: "running",
+        assistantItemId: "assistant-9",
+        lastErrorMessage: null,
+      }),
+      getRecoveredChatSessionSnapshot: async () => {
+        throw new Error("session poll failed");
+      },
+      listChatMessagesAfterCursor: async () => [],
+      listChatMessagesLatest: async () => ({
+        messages: [],
+        oldestCursor: null,
+        newestCursor: null,
+        hasOlder: false,
+      }),
+      waitForNextPollInterval: async () => true,
+    }));
+
+  assert.equal(result.capturedSentryEvent, true);
+  assert.deepEqual(parseLiveEvents(output), [
+    {
+      type: "run_terminal",
+      sessionId: "session-1",
+      conversationScopeId: "session-1",
+      runId: "run-1",
+      cursor: null,
+      sequenceNumber: 1,
+      streamEpoch: "run-1",
+      outcome: "error",
+      message: "Failed to poll session state",
+      isError: true,
     },
   ]);
 });

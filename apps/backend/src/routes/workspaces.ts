@@ -14,14 +14,8 @@ import {
 } from "../agent/apiKeys";
 import { parseOptionalCursorQuery, parseRequiredPageLimit } from "../pagination";
 import {
-  createWorkspaceForApiKeyConnection,
-  createWorkspaceForUser,
-  deleteWorkspaceForUser,
   listUserWorkspacesPageForSelectedWorkspace,
-  loadWorkspaceDeletePreviewForUser,
-  loadWorkspaceResetProgressPreviewForUser,
   renameWorkspaceForUser,
-  resetWorkspaceProgressForUser,
   selectWorkspaceForApiKeyConnection,
   selectWorkspaceForUser,
   type DeleteWorkspaceResult,
@@ -30,6 +24,16 @@ import {
   type WorkspaceResetProgressPreview,
   type WorkspaceSummary,
 } from "../workspaces";
+import {
+  createWorkspaceForApiKeyConnectionWithObservationScope,
+  createWorkspaceForUserWithObservationScope,
+} from "../workspaces/create";
+import {
+  deleteWorkspaceForUserWithObservationScope,
+  loadWorkspaceDeletePreviewForUserWithObservationScope,
+  loadWorkspaceResetProgressPreviewForUserWithObservationScope,
+  resetWorkspaceProgressForUserWithObservationScope,
+} from "../workspaces/management";
 import { HttpError } from "../errors";
 import {
   loadRequestContextFromRequest,
@@ -42,9 +46,16 @@ import {
   parseJsonBody,
 } from "../server/requestParsing";
 import {
-  logCloudRouteEvent,
   summarizeValidationIssues,
 } from "../server/logging";
+import {
+  addBackendBreadcrumb,
+  createBackendObservationScope,
+  normalizeCaughtError,
+  type BackendFailureDetails,
+  type BackendObservationScope,
+} from "../observability/sentry";
+import { reportBackendExceptionOrBreadcrumb } from "../observability/reporting";
 import type { AppEnv } from "../app";
 
 type WorkspaceRoutesOptions = Readonly<{
@@ -81,6 +92,35 @@ function parseCursorQueryParams(request: Request): CursorQueryParams {
   };
 }
 
+function createWorkspaceRouteScope(
+  requestId: string,
+  route: string,
+  method: string,
+  userId: string,
+  workspaceId: string | null,
+): BackendObservationScope {
+  return createBackendObservationScope(
+    "backend-api",
+    requestId,
+    route,
+    method,
+    userId,
+    workspaceId,
+    null,
+    null,
+    null,
+  );
+}
+
+function createFailureDetails(error: unknown): BackendFailureDetails {
+  return {
+    statusCode: error instanceof HttpError ? error.statusCode : 500,
+    code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
+    message: error instanceof Error ? error.message : String(error),
+    validationIssues: summarizeValidationIssues(error),
+  };
+}
+
 export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
 
@@ -101,16 +141,17 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
           requestContext.selectedWorkspaceId,
           pageInput,
         );
-      logCloudRouteEvent("workspaces_list", {
-        requestId,
-        route: context.req.path,
-        statusCode: 200,
-        userId: requestContext.userId,
-        selectedWorkspaceId: requestContext.selectedWorkspaceId,
-        workspacesCount: workspacesPage.workspaces.length,
-        limit: pageInput.limit,
-        hasNextCursor: workspacesPage.nextCursor !== null,
-      }, false);
+      addBackendBreadcrumb({
+        action: "workspaces_list",
+        scope: createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, null),
+        details: {
+          statusCode: 200,
+          selectedWorkspaceId: requestContext.selectedWorkspaceId,
+          workspacesCount: workspacesPage.workspaces.length,
+          limit: pageInput.limit,
+          hasNextCursor: workspacesPage.nextCursor !== null,
+        },
+      });
       if (shouldUseAgentSetupEnvelope(requestContext.transport)) {
         return context.json(createAgentWorkspacesEnvelope(
           context.req.url,
@@ -123,15 +164,19 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
         nextCursor: workspacesPage.nextCursor,
       } satisfies WorkspacesPageResponse);
     } catch (error) {
-      logCloudRouteEvent("workspaces_list_error", {
-        requestId,
-        route: context.req.path,
-        statusCode: error instanceof HttpError ? error.statusCode : 500,
-        userId: requestContext.userId,
+      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, null);
+      const details = {
         selectedWorkspaceId: requestContext.selectedWorkspaceId,
-        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
-        validationIssues: summarizeValidationIssues(error),
-      }, true);
+        workspacesCount: null,
+        limit: pageInput.limit,
+        hasNextCursor: null,
+        ...createFailureDetails(error),
+      };
+      reportBackendExceptionOrBreadcrumb(
+        error,
+        { action: "workspaces_list_error", error: normalizeCaughtError(error), scope, details },
+        { action: "workspaces_list_error", scope, details },
+      );
       throw error;
     }
   });
@@ -143,33 +188,36 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
 
     try {
       const workspaceName = expectNonEmptyString(body.name, "name");
+      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, null);
       const workspace = shouldUseAgentSetupEnvelope(requestContext.transport)
-        ? await createWorkspaceForApiKeyConnection(
+        ? await createWorkspaceForApiKeyConnectionWithObservationScope(
           requestContext.userId,
           requireAgentConnectionId(requestContext),
           workspaceName,
+          scope,
         )
-        : await createWorkspaceForUser(requestContext.userId, workspaceName);
-      logCloudRouteEvent("workspace_create", {
-        requestId,
-        route: context.req.path,
-        statusCode: 201,
-        userId: requestContext.userId,
-        workspaceId: workspace.workspaceId,
-      }, false);
+        : await createWorkspaceForUserWithObservationScope(requestContext.userId, workspaceName, scope);
+      addBackendBreadcrumb({
+        action: "workspace_create",
+        scope: createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspace.workspaceId),
+        details: {
+          statusCode: 201,
+        },
+      });
       if (shouldUseAgentSetupEnvelope(requestContext.transport)) {
         return context.json(createAgentWorkspaceReadyEnvelope(context.req.url, workspace), 201);
       }
       return context.json({ workspace }, 201);
     } catch (error) {
-      logCloudRouteEvent("workspace_create_error", {
-        requestId,
-        route: context.req.path,
-        statusCode: error instanceof HttpError ? error.statusCode : 500,
-        userId: requestContext.userId,
-        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
-        validationIssues: summarizeValidationIssues(error),
-      }, true);
+      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, null);
+      const details = {
+        ...createFailureDetails(error),
+      };
+      reportBackendExceptionOrBreadcrumb(
+        error,
+        { action: "workspace_create_error", error: normalizeCaughtError(error), scope, details },
+        { action: "workspace_create_error", scope, details },
+      );
       throw error;
     }
   });
@@ -187,27 +235,27 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
           workspaceId,
         )
         : await selectWorkspaceForUser(requestContext.userId, workspaceId);
-      logCloudRouteEvent("workspace_select", {
-        requestId,
-        route: context.req.path,
-        statusCode: 200,
-        userId: requestContext.userId,
-        workspaceId,
-      }, false);
+      addBackendBreadcrumb({
+        action: "workspace_select",
+        scope: createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId),
+        details: {
+          statusCode: 200,
+        },
+      });
       if (shouldUseAgentSetupEnvelope(requestContext.transport)) {
         return context.json(createAgentWorkspaceReadyEnvelope(context.req.url, workspace));
       }
       return context.json({ workspace });
     } catch (error) {
-      logCloudRouteEvent("workspace_select_error", {
-        requestId,
-        route: context.req.path,
-        statusCode: error instanceof HttpError ? error.statusCode : 500,
-        userId: requestContext.userId,
-        workspaceId,
-        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
-        validationIssues: summarizeValidationIssues(error),
-      }, true);
+      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
+      const details = {
+        ...createFailureDetails(error),
+      };
+      reportBackendExceptionOrBreadcrumb(
+        error,
+        { action: "workspace_select_error", error: normalizeCaughtError(error), scope, details },
+        { action: "workspace_select_error", scope, details },
+      );
       throw error;
     }
   });
@@ -227,24 +275,24 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
         workspaceName,
         requestContext.selectedWorkspaceId,
       );
-      logCloudRouteEvent("workspace_rename", {
-        requestId,
-        route: context.req.path,
-        statusCode: 200,
-        userId: requestContext.userId,
-        workspaceId,
-      }, false);
+      addBackendBreadcrumb({
+        action: "workspace_rename",
+        scope: createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId),
+        details: {
+          statusCode: 200,
+        },
+      });
       return context.json({ workspace });
     } catch (error) {
-      logCloudRouteEvent("workspace_rename_error", {
-        requestId,
-        route: context.req.path,
-        statusCode: error instanceof HttpError ? error.statusCode : 500,
-        userId: requestContext.userId,
-        workspaceId,
-        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
-        validationIssues: summarizeValidationIssues(error),
-      }, true);
+      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
+      const details = {
+        ...createFailureDetails(error),
+      };
+      reportBackendExceptionOrBreadcrumb(
+        error,
+        { action: "workspace_rename_error", error: normalizeCaughtError(error), scope, details },
+        { action: "workspace_rename_error", scope, details },
+      );
       throw error;
     }
   });
@@ -256,26 +304,32 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
     const requestId = context.get("requestId");
 
     try {
-      const preview = await loadWorkspaceDeletePreviewForUser(requestContext.userId, workspaceId);
-      logCloudRouteEvent("workspace_delete_preview", {
-        requestId,
-        route: context.req.path,
-        statusCode: 200,
-        userId: requestContext.userId,
+      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
+      const preview = await loadWorkspaceDeletePreviewForUserWithObservationScope(
+        requestContext.userId,
         workspaceId,
-        cardsCount: preview.activeCardCount,
-      }, false);
+        scope,
+      );
+      addBackendBreadcrumb({
+        action: "workspace_delete_preview",
+        scope,
+        details: {
+          statusCode: 200,
+          cardsCount: preview.activeCardCount,
+        },
+      });
       return context.json(preview satisfies WorkspaceDeletePreview);
     } catch (error) {
-      logCloudRouteEvent("workspace_delete_preview_error", {
-        requestId,
-        route: context.req.path,
-        statusCode: error instanceof HttpError ? error.statusCode : 500,
-        userId: requestContext.userId,
-        workspaceId,
-        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
-        validationIssues: summarizeValidationIssues(error),
-      }, true);
+      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
+      const details = {
+        cardsCount: null,
+        ...createFailureDetails(error),
+      };
+      reportBackendExceptionOrBreadcrumb(
+        error,
+        { action: "workspace_delete_preview_error", error: normalizeCaughtError(error), scope, details },
+        { action: "workspace_delete_preview_error", scope, details },
+      );
       throw error;
     }
   });
@@ -296,31 +350,35 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
     }
 
     try {
-      const response = await deleteWorkspaceForUser(
+      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
+      const response = await deleteWorkspaceForUserWithObservationScope(
         requestContext.userId,
         workspaceId,
         body.confirmationText,
+        scope,
       );
-      logCloudRouteEvent("workspace_delete", {
-        requestId,
-        route: context.req.path,
-        statusCode: 200,
-        userId: requestContext.userId,
-        workspaceId,
-        deletedCardsCount: response.deletedCardsCount,
-        nextWorkspaceId: response.workspace.workspaceId,
-      }, false);
+      addBackendBreadcrumb({
+        action: "workspace_delete",
+        scope,
+        details: {
+          statusCode: 200,
+          deletedCardsCount: response.deletedCardsCount,
+          nextWorkspaceId: response.workspace.workspaceId,
+        },
+      });
       return context.json(response satisfies WorkspaceDeleteResponse);
     } catch (error) {
-      logCloudRouteEvent("workspace_delete_error", {
-        requestId,
-        route: context.req.path,
-        statusCode: error instanceof HttpError ? error.statusCode : 500,
-        userId: requestContext.userId,
-        workspaceId,
-        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
-        validationIssues: summarizeValidationIssues(error),
-      }, true);
+      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
+      const details = {
+        deletedCardsCount: null,
+        nextWorkspaceId: null,
+        ...createFailureDetails(error),
+      };
+      reportBackendExceptionOrBreadcrumb(
+        error,
+        { action: "workspace_delete_error", error: normalizeCaughtError(error), scope, details },
+        { action: "workspace_delete_error", scope, details },
+      );
       throw error;
     }
   });
@@ -332,26 +390,32 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
     const requestId = context.get("requestId");
 
     try {
-      const preview = await loadWorkspaceResetProgressPreviewForUser(requestContext.userId, workspaceId);
-      logCloudRouteEvent("workspace_reset_progress_preview", {
-        requestId,
-        route: context.req.path,
-        statusCode: 200,
-        userId: requestContext.userId,
+      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
+      const preview = await loadWorkspaceResetProgressPreviewForUserWithObservationScope(
+        requestContext.userId,
         workspaceId,
-        cardsCount: preview.cardsToResetCount,
-      }, false);
+        scope,
+      );
+      addBackendBreadcrumb({
+        action: "workspace_reset_progress_preview",
+        scope,
+        details: {
+          statusCode: 200,
+          cardsCount: preview.cardsToResetCount,
+        },
+      });
       return context.json(preview satisfies WorkspaceResetProgressPreviewResponse);
     } catch (error) {
-      logCloudRouteEvent("workspace_reset_progress_preview_error", {
-        requestId,
-        route: context.req.path,
-        statusCode: error instanceof HttpError ? error.statusCode : 500,
-        userId: requestContext.userId,
-        workspaceId,
-        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
-        validationIssues: summarizeValidationIssues(error),
-      }, true);
+      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
+      const details = {
+        cardsCount: null,
+        ...createFailureDetails(error),
+      };
+      reportBackendExceptionOrBreadcrumb(
+        error,
+        { action: "workspace_reset_progress_preview_error", error: normalizeCaughtError(error), scope, details },
+        { action: "workspace_reset_progress_preview_error", scope, details },
+      );
       throw error;
     }
   });
@@ -372,30 +436,33 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
     }
 
     try {
-      const response = await resetWorkspaceProgressForUser(
+      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
+      const response = await resetWorkspaceProgressForUserWithObservationScope(
         requestContext.userId,
         workspaceId,
         body.confirmationText,
+        scope,
       );
-      logCloudRouteEvent("workspace_reset_progress", {
-        requestId,
-        route: context.req.path,
-        statusCode: 200,
-        userId: requestContext.userId,
-        workspaceId,
-        cardsResetCount: response.cardsResetCount,
-      }, false);
+      addBackendBreadcrumb({
+        action: "workspace_reset_progress",
+        scope,
+        details: {
+          statusCode: 200,
+          cardsResetCount: response.cardsResetCount,
+        },
+      });
       return context.json(response satisfies WorkspaceResetProgressResponse);
     } catch (error) {
-      logCloudRouteEvent("workspace_reset_progress_error", {
-        requestId,
-        route: context.req.path,
-        statusCode: error instanceof HttpError ? error.statusCode : 500,
-        userId: requestContext.userId,
-        workspaceId,
-        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
-        validationIssues: summarizeValidationIssues(error),
-      }, true);
+      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
+      const details = {
+        cardsResetCount: null,
+        ...createFailureDetails(error),
+      };
+      reportBackendExceptionOrBreadcrumb(
+        error,
+        { action: "workspace_reset_progress_error", error: normalizeCaughtError(error), scope, details },
+        { action: "workspace_reset_progress_error", scope, details },
+      );
       throw error;
     }
   });

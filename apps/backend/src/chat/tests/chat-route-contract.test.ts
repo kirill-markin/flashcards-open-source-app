@@ -4,10 +4,16 @@ import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { HttpError } from "../../errors";
 import { createChatRoutes } from "../../routes/chat";
+import type { AppEnv } from "../../app";
 import type { RequestContext } from "../../server/requestContext";
 import type { ChatSessionSnapshot, PersistedChatMessageItem } from "../store";
 
 const SESSION_ONE = "11111111-1111-4111-8111-111111111111";
+
+type ConsoleMethod = "log" | "warn" | "error";
+type StructuredLogRecord = Readonly<Record<string, unknown> & {
+  consoleMethod: ConsoleMethod;
+}>;
 
 function createRequestContext(): RequestContext {
   return {
@@ -23,7 +29,7 @@ function createRequestContext(): RequestContext {
 }
 
 function createRoutesWithHttpErrorJson() {
-  const app = new Hono();
+  const app = new Hono<AppEnv>();
   app.onError((error, context) => {
     const httpError = toHttpErrorLike(error);
     if (httpError !== null) {
@@ -94,6 +100,51 @@ function createAssistantItem(
   };
 }
 
+async function withCapturedLogs(
+  execute: () => Promise<void>,
+): Promise<ReadonlyArray<StructuredLogRecord>> {
+  const originalLog = console.log;
+  const originalWarn = console.warn;
+  const originalError = console.error;
+  const records: Array<StructuredLogRecord> = [];
+
+  const captureMessage = (message: unknown, consoleMethod: ConsoleMethod): void => {
+    if (typeof message === "string") {
+      records.push({
+        ...(JSON.parse(message) as Record<string, unknown>),
+        consoleMethod,
+      });
+    }
+  };
+
+  console.log = (...args: unknown[]): void => {
+    captureMessage(args[0], "log");
+  };
+  console.warn = (...args: unknown[]): void => {
+    captureMessage(args[0], "warn");
+  };
+  console.error = (...args: unknown[]): void => {
+    captureMessage(args[0], "error");
+  };
+
+  try {
+    await execute();
+  } finally {
+    console.log = originalLog;
+    console.warn = originalWarn;
+    console.error = originalError;
+  }
+
+  return records;
+}
+
+function findLog(
+  records: ReadonlyArray<StructuredLogRecord>,
+  action: string,
+): StructuredLogRecord | undefined {
+  return records.find((record) => record.action === action);
+}
+
 test("GET /chat fails with a stable contract code when running snapshot has no in-progress assistant item", async () => {
   const routes = createChatRoutes({
     allowedOrigins: [],
@@ -128,6 +179,38 @@ test("GET /chat fails with a stable contract code when running snapshot has no i
   });
 });
 
+test("GET /chat resume contract warnings include the Hono request id", async () => {
+  const routes = createChatRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContext(),
+    }),
+    getRecoveredChatSessionSnapshotFn: async () => createRunningSnapshot(),
+    listChatMessagesLatestFn: async () => ({
+      messages: [createAssistantItem("completed")],
+      oldestCursor: "6",
+      newestCursor: "6",
+      hasOlder: false,
+    }),
+  });
+  const app = createRoutesWithHttpErrorJson();
+  app.use("*", async (context, next) => {
+    context.set("requestId", "request-route-1");
+    await next();
+  });
+  app.route("/", routes);
+
+  const logs = await withCapturedLogs(async () => {
+    const response = await app.request(`http://localhost/chat?sessionId=${SESSION_ONE}`);
+    assert.equal(response.status, 500);
+  });
+
+  const warningLog = findLog(logs, "chat_resume_contract_violation");
+  assert.equal(warningLog?.consoleMethod, "warn");
+  assert.equal(warningLog?.requestId, "request-route-1");
+});
+
 test("GET /chat fails with a stable contract code when a running snapshot cannot create a live stream", async () => {
   const routes = createChatRoutes({
     allowedOrigins: [],
@@ -156,6 +239,74 @@ test("GET /chat fails with a stable contract code when a running snapshot cannot
     requestId: null,
     code: "CHAT_LIVE_RESUME_CONTRACT_VIOLATION",
   });
+});
+
+test("POST /chat captures unexpected live envelope failures before returning the stable contract code", async () => {
+  let interruptCount = 0;
+  const routes = createChatRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContext(),
+    }),
+    prepareChatRunFn: async () => ({
+      sessionId: SESSION_ONE,
+      runId: "run-1",
+      clientRequestId: "client-request-1",
+      runState: "running",
+      deduplicated: false,
+      shouldInvokeWorker: false,
+    }),
+    getRecoveredChatSessionSnapshotFn: async () => createRunningSnapshot(),
+    resolveLiveCursorFn: async () => "5",
+    listChatMessagesLatestFn: async () => ({
+      messages: [createAssistantItem("in_progress")],
+      oldestCursor: "6",
+      newestCursor: "6",
+      hasOlder: false,
+    }),
+    createChatLiveStreamEnvelopeFn: async () => {
+      throw new Error("live signer exploded");
+    },
+    interruptPreparedChatRunFn: async () => {
+      interruptCount += 1;
+    },
+  });
+  const app = createRoutesWithHttpErrorJson();
+  app.use("*", async (context, next) => {
+    context.set("requestId", "request-route-2");
+    await next();
+  });
+  app.route("/", routes);
+
+  const logs = await withCapturedLogs(async () => {
+    const response = await app.request("http://localhost/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        sessionId: SESSION_ONE,
+        clientRequestId: "client-request-1",
+        content: [{ type: "text", text: "hello" }],
+        timezone: "Europe/Madrid",
+      }),
+    });
+
+    assert.equal(response.status, 500);
+    assert.deepEqual(await response.json(), {
+      error: "Chat live resume contract violation",
+      requestId: null,
+      code: "CHAT_LIVE_RESUME_CONTRACT_VIOLATION",
+    });
+  });
+
+  const exceptionLog = findLog(logs, "request_failed");
+  assert.equal(interruptCount, 1);
+  assert.equal(exceptionLog?.consoleMethod, "error");
+  assert.equal(exceptionLog?.requestId, "request-route-2");
+  assert.equal(exceptionLog?.runId, "run-1");
+  assert.equal(exceptionLog?.errorMessage, "live signer exploded");
 });
 
 test("POST /chat fails with a stable contract code when a running response cannot create a live stream", async () => {

@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { Hono } from "hono";
 import { HttpError } from "../../errors";
+import type { AppEnv } from "../../app";
+import type { BackendTraceCarrier } from "../../observability/sentry";
 import { createChatRoutes } from "../../routes/chat";
 import { ChatSessionConflictError } from "../store";
 import {
@@ -123,6 +126,118 @@ test("POST /chat can return an active run before the current turn appears in mes
     },
     deduplicated: true,
   });
+});
+
+
+test("POST /chat dispatches worker without a route-supplied trace carrier", async () => {
+  let workerInvocation: Readonly<{
+    runId: string;
+    userId: string;
+    workspaceId: string;
+    routeRequestId?: string | null;
+    chatRequestId?: string | null;
+    sessionId?: string | null;
+  }> | null = null;
+  let workerInvocationIncludesTraceContext = true;
+  let liveTraceContext: BackendTraceCarrier | null | undefined = undefined;
+  const routes = createChatRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContext(),
+    }),
+    prepareChatRunFn: async (
+      _userId,
+      _workspaceId,
+      requestedSessionId,
+      content,
+      clientRequestId,
+      timezone,
+      uiLocale,
+    ) => {
+      assert.equal(requestedSessionId, SESSION_ONE);
+      assert.equal(content.length, 1);
+      assert.equal(clientRequestId, "client-request-dispatch");
+      assert.equal(timezone, "Europe/Madrid");
+      assert.equal(uiLocale, null);
+      return {
+        sessionId: SESSION_ONE,
+        runId: "run-dispatch",
+        clientRequestId,
+        runState: "running",
+        deduplicated: false,
+        shouldInvokeWorker: true,
+      };
+    },
+    invokeChatWorkerFn: async (payload) => {
+      workerInvocation = payload;
+      workerInvocationIncludesTraceContext = "traceContext" in payload;
+    },
+    getRecoveredChatSessionSnapshotFn: async () => createRunningSnapshot([]),
+    resolveLiveCursorFn: async () => null,
+    listChatMessagesLatestFn: async () => ({
+      messages: [{
+        sessionId: SESSION_ONE,
+        itemId: "assistant-item-dispatch",
+        itemOrder: 1,
+        role: "assistant",
+        content: [{ type: "text", text: "thinking" }],
+        state: "in_progress",
+        isError: false,
+        isStopped: false,
+        timestamp: 1,
+        updatedAt: 1,
+      }],
+      oldestCursor: "1",
+      newestCursor: "1",
+      hasOlder: false,
+    }),
+    createChatLiveStreamEnvelopeFn: async (
+      _userId,
+      _workspaceId,
+      _sessionId,
+      _runId,
+      traceContext,
+    ) => {
+      liveTraceContext = traceContext;
+      return {
+        url: "https://chat-live.example.com",
+        authorization: "Live test-token",
+        expiresAt: 1_000,
+      };
+    },
+  });
+  const app = new Hono<AppEnv>();
+  app.use("*", async (context, next) => {
+    context.set("requestId", "route-request-dispatch");
+    await next();
+  });
+  app.route("/", routes);
+
+  const response = await app.request("http://localhost/chat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      sessionId: SESSION_ONE,
+      clientRequestId: "client-request-dispatch",
+      content: [{ type: "text", text: "hello" }],
+      timezone: "Europe/Madrid",
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(workerInvocation, {
+    runId: "run-dispatch",
+    userId: "user-1",
+    workspaceId: "workspace-1",
+    routeRequestId: "route-request-dispatch",
+    chatRequestId: "client-request-dispatch",
+    sessionId: SESSION_ONE,
+  });
+  assert.equal(workerInvocationIncludesTraceContext, false);
+  assert.notEqual(liveTraceContext, undefined);
 });
 
 
@@ -281,4 +396,3 @@ test("POST /chat maps active-run conflicts to a stable machine-readable code", a
     code: "CHAT_ACTIVE_RUN_IN_PROGRESS",
   });
 });
-

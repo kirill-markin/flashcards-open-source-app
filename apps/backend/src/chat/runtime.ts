@@ -38,7 +38,16 @@ import {
   updateAssistantMessageItem,
   updateAssistantMessageItemAndInvalidateMainContent,
 } from "./store";
-import { logChatWorkerLifecycleEvent, type ChatWorkerLogContext } from "./workerLogging";
+import {
+  captureChatWorkerTerminalStateException,
+  logChatWorkerLifecycleEvent,
+  type ChatWorkerLogContext,
+} from "./workerLogging";
+import {
+  normalizeCaughtError,
+  startBackendSpan,
+  type ChatWorkerLifecycleDetails,
+} from "../observability/sentry";
 import type {
   ChatStreamEvent,
   ContentPart,
@@ -57,6 +66,12 @@ const INCOMPLETE_TOOL_CALL_PROVIDER_STATUS = "incomplete";
  */
 const CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS = 180_000;
 const DEADLINE_REACHED_MESSAGE = "This response took too long, so I stopped the run before the server timeout. Please try again or split the request into smaller steps.";
+const GENERIC_RUNTIME_ERROR_MESSAGE = "The AI response failed before it could finish. Please try again.";
+const PROVIDER_ERROR_MESSAGE = "The AI provider could not complete the response. Please try again.";
+const PROVIDER_AUTH_ERROR_MESSAGE = "The AI provider could not authenticate the request. Please try again later.";
+const PROVIDER_RATE_LIMITED_ERROR_MESSAGE = "The AI provider is rate limited right now. Please try again in a few minutes.";
+const PROVIDER_UNAVAILABLE_ERROR_MESSAGE = "The AI provider is temporarily unavailable. Please try again soon.";
+const PROVIDER_ABORT_ERROR_MESSAGE = "The AI request was interrupted. Please try again.";
 
 type ChatRunDiagnostics = Readonly<{
   requestId: string;
@@ -92,6 +107,16 @@ type ChatWorkerAbortReason =
   | "deadline_reached";
 
 type ChatWorkerExecutionPhase = "idle" | "model" | "tool";
+
+type SafeProviderErrorDetails = Pick<
+  ChatWorkerLifecycleDetails,
+  | "providerErrorClass"
+  | "providerErrorMessage"
+  | "providerErrorStatus"
+  | "providerErrorCode"
+  | "providerErrorCategory"
+  | "providerRequestId"
+>;
 
 export type ChatWorkerRunResult = Readonly<{
   outcome: "completed" | "cancelled" | "ownership_lost" | "failed" | "interrupted";
@@ -150,6 +175,112 @@ function toIsoStringOrNull(value: Date | null): string | null {
   return value === null ? null : value.toISOString();
 }
 
+function readErrorRecordStringField(error: unknown, fieldName: string): string | null {
+  if (typeof error !== "object" || error === null) {
+    return null;
+  }
+
+  const value = (error as Readonly<Record<string, unknown>>)[fieldName];
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmedValue = value.trim();
+  return trimmedValue === "" ? null : trimmedValue;
+}
+
+function classifyProviderErrorCategory(error: unknown, providerStatus: number | null): string | null {
+  if (error instanceof OpenAI.APIUserAbortError || (error instanceof Error && error.name === "AbortError")) {
+    return "provider_abort";
+  }
+
+  if (error instanceof Error && error.name === "ChatProviderTerminalEventError") {
+    return "provider_error";
+  }
+
+  if (providerStatus === 401 || providerStatus === 403) {
+    return "provider_auth";
+  }
+
+  if (providerStatus === 402 || providerStatus === 429) {
+    return "provider_rate_limited";
+  }
+
+  if (providerStatus !== null && providerStatus >= 500) {
+    return "provider_unavailable";
+  }
+
+  if (providerStatus !== null || error instanceof OpenAI.APIError) {
+    return "provider_error";
+  }
+
+  return error === null ? null : "runtime_error";
+}
+
+function createSafeProviderErrorDetails(error: unknown | null): SafeProviderErrorDetails {
+  if (error === null) {
+    return {
+      providerErrorClass: null,
+      providerErrorMessage: null,
+      providerErrorStatus: null,
+      providerErrorCode: null,
+      providerErrorCategory: null,
+      providerRequestId: null,
+    };
+  }
+
+  const errorContext = getErrorLogContext(error);
+  const providerMetadata = getAIProviderFailureMetadata(error);
+
+  return {
+    providerErrorClass: errorContext.errorClass,
+    providerErrorMessage: null,
+    providerErrorStatus: providerMetadata.upstreamStatus,
+    providerErrorCode: readErrorRecordStringField(error, "code"),
+    providerErrorCategory: classifyProviderErrorCategory(error, providerMetadata.upstreamStatus),
+    providerRequestId: providerMetadata.upstreamRequestId,
+  };
+}
+
+function createPublicTerminalErrorMessage(error: unknown): string {
+  const providerMetadata = getAIProviderFailureMetadata(error);
+  const category = classifyProviderErrorCategory(error, providerMetadata.upstreamStatus);
+
+  if (category === "provider_auth") {
+    return PROVIDER_AUTH_ERROR_MESSAGE;
+  }
+
+  if (category === "provider_rate_limited") {
+    return PROVIDER_RATE_LIMITED_ERROR_MESSAGE;
+  }
+
+  if (category === "provider_unavailable") {
+    return PROVIDER_UNAVAILABLE_ERROR_MESSAGE;
+  }
+
+  if (category === "provider_abort") {
+    return PROVIDER_ABORT_ERROR_MESSAGE;
+  }
+
+  if (category === "provider_error") {
+    return PROVIDER_ERROR_MESSAGE;
+  }
+
+  return GENERIC_RUNTIME_ERROR_MESSAGE;
+}
+
+function isHandledProviderFailure(error: unknown): boolean {
+  const providerMetadata = getAIProviderFailureMetadata(error);
+  const category = classifyProviderErrorCategory(error, providerMetadata.upstreamStatus);
+  return category !== null && category !== "runtime_error";
+}
+
+function createProviderTerminalEventError(): Error {
+  const error = new Error("Chat provider emitted a terminal error event");
+  error.name = "ChatProviderTerminalEventError";
+  return error;
+}
+
 function logAbortRequested(
   context: ChatWorkerLogContext,
   reason: ChatWorkerAbortReason,
@@ -165,12 +296,11 @@ function logAbortRequested(
     ownershipLost,
     runStatus: null,
     sessionState: null,
-    providerErrorClass: null,
-    providerErrorMessage: null,
-    providerRequestId: null,
+    ...createSafeProviderErrorDetails(null),
     heartbeatAt: toIsoStringOrNull(heartbeatAt),
     startedAt: null,
     finishedAt: null,
+    outcome: null,
   }, false);
 }
 
@@ -186,12 +316,11 @@ function logProviderCallStarted(
     ownershipLost: false,
     runStatus: null,
     sessionState: null,
-    providerErrorClass: null,
-    providerErrorMessage: null,
-    providerRequestId: null,
+    ...createSafeProviderErrorDetails(null),
     heartbeatAt: null,
     startedAt: startedAt.toISOString(),
     finishedAt: null,
+    outcome: null,
   }, false);
 }
 
@@ -203,8 +332,6 @@ function logProviderCallAborted(
   ownershipLost: boolean,
   signalAborted: boolean,
 ): void {
-  const errorContext = getErrorLogContext(error);
-  const providerMetadata = getAIProviderFailureMetadata(error);
   logChatWorkerLifecycleEvent("chat_worker_provider_call_aborted", context, {
     abortReason,
     signalAborted,
@@ -212,12 +339,11 @@ function logProviderCallAborted(
     ownershipLost,
     runStatus: null,
     sessionState: null,
-    providerErrorClass: errorContext.errorClass,
-    providerErrorMessage: errorContext.errorMessage,
-    providerRequestId: providerMetadata.upstreamRequestId,
+    ...createSafeProviderErrorDetails(error),
     heartbeatAt: null,
     startedAt: null,
     finishedAt: null,
+    outcome: null,
   }, false);
 }
 
@@ -233,22 +359,35 @@ function logTerminalStatePersisted(
   startedAt: Date,
   finishedAt: Date,
 ): void {
-  const errorContext = error === null ? null : getErrorLogContext(error);
-  const providerMetadata = error === null ? null : getAIProviderFailureMetadata(error);
-
-  logChatWorkerLifecycleEvent("chat_worker_terminal_state_persisted", context, {
+  const payload = {
     abortReason,
     signalAborted,
     cancellationRequested,
     ownershipLost,
     runStatus,
     sessionState,
-    providerErrorClass: errorContext?.errorClass ?? null,
-    providerErrorMessage: errorContext?.errorMessage ?? null,
-    providerRequestId: providerMetadata?.upstreamRequestId ?? null,
+    ...createSafeProviderErrorDetails(error),
+    heartbeatAt: null,
     startedAt: startedAt.toISOString(),
     finishedAt: finishedAt.toISOString(),
-  }, runStatus === "failed");
+    outcome: null,
+  };
+
+  if (runStatus === "failed" && error !== null && !isHandledProviderFailure(error)) {
+    captureChatWorkerTerminalStateException(
+      context,
+      payload,
+      normalizeCaughtError(error),
+    );
+    return;
+  }
+
+  logChatWorkerLifecycleEvent(
+    "chat_worker_terminal_state_persisted",
+    context,
+    payload,
+    runStatus === "failed",
+  );
 }
 
 /**
@@ -400,7 +539,6 @@ async function generateTerminalComposerSuggestions(
       params.uiLocale,
     );
   } catch (error) {
-    const errorContext = getErrorLogContext(error);
     logChatWorkerLifecycleEvent("chat_worker_composer_suggestions_failed", logContext, {
       abortReason: null,
       signalAborted: false,
@@ -408,11 +546,11 @@ async function generateTerminalComposerSuggestions(
       ownershipLost: false,
       runStatus: null,
       sessionState: null,
-      providerErrorClass: errorContext.errorClass,
-      providerErrorMessage: errorContext.errorMessage,
-      providerRequestId: null,
+      ...createSafeProviderErrorDetails(error),
+      heartbeatAt: null,
       startedAt: null,
       finishedAt: null,
+      outcome: null,
     }, true);
     return emptyChatComposerSuggestions();
   }
@@ -489,7 +627,6 @@ export async function runPersistedChatSessionWithDeps(
   const persistFailed = async (
     error: unknown,
   ): Promise<ChatWorkerRunResult> => {
-    const message = error instanceof Error ? error.message : String(error);
     assistantContent = finalizeAssistantToolCalls(assistantContent);
     const finishedAt = new Date();
     await dependencies.persistAssistantTerminalError(params.userId, params.workspaceId, {
@@ -497,7 +634,7 @@ export async function runPersistedChatSessionWithDeps(
       sessionId: params.sessionId,
       assistantItemId: params.assistantItemId,
       assistantContent,
-      errorMessage: message,
+      errorMessage: createPublicTerminalErrorMessage(error),
       sessionState: "idle",
     });
     isFinalized = true;
@@ -764,21 +901,24 @@ export async function runPersistedChatSessionWithDeps(
         }
 
         logProviderCallStarted(logContext, new Date(), abortController.signal.aborted);
-        const completion: OpenAILoopCompletion = await dependencies.startOpenAILoop({
-          requestId: params.requestId,
-          userId: params.userId,
-          workspaceId: params.workspaceId,
-          sessionId: params.sessionId,
-          timezone: params.timezone,
-          localMessages: params.localMessages,
-          turnInput: params.turnInput,
-          rootObservation,
-          signal: abortController.signal,
-          onExecutionPhaseChanged: (phase): void => {
-            executionPhase = phase;
-          },
-          shouldStopBeforeNextStep: (): boolean => abortReason === "deadline_reached",
-        }, async (event): Promise<void> => {
+        const completion: OpenAILoopCompletion = await startBackendSpan(
+          "chat.worker.openai_loop",
+          "ai.openai",
+          async () => dependencies.startOpenAILoop({
+            requestId: params.requestId,
+            userId: params.userId,
+            workspaceId: params.workspaceId,
+            sessionId: params.sessionId,
+            timezone: params.timezone,
+            localMessages: params.localMessages,
+            turnInput: params.turnInput,
+            rootObservation,
+            signal: abortController.signal,
+            onExecutionPhaseChanged: (phase): void => {
+              executionPhase = phase;
+            },
+            shouldStopBeforeNextStep: (): boolean => abortReason === "deadline_reached",
+          }, async (event): Promise<void> => {
           const shouldIgnoreEvent = stopRequestedByUser
             || ownershipLost
             || (
@@ -822,9 +962,10 @@ export async function runPersistedChatSessionWithDeps(
               assistantContent,
             );
           } else if (event.type === "error") {
-            runtimeResult = await persistFailed(new Error(event.message));
+            runtimeResult = await persistFailed(createProviderTerminalEventError());
           }
-        });
+          }),
+        );
 
         if (runtimeResult !== null) {
           return;

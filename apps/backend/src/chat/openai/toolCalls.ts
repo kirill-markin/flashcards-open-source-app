@@ -20,6 +20,9 @@ export type ToolCallOutputRawItem = Readonly<{
   callId?: string;
   id?: string;
   name?: string;
+  status?: string;
+  input?: string;
+  output?: string;
 }>;
 
 export type ToolCallPosition = Readonly<{
@@ -61,6 +64,106 @@ type ToolCallUpdate = Readonly<{
 }>;
 
 const TERMINAL_TOOL_PROVIDER_STATUSES = new Set(["completed", "failed", "incomplete"]);
+
+type ToolCallInvariantMetadata = Readonly<{
+  itemType: string;
+  responseIndex: number | null;
+  outputIndex: number | null;
+  sequenceNumber: number | null;
+  providerStatus: string | null;
+  hasId: boolean;
+  hasCallId: boolean;
+  hasName: boolean;
+  hasArguments: boolean;
+  argumentsLength: number | null;
+  hasInput: boolean;
+  inputLength: number | null;
+  hasOutput: boolean;
+  outputLength: number | null;
+}>;
+
+type ToolCallInvariantContext = Readonly<{
+  responseIndex: number | null;
+  outputIndex: number | null;
+  sequenceNumber: number | null;
+  output: unknown;
+}>;
+
+function getStringLength(value: unknown): number | null {
+  return typeof value === "string" ? value.length : null;
+}
+
+function createToolCallInvariantContext(
+  responseIndex: number | null,
+  outputIndex: number | null,
+  sequenceNumber: number | null,
+  output: unknown,
+): ToolCallInvariantContext {
+  return {
+    responseIndex,
+    outputIndex,
+    sequenceNumber,
+    output,
+  };
+}
+
+function createToolCallInvariantContextFromPosition(position: ToolCallPosition): ToolCallInvariantContext {
+  return createToolCallInvariantContext(
+    position.responseIndex,
+    position.outputIndex,
+    position.sequenceNumber,
+    undefined,
+  );
+}
+
+function createToolCallInvariantContextFromSnapshot(
+  snapshot: ToolCallEvent | null,
+  output: unknown,
+): ToolCallInvariantContext {
+  return createToolCallInvariantContext(
+    snapshot?.responseIndex ?? null,
+    snapshot?.outputIndex ?? null,
+    snapshot?.sequenceNumber ?? null,
+    output,
+  );
+}
+
+function buildToolCallInvariantMetadata(
+  rawItem: FunctionToolCallRawItem | ToolCallOutputRawItem,
+  context: ToolCallInvariantContext,
+): ToolCallInvariantMetadata {
+  const argumentsValue = "arguments" in rawItem ? rawItem.arguments : undefined;
+  const inputValue = "input" in rawItem ? rawItem.input : undefined;
+  const rawOutputValue = "output" in rawItem ? rawItem.output : undefined;
+  const outputValue = context.output !== undefined && context.output !== null
+    ? context.output
+    : rawOutputValue;
+
+  return {
+    itemType: rawItem.type,
+    responseIndex: context.responseIndex,
+    outputIndex: context.outputIndex,
+    sequenceNumber: context.sequenceNumber,
+    providerStatus: typeof rawItem.status === "string" ? rawItem.status : null,
+    hasId: typeof rawItem.id === "string",
+    hasCallId: typeof rawItem.callId === "string",
+    hasName: typeof rawItem.name === "string",
+    hasArguments: argumentsValue !== undefined && argumentsValue !== null,
+    argumentsLength: getStringLength(argumentsValue),
+    hasInput: inputValue !== undefined && inputValue !== null,
+    inputLength: getStringLength(inputValue),
+    hasOutput: outputValue !== undefined && outputValue !== null,
+    outputLength: getStringLength(outputValue),
+  };
+}
+
+function buildToolCallInvariantErrorMessage(
+  reason: string,
+  rawItem: FunctionToolCallRawItem | ToolCallOutputRawItem,
+  context: ToolCallInvariantContext,
+): string {
+  return `${reason}: ${JSON.stringify(buildToolCallInvariantMetadata(rawItem, context))}`;
+}
 
 function stringifyToolValue(value: unknown): string | null {
   if (value === undefined || value === null) {
@@ -110,7 +213,10 @@ function createToolCallEvent(
 /**
  * Returns the stable tool-call identifier required to merge provider updates across events.
  */
-export function getRequiredToolCallId(rawItem: FunctionToolCallRawItem | ToolCallOutputRawItem): string {
+function getRequiredToolCallId(
+  rawItem: FunctionToolCallRawItem | ToolCallOutputRawItem,
+  context: ToolCallInvariantContext,
+): string {
   if ("callId" in rawItem && typeof rawItem.callId === "string" && rawItem.callId.length > 0) {
     return rawItem.callId;
   }
@@ -119,12 +225,17 @@ export function getRequiredToolCallId(rawItem: FunctionToolCallRawItem | ToolCal
     return rawItem.id;
   }
 
-  throw new Error(`OpenAI tool call is missing a stable identifier: ${JSON.stringify(rawItem)}`);
+  throw new Error(buildToolCallInvariantErrorMessage(
+    "OpenAI tool call is missing a stable identifier",
+    rawItem,
+    context,
+  ));
 }
 
 function getRequiredToolItemId(
   rawItem: FunctionToolCallRawItem | ToolCallOutputRawItem,
   previousSnapshot: ToolCallEvent | null,
+  context: ToolCallInvariantContext,
 ): string {
   if (typeof rawItem.id === "string" && rawItem.id.length > 0) {
     return rawItem.id;
@@ -134,18 +245,27 @@ function getRequiredToolItemId(
     return previousSnapshot.itemId;
   }
 
-  throw new Error(`OpenAI tool call is missing an output item id: ${JSON.stringify(rawItem)}`);
+  throw new Error(buildToolCallInvariantErrorMessage(
+    "OpenAI tool call is missing an output item id",
+    rawItem,
+    context,
+  ));
 }
 
 function getRequiredToolOutputIndex(
   previousSnapshot: ToolCallEvent | null,
   rawItem: ToolCallOutputRawItem,
+  context: ToolCallInvariantContext,
 ): number {
   if (previousSnapshot !== null) {
     return previousSnapshot.outputIndex;
   }
 
-  throw new Error(`OpenAI tool call output arrived before a tracked output item existed: ${JSON.stringify(rawItem)}`);
+  throw new Error(buildToolCallInvariantErrorMessage(
+    "OpenAI tool call output arrived before a tracked output item existed",
+    rawItem,
+    context,
+  ));
 }
 
 function buildFunctionToolCallEvent(
@@ -153,9 +273,10 @@ function buildFunctionToolCallEvent(
   position: ToolCallPosition,
 ): ToolCallEvent {
   const providerStatus = typeof rawItem.status === "string" ? rawItem.status : null;
+  const invariantContext = createToolCallInvariantContextFromPosition(position);
 
   return createToolCallEvent(
-    getRequiredToolCallId(rawItem),
+    getRequiredToolCallId(rawItem, invariantContext),
     position.itemId,
     rawItem.name,
     isTerminalToolProviderStatus(providerStatus) ? "completed" : "started",
@@ -175,17 +296,18 @@ function buildToolOutputEvent(
   rawOutput: unknown,
   refreshRoute: boolean,
 ): ToolCallEvent {
-  const id = getRequiredToolCallId(rawItem);
+  const invariantContext = createToolCallInvariantContextFromSnapshot(previousSnapshot, rawOutput);
+  const id = getRequiredToolCallId(rawItem, invariantContext);
   const output = stringifyToolValue(rawOutput);
   const name = previousSnapshot?.name ?? (typeof rawItem.name === "string" ? rawItem.name : "tool");
 
   return createToolCallEvent(
     id,
-    getRequiredToolItemId(rawItem, previousSnapshot),
+    getRequiredToolItemId(rawItem, previousSnapshot, invariantContext),
     name,
     "completed",
     previousSnapshot?.responseIndex ?? 0,
-    getRequiredToolOutputIndex(previousSnapshot, rawItem),
+    getRequiredToolOutputIndex(previousSnapshot, rawItem, invariantContext),
     previousSnapshot?.sequenceNumber ?? null,
     "completed",
     previousSnapshot?.input ?? null,
@@ -363,7 +485,10 @@ export function applyToolCallOutput(
   nowMs: number,
   refreshRoute: boolean,
 ): ToolCallUpdate {
-  const toolCallId = getRequiredToolCallId(rawItem);
+  const toolCallId = getRequiredToolCallId(
+    rawItem,
+    createToolCallInvariantContext(null, null, null, output),
+  );
   const previousState = toolStates.get(toolCallId) ?? findToolStateByItemId(
     toolStates,
     rawItem.id ?? "",

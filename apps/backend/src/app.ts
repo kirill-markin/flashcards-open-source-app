@@ -22,6 +22,13 @@ import {
 import { getGuestAiWeightedMonthlyTokenCap } from "./guestAiQuotaConfig";
 import { logRequestError } from "./server/logging";
 import { getAllowedOrigins } from "./server/requestContext";
+import {
+  captureBackendException,
+  continueBackendTrace,
+  createBackendObservationScope,
+  normalizeCaughtError,
+} from "./observability/sentry";
+import { hasReportedBackendException } from "./observability/reporting";
 
 export type AppEnv = {
   Variables: {
@@ -136,6 +143,22 @@ function createAgentConnectionManagementInstructions(code: string | null, status
   return "Refresh the settings screen and try again.";
 }
 
+function shouldCaptureRequestFailureException(error: unknown): boolean {
+  if (error instanceof AuthError) {
+    return false;
+  }
+
+  if (error instanceof HttpError) {
+    if (error.code === "CHAT_LIVE_RESUME_CONTRACT_VIOLATION") {
+      return false;
+    }
+
+    return error.statusCode >= 500;
+  }
+
+  return true;
+}
+
 function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono<AppEnv> {
   const app = new Hono<AppEnv>({ strict: false }).basePath(basePath);
   app.use("*", async (context, next) => {
@@ -144,15 +167,26 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
     context.header("X-Request-Id", requestId);
     await next();
   });
+  app.use("*", async (context, next) => {
+    const sentryTrace = context.req.header("sentry-trace") || null;
+    const baggage = context.req.header("baggage") || null;
+    const traceCarrier = sentryTrace === null && baggage === null
+      ? null
+      : { sentryTrace, baggage };
+    await continueBackendTrace(traceCarrier, async () => {
+      await next();
+    });
+  });
   app.use(globalSnapshotPath, cors({
     origin: "*",
     allowMethods: ["GET", "OPTIONS"],
+    allowHeaders: ["authorization", "sentry-trace", "baggage"],
     exposeHeaders: ["retry-after"],
   }));
   app.use("*", cors({
     origin: allowedOrigins,
     allowMethods: ["GET", "POST", "PATCH", "PUT", "OPTIONS"],
-    allowHeaders: ["content-type", "authorization", "x-csrf-token"],
+    allowHeaders: ["content-type", "authorization", "x-csrf-token", "sentry-trace", "baggage"],
     exposeHeaders: [
       "cache-control",
       "content-encoding",
@@ -170,6 +204,38 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
   app.onError((error, context) => {
     const requestId = context.get("requestId");
     logRequestError(requestId, context.req.path, context.req.method, error);
+    const normalizedError = normalizeCaughtError(error);
+    if (
+      hasReportedBackendException(normalizedError) === false
+      && shouldCaptureRequestFailureException(error)
+    ) {
+      captureBackendException({
+        action: "request_failed",
+        error: normalizedError,
+        scope: createBackendObservationScope(
+          "backend-api",
+          requestId,
+          context.req.path,
+          context.req.method,
+          null,
+          null,
+          null,
+          null,
+          null,
+        ),
+        details: {
+          statusCode: error instanceof HttpError ? error.statusCode : 500,
+          code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
+          message: error instanceof Error ? error.message : String(error),
+          validationIssues: error instanceof HttpError
+            ? (error.details?.validationIssues ?? []).map((issue) => ({
+              path: issue.path,
+              code: issue.code,
+            }))
+            : [],
+        },
+      });
+    }
     const apiKeyRequest = usesApiKeyAuthorizationHeader(context.req.raw);
     const agentConnectionManagementRequest = isAgentConnectionManagementPath(context.req.path);
 

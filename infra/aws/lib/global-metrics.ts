@@ -9,12 +9,17 @@ import * as scheduler from "aws-cdk-lib/aws-scheduler";
 import { Construct } from "constructs";
 import * as path from "path";
 import { backendNodejsProjectPaths, infraAwsNodejsProjectPaths, resolveFromRepoRoot } from "./nodejs-project-paths";
+import { createSentrySourceMapUploadCommand } from "./sentry-source-maps";
 
 export interface GlobalMetricsProps {
   vpc: ec2.Vpc;
   lambdaSg: ec2.SecurityGroup;
   db: rds.DatabaseInstance;
   reportingDbSecret: cdk.aws_secretsmanager.ISecret;
+  sentryDsnSecretArn: string | undefined;
+  sentryEnvironment: string | undefined;
+  sentryRelease: string | undefined;
+  sentryTracesSampleRate: string | undefined;
 }
 
 export interface GlobalMetricsResult {
@@ -39,6 +44,7 @@ const lambdaBundling: lambdaNodejs.BundlingOptions = {
     beforeInstall: () => [],
     afterBundling: (_inputDir: string, outputDir: string) => [
       `curl -sfo ${outputDir}/rds-global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem`,
+      createSentrySourceMapUploadCommand(outputDir),
     ],
   },
 };
@@ -47,6 +53,43 @@ const freshnessCheckerBundling: lambdaNodejs.BundlingOptions = {
   minify: true,
   sourceMap: true,
 };
+
+function hasConfiguredValue(value: string | undefined): value is string {
+  return value !== undefined && value !== "";
+}
+
+function addOptionalSentryEnvironment(
+  scope: Construct,
+  fn: lambdaNodejs.NodejsFunction,
+  props: GlobalMetricsProps,
+): void {
+  if (!hasConfiguredValue(props.sentryDsnSecretArn)) {
+    return;
+  }
+  if (
+    !hasConfiguredValue(props.sentryEnvironment) ||
+    !hasConfiguredValue(props.sentryRelease) ||
+    !hasConfiguredValue(props.sentryTracesSampleRate)
+  ) {
+    throw new Error("sentryEnvironment, sentryRelease, and sentryTracesSampleRate are required when sentryDsnSecretArn is configured");
+  }
+
+  const tracesSampleRate = Number(props.sentryTracesSampleRate);
+  if (!Number.isFinite(tracesSampleRate) || tracesSampleRate < 0 || tracesSampleRate > 1) {
+    throw new Error("sentryTracesSampleRate must be a number between 0 and 1");
+  }
+
+  const secret = cdk.aws_secretsmanager.Secret.fromSecretCompleteArn(
+    scope,
+    "GlobalMetricsSnapshotSentryDsnSecret",
+    props.sentryDsnSecretArn,
+  );
+  secret.grantRead(fn);
+  fn.addEnvironment("SENTRY_DSN", secret.secretValue.unsafeUnwrap());
+  fn.addEnvironment("SENTRY_ENVIRONMENT", props.sentryEnvironment);
+  fn.addEnvironment("SENTRY_RELEASE", props.sentryRelease);
+  fn.addEnvironment("SENTRY_TRACES_SAMPLE_RATE", props.sentryTracesSampleRate);
+}
 
 export function globalMetrics(scope: Construct, props: GlobalMetricsProps): GlobalMetricsResult {
   const snapshotBucket = new s3.Bucket(scope, "GlobalMetricsSnapshotBucket", {
@@ -79,6 +122,7 @@ export function globalMetrics(scope: Construct, props: GlobalMetricsProps): Glob
   });
 
   props.reportingDbSecret.grantRead(snapshotFunction);
+  addOptionalSentryEnvironment(scope, snapshotFunction, props);
   snapshotFunction.addToRolePolicy(new iam.PolicyStatement({
     actions: ["s3:PutObject"],
     resources: [snapshotBucket.arnForObjects(globalMetricsSnapshotObjectKey)],
