@@ -6,6 +6,7 @@ import {
   type SetStateAction,
 } from "react";
 import {
+  ApiError,
   bootstrapPullSyncState,
   isAuthRedirectError,
   pullReviewHistorySync,
@@ -93,6 +94,8 @@ import type { SessionLoadState } from "./types";
 import type { SessionVerificationState } from "./warmStart";
 
 const syncPageSize = 200;
+const workspaceNotFoundErrorCode = "WORKSPACE_NOT_FOUND";
+const workspaceSyncDiscardedErrorName = "WorkspaceSyncDiscardedError";
 
 type UseSyncEngineParams = Readonly<{
   sessionLoadState: SessionLoadState;
@@ -110,6 +113,7 @@ type SyncEngine = Readonly<{
   runSync: () => Promise<void>;
   runSyncSilently: () => Promise<void>;
   runSyncForWorkspace: (workspace: WorkspaceSummary) => Promise<void>;
+  discardWorkspaceSync: (workspaceId: string) => void;
   refreshLocalData: () => Promise<void>;
   refreshWorkspaceView: (workspaceId: string) => Promise<void>;
   getCardById: (cardId: string) => Promise<Card>;
@@ -123,6 +127,17 @@ type SyncEngine = Readonly<{
   submitReviewItem: (cardId: string, rating: 0 | 1 | 2 | 3) => Promise<Card>;
   seedLinkedWorkspace: (request: TestSeedRequest) => Promise<TestSeedResult>;
 }>;
+
+type WorkspaceSyncDiscardedError = Error & Readonly<{
+  name: typeof workspaceSyncDiscardedErrorName;
+  workspaceId: string;
+}>;
+
+function createWorkspaceSyncDiscardedError(workspaceId: string): WorkspaceSyncDiscardedError {
+  const error = new Error(`Workspace sync was discarded: ${workspaceId}`);
+  error.name = workspaceSyncDiscardedErrorName;
+  return Object.assign(error, { workspaceId }) as WorkspaceSyncDiscardedError;
+}
 
 async function requireCard(workspaceId: string, cardId: string): Promise<Card> {
   const card = await loadCardById(workspaceId, cardId);
@@ -176,6 +191,18 @@ function isProgressReviewEventOperation(
 
 function isAcknowledgedPushStatus(status: SyncPushResult["operations"][number]["status"]): boolean {
   return status === "applied" || status === "ignored" || status === "duplicate";
+}
+
+function isWorkspaceSyncDiscardedError(error: unknown): error is WorkspaceSyncDiscardedError {
+  return error instanceof Error
+    && error.name === workspaceSyncDiscardedErrorName
+    && "workspaceId" in error;
+}
+
+function isWorkspaceNotFoundError(error: unknown): error is ApiError {
+  return error instanceof ApiError
+    && error.statusCode === 404
+    && error.code === workspaceNotFoundErrorCode;
 }
 
 async function doHotSyncEntriesAffectReviewSchedule(
@@ -259,6 +286,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
   const syncPromisesRef = useRef<Map<string, Promise<void>>>(new Map());
   const needsResyncWorkspaceIdsRef = useRef<Set<string>>(new Set());
   const syncingWorkspaceIdsRef = useRef<Set<string>>(new Set());
+  const discardedSyncWorkspaceIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     activeWorkspaceRef.current = activeWorkspace;
@@ -277,6 +305,28 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     const currentWorkspace = activeWorkspaceRef.current;
     setIsSyncing(currentWorkspace !== null && syncingWorkspaceIdsRef.current.has(currentWorkspace.workspaceId));
   }, [setIsSyncing]);
+
+  const discardWorkspaceSync = useCallback(function discardWorkspaceSync(workspaceId: string): void {
+    discardedSyncWorkspaceIdsRef.current.add(workspaceId);
+    needsResyncWorkspaceIdsRef.current.delete(workspaceId);
+    syncingWorkspaceIdsRef.current.delete(workspaceId);
+    refreshSyncIndicator();
+  }, [refreshSyncIndicator]);
+
+  const requireWorkspaceSyncNotDiscarded = useCallback(function requireWorkspaceSyncNotDiscarded(
+    workspaceId: string,
+  ): void {
+    if (discardedSyncWorkspaceIdsRef.current.has(workspaceId)) {
+      throw createWorkspaceSyncDiscardedError(workspaceId);
+    }
+  }, []);
+
+  const isStaleWorkspaceNotFoundError = useCallback(function isStaleWorkspaceNotFoundError(
+    workspaceId: string,
+    error: unknown,
+  ): boolean {
+    return isWorkspaceNotFoundError(error) && isVisibleWorkspace(workspaceId) === false;
+  }, [isVisibleWorkspace]);
 
   const refreshLocalMetadata = useCallback(async function refreshLocalMetadata(workspaceId: string): Promise<void> {
     const [workspaceSettings, cloudSettings] = await Promise.all([
@@ -343,6 +393,10 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     }
 
     const workspaceId = workspace.workspaceId;
+    if (discardedSyncWorkspaceIdsRef.current.has(workspaceId)) {
+      return;
+    }
+
     const activeSync = syncPromisesRef.current.get(workspaceId);
     if (activeSync !== undefined) {
       needsResyncWorkspaceIdsRef.current.add(workspaceId);
@@ -356,13 +410,17 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
       try {
         let didChangeProgressHistory = false;
         let didChangeReviewSchedule = false;
+        requireWorkspaceSyncNotDiscarded(workspaceId);
         const cloudSettings = await loadCloudSettings();
+        requireWorkspaceSyncNotDiscarded(workspaceId);
         const installationId = requireCloudInstallationId(cloudSettings);
         const hotStateHydrated = await hasHydratedHotState(workspaceId);
+        requireWorkspaceSyncNotDiscarded(workspaceId);
         if (hotStateHydrated === false) {
           let bootstrapCursor: string | null = null;
 
           while (true) {
+            requireWorkspaceSyncNotDiscarded(workspaceId);
             const bootstrapResult = await bootstrapPullSyncState(
               workspaceId,
               installationId,
@@ -371,10 +429,12 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
               bootstrapCursor,
               syncPageSize,
             );
+            requireWorkspaceSyncNotDiscarded(workspaceId);
 
             if (await doHotSyncEntriesAffectReviewSchedule(workspaceId, bootstrapResult.entries)) {
               didChangeReviewSchedule = true;
             }
+            requireWorkspaceSyncNotDiscarded(workspaceId);
 
             await applyHotSyncPage(
               workspaceId,
@@ -386,6 +446,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
                   markHotStateHydrated: true,
                 },
             );
+            requireWorkspaceSyncNotDiscarded(workspaceId);
 
             if (isVisibleWorkspace(workspaceId)) {
               const lastSettings = findLastWorkspaceSettingsEntry(bootstrapResult.entries);
@@ -400,10 +461,13 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
             }
           }
           await refreshWorkspaceView(workspaceId);
+          requireWorkspaceSyncNotDiscarded(workspaceId);
         }
 
         let currentOutbox = await listOutboxRecords(workspaceId);
+        requireWorkspaceSyncNotDiscarded(workspaceId);
         while (currentOutbox.length > 0) {
+          requireWorkspaceSyncNotDiscarded(workspaceId);
           const batch = currentOutbox.slice(0, 100);
           const batchIncludesProgressReviewEvents = batch.some(isProgressReviewEventOperation);
           const reviewScheduleOperationIds = new Set(
@@ -419,6 +483,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
               webAppVersion,
               batch.map((record) => record.operation),
             );
+            requireWorkspaceSyncNotDiscarded(workspaceId);
 
             for (const result of pushResult.operations) {
               if (isAcknowledgedPushStatus(result.status)) {
@@ -445,10 +510,13 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
           }
 
           currentOutbox = await listOutboxRecords(workspaceId);
+          requireWorkspaceSyncNotDiscarded(workspaceId);
         }
 
         let afterHotChangeId = await loadLastAppliedHotChangeId(workspaceId);
+        requireWorkspaceSyncNotDiscarded(workspaceId);
         while (true) {
+          requireWorkspaceSyncNotDiscarded(workspaceId);
           const pullResult = await pullSyncChanges(
             workspaceId,
             installationId,
@@ -457,15 +525,18 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
             afterHotChangeId,
             syncPageSize,
           );
+          requireWorkspaceSyncNotDiscarded(workspaceId);
 
           if (await doHotSyncEntriesAffectReviewSchedule(workspaceId, pullResult.changes)) {
             didChangeReviewSchedule = true;
           }
+          requireWorkspaceSyncNotDiscarded(workspaceId);
 
           await applyHotSyncPage(workspaceId, pullResult.changes, {
             lastAppliedHotChangeId: pullResult.nextHotChangeId,
             markHotStateHydrated: false,
           });
+          requireWorkspaceSyncNotDiscarded(workspaceId);
 
           if (isVisibleWorkspace(workspaceId)) {
             const lastSettings = findLastWorkspaceSettingsEntry(pullResult.changes);
@@ -483,7 +554,9 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
         let afterReviewSequenceId = await loadLastAppliedReviewSequenceId(workspaceId);
         const reviewHistoryHydrated = await hasHydratedReviewHistory(workspaceId);
+        requireWorkspaceSyncNotDiscarded(workspaceId);
         while (true) {
+          requireWorkspaceSyncNotDiscarded(workspaceId);
           const reviewHistoryResult = await pullReviewHistorySync(
             workspaceId,
             installationId,
@@ -492,11 +565,13 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
             afterReviewSequenceId,
             syncPageSize,
           );
+          requireWorkspaceSyncNotDiscarded(workspaceId);
 
           await applyReviewHistorySyncPage(workspaceId, reviewHistoryResult.reviewEvents, {
             lastAppliedReviewSequenceId: reviewHistoryResult.nextReviewSequenceId,
             markReviewHistoryHydrated: reviewHistoryHydrated === false && reviewHistoryResult.hasMore === false,
           });
+          requireWorkspaceSyncNotDiscarded(workspaceId);
 
           if (reviewHistoryResult.reviewEvents.length > 0) {
             didChangeProgressHistory = true;
@@ -510,6 +585,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         }
 
         await refreshWorkspaceView(workspaceId);
+        requireWorkspaceSyncNotDiscarded(workspaceId);
         if (didChangeProgressHistory) {
           invalidateProgress();
         }
@@ -522,6 +598,20 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
           throw error;
         }
 
+        if (isWorkspaceSyncDiscardedError(error)) {
+          return;
+        }
+
+        if (discardedSyncWorkspaceIdsRef.current.has(workspaceId)) {
+          return;
+        }
+
+        if (isStaleWorkspaceNotFoundError(workspaceId, error)) {
+          discardedSyncWorkspaceIdsRef.current.add(workspaceId);
+          needsResyncWorkspaceIdsRef.current.delete(workspaceId);
+          return;
+        }
+
         reportSyncError(getErrorMessage(error));
         throw error;
       } finally {
@@ -529,8 +619,9 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         syncingWorkspaceIdsRef.current.delete(workspaceId);
         refreshSyncIndicator();
 
-        if (needsResyncWorkspaceIdsRef.current.has(workspaceId)) {
-          needsResyncWorkspaceIdsRef.current.delete(workspaceId);
+        const needsResync = needsResyncWorkspaceIdsRef.current.has(workspaceId);
+        needsResyncWorkspaceIdsRef.current.delete(workspaceId);
+        if (needsResync && discardedSyncWorkspaceIdsRef.current.has(workspaceId) === false) {
           void runSyncForWorkspace(workspace);
         }
       }
@@ -542,9 +633,11 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     isVisibleWorkspace,
     refreshSyncIndicator,
     refreshWorkspaceView,
+    requireWorkspaceSyncNotDiscarded,
     reportGlobalSyncError,
     session,
     sessionVerificationState,
+    isStaleWorkspaceNotFoundError,
     setWorkspaceSettings,
   ]);
 
@@ -985,6 +1078,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     runSync,
     runSyncSilently,
     runSyncForWorkspace,
+    discardWorkspaceSync,
     refreshLocalData,
     refreshWorkspaceView,
     getCardById,

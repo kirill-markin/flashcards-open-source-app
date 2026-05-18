@@ -34,6 +34,10 @@ type WorkspaceReplicaRow = Readonly<{
   platform: WorkspaceReplicaPlatform;
 }>;
 
+type WorkspaceAccessLockRow = Readonly<{
+  workspace_id: string;
+}>;
+
 type EnsureClientWorkspaceReplicaParams = Readonly<{
   workspaceId: string;
   userId: string;
@@ -176,6 +180,27 @@ async function upsertWorkspaceReplicaInExecutor(
   );
 }
 
+async function lockWorkspaceAccessInExecutor(
+  executor: DatabaseExecutor,
+  userId: string,
+  workspaceId: string,
+): Promise<void> {
+  const result = await executor.query<WorkspaceAccessLockRow>(
+    [
+      "SELECT workspaces.workspace_id",
+      "FROM org.workspace_memberships AS memberships",
+      "INNER JOIN org.workspaces AS workspaces ON workspaces.workspace_id = memberships.workspace_id",
+      "WHERE memberships.user_id = $1 AND memberships.workspace_id = $2",
+      "FOR KEY SHARE OF workspaces, memberships",
+    ].join(" "),
+    [userId, workspaceId],
+  );
+
+  if (result.rows[0] === undefined) {
+    throw new HttpError(404, "Workspace not found", "WORKSPACE_NOT_FOUND");
+  }
+}
+
 /**
  * Client-authenticated sync requests provide only installation identity. The
  * backend derives the immutable workspace replica and stamps it into canonical
@@ -189,6 +214,7 @@ export async function ensureWorkspaceReplicaInExecutor(
     userId: params.userId,
     workspaceId: params.workspaceId,
   });
+  await lockWorkspaceAccessInExecutor(executor, params.userId, params.workspaceId);
   await ensureInstallationInExecutor(
     executor,
     params.userId,
@@ -227,28 +253,50 @@ export async function ensureWorkspaceReplica(
 export async function ensureSystemWorkspaceReplica(
   params: EnsureSystemWorkspaceReplicaParams,
 ): Promise<string> {
-  const replicaId = buildSystemWorkspaceReplicaId(params.workspaceId, params.actorKind, params.actorKey);
-
   return transactionWithWorkspaceScope(
     { userId: params.userId, workspaceId: params.workspaceId },
-    async (executor) => ensureSystemWorkspaceReplicaInExecutor(executor, params, replicaId),
+    async (executor) => ensureSystemWorkspaceReplicaInExecutor(executor, params),
   );
 }
 
 export async function ensureSystemWorkspaceReplicaInExecutor(
   executor: DatabaseExecutor,
   params: EnsureSystemWorkspaceReplicaParams,
-  explicitReplicaId?: string,
 ): Promise<string> {
   await applyWorkspaceDatabaseScopeInExecutor(executor, {
     userId: params.userId,
     workspaceId: params.workspaceId,
   });
-  const replicaId = explicitReplicaId ?? buildSystemWorkspaceReplicaId(
+  await lockWorkspaceAccessInExecutor(executor, params.userId, params.workspaceId);
+
+  const replicaId = buildSystemWorkspaceReplicaId(
     params.workspaceId,
     params.actorKind,
     params.actorKey,
   );
+
+  return upsertWorkspaceReplicaInExecutor(
+    executor,
+    replicaId,
+    params.workspaceId,
+    params.userId,
+    params.actorKind,
+    null,
+    params.actorKey,
+    params.platform,
+    params.appVersion,
+  );
+}
+
+export async function ensureBootstrapSystemWorkspaceReplicaInExecutor(
+  executor: DatabaseExecutor,
+  params: EnsureSystemWorkspaceReplicaParams,
+  replicaId: string,
+): Promise<string> {
+  await applyWorkspaceDatabaseScopeInExecutor(executor, {
+    userId: params.userId,
+    workspaceId: params.workspaceId,
+  });
 
   return upsertWorkspaceReplicaInExecutor(
     executor,

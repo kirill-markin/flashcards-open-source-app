@@ -250,6 +250,7 @@ export function AppDataProvider(props: Props): ReactElement {
     runSync: syncEngine.runSync,
     runSyncSilently: syncEngine.runSyncSilently,
     runSyncForWorkspace: syncEngine.runSyncForWorkspace,
+    discardWorkspaceSync: syncEngine.discardWorkspaceSync,
   });
 
   const value: AppDataContextValue = {

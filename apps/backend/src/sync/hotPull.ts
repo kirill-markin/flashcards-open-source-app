@@ -10,7 +10,7 @@ import type {
 } from "../decks";
 import { mapDeck } from "../decks";
 import { HttpError } from "../errors";
-import { ensureWorkspaceReplica } from "../syncIdentity";
+import { ensureWorkspaceReplicaInExecutor } from "../syncIdentity";
 import { ensureWorkspaceSyncMetadataInExecutor, loadMinAvailableHotChangeId } from "../syncChanges";
 import type { WorkspaceSchedulerSettings } from "../workspaceSchedulerSettings";
 import type { SyncPullInput } from "./input";
@@ -195,15 +195,14 @@ export async function processSyncPull(
   userId: string,
   input: SyncPullInput,
 ): Promise<SyncPullResult> {
-  await ensureWorkspaceReplica({
-    workspaceId,
-    userId,
-    installationId: input.installationId,
-    platform: input.platform,
-    appVersion: input.appVersion ?? null,
-  });
-
   return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
+    await ensureWorkspaceReplicaInExecutor(executor, {
+      workspaceId,
+      userId,
+      installationId: input.installationId,
+      platform: input.platform,
+      appVersion: input.appVersion ?? null,
+    });
     await ensureWorkspaceSyncMetadataInExecutor(executor, workspaceId);
     const minAvailableHotChangeId = await loadMinAvailableHotChangeId(executor, workspaceId);
     if (input.afterHotChangeId > 0 && input.afterHotChangeId < minAvailableHotChangeId) {

@@ -27,6 +27,10 @@ type HarnessSnapshot = Readonly<{
   errorMessage: string;
 }>;
 
+type HarnessActions = Readonly<{
+  deleteWorkspace: (workspaceId: string, confirmationText: string) => Promise<void>;
+}>;
+
 type TestHarnessProps = Readonly<{
   initialSessionLoadState: SessionLoadState;
   initialSessionVerificationState: SessionVerificationState;
@@ -38,6 +42,8 @@ type TestHarnessProps = Readonly<{
   runSyncMock: Mock<() => Promise<void>>;
   runSyncSilentlyMock: Mock<() => Promise<void>>;
   runSyncForWorkspaceMock: Mock<(workspace: WorkspaceSummary) => Promise<void>>;
+  discardWorkspaceSyncMock: Mock<(workspaceId: string) => void>;
+  onActionsChange: ((actions: HarnessActions) => void) | null;
 }>;
 
 const reviewRouteUrl = "http://localhost:3000/review";
@@ -58,6 +64,13 @@ const seededWorkspace: WorkspaceSummary = {
   workspaceId: "workspace-1",
   name: "Personal",
   createdAt: "2026-04-10T00:00:00.000Z",
+  isSelected: true,
+};
+
+const replacementWorkspace: WorkspaceSummary = {
+  workspaceId: "workspace-2",
+  name: "Work",
+  createdAt: "2026-04-11T00:00:00.000Z",
   isSelected: true,
 };
 
@@ -137,6 +150,20 @@ function buildWorkspacesResponse(workspaces: ReadonlyArray<WorkspaceSummary>): R
   });
 }
 
+function buildDeleteWorkspaceResponse(deletedWorkspaceId: string, workspace: WorkspaceSummary): Response {
+  return new Response(JSON.stringify({
+    ok: true,
+    deletedWorkspaceId,
+    deletedCardsCount: 2,
+    workspace,
+  }), {
+    status: 200,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+}
+
 function TestHarness(props: TestHarnessProps): ReactElement {
   const {
     initialSessionLoadState,
@@ -149,6 +176,8 @@ function TestHarness(props: TestHarnessProps): ReactElement {
     runSyncMock,
     runSyncSilentlyMock,
     runSyncForWorkspaceMock,
+    discardWorkspaceSyncMock,
+    onActionsChange,
   } = props;
   const [sessionLoadState, setSessionLoadState] = useState<SessionLoadState>(initialSessionLoadState);
   const [sessionVerificationState, setSessionVerificationState] = useState<SessionVerificationState>(initialSessionVerificationState);
@@ -160,7 +189,7 @@ function TestHarness(props: TestHarnessProps): ReactElement {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [cloudSettings, setCloudSettings] = useState<CloudSettings | null>(null);
 
-  useWorkspaceSession({
+  const actions = useWorkspaceSession({
     t: (key: TranslationKey): string => key,
     sessionLoadState,
     sessionVerificationState,
@@ -181,7 +210,18 @@ function TestHarness(props: TestHarnessProps): ReactElement {
     runSync: runSyncMock,
     runSyncSilently: runSyncSilentlyMock,
     runSyncForWorkspace: runSyncForWorkspaceMock,
+    discardWorkspaceSync: discardWorkspaceSyncMock,
   });
+
+  useEffect(() => {
+    if (onActionsChange === null) {
+      return;
+    }
+
+    onActionsChange({
+      deleteWorkspace: actions.deleteWorkspace,
+    });
+  }, [actions.deleteWorkspace, onActionsChange]);
 
   useEffect(() => {
     onStateChange({
@@ -330,6 +370,8 @@ describe("useWorkspaceSession bootstrap", () => {
           runSyncMock={runSyncMock}
           runSyncSilentlyMock={runSyncSilentlyMock}
           runSyncForWorkspaceMock={runSyncForWorkspaceMock}
+          discardWorkspaceSyncMock={vi.fn((_workspaceId: string): void => {})}
+          onActionsChange={null}
         />,
       );
     });
@@ -386,6 +428,8 @@ describe("useWorkspaceSession bootstrap", () => {
           runSyncMock={vi.fn(async (): Promise<void> => {})}
           runSyncSilentlyMock={vi.fn(async (): Promise<void> => {})}
           runSyncForWorkspaceMock={vi.fn(async (_workspace: WorkspaceSummary): Promise<void> => {})}
+          discardWorkspaceSyncMock={vi.fn((_workspaceId: string): void => {})}
+          onActionsChange={null}
         />,
       );
     });
@@ -430,6 +474,8 @@ describe("useWorkspaceSession bootstrap", () => {
           runSyncMock={vi.fn(async (): Promise<void> => {})}
           runSyncSilentlyMock={vi.fn(async (): Promise<void> => {})}
           runSyncForWorkspaceMock={vi.fn(async (_workspace: WorkspaceSummary): Promise<void> => {})}
+          discardWorkspaceSyncMock={vi.fn((_workspaceId: string): void => {})}
+          onActionsChange={null}
         />,
       );
     });
@@ -483,6 +529,8 @@ describe("useWorkspaceSession bootstrap", () => {
           runSyncMock={runSyncMock}
           runSyncSilentlyMock={runSyncSilentlyMock}
           runSyncForWorkspaceMock={runSyncForWorkspaceMock}
+          discardWorkspaceSyncMock={vi.fn((_workspaceId: string): void => {})}
+          onActionsChange={null}
         />,
       );
     });
@@ -538,6 +586,8 @@ describe("useWorkspaceSession bootstrap", () => {
           runSyncMock={vi.fn(async (): Promise<void> => {})}
           runSyncSilentlyMock={vi.fn(async (): Promise<void> => {})}
           runSyncForWorkspaceMock={vi.fn(async (_workspace: WorkspaceSummary): Promise<void> => {})}
+          discardWorkspaceSyncMock={vi.fn((_workspaceId: string): void => {})}
+          onActionsChange={null}
         />,
       );
     });
@@ -550,5 +600,78 @@ describe("useWorkspaceSession bootstrap", () => {
     expect(redirectedUrl).toBeNull();
     expect(window.localStorage.getItem(WARM_START_SNAPSHOT_STORAGE_KEY)).not.toBeNull();
     await expect(loadCloudSettings()).resolves.toEqual(seededCloudSettings);
+  });
+
+  it("discards deleted workspace sync before activating the replacement workspace", async () => {
+    seedBrowserStorage();
+    await seedIndexedDbState();
+
+    const unselectedReplacementWorkspace: WorkspaceSummary = {
+      ...replacementWorkspace,
+      isSelected: false,
+    };
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
+      .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace, unselectedReplacementWorkspace]))
+      .mockResolvedValueOnce(buildDeleteWorkspaceResponse("workspace-1", replacementWorkspace));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const refreshWorkspaceViewMock = vi.fn(async (_workspaceId: string): Promise<void> => {});
+    const runSyncMock = vi.fn(async (): Promise<void> => {});
+    const runSyncSilentlyMock = vi.fn(async (): Promise<void> => {});
+    const runSyncForWorkspaceMock = vi.fn(async (_workspace: WorkspaceSummary): Promise<void> => {});
+    const discardWorkspaceSyncMock = vi.fn((_workspaceId: string): void => {});
+    let latestActions: HarnessActions | null = null;
+
+    await act(async () => {
+      root?.render(
+        <TestHarness
+          initialSessionLoadState="ready"
+          initialSessionVerificationState="unverified"
+          initialSession={seededSession}
+          initialActiveWorkspace={seededWorkspace}
+          initialAvailableWorkspaces={[seededWorkspace]}
+          onStateChange={(snapshot: HarnessSnapshot): void => {
+            latestState = snapshot;
+          }}
+          refreshWorkspaceViewMock={refreshWorkspaceViewMock}
+          runSyncMock={runSyncMock}
+          runSyncSilentlyMock={runSyncSilentlyMock}
+          runSyncForWorkspaceMock={runSyncForWorkspaceMock}
+          discardWorkspaceSyncMock={discardWorkspaceSyncMock}
+          onActionsChange={(actions: HarnessActions): void => {
+            latestActions = actions;
+          }}
+        />,
+      );
+    });
+
+    await vi.waitFor(() => {
+      expect(latestState?.sessionLoadState).toBe("ready");
+      expect(latestState?.sessionVerificationState).toBe("verified");
+      expect(runSyncForWorkspaceMock).toHaveBeenCalledTimes(1);
+    });
+
+    if (latestActions === null) {
+      throw new Error("Workspace session actions were not published");
+    }
+
+    await act(async () => {
+      await latestActions.deleteWorkspace("workspace-1", "delete Personal");
+    });
+
+    expect(discardWorkspaceSyncMock).toHaveBeenCalledWith("workspace-1");
+    expect(runSyncForWorkspaceMock).toHaveBeenCalledTimes(2);
+    expect(runSyncForWorkspaceMock).toHaveBeenLastCalledWith(replacementWorkspace);
+    expect(discardWorkspaceSyncMock.mock.invocationCallOrder[0]).toBeLessThan(
+      runSyncForWorkspaceMock.mock.invocationCallOrder[1],
+    );
+    expect(latestState?.activeWorkspace?.workspaceId).toBe("workspace-2");
+    expect(latestState?.availableWorkspaces.map((workspace) => workspace.workspaceId)).toEqual(["workspace-2"]);
+    await expect(loadCloudSettings()).resolves.toEqual(expect.objectContaining({
+      cloudState: "linked",
+      linkedWorkspaceId: "workspace-2",
+      linkedUserId: "user-1",
+    }));
   });
 });

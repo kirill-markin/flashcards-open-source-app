@@ -1,11 +1,10 @@
 import { appendReviewEventSnapshotInExecutor } from "../cards";
 import {
-  queryWithWorkspaceScope,
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
 } from "../db";
 import { HttpError } from "../errors";
-import { ensureWorkspaceReplica } from "../syncIdentity";
+import { ensureWorkspaceReplicaInExecutor } from "../syncIdentity";
 import { annotateSyncConflictHttpError } from "./fork";
 import type {
   SyncReviewHistoryImportInput,
@@ -118,38 +117,39 @@ export async function processSyncReviewHistoryPull(
   userId: string,
   input: SyncReviewHistoryPullInput,
 ): Promise<SyncReviewHistoryPullResult> {
-  await ensureWorkspaceReplica({
-    workspaceId,
-    userId,
-    installationId: input.installationId,
-    platform: input.platform,
-    appVersion: input.appVersion ?? null,
+  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
+    await ensureWorkspaceReplicaInExecutor(executor, {
+      workspaceId,
+      userId,
+      installationId: input.installationId,
+      platform: input.platform,
+      appVersion: input.appVersion ?? null,
+    });
+
+    const result = await executor.query<ReviewHistoryRow>(
+      [
+        "SELECT review_event_id, workspace_id, replica_id, client_event_id, card_id, rating, reviewed_at_client, reviewed_at_server, review_sequence",
+        "FROM content.review_events",
+        "WHERE workspace_id = $1 AND review_sequence > $2",
+        "ORDER BY review_sequence ASC",
+        "LIMIT $3",
+      ].join(" "),
+      [workspaceId, input.afterReviewSequenceId, input.limit + 1],
+    );
+
+    const hasMore = result.rows.length > input.limit;
+    const visibleRows = hasMore ? result.rows.slice(0, input.limit) : result.rows;
+    const reviewEvents = mapReviewHistoryRows(visibleRows);
+    const nextReviewSequenceId = visibleRows.length === 0
+      ? input.afterReviewSequenceId
+      : toNumber(visibleRows[visibleRows.length - 1].review_sequence) ?? input.afterReviewSequenceId;
+
+    return {
+      reviewEvents,
+      nextReviewSequenceId,
+      hasMore,
+    };
   });
-
-  const result = await queryWithWorkspaceScope<ReviewHistoryRow>(
-    { userId, workspaceId },
-    [
-      "SELECT review_event_id, workspace_id, replica_id, client_event_id, card_id, rating, reviewed_at_client, reviewed_at_server, review_sequence",
-      "FROM content.review_events",
-      "WHERE workspace_id = $1 AND review_sequence > $2",
-      "ORDER BY review_sequence ASC",
-      "LIMIT $3",
-    ].join(" "),
-    [workspaceId, input.afterReviewSequenceId, input.limit + 1],
-  );
-
-  const hasMore = result.rows.length > input.limit;
-  const visibleRows = hasMore ? result.rows.slice(0, input.limit) : result.rows;
-  const reviewEvents = mapReviewHistoryRows(visibleRows);
-  const nextReviewSequenceId = visibleRows.length === 0
-    ? input.afterReviewSequenceId
-    : toNumber(visibleRows[visibleRows.length - 1].review_sequence) ?? input.afterReviewSequenceId;
-
-  return {
-    reviewEvents,
-    nextReviewSequenceId,
-    hasMore,
-  };
 }
 
 export async function processSyncReviewHistoryImport(
@@ -157,16 +157,18 @@ export async function processSyncReviewHistoryImport(
   userId: string,
   input: SyncReviewHistoryImportInput,
 ): Promise<SyncReviewHistoryImportResult> {
-  const replicaId = await ensureWorkspaceReplica({
-    workspaceId,
-    userId,
-    installationId: input.installationId,
-    platform: input.platform,
-    appVersion: input.appVersion ?? null,
-  });
-
   return transactionWithWorkspaceScope(
     { userId, workspaceId },
-    async (executor) => processSyncReviewHistoryImportInExecutor(executor, workspaceId, replicaId, input),
+    async (executor) => {
+      const replicaId = await ensureWorkspaceReplicaInExecutor(executor, {
+        workspaceId,
+        userId,
+        installationId: input.installationId,
+        platform: input.platform,
+        appVersion: input.appVersion ?? null,
+      });
+
+      return processSyncReviewHistoryImportInExecutor(executor, workspaceId, replicaId, input);
+    },
   );
 }
