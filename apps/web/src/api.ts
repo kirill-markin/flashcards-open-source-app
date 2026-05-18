@@ -116,10 +116,13 @@ type ChatResumeRequestDiagnostics = Readonly<{
 export type AuthUiLocale = Locale;
 
 const collectionPageLimit = 100;
+const staleSessionCsrfTokenErrorCode = "SESSION_CSRF_TOKEN_INVALID";
+const staleSessionCsrfTokenErrorMessage = "Invalid X-CSRF-Token header";
 
 let sessionCsrfToken: string | null = null;
 let sessionCsrfState: SessionCsrfState = "unknown";
 let sessionRecoveryPromise: Promise<void> | null = null;
+let sessionCsrfRecoveryPromise: Promise<void> | null = null;
 let sessionTransportReadyPromise: Promise<void> | null = null;
 let redirectInFlight = false;
 let authRedirectPreparationPromise: Promise<void> | null = null;
@@ -171,6 +174,7 @@ export function resetApiClientStateForTests(): void {
   sessionCsrfToken = null;
   sessionCsrfState = "unknown";
   sessionRecoveryPromise = null;
+  sessionCsrfRecoveryPromise = null;
   sessionTransportReadyPromise = null;
   redirectInFlight = false;
   authRedirectPreparationPromise = null;
@@ -313,6 +317,16 @@ function getJsonErrorCode(value: unknown): string | null {
   return typeof objectValue.code === "string" && objectValue.code !== "" ? objectValue.code : null;
 }
 
+function isRecoverableSessionCsrfPayload(value: unknown): boolean {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return value === staleSessionCsrfTokenErrorMessage;
+  }
+
+  const objectValue = value as Record<string, unknown>;
+  return objectValue.code === staleSessionCsrfTokenErrorCode
+    || objectValue.error === staleSessionCsrfTokenErrorMessage;
+}
+
 async function readJsonResponse(response: Response): Promise<unknown> {
   const text = await response.text();
   if (text === "") {
@@ -335,6 +349,14 @@ async function parseJsonPayload(response: Response): Promise<unknown> {
   }
 
   return payload;
+}
+
+async function isRecoverableSessionCsrfResponse(response: Response): Promise<boolean> {
+  if (response.status !== 403) {
+    return false;
+  }
+
+  return isRecoverableSessionCsrfPayload(await readJsonResponse(response.clone()));
 }
 
 /**
@@ -415,6 +437,27 @@ async function recoverSession(prepareForAuthRedirect: PrepareForAuthRedirect | n
   return sessionRecoveryPromise;
 }
 
+/**
+ * Reloads the current session-bound CSRF token after another same-site app has
+ * rotated the shared session cookie.
+ */
+async function recoverSessionCsrf(): Promise<void> {
+  const activeRecovery = sessionCsrfRecoveryPromise;
+  if (activeRecovery !== null) {
+    return activeRecovery;
+  }
+
+  const recoveryTask = (async (): Promise<void> => {
+    await loadSessionInfoWithRecovery();
+  })();
+
+  sessionCsrfRecoveryPromise = recoveryTask.finally(() => {
+    sessionCsrfRecoveryPromise = null;
+  });
+
+  return sessionCsrfRecoveryPromise;
+}
+
 async function ensureSessionTransportReadyForUnsafeRequest(): Promise<void> {
   if (sessionCsrfState !== "unknown") {
     return;
@@ -446,8 +489,8 @@ async function ensureSessionTransportReadyForUnsafeRequest(): Promise<void> {
 
 /**
  * Wraps raw API fetches with a single silent refresh attempt. Every request is
- * retried at most once, and the retry only runs after `/me` has reloaded the
- * current session transport and CSRF token.
+ * allowed one auth recovery and one stale-CSRF recovery, with each retry only
+ * running after `/me` has reloaded the current session transport and CSRF token.
  */
 async function requestResponse(
   pathname: string,
@@ -458,18 +501,38 @@ async function requestResponse(
     await ensureSessionTransportReadyForUnsafeRequest();
   }
 
-  const response = await performFetch(pathname, init);
-  if (response.status !== 401 || options.authRecoveryMode === "skip") {
+  let response: Response = await performFetch(pathname, init);
+  if (options.authRecoveryMode === "skip") {
     return response;
   }
 
-  await recoverSession(options.prepareForAuthRedirect);
-  const retriedResponse = await performFetch(pathname, init);
-  if (retriedResponse.status === 401) {
-    await redirectToLogin(options.prepareForAuthRedirect);
-  }
+  let didRecoverSession: boolean = false;
+  let didRecoverSessionCsrf: boolean = false;
+  while (true) {
+    if (response.status === 401) {
+      if (didRecoverSession) {
+        await redirectToLogin(options.prepareForAuthRedirect);
+      }
 
-  return retriedResponse;
+      didRecoverSession = true;
+      await recoverSession(options.prepareForAuthRedirect);
+      response = await performFetch(pathname, init);
+      continue;
+    }
+
+    if (
+      didRecoverSessionCsrf === false
+      && isUnsafeMethod(getMethod(init))
+      && await isRecoverableSessionCsrfResponse(response)
+    ) {
+      didRecoverSessionCsrf = true;
+      await recoverSessionCsrf();
+      response = await performFetch(pathname, init);
+      continue;
+    }
+
+    return response;
+  }
 }
 
 async function requestJson(
