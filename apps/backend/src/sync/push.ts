@@ -8,7 +8,7 @@ import {
 } from "../db";
 import { upsertDeckSnapshotInExecutor } from "../decks";
 import { normalizeIsoTimestamp } from "../lww";
-import { ensureWorkspaceReplica } from "../syncIdentity";
+import { ensureWorkspaceReplicaInExecutor } from "../syncIdentity";
 import { ensureWorkspaceSyncMetadataInExecutor } from "../syncChanges";
 import { applyWorkspaceSchedulerSettingsSnapshotInExecutor } from "../workspaceSchedulerSettings";
 import type {
@@ -285,17 +285,19 @@ export async function processSyncPush(
   userId: string,
   input: SyncPushInput,
 ): Promise<SyncPushResult> {
-  const replicaId = await ensureWorkspaceReplica({
-    workspaceId,
-    userId,
-    installationId: input.installationId,
-    platform: input.platform,
-    appVersion: input.appVersion ?? null,
-  });
-
   const operationResults = await transactionWithWorkspaceScope(
     { userId, workspaceId },
-    async (executor) => processSyncPushOperationsInExecutor(executor, workspaceId, replicaId, input.operations),
+    async (executor) => {
+      const replicaId = await ensureWorkspaceReplicaInExecutor(executor, {
+        workspaceId,
+        userId,
+        installationId: input.installationId,
+        platform: input.platform,
+        appVersion: input.appVersion ?? null,
+      });
+
+      return processSyncPushOperationsInExecutor(executor, workspaceId, replicaId, input.operations);
+    },
   );
 
   return {

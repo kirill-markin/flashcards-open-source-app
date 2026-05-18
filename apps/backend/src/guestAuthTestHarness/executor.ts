@@ -97,6 +97,11 @@ export function createGuestUpgradeExecutor(state: MutableState): DatabaseExecuto
 
 export function isGuestUpgradeMergeOnlyExecutorQuery(text: string): boolean {
   return text.includes("FROM sync.claim_installation")
+    || (
+      text.startsWith("SELECT")
+      && text.includes("FROM org.workspace_memberships AS memberships")
+      && text.includes("FOR KEY SHARE OF workspaces, memberships")
+    )
     || (text.startsWith("SELECT") && text.includes("FROM sync.workspace_replicas"))
     || text.includes("INSERT INTO sync.workspace_replicas")
     || text.includes("UPDATE sync.workspace_replicas")

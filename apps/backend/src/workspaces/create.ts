@@ -16,7 +16,7 @@ import {
 import { markBackendExceptionWrapperAsReported } from "../observability/reporting";
 import {
   buildSystemWorkspaceReplicaId,
-  ensureSystemWorkspaceReplicaInExecutor,
+  ensureBootstrapSystemWorkspaceReplicaInExecutor,
 } from "../syncIdentity";
 import { insertSyncChange } from "../syncChanges";
 import {
@@ -163,7 +163,7 @@ export async function createWorkspaceInExecutorWithObservationScope(
     );
 
     stage = "create_bootstrap_replica";
-    await ensureSystemWorkspaceReplicaInExecutor(executor, {
+    await ensureBootstrapSystemWorkspaceReplicaInExecutor(executor, {
       workspaceId,
       userId,
       actorKind: "workspace_seed",

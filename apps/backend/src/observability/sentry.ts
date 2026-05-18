@@ -706,6 +706,18 @@ type BackendSentryIntegrationFactory = (
 ) => Array<BackendSentryIntegration>;
 type BackendSentryContextData = Parameters<Sentry.Scope["setContext"]>[1];
 type BackendSentryBreadcrumbData = NonNullable<Parameters<typeof Sentry.addBreadcrumb>[0]["data"]>;
+type SentryExceptionValue = Readonly<Record<string, unknown>> & Readonly<{
+  type?: unknown;
+  value?: unknown;
+}>;
+type DatabaseExceptionDiagnostics = Readonly<{
+  errorClass: string | null;
+  errorCode: string | null;
+  sqlState: string | null;
+  constraint: string | null;
+  table: string | null;
+  errorMessage: string | null;
+}>;
 
 type BackendSentryConfig =
   | Readonly<{ enabled: false }>
@@ -743,6 +755,14 @@ const exceptionTextFieldNames: ReadonlySet<string> = new Set([
 const cloudWatchActionableExceptionTextFieldNames: ReadonlySet<string> = new Set([
   "errormessage",
   "errorstack",
+]);
+const nonSqlStateDatabaseErrorCodes: ReadonlySet<string> = new Set([
+  "ECONNRESET",
+  "ECONNREFUSED",
+  "ETIMEDOUT",
+  "EPIPE",
+  "EAI_AGAIN",
+  "ENOTFOUND",
 ]);
 let backendSentryInitializedForOpenTelemetry = false;
 
@@ -825,12 +845,17 @@ function sanitizeSentryEvent(event: BackendSentryEvent, hint: BackendSentryEvent
 
   const manualBackendWarningMessage = getManualBackendWarningMessage(event);
   const sanitizedEvent = sanitizeBackendTelemetryValue(redactExceptionTextFields(event)) as unknown as typeof event;
+  const sanitizedEventWithDatabaseDiagnostics = restoreSentryDatabaseExceptionDiagnostics(
+    event,
+    sanitizedEvent,
+    hint,
+  );
   if (manualBackendWarningMessage === null) {
-    return sanitizedEvent;
+    return sanitizedEventWithDatabaseDiagnostics;
   }
 
   return {
-    ...sanitizedEvent,
+    ...sanitizedEventWithDatabaseDiagnostics,
     message: manualBackendWarningMessage,
   };
 }
@@ -987,6 +1012,164 @@ export function hasCapturedBackendException(error: Error): boolean {
 
 function normalizeTelemetryKey(key: string): string {
   return key.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function readRecord(value: unknown): Readonly<Record<string, unknown>> | null {
+  return typeof value === "object" && value !== null
+    ? value as Readonly<Record<string, unknown>>
+    : null;
+}
+
+function readStringField(record: Readonly<Record<string, unknown>>, key: string): string | null {
+  const value = record[key];
+  return typeof value === "string" && value.trim() !== "" ? value : null;
+}
+
+function isSqlState(value: string): boolean {
+  return /^[A-Z0-9]{5}$/i.test(value) && nonSqlStateDatabaseErrorCodes.has(value) === false;
+}
+
+function readDatabaseExceptionDiagnostics(error: unknown): DatabaseExceptionDiagnostics | null {
+  const errorRecord = readRecord(error);
+  if (errorRecord === null) {
+    return null;
+  }
+
+  const code = readStringField(errorRecord, "code");
+  const sqlState = readStringField(errorRecord, "sqlState")
+    ?? readStringField(errorRecord, "sqlstate")
+    ?? (code !== null && isSqlState(code) ? code : null);
+  const diagnostics: DatabaseExceptionDiagnostics = {
+    errorClass: error instanceof Error && error.name.trim() !== "" ? error.name : null,
+    errorCode: readStringField(errorRecord, "errorCode") ?? code,
+    sqlState,
+    constraint: readStringField(errorRecord, "constraint"),
+    table: readStringField(errorRecord, "table"),
+    errorMessage: error instanceof Error ? error.message : readStringField(errorRecord, "message"),
+  };
+
+  if (
+    diagnostics.sqlState === null
+    && diagnostics.constraint === null
+    && diagnostics.table === null
+  ) {
+    return null;
+  }
+
+  return diagnostics;
+}
+
+function isSafeDatabaseExceptionMessage(
+  message: string,
+  diagnostics: DatabaseExceptionDiagnostics,
+): boolean {
+  return diagnostics.constraint !== null && message.includes(diagnostics.constraint);
+}
+
+function createDatabaseExceptionDiagnosticValue(
+  diagnostics: DatabaseExceptionDiagnostics,
+): string | null {
+  const diagnosticParts: Array<string> = [];
+  if (diagnostics.sqlState !== null) {
+    diagnosticParts.push(`SQLSTATE ${diagnostics.sqlState}`);
+  }
+  if (diagnostics.errorCode !== null && diagnostics.errorCode !== diagnostics.sqlState) {
+    diagnosticParts.push(`code ${diagnostics.errorCode}`);
+  }
+  if (diagnostics.constraint !== null) {
+    diagnosticParts.push(`constraint ${diagnostics.constraint}`);
+  }
+  if (diagnostics.table !== null) {
+    diagnosticParts.push(`table ${diagnostics.table}`);
+  }
+  if (diagnosticParts.length === 0) {
+    return null;
+  }
+
+  const label = diagnostics.errorClass ?? "DatabaseError";
+  if (
+    diagnostics.errorMessage !== null
+    && isSafeDatabaseExceptionMessage(diagnostics.errorMessage, diagnostics)
+  ) {
+    return `${label}: ${sanitizeInternalErrorText(diagnostics.errorMessage)} (${diagnosticParts.join(", ")})`;
+  }
+
+  return `${label}: ${diagnosticParts.join(", ")}`;
+}
+
+function createDatabaseDiagnosticTags(
+  diagnostics: DatabaseExceptionDiagnostics,
+): Readonly<Record<string, string>> {
+  const tags: Record<string, string> = {};
+  if (diagnostics.sqlState !== null) tags["db.sql_state"] = diagnostics.sqlState;
+  if (diagnostics.errorCode !== null) tags["db.error_code"] = diagnostics.errorCode;
+  if (diagnostics.constraint !== null) tags["db.constraint"] = diagnostics.constraint;
+  if (diagnostics.table !== null) tags["db.table"] = diagnostics.table;
+  return tags;
+}
+
+function restoreSentryExceptionValue(
+  value: SentryExceptionValue,
+  diagnosticValue: string,
+): SentryExceptionValue {
+  if (typeof value.value !== "string") {
+    return value;
+  }
+
+  return {
+    ...value,
+    value: diagnosticValue,
+  };
+}
+
+function restoreSentryDatabaseExceptionValues(
+  event: BackendSentryEvent,
+  diagnosticValue: string,
+): BackendSentryEvent {
+  const exceptionRecord = readRecord(event.exception);
+  const exceptionValues = exceptionRecord?.values;
+  if (Array.isArray(exceptionValues) === false) {
+    return event;
+  }
+
+  return {
+    ...event,
+    exception: {
+      ...event.exception,
+      values: exceptionValues.map((value) => {
+        const exceptionValue = readRecord(value);
+        return exceptionValue === null
+          ? value
+          : restoreSentryExceptionValue(exceptionValue as SentryExceptionValue, diagnosticValue);
+      }),
+    },
+  };
+}
+
+function restoreSentryDatabaseExceptionDiagnostics(
+  originalEvent: BackendSentryEvent,
+  sanitizedEvent: BackendSentryEvent,
+  hint: BackendSentryEventHint,
+): BackendSentryEvent {
+  const diagnostics = readDatabaseExceptionDiagnostics(hint.originalException);
+  if (diagnostics === null) {
+    return sanitizedEvent;
+  }
+
+  const diagnosticValue = createDatabaseExceptionDiagnosticValue(diagnostics);
+  if (diagnosticValue === null) {
+    return sanitizedEvent;
+  }
+
+  const eventWithExceptionValue = restoreSentryDatabaseExceptionValues(sanitizedEvent, diagnosticValue);
+  return {
+    ...eventWithExceptionValue,
+    message: typeof originalEvent.message === "string" ? diagnosticValue : eventWithExceptionValue.message,
+    tags: {
+      ...eventWithExceptionValue.tags,
+      ...createDatabaseDiagnosticTags(diagnostics),
+    },
+  };
 }
 
 function shouldRedactExceptionTextField(key: string, value: unknown): boolean {

@@ -65,6 +65,7 @@ type UseWorkspaceSessionParams = Readonly<{
   runSync: () => Promise<void>;
   runSyncSilently: () => Promise<void>;
   runSyncForWorkspace: (workspace: WorkspaceSummary) => Promise<void>;
+  discardWorkspaceSync: (workspaceId: string) => void;
 }>;
 
 type WorkspaceSession = Readonly<{
@@ -206,6 +207,7 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     runSync,
     runSyncSilently,
     runSyncForWorkspace,
+    discardWorkspaceSync,
   } = params;
   const resumePromiseRef = useRef<Promise<void> | null>(null);
 
@@ -646,6 +648,7 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
         deletedWorkspaceId: response.deletedWorkspaceId,
         replacementWorkspaceId: response.workspace.workspaceId,
       });
+      discardWorkspaceSync(response.deletedWorkspaceId);
       const nextWorkspaces = replaceWorkspaceSummary(
         availableWorkspaces.filter((workspace) => workspace.workspaceId !== response.deletedWorkspaceId),
         response.workspace,
@@ -676,7 +679,16 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     } finally {
       setIsChoosingWorkspace(false);
     }
-  }, [activateWorkspace, availableWorkspaces, session, sessionVerificationState, t, setErrorMessage, setIsChoosingWorkspace]);
+  }, [
+    activateWorkspace,
+    availableWorkspaces,
+    discardWorkspaceSync,
+    session,
+    sessionVerificationState,
+    t,
+    setErrorMessage,
+    setIsChoosingWorkspace,
+  ]);
 
   const loadWorkspaceResetProgressPreview = useCallback(async function loadWorkspaceResetProgressPreview(
     workspaceId: string,

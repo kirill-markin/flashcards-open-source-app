@@ -401,6 +401,162 @@ test("backend Sentry beforeSend redacts exception text and request query strings
   assert.equal(sanitized?.contexts?.rawRequest?.querystring, "<redacted-content>");
 });
 
+test("backend Sentry beforeSend preserves structural database exception diagnostics", () => {
+  resetBackendSentryForTests();
+  let capturedInitOptions: CapturedSentryInitOptions | null = null;
+
+  initializeBackendSentryWithDeps(
+    "backend-api",
+    {
+      SENTRY_DSN: "https://example.invalid/1",
+      SENTRY_ENVIRONMENT: "production",
+      SENTRY_RELEASE: "abc123",
+      SENTRY_TRACES_SAMPLE_RATE: "0",
+    },
+    {
+      init: (options) => {
+        capturedInitOptions = options;
+      },
+    },
+  );
+
+  type DatabaseConstraintError = Error & {
+    code: string;
+    constraint: string;
+    table: string;
+  };
+
+  const databaseError = new Error(
+    "insert or update on table \"workspace_replicas\" violates foreign key constraint \"workspace_replicas_workspace_id_fkey\"",
+  ) as DatabaseConstraintError;
+  databaseError.name = "DatabaseError";
+  databaseError.code = "23503";
+  databaseError.constraint = "workspace_replicas_workspace_id_fkey";
+  databaseError.table = "workspace_replicas";
+
+  const initOptions = requireCapturedSentryInitOptions(capturedInitOptions);
+  const beforeSend = requireBeforeSend(initOptions.beforeSend);
+  const sanitized = requireSynchronousSentryHookResult(beforeSend({
+    type: undefined,
+    message: databaseError.message,
+    exception: {
+      values: [
+        {
+          type: databaseError.name,
+          value: databaseError.message,
+          stacktrace: {
+            frames: [
+              {
+                context_line: "await executor.query(sql, [frontText]);",
+                vars: {
+                  frontText: "private question",
+                  backText: "private answer",
+                },
+              },
+            ],
+          },
+        },
+      ],
+    },
+    request: {
+      headers: {
+        authorization: "Bearer token-value",
+      },
+    },
+    contexts: {
+      backend: {
+        prompt: "private prompt",
+        sqlState: "23503",
+        constraint: "workspace_replicas_workspace_id_fkey",
+        table: "workspace_replicas",
+      },
+      rawRequest: {
+        requestBody: {
+          frontText: "private question",
+          backText: "private answer",
+        },
+      },
+    },
+  }, { originalException: databaseError }));
+
+  assert.notEqual(sanitized, null);
+  if (sanitized === null) {
+    throw new Error("Expected backend Sentry beforeSend to keep the event.");
+  }
+  assert.match(sanitized.message ?? "", /SQLSTATE 23503/);
+  assert.match(sanitized.message ?? "", /workspace_replicas_workspace_id_fkey/);
+  assert.match(String(sanitized.exception?.values?.[0]?.value), /SQLSTATE 23503/);
+  assert.match(String(sanitized.exception?.values?.[0]?.value), /workspace_replicas_workspace_id_fkey/);
+  assert.equal(sanitized.tags?.["db.sql_state"], "23503");
+  assert.equal(sanitized.tags?.["db.constraint"], "workspace_replicas_workspace_id_fkey");
+  assert.equal(sanitized.tags?.["db.table"], "workspace_replicas");
+  assert.deepEqual(sanitized.request, { headers: "<redacted-content>" });
+  assert.equal(sanitized.contexts?.backend?.prompt, "<redacted-content>");
+  assert.equal(sanitized.contexts?.backend?.sqlState, "23503");
+  assert.equal(sanitized.contexts?.backend?.constraint, "workspace_replicas_workspace_id_fkey");
+  assert.equal(sanitized.contexts?.backend?.table, "workspace_replicas");
+  assert.equal(sanitized.contexts?.rawRequest?.requestBody, "<redacted-content>");
+  assert.deepEqual(sanitized.exception?.values?.[0]?.stacktrace?.frames?.[0], {
+    context_line: "<redacted-content>",
+    vars: "<redacted-content>",
+  });
+});
+
+test("backend Sentry beforeSend does not preserve content-bearing database exception messages", () => {
+  resetBackendSentryForTests();
+  let capturedInitOptions: CapturedSentryInitOptions | null = null;
+
+  initializeBackendSentryWithDeps(
+    "backend-api",
+    {
+      SENTRY_DSN: "https://example.invalid/1",
+      SENTRY_ENVIRONMENT: "production",
+      SENTRY_RELEASE: "abc123",
+      SENTRY_TRACES_SAMPLE_RATE: "0",
+    },
+    {
+      init: (options) => {
+        capturedInitOptions = options;
+      },
+    },
+  );
+
+  type DatabaseInputError = Error & {
+    code: string;
+  };
+
+  const databaseError = new Error("invalid input syntax for type uuid: \"private-user-text\"") as DatabaseInputError;
+  databaseError.name = "DatabaseError";
+  databaseError.code = "22P02";
+
+  const initOptions = requireCapturedSentryInitOptions(capturedInitOptions);
+  const beforeSend = requireBeforeSend(initOptions.beforeSend);
+  const sanitized = requireSynchronousSentryHookResult(beforeSend({
+    type: undefined,
+    message: databaseError.message,
+    exception: {
+      values: [
+        {
+          type: databaseError.name,
+          value: databaseError.message,
+          stacktrace: {
+            frames: [],
+          },
+        },
+      ],
+    },
+  }, { originalException: databaseError }));
+
+  assert.notEqual(sanitized, null);
+  if (sanitized === null) {
+    throw new Error("Expected backend Sentry beforeSend to keep the event.");
+  }
+  assert.equal(sanitized.message, "DatabaseError: SQLSTATE 22P02");
+  assert.equal(sanitized.exception?.values?.[0]?.value, "DatabaseError: SQLSTATE 22P02");
+  assert.doesNotMatch(sanitized.message ?? "", /private-user-text/);
+  assert.doesNotMatch(String(sanitized.exception?.values?.[0]?.value), /private-user-text/);
+});
+
 test("backend Sentry beforeSend preserves typed warning action title only", () => {
   resetBackendSentryForTests();
   let capturedInitOptions: CapturedSentryInitOptions | null = null;

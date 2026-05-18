@@ -9,7 +9,7 @@ import {
   decodeOpaqueCursor,
   encodeOpaqueCursor,
 } from "../pagination";
-import { ensureWorkspaceReplica } from "../syncIdentity";
+import { ensureWorkspaceReplicaInExecutor } from "../syncIdentity";
 import { ensureWorkspaceSyncMetadataInExecutor } from "../syncChanges";
 import { annotateSyncConflictHttpError } from "./fork";
 import { applyWorkspaceSchedulerSettingsSnapshotInExecutor } from "../workspaceSchedulerSettings";
@@ -148,16 +148,15 @@ export async function processSyncBootstrap(
   userId: string,
   input: SyncBootstrapInput,
 ): Promise<SyncBootstrapPullResult | SyncBootstrapPushResult> {
-  const replicaId = await ensureWorkspaceReplica({
-    workspaceId,
-    userId,
-    installationId: input.installationId,
-    platform: input.platform,
-    appVersion: input.appVersion ?? null,
-  });
-
   if (input.mode === "push") {
     return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
+      const replicaId = await ensureWorkspaceReplicaInExecutor(executor, {
+        workspaceId,
+        userId,
+        installationId: input.installationId,
+        platform: input.platform,
+        appVersion: input.appVersion ?? null,
+      });
       await ensureWorkspaceSyncMetadataInExecutor(executor, workspaceId);
       const remoteIsEmpty = await loadRemoteEmptyState(executor, workspaceId);
       if (remoteIsEmpty === false) {
@@ -226,6 +225,13 @@ export async function processSyncBootstrap(
   }
 
   return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
+    await ensureWorkspaceReplicaInExecutor(executor, {
+      workspaceId,
+      userId,
+      installationId: input.installationId,
+      platform: input.platform,
+      appVersion: input.appVersion ?? null,
+    });
     await ensureWorkspaceSyncMetadataInExecutor(executor, workspaceId);
     const cursor = input.cursor === null
       ? {

@@ -18,6 +18,29 @@ export function handleWorkspaceExecutorQuery<Row extends pg.QueryResultRow>(
 ): pg.QueryResult<Row> | null {
   const { scope, state } = context;
 
+  if (
+    text.startsWith("SELECT")
+    && text.includes("FROM org.workspace_memberships AS memberships")
+    && text.includes("FOR KEY SHARE OF workspaces, memberships")
+  ) {
+    const userId = params[0];
+    const workspaceId = params[1];
+    if (typeof userId !== "string" || typeof workspaceId !== "string") {
+      return createQueryResult<Row>([]);
+    }
+
+    scope.requireCurrentWorkspaceScope(userId, workspaceId);
+    if (!state.workspaceMemberships.has(membershipKey(userId, workspaceId))) {
+      return createQueryResult<Row>([]);
+    }
+
+    const workspace = state.workspaces.get(workspaceId);
+    const rows = workspace === undefined ? [] : [{
+      workspace_id: workspace.workspace_id,
+    } as unknown as Row];
+    return createQueryResult<Row>(rows);
+  }
+
   if (text.startsWith("SELECT") && text.includes("FROM org.workspaces AS workspaces")) {
     const userId = params[0];
     const workspaceId = params[1];
