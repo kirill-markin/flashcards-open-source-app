@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactElement } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAppData } from "../../../../appData";
 import { ALL_CARDS_REVIEW_FILTER, isCardDue } from "../../../../appData/domain";
@@ -7,7 +7,8 @@ import { useI18n } from "../../../../i18n";
 import { buildSettingsDeckEditRoute, reviewRoute, settingsDecksRoute } from "../../../../routes";
 import { loadCardsMatchingDeck } from "../../../../localDb/cards";
 import { loadDeckById, loadDecksListSnapshot } from "../../../../localDb/decks";
-import type { Card, Deck, ReviewFilter } from "../../../../types";
+import { captureAppOperationError } from "../../../../observability/appOperationObservation";
+import type { Card, ReviewFilter } from "../../../../types";
 import { formatDeckFilterSummary, formatEffortLevelLabel, formatNullableDateTime, formatTagSummary } from "../../../shared/featureFormatting";
 
 type DeckDetailState = Readonly<{
@@ -29,8 +30,10 @@ export function DeckDetailScreen(): ReactElement {
   const { t, formatCount, formatDateTime, formatNumber } = useI18n();
   const {
     activeWorkspace,
+    cloudSettings,
     deleteDeckItem,
     openReview,
+    session,
     setErrorMessage,
     localReadVersion,
     refreshLocalData,
@@ -39,9 +42,20 @@ export function DeckDetailScreen(): ReactElement {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [screenErrorMessage, setScreenErrorMessage] = useState<string>("");
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const observationIdentityRef = useRef<Readonly<{
+    userId: string | null;
+    installationId: string | null;
+  }>>({
+    userId: null,
+    installationId: null,
+  });
 
   const currentDeckId = deckId ?? "";
   const nowTimestamp = Date.now();
+  observationIdentityRef.current = {
+    userId: session?.userId ?? null,
+    installationId: cloudSettings?.installationId ?? null,
+  };
 
   const loadScreenData = useCallback(async function loadScreenData(): Promise<void> {
     if (deckId === undefined) {
@@ -100,6 +114,17 @@ export function DeckDetailScreen(): ReactElement {
         emptyMessage: t("deckDetail.empty.deckCards"),
       });
     } catch (error) {
+      if (activeWorkspace !== null) {
+        const observationIdentity = observationIdentityRef.current;
+        captureAppOperationError(error, {
+          feature: "settings",
+          operation: "deck_detail_load",
+          userId: observationIdentity.userId,
+          workspaceId: activeWorkspace.workspaceId,
+          installationId: observationIdentity.installationId,
+          entityId: deckId,
+        });
+      }
       setScreenErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setIsLoading(false);
@@ -128,6 +153,14 @@ export function DeckDetailScreen(): ReactElement {
       await deleteDeckItem(deckId);
       navigate(settingsDecksRoute);
     } catch (error) {
+      captureAppOperationError(error, {
+        feature: "settings",
+        operation: "deck_delete",
+        userId: session?.userId ?? null,
+        workspaceId: activeWorkspace?.workspaceId ?? null,
+        installationId: cloudSettings?.installationId ?? null,
+        entityId: deckId,
+      });
       setScreenErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setIsDeleting(false);

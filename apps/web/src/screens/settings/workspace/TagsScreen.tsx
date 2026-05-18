@@ -1,7 +1,8 @@
-import { useEffect, useState, type ReactElement } from "react";
+import { useEffect, useRef, useState, type ReactElement } from "react";
 import { useAppData } from "../../../appData";
 import { useI18n } from "../../../i18n";
 import { loadWorkspaceTagsSummary } from "../../../localDb/workspace";
+import { captureAppOperationError } from "../../../observability/appOperationObservation";
 import type { WorkspaceTagsSummary } from "../../../types";
 
 const emptyTagsSummary: WorkspaceTagsSummary = {
@@ -10,11 +11,22 @@ const emptyTagsSummary: WorkspaceTagsSummary = {
 };
 
 export function TagsScreen(): ReactElement {
-  const { activeWorkspace, localReadVersion, refreshLocalData } = useAppData();
+  const { activeWorkspace, cloudSettings, localReadVersion, refreshLocalData, session } = useAppData();
   const { t, formatCount, formatNumber } = useI18n();
   const [tagsSummary, setTagsSummary] = useState<WorkspaceTagsSummary>(emptyTagsSummary);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const observationIdentityRef = useRef<Readonly<{
+    userId: string | null;
+    installationId: string | null;
+  }>>({
+    userId: null,
+    installationId: null,
+  });
+  observationIdentityRef.current = {
+    userId: session?.userId ?? null,
+    installationId: cloudSettings?.installationId ?? null,
+  };
 
   useEffect(() => {
     let isCancelled = false;
@@ -39,6 +51,17 @@ export function TagsScreen(): ReactElement {
           return;
         }
 
+        if (activeWorkspace !== null) {
+          const observationIdentity = observationIdentityRef.current;
+          captureAppOperationError(error, {
+            feature: "settings",
+            operation: "tags_load",
+            userId: observationIdentity.userId,
+            workspaceId: activeWorkspace.workspaceId,
+            installationId: observationIdentity.installationId,
+            entityId: null,
+          });
+        }
         setErrorMessage(error instanceof Error ? error.message : String(error));
       } finally {
         if (!isCancelled) {

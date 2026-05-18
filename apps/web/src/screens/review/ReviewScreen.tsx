@@ -5,6 +5,8 @@ import { useAppData, useReviewProgressBadge } from "../../appData";
 import { ALL_CARDS_REVIEW_FILTER, currentReviewCard, isCardDue } from "../../appData/domain";
 import { parseDueAtMillis } from "../../appData/dueAt";
 import { useI18n } from "../../i18n";
+import { captureAppOperationError } from "../../observability/appOperationObservation";
+import { normalizeCaughtError } from "../../observability/webObservability";
 import type { Card, WorkspaceSchedulerSettings } from "../../types";
 import { computeReviewSchedule, type ReviewRating } from "../../../../backend/src/schedule";
 import { classifyReviewContentPresentation } from "./reviewContentPresentation";
@@ -427,6 +429,7 @@ function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
 export function ReviewScreen(): ReactElement {
   const {
     activeWorkspace,
+    cloudSettings,
     selectedReviewFilter,
     workspaceSettings,
     localReadVersion,
@@ -434,6 +437,7 @@ export function ReviewScreen(): ReactElement {
     getCardById,
     refreshLocalData,
     selectReviewFilter,
+    session,
     submitReviewItem,
     updateCardItem,
     deleteCardItem,
@@ -448,6 +452,7 @@ export function ReviewScreen(): ReactElement {
   const [isHardReminderVisible, setIsHardReminderVisible] = useState<boolean>(false);
   const [hardReminderLastShownAt, setHardReminderLastShownAt] = useState<number | null>(() => loadReviewHardReminderLastShownAt());
   const recentReviewRatingsRef = useRef<Array<ReviewRating>>([]);
+  const lastCapturedReviewButtonErrorKeyRef = useRef<string>("");
   const { message: reviewSpeechMessage, showMessage: showReviewSpeechMessage } = useTransientMessage(3000);
   const {
     activeReviewQueue,
@@ -465,10 +470,12 @@ export function ReviewScreen(): ReactElement {
   } = useReviewScreenData({
     activeWorkspaceId: activeWorkspace?.workspaceId ?? null,
     getCardById,
+    installationId: cloudSettings?.installationId ?? null,
     localReadVersion,
     selectedReviewFilter,
     setErrorMessage,
     submitReviewItem,
+    userId: session?.userId ?? null,
   });
   const {
     activeSide: activeSpeechSide,
@@ -515,11 +522,14 @@ export function ReviewScreen(): ReactElement {
     setIsEditorPresented,
   } = useReviewCardEditor({
     deleteCardItem,
+    installationId: cloudSettings?.installationId ?? null,
     queueCards,
     selectedCard: currentReviewCard(activeReviewQueue),
     setErrorMessage,
     t,
     updateCardItem,
+    userId: session?.userId ?? null,
+    workspaceId: activeWorkspace?.workspaceId ?? null,
   });
   const handoffCardToAi = useAiCardHandoff();
   const nowTimestamp = Date.now();
@@ -538,6 +548,7 @@ export function ReviewScreen(): ReactElement {
   const reviewButtonsNow = new Date();
   let reviewButtonOptions: Array<ReviewButtonOption> = [];
   let reviewButtonErrorMessage: string = "";
+  let reviewButtonScheduleError: Error | null = null;
 
   useEffect(() => {
     setIsAnswerVisible(false);
@@ -610,11 +621,50 @@ export function ReviewScreen(): ReactElement {
     try {
       reviewButtonOptions = buildReviewButtonOptions(selectedCard, workspaceSettings, reviewButtonsNow, t, formatCount);
     } catch (error) {
-      reviewButtonErrorMessage = error instanceof Error ? error.message : String(error);
+      reviewButtonScheduleError = normalizeCaughtError(error);
+      reviewButtonErrorMessage = reviewButtonScheduleError.message;
     }
   } else if (isAnswerVisible && selectedCard !== null) {
     reviewButtonErrorMessage = t("reviewScreen.errors.schedulerUnavailable");
   }
+
+  const reviewButtonErrorCaptureKey = reviewButtonScheduleError === null || selectedCard === null || workspaceSettings === null
+    ? ""
+    : [
+      selectedCard.cardId,
+      selectedCard.updatedAt,
+      workspaceSettings.algorithm,
+      reviewButtonScheduleError.name,
+      reviewButtonScheduleError.message,
+    ].join(":");
+
+  useEffect(() => {
+    if (
+      reviewButtonScheduleError === null
+      || selectedCard === null
+      || reviewButtonErrorCaptureKey === ""
+      || lastCapturedReviewButtonErrorKeyRef.current === reviewButtonErrorCaptureKey
+    ) {
+      return;
+    }
+
+    lastCapturedReviewButtonErrorKeyRef.current = reviewButtonErrorCaptureKey;
+    captureAppOperationError(reviewButtonScheduleError, {
+      feature: "review",
+      operation: "review_schedule_preview",
+      userId: session?.userId ?? null,
+      workspaceId: activeWorkspace?.workspaceId ?? null,
+      installationId: cloudSettings?.installationId ?? null,
+      entityId: selectedCard.cardId,
+    });
+  }, [
+    activeWorkspace?.workspaceId,
+    cloudSettings?.installationId,
+    reviewButtonErrorCaptureKey,
+    reviewButtonScheduleError,
+    selectedCard,
+    session?.userId,
+  ]);
 
   const leftReviewButtonOptions = reviewButtonOptions.slice(0, REVIEW_BUTTONS_PER_COLUMN);
   const rightReviewButtonOptions = reviewButtonOptions.slice(REVIEW_BUTTONS_PER_COLUMN, REVIEW_BUTTONS_PER_COLUMN * 2);

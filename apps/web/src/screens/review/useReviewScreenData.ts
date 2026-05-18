@@ -14,6 +14,7 @@ import {
   loadReviewTimelinePage,
 } from "../../localDb/reviews";
 import { loadWorkspaceTagsSummary } from "../../localDb/workspace";
+import { captureAppOperationError } from "../../observability/appOperationObservation";
 import type {
   Card,
   DeckSummary,
@@ -34,10 +35,12 @@ import { formatEffortLevelLabel } from "../shared/featureFormatting";
 type UseReviewScreenDataParams = Readonly<{
   activeWorkspaceId: string | null;
   getCardById: (cardId: string) => Promise<Card>;
+  installationId: string | null;
   localReadVersion: number;
   selectedReviewFilter: ReviewFilter;
   setErrorMessage: (message: string) => void;
   submitReviewItem: (cardId: string, rating: 0 | 1 | 2 | 3) => Promise<Card>;
+  userId: string | null;
 }>;
 
 type PendingReviewSnapshot = Readonly<{
@@ -508,10 +511,12 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
   const {
     activeWorkspaceId,
     getCardById,
+    installationId,
     localReadVersion,
     selectedReviewFilter,
     setErrorMessage,
     submitReviewItem,
+    userId,
   } = params;
   const { t } = useI18n();
   const [canonicalReviewQueue, setCanonicalReviewQueue] = useState<ReadonlyArray<Card>>([]);
@@ -540,11 +545,22 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
   const reviewSessionSignatureRef = useRef<ReviewSessionSignature | null>(null);
   const selectedReviewFilterKey = serializeReviewFilterKey(selectedReviewFilter);
   const selectedReviewFilterKeyRef = useRef<string>(selectedReviewFilterKey);
+  const observationIdentityRef = useRef<Readonly<{
+    userId: string | null;
+    installationId: string | null;
+  }>>({
+    userId: null,
+    installationId: null,
+  });
   const reviewLoadingSnapshot = activeWorkspaceId === null
     ? null
     : readReviewLoadingSnapshot(activeWorkspaceId, selectedReviewFilter);
   const isInitialReviewLoad = isReviewLoading && hasLoadedReviewData === false;
   const activeReviewQueue = buildDisplayedReviewQueue(canonicalReviewQueue, presentedCard);
+  observationIdentityRef.current = {
+    userId,
+    installationId,
+  };
 
   function setCanonicalReviewQueueState(nextCanonicalReviewQueue: ReadonlyArray<Card>): void {
     canonicalReviewQueueRef.current = nextCanonicalReviewQueue;
@@ -725,6 +741,17 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
           return;
         }
 
+        if (activeWorkspaceId !== null) {
+          const observationIdentity = observationIdentityRef.current;
+          captureAppOperationError(error, {
+            feature: "review",
+            operation: "review_data_load",
+            userId: observationIdentity.userId,
+            workspaceId: activeWorkspaceId,
+            installationId: observationIdentity.installationId,
+            entityId: null,
+          });
+        }
         setReviewLoadErrorMessage(error instanceof Error ? error.message : String(error));
       } finally {
         if (!isCancelled && shouldShowBlockingLoader) {
@@ -769,6 +796,15 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     try {
       await submitReviewItem(submissionContext.cardId, rating);
     } catch (error) {
+      const observationIdentity = observationIdentityRef.current;
+      captureAppOperationError(error, {
+        feature: "review",
+        operation: "review_submit",
+        userId: observationIdentity.userId,
+        workspaceId: submissionContext.workspaceId,
+        installationId: observationIdentity.installationId,
+        entityId: submissionContext.cardId,
+      });
       const originalSubmitErrorMessage = toReviewErrorMessage(error);
       pendingReviewSnapshotsRef.current = removePendingReviewSnapshot(
         pendingReviewSnapshotsRef.current,
@@ -792,6 +828,15 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
       try {
         freshRollbackCard = await loadPresentedCardForPreservation(submissionContext.cardId, getCardById);
       } catch (lookupError) {
+        const observationIdentity = observationIdentityRef.current;
+        captureAppOperationError(lookupError, {
+          feature: "review",
+          operation: "review_rollback_lookup",
+          userId: observationIdentity.userId,
+          workspaceId: submissionContext.workspaceId,
+          installationId: observationIdentity.installationId,
+          entityId: submissionContext.cardId,
+        });
         rollbackLookupErrorMessage = toReviewErrorMessage(lookupError);
       }
       const currentResolvedReviewFilter = resolvedReviewFilterRef.current;
@@ -950,6 +995,15 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
           return "stale";
         }
 
+        const observationIdentity = observationIdentityRef.current;
+        captureAppOperationError(error, {
+          feature: "review",
+          operation: "review_replenish",
+          userId: observationIdentity.userId,
+          workspaceId: submissionContext.workspaceId,
+          installationId: observationIdentity.installationId,
+          entityId: submissionContext.cardId,
+        });
         setErrorMessage(buildChunkReplenishmentFailureMessage(toReviewErrorMessage(error)));
         return "saved";
       }
