@@ -7,6 +7,11 @@ import os
 import pathlib
 import re
 
+AWS_ROLE_ARN_RE = re.compile(r"arn:(?P<partition>aws[a-z0-9-]*):iam::(?P<account_id>\d{12}):role/.+")
+AWS_SECRETS_MANAGER_SECRET_ARN_RE = re.compile(
+    r"arn:(?P<partition>aws[a-z0-9-]*):secretsmanager:[a-z0-9-]+:(?P<account_id>\d{12}):secret:.+",
+)
+
 
 def get_trimmed_env(name: str) -> str:
     return os.environ.get(name, "").strip()
@@ -29,6 +34,35 @@ def validate_sentry_traces_sample_rate(value: str) -> None:
 
     if not math.isfinite(traces_sample_rate) or traces_sample_rate < 0 or traces_sample_rate > 1:
         raise ValueError("CDK_CONTEXT_SENTRY_TRACES_SAMPLE_RATE must be a number between 0 and 1")
+
+
+def get_deploy_role_account_id(aws_deploy_role_arn: str) -> str:
+    match = AWS_ROLE_ARN_RE.fullmatch(aws_deploy_role_arn)
+    if match is None:
+        raise ValueError(
+            "AWS_DEPLOY_ROLE_ARN must be a valid IAM role ARN so CI can derive githubOidcProviderArn",
+        )
+    return match.group("account_id")
+
+
+def get_secrets_manager_secret_account_id(secret_arn: str) -> str:
+    match = AWS_SECRETS_MANAGER_SECRET_ARN_RE.fullmatch(secret_arn)
+    if match is None:
+        raise ValueError("CDK_CONTEXT_SENTRY_DSN_SECRET_ARN must be a valid Secrets Manager secret ARN")
+    return match.group("account_id")
+
+
+def validate_sentry_secret_account(values: dict[str, str], aws_deploy_role_arn: str) -> None:
+    if aws_deploy_role_arn == "" or values["sentryDsnSecretArn"] == "":
+        return
+
+    deploy_account_id = get_deploy_role_account_id(aws_deploy_role_arn)
+    sentry_secret_account_id = get_secrets_manager_secret_account_id(values["sentryDsnSecretArn"])
+    if sentry_secret_account_id != deploy_account_id:
+        raise ValueError(
+            "CDK_CONTEXT_SENTRY_DSN_SECRET_ARN must be in the same AWS account as AWS_DEPLOY_ROLE_ARN "
+            f"({deploy_account_id}); got secret account {sentry_secret_account_id}",
+        )
 
 
 def validate_required_backend_sentry_context(values: dict[str, str], aws_deploy_role_arn: str) -> None:
@@ -57,16 +91,14 @@ def validate_required_backend_sentry_context(values: dict[str, str], aws_deploy_
         raise ValueError(f"Backend Sentry context must be configured all-or-none. Missing: {joined_missing_env_names}")
 
     validate_sentry_traces_sample_rate(values["sentryTracesSampleRate"])
+    validate_sentry_secret_account(values, aws_deploy_role_arn)
 
 
 def build_github_oidc_provider_arn(aws_deploy_role_arn: str) -> str:
     if aws_deploy_role_arn == "":
         return ""
 
-    match = re.fullmatch(
-        r"arn:(?P<partition>aws[a-z0-9-]*):iam::(?P<account_id>\d{12}):role/.+",
-        aws_deploy_role_arn,
-    )
+    match = AWS_ROLE_ARN_RE.fullmatch(aws_deploy_role_arn)
     if match is None:
         raise ValueError(
             "AWS_DEPLOY_ROLE_ARN must be a valid IAM role ARN so CI can derive githubOidcProviderArn",
@@ -122,10 +154,12 @@ def main() -> None:
     args = parser.parse_args()
 
     output_path = pathlib.Path(args.output)
-    output_path.write_text(
-        json.dumps(build_context_values(args.aws_deploy_role_arn), indent=2) + "\n",
-        encoding="utf-8",
-    )
+    try:
+        context_values = build_context_values(args.aws_deploy_role_arn)
+    except ValueError as exc:
+        raise SystemExit(f"ERROR: {exc}") from None
+
+    output_path.write_text(json.dumps(context_values, indent=2) + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":
