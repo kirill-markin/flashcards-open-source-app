@@ -2,8 +2,8 @@ import * as Sentry from "@sentry/aws-serverless";
 import {
   sanitizeBackendTelemetryValue,
   type SanitizedTelemetryValue,
-} from "./sanitizer";
-import { hasCapturedBackendException } from "./sentryErrorNormalization";
+} from "../sanitizer";
+import { hasCapturedBackendException } from "./errorNormalization";
 
 type BackendSentryInitOptions = NonNullable<Parameters<typeof Sentry.init>[0]>;
 type BackendSentryEvent = Parameters<NonNullable<BackendSentryInitOptions["beforeSend"]>>[0];

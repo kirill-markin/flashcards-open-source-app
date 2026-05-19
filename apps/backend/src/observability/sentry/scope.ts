@@ -1,11 +1,11 @@
 import * as Sentry from "@sentry/aws-serverless";
-import { sanitizeBackendTelemetryValue } from "./sanitizer";
-import { getCurrentBackendService } from "./sentryConfig";
+import { sanitizeBackendTelemetryValue } from "../sanitizer";
+import { getCurrentBackendService } from "./config";
 import type {
   BackendObservationScope,
   BackendService,
-} from "./sentryEvents";
-import { redactExceptionTextFields } from "./sentryRedaction";
+} from "./events";
+import { redactExceptionTextFields } from "./redaction";
 
 type BackendSentryContextData = Parameters<Sentry.Scope["setContext"]>[1];
 

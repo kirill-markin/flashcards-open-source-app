@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { captureBackendException } from "./sentryCapture";
+import { captureBackendException } from "./capture";
 import {
   initializeBackendSentryWithDeps,
   resetBackendSentryForTests,
-} from "./sentryConfig";
-import { createBackendObservationScope } from "./sentryScope";
+} from "./config";
+import { createBackendObservationScope } from "./scope";
 import {
   type CapturedSentryInitOptions,
   requireBeforeSend,
@@ -14,7 +14,7 @@ import {
   requireCapturedSentryInitOptions,
   requireSynchronousSentryHookResult,
   withCapturedConsole,
-} from "./sentryTestHelpers";
+} from "./testHelpers";
 
 test("backend Sentry beforeSend drops automatic recaptures of manually captured errors", () => {
   resetBackendSentryForTests();
