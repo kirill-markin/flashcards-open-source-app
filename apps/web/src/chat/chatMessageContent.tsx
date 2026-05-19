@@ -23,8 +23,8 @@ function formatEffortValue(value: "fast" | "medium" | "long", t: Translate): str
  * unsupported or future tool names visible instead of dropping them.
  *
  * Mirrors:
- * - `apps/ios/Flashcards/Flashcards/AI/AIChatToolPresentation.swift::aiChatToolLabel`
- * - `apps/android/feature/ai/src/main/java/com/flashcardsopensourceapp/feature/ai/AiToolCallPresentation.kt::formatAiToolLabel`
+ * - `apps/ios/Flashcards/Flashcards/AI/Views/AIChatToolPresentation.swift::aiChatToolLabel`
+ * - `apps/android/feature/ai/src/main/java/com/flashcardsopensourceapp/feature/ai/toolcall/AiToolCallPresentation.kt::formatAiToolLabel`
  */
 export function formatToolLabel(name: string, t: Translate): string {
   if (name === "sql") return t("chatMessageContent.toolLabels.sql");
@@ -35,8 +35,8 @@ export function formatToolLabel(name: string, t: Translate): string {
 
 /**
  * Mirrors:
- * - `apps/ios/Flashcards/Flashcards/AI/AIChatToolPresentation.swift::aiChatToolPreview`
- * - `apps/android/feature/ai/src/main/java/com/flashcardsopensourceapp/feature/ai/AiToolCallPresentation.kt::formatAiToolCallPreview`
+ * - `apps/ios/Flashcards/Flashcards/AI/Views/AIChatToolPresentation.swift::aiChatToolPreview`
+ * - `apps/android/feature/ai/src/main/java/com/flashcardsopensourceapp/feature/ai/toolcall/AiToolCallPresentation.kt::formatAiToolCallPreview`
  */
 function extractToolCallPreview(name: string, input: string | null): string | null {
   if (input === null || input.trim() === "") {

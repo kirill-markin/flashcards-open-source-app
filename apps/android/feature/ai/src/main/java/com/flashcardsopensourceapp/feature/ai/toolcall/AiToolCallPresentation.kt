@@ -6,7 +6,7 @@ import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
 /*
  Keep user-facing AI tool call presentation aligned with:
  - apps/web/src/chat/chatMessageContent.tsx
- - apps/ios/Flashcards/Flashcards/AI/AIChatToolPresentation.swift
+ - apps/ios/Flashcards/Flashcards/AI/Views/AIChatToolPresentation.swift
  */
 
 fun formatAiToolLabel(name: String, textProvider: AiTextProvider): String {
