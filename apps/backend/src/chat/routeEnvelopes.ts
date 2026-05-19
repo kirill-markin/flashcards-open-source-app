@@ -8,7 +8,7 @@ import {
 import {
   createChatLiveStreamEnvelope,
   type ChatLiveStreamEnvelope,
-} from "./liveAuth";
+} from "./live/auth";
 import {
   interruptPreparedChatRun,
   type PreparedChatRun,

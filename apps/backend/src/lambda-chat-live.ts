@@ -6,7 +6,7 @@
 import { randomUUID } from "node:crypto";
 import type { Writable } from "node:stream";
 import type { APIGatewayProxyEventV2, StreamifyHandler } from "aws-lambda";
-import type { LiveStreamParams } from "./chat/liveRequest";
+import type { LiveStreamParams } from "./chat/live/request";
 import {
   addBackendBreadcrumb,
   captureBackendException,
@@ -141,9 +141,9 @@ type LiveRequestSafeQueryDetails = Readonly<{
 }>;
 
 type ChatLiveRuntime = Readonly<{
-  runLiveStream: typeof import("./chat/live").runLiveStream;
-  createChatLiveErrorResponse: typeof import("./chat/liveErrors").createChatLiveErrorResponse;
-  handleLiveRequest: typeof import("./chat/liveRequest").handleLiveRequest;
+  runLiveStream: typeof import("./chat/live/index").runLiveStream;
+  createChatLiveErrorResponse: typeof import("./chat/live/errors").createChatLiveErrorResponse;
+  handleLiveRequest: typeof import("./chat/live/request").handleLiveRequest;
   flushLangfuseTelemetry: typeof import("./telemetry/langfuse").flushLangfuseTelemetry;
 }>;
 
@@ -165,9 +165,9 @@ async function createChatLiveRuntime(): Promise<ChatLiveRuntime> {
     { handleLiveRequest },
   ] = await Promise.all([
     import("./telemetry/langfuse"),
-    import("./chat/live"),
-    import("./chat/liveErrors"),
-    import("./chat/liveRequest"),
+    import("./chat/live/index"),
+    import("./chat/live/errors"),
+    import("./chat/live/request"),
   ]);
   initializeLangfuseTelemetry();
   return {

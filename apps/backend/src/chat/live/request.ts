@@ -1,19 +1,19 @@
-import { authenticateRequest, type AuthResult } from "../auth";
-import { HttpError } from "../errors";
-import { ensureUserProfile, type UserProfile } from "../ensureUser";
+import { authenticateRequest, type AuthResult } from "../../auth";
+import { HttpError } from "../../errors";
+import { ensureUserProfile, type UserProfile } from "../../ensureUser";
 import {
   parseOptionalWorkspaceIdParam,
   resolveAccessibleChatWorkspaceId,
-} from "../server/requestContext";
-import type { BackendTraceCarrier } from "../observability/sentry";
-import { assertChatLiveRunAccess } from "./liveAccess";
+} from "../../server/requestContext";
+import type { BackendTraceCarrier } from "../../observability/sentry";
+import { assertChatLiveRunAccess } from "./access";
 import {
   CHAT_LIVE_AFTER_CURSOR_INVALID_CODE,
   CHAT_LIVE_RUN_ID_REQUIRED_CODE,
   CHAT_LIVE_SESSION_ID_REQUIRED_CODE,
   CHAT_LIVE_WORKSPACE_SELECTION_REQUIRED_CODE,
-} from "./liveErrors";
-import { verifyChatLiveAuthorizationHeader } from "./liveAuth";
+} from "./errors";
+import { verifyChatLiveAuthorizationHeader } from "./auth";
 
 export type LiveStreamParams = Readonly<{
   sessionId: string;

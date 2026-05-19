@@ -9,9 +9,9 @@ import {
   buildConversationScopeId,
   createChatLiveEventSerializer,
   type ChatLiveEventPayload,
-} from "./contract";
-import type { ChatComposerSuggestion } from "./composerSuggestions";
-import { getErrorLogContext } from "../server/logging";
+} from "../contract";
+import type { ChatComposerSuggestion } from "../composerSuggestions";
+import { getErrorLogContext } from "../../server/logging";
 import {
   addBackendBreadcrumb,
   captureBackendException,
@@ -20,28 +20,28 @@ import {
   normalizeCaughtError,
   type BackendObservationScope,
   type ChatLiveLifecycleDetails,
-} from "../observability/sentry";
+} from "../../observability/sentry";
 import {
   getChatRunSnapshot,
   getRecoveredChatSessionSnapshot,
   type ChatRunSnapshot,
-} from "./runs";
+} from "../runs";
 import {
   listChatMessagesAfterCursor,
   listChatMessagesLatest,
   stripBase64FromContentParts,
   type PersistedChatMessageItem,
-} from "./store";
-import { diffAssistantContent } from "./liveDiff";
-import type { LiveStreamParams } from "./liveRequest";
+} from "../store";
+import { diffAssistantContent } from "./diff";
+import type { LiveStreamParams } from "./request";
 import {
   createLiveConnectionState,
   formatSSEComment,
   formatSSEEvent,
   isStreamWritable,
   waitForNextPollInterval,
-} from "./liveTransport";
-import type { ContentPart } from "./types";
+} from "./transport";
+import type { ContentPart } from "../types";
 
 const LIVE_POLL_INTERVAL_MS = 750;
 const KEEPALIVE_INTERVAL_MS = 15_000;

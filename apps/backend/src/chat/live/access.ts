@@ -1,5 +1,5 @@
-import { HttpError } from "../errors";
-import { getChatRunSnapshot } from "./runs";
+import { HttpError } from "../../errors";
+import { getChatRunSnapshot } from "../runs";
 
 export const CHAT_LIVE_NOT_FOUND_CODE = "CHAT_LIVE_NOT_FOUND";
 

@@ -17,7 +17,7 @@ import {
   type ChatSessionRunState,
 } from "../store";
 import type { ChatComposerSuggestionInvalidationReason } from "../composerSuggestions";
-import { isChatRunHeartbeatStale } from "../workerLease";
+import { isChatRunHeartbeatStale } from "../worker/lease";
 import {
   createChatRunStatusUpdateFromRow,
   selectChatRunForUpdateWithExecutor,

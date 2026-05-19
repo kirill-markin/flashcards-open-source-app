@@ -4,8 +4,8 @@ import { HttpError } from "../../errors";
 import {
   CHAT_LIVE_RUN_ID_REQUIRED_CODE,
   createChatLiveErrorResponse,
-} from "../liveErrors";
-import { handleLiveRequest } from "../liveRequest";
+} from "../live/errors";
+import { handleLiveRequest } from "../live/request";
 
 const EXPLICIT_WORKSPACE_ID = "33333333-3333-4333-8333-333333333333";
 

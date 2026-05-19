@@ -1,5 +1,5 @@
 import { getChatConfig, type ChatConfig } from "./config";
-import type { ChatLiveStreamEnvelope } from "./liveAuth";
+import type { ChatLiveStreamEnvelope } from "./live/auth";
 import type { PaginatedChatMessages, PersistedChatMessageItem, ChatSessionSnapshot } from "./store";
 import type { ChatComposerSuggestion } from "./composerSuggestions";
 import type { ContentPart } from "./types";
