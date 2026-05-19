@@ -5,6 +5,10 @@ import {
   createAgentInstructions,
   getHttpErrorResponseHeaders,
 } from "./app";
+import {
+  authVerificationRetryAfterSeconds,
+  authVerificationTemporarilyUnavailableCode,
+} from "./auth";
 import { resetAuthConfigForTests } from "./authConfig";
 import { HttpError } from "./errors";
 import { resetGuestAiQuotaConfigForTests } from "./guestAiQuotaConfig";
@@ -56,10 +60,30 @@ test("getHttpErrorResponseHeaders adds Retry-After for service unavailable", () 
   );
 });
 
+test("getHttpErrorResponseHeaders adds Retry-After for temporary auth verification failures", () => {
+  assert.deepEqual(
+    getHttpErrorResponseHeaders(
+      new HttpError(
+        503,
+        "Authentication verification is temporarily unavailable. Retry shortly.",
+        authVerificationTemporarilyUnavailableCode,
+      ),
+    ),
+    [["Retry-After", authVerificationRetryAfterSeconds.toString()]],
+  );
+});
+
 test("createAgentInstructions tells API-key agents to honor Retry-After on service unavailable", () => {
   assert.equal(
     createAgentInstructions("SERVICE_UNAVAILABLE", 503),
     "Retry the same request after the Retry-After delay. If it fails again, treat it as a server-side error and stop changing the request. Use requestId when debugging.",
+  );
+});
+
+test("createAgentInstructions tells agents to retry temporary auth verification failures", () => {
+  assert.equal(
+    createAgentInstructions(authVerificationTemporarilyUnavailableCode, 503),
+    "Retry the same authenticated request after the Retry-After delay without changing the token. If it keeps failing, sign in again and use requestId when debugging.",
   );
 });
 
@@ -96,6 +120,35 @@ test("app error handler returns Retry-After for service unavailable responses", 
   assert.equal(response.headers.get("retry-after"), "1");
   assert.equal(payload.error, "Service is temporarily unavailable. Retry shortly.");
   assert.equal(payload.code, "SERVICE_UNAVAILABLE");
+  assert.notEqual(payload.requestId, "");
+});
+
+test("app error handler returns Retry-After for temporary auth verification failures", async () => {
+  process.env.AUTH_MODE = "none";
+  process.env.ALLOW_INSECURE_LOCAL_AUTH = "true";
+  resetAuthConfigForTests();
+  resetGuestAiQuotaConfigForTests();
+
+  const app = createApp("/v1");
+  app.get("/auth-verification-temporary-error", () => {
+    throw new HttpError(
+      503,
+      "Authentication verification is temporarily unavailable. Retry shortly.",
+      authVerificationTemporarilyUnavailableCode,
+    );
+  });
+
+  const response = await app.request("http://localhost/v1/auth-verification-temporary-error");
+  const payload = await response.json() as Readonly<{
+    error: string;
+    code: string | null;
+    requestId: string;
+  }>;
+
+  assert.equal(response.status, 503);
+  assert.equal(response.headers.get("retry-after"), authVerificationRetryAfterSeconds.toString());
+  assert.equal(payload.error, "Authentication verification is temporarily unavailable. Retry shortly.");
+  assert.equal(payload.code, authVerificationTemporarilyUnavailableCode);
   assert.notEqual(payload.requestId, "");
 });
 

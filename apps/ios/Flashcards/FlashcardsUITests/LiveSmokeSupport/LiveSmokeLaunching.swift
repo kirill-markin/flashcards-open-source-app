@@ -267,6 +267,8 @@ extension LiveSmokeTestCase {
         self.currentLaunchLocalization = request.launchLocalization
         self.app.launchEnvironment.removeValue(forKey: LiveSmokeConfiguration.launchScenarioEnvironmentKey)
         self.app.launchEnvironment.removeValue(forKey: LiveSmokeConfiguration.appNotificationTapTypeEnvironmentKey)
+        self.app.launchEnvironment[LiveSmokeConfiguration.sentryEnvironmentOverrideKey] =
+            LiveSmokeConfiguration.liveSmokeSentryEnvironmentOverrideValue
         self.app.launchEnvironment[LiveSmokeConfiguration.selectedTabEnvironmentKey] = request.selectedTab.rawValue
         self.app.launchArguments = self.strippingAppleLocalizationLaunchArguments(
             arguments: self.app.launchArguments

@@ -1,13 +1,31 @@
 package com.flashcardsopensourceapp.app
 
+import android.app.Application
+import android.content.Context
 import android.os.Bundle
 import androidx.test.runner.AndroidJUnitRunner
+import com.flashcardsopensourceapp.app.observability.androidSentryEnvironmentOverrideArgumentKey
+import com.flashcardsopensourceapp.app.observability.setAndroidSentryEnvironmentOverride
+import com.flashcardsopensourceapp.app.observability.setDefaultAndroidSentryEnvironmentOverride
 
 private const val includeManualOnlyArgumentKey: String = "includeManualOnly"
+private const val defaultInstrumentationSentryEnvironment: String = "ci-instrumentation"
 
 class FlashcardsAndroidTestRunner : AndroidJUnitRunner() {
+    override fun newApplication(
+        cl: ClassLoader,
+        className: String,
+        context: Context
+    ): Application {
+        setDefaultAndroidSentryEnvironmentOverride(environment = defaultInstrumentationSentryEnvironment)
+        return super.newApplication(cl, className, context)
+    }
+
     override fun onCreate(arguments: Bundle) {
         val runnerArguments = Bundle(arguments)
+        val sentryEnvironmentOverride = sentryEnvironmentOverride(arguments = runnerArguments)
+        setAndroidSentryEnvironmentOverride(environment = sentryEnvironmentOverride)
+        runnerArguments.putString(androidSentryEnvironmentOverrideArgumentKey, sentryEnvironmentOverride)
         val includeManualOnly = runnerArguments
             .getString(includeManualOnlyArgumentKey)
             ?.toBooleanStrictOrNull()
@@ -26,4 +44,12 @@ class FlashcardsAndroidTestRunner : AndroidJUnitRunner() {
 
         super.onCreate(runnerArguments)
     }
+}
+
+private fun sentryEnvironmentOverride(arguments: Bundle): String {
+    return arguments
+        .getString(androidSentryEnvironmentOverrideArgumentKey)
+        ?.trim()
+        ?.takeIf(String::isNotEmpty)
+        ?: defaultInstrumentationSentryEnvironment
 }

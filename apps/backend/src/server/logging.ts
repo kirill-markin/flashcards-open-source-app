@@ -1,4 +1,4 @@
-import { AuthError } from "../auth";
+import { AuthError, authVerificationTemporarilyUnavailableCode } from "../auth";
 import { HttpError } from "../errors";
 import { sanitizeBackendTelemetryValue } from "../observability/sanitizer";
 import {
@@ -55,6 +55,10 @@ function shouldLogRequestErrorAtErrorLevel(error: AuthError | HttpError | unknow
   }
 
   if (error instanceof HttpError) {
+    if (error.code === authVerificationTemporarilyUnavailableCode) {
+      return false;
+    }
+
     return error.statusCode >= 500;
   }
 

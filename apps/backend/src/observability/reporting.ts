@@ -1,4 +1,4 @@
-import { AuthError } from "../auth";
+import { AuthError, authVerificationTemporarilyUnavailableCode } from "../auth";
 import { HttpError } from "../errors";
 import {
   addBackendBreadcrumb,
@@ -17,7 +17,8 @@ function isExpectedRequestError(error: unknown): boolean {
     return true;
   }
 
-  return error instanceof HttpError && error.statusCode < 500;
+  return error instanceof HttpError
+    && (error.statusCode < 500 || error.code === authVerificationTemporarilyUnavailableCode);
 }
 
 export function markBackendExceptionWrapperAsReported(error: Error): Error {

@@ -9,6 +9,9 @@ enum LiveSmokeConfiguration {
     static let reviewInitialProbeTimeoutSeconds: TimeInterval = 15
     static let reviewInteractionTimeoutSeconds: TimeInterval = 10
     static let reviewEmailEnvironmentKey: String = "FLASHCARDS_LIVE_REVIEW_EMAIL"
+    static let sentryEnvironmentOverrideKey: String = "FLASHCARDS_SENTRY_ENVIRONMENT_OVERRIDE"
+    static let liveSmokeSentryEnvironmentOverrideValue: String = "ci-simulator"
+    static let marketingScreenshotSentryEnvironmentOverrideValue: String = "marketing-screenshot-simulator"
     static let launchScenarioEnvironmentKey: String = "FLASHCARDS_UI_TEST_LAUNCH_SCENARIO"
     static let selectedTabEnvironmentKey: String = "FLASHCARDS_UI_TEST_SELECTED_TAB"
     static let appNotificationTapTypeEnvironmentKey: String = "FLASHCARDS_UI_TEST_APP_NOTIFICATION_TAP_TYPE"
