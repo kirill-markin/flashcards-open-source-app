@@ -165,6 +165,8 @@ final class AIChatStoreRunToolCallTrackingBootstrapTests: XCTestCase {
                     conversationScopeId: "session-1",
                     runId: "run-1",
                     cursor: "cursor-2",
+                    requestId: nil,
+                    clientRequestId: nil,
                     sequenceNumber: 2,
                     streamEpoch: "epoch-1"
                 ),
@@ -231,6 +233,8 @@ final class AIChatStoreRunToolCallTrackingBootstrapTests: XCTestCase {
                     conversationScopeId: envelope.conversationScopeId,
                     runId: activeRun.runId,
                     cursor: "cursor-2",
+                    requestId: nil,
+                    clientRequestId: nil,
                     sequenceNumber: 2,
                     streamEpoch: "epoch-1"
                 ),

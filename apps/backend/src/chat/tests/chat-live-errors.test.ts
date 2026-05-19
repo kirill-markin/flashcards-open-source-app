@@ -5,9 +5,52 @@ import {
   CHAT_LIVE_RUN_ID_REQUIRED_CODE,
   createChatLiveErrorResponse,
 } from "../live/errors";
-import { handleLiveRequest } from "../live/request";
+import { handleLiveRequest, readOptionalChatRequestIdHeader } from "../live/request";
 
 const EXPLICIT_WORKSPACE_ID = "33333333-3333-4333-8333-333333333333";
+
+test("readOptionalChatRequestIdHeader accepts UUID-like request ids", () => {
+  assert.equal(
+    readOptionalChatRequestIdHeader({
+      "X-Chat-Request-Id": "11111111-2222-4333-8444-555555555555",
+    }),
+    "11111111-2222-4333-8444-555555555555",
+  );
+  assert.equal(
+    readOptionalChatRequestIdHeader({
+      "X-Chat-Request-Id": "AAAAAAAA-BBBB-4CCC-8DDD-EEEEEEEEEEEE",
+    }),
+    "AAAAAAAA-BBBB-4CCC-8DDD-EEEEEEEEEEEE",
+  );
+  assert.equal(
+    readOptionalChatRequestIdHeader({
+      "X-Chat-Request-Id": "  11111111-2222-4333-8444-555555555555  ",
+    }),
+    "11111111-2222-4333-8444-555555555555",
+  );
+  assert.equal(readOptionalChatRequestIdHeader({}), undefined);
+});
+
+test("readOptionalChatRequestIdHeader rejects arbitrary request ids", () => {
+  assert.equal(
+    readOptionalChatRequestIdHeader({
+      "X-Chat-Request-Id": "client-request-1",
+    }),
+    undefined,
+  );
+  assert.equal(
+    readOptionalChatRequestIdHeader({
+      "X-Chat-Request-Id": "  legacy-client-request  ",
+    }),
+    undefined,
+  );
+  assert.equal(
+    readOptionalChatRequestIdHeader({
+      "X-Chat-Request-Id": "11111111-2222-not-valid",
+    }),
+    undefined,
+  );
+});
 
 test("handleLiveRequest rejects a live attach request without runId using a stable error code", async () => {
   await assert.rejects(
@@ -69,6 +112,7 @@ test("handleLiveRequest prefers an explicit workspaceId for non-Live auth fallba
     "Bearer test-token",
     {
       "X-Chat-Resume-Attempt-Id": "resume-1",
+      "X-Chat-Request-Id": "11111111-2222-4333-8444-555555555555",
       "X-Client-Platform": "web",
       "X-Client-Version": "web-test",
     },
@@ -114,6 +158,7 @@ test("handleLiveRequest prefers an explicit workspaceId for non-Live auth fallba
     afterCursor: undefined,
     userId: "user-1",
     workspaceId: EXPLICIT_WORKSPACE_ID,
+    clientRequestId: "11111111-2222-4333-8444-555555555555",
     resumeAttemptId: "resume-1",
     clientPlatform: "web",
     clientVersion: "web-test",

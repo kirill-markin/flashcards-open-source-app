@@ -11,6 +11,8 @@ struct AIChatLiveEventMetadata: Hashable, Sendable {
     let conversationScopeId: String
     let runId: String
     let cursor: String?
+    let requestId: String?
+    let clientRequestId: String?
     let sequenceNumber: Int
     let streamEpoch: String
 }
@@ -43,6 +45,11 @@ enum AIChatLiveEvent: Sendable {
     )
 }
 
+enum AIChatLiveStreamElement: Sendable {
+    case connected(requestId: String?, clientRequestId: String)
+    case event(AIChatLiveEvent)
+}
+
 enum AIChatFailureStage: String, Codable, Hashable, Sendable {
     case requestBuild = "request_build"
     case invalidHttpResponse = "invalid_http_response"
@@ -53,6 +60,7 @@ enum AIChatFailureStage: String, Codable, Hashable, Sendable {
     case decodingEventJSON = "decoding_event_json"
     case processingTrailingEvent = "processing_trailing_event"
     case backendErrorEvent = "backend_error_event"
+    case runTerminal = "run_terminal"
     case toolInputDecode = "tool_input_decode"
     case toolExecution = "tool_execution"
 }
@@ -66,6 +74,7 @@ enum AIChatFailureKind: String, Codable, Hashable, Sendable {
     case invalidSSEEventJSON = "invalid_sse_event_json"
     case invalidStreamContract = "invalid_stream_contract"
     case backendErrorEvent = "backend_error_event"
+    case runTerminalError = "run_terminal_error"
     case invalidToolInput = "invalid_tool_input"
     case toolExecutionFailed = "tool_execution_failed"
 }

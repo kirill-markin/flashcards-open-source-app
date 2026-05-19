@@ -42,6 +42,12 @@
 	<string>$(SUPPORT_EMAIL_ADDRESS)</string>
 	<key>FLASHCARDS_SUPPORT_URL</key>
 	<string>$(SUPPORT_URL)</string>
+	<key>FLASHCARDS_SENTRY_DSN</key>
+	<string>$(FLASHCARDS_SENTRY_DSN)</string>
+	<key>FLASHCARDS_SENTRY_ENVIRONMENT</key>
+	<string>$(FLASHCARDS_SENTRY_ENVIRONMENT)</string>
+	<key>FLASHCARDS_SENTRY_TRACES_SAMPLE_RATE</key>
+	<string>$(FLASHCARDS_SENTRY_TRACES_SAMPLE_RATE)</string>
 	<key>FLASHCARDS_TERMS_OF_SERVICE_URL</key>
 	<string>$(TERMS_OF_SERVICE_URL)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>

@@ -1,5 +1,9 @@
 import Foundation
 
+private let cloudAuthResponseDecodingFailedCode: String = "RESPONSE_DECODING_FAILED"
+private let cloudAuthResponseContractFailedCode: String = "RESPONSE_CONTRACT_FAILED"
+private let cloudAuthResponseDecodingFailedMessage: String = "Failed to decode cloud auth response"
+
 enum CloudAuthError: LocalizedError {
     case invalidBaseUrl(String)
     case invalidResponse(CloudApiErrorDetails, Int)
@@ -126,6 +130,17 @@ private struct RefreshTokenResponse: Decodable {
     let expiresIn: Int
 }
 
+private struct CloudAuthResponseDiagnostics {
+    let statusCode: Int
+    let requestId: String?
+    let backendCode: String?
+}
+
+private struct CloudAuthResponseEnvelope<Response> {
+    let value: Response
+    let diagnostics: CloudAuthResponseDiagnostics
+}
+
 @MainActor
 final class CloudAuthService {
     private let encoder: JSONEncoder
@@ -158,16 +173,20 @@ final class CloudAuthService {
         self.resetChallengeSession()
 
         let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        logCloudFlowPhase(phase: .authSendCode, outcome: "start")
-        let response: SendCodeResponse = try await self.request(
+        let envelope: CloudAuthResponseEnvelope<SendCodeResponse> = try await self.request(
             authBaseUrl: authBaseUrl,
             path: "/api/send-code",
             method: "POST",
             body: SendCodeRequest(email: normalizedEmail)
         )
+        let response: SendCodeResponse = envelope.value
 
         guard response.ok else {
-            throw CloudAuthError.invalidResponseBody("send-code did not return ok=true")
+            throw makeCloudAuthResponseContractError(
+                phase: .authSendCode,
+                message: "send-code did not return ok=true",
+                diagnostics: envelope.diagnostics
+            )
         }
 
         if
@@ -177,6 +196,11 @@ final class CloudAuthService {
             refreshToken.isEmpty == false,
             let expiresIn = response.expiresIn
         {
+            logCloudFlowPhase(
+                phase: .authSendCode,
+                outcome: "success",
+                requestId: envelope.diagnostics.requestId
+            )
             return .verifiedCredentials(
                 self.makeStoredCloudCredentials(
                     refreshToken: refreshToken,
@@ -187,12 +211,25 @@ final class CloudAuthService {
         }
 
         guard let csrfToken = response.csrfToken, csrfToken.isEmpty == false else {
-            throw CloudAuthError.invalidResponseBody("send-code did not return csrfToken")
+            throw makeCloudAuthResponseContractError(
+                phase: .authSendCode,
+                message: "send-code did not return csrfToken",
+                diagnostics: envelope.diagnostics
+            )
         }
         guard let otpSessionToken = response.otpSessionToken, otpSessionToken.isEmpty == false else {
-            throw CloudAuthError.invalidResponseBody("send-code did not return otpSessionToken")
+            throw makeCloudAuthResponseContractError(
+                phase: .authSendCode,
+                message: "send-code did not return otpSessionToken",
+                diagnostics: envelope.diagnostics
+            )
         }
 
+        logCloudFlowPhase(
+            phase: .authSendCode,
+            outcome: "success",
+            requestId: envelope.diagnostics.requestId
+        )
         return .otpChallenge(
             CloudOtpChallenge(
                 email: normalizedEmail,
@@ -204,8 +241,7 @@ final class CloudAuthService {
 
     func verifyCode(challenge: CloudOtpChallenge, code: String, authBaseUrl: String) async throws -> StoredCloudCredentials {
         let normalizedCode = code.trimmingCharacters(in: .whitespacesAndNewlines)
-        logCloudFlowPhase(phase: .authVerifyCode, outcome: "start")
-        let response: AuthSuccessResponse = try await self.request(
+        let envelope: CloudAuthResponseEnvelope<AuthSuccessResponse> = try await self.request(
             authBaseUrl: authBaseUrl,
             path: "/api/verify-code",
             method: "POST",
@@ -215,11 +251,21 @@ final class CloudAuthService {
                 otpSessionToken: challenge.otpSessionToken
             )
         )
+        let response: AuthSuccessResponse = envelope.value
 
         guard response.ok else {
-            throw CloudAuthError.invalidResponseBody("verify-code did not return ok=true")
+            throw makeCloudAuthResponseContractError(
+                phase: .authVerifyCode,
+                message: "verify-code did not return ok=true",
+                diagnostics: envelope.diagnostics
+            )
         }
 
+        logCloudFlowPhase(
+            phase: .authVerifyCode,
+            outcome: "success",
+            requestId: envelope.diagnostics.requestId
+        )
         return makeStoredCloudCredentials(
             refreshToken: response.refreshToken,
             idToken: response.idToken,
@@ -228,17 +274,27 @@ final class CloudAuthService {
     }
 
     func refreshIdToken(refreshToken: String, authBaseUrl: String) async throws -> CloudIdentityToken {
-        let response: RefreshTokenResponse = try await self.request(
+        let envelope: CloudAuthResponseEnvelope<RefreshTokenResponse> = try await self.request(
             authBaseUrl: authBaseUrl,
             path: "/api/refresh-token",
             method: "POST",
             body: RefreshTokenRequest(refreshToken: refreshToken)
         )
+        let response: RefreshTokenResponse = envelope.value
 
         guard response.ok else {
-            throw CloudAuthError.invalidResponseBody("refresh-token did not return ok=true")
+            throw makeCloudAuthResponseContractError(
+                phase: .authRefreshToken,
+                message: "refresh-token did not return ok=true",
+                diagnostics: envelope.diagnostics
+            )
         }
 
+        logCloudFlowPhase(
+            phase: .authRefreshToken,
+            outcome: "success",
+            requestId: envelope.diagnostics.requestId
+        )
         return CloudIdentityToken(
             idToken: response.idToken,
             idTokenExpiresAt: makeIdTokenExpiryTimestamp(now: Date(), expiresInSeconds: response.expiresIn)
@@ -268,8 +324,10 @@ final class CloudAuthService {
             return .authSendCode
         case "/api/verify-code":
             return .authVerifyCode
+        case "/api/refresh-token":
+            return .authRefreshToken
         default:
-            return .authVerifyCode
+            return .authRequest
         }
     }
 
@@ -290,21 +348,38 @@ final class CloudAuthService {
         path: String,
         method: String,
         body: Body
-    ) async throws -> Response {
+    ) async throws -> CloudAuthResponseEnvelope<Response> {
         var request = URLRequest(url: try self.makeUrl(authBaseUrl: authBaseUrl, path: path))
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try self.encoder.encode(body)
 
-        let (data, response) = try await self.session.data(for: request)
+        let phase = self.phase(for: path)
+        logCloudFlowPhase(phase: phase, outcome: "start")
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await self.session.data(for: request)
+        } catch {
+            logCloudFlowPhase(
+                phase: phase,
+                outcome: "failure",
+                errorMessage: Flashcards.errorMessage(error: error)
+            )
+            throw error
+        }
         guard let httpResponse = response as? HTTPURLResponse else {
+            logCloudFlowPhase(
+                phase: phase,
+                outcome: "failure",
+                errorMessage: "Cloud auth did not receive an HTTP response"
+            )
             throw LocalStoreError.database("Cloud auth did not receive an HTTP response")
         }
+        let requestId = httpResponse.value(forHTTPHeaderField: "X-Request-Id")
 
         if httpResponse.statusCode < 200 || httpResponse.statusCode >= 300 {
-            let requestId = httpResponse.value(forHTTPHeaderField: "X-Request-Id")
             let errorDetails = decodeCloudApiErrorDetails(data: data, requestId: requestId)
-            let phase = self.phase(for: path)
             logCloudFlowPhase(
                 phase: phase,
                 outcome: "failure",
@@ -315,9 +390,60 @@ final class CloudAuthService {
             throw CloudAuthError.invalidResponse(errorDetails, httpResponse.statusCode)
         }
 
-        let phase = self.phase(for: path)
-        logCloudFlowPhase(phase: phase, outcome: "success")
-
-        return try self.decoder.decode(Response.self, from: data)
+        do {
+            let decodedResponse: Response = try self.decoder.decode(Response.self, from: data)
+            let diagnostics: CloudAuthResponseDiagnostics = CloudAuthResponseDiagnostics(
+                statusCode: httpResponse.statusCode,
+                requestId: requestId,
+                backendCode: nil
+            )
+            return CloudAuthResponseEnvelope(value: decodedResponse, diagnostics: diagnostics)
+        } catch {
+            let errorDetails: CloudApiErrorDetails = makeCloudAuthResponseDecodingErrorDetails(
+                requestId: requestId
+            )
+            logCloudFlowPhase(
+                phase: phase,
+                outcome: "failure",
+                requestId: errorDetails.requestId,
+                code: errorDetails.code,
+                statusCode: httpResponse.statusCode,
+                errorMessage: errorDetails.message
+            )
+            throw CloudAuthError.invalidResponse(errorDetails, httpResponse.statusCode)
+        }
     }
+}
+
+private func makeCloudAuthResponseContractError(
+    phase: CloudFlowPhase,
+    message: String,
+    diagnostics: CloudAuthResponseDiagnostics
+) -> CloudAuthError {
+    let errorDetails: CloudApiErrorDetails = CloudApiErrorDetails(
+        message: message,
+        requestId: diagnostics.requestId,
+        code: diagnostics.backendCode ?? cloudAuthResponseContractFailedCode,
+        syncConflict: nil
+    )
+    logCloudFlowPhase(
+        phase: phase,
+        outcome: "failure",
+        requestId: errorDetails.requestId,
+        code: errorDetails.code,
+        statusCode: diagnostics.statusCode,
+        errorMessage: message
+    )
+    return CloudAuthError.invalidResponse(errorDetails, diagnostics.statusCode)
+}
+
+private func makeCloudAuthResponseDecodingErrorDetails(
+    requestId: String?
+) -> CloudApiErrorDetails {
+    CloudApiErrorDetails(
+        message: cloudAuthResponseDecodingFailedMessage,
+        requestId: requestId,
+        code: cloudAuthResponseDecodingFailedCode,
+        syncConflict: nil
+    )
 }

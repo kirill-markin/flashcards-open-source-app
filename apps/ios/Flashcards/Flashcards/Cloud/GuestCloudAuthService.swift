@@ -2,6 +2,8 @@ import Foundation
 
 private let guestSessionDeleteMaxAttempts: Int = 3
 private let guestSessionDeleteRetryDelayNanoseconds: UInt64 = 250_000_000
+private let guestCloudAuthResponseDecodingFailedCode: String = "RESPONSE_DECODING_FAILED"
+private let guestCloudAuthResponseDecodingFailedMessage: String = "Failed to decode guest auth response"
 
 enum GuestCloudAuthError: LocalizedError {
     case invalidBaseUrl(String)
@@ -94,8 +96,6 @@ final class GuestCloudAuthService {
         apiBaseUrl: String,
         guestToken: String
     ) async throws {
-        logCloudFlowPhase(phase: .guestSessionDelete, outcome: "start")
-
         var lastError: Error?
         for attempt in 1...guestSessionDeleteMaxAttempts {
             do {
@@ -103,7 +103,6 @@ final class GuestCloudAuthService {
                     apiBaseUrl: apiBaseUrl,
                     guestToken: guestToken
                 )
-                logCloudFlowPhase(phase: .guestSessionDelete, outcome: "success")
                 return
             } catch let error as CancellationError {
                 throw error
@@ -111,25 +110,31 @@ final class GuestCloudAuthService {
                 lastError = error
 
                 if attempt < guestSessionDeleteMaxAttempts {
-                    logFlashcardsError(
-                        domain: "cloud",
-                        action: "guest_session_delete_retry",
-                        metadata: [
-                            "attempt": String(attempt),
-                            "maxAttempts": String(guestSessionDeleteMaxAttempts),
-                            "apiBaseUrl": apiBaseUrl,
-                            "message": Flashcards.errorMessage(error: error),
-                        ]
+                    FlashcardsObservability.captureWarning(
+                        .cloudRetry(
+                            CloudRetryWarning(
+                                action: "guest_session_delete_retry",
+                                scope: IOSObservationScope(
+                                    feature: .cloudAuth,
+                                    userId: nil,
+                                    workspaceId: nil,
+                                    requestId: nil,
+                                    clientRequestId: nil,
+                                    sessionId: nil,
+                                    runId: nil,
+                                    cloudState: .guest,
+                                    configurationMode: nil
+                                ),
+                                attempt: attempt,
+                                maxAttempts: guestSessionDeleteMaxAttempts,
+                                apiBaseUrl: apiBaseUrl,
+                                messageSummary: Flashcards.errorMessage(error: error)
+                            )
+                        )
                     )
                     try await Task.sleep(nanoseconds: guestSessionDeleteRetryDelayNanoseconds)
                     continue
                 }
-
-                logCloudFlowPhase(
-                    phase: .guestSessionDelete,
-                    outcome: "failure",
-                    errorMessage: Flashcards.errorMessage(error: error)
-                )
             }
         }
 
@@ -207,15 +212,17 @@ final class GuestCloudAuthService {
         apiBaseUrl: String,
         guestToken: String
     ) async throws {
-        let (data, _) = try await self.performRequest(
+        let (data, httpResponse) = try await self.performRequest(
             apiBaseUrl: apiBaseUrl,
             authorizationHeader: "Guest \(guestToken)",
             path: "/guest-auth/session/delete",
             method: "POST",
             body: Optional<String>.none
         )
+        let requestId = httpResponse.value(forHTTPHeaderField: "X-Request-Id")
 
         if data.isEmpty {
+            logCloudFlowPhase(phase: .guestSessionDelete, outcome: "success", requestId: requestId)
             return
         }
 
@@ -226,12 +233,22 @@ final class GuestCloudAuthService {
                     "Guest session deletion did not return ok=true"
                 )
             }
+            logCloudFlowPhase(phase: .guestSessionDelete, outcome: "success", requestId: requestId)
         } catch let error as GuestCloudAuthError {
             throw error
         } catch {
-            throw GuestCloudAuthError.invalidResponseBody(
-                "Failed to decode guest session delete response"
+            let errorDetails: CloudApiErrorDetails = makeGuestCloudAuthResponseDecodingErrorDetails(
+                requestId: requestId
             )
+            logCloudFlowPhase(
+                phase: .guestSessionDelete,
+                outcome: "failure",
+                requestId: errorDetails.requestId,
+                code: errorDetails.code,
+                statusCode: httpResponse.statusCode,
+                errorMessage: errorDetails.message
+            )
+            throw GuestCloudAuthError.invalidResponse(errorDetails, httpResponse.statusCode)
         }
     }
 
@@ -253,14 +270,39 @@ final class GuestCloudAuthService {
             request.httpBody = try self.encoder.encode(body)
         }
 
-        let (data, response) = try await self.session.data(for: request)
+        let phase: CloudFlowPhase = self.phase(for: path)
+        logCloudFlowPhase(phase: phase, outcome: "start")
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await self.session.data(for: request)
+        } catch {
+            logCloudFlowPhase(
+                phase: phase,
+                outcome: "failure",
+                errorMessage: Flashcards.errorMessage(error: error)
+            )
+            throw error
+        }
         guard let httpResponse = response as? HTTPURLResponse else {
+            logCloudFlowPhase(
+                phase: phase,
+                outcome: "failure",
+                errorMessage: "Guest auth did not receive an HTTP response"
+            )
             throw LocalStoreError.database("Guest auth did not receive an HTTP response")
         }
+        let requestId = httpResponse.value(forHTTPHeaderField: "X-Request-Id")
 
         guard httpResponse.statusCode >= 200 && httpResponse.statusCode < 300 else {
-            let requestId = httpResponse.value(forHTTPHeaderField: "X-Request-Id")
             let details = decodeCloudApiErrorDetails(data: data, requestId: requestId)
+            logCloudFlowPhase(
+                phase: phase,
+                outcome: "failure",
+                requestId: details.requestId,
+                code: details.code,
+                statusCode: httpResponse.statusCode
+            )
             throw GuestCloudAuthError.invalidResponse(details, httpResponse.statusCode)
         }
 
@@ -274,18 +316,58 @@ final class GuestCloudAuthService {
         method: String,
         body: Body?
     ) async throws -> Response {
-        let (data, _) = try await self.performRequest(
+        let (data, httpResponse) = try await self.performRequest(
             apiBaseUrl: apiBaseUrl,
             authorizationHeader: authorizationHeader,
             path: path,
             method: method,
             body: body
         )
+        let requestId = httpResponse.value(forHTTPHeaderField: "X-Request-Id")
 
         do {
-            return try self.decoder.decode(Response.self, from: data)
+            let decodedResponse: Response = try self.decoder.decode(Response.self, from: data)
+            logCloudFlowPhase(phase: self.phase(for: path), outcome: "success", requestId: requestId)
+            return decodedResponse
         } catch {
-            throw GuestCloudAuthError.invalidResponseBody("Failed to decode guest auth response")
+            let errorDetails: CloudApiErrorDetails = makeGuestCloudAuthResponseDecodingErrorDetails(
+                requestId: requestId
+            )
+            logCloudFlowPhase(
+                phase: self.phase(for: path),
+                outcome: "failure",
+                requestId: errorDetails.requestId,
+                code: errorDetails.code,
+                statusCode: httpResponse.statusCode,
+                errorMessage: errorDetails.message
+            )
+            throw GuestCloudAuthError.invalidResponse(errorDetails, httpResponse.statusCode)
         }
     }
+
+    private func phase(for path: String) -> CloudFlowPhase {
+        switch path {
+        case "/guest-auth/session":
+            return .guestSessionCreate
+        case "/guest-auth/session/delete":
+            return .guestSessionDelete
+        case "/guest-auth/upgrade/prepare":
+            return .guestUpgradePrepare
+        case "/guest-auth/upgrade/complete":
+            return .guestUpgradeComplete
+        default:
+            return .guestAuthRequest
+        }
+    }
+}
+
+private func makeGuestCloudAuthResponseDecodingErrorDetails(
+    requestId: String?
+) -> CloudApiErrorDetails {
+    CloudApiErrorDetails(
+        message: guestCloudAuthResponseDecodingFailedMessage,
+        requestId: requestId,
+        code: guestCloudAuthResponseDecodingFailedCode,
+        syncConflict: nil
+    )
 }

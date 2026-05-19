@@ -297,6 +297,7 @@ final class CloudSessionRuntime {
             authorization: .bearer(bearerToken)
         )
         self.state.activeCloudSession = linkedSession
+        setObservabilityIdentity(linkedSession: linkedSession)
         return linkedSession
     }
 
@@ -316,11 +317,13 @@ final class CloudSessionRuntime {
             authorization: .bearer(credentials.idToken)
         )
         self.state.activeCloudSession = nextSession
+        setObservabilityIdentity(linkedSession: nextSession)
         return nextSession
     }
 
     func setActiveCloudSession(linkedSession: CloudLinkedSession) {
         self.state.activeCloudSession = linkedSession
+        setObservabilityIdentity(linkedSession: linkedSession)
     }
 
     func clearActiveCloudSessionIfMatchingStableContext(linkedSession: CloudLinkedSession) {
@@ -332,6 +335,7 @@ final class CloudSessionRuntime {
         }
 
         self.state.activeCloudSession = nil
+        FlashcardsObservability.setIdentity(nil)
     }
 
     func runLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
@@ -403,12 +407,27 @@ final class CloudSessionRuntime {
             do {
                 _ = try await activeCloudSyncTask.task.value
             } catch {
-                logFlashcardsError(
-                    domain: "cloud",
-                    action: "active_sync_settled_before_fresh_sync",
-                    metadata: [
-                        "message": Flashcards.errorMessage(error: error),
-                    ]
+                FlashcardsObservability.captureWarning(
+                    .cloudRetry(
+                        CloudRetryWarning(
+                            action: "active_sync_settled_before_fresh_sync",
+                            scope: IOSObservationScope(
+                                feature: .cloudSync,
+                                userId: self.state.activeCloudSession?.userId,
+                                workspaceId: self.state.activeCloudSession?.workspaceId,
+                                requestId: nil,
+                                clientRequestId: nil,
+                                sessionId: nil,
+                                runId: nil,
+                                cloudState: nil,
+                                configurationMode: self.state.activeCloudSession?.configurationMode
+                            ),
+                            attempt: 1,
+                            maxAttempts: 1,
+                            apiBaseUrl: self.state.activeCloudSession?.apiBaseUrl,
+                            messageSummary: Flashcards.errorMessage(error: error)
+                        )
+                    )
                 )
             }
             self.clearActiveCloudSyncTaskIfCurrent(id: activeCloudSyncTask.id)
@@ -451,6 +470,7 @@ final class CloudSessionRuntime {
 
     func disconnectSession() {
         self.state.activeCloudSession = nil
+        FlashcardsObservability.setIdentity(nil)
     }
 
     func cancelForWorkspaceSwitch() {
@@ -471,6 +491,7 @@ final class CloudSessionRuntime {
         self.state.activeAIChatSessionPreparation = nil
         self.state.activeCloudSession = nil
         self.cloudAuthService.resetChallengeSession()
+        FlashcardsObservability.setIdentity(nil)
     }
 
     func activeCloudSession() -> CloudLinkedSession? {
@@ -487,4 +508,15 @@ private func cloudLinkedSessionsMatchStableContext(
         && lhs.configurationMode == rhs.configurationMode
         && lhs.apiBaseUrl == rhs.apiBaseUrl
         && lhs.authorization.isGuest == rhs.authorization.isGuest
+}
+
+private func setObservabilityIdentity(linkedSession: CloudLinkedSession) {
+    let accountKind: ObservabilityAccountKind = linkedSession.authorization.isGuest ? .guest : .linked
+    FlashcardsObservability.setIdentity(
+        ObservabilityIdentity(
+            userId: linkedSession.userId,
+            workspaceId: linkedSession.workspaceId,
+            accountKind: accountKind
+        )
+    )
 }

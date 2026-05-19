@@ -852,11 +852,29 @@ func clearPendingAppNotificationTap(userDefaults: UserDefaults) {
 }
 
 func logAppNotificationTapEvent(action: String, metadata: [String: String]) {
-    logFlashcardsError(
-        domain: "ios_notifications",
-        action: action,
-        metadata: metadata
+    let observation = NotificationTapObservation(
+        action: NotificationTapAction(rawValue: action) ?? .fallback,
+        notificationType: metadata["notificationType"] ?? "unknown",
+        source: metadata["source"].flatMap(AppNotificationTapSource.init(rawValue:)),
+        appState: metadata["appState"],
+        scenePhaseAtConsume: metadata["scenePhaseAtConsume"],
+        receivedAtMillis: metadata["receivedAt"].flatMap(Int64.init),
+        stage: metadata["stage"]
     )
+    if action == NotificationTapAction.dropped.rawValue || action == NotificationTapAction.fallback.rawValue {
+        FlashcardsObservability.captureWarning(
+            .notificationTapDropped(
+                NotificationTapDroppedWarning(
+                    observation: observation,
+                    reason: metadata["reason"] ?? "unspecified",
+                    detailSummary: metadata["details"]
+                )
+            )
+        )
+        return
+    }
+
+    FlashcardsObservability.addBreadcrumb(.notificationTap(observation))
 }
 
 func makeAppNotificationTapLogMetadata(

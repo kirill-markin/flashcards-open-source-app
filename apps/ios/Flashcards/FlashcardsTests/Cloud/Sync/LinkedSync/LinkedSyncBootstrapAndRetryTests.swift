@@ -8,6 +8,63 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
         try super.tearDownWithError()
     }
 
+    func testCloudSyncResponseDecodeFailureDoesNotExposeSuccessfulResponseBody() async throws {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [CloudSyncRunnerTestURLProtocol.self]
+        let transport = CloudSyncTransport(
+            session: URLSession(configuration: configuration),
+            decoder: makeFlashcardsRemoteJSONDecoder()
+        )
+        CloudSyncRunnerTestURLProtocol.requestHandler = { request in
+            let response = try XCTUnwrap(
+                HTTPURLResponse(
+                    url: try XCTUnwrap(request.url),
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: [
+                        "Content-Type": "application/json",
+                        "X-Request-Id": "request-header",
+                    ]
+                )
+            )
+            let responseBody = Data(
+                """
+                {
+                  "error": "front text: private card prompt; back text: private card answer",
+                  "requestId": "request-body",
+                  "code": "PRIVATE_BODY_CODE",
+                  "guestToken": "private-token"
+                }
+                """.utf8
+            )
+            return (response, responseBody)
+        }
+
+        do {
+            let _: CloudSyncDecodeFailureProbeResponse = try await transport.request(
+                apiBaseUrl: "https://api.example.test/v1",
+                authorizationHeader: "Bearer id-token",
+                path: "/workspaces",
+                method: "GET",
+                body: Optional<String>.none
+            )
+            XCTFail("Expected cloud sync response decode failure")
+        } catch let error as CloudSyncError {
+            guard case .invalidResponse(let details, let statusCode) = error else {
+                XCTFail("Expected invalidResponse, got \(error)")
+                return
+            }
+
+            XCTAssertEqual(200, statusCode)
+            XCTAssertEqual("Failed to decode cloud sync response", details.message)
+            XCTAssertEqual("request-header", details.requestId)
+            XCTAssertEqual("RESPONSE_DECODING_FAILED", details.code)
+            XCTAssertNil(details.syncConflict)
+            XCTAssertFalse(details.message.contains("private card answer"))
+            XCTAssertFalse(details.message.contains("private-token"))
+        }
+    }
+
     func testLinkedSyncRetriesAfterPublicCardSyncConflictRecovery() async throws {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
@@ -354,4 +411,8 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
         XCTAssertEqual(20, syncState.lastAppliedHotChangeId)
         XCTAssertTrue(syncState.hasHydratedHotState)
     }
+}
+
+private struct CloudSyncDecodeFailureProbeResponse: Decodable {
+    let ok: Bool
 }

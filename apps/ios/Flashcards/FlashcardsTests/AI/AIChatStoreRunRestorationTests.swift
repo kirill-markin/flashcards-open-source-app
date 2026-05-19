@@ -112,6 +112,8 @@ final class AIChatStoreRunRestorationTests: XCTestCase {
                     conversationScopeId: "session-restore",
                     runId: activeRun.runId,
                     cursor: "cursor-2",
+                    requestId: nil,
+                    clientRequestId: nil,
                     sequenceNumber: 2,
                     streamEpoch: "epoch-1"
                 ),
@@ -188,6 +190,8 @@ final class AIChatStoreRunRestorationTests: XCTestCase {
                     conversationScopeId: "session-restore",
                     runId: activeRun.runId,
                     cursor: "cursor-2",
+                    requestId: nil,
+                    clientRequestId: nil,
                     sequenceNumber: 2,
                     streamEpoch: "epoch-1"
                 ),
@@ -212,6 +216,8 @@ final class AIChatStoreRunRestorationTests: XCTestCase {
                     conversationScopeId: "session-restore",
                     runId: activeRun.runId,
                     cursor: "cursor-3",
+                    requestId: nil,
+                    clientRequestId: nil,
                     sequenceNumber: 3,
                     streamEpoch: "epoch-1"
                 ),

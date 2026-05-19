@@ -204,23 +204,28 @@ extension FlashcardsStore {
         actualScopeKey: String?,
         errorMessage: String?
     ) {
-        var metadata: [String: String] = [
-            "cacheKind": cacheKind,
-            "key": key,
-            "reason": reason,
-            "expectedScopeKey": expectedScopeKey,
-        ]
-        if let actualScopeKey {
-            metadata["actualScopeKey"] = actualScopeKey
-        }
-        if let errorMessage {
-            metadata["errorMessage"] = errorMessage
-        }
-
-        logFlashcardsError(
-            domain: "progress",
-            action: "server_base_cache_removed",
-            metadata: metadata
+        FlashcardsObservability.captureWarning(
+            .progressCacheRemoved(
+                ProgressCacheRemovedWarning(
+                    scope: IOSObservationScope(
+                        feature: .progress,
+                        userId: nil,
+                        workspaceId: nil,
+                        requestId: nil,
+                        clientRequestId: nil,
+                        sessionId: nil,
+                        runId: nil,
+                        cloudState: nil,
+                        configurationMode: nil
+                    ),
+                    cacheKind: cacheKind,
+                    key: key,
+                    reason: reason,
+                    expectedScopeKey: expectedScopeKey,
+                    actualScopeKey: actualScopeKey,
+                    errorSummary: errorMessage
+                )
+            )
         )
         self.userDefaults.removeObject(forKey: key)
     }

@@ -171,9 +171,69 @@ extension AIChatStore {
 
     func showGeneralError(error: Error) {
         self.activeResumeErrorAttemptSequence = nil
+        self.captureUserVisibleAIChatFailure(error: error)
         self.activeAlert = aiChatGeneralErrorAlert(
             error: error,
             resumeAttemptSequence: self.activeLiveResumeAttemptSequence
+        )
+    }
+
+    func showLiveTerminalError(
+        message: String,
+        metadata: AIChatLiveEventMetadata,
+        isError: Bool?,
+        isStopped: Bool?
+    ) {
+        self.activeResumeErrorAttemptSequence = nil
+        self.captureUserVisibleAILiveTerminalFailure(
+            metadata: metadata,
+            isError: isError,
+            isStopped: isStopped
+        )
+        self.activeAlert = .generalError(
+            title: aiSettingsLocalized("ai.error.title", "Error"),
+            message: message
+        )
+    }
+
+    func showLiveReconciledError(
+        message: String,
+        sessionId: String,
+        runId: String?,
+        afterCursor: String?,
+        requestId: String?,
+        clientRequestId: String?,
+        eventType: String
+    ) {
+        self.activeResumeErrorAttemptSequence = nil
+        self.captureUserVisibleAILiveReconciledFailure(
+            sessionId: sessionId,
+            runId: runId,
+            afterCursor: afterCursor,
+            requestId: requestId,
+            clientRequestId: clientRequestId,
+            eventType: eventType
+        )
+        self.activeAlert = .generalError(
+            title: aiSettingsLocalized("ai.error.title", "Error"),
+            message: message
+        )
+    }
+
+    func captureLiveOptimisticFallbackFailure(
+        sessionId: String,
+        runId: String?,
+        afterCursor: String?,
+        requestId: String?,
+        clientRequestId: String?
+    ) {
+        self.activeResumeErrorAttemptSequence = nil
+        self.captureUserVisibleAILiveOptimisticFallbackFailure(
+            sessionId: sessionId,
+            runId: runId,
+            afterCursor: afterCursor,
+            requestId: requestId,
+            clientRequestId: clientRequestId
         )
     }
 
@@ -242,7 +302,575 @@ func aiChatDictationStateKeepsDraftTextEditable(_ state: AIChatDictationState) -
 }
 
 func logAIChatStoreEvent(action: String, metadata: [String: String]) {
-    logFlashcardsError(domain: "ios_ai_store", action: action, metadata: metadata)
+    if action.hasPrefix("ai_live") {
+        logAIChatStoreLiveEvent(action: action, metadata: metadata)
+        return
+    }
+
+    logAIChatStoreLifecycleEvent(action: action, metadata: metadata)
+}
+
+private func logAIChatStoreLifecycleEvent(action: String, metadata: [String: String]) {
+    let actionValue: AIChatLifecycleAction = AIChatLifecycleAction(rawValue: action) ?? .storeLifecycle
+    let requestId: String? = metadata["backendRequestId"].flatMap(aiChatStoreNonPlaceholderString)
+        ?? metadata["requestId"].flatMap(aiChatStoreNonPlaceholderString)
+    let sessionId: String? = aiChatStoreSessionId(metadata: metadata)
+    let runId: String? = aiChatStoreRunId(metadata: metadata)
+    let scope = IOSObservationScope(
+        feature: .aiChat,
+        userId: nil,
+        workspaceId: metadata["workspaceId"].flatMap(aiChatStoreNonPlaceholderString),
+        requestId: requestId,
+        clientRequestId: metadata["clientRequestId"].flatMap(aiChatStoreNonPlaceholderString),
+        sessionId: sessionId,
+        runId: runId,
+        cloudState: nil,
+        configurationMode: nil
+    )
+    let observation = AIChatLifecycleObservation(
+        action: actionValue,
+        scope: scope,
+        sessionId: sessionId,
+        runId: runId,
+        conversationScopeId: metadata["conversationScopeId"].flatMap(aiChatStoreNonPlaceholderString),
+        eventType: metadata["eventType"].flatMap(aiChatStoreNonPlaceholderString),
+        statusCode: metadata["statusCode"].flatMap(Int.init),
+        backendCode: metadata["backendCode"].flatMap(aiChatStoreNonPlaceholderString),
+        backendRequestId: metadata["backendRequestId"].flatMap(aiChatStoreNonPlaceholderString),
+        clientRequestId: metadata["clientRequestId"].flatMap(aiChatStoreNonPlaceholderString),
+        stage: metadata["stage"].flatMap(AIChatFailureStage.init(rawValue:)),
+        errorKind: metadata["errorKind"].flatMap(AIChatFailureKind.init(rawValue:)),
+        failureKind: metadata["failureKind"].flatMap(aiChatStoreNonPlaceholderString)
+            ?? metadata["errorType"].flatMap(aiChatStoreNonPlaceholderString)
+            ?? (actionValue == .storeLifecycle ? action : nil),
+        attempt: metadata["attempt"].flatMap(Int.init)
+            ?? metadata["nextAttempt"].flatMap(Int.init)
+            ?? metadata["resumeAttempt"].flatMap(Int.init),
+        maxAttempts: metadata["maxAttempts"].flatMap(Int.init),
+        delayNanoseconds: metadata["delayNanoseconds"].flatMap(UInt64.init),
+        outgoingContentCount: metadata["outgoingContentCount"].flatMap(Int.init),
+        contentCount: metadata["contentCount"].flatMap(Int.init)
+            ?? metadata["count"].flatMap(Int.init),
+        textLength: metadata["textLength"].flatMap(Int.init),
+        summaryLength: metadata["summaryLength"].flatMap(Int.init),
+        suggestionCount: metadata["suggestionCount"].flatMap(Int.init)
+            ?? metadata["count"].flatMap(Int.init),
+        isError: metadata["isError"].flatMap(aiChatStoreBool),
+        isStopped: metadata["isStopped"].flatMap(aiChatStoreBool),
+        outcome: metadata["outcome"].flatMap(aiChatStoreNonPlaceholderString),
+        reason: metadata["reason"].flatMap(aiChatStoreNonPlaceholderString),
+        errorSummary: nil
+    )
+
+    if aiChatStoreLifecycleEventIsWarning(actionValue) {
+        FlashcardsObservability.captureWarning(.aiChatLifecycle(observation))
+        return
+    }
+
+    FlashcardsObservability.addBreadcrumb(.aiChatLifecycle(observation))
+}
+
+private func logAIChatStoreLiveEvent(action: String, metadata: [String: String]) {
+    let actionValue: AILiveLifecycleAction = AILiveLifecycleAction(rawValue: action) ?? .eventReceived
+    let requestId: String? = metadata["requestId"].flatMap(aiChatStoreNonPlaceholderString)
+    let backendRequestId: String? = metadata["backendRequestId"].flatMap(aiChatStoreNonPlaceholderString)
+    let sessionId: String = aiChatStoreSessionId(metadata: metadata) ?? "unknown"
+    let runId: String? = aiChatStoreRunId(metadata: metadata)
+    let scope = IOSObservationScope(
+        feature: .aiLive,
+        userId: nil,
+        workspaceId: metadata["workspaceId"].flatMap(aiChatStoreNonPlaceholderString),
+        requestId: backendRequestId ?? requestId,
+        clientRequestId: metadata["clientRequestId"].flatMap(aiChatStoreNonPlaceholderString),
+        sessionId: sessionId,
+        runId: runId,
+        cloudState: nil,
+        configurationMode: nil
+    )
+    let observation = AILiveLifecycleObservation(
+        action: actionValue,
+        scope: scope,
+        sessionId: sessionId,
+        runId: runId,
+        afterCursor: metadata["afterCursor"].flatMap(aiChatStoreNonPlaceholderString),
+        requestId: requestId,
+        backendRequestId: backendRequestId,
+        backendCode: metadata["backendCode"].flatMap(aiChatStoreNonPlaceholderString),
+        statusCode: metadata["statusCode"].flatMap(Int.init),
+        eventType: metadata["eventType"].flatMap(aiChatStoreNonPlaceholderString),
+        sequenceNumber: metadata["sequenceNumber"].flatMap(Int.init),
+        cursor: metadata["cursor"].flatMap(aiChatStoreNonPlaceholderString),
+        streamEpoch: metadata["streamEpoch"].flatMap(aiChatStoreNonPlaceholderString),
+        itemId: metadata["itemId"].flatMap(aiChatStoreNonPlaceholderString),
+        toolName: metadata["toolName"].flatMap(aiChatStoreNonPlaceholderString),
+        toolStatus: metadata["toolStatus"].flatMap(aiChatStoreNonPlaceholderString),
+        contentCount: metadata["contentCount"].flatMap(Int.init)
+            ?? metadata["count"].flatMap(Int.init),
+        textLength: metadata["textLength"].flatMap(Int.init),
+        summaryLength: metadata["summaryLength"].flatMap(Int.init),
+        suggestionCount: metadata["suggestionCount"].flatMap(Int.init)
+            ?? metadata["count"].flatMap(Int.init),
+        isError: metadata["isError"].flatMap(aiChatStoreBool),
+        isStopped: metadata["isStopped"].flatMap(aiChatStoreBool),
+        outcome: metadata["outcome"].flatMap(aiChatStoreNonPlaceholderString),
+        failureKind: metadata["failureKind"].flatMap(aiChatStoreNonPlaceholderString)
+            ?? metadata["reason"].flatMap(aiChatStoreNonPlaceholderString),
+        stage: metadata["stage"].flatMap(AIChatFailureStage.init(rawValue:)),
+        errorKind: metadata["errorKind"].flatMap(AIChatFailureKind.init(rawValue:)),
+        resumeAttempt: metadata["resumeAttempt"].flatMap(Int.init)
+    )
+
+    if aiChatStoreLiveEventIsWarning(actionValue) {
+        FlashcardsObservability.captureWarning(.aiLiveLifecycle(observation))
+        return
+    }
+
+    FlashcardsObservability.addBreadcrumb(.aiLiveLifecycle(observation))
+}
+
+private func aiChatStoreSessionId(metadata: [String: String]) -> String? {
+    metadata["chatSessionId"].flatMap(aiChatStoreNonPlaceholderString)
+        ?? metadata["sessionId"].flatMap(aiChatStoreNonPlaceholderString)
+        ?? metadata["eventSessionId"].flatMap(aiChatStoreNonPlaceholderString)
+}
+
+private func aiChatStoreRunId(metadata: [String: String]) -> String? {
+    metadata["runId"].flatMap(aiChatStoreNonPlaceholderString)
+        ?? metadata["activeRunId"].flatMap(aiChatStoreNonPlaceholderString)
+        ?? metadata["eventRunId"].flatMap(aiChatStoreNonPlaceholderString)
+}
+
+private func aiChatStoreLifecycleEventIsWarning(_ action: AIChatLifecycleAction) -> Bool {
+    switch action {
+    case .runFail,
+            .runFailed,
+            .stopFailed,
+            .bootstrapSessionContractMismatch,
+            .chatUnknownContentReceived:
+        return true
+    case .runStart,
+            .runStarted,
+            .bootstrapRetryScheduled,
+            .newSessionRetryScheduled,
+            .contentUnknown,
+            .storeLifecycle:
+        return false
+    }
+}
+
+private func aiChatStoreLiveEventIsWarning(_ action: AILiveLifecycleAction) -> Bool {
+    switch action {
+    case .terminalEventReconcileRequired:
+        return true
+    case .connectStart,
+            .httpResponse,
+            .eventReceived,
+            .eventSkippedUnknownType,
+            .cancelled,
+            .finish,
+            .finishError,
+            .attach,
+            .detach,
+            .error,
+            .eventParseFailed,
+            .eventHandleStart,
+            .eventIgnoredStale,
+            .eventApplied,
+            .eventHandleApplied,
+            .terminalEventApplied,
+            .composerSuggestionsApplied,
+            .repairStatusApplied,
+            .terminalApplied:
+        return false
+    }
+}
+
+private func aiChatStoreBool(_ value: String) -> Bool? {
+    switch value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+    case "true":
+        return true
+    case "false":
+        return false
+    default:
+        return nil
+    }
+}
+
+private func aiChatStoreNonPlaceholderString(_ value: String) -> String? {
+    let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard trimmedValue.isEmpty == false, trimmedValue != "-" else {
+        return nil
+    }
+
+    return trimmedValue
+}
+
+extension AIChatStore {
+    private func captureUserVisibleAIChatFailure(error: Error) {
+        if let liveStreamError = error as? AIChatLiveStreamError {
+            self.captureUserVisibleAILiveStreamFailure(error: liveStreamError)
+            return
+        }
+
+        if let liveSetupError = error as? AIChatLiveStreamSetupError {
+            self.captureUserVisibleAILiveDiagnosticFailure(
+                error: liveSetupError,
+                diagnostics: liveSetupError.diagnostics
+            )
+            return
+        }
+
+        if let liveContractError = error as? AIChatLiveStreamContractError {
+            self.captureUserVisibleAILiveDiagnosticFailure(
+                error: liveContractError,
+                diagnostics: liveContractError.diagnostics
+            )
+            return
+        }
+
+        guard let diagnosticError = error as? any AIChatFailureDiagnosticProviding else {
+            return
+        }
+
+        let diagnostics: AIChatFailureDiagnostics = diagnosticError.diagnostics
+        let sessionId: String? = self.chatSessionId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? nil
+            : self.chatSessionId
+        let scope = IOSObservationScope(
+            feature: .aiChat,
+            userId: nil,
+            workspaceId: self.flashcardsStore.workspace?.workspaceId,
+            requestId: diagnostics.backendRequestId,
+            clientRequestId: diagnostics.clientRequestId,
+            sessionId: sessionId,
+            runId: self.activeRunId,
+            cloudState: self.flashcardsStore.cloudSettings?.cloudState,
+            configurationMode: nil
+        )
+        FlashcardsObservability.captureException(
+            .aiChatFailed(
+                error: error,
+                scope: scope,
+                details: diagnostics
+            )
+        )
+    }
+
+    private func captureUserVisibleAILiveStreamFailure(error: AIChatLiveStreamError) {
+        let metadata: [String: String] = aiChatErrorLogMetadata(error: error)
+        let liveContext: AIChatLiveStreamErrorObservationContext = aiChatLiveStreamErrorObservationContext(
+            error: error,
+            metadata: metadata
+        )
+        let sessionId: String = self.chatSessionId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? "unknown"
+            : self.chatSessionId
+        let scope = IOSObservationScope(
+            feature: .aiLive,
+            userId: nil,
+            workspaceId: self.flashcardsStore.workspace?.workspaceId,
+            requestId: liveContext.backendRequestId ?? liveContext.requestId,
+            clientRequestId: liveContext.clientRequestId,
+            sessionId: sessionId,
+            runId: self.activeRunId,
+            cloudState: self.flashcardsStore.cloudSettings?.cloudState,
+            configurationMode: nil
+        )
+        FlashcardsObservability.captureException(
+            .aiLiveStreamFailed(
+                error: error,
+                scope: scope,
+                details: AILiveStreamFailureDetails(
+                    sessionId: sessionId,
+                    runId: self.activeRunId,
+                    afterCursor: self.liveCursor,
+                    requestId: liveContext.requestId,
+                    backendRequestId: liveContext.backendRequestId,
+                    statusCode: liveContext.statusCode,
+                    backendCode: liveContext.backendCode,
+                    clientRequestId: liveContext.clientRequestId,
+                    failureKind: metadata["failureKind"] ?? "transport_failure",
+                    stage: metadata["stage"].flatMap(AIChatFailureStage.init(rawValue:)),
+                    errorKind: metadata["errorKind"].flatMap(AIChatFailureKind.init(rawValue:)),
+                    eventType: nil,
+                    outcome: nil,
+                    decoderSummary: nil,
+                    rawSnippetLength: nil,
+                    idleTimeoutSeconds: metadata["idleTimeoutSeconds"].flatMap(TimeInterval.init),
+                    isError: nil,
+                    isStopped: nil,
+                    resumeAttempt: self.activeLiveResumeAttemptSequence
+                )
+            )
+        )
+    }
+
+    private func captureUserVisibleAILiveDiagnosticFailure(
+        error: Error,
+        diagnostics: AIChatFailureDiagnostics
+    ) {
+        let sessionId: String = aiChatStoreNonPlaceholderString(self.chatSessionId) ?? diagnostics.clientRequestId
+        let scope = IOSObservationScope(
+            feature: .aiLive,
+            userId: nil,
+            workspaceId: self.flashcardsStore.workspace?.workspaceId,
+            requestId: diagnostics.backendRequestId,
+            clientRequestId: diagnostics.clientRequestId,
+            sessionId: sessionId,
+            runId: self.activeRunId,
+            cloudState: self.flashcardsStore.cloudSettings?.cloudState,
+            configurationMode: nil
+        )
+        FlashcardsObservability.captureException(
+            .aiLiveStreamFailed(
+                error: error,
+                scope: scope,
+                details: AILiveStreamFailureDetails(
+                    sessionId: sessionId,
+                    runId: self.activeRunId,
+                    afterCursor: self.liveCursor,
+                    requestId: nil,
+                    backendRequestId: diagnostics.backendRequestId,
+                    statusCode: diagnostics.statusCode,
+                    backendCode: nil,
+                    clientRequestId: diagnostics.clientRequestId,
+                    failureKind: diagnostics.errorKind.rawValue,
+                    stage: diagnostics.stage,
+                    errorKind: diagnostics.errorKind,
+                    eventType: diagnostics.eventType,
+                    outcome: nil,
+                    decoderSummary: diagnostics.decoderSummary,
+                    rawSnippetLength: diagnostics.rawSnippet.map(\.count),
+                    idleTimeoutSeconds: nil,
+                    isError: nil,
+                    isStopped: nil,
+                    resumeAttempt: diagnostics.continuationAttempt ?? self.activeLiveResumeAttemptSequence
+                )
+            )
+        )
+    }
+
+    private func captureUserVisibleAILiveTerminalFailure(
+        metadata: AIChatLiveEventMetadata,
+        isError: Bool?,
+        isStopped: Bool?
+    ) {
+        let sessionId: String = aiChatStoreNonPlaceholderString(metadata.sessionId)
+            ?? aiChatStoreNonPlaceholderString(self.chatSessionId)
+            ?? "unknown"
+        let runId: String? = aiChatStoreNonPlaceholderString(metadata.runId) ?? self.activeRunId
+        let requestId: String? = metadata.requestId.flatMap(aiChatStoreNonPlaceholderString)
+        let clientRequestId: String? = metadata.clientRequestId.flatMap(aiChatStoreNonPlaceholderString)
+        let scope = IOSObservationScope(
+            feature: .aiLive,
+            userId: nil,
+            workspaceId: self.flashcardsStore.workspace?.workspaceId,
+            requestId: requestId,
+            clientRequestId: clientRequestId,
+            sessionId: sessionId,
+            runId: runId,
+            cloudState: self.flashcardsStore.cloudSettings?.cloudState,
+            configurationMode: nil
+        )
+        FlashcardsObservability.captureException(
+            .aiLiveStreamFailed(
+                error: AIChatLiveTerminalFailureError.failedRun,
+                scope: scope,
+                details: AILiveStreamFailureDetails(
+                    sessionId: sessionId,
+                    runId: runId,
+                    afterCursor: metadata.cursor ?? self.liveCursor,
+                    requestId: requestId,
+                    backendRequestId: nil,
+                    statusCode: nil,
+                    backendCode: nil,
+                    clientRequestId: clientRequestId,
+                    failureKind: AIChatFailureKind.runTerminalError.rawValue,
+                    stage: .runTerminal,
+                    errorKind: .runTerminalError,
+                    eventType: "run_terminal",
+                    outcome: AIChatRunTerminalOutcome.error.rawValue,
+                    decoderSummary: nil,
+                    rawSnippetLength: nil,
+                    idleTimeoutSeconds: nil,
+                    isError: isError,
+                    isStopped: isStopped,
+                    resumeAttempt: self.activeLiveResumeAttemptSequence
+                )
+            )
+        )
+    }
+
+    private func captureUserVisibleAILiveReconciledFailure(
+        sessionId: String,
+        runId: String?,
+        afterCursor: String?,
+        requestId: String?,
+        clientRequestId: String?,
+        eventType: String
+    ) {
+        let resolvedSessionId: String = aiChatStoreNonPlaceholderString(sessionId)
+            ?? aiChatStoreNonPlaceholderString(self.chatSessionId)
+            ?? "unknown"
+        let resolvedRunId: String? = runId.flatMap(aiChatStoreNonPlaceholderString) ?? self.activeRunId
+        let resolvedRequestId: String? = requestId.flatMap(aiChatStoreNonPlaceholderString)
+        let resolvedClientRequestId: String? = clientRequestId.flatMap(aiChatStoreNonPlaceholderString)
+        let scope = IOSObservationScope(
+            feature: .aiLive,
+            userId: nil,
+            workspaceId: self.flashcardsStore.workspace?.workspaceId,
+            requestId: resolvedRequestId,
+            clientRequestId: resolvedClientRequestId,
+            sessionId: resolvedSessionId,
+            runId: resolvedRunId,
+            cloudState: self.flashcardsStore.cloudSettings?.cloudState,
+            configurationMode: nil
+        )
+        FlashcardsObservability.captureException(
+            .aiLiveStreamFailed(
+                error: AIChatLiveTerminalFailureError.failedRun,
+                scope: scope,
+                details: AILiveStreamFailureDetails(
+                    sessionId: resolvedSessionId,
+                    runId: resolvedRunId,
+                    afterCursor: afterCursor.flatMap(aiChatStoreNonPlaceholderString),
+                    requestId: resolvedRequestId,
+                    backendRequestId: nil,
+                    statusCode: nil,
+                    backendCode: nil,
+                    clientRequestId: resolvedClientRequestId,
+                    failureKind: AIChatFailureKind.runTerminalError.rawValue,
+                    stage: .runTerminal,
+                    errorKind: .runTerminalError,
+                    eventType: eventType,
+                    outcome: AIChatRunTerminalOutcome.error.rawValue,
+                    decoderSummary: nil,
+                    rawSnippetLength: nil,
+                    idleTimeoutSeconds: nil,
+                    isError: true,
+                    isStopped: nil,
+                    resumeAttempt: self.activeLiveResumeAttemptSequence
+                )
+            )
+        )
+    }
+
+    private func captureUserVisibleAILiveOptimisticFallbackFailure(
+        sessionId: String,
+        runId: String?,
+        afterCursor: String?,
+        requestId: String?,
+        clientRequestId: String?
+    ) {
+        let resolvedSessionId: String = aiChatStoreNonPlaceholderString(sessionId)
+            ?? aiChatStoreNonPlaceholderString(self.chatSessionId)
+            ?? "unknown"
+        let resolvedRunId: String? = runId.flatMap(aiChatStoreNonPlaceholderString) ?? self.activeRunId
+        let resolvedRequestId: String? = requestId.flatMap(aiChatStoreNonPlaceholderString)
+        let resolvedClientRequestId: String? = clientRequestId.flatMap(aiChatStoreNonPlaceholderString)
+        let scope = IOSObservationScope(
+            feature: .aiLive,
+            userId: nil,
+            workspaceId: self.flashcardsStore.workspace?.workspaceId,
+            requestId: resolvedRequestId,
+            clientRequestId: resolvedClientRequestId,
+            sessionId: resolvedSessionId,
+            runId: resolvedRunId,
+            cloudState: self.flashcardsStore.cloudSettings?.cloudState,
+            configurationMode: nil
+        )
+        FlashcardsObservability.captureException(
+            .aiLiveStreamFailed(
+                error: AIChatLiveOptimisticFallbackFailureError.streamFailed,
+                scope: scope,
+                details: AILiveStreamFailureDetails(
+                    sessionId: resolvedSessionId,
+                    runId: resolvedRunId,
+                    afterCursor: afterCursor.flatMap(aiChatStoreNonPlaceholderString),
+                    requestId: resolvedRequestId,
+                    backendRequestId: nil,
+                    statusCode: nil,
+                    backendCode: nil,
+                    clientRequestId: resolvedClientRequestId,
+                    failureKind: "optimistic_fallback_after_stream_failure",
+                    stage: nil,
+                    errorKind: nil,
+                    eventType: "failed_stream_optimistic_fallback",
+                    outcome: nil,
+                    decoderSummary: nil,
+                    rawSnippetLength: nil,
+                    idleTimeoutSeconds: nil,
+                    isError: true,
+                    isStopped: nil,
+                    resumeAttempt: self.activeLiveResumeAttemptSequence
+                )
+            )
+        )
+    }
+}
+
+private struct AIChatLiveStreamErrorObservationContext {
+    let requestId: String?
+    let backendRequestId: String?
+    let clientRequestId: String?
+    let statusCode: Int?
+    let backendCode: String?
+}
+
+private func aiChatLiveStreamErrorObservationContext(
+    error: AIChatLiveStreamError,
+    metadata: [String: String]
+) -> AIChatLiveStreamErrorObservationContext {
+    switch error {
+    case .invalidStatusCode(let httpStatusCode, let errorDetails, _, _):
+        return AIChatLiveStreamErrorObservationContext(
+            requestId: errorDetails.requestId,
+            backendRequestId: metadata["backendRequestId"],
+            clientRequestId: metadata["clientRequestId"],
+            statusCode: httpStatusCode,
+            backendCode: errorDetails.code ?? metadata["backendCode"]
+        )
+    case .invalidUrl, .invalidResponse:
+        return AIChatLiveStreamErrorObservationContext(
+            requestId: nil,
+            backendRequestId: metadata["backendRequestId"],
+            clientRequestId: metadata["clientRequestId"],
+            statusCode: metadata["statusCode"].flatMap(Int.init),
+            backendCode: metadata["backendCode"]
+        )
+    case .transportFailure(_, let requestId, _):
+        return AIChatLiveStreamErrorObservationContext(
+            requestId: requestId,
+            backendRequestId: metadata["backendRequestId"],
+            clientRequestId: metadata["clientRequestId"],
+            statusCode: metadata["statusCode"].flatMap(Int.init),
+            backendCode: metadata["backendCode"]
+        )
+    case .staleStream(_, let requestId, _):
+        return AIChatLiveStreamErrorObservationContext(
+            requestId: requestId,
+            backendRequestId: metadata["backendRequestId"],
+            clientRequestId: metadata["clientRequestId"],
+            statusCode: metadata["statusCode"].flatMap(Int.init),
+            backendCode: metadata["backendCode"]
+        )
+    }
+}
+
+private enum AIChatLiveTerminalFailureError: LocalizedError {
+    case failedRun
+
+    var errorDescription: String? {
+        "AI live terminal run failed."
+    }
+}
+
+private enum AIChatLiveOptimisticFallbackFailureError: LocalizedError {
+    case streamFailed
+
+    var errorDescription: String? {
+        "AI live stream failed and the optimistic fallback was applied."
+    }
 }
 
 private struct AIChatAlertPresentation {
@@ -295,7 +923,7 @@ private func aiChatAlertPresentation(
     resumeAttemptSequence: Int?
 ) -> AIChatAlertPresentation {
     switch liveError {
-    case .invalidStatusCode(let httpStatusCode, let errorDetails, _):
+    case .invalidStatusCode(let httpStatusCode, let errorDetails, _, _):
         let summary = aiSettingsLocalized(
             "ai.error.summary.couldNotContinue",
             "Couldn't Continue the AI Response"
@@ -326,7 +954,20 @@ private func aiChatAlertPresentation(
             requestId: nil,
             resumeAttemptSequence: resumeAttemptSequence
         )
-    case .staleStream:
+    case .transportFailure(let underlyingError, let requestId, _):
+        return aiChatAlertPresentation(
+            diagnostics: nil,
+            summary: aiSettingsLocalized(
+                "ai.error.summary.couldNotContinue",
+                "Couldn't Continue the AI Response"
+            ),
+            rawDetails: Flashcards.errorMessage(error: underlyingError),
+            code: nil,
+            statusCode: nil,
+            requestId: requestId,
+            resumeAttemptSequence: resumeAttemptSequence
+        )
+    case .staleStream(_, let requestId, _):
         return aiChatAlertPresentation(
             diagnostics: nil,
             summary: aiSettingsLocalized(
@@ -339,7 +980,7 @@ private func aiChatAlertPresentation(
             ),
             code: nil,
             statusCode: nil,
-            requestId: nil,
+            requestId: requestId,
             resumeAttemptSequence: resumeAttemptSequence
         )
     case .invalidUrl:

@@ -106,6 +106,8 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
                     conversationScopeId: "session-1",
                     runId: activeRun.runId,
                     cursor: "cursor-2",
+                    requestId: nil,
+                    clientRequestId: nil,
                     sequenceNumber: 2,
                     streamEpoch: "epoch-1"
                 ),
@@ -138,6 +140,8 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
                     conversationScopeId: "session-1",
                     runId: activeRun.runId,
                     cursor: "cursor-3",
+                    requestId: nil,
+                    clientRequestId: nil,
                     sequenceNumber: 3,
                     streamEpoch: "epoch-1"
                 ),
@@ -254,6 +258,8 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
 
         await store.reconcileFailedLiveStreamTermination(
             sessionId: "session-1",
+            requestId: nil,
+            clientRequestId: nil,
             fallbackMessage: "AI live stream failed."
         )
         await store.waitForPendingStatePersistence()
@@ -367,6 +373,8 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
 
         await store.reconcileFailedLiveStreamTermination(
             sessionId: "session-1",
+            requestId: nil,
+            clientRequestId: nil,
             fallbackMessage: "AI live stream failed."
         )
         await store.waitForPendingStatePersistence()
@@ -484,6 +492,8 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
         let reconcileTask = Task {
             await store.reconcileFailedLiveStreamTermination(
                 sessionId: "session-1",
+                requestId: nil,
+                clientRequestId: nil,
                 fallbackMessage: "AI live stream failed."
             )
         }

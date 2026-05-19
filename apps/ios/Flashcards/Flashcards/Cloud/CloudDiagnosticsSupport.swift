@@ -1,23 +1,24 @@
 import Foundation
-import OSLog
 
-enum CloudFlowPhase: String {
+enum CloudFlowPhase: String, Sendable, Hashable {
     case authSendCode = "auth_send_code"
     case authVerifyCode = "auth_verify_code"
+    case authRefreshToken = "auth_refresh_token"
+    case authRequest = "auth_request"
+    case guestSessionCreate = "guest_session_create"
     case guestSessionDelete = "guest_session_delete"
+    case guestUpgradePrepare = "guest_upgrade_prepare"
+    case guestUpgradeComplete = "guest_upgrade_complete"
+    case guestAuthRequest = "guest_auth_request"
     case workspaceList = "workspace_list"
     case workspaceCreate = "workspace_create"
     case workspaceSelect = "workspace_select"
+    case cloudSyncRequest = "cloud_sync_request"
     case linkLocalWorkspace = "link_local_workspace"
     case initialPush = "initial_push"
     case initialPull = "initial_pull"
     case linkedSync = "linked_sync"
 }
-
-private let cloudLogger = Logger(
-    subsystem: appBundleIdentifier(),
-    category: "cloud"
-)
 
 func logCloudFlowPhase(
     phase: CloudFlowPhase,
@@ -37,24 +38,78 @@ func logCloudFlowPhase(
     changesCount: Int? = nil,
     errorMessage: String? = nil
 ) {
-    cloudLogger.log(
-        """
-        phase=\(phase.rawValue, privacy: .public) \
-        outcome=\(outcome, privacy: .public) \
-        requestId=\(requestId ?? "-", privacy: .public) \
-        code=\(code ?? "-", privacy: .public) \
-        status=\(statusCode.map(String.init) ?? "-", privacy: .public) \
-        workspaceId=\(workspaceId ?? "-", privacy: .public) \
-        installationId=\(installationId ?? "-", privacy: .public) \
-        selection=\(selection ?? "-", privacy: .public) \
-        sourceWorkspaceId=\(sourceWorkspaceId ?? "-", privacy: .public) \
-        targetWorkspaceId=\(targetWorkspaceId ?? "-", privacy: .public) \
-        migrationKind=\(migrationKind ?? "-", privacy: .public) \
-        remoteWorkspaceIsEmpty=\(remoteWorkspaceIsEmpty.map(String.init) ?? "-", privacy: .public) \
-        operations=\(operationsCount.map(String.init) ?? "-", privacy: .public) \
-        reviewScheduleImpactingOperations=\(reviewScheduleImpactingOperationCount.map(String.init) ?? "-", privacy: .public) \
-        changes=\(changesCount.map(String.init) ?? "-", privacy: .public) \
-        error=\(errorMessage ?? "-", privacy: .public)
-        """
+    let cloudOutcome: CloudFlowOutcome
+    switch outcome {
+    case CloudFlowOutcome.start.rawValue:
+        cloudOutcome = .start
+    case CloudFlowOutcome.success.rawValue:
+        cloudOutcome = .success
+    case CloudFlowOutcome.failure.rawValue:
+        cloudOutcome = .failure
+    case CloudFlowOutcome.selfHeal.rawValue:
+        cloudOutcome = .selfHeal
+    default:
+        cloudOutcome = .failure
+    }
+
+    let scope = IOSObservationScope(
+        feature: cloudObservationFeature(phase: phase),
+        userId: nil,
+        workspaceId: workspaceId ?? targetWorkspaceId,
+        requestId: requestId,
+        clientRequestId: nil,
+        sessionId: nil,
+        runId: nil,
+        cloudState: nil,
+        configurationMode: nil
     )
+    let observation = CloudFlowObservation(
+        phase: phase,
+        outcome: cloudOutcome,
+        scope: scope,
+        requestId: requestId,
+        backendCode: code,
+        statusCode: statusCode,
+        workspaceId: workspaceId,
+        installationId: installationId,
+        selection: selection,
+        sourceWorkspaceId: sourceWorkspaceId,
+        targetWorkspaceId: targetWorkspaceId,
+        migrationKind: migrationKind,
+        remoteWorkspaceIsEmpty: remoteWorkspaceIsEmpty,
+        operationsCount: operationsCount,
+        reviewScheduleImpactingOperationCount: reviewScheduleImpactingOperationCount,
+        changesCount: changesCount,
+        errorSummary: errorMessage
+    )
+    if cloudOutcome == .selfHeal {
+        FlashcardsObservability.addBreadcrumb(.cloudFlow(observation))
+        FlashcardsObservability.captureWarning(.cloudFlow(observation))
+        return
+    }
+    FlashcardsObservability.addBreadcrumb(.cloudFlow(observation))
+}
+
+private func cloudObservationFeature(phase: CloudFlowPhase) -> IOSObservationFeature {
+    switch phase {
+    case .authSendCode,
+            .authRefreshToken,
+            .authVerifyCode,
+            .authRequest,
+            .guestSessionCreate,
+            .guestSessionDelete,
+            .guestUpgradePrepare,
+            .guestUpgradeComplete,
+            .guestAuthRequest:
+        return .cloudAuth
+    case .workspaceList,
+            .workspaceCreate,
+            .workspaceSelect,
+            .cloudSyncRequest,
+            .linkLocalWorkspace,
+            .initialPush,
+            .initialPull,
+            .linkedSync:
+        return .cloudSync
+    }
 }

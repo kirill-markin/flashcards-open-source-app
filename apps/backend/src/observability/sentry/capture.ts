@@ -1,5 +1,4 @@
 import * as Sentry from "@sentry/aws-serverless";
-import { sanitizeBackendTelemetryValue } from "../sanitizer";
 import { writeCloudWatchRecord } from "../cloudWatch";
 import type {
   BackendBreadcrumbEvent,
@@ -14,6 +13,7 @@ import {
   manualBackendCaptureTagValue,
   manualBackendWarningCaptureTagName,
   redactExceptionTextFields,
+  sanitizeBackendSentryTelemetryValue,
 } from "./redaction";
 import { setSentryScope } from "./scope";
 
@@ -21,7 +21,7 @@ type BackendSentryContextData = Parameters<Sentry.Scope["setContext"]>[1];
 type BackendSentryBreadcrumbData = NonNullable<Parameters<typeof Sentry.addBreadcrumb>[0]["data"]>;
 
 function getSentryData(event: BackendLogEvent): BackendSentryBreadcrumbData {
-  return sanitizeBackendTelemetryValue(redactExceptionTextFields({
+  return sanitizeBackendSentryTelemetryValue(redactExceptionTextFields({
     scope: event.scope,
     details: event.details,
   })) as BackendSentryBreadcrumbData;
@@ -47,7 +47,7 @@ export function captureBackendWarning(event: BackendWarningEvent): void {
     setSentryScope(scope, event.scope);
     scope.setContext(
       "backend.details",
-      sanitizeBackendTelemetryValue(redactExceptionTextFields(event.details)) as BackendSentryContextData,
+      sanitizeBackendSentryTelemetryValue(redactExceptionTextFields(event.details)) as BackendSentryContextData,
     );
     scope.setTag(manualBackendWarningCaptureTagName, manualBackendCaptureTagValue);
     scope.setTag(backendActionTagName, event.action);
@@ -63,7 +63,7 @@ export function captureBackendException(event: BackendExceptionEvent): void {
     setSentryScope(scope, event.scope);
     scope.setContext(
       "backend.details",
-      sanitizeBackendTelemetryValue(redactExceptionTextFields(event.details)) as BackendSentryContextData,
+      sanitizeBackendSentryTelemetryValue(redactExceptionTextFields(event.details)) as BackendSentryContextData,
     );
     scope.setTag(manualBackendCaptureTagName, manualBackendCaptureTagValue);
     Sentry.captureException(event.error);
