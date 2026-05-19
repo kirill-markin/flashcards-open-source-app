@@ -234,12 +234,27 @@ extension FlashcardsStore {
         do {
             return max(persistedReviewCount, try database.loadReviewEventCount())
         } catch {
-            logFlashcardsError(
-                domain: "ios_notifications",
-                action: "review_prompt_count_load_failed",
-                metadata: [
-                    "message": Flashcards.errorMessage(error: error)
-                ]
+            FlashcardsObservability.captureWarning(
+                .localDataRepair(
+                    LocalDataRepairWarning(
+                        action: "review_prompt_count_load_failed",
+                        scope: IOSObservationScope(
+                            feature: .notifications,
+                            userId: nil,
+                            workspaceId: self.workspace?.workspaceId,
+                            requestId: nil,
+                            clientRequestId: nil,
+                            sessionId: nil,
+                            runId: nil,
+                            cloudState: self.cloudSettings?.cloudState,
+                            configurationMode: nil
+                        ),
+                        workspaceId: self.workspace?.workspaceId,
+                        cardId: nil,
+                        reason: Flashcards.errorMessage(error: error),
+                        repair: "use_persisted_review_count"
+                    )
+                )
             )
             return persistedReviewCount
         }
@@ -327,13 +342,27 @@ extension FlashcardsStore {
         do {
             loadResult = try await loadScheduledReviewNotificationPayloads(snapshot: snapshot)
         } catch {
-            logFlashcardsError(
-                domain: "ios_notifications",
-                action: "schedule_failed",
-                metadata: [
-                    "workspaceId": workspaceId,
-                    "message": Flashcards.errorMessage(error: error)
-                ]
+            FlashcardsObservability.captureWarning(
+                .localDataRepair(
+                    LocalDataRepairWarning(
+                        action: "schedule_failed",
+                        scope: IOSObservationScope(
+                            feature: .notifications,
+                            userId: nil,
+                            workspaceId: workspaceId,
+                            requestId: nil,
+                            clientRequestId: nil,
+                            sessionId: nil,
+                            runId: nil,
+                            cloudState: self.cloudSettings?.cloudState,
+                            configurationMode: nil
+                        ),
+                        workspaceId: workspaceId,
+                        cardId: nil,
+                        reason: Flashcards.errorMessage(error: error),
+                        repair: "clear_scheduled_review_notifications"
+                    )
+                )
             )
             self.persistScheduledReviewNotifications(payloads: [])
             return

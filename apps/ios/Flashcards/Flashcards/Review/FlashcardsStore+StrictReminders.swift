@@ -149,12 +149,27 @@ extension FlashcardsStore {
                 )
             )
         } catch {
-            logFlashcardsError(
-                domain: "ios_notifications",
-                action: "strict_schedule_failed",
-                metadata: [
-                    "message": Flashcards.errorMessage(error: error)
-                ]
+            FlashcardsObservability.captureWarning(
+                .localDataRepair(
+                    LocalDataRepairWarning(
+                        action: "strict_schedule_failed",
+                        scope: IOSObservationScope(
+                            feature: .notifications,
+                            userId: nil,
+                            workspaceId: self.workspace?.workspaceId,
+                            requestId: nil,
+                            clientRequestId: nil,
+                            sessionId: nil,
+                            runId: nil,
+                            cloudState: self.cloudSettings?.cloudState,
+                            configurationMode: nil
+                        ),
+                        workspaceId: self.workspace?.workspaceId,
+                        cardId: nil,
+                        reason: Flashcards.errorMessage(error: error),
+                        repair: "clear_scheduled_strict_reminders"
+                    )
+                )
             )
             self.persistScheduledStrictReminders(payloads: [])
             return
@@ -191,12 +206,27 @@ extension FlashcardsStore {
                 }
             }
         } catch {
-            logFlashcardsError(
-                domain: "ios_notifications",
-                action: "strict_schedule_add_failed",
-                metadata: [
-                    "message": Flashcards.errorMessage(error: error)
-                ]
+            FlashcardsObservability.captureWarning(
+                .localDataRepair(
+                    LocalDataRepairWarning(
+                        action: "strict_schedule_add_failed",
+                        scope: IOSObservationScope(
+                            feature: .notifications,
+                            userId: nil,
+                            workspaceId: self.workspace?.workspaceId,
+                            requestId: nil,
+                            clientRequestId: nil,
+                            sessionId: nil,
+                            runId: nil,
+                            cloudState: self.cloudSettings?.cloudState,
+                            configurationMode: nil
+                        ),
+                        workspaceId: self.workspace?.workspaceId,
+                        cardId: nil,
+                        reason: Flashcards.errorMessage(error: error),
+                        repair: "clear_scheduled_strict_reminders"
+                    )
+                )
             )
             self.persistScheduledStrictReminders(payloads: [])
             return

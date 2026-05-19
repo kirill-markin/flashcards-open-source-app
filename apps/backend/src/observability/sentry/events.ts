@@ -281,6 +281,7 @@ export type ChatLiveRequestDetails = Readonly<{
   hasWorkspaceId: boolean;
   origin: string | null;
   authScheme: string;
+  clientRequestId: string | null;
   resumeAttemptId: string | null;
   clientPlatform: string | null;
   clientVersion: string | null;
@@ -298,6 +299,7 @@ export type ChatLiveAttachDetails = Readonly<{
   hasWorkspaceId: boolean;
   origin: string | null;
   authScheme: string;
+  clientRequestId: string | null;
   resumeAttemptId: string | null;
   clientPlatform: string | null;
   clientVersion: string | null;
@@ -313,6 +315,7 @@ export type ChatLiveStreamCrashDetails = Readonly<{
   hasWorkspaceId: boolean;
   origin: string | null;
   authScheme: string;
+  clientRequestId: string | null;
   resumeAttemptId: string | null;
   clientPlatform: string | null;
   clientVersion: string | null;
@@ -328,6 +331,7 @@ export type ChatLiveBootstrapFailureDetails = Readonly<{
   hasWorkspaceId: boolean;
   origin: string | null;
   authScheme: string;
+  clientRequestId: string | null;
   resumeAttemptId: string | null;
   clientPlatform: string | null;
   clientVersion: string | null;
@@ -337,6 +341,7 @@ export type ChatLiveBootstrapFailureDetails = Readonly<{
 
 export type ChatLiveLifecycleDetails = Readonly<{
   afterCursor: number | null;
+  clientRequestId: string | null;
   resumeAttemptId: string | null;
   clientPlatform: string | null;
   clientVersion: string | null;

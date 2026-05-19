@@ -66,6 +66,30 @@ private final class AIChatLiveStreamTestURLProtocol: URLProtocol, @unchecked Sen
     }
 }
 
+private final class AIChatLiveStreamCapturedString: @unchecked Sendable {
+    private let lock: NSLock
+    private var storedValue: String?
+
+    init() {
+        self.lock = NSLock()
+        self.storedValue = nil
+    }
+
+    func set(_ value: String?) {
+        self.lock.lock()
+        self.storedValue = value
+        self.lock.unlock()
+    }
+
+    func value() -> String? {
+        self.lock.lock()
+        defer {
+            self.lock.unlock()
+        }
+        return self.storedValue
+    }
+}
+
 final class AIChatLiveStreamClientTests: XCTestCase {
     override func tearDown() {
         AIChatLiveStreamTestURLProtocol.requestHandler = nil
@@ -350,8 +374,13 @@ final class AIChatLiveStreamClientTests: XCTestCase {
         )
 
         var receivedEvents: [AIChatLiveEvent] = []
-        for try await event in stream {
-            receivedEvents.append(event)
+        for try await element in stream {
+            switch element {
+            case .connected:
+                break
+            case .event(let event):
+                receivedEvents.append(event)
+            }
         }
 
         XCTAssertEqual(receivedEvents.count, 1)
@@ -373,6 +402,45 @@ final class AIChatLiveStreamClientTests: XCTestCase {
         XCTAssertNil(assistantItemId)
         XCTAssertNil(isError)
         XCTAssertNil(isStopped)
+    }
+
+    func testLiveStreamWrapsPreResponseTransportFailureWithClientRequestId() async throws {
+        let client = AIChatLiveStreamClient(urlSession: self.makeURLSession())
+        let capturedClientRequestId = AIChatLiveStreamCapturedString()
+        AIChatLiveStreamTestURLProtocol.requestHandler = { request in
+            capturedClientRequestId.set(request.value(forHTTPHeaderField: "X-Chat-Request-Id"))
+            throw URLError(.notConnectedToInternet)
+        }
+
+        let stream = await client.connect(
+            liveUrl: "https://api.example.com/chat/live",
+            authorization: "Live token",
+            sessionId: "session-1",
+            runId: "run-1",
+            afterCursor: "5",
+            configurationMode: .official,
+            resumeAttemptDiagnostics: nil
+        )
+
+        do {
+            for try await element in stream {
+                if case .event = element {
+                    XCTFail("Expected the pre-response transport failure before events arrive.")
+                }
+            }
+            XCTFail("Expected transport failure.")
+        } catch let error as AIChatLiveStreamError {
+            guard case .transportFailure(let underlyingError, let requestId, let clientRequestId) = error else {
+                return XCTFail("Expected transport failure, got \(error).")
+            }
+            XCTAssertNil(requestId)
+            XCTAssertEqual(clientRequestId, capturedClientRequestId.value())
+            XCTAssertFalse(clientRequestId.isEmpty)
+            XCTAssertEqual((underlyingError as NSError).domain, NSURLErrorDomain)
+            XCTAssertEqual((underlyingError as NSError).code, URLError.notConnectedToInternet.rawValue)
+        } catch {
+            XCTFail("Expected AIChatLiveStreamError, got \(error).")
+        }
     }
 
     func testLiveStreamFailsWhenConnectionTurnsSilent() async throws {
@@ -406,15 +474,18 @@ final class AIChatLiveStreamClientTests: XCTestCase {
         )
 
         do {
-            for try await _ in stream {
-                XCTFail("Expected the stalled live stream to fail.")
+            for try await element in stream {
+                if case .event = element {
+                    XCTFail("Expected the stalled live stream to fail before events arrive.")
+                }
             }
             XCTFail("Expected a stale stream error.")
         } catch let error as AIChatLiveStreamError {
-            guard case .staleStream(let idleTimeoutSeconds) = error else {
+            guard case .staleStream(let idleTimeoutSeconds, _, let clientRequestId) = error else {
                 return XCTFail("Expected stale stream error, got \(error).")
             }
             XCTAssertEqual(idleTimeoutSeconds, 0.15, accuracy: 0.001)
+            XCTAssertFalse(clientRequestId.isEmpty)
         } catch {
             XCTFail("Expected AIChatLiveStreamError, got \(error).")
         }
@@ -480,8 +551,13 @@ final class AIChatLiveStreamClientTests: XCTestCase {
         )
 
         var receivedEvents: [AIChatLiveEvent] = []
-        for try await event in stream {
-            receivedEvents.append(event)
+        for try await element in stream {
+            switch element {
+            case .connected:
+                break
+            case .event(let event):
+                receivedEvents.append(event)
+            }
         }
 
         XCTAssertEqual(receivedEvents.count, 1)

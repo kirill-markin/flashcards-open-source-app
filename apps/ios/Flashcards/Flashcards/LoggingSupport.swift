@@ -1,5 +1,6 @@
 import Foundation
 
+@available(*, unavailable, message: "Use FlashcardsObservability typed APIs.")
 func logFlashcardsError(domain: String, action: String, metadata: [String: String]) {
     var logRecord = metadata
     logRecord["domain"] = domain

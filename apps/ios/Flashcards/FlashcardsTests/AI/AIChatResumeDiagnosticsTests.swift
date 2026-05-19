@@ -52,6 +52,7 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
             XCTAssertEqual(request.value(forHTTPHeaderField: "X-Chat-Resume-Attempt-Id"), "11")
             XCTAssertEqual(request.value(forHTTPHeaderField: "X-Client-Platform"), aiChatClientPlatform)
             XCTAssertEqual(request.value(forHTTPHeaderField: "X-Client-Version"), aiChatAppVersion())
+            XCTAssertFalse((request.value(forHTTPHeaderField: "X-Chat-Request-Id") ?? "").isEmpty)
             let queryItems = try aiChatQueryItems(request: request)
             XCTAssertEqual(queryItems.first(where: { $0.name == "limit" })?.value, "20")
             XCTAssertEqual(queryItems.first(where: { $0.name == "sessionId" })?.value, "session-1")
@@ -166,6 +167,7 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
             let body = try XCTUnwrap(aiChatRequestBodyData(request: request))
             let payload = try JSONDecoder().decode(AIChatEncodedStartRunRequest.self, from: body)
             XCTAssertEqual(payload.sessionId, "session-1")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "X-Chat-Request-Id"), payload.clientRequestId)
             XCTAssertEqual(payload.timezone, TimeZone.current.identifier)
             XCTAssertEqual(payload.uiLocale, currentAIChatUILocaleIdentifier())
             XCTAssertEqual(payload.workspaceId, "workspace-1")
@@ -419,7 +421,8 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
                 code: "CHAT_LIVE_RUN_ID_REQUIRED",
                 syncConflict: nil
             ),
-            configurationMode: .official
+            configurationMode: .official,
+            clientRequestId: "client-request-400"
         )
 
         let alert = aiChatGeneralErrorAlert(error: error, resumeAttemptSequence: 4)

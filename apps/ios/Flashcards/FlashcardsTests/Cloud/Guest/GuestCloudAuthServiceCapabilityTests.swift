@@ -9,6 +9,56 @@ final class GuestCloudAuthServiceCapabilityTests: XCTestCase {
         super.tearDown()
     }
 
+    func testCreateGuestSessionDecodeFailureDoesNotExposeSuccessfulResponseBody() async throws {
+        GuestCloudAuthServiceTestURLProtocol.requestHandler = { request in
+            let response = try XCTUnwrap(
+                HTTPURLResponse(
+                    url: try XCTUnwrap(request.url),
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: [
+                        "Content-Type": "application/json",
+                        "X-Request-Id": "request-header",
+                    ]
+                )
+            )
+            let responseBody = Data(
+                """
+                {
+                  "error": "guest token private-token and private workspace payload",
+                  "requestId": "request-body",
+                  "code": "PRIVATE_BODY_CODE",
+                  "guestToken": "private-token"
+                }
+                """.utf8
+            )
+            return (response, responseBody)
+        }
+
+        let service = GuestCloudAuthService(session: self.makeSession())
+
+        do {
+            _ = try await service.createGuestSession(
+                apiBaseUrl: "https://api.example.test/v1",
+                configurationMode: .official
+            )
+            XCTFail("Expected guest auth response decode failure")
+        } catch let error as GuestCloudAuthError {
+            guard case .invalidResponse(let details, let statusCode) = error else {
+                XCTFail("Expected invalidResponse, got \(error)")
+                return
+            }
+
+            XCTAssertEqual(200, statusCode)
+            XCTAssertEqual("Failed to decode guest auth response", details.message)
+            XCTAssertEqual("request-header", details.requestId)
+            XCTAssertEqual("RESPONSE_DECODING_FAILED", details.code)
+            XCTAssertNil(details.syncConflict)
+            XCTAssertFalse(details.message.contains("private workspace payload"))
+            XCTAssertFalse(details.message.contains("private-token"))
+        }
+    }
+
     func testCompleteGuestUpgradeSendsExplicitCapabilitiesAndDrainAssertion() async throws {
         GuestCloudAuthServiceTestURLProtocol.requestHandler = { request in
             let body = try guestCloudAuthServiceTestRequestBody(request: request)

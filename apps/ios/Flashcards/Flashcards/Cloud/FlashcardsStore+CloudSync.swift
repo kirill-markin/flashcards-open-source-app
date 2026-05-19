@@ -84,6 +84,13 @@ extension FlashcardsStore {
                     error: error,
                     fallbackCloudState: failureStateCloudState
                 )
+                self.captureCloudSyncFailureIfNeeded(
+                    error: error,
+                    linkedSession: activeSession,
+                    fallbackCloudState: failureStateCloudState,
+                    trigger: trigger,
+                    action: "sync_cloud_now"
+                )
                 if trigger.surfacesGlobalErrorMessage {
                     self.globalErrorMessage = Flashcards.errorMessage(error: error)
                 }
@@ -92,6 +99,13 @@ extension FlashcardsStore {
             self.syncStatus = self.syncStatusForCloudFailure(
                 error: failureError,
                 fallbackCloudState: failureStateCloudState
+            )
+            self.captureCloudSyncFailureIfNeeded(
+                error: failureError,
+                linkedSession: activeSession,
+                fallbackCloudState: failureStateCloudState,
+                trigger: trigger,
+                action: "sync_cloud_now"
             )
             if trigger.surfacesGlobalErrorMessage {
                 self.globalErrorMessage = Flashcards.errorMessage(error: failureError)
@@ -391,6 +405,72 @@ extension FlashcardsStore {
         return Flashcards.errorMessage(error: error)
     }
 
+    func captureCloudSyncFailure(
+        error: Error,
+        linkedSession: CloudLinkedSession,
+        fallbackCloudState: CloudAccountState?,
+        action: String
+    ) {
+        let diagnostics = cloudSyncFailureDiagnostics(error: error)
+        let scope = IOSObservationScope(
+            feature: .cloudSync,
+            userId: linkedSession.userId,
+            workspaceId: linkedSession.workspaceId,
+            requestId: diagnostics.requestId,
+            clientRequestId: nil,
+            sessionId: nil,
+            runId: nil,
+            cloudState: fallbackCloudState ?? self.cloudSettings?.cloudState,
+            configurationMode: linkedSession.configurationMode
+        )
+        FlashcardsObservability.captureException(
+            .cloudSyncFailed(
+                error: error,
+                scope: scope,
+                details: CloudSyncFailureDetails(
+                    action: action,
+                    statusCode: diagnostics.statusCode,
+                    backendCode: diagnostics.backendCode,
+                    requestId: diagnostics.requestId,
+                    messageSummary: Flashcards.errorMessage(error: error)
+                )
+            )
+        )
+    }
+
+    func captureCloudSyncFailureIfNeeded(
+        error: Error,
+        linkedSession: CloudLinkedSession,
+        fallbackCloudState: CloudAccountState?,
+        trigger: CloudSyncTrigger,
+        action: String
+    ) {
+        guard self.shouldCaptureCloudSyncFailure(error: error, trigger: trigger) else {
+            return
+        }
+
+        self.captureCloudSyncFailure(
+            error: error,
+            linkedSession: linkedSession,
+            fallbackCloudState: fallbackCloudState,
+            action: action
+        )
+    }
+
+    private func shouldCaptureCloudSyncFailure(error: Error, trigger: CloudSyncTrigger) -> Bool {
+        if trigger.surfacesGlobalErrorMessage {
+            return true
+        }
+        if self.isCloudAccountDeletedError(error) {
+            return true
+        }
+        if self.blockedCloudIdentityConflictMessage(error: error) != nil {
+            return true
+        }
+
+        return false
+    }
+
     func runLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
         do {
             return try await self.cloudRuntime.runLinkedSync(linkedSession: linkedSession)
@@ -451,4 +531,53 @@ extension FlashcardsStore {
 
         self.enqueueTransientBanner(banner: makeCardsUpdatedFromCloudBanner())
     }
+}
+
+private struct CloudFailureDiagnostics {
+    let statusCode: Int?
+    let backendCode: String?
+    let requestId: String?
+}
+
+private func cloudSyncFailureDiagnostics(error: Error) -> CloudFailureDiagnostics {
+    if let syncError = error as? CloudSyncError {
+        switch syncError {
+        case .invalidResponse(let details, let statusCode):
+            return CloudFailureDiagnostics(
+                statusCode: statusCode,
+                backendCode: details.code,
+                requestId: details.requestId
+            )
+        case .invalidBaseUrl:
+            return CloudFailureDiagnostics(statusCode: nil, backendCode: nil, requestId: nil)
+        }
+    }
+
+    if let authError = error as? CloudAuthError {
+        switch authError {
+        case .invalidResponse(let details, let statusCode):
+            return CloudFailureDiagnostics(
+                statusCode: statusCode,
+                backendCode: details.code,
+                requestId: details.requestId
+            )
+        case .invalidBaseUrl, .invalidResponseBody:
+            return CloudFailureDiagnostics(statusCode: nil, backendCode: nil, requestId: nil)
+        }
+    }
+
+    if let guestAuthError = error as? GuestCloudAuthError {
+        switch guestAuthError {
+        case .invalidResponse(let details, let statusCode):
+            return CloudFailureDiagnostics(
+                statusCode: statusCode,
+                backendCode: details.code,
+                requestId: details.requestId
+            )
+        case .invalidBaseUrl, .invalidResponseBody:
+            return CloudFailureDiagnostics(statusCode: nil, backendCode: nil, requestId: nil)
+        }
+    }
+
+    return CloudFailureDiagnostics(statusCode: nil, backendCode: nil, requestId: nil)
 }

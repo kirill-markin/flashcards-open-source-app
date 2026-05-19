@@ -1,6 +1,8 @@
 import Foundation
 
 private let collectionPageLimit: Int = 100
+private let cloudSyncResponseDecodingFailedCode: String = "RESPONSE_DECODING_FAILED"
+private let cloudSyncResponseDecodingFailedMessage: String = "Failed to decode cloud sync response"
 
 struct CloudSyncTransport {
     private let session: URLSession
@@ -115,16 +117,34 @@ struct CloudSyncTransport {
             request.httpBody = try JSONEncoder().encode(body)
         }
 
-        let (data, response) = try await self.session.data(for: request)
+        let phase = self.phase(for: path, method: method)
+        logCloudFlowPhase(phase: phase, outcome: "start")
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await self.session.data(for: request)
+        } catch {
+            logCloudFlowPhase(
+                phase: phase,
+                outcome: "failure",
+                errorMessage: Flashcards.errorMessage(error: error)
+            )
+            throw error
+        }
         guard let httpResponse = response as? HTTPURLResponse else {
+            logCloudFlowPhase(
+                phase: phase,
+                outcome: "failure",
+                errorMessage: "Cloud sync did not receive an HTTP response"
+            )
             throw LocalStoreError.database("Cloud sync did not receive an HTTP response")
         }
+        let requestId = httpResponse.value(forHTTPHeaderField: "X-Request-Id")
 
         if httpResponse.statusCode < 200 || httpResponse.statusCode >= 300 {
-            let requestId = httpResponse.value(forHTTPHeaderField: "X-Request-Id")
             let errorDetails = decodeCloudApiErrorDetails(data: data, requestId: requestId)
             logCloudFlowPhase(
-                phase: self.phase(for: path),
+                phase: phase,
                 outcome: "failure",
                 requestId: errorDetails.requestId,
                 code: errorDetails.code,
@@ -133,9 +153,24 @@ struct CloudSyncTransport {
             throw CloudSyncError.invalidResponse(errorDetails, httpResponse.statusCode)
         }
 
-        logCloudFlowPhase(phase: self.phase(for: path), outcome: "success")
-
-        return try self.decoder.decode(Response.self, from: data)
+        do {
+            let decodedResponse: Response = try self.decoder.decode(Response.self, from: data)
+            logCloudFlowPhase(phase: phase, outcome: "success", requestId: requestId)
+            return decodedResponse
+        } catch {
+            let errorDetails: CloudApiErrorDetails = makeCloudSyncResponseDecodingErrorDetails(
+                requestId: requestId
+            )
+            logCloudFlowPhase(
+                phase: phase,
+                outcome: "failure",
+                requestId: errorDetails.requestId,
+                code: errorDetails.code,
+                statusCode: httpResponse.statusCode,
+                errorMessage: errorDetails.message
+            )
+            throw CloudSyncError.invalidResponse(errorDetails, httpResponse.statusCode)
+        }
     }
 
     private func makeUrl(apiBaseUrl: String, path: String) throws -> URL {
@@ -147,35 +182,60 @@ struct CloudSyncTransport {
         return url
     }
 
-    private func phase(for path: String) -> CloudFlowPhase {
-        if path == "/workspaces" {
+    private func phase(for path: String, method: String) -> CloudFlowPhase {
+        let requestPath = self.requestPath(from: path)
+
+        if requestPath == "/workspaces" && method == "GET" {
+            return .workspaceList
+        }
+
+        if requestPath == "/workspaces" && method == "POST" {
             return .workspaceCreate
         }
 
-        if path.hasPrefix("/workspaces/") && path.hasSuffix("/select") {
+        if requestPath.hasPrefix("/workspaces/") && requestPath.hasSuffix("/select") {
             return .workspaceSelect
         }
 
-        if path.hasSuffix("/sync/push") {
+        if requestPath.hasSuffix("/sync/push") {
             return .initialPush
         }
 
-        if path.hasSuffix("/sync/bootstrap") {
+        if requestPath.hasSuffix("/sync/bootstrap") {
             return .initialPull
         }
 
-        if path.hasSuffix("/sync/review-history/import") {
+        if requestPath.hasSuffix("/sync/review-history/import") {
             return .initialPush
         }
 
-        if path.hasSuffix("/sync/review-history/pull") {
+        if requestPath.hasSuffix("/sync/review-history/pull") {
             return .initialPull
         }
 
-        if path.hasSuffix("/sync/pull") {
+        if requestPath.hasSuffix("/sync/pull") {
             return .initialPull
         }
 
-        return .workspaceList
+        return .cloudSyncRequest
     }
+
+    private func requestPath(from path: String) -> String {
+        guard let components = URLComponents(string: path) else {
+            return path
+        }
+
+        return components.path
+    }
+}
+
+private func makeCloudSyncResponseDecodingErrorDetails(
+    requestId: String?
+) -> CloudApiErrorDetails {
+    CloudApiErrorDetails(
+        message: cloudSyncResponseDecodingFailedMessage,
+        requestId: requestId,
+        code: cloudSyncResponseDecodingFailedCode,
+        syncConflict: nil
+    )
 }

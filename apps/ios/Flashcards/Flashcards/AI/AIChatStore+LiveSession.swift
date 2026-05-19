@@ -281,26 +281,34 @@ extension AIChatStore {
         sessionId: String
     ) async {
         switch termination {
-        case .sawTerminalEvent:
+        case .sawTerminalEvent(_, _):
             return
-        case .failed(let message):
+        case .failed(let message, let requestId, let clientRequestId):
             guard self.shouldKeepLiveAttached else {
                 return
             }
             await self.reconcileFailedLiveStreamTermination(
                 sessionId: sessionId,
+                requestId: requestId,
+                clientRequestId: clientRequestId,
                 fallbackMessage: message
             )
-        case .endedWithoutTerminalEvent:
+        case .endedWithoutTerminalEvent(let requestId, let clientRequestId):
             guard self.shouldKeepLiveAttached else {
                 return
             }
-            await self.reconcileUnexpectedLiveStreamEnd(sessionId: sessionId)
+            await self.reconcileUnexpectedLiveStreamEnd(
+                sessionId: sessionId,
+                requestId: requestId,
+                clientRequestId: clientRequestId
+            )
         }
     }
 
     func reconcileFailedLiveStreamTermination(
         sessionId: String,
+        requestId: String?,
+        clientRequestId: String?,
         fallbackMessage: String
     ) async {
         let fallbackAnchor = self.currentFailedLiveOptimisticFallbackAnchor()
@@ -329,9 +337,19 @@ extension AIChatStore {
             )
 
             if let errorMessage = aiChatLatestAssistantErrorMessage(messages: response.conversation.messages) {
+                let reconciledRunId: String? = self.activeRunId
+                let reconciledAfterCursor: String? = self.liveCursor
                 self.applyBootstrap(response)
                 self.transitionToIdle()
-                self.showGeneralError(message: errorMessage)
+                self.showLiveReconciledError(
+                    message: errorMessage,
+                    sessionId: sessionId,
+                    runId: reconciledRunId,
+                    afterCursor: reconciledAfterCursor,
+                    requestId: requestId,
+                    clientRequestId: clientRequestId,
+                    eventType: "failed_stream_reconcile_error"
+                )
                 return
             }
 
@@ -348,6 +366,13 @@ extension AIChatStore {
                 )
             } ?? false
             if shouldApplyOptimisticFallback {
+                self.captureLiveOptimisticFallbackFailure(
+                    sessionId: sessionId,
+                    runId: self.activeRunId,
+                    afterCursor: self.liveCursor,
+                    requestId: requestId,
+                    clientRequestId: clientRequestId
+                )
                 self.applyBootstrapMetadataPreservingMessages(response)
                 self.transitionToIdle()
                 self.markAssistantError(message: fallbackMessage)
@@ -366,7 +391,11 @@ extension AIChatStore {
         }
     }
 
-    func reconcileUnexpectedLiveStreamEnd(sessionId: String) async {
+    func reconcileUnexpectedLiveStreamEnd(
+        sessionId: String,
+        requestId: String?,
+        clientRequestId: String?
+    ) async {
         do {
             let session = try await self.flashcardsStore.cloudSessionForAI()
             let response = try await self.chatService.loadBootstrap(
@@ -385,11 +414,21 @@ extension AIChatStore {
                 response: response,
                 requestedSessionId: sessionId
             )
+            let reconciledRunId: String? = self.activeRunId
+            let reconciledAfterCursor: String? = self.liveCursor
             self.applyBootstrap(response)
 
             if let errorMessage = aiChatLatestAssistantErrorMessage(messages: response.conversation.messages) {
                 self.transitionToIdle()
-                self.showGeneralError(message: errorMessage)
+                self.showLiveReconciledError(
+                    message: errorMessage,
+                    sessionId: sessionId,
+                    runId: reconciledRunId,
+                    afterCursor: reconciledAfterCursor,
+                    requestId: requestId,
+                    clientRequestId: clientRequestId,
+                    eventType: "unexpected_stream_end_reconcile_error"
+                )
                 return
             }
 

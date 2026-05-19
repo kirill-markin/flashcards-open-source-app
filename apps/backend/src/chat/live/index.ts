@@ -130,6 +130,7 @@ function buildChatLiveLifecycleDetails(
   if (payload.errorDetails === null) {
     return {
       afterCursor: params.afterCursor ?? null,
+      clientRequestId: params.clientRequestId ?? null,
       resumeAttemptId: params.resumeAttemptId ?? null,
       clientPlatform: params.clientPlatform ?? null,
       clientVersion: params.clientVersion ?? null,
@@ -147,6 +148,7 @@ function buildChatLiveLifecycleDetails(
 
   return {
     afterCursor: params.afterCursor ?? null,
+    clientRequestId: params.clientRequestId ?? null,
     resumeAttemptId: params.resumeAttemptId ?? null,
     clientPlatform: params.clientPlatform ?? null,
     clientVersion: params.clientVersion ?? null,
@@ -172,7 +174,7 @@ function createChatLiveObservationScope(
     "GET",
     params.userId,
     params.workspaceId,
-    null,
+    params.clientRequestId ?? null,
     params.runId,
     params.sessionId,
   );

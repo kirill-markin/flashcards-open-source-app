@@ -69,13 +69,24 @@ func isCardDue(card: Card, now: Date) -> Bool {
     }
 
     guard let dueDate = parseIsoTimestamp(value: dueAt) else {
-        logFlashcardsError(
-            domain: "cards",
-            action: "invalid_due_at",
-            metadata: [
-                "cardId": card.cardId,
-                "dueAt": dueAt
-            ]
+        FlashcardsObservability.captureWarning(
+            .invalidCardDueAt(
+                InvalidCardDueAtWarning(
+                    scope: IOSObservationScope(
+                        feature: .cards,
+                        userId: nil,
+                        workspaceId: nil,
+                        requestId: nil,
+                        clientRequestId: nil,
+                        sessionId: nil,
+                        runId: nil,
+                        cloudState: nil,
+                        configurationMode: nil
+                    ),
+                    cardId: card.cardId,
+                    dueAt: dueAt
+                )
+            )
         )
         return false
     }

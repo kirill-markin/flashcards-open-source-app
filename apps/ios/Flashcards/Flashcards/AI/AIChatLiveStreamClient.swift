@@ -51,17 +51,19 @@ actor AIChatLiveStreamClient {
         afterCursor: String?,
         configurationMode: CloudServiceConfigurationMode,
         resumeAttemptDiagnostics: AIChatResumeAttemptDiagnostics?
-    ) -> AsyncThrowingStream<AIChatLiveEvent, Error> {
+    ) -> AsyncThrowingStream<AIChatLiveStreamElement, Error> {
         let decoder = self.decoder
         let fallbackConfiguration = self.fallbackSession.configuration
         let liveConfiguration = self.configuration
+        let clientRequestId = makeAIChatClientRequestId()
         return AsyncThrowingStream { continuation in
             do {
                 let url = try makeAIChatLiveStreamURL(
                     liveUrl: liveUrl,
                     sessionId: sessionId,
                     runId: runId,
-                    afterCursor: afterCursor
+                    afterCursor: afterCursor,
+                    clientRequestId: clientRequestId
                 )
                 logAIChatLiveClientEvent(
                     action: "ai_live_connect_start",
@@ -69,7 +71,8 @@ actor AIChatLiveStreamClient {
                         "sessionId": sessionId,
                         "runId": runId,
                         "afterCursor": afterCursor ?? "-",
-                        "liveUrl": liveUrl
+                        "liveUrl": liveUrl,
+                        "clientRequestId": clientRequestId
                     ]
                     .merging(
                         resumeAttemptDiagnostics.map { ["resumeAttempt": $0.headerValue] } ?? [:]
@@ -81,6 +84,7 @@ actor AIChatLiveStreamClient {
                 request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
                 request.setValue("identity", forHTTPHeaderField: "Accept-Encoding")
                 request.setValue(authorization, forHTTPHeaderField: "Authorization")
+                request.setValue(clientRequestId, forHTTPHeaderField: "X-Chat-Request-Id")
                 if let resumeAttemptDiagnostics {
                     request.setValue(
                         resumeAttemptDiagnostics.headerValue,
@@ -96,11 +100,12 @@ actor AIChatLiveStreamClient {
                     sessionId: sessionId,
                     runId: runId,
                     afterCursor: afterCursor,
+                    clientRequestId: clientRequestId,
                     configurationMode: configurationMode,
                     decoder: decoder,
                     liveConfiguration: liveConfiguration,
                     callbackQueue: DispatchQueue(
-                        label: "AIChatLiveStreamClient.callback.\(sessionId).\(runId)"
+                        label: "AIChatLiveStreamClient.callback"
                     )
                 )
                 let configuration = fallbackConfiguration.copy() as? URLSessionConfiguration
@@ -131,10 +136,11 @@ actor AIChatLiveStreamClient {
 }
 
 private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelegate, @unchecked Sendable {
-    private let continuation: AsyncThrowingStream<AIChatLiveEvent, Error>.Continuation
+    private let continuation: AsyncThrowingStream<AIChatLiveStreamElement, Error>.Continuation
     private let sessionId: String
     private let runId: String
     private let afterCursor: String?
+    private let clientRequestId: String
     private let configurationMode: CloudServiceConfigurationMode
     private let decoder: JSONDecoder
     private let liveConfiguration: AIChatLiveStreamConfiguration
@@ -150,10 +156,11 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
     private var inactivityTimeoutWorkItem: DispatchWorkItem?
 
     init(
-        continuation: AsyncThrowingStream<AIChatLiveEvent, Error>.Continuation,
+        continuation: AsyncThrowingStream<AIChatLiveStreamElement, Error>.Continuation,
         sessionId: String,
         runId: String,
         afterCursor: String?,
+        clientRequestId: String,
         configurationMode: CloudServiceConfigurationMode,
         decoder: JSONDecoder,
         liveConfiguration: AIChatLiveStreamConfiguration,
@@ -163,6 +170,7 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
         self.sessionId = sessionId
         self.runId = runId
         self.afterCursor = afterCursor
+        self.clientRequestId = clientRequestId
         self.configurationMode = configurationMode
         self.decoder = decoder
         self.liveConfiguration = liveConfiguration
@@ -181,12 +189,15 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
         completionHandler: @escaping (URLSession.ResponseDisposition) -> Void
     ) {
         guard let httpResponse = response as? HTTPURLResponse else {
-            self.finish(throwing: AIChatLiveStreamError.invalidResponse)
+            self.finish(throwing: AIChatLiveStreamError.invalidResponse(
+                clientRequestId: self.clientRequestId
+            ))
             completionHandler(.cancel)
             return
         }
 
         self.httpResponse = httpResponse
+        let requestId = extractAIChatLiveRequestId(httpResponse: httpResponse)
         logAIChatLiveClientEvent(
             action: "ai_live_http_response",
             metadata: [
@@ -194,9 +205,14 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
                 "runId": self.runId,
                 "afterCursor": self.afterCursor ?? "-",
                 "statusCode": String(httpResponse.statusCode),
-                "requestId": extractAIChatLiveRequestId(httpResponse: httpResponse) ?? "-"
+                "clientRequestId": self.clientRequestId,
+                "requestId": requestId ?? "-"
             ]
         )
+        self.continuation.yield(.connected(
+            requestId: requestId,
+            clientRequestId: self.clientRequestId
+        ))
         if httpResponse.statusCode == 200 {
             self.armInactivityTimeout()
         }
@@ -213,7 +229,9 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
         }
 
         guard let httpResponse = self.httpResponse else {
-            self.finish(throwing: AIChatLiveStreamError.invalidResponse)
+            self.finish(throwing: AIChatLiveStreamError.invalidResponse(
+                clientRequestId: self.clientRequestId
+            ))
             return
         }
 
@@ -246,6 +264,7 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
                         "runId": self.runId,
                         "afterCursor": self.afterCursor ?? "-",
                         "statusCode": self.httpResponse.map { String($0.statusCode) } ?? "-",
+                        "clientRequestId": self.clientRequestId,
                         "requestId": self.httpResponse.flatMap(extractAIChatLiveRequestId(httpResponse:)) ?? "-",
                         "failureKind": "cancelled"
                     ]
@@ -254,12 +273,18 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
                 return
             }
 
-            self.finish(throwing: error)
+            self.finish(throwing: AIChatLiveStreamError.transportFailure(
+                underlyingError: error,
+                requestId: self.httpResponse.flatMap(extractAIChatLiveRequestId(httpResponse:)),
+                clientRequestId: self.clientRequestId
+            ))
             return
         }
 
         guard let httpResponse = self.httpResponse else {
-            self.finish(throwing: AIChatLiveStreamError.invalidResponse)
+            self.finish(throwing: AIChatLiveStreamError.invalidResponse(
+                clientRequestId: self.clientRequestId
+            ))
             return
         }
 
@@ -272,7 +297,8 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
             self.finish(throwing: AIChatLiveStreamError.invalidStatusCode(
                 httpStatusCode: httpResponse.statusCode,
                 errorDetails: errorDetails,
-                configurationMode: self.configurationMode
+                configurationMode: self.configurationMode,
+                clientRequestId: self.clientRequestId
             ))
             return
         }
@@ -337,6 +363,7 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
                 context: AIChatLiveEventDecodingContext(
                     sessionId: self.sessionId,
                     afterCursor: self.afterCursor,
+                    clientRequestId: self.clientRequestId,
                     requestId: self.httpResponse.flatMap(extractAIChatLiveRequestId(httpResponse:))
                 )
             )
@@ -346,7 +373,7 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
                     action: "ai_live_event_received",
                     metadata: self.metadataForParsedEvent(event)
                 )
-                self.continuation.yield(event)
+                self.continuation.yield(.event(event))
             case .ignoredUnknownType(let ignoredEventType):
                 logAIChatLiveClientEvent(
                     action: "ai_live_event_skipped_unknown_type",
@@ -355,19 +382,24 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
                         "runId": self.runId,
                         "afterCursor": self.afterCursor ?? "-",
                         "eventType": ignoredEventType,
-                        "payloadSnippet": aiChatLiveTruncatedSnippet(payload)
+                        "clientRequestId": self.clientRequestId,
+                        "requestId": self.httpResponse.flatMap(extractAIChatLiveRequestId(httpResponse:)) ?? "-"
                     ]
                 )
             }
         } catch {
+            let diagnostics = (error as? any AIChatFailureDiagnosticProviding)?.diagnostics
             logAIChatLiveClientEvent(
                 action: "ai_live_event_parse_failed",
                 metadata: [
                     "sessionId": self.sessionId,
                     "runId": self.runId,
                     "afterCursor": self.afterCursor ?? "-",
-                    "eventType": self.currentEventType ?? "-",
-                    "payloadSnippet": aiChatLiveTruncatedSnippet(payload),
+                    "eventType": diagnostics?.eventType ?? self.currentEventType ?? "-",
+                    "clientRequestId": self.clientRequestId,
+                    "requestId": self.httpResponse.flatMap(extractAIChatLiveRequestId(httpResponse:)) ?? "-",
+                    "payloadLength": String(payload.utf8.count),
+                    "decoderSummary": diagnostics?.decoderSummary ?? "-",
                     "error": error.localizedDescription
                 ]
             )
@@ -400,6 +432,7 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
                     "runId": self.runId,
                     "afterCursor": self.afterCursor ?? "-",
                     "statusCode": self.httpResponse.map { String($0.statusCode) } ?? "-",
+                    "clientRequestId": self.clientRequestId,
                     "requestId": self.httpResponse.flatMap(extractAIChatLiveRequestId(httpResponse:)) ?? "-",
                     "error": error.localizedDescription
                 ]
@@ -416,6 +449,7 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
                 "runId": self.runId,
                 "afterCursor": self.afterCursor ?? "-",
                 "statusCode": self.httpResponse.map { String($0.statusCode) } ?? "-",
+                "clientRequestId": self.clientRequestId,
                 "requestId": self.httpResponse.flatMap(extractAIChatLiveRequestId(httpResponse:)) ?? "-"
             ]
         )
@@ -437,7 +471,9 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
                 return
             }
             self.finish(throwing: AIChatLiveStreamError.staleStream(
-                idleTimeoutSeconds: idleTimeoutSeconds
+                idleTimeoutSeconds: idleTimeoutSeconds,
+                requestId: self.httpResponse.flatMap(extractAIChatLiveRequestId(httpResponse:)),
+                clientRequestId: self.clientRequestId
             ))
         }
         self.inactivityTimeoutWorkItem = workItem
@@ -462,6 +498,8 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
             "conversationScopeId": liveMetadata.conversationScopeId,
             "eventRunId": liveMetadata.runId,
             "cursor": liveMetadata.cursor ?? "-",
+            "clientRequestId": self.clientRequestId,
+            "requestId": liveMetadata.requestId ?? "-",
             "sequenceNumber": String(liveMetadata.sequenceNumber),
             "streamEpoch": liveMetadata.streamEpoch
         ]
@@ -535,24 +573,28 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
 }
 
 enum AIChatLiveStreamError: LocalizedError {
-    case invalidUrl(String)
-    case invalidResponse
-    case staleStream(idleTimeoutSeconds: TimeInterval)
+    case invalidUrl(String, clientRequestId: String)
+    case invalidResponse(clientRequestId: String)
+    case transportFailure(underlyingError: Error, requestId: String?, clientRequestId: String)
+    case staleStream(idleTimeoutSeconds: TimeInterval, requestId: String?, clientRequestId: String)
     case invalidStatusCode(
         httpStatusCode: Int,
         errorDetails: CloudApiErrorDetails,
-        configurationMode: CloudServiceConfigurationMode
+        configurationMode: CloudServiceConfigurationMode,
+        clientRequestId: String
     )
 
     var errorDescription: String? {
         switch self {
-        case .invalidUrl(let liveUrl):
-            return "AI live stream URL is invalid: \(liveUrl)"
+        case .invalidUrl:
+            return "AI live stream URL is invalid."
         case .invalidResponse:
             return "AI live stream did not receive an HTTP response."
+        case .transportFailure(let underlyingError, _, _):
+            return "AI live stream network request failed: \(underlyingError.localizedDescription)"
         case .staleStream:
             return "AI response stopped updating before the run finished."
-        case .invalidStatusCode(let httpStatusCode, let errorDetails, let configurationMode):
+        case .invalidStatusCode(let httpStatusCode, let errorDetails, let configurationMode, _):
             let message = makeAIChatUserFacingErrorMessage(
                 rawMessage: errorDetails.message,
                 code: errorDetails.code,
@@ -569,10 +611,11 @@ private func makeAIChatLiveStreamURL(
     liveUrl: String,
     sessionId: String,
     runId: String,
-    afterCursor: String?
+    afterCursor: String?,
+    clientRequestId: String
 ) throws -> URL {
     guard var components = URLComponents(string: liveUrl) else {
-        throw AIChatLiveStreamError.invalidUrl(liveUrl)
+        throw AIChatLiveStreamError.invalidUrl(liveUrl, clientRequestId: clientRequestId)
     }
 
     var queryItems = components.queryItems ?? []
@@ -587,7 +630,7 @@ private func makeAIChatLiveStreamURL(
     components.queryItems = queryItems
 
     guard let url = components.url else {
-        throw AIChatLiveStreamError.invalidUrl(liveUrl)
+        throw AIChatLiveStreamError.invalidUrl(liveUrl, clientRequestId: clientRequestId)
     }
 
     return url
@@ -617,37 +660,119 @@ private func aiChatLiveTruncatedSnippet(_ value: String) -> String {
 }
 
 private func logAIChatLiveClientEvent(action: String, metadata: [String: String]) {
-    logFlashcardsError(domain: "ios_ai_live", action: action, metadata: metadata)
+    let actionValue = AILiveLifecycleAction(rawValue: action) ?? .eventReceived
+    let requestId = metadata["requestId"].flatMap(nonPlaceholderString)
+    let backendRequestId = metadata["backendRequestId"].flatMap(nonPlaceholderString)
+    let clientRequestId = metadata["clientRequestId"].flatMap(nonPlaceholderString)
+    let sessionId = metadata["sessionId"].flatMap(nonPlaceholderString)
+        ?? metadata["eventSessionId"].flatMap(nonPlaceholderString)
+        ?? "-"
+    let runId = metadata["runId"].flatMap(nonPlaceholderString)
+        ?? metadata["eventRunId"].flatMap(nonPlaceholderString)
+        ?? metadata["requestedRunId"].flatMap(nonPlaceholderString)
+    let statusCode = metadata["statusCode"].flatMap(Int.init)
+    let scope = IOSObservationScope(
+        feature: .aiLive,
+        userId: nil,
+        workspaceId: nil,
+        requestId: backendRequestId ?? requestId,
+        clientRequestId: clientRequestId,
+        sessionId: sessionId,
+        runId: runId,
+        cloudState: nil,
+        configurationMode: nil
+    )
+    let observation = AILiveLifecycleObservation(
+        action: actionValue,
+        scope: scope,
+        sessionId: sessionId,
+        runId: runId,
+        afterCursor: metadata["afterCursor"].flatMap(nonPlaceholderString),
+        requestId: requestId,
+        backendRequestId: backendRequestId,
+        backendCode: metadata["backendCode"].flatMap(nonPlaceholderString),
+        statusCode: statusCode,
+        eventType: metadata["eventType"].flatMap(nonPlaceholderString),
+        sequenceNumber: metadata["sequenceNumber"].flatMap(Int.init),
+        cursor: metadata["cursor"].flatMap(nonPlaceholderString),
+        streamEpoch: metadata["streamEpoch"].flatMap(nonPlaceholderString),
+        itemId: metadata["itemId"].flatMap(nonPlaceholderString),
+        toolName: metadata["toolName"].flatMap(nonPlaceholderString),
+        toolStatus: metadata["toolStatus"].flatMap(nonPlaceholderString),
+        contentCount: metadata["contentCount"].flatMap(Int.init),
+        textLength: metadata["textLength"].flatMap(Int.init),
+        summaryLength: metadata["summaryLength"].flatMap(Int.init),
+        suggestionCount: metadata["suggestionCount"].flatMap(Int.init),
+        isError: metadata["isError"].flatMap(Bool.init),
+        isStopped: metadata["isStopped"].flatMap(Bool.init),
+        outcome: metadata["outcome"].flatMap(nonPlaceholderString),
+        failureKind: metadata["failureKind"].flatMap(nonPlaceholderString),
+        stage: metadata["stage"].flatMap(AIChatFailureStage.init(rawValue:)),
+        errorKind: metadata["errorKind"].flatMap(AIChatFailureKind.init(rawValue:)),
+        resumeAttempt: metadata["resumeAttempt"].flatMap(Int.init)
+    )
+    FlashcardsObservability.addBreadcrumb(.aiLiveLifecycle(observation))
+}
+
+private func nonPlaceholderString(_ value: String) -> String? {
+    let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard trimmedValue.isEmpty == false, trimmedValue != "-" else {
+        return nil
+    }
+
+    return trimmedValue
 }
 
 func aiChatErrorLogMetadata(error: Error) -> [String: String] {
     if let liveStreamError = error as? AIChatLiveStreamError {
         switch liveStreamError {
-        case .invalidUrl:
+        case .invalidUrl(_, let clientRequestId):
             return [
                 "failureKind": "local_contract_failure",
                 "stage": AIChatFailureStage.requestBuild.rawValue,
                 "errorKind": AIChatFailureKind.invalidBaseUrl.rawValue,
+                "clientRequestId": clientRequestId,
             ]
-        case .invalidResponse:
+        case .invalidResponse(let clientRequestId):
             return [
                 "failureKind": "transport_failure",
                 "stage": AIChatFailureStage.invalidHttpResponse.rawValue,
                 "errorKind": AIChatFailureKind.invalidHttpResponse.rawValue,
+                "clientRequestId": clientRequestId,
             ]
-        case .staleStream(let idleTimeoutSeconds):
-            return [
+        case .transportFailure(let underlyingError, let requestId, let clientRequestId):
+            let nsError = underlyingError as NSError
+            var metadata: [String: String] = [
+                "failureKind": "transport_failure",
+                "stage": AIChatFailureStage.invalidHttpResponse.rawValue,
+                "errorKind": AIChatFailureKind.invalidHttpResponse.rawValue,
+                "clientRequestId": clientRequestId,
+                "errorDomain": nsError.domain,
+                "errorCode": String(nsError.code),
+            ]
+            if let requestId, requestId.isEmpty == false {
+                metadata["backendRequestId"] = requestId
+            }
+            return metadata
+        case .staleStream(let idleTimeoutSeconds, let requestId, let clientRequestId):
+            var metadata: [String: String] = [
                 "failureKind": "transport_stale_stream",
                 "stage": AIChatFailureStage.readingLine.rawValue,
                 "errorKind": AIChatFailureKind.staleStream.rawValue,
-                "idleTimeoutSeconds": String(idleTimeoutSeconds)
+                "idleTimeoutSeconds": String(idleTimeoutSeconds),
+                "clientRequestId": clientRequestId,
             ]
-        case .invalidStatusCode(let httpStatusCode, let errorDetails, _):
+            if let requestId, requestId.isEmpty == false {
+                metadata["backendRequestId"] = requestId
+            }
+            return metadata
+        case .invalidStatusCode(let httpStatusCode, let errorDetails, _, let clientRequestId):
             var metadata: [String: String] = [
                 "failureKind": "backend_http_failure",
                 "statusCode": String(httpStatusCode),
                 "stage": AIChatFailureStage.responseNotOk.rawValue,
                 "errorKind": AIChatFailureKind.invalidHttpResponse.rawValue,
+                "clientRequestId": clientRequestId,
             ]
             if let requestId = errorDetails.requestId, requestId.isEmpty == false {
                 metadata["backendRequestId"] = requestId
@@ -691,6 +816,7 @@ func aiChatErrorLogMetadata(error: Error) -> [String: String] {
 struct AIChatLiveEventDecodingContext: Sendable {
     let sessionId: String
     let afterCursor: String?
+    let clientRequestId: String
     let requestId: String?
 }
 
@@ -807,6 +933,7 @@ func decodeAIChatLiveEvent(
     context: AIChatLiveEventDecodingContext = AIChatLiveEventDecodingContext(
         sessionId: "-",
         afterCursor: nil,
+        clientRequestId: "-",
         requestId: nil
     )
 ) throws -> AIChatLiveEvent? {
@@ -883,14 +1010,22 @@ private func decodeAIChatLiveEventResult(
         case .assistantDelta:
             let event = try decoder.decode(AIChatLiveAssistantDeltaWirePayload.self, from: data)
             return .event(.assistantDelta(
-                metadata: mapAIChatLiveEventMetadata(metadata),
+                metadata: mapAIChatLiveEventMetadata(
+                    metadata,
+                    requestId: context.requestId,
+                    clientRequestId: context.clientRequestId
+                ),
                 text: event.text,
                 itemId: event.itemId
             ))
         case .assistantToolCall:
             let event = try decoder.decode(AIChatLiveAssistantToolCallWirePayload.self, from: data)
             return .event(.assistantToolCall(
-                metadata: mapAIChatLiveEventMetadata(metadata),
+                metadata: mapAIChatLiveEventMetadata(
+                    metadata,
+                    requestId: context.requestId,
+                    clientRequestId: context.clientRequestId
+                ),
                 toolCall: AIChatToolCall(
                     id: event.toolCallId,
                     name: event.name,
@@ -903,14 +1038,22 @@ private func decodeAIChatLiveEventResult(
         case .assistantReasoningStarted:
             let event = try decoder.decode(AIChatLiveAssistantReasoningStartedWirePayload.self, from: data)
             return .event(.assistantReasoningStarted(
-                metadata: mapAIChatLiveEventMetadata(metadata),
+                metadata: mapAIChatLiveEventMetadata(
+                    metadata,
+                    requestId: context.requestId,
+                    clientRequestId: context.clientRequestId
+                ),
                 reasoningId: event.reasoningId,
                 itemId: event.itemId
             ))
         case .assistantReasoningSummary:
             let event = try decoder.decode(AIChatLiveAssistantReasoningSummaryWirePayload.self, from: data)
             return .event(.assistantReasoningSummary(
-                metadata: mapAIChatLiveEventMetadata(metadata),
+                metadata: mapAIChatLiveEventMetadata(
+                    metadata,
+                    requestId: context.requestId,
+                    clientRequestId: context.clientRequestId
+                ),
                 reasoningId: event.reasoningId,
                 summary: event.summary,
                 itemId: event.itemId
@@ -918,14 +1061,22 @@ private func decodeAIChatLiveEventResult(
         case .assistantReasoningDone:
             let event = try decoder.decode(AIChatLiveAssistantReasoningDoneWirePayload.self, from: data)
             return .event(.assistantReasoningDone(
-                metadata: mapAIChatLiveEventMetadata(metadata),
+                metadata: mapAIChatLiveEventMetadata(
+                    metadata,
+                    requestId: context.requestId,
+                    clientRequestId: context.clientRequestId
+                ),
                 reasoningId: event.reasoningId,
                 itemId: event.itemId
             ))
         case .assistantMessageDone:
             let event = try decoder.decode(AIChatLiveAssistantMessageDoneWirePayload.self, from: data)
             return .event(.assistantMessageDone(
-                metadata: mapAIChatLiveEventMetadata(metadata),
+                metadata: mapAIChatLiveEventMetadata(
+                    metadata,
+                    requestId: context.requestId,
+                    clientRequestId: context.clientRequestId
+                ),
                 itemId: event.itemId,
                 content: event.content,
                 isError: event.isError,
@@ -934,13 +1085,21 @@ private func decodeAIChatLiveEventResult(
         case .composerSuggestionsUpdated:
             let event = try decoder.decode(AIChatLiveComposerSuggestionsUpdatedWirePayload.self, from: data)
             return .event(.composerSuggestionsUpdated(
-                metadata: mapAIChatLiveEventMetadata(metadata),
+                metadata: mapAIChatLiveEventMetadata(
+                    metadata,
+                    requestId: context.requestId,
+                    clientRequestId: context.clientRequestId
+                ),
                 suggestions: event.suggestions
             ))
         case .repairStatus:
             let event = try decoder.decode(AIChatLiveRepairStatusWirePayload.self, from: data)
             return .event(.repairStatus(
-                metadata: mapAIChatLiveEventMetadata(metadata),
+                metadata: mapAIChatLiveEventMetadata(
+                    metadata,
+                    requestId: context.requestId,
+                    clientRequestId: context.clientRequestId
+                ),
                 status: AIChatRepairAttemptStatus(
                     message: event.message,
                     attempt: event.attempt,
@@ -951,7 +1110,11 @@ private func decodeAIChatLiveEventResult(
         case .runTerminal:
             let event = try decoder.decode(AIChatLiveRunTerminalWirePayload.self, from: data)
             return .event(.runTerminal(
-                metadata: mapAIChatLiveEventMetadata(metadata),
+                metadata: mapAIChatLiveEventMetadata(
+                    metadata,
+                    requestId: context.requestId,
+                    clientRequestId: context.clientRequestId
+                ),
                 outcome: event.outcome,
                 message: event.message,
                 assistantItemId: event.assistantItemId,
@@ -979,7 +1142,7 @@ private func makeAIChatLiveStreamContractError(
 ) -> AIChatLiveStreamContractError {
     AIChatLiveStreamContractError(
         diagnostics: AIChatFailureDiagnostics(
-            clientRequestId: context.sessionId,
+            clientRequestId: context.clientRequestId,
             backendRequestId: context.requestId,
             stage: .decodingEventJSON,
             errorKind: .invalidStreamContract,
@@ -988,28 +1151,76 @@ private func makeAIChatLiveStreamContractError(
             toolName: nil,
             toolCallId: nil,
             lineNumber: nil,
-            rawSnippet: aiChatLiveTruncatedSnippet(payload),
-            decoderSummary: [summary, underlyingError.map { String(describing: $0) }]
-                .compactMap { $0 }
-                .joined(separator: " "),
+            rawSnippet: nil,
+            decoderSummary: aiChatLiveDecoderSummary(
+                summary: summary,
+                underlyingError: underlyingError,
+                payloadByteCount: payload.utf8.count
+            ),
             continuationAttempt: nil,
             continuationToolCallIds: []
         )
     )
 }
 
-private func mapAIChatLiveEventMetadata(_ metadata: AIChatLiveEventMetadataWire) -> AIChatLiveEventMetadata {
+private func aiChatLiveDecoderSummary(
+    summary: String,
+    underlyingError: Error?,
+    payloadByteCount: Int
+) -> String {
+    var parts: [String] = [
+        summary,
+        "payload_bytes=\(payloadByteCount)"
+    ]
+    if let underlyingError {
+        parts.append(aiChatLiveUnderlyingErrorSummary(underlyingError))
+    }
+    return parts.joined(separator: " ")
+}
+
+private func aiChatLiveUnderlyingErrorSummary(_ error: Error) -> String {
+    switch error {
+    case DecodingError.typeMismatch(_, let context):
+        return "decoder_error=type_mismatch coding_path=\(aiChatLiveCodingPathSummary(context.codingPath))"
+    case DecodingError.valueNotFound(_, let context):
+        return "decoder_error=value_not_found coding_path=\(aiChatLiveCodingPathSummary(context.codingPath))"
+    case DecodingError.keyNotFound(let key, let context):
+        return "decoder_error=key_not_found key=\(key.stringValue) coding_path=\(aiChatLiveCodingPathSummary(context.codingPath))"
+    case DecodingError.dataCorrupted(let context):
+        return "decoder_error=data_corrupted coding_path=\(aiChatLiveCodingPathSummary(context.codingPath))"
+    default:
+        return "decoder_error=other"
+    }
+}
+
+private func aiChatLiveCodingPathSummary(_ codingPath: [any CodingKey]) -> String {
+    let path: String = codingPath
+        .map(\.stringValue)
+        .filter { value in
+            value.isEmpty == false
+        }
+        .joined(separator: ".")
+    return path.isEmpty ? "-" : path
+}
+
+private func mapAIChatLiveEventMetadata(
+    _ metadata: AIChatLiveEventMetadataWire,
+    requestId: String?,
+    clientRequestId: String?
+) -> AIChatLiveEventMetadata {
     AIChatLiveEventMetadata(
         sessionId: metadata.sessionId,
         conversationScopeId: metadata.conversationScopeId,
         runId: metadata.runId,
         cursor: metadata.cursor,
+        requestId: requestId,
+        clientRequestId: clientRequestId,
         sequenceNumber: metadata.sequenceNumber,
         streamEpoch: metadata.streamEpoch
     )
 }
 
-private func aiChatLiveEventMetadata(_ event: AIChatLiveEvent) -> AIChatLiveEventMetadata {
+func aiChatLiveEventMetadata(_ event: AIChatLiveEvent) -> AIChatLiveEventMetadata {
     switch event {
     case .assistantDelta(metadata: let metadata, text: _, itemId: _):
         return metadata

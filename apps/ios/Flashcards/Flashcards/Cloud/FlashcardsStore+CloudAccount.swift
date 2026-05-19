@@ -65,12 +65,47 @@ extension FlashcardsStore {
         do {
             _ = try await self.prepareAuthenticatedCloudSessionForAI()
         } catch {
-            logFlashcardsError(
-                domain: "chat",
-                action: "ai_chat_session_warmup_failed",
-                metadata: [
-                    "message": Flashcards.errorMessage(error: error),
-                ]
+            FlashcardsObservability.captureWarning(
+                .aiChatLifecycle(
+                    AIChatLifecycleObservation(
+                        action: .storeLifecycle,
+                        scope: IOSObservationScope(
+                            feature: .aiChat,
+                            userId: self.cloudSettings?.linkedUserId,
+                            workspaceId: self.cloudSettings?.activeWorkspaceId ?? self.cloudSettings?.linkedWorkspaceId,
+                            requestId: nil,
+                            clientRequestId: nil,
+                            sessionId: nil,
+                            runId: nil,
+                            cloudState: self.cloudSettings?.cloudState,
+                            configurationMode: nil
+                        ),
+                        sessionId: nil,
+                        runId: nil,
+                        conversationScopeId: nil,
+                        eventType: nil,
+                        statusCode: nil,
+                        backendCode: nil,
+                        backendRequestId: nil,
+                        clientRequestId: nil,
+                        stage: nil,
+                        errorKind: nil,
+                        failureKind: "ai_chat_session_warmup_failed",
+                        attempt: nil,
+                        maxAttempts: nil,
+                        delayNanoseconds: nil,
+                        outgoingContentCount: nil,
+                        contentCount: nil,
+                        textLength: nil,
+                        summaryLength: nil,
+                        suggestionCount: nil,
+                        isError: nil,
+                        isStopped: nil,
+                        outcome: nil,
+                        reason: nil,
+                        errorSummary: Flashcards.errorMessage(error: error)
+                    )
+                )
             )
         }
     }
@@ -143,13 +178,24 @@ extension FlashcardsStore {
                 throw error
             }
 
-            logFlashcardsError(
-                domain: "cloud",
-                action: "guest_session_delete_stale_local_credentials",
-                metadata: [
-                    "apiBaseUrl": storedGuestSession.apiBaseUrl,
-                    "message": Flashcards.errorMessage(error: error),
-                ]
+            FlashcardsObservability.captureWarning(
+                .staleGuestCredentials(
+                    StaleGuestCredentialsWarning(
+                        scope: IOSObservationScope(
+                            feature: .cloudAuth,
+                            userId: storedGuestSession.userId,
+                            workspaceId: storedGuestSession.workspaceId,
+                            requestId: nil,
+                            clientRequestId: nil,
+                            sessionId: nil,
+                            runId: nil,
+                            cloudState: .guest,
+                            configurationMode: storedGuestSession.configurationMode
+                        ),
+                        apiBaseUrl: storedGuestSession.apiBaseUrl,
+                        messageSummary: Flashcards.errorMessage(error: error)
+                    )
+                )
             )
         }
 

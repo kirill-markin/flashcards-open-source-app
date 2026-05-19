@@ -6,15 +6,27 @@ extension CardStore {
             return card
         }
 
-        logFlashcardsError(
-            domain: "cards",
-            action: "reset_invalid_fsrs_state",
-            metadata: [
-                "workspaceId": workspaceId,
-                "cardId": card.cardId,
-                "reason": invalidReason,
-                "repair": "reset"
-            ]
+        FlashcardsObservability.captureWarning(
+            .localDataRepair(
+                LocalDataRepairWarning(
+                    action: "reset_invalid_fsrs_state",
+                    scope: IOSObservationScope(
+                        feature: .localData,
+                        userId: nil,
+                        workspaceId: workspaceId,
+                        requestId: nil,
+                        clientRequestId: nil,
+                        sessionId: nil,
+                        runId: nil,
+                        cloudState: nil,
+                        configurationMode: nil
+                    ),
+                    workspaceId: workspaceId,
+                    cardId: card.cardId,
+                    reason: invalidReason,
+                    repair: "reset"
+                )
+            )
         )
 
         let repairedCard = resetFsrsState(

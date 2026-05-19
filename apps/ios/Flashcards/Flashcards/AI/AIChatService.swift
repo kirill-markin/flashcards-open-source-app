@@ -435,6 +435,7 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
         for (headerName, headerValue) in additionalHeaders {
             request.setValue(headerValue, forHTTPHeaderField: headerName)
         }
+        request.setValue(clientRequestId, forHTTPHeaderField: "X-Chat-Request-Id")
         return request
     }
 

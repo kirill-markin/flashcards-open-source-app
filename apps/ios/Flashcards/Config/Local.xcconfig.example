@@ -18,6 +18,9 @@ PRIVACY_POLICY_URL = https:/$()/flashcards-open-source-app.com/privacy/
 TERMS_OF_SERVICE_URL = https:/$()/flashcards-open-source-app.com/terms/
 SUPPORT_URL = https:/$()/flashcards-open-source-app.com/support/
 SUPPORT_EMAIL_ADDRESS = kirill+flashcards@kirill-markin.com
+FLASHCARDS_SENTRY_DSN =
+FLASHCARDS_SENTRY_ENVIRONMENT = local
+FLASHCARDS_SENTRY_TRACES_SAMPLE_RATE = 0.0
 
 // Set the same values in Xcode Cloud:
 // XCODE_CLOUD_DEVELOPMENT_TEAM
@@ -28,3 +31,11 @@ SUPPORT_EMAIL_ADDRESS = kirill+flashcards@kirill-markin.com
 // XCODE_CLOUD_TERMS_OF_SERVICE_URL
 // XCODE_CLOUD_SUPPORT_URL
 // XCODE_CLOUD_SUPPORT_EMAIL_ADDRESS
+// XCODE_CLOUD_SENTRY_DSN (secure workflow value; do not commit the real DSN)
+// XCODE_CLOUD_SENTRY_ENVIRONMENT = production
+// XCODE_CLOUD_SENTRY_TRACES_SAMPLE_RATE = 0.0
+// SENTRY_AUTH_TOKEN (secure secret)
+// SENTRY_ORG
+// SENTRY_IOS_PROJECT
+// SENTRY_URL
+// SENTRY_CLI_EXPECTED_SHA256 (optional non-secret override when bumping the pinned sentry-cli version)

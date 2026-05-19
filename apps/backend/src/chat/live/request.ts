@@ -23,6 +23,7 @@ export type LiveStreamParams = Readonly<{
   workspaceId: string;
   traceContext?: BackendTraceCarrier | null;
   requestId?: string;
+  clientRequestId?: string;
   resumeAttemptId?: string;
   clientPlatform?: string;
   clientVersion?: string;
@@ -44,6 +45,8 @@ const defaultHandleLiveRequestDependencies: HandleLiveRequestDependencies = {
   assertChatLiveRunAccessFn: assertChatLiveRunAccess,
 };
 
+const chatRequestIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 function readOptionalHeader(headers: Headers | Record<string, string | undefined>, name: string): string | undefined {
   if (headers instanceof Headers) {
     const value = headers.get(name);
@@ -51,13 +54,30 @@ function readOptionalHeader(headers: Headers | Record<string, string | undefined
   }
 
   const normalizedHeaderName = name.toLowerCase();
-  for (const [key, value] of Object.entries(headers)) {
+  const headerEntries = Object.entries(headers) as ReadonlyArray<readonly [string, string | undefined]>;
+  for (const [key, value] of headerEntries) {
     if (key.toLowerCase() === normalizedHeaderName && value !== undefined && value !== "") {
       return value;
     }
   }
 
   return undefined;
+}
+
+export function readOptionalChatRequestIdHeader(
+  headers: Headers | Record<string, string | undefined>,
+): string | undefined {
+  const value = readOptionalHeader(headers, "X-Chat-Request-Id");
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const trimmedValue = value.trim();
+  if (trimmedValue === "" || !chatRequestIdPattern.test(trimmedValue)) {
+    return undefined;
+  }
+
+  return trimmedValue;
 }
 
 /**
@@ -91,6 +111,7 @@ export async function handleLiveRequest(
   }
 
   const tokenParam = url.searchParams.get("token");
+  const clientRequestId = readOptionalChatRequestIdHeader(headers);
   if (authorizationHeader !== undefined && authorizationHeader.startsWith("Live ")) {
     const verifiedLiveAuth = await liveRequestDependencies.verifyChatLiveAuthorizationHeaderFn(
       authorizationHeader,
@@ -110,6 +131,7 @@ export async function handleLiveRequest(
       userId: verifiedLiveAuth.userId,
       workspaceId: verifiedLiveAuth.workspaceId,
       traceContext: verifiedLiveAuth.traceContext ?? null,
+      ...(clientRequestId === undefined ? {} : { clientRequestId }),
       resumeAttemptId: readOptionalHeader(headers, "X-Chat-Resume-Attempt-Id"),
       clientPlatform: readOptionalHeader(headers, "X-Client-Platform"),
       clientVersion: readOptionalHeader(headers, "X-Client-Version"),
@@ -160,6 +182,7 @@ export async function handleLiveRequest(
     userId: authResult.userId,
     workspaceId,
     traceContext: null,
+    ...(clientRequestId === undefined ? {} : { clientRequestId }),
     resumeAttemptId: readOptionalHeader(headers, "X-Chat-Resume-Attempt-Id"),
     clientPlatform: readOptionalHeader(headers, "X-Client-Platform"),
     clientVersion: readOptionalHeader(headers, "X-Client-Version"),

@@ -59,6 +59,8 @@ extension AIChatStore {
                     cursor: cursor,
                     itemId: itemId,
                     messageIndex: messageIndex,
+                    requestId: metadata.requestId,
+                    clientRequestId: metadata.clientRequestId,
                     extra: ["textLength": String(text.count)]
                 )
             )
@@ -99,6 +101,8 @@ extension AIChatStore {
                     cursor: cursor,
                     itemId: itemId,
                     messageIndex: messageIndex,
+                    requestId: metadata.requestId,
+                    clientRequestId: metadata.clientRequestId,
                     extra: [
                         "toolName": toolCall.name,
                         "toolStatus": toolCall.status.rawValue
@@ -145,6 +149,8 @@ extension AIChatStore {
                     cursor: cursor,
                     itemId: itemId,
                     messageIndex: messageIndex,
+                    requestId: metadata.requestId,
+                    clientRequestId: metadata.clientRequestId,
                     extra: ["reasoningId": reasoningId]
                 )
             )
@@ -193,6 +199,8 @@ extension AIChatStore {
                     cursor: cursor,
                     itemId: itemId,
                     messageIndex: messageIndex,
+                    requestId: metadata.requestId,
+                    clientRequestId: metadata.clientRequestId,
                     extra: [
                         "reasoningId": reasoningId,
                         "summaryLength": String(summary.count)
@@ -235,6 +243,8 @@ extension AIChatStore {
                     cursor: cursor,
                     itemId: itemId,
                     messageIndex: messageIndex,
+                    requestId: metadata.requestId,
+                    clientRequestId: metadata.clientRequestId,
                     extra: ["reasoningId": reasoningId]
                 )
             )
@@ -262,6 +272,8 @@ extension AIChatStore {
                         cursor: cursor,
                         itemId: itemId,
                         messageIndex: messageIndex,
+                        requestId: metadata.requestId,
+                        clientRequestId: metadata.clientRequestId,
                         extra: [
                             "reason": "message_not_found",
                             "isError": isError ? "true" : "false",
@@ -293,6 +305,8 @@ extension AIChatStore {
                         cursor: cursor,
                         itemId: itemId,
                         messageIndex: messageIndex,
+                        requestId: metadata.requestId,
+                        clientRequestId: metadata.clientRequestId,
                         extra: [
                             "reason": "non_renderable_success_content",
                             "isError": isError ? "true" : "false",
@@ -329,6 +343,8 @@ extension AIChatStore {
                     cursor: cursor,
                     itemId: itemId,
                     messageIndex: messageIndex,
+                    requestId: metadata.requestId,
+                    clientRequestId: metadata.clientRequestId,
                     extra: [
                         "isError": isError ? "true" : "false",
                         "isStopped": isStopped ? "true" : "false",
@@ -343,6 +359,7 @@ extension AIChatStore {
                 action: "ai_live_composer_suggestions_applied",
                 metadata: [
                     "chatSessionId": self.chatSessionId.isEmpty ? "-" : self.chatSessionId,
+                    "requestId": metadata.requestId ?? "-",
                     "count": String(suggestions.count)
                 ]
             )
@@ -353,6 +370,7 @@ extension AIChatStore {
                 action: "ai_live_repair_status_applied",
                 metadata: [
                     "chatSessionId": self.chatSessionId.isEmpty ? "-" : self.chatSessionId,
+                    "requestId": metadata.requestId ?? "-",
                     "attempt": String(status.attempt),
                     "maxAttempts": String(status.maxAttempts),
                     "toolName": status.toolName ?? "-"
@@ -388,14 +406,21 @@ extension AIChatStore {
                 if let cursor = metadata.cursor, let assistantItemId {
                     _ = self.resolveTerminalAssistantMessageIndex(itemId: assistantItemId, cursor: cursor)
                 }
+                let alertMessage: String
                 if let message, message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
                     self.markAssistantError(message: message)
-                    self.showGeneralError(message: message)
+                    alertMessage = message
                 } else if let latestAssistantError = aiChatLatestAssistantErrorMessage(messages: self.messages) {
-                    self.showGeneralError(message: latestAssistantError)
+                    alertMessage = latestAssistantError
                 } else {
-                    self.showGeneralError(message: "AI chat failed.")
+                    alertMessage = "AI chat failed."
                 }
+                self.showLiveTerminalError(
+                    message: alertMessage,
+                    metadata: metadata,
+                    isError: isError,
+                    isStopped: isStopped
+                )
                 self.clearActiveRunTracking(resetComposer: true)
                 self.syncLinkedDataAfterTerminalRunIfNeeded()
             case .resetRequired:
@@ -415,11 +440,14 @@ extension AIChatStore {
                     messageIndex: self.activeStreamingMessageId.flatMap { activeStreamingMessageId in
                         self.messages.firstIndex(where: { $0.id == activeStreamingMessageId })
                     } ?? -1,
+                    requestId: metadata.requestId,
+                    clientRequestId: metadata.clientRequestId,
                     extra: [
                         "outcome": outcome.rawValue,
                         "isError": isError.map { $0 ? "true" : "false" } ?? "-",
                         "isStopped": isStopped.map { $0 ? "true" : "false" } ?? "-",
-                        "message": message ?? "-"
+                        "messagePresent": message == nil ? "false" : "true",
+                        "messageLength": message.map { String($0.count) } ?? "-"
                     ]
                 )
             )
@@ -511,6 +539,8 @@ extension AIChatStore {
             "eventRunId": metadata.runId,
             "eventStreamEpoch": metadata.streamEpoch,
             "sequenceNumber": String(metadata.sequenceNumber),
+            "requestId": metadata.requestId ?? "-",
+            "clientRequestId": metadata.clientRequestId ?? "-",
             "liveCursor": self.liveCursor ?? "-",
             "eventCursor": metadata.cursor ?? "-",
             "activeStreamingMessageId": self.activeStreamingMessageId ?? "-",
@@ -577,7 +607,8 @@ extension AIChatStore {
             values["eventType"] = "run_terminal"
             values["outcome"] = outcome.rawValue
             values["assistantItemId"] = assistantItemId ?? "-"
-            values["message"] = message ?? "-"
+            values["messagePresent"] = message == nil ? "false" : "true"
+            values["messageLength"] = message.map { String($0.count) } ?? "-"
             values["isError"] = isError.map { $0 ? "true" : "false" } ?? "-"
             values["isStopped"] = isStopped.map { $0 ? "true" : "false" } ?? "-"
         }
@@ -590,6 +621,8 @@ extension AIChatStore {
         cursor: String?,
         itemId: String?,
         messageIndex: Int,
+        requestId: String?,
+        clientRequestId: String?,
         extra: [String: String]
     ) -> [String: String] {
         var metadata: [String: String] = [
@@ -600,6 +633,8 @@ extension AIChatStore {
             "eventType": eventType,
             "cursor": cursor ?? "-",
             "itemId": itemId ?? "-",
+            "requestId": requestId ?? "-",
+            "clientRequestId": clientRequestId ?? "-",
             "messageIndex": String(messageIndex),
             "liveCursor": self.liveCursor ?? "-",
             "activeStreamingMessageId": self.activeStreamingMessageId ?? "-",

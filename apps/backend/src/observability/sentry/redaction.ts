@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import * as Sentry from "@sentry/aws-serverless";
 import {
   sanitizeBackendTelemetryValue,
@@ -45,6 +46,50 @@ const cloudWatchActionableExceptionTextFieldNames: ReadonlySet<string> = new Set
   "errormessage",
   "errorstack",
 ]);
+const sentryIdentifierHashInputPrefix = "flashcards-open-source-app:backend:sentry";
+const sentryIdentifierPassThroughKeyNames: ReadonlySet<string> = new Set([
+  "backendrequestid",
+  "hasworkspaceid",
+  "lambdarequestid",
+  "providerrequestid",
+  "requestid",
+  "routerequestid",
+  "upstreamrequestid",
+]);
+const sentryClientCorrelationIdentifierKeyNames: ReadonlySet<string> = new Set([
+  "chatrequestid",
+  "clientrequestid",
+]);
+const sentryClientCorrelationIdentifierPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const sentryStableIdentifierKeyNames: ReadonlySet<string> = new Set([
+  "cardid",
+  "conversationscopeid",
+  "entityid",
+  "eventconversationscopeid",
+  "installationid",
+  "operationid",
+  "replicaid",
+  "revieweventid",
+  "userid",
+]);
+const sentryStableIdentifierKeySuffixes: ReadonlyArray<string> = [
+  "cardid",
+  "connectionid",
+  "entityid",
+  "itemid",
+  "messageid",
+  "operationid",
+  "replicaid",
+  "runid",
+  "sessionid",
+  "toolcallid",
+  "userid",
+  "workspaceid",
+];
+const sentryStableIdentifierKeyFragments: ReadonlyArray<string> = [
+  "userid",
+  "workspaceid",
+];
 const nonSqlStateDatabaseErrorCodes: ReadonlySet<string> = new Set([
   "ECONNRESET",
   "ECONNREFUSED",
@@ -88,7 +133,7 @@ export function sanitizeSentryEvent(event: BackendSentryEvent, hint: BackendSent
   }
 
   const manualBackendWarningMessage = getManualBackendWarningMessage(event);
-  const sanitizedEvent = sanitizeBackendTelemetryValue(redactExceptionTextFields(event)) as unknown as typeof event;
+  const sanitizedEvent = sanitizeBackendSentryTelemetryValue(redactExceptionTextFields(event)) as unknown as typeof event;
   const sanitizedEventWithDatabaseDiagnostics = restoreSentryDatabaseExceptionDiagnostics(
     event,
     sanitizedEvent,
@@ -105,17 +150,124 @@ export function sanitizeSentryEvent(event: BackendSentryEvent, hint: BackendSent
 }
 
 export function sanitizeSentrySpan(span: BackendSentrySpan): BackendSentrySpan {
-  return sanitizeBackendTelemetryValue(redactExceptionTextFields(span)) as unknown as typeof span;
+  return sanitizeBackendSentryTelemetryValue(redactExceptionTextFields(span)) as unknown as typeof span;
 }
 
 export function sanitizeSentryTransactionEvent(
   event: BackendSentryTransactionEvent,
 ): BackendSentryTransactionEvent {
-  return sanitizeBackendTelemetryValue(redactExceptionTextFields(event)) as unknown as typeof event;
+  return sanitizeBackendSentryTelemetryValue(redactExceptionTextFields(event)) as unknown as typeof event;
 }
 
 function normalizeTelemetryKey(key: string): string {
   return key.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function shouldHashSentryClientCorrelationIdentifierValue(value: unknown): boolean {
+  if (value === null || value === undefined || value === "") {
+    return false;
+  }
+
+  return typeof value !== "string" || sentryClientCorrelationIdentifierPattern.test(value) === false;
+}
+
+function shouldHashSentryIdentifierKey(key: string, value: unknown): boolean {
+  const normalizedKey = normalizeTelemetryKey(key);
+  if (normalizedKey.endsWith("hash")) {
+    return false;
+  }
+
+  if (sentryClientCorrelationIdentifierKeyNames.has(normalizedKey)) {
+    return shouldHashSentryClientCorrelationIdentifierValue(value);
+  }
+
+  if (sentryIdentifierPassThroughKeyNames.has(normalizedKey)) {
+    return false;
+  }
+
+  return sentryStableIdentifierKeyNames.has(normalizedKey)
+    || sentryStableIdentifierKeySuffixes.some((suffix) => normalizedKey.endsWith(suffix))
+    || sentryStableIdentifierKeyFragments.some((fragment) => normalizedKey.includes(fragment));
+}
+
+function createSentryIdentifierHashKey(key: string): string {
+  if (key.endsWith("_hash") || key.endsWith("Hash")) {
+    return key;
+  }
+
+  return key.includes("_") ? `${key}_hash` : `${key}Hash`;
+}
+
+export function hashSentryIdentifier(key: string, value: string): string {
+  if (value === "") {
+    return value;
+  }
+
+  return createHash("sha256")
+    .update(`${sentryIdentifierHashInputPrefix}:${normalizeTelemetryKey(key)}:${value}`)
+    .digest("hex");
+}
+
+export function sanitizeBackendSentryIdentifierValue(
+  key: string,
+  value: unknown,
+): SanitizedTelemetryValue {
+  if (typeof value === "string") {
+    return hashSentryIdentifier(key, value);
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeBackendSentryIdentifierValue(key, item));
+  }
+
+  if (typeof value === "number" || typeof value === "boolean" || value === null) {
+    return value;
+  }
+
+  return undefined;
+}
+
+function sanitizeBackendSentryTelemetryObject(
+  value: Readonly<Record<string, unknown>>,
+): SanitizedTelemetryValue {
+  return Object.fromEntries(
+    Object.entries(value).map(([key, childValue]) => sanitizeBackendSentryTelemetryEntry(key, childValue)),
+  );
+}
+
+function sanitizeBackendSentryTelemetryEntry(
+  key: string,
+  value: unknown,
+): readonly [string, SanitizedTelemetryValue] {
+  if (shouldHashSentryIdentifierKey(key, value)) {
+    return [
+      createSentryIdentifierHashKey(key),
+      sanitizeBackendSentryIdentifierValue(key, value),
+    ];
+  }
+
+  const sanitizedObject = sanitizeBackendTelemetryValue({ [key]: value });
+  if (typeof sanitizedObject !== "object" || sanitizedObject === null || Array.isArray(sanitizedObject)) {
+    throw new Error("Expected sanitized Sentry telemetry entry to remain an object");
+  }
+
+  const sanitizedValue = (sanitizedObject as Readonly<Record<string, SanitizedTelemetryValue>>)[key];
+  return [
+    key,
+    sanitizeBackendSentryTelemetryValue(sanitizedValue),
+  ];
+}
+
+export function sanitizeBackendSentryTelemetryValue(value: unknown): SanitizedTelemetryValue {
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeBackendSentryTelemetryValue(item));
+  }
+
+  if (typeof value === "object" && value !== null) {
+    return sanitizeBackendSentryTelemetryObject(value as Readonly<Record<string, unknown>>);
+  }
+
+  return sanitizeBackendTelemetryValue(value);
 }
 
 function readRecord(value: unknown): Readonly<Record<string, unknown>> | null {

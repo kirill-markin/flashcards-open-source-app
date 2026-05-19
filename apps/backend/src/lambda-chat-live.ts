@@ -6,7 +6,7 @@
 import { randomUUID } from "node:crypto";
 import type { Writable } from "node:stream";
 import type { APIGatewayProxyEventV2, StreamifyHandler } from "aws-lambda";
-import type { LiveStreamParams } from "./chat/live/request";
+import { readOptionalChatRequestIdHeader, type LiveStreamParams } from "./chat/live/request";
 import {
   addBackendBreadcrumb,
   captureBackendException,
@@ -213,10 +213,10 @@ function createChatLiveBootstrapFailureDetails(
   event: APIGatewayProxyEventV2,
   error: Error,
 ): ChatLiveBootstrapFailureDetails {
-  const requestId = getLiveRequestId(event);
   const url = createLiveRequestUrl(event);
   const safeQueryDetails = getLiveRequestSafeQueryDetails(url);
   const authorizationHeader = readApiGatewayHeader(event.headers, "authorization") ?? undefined;
+  const clientRequestId = readOptionalChatRequestIdHeader(event.headers ?? {}) ?? null;
 
   return {
     statusCode: 500,
@@ -224,6 +224,7 @@ function createChatLiveBootstrapFailureDetails(
     ...safeQueryDetails,
     origin: readApiGatewayHeader(event.headers, "origin"),
     authScheme: getLiveAuthorizationScheme(authorizationHeader),
+    clientRequestId,
     resumeAttemptId: readApiGatewayHeader(event.headers, "x-chat-resume-attempt-id"),
     clientPlatform: readApiGatewayHeader(event.headers, "x-client-platform"),
     clientVersion: readApiGatewayHeader(event.headers, "x-client-version"),
@@ -270,6 +271,7 @@ async function liveStreamHandler(
   const safeQueryDetails = getLiveRequestSafeQueryDetails(url);
   const authorizationHeader = readApiGatewayHeader(event.headers, "authorization") ?? undefined;
   const origin = readApiGatewayHeader(event.headers, "origin");
+  const clientRequestId = readOptionalChatRequestIdHeader(event.headers ?? {}) ?? null;
   const resumeAttemptId = readApiGatewayHeader(event.headers, "x-chat-resume-attempt-id");
   const clientPlatform = readApiGatewayHeader(event.headers, "x-client-platform");
   const clientVersion = readApiGatewayHeader(event.headers, "x-client-version");
@@ -281,7 +283,7 @@ async function liveStreamHandler(
     method,
     null,
     null,
-    null,
+    clientRequestId,
     url.searchParams.get("runId"),
     url.searchParams.get("sessionId"),
   );
@@ -298,6 +300,7 @@ async function liveStreamHandler(
       ...safeQueryDetails,
       origin,
       authScheme: getLiveAuthorizationScheme(authorizationHeader),
+      clientRequestId,
       resumeAttemptId,
       clientPlatform,
       clientVersion,
@@ -336,7 +339,7 @@ async function liveStreamHandler(
     method,
     params.userId,
     params.workspaceId,
-    null,
+    params.clientRequestId ?? null,
     params.runId,
     params.sessionId,
   );
@@ -365,6 +368,7 @@ async function liveStreamHandler(
       hasWorkspaceId: safeQueryDetails.hasWorkspaceId,
       origin,
       authScheme: getLiveAuthorizationScheme(authorizationHeader),
+      clientRequestId: params.clientRequestId ?? null,
       resumeAttemptId: params.resumeAttemptId ?? null,
       clientPlatform: params.clientPlatform ?? null,
       clientVersion: params.clientVersion ?? null,
@@ -397,6 +401,7 @@ async function liveStreamHandler(
         hasWorkspaceId: safeQueryDetails.hasWorkspaceId,
         origin,
         authScheme: getLiveAuthorizationScheme(authorizationHeader),
+        clientRequestId: params.clientRequestId ?? null,
         resumeAttemptId: params.resumeAttemptId ?? null,
         clientPlatform: params.clientPlatform ?? null,
         clientVersion: params.clientVersion ?? null,
@@ -421,6 +426,7 @@ const chatLiveStreamHandler: StreamifyHandler<APIGatewayProxyEventV2, void> = as
   } catch (error) {
     const normalizedError = normalizeCaughtError(error);
     const requestId = getLiveRequestId(event);
+    const clientRequestId = readOptionalChatRequestIdHeader(event.headers ?? {}) ?? null;
     const observationScope = createBackendObservationScope(
       "chat-live",
       requestId,
@@ -428,7 +434,7 @@ const chatLiveStreamHandler: StreamifyHandler<APIGatewayProxyEventV2, void> = as
       event.requestContext.http.method,
       null,
       null,
-      null,
+      clientRequestId,
       null,
       null,
     );

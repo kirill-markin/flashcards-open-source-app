@@ -126,6 +126,7 @@ struct FlashcardsApp: App {
 
     @MainActor
     init() {
+        FlashcardsObservability.configure(bundle: .main, processInfo: ProcessInfo.processInfo)
         let store = FlashcardsStore()
         let processInfo = ProcessInfo.processInfo
         let selectedTab = processInfo.environment[flashcardsUITestSelectedTabEnvironmentKey]

@@ -107,6 +107,7 @@ const browserCorsAllowHeaders = [
   "x-csrf-token",
   "sentry-trace",
   "baggage",
+  "x-chat-request-id",
   "x-chat-resume-attempt-id",
   "x-client-platform",
   "x-client-version",

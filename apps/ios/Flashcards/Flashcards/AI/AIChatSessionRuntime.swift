@@ -1,9 +1,9 @@
 import Foundation
 
 enum AIChatLiveAttachTermination: Sendable {
-    case sawTerminalEvent
-    case endedWithoutTerminalEvent
-    case failed(message: String)
+    case sawTerminalEvent(requestId: String?, clientRequestId: String?)
+    case endedWithoutTerminalEvent(requestId: String?, clientRequestId: String?)
+    case failed(message: String, requestId: String?, clientRequestId: String?)
 }
 
 actor AIChatSessionRuntime {
@@ -134,7 +134,11 @@ actor AIChatSessionRuntime {
                         resumeAttemptDiagnostics: resumeAttemptDiagnostics
                     )
                 )
-                await completionHandler(.failed(message: Flashcards.errorMessage(error: error)))
+                await completionHandler(.failed(
+                    message: Flashcards.errorMessage(error: error),
+                    requestId: aiChatLiveErrorRequestId(error),
+                    clientRequestId: aiChatLiveErrorClientRequestId(error)
+                ))
             }
             logAIChatRuntimeEvent(
                 action: "ai_live_detach",
@@ -165,7 +169,8 @@ actor AIChatSessionRuntime {
             throw AIChatLiveStreamSetupError.missingRunId(
                 sessionId: sessionId,
                 afterCursor: afterCursor,
-                resumeAttemptSequence: resumeAttemptDiagnostics?.sequence
+                resumeAttemptSequence: resumeAttemptDiagnostics?.sequence,
+                clientRequestId: makeAIChatClientRequestId()
             )
         }
 
@@ -179,13 +184,29 @@ actor AIChatSessionRuntime {
             resumeAttemptDiagnostics: resumeAttemptDiagnostics
         )
 
-        for try await event in stream {
+        var liveRequestId: String?
+        var liveClientRequestId: String?
+        for try await element in stream {
             try Task.checkCancellation()
+            let event: AIChatLiveEvent
+            switch element {
+            case .connected(let requestId, let clientRequestId):
+                liveRequestId = requestId ?? liveRequestId
+                liveClientRequestId = aiChatRuntimeNonPlaceholderString(clientRequestId) ?? liveClientRequestId
+                continue
+            case .event(let liveEvent):
+                event = liveEvent
+                liveRequestId = aiChatLiveEventMetadata(liveEvent).requestId ?? liveRequestId
+            }
+
             await eventHandler(event)
 
             switch event {
             case .runTerminal:
-                return .sawTerminalEvent
+                return .sawTerminalEvent(
+                    requestId: liveRequestId,
+                    clientRequestId: liveClientRequestId
+                )
             case .assistantDelta,
                     .assistantToolCall,
                     .assistantReasoningStarted,
@@ -198,7 +219,10 @@ actor AIChatSessionRuntime {
             }
         }
 
-        return .endedWithoutTerminalEvent
+        return .endedWithoutTerminalEvent(
+            requestId: liveRequestId,
+            clientRequestId: liveClientRequestId
+        )
     }
 }
 
@@ -216,20 +240,197 @@ func isGuestAiLimitError(error: Error) -> Bool {
 }
 
 private func logAIChatRuntimeEvent(action: String, metadata: [String: String]) {
-    logFlashcardsError(domain: "ios_ai_runtime", action: action, metadata: metadata)
+    if action.hasPrefix("ai_live") {
+        logAIChatRuntimeLiveEvent(action: action, metadata: metadata)
+        return
+    }
+
+    let actionValue: AIChatLifecycleAction
+    switch action {
+    case "ai_run_start":
+        actionValue = .runStart
+    case "ai_run_started":
+        actionValue = .runStarted
+    case "ai_run_fail":
+        actionValue = .runFail
+    default:
+        actionValue = .storeLifecycle
+    }
+    let requestId = metadata["backendRequestId"].flatMap(aiChatRuntimeNonPlaceholderString)
+    let scope = IOSObservationScope(
+        feature: .aiChat,
+        userId: nil,
+        workspaceId: nil,
+        requestId: requestId,
+        clientRequestId: nil,
+        sessionId: metadata["sessionId"],
+        runId: metadata["runId"],
+        cloudState: nil,
+        configurationMode: nil
+    )
+    let observation = AIChatLifecycleObservation(
+        action: actionValue,
+        scope: scope,
+        sessionId: metadata["sessionId"].flatMap(aiChatRuntimeNonPlaceholderString),
+        runId: metadata["runId"].flatMap(aiChatRuntimeNonPlaceholderString),
+        conversationScopeId: nil,
+        eventType: nil,
+        statusCode: metadata["statusCode"].flatMap(Int.init),
+        backendCode: metadata["backendCode"].flatMap(aiChatRuntimeNonPlaceholderString),
+        backendRequestId: requestId,
+        clientRequestId: nil,
+        stage: metadata["stage"].flatMap(AIChatFailureStage.init(rawValue:)),
+        errorKind: metadata["errorKind"].flatMap(AIChatFailureKind.init(rawValue:)),
+        failureKind: metadata["failureKind"].flatMap(aiChatRuntimeNonPlaceholderString),
+        attempt: nil,
+        maxAttempts: nil,
+        delayNanoseconds: nil,
+        outgoingContentCount: metadata["outgoingContentCount"].flatMap(Int.init),
+        contentCount: nil,
+        textLength: nil,
+        summaryLength: nil,
+        suggestionCount: nil,
+        isError: nil,
+        isStopped: nil,
+        outcome: metadata["hasActiveRun"],
+        reason: metadata["failureKind"].flatMap(aiChatRuntimeNonPlaceholderString)
+            ?? metadata["errorKind"].flatMap(aiChatRuntimeNonPlaceholderString),
+        errorSummary: nil
+    )
+    FlashcardsObservability.addBreadcrumb(.aiChatLifecycle(observation))
+}
+
+private func aiChatLiveErrorRequestId(_ error: Error) -> String? {
+    if let diagnosticError = error as? any AIChatFailureDiagnosticProviding,
+       let requestId = diagnosticError.diagnostics.backendRequestId.flatMap(aiChatRuntimeNonPlaceholderString) {
+        return requestId
+    }
+
+    guard let liveStreamError = error as? AIChatLiveStreamError else {
+        return nil
+    }
+
+    switch liveStreamError {
+    case .invalidUrl, .invalidResponse:
+        return nil
+    case .transportFailure(_, let requestId, _):
+        return requestId.flatMap(aiChatRuntimeNonPlaceholderString)
+    case .staleStream(_, let requestId, _):
+        return requestId.flatMap(aiChatRuntimeNonPlaceholderString)
+    case .invalidStatusCode(_, let errorDetails, _, _):
+        return errorDetails.requestId.flatMap(aiChatRuntimeNonPlaceholderString)
+    }
+}
+
+private func aiChatLiveErrorClientRequestId(_ error: Error) -> String? {
+    if let diagnosticError = error as? any AIChatFailureDiagnosticProviding {
+        return aiChatRuntimeNonPlaceholderString(diagnosticError.diagnostics.clientRequestId)
+    }
+
+    guard let liveStreamError = error as? AIChatLiveStreamError else {
+        return nil
+    }
+
+    switch liveStreamError {
+    case .invalidUrl(_, let clientRequestId):
+        return aiChatRuntimeNonPlaceholderString(clientRequestId)
+    case .invalidResponse(let clientRequestId):
+        return aiChatRuntimeNonPlaceholderString(clientRequestId)
+    case .transportFailure(_, _, let clientRequestId):
+        return aiChatRuntimeNonPlaceholderString(clientRequestId)
+    case .staleStream(_, _, let clientRequestId):
+        return aiChatRuntimeNonPlaceholderString(clientRequestId)
+    case .invalidStatusCode(_, _, _, let clientRequestId):
+        return aiChatRuntimeNonPlaceholderString(clientRequestId)
+    }
+}
+
+private func logAIChatRuntimeLiveEvent(action: String, metadata: [String: String]) {
+    let actionValue: AILiveLifecycleAction = AILiveLifecycleAction(rawValue: action) ?? .eventReceived
+    let requestId: String? = metadata["requestId"].flatMap(aiChatRuntimeNonPlaceholderString)
+    let backendRequestId: String? = metadata["backendRequestId"].flatMap(aiChatRuntimeNonPlaceholderString)
+    let clientRequestId: String? = metadata["clientRequestId"].flatMap(aiChatRuntimeNonPlaceholderString)
+    let sessionId: String = metadata["sessionId"].flatMap(aiChatRuntimeNonPlaceholderString) ?? "unknown"
+    let scope = IOSObservationScope(
+        feature: .aiLive,
+        userId: nil,
+        workspaceId: nil,
+        requestId: backendRequestId ?? requestId,
+        clientRequestId: clientRequestId,
+        sessionId: sessionId,
+        runId: metadata["runId"].flatMap(aiChatRuntimeNonPlaceholderString),
+        cloudState: nil,
+        configurationMode: nil
+    )
+    let observation = AILiveLifecycleObservation(
+        action: actionValue,
+        scope: scope,
+        sessionId: sessionId,
+        runId: metadata["runId"].flatMap(aiChatRuntimeNonPlaceholderString),
+        afterCursor: metadata["afterCursor"].flatMap(aiChatRuntimeNonPlaceholderString),
+        requestId: requestId,
+        backendRequestId: backendRequestId,
+        backendCode: metadata["backendCode"].flatMap(aiChatRuntimeNonPlaceholderString),
+        statusCode: metadata["statusCode"].flatMap(Int.init),
+        eventType: metadata["eventType"].flatMap(aiChatRuntimeNonPlaceholderString),
+        sequenceNumber: metadata["sequenceNumber"].flatMap(Int.init),
+        cursor: metadata["cursor"].flatMap(aiChatRuntimeNonPlaceholderString),
+        streamEpoch: metadata["streamEpoch"].flatMap(aiChatRuntimeNonPlaceholderString),
+        itemId: metadata["itemId"].flatMap(aiChatRuntimeNonPlaceholderString),
+        toolName: metadata["toolName"].flatMap(aiChatRuntimeNonPlaceholderString),
+        toolStatus: metadata["toolStatus"].flatMap(aiChatRuntimeNonPlaceholderString),
+        contentCount: metadata["contentCount"].flatMap(Int.init),
+        textLength: metadata["textLength"].flatMap(Int.init),
+        summaryLength: metadata["summaryLength"].flatMap(Int.init),
+        suggestionCount: metadata["suggestionCount"].flatMap(Int.init),
+        isError: metadata["isError"].flatMap(aiChatRuntimeBool),
+        isStopped: metadata["isStopped"].flatMap(aiChatRuntimeBool),
+        outcome: metadata["outcome"].flatMap(aiChatRuntimeNonPlaceholderString),
+        failureKind: metadata["failureKind"].flatMap(aiChatRuntimeNonPlaceholderString)
+            ?? metadata["errorKind"].flatMap(aiChatRuntimeNonPlaceholderString),
+        stage: metadata["stage"].flatMap(AIChatFailureStage.init(rawValue:)),
+        errorKind: metadata["errorKind"].flatMap(AIChatFailureKind.init(rawValue:)),
+        resumeAttempt: metadata["resumeAttempt"].flatMap(Int.init)
+    )
+    FlashcardsObservability.addBreadcrumb(.aiLiveLifecycle(observation))
+}
+
+private func aiChatRuntimeBool(_ value: String) -> Bool? {
+    switch value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+    case "true":
+        return true
+    case "false":
+        return false
+    default:
+        return nil
+    }
+}
+
+private func aiChatRuntimeNonPlaceholderString(_ value: String) -> String? {
+    let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard trimmedValue.isEmpty == false, trimmedValue != "-" else {
+        return nil
+    }
+
+    return trimmedValue
 }
 
 enum AIChatLiveStreamSetupError: LocalizedError, AIChatFailureDiagnosticProviding {
-    case missingRunId(sessionId: String, afterCursor: String?, resumeAttemptSequence: Int?)
+    case missingRunId(
+        sessionId: String,
+        afterCursor: String?,
+        resumeAttemptSequence: Int?,
+        clientRequestId: String
+    )
 
     var diagnostics: AIChatFailureDiagnostics {
         switch self {
-        case .missingRunId(let sessionId, let afterCursor, let resumeAttemptSequence):
+        case .missingRunId(_, let afterCursor, let resumeAttemptSequence, let clientRequestId):
             let snippet = afterCursor.map { cursor in
-                "sessionId=\(sessionId)&afterCursor=\(cursor)"
-            } ?? "sessionId=\(sessionId)"
+                "afterCursorLength=\(cursor.count)"
+            } ?? "afterCursorLength=0"
             return AIChatFailureDiagnostics(
-                clientRequestId: sessionId,
+                clientRequestId: clientRequestId,
                 backendRequestId: nil,
                 stage: .requestBuild,
                 errorKind: .invalidStreamContract,
