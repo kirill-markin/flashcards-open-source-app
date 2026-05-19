@@ -204,12 +204,12 @@ When adding a new language, review these support-heavy areas explicitly:
 - [apps/ios/Flashcards/Flashcards/TransientBannerSupport.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/TransientBannerSupport.swift)
 - [apps/ios/Flashcards/Flashcards/ErrorMessageSupport.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/ErrorMessageSupport.swift)
 - [apps/ios/Flashcards/Flashcards/Cloud/CloudAuthService.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/Cloud/CloudAuthService.swift)
-- [apps/ios/Flashcards/Flashcards/AI/AIChatStore+AlertPresentation.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/AI/AIChatStore+AlertPresentation.swift)
-- [apps/ios/Flashcards/Flashcards/AI/AIChatStore+ObservabilityCapture.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/AI/AIChatStore+ObservabilityCapture.swift)
-- [apps/ios/Flashcards/Flashcards/AI/AIChatStore+RunOrchestration.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/AI/AIChatStore+RunOrchestration.swift)
-- [apps/ios/Flashcards/Flashcards/AI/AIChatServerErrorSupport.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/AI/AIChatServerErrorSupport.swift)
-- [apps/ios/Flashcards/Flashcards/AI/AIChatVoiceDictation.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/AI/AIChatVoiceDictation.swift)
-- [apps/ios/Flashcards/Flashcards/AI/AIChatAttachmentSupport.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/AI/AIChatAttachmentSupport.swift)
+- [apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+AlertPresentation.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+AlertPresentation.swift)
+- [apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+ObservabilityCapture.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+ObservabilityCapture.swift)
+- [apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+RunOrchestration.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+RunOrchestration.swift)
+- [apps/ios/Flashcards/Flashcards/AI/Support/AIChatServerErrorSupport.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/AI/Support/AIChatServerErrorSupport.swift)
+- [apps/ios/Flashcards/Flashcards/AI/Runtime/AIChatVoiceDictation.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/AI/Runtime/AIChatVoiceDictation.swift)
+- [apps/ios/Flashcards/Flashcards/AI/Support/AIChatAttachmentSupport.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/AI/Support/AIChatAttachmentSupport.swift)
 
 These are easy to forget because they are not all top-level screens.
 

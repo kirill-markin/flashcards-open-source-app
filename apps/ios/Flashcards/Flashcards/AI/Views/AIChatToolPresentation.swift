@@ -13,7 +13,7 @@ struct AIChatToolSection: Hashable, Sendable, Identifiable {
  Mirrors:
  - `apps/web/src/chat/chatMessageContent.tsx::formatToolLabel`
  - `apps/web/src/chat/chatMessageContent.tsx::extractToolCallPreview`
- - `apps/android/feature/ai/src/main/java/com/flashcardsopensourceapp/feature/ai/AiToolCallPresentation.kt`
+ - `apps/android/feature/ai/src/main/java/com/flashcardsopensourceapp/feature/ai/toolcall/AiToolCallPresentation.kt`
 
  Keep user-facing tool labels aligned across web, iOS, and Android chat UIs.
  */
