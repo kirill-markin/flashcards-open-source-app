@@ -6,25 +6,23 @@ import { Hono } from "hono";
 import type { AppEnv } from "../app";
 import {
   createChatRouteDependencies,
-  type ChatRoutesOptions,
-} from "../chat/routeDependencies";
-import {
   createGetChatHandler,
   createPostChatHandler,
   createPostChatNewHandler,
   createPostChatStopHandler,
-} from "../chat/routeHandlers";
+  type ChatRoutesOptions,
+} from "../chat/http";
 
 export type {
   ChatContentPart,
   ChatRequestBody,
-} from "../chat/routeContract";
+} from "../chat/http";
 
 export {
   parseChatRequestBody,
   parseNewChatRequestBody,
   parseStopChatRequestBody,
-} from "../chat/routeContract";
+} from "../chat/http";
 
 /**
  * Mounts the backend-owned `/chat` routes for history, start, new-session, and stop operations.

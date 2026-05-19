@@ -1,27 +1,27 @@
-import type { AuthTransport } from "../auth";
-import { HttpError } from "../errors";
+import type { AuthTransport } from "../../auth";
+import { HttpError } from "../../errors";
 import {
   loadRequestContextFromRequest,
   resolveAccessibleChatWorkspaceId,
   type RequestContext,
   type WorkspaceRequestContext,
-} from "../server/requestContext";
-import { createChatLiveStreamEnvelope } from "./live/auth";
+} from "../../server/requestContext";
+import { createChatLiveStreamEnvelope } from "../live/auth";
 import {
   getRecoveredChatSessionSnapshot,
   getRecoveredPaginatedSession,
   interruptPreparedChatRun,
   prepareChatRun,
   requestChatRunCancellation,
-} from "./runs";
+} from "../runs";
 import {
   createFreshChatSession,
   getChatSessionId,
   listChatMessagesLatest,
   rolloverToFreshChatSession,
-} from "./store";
-import { invokeChatWorkerOrPersistFailure } from "./worker/invoke";
-import { resolveLiveCursor } from "./routeEnvelopes";
+} from "../store";
+import { invokeChatWorkerOrPersistFailure } from "../worker/invoke";
+import { resolveLiveCursor } from "./envelopes";
 
 export type ChatRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;

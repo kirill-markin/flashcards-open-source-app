@@ -1,10 +1,10 @@
-import { HttpError } from "../errors";
+import { HttpError } from "../../errors";
 import {
   captureBackendException,
   captureBackendWarning,
   createBackendObservationScope,
   normalizeCaughtError,
-} from "../observability/sentry";
+} from "../../observability/sentry";
 
 export const chatResumeContractViolationCode = "CHAT_LIVE_RESUME_CONTRACT_VIOLATION";
 

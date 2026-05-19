@@ -1,13 +1,13 @@
 import {
   type ChatComposerSuggestionsLocale,
   normalizeChatComposerSuggestionsUiLocale,
-} from "./composerSuggestions";
-import { HttpError } from "../errors";
+} from "../composerSuggestions";
+import { HttpError } from "../../errors";
 import {
   expectNonEmptyString,
   expectRecord,
   expectUuidString,
-} from "../server/requestParsing";
+} from "../../server/requestParsing";
 
 type ChatTextContentPart = Readonly<{
   type: "text";

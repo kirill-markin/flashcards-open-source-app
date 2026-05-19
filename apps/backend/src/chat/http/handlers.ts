@@ -1,45 +1,45 @@
 import type { Handler } from "hono";
-import type { AppEnv } from "../app";
+import type { AppEnv } from "../../app";
 import {
   type ChatComposerSuggestionsLocale,
   localizeInitialChatComposerSuggestions,
   type ChatComposerSuggestion,
-} from "./composerSuggestions";
-import { getChatConfig } from "./config";
-import type { ChatStopResponse } from "./contract";
+} from "../composerSuggestions";
+import { getChatConfig } from "../config";
+import type { ChatStopResponse } from "../contract";
 import {
   getBackendTraceCarrier,
   startBackendSpan,
-} from "../observability/sentry";
-import { parseOptionalWorkspaceIdParam } from "../server/requestContext";
-import { parseJsonBody } from "../server/requestParsing";
+} from "../../observability/sentry";
+import { parseOptionalWorkspaceIdParam } from "../../server/requestContext";
+import { parseJsonBody } from "../../server/requestParsing";
 import {
   parseChatPageQuery,
   parseChatRequestBody,
   parseNewChatRequestBody,
   parseOptionalSessionIdQuery,
   parseStopChatRequestBody,
-} from "./routeContract";
+} from "./contract";
 import {
   loadSupportedRequestContext,
   type ChatRouteDependencies,
-} from "./routeDependencies";
+} from "./dependencies";
 import {
   assertRunningSnapshotInvariant,
   buildConversationEnvelopeWithActiveRun,
   buildPaginatedConversationEnvelopeWithActiveRun,
   buildStartConversationEnvelope,
-} from "./routeEnvelopes";
-import { mapStoreError } from "./routeErrors";
-import { readChatResumeDiagnosticsHeaders } from "./routeDiagnostics";
+} from "./envelopes";
+import { mapStoreError } from "./errors";
+import { readChatResumeDiagnosticsHeaders } from "./diagnostics";
 import type {
   ChatRunStopState,
   PreparedChatRun,
-} from "./runs";
+} from "../runs";
 import {
   ChatSessionNotFoundError,
   type ChatSessionSnapshot,
-} from "./store";
+} from "../store";
 
 type ChatNewResponse = Readonly<{
   ok: true;
