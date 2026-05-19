@@ -49,7 +49,7 @@ import kotlinx.coroutines.withContext
 internal const val defaultTestWorkspaceId: String = "workspace-1"
 internal const val secondaryTestWorkspaceId: String = "workspace-2"
 
-private const val testAppVersion: String = "1.3.0"
+private const val testAppVersion: String = "1.4.0"
 private const val testVersionCode: Int = 10300
 internal const val testUiLocaleTag: String = "en-US"
 
