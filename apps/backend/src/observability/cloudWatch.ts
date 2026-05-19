@@ -2,12 +2,12 @@ import type { SanitizedTelemetryValue } from "./sanitizer";
 import type {
   BackendErrorLogDetails,
   BackendLogEvent,
-} from "./sentryEvents";
+} from "./sentry/events";
 import {
   redactCloudWatchExceptionDetailTextFields,
   sanitizeCloudWatchLogValue,
   sanitizeInternalErrorText,
-} from "./sentryRedaction";
+} from "./sentry/redaction";
 
 function getLogRecordDetails(event: BackendLogEvent): unknown {
   return "error" in event ? redactCloudWatchExceptionDetailTextFields(event.details) : event.details;

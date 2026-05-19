@@ -5,13 +5,13 @@ import {
   addBackendBreadcrumb,
   captureBackendException,
   captureBackendWarning,
-} from "./sentryCapture";
-import type { ChatWorkerLifecycleDetails } from "./sentryEvents";
-import { createBackendObservationScope } from "./sentryScope";
+} from "./capture";
+import type { ChatWorkerLifecycleDetails } from "./events";
+import { createBackendObservationScope } from "./scope";
 import {
   sentryModule,
   withCapturedConsole,
-} from "./sentryTestHelpers";
+} from "./testHelpers";
 
 test("backend breadcrumb serialization keeps CloudWatch JSON shape", () => {
   const details: ChatWorkerLifecycleDetails & Readonly<{

@@ -1,6 +1,6 @@
 import type { Handler, StreamifyHandler } from "aws-lambda";
 import * as Sentry from "@sentry/aws-serverless";
-import type { BackendTraceCarrier } from "./sentryEvents";
+import type { BackendTraceCarrier } from "./events";
 
 export function getBackendTraceCarrier(): BackendTraceCarrier {
   const traceData = Sentry.getTraceData({ propagateTraceparent: true });

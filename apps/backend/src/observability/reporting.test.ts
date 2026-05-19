@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import * as Sentry from "@sentry/aws-serverless";
-import { captureBackendException } from "./sentryCapture";
-import { normalizeCaughtError } from "./sentryErrorNormalization";
-import { createBackendObservationScope } from "./sentryScope";
+import { captureBackendException } from "./sentry/capture";
+import { normalizeCaughtError } from "./sentry/errorNormalization";
+import { createBackendObservationScope } from "./sentry/scope";
 import { hasReportedBackendException, reportBackendExceptionOrBreadcrumb } from "./reporting";
 import {
   sentryModule,
   withCapturedConsole,
-} from "./sentryTestHelpers";
+} from "./sentry/testHelpers";
 
 test("normalizeCaughtError preserves Error and converts non-Error throws", () => {
   const error = new TypeError("bad input");

@@ -1,27 +1,27 @@
-export { getBackendErrorLogDetails } from "./cloudWatch";
+export { getBackendErrorLogDetails } from "../cloudWatch";
 export {
   addBackendBreadcrumb,
   addBackendSentryBreadcrumb,
   captureBackendException,
   captureBackendWarning,
-} from "./sentryCapture";
+} from "./capture";
 export {
   getBackendSentryConfig,
   initializeBackendSentry,
   initializeBackendSentryWithDeps,
   isBackendSentryInitializedForOpenTelemetry,
   resetBackendSentryForTests,
-} from "./sentryConfig";
+} from "./config";
 export {
   hasCapturedBackendException,
   normalizeCaughtError,
-} from "./sentryErrorNormalization";
-export * from "./sentryEvents";
+} from "./errorNormalization";
+export * from "./events";
 export {
   createBackendObservationScope,
   createBackendRuntimeObservationScope,
   runWithBackendSentryIsolationScope,
-} from "./sentryScope";
+} from "./scope";
 export {
   continueBackendTrace,
   flushBackendSentry,
@@ -29,4 +29,4 @@ export {
   startBackendSpan,
   wrapBackendHandler,
   wrapBackendStreamHandler,
-} from "./sentryTracing";
+} from "./tracing";

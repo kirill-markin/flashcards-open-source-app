@@ -28,7 +28,7 @@ import {
   startBackendSpan,
   wrapBackendHandler,
   wrapBackendStreamHandler,
-} from "./sentry";
+} from ".";
 
 type FacadeTypeSample = Readonly<{
   service: BackendService;

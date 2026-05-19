@@ -6,12 +6,12 @@ import {
   initializeBackendSentryWithDeps,
   isBackendSentryInitializedForOpenTelemetry,
   resetBackendSentryForTests,
-} from "./sentryConfig";
+} from "./config";
 import {
   type CapturedSentryInitOptions,
   requireCapturedSentryInitOptions,
   sentryModule,
-} from "./sentryTestHelpers";
+} from "./testHelpers";
 
 test("backend Sentry config is disabled outside Lambda without a DSN", () => {
   resetBackendSentryForTests();

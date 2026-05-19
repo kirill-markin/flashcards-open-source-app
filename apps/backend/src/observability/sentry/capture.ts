@@ -1,21 +1,21 @@
 import * as Sentry from "@sentry/aws-serverless";
-import { sanitizeBackendTelemetryValue } from "./sanitizer";
-import { writeCloudWatchRecord } from "./cloudWatch";
+import { sanitizeBackendTelemetryValue } from "../sanitizer";
+import { writeCloudWatchRecord } from "../cloudWatch";
 import type {
   BackendBreadcrumbEvent,
   BackendExceptionEvent,
   BackendLogEvent,
   BackendWarningEvent,
-} from "./sentryEvents";
-import { markCapturedBackendException } from "./sentryErrorNormalization";
+} from "./events";
+import { markCapturedBackendException } from "./errorNormalization";
 import {
   backendActionTagName,
   manualBackendCaptureTagName,
   manualBackendCaptureTagValue,
   manualBackendWarningCaptureTagName,
   redactExceptionTextFields,
-} from "./sentryRedaction";
-import { setSentryScope } from "./sentryScope";
+} from "./redaction";
+import { setSentryScope } from "./scope";
 
 type BackendSentryContextData = Parameters<Sentry.Scope["setContext"]>[1];
 type BackendSentryBreadcrumbData = NonNullable<Parameters<typeof Sentry.addBreadcrumb>[0]["data"]>;

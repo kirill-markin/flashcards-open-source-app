@@ -1,10 +1,10 @@
 import * as Sentry from "@sentry/aws-serverless";
-import type { BackendService } from "./sentryEvents";
+import type { BackendService } from "./events";
 import {
   sanitizeSentryEvent,
   sanitizeSentrySpan,
   sanitizeSentryTransactionEvent,
-} from "./sentryRedaction";
+} from "./redaction";
 
 type InitializeBackendSentryDependencies = Readonly<{
   init: (options: BackendSentryInitOptions) => void;
