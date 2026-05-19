@@ -7,6 +7,10 @@ import type { ChatSessionSnapshot, StartChatRunRequestBody } from "../../types";
 import { defaultChatConfig } from "../sessionController/config";
 import { ChatDraftProvider } from "../ChatDraftContext";
 import { ChatSessionControllerProvider } from "../sessionController";
+import {
+  loadChatDraftWorkspaceState,
+  readChatDraftForSession,
+} from "../chatDraftStorage";
 
 const {
   ApiErrorMock,
@@ -318,6 +322,63 @@ export function createDropEvent(file: File): DragEvent {
     },
   });
   return dropEvent;
+}
+
+export function createChatPanelDragEnterEvent(file: File): DragEvent {
+  const dragEvent = new Event("dragenter", { bubbles: true, cancelable: true }) as DragEvent;
+  const dataTransfer: { files: ReadonlyArray<File>; dropEffect: DataTransfer["dropEffect"] } = {
+    files: [file],
+    dropEffect: "none",
+  };
+  Object.defineProperty(dragEvent, "dataTransfer", {
+    value: dataTransfer,
+  });
+  return dragEvent;
+}
+
+export async function dispatchChatPanelDragEvent(
+  container: HTMLDivElement,
+  dragEvent: DragEvent,
+): Promise<void> {
+  const chatPanel = container.querySelector('[data-testid="chat-panel"]') as HTMLDivElement | null;
+  expect(chatPanel).not.toBeNull();
+
+  await act(async () => {
+    chatPanel?.dispatchEvent(dragEvent);
+    await Promise.resolve();
+  });
+}
+
+export function queryChatComposerInput(container: ParentNode): HTMLTextAreaElement | null {
+  return container.querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
+}
+
+export function queryChatComposerState(container: ParentNode): HTMLDivElement | null {
+  return container.querySelector('[data-testid="chat-composer-state"]') as HTMLDivElement | null;
+}
+
+export function queryChatSendButton(container: ParentNode): HTMLButtonElement | null {
+  return container.querySelector('.chat-send-btn[aria-label="Send message"]') as HTMLButtonElement | null;
+}
+
+export function queryChatStopButton(container: ParentNode): HTMLButtonElement | null {
+  return container.querySelector('.chat-stop-btn[aria-label="Stop response"]') as HTMLButtonElement | null;
+}
+
+export function queryChatAttachButton(container: ParentNode): HTMLButtonElement | null {
+  return container.querySelector('.chat-attach-btn[aria-label="Add attachment"]') as HTMLButtonElement | null;
+}
+
+export function queryChatMicrophoneButton(container: ParentNode): HTMLButtonElement | null {
+  return container.querySelector(".chat-mic-btn") as HTMLButtonElement | null;
+}
+
+export function readStoredDraftInputText(workspaceId: string, sessionId: string): string | null {
+  return readChatDraftForSession(loadChatDraftWorkspaceState(workspaceId), sessionId)?.inputText ?? null;
+}
+
+export function readStoredDraftPendingAttachmentCount(workspaceId: string, sessionId: string): number {
+  return readChatDraftForSession(loadChatDraftWorkspaceState(workspaceId), sessionId)?.pendingAttachments.length ?? 0;
 }
 
 function createMediaStreamMock(): MediaStream {

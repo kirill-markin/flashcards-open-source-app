@@ -102,4 +102,44 @@ describe("ChatPanel stream rendering", () => {
     expect(getContainer().textContent).toContain("Reasoning");
     expect(getContainer().textContent).toContain("Done");
   });
+
+  it("does not open an error dialog when assistant_message_done is followed by stream close", async () => {
+    consumeChatLiveStreamMock.mockImplementation(async ({ onEvent }) => {
+      onEvent({
+        type: "assistant_delta",
+        sessionId: "session-1",
+        conversationScopeId: "session-1",
+        runId: "run-1",
+        sequenceNumber: 1,
+        streamEpoch: "epoch-1",
+        text: "All set.",
+        cursor: "cursor-1",
+        itemId: "item-1",
+      });
+      onEvent({
+        type: "assistant_message_done",
+        sessionId: "session-1",
+        conversationScopeId: "session-1",
+        runId: "run-1",
+        sequenceNumber: 2,
+        streamEpoch: "epoch-1",
+        cursor: "cursor-1",
+        itemId: "item-1",
+        content: [{ type: "text", text: "All set." }],
+        isError: false,
+        isStopped: false,
+      });
+    });
+
+    await renderChatPanel();
+    await flushAsync();
+    await sendMessage("hello");
+    await flushAsync();
+    await flushAsync();
+
+    expect(getChatSnapshotMock).toHaveBeenCalled();
+    expect(getContainer().querySelector(".chat-msg-error")).toBeNull();
+    expect(getContainer().querySelector('[role="dialog"]')).toBeNull();
+    expect(getContainer().textContent).not.toContain("AI live stream ended before the run finished.");
+  });
 });
