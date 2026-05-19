@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.cloud
+package com.flashcardsopensourceapp.data.local.cloud.identity
 
 import android.util.Log
 import androidx.room.withTransaction
@@ -11,6 +11,10 @@ import com.flashcardsopensourceapp.data.local.database.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.database.TagEntity
 import com.flashcardsopensourceapp.data.local.database.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.database.WorkspaceSchedulerSettingsEntity
+import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
+import com.flashcardsopensourceapp.data.local.cloud.sync.ReviewHistoryChangePublisher
+import com.flashcardsopensourceapp.data.local.cloud.sync.ReviewHistoryChangedEvent
+import com.flashcardsopensourceapp.data.local.cloud.wire.toRemoteValue
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.SyncEntityType
 import com.flashcardsopensourceapp.data.local.model.encodeSchedulerStepListJson

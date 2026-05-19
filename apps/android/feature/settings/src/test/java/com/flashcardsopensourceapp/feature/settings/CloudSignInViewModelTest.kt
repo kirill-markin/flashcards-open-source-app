@@ -1,7 +1,7 @@
 package com.flashcardsopensourceapp.feature.settings
 
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
-import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteException
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState

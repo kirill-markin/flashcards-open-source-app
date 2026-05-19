@@ -1,14 +1,14 @@
 package com.flashcardsopensourceapp.data.local.cloudidentity
 
 import com.flashcardsopensourceapp.data.local.bootstrap.localWorkspaceName
-import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteGateway
-import com.flashcardsopensourceapp.data.local.cloud.RemoteBootstrapPullResponse
-import com.flashcardsopensourceapp.data.local.cloud.RemoteBootstrapPushResponse
-import com.flashcardsopensourceapp.data.local.cloud.RemotePullResponse
-import com.flashcardsopensourceapp.data.local.cloud.RemotePushOperationResult
-import com.flashcardsopensourceapp.data.local.cloud.RemotePushResponse
-import com.flashcardsopensourceapp.data.local.cloud.RemoteReviewHistoryImportResponse
-import com.flashcardsopensourceapp.data.local.cloud.RemoteReviewHistoryPullResponse
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
+import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteBootstrapPullResponse
+import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteBootstrapPushResponse
+import com.flashcardsopensourceapp.data.local.cloud.remote.RemotePullResponse
+import com.flashcardsopensourceapp.data.local.cloud.remote.RemotePushOperationResult
+import com.flashcardsopensourceapp.data.local.cloud.remote.RemotePushResponse
+import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteReviewHistoryImportResponse
+import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteReviewHistoryPullResponse
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeCompletion

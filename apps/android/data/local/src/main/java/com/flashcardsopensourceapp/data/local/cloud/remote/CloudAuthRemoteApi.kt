@@ -1,5 +1,10 @@
-package com.flashcardsopensourceapp.data.local.cloud
+package com.flashcardsopensourceapp.data.local.cloud.remote
 
+import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudIntOrNull
+import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudStringOrNull
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudBoolean
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudInt
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
 import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials

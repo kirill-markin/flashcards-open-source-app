@@ -1,5 +1,15 @@
-package com.flashcardsopensourceapp.data.local.cloud
+package com.flashcardsopensourceapp.data.local.cloud.remote
 
+import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
+import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudLongOrNull
+import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudStringOrNull
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudArray
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudBoolean
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudInt
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudLong
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudNullableString
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudObject
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
 import com.flashcardsopensourceapp.data.local.model.SyncEntityType
 import org.json.JSONArray
 import org.json.JSONObject

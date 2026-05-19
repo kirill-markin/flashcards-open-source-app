@@ -1,14 +1,14 @@
 package com.flashcardsopensourceapp.data.local.repository.cloudsync
 
-import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteException
-import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteGateway
-import com.flashcardsopensourceapp.data.local.cloud.PendingLocalHotEntityKey
-import com.flashcardsopensourceapp.data.local.cloud.putNullableDouble
-import com.flashcardsopensourceapp.data.local.cloud.putNullableInt
-import com.flashcardsopensourceapp.data.local.cloud.putNullableString
-import com.flashcardsopensourceapp.data.local.cloud.RemoteBootstrapPullResponse
-import com.flashcardsopensourceapp.data.local.cloud.SyncLocalStore
-import com.flashcardsopensourceapp.data.local.cloud.syncWorkspaceForkRequiredErrorCode
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
+import com.flashcardsopensourceapp.data.local.cloud.sync.PendingLocalHotEntityKey
+import com.flashcardsopensourceapp.data.local.cloud.wire.putNullableDouble
+import com.flashcardsopensourceapp.data.local.cloud.wire.putNullableInt
+import com.flashcardsopensourceapp.data.local.cloud.wire.putNullableString
+import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteBootstrapPullResponse
+import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
+import com.flashcardsopensourceapp.data.local.cloud.identity.syncWorkspaceForkRequiredErrorCode
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.PersistedOutboxEntry
 import com.flashcardsopensourceapp.data.local.model.SyncEntityType

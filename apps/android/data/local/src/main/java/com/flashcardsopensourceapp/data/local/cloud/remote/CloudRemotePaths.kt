@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.cloud
+package com.flashcardsopensourceapp.data.local.cloud.remote
 
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets

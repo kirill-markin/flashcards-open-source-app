@@ -1,8 +1,8 @@
 package com.flashcardsopensourceapp.data.local.cloudidentity
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteException
-import com.flashcardsopensourceapp.data.local.cloud.syncWorkspaceForkRequiredErrorCode
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
+import com.flashcardsopensourceapp.data.local.cloud.identity.syncWorkspaceForkRequiredErrorCode
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.SyncStatus

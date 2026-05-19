@@ -1,6 +1,6 @@
 package com.flashcardsopensourceapp.feature.ai.runtime
 
-import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteException
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
@@ -992,7 +992,7 @@ class AiChatRuntimeBootstrapProvisioningTest {
 
     private fun makeCloudContractMismatchException(message: String): Exception {
         val errorClass = Class.forName(
-            "com.flashcardsopensourceapp.data.local.cloud.CloudContractMismatchException"
+            "com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException"
         )
         val constructor = errorClass.getDeclaredConstructor(String::class.java, Throwable::class.java)
         constructor.isAccessible = true

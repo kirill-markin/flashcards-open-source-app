@@ -1,8 +1,8 @@
 package com.flashcardsopensourceapp.data.local.ai
 
-import com.flashcardsopensourceapp.data.local.cloud.CloudContractMismatchException
-import com.flashcardsopensourceapp.data.local.cloud.buildRemoteContractMismatch
-import com.flashcardsopensourceapp.data.local.cloud.strictRemoteJson
+import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
+import com.flashcardsopensourceapp.data.local.cloud.wire.buildRemoteContractMismatch
+import com.flashcardsopensourceapp.data.local.cloud.wire.strictRemoteJson
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName

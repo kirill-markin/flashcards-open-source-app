@@ -1,8 +1,8 @@
 package com.flashcardsopensourceapp.data.local.cloudidentity
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteGateway
-import com.flashcardsopensourceapp.data.local.cloud.RemotePushResponse
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
+import com.flashcardsopensourceapp.data.local.cloud.remote.RemotePushResponse
 import com.flashcardsopensourceapp.data.local.database.CardEntity
 import com.flashcardsopensourceapp.data.local.database.DeckEntity
 import com.flashcardsopensourceapp.data.local.database.OutboxEntryEntity

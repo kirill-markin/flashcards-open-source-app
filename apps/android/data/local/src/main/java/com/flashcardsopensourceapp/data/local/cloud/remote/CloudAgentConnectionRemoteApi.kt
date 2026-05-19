@@ -1,5 +1,11 @@
-package com.flashcardsopensourceapp.data.local.cloud
+package com.flashcardsopensourceapp.data.local.cloud.remote
 
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudArray
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudIsoTimestampMillis
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudNullableIsoTimestampMillis
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudNullableString
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudObject
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnection
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import org.json.JSONObject

@@ -1,5 +1,10 @@
-package com.flashcardsopensourceapp.data.local.cloud
+package com.flashcardsopensourceapp.data.local.cloud.sync
 
+import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
+import com.flashcardsopensourceapp.data.local.cloud.identity.WorkspaceIdentityLocalStore
+import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteBootstrapEntry
+import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteReviewHistoryEvent
+import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteSyncChange
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.CardEntity
 import com.flashcardsopensourceapp.data.local.database.DeckEntity

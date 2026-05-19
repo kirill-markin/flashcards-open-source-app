@@ -1,5 +1,12 @@
-package com.flashcardsopensourceapp.data.local.cloud
+package com.flashcardsopensourceapp.data.local.cloud.remote
 
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudArray
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudBoolean
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudInt
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudIsoTimestampMillis
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudNullableString
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudObject
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
 import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeleteResult

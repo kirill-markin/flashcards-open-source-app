@@ -1,8 +1,8 @@
 package com.flashcardsopensourceapp.data.local.cloudidentity
 
-import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteException
-import com.flashcardsopensourceapp.data.local.cloud.CloudSyncConflictDetails
-import com.flashcardsopensourceapp.data.local.cloud.syncWorkspaceForkRequiredErrorCode
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudSyncConflictDetails
+import com.flashcardsopensourceapp.data.local.cloud.identity.syncWorkspaceForkRequiredErrorCode
 import com.flashcardsopensourceapp.data.local.database.CardEntity
 import com.flashcardsopensourceapp.data.local.database.OutboxEntryEntity
 import com.flashcardsopensourceapp.data.local.model.SyncEntityType

@@ -74,7 +74,7 @@ class AiBootstrapErrorPresentationTest {
         assertEquals("AI chat could not be loaded. Try again.", presentation.message)
         assertTrue(
             presentation.technicalDetails.orEmpty().contains(
-                "type: com.flashcardsopensourceapp.data.local.cloud.CloudContractMismatchException"
+                "type: com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException"
             )
         )
         assertFalse(presentation.technicalDetails.orEmpty().contains("message:"))
@@ -113,7 +113,7 @@ class AiBootstrapErrorPresentationTest {
 
     private fun makeCloudContractMismatchException(message: String): Exception {
         val errorClass = Class.forName(
-            "com.flashcardsopensourceapp.data.local.cloud.CloudContractMismatchException"
+            "com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException"
         )
         val constructor = errorClass.getDeclaredConstructor(String::class.java, Throwable::class.java)
         constructor.isAccessible = true

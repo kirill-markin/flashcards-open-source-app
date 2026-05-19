@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.cloud
+package com.flashcardsopensourceapp.data.local.cloud.sync
 
 import androidx.room.withTransaction
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
@@ -7,6 +7,21 @@ import com.flashcardsopensourceapp.data.local.database.CardTagEntity
 import com.flashcardsopensourceapp.data.local.database.DeckEntity
 import com.flashcardsopensourceapp.data.local.database.TagEntity
 import com.flashcardsopensourceapp.data.local.database.WorkspaceSchedulerSettingsEntity
+import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteSyncChange
+import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudDoubleOrNull
+import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudIntOrNull
+import com.flashcardsopensourceapp.data.local.cloud.wire.parseEffortLevel
+import com.flashcardsopensourceapp.data.local.cloud.wire.parseFsrsCardState
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudArray
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudBoolean
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudDouble
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudInt
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudIsoTimestampMillis
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudNullableIsoTimestampMillis
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudObject
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
+import com.flashcardsopensourceapp.data.local.cloud.wire.toCloudIntList
+import com.flashcardsopensourceapp.data.local.cloud.wire.toCloudStringList
 import com.flashcardsopensourceapp.data.local.model.SyncEntityType
 import com.flashcardsopensourceapp.data.local.model.encodeSchedulerStepListJson
 import com.flashcardsopensourceapp.data.local.model.normalizeTags
