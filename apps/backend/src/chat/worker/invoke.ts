@@ -10,8 +10,8 @@ import {
   normalizeCaughtError,
   type BackendExceptionEvent,
   type BackendTraceCarrier,
-} from "../observability/sentry";
-import { markQueuedChatRunDispatchFailed } from "./runs";
+} from "../../observability/sentry";
+import { markQueuedChatRunDispatchFailed } from "../runs";
 
 export type ChatWorkerDispatch = Readonly<{
   runId: string;

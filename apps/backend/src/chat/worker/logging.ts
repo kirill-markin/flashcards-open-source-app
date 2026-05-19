@@ -5,7 +5,7 @@ import {
   createBackendObservationScope,
   type BackendObservationScope,
   type ChatWorkerLifecycleDetails,
-} from "../observability/sentry";
+} from "../../observability/sentry";
 
 export type ChatWorkerLogContext = Readonly<{
   lambdaRequestId: string | null;

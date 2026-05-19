@@ -1,5 +1,5 @@
 import type { Writable } from "node:stream";
-import type { ChatLiveEvent } from "./contract";
+import type { ChatLiveEvent } from "../contract";
 
 export type LiveDisconnectReason =
   | "close"

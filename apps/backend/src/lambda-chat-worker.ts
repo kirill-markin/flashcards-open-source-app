@@ -1,5 +1,5 @@
 import type { Handler } from "aws-lambda";
-import type { ChatWorkerEvent } from "./chat/worker";
+import type { ChatWorkerEvent } from "./chat/worker/index";
 import {
   captureBackendException,
   continueBackendTrace,
@@ -15,7 +15,7 @@ initializeBackendSentry("chat-worker");
 
 type HttpErrorClass = typeof import("./errors").HttpError;
 type ChatWorkerRuntime = Readonly<{
-  handleChatWorkerEvent: typeof import("./chat/worker").handleChatWorkerEvent;
+  handleChatWorkerEvent: typeof import("./chat/worker/index").handleChatWorkerEvent;
   flushLangfuseTelemetry: typeof import("./telemetry/langfuse").flushLangfuseTelemetry;
   HttpError: HttpErrorClass;
 }>;
@@ -29,7 +29,7 @@ async function createChatWorkerRuntime(): Promise<ChatWorkerRuntime> {
     { HttpError },
   ] = await Promise.all([
     import("./telemetry/langfuse"),
-    import("./chat/worker"),
+    import("./chat/worker/index"),
     import("./errors"),
   ]);
   initializeLangfuseTelemetry();

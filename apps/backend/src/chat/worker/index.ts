@@ -2,10 +2,10 @@
  * Worker entrypoint for backend-owned chat runs.
  * The HTTP route prepares and persists the run; the worker claims it and executes the model loop independently of the client connection.
  */
-import { claimChatRun } from "./runs";
-import { runPersistedChatSession, type ChatWorkerRunResult } from "./runtime";
-import { logChatWorkerLifecycleEvent } from "./workerLogging";
-import type { BackendTraceCarrier } from "../observability/sentry";
+import { claimChatRun } from "../runs";
+import { runPersistedChatSession, type ChatWorkerRunResult } from "../runtime";
+import { logChatWorkerLifecycleEvent } from "./logging";
+import type { BackendTraceCarrier } from "../../observability/sentry";
 
 export type ChatWorkerEvent = Readonly<{
   runId: string;

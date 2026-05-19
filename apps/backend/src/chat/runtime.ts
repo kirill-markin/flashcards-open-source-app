@@ -42,7 +42,7 @@ import {
   captureChatWorkerTerminalStateException,
   logChatWorkerLifecycleEvent,
   type ChatWorkerLogContext,
-} from "./workerLogging";
+} from "./worker/logging";
 import {
   normalizeCaughtError,
   startBackendSpan,
@@ -54,7 +54,7 @@ import type {
   ReasoningSummaryContentPart,
   ToolCallContentPart,
 } from "./types";
-import { CHAT_RUN_HEARTBEAT_INTERVAL_MS } from "./workerLease";
+import { CHAT_RUN_HEARTBEAT_INTERVAL_MS } from "./worker/lease";
 
 const INCOMPLETE_TOOL_CALL_PROVIDER_STATUS = "incomplete";
 /**

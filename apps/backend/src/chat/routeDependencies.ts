@@ -6,7 +6,7 @@ import {
   type RequestContext,
   type WorkspaceRequestContext,
 } from "../server/requestContext";
-import { createChatLiveStreamEnvelope } from "./liveAuth";
+import { createChatLiveStreamEnvelope } from "./live/auth";
 import {
   getRecoveredChatSessionSnapshot,
   getRecoveredPaginatedSession,
@@ -20,7 +20,7 @@ import {
   listChatMessagesLatest,
   rolloverToFreshChatSession,
 } from "./store";
-import { invokeChatWorkerOrPersistFailure } from "./workerInvoke";
+import { invokeChatWorkerOrPersistFailure } from "./worker/invoke";
 import { resolveLiveCursor } from "./routeEnvelopes";
 
 export type ChatRoutesOptions = Readonly<{

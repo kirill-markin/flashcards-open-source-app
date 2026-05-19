@@ -3,8 +3,8 @@
  * Compares two snapshots of an in-progress assistant item's content array
  * and produces the SSE events representing new content since the last emission.
  */
-import type { ChatLiveEventPayload } from "./contract";
-import type { ContentPart } from "./types";
+import type { ChatLiveEventPayload } from "../contract";
+import type { ContentPart } from "../types";
 
 function getToolCallOutputIndex(part: Extract<ContentPart, { type: "tool_call" }>): number {
   return part.streamPosition?.outputIndex ?? 0;

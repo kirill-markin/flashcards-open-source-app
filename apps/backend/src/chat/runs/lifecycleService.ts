@@ -29,7 +29,7 @@ import {
 import { finalizePendingToolCallContent } from "../history";
 import { FAILED_TOOL_CALL_OUTPUT } from "../store";
 import type { ContentPart } from "../types";
-import { isChatRunHeartbeatStale } from "../workerLease";
+import { isChatRunHeartbeatStale } from "../worker/lease";
 import {
   createDiagnostics,
   finalizeCancelledRunWithExecutor,
