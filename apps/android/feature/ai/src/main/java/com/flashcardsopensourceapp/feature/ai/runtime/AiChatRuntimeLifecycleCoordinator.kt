@@ -1,6 +1,5 @@
 package com.flashcardsopensourceapp.feature.ai.runtime
 
-import com.flashcardsopensourceapp.data.local.ai.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import kotlinx.coroutines.CancellationException
@@ -45,12 +44,11 @@ internal class AiChatRuntimeLifecycleCoordinator(
         }
         if (context.activeWarmUpJob != null) {
             context.pendingWarmUpAfterWorkspaceSwitch = true
-            AiChatDiagnosticsLogger.info(
-                event = "switch_access_context_cancelling_warm_up",
-                fields = listOf(
-                    "nextWorkspaceId" to accessContext.workspaceId,
-                    "currentWorkspaceId" to context.runtimeStateMutable.value.workspaceId,
-                    "cloudState" to accessContext.cloudState.name
+            context.observability.recordAiChatBreadcrumb(
+                breadcrumb = AiChatBreadcrumb.SwitchAccessContextCancellingWarmUp(
+                    nextWorkspaceId = accessContext.workspaceId,
+                    currentWorkspaceId = context.runtimeStateMutable.value.workspaceId,
+                    cloudState = accessContext.cloudState.name
                 )
             )
             context.activeWarmUpJob?.cancel(
@@ -174,27 +172,42 @@ internal class AiChatRuntimeLifecycleCoordinator(
                     startConversationBootstrap(false, resumeDiagnostics)
                 }
             } catch (error: CancellationException) {
-                AiChatDiagnosticsLogger.info(
-                    event = "warm_up_cancelled",
-                    fields = listOf(
-                        "workspaceId" to accessContext.workspaceId,
-                        "currentWorkspaceId" to context.runtimeStateMutable.value.workspaceId,
-                        "cloudState" to accessContext.cloudState.name,
-                        "retryAfterWorkspaceSwitch" to context.pendingWarmUpAfterWorkspaceSwitch.toString(),
-                        "message" to error.message
+                context.observability.recordAiChatBreadcrumb(
+                    breadcrumb = AiChatBreadcrumb.WarmUpCancelled(
+                        workspaceId = accessContext.workspaceId,
+                        currentWorkspaceId = context.runtimeStateMutable.value.workspaceId,
+                        cloudState = accessContext.cloudState.name,
+                        retryAfterWorkspaceSwitch = context.pendingWarmUpAfterWorkspaceSwitch,
+                        message = error.message
                     )
                 )
                 throw error
             } catch (error: Exception) {
-                AiChatDiagnosticsLogger.error(
-                    event = "warm_up_failed",
-                    fields = listOf(
-                        "workspaceId" to accessContext.workspaceId,
-                        "cloudState" to accessContext.cloudState.name,
-                        "message" to error.message
-                    ) + remoteErrorFields(error = error as? AiChatRemoteException),
-                    throwable = error
-                )
+                val remoteError = error as? AiChatRemoteException
+                when (aiChatFailureIssueDisposition(error = error)) {
+                    AiChatFailureIssueDisposition.NONE -> Unit
+                    AiChatFailureIssueDisposition.WARNING -> {
+                        context.observability.recordAiChatWarning(
+                            warning = AiChatWarning.WarmUpFailureHandled(
+                                workspaceId = accessContext.workspaceId,
+                                cloudState = accessContext.cloudState.name,
+                                remoteError = aiChatRemoteErrorDetails(error = remoteError),
+                                message = aiChatFailureWarningMessage(error = error)
+                            )
+                        )
+                    }
+                    AiChatFailureIssueDisposition.EXCEPTION -> {
+                        context.observability.recordAiChatException(
+                            exception = AiChatExceptionEvent.WarmUpFailed(
+                                workspaceId = accessContext.workspaceId,
+                                cloudState = accessContext.cloudState.name,
+                                message = null,
+                                remoteError = aiChatRemoteErrorDetails(error = remoteError),
+                                error = error
+                            )
+                        )
+                    }
+                }
                 val message = makeAiUserFacingErrorMessage(
                     error = error,
                     surface = AiErrorSurface.CHAT,

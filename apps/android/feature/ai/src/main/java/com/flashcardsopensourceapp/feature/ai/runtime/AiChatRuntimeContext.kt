@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.ai.runtime
 
+import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.data.local.model.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
@@ -9,7 +10,6 @@ import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncRequest
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncSource
-import com.flashcardsopensourceapp.data.local.ai.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicLong
@@ -31,14 +31,23 @@ internal class AiChatRuntimeContext(
     val scope: CoroutineScope,
     val aiChatRepository: AiChatRepository,
     val autoSyncEventRepository: AutoSyncEventRepository,
-    val appVersion: String,
+    appVersion: String,
+    versionCode: Int,
     val textProvider: AiTextProvider,
     val hasConsent: () -> Boolean,
     val currentCloudState: () -> CloudAccountState,
     val currentServerConfiguration: () -> CloudServiceConfiguration,
     val currentSyncStatus: () -> SyncStatus,
-    val currentUiLocaleTag: () -> String?
+    val currentUiLocaleTag: () -> String?,
+    observability: AppObservability
 ) {
+    val appVersion: String = appVersion
+    val observability: AppObservability = createAiChatRuntimeObservability(
+        observability = observability,
+        appVersion = appVersion,
+        versionCode = versionCode
+    )
+
     private data class ToolRunPostSyncOrigin(
         val workspaceId: String?,
         val sessionId: String
@@ -207,12 +216,11 @@ internal class AiChatRuntimeContext(
             throw error
         } catch (error: Exception) {
             releaseToolRunPostSyncInFlight()
-            AiChatDiagnosticsLogger.warn(
-                event = "ai_chat_post_run_sync_failed",
-                fields = listOf(
-                    "workspaceId" to origin.workspaceId,
-                    "reason" to reason,
-                    "message" to error.message
+            observability.recordAiChatWarning(
+                warning = AiChatWarning.PostRunSyncFailed(
+                    workspaceId = origin.workspaceId,
+                    reason = reason,
+                    error = error
                 )
             )
         }
@@ -244,12 +252,11 @@ internal class AiChatRuntimeContext(
                     } catch (error: CancellationException) {
                         throw error
                     } catch (error: Exception) {
-                        AiChatDiagnosticsLogger.warn(
-                            event = "ai_chat_post_run_sync_flag_persist_failed",
-                            fields = listOf(
-                                "workspaceId" to currentState.workspaceId,
-                                "reason" to reason,
-                                "message" to error.message
+                        observability.recordAiChatWarning(
+                            warning = AiChatWarning.PostRunSyncFlagPersistFailed(
+                                workspaceId = currentState.workspaceId,
+                                reason = reason,
+                                error = error
                             )
                         )
                     }
@@ -272,12 +279,11 @@ internal class AiChatRuntimeContext(
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Exception) {
-                    AiChatDiagnosticsLogger.warn(
-                        event = "ai_chat_post_run_sync_flag_persist_failed",
-                        fields = listOf(
-                            "workspaceId" to origin.workspaceId,
-                            "reason" to reason,
-                            "message" to error.message
+                    observability.recordAiChatWarning(
+                        warning = AiChatWarning.PostRunSyncFlagPersistFailed(
+                            workspaceId = origin.workspaceId,
+                            reason = reason,
+                            error = error
                         )
                     )
                 }

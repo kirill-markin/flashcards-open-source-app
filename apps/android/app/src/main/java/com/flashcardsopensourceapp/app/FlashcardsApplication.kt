@@ -5,6 +5,8 @@ import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.di.AppStartupState
 import com.flashcardsopensourceapp.app.navigation.AppNotificationTapHandoffRequest
 import com.flashcardsopensourceapp.app.notifications.AppNotificationTapRequest
+import com.flashcardsopensourceapp.app.observability.AndroidObservabilityStartup
+import com.flashcardsopensourceapp.app.observability.startAndroidObservability
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +23,7 @@ class FlashcardsApplication : Application() {
     private val nextAppNotificationTapRequestId = AtomicLong(0L)
     private val appGraphStateMutable = MutableStateFlow<AppGraph?>(value = null)
     private val appNotificationTapStateMutable = MutableStateFlow<AppNotificationTapHandoffRequest?>(value = null)
+    private lateinit var observabilityStartup: AndroidObservabilityStartup
 
     val appGraph: AppGraph
         get() = requireNotNull(appGraphOrNull) { "App graph is unavailable." }
@@ -40,7 +43,8 @@ class FlashcardsApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        publishAppGraph(appGraph = AppGraph(context = this))
+        observabilityStartup = startAndroidObservability(application = this)
+        publishAppGraph(appGraph = createAppGraph())
     }
 
     suspend fun closeAppGraph() {
@@ -55,7 +59,7 @@ class FlashcardsApplication : Application() {
             val existingAppGraph = detachAppGraph()
             existingAppGraph?.close()
 
-            val newAppGraph = AppGraph(context = this)
+            val newAppGraph = createAppGraph()
             publishAppGraph(appGraph = newAppGraph)
             newAppGraph.awaitStartup()
         }
@@ -87,6 +91,14 @@ class FlashcardsApplication : Application() {
             appGraphHolder = appGraph
             appGraphStateMutable.value = appGraph
         }
+    }
+
+    private fun createAppGraph(): AppGraph {
+        return AppGraph(
+            context = this,
+            observability = observabilityStartup.observability,
+            okHttpClient = observabilityStartup.okHttpClient
+        )
     }
 
     private suspend fun detachAppGraph(): AppGraph? {

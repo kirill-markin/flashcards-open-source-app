@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.data.local.repository.progress
 
+import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.model.ProgressReviewScheduleSnapshot
@@ -22,7 +23,9 @@ internal class ProgressReviewScheduleOrchestration(
     private val cloudAccountRepository: CloudAccountRepository,
     private val syncRepository: SyncRepository,
     private val timeProvider: TimeProvider,
-    private val backgroundLauncher: ProgressBackgroundLauncher
+    private val backgroundLauncher: ProgressBackgroundLauncher,
+    private val observability: AppObservability,
+    private val observationVersions: ProgressObservationVersions
 ) {
     private val snapshotMutable = MutableStateFlow<ProgressReviewScheduleSnapshot?>(null)
     private val latestInputsMutable = MutableStateFlow<ProgressObservedInputs?>(null)
@@ -199,8 +202,12 @@ internal class ProgressReviewScheduleOrchestration(
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
-                logProgressRepositoryWarning(
+                logProgressRefreshWarning(
+                    observability = observability,
+                    observationVersions = observationVersions,
                     event = "progress_review_schedule_sync_before_remote_load_failed",
+                    scopeId = resolvedRefreshStoreState.scopeKey.scopeId,
+                    source = "review_schedule_sync_before_remote_load",
                     fields = listOf(
                         "scopeKey" to serializeProgressReviewScheduleScopeKey(
                             scopeKey = resolvedRefreshStoreState.scopeKey
@@ -227,8 +234,12 @@ internal class ProgressReviewScheduleOrchestration(
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
-            logProgressRepositoryWarning(
+            logProgressRefreshWarning(
+                observability = observability,
+                observationVersions = observationVersions,
                 event = "progress_review_schedule_remote_load_failed",
+                scopeId = resolvedRefreshStoreState.scopeKey.scopeId,
+                source = "review_schedule_remote_load",
                 fields = listOf(
                     "scopeKey" to serializeProgressReviewScheduleScopeKey(
                         scopeKey = resolvedRefreshStoreState.scopeKey
@@ -249,8 +260,12 @@ internal class ProgressReviewScheduleOrchestration(
                 totalCards = remoteSchedule.totalCards
             )
         } catch (error: IllegalArgumentException) {
-            logProgressRepositoryWarning(
+            logProgressRefreshWarning(
+                observability = observability,
+                observationVersions = observationVersions,
                 event = "progress_review_schedule_remote_response_invalid",
+                scopeId = resolvedRefreshStoreState.scopeKey.scopeId,
+                source = "review_schedule_remote_response",
                 fields = listOf(
                     "scopeKey" to serializeProgressReviewScheduleScopeKey(
                         scopeKey = resolvedRefreshStoreState.scopeKey

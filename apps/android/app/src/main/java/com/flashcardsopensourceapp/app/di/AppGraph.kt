@@ -6,6 +6,10 @@ import com.flashcardsopensourceapp.app.AutoSyncController
 import com.flashcardsopensourceapp.app.navigation.AppPackageInfo
 import com.flashcardsopensourceapp.app.navigation.loadPackageInfo
 import com.flashcardsopensourceapp.app.ProgressContextRefreshController
+import com.flashcardsopensourceapp.app.observability.renderSanitizedThrowableLogFields
+import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
+import com.flashcardsopensourceapp.core.observability.AppObservability
+import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
 import com.flashcardsopensourceapp.core.ui.AppMessageBus
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenController
 import com.flashcardsopensourceapp.app.navigation.AppHandoffCoordinator
@@ -29,6 +33,8 @@ import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsS
 import com.flashcardsopensourceapp.data.local.notifications.SharedPreferencesReviewNotificationsStore
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersReconcileTrigger
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersStore
+import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.CloudSettings
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.review.SharedPreferencesReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
@@ -66,6 +72,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import okhttp3.OkHttpClient
 import java.time.ZoneId
 
 private const val appGraphLogTag: String = "AppGraph"
@@ -81,18 +88,32 @@ data class AppGuestCloudSession(
 )
 
 class AppGraph(
-    context: Context
+    context: Context,
+    val observability: AppObservability,
+    private val okHttpClient: OkHttpClient
 ) {
     private val appJob = SupervisorJob()
     // Backstop for any uncaught exception escaping an appScope.launch site so the
     // process never crashes on a missed try/catch. Coroutine machinery filters
     // CancellationException out before it reaches this handler.
     private val appScopeExceptionHandler = CoroutineExceptionHandler { _, error ->
-        Log.w(appGraphLogTag, "event=app_scope_uncaught_exception", error)
+        observability.captureException(
+            event = AndroidExceptionIssueEvent.AppScopeUncaughtException(
+                throwable = error,
+                appVersion = appPackageInfo.versionName,
+                clientVersion = appPackageInfo.versionName,
+                versionCode = appPackageInfo.longVersionCode.toInt()
+            )
+        )
+        Log.w(
+            appGraphLogTag,
+            "event=app_scope_uncaught_exception ${renderSanitizedThrowableLogFields(error = error)}"
+        )
     }
     private val appScope = CoroutineScope(appJob + Dispatchers.IO + appScopeExceptionHandler)
     private val startupStateMutable = MutableStateFlow<AppStartupState>(AppStartupState.Loading)
     private var startupJob: Job? = null
+    private var cloudIdentityObserverJob: Job? = null
     private var reviewHistoryAppliedObserverJob: Job? = null
 
     internal val appPackageInfo: AppPackageInfo = loadPackageInfo(context = context)
@@ -101,7 +122,12 @@ class AppGraph(
     val appHandoffCoordinator = AppHandoffCoordinator()
     val database: AppDatabase = buildAppDatabase(context = context)
     private val cloudPreferencesStore = CloudPreferencesStore(context = context, database = database)
-    private val cloudRemoteService = CloudRemoteService()
+    private val cloudRemoteService = CloudRemoteService(
+        okHttpClient = okHttpClient,
+        observability = observability,
+        appVersion = appPackageInfo.versionName,
+        versionCode = appPackageInfo.longVersionCode.toInt()
+    )
     private val aiChatPreferencesStore = AiChatPreferencesStore(context = context)
     private val aiChatHistoryStore = AiChatHistoryStore(context = context)
     private val guestAiSessionStore = GuestAiSessionStore(context = context)
@@ -114,10 +140,20 @@ class AppGraph(
         database = database,
         timeProvider = SystemTimeProvider
     )
-    private val aiChatLiveRemoteService = AiChatLiveRemoteService(dispatchers = aiCoroutineDispatchers)
+    private val aiChatLiveRemoteService = AiChatLiveRemoteService(
+        dispatchers = aiCoroutineDispatchers,
+        okHttpClient = okHttpClient,
+        observability = observability,
+        appVersion = appPackageInfo.versionName,
+        versionCode = appPackageInfo.longVersionCode.toInt()
+    )
     private val aiChatRemoteService = AiChatRemoteService(
         dispatchers = aiCoroutineDispatchers,
-        liveRemoteService = aiChatLiveRemoteService
+        liveRemoteService = aiChatLiveRemoteService,
+        okHttpClient = okHttpClient,
+        observability = observability,
+        appVersion = appPackageInfo.versionName,
+        versionCode = appPackageInfo.longVersionCode.toInt()
     )
     internal val syncLocalStore = SyncLocalStore(
         database = database,
@@ -219,11 +255,17 @@ class AppGraph(
         cloudAccountRepository = cloudAccountRepository,
         syncRepository = syncRepository,
         localProgressCacheStore = localProgressCacheStore,
+        observability = observability,
+        appVersion = appPackageInfo.versionName,
+        versionCode = appPackageInfo.longVersionCode.toInt(),
         timeProvider = SystemTimeProvider
     )
     val progressContextRefreshController = ProgressContextRefreshController(
         appScope = appScope,
-        progressRepository = progressRepository
+        progressRepository = progressRepository,
+        observability = observability,
+        appVersion = appPackageInfo.versionName,
+        versionCode = appPackageInfo.longVersionCode.toInt()
     )
     val aiChatRepository: AiChatRepository = LocalAiChatRepository(
         database = database,
@@ -240,6 +282,23 @@ class AppGraph(
     init {
         startReviewHistoryAppliedObserver()
         startStartup()
+    }
+
+    private fun startCloudIdentityObserver() {
+        cloudIdentityObserverJob?.cancel()
+        cloudIdentityObserverJob = appScope.launch {
+            cloudPreferencesStore.observeCloudSettings().collect { cloudSettings ->
+                val identity = createCloudObservationIdentity(
+                    cloudSettings = cloudSettings,
+                    appPackageInfo = appPackageInfo
+                )
+                if (identity == null) {
+                    observability.clearCloudIdentity()
+                } else {
+                    observability.setCloudIdentity(identity = identity)
+                }
+            }
+        }
     }
 
     private fun startReviewHistoryAppliedObserver() {
@@ -269,6 +328,7 @@ class AppGraph(
         startupJob = appScope.launch {
             try {
                 cloudPreferencesStore.hydrateCloudSettingsFromDatabase()
+                startCloudIdentityObserver()
                 ensureLocalWorkspaceShell(currentTimeMillis = System.currentTimeMillis())
                 cloudPreferencesStore.hydrateCloudSettingsFromDatabase()
                 cloudGuestSessionCoordinator.reconcilePersistedCloudStateForStartup()
@@ -276,6 +336,19 @@ class AppGraph(
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
+                observability.captureException(
+                    event = AndroidExceptionIssueEvent.AppStartupException(
+                        throwable = error,
+                        startupPhase = "initial_startup",
+                        appVersion = appPackageInfo.versionName,
+                        clientVersion = appPackageInfo.versionName,
+                        versionCode = appPackageInfo.longVersionCode.toInt()
+                    )
+                )
+                Log.w(
+                    appGraphLogTag,
+                    "event=app_startup_exception ${renderSanitizedThrowableLogFields(error = error)}"
+                )
                 startupStateMutable.value = AppStartupState.Failed(
                     message = error.message ?: "Android startup failed."
                 )
@@ -323,10 +396,32 @@ class AppGraph(
 
     suspend fun close() {
         startupJob?.cancelAndJoin()
+        cloudIdentityObserverJob?.cancelAndJoin()
         reviewHistoryAppliedObserverJob?.cancelAndJoin()
         reviewNotificationsManager.close()
         strictRemindersManager.close()
         appJob.cancelAndJoin()
         closeAppDatabase(database = database)
     }
+}
+
+private fun createCloudObservationIdentity(
+    cloudSettings: CloudSettings,
+    appPackageInfo: AppPackageInfo
+): CloudObservationIdentity? {
+    if (
+        cloudSettings.cloudState != CloudAccountState.GUEST &&
+        cloudSettings.cloudState != CloudAccountState.LINKED
+    ) {
+        return null
+    }
+
+    return CloudObservationIdentity(
+        userId = cloudSettings.linkedUserId?.trim()?.ifEmpty { null } ?: cloudSettings.installationId,
+        workspaceId = cloudSettings.activeWorkspaceId ?: cloudSettings.linkedWorkspaceId,
+        installationId = cloudSettings.installationId,
+        appVersion = appPackageInfo.versionName,
+        clientVersion = appPackageInfo.versionName,
+        versionCode = appPackageInfo.longVersionCode.toInt()
+    )
 }

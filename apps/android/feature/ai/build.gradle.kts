@@ -26,6 +26,7 @@ android {
 }
 
 dependencies {
+    api(project(":core:observability"))
     implementation(project(":core:ui"))
     implementation(project(":data:local"))
     implementation(project(":feature:settings"))

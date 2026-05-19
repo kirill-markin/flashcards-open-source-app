@@ -56,8 +56,7 @@ internal fun remoteErrorFields(error: AiChatRemoteException?): List<Pair<String,
         "requestId" to error?.requestId,
         "statusCode" to error?.statusCode?.toString(),
         "code" to error?.code,
-        "stage" to error?.stage,
-        "responseBody" to error?.responseBody
+        "stage" to error?.stage
     )
 }
 

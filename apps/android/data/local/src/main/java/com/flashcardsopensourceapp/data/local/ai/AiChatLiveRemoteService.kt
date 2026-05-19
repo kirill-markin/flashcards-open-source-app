@@ -1,16 +1,38 @@
 package com.flashcardsopensourceapp.data.local.ai
 
+import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveStreamEnvelope
 import com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics
+import com.flashcardsopensourceapp.data.local.network.TracePropagationTarget
+import com.flashcardsopensourceapp.data.local.network.awaitOkHttpResponse
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.InternalCoroutinesApi
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import java.net.HttpURLConnection
+import kotlinx.coroutines.job
+import okhttp3.CacheControl
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import java.io.EOFException
+import java.io.IOException
 import java.net.URLEncoder
-import java.net.URL
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
+
+const val aiChatLiveStreamEndedBeforeTerminalCode: String = "ai_live_stream_ended_before_terminal"
+const val aiChatLiveStreamReadFailedCode: String = "ai_live_stream_read_failed"
+
+class AiChatLiveStreamException(
+    message: String,
+    val requestId: String?,
+    val code: String,
+    cause: Throwable
+) : IOException(message, cause)
 
 /**
  * Owns the low-level live SSE transport for Android AI chat.
@@ -18,9 +40,72 @@ import java.nio.charset.StandardCharsets
  * temporary live overlay, validates the SSE wire payloads, and stops when the
  * caller no longer wants more events.
  */
-class AiChatLiveRemoteService(
-    private val dispatchers: AiCoroutineDispatchers
+class AiChatLiveRemoteService private constructor(
+    private val dispatchers: AiCoroutineDispatchers,
+    okHttpClient: OkHttpClient,
+    private val observability: AppObservability,
+    private val observationVersions: AiChatHttpObservationVersions
 ) {
+    constructor(
+        dispatchers: AiCoroutineDispatchers,
+        okHttpClient: OkHttpClient,
+        observability: AppObservability,
+        appVersion: String,
+        versionCode: Int
+    ) : this(
+        dispatchers = dispatchers,
+        okHttpClient = okHttpClient,
+        observability = observability,
+        observationVersions = createAiChatHttpObservationVersions(
+            appVersion = appVersion,
+            versionCode = versionCode
+        )
+    )
+
+    constructor(
+        dispatchers: AiCoroutineDispatchers,
+        okHttpClient: OkHttpClient
+    ) : this(
+        dispatchers = dispatchers,
+        okHttpClient = okHttpClient,
+        observability = NoopAiChatHttpObservability,
+        observationVersions = createAiChatHttpObservationVersions(
+            appVersion = null,
+            versionCode = null
+        )
+    )
+
+    constructor(dispatchers: AiCoroutineDispatchers) : this(
+        dispatchers = dispatchers,
+        okHttpClient = OkHttpClient()
+    )
+
+    private val httpClient: OkHttpClient = okHttpClient.newBuilder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(600, TimeUnit.SECONDS)
+        .build()
+
+    fun attachLiveRun(
+        authorizationHeader: String,
+        sessionId: String,
+        runId: String,
+        liveStream: AiChatLiveStreamEnvelope,
+        workspaceId: String?,
+        afterCursor: String?,
+        resumeDiagnostics: AiChatResumeDiagnostics?
+    ): Flow<AiChatLiveEvent> {
+        return attachLiveRun(
+            authorizationHeader = authorizationHeader,
+            sessionId = sessionId,
+            runId = runId,
+            liveStream = liveStream,
+            workspaceId = workspaceId,
+            afterCursor = afterCursor,
+            resumeDiagnostics = resumeDiagnostics,
+            allowOfficialLiveTracePropagation = false
+        )
+    }
+
     fun attachLiveRun(
         authorizationHeader: String,
         sessionId: String,
@@ -29,6 +114,7 @@ class AiChatLiveRemoteService(
         workspaceId: String?,
         afterCursor: String?,
         resumeDiagnostics: AiChatResumeDiagnostics?,
+        allowOfficialLiveTracePropagation: Boolean
     ): Flow<AiChatLiveEvent> = flow {
         val usesSignedLiveAuthorization = liveStream.authorization.startsWith(prefix = "Live ")
         val authorization = if (usesSignedLiveAuthorization) {
@@ -48,6 +134,7 @@ class AiChatLiveRemoteService(
             },
             afterCursor = afterCursor,
             resumeDiagnostics = resumeDiagnostics,
+            allowOfficialLiveTracePropagation = allowOfficialLiveTracePropagation,
             emitEvent = { event ->
                 emit(event)
                 event !is AiChatLiveEvent.RunTerminal
@@ -90,6 +177,7 @@ class AiChatLiveRemoteService(
         }
     }
 
+    @OptIn(InternalCoroutinesApi::class)
     private suspend fun connectLiveStream(
         liveUrl: String,
         authorization: String,
@@ -98,6 +186,7 @@ class AiChatLiveRemoteService(
         workspaceId: String?,
         afterCursor: String?,
         resumeDiagnostics: AiChatResumeDiagnostics?,
+        allowOfficialLiveTracePropagation: Boolean,
         emitEvent: suspend (AiChatLiveEvent) -> Boolean
     ) {
         val urlString = buildLiveUrl(
@@ -107,74 +196,146 @@ class AiChatLiveRemoteService(
             workspaceId = workspaceId,
             afterCursor = afterCursor
         )
-        val connection = (URL(urlString).openConnection() as HttpURLConnection)
-        connection.requestMethod = "GET"
-        connection.connectTimeout = 15_000
-        connection.readTimeout = 600_000
-        connection.useCaches = false
-        connection.setRequestProperty("Accept", "text/event-stream")
-        connection.setRequestProperty("Authorization", authorization)
+        val requestBuilder = Request.Builder()
+            .url(urlString)
+            .get()
+            .cacheControl(CacheControl.FORCE_NETWORK)
+            .header("Accept", "text/event-stream")
+            .header("Authorization", authorization)
+        if (allowOfficialLiveTracePropagation) {
+            requestBuilder.tag(TracePropagationTarget::class.java, TracePropagationTarget.OFFICIAL_AI_LIVE)
+        }
         if (resumeDiagnostics != null) {
-            connection.setRequestProperty(
+            requestBuilder.header(
                 "X-Chat-Resume-Attempt-Id",
                 resumeDiagnostics.resumeAttemptId.toString()
             )
-            connection.setRequestProperty("X-Client-Platform", resumeDiagnostics.clientPlatform)
-            connection.setRequestProperty("X-Client-Version", resumeDiagnostics.clientVersion)
+            requestBuilder.header("X-Client-Platform", resumeDiagnostics.clientPlatform)
+            requestBuilder.header("X-Client-Version", resumeDiagnostics.clientVersion)
+        }
+        val call = httpClient.newCall(requestBuilder.build())
+        val coroutineJob = currentCoroutineContext().job
+        val cancellationRequested = AtomicBoolean(false)
+        val cancellationHandle = coroutineJob.invokeOnCompletion(
+            onCancelling = true,
+            invokeImmediately = true
+        ) { cause ->
+            if (cause != null) {
+                cancellationRequested.set(true)
+                call.cancel()
+            }
         }
 
         try {
-            val responseCode = connection.responseCode
-            if (responseCode !in 200..299) {
-                throw readAiChatRemoteErrorResponse(connection = connection)
-            }
-
-            val reader = connection.inputStream.bufferedReader(StandardCharsets.UTF_8)
-            var currentEventType: String? = null
-            val dataLines = mutableListOf<String>()
-
-            var line: String? = reader.readLine()
-            while (line != null) {
-                if (line.startsWith("event: ")) {
-                    currentEventType = line.removePrefix("event: ")
-                } else if (line.startsWith("data: ")) {
-                    dataLines += line.removePrefix("data: ")
-                } else if (line.startsWith(":")) {
-                    // keepalive comment, ignore
-                } else if (line.isEmpty() && dataLines.isNotEmpty()) {
-                    val payload = dataLines.joinToString(separator = "\n")
-                    dataLines.clear()
-                    val shouldContinue = emitDecodedPayload(
-                        currentEventType = currentEventType,
-                        payload = payload,
-                        sessionId = sessionId,
-                        runId = runId,
-                        afterCursor = afterCursor,
-                        emitEvent = emitEvent
+            call.awaitOkHttpResponse().use { response ->
+                if (response.isSuccessful.not()) {
+                    val responseBody = readAiChatResponseBody(response = response)
+                    throw readAiChatRemoteErrorResponse(
+                        response = response,
+                        responseBody = responseBody,
+                        observability = observability,
+                        observationVersions = observationVersions
                     )
-                    currentEventType = null
-                    if (shouldContinue.not()) {
-                        return
-                    }
                 }
-                line = reader.readLine()
-            }
 
-            if (dataLines.isNotEmpty()) {
-                val payload = dataLines.joinToString(separator = "\n")
-                emitDecodedPayload(
-                    currentEventType = currentEventType,
-                    payload = payload,
-                    sessionId = sessionId,
-                    runId = runId,
-                    afterCursor = afterCursor,
-                    emitEvent = emitEvent
-                )
+                val requestId = readAiChatRequestIdHeader(response = response)
+                try {
+                    val responseBody = response.body ?: throw AiChatLiveStreamException(
+                        message = "AI live attach returned a successful response without an event stream body.",
+                        requestId = requestId,
+                        code = "ai_live_stream_body_missing",
+                        cause = IllegalStateException("AI live stream response body is missing.")
+                    )
+                    var currentEventType: String? = null
+                    val dataLines = mutableListOf<String>()
+
+                    responseBody.byteStream().bufferedReader(StandardCharsets.UTF_8).use { reader ->
+                        var line: String? = reader.readLine()
+                        while (line != null) {
+                            if (line.startsWith("event: ")) {
+                                currentEventType = line.removePrefix("event: ")
+                            } else if (line.startsWith("data: ")) {
+                                dataLines += line.removePrefix("data: ")
+                            } else if (line.startsWith(":")) {
+                                // keepalive comment, ignore
+                            } else if (line.isEmpty() && dataLines.isNotEmpty()) {
+                                val payload = dataLines.joinToString(separator = "\n")
+                                dataLines.clear()
+                                val shouldContinue = emitDecodedPayload(
+                                    currentEventType = currentEventType,
+                                    payload = payload,
+                                    sessionId = sessionId,
+                                    runId = runId,
+                                    afterCursor = afterCursor,
+                                    emitEvent = emitEvent
+                                )
+                                currentEventType = null
+                                if (shouldContinue.not()) {
+                                    return
+                                }
+                            }
+                            line = reader.readLine()
+                        }
+                    }
+
+                    if (dataLines.isNotEmpty()) {
+                        val payload = dataLines.joinToString(separator = "\n")
+                        val shouldContinue = emitDecodedPayload(
+                            currentEventType = currentEventType,
+                            payload = payload,
+                            sessionId = sessionId,
+                            runId = runId,
+                            afterCursor = afterCursor,
+                            emitEvent = emitEvent
+                        )
+                        if (shouldContinue.not()) {
+                            return
+                        }
+                    }
+                    throw AiChatLiveStreamException(
+                        message = "AI live stream ended before a terminal event.",
+                        requestId = requestId,
+                        code = aiChatLiveStreamEndedBeforeTerminalCode,
+                        cause = EOFException("AI live stream ended before a terminal event.")
+                    )
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: AiChatLiveStreamException) {
+                    throw error
+                } catch (error: IOException) {
+                    throw AiChatLiveStreamException(
+                        message = "AI live stream failed while reading the event stream.",
+                        requestId = requestId,
+                        code = aiChatLiveStreamReadFailedCode,
+                        cause = error
+                    )
+                } catch (error: Exception) {
+                    throw AiChatLiveStreamException(
+                        message = "AI live stream failed while decoding the event stream.",
+                        requestId = requestId,
+                        code = "ai_live_stream_decode_failed",
+                        cause = error
+                    )
+                }
             }
         } catch (error: CancellationException) {
             throw error
+        } catch (error: IOException) {
+            if (cancellationRequested.get() || coroutineJob.isCancelled) {
+                throw cancellationException(
+                    message = "AI live stream request was cancelled.",
+                    cause = error
+                )
+            }
+            throw error
         } finally {
-            connection.disconnect()
+            cancellationHandle.dispose()
+        }
+    }
+
+    private fun readAiChatResponseBody(response: Response): String? {
+        return response.body.byteStream().bufferedReader(StandardCharsets.UTF_8).use { reader ->
+            reader.readText()
         }
     }
 

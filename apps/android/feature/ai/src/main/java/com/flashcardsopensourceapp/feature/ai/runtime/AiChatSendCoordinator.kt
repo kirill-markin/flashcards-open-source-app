@@ -1,6 +1,5 @@
 package com.flashcardsopensourceapp.feature.ai.runtime
 
-import com.flashcardsopensourceapp.data.local.ai.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
@@ -43,15 +42,14 @@ internal class AiChatSendCoordinator(
             return
         }
 
-        AiChatDiagnosticsLogger.info(
-            event = "ui_send_message_requested",
-            fields = listOf(
-                "workspaceId" to currentState.workspaceId,
-                "cloudState" to currentCloudState().name,
-                "chatSessionId" to currentState.persistedState.chatSessionId,
-                "messageCount" to currentState.persistedState.messages.size.toString(),
-                "pendingAttachmentCount" to currentState.pendingAttachments.size.toString(),
-                "outgoingContentSummary" to AiChatDiagnosticsLogger.summarizeOutgoingContent(content = outgoingContent)
+        context.observability.recordAiChatBreadcrumb(
+            breadcrumb = AiChatBreadcrumb.UiSendMessageRequested(
+                workspaceId = currentState.workspaceId,
+                cloudState = currentCloudState().name,
+                chatSessionId = currentState.persistedState.chatSessionId,
+                messageCount = currentState.persistedState.messages.size,
+                pendingAttachmentCount = currentState.pendingAttachments.size,
+                contentCounts = countAiChatContentParts(content = outgoingContent)
             )
         )
 
@@ -325,18 +323,6 @@ internal class AiChatSendCoordinator(
             )
         }
         if (remoteError?.code == "GUEST_AI_LIMIT_REACHED") {
-            AiChatDiagnosticsLogger.warn(
-                event = "send_failure_guest_quota_reached",
-                fields = listOf(
-                    "workspaceId" to context.runtimeStateMutable.value.workspaceId,
-                    "cloudState" to currentCloudState().name,
-                    "chatSessionId" to context.runtimeStateMutable.value.persistedState.chatSessionId,
-                    "requestId" to remoteError.requestId,
-                    "statusCode" to remoteError.statusCode?.toString(),
-                    "code" to remoteError.code,
-                    "stage" to remoteError.stage
-                )
-            )
             context.runtimeStateMutable.update { state ->
                 state.copy(
                     persistedState = appendAssistantAccountUpgradePrompt(
@@ -376,17 +362,34 @@ internal class AiChatSendCoordinator(
             textProvider = context.textProvider
         )
         val currentState = context.runtimeStateMutable.value
-        AiChatDiagnosticsLogger.error(
-            event = "send_failure_handled",
-            fields = listOf(
-                "workspaceId" to currentState.workspaceId,
-                "cloudState" to currentCloudState().name,
-                "chatSessionId" to currentState.persistedState.chatSessionId,
-                "messageCount" to currentState.persistedState.messages.size.toString(),
-                "userFacingMessage" to message
-            ) + remoteErrorFields(error = remoteError),
-            throwable = error
-        )
+        when (aiChatFailureIssueDisposition(error = error)) {
+            AiChatFailureIssueDisposition.NONE -> Unit
+            AiChatFailureIssueDisposition.WARNING -> {
+                context.observability.recordAiChatWarning(
+                    warning = AiChatWarning.SendFailureHandled(
+                        workspaceId = currentState.workspaceId,
+                        cloudState = currentCloudState().name,
+                        chatSessionId = currentState.persistedState.chatSessionId,
+                        messageCount = currentState.persistedState.messages.size,
+                        remoteError = aiChatRemoteErrorDetails(error = remoteError),
+                        message = aiChatFailureWarningMessage(error = error)
+                    )
+                )
+            }
+            AiChatFailureIssueDisposition.EXCEPTION -> {
+                context.observability.recordAiChatException(
+                    exception = AiChatExceptionEvent.SendFailureHandled(
+                        workspaceId = currentState.workspaceId,
+                        cloudState = currentCloudState().name,
+                        chatSessionId = currentState.persistedState.chatSessionId,
+                        messageCount = currentState.persistedState.messages.size,
+                        userFacingMessage = message,
+                        remoteError = aiChatRemoteErrorDetails(error = remoteError),
+                        error = error
+                    )
+                )
+            }
+        }
         context.runtimeStateMutable.update { state ->
             state.copy(
                 activeRun = null,

@@ -1,5 +1,10 @@
 package com.flashcardsopensourceapp.app
 
+import com.flashcardsopensourceapp.core.observability.AndroidBreadcrumbEvent
+import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
+import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
+import com.flashcardsopensourceapp.core.observability.AppObservability
+import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.data.local.model.ProgressReviewScheduleSnapshot
 import com.flashcardsopensourceapp.data.local.model.ProgressSeriesSnapshot
@@ -24,7 +29,10 @@ class ProgressContextRefreshControllerTest {
         val appScope = CoroutineScope(context = Dispatchers.Default)
         val controller = ProgressContextRefreshController(
             appScope = appScope,
-            progressRepository = repository
+            progressRepository = repository,
+            observability = TestAppObservability(),
+            appVersion = testAppVersion,
+            versionCode = testVersionCode
         )
 
         try {
@@ -46,7 +54,10 @@ class ProgressContextRefreshControllerTest {
         val appScope = CoroutineScope(context = Dispatchers.Default)
         val controller = ProgressContextRefreshController(
             appScope = appScope,
-            progressRepository = repository
+            progressRepository = repository,
+            observability = TestAppObservability(),
+            appVersion = testAppVersion,
+            versionCode = testVersionCode
         )
 
         try {
@@ -72,7 +83,10 @@ class ProgressContextRefreshControllerTest {
         val appScope = CoroutineScope(context = Dispatchers.Default)
         val controller = ProgressContextRefreshController(
             appScope = appScope,
-            progressRepository = repository
+            progressRepository = repository,
+            observability = TestAppObservability(),
+            appVersion = testAppVersion,
+            versionCode = testVersionCode
         )
 
         try {
@@ -109,7 +123,10 @@ class ProgressContextRefreshControllerTest {
         val appScope = CoroutineScope(context = Dispatchers.Default)
         val controller = ProgressContextRefreshController(
             appScope = appScope,
-            progressRepository = repository
+            progressRepository = repository,
+            observability = TestAppObservability(),
+            appVersion = testAppVersion,
+            versionCode = testVersionCode
         )
 
         try {
@@ -133,6 +150,26 @@ class ProgressContextRefreshControllerTest {
         assertEquals(2, repository.summaryRefreshCallCount)
         assertEquals(2, repository.seriesRefreshCallCount)
         assertEquals(2, repository.reviewScheduleRefreshCallCount)
+    }
+}
+
+private const val testAppVersion: String = "1.3.0"
+private const val testVersionCode: Int = 1
+
+private class TestAppObservability : AppObservability {
+    override fun setCloudIdentity(identity: CloudObservationIdentity) {
+    }
+
+    override fun clearCloudIdentity() {
+    }
+
+    override fun addBreadcrumb(event: AndroidBreadcrumbEvent) {
+    }
+
+    override fun captureWarning(event: AndroidWarningIssueEvent) {
+    }
+
+    override fun captureException(event: AndroidExceptionIssueEvent) {
     }
 }
 
