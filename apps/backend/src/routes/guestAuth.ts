@@ -15,12 +15,11 @@ import {
   expectRecord,
   parseJsonBody,
 } from "../server/requestParsing";
-import { summarizeValidationIssues } from "../server/logging";
+import { createBackendFailureDetails } from "../server/logging";
 import {
   addBackendBreadcrumb,
   createBackendObservationScope,
   normalizeCaughtError,
-  type BackendFailureDetails,
   type BackendObservationScope,
 } from "../observability/sentry";
 import { reportBackendExceptionOrBreadcrumb } from "../observability/reporting";
@@ -133,15 +132,6 @@ function createGuestUpgradeScope(
   );
 }
 
-function createFailureDetails(error: unknown): BackendFailureDetails {
-  return {
-    statusCode: error instanceof HttpError ? error.statusCode : 500,
-    code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
-    message: error instanceof Error ? error.message : String(error),
-    validationIssues: summarizeValidationIssues(error),
-  };
-}
-
 export function createGuestAuthRoutes(options: GuestAuthRoutesOptions = {}): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   const authenticateRequestFn = options.authenticateRequestFn ?? authenticateRequest;
@@ -241,7 +231,7 @@ export function createGuestAuthRoutes(options: GuestAuthRoutesOptions = {}): Hon
         targetUserId: auth.userId,
         targetWorkspaceId: null,
         completionKind: null,
-        ...createFailureDetails(error),
+        ...createBackendFailureDetails(error),
       };
       reportBackendExceptionOrBreadcrumb(
         error,

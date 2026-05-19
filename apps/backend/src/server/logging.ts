@@ -9,6 +9,7 @@ import {
   type AdminQueryDetails,
   type BackendObservationScope,
   type BackendErrorLogDetails,
+  type BackendFailureDetails,
   type RequestErrorDetails,
 } from "../observability/sentry";
 
@@ -84,12 +85,18 @@ function getRequestErrorCode(error: AuthError | HttpError | unknown): string | n
   return "INTERNAL_ERROR";
 }
 
-function createRequestErrorDetails(error: AuthError | HttpError | unknown): RequestErrorDetails {
+export function createBackendFailureDetails(error: AuthError | HttpError | unknown): BackendFailureDetails {
   return {
     statusCode: getRequestErrorStatusCode(error),
     code: getRequestErrorCode(error),
     message: getInternalErrorMessage(error),
     validationIssues: summarizeValidationIssues(error),
+  };
+}
+
+function createRequestErrorDetails(error: AuthError | HttpError | unknown): RequestErrorDetails {
+  return {
+    ...createBackendFailureDetails(error),
     sqlState: getDatabaseSqlState(error),
     ...getErrorLogContext(error),
   };
