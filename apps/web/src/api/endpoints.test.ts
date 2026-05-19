@@ -1,0 +1,509 @@
+// @vitest-environment jsdom
+import "fake-indexeddb/auto";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { ProgressReviewSchedule } from "../types";
+import { persistLocalePreference } from "../i18n/runtime";
+import {
+  createChatSnapshotResponse,
+  createNewChatSessionResponse,
+  createProgressReviewScheduleResponse,
+  createProgressReviewScheduleResponseValue,
+  createStartChatRunResponse,
+  createStopChatRunResponse,
+  createStorageMock,
+  replaceProgressReviewScheduleBucketCount,
+  setNavigatorLanguages,
+  swapFirstProgressReviewScheduleBuckets,
+} from "./ApiTestSupport";
+import { buildLoginUrl, getPreferredAuthUiLocale } from "./authUrls";
+import {
+  createNewChatSession,
+  getChatSnapshot,
+  startChatRun,
+  stopChatRun,
+  transcribeChatAudio,
+} from "./chat";
+import {
+  loadProgressReviewSchedule,
+  loadProgressSeries,
+  loadProgressSummary,
+} from "./progress";
+import { primeSessionCsrfToken, resetApiClientStateForTests } from "./transport";
+
+const observabilityMocks = vi.hoisted(() => ({
+  addWebBreadcrumbMock: vi.fn(),
+  captureWebExceptionMock: vi.fn(),
+  captureWebWarningMock: vi.fn(),
+  setWebObservabilityUserMock: vi.fn(),
+}));
+
+vi.mock("../observability/webObservability", () => ({
+  addWebBreadcrumb: observabilityMocks.addWebBreadcrumbMock,
+  captureWebException: observabilityMocks.captureWebExceptionMock,
+  captureWebWarning: observabilityMocks.captureWebWarningMock,
+  normalizeCaughtError: (error: unknown): Error => error instanceof Error ? error : new Error(`Caught non-Error value of type ${typeof error}`),
+  setWebObservabilityUser: observabilityMocks.setWebObservabilityUserMock,
+}));
+
+function resetObservabilityMocks(): void {
+  observabilityMocks.addWebBreadcrumbMock.mockReset();
+  observabilityMocks.captureWebExceptionMock.mockReset();
+  observabilityMocks.captureWebWarningMock.mockReset();
+  observabilityMocks.setWebObservabilityUserMock.mockReset();
+}
+
+beforeEach(() => {
+  Object.defineProperty(window, "localStorage", {
+    configurable: true,
+    value: createStorageMock(),
+  });
+  window.localStorage.clear();
+  resetApiClientStateForTests();
+  resetObservabilityMocks();
+});
+
+afterEach(() => {
+  window.localStorage.clear();
+  setNavigatorLanguages([], "");
+  resetApiClientStateForTests();
+  vi.restoreAllMocks();
+});
+
+describe("auth URL endpoints", () => {
+  it("prefers the stored app locale over raw browser detection", () => {
+    persistLocalePreference("ar");
+    setNavigatorLanguages(["fr-FR", "pt-BR"], "fr-FR");
+
+    expect(getPreferredAuthUiLocale()).toBe("ar");
+  });
+
+  it("prefers the first supported browser language", () => {
+    setNavigatorLanguages(["fr-FR", "es-MX", "en-GB"], "fr-FR");
+
+    expect(getPreferredAuthUiLocale()).toBe("es-MX");
+  });
+
+  it("maps compatible browser locales to the supported exact locale set", () => {
+    setNavigatorLanguages(["zh-CN"], "zh-CN");
+
+    expect(getPreferredAuthUiLocale()).toBe("zh-Hans");
+  });
+
+  it("falls back to English when browser languages are unsupported", () => {
+    setNavigatorLanguages(["fr-FR", "pt-BR"], "fr-FR");
+
+    expect(getPreferredAuthUiLocale()).toBe("en");
+  });
+
+  it("includes a sanitized locale hint in the login URL", () => {
+    const loginUrl = new URL(buildLoginUrl("https://app.flashcards-open-source-app.com/review", "es-MX"));
+
+    expect(loginUrl.origin).toBe("http://localhost:8081");
+    expect(loginUrl.pathname).toBe("/login");
+    expect(loginUrl.searchParams.get("redirect_uri")).toBe("https://app.flashcards-open-source-app.com/review");
+    expect(loginUrl.searchParams.get("locale")).toBe("es-MX");
+  });
+
+  it("upgrades a legacy base-language locale hint to an exact supported locale tag", () => {
+    const loginUrl = new URL(buildLoginUrl("https://app.flashcards-open-source-app.com/review", "es"));
+
+    expect(loginUrl.searchParams.get("locale")).toBe("es-ES");
+  });
+});
+
+describe("progress API endpoints", () => {
+  it("decodes progress summary responses with generatedAt metadata", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        timeZone: "Europe/Madrid",
+        generatedAt: "2026-04-18T09:15:00.000Z",
+        summary: {
+          currentStreakDays: 1,
+          hasReviewedToday: true,
+          lastReviewedOn: "2026-04-03",
+          activeReviewDays: 2,
+        },
+      }), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressSummary({
+      timeZone: "Europe/Madrid",
+      today: "2026-04-18",
+    })).resolves.toEqual({
+      timeZone: "Europe/Madrid",
+      generatedAt: "2026-04-18T09:15:00.000Z",
+      summary: {
+        currentStreakDays: 1,
+        hasReviewedToday: true,
+        lastReviewedOn: "2026-04-03",
+        activeReviewDays: 2,
+      },
+    });
+  });
+
+  it("decodes progress series responses without summary metadata", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        timeZone: "Europe/Madrid",
+        from: "2026-04-01",
+        to: "2026-04-03",
+        generatedAt: "2026-04-18T09:15:00.000Z",
+        dailyReviews: [
+          {
+            date: "2026-04-01",
+            reviewCount: 3,
+          },
+          {
+            date: "2026-04-02",
+            reviewCount: 0,
+          },
+          {
+            date: "2026-04-03",
+            reviewCount: 1,
+          },
+        ],
+      }), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressSeries({
+      timeZone: "Europe/Madrid",
+      from: "2026-04-01",
+      to: "2026-04-03",
+    })).resolves.toEqual({
+      timeZone: "Europe/Madrid",
+      from: "2026-04-01",
+      to: "2026-04-03",
+      generatedAt: "2026-04-18T09:15:00.000Z",
+      dailyReviews: [
+        {
+          date: "2026-04-01",
+          reviewCount: 3,
+        },
+        {
+          date: "2026-04-02",
+          reviewCount: 0,
+        },
+        {
+          date: "2026-04-03",
+          reviewCount: 1,
+        },
+      ],
+    });
+  });
+
+  it("decodes review schedule responses and sends only the timezone query", async () => {
+    const responseValue = createProgressReviewScheduleResponseValue();
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createProgressReviewScheduleResponse(responseValue));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressReviewSchedule({
+      timeZone: "Europe/Madrid",
+      today: "2026-04-18",
+    })).resolves.toEqual(responseValue);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/v1/me/progress/review-schedule?timeZone=Europe%2FMadrid",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
+  const invalidProgressReviewScheduleCases: ReadonlyArray<Readonly<{
+    name: string;
+    responseValue: ProgressReviewSchedule;
+    expectedErrorMessage: string;
+  }>> = [
+    {
+      name: "negative bucket count",
+      responseValue: replaceProgressReviewScheduleBucketCount(createProgressReviewScheduleResponseValue(), 0, -1),
+      expectedErrorMessage: "Invalid API response for GET /me/progress/review-schedule: buckets[0].count must be non-negative integer",
+    },
+    {
+      name: "fractional bucket count",
+      responseValue: replaceProgressReviewScheduleBucketCount(createProgressReviewScheduleResponseValue(), 0, 1.5),
+      expectedErrorMessage: "Invalid API response for GET /me/progress/review-schedule: buckets[0].count must be non-negative integer",
+    },
+    {
+      name: "negative totalCards",
+      responseValue: {
+        ...createProgressReviewScheduleResponseValue(),
+        totalCards: -1,
+      },
+      expectedErrorMessage: "Invalid API response for GET /me/progress/review-schedule: totalCards must be non-negative integer",
+    },
+    {
+      name: "fractional totalCards",
+      responseValue: {
+        ...createProgressReviewScheduleResponseValue(),
+        totalCards: 12.5,
+      },
+      expectedErrorMessage: "Invalid API response for GET /me/progress/review-schedule: totalCards must be non-negative integer",
+    },
+    {
+      name: "totalCards that does not equal the bucket sum",
+      responseValue: {
+        ...createProgressReviewScheduleResponseValue(),
+        totalCards: 13,
+      },
+      expectedErrorMessage: "Invalid API response for GET /me/progress/review-schedule: totalCards must be sum of bucket counts (12)",
+    },
+    {
+      name: "unstable bucket order",
+      responseValue: swapFirstProgressReviewScheduleBuckets(createProgressReviewScheduleResponseValue()),
+      expectedErrorMessage: "Invalid API response for GET /me/progress/review-schedule: buckets[0].key must be bucket key new",
+    },
+    {
+      name: "mismatched timezone",
+      responseValue: {
+        ...createProgressReviewScheduleResponseValue(),
+        timeZone: "UTC",
+      },
+      expectedErrorMessage: "Invalid API response for GET /me/progress/review-schedule: timeZone must be \"Europe/Madrid\"",
+    },
+  ];
+
+  for (const invalidCase of invalidProgressReviewScheduleCases) {
+    it(`rejects review schedule responses with ${invalidCase.name}`, async () => {
+      const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+        .mockResolvedValueOnce(createProgressReviewScheduleResponse(invalidCase.responseValue));
+      vi.stubGlobal("fetch", fetchMock);
+
+      await expect(loadProgressReviewSchedule({
+        timeZone: "Europe/Madrid",
+        today: "2026-04-18",
+      })).rejects.toThrow(invalidCase.expectedErrorMessage);
+    });
+  }
+
+  it("rejects review schedule responses with missing generatedAt", async () => {
+    const baseResponse = createProgressReviewScheduleResponseValue();
+    const responseWithoutGeneratedAt = {
+      timeZone: baseResponse.timeZone,
+      totalCards: baseResponse.totalCards,
+      buckets: baseResponse.buckets,
+    };
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(JSON.stringify(responseWithoutGeneratedAt), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressReviewSchedule({
+      timeZone: "Europe/Madrid",
+      today: "2026-04-18",
+    })).rejects.toThrow(
+      "Invalid API response for GET /me/progress/review-schedule: generatedAt must be string",
+    );
+  });
+
+  it("rejects review schedule responses with null generatedAt", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        ...createProgressReviewScheduleResponseValue(),
+        generatedAt: null,
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressReviewSchedule({
+      timeZone: "Europe/Madrid",
+      today: "2026-04-18",
+    })).rejects.toThrow(
+      "Invalid API response for GET /me/progress/review-schedule: generatedAt must be string",
+    );
+  });
+
+  it("rejects progress summary responses with missing generatedAt", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        timeZone: "Europe/Madrid",
+        summary: {
+          currentStreakDays: 1,
+          hasReviewedToday: true,
+          lastReviewedOn: "2026-04-03",
+          activeReviewDays: 2,
+        },
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressSummary({
+      timeZone: "Europe/Madrid",
+      today: "2026-04-18",
+    })).rejects.toThrow(
+      "Invalid API response for GET /me/progress/summary: generatedAt must be string",
+    );
+  });
+
+  it("rejects progress series responses with null generatedAt", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        timeZone: "Europe/Madrid",
+        from: "2026-04-01",
+        to: "2026-04-03",
+        generatedAt: null,
+        dailyReviews: [
+          { date: "2026-04-01", reviewCount: 0 },
+          { date: "2026-04-02", reviewCount: 0 },
+          { date: "2026-04-03", reviewCount: 0 },
+        ],
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressSeries({
+      timeZone: "Europe/Madrid",
+      from: "2026-04-01",
+      to: "2026-04-03",
+    })).rejects.toThrow(
+      "Invalid API response for GET /me/progress/series: generatedAt must be string",
+    );
+  });
+});
+
+describe("chat API endpoints", () => {
+  it("includes workspaceId and uiLocale in POST /chat requests", async () => {
+    primeSessionCsrfToken("csrf-token-1");
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createStartChatRunResponse());
+    vi.stubGlobal("fetch", fetchMock);
+
+    await startChatRun({
+      sessionId: "session-1",
+      workspaceId: "workspace-1",
+      clientRequestId: "request-1",
+      content: [{ type: "text", text: "hello" }],
+      timezone: "Europe/Madrid",
+      uiLocale: "ja",
+    });
+
+    const chatRequestInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+    expect(chatRequestInit?.body).toBe(JSON.stringify({
+      sessionId: "session-1",
+      workspaceId: "workspace-1",
+      clientRequestId: "request-1",
+      content: [{ type: "text", text: "hello" }],
+      timezone: "Europe/Madrid",
+      uiLocale: "ja",
+    }));
+  });
+
+  it("includes workspaceId and uiLocale in POST /chat/new requests", async () => {
+    primeSessionCsrfToken("csrf-token-1");
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createNewChatSessionResponse("session-1"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await createNewChatSession("session-1", "workspace-1", "es-ES");
+
+    const chatRequestInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+    expect(chatRequestInit?.body).toBe(JSON.stringify({
+      sessionId: "session-1",
+      workspaceId: "workspace-1",
+      uiLocale: "es-ES",
+    }));
+  });
+
+  it("includes workspaceId in GET /chat requests", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createChatSnapshotResponse());
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getChatSnapshot("session-1", "workspace-1");
+
+    const requestUrl = new URL(String(fetchMock.mock.calls[0]?.[0]));
+    expect(requestUrl.pathname).toBe("/v1/chat");
+    expect(requestUrl.searchParams.get("sessionId")).toBe("session-1");
+    expect(requestUrl.searchParams.get("workspaceId")).toBe("workspace-1");
+  });
+
+  it("accepts reduced POST /chat/stop responses without unused run identifiers", async () => {
+    primeSessionCsrfToken("csrf-token-1");
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createStopChatRunResponse());
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(stopChatRun("session-1", "workspace-1", null)).resolves.toEqual({
+      sessionId: "session-1",
+      stopped: true,
+      stillRunning: false,
+    });
+
+    const chatRequestInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+    expect(chatRequestInit?.body).toBe(JSON.stringify({
+      sessionId: "session-1",
+      workspaceId: "workspace-1",
+    }));
+  });
+
+  it("includes runId in POST /chat/stop requests when known", async () => {
+    primeSessionCsrfToken("csrf-token-1");
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createStopChatRunResponse());
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(stopChatRun("session-1", "workspace-1", "run-1")).resolves.toEqual({
+      sessionId: "session-1",
+      stopped: true,
+      stillRunning: false,
+    });
+
+    const chatRequestInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+    expect(chatRequestInit?.body).toBe(JSON.stringify({
+      sessionId: "session-1",
+      workspaceId: "workspace-1",
+      runId: "run-1",
+    }));
+  });
+
+  it("includes workspaceId in POST /chat/transcriptions requests", async () => {
+    primeSessionCsrfToken("csrf-token-1");
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        text: "hello",
+        sessionId: "session-1",
+      }), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await transcribeChatAudio(
+      new Blob(["audio"], { type: "audio/webm" }),
+      "web",
+      "session-1",
+      "workspace-1",
+    );
+
+    const chatRequestInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+    const formData = chatRequestInit?.body;
+    expect(formData).toBeInstanceOf(FormData);
+    if (!(formData instanceof FormData)) {
+      throw new Error("Expected FormData");
+    }
+
+    expect(formData.get("sessionId")).toBe("session-1");
+    expect(formData.get("workspaceId")).toBe("workspace-1");
+    expect(formData.get("source")).toBe("web");
+    expect(formData.get("file")).toBeInstanceOf(File);
+  });
+});
