@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.cloud
+package com.flashcardsopensourceapp.data.local.cloud.wire
 
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json

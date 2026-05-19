@@ -1,5 +1,11 @@
-package com.flashcardsopensourceapp.data.local.cloud
+package com.flashcardsopensourceapp.data.local.cloud.remote
 
+import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
+import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudArrayOrNull
+import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudObjectOrNull
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudBoolean
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudObject
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeCompletion
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeDroppedEntity
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeDroppedEntityType

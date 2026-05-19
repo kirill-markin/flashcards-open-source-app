@@ -1,9 +1,9 @@
 package com.flashcardsopensourceapp.data.local.cloudidentity
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteGateway
-import com.flashcardsopensourceapp.data.local.cloud.RemoteBootstrapPushResponse
-import com.flashcardsopensourceapp.data.local.cloud.RemoteReviewHistoryImportResponse
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
+import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteBootstrapPushResponse
+import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteReviewHistoryImportResponse
 import com.flashcardsopensourceapp.data.local.model.SyncEntityType
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import kotlinx.coroutines.flow.first

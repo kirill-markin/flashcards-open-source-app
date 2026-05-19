@@ -12,8 +12,8 @@ import com.flashcardsopensourceapp.data.local.ai.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.bootstrap.ensureLocalWorkspaceShell
 import com.flashcardsopensourceapp.data.local.bootstrap.localWorkspaceName
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
-import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteGateway
-import com.flashcardsopensourceapp.data.local.cloud.SyncLocalStore
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
+import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.CardEntity
 import com.flashcardsopensourceapp.data.local.database.ReviewLogEntity

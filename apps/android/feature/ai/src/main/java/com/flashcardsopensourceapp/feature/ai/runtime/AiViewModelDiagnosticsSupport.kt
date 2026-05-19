@@ -7,7 +7,7 @@ import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
 import java.io.IOException
 
 private const val cloudContractMismatchExceptionName: String =
-    "com.flashcardsopensourceapp.data.local.cloud.CloudContractMismatchException"
+    "com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException"
 private const val aiChatBootstrapSessionMismatchExceptionName: String =
     "com.flashcardsopensourceapp.feature.ai.runtime.AiChatBootstrapSessionMismatchException"
 

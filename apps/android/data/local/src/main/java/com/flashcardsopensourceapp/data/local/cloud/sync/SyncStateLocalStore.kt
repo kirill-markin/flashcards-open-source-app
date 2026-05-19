@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.cloud
+package com.flashcardsopensourceapp.data.local.cloud.sync
 
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.SyncStateEntity

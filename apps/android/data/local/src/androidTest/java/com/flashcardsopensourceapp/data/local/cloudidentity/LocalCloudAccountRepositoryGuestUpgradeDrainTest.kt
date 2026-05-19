@@ -2,9 +2,9 @@ package com.flashcardsopensourceapp.data.local.cloudidentity
 
 import androidx.room.withTransaction
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteGateway
-import com.flashcardsopensourceapp.data.local.cloud.RemoteBootstrapPullResponse
-import com.flashcardsopensourceapp.data.local.cloud.RemoteBootstrapPushResponse
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
+import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteBootstrapPullResponse
+import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteBootstrapPushResponse
 import com.flashcardsopensourceapp.data.local.database.CardEntity
 import com.flashcardsopensourceapp.data.local.database.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState

@@ -2,7 +2,7 @@ package com.flashcardsopensourceapp.feature.ai.runtime
 
 import com.flashcardsopensourceapp.data.local.ai.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
-import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteException
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.model.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
@@ -868,7 +868,7 @@ private fun freshSessionDraftToPreserveOnBootstrapFailure(
 
 private fun isConversationPreservableBootstrapFailure(error: Exception): Boolean {
     return error is AiChatBootstrapSessionMismatchException ||
-        error::class.java.name == "com.flashcardsopensourceapp.data.local.cloud.CloudContractMismatchException"
+        error::class.java.name == "com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException"
 }
 
 internal fun shouldRetryBootstrap(error: Exception, retryCount: Int): Boolean {

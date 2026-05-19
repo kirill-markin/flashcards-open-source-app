@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.cloud
+package com.flashcardsopensourceapp.data.local.cloud.wire
 
 import com.flashcardsopensourceapp.data.local.model.parseIsoTimestamp
 import org.json.JSONArray

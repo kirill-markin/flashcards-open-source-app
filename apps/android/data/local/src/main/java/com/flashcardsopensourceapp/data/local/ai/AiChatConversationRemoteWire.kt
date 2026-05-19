@@ -1,6 +1,6 @@
 package com.flashcardsopensourceapp.data.local.ai
 
-import com.flashcardsopensourceapp.data.local.cloud.CloudContractMismatchException
+import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
 import com.flashcardsopensourceapp.data.local.model.AiChatAcceptedConversationEnvelope
 import com.flashcardsopensourceapp.data.local.model.AiChatActiveRun
 import com.flashcardsopensourceapp.data.local.model.AiChatActiveRunLive

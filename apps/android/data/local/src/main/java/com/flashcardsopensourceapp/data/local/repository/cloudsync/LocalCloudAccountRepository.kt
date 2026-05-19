@@ -2,9 +2,9 @@ package com.flashcardsopensourceapp.data.local.repository.cloudsync
 
 import com.flashcardsopensourceapp.data.local.ai.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
-import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteGateway
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.cloud.PendingGuestUpgradeState
-import com.flashcardsopensourceapp.data.local.cloud.SyncLocalStore
+import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
