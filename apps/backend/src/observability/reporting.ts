@@ -2,10 +2,12 @@ import { HttpError } from "../errors";
 import {
   addBackendBreadcrumb,
   captureBackendException,
-  hasCapturedBackendException,
-  type BackendBreadcrumbEvent,
-  type BackendExceptionEvent,
-} from "./sentry";
+} from "./sentryCapture";
+import { hasCapturedBackendException } from "./sentryErrorNormalization";
+import type {
+  BackendBreadcrumbEvent,
+  BackendExceptionEvent,
+} from "./sentryEvents";
 
 const reportedBackendExceptionWrappers = new WeakSet<Error>();
 
