@@ -1,3 +1,4 @@
+import { authVerificationTemporarilyUnavailableCode } from "../auth";
 import { HttpError } from "../errors";
 import {
   addBackendBreadcrumb,
@@ -12,7 +13,11 @@ import type {
 const reportedBackendExceptionWrappers = new WeakSet<Error>();
 
 function isExpectedHttpError(error: unknown): boolean {
-  return error instanceof HttpError && error.statusCode < 500;
+  if (error instanceof HttpError === false) {
+    return false;
+  }
+
+  return error.statusCode < 500 || error.code === authVerificationTemporarilyUnavailableCode;
 }
 
 export function markBackendExceptionWrapperAsReported(error: Error): Error {

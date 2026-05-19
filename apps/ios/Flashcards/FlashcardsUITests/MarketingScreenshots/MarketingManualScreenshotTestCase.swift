@@ -384,6 +384,8 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
         app.launchEnvironment.removeValue(forKey: LiveSmokeConfiguration.launchScenarioEnvironmentKey)
         app.launchEnvironment.removeValue(forKey: LiveSmokeConfiguration.appNotificationTapTypeEnvironmentKey)
         app.launchEnvironment.removeValue(forKey: MarketingScreenshotEnvironment.aiHandoffCardKey)
+        app.launchEnvironment[LiveSmokeConfiguration.sentryEnvironmentOverrideKey] =
+            LiveSmokeConfiguration.marketingScreenshotSentryEnvironmentOverrideValue
         app.launchEnvironment[LiveSmokeConfiguration.selectedTabEnvironmentKey] = selectedTab.rawValue
         app.launchEnvironment[LiveSmokeConfiguration.launchScenarioEnvironmentKey] = launchScenario.rawValue
         app.launchEnvironment[MarketingScreenshotEnvironment.localizationKey] = localeFixture.localizationCode

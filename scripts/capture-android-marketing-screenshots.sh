@@ -7,6 +7,7 @@ android_dir="$repo_root/apps/android"
 locale_prefix="${FLASHCARDS_MARKETING_LOCALE_PREFIX:-en}"
 script_class="com.flashcardsopensourceapp.app.marketing.screenshots.MarketingAllScreenshotsScript"
 cleanup_script_class="com.flashcardsopensourceapp.app.marketing.screenshots.MarketingScreenshotGuestCleanupScript"
+sentry_environment_override="marketing-screenshot-instrumentation"
 output_dir="$repo_root/apps/android/docs/media/play-store-screenshots"
 remote_screenshot_dir="/sdcard/Download/flashcards-marketing-screenshots"
 file_names=(
@@ -44,6 +45,7 @@ run_marketing_guest_cleanup() {
           "-Pandroid.testInstrumentationRunnerArguments.includeManualOnly=true" \
           "-Pandroid.testInstrumentationRunnerArguments.clearPackageData=false" \
           "-Pandroid.testInstrumentationRunnerArguments.marketingLocalePrefix=$locale_prefix" \
+          "-Pandroid.testInstrumentationRunnerArguments.flashcardsSentryEnvironmentOverride=$sentry_environment_override" \
           "-Pandroid.testInstrumentationRunnerArguments.class=$cleanup_script_class"
     )
 }
@@ -70,6 +72,7 @@ echo "Running the unified Android marketing screenshot flow."
   "-Pandroid.testInstrumentationRunnerArguments.includeManualOnly=true" \
   "-Pandroid.testInstrumentationRunnerArguments.clearPackageData=false" \
   "-Pandroid.testInstrumentationRunnerArguments.marketingLocalePrefix=$locale_prefix" \
+  "-Pandroid.testInstrumentationRunnerArguments.flashcardsSentryEnvironmentOverride=$sentry_environment_override" \
   "-Pandroid.testInstrumentationRunnerArguments.class=$script_class"
 
 mkdir -p "$output_dir"

@@ -2,18 +2,24 @@ import { CognitoJwtVerifier } from "aws-jwt-verify";
 import {
   CognitoJwtInvalidClientIdError,
   CognitoJwtInvalidTokenUseError,
+  KidNotFoundInJwksError,
   JwtInvalidClaimError,
   JwtInvalidSignatureAlgorithmError,
   JwtInvalidSignatureError,
   JwtParseError,
   JwtWithoutValidKidError,
+  WaitPeriodNotYetEndedJwkError,
 } from "aws-jwt-verify/error";
 import { authenticateAgentApiKey } from "./agent/apiKeys";
 import { getAuthConfig } from "./authConfig";
 import { unsafeQuery } from "./dbUnsafe";
+import { HttpError } from "./errors";
 import { authenticateGuestSession } from "./guestAuth";
 
 export type AuthTransport = "none" | "bearer" | "session" | "api_key" | "guest";
+
+export const authVerificationTemporarilyUnavailableCode = "AUTH_VERIFICATION_TEMPORARILY_UNAVAILABLE";
+export const authVerificationRetryAfterSeconds = 10;
 
 export type AuthResult = Readonly<{
   userId: string;
@@ -49,7 +55,25 @@ export function isTerminalJwtAuthFailure(error: unknown): boolean {
     || error instanceof JwtInvalidClaimError
     || error instanceof CognitoJwtInvalidTokenUseError
     || error instanceof CognitoJwtInvalidClientIdError
-    || error instanceof JwtWithoutValidKidError;
+    || error instanceof JwtWithoutValidKidError
+    || error instanceof KidNotFoundInJwksError;
+}
+
+export function createJwtAuthBoundaryError(error: unknown): AuthError | HttpError | null {
+  if (isTerminalJwtAuthFailure(error)) {
+    const message = error instanceof Error ? error.message : String(error);
+    return new AuthError(401, `Invalid token: ${message}`);
+  }
+
+  if (error instanceof WaitPeriodNotYetEndedJwkError) {
+    return new HttpError(
+      503,
+      "Authentication verification is temporarily unavailable. Retry shortly.",
+      authVerificationTemporarilyUnavailableCode,
+    );
+  }
+
+  return null;
 }
 
 let verifier: ReturnType<typeof CognitoJwtVerifier.create> | undefined;
@@ -139,9 +163,9 @@ async function verifyIdToken(token: string): Promise<AuthenticatedUserIdentity> 
     const payload = await getVerifier().verify(token);
     return extractVerifiedIdTokenIdentity(payload as VerifiedIdTokenPayload);
   } catch (err) {
-    if (isTerminalJwtAuthFailure(err)) {
-      const message = err instanceof Error ? err.message : String(err);
-      throw new AuthError(401, `Invalid token: ${message}`);
+    const boundaryError = createJwtAuthBoundaryError(err);
+    if (boundaryError !== null) {
+      throw boundaryError;
     }
 
     throw err;

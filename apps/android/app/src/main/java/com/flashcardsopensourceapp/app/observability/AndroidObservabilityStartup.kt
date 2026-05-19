@@ -84,6 +84,11 @@ private fun configureSentryOptions(
 }
 
 private fun sentryEnvironment(): String {
+    val overrideEnvironment = androidSentryEnvironmentOverride()
+    if (overrideEnvironment != null) {
+        return overrideEnvironment
+    }
+
     val configuredEnvironment = BuildConfig.ANDROID_SENTRY_ENVIRONMENT.trim()
     if (configuredEnvironment.isNotEmpty()) {
         return configuredEnvironment

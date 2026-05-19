@@ -2,7 +2,11 @@ import { cors } from "hono/cors";
 import { Hono } from "hono";
 import type { Context } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import { AuthError } from "./auth";
+import {
+  AuthError,
+  authVerificationRetryAfterSeconds,
+  authVerificationTemporarilyUnavailableCode,
+} from "./auth";
 import { getAuthConfig } from "./authConfig";
 import { createPublicHttpErrorDetails, HttpError, type PublicHttpErrorDetails } from "./errors";
 import { createChatRoutes } from "./routes/chat";
@@ -91,6 +95,8 @@ export function createAgentInstructions(code: string | null, statusCode: number)
   switch (code) {
     case "SERVICE_UNAVAILABLE":
       return "Retry the same request after the Retry-After delay. If it fails again, treat it as a server-side error and stop changing the request. Use requestId when debugging.";
+    case authVerificationTemporarilyUnavailableCode:
+      return "Retry the same authenticated request after the Retry-After delay without changing the token. If it keeps failing, sign in again and use requestId when debugging.";
     case "AUTH_UNAUTHORIZED":
     case "AGENT_API_KEY_INVALID":
       return "Use a valid non-revoked API key in the Authorization header as: ApiKey $FLASHCARDS_OPEN_SOURCE_API_KEY after exporting it once. If needed, restart from GET /v1/agent.";
@@ -124,6 +130,10 @@ export function createAgentInstructions(code: string | null, statusCode: number)
 export function getHttpErrorResponseHeaders(error: HttpError): ReadonlyArray<readonly [string, string]> {
   if (error.statusCode === 503 && error.code === "SERVICE_UNAVAILABLE") {
     return [["Retry-After", "1"]];
+  }
+
+  if (error.statusCode === 503 && error.code === authVerificationTemporarilyUnavailableCode) {
+    return [["Retry-After", authVerificationRetryAfterSeconds.toString()]];
   }
 
   return [];
@@ -168,6 +178,10 @@ function shouldCaptureRequestFailureException(error: unknown): boolean {
   }
 
   if (error instanceof HttpError) {
+    if (error.code === authVerificationTemporarilyUnavailableCode) {
+      return false;
+    }
+
     if (error.code === "CHAT_LIVE_RESUME_CONTRACT_VIOLATION") {
       return false;
     }

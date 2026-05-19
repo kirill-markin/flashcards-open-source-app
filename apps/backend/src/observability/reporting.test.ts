@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import * as Sentry from "@sentry/aws-serverless";
+import { authVerificationTemporarilyUnavailableCode } from "../auth";
+import { HttpError } from "../errors";
 import { captureBackendException } from "./sentry/capture";
 import { normalizeCaughtError } from "./sentry/errorNormalization";
 import { createBackendObservationScope } from "./sentry/scope";
@@ -148,6 +150,79 @@ test("backend reporting recognizes repeated normalized non-Error throws", () => 
 
     assert.equal(appDetectedPreviousReport, true);
     assert.equal(captureExceptionCount, 1);
+  } finally {
+    sentryModule.captureException = originalCaptureException;
+  }
+});
+
+test("backend reporting treats temporary auth verification failures as expected", () => {
+  const originalCaptureException = sentryModule.captureException;
+  let captureExceptionCount = 0;
+  sentryModule.captureException = () => {
+    captureExceptionCount += 1;
+    return "event-id";
+  };
+
+  try {
+    const error = new HttpError(
+      503,
+      "Authentication verification is temporarily unavailable. Retry shortly.",
+      authVerificationTemporarilyUnavailableCode,
+    );
+    const scope = createBackendObservationScope(
+      "backend-api",
+      "request-3",
+      "/workspaces/workspace-1/sync/pull",
+      "POST",
+      "user-3",
+      "workspace-1",
+      null,
+      null,
+      null,
+    );
+    const event = {
+      action: "sync_pull_error",
+      error,
+      scope,
+      details: {
+        statusCode: 503,
+        installationId: null,
+        platform: null,
+        appVersion: null,
+        afterHotChangeId: null,
+        nextHotChangeId: null,
+        changesCount: null,
+        code: authVerificationTemporarilyUnavailableCode,
+        message: error.message,
+        validationIssues: [],
+      },
+    } as const;
+
+    const breadcrumbMessages = withCapturedConsole("log", () => {
+      reportBackendExceptionOrBreadcrumb(
+        error,
+        event,
+        {
+          action: "sync_pull_error",
+          scope,
+          details: {
+            statusCode: 503,
+            installationId: null,
+            platform: null,
+            appVersion: null,
+            afterHotChangeId: null,
+            nextHotChangeId: null,
+            changesCount: null,
+            code: authVerificationTemporarilyUnavailableCode,
+            message: error.message,
+            validationIssues: [],
+          },
+        },
+      );
+    });
+
+    assert.equal(captureExceptionCount, 0);
+    assert.equal(JSON.parse(breadcrumbMessages[0] ?? "").action, "sync_pull_error");
   } finally {
     sentryModule.captureException = originalCaptureException;
   }

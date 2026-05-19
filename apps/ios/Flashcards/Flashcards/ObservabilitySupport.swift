@@ -358,7 +358,8 @@ private enum SentryObservabilityAdapter {
 
     static func configure(bundle: Bundle, processInfo: ProcessInfo) {
         let configuration: SentryRuntimeConfiguration = loadSentryRuntimeConfiguration(
-            bundle: bundle
+            bundle: bundle,
+            processInfo: processInfo
         )
         if let invalidTracesSampleRate: String = configuration.invalidTracesSampleRate {
             self.writeLocalRecord(
@@ -424,7 +425,6 @@ private enum SentryObservabilityAdapter {
                 "tracesSampleRate": String(configuration.tracesSampleRate)
             ]
         )
-        _ = processInfo
     }
 
     static func setIdentity(_ identity: ObservabilityIdentity?) {
@@ -1186,6 +1186,8 @@ private struct ExceptionPayload {
 
 private let filteredDiagnosticValue: String = "[Filtered]"
 private let sanitizedNSErrorFallbackDomain: String = "FlashcardsObservabilitySanitizedError"
+private let sentryEnvironmentInfoPlistKey: String = "FLASHCARDS_SENTRY_ENVIRONMENT"
+private let sentryEnvironmentOverrideKey: String = "FLASHCARDS_SENTRY_ENVIRONMENT_OVERRIDE"
 
 private func appSpecificObservabilityHash(_ value: String, namespace: String) -> String {
     let hashInput: String = "\(appBundleIdentifier()):observability:\(namespace):\(value)"
@@ -1258,18 +1260,12 @@ private func safeDiagnosticIdentifier(_ value: String) -> String {
     return trimmedValue
 }
 
-private func loadSentryRuntimeConfiguration(bundle: Bundle) -> SentryRuntimeConfiguration {
+private func loadSentryRuntimeConfiguration(bundle: Bundle, processInfo: ProcessInfo) -> SentryRuntimeConfiguration {
     let dsn: String = loadOptionalInfoPlistString(
         bundle: bundle,
         key: "FLASHCARDS_SENTRY_DSN"
     )
-    let environment: String = nonEmptyString(
-        loadOptionalInfoPlistString(
-            bundle: bundle,
-            key: "FLASHCARDS_SENTRY_ENVIRONMENT"
-        ),
-        fallback: "local"
-    )
+    let environment: String = loadSentryEnvironment(bundle: bundle, processInfo: processInfo)
     let rawTracesSampleRate: String = nonEmptyString(
         loadOptionalInfoPlistString(
             bundle: bundle,
@@ -1300,6 +1296,24 @@ private func loadSentryRuntimeConfiguration(bundle: Bundle) -> SentryRuntimeConf
         marketingVersion: marketingVersion,
         buildNumber: buildNumber,
         tracePropagationTargets: makeTracePropagationTargets(bundle: bundle)
+    )
+}
+
+private func loadSentryEnvironment(bundle: Bundle, processInfo: ProcessInfo) -> String {
+    let overrideValue: String = nonEmptyString(
+        processInfo.environment[sentryEnvironmentOverrideKey] ?? "",
+        fallback: ""
+    )
+    if overrideValue.isEmpty == false {
+        return overrideValue
+    }
+
+    return nonEmptyString(
+        loadOptionalInfoPlistString(
+            bundle: bundle,
+            key: sentryEnvironmentInfoPlistKey
+        ),
+        fallback: "local"
     )
 }
 
