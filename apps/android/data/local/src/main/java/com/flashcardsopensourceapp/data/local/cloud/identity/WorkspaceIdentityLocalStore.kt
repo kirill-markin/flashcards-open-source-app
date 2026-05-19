@@ -14,6 +14,7 @@ import com.flashcardsopensourceapp.data.local.database.WorkspaceSchedulerSetting
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.sync.ReviewHistoryChangePublisher
 import com.flashcardsopensourceapp.data.local.cloud.sync.ReviewHistoryChangedEvent
+import com.flashcardsopensourceapp.data.local.cloud.sync.emptySyncStateEntity
 import com.flashcardsopensourceapp.data.local.cloud.wire.toRemoteValue
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.SyncEntityType
