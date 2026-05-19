@@ -19,14 +19,11 @@ import {
   expectRecord,
   parseJsonBody,
 } from "../server/requestParsing";
-import {
-  summarizeValidationIssues,
-} from "../server/logging";
+import { createBackendFailureDetails } from "../server/logging";
 import {
   addBackendBreadcrumb,
   createBackendObservationScope,
   normalizeCaughtError,
-  type BackendFailureDetails,
   type BackendObservationScope,
 } from "../observability/sentry";
 import { reportBackendExceptionOrBreadcrumb } from "../observability/reporting";
@@ -58,10 +55,6 @@ const allowedCardQuerySortKeys: ReadonlyArray<CardQuerySortKey> = [
   "createdAt",
 ];
 
-function getInternalErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
 function createCardsScope(
   requestId: string,
   route: string,
@@ -80,15 +73,6 @@ function createCardsScope(
     null,
     null,
   );
-}
-
-function createFailureDetails(error: unknown): BackendFailureDetails {
-  return {
-    statusCode: error instanceof HttpError ? error.statusCode : 500,
-    code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
-    message: getInternalErrorMessage(error),
-    validationIssues: summarizeValidationIssues(error),
-  };
 }
 
 function expectSortDirection(value: unknown): CardQuerySortDirection {
@@ -167,7 +151,7 @@ export function createCardsRoutes(options: CardsRoutesOptions): Hono<AppEnv> {
       const details = {
         tagsCount: null,
         totalCards: null,
-        ...createFailureDetails(error),
+        ...createBackendFailureDetails(error),
       };
       reportBackendExceptionOrBreadcrumb(
         error,
@@ -212,7 +196,7 @@ export function createCardsRoutes(options: CardsRoutesOptions): Hono<AppEnv> {
         resultsCount: null,
         totalCount: null,
         hasMore: null,
-        ...createFailureDetails(error),
+        ...createBackendFailureDetails(error),
       };
       reportBackendExceptionOrBreadcrumb(
         error,

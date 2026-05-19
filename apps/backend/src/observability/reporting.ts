@@ -1,3 +1,4 @@
+import { AuthError } from "../auth";
 import { HttpError } from "../errors";
 import {
   addBackendBreadcrumb,
@@ -11,7 +12,11 @@ import type {
 
 const reportedBackendExceptionWrappers = new WeakSet<Error>();
 
-function isExpectedHttpError(error: unknown): boolean {
+function isExpectedRequestError(error: unknown): boolean {
+  if (error instanceof AuthError) {
+    return true;
+  }
+
   return error instanceof HttpError && error.statusCode < 500;
 }
 
@@ -29,7 +34,7 @@ export function reportBackendExceptionOrBreadcrumb(
   exceptionEvent: BackendExceptionEvent,
   breadcrumbEvent: BackendBreadcrumbEvent,
 ): void {
-  if (isExpectedHttpError(error)) {
+  if (isExpectedRequestError(error)) {
     addBackendBreadcrumb(breadcrumbEvent);
     return;
   }

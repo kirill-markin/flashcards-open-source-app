@@ -25,12 +25,11 @@ import {
 } from "../requestSecurity";
 import { expectRecord, parseJsonBody } from "../server/requestParsing";
 import { loadRequestContextFromRequest } from "../server/requestContext";
-import { summarizeValidationIssues } from "../server/logging";
+import { createBackendFailureDetails } from "../server/logging";
 import {
   addBackendBreadcrumb,
   createBackendObservationScope,
   normalizeCaughtError,
-  type BackendFailureDetails,
   type BackendObservationScope,
 } from "../observability/sentry";
 import { reportBackendExceptionOrBreadcrumb } from "../observability/reporting";
@@ -85,15 +84,6 @@ function createSystemScope(
     null,
     null,
   );
-}
-
-function createFailureDetails(error: unknown): BackendFailureDetails {
-  return {
-    statusCode: error instanceof HttpError ? error.statusCode : 500,
-    code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
-    message: error instanceof Error ? error.message : String(error),
-    validationIssues: summarizeValidationIssues(error),
-  };
 }
 
 export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
@@ -185,7 +175,7 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
         lastReviewedOn: null,
         activeReviewDays: null,
         generatedAt: null,
-        ...createFailureDetails(error),
+        ...createBackendFailureDetails(error),
       };
       reportBackendExceptionOrBreadcrumb(
         error,
@@ -236,7 +226,7 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
         bucketCount: null,
         totalCards: null,
         generatedAt: null,
-        ...createFailureDetails(error),
+        ...createBackendFailureDetails(error),
       };
       reportBackendExceptionOrBreadcrumb(
         error,
@@ -294,7 +284,7 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
         returnedDayCount: null,
         hasNonZeroReviewDays: null,
         generatedAt: null,
-        ...createFailureDetails(error),
+        ...createBackendFailureDetails(error),
       };
       reportBackendExceptionOrBreadcrumb(
         error,
@@ -352,7 +342,7 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
       const scope = createSystemScope(requestId, context.req.path, context.req.method, auth.userId);
       const details = {
         transport: auth.transport,
-        ...createFailureDetails(error),
+        ...createBackendFailureDetails(error),
       };
       reportBackendExceptionOrBreadcrumb(
         error,
