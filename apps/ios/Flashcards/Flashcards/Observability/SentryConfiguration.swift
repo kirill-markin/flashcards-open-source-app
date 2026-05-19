@@ -92,6 +92,7 @@ private struct ParsedSentrySampleRate {
 
 private let sentryEnvironmentInfoPlistKey: String = "FLASHCARDS_SENTRY_ENVIRONMENT"
 private let sentryEnvironmentOverrideKey: String = "FLASHCARDS_SENTRY_ENVIRONMENT_OVERRIDE"
+private let sentryCiSimulatorEnvironment: String = "ci-simulator"
 
 private func loadSentryRuntimeConfiguration(bundle: Bundle, processInfo: ProcessInfo) -> SentryRuntimeConfiguration {
     let dsn: String = loadOptionalInfoPlistString(
@@ -141,6 +142,13 @@ private func loadSentryEnvironment(bundle: Bundle, processInfo: ProcessInfo) -> 
         return overrideValue
     }
 
+    // Xcode Cloud can run prebuilt test products with test-without-building. In that path,
+    // hosted XCTest app processes may not receive the scheme TestAction environment, so
+    // this Sentry-only simulator guard prevents test telemetry from inheriting production.
+    if isRunningUnderXCTestOnSimulator(processInfo: processInfo) {
+        return sentryCiSimulatorEnvironment
+    }
+
     return nonEmptyString(
         loadOptionalInfoPlistString(
             bundle: bundle,
@@ -148,6 +156,44 @@ private func loadSentryEnvironment(bundle: Bundle, processInfo: ProcessInfo) -> 
         ),
         fallback: "local"
     )
+}
+
+private func isRunningUnderXCTestOnSimulator(processInfo: ProcessInfo) -> Bool {
+#if targetEnvironment(simulator)
+    // These markers are injected by XCTest into simulator test hosts and UI test runners.
+    // Device archives do not compile this branch, so shipped builds keep the configured
+    // Info.plist environment unless an explicit Sentry override is provided.
+    let xctestEnvironmentKeys: [String] = [
+        "XCTestConfigurationFilePath",
+        "XCTestBundlePath",
+        "XCInjectBundleInto"
+    ]
+    for key in xctestEnvironmentKeys {
+        if hasNonEmptyEnvironmentValue(processInfo: processInfo, key: key) {
+            return true
+        }
+    }
+
+    if environmentValueContains(processInfo: processInfo, key: "DYLD_INSERT_LIBRARIES", needle: "XCTest") {
+        return true
+    }
+
+    return NSClassFromString("XCTestCase") != nil
+#else
+    return false
+#endif
+}
+
+private func hasNonEmptyEnvironmentValue(processInfo: ProcessInfo, key: String) -> Bool {
+    nonEmptyString(processInfo.environment[key] ?? "", fallback: "").isEmpty == false
+}
+
+private func environmentValueContains(processInfo: ProcessInfo, key: String, needle: String) -> Bool {
+    guard let value: String = processInfo.environment[key] else {
+        return false
+    }
+
+    return value.range(of: needle, options: [.caseInsensitive]) != nil
 }
 
 private func loadOptionalInfoPlistString(bundle: Bundle, key: String) -> String {
