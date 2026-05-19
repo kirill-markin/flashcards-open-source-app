@@ -26,14 +26,13 @@ import {
 } from "../server/requestContext";
 import { parseJsonBody } from "../server/requestParsing";
 import {
-  summarizeValidationIssues,
+  createBackendFailureDetails,
 } from "../server/logging";
 import { withTransientDatabaseRetry } from "../dbTransient";
 import {
   addBackendBreadcrumb,
   createBackendObservationScope,
   normalizeCaughtError,
-  type BackendFailureDetails,
   type BackendObservationScope,
   type BackendSyncConflictDetails,
   type SyncPullDetails,
@@ -64,10 +63,6 @@ type SyncReviewHistoryPullRouteState = Readonly<{
   input: SyncReviewHistoryPullInput;
   result: SyncReviewHistoryPullResult;
 }>;
-
-function getInternalErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
 
 function getRequestContextUserId(requestContext: RequestContext | null): string | null {
   return requestContext === null ? null : requestContext.userId;
@@ -172,15 +167,6 @@ function createSyncScope(
   );
 }
 
-function createFailureDetails(error: unknown): BackendFailureDetails {
-  return {
-    statusCode: error instanceof HttpError ? error.statusCode : 500,
-    code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
-    message: getInternalErrorMessage(error),
-    validationIssues: summarizeValidationIssues(error),
-  };
-}
-
 export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   const loadRequestContextFromRequestFn = options.loadRequestContextFromRequestFn ?? loadRequestContextFromRequest;
@@ -220,7 +206,7 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
         appVersion: input.appVersion ?? null,
         operationsCount: input.operations.length,
         entityTypes,
-        ...createFailureDetails(error),
+        ...createBackendFailureDetails(error),
         ...getSyncConflictLogContext(error),
       };
       reportBackendExceptionOrBreadcrumb(
@@ -305,7 +291,7 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
         ...getSyncPullInputDetails(input),
         nextHotChangeId: null,
         changesCount: null,
-        ...createFailureDetails(error),
+        ...createBackendFailureDetails(error),
       };
       reportBackendExceptionOrBreadcrumb(
         error,
@@ -344,7 +330,7 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
         platform: input.platform,
         appVersion: input.appVersion ?? null,
         mode: input.mode,
-        ...createFailureDetails(error),
+        ...createBackendFailureDetails(error),
         ...getSyncConflictLogContext(error),
       };
       reportBackendExceptionOrBreadcrumb(
@@ -429,7 +415,7 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
         ...getSyncReviewHistoryPullInputDetails(input),
         nextReviewSequenceId: null,
         reviewEventsCount: null,
-        ...createFailureDetails(error),
+        ...createBackendFailureDetails(error),
       };
       reportBackendExceptionOrBreadcrumb(
         error,
@@ -472,7 +458,7 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
         reviewEventsCount: input.reviewEvents.length,
         importedCount: null,
         duplicateCount: null,
-        ...createFailureDetails(error),
+        ...createBackendFailureDetails(error),
         ...getSyncConflictLogContext(error),
       };
       reportBackendExceptionOrBreadcrumb(

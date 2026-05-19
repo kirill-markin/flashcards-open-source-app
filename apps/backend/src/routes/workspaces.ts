@@ -45,14 +45,11 @@ import {
   expectRecord,
   parseJsonBody,
 } from "../server/requestParsing";
-import {
-  summarizeValidationIssues,
-} from "../server/logging";
+import { createBackendFailureDetails } from "../server/logging";
 import {
   addBackendBreadcrumb,
   createBackendObservationScope,
   normalizeCaughtError,
-  type BackendFailureDetails,
   type BackendObservationScope,
 } from "../observability/sentry";
 import { reportBackendExceptionOrBreadcrumb } from "../observability/reporting";
@@ -112,15 +109,6 @@ function createWorkspaceRouteScope(
   );
 }
 
-function createFailureDetails(error: unknown): BackendFailureDetails {
-  return {
-    statusCode: error instanceof HttpError ? error.statusCode : 500,
-    code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
-    message: error instanceof Error ? error.message : String(error),
-    validationIssues: summarizeValidationIssues(error),
-  };
-}
-
 export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
 
@@ -170,7 +158,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
         workspacesCount: null,
         limit: pageInput.limit,
         hasNextCursor: null,
-        ...createFailureDetails(error),
+        ...createBackendFailureDetails(error),
       };
       reportBackendExceptionOrBreadcrumb(
         error,
@@ -211,7 +199,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
     } catch (error) {
       const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, null);
       const details = {
-        ...createFailureDetails(error),
+        ...createBackendFailureDetails(error),
       };
       reportBackendExceptionOrBreadcrumb(
         error,
@@ -249,7 +237,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
     } catch (error) {
       const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
       const details = {
-        ...createFailureDetails(error),
+        ...createBackendFailureDetails(error),
       };
       reportBackendExceptionOrBreadcrumb(
         error,
@@ -286,7 +274,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
     } catch (error) {
       const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
       const details = {
-        ...createFailureDetails(error),
+        ...createBackendFailureDetails(error),
       };
       reportBackendExceptionOrBreadcrumb(
         error,
@@ -323,7 +311,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
       const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
       const details = {
         cardsCount: null,
-        ...createFailureDetails(error),
+        ...createBackendFailureDetails(error),
       };
       reportBackendExceptionOrBreadcrumb(
         error,
@@ -372,7 +360,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
       const details = {
         deletedCardsCount: null,
         nextWorkspaceId: null,
-        ...createFailureDetails(error),
+        ...createBackendFailureDetails(error),
       };
       reportBackendExceptionOrBreadcrumb(
         error,
@@ -409,7 +397,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
       const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
       const details = {
         cardsCount: null,
-        ...createFailureDetails(error),
+        ...createBackendFailureDetails(error),
       };
       reportBackendExceptionOrBreadcrumb(
         error,
@@ -456,7 +444,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
       const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
       const details = {
         cardsResetCount: null,
-        ...createFailureDetails(error),
+        ...createBackendFailureDetails(error),
       };
       reportBackendExceptionOrBreadcrumb(
         error,
