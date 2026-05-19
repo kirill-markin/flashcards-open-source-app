@@ -1,5 +1,10 @@
 package com.flashcardsopensourceapp.feature.ai.runtime
 
+import com.flashcardsopensourceapp.core.observability.AndroidBreadcrumbEvent
+import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
+import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
+import com.flashcardsopensourceapp.core.observability.AppObservability
+import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.model.AiChatAcceptedConversationEnvelope
 import com.flashcardsopensourceapp.data.local.model.AiChatActiveRun
@@ -45,6 +50,7 @@ internal const val defaultTestWorkspaceId: String = "workspace-1"
 internal const val secondaryTestWorkspaceId: String = "workspace-2"
 
 private const val testAppVersion: String = "1.3.0"
+private const val testVersionCode: Int = 10300
 internal const val testUiLocaleTag: String = "en-US"
 
 internal fun makeRuntime(scope: TestScope, repository: FakeAiChatRepository): AiChatRuntime {
@@ -65,12 +71,14 @@ internal fun makeRuntimeContext(
         aiChatRepository = repository,
         autoSyncEventRepository = autoSyncEventRepository,
         appVersion = testAppVersion,
+        versionCode = testVersionCode,
         textProvider = testAiTextProvider(),
         hasConsent = { repository.consent.value },
         currentCloudState = { CloudAccountState.GUEST },
         currentServerConfiguration = { makeOfficialCloudServiceConfiguration() },
         currentSyncStatus = { SyncStatus.Idle },
-        currentUiLocaleTag = { testUiLocaleTag }
+        currentUiLocaleTag = { testUiLocaleTag },
+        observability = TestAppObservability
     )
 }
 
@@ -98,13 +106,32 @@ internal fun makeRuntimeWithCloudState(
         aiChatRepository = repository,
         autoSyncEventRepository = autoSyncEventRepository,
         appVersion = testAppVersion,
+        versionCode = testVersionCode,
         textProvider = testAiTextProvider(),
         hasConsent = { repository.consent.value },
         currentCloudState = { cloudState },
         currentServerConfiguration = { makeOfficialCloudServiceConfiguration() },
         currentSyncStatus = { SyncStatus.Idle },
-        currentUiLocaleTag = { testUiLocaleTag }
+        currentUiLocaleTag = { testUiLocaleTag },
+        observability = TestAppObservability
     )
+}
+
+private object TestAppObservability : AppObservability {
+    override fun setCloudIdentity(identity: CloudObservationIdentity) {
+    }
+
+    override fun clearCloudIdentity() {
+    }
+
+    override fun addBreadcrumb(event: AndroidBreadcrumbEvent) {
+    }
+
+    override fun captureWarning(event: AndroidWarningIssueEvent) {
+    }
+
+    override fun captureException(event: AndroidExceptionIssueEvent) {
+    }
 }
 
 internal fun makeAccessContext(workspaceId: String): AiAccessContext {

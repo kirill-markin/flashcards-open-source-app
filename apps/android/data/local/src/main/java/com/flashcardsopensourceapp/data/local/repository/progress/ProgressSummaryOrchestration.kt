@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.data.local.repository.progress
 
+import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.model.ProgressSummarySnapshot
@@ -22,7 +23,9 @@ internal class ProgressSummaryOrchestration(
     private val syncRepository: SyncRepository,
     private val timeProvider: TimeProvider,
     private val cacheReadinessCoordinator: ProgressLocalCacheReadinessCoordinator,
-    private val backgroundLauncher: ProgressBackgroundLauncher
+    private val backgroundLauncher: ProgressBackgroundLauncher,
+    private val observability: AppObservability,
+    private val observationVersions: ProgressObservationVersions
 ) {
     private val snapshotMutable = MutableStateFlow<ProgressSummarySnapshot?>(null)
     private val latestInputsMutable = MutableStateFlow<ProgressObservedInputs?>(null)
@@ -211,8 +214,12 @@ internal class ProgressSummaryOrchestration(
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
-                logProgressRepositoryWarning(
+                logProgressRefreshWarning(
+                    observability = observability,
+                    observationVersions = observationVersions,
                     event = "progress_summary_sync_before_remote_load_failed",
+                    scopeId = resolvedRefreshStoreState.scopeKey.scopeId,
+                    source = "summary_sync_before_remote_load",
                     fields = listOf(
                         "scopeKey" to serializeProgressSummaryScopeKey(
                             scopeKey = resolvedRefreshStoreState.scopeKey
@@ -242,8 +249,12 @@ internal class ProgressSummaryOrchestration(
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
-            logProgressRepositoryWarning(
+            logProgressRefreshWarning(
+                observability = observability,
+                observationVersions = observationVersions,
                 event = "progress_summary_remote_load_failed",
+                scopeId = resolvedRefreshStoreState.scopeKey.scopeId,
+                source = "summary_remote_load",
                 fields = listOf(
                     "scopeKey" to serializeProgressSummaryScopeKey(
                         scopeKey = resolvedRefreshStoreState.scopeKey

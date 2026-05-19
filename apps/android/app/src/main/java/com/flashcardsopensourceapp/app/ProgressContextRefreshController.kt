@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.app
 
-import android.util.Log
+import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
+import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.data.local.repository.ProgressRepository
 import kotlinx.coroutines.CancellationException
@@ -8,27 +9,12 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-private const val progressContextRefreshControllerLogTag: String = "ProgressContextRefresh"
-
-private fun logProgressContextRefreshFailure(
-    message: String,
-    error: Exception
-) {
-    runCatching {
-        Log.e(
-            progressContextRefreshControllerLogTag,
-            message,
-            error
-        )
-    }.onFailure {
-        System.err.println(message)
-        error.printStackTrace()
-    }
-}
-
 class ProgressContextRefreshController(
     private val appScope: CoroutineScope,
-    private val progressRepository: ProgressRepository
+    private val progressRepository: ProgressRepository,
+    private val observability: AppObservability,
+    private val appVersion: String,
+    private val versionCode: Int
 ) {
     private val refreshRequests = Channel<VisibleAppScreen>(capacity = Channel.CONFLATED)
 
@@ -40,8 +26,8 @@ class ProgressContextRefreshController(
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Exception) {
-                    logProgressContextRefreshFailure(
-                        message = "Failed to refresh invalidated progress summary.",
+                    captureProgressRefreshFailure(
+                        refreshAction = "refresh_summary_if_invalidated",
                         error = error
                     )
                 }
@@ -55,8 +41,8 @@ class ProgressContextRefreshController(
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Exception) {
-                    logProgressContextRefreshFailure(
-                        message = "Failed to refresh invalidated progress series.",
+                    captureProgressRefreshFailure(
+                        refreshAction = "refresh_series_if_invalidated",
                         error = error
                     )
                 }
@@ -66,8 +52,8 @@ class ProgressContextRefreshController(
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Exception) {
-                    logProgressContextRefreshFailure(
-                        message = "Failed to refresh invalidated progress review schedule.",
+                    captureProgressRefreshFailure(
+                        refreshAction = "refresh_review_schedule_if_invalidated",
                         error = error
                     )
                 }
@@ -77,5 +63,23 @@ class ProgressContextRefreshController(
 
     fun refreshIfInvalidated(visibleScreen: VisibleAppScreen) {
         refreshRequests.trySend(element = visibleScreen)
+    }
+
+    private fun captureProgressRefreshFailure(
+        refreshAction: String,
+        error: Throwable
+    ) {
+        observability.captureException(
+            event = AndroidExceptionIssueEvent.ProgressRefreshException(
+                throwable = error,
+                workspaceId = null,
+                refreshAction = refreshAction,
+                scopeId = null,
+                source = "progress_context_refresh_controller",
+                appVersion = appVersion,
+                clientVersion = appVersion,
+                versionCode = versionCode
+            )
+        )
     }
 }

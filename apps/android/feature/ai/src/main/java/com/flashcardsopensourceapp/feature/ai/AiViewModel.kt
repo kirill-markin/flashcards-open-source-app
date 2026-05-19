@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
@@ -42,6 +43,8 @@ class AiViewModel(
     workspaceRepository: WorkspaceRepository,
     cloudAccountRepository: CloudAccountRepository,
     appVersion: String,
+    versionCode: Int,
+    observability: AppObservability,
     textProvider: AiTextProvider,
     currentUiLocaleTag: () -> String?
 ) : ViewModel() {
@@ -84,12 +87,14 @@ class AiViewModel(
         aiChatRepository = aiChatRepository,
         autoSyncEventRepository = autoSyncEventRepository,
         appVersion = appVersion,
+        versionCode = versionCode,
         textProvider = textProvider,
         hasConsent = { consentState.value },
         currentCloudState = { cloudSettingsState.value.cloudState },
         currentServerConfiguration = { serverConfigurationState.value },
         currentSyncStatus = { syncStatusState.value.status },
-        currentUiLocaleTag = currentUiLocaleTag
+        currentUiLocaleTag = currentUiLocaleTag,
+        observability = observability
     )
 
     val uiState: StateFlow<AiUiState> = combine(
@@ -254,7 +259,9 @@ fun createAiViewModelFactory(
     autoSyncEventRepository: AutoSyncEventRepository,
     workspaceRepository: WorkspaceRepository,
     cloudAccountRepository: CloudAccountRepository,
-    appVersion: String
+    appVersion: String,
+    versionCode: Int,
+    observability: AppObservability
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
@@ -266,6 +273,8 @@ fun createAiViewModelFactory(
                 workspaceRepository = workspaceRepository,
                 cloudAccountRepository = cloudAccountRepository,
                 appVersion = appVersion,
+                versionCode = versionCode,
+                observability = observability,
                 textProvider = aiTextProvider(context = application),
                 currentUiLocaleTag = {
                     currentResourceLocale(resources = application.resources).toLanguageTag()

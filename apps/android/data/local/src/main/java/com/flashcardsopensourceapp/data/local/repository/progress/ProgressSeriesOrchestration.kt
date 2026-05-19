@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.data.local.repository.progress
 
+import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.model.ProgressSeriesSnapshot
@@ -22,7 +23,9 @@ internal class ProgressSeriesOrchestration(
     private val syncRepository: SyncRepository,
     private val timeProvider: TimeProvider,
     private val cacheReadinessCoordinator: ProgressLocalCacheReadinessCoordinator,
-    private val backgroundLauncher: ProgressBackgroundLauncher
+    private val backgroundLauncher: ProgressBackgroundLauncher,
+    private val observability: AppObservability,
+    private val observationVersions: ProgressObservationVersions
 ) {
     private val snapshotMutable = MutableStateFlow<ProgressSeriesSnapshot?>(null)
     private val latestInputsMutable = MutableStateFlow<ProgressObservedInputs?>(null)
@@ -211,8 +214,12 @@ internal class ProgressSeriesOrchestration(
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
-                logProgressRepositoryWarning(
+                logProgressRefreshWarning(
+                    observability = observability,
+                    observationVersions = observationVersions,
                     event = "progress_series_sync_before_remote_load_failed",
+                    scopeId = resolvedRefreshStoreState.scopeKey.scopeId,
+                    source = "series_sync_before_remote_load",
                     fields = listOf(
                         "scopeKey" to serializeProgressSeriesScopeKey(
                             scopeKey = resolvedRefreshStoreState.scopeKey
@@ -246,8 +253,12 @@ internal class ProgressSeriesOrchestration(
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
-            logProgressRepositoryWarning(
+            logProgressRefreshWarning(
+                observability = observability,
+                observationVersions = observationVersions,
                 event = "progress_series_remote_load_failed",
+                scopeId = resolvedRefreshStoreState.scopeKey.scopeId,
+                source = "series_remote_load",
                 fields = listOf(
                     "scopeKey" to serializeProgressSeriesScopeKey(
                         scopeKey = resolvedRefreshStoreState.scopeKey

@@ -1,5 +1,10 @@
 package com.flashcardsopensourceapp.feature.ai.runtime
 
+import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
+import com.flashcardsopensourceapp.data.local.ai.AiChatLiveStreamException
+import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
+import com.flashcardsopensourceapp.data.local.ai.aiChatLiveStreamEndedBeforeTerminalCode
+import com.flashcardsopensourceapp.data.local.ai.aiChatLiveStreamReadFailedCode
 import com.flashcardsopensourceapp.data.local.model.AiChatActiveRun
 import com.flashcardsopensourceapp.data.local.model.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
@@ -161,6 +166,21 @@ internal class AiChatLiveStreamCoordinator(
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
+                if (isUnexpectedLiveStreamDetach(error = error)) {
+                    if (context.isScreenVisible) {
+                        reconcileUnexpectedLiveStreamDetach(
+                            workspaceId = workspaceId,
+                            sessionId = sessionId
+                        )
+                    }
+                    return@launch
+                }
+                captureLiveStreamCrashIfNeeded(
+                    error = error,
+                    workspaceId = workspaceId,
+                    sessionId = sessionId,
+                    runId = runId
+                )
                 val message = makeAiUserFacingErrorMessage(
                     error = error,
                     surface = AiErrorSurface.CHAT,
@@ -193,6 +213,49 @@ internal class AiChatLiveStreamCoordinator(
             }
         }
         context.activeLiveJob = liveJob
+    }
+
+    private fun captureLiveStreamCrashIfNeeded(
+        error: Exception,
+        workspaceId: String?,
+        sessionId: String,
+        runId: String
+    ) {
+        if (error is AiChatRemoteException) {
+            return
+        }
+        context.observability.captureException(
+            event = AndroidExceptionIssueEvent.AiStreamCrash(
+                throwable = error,
+                workspaceId = workspaceId,
+                chatSessionId = sessionId,
+                runId = runId,
+                requestId = liveStreamCrashRequestId(error = error),
+                code = liveStreamCrashCode(error = error),
+                appVersion = null,
+                clientVersion = null,
+                versionCode = null
+            )
+        )
+    }
+
+    private fun liveStreamCrashRequestId(error: Exception): String? {
+        return when (error) {
+            is AiChatLiveStreamException -> error.requestId
+            else -> null
+        }
+    }
+
+    private fun liveStreamCrashCode(error: Exception): String {
+        return when (error) {
+            is AiChatLiveStreamException -> error.code
+            else -> error::class.java.simpleName.ifBlank { "exception" }
+        }
+    }
+
+    private fun isUnexpectedLiveStreamDetach(error: Exception): Boolean {
+        val code = (error as? AiChatLiveStreamException)?.code ?: return false
+        return code == aiChatLiveStreamEndedBeforeTerminalCode || code == aiChatLiveStreamReadFailedCode
     }
 
     private suspend fun applyLiveEvent(event: AiChatLiveEvent) {
@@ -430,6 +493,8 @@ internal class AiChatLiveStreamCoordinator(
                 }
                 context.persistCurrentState()
             }
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: Exception) {
             val message = makeAiUserFacingErrorMessage(
                 error = error,

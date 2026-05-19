@@ -30,6 +30,10 @@ The Android Google Play release workflow also depends on these repository variab
 
 - `GCP_PLAY_SERVICE_ACCOUNT_EMAIL`
 - `ANDROID_PLAY_PACKAGE_NAME`
+- `ANDROID_SENTRY_DSN`
+- `ANDROID_SENTRY_TRACES_SAMPLE_RATE` (optional, defaults to `0` for release builds)
+- `SENTRY_ORG`
+- `SENTRY_ANDROID_PROJECT`
 
 This optional local `.env` variable documents the operator service account used for Firebase Test Lab diagnostics:
 
@@ -41,6 +45,7 @@ And these repository secrets:
 - `ANDROID_UPLOAD_KEYSTORE_PASSWORD`
 - `ANDROID_UPLOAD_KEY_ALIAS`
 - `ANDROID_UPLOAD_KEY_PASSWORD`
+- `SENTRY_AUTH_TOKEN`
 
 Push them to the repository with:
 
@@ -65,6 +70,7 @@ GitHub Actions reusable workflow: `.github/workflows/android-ci-reusable.yml`
 - Runs `:data:local:connectedDebugAndroidTest` on that emulator
 - Uploads `data:local` instrumentation reports from the emulator run when the Gradle task produced them
 - Reuses one shared `ANDROID_VERSION_CODE` across Android CI/build artifacts and the signed Play bundle in the same release run instead of resolving separate version codes per stage
+- Uses the Sentry release name `com.flashcardsopensourceapp.app@<versionName>+<versionCode>` for Android release artifact correlation; the workflow summary also prints the manager-readable Play release identifier, but runtime Sentry event tags/contexts are controlled by app runtime code
 
 Top-level release workflow Firebase job: `.github/workflows/android-release.yml` job `firebase_test_lab_submission`
 
@@ -321,6 +327,8 @@ Set the Google Play release variables and secrets before expecting `.github/work
 
 `ANDROID_PLAY_PACKAGE_NAME` should match the Android `applicationId`. In this repository that value is `com.flashcardsopensourceapp.app`.
 
+`scripts/setup-github-android.sh` requires the Sentry repository variables in the local environment when updating GitHub configuration. `SENTRY_AUTH_TOKEN` is only written when present locally, so operators can update variables without replacing an existing GitHub secret.
+
 ## One-time Play Console setup
 
 Before the release workflow can upload draft releases to Google Play, complete this one-time setup in Play Console:
@@ -396,6 +404,8 @@ cd apps/android && ./gradlew --no-daemon :data:local:testDebugUnitTest --tests c
 ```
 
 Build the signed release bundle with the same inputs that the release workflow uses:
+
+For local release and upload paths, export or source the Sentry variables before invoking Gradle or the helper script: `ANDROID_SENTRY_DSN`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_ANDROID_PROJECT`.
 
 ```bash
 bash scripts/run-android-release.sh \

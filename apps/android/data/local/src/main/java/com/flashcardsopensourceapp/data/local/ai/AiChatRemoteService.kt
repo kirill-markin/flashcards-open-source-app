@@ -1,5 +1,11 @@
 package com.flashcardsopensourceapp.data.local.ai
 
+import com.flashcardsopensourceapp.core.observability.AndroidBreadcrumbEvent
+import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
+import com.flashcardsopensourceapp.core.observability.AndroidObservationFeature
+import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
+import com.flashcardsopensourceapp.core.observability.AppObservability
+import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
 import com.flashcardsopensourceapp.data.local.cloud.CloudContractMismatchException
 import com.flashcardsopensourceapp.data.local.cloud.optCloudStringOrNull
 import com.flashcardsopensourceapp.data.local.cloud.optCloudObjectOrNull
@@ -32,18 +38,97 @@ import com.flashcardsopensourceapp.data.local.model.AiChatStopRunResponse
 import com.flashcardsopensourceapp.data.local.model.AiChatStartRunResponse
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
+import com.flashcardsopensourceapp.data.local.network.awaitOkHttpResponse
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.InternalCoroutinesApi
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.job
 import kotlinx.coroutines.withContext
+import okhttp3.CacheControl
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
 import org.json.JSONArray
+import org.json.JSONException
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
-import java.net.HttpURLConnection
+import java.io.IOException
+import java.net.URI
 import java.net.URLEncoder
-import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.util.UUID
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
 internal const val chatRequestIdHeaderName: String = "X-Chat-Request-Id"
+private const val requestIdHeaderName: String = "X-Request-Id"
+private const val officialAiApiHost: String = "api.flashcards-open-source-app.com"
+private const val officialAiApiPathPrefix: String = "/v1"
+private val aiJsonMediaType = "application/json".toMediaType()
+private val expectedAiChatHttpFailureCodes: Set<String> = setOf(
+    "AI_WORKSPACE_REQUIRED",
+    "AUTH_UNAUTHORIZED",
+    "CHAT_ACTIVE_RUN_IN_PROGRESS",
+    "CHAT_LIVE_AFTER_CURSOR_INVALID",
+    "CHAT_LIVE_AUTH_EXPIRED",
+    "CHAT_LIVE_AUTH_INVALID",
+    "CHAT_LIVE_NOT_FOUND",
+    "CHAT_LIVE_RUN_ID_REQUIRED",
+    "CHAT_LIVE_SESSION_ID_REQUIRED",
+    "CHAT_SESSION_ID_CONFLICT",
+    "CHAT_TRANSCRIPTION_FILE_EMPTY",
+    "CHAT_TRANSCRIPTION_FILE_REQUIRED",
+    "CHAT_TRANSCRIPTION_FILE_UNSUPPORTED",
+    "CHAT_TRANSCRIPTION_INVALID_AUDIO",
+    "CHAT_TRANSCRIPTION_INVALID_MULTIPART",
+    "CHAT_TRANSCRIPTION_RATE_LIMITED",
+    "CHAT_TRANSCRIPTION_SOURCE_INVALID",
+    "GUEST_AI_LIMIT_REACHED",
+    "GUEST_AUTH_INVALID",
+    "WORKSPACE_ID_INVALID",
+    "WORKSPACE_ID_REQUIRED",
+    "WORKSPACE_NOT_FOUND",
+    "WORKSPACE_SELECTION_REQUIRED"
+)
+
+internal data class AiChatHttpObservationVersions(
+    val appVersion: String?,
+    val clientVersion: String?,
+    val versionCode: Int?
+)
+
+internal object NoopAiChatHttpObservability : AppObservability {
+    override fun setCloudIdentity(identity: CloudObservationIdentity) {
+    }
+
+    override fun clearCloudIdentity() {
+    }
+
+    override fun addBreadcrumb(event: AndroidBreadcrumbEvent) {
+    }
+
+    override fun captureWarning(event: AndroidWarningIssueEvent) {
+    }
+
+    override fun captureException(event: AndroidExceptionIssueEvent) {
+    }
+}
+
+internal fun createAiChatHttpObservationVersions(
+    appVersion: String?,
+    versionCode: Int?
+): AiChatHttpObservationVersions {
+    val resolvedAppVersion = appVersion?.trim()?.takeIf { value -> value.isNotEmpty() }
+    return AiChatHttpObservationVersions(
+        appVersion = resolvedAppVersion,
+        clientVersion = resolvedAppVersion,
+        versionCode = versionCode
+    )
+}
 
 class AiChatRemoteException(
     message: String,
@@ -54,32 +139,92 @@ class AiChatRemoteException(
     val responseBody: String?
 ) : Exception(message)
 
-class AiChatRemoteService(
+class AiChatRemoteService private constructor(
     private val dispatchers: AiCoroutineDispatchers,
-    private val liveRemoteService: AiChatLiveRemoteService
+    private val liveRemoteService: AiChatLiveRemoteService,
+    okHttpClient: OkHttpClient,
+    private val observability: AppObservability,
+    private val observationVersions: AiChatHttpObservationVersions
 ) {
+    constructor(
+        dispatchers: AiCoroutineDispatchers,
+        liveRemoteService: AiChatLiveRemoteService,
+        okHttpClient: OkHttpClient,
+        observability: AppObservability,
+        appVersion: String,
+        versionCode: Int
+    ) : this(
+        dispatchers = dispatchers,
+        liveRemoteService = liveRemoteService,
+        okHttpClient = okHttpClient,
+        observability = observability,
+        observationVersions = createAiChatHttpObservationVersions(
+            appVersion = appVersion,
+            versionCode = versionCode
+        )
+    )
+
+    constructor(
+        dispatchers: AiCoroutineDispatchers,
+        liveRemoteService: AiChatLiveRemoteService,
+        okHttpClient: OkHttpClient
+    ) : this(
+        dispatchers = dispatchers,
+        liveRemoteService = liveRemoteService,
+        okHttpClient = okHttpClient,
+        observability = NoopAiChatHttpObservability,
+        observationVersions = createAiChatHttpObservationVersions(
+            appVersion = null,
+            versionCode = null
+        )
+    )
+
+    constructor(
+        dispatchers: AiCoroutineDispatchers,
+        liveRemoteService: AiChatLiveRemoteService
+    ) : this(
+        dispatchers = dispatchers,
+        liveRemoteService = liveRemoteService,
+        okHttpClient = OkHttpClient()
+    )
+
+    constructor(
+        dispatchers: AiCoroutineDispatchers,
+        okHttpClient: OkHttpClient
+    ) : this(
+        dispatchers = dispatchers,
+        liveRemoteService = AiChatLiveRemoteService(
+            dispatchers = dispatchers,
+            okHttpClient = okHttpClient
+        ),
+        okHttpClient = okHttpClient
+    )
+
+    private val httpClient: OkHttpClient = okHttpClient.newBuilder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .writeTimeout(120, TimeUnit.SECONDS)
+        .readTimeout(120, TimeUnit.SECONDS)
+        .build()
 
     suspend fun createGuestSession(
         apiBaseUrl: String,
         configurationMode: CloudServiceConfigurationMode
     ): StoredGuestAiSession = withContext(dispatchers.io) {
-        val connection = openConnection(
-            apiBaseUrl = apiBaseUrl,
-            path = "/guest-auth/session",
-            method = "POST",
-            authorizationHeader = null
-        )
-
-        try {
-            val responseBody = readResponseBody(connection = connection)
-            return@withContext decodeAiChatGuestSession(
-                payload = responseBody,
+        val responseBody = readResponseBody(
+            request = buildRequest(
                 apiBaseUrl = apiBaseUrl,
-                configurationMode = configurationMode
+                path = "/guest-auth/session",
+                method = "POST",
+                authorizationHeader = null,
+                requestBody = ByteArray(size = 0).toRequestBody(),
+                extraHeaders = emptyMap()
             )
-        } finally {
-            connection.disconnect()
-        }
+        )
+        return@withContext decodeAiChatGuestSession(
+            payload = responseBody,
+            apiBaseUrl = apiBaseUrl,
+            configurationMode = configurationMode
+        )
     }
 
     suspend fun startRun(
@@ -87,29 +232,17 @@ class AiChatRemoteService(
         authorizationHeader: String,
         request: AiChatStartRunRequest
     ): AiChatStartRunResponse = withContext(dispatchers.io) {
-        val startConnection = openConnection(
-            apiBaseUrl = apiBaseUrl,
-            path = "/chat",
-            method = "POST",
-            authorizationHeader = authorizationHeader
+        val responseBody = readResponseBody(
+            request = buildRequest(
+                apiBaseUrl = apiBaseUrl,
+                path = "/chat",
+                method = "POST",
+                authorizationHeader = authorizationHeader,
+                requestBody = encodeStartRunRequest(request = request).toString().toRequestBody(aiJsonMediaType),
+                extraHeaders = emptyMap()
+            )
         )
-
-        val startResponse: AiChatStartRunResponse
-
-        try {
-            startConnection.setRequestProperty("Content-Type", "application/json")
-            startConnection.doOutput = true
-            startConnection.outputStream.use { outputStream ->
-                outputStream.write(encodeStartRunRequest(request = request).toString().toByteArray(StandardCharsets.UTF_8))
-            }
-
-            val responseBody = readResponseBody(connection = startConnection)
-            startResponse = decodeAiChatStartRunResponse(responseBody)
-        } finally {
-            startConnection.disconnect()
-        }
-
-        return@withContext startResponse
+        return@withContext decodeAiChatStartRunResponse(responseBody)
     }
 
     suspend fun loadSnapshot(
@@ -118,22 +251,20 @@ class AiChatRemoteService(
         sessionId: String?,
         workspaceId: String?
     ): AiChatSessionSnapshot = withContext(dispatchers.io) {
-        val connection = openConnection(
-            apiBaseUrl = apiBaseUrl,
-            path = buildSnapshotPath(
-                sessionId = sessionId,
-                workspaceId = workspaceId
-            ),
-            method = "GET",
-            authorizationHeader = authorizationHeader
+        val responseBody = readResponseBody(
+            request = buildRequest(
+                apiBaseUrl = apiBaseUrl,
+                path = buildSnapshotPath(
+                    sessionId = sessionId,
+                    workspaceId = workspaceId
+                ),
+                method = "GET",
+                authorizationHeader = authorizationHeader,
+                requestBody = null,
+                extraHeaders = emptyMap()
+            )
         )
-
-        try {
-            val responseBody = readResponseBody(connection = connection)
-            return@withContext decodeAiChatSessionSnapshot(responseBody)
-        } finally {
-            connection.disconnect()
-        }
+        return@withContext decodeAiChatSessionSnapshot(responseBody)
     }
 
     suspend fun loadBootstrap(
@@ -144,24 +275,21 @@ class AiChatRemoteService(
         workspaceId: String?,
         resumeDiagnostics: AiChatResumeDiagnostics?
     ): AiChatBootstrapResponse = withContext(dispatchers.io) {
-        val connection = openConnection(
-            apiBaseUrl = apiBaseUrl,
-            path = buildBootstrapPath(
-                sessionId = sessionId,
-                limit = limit,
-                workspaceId = workspaceId
-            ),
-            method = "GET",
-            authorizationHeader = authorizationHeader,
-            extraHeaders = resumeDiagnosticsHeaders(resumeDiagnostics = resumeDiagnostics)
+        val responseBody = readResponseBody(
+            request = buildRequest(
+                apiBaseUrl = apiBaseUrl,
+                path = buildBootstrapPath(
+                    sessionId = sessionId,
+                    limit = limit,
+                    workspaceId = workspaceId
+                ),
+                method = "GET",
+                authorizationHeader = authorizationHeader,
+                requestBody = null,
+                extraHeaders = resumeDiagnosticsHeaders(resumeDiagnostics = resumeDiagnostics)
+            )
         )
-
-        try {
-            val responseBody = readResponseBody(connection = connection)
-            return@withContext decodeAiChatBootstrapResponse(responseBody)
-        } finally {
-            connection.disconnect()
-        }
+        return@withContext decodeAiChatBootstrapResponse(responseBody)
     }
 
     suspend fun loadOlderMessages(
@@ -172,29 +300,27 @@ class AiChatRemoteService(
         limit: Int,
         workspaceId: String?
     ): AiChatOlderMessagesResponse = withContext(dispatchers.io) {
-        val connection = openConnection(
-            apiBaseUrl = apiBaseUrl,
-            path = buildOlderMessagesPath(
-                sessionId = sessionId,
-                beforeCursor = beforeCursor,
-                limit = limit,
-                workspaceId = workspaceId
-            ),
-            method = "GET",
-            authorizationHeader = authorizationHeader
-        )
-
-        try {
-            val responseBody = readResponseBody(connection = connection)
-            val bootstrap = decodeAiChatBootstrapResponse(responseBody)
-            return@withContext AiChatOlderMessagesResponse(
-                messages = bootstrap.conversation.messages,
-                hasOlder = bootstrap.conversation.hasOlder,
-                oldestCursor = bootstrap.conversation.oldestCursor
+        val responseBody = readResponseBody(
+            request = buildRequest(
+                apiBaseUrl = apiBaseUrl,
+                path = buildOlderMessagesPath(
+                    sessionId = sessionId,
+                    beforeCursor = beforeCursor,
+                    limit = limit,
+                    workspaceId = workspaceId
+                ),
+                method = "GET",
+                authorizationHeader = authorizationHeader,
+                requestBody = null,
+                extraHeaders = emptyMap()
             )
-        } finally {
-            connection.disconnect()
-        }
+        )
+        val bootstrap = decodeAiChatBootstrapResponse(responseBody)
+        return@withContext AiChatOlderMessagesResponse(
+            messages = bootstrap.conversation.messages,
+            hasOlder = bootstrap.conversation.hasOlder,
+            oldestCursor = bootstrap.conversation.oldestCursor
+        )
     }
 
     fun attachLiveRun(
@@ -214,7 +340,8 @@ class AiChatRemoteService(
             liveStream = liveStream,
             workspaceId = workspaceId,
             afterCursor = afterCursor,
-            resumeDiagnostics = resumeDiagnostics
+            resumeDiagnostics = resumeDiagnostics,
+            allowOfficialLiveTracePropagation = isOfficialAiApiBaseUrl(apiBaseUrl = apiBaseUrl)
         )
     }
 
@@ -223,28 +350,17 @@ class AiChatRemoteService(
         authorizationHeader: String,
         request: AiChatNewSessionRequest
     ): AiChatSessionSnapshot = withContext(dispatchers.io) {
-        val connection = openConnection(
-            apiBaseUrl = apiBaseUrl,
-            path = "/chat/new",
-            method = "POST",
-            authorizationHeader = authorizationHeader
+        val responseBody = readResponseBody(
+            request = buildRequest(
+                apiBaseUrl = apiBaseUrl,
+                path = "/chat/new",
+                method = "POST",
+                authorizationHeader = authorizationHeader,
+                requestBody = encodeNewSessionRequest(request = request).toString().toRequestBody(aiJsonMediaType),
+                extraHeaders = emptyMap()
+            )
         )
-
-        try {
-            connection.setRequestProperty("Content-Type", "application/json")
-            connection.doOutput = true
-            connection.outputStream.use { outputStream ->
-                outputStream.write(
-                    encodeNewSessionRequest(request = request)
-                        .toString()
-                        .toByteArray(StandardCharsets.UTF_8)
-                )
-            }
-            val responseBody = readResponseBody(connection = connection)
-            return@withContext decodeAiChatNewSession(responseBody)
-        } finally {
-            connection.disconnect()
-        }
+        return@withContext decodeAiChatNewSession(responseBody)
     }
 
     suspend fun stopRun(
@@ -252,26 +368,17 @@ class AiChatRemoteService(
         authorizationHeader: String,
         request: AiChatStopRunRequest
     ): AiChatStopRunResponse = withContext(dispatchers.io) {
-        val connection = openConnection(
-            apiBaseUrl = apiBaseUrl,
-            path = "/chat/stop",
-            method = "POST",
-            authorizationHeader = authorizationHeader
+        val responseBody = readResponseBody(
+            request = buildRequest(
+                apiBaseUrl = apiBaseUrl,
+                path = "/chat/stop",
+                method = "POST",
+                authorizationHeader = authorizationHeader,
+                requestBody = encodeStopRunRequest(request = request).toString().toRequestBody(aiJsonMediaType),
+                extraHeaders = emptyMap()
+            )
         )
-
-        try {
-            connection.setRequestProperty("Content-Type", "application/json")
-            connection.doOutput = true
-            connection.outputStream.use { outputStream ->
-                outputStream.write(
-                    encodeStopRunRequest(request = request).toString().toByteArray(StandardCharsets.UTF_8)
-                )
-            }
-            val responseBody = readResponseBody(connection = connection)
-            return@withContext decodeAiChatStopRunResponse(responseBody)
-        } finally {
-            connection.disconnect()
-        }
+        return@withContext decodeAiChatStopRunResponse(responseBody)
     }
 
     suspend fun transcribeAudio(
@@ -284,57 +391,63 @@ class AiChatRemoteService(
         audioBytes: ByteArray
     ): AiChatTranscriptionResult = withContext(dispatchers.io) {
         val boundary = "flashcards-${UUID.randomUUID()}"
-        val connection = openConnection(
-            apiBaseUrl = apiBaseUrl,
-            path = "/chat/transcriptions",
-            method = "POST",
-            authorizationHeader = authorizationHeader
+        val requestBody = encodeMultipartAudioBody(
+            boundary = boundary,
+            sessionId = sessionId,
+            workspaceId = workspaceId,
+            fileName = fileName,
+            mediaType = mediaType,
+            audioBytes = audioBytes
+        ).toRequestBody("multipart/form-data; boundary=$boundary".toMediaType())
+        val responseBody = readResponseBody(
+            request = buildRequest(
+                apiBaseUrl = apiBaseUrl,
+                path = "/chat/transcriptions",
+                method = "POST",
+                authorizationHeader = authorizationHeader,
+                requestBody = requestBody,
+                extraHeaders = emptyMap()
+            )
         )
-
-        try {
-            connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
-            connection.doOutput = true
-            connection.outputStream.use { outputStream ->
-                outputStream.write(
-                    encodeMultipartAudioBody(
-                        boundary = boundary,
-                        sessionId = sessionId,
-                        workspaceId = workspaceId,
-                        fileName = fileName,
-                        mediaType = mediaType,
-                        audioBytes = audioBytes
-                    )
-                )
-            }
-
-            val responseBody = readResponseBody(connection = connection)
-            return@withContext decodeAiChatTranscription(responseBody)
-        } finally {
-            connection.disconnect()
-        }
+        return@withContext decodeAiChatTranscription(responseBody)
     }
 
-    private fun openConnection(
+    private fun buildRequest(
         apiBaseUrl: String,
         path: String,
         method: String,
         authorizationHeader: String?,
-        extraHeaders: Map<String, String> = emptyMap()
-    ): HttpURLConnection {
+        requestBody: RequestBody?,
+        extraHeaders: Map<String, String>
+    ): Request {
         val trimmedBaseUrl = apiBaseUrl.removeSuffix("/")
-        val connection = (URL(trimmedBaseUrl + path).openConnection() as HttpURLConnection)
-        connection.requestMethod = method
-        connection.connectTimeout = 15_000
-        connection.readTimeout = 120_000
-        connection.useCaches = false
-        connection.setRequestProperty("Accept", "application/json, text/event-stream")
+        val requestBuilder = Request.Builder()
+            .url(trimmedBaseUrl + path)
+            .method(method, requestBody)
+            .cacheControl(CacheControl.FORCE_NETWORK)
+            .header("Accept", "application/json, text/event-stream")
         authorizationHeader?.let { header ->
-            connection.setRequestProperty("Authorization", header)
+            requestBuilder.header("Authorization", header)
         }
         extraHeaders.forEach { (headerName, headerValue) ->
-            connection.setRequestProperty(headerName, headerValue)
+            requestBuilder.header(headerName, headerValue)
         }
-        return connection
+        return requestBuilder.build()
+    }
+
+    private fun isOfficialAiApiBaseUrl(apiBaseUrl: String): Boolean {
+        val uri = runCatching { URI(apiBaseUrl) }.getOrNull() ?: return false
+        if (uri.scheme != "https" || uri.host != officialAiApiHost) {
+            return false
+        }
+
+        val path = uri.path.orEmpty()
+        return path.isEmpty() ||
+            path == officialAiApiPathPrefix ||
+            path.startsWith(
+                prefix = "$officialAiApiPathPrefix/",
+                ignoreCase = false
+            )
     }
 
     private fun resumeDiagnosticsHeaders(
@@ -351,13 +464,49 @@ class AiChatRemoteService(
         )
     }
 
-    private fun readResponseBody(connection: HttpURLConnection): String {
-        val responseCode = connection.responseCode
-        if (responseCode !in 200..299) {
-            throw readAiChatRemoteErrorResponse(connection = connection)
+    @OptIn(InternalCoroutinesApi::class)
+    private suspend fun readResponseBody(request: Request): String {
+        val call = httpClient.newCall(request)
+        val coroutineJob = currentCoroutineContext().job
+        val cancellationRequested = AtomicBoolean(false)
+        val cancellationHandle = coroutineJob.invokeOnCompletion(
+            onCancelling = true,
+            invokeImmediately = true
+        ) { cause ->
+            if (cause != null) {
+                cancellationRequested.set(true)
+                call.cancel()
+            }
         }
 
-        return connection.inputStream.bufferedReader(StandardCharsets.UTF_8).use { reader ->
+        try {
+            call.awaitOkHttpResponse().use { response ->
+                val responseBody = readAiChatResponseBody(response = response)
+                if (response.isSuccessful.not()) {
+                    throw readAiChatRemoteErrorResponse(
+                        response = response,
+                        responseBody = responseBody,
+                        observability = observability,
+                        observationVersions = observationVersions
+                    )
+                }
+                return responseBody.orEmpty()
+            }
+        } catch (error: IOException) {
+            if (cancellationRequested.get() || coroutineJob.isCancelled) {
+                throw cancellationException(
+                    message = "AI chat request was cancelled.",
+                    cause = error
+                )
+            }
+            throw error
+        } finally {
+            cancellationHandle.dispose()
+        }
+    }
+
+    private fun readAiChatResponseBody(response: Response): String? {
+        return response.body.byteStream().bufferedReader(StandardCharsets.UTF_8).use { reader ->
             reader.readText()
         }
     }
@@ -584,24 +733,28 @@ class AiChatRemoteService(
     }
 }
 
-internal fun readAiChatRemoteErrorResponse(connection: HttpURLConnection): AiChatRemoteException {
-    val responseBody = (connection.errorStream ?: connection.inputStream)?.bufferedReader(StandardCharsets.UTF_8)?.use { reader ->
-        reader.readText()
-    }
-    val requestId = connection.getHeaderField(chatRequestIdHeaderName)
+internal fun readAiChatRemoteErrorResponse(
+    response: Response,
+    responseBody: String?,
+    observability: AppObservability,
+    observationVersions: AiChatHttpObservationVersions
+): AiChatRemoteException {
+    val requestId = readAiChatRequestIdHeader(response = response)
     val parsedError = parseBackendErrorPayload(rawBody = responseBody)
+    val endpointName = response.request.url.encodedPath
+    val method = response.request.method
+    val statusCode = response.code
+    val resolvedRequestId = parsedError?.requestId ?: requestId
     val fields = listOf(
-        "url" to connection.url.toString(),
-        "method" to connection.requestMethod,
-        "statusCode" to connection.responseCode.toString(),
+        "endpoint" to endpointName,
+        "method" to method,
+        "statusCode" to statusCode.toString(),
         "code" to parsedError?.code,
         "stage" to parsedError?.stage,
-        "requestId" to (parsedError?.requestId ?: requestId),
-        "message" to parsedError?.message,
-        "responseBody" to responseBody
+        "requestId" to resolvedRequestId
     )
 
-    if (connection.responseCode >= 500) {
+    if (statusCode >= 500) {
         AiChatDiagnosticsLogger.error(
             event = "http_request_failed",
             fields = fields
@@ -612,15 +765,132 @@ internal fun readAiChatRemoteErrorResponse(connection: HttpURLConnection): AiCha
             fields = fields
         )
     }
+    captureAiChatHttpFailureObservation(
+        observability = observability,
+        observationVersions = observationVersions,
+        endpointName = endpointName,
+        method = method,
+        requestId = resolvedRequestId,
+        statusCode = statusCode,
+        code = parsedError?.code,
+        stage = parsedError?.stage
+    )
 
     return AiChatRemoteException(
         message = parsedError?.message ?: "AI chat request failed.",
-        statusCode = connection.responseCode,
+        statusCode = statusCode,
         code = parsedError?.code,
         stage = parsedError?.stage,
-        requestId = parsedError?.requestId ?: requestId,
+        requestId = resolvedRequestId,
         responseBody = responseBody
     )
+}
+
+internal fun readAiChatRemoteErrorResponse(response: Response, responseBody: String?): AiChatRemoteException {
+    return readAiChatRemoteErrorResponse(
+        response = response,
+        responseBody = responseBody,
+        observability = NoopAiChatHttpObservability,
+        observationVersions = createAiChatHttpObservationVersions(
+            appVersion = null,
+            versionCode = null
+        )
+    )
+}
+
+private fun captureAiChatHttpFailureObservation(
+    observability: AppObservability,
+    observationVersions: AiChatHttpObservationVersions,
+    endpointName: String,
+    method: String,
+    requestId: String?,
+    statusCode: Int,
+    code: String?,
+    stage: String?
+) {
+    if (statusCode >= 500) {
+        observability.captureWarning(
+            event = AndroidWarningIssueEvent.HttpServerError(
+                feature = AndroidObservationFeature.AI,
+                endpointName = endpointName,
+                method = method,
+                requestId = requestId,
+                statusCode = statusCode,
+                code = code,
+                stage = stage,
+                appVersion = observationVersions.appVersion,
+                clientVersion = observationVersions.clientVersion,
+                versionCode = observationVersions.versionCode
+            )
+        )
+        return
+    }
+
+    if (
+        isExpectedAiChatHttpFailure(
+            statusCode = statusCode,
+            code = code
+        )
+    ) {
+        observability.addBreadcrumb(
+            event = AndroidBreadcrumbEvent.ExpectedHttpFailure(
+                feature = AndroidObservationFeature.AI,
+                endpointName = endpointName,
+                method = method,
+                requestId = requestId,
+                statusCode = statusCode,
+                code = code,
+                appVersion = observationVersions.appVersion,
+                clientVersion = observationVersions.clientVersion,
+                versionCode = observationVersions.versionCode
+            )
+        )
+        return
+    }
+
+    if (statusCode in 400..499) {
+        observability.captureWarning(
+            event = AndroidWarningIssueEvent.HttpUnexpectedClientError(
+                feature = AndroidObservationFeature.AI,
+                endpointName = endpointName,
+                method = method,
+                requestId = requestId,
+                statusCode = statusCode,
+                code = code,
+                stage = stage,
+                appVersion = observationVersions.appVersion,
+                clientVersion = observationVersions.clientVersion,
+                versionCode = observationVersions.versionCode
+            )
+        )
+    }
+}
+
+private fun isExpectedAiChatHttpFailure(
+    statusCode: Int,
+    code: String?
+): Boolean {
+    if (statusCode == 401 || statusCode == 403 || statusCode == 429) {
+        return true
+    }
+
+    return isExpectedAiChatHttpFailureCode(code = code)
+}
+
+private fun isExpectedAiChatHttpFailureCode(code: String?): Boolean {
+    val normalizedCode = code?.trim()?.uppercase() ?: return false
+    return expectedAiChatHttpFailureCodes.contains(element = normalizedCode)
+}
+
+internal fun cancellationException(message: String, cause: Throwable): CancellationException {
+    val cancellationException = CancellationException(message)
+    cancellationException.initCause(cause)
+    return cancellationException
+}
+
+internal fun readAiChatRequestIdHeader(response: Response): String? {
+    return response.header(chatRequestIdHeaderName)?.trim()?.ifEmpty { null }
+        ?: response.header(requestIdHeaderName)?.trim()?.ifEmpty { null }
 }
 
 internal data class ParsedBackendError(
@@ -642,7 +912,7 @@ internal fun parseBackendErrorPayload(rawBody: String?): ParsedBackendError? {
         } ?: return null
         return try {
             parseBackendErrorJson(jsonObject = JSONObject(firstDataLine.removePrefix("data: ")))
-        } catch (_: Exception) {
+        } catch (_: JSONException) {
             null
         }
     }
@@ -659,7 +929,7 @@ internal fun parseBackendErrorPayload(rawBody: String?): ParsedBackendError? {
         } else {
             parseBackendErrorJson(jsonObject = jsonObject)
         }
-    } catch (_: Exception) {
+    } catch (_: JSONException) {
         null
     }
 }

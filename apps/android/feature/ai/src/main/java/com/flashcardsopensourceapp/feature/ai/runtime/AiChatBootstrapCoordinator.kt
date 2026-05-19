@@ -246,12 +246,10 @@ internal class AiChatBootstrapCoordinator(
                 }
                 attachBootstrapLiveStream(workspaceId, remoteBootstrap.bootstrap, resumeDiagnostics)
             } catch (error: CancellationException) {
-                AiChatDiagnosticsLogger.info(
-                    event = "conversation_bootstrap_cancelled",
-                    fields = listOf(
-                        "workspaceId" to workspaceId,
-                        "cloudState" to accessContext.cloudState.name,
-                        "message" to error.message
+                context.observability.recordAiChatBreadcrumb(
+                    breadcrumb = AiChatBreadcrumb.ConversationBootstrapCancelled(
+                        workspaceId = workspaceId,
+                        cloudState = accessContext.cloudState.name
                     )
                 )
                 throw error
@@ -276,16 +274,51 @@ internal class AiChatBootstrapCoordinator(
                     configuration = context.currentServerConfiguration(),
                     textProvider = context.textProvider
                 )
+                val remoteError = error as? AiChatRemoteException
                 context.lastBootstrapFailureRetryable = isRetryableBootstrapFailure(error = error)
-                AiChatDiagnosticsLogger.error(
-                    event = "conversation_bootstrap_failed",
-                    fields = listOf(
-                        "workspaceId" to workspaceId,
-                        "cloudState" to accessContext.cloudState.name,
-                        "userFacingMessage" to presentation.message
-                    ) + remoteErrorFields(error = error as? AiChatRemoteException),
-                    throwable = error
-                )
+                val diagnosticFields = listOf(
+                    "workspaceId" to workspaceId,
+                    "cloudState" to accessContext.cloudState.name,
+                    "userFacingMessage" to presentation.message,
+                    "errorType" to error::class.java.name
+                ) + remoteErrorFields(error = remoteError)
+                when (aiChatFailureIssueDisposition(error = error)) {
+                    AiChatFailureIssueDisposition.NONE -> {
+                        AiChatDiagnosticsLogger.warn(
+                            event = "conversation_bootstrap_failed",
+                            fields = diagnosticFields
+                        )
+                    }
+                    AiChatFailureIssueDisposition.WARNING -> {
+                        context.observability.recordAiChatWarning(
+                            warning = AiChatWarning.ConversationBootstrapFailed(
+                                workspaceId = workspaceId,
+                                cloudState = accessContext.cloudState.name,
+                                remoteError = aiChatRemoteErrorDetails(error = remoteError),
+                                message = aiChatFailureWarningMessage(error = error)
+                            )
+                        )
+                        AiChatDiagnosticsLogger.warn(
+                            event = "conversation_bootstrap_failed",
+                            fields = diagnosticFields
+                        )
+                    }
+                    AiChatFailureIssueDisposition.EXCEPTION -> {
+                        context.observability.recordAiChatException(
+                            exception = AiChatExceptionEvent.ConversationBootstrapFailed(
+                                workspaceId = workspaceId,
+                                cloudState = accessContext.cloudState.name,
+                                remoteError = aiChatRemoteErrorDetails(error = remoteError),
+                                error = error
+                            )
+                        )
+                        AiChatDiagnosticsLogger.error(
+                            event = "conversation_bootstrap_failed",
+                            fields = diagnosticFields,
+                            throwable = error
+                        )
+                    }
+                }
                 val currentSessionId = resolveAiChatSessionIdForWorkspace(
                     workspaceId = workspaceId,
                     sessionId = context.runtimeStateMutable.value.persistedState.chatSessionId
@@ -435,8 +468,7 @@ internal class AiChatBootstrapCoordinator(
             "workspaceId" to workspaceId,
             "cloudState" to accessContext.cloudState.name,
             "nextAttempt" to (retryCount + 2).toString(),
-            "errorType" to error::class.java.name,
-            "message" to error.message
+            "errorType" to error::class.java.name
         )
         AiChatDiagnosticsLogger.warn(
             event = "conversation_bootstrap_retrying",
@@ -1031,8 +1063,7 @@ private fun logAiChatSessionProvisioningRetry(
         "cloudState" to context.currentCloudState().name,
         "chatSessionId" to targetSessionId,
         "nextAttempt" to (retryCount + 2).toString(),
-        "errorType" to error::class.java.name,
-        "message" to error.message
+        "errorType" to error::class.java.name
     )
     AiChatDiagnosticsLogger.warn(
         event = retryEvent,

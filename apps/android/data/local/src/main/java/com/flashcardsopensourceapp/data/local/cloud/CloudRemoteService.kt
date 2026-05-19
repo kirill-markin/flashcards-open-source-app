@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.data.local.cloud
 
+import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeCompletion
@@ -17,10 +18,44 @@ import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceResetProgressP
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceResetProgressResult
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
+import okhttp3.OkHttpClient
 import org.json.JSONObject
 
-class CloudRemoteService : CloudRemoteGateway {
-    private val httpClient = CloudJsonHttpClient()
+class CloudRemoteService private constructor(
+    okHttpClient: OkHttpClient,
+    observability: AppObservability,
+    observationVersions: CloudHttpObservationVersions
+) : CloudRemoteGateway {
+    constructor(
+        okHttpClient: OkHttpClient,
+        observability: AppObservability,
+        appVersion: String,
+        versionCode: Int
+    ) : this(
+        okHttpClient = okHttpClient,
+        observability = observability,
+        observationVersions = createCloudHttpObservationVersions(
+            appVersion = appVersion,
+            versionCode = versionCode
+        )
+    )
+
+    constructor(okHttpClient: OkHttpClient) : this(
+        okHttpClient = okHttpClient,
+        observability = NoopCloudHttpObservability,
+        observationVersions = createCloudHttpObservationVersions(
+            appVersion = null,
+            versionCode = null
+        )
+    )
+
+    constructor() : this(okHttpClient = OkHttpClient())
+
+    private val httpClient = CloudJsonHttpClient(
+        okHttpClient = okHttpClient,
+        observability = observability,
+        observationVersions = observationVersions
+    )
     private val authApi = CloudAuthRemoteApi(httpClient = httpClient)
     private val guestUpgradeApi = CloudGuestUpgradeRemoteApi(httpClient = httpClient)
     private val accountWorkspaceApi = CloudAccountWorkspaceRemoteApi(httpClient = httpClient)

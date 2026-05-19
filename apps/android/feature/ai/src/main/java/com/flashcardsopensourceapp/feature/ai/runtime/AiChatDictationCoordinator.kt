@@ -133,8 +133,7 @@ internal class AiChatDictationCoordinator(
                     fields = listOf(
                         "workspaceId" to context.runtimeStateMutable.value.workspaceId,
                         "cloudState" to context.currentCloudState().name,
-                        "chatSessionId" to context.runtimeStateMutable.value.persistedState.chatSessionId,
-                        "message" to error.message
+                        "chatSessionId" to context.runtimeStateMutable.value.persistedState.chatSessionId
                     )
                 )
                 throw error

@@ -1,6 +1,6 @@
 package com.flashcardsopensourceapp.feature.ai.runtime
 
-import com.flashcardsopensourceapp.data.local.ai.AiChatDiagnosticsLogger
+import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
@@ -25,24 +25,28 @@ internal class AiChatRuntime(
     aiChatRepository: AiChatRepository,
     autoSyncEventRepository: AutoSyncEventRepository,
     appVersion: String,
+    versionCode: Int,
     textProvider: AiTextProvider,
     hasConsent: () -> Boolean,
     currentCloudState: () -> CloudAccountState,
     currentServerConfiguration: () -> CloudServiceConfiguration,
     currentSyncStatus: () -> SyncStatus,
-    currentUiLocaleTag: () -> String?
+    currentUiLocaleTag: () -> String?,
+    observability: AppObservability
 ) {
     private val context = AiChatRuntimeContext(
         scope = scope,
         aiChatRepository = aiChatRepository,
         autoSyncEventRepository = autoSyncEventRepository,
         appVersion = appVersion,
+        versionCode = versionCode,
         textProvider = textProvider,
         hasConsent = hasConsent,
         currentCloudState = currentCloudState,
         currentServerConfiguration = currentServerConfiguration,
         currentSyncStatus = currentSyncStatus,
-        currentUiLocaleTag = currentUiLocaleTag
+        currentUiLocaleTag = currentUiLocaleTag,
+        observability = observability
     )
     private lateinit var bootstrapCoordinator: AiChatBootstrapCoordinator
     private lateinit var liveStreamCoordinator: AiChatLiveStreamCoordinator
@@ -277,18 +281,17 @@ internal class AiChatRuntime(
         effortLevel: EffortLevel
     ): Boolean {
         val currentState = runtimeStateMutable.value
-        AiChatDiagnosticsLogger.info(
-            event = "ai_runtime_handoff_requested",
-            fields = listOf(
-                "workspaceId" to currentState.workspaceId,
-                "cardId" to cardId,
-                "conversationBootstrapState" to currentState.conversationBootstrapState.name,
-                "dictationState" to currentState.dictationState.name,
-                "composerPhase" to currentState.composerPhase.name,
-                "chatSessionIdBlank" to currentState.persistedState.chatSessionId.isBlank().toString(),
-                "pendingAttachmentCount" to currentState.pendingAttachments.size.toString(),
-                "draftLength" to currentState.draftMessage.length.toString(),
-                "messageCount" to currentState.persistedState.messages.size.toString()
+        context.observability.recordAiChatBreadcrumb(
+            breadcrumb = AiChatBreadcrumb.RuntimeHandoffRequested(
+                workspaceId = currentState.workspaceId,
+                cardId = cardId,
+                conversationBootstrapState = currentState.conversationBootstrapState.name,
+                dictationState = currentState.dictationState.name,
+                composerPhase = currentState.composerPhase.name,
+                chatSessionIdBlank = currentState.persistedState.chatSessionId.isBlank(),
+                pendingAttachmentCount = currentState.pendingAttachments.size,
+                draftLength = currentState.draftMessage.length,
+                messageCount = currentState.persistedState.messages.size
             )
         )
         if (
@@ -296,24 +299,22 @@ internal class AiChatRuntime(
             || currentState.conversationBootstrapState != AiConversationBootstrapState.READY
             || currentState.dictationState != AiChatDictationState.IDLE
         ) {
-            AiChatDiagnosticsLogger.warn(
-                event = "ai_runtime_handoff_rejected_not_ready",
-                fields = listOf(
-                    "workspaceId" to currentState.workspaceId,
-                    "cardId" to cardId,
-                    "conversationBootstrapState" to currentState.conversationBootstrapState.name,
-                    "dictationState" to currentState.dictationState.name
+            context.observability.recordAiChatWarning(
+                warning = AiChatWarning.RuntimeHandoffRejectedNotReady(
+                    workspaceId = currentState.workspaceId,
+                    cardId = cardId,
+                    conversationBootstrapState = currentState.conversationBootstrapState.name,
+                    dictationState = currentState.dictationState.name
                 )
             )
             return false
         }
         if (canPrepareAiDraftInComposerPhase(composerPhase = currentState.composerPhase).not()) {
-            AiChatDiagnosticsLogger.warn(
-                event = "ai_runtime_handoff_rejected_locked_phase",
-                fields = listOf(
-                    "workspaceId" to currentState.workspaceId,
-                    "cardId" to cardId,
-                    "composerPhase" to currentState.composerPhase.name
+            context.observability.recordAiChatWarning(
+                warning = AiChatWarning.RuntimeHandoffRejectedLockedPhase(
+                    workspaceId = currentState.workspaceId,
+                    cardId = cardId,
+                    composerPhase = currentState.composerPhase.name
                 )
             )
             return false
@@ -324,13 +325,12 @@ internal class AiChatRuntime(
                 hasConsent = context.hasConsent()
             )
         ) {
-            AiChatDiagnosticsLogger.warn(
-                event = "ai_runtime_handoff_rejected_access_preparing",
-                fields = listOf(
-                    "workspaceId" to currentState.workspaceId,
-                    "cardId" to cardId,
-                    "cloudState" to currentCloudState().name,
-                    "conversationBootstrapState" to currentState.conversationBootstrapState.name
+            context.observability.recordAiChatWarning(
+                warning = AiChatWarning.RuntimeHandoffRejectedAccessPreparing(
+                    workspaceId = currentState.workspaceId,
+                    cardId = cardId,
+                    cloudState = currentCloudState().name,
+                    conversationBootstrapState = currentState.conversationBootstrapState.name
                 )
             )
             return false
@@ -353,13 +353,12 @@ internal class AiChatRuntime(
                 )
             }
             persistCurrentDraft()
-            AiChatDiagnosticsLogger.info(
-                event = "ai_runtime_handoff_applied_to_running_draft",
-                fields = listOf(
-                    "workspaceId" to currentState.workspaceId,
-                    "cardId" to cardId,
-                    "chatSessionId" to currentState.persistedState.chatSessionId,
-                    "pendingAttachmentCount" to (currentState.pendingAttachments.size + 1).toString()
+            context.observability.recordAiChatBreadcrumb(
+                breadcrumb = AiChatBreadcrumb.RuntimeHandoffAppliedToRunningDraft(
+                    workspaceId = currentState.workspaceId,
+                    cardId = cardId,
+                    chatSessionId = currentState.persistedState.chatSessionId,
+                    pendingAttachmentCount = currentState.pendingAttachments.size + 1
                 )
             )
             return true
@@ -370,16 +369,15 @@ internal class AiChatRuntime(
                 state = currentState
             )
         ) {
-            AiChatDiagnosticsLogger.warn(
-                event = "ai_runtime_handoff_rejected_dirty_state",
-                fields = listOf(
-                    "workspaceId" to currentState.workspaceId,
-                    "cardId" to cardId,
-                    "composerPhase" to currentState.composerPhase.name,
-                    "pendingAttachmentCount" to currentState.pendingAttachments.size.toString(),
-                    "draftLength" to currentState.draftMessage.length.toString(),
-                    "messageCount" to currentState.persistedState.messages.size.toString(),
-                    "hasActiveRun" to (currentState.activeRun != null).toString()
+            context.observability.recordAiChatWarning(
+                warning = AiChatWarning.RuntimeHandoffRejectedDirtyState(
+                    workspaceId = currentState.workspaceId,
+                    cardId = cardId,
+                    composerPhase = currentState.composerPhase.name,
+                    pendingAttachmentCount = currentState.pendingAttachments.size,
+                    draftLength = currentState.draftMessage.length,
+                    messageCount = currentState.persistedState.messages.size,
+                    hasActiveRun = currentState.activeRun != null
                 )
             )
             runtimeStateMutable.update { state ->
@@ -394,11 +392,10 @@ internal class AiChatRuntime(
         }
 
         if (currentState.persistedState.chatSessionId.isBlank()) {
-            AiChatDiagnosticsLogger.info(
-                event = "ai_runtime_handoff_start_fresh_conversation",
-                fields = listOf(
-                    "workspaceId" to currentState.workspaceId,
-                    "cardId" to cardId
+            context.observability.recordAiChatBreadcrumb(
+                breadcrumb = AiChatBreadcrumb.RuntimeHandoffStartFreshConversation(
+                    workspaceId = currentState.workspaceId,
+                    cardId = cardId
                 )
             )
             persistCurrentDraft(snapshot = currentState)
@@ -420,13 +417,12 @@ internal class AiChatRuntime(
             )
         }
         persistCurrentDraft()
-        AiChatDiagnosticsLogger.info(
-            event = "ai_runtime_handoff_applied_to_existing_session",
-            fields = listOf(
-                "workspaceId" to currentState.workspaceId,
-                "cardId" to cardId,
-                "chatSessionId" to currentState.persistedState.chatSessionId,
-                "pendingAttachmentCount" to "1"
+        context.observability.recordAiChatBreadcrumb(
+            breadcrumb = AiChatBreadcrumb.RuntimeHandoffAppliedToExistingSession(
+                workspaceId = currentState.workspaceId,
+                cardId = cardId,
+                chatSessionId = currentState.persistedState.chatSessionId,
+                pendingAttachmentCount = 1
             )
         )
         return true

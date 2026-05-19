@@ -30,6 +30,8 @@ android {
 }
 
 dependencies {
+    api(project(":core:observability"))
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.security.crypto)
     implementation(libs.androidx.room.runtime)
@@ -38,6 +40,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.org.jetbrains.kotlinx.coroutines.android)
     implementation(libs.org.jetbrains.kotlinx.serialization.json)
+    api(libs.okhttp)
     ksp(libs.androidx.room.compiler)
 
     testImplementation(libs.junit4)

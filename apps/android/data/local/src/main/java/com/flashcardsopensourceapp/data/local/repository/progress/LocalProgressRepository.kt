@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.data.local.repository.progress
 
+import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.model.ProgressReviewScheduleSnapshot
@@ -21,9 +22,20 @@ class LocalProgressRepository(
     cloudAccountRepository: CloudAccountRepository,
     syncRepository: SyncRepository,
     localProgressCacheStore: LocalProgressCacheStore,
+    observability: AppObservability,
+    appVersion: String,
+    versionCode: Int,
     private val timeProvider: TimeProvider
 ) : ProgressRepository {
-    private val backgroundLauncher = ProgressBackgroundLauncher(appScope = appScope)
+    private val observationVersions = createProgressObservationVersions(
+        appVersion = appVersion,
+        versionCode = versionCode
+    )
+    private val backgroundLauncher = ProgressBackgroundLauncher(
+        appScope = appScope,
+        observability = observability,
+        observationVersions = observationVersions
+    )
     private val cacheReadinessCoordinator = ProgressLocalCacheReadinessCoordinator(
         localProgressCacheStore = localProgressCacheStore,
         timeProvider = timeProvider
@@ -34,7 +46,9 @@ class LocalProgressRepository(
         syncRepository = syncRepository,
         timeProvider = timeProvider,
         cacheReadinessCoordinator = cacheReadinessCoordinator,
-        backgroundLauncher = backgroundLauncher
+        backgroundLauncher = backgroundLauncher,
+        observability = observability,
+        observationVersions = observationVersions
     )
     private val seriesOrchestration = ProgressSeriesOrchestration(
         database = database,
@@ -42,14 +56,18 @@ class LocalProgressRepository(
         syncRepository = syncRepository,
         timeProvider = timeProvider,
         cacheReadinessCoordinator = cacheReadinessCoordinator,
-        backgroundLauncher = backgroundLauncher
+        backgroundLauncher = backgroundLauncher,
+        observability = observability,
+        observationVersions = observationVersions
     )
     private val reviewScheduleOrchestration = ProgressReviewScheduleOrchestration(
         database = database,
         cloudAccountRepository = cloudAccountRepository,
         syncRepository = syncRepository,
         timeProvider = timeProvider,
-        backgroundLauncher = backgroundLauncher
+        backgroundLauncher = backgroundLauncher,
+        observability = observability,
+        observationVersions = observationVersions
     )
 
     // Captured handle for the input-observation flow so the lifecycle of this

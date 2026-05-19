@@ -24,7 +24,9 @@ internal fun NavGraphBuilder.registerAiNavGraph(
                 autoSyncEventRepository = appGraph.autoSyncEventRepository,
                 workspaceRepository = appGraph.workspaceRepository,
                 cloudAccountRepository = appGraph.cloudAccountRepository,
-                appVersion = appGraph.appPackageInfo.versionName
+                appVersion = appGraph.appPackageInfo.versionName,
+                versionCode = appGraph.appPackageInfo.longVersionCode.toInt(),
+                observability = appGraph.observability
             )
         )
         val uiState by aiViewModel.uiState.collectAsStateWithLifecycle()

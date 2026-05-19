@@ -1,6 +1,5 @@
 package com.flashcardsopensourceapp.feature.ai.runtime
 
-import com.flashcardsopensourceapp.data.local.ai.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
@@ -263,13 +262,12 @@ internal class AiChatSessionCoordinator(
                 }
                 context.persistCurrentState()
             } catch (error: CancellationException) {
-                AiChatDiagnosticsLogger.info(
-                    event = "new_chat_cancelled",
-                    fields = listOf(
-                        "workspaceId" to context.runtimeStateMutable.value.workspaceId,
-                        "cloudState" to currentCloudState().name,
-                        "chatSessionId" to context.runtimeStateMutable.value.persistedState.chatSessionId,
-                        "message" to error.message
+                context.observability.recordAiChatBreadcrumb(
+                    breadcrumb = AiChatBreadcrumb.NewChatCancelled(
+                        workspaceId = context.runtimeStateMutable.value.workspaceId,
+                        cloudState = currentCloudState().name,
+                        chatSessionId = context.runtimeStateMutable.value.persistedState.chatSessionId,
+                        message = error.message
                     )
                 )
                 throw error
@@ -311,17 +309,34 @@ internal class AiChatSessionCoordinator(
         )
         context.lastBootstrapFailureRetryable = isRetryableBootstrapFailure(error = error)
 
-        AiChatDiagnosticsLogger.error(
-            event = "new_chat_failure_handled",
-            fields = listOf(
-                "workspaceId" to context.runtimeStateMutable.value.workspaceId,
-                "cloudState" to currentCloudState().name,
-                "chatSessionId" to context.runtimeStateMutable.value.persistedState.chatSessionId,
-                "messageCount" to context.runtimeStateMutable.value.persistedState.messages.size.toString(),
-                "userFacingMessage" to presentation.message
-            ) + remoteErrorFields(error = remoteError),
-            throwable = error
-        )
+        when (aiChatFailureIssueDisposition(error = error)) {
+            AiChatFailureIssueDisposition.NONE -> Unit
+            AiChatFailureIssueDisposition.WARNING -> {
+                context.observability.recordAiChatWarning(
+                    warning = AiChatWarning.NewChatFailureHandled(
+                        workspaceId = context.runtimeStateMutable.value.workspaceId,
+                        cloudState = currentCloudState().name,
+                        chatSessionId = context.runtimeStateMutable.value.persistedState.chatSessionId,
+                        messageCount = context.runtimeStateMutable.value.persistedState.messages.size,
+                        remoteError = aiChatRemoteErrorDetails(error = remoteError),
+                        message = aiChatFailureWarningMessage(error = error)
+                    )
+                )
+            }
+            AiChatFailureIssueDisposition.EXCEPTION -> {
+                context.observability.recordAiChatException(
+                    exception = AiChatExceptionEvent.NewChatFailureHandled(
+                        workspaceId = context.runtimeStateMutable.value.workspaceId,
+                        cloudState = currentCloudState().name,
+                        chatSessionId = context.runtimeStateMutable.value.persistedState.chatSessionId,
+                        messageCount = context.runtimeStateMutable.value.persistedState.messages.size,
+                        userFacingMessage = presentation.message,
+                        remoteError = aiChatRemoteErrorDetails(error = remoteError),
+                        error = error
+                    )
+                )
+            }
+        }
 
         context.runtimeStateMutable.update { state ->
             state.copy(

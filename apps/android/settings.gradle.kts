@@ -19,6 +19,7 @@ rootProject.name = "flashcards-open-source-app-android"
 
 include(":app")
 include(":core:ui")
+include(":core:observability")
 include(":data:local")
 include(":feature:review")
 include(":feature:cards")

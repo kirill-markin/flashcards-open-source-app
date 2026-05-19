@@ -4,6 +4,7 @@ import java.util.Locale
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.sentry.android)
 }
 
 fun readSupportedAndroidLocales(): List<String> {
@@ -78,9 +79,18 @@ val androidReleaseStoreFile: String? = providers.environmentVariable("ANDROID_RE
 val androidReleaseStorePassword: String? = providers.environmentVariable("ANDROID_RELEASE_STORE_PASSWORD").orNull
 val androidReleaseKeyAlias: String? = providers.environmentVariable("ANDROID_RELEASE_KEY_ALIAS").orNull
 val androidReleaseKeyPassword: String? = providers.environmentVariable("ANDROID_RELEASE_KEY_PASSWORD").orNull
+val androidSentryDsn: String = providers.environmentVariable("ANDROID_SENTRY_DSN").orNull?.trim().orEmpty()
+val androidSentryEnvironmentOverride: String =
+    providers.environmentVariable("ANDROID_SENTRY_ENVIRONMENT").orNull?.trim().orEmpty()
+val androidSentryTracesSampleRateOverride: String =
+    providers.environmentVariable("ANDROID_SENTRY_TRACES_SAMPLE_RATE").orNull?.trim().orEmpty()
 
 if (isReleaseTaskRequested && androidVersionCode == null) {
     throw GradleException("ANDROID_VERSION_CODE must be set to an integer for Android release builds.")
+}
+
+if (isReleaseTaskRequested && androidSentryDsn.isBlank()) {
+    throw GradleException("ANDROID_SENTRY_DSN must be set for Android release builds.")
 }
 
 if (isReleaseTaskRequested) {
@@ -100,6 +110,25 @@ if (isReleaseTaskRequested) {
     }
 }
 
+fun toBuildConfigString(value: String): String {
+    return "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
+}
+
+fun sentryTracesSampleRateLiteral(buildTypeName: String): String {
+    if (androidSentryTracesSampleRateOverride.isBlank()) {
+        return if (buildTypeName == "release") "0.0" else "1.0"
+    }
+
+    val sampleRate = androidSentryTracesSampleRateOverride.toDoubleOrNull()
+        ?: throw GradleException("ANDROID_SENTRY_TRACES_SAMPLE_RATE must be a decimal value between 0 and 1.")
+
+    if (!sampleRate.isFinite() || sampleRate < 0.0 || sampleRate > 1.0) {
+        throw GradleException("ANDROID_SENTRY_TRACES_SAMPLE_RATE must be a finite decimal value between 0 and 1.")
+    }
+
+    return sampleRate.toString()
+}
+
 android {
     namespace = "com.flashcardsopensourceapp.app"
     compileSdk = 36
@@ -112,6 +141,12 @@ android {
         versionName = "1.3.0"
         testInstrumentationRunner = "com.flashcardsopensourceapp.app.FlashcardsAndroidTestRunner"
         testInstrumentationRunnerArguments["clearPackageData"] = "true"
+        buildConfigField("String", "ANDROID_SENTRY_DSN", toBuildConfigString(androidSentryDsn))
+        buildConfigField(
+            "String",
+            "ANDROID_SENTRY_ENVIRONMENT",
+            toBuildConfigString(androidSentryEnvironmentOverride)
+        )
     }
 
     signingConfigs {
@@ -135,14 +170,32 @@ android {
     }
 
     buildTypes {
+        getByName("debug") {
+            buildConfigField(
+                "double",
+                "ANDROID_SENTRY_TRACES_SAMPLE_RATE",
+                sentryTracesSampleRateLiteral(name)
+            )
+        }
+
         create("marketingScreenshot") {
             initWith(getByName("debug"))
             matchingFallbacks += listOf("debug")
+            buildConfigField(
+                "double",
+                "ANDROID_SENTRY_TRACES_SAMPLE_RATE",
+                sentryTracesSampleRateLiteral(name)
+            )
         }
 
         release {
             isMinifyEnabled = false
             signingConfig = signingConfigs.getByName("release")
+            buildConfigField(
+                "double",
+                "ANDROID_SENTRY_TRACES_SAMPLE_RATE",
+                sentryTracesSampleRateLiteral(name)
+            )
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -161,6 +214,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     androidResources {
@@ -188,7 +242,27 @@ android {
     }
 }
 
+sentry {
+    org = providers.environmentVariable("SENTRY_ORG").orNull
+    projectName = providers.environmentVariable("SENTRY_ANDROID_PROJECT").orNull
+    authToken = providers.environmentVariable("SENTRY_AUTH_TOKEN").orNull
+    ignoredBuildTypes = setOf("debug", "marketingScreenshot")
+    includeProguardMapping = true
+    autoUploadProguardMapping = true
+    includeSourceContext = true
+    includeDependenciesReport = true
+
+    tracingInstrumentation {
+        enabled = false
+    }
+
+    autoInstallation {
+        enabled = false
+    }
+}
+
 dependencies {
+    implementation(project(":core:observability"))
     implementation(project(":core:ui"))
     implementation(project(":data:local"))
     implementation(project(":feature:review"))
@@ -208,6 +282,9 @@ dependencies {
     implementation(libs.androidx.compose.adaptive.navigation.suite)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.okhttp)
+    implementation(libs.sentry.android)
+    implementation(libs.sentry.okhttp)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)

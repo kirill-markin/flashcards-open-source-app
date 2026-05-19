@@ -40,6 +40,7 @@ jobs:
       android_changed: ${{ steps.resolve.outputs.android_changed }}
       block_reason: ${{ steps.resolve.outputs.block_reason }}
       android_version_code: ${{ steps.release-metadata.outputs.android_version_code }}
+      android_version_name: ${{ steps.release-metadata.outputs.android_version_name }}
       android_target_short_sha: ${{ steps.release-metadata.outputs.android_target_short_sha }}
       android_release_id: ${{ steps.release-metadata.outputs.android_release_id }}
       android_play_release_name: ${{ steps.release-metadata.outputs.android_play_release_name }}
@@ -133,6 +134,7 @@ jobs:
           base_epoch_seconds=1767225600
           current_epoch_seconds="$(date -u +%s)"
           version_code=$(( current_epoch_seconds - base_epoch_seconds ))
+          version_name="$(sed -nE 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*"([^"]+)".*$/\1/p' apps/android/app/build.gradle.kts | head -n 1)"
           target_short_sha="$(printf '%s' "${TARGET_SHA}" | cut -c1-8)"
           release_id="vc${version_code}-r${GITHUB_RUN_ID}a${GITHUB_RUN_ATTEMPT}-s${target_short_sha}"
           play_release_name="main-draft-${release_id}"
@@ -147,6 +149,11 @@ jobs:
             exit 1
           fi
 
+          if [[ -z "${version_name}" ]]; then
+            echo "Could not resolve Android versionName from apps/android/app/build.gradle.kts." >&2
+            exit 1
+          fi
+
           if [[ "${#target_short_sha}" -ne 8 ]]; then
             echo "Resolved target SHA prefix must be 8 characters. Got: ${target_short_sha}." >&2
             exit 1
@@ -154,6 +161,7 @@ jobs:
 
           {
             echo "android_version_code=${version_code}"
+            echo "android_version_name=${version_name}"
             echo "android_target_short_sha=${target_short_sha}"
             echo "android_release_id=${release_id}"
             echo "android_play_release_name=${play_release_name}"
@@ -169,6 +177,7 @@ jobs:
             echo "- Android changed: \`${{ steps.resolve.outputs.android_changed }}\`"
             echo "- Block reason: \`${{ steps.resolve.outputs.block_reason || 'n/a' }}\`"
             echo "- Version code: \`${{ steps.release-metadata.outputs.android_version_code }}\`"
+            echo "- Version name: \`${{ steps.release-metadata.outputs.android_version_name }}\`"
             echo "- Release ID: \`${{ steps.release-metadata.outputs.android_release_id }}\`"
             echo "- Play release name: \`${{ steps.release-metadata.outputs.android_play_release_name }}\`"
             echo "- Event: \`${{ github.event_name }}\`"
@@ -441,8 +450,13 @@ jobs:
       cancel-in-progress: false
     env:
       ANDROID_VERSION_CODE: ${{ needs.preflight.outputs.android_version_code }}
+      ANDROID_VERSION_NAME: ${{ needs.preflight.outputs.android_version_name }}
       ANDROID_RELEASE_ID: ${{ needs.preflight.outputs.android_release_id }}
       ANDROID_PLAY_RELEASE_NAME: ${{ needs.preflight.outputs.android_play_release_name }}
+      ANDROID_SENTRY_DSN: ${{ vars.ANDROID_SENTRY_DSN }}
+      ANDROID_SENTRY_TRACES_SAMPLE_RATE: ${{ vars.ANDROID_SENTRY_TRACES_SAMPLE_RATE || '0' }}
+      SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+      SENTRY_ANDROID_PROJECT: ${{ vars.SENTRY_ANDROID_PROJECT }}
 
     steps:
       - uses: actions/checkout@v6
@@ -471,6 +485,31 @@ jobs:
           if [[ "${#missing_values[@]}" -gt 0 ]]; then
             printf 'Missing required GitHub Actions variables: %s\n' "${missing_values[*]}" >&2
             echo "Configure them in the GitHub repository settings or with bash scripts/setup-github-android.sh." >&2
+            exit 1
+          fi
+
+      - name: Validate Android Sentry configuration
+        env:
+          ANDROID_SENTRY_DSN: ${{ vars.ANDROID_SENTRY_DSN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_ANDROID_PROJECT: ${{ vars.SENTRY_ANDROID_PROJECT }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        run: |
+          missing_values=()
+
+          for variable_name in \
+            ANDROID_SENTRY_DSN \
+            SENTRY_ORG \
+            SENTRY_ANDROID_PROJECT \
+            SENTRY_AUTH_TOKEN; do
+            if [[ -z "${!variable_name}" ]]; then
+              missing_values+=("${variable_name}")
+            fi
+          done
+
+          if [[ "${#missing_values[@]}" -gt 0 ]]; then
+            printf 'Missing required Android Sentry release values: %s\n' "${missing_values[*]}" >&2
+            echo "Configure repository variables/secrets or run bash scripts/setup-github-android.sh." >&2
             exit 1
           fi
 
@@ -543,6 +582,7 @@ jobs:
           ANDROID_UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
           ANDROID_UPLOAD_KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
           ANDROID_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           bash scripts/run-android-release.sh \
             --version-code "${ANDROID_VERSION_CODE}" \
@@ -575,7 +615,9 @@ jobs:
             echo ""
             echo "- Release ID: \`${ANDROID_RELEASE_ID}\`"
             echo "- Production track release name: \`${ANDROID_PLAY_RELEASE_NAME}\`"
+            echo "- Sentry release: \`com.flashcardsopensourceapp.app@${ANDROID_VERSION_NAME}+${ANDROID_VERSION_CODE}\`"
             echo "- Version code: \`${ANDROID_VERSION_CODE}\`"
+            echo "- Version name: \`${ANDROID_VERSION_NAME}\`"
             echo "- Target SHA: \`${{ needs.preflight.outputs.target_sha }}\`"
             echo "- GitHub run: \`${{ github.run_id }}\` attempt \`${{ github.run_attempt }}\`"
             echo "- GitHub run URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
