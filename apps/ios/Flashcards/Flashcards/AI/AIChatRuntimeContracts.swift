@@ -6,17 +6,6 @@ struct AIToolCallRequest: Hashable, Sendable {
     let input: String
 }
 
-struct AIChatLiveEventMetadata: Hashable, Sendable {
-    let sessionId: String
-    let conversationScopeId: String
-    let runId: String
-    let cursor: String?
-    let requestId: String?
-    let clientRequestId: String?
-    let sequenceNumber: Int
-    let streamEpoch: String
-}
-
 enum AIChatLiveEvent: Sendable {
     case assistantDelta(metadata: AIChatLiveEventMetadata, text: String, itemId: String)
     case assistantToolCall(metadata: AIChatLiveEventMetadata, toolCall: AIChatToolCall, itemId: String)
