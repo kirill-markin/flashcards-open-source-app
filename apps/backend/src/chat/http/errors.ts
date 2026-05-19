@@ -1,9 +1,9 @@
-import { HttpError } from "../errors";
-import { isChatSessionRequestedSessionIdConflictError } from "./errors";
+import { HttpError } from "../../errors";
+import { isChatSessionRequestedSessionIdConflictError } from "../errors";
 import {
   ChatSessionConflictError,
   ChatSessionNotFoundError,
-} from "./store";
+} from "../store";
 
 const chatSessionIdConflictCode = "CHAT_SESSION_ID_CONFLICT";
 
