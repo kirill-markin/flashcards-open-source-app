@@ -24,8 +24,25 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
 
   if (text === "SELECT workspace_id FROM org.user_settings WHERE user_id = $1 FOR UPDATE") {
     const userId = params[0];
-    const row = typeof userId === "string" ? state.userSettings.get(userId) ?? null : null;
+    if (typeof userId !== "string") {
+      return createQueryResult<Row>([]);
+    }
+
+    scope.requireCurrentUserScope(userId);
+    const row = state.userSettings.get(userId) ?? null;
     const rows = row === null ? [] : [{ workspace_id: row.workspace_id } as unknown as Row];
+    return createQueryResult<Row>(rows);
+  }
+
+  if (text === "SELECT user_id FROM org.user_settings WHERE user_id = $1 FOR UPDATE") {
+    const userId = params[0];
+    if (typeof userId !== "string") {
+      return createQueryResult<Row>([]);
+    }
+
+    scope.requireCurrentUserScope(userId);
+    const row = state.userSettings.get(userId) ?? null;
+    const rows = row === null ? [] : [{ user_id: row.user_id } as unknown as Row];
     return createQueryResult<Row>(rows);
   }
 

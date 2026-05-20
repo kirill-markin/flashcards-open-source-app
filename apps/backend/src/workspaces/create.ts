@@ -27,6 +27,7 @@ import {
 } from "./shared";
 import { loadWorkspaceSummaryInExecutor } from "./queries";
 import {
+  lockUserSettingsForWorkspaceLifecycleInExecutor,
   persistSelectedWorkspaceForApiKeyConnectionInExecutor,
   persistSelectedWorkspaceForUserInExecutor,
 } from "./state";
@@ -128,6 +129,7 @@ export async function createWorkspaceInExecutorWithObservationScope(
   observationScope: BackendObservationScope | null,
 ): Promise<string> {
   await ensureUserSettingsRowInExecutor(executor, userId);
+  await lockUserSettingsForWorkspaceLifecycleInExecutor(executor, userId);
 
   const workspaceId = randomUUID();
   const bootstrapTimestamp = new Date().toISOString();

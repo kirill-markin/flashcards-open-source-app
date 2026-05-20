@@ -15,6 +15,11 @@ import {
   type GuestUpgradeExecutorParam,
 } from "../../guestAuthTestHarness";
 
+type RecordedGuestUpgradeQuery = Readonly<{
+  text: string;
+  params: ReadonlyArray<GuestUpgradeExecutorParam>;
+}>;
+
 test("completeGuestUpgradeInExecutor reassigns guest installation ownership during merge", async () => {
   const guestToken = "guest-token-1";
   const guestUserId = "guest-user";
@@ -71,6 +76,107 @@ test("completeGuestUpgradeInExecutor reassigns guest installation ownership duri
   assert.equal(targetReplica?.user_id, targetUserId);
 });
 
+test("completeGuestUpgradeInExecutor locks source and target workspaces in merge order", async () => {
+  const guestToken = "guest-token-lock-order";
+  const guestUserId = "z-guest-user-lock-order";
+  const guestWorkspaceId = "guest-workspace-lock-order";
+  const targetUserId = "a-linked-user-lock-order";
+  const targetWorkspaceId = "target-workspace-lock-order";
+  const installationId = "installation-lock-order";
+  const targetSubject = "cognito-subject-lock-order";
+  const state = createMergeState({
+    guestToken,
+    guestSessionId: "guest-session-lock-order",
+    guestUserId,
+    guestWorkspaceId,
+    targetSubject,
+    targetUserId,
+    targetWorkspaceId,
+    guestReplicaId: "guest-replica-lock-order",
+    installationId,
+    guestSchedulerUpdatedAt: "2026-04-02T14:00:00.000Z",
+    targetSchedulerUpdatedAt: "2026-04-02T14:05:00.000Z",
+  });
+  const recordedQueries: Array<RecordedGuestUpgradeQuery> = [];
+  const baseExecutor = createGuestUpgradeExecutor(state);
+  const executor: DatabaseExecutor = {
+    query: async <Row extends pg.QueryResultRow>(
+      text: string,
+      params: ReadonlyArray<GuestUpgradeExecutorParam>,
+    ): Promise<pg.QueryResult<Row>> => {
+      recordedQueries.push({
+        text,
+        params: [...params],
+      });
+      return baseExecutor.query<Row>(text, params);
+    },
+  };
+
+  await completeGuestUpgradeInExecutor(
+    executor,
+    guestToken,
+    targetSubject,
+    {
+      type: "existing",
+      workspaceId: targetWorkspaceId,
+    },
+    DROPPED_ENTITIES_UNSUPPORTED,
+  );
+
+  const targetUserSettingsLockIndex = recordedQueries.findIndex((query) => (
+    query.text === "SELECT user_id FROM org.user_settings WHERE user_id = $1 FOR UPDATE"
+    && query.params[0] === targetUserId
+  ));
+  const guestUserSettingsLockIndex = recordedQueries.findIndex((query) => (
+    query.text === "SELECT user_id FROM org.user_settings WHERE user_id = $1 FOR UPDATE"
+    && query.params[0] === guestUserId
+  ));
+  const lockedGuestSessionIndex = recordedQueries.findIndex((query) => (
+    query.text.includes("FROM auth.guest_sessions")
+    && query.text.includes("FOR UPDATE")
+  ));
+  const targetWorkspaceLockIndex = recordedQueries.findIndex((query) => (
+    query.text === "SELECT pg_advisory_xact_lock(hashtextextended($1::text || ':' || $2::text, 0::bigint))"
+    && query.params[0] === targetUserId
+    && query.params[1] === targetWorkspaceId
+  ));
+  const sourceWorkspaceLockIndex = recordedQueries.findIndex((query) => (
+    query.text === "SELECT pg_advisory_xact_lock(hashtextextended($1::text || ':' || $2::text, 0::bigint))"
+    && query.params[0] === guestUserId
+    && query.params[1] === guestWorkspaceId
+  ));
+  const sourceReplicaReadIndex = recordedQueries.findIndex((query) => (
+    query.text.includes("FROM sync.workspace_replicas")
+    && query.params[0] === guestWorkspaceId
+  ));
+  const targetSchedulerReadIndex = recordedQueries.findIndex((query) => (
+    query.text.includes("FROM org.workspaces")
+    && query.text.includes("fsrs_algorithm")
+    && query.params[0] === targetWorkspaceId
+  ));
+  const sourceContentDeleteIndex = recordedQueries.findIndex((query) => (
+    query.text === "DELETE FROM content.review_events WHERE workspace_id = $1"
+    && query.params[0] === guestWorkspaceId
+  ));
+
+  assert.notEqual(guestUserSettingsLockIndex, -1);
+  assert.notEqual(lockedGuestSessionIndex, -1);
+  assert.notEqual(targetUserSettingsLockIndex, -1);
+  assert.notEqual(targetWorkspaceLockIndex, -1);
+  assert.notEqual(sourceWorkspaceLockIndex, -1);
+  assert.notEqual(sourceReplicaReadIndex, -1);
+  assert.notEqual(targetSchedulerReadIndex, -1);
+  assert.notEqual(sourceContentDeleteIndex, -1);
+  assert.ok(targetUserSettingsLockIndex < guestUserSettingsLockIndex);
+  assert.ok(guestUserSettingsLockIndex < lockedGuestSessionIndex);
+  assert.ok(targetUserSettingsLockIndex < lockedGuestSessionIndex);
+  assert.ok(targetUserSettingsLockIndex < targetWorkspaceLockIndex);
+  assert.ok(sourceWorkspaceLockIndex < targetWorkspaceLockIndex);
+  assert.ok(sourceWorkspaceLockIndex < sourceReplicaReadIndex);
+  assert.ok(targetWorkspaceLockIndex < targetSchedulerReadIndex);
+  assert.ok(sourceWorkspaceLockIndex < sourceContentDeleteIndex);
+});
+
 test("completeGuestUpgradeInExecutor rejects selecting the guest workspace as the merge target", async () => {
   const guestToken = "guest-token-same-workspace";
   const guestUserId = "guest-user";
@@ -117,6 +223,55 @@ test("completeGuestUpgradeInExecutor rejects selecting the guest workspace as th
   assert.equal(state.guestSession?.revoked_at, null);
   assert.equal(state.guestUpgradeHistory.length, 0);
   assert.equal(state.installations.get(installationId)?.user_id, guestUserId);
+  assert.equal(state.workspaces.has(guestWorkspaceId), true);
+});
+
+test("completeGuestUpgradeInExecutor returns a typed account error when target user settings are missing", async () => {
+  const guestToken = "guest-token-missing-target-settings";
+  const guestUserId = "guest-user-missing-target-settings";
+  const guestWorkspaceId = "guest-workspace-missing-target-settings";
+  const targetUserId = "linked-user-missing-target-settings";
+  const targetWorkspaceId = "target-workspace-missing-target-settings";
+  const targetSubject = "cognito-subject-missing-target-settings";
+  const state = createMergeState({
+    guestToken,
+    guestSessionId: "guest-session-missing-target-settings",
+    guestUserId,
+    guestWorkspaceId,
+    targetSubject,
+    targetUserId,
+    targetWorkspaceId,
+    guestReplicaId: "guest-replica-missing-target-settings",
+    installationId: "installation-missing-target-settings",
+    guestSchedulerUpdatedAt: "2026-04-02T14:00:00.000Z",
+    targetSchedulerUpdatedAt: "2026-04-02T14:05:00.000Z",
+  });
+  state.userSettings.delete(targetUserId);
+
+  const executor = createGuestUpgradeExecutor(state);
+
+  await assert.rejects(
+    completeGuestUpgradeInExecutor(
+      executor,
+      guestToken,
+      targetSubject,
+      {
+        type: "existing",
+        workspaceId: targetWorkspaceId,
+      },
+      DROPPED_ENTITIES_UNSUPPORTED,
+    ),
+    (error: unknown) => {
+      assert.ok(error instanceof HttpError);
+      assert.equal(error.statusCode, 409);
+      assert.equal(error.code, "GUEST_UPGRADE_ACCOUNT_REQUIRED");
+      return true;
+    },
+  );
+
+  assert.equal(state.guestSession?.revoked_at, null);
+  assert.equal(state.guestUpgradeHistory.length, 0);
+  assert.equal(state.userSettings.has(guestUserId), true);
   assert.equal(state.workspaces.has(guestWorkspaceId), true);
 });
 

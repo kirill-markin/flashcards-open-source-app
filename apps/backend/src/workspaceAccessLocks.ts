@@ -26,3 +26,17 @@ export async function lockUserWorkspaceAccessLifecyclesInExecutor(
     await lockWorkspaceAccessLifecycleInExecutor(executor, userId, workspaceId);
   }
 }
+
+export async function lockWorkspaceMembershipLifecyclesInExecutor(
+  executor: DatabaseExecutor,
+  workspaceIds: ReadonlyArray<string>,
+): Promise<void> {
+  const sortedWorkspaceIds = toUniqueSortedWorkspaceIds(workspaceIds);
+
+  for (const workspaceId of sortedWorkspaceIds) {
+    await executor.query(
+      "SELECT pg_advisory_xact_lock(hashtextextended($1::text, 1::bigint))",
+      [workspaceId],
+    );
+  }
+}

@@ -39,6 +39,7 @@ import {
   loadRequestContextFromRequest,
   parseWorkspaceIdParam,
   requireAgentConnectionId,
+  type RequestContext,
 } from "../server/requestContext";
 import {
   expectNonEmptyString,
@@ -46,6 +47,7 @@ import {
   parseJsonBody,
 } from "../server/requestParsing";
 import { createBackendFailureDetails } from "../server/logging";
+import { withTransientDatabaseRetry } from "../dbTransient";
 import {
   addBackendBreadcrumb,
   createBackendObservationScope,
@@ -57,6 +59,10 @@ import type { AppEnv } from "../app";
 
 type WorkspaceRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
+  loadRequestContextFromRequestFn?: typeof loadRequestContextFromRequest;
+  createWorkspaceForApiKeyConnectionWithObservationScopeFn?: typeof createWorkspaceForApiKeyConnectionWithObservationScope;
+  createWorkspaceForUserWithObservationScopeFn?: typeof createWorkspaceForUserWithObservationScope;
+  withTransientDatabaseRetryFn?: typeof withTransientDatabaseRetry;
 }>;
 
 type CursorQueryParams = Readonly<{
@@ -81,6 +87,15 @@ type AgentApiKeyConnectionsPageResponse = Readonly<{
   instructions: string;
 }>;
 
+type WorkspaceCreateRouteState = Readonly<{
+  requestContext: RequestContext;
+  workspace: WorkspaceSummary;
+}>;
+
+function getRequestContextUserId(requestContext: RequestContext | null): string | null {
+  return requestContext === null ? null : requestContext.userId;
+}
+
 function parseCursorQueryParams(request: Request): CursorQueryParams {
   const url = new URL(request.url);
   return {
@@ -93,7 +108,7 @@ function createWorkspaceRouteScope(
   requestId: string,
   route: string,
   method: string,
-  userId: string,
+  userId: string | null,
   workspaceId: string | null,
 ): BackendObservationScope {
   return createBackendObservationScope(
@@ -111,9 +126,15 @@ function createWorkspaceRouteScope(
 
 export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
+  const loadRequestContextFromRequestFn = options.loadRequestContextFromRequestFn ?? loadRequestContextFromRequest;
+  const createWorkspaceForApiKeyConnectionWithObservationScopeFn = options.createWorkspaceForApiKeyConnectionWithObservationScopeFn
+    ?? createWorkspaceForApiKeyConnectionWithObservationScope;
+  const createWorkspaceForUserWithObservationScopeFn = options.createWorkspaceForUserWithObservationScopeFn
+    ?? createWorkspaceForUserWithObservationScope;
+  const withTransientDatabaseRetryFn = options.withTransientDatabaseRetryFn ?? withTransientDatabaseRetry;
 
   app.get("/workspaces", async (context) => {
-    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, options.allowedOrigins);
+    const { requestContext } = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
     const requestId = context.get("requestId");
     const pageInput = parseCursorQueryParams(context.req.raw);
 
@@ -170,34 +191,80 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
   });
 
   app.post("/workspaces", async (context) => {
-    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, options.allowedOrigins);
     const requestId = context.get("requestId");
-    const body = expectRecord(await parseJsonBody(context.req.raw));
+    let requestContext: RequestContext | null = null;
+    let body: Record<string, unknown> | null = null;
+
+    async function loadBody(): Promise<Record<string, unknown>> {
+      if (body === null) {
+        body = expectRecord(await parseJsonBody(context.req.raw));
+      }
+
+      return body;
+    }
 
     try {
-      const workspaceName = expectNonEmptyString(body.name, "name");
-      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, null);
-      const workspace = shouldUseAgentSetupEnvelope(requestContext.transport)
-        ? await createWorkspaceForApiKeyConnectionWithObservationScope(
-          requestContext.userId,
-          requireAgentConnectionId(requestContext),
-          workspaceName,
-          scope,
-        )
-        : await createWorkspaceForUserWithObservationScope(requestContext.userId, workspaceName, scope);
+      const routeState = await withTransientDatabaseRetryFn(
+        async (): Promise<WorkspaceCreateRouteState> => {
+          const loadedContext = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
+          const currentRequestContext = loadedContext.requestContext;
+          requestContext = currentRequestContext;
+          const loadedBody = await loadBody();
+          const workspaceName = expectNonEmptyString(loadedBody.name, "name");
+          const scope = createWorkspaceRouteScope(
+            requestId,
+            context.req.path,
+            context.req.method,
+            currentRequestContext.userId,
+            null,
+          );
+          const workspace = shouldUseAgentSetupEnvelope(currentRequestContext.transport)
+            ? await createWorkspaceForApiKeyConnectionWithObservationScopeFn(
+              currentRequestContext.userId,
+              requireAgentConnectionId(currentRequestContext),
+              workspaceName,
+              scope,
+            )
+            : await createWorkspaceForUserWithObservationScopeFn(currentRequestContext.userId, workspaceName, scope);
+
+          return {
+            requestContext: currentRequestContext,
+            workspace,
+          };
+        },
+        () => createWorkspaceRouteScope(
+          requestId,
+          context.req.path,
+          context.req.method,
+          getRequestContextUserId(requestContext),
+          null,
+        ),
+      );
       addBackendBreadcrumb({
         action: "workspace_create",
-        scope: createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspace.workspaceId),
+        scope: createWorkspaceRouteScope(
+          requestId,
+          context.req.path,
+          context.req.method,
+          routeState.requestContext.userId,
+          routeState.workspace.workspaceId,
+        ),
         details: {
           statusCode: 201,
         },
       });
-      if (shouldUseAgentSetupEnvelope(requestContext.transport)) {
-        return context.json(createAgentWorkspaceReadyEnvelope(context.req.url, workspace), 201);
+      if (shouldUseAgentSetupEnvelope(routeState.requestContext.transport)) {
+        return context.json(createAgentWorkspaceReadyEnvelope(context.req.url, routeState.workspace), 201);
       }
-      return context.json({ workspace }, 201);
+      return context.json({ workspace: routeState.workspace }, 201);
     } catch (error) {
-      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, null);
+      const scope = createWorkspaceRouteScope(
+        requestId,
+        context.req.path,
+        context.req.method,
+        getRequestContextUserId(requestContext),
+        null,
+      );
       const details = {
         ...createBackendFailureDetails(error),
       };
@@ -211,7 +278,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
   });
 
   app.post("/workspaces/:workspaceId/select", async (context) => {
-    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, options.allowedOrigins);
+    const { requestContext } = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
     const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
     const requestId = context.get("requestId");
 
@@ -249,7 +316,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
   });
 
   app.post("/workspaces/:workspaceId/rename", async (context) => {
-    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, options.allowedOrigins);
+    const { requestContext } = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
     requireHumanManagedConnectionAccess(requestContext.transport);
     const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
     const requestId = context.get("requestId");
@@ -286,7 +353,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
   });
 
   app.get("/workspaces/:workspaceId/delete-preview", async (context) => {
-    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, options.allowedOrigins);
+    const { requestContext } = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
     requireHumanManagedConnectionAccess(requestContext.transport);
     const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
     const requestId = context.get("requestId");
@@ -323,7 +390,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
   });
 
   app.post("/workspaces/:workspaceId/delete", async (context) => {
-    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, options.allowedOrigins);
+    const { requestContext } = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
     requireHumanManagedConnectionAccess(requestContext.transport);
     const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
     const requestId = context.get("requestId");
@@ -372,7 +439,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
   });
 
   app.get("/workspaces/:workspaceId/reset-progress-preview", async (context) => {
-    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, options.allowedOrigins);
+    const { requestContext } = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
     requireHumanManagedConnectionAccess(requestContext.transport);
     const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
     const requestId = context.get("requestId");
@@ -409,7 +476,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
   });
 
   app.post("/workspaces/:workspaceId/reset-progress", async (context) => {
-    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, options.allowedOrigins);
+    const { requestContext } = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
     requireHumanManagedConnectionAccess(requestContext.transport);
     const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
     const requestId = context.get("requestId");
@@ -456,7 +523,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
   });
 
   app.get("/agent-api-keys", async (context) => {
-    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, options.allowedOrigins);
+    const { requestContext } = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
     requireHumanManagedConnectionAccess(requestContext.transport);
     const pageInput = parseCursorQueryParams(context.req.raw);
     const connectionsPage = await listAgentApiKeyConnectionsPageForUser(requestContext.userId, pageInput);
@@ -467,7 +534,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
   });
 
   app.post("/agent-api-keys/:connectionId/revoke", async (context) => {
-    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, options.allowedOrigins);
+    const { requestContext } = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
     requireHumanManagedConnectionAccess(requestContext.transport);
     const connectionId = parseConnectionId(context.req.param("connectionId"));
     const connection = await revokeAgentApiKeyConnectionForUser(requestContext.userId, connectionId);

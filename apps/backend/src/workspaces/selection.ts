@@ -16,6 +16,7 @@ import {
 } from "./queries";
 import { createWorkspaceInvariantError } from "./shared";
 import {
+  lockUserSettingsForWorkspaceLifecycleInExecutor,
   persistSelectedWorkspaceForApiKeyConnectionInExecutor,
   persistSelectedWorkspaceForUserInExecutor,
 } from "./state";
@@ -87,6 +88,7 @@ export async function setSelectedWorkspaceForApiKeyConnection(
 
 export async function selectWorkspaceForUser(userId: string, workspaceId: string): Promise<WorkspaceSummary> {
   return transactionWithUserScope({ userId }, async (executor) => {
+    await lockUserSettingsForWorkspaceLifecycleInExecutor(executor, userId);
     await assertUserHasWorkspaceMembershipInExecutor(executor, userId, workspaceId);
     await persistSelectedWorkspaceForUserInExecutor(executor, userId, workspaceId);
     return loadWorkspaceSummaryInExecutor(executor, userId, workspaceId, workspaceId);
