@@ -41,7 +41,10 @@ import {
   createWorkspaceTransactionScope,
   getDatabaseErrorDetails,
 } from "./shared";
-import { persistSelectedWorkspaceForUserInExecutor } from "./state";
+import {
+  lockUserSettingsForWorkspaceLifecycleInExecutor,
+  persistSelectedWorkspaceForUserInExecutor,
+} from "./state";
 import {
   AUTO_CREATED_WORKSPACE_NAME,
   deleteWorkspaceConfirmationText,
@@ -551,6 +554,7 @@ async function deleteWorkspaceInExecutorWithObservationScope(
   observationScope: BackendObservationScope | null,
 ): Promise<DeleteWorkspaceResult> {
   assertDeleteWorkspaceConfirmationText(confirmationText);
+  await lockUserSettingsForWorkspaceLifecycleInExecutor(executor, userId);
   await lockWorkspaceAccessLifecycleInExecutor(executor, userId, workspaceId);
   let stage: WorkspaceDeleteFailureStage = "load_management_row";
   const managedWorkspace = await loadWorkspaceManagementRowInExecutor(executor, userId, workspaceId);

@@ -12,7 +12,7 @@ import {
   deleteUserSettingsInExecutor,
   deleteGuestWorkspaceIfOwnedBySoleMemberInExecutor,
   hasCognitoIdentityMappingForUserInExecutor,
-  loadGuestSessionInExecutor,
+  loadGuestSessionWithUserSettingsLockInExecutor,
   loadGuestWorkspaceIdInExecutor,
   revokeGuestSessionInExecutor,
 } from "./store";
@@ -62,7 +62,7 @@ export async function deleteGuestSessionInExecutor(
   executor: DatabaseExecutor,
   guestToken: string,
 ): Promise<void> {
-  const guestSession = await loadGuestSessionInExecutor(executor, guestToken, true);
+  const guestSession = await loadGuestSessionWithUserSettingsLockInExecutor(executor, guestToken);
   if (await hasCognitoIdentityMappingForUserInExecutor(executor, guestSession.userId)) {
     throw new HttpError(
       409,

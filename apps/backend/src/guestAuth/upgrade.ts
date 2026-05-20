@@ -8,13 +8,17 @@ import {
   AUTO_CREATED_WORKSPACE_NAME,
   createWorkspaceInExecutor,
 } from "../workspaces";
+import {
+  lockUserSettingsForWorkspaceLifecycleInExecutor,
+  UserSettingsRowNotFoundError,
+} from "../workspaces/state";
 import { cleanupGuestSessionSourceInExecutor } from "./delete";
 import { mergeGuestWorkspaceIntoTargetInExecutor } from "./merge";
 import {
   assertTargetWorkspaceAccessInExecutor,
   bindIdentityMappingInExecutor,
-  loadGuestSessionInExecutor,
   loadGuestSessionRecordInExecutor,
+  loadGuestSessionWithUserSettingsLockInExecutor,
   loadGuestUpgradeReplayByGuestTokenInExecutor,
   loadGuestUpgradeReplayInExecutor,
   loadGuestWorkspaceIdInExecutor,
@@ -24,6 +28,7 @@ import {
   recordGuestUpgradeHistoryInExecutor,
   selectWorkspaceForUserInExecutor,
   updateUserEmailInExecutor,
+  type GuestSessionRecord,
 } from "./store";
 import { hashGuestToken } from "./shared";
 import type {
@@ -51,6 +56,14 @@ function createGuestWorkspaceNotDrainedError(): HttpError {
   );
 }
 
+function createGuestUpgradeAccountRequiredError(): HttpError {
+  return new HttpError(409, "Create or sign in to the destination account first.", "GUEST_UPGRADE_ACCOUNT_REQUIRED");
+}
+
+function toUniqueSortedUserIds(userIds: ReadonlyArray<string>): Array<string> {
+  return [...new Set(userIds)].sort((left, right) => left.localeCompare(right));
+}
+
 function assertGuestWorkspaceSyncedAndOutboxDrained(
   capabilities: GuestUpgradeCompleteCapabilities,
 ): void {
@@ -60,6 +73,61 @@ function assertGuestWorkspaceSyncedAndOutboxDrained(
   ) {
     throw createGuestWorkspaceNotDrainedError();
   }
+}
+
+async function lockGuestUpgradeUserSettingsRowsInExecutor(
+  executor: DatabaseExecutor,
+  guestUserId: string,
+  targetUserId: string,
+): Promise<boolean> {
+  const userIds = toUniqueSortedUserIds([guestUserId, targetUserId]);
+
+  for (const userId of userIds) {
+    try {
+      await lockUserSettingsForWorkspaceLifecycleInExecutor(executor, userId);
+    } catch (error) {
+      if (error instanceof UserSettingsRowNotFoundError) {
+        if (error.userId === guestUserId) {
+          return false;
+        }
+
+        if (error.userId === targetUserId) {
+          throw createGuestUpgradeAccountRequiredError();
+        }
+      }
+
+      throw error;
+    }
+  }
+
+  return true;
+}
+
+async function lockGuestSessionAfterUserSettingsInExecutor(
+  executor: DatabaseExecutor,
+  guestToken: string,
+  unlockedSession: GuestSessionRecord,
+  targetUserId: string,
+): Promise<GuestSessionRecord | null> {
+  const lockedUserSettings = await lockGuestUpgradeUserSettingsRowsInExecutor(
+    executor,
+    unlockedSession.userId,
+    targetUserId,
+  );
+  if (!lockedUserSettings) {
+    return null;
+  }
+
+  const lockedSession = await loadGuestSessionRecordInExecutor(executor, guestToken, true);
+  if (
+    lockedSession === null
+    || lockedSession.sessionId !== unlockedSession.sessionId
+    || lockedSession.userId !== unlockedSession.userId
+  ) {
+    return null;
+  }
+
+  return lockedSession;
 }
 
 function logSuspiciousGuestUpgradeReplay(
@@ -257,7 +325,7 @@ export async function prepareGuestUpgradeInExecutor(
   cognitoSubject: string,
   email: string | null,
 ): Promise<GuestUpgradePreparation> {
-  const guestSession = await loadGuestSessionInExecutor(executor, guestToken, true);
+  const guestSession = await loadGuestSessionWithUserSettingsLockInExecutor(executor, guestToken);
   const existingMappedUserId = await loadIdentityMappingInExecutor(executor, cognitoSubject);
 
   if (existingMappedUserId === null || existingMappedUserId === guestSession.userId) {
@@ -295,9 +363,9 @@ export async function completeGuestUpgradeInExecutor(
   selection: GuestUpgradeSelection,
   capabilities: GuestUpgradeCompleteCapabilities,
 ): Promise<GuestUpgradeCompletion> {
-  // Phase 1: load and lock the guest session.
-  const guestSession = await loadGuestSessionRecordInExecutor(executor, guestToken, true);
-  if (guestSession === null) {
+  // Phase 1: load the guest session identity before taking user row locks.
+  const unlockedGuestSession = await loadGuestSessionRecordInExecutor(executor, guestToken, false);
+  if (unlockedGuestSession === null) {
     return resolveDeletedGuestUpgradeReplayInExecutor(
       executor,
       guestToken,
@@ -309,11 +377,41 @@ export async function completeGuestUpgradeInExecutor(
   // Phase 2: resolve the mapped target user.
   const targetUserId = await loadIdentityMappingInExecutor(executor, cognitoSubject);
   if (targetUserId === null) {
-    throw new HttpError(409, "Create or sign in to the destination account first.", "GUEST_UPGRADE_ACCOUNT_REQUIRED");
+    const guestSession = await lockGuestSessionAfterUserSettingsInExecutor(
+      executor,
+      guestToken,
+      unlockedGuestSession,
+      unlockedGuestSession.userId,
+    );
+    if (guestSession === null) {
+      return resolveDeletedGuestUpgradeReplayInExecutor(
+        executor,
+        guestToken,
+        cognitoSubject,
+        capabilities,
+      );
+    }
+
+    throw createGuestUpgradeAccountRequiredError();
   }
 
   // Phase 3: short-circuit revoked-session replay.
-  if (guestSession.revokedAt !== null) {
+  if (unlockedGuestSession.revokedAt !== null) {
+    const guestSession = await lockGuestSessionAfterUserSettingsInExecutor(
+      executor,
+      guestToken,
+      unlockedGuestSession,
+      unlockedGuestSession.userId,
+    );
+    if (guestSession === null) {
+      return resolveDeletedGuestUpgradeReplayInExecutor(
+        executor,
+        guestToken,
+        cognitoSubject,
+        capabilities,
+      );
+    }
+
     return resolveRevokedGuestUpgradeReplayInExecutor(
       executor,
       guestSession.sessionId,
@@ -329,7 +427,31 @@ export async function completeGuestUpgradeInExecutor(
   // the bound flow before those merge-only capabilities existed; there are no
   // dropped entities to report because all rows already belong to the final
   // user/workspace.
-  if (targetUserId === guestSession.userId) {
+  if (targetUserId === unlockedGuestSession.userId) {
+    const guestSession = await lockGuestSessionAfterUserSettingsInExecutor(
+      executor,
+      guestToken,
+      unlockedGuestSession,
+      targetUserId,
+    );
+    if (guestSession === null) {
+      return resolveDeletedGuestUpgradeReplayInExecutor(
+        executor,
+        guestToken,
+        cognitoSubject,
+        capabilities,
+      );
+    }
+
+    if (guestSession.revokedAt !== null) {
+      return resolveRevokedGuestUpgradeReplayInExecutor(
+        executor,
+        guestSession.sessionId,
+        cognitoSubject,
+        capabilities,
+      );
+    }
+
     const guestWorkspaceId = await loadGuestWorkspaceIdInExecutor(executor, guestSession.userId);
     return {
       workspace: await loadWorkspaceSummaryInExecutor(executor, guestSession.userId, guestWorkspaceId),
@@ -341,12 +463,37 @@ export async function completeGuestUpgradeInExecutor(
     };
   }
 
-  // Phase 5: enforce the merge precondition for clients that declare the new
+  // Phase 5: lock source and target user rows in deterministic order, then lock the guest session.
+  const guestSession = await lockGuestSessionAfterUserSettingsInExecutor(
+    executor,
+    guestToken,
+    unlockedGuestSession,
+    targetUserId,
+  );
+  if (guestSession === null) {
+    return resolveDeletedGuestUpgradeReplayInExecutor(
+      executor,
+      guestToken,
+      cognitoSubject,
+      capabilities,
+    );
+  }
+
+  if (guestSession.revokedAt !== null) {
+    return resolveRevokedGuestUpgradeReplayInExecutor(
+      executor,
+      guestSession.sessionId,
+      cognitoSubject,
+      capabilities,
+    );
+  }
+
+  // Phase 6: enforce the merge precondition for clients that declare the new
   // drain protocol. Omitted capability fields are the legacy shipped-client
   // route shape and must remain compatible until those clients are out of support.
   assertGuestWorkspaceSyncedAndOutboxDrained(capabilities);
 
-  // Phase 6: resolve explicit source and destination workspace ids.
+  // Phase 7: resolve explicit source and destination workspace ids.
   const guestUpgradeResolution = await resolveGuestUpgradeTargetInExecutor(
     executor,
     guestSession.userId,
@@ -354,7 +501,7 @@ export async function completeGuestUpgradeInExecutor(
     selection,
   );
 
-  // Phase 7: merge already-synced guest cloud state into the destination workspace.
+  // Phase 8: merge already-synced guest cloud state into the destination workspace.
   const guestUpgradeMerge = await mergeGuestWorkspaceIntoTargetInExecutor(
     executor,
     {
@@ -370,21 +517,21 @@ export async function completeGuestUpgradeInExecutor(
     },
   );
 
-  // Phase 8: record durable merge history and replica aliases.
+  // Phase 9: record durable merge history and replica aliases.
   // This is legacy/idempotency-only compatibility for shipped clients that can
   // replay completion or resend stale replica-bound operations after the guest
   // session is gone. Remove only after those clients are explicitly out of
   // support.
   await recordGuestUpgradeHistoryInExecutor(executor, guestUpgradeMerge.history);
 
-  // Phase 9: persist the selected target workspace.
+  // Phase 10: persist the selected target workspace.
   await persistGuestUpgradeTargetSelectionInExecutor(
     executor,
     guestUpgradeResolution.targetUserId,
     guestUpgradeResolution.targetWorkspaceId,
   );
 
-  // Phase 10: revoke and delete guest source rows.
+  // Phase 11: revoke and delete guest source rows.
   await cleanupGuestSessionSourceInExecutor(
     executor,
     guestSession.userId,
@@ -392,7 +539,7 @@ export async function completeGuestUpgradeInExecutor(
     guestUpgradeResolution.guestWorkspaceId,
   );
 
-  // Phase 11: load the final workspace summary for the response.
+  // Phase 12: load the final workspace summary for the response.
   return {
     workspace: await loadWorkspaceSummaryInExecutor(
       executor,

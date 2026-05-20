@@ -3,7 +3,10 @@ import { transactionWithUserScope, type DatabaseExecutor } from "./db";
 import { isDeletedSubject, markDeletedSubjectInExecutor } from "./deletedSubjects";
 import { isConfiguredDemoEmail } from "./demoEmailAccess";
 import { HttpError } from "./errors";
-import { lockUserWorkspaceAccessLifecyclesInExecutor } from "./workspaceAccessLocks";
+import {
+  lockUserWorkspaceAccessLifecyclesInExecutor,
+  lockWorkspaceMembershipLifecyclesInExecutor,
+} from "./workspaceAccessLocks";
 
 export const deleteAccountConfirmationText: string = "delete my account";
 
@@ -81,6 +84,7 @@ async function deleteAccountDataInExecutor(
   const soleMemberWorkspaceIds: Array<string> = [];
 
   if (workspaceIds.length > 0) {
+    await lockWorkspaceMembershipLifecyclesInExecutor(executor, workspaceIds);
     await lockUserWorkspaceAccessLifecyclesInExecutor(executor, appUserId, workspaceIds);
 
     await executor.query(

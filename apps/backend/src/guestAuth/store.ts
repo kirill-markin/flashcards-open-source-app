@@ -12,6 +12,11 @@ import type {
   WorkspaceReplicaActorKind,
   WorkspaceReplicaPlatform,
 } from "../syncIdentity";
+import { lockWorkspaceAccessLifecycleInExecutor } from "../workspaceAccessLocks";
+import {
+  lockUserSettingsForWorkspaceLifecycleInExecutor,
+  UserSettingsRowNotFoundError,
+} from "../workspaces/state";
 import type {
   GuestUpgradeCompletion,
   GuestUpgradeDroppedEntities,
@@ -46,6 +51,10 @@ type WorkspaceSummaryRow = Readonly<{
   name: string;
   created_at: Date | string;
 }>;
+
+function createGuestSessionInvalidError(): HttpError {
+  return new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
+}
 
 type WorkspaceReplicaRow = Readonly<{
   replica_id: string;
@@ -321,6 +330,37 @@ export async function loadGuestSessionRecordInExecutor(
   return row === undefined ? null : mapGuestSessionRecord(row);
 }
 
+export async function loadGuestSessionRecordWithUserSettingsLockInExecutor(
+  executor: DatabaseExecutor,
+  guestToken: string,
+): Promise<GuestSessionRecord | null> {
+  const unlockedSession = await loadGuestSessionRecordInExecutor(executor, guestToken, false);
+  if (unlockedSession === null) {
+    return null;
+  }
+
+  try {
+    await lockUserSettingsForWorkspaceLifecycleInExecutor(executor, unlockedSession.userId);
+  } catch (error) {
+    if (error instanceof UserSettingsRowNotFoundError) {
+      return null;
+    }
+
+    throw error;
+  }
+
+  const lockedSession = await loadGuestSessionRecordInExecutor(executor, guestToken, true);
+  if (
+    lockedSession === null
+    || lockedSession.sessionId !== unlockedSession.sessionId
+    || lockedSession.userId !== unlockedSession.userId
+  ) {
+    return null;
+  }
+
+  return lockedSession;
+}
+
 export async function loadGuestSessionInExecutor(
   executor: DatabaseExecutor,
   guestToken: string,
@@ -328,7 +368,19 @@ export async function loadGuestSessionInExecutor(
 ): Promise<GuestSessionRecord> {
   const session = await loadGuestSessionRecordInExecutor(executor, guestToken, lockForUpdate);
   if (session === null || session.revokedAt !== null) {
-    throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
+    throw createGuestSessionInvalidError();
+  }
+
+  return session;
+}
+
+export async function loadGuestSessionWithUserSettingsLockInExecutor(
+  executor: DatabaseExecutor,
+  guestToken: string,
+): Promise<GuestSessionRecord> {
+  const session = await loadGuestSessionRecordWithUserSettingsLockInExecutor(executor, guestToken);
+  if (session === null || session.revokedAt !== null) {
+    throw createGuestSessionInvalidError();
   }
 
   return session;
@@ -640,6 +692,7 @@ export async function deleteGuestWorkspaceContentInExecutor(
     userId: guestUserId,
     workspaceId: guestWorkspaceId,
   });
+  await lockWorkspaceAccessLifecycleInExecutor(executor, guestUserId, guestWorkspaceId);
 
   await executor.query(
     "DELETE FROM content.review_events WHERE workspace_id = $1",
@@ -758,7 +811,7 @@ export async function selectWorkspaceForUserInExecutor(
   userId: string,
   workspaceId: string,
 ): Promise<void> {
-  await applyUserDatabaseScopeInExecutor(executor, { userId });
+  await lockUserSettingsForWorkspaceLifecycleInExecutor(executor, userId);
   await executor.query(
     "UPDATE org.user_settings SET workspace_id = $1 WHERE user_id = $2",
     [workspaceId, userId],
@@ -782,7 +835,11 @@ export async function deleteWorkspaceInExecutor(
   guestUserId: string,
   guestWorkspaceId: string,
 ): Promise<void> {
-  await applyUserDatabaseScopeInExecutor(executor, { userId: guestUserId });
+  await applyWorkspaceDatabaseScopeInExecutor(executor, {
+    userId: guestUserId,
+    workspaceId: guestWorkspaceId,
+  });
+  await lockWorkspaceAccessLifecycleInExecutor(executor, guestUserId, guestWorkspaceId);
   await executor.query(
     "DELETE FROM org.workspaces WHERE workspace_id = $1",
     [guestWorkspaceId],
@@ -794,7 +851,11 @@ export async function deleteGuestWorkspaceIfOwnedBySoleMemberInExecutor(
   guestUserId: string,
   guestWorkspaceId: string,
 ): Promise<boolean> {
-  await applyUserDatabaseScopeInExecutor(executor, { userId: guestUserId });
+  await applyWorkspaceDatabaseScopeInExecutor(executor, {
+    userId: guestUserId,
+    workspaceId: guestWorkspaceId,
+  });
+  await lockWorkspaceAccessLifecycleInExecutor(executor, guestUserId, guestWorkspaceId);
   const result = await executor.query<DeletedGuestWorkspaceRow>(
     [
       "DELETE FROM org.workspaces AS workspaces",

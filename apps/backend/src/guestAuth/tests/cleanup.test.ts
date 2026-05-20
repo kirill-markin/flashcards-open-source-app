@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import type pg from "pg";
+import type { DatabaseExecutor } from "../../db";
 import { HttpError } from "../../errors";
 import {
   deleteGuestSessionInExecutor,
@@ -11,7 +13,13 @@ import {
   createGuestUpgradeExecutor,
   createMergeState,
   membershipKey,
+  type GuestUpgradeExecutorParam,
 } from "../../guestAuthTestHarness";
+
+type RecordedGuestCleanupQuery = Readonly<{
+  text: string;
+  params: ReadonlyArray<GuestUpgradeExecutorParam>;
+}>;
 
 test("deleteGuestSessionInExecutor revokes and removes guest server state", async () => {
   const guestToken = "guest-token-delete";
@@ -31,7 +39,20 @@ test("deleteGuestSessionInExecutor revokes and removes guest server state", asyn
     targetSchedulerUpdatedAt: "2026-04-02T14:05:00.000Z",
   });
 
-  const executor = createGuestUpgradeExecutor(state);
+  const recordedQueries: Array<RecordedGuestCleanupQuery> = [];
+  const baseExecutor = createGuestUpgradeExecutor(state);
+  const executor: DatabaseExecutor = {
+    query: async <Row extends pg.QueryResultRow>(
+      text: string,
+      params: ReadonlyArray<GuestUpgradeExecutorParam>,
+    ): Promise<pg.QueryResult<Row>> => {
+      recordedQueries.push({
+        text,
+        params: [...params],
+      });
+      return baseExecutor.query<Row>(text, params);
+    },
+  };
   await deleteGuestSessionInExecutor(executor, guestToken);
 
   assert.equal(state.guestSession, null);
@@ -41,6 +62,31 @@ test("deleteGuestSessionInExecutor revokes and removes guest server state", asyn
     state.workspaceReplicas.some((replica) => replica.workspace_id === guestWorkspaceId),
     false,
   );
+
+  const sourceWorkspaceLockIndex = recordedQueries.findIndex((query) => (
+    query.text === "SELECT pg_advisory_xact_lock(hashtextextended($1::text || ':' || $2::text, 0::bigint))"
+    && query.params[0] === guestUserId
+    && query.params[1] === guestWorkspaceId
+  ));
+  const guestUserSettingsLockIndex = recordedQueries.findIndex((query) => (
+    query.text === "SELECT user_id FROM org.user_settings WHERE user_id = $1 FOR UPDATE"
+    && query.params[0] === guestUserId
+  ));
+  const lockedGuestSessionIndex = recordedQueries.findIndex((query) => (
+    query.text.includes("FROM auth.guest_sessions")
+    && query.text.includes("FOR UPDATE")
+  ));
+  const sourceWorkspaceDeleteIndex = recordedQueries.findIndex((query) => (
+    query.text.startsWith("DELETE FROM org.workspaces AS workspaces")
+    && query.params[0] === guestWorkspaceId
+    && query.params[1] === guestUserId
+  ));
+  assert.notEqual(guestUserSettingsLockIndex, -1);
+  assert.notEqual(lockedGuestSessionIndex, -1);
+  assert.notEqual(sourceWorkspaceLockIndex, -1);
+  assert.notEqual(sourceWorkspaceDeleteIndex, -1);
+  assert.ok(guestUserSettingsLockIndex < lockedGuestSessionIndex);
+  assert.ok(sourceWorkspaceLockIndex < sourceWorkspaceDeleteIndex);
 });
 
 test("cleanupGuestSessionSourceInExecutor re-scopes to the guest user before checking cleanup invariants", async () => {

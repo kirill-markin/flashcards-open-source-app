@@ -11,6 +11,7 @@ import {
   applyWorkspaceDatabaseScopeInExecutor,
   type DatabaseExecutor,
 } from "../db";
+import { lockWorkspaceAccessLifecycleInExecutor } from "../workspaceAccessLocks";
 import {
   HttpError,
   type SyncConflictEntityType,
@@ -731,6 +732,17 @@ export async function mergeGuestWorkspaceIntoTargetInExecutor(
     supportsDroppedEntities: boolean;
   }>,
 ): Promise<GuestMergeResult> {
+  await applyWorkspaceDatabaseScopeInExecutor(executor, {
+    userId: params.guestUserId,
+    workspaceId: params.guestWorkspaceId,
+  });
+  await lockWorkspaceAccessLifecycleInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
+  await applyWorkspaceDatabaseScopeInExecutor(executor, {
+    userId: params.targetUserId,
+    workspaceId: params.targetWorkspaceId,
+  });
+  await lockWorkspaceAccessLifecycleInExecutor(executor, params.targetUserId, params.targetWorkspaceId);
+
   const upgradeId = randomUUID().toLowerCase();
   const guestReplicas = await loadGuestReplicasInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
   const guestCards = await loadGuestCardsInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
