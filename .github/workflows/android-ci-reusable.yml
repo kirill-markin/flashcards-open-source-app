@@ -9,6 +9,10 @@ on:
       android_version_code:
         required: true
         type: string
+      run_data_local_instrumentation:
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   build:
@@ -72,6 +76,7 @@ jobs:
     name: Android emulator data:local instrumentation
     needs:
       - build
+    if: ${{ inputs.run_data_local_instrumentation }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
 
