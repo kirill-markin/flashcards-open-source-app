@@ -14,6 +14,7 @@ let emptyBackTextPlaceholder: String = String(localized: "No back text", table: 
 private let reviewQueuePreviewPageSize: Int = 50
 
 struct ReviewView: View {
+    @Environment(\.accessibilityReduceMotion) private var isReduceMotionEnabled
     @Environment(FlashcardsStore.self) var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
 
@@ -22,6 +23,7 @@ struct ReviewView: View {
     @State var preparedRevealState: PreparedReviewRevealState? = nil
     // Keep the next review card warm so the next front can appear immediately after rating.
     @State var preparedNextRevealState: PreparedReviewRevealState? = nil
+    @State var activeReviewReactionEvents: [ReviewReactionEvent] = []
     @State var isQueuePreviewPresented: Bool = false
     @State var isEditorPresented: Bool = false
     @State var editingCardId: String? = nil
@@ -121,6 +123,10 @@ struct ReviewView: View {
         return store.isReviewQueueChunkLoading
     }
 
+    private var reviewReactionMotionMode: ReviewReactionMotionMode {
+        self.isReduceMotionEnabled ? .reduced : .standard
+    }
+
     var body: some View {
         ZStack {
             Group {
@@ -132,6 +138,8 @@ struct ReviewView: View {
                     emptyStateView
                 }
             }
+
+            ReviewReactionLayer(events: self.activeReviewReactionEvents)
         }
         .accessibilityIdentifier(UITestIdentifier.reviewScreen)
         .navigationTitle(String(localized: "Review", table: reviewCardsStringsTableName))
@@ -658,6 +666,10 @@ struct ReviewView: View {
 
     private func reviewAnswerButton(cardId: String, option: ReviewAnswerOption) -> some View {
         Button {
+            self.emitReviewReaction(
+                rating: option.rating,
+                motionMode: self.reviewReactionMotionMode
+            )
             self.submitReview(cardId: cardId, rating: option.rating)
         } label: {
             VStack(alignment: .center, spacing: 4) {
