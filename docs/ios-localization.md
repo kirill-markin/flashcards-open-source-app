@@ -4,7 +4,7 @@ Use this document every time you add a new in-app language to the iOS client.
 
 This guide is about in-app localization for the iOS binary and bundle.
 App Store metadata localization is separate and is not enough on its own.
-If you also need localized App Store metadata, see [docs/app-store-connect-metadata.md](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/docs/app-store-connect-metadata.md).
+If you also need localized App Store metadata, see [docs/app-store-connect-metadata.md](../docs/app-store-connect-metadata.md).
 
 ## Goal
 
@@ -36,20 +36,20 @@ Spanish support is split explicitly between `es-MX` and `es-ES`.
 
 The iOS client currently uses three localization buckets plus localized `InfoPlist.strings`:
 
-- [apps/ios/Flashcards/Flashcards/Resources/Localization/Foundation.xcstrings](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/Resources/Localization/Foundation.xcstrings)
+- [apps/ios/Flashcards/Flashcards/Resources/Localization/Foundation.xcstrings](../apps/ios/Flashcards/Flashcards/Resources/Localization/Foundation.xcstrings)
   Shared app-level strings, root tabs, common states, access permission copy, cloud auth/support copy, transient banners, shared status labels.
 
-- [apps/ios/Flashcards/Flashcards/ReviewCards.xcstrings](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/ReviewCards.xcstrings)
+- [apps/ios/Flashcards/Flashcards/ReviewCards.xcstrings](../apps/ios/Flashcards/Flashcards/ReviewCards.xcstrings)
   Review and Cards UI copy.
 
-- [apps/ios/Flashcards/Flashcards/AISettingsLocalization.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/AISettingsLocalization.swift)
+- [apps/ios/Flashcards/Flashcards/AISettingsLocalization.swift](../apps/ios/Flashcards/Flashcards/AISettingsLocalization.swift)
   Helper for AI, Settings, Account, Workspace, and related support/error strings.
 
 - `apps/ios/Flashcards/Flashcards/<locale>.lproj/AISettings.strings`
   Language-specific translation file for keys resolved through `aiSettingsLocalized(...)`.
   Supported Spanish app locales must use `es-MX.lproj` and `es-ES.lproj`.
 
-- [apps/ios/Flashcards/Flashcards/Resources/Localization/en.lproj/InfoPlist.strings](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/Resources/Localization/en.lproj/InfoPlist.strings)
+- [apps/ios/Flashcards/Flashcards/Resources/Localization/en.lproj/InfoPlist.strings](../apps/ios/Flashcards/Flashcards/Resources/Localization/en.lproj/InfoPlist.strings)
 - `apps/ios/Flashcards/Flashcards/Resources/Localization/<locale>.lproj/InfoPlist.strings`
   Localized permission prompts and any future localized Info.plist-facing copy.
 
@@ -60,9 +60,9 @@ For Spanish, supported app locales must use `es-MX.lproj` and `es-ES.lproj`; gen
 
 When adding a new language, check all of these places:
 
-1. Xcode project locale registration in [project.pbxproj](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards%20Open%20Source%20App.xcodeproj/project.pbxproj)
-2. Bundle locale declaration in [Info.plist](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Config/Info.plist)
-3. Development language in [Base.xcconfig](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Config/Base.xcconfig)
+1. Xcode project locale registration in [project.pbxproj](../apps/ios/Flashcards/Flashcards%20Open%20Source%20App.xcodeproj/project.pbxproj)
+2. Bundle locale declaration in [Info.plist](../apps/ios/Flashcards/Config/Info.plist)
+3. Development language in [Base.xcconfig](../apps/ios/Flashcards/Config/Base.xcconfig)
 4. `Foundation.xcstrings`
 5. `ReviewCards.xcstrings`
 6. `<language>.lproj/AISettings.strings`
@@ -96,7 +96,7 @@ For Spanish in this app, region-specific codes are required: use `es-MX` and `es
 
 ### 2. Register the locale in the Xcode project
 
-Update [project.pbxproj](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards%20Open%20Source%20App.xcodeproj/project.pbxproj):
+Update [project.pbxproj](../apps/ios/Flashcards/Flashcards%20Open%20Source%20App.xcodeproj/project.pbxproj):
 
 - add the locale to `knownRegions`
 - keep `developmentRegion = en`
@@ -105,7 +105,7 @@ Do not change the development language unless there is an explicit product decis
 
 ### 3. Add the locale to bundle-declared supported localizations
 
-Update [Info.plist](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Config/Info.plist):
+Update [Info.plist](../apps/ios/Flashcards/Config/Info.plist):
 
 - add the new locale to `CFBundleLocalizations`
 
@@ -113,7 +113,7 @@ This is part of what makes the language visible to iOS as a real app-supported l
 
 ### 4. Keep the development language stable
 
-Check [Base.xcconfig](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Config/Base.xcconfig):
+Check [Base.xcconfig](../apps/ios/Flashcards/Config/Base.xcconfig):
 
 - keep `DEVELOPMENT_LANGUAGE = en`
 - keep `SWIFT_EMIT_LOC_STRINGS = YES`
@@ -139,7 +139,7 @@ If we later localize app display name or other Info.plist-facing copy, add those
 
 ### 6. Add the new language to `Foundation.xcstrings`
 
-Update [Foundation.xcstrings](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/Resources/Localization/Foundation.xcstrings):
+Update [Foundation.xcstrings](../apps/ios/Flashcards/Flashcards/Resources/Localization/Foundation.xcstrings):
 
 - add a translation for the new locale to every existing key
 
@@ -156,7 +156,7 @@ If a new string is shared across multiple feature areas, prefer putting it here 
 
 ### 7. Add the new language to `ReviewCards.xcstrings`
 
-Update [ReviewCards.xcstrings](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/ReviewCards.xcstrings):
+Update [ReviewCards.xcstrings](../apps/ios/Flashcards/Flashcards/ReviewCards.xcstrings):
 
 - add a translation for the new locale to every existing key
 
@@ -201,15 +201,15 @@ We already had misses in support/error code paths after the first localization p
 
 When adding a new language, review these support-heavy areas explicitly:
 
-- [apps/ios/Flashcards/Flashcards/TransientBannerSupport.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/TransientBannerSupport.swift)
-- [apps/ios/Flashcards/Flashcards/ErrorMessageSupport.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/ErrorMessageSupport.swift)
-- [apps/ios/Flashcards/Flashcards/Cloud/CloudAuthService.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/Cloud/CloudAuthService.swift)
-- [apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+AlertPresentation.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+AlertPresentation.swift)
-- [apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+ObservabilityCapture.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+ObservabilityCapture.swift)
-- [apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+RunOrchestration.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+RunOrchestration.swift)
-- [apps/ios/Flashcards/Flashcards/AI/Support/AIChatServerErrorSupport.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/AI/Support/AIChatServerErrorSupport.swift)
-- [apps/ios/Flashcards/Flashcards/AI/Runtime/AIChatVoiceDictation.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/AI/Runtime/AIChatVoiceDictation.swift)
-- [apps/ios/Flashcards/Flashcards/AI/Support/AIChatAttachmentSupport.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/AI/Support/AIChatAttachmentSupport.swift)
+- [apps/ios/Flashcards/Flashcards/TransientBannerSupport.swift](../apps/ios/Flashcards/Flashcards/TransientBannerSupport.swift)
+- [apps/ios/Flashcards/Flashcards/ErrorMessageSupport.swift](../apps/ios/Flashcards/Flashcards/ErrorMessageSupport.swift)
+- [apps/ios/Flashcards/Flashcards/Cloud/CloudAuthService.swift](../apps/ios/Flashcards/Flashcards/Cloud/CloudAuthService.swift)
+- [apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+AlertPresentation.swift](../apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+AlertPresentation.swift)
+- [apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+ObservabilityCapture.swift](../apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+ObservabilityCapture.swift)
+- [apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+RunOrchestration.swift](../apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+RunOrchestration.swift)
+- [apps/ios/Flashcards/Flashcards/AI/Support/AIChatServerErrorSupport.swift](../apps/ios/Flashcards/Flashcards/AI/Support/AIChatServerErrorSupport.swift)
+- [apps/ios/Flashcards/Flashcards/AI/Runtime/AIChatVoiceDictation.swift](../apps/ios/Flashcards/Flashcards/AI/Runtime/AIChatVoiceDictation.swift)
+- [apps/ios/Flashcards/Flashcards/AI/Support/AIChatAttachmentSupport.swift](../apps/ios/Flashcards/Flashcards/AI/Support/AIChatAttachmentSupport.swift)
 
 These are easy to forget because they are not all top-level screens.
 
@@ -240,7 +240,7 @@ Localize the user-facing labels around them, not the technical values themselves
 
 Current iOS smoke launches intentionally force English in:
 
-- [apps/ios/Flashcards/FlashcardsUITests/LiveSmokeSupport/LiveSmokeLaunching.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/FlashcardsUITests/LiveSmokeSupport/LiveSmokeLaunching.swift)
+- [apps/ios/Flashcards/FlashcardsUITests/LiveSmokeSupport/LiveSmokeLaunching.swift](../apps/ios/Flashcards/FlashcardsUITests/LiveSmokeSupport/LiveSmokeLaunching.swift)
 
 That means:
 
