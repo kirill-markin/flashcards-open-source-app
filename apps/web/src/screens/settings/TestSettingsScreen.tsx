@@ -174,38 +174,34 @@ export function TestAnimationsScreen(): ReactElement {
       title={t("settingsTest.animations.screenTitle")}
       subtitle={t("settingsTest.animations.screenSubtitle")}
       activeTab="test"
+      panelClassName="settings-panel-test-animations"
     >
-      <div className="settings-test-animation-preview" data-testid="test-animations-screen">
-        <div className="settings-test-animation-stage">
-          <ReviewRatingReactionLayer events={activeReviewReactionEvents} />
-        </div>
-
-        <div className="settings-test-animation-list">
-          {reviewReactionRatings.map((rating) => (
-            <SettingsGroup key={rating} title={reviewRatingTitle(rating, t)}>
-              <div className="settings-test-animation-rows">
-                {reviewReactionVariantDistributionEntries(rating).map((entry) => (
-                  <button
-                    key={entry.id}
-                    className="settings-test-animation-row content-card"
-                    type="button"
-                    aria-label={testAnimationAccessibilityLabel(entry, formatNumber, t)}
-                    data-review-reaction-rating={entry.rating}
-                    data-review-reaction-variant={entry.variant}
-                    data-testid="test-animation-row"
-                    onClick={() => playAnimation(entry)}
-                  >
-                    <span className="settings-test-animation-name">{entry.variant}</span>
-                    <span className="badge">
-                      {testAnimationProbabilityText(entry, formatNumber, t)}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </SettingsGroup>
-          ))}
-        </div>
+      <div className="settings-test-animation-list" data-testid="test-animations-screen">
+        {reviewReactionRatings.map((rating) => (
+          <SettingsGroup key={rating} title={reviewRatingTitle(rating, t)}>
+            <div className="settings-test-animation-rows">
+              {reviewReactionVariantDistributionEntries(rating).map((entry) => (
+                <button
+                  key={entry.id}
+                  className="settings-test-animation-row content-card"
+                  type="button"
+                  aria-label={testAnimationAccessibilityLabel(entry, formatNumber, t)}
+                  data-review-reaction-rating={entry.rating}
+                  data-review-reaction-variant={entry.variant}
+                  data-testid="test-animation-row"
+                  onClick={() => playAnimation(entry)}
+                >
+                  <span className="settings-test-animation-name">{entry.variant}</span>
+                  <span className="badge">
+                    {testAnimationProbabilityText(entry, formatNumber, t)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </SettingsGroup>
+        ))}
       </div>
+      <ReviewRatingReactionLayer events={activeReviewReactionEvents} />
     </SettingsShell>
   );
 }

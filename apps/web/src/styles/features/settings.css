@@ -155,25 +155,28 @@
   outline-offset: 4px;
 }
 
-.settings-test-animation-preview {
-  display: grid;
-  gap: 18px;
+.settings-panel-test-animations {
+  position: relative;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  height: min(880px, calc(100dvh - 76px));
+  min-height: min(760px, calc(100dvh - 76px));
+  max-height: calc(100dvh - 72px);
+  overflow: hidden;
 }
 
-.settings-test-animation-stage {
-  position: sticky;
-  top: 12px;
-  z-index: 2;
-  height: clamp(160px, 28vh, 260px);
-  overflow: hidden;
-  border: 1px solid var(--panel-border);
-  border-radius: var(--radius-md);
-  background: rgba(20, 20, 24, 0.72);
+.chat-layout-shell-sidebar-open .settings-panel-test-animations {
+  height: var(--chat-shell-pane-height);
+  min-height: var(--chat-shell-pane-height);
+  max-height: none;
 }
 
 .settings-test-animation-list {
   display: grid;
   gap: 18px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-inline-end: 4px;
+  scrollbar-gutter: stable;
 }
 
 .settings-test-animation-rows {
