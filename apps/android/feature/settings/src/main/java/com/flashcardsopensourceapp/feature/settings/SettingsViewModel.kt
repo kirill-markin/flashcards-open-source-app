@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.flashcardsopensourceapp.core.ui.TestModeStore
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenRepository
@@ -29,6 +30,7 @@ class SettingsViewModel(
     cloudAccountRepository: CloudAccountRepository,
     private val autoSyncEventRepository: AutoSyncEventRepository,
     private val messageController: TransientMessageController,
+    testModeStore: TestModeStore,
     visibleAppScreenRepository: VisibleAppScreenRepository,
     private val strings: SettingsStringResolver
 ) : ViewModel() {
@@ -43,8 +45,9 @@ class SettingsViewModel(
 
     val uiState: StateFlow<SettingsUiState> = combine(
         workspaceRepository.observeAppMetadata(),
-        cloudAccountRepository.observeCloudSettings()
-    ) { metadata, cloudSettings ->
+        cloudAccountRepository.observeCloudSettings(),
+        testModeStore.observeIsEnabled()
+    ) { metadata, cloudSettings, isTestModeEnabled ->
         SettingsUiState(
             currentWorkspaceName = strings.resolveWorkspaceName(workspaceName = metadata.currentWorkspaceName),
             workspaceName = strings.resolveWorkspaceName(workspaceName = metadata.workspaceName),
@@ -57,7 +60,8 @@ class SettingsViewModel(
                 CloudAccountState.LINKING_READY -> strings.get(R.string.settings_cloud_status_choose_workspace)
                 CloudAccountState.GUEST -> strings.get(R.string.settings_cloud_status_guest_ai)
                 CloudAccountState.LINKED -> cloudSettings.linkedEmail ?: strings.get(R.string.settings_cloud_status_linked)
-            }
+            },
+            isTestModeEnabled = isTestModeEnabled
         )
     }.stateIn(
         scope = viewModelScope,
@@ -69,7 +73,8 @@ class SettingsViewModel(
             deckCount = 0,
             storageLabel = strings.get(R.string.settings_device_storage_room_sqlite),
             syncStatusText = strings.get(R.string.settings_loading),
-            accountStatusTitle = strings.get(R.string.settings_loading)
+            accountStatusTitle = strings.get(R.string.settings_loading),
+            isTestModeEnabled = false
         )
     )
 
@@ -158,6 +163,7 @@ fun createSettingsViewModelFactory(
     cloudAccountRepository: CloudAccountRepository,
     autoSyncEventRepository: AutoSyncEventRepository,
     messageController: TransientMessageController,
+    testModeStore: TestModeStore,
     visibleAppScreenRepository: VisibleAppScreenRepository,
     applicationContext: Context
 ): ViewModelProvider.Factory {
@@ -168,6 +174,7 @@ fun createSettingsViewModelFactory(
                 cloudAccountRepository = cloudAccountRepository,
                 autoSyncEventRepository = autoSyncEventRepository,
                 messageController = messageController,
+                testModeStore = testModeStore,
                 visibleAppScreenRepository = visibleAppScreenRepository,
                 strings = createSettingsStringResolver(context = applicationContext)
             )

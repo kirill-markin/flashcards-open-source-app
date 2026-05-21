@@ -41,6 +41,9 @@
     <string name="review_hard">Hard</string>
     <string name="review_good">Good</string>
     <string name="review_easy">Easy</string>
+    <string name="review_test_animations_title">Animations</string>
+    <string name="review_test_animations_probability">%1$d%% probability</string>
+    <string name="review_test_animations_play_content_description">Play %1$s animation, %2$s</string>
     <string name="review_scope_title">Review scope</string>
     <string name="review_scope_subtitle_all_cards">Review the full local queue</string>
     <string name="review_decks_title">Decks</string>

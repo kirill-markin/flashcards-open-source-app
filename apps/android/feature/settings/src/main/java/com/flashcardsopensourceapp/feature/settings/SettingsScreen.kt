@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -79,7 +80,8 @@ fun SettingsRoute(
     onOpenWorkspace: () -> Unit,
     onOpenAccount: () -> Unit,
     onOpenDevice: () -> Unit,
-    onOpenAccess: () -> Unit
+    onOpenAccess: () -> Unit,
+    onOpenTest: () -> Unit
 ) {
     SettingsScreenScaffold(
         title = stringResource(R.string.settings_root_title),
@@ -185,6 +187,28 @@ fun SettingsRoute(
                         },
                         modifier = Modifier.clickable(onClick = onOpenAccess)
                     )
+                }
+            }
+
+            if (uiState.isTestModeEnabled) {
+                item {
+                    SectionTitle(text = stringResource(R.string.settings_section_test))
+                }
+
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        ListItem(
+                            headlineContent = {
+                                Text(stringResource(R.string.settings_root_test_title))
+                            },
+                            supportingContent = {
+                                Text(stringResource(R.string.settings_root_test_summary))
+                            },
+                            modifier = Modifier
+                                .testTag(tag = settingsTestRowTag)
+                                .clickable(onClick = onOpenTest)
+                        )
+                    }
                 }
             }
         }

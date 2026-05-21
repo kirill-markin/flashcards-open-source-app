@@ -1,11 +1,19 @@
 package com.flashcardsopensourceapp.feature.settings.device
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Card
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.feature.settings.DeviceInfoCard
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsScreenScaffold
@@ -15,6 +23,7 @@ import com.flashcardsopensourceapp.feature.settings.settingsScreenContentPadding
 @Composable
 fun DeviceDiagnosticsRoute(
     uiState: DeviceDiagnosticsUiState,
+    onAppVersionTap: () -> Unit,
     onBack: () -> Unit
 ) {
     SettingsScreenScaffold(
@@ -38,13 +47,29 @@ fun DeviceDiagnosticsRoute(
             }
 
             item {
-                DeviceInfoCard(
+                DeviceDiagnosticsInfoCard(
                     title = stringResource(R.string.settings_device_app_info_title),
                     rows = listOf(
-                        stringResource(R.string.settings_device_app_version_label) to uiState.appVersion,
-                        stringResource(R.string.settings_device_build_number_label) to uiState.buildNumber,
-                        stringResource(R.string.settings_device_client_label) to uiState.clientLabel,
-                        stringResource(R.string.settings_device_storage_label) to uiState.storageLabel
+                        DeviceDiagnosticsInfoRow(
+                            label = stringResource(R.string.settings_device_app_version_label),
+                            value = uiState.appVersion,
+                            onClick = onAppVersionTap
+                        ),
+                        DeviceDiagnosticsInfoRow(
+                            label = stringResource(R.string.settings_device_build_number_label),
+                            value = uiState.buildNumber,
+                            onClick = null
+                        ),
+                        DeviceDiagnosticsInfoRow(
+                            label = stringResource(R.string.settings_device_client_label),
+                            value = uiState.clientLabel,
+                            onClick = null
+                        ),
+                        DeviceDiagnosticsInfoRow(
+                            label = stringResource(R.string.settings_device_storage_label),
+                            value = uiState.storageLabel,
+                            onClick = null
+                        )
                     )
                 )
             }
@@ -72,5 +97,57 @@ fun DeviceDiagnosticsRoute(
                 )
             }
         }
+    }
+}
+
+private data class DeviceDiagnosticsInfoRow(
+    val label: String,
+    val value: String,
+    val onClick: (() -> Unit)?
+)
+
+@Composable
+private fun DeviceDiagnosticsInfoCard(
+    title: String,
+    rows: List<DeviceDiagnosticsInfoRow>
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(20.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            rows.forEach { row: DeviceDiagnosticsInfoRow ->
+                DeviceDiagnosticsInfoRowContent(row = row)
+            }
+        }
+    }
+}
+
+@Composable
+private fun DeviceDiagnosticsInfoRowContent(row: DeviceDiagnosticsInfoRow) {
+    val onClick: (() -> Unit)? = row.onClick
+    val rowModifier: Modifier = if (onClick != null) {
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+    } else {
+        Modifier.fillMaxWidth()
+    }
+
+    Column(modifier = rowModifier) {
+        Text(
+            text = row.label,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = row.value,
+            style = MaterialTheme.typography.bodyLarge
+        )
     }
 }

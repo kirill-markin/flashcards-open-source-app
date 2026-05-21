@@ -47,6 +47,7 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
                     cloudAccountRepository = appGraph.cloudAccountRepository,
                     autoSyncEventRepository = appGraph.autoSyncEventRepository,
                     messageController = appGraph.appMessageBus,
+                    testModeStore = appGraph.testModeStore,
                     visibleAppScreenRepository = appGraph.visibleAppScreenController,
                     applicationContext = context.applicationContext
                 )

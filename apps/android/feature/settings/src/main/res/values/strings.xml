@@ -32,14 +32,23 @@
     <string name="settings_section_workspace">Workspace</string>
     <string name="settings_section_account">Account</string>
     <string name="settings_section_device">Device</string>
+    <string name="settings_section_test">Test</string>
     <string name="settings_root_current_workspace_title">Current Workspace</string>
     <string name="settings_root_workspace_title">Workspace</string>
     <string name="settings_root_account_title">Account</string>
     <string name="settings_root_device_title">This Device</string>
     <string name="settings_root_access_title">Access</string>
     <string name="settings_root_access_summary">Camera, microphone, photos, and files</string>
+    <string name="settings_root_test_title">Test</string>
+    <string name="settings_root_test_summary">1 item</string>
     <string name="settings_root_workspace_summary">%1$s | %2$s | %3$s</string>
     <string name="settings_labeled_value">%1$s: %2$s</string>
+    <string name="settings_test_mode_enabled_message">Test version enabled.</string>
+    <string name="settings_test_mode_disabled_message">Test version disabled.</string>
+    <string name="settings_test_title">Test</string>
+    <string name="settings_test_tools_section">Tools</string>
+    <string name="settings_test_animations_title">Animations</string>
+    <string name="settings_test_animations_summary">16 items</string>
 
     <string name="settings_cloud_status_disconnected">Disconnected</string>
     <string name="settings_cloud_status_choose_workspace">Choose workspace</string>
