@@ -19,6 +19,7 @@ type SettingsShellProps = Readonly<{
   subtitle: string;
   activeTab: SettingsTab;
   children: ReactNode;
+  panelClassName?: string;
 }>;
 
 type SettingsNavigationCardProps = Readonly<{
@@ -113,14 +114,17 @@ const settingsTabs: ReadonlyArray<SettingsTabItem> = [
 ] as const;
 
 export function SettingsShell(props: SettingsShellProps): ReactElement {
-  const { title, subtitle, activeTab, children } = props;
+  const { title, subtitle, activeTab, children, panelClassName } = props;
   const { t } = useI18n();
   const { isTestModeEnabled } = useTestMode();
   const visibleSettingsTabs = settingsTabs.filter((tab) => tab.requiresTestMode === false || isTestModeEnabled);
+  const settingsPanelClassName = panelClassName === undefined
+    ? "panel settings-panel"
+    : `panel settings-panel ${panelClassName}`;
 
   return (
     <main className="container settings-page">
-      <section className="panel settings-panel">
+      <section className={settingsPanelClassName}>
         <nav className="settings-switcher" aria-label={t("settingsTabs.ariaLabel")} data-active-tab={activeTab}>
           {visibleSettingsTabs.map((tab) => (
             <NavLink
