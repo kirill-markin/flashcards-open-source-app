@@ -56,6 +56,8 @@ export function seedLocalBrowserState(): void {
 export function expectLocalBrowserStateCleared(): void {
   expect(window.localStorage.getItem("flashcards-warm-start-snapshot")).toBeNull();
   expect(window.localStorage.getItem("flashcards-chat-drafts::workspace-1")).toBeNull();
+  expect(window.localStorage.getItem("flashcards-browser-reauth-required")).toBeNull();
+  expect(window.localStorage.getItem("flashcards-auth-reset-required")).toBeNull();
   expect(window.localStorage.getItem(INSTALLATION_ID_STORAGE_KEY)).toBe("installation-1");
   expect(window.localStorage.getItem(LOCALE_PREFERENCE_STORAGE_KEY)).toBe("ar");
 }
@@ -63,6 +65,17 @@ export function expectLocalBrowserStateCleared(): void {
 export function expectLocalBrowserStatePreserved(): void {
   expect(window.localStorage.getItem("flashcards-warm-start-snapshot")).not.toBeNull();
   expect(window.localStorage.getItem("flashcards-chat-drafts::workspace-1")).not.toBeNull();
+  expect(window.localStorage.getItem("flashcards-browser-reauth-required")).toBeNull();
+  expect(window.localStorage.getItem("flashcards-auth-reset-required")).toBeNull();
+  expect(window.localStorage.getItem(INSTALLATION_ID_STORAGE_KEY)).toBe("installation-1");
+  expect(window.localStorage.getItem(LOCALE_PREFERENCE_STORAGE_KEY)).toBe("ar");
+}
+
+export function expectLocalBrowserStatePreservedForReauth(): void {
+  expect(window.localStorage.getItem("flashcards-warm-start-snapshot")).not.toBeNull();
+  expect(window.localStorage.getItem("flashcards-chat-drafts::workspace-1")).not.toBeNull();
+  expect(window.localStorage.getItem("flashcards-browser-reauth-required")).toBe("1");
+  expect(window.localStorage.getItem("flashcards-auth-reset-required")).toBeNull();
   expect(window.localStorage.getItem(INSTALLATION_ID_STORAGE_KEY)).toBe("installation-1");
   expect(window.localStorage.getItem(LOCALE_PREFERENCE_STORAGE_KEY)).toBe("ar");
 }

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { isAuthResetRequired } from "../accountDeletion";
+import { isBrowserReauthRequired } from "../accountDeletion";
 import { ApiContractError } from "../apiContracts/core";
 import { persistLocalePreference } from "../i18n/runtime";
 import type { NewChatSessionResponse } from "../types";
@@ -9,8 +9,8 @@ import {
   createNewChatSessionResponse,
   createSessionResponse,
   createStorageMock,
-  expectLocalBrowserStateCleared,
   expectLocalBrowserStatePreserved,
+  expectLocalBrowserStatePreservedForReauth,
   mockBlockedDeleteDatabase,
   seedLocalBrowserState,
   setNavigatorLanguages,
@@ -23,28 +23,6 @@ import {
   setNavigationHandlerForTests,
 } from "./transport";
 
-const observabilityMocks = vi.hoisted(() => ({
-  addWebBreadcrumbMock: vi.fn(),
-  captureWebExceptionMock: vi.fn(),
-  captureWebWarningMock: vi.fn(),
-  setWebObservabilityUserMock: vi.fn(),
-}));
-
-vi.mock("../observability/webObservability", () => ({
-  addWebBreadcrumb: observabilityMocks.addWebBreadcrumbMock,
-  captureWebException: observabilityMocks.captureWebExceptionMock,
-  captureWebWarning: observabilityMocks.captureWebWarningMock,
-  normalizeCaughtError: (error: unknown): Error => error instanceof Error ? error : new Error(`Caught non-Error value of type ${typeof error}`),
-  setWebObservabilityUser: observabilityMocks.setWebObservabilityUserMock,
-}));
-
-function resetObservabilityMocks(): void {
-  observabilityMocks.addWebBreadcrumbMock.mockReset();
-  observabilityMocks.captureWebExceptionMock.mockReset();
-  observabilityMocks.captureWebWarningMock.mockReset();
-  observabilityMocks.setWebObservabilityUserMock.mockReset();
-}
-
 async function createTransportBackedChatSession(sessionId: string): Promise<NewChatSessionResponse> {
   return createNewChatSession(sessionId, "workspace-1", "en");
 }
@@ -56,7 +34,6 @@ beforeEach(() => {
   });
   window.localStorage.clear();
   resetApiClientStateForTests();
-  resetObservabilityMocks();
 });
 
 afterEach(() => {
@@ -86,12 +63,10 @@ describe("session transport auth recovery", () => {
     await expect(getSession()).rejects.toBeInstanceOf(AuthRedirectError);
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(deleteDatabaseSpy).toHaveBeenCalledTimes(1);
+    expect(deleteDatabaseSpy).not.toHaveBeenCalled();
     expect(new URL(redirectedUrl).searchParams.get("locale")).toBe("ar");
-    await vi.waitFor(() => {
-      expectLocalBrowserStateCleared();
-      expect(isAuthResetRequired()).toBe(false);
-    });
+    expectLocalBrowserStatePreservedForReauth();
+    expect(isBrowserReauthRequired()).toBe(true);
   });
 
   it("treats a second 401 after refresh recovery as an auth redirect", async () => {
@@ -112,20 +87,18 @@ describe("session transport auth recovery", () => {
     await expect(getSession()).rejects.toBeInstanceOf(AuthRedirectError);
 
     expect(fetchMock).toHaveBeenCalledTimes(4);
-    expect(deleteDatabaseSpy).toHaveBeenCalledTimes(1);
+    expect(deleteDatabaseSpy).not.toHaveBeenCalled();
     expect(new URL(redirectedUrl).pathname).toBe("/login");
-    await vi.waitFor(() => {
-      expectLocalBrowserStateCleared();
-      expect(isAuthResetRequired()).toBe(false);
-    });
+    expectLocalBrowserStatePreservedForReauth();
+    expect(isBrowserReauthRequired()).toBe(true);
   });
 
-  it("surfaces a refresh-service 500 without redirecting to login", async () => {
+  it("retries transient refresh-service failures before surfacing the final error", async () => {
     seedLocalBrowserState();
+    vi.spyOn(Math, "random").mockReturnValue(0);
     const deleteDatabaseSpy = vi.spyOn(indexedDB, "deleteDatabase");
-    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
-      .mockResolvedValueOnce(new Response(null, { status: 401 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
+    function createRefreshFailureResponse(): Response {
+      return new Response(JSON.stringify({
         error: "Authentication failed. Try again.",
         code: "INTERNAL_ERROR",
         requestId: "body-refresh-request-id",
@@ -135,7 +108,13 @@ describe("session transport auth recovery", () => {
           "Content-Type": "application/json",
           "X-Request-Id": "header-refresh-request-id",
         },
-      }));
+      });
+    }
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(createRefreshFailureResponse())
+      .mockResolvedValueOnce(createRefreshFailureResponse())
+      .mockResolvedValueOnce(createRefreshFailureResponse());
     vi.stubGlobal("fetch", fetchMock);
 
     let redirectedUrl = "";
@@ -152,7 +131,7 @@ describe("session transport auth recovery", () => {
       responseBodyKind: "json",
     } satisfies Partial<ApiError>);
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
     expect(deleteDatabaseSpy).not.toHaveBeenCalled();
     expect(redirectedUrl).toBe("");
     expectLocalBrowserStatePreserved();
@@ -257,15 +236,13 @@ describe("session transport auth recovery", () => {
     }
 
     expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect(deleteDatabaseSpy).toHaveBeenCalledTimes(1);
+    expect(deleteDatabaseSpy).not.toHaveBeenCalled();
     expect(redirectedUrls).toHaveLength(1);
-    await vi.waitFor(() => {
-      expectLocalBrowserStateCleared();
-      expect(isAuthResetRequired()).toBe(false);
-    });
+    expectLocalBrowserStatePreservedForReauth();
+    expect(isBrowserReauthRequired()).toBe(true);
   });
 
-  it("redirects to login even when IndexedDB cleanup is blocked", async () => {
+  it("redirects to login without attempting IndexedDB cleanup", async () => {
     seedLocalBrowserState();
     const deleteDatabaseSpy = mockBlockedDeleteDatabase();
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
@@ -281,30 +258,10 @@ describe("session transport auth recovery", () => {
     await expect(getSession()).rejects.toBeInstanceOf(AuthRedirectError);
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(deleteDatabaseSpy).toHaveBeenCalledTimes(1);
+    expect(deleteDatabaseSpy).not.toHaveBeenCalled();
     expect(new URL(redirectedUrl).pathname).toBe("/login");
-    await vi.waitFor(() => {
-      expectLocalBrowserStateCleared();
-      expect(isAuthResetRequired()).toBe(true);
-    });
-    expect(observabilityMocks.addWebBreadcrumbMock).toHaveBeenCalledWith({
-      action: "auth_reset_cleanup_deferred",
-      scope: {
-        app: "web",
-        feature: "auth",
-        userId: null,
-        workspaceId: null,
-        installationId: "installation-1",
-        route: "/",
-        requestId: null,
-        statusCode: null,
-        code: null,
-      },
-      details: {
-        eventName: "auth_reset_cleanup_deferred",
-        errorMessage: "Failed to delete IndexedDB: delete request was blocked",
-      },
-    });
+    expectLocalBrowserStatePreservedForReauth();
+    expect(isBrowserReauthRequired()).toBe(true);
   });
 });
 

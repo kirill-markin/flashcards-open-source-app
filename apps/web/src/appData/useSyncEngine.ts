@@ -87,6 +87,7 @@ type SyncEngine = Readonly<{
   runSyncSilently: () => Promise<void>;
   runSyncForWorkspace: (workspace: WorkspaceSummary) => Promise<void>;
   discardWorkspaceSync: (workspaceId: string) => void;
+  discardAllSyncWork: (runWhileDiscarding: () => Promise<void>) => Promise<void>;
   refreshLocalData: () => Promise<void>;
   refreshWorkspaceView: (workspaceId: string) => Promise<void>;
   getCardById: (cardId: string) => Promise<Card>;
@@ -115,9 +116,14 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
   } = params;
   const activeWorkspaceRef = useRef<WorkspaceSummary | null>(activeWorkspace);
   const syncPromisesRef = useRef<Map<string, Promise<void>>>(new Map());
+  const localReadPromisesRef = useRef<Set<Promise<unknown>>>(new Set());
+  const localMutationPromisesRef = useRef<Set<Promise<unknown>>>(new Set());
   const needsResyncWorkspaceIdsRef = useRef<Set<string>>(new Set());
   const syncingWorkspaceIdsRef = useRef<Set<string>>(new Set());
   const discardedSyncWorkspaceIdsRef = useRef<Set<string>>(new Set());
+  const syncGenerationRef = useRef<number>(0);
+  const isDiscardingAllSyncWorkRef = useRef<boolean>(false);
+  const discardAllSyncWorkPromiseRef = useRef<Promise<void> | null>(null);
 
   useEffect(() => {
     activeWorkspaceRef.current = activeWorkspace;
@@ -144,10 +150,46 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     refreshSyncIndicator();
   }, [refreshSyncIndicator]);
 
+  const discardAllSyncWork = useCallback(async function discardAllSyncWork(
+    runWhileDiscarding: () => Promise<void>,
+  ): Promise<void> {
+    const activeDiscard = discardAllSyncWorkPromiseRef.current;
+    if (activeDiscard !== null) {
+      return activeDiscard;
+    }
+
+    const discardTask = (async (): Promise<void> => {
+      isDiscardingAllSyncWorkRef.current = true;
+      const activeSyncTasks = [...syncPromisesRef.current.values()];
+      const activeLocalReadTasks = [...localReadPromisesRef.current.values()];
+      const activeLocalMutationTasks = [...localMutationPromisesRef.current.values()];
+      syncGenerationRef.current += 1;
+      syncPromisesRef.current.clear();
+      needsResyncWorkspaceIdsRef.current.clear();
+      syncingWorkspaceIdsRef.current.clear();
+      discardedSyncWorkspaceIdsRef.current.clear();
+      refreshSyncIndicator();
+
+      try {
+        await Promise.allSettled([...activeSyncTasks, ...activeLocalReadTasks, ...activeLocalMutationTasks]);
+        await runWhileDiscarding();
+      } finally {
+        discardAllSyncWorkPromiseRef.current = null;
+        isDiscardingAllSyncWorkRef.current = false;
+      }
+    })();
+    discardAllSyncWorkPromiseRef.current = discardTask;
+    return discardTask;
+  }, [refreshSyncIndicator]);
+
   const requireWorkspaceSyncNotDiscarded = useCallback(function requireWorkspaceSyncNotDiscarded(
     workspaceId: string,
+    syncGeneration: number,
   ): void {
-    if (discardedSyncWorkspaceIdsRef.current.has(workspaceId)) {
+    if (
+      syncGeneration !== syncGenerationRef.current
+      || discardedSyncWorkspaceIdsRef.current.has(workspaceId)
+    ) {
       throw createWorkspaceSyncDiscardedError(workspaceId);
     }
   }, []);
@@ -159,19 +201,48 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     return isWorkspaceNotFoundError(error) && isVisibleWorkspace(workspaceId) === false;
   }, [isVisibleWorkspace]);
 
+  const runLocalDataRead = useCallback(async function runLocalDataRead<ResultType>(
+    createReadTask: () => Promise<ResultType>,
+  ): Promise<ResultType> {
+    if (isDiscardingAllSyncWorkRef.current) {
+      throw new Error("Workspace is unavailable");
+    }
+
+    const readTask: Promise<ResultType> = Promise.resolve().then(createReadTask);
+    const trackedReadTask = readTask.finally(() => {
+      localReadPromisesRef.current.delete(trackedReadTask);
+    });
+    localReadPromisesRef.current.add(trackedReadTask);
+    return trackedReadTask;
+  }, []);
+
   const refreshLocalMetadata = useCallback(async function refreshLocalMetadata(workspaceId: string): Promise<void> {
-    const [workspaceSettings, cloudSettings] = await Promise.all([
+    if (isDiscardingAllSyncWorkRef.current) {
+      return;
+    }
+
+    const metadataGeneration = syncGenerationRef.current;
+    const [workspaceSettings, cloudSettings] = await runLocalDataRead(() => Promise.all([
       loadWorkspaceSettings(workspaceId),
       loadCloudSettings(),
-    ]);
+    ]));
+    if (metadataGeneration !== syncGenerationRef.current || isDiscardingAllSyncWorkRef.current) {
+      return;
+    }
+
     setCloudSettings(cloudSettings);
     if (isVisibleWorkspace(workspaceId)) {
       setWorkspaceSettings(workspaceSettings);
     }
-  }, [isVisibleWorkspace, setCloudSettings, setWorkspaceSettings]);
+  }, [isVisibleWorkspace, runLocalDataRead, setCloudSettings, setWorkspaceSettings]);
 
   const refreshWorkspaceView = useCallback(async function refreshWorkspaceView(workspaceId: string): Promise<void> {
+    const metadataGeneration = syncGenerationRef.current;
     await refreshLocalMetadata(workspaceId);
+    if (metadataGeneration !== syncGenerationRef.current) {
+      return;
+    }
+
     if (isVisibleWorkspace(workspaceId)) {
       bumpLocalReadVersion();
     }
@@ -212,11 +283,12 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
   ): Promise<void> {
     // Local writes may happen during warm start, but remote sync stays paused
     // until auth verification confirms which account owns this browser state.
-    if (session === null || sessionVerificationState !== "verified") {
+    if (isDiscardingAllSyncWorkRef.current || session === null || sessionVerificationState !== "verified") {
       return;
     }
 
     const workspaceId = workspace.workspaceId;
+    const syncGeneration = syncGenerationRef.current;
     if (discardedSyncWorkspaceIdsRef.current.has(workspaceId)) {
       return;
     }
@@ -232,22 +304,37 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
     const syncTask = (async (): Promise<void> => {
       let syncInstallationId: string | null = null;
+      const requireCurrentWorkspaceSync = function requireCurrentWorkspaceSync(currentWorkspaceId: string): void {
+        requireWorkspaceSyncNotDiscarded(currentWorkspaceId, syncGeneration);
+      };
+      const publishCurrentWorkspaceSettings = function publishCurrentWorkspaceSettings(
+        currentWorkspaceId: string,
+        workspaceSettings: WorkspaceSchedulerSettings,
+      ): void {
+        requireCurrentWorkspaceSync(currentWorkspaceId);
+        publishWorkspaceSettings(currentWorkspaceId, workspaceSettings);
+      };
+      const refreshCurrentWorkspaceView = async function refreshCurrentWorkspaceView(currentWorkspaceId: string): Promise<void> {
+        requireCurrentWorkspaceSync(currentWorkspaceId);
+        await refreshWorkspaceView(currentWorkspaceId);
+        requireCurrentWorkspaceSync(currentWorkspaceId);
+      };
+
       try {
-        requireWorkspaceSyncNotDiscarded(workspaceId);
+        requireCurrentWorkspaceSync(workspaceId);
         const cloudSettings = await loadCloudSettings();
-        requireWorkspaceSyncNotDiscarded(workspaceId);
+        requireCurrentWorkspaceSync(workspaceId);
         const installationId = requireCloudInstallationId(cloudSettings);
         syncInstallationId = installationId;
         const syncFlags = await runWorkspaceRemoteSync({
           workspaceId,
           installationId,
-          requireWorkspaceSyncNotDiscarded,
-          publishWorkspaceSettings,
-          refreshWorkspaceView,
+          requireWorkspaceSyncNotDiscarded: requireCurrentWorkspaceSync,
+          publishWorkspaceSettings: publishCurrentWorkspaceSettings,
+          refreshWorkspaceView: refreshCurrentWorkspaceView,
         });
 
-        await refreshWorkspaceView(workspaceId);
-        requireWorkspaceSyncNotDiscarded(workspaceId);
+        await refreshCurrentWorkspaceView(workspaceId);
         if (syncFlags.didChangeProgressHistory) {
           invalidateProgress();
         }
@@ -256,6 +343,10 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         }
         setErrorMessage("");
       } catch (error) {
+        if (syncGeneration !== syncGenerationRef.current) {
+          return;
+        }
+
         if (isAuthRedirectError(error)) {
           throw error;
         }
@@ -284,14 +375,16 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         reportSyncError(getErrorMessage(error));
         throw error;
       } finally {
-        syncPromisesRef.current.delete(workspaceId);
-        syncingWorkspaceIdsRef.current.delete(workspaceId);
-        refreshSyncIndicator();
+        if (syncGeneration === syncGenerationRef.current) {
+          syncPromisesRef.current.delete(workspaceId);
+          syncingWorkspaceIdsRef.current.delete(workspaceId);
+          refreshSyncIndicator();
 
-        const needsResync = needsResyncWorkspaceIdsRef.current.has(workspaceId);
-        needsResyncWorkspaceIdsRef.current.delete(workspaceId);
-        if (needsResync && discardedSyncWorkspaceIdsRef.current.has(workspaceId) === false) {
-          void runSyncForWorkspace(workspace);
+          const needsResync = needsResyncWorkspaceIdsRef.current.has(workspaceId);
+          needsResyncWorkspaceIdsRef.current.delete(workspaceId);
+          if (needsResync && discardedSyncWorkspaceIdsRef.current.has(workspaceId) === false) {
+            void runSyncForWorkspace(workspace);
+          }
         }
       }
     })();
@@ -354,119 +447,137 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
       throw new Error("Workspace is unavailable");
     }
 
-    return requireCard(activeWorkspace.workspaceId, cardId);
-  }, [activeWorkspace]);
+    return runLocalDataRead(() => requireCard(activeWorkspace.workspaceId, cardId));
+  }, [activeWorkspace, runLocalDataRead]);
 
   const getDeckById = useCallback(async function getDeckById(deckId: string): Promise<Deck> {
     if (activeWorkspace === null) {
       throw new Error("Workspace is unavailable");
     }
 
-    return requireDeck(activeWorkspace.workspaceId, deckId);
-  }, [activeWorkspace]);
+    return runLocalDataRead(() => requireDeck(activeWorkspace.workspaceId, deckId));
+  }, [activeWorkspace, runLocalDataRead]);
 
   const activeWorkspaceId = activeWorkspace?.workspaceId ?? null;
+
+  const requireLocalWorkspaceMutationReady = useCallback(function requireLocalWorkspaceMutationReady(): void {
+    if (isDiscardingAllSyncWorkRef.current) {
+      throw new Error("Workspace is unavailable");
+    }
+  }, []);
+
+  const runLocalWorkspaceMutation = useCallback(async function runLocalWorkspaceMutation<T>(
+    createMutationTask: () => Promise<T>,
+  ): Promise<T> {
+    requireLocalWorkspaceMutationReady();
+    const mutationTask = createMutationTask();
+    const trackedMutationTask = mutationTask.finally(() => {
+      localMutationPromisesRef.current.delete(trackedMutationTask);
+    });
+    localMutationPromisesRef.current.add(trackedMutationTask);
+    return trackedMutationTask;
+  }, [requireLocalWorkspaceMutationReady]);
 
   const createCardItem = useCallback(async function createCardItem(input: CreateCardInput): Promise<Card> {
     if (activeWorkspaceId === null || activeWorkspace === null) {
       throw new Error("Workspace is unavailable");
     }
 
-    const mutationResult = await createCardLocally({
+    const mutationResult = await runLocalWorkspaceMutation(() => createCardLocally({
       workspaceId: activeWorkspaceId,
       input,
       clientUpdatedAt: nowIso(),
-    });
+    }));
     bumpLocalReadVersion();
     if (mutationResult.didChangeReviewSchedule) {
       invalidateLocalReviewSchedule();
     }
     void runSyncForWorkspace(activeWorkspace);
     return mutationResult.card;
-  }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runSyncForWorkspace]);
+  }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runLocalWorkspaceMutation, runSyncForWorkspace]);
 
   const createDeckItem = useCallback(async function createDeckItem(input: CreateDeckInput): Promise<Deck> {
     if (activeWorkspaceId === null || activeWorkspace === null) {
       throw new Error("Workspace is unavailable");
     }
 
-    const mutationResult = await createDeckLocally({
+    const mutationResult = await runLocalWorkspaceMutation(() => createDeckLocally({
       workspaceId: activeWorkspaceId,
       input,
       clientUpdatedAt: nowIso(),
-    });
+    }));
     bumpLocalReadVersion();
     void runSyncForWorkspace(activeWorkspace);
     return mutationResult.deck;
-  }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runSyncForWorkspace]);
+  }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runLocalWorkspaceMutation, runSyncForWorkspace]);
 
   const updateCardItem = useCallback(async function updateCardItem(cardId: string, input: UpdateCardInput): Promise<Card> {
     if (activeWorkspaceId === null || activeWorkspace === null) {
       throw new Error("Workspace is unavailable");
     }
 
-    const mutationResult = await updateCardLocally({
+    const mutationResult = await runLocalWorkspaceMutation(() => updateCardLocally({
       workspaceId: activeWorkspaceId,
       cardId,
       input,
       clientUpdatedAt: nowIso(),
-    });
+    }));
     bumpLocalReadVersion();
     if (mutationResult.didChangeReviewSchedule) {
       invalidateLocalReviewSchedule();
     }
     void runSyncForWorkspace(activeWorkspace);
     return mutationResult.card;
-  }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runSyncForWorkspace]);
+  }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runLocalWorkspaceMutation, runSyncForWorkspace]);
 
   const updateDeckItem = useCallback(async function updateDeckItem(deckId: string, input: UpdateDeckInput): Promise<Deck> {
     if (activeWorkspaceId === null || activeWorkspace === null) {
       throw new Error("Workspace is unavailable");
     }
 
-    const mutationResult = await updateDeckLocally({
+    const mutationResult = await runLocalWorkspaceMutation(() => updateDeckLocally({
       workspaceId: activeWorkspaceId,
       deckId,
       input,
       clientUpdatedAt: nowIso(),
-    });
+    }));
     bumpLocalReadVersion();
     void runSyncForWorkspace(activeWorkspace);
     return mutationResult.deck;
-  }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runSyncForWorkspace]);
+  }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runLocalWorkspaceMutation, runSyncForWorkspace]);
 
   const deleteCardItem = useCallback(async function deleteCardItem(cardId: string): Promise<Card> {
     if (activeWorkspaceId === null || activeWorkspace === null) {
       throw new Error("Workspace is unavailable");
     }
 
-    const mutationResult = await deleteCardLocally({
+    const mutationResult = await runLocalWorkspaceMutation(() => deleteCardLocally({
       workspaceId: activeWorkspaceId,
       cardId,
       clientUpdatedAt: nowIso(),
-    });
+    }));
     bumpLocalReadVersion();
     if (mutationResult.didChangeReviewSchedule) {
       invalidateLocalReviewSchedule();
     }
     void runSyncForWorkspace(activeWorkspace);
     return mutationResult.card;
-  }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runSyncForWorkspace]);
+  }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runLocalWorkspaceMutation, runSyncForWorkspace]);
 
   const deleteDeckItem = useCallback(async function deleteDeckItem(deckId: string): Promise<Deck> {
     if (activeWorkspaceId === null || activeWorkspace === null) {
       throw new Error("Workspace is unavailable");
     }
 
-    const mutationResult = await deleteDeckLocally({
+    const mutationResult = await runLocalWorkspaceMutation(() => deleteDeckLocally({
       workspaceId: activeWorkspaceId,
       deckId,
       clientUpdatedAt: nowIso(),
-    });
+    }));
     bumpLocalReadVersion();
     void runSyncForWorkspace(activeWorkspace);
     return mutationResult.deck;
-  }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runSyncForWorkspace]);
+  }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runLocalWorkspaceMutation, runSyncForWorkspace]);
 
   const submitReviewItem = useCallback(async function submitReviewItem(
     cardId: string,
@@ -476,18 +587,18 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
       throw new Error("Workspace is unavailable");
     }
 
-    const mutationResult = await submitReviewLocally({
+    const mutationResult = await runLocalWorkspaceMutation(() => submitReviewLocally({
       workspaceId: activeWorkspaceId,
       cardId,
       rating,
       reviewedAtClient: nowIso(),
-    });
+    }));
     bumpLocalReadVersion();
     invalidateLocalProgress();
     invalidateLocalReviewSchedule();
     void runSyncForWorkspace(activeWorkspace);
     return mutationResult.card;
-  }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runSyncForWorkspace]);
+  }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runLocalWorkspaceMutation, runSyncForWorkspace]);
 
   const seedLinkedWorkspace = useCallback(async function seedLinkedWorkspace(
     request: TestSeedRequest,
@@ -498,21 +609,22 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
       || sessionLoadState !== "ready"
       || sessionVerificationState !== "verified"
       || session === null
+      || isDiscardingAllSyncWorkRef.current
     ) {
       throw new Error("Linked workspace is not ready for deterministic seed data");
     }
 
     validateSeedRequest(request);
-    await ensureWorkspaceSeedReady({
+    await runLocalDataRead(() => ensureWorkspaceSeedReady({
       workspace: activeWorkspace,
       waitForWorkspaceSyncToSettle,
       refreshWorkspaceView,
       runSyncForWorkspace,
-    });
-    const seedMutationResult = await seedWorkspaceLocally({
+    }));
+    const seedMutationResult = await runLocalWorkspaceMutation(() => seedWorkspaceLocally({
       workspaceId: activeWorkspaceId,
       request,
-    });
+    }));
 
     bumpLocalReadVersion();
     if (seedMutationResult.didChangeReviewSchedule) {
@@ -531,6 +643,8 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     activeWorkspaceId,
     bumpLocalReadVersion,
     refreshWorkspaceView,
+    runLocalDataRead,
+    runLocalWorkspaceMutation,
     runSyncForWorkspace,
     session,
     sessionLoadState,
@@ -543,6 +657,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     runSyncSilently,
     runSyncForWorkspace,
     discardWorkspaceSync,
+    discardAllSyncWork,
     refreshLocalData,
     refreshWorkspaceView,
     getCardById,

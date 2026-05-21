@@ -168,6 +168,7 @@ async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promise<Remot
     }
   }
 
+  input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
   await input.refreshWorkspaceView(input.workspaceId);
   input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
   return {
@@ -203,6 +204,7 @@ async function pushOutbox(input: WorkspaceRemoteSyncInput): Promise<RemoteSyncFl
 
       for (const result of pushResult.operations) {
         if (isAcknowledgedPushStatus(result.status)) {
+          input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
           await deleteOutboxRecord(input.workspaceId, result.operationId);
           if (reviewScheduleOperationIds.has(result.operationId)) {
             didChangeReviewSchedule = true;
@@ -214,8 +216,10 @@ async function pushOutbox(input: WorkspaceRemoteSyncInput): Promise<RemoteSyncFl
         didChangeProgressHistory = true;
       }
     } catch (error) {
+      input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
       const errorMessage = getErrorMessage(error);
       for (const record of batch) {
+        input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
         await putOutboxRecord({
           ...record,
           attemptCount: record.attemptCount + 1,
