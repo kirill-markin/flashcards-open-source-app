@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -111,7 +110,7 @@ fun TestAnimationsRoute(
             }
 
             ReviewReactionOverlay(
-                modifier = Modifier.matchParentSize(),
+                modifier = Modifier.fillMaxSize(),
                 events = activeReviewReactionEvents,
                 motionMode = reviewReactionMotionMode,
                 onEventFinished = { eventId: String ->
