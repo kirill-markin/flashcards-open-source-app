@@ -1,8 +1,13 @@
-import type { ReactElement } from "react";
+import { useRef, type ReactElement } from "react";
 import { useAppData } from "../../appData";
 import { webAppBuild, webAppVersion } from "../../clientIdentity";
 import { autoLocalePreference, supportedLocales, type Locale, type LocalePreference, type TranslationKey, useI18n } from "../../i18n";
+import { useTestMode } from "../../testMode";
+import { useTransientMessage } from "../../useTransientMessage";
 import { SettingsShell } from "./SettingsShared";
+
+const testModeUnlockRequiredTapCount: number = 5;
+const testModeUnlockMaximumTapIntervalMillis: number = 2000;
 
 type WebDeviceInfo = Readonly<{
   operatingSystem: string;
@@ -122,6 +127,10 @@ function buildWebDeviceInfo(installationId: string, strings: WebDeviceInfoStatic
 export function ThisDeviceSettingsScreen(): ReactElement {
   const { activeWorkspace, cloudSettings } = useAppData();
   const { locale, localePreference, setLocalePreference, t } = useI18n();
+  const { toggleTestMode } = useTestMode();
+  const { message, showMessage } = useTransientMessage(3000);
+  const appVersionTapCountRef = useRef<number>(0);
+  const lastAppVersionTapAtRef = useRef<number | null>(null);
   const unavailableLabel = t("common.unavailable");
   const deviceInfo = buildWebDeviceInfo(cloudSettings?.installationId ?? unavailableLabel, {
     unavailable: unavailableLabel,
@@ -132,12 +141,35 @@ export function ThisDeviceSettingsScreen(): ReactElement {
   const localeLabel = t(localeNameKey(locale));
   const localePreferenceLabel = formatLocalePreferenceLabel(localePreference, t);
 
+  function handleAppVersionTap(now: number): void {
+    const lastAppVersionTapAt = lastAppVersionTapAtRef.current;
+    const nextTapCount = lastAppVersionTapAt !== null
+      && now - lastAppVersionTapAt <= testModeUnlockMaximumTapIntervalMillis
+      ? appVersionTapCountRef.current + 1
+      : 1;
+
+    lastAppVersionTapAtRef.current = now;
+
+    if (nextTapCount < testModeUnlockRequiredTapCount) {
+      appVersionTapCountRef.current = nextTapCount;
+      return;
+    }
+
+    appVersionTapCountRef.current = 0;
+    lastAppVersionTapAtRef.current = null;
+
+    const isEnabled = toggleTestMode();
+    showMessage(isEnabled ? t("testMode.enabledMessage") : t("testMode.disabledMessage"));
+  }
+
   return (
     <SettingsShell
       title={t("settingsDevice.title")}
       subtitle={t("settingsDevice.subtitle")}
       activeTab="device"
     >
+      {message === "" ? null : <p className="settings-temporary-banner" role="status">{message}</p>}
+
       <div className="settings-nav-list">
         <article className="content-card settings-summary-card" data-testid="device-language-preference-card">
           <div className="cell-stack">
@@ -186,7 +218,13 @@ export function ThisDeviceSettingsScreen(): ReactElement {
         </article>
         <article className="content-card settings-summary-card">
           <span className="cell-secondary">{t("settingsDevice.labels.appVersion")}</span>
-          <strong className="panel-subtitle">{deviceInfo.version}</strong>
+          <button
+            className="settings-hidden-trigger"
+            type="button"
+            onClick={() => handleAppVersionTap(Date.now())}
+          >
+            <strong className="panel-subtitle">{deviceInfo.version}</strong>
+          </button>
         </article>
         <article className="content-card settings-summary-card">
           <span className="cell-secondary">{t("settingsDevice.labels.build")}</span>

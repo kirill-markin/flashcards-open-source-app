@@ -7,10 +7,12 @@ import {
   settingsCurrentWorkspaceRoute,
   settingsDeviceRoute,
   settingsHubRoute,
+  settingsTestRoute,
   workspaceSettingsRoute,
 } from "../../routes";
+import { useTestMode } from "../../testMode";
 
-type SettingsTab = "general" | "current-workspace" | "workspace" | "account" | "device" | "access";
+type SettingsTab = "general" | "current-workspace" | "workspace" | "account" | "device" | "access" | "test";
 
 type SettingsShellProps = Readonly<{
   title: string;
@@ -24,6 +26,7 @@ type SettingsNavigationCardProps = Readonly<{
   description: string;
   value: string;
   to: string;
+  testId?: string;
 }>;
 
 type SettingsActionCardProps = Readonly<{
@@ -50,9 +53,11 @@ type SettingsTabItem = Readonly<{
     | "settingsTabs.workspace"
     | "settingsTabs.account"
     | "settingsTabs.device"
-    | "settingsTabs.access";
+    | "settingsTabs.access"
+    | "settingsTabs.test";
   to: string;
-  end?: boolean;
+  end: boolean;
+  requiresTestMode: boolean;
 }>;
 
 const settingsTabs: ReadonlyArray<SettingsTabItem> = [
@@ -61,45 +66,63 @@ const settingsTabs: ReadonlyArray<SettingsTabItem> = [
     labelKey: "settingsTabs.general",
     to: settingsHubRoute,
     end: true,
+    requiresTestMode: false,
   },
   {
     key: "current-workspace",
     labelKey: "settingsTabs.currentWorkspace",
     to: settingsCurrentWorkspaceRoute,
     end: true,
+    requiresTestMode: false,
   },
   {
     key: "workspace",
     labelKey: "settingsTabs.workspace",
     to: workspaceSettingsRoute,
+    end: false,
+    requiresTestMode: false,
   },
   {
     key: "account",
     labelKey: "settingsTabs.account",
     to: accountSettingsRoute,
+    end: false,
+    requiresTestMode: false,
   },
   {
     key: "device",
     labelKey: "settingsTabs.device",
     to: settingsDeviceRoute,
     end: true,
+    requiresTestMode: false,
   },
   {
     key: "access",
     labelKey: "settingsTabs.access",
     to: settingsAccessRoute,
+    end: false,
+    requiresTestMode: false,
+  },
+  {
+    key: "test",
+    labelKey: "settingsTabs.test",
+    to: settingsTestRoute,
+    end: false,
+    requiresTestMode: true,
   },
 ] as const;
 
 export function SettingsShell(props: SettingsShellProps): ReactElement {
   const { title, subtitle, activeTab, children } = props;
   const { t } = useI18n();
+  const { isTestModeEnabled } = useTestMode();
+  const visibleSettingsTabs = settingsTabs.filter((tab) => tab.requiresTestMode === false || isTestModeEnabled);
 
   return (
     <main className="container settings-page">
       <section className="panel settings-panel">
         <nav className="settings-switcher" aria-label={t("settingsTabs.ariaLabel")} data-active-tab={activeTab}>
-          {settingsTabs.map((tab) => (
+          {visibleSettingsTabs.map((tab) => (
             <NavLink
               key={tab.key}
               className={({ isActive }) => `settings-switcher-link${isActive ? " settings-switcher-link-active" : ""}`}
@@ -125,10 +148,10 @@ export function SettingsShell(props: SettingsShellProps): ReactElement {
 }
 
 export function SettingsNavigationCard(props: SettingsNavigationCardProps): ReactElement {
-  const { title, description, value, to } = props;
+  const { title, description, value, to, testId } = props;
 
   return (
-    <Link className="settings-nav-card content-card" to={to}>
+    <Link className="settings-nav-card content-card" to={to} data-testid={testId}>
       <div className="settings-nav-card-copy">
         <strong className="panel-subtitle">{title}</strong>
         <p className="subtitle">{description}</p>

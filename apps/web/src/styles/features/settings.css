@@ -139,6 +139,81 @@
   color: #ffd7cb;
 }
 
+.settings-hidden-trigger {
+  width: fit-content;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: default;
+  font: inherit;
+  text-align: start;
+}
+
+.settings-hidden-trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+.settings-test-animation-preview {
+  display: grid;
+  gap: 18px;
+}
+
+.settings-test-animation-stage {
+  position: sticky;
+  top: 12px;
+  z-index: 2;
+  height: clamp(160px, 28vh, 260px);
+  overflow: hidden;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  background: rgba(20, 20, 24, 0.72);
+}
+
+.settings-test-animation-list {
+  display: grid;
+  gap: 18px;
+}
+
+.settings-test-animation-rows {
+  display: grid;
+  gap: 10px;
+}
+
+.settings-test-animation-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 16px 18px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  background: rgba(20, 20, 24, 0.92);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: start;
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease;
+}
+
+.settings-test-animation-row:hover {
+  transform: translateY(-1px);
+  border-color: var(--panel-border-strong);
+  background: linear-gradient(180deg, rgba(34, 34, 40, 0.98), rgba(22, 22, 28, 0.98));
+}
+
+.settings-test-animation-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 14px;
+}
+
 .settings-connections-list {
   display: grid;
   gap: 14px;

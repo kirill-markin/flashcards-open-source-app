@@ -115,6 +115,8 @@ export const ruCatalog = {
     openSourceSettings: "Загрузка настроек open source...",
     agentConnections: "Загрузка подключений агентов...",
     dangerZone: "Загрузка опасной зоны...",
+    testSettings: "Загрузка тестовых настроек...",
+    testAnimations: "Загрузка анимаций...",
     aiChat: "Загрузка AI-чата...",
     progress: "Загрузка прогресса...",
   },
@@ -190,6 +192,7 @@ export const ruCatalog = {
     account: "Аккаунт",
     device: "Это устройство",
     access: "Доступ",
+    test: "Тест",
     ariaLabel: "Вкладки настроек",
   },
   settingsHome: {
@@ -219,9 +222,19 @@ export const ruCatalog = {
       description: "Просмотрите разрешения браузера на файлы, камеру и микрофон.",
       value: "Разрешения",
     },
+    testGroupTitle: "Тест",
+    test: {
+      title: "Тест",
+      description: "Откройте скрытые инструменты тестирования для этого браузера.",
+      value: "1 пункт",
+    },
   },
   workspaceManagement: {
     lockedMessage: "Изменения рабочего пространства доступны только после создания аккаунта.",
+  },
+  testMode: {
+    enabledMessage: "Тестовая версия включена.",
+    disabledMessage: "Тестовая версия выключена.",
   },
   settingsCurrentWorkspace: {
     title: "Текущее рабочее пространство",
@@ -255,6 +268,20 @@ export const ruCatalog = {
       storage: "IndexedDB + localStorage",
       workspaceScope: "Будущая синхронизация останется ограниченной текущим выбранным рабочим пространством на этом устройстве.",
       localData: "Локальный кэш хранит карточки, колоды, настройки планировщика и ожидающие операции синхронизации на этом устройстве.",
+    },
+  },
+  settingsTest: {
+    title: "Тест",
+    subtitle: "Скрытые инструменты тестирования для этого браузера.",
+    toolsGroupTitle: "Инструменты",
+    animations: {
+      title: "Анимации",
+      description: "Предпросмотр всех вариантов анимаций реакции на повторение.",
+      value: "16 пунктов",
+      screenTitle: "Анимации",
+      screenSubtitle: "Запускайте варианты реакции на повторение напрямую.",
+      probability: "Вероятность {{percent}}",
+      playAccessibility: "Воспроизвести анимацию {{variant}}, {{probability}}",
     },
   },
   settingsWorkspace: {

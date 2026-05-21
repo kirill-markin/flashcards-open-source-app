@@ -115,6 +115,8 @@ const esMxCatalog: TranslationCatalog = {
     openSourceSettings: "Cargando la configuración de código abierto...",
     agentConnections: "Cargando las conexiones de agentes...",
     dangerZone: "Cargando la zona de peligro...",
+    testSettings: "Cargando la configuración de prueba...",
+    testAnimations: "Cargando las animaciones...",
     aiChat: "Cargando el chat con IA...",
     progress: "Cargando el progreso...",
   },
@@ -190,6 +192,7 @@ const esMxCatalog: TranslationCatalog = {
     account: "Cuenta",
     device: "Este dispositivo",
     access: "Acceso",
+    test: "Prueba",
     ariaLabel: "Pestañas de configuración",
   },
   settingsHome: {
@@ -219,9 +222,19 @@ const esMxCatalog: TranslationCatalog = {
       description: "Revisa los permisos del navegador para archivos, cámara y micrófono.",
       value: "Permisos",
     },
+    testGroupTitle: "Prueba",
+    test: {
+      title: "Prueba",
+      description: "Abre herramientas de prueba ocultas para este navegador.",
+      value: "1 elemento",
+    },
   },
   workspaceManagement: {
     lockedMessage: "Los cambios en el espacio de trabajo solo están disponibles después de crear una cuenta.",
+  },
+  testMode: {
+    enabledMessage: "Versión de prueba activada.",
+    disabledMessage: "Versión de prueba desactivada.",
   },
   settingsCurrentWorkspace: {
     title: "Espacio de trabajo actual",
@@ -255,6 +268,20 @@ const esMxCatalog: TranslationCatalog = {
       storage: "IndexedDB + localStorage",
       workspaceScope: "La sincronización futura seguirá limitada al espacio de trabajo seleccionado actualmente en este dispositivo.",
       localData: "La caché local mantiene tarjetas, mazos, configuración del programador y operaciones de sincronización pendientes en este dispositivo.",
+    },
+  },
+  settingsTest: {
+    title: "Prueba",
+    subtitle: "Herramientas de prueba ocultas para este navegador.",
+    toolsGroupTitle: "Herramientas",
+    animations: {
+      title: "Animaciones",
+      description: "Previsualiza todas las variantes de animación de reacción de repaso.",
+      value: "16 elementos",
+      screenTitle: "Animaciones",
+      screenSubtitle: "Reproduce directamente las variantes de reacción de repaso.",
+      probability: "{{percent}} de probabilidad",
+      playAccessibility: "Reproducir la animación {{variant}}, {{probability}}",
     },
   },
   settingsWorkspace: {

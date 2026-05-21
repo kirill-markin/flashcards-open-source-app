@@ -115,6 +115,8 @@ const arCatalog: TranslationCatalog = {
     openSourceSettings: "جارٍ تحميل إعدادات المصدر المفتوح...",
     agentConnections: "جارٍ تحميل اتصالات الوكلاء...",
     dangerZone: "جارٍ تحميل منطقة الخطر...",
+    testSettings: "جارٍ تحميل إعدادات الاختبار...",
+    testAnimations: "جارٍ تحميل الرسوم المتحركة...",
     aiChat: "جارٍ تحميل دردشة الذكاء الاصطناعي...",
     progress: "جارٍ تحميل التقدم...",
   },
@@ -190,6 +192,7 @@ const arCatalog: TranslationCatalog = {
     account: "الحساب",
     device: "هذا الجهاز",
     access: "الوصول",
+    test: "اختبار",
     ariaLabel: "علامات تبويب الإعدادات",
   },
   settingsHome: {
@@ -219,9 +222,19 @@ const arCatalog: TranslationCatalog = {
       description: "راجع أذونات المتصفح للملفات والكاميرا والميكروفون.",
       value: "الأذونات",
     },
+    testGroupTitle: "اختبار",
+    test: {
+      title: "اختبار",
+      description: "افتح أدوات الاختبار المخفية لهذا المتصفح.",
+      value: "عنصر واحد",
+    },
   },
   workspaceManagement: {
     lockedMessage: "تصبح تغييرات مساحة العمل متاحة فقط بعد إنشاء حساب.",
+  },
+  testMode: {
+    enabledMessage: "تم تفعيل إصدار الاختبار.",
+    disabledMessage: "تم تعطيل إصدار الاختبار.",
   },
   settingsCurrentWorkspace: {
     title: "مساحة العمل الحالية",
@@ -255,6 +268,20 @@ const arCatalog: TranslationCatalog = {
       storage: "IndexedDB + localStorage",
       workspaceScope: "ستظل المزامنة المستقبلية محصورة في مساحة العمل المحددة حاليًا على هذا الجهاز.",
       localData: "تحتفظ الذاكرة المؤقتة المحلية بالبطاقات والمجموعات وإعدادات الجدولة وعمليات المزامنة المعلقة على هذا الجهاز.",
+    },
+  },
+  settingsTest: {
+    title: "اختبار",
+    subtitle: "أدوات اختبار مخفية لهذا المتصفح.",
+    toolsGroupTitle: "الأدوات",
+    animations: {
+      title: "الرسوم المتحركة",
+      description: "عاين كل متغيرات رسوم تفاعل المراجعة.",
+      value: "16 عنصرًا",
+      screenTitle: "الرسوم المتحركة",
+      screenSubtitle: "شغّل متغيرات تفاعل المراجعة مباشرة.",
+      probability: "احتمال {{percent}}",
+      playAccessibility: "تشغيل حركة {{variant}}، {{probability}}",
     },
   },
   settingsWorkspace: {
