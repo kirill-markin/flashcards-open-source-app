@@ -38,19 +38,31 @@ enum ReviewReactionVariant: CaseIterable, Hashable, Sendable {
 
     var animationDurationSeconds: Double {
         switch self {
-        case .againRedScribbleSlash, .hardYellowCrack, .goodHandDrawnCheck, .easySparkleBurst:
-            return 0.52
-        case .againRewindVortex, .hardHourglassSand, .goodLightSweep, .easyRainbowStreak:
-            return 0.62
-        case .againStampFlyby, .hardFallingWeight, .goodPaperPlaneCheck, .easyCrownBounce:
-            return 0.72
-        case .againWarningTape, .hardRollingBoulder, .goodCheckSealBounce, .easyUnicornFlyby:
-            return 0.88
+        case .goodHandDrawnCheck:
+            return 1.15
+        case .againRedScribbleSlash, .hardYellowCrack:
+            return 1.20
+        case .easySparkleBurst:
+            return 1.25
+        case .againRewindVortex, .goodLightSweep, .goodCheckSealBounce:
+            return 1.45
+        case .hardHourglassSand, .againWarningTape, .easyRainbowStreak:
+            return 1.55
+        case .hardFallingWeight, .easyCrownBounce:
+            return 1.65
+        case .goodPaperPlaneCheck:
+            return 1.75
+        case .againStampFlyby:
+            return 1.90
+        case .hardRollingBoulder:
+            return 2.05
+        case .easyUnicornFlyby:
+            return 2.15
         }
     }
 
     var cleanupDelayNanoseconds: UInt64 {
-        let cleanupDelaySeconds = min(self.animationDurationSeconds + 0.06, 0.95)
+        let cleanupDelaySeconds = self.animationDurationSeconds + 0.08
         return UInt64(cleanupDelaySeconds * 1_000_000_000)
     }
 }
@@ -71,6 +83,12 @@ struct ReviewReactionEvent: Identifiable, Hashable, Sendable {
     let id: UUID
     let rating: ReviewReactionRating
     let variant: ReviewReactionVariant
+}
+
+private struct ReviewReactionPhaseProgress {
+    let enter: CGFloat
+    let hold: CGFloat
+    let exit: CGFloat
 }
 
 func selectReviewReactionVariant(
@@ -365,22 +383,29 @@ private func drawAgainRedScribbleSlash(
         return
     }
 
-    let drawProgress = motionMode == .reduced ? 1 : min(progress * 1.35, 1)
+    let phase = reviewReactionPhaseProgress(progress: progress, enterEnd: 0.70, exitStart: 0.82)
     let width = size.width
     let height = size.height
-    let startX = motionMode == .reduced ? width * 0.18 : width * -0.08
-    let endX = motionMode == .reduced ? width * 0.82 : width * 1.08
+    let startX = width * 0.16
+    let endX = width * 0.84
     let startY = motionMode == .reduced ? height * 0.30 : height * 0.20
     let endY = motionMode == .reduced ? height * 0.63 : height * 0.78
     let offsets: [CGFloat] = [-12, 7, 19]
 
-    for offset in offsets {
+    for (index, offset) in offsets.enumerated() {
+        let stagger = CGFloat(index) * 0.12
+        let drawProgress = motionMode == .reduced
+            ? 1
+            : reviewReactionClampedProgress(progress: (phase.enter - stagger) / 0.72)
+        let shake = motionMode == .reduced
+            ? 0
+            : sin(progress * CGFloat.pi * 16 + CGFloat(index) * 1.7) * 4 * (1 - phase.exit)
         var path = Path()
-        path.move(to: CGPoint(x: startX, y: startY + offset))
+        path.move(to: CGPoint(x: startX, y: startY + offset + shake))
         path.addCurve(
-            to: CGPoint(x: endX, y: endY + offset * 0.35),
-            control1: CGPoint(x: width * 0.28, y: height * 0.26 + offset * 0.6),
-            control2: CGPoint(x: width * 0.64, y: height * 0.70 - offset * 0.4)
+            to: CGPoint(x: endX, y: endY + offset * 0.35 - shake * 0.6),
+            control1: CGPoint(x: width * 0.28, y: height * 0.26 + offset * 0.6 - shake),
+            control2: CGPoint(x: width * 0.64, y: height * 0.70 - offset * 0.4 + shake)
         )
 
         let trimmedPath = path.trimmedPath(from: 0, to: drawProgress)
@@ -408,10 +433,17 @@ private func drawAgainRewindVortex(
         return
     }
 
-    let center = CGPoint(x: size.width * 0.50, y: size.height * 0.45)
-    let maxRadius = min(size.width, size.height) * (motionMode == .reduced ? 0.20 : 0.31)
-    let drawProgress = motionMode == .reduced ? 1 : min(progress * 1.18, 1)
-    let rotation = motionMode == .reduced ? 0 : progress * CGFloat.pi * 1.25
+    let phase = reviewReactionPhaseProgress(progress: progress, enterEnd: 0.46, exitStart: 0.78)
+    let center = CGPoint(
+        x: size.width * 0.50 + (motionMode == .reduced ? 0 : sin(progress * CGFloat.pi * 2) * 10 * (1 - phase.exit)),
+        y: size.height * 0.45 + (motionMode == .reduced ? 0 : cos(progress * CGFloat.pi * 2) * 6 * (1 - phase.exit))
+    )
+    let radiusPulse = motionMode == .reduced
+        ? 1
+        : 0.76 + reviewReactionEaseOutBack(progress: phase.enter, overshoot: 1.55) * 0.24 + sin(progress * CGFloat.pi * 4) * 0.04
+    let maxRadius = min(size.width, size.height) * (motionMode == .reduced ? 0.20 : 0.31) * radiusPulse
+    let drawProgress = motionMode == .reduced ? 1 : reviewReactionClampedProgress(progress: phase.enter + phase.hold * 0.20)
+    let rotation = motionMode == .reduced ? 0 : reviewReactionEaseOutCubic(progress: progress) * CGFloat.pi * 2.35
     let colors: [Color] = [
         reviewReactionRedColor(),
         reviewReactionOrangeColor(),
@@ -461,20 +493,41 @@ private func drawAgainStampFlyby(
         return
     }
 
-    let travel = reviewReactionEaseOutCubic(progress: progress)
+    let phase = reviewReactionPhaseProgress(progress: progress, enterEnd: 0.38, exitStart: 0.76)
+    let targetCenter = CGPoint(x: size.width * 0.50, y: size.height * 0.42)
     let center: CGPoint
     if motionMode == .reduced {
-        center = CGPoint(x: size.width * 0.50, y: size.height * 0.42)
-    } else {
+        center = targetCenter
+    } else if progress < 0.38 {
+        center = cubicBezierPoint(
+            start: CGPoint(x: size.width * -0.24, y: size.height * 0.62),
+            control1: CGPoint(x: size.width * 0.08, y: size.height * 0.18),
+            control2: CGPoint(x: size.width * 0.34, y: size.height * 0.24),
+            end: targetCenter,
+            progress: reviewReactionEaseOutCubic(progress: phase.enter)
+        )
+    } else if progress < 0.76 {
+        let settle = sin(phase.hold * CGFloat.pi * 3) * (1 - phase.hold)
         center = CGPoint(
-            x: reviewReactionInterpolate(start: size.width * -0.18, end: size.width * 1.18, progress: travel),
-            y: reviewReactionInterpolate(start: size.height * 0.30, end: size.height * 0.58, progress: travel)
+            x: targetCenter.x + settle * 14,
+            y: targetCenter.y - abs(settle) * 10
+        )
+    } else {
+        center = cubicBezierPoint(
+            start: targetCenter,
+            control1: CGPoint(x: size.width * 0.58, y: size.height * 0.34),
+            control2: CGPoint(x: size.width * 0.92, y: size.height * 0.16),
+            end: CGPoint(x: size.width * 1.18, y: size.height * 0.32),
+            progress: reviewReactionEaseInCubic(progress: phase.exit)
         )
     }
-    let bounce = sin(progress * CGFloat.pi)
     let radius = min(size.width, size.height) * 0.12
-    let scale = motionMode == .reduced ? 0.95 + bounce * 0.08 : 0.82 + bounce * 0.38
-    let rotationDegrees = motionMode == .reduced ? -8 : reviewReactionInterpolate(start: -24, end: 18, progress: progress)
+    let scale = motionMode == .reduced
+        ? 0.95 + sin(progress * CGFloat.pi) * 0.08
+        : reviewReactionPopScale(progress: progress, enterEnd: 0.38, exitStart: 0.76, baseScale: 0.68, peakScale: 1.20, settledScale: 1.00)
+    let rotationDegrees = motionMode == .reduced
+        ? -8
+        : reviewReactionInterpolate(start: -28, end: 8, progress: reviewReactionEaseOutCubic(progress: phase.enter)) - phase.exit * 26
     let stampContext = transformedContext(
         context: context,
         center: center,
@@ -515,21 +568,25 @@ private func drawAgainWarningTape(
         return
     }
 
-    let shift = motionMode == .reduced ? 0 : reviewReactionInterpolate(start: -36, end: 36, progress: progress)
+    let phase = reviewReactionPhaseProgress(progress: progress, enterEnd: 0.34, exitStart: 0.80)
+    let snap = motionMode == .reduced ? 1 : reviewReactionEaseOutBack(progress: phase.enter, overshoot: 1.35)
+    let drift = motionMode == .reduced ? 0 : sin(phase.hold * CGFloat.pi * 2) * 18 * (1 - phase.exit)
+    let exitShift = motionMode == .reduced ? 0 : phase.exit * 48
+    let lengthScale = motionMode == .reduced ? 1 : reviewReactionInterpolate(start: 0.18, end: 1, progress: min(snap, 1))
     drawWarningTapeBand(
         context: context,
-        center: CGPoint(x: size.width * 0.50 + shift, y: size.height * 0.32),
-        length: size.width * 1.30,
+        center: CGPoint(x: size.width * 0.50 + drift + exitShift, y: size.height * 0.32 - (1 - min(snap, 1)) * 22),
+        length: size.width * 1.30 * lengthScale,
         height: 34,
-        rotationDegrees: -13,
+        rotationDegrees: -13 - (1 - min(snap, 1)) * 10,
         opacity: opacity
     )
     drawWarningTapeBand(
         context: context,
-        center: CGPoint(x: size.width * 0.50 - shift, y: size.height * 0.58),
-        length: size.width * 1.24,
+        center: CGPoint(x: size.width * 0.50 - drift - exitShift, y: size.height * 0.58 + (1 - min(snap, 1)) * 18),
+        length: size.width * 1.24 * lengthScale,
         height: 28,
-        rotationDegrees: 12,
+        rotationDegrees: 12 + (1 - min(snap, 1)) * 8,
         opacity: opacity * 0.82
     )
 }
@@ -545,44 +602,53 @@ private func drawHardHourglassSand(
         return
     }
 
+    let phase = reviewReactionPhaseProgress(progress: progress, enterEnd: 0.34, exitStart: 0.84)
     let center = CGPoint(x: size.width * 0.50, y: size.height * 0.42)
     let height = min(size.height * 0.34, 210)
     let width = height * 0.50
+    let wobbleDegrees = motionMode == .reduced ? 0 : sin(progress * CGFloat.pi * 3.4) * 6 * (1 - phase.exit)
+    let breatheScale = motionMode == .reduced ? 1 : 0.94 + reviewReactionEaseOutBack(progress: phase.enter, overshoot: 1.20) * 0.06 + sin(progress * CGFloat.pi * 4) * 0.018
+    let hourglassContext = transformedContext(
+        context: context,
+        center: center,
+        rotationDegrees: wobbleDegrees,
+        scale: breatheScale
+    )
     let sandProgress = motionMode == .reduced ? 0.60 : reviewReactionEaseInOut(progress: min(progress * 1.2, 1))
     var glass = Path()
-    glass.move(to: CGPoint(x: center.x - width * 0.48, y: center.y - height * 0.50))
-    glass.addLine(to: CGPoint(x: center.x + width * 0.48, y: center.y - height * 0.50))
-    glass.addLine(to: CGPoint(x: center.x, y: center.y))
-    glass.addLine(to: CGPoint(x: center.x + width * 0.48, y: center.y + height * 0.50))
-    glass.addLine(to: CGPoint(x: center.x - width * 0.48, y: center.y + height * 0.50))
-    glass.addLine(to: CGPoint(x: center.x, y: center.y))
+    glass.move(to: CGPoint(x: -width * 0.48, y: -height * 0.50))
+    glass.addLine(to: CGPoint(x: width * 0.48, y: -height * 0.50))
+    glass.addLine(to: .zero)
+    glass.addLine(to: CGPoint(x: width * 0.48, y: height * 0.50))
+    glass.addLine(to: CGPoint(x: -width * 0.48, y: height * 0.50))
+    glass.addLine(to: .zero)
     glass.closeSubpath()
 
-    context.stroke(
+    hourglassContext.stroke(
         glass,
         with: .color(reviewReactionYellowColor().opacity(opacity)),
         style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round)
     )
 
     var topSand = Path()
-    topSand.move(to: CGPoint(x: center.x - width * (0.38 - sandProgress * 0.20), y: center.y - height * 0.40 + sandProgress * height * 0.18))
-    topSand.addLine(to: CGPoint(x: center.x + width * (0.38 - sandProgress * 0.20), y: center.y - height * 0.40 + sandProgress * height * 0.18))
-    topSand.addLine(to: CGPoint(x: center.x, y: center.y - height * 0.06))
+    topSand.move(to: CGPoint(x: -width * (0.38 - sandProgress * 0.20), y: -height * 0.40 + sandProgress * height * 0.18))
+    topSand.addLine(to: CGPoint(x: width * (0.38 - sandProgress * 0.20), y: -height * 0.40 + sandProgress * height * 0.18))
+    topSand.addLine(to: CGPoint(x: 0, y: -height * 0.06))
     topSand.closeSubpath()
-    context.fill(topSand, with: .color(reviewReactionYellowColor().opacity(opacity * 0.88)))
+    hourglassContext.fill(topSand, with: .color(reviewReactionYellowColor().opacity(opacity * 0.88)))
 
     var bottomSand = Path()
-    bottomSand.move(to: CGPoint(x: center.x, y: center.y + height * 0.08))
-    bottomSand.addLine(to: CGPoint(x: center.x + width * (0.12 + sandProgress * 0.24), y: center.y + height * 0.39))
-    bottomSand.addLine(to: CGPoint(x: center.x - width * (0.12 + sandProgress * 0.24), y: center.y + height * 0.39))
+    bottomSand.move(to: CGPoint(x: 0, y: height * 0.08))
+    bottomSand.addLine(to: CGPoint(x: width * (0.12 + sandProgress * 0.24), y: height * 0.39))
+    bottomSand.addLine(to: CGPoint(x: -width * (0.12 + sandProgress * 0.24), y: height * 0.39))
     bottomSand.closeSubpath()
-    context.fill(bottomSand, with: .color(reviewReactionOrangeColor().opacity(opacity)))
+    hourglassContext.fill(bottomSand, with: .color(reviewReactionOrangeColor().opacity(opacity)))
 
     let fallingLineHeight = height * (0.12 + sandProgress * 0.22)
     var fallingSand = Path()
-    fallingSand.move(to: CGPoint(x: center.x, y: center.y - height * 0.04))
-    fallingSand.addLine(to: CGPoint(x: center.x, y: center.y - height * 0.04 + fallingLineHeight))
-    context.stroke(
+    fallingSand.move(to: CGPoint(x: 0, y: -height * 0.04))
+    fallingSand.addLine(to: CGPoint(x: 0, y: -height * 0.04 + fallingLineHeight))
+    hourglassContext.stroke(
         fallingSand,
         with: .color(reviewReactionYellowColor().opacity(opacity)),
         style: StrokeStyle(lineWidth: 4, lineCap: .round)
@@ -600,22 +666,26 @@ private func drawHardFallingWeight(
         return
     }
 
-    let fallProgress = motionMode == .reduced ? 1 : reviewReactionEaseOutCubic(progress: min(progress * 1.15, 1))
-    let impact = max(0, min((progress - 0.58) / 0.26, 1))
+    let phase = reviewReactionPhaseProgress(progress: progress, enterEnd: 0.52, exitStart: 0.82)
+    let fallProgress = motionMode == .reduced ? 1 : reviewReactionEaseInCubic(progress: phase.enter)
+    let impact = max(0, min((progress - 0.50) / 0.22, 1))
+    let rebound = motionMode == .reduced ? 0 : sin(phase.hold * CGFloat.pi * 2.2) * (1 - phase.hold)
     let center = CGPoint(
         x: size.width * 0.50,
         y: motionMode == .reduced
             ? size.height * 0.45
-            : reviewReactionInterpolate(start: size.height * -0.12, end: size.height * 0.52, progress: fallProgress)
+            : reviewReactionInterpolate(start: size.height * -0.16, end: size.height * 0.52, progress: fallProgress) - rebound * 24 + phase.exit * 22
     )
     let radius = min(size.width, size.height) * 0.12
-    let scale = motionMode == .reduced ? 0.95 : 1 + sin(progress * CGFloat.pi) * 0.10
+    let squash = motionMode == .reduced ? 0 : sin(impact * CGFloat.pi) * 0.18
+    let stretch = motionMode == .reduced ? 0 : (1 - phase.enter) * 0.16
 
     drawWeight(
         context: context,
         center: center,
         radius: radius,
-        scale: scale,
+        xScale: 1 + squash - stretch * 0.40,
+        yScale: 1 - squash * 0.55 + stretch,
         opacity: opacity
     )
 
@@ -642,8 +712,10 @@ private func drawHardYellowCrack(
         return
     }
 
-    let drawProgress = motionMode == .reduced ? 1 : min(progress * 1.45, 1)
+    let phase = reviewReactionPhaseProgress(progress: progress, enterEnd: 0.64, exitStart: 0.82)
+    let drawProgress = motionMode == .reduced ? 1 : min(phase.enter * 1.12, 1)
     let centerY = size.height * 0.45
+    let impactGlow = motionMode == .reduced ? 0 : sin(min(phase.enter, 1) * CGFloat.pi)
     var crack = Path()
     let points: [CGPoint] = [
         CGPoint(x: size.width * 0.16, y: centerY - 40),
@@ -678,6 +750,35 @@ private func drawHardYellowCrack(
         with: .color(Color.white.opacity(opacity * 0.75)),
         style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round)
     )
+
+    let branches: [[CGPoint]] = [
+        [CGPoint(x: size.width * 0.38, y: centerY - 35), CGPoint(x: size.width * 0.34, y: centerY - 74), CGPoint(x: size.width * 0.28, y: centerY - 92)],
+        [CGPoint(x: size.width * 0.57, y: centerY - 8), CGPoint(x: size.width * 0.62, y: centerY - 48), CGPoint(x: size.width * 0.69, y: centerY - 62)],
+        [CGPoint(x: size.width * 0.68, y: centerY + 42), CGPoint(x: size.width * 0.63, y: centerY + 74), CGPoint(x: size.width * 0.57, y: centerY + 86)]
+    ]
+    for (index, branchPoints) in branches.enumerated() {
+        let branchProgress = motionMode == .reduced
+            ? 1
+            : reviewReactionClampedProgress(progress: (phase.enter - CGFloat(index) * 0.18) / 0.62)
+        var branch = Path()
+        if let firstPoint = branchPoints.first {
+            branch.move(to: firstPoint)
+        }
+        for point in branchPoints.dropFirst() {
+            branch.addLine(to: point)
+        }
+        let visibleBranch = branch.trimmedPath(from: 0, to: branchProgress)
+        context.stroke(
+            visibleBranch,
+            with: .color(reviewReactionYellowColor().opacity(opacity * (0.70 + impactGlow * 0.30))),
+            style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round)
+        )
+        context.stroke(
+            visibleBranch,
+            with: .color(Color.white.opacity(opacity * 0.55)),
+            style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round)
+        )
+    }
 }
 
 private func drawHardRollingBoulder(
@@ -691,19 +792,38 @@ private func drawHardRollingBoulder(
         return
     }
 
-    let travel = reviewReactionEaseOutCubic(progress: progress)
+    let phase = reviewReactionPhaseProgress(progress: progress, enterEnd: 0.62, exitStart: 0.82)
     let radius = min(size.width, size.height) * 0.12
-    let center = CGPoint(
-        x: motionMode == .reduced
-            ? size.width * 0.50
-            : reviewReactionInterpolate(start: -radius * 1.2, end: size.width + radius * 1.2, progress: travel),
-        y: size.height * 0.60
-    )
-    let rotationDegrees = motionMode == .reduced ? -12 : progress * 720
+    let baseY = size.height * 0.60
+    let targetCenter = CGPoint(x: size.width * 0.54, y: baseY)
+    let center: CGPoint
+    if motionMode == .reduced {
+        center = targetCenter
+    } else if progress < 0.62 {
+        let travel = reviewReactionEaseInOut(progress: phase.enter)
+        let hop = abs(sin(phase.enter * CGFloat.pi * 3)) * 22 * (1 - phase.enter * 0.35)
+        center = CGPoint(
+            x: reviewReactionInterpolate(start: -radius * 1.4, end: targetCenter.x, progress: travel),
+            y: baseY - hop
+        )
+    } else if progress < 0.82 {
+        center = CGPoint(
+            x: targetCenter.x + sin(phase.hold * CGFloat.pi * 2) * 10 * (1 - phase.hold),
+            y: baseY - abs(sin(phase.hold * CGFloat.pi * 2)) * 9 * (1 - phase.hold)
+        )
+    } else {
+        let exit = reviewReactionEaseInCubic(progress: phase.exit)
+        center = CGPoint(
+            x: reviewReactionInterpolate(start: targetCenter.x, end: size.width + radius * 1.4, progress: exit),
+            y: baseY - sin(phase.exit * CGFloat.pi) * 18
+        )
+    }
+    let radiusScale = motionMode == .reduced ? 1 : 0.92 + sin(progress * CGFloat.pi * 3.5) * 0.05 + phase.enter * 0.08
+    let rotationDegrees = motionMode == .reduced ? -12 : reviewReactionEaseInOut(progress: progress) * 900
     drawBoulder(
         context: context,
         center: center,
-        radius: radius,
+        radius: radius * radiusScale,
         rotationDegrees: rotationDegrees,
         opacity: opacity
     )
@@ -726,11 +846,13 @@ private func drawGoodHandDrawnCheck(
         return
     }
 
-    let drawProgress = motionMode == .reduced ? 1 : min(progress * 1.28, 1)
+    let phase = reviewReactionPhaseProgress(progress: progress, enterEnd: 0.62, exitStart: 0.84)
+    let drawProgress = motionMode == .reduced ? 1 : min(reviewReactionEaseOutBack(progress: phase.enter, overshoot: 1.15), 1)
+    let settle = motionMode == .reduced ? 1 : 1 + sin(phase.hold * CGFloat.pi * 2) * 0.035 * (1 - phase.hold)
     drawCheckMark(
         context: context,
-        center: CGPoint(x: size.width * 0.50, y: size.height * 0.43),
-        width: min(size.width * 0.58, 320),
+        center: CGPoint(x: size.width * 0.50, y: size.height * 0.43 - (settle - 1) * 90),
+        width: min(size.width * 0.58, 320) * settle,
         color: reviewReactionGreenColor(),
         lineWidth: 15,
         progress: drawProgress,
@@ -749,12 +871,19 @@ private func drawGoodLightSweep(
         return
     }
 
-    let travel = motionMode == .reduced ? 0.50 : reviewReactionEaseInOut(progress: progress)
-    let center = CGPoint(
-        x: reviewReactionInterpolate(start: -size.width * 0.20, end: size.width * 1.20, progress: travel),
-        y: size.height * 0.45
-    )
-    let beamLength = size.height * 1.25
+    let phase = reviewReactionPhaseProgress(progress: progress, enterEnd: 0.38, exitStart: 0.78)
+    let centerX: CGFloat
+    if motionMode == .reduced {
+        centerX = size.width * 0.50
+    } else if progress < 0.38 {
+        centerX = reviewReactionInterpolate(start: -size.width * 0.18, end: size.width * 0.50, progress: reviewReactionEaseOutCubic(progress: phase.enter))
+    } else if progress < 0.78 {
+        centerX = size.width * 0.50 + sin(phase.hold * CGFloat.pi * 2) * 18
+    } else {
+        centerX = reviewReactionInterpolate(start: size.width * 0.50, end: size.width * 1.18, progress: reviewReactionEaseInCubic(progress: phase.exit))
+    }
+    let center = CGPoint(x: centerX, y: size.height * 0.45 + (motionMode == .reduced ? 0 : sin(progress * CGFloat.pi * 2) * 10))
+    let beamLength = size.width * 0.88
     let beamWidths: [CGFloat] = [70, 38, 12]
     let colors: [Color] = [
         reviewReactionYellowColor(),
@@ -763,14 +892,17 @@ private func drawGoodLightSweep(
     ]
 
     for index in 0..<beamWidths.count {
-        drawBeam(
-            context: context,
-            center: center,
-            length: beamLength,
-            width: beamWidths[index],
-            rotationDegrees: 22,
-            color: colors[index],
-            opacity: opacity * Double(0.16 + CGFloat(index) * 0.18)
+        var path = Path()
+        path.move(to: CGPoint(x: center.x - beamLength * 0.50, y: center.y + CGFloat(index - 1) * 10))
+        path.addCurve(
+            to: CGPoint(x: center.x + beamLength * 0.50, y: center.y - 36 + CGFloat(index - 1) * 8),
+            control1: CGPoint(x: center.x - beamLength * 0.18, y: center.y - 90),
+            control2: CGPoint(x: center.x + beamLength * 0.20, y: center.y + 64)
+        )
+        context.stroke(
+            path,
+            with: .color(colors[index].opacity(opacity * Double(0.16 + CGFloat(index) * 0.18))),
+            style: StrokeStyle(lineWidth: beamWidths[index], lineCap: .round, lineJoin: .round)
         )
     }
 }
@@ -786,21 +918,42 @@ private func drawGoodPaperPlaneCheck(
         return
     }
 
-    let travel = reviewReactionEaseOutCubic(progress: progress)
-    let center = CGPoint(
-        x: motionMode == .reduced
-            ? size.width * 0.50
-            : reviewReactionInterpolate(start: size.width * 0.12, end: size.width * 0.82, progress: travel),
-        y: motionMode == .reduced
-            ? size.height * 0.42
-            : reviewReactionInterpolate(start: size.height * 0.64, end: size.height * 0.26, progress: travel)
-    )
-    let scale = min(size.width, size.height) / 390
+    let phase = reviewReactionPhaseProgress(progress: progress, enterEnd: 0.46, exitStart: 0.78)
+    let targetCenter = CGPoint(x: size.width * 0.56, y: size.height * 0.38)
+    let center: CGPoint
+    if motionMode == .reduced {
+        center = targetCenter
+    } else if progress < 0.46 {
+        center = cubicBezierPoint(
+            start: CGPoint(x: size.width * 0.02, y: size.height * 0.66),
+            control1: CGPoint(x: size.width * 0.28, y: size.height * 0.74),
+            control2: CGPoint(x: size.width * 0.30, y: size.height * 0.18),
+            end: targetCenter,
+            progress: reviewReactionEaseInOut(progress: phase.enter)
+        )
+    } else if progress < 0.78 {
+        center = CGPoint(
+            x: targetCenter.x + sin(phase.hold * CGFloat.pi * 2) * 18,
+            y: targetCenter.y + sin(phase.hold * CGFloat.pi * 4) * 8
+        )
+    } else {
+        center = cubicBezierPoint(
+            start: targetCenter,
+            control1: CGPoint(x: size.width * 0.66, y: size.height * 0.18),
+            control2: CGPoint(x: size.width * 0.92, y: size.height * 0.22),
+            end: CGPoint(x: size.width * 1.16, y: size.height * 0.42),
+            progress: reviewReactionEaseInCubic(progress: phase.exit)
+        )
+    }
+    let scale = min(size.width, size.height) / 390 * (motionMode == .reduced ? 1 : 0.82 + reviewReactionEaseOutBack(progress: phase.enter, overshoot: 1.20) * 0.24 - phase.exit * 0.12)
+    let rotationDegrees = motionMode == .reduced
+        ? -18
+        : reviewReactionInterpolate(start: -30, end: -8, progress: phase.enter) + sin(progress * CGFloat.pi * 4) * 4 - phase.exit * 12
     drawPaperPlane(
         context: context,
         center: center,
         scale: scale,
-        rotationDegrees: -18,
+        rotationDegrees: rotationDegrees,
         opacity: opacity
     )
     drawCheckMark(
@@ -809,7 +962,7 @@ private func drawGoodPaperPlaneCheck(
         width: 72 * scale,
         color: reviewReactionGreenColor(),
         lineWidth: 7 * scale,
-        progress: motionMode == .reduced ? 1 : min(progress * 1.55, 1),
+        progress: motionMode == .reduced ? 1 : reviewReactionClampedProgress(progress: (progress - 0.22) / 0.48),
         opacity: opacity
     )
 }
@@ -825,13 +978,17 @@ private func drawGoodCheckSealBounce(
         return
     }
 
-    let bounce = sin(progress * CGFloat.pi)
-    let scale = motionMode == .reduced ? 0.95 + bounce * 0.08 : 0.78 + bounce * 0.34
+    let phase = reviewReactionPhaseProgress(progress: progress, enterEnd: 0.36, exitStart: 0.82)
+    let bounce = motionMode == .reduced ? sin(progress * CGFloat.pi) : sin(phase.hold * CGFloat.pi * 3) * (1 - phase.hold)
+    let scale = motionMode == .reduced
+        ? 0.95 + bounce * 0.08
+        : reviewReactionPopScale(progress: progress, enterEnd: 0.36, exitStart: 0.82, baseScale: 0.52, peakScale: 1.18, settledScale: 1.00)
     drawCheckSeal(
         context: context,
-        center: CGPoint(x: size.width * 0.50, y: size.height * 0.43 - bounce * 14),
+        center: CGPoint(x: size.width * 0.50, y: size.height * 0.43 - bounce * 16),
         radius: min(size.width, size.height) * 0.13,
         scale: scale,
+        rotationDegrees: motionMode == .reduced ? -7 : -18 + reviewReactionEaseOutBack(progress: phase.enter, overshoot: 1.15) * 13 + bounce * 7,
         opacity: opacity
     )
 }
@@ -847,8 +1004,12 @@ private func drawEasySparkleBurst(
         return
     }
 
-    let center = CGPoint(x: size.width * 0.50, y: size.height * 0.40)
-    let burstProgress = motionMode == .reduced ? 0.65 : reviewReactionEaseOutCubic(progress: min(progress * 1.18, 1))
+    let phase = reviewReactionPhaseProgress(progress: progress, enterEnd: 0.56, exitStart: 0.84)
+    let center = CGPoint(
+        x: size.width * 0.50,
+        y: size.height * 0.40 + (motionMode == .reduced ? 0 : sin(progress * CGFloat.pi * 2) * 8 * (1 - phase.exit))
+    )
+    let burstProgress = motionMode == .reduced ? 0.65 : reviewReactionEaseOutCubic(progress: phase.enter)
     let colors: [Color] = [
         reviewReactionYellowColor(),
         reviewReactionPinkColor(),
@@ -857,21 +1018,26 @@ private func drawEasySparkleBurst(
     ]
     for index in 0..<18 {
         let angle = CGFloat(index) * CGFloat.pi * 2 / 18
-        let distance = min(size.width, size.height) * (0.08 + 0.24 * burstProgress)
+        let localProgress = motionMode == .reduced
+            ? 0.70
+            : reviewReactionClampedProgress(progress: (phase.enter - CGFloat(index % 6) * 0.055) / 0.76)
+        let twinkle = 0.76 + sin((progress + CGFloat(index) * 0.07) * CGFloat.pi * 5) * 0.24
+        let distance = min(size.width, size.height) * (0.08 + 0.24 * max(burstProgress, localProgress))
         let point = pointOnCircle(center: center, radius: distance, angle: angle)
         if index.isMultiple(of: 3) {
             drawSparkle(
                 context: context,
                 center: point,
-                radius: 12 + CGFloat(index % 4) * 2,
+                radius: (12 + CGFloat(index % 4) * 2) * twinkle,
                 rotation: angle + progress * CGFloat.pi,
                 color: colors[index % colors.count],
-                opacity: opacity
+                opacity: opacity * Double(localProgress)
             )
         } else {
+            let dotRadius = (3 + CGFloat(index % 3)) * twinkle
             context.fill(
-                Path(ellipseIn: CGRect(x: point.x - 4, y: point.y - 4, width: 8, height: 8)),
-                with: .color(colors[index % colors.count].opacity(opacity))
+                Path(ellipseIn: CGRect(x: point.x - dotRadius, y: point.y - dotRadius, width: dotRadius * 2, height: dotRadius * 2)),
+                with: .color(colors[index % colors.count].opacity(opacity * Double(localProgress)))
             )
         }
     }
@@ -888,11 +1054,18 @@ private func drawEasyRainbowStreak(
         return
     }
 
-    let travel = motionMode == .reduced ? 0.50 : reviewReactionEaseInOut(progress: progress)
-    let center = CGPoint(
-        x: reviewReactionInterpolate(start: -size.width * 0.24, end: size.width * 1.24, progress: travel),
-        y: size.height * 0.44
-    )
+    let phase = reviewReactionPhaseProgress(progress: progress, enterEnd: 0.40, exitStart: 0.78)
+    let centerX: CGFloat
+    if motionMode == .reduced {
+        centerX = size.width * 0.50
+    } else if progress < 0.40 {
+        centerX = reviewReactionInterpolate(start: -size.width * 0.24, end: size.width * 0.50, progress: reviewReactionEaseOutCubic(progress: phase.enter))
+    } else if progress < 0.78 {
+        centerX = size.width * 0.50 + sin(phase.hold * CGFloat.pi * 2) * 22
+    } else {
+        centerX = reviewReactionInterpolate(start: size.width * 0.50, end: size.width * 1.24, progress: reviewReactionEaseInCubic(progress: phase.exit))
+    }
+    let center = CGPoint(x: centerX, y: size.height * 0.44)
     let colors: [Color] = [
         reviewReactionRedColor(),
         reviewReactionOrangeColor(),
@@ -903,14 +1076,18 @@ private func drawEasyRainbowStreak(
     ]
 
     for index in 0..<colors.count {
-        drawBeam(
-            context: context,
-            center: CGPoint(x: center.x, y: center.y + CGFloat(index - 2) * 11),
-            length: size.width * 0.92,
-            width: 10,
-            rotationDegrees: -16,
-            color: colors[index],
-            opacity: opacity * 0.78
+        let offset = CGFloat(index - 2) * 11
+        var path = Path()
+        path.move(to: CGPoint(x: center.x - size.width * 0.48, y: center.y + offset + 10))
+        path.addCurve(
+            to: CGPoint(x: center.x + size.width * 0.48, y: center.y + offset - 14),
+            control1: CGPoint(x: center.x - size.width * 0.22, y: center.y + offset - 54 - sin(progress * CGFloat.pi * 2) * 12),
+            control2: CGPoint(x: center.x + size.width * 0.20, y: center.y + offset + 46 + sin(progress * CGFloat.pi * 2 + CGFloat(index)) * 12)
+        )
+        context.stroke(
+            path,
+            with: .color(colors[index].opacity(opacity * 0.78)),
+            style: StrokeStyle(lineWidth: 10, lineCap: .round, lineJoin: .round)
         )
     }
 }
@@ -926,23 +1103,30 @@ private func drawEasyCrownBounce(
         return
     }
 
-    let bounce = sin(progress * CGFloat.pi)
+    let phase = reviewReactionPhaseProgress(progress: progress, enterEnd: 0.44, exitStart: 0.82)
+    let targetCenter = CGPoint(x: size.width * 0.50, y: size.height * 0.40)
+    let bounce = motionMode == .reduced ? sin(progress * CGFloat.pi) : sin(phase.hold * CGFloat.pi * 3) * (1 - phase.hold)
     let center = CGPoint(
-        x: size.width * 0.50,
-        y: size.height * 0.40 - (motionMode == .reduced ? 0 : bounce * 36)
+        x: targetCenter.x + (motionMode == .reduced ? 0 : sin(progress * CGFloat.pi * 2) * 6 * (1 - phase.exit)),
+        y: motionMode == .reduced
+            ? targetCenter.y
+            : reviewReactionInterpolate(start: -min(size.width, size.height) * 0.16, end: targetCenter.y, progress: reviewReactionEaseOutBack(progress: phase.enter, overshoot: 1.10)) - bounce * 28 + phase.exit * 18
     )
+    let scalePop = motionMode == .reduced
+        ? 0.92 + bounce * 0.10
+        : reviewReactionPopScale(progress: progress, enterEnd: 0.44, exitStart: 0.82, baseScale: 0.58, peakScale: 1.18, settledScale: 1.00)
     drawCrown(
         context: context,
         center: center,
-        scale: min(size.width, size.height) / 360 * (0.92 + bounce * 0.18),
-        rotationDegrees: motionMode == .reduced ? -3 : reviewReactionInterpolate(start: -11, end: 7, progress: progress),
+        scale: min(size.width, size.height) / 360 * scalePop,
+        rotationDegrees: motionMode == .reduced ? -3 : -14 + reviewReactionEaseOutBack(progress: phase.enter, overshoot: 1.20) * 18 + bounce * 4,
         opacity: opacity
     )
     drawSparkle(
         context: context,
-        center: CGPoint(x: center.x + 76, y: center.y - 48),
-        radius: 14,
-        rotation: progress * CGFloat.pi,
+        center: CGPoint(x: center.x + 76 + phase.hold * 16, y: center.y - 48 - abs(bounce) * 10),
+        radius: 14 * (0.80 + sin(progress * CGFloat.pi * 5) * 0.18 + phase.enter * 0.20),
+        rotation: progress * CGFloat.pi * 2,
         color: reviewReactionYellowColor(),
         opacity: opacity
     )
@@ -959,13 +1143,33 @@ private func drawEasyUnicornFlyby(
         return
     }
 
-    let travel = reviewReactionEaseInOut(progress: progress)
-    let center = CGPoint(
-        x: motionMode == .reduced
-            ? size.width * 0.50
-            : reviewReactionInterpolate(start: size.width * 1.18, end: size.width * -0.18, progress: travel),
-        y: size.height * 0.27 + (motionMode == .reduced ? 0 : sin(progress * CGFloat.pi * 2) * 16)
-    )
+    let phase = reviewReactionPhaseProgress(progress: progress, enterEnd: 0.42, exitStart: 0.80)
+    let displayCenter = CGPoint(x: size.width * 0.62, y: size.height * 0.28)
+    let center: CGPoint
+    if motionMode == .reduced {
+        center = CGPoint(x: size.width * 0.50, y: size.height * 0.28)
+    } else if progress < 0.42 {
+        center = cubicBezierPoint(
+            start: CGPoint(x: size.width * 1.18, y: size.height * 0.22),
+            control1: CGPoint(x: size.width * 0.98, y: size.height * 0.08),
+            control2: CGPoint(x: size.width * 0.74, y: size.height * 0.36),
+            end: displayCenter,
+            progress: reviewReactionEaseOutCubic(progress: phase.enter)
+        )
+    } else if progress < 0.80 {
+        center = CGPoint(
+            x: displayCenter.x + sin(phase.hold * CGFloat.pi * 2) * 20,
+            y: displayCenter.y + sin(phase.hold * CGFloat.pi * 4) * 14
+        )
+    } else {
+        center = cubicBezierPoint(
+            start: displayCenter,
+            control1: CGPoint(x: size.width * 0.40, y: size.height * 0.16),
+            control2: CGPoint(x: size.width * 0.12, y: size.height * 0.34),
+            end: CGPoint(x: size.width * -0.22, y: size.height * 0.24),
+            progress: reviewReactionEaseInCubic(progress: phase.exit)
+        )
+    }
     drawRainbowTrail(
         context: context,
         headCenter: center,
@@ -977,7 +1181,8 @@ private func drawEasyUnicornFlyby(
     drawUnicorn(
         context: context,
         center: center,
-        scale: min(size.width, size.height) / 410,
+        scale: min(size.width, size.height) / 410 * (motionMode == .reduced ? 1 : 0.84 + reviewReactionEaseOutBack(progress: phase.enter, overshoot: 1.18) * 0.20 - phase.exit * 0.12),
+        progress: progress,
         opacity: opacity
     )
 }
@@ -1023,15 +1228,14 @@ private func drawWeight(
     context: GraphicsContext,
     center: CGPoint,
     radius: CGFloat,
-    scale: CGFloat,
+    xScale: CGFloat,
+    yScale: CGFloat,
     opacity: Double
 ) {
-    let weightContext = transformedContext(
-        context: context,
-        center: center,
-        rotationDegrees: -4,
-        scale: scale
-    )
+    var weightContext = context
+    weightContext.translateBy(x: center.x, y: center.y)
+    weightContext.rotate(by: .degrees(-4))
+    weightContext.scaleBy(x: xScale, y: yScale)
 
     let handleRect = CGRect(x: -radius * 0.54, y: -radius * 1.10, width: radius * 1.08, height: radius * 0.70)
     var handle = Path()
@@ -1237,12 +1441,13 @@ private func drawCheckSeal(
     center: CGPoint,
     radius: CGFloat,
     scale: CGFloat,
+    rotationDegrees: CGFloat,
     opacity: Double
 ) {
     let sealContext = transformedContext(
         context: context,
         center: center,
-        rotationDegrees: -7,
+        rotationDegrees: rotationDegrees,
         scale: scale
     )
     let sealPath = makeScallopedSealPath(radius: radius, teeth: 34, inset: 0.07)
@@ -1343,16 +1548,17 @@ private func drawRainbowTrail(
     for index in 0..<colors.count {
         var path = Path()
         let start = CGPoint(x: headCenter.x + 6, y: headCenter.y + CGFloat(index - 3) * 6)
+        let wave = sin(progress * CGFloat.pi * 4 + CGFloat(index) * 0.62)
         path.move(to: start)
         path.addCurve(
-            to: CGPoint(x: start.x + trailLength, y: start.y + sin(progress * CGFloat.pi * 2 + CGFloat(index)) * 10),
-            control1: CGPoint(x: start.x + trailLength * 0.35, y: start.y - 20),
-            control2: CGPoint(x: start.x + trailLength * 0.70, y: start.y + 20)
+            to: CGPoint(x: start.x + trailLength, y: start.y + wave * 14),
+            control1: CGPoint(x: start.x + trailLength * 0.30, y: start.y - 22 + wave * 8),
+            control2: CGPoint(x: start.x + trailLength * 0.70, y: start.y + 24 - wave * 10)
         )
         context.stroke(
             path,
             with: .color(colors[index].opacity(opacity * 0.70)),
-            style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round)
+            style: StrokeStyle(lineWidth: 5 + abs(wave) * 1.5, lineCap: .round, lineJoin: .round)
         )
     }
 }
@@ -1361,12 +1567,13 @@ private func drawUnicorn(
     context: GraphicsContext,
     center: CGPoint,
     scale: CGFloat,
+    progress: CGFloat,
     opacity: Double
 ) {
     let unicornContext = transformedContext(
         context: context,
         center: center,
-        rotationDegrees: -4,
+        rotationDegrees: -4 + sin(progress * CGFloat.pi * 4) * 3,
         scale: scale
     )
 
@@ -1397,10 +1604,11 @@ private func drawUnicorn(
     )
 
     let legXs: [CGFloat] = [-34, -8, 18, 36]
-    for x in legXs {
+    for (index, x) in legXs.enumerated() {
+        let step = sin(progress * CGFloat.pi * 8 + CGFloat(index) * CGFloat.pi / 2) * 7
         var leg = Path()
         leg.move(to: CGPoint(x: x, y: 14))
-        leg.addLine(to: CGPoint(x: x - 4, y: 44))
+        leg.addLine(to: CGPoint(x: x - 4 + step, y: 44 - abs(step) * 0.35))
         unicornContext.stroke(
             leg,
             with: .color(Color.white.opacity(opacity)),
@@ -1414,12 +1622,13 @@ private func drawUnicorn(
         reviewReactionPurpleColor()
     ]
     for index in 0..<maneColors.count {
+        let maneWave = sin(progress * CGFloat.pi * 5 + CGFloat(index)) * 4
         var mane = Path()
-        mane.move(to: CGPoint(x: 24 + CGFloat(index) * 10, y: -24))
+        mane.move(to: CGPoint(x: 24 + CGFloat(index) * 10, y: -24 + maneWave))
         mane.addCurve(
             to: CGPoint(x: 10 + CGFloat(index) * 8, y: 6),
             control1: CGPoint(x: 12 + CGFloat(index) * 8, y: -20),
-            control2: CGPoint(x: 28 + CGFloat(index) * 7, y: -2)
+            control2: CGPoint(x: 28 + CGFloat(index) * 7, y: -2 + maneWave)
         )
         unicornContext.stroke(
             mane,
@@ -1550,6 +1759,42 @@ private func pointOnCircle(
     )
 }
 
+private func cubicBezierPoint(
+    start: CGPoint,
+    control1: CGPoint,
+    control2: CGPoint,
+    end: CGPoint,
+    progress: CGFloat
+) -> CGPoint {
+    let boundedProgress = reviewReactionClampedProgress(progress: progress)
+    let inverse = 1 - boundedProgress
+    let startWeight = inverse * inverse * inverse
+    let control1Weight = 3 * inverse * inverse * boundedProgress
+    let control2Weight = 3 * inverse * boundedProgress * boundedProgress
+    let endWeight = boundedProgress * boundedProgress * boundedProgress
+    return CGPoint(
+        x: start.x * startWeight + control1.x * control1Weight + control2.x * control2Weight + end.x * endWeight,
+        y: start.y * startWeight + control1.y * control1Weight + control2.y * control2Weight + end.y * endWeight
+    )
+}
+
+private func reviewReactionPhaseProgress(
+    progress: CGFloat,
+    enterEnd: CGFloat,
+    exitStart: CGFloat
+) -> ReviewReactionPhaseProgress {
+    precondition(enterEnd > 0, "Review reaction enter phase must be positive.")
+    precondition(exitStart > enterEnd, "Review reaction exit phase must start after enter phase.")
+    precondition(exitStart < 1, "Review reaction exit phase must start before progress completes.")
+
+    let boundedProgress = reviewReactionClampedProgress(progress: progress)
+    return ReviewReactionPhaseProgress(
+        enter: reviewReactionClampedProgress(progress: boundedProgress / enterEnd),
+        hold: reviewReactionClampedProgress(progress: (boundedProgress - enterEnd) / (exitStart - enterEnd)),
+        exit: reviewReactionClampedProgress(progress: (boundedProgress - exitStart) / (1 - exitStart))
+    )
+}
+
 private func reviewReactionClampedProgress(progress: CGFloat) -> CGFloat {
     min(max(progress, 0), 1)
 }
@@ -1577,9 +1822,53 @@ private func reviewReactionEaseOutCubic(progress: CGFloat) -> CGFloat {
     return 1 - inverse * inverse * inverse
 }
 
+private func reviewReactionEaseInCubic(progress: CGFloat) -> CGFloat {
+    let boundedProgress = reviewReactionClampedProgress(progress: progress)
+    return boundedProgress * boundedProgress * boundedProgress
+}
+
 private func reviewReactionEaseInOut(progress: CGFloat) -> CGFloat {
     let boundedProgress = reviewReactionClampedProgress(progress: progress)
     return -(cos(CGFloat.pi * boundedProgress) - 1) / 2
+}
+
+private func reviewReactionEaseOutBack(progress: CGFloat, overshoot: CGFloat) -> CGFloat {
+    let boundedProgress = reviewReactionClampedProgress(progress: progress)
+    let shiftedProgress = boundedProgress - 1
+    return 1 + (overshoot + 1) * shiftedProgress * shiftedProgress * shiftedProgress + overshoot * shiftedProgress * shiftedProgress
+}
+
+private func reviewReactionPopScale(
+    progress: CGFloat,
+    enterEnd: CGFloat,
+    exitStart: CGFloat,
+    baseScale: CGFloat,
+    peakScale: CGFloat,
+    settledScale: CGFloat
+) -> CGFloat {
+    let phase = reviewReactionPhaseProgress(
+        progress: progress,
+        enterEnd: enterEnd,
+        exitStart: exitStart
+    )
+    if phase.enter < 1 {
+        let scale = reviewReactionInterpolate(
+            start: baseScale,
+            end: settledScale,
+            progress: reviewReactionEaseOutBack(progress: phase.enter, overshoot: 1.22)
+        )
+        return min(scale, peakScale)
+    }
+    if phase.exit > 0 {
+        return reviewReactionInterpolate(
+            start: settledScale,
+            end: settledScale * 0.82,
+            progress: reviewReactionEaseInCubic(progress: phase.exit)
+        )
+    }
+
+    let settlePulse = sin(phase.hold * CGFloat.pi * 4) * 0.045 * (1 - phase.hold)
+    return settledScale + settlePulse
 }
 
 private func reviewReactionInterpolate(
