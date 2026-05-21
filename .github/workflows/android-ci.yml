@@ -1,0 +1,25 @@
+name: Android CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/android/**'
+      - '!apps/android/README.md'
+      - '!apps/android/docs/**'
+      - 'cloudbuild.android.yaml'
+      - 'scripts/run-android-ci.sh'
+      - '.github/workflows/android-ci-reusable.yml'
+      - '.github/workflows/android-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  android_ci:
+    name: Android CI
+    uses: ./.github/workflows/android-ci-reusable.yml
+    with:
+      target_ref: ${{ github.ref }}
+      android_version_code: '1'
+      run_data_local_instrumentation: false
