@@ -124,6 +124,9 @@
 "settings.row.thisDevice" = "Dieses Gerät";
 "settings.row.access" = "Zugriff";
 "settings.row.access.itemCount" = "4 Artikel";
+"settings.section.test" = "Test";
+"settings.row.test" = "Test";
+"settings.row.test.itemCount" = "1 Element";
 "settings.sync.success" = "Erfolgreich synchronisiert";
 "settings.sync.guestAiActive" = "Gast-KI ist aktiv";
 "settings.sync.notSyncing" = "Keine Synchronisierung";
@@ -154,6 +157,14 @@
 "settings.thisDevice.note.localOnly" = "Sie müssen sich nicht anmelden, um Karten zu erstellen, Decks zu speichern oder zu überprüfen.";
 "settings.thisDevice.note.syncScope" = "Zukünftige Synchronisierungen sind nur auf den aktuellen Arbeitsbereich beschränkt.";
 "settings.thisDevice.note.schema" = "Das Schema bleibt standardmäßig nah am Backend, ohne Remote-Daten herunterzuladen.";
+
+"settings.test.title" = "Test";
+"settings.test.section.tools" = "Werkzeuge";
+"settings.test.animations" = "Animationen";
+"settings.test.animations.itemCount" = "16 Elemente";
+"settings.test.animations.title" = "Animationen";
+"settings.test.animations.probability" = "%@ Wahrscheinlichkeit";
+"settings.test.animations.playAccessibility" = "Animation %@ abspielen, %@";
 
 "settings.access.title" = "Zugriff";
 "settings.access.section.permissions" = "Berechtigungen";

@@ -124,6 +124,9 @@
 "settings.row.thisDevice" = "هذا الجهاز";
 "settings.row.access" = "الوصول";
 "settings.row.access.itemCount" = "4 عناصر";
+"settings.section.test" = "اختبار";
+"settings.row.test" = "اختبار";
+"settings.row.test.itemCount" = "عنصر واحد";
 "settings.sync.success" = "تمت المزامنة بنجاح";
 "settings.sync.guestAiActive" = "الذكاء الاصطناعي الضيف نشط";
 "settings.sync.notSyncing" = "لا توجد مزامنة";
@@ -154,6 +157,14 @@
 "settings.thisDevice.note.localOnly" = "ليست هناك حاجة لتسجيل الدخول لإنشاء بطاقات أو حفظ مجموعات أو مراجعة.";
 "settings.thisDevice.note.syncScope" = "تقتصر المزامنة المستقبلية على مساحة العمل الحالية فقط.";
 "settings.thisDevice.note.schema" = "يظل المخطط قريبًا من الواجهة الخلفية بدون تنزيل البيانات البعيدة بشكل افتراضي.";
+
+"settings.test.title" = "اختبار";
+"settings.test.section.tools" = "الأدوات";
+"settings.test.animations" = "الرسوم المتحركة";
+"settings.test.animations.itemCount" = "16 عنصرًا";
+"settings.test.animations.title" = "الرسوم المتحركة";
+"settings.test.animations.probability" = "احتمال %@";
+"settings.test.animations.playAccessibility" = "تشغيل حركة %@، %@";
 
 "settings.access.title" = "الوصول";
 "settings.access.section.permissions" = "الأذونات";
