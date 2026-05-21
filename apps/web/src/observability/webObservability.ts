@@ -139,6 +139,11 @@ export type SessionBootstrapFailureDetails = Readonly<{
   verificationState: string | null;
 }>;
 
+export type SessionAccountSwitchFailureDetails = Readonly<{
+  operation: "session_account_switch_failed";
+  verificationState: string | null;
+}>;
+
 export type ChatSnapshotFailureDetails = Readonly<{
   sessionId: string;
   workspaceId: string | null;
@@ -231,6 +236,12 @@ export type WebExceptionEvent =
     error: Error;
     scope: WebObservationScope;
     details: SessionBootstrapFailureDetails;
+  }>
+  | Readonly<{
+    action: "session_account_switch_failed";
+    error: Error;
+    scope: WebObservationScope;
+    details: SessionAccountSwitchFailureDetails;
   }>
   | Readonly<{
     action: "chat_snapshot_failed";

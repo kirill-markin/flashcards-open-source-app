@@ -1,16 +1,12 @@
 import { INSTALLATION_ID_STORAGE_KEY } from "./clientIdentity";
 import { LOCALE_PREFERENCE_STORAGE_KEY } from "./i18n/runtime";
 import { clearWebSyncCache } from "./localDb/cache";
-import {
-  addWebBreadcrumb,
-  captureWebException,
-  type WebObservationScope,
-} from "./observability/webObservability";
 import { TEST_MODE_STORAGE_KEY } from "./testMode";
 
 export const deleteAccountConfirmationText: string = "delete my account";
 
 const AUTH_RESET_REQUIRED_KEY = "flashcards-auth-reset-required";
+const BROWSER_REAUTH_REQUIRED_KEY = "flashcards-browser-reauth-required";
 const ACCOUNT_DELETION_PENDING_KEY = "flashcards-account-deletion-pending";
 const ACCOUNT_DELETION_CSRF_TOKEN_KEY = "flashcards-account-deletion-csrf-token";
 const ACCOUNT_DELETION_EVENT_NAME = "flashcards-account-deletion-pending-change";
@@ -25,11 +21,7 @@ const PRESERVED_BROWSER_LOCAL_STORAGE_KEYS: ReadonlyArray<string> = [
 ];
 
 type AccountDeletionListener = () => void;
-
-type AuthResetCleanupResult = Readonly<{
-  completed: boolean;
-  error: Error | null;
-}>;
+type BrowserStorageKeyPredicate = (storageKey: string) => boolean;
 
 function getBrowserStorage(): Storage | null {
   const storageValue = window.localStorage;
@@ -46,55 +38,6 @@ function getBrowserStorage(): Storage | null {
 
 function dispatchAccountDeletionChange(): void {
   window.dispatchEvent(new Event(ACCOUNT_DELETION_EVENT_NAME));
-}
-
-function getCurrentRoute(): string | null {
-  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
-}
-
-function loadExistingInstallationId(browserStorage: Storage | null): string | null {
-  const installationId = browserStorage?.getItem(INSTALLATION_ID_STORAGE_KEY) ?? null;
-  if (installationId === null || installationId.trim() === "") {
-    return null;
-  }
-
-  return installationId;
-}
-
-function buildAuthResetCleanupScope(): WebObservationScope {
-  return {
-    app: "web",
-    feature: "auth",
-    userId: null,
-    workspaceId: null,
-    installationId: loadExistingInstallationId(getBrowserStorage()),
-    route: getCurrentRoute(),
-    requestId: null,
-    statusCode: null,
-    code: null,
-  };
-}
-
-function addAuthResetCleanupDeferredBreadcrumb(error: Error): void {
-  addWebBreadcrumb({
-    action: "auth_reset_cleanup_deferred",
-    scope: buildAuthResetCleanupScope(),
-    details: {
-      eventName: "auth_reset_cleanup_deferred",
-      errorMessage: error.message,
-    },
-  });
-}
-
-function captureAuthResetCleanupFailure(error: Error): void {
-  captureWebException({
-    action: "auth_reset_cleanup_failed",
-    error,
-    scope: buildAuthResetCleanupScope(),
-    details: {
-      operation: "auth_reset_cleanup_failed",
-    },
-  });
 }
 
 export function isAccountDeletionPending(): boolean {
@@ -169,11 +112,7 @@ function normalizeCleanupError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
 }
 
-function isBlockedIndexedDbDeleteError(error: Error): boolean {
-  return error.message === "Failed to delete IndexedDB: delete request was blocked";
-}
-
-function clearUserScopedBrowserStorage(browserStorage: Storage): void {
+function clearUserScopedBrowserStorage(browserStorage: Storage, shouldRemoveStorageKey: BrowserStorageKeyPredicate): void {
   const storageKeysToRemove: Array<string> = [];
   for (let index = 0; index < browserStorage.length; index += 1) {
     const storageKey = browserStorage.key(index);
@@ -181,7 +120,7 @@ function clearUserScopedBrowserStorage(browserStorage: Storage): void {
       continue;
     }
 
-    if (shouldRemoveAppLocalStorageKey(storageKey)) {
+    if (shouldRemoveStorageKey(storageKey)) {
       storageKeysToRemove.push(storageKey);
     }
   }
@@ -192,10 +131,6 @@ function clearUserScopedBrowserStorage(browserStorage: Storage): void {
 }
 
 function shouldRemoveAppLocalStorageKey(storageKey: string): boolean {
-  if (storageKey === AUTH_RESET_REQUIRED_KEY) {
-    return false;
-  }
-
   if (PRESERVED_BROWSER_LOCAL_STORAGE_KEYS.includes(storageKey)) {
     return false;
   }
@@ -203,27 +138,49 @@ function shouldRemoveAppLocalStorageKey(storageKey: string): boolean {
   return storageKey.startsWith(APP_LOCAL_STORAGE_PREFIX) || APP_LOCAL_STORAGE_KEYS.includes(storageKey);
 }
 
+function isReauthMarkerStorageKey(storageKey: string): boolean {
+  return storageKey === BROWSER_REAUTH_REQUIRED_KEY || storageKey === AUTH_RESET_REQUIRED_KEY;
+}
+
+function shouldRemoveAppLocalStorageKeyAfterIncompleteIndexedDbCleanup(storageKey: string): boolean {
+  if (isReauthMarkerStorageKey(storageKey)) {
+    return false;
+  }
+
+  return shouldRemoveAppLocalStorageKey(storageKey);
+}
+
+export function markBrowserReauthRequired(): void {
+  getBrowserStorage()?.setItem(BROWSER_REAUTH_REQUIRED_KEY, "1");
+}
+
+export function isBrowserReauthRequired(): boolean {
+  const browserStorage = getBrowserStorage();
+  return browserStorage?.getItem(BROWSER_REAUTH_REQUIRED_KEY) === "1"
+    || browserStorage?.getItem(AUTH_RESET_REQUIRED_KEY) === "1";
+}
+
+export function clearBrowserReauthRequired(): void {
+  const browserStorage = getBrowserStorage();
+  browserStorage?.removeItem(BROWSER_REAUTH_REQUIRED_KEY);
+  browserStorage?.removeItem(AUTH_RESET_REQUIRED_KEY);
+}
+
 export function markAuthResetRequired(): void {
-  getBrowserStorage()?.setItem(AUTH_RESET_REQUIRED_KEY, "1");
+  markBrowserReauthRequired();
 }
 
 export function isAuthResetRequired(): boolean {
-  return getBrowserStorage()?.getItem(AUTH_RESET_REQUIRED_KEY) === "1";
+  return isBrowserReauthRequired();
 }
 
 export function clearAuthResetRequired(): void {
-  getBrowserStorage()?.removeItem(AUTH_RESET_REQUIRED_KEY);
+  clearBrowserReauthRequired();
 }
 
 /**
  * Clears browser-local user state aggressively after logout, account deletion,
- * or an unrecoverable session recovery failure.
- *
- * Once refresh-based auth recovery fails, the web client intentionally stops
- * trusting every user-bound browser artifact, including warm state, sync
- * caches, and resumable account-deletion markers. The next interactive login
- * must start from a full bootstrap instead of inheriting data that may belong
- * to a different human user on the same browser.
+ * or a confirmed account switch.
  *
  * The stable installation id, explicit locale preference, and hidden test-mode
  * flag are intentionally retained because they are browser-scoped preferences
@@ -242,42 +199,13 @@ export async function clearAllLocalBrowserData(): Promise<void> {
   }
 
   if (browserStorage !== null) {
-    clearUserScopedBrowserStorage(browserStorage);
+    const shouldRemoveStorageKey = indexedDbError === null
+      ? shouldRemoveAppLocalStorageKey
+      : shouldRemoveAppLocalStorageKeyAfterIncompleteIndexedDbCleanup;
+    clearUserScopedBrowserStorage(browserStorage, shouldRemoveStorageKey);
   }
 
   if (indexedDbError !== null) {
     throw indexedDbError;
-  }
-}
-
-export async function runPendingAuthResetCleanup(): Promise<AuthResetCleanupResult> {
-  if (isAuthResetRequired() === false) {
-    return {
-      completed: true,
-      error: null,
-    };
-  }
-
-  try {
-    await clearAllLocalBrowserData();
-    clearAuthResetRequired();
-    return {
-      completed: true,
-      error: null,
-    };
-  } catch (error) {
-    const normalizedError = normalizeCleanupError(error);
-    if (isBlockedIndexedDbDeleteError(normalizedError)) {
-      // Future improvement: notify sibling tabs via BroadcastChannel or a
-      // storage signal so they release IndexedDB handles and join the reset.
-      addAuthResetCleanupDeferredBreadcrumb(normalizedError);
-    } else {
-      captureAuthResetCleanupFailure(normalizedError);
-    }
-
-    return {
-      completed: false,
-      error: normalizedError,
-    };
   }
 }

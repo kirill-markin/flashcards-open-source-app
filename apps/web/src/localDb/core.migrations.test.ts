@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 
 import "fake-indexeddb/auto";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { malformedDueAtBucketMillis, nullDueAtBucketMillis } from "../appData/dueAt";
 import { clearWebSyncCache } from "./cache";
-import { getAllFromStore, openDatabase, type StoredCard } from "./core";
+import { closeDatabaseAfter, deleteDatabase, getAllFromStore, openDatabase, type StoredCard } from "./core";
 import { listOutboxRecords, type PersistedOutboxRecord } from "./outbox";
 import { loadReviewQueueSnapshot } from "./reviews";
 import { makeCard, workspaceId } from "./testSupport";
@@ -17,6 +17,31 @@ type LegacyStoredCard = Omit<StoredCard, "dueAt" | "dueAtMillis" | "dueAtBucketM
 const webSyncDatabaseName = "flashcards-web-sync";
 const legacyNullDueAtBucketMillis = -1;
 const legacyMalformedDueAtBucketMillis = -2;
+
+type DeferredVoid = Readonly<{
+  promise: Promise<void>;
+  resolve: () => void;
+  reject: (error: Error) => void;
+}>;
+
+function createDeferredVoid(): DeferredVoid {
+  let resolvePromise: (() => void) | null = null;
+  let rejectPromise: ((error: Error) => void) | null = null;
+  const promise = new Promise<void>((resolve, reject) => {
+    resolvePromise = resolve;
+    rejectPromise = reject;
+  });
+
+  if (resolvePromise === null || rejectPromise === null) {
+    throw new Error("Failed to create deferred promise");
+  }
+
+  return {
+    promise,
+    resolve: resolvePromise,
+    reject: rejectPromise,
+  };
+}
 
 function createLegacyCardsStore(database: IDBDatabase): void {
   const cardsStore = database.createObjectStore("cards", { keyPath: ["workspaceId", "cardId"] });
@@ -213,6 +238,36 @@ async function loadCardsStoreIndexNamesForTest(): Promise<ReadonlyArray<string>>
 }
 
 describe("localDb core migrations", () => {
+  it("waits for managed IndexedDB operations before deleting browser data", async () => {
+    await clearWebSyncCache();
+    const readStarted = createDeferredVoid();
+    const releaseRead = createDeferredVoid();
+    const readTask = closeDatabaseAfter(async () => {
+      readStarted.resolve();
+      await releaseRead.promise;
+    });
+    await readStarted.promise;
+
+    const deleteDatabaseSpy = vi.spyOn(indexedDB, "deleteDatabase");
+    const deleteTask = deleteDatabase();
+
+    try {
+      expect(deleteDatabaseSpy).not.toHaveBeenCalled();
+      await expect(closeDatabaseAfter(async () => undefined)).rejects.toThrow(
+        "IndexedDB is unavailable while browser data is being reset",
+      );
+
+      releaseRead.resolve();
+      await readTask;
+      await deleteTask;
+      expect(deleteDatabaseSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      releaseRead.resolve();
+      await Promise.allSettled([readTask, deleteTask]);
+      deleteDatabaseSpy.mockRestore();
+    }
+  });
+
   it("migrates legacy dueAt into numeric due fields and keeps pending card upserts uploadable", async () => {
     await clearWebSyncCache();
     const nowTimestamp = Date.parse("2026-03-10T12:00:00.100Z");

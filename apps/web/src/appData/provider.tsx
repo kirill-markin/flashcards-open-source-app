@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactElement,
 } from "react";
@@ -117,6 +118,7 @@ export function AppDataProvider(props: Props): ReactElement {
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [selectedReviewFilterState, setSelectedReviewFilterState] = useState<ReviewFilter>(loadSelectedReviewFilter);
+  const shouldSkipSelectedReviewFilterPersistRef = useRef<boolean>(false);
 
   const syncEngine = useSyncEngine({
     sessionLoadState,
@@ -131,6 +133,11 @@ export function AppDataProvider(props: Props): ReactElement {
   });
 
   useEffect(() => {
+    if (shouldSkipSelectedReviewFilterPersistRef.current) {
+      shouldSkipSelectedReviewFilterPersistRef.current = false;
+      return;
+    }
+
     window.localStorage.setItem(SELECTED_REVIEW_FILTER_STORAGE_KEY, JSON.stringify(selectedReviewFilterState));
   }, [selectedReviewFilterState]);
 
@@ -217,6 +224,18 @@ export function AppDataProvider(props: Props): ReactElement {
     setSelectedReviewFilterState(reviewFilter);
   }, [selectedReviewFilterState]);
 
+  const resetUserScopedUiState = useCallback(function resetUserScopedUiState(): void {
+    if (isReviewFilterEqual(selectedReviewFilterState, ALL_CARDS_REVIEW_FILTER) === false) {
+      shouldSkipSelectedReviewFilterPersistRef.current = true;
+    }
+
+    setSelectedReviewFilterState(ALL_CARDS_REVIEW_FILTER);
+    setWorkspaceSettings(null);
+    setLocalReadVersion(0);
+    setLocalCardCount(0);
+    setIsSyncing(false);
+  }, [selectedReviewFilterState]);
+
   const openReview = useCallback(function openReview(reviewFilter: ReviewFilter): void {
     setSelectedReviewFilterState(reviewFilter);
   }, []);
@@ -251,6 +270,8 @@ export function AppDataProvider(props: Props): ReactElement {
     runSyncSilently: syncEngine.runSyncSilently,
     runSyncForWorkspace: syncEngine.runSyncForWorkspace,
     discardWorkspaceSync: syncEngine.discardWorkspaceSync,
+    discardAllSyncWork: syncEngine.discardAllSyncWork,
+    resetUserScopedUiState,
   });
 
   const value: AppDataContextValue = {

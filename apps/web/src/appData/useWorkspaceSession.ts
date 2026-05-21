@@ -20,9 +20,10 @@ import {
   resetWorkspaceProgress as resetWorkspaceProgressRequest,
 } from "../api";
 import {
+  clearBrowserReauthRequired,
   clearAllLocalBrowserData,
   consumeAccountDeletedMarker,
-  runPendingAuthResetCleanup,
+  isBrowserReauthRequired,
 } from "../accountDeletion";
 import { getStableInstallationId } from "../clientIdentity";
 import { loadCloudSettings, putCloudSettings } from "../localDb/cloudSettings";
@@ -78,6 +79,8 @@ type UseWorkspaceSessionParams = Readonly<{
   runSyncSilently: () => Promise<void>;
   runSyncForWorkspace: (workspace: WorkspaceSummary) => Promise<void>;
   discardWorkspaceSync: (workspaceId: string) => void;
+  discardAllSyncWork: (runWhileDiscarding: () => Promise<void>) => Promise<void>;
+  resetUserScopedUiState: () => void;
 }>;
 
 type WorkspaceSession = Readonly<{
@@ -125,10 +128,17 @@ type WorkspaceTransitionEventName =
 
 type WorkspaceTransitionFailureEventName =
   | "session_bootstrap_failed"
+  | "session_account_switch_failed"
   | "workspace_activate_bootstrap_failed"
   | "workspace_select_client_failed"
   | "workspace_create_client_failed"
   | "workspace_delete_client_failed";
+
+const sessionAccountSwitchErrorName = "SessionAccountSwitchError";
+
+type SessionAccountSwitchError = Error & Readonly<{
+  name: typeof sessionAccountSwitchErrorName;
+}>;
 
 function buildLinkingReadyCloudSettings(session: SessionInfo): CloudSettings {
   return {
@@ -152,6 +162,26 @@ function buildLinkedCloudSettings(session: SessionInfo, workspaceId: string): Cl
     onboardingCompleted: true,
     updatedAt: new Date().toISOString(),
   };
+}
+
+function shouldClearLocalDataForVerifiedSession(
+  persistedCloudSettings: CloudSettings | null,
+  currentSession: SessionInfo,
+  wasBrowserReauthRequired: boolean,
+): boolean {
+  if (persistedCloudSettings === null) {
+    return wasBrowserReauthRequired;
+  }
+
+  if (persistedCloudSettings.linkedUserId === currentSession.userId) {
+    return false;
+  }
+
+  if (persistedCloudSettings.linkedUserId === null) {
+    return wasBrowserReauthRequired;
+  }
+
+  return true;
 }
 
 function replaceWorkspaceSummary(
@@ -185,6 +215,16 @@ function consumeLoggedOutMarker(): boolean {
 
 function createRemoteActionLockedError(t: (key: TranslationKey) => string): Error {
   return new Error(t("app.sessionRestoringActionLocked"));
+}
+
+function createSessionAccountSwitchError(errorMessage: string): SessionAccountSwitchError {
+  const error = new Error(errorMessage);
+  error.name = sessionAccountSwitchErrorName;
+  return error as SessionAccountSwitchError;
+}
+
+function isSessionAccountSwitchError(error: unknown): error is SessionAccountSwitchError {
+  return error instanceof Error && error.name === sessionAccountSwitchErrorName;
 }
 
 function getCurrentRoute(): string | null {
@@ -263,7 +303,11 @@ function captureWorkspaceTransitionError(
   caughtError: unknown,
 ): void {
   const error = normalizeCaughtError(caughtError);
-  const scope = buildWorkspaceObservationScope(event === "session_bootstrap_failed" ? "auth" : "workspace", details, error);
+  const scope = buildWorkspaceObservationScope(
+    event === "session_bootstrap_failed" || event === "session_account_switch_failed" ? "auth" : "workspace",
+    details,
+    error,
+  );
 
   if (error instanceof ApiContractError) {
     captureWebException({
@@ -287,6 +331,19 @@ function captureWorkspaceTransitionError(
       scope,
       details: {
         operation: "session_bootstrap_failed",
+        verificationState: details.sessionVerificationState ?? null,
+      },
+    });
+    return;
+  }
+
+  if (event === "session_account_switch_failed") {
+    captureWebException({
+      action: "session_account_switch_failed",
+      error,
+      scope,
+      details: {
+        operation: "session_account_switch_failed",
         verificationState: details.sessionVerificationState ?? null,
       },
     });
@@ -354,8 +411,32 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     runSyncSilently,
     runSyncForWorkspace,
     discardWorkspaceSync,
+    discardAllSyncWork,
+    resetUserScopedUiState,
   } = params;
   const resumePromiseRef = useRef<Promise<void> | null>(null);
+  const workspaceBootstrapGenerationRef = useRef<number>(0);
+
+  const clearConfirmedUserScopedState = useCallback(async function clearConfirmedUserScopedState(): Promise<void> {
+    workspaceBootstrapGenerationRef.current += 1;
+    setSession(null);
+    setActiveWorkspace(null);
+    setAvailableWorkspaces([]);
+    setCloudSettings(null);
+    setSessionLoadState("loading");
+    setSessionVerificationState("unverified");
+    resetUserScopedUiState();
+    await discardAllSyncWork(clearAllLocalBrowserData);
+  }, [
+    discardAllSyncWork,
+    resetUserScopedUiState,
+    setActiveWorkspace,
+    setAvailableWorkspaces,
+    setCloudSettings,
+    setSession,
+    setSessionLoadState,
+    setSessionVerificationState,
+  ]);
 
   const publishSelectedWorkspace = useCallback(function publishSelectedWorkspace(
     currentSession: SessionInfo,
@@ -383,6 +464,11 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
   const bootstrapWorkspaceInBackground = useCallback(function bootstrapWorkspaceInBackground(
     workspace: WorkspaceSummary,
   ): void {
+    const bootstrapGeneration = workspaceBootstrapGenerationRef.current;
+    const isCurrentBootstrapGeneration = function isCurrentBootstrapGeneration(): boolean {
+      return bootstrapGeneration === workspaceBootstrapGenerationRef.current;
+    };
+
     logWorkspaceTransition("workspace_activate_bootstrap_started", {
       workspaceId: workspace.workspaceId,
     });
@@ -391,12 +477,20 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
       try {
         await refreshWorkspaceView(workspace.workspaceId);
         await runSyncForWorkspace(workspace);
+        if (isCurrentBootstrapGeneration() === false) {
+          return;
+        }
+
         setSessionErrorMessage("");
         setErrorMessage("");
         logWorkspaceTransition("workspace_activate_bootstrap_succeeded", {
           workspaceId: workspace.workspaceId,
         });
       } catch (error) {
+        if (isCurrentBootstrapGeneration() === false) {
+          return;
+        }
+
         if (isAuthRedirectError(error)) {
           logWorkspaceTransition("workspace_activate_bootstrap_redirected", {
             workspaceId: workspace.workspaceId,
@@ -508,14 +602,12 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     setErrorMessage("");
 
     try {
-      await runPendingAuthResetCleanup();
-
       if (consumeLoggedOutMarker()) {
-        await clearAllLocalBrowserData();
+        await clearConfirmedUserScopedState();
       }
 
       if (consumeAccountDeletedMarker()) {
-        await clearAllLocalBrowserData();
+        await clearConfirmedUserScopedState();
         setSession(null);
         setWebObservabilityUser(null);
         setSessionLoadState("deleted");
@@ -524,21 +616,15 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
         return;
       }
 
+      const wasBrowserReauthRequired = isBrowserReauthRequired();
       const currentSession = await getSession();
       setWebObservabilityUser({ id: currentSession.userId });
       const persistedCloudSettings = await loadCloudSettings();
-      if (
-        persistedCloudSettings !== null
-        && persistedCloudSettings.linkedUserId !== null
-        && persistedCloudSettings.linkedUserId !== currentSession.userId
-      ) {
-        setSession(null);
-        setActiveWorkspace(null);
-        setAvailableWorkspaces([]);
-        setSessionLoadState("loading");
-        await clearAllLocalBrowserData();
+      if (shouldClearLocalDataForVerifiedSession(persistedCloudSettings, currentSession, wasBrowserReauthRequired)) {
+        await clearConfirmedUserScopedState();
       }
 
+      clearBrowserReauthRequired();
       const linkingReadyCloudSettings = buildLinkingReadyCloudSettings(currentSession);
       await putCloudSettings(linkingReadyCloudSettings);
       setCloudSettings(linkingReadyCloudSettings);
@@ -568,6 +654,7 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
       setSessionErrorMessage(nextErrorMessage);
     }
   }, [
+    clearConfirmedUserScopedState,
     resolveInitialWorkspace,
     session,
     sessionLoadState,
@@ -920,13 +1007,40 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
   }, []);
 
   const revalidateActiveSession = useCallback(async function revalidateActiveSession(): Promise<boolean> {
-    if (sessionLoadState !== "ready" || sessionVerificationState !== "verified") {
+    if (sessionLoadState !== "ready" || sessionVerificationState !== "verified" || session === null) {
       return false;
     }
 
     try {
       const currentSession = await revalidateSessionRequest();
+      if (currentSession.userId !== session.userId) {
+        try {
+          setWebObservabilityUser({ id: currentSession.userId });
+          await clearConfirmedUserScopedState();
+          clearBrowserReauthRequired();
+          const linkingReadyCloudSettings = buildLinkingReadyCloudSettings(currentSession);
+          await putCloudSettings(linkingReadyCloudSettings);
+          setCloudSettings(linkingReadyCloudSettings);
+          await resolveInitialWorkspace(currentSession);
+          setSessionVerificationState("verified");
+          setSessionErrorMessage("");
+          setErrorMessage("");
+          return false;
+        } catch (error) {
+          const nextErrorMessage = getErrorMessage(error);
+          captureWorkspaceTransitionError("session_account_switch_failed", {
+            errorMessage: nextErrorMessage,
+            sessionVerificationState,
+          }, error);
+          setSessionLoadState("error");
+          setSessionErrorMessage(nextErrorMessage);
+          setErrorMessage(nextErrorMessage);
+          throw createSessionAccountSwitchError(nextErrorMessage);
+        }
+      }
+
       setSession(currentSession);
+      clearBrowserReauthRequired();
       setSessionErrorMessage("");
       setErrorMessage("");
       return true;
@@ -937,7 +1051,19 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
 
       throw error;
     }
-  }, [sessionLoadState, sessionVerificationState, setSession, setSessionErrorMessage]);
+  }, [
+    clearConfirmedUserScopedState,
+    resolveInitialWorkspace,
+    session,
+    sessionLoadState,
+    sessionVerificationState,
+    setCloudSettings,
+    setErrorMessage,
+    setSession,
+    setSessionErrorMessage,
+    setSessionLoadState,
+    setSessionVerificationState,
+  ]);
 
   const runResumeAttempt = useCallback(async function runResumeAttempt(): Promise<void> {
     const isSessionValid = await revalidateActiveSession();
@@ -966,6 +1092,10 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
           return;
         } catch (error) {
           if (isAuthRedirectError(error)) {
+            return;
+          }
+
+          if (isSessionAccountSwitchError(error)) {
             return;
           }
 

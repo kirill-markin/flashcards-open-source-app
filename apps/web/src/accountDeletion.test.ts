@@ -2,32 +2,16 @@
 import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  clearAuthResetRequired,
   clearAllLocalBrowserData,
-  isAuthResetRequired,
-  markAuthResetRequired,
-  runPendingAuthResetCleanup,
+  clearBrowserReauthRequired,
+  isBrowserReauthRequired,
+  markBrowserReauthRequired,
 } from "./accountDeletion";
 import { INSTALLATION_ID_STORAGE_KEY } from "./clientIdentity";
 import { LOCALE_PREFERENCE_STORAGE_KEY } from "./i18n/runtime";
 import { loadCloudSettings, putCloudSettings } from "./localDb/cloudSettings";
 import { clearWebSyncCache } from "./localDb/cache";
 import type { CloudSettings } from "./types";
-
-const observabilityMocks = vi.hoisted(() => ({
-  addWebBreadcrumbMock: vi.fn(),
-  captureWebExceptionMock: vi.fn(),
-  captureWebWarningMock: vi.fn(),
-  setWebObservabilityUserMock: vi.fn(),
-}));
-
-vi.mock("./observability/webObservability", () => ({
-  addWebBreadcrumb: observabilityMocks.addWebBreadcrumbMock,
-  captureWebException: observabilityMocks.captureWebExceptionMock,
-  captureWebWarning: observabilityMocks.captureWebWarningMock,
-  normalizeCaughtError: (error: unknown): Error => error instanceof Error ? error : new Error(`Caught non-Error value of type ${typeof error}`),
-  setWebObservabilityUser: observabilityMocks.setWebObservabilityUserMock,
-}));
 
 const seededCloudSettings: CloudSettings = {
   installationId: "installation-1",
@@ -73,11 +57,15 @@ function seedLocalBrowserState(): void {
   window.localStorage.setItem("flashcards-chat-drafts::workspace-1", JSON.stringify({
     version: 1,
   }));
+  window.localStorage.setItem("flashcards-auth-reset-required", "1");
+  markBrowserReauthRequired();
 }
 
 function expectLocalBrowserStateCleared(): void {
   expect(window.localStorage.getItem("flashcards-warm-start-snapshot")).toBeNull();
   expect(window.localStorage.getItem("flashcards-chat-drafts::workspace-1")).toBeNull();
+  expect(window.localStorage.getItem("flashcards-auth-reset-required")).toBeNull();
+  expect(isBrowserReauthRequired()).toBe(false);
   expect(window.localStorage.getItem(INSTALLATION_ID_STORAGE_KEY)).toBe("installation-1");
   expect(window.localStorage.getItem(LOCALE_PREFERENCE_STORAGE_KEY)).toBe("ar");
 }
@@ -99,72 +87,44 @@ beforeEach(async () => {
     value: createStorageMock(),
   });
   window.localStorage.clear();
-  clearAuthResetRequired();
-  observabilityMocks.addWebBreadcrumbMock.mockReset();
-  observabilityMocks.captureWebExceptionMock.mockReset();
-  observabilityMocks.captureWebWarningMock.mockReset();
-  observabilityMocks.setWebObservabilityUserMock.mockReset();
+  clearBrowserReauthRequired();
 });
 
 afterEach(async () => {
   window.localStorage.clear();
-  clearAuthResetRequired();
+  clearBrowserReauthRequired();
   vi.restoreAllMocks();
   await clearWebSyncCache();
 });
 
 describe("account deletion local cleanup helpers", () => {
-  it("clears browser-local state before rethrowing a blocked IndexedDB deletion", async () => {
+  it("keeps the reauth guard when IndexedDB cleanup is blocked", async () => {
     seedLocalBrowserState();
     mockBlockedDeleteDatabase();
 
     await expect(clearAllLocalBrowserData()).rejects.toThrow("Failed to delete IndexedDB: delete request was blocked");
-    expectLocalBrowserStateCleared();
+    expect(window.localStorage.getItem("flashcards-warm-start-snapshot")).toBeNull();
+    expect(window.localStorage.getItem("flashcards-chat-drafts::workspace-1")).toBeNull();
+    expect(window.localStorage.getItem("flashcards-browser-reauth-required")).toBe("1");
+    expect(window.localStorage.getItem("flashcards-auth-reset-required")).toBe("1");
+    expect(isBrowserReauthRequired()).toBe(true);
+    expect(window.localStorage.getItem(INSTALLATION_ID_STORAGE_KEY)).toBe("installation-1");
+    expect(window.localStorage.getItem(LOCALE_PREFERENCE_STORAGE_KEY)).toBe("ar");
   });
 
-  it("completes a pending auth reset cleanup and clears the marker after full success", async () => {
+  it("clears reauth markers and IndexedDB only during explicit local data cleanup", async () => {
     seedLocalBrowserState();
     await putCloudSettings(seededCloudSettings);
-    markAuthResetRequired();
 
-    await expect(runPendingAuthResetCleanup()).resolves.toEqual({
-      completed: true,
-      error: null,
-    });
+    await expect(clearAllLocalBrowserData()).resolves.toBeUndefined();
 
     expectLocalBrowserStateCleared();
-    expect(isAuthResetRequired()).toBe(false);
     await expect(loadCloudSettings()).resolves.toBeNull();
   });
 
-  it("preserves the pending auth reset marker when IndexedDB cleanup is blocked", async () => {
-    seedLocalBrowserState();
-    markAuthResetRequired();
-    mockBlockedDeleteDatabase();
+  it("treats the legacy auth reset marker as reauth required", () => {
+    window.localStorage.setItem("flashcards-auth-reset-required", "1");
 
-    const cleanupResult = await runPendingAuthResetCleanup();
-
-    expect(cleanupResult.completed).toBe(false);
-    expect(cleanupResult.error?.message).toBe("Failed to delete IndexedDB: delete request was blocked");
-    expectLocalBrowserStateCleared();
-    expect(isAuthResetRequired()).toBe(true);
-    expect(observabilityMocks.addWebBreadcrumbMock).toHaveBeenCalledWith({
-      action: "auth_reset_cleanup_deferred",
-      scope: {
-        app: "web",
-        feature: "auth",
-        userId: null,
-        workspaceId: null,
-        installationId: "installation-1",
-        route: "/",
-        requestId: null,
-        statusCode: null,
-        code: null,
-      },
-      details: {
-        eventName: "auth_reset_cleanup_deferred",
-        errorMessage: "Failed to delete IndexedDB: delete request was blocked",
-      },
-    });
+    expect(isBrowserReauthRequired()).toBe(true);
   });
 });

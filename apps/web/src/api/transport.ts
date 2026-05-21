@@ -1,5 +1,5 @@
 import { parseSessionInfoResponse } from "../apiContracts/account";
-import { markAuthResetRequired, runPendingAuthResetCleanup } from "../accountDeletion";
+import { markBrowserReauthRequired } from "../accountDeletion";
 import { getAppConfig } from "../config";
 import type { SessionInfo } from "../types";
 import { buildLoginUrl, getPreferredAuthUiLocale } from "./authUrls";
@@ -23,6 +23,17 @@ export type RequestOptions = Readonly<{
 }>;
 
 const refreshSessionEndpoint = "POST /api/refresh-session";
+const refreshSessionMaximumAttemptCount = 3;
+const refreshSessionBaseRetryDelayMs = 100;
+const refreshSessionMaximumRetryDelayMs = 500;
+const transientRefreshSessionStatusCodes: ReadonlySet<number> = new Set([
+  408,
+  429,
+  500,
+  502,
+  503,
+  504,
+]);
 
 let sessionCsrfToken: string | null = null;
 let sessionCsrfState: SessionCsrfState = "unknown";
@@ -30,25 +41,14 @@ let sessionRecoveryPromise: Promise<void> | null = null;
 let sessionCsrfRecoveryPromise: Promise<void> | null = null;
 let sessionTransportReadyPromise: Promise<void> | null = null;
 let redirectInFlight = false;
-let authRedirectPreparationPromise: Promise<void> | null = null;
 let navigationHandler: NavigateToUrl | null = null;
 
 /**
- * Browser-local app state is discarded only once the client has already
- * concluded that silent session recovery failed and an interactive login is
- * required. Successful refresh paths never call this hook.
+ * A terminal browser-auth failure locks warm start until `/me` confirms which
+ * account owns the browser. Local IndexedDB data is intentionally preserved.
  */
 function prepareForAuthRedirect(): void {
-  markAuthResetRequired();
-  if (authRedirectPreparationPromise !== null) {
-    return;
-  }
-
-  authRedirectPreparationPromise = runPendingAuthResetCleanup()
-    .then((): void => undefined)
-    .finally(() => {
-      authRedirectPreparationPromise = null;
-    });
+  markBrowserReauthRequired();
 }
 
 export const allowAuthRecovery: RequestOptions = {
@@ -83,7 +83,6 @@ export function resetApiClientStateForTests(): void {
   sessionCsrfRecoveryPromise = null;
   sessionTransportReadyPromise = null;
   redirectInFlight = false;
-  authRedirectPreparationPromise = null;
   navigationHandler = null;
 }
 
@@ -216,43 +215,30 @@ async function loadSessionInfoWithoutRecovery(): Promise<SessionInfo> {
   return session;
 }
 
-/**
- * Calls the auth service refresh endpoint with shared cookies and returns
- * `false` only when the refresh token is no longer valid.
- */
-async function refreshBrowserSession(): Promise<boolean> {
-  const config = getAppConfig();
-  let response: Response;
+function isTransientRefreshSessionStatus(statusCode: number): boolean {
+  return transientRefreshSessionStatusCodes.has(statusCode);
+}
 
-  try {
-    response = await fetch(`${config.authBaseUrl}/api/refresh-session`, {
-      method: "POST",
-      credentials: "include",
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new ApiError({
-      statusCode: 0,
-      message: `The auth service is unavailable. Try again. (/api/refresh-session; ${message})`,
-      code: null,
-      requestId: null,
-      endpoint: refreshSessionEndpoint,
-      responseBodyKind: "empty",
-    });
-  }
+function hasRemainingRefreshAttempt(attemptIndex: number): boolean {
+  return attemptIndex < refreshSessionMaximumAttemptCount - 1;
+}
 
-  if (response.ok) {
-    return true;
-  }
+function createRefreshSessionNetworkError(error: unknown): ApiError {
+  const message = error instanceof Error ? error.message : String(error);
+  return new ApiError({
+    statusCode: 0,
+    message: `The auth service is unavailable. Try again. (/api/refresh-session; ${message})`,
+    code: null,
+    requestId: null,
+    endpoint: refreshSessionEndpoint,
+    responseBodyKind: "empty",
+  });
+}
 
-  if (response.status === 401) {
-    resetSessionState();
-    return false;
-  }
-
+async function createRefreshSessionResponseError(response: Response): Promise<ApiError> {
   const payload = await readJsonResponse(response);
   const fallbackMessage = typeof payload.value === "string" ? payload.value : `Request failed with status ${response.status}`;
-  throw new ApiError({
+  return new ApiError({
     statusCode: response.status,
     message: getJsonErrorMessage(payload.value, fallbackMessage),
     code: payload.code,
@@ -260,6 +246,69 @@ async function refreshBrowserSession(): Promise<boolean> {
     endpoint: refreshSessionEndpoint,
     responseBodyKind: payload.bodyKind,
   });
+}
+
+function createRefreshSessionRetryDelay(attemptIndex: number): number {
+  const exponentialDelayMs = refreshSessionBaseRetryDelayMs * (2 ** attemptIndex);
+  const cappedDelayMs = Math.min(exponentialDelayMs, refreshSessionMaximumRetryDelayMs);
+  return Math.floor(Math.random() * cappedDelayMs);
+}
+
+function waitForRefreshSessionRetry(attemptIndex: number): Promise<void> {
+  const delayMs = createRefreshSessionRetryDelay(attemptIndex);
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, delayMs);
+  });
+}
+
+/**
+ * Calls the auth service refresh endpoint with shared cookies and returns
+ * `false` only when the refresh token is no longer valid.
+ */
+async function refreshBrowserSession(): Promise<boolean> {
+  const config = getAppConfig();
+  let lastNetworkError: ApiError | null = null;
+
+  for (let attemptIndex = 0; attemptIndex < refreshSessionMaximumAttemptCount; attemptIndex += 1) {
+    let response: Response;
+
+    try {
+      response = await fetch(`${config.authBaseUrl}/api/refresh-session`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (error) {
+      lastNetworkError = createRefreshSessionNetworkError(error);
+      if (hasRemainingRefreshAttempt(attemptIndex)) {
+        await waitForRefreshSessionRetry(attemptIndex);
+        continue;
+      }
+
+      throw lastNetworkError;
+    }
+
+    if (response.ok) {
+      return true;
+    }
+
+    if (response.status === 401) {
+      resetSessionState();
+      return false;
+    }
+
+    if (isTransientRefreshSessionStatus(response.status) && hasRemainingRefreshAttempt(attemptIndex)) {
+      await waitForRefreshSessionRetry(attemptIndex);
+      continue;
+    }
+
+    throw await createRefreshSessionResponseError(response);
+  }
+
+  if (lastNetworkError !== null) {
+    throw lastNetworkError;
+  }
+
+  throw new Error("Refresh session retry loop exited without a result");
 }
 
 /**

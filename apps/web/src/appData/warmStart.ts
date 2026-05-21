@@ -1,3 +1,4 @@
+import { isBrowserReauthRequired } from "../accountDeletion";
 import type { SessionInfo, WorkspaceSummary } from "../types";
 
 export type SessionVerificationState = "unverified" | "verified";
@@ -129,6 +130,10 @@ export function hasLoggedInCookie(): boolean {
  * browser session is revalidated in the background.
  */
 export function loadWarmStartSnapshot(): WarmStartSnapshot | null {
+  if (isBrowserReauthRequired()) {
+    return null;
+  }
+
   if (hasLoggedInCookie() === false) {
     return null;
   }
