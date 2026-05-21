@@ -2,6 +2,7 @@ import Foundation
 import Observation
 
 let accountDeletionPendingUserDefaultsKey: String = "account-deletion-pending"
+let testModeEnabledUserDefaultsKey: String = "test-mode-enabled"
 let accountDeletionConfirmationText: String = "delete my account"
 let cloudSyncFastPollingIntervalSeconds: TimeInterval = 15
 let cloudSyncDefaultPollingIntervalSeconds: TimeInterval = 60
@@ -86,6 +87,7 @@ final class FlashcardsStore {
     var isReviewHardReminderPresented: Bool
     var currentTransientBanner: TransientBanner?
     var queuedTransientBanners: [TransientBanner]
+    var isTestModeEnabled: Bool
     var reviewNotificationsSettings: ReviewNotificationsSettings
     var strictRemindersSettings: StrictRemindersSettings
     var notificationPermissionPromptState: NotificationPermissionPromptState
@@ -348,6 +350,7 @@ final class FlashcardsStore {
         self.isReviewHardReminderPresented = false
         self.currentTransientBanner = nil
         self.queuedTransientBanners = []
+        self.isTestModeEnabled = userDefaults.bool(forKey: testModeEnabledUserDefaultsKey)
         self.reviewNotificationsSettings = makeDefaultReviewNotificationsSettings()
         self.strictRemindersSettings = loadStrictRemindersSettings(
             userDefaults: userDefaults,

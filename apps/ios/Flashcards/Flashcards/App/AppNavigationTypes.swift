@@ -22,6 +22,8 @@ enum SettingsNavigationDestination: Hashable, Sendable {
     case device
     case access
     case accessPermissionDetail(AccessPermissionKind)
+    case test
+    case testAnimations
     case workspace
     case workspaceNotifications
     case workspaceOverview

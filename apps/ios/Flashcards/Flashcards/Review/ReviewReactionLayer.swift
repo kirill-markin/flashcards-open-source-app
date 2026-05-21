@@ -16,6 +16,10 @@ enum ReviewReactionRating: CaseIterable, Hashable, Sendable {
     case hard
     case good
     case easy
+
+    var debugIdentifier: String {
+        String(describing: self)
+    }
 }
 
 enum ReviewReactionVariant: CaseIterable, Hashable, Sendable {
@@ -35,6 +39,10 @@ enum ReviewReactionVariant: CaseIterable, Hashable, Sendable {
     case easyRainbowStreak
     case easyCrownBounce
     case easyUnicornFlyby
+
+    var debugIdentifier: String {
+        String(describing: self)
+    }
 
     var animationDurationSeconds: Double {
         switch self {
@@ -64,6 +72,51 @@ enum ReviewReactionVariant: CaseIterable, Hashable, Sendable {
     var cleanupDelayNanoseconds: UInt64 {
         let cleanupDelaySeconds = self.animationDurationSeconds + 0.08
         return UInt64(cleanupDelaySeconds * 1_000_000_000)
+    }
+}
+
+struct ReviewReactionVariantDistributionEntry: Identifiable, Hashable, Sendable {
+    let rating: ReviewReactionRating
+    let variant: ReviewReactionVariant
+    let rollRange: ClosedRange<Int>
+
+    var id: String {
+        "\(self.rating.debugIdentifier).\(self.variant.debugIdentifier)"
+    }
+
+    var rollCount: Int {
+        self.rollRange.upperBound - self.rollRange.lowerBound + 1
+    }
+
+    var probabilityPercent: Double {
+        Double(self.rollCount) / 10
+    }
+}
+
+let allReviewReactionVariantDistributionEntries: [ReviewReactionVariantDistributionEntry] = [
+    ReviewReactionVariantDistributionEntry(rating: .again, variant: .againRedScribbleSlash, rollRange: 0...399),
+    ReviewReactionVariantDistributionEntry(rating: .again, variant: .againRewindVortex, rollRange: 400...699),
+    ReviewReactionVariantDistributionEntry(rating: .again, variant: .againStampFlyby, rollRange: 700...919),
+    ReviewReactionVariantDistributionEntry(rating: .again, variant: .againWarningTape, rollRange: 920...999),
+    ReviewReactionVariantDistributionEntry(rating: .hard, variant: .hardHourglassSand, rollRange: 0...399),
+    ReviewReactionVariantDistributionEntry(rating: .hard, variant: .hardFallingWeight, rollRange: 400...699),
+    ReviewReactionVariantDistributionEntry(rating: .hard, variant: .hardYellowCrack, rollRange: 700...919),
+    ReviewReactionVariantDistributionEntry(rating: .hard, variant: .hardRollingBoulder, rollRange: 920...999),
+    ReviewReactionVariantDistributionEntry(rating: .good, variant: .goodHandDrawnCheck, rollRange: 0...399),
+    ReviewReactionVariantDistributionEntry(rating: .good, variant: .goodLightSweep, rollRange: 400...699),
+    ReviewReactionVariantDistributionEntry(rating: .good, variant: .goodPaperPlaneCheck, rollRange: 700...919),
+    ReviewReactionVariantDistributionEntry(rating: .good, variant: .goodCheckSealBounce, rollRange: 920...999),
+    ReviewReactionVariantDistributionEntry(rating: .easy, variant: .easySparkleBurst, rollRange: 0...399),
+    ReviewReactionVariantDistributionEntry(rating: .easy, variant: .easyRainbowStreak, rollRange: 400...699),
+    ReviewReactionVariantDistributionEntry(rating: .easy, variant: .easyCrownBounce, rollRange: 700...919),
+    ReviewReactionVariantDistributionEntry(rating: .easy, variant: .easyUnicornFlyby, rollRange: 920...999)
+]
+
+func reviewReactionVariantDistributionEntries(
+    rating: ReviewReactionRating
+) -> [ReviewReactionVariantDistributionEntry] {
+    allReviewReactionVariantDistributionEntries.filter { entry in
+        entry.rating == rating
     }
 }
 
@@ -97,52 +150,13 @@ func selectReviewReactionVariant(
 ) -> ReviewReactionVariant {
     precondition((0...999).contains(roll), "Review reaction roll must be in 0...999, received \(roll).")
 
-    switch rating {
-    case .again:
-        if roll <= 399 {
-            return .againRedScribbleSlash
-        }
-        if roll <= 699 {
-            return .againRewindVortex
-        }
-        if roll <= 919 {
-            return .againStampFlyby
-        }
-        return .againWarningTape
-    case .hard:
-        if roll <= 399 {
-            return .hardHourglassSand
-        }
-        if roll <= 699 {
-            return .hardFallingWeight
-        }
-        if roll <= 919 {
-            return .hardYellowCrack
-        }
-        return .hardRollingBoulder
-    case .good:
-        if roll <= 399 {
-            return .goodHandDrawnCheck
-        }
-        if roll <= 699 {
-            return .goodLightSweep
-        }
-        if roll <= 919 {
-            return .goodPaperPlaneCheck
-        }
-        return .goodCheckSealBounce
-    case .easy:
-        if roll <= 399 {
-            return .easySparkleBurst
-        }
-        if roll <= 699 {
-            return .easyRainbowStreak
-        }
-        if roll <= 919 {
-            return .easyCrownBounce
-        }
-        return .easyUnicornFlyby
+    guard let entry = reviewReactionVariantDistributionEntries(rating: rating).first(where: { entry in
+        entry.rollRange.contains(roll)
+    }) else {
+        preconditionFailure("Review reaction distribution is missing rating \(rating.debugIdentifier) roll \(roll).")
     }
+
+    return entry.variant
 }
 
 func makeReviewReactionRating(rating: ReviewRating) -> ReviewReactionRating {
