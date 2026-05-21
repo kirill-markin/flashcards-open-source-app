@@ -113,6 +113,8 @@ const enCatalog = {
     openSourceSettings: "Loading open-source settings...",
     agentConnections: "Loading agent connections...",
     dangerZone: "Loading danger zone...",
+    testSettings: "Loading test settings...",
+    testAnimations: "Loading animations...",
     aiChat: "Loading AI chat...",
     progress: "Loading progress...",
   },
@@ -188,6 +190,7 @@ const enCatalog = {
     account: "Account",
     device: "Device",
     access: "Access",
+    test: "Test",
     ariaLabel: "Settings tabs",
   },
   settingsHome: {
@@ -217,9 +220,19 @@ const enCatalog = {
       description: "Review browser permissions for files, camera, and microphone.",
       value: "Permissions",
     },
+    testGroupTitle: "Test",
+    test: {
+      title: "Test",
+      description: "Open hidden testing tools for this browser.",
+      value: "1 item",
+    },
   },
   workspaceManagement: {
     lockedMessage: "Workspace changes are available only after you create an account.",
+  },
+  testMode: {
+    enabledMessage: "Test version enabled.",
+    disabledMessage: "Test version disabled.",
   },
   settingsCurrentWorkspace: {
     title: "Current Workspace",
@@ -253,6 +266,20 @@ const enCatalog = {
       storage: "IndexedDB + localStorage",
       workspaceScope: "Future sync stays scoped to the currently selected workspace on this device.",
       localData: "The local cache keeps cards, decks, scheduler settings, and pending sync operations on this device.",
+    },
+  },
+  settingsTest: {
+    title: "Test",
+    subtitle: "Hidden testing tools for this browser.",
+    toolsGroupTitle: "Tools",
+    animations: {
+      title: "Animations",
+      description: "Preview every review reaction animation variant.",
+      value: "16 items",
+      screenTitle: "Animations",
+      screenSubtitle: "Play review reaction variants directly.",
+      probability: "{{percent}} probability",
+      playAccessibility: "Play {{variant}} animation, {{probability}}",
     },
   },
   settingsWorkspace: {

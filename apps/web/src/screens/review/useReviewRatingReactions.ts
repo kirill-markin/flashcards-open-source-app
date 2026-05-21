@@ -2,27 +2,19 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   appendReviewReactionEvent,
   makeReviewReactionRating,
+  matchesReducedReviewReactionMotion,
   reviewReactionCleanupDelayMillis,
   reviewReactionMaximumActiveEvents,
+  reducedReviewReactionMotionMediaQuery,
   selectReviewReactionVariant,
   type ReviewReactionEvent,
   type ReviewReactionMotionMode,
 } from "./reviewReaction";
 
-const reducedMotionMediaQuery = "(prefers-reduced-motion: reduce)";
-
 export type UseReviewRatingReactionsResult = Readonly<{
   emitReaction: (rating: 0 | 1 | 2 | 3) => void;
   events: ReadonlyArray<ReviewReactionEvent>;
 }>;
-
-function matchesReducedReviewReactionMotion(): boolean {
-  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
-    return false;
-  }
-
-  return window.matchMedia(reducedMotionMediaQuery).matches;
-}
 
 function clearReviewReactionTimer(
   cleanupTimers: Map<string, number>,
@@ -61,7 +53,7 @@ export function useReviewRatingReactions(): UseReviewRatingReactionsResult {
       return;
     }
 
-    const mediaQueryList = window.matchMedia(reducedMotionMediaQuery);
+    const mediaQueryList = window.matchMedia(reducedReviewReactionMotionMediaQuery);
     const handleMediaQueryChange = (event: MediaQueryListEvent): void => {
       setMotionMode(event.matches ? "reduced" : "standard");
     };

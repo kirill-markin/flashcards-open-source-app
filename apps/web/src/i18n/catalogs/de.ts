@@ -115,6 +115,8 @@ const deCatalog: TranslationCatalog = {
     openSourceSettings: "Open-Source-Einstellungen werden geladen...",
     agentConnections: "Agent-Verbindungen werden geladen...",
     dangerZone: "Gefahrenbereich wird geladen...",
+    testSettings: "Testeinstellungen werden geladen...",
+    testAnimations: "Animationen werden geladen...",
     aiChat: "AI-Chat wird geladen...",
     progress: "Fortschritt wird geladen...",
   },
@@ -190,6 +192,7 @@ const deCatalog: TranslationCatalog = {
     account: "Konto",
     device: "Dieses Gerät",
     access: "Zugriff",
+    test: "Test",
     ariaLabel: "Einstellungs-Tabs",
   },
   settingsHome: {
@@ -219,9 +222,19 @@ const deCatalog: TranslationCatalog = {
       description: "Prüfe Browserberechtigungen für Dateien, Kamera und Mikrofon.",
       value: "Berechtigungen",
     },
+    testGroupTitle: "Test",
+    test: {
+      title: "Test",
+      description: "Öffne versteckte Testwerkzeuge für diesen Browser.",
+      value: "1 Element",
+    },
   },
   workspaceManagement: {
     lockedMessage: "Änderungen am Arbeitsbereich sind erst verfügbar, nachdem du ein Konto erstellt hast.",
+  },
+  testMode: {
+    enabledMessage: "Testversion aktiviert.",
+    disabledMessage: "Testversion deaktiviert.",
   },
   settingsCurrentWorkspace: {
     title: "Aktueller Arbeitsbereich",
@@ -255,6 +268,20 @@ const deCatalog: TranslationCatalog = {
       storage: "IndexedDB + localStorage",
       workspaceScope: "Die zukünftige Synchronisierung bleibt auf den aktuell ausgewählten Arbeitsbereich auf diesem Gerät beschränkt.",
       localData: "Der lokale Cache speichert Karten, Decks, Planereinstellungen und ausstehende Synchronisierungsvorgänge auf diesem Gerät.",
+    },
+  },
+  settingsTest: {
+    title: "Test",
+    subtitle: "Versteckte Testwerkzeuge für diesen Browser.",
+    toolsGroupTitle: "Werkzeuge",
+    animations: {
+      title: "Animationen",
+      description: "Vorschau aller Varianten der Wiederholungsreaktions-Animationen.",
+      value: "16 Elemente",
+      screenTitle: "Animationen",
+      screenSubtitle: "Spiele Wiederholungsreaktions-Varianten direkt ab.",
+      probability: "{{percent}} Wahrscheinlichkeit",
+      playAccessibility: "Animation {{variant}} abspielen, {{probability}}",
     },
   },
   settingsWorkspace: {

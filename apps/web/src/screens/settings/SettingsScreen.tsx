@@ -6,8 +6,10 @@ import {
   settingsAccessRoute,
   settingsCurrentWorkspaceRoute,
   settingsDeviceRoute,
+  settingsTestRoute,
   workspaceSettingsRoute,
 } from "../../routes";
+import { useTestMode } from "../../testMode";
 import { useTransientMessage } from "../../useTransientMessage";
 import { isWorkspaceManagementLocked } from "../../workspaceManagement";
 import {
@@ -24,6 +26,7 @@ export function SettingsScreen(): ReactElement {
     isSessionVerified,
   } = useAppData();
   const { t } = useI18n();
+  const { isTestModeEnabled } = useTestMode();
   const { message, showMessage } = useTransientMessage(3000);
   const isWorkspaceLocked = isWorkspaceManagementLocked(isSessionVerified, cloudSettings);
   const currentWorkspaceName = activeWorkspace?.name ?? t("common.unavailable");
@@ -91,6 +94,20 @@ export function SettingsScreen(): ReactElement {
           />
         </div>
       </SettingsGroup>
+
+      {isTestModeEnabled ? (
+        <SettingsGroup title={t("settingsHome.testGroupTitle")}>
+          <div className="settings-nav-list">
+            <SettingsNavigationCard
+              title={t("settingsHome.test.title")}
+              description={t("settingsHome.test.description")}
+              value={t("settingsHome.test.value")}
+              to={settingsTestRoute}
+              testId="settings-test-row"
+            />
+          </div>
+        </SettingsGroup>
+      ) : null}
     </SettingsShell>
   );
 }

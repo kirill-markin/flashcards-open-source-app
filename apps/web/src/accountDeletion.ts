@@ -6,6 +6,7 @@ import {
   captureWebException,
   type WebObservationScope,
 } from "./observability/webObservability";
+import { TEST_MODE_STORAGE_KEY } from "./testMode";
 
 export const deleteAccountConfirmationText: string = "delete my account";
 
@@ -20,6 +21,7 @@ const APP_LOCAL_STORAGE_KEYS: ReadonlyArray<string> = [
 const PRESERVED_BROWSER_LOCAL_STORAGE_KEYS: ReadonlyArray<string> = [
   INSTALLATION_ID_STORAGE_KEY,
   LOCALE_PREFERENCE_STORAGE_KEY,
+  TEST_MODE_STORAGE_KEY,
 ];
 
 type AccountDeletionListener = () => void;
@@ -223,10 +225,11 @@ export function clearAuthResetRequired(): void {
  * must start from a full bootstrap instead of inheriting data that may belong
  * to a different human user on the same browser.
  *
- * The stable installation id and explicit locale preference are intentionally
- * retained because both are browser-scoped preferences rather than user-scoped
- * session state. Keeping them preserves device identity and UI language across
- * re-login while still clearing application data.
+ * The stable installation id, explicit locale preference, and hidden test-mode
+ * flag are intentionally retained because they are browser-scoped preferences
+ * rather than user-scoped session state. Keeping them preserves device identity,
+ * UI language, and local tester tooling across re-login while still clearing
+ * application data.
  */
 export async function clearAllLocalBrowserData(): Promise<void> {
   const browserStorage = getBrowserStorage();
