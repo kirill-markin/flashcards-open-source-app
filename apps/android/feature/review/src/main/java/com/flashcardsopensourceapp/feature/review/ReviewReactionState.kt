@@ -33,6 +33,140 @@ internal enum class ReviewReactionVariant {
     EASY_UNICORN_FLYBY
 }
 
+internal val ReviewRating.reviewReactionDebugIdentifier: String
+    get() = when (this) {
+        ReviewRating.AGAIN -> "again"
+        ReviewRating.HARD -> "hard"
+        ReviewRating.GOOD -> "good"
+        ReviewRating.EASY -> "easy"
+    }
+
+internal val ReviewReactionVariant.debugIdentifier: String
+    get() = when (this) {
+        ReviewReactionVariant.AGAIN_RED_SCRIBBLE_SLASH -> "againRedScribbleSlash"
+        ReviewReactionVariant.AGAIN_REWIND_VORTEX -> "againRewindVortex"
+        ReviewReactionVariant.AGAIN_STAMP_FLYBY -> "againStampFlyby"
+        ReviewReactionVariant.AGAIN_WARNING_TAPE -> "againWarningTape"
+        ReviewReactionVariant.HARD_HOURGLASS_SAND -> "hardHourglassSand"
+        ReviewReactionVariant.HARD_FALLING_WEIGHT -> "hardFallingWeight"
+        ReviewReactionVariant.HARD_YELLOW_CRACK -> "hardYellowCrack"
+        ReviewReactionVariant.HARD_ROLLING_BOULDER -> "hardRollingBoulder"
+        ReviewReactionVariant.GOOD_HAND_DRAWN_CHECK -> "goodHandDrawnCheck"
+        ReviewReactionVariant.GOOD_LIGHT_SWEEP -> "goodLightSweep"
+        ReviewReactionVariant.GOOD_PAPER_PLANE_CHECK -> "goodPaperPlaneCheck"
+        ReviewReactionVariant.GOOD_CHECK_SEAL_BOUNCE -> "goodCheckSealBounce"
+        ReviewReactionVariant.EASY_SPARKLE_BURST -> "easySparkleBurst"
+        ReviewReactionVariant.EASY_RAINBOW_STREAK -> "easyRainbowStreak"
+        ReviewReactionVariant.EASY_CROWN_BOUNCE -> "easyCrownBounce"
+        ReviewReactionVariant.EASY_UNICORN_FLYBY -> "easyUnicornFlyby"
+    }
+
+internal data class ReviewReactionVariantDistributionEntry(
+    val rating: ReviewRating,
+    val variant: ReviewReactionVariant,
+    val rollRange: IntRange
+) {
+    val id: String
+        get() = "${rating.reviewReactionDebugIdentifier}.${variant.debugIdentifier}"
+
+    val rollCount: Int
+        get() = rollRange.last - rollRange.first + 1
+
+    val probabilityPercent: Int
+        get() = rollCount / 10
+}
+
+internal val allReviewReactionVariantDistributionEntries: List<ReviewReactionVariantDistributionEntry> = listOf(
+    ReviewReactionVariantDistributionEntry(
+        rating = ReviewRating.AGAIN,
+        variant = ReviewReactionVariant.AGAIN_RED_SCRIBBLE_SLASH,
+        rollRange = 0..399
+    ),
+    ReviewReactionVariantDistributionEntry(
+        rating = ReviewRating.AGAIN,
+        variant = ReviewReactionVariant.AGAIN_REWIND_VORTEX,
+        rollRange = 400..699
+    ),
+    ReviewReactionVariantDistributionEntry(
+        rating = ReviewRating.AGAIN,
+        variant = ReviewReactionVariant.AGAIN_STAMP_FLYBY,
+        rollRange = 700..919
+    ),
+    ReviewReactionVariantDistributionEntry(
+        rating = ReviewRating.AGAIN,
+        variant = ReviewReactionVariant.AGAIN_WARNING_TAPE,
+        rollRange = 920..999
+    ),
+    ReviewReactionVariantDistributionEntry(
+        rating = ReviewRating.HARD,
+        variant = ReviewReactionVariant.HARD_HOURGLASS_SAND,
+        rollRange = 0..399
+    ),
+    ReviewReactionVariantDistributionEntry(
+        rating = ReviewRating.HARD,
+        variant = ReviewReactionVariant.HARD_FALLING_WEIGHT,
+        rollRange = 400..699
+    ),
+    ReviewReactionVariantDistributionEntry(
+        rating = ReviewRating.HARD,
+        variant = ReviewReactionVariant.HARD_YELLOW_CRACK,
+        rollRange = 700..919
+    ),
+    ReviewReactionVariantDistributionEntry(
+        rating = ReviewRating.HARD,
+        variant = ReviewReactionVariant.HARD_ROLLING_BOULDER,
+        rollRange = 920..999
+    ),
+    ReviewReactionVariantDistributionEntry(
+        rating = ReviewRating.GOOD,
+        variant = ReviewReactionVariant.GOOD_HAND_DRAWN_CHECK,
+        rollRange = 0..399
+    ),
+    ReviewReactionVariantDistributionEntry(
+        rating = ReviewRating.GOOD,
+        variant = ReviewReactionVariant.GOOD_LIGHT_SWEEP,
+        rollRange = 400..699
+    ),
+    ReviewReactionVariantDistributionEntry(
+        rating = ReviewRating.GOOD,
+        variant = ReviewReactionVariant.GOOD_PAPER_PLANE_CHECK,
+        rollRange = 700..919
+    ),
+    ReviewReactionVariantDistributionEntry(
+        rating = ReviewRating.GOOD,
+        variant = ReviewReactionVariant.GOOD_CHECK_SEAL_BOUNCE,
+        rollRange = 920..999
+    ),
+    ReviewReactionVariantDistributionEntry(
+        rating = ReviewRating.EASY,
+        variant = ReviewReactionVariant.EASY_SPARKLE_BURST,
+        rollRange = 0..399
+    ),
+    ReviewReactionVariantDistributionEntry(
+        rating = ReviewRating.EASY,
+        variant = ReviewReactionVariant.EASY_RAINBOW_STREAK,
+        rollRange = 400..699
+    ),
+    ReviewReactionVariantDistributionEntry(
+        rating = ReviewRating.EASY,
+        variant = ReviewReactionVariant.EASY_CROWN_BOUNCE,
+        rollRange = 700..919
+    ),
+    ReviewReactionVariantDistributionEntry(
+        rating = ReviewRating.EASY,
+        variant = ReviewReactionVariant.EASY_UNICORN_FLYBY,
+        rollRange = 920..999
+    )
+)
+
+internal fun reviewReactionVariantDistributionEntries(
+    rating: ReviewRating
+): List<ReviewReactionVariantDistributionEntry> {
+    return allReviewReactionVariantDistributionEntries.filter { entry: ReviewReactionVariantDistributionEntry ->
+        entry.rating == rating
+    }
+}
+
 internal data class ReviewReactionEvent(
     val id: String,
     val rating: ReviewRating,
@@ -47,55 +181,15 @@ internal fun selectReviewReactionVariant(
         "Review reaction roll must be in 0..999, received $roll."
     }
 
-    return when (rating) {
-        ReviewRating.AGAIN -> {
-            if (roll <= 399) {
-                ReviewReactionVariant.AGAIN_RED_SCRIBBLE_SLASH
-            } else if (roll <= 699) {
-                ReviewReactionVariant.AGAIN_REWIND_VORTEX
-            } else if (roll <= 919) {
-                ReviewReactionVariant.AGAIN_STAMP_FLYBY
-            } else {
-                ReviewReactionVariant.AGAIN_WARNING_TAPE
-            }
-        }
+    val matchingEntry: ReviewReactionVariantDistributionEntry =
+        reviewReactionVariantDistributionEntries(rating = rating).firstOrNull { entry: ReviewReactionVariantDistributionEntry ->
+            roll in entry.rollRange
+        } ?: error(
+            "Review reaction distribution is missing a variant. " +
+                "rating=${rating.reviewReactionDebugIdentifier} roll=$roll"
+        )
 
-        ReviewRating.HARD -> {
-            if (roll <= 399) {
-                ReviewReactionVariant.HARD_HOURGLASS_SAND
-            } else if (roll <= 699) {
-                ReviewReactionVariant.HARD_FALLING_WEIGHT
-            } else if (roll <= 919) {
-                ReviewReactionVariant.HARD_YELLOW_CRACK
-            } else {
-                ReviewReactionVariant.HARD_ROLLING_BOULDER
-            }
-        }
-
-        ReviewRating.GOOD -> {
-            if (roll <= 399) {
-                ReviewReactionVariant.GOOD_HAND_DRAWN_CHECK
-            } else if (roll <= 699) {
-                ReviewReactionVariant.GOOD_LIGHT_SWEEP
-            } else if (roll <= 919) {
-                ReviewReactionVariant.GOOD_PAPER_PLANE_CHECK
-            } else {
-                ReviewReactionVariant.GOOD_CHECK_SEAL_BOUNCE
-            }
-        }
-
-        ReviewRating.EASY -> {
-            if (roll <= 399) {
-                ReviewReactionVariant.EASY_SPARKLE_BURST
-            } else if (roll <= 699) {
-                ReviewReactionVariant.EASY_RAINBOW_STREAK
-            } else if (roll <= 919) {
-                ReviewReactionVariant.EASY_CROWN_BOUNCE
-            } else {
-                ReviewReactionVariant.EASY_UNICORN_FLYBY
-            }
-        }
-    }
+    return matchingEntry.variant
 }
 
 internal fun appendReviewReactionEvent(
