@@ -458,6 +458,9 @@ extension FlashcardsStore {
     }
 
     private func shouldCaptureCloudSyncFailure(error: Error, trigger: CloudSyncTrigger) -> Bool {
+        if isRetryableNetworkTransportFailure(error: error) {
+            return false
+        }
         if trigger.surfacesGlobalErrorMessage {
             return true
         }

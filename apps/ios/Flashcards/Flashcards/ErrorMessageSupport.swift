@@ -39,6 +39,53 @@ func isRequestCancellationError(error: Error) -> Bool {
     return isRequestCancellationError(error: underlyingError)
 }
 
+func flashcardsURLErrorCode(error: Error, remainingDepth: Int) -> URLError.Code? {
+    if let urlError = error as? URLError {
+        return urlError.code
+    }
+
+    let nsError: NSError = error as NSError
+    if nsError.domain == NSURLErrorDomain {
+        return URLError.Code(rawValue: nsError.code)
+    }
+
+    guard remainingDepth > 0 else {
+        return nil
+    }
+
+    guard let underlyingError = nsError.userInfo[NSUnderlyingErrorKey] as? Error else {
+        return nil
+    }
+
+    return flashcardsURLErrorCode(error: underlyingError, remainingDepth: remainingDepth - 1)
+}
+
+func isRetryableNetworkTransportFailure(error: Error) -> Bool {
+    guard let urlErrorCode: URLError.Code = flashcardsURLErrorCode(error: error, remainingDepth: 4) else {
+        return false
+    }
+
+    return isRetryableNetworkTransportFailure(code: urlErrorCode)
+}
+
+func isRetryableNetworkTransportFailure(code: URLError.Code) -> Bool {
+    switch code {
+    case .timedOut,
+         .cannotFindHost,
+         .cannotConnectToHost,
+         .dnsLookupFailed,
+         .networkConnectionLost,
+         .notConnectedToInternet,
+         .internationalRoamingOff,
+         .callIsActive,
+         .dataNotAllowed,
+         .cannotLoadFromNetwork:
+        return true
+    default:
+        return false
+    }
+}
+
 func makeCloudAuthInlineErrorPresentation(
     error: Error,
     context: CloudAuthInlineErrorContext
@@ -74,21 +121,5 @@ private func makeCloudAuthTransportFailureMessage(context: CloudAuthInlineErrorC
 }
 
 private func isCloudAuthTransportFailure(error: Error) -> Bool {
-    if error is URLError {
-        return true
-    }
-
-    return isCloudAuthTransportFailure(nsError: error as NSError)
-}
-
-private func isCloudAuthTransportFailure(nsError: NSError) -> Bool {
-    if nsError.domain == NSURLErrorDomain {
-        return true
-    }
-
-    if let underlyingError = nsError.userInfo[NSUnderlyingErrorKey] as? NSError {
-        return isCloudAuthTransportFailure(nsError: underlyingError)
-    }
-
-    return false
+    return flashcardsURLErrorCode(error: error, remainingDepth: 4) != nil
 }
