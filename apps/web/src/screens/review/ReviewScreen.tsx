@@ -14,6 +14,7 @@ import { cardsRoute, chatRoute, progressRoute } from "../../routes";
 import { ReviewEditorModal } from "./ReviewEditorModal";
 import { ReviewHardReminderDialog } from "./ReviewHardReminderDialog";
 import { ReviewFilterMenu } from "./ReviewFilterMenu";
+import { ReviewRatingReactionLayer } from "./ReviewRatingReactionLayer";
 import { ReviewProgressBadgeIcon } from "../shared/ReviewProgressBadgeIcon";
 import { useAiCardHandoff } from "../../chat/useAiCardHandoff";
 import { useTransientMessage } from "../../useTransientMessage";
@@ -27,6 +28,7 @@ import {
 } from "./reviewHardReminder";
 import { useReviewCardEditor } from "./useReviewCardEditor";
 import { useReviewKeyboardShortcuts } from "./useReviewKeyboardShortcuts";
+import { useReviewRatingReactions } from "./useReviewRatingReactions";
 import { useReviewScreenData, type ReviewSubmissionOutcome } from "./useReviewScreenData";
 import { makeReviewSpeakableText, type ReviewSpeechSide, useReviewSpeech } from "./reviewSpeech";
 import { isCardFormStateDirty } from "../cards/CardForm";
@@ -455,6 +457,10 @@ export function ReviewScreen(): ReactElement {
   const lastCapturedReviewButtonErrorKeyRef = useRef<string>("");
   const { message: reviewSpeechMessage, showMessage: showReviewSpeechMessage } = useTransientMessage(3000);
   const {
+    emitReaction: emitReviewReaction,
+    events: reviewReactionEvents,
+  } = useReviewRatingReactions();
+  const {
     activeReviewQueue,
     deckSummaries,
     handleReview: handleReviewData,
@@ -580,6 +586,7 @@ export function ReviewScreen(): ReactElement {
   });
 
   async function handleReview(card: Card, rating: 0 | 1 | 2 | 3): Promise<void> {
+    emitReviewReaction(rating);
     setIsSubmitting(true);
     setReviewSubmitState("submitting");
     setLastSubmittedReview({
@@ -1052,6 +1059,8 @@ export function ReviewScreen(): ReactElement {
             )}
           </aside>
         </div>
+
+        <ReviewRatingReactionLayer events={reviewReactionEvents} />
       </section>
 
       <ReviewEditorModal
