@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -26,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -60,10 +62,14 @@ fun ReviewRoute(
 ) {
     var isFilterSheetVisible by remember { mutableStateOf(value = false) }
     var speechErrorMessage by remember { mutableStateOf(value = "") }
+    var activeReviewReactionEvents by remember {
+        mutableStateOf<List<ReviewReactionEvent>>(value = emptyList())
+    }
     val snackbarHostState = remember { SnackbarHostState() }
     val configuration = LocalConfiguration.current
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val reviewReactionMotionMode = reviewReactionMotionModeFromAnimatorSettings()
     val reviewSpeechFallbackLanguageTag =
         (configuration.locales[0] ?: Locale.getDefault()).toLanguageTag()
     val currentScreenVisibleAction = rememberUpdatedState(newValue = onScreenVisible)
@@ -72,6 +78,29 @@ fun ReviewRoute(
             context = context,
             unavailableMessage = context.getString(R.string.review_speech_unavailable)
         )
+    }
+    fun emitReviewReaction(rating: ReviewRating): Unit {
+        activeReviewReactionEvents = appendReviewReactionEvent(
+            events = activeReviewReactionEvents,
+            event = makeRandomReviewReactionEvent(rating = rating),
+            maximumActiveEvents = reviewReactionMaximumActiveEvents
+        )
+    }
+    val onRateAgainWithReaction: () -> Unit = {
+        emitReviewReaction(rating = ReviewRating.AGAIN)
+        onRateAgain()
+    }
+    val onRateHardWithReaction: () -> Unit = {
+        emitReviewReaction(rating = ReviewRating.HARD)
+        onRateHard()
+    }
+    val onRateGoodWithReaction: () -> Unit = {
+        emitReviewReaction(rating = ReviewRating.GOOD)
+        onRateGood()
+    }
+    val onRateEasyWithReaction: () -> Unit = {
+        emitReviewReaction(rating = ReviewRating.EASY)
+        onRateEasy()
     }
 
     LaunchedEffect(uiState.errorMessage) {
@@ -195,12 +224,23 @@ fun ReviewRoute(
                     isAnswerVisible = uiState.isAnswerVisible,
                     bottomInsetPadding = innerPadding.calculateBottomPadding() + reviewBottomOverlayBottomPadding,
                     onRevealAnswer = onRevealAnswer,
-                    onRateAgain = onRateAgain,
-                    onRateHard = onRateHard,
-                    onRateGood = onRateGood,
-                    onRateEasy = onRateEasy
+                    onRateAgain = onRateAgainWithReaction,
+                    onRateHard = onRateHardWithReaction,
+                    onRateGood = onRateGoodWithReaction,
+                    onRateEasy = onRateEasyWithReaction
                 )
             }
+
+            ReviewReactionOverlay(
+                modifier = Modifier.matchParentSize(),
+                events = activeReviewReactionEvents,
+                motionMode = reviewReactionMotionMode,
+                onEventFinished = { eventId ->
+                    activeReviewReactionEvents = activeReviewReactionEvents.filter { event ->
+                        event.id != eventId
+                    }
+                }
+            )
         }
     }
 
