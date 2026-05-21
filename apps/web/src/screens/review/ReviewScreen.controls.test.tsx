@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { Card } from "../../types";
 import {
@@ -6,6 +7,7 @@ import {
   createCard,
   createDecks,
   loadReviewQueueSnapshotMock,
+  reviewStylesContain,
   setTextFieldValueAsync,
   setupReviewScreenTest,
 } from "./ReviewScreenTestSupport";
@@ -18,6 +20,13 @@ const {
   renderReviewScreen,
   revealAnswer,
 } = setupReviewScreenTest();
+
+async function flushReviewScreenMicrotasks(): Promise<void> {
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+}
 
 describe("ReviewScreen controls", () => {
   it("renders compact review header controls with scope before streak", async () => {
@@ -88,6 +97,102 @@ describe("ReviewScreen controls", () => {
     await dispatchDocumentKeydown("3");
 
     expect(state.appData.submitReviewItem).toHaveBeenCalledWith("card-review", 2);
+  });
+
+  it("emits a decorative reaction and advances immediately when a rating is clicked", async () => {
+    const state = getState();
+    const firstCard = createCard({
+      cardId: "card-reaction-first",
+      frontText: "First reaction question",
+      backText: "First reaction answer",
+    });
+    const secondCard = createCard({
+      cardId: "card-reaction-second",
+      frontText: "Second reaction question",
+      backText: "Second reaction answer",
+    });
+    state.cards = [firstCard, secondCard];
+    state.reviewQueue = [firstCard, secondCard];
+    state.reviewTimeline = [firstCard, secondCard];
+    state.appData.submitReviewItem.mockImplementation(async (cardId: string): Promise<Card> => {
+      const submittedCard = state.cards.find((card) => card.cardId === cardId);
+      if (submittedCard === undefined) {
+        throw new Error(`Unexpected submitted review card id: ${cardId}`);
+      }
+
+      return submittedCard;
+    });
+
+    await renderReviewScreen();
+    await revealAnswer();
+
+    const goodButton = getContainer().querySelector("[data-testid='review-rate-good']");
+    if (!(goodButton instanceof HTMLButtonElement)) {
+      throw new Error("Good rating button was not found");
+    }
+
+    await clickElementAsync(goodButton);
+    await flushReviewScreenMicrotasks();
+
+    const reactionLayer = getContainer().querySelector("[data-testid='review-rating-reaction-layer']");
+    if (!(reactionLayer instanceof HTMLElement)) {
+      throw new Error("Review rating reaction layer was not found");
+    }
+    const reviewPane = getContainer().querySelector("[data-testid='review-pane']");
+    if (!(reviewPane instanceof HTMLElement)) {
+      throw new Error("Review pane was not found");
+    }
+
+    expect(reactionLayer.getAttribute("aria-hidden")).toBe("true");
+    expect(getContainer().querySelectorAll("[data-testid='review-rating-reaction-event']")).toHaveLength(1);
+    expect(state.appData.submitReviewItem).toHaveBeenCalledWith("card-reaction-first", 2);
+    expect(reviewPane.getAttribute("data-review-current-card-id")).toBe("card-reaction-second");
+    expect(getContainer().textContent).toContain("Second reaction question");
+  });
+
+  it("keeps only the newest three decorative reactions active", async () => {
+    const state = getState();
+    const cards = Array.from({ length: 5 }, (_, index) => createCard({
+      cardId: `card-rapid-reaction-${index + 1}`,
+      frontText: `Rapid reaction question ${index + 1}`,
+      backText: `Rapid reaction answer ${index + 1}`,
+    }));
+    state.cards = cards;
+    state.reviewQueue = cards;
+    state.reviewTimeline = cards;
+    state.appData.submitReviewItem.mockImplementation(async (cardId: string): Promise<Card> => {
+      const submittedCard = cards.find((card) => card.cardId === cardId);
+      if (submittedCard === undefined) {
+        throw new Error(`Unexpected submitted review card id: ${cardId}`);
+      }
+
+      return submittedCard;
+    });
+
+    await renderReviewScreen();
+
+    for (let index = 0; index < 4; index += 1) {
+      await revealAnswer();
+      const goodButton = getContainer().querySelector("[data-testid='review-rate-good']");
+      if (!(goodButton instanceof HTMLButtonElement)) {
+        throw new Error(`Good rating button was not found for rapid reaction ${index + 1}`);
+      }
+
+      await clickElementAsync(goodButton);
+      await flushReviewScreenMicrotasks();
+    }
+
+    expect(getContainer().querySelectorAll("[data-testid='review-rating-reaction-event']")).toHaveLength(3);
+    expect(state.appData.submitReviewItem).toHaveBeenCalledTimes(4);
+  });
+
+  it("keeps review reaction overlay styles pointer-transparent with reduced motion support", () => {
+    expect(reviewStylesContain(
+      ".review-rating-reaction-layer",
+      "pointer-events: none",
+      "@media (prefers-reduced-motion: reduce)",
+      "review-reaction-reduced-pop",
+    )).toBe(true);
   });
 
   it("ignores review shortcuts while the filter menu or editor is open", async () => {
