@@ -1,7 +1,7 @@
 import type {
   DatabaseExecutor,
   WorkspaceDatabaseScope,
-} from "../../db";
+} from "../../database";
 import { finalizePendingToolCallContent } from "../history";
 import type { PersistedChatMessageItem } from "../store";
 import type { ChatSessionRow } from "../store/repository";

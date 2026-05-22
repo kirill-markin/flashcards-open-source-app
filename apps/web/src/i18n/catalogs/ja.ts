@@ -115,6 +115,8 @@ export const jaCatalog = {
     openSourceSettings: "オープンソース設定を読み込んでいます...",
     agentConnections: "エージェント接続を読み込んでいます...",
     dangerZone: "危険な操作を読み込んでいます...",
+    testSettings: "テスト設定を読み込んでいます...",
+    testAnimations: "アニメーションを読み込んでいます...",
     aiChat: "AIチャットを読み込んでいます...",
     progress: "進捗を読み込んでいます...",
   },
@@ -190,6 +192,7 @@ export const jaCatalog = {
     account: "アカウント",
     device: "このデバイス",
     access: "アクセス",
+    test: "テスト",
     ariaLabel: "設定タブ",
   },
   settingsHome: {
@@ -219,9 +222,19 @@ export const jaCatalog = {
       description: "ファイル、カメラ、マイクに対するブラウザ権限を確認します。",
       value: "権限",
     },
+    testGroupTitle: "テスト",
+    test: {
+      title: "テスト",
+      description: "このブラウザ用の非表示テストツールを開きます。",
+      value: "1項目",
+    },
   },
   workspaceManagement: {
     lockedMessage: "ワークスペースの変更は、アカウント作成後にのみ利用できます。",
+  },
+  testMode: {
+    enabledMessage: "テストバージョンが有効になりました。",
+    disabledMessage: "テストバージョンが無効になりました。",
   },
   settingsCurrentWorkspace: {
     title: "現在のワークスペース",
@@ -255,6 +268,20 @@ export const jaCatalog = {
       storage: "IndexedDB + localStorage",
       workspaceScope: "今後の同期は、このデバイスで現在選択されているワークスペースに限定されます。",
       localData: "ローカルキャッシュには、このデバイス上のカード、デッキ、スケジューラー設定、保留中の同期操作が保存されます。",
+    },
+  },
+  settingsTest: {
+    title: "テスト",
+    subtitle: "このブラウザ用の非表示テストツールです。",
+    toolsGroupTitle: "ツール",
+    animations: {
+      title: "アニメーション",
+      description: "すべての復習リアクションアニメーションのバリエーションをプレビューします。",
+      value: "16項目",
+      screenTitle: "アニメーション",
+      screenSubtitle: "復習リアクションのバリエーションを直接再生します。",
+      probability: "確率 {{percent}}",
+      playAccessibility: "{{variant}} のアニメーションを再生、{{probability}}",
     },
   },
   settingsWorkspace: {

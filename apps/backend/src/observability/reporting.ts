@@ -1,5 +1,5 @@
 import { AuthError, authVerificationTemporarilyUnavailableCode } from "../auth";
-import { HttpError } from "../errors";
+import { HttpError } from "../shared/errors";
 import {
   addBackendBreadcrumb,
   captureBackendException,

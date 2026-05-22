@@ -27,7 +27,7 @@ sealed interface ReviewIntervalDescription {
     ) : ReviewIntervalDescription
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/ReviewAnswerSupport.swift::formatReviewIntervalText(now:dueAt:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/View/ReviewAnswerSupport.swift::formatReviewIntervalText(now:dueAt:).
 fun resolveReviewIntervalDescription(nowMillis: Long, dueAtMillis: Long?): ReviewIntervalDescription {
     if (dueAtMillis == null) {
         return ReviewIntervalDescription.Now
@@ -52,7 +52,7 @@ fun resolveReviewIntervalDescription(nowMillis: Long, dueAtMillis: Long?): Revie
     return ReviewIntervalDescription.Days(count = durationDays)
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/ReviewAnswerSupport.swift::makeReviewAnswerOptions(card:schedulerSettings:now:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/View/ReviewAnswerSupport.swift::makeReviewAnswerOptions(card:schedulerSettings:now:).
 fun makeReviewAnswerOptions(
     card: CardSummary,
     settings: WorkspaceSchedulerSettings,

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type pg from "pg";
-import type { DatabaseExecutor, SqlValue, WorkspaceDatabaseScope } from "../../db";
+import type { DatabaseExecutor, SqlValue, WorkspaceDatabaseScope } from "../../database";
 import { ChatRunRowNotFoundError } from "../errors";
 import type { ChatSessionRow } from "../store/repository";
 import { finalizeInterruptedRunWithExecutor } from "./finalization";

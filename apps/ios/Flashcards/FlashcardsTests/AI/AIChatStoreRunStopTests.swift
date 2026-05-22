@@ -3,6 +3,115 @@ import XCTest
 
 @MainActor
 final class AIChatStoreRunStopTests: XCTestCase {
+    func testRemoteStopDecisionSkipsOnlyIdleDefensiveCancel() {
+        XCTAssertFalse(shouldAttemptRemoteAIChatStop(
+            initialComposerPhase: .idle,
+            hadActiveSendTask: false,
+            stopRunId: nil
+        ))
+        XCTAssertFalse(shouldAttemptRemoteAIChatStop(
+            initialComposerPhase: .preparingSend,
+            hadActiveSendTask: false,
+            stopRunId: nil
+        ))
+        XCTAssertFalse(shouldAttemptRemoteAIChatStop(
+            initialComposerPhase: .stopping,
+            hadActiveSendTask: false,
+            stopRunId: nil
+        ))
+        XCTAssertTrue(shouldAttemptRemoteAIChatStop(
+            initialComposerPhase: .idle,
+            hadActiveSendTask: true,
+            stopRunId: nil
+        ))
+        XCTAssertTrue(shouldAttemptRemoteAIChatStop(
+            initialComposerPhase: .startingRun,
+            hadActiveSendTask: false,
+            stopRunId: nil
+        ))
+        XCTAssertTrue(shouldAttemptRemoteAIChatStop(
+            initialComposerPhase: .running,
+            hadActiveSendTask: false,
+            stopRunId: nil
+        ))
+        XCTAssertTrue(shouldAttemptRemoteAIChatStop(
+            initialComposerPhase: .idle,
+            hadActiveSendTask: false,
+            stopRunId: "run-1"
+        ))
+    }
+
+    func testIdleDefensiveCancelDoesNotPersistPreviousConversationIntoNewHistoryScope() async throws {
+        let context = AIChatStoreTestSupport.Context.make()
+        defer {
+            context.tearDown()
+        }
+
+        try context.configureLinkedCloudSession()
+        let store = context.makeStore()
+        store.chatSessionId = "session-1"
+        store.conversationScopeId = "session-1"
+        store.messages = [
+            AIChatStoreTestSupport.makeUserTextMessage(
+                id: "message-1",
+                text: "Old workspace question",
+                timestamp: "2026-04-08T10:00:00Z"
+            )
+        ]
+        store.persistStateSynchronously(state: store.currentPersistedState())
+
+        try context.configureLinkedCloudSession(workspaceId: "workspace-2")
+        let nextWorkspaceHistoryId = context.linkedHistoryWorkspaceId(workspaceId: "workspace-2")
+
+        store.cancelStreaming()
+        await store.waitForPendingStatePersistence()
+
+        let nextWorkspaceState = context.historyStore.loadState(workspaceId: nextWorkspaceHistoryId)
+        XCTAssertEqual(nextWorkspaceState.chatSessionId, "")
+        XCTAssertEqual(nextWorkspaceState.messages, [])
+        XCTAssertEqual(store.composerPhase, .idle)
+    }
+
+    func testActiveCancelSendsRemoteStopWithRunId() async throws {
+        let context = AIChatStoreTestSupport.Context.make()
+        defer {
+            context.tearDown()
+        }
+
+        try context.configureLinkedCloudSession()
+        let store = context.makeStore()
+        let activeRun = AIChatStoreTestSupport.makeActiveRun()
+        store.chatSessionId = "session-1"
+        store.conversationScopeId = "session-1"
+        store.transitionToStreaming(
+            activeRun: AIChatActiveRunSession(
+                sessionId: "session-1",
+                conversationScopeId: "session-1",
+                runId: activeRun.runId,
+                liveStream: activeRun.live.stream,
+                liveCursor: activeRun.live.cursor,
+                streamEpoch: nil
+            )
+        )
+        store.persistStateSynchronously(state: store.currentPersistedState())
+
+        store.cancelStreaming()
+
+        let didSettle = await AIChatStoreTestSupport.waitForCondition(
+            description: "active run stop request",
+            timeout: .seconds(3),
+            pollInterval: .milliseconds(10),
+            condition: {
+                context.chatService.stopRunRequests.count == 1
+                    && store.composerPhase == .idle
+            }
+        )
+
+        XCTAssertTrue(didSettle)
+        XCTAssertEqual(context.chatService.stopRunRequests.map { $0.sessionId }, ["session-1"])
+        XCTAssertEqual(context.chatService.stopRunRequests.map { $0.runId }, ["run-1"])
+    }
+
     func testNoopStopClearsStoppingAndReloadsBootstrap() async throws {
         let context = AIChatStoreTestSupport.Context.make()
         defer {
@@ -89,9 +198,8 @@ final class AIChatStoreRunStopTests: XCTestCase {
 
         try context.configureLinkedCloudSession()
         let store = context.makeStore()
-        // Drain the constructor's defensive cancelStreaming pipeline before
-        // the test sets up its own race, otherwise its incidental stopRun
-        // call counts toward stopRunRequests and confuses the gate timing.
+        // Drain the constructor's defensive cancelStreaming persistence before
+        // the test sets up its own race.
         await store.waitForPendingStatePersistence()
 
         let runA = AIChatStoreTestSupport.makeActiveRun()

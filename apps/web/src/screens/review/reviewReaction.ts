@@ -1,0 +1,217 @@
+export const reviewReactionMaximumActiveEvents = 3;
+export const reducedReviewReactionMotionMediaQuery = "(prefers-reduced-motion: reduce)";
+
+export type ReviewReactionMotionMode = "standard" | "reduced";
+
+export type ReviewReactionRating =
+  | "again"
+  | "hard"
+  | "good"
+  | "easy";
+
+export const reviewReactionRatings: ReadonlyArray<ReviewReactionRating> = [
+  "again",
+  "hard",
+  "good",
+  "easy",
+];
+
+export type ReviewReactionVariant =
+  | "againRedScribbleSlash"
+  | "againRewindVortex"
+  | "againStampFlyby"
+  | "againWarningTape"
+  | "hardHourglassSand"
+  | "hardFallingWeight"
+  | "hardYellowCrack"
+  | "hardRollingBoulder"
+  | "goodHandDrawnCheck"
+  | "goodLightSweep"
+  | "goodPaperPlaneCheck"
+  | "goodCheckSealBounce"
+  | "easySparkleBurst"
+  | "easyRainbowStreak"
+  | "easyCrownBounce"
+  | "easyUnicornFlyby";
+
+export type ReviewReactionEvent = Readonly<{
+  id: string;
+  rating: ReviewReactionRating;
+  variant: ReviewReactionVariant;
+}>;
+
+export type ReviewReactionVariantDistributionEntry = Readonly<{
+  id: string;
+  rating: ReviewReactionRating;
+  variant: ReviewReactionVariant;
+  rollRange: Readonly<{
+    lowerBound: number;
+    upperBound: number;
+  }>;
+  rollCount: number;
+  probabilityPercent: number;
+}>;
+
+function makeReviewReactionVariantDistributionEntry(
+  rating: ReviewReactionRating,
+  variant: ReviewReactionVariant,
+  lowerBound: number,
+  upperBound: number,
+): ReviewReactionVariantDistributionEntry {
+  if (
+    !Number.isInteger(lowerBound)
+    || !Number.isInteger(upperBound)
+    || lowerBound < 0
+    || upperBound > 999
+    || upperBound < lowerBound
+  ) {
+    throw new RangeError(`Invalid review reaction roll range for ${rating}.${variant}: ${lowerBound}...${upperBound}`);
+  }
+
+  const rollCount = upperBound - lowerBound + 1;
+
+  return {
+    id: `${rating}.${variant}`,
+    rating,
+    variant,
+    rollRange: {
+      lowerBound,
+      upperBound,
+    },
+    rollCount,
+    probabilityPercent: rollCount / 10,
+  };
+}
+
+export const allReviewReactionVariantDistributionEntries: ReadonlyArray<ReviewReactionVariantDistributionEntry> = [
+  makeReviewReactionVariantDistributionEntry("again", "againRedScribbleSlash", 0, 399),
+  makeReviewReactionVariantDistributionEntry("again", "againRewindVortex", 400, 699),
+  makeReviewReactionVariantDistributionEntry("again", "againStampFlyby", 700, 919),
+  makeReviewReactionVariantDistributionEntry("again", "againWarningTape", 920, 999),
+  makeReviewReactionVariantDistributionEntry("hard", "hardHourglassSand", 0, 399),
+  makeReviewReactionVariantDistributionEntry("hard", "hardFallingWeight", 400, 699),
+  makeReviewReactionVariantDistributionEntry("hard", "hardYellowCrack", 700, 919),
+  makeReviewReactionVariantDistributionEntry("hard", "hardRollingBoulder", 920, 999),
+  makeReviewReactionVariantDistributionEntry("good", "goodHandDrawnCheck", 0, 399),
+  makeReviewReactionVariantDistributionEntry("good", "goodLightSweep", 400, 699),
+  makeReviewReactionVariantDistributionEntry("good", "goodPaperPlaneCheck", 700, 919),
+  makeReviewReactionVariantDistributionEntry("good", "goodCheckSealBounce", 920, 999),
+  makeReviewReactionVariantDistributionEntry("easy", "easySparkleBurst", 0, 399),
+  makeReviewReactionVariantDistributionEntry("easy", "easyRainbowStreak", 400, 699),
+  makeReviewReactionVariantDistributionEntry("easy", "easyCrownBounce", 700, 919),
+  makeReviewReactionVariantDistributionEntry("easy", "easyUnicornFlyby", 920, 999),
+];
+
+export function reviewReactionVariantDistributionEntries(
+  rating: ReviewReactionRating,
+): ReadonlyArray<ReviewReactionVariantDistributionEntry> {
+  return allReviewReactionVariantDistributionEntries.filter((entry) => entry.rating === rating);
+}
+
+function isRollInReviewReactionDistributionEntry(
+  entry: ReviewReactionVariantDistributionEntry,
+  roll: number,
+): boolean {
+  return roll >= entry.rollRange.lowerBound && roll <= entry.rollRange.upperBound;
+}
+
+export function selectReviewReactionVariant(
+  rating: ReviewReactionRating,
+  roll: number,
+): ReviewReactionVariant {
+  if (!Number.isInteger(roll) || roll < 0 || roll > 999) {
+    throw new RangeError(`Review reaction roll must be an integer in 0...999, received ${roll}.`);
+  }
+
+  const entry = reviewReactionVariantDistributionEntries(rating).find((candidate) => (
+    isRollInReviewReactionDistributionEntry(candidate, roll)
+  ));
+  if (entry === undefined) {
+    throw new Error(`Review reaction distribution is missing rating ${rating} roll ${roll}.`);
+  }
+
+  return entry.variant;
+}
+
+export function makeReviewReactionRating(rating: 0 | 1 | 2 | 3): ReviewReactionRating {
+  if (rating === 0) {
+    return "again";
+  }
+
+  if (rating === 1) {
+    return "hard";
+  }
+
+  if (rating === 2) {
+    return "good";
+  }
+
+  return "easy";
+}
+
+export function appendReviewReactionEvent(
+  events: ReadonlyArray<ReviewReactionEvent>,
+  event: ReviewReactionEvent,
+  maximumActiveEvents: number,
+): ReadonlyArray<ReviewReactionEvent> {
+  if (!Number.isInteger(maximumActiveEvents) || maximumActiveEvents <= 0) {
+    throw new RangeError(`Review reactions require a positive active event limit, received ${maximumActiveEvents}.`);
+  }
+
+  const nextEvents = [...events, event];
+  if (nextEvents.length <= maximumActiveEvents) {
+    return nextEvents;
+  }
+
+  return nextEvents.slice(nextEvents.length - maximumActiveEvents);
+}
+
+export function matchesReducedReviewReactionMotion(): boolean {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return false;
+  }
+
+  return window.matchMedia(reducedReviewReactionMotionMediaQuery).matches;
+}
+
+export function reviewReactionAnimationDurationMillis(variant: ReviewReactionVariant): number {
+  switch (variant) {
+    case "goodHandDrawnCheck":
+      return 1150;
+    case "againRedScribbleSlash":
+    case "hardYellowCrack":
+      return 1200;
+    case "easySparkleBurst":
+      return 1250;
+    case "againRewindVortex":
+    case "goodLightSweep":
+    case "goodCheckSealBounce":
+      return 1450;
+    case "hardHourglassSand":
+    case "againWarningTape":
+    case "easyRainbowStreak":
+      return 1550;
+    case "hardFallingWeight":
+    case "easyCrownBounce":
+      return 1650;
+    case "goodPaperPlaneCheck":
+      return 1750;
+    case "againStampFlyby":
+      return 1900;
+    case "hardRollingBoulder":
+      return 2050;
+    case "easyUnicornFlyby":
+      return 2150;
+  }
+}
+
+export function reviewReactionCleanupDelayMillis(
+  variant: ReviewReactionVariant,
+  motionMode: ReviewReactionMotionMode,
+): number {
+  if (motionMode === "reduced") {
+    return 400;
+  }
+
+  return reviewReactionAnimationDurationMillis(variant) + 80;
+}

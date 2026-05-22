@@ -2,7 +2,7 @@ import {
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
   type WorkspaceDatabaseScope,
-} from "../../db";
+} from "../../database";
 import { ChatRunRowNotFoundError } from "../errors";
 import type { StoredOpenAIReplayItem } from "../openai/replayItems";
 import type { ChatSessionRow } from "../store/repository";

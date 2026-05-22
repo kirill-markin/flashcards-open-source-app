@@ -2,13 +2,13 @@ import { randomUUID } from "node:crypto";
 import {
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
-} from "../db";
-import { HttpError } from "../errors";
+} from "../database";
+import { HttpError } from "../shared/errors";
 import {
   incomingLwwMetadataWins,
   normalizeIsoTimestamp,
-} from "../lww";
-import { findLatestSyncChangeId } from "../syncChanges";
+} from "../sync/lww";
+import { findLatestSyncChangeId } from "../sync/changes";
 import {
   createSyncConflictHttpError,
   findSyncConflictWorkspaceIdInExecutor,

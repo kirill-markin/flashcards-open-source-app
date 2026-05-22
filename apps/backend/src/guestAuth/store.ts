@@ -2,17 +2,17 @@ import {
   applyUserDatabaseScopeInExecutor,
   applyWorkspaceDatabaseScopeInExecutor,
   type DatabaseExecutor,
-} from "../db";
+} from "../database";
 import type { EffortLevel } from "../cards";
 import type { DeckFilterDefinition } from "../decks";
-import { HttpError } from "../errors";
-import type { FsrsCardState } from "../schedule";
+import { HttpError } from "../shared/errors";
+import type { FsrsCardState } from "../scheduling";
 import type {
   SyncClientPlatform,
   WorkspaceReplicaActorKind,
   WorkspaceReplicaPlatform,
-} from "../syncIdentity";
-import { lockWorkspaceAccessLifecycleInExecutor } from "../workspaceAccessLocks";
+} from "../sync/identity";
+import { lockWorkspaceAccessLifecycleInExecutor } from "../workspaces/accessLocks";
 import {
   lockUserSettingsForWorkspaceLifecycleInExecutor,
   UserSettingsRowNotFoundError,

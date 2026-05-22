@@ -203,10 +203,10 @@ When adding a new language, review these support-heavy areas explicitly:
 
 - [apps/ios/Flashcards/Flashcards/TransientBannerSupport.swift](../apps/ios/Flashcards/Flashcards/TransientBannerSupport.swift)
 - [apps/ios/Flashcards/Flashcards/ErrorMessageSupport.swift](../apps/ios/Flashcards/Flashcards/ErrorMessageSupport.swift)
-- [apps/ios/Flashcards/Flashcards/Cloud/CloudAuthService.swift](../apps/ios/Flashcards/Flashcards/Cloud/CloudAuthService.swift)
+- [apps/ios/Flashcards/Flashcards/Cloud/Auth/CloudAuthService.swift](../apps/ios/Flashcards/Flashcards/Cloud/Auth/CloudAuthService.swift)
 - [apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+AlertPresentation.swift](../apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+AlertPresentation.swift)
 - [apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+ObservabilityCapture.swift](../apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+ObservabilityCapture.swift)
-- [apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+RunOrchestration.swift](../apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+RunOrchestration.swift)
+- [apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+RunLifecycle.swift](../apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+RunLifecycle.swift)
 - [apps/ios/Flashcards/Flashcards/AI/Support/AIChatServerErrorSupport.swift](../apps/ios/Flashcards/Flashcards/AI/Support/AIChatServerErrorSupport.swift)
 - [apps/ios/Flashcards/Flashcards/AI/Runtime/AIChatVoiceDictation.swift](../apps/ios/Flashcards/Flashcards/AI/Runtime/AIChatVoiceDictation.swift)
 - [apps/ios/Flashcards/Flashcards/AI/Support/AIChatAttachmentSupport.swift](../apps/ios/Flashcards/Flashcards/AI/Support/AIChatAttachmentSupport.swift)

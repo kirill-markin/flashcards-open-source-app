@@ -5,7 +5,7 @@ import type {
   ReviewEvent,
   WorkspaceSchedulerSettings,
 } from "../types";
-import { deriveDueAtBucketMillis, deriveDueAtMillis } from "../appData/dueAt";
+import { deriveDueAtBucketMillis, deriveDueAtMillis } from "../appData/domain/dueAt";
 
 export type StoredCard = Readonly<{
   workspaceId: string;
@@ -80,6 +80,9 @@ export type DatabaseStores =
 
 const databaseName = "flashcards-web-sync";
 const databaseVersion = 12;
+const activeDatabaseOperationPromises = new Set<Promise<unknown>>();
+let isDatabaseDeleteInProgress = false;
+let activeDatabaseDeletePromise: Promise<void> | null = null;
 
 type StoredCardDueAtMigrationRecord = Omit<StoredCard, "dueAt" | "dueAtMillis" | "dueAtBucketMillis"> & Readonly<{
   dueAt?: string | null;
@@ -369,6 +372,21 @@ export function openDatabase(): Promise<IDBDatabase> {
   });
 }
 
+function trackDatabaseOperation<ResultType>(
+  createOperationTask: () => Promise<ResultType>,
+): Promise<ResultType> {
+  if (isDatabaseDeleteInProgress) {
+    throw new Error("IndexedDB is unavailable while browser data is being reset");
+  }
+
+  const operationTask: Promise<ResultType> = Promise.resolve().then(createOperationTask);
+  const trackedOperationTask = operationTask.finally(() => {
+    activeDatabaseOperationPromises.delete(trackedOperationTask);
+  });
+  activeDatabaseOperationPromises.add(trackedOperationTask);
+  return trackedOperationTask;
+}
+
 export function runReadonly<RequestResult>(
   database: IDBDatabase,
   storeName: DatabaseStores,
@@ -433,26 +451,30 @@ export async function getFromStore<RecordType>(
 export async function closeDatabaseAfter<ResultType>(
   callback: (database: IDBDatabase) => Promise<ResultType>,
 ): Promise<ResultType> {
-  const database = await openDatabase();
-  try {
-    return await callback(database);
-  } finally {
-    database.close();
-  }
+  return trackDatabaseOperation(async () => {
+    const database = await openDatabase();
+    try {
+      return await callback(database);
+    } finally {
+      database.close();
+    }
+  });
 }
 
 export async function closeDatabaseAfterWrite(
   callback: (database: IDBDatabase) => Promise<void>,
 ): Promise<void> {
-  const database = await openDatabase();
-  try {
-    await callback(database);
-  } finally {
-    database.close();
-  }
+  await trackDatabaseOperation(async () => {
+    const database = await openDatabase();
+    try {
+      await callback(database);
+    } finally {
+      database.close();
+    }
+  });
 }
 
-export function deleteDatabase(): Promise<void> {
+function requestDeleteDatabase(): Promise<void> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.deleteDatabase(databaseName);
 
@@ -468,6 +490,26 @@ export function deleteDatabase(): Promise<void> {
       reject(new Error("Failed to delete IndexedDB: delete request was blocked"));
     };
   });
+}
+
+export function deleteDatabase(): Promise<void> {
+  const activeDelete = activeDatabaseDeletePromise;
+  if (activeDelete !== null) {
+    return activeDelete;
+  }
+
+  const deleteTask = (async (): Promise<void> => {
+    isDatabaseDeleteInProgress = true;
+    try {
+      await Promise.allSettled([...activeDatabaseOperationPromises]);
+      await requestDeleteDatabase();
+    } finally {
+      activeDatabaseDeletePromise = null;
+      isDatabaseDeleteInProgress = false;
+    }
+  })();
+  activeDatabaseDeletePromise = deleteTask;
+  return deleteTask;
 }
 
 export type StoredEntity = StoredCard | Deck | ReviewEvent | ProgressDailyCountRecord;

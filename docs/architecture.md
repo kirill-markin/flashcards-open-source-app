@@ -89,7 +89,7 @@ The apex `<domain>` is an optional CloudFront redirect to `app.<domain>`.
 
 ## Backend runtime structure
 
-`apps/backend/src/app.ts` mounts ten route modules:
+`apps/backend/src/server/app.ts` mounts ten route modules:
 
 - `system`: discovery, health, OpenAPI, session/account inspection, account deletion
 - `agent`: machine-facing discovery, workspace bootstrap, SQL endpoint, and agent OpenAPI documents
@@ -229,7 +229,7 @@ Implemented sync behavior:
 - Review eligibility is compute-on-read: due cards use `due_at <= now()`, new cards use `due_at IS NULL`, and future or malformed due values stay out of the active queue.
 - Backend, iOS, and Android maintain mirrored scheduling logic and state validation.
 - The web app computes review submissions locally too, but it does not keep a fourth standalone scheduler copy in `apps/web`.
-- Instead, the web review flow reuses the backend scheduler module directly from `apps/backend/src/schedule.ts` when it needs the next local `dueAt` and FSRS state.
+- Instead, the web review flow reuses the backend scheduler module directly from `apps/backend/src/scheduling/index.ts` when it needs the next local `dueAt` and FSRS state.
 
 There is no separate background scheduler worker.
 

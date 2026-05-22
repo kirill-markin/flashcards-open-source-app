@@ -115,6 +115,8 @@ export const zhHansCatalog = {
     openSourceSettings: "正在加载开源设置...",
     agentConnections: "正在加载代理连接...",
     dangerZone: "正在加载危险区域...",
+    testSettings: "正在加载测试设置...",
+    testAnimations: "正在加载动画...",
     aiChat: "正在加载 AI 聊天...",
     progress: "正在加载进度...",
   },
@@ -190,6 +192,7 @@ export const zhHansCatalog = {
     account: "账户",
     device: "此设备",
     access: "访问权限",
+    test: "测试",
     ariaLabel: "设置标签页",
   },
   settingsHome: {
@@ -219,9 +222,19 @@ export const zhHansCatalog = {
       description: "查看浏览器对文件、摄像头和麦克风的权限。",
       value: "权限",
     },
+    testGroupTitle: "测试",
+    test: {
+      title: "测试",
+      description: "打开此浏览器的隐藏测试工具。",
+      value: "1 项",
+    },
   },
   workspaceManagement: {
     lockedMessage: "只有在您创建账户后才能更改工作区。",
+  },
+  testMode: {
+    enabledMessage: "测试版本已启用。",
+    disabledMessage: "测试版本已停用。",
   },
   settingsCurrentWorkspace: {
     title: "当前工作区",
@@ -255,6 +268,20 @@ export const zhHansCatalog = {
       storage: "IndexedDB + localStorage",
       workspaceScope: "后续同步将继续限定在此设备当前所选的工作区内。",
       localData: "本地缓存会在此设备上保留卡片、牌组、调度器设置和待同步操作。",
+    },
+  },
+  settingsTest: {
+    title: "测试",
+    subtitle: "此浏览器的隐藏测试工具。",
+    toolsGroupTitle: "工具",
+    animations: {
+      title: "动画",
+      description: "预览所有复习反应动画变体。",
+      value: "16 项",
+      screenTitle: "动画",
+      screenSubtitle: "直接播放复习反应变体。",
+      probability: "{{percent}} 概率",
+      playAccessibility: "播放 {{variant}} 动画，{{probability}}",
     },
   },
   settingsWorkspace: {

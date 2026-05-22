@@ -124,6 +124,9 @@
 "settings.row.thisDevice" = "本设备";
 "settings.row.access" = "访问";
 "settings.row.access.itemCount" = "4 件";
+"settings.section.test" = "测试";
+"settings.row.test" = "测试";
+"settings.row.test.itemCount" = "1 项";
 "settings.sync.success" = "同步成功";
 "settings.sync.guestAiActive" = "访客AI已激活";
 "settings.sync.notSyncing" = "不同步";
@@ -154,6 +157,14 @@
 "settings.thisDevice.note.localOnly" = "无需登录即可创建卡片、保存牌组或查看。";
 "settings.thisDevice.note.syncScope" = "未来同步仅限于当前工作区。";
 "settings.thisDevice.note.schema" = "默认情况下，模式保持靠近后端而不下载远程数据。";
+
+"settings.test.title" = "测试";
+"settings.test.section.tools" = "工具";
+"settings.test.animations" = "动画";
+"settings.test.animations.itemCount" = "16 项";
+"settings.test.animations.title" = "动画";
+"settings.test.animations.probability" = "%@ 概率";
+"settings.test.animations.playAccessibility" = "播放 %@ 动画，%@";
 
 "settings.access.title" = "访问";
 "settings.access.section.permissions" = "权限";

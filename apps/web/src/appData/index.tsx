@@ -1,5 +1,6 @@
 export {
   AppDataProvider,
   useAppData,
-} from "./provider";
+} from "./context/provider";
+export type { AppDataContextValue } from "./context/types";
 export { useReviewProgressBadge } from "./progress/reviewProgressBadge";

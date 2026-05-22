@@ -1,6 +1,6 @@
 /**
  * Keep review content presentation heuristics aligned with:
- * - apps/ios/Flashcards/Flashcards/ReviewContentPresentation.swift
+ * - apps/ios/Flashcards/Flashcards/Review/View/ReviewContentPresentation.swift
  * - apps/android/feature/review/src/main/java/com/flashcardsopensourceapp/feature/review/ReviewPresentation.kt
  */
 export type ReviewContentPresentationMode = "shortPlain" | "paragraphPlain" | "markdown";

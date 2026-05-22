@@ -11,6 +11,7 @@ import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
 import com.flashcardsopensourceapp.core.ui.AppMessageBus
+import com.flashcardsopensourceapp.core.ui.TestModeStore
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenController
 import com.flashcardsopensourceapp.app.navigation.AppHandoffCoordinator
 import com.flashcardsopensourceapp.app.notifications.ReviewNotificationsManager
@@ -118,6 +119,7 @@ class AppGraph(
 
     internal val appPackageInfo: AppPackageInfo = loadPackageInfo(context = context)
     val appMessageBus = AppMessageBus()
+    val testModeStore = TestModeStore(context = context.applicationContext)
     val visibleAppScreenController = VisibleAppScreenController()
     val appHandoffCoordinator = AppHandoffCoordinator()
     val database: AppDatabase = buildAppDatabase(context = context)

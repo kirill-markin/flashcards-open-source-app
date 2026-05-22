@@ -1,4 +1,4 @@
-import { HttpError } from "../errors";
+import { HttpError } from "../shared/errors";
 import { expectRecord } from "../server/requestParsing";
 import type { CardFilter, EffortLevel } from "./types";
 

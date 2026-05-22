@@ -16,8 +16,8 @@ import {
   type DeckFilterDefinition,
   type UpdateDeckInput,
 } from "../decks";
-import { transactionWithWorkspaceScope } from "../db";
-import { HttpError } from "../errors";
+import { transactionWithWorkspaceScope } from "../database";
+import { HttpError } from "../shared/errors";
 import type { AgentToolOperationDependencies } from "./agentToolOperations";
 import { executeSqlSelect } from "./sqlDialect";
 import {

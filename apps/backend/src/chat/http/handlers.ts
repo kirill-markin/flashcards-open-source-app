@@ -1,5 +1,5 @@
 import type { Handler } from "hono";
-import type { AppEnv } from "../../app";
+import type { AppEnv } from "../../server/app";
 import {
   type ChatComposerSuggestionsLocale,
   localizeInitialChatComposerSuggestions,

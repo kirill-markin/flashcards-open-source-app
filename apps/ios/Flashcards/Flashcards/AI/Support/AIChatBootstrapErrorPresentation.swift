@@ -344,29 +344,7 @@ private func aiChatBootstrapSetupHTTPStatus(error: Error) -> Int? {
 }
 
 private func isAIChatRetryableTransportFailure(error: Error) -> Bool {
-    guard let urlErrorCode = aiChatBootstrapURLErrorCode(error: error, remainingDepth: 4) else {
-        return false
-    }
-
-    return aiChatBootstrapCanRetryURLErrorCode(urlErrorCode)
-}
-
-private func aiChatBootstrapCanRetryURLErrorCode(_ code: URLError.Code) -> Bool {
-    switch code {
-    case .timedOut,
-         .cannotFindHost,
-         .cannotConnectToHost,
-         .dnsLookupFailed,
-         .networkConnectionLost,
-         .notConnectedToInternet,
-         .internationalRoamingOff,
-         .callIsActive,
-         .dataNotAllowed,
-         .cannotLoadFromNetwork:
-        return true
-    default:
-        return false
-    }
+    return isRetryableNetworkTransportFailure(error: error)
 }
 
 private func aiChatBootstrapShouldShowNetworkMessage(_ code: URLError.Code) -> Bool {
@@ -384,24 +362,7 @@ private func aiChatBootstrapShouldShowNetworkMessage(_ code: URLError.Code) -> B
 }
 
 private func aiChatBootstrapURLErrorCode(error: Error, remainingDepth: Int) -> URLError.Code? {
-    if let urlError = error as? URLError {
-        return urlError.code
-    }
-
-    let nsError = error as NSError
-    if nsError.domain == NSURLErrorDomain {
-        return URLError.Code(rawValue: nsError.code)
-    }
-
-    guard remainingDepth > 0 else {
-        return nil
-    }
-
-    guard let underlyingError = nsError.userInfo[NSUnderlyingErrorKey] as? Error else {
-        return nil
-    }
-
-    return aiChatBootstrapURLErrorCode(error: underlyingError, remainingDepth: remainingDepth - 1)
+    return flashcardsURLErrorCode(error: error, remainingDepth: remainingDepth)
 }
 
 private func aiChatBootstrapURLErrorTechnicalDetails(code: URLError.Code) -> String {

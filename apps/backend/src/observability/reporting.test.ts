@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { AuthError, authVerificationTemporarilyUnavailableCode } from "../auth";
-import { HttpError } from "../errors";
+import { HttpError } from "../shared/errors";
 import { createBackendFailureDetails } from "../server/logging";
 import { captureBackendException } from "./sentry/capture";
 import { normalizeCaughtError } from "./sentry/errorNormalization";

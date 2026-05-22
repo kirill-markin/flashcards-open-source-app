@@ -2,17 +2,17 @@ import { upsertCardSnapshotInExecutor } from "../cards";
 import {
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
-} from "../db";
+} from "../database";
 import { upsertDeckSnapshotInExecutor } from "../decks";
-import { HttpError } from "../errors";
+import { HttpError } from "../shared/errors";
 import {
   decodeOpaqueCursor,
   encodeOpaqueCursor,
-} from "../pagination";
-import { ensureWorkspaceReplicaInExecutor } from "../syncIdentity";
-import { ensureWorkspaceSyncMetadataInExecutor } from "../syncChanges";
+} from "../shared/pagination";
+import { ensureWorkspaceReplicaInExecutor } from "./identity";
+import { ensureWorkspaceSyncMetadataInExecutor } from "./changes";
 import { annotateSyncConflictHttpError } from "./fork";
-import { applyWorkspaceSchedulerSettingsSnapshotInExecutor } from "../workspaceSchedulerSettings";
+import { applyWorkspaceSchedulerSettingsSnapshotInExecutor } from "../scheduling/workspaceSettings";
 import {
   cardPayloadSchema,
   deckPayloadSchema,

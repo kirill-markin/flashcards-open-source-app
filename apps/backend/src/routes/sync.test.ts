@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import type { AppEnv } from "../app";
-import { HttpError } from "../errors";
-import { isTransientDatabaseError } from "../dbTransient";
+import type { AppEnv } from "../server/app";
+import { HttpError } from "../shared/errors";
+import { isTransientDatabaseError } from "../database/transient";
 import type { RequestContext } from "../server/requestContext";
 import { createSyncRoutes } from "./sync";
 

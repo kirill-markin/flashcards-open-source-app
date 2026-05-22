@@ -401,7 +401,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
 
   const backendFn = createBackendFunction(scope, {
     constructId: "BackendHandler",
-    entry: resolveFromRepoRoot("apps", "backend", "src", "lambda.ts"),
+    entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda.ts"),
     baseDomain: props.baseDomain,
     vpc: props.vpc,
     lambdaSg: props.lambdaSg,
@@ -435,7 +435,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   });
   const chatWorkerFn = createBackendFunction(scope, {
     constructId: "ChatRunWorkerHandler",
-    entry: resolveFromRepoRoot("apps", "backend", "src", "lambda-chat-worker.ts"),
+    entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda-chat-worker.ts"),
     baseDomain: props.baseDomain,
     vpc: props.vpc,
     lambdaSg: props.lambdaSg,
@@ -465,7 +465,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   });
   const chatLiveFn = createBackendFunction(scope, {
     constructId: "ChatLiveHandler",
-    entry: resolveFromRepoRoot("apps", "backend", "src", "lambda-chat-live.ts"),
+    entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda-chat-live.ts"),
     baseDomain: props.baseDomain,
     vpc: props.vpc,
     lambdaSg: props.lambdaSg,

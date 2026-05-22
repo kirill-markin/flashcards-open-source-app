@@ -7,5 +7,6 @@ data class SettingsUiState(
     val deckCount: Int,
     val storageLabel: String,
     val syncStatusText: String,
-    val accountStatusTitle: String
+    val accountStatusTitle: String,
+    val isTestModeEnabled: Boolean
 )

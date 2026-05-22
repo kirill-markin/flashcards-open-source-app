@@ -1,15 +1,15 @@
 import { randomUUID } from "node:crypto";
-import { transactionWithWorkspaceScope, type DatabaseExecutor } from "../db";
-import { HttpError } from "../errors";
+import { transactionWithWorkspaceScope, type DatabaseExecutor } from "../database";
+import { HttpError } from "../shared/errors";
 import {
   computeReviewSchedule,
   type ReviewableCardScheduleState,
-} from "../schedule";
+} from "../scheduling";
 import {
   createSyncConflictHttpError,
   findSyncConflictWorkspaceIdInExecutor,
 } from "../sync/fork";
-import { getWorkspaceSchedulerConfig } from "../workspaceSchedulerSettings";
+import { getWorkspaceSchedulerConfig } from "../scheduling/workspaceSettings";
 import { validateOrResetReviewableCardRow } from "./fsrs";
 import {
   CARD_COLUMNS,
@@ -31,7 +31,7 @@ import type {
   SubmitReviewInput,
 } from "./types";
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::makeReviewableCardScheduleState(card:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::makeReviewableCardScheduleState(card:).
 function toReviewableCardScheduleState(
   card: ReviewableCardRow,
 ): ReviewableCardScheduleState {

@@ -3,7 +3,7 @@ import {
   applyWorkspaceDatabaseScopeInExecutor,
   type DatabaseExecutor,
   type WorkspaceDatabaseScope,
-} from "../../db";
+} from "../../database";
 import type {
   ChatComposerSuggestionInvalidationReason,
   ChatComposerSuggestionSource,

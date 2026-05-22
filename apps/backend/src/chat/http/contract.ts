@@ -2,7 +2,7 @@ import {
   type ChatComposerSuggestionsLocale,
   normalizeChatComposerSuggestionsUiLocale,
 } from "../composerSuggestions";
-import { HttpError } from "../../errors";
+import { HttpError } from "../../shared/errors";
 import {
   expectNonEmptyString,
   expectRecord,

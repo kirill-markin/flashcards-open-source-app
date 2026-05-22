@@ -1,8 +1,8 @@
 import { randomBytes, randomUUID } from "node:crypto";
-import type { DatabaseExecutor } from "../db";
-import { applyUserDatabaseScopeInExecutor } from "../db";
-import { unsafeQuery } from "../dbUnsafe";
-import { HttpError } from "../errors";
+import type { DatabaseExecutor } from "../database";
+import { applyUserDatabaseScopeInExecutor } from "../database";
+import { unsafeQuery } from "../database/unsafe";
+import { HttpError } from "../shared/errors";
 import {
   AUTO_CREATED_WORKSPACE_NAME,
   createWorkspaceInExecutor,

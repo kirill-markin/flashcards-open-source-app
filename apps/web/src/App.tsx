@@ -51,9 +51,12 @@ import {
   settingsOverviewRoute,
   settingsSchedulerRoute,
   settingsTagsRoute,
+  settingsTestAnimationsRoute,
+  settingsTestRoute,
   workspaceSettingsRoute,
 } from "./routes";
 import { isWorkspaceManagementLocked } from "./workspaceManagement";
+import { TestModeProvider, useTestMode } from "./testMode";
 import { CardFormScreen } from "./screens/cards/CardFormScreen";
 import { CardsScreen } from "./screens/cards/CardsScreen";
 import { ProgressScreen } from "./screens/progress/ProgressScreen";
@@ -106,6 +109,12 @@ const NotificationsSettingsScreen = lazy(async () => import("./screens/settings/
 })));
 const ThisDeviceSettingsScreen = lazy(async () => import("./screens/settings/ThisDeviceSettingsScreen").then((module) => ({
   default: module.ThisDeviceSettingsScreen,
+})));
+const TestAnimationsScreen = lazy(async () => import("./screens/settings/TestSettingsScreen").then((module) => ({
+  default: module.TestAnimationsScreen,
+})));
+const TestSettingsScreen = lazy(async () => import("./screens/settings/TestSettingsScreen").then((module) => ({
+  default: module.TestSettingsScreen,
 })));
 const TagsScreen = lazy(async () => import("./screens/settings/workspace/TagsScreen").then((module) => ({
   default: module.TagsScreen,
@@ -254,6 +263,17 @@ function LegacyDeckEditRedirect(): ReactElement {
   }
 
   return <Navigate replace to={buildSettingsDeckEditRoute(deckId)} />;
+}
+
+function TestModeRouteGuard(props: Readonly<{ children: ReactElement }>): ReactElement {
+  const { children } = props;
+  const { isTestModeEnabled } = useTestMode();
+
+  if (isTestModeEnabled === false) {
+    return <Navigate replace to={settingsHubRoute} />;
+  }
+
+  return children;
 }
 
 export function AppShell(): ReactElement {
@@ -575,6 +595,22 @@ export function RoutedShell(): ReactElement {
           <Route path={`${settingsDecksRoute}/:deckId`} element={renderDeferredRoute(<DeckDetailScreen />, "loading.deckDetails")} />
           <Route path={settingsTagsRoute} element={renderDeferredRoute(<TagsScreen />, "loading.tags")} />
           <Route path={settingsDeviceRoute} element={renderDeferredRoute(<ThisDeviceSettingsScreen />, "loading.deviceDetails")} />
+          <Route
+            path={settingsTestRoute}
+            element={renderDeferredRoute((
+              <TestModeRouteGuard>
+                <TestSettingsScreen />
+              </TestModeRouteGuard>
+            ), "loading.testSettings")}
+          />
+          <Route
+            path={settingsTestAnimationsRoute}
+            element={renderDeferredRoute((
+              <TestModeRouteGuard>
+                <TestAnimationsScreen />
+              </TestModeRouteGuard>
+            ), "loading.testAnimations")}
+          />
           <Route path={accountSettingsRoute} element={renderDeferredRoute(<AccountSettingsScreen />, "loading.accountSettings")} />
           <Route path={accountStatusRoute} element={renderDeferredRoute(<AccountStatusScreen />, "loading.accountStatus")} />
           <Route path={accountLegalSupportRoute} element={renderDeferredRoute(<LegalSupportScreen />, "loading.legalSupport")} />
@@ -606,17 +642,19 @@ export function RoutedShell(): ReactElement {
 export default function App(): ReactElement {
   return (
     <AppErrorBoundary fallback={<AppCrashFallback />}>
-      <AppDataProvider>
-        <ChatLayoutProvider>
-          <ChatSessionControllerProvider>
-            <ChatDraftProvider>
-              <BrowserRouter>
-                <AppShell />
-              </BrowserRouter>
-            </ChatDraftProvider>
-          </ChatSessionControllerProvider>
-        </ChatLayoutProvider>
-      </AppDataProvider>
+      <TestModeProvider>
+        <AppDataProvider>
+          <ChatLayoutProvider>
+            <ChatSessionControllerProvider>
+              <ChatDraftProvider>
+                <BrowserRouter>
+                  <AppShell />
+                </BrowserRouter>
+              </ChatDraftProvider>
+            </ChatSessionControllerProvider>
+          </ChatLayoutProvider>
+        </AppDataProvider>
+      </TestModeProvider>
     </AppErrorBoundary>
   );
 }

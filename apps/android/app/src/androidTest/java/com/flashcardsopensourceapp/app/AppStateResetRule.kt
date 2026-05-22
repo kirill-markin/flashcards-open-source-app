@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit
 import org.junit.rules.ExternalResource
 
 private val testOnlyPreferenceNames: List<String> = listOf(
+    "flashcards-test-mode",
     "flashcards-review-preferences",
     "flashcards-ai-chat-preferences",
     "flashcards-ai-chat-history",

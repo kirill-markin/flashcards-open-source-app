@@ -101,7 +101,7 @@ export function globalMetrics(scope: Construct, props: GlobalMetricsProps): Glob
   });
 
   const snapshotFunction = new lambdaNodejs.NodejsFunction(scope, "GlobalMetricsSnapshotHandler", {
-    entry: resolveFromRepoRoot("apps", "backend", "src", "lambda-global-metrics-snapshot.ts"),
+    entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda-global-metrics-snapshot.ts"),
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_24_X,
     timeout: cdk.Duration.minutes(5),

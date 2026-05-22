@@ -117,6 +117,10 @@ struct RootTabView: View {
                             AccessSettingsView()
                         case .accessPermissionDetail(let kind):
                             AccessPermissionDetailView(kind: kind)
+                        case .test:
+                            TestSettingsView()
+                        case .testAnimations:
+                            TestAnimationsView()
                         case .workspace:
                             WorkspaceSettingsView()
                         case .workspaceNotifications:

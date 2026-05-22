@@ -1,5 +1,5 @@
-import type { DatabaseExecutor } from "../db";
-import { HttpError } from "../errors";
+import type { DatabaseExecutor } from "../database";
+import { HttpError } from "../shared/errors";
 import {
   captureBackendWarning,
   createBackendObservationScope,
@@ -27,7 +27,7 @@ function hasMissingReviewStateFsrsValues(card: FsrsStateSnapshot): boolean {
 }
 
 export function getInvalidFsrsStateReason(card: FsrsStateSnapshot): string | null {
-  // Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::getMemoryState(card:) and LocalDatabase persisted-state expectations.
+  // Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::getMemoryState(card:) and LocalDatabase persisted-state expectations.
   if (card.fsrs_card_state === "new") {
     if (card.due_at !== null) {
       return "New card must not persist due_at";

@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import type { AppEnv } from "../app";
-import { HttpError } from "../errors";
+import type { AppEnv } from "../server/app";
+import { HttpError } from "../shared/errors";
 import type { GlobalMetricsSnapshot } from "../globalMetrics/snapshot";
 import {
   isGlobalMetricsVisible,

@@ -3,7 +3,7 @@ import Foundation
 private let maximumSearchTokenCount = 5
 private let reviewCardsStringsTableName: String = "ReviewCards"
 
-// Keep in sync with apps/backend/src/searchTokens.ts::tokenizeSearchText.
+// Keep in sync with apps/backend/src/search/tokens.ts::tokenizeSearchText.
 func tokenizeSearchText(searchText: String) -> [String] {
     let normalizedSearchText = searchText
         .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -103,7 +103,7 @@ func isCardReviewed(card: Card) -> Bool {
 }
 
 func matchesDeckFilterDefinition(filterDefinition: DeckFilterDefinition, card: Card) -> Bool {
-    // Keep deck matching semantics aligned with apps/web/src/appData/domain.ts::matchesDeckFilterDefinition and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FilterSupport.kt::matchesDeckFilterDefinition.
+    // Keep deck matching semantics aligned with apps/web/src/appData/domain/index.ts::matchesDeckFilterDefinition and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FilterSupport.kt::matchesDeckFilterDefinition.
     if filterDefinition.effortLevels.isEmpty == false && filterDefinition.effortLevels.contains(card.effortLevel) == false {
         return false
     }

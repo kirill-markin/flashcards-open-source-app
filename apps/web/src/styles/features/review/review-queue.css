@@ -1,0 +1,60 @@
+.review-queue-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding-bottom: 4px;
+  background: transparent;
+}
+
+.review-queue-caption {
+  color: var(--text-tertiary);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.review-queue-list {
+  display: grid;
+  gap: 6px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding-inline-end: 4px;
+}
+
+.review-queue-card {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  text-align: start;
+  cursor: pointer;
+}
+
+.review-loading-queue-card {
+  min-height: 96px;
+}
+
+.review-queue-card:hover {
+  border-color: var(--panel-border-strong);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.review-queue-card-active {
+  border-color: rgba(196, 75, 45, 0.28);
+  background: var(--accent-soft);
+}
+
+.review-queue-card-upcoming,
+.review-queue-card:disabled {
+  color: var(--text-secondary);
+  cursor: default;
+}

@@ -57,11 +57,6 @@ fileprivate final class AIChatStatePersistCoordinator: @unchecked Sendable {
     }
 }
 
-struct AIChatToolRunPostSyncOrigin: Equatable, Sendable {
-    let workspaceId: String?
-    let sessionId: String
-}
-
 struct AIChatRemoteSessionProvisionRequest {
     let sessionId: String
     let task: Task<AIChatNewSessionResponse, Error>
@@ -287,97 +282,6 @@ final class AIChatStore {
 
     func clearActiveRunSession() {
         self.activeRunSession = nil
-    }
-
-    func resetRunToolCallTracking() {
-        self.runHadToolCalls = false
-        self.pendingToolRunPostSync = false
-    }
-
-    func markRunHadToolCalls() {
-        self.runHadToolCalls = true
-        let shouldPersistPendingFlag = self.pendingToolRunPostSync == false
-        self.pendingToolRunPostSync = true
-        if shouldPersistPendingFlag {
-            self.schedulePersistCurrentState()
-        }
-    }
-
-    func markRunHadToolCallsFromMessages(messages: [AIChatMessage]) {
-        if aiChatCurrentRunHasAssistantToolCalls(messages: messages) {
-            self.markRunHadToolCalls()
-        }
-    }
-
-    func markRunHadToolCallsFromSnapshot(
-        activeRun: AIChatActiveRun?,
-        messages: [AIChatMessage]
-    ) {
-        if aiChatSnapshotRunHasToolCalls(activeRun: activeRun, messages: messages) {
-            self.markRunHadToolCalls()
-        }
-    }
-
-    func hasPendingToolRunPostSync() -> Bool {
-        self.pendingToolRunPostSync
-    }
-
-    func hasPendingToolRunPostSync(origin: AIChatToolRunPostSyncOrigin) -> Bool {
-        if self.isCurrentToolRunPostSyncOrigin(origin) {
-            return self.pendingToolRunPostSync
-        }
-
-        let persistedState = self.historyStore.loadState(workspaceId: origin.workspaceId)
-        return persistedState.chatSessionId == origin.sessionId && persistedState.pendingToolRunPostSync
-    }
-
-    func currentToolRunPostSyncOrigin() -> AIChatToolRunPostSyncOrigin {
-        AIChatToolRunPostSyncOrigin(
-            workspaceId: self.historyWorkspaceId(),
-            sessionId: self.chatSessionId
-        )
-    }
-
-    func isCurrentToolRunPostSyncOrigin(_ origin: AIChatToolRunPostSyncOrigin) -> Bool {
-        self.historyWorkspaceId() == origin.workspaceId
-            && self.chatSessionId == origin.sessionId
-    }
-
-    func completeToolRunPostSyncAfterSuccess() {
-        self.runHadToolCalls = false
-        self.pendingToolRunPostSync = false
-    }
-
-    func completeToolRunPostSyncAfterSuccess(origin: AIChatToolRunPostSyncOrigin) async {
-        if self.isCurrentToolRunPostSyncOrigin(origin) {
-            self.completeToolRunPostSyncAfterSuccess()
-            self.schedulePersistCurrentState()
-            await self.waitForPendingStatePersistence()
-            return
-        }
-
-        if self.historyWorkspaceId() == origin.workspaceId {
-            return
-        }
-
-        await self.waitForPendingStatePersistence(workspaceId: origin.workspaceId)
-        let persistedState = self.historyStore.loadState(workspaceId: origin.workspaceId)
-        guard persistedState.chatSessionId == origin.sessionId else {
-            return
-        }
-        guard persistedState.pendingToolRunPostSync else {
-            return
-        }
-
-        let clearedState = AIChatPersistedState(
-            messages: persistedState.messages,
-            chatSessionId: persistedState.chatSessionId,
-            lastKnownChatConfig: persistedState.lastKnownChatConfig,
-            pendingToolRunPostSync: false,
-            requiresRemoteSessionProvisioning: persistedState.requiresRemoteSessionProvisioning,
-            suppressDraftRestore: persistedState.suppressDraftRestore
-        )
-        await self.historyStore.saveState(workspaceId: origin.workspaceId, state: clearedState)
     }
 
     func waitForPendingStatePersistence() async {

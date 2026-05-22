@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import type { AppEnv } from "../app";
+import type { AppEnv } from "../server/app";
 import type { AuthResult } from "../auth";
 import { AuthError } from "../auth";
-import { HttpError } from "../errors";
+import { HttpError } from "../shared/errors";
 import type {
   GuestUpgradeCompleteCapabilities,
   GuestUpgradeCompletion,

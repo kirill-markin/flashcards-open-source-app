@@ -1,0 +1,1083 @@
+import AVFAudio
+import SwiftUI
+
+private let reviewCardsStringsTableName: String = "ReviewCards"
+private let reviewBottomBarHorizontalPadding: CGFloat = 20
+private let reviewBottomBarTopPadding: CGFloat = 8
+private let reviewBottomBarBottomPadding: CGFloat = 8
+private let reviewBottomBarButtonSpacing: CGFloat = 10
+private let reviewAnswerButtonMinHeight: CGFloat = 40
+private let showAnswerButtonMinHeight: CGFloat = 56
+private let reviewProgressBadgeSize: CGFloat = 34
+private let reviewProgressBadgeHorizontalPadding: CGFloat = 8
+let emptyBackTextPlaceholder: String = String(localized: "No back text", table: reviewCardsStringsTableName)
+private let reviewQueuePreviewPageSize: Int = 50
+
+struct ReviewView: View {
+    @Environment(\.accessibilityReduceMotion) private var isReduceMotionEnabled
+    @Environment(FlashcardsStore.self) var store: FlashcardsStore
+    @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
+
+    @StateObject private var reviewSpeechController = ReviewSpeechController()
+    @State var isAnswerVisible: Bool = false
+    @State var preparedRevealState: PreparedReviewRevealState? = nil
+    // Keep the next review card warm so the next front can appear immediately after rating.
+    @State var preparedNextRevealState: PreparedReviewRevealState? = nil
+    @State var activeReviewReactionEvents: [ReviewReactionEvent] = []
+    @State var isQueuePreviewPresented: Bool = false
+    @State var isEditorPresented: Bool = false
+    @State var editingCardId: String? = nil
+    @State var cardFormState: CardFormState = CardFormState(
+        frontText: "",
+        backText: "",
+        tags: [],
+        effortLevel: .fast
+    )
+    @State var screenErrorMessage: String = ""
+    @State var reviewTagSummaries: [WorkspaceTagSummary] = []
+    @State var reviewDeckSummaries: [DeckSummary] = []
+    @State var totalCardsCount: Int = 0
+
+    private var availableTagSuggestions: [TagSuggestion] {
+        self.reviewTagSummaries.map { tagSummary in
+            TagSuggestion(
+                tag: tagSummary.tag,
+                countState: .ready(cardsCount: tagSummary.cardsCount)
+            )
+        }
+    }
+
+    private var selectedReviewFilterTitle: String {
+        switch store.selectedReviewFilter {
+        case .allCards:
+            return localizedAllCardsLabel()
+        case .deck(let deckId):
+            return self.reviewDeckSummaries.first(where: { deckSummary in
+                deckSummary.deckId == deckId
+            })?.name ?? localizedAllCardsLabel()
+        case .effort(let level):
+            return localizedEffortTitle(effortLevel: level)
+        case .tag(let tag):
+            return tag
+        }
+    }
+
+    /// Effort filters are stable virtual review scopes, so all three stay visible even when a count is zero.
+    private var reviewEffortFilterCounts: [EffortLevel: Int] {
+        let activeCards = deriveActiveCards(cards: store.cards)
+        return EffortLevel.allCases.reduce(into: [EffortLevel: Int]()) { result, level in
+            result[level] = activeCards.count { card in
+                card.effortLevel == level
+            }
+        }
+    }
+
+    private func reviewFilterMenuItemLabel(reviewFilter: ReviewFilter) -> String {
+        switch reviewFilter {
+        case .allCards:
+            return localizedAllCardsLabel()
+        case .deck(let deckId):
+            return self.reviewDeckSummaries.first(where: { deckSummary in
+                deckSummary.deckId == deckId
+            })?.name ?? localizedAllCardsLabel()
+        case .effort(let level):
+            return "\(localizedEffortTitle(effortLevel: level)) (\((self.reviewEffortFilterCounts[level] ?? 0).formatted()))"
+        case .tag(let tag):
+            guard let tagSummary = reviewTagSummaries.first(where: { summary in
+                summary.tag == tag
+            }) else {
+                return tag
+            }
+
+            return "\(tagSummary.tag) (\(tagSummary.cardsCount.formatted()))"
+        }
+    }
+
+    private var currentCard: Card? {
+        store.presentedReviewCard
+    }
+
+    private var cachedPreparedCurrentRevealState: PreparedReviewRevealState? {
+        guard let currentCard else {
+            return nil
+        }
+
+        return self.cachedPreparedRevealState(card: currentCard)
+    }
+
+    private var preparedRevealStatesTaskId: String {
+        makePreparedReviewRevealStatesTaskId(
+            reviewQueue: store.effectiveReviewQueue,
+            schedulerSettings: store.schedulerSettings
+        )
+    }
+
+    private var shouldShowReviewLoader: Bool {
+        if store.isReviewHeadLoading {
+            return true
+        }
+        if let currentCard {
+            return self.cachedPreparedRevealState(card: currentCard) == nil
+        }
+
+        return store.isReviewQueueChunkLoading
+    }
+
+    private var reviewReactionMotionMode: ReviewReactionMotionMode {
+        self.isReduceMotionEnabled ? .reduced : .standard
+    }
+
+    var body: some View {
+        ZStack {
+            Group {
+                if self.shouldShowReviewLoader {
+                    reviewLoadingView
+                } else if let currentCard, let preparedRevealState = self.cachedPreparedCurrentRevealState {
+                    activeCardView(card: currentCard, preparedRevealState: preparedRevealState)
+                } else {
+                    emptyStateView
+                }
+            }
+
+            ReviewReactionLayer(events: self.activeReviewReactionEvents)
+        }
+        .accessibilityIdentifier(UITestIdentifier.reviewScreen)
+        .navigationTitle(String(localized: "Review", table: reviewCardsStringsTableName))
+        .onChange(of: currentCard?.cardId) { _, _ in
+            isAnswerVisible = false
+            self.reviewSpeechController.stopSpeech()
+        }
+        .onDisappear {
+            self.reviewSpeechController.stopSpeech()
+        }
+        .task(id: preparedRevealStatesTaskId) {
+            await self.refreshPreparedRevealStates(reviewQueue: store.effectiveReviewQueue)
+        }
+        .task(id: store.localReadVersion) {
+            await self.reloadReviewMetadata()
+        }
+        .safeAreaBar(edge: .bottom, spacing: 0) {
+            reviewBottomAccessory
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                reviewFilterMenu
+            }
+
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                reviewQueueButton
+                reviewProgressBadgeButton
+            }
+        }
+        .fullScreenCover(isPresented: self.$isQueuePreviewPresented) {
+            NavigationStack {
+                ReviewQueuePreviewScreen(
+                    title: self.selectedReviewFilterTitle,
+                    activeCount: store.displayedReviewDueCount,
+                    currentCardId: currentCard?.cardId,
+                    hiddenCardIds: store.pendingReviewCardIds,
+                    loadPage: { offset in
+                        try await store.loadReviewTimelinePage(
+                            limit: reviewQueuePreviewPageSize,
+                            offset: offset
+                        )
+                    }
+                )
+            }
+        }
+        .sheet(isPresented: self.$isEditorPresented) {
+            NavigationStack {
+                CardEditorScreen(
+                    title: String(localized: "Edit card", table: reviewCardsStringsTableName),
+                    isEditing: true,
+                    errorMessage: screenErrorMessage,
+                    availableTagSuggestions: self.availableTagSuggestions,
+                    formState: self.$cardFormState,
+                    onEditWithAI: {
+                        let cardReference: AIChatCardReference?
+                        if self.isEditedCardDirty() {
+                            cardReference = self.saveEditedCardForAIHandoff()
+                        } else if let editingCardId = self.editingCardId {
+                            let normalizedInput = self.normalizedEditedCardInput()
+                            cardReference = AIChatCardReference(
+                                cardId: editingCardId,
+                                frontText: normalizedInput.frontText,
+                                backText: normalizedInput.backText,
+                                tags: normalizedInput.tags,
+                                effortLevel: normalizedInput.effortLevel
+                            )
+                        } else {
+                            cardReference = nil
+                        }
+
+                        guard let cardReference else {
+                            return
+                        }
+                        self.navigation.openAICardHandoff(
+                            card: cardReference
+                        )
+                        self.isEditorPresented = false
+                    },
+                    onCancel: {
+                        self.isEditorPresented = false
+                    },
+                    onSave: {
+                        self.saveEditedCard()
+                    },
+                    onDelete: {
+                        self.deleteEditingCard()
+                    }
+                )
+            }
+        }
+        .alert(
+            String(localized: "Review wasn't saved", table: reviewCardsStringsTableName),
+            isPresented: Binding(
+                get: {
+                    store.reviewSubmissionFailure != nil
+                },
+                set: { isPresented in
+                    if isPresented == false {
+                        store.dismissReviewSubmissionFailure()
+                    }
+                }
+            )
+        ) {
+            Button(String(localized: "OK", table: reviewCardsStringsTableName), role: .cancel) {
+                store.dismissReviewSubmissionFailure()
+            }
+        } message: {
+            Text(store.reviewSubmissionFailure?.message ?? "")
+        }
+        .alert(
+            String(localized: "Stay on top of your cards", table: reviewCardsStringsTableName),
+            isPresented: Binding(
+                get: {
+                    store.isReviewNotificationPrePromptPresented
+                },
+                set: { isPresented in
+                    if isPresented == false {
+                        store.dismissReviewNotificationPrePrompt(markDismissed: false)
+                    }
+                }
+            )
+        ) {
+            Button(String(localized: "Not now", table: reviewCardsStringsTableName), role: .cancel) {
+                store.dismissReviewNotificationPrePrompt(markDismissed: true)
+            }
+            Button(String(localized: "Continue", table: reviewCardsStringsTableName)) {
+                store.continueReviewNotificationPrePrompt()
+            }
+        } message: {
+            Text(String(localized: "Flashcards Open Source App can send study reminders with a card from your review queue. These notifications contain study cards only and never marketing messages.", table: reviewCardsStringsTableName))
+        }
+        .alert(
+            String(localized: "Hard is for difficult recall", table: reviewCardsStringsTableName),
+            isPresented: Binding(
+                get: {
+                    store.isReviewHardReminderPresented
+                },
+                set: { isPresented in
+                    if isPresented == false {
+                        store.dismissReviewHardReminder()
+                    }
+                }
+            )
+        ) {
+            Button(String(localized: "OK", table: reviewCardsStringsTableName), role: .cancel) {
+                store.dismissReviewHardReminder()
+            }
+        } message: {
+            Text(String(localized: "If you did not know the answer, choose \"Again\". \"Hard\" is only for answers you knew but it was difficult to recall.", table: reviewCardsStringsTableName))
+        }
+    }
+
+    /// This menu intentionally stays as one SwiftUI `Menu` backed by multiple grouped `Picker`s.
+    /// The grouped picker structure preserves the platform's inset/alignment while still behaving like
+    /// one conceptual single-choice review scope list with inline actions such as `Edit decks`.
+    /// Do not flatten or replace this structure casually unless the review filter UX is being deliberately rewritten.
+    private var reviewFilterMenu: some View {
+        Menu {
+            Picker(
+                "",
+                selection: Binding(
+                    get: {
+                        store.selectedReviewFilter
+                    },
+                    set: { nextReviewFilter in
+                        store.selectReviewFilter(reviewFilter: nextReviewFilter)
+                    }
+                )
+            ) {
+                ForEach([ReviewFilter.allCards] + self.reviewDeckSummaries.map { deckSummary in
+                    .deck(deckId: deckSummary.deckId)
+                }) { reviewFilter in
+                    Text(reviewFilterMenuItemLabel(reviewFilter: reviewFilter))
+                        .tag(reviewFilter)
+                }
+            }
+
+            Button {
+                navigation.openSettings(destination: .workspaceDecks)
+            } label: {
+                Label(String(localized: "Edit decks", table: reviewCardsStringsTableName), systemImage: "square.stack.3d.up")
+            }
+
+            Divider()
+
+            Picker(
+                "",
+                selection: Binding(
+                    get: {
+                        store.selectedReviewFilter
+                    },
+                    set: { nextReviewFilter in
+                        store.selectReviewFilter(reviewFilter: nextReviewFilter)
+                    }
+                )
+            ) {
+                ForEach(EffortLevel.allCases) { level in
+                    let reviewFilter = ReviewFilter.effort(level: level)
+
+                    Text(reviewFilterMenuItemLabel(reviewFilter: reviewFilter))
+                        .tag(reviewFilter)
+                }
+            }
+
+            if reviewTagSummaries.isEmpty == false {
+                Divider()
+
+                Picker(
+                    "",
+                    selection: Binding(
+                        get: {
+                            store.selectedReviewFilter
+                        },
+                        set: { nextReviewFilter in
+                            store.selectReviewFilter(reviewFilter: nextReviewFilter)
+                        }
+                    )
+                ) {
+                    ForEach(reviewTagSummaries, id: \.tag) { tagSummary in
+                        let reviewFilter = ReviewFilter.tag(tag: tagSummary.tag)
+
+                        Text(reviewFilterMenuItemLabel(reviewFilter: reviewFilter))
+                            .tag(reviewFilter)
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(self.selectedReviewFilterTitle)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Image(systemName: "chevron.down")
+                    .font(.caption.weight(.semibold))
+            }
+        }
+    }
+
+    private var reviewLoadingView: some View {
+        VStack {
+            Spacer()
+            ProgressView()
+                .controlSize(.large)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func activeCardView(card: Card, preparedRevealState: PreparedReviewRevealState) -> some View {
+        ScrollView {
+            ReadableContentLayout(
+                maxWidth: flashcardsReadableContentMaxWidth,
+                horizontalPadding: 20
+            ) {
+                activeCardContentView(card: card, preparedRevealState: preparedRevealState)
+                    .padding(.vertical, 20)
+            }
+        }
+    }
+
+    private func activeCardContentView(card: Card, preparedRevealState: PreparedReviewRevealState) -> some View {
+        return VStack(alignment: .leading, spacing: 20) {
+            if screenErrorMessage.isEmpty == false {
+                Text(screenErrorMessage)
+                    .foregroundStyle(.red)
+            }
+
+            HStack(alignment: .top, spacing: 12) {
+                HStack(spacing: 12) {
+                    Label(localizedEffortTitle(effortLevel: card.effortLevel), systemImage: "timer")
+                    Label(card.tags.isEmpty ? localizedNoTagsLabel() : formatTags(tags: card.tags), systemImage: "tag")
+                }
+
+                Spacer(minLength: 12)
+
+                Button {
+                    self.beginEditing(card: card)
+                } label: {
+                    Image(systemName: "pencil.circle.fill")
+                        .font(.title3)
+                }
+                .accessibilityLabel(String(localized: "Edit card", table: reviewCardsStringsTableName))
+            }
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+
+            ReviewCardSideView(
+                label: String(localized: "Front", table: reviewCardsStringsTableName),
+                content: preparedRevealState.frontContent,
+                isSpeechPlaying: self.reviewSpeechController.activeSide == .front,
+                onToggleSpeech: {
+                    self.toggleSpeech(side: .front, sourceText: card.frontText)
+                },
+                showsSpeechButton: preparedRevealState.frontSpeakableText.isEmpty == false,
+                showsAiButton: false,
+                onOpenAi: {},
+                surfaceStyle: .front
+            )
+
+            if isAnswerVisible {
+                ReviewCardSideView(
+                    label: String(localized: "Back", table: reviewCardsStringsTableName),
+                    content: preparedRevealState.backContent,
+                    isSpeechPlaying: self.reviewSpeechController.activeSide == .back,
+                    onToggleSpeech: {
+                        self.toggleSpeech(side: .back, sourceText: card.backText)
+                    },
+                    showsSpeechButton: preparedRevealState.backSpeakableText.isEmpty == false,
+                    showsAiButton: true,
+                    onOpenAi: {
+                        self.navigation.openAICardHandoff(card: makeAIChatCardReference(card: card))
+                    },
+                    surfaceStyle: .back
+                )
+            }
+
+            HStack(spacing: 12) {
+                Label(localizedReviewDueLabel(value: card.dueAt), systemImage: "clock")
+                Label(localizedReviewRepsLabel(value: card.reps), systemImage: "arrow.clockwise")
+                Label(localizedReviewLapsesLabel(value: card.lapses), systemImage: "exclamationmark.circle")
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+
+            if let reviewActionErrorMessage = reviewActionErrorMessage(card: card) {
+                Text(reviewActionErrorMessage)
+                    .foregroundStyle(.red)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func reviewBottomBar(card: Card, preparedRevealState: PreparedReviewRevealState) -> some View {
+        if isAnswerVisible {
+            if let options = preparedRevealState.reviewAnswerGridOptions {
+                reviewAnswerButtonsGrid(cardId: card.cardId, options: options)
+            }
+        } else {
+            showAnswerButton
+        }
+    }
+
+    private var reviewBottomAccessory: some View {
+        Group {
+            if self.shouldShowReviewLoader {
+                EmptyView()
+            } else if let currentCard, let preparedRevealState = self.cachedPreparedCurrentRevealState {
+                reviewBottomBarContainer {
+                    reviewBottomBar(card: currentCard, preparedRevealState: preparedRevealState)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var reviewQueueButton: some View {
+        if store.isReviewCountsLoading {
+            ProgressView()
+                .controlSize(.small)
+                .frame(minWidth: reviewProgressBadgeSize, minHeight: reviewProgressBadgeSize)
+                .accessibilityIdentifier(UITestIdentifier.reviewQueueButton)
+                .accessibilityLabel(String(localized: "Loading review queue", table: reviewCardsStringsTableName))
+        } else {
+            Button {
+                self.isQueuePreviewPresented = true
+            } label: {
+                reviewQueueButtonLabel
+            }
+            .buttonStyle(.plain)
+            .disabled(store.reviewTotalCount == 0)
+            .accessibilityIdentifier(UITestIdentifier.reviewQueueButton)
+            .accessibilityLabel(
+                String(
+                    format: String(localized: "Review queue status: %@ active of %@ total", table: reviewCardsStringsTableName),
+                    locale: Locale.current,
+                    store.displayedReviewDueCount.formatted(),
+                    store.reviewTotalCount.formatted()
+                )
+            )
+        }
+    }
+
+    private var reviewQueueButtonLabel: some View {
+        ZStack {
+            Capsule()
+                .fill(self.reviewProgressBadgeBackgroundColor())
+
+            Capsule()
+                .strokeBorder(Color(uiColor: .separator), lineWidth: 1)
+
+            HStack(spacing: 4) {
+                Image(systemName: "list.bullet")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                Text("\(store.displayedReviewDueCount) / \(store.reviewTotalCount)")
+                    .font(.caption2.weight(.semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(.primary)
+                    .minimumScaleFactor(0.65)
+            }
+            .padding(.horizontal, reviewProgressBadgeHorizontalPadding)
+        }
+        .frame(minHeight: reviewProgressBadgeSize)
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private var reviewProgressBadgeButton: some View {
+        let badgeState = self.store.reviewProgressBadgeState
+
+        return Button {
+            self.store.prepareVisibleTabForPresentation(tab: .progress, now: Date())
+            self.navigation.selectTab(.progress)
+        } label: {
+            reviewProgressBadgeLabel(badgeState: badgeState)
+        }
+        .buttonStyle(.plain)
+        .disabled(badgeState.isInteractive == false)
+        .accessibilityIdentifier(UITestIdentifier.reviewProgressBadge)
+        .accessibilityLabel(self.reviewProgressBadgeAccessibilityLabel(badgeState: badgeState))
+        .accessibilityValue(self.reviewProgressBadgeAccessibilityValue(badgeState: badgeState))
+    }
+
+    private func reviewProgressBadgeLabel(badgeState: ReviewProgressBadgeState) -> some View {
+        let presentation = makeReviewProgressBadgePresentation(badgeState: badgeState)
+
+        return ZStack {
+            Capsule()
+                .fill(self.reviewProgressBadgeBackgroundColor())
+
+            Capsule()
+                .strokeBorder(presentation.borderColor, lineWidth: 1)
+
+            HStack(spacing: 3) {
+                Image(systemName: presentation.iconSystemName)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(presentation.iconColor)
+
+                Text(formatReviewProgressBadgeValue(badgeState: badgeState))
+                    .font(.caption2.weight(.semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(presentation.textColor)
+                    .minimumScaleFactor(0.65)
+            }
+            .padding(.horizontal, reviewProgressBadgeHorizontalPadding)
+        }
+        .frame(minHeight: reviewProgressBadgeSize)
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private func reviewProgressBadgeBackgroundColor() -> Color {
+        return Color(uiColor: .secondarySystemBackground)
+    }
+
+    private func reviewProgressBadgeAccessibilityLabel(badgeState: ReviewProgressBadgeState) -> String {
+        let localizedFormat: String
+        if badgeState.hasReviewedToday {
+            localizedFormat = String(
+                localized: "review.progress_badge.accessibility.reviewed_today",
+                defaultValue: "Review streak %@ days. Reviewed today.",
+                table: reviewCardsStringsTableName,
+                comment: "Accessibility label for the review progress badge when the user has reviewed today"
+            )
+        } else {
+            localizedFormat = String(
+                localized: "review.progress_badge.accessibility.not_reviewed_today",
+                defaultValue: "Review streak %@ days. Not reviewed today.",
+                table: reviewCardsStringsTableName,
+                comment: "Accessibility label for the review progress badge when the user has not reviewed today"
+            )
+        }
+
+        return String(
+            format: localizedFormat,
+            locale: Locale.current,
+            badgeState.streakDays.formatted()
+        )
+    }
+
+    private func reviewProgressBadgeAccessibilityValue(badgeState: ReviewProgressBadgeState) -> String {
+        [
+            "streakDays=\(badgeState.streakDays)",
+            "hasReviewedToday=\(badgeState.hasReviewedToday ? "true" : "false")"
+        ].joined(separator: ";")
+    }
+
+    private func reviewBottomBarContainer<Content: View>(
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        ReadableContentLayout(
+            maxWidth: flashcardsReadableContentMaxWidth,
+            horizontalPadding: reviewBottomBarHorizontalPadding
+        ) {
+            content()
+                .padding(.top, reviewBottomBarTopPadding)
+                .padding(.bottom, reviewBottomBarBottomPadding)
+        }
+    }
+
+    private var showAnswerButton: some View {
+        Button {
+            isAnswerVisible = true
+        } label: {
+            Label(String(localized: "Show answer", table: reviewCardsStringsTableName), systemImage: "eye")
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: showAnswerButtonMinHeight)
+        }
+        .buttonStyle(.glassProminent)
+        .accessibilityIdentifier(UITestIdentifier.reviewShowAnswerButton)
+    }
+
+    private func reviewAnswerButtonsGrid(cardId: String, options: ReviewAnswerGridOptions) -> some View {
+        HStack(alignment: .top, spacing: reviewBottomBarButtonSpacing) {
+            VStack(spacing: reviewBottomBarButtonSpacing) {
+                reviewAnswerButton(cardId: cardId, option: options.again)
+                reviewAnswerButton(cardId: cardId, option: options.good)
+            }
+
+            VStack(spacing: reviewBottomBarButtonSpacing) {
+                reviewAnswerButton(cardId: cardId, option: options.hard)
+                reviewAnswerButton(cardId: cardId, option: options.easy)
+            }
+        }
+    }
+
+    private func reviewAnswerButton(cardId: String, option: ReviewAnswerOption) -> some View {
+        Button {
+            self.emitReviewReaction(
+                rating: option.rating,
+                motionMode: self.reviewReactionMotionMode
+            )
+            self.submitReview(cardId: cardId, rating: option.rating)
+        } label: {
+            VStack(alignment: .center, spacing: 4) {
+                HStack(spacing: 8) {
+                    Image(systemName: option.rating.symbolName)
+                        .font(.headline)
+
+                    Text(localizedReviewRatingTitle(rating: option.rating))
+                        .fontWeight(.semibold)
+                        .lineLimit(1)
+                }
+
+                Text(option.intervalDescription)
+                    .font(.caption2)
+                    .opacity(0.8)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
+            .frame(maxWidth: .infinity, minHeight: reviewAnswerButtonMinHeight, alignment: .center)
+        }
+        .buttonStyle(.glassProminent)
+        .disabled(store.isReviewPending(cardId: cardId))
+        .accessibilityIdentifier(reviewAnswerButtonIdentifier(rating: option.rating))
+    }
+
+    private func reviewActionErrorMessage(card: Card) -> String? {
+        guard isAnswerVisible else {
+            return nil
+        }
+
+        return self.cachedPreparedRevealState(card: card)?.reviewAnswerOptionsErrorMessage
+    }
+
+    private var emptyStateView: some View {
+        let shouldShowSwitchToAllCardsAction = store.selectedReviewFilter != .allCards
+
+        return ContentUnavailableView {
+            if self.totalCardsCount == 0 {
+                Label(String(localized: "No Cards Yet", table: reviewCardsStringsTableName), systemImage: "tray")
+            } else {
+                Label(String(localized: "Nothing Due", table: reviewCardsStringsTableName), systemImage: "checkmark.circle")
+            }
+        } description: {
+            if self.totalCardsCount == 0 {
+                Text(String(localized: "You haven't created any cards yet. Add your first card to start studying.", table: reviewCardsStringsTableName))
+            } else {
+                Text(String(localized: "You're all caught up for now. Come back later or add more cards.", table: reviewCardsStringsTableName))
+            }
+        } actions: {
+            VStack(spacing: 8) {
+                Button {
+                    navigation.openCardCreation()
+                } label: {
+                    Label(String(localized: "Create card", table: reviewCardsStringsTableName), systemImage: "plus")
+                        .font(.body)
+                        .imageScale(.medium)
+                }
+                .buttonStyle(.glass)
+
+                Text(String(localized: "or", table: reviewCardsStringsTableName))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                Button {
+                    navigation.openAICardCreation()
+                } label: {
+                    Label(String(localized: "Create with AI", table: reviewCardsStringsTableName), systemImage: "sparkles")
+                        .font(.body)
+                        .imageScale(.medium)
+                }
+                .buttonStyle(.glassProminent)
+
+                if shouldShowSwitchToAllCardsAction {
+                    Text(String(localized: "or", table: reviewCardsStringsTableName))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+
+                    Button {
+                        store.selectReviewFilter(reviewFilter: .allCards)
+                    } label: {
+                        Text(String(localized: "Switch to all cards deck", table: reviewCardsStringsTableName))
+                    }
+                    .buttonStyle(.glass)
+                }
+            }
+        }
+    }
+
+    private func toggleSpeech(side: ReviewSpeechSide, sourceText: String) {
+        let fallbackLanguageTag = Locale.autoupdatingCurrent.identifier.replacingOccurrences(of: "_", with: "-")
+        let errorMessage = self.reviewSpeechController.toggleSpeech(
+            side: side,
+            sourceText: sourceText,
+            fallbackLanguageTag: fallbackLanguageTag
+        )
+
+        if let errorMessage {
+            self.store.enqueueTransientBanner(
+                banner: makeReviewSpeechUnavailableBanner(message: errorMessage)
+            )
+        }
+    }
+
+}
+
+private func reviewAnswerButtonIdentifier(rating: ReviewRating) -> String {
+    if rating == .good {
+        return UITestIdentifier.reviewRateGoodButton
+    }
+
+    return "review.rating.\(rating.rawValue)"
+}
+
+private func localizedReviewDueLabel(value: String?) -> String {
+    guard let value else {
+        return String(localized: "New", table: reviewCardsStringsTableName)
+    }
+
+    let dueDateLabel: String
+    if let date = parseIsoTimestamp(value: value) {
+        dueDateLabel = date.formatted(date: .abbreviated, time: .shortened)
+    } else {
+        dueDateLabel = value
+    }
+
+    return String(
+        format: String(localized: "Due %@", table: reviewCardsStringsTableName),
+        locale: Locale.current,
+        dueDateLabel
+    )
+}
+
+private func localizedReviewRepsLabel(value: Int) -> String {
+    String(
+        format: String(localized: "Reps %@", table: reviewCardsStringsTableName),
+        locale: Locale.current,
+        value.formatted()
+    )
+}
+
+private func localizedReviewLapsesLabel(value: Int) -> String {
+    String(
+        format: String(localized: "Lapses %@", table: reviewCardsStringsTableName),
+        locale: Locale.current,
+        value.formatted()
+    )
+}
+
+#Preview {
+    NavigationStack {
+        ReviewView()
+            .environment(FlashcardsStore())
+            .environment(AppNavigationModel())
+    }
+}
+
+enum ReviewSpeechSide {
+    case front
+    case back
+}
+
+private struct ReviewSpeechLanguageHeuristic {
+    let languageTag: String
+    let markers: [String]
+}
+
+private let reviewSpeechLatinLanguageHeuristics: [ReviewSpeechLanguageHeuristic] = [
+    ReviewSpeechLanguageHeuristic(
+        languageTag: "es-ES",
+        markers: [" el ", " la ", " que ", " de ", " y ", " por ", " para ", " hola ", " gracias ", " cómo "]
+    ),
+    ReviewSpeechLanguageHeuristic(
+        languageTag: "fr-FR",
+        markers: [" le ", " la ", " les ", " des ", " une ", " bonjour ", " merci ", " avec ", " pour ", " est "]
+    ),
+    ReviewSpeechLanguageHeuristic(
+        languageTag: "de-DE",
+        markers: [" der ", " die ", " das ", " und ", " nicht ", " danke ", " bitte ", " ist ", " wie ", " ich "]
+    ),
+    ReviewSpeechLanguageHeuristic(
+        languageTag: "it-IT",
+        markers: [" il ", " lo ", " gli ", " una ", " ciao ", " grazie ", " per ", " non ", " come ", " che "]
+    ),
+    ReviewSpeechLanguageHeuristic(
+        languageTag: "pt-PT",
+        markers: [" não ", " você ", " obrigado ", " olá ", " para ", " com ", " uma ", " que ", " está "]
+    ),
+    ReviewSpeechLanguageHeuristic(
+        languageTag: "en-US",
+        markers: [" the ", " and ", " you ", " are ", " with ", " this ", " that ", " hello ", " thanks ", " what "]
+    )
+]
+
+@MainActor
+final class ReviewSpeechController: NSObject, ObservableObject, @preconcurrency AVSpeechSynthesizerDelegate {
+    @Published private(set) var activeSide: ReviewSpeechSide? = nil
+
+    private let synthesizer = AVSpeechSynthesizer()
+    private let audioSession = AVAudioSession.sharedInstance()
+    private var isAudioSessionActive: Bool = false
+
+    override init() {
+        super.init()
+        self.synthesizer.delegate = self
+    }
+
+    func toggleSpeech(
+        side: ReviewSpeechSide,
+        sourceText: String,
+        fallbackLanguageTag: String
+    ) -> String? {
+        let speakableText = makeReviewSpeakableText(text: sourceText)
+        if speakableText.isEmpty {
+            return nil
+        }
+
+        if self.activeSide == side && self.synthesizer.isSpeaking {
+            self.stopSpeech()
+            return nil
+        }
+
+        self.stopSpeech()
+
+        let languageTag = detectReviewSpeechLanguage(
+            text: speakableText,
+            fallbackLanguageTag: fallbackLanguageTag
+        )
+
+        guard let voice = selectReviewSpeechVoice(languageTag: languageTag) else {
+            return reviewSpeechUnavailableBannerMessage
+        }
+
+        do {
+            try self.configureReviewSpeechAudioSession()
+            try self.activateReviewSpeechAudioSession()
+        } catch {
+            self.deactivateReviewSpeechAudioSession()
+            return String(
+                localized: "Couldn't prepare audio for speech. Check your audio settings and try again.",
+                table: reviewCardsStringsTableName
+            )
+        }
+
+        let utterance = AVSpeechUtterance(string: speakableText)
+        utterance.voice = voice
+
+        self.activeSide = side
+        self.synthesizer.speak(utterance)
+        return nil
+    }
+
+    func stopSpeech() {
+        self.activeSide = nil
+        if self.synthesizer.isSpeaking || self.synthesizer.isPaused {
+            self.synthesizer.stopSpeaking(at: .immediate)
+        } else {
+            self.deactivateReviewSpeechAudioSession()
+        }
+    }
+
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        Task { @MainActor in
+            self.activeSide = nil
+            self.deactivateReviewSpeechAudioSession()
+        }
+    }
+
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
+        Task { @MainActor in
+            self.activeSide = nil
+            self.deactivateReviewSpeechAudioSession()
+        }
+    }
+
+    private func configureReviewSpeechAudioSession() throws {
+        try self.audioSession.setCategory(
+            .playback,
+            mode: .spokenAudio,
+            options: [.duckOthers, .interruptSpokenAudioAndMixWithOthers]
+        )
+    }
+
+    private func activateReviewSpeechAudioSession() throws {
+        if self.isAudioSessionActive {
+            return
+        }
+
+        try self.audioSession.setActive(true)
+        self.isAudioSessionActive = true
+    }
+
+    private func deactivateReviewSpeechAudioSession() {
+        if self.isAudioSessionActive == false {
+            return
+        }
+
+        do {
+            try self.audioSession.setActive(false, options: .notifyOthersOnDeactivation)
+        } catch {
+            // Keep deactivation best-effort so review UI never fails on stop/cancel cleanup.
+        }
+        self.isAudioSessionActive = false
+    }
+}
+
+private func selectReviewSpeechVoice(languageTag: String) -> AVSpeechSynthesisVoice? {
+    let normalizedTag = sanitizeReviewSpeechLanguageTag(languageTag: languageTag).lowercased()
+    let primaryLanguage = normalizedTag.split(separator: "-").first.map(String.init) ?? normalizedTag
+
+    if let directVoice = AVSpeechSynthesisVoice(language: normalizedTag) {
+        return directVoice
+    }
+
+    let availableVoices = AVSpeechSynthesisVoice.speechVoices()
+
+    if let exactVoice = availableVoices.first(where: { voice in
+        voice.language.lowercased() == normalizedTag
+    }) {
+        return exactVoice
+    }
+
+    if let prefixVoice = availableVoices.first(where: { voice in
+        voice.language.lowercased().hasPrefix("\(primaryLanguage)-")
+    }) {
+        return prefixVoice
+    }
+
+    return availableVoices.first(where: { voice in
+        voice.language.lowercased() == primaryLanguage
+    })
+}
+
+private func detectReviewSpeechLanguage(text: String, fallbackLanguageTag: String) -> String {
+    let normalizedText = " \(text.lowercased()) "
+
+    if reviewSpeechContains(pattern: #"[぀-ヿ]"#, text: normalizedText) {
+        return "ja-JP"
+    }
+    if reviewSpeechContains(pattern: #"[가-힯]"#, text: normalizedText) {
+        return "ko-KR"
+    }
+    if reviewSpeechContains(pattern: #"[一-鿿]"#, text: normalizedText) {
+        return "zh-CN"
+    }
+    if reviewSpeechContains(pattern: #"[Ѐ-ӿ]"#, text: normalizedText) {
+        return "ru-RU"
+    }
+    if reviewSpeechContains(pattern: #"[Ͱ-Ͽ]"#, text: normalizedText) {
+        return "el-GR"
+    }
+    if reviewSpeechContains(pattern: #"[֐-׿]"#, text: normalizedText) {
+        return "he-IL"
+    }
+    if reviewSpeechContains(pattern: #"[؀-ۿ]"#, text: normalizedText) {
+        return "ar-SA"
+    }
+    if reviewSpeechContains(pattern: #"[฀-๿]"#, text: normalizedText) {
+        return "th-TH"
+    }
+    if reviewSpeechContains(pattern: #"[ऀ-ॿ]"#, text: normalizedText) {
+        return "hi-IN"
+    }
+    if reviewSpeechContains(pattern: #"[¿¡ñ]"#, text: normalizedText) {
+        return "es-ES"
+    }
+    if reviewSpeechContains(pattern: #"[äöüß]"#, text: normalizedText) {
+        return "de-DE"
+    }
+    if reviewSpeechContains(pattern: #"[ãõ]"#, text: normalizedText) {
+        return "pt-PT"
+    }
+    if reviewSpeechContains(pattern: #"[àèìòù]"#, text: normalizedText) {
+        return "it-IT"
+    }
+    if reviewSpeechContains(pattern: #"[çœæ]"#, text: normalizedText) {
+        return "fr-FR"
+    }
+
+    var bestLanguageTag: String? = nil
+    var bestScore = 0
+
+    for heuristic in reviewSpeechLatinLanguageHeuristics {
+        let score = heuristic.markers.reduce(into: 0) { currentScore, marker in
+            if normalizedText.contains(marker) {
+                currentScore += 1
+            }
+        }
+
+        if score > bestScore {
+            bestScore = score
+            bestLanguageTag = heuristic.languageTag
+        }
+    }
+
+    if let bestLanguageTag, bestScore > 0 {
+        return bestLanguageTag
+    }
+
+    return sanitizeReviewSpeechLanguageTag(languageTag: fallbackLanguageTag)
+}
+
+private func sanitizeReviewSpeechLanguageTag(languageTag: String) -> String {
+    let normalizedTag = languageTag.replacingOccurrences(of: "_", with: "-")
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+
+    return normalizedTag.isEmpty ? "en-US" : normalizedTag
+}
+
+private func reviewSpeechContains(pattern: String, text: String) -> Bool {
+    text.range(of: pattern, options: .regularExpression) != nil
+}

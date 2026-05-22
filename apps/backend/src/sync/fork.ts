@@ -1,10 +1,10 @@
-import { type DatabaseExecutor } from "../db";
+import { type DatabaseExecutor } from "../database";
 import {
   HttpError,
   type HttpErrorDetails,
   type SyncConflictDetails,
   type SyncConflictEntityType,
-} from "../errors";
+} from "../shared/errors";
 
 export const SYNC_WORKSPACE_FORK_REQUIRED = "SYNC_WORKSPACE_FORK_REQUIRED";
 

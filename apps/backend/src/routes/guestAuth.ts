@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { authenticateRequest } from "../auth";
-import { HttpError } from "../errors";
+import { HttpError } from "../shared/errors";
 import {
   completeGuestUpgrade,
   createGuestSession,
@@ -23,8 +23,8 @@ import {
   type BackendObservationScope,
 } from "../observability/sentry";
 import { reportBackendExceptionOrBreadcrumb } from "../observability/reporting";
-import { extractRequestAuthInputs, toAuthRequest } from "../requestSecurity";
-import type { AppEnv } from "../app";
+import { extractRequestAuthInputs, toAuthRequest } from "../auth/requestSecurity";
+import type { AppEnv } from "../server/app";
 
 type GuestSessionEnvelope = Readonly<{
   guestToken: string;

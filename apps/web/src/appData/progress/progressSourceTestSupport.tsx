@@ -27,7 +27,7 @@ import {
 } from "../../progress/progressDates";
 import { buildProgressSummaryScopeKey } from "./progressScope";
 import { resetProgressTimeContextStateForTests } from "./progressTimeContext";
-import type { SessionVerificationState } from "../warmStart";
+import type { SessionVerificationState } from "../session/warmStart";
 
 const progressSourceMocks = vi.hoisted(() => ({
   loadProgressSummaryMock: vi.fn<(input: Readonly<{ timeZone: string; today: string }>) => Promise<ProgressSummaryPayload>>(),

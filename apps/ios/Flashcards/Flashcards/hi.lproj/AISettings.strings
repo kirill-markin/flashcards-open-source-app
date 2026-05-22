@@ -124,6 +124,9 @@
 "settings.row.thisDevice" = "यह डिवाइस";
 "settings.row.access" = "एक्सेस";
 "settings.row.access.itemCount" = "4 आइटम";
+"settings.section.test" = "टेस्ट";
+"settings.row.test" = "टेस्ट";
+"settings.row.test.itemCount" = "1 आइटम";
 "settings.sync.success" = "सफलतापूर्वक समन्वयित";
 "settings.sync.guestAiActive" = "अतिथि AI सक्रिय है";
 "settings.sync.notSyncing" = "कोई सिंक्रनाइज़ेशन नहीं";
@@ -154,6 +157,14 @@
 "settings.thisDevice.note.localOnly" = "कार्ड बनाने, डेक सहेजने या समीक्षा करने के लिए लॉग इन करने की कोई आवश्यकता नहीं है।";
 "settings.thisDevice.note.syncScope" = "भविष्य का सिंक्रनाइज़ेशन केवल वर्तमान कार्यक्षेत्र तक ही सीमित है।";
 "settings.thisDevice.note.schema" = "स्कीमा डिफ़ॉल्ट रूप से दूरस्थ डेटा डाउनलोड किए बिना बैकएंड के करीब रहता है।";
+
+"settings.test.title" = "टेस्ट";
+"settings.test.section.tools" = "टूल्स";
+"settings.test.animations" = "ऐनिमेशन";
+"settings.test.animations.itemCount" = "16 आइटम";
+"settings.test.animations.title" = "ऐनिमेशन";
+"settings.test.animations.probability" = "%@ संभावना";
+"settings.test.animations.playAccessibility" = "%@ ऐनिमेशन चलाएं, %@";
 
 "settings.access.title" = "एक्सेस";
 "settings.access.section.permissions" = "अनुमतियाँ";

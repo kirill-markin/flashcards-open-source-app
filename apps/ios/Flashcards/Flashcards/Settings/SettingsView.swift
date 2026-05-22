@@ -85,6 +85,19 @@ struct SettingsView: View {
                     )
                 }
             }
+
+            if store.isTestModeEnabled {
+                Section(aiSettingsLocalized("settings.section.test", "Test")) {
+                    NavigationLink(value: SettingsNavigationDestination.test) {
+                        SettingsNavigationRow(
+                            title: aiSettingsLocalized("settings.row.test", "Test"),
+                            value: aiSettingsLocalized("settings.row.test.itemCount", "1 item"),
+                            systemImage: "wrench.and.screwdriver"
+                        )
+                    }
+                    .accessibilityIdentifier(UITestIdentifier.settingsTestRow)
+                }
+            }
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.settingsScreen)

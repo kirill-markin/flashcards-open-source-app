@@ -53,7 +53,7 @@ Shared screenshot support:
 
 - `apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/MarketingManualScreenshotTestCase.swift`
 - `apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/MarketingScreenshotFixtures.swift`
-- `apps/ios/Flashcards/Flashcards/Cloud/FlashcardsStore+CloudUITest.swift`
+- `apps/ios/Flashcards/Flashcards/Cloud/Store/FlashcardsStore+CloudUITest.swift`
 
 What each layer does:
 

@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import { HttpError } from "../../errors";
+import { HttpError } from "../../shared/errors";
 import { createChatRoutes } from "../../routes/chat";
-import type { AppEnv } from "../../app";
+import type { AppEnv } from "../../server/app";
 import type { RequestContext } from "../../server/requestContext";
 import type { ChatSessionSnapshot, PersistedChatMessageItem } from "../store";
 

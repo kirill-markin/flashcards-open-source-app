@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type pg from "pg";
-import { HttpError } from "../errors";
+import { HttpError } from "../shared/errors";
 import {
   executeAdminQuery,
   splitAdminQueryStatements,

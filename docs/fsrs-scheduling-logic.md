@@ -13,15 +13,15 @@ Reference implementation:
 
 Repository implementations:
 
-- backend scheduler: `apps/backend/src/schedule.ts`
-- backend card persistence: `apps/backend/src/cards.ts`
-- backend workspace scheduler settings: `apps/backend/src/workspaceSchedulerSettings.ts`
-- iOS scheduler: `apps/ios/Flashcards/Flashcards/FsrsScheduler.swift`
+- backend scheduler: `apps/backend/src/scheduling/index.ts`
+- backend card persistence: `apps/backend/src/cards/reviews.ts` and `apps/backend/src/cards/fsrs.ts`
+- backend workspace scheduler settings: `apps/backend/src/scheduling/workspaceSettings.ts`
+- iOS scheduler: `apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift`
 - iOS local persistence: `apps/ios/Flashcards/Flashcards/LocalDatabase.swift`
 - Android scheduler: `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FsrsScheduler.kt`
 - Android local persistence: `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/repository/LocalRepositories.kt`
 - web FSRS type mirror: `apps/web/src/types.ts`
-- web local review submit flow: `apps/web/src/appData/useSyncEngine.ts`
+- web local review submit flow: `apps/web/src/appData/sync/syncLocalMutations.ts`
 - iOS settings UI: `apps/ios/Flashcards/Flashcards/SettingsView.swift`
 - Android settings UI: `apps/android/feature/settings/src/main/java/com/flashcardsopensourceapp/feature/settings/SchedulerSettingsRoute.kt`
 
@@ -29,25 +29,25 @@ Repository implementations:
 
 The repository has exactly three independent implementations of the FSRS scheduler algorithm:
 
-- backend: `apps/backend/src/schedule.ts`
-- iOS: `apps/ios/Flashcards/Flashcards/FsrsScheduler.swift`
+- backend: `apps/backend/src/scheduling/index.ts`
+- iOS: `apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift`
 - Android: `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FsrsScheduler.kt`
 
 They are full platform-specific copies of the same algorithm and must stay behaviorally identical.
 The web app does not contain a fourth standalone scheduler implementation in this repository.
-Instead, the web review flow reuses the backend scheduler module from `apps/backend/src/schedule.ts` for local review submission and button-interval previews, while `apps/web/src/types.ts` mirrors the FSRS data contract.
+Instead, the web review flow reuses the backend scheduler module from `apps/backend/src/scheduling/index.ts` for local review submission and button-interval previews, while `apps/web/src/types.ts` mirrors the FSRS data contract.
 
 Supporting mirrors around the scheduler contract:
 
-- backend review persistence: `apps/backend/src/cards.ts`
+- backend review persistence: `apps/backend/src/cards/reviews.ts`
 - iOS review persistence: `apps/ios/Flashcards/Flashcards/LocalDatabase.swift`
 - Android review persistence: `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/repository/LocalRepositories.kt`
-- web local review submit flow reusing backend scheduler: `apps/web/src/appData/useSyncEngine.ts`
-- backend scheduler settings: `apps/backend/src/workspaceSchedulerSettings.ts`
+- web local review submit flow reusing backend scheduler: `apps/web/src/appData/sync/syncLocalMutations.ts`
+- backend scheduler settings: `apps/backend/src/scheduling/workspaceSettings.ts`
 - iOS scheduler settings: `apps/ios/Flashcards/Flashcards/LocalDatabase.swift`
 - Android scheduler settings: `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/WorkspaceSchedulerSettingsSupport.kt`
 - shared parity vectors: `tests/fsrs-full-vectors.json`
-- backend parity tests: `apps/backend/src/schedule.test.ts`
+- backend parity tests: `apps/backend/src/scheduling/index.test.ts`
 - iOS parity tests: `apps/ios/Flashcards/FlashcardsTests/Review/FsrsSchedulerParityTests.swift`
 - Android parity tests: `apps/android/data/local/src/test/java/com/flashcardsopensourceapp/data/local/model/FsrsSchedulerParityTest.kt`
 
@@ -55,7 +55,7 @@ Any scheduler change must update the backend copy, the iOS copy, the Android cop
 
 Core scheduler symbol parity:
 
-| Backend (`apps/backend/src/schedule.ts`) | iOS (`apps/ios/Flashcards/Flashcards/FsrsScheduler.swift`) |
+| Backend (`apps/backend/src/scheduling/index.ts`) | iOS (`apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift`) |
 | --- | --- |
 | `ReviewableCardScheduleState` | `ReviewableCardScheduleState` |
 | `ReviewHistoryEvent` | `FsrsReviewHistoryEvent` |
@@ -76,12 +76,12 @@ Scheduler-entrypoint parity:
 
 | Backend | iOS |
 | --- | --- |
-| `apps/backend/src/cards.ts::toReviewableCardScheduleState` | `apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::makeReviewableCardScheduleState(card:)` |
-| `apps/backend/src/cards.ts::submitReview` | `apps/ios/Flashcards/Flashcards/LocalDatabase.swift::submitReview(workspaceId:reviewSubmission:)` |
-| `apps/backend/src/workspaceSchedulerSettings.ts::parseSteps` | `apps/ios/Flashcards/Flashcards/LocalDatabase.swift::validateSchedulerStepList(values:fieldName:)` |
-| `apps/backend/src/workspaceSchedulerSettings.ts::validateWorkspaceSchedulerSettingsInput` | `apps/ios/Flashcards/Flashcards/LocalDatabase.swift::validateWorkspaceSchedulerSettingsInput(desiredRetention:learningStepsMinutes:relearningStepsMinutes:maximumIntervalDays:enableFuzz:)` |
-| `apps/backend/src/workspaceSchedulerSettings.ts::getWorkspaceSchedulerSettings` / `getWorkspaceSchedulerConfig` | `apps/ios/Flashcards/Flashcards/LocalDatabase.swift::loadWorkspaceSchedulerSettings(workspaceId:)` |
-| `apps/backend/src/workspaceSchedulerSettings.ts::updateWorkspaceSchedulerSettings` | `apps/ios/Flashcards/Flashcards/LocalDatabase.swift::updateWorkspaceSchedulerSettings(workspaceId:desiredRetention:learningStepsMinutes:relearningStepsMinutes:maximumIntervalDays:enableFuzz:)` |
+| `apps/backend/src/cards/reviews.ts::toReviewableCardScheduleState` | `apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::makeReviewableCardScheduleState(card:)` |
+| `apps/backend/src/cards/reviews.ts::submitReview` | `apps/ios/Flashcards/Flashcards/LocalDatabase.swift::submitReview(workspaceId:reviewSubmission:)` |
+| `apps/backend/src/scheduling/workspaceSettings.ts::parseSteps` | `apps/ios/Flashcards/Flashcards/LocalDatabase.swift::validateSchedulerStepList(values:fieldName:)` |
+| `apps/backend/src/scheduling/workspaceSettings.ts::validateWorkspaceSchedulerSettingsInput` | `apps/ios/Flashcards/Flashcards/LocalDatabase.swift::validateWorkspaceSchedulerSettingsInput(desiredRetention:learningStepsMinutes:relearningStepsMinutes:maximumIntervalDays:enableFuzz:)` |
+| `apps/backend/src/scheduling/workspaceSettings.ts::getWorkspaceSchedulerSettings` / `getWorkspaceSchedulerConfig` | `apps/ios/Flashcards/Flashcards/LocalDatabase.swift::loadWorkspaceSchedulerSettings(workspaceId:)` |
+| `apps/backend/src/scheduling/workspaceSettings.ts::updateWorkspaceSchedulerSettings` | `apps/ios/Flashcards/Flashcards/LocalDatabase.swift::updateWorkspaceSchedulerSettings(workspaceId:desiredRetention:learningStepsMinutes:relearningStepsMinutes:maximumIntervalDays:enableFuzz:)` |
 
 ## Rating model
 

@@ -1,0 +1,114 @@
+import SwiftUI
+
+extension ReviewView {
+    func emitReviewReaction(
+        rating: ReviewRating,
+        motionMode: ReviewReactionMotionMode
+    ) {
+        let reactionRating = makeReviewReactionRating(rating: rating)
+        let event = ReviewReactionEvent(
+            id: UUID(),
+            rating: reactionRating,
+            variant: selectReviewReactionVariant(
+                rating: reactionRating,
+                roll: Int.random(in: 0...999)
+            )
+        )
+        self.activeReviewReactionEvents = appendReviewReactionEvent(
+            events: self.activeReviewReactionEvents,
+            event: event,
+            maximumActiveEvents: reviewReactionMaximumActiveEvents
+        )
+
+        Task { @MainActor in
+            do {
+                try await Task.sleep(
+                    nanoseconds: reviewReactionCleanupDelayNanoseconds(
+                        variant: event.variant,
+                        motionMode: motionMode
+                    )
+                )
+            } catch is CancellationError {
+                return
+            } catch {
+                preconditionFailure("Unexpected review reaction cleanup sleep error: \(error).")
+            }
+
+            self.activeReviewReactionEvents = self.activeReviewReactionEvents.filter { activeEvent in
+                activeEvent.id != event.id
+            }
+        }
+    }
+
+    func submitReview(cardId: String, rating: ReviewRating) {
+        do {
+            try store.enqueueReviewSubmission(cardId: cardId, rating: rating)
+            self.screenErrorMessage = ""
+        } catch {
+            self.screenErrorMessage = Flashcards.errorMessage(error: error)
+        }
+    }
+
+    func reloadReviewMetadata() async {
+        do {
+            let now = Date()
+            let decksSnapshot = try store.loadDecksListSnapshot(now: now)
+            let tagsSummary = try store.loadWorkspaceTagsSummary()
+            self.reviewDeckSummaries = decksSnapshot.deckSummaries
+            self.reviewTagSummaries = tagsSummary.tags
+            self.totalCardsCount = tagsSummary.totalCards
+            self.screenErrorMessage = ""
+        } catch {
+            self.screenErrorMessage = Flashcards.errorMessage(error: error)
+        }
+    }
+
+    func refreshPreparedRevealStates(reviewQueue: [Card]) async {
+        let now = Date()
+        let currentCard = currentReviewCard(reviewQueue: reviewQueue)
+        let nextCard = nextReviewCard(reviewQueue: reviewQueue)
+        if currentCard != nil || nextCard != nil {
+            await Task.yield()
+        }
+        if Task.isCancelled {
+            return
+        }
+
+        let nextPreparedRevealState = currentCard.map { card in
+            makePreparedReviewRevealState(
+                card: card,
+                schedulerSettings: store.schedulerSettings,
+                now: now
+            )
+        }
+        let nextPreparedNextRevealState = nextCard.map { card in
+            makePreparedReviewRevealState(
+                card: card,
+                schedulerSettings: store.schedulerSettings,
+                now: now
+            )
+        }
+        if Task.isCancelled {
+            return
+        }
+
+        self.preparedRevealState = nextPreparedRevealState
+        self.preparedNextRevealState = nextPreparedNextRevealState
+    }
+
+    func cachedPreparedRevealState(card: Card) -> PreparedReviewRevealState? {
+        let preparedRevealStateId = makePreparedReviewRevealStateId(
+            card: card,
+            schedulerSettings: store.schedulerSettings
+        )
+
+        if let preparedRevealState, preparedRevealState.id == preparedRevealStateId {
+            return preparedRevealState
+        }
+        if let preparedNextRevealState, preparedNextRevealState.id == preparedRevealStateId {
+            return preparedNextRevealState
+        }
+
+        return nil
+    }
+}

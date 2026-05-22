@@ -1,8 +1,13 @@
 import SwiftUI
 import UIKit
 
+private let testModeUnlockRequiredTapCount: Int = 5
+private let testModeUnlockMaximumTapIntervalSeconds: TimeInterval = 2
+
 struct ThisDeviceSettingsView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
+    @State private var appVersionTapCount: Int = 0
+    @State private var lastAppVersionTapAt: Date? = nil
 
     private var deviceModel: String {
         let model = UIDevice.current.model.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -47,6 +52,10 @@ struct ThisDeviceSettingsView: View {
 
                 LabeledContent(aiSettingsLocalized("settings.thisDevice.appVersion", "App version")) {
                     Text(self.appVersion)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            self.handleAppVersionTap(now: Date())
+                        }
                 }
 
                 LabeledContent(aiSettingsLocalized("settings.thisDevice.build", "Build")) {
@@ -92,6 +101,24 @@ struct ThisDeviceSettingsView: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle(aiSettingsLocalized("settings.thisDevice.title", "This Device"))
+    }
+
+    private func handleAppVersionTap(now: Date) {
+        if let lastAppVersionTapAt = self.lastAppVersionTapAt,
+           now.timeIntervalSince(lastAppVersionTapAt) <= testModeUnlockMaximumTapIntervalSeconds {
+            self.appVersionTapCount += 1
+        } else {
+            self.appVersionTapCount = 1
+        }
+        self.lastAppVersionTapAt = now
+
+        guard self.appVersionTapCount >= testModeUnlockRequiredTapCount else {
+            return
+        }
+
+        self.appVersionTapCount = 0
+        self.lastAppVersionTapAt = nil
+        self.store.toggleTestMode()
     }
 }
 

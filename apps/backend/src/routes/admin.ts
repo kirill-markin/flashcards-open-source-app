@@ -1,9 +1,9 @@
 import { Hono } from "hono";
 import { requireAdminRequest, type AdminRequestContext } from "../admin/authz";
 import { executeAdminQuery, type AdminQueryResponse } from "../admin/query";
-import { HttpError } from "../errors";
-import { getSessionCsrfToken } from "../requestSecurity";
-import type { AppEnv } from "../app";
+import { HttpError } from "../shared/errors";
+import { getSessionCsrfToken } from "../auth/requestSecurity";
+import type { AppEnv } from "../server/app";
 
 type AdminRoutesOptions = Readonly<{
   maxAdminQueryBodyBytes?: number;

@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.app.navigation
 
+import android.os.SystemClock
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
@@ -11,7 +12,9 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.feature.review.reaction.TestAnimationsRoute
 import com.flashcardsopensourceapp.feature.settings.SettingsRoute
+import com.flashcardsopensourceapp.feature.settings.TestSettingsRoute
 import com.flashcardsopensourceapp.feature.settings.createSettingsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.device.DeviceDiagnosticsRoute
 import com.flashcardsopensourceapp.feature.settings.device.createDeviceDiagnosticsViewModelFactory
@@ -31,17 +34,18 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             navController = navController,
             currentBackStackEntry = backStackEntry
         )
-            val settingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.SettingsViewModel>(
-                viewModelStoreOwner = settingsRootBackStackEntry,
-                factory = createSettingsViewModelFactory(
-                    workspaceRepository = appGraph.workspaceRepository,
-                    cloudAccountRepository = appGraph.cloudAccountRepository,
-                    autoSyncEventRepository = appGraph.autoSyncEventRepository,
-                    messageController = appGraph.appMessageBus,
-                    visibleAppScreenRepository = appGraph.visibleAppScreenController,
-                    applicationContext = context.applicationContext
-                )
+        val settingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.SettingsViewModel>(
+            viewModelStoreOwner = settingsRootBackStackEntry,
+            factory = createSettingsViewModelFactory(
+                workspaceRepository = appGraph.workspaceRepository,
+                cloudAccountRepository = appGraph.cloudAccountRepository,
+                autoSyncEventRepository = appGraph.autoSyncEventRepository,
+                messageController = appGraph.appMessageBus,
+                testModeStore = appGraph.testModeStore,
+                visibleAppScreenRepository = appGraph.visibleAppScreenController,
+                applicationContext = context.applicationContext
             )
+        )
         val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
 
         SettingsRoute(
@@ -60,6 +64,9 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             },
             onOpenAccess = {
                 navController.navigate(route = SettingsAccessDestination.route)
+            },
+            onOpenTest = {
+                navController.navigate(route = SettingsTestDestination.route)
             }
         )
     }
@@ -120,6 +127,8 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
                 workspaceRepository = appGraph.workspaceRepository,
                 appVersion = packageInfo.versionName,
                 buildNumber = packageInfo.longVersionCode.toString(),
+                testModeStore = appGraph.testModeStore,
+                messageController = appGraph.appMessageBus,
                 applicationContext = context.applicationContext
             )
         )
@@ -127,6 +136,30 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
 
         DeviceDiagnosticsRoute(
             uiState = uiState,
+            onAppVersionTap = {
+                deviceDiagnosticsViewModel.handleAppVersionTap(
+                    nowMillis = SystemClock.elapsedRealtime()
+                )
+            },
+            onBack = {
+                navController.popBackStack()
+            }
+        )
+    }
+
+    composable(route = SettingsTestDestination.route) {
+        TestSettingsRoute(
+            onOpenAnimations = {
+                navController.navigate(route = SettingsTestAnimationsDestination.route)
+            },
+            onBack = {
+                navController.popBackStack()
+            }
+        )
+    }
+
+    composable(route = SettingsTestAnimationsDestination.route) {
+        TestAnimationsRoute(
             onBack = {
                 navController.popBackStack()
             }

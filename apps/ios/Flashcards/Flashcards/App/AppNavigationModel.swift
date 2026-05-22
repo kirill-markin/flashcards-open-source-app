@@ -11,6 +11,10 @@ func makeSettingsNavigationPath(destination: SettingsNavigationDestination) -> [
         return [.access]
     case .accessPermissionDetail(let kind):
         return [.access, .accessPermissionDetail(kind)]
+    case .test:
+        return [.test]
+    case .testAnimations:
+        return [.test, .testAnimations]
     case .workspace:
         return [.workspace]
     case .workspaceNotifications:

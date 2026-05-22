@@ -1,5 +1,5 @@
-import type { PublicHttpErrorDetails } from "../errors";
-import { getPublicAgentDocs } from "../publicUrls";
+import type { PublicHttpErrorDetails } from "../shared/errors";
+import { getPublicAgentDocs } from "../shared/publicUrls";
 
 export type AgentDocs = Readonly<{
   openapiUrl: string;

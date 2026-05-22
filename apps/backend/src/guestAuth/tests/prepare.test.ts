@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { prepareGuestUpgradeInExecutor } from "../../guestAuth";
+import { prepareGuestUpgradeInExecutor } from "..";
 import {
   createGuestUpgradeExecutor,
   createMergeState,

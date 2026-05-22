@@ -9,7 +9,7 @@ import type {
 import type {
   WorkspaceSchedulerSettingsMutationMetadata,
   WorkspaceSchedulerSettingsSnapshotInput,
-} from "../workspaceSchedulerSettings";
+} from "../scheduling/workspaceSettings";
 
 type MutationMetadataInput = Readonly<{
   clientUpdatedAt: string;

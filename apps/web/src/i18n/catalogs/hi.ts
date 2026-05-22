@@ -115,6 +115,8 @@ const hiCatalog: TranslationCatalog = {
     openSourceSettings: "ओपन सोर्स सेटिंग्स लोड हो रही हैं...",
     agentConnections: "एजेंट कनेक्शन लोड हो रहे हैं...",
     dangerZone: "खतरे का क्षेत्र लोड हो रहा है...",
+    testSettings: "टेस्ट सेटिंग्स लोड हो रही हैं...",
+    testAnimations: "ऐनिमेशन लोड हो रहे हैं...",
     aiChat: "AI चैट लोड हो रही है...",
     progress: "प्रगति लोड हो रही है...",
   },
@@ -190,6 +192,7 @@ const hiCatalog: TranslationCatalog = {
     account: "खाता",
     device: "यह डिवाइस",
     access: "एक्सेस",
+    test: "टेस्ट",
     ariaLabel: "सेटिंग्स टैब",
   },
   settingsHome: {
@@ -219,9 +222,19 @@ const hiCatalog: TranslationCatalog = {
       description: "फ़ाइलों, कैमरा और माइक्रोफ़ोन के लिए ब्राउज़र अनुमतियां देखें।",
       value: "अनुमतियां",
     },
+    testGroupTitle: "टेस्ट",
+    test: {
+      title: "टेस्ट",
+      description: "इस ब्राउज़र के लिए छिपे हुए टेस्ट टूल्स खोलें।",
+      value: "1 आइटम",
+    },
   },
   workspaceManagement: {
     lockedMessage: "वर्कस्पेस में बदलाव केवल खाता बनाने के बाद उपलब्ध होते हैं।",
+  },
+  testMode: {
+    enabledMessage: "टेस्ट संस्करण चालू है।",
+    disabledMessage: "टेस्ट संस्करण बंद है।",
   },
   settingsCurrentWorkspace: {
     title: "मौजूदा वर्कस्पेस",
@@ -255,6 +268,20 @@ const hiCatalog: TranslationCatalog = {
       storage: "IndexedDB + localStorage",
       workspaceScope: "आने वाला सिंक इस डिवाइस पर अभी चुने गए वर्कस्पेस तक ही सीमित रहेगा।",
       localData: "लोकल कैश इस डिवाइस पर कार्ड, डेक, शेड्यूलर सेटिंग्स और लंबित सिंक ऑपरेशन रखता है।",
+    },
+  },
+  settingsTest: {
+    title: "टेस्ट",
+    subtitle: "इस ब्राउज़र के लिए छिपे हुए टेस्ट टूल्स।",
+    toolsGroupTitle: "टूल्स",
+    animations: {
+      title: "ऐनिमेशन",
+      description: "हर रिव्यू रिएक्शन ऐनिमेशन वैरिएंट का प्रीव्यू देखें।",
+      value: "16 आइटम",
+      screenTitle: "ऐनिमेशन",
+      screenSubtitle: "रिव्यू रिएक्शन वैरिएंट सीधे चलाएं।",
+      probability: "{{percent}} संभावना",
+      playAccessibility: "{{variant}} ऐनिमेशन चलाएं, {{probability}}",
     },
   },
   settingsWorkspace: {

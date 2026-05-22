@@ -23,8 +23,8 @@ private func logAIChatStoreLifecycleEvent(action: String, metadata: [String: Str
         clientRequestId: metadata["clientRequestId"].flatMap(aiChatStoreNonPlaceholderString),
         sessionId: sessionId,
         runId: runId,
-        cloudState: nil,
-        configurationMode: nil
+        cloudState: metadata["cloudState"].flatMap(CloudAccountState.init(rawValue:)),
+        configurationMode: metadata["configurationMode"].flatMap(CloudServiceConfigurationMode.init(rawValue:))
     )
     let observation = AIChatLifecycleObservation(
         action: actionValue,
@@ -58,7 +58,8 @@ private func logAIChatStoreLifecycleEvent(action: String, metadata: [String: Str
         isStopped: metadata["isStopped"].flatMap(aiChatStoreBool),
         outcome: metadata["outcome"].flatMap(aiChatStoreNonPlaceholderString),
         reason: metadata["reason"].flatMap(aiChatStoreNonPlaceholderString),
-        errorSummary: nil
+        errorSummary: metadata["errorSummary"].flatMap(aiChatStoreNonPlaceholderString)
+            ?? metadata["error"].flatMap(aiChatStoreNonPlaceholderString)
     )
 
     if aiChatStoreLifecycleEventIsWarning(actionValue) {

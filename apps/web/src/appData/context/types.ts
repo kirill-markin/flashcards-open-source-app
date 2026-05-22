@@ -1,0 +1,62 @@
+import type { ReactNode } from "react";
+import type {
+  Card,
+  CloudSettings,
+  CreateCardInput,
+  CreateDeckInput,
+  Deck,
+  ResetWorkspaceProgressResponse,
+  ReviewFilter,
+  SessionInfo,
+  UpdateCardInput,
+  UpdateDeckInput,
+  WorkspaceResetProgressPreview,
+  WorkspaceSchedulerSettings,
+  WorkspaceSummary,
+} from "../../types";
+import type { SessionVerificationState } from "../session/warmStart";
+
+export type SessionLoadState = "loading" | "ready" | "redirecting" | "selecting_workspace" | "error" | "deleted";
+
+export type AppDataContextValue = Readonly<{
+  sessionLoadState: SessionLoadState;
+  sessionVerificationState: SessionVerificationState;
+  isSessionVerified: boolean;
+  sessionErrorMessage: string;
+  session: SessionInfo | null;
+  activeWorkspace: WorkspaceSummary | null;
+  availableWorkspaces: ReadonlyArray<WorkspaceSummary>;
+  isChoosingWorkspace: boolean;
+  workspaceSettings: WorkspaceSchedulerSettings | null;
+  cloudSettings: CloudSettings | null;
+  localReadVersion: number;
+  localCardCount: number;
+  isSyncing: boolean;
+  selectedReviewFilter: ReviewFilter;
+  errorMessage: string;
+  setErrorMessage: (message: string) => void;
+  initialize: () => Promise<void>;
+  chooseWorkspace: (workspaceId: string) => Promise<void>;
+  createWorkspace: (name: string) => Promise<void>;
+  renameWorkspace: (workspaceId: string, name: string) => Promise<void>;
+  deleteWorkspace: (workspaceId: string, confirmationText: string) => Promise<void>;
+  loadWorkspaceResetProgressPreview: (workspaceId: string) => Promise<WorkspaceResetProgressPreview>;
+  resetWorkspaceProgress: (workspaceId: string, confirmationText: string) => Promise<ResetWorkspaceProgressResponse>;
+  runSync: () => Promise<void>;
+  refreshLocalData: () => Promise<void>;
+  getCardById: (cardId: string) => Promise<Card>;
+  getDeckById: (deckId: string) => Promise<Deck>;
+  createCardItem: (input: CreateCardInput) => Promise<Card>;
+  createDeckItem: (input: CreateDeckInput) => Promise<Deck>;
+  updateCardItem: (cardId: string, input: UpdateCardInput) => Promise<Card>;
+  updateDeckItem: (deckId: string, input: UpdateDeckInput) => Promise<Deck>;
+  deleteCardItem: (cardId: string) => Promise<Card>;
+  deleteDeckItem: (deckId: string) => Promise<Deck>;
+  selectReviewFilter: (reviewFilter: ReviewFilter) => void;
+  openReview: (reviewFilter: ReviewFilter) => void;
+  submitReviewItem: (cardId: string, rating: 0 | 1 | 2 | 3) => Promise<Card>;
+}>;
+
+export type Props = Readonly<{
+  children: ReactNode;
+}>;

@@ -124,6 +124,9 @@
 "settings.row.thisDevice" = "このデバイス";
 "settings.row.access" = "アクセス";
 "settings.row.access.itemCount" = "4 アイテム";
+"settings.section.test" = "テスト";
+"settings.row.test" = "テスト";
+"settings.row.test.itemCount" = "1項目";
 "settings.sync.success" = "正常に同期されました";
 "settings.sync.guestAiActive" = "ゲスト AI がアクティブです";
 "settings.sync.notSyncing" = "同期なし";
@@ -154,6 +157,14 @@
 "settings.thisDevice.note.localOnly" = "カードの作成、デッキの保存、レビューのためにログインする必要はありません。";
 "settings.thisDevice.note.syncScope" = "今後の同期は現在のワークスペースのみに限定されます。";
 "settings.thisDevice.note.schema" = "デフォルトでは、スキーマはリモート データをダウンロードせずにバックエンドの近くに留まります。";
+
+"settings.test.title" = "テスト";
+"settings.test.section.tools" = "ツール";
+"settings.test.animations" = "アニメーション";
+"settings.test.animations.itemCount" = "16項目";
+"settings.test.animations.title" = "アニメーション";
+"settings.test.animations.probability" = "確率 %@";
+"settings.test.animations.playAccessibility" = "%@ のアニメーションを再生、%@";
 
 "settings.access.title" = "アクセス";
 "settings.access.section.permissions" = "権限";

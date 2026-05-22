@@ -1,4 +1,4 @@
-import { transactionWithWorkspaceScope } from "../../db";
+import { transactionWithWorkspaceScope } from "../../database";
 import {
   recoverStaleRunWithExecutor,
 } from "./finalization";

@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { HttpError } from "../../errors";
+import { HttpError } from "../../shared/errors";
 import type { BackendTraceCarrier } from "../../observability/sentry";
-import { getBackendChatLiveAuthSecret } from "../../secrets";
+import { getBackendChatLiveAuthSecret } from "../../aws/secrets";
 
 const CHAT_LIVE_AUTH_TOKEN_VERSION = 1;
 const CHAT_LIVE_AUTH_TTL_MS = 10 * 60 * 1000;

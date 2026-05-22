@@ -124,6 +124,9 @@
 "settings.row.thisDevice" = "Это устройство";
 "settings.row.access" = "Доступ";
 "settings.row.access.itemCount" = "4 предмета";
+"settings.section.test" = "Тест";
+"settings.row.test" = "Тест";
+"settings.row.test.itemCount" = "1 пункт";
 "settings.sync.success" = "Синхронизировано успешно";
 "settings.sync.guestAiActive" = "Гостевой AI активен";
 "settings.sync.notSyncing" = "Нет синхронизации";
@@ -154,6 +157,14 @@
 "settings.thisDevice.note.localOnly" = "Нет необходимости входить в систему, чтобы создавать карты, сохранять колоды или просматривать их.";
 "settings.thisDevice.note.syncScope" = "Будущая синхронизация ограничивается только текущей рабочей областью.";
 "settings.thisDevice.note.schema" = "По умолчанию схема остается близкой к серверной части, не загружая удаленные данные.";
+
+"settings.test.title" = "Тест";
+"settings.test.section.tools" = "Инструменты";
+"settings.test.animations" = "Анимации";
+"settings.test.animations.itemCount" = "16 пунктов";
+"settings.test.animations.title" = "Анимации";
+"settings.test.animations.probability" = "Вероятность %@";
+"settings.test.animations.playAccessibility" = "Воспроизвести анимацию %@, %@";
 
 "settings.access.title" = "Доступ";
 "settings.access.section.permissions" = "Разрешения";

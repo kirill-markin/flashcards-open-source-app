@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import type pg from "pg";
-import { withTransientDatabaseRetry } from "../dbTransient";
-import { HttpError } from "../errors";
+import { withTransientDatabaseRetry } from "../database/transient";
+import { HttpError } from "../shared/errors";
 import { createBackendObservationScope } from "../observability/sentry";
 import { logAdminQueryEvent } from "../server/logging";
 import { withReportingReadOnlyTransaction } from "./reportingDb";

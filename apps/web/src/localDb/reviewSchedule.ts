@@ -1,7 +1,7 @@
 import {
   malformedDueAtBucketMillis,
   nullDueAtBucketMillis,
-} from "../appData/dueAt";
+} from "../appData/domain/dueAt";
 import {
   progressReviewScheduleBucketKeys,
   type ProgressReviewSchedule,

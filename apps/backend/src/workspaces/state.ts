@@ -1,5 +1,5 @@
-import { applyUserDatabaseScopeInExecutor, type DatabaseExecutor } from "../db";
-import { HttpError } from "../errors";
+import { applyUserDatabaseScopeInExecutor, type DatabaseExecutor } from "../database";
+import { HttpError } from "../shared/errors";
 
 type AgentApiKeySelectionRow = Readonly<{
   connection_id: string;

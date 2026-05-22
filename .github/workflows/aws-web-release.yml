@@ -112,7 +112,7 @@ jobs:
               backend_changed=true
             fi
 
-            if grep -Eq '^(apps/web/|apps/backend/src/schedule\.ts$|apps/backend/src/workspaceSchedulerConfig\.ts$|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
+            if grep -Eq '^(apps/web/|apps/backend/src/scheduling/|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
               web_changed=true
             fi
 

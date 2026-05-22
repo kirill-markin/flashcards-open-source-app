@@ -32,6 +32,16 @@ let reviewSpeechUnavailableBannerMessage: String = String(
     table: foundationStringsTableName,
     comment: "Banner message when speech is unavailable on the device"
 )
+let testModeEnabledBannerMessage: String = String(
+    localized: "transient_banner.test_mode_enabled",
+    table: foundationStringsTableName,
+    comment: "Banner message when hidden test mode is enabled"
+)
+let testModeDisabledBannerMessage: String = String(
+    localized: "transient_banner.test_mode_disabled",
+    table: foundationStringsTableName,
+    comment: "Banner message when hidden test mode is disabled"
+)
 
 enum TransientBannerKind: Hashable, Sendable {
     case aiChatOffline
@@ -40,6 +50,8 @@ enum TransientBannerKind: Hashable, Sendable {
     case cardsUpdatedFromCloud
     case workspaceChangesRequireAccount
     case reviewSpeechUnavailable
+    case testModeEnabled
+    case testModeDisabled
 
     var iconSystemName: String {
         switch self {
@@ -55,6 +67,8 @@ enum TransientBannerKind: Hashable, Sendable {
             return "gearshape.fill"
         case .reviewSpeechUnavailable:
             return "speaker.slash.fill"
+        case .testModeEnabled, .testModeDisabled:
+            return "wrench.and.screwdriver.fill"
         }
     }
 }
@@ -116,6 +130,24 @@ func makeReviewSpeechUnavailableBanner(message: String) -> TransientBanner {
         id: UUID().uuidString.lowercased(),
         message: message.isEmpty ? reviewSpeechUnavailableBannerMessage : message,
         kind: .reviewSpeechUnavailable,
+        dismissDelayNanoseconds: transientBannerDefaultDismissDelayNanoseconds
+    )
+}
+
+func makeTestModeEnabledBanner() -> TransientBanner {
+    TransientBanner(
+        id: UUID().uuidString.lowercased(),
+        message: testModeEnabledBannerMessage,
+        kind: .testModeEnabled,
+        dismissDelayNanoseconds: transientBannerDefaultDismissDelayNanoseconds
+    )
+}
+
+func makeTestModeDisabledBanner() -> TransientBanner {
+    TransientBanner(
+        id: UUID().uuidString.lowercased(),
+        message: testModeDisabledBannerMessage,
+        kind: .testModeDisabled,
         dismissDelayNanoseconds: transientBannerDefaultDismissDelayNanoseconds
     )
 }

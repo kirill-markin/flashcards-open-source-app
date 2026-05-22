@@ -124,6 +124,9 @@
 "settings.row.thisDevice" = "Este dispositivo";
 "settings.row.access" = "Acceso";
 "settings.row.access.itemCount" = "4 elementos";
+"settings.section.test" = "Prueba";
+"settings.row.test" = "Prueba";
+"settings.row.test.itemCount" = "1 elemento";
 "settings.sync.success" = "Sincronizado correctamente";
 "settings.sync.guestAiActive" = "La IA de invitado esta activa";
 "settings.sync.notSyncing" = "Sin sincronizacion";
@@ -154,6 +157,14 @@
 "settings.thisDevice.note.localOnly" = "No hace falta iniciar sesion para crear tarjetas, guardar mazos o repasar.";
 "settings.thisDevice.note.syncScope" = "La sincronizacion futura queda limitada solo al espacio de trabajo actual.";
 "settings.thisDevice.note.schema" = "El esquema se mantiene cercano al backend sin descargar datos remotos por defecto.";
+
+"settings.test.title" = "Prueba";
+"settings.test.section.tools" = "Herramientas";
+"settings.test.animations" = "Animaciones";
+"settings.test.animations.itemCount" = "16 elementos";
+"settings.test.animations.title" = "Animaciones";
+"settings.test.animations.probability" = "%@ de probabilidad";
+"settings.test.animations.playAccessibility" = "Reproducir la animacion %@, %@";
 
 "settings.access.title" = "Acceso";
 "settings.access.section.permissions" = "Permisos";

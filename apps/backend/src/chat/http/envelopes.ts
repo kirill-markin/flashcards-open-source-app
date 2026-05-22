@@ -18,7 +18,7 @@ import {
   listChatMessagesLatest,
   type ChatSessionSnapshot,
 } from "../store";
-import { HttpError } from "../../errors";
+import { HttpError } from "../../shared/errors";
 import type { BackendTraceCarrier } from "../../observability/sentry";
 import {
   captureUnexpectedChatLiveEnvelopeError,
