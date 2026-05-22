@@ -17,17 +17,29 @@ export type ReviewEasyUnicornLottieAssets = Readonly<{
 let reviewEasyUnicornLottieAssetsPromise: Promise<ReviewEasyUnicornLottieAssets> | null = null;
 let reviewEasyUnicornLottieAssetsReady = false;
 
-export const reviewReactionExpensiveAnimationFallbackVariant: ReviewReactionVariant = "easyCrownBounce";
+export const reviewReactionLottieFallbackVariant: ReviewReactionVariant = "easyCrownBounce";
+
+export function isReviewReactionLottieVariant(variant: ReviewReactionVariant): boolean {
+  return variant === "easyUnicornFlyby";
+}
 
 export function isReviewEasyUnicornLottieAssetsReady(): boolean {
   return reviewEasyUnicornLottieAssetsReady;
 }
 
+export function isReviewReactionLottieAssetsReady(variant: ReviewReactionVariant): boolean {
+  if (variant === "easyUnicornFlyby") {
+    return isReviewEasyUnicornLottieAssetsReady();
+  }
+
+  return true;
+}
+
 export function reviewReactionVariantWithReadyLottieFallback(
   variant: ReviewReactionVariant,
 ): ReviewReactionVariant {
-  if (variant === "easyUnicornFlyby" && !isReviewEasyUnicornLottieAssetsReady()) {
-    return reviewReactionExpensiveAnimationFallbackVariant;
+  if (isReviewReactionLottieVariant(variant) && !isReviewReactionLottieAssetsReady(variant)) {
+    return reviewReactionLottieFallbackVariant;
   }
 
   return variant;

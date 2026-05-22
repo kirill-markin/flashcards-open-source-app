@@ -7,9 +7,10 @@ import {
   type ReviewReactionVariant,
 } from "./reviewReaction";
 import {
-  isReviewEasyUnicornLottieAssetsReady,
+  isReviewReactionLottieAssetsReady,
+  isReviewReactionLottieVariant,
   loadReviewEasyUnicornLottieAssets,
-  reviewReactionExpensiveAnimationFallbackVariant,
+  reviewReactionLottieFallbackVariant,
   reviewReactionVariantWithReadyLottieFallback,
 } from "./reviewReactionLottie";
 
@@ -281,7 +282,7 @@ function reportReviewReactionLottieFailure(
 function ReviewReactionCrownFallbackArt(): ReactElement {
   return (
     <svg className="review-rating-reaction-art review-rating-reaction-crown-fallback-art" viewBox="0 0 100 100" focusable="false">
-      {renderReviewReactionVariant(reviewReactionExpensiveAnimationFallbackVariant)}
+      {renderReviewReactionVariant(reviewReactionLottieFallbackVariant)}
     </svg>
   );
 }
@@ -400,13 +401,13 @@ function renderReviewReactionVariant(variant: ReviewReactionVariant): ReactEleme
     case "easyCrownBounce":
       return <EasyCrownBounceReaction />;
     case "easyUnicornFlyby":
-      return <EasyCrownBounceReaction />;
+      return renderReviewReactionVariant(reviewReactionLottieFallbackVariant);
   }
 }
 
 function renderReviewReactionArt(variant: ReviewReactionVariant): ReactElement {
-  if (variant === "easyUnicornFlyby") {
-    if (!isReviewEasyUnicornLottieAssetsReady()) {
+  if (isReviewReactionLottieVariant(variant)) {
+    if (!isReviewReactionLottieAssetsReady(variant)) {
       return <ReviewReactionCrownFallbackArt />;
     }
 

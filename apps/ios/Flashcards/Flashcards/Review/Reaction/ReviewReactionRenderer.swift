@@ -128,7 +128,7 @@ enum ReviewReactionRenderer {
                 motionMode: motionMode
             )
         case .easyUnicornFlyby:
-            drawEasyUnicornFlyby(
+            drawEasyCrownBounce(
                 context: drawingContext,
                 size: drawableSize,
                 progress: drawingProgress,
