@@ -1,0 +1,40 @@
+.review-screen-panel {
+  position: relative;
+  container-type: inline-size;
+  container-name: review-screen;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: min(880px, calc(100dvh - 76px));
+  min-height: min(760px, calc(100dvh - 76px));
+  max-height: calc(100dvh - 72px);
+  overflow: hidden;
+}
+
+.chat-layout-shell-sidebar-open .review-screen-panel {
+  height: var(--chat-shell-pane-height);
+  min-height: var(--chat-shell-pane-height);
+  max-height: none;
+}
+
+.review-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+  gap: 10px;
+  align-items: stretch;
+  min-height: 0;
+}
+
+.review-screen-head {
+  align-items: flex-start;
+}
+
+.review-screen-head-actions {
+  align-items: flex-start;
+  flex-shrink: 0;
+  gap: 10px;
+}
+
+.review-screen-head-badge {
+  min-height: 42px;
+  padding: 0 16px;
+  font-size: 15px;
+}
