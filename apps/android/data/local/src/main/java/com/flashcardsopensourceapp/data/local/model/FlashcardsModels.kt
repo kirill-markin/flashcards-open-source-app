@@ -6,9 +6,9 @@ package com.flashcardsopensourceapp.data.local.model
  - apps/ios/Flashcards/Flashcards/Cards/CardDeckTypes.swift
  - apps/ios/Flashcards/Flashcards/Cards/CardDeckSnapshotTypes.swift
  - apps/ios/Flashcards/Flashcards/Cards/TagTypes.swift
- - apps/ios/Flashcards/Flashcards/Cloud/CloudTypes.swift
+ - apps/ios/Flashcards/Flashcards/Cloud/Types/CloudTypes.swift
  - apps/ios/Flashcards/Flashcards/Cloud/Sync/CloudSyncTypes.swift
- - apps/ios/Flashcards/Flashcards/Database/WorkspaceLocalTypes.swift
+ - apps/ios/Flashcards/Flashcards/Database/Workspace/WorkspaceLocalTypes.swift
  - apps/ios/Flashcards/Flashcards/Review/FsrsTypes.swift
  - apps/ios/Flashcards/Flashcards/Review/ReviewTypes.swift
  */
