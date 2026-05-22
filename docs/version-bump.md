@@ -81,7 +81,7 @@ The iOS marketing version lives in:
 
 The runtime-reported iOS app version must be read from bundle metadata (`CFBundleShortVersionString`) through:
 
-- `apps/ios/Flashcards/Flashcards/CloudSupport.swift`
+- `apps/ios/Flashcards/Flashcards/Cloud/Support/CloudSupport.swift`
 
 Do not introduce aligned literals, overrides, or fallbacks for the iOS app version; a missing or blank bundle version is a configuration error that should fail explicitly.
 

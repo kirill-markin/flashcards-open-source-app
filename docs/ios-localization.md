@@ -203,7 +203,7 @@ When adding a new language, review these support-heavy areas explicitly:
 
 - [apps/ios/Flashcards/Flashcards/TransientBannerSupport.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/TransientBannerSupport.swift)
 - [apps/ios/Flashcards/Flashcards/ErrorMessageSupport.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/ErrorMessageSupport.swift)
-- [apps/ios/Flashcards/Flashcards/Cloud/CloudAuthService.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/Cloud/CloudAuthService.swift)
+- [apps/ios/Flashcards/Flashcards/Cloud/Auth/CloudAuthService.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/Cloud/Auth/CloudAuthService.swift)
 - [apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+AlertPresentation.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+AlertPresentation.swift)
 - [apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+ObservabilityCapture.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+ObservabilityCapture.swift)
 - [apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+RunOrchestration.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/AI/Store/AIChatStore+RunOrchestration.swift)

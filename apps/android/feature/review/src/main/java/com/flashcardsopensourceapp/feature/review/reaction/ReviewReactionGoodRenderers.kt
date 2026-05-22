@@ -4,6 +4,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import kotlin.math.PI
+import kotlin.math.abs
 import kotlin.math.min
 import kotlin.math.sin
 
