@@ -27,7 +27,7 @@ import com.flashcardsopensourceapp.data.local.model.ReviewRating
 /*
  Keep review content presentation heuristics aligned with:
  - apps/web/src/screens/reviewContentPresentation.ts
- - apps/ios/Flashcards/Flashcards/ReviewContentPresentation.swift
+ - apps/ios/Flashcards/Flashcards/Review/View/ReviewContentPresentation.swift
  */
 
 private const val reviewShortPlainWordLimit: Int = 4

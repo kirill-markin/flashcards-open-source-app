@@ -18,7 +18,7 @@ import kotlin.math.roundToInt
  *
  * This file is a full Kotlin copy of the scheduler implemented in
  * `apps/backend/src/schedule.ts` and mirrored in
- * `apps/ios/Flashcards/Flashcards/FsrsScheduler.swift`.
+ * `apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift`.
  * If you change algorithm behavior here, you must make the same change in the
  * backend copy, the iOS copy, update `docs/fsrs-scheduling-logic.md`, and keep
  * `tests/fsrs-full-vectors.json` plus all scheduler test suites aligned in the
@@ -32,7 +32,7 @@ import kotlin.math.roundToInt
  * - product source of truth: docs/fsrs-scheduling-logic.md
  */
 
-// Keep in sync with apps/backend/src/schedule.ts::ReviewableCardScheduleState and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::ReviewableCardScheduleState.
+// Keep in sync with apps/backend/src/schedule.ts::ReviewableCardScheduleState and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::ReviewableCardScheduleState.
 data class ReviewableCardScheduleState(
     val cardId: String,
     val reps: Int,
@@ -45,13 +45,13 @@ data class ReviewableCardScheduleState(
     val fsrsScheduledDays: Int?
 )
 
-// Keep in sync with apps/backend/src/schedule.ts::ReviewHistoryEvent and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::FsrsReviewHistoryEvent.
+// Keep in sync with apps/backend/src/schedule.ts::ReviewHistoryEvent and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::FsrsReviewHistoryEvent.
 data class FsrsReviewHistoryEvent(
     val rating: ReviewRating,
     val reviewedAtMillis: Long
 )
 
-// Keep in sync with apps/backend/src/schedule.ts::RebuiltCardScheduleState and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::RebuiltCardScheduleState.
+// Keep in sync with apps/backend/src/schedule.ts::RebuiltCardScheduleState and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::RebuiltCardScheduleState.
 data class RebuiltCardScheduleState(
     val dueAtMillis: Long?,
     val reps: Int,
@@ -64,19 +64,19 @@ data class RebuiltCardScheduleState(
     val fsrsScheduledDays: Int?
 )
 
-// Keep in sync with apps/backend/src/schedule.ts::FsrsMemoryState and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::FsrsMemoryState.
+// Keep in sync with apps/backend/src/schedule.ts::FsrsMemoryState and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::FsrsMemoryState.
 private data class FsrsMemoryState(
     val difficulty: Double,
     val stability: Double
 )
 
-// Keep in sync with apps/backend/src/schedule.ts::FuzzRange and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::FuzzRange.
+// Keep in sync with apps/backend/src/schedule.ts::FuzzRange and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::FuzzRange.
 private data class FuzzRange(
     val minInterval: Int,
     val maxInterval: Int
 )
 
-// Keep in sync with apps/backend/src/schedule.ts::LearningStepResult and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::LearningStepResult.
+// Keep in sync with apps/backend/src/schedule.ts::LearningStepResult and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::LearningStepResult.
 private data class LearningStepResult(
     val scheduledMinutes: Int?,
     val nextStepIndex: Int
@@ -96,7 +96,7 @@ private val schedulerTimestampFormatter: DateTimeFormatter = DateTimeFormatter
     .ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSX", Locale.US)
     .withZone(ZoneOffset.UTC)
 
-// Keep in sync with apps/backend/src/schedule.ts::DEFAULT_W and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::defaultWeights.
+// Keep in sync with apps/backend/src/schedule.ts::DEFAULT_W and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::defaultWeights.
 private val defaultWeights: List<Double> = listOf(
     0.212,
     1.2931,
@@ -121,17 +121,17 @@ private val defaultWeights: List<Double> = listOf(
     0.1542
 )
 
-// Keep in sync with apps/backend/src/schedule.ts::FUZZ_RANGES and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::fuzzRanges.
+// Keep in sync with apps/backend/src/schedule.ts::FUZZ_RANGES and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::fuzzRanges.
 private val fuzzRanges: List<Triple<Double, Double, Double>> = listOf(
     Triple(2.5, 7.0, 0.15),
     Triple(7.0, 20.0, 0.1),
     Triple(20.0, Double.POSITIVE_INFINITY, 0.05)
 )
 
-// Keep in sync with apps/backend/src/schedule.ts::DECAY and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::fsrsDecay.
+// Keep in sync with apps/backend/src/schedule.ts::DECAY and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::fsrsDecay.
 private val fsrsDecay: Double = -defaultWeights[20]
 
-// Keep in sync with apps/backend/src/schedule.ts::FACTOR and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::fsrsFactor.
+// Keep in sync with apps/backend/src/schedule.ts::FACTOR and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::fsrsFactor.
 private val fsrsFactor: Double = roundTo8(
     value = exp(fsrsDecay.pow(-1.0) * ln(0.9)) - 1
 )
@@ -139,7 +139,7 @@ private val fsrsFactor: Double = roundTo8(
 private class MashGenerator {
     private var n: Double = 0xefc8249d.toDouble()
 
-    // Keep in sync with apps/backend/src/schedule.ts::createMash and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::MashGenerator.next(data:).
+    // Keep in sync with apps/backend/src/schedule.ts::createMash and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::MashGenerator.next(data:).
     fun next(data: String): Double {
         var nextValue = n
         for (character in data) {
@@ -165,7 +165,7 @@ private class AleaGenerator(seed: String) {
     private var s1: Double
     private var s2: Double
 
-    // Keep in sync with apps/backend/src/schedule.ts::Alea and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::AleaGenerator.init(seed:).
+    // Keep in sync with apps/backend/src/schedule.ts::Alea and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::AleaGenerator.init(seed:).
     init {
         val mash = MashGenerator()
         c = 1.0
@@ -189,7 +189,7 @@ private class AleaGenerator(seed: String) {
         }
     }
 
-    // Keep in sync with apps/backend/src/schedule.ts::Alea.next and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::AleaGenerator.next().
+    // Keep in sync with apps/backend/src/schedule.ts::Alea.next and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::AleaGenerator.next().
     fun next(): Double {
         val nextValue = 2_091_639.0 * s0 + c * 2.3283064365386963e-10
         s0 = s1
@@ -200,13 +200,13 @@ private class AleaGenerator(seed: String) {
     }
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::roundTo8 and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::roundTo8(value:).
+// Keep in sync with apps/backend/src/schedule.ts::roundTo8 and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::roundTo8(value:).
 fun roundTo8(value: Double): Double {
     val formattedValue = String.format(Locale.US, "%.8f", value)
     return formattedValue.toDouble()
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::clamp and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::clamp(value:min:max:).
+// Keep in sync with apps/backend/src/schedule.ts::clamp and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::clamp(value:min:max:).
 private fun clamp(value: Double, minValue: Double, maxValue: Double): Double {
     return min(max(value, minValue), maxValue)
 }
@@ -223,7 +223,7 @@ private fun formatSchedulerTimestamp(timestampMillis: Long): String {
     return schedulerTimestampFormatter.format(Instant.ofEpochMilli(timestampMillis))
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::dateDiffInDays and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::dateDiffInDays(lastReviewedAt:now:).
+// Keep in sync with apps/backend/src/schedule.ts::dateDiffInDays and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::dateDiffInDays(lastReviewedAt:now:).
 private fun dateDiffInDays(lastReviewedAtMillis: Long, reviewedAtMillis: Long): Int {
     require(reviewedAtMillis >= lastReviewedAtMillis) {
         "Review timestamp moved backwards: lastReviewedAt=${formatSchedulerTimestamp(lastReviewedAtMillis)}, now=${formatSchedulerTimestamp(reviewedAtMillis)}"
@@ -238,19 +238,19 @@ private fun dateDiffInDays(lastReviewedAtMillis: Long, reviewedAtMillis: Long): 
     return ChronoUnit.DAYS.between(lastReviewedAtUtcDay, reviewedAtUtcDay).toInt()
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::stateRequiresMemory and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::stateRequiresMemory(state:).
+// Keep in sync with apps/backend/src/schedule.ts::stateRequiresMemory and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::stateRequiresMemory(state:).
 private fun stateRequiresMemory(state: FsrsCardState): Boolean {
     return state != FsrsCardState.NEW
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::getIntervalModifier and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::getIntervalModifier(requestRetention:).
+// Keep in sync with apps/backend/src/schedule.ts::getIntervalModifier and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::getIntervalModifier(requestRetention:).
 private fun getIntervalModifier(requestRetention: Double): Double {
     return roundTo8(
         value = (requestRetention.pow(1 / fsrsDecay) - 1) / fsrsFactor
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::formatSeedNumber and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::formatSeedNumber(value:).
+// Keep in sync with apps/backend/src/schedule.ts::formatSeedNumber and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::formatSeedNumber(value:).
 private fun formatSeedNumber(value: Double): String {
     if (value == 0.0) {
         return "0"
@@ -263,7 +263,7 @@ private fun formatSeedNumber(value: Double): String {
     return value.toString()
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::mapRatingToFsrsGrade and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::mapRatingToFsrsGrade(rating:).
+// Keep in sync with apps/backend/src/schedule.ts::mapRatingToFsrsGrade and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::mapRatingToFsrsGrade(rating:).
 private fun mapRatingToFsrsGrade(rating: ReviewRating): Int {
     return when (rating) {
         ReviewRating.AGAIN -> 1
@@ -273,7 +273,7 @@ private fun mapRatingToFsrsGrade(rating: ReviewRating): Int {
     }
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::getStepsForState and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::getStepsForState(settings:state:).
+// Keep in sync with apps/backend/src/schedule.ts::getStepsForState and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::getStepsForState(settings:state:).
 private fun getStepsForState(
     settings: WorkspaceSchedulerSettings,
     state: FsrsCardState
@@ -285,12 +285,12 @@ private fun getStepsForState(
     }
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::getCurrentStepIndex and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::getCurrentStepIndex(card:).
+// Keep in sync with apps/backend/src/schedule.ts::getCurrentStepIndex and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::getCurrentStepIndex(card:).
 private fun getCurrentStepIndex(card: ReviewableCardScheduleState): Int {
     return card.fsrsStepIndex ?: 0
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::getLearningStrategyStepIndex and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::getLearningStrategyStepIndex(card:grade:).
+// Keep in sync with apps/backend/src/schedule.ts::getLearningStrategyStepIndex and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::getLearningStrategyStepIndex(card:grade:).
 private fun getLearningStrategyStepIndex(
     card: ReviewableCardScheduleState,
     grade: Int
@@ -303,7 +303,7 @@ private fun getLearningStrategyStepIndex(
     return currentStepIndex
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::getHardStepMinutes and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::getHardStepMinutes(steps:).
+// Keep in sync with apps/backend/src/schedule.ts::getHardStepMinutes and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::getHardStepMinutes(steps:).
 private fun getHardStepMinutes(steps: List<Int>): Int {
     if (steps.size == 1) {
         return (steps[0] * 1.5).roundToInt()
@@ -312,7 +312,7 @@ private fun getHardStepMinutes(steps: List<Int>): Int {
     return ((steps[0] + steps[1]).toDouble() / 2.0).roundToInt()
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::getLearningStepResult and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::getLearningStepResult(settings:card:grade:).
+// Keep in sync with apps/backend/src/schedule.ts::getLearningStepResult and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::getLearningStepResult(settings:card:grade:).
 private fun getLearningStepResult(
     settings: WorkspaceSchedulerSettings,
     card: ReviewableCardScheduleState,
@@ -368,33 +368,33 @@ private fun getLearningStepResult(
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::initStability and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::initStability(grade:).
+// Keep in sync with apps/backend/src/schedule.ts::initStability and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::initStability(grade:).
 private fun initStability(grade: Int): Double {
     return max(defaultWeights[grade - 1], 0.1)
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::initDifficulty and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::initDifficulty(grade:).
+// Keep in sync with apps/backend/src/schedule.ts::initDifficulty and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::initDifficulty(grade:).
 private fun initDifficulty(grade: Int): Double {
     return roundTo8(
         value = defaultWeights[4] - exp((grade - 1) * defaultWeights[5]) + 1
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::meanReversion and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::meanReversion(initialDifficulty:currentDifficulty:).
+// Keep in sync with apps/backend/src/schedule.ts::meanReversion and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::meanReversion(initialDifficulty:currentDifficulty:).
 private fun meanReversion(initialDifficulty: Double, currentDifficulty: Double): Double {
     return roundTo8(
         value = defaultWeights[7] * initialDifficulty + (1 - defaultWeights[7]) * currentDifficulty
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::linearDamping and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::linearDamping(deltaDifficulty:difficulty:).
+// Keep in sync with apps/backend/src/schedule.ts::linearDamping and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::linearDamping(deltaDifficulty:difficulty:).
 private fun linearDamping(deltaDifficulty: Double, difficulty: Double): Double {
     return roundTo8(
         value = deltaDifficulty * (10 - difficulty) / 9
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::nextDifficulty and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::nextDifficulty(difficulty:grade:).
+// Keep in sync with apps/backend/src/schedule.ts::nextDifficulty and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::nextDifficulty(difficulty:grade:).
 private fun nextDifficulty(difficulty: Double, grade: Int): Double {
     val deltaDifficulty = -defaultWeights[6] * (grade - 3)
     val nextDifficultyValue = difficulty + linearDamping(
@@ -412,14 +412,14 @@ private fun nextDifficulty(difficulty: Double, grade: Int): Double {
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::forgettingCurve and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::forgettingCurve(elapsedDays:stability:).
+// Keep in sync with apps/backend/src/schedule.ts::forgettingCurve and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::forgettingCurve(elapsedDays:stability:).
 private fun forgettingCurve(elapsedDays: Int, stability: Double): Double {
     return roundTo8(
         value = (1 + fsrsFactor * elapsedDays / stability).pow(fsrsDecay)
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::nextRecallStability and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::nextRecallStability(difficulty:stability:retrievability:grade:).
+// Keep in sync with apps/backend/src/schedule.ts::nextRecallStability and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::nextRecallStability(difficulty:stability:retrievability:grade:).
 private fun nextRecallStability(
     difficulty: Double,
     stability: Double,
@@ -454,7 +454,7 @@ private fun nextRecallStability(
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::nextForgetStability and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::nextForgetStability(difficulty:stability:retrievability:).
+// Keep in sync with apps/backend/src/schedule.ts::nextForgetStability and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::nextForgetStability(difficulty:stability:retrievability:).
 private fun nextForgetStability(
     difficulty: Double,
     stability: Double,
@@ -472,7 +472,7 @@ private fun nextForgetStability(
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::getShortTermWeights and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::getShortTermWeights(settings:).
+// Keep in sync with apps/backend/src/schedule.ts::getShortTermWeights and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::getShortTermWeights(settings:).
 private fun getShortTermWeights(settings: WorkspaceSchedulerSettings): ShortTermWeights {
     if (settings.relearningStepsMinutes.size <= 1) {
         return ShortTermWeights(
@@ -498,7 +498,7 @@ private fun getShortTermWeights(settings: WorkspaceSchedulerSettings): ShortTerm
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::nextShortTermStability and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::nextShortTermStability(stability:grade:settings:).
+// Keep in sync with apps/backend/src/schedule.ts::nextShortTermStability and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::nextShortTermStability(stability:grade:settings:).
 private fun nextShortTermStability(
     stability: Double,
     grade: Int,
@@ -522,7 +522,7 @@ private fun nextShortTermStability(
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::createInitialMemoryState and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::createInitialMemoryState(grade:).
+// Keep in sync with apps/backend/src/schedule.ts::createInitialMemoryState and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::createInitialMemoryState(grade:).
 private fun createInitialMemoryState(grade: Int): FsrsMemoryState {
     return FsrsMemoryState(
         difficulty = clamp(
@@ -534,7 +534,7 @@ private fun createInitialMemoryState(grade: Int): FsrsMemoryState {
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::computeNextShortTermMemoryState and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::computeNextShortTermMemoryState(memoryState:grade:settings:).
+// Keep in sync with apps/backend/src/schedule.ts::computeNextShortTermMemoryState and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::computeNextShortTermMemoryState(memoryState:grade:settings:).
 private fun computeNextShortTermMemoryState(
     memoryState: FsrsMemoryState,
     grade: Int,
@@ -553,7 +553,7 @@ private fun computeNextShortTermMemoryState(
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::computeNextReviewMemoryState and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::computeNextReviewMemoryState(memoryState:elapsedDays:grade:settings:).
+// Keep in sync with apps/backend/src/schedule.ts::computeNextReviewMemoryState and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::computeNextReviewMemoryState(memoryState:elapsedDays:grade:settings:).
 private fun computeNextReviewMemoryState(
     memoryState: FsrsMemoryState,
     elapsedDays: Int,
@@ -596,7 +596,7 @@ private fun computeNextReviewMemoryState(
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::getFuzzRange and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::getFuzzRange(interval:elapsedDays:maximumInterval:).
+// Keep in sync with apps/backend/src/schedule.ts::getFuzzRange and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::getFuzzRange(interval:elapsedDays:maximumInterval:).
 private fun getFuzzRange(
     interval: Int,
     elapsedDays: Int,
@@ -621,7 +621,7 @@ private fun getFuzzRange(
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::getIntervalSeed and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::getIntervalSeed(now:reps:memoryState:).
+// Keep in sync with apps/backend/src/schedule.ts::getIntervalSeed and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::getIntervalSeed(now:reps:memoryState:).
 private fun getIntervalSeed(
     reviewedAtMillis: Long,
     reps: Int,
@@ -636,7 +636,7 @@ private fun getIntervalSeed(
     return "${reviewedAtMillis}_${reps}_${formatSeedNumber(value = memoryProduct)}"
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::nextInterval and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::nextInterval(stability:elapsedDays:settings:intervalSeed:).
+// Keep in sync with apps/backend/src/schedule.ts::nextInterval and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::nextInterval(stability:elapsedDays:settings:intervalSeed:).
 private fun nextInterval(
     stability: Double,
     elapsedDays: Int,
@@ -668,7 +668,7 @@ private fun nextInterval(
     ).toInt()
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::getMemoryState and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::getMemoryState(card:).
+// Keep in sync with apps/backend/src/schedule.ts::getMemoryState and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::getMemoryState(card:).
 private fun getMemoryState(card: ReviewableCardScheduleState): FsrsMemoryState? {
     if (stateRequiresMemory(state = card.fsrsCardState).not()) {
         require(
@@ -709,7 +709,7 @@ private fun getMemoryState(card: ReviewableCardScheduleState): FsrsMemoryState? 
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::buildShortTermSchedule and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::buildShortTermSchedule(card:nextMemoryState:rating:now:reps:lapses:settings:nextState:elapsedDays:intervalSeed:).
+// Keep in sync with apps/backend/src/schedule.ts::buildShortTermSchedule and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::buildShortTermSchedule(card:nextMemoryState:rating:now:reps:lapses:settings:nextState:elapsedDays:intervalSeed:).
 private fun buildShortTermSchedule(
     card: ReviewableCardScheduleState,
     nextMemoryState: FsrsMemoryState,
@@ -757,7 +757,7 @@ private fun buildShortTermSchedule(
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::buildGraduatedReviewSchedule and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::buildGraduatedReviewSchedule(nextMemoryState:now:reps:lapses:settings:elapsedDays:intervalSeed:).
+// Keep in sync with apps/backend/src/schedule.ts::buildGraduatedReviewSchedule and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::buildGraduatedReviewSchedule(nextMemoryState:now:reps:lapses:settings:elapsedDays:intervalSeed:).
 private fun buildGraduatedReviewSchedule(
     nextMemoryState: FsrsMemoryState,
     reviewedAtMillis: Long,
@@ -790,7 +790,7 @@ private fun buildGraduatedReviewSchedule(
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::buildReviewSuccessSchedule and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::buildReviewSuccessSchedule(now:reps:lapses:settings:elapsedDays:hardMemoryState:goodMemoryState:easyMemoryState:rating:intervalSeed:).
+// Keep in sync with apps/backend/src/schedule.ts::buildReviewSuccessSchedule and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::buildReviewSuccessSchedule(now:reps:lapses:settings:elapsedDays:hardMemoryState:goodMemoryState:easyMemoryState:rating:intervalSeed:).
 private fun buildReviewSuccessSchedule(
     reviewedAtMillis: Long,
     reps: Int,
@@ -869,7 +869,7 @@ private fun buildReviewSuccessSchedule(
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::createEmptyReviewableCardScheduleState and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::createEmptyReviewableCardScheduleState(cardId:).
+// Keep in sync with apps/backend/src/schedule.ts::createEmptyReviewableCardScheduleState and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::createEmptyReviewableCardScheduleState(cardId:).
 fun createEmptyReviewableCardScheduleState(cardId: String): ReviewableCardScheduleState {
     return ReviewableCardScheduleState(
         cardId = cardId,
@@ -884,7 +884,7 @@ fun createEmptyReviewableCardScheduleState(cardId: String): ReviewableCardSchedu
     )
 }
 
-// Keep in sync with apps/backend/src/cards.ts::submitReview, apps/backend/src/schedule.ts::computeReviewSchedule, and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::computeReviewSchedule(card:settings:rating:now:).
+// Keep in sync with apps/backend/src/cards.ts::submitReview, apps/backend/src/schedule.ts::computeReviewSchedule, and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::computeReviewSchedule(card:settings:rating:now:).
 fun computeReviewSchedule(
     card: CardSummary,
     settings: WorkspaceSchedulerSettings,
@@ -899,7 +899,7 @@ fun computeReviewSchedule(
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::computeReviewSchedule and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::computeReviewSchedule(card:settings:rating:now:).
+// Keep in sync with apps/backend/src/schedule.ts::computeReviewSchedule and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::computeReviewSchedule(card:settings:rating:now:).
 fun computeReviewSchedule(
     card: ReviewableCardScheduleState,
     settings: WorkspaceSchedulerSettings,
@@ -1020,7 +1020,7 @@ fun computeReviewSchedule(
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::rebuildCardScheduleState and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::rebuildCardScheduleState(cardId:settings:reviewEvents:).
+// Keep in sync with apps/backend/src/schedule.ts::rebuildCardScheduleState and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::rebuildCardScheduleState(cardId:settings:reviewEvents:).
 fun rebuildCardScheduleState(
     cardId: String,
     settings: WorkspaceSchedulerSettings,
