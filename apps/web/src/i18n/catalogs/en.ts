@@ -871,9 +871,10 @@ const enCatalog = {
     stackDescription: "The iOS app and the backend are fully open source. You can inspect the code, use the MIT license, and run the same stack on your own servers.",
     repositoryAction: "Open repository",
     selfHostingDescription: "If you need your own backend, deploy the same open-source stack on your infrastructure and use your own web and iOS clients with that deployment.",
-    thirdPartyNoticeDescription: "Review unicorn animation: Free Unicorn Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0. Lottie runtimes use MIT and Apache 2.0 licenses.",
+    thirdPartyNoticeDescription: "Review Lottie animations: Free Unicorn Animation and Free Rainbow Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0. Lottie runtimes use MIT and Apache 2.0 licenses.",
     thirdPartyNoticeFullAction: "Open full notices",
-    thirdPartyNoticeSourceAction: "Open asset source",
+    thirdPartyNoticeUnicornSourceAction: "Open unicorn source",
+    thirdPartyNoticeRainbowSourceAction: "Open rainbow source",
     thirdPartyNoticeLicenseAction: "Open license",
   },
   agentConnections: {

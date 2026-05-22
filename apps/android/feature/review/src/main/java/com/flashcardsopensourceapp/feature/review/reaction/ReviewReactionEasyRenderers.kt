@@ -20,16 +20,8 @@ internal fun DrawScope.drawEasyReviewReaction(
             motionMode = motionMode
         )
 
-        ReviewReactionVariant.EASY_RAINBOW_STREAK -> drawEasyRainbowStreak(
-            progress = progress,
-            motionMode = motionMode
-        )
-
-        ReviewReactionVariant.EASY_CROWN_BOUNCE -> drawEasyCrownBounce(
-            progress = progress,
-            motionMode = motionMode
-        )
-
+        ReviewReactionVariant.EASY_RAINBOW_STREAK,
+        ReviewReactionVariant.EASY_CROWN_BOUNCE,
         ReviewReactionVariant.EASY_UNICORN_FLYBY -> drawEasyCrownBounce(
             progress = progress,
             motionMode = motionMode
@@ -81,47 +73,6 @@ private fun DrawScope.drawEasySparkleBurst(
             center = sparkleCenter,
             radius = (9f + (index % 4).toFloat() * 4f) * (0.70f + localProgress * 0.50f),
             color = colors[index % colors.size].copy(alpha = localProgress)
-        )
-    }
-}
-
-private fun DrawScope.drawEasyRainbowStreak(
-    progress: Float,
-    motionMode: ReviewReactionMotionMode
-) {
-    val phase: ReviewReactionPhaseProgress = reviewReactionPhaseProgress(
-        progress = progress,
-        enterEnd = 0.40f,
-        exitStart = 0.78f
-    )
-    val centerX: Float = if (motionMode == ReviewReactionMotionMode.REDUCED) {
-        size.width * 0.50f
-    } else if (progress < 0.40f) {
-        reviewReactionInterpolate(start = -size.width * 0.24f, end = size.width * 0.50f, progress = reviewReactionEaseOutCubic(progress = phase.enter))
-    } else if (progress < 0.78f) {
-        size.width * 0.50f + sin(phase.hold * PI.toFloat() * 2f) * 22f
-    } else {
-        reviewReactionInterpolate(start = size.width * 0.50f, end = size.width * 1.24f, progress = reviewReactionEaseInCubic(progress = phase.exit))
-    }
-    val center: Offset = Offset(x = centerX, y = size.height * 0.42f)
-    val colors: List<Color> = listOf(
-        reviewReactionRedColor,
-        reviewReactionOrangeColor,
-        reviewReactionYellowColor,
-        reviewReactionGreenColor,
-        reviewReactionBlueColor,
-        reviewReactionPurpleColor
-    )
-    colors.forEachIndexed { index: Int, color: Color ->
-        val offset: Float = (index - 2).toFloat() * 11f
-        drawCubicStroke(
-            start = Offset(x = center.x - size.width * 0.48f, y = center.y + offset + 10f),
-            control1 = Offset(x = center.x - size.width * 0.22f, y = center.y + offset - 54f - sin(progress * PI.toFloat() * 2f) * 12f),
-            control2 = Offset(x = center.x + size.width * 0.20f, y = center.y + offset + 46f + sin(progress * PI.toFloat() * 2f + index.toFloat()) * 12f),
-            end = Offset(x = center.x + size.width * 0.48f, y = center.y + offset - 14f),
-            progress = 1f,
-            color = color.copy(alpha = 0.78f),
-            strokeWidth = 10f
         )
     }
 }

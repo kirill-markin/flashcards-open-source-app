@@ -113,14 +113,14 @@ enum ReviewReactionRenderer {
                 progress: drawingProgress,
                 motionMode: motionMode
             )
-        case .easyRainbowStreak:
-            drawEasyRainbowStreak(
+        case .easyCrownBounce:
+            drawEasyCrownBounce(
                 context: drawingContext,
                 size: drawableSize,
                 progress: drawingProgress,
                 motionMode: motionMode
             )
-        case .easyCrownBounce:
+        case .easyRainbowStreak:
             drawEasyCrownBounce(
                 context: drawingContext,
                 size: drawableSize,

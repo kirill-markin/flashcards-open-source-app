@@ -873,9 +873,10 @@ export const ruCatalog = {
     stackDescription: "Приложение для iOS и бэкенд полностью открыты. Вы можете изучить код, использовать лицензию MIT и запускать тот же стек на своих серверах.",
     repositoryAction: "Открыть репозиторий",
     selfHostingDescription: "Если вам нужен собственный бэкенд, разверните тот же open-source стек в своей инфраструктуре и используйте с ним собственные веб- и iOS-клиенты.",
-    thirdPartyNoticeDescription: "Анимация единорога в повторении: Free Unicorn Animation от Google Inc., Copyright © 2026 Google Inc., используется по Creative Commons Attribution 4.0. Среды выполнения Lottie используют лицензии MIT и Apache 2.0.",
+    thirdPartyNoticeDescription: "Lottie-анимации в повторении: Free Unicorn Animation и Free Rainbow Animation от Google Inc., Copyright © 2026 Google Inc., используются по Creative Commons Attribution 4.0. Среды выполнения Lottie используют лицензии MIT и Apache 2.0.",
     thirdPartyNoticeFullAction: "Открыть полный список",
-    thirdPartyNoticeSourceAction: "Открыть источник ассета",
+    thirdPartyNoticeUnicornSourceAction: "Открыть источник единорога",
+    thirdPartyNoticeRainbowSourceAction: "Открыть источник радуги",
     thirdPartyNoticeLicenseAction: "Открыть лицензию",
   },
   agentConnections: {

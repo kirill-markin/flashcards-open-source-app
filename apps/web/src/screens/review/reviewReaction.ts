@@ -189,7 +189,6 @@ export function reviewReactionAnimationDurationMillis(variant: ReviewReactionVar
       return 1450;
     case "hardHourglassSand":
     case "againWarningTape":
-    case "easyRainbowStreak":
       return 1550;
     case "hardFallingWeight":
     case "easyCrownBounce":
@@ -198,6 +197,8 @@ export function reviewReactionAnimationDurationMillis(variant: ReviewReactionVar
       return 1750;
     case "againStampFlyby":
       return 1900;
+    case "easyRainbowStreak":
+      return 2000;
     case "hardRollingBoulder":
       return 2050;
     case "easyUnicornFlyby":

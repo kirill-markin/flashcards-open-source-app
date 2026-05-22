@@ -25,6 +25,7 @@ fun AccountOpenSourceRoute(onBack: () -> Unit) {
     val context: Context = LocalContext.current
     val repositoryUrl: String = stringResource(id = R.string.flashcards_repository_url)
     val thirdPartyNoticesUrl: String = stringResource(id = R.string.third_party_notices_url)
+    val reviewRainbowAnimationUrl: String = stringResource(id = R.string.review_rainbow_animation_url)
     val reviewUnicornAnimationUrl: String = stringResource(id = R.string.review_unicorn_animation_url)
     val creativeCommonsAttributionUrl: String = stringResource(id = R.string.creative_commons_attribution_url)
 
@@ -67,11 +68,24 @@ fun AccountOpenSourceRoute(onBack: () -> Unit) {
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     SettingsLinkItem(
-                        title = stringResource(R.string.settings_open_source_third_party_source_title),
-                        summary = stringResource(R.string.settings_open_source_third_party_source_summary),
+                        title = stringResource(R.string.settings_open_source_third_party_unicorn_source_title),
+                        summary = stringResource(R.string.settings_open_source_third_party_unicorn_source_summary),
                         icon = Icons.Outlined.Info,
                         onClick = {
                             openExternalUrl(context = context, url = reviewUnicornAnimationUrl)
+                        }
+                    )
+                }
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    SettingsLinkItem(
+                        title = stringResource(R.string.settings_open_source_third_party_rainbow_source_title),
+                        summary = stringResource(R.string.settings_open_source_third_party_rainbow_source_summary),
+                        icon = Icons.Outlined.Info,
+                        onClick = {
+                            openExternalUrl(context = context, url = reviewRainbowAnimationUrl)
                         }
                     )
                 }

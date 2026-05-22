@@ -31,6 +31,10 @@
   position: relative;
 }
 
+.review-rating-reaction-lottie-art * {
+  vector-effect: none;
+}
+
 .review-reaction-red-stroke,
 .review-reaction-orange-stroke,
 .review-reaction-yellow-stroke,
@@ -211,28 +215,37 @@
   animation: review-reaction-sparkle-art var(--review-reaction-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.review-rating-reaction-easyRainbowStreak .review-rating-reaction-art {
-  animation: review-reaction-rainbow-art var(--review-reaction-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
 .review-rating-reaction-crown-fallback-art,
 .review-rating-reaction-easyCrownBounce .review-rating-reaction-art {
   animation: review-reaction-crown-art var(--review-reaction-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+.review-rating-reaction-easyRainbowStreak .review-rating-reaction-lottie-art,
 .review-rating-reaction-easyUnicornFlyby .review-rating-reaction-lottie-art {
   animation: none;
 }
 
+.review-reaction-rainbow-lottie-mark,
 .review-reaction-unicorn-lottie-mark {
   position: absolute;
-  top: 30%;
-  left: 56%;
-  width: min(52%, 230px);
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
 }
 
+.review-reaction-rainbow-lottie-mark {
+  top: 42%;
+  left: 50%;
+  width: min(64%, 280px);
+}
+
+.review-reaction-unicorn-lottie-mark {
+  top: 30%;
+  left: 56%;
+  width: min(52%, 230px);
+}
+
+.review-reaction-rainbow-lottie-mark > div,
+.review-reaction-rainbow-lottie-mark > svg,
 .review-reaction-unicorn-lottie-mark > div,
 .review-reaction-unicorn-lottie-mark > svg {
   display: block;
@@ -540,24 +553,6 @@
 
   100% {
     transform: scale(0.90) rotate(0deg);
-  }
-}
-
-@keyframes review-reaction-rainbow-art {
-  0% {
-    transform: translate3d(-48%, 4%, 0) scale(0.92);
-  }
-
-  40% {
-    transform: translate3d(0, 0, 0) scale(1.02);
-  }
-
-  78% {
-    transform: translate3d(1%, -1%, 0) scale(1);
-  }
-
-  100% {
-    transform: translate3d(48%, -3%, 0) scale(0.92);
   }
 }
 

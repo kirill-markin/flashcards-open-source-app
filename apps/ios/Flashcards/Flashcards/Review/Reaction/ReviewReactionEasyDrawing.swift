@@ -51,55 +51,6 @@ extension ReviewReactionRenderer {
         }
     }
 
-    static func drawEasyRainbowStreak(
-        context: GraphicsContext,
-        size: CGSize,
-        progress: CGFloat,
-        motionMode: ReviewReactionMotionMode
-    ) {
-        let opacity = reviewReactionOpacity(progress: progress)
-        guard opacity > 0 else {
-            return
-        }
-
-        let phase = reviewReactionPhaseProgress(progress: progress, enterEnd: 0.40, exitStart: 0.78)
-        let centerX: CGFloat
-        if motionMode == .reduced {
-            centerX = size.width * 0.50
-        } else if progress < 0.40 {
-            centerX = reviewReactionInterpolate(start: -size.width * 0.24, end: size.width * 0.50, progress: reviewReactionEaseOutCubic(progress: phase.enter))
-        } else if progress < 0.78 {
-            centerX = size.width * 0.50 + sin(phase.hold * CGFloat.pi * 2) * 22
-        } else {
-            centerX = reviewReactionInterpolate(start: size.width * 0.50, end: size.width * 1.24, progress: reviewReactionEaseInCubic(progress: phase.exit))
-        }
-        let center = CGPoint(x: centerX, y: size.height * 0.44)
-        let colors: [Color] = [
-            reviewReactionRedColor(),
-            reviewReactionOrangeColor(),
-            reviewReactionYellowColor(),
-            reviewReactionGreenColor(),
-            reviewReactionBlueColor(),
-            reviewReactionPurpleColor()
-        ]
-
-        for index in 0..<colors.count {
-            let offset = CGFloat(index - 2) * 11
-            var path = Path()
-            path.move(to: CGPoint(x: center.x - size.width * 0.48, y: center.y + offset + 10))
-            path.addCurve(
-                to: CGPoint(x: center.x + size.width * 0.48, y: center.y + offset - 14),
-                control1: CGPoint(x: center.x - size.width * 0.22, y: center.y + offset - 54 - sin(progress * CGFloat.pi * 2) * 12),
-                control2: CGPoint(x: center.x + size.width * 0.20, y: center.y + offset + 46 + sin(progress * CGFloat.pi * 2 + CGFloat(index)) * 12)
-            )
-            context.stroke(
-                path,
-                with: .color(colors[index].opacity(opacity * 0.78)),
-                style: StrokeStyle(lineWidth: 10, lineCap: .round, lineJoin: .round)
-            )
-        }
-    }
-
     static func drawEasyCrownBounce(
         context: GraphicsContext,
         size: CGSize,

@@ -5,21 +5,32 @@ import SwiftUI
 import UIKit
 
 private let reviewReactionAnimationMinimumIntervalSeconds: Double = 1.0 / 60.0
+private let reviewEasyRainbowAnimationAssetName: String = "ReviewEasyRainbow"
 private let reviewEasyUnicornAnimationAssetName: String = "ReviewEasyUnicorn"
-private let reviewEasyUnicornAnimationFrameScale: CGFloat = 0.52
-private let reviewEasyUnicornAnimationCenterX: CGFloat = 0.56
-private let reviewEasyUnicornAnimationCenterY: CGFloat = 0.30
-private let reviewEasyUnicornReducedMotionProgress: AnimationProgressTime = 0.55
+private let reviewReactionLottieReducedMotionProgress: AnimationProgressTime = 0.55
 private let reviewReactionLottieFallbackVariant: ReviewReactionVariant = .easyCrownBounce
 private let reviewReactionLogger: Logger = Logger(
     subsystem: appBundleIdentifier(),
     category: "review_reactions"
 )
 
-private func makeReviewEasyUnicornAnimation() -> LottieAnimation? {
-    guard let dataAsset: NSDataAsset = NSDataAsset(name: reviewEasyUnicornAnimationAssetName) else {
+private struct ReviewReactionLottieConfiguration {
+    let animation: LottieAnimation
+    let frameScale: CGFloat
+    let centerX: CGFloat
+    let centerY: CGFloat
+    let reducedMotionProgress: AnimationProgressTime
+}
+
+private struct ReviewReactionLottieAnimationStore {
+    let reviewEasyRainbowAnimation: LottieAnimation?
+    let reviewEasyUnicornAnimation: LottieAnimation?
+}
+
+private func makeReviewReactionLottieAnimation(assetName: String, assetDescription: String) -> LottieAnimation? {
+    guard let dataAsset: NSDataAsset = NSDataAsset(name: assetName) else {
         reviewReactionLogger.error(
-            "Review easy unicorn Lottie data asset is missing. assetName=\(reviewEasyUnicornAnimationAssetName, privacy: .public)"
+            "Review Lottie data asset is missing. assetName=\(assetName, privacy: .public) assetDescription=\(assetDescription, privacy: .public)"
         )
         return nil
     }
@@ -29,10 +40,23 @@ private func makeReviewEasyUnicornAnimation() -> LottieAnimation? {
     } catch {
         let errorMessage: String = String(describing: error)
         reviewReactionLogger.error(
-            "Review easy unicorn Lottie asset failed to decode. assetName=\(reviewEasyUnicornAnimationAssetName, privacy: .public) error=\(errorMessage, privacy: .public)"
+            "Review Lottie asset failed to decode. assetName=\(assetName, privacy: .public) assetDescription=\(assetDescription, privacy: .public) error=\(errorMessage, privacy: .public)"
         )
         return nil
     }
+}
+
+private func makeReviewReactionLottieAnimationStore() -> ReviewReactionLottieAnimationStore {
+    ReviewReactionLottieAnimationStore(
+        reviewEasyRainbowAnimation: makeReviewReactionLottieAnimation(
+            assetName: reviewEasyRainbowAnimationAssetName,
+            assetDescription: "rainbow"
+        ),
+        reviewEasyUnicornAnimation: makeReviewReactionLottieAnimation(
+            assetName: reviewEasyUnicornAnimationAssetName,
+            assetDescription: "unicorn"
+        )
+    )
 }
 
 private func reviewReactionFallbackEvent(event: ReviewReactionEvent) -> ReviewReactionEvent {
@@ -45,29 +69,81 @@ private func reviewReactionFallbackEvent(event: ReviewReactionEvent) -> ReviewRe
 
 private func isReviewReactionLottieVariant(variant: ReviewReactionVariant) -> Bool {
     switch variant {
-    case .easyUnicornFlyby:
+    case .easyRainbowStreak, .easyUnicornFlyby:
         return true
-    default:
+    case .againRedScribbleSlash,
+         .againRewindVortex,
+         .againStampFlyby,
+         .againWarningTape,
+         .hardHourglassSand,
+         .hardFallingWeight,
+         .hardYellowCrack,
+         .hardRollingBoulder,
+         .goodHandDrawnCheck,
+         .goodLightSweep,
+         .goodPaperPlaneCheck,
+         .goodCheckSealBounce,
+         .easySparkleBurst,
+         .easyCrownBounce:
         return false
     }
 }
 
-private func reviewReactionLottieAnimation(
+private func reviewReactionLottieConfiguration(
     variant: ReviewReactionVariant,
-    reviewEasyUnicornAnimation: LottieAnimation?
-) -> LottieAnimation? {
+    animationStore: ReviewReactionLottieAnimationStore
+) -> ReviewReactionLottieConfiguration? {
     switch variant {
+    case .easyRainbowStreak:
+        guard let reviewEasyRainbowAnimation = animationStore.reviewEasyRainbowAnimation else {
+            return nil
+        }
+
+        return ReviewReactionLottieConfiguration(
+            animation: reviewEasyRainbowAnimation,
+            frameScale: 0.64,
+            centerX: 0.50,
+            centerY: 0.42,
+            reducedMotionProgress: reviewReactionLottieReducedMotionProgress
+        )
     case .easyUnicornFlyby:
-        return reviewEasyUnicornAnimation
-    default:
+        guard let reviewEasyUnicornAnimation = animationStore.reviewEasyUnicornAnimation else {
+            return nil
+        }
+
+        return ReviewReactionLottieConfiguration(
+            animation: reviewEasyUnicornAnimation,
+            frameScale: 0.52,
+            centerX: 0.56,
+            centerY: 0.30,
+            reducedMotionProgress: reviewReactionLottieReducedMotionProgress
+        )
+    case .againRedScribbleSlash,
+         .againRewindVortex,
+         .againStampFlyby,
+         .againWarningTape,
+         .hardHourglassSand,
+         .hardFallingWeight,
+         .hardYellowCrack,
+         .hardRollingBoulder,
+         .goodHandDrawnCheck,
+         .goodLightSweep,
+         .goodPaperPlaneCheck,
+         .goodCheckSealBounce,
+         .easySparkleBurst,
+         .easyCrownBounce:
         return nil
     }
 }
 
 struct ReviewReactionLayer: View {
     @Environment(\.accessibilityReduceMotion) private var isReduceMotionEnabled
-    @State private var hasStartedReviewEasyUnicornAnimationPreload: Bool = false
-    @State private var reviewEasyUnicornAnimation: LottieAnimation?
+    @State private var hasStartedReviewReactionLottiePreload: Bool = false
+    @State private var reviewReactionLottieAnimationStore: ReviewReactionLottieAnimationStore =
+        ReviewReactionLottieAnimationStore(
+            reviewEasyRainbowAnimation: nil,
+            reviewEasyUnicornAnimation: nil
+        )
 
     let events: [ReviewReactionEvent]
 
@@ -77,7 +153,7 @@ struct ReviewReactionLayer: View {
                 ForEach(self.events) { event in
                     ReviewReactionEventView(
                         event: event,
-                        reviewEasyUnicornAnimation: self.reviewEasyUnicornAnimation,
+                        animationStore: self.reviewReactionLottieAnimationStore,
                         isReduceMotionEnabled: self.isReduceMotionEnabled
                     )
                     .id(event.id)
@@ -88,20 +164,20 @@ struct ReviewReactionLayer: View {
         .allowsHitTesting(false)
         .accessibilityHidden(true)
         .onAppear {
-            self.preloadReviewEasyUnicornAnimation()
+            self.preloadReviewReactionLottieAnimations()
         }
     }
 
-    private func preloadReviewEasyUnicornAnimation() {
-        if self.hasStartedReviewEasyUnicornAnimationPreload {
+    private func preloadReviewReactionLottieAnimations() {
+        if self.hasStartedReviewReactionLottiePreload {
             return
         }
 
-        self.hasStartedReviewEasyUnicornAnimationPreload = true
+        self.hasStartedReviewReactionLottiePreload = true
         DispatchQueue.global(qos: .utility).async {
-            let animation: LottieAnimation? = makeReviewEasyUnicornAnimation()
+            let animationStore: ReviewReactionLottieAnimationStore = makeReviewReactionLottieAnimationStore()
             DispatchQueue.main.async {
-                self.reviewEasyUnicornAnimation = animation
+                self.reviewReactionLottieAnimationStore = animationStore
             }
         }
     }
@@ -109,24 +185,24 @@ struct ReviewReactionLayer: View {
 
 private struct ReviewReactionEventView: View {
     let event: ReviewReactionEvent
-    let reviewEasyUnicornAnimation: LottieAnimation?
+    let animationStore: ReviewReactionLottieAnimationStore
     let isReduceMotionEnabled: Bool
 
     @State private var shouldUseCrownFallback: Bool
 
     init(
         event: ReviewReactionEvent,
-        reviewEasyUnicornAnimation: LottieAnimation?,
+        animationStore: ReviewReactionLottieAnimationStore,
         isReduceMotionEnabled: Bool
     ) {
         self.event = event
-        self.reviewEasyUnicornAnimation = reviewEasyUnicornAnimation
+        self.animationStore = animationStore
         self.isReduceMotionEnabled = isReduceMotionEnabled
         self._shouldUseCrownFallback = State(
             initialValue: isReviewReactionLottieVariant(variant: event.variant)
-                && reviewReactionLottieAnimation(
+                && reviewReactionLottieConfiguration(
                     variant: event.variant,
-                    reviewEasyUnicornAnimation: reviewEasyUnicornAnimation
+                    animationStore: animationStore
                 ) == nil
         )
     }
@@ -134,14 +210,14 @@ private struct ReviewReactionEventView: View {
     var body: some View {
         if isReviewReactionLottieVariant(variant: self.event.variant),
            !self.shouldUseCrownFallback,
-           let lottieAnimation: LottieAnimation = reviewReactionLottieAnimation(
+           let lottieConfiguration: ReviewReactionLottieConfiguration = reviewReactionLottieConfiguration(
                 variant: self.event.variant,
-                reviewEasyUnicornAnimation: self.reviewEasyUnicornAnimation
+                animationStore: self.animationStore
            ) {
             ReviewReactionLottieView(
                 event: self.event,
-                animation: lottieAnimation,
-                isReduceMotionEnabled: self.isReduceMotionEnabled
+                isReduceMotionEnabled: self.isReduceMotionEnabled,
+                configuration: lottieConfiguration
             )
         } else {
             ReviewReactionCanvas(
@@ -162,8 +238,8 @@ private struct ReviewReactionEventView: View {
 
 private struct ReviewReactionLottieView: View {
     let event: ReviewReactionEvent
-    let animation: LottieAnimation
     let isReduceMotionEnabled: Bool
+    let configuration: ReviewReactionLottieConfiguration
 
     @State private var startedAt: Date = Date()
 
@@ -172,17 +248,17 @@ private struct ReviewReactionLottieView: View {
             TimelineView(.animation(minimumInterval: reviewReactionAnimationMinimumIntervalSeconds)) { timelineContext in
                 let progress: CGFloat = self.progress(date: timelineContext.date)
                 let sideLength: CGFloat = max(
-                    min(proxy.size.width, proxy.size.height) * reviewEasyUnicornAnimationFrameScale,
+                    min(proxy.size.width, proxy.size.height) * self.configuration.frameScale,
                     1
                 )
 
-                LottieView(animation: self.animation)
+                LottieView(animation: self.configuration.animation)
                     .resizable()
                     .playbackMode(self.playbackMode)
                     .frame(width: sideLength, height: sideLength)
                     .position(
-                        x: proxy.size.width * reviewEasyUnicornAnimationCenterX,
-                        y: proxy.size.height * reviewEasyUnicornAnimationCenterY
+                        x: proxy.size.width * self.configuration.centerX,
+                        y: proxy.size.height * self.configuration.centerY
                     )
                     .opacity(ReviewReactionRenderer.reviewReactionOpacity(progress: progress))
             }
@@ -198,7 +274,7 @@ private struct ReviewReactionLottieView: View {
         case .standard:
             return .playing(.fromProgress(0, toProgress: 1, loopMode: .playOnce))
         case .reduced:
-            return .paused(at: .progress(reviewEasyUnicornReducedMotionProgress))
+            return .paused(at: .progress(self.configuration.reducedMotionProgress))
         }
     }
 

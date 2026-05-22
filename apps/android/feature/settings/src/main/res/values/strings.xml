@@ -4,6 +4,7 @@
     <string name="flashcards_support_url" translatable="false">https://flashcards-open-source-app.com/support/</string>
     <string name="flashcards_repository_url" translatable="false">https://github.com/kirill-markin/flashcards-open-source-app</string>
     <string name="third_party_notices_url" translatable="false">https://github.com/kirill-markin/flashcards-open-source-app/blob/main/THIRD_PARTY_NOTICES.md</string>
+    <string name="review_rainbow_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-rainbow-animation_12152617</string>
     <string name="review_unicorn_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-unicorn-animation_12152598</string>
     <string name="creative_commons_attribution_url" translatable="false">https://creativecommons.org/licenses/by/4.0/</string>
     <string name="flashcards_support_email_address" translatable="false">kirill+flashcards@kirill-markin.com</string>
@@ -424,12 +425,14 @@
     <string name="settings_open_source_title">Open source</string>
     <string name="settings_open_source_repository_title">GitHub repository</string>
     <string name="settings_open_source_repository_summary">Browse the public source code and issues.</string>
-    <string name="settings_open_source_third_party_source_title">Review unicorn animation</string>
-    <string name="settings_open_source_third_party_source_summary">Free Unicorn Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0. Lottie runtimes use MIT and Apache 2.0 licenses.</string>
+    <string name="settings_open_source_third_party_unicorn_source_title">Review unicorn animation</string>
+    <string name="settings_open_source_third_party_unicorn_source_summary">Free Unicorn Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_rainbow_source_title">Review rainbow animation</string>
+    <string name="settings_open_source_third_party_rainbow_source_summary">Free Rainbow Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0. Lottie runtimes use MIT and Apache 2.0 licenses.</string>
     <string name="settings_open_source_third_party_notices_title">Full third-party notices</string>
     <string name="settings_open_source_third_party_notices_summary">Open complete third-party notices and bundled license text.</string>
     <string name="settings_open_source_third_party_license_title">Creative Commons Attribution 4.0</string>
-    <string name="settings_open_source_third_party_license_summary">Open the license terms for the review unicorn animation.</string>
+    <string name="settings_open_source_third_party_license_summary">Open the license terms for the review Lottie animations.</string>
     <string name="settings_open_source_self_hosting_title">Self-hosting</string>
     <string name="settings_open_source_self_hosting_summary">Project direction is open-source first, with self-hosting support planned.</string>
 

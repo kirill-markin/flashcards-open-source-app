@@ -243,12 +243,12 @@ internal fun reviewReactionAnimationDurationMillis(
         ReviewReactionVariant.GOOD_LIGHT_SWEEP,
         ReviewReactionVariant.GOOD_CHECK_SEAL_BOUNCE -> 1_450
         ReviewReactionVariant.HARD_HOURGLASS_SAND,
-        ReviewReactionVariant.AGAIN_WARNING_TAPE,
-        ReviewReactionVariant.EASY_RAINBOW_STREAK -> 1_550
+        ReviewReactionVariant.AGAIN_WARNING_TAPE -> 1_550
         ReviewReactionVariant.HARD_FALLING_WEIGHT,
         ReviewReactionVariant.EASY_CROWN_BOUNCE -> 1_650
         ReviewReactionVariant.GOOD_PAPER_PLANE_CHECK -> 1_750
         ReviewReactionVariant.AGAIN_STAMP_FLYBY -> 1_900
+        ReviewReactionVariant.EASY_RAINBOW_STREAK -> 2_000
         ReviewReactionVariant.HARD_ROLLING_BOULDER -> 2_050
         ReviewReactionVariant.EASY_UNICORN_FLYBY -> 3_800
     }
