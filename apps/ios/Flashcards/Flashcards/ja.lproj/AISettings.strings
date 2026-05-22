@@ -245,9 +245,10 @@
 "settings.account.openSource.repository" = "GitHub リポジトリ (MIT ライセンス)";
 "settings.account.openSource.selfHosting" = "独自のバックエンドが必要な場合は、同じオープン ソース スタックをデプロイし、[詳細] > [サーバー] から iOS アプリをドメインに指定できます。";
 "settings.account.openSource.section.thirdPartyNotices" = "サードパーティ通知";
-"settings.account.openSource.thirdPartyNotice" = "レビュー用ユニコーンアニメーション: Google Inc. の Free Unicorn Animation、Copyright © 2026 Google Inc.。Creative Commons Attribution 4.0 の下で使用しています。Lottie ランタイムは MIT および Apache 2.0 ライセンスを使用しています。";
+"settings.account.openSource.thirdPartyNotice" = "レビュー用Lottieアニメーション: Google Inc. の Free Unicorn Animation と Free Rainbow Animation、Copyright © 2026 Google Inc.。Creative Commons Attribution 4.0 の下で使用しています。Lottie ランタイムは MIT および Apache 2.0 ライセンスを使用しています。";
 "settings.account.openSource.thirdPartyNoticeFull" = "完全なサードパーティ通知";
-"settings.account.openSource.thirdPartyNoticeSource" = "アセット元";
+"settings.account.openSource.thirdPartyNoticeUnicornSource" = "ユニコーンアセット元";
+"settings.account.openSource.thirdPartyNoticeRainbowSource" = "虹アセット元";
 "settings.account.openSource.thirdPartyNoticeLicense" = "Creative Commons Attribution 4.0";
 
 "settings.account.advanced.title" = "上級";

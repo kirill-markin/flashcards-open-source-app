@@ -5,66 +5,73 @@ type ReviewReactionLottiePlayerModule = Readonly<{
   default: LottiePlayer;
 }>;
 
-type ReviewEasyUnicornAnimationModule = Readonly<{
+type ReviewReactionLottieAnimationModule = Readonly<{
   default: object;
 }>;
 
-export type ReviewEasyUnicornLottieAssets = Readonly<{
-  animationData: object;
+export type ReviewReactionLottieVariant =
+  | "easyRainbowStreak"
+  | "easyUnicornFlyby";
+
+export type ReviewReactionLottieAssets = Readonly<{
+  animationDataByVariant: Readonly<Record<ReviewReactionLottieVariant, object>>;
   player: LottiePlayer;
 }>;
 
-let reviewEasyUnicornLottieAssetsPromise: Promise<ReviewEasyUnicornLottieAssets> | null = null;
-let reviewEasyUnicornLottieAssetsReady = false;
+let reviewReactionLottieAssetsPromise: Promise<ReviewReactionLottieAssets> | null = null;
+let reviewReactionLottieAssetsReady = false;
 
 export const reviewReactionLottieFallbackVariant: ReviewReactionVariant = "easyCrownBounce";
 
-export function isReviewReactionLottieVariant(variant: ReviewReactionVariant): boolean {
-  return variant === "easyUnicornFlyby";
+export function isReviewReactionLottieVariant(
+  variant: ReviewReactionVariant,
+): variant is ReviewReactionLottieVariant {
+  return variant === "easyRainbowStreak" || variant === "easyUnicornFlyby";
 }
 
-export function isReviewEasyUnicornLottieAssetsReady(): boolean {
-  return reviewEasyUnicornLottieAssetsReady;
-}
-
-export function isReviewReactionLottieAssetsReady(variant: ReviewReactionVariant): boolean {
-  if (variant === "easyUnicornFlyby") {
-    return isReviewEasyUnicornLottieAssetsReady();
-  }
-
-  return true;
+export function isReviewReactionLottieAssetsReady(): boolean {
+  return reviewReactionLottieAssetsReady;
 }
 
 export function reviewReactionVariantWithReadyLottieFallback(
   variant: ReviewReactionVariant,
 ): ReviewReactionVariant {
-  if (isReviewReactionLottieVariant(variant) && !isReviewReactionLottieAssetsReady(variant)) {
+  if (isReviewReactionLottieVariant(variant) && !isReviewReactionLottieAssetsReady()) {
     return reviewReactionLottieFallbackVariant;
   }
 
   return variant;
 }
 
-export function loadReviewEasyUnicornLottieAssets(): Promise<ReviewEasyUnicornLottieAssets> {
-  if (reviewEasyUnicornLottieAssetsPromise !== null) {
-    return reviewEasyUnicornLottieAssetsPromise;
+export function loadReviewReactionLottieAssets(): Promise<ReviewReactionLottieAssets> {
+  if (reviewReactionLottieAssetsPromise !== null) {
+    return reviewReactionLottieAssetsPromise;
   }
 
-  reviewEasyUnicornLottieAssetsPromise = Promise.all([
+  reviewReactionLottieAssetsPromise = Promise.all([
     import("lottie-web/build/player/lottie_light"),
+    import("../../assets/review_easy_rainbow.json"),
     import("../../assets/review_easy_unicorn.json"),
   ]).then((
     [
       lottieModule,
-      animationModule,
-    ]: [ReviewReactionLottiePlayerModule, ReviewEasyUnicornAnimationModule],
-  ): ReviewEasyUnicornLottieAssets => {
-    reviewEasyUnicornLottieAssetsReady = true;
+      rainbowAnimationModule,
+      unicornAnimationModule,
+    ]: [
+      ReviewReactionLottiePlayerModule,
+      ReviewReactionLottieAnimationModule,
+      ReviewReactionLottieAnimationModule,
+    ],
+  ): ReviewReactionLottieAssets => {
+    reviewReactionLottieAssetsReady = true;
     return {
-      animationData: animationModule.default,
+      animationDataByVariant: {
+        easyRainbowStreak: rainbowAnimationModule.default,
+        easyUnicornFlyby: unicornAnimationModule.default,
+      },
       player: lottieModule.default,
     };
   });
 
-  return reviewEasyUnicornLottieAssetsPromise;
+  return reviewReactionLottieAssetsPromise;
 }

@@ -245,9 +245,10 @@
 "settings.account.openSource.repository" = "مستودع GitHub (ترخيص MIT)";
 "settings.account.openSource.selfHosting" = "إذا كنت بحاجة إلى الواجهة الخلفية الخاصة بك، فيمكنك نشر نفس المكدس مفتوح المصدر وتوجيه تطبيق iOS إلى المجال الخاص بك من Advanced > Server.";
 "settings.account.openSource.section.thirdPartyNotices" = "إشعارات الجهات الخارجية";
-"settings.account.openSource.thirdPartyNotice" = "رسوم متحركة ليونيكورن المراجعة: Free Unicorn Animation من Google Inc.، Copyright © 2026 Google Inc.، مستخدمة بموجب Creative Commons Attribution 4.0. تستخدم أوقات تشغيل Lottie تراخيص MIT وApache 2.0.";
+"settings.account.openSource.thirdPartyNotice" = "رسوم Lottie المتحركة للمراجعة: Free Unicorn Animation وFree Rainbow Animation من Google Inc.، Copyright © 2026 Google Inc.، مستخدمة بموجب Creative Commons Attribution 4.0. تستخدم أوقات تشغيل Lottie تراخيص MIT وApache 2.0.";
 "settings.account.openSource.thirdPartyNoticeFull" = "إشعارات الجهات الخارجية الكاملة";
-"settings.account.openSource.thirdPartyNoticeSource" = "مصدر الأصل";
+"settings.account.openSource.thirdPartyNoticeUnicornSource" = "مصدر اليونيكورن";
+"settings.account.openSource.thirdPartyNoticeRainbowSource" = "مصدر قوس قزح";
 "settings.account.openSource.thirdPartyNoticeLicense" = "Creative Commons Attribution 4.0";
 
 "settings.account.advanced.title" = "متقدم";

@@ -873,9 +873,10 @@ const hiCatalog: TranslationCatalog = {
     stackDescription: "iOS ऐप और बैकएंड पूरी तरह ओपन सोर्स हैं। आप कोड देख सकते हैं, MIT लाइसेंस का उपयोग कर सकते हैं और वही स्टैक अपने सर्वर पर चला सकते हैं।",
     repositoryAction: "रिपॉज़िटरी खोलें",
     selfHostingDescription: "अगर आपको अपना बैकएंड चाहिए, तो वही ओपन सोर्स स्टैक अपने इंफ्रास्ट्रक्चर पर डिप्लॉय करें और उसी डिप्लॉयमेंट के साथ अपने वेब और iOS क्लाइंट इस्तेमाल करें।",
-    thirdPartyNoticeDescription: "रिव्यू यूनिकॉर्न एनीमेशन: Google Inc. का Free Unicorn Animation, Copyright © 2026 Google Inc., Creative Commons Attribution 4.0 के तहत उपयोग किया गया। Lottie रनटाइम MIT और Apache 2.0 लाइसेंस का उपयोग करते हैं।",
+    thirdPartyNoticeDescription: "रिव्यू Lottie एनीमेशन: Google Inc. के Free Unicorn Animation और Free Rainbow Animation, Copyright © 2026 Google Inc., Creative Commons Attribution 4.0 के तहत उपयोग किए गए। Lottie रनटाइम MIT और Apache 2.0 लाइसेंस का उपयोग करते हैं।",
     thirdPartyNoticeFullAction: "पूरे नोटिस खोलें",
-    thirdPartyNoticeSourceAction: "एसेट स्रोत खोलें",
+    thirdPartyNoticeUnicornSourceAction: "यूनिकॉर्न स्रोत खोलें",
+    thirdPartyNoticeRainbowSourceAction: "रेनबो स्रोत खोलें",
     thirdPartyNoticeLicenseAction: "लाइसेंस खोलें",
   },
   agentConnections: {

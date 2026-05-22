@@ -50,7 +50,7 @@ enum ReviewReactionVariant: CaseIterable, Hashable, Sendable {
             return 1.25
         case .againRewindVortex, .goodLightSweep, .goodCheckSealBounce:
             return 1.45
-        case .hardHourglassSand, .againWarningTape, .easyRainbowStreak:
+        case .hardHourglassSand, .againWarningTape:
             return 1.55
         case .hardFallingWeight, .easyCrownBounce:
             return 1.65
@@ -58,6 +58,8 @@ enum ReviewReactionVariant: CaseIterable, Hashable, Sendable {
             return 1.75
         case .againStampFlyby:
             return 1.90
+        case .easyRainbowStreak:
+            return 2.00
         case .hardRollingBoulder:
             return 2.05
         case .easyUnicornFlyby:

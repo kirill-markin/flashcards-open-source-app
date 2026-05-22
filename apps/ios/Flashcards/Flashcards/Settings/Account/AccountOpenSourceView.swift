@@ -1,6 +1,7 @@
 import SwiftUI
 
 private let thirdPartyNoticesUrl: String = "https://github.com/kirill-markin/flashcards-open-source-app/blob/main/THIRD_PARTY_NOTICES.md"
+private let reviewRainbowAnimationUrl: String = "https://iconscout.com/free-lottie-animation/free-rainbow-animation_12152617"
 private let reviewUnicornAnimationUrl: String = "https://iconscout.com/free-lottie-animation/free-unicorn-animation_12152598"
 private let creativeCommonsAttributionUrl: String = "https://creativecommons.org/licenses/by/4.0/"
 
@@ -43,7 +44,7 @@ struct AccountOpenSourceView: View {
                 Text(
                     aiSettingsLocalized(
                         "settings.account.openSource.thirdPartyNotice",
-                        "Review unicorn animation: Free Unicorn Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0. Lottie runtimes use MIT and Apache 2.0 licenses."
+                        "Review Lottie animations: Free Unicorn Animation and Free Rainbow Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0. Lottie runtimes use MIT and Apache 2.0 licenses."
                     )
                 )
                     .foregroundStyle(.secondary)
@@ -61,7 +62,17 @@ struct AccountOpenSourceView: View {
                 if let assetUrl = URL(string: reviewUnicornAnimationUrl) {
                     Link(destination: assetUrl) {
                         SettingsNavigationRow(
-                            title: aiSettingsLocalized("settings.account.openSource.thirdPartyNoticeSource", "Asset Source"),
+                            title: aiSettingsLocalized("settings.account.openSource.thirdPartyNoticeUnicornSource", "Unicorn Asset Source"),
+                            value: aiSettingsLocalized("common.open", "Open"),
+                            systemImage: "arrow.up.forward.square"
+                        )
+                    }
+                }
+
+                if let assetUrl = URL(string: reviewRainbowAnimationUrl) {
+                    Link(destination: assetUrl) {
+                        SettingsNavigationRow(
+                            title: aiSettingsLocalized("settings.account.openSource.thirdPartyNoticeRainbowSource", "Rainbow Asset Source"),
                             value: aiSettingsLocalized("common.open", "Open"),
                             systemImage: "arrow.up.forward.square"
                         )

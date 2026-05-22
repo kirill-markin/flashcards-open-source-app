@@ -245,9 +245,10 @@
 "settings.account.openSource.repository" = "GitHub-Repository (MIT-Lizenz)";
 "settings.account.openSource.selfHosting" = "Wenn Sie Ihr eigenes Backend benötigen, können Sie denselben Open-Source-Stack bereitstellen und die iOS-App über Erweitert > Server auf Ihre Domäne verweisen.";
 "settings.account.openSource.section.thirdPartyNotices" = "Drittanbieterhinweise";
-"settings.account.openSource.thirdPartyNotice" = "Review-Einhornanimation: Free Unicorn Animation von Google Inc., Copyright © 2026 Google Inc., verwendet unter Creative Commons Attribution 4.0. Lottie-Laufzeiten verwenden MIT- und Apache-2.0-Lizenzen.";
+"settings.account.openSource.thirdPartyNotice" = "Review-Lottie-Animationen: Free Unicorn Animation und Free Rainbow Animation von Google Inc., Copyright © 2026 Google Inc., verwendet unter Creative Commons Attribution 4.0. Lottie-Laufzeiten verwenden MIT- und Apache-2.0-Lizenzen.";
 "settings.account.openSource.thirdPartyNoticeFull" = "Vollständige Drittanbieterhinweise";
-"settings.account.openSource.thirdPartyNoticeSource" = "Asset-Quelle";
+"settings.account.openSource.thirdPartyNoticeUnicornSource" = "Einhorn-Asset-Quelle";
+"settings.account.openSource.thirdPartyNoticeRainbowSource" = "Regenbogen-Asset-Quelle";
 "settings.account.openSource.thirdPartyNoticeLicense" = "Creative Commons Attribution 4.0";
 
 "settings.account.advanced.title" = "Erweitert";

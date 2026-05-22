@@ -9,9 +9,10 @@ import {
 import {
   isReviewReactionLottieAssetsReady,
   isReviewReactionLottieVariant,
-  loadReviewEasyUnicornLottieAssets,
+  loadReviewReactionLottieAssets,
   reviewReactionLottieFallbackVariant,
   reviewReactionVariantWithReadyLottieFallback,
+  type ReviewReactionLottieVariant,
 } from "./reviewReactionLottie";
 
 type ReviewRatingReactionLayerProps = Readonly<{
@@ -22,9 +23,15 @@ type ReviewReactionStyle = CSSProperties & Readonly<{
   "--review-reaction-duration": string;
 }>;
 
-const reviewEasyUnicornReducedMotionProgress: number = 0.55;
+const reviewReactionLottieReducedMotionProgress: number = 0.55;
 
 type ReviewReactionLottieFailurePhase = "preload" | "render";
+type ReviewReactionLottieContainerClassMap = Readonly<Record<ReviewReactionLottieVariant, string>>;
+
+const reviewReactionLottieContainerClassByVariant: ReviewReactionLottieContainerClassMap = {
+  easyRainbowStreak: "review-reaction-rainbow-lottie-mark",
+  easyUnicornFlyby: "review-reaction-unicorn-lottie-mark",
+};
 
 function makeReviewReactionStyle(event: ReviewReactionEvent): ReviewReactionStyle {
   const variant = reviewReactionVariantWithReadyLottieFallback(event.variant);
@@ -242,19 +249,6 @@ function EasySparkleBurstReaction(): ReactElement {
   );
 }
 
-function EasyRainbowStreakReaction(): ReactElement {
-  return (
-    <g className="review-reaction-rainbow-streak-mark">
-      <path className="review-reaction-red-stroke" d="M6 42 C28 16 59 70 94 35" strokeWidth="4" />
-      <path className="review-reaction-orange-stroke" d="M6 48 C30 22 58 75 94 41" strokeWidth="4" />
-      <path className="review-reaction-yellow-stroke" d="M6 54 C31 29 57 78 94 47" strokeWidth="4" />
-      <path className="review-reaction-green-stroke" d="M6 60 C31 36 56 82 94 53" strokeWidth="4" />
-      <path className="review-reaction-blue-stroke" d="M6 66 C31 43 55 84 94 59" strokeWidth="4" />
-      <path className="review-reaction-purple-stroke" d="M6 72 C31 50 54 86 94 65" strokeWidth="4" />
-    </g>
-  );
-}
-
 function EasyCrownBounceReaction(): ReactElement {
   return (
     <g className="review-reaction-crown-mark">
@@ -272,10 +266,12 @@ function EasyCrownBounceReaction(): ReactElement {
 function reportReviewReactionLottieFailure(
   error: unknown,
   phase: ReviewReactionLottieFailurePhase,
+  variant: ReviewReactionLottieVariant | null,
 ): void {
   console.warn("Review reaction Lottie asset failed to load.", {
     error,
     phase,
+    variant,
   });
 }
 
@@ -287,7 +283,12 @@ function ReviewReactionCrownFallbackArt(): ReactElement {
   );
 }
 
-function ReviewReactionLottieAnimation(): ReactElement {
+type ReviewReactionLottieAnimationProps = Readonly<{
+  variant: ReviewReactionLottieVariant;
+}>;
+
+function ReviewReactionLottieAnimation(props: ReviewReactionLottieAnimationProps): ReactElement {
+  const { variant } = props;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [shouldUseFallback, setShouldUseFallback] = useState<boolean>(false);
 
@@ -301,6 +302,7 @@ function ReviewReactionLottieAnimation(): ReactElement {
       reportReviewReactionLottieFailure(
         new Error("Review reaction Lottie container was not mounted."),
         "render",
+        variant,
       );
       setShouldUseFallback(true);
       return;
@@ -312,7 +314,7 @@ function ReviewReactionLottieAnimation(): ReactElement {
     let isCancelled = false;
 
     async function loadReviewReactionLottieAnimation(): Promise<void> {
-      const assets = await loadReviewEasyUnicornLottieAssets();
+      const assets = await loadReviewReactionLottieAssets();
 
       if (isCancelled) {
         return;
@@ -324,7 +326,7 @@ function ReviewReactionLottieAnimation(): ReactElement {
         renderer: "svg",
         loop: false,
         autoplay: !isReducedMotionEnabled,
-        animationData: assets.animationData,
+        animationData: assets.animationDataByVariant[variant],
       });
 
       animationItem = nextAnimationItem;
@@ -332,7 +334,7 @@ function ReviewReactionLottieAnimation(): ReactElement {
       if (isReducedMotionEnabled) {
         const showReducedMotionFrame = (): void => {
           nextAnimationItem.goToAndStop(
-            nextAnimationItem.totalFrames * reviewEasyUnicornReducedMotionProgress,
+            nextAnimationItem.totalFrames * reviewReactionLottieReducedMotionProgress,
             true,
           );
         };
@@ -348,7 +350,7 @@ function ReviewReactionLottieAnimation(): ReactElement {
         return;
       }
 
-      reportReviewReactionLottieFailure(error, "render");
+      reportReviewReactionLottieFailure(error, "render", variant);
       setShouldUseFallback(true);
     });
 
@@ -357,14 +359,14 @@ function ReviewReactionLottieAnimation(): ReactElement {
       removeDomLoadedListener?.();
       animationItem?.destroy();
     };
-  }, [shouldUseFallback]);
+  }, [shouldUseFallback, variant]);
 
   if (shouldUseFallback) {
     return <ReviewReactionCrownFallbackArt />;
   }
 
   return (
-    <div ref={containerRef} className="review-reaction-unicorn-lottie-mark" />
+    <div ref={containerRef} className={reviewReactionLottieContainerClassByVariant[variant]} />
   );
 }
 
@@ -397,7 +399,7 @@ function renderReviewReactionVariant(variant: ReviewReactionVariant): ReactEleme
     case "easySparkleBurst":
       return <EasySparkleBurstReaction />;
     case "easyRainbowStreak":
-      return <EasyRainbowStreakReaction />;
+      return <EasyCrownBounceReaction />;
     case "easyCrownBounce":
       return <EasyCrownBounceReaction />;
     case "easyUnicornFlyby":
@@ -407,13 +409,13 @@ function renderReviewReactionVariant(variant: ReviewReactionVariant): ReactEleme
 
 function renderReviewReactionArt(variant: ReviewReactionVariant): ReactElement {
   if (isReviewReactionLottieVariant(variant)) {
-    if (!isReviewReactionLottieAssetsReady(variant)) {
+    if (!isReviewReactionLottieAssetsReady()) {
       return <ReviewReactionCrownFallbackArt />;
     }
 
     return (
       <div className="review-rating-reaction-art review-rating-reaction-lottie-art">
-        <ReviewReactionLottieAnimation />
+        <ReviewReactionLottieAnimation variant={variant} />
       </div>
     );
   }
@@ -430,12 +432,12 @@ export function ReviewRatingReactionLayer(props: ReviewRatingReactionLayerProps)
 
   useEffect(() => {
     let isMounted = true;
-    void loadReviewEasyUnicornLottieAssets().catch((error: unknown) => {
+    void loadReviewReactionLottieAssets().catch((error: unknown) => {
       if (!isMounted) {
         return;
       }
 
-      reportReviewReactionLottieFailure(error, "preload");
+      reportReviewReactionLottieFailure(error, "preload", null);
     });
 
     return () => {

@@ -31,23 +31,69 @@ import kotlinx.coroutines.delay
 private const val reviewReactionAnimationMinimumProgress: Float = 0f
 private const val reviewReactionAnimationMaximumProgress: Float = 1f
 private const val reviewReactionCleanupExtraMillis: Long = 80L
-private const val reviewReactionReducedMotionDrawingProgress: Float = 0.55f
 private const val reviewReactionLogTag: String = "ReviewReaction"
+private const val reviewReactionReducedMotionDrawingProgress: Float = 0.55f
+private const val reviewEasyRainbowAnimationFrameScale: Float = 0.64f
+private const val reviewEasyRainbowAnimationCenterX: Float = 0.50f
+private const val reviewEasyRainbowAnimationCenterY: Float = 0.42f
 private const val reviewEasyUnicornAnimationFrameScale: Float = 0.52f
 private const val reviewEasyUnicornAnimationCenterX: Float = 0.56f
 private const val reviewEasyUnicornAnimationCenterY: Float = 0.30f
 private val reviewReactionLottieFallbackVariant: ReviewReactionVariant =
     ReviewReactionVariant.EASY_CROWN_BOUNCE
 
-private enum class ReviewReactionLottieRenderer {
-    CROWN_FALLBACK,
-    LOTTIE
+private data class ReviewReactionLottieConfiguration(
+    val composition: LottieComposition?,
+    val frameScale: Float,
+    val centerX: Float,
+    val centerY: Float
+)
+
+private fun logReviewReactionLottieWarning(
+    assetName: String,
+    error: Throwable
+) {
+    Log.w(
+        reviewReactionLogTag,
+        "Review reaction Lottie asset failed to load. assetName=$assetName",
+        error
+    )
 }
 
-private fun isReviewReactionLottieVariant(variant: ReviewReactionVariant): Boolean {
+private fun reviewReactionLottieConfiguration(
+    variant: ReviewReactionVariant,
+    reviewEasyRainbowComposition: LottieComposition?,
+    reviewEasyUnicornComposition: LottieComposition?
+): ReviewReactionLottieConfiguration? {
     return when (variant) {
-        ReviewReactionVariant.EASY_UNICORN_FLYBY -> true
-        else -> false
+        ReviewReactionVariant.EASY_RAINBOW_STREAK -> ReviewReactionLottieConfiguration(
+            composition = reviewEasyRainbowComposition,
+            frameScale = reviewEasyRainbowAnimationFrameScale,
+            centerX = reviewEasyRainbowAnimationCenterX,
+            centerY = reviewEasyRainbowAnimationCenterY
+        )
+
+        ReviewReactionVariant.EASY_UNICORN_FLYBY -> ReviewReactionLottieConfiguration(
+            composition = reviewEasyUnicornComposition,
+            frameScale = reviewEasyUnicornAnimationFrameScale,
+            centerX = reviewEasyUnicornAnimationCenterX,
+            centerY = reviewEasyUnicornAnimationCenterY
+        )
+
+        ReviewReactionVariant.AGAIN_RED_SCRIBBLE_SLASH,
+        ReviewReactionVariant.AGAIN_REWIND_VORTEX,
+        ReviewReactionVariant.AGAIN_STAMP_FLYBY,
+        ReviewReactionVariant.AGAIN_WARNING_TAPE,
+        ReviewReactionVariant.HARD_HOURGLASS_SAND,
+        ReviewReactionVariant.HARD_FALLING_WEIGHT,
+        ReviewReactionVariant.HARD_YELLOW_CRACK,
+        ReviewReactionVariant.HARD_ROLLING_BOULDER,
+        ReviewReactionVariant.GOOD_HAND_DRAWN_CHECK,
+        ReviewReactionVariant.GOOD_LIGHT_SWEEP,
+        ReviewReactionVariant.GOOD_PAPER_PLANE_CHECK,
+        ReviewReactionVariant.GOOD_CHECK_SEAL_BOUNCE,
+        ReviewReactionVariant.EASY_SPARKLE_BURST,
+        ReviewReactionVariant.EASY_CROWN_BOUNCE -> null
     }
 }
 
@@ -58,16 +104,33 @@ internal fun ReviewReactionOverlay(
     motionMode: ReviewReactionMotionMode,
     onEventFinished: (String) -> Unit
 ) {
+    val reviewEasyRainbowCompositionResult: LottieCompositionResult = rememberLottieComposition(
+        spec = LottieCompositionSpec.RawRes(R.raw.review_easy_rainbow)
+    )
+    val reviewEasyRainbowCompositionFailure: Throwable? = reviewEasyRainbowCompositionResult.error
+    if (reviewEasyRainbowCompositionFailure != null) {
+        LaunchedEffect(reviewEasyRainbowCompositionFailure) {
+            logReviewReactionLottieWarning(
+                assetName = "review_easy_rainbow",
+                error = reviewEasyRainbowCompositionFailure
+            )
+        }
+    }
+    val reviewEasyRainbowComposition: LottieComposition? = if (reviewEasyRainbowCompositionFailure == null) {
+        reviewEasyRainbowCompositionResult.value
+    } else {
+        null
+    }
+
     val reviewEasyUnicornCompositionResult: LottieCompositionResult = rememberLottieComposition(
         spec = LottieCompositionSpec.RawRes(R.raw.review_easy_unicorn)
     )
     val reviewEasyUnicornCompositionFailure: Throwable? = reviewEasyUnicornCompositionResult.error
     if (reviewEasyUnicornCompositionFailure != null) {
         LaunchedEffect(reviewEasyUnicornCompositionFailure) {
-            Log.w(
-                reviewReactionLogTag,
-                "Review reaction Lottie asset failed to load.",
-                reviewEasyUnicornCompositionFailure
+            logReviewReactionLottieWarning(
+                assetName = "review_easy_unicorn",
+                error = reviewEasyUnicornCompositionFailure
             )
         }
     }
@@ -87,6 +150,7 @@ internal fun ReviewReactionOverlay(
                 ReviewReactionCanvas(
                     event = event,
                     motionMode = motionMode,
+                    reviewEasyRainbowComposition = reviewEasyRainbowComposition,
                     reviewEasyUnicornComposition = reviewEasyUnicornComposition,
                     onEventFinished = onEventFinished
                 )
@@ -99,31 +163,34 @@ internal fun ReviewReactionOverlay(
 private fun ReviewReactionCanvas(
     event: ReviewReactionEvent,
     motionMode: ReviewReactionMotionMode,
+    reviewEasyRainbowComposition: LottieComposition?,
     reviewEasyUnicornComposition: LottieComposition?,
     onEventFinished: (String) -> Unit
 ) {
-    if (isReviewReactionLottieVariant(variant = event.variant)) {
-        val reviewReactionLottieRenderer: ReviewReactionLottieRenderer = remember(event.id) {
-            if (reviewEasyUnicornComposition == null) {
-                ReviewReactionLottieRenderer.CROWN_FALLBACK
-            } else {
-                ReviewReactionLottieRenderer.LOTTIE
-            }
-        }
-
-        val composition: LottieComposition? = reviewEasyUnicornComposition
-        if (reviewReactionLottieRenderer == ReviewReactionLottieRenderer.LOTTIE && composition != null) {
+    val lottieConfiguration: ReviewReactionLottieConfiguration? = remember(event.id, event.variant) {
+        reviewReactionLottieConfiguration(
+            variant = event.variant,
+            reviewEasyRainbowComposition = reviewEasyRainbowComposition,
+            reviewEasyUnicornComposition = reviewEasyUnicornComposition
+        )
+    }
+    if (lottieConfiguration != null) {
+        val composition: LottieComposition? = lottieConfiguration.composition
+        if (composition != null) {
             ReviewReactionLottieAnimation(
                 event = event,
                 motionMode = motionMode,
                 composition = composition,
+                frameScale = lottieConfiguration.frameScale,
+                centerX = lottieConfiguration.centerX,
+                centerY = lottieConfiguration.centerY,
                 onEventFinished = onEventFinished
             )
             return
         }
     }
 
-    val drawingEvent: ReviewReactionEvent = if (isReviewReactionLottieVariant(variant = event.variant)) {
+    val drawingEvent: ReviewReactionEvent = if (lottieConfiguration != null) {
         event.copy(variant = reviewReactionLottieFallbackVariant)
     } else {
         event
@@ -196,6 +263,9 @@ private fun ReviewReactionLottieAnimation(
     event: ReviewReactionEvent,
     motionMode: ReviewReactionMotionMode,
     composition: LottieComposition,
+    frameScale: Float,
+    centerX: Float,
+    centerY: Float,
     onEventFinished: (String) -> Unit
 ) {
     val durationMillis: Int = reviewReactionAnimationDurationMillis(
@@ -212,6 +282,9 @@ private fun ReviewReactionLottieAnimation(
         ReviewReactionLottieFrame(
             progress = reviewReactionReducedMotionDrawingProgress,
             alpha = 1f,
+            frameScale = frameScale,
+            centerX = centerX,
+            centerY = centerY,
             composition = composition
         )
         return
@@ -241,6 +314,9 @@ private fun ReviewReactionLottieAnimation(
     ReviewReactionLottieFrame(
         progress = drawingProgress,
         alpha = alpha,
+        frameScale = frameScale,
+        centerX = centerX,
+        centerY = centerY,
         composition = composition
     )
 }
@@ -249,6 +325,9 @@ private fun ReviewReactionLottieAnimation(
 private fun ReviewReactionLottieFrame(
     progress: Float,
     alpha: Float,
+    frameScale: Float,
+    centerX: Float,
+    centerY: Float,
     composition: LottieComposition
 ) {
     BoxWithConstraints(
@@ -258,15 +337,15 @@ private fun ReviewReactionLottieFrame(
                 this.alpha = alpha
             }
     ) {
-        val sideLength: Dp = minOf(maxWidth, maxHeight) * reviewEasyUnicornAnimationFrameScale
+        val sideLength: Dp = minOf(maxWidth, maxHeight) * frameScale
         LottieAnimation(
             composition = composition,
             progress = { progress },
             modifier = Modifier
                 .size(size = sideLength)
                 .offset(
-                    x = maxWidth * reviewEasyUnicornAnimationCenterX - sideLength / 2f,
-                    y = maxHeight * reviewEasyUnicornAnimationCenterY - sideLength / 2f
+                    x = maxWidth * centerX - sideLength / 2f,
+                    y = maxHeight * centerY - sideLength / 2f
                 )
                 .align(alignment = Alignment.TopStart)
         )
