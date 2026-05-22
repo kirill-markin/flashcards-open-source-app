@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.review
+package com.flashcardsopensourceapp.feature.review.reaction
 
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import org.junit.Assert.assertEquals

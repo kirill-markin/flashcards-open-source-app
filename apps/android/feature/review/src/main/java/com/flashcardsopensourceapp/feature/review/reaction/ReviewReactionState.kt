@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.review
+package com.flashcardsopensourceapp.feature.review.reaction
 
 import android.animation.ValueAnimator
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
