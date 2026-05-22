@@ -54,6 +54,18 @@ vi.mock("../../localDb/workspace", () => ({
   loadWorkspaceTagsSummary: loadWorkspaceTagsSummaryMock,
 }));
 
+vi.mock("lottie-web/build/player/lottie_light", () => ({
+  default: {
+    loadAnimation: vi.fn(() => ({
+      addEventListener: vi.fn(() => vi.fn()),
+      destroy: vi.fn(),
+      goToAndStop: vi.fn(),
+      isLoaded: true,
+      play: vi.fn(),
+    })),
+  },
+}));
+
 import { ReviewScreen } from "./ReviewScreen";
 import {
   useReviewScreenData,

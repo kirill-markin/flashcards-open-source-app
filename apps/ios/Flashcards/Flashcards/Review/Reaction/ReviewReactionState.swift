@@ -61,7 +61,7 @@ enum ReviewReactionVariant: CaseIterable, Hashable, Sendable {
         case .hardRollingBoulder:
             return 2.05
         case .easyUnicornFlyby:
-            return 2.15
+            return 3.80
         }
     }
 

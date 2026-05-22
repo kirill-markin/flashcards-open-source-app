@@ -250,6 +250,6 @@ internal fun reviewReactionAnimationDurationMillis(
         ReviewReactionVariant.GOOD_PAPER_PLANE_CHECK -> 1_750
         ReviewReactionVariant.AGAIN_STAMP_FLYBY -> 1_900
         ReviewReactionVariant.HARD_ROLLING_BOULDER -> 2_050
-        ReviewReactionVariant.EASY_UNICORN_FLYBY -> 2_150
+        ReviewReactionVariant.EASY_UNICORN_FLYBY -> 3_800
     }
 }

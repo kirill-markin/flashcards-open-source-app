@@ -1,11 +1,13 @@
 package com.flashcardsopensourceapp.feature.settings.account
 
+import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Code
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Card
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -20,8 +22,11 @@ import com.flashcardsopensourceapp.feature.settings.settingsScreenContentPadding
 
 @Composable
 fun AccountOpenSourceRoute(onBack: () -> Unit) {
-    val context = LocalContext.current
-    val repositoryUrl = stringResource(id = R.string.flashcards_repository_url)
+    val context: Context = LocalContext.current
+    val repositoryUrl: String = stringResource(id = R.string.flashcards_repository_url)
+    val thirdPartyNoticesUrl: String = stringResource(id = R.string.third_party_notices_url)
+    val reviewUnicornAnimationUrl: String = stringResource(id = R.string.review_unicorn_animation_url)
+    val creativeCommonsAttributionUrl: String = stringResource(id = R.string.creative_commons_attribution_url)
 
     SettingsScreenScaffold(
         title = stringResource(R.string.settings_open_source_title),
@@ -41,6 +46,45 @@ fun AccountOpenSourceRoute(onBack: () -> Unit) {
                         icon = Icons.Outlined.Code,
                         onClick = {
                             openExternalUrl(context = context, url = repositoryUrl)
+                        }
+                    )
+                }
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    SettingsLinkItem(
+                        title = stringResource(R.string.settings_open_source_third_party_notices_title),
+                        summary = stringResource(R.string.settings_open_source_third_party_notices_summary),
+                        icon = Icons.Outlined.Info,
+                        onClick = {
+                            openExternalUrl(context = context, url = thirdPartyNoticesUrl)
+                        }
+                    )
+                }
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    SettingsLinkItem(
+                        title = stringResource(R.string.settings_open_source_third_party_source_title),
+                        summary = stringResource(R.string.settings_open_source_third_party_source_summary),
+                        icon = Icons.Outlined.Info,
+                        onClick = {
+                            openExternalUrl(context = context, url = reviewUnicornAnimationUrl)
+                        }
+                    )
+                }
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    SettingsLinkItem(
+                        title = stringResource(R.string.settings_open_source_third_party_license_title),
+                        summary = stringResource(R.string.settings_open_source_third_party_license_summary),
+                        icon = Icons.Outlined.Info,
+                        onClick = {
+                            openExternalUrl(context = context, url = creativeCommonsAttributionUrl)
                         }
                     )
                 }

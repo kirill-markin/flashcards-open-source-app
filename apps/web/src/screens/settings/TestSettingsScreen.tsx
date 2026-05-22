@@ -15,6 +15,7 @@ import {
   type ReviewReactionVariantDistributionEntry,
 } from "../review/reviewReaction";
 import { ReviewRatingReactionLayer } from "../review/ReviewRatingReactionLayer";
+import { reviewReactionVariantWithReadyLottieFallback } from "../review/reviewReactionLottie";
 import { SettingsGroup, SettingsNavigationCard, SettingsShell } from "./SettingsShared";
 
 type Translate = (key: TranslationKey, values?: TranslationValues) => string;
@@ -152,7 +153,7 @@ export function TestAnimationsScreen(): ReactElement {
     const event: ReviewReactionEvent = {
       id: crypto.randomUUID(),
       rating: entry.rating,
-      variant: entry.variant,
+      variant: reviewReactionVariantWithReadyLottieFallback(entry.variant),
     };
     const cleanupTimerId = window.setTimeout(() => {
       clearReviewReactionTimer(cleanupTimersRef.current, event.id);

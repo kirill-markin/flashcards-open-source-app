@@ -1,5 +1,9 @@
 import SwiftUI
 
+private let thirdPartyNoticesUrl: String = "https://github.com/kirill-markin/flashcards-open-source-app/blob/main/THIRD_PARTY_NOTICES.md"
+private let reviewUnicornAnimationUrl: String = "https://iconscout.com/free-lottie-animation/free-unicorn-animation_12152598"
+private let creativeCommonsAttributionUrl: String = "https://creativecommons.org/licenses/by/4.0/"
+
 struct AccountOpenSourceView: View {
     var body: some View {
         List {
@@ -33,6 +37,46 @@ struct AccountOpenSourceView: View {
                     )
                 )
                     .foregroundStyle(.secondary)
+            }
+
+            Section(aiSettingsLocalized("settings.account.openSource.section.thirdPartyNotices", "Third-Party Notices")) {
+                Text(
+                    aiSettingsLocalized(
+                        "settings.account.openSource.thirdPartyNotice",
+                        "Review unicorn animation: Free Unicorn Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0. Lottie runtimes use MIT and Apache 2.0 licenses."
+                    )
+                )
+                    .foregroundStyle(.secondary)
+
+                if let noticesUrl = URL(string: thirdPartyNoticesUrl) {
+                    Link(destination: noticesUrl) {
+                        SettingsNavigationRow(
+                            title: aiSettingsLocalized("settings.account.openSource.thirdPartyNoticeFull", "Full Third-Party Notices"),
+                            value: aiSettingsLocalized("common.open", "Open"),
+                            systemImage: "arrow.up.forward.square"
+                        )
+                    }
+                }
+
+                if let assetUrl = URL(string: reviewUnicornAnimationUrl) {
+                    Link(destination: assetUrl) {
+                        SettingsNavigationRow(
+                            title: aiSettingsLocalized("settings.account.openSource.thirdPartyNoticeSource", "Asset Source"),
+                            value: aiSettingsLocalized("common.open", "Open"),
+                            systemImage: "arrow.up.forward.square"
+                        )
+                    }
+                }
+
+                if let licenseUrl = URL(string: creativeCommonsAttributionUrl) {
+                    Link(destination: licenseUrl) {
+                        SettingsNavigationRow(
+                            title: aiSettingsLocalized("settings.account.openSource.thirdPartyNoticeLicense", "Creative Commons Attribution 4.0"),
+                            value: aiSettingsLocalized("common.open", "Open"),
+                            systemImage: "arrow.up.forward.square"
+                        )
+                    }
+                }
             }
         }
         .listStyle(.insetGrouped)

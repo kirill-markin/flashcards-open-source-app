@@ -10,6 +10,7 @@ import {
   type ReviewReactionEvent,
   type ReviewReactionMotionMode,
 } from "./reviewReaction";
+import { reviewReactionVariantWithReadyLottieFallback } from "./reviewReactionLottie";
 
 export type UseReviewRatingReactionsResult = Readonly<{
   emitReaction: (rating: 0 | 1 | 2 | 3) => void;
@@ -81,9 +82,11 @@ export function useReviewRatingReactions(): UseReviewRatingReactionsResult {
     const event: ReviewReactionEvent = {
       id: crypto.randomUUID(),
       rating: reactionRating,
-      variant: selectReviewReactionVariant(
-        reactionRating,
-        Math.floor(Math.random() * 1000),
+      variant: reviewReactionVariantWithReadyLottieFallback(
+        selectReviewReactionVariant(
+          reactionRating,
+          Math.floor(Math.random() * 1000),
+        ),
       ),
     };
     const cleanupTimerId = window.setTimeout(() => {
