@@ -3,6 +3,9 @@ import { useI18n } from "../../../i18n";
 import { SettingsShell } from "../SettingsShared";
 
 const repositoryUrl: string = "https://github.com/kirill-markin/flashcards-open-source-app";
+const thirdPartyNoticesUrl: string = "https://github.com/kirill-markin/flashcards-open-source-app/blob/main/THIRD_PARTY_NOTICES.md";
+const reviewUnicornAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-unicorn-animation_12152598";
+const creativeCommonsAttributionUrl: string = "https://creativecommons.org/licenses/by/4.0/";
 
 export function OpenSourceSettingsScreen(): ReactElement {
   const { t } = useI18n();
@@ -27,6 +30,19 @@ export function OpenSourceSettingsScreen(): ReactElement {
         <article className="content-card settings-summary-card">
           <span className="cell-secondary">{t("openSourceSettings.labels.selfHosting")}</span>
           <p className="subtitle">{t("openSourceSettings.selfHostingDescription")}</p>
+        </article>
+        <article className="content-card settings-summary-card">
+          <span className="cell-secondary">{t("openSourceSettings.labels.notices")}</span>
+          <p className="subtitle">{t("openSourceSettings.thirdPartyNoticeDescription")}</p>
+          <a className="ghost-btn" href={thirdPartyNoticesUrl} rel="noreferrer" target="_blank">
+            {t("openSourceSettings.thirdPartyNoticeFullAction")}
+          </a>
+          <a className="ghost-btn" href={reviewUnicornAnimationUrl} rel="noreferrer" target="_blank">
+            {t("openSourceSettings.thirdPartyNoticeSourceAction")}
+          </a>
+          <a className="ghost-btn" href={creativeCommonsAttributionUrl} rel="noreferrer" target="_blank">
+            {t("openSourceSettings.thirdPartyNoticeLicenseAction")}
+          </a>
         </article>
       </div>
     </SettingsShell>

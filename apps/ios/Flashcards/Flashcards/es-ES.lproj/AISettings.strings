@@ -244,6 +244,11 @@
 "settings.account.openSource.description" = "La app de iOS y el backend son completamente de codigo abierto. Puedes inspeccionar el codigo, usar la licencia MIT y ejecutar toda la pila en tus propios servidores.";
 "settings.account.openSource.repository" = "Repositorio de GitHub (Licencia MIT)";
 "settings.account.openSource.selfHosting" = "Si necesitas tu propio backend, puedes desplegar la misma pila de codigo abierto y apuntar la app de iOS a tu dominio desde Avanzado > Servidor.";
+"settings.account.openSource.section.thirdPartyNotices" = "Avisos de terceros";
+"settings.account.openSource.thirdPartyNotice" = "Animación de unicornio de repaso: Free Unicorn Animation de Google Inc., Copyright © 2026 Google Inc., usada bajo Creative Commons Attribution 4.0. Los runtimes de Lottie usan licencias MIT y Apache 2.0.";
+"settings.account.openSource.thirdPartyNoticeFull" = "Avisos completos de terceros";
+"settings.account.openSource.thirdPartyNoticeSource" = "Fuente del recurso";
+"settings.account.openSource.thirdPartyNoticeLicense" = "Creative Commons Attribution 4.0";
 
 "settings.account.advanced.title" = "Avanzado";
 "settings.account.advanced.section.advanced" = "Avanzado";

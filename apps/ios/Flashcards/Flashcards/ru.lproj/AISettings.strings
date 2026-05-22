@@ -244,6 +244,11 @@
 "settings.account.openSource.description" = "Приложение iOS и серверная часть имеют полностью открытый исходный код. Вы можете проверить код, использовать лицензию MIT и запустить весь стек на своих серверах.";
 "settings.account.openSource.repository" = "Репозиторий GitHub (лицензия MIT)";
 "settings.account.openSource.selfHosting" = "Если вам нужен собственный бэкэнд, вы можете развернуть тот же стек с открытым исходным кодом и указать приложение iOS в своем домене, выбрав «Дополнительно» > «Сервер».";
+"settings.account.openSource.section.thirdPartyNotices" = "Сторонние материалы";
+"settings.account.openSource.thirdPartyNotice" = "Анимация единорога в повторении: Free Unicorn Animation от Google Inc., Copyright © 2026 Google Inc., используется по Creative Commons Attribution 4.0. Среды выполнения Lottie используют лицензии MIT и Apache 2.0.";
+"settings.account.openSource.thirdPartyNoticeFull" = "Полные сведения о сторонних материалах";
+"settings.account.openSource.thirdPartyNoticeSource" = "Источник ассета";
+"settings.account.openSource.thirdPartyNoticeLicense" = "Creative Commons Attribution 4.0";
 
 "settings.account.advanced.title" = "Дополнительно";
 "settings.account.advanced.section.advanced" = "Дополнительно";

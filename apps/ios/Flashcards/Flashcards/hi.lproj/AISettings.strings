@@ -244,6 +244,11 @@
 "settings.account.openSource.description" = "iOS ऐप और बैकएंड पूरी तरह से ओपन सोर्स हैं। आप कोड का निरीक्षण कर सकते हैं, एमआईटी लाइसेंस का उपयोग कर सकते हैं, और पूरे स्टैक को अपने सर्वर पर चला सकते हैं।";
 "settings.account.openSource.repository" = "GitHub रिपॉजिटरी (MIT लाइसेंस)";
 "settings.account.openSource.selfHosting" = "यदि आपको अपने स्वयं के बैकएंड की आवश्यकता है, तो आप उसी ओपन सोर्स स्टैक को तैनात कर सकते हैं और उन्नत> सर्वर से iOS ऐप को अपने डोमेन पर इंगित कर सकते हैं।";
+"settings.account.openSource.section.thirdPartyNotices" = "तृतीय-पक्ष नोटिस";
+"settings.account.openSource.thirdPartyNotice" = "रिव्यू यूनिकॉर्न एनीमेशन: Google Inc. का Free Unicorn Animation, Copyright © 2026 Google Inc., Creative Commons Attribution 4.0 के तहत उपयोग किया गया। Lottie रनटाइम MIT और Apache 2.0 लाइसेंस का उपयोग करते हैं।";
+"settings.account.openSource.thirdPartyNoticeFull" = "पूरे तृतीय-पक्ष नोटिस";
+"settings.account.openSource.thirdPartyNoticeSource" = "एसेट स्रोत";
+"settings.account.openSource.thirdPartyNoticeLicense" = "Creative Commons Attribution 4.0";
 
 "settings.account.advanced.title" = "उन्नत";
 "settings.account.advanced.section.advanced" = "उन्नत";

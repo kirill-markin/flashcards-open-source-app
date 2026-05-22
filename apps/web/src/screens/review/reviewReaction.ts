@@ -201,7 +201,7 @@ export function reviewReactionAnimationDurationMillis(variant: ReviewReactionVar
     case "hardRollingBoulder":
       return 2050;
     case "easyUnicornFlyby":
-      return 2150;
+      return 3800;
   }
 }
 
