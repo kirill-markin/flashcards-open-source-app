@@ -7,13 +7,13 @@ import {
 } from "react";
 import {
   isAuthRedirectError,
-} from "../api";
+} from "../../api";
 import {
   loadCloudSettings,
-} from "../localDb/cloudSettings";
+} from "../../localDb/cloudSettings";
 import {
   loadWorkspaceSettings,
-} from "../localDb/workspace";
+} from "../../localDb/workspace";
 import type {
   Card,
   CloudSettings,
@@ -25,19 +25,19 @@ import type {
   UpdateDeckInput,
   WorkspaceSchedulerSettings,
   WorkspaceSummary,
-} from "../types";
+} from "../../types";
 import {
   normalizeCaughtError,
-} from "../observability/webObservability";
+} from "../../observability/webObservability";
 import {
   getErrorMessage,
   nowIso,
-} from "./domain";
+} from "../domain";
 import {
   invalidateLocalProgress,
   invalidateLocalReviewSchedule,
   invalidateProgress,
-} from "./progress/progressInvalidation";
+} from "../progress/progressInvalidation";
 import {
   requireCloudInstallationId,
 } from "./syncCloudSettings";
@@ -67,8 +67,8 @@ import {
   validateSeedRequest,
 } from "./syncSeed";
 import type { TestSeedRequest, TestSeedResult } from "./testSeedBridge";
-import type { SessionLoadState } from "./types";
-import type { SessionVerificationState } from "./warmStart";
+import type { SessionLoadState } from "../context/types";
+import type { SessionVerificationState } from "../session/warmStart";
 
 type UseSyncEngineParams = Readonly<{
   sessionLoadState: SessionLoadState;

@@ -1,5 +1,5 @@
-import { getStableInstallationId } from "../clientIdentity";
-import type { CloudSettings, SessionInfo } from "../types";
+import { getStableInstallationId } from "../../clientIdentity";
+import type { CloudSettings, SessionInfo } from "../../types";
 
 export function buildLinkingReadyCloudSettings(session: SessionInfo): CloudSettings {
   return {

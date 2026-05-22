@@ -1,13 +1,13 @@
 import type { Dispatch, SetStateAction } from "react";
-import type { TranslationKey } from "../i18n";
+import type { TranslationKey } from "../../i18n";
 import type {
   CloudSettings,
   ResetWorkspaceProgressResponse,
   SessionInfo,
   WorkspaceResetProgressPreview,
   WorkspaceSummary,
-} from "../types";
-import type { SessionLoadState } from "./types";
+} from "../../types";
+import type { SessionLoadState } from "../context/types";
 import type { SessionVerificationState } from "./warmStart";
 
 export type WorkspaceSessionState = Readonly<{

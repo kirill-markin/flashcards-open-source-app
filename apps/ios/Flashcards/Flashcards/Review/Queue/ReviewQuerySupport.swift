@@ -84,7 +84,7 @@ private func activeTagNames(cards: [Card]) -> [String] {
 // Keep review queue ordering aligned with:
 // - apps/ios/Flashcards/Flashcards/Database/CardStore/CardStore+ReadSQL.swift review queue ORDER BY
 // - apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/ReviewSupport.kt::sortCardsForReviewQueue
-// - apps/web/src/appData/domain.ts::compareCardsForReviewOrder
+// - apps/web/src/appData/domain/index.ts::compareCardsForReviewOrder
 // Ordering contract: recent due cards within the inclusive one-hour window first, then older due cards,
 // then nil dueAt new cards, then future cards, then malformed dueAt values last.
 // If this changes, mirror the same change across all three clients in the same change.

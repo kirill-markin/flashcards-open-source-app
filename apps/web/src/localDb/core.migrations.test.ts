@@ -2,7 +2,7 @@
 
 import "fake-indexeddb/auto";
 import { describe, expect, it, vi } from "vitest";
-import { malformedDueAtBucketMillis, nullDueAtBucketMillis } from "../appData/dueAt";
+import { malformedDueAtBucketMillis, nullDueAtBucketMillis } from "../appData/domain/dueAt";
 import { clearWebSyncCache } from "./cache";
 import { closeDatabaseAfter, deleteDatabase, getAllFromStore, openDatabase, type StoredCard } from "./core";
 import { listOutboxRecords, type PersistedOutboxRecord } from "./outbox";

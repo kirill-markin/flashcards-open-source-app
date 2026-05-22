@@ -7,7 +7,7 @@ import {
   matchesCardFilter,
   matchesDeckFilterDefinition,
 } from "../appData/domain";
-import { deriveDueAtBucketMillis, deriveDueAtMillis } from "../appData/dueAt";
+import { deriveDueAtBucketMillis, deriveDueAtMillis } from "../appData/domain/dueAt";
 import { loadAllowedCardIdsForTags, putCardTagRecords, writeCardTagRecords } from "./cardTags";
 import {
   closeDatabaseAfter,

@@ -59,8 +59,8 @@ When adding a new web locale, inspect all of these places:
 5. [apps/web/src/i18n/context.tsx](../apps/web/src/i18n/context.tsx)
 6. [apps/web/src/main.tsx](../apps/web/src/main.tsx)
 7. [apps/web/src/App.tsx](../apps/web/src/App.tsx)
-8. [apps/web/src/appData/provider.tsx](../apps/web/src/appData/provider.tsx)
-9. [apps/web/src/appData/useWorkspaceSession.ts](../apps/web/src/appData/useWorkspaceSession.ts)
+8. [apps/web/src/appData/context/provider.tsx](../apps/web/src/appData/context/provider.tsx)
+9. [apps/web/src/appData/session/useWorkspaceSession.ts](../apps/web/src/appData/session/useWorkspaceSession.ts)
 10. [apps/web/src/api.ts](../apps/web/src/api.ts)
 11. [apps/web/src/access/browserAccess.ts](../apps/web/src/access/browserAccess.ts)
 12. [apps/web/src/chat/sessionController/context.tsx](../apps/web/src/chat/sessionController/context.tsx)
@@ -153,7 +153,7 @@ Check these files even if you do not need to change them:
 
 - [apps/web/src/i18n/context.tsx](../apps/web/src/i18n/context.tsx)
 - [apps/web/src/main.tsx](../apps/web/src/main.tsx)
-- [apps/web/src/appData/provider.tsx](../apps/web/src/appData/provider.tsx)
+- [apps/web/src/appData/context/provider.tsx](../apps/web/src/appData/context/provider.tsx)
 
 The new locale should still flow through:
 
@@ -185,7 +185,7 @@ These files are required audit points for a new locale:
 - [apps/web/src/App.tsx](../apps/web/src/App.tsx)
   Route-loading fallbacks, account-deletion flow copy, session-restoring copy, sign-in CTA text.
 
-- [apps/web/src/appData/useWorkspaceSession.ts](../apps/web/src/appData/useWorkspaceSession.ts)
+- [apps/web/src/appData/session/useWorkspaceSession.ts](../apps/web/src/appData/session/useWorkspaceSession.ts)
   Workspace/session runtime errors, action-locked messages, account-deleted copy, and provider-fed translations that can be missed because they do not live in screen components.
 
 - [apps/web/src/access/browserAccess.ts](../apps/web/src/access/browserAccess.ts)

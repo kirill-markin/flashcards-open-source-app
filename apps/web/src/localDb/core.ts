@@ -5,7 +5,7 @@ import type {
   ReviewEvent,
   WorkspaceSchedulerSettings,
 } from "../types";
-import { deriveDueAtBucketMillis, deriveDueAtMillis } from "../appData/dueAt";
+import { deriveDueAtBucketMillis, deriveDueAtMillis } from "../appData/domain/dueAt";
 
 export type StoredCard = Readonly<{
   workspaceId: string;

@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import type { ProgressSummarySnapshot, ProgressSummarySourceState, ReviewProgressBadgeState } from "../../types";
 import { useProgressInvalidationState } from "./progressInvalidation";
 import { useProgressSource } from "./progressSource";
-import { useAppData } from "../provider";
+import { useAppData } from "../context/provider";
 
 const EMPTY_REVIEW_PROGRESS_BADGE_STATE: ReviewProgressBadgeState = {
   streakDays: 0,

@@ -21,7 +21,7 @@ Repository implementations:
 - Android scheduler: `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FsrsScheduler.kt`
 - Android local persistence: `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/repository/LocalRepositories.kt`
 - web FSRS type mirror: `apps/web/src/types.ts`
-- web local review submit flow: `apps/web/src/appData/useSyncEngine.ts`
+- web local review submit flow: `apps/web/src/appData/sync/syncLocalMutations.ts`
 - iOS settings UI: `apps/ios/Flashcards/Flashcards/SettingsView.swift`
 - Android settings UI: `apps/android/feature/settings/src/main/java/com/flashcardsopensourceapp/feature/settings/SchedulerSettingsRoute.kt`
 
@@ -42,7 +42,7 @@ Supporting mirrors around the scheduler contract:
 - backend review persistence: `apps/backend/src/cards.ts`
 - iOS review persistence: `apps/ios/Flashcards/Flashcards/LocalDatabase.swift`
 - Android review persistence: `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/repository/LocalRepositories.kt`
-- web local review submit flow reusing backend scheduler: `apps/web/src/appData/useSyncEngine.ts`
+- web local review submit flow reusing backend scheduler: `apps/web/src/appData/sync/syncLocalMutations.ts`
 - backend scheduler settings: `apps/backend/src/workspaceSchedulerSettings.ts`
 - iOS scheduler settings: `apps/ios/Flashcards/Flashcards/LocalDatabase.swift`
 - Android scheduler settings: `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/WorkspaceSchedulerSettingsSupport.kt`

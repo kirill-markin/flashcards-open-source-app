@@ -1,6 +1,6 @@
 import type {
   CreateCardInput,
-} from "../types";
+} from "../../types";
 
 export type TestSeedReviewInput = Readonly<{
   rating: 0 | 1 | 2 | 3;
