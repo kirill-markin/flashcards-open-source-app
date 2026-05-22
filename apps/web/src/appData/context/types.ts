@@ -13,8 +13,8 @@ import type {
   WorkspaceResetProgressPreview,
   WorkspaceSchedulerSettings,
   WorkspaceSummary,
-} from "../types";
-import type { SessionVerificationState } from "./warmStart";
+} from "../../types";
+import type { SessionVerificationState } from "../session/warmStart";
 
 export type SessionLoadState = "loading" | "ready" | "redirecting" | "selecting_workspace" | "error" | "deleted";
 

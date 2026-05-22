@@ -6,18 +6,18 @@ import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vite
 import {
   isBrowserReauthRequired,
   markBrowserReauthRequired,
-} from "../accountDeletion";
-import { setNavigationHandlerForTests, resetApiClientStateForTests } from "../api";
-import { INSTALLATION_ID_STORAGE_KEY } from "../clientIdentity";
-import { LOCALE_PREFERENCE_STORAGE_KEY } from "../i18n/runtime";
+} from "../../accountDeletion";
+import { setNavigationHandlerForTests, resetApiClientStateForTests } from "../../api";
+import { INSTALLATION_ID_STORAGE_KEY } from "../../clientIdentity";
+import { LOCALE_PREFERENCE_STORAGE_KEY } from "../../i18n/runtime";
 import { loadWarmStartSnapshot, WARM_START_SNAPSHOT_STORAGE_KEY } from "./warmStart";
 import { useWorkspaceSession } from "./useWorkspaceSession";
-import { putCloudSettings, loadCloudSettings } from "../localDb/cloudSettings";
-import type { CloudSettings, SessionInfo, WorkspaceSummary } from "../types";
-import type { TranslationKey } from "../i18n";
-import type { SessionLoadState } from "./types";
+import { putCloudSettings, loadCloudSettings } from "../../localDb/cloudSettings";
+import type { CloudSettings, SessionInfo, WorkspaceSummary } from "../../types";
+import type { TranslationKey } from "../../i18n";
+import type { SessionLoadState } from "../context/types";
 import type { SessionVerificationState } from "./warmStart";
-import { clearWebSyncCache } from "../localDb/cache";
+import { clearWebSyncCache } from "../../localDb/cache";
 
 const observabilityMocks = vi.hoisted(() => ({
   addWebBreadcrumbMock: vi.fn(),
@@ -26,7 +26,7 @@ const observabilityMocks = vi.hoisted(() => ({
   setWebObservabilityUserMock: vi.fn(),
 }));
 
-vi.mock("../observability/webObservability", () => ({
+vi.mock("../../observability/webObservability", () => ({
   addWebBreadcrumb: observabilityMocks.addWebBreadcrumbMock,
   captureWebException: observabilityMocks.captureWebExceptionMock,
   captureWebWarning: observabilityMocks.captureWebWarningMock,

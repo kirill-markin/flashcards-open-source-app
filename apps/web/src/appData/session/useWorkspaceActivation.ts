@@ -4,18 +4,18 @@ import {
   isAuthRedirectError,
   listWorkspaces,
   selectWorkspace,
-} from "../api";
-import { clearAllLocalBrowserData } from "../accountDeletion";
-import { putCloudSettings } from "../localDb/cloudSettings";
+} from "../../api";
+import { clearAllLocalBrowserData } from "../../accountDeletion";
+import { putCloudSettings } from "../../localDb/cloudSettings";
 import type {
   SessionInfo,
   WorkspaceSummary,
-} from "../types";
+} from "../../types";
 import {
   findWorkspaceById,
   getErrorMessage,
   markSelectedWorkspaces,
-} from "./domain";
+} from "../domain";
 import {
   buildLinkedCloudSettings,
 } from "./workspaceSessionCloud";

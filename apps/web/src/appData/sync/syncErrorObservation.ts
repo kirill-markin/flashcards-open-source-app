@@ -2,12 +2,12 @@ import {
   ApiContractError,
   ApiError,
   isAuthRedirectError,
-} from "../api";
-import { captureApiContractError } from "../observability/apiContractObservation";
+} from "../../api";
+import { captureApiContractError } from "../../observability/apiContractObservation";
 import {
   captureWebException,
   type WebObservationScope,
-} from "../observability/webObservability";
+} from "../../observability/webObservability";
 
 const workspaceNotFoundErrorCode = "WORKSPACE_NOT_FOUND";
 const workspaceSyncDiscardedErrorName = "WorkspaceSyncDiscardedError";

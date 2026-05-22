@@ -1,10 +1,10 @@
-import { computeReviewSchedule, type ReviewRating } from "../../../backend/src/schedule";
-import { loadCardById, putCard } from "../localDb/cards";
-import { loadCloudSettings } from "../localDb/cloudSettings";
-import { loadDeckById, putDeck } from "../localDb/decks";
-import { putOutboxRecord, type PersistedOutboxRecord } from "../localDb/outbox";
-import { putReviewEvent } from "../localDb/reviews";
-import { loadWorkspaceSettings } from "../localDb/workspace";
+import { computeReviewSchedule, type ReviewRating } from "../../../../backend/src/schedule";
+import { loadCardById, putCard } from "../../localDb/cards";
+import { loadCloudSettings } from "../../localDb/cloudSettings";
+import { loadDeckById, putDeck } from "../../localDb/decks";
+import { putOutboxRecord, type PersistedOutboxRecord } from "../../localDb/outbox";
+import { putReviewEvent } from "../../localDb/reviews";
+import { loadWorkspaceSettings } from "../../localDb/workspace";
 import type {
   Card,
   CreateCardInput,
@@ -12,7 +12,7 @@ import type {
   Deck,
   UpdateCardInput,
   UpdateDeckInput,
-} from "../types";
+} from "../../types";
 import {
   buildCardUpsertOperation,
   buildDeck,
@@ -31,7 +31,7 @@ import {
   normalizeUpdateCardInput,
   normalizeUpdateDeckInput,
   toReviewableCardState,
-} from "./domain";
+} from "../domain";
 import {
   loadRequiredCloudInstallationId,
   requireCloudInstallationId,
