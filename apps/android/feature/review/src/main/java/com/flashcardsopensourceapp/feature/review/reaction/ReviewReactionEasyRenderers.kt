@@ -30,7 +30,7 @@ internal fun DrawScope.drawEasyReviewReaction(
             motionMode = motionMode
         )
 
-        ReviewReactionVariant.EASY_UNICORN_FLYBY -> drawEasyUnicornFlyby(
+        ReviewReactionVariant.EASY_UNICORN_FLYBY -> drawEasyCrownBounce(
             progress = progress,
             motionMode = motionMode
         )
@@ -183,54 +183,4 @@ private fun DrawScope.drawEasyCrownBounce(
         radius = 14f * scale * (0.80f + sin(progress * PI.toFloat() * 5f) * 0.18f + phase.enter * 0.20f),
         color = reviewReactionYellowColor
     )
-}
-
-private fun DrawScope.drawEasyUnicornFlyby(
-    progress: Float,
-    motionMode: ReviewReactionMotionMode
-) {
-    val phase: ReviewReactionPhaseProgress = reviewReactionPhaseProgress(
-        progress = progress,
-        enterEnd = 0.42f,
-        exitStart = 0.80f
-    )
-    val displayCenter: Offset = Offset(x = size.width * 0.56f, y = size.height * 0.30f)
-    val center: Offset = if (motionMode == ReviewReactionMotionMode.REDUCED) {
-        displayCenter
-    } else if (progress < 0.42f) {
-        cubicBezierPoint(
-            start = Offset(x = size.width * 1.18f, y = size.height * 0.22f),
-            control1 = Offset(x = size.width * 0.92f, y = size.height * 0.08f),
-            control2 = Offset(x = size.width * 0.68f, y = size.height * 0.20f),
-            end = displayCenter,
-            progress = reviewReactionEaseOutCubic(progress = phase.enter)
-        )
-    } else if (progress < 0.80f) {
-        Offset(
-            x = displayCenter.x + sin(phase.hold * PI.toFloat() * 2f) * 20f,
-            y = displayCenter.y + sin(phase.hold * PI.toFloat() * 4f) * 14f
-        )
-    } else {
-        cubicBezierPoint(
-            start = displayCenter,
-            control1 = Offset(x = size.width * 0.36f, y = size.height * 0.16f),
-            control2 = Offset(x = size.width * 0.08f, y = size.height * 0.12f),
-            end = Offset(x = size.width * -0.24f, y = size.height * 0.28f),
-            progress = reviewReactionEaseInCubic(progress = phase.exit)
-        )
-    }
-    val scaleMultiplier: Float = if (motionMode == ReviewReactionMotionMode.REDUCED) {
-        1f
-    } else {
-        0.84f + reviewReactionEaseOutBack(progress = phase.enter, overshoot = 1.18f) * 0.20f -
-            phase.exit * 0.12f
-    }
-    val scale: Float = min(size.width, size.height) / 410f * scaleMultiplier
-    drawRainbowTrail(
-        center = Offset(x = center.x + 20f * scale, y = center.y + 26f * scale),
-        length = min(size.width, size.height) * 0.42f,
-        scale = scale,
-        progress = if (motionMode == ReviewReactionMotionMode.REDUCED) 0.70f else phase.enter + phase.hold * 0.30f
-    )
-    drawUnicorn(center = center, scale = scale, rotationDegrees = -8f + sin(progress * PI.toFloat() * 4f) * 4f)
 }

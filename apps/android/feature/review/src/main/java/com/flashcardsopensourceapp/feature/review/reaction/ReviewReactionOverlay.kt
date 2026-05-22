@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.review.reaction
 
+import android.util.Log
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.LinearEasing
@@ -31,15 +32,23 @@ private const val reviewReactionAnimationMinimumProgress: Float = 0f
 private const val reviewReactionAnimationMaximumProgress: Float = 1f
 private const val reviewReactionCleanupExtraMillis: Long = 80L
 private const val reviewReactionReducedMotionDrawingProgress: Float = 0.55f
+private const val reviewReactionLogTag: String = "ReviewReaction"
 private const val reviewEasyUnicornAnimationFrameScale: Float = 0.52f
 private const val reviewEasyUnicornAnimationCenterX: Float = 0.56f
 private const val reviewEasyUnicornAnimationCenterY: Float = 0.30f
-private val reviewReactionExpensiveAnimationFallbackVariant: ReviewReactionVariant =
+private val reviewReactionLottieFallbackVariant: ReviewReactionVariant =
     ReviewReactionVariant.EASY_CROWN_BOUNCE
 
-private enum class ReviewEasyUnicornRenderer {
-    CANVAS,
+private enum class ReviewReactionLottieRenderer {
+    CROWN_FALLBACK,
     LOTTIE
+}
+
+private fun isReviewReactionLottieVariant(variant: ReviewReactionVariant): Boolean {
+    return when (variant) {
+        ReviewReactionVariant.EASY_UNICORN_FLYBY -> true
+        else -> false
+    }
 }
 
 @Composable
@@ -54,12 +63,19 @@ internal fun ReviewReactionOverlay(
     )
     val reviewEasyUnicornCompositionFailure: Throwable? = reviewEasyUnicornCompositionResult.error
     if (reviewEasyUnicornCompositionFailure != null) {
-        throw IllegalStateException(
-            "Review easy unicorn Lottie asset failed to load.",
-            reviewEasyUnicornCompositionFailure
-        )
+        LaunchedEffect(reviewEasyUnicornCompositionFailure) {
+            Log.w(
+                reviewReactionLogTag,
+                "Review reaction Lottie asset failed to load.",
+                reviewEasyUnicornCompositionFailure
+            )
+        }
     }
-    val reviewEasyUnicornComposition: LottieComposition? = reviewEasyUnicornCompositionResult.value
+    val reviewEasyUnicornComposition: LottieComposition? = if (reviewEasyUnicornCompositionFailure == null) {
+        reviewEasyUnicornCompositionResult.value
+    } else {
+        null
+    }
 
     Box(
         modifier = modifier
@@ -86,17 +102,17 @@ private fun ReviewReactionCanvas(
     reviewEasyUnicornComposition: LottieComposition?,
     onEventFinished: (String) -> Unit
 ) {
-    if (event.variant == ReviewReactionVariant.EASY_UNICORN_FLYBY) {
-        val reviewEasyUnicornRenderer: ReviewEasyUnicornRenderer = remember(event.id) {
+    if (isReviewReactionLottieVariant(variant = event.variant)) {
+        val reviewReactionLottieRenderer: ReviewReactionLottieRenderer = remember(event.id) {
             if (reviewEasyUnicornComposition == null) {
-                ReviewEasyUnicornRenderer.CANVAS
+                ReviewReactionLottieRenderer.CROWN_FALLBACK
             } else {
-                ReviewEasyUnicornRenderer.LOTTIE
+                ReviewReactionLottieRenderer.LOTTIE
             }
         }
 
-        if (reviewEasyUnicornRenderer == ReviewEasyUnicornRenderer.LOTTIE) {
-            val composition: LottieComposition = reviewEasyUnicornComposition ?: return
+        val composition: LottieComposition? = reviewEasyUnicornComposition
+        if (reviewReactionLottieRenderer == ReviewReactionLottieRenderer.LOTTIE && composition != null) {
             ReviewReactionLottieAnimation(
                 event = event,
                 motionMode = motionMode,
@@ -107,8 +123,8 @@ private fun ReviewReactionCanvas(
         }
     }
 
-    val drawingEvent: ReviewReactionEvent = if (event.variant == ReviewReactionVariant.EASY_UNICORN_FLYBY) {
-        event.copy(variant = reviewReactionExpensiveAnimationFallbackVariant)
+    val drawingEvent: ReviewReactionEvent = if (isReviewReactionLottieVariant(variant = event.variant)) {
+        event.copy(variant = reviewReactionLottieFallbackVariant)
     } else {
         event
     }
