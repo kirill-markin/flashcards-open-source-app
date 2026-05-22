@@ -1,7 +1,7 @@
 package com.flashcardsopensourceapp.data.local.model
 
 // Keep review queue ordering aligned with:
-// - apps/ios/Flashcards/Flashcards/Review/ReviewQuerySupport.swift::compareCardsForReviewOrder
+// - apps/ios/Flashcards/Flashcards/Review/Queue/ReviewQuerySupport.swift::compareCardsForReviewOrder
 // - apps/ios/Flashcards/Flashcards/Database/CardStore/CardStore+ReadSQL.swift review queue ORDER BY
 // - apps/web/src/appData/domain/index.ts::compareCardsForReviewOrder
 // Active queue contract: recent due cards within the inclusive one-hour window first,
