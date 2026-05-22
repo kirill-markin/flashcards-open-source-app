@@ -1,0 +1,95 @@
+@container review-screen (max-width: 980px) {
+  .review-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .review-queue-panel {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .review-screen-panel {
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .chat-layout-shell-sidebar-open .review-screen-panel {
+    height: auto;
+    min-height: 0;
+    max-height: none;
+  }
+
+  .review-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .review-pane {
+    overflow: visible;
+    scrollbar-gutter: auto;
+    scroll-padding-bottom: 0;
+  }
+
+  .review-queue-panel {
+    overflow: visible;
+  }
+
+  .review-queue-head {
+    position: static;
+    padding-bottom: 0;
+  }
+
+  .review-queue-list {
+    overflow: visible;
+    scrollbar-gutter: auto;
+    padding-inline-end: 0;
+  }
+
+  .review-editor-overlay {
+    padding: 16px;
+  }
+
+  .review-screen-head-actions {
+    width: 100%;
+  }
+
+  .review-filter-summary-wrap,
+  .review-filter-menu-wrap {
+    width: 100%;
+  }
+
+  .review-screen-head-actions > .review-filter-menu-wrap {
+    min-width: 0;
+  }
+
+  .review-screen-head-badge,
+  .review-filter-trigger {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .review-pane,
+  .review-queue-panel {
+    padding: 10px;
+  }
+
+  .review-pane-head-actions {
+    width: auto;
+  }
+
+  .review-pane-head-actions > .ghost-btn,
+  .review-pane-head-actions > .primary-btn {
+    width: auto;
+  }
+
+  .review-card-surface {
+    min-height: 150px;
+    padding: 12px;
+  }
+
+  .rating-bar {
+    grid-template-columns: 1fr;
+  }
+}

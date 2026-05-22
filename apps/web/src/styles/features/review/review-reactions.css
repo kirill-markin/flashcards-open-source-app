@@ -1,0 +1,711 @@
+.review-rating-reaction-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.review-rating-reaction-event {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  animation: review-reaction-event-fade var(--review-reaction-duration) linear both;
+}
+
+.review-rating-reaction-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform-origin: 50% 50%;
+}
+
+.review-rating-reaction-art * {
+  vector-effect: non-scaling-stroke;
+}
+
+.review-reaction-red-stroke,
+.review-reaction-orange-stroke,
+.review-reaction-yellow-stroke,
+.review-reaction-green-stroke,
+.review-reaction-blue-stroke,
+.review-reaction-purple-stroke,
+.review-reaction-pink-stroke,
+.review-reaction-white-stroke,
+.review-reaction-dark-stroke,
+.review-reaction-slate-stroke,
+.review-reaction-stone-stroke,
+.review-reaction-red-shadow-stroke,
+.review-reaction-yellow-shadow-stroke,
+.review-reaction-green-shadow-stroke {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.review-reaction-red-stroke {
+  stroke: #f5222d;
+}
+
+.review-reaction-orange-stroke {
+  stroke: #ff7a1a;
+}
+
+.review-reaction-yellow-stroke {
+  stroke: #ffd324;
+}
+
+.review-reaction-green-stroke {
+  stroke: #22c55e;
+}
+
+.review-reaction-blue-stroke {
+  stroke: #38a3ff;
+}
+
+.review-reaction-purple-stroke {
+  stroke: #a855f7;
+}
+
+.review-reaction-pink-stroke {
+  stroke: #ff5db1;
+}
+
+.review-reaction-white-stroke {
+  stroke: rgba(255, 255, 255, 0.96);
+}
+
+.review-reaction-dark-stroke {
+  stroke: rgba(17, 19, 24, 0.72);
+}
+
+.review-reaction-slate-stroke {
+  stroke: rgba(236, 241, 248, 0.84);
+}
+
+.review-reaction-stone-stroke {
+  stroke: rgba(32, 35, 42, 0.45);
+}
+
+.review-reaction-red-shadow-stroke {
+  stroke: rgba(245, 34, 45, 0.28);
+}
+
+.review-reaction-yellow-shadow-stroke {
+  stroke: rgba(255, 211, 36, 0.30);
+}
+
+.review-reaction-green-shadow-stroke {
+  stroke: rgba(34, 197, 94, 0.28);
+}
+
+.review-reaction-red-fill {
+  fill: #f5222d;
+}
+
+.review-reaction-orange-fill {
+  fill: #ff7a1a;
+}
+
+.review-reaction-yellow-fill {
+  fill: #ffd324;
+}
+
+.review-reaction-green-fill {
+  fill: #22c55e;
+}
+
+.review-reaction-blue-fill {
+  fill: #38a3ff;
+}
+
+.review-reaction-purple-fill {
+  fill: #a855f7;
+}
+
+.review-reaction-pink-fill {
+  fill: #ff5db1;
+}
+
+.review-reaction-white-fill,
+.review-reaction-plane-fill {
+  fill: rgba(255, 255, 255, 0.96);
+}
+
+.review-reaction-dark-fill {
+  fill: rgba(17, 19, 24, 0.74);
+}
+
+.review-reaction-slate-fill {
+  fill: #404956;
+}
+
+.review-reaction-stone-fill {
+  fill: #8f969f;
+}
+
+.review-reaction-dust-fill {
+  fill: rgba(174, 180, 189, 0.58);
+}
+
+.review-reaction-sparkle-fill {
+  fill: #fff06a;
+}
+
+.review-rating-reaction-againRedScribbleSlash .review-rating-reaction-art {
+  animation: review-reaction-scribble-art var(--review-reaction-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.review-rating-reaction-againRewindVortex .review-rating-reaction-art {
+  animation: review-reaction-vortex-art var(--review-reaction-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.review-rating-reaction-againStampFlyby .review-rating-reaction-art {
+  animation: review-reaction-stamp-flyby-art var(--review-reaction-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.review-rating-reaction-againWarningTape .review-rating-reaction-art {
+  animation: review-reaction-warning-tape-art var(--review-reaction-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.review-rating-reaction-hardHourglassSand .review-rating-reaction-art {
+  animation: review-reaction-hourglass-art var(--review-reaction-duration) ease-in-out both;
+}
+
+.review-rating-reaction-hardFallingWeight .review-rating-reaction-art {
+  animation: review-reaction-weight-art var(--review-reaction-duration) cubic-bezier(0.3, 0, 0.16, 1) both;
+}
+
+.review-rating-reaction-hardYellowCrack .review-rating-reaction-art {
+  animation: review-reaction-crack-art var(--review-reaction-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.review-rating-reaction-hardRollingBoulder .review-rating-reaction-art {
+  animation: review-reaction-boulder-art var(--review-reaction-duration) cubic-bezier(0.3, 0, 0.16, 1) both;
+}
+
+.review-rating-reaction-goodHandDrawnCheck .review-rating-reaction-art {
+  animation: review-reaction-check-art var(--review-reaction-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.review-rating-reaction-goodLightSweep .review-rating-reaction-art {
+  animation: review-reaction-light-sweep-art var(--review-reaction-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.review-rating-reaction-goodPaperPlaneCheck .review-rating-reaction-art {
+  animation: review-reaction-plane-art var(--review-reaction-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.review-rating-reaction-goodCheckSealBounce .review-rating-reaction-art {
+  animation: review-reaction-seal-art var(--review-reaction-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.review-rating-reaction-easySparkleBurst .review-rating-reaction-art {
+  animation: review-reaction-sparkle-art var(--review-reaction-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.review-rating-reaction-easyRainbowStreak .review-rating-reaction-art {
+  animation: review-reaction-rainbow-art var(--review-reaction-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.review-rating-reaction-easyCrownBounce .review-rating-reaction-art {
+  animation: review-reaction-crown-art var(--review-reaction-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.review-rating-reaction-easyUnicornFlyby .review-rating-reaction-art {
+  animation: review-reaction-unicorn-art var(--review-reaction-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.review-reaction-vortex-mark,
+.review-reaction-sand-dot,
+.review-reaction-dust-fill,
+.review-reaction-sparkle-fill,
+.review-reaction-unicorn-mark {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.review-reaction-vortex-mark {
+  animation: review-reaction-part-spin var(--review-reaction-duration) ease-in-out both;
+}
+
+.review-reaction-sand-dot {
+  animation: review-reaction-sand-dot var(--review-reaction-duration) ease-in-out both;
+}
+
+.review-reaction-dust-one,
+.review-reaction-dust-two,
+.review-reaction-dust-three {
+  animation: review-reaction-dust-puff var(--review-reaction-duration) ease-out both;
+}
+
+.review-reaction-sparkle-fill {
+  animation: review-reaction-sparkle-twinkle var(--review-reaction-duration) ease-in-out both;
+}
+
+.review-reaction-unicorn-mark {
+  animation: review-reaction-unicorn-gallop var(--review-reaction-duration) ease-in-out both;
+}
+
+@keyframes review-reaction-event-fade {
+  0% {
+    opacity: 0;
+  }
+
+  8%,
+  82% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes review-reaction-scribble-art {
+  0% {
+    transform: scale(0.92) rotate(-4deg);
+  }
+
+  18% {
+    transform: scale(1.02) rotate(2deg);
+  }
+
+  55% {
+    transform: scale(1) rotate(-1deg);
+  }
+
+  82% {
+    transform: scale(1.01) rotate(1deg);
+  }
+
+  100% {
+    transform: scale(0.96) rotate(0deg);
+  }
+}
+
+@keyframes review-reaction-vortex-art {
+  0% {
+    transform: scale(0.72) rotate(-35deg);
+  }
+
+  46% {
+    transform: scale(1.04) rotate(170deg);
+  }
+
+  78% {
+    transform: scale(1) rotate(290deg);
+  }
+
+  100% {
+    transform: scale(0.86) rotate(360deg);
+  }
+}
+
+@keyframes review-reaction-stamp-flyby-art {
+  0% {
+    transform: translate3d(-48%, 22%, 0) scale(0.68) rotate(-28deg);
+  }
+
+  38% {
+    transform: translate3d(0, 0, 0) scale(1.16) rotate(8deg);
+  }
+
+  58% {
+    transform: translate3d(1%, -3%, 0) scale(1) rotate(3deg);
+  }
+
+  76% {
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+  }
+
+  100% {
+    transform: translate3d(48%, -14%, 0) scale(0.82) rotate(-18deg);
+  }
+}
+
+@keyframes review-reaction-warning-tape-art {
+  0% {
+    transform: translate3d(0, -6%, 0) scaleX(0.20) rotate(-3deg);
+  }
+
+  34% {
+    transform: translate3d(0, 0, 0) scaleX(1.03) rotate(1deg);
+  }
+
+  80% {
+    transform: translate3d(0, 0, 0) scaleX(1) rotate(0deg);
+  }
+
+  100% {
+    transform: translate3d(5%, 0, 0) scaleX(0.98) rotate(2deg);
+  }
+}
+
+@keyframes review-reaction-hourglass-art {
+  0% {
+    transform: scale(0.92) rotate(-6deg);
+  }
+
+  34% {
+    transform: scale(1.03) rotate(5deg);
+  }
+
+  60% {
+    transform: scale(1) rotate(-3deg);
+  }
+
+  84% {
+    transform: scale(1.01) rotate(2deg);
+  }
+
+  100% {
+    transform: scale(0.94) rotate(0deg);
+  }
+}
+
+@keyframes review-reaction-weight-art {
+  0% {
+    transform: translate3d(0, -56%, 0) scale(0.88, 1.14);
+  }
+
+  52% {
+    transform: translate3d(0, 0, 0) scale(1.16, 0.86);
+  }
+
+  64% {
+    transform: translate3d(0, -8%, 0) scale(0.96, 1.08);
+  }
+
+  82% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  100% {
+    transform: translate3d(0, 6%, 0) scale(0.90);
+  }
+}
+
+@keyframes review-reaction-crack-art {
+  0% {
+    transform: scale(0.82, 0.95) rotate(-2deg);
+  }
+
+  28% {
+    transform: scale(1.04, 1) rotate(1deg);
+  }
+
+  64% {
+    transform: scale(1) rotate(-1deg);
+  }
+
+  82% {
+    transform: scale(1.02) rotate(1deg);
+  }
+
+  100% {
+    transform: scale(0.96) rotate(0deg);
+  }
+}
+
+@keyframes review-reaction-boulder-art {
+  0% {
+    transform: translate3d(-48%, 0, 0) rotate(-70deg) scale(0.88);
+  }
+
+  34% {
+    transform: translate3d(-6%, -4%, 0) rotate(160deg) scale(1.04);
+  }
+
+  62% {
+    transform: translate3d(0, 0, 0) rotate(330deg) scale(1);
+  }
+
+  82% {
+    transform: translate3d(2%, -2%, 0) rotate(410deg) scale(1.02);
+  }
+
+  100% {
+    transform: translate3d(48%, -4%, 0) rotate(560deg) scale(0.86);
+  }
+}
+
+@keyframes review-reaction-check-art {
+  0% {
+    transform: scale(0.76) rotate(-7deg);
+  }
+
+  62% {
+    transform: scale(1.05) rotate(2deg);
+  }
+
+  84% {
+    transform: scale(1) rotate(-1deg);
+  }
+
+  100% {
+    transform: scale(0.94) rotate(0deg);
+  }
+}
+
+@keyframes review-reaction-light-sweep-art {
+  0% {
+    transform: translate3d(-42%, 9%, 0) scale(0.92) rotate(-2deg);
+  }
+
+  38% {
+    transform: translate3d(0, 0, 0) scale(1.02) rotate(1deg);
+  }
+
+  78% {
+    transform: translate3d(0, -1%, 0) scale(1) rotate(0deg);
+  }
+
+  100% {
+    transform: translate3d(42%, -8%, 0) scale(0.92) rotate(2deg);
+  }
+}
+
+@keyframes review-reaction-plane-art {
+  0% {
+    transform: translate3d(-44%, 22%, 0) scale(0.82) rotate(-18deg);
+  }
+
+  46% {
+    transform: translate3d(0, -5%, 0) scale(1.05) rotate(4deg);
+  }
+
+  78% {
+    transform: translate3d(2%, -3%, 0) scale(1) rotate(-2deg);
+  }
+
+  100% {
+    transform: translate3d(46%, -2%, 0) scale(0.88) rotate(12deg);
+  }
+}
+
+@keyframes review-reaction-seal-art {
+  0% {
+    transform: scale(0.52) rotate(-18deg);
+  }
+
+  36% {
+    transform: scale(1.18) rotate(-5deg);
+  }
+
+  58% {
+    transform: translate3d(0, -3%, 0) scale(1.02) rotate(4deg);
+  }
+
+  82% {
+    transform: scale(1) rotate(-2deg);
+  }
+
+  100% {
+    transform: scale(0.86) rotate(0deg);
+  }
+}
+
+@keyframes review-reaction-sparkle-art {
+  0% {
+    transform: scale(0.36) rotate(-14deg);
+  }
+
+  56% {
+    transform: scale(1.08) rotate(8deg);
+  }
+
+  84% {
+    transform: scale(1) rotate(-3deg);
+  }
+
+  100% {
+    transform: scale(0.90) rotate(0deg);
+  }
+}
+
+@keyframes review-reaction-rainbow-art {
+  0% {
+    transform: translate3d(-48%, 4%, 0) scale(0.92);
+  }
+
+  40% {
+    transform: translate3d(0, 0, 0) scale(1.02);
+  }
+
+  78% {
+    transform: translate3d(1%, -1%, 0) scale(1);
+  }
+
+  100% {
+    transform: translate3d(48%, -3%, 0) scale(0.92);
+  }
+}
+
+@keyframes review-reaction-crown-art {
+  0% {
+    transform: translate3d(0, -44%, 0) scale(0.58) rotate(-14deg);
+  }
+
+  44% {
+    transform: translate3d(0, 0, 0) scale(1.17) rotate(4deg);
+  }
+
+  62% {
+    transform: translate3d(0, -5%, 0) scale(1.02) rotate(-2deg);
+  }
+
+  82% {
+    transform: translate3d(0, 0, 0) scale(1) rotate(1deg);
+  }
+
+  100% {
+    transform: translate3d(0, 5%, 0) scale(0.88) rotate(0deg);
+  }
+}
+
+@keyframes review-reaction-unicorn-art {
+  0% {
+    transform: translate3d(52%, -12%, 0) scale(0.84) rotate(-4deg);
+  }
+
+  42% {
+    transform: translate3d(12%, -13%, 0) scale(1.04) rotate(2deg);
+  }
+
+  62% {
+    transform: translate3d(8%, -16%, 0) scale(1) rotate(-2deg);
+  }
+
+  80% {
+    transform: translate3d(10%, -14%, 0) scale(1) rotate(0deg);
+  }
+
+  100% {
+    transform: translate3d(-54%, -12%, 0) scale(0.88) rotate(5deg);
+  }
+}
+
+@keyframes review-reaction-part-spin {
+  0% {
+    transform: rotate(0deg) scale(0.92);
+  }
+
+  78% {
+    transform: rotate(-210deg) scale(1.02);
+  }
+
+  100% {
+    transform: rotate(-260deg) scale(0.96);
+  }
+}
+
+@keyframes review-reaction-sand-dot {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -18%, 0);
+  }
+
+  34%,
+  84% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 8%, 0);
+  }
+}
+
+@keyframes review-reaction-dust-puff {
+  0%,
+  42% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.6);
+  }
+
+  68% {
+    opacity: 1;
+    transform: translate3d(-12%, -8%, 0) scale(1.1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(-28%, -16%, 0) scale(1.4);
+  }
+}
+
+@keyframes review-reaction-sparkle-twinkle {
+  0% {
+    transform: scale(0.55) rotate(-20deg);
+  }
+
+  50% {
+    transform: scale(1.16) rotate(18deg);
+  }
+
+  100% {
+    transform: scale(0.78) rotate(40deg);
+  }
+}
+
+@keyframes review-reaction-unicorn-gallop {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(-2deg);
+  }
+
+  50% {
+    transform: translate3d(0, -3%, 0) rotate(2deg);
+  }
+}
+
+@keyframes review-reaction-reduced-fade {
+  0% {
+    opacity: 0;
+  }
+
+  22%,
+  78% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes review-reaction-reduced-pop {
+  0% {
+    transform: scale(0.94);
+  }
+
+  50% {
+    transform: scale(1.01);
+  }
+
+  100% {
+    transform: scale(0.98);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .review-rating-reaction-event {
+    animation-duration: 340ms !important;
+    animation-name: review-reaction-reduced-fade !important;
+  }
+
+  .review-rating-reaction-event .review-rating-reaction-art,
+  .review-rating-reaction-event .review-reaction-vortex-mark,
+  .review-rating-reaction-event .review-reaction-sand-dot,
+  .review-rating-reaction-event .review-reaction-dust-fill,
+  .review-rating-reaction-event .review-reaction-sparkle-fill,
+  .review-rating-reaction-event .review-reaction-unicorn-mark {
+    animation-duration: 340ms !important;
+    animation-name: review-reaction-reduced-pop !important;
+  }
+}

@@ -1,0 +1,21 @@
+.review-queue-card-title {
+  font-size: 18px;
+  line-height: 1.15;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+}
+
+.review-queue-card-tags {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.review-queue-card-meta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}

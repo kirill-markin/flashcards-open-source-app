@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { act, useEffect, type ReactElement } from "react";
 import ReactDOM from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
@@ -396,7 +396,15 @@ function clearWindowLocalStorage(): void {
   }
 }
 
-const reviewStylesheet = readFileSync(resolve(process.cwd(), "src/styles/features/review.css"), "utf8");
+function readStylesheetWithImports(stylesheetPath: string): string {
+  const stylesheet = readFileSync(stylesheetPath, "utf8");
+  const stylesheetDir = dirname(stylesheetPath);
+  return stylesheet.replace(/^@import "(.+)";$/gm, (_importStatement: string, importPath: string): string => {
+    return readStylesheetWithImports(resolve(stylesheetDir, importPath));
+  });
+}
+
+const reviewStylesheet = readStylesheetWithImports(resolve(process.cwd(), "src/styles/features/review.css"));
 
 export function reviewStylesContain(...fragments: ReadonlyArray<string>): boolean {
   return fragments.every((fragment) => reviewStylesheet.includes(fragment));
