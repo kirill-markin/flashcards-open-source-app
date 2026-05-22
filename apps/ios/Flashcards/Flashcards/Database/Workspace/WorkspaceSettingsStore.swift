@@ -110,7 +110,7 @@ struct WorkspaceSettingsStore {
         return userSettings
     }
 
-    // Keep in sync with apps/backend/src/workspaceSchedulerSettings.ts::getWorkspaceSchedulerSettings and getWorkspaceSchedulerConfig.
+    // Keep in sync with apps/backend/src/scheduling/workspaceSettings.ts::getWorkspaceSchedulerSettings and getWorkspaceSchedulerConfig.
     func loadWorkspaceSchedulerSettings(workspaceId: String) throws -> WorkspaceSchedulerSettings {
         let settings = try self.core.query(
             sql: """
@@ -264,7 +264,7 @@ struct WorkspaceSettingsStore {
         }
     }
 
-    // Keep in sync with apps/backend/src/workspaceSchedulerSettings.ts::updateWorkspaceSchedulerSettings.
+    // Keep in sync with apps/backend/src/scheduling/workspaceSettings.ts::updateWorkspaceSchedulerSettings.
     func updateWorkspaceSchedulerSettings(
         workspaceId: String,
         desiredRetention: Double,
@@ -325,7 +325,7 @@ struct WorkspaceSettingsStore {
     }
 }
 
-// Keep in sync with apps/backend/src/workspaceSchedulerSettings.ts::parseSteps.
+// Keep in sync with apps/backend/src/scheduling/workspaceSettings.ts::parseSteps.
 private func validateSchedulerStepList(values: [Int], fieldName: String) throws -> [Int] {
     if values.isEmpty {
         throw LocalStoreError.validation("\(fieldName) must not be empty")
@@ -346,7 +346,7 @@ private func validateSchedulerStepList(values: [Int], fieldName: String) throws 
     return values
 }
 
-// Keep in sync with apps/backend/src/workspaceSchedulerSettings.ts::validateWorkspaceSchedulerSettingsInput.
+// Keep in sync with apps/backend/src/scheduling/workspaceSettings.ts::validateWorkspaceSchedulerSettingsInput.
 private func validateWorkspaceSchedulerSettingsInput(
     desiredRetention: Double,
     learningStepsMinutes: [Int],

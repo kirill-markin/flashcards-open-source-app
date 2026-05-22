@@ -3,7 +3,7 @@
  * These routes accept user turn input, resolve or create server-owned sessions, and schedule persisted runs for asynchronous execution.
  */
 import { Hono } from "hono";
-import type { AppEnv } from "../app";
+import type { AppEnv } from "../server/app";
 import {
   createChatRouteDependencies,
   createGetChatHandler,

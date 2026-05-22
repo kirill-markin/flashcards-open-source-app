@@ -4,7 +4,7 @@ import { PassThrough } from "node:stream";
 import {
   runLiveStreamWithDependencies,
   type ChatLiveStreamResult,
-} from "../live/index";
+} from "../live";
 import type { ChatComposerSuggestion } from "../composerSuggestions";
 import type { ChatRunSnapshot } from "../runs";
 import type { PersistedChatMessageItem } from "../store";

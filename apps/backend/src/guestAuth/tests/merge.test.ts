@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type pg from "pg";
-import type { DatabaseExecutor } from "../../db";
-import { HttpError } from "../../errors";
-import { completeGuestUpgradeInExecutor } from "../../guestAuth";
+import type { DatabaseExecutor } from "../../database";
+import { HttpError } from "../../shared/errors";
+import { completeGuestUpgradeInExecutor } from "..";
 import {
   addWorkspaceMembership,
   createGuestUpgradeExecutor,

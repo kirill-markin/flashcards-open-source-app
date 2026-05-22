@@ -6,7 +6,7 @@ import XCTest
  FSRS parity tests for the Swift scheduler copy.
 
  Keep in sync with:
- - apps/backend/src/schedule.test.ts
+ - apps/backend/src/scheduling/index.test.ts
  - tests/fsrs-full-vectors.json
  - docs/fsrs-scheduling-logic.md
  */

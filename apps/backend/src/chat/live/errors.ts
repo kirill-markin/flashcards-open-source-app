@@ -1,6 +1,6 @@
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { AuthError } from "../../auth";
-import { HttpError } from "../../errors";
+import { HttpError } from "../../shared/errors";
 
 export const CHAT_LIVE_SESSION_ID_REQUIRED_CODE = "CHAT_LIVE_SESSION_ID_REQUIRED";
 export const CHAT_LIVE_RUN_ID_REQUIRED_CODE = "CHAT_LIVE_RUN_ID_REQUIRED";

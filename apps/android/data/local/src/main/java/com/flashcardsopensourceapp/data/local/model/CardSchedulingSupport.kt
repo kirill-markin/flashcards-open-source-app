@@ -13,7 +13,7 @@ fun isReviewedCard(card: CardSummary): Boolean {
     return card.reps > 0 || card.lapses > 0
 }
 
-// Keep in sync with apps/backend/src/cards.ts::toReviewableCardScheduleState and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::makeReviewableCardScheduleState(card:).
+// Keep in sync with apps/backend/src/cards/reviews.ts::toReviewableCardScheduleState and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::makeReviewableCardScheduleState(card:).
 fun toReviewableCardScheduleState(card: CardSummary): ReviewableCardScheduleState {
     return ReviewableCardScheduleState(
         cardId = card.cardId,

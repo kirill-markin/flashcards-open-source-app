@@ -11,7 +11,7 @@ import {
 
 // The three SQL builders below back the public anonymized endpoint
 // (`apps/backend/src/routes/globalSnapshot.ts`) and the scheduled snapshot Lambda
-// (`apps/backend/src/lambda-global-metrics-snapshot.ts`).
+// (`apps/backend/src/entrypoints/lambda-global-metrics-snapshot.ts`).
 //
 // The two fragment constants below are the canonical encoding of the user-identity
 // filters shared by those three queries. The same rules are restated in the admin

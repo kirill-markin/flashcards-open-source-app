@@ -1,12 +1,12 @@
 import { AuthError, authenticateRequest, type AuthRequest, type AuthResult } from "../auth";
-import { HttpError } from "../errors";
+import { HttpError } from "../shared/errors";
 import {
   enforceSessionCsrfProtection,
   extractRequestAuthInputs,
   toAuthRequest,
   type RequestAuthInputs,
-} from "../requestSecurity";
-import { unsafeQuery } from "../dbUnsafe";
+} from "../auth/requestSecurity";
+import { unsafeQuery } from "../database/unsafe";
 
 type AdminAccessQueryRow = Readonly<{
   exists: number;

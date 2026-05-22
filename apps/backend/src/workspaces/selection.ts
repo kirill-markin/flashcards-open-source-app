@@ -2,8 +2,8 @@ import {
   queryWithUserScope,
   transactionWithUserScope,
   type DatabaseExecutor,
-} from "../db";
-import { HttpError } from "../errors";
+} from "../database";
+import { HttpError } from "../shared/errors";
 import {
   createWorkspaceForApiKeyConnection,
   createWorkspaceInExecutor,

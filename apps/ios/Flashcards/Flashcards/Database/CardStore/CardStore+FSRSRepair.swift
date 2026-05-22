@@ -67,7 +67,7 @@ extension CardStore {
     }
 }
 
-// Keep in sync with apps/backend/src/cards.ts::getInvalidFsrsStateReason.
+// Keep in sync with apps/backend/src/cards/fsrs.ts::getInvalidFsrsStateReason.
 func invalidFsrsStateReason(card: Card) -> String? {
     if card.fsrsCardState == .new {
         if card.dueAt != nil {
@@ -103,7 +103,7 @@ func invalidFsrsStateReason(card: Card) -> String? {
     return nil
 }
 
-// Keep in sync with apps/backend/src/cards.ts repair semantics.
+// Keep in sync with apps/backend/src/cards/fsrs.ts repair semantics.
 func resetFsrsState(card: Card, updatedAt: String) -> Card {
     Card(
         cardId: card.cardId,

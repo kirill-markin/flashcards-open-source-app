@@ -2,9 +2,9 @@ import { appendReviewEventSnapshotInExecutor } from "../cards";
 import {
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
-} from "../db";
-import { HttpError } from "../errors";
-import { ensureWorkspaceReplicaInExecutor } from "../syncIdentity";
+} from "../database";
+import { HttpError } from "../shared/errors";
+import { ensureWorkspaceReplicaInExecutor } from "./identity";
 import { annotateSyncConflictHttpError } from "./fork";
 import type {
   SyncReviewHistoryImportInput,

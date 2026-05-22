@@ -81,7 +81,7 @@ function parseProgressSummary(
 }
 
 // Wire-shape note: the backend always emits `generatedAt` as a non-null ISO string for
-// the progress summary, series, and review-schedule endpoints (see apps/backend/src/progress.ts).
+// the progress summary, series, and review-schedule endpoints (see apps/backend/src/progress/index.ts).
 // We therefore parse it strictly with `parseRequiredField(... parseString)` so a missing or
 // null value fails loud with `ApiContractError` instead of being silently coerced to null,
 // matching the project's "no fallbacks / fail loud" rule.

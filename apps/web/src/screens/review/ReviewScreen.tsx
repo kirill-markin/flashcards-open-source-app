@@ -8,7 +8,7 @@ import { useI18n } from "../../i18n";
 import { captureAppOperationError } from "../../observability/appOperationObservation";
 import { normalizeCaughtError } from "../../observability/webObservability";
 import type { Card, WorkspaceSchedulerSettings } from "../../types";
-import { computeReviewSchedule, type ReviewRating } from "../../../../backend/src/schedule";
+import { computeReviewSchedule, type ReviewRating } from "../../../../backend/src/scheduling";
 import { classifyReviewContentPresentation } from "./reviewContentPresentation";
 import { cardsRoute, chatRoute, progressRoute } from "../../routes";
 import { ReviewEditorModal } from "./ReviewEditorModal";

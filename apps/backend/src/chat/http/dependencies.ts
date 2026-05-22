@@ -1,5 +1,5 @@
 import type { AuthTransport } from "../../auth";
-import { HttpError } from "../../errors";
+import { HttpError } from "../../shared/errors";
 import {
   loadRequestContextFromRequest,
   resolveAccessibleChatWorkspaceId,

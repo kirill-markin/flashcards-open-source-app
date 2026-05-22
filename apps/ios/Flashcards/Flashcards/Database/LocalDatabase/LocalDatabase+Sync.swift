@@ -242,7 +242,7 @@ extension LocalDatabase {
     /// Applies one hot current-state change from `/sync/pull`.
     ///
     /// If you add another hot entity type here, update the pull contract in
-    /// `apps/backend/src/sync.ts`,
+    /// `apps/backend/src/sync/types.ts`,
     /// `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/cloud/SyncLocalStore.kt`,
     /// and the iOS sync tests that assert hot-state application semantics.
     func applySyncChange(workspaceId: String, change: SyncChange) throws -> SyncApplyResult {

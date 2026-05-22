@@ -6,7 +6,7 @@ let allCardsDeckLabel: String = String(
     comment: "System deck label for all cards"
 )
 
-// Keep raw values in sync with apps/backend/src/schedule.ts::ReviewRating,
+// Keep raw values in sync with apps/backend/src/scheduling/index.ts::ReviewRating,
 // apps/web/src/types.ts review rating wire fields, and
 // apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FlashcardsModels.kt::ReviewRating.
 enum ReviewRating: Int, CaseIterable, Codable, Hashable, Identifiable, Sendable {

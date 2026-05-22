@@ -14,7 +14,7 @@ import org.junit.Test
  * Android FSRS parity tests for the Kotlin scheduler copy.
  *
  * Keep in sync with:
- * - apps/backend/src/schedule.test.ts
+ * - apps/backend/src/scheduling/index.test.ts
  * - apps/ios/Flashcards/FlashcardsTests/Review/FsrsSchedulerParityTests.swift
  * - tests/fsrs-full-vectors.json
  * - docs/fsrs-scheduling-logic.md

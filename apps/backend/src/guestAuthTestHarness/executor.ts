@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import type pg from "pg";
-import type { DatabaseExecutor } from "../db";
+import type { DatabaseExecutor } from "../database";
 import { handleAuthExecutorQuery } from "./handlers/auth";
 import { handleContentExecutorQuery } from "./handlers/content";
 import { handleSyncExecutorQuery } from "./handlers/sync";

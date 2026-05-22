@@ -12,7 +12,7 @@ import {
   listAgentApiKeyConnectionsPageForUser,
   revokeAgentApiKeyConnectionForUser,
 } from "../agent/apiKeys";
-import { parseOptionalCursorQuery, parseRequiredPageLimit } from "../pagination";
+import { parseOptionalCursorQuery, parseRequiredPageLimit } from "../shared/pagination";
 import {
   listUserWorkspacesPageForSelectedWorkspace,
   renameWorkspaceForUser,
@@ -34,7 +34,7 @@ import {
   loadWorkspaceResetProgressPreviewForUserWithObservationScope,
   resetWorkspaceProgressForUserWithObservationScope,
 } from "../workspaces/management";
-import { HttpError } from "../errors";
+import { HttpError } from "../shared/errors";
 import {
   loadRequestContextFromRequest,
   parseWorkspaceIdParam,
@@ -47,7 +47,7 @@ import {
   parseJsonBody,
 } from "../server/requestParsing";
 import { createBackendFailureDetails } from "../server/logging";
-import { withTransientDatabaseRetry } from "../dbTransient";
+import { withTransientDatabaseRetry } from "../database/transient";
 import {
   addBackendBreadcrumb,
   createBackendObservationScope,
@@ -55,7 +55,7 @@ import {
   type BackendObservationScope,
 } from "../observability/sentry";
 import { reportBackendExceptionOrBreadcrumb } from "../observability/reporting";
-import type { AppEnv } from "../app";
+import type { AppEnv } from "../server/app";
 
 type WorkspaceRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;

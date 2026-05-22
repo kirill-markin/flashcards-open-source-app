@@ -3,7 +3,7 @@ import type {
   ReviewEvent,
 } from "../cards";
 import type { Deck } from "../decks";
-import type { WorkspaceSchedulerSettings } from "../workspaceSchedulerSettings";
+import type { WorkspaceSchedulerSettings } from "../scheduling/workspaceSettings";
 
 export type TimestampValue = Date | string;
 

@@ -1,9 +1,9 @@
-import type { LwwMetadata } from "../lww";
+import type { LwwMetadata } from "../sync/lww";
 import type {
   FsrsCardState,
   ReviewRating,
   ReviewableCardScheduleState,
-} from "../schedule";
+} from "../scheduling";
 
 export type TimestampValue = Date | string;
 

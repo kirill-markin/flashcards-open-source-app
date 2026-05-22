@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { HttpError } from "../errors";
+import { HttpError } from "../shared/errors";
 import {
   parseSyncBootstrapInput,
   parseSyncPullInput,
@@ -28,7 +28,7 @@ import { parseJsonBody } from "../server/requestParsing";
 import {
   createBackendFailureDetails,
 } from "../server/logging";
-import { withTransientDatabaseRetry } from "../dbTransient";
+import { withTransientDatabaseRetry } from "../database/transient";
 import {
   addBackendBreadcrumb,
   createBackendObservationScope,
@@ -39,7 +39,7 @@ import {
   type SyncReviewHistoryPullDetails,
 } from "../observability/sentry";
 import { reportBackendExceptionOrBreadcrumb } from "../observability/reporting";
-import type { AppEnv } from "../app";
+import type { AppEnv } from "../server/app";
 
 type SyncRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;

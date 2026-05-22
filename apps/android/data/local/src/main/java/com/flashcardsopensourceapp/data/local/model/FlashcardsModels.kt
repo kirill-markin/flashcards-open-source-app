@@ -370,7 +370,7 @@ data class PersistedOutboxEntry(
     val operation: SyncOperation
 )
 
-// Keep in sync with apps/backend/src/schedule.ts::FsrsCardState, apps/web/src/types.ts::FsrsCardState, and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsTypes.swift::FsrsCardState.
+// Keep in sync with apps/backend/src/scheduling/index.ts::FsrsCardState, apps/web/src/types.ts::FsrsCardState, and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsTypes.swift::FsrsCardState.
 enum class FsrsCardState {
     NEW,
     LEARNING,
@@ -408,7 +408,7 @@ data class DeckSummary(
     val updatedAtMillis: Long
 )
 
-// Keep in sync with apps/backend/src/workspaceSchedulerSettings.ts::WorkspaceSchedulerSettings, apps/web/src/types.ts::WorkspaceSchedulerSettings, and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsTypes.swift::WorkspaceSchedulerSettings.
+// Keep in sync with apps/backend/src/scheduling/workspaceConfig.ts::WorkspaceSchedulerSettings, apps/web/src/types.ts::WorkspaceSchedulerSettings, and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsTypes.swift::WorkspaceSchedulerSettings.
 data class WorkspaceSchedulerSettings(
     val workspaceId: String,
     val algorithm: String,
@@ -420,7 +420,7 @@ data class WorkspaceSchedulerSettings(
     val updatedAtMillis: Long
 )
 
-// Keep in sync with apps/backend/src/cards.ts::Card, apps/web/src/types.ts::Card, and apps/ios/Flashcards/Flashcards/Cards/CardDeckTypes.swift::Card.
+// Keep in sync with apps/backend/src/cards/types.ts::Card, apps/web/src/types.ts::Card, and apps/ios/Flashcards/Flashcards/Cards/CardDeckTypes.swift::Card.
 data class CardSummary(
     val cardId: String,
     val workspaceId: String,
@@ -502,7 +502,7 @@ enum class ReviewCardQueueStatus {
     RATED
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::ReviewSchedule, apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::ReviewSchedule, and the Android scheduler mirror in FsrsScheduler.kt.
+// Keep in sync with apps/backend/src/scheduling/index.ts::ReviewSchedule, apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::ReviewSchedule, and the Android scheduler mirror in FsrsScheduler.kt.
 data class ReviewSchedule(
     val dueAtMillis: Long?,
     val reps: Int,

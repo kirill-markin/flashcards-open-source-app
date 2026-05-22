@@ -6,8 +6,8 @@ import {
   type AgentErrorEnvelope,
 } from "./envelope";
 import type { AuthTransport } from "../auth";
-import type { PublicHttpErrorDetails } from "../errors";
-import { getPublicApiBaseUrl } from "../publicUrls";
+import type { PublicHttpErrorDetails } from "../shared/errors";
+import { getPublicApiBaseUrl } from "../shared/publicUrls";
 import type { RequestContext } from "../server/requestContext";
 import type { WorkspaceSummary } from "../workspaces";
 

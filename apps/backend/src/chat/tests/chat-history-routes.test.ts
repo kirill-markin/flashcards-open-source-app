@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { HttpError } from "../../errors";
+import { HttpError } from "../../shared/errors";
 import { createChatRoutes } from "../../routes/chat";
 import { createChatSessionRequestedSessionIdConflictError } from "../errors";
 import type { RecoveredPaginatedSession } from "../runs";

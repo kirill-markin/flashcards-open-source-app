@@ -10,29 +10,29 @@ import {
 import {
   applyWorkspaceDatabaseScopeInExecutor,
   type DatabaseExecutor,
-} from "../db";
-import { lockWorkspaceAccessLifecycleInExecutor } from "../workspaceAccessLocks";
+} from "../database";
+import { lockWorkspaceAccessLifecycleInExecutor } from "../workspaces/accessLocks";
 import {
   HttpError,
   type SyncConflictEntityType,
-} from "../errors";
+} from "../shared/errors";
 import {
   captureBackendWarning,
   createBackendObservationScope,
 } from "../observability/sentry";
 import {
   compareLwwMetadata,
-} from "../lww";
+} from "../sync/lww";
 import {
   upsertDeckSnapshotInExecutor,
   type DeckMutationMetadata,
   type DeckSnapshotInput,
 } from "../decks";
-import { insertSyncChange } from "../syncChanges";
+import { insertSyncChange } from "../sync/changes";
 import {
   ensureSystemWorkspaceReplicaInExecutor,
   ensureWorkspaceReplicaInExecutor,
-} from "../syncIdentity";
+} from "../sync/identity";
 import { SYNC_WORKSPACE_FORK_REQUIRED } from "../sync/fork";
 import {
   deleteGuestWorkspaceContentInExecutor,

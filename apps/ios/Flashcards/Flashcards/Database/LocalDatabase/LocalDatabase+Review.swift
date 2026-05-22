@@ -1,7 +1,7 @@
 import Foundation
 
 extension LocalDatabase {
-    // Keep in sync with apps/backend/src/cards.ts::submitReview.
+    // Keep in sync with apps/backend/src/cards/reviews.ts::submitReview.
     func submitReview(workspaceId: String, reviewSubmission: ReviewSubmission) throws -> Card {
         return try self.core.inTransaction {
             let card = try self.cardStore.loadCard(workspaceId: workspaceId, cardId: reviewSubmission.cardId)
@@ -64,7 +64,7 @@ extension LocalDatabase {
         }
     }
 
-    // Keep in sync with apps/backend/src/workspaceSchedulerSettings.ts::updateWorkspaceSchedulerSettings.
+    // Keep in sync with apps/backend/src/scheduling/workspaceSettings.ts::updateWorkspaceSchedulerSettings.
     func updateWorkspaceSchedulerSettings(
         workspaceId: String,
         desiredRetention: Double,

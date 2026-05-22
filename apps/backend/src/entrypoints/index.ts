@@ -1,0 +1,21 @@
+import { serve } from "@hono/node-server";
+import { createApp } from "../server/app";
+import { initializeBackendSentry } from "../observability/sentry";
+import { initializeLangfuseTelemetry } from "../telemetry/langfuse";
+
+async function main(): Promise<void> {
+  initializeBackendSentry("backend-api");
+  initializeLangfuseTelemetry();
+  const app = createApp("/v1");
+  const port = Number.parseInt(process.env.PORT ?? "8080", 10);
+
+  serve({ fetch: app.fetch, port }, (info) => {
+    console.log(JSON.stringify({ domain: "backend", action: "start", port: info.port }));
+  });
+}
+
+void main().catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(JSON.stringify({ domain: "backend", action: "startup_failed", error: message }));
+  process.exit(1);
+});

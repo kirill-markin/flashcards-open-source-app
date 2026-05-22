@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { HttpError } from "../../errors";
-import { completeGuestUpgradeInExecutor } from "../../guestAuth";
+import { HttpError } from "../../shared/errors";
+import { completeGuestUpgradeInExecutor } from "..";
 import {
   createGuestUpgradeExecutor,
   createMergeState,

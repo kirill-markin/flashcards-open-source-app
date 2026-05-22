@@ -1,6 +1,6 @@
 import { authenticateRequest, type AuthResult } from "../../auth";
-import { HttpError } from "../../errors";
-import { ensureUserProfile, type UserProfile } from "../../ensureUser";
+import { HttpError } from "../../shared/errors";
+import { ensureUserProfile, type UserProfile } from "../../auth/ensureUser";
 import {
   parseOptionalWorkspaceIdParam,
   resolveAccessibleChatWorkspaceId,

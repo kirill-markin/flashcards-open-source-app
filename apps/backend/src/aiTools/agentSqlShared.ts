@@ -1,6 +1,6 @@
 import type { Card, ReviewHistoryItem } from "../cards";
 import type { Deck } from "../decks";
-import { HttpError } from "../errors";
+import { HttpError } from "../shared/errors";
 import type {
   ParsedSqlStatement,
   SqlResourceName,

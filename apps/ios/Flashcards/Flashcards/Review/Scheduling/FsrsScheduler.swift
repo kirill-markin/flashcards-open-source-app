@@ -4,7 +4,7 @@ import Foundation
  Full FSRS scheduler with persisted card state and workspace-level settings.
 
  This file is a full Swift copy of the scheduler implemented in
- `apps/backend/src/schedule.ts`.
+ `apps/backend/src/scheduling/index.ts`.
  If you change algorithm behavior here, you must make the same change in the
  backend copy, update `docs/fsrs-scheduling-logic.md`, and keep
  `tests/fsrs-full-vectors.json` plus both scheduler test suites aligned in the
@@ -18,7 +18,7 @@ import Foundation
  - product source of truth: docs/fsrs-scheduling-logic.md
  */
 
-// Keep in sync with apps/backend/src/schedule.ts::ReviewableCardScheduleState.
+// Keep in sync with apps/backend/src/scheduling/index.ts::ReviewableCardScheduleState.
 struct ReviewableCardScheduleState: Hashable {
     let cardId: String
     let reps: Int
@@ -31,13 +31,13 @@ struct ReviewableCardScheduleState: Hashable {
     let fsrsScheduledDays: Int?
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::ReviewHistoryEvent.
+// Keep in sync with apps/backend/src/scheduling/index.ts::ReviewHistoryEvent.
 struct FsrsReviewHistoryEvent: Hashable {
     let rating: ReviewRating
     let reviewedAt: Date
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::RebuiltCardScheduleState.
+// Keep in sync with apps/backend/src/scheduling/index.ts::RebuiltCardScheduleState.
 struct RebuiltCardScheduleState: Hashable {
     let dueAt: Date?
     let reps: Int
@@ -50,19 +50,19 @@ struct RebuiltCardScheduleState: Hashable {
     let fsrsScheduledDays: Int?
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::FsrsMemoryState.
+// Keep in sync with apps/backend/src/scheduling/index.ts::FsrsMemoryState.
 private struct FsrsMemoryState: Hashable {
     let difficulty: Double
     let stability: Double
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::FuzzRange.
+// Keep in sync with apps/backend/src/scheduling/index.ts::FuzzRange.
 private struct FuzzRange: Hashable {
     let minInterval: Int
     let maxInterval: Int
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::LearningStepResult.
+// Keep in sync with apps/backend/src/scheduling/index.ts::LearningStepResult.
 private struct LearningStepResult: Hashable {
     let scheduledMinutes: Int?
     let nextStepIndex: Int
@@ -70,7 +70,7 @@ private struct LearningStepResult: Hashable {
 
 private let posixLocale = Locale(identifier: "en_US_POSIX")
 
-// Keep in sync with apps/backend/src/schedule.ts::roundTo8.
+// Keep in sync with apps/backend/src/scheduling/index.ts::roundTo8.
 func roundTo8(value: Double) -> Double {
     let formattedValue = String(format: "%.8f", locale: posixLocale, arguments: [value])
     guard let roundedValue = Double(formattedValue) else {
@@ -80,7 +80,7 @@ func roundTo8(value: Double) -> Double {
     return roundedValue
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::DEFAULT_W.
+// Keep in sync with apps/backend/src/scheduling/index.ts::DEFAULT_W.
 private let defaultWeights: [Double] = [
     0.212,
     1.2931,
@@ -105,28 +105,28 @@ private let defaultWeights: [Double] = [
     0.1542
 ]
 
-// Keep in sync with apps/backend/src/schedule.ts::S_MIN.
+// Keep in sync with apps/backend/src/scheduling/index.ts::S_MIN.
 private let fsrsMinimumStability: Double = 0.001
-// Keep in sync with apps/backend/src/schedule.ts::W17_W18_CEILING.
+// Keep in sync with apps/backend/src/scheduling/index.ts::W17_W18_CEILING.
 private let W17_W18_CEILING: Double = 2
-// Keep in sync with apps/backend/src/schedule.ts::FUZZ_RANGES.
+// Keep in sync with apps/backend/src/scheduling/index.ts::FUZZ_RANGES.
 private let fuzzRanges: [(start: Double, end: Double, factor: Double)] = [
     (start: 2.5, end: 7.0, factor: 0.15),
     (start: 7.0, end: 20.0, factor: 0.1),
     (start: 20.0, end: .infinity, factor: 0.05)
 ]
-// Keep in sync with apps/backend/src/schedule.ts::DECAY.
+// Keep in sync with apps/backend/src/scheduling/index.ts::DECAY.
 private let fsrsDecay: Double = -defaultWeights[20]
-// Keep in sync with apps/backend/src/schedule.ts::FACTOR.
+// Keep in sync with apps/backend/src/scheduling/index.ts::FACTOR.
 private let fsrsFactor: Double = roundTo8(
     value: Foundation.exp(Foundation.pow(fsrsDecay, -1) * Foundation.log(0.9)) - 1
 )
 
-// Keep in sync with apps/backend/src/schedule.ts::createMash and the returned mash closure state.
+// Keep in sync with apps/backend/src/scheduling/index.ts::createMash and the returned mash closure state.
 private struct MashGenerator {
     private var n: Double = 0xefc8249d
 
-    // Keep in sync with apps/backend/src/schedule.ts::createMash.
+    // Keep in sync with apps/backend/src/scheduling/index.ts::createMash.
     mutating func next(data: String) -> Double {
         var nextValue = self.n
 
@@ -147,14 +147,14 @@ private struct MashGenerator {
     }
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::Alea.
+// Keep in sync with apps/backend/src/scheduling/index.ts::Alea.
 private struct AleaGenerator {
     private var c: Double
     private var s0: Double
     private var s1: Double
     private var s2: Double
 
-    // Keep in sync with apps/backend/src/schedule.ts::Alea.constructor.
+    // Keep in sync with apps/backend/src/scheduling/index.ts::Alea.constructor.
     init(seed: String) {
         var mash = MashGenerator()
         self.c = 1
@@ -178,7 +178,7 @@ private struct AleaGenerator {
         }
     }
 
-    // Keep in sync with apps/backend/src/schedule.ts::Alea.next.
+    // Keep in sync with apps/backend/src/scheduling/index.ts::Alea.next.
     mutating func next() -> Double {
         let nextValue = 2_091_639.0 * self.s0 + self.c * 2.3283064365386963e-10
         self.s0 = self.s1
@@ -189,12 +189,12 @@ private struct AleaGenerator {
     }
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::clamp.
+// Keep in sync with apps/backend/src/scheduling/index.ts::clamp.
 private func clamp(value: Double, min minimum: Double, max maximum: Double) -> Double {
     min(max(value, minimum), maximum)
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::dateDiffInDays.
+// Keep in sync with apps/backend/src/scheduling/index.ts::dateDiffInDays.
 private func dateDiffInDays(lastReviewedAt: Date, now: Date) throws -> Int {
     if now < lastReviewedAt {
         throw LocalStoreError.database(
@@ -210,24 +210,24 @@ private func dateDiffInDays(lastReviewedAt: Date, now: Date) throws -> Int {
     return components.day ?? 0
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::stateRequiresMemory.
+// Keep in sync with apps/backend/src/scheduling/index.ts::stateRequiresMemory.
 private func stateRequiresMemory(state: FsrsCardState) -> Bool {
     state != .new
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::dateDiffInDays UTC calendar-day boundary logic.
+// Keep in sync with apps/backend/src/scheduling/index.ts::dateDiffInDays UTC calendar-day boundary logic.
 private func makeUtcGregorianCalendar() -> Calendar {
     var calendar = Calendar(identifier: .gregorian)
     calendar.timeZone = TimeZone(secondsFromGMT: 0)!
     return calendar
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::getIntervalModifier.
+// Keep in sync with apps/backend/src/scheduling/index.ts::getIntervalModifier.
 private func getIntervalModifier(requestRetention: Double) -> Double {
     roundTo8(value: (Foundation.pow(requestRetention, 1 / fsrsDecay) - 1) / fsrsFactor)
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::formatSeedNumber.
+// Keep in sync with apps/backend/src/scheduling/index.ts::formatSeedNumber.
 private func formatSeedNumber(value: Double) -> String {
     if value == 0 {
         return "0"
@@ -240,12 +240,12 @@ private func formatSeedNumber(value: Double) -> String {
     return String(value)
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::mapRatingToFsrsGrade.
+// Keep in sync with apps/backend/src/scheduling/index.ts::mapRatingToFsrsGrade.
 private func mapRatingToFsrsGrade(rating: ReviewRating) -> Int {
     rating.rawValue + 1
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::getStepsForState.
+// Keep in sync with apps/backend/src/scheduling/index.ts::getStepsForState.
 private func getStepsForState(
     settings: WorkspaceSchedulerSettings,
     state: FsrsCardState
@@ -257,12 +257,12 @@ private func getStepsForState(
     return settings.learningStepsMinutes
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::getCurrentStepIndex.
+// Keep in sync with apps/backend/src/scheduling/index.ts::getCurrentStepIndex.
 private func getCurrentStepIndex(card: ReviewableCardScheduleState) -> Int {
     card.fsrsStepIndex ?? 0
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::getLearningStrategyStepIndex.
+// Keep in sync with apps/backend/src/scheduling/index.ts::getLearningStrategyStepIndex.
 private func getLearningStrategyStepIndex(
     card: ReviewableCardScheduleState,
     grade: Int
@@ -275,7 +275,7 @@ private func getLearningStrategyStepIndex(
     return currentStepIndex
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::getHardStepMinutes.
+// Keep in sync with apps/backend/src/scheduling/index.ts::getHardStepMinutes.
 private func getHardStepMinutes(steps: [Int]) -> Int {
     if steps.count == 1 {
         return Int((Double(steps[0]) * 1.5).rounded())
@@ -284,7 +284,7 @@ private func getHardStepMinutes(steps: [Int]) -> Int {
     return Int((Double(steps[0] + steps[1]) / 2).rounded())
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::getLearningStepResult.
+// Keep in sync with apps/backend/src/scheduling/index.ts::getLearningStepResult.
 private func getLearningStepResult(
     settings: WorkspaceSchedulerSettings,
     card: ReviewableCardScheduleState,
@@ -339,27 +339,27 @@ private func getLearningStepResult(
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::initStability.
+// Keep in sync with apps/backend/src/scheduling/index.ts::initStability.
 private func initStability(grade: Int) -> Double {
     max(defaultWeights[grade - 1], 0.1)
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::initDifficulty.
+// Keep in sync with apps/backend/src/scheduling/index.ts::initDifficulty.
 private func initDifficulty(grade: Int) -> Double {
     roundTo8(value: defaultWeights[4] - Foundation.exp(Double(grade - 1) * defaultWeights[5]) + 1)
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::meanReversion.
+// Keep in sync with apps/backend/src/scheduling/index.ts::meanReversion.
 private func meanReversion(initialDifficulty: Double, currentDifficulty: Double) -> Double {
     roundTo8(value: defaultWeights[7] * initialDifficulty + (1 - defaultWeights[7]) * currentDifficulty)
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::linearDamping.
+// Keep in sync with apps/backend/src/scheduling/index.ts::linearDamping.
 private func linearDamping(deltaDifficulty: Double, difficulty: Double) -> Double {
     roundTo8(value: deltaDifficulty * (10 - difficulty) / 9)
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::nextDifficulty.
+// Keep in sync with apps/backend/src/scheduling/index.ts::nextDifficulty.
 private func nextDifficulty(difficulty: Double, grade: Int) -> Double {
     let deltaDifficulty = -defaultWeights[6] * Double(grade - 3)
     let nextDifficultyValue = difficulty + linearDamping(deltaDifficulty: deltaDifficulty, difficulty: difficulty)
@@ -370,12 +370,12 @@ private func nextDifficulty(difficulty: Double, grade: Int) -> Double {
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::forgettingCurve.
+// Keep in sync with apps/backend/src/scheduling/index.ts::forgettingCurve.
 private func forgettingCurve(elapsedDays: Int, stability: Double) -> Double {
     roundTo8(value: Foundation.pow(1 + fsrsFactor * Double(elapsedDays) / stability, fsrsDecay))
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::nextRecallStability.
+// Keep in sync with apps/backend/src/scheduling/index.ts::nextRecallStability.
 private func nextRecallStability(
     difficulty: Double,
     stability: Double,
@@ -397,7 +397,7 @@ private func nextRecallStability(
     return roundTo8(value: clamp(value: nextValue, min: fsrsMinimumStability, max: 36_500))
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::nextForgetStability.
+// Keep in sync with apps/backend/src/scheduling/index.ts::nextForgetStability.
 private func nextForgetStability(
     difficulty: Double,
     stability: Double,
@@ -416,7 +416,7 @@ private struct ShortTermWeights: Hashable {
     let w18: Double
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::getShortTermWeights(settings:).
+// Keep in sync with apps/backend/src/scheduling/index.ts::getShortTermWeights(settings:).
 private func getShortTermWeights(settings: WorkspaceSchedulerSettings) -> ShortTermWeights {
     if settings.relearningStepsMinutes.count <= 1 {
         return ShortTermWeights(
@@ -442,7 +442,7 @@ private func getShortTermWeights(settings: WorkspaceSchedulerSettings) -> ShortT
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::nextShortTermStability.
+// Keep in sync with apps/backend/src/scheduling/index.ts::nextShortTermStability.
 private func nextShortTermStability(
     stability: Double,
     grade: Int,
@@ -457,7 +457,7 @@ private func nextShortTermStability(
 
 // State-specific memory updates follow ts-fsrs:
 // new -> initial memory, learning/relearning -> short-term update, review -> review formulas.
-// Keep in sync with apps/backend/src/schedule.ts::createInitialMemoryState.
+// Keep in sync with apps/backend/src/scheduling/index.ts::createInitialMemoryState.
 private func createInitialMemoryState(grade: Int) -> FsrsMemoryState {
     return FsrsMemoryState(
         difficulty: clamp(value: initDifficulty(grade: grade), min: 1, max: 10),
@@ -465,7 +465,7 @@ private func createInitialMemoryState(grade: Int) -> FsrsMemoryState {
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::computeNextShortTermMemoryState.
+// Keep in sync with apps/backend/src/scheduling/index.ts::computeNextShortTermMemoryState.
 private func computeNextShortTermMemoryState(
     memoryState: FsrsMemoryState,
     grade: Int,
@@ -481,7 +481,7 @@ private func computeNextShortTermMemoryState(
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::computeNextReviewMemoryState.
+// Keep in sync with apps/backend/src/scheduling/index.ts::computeNextReviewMemoryState.
 private func computeNextReviewMemoryState(
     memoryState: FsrsMemoryState,
     elapsedDays: Int,
@@ -518,7 +518,7 @@ private func computeNextReviewMemoryState(
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::getFuzzRange.
+// Keep in sync with apps/backend/src/scheduling/index.ts::getFuzzRange.
 private func getFuzzRange(
     interval: Int,
     elapsedDays: Int,
@@ -541,7 +541,7 @@ private func getFuzzRange(
     return FuzzRange(minInterval: minInterval, maxInterval: maxInterval)
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::getIntervalSeed.
+// Keep in sync with apps/backend/src/scheduling/index.ts::getIntervalSeed.
 private func getIntervalSeed(
     now: Date,
     reps: Int,
@@ -554,7 +554,7 @@ private func getIntervalSeed(
     return "\(reviewTimeMilliseconds)_\(reps)_\(formatSeedNumber(value: memoryProduct))"
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::nextInterval.
+// Keep in sync with apps/backend/src/scheduling/index.ts::nextInterval.
 private func nextInterval(
     stability: Double,
     elapsedDays: Int,
@@ -590,7 +590,7 @@ private func nextInterval(
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::getMemoryState.
+// Keep in sync with apps/backend/src/scheduling/index.ts::getMemoryState.
 private func getMemoryState(card: ReviewableCardScheduleState) throws -> FsrsMemoryState? {
     if stateRequiresMemory(state: card.fsrsCardState) == false {
         if card.fsrsStability != nil
@@ -627,7 +627,7 @@ private func getMemoryState(card: ReviewableCardScheduleState) throws -> FsrsMem
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::buildGraduatedReviewSchedule.
+// Keep in sync with apps/backend/src/scheduling/index.ts::buildGraduatedReviewSchedule.
 private func buildGraduatedReviewSchedule(
     nextMemoryState: FsrsMemoryState,
     now: Date,
@@ -657,7 +657,7 @@ private func buildGraduatedReviewSchedule(
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::buildShortTermSchedule.
+// Keep in sync with apps/backend/src/scheduling/index.ts::buildShortTermSchedule.
 private func buildShortTermSchedule(
     card: ReviewableCardScheduleState,
     nextMemoryState: FsrsMemoryState,
@@ -702,7 +702,7 @@ private func buildShortTermSchedule(
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::buildReviewSuccessSchedule.
+// Keep in sync with apps/backend/src/scheduling/index.ts::buildReviewSuccessSchedule.
 private func buildReviewSuccessSchedule(
     now: Date,
     reps: Int,
@@ -781,7 +781,7 @@ private func buildReviewSuccessSchedule(
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::createEmptyReviewableCardScheduleState.
+// Keep in sync with apps/backend/src/scheduling/index.ts::createEmptyReviewableCardScheduleState.
 func createEmptyReviewableCardScheduleState(cardId: String) -> ReviewableCardScheduleState {
     ReviewableCardScheduleState(
         cardId: cardId,
@@ -796,7 +796,7 @@ func createEmptyReviewableCardScheduleState(cardId: String) -> ReviewableCardSch
     )
 }
 
-// Keep in sync with apps/backend/src/cards.ts::toReviewableCardScheduleState and apps/backend/src/schedule.ts::ReviewableCardScheduleState.
+// Keep in sync with apps/backend/src/cards/reviews.ts::toReviewableCardScheduleState and apps/backend/src/scheduling/index.ts::ReviewableCardScheduleState.
 private func makeReviewableCardScheduleState(card: Card) -> ReviewableCardScheduleState {
     ReviewableCardScheduleState(
         cardId: card.cardId,
@@ -811,7 +811,7 @@ private func makeReviewableCardScheduleState(card: Card) -> ReviewableCardSchedu
     )
 }
 
-// Keep in sync with apps/backend/src/cards.ts::submitReview and apps/backend/src/schedule.ts::computeReviewSchedule.
+// Keep in sync with apps/backend/src/cards/reviews.ts::submitReview and apps/backend/src/scheduling/index.ts::computeReviewSchedule.
 func computeReviewSchedule(
     card: Card,
     settings: WorkspaceSchedulerSettings,
@@ -826,7 +826,7 @@ func computeReviewSchedule(
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::computeReviewSchedule.
+// Keep in sync with apps/backend/src/scheduling/index.ts::computeReviewSchedule.
 func computeReviewSchedule(
     card: ReviewableCardScheduleState,
     settings: WorkspaceSchedulerSettings,
@@ -942,7 +942,7 @@ func computeReviewSchedule(
     )
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::rebuildCardScheduleState.
+// Keep in sync with apps/backend/src/scheduling/index.ts::rebuildCardScheduleState.
 func rebuildCardScheduleState(
     cardId: String,
     settings: WorkspaceSchedulerSettings,

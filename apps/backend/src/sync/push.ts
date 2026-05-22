@@ -5,12 +5,12 @@ import {
 import {
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
-} from "../db";
+} from "../database";
 import { upsertDeckSnapshotInExecutor } from "../decks";
-import { normalizeIsoTimestamp } from "../lww";
-import { ensureWorkspaceReplicaInExecutor } from "../syncIdentity";
-import { ensureWorkspaceSyncMetadataInExecutor } from "../syncChanges";
-import { applyWorkspaceSchedulerSettingsSnapshotInExecutor } from "../workspaceSchedulerSettings";
+import { normalizeIsoTimestamp } from "./lww";
+import { ensureWorkspaceReplicaInExecutor } from "./identity";
+import { ensureWorkspaceSyncMetadataInExecutor } from "./changes";
+import { applyWorkspaceSchedulerSettingsSnapshotInExecutor } from "../scheduling/workspaceSettings";
 import type {
   SyncPushInput,
   SyncPushOperation,

@@ -1,0 +1,395 @@
+import { cors } from "hono/cors";
+import { Hono } from "hono";
+import type { Context } from "hono";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
+import {
+  AuthError,
+  authVerificationRetryAfterSeconds,
+  authVerificationTemporarilyUnavailableCode,
+} from "../auth";
+import { getAuthConfig } from "../auth/config";
+import { createPublicHttpErrorDetails, HttpError, type PublicHttpErrorDetails } from "../shared/errors";
+import { createChatRoutes } from "../routes/chat";
+import { createChatTranscriptionsRoutes } from "../routes/chatTranscriptions";
+import { createAgentRoutes } from "../routes/agent";
+import { createCardsRoutes } from "../routes/cards";
+import { createGlobalSnapshotRoutes, globalSnapshotPath } from "../routes/globalSnapshot";
+import { createSyncRoutes } from "../routes/sync";
+import { createSystemRoutes } from "../routes/system";
+import { createAdminRoutes } from "../routes/admin";
+import { createGuestAuthRoutes } from "../routes/guestAuth";
+import { createWorkspaceRoutes } from "../routes/workspaces";
+import {
+  createAgentConnectionManagementErrorEnvelope,
+  createAgentSetupErrorEnvelope,
+} from "../agent/setup";
+import { getGuestAiWeightedMonthlyTokenCap } from "../guestAiQuota/config";
+import { logRequestError } from "./logging";
+import { getAllowedOrigins } from "./requestContext";
+import {
+  captureBackendException,
+  continueBackendTrace,
+  createBackendObservationScope,
+  normalizeCaughtError,
+} from "../observability/sentry";
+import { hasReportedBackendException } from "../observability/reporting";
+
+export type AppEnv = {
+  Variables: {
+    requestId: string;
+  };
+};
+
+const browserCorsAllowHeaders = [
+  "content-type",
+  "authorization",
+  "x-csrf-token",
+  "sentry-trace",
+  "baggage",
+  "x-chat-request-id",
+  "x-chat-resume-attempt-id",
+  "x-client-platform",
+  "x-client-version",
+] as const;
+
+const globalSnapshotCorsAllowHeaders = [
+  "content-type",
+  "authorization",
+  "sentry-trace",
+  "baggage",
+] as const;
+
+export function getRouteMountPaths(basePath: string): ReadonlyArray<string> {
+  if (basePath === "") {
+    return ["/", "/v1"];
+  }
+
+  return [basePath];
+}
+
+export function createPublicHttpErrorBody(error: HttpError, requestId: string): Readonly<{
+  error: string;
+  requestId: string;
+  code: string | null;
+  details?: PublicHttpErrorDetails;
+}> {
+  const publicDetails = createPublicHttpErrorDetails(error.details);
+  return {
+    error: error.message,
+    requestId,
+    code: error.code,
+    ...(publicDetails === null ? {} : { details: publicDetails }),
+  };
+}
+
+function usesApiKeyAuthorizationHeader(request: Request): boolean {
+  const authorizationHeader = request.headers.get("authorization");
+  return authorizationHeader !== null && authorizationHeader.startsWith("ApiKey ");
+}
+
+function isAgentConnectionManagementPath(pathname: string): boolean {
+  return pathname.endsWith("/agent-api-keys") || pathname.includes("/agent-api-keys/");
+}
+
+export function createAgentInstructions(code: string | null, statusCode: number): string {
+  switch (code) {
+    case "SERVICE_UNAVAILABLE":
+      return "Retry the same request after the Retry-After delay. If it fails again, treat it as a server-side error and stop changing the request. Use requestId when debugging.";
+    case authVerificationTemporarilyUnavailableCode:
+      return "Retry the same authenticated request after the Retry-After delay without changing the token. If it keeps failing, sign in again and use requestId when debugging.";
+    case "AUTH_UNAUTHORIZED":
+    case "AGENT_API_KEY_INVALID":
+      return "Use a valid non-revoked API key in the Authorization header as: ApiKey $FLASHCARDS_OPEN_SOURCE_API_KEY after exporting it once. If needed, restart from GET /v1/agent.";
+    case "QUERY_INVALID_SQL":
+    case "QUERY_UNSUPPORTED_SYNTAX":
+      return "Fix the sql string using error.message and any error.details.validationIssues, then retry POST /v1/agent/sql. Use docs.openapiUrl for the published SQL dialect.";
+    case "WORKSPACE_SELECTION_REQUIRED":
+      return "Call GET /v1/agent/me, then GET /v1/agent/workspaces?limit=100. A first workspace is auto-provisioned for new users. If data.nextCursor is not null, continue with the same limit and cursor=data.nextCursor. If multiple workspaces exist, select one with POST /v1/agent/workspaces/{workspaceId}/select before calling POST /v1/agent/sql.";
+    case "WORKSPACE_ID_REQUIRED":
+    case "WORKSPACE_ID_INVALID":
+      return "Provide a valid workspaceId UUID in the request URL, then retry the action.";
+    case "DATABASE_COMMIT_OUTCOME_UNKNOWN":
+      return "Do not blindly replay the same request. Reload and check the current state first, then retry only if the requested change is confirmed absent. Use requestId when debugging.";
+  }
+
+  if (statusCode >= 500) {
+    return "Retry the same request once. If it fails again, treat it as a server-side error and stop changing the request. Use requestId when debugging.";
+  }
+
+  if (statusCode === 404) {
+    return "Verify that the referenced resource id exists in the selected workspace, then retry only after correcting the id.";
+  }
+
+  if (statusCode >= 400) {
+    return "Fix the request using error.message and any error.details.validationIssues, then retry the same request.";
+  }
+
+  return "If the issue persists, reload account context from GET /v1/agent/me or restart from GET /v1/agent.";
+}
+
+export function getHttpErrorResponseHeaders(error: HttpError): ReadonlyArray<readonly [string, string]> {
+  if (error.statusCode === 503 && error.code === "SERVICE_UNAVAILABLE") {
+    return [["Retry-After", "1"]];
+  }
+
+  if (error.statusCode === 503 && error.code === authVerificationTemporarilyUnavailableCode) {
+    return [["Retry-After", authVerificationRetryAfterSeconds.toString()]];
+  }
+
+  return [];
+}
+
+function applyHttpErrorResponseHeaders(
+  context: Context<AppEnv>,
+  error: HttpError,
+): void {
+  for (const [name, value] of getHttpErrorResponseHeaders(error)) {
+    context.header(name, value);
+  }
+}
+
+function createAgentConnectionManagementInstructions(code: string | null, statusCode: number): string {
+  switch (code) {
+    case "AUTH_UNAUTHORIZED":
+      return "Sign in with a human browser or mobile session, then retry the connection management request.";
+    case "AGENT_API_KEY_HUMAN_SESSION_REQUIRED":
+      return "Manage long-lived bot connections from a human browser or mobile session, not from an ApiKey-authenticated bot.";
+    case "AGENT_API_KEY_NOT_FOUND":
+      return "Reload the connection list with GET /v1/agent-api-keys, then retry revoke with a current connectionId.";
+    case "AGENT_API_KEY_ID_REQUIRED":
+    case "AGENT_API_KEY_ID_INVALID":
+      return "Provide a non-empty connectionId in the request URL, then retry the request.";
+  }
+
+  if (statusCode >= 500) {
+    return "Retry the same request once. If it fails again, treat it as a server-side error and use requestId when debugging.";
+  }
+
+  if (statusCode >= 400) {
+    return "Fix the request using the reported error details, then retry the same request.";
+  }
+
+  return "Refresh the settings screen and try again.";
+}
+
+function shouldCaptureRequestFailureException(error: unknown): boolean {
+  if (error instanceof AuthError) {
+    return false;
+  }
+
+  if (error instanceof HttpError) {
+    if (error.code === authVerificationTemporarilyUnavailableCode) {
+      return false;
+    }
+
+    if (error.code === "CHAT_LIVE_RESUME_CONTRACT_VIOLATION") {
+      return false;
+    }
+
+    return error.statusCode >= 500;
+  }
+
+  return true;
+}
+
+function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono<AppEnv> {
+  const app = new Hono<AppEnv>({ strict: false }).basePath(basePath);
+  app.use("*", async (context, next) => {
+    const requestId = crypto.randomUUID();
+    context.set("requestId", requestId);
+    context.header("X-Request-Id", requestId);
+    await next();
+  });
+  app.use("*", async (context, next) => {
+    const sentryTrace = context.req.header("sentry-trace") || null;
+    const baggage = context.req.header("baggage") || null;
+    const traceCarrier = sentryTrace === null && baggage === null
+      ? null
+      : { sentryTrace, baggage };
+    await continueBackendTrace(traceCarrier, async () => {
+      await next();
+    });
+  });
+  app.use(globalSnapshotPath, cors({
+    origin: "*",
+    allowMethods: ["GET", "OPTIONS"],
+    allowHeaders: [...globalSnapshotCorsAllowHeaders],
+    exposeHeaders: ["retry-after"],
+  }));
+  app.use("*", cors({
+    origin: allowedOrigins,
+    allowMethods: ["GET", "POST", "PATCH", "PUT", "OPTIONS"],
+    allowHeaders: [...browserCorsAllowHeaders],
+    exposeHeaders: [
+      "cache-control",
+      "content-encoding",
+      "content-length",
+      "content-type",
+      "x-request-id",
+      "x-amz-apigw-id",
+      "x-amzn-requestid",
+      "x-chat-request-id",
+      "retry-after",
+    ],
+    credentials: true,
+  }));
+
+  app.onError((error, context) => {
+    const requestId = context.get("requestId");
+    logRequestError(requestId, context.req.path, context.req.method, error);
+    const normalizedError = normalizeCaughtError(error);
+    if (
+      hasReportedBackendException(normalizedError) === false
+      && shouldCaptureRequestFailureException(error)
+    ) {
+      captureBackendException({
+        action: "request_failed",
+        error: normalizedError,
+        scope: createBackendObservationScope(
+          "backend-api",
+          requestId,
+          context.req.path,
+          context.req.method,
+          null,
+          null,
+          null,
+          null,
+          null,
+        ),
+        details: {
+          statusCode: error instanceof HttpError ? error.statusCode : 500,
+          code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
+          message: error instanceof Error ? error.message : String(error),
+          validationIssues: error instanceof HttpError
+            ? (error.details?.validationIssues ?? []).map((issue) => ({
+              path: issue.path,
+              code: issue.code,
+            }))
+            : [],
+        },
+      });
+    }
+    const apiKeyRequest = usesApiKeyAuthorizationHeader(context.req.raw);
+    const agentConnectionManagementRequest = isAgentConnectionManagementPath(context.req.path);
+
+    if (error instanceof AuthError) {
+      context.status(error.statusCode as ContentfulStatusCode);
+      if (apiKeyRequest) {
+        return context.json(
+          createAgentSetupErrorEnvelope(
+            context.req.url,
+            "AUTH_UNAUTHORIZED",
+            "Authentication failed. Sign in again.",
+            createAgentInstructions("AUTH_UNAUTHORIZED", error.statusCode),
+            requestId,
+          ),
+        );
+      }
+      if (agentConnectionManagementRequest) {
+        return context.json(
+          createAgentConnectionManagementErrorEnvelope(
+            "AUTH_UNAUTHORIZED",
+            "Authentication failed. Sign in again.",
+            createAgentConnectionManagementInstructions("AUTH_UNAUTHORIZED", error.statusCode),
+            requestId,
+          ),
+        );
+      }
+      return context.json({
+        error: "Authentication failed. Sign in again.",
+        requestId,
+        code: "AUTH_UNAUTHORIZED",
+      });
+    }
+
+    if (error instanceof HttpError) {
+      context.status(error.statusCode as ContentfulStatusCode);
+      applyHttpErrorResponseHeaders(context, error);
+      if (apiKeyRequest) {
+        return context.json(
+          createAgentSetupErrorEnvelope(
+            context.req.url,
+            error.code ?? "REQUEST_FAILED",
+            error.message,
+            createAgentInstructions(error.code, error.statusCode),
+            requestId,
+            createPublicHttpErrorDetails(error.details) ?? undefined,
+          ),
+        );
+      }
+      if (agentConnectionManagementRequest) {
+        return context.json(
+          createAgentConnectionManagementErrorEnvelope(
+            error.code ?? "REQUEST_FAILED",
+            error.message,
+            createAgentConnectionManagementInstructions(error.code, error.statusCode),
+            requestId,
+          ),
+        );
+      }
+      return context.json(createPublicHttpErrorBody(error, requestId));
+    }
+
+    context.status(500);
+    if (apiKeyRequest) {
+      return context.json(
+        createAgentSetupErrorEnvelope(
+          context.req.url,
+          "INTERNAL_ERROR",
+          "Request failed. Try again.",
+          createAgentInstructions("INTERNAL_ERROR", 500),
+          requestId,
+        ),
+      );
+    }
+    if (agentConnectionManagementRequest) {
+      return context.json(
+        createAgentConnectionManagementErrorEnvelope(
+          "INTERNAL_ERROR",
+          "Request failed. Try again.",
+          createAgentConnectionManagementInstructions("INTERNAL_ERROR", 500),
+          requestId,
+        ),
+      );
+    }
+    return context.json({
+      error: "Request failed. Try again.",
+      requestId,
+      code: "INTERNAL_ERROR",
+    });
+  });
+
+  app.route("/", createSystemRoutes({ allowedOrigins }));
+  app.route("/", createAgentRoutes({ allowedOrigins }));
+  app.route("/", createWorkspaceRoutes({ allowedOrigins }));
+  app.route("/", createAdminRoutes({ allowedOrigins }));
+  app.route("/", createCardsRoutes({ allowedOrigins }));
+  app.route("/", createGlobalSnapshotRoutes({}));
+  app.route("/", createGuestAuthRoutes());
+  app.route("/", createChatTranscriptionsRoutes({ allowedOrigins }));
+  app.route("/", createChatRoutes({ allowedOrigins }));
+  app.route("/", createSyncRoutes({ allowedOrigins }));
+
+  return app;
+}
+
+/**
+ * Constructs the backend app and validates auth config eagerly so local
+ * startup and Lambda cold start both fail closed before serving requests.
+ */
+export function createApp(basePath: string): Hono<AppEnv> {
+  getAuthConfig();
+  getGuestAiWeightedMonthlyTokenCap();
+  const allowedOrigins = getAllowedOrigins();
+  const routeMountPaths = getRouteMountPaths(basePath);
+  if (routeMountPaths.length === 1) {
+    return createMountedApp(routeMountPaths[0], allowedOrigins);
+  }
+
+  const app = new Hono<AppEnv>({ strict: false });
+  for (const routeMountPath of routeMountPaths) {
+    app.route("/", createMountedApp(routeMountPath, allowedOrigins));
+  }
+
+  return app;
+}

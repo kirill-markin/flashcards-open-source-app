@@ -23,4 +23,4 @@ COPY --from=builder /app/dist/ dist/
 
 USER backend
 EXPOSE 8080
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/entrypoints/index.js"]

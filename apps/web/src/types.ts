@@ -5,18 +5,18 @@ import type { Locale } from "./i18n/types";
  * The web app does not contain a standalone FSRS scheduler implementation in
  * this repository.
  * Web review submissions and review-button interval previews reuse the backend
- * scheduler module from `apps/backend/src/schedule.ts`.
+ * scheduler module from `apps/backend/src/scheduling/index.ts`.
  *
  * Keep these FSRS-facing types aligned with:
- * - apps/backend/src/schedule.ts
- * - apps/backend/src/workspaceSchedulerSettings.ts
+ * - apps/backend/src/scheduling/index.ts
+ * - apps/backend/src/scheduling/workspaceSettings.ts
  * - apps/ios/Flashcards/Flashcards/Cards/CardDeckTypes.swift
  * - apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsTypes.swift
  * - apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FlashcardsModels.kt
  * - docs/fsrs-scheduling-logic.md
  */
 export type EffortLevel = "fast" | "medium" | "long";
-// Keep in sync with apps/backend/src/schedule.ts::FsrsCardState, apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsTypes.swift::FsrsCardState, and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FlashcardsModels.kt::FsrsCardState.
+// Keep in sync with apps/backend/src/scheduling/index.ts::FsrsCardState, apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsTypes.swift::FsrsCardState, and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FlashcardsModels.kt::FsrsCardState.
 export type FsrsCardState = "new" | "learning" | "review" | "relearning";
 
 export type CardFilter = Readonly<{
@@ -396,7 +396,7 @@ export type HomeSnapshot = Readonly<{
   reviewedCount: number;
 }>;
 
-// Keep in sync with apps/backend/src/cards.ts::Card, apps/ios/Flashcards/Flashcards/Cards/CardDeckTypes.swift::Card, and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FlashcardsModels.kt::CardSummary.
+// Keep in sync with apps/backend/src/cards/types.ts::Card, apps/ios/Flashcards/Flashcards/Cards/CardDeckTypes.swift::Card, and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FlashcardsModels.kt::CardSummary.
 export type Card = Readonly<{
   cardId: string;
   frontText: string;
@@ -522,7 +522,7 @@ export type TagSuggestion =
     cardsCount: number;
   }>;
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsTypes.swift::WorkspaceSchedulerSettings and apps/backend/src/workspaceSchedulerSettings.ts::WorkspaceSchedulerSettings.
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsTypes.swift::WorkspaceSchedulerSettings and apps/backend/src/scheduling/workspaceConfig.ts::WorkspaceSchedulerSettings.
 export type WorkspaceSchedulerSettings = Readonly<{
   algorithm: "fsrs-6";
   desiredRetention: number;

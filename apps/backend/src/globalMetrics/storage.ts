@@ -1,5 +1,5 @@
 import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { HttpError } from "../errors";
+import { HttpError } from "../shared/errors";
 import {
   addBackendBreadcrumb,
   type BackendObservationScope,
