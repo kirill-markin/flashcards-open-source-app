@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { Hono } from "hono";
-import { HttpError } from "../../errors";
-import type { AppEnv } from "../../app";
+import { HttpError } from "../../shared/errors";
+import type { AppEnv } from "../../server/app";
 import type { BackendTraceCarrier } from "../../observability/sentry";
 import { createChatRoutes } from "../../routes/chat";
 import { ChatSessionConflictError } from "../store";

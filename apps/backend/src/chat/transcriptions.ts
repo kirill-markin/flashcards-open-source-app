@@ -4,7 +4,7 @@
  */
 import { Buffer } from "node:buffer";
 import { toFile } from "openai";
-import { HttpError } from "../errors";
+import { HttpError } from "../shared/errors";
 import {
   addBackendBreadcrumb,
   captureBackendWarning,

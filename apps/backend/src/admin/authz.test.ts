@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { AuthError, type AuthRequest, type AuthResult } from "../auth";
-import { resetAuthConfigForTests } from "../authConfig";
-import { HttpError } from "../errors";
+import { resetAuthConfigForTests } from "../auth/config";
+import { HttpError } from "../shared/errors";
 import { requireAdminRequestWithDependencies } from "./authz";
 
 function createRequest(url: string): Request {

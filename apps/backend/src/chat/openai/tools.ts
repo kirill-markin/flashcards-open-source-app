@@ -3,8 +3,8 @@
  * The runtime always routes provider tool calls through this module so SQL validation and output envelopes stay consistent.
  */
 import type OpenAI from "openai";
-import { HttpError } from "../../errors";
-import { ensureAIChatSyncReplica } from "../../aiChatSyncIdentity";
+import { HttpError } from "../../shared/errors";
+import { ensureAIChatSyncReplica } from "../../sync/aiChatIdentity";
 import { executeAgentSql } from "../../aiTools/agentSql";
 import {
   DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,

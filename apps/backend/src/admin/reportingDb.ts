@@ -3,12 +3,12 @@ import {
   getDatabaseErrorFields,
   logDatabasePoolError,
   toDatabaseBoundaryError,
-} from "../dbTransient";
+} from "../database/transient";
 import {
   captureBackendWarning,
   createBackendRuntimeObservationScope,
 } from "../observability/sentry";
-import { getDatabaseCredentialsSecret } from "../secrets";
+import { getDatabaseCredentialsSecret } from "../aws/secrets";
 
 const reportingPoolMaxConnections = 4;
 

@@ -10,7 +10,7 @@ Email + OTP authentication via AWS Cognito (passwordless).
   - `apps/auth/src/lambda.ts`: Lambda entry point
   - `apps/auth/src/routes/`: `sendCode`, `verifyCode`, `refreshToken`, `revokeToken`, `loginPage`, `health`
   - `apps/auth/src/server/cognitoAuth.ts`: Cognito API client
-  - `apps/backend/src/auth.ts`: JWT verification middleware
-  - `apps/backend/src/ensureUser.ts`: auto-provisions `user_settings` and `workspace` on first request
+  - `apps/backend/src/auth/index.ts`: JWT verification middleware
+  - `apps/backend/src/auth/ensureUser.ts`: auto-provisions `user_settings` and `workspace` on first request
   - `infra/aws/lib/auth.ts`: CDK Cognito User Pool construct
   - `db/migrations/0002_user_settings.sql`: `user_settings` table

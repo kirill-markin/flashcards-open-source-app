@@ -23,7 +23,7 @@ import {
   type AgentSqlMutationStatement,
 } from "./agentSqlShared";
 import { loadSelectRows } from "./agentSqlReadExecution";
-import { HttpError } from "../errors";
+import { HttpError } from "../shared/errors";
 
 function selectTargetRows(
   statement: Extract<AgentSqlMutationStatement, Readonly<{ type: "update" | "delete" }>>,

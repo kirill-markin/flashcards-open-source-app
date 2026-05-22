@@ -3,7 +3,7 @@ import {
   applyWorkspaceDatabaseScopeInExecutor,
   type DatabaseExecutor,
   type WorkspaceDatabaseScope,
-} from "../../db";
+} from "../../database";
 import { ChatRunRowNotFoundError, ChatSessionRowNotFoundError } from "../errors";
 import {
   CHAT_MODEL_ID,

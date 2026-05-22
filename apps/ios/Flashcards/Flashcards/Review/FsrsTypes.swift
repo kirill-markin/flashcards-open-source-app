@@ -6,15 +6,15 @@ import Foundation
  `FsrsScheduler.swift`.
 
  Keep these FSRS-facing types aligned with:
- - apps/backend/src/schedule.ts
- - apps/backend/src/cards.ts
- - apps/backend/src/workspaceSchedulerSettings.ts
+ - apps/backend/src/scheduling/index.ts
+ - apps/backend/src/cards/index.ts
+ - apps/backend/src/scheduling/workspaceSettings.ts
  - apps/web/src/types.ts
  - apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FlashcardsModels.kt
  - docs/fsrs-scheduling-logic.md
  */
 
-// Keep in sync with apps/backend/src/schedule.ts::FsrsCardState, apps/web/src/types.ts::FsrsCardState, and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FlashcardsModels.kt::FsrsCardState.
+// Keep in sync with apps/backend/src/scheduling/index.ts::FsrsCardState, apps/web/src/types.ts::FsrsCardState, and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FlashcardsModels.kt::FsrsCardState.
 enum FsrsCardState: String, Codable, CaseIterable, Hashable, Identifiable, Sendable {
     case new
     case learning
@@ -26,7 +26,7 @@ enum FsrsCardState: String, Codable, CaseIterable, Hashable, Identifiable, Senda
     }
 }
 
-// Keep in sync with apps/backend/src/workspaceSchedulerSettings.ts::WorkspaceSchedulerSettings, apps/web/src/types.ts::WorkspaceSchedulerSettings, and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FlashcardsModels.kt::WorkspaceSchedulerSettings.
+// Keep in sync with apps/backend/src/scheduling/workspaceConfig.ts::WorkspaceSchedulerSettings, apps/web/src/types.ts::WorkspaceSchedulerSettings, and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FlashcardsModels.kt::WorkspaceSchedulerSettings.
 struct WorkspaceSchedulerSettings: Codable, Hashable, Sendable {
     let algorithm: String
     let desiredRetention: Double

@@ -1,9 +1,9 @@
 import { Hono } from "hono";
 import { authenticateRequest } from "../auth";
-import { deleteAccountForAuthenticatedUser } from "../accountDeletion";
+import { deleteAccountForAuthenticatedUser } from "../auth/accountDeletion";
 import { createAgentDiscoveryEnvelope } from "../agent/discovery";
 import { createAgentAccountEnvelope, shouldUseAgentSetupEnvelope } from "../agent/setup";
-import { HttpError } from "../errors";
+import { HttpError } from "../shared/errors";
 import {
   loadUserProgressReviewSchedule,
   loadUserProgressSeries,
@@ -15,14 +15,14 @@ import {
   type ProgressSeries,
   type ProgressSummaryResponse,
 } from "../progress";
-import { unsafeQuery } from "../dbUnsafe";
-import { loadOpenApiDocument } from "../openapi";
+import { unsafeQuery } from "../database/unsafe";
+import { loadOpenApiDocument } from "../shared/openapi";
 import {
   enforceSessionCsrfProtection,
   extractRequestAuthInputs,
   getSessionCsrfToken,
   toAuthRequest,
-} from "../requestSecurity";
+} from "../auth/requestSecurity";
 import { expectRecord, parseJsonBody } from "../server/requestParsing";
 import { loadRequestContextFromRequest } from "../server/requestContext";
 import { createBackendFailureDetails } from "../server/logging";
@@ -33,7 +33,7 @@ import {
   type BackendObservationScope,
 } from "../observability/sentry";
 import { reportBackendExceptionOrBreadcrumb } from "../observability/reporting";
-import type { AppEnv } from "../app";
+import type { AppEnv } from "../server/app";
 
 type SystemRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;

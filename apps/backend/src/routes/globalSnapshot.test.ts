@@ -3,10 +3,10 @@ import test from "node:test";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import { createApp, type AppEnv } from "../app";
-import { resetAuthConfigForTests } from "../authConfig";
-import { HttpError } from "../errors";
-import { resetGuestAiQuotaConfigForTests } from "../guestAiQuotaConfig";
+import { createApp, type AppEnv } from "../server/app";
+import { resetAuthConfigForTests } from "../auth/config";
+import { HttpError } from "../shared/errors";
+import { resetGuestAiQuotaConfigForTests } from "../guestAiQuota/config";
 import {
   buildGlobalMetricsSnapshot,
   createGlobalMetricsSnapshotWindow,

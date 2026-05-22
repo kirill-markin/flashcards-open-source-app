@@ -3,7 +3,7 @@ import test from "node:test";
 import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { createChatSessionRequestedSessionIdConflictError } from "../errors";
-import { HttpError } from "../../errors";
+import { HttpError } from "../../shared/errors";
 import { createChatTranscriptionsRoutes } from "../../routes/chatTranscriptions";
 import type { RequestContext } from "../../server/requestContext";
 

@@ -6,8 +6,8 @@ import {
   createAgentWorkspacesEnvelope,
 } from "../agent/setup";
 import { executeAgentSql } from "../aiTools/agentSql";
-import { loadOpenApiDocument } from "../openapi";
-import { parseOptionalCursorQuery, parseRequiredPageLimit } from "../pagination";
+import { loadOpenApiDocument } from "../shared/openapi";
+import { parseOptionalCursorQuery, parseRequiredPageLimit } from "../shared/pagination";
 import {
   createWorkspaceForApiKeyConnection,
   listUserWorkspacesPageForSelectedWorkspace,
@@ -24,7 +24,7 @@ import {
   expectRecord,
   parseJsonBody,
 } from "../server/requestParsing";
-import type { AppEnv } from "../app";
+import type { AppEnv } from "../server/app";
 
 type AgentRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;

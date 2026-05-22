@@ -87,7 +87,7 @@ function addOptionalSentryEnvironment(
  */
 export function migrationRunner(scope: Construct, props: MigrationRunnerProps): lambdaNodejs.NodejsFunction {
   const migrationFn = new lambdaNodejs.NodejsFunction(scope, "DbMigrationHandler", {
-    entry: resolveFromRepoRoot("apps", "backend", "src", "migrate-lambda.ts"),
+    entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "migrate-lambda.ts"),
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_24_X,
     timeout: cdk.Duration.minutes(5),

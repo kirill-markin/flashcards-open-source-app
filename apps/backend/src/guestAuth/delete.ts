@@ -1,8 +1,8 @@
 import {
   applyUserDatabaseScopeInExecutor,
   type DatabaseExecutor,
-} from "../db";
-import { HttpError } from "../errors";
+} from "../database";
+import { HttpError } from "../shared/errors";
 import { loadWorkspaceManagementRowInExecutor } from "../workspaces/queries";
 import {
   assertWorkspaceIsSoleMember,

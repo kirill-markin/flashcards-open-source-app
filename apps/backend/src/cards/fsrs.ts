@@ -1,5 +1,5 @@
-import type { DatabaseExecutor } from "../db";
-import { HttpError } from "../errors";
+import type { DatabaseExecutor } from "../database";
+import { HttpError } from "../shared/errors";
 import {
   captureBackendWarning,
   createBackendObservationScope,

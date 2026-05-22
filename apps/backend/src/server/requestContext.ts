@@ -1,14 +1,14 @@
 import { authenticateRequest, type AuthTransport } from "../auth";
-import { isDeletedSubject } from "../deletedSubjects";
-import { HttpError } from "../errors";
-import { ensureUserProfile } from "../ensureUser";
+import { isDeletedSubject } from "../auth/deletedSubjects";
+import { HttpError } from "../shared/errors";
+import { ensureUserProfile } from "../auth/ensureUser";
 import { assertUserHasWorkspaceAccess } from "../workspaces";
 import {
   enforceSessionCsrfProtection,
   extractRequestAuthInputs,
   toAuthRequest,
   type RequestAuthInputs,
-} from "../requestSecurity";
+} from "../auth/requestSecurity";
 
 export type RequestContext = Readonly<{
   userId: string;

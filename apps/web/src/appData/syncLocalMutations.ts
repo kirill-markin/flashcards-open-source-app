@@ -1,4 +1,4 @@
-import { computeReviewSchedule, type ReviewRating } from "../../../backend/src/schedule";
+import { computeReviewSchedule, type ReviewRating } from "../../../backend/src/scheduling";
 import { loadCardById, putCard } from "../localDb/cards";
 import { loadCloudSettings } from "../localDb/cloudSettings";
 import { loadDeckById, putDeck } from "../localDb/decks";

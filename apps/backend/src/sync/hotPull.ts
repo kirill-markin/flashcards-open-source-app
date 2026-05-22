@@ -3,16 +3,16 @@ import { mapCard } from "../cards/shared";
 import {
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
-} from "../db";
+} from "../database";
 import type {
   Deck,
   DeckRow,
 } from "../decks";
 import { mapDeck } from "../decks";
-import { HttpError } from "../errors";
-import { ensureWorkspaceReplicaInExecutor } from "../syncIdentity";
-import { ensureWorkspaceSyncMetadataInExecutor, loadMinAvailableHotChangeId } from "../syncChanges";
-import type { WorkspaceSchedulerSettings } from "../workspaceSchedulerSettings";
+import { HttpError } from "../shared/errors";
+import { ensureWorkspaceReplicaInExecutor } from "./identity";
+import { ensureWorkspaceSyncMetadataInExecutor, loadMinAvailableHotChangeId } from "./changes";
+import type { WorkspaceSchedulerSettings } from "../scheduling/workspaceSettings";
 import type { SyncPullInput } from "./input";
 import type {
   HotChangeRow,

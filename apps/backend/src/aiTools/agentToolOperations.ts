@@ -41,12 +41,12 @@ import {
   type Deck,
   type UpdateDeckInput,
 } from "../decks";
-import { HttpError } from "../errors";
+import { HttpError } from "../shared/errors";
 import { ensureAgentSyncReplica } from "../agent/syncIdentity";
 import {
   getWorkspaceSchedulerSettings,
   type WorkspaceSchedulerSettings,
-} from "../workspaceSchedulerSettings";
+} from "../scheduling/workspaceSettings";
 import {
   listUserWorkspacesForSelectedWorkspace,
   type WorkspaceSummary,

@@ -3,7 +3,7 @@ import {
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
   type WorkspaceDatabaseScope,
-} from "../../db";
+} from "../../database";
 import { createChatSessionRequestedSessionIdConflictError } from "../errors";
 import {
   clearActiveChatComposerSuggestionGenerationWithExecutor,

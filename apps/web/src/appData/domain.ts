@@ -1,6 +1,6 @@
 import type {
   ReviewableCardScheduleState,
-} from "../../../backend/src/schedule";
+} from "../../../backend/src/scheduling";
 import { canonicalizeDueAtForSync, parseDueAtMillis } from "./dueAt";
 import type {
   Card,

@@ -1,9 +1,9 @@
-import { HttpError } from "../errors";
+import { HttpError } from "../shared/errors";
 import {
   createBackendObservationScope,
   type BackendObservationScope,
 } from "../observability/sentry";
-import { decodeOpaqueCursor } from "../pagination";
+import { decodeOpaqueCursor } from "../shared/pagination";
 import {
   deleteWorkspaceConfirmationText,
   resetWorkspaceProgressConfirmationText,

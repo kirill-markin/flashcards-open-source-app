@@ -6,8 +6,8 @@ import Foundation
  workspaces row are the runtime source of truth on device.
 
  This file mirrors the backend scheduler-settings and review-persistence logic
- in `apps/backend/src/workspaceSchedulerSettings.ts` and
- `apps/backend/src/cards.ts`.
+ in `apps/backend/src/scheduling/workspaceSettings.ts` and
+ `apps/backend/src/cards/reviews.ts`.
  If you change scheduler-state validation or review persistence here, make the
  same change in the backend mirror and update docs/fsrs-scheduling-logic.md.
 

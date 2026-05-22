@@ -3,7 +3,7 @@ import Foundation
 private let maximumSearchTokenCount = 5
 private let reviewCardsStringsTableName: String = "ReviewCards"
 
-// Keep in sync with apps/backend/src/searchTokens.ts::tokenizeSearchText.
+// Keep in sync with apps/backend/src/search/tokens.ts::tokenizeSearchText.
 func tokenizeSearchText(searchText: String) -> [String] {
     let normalizedSearchText = searchText
         .trimmingCharacters(in: .whitespacesAndNewlines)

@@ -9,7 +9,7 @@ import {
   type CardQuerySortKey,
   type WorkspaceTagsSummary,
 } from "../cards";
-import { HttpError } from "../errors";
+import { HttpError } from "../shared/errors";
 import {
   loadRequestContextFromRequest,
   parseWorkspaceIdParam,
@@ -28,7 +28,7 @@ import {
 } from "../observability/sentry";
 import { reportBackendExceptionOrBreadcrumb } from "../observability/reporting";
 import { assertUserHasWorkspaceAccess } from "../workspaces";
-import type { AppEnv } from "../app";
+import type { AppEnv } from "../server/app";
 
 type CardsRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;

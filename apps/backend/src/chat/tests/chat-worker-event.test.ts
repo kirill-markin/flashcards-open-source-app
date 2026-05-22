@@ -7,7 +7,7 @@ import type {
   BackendTraceCarrier,
   ChatWorkerDispatchFailureDetails,
 } from "../../observability/sentry";
-import type { ChatWorkerEvent } from "../worker/index";
+import type { ChatWorkerEvent } from "../worker";
 import {
   invokeChatWorkerOrPersistFailureWithDependencies,
   invokeChatWorkerWithDependencies,

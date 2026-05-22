@@ -1,4 +1,4 @@
-import { HttpError } from "../../errors";
+import { HttpError } from "../../shared/errors";
 import {
   captureBackendException,
   captureBackendWarning,

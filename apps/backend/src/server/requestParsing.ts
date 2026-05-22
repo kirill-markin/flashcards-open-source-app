@@ -1,4 +1,4 @@
-import { HttpError } from "../errors";
+import { HttpError } from "../shared/errors";
 
 export async function parseJsonBody(request: Request): Promise<unknown> {
   try {

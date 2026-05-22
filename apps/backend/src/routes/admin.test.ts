@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import { HttpError } from "../errors";
-import type { AppEnv } from "../app";
+import { HttpError } from "../shared/errors";
+import type { AppEnv } from "../server/app";
 import { createAdminRoutes } from "./admin";
 
 test("GET /admin/session returns the signed-in admin identity envelope", async () => {

@@ -1,6 +1,6 @@
-import type { DatabaseExecutor } from "../db";
-import { normalizeIsoTimestamp } from "../lww";
-import { insertSyncChange } from "../syncChanges";
+import type { DatabaseExecutor } from "../database";
+import { normalizeIsoTimestamp } from "../sync/lww";
+import { insertSyncChange } from "../sync/changes";
 import type {
   Card,
   CardMutationMetadata,

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { HttpError } from "../../errors";
+import { HttpError } from "../../shared/errors";
 import {
   CHAT_LIVE_RUN_ID_REQUIRED_CODE,
   createChatLiveErrorResponse,

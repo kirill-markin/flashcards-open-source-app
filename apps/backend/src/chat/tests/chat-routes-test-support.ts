@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import { HttpError } from "../../errors";
+import { HttpError } from "../../shared/errors";
 import type { ChatSessionSnapshot } from "../store";
 import type { RequestContext } from "../../server/requestContext";
 

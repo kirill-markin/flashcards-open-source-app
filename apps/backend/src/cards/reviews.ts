@@ -1,15 +1,15 @@
 import { randomUUID } from "node:crypto";
-import { transactionWithWorkspaceScope, type DatabaseExecutor } from "../db";
-import { HttpError } from "../errors";
+import { transactionWithWorkspaceScope, type DatabaseExecutor } from "../database";
+import { HttpError } from "../shared/errors";
 import {
   computeReviewSchedule,
   type ReviewableCardScheduleState,
-} from "../schedule";
+} from "../scheduling";
 import {
   createSyncConflictHttpError,
   findSyncConflictWorkspaceIdInExecutor,
 } from "../sync/fork";
-import { getWorkspaceSchedulerConfig } from "../workspaceSchedulerSettings";
+import { getWorkspaceSchedulerConfig } from "../scheduling/workspaceSettings";
 import { validateOrResetReviewableCardRow } from "./fsrs";
 import {
   CARD_COLUMNS,

@@ -4,8 +4,8 @@ import {
   applyWorkspaceDatabaseScopeInExecutor,
   transactionWithUserScope,
   type DatabaseExecutor,
-} from "../db";
-import { HttpError } from "../errors";
+} from "../database";
+import { HttpError } from "../shared/errors";
 import {
   addBackendBreadcrumb,
   captureBackendException,
@@ -17,8 +17,8 @@ import { markBackendExceptionWrapperAsReported } from "../observability/reportin
 import {
   buildSystemWorkspaceReplicaId,
   ensureBootstrapSystemWorkspaceReplicaInExecutor,
-} from "../syncIdentity";
-import { insertSyncChange } from "../syncChanges";
+} from "../sync/identity";
+import { insertSyncChange } from "../sync/changes";
 import {
   createWorkspaceCreateFailedError,
   createWorkspaceInvariantError,

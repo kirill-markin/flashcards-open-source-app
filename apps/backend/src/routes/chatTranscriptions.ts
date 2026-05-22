@@ -11,7 +11,7 @@ import {
   type ChatTranscriptionRequestContext,
   type ChatTranscriptionUpload,
 } from "../chat/transcriptions";
-import { HttpError } from "../errors";
+import { HttpError } from "../shared/errors";
 import { startChatTranscriptionObservation } from "../telemetry/langfuse";
 import {
   assertGuestAiLimitAllowsTranscription,
@@ -22,7 +22,7 @@ import {
   resolveAccessibleAiDictationWorkspaceId,
   type WorkspaceRequestContext,
 } from "../server/requestContext";
-import type { AppEnv } from "../app";
+import type { AppEnv } from "../server/app";
 
 type ChatTranscriptionsRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;

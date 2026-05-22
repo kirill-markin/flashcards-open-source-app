@@ -3,8 +3,8 @@ import {
   applyWorkspaceDatabaseScopeInExecutor,
   transactionWithUserScope,
   type DatabaseExecutor,
-} from "../db";
-import { HttpError } from "../errors";
+} from "../database";
+import { HttpError } from "../shared/errors";
 import { CARD_COLUMNS, mapCard, recordCardSyncChange } from "../cards/shared";
 import type { CardRow } from "../cards/types";
 import {
@@ -15,8 +15,8 @@ import {
   type WorkspaceTransactionDetails,
 } from "../observability/sentry";
 import { markBackendExceptionWrapperAsReported } from "../observability/reporting";
-import { ensureSystemWorkspaceReplicaInExecutor } from "../syncIdentity";
-import { lockWorkspaceAccessLifecycleInExecutor } from "../workspaceAccessLocks";
+import { ensureSystemWorkspaceReplicaInExecutor } from "../sync/identity";
+import { lockWorkspaceAccessLifecycleInExecutor } from "./accessLocks";
 import { createWorkspaceInExecutorWithObservationScope } from "./create";
 import {
   listUserWorkspaceIdsInExecutor,

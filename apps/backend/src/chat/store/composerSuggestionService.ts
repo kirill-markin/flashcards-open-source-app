@@ -1,4 +1,4 @@
-import { transactionWithWorkspaceScope, type DatabaseExecutor, type WorkspaceDatabaseScope } from "../../db";
+import { transactionWithWorkspaceScope, type DatabaseExecutor, type WorkspaceDatabaseScope } from "../../database";
 import {
   buildInitialChatComposerSuggestions,
   emptyChatComposerSuggestions,
