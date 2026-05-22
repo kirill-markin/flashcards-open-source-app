@@ -11,12 +11,12 @@ import type { Locale } from "./i18n/types";
  * - apps/backend/src/scheduling/index.ts
  * - apps/backend/src/scheduling/workspaceSettings.ts
  * - apps/ios/Flashcards/Flashcards/Cards/CardDeckTypes.swift
- * - apps/ios/Flashcards/Flashcards/Review/FsrsTypes.swift
+ * - apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsTypes.swift
  * - apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FlashcardsModels.kt
  * - docs/fsrs-scheduling-logic.md
  */
 export type EffortLevel = "fast" | "medium" | "long";
-// Keep in sync with apps/backend/src/scheduling/index.ts::FsrsCardState, apps/ios/Flashcards/Flashcards/Review/FsrsTypes.swift::FsrsCardState, and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FlashcardsModels.kt::FsrsCardState.
+// Keep in sync with apps/backend/src/scheduling/index.ts::FsrsCardState, apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsTypes.swift::FsrsCardState, and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FlashcardsModels.kt::FsrsCardState.
 export type FsrsCardState = "new" | "learning" | "review" | "relearning";
 
 export type CardFilter = Readonly<{
@@ -522,7 +522,7 @@ export type TagSuggestion =
     cardsCount: number;
   }>;
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/Review/FsrsTypes.swift::WorkspaceSchedulerSettings and apps/backend/src/scheduling/workspaceConfig.ts::WorkspaceSchedulerSettings.
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsTypes.swift::WorkspaceSchedulerSettings and apps/backend/src/scheduling/workspaceConfig.ts::WorkspaceSchedulerSettings.
 export type WorkspaceSchedulerSettings = Readonly<{
   algorithm: "fsrs-6";
   desiredRetention: number;

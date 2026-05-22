@@ -3,7 +3,7 @@ import { expect, type BrowserContext, type Page } from "@playwright/test";
 import type {
   TestSeedRequest,
   TestSeedResult,
-} from "../../src/appData/testSeedBridge";
+} from "../../src/appData/sync/testSeedBridge";
 import type { LiveSmokeDiagnostics } from "../live-smoke.diagnostics";
 import { externalUiTimeoutMs } from "./config";
 

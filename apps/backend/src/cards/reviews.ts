@@ -31,7 +31,7 @@ import type {
   SubmitReviewInput,
 } from "./types";
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::makeReviewableCardScheduleState(card:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::makeReviewableCardScheduleState(card:).
 function toReviewableCardScheduleState(
   card: ReviewableCardRow,
 ): ReviewableCardScheduleState {

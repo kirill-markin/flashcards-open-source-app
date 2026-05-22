@@ -3,16 +3,16 @@ import {
   getSession,
   isAuthRedirectError,
   revalidateSession as revalidateSessionRequest,
-} from "../api";
+} from "../../api";
 import {
   clearBrowserReauthRequired,
   consumeAccountDeletedMarker,
   isBrowserReauthRequired,
-} from "../accountDeletion";
-import type { TranslationKey } from "../i18n";
-import { loadCloudSettings, putCloudSettings } from "../localDb/cloudSettings";
-import { setWebObservabilityUser } from "../observability/webObservability";
-import { getErrorMessage } from "./domain";
+} from "../../accountDeletion";
+import type { TranslationKey } from "../../i18n";
+import { loadCloudSettings, putCloudSettings } from "../../localDb/cloudSettings";
+import { setWebObservabilityUser } from "../../observability/webObservability";
+import { getErrorMessage } from "../domain";
 import {
   buildLinkingReadyCloudSettings,
   shouldClearLocalDataForVerifiedSession,
@@ -33,7 +33,7 @@ import type {
   WorkspaceSessionSetters,
   WorkspaceSessionState,
 } from "./workspaceSessionTypes";
-import type { SessionInfo } from "../types";
+import type { SessionInfo } from "../../types";
 
 type UseWorkspaceLifecycleParams =
   & Readonly<{

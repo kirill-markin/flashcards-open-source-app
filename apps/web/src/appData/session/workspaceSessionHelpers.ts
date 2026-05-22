@@ -1,5 +1,5 @@
-import type { TranslationKey } from "../i18n";
-import type { WorkspaceSummary } from "../types";
+import type { TranslationKey } from "../../i18n";
+import type { WorkspaceSummary } from "../../types";
 
 export const defaultWorkspaceName: string = "Personal";
 export const resumeRetryDelayMs: number = 750;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Card } from "../types";
+import type { Card } from "../../types";
 import {
   buildCardUpsertOperation,
   cardsMatchingReviewFilter,
@@ -10,7 +10,7 @@ import {
   normalizeTagKey,
   recentDuePriorityWindow,
   resolveReviewFilter,
-} from "./domain";
+} from "./index";
 
 function makeReviewOrderCard(cardId: string, dueAt: string | null, createdAt: string): Card {
   return {

@@ -2,7 +2,7 @@
  * Full FSRS scheduler with persisted card state and workspace-level settings.
  *
  * This file is a full TypeScript copy of the scheduler implemented in
- * `apps/ios/Flashcards/Flashcards/FsrsScheduler.swift`.
+ * `apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift`.
  * If you change algorithm behavior here, you must make the same change in the
  * iOS copy, update `docs/fsrs-scheduling-logic.md`, and keep
  * `tests/fsrs-full-vectors.json` plus both scheduler test suites aligned in the
@@ -21,7 +21,7 @@ export type ReviewRating = 0 | 1 | 2 | 3;
 
 export type FsrsCardState = "new" | "learning" | "review" | "relearning";
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::ReviewableCardScheduleState.
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::ReviewableCardScheduleState.
 export type ReviewableCardScheduleState = Readonly<{
   cardId: string;
   reps: number;
@@ -34,13 +34,13 @@ export type ReviewableCardScheduleState = Readonly<{
   fsrsScheduledDays: number | null;
 }>;
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::FsrsReviewHistoryEvent.
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::FsrsReviewHistoryEvent.
 export type ReviewHistoryEvent = Readonly<{
   rating: ReviewRating;
   reviewedAt: Date;
 }>;
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::ReviewSchedule.
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::ReviewSchedule.
 export type ReviewSchedule = Readonly<{
   dueAt: Date;
   reps: number;
@@ -53,7 +53,7 @@ export type ReviewSchedule = Readonly<{
   fsrsScheduledDays: number;
 }>;
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::RebuiltCardScheduleState.
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::RebuiltCardScheduleState.
 export type RebuiltCardScheduleState = Readonly<{
   dueAt: Date | null;
   reps: number;
@@ -66,25 +66,25 @@ export type RebuiltCardScheduleState = Readonly<{
   fsrsScheduledDays: number | null;
 }>;
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::FsrsMemoryState.
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::FsrsMemoryState.
 type FsrsMemoryState = Readonly<{
   difficulty: number;
   stability: number;
 }>;
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::FuzzRange.
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::FuzzRange.
 type FuzzRange = Readonly<{
   minInterval: number;
   maxInterval: number;
 }>;
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::LearningStepResult.
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::LearningStepResult.
 type LearningStepResult = Readonly<{
   scheduledMinutes: number | null;
   nextStepIndex: number;
 }>;
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::defaultWeights.
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::defaultWeights.
 const DEFAULT_W: ReadonlyArray<number> = Object.freeze([
   0.212,
   1.2931,
@@ -108,32 +108,32 @@ const DEFAULT_W: ReadonlyArray<number> = Object.freeze([
   0.0658,
   0.1542,
 ]);
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::fsrsMinimumStability.
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::fsrsMinimumStability.
 const S_MIN = 0.001;
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::W17_W18_CEILING.
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::W17_W18_CEILING.
 const W17_W18_CEILING = 2;
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::fuzzRanges.
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::fuzzRanges.
 const FUZZ_RANGES = Object.freeze([
   { start: 2.5, end: 7.0, factor: 0.15 },
   { start: 7.0, end: 20.0, factor: 0.1 },
   { start: 20.0, end: Number.POSITIVE_INFINITY, factor: 0.05 },
 ]);
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::fsrsDecay.
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::fsrsDecay.
 const DECAY = -DEFAULT_W[20];
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::fsrsFactor.
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::fsrsFactor.
 const FACTOR = Number.parseFloat(
   (Math.exp(Math.pow(DECAY, -1) * Math.log(0.9)) - 1).toFixed(8),
 );
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::AleaGenerator.
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::AleaGenerator.
 class Alea {
   private c: number;
   private s0: number;
   private s1: number;
   private s2: number;
 
-  // Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::AleaGenerator.init(seed:).
+  // Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::AleaGenerator.init(seed:).
   constructor(seed: string) {
     const mash = createMash();
     this.c = 1;
@@ -157,7 +157,7 @@ class Alea {
     }
   }
 
-  // Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::AleaGenerator.next().
+  // Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::AleaGenerator.next().
   next(): number {
     const t = 2_091_639 * this.s0 + this.c * 2.3283064365386963e-10;
     this.s0 = this.s1;
@@ -168,7 +168,7 @@ class Alea {
   }
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::MashGenerator.next(data:) and the surrounding MashGenerator state.
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::MashGenerator.next(data:) and the surrounding MashGenerator state.
 function createMash(): (data: string) => number {
   let n = 0xefc8249d;
 
@@ -200,17 +200,17 @@ function addDays(date: Date, days: number): Date {
   return new Date(date.getTime() + days * 86_400_000);
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::clamp(value:min:max:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::clamp(value:min:max:).
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::roundTo8(value:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::roundTo8(value:).
 function roundTo8(value: number): number {
   return Number.parseFloat(value.toFixed(8));
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::dateDiffInDays(lastReviewedAt:now:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::dateDiffInDays(lastReviewedAt:now:).
 function dateDiffInDays(lastReviewedAt: Date, now: Date): number {
   if (now.getTime() < lastReviewedAt.getTime()) {
     throw new Error(
@@ -232,17 +232,17 @@ function dateDiffInDays(lastReviewedAt: Date, now: Date): number {
   return Math.floor((utcNow - utcLast) / 86_400_000);
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::stateRequiresMemory(state:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::stateRequiresMemory(state:).
 function stateRequiresMemory(state: FsrsCardState): boolean {
   return state !== "new";
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::getIntervalModifier(requestRetention:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::getIntervalModifier(requestRetention:).
 function getIntervalModifier(requestRetention: number): number {
   return roundTo8((Math.pow(requestRetention, 1 / DECAY) - 1) / FACTOR);
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::formatSeedNumber(value:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::formatSeedNumber(value:).
 function formatSeedNumber(value: number): string {
   if (Object.is(value, -0) || value === 0) {
     return "0";
@@ -251,12 +251,12 @@ function formatSeedNumber(value: number): string {
   return String(value);
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::mapRatingToFsrsGrade(rating:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::mapRatingToFsrsGrade(rating:).
 function mapRatingToFsrsGrade(rating: ReviewRating): 1 | 2 | 3 | 4 {
   return (rating + 1) as 1 | 2 | 3 | 4;
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::getStepsForState(settings:state:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::getStepsForState(settings:state:).
 function getStepsForState(
   settings: WorkspaceSchedulerConfig,
   state: FsrsCardState,
@@ -266,7 +266,7 @@ function getStepsForState(
     : settings.learningStepsMinutes;
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::getCurrentStepIndex(card:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::getCurrentStepIndex(card:).
 function getCurrentStepIndex(card: ReviewableCardScheduleState): number {
   if (card.fsrsStepIndex === null) {
     return 0;
@@ -275,7 +275,7 @@ function getCurrentStepIndex(card: ReviewableCardScheduleState): number {
   return card.fsrsStepIndex;
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::getLearningStrategyStepIndex(card:grade:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::getLearningStrategyStepIndex(card:grade:).
 function getLearningStrategyStepIndex(
   card: ReviewableCardScheduleState,
   grade: 1 | 2 | 3 | 4,
@@ -288,7 +288,7 @@ function getLearningStrategyStepIndex(
   return currentStepIndex;
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::getHardStepMinutes(steps:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::getHardStepMinutes(steps:).
 function getHardStepMinutes(steps: ReadonlyArray<number>): number {
   if (steps.length === 1) {
     return Math.round(steps[0] * 1.5);
@@ -297,7 +297,7 @@ function getHardStepMinutes(steps: ReadonlyArray<number>): number {
   return Math.round((steps[0] + steps[1]) / 2);
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::getLearningStepResult(settings:card:grade:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::getLearningStepResult(settings:card:grade:).
 function getLearningStepResult(
   settings: WorkspaceSchedulerConfig,
   card: ReviewableCardScheduleState,
@@ -353,27 +353,27 @@ function getLearningStepResult(
   };
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::initStability(grade:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::initStability(grade:).
 function initStability(grade: 1 | 2 | 3 | 4): number {
   return Math.max(DEFAULT_W[grade - 1], 0.1);
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::initDifficulty(grade:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::initDifficulty(grade:).
 function initDifficulty(grade: 1 | 2 | 3 | 4): number {
   return roundTo8(DEFAULT_W[4] - Math.exp((grade - 1) * DEFAULT_W[5]) + 1);
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::meanReversion(initialDifficulty:currentDifficulty:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::meanReversion(initialDifficulty:currentDifficulty:).
 function meanReversion(initialDifficulty: number, currentDifficulty: number): number {
   return roundTo8(DEFAULT_W[7] * initialDifficulty + (1 - DEFAULT_W[7]) * currentDifficulty);
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::linearDamping(deltaDifficulty:difficulty:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::linearDamping(deltaDifficulty:difficulty:).
 function linearDamping(deltaDifficulty: number, difficulty: number): number {
   return roundTo8(deltaDifficulty * (10 - difficulty) / 9);
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::nextDifficulty(difficulty:grade:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::nextDifficulty(difficulty:grade:).
 function nextDifficulty(difficulty: number, grade: 1 | 2 | 3 | 4): number {
   const deltaDifficulty = -DEFAULT_W[6] * (grade - 3);
   const nextDifficultyValue = difficulty + linearDamping(deltaDifficulty, difficulty);
@@ -384,12 +384,12 @@ function nextDifficulty(difficulty: number, grade: 1 | 2 | 3 | 4): number {
   );
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::forgettingCurve(elapsedDays:stability:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::forgettingCurve(elapsedDays:stability:).
 function forgettingCurve(elapsedDays: number, stability: number): number {
   return roundTo8(Math.pow(1 + FACTOR * elapsedDays / stability, DECAY));
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::nextRecallStability(difficulty:stability:retrievability:grade:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::nextRecallStability(difficulty:stability:retrievability:grade:).
 function nextRecallStability(
   difficulty: number,
   stability: number,
@@ -413,7 +413,7 @@ function nextRecallStability(
   ));
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::nextForgetStability(difficulty:stability:retrievability:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::nextForgetStability(difficulty:stability:retrievability:).
 function nextForgetStability(
   difficulty: number,
   stability: number,
@@ -434,7 +434,7 @@ type ShortTermWeights = Readonly<{
   w18: number;
 }>;
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::getShortTermWeights(settings:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::getShortTermWeights(settings:).
 function getShortTermWeights(settings: WorkspaceSchedulerConfig): ShortTermWeights {
   if (settings.relearningStepsMinutes.length <= 1) {
     return {
@@ -456,7 +456,7 @@ function getShortTermWeights(settings: WorkspaceSchedulerConfig): ShortTermWeigh
   };
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::nextShortTermStability(stability:grade:settings:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::nextShortTermStability(stability:grade:settings:).
 function nextShortTermStability(
   stability: number,
   grade: 1 | 2 | 3 | 4,
@@ -473,7 +473,7 @@ function nextShortTermStability(
 
 // State-specific memory updates follow ts-fsrs:
 // new -> initial memory, learning/relearning -> short-term update, review -> review formulas.
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::createInitialMemoryState(grade:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::createInitialMemoryState(grade:).
 function createInitialMemoryState(grade: 1 | 2 | 3 | 4): FsrsMemoryState {
   return {
     stability: initStability(grade),
@@ -481,7 +481,7 @@ function createInitialMemoryState(grade: 1 | 2 | 3 | 4): FsrsMemoryState {
   };
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::computeNextShortTermMemoryState(memoryState:grade:settings:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::computeNextShortTermMemoryState(memoryState:grade:settings:).
 function computeNextShortTermMemoryState(
   memoryState: FsrsMemoryState,
   grade: 1 | 2 | 3 | 4,
@@ -493,7 +493,7 @@ function computeNextShortTermMemoryState(
   };
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::computeNextReviewMemoryState(memoryState:elapsedDays:grade:settings:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::computeNextReviewMemoryState(memoryState:elapsedDays:grade:settings:).
 function computeNextReviewMemoryState(
   memoryState: FsrsMemoryState,
   elapsedDays: number,
@@ -526,7 +526,7 @@ function computeNextReviewMemoryState(
   };
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::getFuzzRange(interval:elapsedDays:maximumInterval:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::getFuzzRange(interval:elapsedDays:maximumInterval:).
 function getFuzzRange(
   interval: number,
   elapsedDays: number,
@@ -551,7 +551,7 @@ function getFuzzRange(
   };
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::getIntervalSeed(now:reps:memoryState:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::getIntervalSeed(now:reps:memoryState:).
 function getIntervalSeed(
   now: Date,
   reps: number,
@@ -563,7 +563,7 @@ function getIntervalSeed(
   return `${now.getTime()}_${reps}_${formatSeedNumber(memoryProduct)}`;
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::nextInterval(stability:elapsedDays:settings:intervalSeed:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::nextInterval(stability:elapsedDays:settings:intervalSeed:).
 function nextInterval(
   stability: number,
   elapsedDays: number,
@@ -589,7 +589,7 @@ function nextInterval(
   );
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::getMemoryState(card:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::getMemoryState(card:).
 function getMemoryState(card: ReviewableCardScheduleState): FsrsMemoryState | null {
   if (!stateRequiresMemory(card.fsrsCardState)) {
     if (
@@ -628,7 +628,7 @@ function getMemoryState(card: ReviewableCardScheduleState): FsrsMemoryState | nu
   };
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::buildShortTermSchedule(card:nextMemoryState:rating:now:reps:lapses:settings:nextState:elapsedDays:intervalSeed:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::buildShortTermSchedule(card:nextMemoryState:rating:now:reps:lapses:settings:nextState:elapsedDays:intervalSeed:).
 function buildShortTermSchedule(
   card: ReviewableCardScheduleState,
   nextMemoryState: FsrsMemoryState,
@@ -668,7 +668,7 @@ function buildShortTermSchedule(
   };
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::buildGraduatedReviewSchedule(nextMemoryState:now:reps:lapses:settings:elapsedDays:intervalSeed:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::buildGraduatedReviewSchedule(nextMemoryState:now:reps:lapses:settings:elapsedDays:intervalSeed:).
 function buildGraduatedReviewSchedule(
   nextMemoryState: FsrsMemoryState,
   now: Date,
@@ -698,7 +698,7 @@ function buildGraduatedReviewSchedule(
   };
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::buildReviewSuccessSchedule(now:reps:lapses:settings:elapsedDays:hardMemoryState:goodMemoryState:easyMemoryState:rating:intervalSeed:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::buildReviewSuccessSchedule(now:reps:lapses:settings:elapsedDays:hardMemoryState:goodMemoryState:easyMemoryState:rating:intervalSeed:).
 function buildReviewSuccessSchedule(
   now: Date,
   reps: number,
@@ -761,7 +761,7 @@ function buildReviewSuccessSchedule(
   };
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::createEmptyReviewableCardScheduleState(cardId:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::createEmptyReviewableCardScheduleState(cardId:).
 export function createEmptyReviewableCardScheduleState(cardId: string): ReviewableCardScheduleState {
   return {
     cardId,
@@ -776,7 +776,7 @@ export function createEmptyReviewableCardScheduleState(cardId: string): Reviewab
   };
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::computeReviewSchedule(card:settings:rating:now:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::computeReviewSchedule(card:settings:rating:now:).
 export function computeReviewSchedule(
   card: ReviewableCardScheduleState,
   settings: WorkspaceSchedulerConfig,
@@ -860,7 +860,7 @@ export function computeReviewSchedule(
   );
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::rebuildCardScheduleState(cardId:settings:reviewEvents:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::rebuildCardScheduleState(cardId:settings:reviewEvents:).
 export function rebuildCardScheduleState(
   cardId: string,
   settings: WorkspaceSchedulerConfig,

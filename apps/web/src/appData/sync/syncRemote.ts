@@ -3,16 +3,16 @@ import {
   pullReviewHistorySync,
   pullSyncChanges,
   pushSyncOperations,
-} from "../api";
-import { webAppVersion } from "../clientIdentity";
-import { loadCardsByIds } from "../localDb/cards";
+} from "../../api";
+import { webAppVersion } from "../../clientIdentity";
+import { loadCardsByIds } from "../../localDb/cards";
 import {
   deleteOutboxRecord,
   isScheduleRelevantCardOutboxRecord,
   listOutboxRecords,
   putOutboxRecord,
   type PersistedOutboxRecord,
-} from "../localDb/outbox";
+} from "../../localDb/outbox";
 import {
   applyHotSyncPage,
   applyReviewHistorySyncPage,
@@ -20,17 +20,17 @@ import {
   hasHydratedReviewHistory,
   loadLastAppliedHotChangeId,
   loadLastAppliedReviewSequenceId,
-} from "../localDb/workspace";
+} from "../../localDb/workspace";
 import type {
   SyncBootstrapEntry,
   SyncChange,
   SyncPushResult,
   WorkspaceSchedulerSettings,
-} from "../types";
+} from "../../types";
 import {
   doesCardMutationAffectReviewSchedule,
   getErrorMessage,
-} from "./domain";
+} from "../domain";
 
 const syncPageSize = 200;
 

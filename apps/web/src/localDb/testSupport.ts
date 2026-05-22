@@ -4,7 +4,7 @@ import {
   matchesDeckFilterDefinition,
   normalizeTagKey,
 } from "../appData/domain";
-import { parseDueAtMillis } from "../appData/dueAt";
+import { parseDueAtMillis } from "../appData/domain/dueAt";
 import { clearWebSyncCache } from "./cache";
 import { replaceCards } from "./cards";
 import { replaceDecks } from "./decks";

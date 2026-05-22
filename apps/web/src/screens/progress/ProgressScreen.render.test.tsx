@@ -3,7 +3,7 @@ import { act } from "react";
 import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "../../i18n";
-import type { AppDataContextValue } from "../../appData/types";
+import type { AppDataContextValue } from "../../appData";
 import type {
   ProgressReviewScheduleSnapshot,
   ProgressSeriesSnapshot,
@@ -420,11 +420,24 @@ describe("ProgressScreen", () => {
     ]);
 
     const donut = reviewScheduleCard.querySelector(".progress-review-schedule-donut");
-    if (!(donut instanceof HTMLDivElement)) {
+    if (!(donut instanceof SVGSVGElement)) {
       throw new Error("Review schedule donut was not found");
     }
-    expect(donut.getAttribute("aria-hidden")).toBe("true");
-    expect(donut.getAttribute("style")).toContain("conic-gradient");
+    expect(donut.getAttribute("role")).toBe("img");
+    expect(donut.getAttribute("aria-label")).toBe("Review schedule");
+
+    const donutSegments = [...donut.querySelectorAll("[data-testid^='progress-review-schedule-segment-']")];
+    expect(donutSegments.map((segment) => segment.getAttribute("data-testid"))).toEqual([
+      "progress-review-schedule-segment-new",
+      "progress-review-schedule-segment-today",
+      "progress-review-schedule-segment-days1To7",
+      "progress-review-schedule-segment-days8To30",
+      "progress-review-schedule-segment-days31To90",
+      "progress-review-schedule-segment-days91To360",
+      "progress-review-schedule-segment-later",
+    ]);
+    expect(donutSegments[0]?.getAttribute("fill")).toBe("#F4C430");
+    expect(donutSegments[0]?.getAttribute("d")).toContain("A 100 100");
   });
 
   it("mirrors week navigation arrows for rtl locales", async () => {

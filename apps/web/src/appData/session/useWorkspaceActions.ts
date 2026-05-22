@@ -7,16 +7,16 @@ import {
   renameWorkspace as renameWorkspaceRequest,
   resetWorkspaceProgress as resetWorkspaceProgressRequest,
   selectWorkspace,
-} from "../api";
-import type { TranslationKey } from "../i18n";
-import { captureApiContractError } from "../observability/apiContractObservation";
+} from "../../api";
+import type { TranslationKey } from "../../i18n";
+import { captureApiContractError } from "../../observability/apiContractObservation";
 import type {
   ResetWorkspaceProgressResponse,
   SessionInfo,
   WorkspaceResetProgressPreview,
   WorkspaceSummary,
-} from "../types";
-import { getErrorMessage } from "./domain";
+} from "../../types";
+import { getErrorMessage } from "../domain";
 import type { SessionVerificationState } from "./warmStart";
 import {
   createRemoteActionLockedError,

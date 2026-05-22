@@ -7,23 +7,23 @@ import {
   useState,
   type ReactElement,
 } from "react";
-import { useI18n } from "../i18n";
-import { loadActiveCardCount } from "../localDb/cards";
+import { useI18n } from "../../i18n";
+import { loadActiveCardCount } from "../../localDb/cards";
 import type {
   CloudSettings,
   ReviewFilter,
   SessionInfo,
   WorkspaceSchedulerSettings,
   WorkspaceSummary,
-} from "../types";
-import { ALL_CARDS_REVIEW_FILTER, isReviewFilterEqual } from "./domain";
+} from "../../types";
+import { ALL_CARDS_REVIEW_FILTER, isReviewFilterEqual } from "../domain";
 import type { AppDataContextValue, Props, SessionLoadState } from "./types";
-import { useProgressInvalidationRefresh } from "./progress/progressInvalidation";
-import { isTestSeedBridgeEnabled, type AppDataTestSeedBridge } from "./testSeedBridge";
-import { useSyncEngine } from "./useSyncEngine";
-import { useWorkspaceSession } from "./useWorkspaceSession";
-import type { SessionVerificationState } from "./warmStart";
-import { loadWarmStartSnapshot, storeWarmStartSnapshot } from "./warmStart";
+import { useProgressInvalidationRefresh } from "../progress/progressInvalidation";
+import { isTestSeedBridgeEnabled, type AppDataTestSeedBridge } from "../sync/testSeedBridge";
+import { useSyncEngine } from "../sync/useSyncEngine";
+import { useWorkspaceSession } from "../session/useWorkspaceSession";
+import type { SessionVerificationState } from "../session/warmStart";
+import { loadWarmStartSnapshot, storeWarmStartSnapshot } from "../session/warmStart";
 
 const AppDataContext = createContext<AppDataContextValue | null>(null);
 const SELECTED_REVIEW_FILTER_STORAGE_KEY = "selected-review-filter";
