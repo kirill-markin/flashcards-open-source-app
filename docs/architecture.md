@@ -83,7 +83,7 @@ The apex `<domain>` is an optional CloudFront redirect to `app.<domain>`.
 - `auth_app` is the narrower runtime database role for `apps/auth`.
   - It is limited to the auth and bootstrap paths needed for OTP verification, token refresh side effects, user bootstrap, and initial device/workspace creation.
 - Legacy `app` was the original shared runtime database role before the split into `backend_app` and `auth_app`.
-  - It was removed by [`db/migrations/0025_remove_legacy_app_role.sql`](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/db/migrations/0025_remove_legacy_app_role.sql).
+  - It was removed by [`db/migrations/0025_remove_legacy_app_role.sql`](../db/migrations/0025_remove_legacy_app_role.sql).
   - Older migrations still mention `app` because they are historical schema steps.
   - New migrations must not add grants, policies, or dependencies for `app`.
 
