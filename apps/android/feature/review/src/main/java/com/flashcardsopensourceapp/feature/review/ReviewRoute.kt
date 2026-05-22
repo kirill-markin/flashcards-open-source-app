@@ -27,6 +27,12 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
+import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionEvent
+import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionOverlay
+import com.flashcardsopensourceapp.feature.review.reaction.appendReviewReactionEvent
+import com.flashcardsopensourceapp.feature.review.reaction.makeRandomReviewReactionEvent
+import com.flashcardsopensourceapp.feature.review.reaction.reviewReactionMaximumActiveEvents
+import com.flashcardsopensourceapp.feature.review.reaction.reviewReactionMotionModeFromAnimatorSettings
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.review
+package com.flashcardsopensourceapp.feature.review.reaction
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color

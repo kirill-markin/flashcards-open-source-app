@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.review
+package com.flashcardsopensourceapp.feature.review.reaction
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D

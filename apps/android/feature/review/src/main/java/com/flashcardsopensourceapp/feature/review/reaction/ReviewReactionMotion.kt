@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.review
+package com.flashcardsopensourceapp.feature.review.reaction
 
 import kotlin.math.PI
 import kotlin.math.max

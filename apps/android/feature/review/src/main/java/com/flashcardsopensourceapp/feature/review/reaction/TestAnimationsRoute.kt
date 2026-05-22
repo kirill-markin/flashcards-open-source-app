@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.review
+package com.flashcardsopensourceapp.feature.review.reaction
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -31,7 +31,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.core.ui.components.SectionTitle
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
+import com.flashcardsopensourceapp.feature.review.R
 import java.util.UUID
+
+internal const val testAnimationsScreenTag: String = "test_animations_screen"
 
 private val testAnimationRatingOrder: List<ReviewRating> = listOf(
     ReviewRating.AGAIN,
