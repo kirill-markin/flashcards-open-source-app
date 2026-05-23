@@ -3,7 +3,7 @@ import { useI18n } from "../../i18n";
 import { CardFormFields, type CardFormState } from "../cards/CardForm";
 import type { Card, TagSuggestion } from "../../types";
 
-type ReviewEditorModalProps = Readonly<{
+export type ReviewEditorModalProps = Readonly<{
   editingCard: Card | null;
   editorErrorMessage: string;
   formState: CardFormState;
