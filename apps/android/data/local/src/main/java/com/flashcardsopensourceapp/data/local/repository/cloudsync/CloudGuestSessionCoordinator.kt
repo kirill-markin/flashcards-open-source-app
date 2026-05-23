@@ -1,7 +1,7 @@
 package com.flashcardsopensourceapp.data.local.repository.cloudsync
 
-import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteService
 import com.flashcardsopensourceapp.data.local.ai.GuestAiSessionStore
+import com.flashcardsopensourceapp.data.local.ai.GuestCloudSessionCreator
 import com.flashcardsopensourceapp.data.local.bootstrap.ensureLocalWorkspaceShell
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
@@ -11,6 +11,9 @@ import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryReason
+import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryRequiredException
+import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
@@ -42,7 +45,7 @@ class CloudGuestSessionCoordinator(
     private val operationCoordinator: CloudOperationCoordinator,
     private val resetCoordinator: CloudIdentityResetCoordinator,
     private val guestSessionStore: GuestAiSessionStore,
-    private val aiChatRemoteService: AiChatRemoteService,
+    private val guestSessionCreator: GuestCloudSessionCreator,
     private val appVersion: String
 ) {
     suspend fun reconcilePersistedCloudStateForStartup() {
@@ -101,15 +104,10 @@ class CloudGuestSessionCoordinator(
             )
         }
 
-        val currentCloudSettings = preferencesStore.currentCloudSettings()
+        var currentCloudSettings = preferencesStore.currentCloudSettings()
         if (hasInvalidActiveWorkspaceId(cloudSettings = currentCloudSettings)) {
             normalizeActiveWorkspaceIdToLocalShell()
-            return CloudIdentityReconciliationResult(
-                cloudSettings = preferencesStore.currentCloudSettings(),
-                restoredGuestSession = null,
-                guestRestoreRequiresSync = false,
-                didRunSync = false
-            )
+            currentCloudSettings = preferencesStore.currentCloudSettings()
         }
 
         if (currentCloudSettings.cloudState == CloudAccountState.LINKING_READY) {
@@ -134,6 +132,10 @@ class CloudGuestSessionCoordinator(
         return when (reconciledCloudSettings.cloudState) {
             CloudAccountState.LINKED -> {
                 if (storedCredentials == null) {
+                    markCloudCredentialRecoveryRequired(
+                        reason = CloudCredentialRecoveryReason.LINKED_CREDENTIALS_MISSING,
+                        cloudSettings = reconciledCloudSettings
+                    )
                     resetCoordinator.disconnectCloudIdentityPreservingLocalState()
                     CloudIdentityReconciliationResult(
                         cloudSettings = preferencesStore.currentCloudSettings(),
@@ -142,6 +144,7 @@ class CloudGuestSessionCoordinator(
                         didRunSync = false
                     )
                 } else {
+                    preferencesStore.clearCloudCredentialRecoveryState()
                     CloudIdentityReconciliationResult(
                         cloudSettings = reconciledCloudSettings,
                         restoredGuestSession = null,
@@ -153,6 +156,10 @@ class CloudGuestSessionCoordinator(
 
             CloudAccountState.GUEST -> {
                 if (storedGuestSession == null) {
+                    markCloudCredentialRecoveryRequired(
+                        reason = CloudCredentialRecoveryReason.GUEST_SESSION_MISSING,
+                        cloudSettings = reconciledCloudSettings
+                    )
                     resetCoordinator.disconnectCloudIdentityPreservingLocalState()
                     CloudIdentityReconciliationResult(
                         cloudSettings = preferencesStore.currentCloudSettings(),
@@ -165,6 +172,7 @@ class CloudGuestSessionCoordinator(
                         session = storedGuestSession,
                         workspaceId = storedGuestSession.workspaceId
                     )
+                    preferencesStore.clearCloudCredentialRecoveryState()
                     CloudIdentityReconciliationResult(
                         cloudSettings = preferencesStore.currentCloudSettings(),
                         restoredGuestSession = storedGuestSession,
@@ -204,6 +212,10 @@ class CloudGuestSessionCoordinator(
             )
         }
 
+        val activeRecoveryState = preferencesStore.loadCloudCredentialRecoveryState()
+        if (activeRecoveryState?.reason == CloudCredentialRecoveryReason.LINKED_CREDENTIALS_MISSING) {
+            throw CloudCredentialRecoveryRequiredException(recoveryState = activeRecoveryState)
+        }
         val configuration = preferencesStore.currentServerConfiguration()
         val existingSession = loadGuestSessionForCurrentConfiguration(
             workspaceId = workspaceId,
@@ -215,21 +227,47 @@ class CloudGuestSessionCoordinator(
             require(createSessionIfMissing) {
                 "Guest AI session is unavailable."
             }
+            if (activeRecoveryState != null) {
+                throw CloudCredentialRecoveryRequiredException(recoveryState = activeRecoveryState)
+            }
             // A missing stored session here means we already crossed a full
             // local identity reset boundary such as logout or account deletion.
             // The recreated guest session must therefore be treated as a brand
             // new guest identity, not as a continuation of any older guest
             // account that may have been linked previously.
-            aiChatRemoteService.createGuestSession(
+            guestSessionCreator.createGuestSession(
                 apiBaseUrl = configuration.apiBaseUrl,
                 configurationMode = configuration.mode
             )
         }
+        val shouldSync = finishGuestCloudLinkNonCancellableLocked(
+            session = resolvedSession,
+            workspaceId = workspaceId
+        )
+        preferencesStore.clearCloudCredentialRecoveryState()
         return GuestCloudSessionRestoreResult(
             session = resolvedSession,
-            shouldSync = finishGuestCloudLinkNonCancellableLocked(
-                session = resolvedSession,
-                workspaceId = workspaceId
+            shouldSync = shouldSync
+        )
+    }
+
+    private fun markCloudCredentialRecoveryRequired(
+        reason: CloudCredentialRecoveryReason,
+        cloudSettings: CloudSettings
+    ) {
+        val configuration = preferencesStore.currentServerConfiguration()
+        preferencesStore.saveCloudCredentialRecoveryState(
+            recoveryState = CloudCredentialRecoveryState(
+                reason = reason,
+                previousCloudState = cloudSettings.cloudState,
+                installationId = cloudSettings.installationId,
+                linkedUserId = cloudSettings.linkedUserId,
+                linkedWorkspaceId = cloudSettings.linkedWorkspaceId,
+                activeWorkspaceId = cloudSettings.activeWorkspaceId,
+                linkedEmail = cloudSettings.linkedEmail,
+                configurationMode = configuration.mode,
+                apiBaseUrl = configuration.apiBaseUrl,
+                detectedAtMillis = System.currentTimeMillis()
             )
         )
     }

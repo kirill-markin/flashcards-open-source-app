@@ -202,7 +202,7 @@ class AppGraph(
         operationCoordinator = cloudOperationCoordinator,
         resetCoordinator = cloudIdentityResetCoordinator,
         guestSessionStore = guestAiSessionStore,
-        aiChatRemoteService = aiChatRemoteService,
+        guestSessionCreator = aiChatRemoteService,
         appVersion = appPackageInfo.versionName
     )
 

@@ -9,6 +9,7 @@ import com.flashcardsopensourceapp.data.local.ai.AiChatPreferencesStore
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteService
 import com.flashcardsopensourceapp.data.local.ai.AiCoroutineDispatchers
 import com.flashcardsopensourceapp.data.local.ai.GuestAiSessionStore
+import com.flashcardsopensourceapp.data.local.ai.GuestCloudSessionCreator
 import com.flashcardsopensourceapp.data.local.bootstrap.ensureLocalWorkspaceShell
 import com.flashcardsopensourceapp.data.local.bootstrap.localWorkspaceName
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
@@ -191,7 +192,7 @@ internal class CloudIdentityTestEnvironment private constructor(
             operationCoordinator = restartedOperationCoordinator,
             resetCoordinator = restartedResetCoordinator,
             guestSessionStore = restartedGuestAiSessionStore,
-            aiChatRemoteService = aiChatRemoteService,
+            guestSessionCreator = aiChatRemoteService,
             appVersion = appVersion
         )
         return RestartedCloudGuestSessionRuntime(
@@ -216,6 +217,16 @@ internal class CloudIdentityTestEnvironment private constructor(
     }
 
     fun createCloudGuestSessionCoordinator(remoteGateway: CloudRemoteGateway): CloudGuestSessionCoordinator {
+        return createCloudGuestSessionCoordinatorWithGuestSessionCreator(
+            remoteGateway = remoteGateway,
+            guestSessionCreator = aiChatRemoteService
+        )
+    }
+
+    fun createCloudGuestSessionCoordinatorWithGuestSessionCreator(
+        remoteGateway: CloudRemoteGateway,
+        guestSessionCreator: GuestCloudSessionCreator
+    ): CloudGuestSessionCoordinator {
         return CloudGuestSessionCoordinator(
             database = database,
             preferencesStore = cloudPreferencesStore,
@@ -224,7 +235,7 @@ internal class CloudIdentityTestEnvironment private constructor(
             operationCoordinator = operationCoordinator,
             resetCoordinator = resetCoordinator,
             guestSessionStore = guestAiSessionStore,
-            aiChatRemoteService = aiChatRemoteService,
+            guestSessionCreator = guestSessionCreator,
             appVersion = appVersion
         )
     }

@@ -116,6 +116,7 @@ private suspend fun finalizePendingGuestUpgradeRecovery(
         completion = completion
     )
     preferencesStore.saveCredentials(pendingGuestUpgradeState.credentials)
+    preferencesStore.clearCloudCredentialRecoveryState()
     requireNoPendingGuestUpgradeOutbox(
         syncLocalStore = syncLocalStore,
         workspaceId = completion.workspace.workspaceId

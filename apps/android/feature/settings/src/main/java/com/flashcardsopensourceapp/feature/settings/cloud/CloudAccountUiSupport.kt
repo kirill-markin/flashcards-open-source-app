@@ -136,6 +136,14 @@ internal fun buildAutomaticWorkspaceSelection(
     preferredWorkspaceId: String?,
     workspaces: List<CloudWorkspaceSummary>
 ): CloudWorkspaceLinkSelection? {
+    if (preferredWorkspaceId != null) {
+        return if (workspaces.any { workspace -> workspace.workspaceId == preferredWorkspaceId }) {
+            CloudWorkspaceLinkSelection.Existing(workspaceId = preferredWorkspaceId)
+        } else {
+            null
+        }
+    }
+
     if (workspaces.isEmpty()) {
         return CloudWorkspaceLinkSelection.CreateNew
     }
@@ -144,14 +152,6 @@ internal fun buildAutomaticWorkspaceSelection(
         return CloudWorkspaceLinkSelection.Existing(
             workspaceId = workspaces.first().workspaceId
         )
-    }
-
-    if (preferredWorkspaceId != null) {
-        return if (workspaces.any { workspace -> workspace.workspaceId == preferredWorkspaceId }) {
-            CloudWorkspaceLinkSelection.Existing(workspaceId = preferredWorkspaceId)
-        } else {
-            null
-        }
     }
 
     val selectedWorkspaceIds = workspaces.filter(CloudWorkspaceSummary::isSelected)
