@@ -5,7 +5,7 @@ import {
   ChatLiveHttpError,
   consumeChatLiveStream,
   type ChatLiveEvent,
-} from "../liveStream";
+} from "../streaming/liveStream";
 import {
   captureWebException,
   normalizeCaughtError,

@@ -35,8 +35,8 @@ import {
   ATTACHMENT_PAYLOAD_LIMIT_BYTES,
   buildContentParts,
   toRequestBodySizeBytes,
-} from "../chatHelpers";
-import type { ChatHistoryState } from "../useChatHistory";
+} from "../shared/chatHelpers";
+import type { ChatHistoryState } from "../history/useChatHistory";
 
 type FreshSessionErrorPresentation = "new_chat" | "refresh" | "silent";
 

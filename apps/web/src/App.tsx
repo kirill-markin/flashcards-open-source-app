@@ -18,10 +18,10 @@ import {
   deleteMyAccount,
   primeSessionCsrfToken,
 } from "./api";
-import { ChatDraftProvider } from "./chat/ChatDraftContext";
-import { ChatLayoutProvider, useChatLayout } from "./chat/ChatLayoutContext";
+import { ChatDraftProvider } from "./chat/composer/ChatDraftContext";
+import { ChatLayoutProvider, useChatLayout } from "./chat/layout/ChatLayoutContext";
 import { ChatSessionControllerProvider } from "./chat/sessionController";
-import { ChatToggle } from "./chat/ChatToggle";
+import { ChatToggle } from "./chat/layout/ChatToggle";
 import { type TranslationKey, useI18n } from "./i18n";
 import { captureApiContractError } from "./observability/apiContractObservation";
 import { captureAppOperationError } from "./observability/appOperationObservation";

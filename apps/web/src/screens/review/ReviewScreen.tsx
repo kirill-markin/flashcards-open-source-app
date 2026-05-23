@@ -16,7 +16,7 @@ import { ReviewHardReminderDialog } from "./ReviewHardReminderDialog";
 import { ReviewFilterMenu } from "./ReviewFilterMenu";
 import { ReviewRatingReactionLayer } from "./ReviewRatingReactionLayer";
 import { ReviewProgressBadgeIcon } from "../shared/ReviewProgressBadgeIcon";
-import { useAiCardHandoff } from "../../chat/useAiCardHandoff";
+import { useAiCardHandoff } from "../../chat/handoff/useAiCardHandoff";
 import { useTransientMessage } from "../../useTransientMessage";
 import { formatReviewProgressBadgeValue } from "../../appData/progress/reviewProgressBadge";
 import { useReviewFilterMenu } from "./useReviewFilterMenu";

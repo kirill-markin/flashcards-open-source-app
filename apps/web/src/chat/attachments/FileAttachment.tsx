@@ -1,6 +1,6 @@
 import { useRef, type ReactElement } from "react";
-import { useI18n } from "../i18n";
-import type { EffortLevel } from "../types";
+import { useI18n } from "../../i18n";
+import type { EffortLevel } from "../../types";
 
 export type BinaryPendingAttachment = Readonly<{
   type: "binary";

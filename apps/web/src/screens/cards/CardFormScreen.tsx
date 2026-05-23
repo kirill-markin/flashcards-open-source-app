@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAppData } from "../../appData";
-import { useAiCardHandoff } from "../../chat/useAiCardHandoff";
+import { useAiCardHandoff } from "../../chat/handoff/useAiCardHandoff";
 import { useI18n } from "../../i18n";
 import { CardFormFields, isCardFormStateDirty, toCardFormState, type CardFormState } from "./CardForm";
 import type { Card, CreateCardInput, TagSuggestion, UpdateCardInput } from "../../types";

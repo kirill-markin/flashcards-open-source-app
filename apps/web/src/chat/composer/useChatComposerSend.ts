@@ -1,18 +1,18 @@
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
-import { listOutboxRecords } from "../localDb/outbox";
+import { listOutboxRecords } from "../../localDb/outbox";
 import type { ChatComposerSendPhase } from "./ChatDraftContext";
-import type { PendingAttachment } from "./FileAttachment";
+import type { PendingAttachment } from "../attachments/FileAttachment";
 import {
   ATTACHMENT_PAYLOAD_LIMIT_BYTES,
   buildContentParts,
   toRequestBodySizeBytes,
-} from "./chatHelpers";
+} from "../shared/chatHelpers";
 import type { ChatDictationState } from "./chatDictation";
 import type {
   SendChatMessageParams,
   SendChatMessageResult,
-} from "./sessionController";
-import type { ChatComposerAction } from "./sessionController/runState";
+} from "../sessionController";
+import type { ChatComposerAction } from "../sessionController/runState";
 
 type UseChatComposerSendParams = Readonly<{
   activeWorkspaceId: string | null;

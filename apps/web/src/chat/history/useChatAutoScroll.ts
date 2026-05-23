@@ -2,7 +2,7 @@ import { useEffect, useRef, type RefObject } from "react";
 import {
   AUTO_SCROLL_BOTTOM_THRESHOLD_PX,
   AUTO_SCROLL_INTERVAL_MS,
-} from "./chatHelpers";
+} from "../shared/chatHelpers";
 import type { StoredMessage } from "./useChatHistory";
 
 const PROGRAMMATIC_SCROLL_SUPPRESSION_MS = 750;

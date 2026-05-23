@@ -5,12 +5,12 @@ import { I18nProvider, useI18n } from "../../i18n";
 import type { Locale, LocalePreference } from "../../i18n/types";
 import type { ChatSessionSnapshot, StartChatRunRequestBody } from "../../types";
 import { defaultChatConfig } from "../sessionController/config";
-import { ChatDraftProvider } from "../ChatDraftContext";
+import { ChatDraftProvider } from "../composer/ChatDraftContext";
 import { ChatSessionControllerProvider } from "../sessionController";
 import {
   loadChatDraftWorkspaceState,
   readChatDraftForSession,
-} from "../chatDraftStorage";
+} from "../composer/chatDraftStorage";
 
 const {
   ApiErrorMock,
@@ -90,7 +90,7 @@ vi.mock("../../appData", () => ({
   useAppData: useAppDataMock,
 }));
 
-vi.mock("../ChatLayoutContext", () => ({
+vi.mock("../layout/ChatLayoutContext", () => ({
   useChatLayout: useChatLayoutMock,
 }));
 
@@ -124,11 +124,11 @@ vi.mock("../../localDb/outbox", () => ({
   listOutboxRecords: listOutboxRecordsMock,
 }));
 
-vi.mock("../liveStream", () => ({
+vi.mock("../streaming/liveStream", () => ({
   consumeChatLiveStream: consumeChatLiveStreamMock,
 }));
 
-vi.mock("../FileAttachment", () => ({
+vi.mock("../attachments/FileAttachment", () => ({
   checkFileSize: checkFileSizeMock,
   prepareAttachment: prepareAttachmentMock,
   recompressImageAttachment: recompressImageAttachmentMock,

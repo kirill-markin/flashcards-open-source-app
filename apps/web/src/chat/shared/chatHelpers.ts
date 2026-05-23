@@ -1,6 +1,6 @@
-import type { ContentPart } from "../types";
-import type { PendingAttachment } from "./FileAttachment";
-import { isBinaryPendingAttachment } from "./FileAttachment";
+import type { ContentPart } from "../../types";
+import type { PendingAttachment } from "../attachments/FileAttachment";
+import { isBinaryPendingAttachment } from "../attachments/FileAttachment";
 
 export const STORAGE_MODEL_KEY = "flashcards-chat-model";
 export const IMAGE_MEDIA_TYPE_PREFIX = "image/";
