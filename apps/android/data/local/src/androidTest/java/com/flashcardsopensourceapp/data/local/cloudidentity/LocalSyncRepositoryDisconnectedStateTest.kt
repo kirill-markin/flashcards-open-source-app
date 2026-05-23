@@ -5,10 +5,13 @@ import com.flashcardsopensourceapp.data.local.bootstrap.localWorkspaceName
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.database.CardEntity
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryReason
+import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryRequiredException
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
+import com.flashcardsopensourceapp.data.local.model.cloudCredentialRecoveryRequiredMessage
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
@@ -206,7 +209,7 @@ class LocalSyncRepositoryDisconnectedStateTest {
     }
 
     @Test
-    fun syncDisconnectsInvalidGuestStateWhenStoredGuestSessionIsMissing() = runBlocking {
+    fun syncBlocksCredentialRecoveryWhenStoredGuestSessionIsMissing() = runBlocking {
         val localWorkspaceId = environment.requireLocalWorkspaceId()
         val initialInstallationId = environment.cloudPreferencesStore.currentCloudSettings().installationId
         val syncRepository = environment.createSyncRepository(
@@ -222,17 +225,106 @@ class LocalSyncRepositoryDisconnectedStateTest {
 
         try {
             syncRepository.syncNow()
-        } catch (_: IllegalStateException) {
+            throw AssertionError("Expected missing guest session to require credential recovery.")
+        } catch (error: CloudCredentialRecoveryRequiredException) {
+            assertEquals(CloudCredentialRecoveryReason.GUEST_SESSION_MISSING, error.recoveryState.reason)
         }
 
         val localWorkspace = requireNotNull(environment.database.workspaceDao().loadAnyWorkspace()) {
             "Expected a local workspace after guest normalization."
         }
+        val recoveryState = requireNotNull(environment.cloudPreferencesStore.loadCloudCredentialRecoveryState()) {
+            "Expected missing guest session to persist credential recovery state."
+        }
+        val syncStatus = syncRepository.observeSyncStatus().first().status
         assertEquals(CloudAccountState.DISCONNECTED, environment.cloudPreferencesStore.currentCloudSettings().cloudState)
         assertEquals(localWorkspaceId, environment.cloudPreferencesStore.currentCloudSettings().activeWorkspaceId)
         assertEquals(localWorkspaceId, localWorkspace.workspaceId)
         assertEquals(initialInstallationId, environment.cloudPreferencesStore.currentCloudSettings().installationId)
-        assertTrue(syncRepository.observeSyncStatus().first().status is SyncStatus.Failed)
+        assertEquals(CloudCredentialRecoveryReason.GUEST_SESSION_MISSING, recoveryState.reason)
+        assertTrue(syncStatus is SyncStatus.Blocked)
+        val blockedStatus = syncStatus as SyncStatus.Blocked
+        assertEquals(cloudCredentialRecoveryRequiredMessage, blockedStatus.message)
+        assertEquals(initialInstallationId, blockedStatus.installationId)
+    }
+
+    @Test
+    fun syncDoesNotKeepCredentialRecoveryBlockedAfterRecoveryClears() = runBlocking {
+        val localWorkspaceId = environment.requireLocalWorkspaceId()
+        val initialInstallationId = environment.cloudPreferencesStore.currentCloudSettings().installationId
+        val remoteGateway = FakeCloudRemoteGateway.standard()
+        val syncRepository = environment.createSyncRepository(remoteGateway = remoteGateway)
+        environment.cloudPreferencesStore.updateCloudSettings(
+            cloudState = CloudAccountState.GUEST,
+            linkedUserId = "guest-user",
+            linkedWorkspaceId = localWorkspaceId,
+            linkedEmail = null,
+            activeWorkspaceId = localWorkspaceId
+        )
+
+        try {
+            syncRepository.syncNow()
+            throw AssertionError("Expected missing guest session to require credential recovery.")
+        } catch (error: CloudCredentialRecoveryRequiredException) {
+            assertEquals(CloudCredentialRecoveryReason.GUEST_SESSION_MISSING, error.recoveryState.reason)
+        }
+
+        environment.cloudPreferencesStore.saveCredentials(
+            createStoredCloudCredentials(idTokenExpiresAtMillis = Long.MAX_VALUE)
+        )
+        environment.cloudPreferencesStore.clearCloudCredentialRecoveryState()
+        environment.cloudPreferencesStore.updateCloudSettings(
+            cloudState = CloudAccountState.LINKED,
+            linkedUserId = "user-1",
+            linkedWorkspaceId = localWorkspaceId,
+            linkedEmail = "user@example.com",
+            activeWorkspaceId = localWorkspaceId
+        )
+
+        syncRepository.syncNow()
+
+        assertEquals(initialInstallationId, environment.cloudPreferencesStore.currentCloudSettings().installationId)
+        assertEquals(SyncStatus.Idle, syncRepository.observeSyncStatus().first().status)
+        assertTrue(remoteGateway.syncRequestEvents.isNotEmpty())
+    }
+
+    @Test
+    fun syncPrefersCredentialRecoveryWhenStoredGuestSessionIsMissingAndSyncStateIsBlocked() = runBlocking {
+        val localWorkspaceId = environment.requireLocalWorkspaceId()
+        val initialInstallationId = environment.cloudPreferencesStore.currentCloudSettings().installationId
+        val remoteGateway = FakeCloudRemoteGateway.standard()
+        val syncRepository = environment.createSyncRepository(remoteGateway = remoteGateway)
+        environment.database.syncStateDao().insertSyncState(
+            syncStateEntityWithEmptyProgress(workspaceId = localWorkspaceId).copy(
+                lastSyncError = "Old persisted sync block.",
+                blockedInstallationId = initialInstallationId
+            )
+        )
+        environment.cloudPreferencesStore.updateCloudSettings(
+            cloudState = CloudAccountState.GUEST,
+            linkedUserId = "guest-user",
+            linkedWorkspaceId = localWorkspaceId,
+            linkedEmail = null,
+            activeWorkspaceId = localWorkspaceId
+        )
+
+        try {
+            syncRepository.syncNow()
+            throw AssertionError("Expected credential recovery to take precedence over the old persisted block.")
+        } catch (error: CloudCredentialRecoveryRequiredException) {
+            assertEquals(CloudCredentialRecoveryReason.GUEST_SESSION_MISSING, error.recoveryState.reason)
+        }
+
+        val recoveryState = requireNotNull(environment.cloudPreferencesStore.loadCloudCredentialRecoveryState()) {
+            "Expected missing guest session to persist credential recovery state."
+        }
+        val syncStatus = syncRepository.observeSyncStatus().first().status
+        assertEquals(CloudCredentialRecoveryReason.GUEST_SESSION_MISSING, recoveryState.reason)
+        assertTrue(syncStatus is SyncStatus.Blocked)
+        val blockedStatus = syncStatus as SyncStatus.Blocked
+        assertEquals(cloudCredentialRecoveryRequiredMessage, blockedStatus.message)
+        assertEquals(initialInstallationId, blockedStatus.installationId)
+        assertTrue(remoteGateway.syncRequestEvents.isEmpty())
     }
 
     @Test

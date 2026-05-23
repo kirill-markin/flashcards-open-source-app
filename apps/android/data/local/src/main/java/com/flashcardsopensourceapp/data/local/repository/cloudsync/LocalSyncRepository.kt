@@ -10,11 +10,13 @@ import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryRequiredException
+import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot
+import com.flashcardsopensourceapp.data.local.model.cloudCredentialRecoveryRequiredMessage
 import com.flashcardsopensourceapp.data.local.model.shouldRefreshCloudIdToken
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncCompletion
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncEvent
@@ -56,15 +58,24 @@ class LocalSyncRepository(
         return combine(
             syncStatusState.asStateFlow(),
             preferencesStore.observeCloudSettings(),
+            preferencesStore.observeCloudCredentialRecoveryState(),
             observePersistedSyncStatus()
-        ) { inMemorySnapshot, cloudSettings, persistedSnapshot ->
-            mergeSyncStatusSnapshots(
+        ) { inMemorySnapshot, cloudSettings, recoveryState, persistedSnapshot ->
+            val mergedSnapshot = mergeSyncStatusSnapshots(
                 inMemorySnapshot = sanitizeInMemorySyncStatus(
                     snapshot = inMemorySnapshot,
                     cloudState = cloudSettings.cloudState
                 ),
                 persistedSnapshot = persistedSnapshot
             )
+            if (recoveryState != null) {
+                credentialRecoveryBlockedSnapshot(
+                    recoveryState = recoveryState,
+                    lastSuccessfulSyncAtMillis = mergedSnapshot.lastSuccessfulSyncAtMillis
+                )
+            } else {
+                mergedSnapshot
+            }
         }
     }
 
@@ -86,18 +97,34 @@ class LocalSyncRepository(
 
     private suspend fun performSync(autoSyncRequest: AutoSyncRequest?) {
         operationCoordinator.runExclusive {
-            val currentCloudSettings = preferencesStore.currentCloudSettings()
-            val previousCloudState = currentCloudSettings.cloudState
+            val initialCloudSettings = preferencesStore.currentCloudSettings()
+            val previousCloudState = initialCloudSettings.cloudState
+            emitAutoSyncRequested(autoSyncRequest = autoSyncRequest)
+            if (preferencesStore.currentAccountDeletionState() != AccountDeletionState.Hidden) {
+                emitAutoSyncSuccess(autoSyncRequest = autoSyncRequest)
+                return@runExclusive
+            }
+            val reconciliation = cloudGuestSessionCoordinator.reconcilePersistedCloudStateLocked()
+            val cloudSettings = reconciliation.cloudSettings
+            val failureWorkspaceId = cloudSettings.activeWorkspaceId ?: cloudSettings.linkedWorkspaceId
+            val recoveryState = preferencesStore.loadCloudCredentialRecoveryState()
+            if (recoveryState != null) {
+                val error = CloudCredentialRecoveryRequiredException(recoveryState = recoveryState)
+                emitAutoSyncFailure(
+                    autoSyncRequest = autoSyncRequest,
+                    error = error
+                )
+                throw error
+            }
             val currentSnapshot = sanitizeInMemorySyncStatus(
                 snapshot = syncStatusState.value,
-                cloudState = currentCloudSettings.cloudState
+                cloudState = cloudSettings.cloudState
             )
             if (currentSnapshot != syncStatusState.value) {
                 syncStatusState.value = currentSnapshot
             }
             val currentStatus = currentSnapshot.status
-            emitAutoSyncRequested(autoSyncRequest = autoSyncRequest)
-            val persistedSyncStatus = loadPersistedSyncStatus(cloudSettings = currentCloudSettings)
+            val persistedSyncStatus = loadPersistedSyncStatus(cloudSettings = cloudSettings)
             val persistedBlockedStatus = persistedSyncStatus?.status as? SyncStatus.Blocked
             if (persistedBlockedStatus != null) {
                 syncStatusState.value = persistedSyncStatus
@@ -109,7 +136,7 @@ class LocalSyncRepository(
                 throw error
             }
             if (currentStatus is SyncStatus.Blocked) {
-                if (currentStatus.installationId == currentCloudSettings.installationId) {
+                if (currentStatus.installationId == cloudSettings.installationId) {
                     val error = IllegalStateException(currentStatus.message)
                     emitAutoSyncFailure(
                         autoSyncRequest = autoSyncRequest,
@@ -122,27 +149,6 @@ class LocalSyncRepository(
                     lastSuccessfulSyncAtMillis = syncStatusState.value.lastSuccessfulSyncAtMillis,
                     lastErrorMessage = ""
                 )
-            }
-            if (preferencesStore.currentAccountDeletionState() != AccountDeletionState.Hidden) {
-                emitAutoSyncSuccess(autoSyncRequest = autoSyncRequest)
-                return@runExclusive
-            }
-            val reconciliation = cloudGuestSessionCoordinator.reconcilePersistedCloudStateLocked()
-            val cloudSettings = reconciliation.cloudSettings
-            val failureWorkspaceId = cloudSettings.activeWorkspaceId ?: cloudSettings.linkedWorkspaceId
-            val recoveryState = preferencesStore.loadCloudCredentialRecoveryState()
-            if (recoveryState != null) {
-                val error = CloudCredentialRecoveryRequiredException(recoveryState = recoveryState)
-                syncStatusState.value = SyncStatusSnapshot(
-                    status = SyncStatus.Failed(error.message ?: "Cloud credential recovery is required."),
-                    lastSuccessfulSyncAtMillis = syncStatusState.value.lastSuccessfulSyncAtMillis,
-                    lastErrorMessage = error.message ?: "Cloud credential recovery is required."
-                )
-                emitAutoSyncFailure(
-                    autoSyncRequest = autoSyncRequest,
-                    error = error
-                )
-                throw error
             }
             if (reconciliation.didRunSync) {
                 syncStatusState.value = SyncStatusSnapshot(
@@ -413,6 +419,20 @@ private fun sanitizeInMemorySyncStatus(
     return snapshot.copy(
         status = SyncStatus.Idle,
         lastErrorMessage = ""
+    )
+}
+
+private fun credentialRecoveryBlockedSnapshot(
+    recoveryState: CloudCredentialRecoveryState,
+    lastSuccessfulSyncAtMillis: Long?
+): SyncStatusSnapshot {
+    return SyncStatusSnapshot(
+        status = SyncStatus.Blocked(
+            message = cloudCredentialRecoveryRequiredMessage,
+            installationId = recoveryState.installationId
+        ),
+        lastSuccessfulSyncAtMillis = lastSuccessfulSyncAtMillis,
+        lastErrorMessage = cloudCredentialRecoveryRequiredMessage
     )
 }
 
