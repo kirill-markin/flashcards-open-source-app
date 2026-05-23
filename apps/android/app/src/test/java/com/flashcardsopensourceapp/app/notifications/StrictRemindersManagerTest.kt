@@ -307,6 +307,10 @@ private class FakeReviewLogDao(
         throw UnsupportedOperationException("Unused in strict reminders manager tests.")
     }
 
+    override suspend fun countReviewLogs(workspaceId: String): Int {
+        throw UnsupportedOperationException("Unused in strict reminders manager tests.")
+    }
+
     override suspend fun hasReviewLogsBetween(startMillis: Long, endMillis: Long): Boolean {
         return hasReviewLogsBetween
     }
