@@ -92,6 +92,10 @@ final class FlashcardsStore {
     var strictRemindersSettings: StrictRemindersSettings
     var notificationPermissionPromptState: NotificationPermissionPromptState
     var isReviewNotificationPrePromptPresented: Bool
+    var guestSignInAfterReviewPromptState: GuestSignInAfterReviewPromptState
+    var isGuestSignInAfterReviewPromptPresented: Bool
+    var guestSignInAfterReviewPromptReconciliationToken: Int
+    var activeCloudSignInSheetCount: Int
     var accountDeletionState: AccountDeletionState
     var accountDeletionSuccessMessage: String?
     var uiTestLaunchPreparationStatus: FlashcardsUITestLaunchPreparationStatus
@@ -361,6 +365,13 @@ final class FlashcardsStore {
             decoder: decoder
         )
         self.isReviewNotificationPrePromptPresented = false
+        self.guestSignInAfterReviewPromptState = loadGuestSignInAfterReviewPromptState(
+            userDefaults: userDefaults,
+            decoder: decoder
+        )
+        self.isGuestSignInAfterReviewPromptPresented = false
+        self.guestSignInAfterReviewPromptReconciliationToken = 0
+        self.activeCloudSignInSheetCount = 0
         self.accountDeletionState = .hidden
         self.accountDeletionSuccessMessage = nil
         self.uiTestLaunchPreparationStatus = .hidden

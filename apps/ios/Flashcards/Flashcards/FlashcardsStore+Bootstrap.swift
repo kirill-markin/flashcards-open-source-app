@@ -113,6 +113,7 @@ extension FlashcardsStore {
         self.refreshReviewState(now: now)
         self.reconcileReviewNotifications(trigger: .workspaceChanged, now: now)
         self.reconcileStrictReminders(trigger: .workspaceChanged, now: now)
+        self.requestGuestSignInAfterReviewPromptReconciliation()
     }
 
     @discardableResult
