@@ -1,4 +1,4 @@
-import type { StoredMessage } from "../useChatHistory";
+import type { StoredMessage } from "../history/useChatHistory";
 
 export const CHAT_SESSION_STALE_AFTER_MS = 6 * 60 * 60 * 1000;
 

@@ -1,5 +1,5 @@
-import type { PendingAttachment } from "./FileAttachment";
-import type { EffortLevel } from "../types";
+import type { PendingAttachment } from "../attachments/FileAttachment";
+import type { EffortLevel } from "../../types";
 
 export type ChatDraftContent = Readonly<{
   inputText: string;

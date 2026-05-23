@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import type { ContentPart, ReasoningSummaryContentPart, ToolCallContentPart } from "../types";
+import type { ContentPart, ReasoningSummaryContentPart, ToolCallContentPart } from "../../types";
 
 export type StoredMessage = Readonly<{
   role: "user" | "assistant";

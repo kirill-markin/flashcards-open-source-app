@@ -24,7 +24,7 @@ import {
   useAppDataMock,
 } from "./ChatPanelTestSupport";
 import { createVerifiedWorkspaceAppDataMock } from "./ChatPanelTestFixtures";
-import { getChatComposerCapabilities } from "../chatComposerState";
+import { getChatComposerCapabilities } from "../composer/chatComposerState";
 
 const {
   clickMicrophone,

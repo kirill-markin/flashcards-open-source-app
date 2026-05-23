@@ -1,5 +1,5 @@
 import { useEffect, useState, type KeyboardEvent } from "react";
-import type { ChatComposerAction } from "./sessionController/runState";
+import type { ChatComposerAction } from "../sessionController/runState";
 
 const MOBILE_CHAT_BREAKPOINT_QUERY = "(max-width: 768px)";
 

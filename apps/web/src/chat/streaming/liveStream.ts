@@ -1,14 +1,14 @@
 import {
   parseChatComposerSuggestionArray,
   parseContentPartArray,
-} from "../apiContracts/chat";
-import { ApiContractError } from "../apiContracts/core";
-import { webAppVersion } from "../clientIdentity";
+} from "../../apiContracts/chat";
+import { ApiContractError } from "../../apiContracts/core";
+import { webAppVersion } from "../../clientIdentity";
 import type {
   ChatComposerSuggestion,
   ChatLiveStream,
   ContentPart,
-} from "../types";
+} from "../../types";
 
 type ChatRunTerminalOutcome = "completed" | "stopped" | "error" | "reset_required";
 

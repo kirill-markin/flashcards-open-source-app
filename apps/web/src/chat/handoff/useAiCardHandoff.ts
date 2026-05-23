@@ -1,10 +1,10 @@
 import { useCallback } from "react";
-import { useAppData } from "../appData";
-import type { Card } from "../types";
-import { makeCardPendingAttachment } from "./chatCardParts";
-import { useOptionalChatDraft } from "./ChatDraftContext";
-import { useOptionalChatLayout } from "./ChatLayoutContext";
-import { useOptionalChatSession } from "./sessionController";
+import { useAppData } from "../../appData";
+import type { Card } from "../../types";
+import { makeCardPendingAttachment } from "../attachments/chatCardParts";
+import { useOptionalChatDraft } from "../composer/ChatDraftContext";
+import { useOptionalChatLayout } from "../layout/ChatLayoutContext";
+import { useOptionalChatSession } from "../sessionController";
 
 export function useAiCardHandoff(): (card: Card) => Promise<boolean> {
   const { setErrorMessage } = useAppData();

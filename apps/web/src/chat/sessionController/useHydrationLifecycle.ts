@@ -16,7 +16,7 @@ import {
   loadChatSessionWarmStartSnapshot,
   type WarmStartChatSessionSnapshot,
 } from "./warmStart";
-import type { ChatHistoryState } from "../useChatHistory";
+import type { ChatHistoryState } from "../history/useChatHistory";
 import type { ChatSessionControllerUiMessages } from "./types";
 
 type UseChatSessionHydrationLifecycleParams = Readonly<{

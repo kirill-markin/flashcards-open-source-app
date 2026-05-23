@@ -32,8 +32,8 @@ import type {
 import type { ChatSessionSnapshot } from "./snapshot";
 import type { ChatSessionControllerUiMessages } from "./types";
 import { useChatLiveSession } from "./useLiveSession";
-import type { ChatHistoryState } from "../useChatHistory";
-import type { ChatLiveEvent } from "../liveStream";
+import type { ChatHistoryState } from "../history/useChatHistory";
+import type { ChatLiveEvent } from "../streaming/liveStream";
 
 type UseChatSessionSnapshotSyncParams = Readonly<{
   controllerId: string;
