@@ -3,7 +3,7 @@ import {
   MAX_WIDTH,
   MIN_WIDTH,
   calculateSidebarWidthFromPointer,
-} from "./chatHelpers";
+} from "../shared/chatHelpers";
 
 type UseChatSidebarResizeParams = Readonly<{
   chatWidth: number;

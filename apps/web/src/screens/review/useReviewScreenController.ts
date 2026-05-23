@@ -5,7 +5,7 @@ import { ALL_CARDS_REVIEW_FILTER, currentReviewCard } from "../../appData/domain
 import { useI18n } from "../../i18n";
 import { captureAppOperationError } from "../../observability/appOperationObservation";
 import { normalizeCaughtError } from "../../observability/webObservability";
-import { useAiCardHandoff } from "../../chat/useAiCardHandoff";
+import { useAiCardHandoff } from "../../chat/handoff/useAiCardHandoff";
 import { useTransientMessage } from "../../useTransientMessage";
 import type { Card } from "../../types";
 import { isCardFormStateDirty } from "../cards/CardForm";

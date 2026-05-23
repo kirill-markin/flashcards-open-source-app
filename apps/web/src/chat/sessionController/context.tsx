@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, type ReactElement, type ReactNode } from "react";
 import { useAppData } from "../../appData";
 import { useI18n } from "../../i18n";
-import { USER_VISIBLE_ATTACHMENT_LIMIT_MB } from "../chatHelpers";
+import { USER_VISIBLE_ATTACHMENT_LIMIT_MB } from "../shared/chatHelpers";
 import {
   useChatSessionController,
   type ChatSessionController,

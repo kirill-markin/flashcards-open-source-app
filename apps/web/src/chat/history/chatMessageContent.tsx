@@ -1,8 +1,8 @@
 import type { ReactElement } from "react";
-import type { TranslationKey } from "../i18n";
-import type { TranslationValues } from "../i18n/types";
+import type { TranslationKey } from "../../i18n";
+import type { TranslationValues } from "../../i18n/types";
 import type { StoredMessage } from "./useChatHistory";
-import { buildCardContextXml, formatCardAttachmentLabel } from "./chatCardParts";
+import { buildCardContextXml, formatCardAttachmentLabel } from "../attachments/chatCardParts";
 
 type Translate = (key: TranslationKey, values?: TranslationValues) => string;
 

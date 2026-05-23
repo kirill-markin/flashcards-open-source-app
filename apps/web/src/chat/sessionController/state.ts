@@ -1,5 +1,5 @@
 import type { ChatComposerSuggestion, ChatConfig } from "../../types";
-import type { StoredMessage } from "../useChatHistory";
+import type { StoredMessage } from "../history/useChatHistory";
 import { defaultChatConfig, loadStoredChatConfig } from "./config";
 import { getChatComposerAction, isChatRunActive, type ChatComposerAction, type ChatRunState } from "./runState";
 import type { WarmStartChatSessionSnapshot } from "./warmStart";

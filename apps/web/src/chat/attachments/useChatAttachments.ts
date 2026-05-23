@@ -4,7 +4,7 @@ import {
   IMAGE_MEDIA_TYPE_PREFIX,
   buildContentParts,
   toRequestBodySizeBytes,
-} from "./chatHelpers";
+} from "../shared/chatHelpers";
 import {
   EXTRA_AGGRESSIVE_IMAGE_COMPRESSION,
   checkFileSize,

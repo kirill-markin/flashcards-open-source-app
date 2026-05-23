@@ -1,4 +1,4 @@
-import type { Card, ContentPart, EffortLevel } from "../types";
+import type { Card, ContentPart, EffortLevel } from "../../types";
 
 export type ChatCardSnapshot = Readonly<{
   cardId: string;

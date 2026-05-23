@@ -7,9 +7,9 @@ import type {
   ReasoningSummaryContentPart,
   ToolCallContentPart,
 } from "../../types";
-import { sanitizeErrorTextWithFallbackMessages, type ChatErrorFallbackMessages } from "../chatHelpers";
-import type { ChatLiveEvent } from "../liveStream";
-import type { StoredMessage } from "../useChatHistory";
+import { sanitizeErrorTextWithFallbackMessages, type ChatErrorFallbackMessages } from "../shared/chatHelpers";
+import type { ChatLiveEvent } from "../streaming/liveStream";
+import type { StoredMessage } from "../history/useChatHistory";
 
 type ChatDebugDetailValue = string | number | boolean | null;
 export type ChatDebugDetails = Readonly<Record<string, ChatDebugDetailValue>>;

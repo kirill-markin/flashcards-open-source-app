@@ -2,9 +2,9 @@
 import { act, createElement } from "react";
 import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Card } from "../types";
-import type { ChatComposerSendPhase } from "./ChatDraftContext";
-import type { PendingAttachment } from "./FileAttachment";
+import type { Card } from "../../types";
+import type { ChatComposerSendPhase } from "../composer/ChatDraftContext";
+import type { PendingAttachment } from "../attachments/FileAttachment";
 
 const {
   setErrorMessageMock,
@@ -18,21 +18,21 @@ const {
   useOptionalChatSessionMock: vi.fn(),
 }));
 
-vi.mock("../appData", () => ({
+vi.mock("../../appData", () => ({
   useAppData: () => ({
     setErrorMessage: setErrorMessageMock,
   }),
 }));
 
-vi.mock("./ChatDraftContext", () => ({
+vi.mock("../composer/ChatDraftContext", () => ({
   useOptionalChatDraft: useOptionalChatDraftMock,
 }));
 
-vi.mock("./ChatLayoutContext", () => ({
+vi.mock("../layout/ChatLayoutContext", () => ({
   useOptionalChatLayout: useOptionalChatLayoutMock,
 }));
 
-vi.mock("./sessionController", () => ({
+vi.mock("../sessionController", () => ({
   useOptionalChatSession: useOptionalChatSessionMock,
 }));
 

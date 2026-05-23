@@ -22,7 +22,7 @@ import {
   loadChatSessionWarmStartSnapshot,
   storeChatSessionWarmStartSnapshot,
 } from "./warmStart";
-import { useChatHistory } from "../useChatHistory";
+import { useChatHistory } from "../history/useChatHistory";
 import { useChatSessionActions } from "./useActions";
 import { useChatSessionHydrationLifecycle } from "./useHydrationLifecycle";
 import { useChatSessionSnapshotSync } from "./useSnapshotSync";

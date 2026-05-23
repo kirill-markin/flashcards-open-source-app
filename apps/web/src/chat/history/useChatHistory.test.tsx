@@ -2,7 +2,7 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { ReasoningSummaryContentPart, ToolCallContentPart } from "../types";
+import type { ReasoningSummaryContentPart, ToolCallContentPart } from "../../types";
 import { useChatHistory } from "./useChatHistory";
 
 type ChatHistoryApi = ReturnType<typeof useChatHistory>;
