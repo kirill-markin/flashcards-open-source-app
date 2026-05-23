@@ -1,12 +1,12 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import { describe, expect, it } from "vitest";
-import type { Card } from "../../types";
+import type { Card } from "../../../types";
 import {
   createCard,
   createDeferredPromise,
   setupReviewScreenTest,
-} from "./ReviewScreenTestSupport";
+} from "../testSupport/ReviewScreenTestSupport";
 
 const {
   dispatchDocumentKeydown,

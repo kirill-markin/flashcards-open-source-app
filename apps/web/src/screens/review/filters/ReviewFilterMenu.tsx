@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 import { Link } from "react-router-dom";
-import { useI18n } from "../../i18n";
-import type { ReviewFilter } from "../../types";
+import { useI18n } from "../../../i18n";
+import type { ReviewFilter } from "../../../types";
 import type { ReviewFilterChoiceMenuItem, ReviewFilterMenuItem } from "./useReviewFilterMenu";
 
 type ReviewFilterMenuProps = Readonly<{

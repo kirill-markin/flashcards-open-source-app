@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { ALL_CARDS_REVIEW_FILTER } from "../../appData/domain";
-import { useI18n } from "../../i18n";
-import { settingsDecksRoute } from "../../routes";
-import type { DeckSummary, EffortLevel, ReviewFilter, WorkspaceTagSummary } from "../../types";
-import { formatEffortLevelLabel } from "../shared/featureFormatting";
+import { ALL_CARDS_REVIEW_FILTER } from "../../../appData/domain";
+import { useI18n } from "../../../i18n";
+import { settingsDecksRoute } from "../../../routes";
+import type { DeckSummary, EffortLevel, ReviewFilter, WorkspaceTagSummary } from "../../../types";
+import { formatEffortLevelLabel } from "../../shared/featureFormatting";
 
 const REVIEW_FILTER_DECK_PREFIX = "deck:";
 const REVIEW_FILTER_EFFORT_PREFIX = "effort:";

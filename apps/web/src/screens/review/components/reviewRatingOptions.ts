@@ -1,6 +1,6 @@
-import type { useI18n } from "../../i18n";
-import type { Card, WorkspaceSchedulerSettings } from "../../types";
-import { computeReviewSchedule, type ReviewRating } from "../../../../backend/src/scheduling";
+import type { useI18n } from "../../../i18n";
+import type { Card, WorkspaceSchedulerSettings } from "../../../types";
+import { computeReviewSchedule, type ReviewRating } from "../../../../../backend/src/scheduling";
 
 type ReviewRatingTestId = "again" | "good" | "hard" | "easy";
 type Translate = ReturnType<typeof useI18n>["t"];

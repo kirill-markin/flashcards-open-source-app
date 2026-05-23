@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Locale } from "../../i18n/types";
-import { classifyReviewContentPresentation } from "./reviewContentPresentation";
+import type { Locale } from "../../../i18n/types";
+import { classifyReviewContentPresentation } from "../components/reviewContentPresentation";
 
 export type ReviewSpeechSide = "front" | "back";
 

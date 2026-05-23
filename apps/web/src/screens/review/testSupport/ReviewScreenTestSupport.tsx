@@ -4,9 +4,9 @@ import { act, useEffect, type ReactElement } from "react";
 import ReactDOM from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, vi } from "vitest";
-import { I18nProvider } from "../../i18n";
-import type { AppDataContextValue } from "../../appData";
-import { clearLoadingSnapshotFallbackStorage } from "../shared/loadingSnapshots";
+import { I18nProvider } from "../../../i18n";
+import type { AppDataContextValue } from "../../../appData";
+import { clearLoadingSnapshotFallbackStorage } from "../../shared/loadingSnapshots";
 import type {
   Card,
   Deck,
@@ -15,7 +15,7 @@ import type {
   ReviewQueueSnapshot,
   ReviewTimelinePage,
   WorkspaceTagsSummary,
-} from "../../types";
+} from "../../../types";
 
 const {
   loadDecksListSnapshotMock,
@@ -35,22 +35,22 @@ const {
   useReviewProgressBadgeMock: vi.fn(),
 }));
 
-vi.mock("../../appData", () => ({
+vi.mock("../../../appData", () => ({
   useAppData: useAppDataMock,
   useReviewProgressBadge: useReviewProgressBadgeMock,
 }));
 
-vi.mock("../../localDb/decks", () => ({
+vi.mock("../../../localDb/decks", () => ({
   loadDecksListSnapshot: loadDecksListSnapshotMock,
 }));
 
-vi.mock("../../localDb/reviews", () => ({
+vi.mock("../../../localDb/reviews", () => ({
   loadReviewQueueChunk: loadReviewQueueChunkMock,
   loadReviewQueueSnapshot: loadReviewQueueSnapshotMock,
   loadReviewTimelinePage: loadReviewTimelinePageMock,
 }));
 
-vi.mock("../../localDb/workspace", () => ({
+vi.mock("../../../localDb/workspace", () => ({
   loadWorkspaceTagsSummary: loadWorkspaceTagsSummaryMock,
 }));
 
@@ -66,11 +66,11 @@ vi.mock("lottie-web/build/player/lottie_light", () => ({
   },
 }));
 
-import { ReviewScreen } from "./ReviewScreen";
+import { ReviewScreen } from "../ReviewScreen";
 import {
   useReviewScreenData,
   type UseReviewScreenDataResult,
-} from "./useReviewScreenData";
+} from "../data/useReviewScreenData";
 
 type Mutable<Type> = {
   -readonly [Key in keyof Type]: Type[Key];

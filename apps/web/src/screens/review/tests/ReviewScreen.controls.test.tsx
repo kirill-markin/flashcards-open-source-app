@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
-import type { Card } from "../../types";
+import type { Card } from "../../../types";
 import {
   clickElementAsync,
   createCard,
@@ -10,7 +10,7 @@ import {
   reviewStylesContain,
   setTextFieldValueAsync,
   setupReviewScreenTest,
-} from "./ReviewScreenTestSupport";
+} from "../testSupport/ReviewScreenTestSupport";
 
 const {
   dispatchDocumentKeydown,

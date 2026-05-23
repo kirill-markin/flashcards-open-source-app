@@ -1,10 +1,10 @@
 import type { ReactElement } from "react";
-import { isCardDue } from "../../appData/domain";
-import { parseDueAtMillis } from "../../appData/domain/dueAt";
-import { useI18n } from "../../i18n";
-import type { Card } from "../../types";
-import type { ReviewLoadingSnapshot } from "../shared/loadingSnapshots";
-import { formatEffortLevelLabel, formatNullableDateTime, formatTagSummary } from "../shared/featureFormatting";
+import { isCardDue } from "../../../appData/domain";
+import { parseDueAtMillis } from "../../../appData/domain/dueAt";
+import { useI18n } from "../../../i18n";
+import type { Card } from "../../../types";
+import type { ReviewLoadingSnapshot } from "../../shared/loadingSnapshots";
+import { formatEffortLevelLabel, formatNullableDateTime, formatTagSummary } from "../../shared/featureFormatting";
 
 export type ReviewQueuePanelProps = Readonly<{
   isInitialReviewLoad: boolean;
