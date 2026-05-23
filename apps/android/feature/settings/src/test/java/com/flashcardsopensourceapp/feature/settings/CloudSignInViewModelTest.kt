@@ -5,6 +5,7 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.CloudProgressSeries
@@ -76,13 +77,15 @@ class CloudSignInViewModelTest {
             credentials = firstCredentials,
             email = "first@example.com",
             workspaceId = "workspace-first",
-            workspaceName = "Workspace First"
+            workspaceName = "Workspace First",
+            preferredWorkspaceId = "workspace-first"
         )
         val secondLinkContext = makeLinkContext(
             credentials = secondCredentials,
             email = "second@example.com",
             workspaceId = "workspace-second",
-            workspaceName = "Workspace Second"
+            workspaceName = "Workspace Second",
+            preferredWorkspaceId = "workspace-second"
         )
         val blockedFirstPrepare = CompletableDeferred<CloudWorkspaceLinkContext>()
         repository.enqueueSendCodeResult(CloudSendCodeResult.Verified(credentials = firstCredentials))
@@ -115,6 +118,46 @@ class CloudSignInViewModelTest {
         assertEquals("second@example.com", viewModel.postAuthUiState.value.verifiedEmail)
         assertEquals("Workspace Second", viewModel.postAuthUiState.value.pendingWorkspaceTitle)
         assertEquals("workspace-second", viewModel.postAuthUiState.value.workspaces.first().workspaceId)
+
+        postAuthCollection.cancel()
+    }
+
+    @Test
+    fun unavailablePreferredWorkspaceKeepsPostAuthChooser() = runTest(dispatcher) {
+        Dispatchers.setMain(dispatcher)
+        val repository = FakeCloudAccountRepository()
+        val viewModel = CloudSignInViewModel(
+            cloudAccountRepository = repository,
+            syncRepository = FakeSyncRepository(),
+            messageController = TransientMessageController { },
+            strings = strings
+        )
+        val postAuthCollection = backgroundScope.async {
+            viewModel.postAuthUiState.collect()
+        }
+        val credentials = makeCredentials(idToken = "id-token-1")
+        repository.enqueueSendCodeResult(CloudSendCodeResult.Verified(credentials = credentials))
+        repository.enqueuePreparedLinkContext(
+            idToken = credentials.idToken,
+            result = CompletableDeferred(
+                makeLinkContext(
+                    credentials = credentials,
+                    email = "person@example.com",
+                    workspaceId = "workspace-remote",
+                    workspaceName = "Remote",
+                    preferredWorkspaceId = "workspace-recovered"
+                )
+            )
+        )
+
+        viewModel.updateEmail("person@example.com")
+        val outcome = viewModel.sendCode()
+        advanceUntilIdle()
+
+        assertEquals(CloudSendCodeNavigationOutcome.Verified, outcome)
+        assertEquals(CloudPostAuthMode.CHOOSE_WORKSPACE, viewModel.postAuthUiState.value.mode)
+        assertNull(viewModel.postAuthUiState.value.pendingWorkspaceTitle)
+        assertEquals(false, viewModel.postAuthUiState.value.workspaces.first().isSelected)
 
         postAuthCollection.cancel()
     }
@@ -234,7 +277,8 @@ class CloudSignInViewModelTest {
         credentials: StoredCloudCredentials,
         email: String,
         workspaceId: String,
-        workspaceName: String
+        workspaceName: String,
+        preferredWorkspaceId: String
     ): CloudWorkspaceLinkContext {
         return CloudWorkspaceLinkContext(
             userId = "user-$workspaceId",
@@ -249,7 +293,7 @@ class CloudSignInViewModelTest {
                 )
             ),
             guestUpgradeMode = null,
-            preferredWorkspaceId = workspaceId
+            preferredWorkspaceId = preferredWorkspaceId
         )
     }
 }
@@ -268,6 +312,7 @@ private class FakeCloudAccountRepository : CloudAccountRepository {
     )
     private val accountDeletionState = MutableStateFlow<AccountDeletionState>(AccountDeletionState.Hidden)
     private val serverConfiguration = MutableStateFlow(makeOfficialCloudServiceConfiguration())
+    private val cloudCredentialRecoveryState = MutableStateFlow<CloudCredentialRecoveryState?>(null)
     private val sendCodeResults = ArrayDeque<CloudSendCodeResult>()
     private val sendCodeErrors = ArrayDeque<Exception>()
     private val verifyCodeErrors = ArrayDeque<Exception>()
@@ -302,6 +347,10 @@ private class FakeCloudAccountRepository : CloudAccountRepository {
 
     override fun observeServerConfiguration(): Flow<CloudServiceConfiguration> {
         return serverConfiguration
+    }
+
+    override fun observeCloudCredentialRecoveryState(): Flow<CloudCredentialRecoveryState?> {
+        return cloudCredentialRecoveryState
     }
 
     override suspend fun beginAccountDeletion() {

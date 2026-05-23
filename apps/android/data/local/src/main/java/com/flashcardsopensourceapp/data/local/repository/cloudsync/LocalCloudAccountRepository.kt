@@ -11,6 +11,9 @@ import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryReason
+import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryRequiredException
+import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.CloudProgressSeries
@@ -59,6 +62,10 @@ class LocalCloudAccountRepository(
 
     override fun observeServerConfiguration(): Flow<CloudServiceConfiguration> {
         return preferencesStore.observeServerConfiguration()
+    }
+
+    override fun observeCloudCredentialRecoveryState(): Flow<CloudCredentialRecoveryState?> {
+        return preferencesStore.observeCloudCredentialRecoveryState()
     }
 
     override suspend fun beginAccountDeletion() {
@@ -147,8 +154,10 @@ class LocalCloudAccountRepository(
                 guestToken = guestSession.guestToken
             )
         }
-        val preferredWorkspaceId = resolvePreferredPostAuthWorkspaceId(
-            workspaces = accountSnapshot.workspaces
+        val preferredWorkspaceId = resolvePostAuthPreferredWorkspaceId(
+            recoveryState = preferencesStore.loadCloudCredentialRecoveryState(),
+            configuration = configuration,
+            accountSnapshot = accountSnapshot
         )
         return CloudWorkspaceLinkContext(
             userId = accountSnapshot.userId,
@@ -169,19 +178,36 @@ class LocalCloudAccountRepository(
             if (resumedGuestUpgrade != null) {
                 return@runExclusive resumedGuestUpgrade
             }
+            val recoveryState = preferencesStore.loadCloudCredentialRecoveryState()
             val authenticatedSession = authenticatedSession(linkContext = linkContext)
+            requireCloudLinkMatchesCredentialRecovery(
+                recoveryState = recoveryState,
+                authenticatedSession = authenticatedSession
+            )
+            requireWorkspaceSelectionMatchesCredentialRecovery(
+                recoveryState = recoveryState,
+                selection = selection
+            )
             val selectedWorkspace = resolveWorkspaceSelection(
                 linkContext = linkContext,
                 authenticatedSession = authenticatedSession,
                 selection = selection
             )
             clearGuestSessionsIfNeeded()
-            applyLinkedWorkspace(
-                accountSnapshot = authenticatedSession.accountSnapshot,
-                bearerToken = authenticatedSession.credentials.idToken,
-                selectedWorkspace = selectedWorkspace
-            )
+            if (recoveryState != null) {
+                applyLinkedWorkspacePreservingLocalData(
+                    accountSnapshot = authenticatedSession.accountSnapshot,
+                    selectedWorkspace = selectedWorkspace
+                )
+            } else {
+                applyLinkedWorkspace(
+                    accountSnapshot = authenticatedSession.accountSnapshot,
+                    bearerToken = authenticatedSession.credentials.idToken,
+                    selectedWorkspace = selectedWorkspace
+                )
+            }
             preferencesStore.saveCredentials(authenticatedSession.credentials)
+            preferencesStore.clearCloudCredentialRecoveryState()
             selectedWorkspace
         }
     }
@@ -677,6 +703,110 @@ class LocalCloudAccountRepository(
         }
     }
 
+    private fun requireCloudLinkMatchesCredentialRecovery(
+        recoveryState: CloudCredentialRecoveryState?,
+        authenticatedSession: AuthenticatedCloudSession
+    ) {
+        if (recoveryState?.reason != CloudCredentialRecoveryReason.LINKED_CREDENTIALS_MISSING) {
+            return
+        }
+        if (
+            recoveryState.configurationMode != authenticatedSession.configuration.mode ||
+            recoveryState.apiBaseUrl != authenticatedSession.configuration.apiBaseUrl
+        ) {
+            throw CloudCredentialRecoveryRequiredException(recoveryState = recoveryState)
+        }
+
+        val linkedUserId = recoveryState.linkedUserId
+        if (linkedUserId != null) {
+            if (authenticatedSession.accountSnapshot.userId != linkedUserId) {
+                throw CloudCredentialRecoveryRequiredException(recoveryState = recoveryState)
+            }
+            return
+        }
+
+        val linkedEmail = recoveryState.linkedEmail
+        if (
+            linkedEmail != null &&
+            authenticatedSession.accountSnapshot.email.equals(linkedEmail, ignoreCase = true).not()
+        ) {
+            throw CloudCredentialRecoveryRequiredException(recoveryState = recoveryState)
+        }
+    }
+
+    private fun resolvePostAuthPreferredWorkspaceId(
+        recoveryState: CloudCredentialRecoveryState?,
+        configuration: CloudServiceConfiguration,
+        accountSnapshot: CloudAccountSnapshot
+    ): String? {
+        val recoveryWorkspaceId = resolveCredentialRecoveryPreferredWorkspaceId(
+            recoveryState = recoveryState,
+            configuration = configuration,
+            accountSnapshot = accountSnapshot
+        )
+        return recoveryWorkspaceId ?: resolvePreferredPostAuthWorkspaceId(
+            workspaces = accountSnapshot.workspaces
+        )
+    }
+
+    private fun resolveCredentialRecoveryPreferredWorkspaceId(
+        recoveryState: CloudCredentialRecoveryState?,
+        configuration: CloudServiceConfiguration,
+        accountSnapshot: CloudAccountSnapshot
+    ): String? {
+        if (recoveryState?.reason != CloudCredentialRecoveryReason.LINKED_CREDENTIALS_MISSING) {
+            return null
+        }
+        if (
+            recoveryState.configurationMode != configuration.mode ||
+            recoveryState.apiBaseUrl != configuration.apiBaseUrl
+        ) {
+            return null
+        }
+
+        val linkedUserId = recoveryState.linkedUserId
+        if (linkedUserId != null && accountSnapshot.userId != linkedUserId) {
+            return null
+        }
+
+        val linkedEmail = recoveryState.linkedEmail
+        if (
+            linkedUserId == null &&
+            linkedEmail != null &&
+            accountSnapshot.email.equals(linkedEmail, ignoreCase = true).not()
+        ) {
+            return null
+        }
+
+        return recoveredWorkspaceId(recoveryState = recoveryState)
+    }
+
+    private fun requireWorkspaceSelectionMatchesCredentialRecovery(
+        recoveryState: CloudCredentialRecoveryState?,
+        selection: CloudWorkspaceLinkSelection
+    ) {
+        if (recoveryState?.reason != CloudCredentialRecoveryReason.LINKED_CREDENTIALS_MISSING) {
+            return
+        }
+        val recoveredWorkspaceId = recoveredWorkspaceId(recoveryState = recoveryState)
+        if (recoveredWorkspaceId == null) {
+            return
+        }
+
+        val selectedWorkspaceId = when (selection) {
+            is CloudWorkspaceLinkSelection.Existing -> selection.workspaceId
+            CloudWorkspaceLinkSelection.CreateNew -> return
+        }
+        if (selectedWorkspaceId != recoveredWorkspaceId) {
+            throw CloudCredentialRecoveryRequiredException(recoveryState = recoveryState)
+        }
+    }
+
+    private fun recoveredWorkspaceId(recoveryState: CloudCredentialRecoveryState): String? {
+        return recoveryState.activeWorkspaceId?.takeIf { workspaceId -> workspaceId.isNotBlank() }
+            ?: recoveryState.linkedWorkspaceId?.takeIf { workspaceId -> workspaceId.isNotBlank() }
+    }
+
     private suspend fun fetchCloudAccount(
         credentials: StoredCloudCredentials,
         configuration: CloudServiceConfiguration
@@ -795,6 +925,29 @@ class LocalCloudAccountRepository(
             bearerToken = bearerToken,
             selectedWorkspace = selectedWorkspace
         )
+        migrateLocalShellToLinkedWorkspace(
+            accountSnapshot = accountSnapshot,
+            selectedWorkspace = selectedWorkspace,
+            remoteWorkspaceIsEmpty = remoteWorkspaceIsEmpty
+        )
+    }
+
+    private suspend fun applyLinkedWorkspacePreservingLocalData(
+        accountSnapshot: CloudAccountSnapshot,
+        selectedWorkspace: CloudWorkspaceSummary
+    ) {
+        migrateLocalShellToLinkedWorkspace(
+            accountSnapshot = accountSnapshot,
+            selectedWorkspace = selectedWorkspace,
+            remoteWorkspaceIsEmpty = true
+        )
+    }
+
+    private suspend fun migrateLocalShellToLinkedWorkspace(
+        accountSnapshot: CloudAccountSnapshot,
+        selectedWorkspace: CloudWorkspaceSummary,
+        remoteWorkspaceIsEmpty: Boolean
+    ) {
         val localLinkedWorkspace = syncLocalStore.migrateLocalShellToLinkedWorkspace(
             workspace = selectedWorkspace,
             remoteWorkspaceIsEmpty = remoteWorkspaceIsEmpty
@@ -1001,6 +1154,10 @@ class LocalCloudAccountRepository(
     }
 
     private suspend fun activeGuestSession(configuration: CloudServiceConfiguration): StoredGuestAiSession? {
+        if (preferencesStore.loadCloudCredentialRecoveryState() != null) {
+            return null
+        }
+
         val cloudSettings = preferencesStore.currentCloudSettings()
         val guestWorkspaceId = cloudSettings.activeWorkspaceId ?: cloudSettings.linkedWorkspaceId
         if (cloudSettings.cloudState == CloudAccountState.GUEST && guestWorkspaceId != null) {

@@ -35,6 +35,7 @@ class CloudIdentityResetCoordinator(
         withContext(Dispatchers.IO) {
             resetMutex.withLock {
                 cloudPreferencesStore.clearCredentials()
+                cloudPreferencesStore.clearCloudCredentialRecoveryState()
                 aiChatPreferencesStore.clearConsent()
                 aiChatHistoryStore.clearAllState()
                 guestAiSessionStore.clearAllSessions()

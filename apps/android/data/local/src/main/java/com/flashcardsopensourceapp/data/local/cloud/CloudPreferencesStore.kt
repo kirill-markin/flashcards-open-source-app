@@ -9,6 +9,8 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.putNullableString
 import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryReason
+import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeCompletion
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeDroppedEntity
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeDroppedEntityType
@@ -24,9 +26,11 @@ import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.model.makeCustomCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.makeOfficialCloudServiceConfiguration
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -49,6 +53,7 @@ private const val updatedAtMillisKey: String = "updated-at-millis"
 private const val accountDeletionStatusKey: String = "account-deletion-status"
 private const val accountDeletionFailureMessageKey: String = "account-deletion-failure-message"
 private const val customOriginKey: String = "custom-origin"
+private const val cloudCredentialRecoveryStateKey: String = "cloud-credential-recovery-state"
 private const val refreshTokenKey: String = "refresh-token"
 private const val idTokenKey: String = "id-token"
 private const val idTokenExpiresAtMillisKey: String = "id-token-expires-at-millis"
@@ -81,6 +86,7 @@ class CloudPreferencesStore(
     private val cloudSettingsState = MutableStateFlow(loadLegacyCloudSettingsEntity().toCloudSettings())
     private val accountDeletionState = MutableStateFlow(loadAccountDeletionState())
     private val serverConfigurationState = MutableStateFlow(loadServerConfiguration())
+    private val cloudCredentialRecoveryStateJson = MutableStateFlow(loadCloudCredentialRecoveryStateJsonFromPreferences())
     private val localOutboxWriteGate = Mutex()
     private var localOutboxWriteBlockReason: String? = null
     private var activeLocalOutboxMutationTransactions: Int = 0
@@ -98,6 +104,12 @@ class CloudPreferencesStore(
         return accountDeletionState.asStateFlow()
     }
 
+    fun observeCloudCredentialRecoveryState(): Flow<CloudCredentialRecoveryState?> {
+        return cloudCredentialRecoveryStateJson.map { rawValue ->
+            decodeCloudCredentialRecoveryStateFromRawValue(rawValue = rawValue)
+        }
+    }
+
     fun currentCloudSettings(): CloudSettings {
         return cloudSettingsState.value
     }
@@ -108,6 +120,28 @@ class CloudPreferencesStore(
 
     fun currentAccountDeletionState(): AccountDeletionState {
         return accountDeletionState.value
+    }
+
+    fun loadCloudCredentialRecoveryState(): CloudCredentialRecoveryState? {
+        return decodeCloudCredentialRecoveryStateFromRawValue(rawValue = cloudCredentialRecoveryStateJson.value)
+    }
+
+    fun saveCloudCredentialRecoveryState(recoveryState: CloudCredentialRecoveryState) {
+        val rawValue = encodeCloudCredentialRecoveryState(recoveryState = recoveryState).toString()
+        metadataPreferences.edit(commit = true) {
+            putString(
+                cloudCredentialRecoveryStateKey,
+                rawValue
+            )
+        }
+        cloudCredentialRecoveryStateJson.value = rawValue
+    }
+
+    fun clearCloudCredentialRecoveryState() {
+        metadataPreferences.edit(commit = true) {
+            remove(cloudCredentialRecoveryStateKey)
+        }
+        cloudCredentialRecoveryStateJson.value = null
     }
 
     fun loadCredentials(): StoredCloudCredentials? {
@@ -394,6 +428,23 @@ class CloudPreferencesStore(
                     ?: "Account deletion failed."
             )
             else -> AccountDeletionState.Hidden
+        }
+    }
+
+    private fun loadCloudCredentialRecoveryStateJsonFromPreferences(): String? {
+        return metadataPreferences.getString(cloudCredentialRecoveryStateKey, null)
+    }
+
+    private fun decodeCloudCredentialRecoveryStateFromRawValue(rawValue: String?): CloudCredentialRecoveryState? {
+        rawValue ?: return null
+        return try {
+            decodeCloudCredentialRecoveryState(jsonObject = JSONObject(rawValue))
+        } catch (error: JSONException) {
+            throw cloudCredentialRecoveryStateCorruptError(cause = error)
+        } catch (error: IllegalArgumentException) {
+            throw cloudCredentialRecoveryStateCorruptError(cause = error)
+        } catch (error: IllegalStateException) {
+            throw cloudCredentialRecoveryStateCorruptError(cause = error)
         }
     }
 
@@ -698,6 +749,43 @@ private fun decodeNullableGuestUpgradeCompletion(jsonObject: JSONObject): CloudG
     } else {
         decodeGuestUpgradeCompletion(jsonObject = jsonObject.getJSONObject("completion"))
     }
+}
+
+private fun encodeCloudCredentialRecoveryState(recoveryState: CloudCredentialRecoveryState): JSONObject {
+    return JSONObject()
+        .put("reason", recoveryState.reason.name)
+        .put("previousCloudState", recoveryState.previousCloudState.name)
+        .put("installationId", recoveryState.installationId)
+        .putNullableString(key = "linkedUserId", value = recoveryState.linkedUserId)
+        .putNullableString(key = "linkedWorkspaceId", value = recoveryState.linkedWorkspaceId)
+        .putNullableString(key = "activeWorkspaceId", value = recoveryState.activeWorkspaceId)
+        .putNullableString(key = "linkedEmail", value = recoveryState.linkedEmail)
+        .put("configurationMode", recoveryState.configurationMode.name)
+        .put("apiBaseUrl", recoveryState.apiBaseUrl)
+        .put("detectedAtMillis", recoveryState.detectedAtMillis)
+}
+
+private fun decodeCloudCredentialRecoveryState(jsonObject: JSONObject): CloudCredentialRecoveryState {
+    return CloudCredentialRecoveryState(
+        reason = CloudCredentialRecoveryReason.valueOf(jsonObject.getString("reason")),
+        previousCloudState = CloudAccountState.valueOf(jsonObject.getString("previousCloudState")),
+        installationId = jsonObject.getString("installationId"),
+        linkedUserId = jsonObject.getNullableString(key = "linkedUserId"),
+        linkedWorkspaceId = jsonObject.getNullableString(key = "linkedWorkspaceId"),
+        activeWorkspaceId = jsonObject.getNullableString(key = "activeWorkspaceId"),
+        linkedEmail = jsonObject.getNullableString(key = "linkedEmail"),
+        configurationMode = CloudServiceConfigurationMode.valueOf(jsonObject.getString("configurationMode")),
+        apiBaseUrl = jsonObject.getString("apiBaseUrl"),
+        detectedAtMillis = jsonObject.getLong("detectedAtMillis")
+    )
+}
+
+private fun cloudCredentialRecoveryStateCorruptError(cause: Throwable): IllegalStateException {
+    return IllegalStateException(
+        "Cloud credential recovery state is corrupt and cannot be resumed. " +
+            "Sign in again to resolve cloud credential recovery. Cause='${cause.message}'.",
+        cause
+    )
 }
 
 private fun encodeGuestUpgradeReconciliation(reconciliation: CloudGuestUpgradeReconciliation): JSONObject {

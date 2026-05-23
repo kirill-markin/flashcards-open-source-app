@@ -145,7 +145,7 @@ class AiChatRemoteService private constructor(
     okHttpClient: OkHttpClient,
     private val observability: AppObservability,
     private val observationVersions: AiChatHttpObservationVersions
-) {
+) : GuestCloudSessionCreator {
     constructor(
         dispatchers: AiCoroutineDispatchers,
         liveRemoteService: AiChatLiveRemoteService,
@@ -206,7 +206,7 @@ class AiChatRemoteService private constructor(
         .readTimeout(120, TimeUnit.SECONDS)
         .build()
 
-    suspend fun createGuestSession(
+    override suspend fun createGuestSession(
         apiBaseUrl: String,
         configurationMode: CloudServiceConfigurationMode
     ): StoredGuestAiSession = withContext(dispatchers.io) {

@@ -9,6 +9,7 @@ import com.flashcardsopensourceapp.data.local.database.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryRequiredException
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
@@ -129,6 +130,20 @@ class LocalSyncRepository(
             val reconciliation = cloudGuestSessionCoordinator.reconcilePersistedCloudStateLocked()
             val cloudSettings = reconciliation.cloudSettings
             val failureWorkspaceId = cloudSettings.activeWorkspaceId ?: cloudSettings.linkedWorkspaceId
+            val recoveryState = preferencesStore.loadCloudCredentialRecoveryState()
+            if (recoveryState != null) {
+                val error = CloudCredentialRecoveryRequiredException(recoveryState = recoveryState)
+                syncStatusState.value = SyncStatusSnapshot(
+                    status = SyncStatus.Failed(error.message ?: "Cloud credential recovery is required."),
+                    lastSuccessfulSyncAtMillis = syncStatusState.value.lastSuccessfulSyncAtMillis,
+                    lastErrorMessage = error.message ?: "Cloud credential recovery is required."
+                )
+                emitAutoSyncFailure(
+                    autoSyncRequest = autoSyncRequest,
+                    error = error
+                )
+                throw error
+            }
             if (reconciliation.didRunSync) {
                 syncStatusState.value = SyncStatusSnapshot(
                     status = SyncStatus.Idle,

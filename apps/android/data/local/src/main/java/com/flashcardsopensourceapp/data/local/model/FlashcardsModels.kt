@@ -241,6 +241,33 @@ data class CloudSettings(
     val updatedAtMillis: Long
 )
 
+enum class CloudCredentialRecoveryReason {
+    LINKED_CREDENTIALS_MISSING,
+    GUEST_SESSION_MISSING
+}
+
+data class CloudCredentialRecoveryState(
+    val reason: CloudCredentialRecoveryReason,
+    val previousCloudState: CloudAccountState,
+    val installationId: String,
+    val linkedUserId: String?,
+    val linkedWorkspaceId: String?,
+    val activeWorkspaceId: String?,
+    val linkedEmail: String?,
+    val configurationMode: CloudServiceConfigurationMode,
+    val apiBaseUrl: String,
+    val detectedAtMillis: Long
+)
+
+const val cloudCredentialRecoveryRequiredMessage: String =
+    "Cloud credential recovery is required before cloud access can continue."
+
+class CloudCredentialRecoveryRequiredException(
+    val recoveryState: CloudCredentialRecoveryState
+) : IllegalStateException(
+    cloudCredentialRecoveryRequiredMessage
+)
+
 sealed interface AccountDeletionState {
     data object Hidden : AccountDeletionState
 

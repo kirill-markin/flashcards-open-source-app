@@ -5,6 +5,8 @@ import com.flashcardsopensourceapp.data.local.bootstrap.localWorkspaceName
 import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryReason
+import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.effectiveAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.makeOfficialCloudServiceConfiguration
@@ -67,6 +69,20 @@ class CloudIdentityResetCoordinatorTest {
                 userId = "guest-user"
             )
         )
+        environment.cloudPreferencesStore.saveCloudCredentialRecoveryState(
+            recoveryState = CloudCredentialRecoveryState(
+                reason = CloudCredentialRecoveryReason.LINKED_CREDENTIALS_MISSING,
+                previousCloudState = CloudAccountState.LINKED,
+                installationId = initialInstallationId,
+                linkedUserId = "user-1",
+                linkedWorkspaceId = initialLocalWorkspaceId,
+                activeWorkspaceId = initialLocalWorkspaceId,
+                linkedEmail = "user@example.com",
+                configurationMode = CloudServiceConfigurationMode.OFFICIAL,
+                apiBaseUrl = "https://api.flashcards-open-source-app.com/v1",
+                detectedAtMillis = 500L
+            )
+        )
         environment.cloudPreferencesStore.markAccountDeletionInProgress()
 
         environment.resetCoordinator.resetLocalStateForCloudIdentityChange()
@@ -76,6 +92,7 @@ class CloudIdentityResetCoordinatorTest {
         }
 
         assertNull(environment.cloudPreferencesStore.loadCredentials())
+        assertNull(environment.cloudPreferencesStore.loadCloudCredentialRecoveryState())
         assertEquals(CloudAccountState.DISCONNECTED, environment.cloudPreferencesStore.currentCloudSettings().cloudState)
         assertEquals(resetWorkspace.workspaceId, environment.cloudPreferencesStore.currentCloudSettings().activeWorkspaceId)
         assertNotEquals(initialLocalWorkspaceId, resetWorkspace.workspaceId)

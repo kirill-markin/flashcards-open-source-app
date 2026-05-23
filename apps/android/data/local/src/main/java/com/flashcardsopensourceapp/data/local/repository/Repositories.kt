@@ -19,6 +19,7 @@ import com.flashcardsopensourceapp.data.local.model.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkContext
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.CloudProgressSummary
@@ -132,6 +133,7 @@ interface CloudAccountRepository {
     fun observeCloudSettings(): Flow<CloudSettings>
     fun observeAccountDeletionState(): Flow<AccountDeletionState>
     fun observeServerConfiguration(): Flow<CloudServiceConfiguration>
+    fun observeCloudCredentialRecoveryState(): Flow<CloudCredentialRecoveryState?>
     suspend fun beginAccountDeletion()
     suspend fun resumePendingAccountDeletionIfNeeded()
     suspend fun retryPendingAccountDeletion()
