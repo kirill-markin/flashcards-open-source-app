@@ -3,10 +3,12 @@ package com.flashcardsopensourceapp.app.di
 import android.content.Context
 import android.util.Log
 import com.flashcardsopensourceapp.app.AutoSyncController
+import com.flashcardsopensourceapp.app.GuestSignInAfterReviewPromptController
 import com.flashcardsopensourceapp.app.navigation.AppPackageInfo
 import com.flashcardsopensourceapp.app.navigation.loadPackageInfo
 import com.flashcardsopensourceapp.app.ProgressContextRefreshController
 import com.flashcardsopensourceapp.app.observability.renderSanitizedThrowableLogFields
+import com.flashcardsopensourceapp.app.SharedPreferencesGuestSignInAfterReviewPromptStore
 import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
@@ -134,6 +136,9 @@ class AppGraph(
     private val aiChatHistoryStore = AiChatHistoryStore(context = context)
     private val guestAiSessionStore = GuestAiSessionStore(context = context)
     val reviewPreferencesStore: ReviewPreferencesStore = SharedPreferencesReviewPreferencesStore(context = context)
+    private val guestSignInAfterReviewPromptStore = SharedPreferencesGuestSignInAfterReviewPromptStore(
+        context = context
+    )
     private val notificationsStore = SharedPreferencesReviewNotificationsStore(context = context)
     val reviewNotificationsStore: ReviewNotificationsStore = notificationsStore
     val strictRemindersStore: StrictRemindersStore = notificationsStore
@@ -249,6 +254,12 @@ class AppGraph(
         preferencesStore = cloudPreferencesStore,
         syncLocalStore = syncLocalStore,
         localProgressCacheStore = localProgressCacheStore
+    )
+    val guestSignInAfterReviewPromptController = GuestSignInAfterReviewPromptController(
+        appScope = appScope,
+        cloudAccountRepository = cloudAccountRepository,
+        reviewRepository = reviewRepository,
+        promptStore = guestSignInAfterReviewPromptStore
     )
     val progressRepository: ProgressRepository = LocalProgressRepository(
         appScope = appScope,

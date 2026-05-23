@@ -11,6 +11,10 @@
     <string name="account_deletion_in_progress_message">Your account deletion is in progress. Keep this screen open until it finishes.</string>
     <string name="account_deletion_failed_message">The delete request did not finish yet. Retry to keep the account deletion moving forward.</string>
     <string name="account_deletion_retry">Retry deletion</string>
+    <string name="guest_sign_in_after_review_prompt_title">Save your progress</string>
+    <string name="guest_sign_in_after_review_prompt_body">Sign in with email so these cards and review progress are not lost.</string>
+    <string name="guest_sign_in_after_review_prompt_sign_in">Sign in</string>
+    <string name="guest_sign_in_after_review_prompt_later">Later</string>
     <string name="review_notification_channel_name">Review reminders</string>
     <string name="review_notification_channel_description">Study reminders with cards from your review queue.</string>
 </resources>

@@ -68,6 +68,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                         reviewedAtMillis = reviewedAtMillis,
                         nowMillis = System.currentTimeMillis()
                     )
+                    appGraph.guestSignInAfterReviewPromptController.requestReevaluation()
                 },
                 onNotificationPermissionGranted = ::handleNotificationPermissionGranted,
                 reviewPreferencesStore = appGraph.reviewPreferencesStore,
@@ -179,6 +180,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                         reviewedAtMillis = reviewedAtMillis,
                         nowMillis = System.currentTimeMillis()
                     )
+                    appGraph.guestSignInAfterReviewPromptController.requestReevaluation()
                 },
                 onNotificationPermissionGranted = ::handleNotificationPermissionGranted,
                 reviewPreferencesStore = appGraph.reviewPreferencesStore,

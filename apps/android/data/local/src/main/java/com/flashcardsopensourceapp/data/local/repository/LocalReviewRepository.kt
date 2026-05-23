@@ -280,6 +280,15 @@ class LocalReviewRepository(
         return database.reviewLogDao().countReviewLogs()
     }
 
+    override suspend fun countRecordedReviewsInCurrentWorkspace(): Int {
+        val workspace: WorkspaceEntity = loadCurrentWorkspaceOrNull(
+            database = database,
+            preferencesStore = preferencesStore
+        ) ?: return 0
+
+        return database.reviewLogDao().countReviewLogs(workspaceId = workspace.workspaceId)
+    }
+
     override suspend fun loadReviewCardForRollback(selectedFilter: ReviewFilter, cardId: String): ReviewCard? {
         val workspace: WorkspaceEntity = loadCurrentWorkspaceOrNull(
             database = database,
