@@ -293,6 +293,9 @@ extension FlashcardsStore {
         if bootstrapRefreshOutcome.didChange || didRefreshReviewState {
             self.localReadVersion += 1
         }
+        if bootstrapRefreshOutcome.homeSnapshotChanged {
+            self.requestGuestSignInAfterReviewPromptReconciliation()
+        }
         await self.handleProgressSyncCompletion(
             now: now,
             syncResult: syncResult
@@ -331,6 +334,9 @@ extension FlashcardsStore {
         }
         if bootstrapRefreshOutcome.didChange || didResetVolatileReviewSelection {
             self.localReadVersion += 1
+        }
+        if bootstrapRefreshOutcome.homeSnapshotChanged {
+            self.requestGuestSignInAfterReviewPromptReconciliation()
         }
     }
 

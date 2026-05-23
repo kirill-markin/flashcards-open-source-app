@@ -198,6 +198,10 @@ extension FlashcardsStore {
         self.recordSuccessfulStrictReminderReview(reviewedAt: reviewedAt, now: now)
         let reviewCount = self.loadReviewNotificationPromptReviewCount(persistedReviewCount: nextCount)
         Task { @MainActor in
+            defer {
+                self.requestGuestSignInAfterReviewPromptReconciliation()
+            }
+
             let permissionStatus = await resolveReviewNotificationPermissionStatus()
             guard permissionStatus == .notRequested else {
                 return

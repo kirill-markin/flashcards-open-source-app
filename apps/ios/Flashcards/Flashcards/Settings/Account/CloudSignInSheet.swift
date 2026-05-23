@@ -21,6 +21,22 @@ private struct CloudOtpSheetState: Identifiable, Hashable {
     }
 }
 
+@MainActor
+extension FlashcardsStore {
+    func beginCloudSignInSheetPresentation() {
+        self.activeCloudSignInSheetCount += 1
+    }
+
+    func endCloudSignInSheetPresentation() {
+        guard self.activeCloudSignInSheetCount > 0 else {
+            assertionFailure("Cloud sign-in sheet presentation ended without a matching begin.")
+            return
+        }
+
+        self.activeCloudSignInSheetCount -= 1
+    }
+}
+
 enum CloudPostAuthRetryAction: Hashable {
     case prepareLink(verifiedContext: CloudVerifiedAuthContext)
     case completeLink(linkContext: CloudWorkspaceLinkContext, selection: CloudWorkspaceLinkSelection)
@@ -179,6 +195,7 @@ struct CloudSignInSheet: View {
     @State private var authErrorPresentation: CloudAuthInlineErrorPresentation?
     @State private var isSendingCode: Bool = false
     @State private var isLogoutConfirmationPresented: Bool = false
+    @State private var hasRecordedActivePresentation: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -308,7 +325,11 @@ struct CloudSignInSheet: View {
                 Text(aiSettingsLocalized("settings.account.status.logoutAlertMessage", "All local workspaces and synced data will be removed from this device."))
             }
             .onAppear {
+                self.recordActivePresentationIfNeeded()
                 self.scheduleEmailFieldFocus()
+            }
+            .onDisappear {
+                self.clearActivePresentationIfNeeded()
             }
         }
         .accessibilityIdentifier(UITestIdentifier.cloudSignInScreen)
@@ -322,6 +343,24 @@ struct CloudSignInSheet: View {
         DispatchQueue.main.async {
             self.isEmailFieldFocused = true
         }
+    }
+
+    private func recordActivePresentationIfNeeded() {
+        guard self.hasRecordedActivePresentation == false else {
+            return
+        }
+
+        self.hasRecordedActivePresentation = true
+        self.store.beginCloudSignInSheetPresentation()
+    }
+
+    private func clearActivePresentationIfNeeded() {
+        guard self.hasRecordedActivePresentation else {
+            return
+        }
+
+        self.hasRecordedActivePresentation = false
+        self.store.endCloudSignInSheetPresentation()
     }
 
     private func sendCode() {
