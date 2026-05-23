@@ -133,6 +133,13 @@
 "settings.sync.syncing" = "المزامنة";
 "settings.sync.blocked" = "تم حظر المزامنة: %@";
 "settings.sync.failed" = "فشل المزامنة: %@";
+"settings.sync.recovery.linkedCredentialsMissing" = "بيانات اعتماد تسجيل الدخول الآمنة مفقودة على هذا الجهاز. تم الحفاظ على البيانات المحلية. سجّل الدخول مرة أخرى لإعادة توصيل المزامنة.";
+"settings.sync.recovery.guestSessionMissing" = "بيانات اعتماد الضيف مفقودة على هذا الجهاز. تم الحفاظ على البيانات المحلية، لكن لا يمكن استرداد حساب الضيف السحابي القديم بدون رمزه.";
+"settings.sync.recovery.invalidStoredState" = "بيانات استرداد بيانات اعتماد السحابة المخزنة على هذا الجهاز غير صالحة. تم إيقاف المزامنة مؤقتا حتى تعيد توصيل هوية السحابة أو تعيد تعيينها.";
+"settings.sync.recovery.wrongLinkedAccount" = "سجّل الدخول باستخدام حساب السحابة الأصلي لإعادة توصيل البيانات المحلية المحفوظة.";
+"settings.sync.recovery.wrongLinkedWorkspace" = "اختر مساحة العمل السحابية الأصلية لإعادة توصيل البيانات المحلية المحفوظة.";
+"settings.sync.recovery.interruptedUpgradeAccount" = "سجّل الدخول باستخدام الحساب الذي استُخدم لترقية الحساب التي توقفت.";
+"settings.sync.recovery.upgradeWorkspace" = "يجب إنهاء استرداد ترقية الحساب في مساحة العمل %@.";
 
 "settings.currentWorkspace.title" = "مساحة العمل الحالية";
 "settings.currentWorkspace.row.workspace" = "مساحة العمل";

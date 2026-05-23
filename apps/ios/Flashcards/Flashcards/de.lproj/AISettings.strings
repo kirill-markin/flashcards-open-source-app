@@ -133,6 +133,13 @@
 "settings.sync.syncing" = "Synchronisierung";
 "settings.sync.blocked" = "Synchronisierung blockiert: %@";
 "settings.sync.failed" = "Synchronisierungsfehler: %@";
+"settings.sync.recovery.linkedCredentialsMissing" = "Sichere Anmeldedaten fehlen auf diesem Gerät. Lokale Daten bleiben erhalten. Melde dich erneut an, um die Synchronisierung wieder zu verbinden.";
+"settings.sync.recovery.guestSessionMissing" = "Gast-Anmeldedaten fehlen auf diesem Gerät. Lokale Daten bleiben erhalten, aber das alte Gast-Cloudkonto kann ohne sein Token nicht wiederhergestellt werden.";
+"settings.sync.recovery.invalidStoredState" = "Die auf diesem Gerät gespeicherten Cloud-Wiederherstellungsdaten sind ungültig. Die Synchronisierung ist pausiert, bis du die Cloud-Identität erneut verbindest oder zurücksetzt.";
+"settings.sync.recovery.wrongLinkedAccount" = "Melde dich mit dem ursprünglichen Cloudkonto an, um die erhaltenen lokalen Daten wieder zu verbinden.";
+"settings.sync.recovery.wrongLinkedWorkspace" = "Wähle den ursprünglichen Cloud-Arbeitsbereich aus, um die erhaltenen lokalen Daten wieder zu verbinden.";
+"settings.sync.recovery.interruptedUpgradeAccount" = "Melde dich mit dem Konto an, das für das unterbrochene Kontoupgrade verwendet wurde.";
+"settings.sync.recovery.upgradeWorkspace" = "Die Wiederherstellung des Kontoupgrades muss im Arbeitsbereich %@ abgeschlossen werden.";
 
 "settings.currentWorkspace.title" = "Aktueller Arbeitsbereich";
 "settings.currentWorkspace.row.workspace" = "Arbeitsbereich";

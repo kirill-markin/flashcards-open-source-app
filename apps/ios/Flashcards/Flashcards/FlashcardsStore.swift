@@ -80,6 +80,7 @@ final class FlashcardsStore {
     var syncStatus: SyncStatus
     var lastSuccessfulCloudSyncAt: String?
     var cloudSyncFastPollingUntil: Date?
+    var cloudCredentialRecoveryState: CloudCredentialRecoveryState?
     var pendingReviewCardIds: Set<String>
     var reviewSubmissionFailure: ReviewSubmissionFailure?
     /// Session-only buffer used to decide when to show the frequent-"Hard" reminder.
@@ -304,6 +305,10 @@ final class FlashcardsStore {
         let initialReviewPublishedState = ReviewQueueRuntime.makeInitialPublishedState(
             selectedReviewFilter: initialSelectedReviewFilter
         )
+        let initialCloudCredentialRecoveryState = loadCloudCredentialRecoveryState(
+            userDefaults: userDefaults,
+            decoder: decoder
+        )
         let dependencies = FlashcardsStoreDependencies(
             cloudAuthService: cloudAuthService,
             cloudSyncService: cloudSyncService,
@@ -345,9 +350,18 @@ final class FlashcardsStore {
         self.progressErrorMessage = ""
         self.isProgressRefreshing = false
         self.globalErrorMessage = initialGlobalErrorMessage
-        self.syncStatus = .idle
+        if let initialCloudCredentialRecoveryState {
+            self.syncStatus = .blocked(
+                message: localizedCloudCredentialRecoveryBlockedMessage(
+                    reason: initialCloudCredentialRecoveryState.reason
+                )
+            )
+        } else {
+            self.syncStatus = .idle
+        }
         self.lastSuccessfulCloudSyncAt = nil
         self.cloudSyncFastPollingUntil = nil
+        self.cloudCredentialRecoveryState = initialCloudCredentialRecoveryState
         self.pendingReviewCardIds = initialReviewPublishedState.pendingReviewCardIds
         self.reviewSubmissionFailure = initialReviewPublishedState.reviewSubmissionFailure
         self.reviewHardReminderRecentRatings = []

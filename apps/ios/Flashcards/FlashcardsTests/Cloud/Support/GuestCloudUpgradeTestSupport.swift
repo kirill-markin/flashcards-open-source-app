@@ -55,6 +55,10 @@ struct GuestUpgradeCompleteRequestBody: Decodable {
     let supportsDroppedEntities: Bool
 }
 
+struct GuestUpgradePrepareRequestBody: Decodable {
+    let guestToken: String
+}
+
 actor GuestUpgradeAsyncGate {
     private var isOpen: Bool = false
     private var continuation: CheckedContinuation<Void, Never>?
@@ -78,13 +82,24 @@ actor GuestUpgradeAsyncGate {
 
 @MainActor
 final class GuestUpgradeDrainCloudSyncService: CloudSyncServing {
+    private(set) var fetchCloudAccountCallCount: Int = 0
+    private(set) var selectWorkspaceCallCount: Int = 0
+    private(set) var createWorkspaceCallCount: Int = 0
+    private(set) var isWorkspaceEmptyForBootstrapCallCount: Int = 0
     private(set) var runLinkedSyncCallCount: Int = 0
     private(set) var runLinkedSyncAuthorizations: [CloudAuthorization] = []
+    var fetchCloudAccountHandler: ((String, String) async throws -> CloudAccountSnapshot)?
+    var selectWorkspaceHandler: ((String, String, String) async throws -> CloudWorkspaceSummary)?
+    var createWorkspaceHandler: ((String, String, String) async throws -> CloudWorkspaceSummary)?
+    var isWorkspaceEmptyForBootstrapHandler: ((String, String, String, String) async throws -> Bool)?
     var runLinkedSyncHandler: ((CloudLinkedSession) async throws -> CloudSyncResult)?
 
     func fetchCloudAccount(apiBaseUrl: String, bearerToken: String) async throws -> CloudAccountSnapshot {
-        _ = apiBaseUrl
-        _ = bearerToken
+        self.fetchCloudAccountCallCount += 1
+        if let fetchCloudAccountHandler {
+            return try await fetchCloudAccountHandler(apiBaseUrl, bearerToken)
+        }
+
         fatalError("Not used in GuestCloudUpgradeDrainTests.")
     }
 
@@ -149,9 +164,11 @@ final class GuestUpgradeDrainCloudSyncService: CloudSyncServing {
     }
 
     func createWorkspace(apiBaseUrl: String, bearerToken: String, name: String) async throws -> CloudWorkspaceSummary {
-        _ = apiBaseUrl
-        _ = bearerToken
-        _ = name
+        self.createWorkspaceCallCount += 1
+        if let createWorkspaceHandler {
+            return try await createWorkspaceHandler(apiBaseUrl, bearerToken, name)
+        }
+
         fatalError("Not used in GuestCloudUpgradeDrainTests.")
     }
 
@@ -221,9 +238,11 @@ final class GuestUpgradeDrainCloudSyncService: CloudSyncServing {
         bearerToken: String,
         workspaceId: String
     ) async throws -> CloudWorkspaceSummary {
-        _ = apiBaseUrl
-        _ = bearerToken
-        _ = workspaceId
+        self.selectWorkspaceCallCount += 1
+        if let selectWorkspaceHandler {
+            return try await selectWorkspaceHandler(apiBaseUrl, bearerToken, workspaceId)
+        }
+
         fatalError("Not used in GuestCloudUpgradeDrainTests.")
     }
 
@@ -253,10 +272,16 @@ final class GuestUpgradeDrainCloudSyncService: CloudSyncServing {
         workspaceId: String,
         installationId: String
     ) async throws -> Bool {
-        _ = apiBaseUrl
-        _ = authorizationHeader
-        _ = workspaceId
-        _ = installationId
+        self.isWorkspaceEmptyForBootstrapCallCount += 1
+        if let isWorkspaceEmptyForBootstrapHandler {
+            return try await isWorkspaceEmptyForBootstrapHandler(
+                apiBaseUrl,
+                authorizationHeader,
+                workspaceId,
+                installationId
+            )
+        }
+
         fatalError("Not used in GuestCloudUpgradeDrainTests.")
     }
 

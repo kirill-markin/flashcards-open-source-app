@@ -3,6 +3,7 @@ import Foundation
 @MainActor
 extension FlashcardsStore {
     func currentActiveCloudSessionForAI() throws -> CloudLinkedSession {
+        try self.throwIfCloudCredentialRecoveryRequired()
         if case .blocked(let message) = self.syncStatus {
             throw LocalStoreError.validation(message)
         }
@@ -47,6 +48,7 @@ extension FlashcardsStore {
     }
 
     func cloudSessionForAI() async throws -> CloudLinkedSession {
+        try self.throwIfCloudCredentialRecoveryRequired()
         if case .blocked(let message) = self.syncStatus {
             throw LocalStoreError.validation(message)
         }
@@ -111,14 +113,21 @@ extension FlashcardsStore {
     }
 
     private func loadOrCreateGuestCloudSession() async throws -> CloudLinkedSession {
+        try self.throwIfCloudCredentialRecoveryRequired()
+        let configuration = try self.currentCloudServiceConfiguration()
+        let existingGuestSession = try self.loadUsableGuestSessionForCurrentConfiguration()
+        if existingGuestSession == nil,
+            try self.markCloudCredentialRecoveryForMissingPersistedCredentialsIfNeeded(detectedAt: Date()) {
+            try self.throwIfCloudCredentialRecoveryRequired()
+        }
+
         let storedGuestSession: StoredGuestCloudSession
-        if let existingGuestSession = try self.loadGuestSessionForCurrentConfiguration() {
+        if let existingGuestSession {
             storedGuestSession = existingGuestSession
         } else {
             // After logout/account deletion the stored guest session is gone and
             // the local installation id has already been regenerated. Creating
             // a session here intentionally starts a brand new guest identity.
-            let configuration = try self.currentCloudServiceConfiguration()
             let createdGuestSession = try await self.dependencies.guestCloudAuthService.createGuestSession(
                 apiBaseUrl: configuration.apiBaseUrl,
                 configurationMode: configuration.mode

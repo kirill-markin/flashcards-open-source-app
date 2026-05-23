@@ -28,8 +28,13 @@ extension FlashcardsStore {
     }
 
     func syncCloudNow(trigger: CloudSyncTrigger) async throws {
+        try self.throwIfInvalidStoredCloudCredentialRecoveryRequired()
         if try await self.resumePendingGuestUpgradeIfNeeded(trigger: trigger) {
             return
+        }
+        try self.throwIfCloudCredentialRecoveryRequired()
+        if try self.markCloudCredentialRecoveryForMissingPersistedCredentialsIfNeeded(detectedAt: trigger.now) {
+            try self.throwIfCloudCredentialRecoveryRequired()
         }
         if try await self.cloudRuntime.waitForActiveCloudCompletionIfNeeded() {
             return
@@ -66,6 +71,7 @@ extension FlashcardsStore {
                     try await self.runLinkedSync(linkedSession: session)
                 }
             }
+            try self.throwIfCloudCredentialRecoveryRequired()
             let now = Date()
             try await self.applySyncResultWithoutBlockingReset(
                 syncResult: syncResult,
@@ -73,6 +79,7 @@ extension FlashcardsStore {
                 trigger: trigger
             )
         } catch {
+            try self.throwIfCloudCredentialRecoveryRequired()
             let failureError: Error
             do {
                 failureError = try self.failureErrorAfterApplyingLocalIdRepairSideEffectsIfNeeded(
@@ -121,7 +128,11 @@ extension FlashcardsStore {
         }
 
         do {
+            try self.throwIfInvalidStoredCloudCredentialRecoveryRequired()
             if try await self.resumePendingGuestUpgradeIfNeeded(trigger: trigger) {
+                return
+            }
+            if self.blockCloudSyncForCredentialRecoveryIfNeeded() {
                 return
             }
             if self.isCloudSyncBlocked {
@@ -170,15 +181,15 @@ extension FlashcardsStore {
         trigger: CloudSyncTrigger
     ) async throws -> PersistedCloudStateReconciliationOutcome {
         let hasStoredCredentials = try self.cloudRuntime.loadCredentials() != nil
-        let hasStoredGuestSession = try self.loadGuestSessionForCurrentConfiguration() != nil
-        guard let cloudState = self.cloudSettings?.cloudState else {
+        let hasStoredGuestSession = try self.loadUsableGuestSessionForCurrentConfiguration() != nil
+        guard let cloudSettings = self.cloudSettings else {
             return .continueSync(
                 hasStoredCredentials: hasStoredCredentials,
                 hasStoredGuestSession: hasStoredGuestSession
             )
         }
 
-        switch cloudState {
+        switch cloudSettings.cloudState {
         case .linked:
             if hasStoredCredentials {
                 return .continueSync(
@@ -187,20 +198,29 @@ extension FlashcardsStore {
                 )
             }
 
-            try self.resetLocalStateForCloudIdentityChange()
-            self.globalErrorMessage = ""
+            let configuration = try self.currentCloudServiceConfiguration()
+            try self.markCloudCredentialRecoveryRequired(
+                reason: .linkedCredentialsMissing,
+                cloudSettings: cloudSettings,
+                configuration: configuration,
+                detectedAt: trigger.now
+            )
             return .stopSync
         case .guest:
-            let hasActiveGuestSession = self.cloudRuntime.activeCloudSession()?.authorization.isGuest == true
-            if hasStoredGuestSession || hasActiveGuestSession {
+            if hasStoredGuestSession {
                 return .continueSync(
                     hasStoredCredentials: hasStoredCredentials,
                     hasStoredGuestSession: hasStoredGuestSession
                 )
             }
 
-            try self.resetLocalStateForCloudIdentityChange()
-            self.globalErrorMessage = ""
+            let configuration = try self.currentCloudServiceConfiguration()
+            try self.markCloudCredentialRecoveryRequired(
+                reason: .guestSessionMissing,
+                cloudSettings: cloudSettings,
+                configuration: configuration,
+                detectedAt: trigger.now
+            )
             return .stopSync
         case .disconnected, .linkingReady:
             if hasStoredGuestSession && hasStoredCredentials == false {
@@ -365,6 +385,9 @@ extension FlashcardsStore {
     }
 
     var isCloudSyncBlocked: Bool {
+        if self.isCloudCredentialRecoveryRequired {
+            return true
+        }
         if case .blocked = self.syncStatus {
             return true
         }
@@ -481,6 +504,7 @@ extension FlashcardsStore {
     }
 
     func runLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
+        try self.enforceCloudCredentialRecoveryGateOutsideIdentityResolution(detectedAt: Date())
         do {
             return try await self.cloudRuntime.runLinkedSync(linkedSession: linkedSession)
         } catch {
@@ -492,6 +516,7 @@ extension FlashcardsStore {
     }
 
     func runFreshLinkedSyncAfterActiveSyncSettles(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
+        try self.enforceCloudCredentialRecoveryGateOutsideIdentityResolution(detectedAt: Date())
         do {
             return try await self.cloudRuntime.runFreshLinkedSyncAfterActiveSyncSettles(linkedSession: linkedSession)
         } catch {

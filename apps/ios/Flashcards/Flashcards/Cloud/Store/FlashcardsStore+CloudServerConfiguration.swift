@@ -24,6 +24,7 @@ extension FlashcardsStore {
         let configuration = try self.currentCloudServiceConfiguration()
         return configuration.mode == .custom
             && self.userDefaults.bool(forKey: pendingCloudServerBootstrapUserDefaultsKey)
+            && self.cloudCredentialRecoveryState == nil
     }
 
     func isLinkedWorkspaceEmptyForBootstrap(linkedSession: CloudLinkedSession) async throws -> Bool {
@@ -41,6 +42,7 @@ extension FlashcardsStore {
         let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
 
         self.cloudRuntime.cancelForAccountDeletion()
+        self.clearCloudCredentialRecoveryState()
         try self.cloudRuntime.clearCredentials()
         try self.dependencies.guestCredentialStore.clearGuestSession()
         self.clearPendingGuestUpgradeStateAndUnblockMutations()
