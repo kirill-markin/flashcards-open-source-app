@@ -13,9 +13,9 @@ import {
   type ReviewReactionMotionMode,
   type ReviewReactionRating,
   type ReviewReactionVariantDistributionEntry,
-} from "../review/reviewReaction";
-import { ReviewRatingReactionLayer } from "../review/ReviewRatingReactionLayer";
-import { reviewReactionVariantWithReadyLottieFallback } from "../review/reviewReactionLottie";
+} from "../review/reactions/reviewReaction";
+import { ReviewRatingReactionLayer } from "../review/reactions/ReviewRatingReactionLayer";
+import { reviewReactionVariantWithReadyLottieFallback } from "../review/reactions/reviewReactionLottie";
 import { SettingsGroup, SettingsNavigationCard, SettingsShell } from "./SettingsShared";
 
 type Translate = (key: TranslationKey, values?: TranslationValues) => string;

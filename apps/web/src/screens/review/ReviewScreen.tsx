@@ -1,13 +1,13 @@
 import type { ReactElement } from "react";
-import { ReviewEditorModal } from "./ReviewEditorModal";
-import { ReviewHardReminderDialog } from "./ReviewHardReminderDialog";
-import { ReviewPane } from "./ReviewPane";
-import { ReviewQueuePanel } from "./ReviewQueuePanel";
-import { ReviewRatingReactionLayer } from "./ReviewRatingReactionLayer";
-import { ReviewScreenHeader } from "./ReviewScreenHeader";
+import { ReviewEditorModal } from "./components/ReviewEditorModal";
+import { ReviewPane } from "./components/ReviewPane";
+import { ReviewQueuePanel } from "./components/ReviewQueuePanel";
+import { ReviewScreenHeader } from "./components/ReviewScreenHeader";
+import { ReviewHardReminderDialog } from "./hardReminder/ReviewHardReminderDialog";
+import { ReviewRatingReactionLayer } from "./reactions/ReviewRatingReactionLayer";
 import { useReviewScreenController } from "./useReviewScreenController";
 
-export { normalizeReviewMarkdownForWeb } from "./ReviewCardSide";
+export { normalizeReviewMarkdownForWeb } from "./components/ReviewCardSide";
 
 export function ReviewScreen(): ReactElement {
   const {

@@ -50,8 +50,8 @@ export function loadReviewReactionLottieAssets(): Promise<ReviewReactionLottieAs
 
   reviewReactionLottieAssetsPromise = Promise.all([
     import("lottie-web/build/player/lottie_light"),
-    import("../../assets/review_easy_rainbow.json"),
-    import("../../assets/review_easy_unicorn.json"),
+    import("../../../assets/review_easy_rainbow.json"),
+    import("../../../assets/review_easy_unicorn.json"),
   ]).then((
     [
       lottieModule,

@@ -1,14 +1,14 @@
 import type { ReactElement } from "react";
 import { Link } from "react-router-dom";
-import type { ReviewRating } from "../../../../backend/src/scheduling";
-import { useI18n } from "../../i18n";
-import { cardsRoute, chatRoute } from "../../routes";
-import type { Card } from "../../types";
-import type { ReviewLoadingSnapshot } from "../shared/loadingSnapshots";
-import { formatEffortLevelLabel, formatNullableDateTime, formatTagSummary } from "../shared/featureFormatting";
+import type { ReviewRating } from "../../../../../backend/src/scheduling";
+import { useI18n } from "../../../i18n";
+import { cardsRoute, chatRoute } from "../../../routes";
+import type { Card } from "../../../types";
+import type { ReviewLoadingSnapshot } from "../../shared/loadingSnapshots";
+import { formatEffortLevelLabel, formatNullableDateTime, formatTagSummary } from "../../shared/featureFormatting";
 import { ReviewCardSide, ReviewEditIcon } from "./ReviewCardSide";
 import type { ReviewButtonOption } from "./reviewRatingOptions";
-import type { ReviewSpeechSide } from "./reviewSpeech";
+import type { ReviewSpeechSide } from "../speech/reviewSpeech";
 import {
   formatReviewSubmitRating,
   resolveReviewPaneEmptyReason,

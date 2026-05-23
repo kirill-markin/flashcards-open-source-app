@@ -1,5 +1,5 @@
-import type { ReviewRating } from "../../../../backend/src/scheduling";
-import type { Card } from "../../types";
+import type { ReviewRating } from "../../../../../backend/src/scheduling";
+import type { Card } from "../../../types";
 
 export type ReviewPaneState = "loading" | "card" | "empty";
 export type ReviewPaneEmptyReason = "none" | "nothing-due" | "no-cards";

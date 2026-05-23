@@ -1,5 +1,5 @@
 import { useEffect, useEffectEvent } from "react";
-import type { Card } from "../../types";
+import type { Card } from "../../../types";
 
 type UseReviewKeyboardShortcutsParams = Readonly<{
   handleReview: (card: Card, rating: 0 | 1 | 2 | 3) => Promise<void>;

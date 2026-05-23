@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
-import { useI18n } from "../../i18n";
-import { CardFormFields, type CardFormState } from "../cards/CardForm";
-import type { Card, TagSuggestion } from "../../types";
+import { useI18n } from "../../../i18n";
+import { CardFormFields, type CardFormState } from "../../cards/CardForm";
+import type { Card, TagSuggestion } from "../../../types";
 
 export type ReviewEditorModalProps = Readonly<{
   editingCard: Card | null;

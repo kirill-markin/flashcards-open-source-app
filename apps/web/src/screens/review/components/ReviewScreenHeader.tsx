@@ -1,10 +1,10 @@
 import type { ComponentProps, ReactElement } from "react";
 import { Link } from "react-router-dom";
-import { formatReviewProgressBadgeValue } from "../../appData/progress/reviewProgressBadge";
-import { useI18n } from "../../i18n";
-import { progressRoute } from "../../routes";
-import { ReviewProgressBadgeIcon } from "../shared/ReviewProgressBadgeIcon";
-import { ReviewFilterMenu } from "./ReviewFilterMenu";
+import { formatReviewProgressBadgeValue } from "../../../appData/progress/reviewProgressBadge";
+import { useI18n } from "../../../i18n";
+import { progressRoute } from "../../../routes";
+import { ReviewProgressBadgeIcon } from "../../shared/ReviewProgressBadgeIcon";
+import { ReviewFilterMenu } from "../filters/ReviewFilterMenu";
 
 type ReviewProgressBadgeState = Readonly<{
   hasReviewedToday: boolean;

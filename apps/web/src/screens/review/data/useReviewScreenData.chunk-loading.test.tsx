@@ -2,8 +2,8 @@
 import { act } from "react";
 import ReactDOM from "react-dom/client";
 import { describe, expect, it } from "vitest";
-import type { Card, ReviewQueueSnapshot } from "../../types";
-import { I18nProvider } from "../../i18n";
+import type { Card, ReviewQueueSnapshot } from "../../../types";
+import { I18nProvider } from "../../../i18n";
 import {
   createCard,
   createDeferredPromise,
@@ -12,7 +12,7 @@ import {
   ReviewScreenDataHarness,
   setupReviewScreenTest,
   type ReviewQueueChunkResult,
-} from "./ReviewScreenTestSupport";
+} from "../testSupport/ReviewScreenTestSupport";
 import {
   type ReviewSubmissionOutcome,
   type UseReviewScreenDataResult,

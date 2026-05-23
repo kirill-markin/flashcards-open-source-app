@@ -9,25 +9,25 @@ import { useAiCardHandoff } from "../../chat/handoff/useAiCardHandoff";
 import { useTransientMessage } from "../../useTransientMessage";
 import type { Card } from "../../types";
 import { isCardFormStateDirty } from "../cards/CardForm";
-import type { ReviewEditorModalProps } from "./ReviewEditorModal";
-import type { ReviewHardReminderDialogProps } from "./ReviewHardReminderDialog";
-import type { ReviewPaneProps } from "./ReviewPane";
-import type { ReviewQueuePanelProps } from "./ReviewQueuePanel";
-import type { ReviewScreenHeaderProps } from "./ReviewScreenHeader";
+import type { ReviewEditorModalProps } from "./components/ReviewEditorModal";
+import type { ReviewPaneProps } from "./components/ReviewPane";
+import type { ReviewQueuePanelProps } from "./components/ReviewQueuePanel";
+import type { ReviewScreenHeaderProps } from "./components/ReviewScreenHeader";
+import { buildReviewButtonOptions, type ReviewButtonOption } from "./components/reviewRatingOptions";
+import { type LastSubmittedReview, type ReviewSubmitState } from "./components/reviewScreenTypes";
+import { useReviewCardEditor } from "./components/useReviewCardEditor";
+import { useReviewScreenData, type ReviewSubmissionOutcome } from "./data/useReviewScreenData";
+import { useReviewFilterMenu } from "./filters/useReviewFilterMenu";
+import type { ReviewHardReminderDialogProps } from "./hardReminder/ReviewHardReminderDialog";
 import {
   appendRecentReviewRatings,
   loadReviewHardReminderLastShownAt,
   saveReviewHardReminderLastShownAt,
   shouldShowReviewHardReminder,
-} from "./reviewHardReminder";
-import { buildReviewButtonOptions, type ReviewButtonOption } from "./reviewRatingOptions";
-import { makeReviewSpeakableText, useReviewSpeech } from "./reviewSpeech";
-import { type LastSubmittedReview, type ReviewSubmitState } from "./reviewScreenTypes";
-import { useReviewCardEditor } from "./useReviewCardEditor";
-import { useReviewFilterMenu } from "./useReviewFilterMenu";
-import { useReviewKeyboardShortcuts } from "./useReviewKeyboardShortcuts";
-import { useReviewRatingReactions, type UseReviewRatingReactionsResult } from "./useReviewRatingReactions";
-import { useReviewScreenData, type ReviewSubmissionOutcome } from "./useReviewScreenData";
+} from "./hardReminder/reviewHardReminder";
+import { useReviewKeyboardShortcuts } from "./input/useReviewKeyboardShortcuts";
+import { useReviewRatingReactions, type UseReviewRatingReactionsResult } from "./reactions/useReviewRatingReactions";
+import { makeReviewSpeakableText, useReviewSpeech } from "./speech/reviewSpeech";
 
 export type UseReviewScreenControllerResult = Readonly<{
   editorModalProps: ReviewEditorModalProps;
