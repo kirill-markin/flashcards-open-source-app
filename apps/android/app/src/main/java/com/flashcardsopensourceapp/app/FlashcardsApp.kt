@@ -50,6 +50,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.di.AppStartupState
@@ -58,6 +59,7 @@ import com.flashcardsopensourceapp.app.navigation.AppNotificationTapHandoffReque
 import com.flashcardsopensourceapp.app.navigation.AiDestination
 import com.flashcardsopensourceapp.app.navigation.CardsDestination
 import com.flashcardsopensourceapp.app.navigation.ReviewDestination
+import com.flashcardsopensourceapp.app.navigation.SettingsAccountSignInEmailDestination
 import com.flashcardsopensourceapp.app.navigation.TopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.currentVisibleAppScreen
 import com.flashcardsopensourceapp.app.navigation.currentTopLevelDestination
@@ -107,6 +109,8 @@ fun FlashcardsApp(
         }
 
         val navController = rememberNavController()
+        val currentBackStackEntry by navController.currentBackStackEntryAsState()
+        val currentRoute: String? = currentBackStackEntry?.destination?.route
         val applicationContext = LocalContext.current.applicationContext
         val lifecycleOwner = LocalLifecycleOwner.current
         val currentDestination = currentTopLevelDestination(navController = navController)
@@ -138,6 +142,14 @@ fun FlashcardsApp(
         val accountDeletionState by appGraph.cloudAccountRepository.observeAccountDeletionState().collectAsStateWithLifecycle(
             initialValue = AccountDeletionState.Hidden
         )
+        val guestSignInAfterReviewPromptUiState by appGraph.guestSignInAfterReviewPromptController
+            .observeUiState()
+            .collectAsStateWithLifecycle(
+                initialValue = GuestSignInAfterReviewPromptUiState(
+                    isVisible = false,
+                    reviewCount = 0
+                )
+            )
         val syncStatusSnapshot by appGraph.syncRepository.observeSyncStatus().collectAsStateWithLifecycle(
             initialValue = SyncStatusSnapshot(
                 status = SyncStatus.Idle,
@@ -163,6 +175,12 @@ fun FlashcardsApp(
         )
         val currentCanRunImmediateAutoSync by rememberUpdatedState(newValue = canRunImmediateAutoSync)
         val currentVisibleAppScreenState by rememberUpdatedState(newValue = currentVisibleAppScreen)
+        val guestSignInAfterReviewPromptContext = GuestSignInAfterReviewPromptContext(
+            isAuthFlowActive = isGuestSignInAfterReviewPromptAuthRoute(route = currentRoute),
+            isAppModalActive = isGuestSignInAfterReviewPromptModalActive(
+                accountDeletionState = accountDeletionState
+            )
+        )
 
         LaunchedEffect(appGraph.appMessageBus, snackbarHostState) {
             appGraph.appMessageBus.messages.collect { message ->
@@ -173,6 +191,20 @@ fun FlashcardsApp(
         LaunchedEffect(currentVisibleAppScreen) {
             appGraph.visibleAppScreenController.updateVisibleAppScreen(
                 screen = currentVisibleAppScreen
+            )
+        }
+
+        LaunchedEffect(
+            guestSignInAfterReviewPromptContext,
+            cloudSettings.cloudState,
+            isAppResumed
+        ) {
+            if (isAppResumed.not()) {
+                return@LaunchedEffect
+            }
+
+            appGraph.guestSignInAfterReviewPromptController.updateAppContext(
+                context = guestSignInAfterReviewPromptContext
             )
         }
 
@@ -385,6 +417,21 @@ fun FlashcardsApp(
                         appGraph.cloudAccountRepository.retryPendingAccountDeletion()
                     }
                 )
+                if (
+                    guestSignInAfterReviewPromptUiState.isVisible &&
+                    guestSignInAfterReviewPromptContext.isAuthFlowActive.not() &&
+                    guestSignInAfterReviewPromptContext.isAppModalActive.not()
+                ) {
+                    GuestSignInAfterReviewPromptDialog(
+                        onSignIn = {
+                            appGraph.guestSignInAfterReviewPromptController.acceptPrompt()
+                            navController.navigate(route = SettingsAccountSignInEmailDestination.route)
+                        },
+                        onLater = {
+                            appGraph.guestSignInAfterReviewPromptController.dismissForLater()
+                        }
+                    )
+                }
             }
         }
     }
@@ -416,6 +463,14 @@ private fun isProgressContextRefreshBroadcastAction(action: String?): Boolean {
 
         else -> false
     }
+}
+
+private fun isGuestSignInAfterReviewPromptAuthRoute(route: String?): Boolean {
+    return route?.startsWith(prefix = SettingsAccountSignInEmailDestination.route) == true
+}
+
+private fun isGuestSignInAfterReviewPromptModalActive(accountDeletionState: AccountDeletionState): Boolean {
+    return accountDeletionState != AccountDeletionState.Hidden
 }
 
 @Composable

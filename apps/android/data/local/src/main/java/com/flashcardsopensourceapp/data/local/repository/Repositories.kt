@@ -103,6 +103,8 @@ interface ReviewRepository {
 
     suspend fun countRecordedReviews(): Int
 
+    suspend fun countRecordedReviewsInCurrentWorkspace(): Int
+
     suspend fun loadReviewCardForRollback(selectedFilter: ReviewFilter, cardId: String): ReviewCard?
 
     suspend fun recordReview(cardId: String, rating: ReviewRating, reviewedAtMillis: Long)

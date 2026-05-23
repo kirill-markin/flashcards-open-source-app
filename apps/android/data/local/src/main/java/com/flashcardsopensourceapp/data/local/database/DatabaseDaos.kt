@@ -766,6 +766,9 @@ interface ReviewLogDao {
     @Query("SELECT COUNT(*) FROM review_logs")
     suspend fun countReviewLogs(): Int
 
+    @Query("SELECT COUNT(*) FROM review_logs WHERE workspaceId = :workspaceId")
+    suspend fun countReviewLogs(workspaceId: String): Int
+
     @Query(
         """
         SELECT EXISTS(
