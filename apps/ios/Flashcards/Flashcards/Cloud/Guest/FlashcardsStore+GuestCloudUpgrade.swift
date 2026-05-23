@@ -18,15 +18,21 @@ extension FlashcardsStore {
                 throw LocalStoreError.uninitialized("Flashcards store is unavailable")
             }
 
-            guard let guestSession = try self.loadGuestSessionForCurrentConfiguration() else {
-                throw LocalStoreError.uninitialized("Guest AI session is unavailable")
-            }
             guard let guestUpgradeMode = linkContext.guestUpgradeMode else {
                 throw LocalStoreError.uninitialized("Guest upgrade context is unavailable")
             }
 
             let configuration = try self.currentCloudServiceConfiguration()
             let trigger = self.manualCloudSyncTrigger(now: Date())
+            try self.validatePendingGuestUpgradeAccountIfNeeded(
+                userId: linkContext.userId,
+                apiBaseUrl: linkContext.apiBaseUrl
+            )
+            guard let guestSession = try self.loadUsableGuestSessionForCurrentConfiguration() else {
+                try self.markPendingGuestUpgradeGuestSessionMissing(detectedAt: trigger.now)
+                try self.throwIfCloudCredentialRecoveryRequired()
+                throw LocalStoreError.uninitialized("Guest AI session is unavailable")
+            }
             await self.blockGuestUpgradeLocalOutboxMutationsBeforeDrain()
             do {
                 // Guest upgrade completion only merges already-synced cloud state.
@@ -47,7 +53,10 @@ extension FlashcardsStore {
                 )
                 try self.savePendingGuestUpgradeState(state: inFlightState)
 
-                let completionState = try await self.completePendingGuestUpgradeIfNeeded(state: inFlightState)
+                let completionState = try await self.completePendingGuestUpgradeIfNeeded(
+                    state: inFlightState,
+                    detectedAt: trigger.now
+                )
                 try await self.finalizePendingGuestUpgradeCompletion(
                     state: completionState,
                     trigger: trigger
@@ -83,13 +92,16 @@ extension FlashcardsStore {
     }
 
     func prepareGuestUpgradeModeIfNeeded(
-        verifiedContext: CloudVerifiedAuthContext
+        verifiedContext: CloudVerifiedAuthContext,
+        detectedAt: Date
     ) async throws -> CloudGuestUpgradeMode? {
-        guard self.cloudSettings?.cloudState == .guest else {
+        guard try self.shouldPrepareGuestUpgradeModeForCloudLink(apiBaseUrl: verifiedContext.apiBaseUrl) else {
             return nil
         }
-        guard let guestSession = try self.loadGuestSessionForCurrentConfiguration() else {
-            return nil
+        guard let guestSession = try self.loadUsableGuestSessionForCurrentConfiguration() else {
+            try self.markPendingGuestUpgradeGuestSessionMissing(detectedAt: detectedAt)
+            try self.throwIfCloudCredentialRecoveryRequired()
+            throw LocalStoreError.uninitialized("Guest AI session is unavailable")
         }
 
         return try await self.dependencies.guestCloudAuthService.prepareGuestUpgrade(
@@ -99,12 +111,206 @@ extension FlashcardsStore {
         )
     }
 
+    func blockPendingGuestUpgradeRecoveryIfMissingGuestSession(
+        apiBaseUrl: String,
+        detectedAt: Date
+    ) throws {
+        guard self.cloudCredentialRecoveryState != nil else {
+            return
+        }
+        if self.cloudCredentialRecoveryState?.reason == .invalidStoredState {
+            try self.throwIfCloudCredentialRecoveryRequired()
+        }
+        guard try self.matchingInFlightPendingGuestUpgradeState(apiBaseUrl: apiBaseUrl) != nil else {
+            return
+        }
+        guard try self.loadUsableGuestSessionForCurrentConfiguration() == nil else {
+            return
+        }
+
+        try self.markPendingGuestUpgradeGuestSessionMissing(detectedAt: detectedAt)
+        try self.throwIfCloudCredentialRecoveryRequired()
+    }
+
+    func shouldPrepareGuestUpgradeModeForCloudLink(apiBaseUrl: String) throws -> Bool {
+        guard self.cloudSettings?.cloudState == .guest else {
+            return false
+        }
+        guard self.cloudCredentialRecoveryState != nil else {
+            return true
+        }
+
+        return try self.matchingInFlightPendingGuestUpgradeState(apiBaseUrl: apiBaseUrl) != nil
+    }
+
+    func finalizeCompletedPendingGuestUpgradeForRecoveredLinkIfNeeded(
+        linkContext: CloudWorkspaceLinkContext,
+        trigger: CloudSyncTrigger
+    ) async throws -> CloudWorkspaceSummary? {
+        guard let completedState = try self.completedPendingGuestUpgradeStateForRecoveredLink(
+            linkContext: linkContext
+        ) else {
+            return nil
+        }
+
+        try self.cloudRuntime.saveCredentials(credentials: linkContext.credentials)
+        try await self.finalizePendingGuestUpgradeCompletion(
+            state: completedState,
+            trigger: trigger
+        )
+        return completedState.workspace
+    }
+
+    func completedPendingGuestUpgradeWorkspaceForRecoveredLink(
+        linkContext: CloudWorkspaceLinkContext
+    ) throws -> CloudWorkspaceSummary? {
+        try self.completedPendingGuestUpgradeStateForRecoveredLink(linkContext: linkContext)?.workspace
+    }
+
+    func completedPendingGuestUpgradeRecoveryUserId(apiBaseUrl: String) throws -> String? {
+        try self.completedPendingGuestUpgradeRecoveryCheckpoint(apiBaseUrl: apiBaseUrl)?.common.userId
+    }
+
+    func inFlightPendingGuestUpgradeRecoveryUserId(apiBaseUrl: String) throws -> String? {
+        guard let recoveryState = self.cloudCredentialRecoveryState else {
+            return nil
+        }
+        guard recoveryState.reason == .linkedCredentialsMissing,
+            recoveryState.previousCloudState == .guest,
+            recoveryState.apiBaseUrl == apiBaseUrl else {
+            return nil
+        }
+        guard let pendingState = try self.matchingInFlightPendingGuestUpgradeState(apiBaseUrl: apiBaseUrl),
+            recoveryState.configurationMode == pendingState.common.configurationMode else {
+            return nil
+        }
+
+        return pendingState.common.userId
+    }
+
+    func shouldFinalizeCompletedPendingGuestUpgradeForRecoveredLink(
+        linkContext: CloudWorkspaceLinkContext
+    ) throws -> Bool {
+        try self.completedPendingGuestUpgradeStateForRecoveredLink(linkContext: linkContext) != nil
+    }
+
+    func validateCompletedPendingGuestUpgradeRecoverySelection(
+        selection: CloudWorkspaceLinkSelection,
+        workspace: CloudWorkspaceSummary
+    ) throws {
+        guard case .existing(let selectedWorkspaceId) = selection, selectedWorkspaceId == workspace.workspaceId else {
+            throw LocalStoreError.validation(
+                localizedCloudCredentialRecoveryUpgradeWorkspaceMessage(workspaceName: workspace.name)
+            )
+        }
+    }
+
+    func shouldValidatePendingGuestUpgradeAccountBeforePrepare(apiBaseUrl: String) throws -> Bool {
+        guard try self.matchingInFlightPendingGuestUpgradeState(apiBaseUrl: apiBaseUrl) != nil else {
+            return false
+        }
+
+        return try self.loadUsableGuestSessionForCurrentConfiguration() != nil
+    }
+
+    private func matchingInFlightPendingGuestUpgradeState(
+        apiBaseUrl: String
+    ) throws -> PendingGuestUpgradeInFlightState? {
+        guard let pendingGuestUpgradeState = try self.loadPendingGuestUpgradeState(),
+            case .inFlight(let pendingState) = pendingGuestUpgradeState else {
+            return nil
+        }
+
+        let configuration = try self.currentCloudServiceConfiguration()
+        guard pendingState.common.apiBaseUrl == apiBaseUrl
+            && pendingState.common.configurationMode == configuration.mode else {
+            return nil
+        }
+
+        return pendingState
+    }
+
+    func validatePendingGuestUpgradeAccountIfNeeded(
+        userId: String,
+        apiBaseUrl: String
+    ) throws {
+        guard let pendingGuestUpgradeState = try self.loadPendingGuestUpgradeState(),
+            case .inFlight(let pendingState) = pendingGuestUpgradeState else {
+            return
+        }
+
+        let configuration = try self.currentCloudServiceConfiguration()
+        guard pendingState.common.apiBaseUrl == apiBaseUrl
+            && pendingState.common.configurationMode == configuration.mode else {
+            return
+        }
+        guard pendingState.common.userId == userId else {
+            throw LocalStoreError.validation(
+                localizedCloudCredentialRecoveryInterruptedUpgradeAccountMessage()
+            )
+        }
+    }
+
+    func hasCompletedPendingGuestUpgradeRecoveryCheckpoint(apiBaseUrl: String) throws -> Bool {
+        try self.completedPendingGuestUpgradeRecoveryCheckpoint(apiBaseUrl: apiBaseUrl) != nil
+    }
+
+    private func completedPendingGuestUpgradeStateForRecoveredLink(
+        linkContext: CloudWorkspaceLinkContext
+    ) throws -> PendingGuestUpgradeCompletedState? {
+        guard let completedState = try self.completedPendingGuestUpgradeRecoveryCheckpoint(
+            apiBaseUrl: linkContext.apiBaseUrl
+        ) else {
+            return nil
+        }
+        let configuration = try self.currentCloudServiceConfiguration()
+        guard completedState.common.userId == linkContext.userId
+            && completedState.common.apiBaseUrl == linkContext.apiBaseUrl
+            && completedState.common.configurationMode == configuration.mode else {
+            return nil
+        }
+
+        return completedState
+    }
+
+    private func completedPendingGuestUpgradeRecoveryCheckpoint(
+        apiBaseUrl: String
+    ) throws -> PendingGuestUpgradeCompletedState? {
+        guard let recoveryState = self.cloudCredentialRecoveryState else {
+            return nil
+        }
+        guard recoveryState.previousCloudState == .guest,
+            recoveryState.apiBaseUrl == apiBaseUrl else {
+            return nil
+        }
+
+        let configuration = try self.currentCloudServiceConfiguration()
+        guard recoveryState.configurationMode == configuration.mode else {
+            return nil
+        }
+        guard let pendingState = try self.loadPendingGuestUpgradeState() else {
+            return nil
+        }
+        guard case .completed(let completedState) = pendingState else {
+            return nil
+        }
+        guard completedState.common.apiBaseUrl == apiBaseUrl
+            && completedState.common.configurationMode == configuration.mode else {
+            return nil
+        }
+
+        return completedState
+    }
+
     private func performPendingGuestUpgradeResume(trigger: CloudSyncTrigger) async throws -> CloudWorkspaceSummary {
         guard let pendingState = try self.loadPendingGuestUpgradeState() else {
             throw LocalStoreError.uninitialized("Pending guest upgrade state is unavailable")
         }
 
-        let completionState = try await self.completePendingGuestUpgradeIfNeeded(state: pendingState)
+        let completionState = try await self.completePendingGuestUpgradeIfNeeded(
+            state: pendingState,
+            detectedAt: trigger.now
+        )
         try await self.finalizePendingGuestUpgradeCompletion(state: completionState, trigger: trigger)
         return completionState.workspace
     }
@@ -165,7 +371,10 @@ extension FlashcardsStore {
         state: PendingGuestUpgradeCompletedState,
         trigger: CloudSyncTrigger
     ) async throws {
-        let credentials = try await self.loadPendingGuestUpgradeCredentials(commonState: state.common)
+        let credentials = try await self.loadPendingGuestUpgradeCredentials(
+            commonState: state.common,
+            detectedAt: trigger.now
+        )
         let linkedSession = cloudLinkedSession(state: state, credentials: credentials)
 
         try await self.finishCompletedGuestCloudLink(
@@ -176,6 +385,7 @@ extension FlashcardsStore {
 
         try self.clearGuestSessionIfNeeded()
         self.clearPendingGuestUpgradeStateAndUnblockMutations()
+        self.clearCloudCredentialRecoveryState()
         self.globalErrorMessage = ""
     }
 
@@ -192,14 +402,21 @@ extension FlashcardsStore {
     }
 
     private func completePendingGuestUpgradeIfNeeded(
-        state: PendingGuestUpgradeState
+        state: PendingGuestUpgradeState,
+        detectedAt: Date
     ) async throws -> PendingGuestUpgradeCompletedState {
         switch state {
         case .completed(let completedState):
             return completedState
         case .inFlight(let inFlightState):
-            let credentials = try await self.loadPendingGuestUpgradeCredentials(commonState: inFlightState.common)
-            let guestSession = try self.loadPendingGuestUpgradeGuestSession(state: inFlightState)
+            let guestSession = try self.loadPendingGuestUpgradeGuestSession(
+                state: inFlightState,
+                detectedAt: detectedAt
+            )
+            let credentials = try await self.loadPendingGuestUpgradeCredentials(
+                commonState: inFlightState.common,
+                detectedAt: detectedAt
+            )
             let workspace = try await self.dependencies.guestCloudAuthService.completeGuestUpgrade(
                 apiBaseUrl: inFlightState.common.apiBaseUrl,
                 bearerToken: credentials.idToken,
@@ -218,7 +435,8 @@ extension FlashcardsStore {
     }
 
     private func loadPendingGuestUpgradeCredentials(
-        commonState: PendingGuestUpgradeCommonState
+        commonState: PendingGuestUpgradeCommonState,
+        detectedAt: Date
     ) async throws -> StoredCloudCredentials {
         let configuration = try self.currentCloudServiceConfiguration()
         guard configuration.apiBaseUrl == commonState.apiBaseUrl && configuration.mode == commonState.configurationMode else {
@@ -226,18 +444,35 @@ extension FlashcardsStore {
                 "Pending guest upgrade cloud configuration mismatch: pendingApiBaseUrl=\(commonState.apiBaseUrl) currentApiBaseUrl=\(configuration.apiBaseUrl) pendingMode=\(commonState.configurationMode.rawValue) currentMode=\(configuration.mode.rawValue)"
             )
         }
+        if let cloudSettings = self.cloudSettings,
+            try self.markLinkedCredentialRecoveryForMissingCredentialsIfNeeded(
+                cloudSettings: cloudSettings,
+                detectedAt: detectedAt
+            ) {
+            try self.throwIfCloudCredentialRecoveryRequired()
+        }
+        try self.enforceCloudCredentialRecoveryGateOutsideIdentityResolution(detectedAt: detectedAt)
 
         return try await self.refreshCloudCredentials(forceRefresh: false)
     }
 
     private func loadPendingGuestUpgradeGuestSession(
-        state: PendingGuestUpgradeInFlightState
+        state: PendingGuestUpgradeInFlightState,
+        detectedAt: Date
     ) throws -> StoredGuestCloudSession {
         // Only in-flight replay needs the guest token. Completed checkpoints
         // already have the linked workspace and must not require guest storage.
-        guard let guestSession = try self.dependencies.guestCredentialStore.loadGuestSession() else {
+        let guestSession: StoredGuestCloudSession
+        if let storedGuestSession = try self.dependencies.guestCredentialStore.loadGuestSession() {
+            guestSession = storedGuestSession
+        } else if let activeGuestSession = self.activePendingGuestUpgradeGuestSession(state: state) {
+            try self.dependencies.guestCredentialStore.saveGuestSession(session: activeGuestSession)
+            guestSession = activeGuestSession
+        } else {
+            try self.markPendingGuestUpgradeGuestSessionMissing(detectedAt: detectedAt)
+            try self.throwIfCloudCredentialRecoveryRequired()
             throw LocalStoreError.database(
-                "In-flight pending guest upgrade cannot replay backend completion because the guest credential is missing from secure storage. Restore the guest session on this device or contact support before resetting local data."
+                "In-flight pending guest upgrade cannot replay backend completion because the guest credential is missing from secure storage."
             )
         }
         guard guestSession.apiBaseUrl == state.common.apiBaseUrl
@@ -254,6 +489,47 @@ extension FlashcardsStore {
         }
 
         return guestSession
+    }
+
+    private func activePendingGuestUpgradeGuestSession(
+        state: PendingGuestUpgradeInFlightState
+    ) -> StoredGuestCloudSession? {
+        guard let activeSession = self.cloudRuntime.activeCloudSession() else {
+            return nil
+        }
+        guard activeSession.userId == state.guestIdentity.userId
+            && activeSession.workspaceId == state.guestIdentity.workspaceId
+            && activeSession.apiBaseUrl == state.common.apiBaseUrl
+            && activeSession.configurationMode == state.common.configurationMode else {
+            return nil
+        }
+        guard case .guest(let guestToken) = activeSession.authorization else {
+            return nil
+        }
+
+        return StoredGuestCloudSession(
+            guestToken: guestToken,
+            userId: activeSession.userId,
+            workspaceId: activeSession.workspaceId,
+            configurationMode: activeSession.configurationMode,
+            apiBaseUrl: activeSession.apiBaseUrl
+        )
+    }
+
+    private func markPendingGuestUpgradeGuestSessionMissing(
+        detectedAt: Date
+    ) throws {
+        guard let cloudSettings = self.cloudSettings, cloudSettings.cloudState == .guest else {
+            return
+        }
+
+        let configuration = try self.currentCloudServiceConfiguration()
+        try self.markCloudCredentialRecoveryRequired(
+            reason: .guestSessionMissing,
+            cloudSettings: cloudSettings,
+            configuration: configuration,
+            detectedAt: detectedAt
+        )
     }
 
     private func savePendingGuestUpgradeState(state: PendingGuestUpgradeState) throws {

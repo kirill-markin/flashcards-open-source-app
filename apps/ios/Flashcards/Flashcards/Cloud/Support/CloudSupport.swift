@@ -37,6 +37,7 @@ enum AppConfigurationError: LocalizedError, Equatable {
 
 let customCloudServerOverrideUserDefaultsKey: String = "custom-cloud-server-override"
 let pendingCloudServerBootstrapUserDefaultsKey: String = "pending-cloud-server-bootstrap"
+let cloudCredentialRecoveryStateUserDefaultsKey: String = "cloud-credential-recovery-state"
 let flashcardsRepositoryUrl: String = "https://github.com/kirill-markin/flashcards-open-source-app"
 
 var flashcardsPrivacyPolicyUrl: String {
@@ -142,6 +143,55 @@ func saveCloudServerOverride(
 
 func clearCloudServerOverride(userDefaults: UserDefaults) {
     userDefaults.removeObject(forKey: customCloudServerOverrideUserDefaultsKey)
+}
+
+func loadCloudCredentialRecoveryState(
+    userDefaults: UserDefaults,
+    decoder: JSONDecoder
+) -> CloudCredentialRecoveryState? {
+    guard let storedData = userDefaults.data(forKey: cloudCredentialRecoveryStateUserDefaultsKey) else {
+        return nil
+    }
+
+    do {
+        return try decoder.decode(CloudCredentialRecoveryState.self, from: storedData)
+    } catch {
+        return invalidStoredCloudCredentialRecoveryState()
+    }
+}
+
+private func invalidStoredCloudCredentialRecoveryState() -> CloudCredentialRecoveryState {
+    CloudCredentialRecoveryState(
+        reason: .invalidStoredState,
+        previousCloudState: .disconnected,
+        installationId: "",
+        linkedUserId: nil,
+        linkedWorkspaceId: nil,
+        activeWorkspaceId: nil,
+        linkedEmail: nil,
+        configurationMode: .official,
+        apiBaseUrl: "",
+        detectedAt: formatIsoTimestamp(date: Date())
+    )
+}
+
+func saveCloudCredentialRecoveryState(
+    state: CloudCredentialRecoveryState,
+    userDefaults: UserDefaults,
+    encoder: JSONEncoder
+) throws {
+    do {
+        let storedData = try encoder.encode(state)
+        userDefaults.set(storedData, forKey: cloudCredentialRecoveryStateUserDefaultsKey)
+    } catch {
+        throw LocalStoreError.validation(
+            "Cloud credential recovery state could not be saved: \(Flashcards.errorMessage(error: error))"
+        )
+    }
+}
+
+func clearCloudCredentialRecoveryState(userDefaults: UserDefaults) {
+    userDefaults.removeObject(forKey: cloudCredentialRecoveryStateUserDefaultsKey)
 }
 
 func makeCustomCloudServiceConfiguration(customOrigin: String) throws -> CloudServiceConfiguration {

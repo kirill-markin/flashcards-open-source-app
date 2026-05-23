@@ -133,6 +133,13 @@
 "settings.sync.syncing" = "同期中";
 "settings.sync.blocked" = "同期がブロックされました: %@";
 "settings.sync.failed" = "同期失敗: %@";
+"settings.sync.recovery.linkedCredentialsMissing" = "このデバイスの安全なサインイン認証情報が見つかりません。ローカルデータは保持されています。同期を再接続するにはもう一度サインインしてください。";
+"settings.sync.recovery.guestSessionMissing" = "このデバイスのゲスト認証情報が見つかりません。ローカルデータは保持されていますが、古いゲストクラウドアカウントはトークンなしでは復元できません。";
+"settings.sync.recovery.invalidStoredState" = "このデバイスに保存されたクラウド認証情報の復旧データが無効です。クラウド ID を再接続またはリセットするまで同期は一時停止されます。";
+"settings.sync.recovery.wrongLinkedAccount" = "保持されたローカルデータを再接続するには、元のクラウドアカウントでサインインしてください。";
+"settings.sync.recovery.wrongLinkedWorkspace" = "保持されたローカルデータを再接続するには、元のクラウドワークスペースを選択してください。";
+"settings.sync.recovery.interruptedUpgradeAccount" = "中断されたアカウントアップグレードで使用したアカウントでサインインしてください。";
+"settings.sync.recovery.upgradeWorkspace" = "アカウントアップグレードの復旧はワークスペース %@ で完了する必要があります。";
 
 "settings.currentWorkspace.title" = "現在のワークスペース";
 "settings.currentWorkspace.row.workspace" = "ワークスペース";

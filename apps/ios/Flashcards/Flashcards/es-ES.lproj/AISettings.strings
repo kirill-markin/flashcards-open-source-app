@@ -133,6 +133,13 @@
 "settings.sync.syncing" = "Sincronizando";
 "settings.sync.blocked" = "Sincronizacion bloqueada: %@";
 "settings.sync.failed" = "Fallo de sincronizacion: %@";
+"settings.sync.recovery.linkedCredentialsMissing" = "Faltan las credenciales seguras de inicio de sesion en este dispositivo. Los datos locales se conservan. Inicia sesion de nuevo para reconectar la sincronizacion.";
+"settings.sync.recovery.guestSessionMissing" = "Faltan las credenciales de invitado en este dispositivo. Los datos locales se conservan, pero la antigua cuenta de invitado en la nube no se puede recuperar sin su token.";
+"settings.sync.recovery.invalidStoredState" = "Los datos de recuperacion de credenciales en la nube guardados en este dispositivo no son validos. La sincronizacion esta en pausa hasta que reconectes o restablezcas la identidad en la nube.";
+"settings.sync.recovery.wrongLinkedAccount" = "Inicia sesion con la cuenta en la nube original para reconectar los datos locales conservados.";
+"settings.sync.recovery.wrongLinkedWorkspace" = "Selecciona el espacio de trabajo en la nube original para reconectar los datos locales conservados.";
+"settings.sync.recovery.interruptedUpgradeAccount" = "Inicia sesion con la cuenta usada para la actualizacion de cuenta interrumpida.";
+"settings.sync.recovery.upgradeWorkspace" = "La recuperacion de la actualizacion de cuenta debe terminar en el espacio de trabajo %@.";
 
 "settings.currentWorkspace.title" = "Espacio de trabajo actual";
 "settings.currentWorkspace.row.workspace" = "Espacio de trabajo";

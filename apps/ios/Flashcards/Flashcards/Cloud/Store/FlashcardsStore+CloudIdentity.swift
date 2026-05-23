@@ -22,6 +22,7 @@ extension FlashcardsStore {
         self.activeStrictRemindersRescheduleTask?.cancel()
         self.activeStrictRemindersRescheduleTask = nil
         self.pendingStrictRemindersReconcileRequest = nil
+        self.clearCloudCredentialRecoveryState()
         try self.cloudRuntime.clearCredentials()
         try self.dependencies.guestCredentialStore.clearGuestSession()
         self.clearPendingGuestUpgradeStateAndUnblockMutations()
@@ -258,6 +259,10 @@ extension FlashcardsStore {
     func withStoredAuthenticatedCredentials<Result>(
         operation: (StoredCloudCredentials, CloudServiceConfiguration) async throws -> Result
     ) async throws -> Result {
+        try self.throwIfCloudCredentialRecoveryRequired()
+        if try self.markLinkedCredentialRecoveryForMissingCredentialsIfNeeded(detectedAt: Date()) {
+            try self.throwIfCloudCredentialRecoveryRequired()
+        }
         let configuration = try self.currentCloudServiceConfiguration()
 
         do {

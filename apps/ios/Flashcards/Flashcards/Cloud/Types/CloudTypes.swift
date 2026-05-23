@@ -210,6 +210,103 @@ enum CloudGuestUpgradeSelection: Hashable, Sendable {
     case createNew
 }
 
+enum CloudCredentialRecoveryReason: String, Codable, Hashable, Sendable {
+    case linkedCredentialsMissing = "linked_credentials_missing"
+    case guestSessionMissing = "guest_session_missing"
+    case invalidStoredState = "invalid_stored_state"
+}
+
+struct CloudCredentialRecoveryState: Codable, Hashable, Sendable {
+    let reason: CloudCredentialRecoveryReason
+    let previousCloudState: CloudAccountState
+    let installationId: String
+    let linkedUserId: String?
+    let linkedWorkspaceId: String?
+    let activeWorkspaceId: String?
+    let linkedEmail: String?
+    let configurationMode: CloudServiceConfigurationMode
+    let apiBaseUrl: String
+    let detectedAt: String
+
+    private enum CodingKeys: String, CodingKey, CaseIterable {
+        case reason
+        case previousCloudState
+        case installationId
+        case linkedUserId
+        case linkedWorkspaceId
+        case activeWorkspaceId
+        case linkedEmail
+        case configurationMode
+        case apiBaseUrl
+        case detectedAt
+    }
+
+    init(
+        reason: CloudCredentialRecoveryReason,
+        previousCloudState: CloudAccountState,
+        installationId: String,
+        linkedUserId: String?,
+        linkedWorkspaceId: String?,
+        activeWorkspaceId: String?,
+        linkedEmail: String?,
+        configurationMode: CloudServiceConfigurationMode,
+        apiBaseUrl: String,
+        detectedAt: String
+    ) {
+        self.reason = reason
+        self.previousCloudState = previousCloudState
+        self.installationId = installationId
+        self.linkedUserId = linkedUserId
+        self.linkedWorkspaceId = linkedWorkspaceId
+        self.activeWorkspaceId = activeWorkspaceId
+        self.linkedEmail = linkedEmail
+        self.configurationMode = configurationMode
+        self.apiBaseUrl = apiBaseUrl
+        self.detectedAt = detectedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let unknownKeyContainer = try decoder.container(keyedBy: CloudCredentialRecoveryUnknownCodingKey.self)
+        let allowedKeys = Set(Self.CodingKeys.allCases.map(\.stringValue))
+        let unknownKeys = Set(unknownKeyContainer.allKeys.map(\.stringValue)).subtracting(allowedKeys)
+        guard unknownKeys.isEmpty else {
+            throw DecodingError.dataCorrupted(
+                DecodingError.Context(
+                    codingPath: decoder.codingPath,
+                    debugDescription: "Cloud credential recovery state contains unknown keys: \(unknownKeys.sorted().joined(separator: ", "))"
+                )
+            )
+        }
+
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.reason = try container.decode(CloudCredentialRecoveryReason.self, forKey: .reason)
+        self.previousCloudState = try container.decode(CloudAccountState.self, forKey: .previousCloudState)
+        self.installationId = try container.decode(String.self, forKey: .installationId)
+        self.linkedUserId = try container.decodeIfPresent(String.self, forKey: .linkedUserId)
+        self.linkedWorkspaceId = try container.decodeIfPresent(String.self, forKey: .linkedWorkspaceId)
+        self.activeWorkspaceId = try container.decodeIfPresent(String.self, forKey: .activeWorkspaceId)
+        self.linkedEmail = try container.decodeIfPresent(String.self, forKey: .linkedEmail)
+        self.configurationMode = try container.decode(CloudServiceConfigurationMode.self, forKey: .configurationMode)
+        self.apiBaseUrl = try container.decode(String.self, forKey: .apiBaseUrl)
+        self.detectedAt = try container.decode(String.self, forKey: .detectedAt)
+    }
+}
+
+private struct CloudCredentialRecoveryUnknownCodingKey: CodingKey {
+    let stringValue: String
+    let intValue: Int?
+
+    init?(stringValue: String) {
+        self.stringValue = stringValue
+        self.intValue = nil
+    }
+
+    init?(intValue: Int) {
+        _ = intValue
+        return nil
+    }
+}
+
 struct CloudIdentityToken: Hashable {
     let idToken: String
     let idTokenExpiresAt: String

@@ -50,8 +50,50 @@ extension FlashcardsStore {
     }
 
     func prepareCloudLink(verifiedContext: CloudVerifiedAuthContext) async throws -> CloudWorkspaceLinkContext {
-        let guestUpgradeMode = try await self.prepareGuestUpgradeModeIfNeeded(verifiedContext: verifiedContext)
-        let account = try await self.cloudRuntime.fetchCloudAccount(verifiedContext: verifiedContext)
+        let detectedAt = Date()
+        if try self.hasCompletedPendingGuestUpgradeRecoveryCheckpoint(apiBaseUrl: verifiedContext.apiBaseUrl) {
+            return try await self.prepareCompletedPendingGuestUpgradeRecoveryLink(
+                verifiedContext: verifiedContext
+            )
+        }
+        if self.cloudCredentialRecoveryState?.reason == .invalidStoredState {
+            try self.throwIfCloudCredentialRecoveryRequired()
+        }
+        try self.blockPendingGuestUpgradeRecoveryIfMissingGuestSession(
+            apiBaseUrl: verifiedContext.apiBaseUrl,
+            detectedAt: detectedAt
+        )
+
+        let prevalidatedAccount: CloudAccountSnapshot?
+        if try self.shouldValidatePendingGuestUpgradeAccountBeforePrepare(apiBaseUrl: verifiedContext.apiBaseUrl) {
+            let account = try await self.cloudRuntime.fetchCloudAccount(verifiedContext: verifiedContext)
+            try self.validatePendingGuestUpgradeAccountIfNeeded(
+                userId: account.userId,
+                apiBaseUrl: verifiedContext.apiBaseUrl
+            )
+            prevalidatedAccount = account
+        } else {
+            prevalidatedAccount = nil
+        }
+
+        let guestUpgradeMode = try await self.prepareGuestUpgradeModeIfNeeded(
+            verifiedContext: verifiedContext,
+            detectedAt: detectedAt
+        )
+        let account: CloudAccountSnapshot
+        if let prevalidatedAccount {
+            account = prevalidatedAccount
+        } else {
+            account = try await self.cloudRuntime.fetchCloudAccount(verifiedContext: verifiedContext)
+            try self.validatePendingGuestUpgradeAccountIfNeeded(
+                userId: account.userId,
+                apiBaseUrl: verifiedContext.apiBaseUrl
+            )
+        }
+        try self.validateCloudCredentialRecoveryAccountBeforeIdentityReset(
+            account: account,
+            apiBaseUrl: verifiedContext.apiBaseUrl
+        )
         try self.resetLocalStateIfLinkedUserDiffers(nextUserId: account.userId)
 
         self.globalErrorMessage = ""
@@ -77,6 +119,34 @@ extension FlashcardsStore {
             guard let workspace = self.workspace else {
                 throw LocalStoreError.uninitialized("Workspace is unavailable")
             }
+
+            let trigger = self.manualCloudSyncTrigger(now: Date())
+            try self.validateCloudCredentialRecoveryUserBeforeIdentitySideEffects(
+                userId: linkContext.userId,
+                email: linkContext.email,
+                apiBaseUrl: linkContext.apiBaseUrl
+            )
+            if linkContext.guestUpgradeMode == nil
+                && (try self.shouldFinalizeCompletedPendingGuestUpgradeForRecoveredLink(linkContext: linkContext)),
+                let completedGuestUpgradeWorkspace = try self.completedPendingGuestUpgradeWorkspaceForRecoveredLink(
+                    linkContext: linkContext
+                ) {
+                try self.validateCompletedPendingGuestUpgradeRecoverySelection(
+                    selection: selection,
+                    workspace: completedGuestUpgradeWorkspace
+                )
+                if let completedGuestUpgradeWorkspace = try await self.finalizeCompletedPendingGuestUpgradeForRecoveredLinkIfNeeded(
+                    linkContext: linkContext,
+                    trigger: trigger
+                ) {
+                    self.globalErrorMessage = ""
+                    return completedGuestUpgradeWorkspace
+                }
+            }
+            try self.validateCloudCredentialRecoveryWorkspaceSelectionBeforeIdentitySideEffects(
+                selection: selection,
+                apiBaseUrl: linkContext.apiBaseUrl
+            )
 
             let linkedWorkspace = try await self.cloudRuntime.selectOrCreateWorkspace(
                 linkContext: linkContext,
@@ -109,12 +179,52 @@ extension FlashcardsStore {
                     apiBaseUrl: linkContext.apiBaseUrl,
                     authorization: .bearer(linkContext.credentials.idToken)
                 ),
-                trigger: self.manualCloudSyncTrigger(now: Date())
+                trigger: trigger
             )
+            if linkContext.guestUpgradeMode == nil {
+                self.clearPendingGuestUpgradeStateAndUnblockMutations()
+            }
             try self.clearGuestSessionIfNeeded()
+            self.clearCloudCredentialRecoveryState()
             self.globalErrorMessage = ""
             return linkedWorkspace
         }
+    }
+
+    private func prepareCompletedPendingGuestUpgradeRecoveryLink(
+        verifiedContext: CloudVerifiedAuthContext
+    ) async throws -> CloudWorkspaceLinkContext {
+        let account = try await self.cloudRuntime.fetchCloudAccount(verifiedContext: verifiedContext)
+        let baseLinkContext = CloudWorkspaceLinkContext(
+            userId: account.userId,
+            email: account.email,
+            apiBaseUrl: verifiedContext.apiBaseUrl,
+            credentials: verifiedContext.credentials,
+            workspaces: account.workspaces,
+            guestUpgradeMode: nil
+        )
+        try self.validateCloudCredentialRecoveryAccountBeforeIdentityReset(
+            account: account,
+            apiBaseUrl: verifiedContext.apiBaseUrl
+        )
+        guard let completedGuestUpgradeWorkspace = try self.completedPendingGuestUpgradeWorkspaceForRecoveredLink(
+            linkContext: baseLinkContext
+        ) else {
+            throw LocalStoreError.validation(
+                localizedCloudCredentialRecoveryInterruptedUpgradeAccountMessage()
+            )
+        }
+        try self.resetLocalStateIfLinkedUserDiffers(nextUserId: account.userId)
+
+        self.globalErrorMessage = ""
+        return CloudWorkspaceLinkContext(
+            userId: account.userId,
+            email: account.email,
+            apiBaseUrl: verifiedContext.apiBaseUrl,
+            credentials: verifiedContext.credentials,
+            workspaces: [completedGuestUpgradeWorkspace],
+            guestUpgradeMode: nil
+        )
     }
 
     func finishCloudLink(linkedSession: CloudLinkedSession, trigger: CloudSyncTrigger) async throws {
@@ -152,7 +262,7 @@ extension FlashcardsStore {
         self.syncStatus = .syncing
         var didCompleteLocalLink = false
         do {
-            let remoteWorkspaceIsEmpty = try await self.isLinkedWorkspaceEmptyForBootstrap(
+            let remoteWorkspaceIsEmpty = try await self.isLinkedWorkspaceEmptyForCredentialRecoveryOrBootstrap(
                 linkedSession: linkedSession
             )
             let migrationKind = remoteWorkspaceIsEmpty ? "preserve_local_data" : "replace_local_shell"
@@ -249,5 +359,15 @@ extension FlashcardsStore {
             activeWorkspaceId: session.workspaceId,
             linkedEmail: nil
         )
+    }
+
+    private func isLinkedWorkspaceEmptyForCredentialRecoveryOrBootstrap(
+        linkedSession: CloudLinkedSession
+    ) async throws -> Bool {
+        if try self.shouldPreserveLocalDataForCloudCredentialRecovery(linkedSession: linkedSession) {
+            return true
+        }
+
+        return try await self.isLinkedWorkspaceEmptyForBootstrap(linkedSession: linkedSession)
     }
 }

@@ -66,6 +66,55 @@ func localizedCloudAccountStateTitle(_ cloudState: CloudAccountState) -> String 
     }
 }
 
+func localizedCloudCredentialRecoveryBlockedMessage(reason: CloudCredentialRecoveryReason) -> String {
+    switch reason {
+    case .linkedCredentialsMissing:
+        return aiSettingsLocalized(
+            "settings.sync.recovery.linkedCredentialsMissing",
+            "Secure sign-in credentials are missing on this device. Local data is preserved. Sign in again to reconnect sync."
+        )
+    case .guestSessionMissing:
+        return aiSettingsLocalized(
+            "settings.sync.recovery.guestSessionMissing",
+            "Guest credentials are missing on this device. Local data is preserved, but the old guest cloud account cannot be recovered without its token."
+        )
+    case .invalidStoredState:
+        return aiSettingsLocalized(
+            "settings.sync.recovery.invalidStoredState",
+            "Cloud credential recovery data stored on this device is invalid. Sync is paused until you reconnect or reset cloud identity."
+        )
+    }
+}
+
+func localizedCloudCredentialRecoveryWrongLinkedAccountMessage() -> String {
+    aiSettingsLocalized(
+        "settings.sync.recovery.wrongLinkedAccount",
+        "Sign in with the original cloud account to reconnect preserved local data."
+    )
+}
+
+func localizedCloudCredentialRecoveryWrongLinkedWorkspaceMessage() -> String {
+    aiSettingsLocalized(
+        "settings.sync.recovery.wrongLinkedWorkspace",
+        "Select the original cloud workspace to reconnect preserved local data."
+    )
+}
+
+func localizedCloudCredentialRecoveryInterruptedUpgradeAccountMessage() -> String {
+    aiSettingsLocalized(
+        "settings.sync.recovery.interruptedUpgradeAccount",
+        "Sign in with the account used for the interrupted account upgrade."
+    )
+}
+
+func localizedCloudCredentialRecoveryUpgradeWorkspaceMessage(workspaceName: String) -> String {
+    aiSettingsLocalizedFormat(
+        "settings.sync.recovery.upgradeWorkspace",
+        "Account upgrade recovery must finish in workspace %@.",
+        workspaceName
+    )
+}
+
 func localizedAccessPermissionKindTitle(_ kind: AccessPermissionKind) -> String {
     switch kind {
     case .photos:

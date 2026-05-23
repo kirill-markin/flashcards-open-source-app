@@ -133,6 +133,13 @@
 "settings.sync.syncing" = "सिंक्रोनाइज़िंग";
 "settings.sync.blocked" = "सिंक्रनाइज़ेशन अवरुद्ध: %@";
 "settings.sync.failed" = "सिंक्रनाइज़ेशन विफलता: %@";
+"settings.sync.recovery.linkedCredentialsMissing" = "इस डिवाइस पर सुरक्षित साइन-इन क्रेडेंशियल गायब हैं। स्थानीय डेटा सुरक्षित रखा गया है। सिंक फिर से जोड़ने के लिए फिर से साइन इन करें।";
+"settings.sync.recovery.guestSessionMissing" = "इस डिवाइस पर अतिथि क्रेडेंशियल गायब हैं। स्थानीय डेटा सुरक्षित रखा गया है, लेकिन पुराना अतिथि क्लाउड खाता उसके टोकन के बिना पुनर्प्राप्त नहीं किया जा सकता।";
+"settings.sync.recovery.invalidStoredState" = "इस डिवाइस पर सहेजा गया क्लाउड क्रेडेंशियल रिकवरी डेटा अमान्य है। जब तक आप क्लाउड पहचान को फिर से कनेक्ट या रीसेट नहीं करते, सिंक रुका रहेगा।";
+"settings.sync.recovery.wrongLinkedAccount" = "सुरक्षित रखे गए स्थानीय डेटा को फिर से जोड़ने के लिए मूल क्लाउड खाते से साइन इन करें।";
+"settings.sync.recovery.wrongLinkedWorkspace" = "सुरक्षित रखे गए स्थानीय डेटा को फिर से जोड़ने के लिए मूल क्लाउड कार्यक्षेत्र चुनें।";
+"settings.sync.recovery.interruptedUpgradeAccount" = "रुके हुए खाता अपग्रेड में उपयोग किए गए खाते से साइन इन करें।";
+"settings.sync.recovery.upgradeWorkspace" = "खाता अपग्रेड रिकवरी को %@ कार्यक्षेत्र में पूरा करना होगा।";
 
 "settings.currentWorkspace.title" = "वर्तमान कार्यक्षेत्र";
 "settings.currentWorkspace.row.workspace" = "कार्यक्षेत्र";
