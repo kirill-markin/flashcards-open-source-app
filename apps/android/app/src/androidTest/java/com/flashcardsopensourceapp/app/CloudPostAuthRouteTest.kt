@@ -43,6 +43,7 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         errorMessage = "",
                         canRetry = false,
                         canLogout = false,
+                        failureActionLabel = "Log out",
                         completionToken = null
                     ),
                     onAutoContinue = {
@@ -50,7 +51,7 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     },
                     onSelectWorkspace = {},
                     onRetry = {},
-                    onLogout = {},
+                    onFailureAction = {},
                     onBack = {}
                 )
             }
@@ -97,6 +98,7 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         errorMessage = "",
                         canRetry = false,
                         canLogout = false,
+                        failureActionLabel = "Log out",
                         completionToken = null
                     ),
                     onAutoContinue = {},
@@ -104,7 +106,7 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         selectedWorkspace = selection
                     },
                     onRetry = {},
-                    onLogout = {},
+                    onFailureAction = {},
                     onBack = {}
                 )
             }
@@ -142,6 +144,7 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         errorMessage = "Cloud sync could not finish.",
                         canRetry = true,
                         canLogout = true,
+                        failureActionLabel = "Log out",
                         completionToken = null
                     ),
                     onAutoContinue = {},
@@ -149,7 +152,7 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onRetry = {
                         retryCalls += 1
                     },
-                    onLogout = {
+                    onFailureAction = {
                         logoutCalls += 1
                     },
                     onBack = {}

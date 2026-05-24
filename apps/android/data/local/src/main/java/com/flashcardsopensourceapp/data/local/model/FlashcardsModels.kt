@@ -222,11 +222,20 @@ sealed interface CloudWorkspaceLinkSelection {
     data object CreateNew : CloudWorkspaceLinkSelection
 }
 
+enum class CloudWorkspacePostAuthRoute {
+    NONE,
+    LINKED_CREDENTIAL_RESTORE,
+    GUEST_LOCAL_RECOVERY,
+    PENDING_GUEST_UPGRADE_RECOVERY,
+    INVALID_STORED_STATE
+}
+
 data class CloudWorkspaceLinkContext(
     val userId: String,
     val email: String?,
     val credentials: StoredCloudCredentials,
     val workspaces: List<CloudWorkspaceSummary>,
+    val postAuthRoute: CloudWorkspacePostAuthRoute,
     val guestUpgradeMode: CloudGuestUpgradeMode?,
     val preferredWorkspaceId: String?
 )
@@ -243,7 +252,8 @@ data class CloudSettings(
 
 enum class CloudCredentialRecoveryReason {
     LINKED_CREDENTIALS_MISSING,
-    GUEST_SESSION_MISSING
+    GUEST_SESSION_MISSING,
+    INVALID_STORED_STATE
 }
 
 data class CloudCredentialRecoveryState(

@@ -411,6 +411,12 @@
     <string name="settings_post_auth_guest_upgrade_failed">Guest account upgrade failed.</string>
     <string name="settings_post_auth_setup_failed">Cloud workspace setup failed.</string>
     <string name="settings_post_auth_sync_failed">Initial sync failed.</string>
+    <string name="settings_post_auth_linked_recovery_blocked">Sign in with the original cloud account and workspace to reconnect preserved local data.</string>
+    <string name="settings_post_auth_guest_local_recovery_required">Guest credentials are missing on this device. Local data is preserved for recovery in a linked workspace.</string>
+    <string name="settings_post_auth_pending_guest_upgrade_recovery_required">Account upgrade recovery is pending. Reopen the app to finish recovery before signing in again.</string>
+    <string name="settings_post_auth_invalid_recovery_state">Cloud recovery data on this device is invalid. Reset cloud identity or sign in again after clearing recovery.</string>
+    <string name="settings_post_auth_reset_cloud_identity_button">Reset cloud identity</string>
+    <string name="settings_post_auth_invalid_recovery_state_cleared_message">Cloud recovery state was reset. Sign in again to continue.</string>
 
     <string name="settings_legal_support_title">Legal &amp; support</string>
     <string name="settings_legal_support_privacy_title">Privacy Policy</string>

@@ -21,5 +21,6 @@ data class CloudPostAuthUiState(
     val errorMessage: String,
     val canRetry: Boolean,
     val canLogout: Boolean,
+    val failureActionLabel: String,
     val completionToken: Long?
 )

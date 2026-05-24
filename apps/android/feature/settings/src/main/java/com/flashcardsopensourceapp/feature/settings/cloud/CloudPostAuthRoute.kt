@@ -44,7 +44,7 @@ fun CloudPostAuthRoute(
     onAutoContinue: () -> Unit,
     onSelectWorkspace: (CloudWorkspaceLinkSelection) -> Unit,
     onRetry: () -> Unit,
-    onLogout: () -> Unit,
+    onFailureAction: () -> Unit,
     onBack: () -> Unit
 ) {
     LaunchedEffect(uiState.mode, uiState.pendingWorkspaceTitle) {
@@ -219,13 +219,15 @@ fun CloudPostAuthRoute(
                         Text(stringResource(R.string.settings_retry))
                     }
                 }
-                item {
-                    OutlinedButton(
-                        onClick = onLogout,
-                        enabled = uiState.canLogout && uiState.mode == CloudPostAuthMode.FAILED,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(stringResource(R.string.settings_logout))
+                if (uiState.canLogout) {
+                    item {
+                        OutlinedButton(
+                            onClick = onFailureAction,
+                            enabled = uiState.mode == CloudPostAuthMode.FAILED,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(uiState.failureActionLabel)
+                        }
                     }
                 }
             }

@@ -28,12 +28,14 @@ import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceResetProgressP
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceResetProgressResult
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkContext
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
+import com.flashcardsopensourceapp.data.local.model.CloudWorkspacePostAuthRoute
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.model.makeCustomCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.shouldRefreshCloudIdToken
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
+import java.util.Locale
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import org.json.JSONObject
@@ -102,7 +104,9 @@ class LocalCloudAccountRepository(
 
     override suspend fun prepareVerifiedSignIn(credentials: StoredCloudCredentials): CloudWorkspaceLinkContext {
         return operationCoordinator.runExclusive {
-            resumePendingGuestUpgradeIfNeeded()
+            if (preferencesStore.loadCloudCredentialRecoveryState() == null) {
+                resumePendingGuestUpgradeIfNeeded()
+            }
             val configuration = preferencesStore.currentServerConfiguration()
             buildCloudWorkspaceLinkContext(
                 credentials = credentials,
@@ -113,7 +117,16 @@ class LocalCloudAccountRepository(
 
     override suspend fun verifyCode(challenge: CloudOtpChallenge, code: String): CloudWorkspaceLinkContext {
         return operationCoordinator.runExclusive {
-            resumePendingGuestUpgradeIfNeeded()
+            val recoveryState = preferencesStore.loadCloudCredentialRecoveryState()
+            if (recoveryState?.reason == CloudCredentialRecoveryReason.INVALID_STORED_STATE) {
+                requirePendingGuestUpgradeStateIsDecodable()
+                return@runExclusive invalidStoredRecoveryLinkContext(
+                    credentials = blockedPostAuthRecoveryCredentials()
+                )
+            }
+            if (recoveryState == null) {
+                resumePendingGuestUpgradeIfNeeded()
+            }
             val configuration = preferencesStore.currentServerConfiguration()
             val credentials = remoteService.verifyCode(
                 challenge = challenge,
@@ -143,6 +156,16 @@ class LocalCloudAccountRepository(
         credentials: StoredCloudCredentials,
         configuration: CloudServiceConfiguration
     ): CloudWorkspaceLinkContext {
+        val recoveryState = preferencesStore.loadCloudCredentialRecoveryState()
+        if (recoveryState != null) {
+            requirePendingGuestUpgradeStateIsDecodable()
+            return buildCloudWorkspaceRecoveryLinkContext(
+                credentials = credentials,
+                configuration = configuration,
+                recoveryState = recoveryState
+            )
+        }
+
         val accountSnapshot = fetchCloudAccount(credentials = credentials, configuration = configuration)
         val guestSession = activeGuestSession(configuration = configuration)
         val guestUpgradeMode = if (guestSession == null) {
@@ -154,19 +177,89 @@ class LocalCloudAccountRepository(
                 guestToken = guestSession.guestToken
             )
         }
-        val preferredWorkspaceId = resolvePostAuthPreferredWorkspaceId(
-            recoveryState = preferencesStore.loadCloudCredentialRecoveryState(),
-            configuration = configuration,
-            accountSnapshot = accountSnapshot
-        )
         return CloudWorkspaceLinkContext(
             userId = accountSnapshot.userId,
             email = accountSnapshot.email,
             credentials = credentials,
             workspaces = accountSnapshot.workspaces,
+            postAuthRoute = CloudWorkspacePostAuthRoute.NONE,
             guestUpgradeMode = guestUpgradeMode,
-            preferredWorkspaceId = preferredWorkspaceId
+            preferredWorkspaceId = resolvePreferredPostAuthWorkspaceId(workspaces = accountSnapshot.workspaces)
         )
+    }
+
+    private suspend fun buildCloudWorkspaceRecoveryLinkContext(
+        credentials: StoredCloudCredentials,
+        configuration: CloudServiceConfiguration,
+        recoveryState: CloudCredentialRecoveryState
+    ): CloudWorkspaceLinkContext {
+        if (recoveryState.reason == CloudCredentialRecoveryReason.INVALID_STORED_STATE) {
+            return invalidStoredRecoveryLinkContext(credentials = credentials)
+        }
+
+        val accountSnapshot = fetchCloudAccount(credentials = credentials, configuration = configuration)
+        return when (recoveryState.reason) {
+            CloudCredentialRecoveryReason.LINKED_CREDENTIALS_MISSING -> {
+                val route = if (recoveryState.previousCloudState == CloudAccountState.GUEST) {
+                    CloudWorkspacePostAuthRoute.PENDING_GUEST_UPGRADE_RECOVERY
+                } else {
+                    CloudWorkspacePostAuthRoute.LINKED_CREDENTIAL_RESTORE
+                }
+                CloudWorkspaceLinkContext(
+                    userId = accountSnapshot.userId,
+                    email = accountSnapshot.email,
+                    credentials = credentials,
+                    workspaces = accountSnapshot.workspaces,
+                    postAuthRoute = route,
+                    guestUpgradeMode = null,
+                    preferredWorkspaceId = resolveLinkedCredentialRecoveryPreferredWorkspaceIdOrNull(
+                        recoveryState = recoveryState,
+                        configuration = configuration,
+                        accountSnapshot = accountSnapshot
+                    )
+                )
+            }
+
+            CloudCredentialRecoveryReason.GUEST_SESSION_MISSING -> CloudWorkspaceLinkContext(
+                userId = accountSnapshot.userId,
+                email = accountSnapshot.email,
+                credentials = credentials,
+                workspaces = accountSnapshot.workspaces,
+                postAuthRoute = CloudWorkspacePostAuthRoute.GUEST_LOCAL_RECOVERY,
+                guestUpgradeMode = null,
+                preferredWorkspaceId = resolvePreferredPostAuthWorkspaceId(workspaces = accountSnapshot.workspaces)
+            )
+
+            CloudCredentialRecoveryReason.INVALID_STORED_STATE -> error(
+                "Invalid recovery state must be handled before fetching a cloud account."
+            )
+        }
+    }
+
+    private fun invalidStoredRecoveryLinkContext(
+        credentials: StoredCloudCredentials
+    ): CloudWorkspaceLinkContext {
+        return CloudWorkspaceLinkContext(
+            userId = "",
+            email = null,
+            credentials = credentials,
+            workspaces = emptyList(),
+            postAuthRoute = CloudWorkspacePostAuthRoute.INVALID_STORED_STATE,
+            guestUpgradeMode = null,
+            preferredWorkspaceId = null
+        )
+    }
+
+    private fun blockedPostAuthRecoveryCredentials(): StoredCloudCredentials {
+        return StoredCloudCredentials(
+            refreshToken = "",
+            idToken = "",
+            idTokenExpiresAtMillis = 0L
+        )
+    }
+
+    private fun requirePendingGuestUpgradeStateIsDecodable() {
+        preferencesStore.loadPendingGuestUpgrade()
     }
 
     override suspend fun completeCloudLink(
@@ -174,17 +267,26 @@ class LocalCloudAccountRepository(
         selection: CloudWorkspaceLinkSelection
     ): CloudWorkspaceSummary {
         return operationCoordinator.runExclusive {
-            val resumedGuestUpgrade = resumePendingGuestUpgradeIfNeeded()
+            val recoveryState = preferencesStore.loadCloudCredentialRecoveryState()
+            requirePostAuthRouteAllowsCloudLinkCompletion(
+                linkContext = linkContext,
+                recoveryState = recoveryState,
+                selection = selection
+            )
+            val resumedGuestUpgrade = if (recoveryState == null) {
+                resumePendingGuestUpgradeIfNeeded()
+            } else {
+                null
+            }
             if (resumedGuestUpgrade != null) {
                 return@runExclusive resumedGuestUpgrade
             }
-            val recoveryState = preferencesStore.loadCloudCredentialRecoveryState()
             val authenticatedSession = authenticatedSession(linkContext = linkContext)
-            requireCloudLinkMatchesCredentialRecovery(
+            requireCloudLinkMatchesCredentialRecoveryBeforeSideEffects(
                 recoveryState = recoveryState,
                 authenticatedSession = authenticatedSession
             )
-            requireWorkspaceSelectionMatchesCredentialRecovery(
+            requireWorkspaceSelectionMatchesCredentialRecoveryBeforeSideEffects(
                 recoveryState = recoveryState,
                 selection = selection
             )
@@ -217,6 +319,13 @@ class LocalCloudAccountRepository(
         selection: CloudWorkspaceLinkSelection
     ): CloudWorkspaceSummary {
         return operationCoordinator.runExclusive {
+            require(linkContext.postAuthRoute == CloudWorkspacePostAuthRoute.NONE) {
+                "Guest upgrade cannot run while post-auth recovery is active."
+            }
+            val recoveryState = preferencesStore.loadCloudCredentialRecoveryState()
+            if (recoveryState != null) {
+                throw CloudCredentialRecoveryRequiredException(recoveryState = recoveryState)
+            }
             val resumedGuestUpgrade = resumePendingGuestUpgradeIfNeeded()
             if (resumedGuestUpgrade != null) {
                 return@runExclusive resumedGuestUpgrade
@@ -291,6 +400,17 @@ class LocalCloudAccountRepository(
                 selectedWorkspace = selectedWorkspace
             )
             selectedWorkspace
+        }
+    }
+
+    override suspend fun resetInvalidCloudCredentialRecoveryState() {
+        operationCoordinator.runExclusive {
+            val recoveryState = preferencesStore.loadCloudCredentialRecoveryState() ?: return@runExclusive
+            require(recoveryState.reason == CloudCredentialRecoveryReason.INVALID_STORED_STATE) {
+                "Invalid cloud credential recovery reset requires an invalid stored recovery state."
+            }
+            resetCoordinator.disconnectCloudIdentityPreservingLocalState()
+            preferencesStore.clearCloudCredentialRecoveryState()
         }
     }
 
@@ -703,103 +823,162 @@ class LocalCloudAccountRepository(
         }
     }
 
-    private fun requireCloudLinkMatchesCredentialRecovery(
+    private fun requirePostAuthRouteAllowsCloudLinkCompletion(
+        linkContext: CloudWorkspaceLinkContext,
+        recoveryState: CloudCredentialRecoveryState?,
+        selection: CloudWorkspaceLinkSelection
+    ) {
+        when (linkContext.postAuthRoute) {
+            CloudWorkspacePostAuthRoute.NONE -> {
+                if (recoveryState != null) {
+                    throw CloudCredentialRecoveryRequiredException(recoveryState = recoveryState)
+                }
+            }
+
+            CloudWorkspacePostAuthRoute.LINKED_CREDENTIAL_RESTORE -> {
+                val linkedRecoveryState = requireActiveCloudCredentialRecoveryState(
+                    recoveryState = recoveryState
+                )
+                if (linkedRecoveryState.reason != CloudCredentialRecoveryReason.LINKED_CREDENTIALS_MISSING) {
+                    throw CloudCredentialRecoveryRequiredException(recoveryState = linkedRecoveryState)
+                }
+                requireWorkspaceSelectionMatchesCredentialRecoveryBeforeSideEffects(
+                    recoveryState = linkedRecoveryState,
+                    selection = selection
+                )
+            }
+
+            CloudWorkspacePostAuthRoute.GUEST_LOCAL_RECOVERY,
+            CloudWorkspacePostAuthRoute.PENDING_GUEST_UPGRADE_RECOVERY,
+            CloudWorkspacePostAuthRoute.INVALID_STORED_STATE -> {
+                throw CloudCredentialRecoveryRequiredException(
+                    recoveryState = requireActiveCloudCredentialRecoveryState(
+                        recoveryState = recoveryState
+                    )
+                )
+            }
+        }
+    }
+
+    private fun requireActiveCloudCredentialRecoveryState(
+        recoveryState: CloudCredentialRecoveryState?
+    ): CloudCredentialRecoveryState {
+        return requireNotNull(recoveryState) {
+            "Cloud credential recovery state changed during sign-in. Start sign-in again."
+        }
+    }
+
+    private fun requireCloudLinkMatchesCredentialRecoveryBeforeSideEffects(
         recoveryState: CloudCredentialRecoveryState?,
         authenticatedSession: AuthenticatedCloudSession
     ) {
-        if (recoveryState?.reason != CloudCredentialRecoveryReason.LINKED_CREDENTIALS_MISSING) {
-            return
-        }
-        if (
-            recoveryState.configurationMode != authenticatedSession.configuration.mode ||
-            recoveryState.apiBaseUrl != authenticatedSession.configuration.apiBaseUrl
-        ) {
-            throw CloudCredentialRecoveryRequiredException(recoveryState = recoveryState)
-        }
+        when (recoveryState?.reason) {
+            null -> return
+            CloudCredentialRecoveryReason.LINKED_CREDENTIALS_MISSING -> {
+                if (
+                    linkedCredentialRecoveryConfigurationMatches(
+                        recoveryState = recoveryState,
+                        configuration = authenticatedSession.configuration
+                    ).not() ||
+                    linkedCredentialRecoveryIdentityMatches(
+                        recoveryState = recoveryState,
+                        userId = authenticatedSession.accountSnapshot.userId,
+                        email = authenticatedSession.accountSnapshot.email
+                    ).not()
+                ) {
+                    throw CloudCredentialRecoveryRequiredException(recoveryState = recoveryState)
+                }
+            }
 
-        val linkedUserId = recoveryState.linkedUserId
-        if (linkedUserId != null) {
-            if (authenticatedSession.accountSnapshot.userId != linkedUserId) {
+            CloudCredentialRecoveryReason.GUEST_SESSION_MISSING,
+            CloudCredentialRecoveryReason.INVALID_STORED_STATE -> {
                 throw CloudCredentialRecoveryRequiredException(recoveryState = recoveryState)
             }
-            return
-        }
-
-        val linkedEmail = recoveryState.linkedEmail
-        if (
-            linkedEmail != null &&
-            authenticatedSession.accountSnapshot.email.equals(linkedEmail, ignoreCase = true).not()
-        ) {
-            throw CloudCredentialRecoveryRequiredException(recoveryState = recoveryState)
         }
     }
 
-    private fun resolvePostAuthPreferredWorkspaceId(
-        recoveryState: CloudCredentialRecoveryState?,
+    private fun resolveLinkedCredentialRecoveryPreferredWorkspaceIdOrNull(
+        recoveryState: CloudCredentialRecoveryState,
         configuration: CloudServiceConfiguration,
         accountSnapshot: CloudAccountSnapshot
     ): String? {
-        val recoveryWorkspaceId = resolveCredentialRecoveryPreferredWorkspaceId(
-            recoveryState = recoveryState,
-            configuration = configuration,
-            accountSnapshot = accountSnapshot
-        )
-        return recoveryWorkspaceId ?: resolvePreferredPostAuthWorkspaceId(
-            workspaces = accountSnapshot.workspaces
-        )
-    }
-
-    private fun resolveCredentialRecoveryPreferredWorkspaceId(
-        recoveryState: CloudCredentialRecoveryState?,
-        configuration: CloudServiceConfiguration,
-        accountSnapshot: CloudAccountSnapshot
-    ): String? {
-        if (recoveryState?.reason != CloudCredentialRecoveryReason.LINKED_CREDENTIALS_MISSING) {
-            return null
-        }
         if (
-            recoveryState.configurationMode != configuration.mode ||
-            recoveryState.apiBaseUrl != configuration.apiBaseUrl
+            recoveryState.reason != CloudCredentialRecoveryReason.LINKED_CREDENTIALS_MISSING ||
+            recoveryState.previousCloudState != CloudAccountState.LINKED ||
+            linkedCredentialRecoveryConfigurationMatches(
+                recoveryState = recoveryState,
+                configuration = configuration
+            ).not() ||
+            linkedCredentialRecoveryIdentityMatches(
+                recoveryState = recoveryState,
+                userId = accountSnapshot.userId,
+                email = accountSnapshot.email
+            ).not()
         ) {
             return null
         }
-
-        val linkedUserId = recoveryState.linkedUserId
-        if (linkedUserId != null && accountSnapshot.userId != linkedUserId) {
-            return null
+        val expectedWorkspaceId = recoveredWorkspaceId(recoveryState = recoveryState) ?: return null
+        return if (accountSnapshot.workspaces.any { workspace -> workspace.workspaceId == expectedWorkspaceId }) {
+            expectedWorkspaceId
+        } else {
+            null
         }
-
-        val linkedEmail = recoveryState.linkedEmail
-        if (
-            linkedUserId == null &&
-            linkedEmail != null &&
-            accountSnapshot.email.equals(linkedEmail, ignoreCase = true).not()
-        ) {
-            return null
-        }
-
-        return recoveredWorkspaceId(recoveryState = recoveryState)
     }
 
-    private fun requireWorkspaceSelectionMatchesCredentialRecovery(
+    private fun requireWorkspaceSelectionMatchesCredentialRecoveryBeforeSideEffects(
         recoveryState: CloudCredentialRecoveryState?,
         selection: CloudWorkspaceLinkSelection
     ) {
         if (recoveryState?.reason != CloudCredentialRecoveryReason.LINKED_CREDENTIALS_MISSING) {
             return
         }
+        if (recoveryState.previousCloudState != CloudAccountState.LINKED) {
+            throw CloudCredentialRecoveryRequiredException(recoveryState = recoveryState)
+        }
         val recoveredWorkspaceId = recoveredWorkspaceId(recoveryState = recoveryState)
         if (recoveredWorkspaceId == null) {
-            return
+            throw CloudCredentialRecoveryRequiredException(recoveryState = recoveryState)
         }
 
         val selectedWorkspaceId = when (selection) {
             is CloudWorkspaceLinkSelection.Existing -> selection.workspaceId
-            CloudWorkspaceLinkSelection.CreateNew -> return
+            CloudWorkspaceLinkSelection.CreateNew -> throw CloudCredentialRecoveryRequiredException(
+                recoveryState = recoveryState
+            )
         }
         if (selectedWorkspaceId != recoveredWorkspaceId) {
             throw CloudCredentialRecoveryRequiredException(recoveryState = recoveryState)
         }
+    }
+
+    private fun linkedCredentialRecoveryConfigurationMatches(
+        recoveryState: CloudCredentialRecoveryState,
+        configuration: CloudServiceConfiguration
+    ): Boolean {
+        return recoveryState.previousCloudState == CloudAccountState.LINKED &&
+            recoveryState.configurationMode == configuration.mode &&
+            recoveryState.apiBaseUrl == configuration.apiBaseUrl
+    }
+
+    private fun linkedCredentialRecoveryIdentityMatches(
+        recoveryState: CloudCredentialRecoveryState,
+        userId: String,
+        email: String?
+    ): Boolean {
+        val linkedUserId = recoveryState.linkedUserId?.takeIf { storedUserId -> storedUserId.isNotBlank() }
+        if (linkedUserId != null) {
+            return userId == linkedUserId
+        }
+
+        val linkedEmail = normalizedCloudCredentialRecoveryEmail(email = recoveryState.linkedEmail)
+            ?: return false
+        return normalizedCloudCredentialRecoveryEmail(email = email) == linkedEmail
+    }
+
+    private fun normalizedCloudCredentialRecoveryEmail(email: String?): String? {
+        return email?.trim()
+            ?.lowercase(Locale.ROOT)
+            ?.takeIf { normalizedEmail -> normalizedEmail.isNotEmpty() }
     }
 
     private fun recoveredWorkspaceId(recoveryState: CloudCredentialRecoveryState): String? {

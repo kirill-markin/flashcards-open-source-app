@@ -87,21 +87,28 @@ class CloudGuestSessionCoordinator(
     }
 
     internal suspend fun reconcilePersistedCloudStateLocked(): CloudIdentityReconciliationResult {
-        val recoveredGuestUpgrade: CloudWorkspaceSummary? = resumePendingGuestUpgradeRecoveryIfNeeded(
-            database = database,
-            preferencesStore = preferencesStore,
-            remoteService = remoteService,
-            syncLocalStore = syncLocalStore,
-            guestSessionStore = guestSessionStore,
-            appVersion = appVersion
-        )
-        if (recoveredGuestUpgrade != null) {
-            return CloudIdentityReconciliationResult(
-                cloudSettings = preferencesStore.currentCloudSettings(),
-                restoredGuestSession = null,
-                guestRestoreRequiresSync = false,
-                didRunSync = false
+        val activeRecoveryState = preferencesStore.loadCloudCredentialRecoveryState()
+        if (activeRecoveryState == null || activeRecoveryState.isPendingGuestUpgradeRecovery()) {
+            val recoveredGuestUpgrade: CloudWorkspaceSummary? = resumePendingGuestUpgradeRecoveryIfNeeded(
+                database = database,
+                preferencesStore = preferencesStore,
+                remoteService = remoteService,
+                syncLocalStore = syncLocalStore,
+                guestSessionStore = guestSessionStore,
+                appVersion = appVersion
             )
+            if (recoveredGuestUpgrade != null) {
+                return CloudIdentityReconciliationResult(
+                    cloudSettings = preferencesStore.currentCloudSettings(),
+                    restoredGuestSession = null,
+                    guestRestoreRequiresSync = false,
+                    didRunSync = false
+                )
+            }
+        }
+
+        activeCredentialRecoveryReconciliationResultOrNull(recoveryState = activeRecoveryState)?.let { result ->
+            return result
         }
 
         var currentCloudSettings = preferencesStore.currentCloudSettings()
@@ -202,6 +209,11 @@ class CloudGuestSessionCoordinator(
         createSessionIfMissing: Boolean
     ): GuestCloudSessionRestoreResult {
         val reconciliation = reconcilePersistedCloudStateLocked()
+        val activeRecoveryState = preferencesStore.loadCloudCredentialRecoveryState()
+        if (activeRecoveryState != null) {
+            throw CloudCredentialRecoveryRequiredException(recoveryState = activeRecoveryState)
+        }
+
         if (reconciliation.cloudSettings.cloudState == CloudAccountState.GUEST) {
             val session = requireNotNull(reconciliation.restoredGuestSession) {
                 "Guest cloud state is missing a stored guest session."
@@ -212,10 +224,6 @@ class CloudGuestSessionCoordinator(
             )
         }
 
-        val activeRecoveryState = preferencesStore.loadCloudCredentialRecoveryState()
-        if (activeRecoveryState?.reason == CloudCredentialRecoveryReason.LINKED_CREDENTIALS_MISSING) {
-            throw CloudCredentialRecoveryRequiredException(recoveryState = activeRecoveryState)
-        }
         val configuration = preferencesStore.currentServerConfiguration()
         val existingSession = loadGuestSessionForCurrentConfiguration(
             workspaceId = workspaceId,
@@ -249,6 +257,26 @@ class CloudGuestSessionCoordinator(
             session = resolvedSession,
             shouldSync = shouldSync
         )
+    }
+
+    private fun activeCredentialRecoveryReconciliationResultOrNull(
+        recoveryState: CloudCredentialRecoveryState?
+    ): CloudIdentityReconciliationResult? {
+        if (recoveryState == null) {
+            return null
+        }
+        preferencesStore.loadPendingGuestUpgrade()
+        return CloudIdentityReconciliationResult(
+            cloudSettings = preferencesStore.currentCloudSettings(),
+            restoredGuestSession = null,
+            guestRestoreRequiresSync = false,
+            didRunSync = false
+        )
+    }
+
+    private fun CloudCredentialRecoveryState.isPendingGuestUpgradeRecovery(): Boolean {
+        return reason == CloudCredentialRecoveryReason.LINKED_CREDENTIALS_MISSING &&
+            previousCloudState == CloudAccountState.GUEST
     }
 
     private fun markCloudCredentialRecoveryRequired(
