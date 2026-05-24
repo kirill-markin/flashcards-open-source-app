@@ -154,7 +154,16 @@ enum CloudPostAuthRecoveryRoute: Hashable, Sendable {
     case none
     case linkedCredentialRestore
     case guestLocalRecovery
+    case pendingGuestUpgradeMissingGuestSessionRecovery
     case pendingGuestUpgradeRecovery
+}
+
+struct GuestLocalRecoveryWorkspaceCheckpoint: Codable, Hashable, Sendable {
+    let userId: String
+    let apiBaseUrl: String
+    let configurationMode: CloudServiceConfigurationMode
+    let recoveryDetectedAt: String
+    let workspace: CloudWorkspaceSummary
 }
 
 struct CloudVerifiedAuthContext: Hashable {

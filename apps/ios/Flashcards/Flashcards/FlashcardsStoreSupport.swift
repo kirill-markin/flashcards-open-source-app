@@ -83,6 +83,7 @@ protocol CloudSyncServing {
     ) async throws -> Bool
     func deleteAccount(apiBaseUrl: String, bearerToken: String, confirmationText: String) async throws
     func runLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult
+    func runGuestLocalRecoveryLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult
 }
 
 protocol CredentialStoring {

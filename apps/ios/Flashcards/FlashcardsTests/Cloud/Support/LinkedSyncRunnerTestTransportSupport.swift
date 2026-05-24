@@ -671,6 +671,66 @@ enum LinkedSyncRunnerTestTransportSupport {
         throw URLError(.badURL)
     }
 
+    static func handleGuestLocalRecoveryReviewHistoryImportRetryRequest(
+        request: URLRequest,
+        reviewEventId: String
+    ) throws -> (HTTPURLResponse, Data) {
+        let path = try XCTUnwrap(request.url?.path)
+        if path.hasSuffix("/sync/pull") {
+            return try Self.jsonResponse(
+                request: request,
+                statusCode: 200,
+                body: """
+                {
+                  "changes": [],
+                  "nextHotChangeId": 20,
+                  "hasMore": false
+                }
+                """
+            )
+        }
+
+        if path.hasSuffix("/sync/review-history/import") {
+            let body = try Self.jsonObjectBody(request: request)
+            let reviewEvents = try XCTUnwrap(body["reviewEvents"] as? [[String: Any]])
+            let importedReviewEvent = try XCTUnwrap(reviewEvents.first)
+            XCTAssertEqual(1, reviewEvents.count)
+            XCTAssertEqual(reviewEventId, importedReviewEvent["reviewEventId"] as? String)
+            CloudSyncRunnerTestURLProtocol.reviewHistoryImportEventCounts.append(reviewEvents.count)
+            return try Self.jsonResponse(
+                request: request,
+                statusCode: 200,
+                body: """
+                {
+                  "importedCount": 1,
+                  "duplicateCount": 0,
+                  "nextReviewSequenceId": 5
+                }
+                """
+            )
+        }
+
+        if path.hasSuffix("/sync/review-history/pull") {
+            let body = try Self.jsonObjectBody(request: request)
+            let afterReviewSequenceId = try XCTUnwrap(body["afterReviewSequenceId"] as? NSNumber).int64Value
+            CloudSyncRunnerTestURLProtocol.reviewHistoryPullAfterSequenceIds.append(afterReviewSequenceId)
+            return try Self.jsonResponse(
+                request: request,
+                statusCode: 200,
+                body: """
+                {
+                  "reviewEvents": [],
+                  "nextReviewSequenceId": 5,
+                  "hasMore": false
+                }
+                """
+            )
+        }
+
+        XCTFail("Unexpected sync request path: \(path)")
+        throw URLError(.badURL)
+    }
+
     private static func workspaceForkRequiredJsonResponse(
         request: URLRequest,
         requestId: String,
@@ -756,6 +816,8 @@ final class CloudSyncRunnerTestURLProtocol: URLProtocol, @unchecked Sendable {
     nonisolated(unsafe) static var pushEntityIds: [String] = []
     nonisolated(unsafe) static var pushEntitySnapshots: [[String: String]] = []
     nonisolated(unsafe) static var pullAfterHotChangeIds: [Int64] = []
+    nonisolated(unsafe) static var reviewHistoryImportEventCounts: [Int] = []
+    nonisolated(unsafe) static var reviewHistoryPullAfterSequenceIds: [Int64] = []
 
     override class func canInit(with request: URLRequest) -> Bool {
         _ = request
@@ -792,5 +854,7 @@ final class CloudSyncRunnerTestURLProtocol: URLProtocol, @unchecked Sendable {
         self.pushEntityIds = []
         self.pushEntitySnapshots = []
         self.pullAfterHotChangeIds = []
+        self.reviewHistoryImportEventCounts = []
+        self.reviewHistoryPullAfterSequenceIds = []
     }
 }
