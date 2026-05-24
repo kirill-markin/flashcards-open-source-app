@@ -39,6 +39,14 @@ extension FlashcardsStore {
         Flashcards.clearCloudCredentialRecoveryState(userDefaults: self.userDefaults)
     }
 
+    func eraseLocalDataForCredentialRecovery() throws {
+        guard self.cloudCredentialRecoveryState != nil else {
+            throw LocalStoreError.validation("Cloud credential recovery is not active.")
+        }
+
+        try self.resetLocalStateForCloudIdentityChange()
+    }
+
     @discardableResult
     func blockCloudSyncForCredentialRecoveryIfNeeded() -> Bool {
         guard self.cloudCredentialRecoveryState != nil else {

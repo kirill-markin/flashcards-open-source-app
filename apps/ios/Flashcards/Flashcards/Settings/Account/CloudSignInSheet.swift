@@ -44,6 +44,11 @@ enum CloudPostAuthRetryAction: Hashable {
     case syncOnly
 }
 
+enum CloudSignInPresentationContext: Hashable {
+    case standard
+    case credentialRecoveryGate
+}
+
 enum CloudPostAuthSyncOperation: Hashable {
     case completeLink(linkContext: CloudWorkspaceLinkContext, selection: CloudWorkspaceLinkSelection)
     case completeGuestLink(linkContext: CloudWorkspaceLinkContext, selection: CloudWorkspaceLinkSelection)
@@ -66,6 +71,26 @@ struct CloudPostAuthFailurePresentation: Equatable {
     }
 }
 
+private func makeCompleteLinkFailureRetryAction(
+    linkContext: CloudWorkspaceLinkContext,
+    selection: CloudWorkspaceLinkSelection,
+    cloudState: CloudAccountState?
+) -> CloudPostAuthRetryAction {
+    guard cloudState == .linked else {
+        return .completeLink(linkContext: linkContext, selection: selection)
+    }
+
+    switch linkContext.postAuthRecoveryRoute {
+    case .none:
+        return .syncOnly
+    case .linkedCredentialRestore,
+         .guestLocalRecovery,
+         .pendingGuestUpgradeMissingGuestSessionRecovery,
+         .pendingGuestUpgradeRecovery:
+        return .completeLink(linkContext: linkContext, selection: selection)
+    }
+}
+
 func makeCloudPostAuthFailurePresentation(
     operation: CloudPostAuthSyncOperation,
     cloudState: CloudAccountState?
@@ -82,7 +107,11 @@ func makeCloudPostAuthFailurePresentation(
             return CloudPostAuthFailurePresentation(
                 title: aiSettingsLocalized("settings.account.cloudSignIn.failure.initialSyncFailed", "Signed in, but initial sync failed."),
                 message: nil,
-                retryAction: .syncOnly,
+                retryAction: makeCompleteLinkFailureRetryAction(
+                    linkContext: linkContext,
+                    selection: selection,
+                    cloudState: cloudState
+                ),
                 kind: .standard
             )
         }
@@ -309,6 +338,8 @@ struct CloudSignInSheet: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @FocusState private var isEmailFieldFocused: Bool
 
+    let presentationContext: CloudSignInPresentationContext
+
     @State private var email: String = ""
     @State private var otpSheetState: CloudOtpSheetState?
     @State private var postAuthLoadingState: CloudPostAuthLoadingState?
@@ -321,6 +352,10 @@ struct CloudSignInSheet: View {
     @State private var isSendingCode: Bool = false
     @State private var isLogoutConfirmationPresented: Bool = false
     @State private var hasRecordedActivePresentation: Bool = false
+
+    init(presentationContext: CloudSignInPresentationContext) {
+        self.presentationContext = presentationContext
+    }
 
     var body: some View {
         NavigationStack {
@@ -436,6 +471,7 @@ struct CloudSignInSheet: View {
             .sheet(item: self.$postAuthRecoveryNeededState) { recoveryState in
                 CloudPostAuthRecoveryNeededSheet(
                     state: recoveryState,
+                    allowsLogoutAction: self.presentationContext == .standard,
                     onClose: {
                         self.postAuthRecoveryNeededState = nil
                         self.dismiss()
@@ -449,6 +485,10 @@ struct CloudSignInSheet: View {
                 CloudPostAuthFailureSheet(
                     state: failureState,
                     isRetryDisabled: self.isPostAuthActionInFlight,
+                    allowsCloseAction: failureState.allowsAccountExitActions
+                        || self.presentationContext == .credentialRecoveryGate,
+                    allowsLogoutAction: failureState.allowsAccountExitActions
+                        && self.presentationContext == .standard,
                     onRetry: {
                         self.retryPostAuthFailure(failureState)
                     },
@@ -1189,6 +1229,7 @@ private struct CloudWorkspaceSelectionRow: View {
 
 private struct CloudPostAuthRecoveryNeededSheet: View {
     let state: CloudPostAuthRecoveryNeededState
+    let allowsLogoutAction: Bool
     let onClose: () -> Void
     let onLogout: () -> Void
 
@@ -1213,8 +1254,10 @@ private struct CloudPostAuthRecoveryNeededSheet: View {
                             self.onClose()
                         }
 
-                        Button(aiSettingsLocalized("settings.account.status.logOut", "Log out"), role: .destructive) {
-                            self.onLogout()
+                        if self.allowsLogoutAction {
+                            Button(aiSettingsLocalized("settings.account.status.logOut", "Log out"), role: .destructive) {
+                                self.onLogout()
+                            }
                         }
                     }
                 }
@@ -1231,6 +1274,8 @@ private struct CloudPostAuthFailureSheet: View {
 
     let state: CloudPostAuthFailureState
     let isRetryDisabled: Bool
+    let allowsCloseAction: Bool
+    let allowsLogoutAction: Bool
     let onRetry: () -> Void
     let onClose: () -> Void
     let onLogout: () -> Void
@@ -1300,11 +1345,13 @@ private struct CloudPostAuthFailureSheet: View {
                         }
                         .disabled(self.isRetryButtonDisabled)
 
-                        if self.state.allowsAccountExitActions {
+                        if self.allowsCloseAction {
                             Button(aiSettingsLocalized("common.close", "Close")) {
                                 self.onClose()
                             }
+                        }
 
+                        if self.allowsLogoutAction {
                             Button(aiSettingsLocalized("settings.account.status.logOut", "Log out"), role: .destructive) {
                                 self.onLogout()
                             }
@@ -1467,6 +1514,6 @@ private func isCloudSignInSyncInFlight(status: SyncStatus) -> Bool {
 }
 
 #Preview {
-    CloudSignInSheet()
+    CloudSignInSheet(presentationContext: .standard)
         .environment(FlashcardsStore())
 }

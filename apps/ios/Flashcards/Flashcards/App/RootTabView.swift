@@ -108,6 +108,32 @@ struct RootTabView: View {
     }
 
     var body: some View {
+        if let recoveryState = store.cloudCredentialRecoveryState {
+            CloudCredentialRecoveryGateView(recoveryState: recoveryState)
+                .environment(store)
+                .overlay {
+                    self.uiTestLaunchPreparationStatusMarker
+                }
+        } else {
+            self.tabRoot
+        }
+    }
+
+    @ViewBuilder
+    private var uiTestLaunchPreparationStatusMarker: some View {
+        if let uiTestLaunchPreparationValue = store.uiTestLaunchPreparationStatus.accessibilityValue {
+            Text("ui-test-launch-preparation-status")
+                .font(.system(size: 1))
+                .foregroundStyle(.clear)
+                .allowsHitTesting(false)
+                .accessibilityElement(children: .ignore)
+                .accessibilityIdentifier(UITestIdentifier.uiTestLaunchPreparationStatus)
+                .accessibilityLabel("UI test launch preparation status")
+                .accessibilityValue(uiTestLaunchPreparationValue)
+        }
+    }
+
+    private var tabRoot: some View {
         @Bindable var navigation = self.navigation
         let selectedTabBinding = Binding(
             get: {
@@ -266,16 +292,7 @@ struct RootTabView: View {
                         .environment(store)
                 }
 
-                if let uiTestLaunchPreparationValue = store.uiTestLaunchPreparationStatus.accessibilityValue {
-                    Text("ui-test-launch-preparation-status")
-                        .font(.system(size: 1))
-                        .foregroundStyle(.clear)
-                        .allowsHitTesting(false)
-                        .accessibilityElement(children: .ignore)
-                        .accessibilityIdentifier(UITestIdentifier.uiTestLaunchPreparationStatus)
-                        .accessibilityLabel("UI test launch preparation status")
-                        .accessibilityValue(uiTestLaunchPreparationValue)
-                }
+                self.uiTestLaunchPreparationStatusMarker
             }
         }
         .onChange(of: navigation.selectedTab) { _, nextTab in
@@ -332,7 +349,7 @@ struct RootTabView: View {
             self.reconcileGuestSignInAfterReviewPrompt()
         }
         .sheet(isPresented: self.$isGuestSignInCloudSignInPresented) {
-            CloudSignInSheet()
+            CloudSignInSheet(presentationContext: .standard)
                 .environment(store)
         }
         .alert(

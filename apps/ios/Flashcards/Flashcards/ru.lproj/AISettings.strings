@@ -140,6 +140,18 @@
 "settings.sync.recovery.wrongLinkedWorkspace" = "Выберите исходную облачную рабочую область, чтобы снова подключить сохраненные локальные данные.";
 "settings.sync.recovery.interruptedUpgradeAccount" = "Войдите в учетную запись, которая использовалась для прерванного обновления аккаунта.";
 "settings.sync.recovery.upgradeWorkspace" = "Восстановление обновления аккаунта нужно завершить в рабочей области %@.";
+"settings.sync.recoveryGate.guestSessionMissing.title" = "Гостевой сеанс требует восстановления";
+"settings.sync.recoveryGate.guestSessionMissing.body" = "Гостевой сеанс на этом устройстве не удалось восстановить. Ваши локальные данные все еще здесь. Войдите по email, чтобы сохранить их в восстановленном рабочем пространстве, или сотрите локальные данные и начните заново.";
+"settings.sync.recoveryGate.linkedCredentialsMissing.title" = "Войдите снова, чтобы подключиться";
+"settings.sync.recoveryGate.linkedCredentialsMissing.body" = "На этом устройстве отсутствуют защищенные учетные данные для входа. Ваши локальные данные все еще здесь. Войдите в исходную облачную учетную запись, чтобы подключить их снова, или сотрите локальные данные и начните заново.";
+"settings.sync.recoveryGate.invalidStoredState.title" = "Данные облачного восстановления недействительны";
+"settings.sync.recoveryGate.invalidStoredState.body" = "Данные облачного восстановления на этом устройстве недействительны. Для безопасности приложения обычное использование заблокировано. Сотрите локальные данные и начните заново или попробуйте войти, если восстановление еще возможно.";
+"settings.sync.recoveryGate.signInAndRecover" = "Войти и восстановить";
+"settings.sync.recoveryGate.eraseLocalData" = "Стереть локальные данные и начать заново";
+"settings.sync.recoveryGate.eraseAlert.title" = "Стереть локальные данные?";
+"settings.sync.recoveryGate.eraseAlert.message" = "Это удалит локальные карточки и рабочие пространства на этом устройстве. Облачные данные не будут удалены.";
+"settings.sync.recoveryGate.eraseAlert.confirm" = "Стереть локальные данные";
+"settings.sync.recoveryGate.erasing" = "Стирание локальных данных...";
 
 "settings.currentWorkspace.title" = "Текущая рабочая область";
 "settings.currentWorkspace.row.workspace" = "Рабочая область";

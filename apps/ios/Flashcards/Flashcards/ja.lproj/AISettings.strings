@@ -140,6 +140,18 @@
 "settings.sync.recovery.wrongLinkedWorkspace" = "保持されたローカルデータを再接続するには、元のクラウドワークスペースを選択してください。";
 "settings.sync.recovery.interruptedUpgradeAccount" = "中断されたアカウントアップグレードで使用したアカウントでサインインしてください。";
 "settings.sync.recovery.upgradeWorkspace" = "アカウントアップグレードの復旧はワークスペース %@ で完了する必要があります。";
+"settings.sync.recoveryGate.guestSessionMissing.title" = "ゲストセッションの復旧が必要です";
+"settings.sync.recoveryGate.guestSessionMissing.body" = "このデバイスのゲストセッションを復元できませんでした。ローカルデータはまだこのデバイスにあります。メールでサインインして復旧済みワークスペースに保存するか、ローカルデータを消去して最初から始めてください。";
+"settings.sync.recoveryGate.linkedCredentialsMissing.title" = "もう一度サインインして再接続";
+"settings.sync.recoveryGate.linkedCredentialsMissing.body" = "このデバイスに安全なサインイン認証情報がありません。ローカルデータはまだこのデバイスにあります。元のクラウドアカウントでサインインして再接続するか、ローカルデータを消去して最初から始めてください。";
+"settings.sync.recoveryGate.invalidStoredState.title" = "クラウド復旧データが無効です";
+"settings.sync.recoveryGate.invalidStoredState.body" = "このデバイスのクラウド復旧データは無効です。アプリを安全に保つため、通常の使用はブロックされています。ローカルデータを消去して最初から始めるか、復旧できる可能性がある場合はサインインを試してください。";
+"settings.sync.recoveryGate.signInAndRecover" = "サインインして復旧";
+"settings.sync.recoveryGate.eraseLocalData" = "ローカルデータを消去して最初から始める";
+"settings.sync.recoveryGate.eraseAlert.title" = "ローカルデータを消去しますか？";
+"settings.sync.recoveryGate.eraseAlert.message" = "このデバイス上のローカルカードとワークスペースが削除されます。クラウドデータは削除されません。";
+"settings.sync.recoveryGate.eraseAlert.confirm" = "ローカルデータを消去";
+"settings.sync.recoveryGate.erasing" = "ローカルデータを消去中...";
 
 "settings.currentWorkspace.title" = "現在のワークスペース";
 "settings.currentWorkspace.row.workspace" = "ワークスペース";

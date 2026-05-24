@@ -45,20 +45,34 @@ extension FlashcardsStore {
         )
     }
 
+    func reloadLocalStateForCredentialRecoveryGate(now: Date) throws {
+        guard let database else {
+            throw LocalStoreError.uninitialized("Local database is unavailable")
+        }
+
+        let bootstrapSnapshot = try database.loadBootstrapSnapshot()
+        self.applyLoadedCredentialRecoveryGateSnapshot(
+            snapshot: bootstrapSnapshot,
+            now: now
+        )
+    }
+
     var localDatabaseURL: URL? {
         self.database?.databaseURL
     }
 
-    func applyLoadedBootstrapSnapshot(
+    private func applyLoadedCredentialRecoveryGateSnapshot(
         snapshot: AppBootstrapSnapshot,
-        now: Date,
-        refreshVisibleProgress: Bool
+        now: Date
     ) {
-        let didSwitchWorkspace = self.workspace?.workspaceId != snapshot.workspace.workspaceId
-        if didSwitchWorkspace {
-            self.resetReviewRuntimeForWorkspace(nextWorkspaceId: snapshot.workspace.workspaceId)
-        }
+        self.applyLoadedLocalSnapshotContent(snapshot: snapshot, now: now)
+        self.localReadVersion += 1
+    }
 
+    private func applyLoadedLocalSnapshotContent(
+        snapshot: AppBootstrapSnapshot,
+        now: Date
+    ) {
         self.workspace = snapshot.workspace
         self.userSettings = snapshot.userSettings
         self.schedulerSettings = snapshot.schedulerSettings
@@ -73,6 +87,7 @@ extension FlashcardsStore {
             newCount: 0,
             reviewedCount: 0
         )
+
         if let database {
             do {
                 let activeCards = try database.loadActiveCards(workspaceId: snapshot.workspace.workspaceId)
@@ -100,6 +115,19 @@ extension FlashcardsStore {
                 self.globalErrorMessage = Flashcards.errorMessage(error: error)
             }
         }
+    }
+
+    func applyLoadedBootstrapSnapshot(
+        snapshot: AppBootstrapSnapshot,
+        now: Date,
+        refreshVisibleProgress: Bool
+    ) {
+        let didSwitchWorkspace = self.workspace?.workspaceId != snapshot.workspace.workspaceId
+        if didSwitchWorkspace {
+            self.resetReviewRuntimeForWorkspace(nextWorkspaceId: snapshot.workspace.workspaceId)
+        }
+
+        self.applyLoadedLocalSnapshotContent(snapshot: snapshot, now: now)
         self.globalErrorMessage = ""
         self.reloadReviewNotificationsSettings()
         self.reloadStrictRemindersSettings()

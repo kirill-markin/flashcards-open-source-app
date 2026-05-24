@@ -140,6 +140,18 @@
 "settings.sync.recovery.wrongLinkedWorkspace" = "Wähle den ursprünglichen Cloud-Arbeitsbereich aus, um die erhaltenen lokalen Daten wieder zu verbinden.";
 "settings.sync.recovery.interruptedUpgradeAccount" = "Melde dich mit dem Konto an, das für das unterbrochene Kontoupgrade verwendet wurde.";
 "settings.sync.recovery.upgradeWorkspace" = "Die Wiederherstellung des Kontoupgrades muss im Arbeitsbereich %@ abgeschlossen werden.";
+"settings.sync.recoveryGate.guestSessionMissing.title" = "Gastsitzung muss wiederhergestellt werden";
+"settings.sync.recoveryGate.guestSessionMissing.body" = "Die Gastsitzung auf diesem Gerät konnte nicht wiederhergestellt werden. Deine lokalen Daten sind noch hier. Melde dich per E-Mail an, um sie in einem wiederhergestellten Arbeitsbereich zu speichern, oder lösche lokale Daten und beginne neu.";
+"settings.sync.recoveryGate.linkedCredentialsMissing.title" = "Erneut anmelden, um die Verbindung wiederherzustellen";
+"settings.sync.recoveryGate.linkedCredentialsMissing.body" = "Sichere Anmeldedaten fehlen auf diesem Gerät. Deine lokalen Daten sind noch hier. Melde dich mit dem ursprünglichen Cloud-Konto an, um sie wieder zu verbinden, oder lösche lokale Daten und beginne neu.";
+"settings.sync.recoveryGate.invalidStoredState.title" = "Cloud-Wiederherstellungsdaten sind ungültig";
+"settings.sync.recoveryGate.invalidStoredState.body" = "Cloud-Wiederherstellungsdaten auf diesem Gerät sind ungültig. Damit die App sicher bleibt, ist die normale Nutzung blockiert. Lösche lokale Daten und beginne neu, oder versuche, dich anzumelden, wenn eine Wiederherstellung noch möglich ist.";
+"settings.sync.recoveryGate.signInAndRecover" = "Anmelden und wiederherstellen";
+"settings.sync.recoveryGate.eraseLocalData" = "Lokale Daten löschen und neu beginnen";
+"settings.sync.recoveryGate.eraseAlert.title" = "Lokale Daten löschen?";
+"settings.sync.recoveryGate.eraseAlert.message" = "Dadurch werden lokale Karten und Arbeitsbereiche auf diesem Gerät gelöscht. Cloud-Daten werden nicht gelöscht.";
+"settings.sync.recoveryGate.eraseAlert.confirm" = "Lokale Daten löschen";
+"settings.sync.recoveryGate.erasing" = "Lokale Daten werden gelöscht...";
 
 "settings.currentWorkspace.title" = "Aktueller Arbeitsbereich";
 "settings.currentWorkspace.row.workspace" = "Arbeitsbereich";
