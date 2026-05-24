@@ -304,6 +304,12 @@
 "settings.account.cloudSignIn.cloudSyncTitle" = "क्लाउड सिंक";
 "settings.account.cloudSignIn.loadingWorkspaces" = "कार्यस्थान लोड हो रहा है...";
 "settings.account.cloudSignIn.loadingWorkspacesDescription" = "लॉगिन पूरा हो गया है. ऐप अब क्लाउड वर्कस्पेस चरण लोड कर रहा है।";
+"settings.account.cloudSignIn.guestLocalRecovery.prepare.title" = "रिकवर किया गया कार्यक्षेत्र तैयार हो रहा है...";
+"settings.account.cloudSignIn.guestLocalRecovery.prepare.message" = "स्थानीय डेटा अभी भी इस डिवाइस पर है. iOS के रिकवर किए गए कार्यक्षेत्र को तैयार करने तक यह स्क्रीन खुली रखें।";
+"settings.account.cloudSignIn.guestLocalRecovery.recovering.title" = "स्थानीय डेटा रिकवर किया जा रहा है";
+"settings.account.cloudSignIn.guestLocalRecovery.recovering.message" = "iOS जब इस डिवाइस के स्थानीय डेटा को आपके रिकवर किए गए कार्यक्षेत्र से फिर से जोड़ता है, तब यह स्क्रीन खुली रखें।";
+"settings.account.cloudSignIn.guestLocalRecovery.failure.title" = "स्थानीय डेटा रिकवरी विफल रही।";
+"settings.account.cloudSignIn.guestLocalRecovery.failure.message" = "फिर से कोशिश करें; स्थानीय डेटा इस डिवाइस पर ही रहता है।";
 "settings.account.cloudSignIn.technicalDetails" = "तकनीकी विवरण";
 "settings.account.cloudSignIn.copyTechnicalDetails" = "तकनीकी विवरण कॉपी करें";
 

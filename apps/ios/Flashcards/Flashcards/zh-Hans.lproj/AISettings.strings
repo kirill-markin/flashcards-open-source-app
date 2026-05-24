@@ -304,6 +304,12 @@
 "settings.account.cloudSignIn.cloudSyncTitle" = "云同步";
 "settings.account.cloudSignIn.loadingWorkspaces" = "正在加载工作区...";
 "settings.account.cloudSignIn.loadingWorkspacesDescription" = "登录完成。应用程序现在正在加载云工作区步骤。";
+"settings.account.cloudSignIn.guestLocalRecovery.prepare.title" = "正在准备已恢复的工作空间...";
+"settings.account.cloudSignIn.guestLocalRecovery.prepare.message" = "本地数据仍在此设备上。请保持此屏幕打开，iOS 正在准备已恢复的工作空间。";
+"settings.account.cloudSignIn.guestLocalRecovery.recovering.title" = "正在恢复本地数据";
+"settings.account.cloudSignIn.guestLocalRecovery.recovering.message" = "请保持此屏幕打开，iOS 正在将此设备上的本地数据重新连接到已恢复的工作空间。";
+"settings.account.cloudSignIn.guestLocalRecovery.failure.title" = "本地数据恢复失败。";
+"settings.account.cloudSignIn.guestLocalRecovery.failure.message" = "请重试；本地数据仍保留在此设备上。";
 "settings.account.cloudSignIn.technicalDetails" = "技术细节";
 "settings.account.cloudSignIn.copyTechnicalDetails" = "复制技术细节";
 

@@ -304,6 +304,12 @@
 "settings.account.cloudSignIn.cloudSyncTitle" = "Sincronizacion en la nube";
 "settings.account.cloudSignIn.loadingWorkspaces" = "Cargando espacios de trabajo...";
 "settings.account.cloudSignIn.loadingWorkspacesDescription" = "El inicio de sesion se completo. La app esta cargando ahora el paso del espacio de trabajo en la nube.";
+"settings.account.cloudSignIn.guestLocalRecovery.prepare.title" = "Preparando espacio de trabajo recuperado...";
+"settings.account.cloudSignIn.guestLocalRecovery.prepare.message" = "Los datos locales siguen en este dispositivo. Manten esta pantalla abierta mientras iOS prepara un espacio de trabajo recuperado.";
+"settings.account.cloudSignIn.guestLocalRecovery.recovering.title" = "Recuperando datos locales";
+"settings.account.cloudSignIn.guestLocalRecovery.recovering.message" = "Manten esta pantalla abierta mientras iOS vuelve a conectar los datos locales de este dispositivo con tu espacio de trabajo recuperado.";
+"settings.account.cloudSignIn.guestLocalRecovery.failure.title" = "Fallo la recuperacion de datos locales.";
+"settings.account.cloudSignIn.guestLocalRecovery.failure.message" = "Intentalo de nuevo; los datos locales permanecen en este dispositivo.";
 "settings.account.cloudSignIn.technicalDetails" = "Detalles tecnicos";
 "settings.account.cloudSignIn.copyTechnicalDetails" = "Copiar detalles tecnicos";
 

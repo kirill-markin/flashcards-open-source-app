@@ -304,6 +304,12 @@
 "settings.account.cloudSignIn.cloudSyncTitle" = "المزامنة السحابية";
 "settings.account.cloudSignIn.loadingWorkspaces" = "جارٍ تحميل مساحات العمل...";
 "settings.account.cloudSignIn.loadingWorkspacesDescription" = "اكتمل تسجيل الدخول. يقوم التطبيق الآن بتحميل خطوة مساحة العمل السحابية.";
+"settings.account.cloudSignIn.guestLocalRecovery.prepare.title" = "جارٍ تحضير مساحة العمل المستردة...";
+"settings.account.cloudSignIn.guestLocalRecovery.prepare.message" = "لا تزال البيانات المحلية على هذا الجهاز. اترك هذه الشاشة مفتوحة بينما يجهز iOS مساحة عمل مستردة.";
+"settings.account.cloudSignIn.guestLocalRecovery.recovering.title" = "استرداد البيانات المحلية";
+"settings.account.cloudSignIn.guestLocalRecovery.recovering.message" = "اترك هذه الشاشة مفتوحة بينما يعيد iOS ربط البيانات المحلية على هذا الجهاز بمساحة العمل المستردة.";
+"settings.account.cloudSignIn.guestLocalRecovery.failure.title" = "فشل استرداد البيانات المحلية.";
+"settings.account.cloudSignIn.guestLocalRecovery.failure.message" = "حاول مرة أخرى؛ تظل البيانات المحلية على هذا الجهاز.";
 "settings.account.cloudSignIn.technicalDetails" = "التفاصيل الفنية";
 "settings.account.cloudSignIn.copyTechnicalDetails" = "نسخ التفاصيل الفنية";
 

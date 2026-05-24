@@ -304,6 +304,12 @@
 "settings.account.cloudSignIn.cloudSyncTitle" = "Облачная синхронизация";
 "settings.account.cloudSignIn.loadingWorkspaces" = "Загрузка рабочих пространств...";
 "settings.account.cloudSignIn.loadingWorkspacesDescription" = "Вход завершен. Приложение сейчас загружает этап облачной рабочей области.";
+"settings.account.cloudSignIn.guestLocalRecovery.prepare.title" = "Подготовка восстановленного рабочего пространства...";
+"settings.account.cloudSignIn.guestLocalRecovery.prepare.message" = "Локальные данные все еще на этом устройстве. Оставьте этот экран открытым, пока iOS подготавливает восстановленное рабочее пространство.";
+"settings.account.cloudSignIn.guestLocalRecovery.recovering.title" = "Восстановление локальных данных";
+"settings.account.cloudSignIn.guestLocalRecovery.recovering.message" = "Оставьте этот экран открытым, пока iOS повторно подключает локальные данные на этом устройстве к восстановленному рабочему пространству.";
+"settings.account.cloudSignIn.guestLocalRecovery.failure.title" = "Не удалось восстановить локальные данные.";
+"settings.account.cloudSignIn.guestLocalRecovery.failure.message" = "Попробуйте еще раз; локальные данные остаются на этом устройстве.";
 "settings.account.cloudSignIn.technicalDetails" = "Технические подробности";
 "settings.account.cloudSignIn.copyTechnicalDetails" = "Копировать технические подробности";
 
