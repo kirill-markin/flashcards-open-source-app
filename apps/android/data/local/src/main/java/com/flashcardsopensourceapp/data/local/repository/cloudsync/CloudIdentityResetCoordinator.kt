@@ -59,6 +59,42 @@ class CloudIdentityResetCoordinator(
     }
 
     /**
+     * Explicit user-confirmed recovery escape hatch. This destroys local data
+     * only after a blocking credential recovery state is active, and it does
+     * not contact cloud services.
+     */
+    suspend fun eraseLocalDataForCredentialRecovery() {
+        withContext(Dispatchers.IO) {
+            resetMutex.withLock {
+                require(cloudPreferencesStore.loadCloudCredentialRecoveryState() != null) {
+                    "Local credential recovery erase requires an active recovery state."
+                }
+                database.clearAllTables()
+                val activeWorkspaceId = ensureLocalWorkspaceShell(
+                    database = database,
+                    currentTimeMillis = System.currentTimeMillis()
+                )
+                cloudPreferencesStore.regenerateInstallationId()
+                cloudPreferencesStore.updateCloudSettings(
+                    cloudState = CloudAccountState.DISCONNECTED,
+                    linkedUserId = null,
+                    linkedWorkspaceId = null,
+                    linkedEmail = null,
+                    activeWorkspaceId = activeWorkspaceId
+                )
+                cloudPreferencesStore.clearAccountDeletionState()
+                cloudPreferencesStore.clearCredentials()
+                cloudPreferencesStore.clearPendingGuestUpgrade()
+                aiChatPreferencesStore.clearConsent()
+                aiChatHistoryStore.clearAllState()
+                guestAiSessionStore.clearAllSessions()
+                onCloudIdentityReset()
+                cloudPreferencesStore.clearCloudCredentialRecoveryState()
+            }
+        }
+    }
+
+    /**
      * Drops cloud identity without destroying the local shell or regenerating
      * the installation identity. Use this for recoverable reconciliation
      * failures where we want an explicit disconnected state instead of a full

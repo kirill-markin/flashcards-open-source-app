@@ -55,7 +55,8 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onSelectWorkspace = {},
                     onRetry = {},
                     onFailureAction = {},
-                    onBack = {}
+                    onBack = {},
+                    canNavigateBack = true
                 )
             }
         }
@@ -111,7 +112,8 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     },
                     onRetry = {},
                     onFailureAction = {},
-                    onBack = {}
+                    onBack = {},
+                    canNavigateBack = true
                 )
             }
         }
@@ -160,7 +162,8 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onFailureAction = {
                         logoutCalls += 1
                     },
-                    onBack = {}
+                    onBack = {},
+                    canNavigateBack = true
                 )
             }
         }
@@ -203,7 +206,8 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onSelectWorkspace = {},
                     onRetry = {},
                     onFailureAction = {},
-                    onBack = {}
+                    onBack = {},
+                    canNavigateBack = true
                 )
             }
         }
@@ -250,7 +254,8 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onFailureAction = {
                         failureActionCalls += 1
                     },
-                    onBack = {}
+                    onBack = {},
+                    canNavigateBack = true
                 )
             }
         }
