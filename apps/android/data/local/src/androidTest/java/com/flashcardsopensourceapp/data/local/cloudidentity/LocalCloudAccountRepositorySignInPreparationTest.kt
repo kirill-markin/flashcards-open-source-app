@@ -644,7 +644,150 @@ class LocalCloudAccountRepositorySignInPreparationTest {
     }
 
     @Test
-    fun prepareVerifiedSignInRoutesGuestRecoveryWithoutGuestUpgradePrepare() = runBlocking {
+    fun completeCloudLinkGuestLocalRecoveryCreatesWorkspaceAndUploadsLocalData() = runBlocking {
+        val localWorkspaceId = environment.requireLocalWorkspaceId()
+        val installationId = environment.cloudPreferencesStore.currentCloudSettings().installationId
+        val cardId = environment.seedWorkspaceData(workspaceId = localWorkspaceId)
+        val syncLocalStore = environment.createSyncLocalStore()
+        val localCard = requireNotNull(environment.database.cardDao().loadCard(cardId = cardId)) {
+            "Seeded card is required for guest local recovery."
+        }
+        syncLocalStore.enqueueCardUpsert(
+            card = localCard,
+            tags = emptyList(),
+            affectsReviewSchedule = true
+        )
+        val recoveryState = CloudCredentialRecoveryState(
+            reason = CloudCredentialRecoveryReason.GUEST_SESSION_MISSING,
+            previousCloudState = CloudAccountState.GUEST,
+            installationId = installationId,
+            linkedUserId = "guest-user",
+            linkedWorkspaceId = localWorkspaceId,
+            activeWorkspaceId = localWorkspaceId,
+            linkedEmail = null,
+            configurationMode = CloudServiceConfigurationMode.OFFICIAL,
+            apiBaseUrl = "https://api.flashcards-open-source-app.com/v1",
+            detectedAtMillis = 500L
+        )
+        val remoteGateway = FakeCloudRemoteGateway.forBootstrapPushScenario(
+            bootstrapRemoteIsEmptyResponses = listOf(true),
+            bootstrapPushErrors = emptyList()
+        )
+        val repository = environment.createCloudAccountRepository(remoteGateway = remoteGateway)
+        environment.cloudPreferencesStore.saveCloudCredentialRecoveryState(recoveryState = recoveryState)
+        val linkContext = repository.prepareVerifiedSignIn(
+            credentials = createStoredCloudCredentials(idTokenExpiresAtMillis = Long.MAX_VALUE)
+        )
+
+        assertEquals(CloudWorkspacePostAuthRoute.GUEST_LOCAL_RECOVERY, linkContext.postAuthRoute)
+        assertEquals("user-1", linkContext.userId)
+        assertNull(linkContext.guestUpgradeMode)
+        assertEquals(0, remoteGateway.prepareGuestUpgradeCalls)
+        val selectedWorkspace = repository.completeCloudLink(
+            linkContext = linkContext,
+            selection = CloudWorkspaceLinkSelection.CreateNew
+        )
+
+        val createdWorkspaceId = remoteGateway.createdWorkspaceId
+        assertEquals(createdWorkspaceId, selectedWorkspace.workspaceId)
+        assertEquals(0, remoteGateway.selectWorkspaceCalls)
+        assertEquals(1, remoteGateway.createWorkspaceCalls)
+        assertEquals(0, remoteGateway.completeGuestUpgradeCalls)
+        assertEquals(listOf(createdWorkspaceId), remoteGateway.bootstrapPullWorkspaceIds)
+        assertEquals(true, remoteGateway.bootstrapPushBodies.single().getJSONArray("entries").length() > 0)
+        assertEquals(1, remoteGateway.importReviewHistoryBodies.single().getJSONArray("reviewEvents").length())
+        assertEquals(1, remoteGateway.pushBodies.single().getJSONArray("operations").length())
+        assertNotNull(environment.cloudPreferencesStore.loadCredentials())
+        assertNull(environment.cloudPreferencesStore.loadCloudCredentialRecoveryState())
+        assertEquals(CloudAccountState.LINKED, environment.cloudPreferencesStore.currentCloudSettings().cloudState)
+        assertEquals(createdWorkspaceId, environment.cloudPreferencesStore.currentCloudSettings().activeWorkspaceId)
+        assertEquals(createdWorkspaceId, environment.cloudPreferencesStore.currentCloudSettings().linkedWorkspaceId)
+        assertEquals(1, environment.database.workspaceDao().countWorkspaces())
+        assertEquals(createdWorkspaceId, environment.database.workspaceDao().loadAnyWorkspace()?.workspaceId)
+        val recoveredCards = environment.database.cardDao().loadCards(workspaceId = createdWorkspaceId)
+        assertEquals(1, recoveredCards.count())
+        assertEquals("Question", recoveredCards.single().frontText)
+        assertEquals("Answer", recoveredCards.single().backText)
+        assertEquals(1, environment.database.reviewLogDao().countReviewLogs(workspaceId = createdWorkspaceId))
+        assertEquals(0, environment.database.outboxDao().countOutboxEntries())
+    }
+
+    @Test
+    fun completeCloudLinkGuestLocalRecoveryRetryUsesCreatedWorkspaceAfterInitialSyncFailure() = runBlocking {
+        val localWorkspaceId = environment.requireLocalWorkspaceId()
+        val installationId = environment.cloudPreferencesStore.currentCloudSettings().installationId
+        val cardId = environment.seedWorkspaceData(workspaceId = localWorkspaceId)
+        val syncLocalStore = environment.createSyncLocalStore()
+        val localCard = requireNotNull(environment.database.cardDao().loadCard(cardId = cardId)) {
+            "Seeded card is required for guest local recovery retry."
+        }
+        syncLocalStore.enqueueCardUpsert(
+            card = localCard,
+            tags = emptyList(),
+            affectsReviewSchedule = true
+        )
+        val recoveryState = CloudCredentialRecoveryState(
+            reason = CloudCredentialRecoveryReason.GUEST_SESSION_MISSING,
+            previousCloudState = CloudAccountState.GUEST,
+            installationId = installationId,
+            linkedUserId = "guest-user",
+            linkedWorkspaceId = localWorkspaceId,
+            activeWorkspaceId = localWorkspaceId,
+            linkedEmail = null,
+            configurationMode = CloudServiceConfigurationMode.OFFICIAL,
+            apiBaseUrl = "https://api.flashcards-open-source-app.com/v1",
+            detectedAtMillis = 500L
+        )
+        val remoteGateway = FakeCloudRemoteGateway.forBootstrapPushScenario(
+            bootstrapRemoteIsEmptyResponses = listOf(true, true),
+            bootstrapPushErrors = listOf(IllegalStateException("Forced bootstrap failure"))
+        )
+        val repository = environment.createCloudAccountRepository(remoteGateway = remoteGateway)
+        environment.cloudPreferencesStore.saveCloudCredentialRecoveryState(recoveryState = recoveryState)
+        val linkContext = repository.prepareVerifiedSignIn(
+            credentials = createStoredCloudCredentials(idTokenExpiresAtMillis = Long.MAX_VALUE)
+        )
+
+        try {
+            repository.completeCloudLink(
+                linkContext = linkContext,
+                selection = CloudWorkspaceLinkSelection.CreateNew
+            )
+            throw AssertionError("Expected guest local recovery initial sync to fail.")
+        } catch (error: IllegalStateException) {
+            assertEquals(true, error.message?.contains("Forced bootstrap failure") == true)
+        }
+
+        val createdWorkspaceId = remoteGateway.createdWorkspaceId
+        assertEquals(1, remoteGateway.createWorkspaceCalls)
+        assertNotNull(environment.cloudPreferencesStore.loadCredentials())
+        assertEquals(recoveryState, environment.cloudPreferencesStore.loadCloudCredentialRecoveryState())
+        assertEquals(CloudAccountState.LINKED, environment.cloudPreferencesStore.currentCloudSettings().cloudState)
+        assertEquals(createdWorkspaceId, environment.cloudPreferencesStore.currentCloudSettings().activeWorkspaceId)
+        assertEquals(createdWorkspaceId, environment.cloudPreferencesStore.currentCloudSettings().linkedWorkspaceId)
+        assertEquals(1, environment.database.cardDao().loadCards(workspaceId = createdWorkspaceId).count())
+        assertEquals(1, environment.database.reviewLogDao().countReviewLogs(workspaceId = createdWorkspaceId))
+        assertEquals(1, environment.database.outboxDao().countOutboxEntriesForWorkspace(workspaceId = createdWorkspaceId))
+
+        val recoveredWorkspace = repository.completeCloudLink(
+            linkContext = linkContext,
+            selection = CloudWorkspaceLinkSelection.CreateNew
+        )
+
+        assertEquals(createdWorkspaceId, recoveredWorkspace.workspaceId)
+        assertEquals(1, remoteGateway.createWorkspaceCalls)
+        assertEquals(0, remoteGateway.selectWorkspaceCalls)
+        assertEquals(0, remoteGateway.completeGuestUpgradeCalls)
+        assertEquals(listOf(createdWorkspaceId, createdWorkspaceId), remoteGateway.bootstrapPullWorkspaceIds)
+        assertEquals(2, remoteGateway.bootstrapPushBodies.size)
+        assertEquals(1, remoteGateway.importReviewHistoryBodies.single().getJSONArray("reviewEvents").length())
+        assertEquals(1, remoteGateway.pushBodies.single().getJSONArray("operations").length())
+        assertNull(environment.cloudPreferencesStore.loadCloudCredentialRecoveryState())
+        assertEquals(0, environment.database.outboxDao().countOutboxEntries())
+    }
+
+    @Test
+    fun completeCloudLinkRejectsExistingWorkspaceForGuestLocalRecoveryBeforeSideEffects() = runBlocking {
         val localWorkspaceId = environment.requireLocalWorkspaceId()
         val installationId = environment.cloudPreferencesStore.currentCloudSettings().installationId
         val cardId = environment.seedWorkspaceData(workspaceId = localWorkspaceId)
@@ -662,7 +805,7 @@ class LocalCloudAccountRepositorySignInPreparationTest {
             detectedAtMillis = 500L
         )
         val remoteGateway = FakeCloudRemoteGateway.forBootstrapPushScenario(
-            bootstrapRemoteIsEmptyResponses = listOf(false),
+            bootstrapRemoteIsEmptyResponses = listOf(true),
             bootstrapPushErrors = emptyList()
         )
         val repository = environment.createCloudAccountRepository(remoteGateway = remoteGateway)
@@ -671,16 +814,12 @@ class LocalCloudAccountRepositorySignInPreparationTest {
             credentials = createStoredCloudCredentials(idTokenExpiresAtMillis = Long.MAX_VALUE)
         )
 
-        assertEquals(CloudWorkspacePostAuthRoute.GUEST_LOCAL_RECOVERY, linkContext.postAuthRoute)
-        assertEquals("user-1", linkContext.userId)
-        assertNull(linkContext.guestUpgradeMode)
-        assertEquals(0, remoteGateway.prepareGuestUpgradeCalls)
         try {
             repository.completeCloudLink(
                 linkContext = linkContext,
                 selection = CloudWorkspaceLinkSelection.Existing(workspaceId = remoteWorkspaceId)
             )
-            throw AssertionError("Expected guest local recovery to block normal complete-link.")
+            throw AssertionError("Expected guest local recovery to reject an existing workspace.")
         } catch (error: CloudCredentialRecoveryRequiredException) {
             assertEquals(recoveryState, error.recoveryState)
         }

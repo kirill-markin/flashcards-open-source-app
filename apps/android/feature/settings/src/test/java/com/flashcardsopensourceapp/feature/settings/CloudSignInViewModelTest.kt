@@ -48,6 +48,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
 
@@ -169,13 +170,15 @@ class CloudSignInViewModelTest {
     }
 
     @Test
-    fun guestLocalRecoveryShowsPostAuthFailureWithoutRetry() = runTest(dispatcher) {
+    fun guestLocalRecoveryAutoCreatesNewWorkspaceWithoutSeparatePostAuthSync() = runTest(dispatcher) {
         Dispatchers.setMain(dispatcher)
         val repository = FakeCloudAccountRepository()
+        val syncRepository = FakeSyncRepository()
+        val messages = mutableListOf<String>()
         val viewModel = CloudSignInViewModel(
             cloudAccountRepository = repository,
-            syncRepository = FakeSyncRepository(),
-            messageController = TransientMessageController { },
+            syncRepository = syncRepository,
+            messageController = TransientMessageController { message -> messages += message },
             strings = strings
         )
         val postAuthCollection = backgroundScope.async {
@@ -202,14 +205,19 @@ class CloudSignInViewModelTest {
         advanceUntilIdle()
 
         assertEquals(CloudSendCodeNavigationOutcome.Verified, outcome)
-        assertEquals(CloudPostAuthMode.FAILED, viewModel.postAuthUiState.value.mode)
-        assertEquals(
-            "Guest credentials are missing on this device. Local data is preserved for recovery in a linked workspace.",
-            viewModel.postAuthUiState.value.errorMessage
-        )
+        assertEquals(CloudPostAuthMode.READY_TO_AUTO_LINK, viewModel.postAuthUiState.value.mode)
+        assertEquals("New workspace", viewModel.postAuthUiState.value.pendingWorkspaceTitle)
+        assertEquals(true, viewModel.postAuthUiState.value.workspaces.any { workspace -> workspace.isCreateNew })
         assertEquals(false, viewModel.postAuthUiState.value.canRetry)
-        assertEquals(false, viewModel.postAuthUiState.value.canLogout)
-        assertEquals(false, viewModel.postAuthUiState.value.workspaces.any { workspace -> workspace.isCreateNew })
+
+        viewModel.completePendingPostAuthIfNeeded()
+        advanceUntilIdle()
+
+        assertEquals(listOf(CloudWorkspaceLinkSelection.CreateNew), repository.completeCloudLinkSelections)
+        assertEquals(0, syncRepository.syncNowCalls)
+        assertEquals(CloudPostAuthMode.IDLE, viewModel.postAuthUiState.value.mode)
+        assertNotNull(viewModel.postAuthUiState.value.completionToken)
+        assertEquals("Signed in and synced Personal.", messages.single())
 
         postAuthCollection.cancel()
     }
@@ -624,6 +632,7 @@ private class FakeCloudAccountRepository : CloudAccountRepository {
     private val verifyCodeErrors = ArrayDeque<Exception>()
     private val completeCloudLinkErrors = ArrayDeque<Exception>()
     private val preparedLinkContexts = mutableMapOf<String, CompletableDeferred<CloudWorkspaceLinkContext>>()
+    val completeCloudLinkSelections = mutableListOf<CloudWorkspaceLinkSelection>()
     var resetInvalidCloudCredentialRecoveryStateCalls: Int = 0
         private set
     var logoutCalls: Int = 0
@@ -704,6 +713,7 @@ private class FakeCloudAccountRepository : CloudAccountRepository {
         linkContext: CloudWorkspaceLinkContext,
         selection: CloudWorkspaceLinkSelection
     ): CloudWorkspaceSummary {
+        completeCloudLinkSelections += selection
         if (completeCloudLinkErrors.isNotEmpty()) {
             throw completeCloudLinkErrors.removeFirst()
         }
@@ -829,6 +839,7 @@ private class TestSettingsStringResolver : SettingsStringResolver {
             }
 
             R.string.settings_sign_in_verify_failed -> "Could not verify the code."
+            R.string.settings_current_workspace_new_title -> "New workspace"
             R.string.settings_current_workspace_create_new_title -> "Create new workspace"
             R.string.settings_current_workspace_create_new_summary -> {
                 "Start a new linked workspace in the cloud"
@@ -904,6 +915,8 @@ private class FakeSyncRepository : SyncRepository {
             lastErrorMessage = ""
         )
     )
+    var syncNowCalls: Int = 0
+        private set
 
     override fun observeSyncStatus(): Flow<SyncStatusSnapshot> {
         return syncStatus
@@ -913,6 +926,7 @@ private class FakeSyncRepository : SyncRepository {
     }
 
     override suspend fun syncNow() {
+        syncNowCalls += 1
         if (syncErrors.isNotEmpty()) {
             throw syncErrors.removeFirst()
         }

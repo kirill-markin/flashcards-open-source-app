@@ -273,6 +273,13 @@ class LocalCloudAccountRepository(
                 recoveryState = recoveryState,
                 selection = selection
             )
+            if (linkContext.postAuthRoute == CloudWorkspacePostAuthRoute.GUEST_LOCAL_RECOVERY) {
+                return@runExclusive completeGuestLocalRecoveryCloudLink(
+                    linkContext = linkContext,
+                    recoveryState = requireActiveCloudCredentialRecoveryState(recoveryState = recoveryState),
+                    selection = selection
+                )
+            }
             val resumedGuestUpgrade = if (recoveryState == null) {
                 resumePendingGuestUpgradeIfNeeded()
             } else {
@@ -848,7 +855,15 @@ class LocalCloudAccountRepository(
                 )
             }
 
-            CloudWorkspacePostAuthRoute.GUEST_LOCAL_RECOVERY,
+            CloudWorkspacePostAuthRoute.GUEST_LOCAL_RECOVERY -> {
+                requireGuestLocalRecoveryAllowsCreateNewCompletion(
+                    recoveryState = requireActiveCloudCredentialRecoveryState(
+                        recoveryState = recoveryState
+                    ),
+                    selection = selection
+                )
+            }
+
             CloudWorkspacePostAuthRoute.PENDING_GUEST_UPGRADE_RECOVERY,
             CloudWorkspacePostAuthRoute.INVALID_STORED_STATE -> {
                 throw CloudCredentialRecoveryRequiredException(
@@ -865,6 +880,21 @@ class LocalCloudAccountRepository(
     ): CloudCredentialRecoveryState {
         return requireNotNull(recoveryState) {
             "Cloud credential recovery state changed during sign-in. Start sign-in again."
+        }
+    }
+
+    private fun requireGuestLocalRecoveryAllowsCreateNewCompletion(
+        recoveryState: CloudCredentialRecoveryState,
+        selection: CloudWorkspaceLinkSelection
+    ) {
+        if (
+            recoveryState.reason != CloudCredentialRecoveryReason.GUEST_SESSION_MISSING ||
+            recoveryState.previousCloudState != CloudAccountState.GUEST
+        ) {
+            throw CloudCredentialRecoveryRequiredException(recoveryState = recoveryState)
+        }
+        if (selection != CloudWorkspaceLinkSelection.CreateNew) {
+            throw CloudCredentialRecoveryRequiredException(recoveryState = recoveryState)
         }
     }
 
@@ -1093,6 +1123,102 @@ class LocalCloudAccountRepository(
                 name = "Personal"
             )
         }
+    }
+
+    private suspend fun completeGuestLocalRecoveryCloudLink(
+        linkContext: CloudWorkspaceLinkContext,
+        recoveryState: CloudCredentialRecoveryState,
+        selection: CloudWorkspaceLinkSelection
+    ): CloudWorkspaceSummary {
+        require(linkContext.postAuthRoute == CloudWorkspacePostAuthRoute.GUEST_LOCAL_RECOVERY) {
+            "Guest local recovery requires the guest recovery post-auth route."
+        }
+        requireGuestLocalRecoveryAllowsCreateNewCompletion(
+            recoveryState = recoveryState,
+            selection = selection
+        )
+        val authenticatedSession = authenticatedSession(linkContext = linkContext)
+        loadResumableGuestLocalRecoveryWorkspaceOrNull(
+            authenticatedSession = authenticatedSession
+        )?.let { resumableWorkspace ->
+            preferencesStore.saveCredentials(authenticatedSession.credentials)
+            requireTransitionInvariant(
+                stage = "before resumed guest local recovery sync",
+                expectedWorkspaceId = resumableWorkspace.workspaceId
+            )
+            runInitialLinkedWorkspaceSync(
+                authenticatedSession = authenticatedSession,
+                workspaceId = resumableWorkspace.workspaceId
+            )
+            requireTransitionInvariant(
+                stage = "after resumed guest local recovery sync",
+                expectedWorkspaceId = resumableWorkspace.workspaceId
+            )
+            clearGuestSessionsIfNeeded()
+            preferencesStore.clearCloudCredentialRecoveryState()
+            return resumableWorkspace
+        }
+
+        val selectedWorkspace = remoteService.createWorkspace(
+            apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
+            bearerToken = authenticatedSession.credentials.idToken,
+            name = "Personal"
+        )
+        preferencesStore.saveCredentials(authenticatedSession.credentials)
+        applyLinkedWorkspacePreservingLocalData(
+            accountSnapshot = authenticatedSession.accountSnapshot,
+            selectedWorkspace = selectedWorkspace
+        )
+        requireTransitionInvariant(
+            stage = "after guest local recovery prefs update",
+            expectedWorkspaceId = selectedWorkspace.workspaceId
+        )
+        runInitialLinkedWorkspaceSync(
+            authenticatedSession = authenticatedSession,
+            workspaceId = selectedWorkspace.workspaceId
+        )
+        requireTransitionInvariant(
+            stage = "after guest local recovery initial sync",
+            expectedWorkspaceId = selectedWorkspace.workspaceId
+        )
+        clearGuestSessionsIfNeeded()
+        preferencesStore.clearCloudCredentialRecoveryState()
+        return selectedWorkspace
+    }
+
+    private suspend fun loadResumableGuestLocalRecoveryWorkspaceOrNull(
+        authenticatedSession: AuthenticatedCloudSession
+    ): CloudWorkspaceSummary? {
+        val cloudSettings = preferencesStore.currentCloudSettings()
+        if (cloudSettings.cloudState != CloudAccountState.LINKED) {
+            return null
+        }
+        require(cloudSettings.linkedUserId == authenticatedSession.accountSnapshot.userId) {
+            "Guest local recovery retry is signed in as '${authenticatedSession.accountSnapshot.userId}', " +
+                "but the preserved linked workspace belongs to '${cloudSettings.linkedUserId}'. Start sign-in again."
+        }
+        val workspaceId = requireNotNull(cloudSettings.activeWorkspaceId ?: cloudSettings.linkedWorkspaceId) {
+            "Guest local recovery retry requires a preserved linked workspace."
+        }
+        require(cloudSettings.linkedWorkspaceId == workspaceId) {
+            "Guest local recovery retry requires active workspace '$workspaceId' to match linked workspace " +
+                "'${cloudSettings.linkedWorkspaceId}'."
+        }
+        val localWorkspace = requireNotNull(
+            database.workspaceDao().loadWorkspaceById(workspaceId = workspaceId)
+        ) {
+            "Guest local recovery retry requires local workspace '$workspaceId'."
+        }
+        requireTransitionInvariant(
+            stage = "before guest local recovery retry",
+            expectedWorkspaceId = workspaceId
+        )
+        return CloudWorkspaceSummary(
+            workspaceId = localWorkspace.workspaceId,
+            name = localWorkspace.name,
+            createdAtMillis = localWorkspace.createdAtMillis,
+            isSelected = true
+        )
     }
 
     private suspend fun applyLinkedWorkspace(

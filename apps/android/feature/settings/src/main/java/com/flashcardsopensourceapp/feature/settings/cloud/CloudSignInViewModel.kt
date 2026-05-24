@@ -153,7 +153,8 @@ class CloudSignInViewModel(
                     preferredWorkspaceId = draft.linkContext?.preferredWorkspaceId,
                     workspaces = draft.linkContext?.workspaces ?: emptyList(),
                     strings = strings,
-                    allowCreateNew = draft.linkContext?.postAuthRoute == CloudWorkspacePostAuthRoute.NONE
+                    allowCreateNew = draft.linkContext?.postAuthRoute == CloudWorkspacePostAuthRoute.NONE ||
+                        draft.linkContext?.postAuthRoute == CloudWorkspacePostAuthRoute.GUEST_LOCAL_RECOVERY
                 ),
                 pendingWorkspaceTitle = draft.pendingSelection?.let { selection ->
                     workspaceSelectionTitle(
@@ -244,7 +245,8 @@ class CloudSignInViewModel(
                 }
             }
 
-            CloudWorkspacePostAuthRoute.GUEST_LOCAL_RECOVERY,
+            CloudWorkspacePostAuthRoute.GUEST_LOCAL_RECOVERY -> CloudWorkspaceLinkSelection.CreateNew
+
             CloudWorkspacePostAuthRoute.PENDING_GUEST_UPGRADE_RECOVERY,
             CloudWorkspacePostAuthRoute.INVALID_STORED_STATE -> null
         }
@@ -264,7 +266,7 @@ class CloudSignInViewModel(
                 }
             }
             CloudWorkspacePostAuthRoute.GUEST_LOCAL_RECOVERY -> {
-                strings.get(R.string.settings_post_auth_guest_local_recovery_required)
+                ""
             }
             CloudWorkspacePostAuthRoute.PENDING_GUEST_UPGRADE_RECOVERY -> {
                 strings.get(R.string.settings_post_auth_pending_guest_upgrade_recovery_required)
@@ -629,10 +631,17 @@ class CloudSignInViewModel(
                     selection = selection
                 )
             }
-            runPostAuthSyncOnly(
-                authAttemptId = authAttemptId,
-                workspaceTitle = workspace.name
-            )
+            if (linkContext.postAuthRoute == CloudWorkspacePostAuthRoute.GUEST_LOCAL_RECOVERY) {
+                finishPostAuthSuccess(
+                    authAttemptId = authAttemptId,
+                    workspaceTitle = workspace.name
+                )
+            } else {
+                runPostAuthSyncOnly(
+                    authAttemptId = authAttemptId,
+                    workspaceTitle = workspace.name
+                )
+            }
         } catch (error: Exception) {
             if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
                 return
@@ -708,27 +717,9 @@ class CloudSignInViewModel(
             if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
                 return
             }
-            draftState.update { state ->
-                if (state.authAttemptId != authAttemptId) {
-                    return@update state
-                }
-                state.copy(
-                    email = "",
-                    code = "",
-                    challenge = null,
-                    linkContext = null,
-                    pendingSelection = null,
-                    processingTitle = "",
-                    processingMessage = "",
-                    postAuthErrorMessage = "",
-                    postAuthRecoveryBlocked = false,
-                    postAuthResetAllowed = false,
-                    retryAction = null,
-                    completionToken = System.currentTimeMillis()
-                )
-            }
-            messageController.showMessage(
-                message = strings.get(R.string.settings_post_auth_signed_in_and_synced, workspaceTitle)
+            finishPostAuthSuccess(
+                authAttemptId = authAttemptId,
+                workspaceTitle = workspaceTitle
             )
         } catch (error: Exception) {
             if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
@@ -758,6 +749,37 @@ class CloudSignInViewModel(
                 )
             }
         }
+    }
+
+    private fun finishPostAuthSuccess(
+        authAttemptId: Long,
+        workspaceTitle: String
+    ) {
+        if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
+            return
+        }
+        draftState.update { state ->
+            if (state.authAttemptId != authAttemptId) {
+                return@update state
+            }
+            state.copy(
+                email = "",
+                code = "",
+                challenge = null,
+                linkContext = null,
+                pendingSelection = null,
+                processingTitle = "",
+                processingMessage = "",
+                postAuthErrorMessage = "",
+                postAuthRecoveryBlocked = false,
+                postAuthResetAllowed = false,
+                retryAction = null,
+                completionToken = System.currentTimeMillis()
+            )
+        }
+        messageController.showMessage(
+            message = strings.get(R.string.settings_post_auth_signed_in_and_synced, workspaceTitle)
+        )
     }
 
     private fun clearPostAuthState() {
