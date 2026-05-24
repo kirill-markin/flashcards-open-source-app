@@ -1846,8 +1846,41 @@ final class CloudCredentialRecoveryTests: LocalWorkspaceSyncTestCase {
             cloudState: store.cloudSettings?.cloudState
         )
         XCTAssertEqual(
+            aiSettingsLocalized(
+                "settings.account.cloudSignIn.guestLocalRecovery.failure.title",
+                "Local data recovery failed."
+            ),
+            failurePresentation.title
+        )
+        XCTAssertEqual(
+            Optional(aiSettingsLocalized(
+                "settings.account.cloudSignIn.guestLocalRecovery.failure.message",
+                "Try again; local data stays on this device."
+            )),
+            failurePresentation.message
+        )
+        XCTAssertEqual(.guestLocalRecovery, failurePresentation.kind)
+        XCTAssertFalse(failurePresentation.allowsAccountExitActions)
+        XCTAssertEqual(
             .completeLink(linkContext: linkContext, selection: .createNew),
             failurePresentation.retryAction
+        )
+        let syncPresentation = makeCloudPostAuthSyncPresentation(
+            operation: .completeLink(linkContext: linkContext, selection: .createNew)
+        )
+        XCTAssertEqual(
+            aiSettingsLocalized(
+                "settings.account.cloudSignIn.guestLocalRecovery.recovering.title",
+                "Recovering local data"
+            ),
+            syncPresentation.title
+        )
+        XCTAssertEqual(
+            aiSettingsLocalized(
+                "settings.account.cloudSignIn.guestLocalRecovery.recovering.message",
+                "Keep this screen open while iOS reconnects local data on this device to your recovered workspace."
+            ),
+            syncPresentation.message
         )
 
         try await store.completeCloudLink(

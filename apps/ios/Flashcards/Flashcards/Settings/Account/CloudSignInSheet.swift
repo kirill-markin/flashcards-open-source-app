@@ -50,9 +50,20 @@ enum CloudPostAuthSyncOperation: Hashable {
     case syncOnly
 }
 
+enum CloudPostAuthFailureKind: Hashable {
+    case standard
+    case guestLocalRecovery
+}
+
 struct CloudPostAuthFailurePresentation: Equatable {
     let title: String
+    let message: String?
     let retryAction: CloudPostAuthRetryAction
+    let kind: CloudPostAuthFailureKind
+
+    var allowsAccountExitActions: Bool {
+        self.kind == .standard
+    }
 }
 
 func makeCloudPostAuthFailurePresentation(
@@ -62,10 +73,7 @@ func makeCloudPostAuthFailurePresentation(
     switch operation {
     case .completeLink(let linkContext, let selection):
         if linkContext.postAuthRecoveryRoute == .guestLocalRecovery {
-            return CloudPostAuthFailurePresentation(
-                title: cloudState == .linked
-                    ? aiSettingsLocalized("settings.account.cloudSignIn.failure.initialSyncFailed", "Signed in, but initial sync failed.")
-                    : aiSettingsLocalized("settings.account.cloudSignIn.failure.cloudSetupFailed", "Signed in, but cloud setup failed."),
+            return makeGuestLocalRecoveryPostAuthFailurePresentation(
                 retryAction: .completeLink(linkContext: linkContext, selection: selection)
             )
         }
@@ -73,38 +81,77 @@ func makeCloudPostAuthFailurePresentation(
         if cloudState == .linked {
             return CloudPostAuthFailurePresentation(
                 title: aiSettingsLocalized("settings.account.cloudSignIn.failure.initialSyncFailed", "Signed in, but initial sync failed."),
-                retryAction: .syncOnly
+                message: nil,
+                retryAction: .syncOnly,
+                kind: .standard
             )
         }
 
         return CloudPostAuthFailurePresentation(
             title: aiSettingsLocalized("settings.account.cloudSignIn.failure.cloudSetupFailed", "Signed in, but cloud setup failed."),
-            retryAction: .completeLink(linkContext: linkContext, selection: selection)
+            message: nil,
+            retryAction: .completeLink(linkContext: linkContext, selection: selection),
+            kind: .standard
         )
     case .completeGuestLink(let linkContext, let selection):
         return CloudPostAuthFailurePresentation(
             title: aiSettingsLocalized("settings.account.cloudSignIn.failure.accountUpgradeFailed", "Signed in, but account upgrade failed."),
-            retryAction: .completeGuestLink(linkContext: linkContext, selection: selection)
+            message: nil,
+            retryAction: .completeGuestLink(linkContext: linkContext, selection: selection),
+            kind: .standard
         )
     case .syncOnly:
         return CloudPostAuthFailurePresentation(
             title: aiSettingsLocalized("settings.account.cloudSignIn.failure.initialSyncFailed", "Signed in, but initial sync failed."),
-            retryAction: .syncOnly
+            message: nil,
+            retryAction: .syncOnly,
+            kind: .standard
         )
     }
+}
+
+func makeGuestLocalRecoveryPostAuthFailurePresentation(
+    retryAction: CloudPostAuthRetryAction
+) -> CloudPostAuthFailurePresentation {
+    CloudPostAuthFailurePresentation(
+        title: aiSettingsLocalized(
+            "settings.account.cloudSignIn.guestLocalRecovery.failure.title",
+            "Local data recovery failed."
+        ),
+        message: aiSettingsLocalized(
+            "settings.account.cloudSignIn.guestLocalRecovery.failure.message",
+            "Try again; local data stays on this device."
+        ),
+        retryAction: retryAction,
+        kind: .guestLocalRecovery
+    )
 }
 
 private struct CloudPostAuthFailureState: Identifiable, Hashable {
     let id: String
     let title: String
     let message: String
+    let technicalDetails: String?
     let retryAction: CloudPostAuthRetryAction
+    let kind: CloudPostAuthFailureKind
 
-    init(title: String, message: String, retryAction: CloudPostAuthRetryAction) {
+    init(
+        title: String,
+        message: String,
+        technicalDetails: String?,
+        retryAction: CloudPostAuthRetryAction,
+        kind: CloudPostAuthFailureKind
+    ) {
         self.id = UUID().uuidString
         self.title = title
         self.message = message
+        self.technicalDetails = technicalDetails
         self.retryAction = retryAction
+        self.kind = kind
+    }
+
+    var allowsAccountExitActions: Bool {
+        self.kind == .standard
     }
 }
 
@@ -125,6 +172,18 @@ private struct CloudPostAuthSyncState: Identifiable, Hashable {
     init(operation: CloudPostAuthSyncOperation) {
         self.id = UUID().uuidString
         self.operation = operation
+    }
+}
+
+private struct CloudPostAuthGuestLocalRecoveryPreparationState: Identifiable, Hashable {
+    let id: String
+    let linkContext: CloudWorkspaceLinkContext
+    let selection: CloudWorkspaceLinkSelection
+
+    init(linkContext: CloudWorkspaceLinkContext, selection: CloudWorkspaceLinkSelection) {
+        self.id = UUID().uuidString
+        self.linkContext = linkContext
+        self.selection = selection
     }
 }
 
@@ -185,6 +244,32 @@ func makeCloudPostAuthSyncPresentation() -> CloudPostAuthSyncPresentation {
     )
 }
 
+func makeCloudPostAuthSyncPresentation(operation: CloudPostAuthSyncOperation) -> CloudPostAuthSyncPresentation {
+    if isGuestLocalRecoverySyncOperation(operation) {
+        return CloudPostAuthSyncPresentation(
+            title: aiSettingsLocalized(
+                "settings.account.cloudSignIn.guestLocalRecovery.recovering.title",
+                "Recovering local data"
+            ),
+            message: aiSettingsLocalized(
+                "settings.account.cloudSignIn.guestLocalRecovery.recovering.message",
+                "Keep this screen open while iOS reconnects local data on this device to your recovered workspace."
+            )
+        )
+    }
+
+    return makeCloudPostAuthSyncPresentation()
+}
+
+func isGuestLocalRecoverySyncOperation(_ operation: CloudPostAuthSyncOperation) -> Bool {
+    switch operation {
+    case .completeLink(let linkContext, _):
+        return linkContext.postAuthRecoveryRoute == .guestLocalRecovery
+    case .completeGuestLink, .syncOnly:
+        return false
+    }
+}
+
 enum CloudWorkspacePostAuthRoute: Equatable {
     case autoLink(CloudWorkspaceLinkSelection)
     case chooseWorkspace
@@ -227,6 +312,7 @@ struct CloudSignInSheet: View {
     @State private var email: String = ""
     @State private var otpSheetState: CloudOtpSheetState?
     @State private var postAuthLoadingState: CloudPostAuthLoadingState?
+    @State private var postAuthGuestLocalRecoveryPreparationState: CloudPostAuthGuestLocalRecoveryPreparationState?
     @State private var postAuthSyncState: CloudPostAuthSyncState?
     @State private var workspaceLinkContext: CloudWorkspaceLinkContext?
     @State private var postAuthRecoveryNeededState: CloudPostAuthRecoveryNeededState?
@@ -303,6 +389,7 @@ struct CloudSignInSheet: View {
                     onReturnToEmail: {
                         self.otpSheetState = nil
                         self.postAuthLoadingState = nil
+                        self.postAuthGuestLocalRecoveryPreparationState = nil
                         self.postAuthSyncState = nil
                         self.workspaceLinkContext = nil
                         self.postAuthRecoveryNeededState = nil
@@ -319,8 +406,15 @@ struct CloudSignInSheet: View {
                         await self.prepareCloudLink(verifiedContext: loadingState.verifiedContext)
                     }
             }
+            .sheet(item: self.$postAuthGuestLocalRecoveryPreparationState) { recoveryState in
+                CloudPostAuthGuestLocalRecoveryPreparationSheet()
+                    .interactiveDismissDisabled(true)
+                    .task(id: recoveryState.id) {
+                        await self.runGuestLocalRecoveryPreparation(recoveryState)
+                    }
+            }
             .sheet(item: self.$postAuthSyncState) { syncState in
-                CloudPostAuthSyncSheet()
+                CloudPostAuthSyncSheet(operation: syncState.operation)
                     .interactiveDismissDisabled(true)
                     .task(id: syncState.id) {
                         await self.runPostAuthSync(syncState)
@@ -366,6 +460,7 @@ struct CloudSignInSheet: View {
                         self.isLogoutConfirmationPresented = true
                     }
                 )
+                .interactiveDismissDisabled(failureState.kind == .guestLocalRecovery)
                 .environment(self.store)
             }
             .alert(aiSettingsLocalized("settings.account.status.logoutAlertTitle", "Log out and clear this device?"), isPresented: self.$isLogoutConfirmationPresented) {
@@ -388,7 +483,9 @@ struct CloudSignInSheet: View {
     }
 
     private var isPostAuthActionInFlight: Bool {
-        self.postAuthLoadingState != nil || self.postAuthSyncState != nil
+        self.postAuthLoadingState != nil
+            || self.postAuthGuestLocalRecoveryPreparationState != nil
+            || self.postAuthSyncState != nil
     }
 
     private func scheduleEmailFieldFocus() {
@@ -475,12 +572,20 @@ struct CloudSignInSheet: View {
     private func handlePreparedLinkContext(_ linkContext: CloudWorkspaceLinkContext) {
         self.authErrorPresentation = nil
         self.postAuthLoadingState = nil
+        self.postAuthGuestLocalRecoveryPreparationState = nil
         self.postAuthRecoveryNeededState = nil
         self.postAuthFailureState = nil
 
         switch makeCloudWorkspacePostAuthRoute(linkContext: linkContext) {
         case .autoLink(let selection):
-            self.completeLink(linkContext: linkContext, selection: selection)
+            if linkContext.postAuthRecoveryRoute == .guestLocalRecovery {
+                self.postAuthGuestLocalRecoveryPreparationState = CloudPostAuthGuestLocalRecoveryPreparationState(
+                    linkContext: linkContext,
+                    selection: selection
+                )
+            } else {
+                self.completeLink(linkContext: linkContext, selection: selection)
+            }
         case .chooseWorkspace:
             self.workspaceLinkContext = linkContext
         case .guestLocalRecoveryNeeded:
@@ -495,6 +600,7 @@ struct CloudSignInSheet: View {
     private func handleVerifiedAuthContext(_ verifiedContext: CloudVerifiedAuthContext) {
         self.otpSheetState = nil
         self.postAuthLoadingState = CloudPostAuthLoadingState(verifiedContext: verifiedContext)
+        self.postAuthGuestLocalRecoveryPreparationState = nil
         self.postAuthSyncState = nil
         self.workspaceLinkContext = nil
         self.postAuthRecoveryNeededState = nil
@@ -508,12 +614,28 @@ struct CloudSignInSheet: View {
             self.handlePreparedLinkContext(linkContext)
         } catch {
             self.postAuthLoadingState = nil
+            self.postAuthGuestLocalRecoveryPreparationState = nil
             self.postAuthSyncState = nil
-            self.presentPostAuthFailure(
-                title: aiSettingsLocalized("settings.account.cloudSignIn.failure.cloudSetupFailed", "Signed in, but cloud setup failed."),
-                message: Flashcards.errorMessage(error: error),
-                retryAction: .prepareLink(verifiedContext: verifiedContext)
-            )
+            if self.store.cloudCredentialRecoveryState?.reason == .guestSessionMissing {
+                let failurePresentation = makeGuestLocalRecoveryPostAuthFailurePresentation(
+                    retryAction: .prepareLink(verifiedContext: verifiedContext)
+                )
+                self.presentPostAuthFailure(
+                    title: failurePresentation.title,
+                    message: failurePresentation.message ?? Flashcards.errorMessage(error: error),
+                    technicalDetails: Flashcards.errorMessage(error: error),
+                    retryAction: failurePresentation.retryAction,
+                    kind: failurePresentation.kind
+                )
+            } else {
+                self.presentPostAuthFailure(
+                    title: aiSettingsLocalized("settings.account.cloudSignIn.failure.cloudSetupFailed", "Signed in, but cloud setup failed."),
+                    message: Flashcards.errorMessage(error: error),
+                    technicalDetails: nil,
+                    retryAction: .prepareLink(verifiedContext: verifiedContext),
+                    kind: .standard
+                )
+            }
         }
     }
 
@@ -526,6 +648,20 @@ struct CloudSignInSheet: View {
             operation: linkContext.guestUpgradeMode != nil
                 ? .completeGuestLink(linkContext: linkContext, selection: selection)
                 : .completeLink(linkContext: linkContext, selection: selection)
+        )
+    }
+
+    private func runGuestLocalRecoveryPreparation(_ recoveryState: CloudPostAuthGuestLocalRecoveryPreparationState) async {
+        guard self.postAuthGuestLocalRecoveryPreparationState?.id == recoveryState.id else {
+            return
+        }
+
+        self.postAuthGuestLocalRecoveryPreparationState = nil
+        self.presentPostAuthSync(
+            operation: .completeLink(
+                linkContext: recoveryState.linkContext,
+                selection: recoveryState.selection
+            )
         )
     }
 
@@ -549,6 +685,7 @@ struct CloudSignInSheet: View {
 
         self.authErrorPresentation = nil
         self.postAuthLoadingState = nil
+        self.postAuthGuestLocalRecoveryPreparationState = nil
         self.postAuthSyncState = nil
         self.workspaceLinkContext = nil
         self.postAuthRecoveryNeededState = nil
@@ -601,8 +738,12 @@ struct CloudSignInSheet: View {
             self.postAuthSyncState = nil
             self.presentPostAuthFailure(
                 title: failurePresentation.title,
-                message: Flashcards.errorMessage(error: error),
-                retryAction: failurePresentation.retryAction
+                message: failurePresentation.message ?? Flashcards.errorMessage(error: error),
+                technicalDetails: failurePresentation.kind == .guestLocalRecovery
+                    ? Flashcards.errorMessage(error: error)
+                    : nil,
+                retryAction: failurePresentation.retryAction,
+                kind: failurePresentation.kind
             )
         }
     }
@@ -610,16 +751,21 @@ struct CloudSignInSheet: View {
     private func presentPostAuthFailure(
         title: String,
         message: String,
-        retryAction: CloudPostAuthRetryAction
+        technicalDetails: String?,
+        retryAction: CloudPostAuthRetryAction,
+        kind: CloudPostAuthFailureKind
     ) {
         self.authErrorPresentation = nil
         self.postAuthLoadingState = nil
+        self.postAuthGuestLocalRecoveryPreparationState = nil
         self.postAuthSyncState = nil
         self.postAuthRecoveryNeededState = nil
         self.postAuthFailureState = CloudPostAuthFailureState(
             title: title,
             message: message,
-            retryAction: retryAction
+            technicalDetails: technicalDetails,
+            retryAction: retryAction,
+            kind: kind
         )
     }
 
@@ -634,6 +780,7 @@ struct CloudSignInSheet: View {
         }
 
         self.postAuthLoadingState = nil
+        self.postAuthGuestLocalRecoveryPreparationState = nil
         self.postAuthSyncState = nil
         self.postAuthFailureState = nil
         self.workspaceLinkContext = nil
@@ -1088,6 +1235,18 @@ private struct CloudPostAuthFailureSheet: View {
     let onClose: () -> Void
     let onLogout: () -> Void
 
+    private var isRetryButtonDisabled: Bool {
+        if self.isRetryDisabled {
+            return true
+        }
+
+        guard self.state.kind == .standard else {
+            return false
+        }
+
+        return isCloudSignInSyncInFlight(status: self.store.syncStatus)
+    }
+
     var body: some View {
         NavigationStack {
             ReadableContentLayout(
@@ -1095,40 +1254,115 @@ private struct CloudPostAuthFailureSheet: View {
                 horizontalPadding: 0
             ) {
                 Form {
-                    Section {
-                        CopyableErrorMessageView(message: self.state.message)
-                            .accessibilityIdentifier(UITestIdentifier.cloudSignInPostAuthFailureMessage)
+                    if self.state.kind == .standard {
+                        Section {
+                            CopyableErrorMessageView(message: self.state.message)
+                                .accessibilityIdentifier(UITestIdentifier.cloudSignInPostAuthFailureMessage)
+                        }
                     }
 
                     Section(aiSettingsLocalized("settings.account.cloudSignIn.section.cloudAccount", "Cloud account")) {
                         Text(self.state.title)
                             .font(.headline)
-                        Text(
-                            aiSettingsLocalized(
-                                "settings.account.cloudSignIn.failureDescription",
-                                "Your sign-in succeeded, but the cloud workspace setup or initial sync did not finish."
-                            )
-                        )
-                            .foregroundStyle(.secondary)
+                        if self.state.kind == .guestLocalRecovery {
+                            Text(self.failureDescription)
+                                .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                                .accessibilityIdentifier(UITestIdentifier.cloudSignInPostAuthFailureMessage)
+                        } else {
+                            Text(self.failureDescription)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    if let technicalDetails = self.state.technicalDetails {
+                        Section {
+                            DisclosureGroup(aiSettingsLocalized("settings.account.cloudSignIn.technicalDetails", "Technical details")) {
+                                Text(technicalDetails)
+                                    .font(.caption.monospaced())
+                                    .foregroundStyle(.secondary)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .textSelection(.enabled)
+                                    .padding(.top, 4)
+                                    .contextMenu {
+                                        Button(aiSettingsLocalized("settings.account.cloudSignIn.copyTechnicalDetails", "Copy technical details")) {
+                                            UIPasteboard.general.string = technicalDetails
+                                        }
+                                    }
+                            }
+                            .tint(.secondary)
+                        }
                     }
 
                     Section {
                         Button(aiSettingsLocalized("common.retry", "Retry")) {
                             self.onRetry()
                         }
-                        .disabled(self.isRetryDisabled || isCloudSignInSyncInFlight(status: self.store.syncStatus))
+                        .disabled(self.isRetryButtonDisabled)
 
-                        Button(aiSettingsLocalized("common.close", "Close")) {
-                            self.onClose()
-                        }
+                        if self.state.allowsAccountExitActions {
+                            Button(aiSettingsLocalized("common.close", "Close")) {
+                                self.onClose()
+                            }
 
-                        Button(aiSettingsLocalized("settings.account.status.logOut", "Log out"), role: .destructive) {
-                            self.onLogout()
+                            Button(aiSettingsLocalized("settings.account.status.logOut", "Log out"), role: .destructive) {
+                                self.onLogout()
+                            }
                         }
                     }
                 }
             }
             .accessibilityIdentifier(UITestIdentifier.cloudSignInPostAuthFailureScreen)
+            .navigationTitle(aiSettingsLocalized("settings.account.cloudSignIn.cloudSyncTitle", "Cloud sync"))
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    private var failureDescription: String {
+        switch self.state.kind {
+        case .standard:
+            return aiSettingsLocalized(
+                "settings.account.cloudSignIn.failureDescription",
+                "Your sign-in succeeded, but the cloud workspace setup or initial sync did not finish."
+            )
+        case .guestLocalRecovery:
+            return self.state.message
+        }
+    }
+}
+
+private struct CloudPostAuthGuestLocalRecoveryPreparationSheet: View {
+    var body: some View {
+        NavigationStack {
+            ReadableContentLayout(
+                maxWidth: flashcardsReadableFormMaxWidth,
+                horizontalPadding: 24
+            ) {
+                VStack(spacing: 16) {
+                    ProgressView()
+                        .progressViewStyle(.circular)
+
+                    Text(
+                        aiSettingsLocalized(
+                            "settings.account.cloudSignIn.guestLocalRecovery.prepare.title",
+                            "Preparing recovered workspace..."
+                        )
+                    )
+                    .font(.headline)
+                    .multilineTextAlignment(.center)
+
+                    Text(
+                        aiSettingsLocalized(
+                            "settings.account.cloudSignIn.guestLocalRecovery.prepare.message",
+                            "Local data is still on this device. Keep this screen open while iOS prepares a recovered workspace."
+                        )
+                    )
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .accessibilityIdentifier(UITestIdentifier.cloudSignInPostAuthSyncScreen)
             .navigationTitle(aiSettingsLocalized("settings.account.cloudSignIn.cloudSyncTitle", "Cloud sync"))
             .navigationBarTitleDisplayMode(.inline)
         }
@@ -1173,7 +1407,11 @@ private struct CloudPostAuthLoadingSheet: View {
 }
 
 private struct CloudPostAuthSyncSheet: View {
-    private let presentation: CloudPostAuthSyncPresentation = makeCloudPostAuthSyncPresentation()
+    private let presentation: CloudPostAuthSyncPresentation
+
+    init(operation: CloudPostAuthSyncOperation) {
+        self.presentation = makeCloudPostAuthSyncPresentation(operation: operation)
+    }
 
     var body: some View {
         NavigationStack {
