@@ -324,4 +324,10 @@ final class CloudSyncService: @unchecked Sendable {
             linkedSession: linkedSession
         )
     }
+
+    func runGuestLocalRecoveryLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
+        try await CloudSyncRunner(database: self.database, transport: self.transport).runGuestLocalRecoveryLinkedSync(
+            linkedSession: linkedSession
+        )
+    }
 }

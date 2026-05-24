@@ -627,6 +627,10 @@ enum AIChatStoreTestSupport {
                 cleanedUpReviewScheduleImpactingOperationCount: 0
             )
         }
+
+        func runGuestLocalRecoveryLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
+            try await self.runLinkedSync(linkedSession: linkedSession)
+        }
     }
 
     @MainActor

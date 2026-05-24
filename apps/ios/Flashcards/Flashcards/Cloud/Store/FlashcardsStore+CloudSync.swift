@@ -506,6 +506,10 @@ extension FlashcardsStore {
     func runLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
         try self.enforceCloudCredentialRecoveryGateOutsideIdentityResolution(detectedAt: Date())
         do {
+            if try self.shouldRunGuestLocalRecoveryLinkedSync(linkedSession: linkedSession) {
+                return try await self.cloudRuntime.runGuestLocalRecoveryLinkedSync(linkedSession: linkedSession)
+            }
+
             return try await self.cloudRuntime.runLinkedSync(linkedSession: linkedSession)
         } catch {
             throw try self.failureErrorAfterApplyingLocalIdRepairSideEffectsIfNeeded(
@@ -513,6 +517,19 @@ extension FlashcardsStore {
                 now: Date()
             )
         }
+    }
+
+    private func shouldRunGuestLocalRecoveryLinkedSync(linkedSession: CloudLinkedSession) throws -> Bool {
+        guard let recoveryState = self.cloudCredentialRecoveryState,
+            recoveryState.reason == .guestSessionMissing else {
+            return false
+        }
+
+        try self.validateGuestLocalRecoveryState(
+            recoveryState: recoveryState,
+            apiBaseUrl: linkedSession.apiBaseUrl
+        )
+        return linkedSession.authorization.isGuest == false
     }
 
     func runFreshLinkedSyncAfterActiveSyncSettles(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {

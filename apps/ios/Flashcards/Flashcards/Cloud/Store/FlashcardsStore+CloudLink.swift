@@ -60,7 +60,15 @@ extension FlashcardsStore {
         case .linkedCredentialRestore:
             return try await self.prepareLinkedCredentialRecoveryLink(verifiedContext: verifiedContext)
         case .guestLocalRecovery:
-            return try await self.prepareGuestLocalRecoveryLink(verifiedContext: verifiedContext)
+            return try await self.prepareGuestLocalRecoveryLink(
+                verifiedContext: verifiedContext,
+                postAuthRecoveryRoute: .guestLocalRecovery
+            )
+        case .pendingGuestUpgradeMissingGuestSessionRecovery:
+            return try await self.prepareGuestLocalRecoveryLink(
+                verifiedContext: verifiedContext,
+                postAuthRecoveryRoute: .pendingGuestUpgradeMissingGuestSessionRecovery
+            )
         case .pendingGuestUpgradeRecovery:
             return try await self.prepareStandardCloudLink(
                 verifiedContext: verifiedContext,
@@ -186,7 +194,8 @@ extension FlashcardsStore {
     }
 
     private func prepareGuestLocalRecoveryLink(
-        verifiedContext: CloudVerifiedAuthContext
+        verifiedContext: CloudVerifiedAuthContext,
+        postAuthRecoveryRoute: CloudPostAuthRecoveryRoute
     ) async throws -> CloudWorkspaceLinkContext {
         let account = try await self.cloudRuntime.fetchCloudAccount(verifiedContext: verifiedContext)
 
@@ -198,7 +207,7 @@ extension FlashcardsStore {
             credentials: verifiedContext.credentials,
             workspaces: account.workspaces,
             guestUpgradeMode: nil,
-            postAuthRecoveryRoute: .guestLocalRecovery
+            postAuthRecoveryRoute: postAuthRecoveryRoute
         )
     }
 
@@ -206,6 +215,14 @@ extension FlashcardsStore {
         linkContext: CloudWorkspaceLinkContext,
         selection: CloudWorkspaceLinkSelection
     ) async throws {
+        if linkContext.postAuthRecoveryRoute == .guestLocalRecovery {
+            try await self.completeGuestLocalRecoveryCloudLink(
+                linkContext: linkContext,
+                selection: selection
+            )
+            return
+        }
+
         _ = try await self.cloudRuntime.runWorkspaceCompletion { [weak self] in
             guard let self else {
                 throw LocalStoreError.uninitialized("Flashcards store is unavailable")
@@ -288,6 +305,281 @@ extension FlashcardsStore {
             self.globalErrorMessage = ""
             return linkedWorkspace
         }
+    }
+
+    private func completeGuestLocalRecoveryCloudLink(
+        linkContext: CloudWorkspaceLinkContext,
+        selection: CloudWorkspaceLinkSelection
+    ) async throws {
+        _ = try await self.cloudRuntime.runWorkspaceCompletion { [weak self] in
+            guard let self else {
+                throw LocalStoreError.uninitialized("Flashcards store is unavailable")
+            }
+
+            guard let workspace = self.workspace else {
+                throw LocalStoreError.uninitialized("Workspace is unavailable")
+            }
+
+            let trigger = self.manualCloudSyncTrigger(now: Date())
+            let recoveryState = try self.validateGuestLocalRecoveryBeforeCloudLinkCompletion(
+                linkContext: linkContext,
+                selection: selection
+            )
+            let configuration = try self.currentCloudServiceConfiguration()
+
+            let linkedWorkspace: CloudWorkspaceSummary
+            var credentials: StoredCloudCredentials
+            if let retryWorkspace = try self.guestLocalRecoveryRetryWorkspace(linkContext: linkContext) {
+                linkedWorkspace = retryWorkspace
+                credentials = try await self.guestLocalRecoveryCredentials(
+                    linkContextCredentials: linkContext.credentials,
+                    configuration: configuration,
+                    forceRefresh: false
+                )
+            } else if let checkpointWorkspace = try self.guestLocalRecoveryCheckpointWorkspace(
+                linkContext: linkContext,
+                recoveryState: recoveryState
+            ) {
+                linkedWorkspace = checkpointWorkspace
+                credentials = try await self.guestLocalRecoveryCredentials(
+                    linkContextCredentials: linkContext.credentials,
+                    configuration: configuration,
+                    forceRefresh: false
+                )
+            } else {
+                credentials = try await self.guestLocalRecoveryCredentials(
+                    linkContextCredentials: linkContext.credentials,
+                    configuration: configuration,
+                    forceRefresh: false
+                )
+                let workspaceCreation = try await self.createGuestLocalRecoveryWorkspace(
+                    linkContext: linkContext,
+                    configuration: configuration,
+                    localWorkspaceName: workspace.name,
+                    credentials: credentials
+                )
+                linkedWorkspace = workspaceCreation.workspace
+                credentials = workspaceCreation.credentials
+                try self.saveGuestLocalRecoveryWorkspaceCheckpoint(
+                    linkContext: linkContext,
+                    recoveryState: recoveryState,
+                    workspace: linkedWorkspace
+                )
+            }
+
+            _ = try await self.finishGuestLocalRecoveryCloudLink(
+                linkContext: linkContext,
+                linkedWorkspace: linkedWorkspace,
+                configuration: configuration,
+                credentials: credentials,
+                trigger: trigger
+            )
+            self.clearPendingGuestUpgradeStateAndUnblockMutations()
+            try self.clearGuestSessionIfNeeded()
+            self.clearCloudCredentialRecoveryState()
+            self.globalErrorMessage = ""
+            return linkedWorkspace
+        }
+    }
+
+    private func guestLocalRecoveryCredentials(
+        linkContextCredentials: StoredCloudCredentials,
+        configuration: CloudServiceConfiguration,
+        forceRefresh: Bool
+    ) async throws -> StoredCloudCredentials {
+        let storedCredentials = try self.cloudRuntime.loadCredentials()
+        if let storedCredentials {
+            if storedCredentials.refreshToken != linkContextCredentials.refreshToken {
+                try self.cloudRuntime.saveCredentials(credentials: linkContextCredentials)
+            }
+        } else {
+            try self.cloudRuntime.saveCredentials(credentials: linkContextCredentials)
+        }
+
+        return try await self.cloudRuntime.refreshCloudCredentials(
+            forceRefresh: forceRefresh,
+            configuration: configuration,
+            now: Date()
+        )
+    }
+
+    private func createGuestLocalRecoveryWorkspace(
+        linkContext: CloudWorkspaceLinkContext,
+        configuration: CloudServiceConfiguration,
+        localWorkspaceName: String,
+        credentials: StoredCloudCredentials
+    ) async throws -> (workspace: CloudWorkspaceSummary, credentials: StoredCloudCredentials) {
+        do {
+            let workspace = try await self.cloudRuntime.selectOrCreateWorkspace(
+                linkContext: self.guestLocalRecoveryLinkContext(
+                    linkContext: linkContext,
+                    credentials: credentials
+                ),
+                selection: .createNew,
+                localWorkspaceName: localWorkspaceName
+            )
+            return (workspace, credentials)
+        } catch {
+            guard self.isCloudAuthorizationError(error) else {
+                throw error
+            }
+        }
+
+        let refreshedCredentials = try await self.guestLocalRecoveryCredentials(
+            linkContextCredentials: linkContext.credentials,
+            configuration: configuration,
+            forceRefresh: true
+        )
+        let workspace = try await self.cloudRuntime.selectOrCreateWorkspace(
+            linkContext: self.guestLocalRecoveryLinkContext(
+                linkContext: linkContext,
+                credentials: refreshedCredentials
+            ),
+            selection: .createNew,
+            localWorkspaceName: localWorkspaceName
+        )
+        return (workspace, refreshedCredentials)
+    }
+
+    private func finishGuestLocalRecoveryCloudLink(
+        linkContext: CloudWorkspaceLinkContext,
+        linkedWorkspace: CloudWorkspaceSummary,
+        configuration: CloudServiceConfiguration,
+        credentials: StoredCloudCredentials,
+        trigger: CloudSyncTrigger
+    ) async throws -> CloudLinkedSession {
+        let linkedSession = self.guestLocalRecoveryLinkedSession(
+            linkContext: linkContext,
+            linkedWorkspace: linkedWorkspace,
+            configuration: configuration,
+            credentials: credentials
+        )
+
+        do {
+            try await self.finishCloudLink(linkedSession: linkedSession, trigger: trigger)
+            return linkedSession
+        } catch {
+            guard self.isCloudAuthorizationError(error) else {
+                throw error
+            }
+        }
+
+        let refreshedCredentials = try await self.guestLocalRecoveryCredentials(
+            linkContextCredentials: linkContext.credentials,
+            configuration: configuration,
+            forceRefresh: true
+        )
+        let refreshedSession = self.guestLocalRecoveryLinkedSession(
+            linkContext: linkContext,
+            linkedWorkspace: linkedWorkspace,
+            configuration: configuration,
+            credentials: refreshedCredentials
+        )
+        try await self.finishCloudLink(linkedSession: refreshedSession, trigger: trigger)
+        return refreshedSession
+    }
+
+    private func guestLocalRecoveryLinkContext(
+        linkContext: CloudWorkspaceLinkContext,
+        credentials: StoredCloudCredentials
+    ) -> CloudWorkspaceLinkContext {
+        CloudWorkspaceLinkContext(
+            userId: linkContext.userId,
+            email: linkContext.email,
+            apiBaseUrl: linkContext.apiBaseUrl,
+            credentials: credentials,
+            workspaces: linkContext.workspaces,
+            guestUpgradeMode: linkContext.guestUpgradeMode,
+            postAuthRecoveryRoute: linkContext.postAuthRecoveryRoute
+        )
+    }
+
+    private func guestLocalRecoveryLinkedSession(
+        linkContext: CloudWorkspaceLinkContext,
+        linkedWorkspace: CloudWorkspaceSummary,
+        configuration: CloudServiceConfiguration,
+        credentials: StoredCloudCredentials
+    ) -> CloudLinkedSession {
+        CloudLinkedSession(
+            userId: linkContext.userId,
+            workspaceId: linkedWorkspace.workspaceId,
+            email: linkContext.email,
+            configurationMode: configuration.mode,
+            apiBaseUrl: linkContext.apiBaseUrl,
+            authorization: .bearer(credentials.idToken)
+        )
+    }
+
+    private func guestLocalRecoveryRetryWorkspace(
+        linkContext: CloudWorkspaceLinkContext
+    ) throws -> CloudWorkspaceSummary? {
+        guard let cloudSettings = self.cloudSettings,
+            cloudSettings.cloudState == .linked,
+            cloudSettings.linkedUserId == linkContext.userId else {
+            return nil
+        }
+
+        let targetWorkspaceId = cloudSettings.activeWorkspaceId ?? cloudSettings.linkedWorkspaceId
+        guard let workspace = self.workspace,
+            targetWorkspaceId == workspace.workspaceId else {
+            return nil
+        }
+
+        let configuration = try self.currentCloudServiceConfiguration()
+        guard configuration.apiBaseUrl == linkContext.apiBaseUrl else {
+            return nil
+        }
+
+        return CloudWorkspaceSummary(
+            workspaceId: workspace.workspaceId,
+            name: workspace.name,
+            createdAt: workspace.createdAt,
+            isSelected: true
+        )
+    }
+
+    private func guestLocalRecoveryCheckpointWorkspace(
+        linkContext: CloudWorkspaceLinkContext,
+        recoveryState: CloudCredentialRecoveryState
+    ) throws -> CloudWorkspaceSummary? {
+        guard let checkpoint = try loadGuestLocalRecoveryWorkspaceCheckpoint(
+            userDefaults: self.userDefaults,
+            decoder: self.decoder
+        ) else {
+            return nil
+        }
+
+        let configuration = try self.currentCloudServiceConfiguration()
+        guard checkpoint.userId == linkContext.userId,
+            checkpoint.apiBaseUrl == linkContext.apiBaseUrl,
+            checkpoint.configurationMode == configuration.mode,
+            checkpoint.recoveryDetectedAt == recoveryState.detectedAt else {
+            self.blockCloudSyncForCredentialRecovery()
+            throw LocalStoreError.validation(
+                localizedCloudCredentialRecoveryBlockedMessage(reason: .guestSessionMissing)
+            )
+        }
+
+        return checkpoint.workspace
+    }
+
+    private func saveGuestLocalRecoveryWorkspaceCheckpoint(
+        linkContext: CloudWorkspaceLinkContext,
+        recoveryState: CloudCredentialRecoveryState,
+        workspace: CloudWorkspaceSummary
+    ) throws {
+        let configuration = try self.currentCloudServiceConfiguration()
+        try Flashcards.saveGuestLocalRecoveryWorkspaceCheckpoint(
+            checkpoint: GuestLocalRecoveryWorkspaceCheckpoint(
+                userId: linkContext.userId,
+                apiBaseUrl: linkContext.apiBaseUrl,
+                configurationMode: configuration.mode,
+                recoveryDetectedAt: recoveryState.detectedAt,
+                workspace: workspace
+            ),
+            userDefaults: self.userDefaults,
+            encoder: self.encoder
+        )
     }
 
     private func prepareCompletedPendingGuestUpgradeRecoveryLink(

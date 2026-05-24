@@ -278,6 +278,11 @@ final class ProgressCloudSyncService: CloudSyncServing {
         _ = linkedSession
         fatalError("Progress refresh should not trigger sync in progress tests.")
     }
+
+    func runGuestLocalRecoveryLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
+        _ = linkedSession
+        fatalError("Progress refresh should not trigger guest local recovery sync in progress tests.")
+    }
 }
 
 @MainActor

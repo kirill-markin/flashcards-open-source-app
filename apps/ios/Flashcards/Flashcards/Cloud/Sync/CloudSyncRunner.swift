@@ -55,6 +55,23 @@ struct CloudSyncRunner {
     }
 
     func runLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
+        try await self.runLinkedSync(
+            linkedSession: linkedSession,
+            importsLocalReviewHistoryBeforeReviewPull: false
+        )
+    }
+
+    func runGuestLocalRecoveryLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
+        try await self.runLinkedSync(
+            linkedSession: linkedSession,
+            importsLocalReviewHistoryBeforeReviewPull: true
+        )
+    }
+
+    private func runLinkedSync(
+        linkedSession: CloudLinkedSession,
+        importsLocalReviewHistoryBeforeReviewPull: Bool
+    ) async throws -> CloudSyncResult {
         let cloudSettings = try self.database.loadBootstrapSnapshot().cloudSettings
         let workspaceId = linkedSession.workspaceId
         let syncBasePath = "/workspaces/\(workspaceId)/sync"
@@ -67,7 +84,8 @@ struct CloudSyncRunner {
                     linkedSession: linkedSession,
                     workspaceId: workspaceId,
                     installationId: cloudSettings.installationId,
-                    syncBasePath: syncBasePath
+                    syncBasePath: syncBasePath,
+                    importsLocalReviewHistoryBeforeReviewPull: importsLocalReviewHistoryBeforeReviewPull
                 )
 
                 guard publicWorkspaceForkRepairEntityTypes.isEmpty == false else {
@@ -108,7 +126,8 @@ struct CloudSyncRunner {
         linkedSession: CloudLinkedSession,
         workspaceId: String,
         installationId: String,
-        syncBasePath: String
+        syncBasePath: String,
+        importsLocalReviewHistoryBeforeReviewPull: Bool
     ) async throws -> CloudSyncResult {
         var syncResult = try self.cleanupStaleReviewEventOutboxEntries(
             workspaceId: workspaceId,
@@ -154,6 +173,20 @@ struct CloudSyncRunner {
             )
         }
         syncResult = syncResult.merging(hotPullResult)
+        if importsLocalReviewHistoryBeforeReviewPull,
+            try self.database.hasHydratedReviewHistory(workspaceId: workspaceId) == false {
+            // Guest local recovery creates a new workspace. If review history is
+            // still unhydrated here, an earlier attempt may have pushed hot state
+            // before review-history import completed.
+            syncResult = syncResult.merging(
+                try await self.importLocalReviewHistory(
+                    linkedSession: linkedSession,
+                    workspaceId: workspaceId,
+                    installationId: installationId,
+                    syncBasePath: syncBasePath
+                )
+            )
+        }
         syncResult = syncResult.merging(
             try await self.pullReviewHistory(
                 linkedSession: linkedSession,
@@ -547,31 +580,13 @@ struct CloudSyncRunner {
             bootstrapHotChangeId = responseHotChangeId
         }
 
-        var nextReviewSequenceId: Int64 = 0
-        if reviewEvents.isEmpty == false {
-            var startIndex = 0
-            while startIndex < reviewEvents.count {
-                let endIndex = min(startIndex + 200, reviewEvents.count)
-                let response: RemoteReviewHistoryImportResponseEnvelope = try await self.transport.request(
-                    apiBaseUrl: linkedSession.apiBaseUrl,
-                    authorizationHeader: linkedSession.authorization.headerValue,
-                    path: "\(syncBasePath)/review-history/import",
-                    method: "POST",
-                    body: ReviewHistoryImportRequest(
-                        installationId: installationId,
-                        platform: "ios",
-                        appVersion: self.transport.appVersion(),
-                        reviewEvents: Array(reviewEvents[startIndex..<endIndex])
-                    )
-                )
-                guard let responseReviewSequenceId = response.nextReviewSequenceId else {
-                    throw LocalStoreError.validation("Review history import response is missing nextReviewSequenceId")
-                }
-
-                nextReviewSequenceId = responseReviewSequenceId
-                startIndex = endIndex
-            }
-        }
+        let nextReviewSequenceId = try await self.importReviewEventsToRemote(
+            linkedSession: linkedSession,
+            installationId: installationId,
+            syncBasePath: syncBasePath,
+            initialReviewSequenceId: 0,
+            reviewEvents: reviewEvents
+        )
 
         try self.database.deleteAllOutboxEntries(workspaceId: workspaceId)
         try self.database.setLastAppliedHotChangeId(
@@ -608,6 +623,83 @@ struct CloudSyncRunner {
             cleanedUpReviewEventOperationCount: pendingReviewEventOutboxCount,
             cleanedUpReviewScheduleImpactingOperationCount: pendingReviewScheduleImpactingOutboxCount
         )
+    }
+
+    private func importLocalReviewHistory(
+        linkedSession: CloudLinkedSession,
+        workspaceId: String,
+        installationId: String,
+        syncBasePath: String
+    ) async throws -> CloudSyncResult {
+        let reviewEvents = try self.database.loadReviewEvents(workspaceId: workspaceId)
+        let currentReviewSequenceId = try self.database.loadLastAppliedReviewSequenceId(workspaceId: workspaceId)
+        let nextReviewSequenceId = try await self.importReviewEventsToRemote(
+            linkedSession: linkedSession,
+            installationId: installationId,
+            syncBasePath: syncBasePath,
+            initialReviewSequenceId: currentReviewSequenceId,
+            reviewEvents: reviewEvents
+        )
+
+        try self.database.setLastAppliedReviewSequenceId(
+            workspaceId: workspaceId,
+            reviewSequenceId: nextReviewSequenceId
+        )
+        try self.database.setHasHydratedReviewHistory(
+            workspaceId: workspaceId,
+            hasHydratedReviewHistory: true
+        )
+
+        guard reviewEvents.isEmpty == false else {
+            return .noChanges
+        }
+
+        return CloudSyncResult(
+            appliedPullChangeCount: 0,
+            reviewScheduleImpactingPullChangeCount: 0,
+            changedEntityTypes: [.reviewEvent],
+            localIdRepairEntityTypes: [],
+            acknowledgedOperationCount: 0,
+            acknowledgedReviewEventOperationCount: 0,
+            acknowledgedReviewScheduleImpactingOperationCount: 0,
+            cleanedUpOperationCount: 0,
+            cleanedUpReviewEventOperationCount: 0,
+            cleanedUpReviewScheduleImpactingOperationCount: 0
+        )
+    }
+
+    private func importReviewEventsToRemote(
+        linkedSession: CloudLinkedSession,
+        installationId: String,
+        syncBasePath: String,
+        initialReviewSequenceId: Int64,
+        reviewEvents: [ReviewEvent]
+    ) async throws -> Int64 {
+        var nextReviewSequenceId = initialReviewSequenceId
+        var startIndex = 0
+        while startIndex < reviewEvents.count {
+            let endIndex = min(startIndex + 200, reviewEvents.count)
+            let response: RemoteReviewHistoryImportResponseEnvelope = try await self.transport.request(
+                apiBaseUrl: linkedSession.apiBaseUrl,
+                authorizationHeader: linkedSession.authorization.headerValue,
+                path: "\(syncBasePath)/review-history/import",
+                method: "POST",
+                body: ReviewHistoryImportRequest(
+                    installationId: installationId,
+                    platform: "ios",
+                    appVersion: self.transport.appVersion(),
+                    reviewEvents: Array(reviewEvents[startIndex..<endIndex])
+                )
+            )
+            guard let responseReviewSequenceId = response.nextReviewSequenceId else {
+                throw LocalStoreError.validation("Review history import response is missing nextReviewSequenceId")
+            }
+
+            nextReviewSequenceId = responseReviewSequenceId
+            startIndex = endIndex
+        }
+
+        return nextReviewSequenceId
     }
 
     private func pushOutboxBatches(

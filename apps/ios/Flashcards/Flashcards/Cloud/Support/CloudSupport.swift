@@ -38,6 +38,7 @@ enum AppConfigurationError: LocalizedError, Equatable {
 let customCloudServerOverrideUserDefaultsKey: String = "custom-cloud-server-override"
 let pendingCloudServerBootstrapUserDefaultsKey: String = "pending-cloud-server-bootstrap"
 let cloudCredentialRecoveryStateUserDefaultsKey: String = "cloud-credential-recovery-state"
+let guestLocalRecoveryWorkspaceCheckpointUserDefaultsKey: String = "guest-local-recovery-workspace-checkpoint"
 let flashcardsRepositoryUrl: String = "https://github.com/kirill-markin/flashcards-open-source-app"
 
 var flashcardsPrivacyPolicyUrl: String {
@@ -192,6 +193,43 @@ func saveCloudCredentialRecoveryState(
 
 func clearCloudCredentialRecoveryState(userDefaults: UserDefaults) {
     userDefaults.removeObject(forKey: cloudCredentialRecoveryStateUserDefaultsKey)
+    clearGuestLocalRecoveryWorkspaceCheckpoint(userDefaults: userDefaults)
+}
+
+func loadGuestLocalRecoveryWorkspaceCheckpoint(
+    userDefaults: UserDefaults,
+    decoder: JSONDecoder
+) throws -> GuestLocalRecoveryWorkspaceCheckpoint? {
+    guard let storedData = userDefaults.data(forKey: guestLocalRecoveryWorkspaceCheckpointUserDefaultsKey) else {
+        return nil
+    }
+
+    do {
+        return try decoder.decode(GuestLocalRecoveryWorkspaceCheckpoint.self, from: storedData)
+    } catch {
+        throw LocalStoreError.validation(
+            "Guest local recovery workspace checkpoint is invalid: \(Flashcards.errorMessage(error: error))"
+        )
+    }
+}
+
+func saveGuestLocalRecoveryWorkspaceCheckpoint(
+    checkpoint: GuestLocalRecoveryWorkspaceCheckpoint,
+    userDefaults: UserDefaults,
+    encoder: JSONEncoder
+) throws {
+    do {
+        let storedData = try encoder.encode(checkpoint)
+        userDefaults.set(storedData, forKey: guestLocalRecoveryWorkspaceCheckpointUserDefaultsKey)
+    } catch {
+        throw LocalStoreError.validation(
+            "Guest local recovery workspace checkpoint could not be saved: \(Flashcards.errorMessage(error: error))"
+        )
+    }
+}
+
+func clearGuestLocalRecoveryWorkspaceCheckpoint(userDefaults: UserDefaults) {
+    userDefaults.removeObject(forKey: guestLocalRecoveryWorkspaceCheckpointUserDefaultsKey)
 }
 
 func makeCustomCloudServiceConfiguration(customOrigin: String) throws -> CloudServiceConfiguration {

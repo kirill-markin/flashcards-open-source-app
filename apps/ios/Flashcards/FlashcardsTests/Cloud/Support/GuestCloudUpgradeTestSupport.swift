@@ -87,6 +87,7 @@ final class GuestUpgradeDrainCloudSyncService: CloudSyncServing {
     private(set) var createWorkspaceCallCount: Int = 0
     private(set) var isWorkspaceEmptyForBootstrapCallCount: Int = 0
     private(set) var runLinkedSyncCallCount: Int = 0
+    private(set) var runGuestLocalRecoveryLinkedSyncCallCount: Int = 0
     private(set) var runLinkedSyncAuthorizations: [CloudAuthorization] = []
     var fetchCloudAccountHandler: ((String, String) async throws -> CloudAccountSnapshot)?
     var selectWorkspaceHandler: ((String, String, String) async throws -> CloudWorkspaceSummary)?
@@ -299,6 +300,11 @@ final class GuestUpgradeDrainCloudSyncService: CloudSyncServing {
             return try await runLinkedSyncHandler(linkedSession)
         }
         return .noChanges
+    }
+
+    func runGuestLocalRecoveryLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
+        self.runGuestLocalRecoveryLinkedSyncCallCount += 1
+        return try await self.runLinkedSync(linkedSession: linkedSession)
     }
 }
 

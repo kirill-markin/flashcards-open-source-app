@@ -61,6 +61,15 @@ func makeCloudPostAuthFailurePresentation(
 ) -> CloudPostAuthFailurePresentation {
     switch operation {
     case .completeLink(let linkContext, let selection):
+        if linkContext.postAuthRecoveryRoute == .guestLocalRecovery {
+            return CloudPostAuthFailurePresentation(
+                title: cloudState == .linked
+                    ? aiSettingsLocalized("settings.account.cloudSignIn.failure.initialSyncFailed", "Signed in, but initial sync failed.")
+                    : aiSettingsLocalized("settings.account.cloudSignIn.failure.cloudSetupFailed", "Signed in, but cloud setup failed."),
+                retryAction: .completeLink(linkContext: linkContext, selection: selection)
+            )
+        }
+
         if cloudState == .linked {
             return CloudPostAuthFailurePresentation(
                 title: aiSettingsLocalized("settings.account.cloudSignIn.failure.initialSyncFailed", "Signed in, but initial sync failed."),
@@ -185,6 +194,8 @@ enum CloudWorkspacePostAuthRoute: Equatable {
 func makeCloudWorkspacePostAuthRoute(linkContext: CloudWorkspaceLinkContext) -> CloudWorkspacePostAuthRoute {
     switch linkContext.postAuthRecoveryRoute {
     case .guestLocalRecovery:
+        return .autoLink(.createNew)
+    case .pendingGuestUpgradeMissingGuestSessionRecovery:
         return .guestLocalRecoveryNeeded
     case .linkedCredentialRestore:
         guard linkContext.workspaces.count == 1, let workspace = linkContext.workspaces.first else {

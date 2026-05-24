@@ -209,10 +209,48 @@ extension FlashcardsStore {
                 apiBaseUrl: linkContext.apiBaseUrl
             )
         case .guestLocalRecovery:
+            try self.validateGuestLocalRecoveryBeforeCloudLinkCompletion(
+                linkContext: linkContext,
+                selection: selection
+            )
+        case .pendingGuestUpgradeMissingGuestSessionRecovery:
             try self.throwIfGuestLocalRecoveryRequired()
         case .pendingGuestUpgradeRecovery:
             return
         }
+    }
+
+    @discardableResult
+    func validateGuestLocalRecoveryBeforeCloudLinkCompletion(
+        linkContext: CloudWorkspaceLinkContext,
+        selection: CloudWorkspaceLinkSelection
+    ) throws -> CloudCredentialRecoveryState {
+        guard let recoveryState = self.cloudCredentialRecoveryState else {
+            throw LocalStoreError.uninitialized("Guest local recovery state is unavailable")
+        }
+
+        try self.validateGuestLocalRecoveryState(
+            recoveryState: recoveryState,
+            apiBaseUrl: linkContext.apiBaseUrl
+        )
+        guard linkContext.guestUpgradeMode == nil else {
+            self.blockCloudSyncForCredentialRecovery()
+            throw LocalStoreError.validation(
+                localizedCloudCredentialRecoveryBlockedMessage(reason: .guestSessionMissing)
+            )
+        }
+        switch selection {
+        case .createNew:
+            break
+        case .existing:
+            self.blockCloudSyncForCredentialRecovery()
+            throw LocalStoreError.validation(
+                localizedCloudCredentialRecoveryBlockedMessage(reason: .guestSessionMissing)
+            )
+        }
+
+        try self.validateNoPendingGuestUpgradeStateForGuestLocalRecovery(apiBaseUrl: linkContext.apiBaseUrl)
+        return recoveryState
     }
 
     func throwIfGuestLocalRecoveryRequired() throws {
@@ -239,6 +277,10 @@ extension FlashcardsStore {
 
         switch recoveryState.reason {
         case .guestSessionMissing:
+            try self.validateGuestLocalRecoveryState(
+                recoveryState: recoveryState,
+                apiBaseUrl: linkedSession.apiBaseUrl
+            )
             return true
         case .linkedCredentialsMissing:
             try self.validateLinkedCredentialRecoveryConfiguration(
@@ -466,6 +508,29 @@ extension FlashcardsStore {
         }
 
         return nil
+    }
+
+    func validateGuestLocalRecoveryState(
+        recoveryState: CloudCredentialRecoveryState,
+        apiBaseUrl: String
+    ) throws {
+        guard recoveryState.reason == .guestSessionMissing,
+            recoveryState.previousCloudState == .guest,
+            recoveryState.apiBaseUrl == apiBaseUrl else {
+            self.blockCloudSyncForCredentialRecovery()
+            throw LocalStoreError.validation(
+                localizedCloudCredentialRecoveryBlockedMessage(reason: .guestSessionMissing)
+            )
+        }
+
+        let configuration = try self.currentCloudServiceConfiguration()
+        guard recoveryState.configurationMode == configuration.mode,
+            recoveryState.apiBaseUrl == configuration.apiBaseUrl else {
+            self.blockCloudSyncForCredentialRecovery()
+            throw LocalStoreError.validation(
+                localizedCloudCredentialRecoveryBlockedMessage(reason: .guestSessionMissing)
+            )
+        }
     }
 }
 
