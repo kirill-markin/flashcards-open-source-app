@@ -840,6 +840,7 @@ private class TestSettingsStringResolver : SettingsStringResolver {
 
             R.string.settings_sign_in_verify_failed -> "Could not verify the code."
             R.string.settings_current_workspace_new_title -> "New workspace"
+            R.string.settings_logout -> "Log out"
             R.string.settings_current_workspace_create_new_title -> "Create new workspace"
             R.string.settings_current_workspace_create_new_summary -> {
                 "Start a new linked workspace in the cloud"
