@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.app
 
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -36,6 +37,7 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         mode = CloudPostAuthMode.READY_TO_AUTO_LINK,
                         verifiedEmail = "user@example.com",
                         isGuestUpgrade = false,
+                        isGuestLocalRecovery = false,
                         workspaces = emptyList(),
                         pendingWorkspaceTitle = "Personal",
                         processingTitle = "",
@@ -76,6 +78,7 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         mode = CloudPostAuthMode.CHOOSE_WORKSPACE,
                         verifiedEmail = "user@example.com",
                         isGuestUpgrade = false,
+                        isGuestLocalRecovery = false,
                         workspaces = listOf(
                             CurrentWorkspaceItemUiState(
                                 workspaceId = "workspace-1",
@@ -137,6 +140,7 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         mode = CloudPostAuthMode.FAILED,
                         verifiedEmail = "user@example.com",
                         isGuestUpgrade = false,
+                        isGuestLocalRecovery = false,
                         workspaces = emptyList(),
                         pendingWorkspaceTitle = null,
                         processingTitle = "",
@@ -168,5 +172,95 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         }
         assertEquals(1, retryCalls)
         assertEquals(1, logoutCalls)
+    }
+
+    @Test
+    fun guestLocalRecoveryReadyStateShowsRecoveryCopyAndAutoContinues() {
+        var autoContinueCalls = 0
+
+        composeRule.setContent {
+            FlashcardsTheme {
+                CloudPostAuthRoute(
+                    uiState = CloudPostAuthUiState(
+                        mode = CloudPostAuthMode.READY_TO_AUTO_LINK,
+                        verifiedEmail = "user@example.com",
+                        isGuestUpgrade = false,
+                        isGuestLocalRecovery = true,
+                        workspaces = emptyList(),
+                        pendingWorkspaceTitle = null,
+                        processingTitle = "",
+                        processingMessage = "",
+                        errorMessage = "",
+                        canRetry = false,
+                        canLogout = false,
+                        failureActionLabel = "Log out",
+                        completionToken = null
+                    ),
+                    onAutoContinue = {
+                        autoContinueCalls += 1
+                    },
+                    onSelectWorkspace = {},
+                    onRetry = {},
+                    onFailureAction = {},
+                    onBack = {}
+                )
+            }
+        }
+
+        composeRule.waitUntil(timeoutMillis = 5_000L) {
+            autoContinueCalls == 1
+        }
+        composeRule.onNodeWithText("Preparing recovered workspace...").assertIsDisplayed()
+        composeRule.onNodeWithText("Create new workspace").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Back").assertIsNotEnabled()
+        assertEquals(1, autoContinueCalls)
+    }
+
+    @Test
+    fun guestLocalRecoveryFailureShowsRetryWithoutLogoutAction() {
+        var retryCalls = 0
+        var failureActionCalls = 0
+
+        composeRule.setContent {
+            FlashcardsTheme {
+                CloudPostAuthRoute(
+                    uiState = CloudPostAuthUiState(
+                        mode = CloudPostAuthMode.FAILED,
+                        verifiedEmail = "user@example.com",
+                        isGuestUpgrade = false,
+                        isGuestLocalRecovery = true,
+                        workspaces = emptyList(),
+                        pendingWorkspaceTitle = null,
+                        processingTitle = "",
+                        processingMessage = "",
+                        errorMessage = "Local data recovery failed. Try again; local data stays on this device.",
+                        canRetry = true,
+                        canLogout = false,
+                        failureActionLabel = "Log out",
+                        completionToken = null
+                    ),
+                    onAutoContinue = {},
+                    onSelectWorkspace = {},
+                    onRetry = {
+                        retryCalls += 1
+                    },
+                    onFailureAction = {
+                        failureActionCalls += 1
+                    },
+                    onBack = {}
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(
+            "Local data recovery failed. Try again; local data stays on this device."
+        ).assertIsDisplayed()
+        composeRule.onNodeWithText("Retry").performClick()
+        composeRule.onNodeWithText("Log out").assertDoesNotExist()
+        composeRule.waitUntil(timeoutMillis = 5_000L) {
+            retryCalls == 1
+        }
+        assertEquals(1, retryCalls)
+        assertEquals(0, failureActionCalls)
     }
 }

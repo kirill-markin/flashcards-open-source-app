@@ -89,7 +89,11 @@ fun CloudPostAuthRoute(
                         when (uiState.mode) {
                             CloudPostAuthMode.READY_TO_AUTO_LINK -> {
                                 Text(
-                                    if (uiState.isGuestUpgrade) {
+                                    if (uiState.isGuestLocalRecovery) {
+                                        stringResource(
+                                            R.string.settings_post_auth_prepare_guest_local_recovery_title
+                                        )
+                                    } else if (uiState.isGuestUpgrade) {
                                         stringResource(
                                             R.string.settings_post_auth_prepare_guest_title,
                                             uiState.pendingWorkspaceTitle

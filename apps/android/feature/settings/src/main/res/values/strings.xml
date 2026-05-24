@@ -395,6 +395,7 @@
     <string name="settings_post_auth_title">Cloud sync</string>
     <string name="settings_post_auth_prepare_title">Preparing %1$s...</string>
     <string name="settings_post_auth_prepare_guest_title">Preparing to upgrade Guest AI into %1$s...</string>
+    <string name="settings_post_auth_prepare_guest_local_recovery_title">Preparing recovered workspace...</string>
     <string name="settings_post_auth_choose_workspace_body">Choose a linked workspace to open on this Android device, or create a new one.</string>
     <string name="settings_post_auth_choose_guest_workspace_body">Choose the linked workspace that should receive this Guest AI session, or create a new one.</string>
     <string name="settings_post_auth_current_workspace_suffix">%1$s (Current)</string>
@@ -403,11 +404,14 @@
     <string name="settings_post_auth_idle">Cloud account setup is idle.</string>
     <string name="settings_post_auth_upgrading_title">Upgrading guest account</string>
     <string name="settings_post_auth_linking_title">Linking workspace</string>
+    <string name="settings_post_auth_recovering_local_data_title">Recovering local data</string>
     <string name="settings_post_auth_upgrading_body">Preparing your Guest AI session for a linked Android cloud account.</string>
     <string name="settings_post_auth_linking_body">Preparing your cloud workspace on this Android device.</string>
+    <string name="settings_post_auth_recovering_local_data_body">Keep this screen open while Android reconnects preserved local data to your recovered workspace.</string>
     <string name="settings_post_auth_syncing_title">Syncing workspace</string>
     <string name="settings_post_auth_syncing_body">Keep this screen open while Android finishes the initial cloud sync.</string>
     <string name="settings_post_auth_signed_in_and_synced">Signed in and synced %1$s.</string>
+    <string name="settings_post_auth_guest_local_recovery_failed">Local data recovery failed. Try again; local data stays on this device.</string>
     <string name="settings_post_auth_guest_upgrade_failed">Guest account upgrade failed.</string>
     <string name="settings_post_auth_setup_failed">Cloud workspace setup failed.</string>
     <string name="settings_post_auth_sync_failed">Initial sync failed.</string>

@@ -44,6 +44,11 @@ private sealed interface CloudPostAuthRetryAction {
         val selection: CloudWorkspaceLinkSelection
     ) : CloudPostAuthRetryAction
 
+    data class CompleteGuestLocalRecovery(
+        val authAttemptId: Long,
+        val linkContext: CloudWorkspaceLinkContext
+    ) : CloudPostAuthRetryAction
+
     data class SyncOnly(
         val authAttemptId: Long,
         val workspaceTitle: String
@@ -139,6 +144,8 @@ class CloudSignInViewModel(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
         transform = { draft ->
+            val isGuestLocalRecovery = draft.linkContext?.postAuthRoute ==
+                CloudWorkspacePostAuthRoute.GUEST_LOCAL_RECOVERY
             CloudPostAuthUiState(
                 mode = when {
                     draft.postAuthErrorMessage.isNotEmpty() -> CloudPostAuthMode.FAILED
@@ -149,19 +156,27 @@ class CloudSignInViewModel(
                 },
                 verifiedEmail = draft.linkContext?.email,
                 isGuestUpgrade = draft.linkContext?.guestUpgradeMode != null,
-                workspaces = buildCloudPostAuthWorkspaceItems(
-                    preferredWorkspaceId = draft.linkContext?.preferredWorkspaceId,
-                    workspaces = draft.linkContext?.workspaces ?: emptyList(),
-                    strings = strings,
-                    allowCreateNew = draft.linkContext?.postAuthRoute == CloudWorkspacePostAuthRoute.NONE ||
-                        draft.linkContext?.postAuthRoute == CloudWorkspacePostAuthRoute.GUEST_LOCAL_RECOVERY
-                ),
-                pendingWorkspaceTitle = draft.pendingSelection?.let { selection ->
-                    workspaceSelectionTitle(
-                        selection = selection,
+                isGuestLocalRecovery = isGuestLocalRecovery,
+                workspaces = if (isGuestLocalRecovery) {
+                    emptyList()
+                } else {
+                    buildCloudPostAuthWorkspaceItems(
+                        preferredWorkspaceId = draft.linkContext?.preferredWorkspaceId,
                         workspaces = draft.linkContext?.workspaces ?: emptyList(),
-                        strings = strings
+                        strings = strings,
+                        allowCreateNew = draft.linkContext?.postAuthRoute == CloudWorkspacePostAuthRoute.NONE
                     )
+                },
+                pendingWorkspaceTitle = if (isGuestLocalRecovery) {
+                    null
+                } else {
+                    draft.pendingSelection?.let { selection ->
+                        workspaceSelectionTitle(
+                            selection = selection,
+                            workspaces = draft.linkContext?.workspaces ?: emptyList(),
+                            strings = strings
+                        )
+                    }
                 },
                 processingTitle = draft.processingTitle,
                 processingMessage = draft.processingMessage,
@@ -176,6 +191,7 @@ class CloudSignInViewModel(
             mode = CloudPostAuthMode.IDLE,
             verifiedEmail = null,
             isGuestUpgrade = false,
+            isGuestLocalRecovery = false,
             workspaces = emptyList(),
             pendingWorkspaceTitle = null,
             processingTitle = "",
@@ -522,6 +538,15 @@ class CloudSignInViewModel(
                     selection = retryAction.selection
                 )
             }
+            is CloudPostAuthRetryAction.CompleteGuestLocalRecovery -> {
+                if (retryAction.authAttemptId != currentAttemptId) {
+                    return
+                }
+                completeGuestLocalRecovery(
+                    authAttemptId = retryAction.authAttemptId,
+                    linkContext = retryAction.linkContext
+                )
+            }
             is CloudPostAuthRetryAction.SyncOnly -> {
                 if (retryAction.authAttemptId != currentAttemptId) {
                     return
@@ -574,6 +599,17 @@ class CloudSignInViewModel(
         }
 
         if (isPostAuthProcessing(state = draftState.value)) {
+            return
+        }
+
+        if (linkContext.postAuthRoute == CloudWorkspacePostAuthRoute.GUEST_LOCAL_RECOVERY) {
+            require(selection == CloudWorkspaceLinkSelection.CreateNew) {
+                "Guest local recovery must create the recovered linked workspace."
+            }
+            completeGuestLocalRecovery(
+                authAttemptId = authAttemptId,
+                linkContext = linkContext
+            )
             return
         }
 
@@ -631,17 +667,10 @@ class CloudSignInViewModel(
                     selection = selection
                 )
             }
-            if (linkContext.postAuthRoute == CloudWorkspacePostAuthRoute.GUEST_LOCAL_RECOVERY) {
-                finishPostAuthSuccess(
-                    authAttemptId = authAttemptId,
-                    workspaceTitle = workspace.name
-                )
-            } else {
-                runPostAuthSyncOnly(
-                    authAttemptId = authAttemptId,
-                    workspaceTitle = workspace.name
-                )
-            }
+            runPostAuthSyncOnly(
+                authAttemptId = authAttemptId,
+                workspaceTitle = workspace.name
+            )
         } catch (error: Exception) {
             if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
                 return
@@ -662,6 +691,85 @@ class CloudSignInViewModel(
                         } else {
                             strings.get(R.string.settings_post_auth_setup_failed)
                         }
+                    },
+                    postAuthRecoveryBlocked = recoveryError != null,
+                    postAuthResetAllowed = recoveryError?.recoveryState?.reason ==
+                        CloudCredentialRecoveryReason.INVALID_STORED_STATE,
+                    retryAction = if (recoveryError != null) {
+                        null
+                    } else {
+                        state.retryAction
+                    }
+                )
+            }
+        }
+    }
+
+    private suspend fun completeGuestLocalRecovery(
+        authAttemptId: Long,
+        linkContext: CloudWorkspaceLinkContext
+    ) {
+        if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
+            return
+        }
+
+        if (isPostAuthProcessing(state = draftState.value)) {
+            return
+        }
+
+        draftState.update { state ->
+            if (state.authAttemptId != authAttemptId) {
+                return@update state
+            }
+            state.copy(
+                pendingSelection = null,
+                processingTitle = strings.get(
+                    R.string.settings_post_auth_recovering_local_data_title
+                ),
+                processingMessage = strings.get(
+                    R.string.settings_post_auth_recovering_local_data_body
+                ),
+                postAuthErrorMessage = "",
+                postAuthRecoveryBlocked = false,
+                postAuthResetAllowed = false,
+                retryAction = CloudPostAuthRetryAction.CompleteGuestLocalRecovery(
+                    authAttemptId = authAttemptId,
+                    linkContext = linkContext
+                )
+            )
+        }
+
+        if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
+            return
+        }
+
+        try {
+            val workspace = cloudAccountRepository.completeCloudLink(
+                linkContext = linkContext,
+                selection = CloudWorkspaceLinkSelection.CreateNew
+            )
+            finishPostAuthSuccess(
+                authAttemptId = authAttemptId,
+                workspaceTitle = workspace.name
+            )
+        } catch (error: Exception) {
+            if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
+                return
+            }
+            val recoveryError = error as? CloudCredentialRecoveryRequiredException
+            draftState.update { state ->
+                if (state.authAttemptId != authAttemptId) {
+                    return@update state
+                }
+                state.copy(
+                    processingTitle = "",
+                    processingMessage = "",
+                    postAuthErrorMessage = if (recoveryError != null) {
+                        postAuthRecoveryExceptionMessage(error = recoveryError)
+                    } else {
+                        error.message ?: strings.get(
+                            R.string.settings_post_auth_guest_local_recovery_failed
+                        )
                     },
                     postAuthRecoveryBlocked = recoveryError != null,
                     postAuthResetAllowed = recoveryError?.recoveryState?.reason ==
