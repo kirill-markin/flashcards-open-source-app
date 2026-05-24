@@ -214,7 +214,7 @@ class CloudSignInViewModelTest {
         assertEquals(false, viewModel.postAuthUiState.value.canRetry)
         assertEquals(false, viewModel.postAuthUiState.value.canLogout)
 
-        val completionJob = backgroundScope.async {
+        val completionJob = async {
             viewModel.completePendingPostAuthIfNeeded()
         }
         advanceUntilIdle()
@@ -239,6 +239,7 @@ class CloudSignInViewModelTest {
         advanceUntilIdle()
 
         completionJob.await()
+        advanceUntilIdle()
         assertEquals(listOf(CloudWorkspaceLinkSelection.CreateNew), repository.completeCloudLinkSelections)
         assertEquals(0, syncRepository.syncNowCalls)
         assertEquals(CloudPostAuthMode.IDLE, viewModel.postAuthUiState.value.mode)
