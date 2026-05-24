@@ -45,7 +45,8 @@ fun CloudPostAuthRoute(
     onSelectWorkspace: (CloudWorkspaceLinkSelection) -> Unit,
     onRetry: () -> Unit,
     onFailureAction: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    canNavigateBack: Boolean
 ) {
     LaunchedEffect(uiState.mode, uiState.pendingWorkspaceTitle) {
         if (uiState.mode == CloudPostAuthMode.READY_TO_AUTO_LINK) {
@@ -53,9 +54,11 @@ fun CloudPostAuthRoute(
         }
     }
 
-    val shouldBlockBack = uiState.mode == CloudPostAuthMode.PROCESSING
+    val shouldBlockBack = canNavigateBack.not() ||
+        uiState.mode == CloudPostAuthMode.PROCESSING
         || uiState.mode == CloudPostAuthMode.READY_TO_AUTO_LINK
-    val isBackEnabled = uiState.mode != CloudPostAuthMode.PROCESSING &&
+    val isBackEnabled = canNavigateBack &&
+        uiState.mode != CloudPostAuthMode.PROCESSING &&
         uiState.mode != CloudPostAuthMode.READY_TO_AUTO_LINK
 
     BackHandler(enabled = shouldBlockBack) {

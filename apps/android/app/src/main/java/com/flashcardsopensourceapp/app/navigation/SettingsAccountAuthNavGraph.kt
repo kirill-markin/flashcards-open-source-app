@@ -165,7 +165,8 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                 },
                 onBack = {
                     navController.popBackStack()
-                }
+                },
+                canNavigateBack = true
             )
         }
     }

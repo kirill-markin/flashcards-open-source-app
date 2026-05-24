@@ -134,6 +134,7 @@ interface CloudAccountRepository {
     fun observeAccountDeletionState(): Flow<AccountDeletionState>
     fun observeServerConfiguration(): Flow<CloudServiceConfiguration>
     fun observeCloudCredentialRecoveryState(): Flow<CloudCredentialRecoveryState?>
+    suspend fun eraseLocalDataForCredentialRecovery()
     suspend fun beginAccountDeletion()
     suspend fun resumePendingAccountDeletionIfNeeded()
     suspend fun retryPendingAccountDeletion()

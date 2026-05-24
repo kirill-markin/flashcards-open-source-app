@@ -405,6 +405,55 @@ class CloudSignInViewModelTest {
     }
 
     @Test
+    fun linkedCredentialRestoreCompletesWithoutExtraPostAuthSync() = runTest(dispatcher) {
+        Dispatchers.setMain(dispatcher)
+        val repository = FakeCloudAccountRepository()
+        val syncRepository = FakeSyncRepository()
+        val messages = mutableListOf<String>()
+        val viewModel = CloudSignInViewModel(
+            cloudAccountRepository = repository,
+            syncRepository = syncRepository,
+            messageController = TransientMessageController { message -> messages += message },
+            strings = strings
+        )
+        val postAuthCollection = backgroundScope.async {
+            viewModel.postAuthUiState.collect()
+        }
+        val credentials = makeCredentials(idToken = "id-token-linked-restore-success")
+        repository.enqueueSendCodeResult(CloudSendCodeResult.Verified(credentials = credentials))
+        repository.enqueuePreparedLinkContext(
+            idToken = credentials.idToken,
+            result = CompletableDeferred(
+                makeLinkContext(
+                    credentials = credentials,
+                    email = "person@example.com",
+                    workspaceId = "workspace-recovered",
+                    workspaceName = "Recovered",
+                    postAuthRoute = CloudWorkspacePostAuthRoute.LINKED_CREDENTIAL_RESTORE,
+                    preferredWorkspaceId = "workspace-recovered"
+                )
+            )
+        )
+
+        viewModel.updateEmail("person@example.com")
+        assertEquals(CloudSendCodeNavigationOutcome.Verified, viewModel.sendCode())
+        advanceUntilIdle()
+        viewModel.completePendingPostAuthIfNeeded()
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(CloudWorkspaceLinkSelection.Existing(workspaceId = "workspace-recovered")),
+            repository.completeCloudLinkSelections
+        )
+        assertEquals(0, syncRepository.syncNowCalls)
+        assertEquals(CloudPostAuthMode.IDLE, viewModel.postAuthUiState.value.mode)
+        assertNotNull(viewModel.postAuthUiState.value.completionToken)
+        assertEquals("Signed in and synced Recovered.", messages.single())
+
+        postAuthCollection.cancel()
+    }
+
+    @Test
     fun linkedCredentialRestoreTransientCompletionFailureKeepsRetry() = runTest(dispatcher) {
         Dispatchers.setMain(dispatcher)
         val repository = FakeCloudAccountRepository()
@@ -768,6 +817,10 @@ private class FakeCloudAccountRepository : CloudAccountRepository {
 
     override fun observeCloudCredentialRecoveryState(): Flow<CloudCredentialRecoveryState?> {
         return cloudCredentialRecoveryState
+    }
+
+    override suspend fun eraseLocalDataForCredentialRecovery() {
+        throw UnsupportedOperationException()
     }
 
     override suspend fun beginAccountDeletion() {

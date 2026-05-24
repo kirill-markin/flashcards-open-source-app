@@ -504,6 +504,12 @@ class CloudSignInViewModel(
         )
     }
 
+    fun startCompletePendingPostAuthIfNeeded() {
+        viewModelScope.launch {
+            completePendingPostAuthIfNeeded()
+        }
+    }
+
     suspend fun selectPostAuthWorkspace(selection: CloudWorkspaceLinkSelection) {
         val state = draftState.value
         val linkContext = state.linkContext ?: return
@@ -512,6 +518,12 @@ class CloudSignInViewModel(
             linkContext = linkContext,
             selection = selection
         )
+    }
+
+    fun startSelectPostAuthWorkspace(selection: CloudWorkspaceLinkSelection) {
+        viewModelScope.launch {
+            selectPostAuthWorkspace(selection = selection)
+        }
     }
 
     suspend fun retryPostAuth() {
@@ -559,6 +571,12 @@ class CloudSignInViewModel(
         }
     }
 
+    fun startRetryPostAuth() {
+        viewModelScope.launch {
+            retryPostAuth()
+        }
+    }
+
     suspend fun runPostAuthFailureAction() {
         when (resolvePostAuthFailureAction(draft = draftState.value) ?: return) {
             CloudPostAuthFailureAction.RESET_INVALID_RECOVERY -> {
@@ -577,6 +595,10 @@ class CloudSignInViewModel(
                 )
             }
         }
+    }
+
+    fun cancelSignIn() {
+        clearPostAuthState()
     }
 
     fun acknowledgePostAuthCompletion() {
@@ -667,10 +689,17 @@ class CloudSignInViewModel(
                     selection = selection
                 )
             }
-            runPostAuthSyncOnly(
-                authAttemptId = authAttemptId,
-                workspaceTitle = workspace.name
-            )
+            if (linkContext.postAuthRoute == CloudWorkspacePostAuthRoute.LINKED_CREDENTIAL_RESTORE) {
+                finishPostAuthSuccess(
+                    authAttemptId = authAttemptId,
+                    workspaceTitle = workspace.name
+                )
+            } else {
+                runPostAuthSyncOnly(
+                    authAttemptId = authAttemptId,
+                    workspaceTitle = workspace.name
+                )
+            }
         } catch (error: Exception) {
             if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
                 return

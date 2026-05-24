@@ -2,6 +2,8 @@ package com.flashcardsopensourceapp.app.di
 
 import android.content.Context
 import android.util.Log
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
 import com.flashcardsopensourceapp.app.AutoSyncController
 import com.flashcardsopensourceapp.app.GuestSignInAfterReviewPromptController
 import com.flashcardsopensourceapp.app.navigation.AppPackageInfo
@@ -37,6 +39,7 @@ import com.flashcardsopensourceapp.data.local.notifications.SharedPreferencesRev
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersReconcileTrigger
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersStore
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.review.SharedPreferencesReviewPreferencesStore
@@ -123,6 +126,10 @@ class AppGraph(
     val appMessageBus = AppMessageBus()
     val testModeStore = TestModeStore(context = context.applicationContext)
     val visibleAppScreenController = VisibleAppScreenController()
+    val cloudCredentialRecoveryGateViewModelStoreOwner: ViewModelStoreOwner =
+        object : ViewModelStoreOwner {
+            override val viewModelStore: ViewModelStore = ViewModelStore()
+        }
     val appHandoffCoordinator = AppHandoffCoordinator()
     val database: AppDatabase = buildAppDatabase(context = context)
     private val cloudPreferencesStore = CloudPreferencesStore(context = context, database = database)
@@ -403,11 +410,16 @@ class AppGraph(
         }
     }
 
+    fun currentCloudCredentialRecoveryState(): CloudCredentialRecoveryState? {
+        return cloudPreferencesStore.loadCloudCredentialRecoveryState()
+    }
+
     fun retryStartup() {
         startStartup()
     }
 
     suspend fun close() {
+        cloudCredentialRecoveryGateViewModelStoreOwner.viewModelStore.clear()
         startupJob?.cancelAndJoin()
         cloudIdentityObserverJob?.cancelAndJoin()
         reviewHistoryAppliedObserverJob?.cancelAndJoin()

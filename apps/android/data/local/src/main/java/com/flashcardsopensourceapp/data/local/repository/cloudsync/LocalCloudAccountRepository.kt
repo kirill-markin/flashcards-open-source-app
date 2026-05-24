@@ -70,6 +70,15 @@ class LocalCloudAccountRepository(
         return preferencesStore.observeCloudCredentialRecoveryState()
     }
 
+    override suspend fun eraseLocalDataForCredentialRecovery() {
+        operationCoordinator.runExclusive {
+            require(preferencesStore.loadCloudCredentialRecoveryState() != null) {
+                "Local credential recovery erase requires an active recovery state."
+            }
+            resetCoordinator.eraseLocalDataForCredentialRecovery()
+        }
+    }
+
     override suspend fun beginAccountDeletion() {
         operationCoordinator.runExclusive {
             preferencesStore.markAccountDeletionInProgress()
@@ -302,19 +311,18 @@ class LocalCloudAccountRepository(
                 authenticatedSession = authenticatedSession,
                 selection = selection
             )
-            clearGuestSessionsIfNeeded()
-            if (recoveryState != null) {
-                applyLinkedWorkspacePreservingLocalData(
-                    accountSnapshot = authenticatedSession.accountSnapshot,
-                    selectedWorkspace = selectedWorkspace
-                )
-            } else {
-                applyLinkedWorkspace(
-                    accountSnapshot = authenticatedSession.accountSnapshot,
-                    bearerToken = authenticatedSession.credentials.idToken,
+            if (linkContext.postAuthRoute == CloudWorkspacePostAuthRoute.LINKED_CREDENTIAL_RESTORE) {
+                return@runExclusive completeLinkedCredentialRecoveryCloudLink(
+                    authenticatedSession = authenticatedSession,
                     selectedWorkspace = selectedWorkspace
                 )
             }
+            clearGuestSessionsIfNeeded()
+            applyLinkedWorkspace(
+                accountSnapshot = authenticatedSession.accountSnapshot,
+                bearerToken = authenticatedSession.credentials.idToken,
+                selectedWorkspace = selectedWorkspace
+            )
             preferencesStore.saveCredentials(authenticatedSession.credentials)
             preferencesStore.clearCloudCredentialRecoveryState()
             selectedWorkspace
@@ -1179,6 +1187,32 @@ class LocalCloudAccountRepository(
         )
         requireTransitionInvariant(
             stage = "after guest local recovery initial sync",
+            expectedWorkspaceId = selectedWorkspace.workspaceId
+        )
+        clearGuestSessionsIfNeeded()
+        preferencesStore.clearCloudCredentialRecoveryState()
+        return selectedWorkspace
+    }
+
+    private suspend fun completeLinkedCredentialRecoveryCloudLink(
+        authenticatedSession: AuthenticatedCloudSession,
+        selectedWorkspace: CloudWorkspaceSummary
+    ): CloudWorkspaceSummary {
+        preferencesStore.saveCredentials(authenticatedSession.credentials)
+        applyLinkedWorkspacePreservingLocalData(
+            accountSnapshot = authenticatedSession.accountSnapshot,
+            selectedWorkspace = selectedWorkspace
+        )
+        requireTransitionInvariant(
+            stage = "after linked credential recovery prefs update",
+            expectedWorkspaceId = selectedWorkspace.workspaceId
+        )
+        runInitialLinkedWorkspaceSync(
+            authenticatedSession = authenticatedSession,
+            workspaceId = selectedWorkspace.workspaceId
+        )
+        requireTransitionInvariant(
+            stage = "after linked credential recovery initial sync",
             expectedWorkspaceId = selectedWorkspace.workspaceId
         )
         clearGuestSessionsIfNeeded()

@@ -228,6 +228,29 @@ internal class FakeCloudRemoteGateway private constructor(
             )
         }
 
+        fun forBootstrapPushScenario(
+            accountSnapshot: CloudAccountSnapshot,
+            bootstrapRemoteIsEmptyResponses: List<Boolean>,
+            bootstrapPushErrors: List<Exception>
+        ): FakeCloudRemoteGateway {
+            return FakeCloudRemoteGateway(
+                config = createConfig(
+                    deleteFailuresRemaining = 0,
+                    fetchAccountError = null,
+                    guestUpgradeMode = null,
+                    guestUpgradeReconciliation = null,
+                    bootstrapPullError = null,
+                    bootstrapRemoteIsEmptyResponses = bootstrapRemoteIsEmptyResponses,
+                    bootstrapPushErrors = bootstrapPushErrors,
+                    importReviewHistoryErrors = emptyList(),
+                    createdWorkspace = createDefaultCreatedWorkspace(),
+                    onFetchCloudAccountEntered = null,
+                    blockFetchCloudAccount = null,
+                    accountSnapshot = accountSnapshot
+                )
+            )
+        }
+
         fun forReviewHistoryImportScenario(
             bootstrapRemoteIsEmptyResponses: List<Boolean>,
             importReviewHistoryErrors: List<Exception>

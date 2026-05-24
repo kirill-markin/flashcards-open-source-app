@@ -67,12 +67,14 @@ import com.flashcardsopensourceapp.app.navigation.navigateToTopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.topLevelDestinations
 import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersReconcileTrigger
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncSource
+import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -108,6 +110,52 @@ fun FlashcardsApp(
             AppStartupState.Ready -> Unit
         }
 
+        val snackbarHostState = remember { SnackbarHostState() }
+        LaunchedEffect(appGraph.appMessageBus, snackbarHostState) {
+            appGraph.appMessageBus.messages.collect { message ->
+                snackbarHostState.showSnackbar(message = message)
+            }
+        }
+
+        val cloudCredentialRecoveryState by appGraph.cloudAccountRepository
+            .observeCloudCredentialRecoveryState()
+            .collectAsStateWithLifecycle(
+                initialValue = appGraph.currentCloudCredentialRecoveryState()
+            )
+        var retainedRecoveryState: CloudCredentialRecoveryState? by remember(appGraph) {
+            mutableStateOf(appGraph.currentCloudCredentialRecoveryState())
+        }
+        LaunchedEffect(cloudCredentialRecoveryState) {
+            if (cloudCredentialRecoveryState != null) {
+                retainedRecoveryState = cloudCredentialRecoveryState
+            }
+        }
+        val activeRecoveryState = cloudCredentialRecoveryState ?: retainedRecoveryState
+        if (activeRecoveryState != null) {
+            LaunchedEffect(activeRecoveryState) {
+                appGraph.visibleAppScreenController.updateVisibleAppScreen(
+                    screen = VisibleAppScreen.OTHER
+                )
+            }
+            Box(modifier = Modifier.fillMaxSize()) {
+                CloudCredentialRecoveryGateContainer(
+                    appGraph = appGraph,
+                    recoveryState = activeRecoveryState,
+                    isRecoveryStateActive = cloudCredentialRecoveryState != null,
+                    onRecoveryGateFinished = {
+                        retainedRecoveryState = null
+                    }
+                )
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier
+                        .align(alignment = Alignment.BottomCenter)
+                        .padding(horizontal = 16.dp, vertical = 24.dp)
+                )
+            }
+            return@FlashcardsTheme
+        }
+
         val navController = rememberNavController()
         val currentBackStackEntry by navController.currentBackStackEntryAsState()
         val currentRoute: String? = currentBackStackEntry?.destination?.route
@@ -127,7 +175,6 @@ fun FlashcardsApp(
             navigationSuiteType = navigationSuiteType,
             isImeVisible = isImeVisible
         )
-        val snackbarHostState = remember { SnackbarHostState() }
         val cloudSettings by appGraph.cloudAccountRepository.observeCloudSettings().collectAsStateWithLifecycle(
             initialValue = CloudSettings(
                 installationId = "",
@@ -181,12 +228,6 @@ fun FlashcardsApp(
                 accountDeletionState = accountDeletionState
             )
         )
-
-        LaunchedEffect(appGraph.appMessageBus, snackbarHostState) {
-            appGraph.appMessageBus.messages.collect { message ->
-                snackbarHostState.showSnackbar(message = message)
-            }
-        }
 
         LaunchedEffect(currentVisibleAppScreen) {
             appGraph.visibleAppScreenController.updateVisibleAppScreen(
