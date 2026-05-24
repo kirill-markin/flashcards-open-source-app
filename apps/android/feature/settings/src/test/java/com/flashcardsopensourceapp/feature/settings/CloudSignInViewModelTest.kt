@@ -5,6 +5,8 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryReason
+import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryRequiredException
 import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.CloudProgressReviewSchedule
@@ -17,6 +19,7 @@ import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeleteResult
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkContext
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
+import com.flashcardsopensourceapp.data.local.model.CloudWorkspacePostAuthRoute
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceResetProgressPreview
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceResetProgressResult
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
@@ -78,6 +81,7 @@ class CloudSignInViewModelTest {
             email = "first@example.com",
             workspaceId = "workspace-first",
             workspaceName = "Workspace First",
+            postAuthRoute = CloudWorkspacePostAuthRoute.NONE,
             preferredWorkspaceId = "workspace-first"
         )
         val secondLinkContext = makeLinkContext(
@@ -85,6 +89,7 @@ class CloudSignInViewModelTest {
             email = "second@example.com",
             workspaceId = "workspace-second",
             workspaceName = "Workspace Second",
+            postAuthRoute = CloudWorkspacePostAuthRoute.NONE,
             preferredWorkspaceId = "workspace-second"
         )
         val blockedFirstPrepare = CompletableDeferred<CloudWorkspaceLinkContext>()
@@ -145,6 +150,7 @@ class CloudSignInViewModelTest {
                     email = "person@example.com",
                     workspaceId = "workspace-remote",
                     workspaceName = "Remote",
+                    postAuthRoute = CloudWorkspacePostAuthRoute.NONE,
                     preferredWorkspaceId = "workspace-recovered"
                 )
             )
@@ -158,6 +164,289 @@ class CloudSignInViewModelTest {
         assertEquals(CloudPostAuthMode.CHOOSE_WORKSPACE, viewModel.postAuthUiState.value.mode)
         assertNull(viewModel.postAuthUiState.value.pendingWorkspaceTitle)
         assertEquals(false, viewModel.postAuthUiState.value.workspaces.first().isSelected)
+
+        postAuthCollection.cancel()
+    }
+
+    @Test
+    fun guestLocalRecoveryShowsPostAuthFailureWithoutRetry() = runTest(dispatcher) {
+        Dispatchers.setMain(dispatcher)
+        val repository = FakeCloudAccountRepository()
+        val viewModel = CloudSignInViewModel(
+            cloudAccountRepository = repository,
+            syncRepository = FakeSyncRepository(),
+            messageController = TransientMessageController { },
+            strings = strings
+        )
+        val postAuthCollection = backgroundScope.async {
+            viewModel.postAuthUiState.collect()
+        }
+        val credentials = makeCredentials(idToken = "id-token-guest-recovery")
+        repository.enqueueSendCodeResult(CloudSendCodeResult.Verified(credentials = credentials))
+        repository.enqueuePreparedLinkContext(
+            idToken = credentials.idToken,
+            result = CompletableDeferred(
+                makeLinkContext(
+                    credentials = credentials,
+                    email = "person@example.com",
+                    workspaceId = "workspace-remote",
+                    workspaceName = "Remote",
+                    postAuthRoute = CloudWorkspacePostAuthRoute.GUEST_LOCAL_RECOVERY,
+                    preferredWorkspaceId = "workspace-remote"
+                )
+            )
+        )
+
+        viewModel.updateEmail("person@example.com")
+        val outcome = viewModel.sendCode()
+        advanceUntilIdle()
+
+        assertEquals(CloudSendCodeNavigationOutcome.Verified, outcome)
+        assertEquals(CloudPostAuthMode.FAILED, viewModel.postAuthUiState.value.mode)
+        assertEquals(
+            "Guest credentials are missing on this device. Local data is preserved for recovery in a linked workspace.",
+            viewModel.postAuthUiState.value.errorMessage
+        )
+        assertEquals(false, viewModel.postAuthUiState.value.canRetry)
+        assertEquals(false, viewModel.postAuthUiState.value.canLogout)
+        assertEquals(false, viewModel.postAuthUiState.value.workspaces.any { workspace -> workspace.isCreateNew })
+
+        postAuthCollection.cancel()
+    }
+
+    @Test
+    fun invalidStoredRecoveryShowsResetActionWithoutRetry() = runTest(dispatcher) {
+        Dispatchers.setMain(dispatcher)
+        val repository = FakeCloudAccountRepository()
+        val viewModel = CloudSignInViewModel(
+            cloudAccountRepository = repository,
+            syncRepository = FakeSyncRepository(),
+            messageController = TransientMessageController { },
+            strings = strings
+        )
+        val postAuthCollection = backgroundScope.async {
+            viewModel.postAuthUiState.collect()
+        }
+        val credentials = makeCredentials(idToken = "id-token-invalid-recovery")
+        repository.enqueueSendCodeResult(CloudSendCodeResult.Verified(credentials = credentials))
+        repository.enqueuePreparedLinkContext(
+            idToken = credentials.idToken,
+            result = CompletableDeferred(
+                makeLinkContext(
+                    credentials = credentials,
+                    email = "person@example.com",
+                    workspaceId = "workspace-remote",
+                    workspaceName = "Remote",
+                    postAuthRoute = CloudWorkspacePostAuthRoute.INVALID_STORED_STATE,
+                    preferredWorkspaceId = "workspace-remote"
+                )
+            )
+        )
+
+        viewModel.updateEmail("person@example.com")
+        val outcome = viewModel.sendCode()
+        advanceUntilIdle()
+
+        assertEquals(CloudSendCodeNavigationOutcome.Verified, outcome)
+        assertEquals(CloudPostAuthMode.FAILED, viewModel.postAuthUiState.value.mode)
+        assertEquals(
+            "Cloud recovery data on this device is invalid. Reset cloud identity or sign in again after clearing recovery.",
+            viewModel.postAuthUiState.value.errorMessage
+        )
+        assertEquals(false, viewModel.postAuthUiState.value.canRetry)
+        assertEquals(true, viewModel.postAuthUiState.value.canLogout)
+        assertEquals("Reset cloud identity", viewModel.postAuthUiState.value.failureActionLabel)
+
+        postAuthCollection.cancel()
+    }
+
+    @Test
+    fun invalidStoredRecoveryFailureActionResetsRecoveryWithoutLogout() = runTest(dispatcher) {
+        Dispatchers.setMain(dispatcher)
+        val repository = FakeCloudAccountRepository()
+        val messages = mutableListOf<String>()
+        val viewModel = CloudSignInViewModel(
+            cloudAccountRepository = repository,
+            syncRepository = FakeSyncRepository(),
+            messageController = TransientMessageController { message -> messages.add(message) },
+            strings = strings
+        )
+        val postAuthCollection = backgroundScope.async {
+            viewModel.postAuthUiState.collect()
+        }
+        val credentials = makeCredentials(idToken = "id-token-invalid-recovery-reset")
+        repository.enqueueSendCodeResult(CloudSendCodeResult.Verified(credentials = credentials))
+        repository.enqueuePreparedLinkContext(
+            idToken = credentials.idToken,
+            result = CompletableDeferred(
+                makeLinkContext(
+                    credentials = credentials,
+                    email = "person@example.com",
+                    workspaceId = "workspace-remote",
+                    workspaceName = "Remote",
+                    postAuthRoute = CloudWorkspacePostAuthRoute.INVALID_STORED_STATE,
+                    preferredWorkspaceId = "workspace-remote"
+                )
+            )
+        )
+
+        viewModel.updateEmail("person@example.com")
+        viewModel.sendCode()
+        advanceUntilIdle()
+        viewModel.runPostAuthFailureAction()
+        advanceUntilIdle()
+        viewModel.runPostAuthFailureAction()
+        advanceUntilIdle()
+
+        assertEquals(1, repository.resetInvalidCloudCredentialRecoveryStateCalls)
+        assertEquals(0, repository.logoutCalls)
+        assertEquals(
+            listOf("Cloud recovery state was reset. Sign in again to continue."),
+            messages
+        )
+
+        postAuthCollection.cancel()
+    }
+
+    @Test
+    fun linkedCredentialRestoreTransientCompletionFailureKeepsRetry() = runTest(dispatcher) {
+        Dispatchers.setMain(dispatcher)
+        val repository = FakeCloudAccountRepository()
+        repository.enqueueCompleteCloudLinkError(IllegalStateException("Temporary setup failure."))
+        val viewModel = CloudSignInViewModel(
+            cloudAccountRepository = repository,
+            syncRepository = FakeSyncRepository(),
+            messageController = TransientMessageController { },
+            strings = strings
+        )
+        val postAuthCollection = backgroundScope.async {
+            viewModel.postAuthUiState.collect()
+        }
+        val credentials = makeCredentials(idToken = "id-token-linked-restore")
+        repository.enqueueSendCodeResult(CloudSendCodeResult.Verified(credentials = credentials))
+        repository.enqueuePreparedLinkContext(
+            idToken = credentials.idToken,
+            result = CompletableDeferred(
+                makeLinkContext(
+                    credentials = credentials,
+                    email = "person@example.com",
+                    workspaceId = "workspace-recovered",
+                    workspaceName = "Recovered",
+                    postAuthRoute = CloudWorkspacePostAuthRoute.LINKED_CREDENTIAL_RESTORE,
+                    preferredWorkspaceId = "workspace-recovered"
+                )
+            )
+        )
+
+        viewModel.updateEmail("person@example.com")
+        assertEquals(CloudSendCodeNavigationOutcome.Verified, viewModel.sendCode())
+        advanceUntilIdle()
+        viewModel.completePendingPostAuthIfNeeded()
+        advanceUntilIdle()
+
+        assertEquals(CloudPostAuthMode.FAILED, viewModel.postAuthUiState.value.mode)
+        assertEquals("Temporary setup failure.", viewModel.postAuthUiState.value.errorMessage)
+        assertEquals(true, viewModel.postAuthUiState.value.canRetry)
+        assertEquals(false, viewModel.postAuthUiState.value.canLogout)
+
+        postAuthCollection.cancel()
+    }
+
+    @Test
+    fun routeNoneRecoveryCompletionFailureBlocksRetryAndLogout() = runTest(dispatcher) {
+        Dispatchers.setMain(dispatcher)
+        val repository = FakeCloudAccountRepository()
+        repository.enqueueCompleteCloudLinkError(
+            CloudCredentialRecoveryRequiredException(recoveryState = makeRecoveryState())
+        )
+        val viewModel = CloudSignInViewModel(
+            cloudAccountRepository = repository,
+            syncRepository = FakeSyncRepository(),
+            messageController = TransientMessageController { },
+            strings = strings
+        )
+        val postAuthCollection = backgroundScope.async {
+            viewModel.postAuthUiState.collect()
+        }
+        val credentials = makeCredentials(idToken = "id-token-route-none-recovery")
+        repository.enqueueSendCodeResult(CloudSendCodeResult.Verified(credentials = credentials))
+        repository.enqueuePreparedLinkContext(
+            idToken = credentials.idToken,
+            result = CompletableDeferred(
+                makeLinkContext(
+                    credentials = credentials,
+                    email = "person@example.com",
+                    workspaceId = "workspace-remote",
+                    workspaceName = "Remote",
+                    postAuthRoute = CloudWorkspacePostAuthRoute.NONE,
+                    preferredWorkspaceId = "workspace-remote"
+                )
+            )
+        )
+
+        viewModel.updateEmail("person@example.com")
+        assertEquals(CloudSendCodeNavigationOutcome.Verified, viewModel.sendCode())
+        advanceUntilIdle()
+        viewModel.completePendingPostAuthIfNeeded()
+        advanceUntilIdle()
+
+        assertEquals(CloudPostAuthMode.FAILED, viewModel.postAuthUiState.value.mode)
+        assertEquals(
+            "Sign in with the original cloud account and workspace to reconnect preserved local data.",
+            viewModel.postAuthUiState.value.errorMessage
+        )
+        assertEquals(false, viewModel.postAuthUiState.value.canRetry)
+        assertEquals(false, viewModel.postAuthUiState.value.canLogout)
+
+        postAuthCollection.cancel()
+    }
+
+    @Test
+    fun syncRecoveryFailureBlocksRetryAndLogout() = runTest(dispatcher) {
+        Dispatchers.setMain(dispatcher)
+        val repository = FakeCloudAccountRepository()
+        val syncRepository = FakeSyncRepository()
+        syncRepository.enqueueSyncError(
+            CloudCredentialRecoveryRequiredException(recoveryState = makeRecoveryState())
+        )
+        val viewModel = CloudSignInViewModel(
+            cloudAccountRepository = repository,
+            syncRepository = syncRepository,
+            messageController = TransientMessageController { },
+            strings = strings
+        )
+        val postAuthCollection = backgroundScope.async {
+            viewModel.postAuthUiState.collect()
+        }
+        val credentials = makeCredentials(idToken = "id-token-sync-recovery")
+        repository.enqueueSendCodeResult(CloudSendCodeResult.Verified(credentials = credentials))
+        repository.enqueuePreparedLinkContext(
+            idToken = credentials.idToken,
+            result = CompletableDeferred(
+                makeLinkContext(
+                    credentials = credentials,
+                    email = "person@example.com",
+                    workspaceId = "workspace-remote",
+                    workspaceName = "Remote",
+                    postAuthRoute = CloudWorkspacePostAuthRoute.NONE,
+                    preferredWorkspaceId = "workspace-remote"
+                )
+            )
+        )
+
+        viewModel.updateEmail("person@example.com")
+        assertEquals(CloudSendCodeNavigationOutcome.Verified, viewModel.sendCode())
+        advanceUntilIdle()
+        viewModel.completePendingPostAuthIfNeeded()
+        advanceUntilIdle()
+
+        assertEquals(CloudPostAuthMode.FAILED, viewModel.postAuthUiState.value.mode)
+        assertEquals(
+            "Sign in with the original cloud account and workspace to reconnect preserved local data.",
+            viewModel.postAuthUiState.value.errorMessage
+        )
+        assertEquals(false, viewModel.postAuthUiState.value.canRetry)
+        assertEquals(false, viewModel.postAuthUiState.value.canLogout)
 
         postAuthCollection.cancel()
     }
@@ -278,6 +567,7 @@ class CloudSignInViewModelTest {
         email: String,
         workspaceId: String,
         workspaceName: String,
+        postAuthRoute: CloudWorkspacePostAuthRoute,
         preferredWorkspaceId: String
     ): CloudWorkspaceLinkContext {
         return CloudWorkspaceLinkContext(
@@ -292,8 +582,24 @@ class CloudSignInViewModelTest {
                     isSelected = true
                 )
             ),
+            postAuthRoute = postAuthRoute,
             guestUpgradeMode = null,
             preferredWorkspaceId = preferredWorkspaceId
+        )
+    }
+
+    private fun makeRecoveryState(): CloudCredentialRecoveryState {
+        return CloudCredentialRecoveryState(
+            reason = CloudCredentialRecoveryReason.LINKED_CREDENTIALS_MISSING,
+            previousCloudState = CloudAccountState.LINKED,
+            installationId = "installation-1",
+            linkedUserId = "user-1",
+            linkedWorkspaceId = "workspace-local",
+            activeWorkspaceId = "workspace-local",
+            linkedEmail = "person@example.com",
+            configurationMode = makeOfficialCloudServiceConfiguration().mode,
+            apiBaseUrl = makeOfficialCloudServiceConfiguration().apiBaseUrl,
+            detectedAtMillis = 100L
         )
     }
 }
@@ -316,7 +622,12 @@ private class FakeCloudAccountRepository : CloudAccountRepository {
     private val sendCodeResults = ArrayDeque<CloudSendCodeResult>()
     private val sendCodeErrors = ArrayDeque<Exception>()
     private val verifyCodeErrors = ArrayDeque<Exception>()
+    private val completeCloudLinkErrors = ArrayDeque<Exception>()
     private val preparedLinkContexts = mutableMapOf<String, CompletableDeferred<CloudWorkspaceLinkContext>>()
+    var resetInvalidCloudCredentialRecoveryStateCalls: Int = 0
+        private set
+    var logoutCalls: Int = 0
+        private set
 
     fun enqueueSendCodeResult(result: CloudSendCodeResult) {
         sendCodeResults.addLast(result)
@@ -328,6 +639,10 @@ private class FakeCloudAccountRepository : CloudAccountRepository {
 
     fun enqueueVerifyCodeError(error: Exception) {
         verifyCodeErrors.addLast(error)
+    }
+
+    fun enqueueCompleteCloudLinkError(error: Exception) {
+        completeCloudLinkErrors.addLast(error)
     }
 
     fun enqueuePreparedLinkContext(
@@ -389,7 +704,23 @@ private class FakeCloudAccountRepository : CloudAccountRepository {
         linkContext: CloudWorkspaceLinkContext,
         selection: CloudWorkspaceLinkSelection
     ): CloudWorkspaceSummary {
-        throw UnsupportedOperationException()
+        if (completeCloudLinkErrors.isNotEmpty()) {
+            throw completeCloudLinkErrors.removeFirst()
+        }
+        return when (selection) {
+            is CloudWorkspaceLinkSelection.Existing -> requireNotNull(
+                linkContext.workspaces.firstOrNull { workspace -> workspace.workspaceId == selection.workspaceId }
+            ) {
+                "Selected workspace is missing from test link context."
+            }
+
+            CloudWorkspaceLinkSelection.CreateNew -> CloudWorkspaceSummary(
+                workspaceId = "workspace-new",
+                name = "Personal",
+                createdAtMillis = 200L,
+                isSelected = true
+            )
+        }
     }
 
     override suspend fun completeGuestUpgrade(
@@ -403,8 +734,12 @@ private class FakeCloudAccountRepository : CloudAccountRepository {
         throw UnsupportedOperationException()
     }
 
+    override suspend fun resetInvalidCloudCredentialRecoveryState() {
+        resetInvalidCloudCredentialRecoveryStateCalls += 1
+    }
+
     override suspend fun logout() {
-        throw UnsupportedOperationException()
+        logoutCalls += 1
     }
 
     override suspend fun renameCurrentWorkspace(name: String): CloudWorkspaceSummary {
@@ -520,6 +855,28 @@ private class TestSettingsStringResolver : SettingsStringResolver {
 
             R.string.settings_post_auth_signed_in_and_synced -> "Signed in and synced %1\$s."
             R.string.settings_post_auth_sync_failed -> "Initial sync failed."
+            R.string.settings_post_auth_linked_recovery_blocked -> {
+                "Sign in with the original cloud account and workspace to reconnect preserved local data."
+            }
+
+            R.string.settings_post_auth_guest_local_recovery_required -> {
+                "Guest credentials are missing on this device. Local data is preserved for recovery in a linked workspace."
+            }
+
+            R.string.settings_post_auth_pending_guest_upgrade_recovery_required -> {
+                "Account upgrade recovery is pending. Reopen the app to finish recovery before signing in again."
+            }
+
+            R.string.settings_post_auth_invalid_recovery_state -> {
+                "Cloud recovery data on this device is invalid. Reset cloud identity or sign in again after clearing recovery."
+            }
+
+            R.string.settings_post_auth_reset_cloud_identity_button -> "Reset cloud identity"
+
+            R.string.settings_post_auth_invalid_recovery_state_cleared_message -> {
+                "Cloud recovery state was reset. Sign in again to continue."
+            }
+
             else -> error("Unexpected string resource id in CloudSignInViewModelTest: $stringResId")
         }
         return if (formatArgs.isEmpty()) {
@@ -539,6 +896,7 @@ private class TestSettingsStringResolver : SettingsStringResolver {
 }
 
 private class FakeSyncRepository : SyncRepository {
+    private val syncErrors = ArrayDeque<Exception>()
     private val syncStatus = MutableStateFlow(
         SyncStatusSnapshot(
             status = SyncStatus.Idle,
@@ -555,5 +913,12 @@ private class FakeSyncRepository : SyncRepository {
     }
 
     override suspend fun syncNow() {
+        if (syncErrors.isNotEmpty()) {
+            throw syncErrors.removeFirst()
+        }
+    }
+
+    fun enqueueSyncError(error: Exception) {
+        syncErrors.addLast(error)
     }
 }

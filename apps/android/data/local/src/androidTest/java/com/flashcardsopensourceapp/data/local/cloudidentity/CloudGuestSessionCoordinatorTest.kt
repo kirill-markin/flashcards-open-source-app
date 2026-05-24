@@ -14,6 +14,7 @@ import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMod
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.model.makeOfficialCloudServiceConfiguration
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -256,7 +257,8 @@ class CloudGuestSessionCoordinatorTest {
     }
 
     @Test
-    fun corruptCredentialRecoveryStateDoesNotPreventStoreRestartAndThrowsWhenLoaded() = runBlocking {
+    fun corruptCredentialRecoveryStateDoesNotPreventStoreRestartAndLoadsInvalidRecovery() = runBlocking {
+        val localWorkspaceId = environment.requireLocalWorkspaceId()
         val metadataPreferences = environment.context.getSharedPreferences(
             "flashcards-cloud-metadata",
             Context.MODE_PRIVATE
@@ -271,12 +273,30 @@ class CloudGuestSessionCoordinatorTest {
             remoteGateway = FakeCloudRemoteGateway.standard()
         )
 
-        try {
-            restartedRuntime.cloudPreferencesStore.loadCloudCredentialRecoveryState()
-            throw AssertionError("Expected corrupt recovery state to throw when loaded.")
-        } catch (error: IllegalStateException) {
-            assertTrue(error.message?.contains("Cloud credential recovery state is corrupt") == true)
-        }
+        val loadedRecoveryState = requireNotNull(restartedRuntime.cloudPreferencesStore.loadCloudCredentialRecoveryState())
+        val observedRecoveryState = requireNotNull(
+            restartedRuntime.cloudPreferencesStore.observeCloudCredentialRecoveryState().first()
+        )
+        restartedRuntime.cloudPreferencesStore.saveCredentials(
+            credentials = createStoredCloudCredentials(idTokenExpiresAtMillis = Long.MAX_VALUE)
+        )
+        restartedRuntime.cloudPreferencesStore.updateCloudSettings(
+            cloudState = CloudAccountState.LINKED,
+            linkedUserId = "user-1",
+            linkedWorkspaceId = localWorkspaceId,
+            linkedEmail = "user@example.com",
+            activeWorkspaceId = localWorkspaceId
+        )
+
+        restartedRuntime.cloudGuestSessionCoordinator.reconcilePersistedCloudState()
+
+        assertEquals(CloudCredentialRecoveryReason.INVALID_STORED_STATE, loadedRecoveryState.reason)
+        assertEquals(CloudCredentialRecoveryReason.INVALID_STORED_STATE, observedRecoveryState.reason)
+        assertEquals(
+            CloudCredentialRecoveryReason.INVALID_STORED_STATE,
+            restartedRuntime.cloudPreferencesStore.loadCloudCredentialRecoveryState()?.reason
+        )
+        assertEquals("{", metadataPreferences.getString("cloud-credential-recovery-state", null))
     }
 
     @Test
@@ -326,12 +346,27 @@ class CloudGuestSessionCoordinatorTest {
                 )
             )
         )
+        environment.cloudPreferencesStore.saveCloudCredentialRecoveryState(
+            recoveryState = CloudCredentialRecoveryState(
+                reason = CloudCredentialRecoveryReason.LINKED_CREDENTIALS_MISSING,
+                previousCloudState = CloudAccountState.GUEST,
+                installationId = environment.cloudPreferencesStore.currentCloudSettings().installationId,
+                linkedUserId = guestSession.userId,
+                linkedWorkspaceId = localWorkspaceId,
+                activeWorkspaceId = localWorkspaceId,
+                linkedEmail = null,
+                configurationMode = CloudServiceConfigurationMode.OFFICIAL,
+                apiBaseUrl = "https://api.flashcards-open-source-app.com/v1",
+                detectedAtMillis = 500L
+            )
+        )
         assertEquals(CloudAccountState.GUEST, environment.cloudPreferencesStore.currentCloudSettings().cloudState)
         assertEquals(localWorkspaceId, environment.cloudPreferencesStore.currentCloudSettings().activeWorkspaceId)
         assertNotNull(environment.database.workspaceDao().loadWorkspaceById(localWorkspaceId))
         assertNull(environment.database.workspaceDao().loadWorkspaceById(linkedWorkspace.workspaceId))
         assertNull(environment.cloudPreferencesStore.loadCredentials())
         assertNotNull(environment.cloudPreferencesStore.loadPendingGuestUpgrade())
+        assertNotNull(environment.cloudPreferencesStore.loadCloudCredentialRecoveryState())
 
         val restartedRuntime = environment.createRestartedCloudGuestSessionRuntime(
             remoteGateway = FakeCloudRemoteGateway.forGuestUpgrade(
@@ -359,6 +394,7 @@ class CloudGuestSessionCoordinatorTest {
         assertEquals(linkedWorkspace.workspaceId, environment.database.workspaceDao().loadAnyWorkspace()?.workspaceId)
         assertNotNull(restartedRuntime.cloudPreferencesStore.loadCredentials())
         assertNull(restartedRuntime.cloudPreferencesStore.loadPendingGuestUpgrade())
+        assertNull(restartedRuntime.cloudPreferencesStore.loadCloudCredentialRecoveryState())
         assertNull(
             restartedRuntime.guestAiSessionStore.loadAnySession(
                 configuration = makeOfficialCloudServiceConfiguration()

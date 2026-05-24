@@ -328,6 +328,8 @@ internal class FakeCloudRemoteGateway private constructor(
     }
 
     var deleteAccountCalls: Int = 0
+    var fetchCloudAccountCalls: Int = 0
+    var verifyCodeCalls: Int = 0
     var prepareGuestUpgradeCalls: Int = 0
     var completeGuestUpgradeCalls: Int = 0
     val completeGuestUpgradeGuestWorkspaceSyncedAndOutboxDrained = mutableListOf<Boolean>()
@@ -358,6 +360,7 @@ internal class FakeCloudRemoteGateway private constructor(
         code: String,
         authBaseUrl: String
     ): StoredCloudCredentials {
+        verifyCodeCalls += 1
         return createStoredCloudCredentials(idTokenExpiresAtMillis = Long.MAX_VALUE)
     }
 
@@ -379,6 +382,7 @@ internal class FakeCloudRemoteGateway private constructor(
         apiBaseUrl: String,
         bearerToken: String
     ): CloudAccountSnapshot {
+        fetchCloudAccountCalls += 1
         onFetchCloudAccountEntered?.complete(Unit)
         blockFetchCloudAccount?.await()
         fetchAccountError?.let { error ->

@@ -440,11 +440,11 @@ class CloudPreferencesStore(
         return try {
             decodeCloudCredentialRecoveryState(jsonObject = JSONObject(rawValue))
         } catch (error: JSONException) {
-            throw cloudCredentialRecoveryStateCorruptError(cause = error)
+            invalidStoredCloudCredentialRecoveryState()
         } catch (error: IllegalArgumentException) {
-            throw cloudCredentialRecoveryStateCorruptError(cause = error)
+            invalidStoredCloudCredentialRecoveryState()
         } catch (error: IllegalStateException) {
-            throw cloudCredentialRecoveryStateCorruptError(cause = error)
+            invalidStoredCloudCredentialRecoveryState()
         }
     }
 
@@ -766,6 +766,7 @@ private fun encodeCloudCredentialRecoveryState(recoveryState: CloudCredentialRec
 }
 
 private fun decodeCloudCredentialRecoveryState(jsonObject: JSONObject): CloudCredentialRecoveryState {
+    requireCloudCredentialRecoveryStateKnownKeys(jsonObject = jsonObject)
     return CloudCredentialRecoveryState(
         reason = CloudCredentialRecoveryReason.valueOf(jsonObject.getString("reason")),
         previousCloudState = CloudAccountState.valueOf(jsonObject.getString("previousCloudState")),
@@ -780,11 +781,38 @@ private fun decodeCloudCredentialRecoveryState(jsonObject: JSONObject): CloudCre
     )
 }
 
-private fun cloudCredentialRecoveryStateCorruptError(cause: Throwable): IllegalStateException {
-    return IllegalStateException(
-        "Cloud credential recovery state is corrupt and cannot be resumed. " +
-            "Sign in again to resolve cloud credential recovery. Cause='${cause.message}'.",
-        cause
+private fun requireCloudCredentialRecoveryStateKnownKeys(jsonObject: JSONObject) {
+    val expectedKeys = setOf(
+        "reason",
+        "previousCloudState",
+        "installationId",
+        "linkedUserId",
+        "linkedWorkspaceId",
+        "activeWorkspaceId",
+        "linkedEmail",
+        "configurationMode",
+        "apiBaseUrl",
+        "detectedAtMillis"
+    )
+    val actualKeys = jsonObject.keys().asSequence().toSet()
+    val unknownKeys = actualKeys - expectedKeys
+    require(unknownKeys.isEmpty()) {
+        "Cloud credential recovery state contains unknown keys: ${unknownKeys.sorted().joinToString()}."
+    }
+}
+
+private fun invalidStoredCloudCredentialRecoveryState(): CloudCredentialRecoveryState {
+    return CloudCredentialRecoveryState(
+        reason = CloudCredentialRecoveryReason.INVALID_STORED_STATE,
+        previousCloudState = CloudAccountState.DISCONNECTED,
+        installationId = "",
+        linkedUserId = null,
+        linkedWorkspaceId = null,
+        activeWorkspaceId = null,
+        linkedEmail = null,
+        configurationMode = CloudServiceConfigurationMode.OFFICIAL,
+        apiBaseUrl = "",
+        detectedAtMillis = System.currentTimeMillis()
     )
 }
 

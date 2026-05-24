@@ -149,6 +149,7 @@ interface CloudAccountRepository {
         selection: CloudWorkspaceLinkSelection
     ): CloudWorkspaceSummary
     suspend fun completeLinkedWorkspaceTransition(selection: CloudWorkspaceLinkSelection): CloudWorkspaceSummary
+    suspend fun resetInvalidCloudCredentialRecoveryState()
     suspend fun logout()
     suspend fun renameCurrentWorkspace(name: String): CloudWorkspaceSummary
     suspend fun loadCurrentWorkspaceDeletePreview(): CloudWorkspaceDeletePreview

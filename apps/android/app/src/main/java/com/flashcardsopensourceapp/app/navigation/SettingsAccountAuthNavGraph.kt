@@ -155,9 +155,9 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                         signInViewModel.retryPostAuth()
                     }
                 },
-                onLogout = {
+                onFailureAction = {
                     coroutineScope.launch {
-                        signInViewModel.logoutAfterPostAuthFailure()
+                        signInViewModel.runPostAuthFailureAction()
                         runAuthNavigationOnMainThread {
                             navigateToSettingsAccountStatus(navController = navController)
                         }

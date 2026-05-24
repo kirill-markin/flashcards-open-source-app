@@ -95,7 +95,8 @@ internal fun currentWorkspaceSelectionErrorMessage(
 internal fun buildCloudPostAuthWorkspaceItems(
     preferredWorkspaceId: String?,
     workspaces: List<CloudWorkspaceSummary>,
-    strings: SettingsStringResolver
+    strings: SettingsStringResolver,
+    allowCreateNew: Boolean
 ): List<CurrentWorkspaceItemUiState> {
     val selectedWorkspaceId = when (
         val selection = buildAutomaticWorkspaceSelection(
@@ -107,7 +108,7 @@ internal fun buildCloudPostAuthWorkspaceItems(
         CloudWorkspaceLinkSelection.CreateNew,
         null -> null
     }
-    return workspaces.sortedByDescending(CloudWorkspaceSummary::createdAtMillis).map { workspace ->
+    val items = workspaces.sortedByDescending(CloudWorkspaceSummary::createdAtMillis).map { workspace ->
         CurrentWorkspaceItemUiState(
             workspaceId = workspace.workspaceId,
             title = workspace.name,
@@ -118,7 +119,12 @@ internal fun buildCloudPostAuthWorkspaceItems(
             isSelected = workspace.workspaceId == selectedWorkspaceId,
             isCreateNew = false
         )
-    } + CurrentWorkspaceItemUiState(
+    }
+    if (allowCreateNew.not()) {
+        return items
+    }
+
+    return items + CurrentWorkspaceItemUiState(
         workspaceId = "create-new",
         title = strings.get(R.string.settings_current_workspace_create_new_title),
         subtitle = strings.get(R.string.settings_current_workspace_create_new_summary),
