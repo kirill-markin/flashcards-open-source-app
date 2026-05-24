@@ -22,10 +22,9 @@ extension FlashcardsStore {
         self.activeStrictRemindersRescheduleTask?.cancel()
         self.activeStrictRemindersRescheduleTask = nil
         self.pendingStrictRemindersReconcileRequest = nil
-        self.clearCloudCredentialRecoveryState()
         try self.cloudRuntime.clearCredentials()
         try self.dependencies.guestCredentialStore.clearGuestSession()
-        self.clearPendingGuestUpgradeStateAndUnblockMutations()
+        try database.resetForAccountDeletion()
         rotateStrictReminderNotificationScope(userDefaults: self.userDefaults)
         clearPendingAppNotificationTap(userDefaults: self.userDefaults)
         self.removeStrictReminderNotificationsForCloudIdentityReset(
@@ -60,8 +59,9 @@ extension FlashcardsStore {
         self.lastSuccessfulCloudSyncAt = nil
         self.syncStatus = .idle
         self.globalErrorMessage = ""
-        try database.resetForAccountDeletion()
+        self.clearPendingGuestUpgradeStateAndUnblockMutations()
         try self.reload()
+        self.clearCloudCredentialRecoveryState()
     }
 
     private func removeStrictReminderNotificationsForCloudIdentityReset(

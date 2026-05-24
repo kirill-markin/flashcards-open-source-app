@@ -442,7 +442,12 @@ final class FlashcardsStore {
 
         if database != nil && initialGlobalErrorMessage.isEmpty {
             do {
-                try self.reload(now: Date(), refreshVisibleProgress: false)
+                let now = Date()
+                if initialCloudCredentialRecoveryState == nil {
+                    try self.reload(now: now, refreshVisibleProgress: false)
+                } else {
+                    try self.reloadLocalStateForCredentialRecoveryGate(now: now)
+                }
             } catch {
                 self.globalErrorMessage = Flashcards.errorMessage(error: error)
             }

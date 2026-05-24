@@ -140,6 +140,18 @@
 "settings.sync.recovery.wrongLinkedWorkspace" = "اختر مساحة العمل السحابية الأصلية لإعادة توصيل البيانات المحلية المحفوظة.";
 "settings.sync.recovery.interruptedUpgradeAccount" = "سجّل الدخول باستخدام الحساب الذي استُخدم لترقية الحساب التي توقفت.";
 "settings.sync.recovery.upgradeWorkspace" = "يجب إنهاء استرداد ترقية الحساب في مساحة العمل %@.";
+"settings.sync.recoveryGate.guestSessionMissing.title" = "جلسة الضيف تحتاج إلى استعادة";
+"settings.sync.recoveryGate.guestSessionMissing.body" = "تعذرت استعادة جلسة الضيف على هذا الجهاز. لا تزال بياناتك المحلية هنا. سجّل الدخول بالبريد الإلكتروني لحفظها في مساحة عمل مستردة، أو امسح البيانات المحلية وابدأ من جديد.";
+"settings.sync.recoveryGate.linkedCredentialsMissing.title" = "سجّل الدخول مجددًا لإعادة الاتصال";
+"settings.sync.recoveryGate.linkedCredentialsMissing.body" = "بيانات اعتماد تسجيل الدخول الآمنة مفقودة على هذا الجهاز. لا تزال بياناتك المحلية هنا. سجّل الدخول بالحساب السحابي الأصلي لإعادة ربطها، أو امسح البيانات المحلية وابدأ من جديد.";
+"settings.sync.recoveryGate.invalidStoredState.title" = "بيانات استعادة السحابة غير صالحة";
+"settings.sync.recoveryGate.invalidStoredState.body" = "بيانات استعادة السحابة على هذا الجهاز غير صالحة. للحفاظ على أمان التطبيق، تم حظر الاستخدام العادي. امسح البيانات المحلية وابدأ من جديد، أو جرّب تسجيل الدخول إذا كانت الاستعادة ما زالت ممكنة.";
+"settings.sync.recoveryGate.signInAndRecover" = "تسجيل الدخول والاستعادة";
+"settings.sync.recoveryGate.eraseLocalData" = "مسح البيانات المحلية والبدء من جديد";
+"settings.sync.recoveryGate.eraseAlert.title" = "مسح البيانات المحلية؟";
+"settings.sync.recoveryGate.eraseAlert.message" = "سيؤدي هذا إلى حذف البطاقات ومساحات العمل المحلية على هذا الجهاز. لن يتم حذف بيانات السحابة.";
+"settings.sync.recoveryGate.eraseAlert.confirm" = "مسح البيانات المحلية";
+"settings.sync.recoveryGate.erasing" = "جارٍ مسح البيانات المحلية...";
 
 "settings.currentWorkspace.title" = "مساحة العمل الحالية";
 "settings.currentWorkspace.row.workspace" = "مساحة العمل";

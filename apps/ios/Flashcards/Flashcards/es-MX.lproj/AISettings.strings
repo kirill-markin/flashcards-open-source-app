@@ -140,6 +140,18 @@
 "settings.sync.recovery.wrongLinkedWorkspace" = "Selecciona el espacio de trabajo en la nube original para reconectar los datos locales conservados.";
 "settings.sync.recovery.interruptedUpgradeAccount" = "Inicia sesion con la cuenta usada para la actualizacion de cuenta interrumpida.";
 "settings.sync.recovery.upgradeWorkspace" = "La recuperacion de la actualizacion de cuenta debe terminar en el espacio de trabajo %@.";
+"settings.sync.recoveryGate.guestSessionMissing.title" = "La sesion de invitado necesita recuperacion";
+"settings.sync.recoveryGate.guestSessionMissing.body" = "No se pudo restaurar la sesion de invitado en este dispositivo. Tus datos locales siguen aqui. Inicia sesion con email para guardarlos en un espacio de trabajo recuperado, o borra los datos locales y empieza de nuevo.";
+"settings.sync.recoveryGate.linkedCredentialsMissing.title" = "Inicia sesion de nuevo para reconectar";
+"settings.sync.recoveryGate.linkedCredentialsMissing.body" = "Faltan credenciales seguras de inicio de sesion en este dispositivo. Tus datos locales siguen aqui. Inicia sesion con la cuenta en la nube original para reconectarlos, o borra los datos locales y empieza de nuevo.";
+"settings.sync.recoveryGate.invalidStoredState.title" = "Los datos de recuperacion en la nube no son validos";
+"settings.sync.recoveryGate.invalidStoredState.body" = "Los datos de recuperacion en la nube de este dispositivo no son validos. Para mantener segura la app, el uso normal esta bloqueado. Borra los datos locales y empieza de nuevo, o intenta iniciar sesion si la recuperacion todavia es posible.";
+"settings.sync.recoveryGate.signInAndRecover" = "Iniciar sesion y recuperar";
+"settings.sync.recoveryGate.eraseLocalData" = "Borrar datos locales y empezar de nuevo";
+"settings.sync.recoveryGate.eraseAlert.title" = "Borrar datos locales?";
+"settings.sync.recoveryGate.eraseAlert.message" = "Esto elimina las tarjetas y los espacios de trabajo locales de este dispositivo. Los datos en la nube no se eliminan.";
+"settings.sync.recoveryGate.eraseAlert.confirm" = "Borrar datos locales";
+"settings.sync.recoveryGate.erasing" = "Borrando datos locales...";
 
 "settings.currentWorkspace.title" = "Espacio de trabajo actual";
 "settings.currentWorkspace.row.workspace" = "Espacio de trabajo";

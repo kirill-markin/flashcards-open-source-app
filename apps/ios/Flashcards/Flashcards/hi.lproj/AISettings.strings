@@ -140,6 +140,18 @@
 "settings.sync.recovery.wrongLinkedWorkspace" = "सुरक्षित रखे गए स्थानीय डेटा को फिर से जोड़ने के लिए मूल क्लाउड कार्यक्षेत्र चुनें।";
 "settings.sync.recovery.interruptedUpgradeAccount" = "रुके हुए खाता अपग्रेड में उपयोग किए गए खाते से साइन इन करें।";
 "settings.sync.recovery.upgradeWorkspace" = "खाता अपग्रेड रिकवरी को %@ कार्यक्षेत्र में पूरा करना होगा।";
+"settings.sync.recoveryGate.guestSessionMissing.title" = "अतिथि सत्र की रिकवरी चाहिए";
+"settings.sync.recoveryGate.guestSessionMissing.body" = "इस डिवाइस पर अतिथि सत्र बहाल नहीं किया जा सका। आपका स्थानीय डेटा अभी भी यहीं है। इसे रिकवर किए गए कार्यक्षेत्र में सहेजने के लिए ईमेल से साइन इन करें, या स्थानीय डेटा मिटाकर नए सिरे से शुरू करें।";
+"settings.sync.recoveryGate.linkedCredentialsMissing.title" = "फिर से कनेक्ट करने के लिए साइन इन करें";
+"settings.sync.recoveryGate.linkedCredentialsMissing.body" = "इस डिवाइस पर सुरक्षित साइन-इन क्रेडेंशियल गायब हैं। आपका स्थानीय डेटा अभी भी यहीं है। इसे फिर से कनेक्ट करने के लिए मूल क्लाउड खाते से साइन इन करें, या स्थानीय डेटा मिटाकर नए सिरे से शुरू करें।";
+"settings.sync.recoveryGate.invalidStoredState.title" = "क्लाउड रिकवरी डेटा अमान्य है";
+"settings.sync.recoveryGate.invalidStoredState.body" = "इस डिवाइस पर क्लाउड रिकवरी डेटा अमान्य है। ऐप को सुरक्षित रखने के लिए सामान्य उपयोग ब्लॉक है। स्थानीय डेटा मिटाकर नए सिरे से शुरू करें, या अगर रिकवरी अभी भी संभव है तो साइन इन करके कोशिश करें।";
+"settings.sync.recoveryGate.signInAndRecover" = "साइन इन करके रिकवर करें";
+"settings.sync.recoveryGate.eraseLocalData" = "स्थानीय डेटा मिटाकर नए सिरे से शुरू करें";
+"settings.sync.recoveryGate.eraseAlert.title" = "स्थानीय डेटा मिटाएं?";
+"settings.sync.recoveryGate.eraseAlert.message" = "यह इस डिवाइस पर स्थानीय कार्ड और कार्यक्षेत्रों को मिटा देगा। क्लाउड डेटा नहीं मिटेगा।";
+"settings.sync.recoveryGate.eraseAlert.confirm" = "स्थानीय डेटा मिटाएं";
+"settings.sync.recoveryGate.erasing" = "स्थानीय डेटा मिटाया जा रहा है...";
 
 "settings.currentWorkspace.title" = "वर्तमान कार्यक्षेत्र";
 "settings.currentWorkspace.row.workspace" = "कार्यक्षेत्र";

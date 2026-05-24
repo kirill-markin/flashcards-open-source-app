@@ -140,6 +140,18 @@
 "settings.sync.recovery.wrongLinkedWorkspace" = "请选择原始云工作空间，以重新连接已保留的本地数据。";
 "settings.sync.recovery.interruptedUpgradeAccount" = "请使用中断的账户升级所用的账户登录。";
 "settings.sync.recovery.upgradeWorkspace" = "账户升级恢复必须在 %@ 工作空间中完成。";
+"settings.sync.recoveryGate.guestSessionMissing.title" = "访客会话需要恢复";
+"settings.sync.recoveryGate.guestSessionMissing.body" = "无法恢复此设备上的访客会话。你的本地数据仍在此设备上。请用电子邮件登录，将其保存到已恢复的工作空间，或抹掉本地数据并重新开始。";
+"settings.sync.recoveryGate.linkedCredentialsMissing.title" = "再次登录以重新连接";
+"settings.sync.recoveryGate.linkedCredentialsMissing.body" = "此设备缺少安全登录凭据。你的本地数据仍在此设备上。请使用原来的云账户登录以重新连接，或抹掉本地数据并重新开始。";
+"settings.sync.recoveryGate.invalidStoredState.title" = "云恢复数据无效";
+"settings.sync.recoveryGate.invalidStoredState.body" = "此设备上的云恢复数据无效。为确保应用安全，普通使用已被阻止。请抹掉本地数据并重新开始，或在仍可恢复时尝试登录。";
+"settings.sync.recoveryGate.signInAndRecover" = "登录并恢复";
+"settings.sync.recoveryGate.eraseLocalData" = "抹掉本地数据并重新开始";
+"settings.sync.recoveryGate.eraseAlert.title" = "抹掉本地数据？";
+"settings.sync.recoveryGate.eraseAlert.message" = "这会删除此设备上的本地卡片和工作空间。云数据不会被删除。";
+"settings.sync.recoveryGate.eraseAlert.confirm" = "抹掉本地数据";
+"settings.sync.recoveryGate.erasing" = "正在抹掉本地数据...";
 
 "settings.currentWorkspace.title" = "当前工作空间";
 "settings.currentWorkspace.row.workspace" = "工作空间";

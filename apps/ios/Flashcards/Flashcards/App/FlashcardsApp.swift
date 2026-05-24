@@ -49,6 +49,7 @@ private enum FlashcardsUITestLaunchError: LocalizedError {
 private struct CloudSyncPollingTaskID: Hashable {
     let isStartupReady: Bool
     let isSceneActive: Bool
+    let isRecoveryGateActive: Bool
     let selectedTab: AppTab
     let fastPollingUntil: Date?
     let isSyncBlocked: Bool
@@ -57,6 +58,7 @@ private struct CloudSyncPollingTaskID: Hashable {
 private struct ProgressContextWatcherTaskID: Hashable {
     let isStartupReady: Bool
     let isSceneActive: Bool
+    let isRecoveryGateActive: Bool
     let refreshToken: Int
 }
 
@@ -183,7 +185,9 @@ struct FlashcardsApp: App {
             }
         }
 
-        store.prepareVisibleTabForPresentation(tab: selectedTab, now: Date())
+        if store.cloudCredentialRecoveryState == nil {
+            store.prepareVisibleTabForPresentation(tab: selectedTab, now: Date())
+        }
 
         _store = State(initialValue: store)
         _navigation = State(
@@ -206,11 +210,14 @@ struct FlashcardsApp: App {
             RootTabView()
                 .environment(store)
                 .environment(navigation)
-                .task {
+                .task(id: self.isCloudCredentialRecoveryGateActive) {
                     await self.runInitialAppStartupIfNeeded()
                 }
                 .onChange(of: scenePhase) { _, nextPhase in
                     guard self.isStartupReadyForBackgroundWork else {
+                        return
+                    }
+                    guard self.isCloudCredentialRecoveryGateActive == false else {
                         return
                     }
 
@@ -258,6 +265,7 @@ struct FlashcardsApp: App {
         CloudSyncPollingTaskID(
             isStartupReady: self.isStartupReadyForBackgroundWork,
             isSceneActive: self.scenePhase == .active,
+            isRecoveryGateActive: self.isCloudCredentialRecoveryGateActive,
             selectedTab: self.navigation.selectedTab,
             fastPollingUntil: self.store.cloudSyncFastPollingUntil,
             isSyncBlocked: self.store.isCloudSyncBlocked
@@ -265,15 +273,22 @@ struct FlashcardsApp: App {
     }
 
     private var isAppNotificationTapConsumptionReady: Bool {
-        self.isStartupReadyForBackgroundWork && self.scenePhase == .active
+        self.isStartupReadyForBackgroundWork
+            && self.scenePhase == .active
+            && self.isCloudCredentialRecoveryGateActive == false
     }
 
     private var progressContextWatcherTaskID: ProgressContextWatcherTaskID {
         ProgressContextWatcherTaskID(
             isStartupReady: self.isStartupReadyForBackgroundWork,
             isSceneActive: self.scenePhase == .active,
+            isRecoveryGateActive: self.isCloudCredentialRecoveryGateActive,
             refreshToken: self.progressContextWatcherRefreshToken
         )
+    }
+
+    private var isCloudCredentialRecoveryGateActive: Bool {
+        self.store.cloudCredentialRecoveryState != nil
     }
 
     @MainActor
@@ -282,7 +297,20 @@ struct FlashcardsApp: App {
             return
         }
 
+        if self.isCloudCredentialRecoveryGateActive {
+            if let launchScenario = self.uiTestLaunchScenario {
+                self.store.uiTestLaunchPreparationStatus = .failed(
+                    launchScenario: launchScenario,
+                    message: "UI test launch scenario is blocked while cloud credential recovery is active."
+                )
+                self.uiTestLaunchScenario = nil
+            }
+            self.uiTestAIHandoffCard = nil
+            return
+        }
+
         self.hasRunInitialStartup = true
+        self.isStartupReadyForBackgroundWork = false
 
         do {
             try await self.runUITestLaunchScenarioIfNeeded()
@@ -357,7 +385,9 @@ struct FlashcardsApp: App {
 
     @MainActor
     private func handleProgressContextSystemChange() {
-        guard self.isStartupReadyForBackgroundWork, self.scenePhase == .active else {
+        guard self.isStartupReadyForBackgroundWork,
+              self.scenePhase == .active,
+              self.isCloudCredentialRecoveryGateActive == false else {
             return
         }
 
@@ -366,12 +396,16 @@ struct FlashcardsApp: App {
 
     @MainActor
     private func consumePendingAppNotificationTapIfNeeded() async {
-        guard self.isStartupReadyForBackgroundWork, self.scenePhase == .active else {
+        guard self.isStartupReadyForBackgroundWork,
+              self.scenePhase == .active,
+              self.isCloudCredentialRecoveryGateActive == false else {
             return
         }
 
         await Task.yield()
-        guard self.isStartupReadyForBackgroundWork, self.scenePhase == .active else {
+        guard self.isStartupReadyForBackgroundWork,
+              self.scenePhase == .active,
+              self.isCloudCredentialRecoveryGateActive == false else {
             return
         }
 
@@ -419,7 +453,9 @@ struct FlashcardsApp: App {
 
     @MainActor
     private func runCloudSyncPollingLoop() async {
-        guard self.isStartupReadyForBackgroundWork, self.scenePhase == .active else {
+        guard self.isStartupReadyForBackgroundWork,
+              self.scenePhase == .active,
+              self.isCloudCredentialRecoveryGateActive == false else {
             return
         }
         guard self.store.isCloudSyncBlocked == false else {
@@ -428,7 +464,8 @@ struct FlashcardsApp: App {
 
         while Task.isCancelled == false
             && self.isStartupReadyForBackgroundWork
-            && self.scenePhase == .active {
+            && self.scenePhase == .active
+            && self.isCloudCredentialRecoveryGateActive == false {
             let intervalSeconds = self.store.currentCloudSyncPollingInterval(
                 selectedTab: self.navigation.selectedTab,
                 now: Date()
@@ -445,7 +482,8 @@ struct FlashcardsApp: App {
 
             guard Task.isCancelled == false,
                   self.isStartupReadyForBackgroundWork,
-                  self.scenePhase == .active else {
+                  self.scenePhase == .active,
+                  self.isCloudCredentialRecoveryGateActive == false else {
                 return
             }
             guard self.store.isCloudSyncBlocked == false else {
@@ -466,13 +504,16 @@ struct FlashcardsApp: App {
 
     @MainActor
     private func runProgressContextWatcherLoop() async {
-        guard self.isStartupReadyForBackgroundWork, self.scenePhase == .active else {
+        guard self.isStartupReadyForBackgroundWork,
+              self.scenePhase == .active,
+              self.isCloudCredentialRecoveryGateActive == false else {
             return
         }
 
         while Task.isCancelled == false
             && self.isStartupReadyForBackgroundWork
-            && self.scenePhase == .active {
+            && self.scenePhase == .active
+            && self.isCloudCredentialRecoveryGateActive == false {
             let now = Date()
             let nextRollover = nextProgressContextRolloverDate(now: now)
             let intervalSeconds = nextRollover.timeIntervalSince(now)
@@ -494,7 +535,8 @@ struct FlashcardsApp: App {
 
             guard Task.isCancelled == false,
                   self.isStartupReadyForBackgroundWork,
-                  self.scenePhase == .active else {
+                  self.scenePhase == .active,
+                  self.isCloudCredentialRecoveryGateActive == false else {
                 return
             }
 
