@@ -18,6 +18,9 @@ extension FlashcardsStore {
                 throw LocalStoreError.uninitialized("Flashcards store is unavailable")
             }
 
+            if linkContext.postAuthRecoveryRoute == .guestLocalRecovery {
+                try self.throwIfGuestLocalRecoveryRequired()
+            }
             guard let guestUpgradeMode = linkContext.guestUpgradeMode else {
                 throw LocalStoreError.uninitialized("Guest upgrade context is unavailable")
             }
@@ -130,6 +133,30 @@ extension FlashcardsStore {
 
         try self.markPendingGuestUpgradeGuestSessionMissing(detectedAt: detectedAt)
         try self.throwIfCloudCredentialRecoveryRequired()
+    }
+
+    func pendingGuestUpgradePostAuthRecoveryRoute(
+        apiBaseUrl: String,
+        detectedAt: Date
+    ) throws -> CloudPostAuthRecoveryRoute? {
+        if try self.hasCompletedPendingGuestUpgradeRecoveryCheckpoint(apiBaseUrl: apiBaseUrl) {
+            return .pendingGuestUpgradeRecovery
+        }
+        guard self.cloudCredentialRecoveryState != nil else {
+            return nil
+        }
+        if self.cloudCredentialRecoveryState?.reason == .invalidStoredState {
+            try self.throwIfCloudCredentialRecoveryRequired()
+        }
+        guard try self.matchingInFlightPendingGuestUpgradeState(apiBaseUrl: apiBaseUrl) != nil else {
+            return nil
+        }
+        guard try self.loadUsableGuestSessionForCurrentConfiguration() != nil else {
+            try self.markPendingGuestUpgradeGuestSessionMissing(detectedAt: detectedAt)
+            return .guestLocalRecovery
+        }
+
+        return .pendingGuestUpgradeRecovery
     }
 
     func shouldPrepareGuestUpgradeModeForCloudLink(apiBaseUrl: String) throws -> Bool {

@@ -119,6 +119,18 @@ private struct CloudPostAuthSyncState: Identifiable, Hashable {
     }
 }
 
+private struct CloudPostAuthRecoveryNeededState: Identifiable, Hashable {
+    let id: String
+    let title: String
+    let message: String
+
+    init(title: String, message: String) {
+        self.id = UUID().uuidString
+        self.title = title
+        self.message = message
+    }
+}
+
 private struct CloudAuthInlineErrorView: View {
     let presentation: CloudAuthInlineErrorPresentation
 
@@ -167,9 +179,24 @@ func makeCloudPostAuthSyncPresentation() -> CloudPostAuthSyncPresentation {
 enum CloudWorkspacePostAuthRoute: Equatable {
     case autoLink(CloudWorkspaceLinkSelection)
     case chooseWorkspace
+    case guestLocalRecoveryNeeded
 }
 
-func makeCloudWorkspacePostAuthRoute(workspaces: [CloudWorkspaceSummary]) -> CloudWorkspacePostAuthRoute {
+func makeCloudWorkspacePostAuthRoute(linkContext: CloudWorkspaceLinkContext) -> CloudWorkspacePostAuthRoute {
+    switch linkContext.postAuthRecoveryRoute {
+    case .guestLocalRecovery:
+        return .guestLocalRecoveryNeeded
+    case .linkedCredentialRestore:
+        guard linkContext.workspaces.count == 1, let workspace = linkContext.workspaces.first else {
+            return .chooseWorkspace
+        }
+
+        return .autoLink(.existing(workspaceId: workspace.workspaceId))
+    case .none, .pendingGuestUpgradeRecovery:
+        break
+    }
+
+    let workspaces = linkContext.workspaces
     if workspaces.isEmpty {
         return .autoLink(.createNew)
     }
@@ -191,6 +218,7 @@ struct CloudSignInSheet: View {
     @State private var postAuthLoadingState: CloudPostAuthLoadingState?
     @State private var postAuthSyncState: CloudPostAuthSyncState?
     @State private var workspaceLinkContext: CloudWorkspaceLinkContext?
+    @State private var postAuthRecoveryNeededState: CloudPostAuthRecoveryNeededState?
     @State private var postAuthFailureState: CloudPostAuthFailureState?
     @State private var authErrorPresentation: CloudAuthInlineErrorPresentation?
     @State private var isSendingCode: Bool = false
@@ -266,6 +294,7 @@ struct CloudSignInSheet: View {
                         self.postAuthLoadingState = nil
                         self.postAuthSyncState = nil
                         self.workspaceLinkContext = nil
+                        self.postAuthRecoveryNeededState = nil
                         self.postAuthFailureState = nil
                         self.scheduleEmailFieldFocus()
                     }
@@ -298,6 +327,18 @@ struct CloudSignInSheet: View {
                     }
                 )
                 .environment(self.store)
+            }
+            .sheet(item: self.$postAuthRecoveryNeededState) { recoveryState in
+                CloudPostAuthRecoveryNeededSheet(
+                    state: recoveryState,
+                    onClose: {
+                        self.postAuthRecoveryNeededState = nil
+                        self.dismiss()
+                    },
+                    onLogout: {
+                        self.isLogoutConfirmationPresented = true
+                    }
+                )
             }
             .sheet(item: self.$postAuthFailureState) { failureState in
                 CloudPostAuthFailureSheet(
@@ -423,12 +464,20 @@ struct CloudSignInSheet: View {
     private func handlePreparedLinkContext(_ linkContext: CloudWorkspaceLinkContext) {
         self.authErrorPresentation = nil
         self.postAuthLoadingState = nil
+        self.postAuthRecoveryNeededState = nil
+        self.postAuthFailureState = nil
 
-        switch makeCloudWorkspacePostAuthRoute(workspaces: linkContext.workspaces) {
+        switch makeCloudWorkspacePostAuthRoute(linkContext: linkContext) {
         case .autoLink(let selection):
             self.completeLink(linkContext: linkContext, selection: selection)
         case .chooseWorkspace:
             self.workspaceLinkContext = linkContext
+        case .guestLocalRecoveryNeeded:
+            self.postAuthRecoveryNeededState = CloudPostAuthRecoveryNeededState(
+                title: aiSettingsLocalized("settings.account.cloudSignIn.failure.cloudSetupFailed", "Signed in, but cloud setup failed."),
+                message: localizedCloudCredentialRecoveryBlockedMessage(reason: .guestSessionMissing)
+            )
+            self.workspaceLinkContext = nil
         }
     }
 
@@ -437,6 +486,7 @@ struct CloudSignInSheet: View {
         self.postAuthLoadingState = CloudPostAuthLoadingState(verifiedContext: verifiedContext)
         self.postAuthSyncState = nil
         self.workspaceLinkContext = nil
+        self.postAuthRecoveryNeededState = nil
         self.authErrorPresentation = nil
     }
 
@@ -462,7 +512,7 @@ struct CloudSignInSheet: View {
         }
 
         self.presentPostAuthSync(
-            operation: linkContext.guestUpgradeMode == .mergeRequired
+            operation: linkContext.guestUpgradeMode != nil
                 ? .completeGuestLink(linkContext: linkContext, selection: selection)
                 : .completeLink(linkContext: linkContext, selection: selection)
         )
@@ -490,6 +540,7 @@ struct CloudSignInSheet: View {
         self.postAuthLoadingState = nil
         self.postAuthSyncState = nil
         self.workspaceLinkContext = nil
+        self.postAuthRecoveryNeededState = nil
         self.postAuthFailureState = nil
         self.postAuthSyncState = nextState
     }
@@ -553,6 +604,7 @@ struct CloudSignInSheet: View {
         self.authErrorPresentation = nil
         self.postAuthLoadingState = nil
         self.postAuthSyncState = nil
+        self.postAuthRecoveryNeededState = nil
         self.postAuthFailureState = CloudPostAuthFailureState(
             title: title,
             message: message,
@@ -574,6 +626,7 @@ struct CloudSignInSheet: View {
         self.postAuthSyncState = nil
         self.postAuthFailureState = nil
         self.workspaceLinkContext = nil
+        self.postAuthRecoveryNeededState = nil
         self.otpSheetState = nil
         self.dismiss()
     }
@@ -973,6 +1026,45 @@ private struct CloudWorkspaceSelectionRow: View {
         }
         .contentShape(Rectangle())
         .padding(.vertical, 2)
+    }
+}
+
+private struct CloudPostAuthRecoveryNeededSheet: View {
+    let state: CloudPostAuthRecoveryNeededState
+    let onClose: () -> Void
+    let onLogout: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            ReadableContentLayout(
+                maxWidth: flashcardsReadableFormMaxWidth,
+                horizontalPadding: 0
+            ) {
+                Form {
+                    Section(aiSettingsLocalized("settings.account.cloudSignIn.section.cloudAccount", "Cloud account")) {
+                        Text(self.state.title)
+                            .font(.headline)
+                        Text(self.state.message)
+                            .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
+                            .accessibilityIdentifier(UITestIdentifier.cloudSignInPostAuthFailureMessage)
+                    }
+
+                    Section {
+                        Button(aiSettingsLocalized("common.close", "Close")) {
+                            self.onClose()
+                        }
+
+                        Button(aiSettingsLocalized("settings.account.status.logOut", "Log out"), role: .destructive) {
+                            self.onLogout()
+                        }
+                    }
+                }
+            }
+            .accessibilityIdentifier(UITestIdentifier.cloudSignInPostAuthFailureScreen)
+            .navigationTitle(aiSettingsLocalized("settings.account.cloudSignIn.cloudSyncTitle", "Cloud sync"))
+            .navigationBarTitleDisplayMode(.inline)
+        }
     }
 }
 

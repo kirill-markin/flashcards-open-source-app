@@ -51,18 +51,73 @@ extension FlashcardsStore {
 
     func prepareCloudLink(verifiedContext: CloudVerifiedAuthContext) async throws -> CloudWorkspaceLinkContext {
         let detectedAt = Date()
+        let postAuthRecoveryRoute = try self.resolvePostAuthRecoveryRouteBeforeIdentitySideEffects(
+            apiBaseUrl: verifiedContext.apiBaseUrl,
+            detectedAt: detectedAt
+        )
+
+        switch postAuthRecoveryRoute {
+        case .linkedCredentialRestore:
+            return try await self.prepareLinkedCredentialRecoveryLink(verifiedContext: verifiedContext)
+        case .guestLocalRecovery:
+            return try await self.prepareGuestLocalRecoveryLink(verifiedContext: verifiedContext)
+        case .pendingGuestUpgradeRecovery:
+            return try await self.prepareStandardCloudLink(
+                verifiedContext: verifiedContext,
+                detectedAt: detectedAt,
+                postAuthRecoveryRoute: .pendingGuestUpgradeRecovery
+            )
+        case .none:
+            return try await self.prepareStandardCloudLink(
+                verifiedContext: verifiedContext,
+                detectedAt: detectedAt,
+                postAuthRecoveryRoute: .none
+            )
+        }
+    }
+
+    private func resolvePostAuthRecoveryRouteBeforeIdentitySideEffects(
+        apiBaseUrl: String,
+        detectedAt: Date
+    ) throws -> CloudPostAuthRecoveryRoute {
+        if self.cloudCredentialRecoveryState?.reason == .invalidStoredState {
+            try self.throwIfCloudCredentialRecoveryRequired()
+        }
+        if let pendingGuestUpgradeRecoveryRoute = try self.pendingGuestUpgradePostAuthRecoveryRoute(
+            apiBaseUrl: apiBaseUrl,
+            detectedAt: detectedAt
+        ) {
+            return pendingGuestUpgradeRecoveryRoute
+        }
+        guard let recoveryState = self.cloudCredentialRecoveryState else {
+            return .none
+        }
+
+        switch recoveryState.reason {
+        case .linkedCredentialsMissing:
+            guard recoveryState.previousCloudState == .linked else {
+                try self.throwIfCloudCredentialRecoveryRequired()
+                return .none
+            }
+            return .linkedCredentialRestore
+        case .guestSessionMissing:
+            return .guestLocalRecovery
+        case .invalidStoredState:
+            try self.throwIfCloudCredentialRecoveryRequired()
+            return .none
+        }
+    }
+
+    private func prepareStandardCloudLink(
+        verifiedContext: CloudVerifiedAuthContext,
+        detectedAt: Date,
+        postAuthRecoveryRoute: CloudPostAuthRecoveryRoute
+    ) async throws -> CloudWorkspaceLinkContext {
         if try self.hasCompletedPendingGuestUpgradeRecoveryCheckpoint(apiBaseUrl: verifiedContext.apiBaseUrl) {
             return try await self.prepareCompletedPendingGuestUpgradeRecoveryLink(
                 verifiedContext: verifiedContext
             )
         }
-        if self.cloudCredentialRecoveryState?.reason == .invalidStoredState {
-            try self.throwIfCloudCredentialRecoveryRequired()
-        }
-        try self.blockPendingGuestUpgradeRecoveryIfMissingGuestSession(
-            apiBaseUrl: verifiedContext.apiBaseUrl,
-            detectedAt: detectedAt
-        )
 
         let prevalidatedAccount: CloudAccountSnapshot?
         if try self.shouldValidatePendingGuestUpgradeAccountBeforePrepare(apiBaseUrl: verifiedContext.apiBaseUrl) {
@@ -103,7 +158,47 @@ extension FlashcardsStore {
             apiBaseUrl: verifiedContext.apiBaseUrl,
             credentials: verifiedContext.credentials,
             workspaces: account.workspaces,
-            guestUpgradeMode: guestUpgradeMode
+            guestUpgradeMode: guestUpgradeMode,
+            postAuthRecoveryRoute: postAuthRecoveryRoute
+        )
+    }
+
+    private func prepareLinkedCredentialRecoveryLink(
+        verifiedContext: CloudVerifiedAuthContext
+    ) async throws -> CloudWorkspaceLinkContext {
+        let account = try await self.cloudRuntime.fetchCloudAccount(verifiedContext: verifiedContext)
+        let expectedWorkspace = try self.linkedCredentialRecoveryWorkspaceBeforeIdentitySideEffects(
+            account: account,
+            apiBaseUrl: verifiedContext.apiBaseUrl
+        )
+        try self.resetLocalStateIfLinkedUserDiffers(nextUserId: account.userId)
+
+        self.globalErrorMessage = ""
+        return CloudWorkspaceLinkContext(
+            userId: account.userId,
+            email: account.email,
+            apiBaseUrl: verifiedContext.apiBaseUrl,
+            credentials: verifiedContext.credentials,
+            workspaces: [expectedWorkspace],
+            guestUpgradeMode: nil,
+            postAuthRecoveryRoute: .linkedCredentialRestore
+        )
+    }
+
+    private func prepareGuestLocalRecoveryLink(
+        verifiedContext: CloudVerifiedAuthContext
+    ) async throws -> CloudWorkspaceLinkContext {
+        let account = try await self.cloudRuntime.fetchCloudAccount(verifiedContext: verifiedContext)
+
+        self.globalErrorMessage = ""
+        return CloudWorkspaceLinkContext(
+            userId: account.userId,
+            email: account.email,
+            apiBaseUrl: verifiedContext.apiBaseUrl,
+            credentials: verifiedContext.credentials,
+            workspaces: account.workspaces,
+            guestUpgradeMode: nil,
+            postAuthRecoveryRoute: .guestLocalRecovery
         )
     }
 
@@ -121,6 +216,10 @@ extension FlashcardsStore {
             }
 
             let trigger = self.manualCloudSyncTrigger(now: Date())
+            try self.validatePostAuthRecoveryRouteBeforeCloudLinkCompletion(
+                linkContext: linkContext,
+                selection: selection
+            )
             try self.validateCloudCredentialRecoveryUserBeforeIdentitySideEffects(
                 userId: linkContext.userId,
                 email: linkContext.email,
@@ -201,7 +300,8 @@ extension FlashcardsStore {
             apiBaseUrl: verifiedContext.apiBaseUrl,
             credentials: verifiedContext.credentials,
             workspaces: account.workspaces,
-            guestUpgradeMode: nil
+            guestUpgradeMode: nil,
+            postAuthRecoveryRoute: .pendingGuestUpgradeRecovery
         )
         try self.validateCloudCredentialRecoveryAccountBeforeIdentityReset(
             account: account,
@@ -223,7 +323,8 @@ extension FlashcardsStore {
             apiBaseUrl: verifiedContext.apiBaseUrl,
             credentials: verifiedContext.credentials,
             workspaces: [completedGuestUpgradeWorkspace],
-            guestUpgradeMode: nil
+            guestUpgradeMode: nil,
+            postAuthRecoveryRoute: .pendingGuestUpgradeRecovery
         )
     }
 
