@@ -130,7 +130,8 @@ final class GuestCloudUpgradeDrainTests: XCTestCase {
                 idTokenExpiresAt: "2099-01-01T00:00:00.000Z"
             ),
             workspaces: [],
-            guestUpgradeMode: .mergeRequired
+            guestUpgradeMode: .mergeRequired,
+            postAuthRecoveryRoute: .none
         )
 
         do {
@@ -340,7 +341,8 @@ final class GuestCloudUpgradeDrainTests: XCTestCase {
                 idTokenExpiresAt: "2099-01-01T00:00:00.000Z"
             ),
             workspaces: [],
-            guestUpgradeMode: .mergeRequired
+            guestUpgradeMode: .mergeRequired,
+            postAuthRecoveryRoute: .none
         )
         let upgradeTask: Task<Void, Error> = Task { @MainActor in
             try await store.completeGuestCloudLink(linkContext: linkContext, selection: .createNew)
@@ -617,7 +619,8 @@ final class GuestCloudUpgradeDrainTests: XCTestCase {
                 idTokenExpiresAt: "2099-01-01T00:00:00.000Z"
             ),
             workspaces: [],
-            guestUpgradeMode: .mergeRequired
+            guestUpgradeMode: .mergeRequired,
+            postAuthRecoveryRoute: .none
         )
 
         let upgradeTask = Task { @MainActor in
@@ -838,7 +841,8 @@ final class GuestCloudUpgradeDrainTests: XCTestCase {
                 idTokenExpiresAt: "2099-01-01T00:00:00.000Z"
             ),
             workspaces: [],
-            guestUpgradeMode: .mergeRequired
+            guestUpgradeMode: .mergeRequired,
+            postAuthRecoveryRoute: .none
         )
         let upgradeTask = Task { @MainActor in
             try await store.completeGuestCloudLink(linkContext: linkContext, selection: .createNew)
@@ -1048,7 +1052,8 @@ final class GuestCloudUpgradeDrainTests: XCTestCase {
                 idTokenExpiresAt: "2099-01-01T00:00:00.000Z"
             ),
             workspaces: [],
-            guestUpgradeMode: .mergeRequired
+            guestUpgradeMode: .mergeRequired,
+            postAuthRecoveryRoute: .none
         )
 
         do {

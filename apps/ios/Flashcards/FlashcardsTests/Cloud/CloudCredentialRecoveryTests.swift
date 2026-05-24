@@ -290,6 +290,92 @@ final class CloudCredentialRecoveryTests: LocalWorkspaceSyncTestCase {
     }
 
     @MainActor
+    func testInvalidStoredRecoveryBlocksPrepareCloudLinkBeforeIdentitySideEffects() async throws {
+        let suiteName: String = "recovery-invalid-blocks-prepare-\(UUID().uuidString)"
+        let userDefaults: UserDefaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        let encoder: JSONEncoder = JSONEncoder()
+        let decoder: JSONDecoder = JSONDecoder()
+        try saveCloudServerOverride(
+            override: CloudServerOverride(customOrigin: "https://example.test"),
+            userDefaults: userDefaults,
+            encoder: encoder
+        )
+        let corruptPayload: Data = Data(#"{"reason":"linked_credentials_missing","apiBaseUrl":42}"#.utf8)
+        userDefaults.set(corruptPayload, forKey: cloudCredentialRecoveryStateUserDefaultsKey)
+        let database: LocalDatabase = try self.makeDatabase()
+        let credentialStore: CloudCredentialStore = self.makeCredentialStore(
+            suiteName: suiteName,
+            encoder: encoder,
+            decoder: decoder
+        )
+        let guestCredentialStore: GuestCloudCredentialStore = self.makeGuestCredentialStore(
+            suiteName: suiteName,
+            userDefaults: userDefaults,
+            encoder: encoder,
+            decoder: decoder
+        )
+        let cloudSyncService: GuestUpgradeDrainCloudSyncService = GuestUpgradeDrainCloudSyncService()
+        cloudSyncService.fetchCloudAccountHandler = { _, _ in
+            XCTFail("Invalid recovery must block before account fetch.")
+            return CloudAccountSnapshot(userId: "unexpected", email: nil, workspaces: [])
+        }
+        let store: FlashcardsStore = self.makeRecoveryStore(
+            userDefaults: userDefaults,
+            encoder: encoder,
+            decoder: decoder,
+            database: database,
+            credentialStore: credentialStore,
+            guestCredentialStore: guestCredentialStore,
+            guestCloudAuthService: GuestCloudAuthService(),
+            cloudSyncService: cloudSyncService
+        )
+        defer {
+            store.shutdownForTests()
+            try? credentialStore.clearCredentials()
+            try? guestCredentialStore.clearGuestSession()
+            userDefaults.removePersistentDomain(forName: suiteName)
+        }
+        let configuration: CloudServiceConfiguration = try makeCustomCloudServiceConfiguration(
+            customOrigin: "https://example.test"
+        )
+
+        do {
+            _ = try await store.prepareCloudLink(
+                verifiedContext: CloudVerifiedAuthContext(
+                    apiBaseUrl: configuration.apiBaseUrl,
+                    credentials: StoredCloudCredentials(
+                        refreshToken: "refresh-token",
+                        idToken: "id-token",
+                        idTokenExpiresAt: "2099-01-01T00:00:00.000Z"
+                    )
+                )
+            )
+            XCTFail("Expected invalid recovery to block account link preparation.")
+        } catch let error as LocalStoreError {
+            guard case .validation(let message) = error else {
+                XCTFail("Expected validation error, received \(Flashcards.errorMessage(error: error))")
+                return
+            }
+            XCTAssertEqual(localizedCloudCredentialRecoveryBlockedMessage(reason: .invalidStoredState), message)
+        } catch {
+            XCTFail("Unexpected error: \(Flashcards.errorMessage(error: error))")
+        }
+
+        XCTAssertEqual(0, cloudSyncService.fetchCloudAccountCallCount)
+        XCTAssertNil(try credentialStore.loadCredentials())
+        XCTAssertEqual(
+            corruptPayload,
+            try XCTUnwrap(userDefaults.data(forKey: cloudCredentialRecoveryStateUserDefaultsKey))
+        )
+        XCTAssertBlockedSyncStatus(
+            store.syncStatus,
+            expectedReason: .invalidStoredState,
+            file: #filePath,
+            line: #line
+        )
+    }
+
+    @MainActor
     func testInvalidStoredRecoveryBlocksPendingGuestUpgradeReplayBeforeSideEffects() async throws {
         let suiteName: String = "recovery-invalid-blocks-pending-upgrade-\(UUID().uuidString)"
         let userDefaults: UserDefaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
@@ -346,7 +432,8 @@ final class CloudCredentialRecoveryTests: LocalWorkspaceSyncTestCase {
                 apiBaseUrl: configuration.apiBaseUrl,
                 credentials: credentials,
                 workspaces: [],
-                guestUpgradeMode: .mergeRequired
+                guestUpgradeMode: .mergeRequired,
+                postAuthRecoveryRoute: .none
             ),
             configuration: configuration,
             guestSession: guestSession,
@@ -609,6 +696,246 @@ final class CloudCredentialRecoveryTests: LocalWorkspaceSyncTestCase {
     }
 
     @MainActor
+    func testLinkedRecoveryRestoresSameAccountAndWorkspace() async throws {
+        let suiteName: String = "linked-recovery-same-account-workspace-\(UUID().uuidString)"
+        let userDefaults: UserDefaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        let encoder: JSONEncoder = JSONEncoder()
+        let decoder: JSONDecoder = JSONDecoder()
+        try saveCloudServerOverride(
+            override: CloudServerOverride(customOrigin: "https://example.test"),
+            userDefaults: userDefaults,
+            encoder: encoder
+        )
+        let database: LocalDatabase = try self.makeDatabase()
+        let workspace: Workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let savedCard: Card = try self.saveRecoveryTestCard(database: database, workspaceId: workspace.workspaceId)
+        let outboxCountBefore: Int = try self.loadOutboxCount(database: database)
+        let workspaceIdsBefore: [String] = try self.loadWorkspaceIds(database: database)
+        try database.updateCloudSettings(
+            cloudState: .linked,
+            linkedUserId: "linked-user",
+            linkedWorkspaceId: workspace.workspaceId,
+            activeWorkspaceId: workspace.workspaceId,
+            linkedEmail: "user@example.com"
+        )
+        let credentialStore: CloudCredentialStore = self.makeCredentialStore(
+            suiteName: suiteName,
+            encoder: encoder,
+            decoder: decoder
+        )
+        let guestCredentialStore: GuestCloudCredentialStore = self.makeGuestCredentialStore(
+            suiteName: suiteName,
+            userDefaults: userDefaults,
+            encoder: encoder,
+            decoder: decoder
+        )
+        let configuration: CloudServiceConfiguration = try makeCustomCloudServiceConfiguration(
+            customOrigin: "https://example.test"
+        )
+        let credentials: StoredCloudCredentials = StoredCloudCredentials(
+            refreshToken: "refresh-token",
+            idToken: "id-token",
+            idTokenExpiresAt: "2099-01-01T00:00:00.000Z"
+        )
+        let expectedWorkspace: CloudWorkspaceSummary = CloudWorkspaceSummary(
+            workspaceId: workspace.workspaceId,
+            name: workspace.name,
+            createdAt: workspace.createdAt,
+            isSelected: true
+        )
+        let cloudSyncService: GuestUpgradeDrainCloudSyncService = GuestUpgradeDrainCloudSyncService()
+        cloudSyncService.fetchCloudAccountHandler = { apiBaseUrl, bearerToken in
+            XCTAssertEqual(configuration.apiBaseUrl, apiBaseUrl)
+            XCTAssertEqual(credentials.idToken, bearerToken)
+            return CloudAccountSnapshot(
+                userId: "linked-user",
+                email: "user@example.com",
+                workspaces: [expectedWorkspace]
+            )
+        }
+        cloudSyncService.selectWorkspaceHandler = { apiBaseUrl, bearerToken, workspaceId in
+            XCTAssertEqual(configuration.apiBaseUrl, apiBaseUrl)
+            XCTAssertEqual(credentials.idToken, bearerToken)
+            XCTAssertEqual(expectedWorkspace.workspaceId, workspaceId)
+            return expectedWorkspace
+        }
+        let store: FlashcardsStore = self.makeRecoveryStore(
+            userDefaults: userDefaults,
+            encoder: encoder,
+            decoder: decoder,
+            database: database,
+            credentialStore: credentialStore,
+            guestCredentialStore: guestCredentialStore,
+            guestCloudAuthService: GuestCloudAuthService(),
+            cloudSyncService: cloudSyncService
+        )
+        defer {
+            store.shutdownForTests()
+            try? credentialStore.clearCredentials()
+            try? guestCredentialStore.clearGuestSession()
+            userDefaults.removePersistentDomain(forName: suiteName)
+        }
+        let cloudSettings: CloudSettings = try XCTUnwrap(store.cloudSettings)
+        try store.markCloudCredentialRecoveryRequired(
+            reason: .linkedCredentialsMissing,
+            cloudSettings: cloudSettings,
+            configuration: configuration,
+            detectedAt: Date(timeIntervalSince1970: 1_775_000_000)
+        )
+
+        let linkContext: CloudWorkspaceLinkContext = try await store.prepareCloudLink(
+            verifiedContext: CloudVerifiedAuthContext(
+                apiBaseUrl: configuration.apiBaseUrl,
+                credentials: credentials
+            )
+        )
+        XCTAssertNil(linkContext.guestUpgradeMode)
+        XCTAssertEqual(.linkedCredentialRestore, linkContext.postAuthRecoveryRoute)
+        XCTAssertEqual([expectedWorkspace], linkContext.workspaces)
+        XCTAssertEqual(
+            .autoLink(.existing(workspaceId: expectedWorkspace.workspaceId)),
+            makeCloudWorkspacePostAuthRoute(linkContext: linkContext)
+        )
+
+        try await store.completeCloudLink(
+            linkContext: linkContext,
+            selection: .existing(workspaceId: expectedWorkspace.workspaceId)
+        )
+
+        XCTAssertEqual(1, cloudSyncService.fetchCloudAccountCallCount)
+        XCTAssertEqual(1, cloudSyncService.selectWorkspaceCallCount)
+        XCTAssertEqual(0, cloudSyncService.createWorkspaceCallCount)
+        XCTAssertEqual(1, cloudSyncService.runLinkedSyncCallCount)
+        XCTAssertNil(store.cloudCredentialRecoveryState)
+        XCTAssertNil(userDefaults.data(forKey: cloudCredentialRecoveryStateUserDefaultsKey))
+        XCTAssertEqual(credentials, try credentialStore.loadCredentials())
+        let cloudSettingsAfterLink: CloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
+        XCTAssertEqual(.linked, cloudSettingsAfterLink.cloudState)
+        XCTAssertEqual(Optional("linked-user"), cloudSettingsAfterLink.linkedUserId)
+        XCTAssertEqual(Optional(workspace.workspaceId), cloudSettingsAfterLink.linkedWorkspaceId)
+        XCTAssertEqual(Optional(workspace.workspaceId), cloudSettingsAfterLink.activeWorkspaceId)
+        XCTAssertEqual(outboxCountBefore, try self.loadOutboxCount(database: database))
+        XCTAssertEqual(workspaceIdsBefore, try self.loadWorkspaceIds(database: database))
+        XCTAssertTrue(try database.loadActiveCards(workspaceId: workspace.workspaceId).contains { card in
+            card.cardId == savedCard.cardId
+        })
+    }
+
+    @MainActor
+    func testLinkedRecoveryRejectsMissingExpectedWorkspaceBeforeWorkspaceSideEffects() async throws {
+        let suiteName: String = "linked-recovery-missing-workspace-\(UUID().uuidString)"
+        let userDefaults: UserDefaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        let encoder: JSONEncoder = JSONEncoder()
+        let decoder: JSONDecoder = JSONDecoder()
+        try saveCloudServerOverride(
+            override: CloudServerOverride(customOrigin: "https://example.test"),
+            userDefaults: userDefaults,
+            encoder: encoder
+        )
+        let database: LocalDatabase = try self.makeDatabase()
+        let workspace: Workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let savedCard: Card = try self.saveRecoveryTestCard(database: database, workspaceId: workspace.workspaceId)
+        let outboxCountBefore: Int = try self.loadOutboxCount(database: database)
+        let workspaceIdsBefore: [String] = try self.loadWorkspaceIds(database: database)
+        try database.updateCloudSettings(
+            cloudState: .linked,
+            linkedUserId: "linked-user",
+            linkedWorkspaceId: workspace.workspaceId,
+            activeWorkspaceId: workspace.workspaceId,
+            linkedEmail: "user@example.com"
+        )
+        let credentialStore: CloudCredentialStore = self.makeCredentialStore(
+            suiteName: suiteName,
+            encoder: encoder,
+            decoder: decoder
+        )
+        let guestCredentialStore: GuestCloudCredentialStore = self.makeGuestCredentialStore(
+            suiteName: suiteName,
+            userDefaults: userDefaults,
+            encoder: encoder,
+            decoder: decoder
+        )
+        let configuration: CloudServiceConfiguration = try makeCustomCloudServiceConfiguration(
+            customOrigin: "https://example.test"
+        )
+        let credentials: StoredCloudCredentials = StoredCloudCredentials(
+            refreshToken: "refresh-token",
+            idToken: "id-token",
+            idTokenExpiresAt: "2099-01-01T00:00:00.000Z"
+        )
+        let cloudSyncService: GuestUpgradeDrainCloudSyncService = GuestUpgradeDrainCloudSyncService()
+        cloudSyncService.fetchCloudAccountHandler = { apiBaseUrl, bearerToken in
+            XCTAssertEqual(configuration.apiBaseUrl, apiBaseUrl)
+            XCTAssertEqual(credentials.idToken, bearerToken)
+            return CloudAccountSnapshot(
+                userId: "linked-user",
+                email: "user@example.com",
+                workspaces: [
+                    CloudWorkspaceSummary(
+                        workspaceId: "different-workspace",
+                        name: "Other",
+                        createdAt: "2026-04-01T00:00:00.000Z",
+                        isSelected: true
+                    )
+                ]
+            )
+        }
+        let store: FlashcardsStore = self.makeRecoveryStore(
+            userDefaults: userDefaults,
+            encoder: encoder,
+            decoder: decoder,
+            database: database,
+            credentialStore: credentialStore,
+            guestCredentialStore: guestCredentialStore,
+            guestCloudAuthService: GuestCloudAuthService(),
+            cloudSyncService: cloudSyncService
+        )
+        defer {
+            store.shutdownForTests()
+            try? credentialStore.clearCredentials()
+            try? guestCredentialStore.clearGuestSession()
+            userDefaults.removePersistentDomain(forName: suiteName)
+        }
+        let cloudSettings: CloudSettings = try XCTUnwrap(store.cloudSettings)
+        try store.markCloudCredentialRecoveryRequired(
+            reason: .linkedCredentialsMissing,
+            cloudSettings: cloudSettings,
+            configuration: configuration,
+            detectedAt: Date(timeIntervalSince1970: 1_775_000_000)
+        )
+
+        do {
+            _ = try await store.prepareCloudLink(
+                verifiedContext: CloudVerifiedAuthContext(
+                    apiBaseUrl: configuration.apiBaseUrl,
+                    credentials: credentials
+                )
+            )
+            XCTFail("Expected missing linked workspace to be rejected during recovery.")
+        } catch let error as LocalStoreError {
+            guard case .validation(let message) = error else {
+                XCTFail("Expected validation error, received \(Flashcards.errorMessage(error: error))")
+                return
+            }
+            XCTAssertEqual(localizedCloudCredentialRecoveryWrongLinkedWorkspaceMessage(), message)
+        } catch {
+            XCTFail("Unexpected error: \(Flashcards.errorMessage(error: error))")
+        }
+
+        XCTAssertEqual(1, cloudSyncService.fetchCloudAccountCallCount)
+        XCTAssertEqual(0, cloudSyncService.selectWorkspaceCallCount)
+        XCTAssertEqual(0, cloudSyncService.createWorkspaceCallCount)
+        XCTAssertEqual(0, cloudSyncService.runLinkedSyncCallCount)
+        XCTAssertEqual(outboxCountBefore, try self.loadOutboxCount(database: database))
+        XCTAssertEqual(workspaceIdsBefore, try self.loadWorkspaceIds(database: database))
+        XCTAssertTrue(try database.loadActiveCards(workspaceId: workspace.workspaceId).contains { card in
+            card.cardId == savedCard.cardId
+        })
+        XCTAssertNotNil(store.cloudCredentialRecoveryState)
+        XCTAssertNotNil(userDefaults.data(forKey: cloudCredentialRecoveryStateUserDefaultsKey))
+    }
+
+    @MainActor
     func testLinkedRecoveryRejectsCreateNewWorkspaceBeforeSelectionSideEffect() async throws {
         let suiteName: String = "linked-recovery-wrong-workspace-\(UUID().uuidString)"
         let userDefaults: UserDefaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
@@ -687,7 +1014,8 @@ final class CloudCredentialRecoveryTests: LocalWorkspaceSyncTestCase {
                     isSelected: true
                 )
             ],
-            guestUpgradeMode: nil
+            guestUpgradeMode: nil,
+            postAuthRecoveryRoute: .linkedCredentialRestore
         )
 
         do {
@@ -1182,6 +1510,7 @@ final class CloudCredentialRecoveryTests: LocalWorkspaceSyncTestCase {
         let workspace: Workspace = try database.workspaceSettingsStore.loadWorkspace()
         let savedCard: Card = try self.saveRecoveryTestCard(database: database, workspaceId: workspace.workspaceId)
         let outboxCountBefore: Int = try self.loadOutboxCount(database: database)
+        let workspaceIdsBefore: [String] = try self.loadWorkspaceIds(database: database)
         try database.updateCloudSettings(
             cloudState: .guest,
             linkedUserId: "guest-user",
@@ -1219,19 +1548,10 @@ final class CloudCredentialRecoveryTests: LocalWorkspaceSyncTestCase {
             XCTAssertEqual(configuration.apiBaseUrl, apiBaseUrl)
             XCTAssertEqual(credentials.idToken, bearerToken)
             return CloudAccountSnapshot(
-                userId: "linked-user",
-                email: "user@example.com",
+                userId: "unrelated-email-user",
+                email: "other@example.com",
                 workspaces: [linkedWorkspace]
             )
-        }
-        cloudSyncService.selectWorkspaceHandler = { apiBaseUrl, bearerToken, workspaceId in
-            XCTAssertEqual(configuration.apiBaseUrl, apiBaseUrl)
-            XCTAssertEqual(credentials.idToken, bearerToken)
-            XCTAssertEqual(linkedWorkspace.workspaceId, workspaceId)
-            return linkedWorkspace
-        }
-        cloudSyncService.isWorkspaceEmptyForBootstrapHandler = { _, _, _, _ in
-            false
         }
         let urlSessionConfiguration: URLSessionConfiguration = URLSessionConfiguration.ephemeral
         urlSessionConfiguration.protocolClasses = [GuestCloudAuthServiceTestURLProtocol.self]
@@ -1270,28 +1590,61 @@ final class CloudCredentialRecoveryTests: LocalWorkspaceSyncTestCase {
                 credentials: credentials
             )
         )
-        try await store.completeCloudLink(
-            linkContext: linkContext,
-            selection: .existing(workspaceId: linkedWorkspace.workspaceId)
-        )
 
         XCTAssertNil(linkContext.guestUpgradeMode)
+        XCTAssertEqual(.guestLocalRecovery, linkContext.postAuthRecoveryRoute)
+        XCTAssertEqual("unrelated-email-user", linkContext.userId)
+        XCTAssertEqual(.guestLocalRecoveryNeeded, makeCloudWorkspacePostAuthRoute(linkContext: linkContext))
         XCTAssertEqual(0, GuestCloudAuthServiceTestURLProtocol.requestCount)
         XCTAssertEqual(1, cloudSyncService.fetchCloudAccountCallCount)
-        XCTAssertEqual(1, cloudSyncService.selectWorkspaceCallCount)
+        XCTAssertEqual(0, cloudSyncService.selectWorkspaceCallCount)
         XCTAssertEqual(0, cloudSyncService.createWorkspaceCallCount)
         XCTAssertEqual(0, cloudSyncService.isWorkspaceEmptyForBootstrapCallCount)
-        XCTAssertEqual(1, cloudSyncService.runLinkedSyncCallCount)
-        XCTAssertNil(store.cloudCredentialRecoveryState)
-        XCTAssertNil(userDefaults.data(forKey: cloudCredentialRecoveryStateUserDefaultsKey))
-        XCTAssertNotNil(try credentialStore.loadCredentials())
+        XCTAssertEqual(0, cloudSyncService.runLinkedSyncCallCount)
+        XCTAssertNil(try credentialStore.loadCredentials())
+        XCTAssertNotNil(store.cloudCredentialRecoveryState)
+        XCTAssertNotNil(userDefaults.data(forKey: cloudCredentialRecoveryStateUserDefaultsKey))
+
+        do {
+            try await store.completeCloudLink(
+                linkContext: linkContext,
+                selection: .existing(workspaceId: linkedWorkspace.workspaceId)
+            )
+            XCTFail("Expected guest local recovery to stop before cloud link completion.")
+        } catch let error as LocalStoreError {
+            guard case .validation(let message) = error else {
+                XCTFail("Expected validation error, received \(Flashcards.errorMessage(error: error))")
+                return
+            }
+            XCTAssertEqual(localizedCloudCredentialRecoveryBlockedMessage(reason: .guestSessionMissing), message)
+        } catch {
+            XCTFail("Unexpected error: \(Flashcards.errorMessage(error: error))")
+        }
+
+        do {
+            try await store.completeGuestCloudLink(
+                linkContext: linkContext,
+                selection: .existing(workspaceId: linkedWorkspace.workspaceId)
+            )
+            XCTFail("Expected guest local recovery to stop before guest upgrade completion.")
+        } catch let error as LocalStoreError {
+            guard case .validation(let message) = error else {
+                XCTFail("Expected validation error, received \(Flashcards.errorMessage(error: error))")
+                return
+            }
+            XCTAssertEqual(localizedCloudCredentialRecoveryBlockedMessage(reason: .guestSessionMissing), message)
+        } catch {
+            XCTFail("Unexpected error: \(Flashcards.errorMessage(error: error))")
+        }
+
         let cloudSettingsAfterLink: CloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
-        XCTAssertEqual(.linked, cloudSettingsAfterLink.cloudState)
-        XCTAssertEqual(Optional("linked-user"), cloudSettingsAfterLink.linkedUserId)
-        XCTAssertEqual(Optional(linkedWorkspace.workspaceId), cloudSettingsAfterLink.linkedWorkspaceId)
-        XCTAssertEqual(Optional(linkedWorkspace.workspaceId), cloudSettingsAfterLink.activeWorkspaceId)
+        XCTAssertEqual(.guest, cloudSettingsAfterLink.cloudState)
+        XCTAssertEqual(Optional("guest-user"), cloudSettingsAfterLink.linkedUserId)
+        XCTAssertEqual(Optional(workspace.workspaceId), cloudSettingsAfterLink.linkedWorkspaceId)
+        XCTAssertEqual(Optional(workspace.workspaceId), cloudSettingsAfterLink.activeWorkspaceId)
         XCTAssertEqual(outboxCountBefore, try self.loadOutboxCount(database: database))
-        XCTAssertTrue(try database.loadActiveCards(workspaceId: linkedWorkspace.workspaceId).contains { card in
+        XCTAssertEqual(workspaceIdsBefore, try self.loadWorkspaceIds(database: database))
+        XCTAssertTrue(try database.loadActiveCards(workspaceId: workspace.workspaceId).contains { card in
             card.cardId == savedCard.cardId
         })
     }
@@ -1350,7 +1703,8 @@ final class CloudCredentialRecoveryTests: LocalWorkspaceSyncTestCase {
                 apiBaseUrl: configuration.apiBaseUrl,
                 credentials: credentials,
                 workspaces: [],
-                guestUpgradeMode: .mergeRequired
+                guestUpgradeMode: .mergeRequired,
+                postAuthRecoveryRoute: .none
             ),
             configuration: configuration,
             guestSession: guestSession,
@@ -1438,6 +1792,7 @@ final class CloudCredentialRecoveryTests: LocalWorkspaceSyncTestCase {
         XCTAssertEqual(1, cloudSyncService.fetchCloudAccountCallCount)
         XCTAssertEqual(1, GuestCloudAuthServiceTestURLProtocol.requestCount)
         XCTAssertEqual(.mergeRequired, linkContext.guestUpgradeMode)
+        XCTAssertEqual(.pendingGuestUpgradeRecovery, linkContext.postAuthRecoveryRoute)
         XCTAssertEqual("linked-user", linkContext.userId)
         XCTAssertNotNil(store.cloudCredentialRecoveryState)
     }
@@ -1487,7 +1842,8 @@ final class CloudCredentialRecoveryTests: LocalWorkspaceSyncTestCase {
             apiBaseUrl: configuration.apiBaseUrl,
             credentials: credentials,
             workspaces: [],
-            guestUpgradeMode: nil
+            guestUpgradeMode: nil,
+            postAuthRecoveryRoute: .none
         )
         let guestSession: StoredGuestCloudSession = StoredGuestCloudSession(
             guestToken: "guest-token",
@@ -1503,7 +1859,8 @@ final class CloudCredentialRecoveryTests: LocalWorkspaceSyncTestCase {
                 apiBaseUrl: recoveredLinkContext.apiBaseUrl,
                 credentials: credentials,
                 workspaces: [],
-                guestUpgradeMode: .mergeRequired
+                guestUpgradeMode: .mergeRequired,
+                postAuthRecoveryRoute: .none
             ),
             configuration: configuration,
             guestSession: guestSession,
@@ -1624,7 +1981,8 @@ final class CloudCredentialRecoveryTests: LocalWorkspaceSyncTestCase {
                 apiBaseUrl: configuration.apiBaseUrl,
                 credentials: credentials,
                 workspaces: [],
-                guestUpgradeMode: .mergeRequired
+                guestUpgradeMode: .mergeRequired,
+                postAuthRecoveryRoute: .none
             ),
             configuration: configuration,
             guestSession: guestSession,
@@ -1708,10 +2066,11 @@ final class CloudCredentialRecoveryTests: LocalWorkspaceSyncTestCase {
         XCTAssertEqual(1, cloudSyncService.fetchCloudAccountCallCount)
         XCTAssertEqual(0, GuestCloudAuthServiceTestURLProtocol.requestCount)
         XCTAssertNil(linkContext.guestUpgradeMode)
+        XCTAssertEqual(.pendingGuestUpgradeRecovery, linkContext.postAuthRecoveryRoute)
         XCTAssertEqual([completedWorkspace], linkContext.workspaces)
         XCTAssertEqual(
             .autoLink(.existing(workspaceId: completedWorkspace.workspaceId)),
-            makeCloudWorkspacePostAuthRoute(workspaces: linkContext.workspaces)
+            makeCloudWorkspacePostAuthRoute(linkContext: linkContext)
         )
     }
 
@@ -1771,7 +2130,8 @@ final class CloudCredentialRecoveryTests: LocalWorkspaceSyncTestCase {
                 apiBaseUrl: configuration.apiBaseUrl,
                 credentials: credentials,
                 workspaces: [],
-                guestUpgradeMode: .mergeRequired
+                guestUpgradeMode: .mergeRequired,
+                postAuthRecoveryRoute: .none
             ),
             configuration: configuration,
             guestSession: guestSession,
@@ -1927,7 +2287,8 @@ final class CloudCredentialRecoveryTests: LocalWorkspaceSyncTestCase {
                 apiBaseUrl: configuration.apiBaseUrl,
                 credentials: credentials,
                 workspaces: [],
-                guestUpgradeMode: .mergeRequired
+                guestUpgradeMode: .mergeRequired,
+                postAuthRecoveryRoute: .none
             ),
             configuration: configuration,
             guestSession: guestSession,
@@ -1983,7 +2344,8 @@ final class CloudCredentialRecoveryTests: LocalWorkspaceSyncTestCase {
                     apiBaseUrl: configuration.apiBaseUrl,
                     credentials: credentials,
                     workspaces: [completedWorkspace],
-                    guestUpgradeMode: nil
+                    guestUpgradeMode: nil,
+                    postAuthRecoveryRoute: .pendingGuestUpgradeRecovery
                 ),
                 selection: .existing(workspaceId: completedWorkspace.workspaceId)
             )
@@ -2066,7 +2428,8 @@ final class CloudCredentialRecoveryTests: LocalWorkspaceSyncTestCase {
                 apiBaseUrl: configuration.apiBaseUrl,
                 credentials: credentials,
                 workspaces: [],
-                guestUpgradeMode: .mergeRequired
+                guestUpgradeMode: .mergeRequired,
+                postAuthRecoveryRoute: .none
             ),
             configuration: configuration,
             guestSession: StoredGuestCloudSession(
@@ -2087,6 +2450,15 @@ final class CloudCredentialRecoveryTests: LocalWorkspaceSyncTestCase {
         )
         GuestCloudAuthServiceTestURLProtocol.reset()
         let cloudSyncService: GuestUpgradeDrainCloudSyncService = GuestUpgradeDrainCloudSyncService()
+        cloudSyncService.fetchCloudAccountHandler = { apiBaseUrl, bearerToken in
+            XCTAssertEqual(configuration.apiBaseUrl, apiBaseUrl)
+            XCTAssertEqual(credentials.idToken, bearerToken)
+            return CloudAccountSnapshot(
+                userId: "any-linked-user",
+                email: "any@example.com",
+                workspaces: []
+            )
+        }
         let store: FlashcardsStore = self.makeRecoveryStore(
             userDefaults: userDefaults,
             encoder: encoder,
@@ -2112,26 +2484,18 @@ final class CloudCredentialRecoveryTests: LocalWorkspaceSyncTestCase {
             detectedAt: Date(timeIntervalSince1970: 1_775_000_000)
         )
 
-        do {
-            _ = try await store.prepareCloudLink(
-                verifiedContext: CloudVerifiedAuthContext(
-                    apiBaseUrl: configuration.apiBaseUrl,
-                    credentials: credentials
-                )
+        let linkContext: CloudWorkspaceLinkContext = try await store.prepareCloudLink(
+            verifiedContext: CloudVerifiedAuthContext(
+                apiBaseUrl: configuration.apiBaseUrl,
+                credentials: credentials
             )
-            XCTFail("Expected missing guest token to block account link preparation.")
-        } catch let error as LocalStoreError {
-            guard case .validation(let message) = error else {
-                XCTFail("Expected validation error, received \(Flashcards.errorMessage(error: error))")
-                return
-            }
-            XCTAssertEqual(localizedCloudCredentialRecoveryBlockedMessage(reason: .guestSessionMissing), message)
-        } catch {
-            XCTFail("Unexpected error: \(Flashcards.errorMessage(error: error))")
-        }
+        )
 
         XCTAssertEqual(0, GuestCloudAuthServiceTestURLProtocol.requestCount)
-        XCTAssertEqual(0, cloudSyncService.fetchCloudAccountCallCount)
+        XCTAssertEqual(1, cloudSyncService.fetchCloudAccountCallCount)
+        XCTAssertNil(linkContext.guestUpgradeMode)
+        XCTAssertEqual(.guestLocalRecovery, linkContext.postAuthRecoveryRoute)
+        XCTAssertEqual("any-linked-user", linkContext.userId)
         XCTAssertEqual(pendingState, try decoder.decode(
             PendingGuestUpgradeState.self,
             from: try XCTUnwrap(userDefaults.data(forKey: pendingGuestUpgradeUserDefaultsKey))
@@ -2202,7 +2566,8 @@ final class CloudCredentialRecoveryTests: LocalWorkspaceSyncTestCase {
                 apiBaseUrl: configuration.apiBaseUrl,
                 credentials: credentials,
                 workspaces: [],
-                guestUpgradeMode: .mergeRequired
+                guestUpgradeMode: .mergeRequired,
+                postAuthRecoveryRoute: .none
             ),
             configuration: configuration,
             guestSession: guestSession,
@@ -2243,7 +2608,8 @@ final class CloudCredentialRecoveryTests: LocalWorkspaceSyncTestCase {
                     apiBaseUrl: configuration.apiBaseUrl,
                     credentials: credentials,
                     workspaces: [],
-                    guestUpgradeMode: .mergeRequired
+                    guestUpgradeMode: .mergeRequired,
+                    postAuthRecoveryRoute: .pendingGuestUpgradeRecovery
                 ),
                 selection: .createNew
             )
@@ -2321,7 +2687,8 @@ final class CloudCredentialRecoveryTests: LocalWorkspaceSyncTestCase {
                 apiBaseUrl: configuration.apiBaseUrl,
                 credentials: credentials,
                 workspaces: [],
-                guestUpgradeMode: .mergeRequired
+                guestUpgradeMode: .mergeRequired,
+                postAuthRecoveryRoute: .none
             ),
             configuration: configuration,
             guestSession: guestSession,
@@ -2436,7 +2803,8 @@ final class CloudCredentialRecoveryTests: LocalWorkspaceSyncTestCase {
                 apiBaseUrl: configuration.apiBaseUrl,
                 credentials: credentials,
                 workspaces: [],
-                guestUpgradeMode: .mergeRequired
+                guestUpgradeMode: .mergeRequired,
+                postAuthRecoveryRoute: .none
             ),
             configuration: configuration,
             guestSession: StoredGuestCloudSession(
@@ -2566,7 +2934,8 @@ final class CloudCredentialRecoveryTests: LocalWorkspaceSyncTestCase {
                             isSelected: true
                         )
                     ],
-                    guestUpgradeMode: .mergeRequired
+                    guestUpgradeMode: .mergeRequired,
+                    postAuthRecoveryRoute: .none
                 ),
                 selection: .createNew
             )

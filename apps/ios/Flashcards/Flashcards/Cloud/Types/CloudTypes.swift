@@ -143,10 +143,18 @@ struct CloudWorkspaceLinkContext: Hashable, Identifiable, Sendable {
     let credentials: StoredCloudCredentials
     let workspaces: [CloudWorkspaceSummary]
     let guestUpgradeMode: CloudGuestUpgradeMode?
+    let postAuthRecoveryRoute: CloudPostAuthRecoveryRoute
 
     var id: String {
         userId
     }
+}
+
+enum CloudPostAuthRecoveryRoute: Hashable, Sendable {
+    case none
+    case linkedCredentialRestore
+    case guestLocalRecovery
+    case pendingGuestUpgradeRecovery
 }
 
 struct CloudVerifiedAuthContext: Hashable {

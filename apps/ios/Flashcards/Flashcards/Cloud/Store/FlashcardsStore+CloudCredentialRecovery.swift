@@ -159,6 +159,77 @@ extension FlashcardsStore {
         }
     }
 
+    func linkedCredentialRecoveryWorkspaceBeforeIdentitySideEffects(
+        account: CloudAccountSnapshot,
+        apiBaseUrl: String
+    ) throws -> CloudWorkspaceSummary {
+        guard let recoveryState = self.cloudCredentialRecoveryState else {
+            throw LocalStoreError.uninitialized("Cloud credential recovery state is unavailable")
+        }
+        try self.validateLinkedCredentialRecoveryIdentityBeforeSideEffects(
+            recoveryState: recoveryState,
+            userId: account.userId,
+            email: account.email,
+            apiBaseUrl: apiBaseUrl
+        )
+        guard let expectedWorkspaceId = self.linkedCredentialRecoveryTargetWorkspaceId(
+            recoveryState: recoveryState
+        ) else {
+            self.blockCloudSyncForCredentialRecovery()
+            throw LocalStoreError.validation(localizedCloudCredentialRecoveryWrongLinkedWorkspaceMessage())
+        }
+        guard let expectedWorkspace = account.workspaces.first(where: { workspace in
+            workspace.workspaceId == expectedWorkspaceId
+        }) else {
+            self.blockCloudSyncForCredentialRecovery()
+            throw LocalStoreError.validation(localizedCloudCredentialRecoveryWrongLinkedWorkspaceMessage())
+        }
+
+        return expectedWorkspace
+    }
+
+    func validatePostAuthRecoveryRouteBeforeCloudLinkCompletion(
+        linkContext: CloudWorkspaceLinkContext,
+        selection: CloudWorkspaceLinkSelection
+    ) throws {
+        switch linkContext.postAuthRecoveryRoute {
+        case .none:
+            return
+        case .linkedCredentialRestore:
+            guard self.cloudCredentialRecoveryState != nil else {
+                throw LocalStoreError.uninitialized("Linked credential recovery state is unavailable")
+            }
+            try self.validateCloudCredentialRecoveryUserBeforeIdentitySideEffects(
+                userId: linkContext.userId,
+                email: linkContext.email,
+                apiBaseUrl: linkContext.apiBaseUrl
+            )
+            try self.validateCloudCredentialRecoveryWorkspaceSelectionBeforeIdentitySideEffects(
+                selection: selection,
+                apiBaseUrl: linkContext.apiBaseUrl
+            )
+        case .guestLocalRecovery:
+            try self.throwIfGuestLocalRecoveryRequired()
+        case .pendingGuestUpgradeRecovery:
+            return
+        }
+    }
+
+    func throwIfGuestLocalRecoveryRequired() throws {
+        guard let recoveryState = self.cloudCredentialRecoveryState else {
+            throw LocalStoreError.uninitialized("Guest local recovery state is unavailable")
+        }
+        guard recoveryState.reason == .guestSessionMissing else {
+            try self.throwIfCloudCredentialRecoveryRequired()
+            return
+        }
+
+        self.blockCloudSyncForCredentialRecovery()
+        throw LocalStoreError.validation(
+            localizedCloudCredentialRecoveryBlockedMessage(reason: .guestSessionMissing)
+        )
+    }
+
     func shouldPreserveLocalDataForCloudCredentialRecovery(
         linkedSession: CloudLinkedSession
     ) throws -> Bool {
