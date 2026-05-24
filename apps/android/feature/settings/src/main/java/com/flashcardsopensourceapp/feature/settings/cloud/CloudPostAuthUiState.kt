@@ -14,6 +14,7 @@ data class CloudPostAuthUiState(
     val mode: CloudPostAuthMode,
     val verifiedEmail: String?,
     val isGuestUpgrade: Boolean,
+    val isGuestLocalRecovery: Boolean,
     val workspaces: List<CurrentWorkspaceItemUiState>,
     val pendingWorkspaceTitle: String?,
     val processingTitle: String,

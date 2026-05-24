@@ -170,7 +170,7 @@ class CloudSignInViewModelTest {
     }
 
     @Test
-    fun guestLocalRecoveryAutoCreatesNewWorkspaceWithoutSeparatePostAuthSync() = runTest(dispatcher) {
+    fun guestLocalRecoveryAutoCreatesNewWorkspaceAndCompletes() = runTest(dispatcher) {
         Dispatchers.setMain(dispatcher)
         val repository = FakeCloudAccountRepository()
         val syncRepository = FakeSyncRepository()
@@ -185,6 +185,8 @@ class CloudSignInViewModelTest {
             viewModel.postAuthUiState.collect()
         }
         val credentials = makeCredentials(idToken = "id-token-guest-recovery")
+        val recoveryWorkspace = CompletableDeferred<CloudWorkspaceSummary>()
+        repository.enqueueCompleteCloudLinkResult(result = recoveryWorkspace)
         repository.enqueueSendCodeResult(CloudSendCodeResult.Verified(credentials = credentials))
         repository.enqueuePreparedLinkContext(
             idToken = credentials.idToken,
@@ -206,17 +208,102 @@ class CloudSignInViewModelTest {
 
         assertEquals(CloudSendCodeNavigationOutcome.Verified, outcome)
         assertEquals(CloudPostAuthMode.READY_TO_AUTO_LINK, viewModel.postAuthUiState.value.mode)
-        assertEquals("New workspace", viewModel.postAuthUiState.value.pendingWorkspaceTitle)
-        assertEquals(true, viewModel.postAuthUiState.value.workspaces.any { workspace -> workspace.isCreateNew })
+        assertEquals(true, viewModel.postAuthUiState.value.isGuestLocalRecovery)
+        assertNull(viewModel.postAuthUiState.value.pendingWorkspaceTitle)
+        assertEquals(0, viewModel.postAuthUiState.value.workspaces.size)
         assertEquals(false, viewModel.postAuthUiState.value.canRetry)
+        assertEquals(false, viewModel.postAuthUiState.value.canLogout)
 
-        viewModel.completePendingPostAuthIfNeeded()
+        val completionJob = backgroundScope.async {
+            viewModel.completePendingPostAuthIfNeeded()
+        }
         advanceUntilIdle()
 
+        assertEquals(CloudPostAuthMode.PROCESSING, viewModel.postAuthUiState.value.mode)
+        assertEquals("Recovering local data", viewModel.postAuthUiState.value.processingTitle)
+        assertEquals(
+            "Keep this screen open while Android reconnects preserved local data to your recovered workspace.",
+            viewModel.postAuthUiState.value.processingMessage
+        )
+        assertEquals(listOf(CloudWorkspaceLinkSelection.CreateNew), repository.completeCloudLinkSelections)
+        assertEquals(0, syncRepository.syncNowCalls)
+
+        recoveryWorkspace.complete(
+            CloudWorkspaceSummary(
+                workspaceId = "workspace-new",
+                name = "Personal",
+                createdAtMillis = 200L,
+                isSelected = true
+            )
+        )
+        advanceUntilIdle()
+
+        completionJob.await()
         assertEquals(listOf(CloudWorkspaceLinkSelection.CreateNew), repository.completeCloudLinkSelections)
         assertEquals(0, syncRepository.syncNowCalls)
         assertEquals(CloudPostAuthMode.IDLE, viewModel.postAuthUiState.value.mode)
         assertNotNull(viewModel.postAuthUiState.value.completionToken)
+        assertEquals("Signed in and synced Personal.", messages.single())
+
+        postAuthCollection.cancel()
+    }
+
+    @Test
+    fun guestLocalRecoveryTransientFailureRetriesWithoutLogoutOrReset() = runTest(dispatcher) {
+        Dispatchers.setMain(dispatcher)
+        val repository = FakeCloudAccountRepository()
+        repository.enqueueCompleteCloudLinkError(IllegalStateException("Temporary recovery failure."))
+        val syncRepository = FakeSyncRepository()
+        val messages = mutableListOf<String>()
+        val viewModel = CloudSignInViewModel(
+            cloudAccountRepository = repository,
+            syncRepository = syncRepository,
+            messageController = TransientMessageController { message -> messages += message },
+            strings = strings
+        )
+        val postAuthCollection = backgroundScope.async {
+            viewModel.postAuthUiState.collect()
+        }
+        val credentials = makeCredentials(idToken = "id-token-guest-recovery-retry")
+        repository.enqueueSendCodeResult(CloudSendCodeResult.Verified(credentials = credentials))
+        repository.enqueuePreparedLinkContext(
+            idToken = credentials.idToken,
+            result = CompletableDeferred(
+                makeLinkContext(
+                    credentials = credentials,
+                    email = "person@example.com",
+                    workspaceId = "workspace-remote",
+                    workspaceName = "Remote",
+                    postAuthRoute = CloudWorkspacePostAuthRoute.GUEST_LOCAL_RECOVERY,
+                    preferredWorkspaceId = "workspace-remote"
+                )
+            )
+        )
+
+        viewModel.updateEmail("person@example.com")
+        assertEquals(CloudSendCodeNavigationOutcome.Verified, viewModel.sendCode())
+        advanceUntilIdle()
+        viewModel.completePendingPostAuthIfNeeded()
+        advanceUntilIdle()
+
+        assertEquals(CloudPostAuthMode.FAILED, viewModel.postAuthUiState.value.mode)
+        assertEquals("Temporary recovery failure.", viewModel.postAuthUiState.value.errorMessage)
+        assertEquals(true, viewModel.postAuthUiState.value.isGuestLocalRecovery)
+        assertEquals(true, viewModel.postAuthUiState.value.canRetry)
+        assertEquals(false, viewModel.postAuthUiState.value.canLogout)
+        assertEquals(listOf(CloudWorkspaceLinkSelection.CreateNew), repository.completeCloudLinkSelections)
+
+        viewModel.retryPostAuth()
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(CloudWorkspaceLinkSelection.CreateNew, CloudWorkspaceLinkSelection.CreateNew),
+            repository.completeCloudLinkSelections
+        )
+        assertEquals(0, syncRepository.syncNowCalls)
+        assertEquals(0, repository.logoutCalls)
+        assertEquals(0, repository.resetInvalidCloudCredentialRecoveryStateCalls)
+        assertEquals(CloudPostAuthMode.IDLE, viewModel.postAuthUiState.value.mode)
         assertEquals("Signed in and synced Personal.", messages.single())
 
         postAuthCollection.cancel()
@@ -631,6 +718,7 @@ private class FakeCloudAccountRepository : CloudAccountRepository {
     private val sendCodeErrors = ArrayDeque<Exception>()
     private val verifyCodeErrors = ArrayDeque<Exception>()
     private val completeCloudLinkErrors = ArrayDeque<Exception>()
+    private val completeCloudLinkResults = ArrayDeque<CompletableDeferred<CloudWorkspaceSummary>>()
     private val preparedLinkContexts = mutableMapOf<String, CompletableDeferred<CloudWorkspaceLinkContext>>()
     val completeCloudLinkSelections = mutableListOf<CloudWorkspaceLinkSelection>()
     var resetInvalidCloudCredentialRecoveryStateCalls: Int = 0
@@ -652,6 +740,10 @@ private class FakeCloudAccountRepository : CloudAccountRepository {
 
     fun enqueueCompleteCloudLinkError(error: Exception) {
         completeCloudLinkErrors.addLast(error)
+    }
+
+    fun enqueueCompleteCloudLinkResult(result: CompletableDeferred<CloudWorkspaceSummary>) {
+        completeCloudLinkResults.addLast(result)
     }
 
     fun enqueuePreparedLinkContext(
@@ -716,6 +808,9 @@ private class FakeCloudAccountRepository : CloudAccountRepository {
         completeCloudLinkSelections += selection
         if (completeCloudLinkErrors.isNotEmpty()) {
             throw completeCloudLinkErrors.removeFirst()
+        }
+        if (completeCloudLinkResults.isNotEmpty()) {
+            return completeCloudLinkResults.removeFirst().await()
         }
         return when (selection) {
             is CloudWorkspaceLinkSelection.Existing -> requireNotNull(
@@ -850,12 +945,17 @@ private class TestSettingsStringResolver : SettingsStringResolver {
             R.string.settings_never -> "Never"
             R.string.settings_post_auth_upgrading_title -> "Upgrading guest account"
             R.string.settings_post_auth_linking_title -> "Linking workspace"
+            R.string.settings_post_auth_recovering_local_data_title -> "Recovering local data"
             R.string.settings_post_auth_upgrading_body -> {
                 "Preparing your Guest AI session for a linked Android cloud account."
             }
 
             R.string.settings_post_auth_linking_body -> {
                 "Preparing your cloud workspace on this Android device."
+            }
+
+            R.string.settings_post_auth_recovering_local_data_body -> {
+                "Keep this screen open while Android reconnects preserved local data to your recovered workspace."
             }
 
             R.string.settings_post_auth_guest_upgrade_failed -> "Guest account upgrade failed."
@@ -866,6 +966,10 @@ private class TestSettingsStringResolver : SettingsStringResolver {
             }
 
             R.string.settings_post_auth_signed_in_and_synced -> "Signed in and synced %1\$s."
+            R.string.settings_post_auth_guest_local_recovery_failed -> {
+                "Local data recovery failed. Try again; local data stays on this device."
+            }
+
             R.string.settings_post_auth_sync_failed -> "Initial sync failed."
             R.string.settings_post_auth_linked_recovery_blocked -> {
                 "Sign in with the original cloud account and workspace to reconnect preserved local data."
