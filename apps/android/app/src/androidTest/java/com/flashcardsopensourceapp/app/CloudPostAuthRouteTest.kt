@@ -1,10 +1,10 @@
 package com.flashcardsopensourceapp.app
 
 import androidx.activity.ComponentActivity
-import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -17,6 +17,7 @@ import com.flashcardsopensourceapp.feature.settings.cloud.CloudPostAuthRoute
 import com.flashcardsopensourceapp.feature.settings.cloud.CloudPostAuthUiState
 import com.flashcardsopensourceapp.feature.settings.workspace.CurrentWorkspaceItemUiState
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -211,7 +212,9 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             autoContinueCalls == 1
         }
         composeRule.onNodeWithText("Preparing recovered workspace...").assertIsDisplayed()
-        composeRule.onNodeWithText("Create new workspace").assertDoesNotExist()
+        assertTrue(
+            composeRule.onAllNodesWithText("Create new workspace").fetchSemanticsNodes().isEmpty()
+        )
         composeRule.onNodeWithContentDescription("Back").assertIsNotEnabled()
         assertEquals(1, autoContinueCalls)
     }
@@ -256,7 +259,9 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             "Local data recovery failed. Try again; local data stays on this device."
         ).assertIsDisplayed()
         composeRule.onNodeWithText("Retry").performClick()
-        composeRule.onNodeWithText("Log out").assertDoesNotExist()
+        assertTrue(
+            composeRule.onAllNodesWithText("Log out").fetchSemanticsNodes().isEmpty()
+        )
         composeRule.waitUntil(timeoutMillis = 5_000L) {
             retryCalls == 1
         }
