@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.cloudidentity
+package com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
@@ -6,6 +6,11 @@ import com.flashcardsopensourceapp.data.local.cloud.identity.syncWorkspaceForkRe
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.CloudIdentityTestEnvironment
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.FakeCloudRemoteGateway
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createCloudAccountSnapshot
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createCloudWorkspaceSummary
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createOtpChallenge
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch

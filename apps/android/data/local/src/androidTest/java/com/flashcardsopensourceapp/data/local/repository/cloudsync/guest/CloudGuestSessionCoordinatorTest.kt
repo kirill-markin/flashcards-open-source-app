@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.cloudidentity
+package com.flashcardsopensourceapp.data.local.repository.cloudsync.guest
 
 import android.content.Context
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -14,6 +14,13 @@ import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMod
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.model.makeOfficialCloudServiceConfiguration
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.CloudIdentityTestEnvironment
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.FakeCloudRemoteGateway
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createCloudAccountSnapshot
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createCloudWorkspaceSummary
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createStoredCloudCredentials
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createStoredGuestAiSession
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createSyncCardOutboxEntry
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After

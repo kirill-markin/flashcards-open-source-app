@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.cloudidentity
+package com.flashcardsopensourceapp.data.local.repository.cloudsync.sync
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.bootstrap.localWorkspaceName
@@ -12,6 +12,13 @@ import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.cloudCredentialRecoveryRequiredMessage
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.CloudIdentityTestEnvironment
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.FakeCloudRemoteGateway
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createCloudAccountSnapshot
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createCloudWorkspaceSummary
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createStoredCloudCredentials
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createStoredGuestAiSession
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.syncStateEntityWithEmptyProgress
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
