@@ -4,6 +4,7 @@ private let thirdPartyNoticesUrl: String = "https://github.com/kirill-markin/fla
 private let reviewSnailAnimationUrl: String = "https://iconscout.com/free-lottie-animation/free-snail-animation_12152626"
 private let reviewRainbowAnimationUrl: String = "https://iconscout.com/free-lottie-animation/free-rainbow-animation_12152617"
 private let reviewUnicornAnimationUrl: String = "https://iconscout.com/free-lottie-animation/free-unicorn-animation_12152598"
+private let reviewWiltedFlowerAnimationUrl: String = "https://iconscout.com/free-lottie-animation/free-wilted-flower-animation_12152601"
 private let reviewWormAnimationUrl: String = "https://iconscout.com/free-lottie-animation/free-worm-animation_12152603"
 private let creativeCommonsAttributionUrl: String = "https://creativecommons.org/licenses/by/4.0/"
 
@@ -46,7 +47,7 @@ struct AccountOpenSourceView: View {
                 Text(
                     aiSettingsLocalized(
                         "settings.account.openSource.thirdPartyNotice",
-                        "Review Lottie animations: Free Unicorn Animation, Free Snail Animation, Free Rainbow Animation, and Free Worm Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0. Lottie runtimes use MIT and Apache 2.0 licenses."
+                        "Review Lottie animations: Free Unicorn Animation, Free Snail Animation, Free Rainbow Animation, Free Worm Animation, and Free Wilted Flower Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0. Lottie runtimes use MIT and Apache 2.0 licenses."
                     )
                 )
                     .foregroundStyle(.secondary)
@@ -95,6 +96,16 @@ struct AccountOpenSourceView: View {
                     Link(destination: assetUrl) {
                         SettingsNavigationRow(
                             title: aiSettingsLocalized("settings.account.openSource.thirdPartyNoticeWormSource", "Worm Asset Source"),
+                            value: aiSettingsLocalized("common.open", "Open"),
+                            systemImage: "arrow.up.forward.square"
+                        )
+                    }
+                }
+
+                if let assetUrl = URL(string: reviewWiltedFlowerAnimationUrl) {
+                    Link(destination: assetUrl) {
+                        SettingsNavigationRow(
+                            title: aiSettingsLocalized("settings.account.openSource.thirdPartyNoticeWiltedFlowerSource", "Wilted Flower Asset Source"),
                             value: aiSettingsLocalized("common.open", "Open"),
                             systemImage: "arrow.up.forward.square"
                         )

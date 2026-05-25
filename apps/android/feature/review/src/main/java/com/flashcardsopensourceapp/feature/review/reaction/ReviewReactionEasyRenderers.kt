@@ -20,6 +20,7 @@ internal fun DrawScope.drawEasyReviewReaction(
             motionMode = motionMode
         )
 
+        ReviewReactionVariant.AGAIN_WILTED_FLOWER,
         ReviewReactionVariant.AGAIN_SNAIL_CRAWL,
         ReviewReactionVariant.EASY_RAINBOW_STREAK,
         ReviewReactionVariant.AGAIN_WORM_WIGGLE,

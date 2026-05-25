@@ -22,8 +22,8 @@ const boundaryExpectations: ReadonlyArray<ReviewReactionBoundaryExpectation> = [
       "againRewindVortex",
       "againSnailCrawl",
       "againSnailCrawl",
-      "againWarningTape",
-      "againWarningTape",
+      "againWiltedFlower",
+      "againWiltedFlower",
     ],
   },
   {

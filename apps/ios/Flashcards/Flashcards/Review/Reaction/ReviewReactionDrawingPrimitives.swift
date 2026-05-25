@@ -1,43 +1,6 @@
 import SwiftUI
 
 extension ReviewReactionRenderer {
-    static func drawWarningTapeBand(
-        context: GraphicsContext,
-        center: CGPoint,
-        length: CGFloat,
-        height: CGFloat,
-        rotationDegrees: CGFloat,
-        opacity: Double
-    ) {
-        let tapeContext = transformedContext(
-            context: context,
-            center: center,
-            rotationDegrees: rotationDegrees,
-            scale: 1
-        )
-        var tape = Path()
-        tape.addRoundedRect(
-            in: CGRect(x: -length / 2, y: -height / 2, width: length, height: height),
-            cornerSize: CGSize(width: height * 0.20, height: height * 0.20)
-        )
-        tapeContext.fill(tape, with: .color(reviewReactionYellowColor().opacity(opacity)))
-        tapeContext.stroke(
-            tape,
-            with: .color(Color.black.opacity(opacity * 0.45)),
-            style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round)
-        )
-
-        for stripeX in stride(from: -length / 2 - 40, through: length / 2 + 40, by: 38) {
-            var stripe = Path()
-            stripe.move(to: CGPoint(x: stripeX - 14, y: -height / 2))
-            stripe.addLine(to: CGPoint(x: stripeX + 2, y: -height / 2))
-            stripe.addLine(to: CGPoint(x: stripeX + 28, y: height / 2))
-            stripe.addLine(to: CGPoint(x: stripeX + 12, y: height / 2))
-            stripe.closeSubpath()
-            tapeContext.fill(stripe, with: .color(Color.black.opacity(opacity * 0.70)))
-        }
-    }
-
     static func drawWeight(
         context: GraphicsContext,
         center: CGPoint,

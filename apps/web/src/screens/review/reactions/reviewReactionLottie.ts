@@ -12,6 +12,7 @@ type ReviewReactionLottieAnimationModule = Readonly<{
 export type ReviewReactionLottieVariant =
   | "againWormWiggle"
   | "againSnailCrawl"
+  | "againWiltedFlower"
   | "easyRainbowStreak"
   | "easyUnicornFlyby";
 
@@ -30,6 +31,7 @@ export function isReviewReactionLottieVariant(
 ): variant is ReviewReactionLottieVariant {
   return variant === "againWormWiggle"
     || variant === "againSnailCrawl"
+    || variant === "againWiltedFlower"
     || variant === "easyRainbowStreak"
     || variant === "easyUnicornFlyby";
 }
@@ -57,6 +59,7 @@ export function loadReviewReactionLottieAssets(): Promise<ReviewReactionLottieAs
     import("lottie-web/build/player/lottie_light"),
     import("../../../assets/review_again_worm.json"),
     import("../../../assets/review_again_snail.json"),
+    import("../../../assets/review_again_wilted_flower.json"),
     import("../../../assets/review_easy_rainbow.json"),
     import("../../../assets/review_easy_unicorn.json"),
   ]).then((
@@ -64,10 +67,12 @@ export function loadReviewReactionLottieAssets(): Promise<ReviewReactionLottieAs
       lottieModule,
       wormAnimationModule,
       snailAnimationModule,
+      wiltedFlowerAnimationModule,
       rainbowAnimationModule,
       unicornAnimationModule,
     ]: [
       ReviewReactionLottiePlayerModule,
+      ReviewReactionLottieAnimationModule,
       ReviewReactionLottieAnimationModule,
       ReviewReactionLottieAnimationModule,
       ReviewReactionLottieAnimationModule,
@@ -79,6 +84,7 @@ export function loadReviewReactionLottieAssets(): Promise<ReviewReactionLottieAs
       animationDataByVariant: {
         againWormWiggle: wormAnimationModule.default,
         againSnailCrawl: snailAnimationModule.default,
+        againWiltedFlower: wiltedFlowerAnimationModule.default,
         easyRainbowStreak: rainbowAnimationModule.default,
         easyUnicornFlyby: unicornAnimationModule.default,
       },

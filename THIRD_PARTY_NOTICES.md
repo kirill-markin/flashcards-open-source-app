@@ -42,6 +42,16 @@ This file lists third-party assets and runtime libraries bundled for the review 
 - License URL: https://creativecommons.org/licenses/by/4.0/
 - Changes: Used as the Again review snail reaction animation in the Flashcards web, iOS, and Android clients.
 
+## Review again wilted flower Lottie animation
+
+- Asset: Free Wilted Flower Animation
+- Author: Google Inc.
+- Copyright: Copyright © 2026 Google Inc.
+- Source: https://iconscout.com/free-lottie-animation/free-wilted-flower-animation_12152601
+- License: Creative Commons Attribution 4.0 International
+- License URL: https://creativecommons.org/licenses/by/4.0/
+- Changes: Used as the Again review wilted flower reaction animation in the Flashcards web, iOS, and Android clients.
+
 ## Lottie runtimes
 
 | Component | Used by | License | Local license text | Source |
