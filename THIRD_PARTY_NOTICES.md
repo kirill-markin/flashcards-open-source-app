@@ -82,6 +82,46 @@ This file lists third-party assets and runtime libraries bundled for the review 
 - License URL: https://creativecommons.org/licenses/by/4.0/
 - Changes: Used as the Good review peacock reaction animation in the Flashcards web, iOS, and Android clients.
 
+## Review hard ox Lottie animation
+
+- Asset: Free Ox Animation
+- Author: Google Inc.
+- Copyright: Copyright © 2026 Google Inc.
+- Source: https://iconscout.com/free-lottie-animation/free-ox-animation_12152607
+- License: Creative Commons Attribution 4.0 International
+- License URL: https://creativecommons.org/licenses/by/4.0/
+- Changes: Used as the Hard review ox reaction animation in the Flashcards web, iOS, and Android clients.
+
+## Review hard paw prints Lottie animation
+
+- Asset: Free Paw Prints Animation
+- Author: Google Inc.
+- Copyright: Copyright © 2026 Google Inc.
+- Source: https://iconscout.com/free-lottie-animation/free-paw-prints-animation_12152608
+- License: Creative Commons Attribution 4.0 International
+- License URL: https://creativecommons.org/licenses/by/4.0/
+- Changes: Used as the Hard review paw prints reaction animation in the Flashcards web, iOS, and Android clients.
+
+## Review hard racehorse Lottie animation
+
+- Asset: Free Racehorse Animation
+- Author: Google Inc.
+- Copyright: Copyright © 2026 Google Inc.
+- Source: https://iconscout.com/free-lottie-animation/free-racehorse-animation_12152616
+- License: Creative Commons Attribution 4.0 International
+- License URL: https://creativecommons.org/licenses/by/4.0/
+- Changes: Used as the Hard review racehorse reaction animation in the Flashcards web, iOS, and Android clients.
+
+## Review hard volcano Lottie animation
+
+- Asset: Free Volcano Animation
+- Author: Google Inc.
+- Copyright: Copyright © 2026 Google Inc.
+- Source: https://iconscout.com/free-lottie-animation/free-volcano-animation_12152599
+- License: Creative Commons Attribution 4.0 International
+- License URL: https://creativecommons.org/licenses/by/4.0/
+- Changes: Used as the Hard review volcano reaction animation in the Flashcards web, iOS, and Android clients.
+
 ## Review easy rose Lottie animation
 
 - Asset: Free Rose Animation

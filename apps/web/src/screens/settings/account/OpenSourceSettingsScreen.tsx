@@ -8,6 +8,10 @@ const reviewOwlAnimationUrl: string = "https://iconscout.com/free-lottie-animati
 const reviewPoodleAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-poodle-animation_12152614";
 const reviewWhaleAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-whale-animation_12152600";
 const reviewPeacockAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-peacock-animation_12152610";
+const reviewOxAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-ox-animation_12152607";
+const reviewPawPrintsAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-paw-prints-animation_12152608";
+const reviewRacehorseAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-racehorse-animation_12152616";
+const reviewVolcanoAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-volcano-animation_12152599";
 const reviewSnailAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-snail-animation_12152626";
 const reviewRoseAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-rose-animation_12152621";
 const reviewRainbowAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-rainbow-animation_12152617";
@@ -59,6 +63,18 @@ export function OpenSourceSettingsScreen(): ReactElement {
           </a>
           <a className="ghost-btn" href={reviewPeacockAnimationUrl} rel="noreferrer" target="_blank">
             {t("openSourceSettings.thirdPartyNoticePeacockSourceAction")}
+          </a>
+          <a className="ghost-btn" href={reviewOxAnimationUrl} rel="noreferrer" target="_blank">
+            {t("openSourceSettings.thirdPartyNoticeOxSourceAction")}
+          </a>
+          <a className="ghost-btn" href={reviewPawPrintsAnimationUrl} rel="noreferrer" target="_blank">
+            {t("openSourceSettings.thirdPartyNoticePawPrintsSourceAction")}
+          </a>
+          <a className="ghost-btn" href={reviewRacehorseAnimationUrl} rel="noreferrer" target="_blank">
+            {t("openSourceSettings.thirdPartyNoticeRacehorseSourceAction")}
+          </a>
+          <a className="ghost-btn" href={reviewVolcanoAnimationUrl} rel="noreferrer" target="_blank">
+            {t("openSourceSettings.thirdPartyNoticeVolcanoSourceAction")}
           </a>
           <a className="ghost-btn" href={reviewUnicornAnimationUrl} rel="noreferrer" target="_blank">
             {t("openSourceSettings.thirdPartyNoticeUnicornSourceAction")}

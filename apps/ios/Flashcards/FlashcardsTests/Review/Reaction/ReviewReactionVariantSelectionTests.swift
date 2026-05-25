@@ -14,14 +14,14 @@ final class ReviewReactionVariantSelectionTests: XCTestCase {
     }
 
     func testHardVariantBoundaries() {
-        XCTAssertEqual(selectReviewReactionVariant(rating: .hard, roll: 0), .hardHourglassSand)
-        XCTAssertEqual(selectReviewReactionVariant(rating: .hard, roll: 399), .hardHourglassSand)
-        XCTAssertEqual(selectReviewReactionVariant(rating: .hard, roll: 400), .hardFallingWeight)
-        XCTAssertEqual(selectReviewReactionVariant(rating: .hard, roll: 699), .hardFallingWeight)
-        XCTAssertEqual(selectReviewReactionVariant(rating: .hard, roll: 700), .hardYellowCrack)
-        XCTAssertEqual(selectReviewReactionVariant(rating: .hard, roll: 919), .hardYellowCrack)
-        XCTAssertEqual(selectReviewReactionVariant(rating: .hard, roll: 920), .hardRollingBoulder)
-        XCTAssertEqual(selectReviewReactionVariant(rating: .hard, roll: 999), .hardRollingBoulder)
+        XCTAssertEqual(selectReviewReactionVariant(rating: .hard, roll: 0), .hardOxCharge)
+        XCTAssertEqual(selectReviewReactionVariant(rating: .hard, roll: 399), .hardOxCharge)
+        XCTAssertEqual(selectReviewReactionVariant(rating: .hard, roll: 400), .hardPawPrints)
+        XCTAssertEqual(selectReviewReactionVariant(rating: .hard, roll: 699), .hardPawPrints)
+        XCTAssertEqual(selectReviewReactionVariant(rating: .hard, roll: 700), .hardRacehorseGallop)
+        XCTAssertEqual(selectReviewReactionVariant(rating: .hard, roll: 919), .hardRacehorseGallop)
+        XCTAssertEqual(selectReviewReactionVariant(rating: .hard, roll: 920), .hardVolcanoEruption)
+        XCTAssertEqual(selectReviewReactionVariant(rating: .hard, roll: 999), .hardVolcanoEruption)
     }
 
     func testGoodVariantBoundaries() {

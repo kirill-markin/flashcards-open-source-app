@@ -5,6 +5,10 @@ private let reviewOwlAnimationUrl: String = "https://iconscout.com/free-lottie-a
 private let reviewPoodleAnimationUrl: String = "https://iconscout.com/free-lottie-animation/free-poodle-animation_12152614"
 private let reviewWhaleAnimationUrl: String = "https://iconscout.com/free-lottie-animation/free-whale-animation_12152600"
 private let reviewPeacockAnimationUrl: String = "https://iconscout.com/free-lottie-animation/free-peacock-animation_12152610"
+private let reviewOxAnimationUrl: String = "https://iconscout.com/free-lottie-animation/free-ox-animation_12152607"
+private let reviewPawPrintsAnimationUrl: String = "https://iconscout.com/free-lottie-animation/free-paw-prints-animation_12152608"
+private let reviewRacehorseAnimationUrl: String = "https://iconscout.com/free-lottie-animation/free-racehorse-animation_12152616"
+private let reviewVolcanoAnimationUrl: String = "https://iconscout.com/free-lottie-animation/free-volcano-animation_12152599"
 private let reviewSnailAnimationUrl: String = "https://iconscout.com/free-lottie-animation/free-snail-animation_12152626"
 private let reviewRoseAnimationUrl: String = "https://iconscout.com/free-lottie-animation/free-rose-animation_12152621"
 private let reviewRainbowAnimationUrl: String = "https://iconscout.com/free-lottie-animation/free-rainbow-animation_12152617"
@@ -54,7 +58,7 @@ struct AccountOpenSourceView: View {
                 Text(
                     aiSettingsLocalized(
                         "settings.account.openSource.thirdPartyNotice",
-                        "Review Lottie animations: Free Owl Animation, Free Poodle Animation, Free Whale Animation, Free Peacock Animation, Free Rose Animation, Free Rainbow Animation, Free Phoenix Animation, Free Unicorn Animation, Free Snail Animation, Free Worm Animation, Free Tornado Animation, and Free Wilted Flower Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0. Lottie runtimes use MIT and Apache 2.0 licenses."
+                        "Review Lottie animations: Free Worm Animation, Free Tornado Animation, Free Snail Animation, Free Wilted Flower Animation, Free Owl Animation, Free Poodle Animation, Free Whale Animation, Free Peacock Animation, Free Ox Animation, Free Paw Prints Animation, Free Racehorse Animation, Free Volcano Animation, Free Rose Animation, Free Rainbow Animation, Free Phoenix Animation, and Free Unicorn Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0. Lottie runtimes use MIT and Apache 2.0 licenses."
                     )
                 )
                     .foregroundStyle(.secondary)
@@ -103,6 +107,46 @@ struct AccountOpenSourceView: View {
                     Link(destination: assetUrl) {
                         SettingsNavigationRow(
                             title: aiSettingsLocalized("settings.account.openSource.thirdPartyNoticePeacockSource", "Peacock Asset Source"),
+                            value: aiSettingsLocalized("common.open", "Open"),
+                            systemImage: "arrow.up.forward.square"
+                        )
+                    }
+                }
+
+                if let assetUrl = URL(string: reviewOxAnimationUrl) {
+                    Link(destination: assetUrl) {
+                        SettingsNavigationRow(
+                            title: aiSettingsLocalized("settings.account.openSource.thirdPartyNoticeOxSource", "Ox Asset Source"),
+                            value: aiSettingsLocalized("common.open", "Open"),
+                            systemImage: "arrow.up.forward.square"
+                        )
+                    }
+                }
+
+                if let assetUrl = URL(string: reviewPawPrintsAnimationUrl) {
+                    Link(destination: assetUrl) {
+                        SettingsNavigationRow(
+                            title: aiSettingsLocalized("settings.account.openSource.thirdPartyNoticePawPrintsSource", "Paw Prints Asset Source"),
+                            value: aiSettingsLocalized("common.open", "Open"),
+                            systemImage: "arrow.up.forward.square"
+                        )
+                    }
+                }
+
+                if let assetUrl = URL(string: reviewRacehorseAnimationUrl) {
+                    Link(destination: assetUrl) {
+                        SettingsNavigationRow(
+                            title: aiSettingsLocalized("settings.account.openSource.thirdPartyNoticeRacehorseSource", "Racehorse Asset Source"),
+                            value: aiSettingsLocalized("common.open", "Open"),
+                            systemImage: "arrow.up.forward.square"
+                        )
+                    }
+                }
+
+                if let assetUrl = URL(string: reviewVolcanoAnimationUrl) {
+                    Link(destination: assetUrl) {
+                        SettingsNavigationRow(
+                            title: aiSettingsLocalized("settings.account.openSource.thirdPartyNoticeVolcanoSource", "Volcano Asset Source"),
                             value: aiSettingsLocalized("common.open", "Open"),
                             systemImage: "arrow.up.forward.square"
                         )

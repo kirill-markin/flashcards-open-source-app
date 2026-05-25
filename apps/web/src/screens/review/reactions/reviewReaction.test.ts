@@ -29,14 +29,14 @@ const boundaryExpectations: ReadonlyArray<ReviewReactionBoundaryExpectation> = [
   {
     rating: "hard",
     variants: [
-      "hardHourglassSand",
-      "hardHourglassSand",
-      "hardFallingWeight",
-      "hardFallingWeight",
-      "hardYellowCrack",
-      "hardYellowCrack",
-      "hardRollingBoulder",
-      "hardRollingBoulder",
+      "hardOxCharge",
+      "hardOxCharge",
+      "hardPawPrints",
+      "hardPawPrints",
+      "hardRacehorseGallop",
+      "hardRacehorseGallop",
+      "hardVolcanoEruption",
+      "hardVolcanoEruption",
     ],
   },
   {

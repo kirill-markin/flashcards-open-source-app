@@ -58,6 +58,18 @@ private const val reviewGoodWhaleAnimationCenterY: Float = 0.42f
 private const val reviewGoodPeacockAnimationFrameScale: Float = 0.58f
 private const val reviewGoodPeacockAnimationCenterX: Float = 0.50f
 private const val reviewGoodPeacockAnimationCenterY: Float = 0.42f
+private const val reviewHardOxAnimationFrameScale: Float = 0.58f
+private const val reviewHardOxAnimationCenterX: Float = 0.50f
+private const val reviewHardOxAnimationCenterY: Float = 0.50f
+private const val reviewHardPawPrintsAnimationFrameScale: Float = 0.56f
+private const val reviewHardPawPrintsAnimationCenterX: Float = 0.50f
+private const val reviewHardPawPrintsAnimationCenterY: Float = 0.50f
+private const val reviewHardRacehorseAnimationFrameScale: Float = 0.62f
+private const val reviewHardRacehorseAnimationCenterX: Float = 0.50f
+private const val reviewHardRacehorseAnimationCenterY: Float = 0.50f
+private const val reviewHardVolcanoAnimationFrameScale: Float = 0.64f
+private const val reviewHardVolcanoAnimationCenterX: Float = 0.50f
+private const val reviewHardVolcanoAnimationCenterY: Float = 0.50f
 private const val reviewEasyRoseAnimationFrameScale: Float = 0.58f
 private const val reviewEasyRoseAnimationCenterX: Float = 0.50f
 private const val reviewEasyRoseAnimationCenterY: Float = 0.50f
@@ -89,6 +101,10 @@ private data class ReviewReactionLottieCompositionStore(
     val reviewGoodPoodleComposition: LottieComposition?,
     val reviewGoodWhaleComposition: LottieComposition?,
     val reviewGoodPeacockComposition: LottieComposition?,
+    val reviewHardOxComposition: LottieComposition?,
+    val reviewHardPawPrintsComposition: LottieComposition?,
+    val reviewHardRacehorseComposition: LottieComposition?,
+    val reviewHardVolcanoComposition: LottieComposition?,
     val reviewEasyRoseComposition: LottieComposition?,
     val reviewEasyRainbowComposition: LottieComposition?,
     val reviewEasyPhoenixComposition: LottieComposition?,
@@ -192,6 +208,34 @@ private fun reviewReactionLottieConfiguration(
             centerY = reviewGoodPeacockAnimationCenterY
         )
 
+        ReviewReactionVariant.HARD_OX_CHARGE -> ReviewReactionLottieConfiguration(
+            composition = compositionStore.reviewHardOxComposition,
+            frameScale = reviewHardOxAnimationFrameScale,
+            centerX = reviewHardOxAnimationCenterX,
+            centerY = reviewHardOxAnimationCenterY
+        )
+
+        ReviewReactionVariant.HARD_PAW_PRINTS -> ReviewReactionLottieConfiguration(
+            composition = compositionStore.reviewHardPawPrintsComposition,
+            frameScale = reviewHardPawPrintsAnimationFrameScale,
+            centerX = reviewHardPawPrintsAnimationCenterX,
+            centerY = reviewHardPawPrintsAnimationCenterY
+        )
+
+        ReviewReactionVariant.HARD_RACEHORSE_GALLOP -> ReviewReactionLottieConfiguration(
+            composition = compositionStore.reviewHardRacehorseComposition,
+            frameScale = reviewHardRacehorseAnimationFrameScale,
+            centerX = reviewHardRacehorseAnimationCenterX,
+            centerY = reviewHardRacehorseAnimationCenterY
+        )
+
+        ReviewReactionVariant.HARD_VOLCANO_ERUPTION -> ReviewReactionLottieConfiguration(
+            composition = compositionStore.reviewHardVolcanoComposition,
+            frameScale = reviewHardVolcanoAnimationFrameScale,
+            centerX = reviewHardVolcanoAnimationCenterX,
+            centerY = reviewHardVolcanoAnimationCenterY
+        )
+
         ReviewReactionVariant.EASY_ROSE_BLOOM -> ReviewReactionLottieConfiguration(
             composition = compositionStore.reviewEasyRoseComposition,
             frameScale = reviewEasyRoseAnimationFrameScale,
@@ -220,10 +264,6 @@ private fun reviewReactionLottieConfiguration(
             centerY = reviewEasyUnicornAnimationCenterY
         )
 
-        ReviewReactionVariant.HARD_HOURGLASS_SAND,
-        ReviewReactionVariant.HARD_FALLING_WEIGHT,
-        ReviewReactionVariant.HARD_YELLOW_CRACK,
-        ReviewReactionVariant.HARD_ROLLING_BOULDER,
         ReviewReactionVariant.FALLBACK_CROWN_BOUNCE -> null
     }
 }
@@ -267,6 +307,22 @@ internal fun ReviewReactionOverlay(
         reviewGoodPeacockComposition = rememberReviewReactionLottieComposition(
             rawResourceId = R.raw.review_good_peacock,
             assetName = "review_good_peacock"
+        ),
+        reviewHardOxComposition = rememberReviewReactionLottieComposition(
+            rawResourceId = R.raw.review_hard_ox,
+            assetName = "review_hard_ox"
+        ),
+        reviewHardPawPrintsComposition = rememberReviewReactionLottieComposition(
+            rawResourceId = R.raw.review_hard_paw_prints,
+            assetName = "review_hard_paw_prints"
+        ),
+        reviewHardRacehorseComposition = rememberReviewReactionLottieComposition(
+            rawResourceId = R.raw.review_hard_racehorse,
+            assetName = "review_hard_racehorse"
+        ),
+        reviewHardVolcanoComposition = rememberReviewReactionLottieComposition(
+            rawResourceId = R.raw.review_hard_volcano,
+            assetName = "review_hard_volcano"
         ),
         reviewEasyRoseComposition = rememberReviewReactionLottieComposition(
             rawResourceId = R.raw.review_easy_rose,

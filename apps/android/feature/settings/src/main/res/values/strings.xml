@@ -8,6 +8,10 @@
     <string name="review_poodle_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-poodle-animation_12152614</string>
     <string name="review_whale_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-whale-animation_12152600</string>
     <string name="review_peacock_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-peacock-animation_12152610</string>
+    <string name="review_ox_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-ox-animation_12152607</string>
+    <string name="review_paw_prints_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-paw-prints-animation_12152608</string>
+    <string name="review_racehorse_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-racehorse-animation_12152616</string>
+    <string name="review_volcano_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-volcano-animation_12152599</string>
     <string name="review_snail_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-snail-animation_12152626</string>
     <string name="review_rose_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-rose-animation_12152621</string>
     <string name="review_rainbow_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-rainbow-animation_12152617</string>
@@ -466,6 +470,14 @@
     <string name="settings_open_source_third_party_whale_source_summary">Free Whale Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
     <string name="settings_open_source_third_party_peacock_source_title">Review peacock animation</string>
     <string name="settings_open_source_third_party_peacock_source_summary">Free Peacock Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_ox_source_title">Review ox animation</string>
+    <string name="settings_open_source_third_party_ox_source_summary">Free Ox Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_paw_prints_source_title">Review paw prints animation</string>
+    <string name="settings_open_source_third_party_paw_prints_source_summary">Free Paw Prints Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_racehorse_source_title">Review racehorse animation</string>
+    <string name="settings_open_source_third_party_racehorse_source_summary">Free Racehorse Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_volcano_source_title">Review volcano animation</string>
+    <string name="settings_open_source_third_party_volcano_source_summary">Free Volcano Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
     <string name="settings_open_source_third_party_unicorn_source_title">Review unicorn animation</string>
     <string name="settings_open_source_third_party_unicorn_source_summary">Free Unicorn Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
     <string name="settings_open_source_third_party_snail_source_title">Review snail animation</string>
