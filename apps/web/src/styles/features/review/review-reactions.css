@@ -163,10 +163,6 @@
   fill: #fff06a;
 }
 
-.review-rating-reaction-againRedScribbleSlash .review-rating-reaction-art {
-  animation: review-reaction-scribble-art var(--review-reaction-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
 .review-rating-reaction-againRewindVortex .review-rating-reaction-art {
   animation: review-reaction-vortex-art var(--review-reaction-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -220,16 +216,24 @@
   animation: review-reaction-crown-art var(--review-reaction-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+.review-rating-reaction-againWormWiggle .review-rating-reaction-lottie-art,
 .review-rating-reaction-easyRainbowStreak .review-rating-reaction-lottie-art,
 .review-rating-reaction-easyUnicornFlyby .review-rating-reaction-lottie-art {
   animation: none;
 }
 
+.review-reaction-worm-lottie-mark,
 .review-reaction-rainbow-lottie-mark,
 .review-reaction-unicorn-lottie-mark {
   position: absolute;
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
+}
+
+.review-reaction-worm-lottie-mark {
+  top: 52%;
+  left: 50%;
+  width: min(58%, 250px);
 }
 
 .review-reaction-rainbow-lottie-mark {
@@ -244,6 +248,8 @@
   width: min(52%, 230px);
 }
 
+.review-reaction-worm-lottie-mark > div,
+.review-reaction-worm-lottie-mark > svg,
 .review-reaction-rainbow-lottie-mark > div,
 .review-reaction-rainbow-lottie-mark > svg,
 .review-reaction-unicorn-lottie-mark > div,
@@ -291,28 +297,6 @@
 
   100% {
     opacity: 0;
-  }
-}
-
-@keyframes review-reaction-scribble-art {
-  0% {
-    transform: scale(0.92) rotate(-4deg);
-  }
-
-  18% {
-    transform: scale(1.02) rotate(2deg);
-  }
-
-  55% {
-    transform: scale(1) rotate(-1deg);
-  }
-
-  82% {
-    transform: scale(1.01) rotate(1deg);
-  }
-
-  100% {
-    transform: scale(0.96) rotate(0deg);
   }
 }
 

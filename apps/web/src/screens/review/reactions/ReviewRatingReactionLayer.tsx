@@ -30,6 +30,7 @@ type ReviewReactionLottieFailurePhase = "preload" | "render";
 type ReviewReactionLottieContainerClassMap = Readonly<Record<ReviewReactionLottieVariant, string>>;
 
 const reviewReactionLottieContainerClassByVariant: ReviewReactionLottieContainerClassMap = {
+  againWormWiggle: "review-reaction-worm-lottie-mark",
   easyRainbowStreak: "review-reaction-rainbow-lottie-mark",
   easyUnicornFlyby: "review-reaction-unicorn-lottie-mark",
 };
@@ -76,19 +77,6 @@ function makeSparklePoints(
   }
 
   return points.join(" ");
-}
-
-function AgainRedScribbleSlashReaction(): ReactElement {
-  return (
-    <g className="review-reaction-scribble-mark">
-      <path className="review-reaction-red-shadow-stroke" d="M10 26 C31 18 61 70 90 58" strokeWidth="10" />
-      <path className="review-reaction-red-stroke" d="M10 26 C31 18 61 70 90 58" strokeWidth="5" />
-      <path className="review-reaction-red-shadow-stroke" d="M9 40 C34 28 55 77 91 74" strokeWidth="10" />
-      <path className="review-reaction-red-stroke" d="M9 40 C34 28 55 77 91 74" strokeWidth="5" />
-      <path className="review-reaction-red-shadow-stroke" d="M12 14 C39 28 56 57 88 45" strokeWidth="8" />
-      <path className="review-reaction-red-stroke" d="M12 14 C39 28 56 57 88 45" strokeWidth="4" />
-    </g>
-  );
 }
 
 function AgainRewindVortexReaction(): ReactElement {
@@ -366,8 +354,8 @@ function ReviewReactionLottieAnimation(props: ReviewReactionLottieAnimationProps
 
 function renderReviewReactionVariant(variant: ReviewReactionVariant): ReactElement {
   switch (variant) {
-    case "againRedScribbleSlash":
-      return <AgainRedScribbleSlashReaction />;
+    case "againWormWiggle":
+      return renderReviewReactionVariant(reviewReactionLottieFallbackVariant);
     case "againRewindVortex":
       return <AgainRewindVortexReaction />;
     case "againStampFlyby":

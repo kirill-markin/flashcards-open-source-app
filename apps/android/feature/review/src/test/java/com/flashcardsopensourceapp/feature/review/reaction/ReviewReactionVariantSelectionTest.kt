@@ -7,8 +7,8 @@ import org.junit.Test
 class ReviewReactionVariantSelectionTest {
     @Test
     fun againSelectionUsesConfiguredBoundaries() {
-        assertSelectedVariant(ReviewRating.AGAIN, 0, ReviewReactionVariant.AGAIN_RED_SCRIBBLE_SLASH)
-        assertSelectedVariant(ReviewRating.AGAIN, 399, ReviewReactionVariant.AGAIN_RED_SCRIBBLE_SLASH)
+        assertSelectedVariant(ReviewRating.AGAIN, 0, ReviewReactionVariant.AGAIN_WORM_WIGGLE)
+        assertSelectedVariant(ReviewRating.AGAIN, 399, ReviewReactionVariant.AGAIN_WORM_WIGGLE)
         assertSelectedVariant(ReviewRating.AGAIN, 400, ReviewReactionVariant.AGAIN_REWIND_VORTEX)
         assertSelectedVariant(ReviewRating.AGAIN, 699, ReviewReactionVariant.AGAIN_REWIND_VORTEX)
         assertSelectedVariant(ReviewRating.AGAIN, 700, ReviewReactionVariant.AGAIN_STAMP_FLYBY)
@@ -58,7 +58,7 @@ class ReviewReactionVariantSelectionTest {
         val firstEvent = makeTestReactionEvent(
             id = "reaction-1",
             rating = ReviewRating.AGAIN,
-            variant = ReviewReactionVariant.AGAIN_RED_SCRIBBLE_SLASH
+            variant = ReviewReactionVariant.AGAIN_WORM_WIGGLE
         )
         val secondEvent = makeTestReactionEvent(
             id = "reaction-2",

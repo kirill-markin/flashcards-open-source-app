@@ -2,6 +2,16 @@
 
 This file lists third-party assets and runtime libraries bundled for the review reaction animations.
 
+## Review again worm Lottie animation
+
+- Asset: Free Worm Animation
+- Author: Google Inc.
+- Copyright: Copyright © 2026 Google Inc.
+- Source: https://iconscout.com/free-lottie-animation/free-worm-animation_12152603
+- License: Creative Commons Attribution 4.0 International
+- License URL: https://creativecommons.org/licenses/by/4.0/
+- Changes: Used as the Again review worm reaction animation in the Flashcards web, iOS, and Android clients.
+
 ## Review easy unicorn Lottie animation
 
 - Asset: Free Unicorn Animation

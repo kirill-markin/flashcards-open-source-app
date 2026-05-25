@@ -27,6 +27,7 @@ fun AccountOpenSourceRoute(onBack: () -> Unit) {
     val thirdPartyNoticesUrl: String = stringResource(id = R.string.third_party_notices_url)
     val reviewRainbowAnimationUrl: String = stringResource(id = R.string.review_rainbow_animation_url)
     val reviewUnicornAnimationUrl: String = stringResource(id = R.string.review_unicorn_animation_url)
+    val reviewWormAnimationUrl: String = stringResource(id = R.string.review_worm_animation_url)
     val creativeCommonsAttributionUrl: String = stringResource(id = R.string.creative_commons_attribution_url)
 
     SettingsScreenScaffold(
@@ -86,6 +87,19 @@ fun AccountOpenSourceRoute(onBack: () -> Unit) {
                         icon = Icons.Outlined.Info,
                         onClick = {
                             openExternalUrl(context = context, url = reviewRainbowAnimationUrl)
+                        }
+                    )
+                }
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    SettingsLinkItem(
+                        title = stringResource(R.string.settings_open_source_third_party_worm_source_title),
+                        summary = stringResource(R.string.settings_open_source_third_party_worm_source_summary),
+                        icon = Icons.Outlined.Info,
+                        onClick = {
+                            openExternalUrl(context = context, url = reviewWormAnimationUrl)
                         }
                     )
                 }

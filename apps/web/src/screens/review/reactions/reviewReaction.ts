@@ -17,7 +17,7 @@ export const reviewReactionRatings: ReadonlyArray<ReviewReactionRating> = [
 ];
 
 export type ReviewReactionVariant =
-  | "againRedScribbleSlash"
+  | "againWormWiggle"
   | "againRewindVortex"
   | "againStampFlyby"
   | "againWarningTape"
@@ -84,7 +84,7 @@ function makeReviewReactionVariantDistributionEntry(
 }
 
 export const allReviewReactionVariantDistributionEntries: ReadonlyArray<ReviewReactionVariantDistributionEntry> = [
-  makeReviewReactionVariantDistributionEntry("again", "againRedScribbleSlash", 0, 399),
+  makeReviewReactionVariantDistributionEntry("again", "againWormWiggle", 0, 399),
   makeReviewReactionVariantDistributionEntry("again", "againRewindVortex", 400, 699),
   makeReviewReactionVariantDistributionEntry("again", "againStampFlyby", 700, 919),
   makeReviewReactionVariantDistributionEntry("again", "againWarningTape", 920, 999),
@@ -178,7 +178,6 @@ export function reviewReactionAnimationDurationMillis(variant: ReviewReactionVar
   switch (variant) {
     case "goodHandDrawnCheck":
       return 1150;
-    case "againRedScribbleSlash":
     case "hardYellowCrack":
       return 1200;
     case "easySparkleBurst":
@@ -203,6 +202,8 @@ export function reviewReactionAnimationDurationMillis(variant: ReviewReactionVar
       return 2050;
     case "easyUnicornFlyby":
       return 3800;
+    case "againWormWiggle":
+      return 4267;
   }
 }
 

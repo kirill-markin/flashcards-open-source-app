@@ -3,8 +3,8 @@ import XCTest
 
 final class ReviewReactionVariantSelectionTests: XCTestCase {
     func testAgainVariantBoundaries() {
-        XCTAssertEqual(selectReviewReactionVariant(rating: .again, roll: 0), .againRedScribbleSlash)
-        XCTAssertEqual(selectReviewReactionVariant(rating: .again, roll: 399), .againRedScribbleSlash)
+        XCTAssertEqual(selectReviewReactionVariant(rating: .again, roll: 0), .againWormWiggle)
+        XCTAssertEqual(selectReviewReactionVariant(rating: .again, roll: 399), .againWormWiggle)
         XCTAssertEqual(selectReviewReactionVariant(rating: .again, roll: 400), .againRewindVortex)
         XCTAssertEqual(selectReviewReactionVariant(rating: .again, roll: 699), .againRewindVortex)
         XCTAssertEqual(selectReviewReactionVariant(rating: .again, roll: 700), .againStampFlyby)

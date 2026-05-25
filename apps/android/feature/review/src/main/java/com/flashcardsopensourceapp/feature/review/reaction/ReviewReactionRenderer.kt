@@ -8,7 +8,6 @@ internal fun DrawScope.drawReviewReaction(
     motionMode: ReviewReactionMotionMode
 ) {
     when (event.variant) {
-        ReviewReactionVariant.AGAIN_RED_SCRIBBLE_SLASH,
         ReviewReactionVariant.AGAIN_REWIND_VORTEX,
         ReviewReactionVariant.AGAIN_STAMP_FLYBY,
         ReviewReactionVariant.AGAIN_WARNING_TAPE -> drawAgainReviewReaction(
@@ -36,6 +35,7 @@ internal fun DrawScope.drawReviewReaction(
         )
 
         ReviewReactionVariant.EASY_SPARKLE_BURST,
+        ReviewReactionVariant.AGAIN_WORM_WIGGLE,
         ReviewReactionVariant.EASY_RAINBOW_STREAK,
         ReviewReactionVariant.EASY_CROWN_BOUNCE,
         ReviewReactionVariant.EASY_UNICORN_FLYBY -> drawEasyReviewReaction(

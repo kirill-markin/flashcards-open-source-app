@@ -33,6 +33,9 @@ private const val reviewReactionAnimationMaximumProgress: Float = 1f
 private const val reviewReactionCleanupExtraMillis: Long = 80L
 private const val reviewReactionLogTag: String = "ReviewReaction"
 private const val reviewReactionReducedMotionDrawingProgress: Float = 0.55f
+private const val reviewAgainWormAnimationFrameScale: Float = 0.58f
+private const val reviewAgainWormAnimationCenterX: Float = 0.50f
+private const val reviewAgainWormAnimationCenterY: Float = 0.52f
 private const val reviewEasyRainbowAnimationFrameScale: Float = 0.64f
 private const val reviewEasyRainbowAnimationCenterX: Float = 0.50f
 private const val reviewEasyRainbowAnimationCenterY: Float = 0.42f
@@ -62,10 +65,18 @@ private fun logReviewReactionLottieWarning(
 
 private fun reviewReactionLottieConfiguration(
     variant: ReviewReactionVariant,
+    reviewAgainWormComposition: LottieComposition?,
     reviewEasyRainbowComposition: LottieComposition?,
     reviewEasyUnicornComposition: LottieComposition?
 ): ReviewReactionLottieConfiguration? {
     return when (variant) {
+        ReviewReactionVariant.AGAIN_WORM_WIGGLE -> ReviewReactionLottieConfiguration(
+            composition = reviewAgainWormComposition,
+            frameScale = reviewAgainWormAnimationFrameScale,
+            centerX = reviewAgainWormAnimationCenterX,
+            centerY = reviewAgainWormAnimationCenterY
+        )
+
         ReviewReactionVariant.EASY_RAINBOW_STREAK -> ReviewReactionLottieConfiguration(
             composition = reviewEasyRainbowComposition,
             frameScale = reviewEasyRainbowAnimationFrameScale,
@@ -80,7 +91,6 @@ private fun reviewReactionLottieConfiguration(
             centerY = reviewEasyUnicornAnimationCenterY
         )
 
-        ReviewReactionVariant.AGAIN_RED_SCRIBBLE_SLASH,
         ReviewReactionVariant.AGAIN_REWIND_VORTEX,
         ReviewReactionVariant.AGAIN_STAMP_FLYBY,
         ReviewReactionVariant.AGAIN_WARNING_TAPE,
@@ -104,6 +114,24 @@ internal fun ReviewReactionOverlay(
     motionMode: ReviewReactionMotionMode,
     onEventFinished: (String) -> Unit
 ) {
+    val reviewAgainWormCompositionResult: LottieCompositionResult = rememberLottieComposition(
+        spec = LottieCompositionSpec.RawRes(R.raw.review_again_worm)
+    )
+    val reviewAgainWormCompositionFailure: Throwable? = reviewAgainWormCompositionResult.error
+    if (reviewAgainWormCompositionFailure != null) {
+        LaunchedEffect(reviewAgainWormCompositionFailure) {
+            logReviewReactionLottieWarning(
+                assetName = "review_again_worm",
+                error = reviewAgainWormCompositionFailure
+            )
+        }
+    }
+    val reviewAgainWormComposition: LottieComposition? = if (reviewAgainWormCompositionFailure == null) {
+        reviewAgainWormCompositionResult.value
+    } else {
+        null
+    }
+
     val reviewEasyRainbowCompositionResult: LottieCompositionResult = rememberLottieComposition(
         spec = LottieCompositionSpec.RawRes(R.raw.review_easy_rainbow)
     )
@@ -150,6 +178,7 @@ internal fun ReviewReactionOverlay(
                 ReviewReactionCanvas(
                     event = event,
                     motionMode = motionMode,
+                    reviewAgainWormComposition = reviewAgainWormComposition,
                     reviewEasyRainbowComposition = reviewEasyRainbowComposition,
                     reviewEasyUnicornComposition = reviewEasyUnicornComposition,
                     onEventFinished = onEventFinished
@@ -163,6 +192,7 @@ internal fun ReviewReactionOverlay(
 private fun ReviewReactionCanvas(
     event: ReviewReactionEvent,
     motionMode: ReviewReactionMotionMode,
+    reviewAgainWormComposition: LottieComposition?,
     reviewEasyRainbowComposition: LottieComposition?,
     reviewEasyUnicornComposition: LottieComposition?,
     onEventFinished: (String) -> Unit
@@ -170,6 +200,7 @@ private fun ReviewReactionCanvas(
     val lottieConfiguration: ReviewReactionLottieConfiguration? = remember(event.id, event.variant) {
         reviewReactionLottieConfiguration(
             variant = event.variant,
+            reviewAgainWormComposition = reviewAgainWormComposition,
             reviewEasyRainbowComposition = reviewEasyRainbowComposition,
             reviewEasyUnicornComposition = reviewEasyUnicornComposition
         )

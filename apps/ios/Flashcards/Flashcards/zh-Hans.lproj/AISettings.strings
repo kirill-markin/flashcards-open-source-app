@@ -264,10 +264,11 @@
 "settings.account.openSource.repository" = "GitHub 存储库（MIT 许可证）";
 "settings.account.openSource.selfHosting" = "如果您需要自己的后端，则可以部署相同的开源堆栈并将 iOS 应用程序从“高级”>“服务器”指向您的域。";
 "settings.account.openSource.section.thirdPartyNotices" = "第三方声明";
-"settings.account.openSource.thirdPartyNotice" = "复习 Lottie 动画：Google Inc. 的 Free Unicorn Animation 和 Free Rainbow Animation，Copyright © 2026 Google Inc.，依据 Creative Commons Attribution 4.0 使用。Lottie 运行时使用 MIT 和 Apache 2.0 许可证。";
+"settings.account.openSource.thirdPartyNotice" = "复习 Lottie 动画：Google Inc. 的 Free Unicorn Animation、Free Rainbow Animation 和 Free Worm Animation，Copyright © 2026 Google Inc.，依据 Creative Commons Attribution 4.0 使用。Lottie 运行时使用 MIT 和 Apache 2.0 许可证。";
 "settings.account.openSource.thirdPartyNoticeFull" = "完整第三方声明";
 "settings.account.openSource.thirdPartyNoticeUnicornSource" = "独角兽素材来源";
 "settings.account.openSource.thirdPartyNoticeRainbowSource" = "彩虹素材来源";
+"settings.account.openSource.thirdPartyNoticeWormSource" = "蠕虫素材来源";
 "settings.account.openSource.thirdPartyNoticeLicense" = "Creative Commons Attribution 4.0";
 
 "settings.account.advanced.title" = "高级";

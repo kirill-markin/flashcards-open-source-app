@@ -873,10 +873,11 @@ export const zhHansCatalog = {
     stackDescription: "iOS 应用和后端都是完全开源的。您可以查看代码、使用 MIT 许可证，并在自己的服务器上运行相同的技术栈。",
     repositoryAction: "打开仓库",
     selfHostingDescription: "如果您需要自己的后端，可以在自己的基础设施上部署同样的开源技术栈，并让自己的 Web 和 iOS 客户端连接到该部署。",
-    thirdPartyNoticeDescription: "复习 Lottie 动画：Google Inc. 的 Free Unicorn Animation 和 Free Rainbow Animation，Copyright © 2026 Google Inc.，依据 Creative Commons Attribution 4.0 使用。Lottie 运行时使用 MIT 和 Apache 2.0 许可证。",
+    thirdPartyNoticeDescription: "复习 Lottie 动画：Google Inc. 的 Free Unicorn Animation、Free Rainbow Animation 和 Free Worm Animation，Copyright © 2026 Google Inc.，依据 Creative Commons Attribution 4.0 使用。Lottie 运行时使用 MIT 和 Apache 2.0 许可证。",
     thirdPartyNoticeFullAction: "打开完整声明",
     thirdPartyNoticeUnicornSourceAction: "打开独角兽素材来源",
     thirdPartyNoticeRainbowSourceAction: "打开彩虹素材来源",
+    thirdPartyNoticeWormSourceAction: "打开蠕虫素材来源",
     thirdPartyNoticeLicenseAction: "打开许可证",
   },
   agentConnections: {

@@ -15,7 +15,7 @@ internal enum class ReviewReactionMotionMode {
 }
 
 internal enum class ReviewReactionVariant {
-    AGAIN_RED_SCRIBBLE_SLASH,
+    AGAIN_WORM_WIGGLE,
     AGAIN_REWIND_VORTEX,
     AGAIN_STAMP_FLYBY,
     AGAIN_WARNING_TAPE,
@@ -43,7 +43,7 @@ internal val ReviewRating.reviewReactionDebugIdentifier: String
 
 internal val ReviewReactionVariant.debugIdentifier: String
     get() = when (this) {
-        ReviewReactionVariant.AGAIN_RED_SCRIBBLE_SLASH -> "againRedScribbleSlash"
+        ReviewReactionVariant.AGAIN_WORM_WIGGLE -> "againWormWiggle"
         ReviewReactionVariant.AGAIN_REWIND_VORTEX -> "againRewindVortex"
         ReviewReactionVariant.AGAIN_STAMP_FLYBY -> "againStampFlyby"
         ReviewReactionVariant.AGAIN_WARNING_TAPE -> "againWarningTape"
@@ -79,7 +79,7 @@ internal data class ReviewReactionVariantDistributionEntry(
 internal val allReviewReactionVariantDistributionEntries: List<ReviewReactionVariantDistributionEntry> = listOf(
     ReviewReactionVariantDistributionEntry(
         rating = ReviewRating.AGAIN,
-        variant = ReviewReactionVariant.AGAIN_RED_SCRIBBLE_SLASH,
+        variant = ReviewReactionVariant.AGAIN_WORM_WIGGLE,
         rollRange = 0..399
     ),
     ReviewReactionVariantDistributionEntry(
@@ -236,7 +236,6 @@ internal fun reviewReactionAnimationDurationMillis(
 
     return when (variant) {
         ReviewReactionVariant.GOOD_HAND_DRAWN_CHECK -> 1_150
-        ReviewReactionVariant.AGAIN_RED_SCRIBBLE_SLASH,
         ReviewReactionVariant.HARD_YELLOW_CRACK -> 1_200
         ReviewReactionVariant.EASY_SPARKLE_BURST -> 1_250
         ReviewReactionVariant.AGAIN_REWIND_VORTEX,
@@ -251,5 +250,6 @@ internal fun reviewReactionAnimationDurationMillis(
         ReviewReactionVariant.EASY_RAINBOW_STREAK -> 2_000
         ReviewReactionVariant.HARD_ROLLING_BOULDER -> 2_050
         ReviewReactionVariant.EASY_UNICORN_FLYBY -> 3_800
+        ReviewReactionVariant.AGAIN_WORM_WIGGLE -> 4_267
     }
 }
