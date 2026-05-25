@@ -163,10 +163,6 @@
   fill: #fff06a;
 }
 
-.review-rating-reaction-againRewindVortex .review-rating-reaction-art {
-  animation: review-reaction-vortex-art var(--review-reaction-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
 .review-rating-reaction-hardHourglassSand .review-rating-reaction-art {
   animation: review-reaction-hourglass-art var(--review-reaction-duration) ease-in-out both;
 }
@@ -209,6 +205,7 @@
 }
 
 .review-rating-reaction-againWormWiggle .review-rating-reaction-lottie-art,
+.review-rating-reaction-againTornado .review-rating-reaction-lottie-art,
 .review-rating-reaction-againSnailCrawl .review-rating-reaction-lottie-art,
 .review-rating-reaction-againWiltedFlower .review-rating-reaction-lottie-art,
 .review-rating-reaction-easyRainbowStreak .review-rating-reaction-lottie-art,
@@ -217,6 +214,7 @@
 }
 
 .review-reaction-worm-lottie-mark,
+.review-reaction-tornado-lottie-mark,
 .review-reaction-snail-lottie-mark,
 .review-reaction-wilted-flower-lottie-mark,
 .review-reaction-rainbow-lottie-mark,
@@ -230,6 +228,12 @@
   top: 52%;
   left: 50%;
   width: min(58%, 250px);
+}
+
+.review-reaction-tornado-lottie-mark {
+  top: 45%;
+  left: 50%;
+  width: min(58%, 255px);
 }
 
 .review-reaction-snail-lottie-mark {
@@ -258,6 +262,8 @@
 
 .review-reaction-worm-lottie-mark > div,
 .review-reaction-worm-lottie-mark > svg,
+.review-reaction-tornado-lottie-mark > div,
+.review-reaction-tornado-lottie-mark > svg,
 .review-reaction-snail-lottie-mark > div,
 .review-reaction-snail-lottie-mark > svg,
 .review-reaction-wilted-flower-lottie-mark > div,
@@ -271,16 +277,11 @@
   height: 100%;
 }
 
-.review-reaction-vortex-mark,
 .review-reaction-sand-dot,
 .review-reaction-dust-fill,
 .review-reaction-sparkle-fill {
   transform-box: fill-box;
   transform-origin: center;
-}
-
-.review-reaction-vortex-mark {
-  animation: review-reaction-part-spin var(--review-reaction-duration) ease-in-out both;
 }
 
 .review-reaction-sand-dot {
@@ -309,24 +310,6 @@
 
   100% {
     opacity: 0;
-  }
-}
-
-@keyframes review-reaction-vortex-art {
-  0% {
-    transform: scale(0.72) rotate(-35deg);
-  }
-
-  46% {
-    transform: scale(1.04) rotate(170deg);
-  }
-
-  78% {
-    transform: scale(1) rotate(290deg);
-  }
-
-  100% {
-    transform: scale(0.86) rotate(360deg);
   }
 }
 
@@ -534,20 +517,6 @@
   }
 }
 
-@keyframes review-reaction-part-spin {
-  0% {
-    transform: rotate(0deg) scale(0.92);
-  }
-
-  78% {
-    transform: rotate(-210deg) scale(1.02);
-  }
-
-  100% {
-    transform: rotate(-260deg) scale(0.96);
-  }
-}
-
 @keyframes review-reaction-sand-dot {
   0% {
     opacity: 0;
@@ -634,7 +603,6 @@
   }
 
   .review-rating-reaction-event .review-rating-reaction-art,
-  .review-rating-reaction-event .review-reaction-vortex-mark,
   .review-rating-reaction-event .review-reaction-sand-dot,
   .review-rating-reaction-event .review-reaction-dust-fill,
   .review-rating-reaction-event .review-reaction-sparkle-fill {
