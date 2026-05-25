@@ -1,6 +1,5 @@
 package com.flashcardsopensourceapp.feature.review.reaction
 
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -16,106 +15,6 @@ import kotlin.math.min
 import kotlin.math.sin
 
 private const val reviewReactionPathSampleCount: Int = 36
-
-internal fun DrawScope.drawWeight(
-    center: Offset,
-    width: Float,
-    height: Float,
-    xScale: Float,
-    yScale: Float
-) {
-    val scaledWidth: Float = width * xScale
-    val scaledHeight: Float = height * yScale
-    drawRoundRect(
-        color = Color.Gray,
-        topLeft = Offset(x = center.x - scaledWidth * 0.50f, y = center.y - scaledHeight * 0.28f),
-        size = Size(width = scaledWidth, height = scaledHeight * 0.72f),
-        cornerRadius = CornerRadius(x = scaledHeight * 0.18f, y = scaledHeight * 0.18f)
-    )
-    drawRoundRect(
-        color = Color.DarkGray,
-        topLeft = Offset(x = center.x - scaledWidth * 0.18f, y = center.y - scaledHeight * 0.58f),
-        size = Size(width = scaledWidth * 0.36f, height = scaledHeight * 0.24f),
-        cornerRadius = CornerRadius(x = scaledHeight * 0.08f, y = scaledHeight * 0.08f)
-    )
-    drawRoundRect(
-        color = Color.Black.copy(alpha = 0.20f),
-        topLeft = Offset(x = center.x - scaledWidth * 0.32f, y = center.y - scaledHeight * 0.10f),
-        size = Size(width = scaledWidth * 0.64f, height = scaledHeight * 0.16f),
-        cornerRadius = CornerRadius(x = scaledHeight * 0.08f, y = scaledHeight * 0.08f)
-    )
-}
-
-internal fun DrawScope.drawImpactLines(
-    center: Offset,
-    radius: Float,
-    progress: Float,
-    color: Color
-) {
-    for (index in 0 until 10) {
-        val localProgress: Float = reviewReactionClampedProgress(progress = progress - index.toFloat() * 0.035f)
-        val angle: Float = index.toFloat() / 10f * PI.toFloat() * 2f
-        val startRadius: Float = radius * 0.48f
-        val endRadius: Float = radius * (0.62f + localProgress * 0.50f)
-        drawLine(
-            color = color.copy(alpha = 1f - localProgress * 0.45f),
-            start = Offset(x = center.x + cos(angle) * startRadius, y = center.y + sin(angle) * startRadius),
-            end = Offset(x = center.x + cos(angle) * endRadius, y = center.y + sin(angle) * endRadius),
-            strokeWidth = 5f,
-            cap = StrokeCap.Round
-        )
-    }
-}
-
-internal fun DrawScope.drawBoulder(
-    center: Offset,
-    radius: Float,
-    rotationDegrees: Float
-) {
-    drawCircle(color = Color.Gray, radius = radius, center = center)
-    drawCircle(
-        color = Color.Black.copy(alpha = 0.35f),
-        radius = radius,
-        center = center,
-        style = Stroke(width = 5f)
-    )
-    val cracks: List<List<Offset>> = listOf(
-        listOf(Offset(x = -0.30f, y = -0.32f), Offset(x = -0.06f, y = -0.10f), Offset(x = -0.22f, y = 0.10f)),
-        listOf(Offset(x = 0.20f, y = -0.30f), Offset(x = 0.02f, y = 0.02f), Offset(x = 0.24f, y = 0.30f)),
-        listOf(Offset(x = -0.42f, y = 0.22f), Offset(x = -0.10f, y = 0.34f), Offset(x = 0.06f, y = 0.18f))
-    )
-    cracks.forEach { crack: List<Offset> ->
-        val points: List<Offset> = crack.map { local: Offset ->
-            transformLocalPoint(
-                center = center,
-                local = Offset(x = local.x * radius, y = local.y * radius),
-                scale = 1f,
-                rotationDegrees = rotationDegrees
-            )
-        }
-        drawPolylineProgress(
-            points = points,
-            progress = 1f,
-            color = Color.Black.copy(alpha = 0.22f),
-            strokeWidth = 4f
-        )
-    }
-}
-
-internal fun DrawScope.drawDustCloud(
-    center: Offset,
-    radius: Float,
-    progress: Float
-) {
-    for (index in 0 until 5) {
-        val localProgress: Float = reviewReactionClampedProgress(progress = progress - index.toFloat() * 0.10f)
-        drawCircle(
-            color = Color.Gray.copy(alpha = 0.35f * (1f - localProgress * 0.65f)),
-            radius = radius * (0.16f + localProgress * 0.16f),
-            center = Offset(x = center.x - index.toFloat() * radius * 0.14f, y = center.y + sin(index.toFloat()) * radius * 0.08f)
-        )
-    }
-}
 
 internal fun DrawScope.drawCheckMark(
     center: Offset,

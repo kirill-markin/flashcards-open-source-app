@@ -264,12 +264,16 @@
 "settings.account.openSource.repository" = "GitHub 存储库（MIT 许可证）";
 "settings.account.openSource.selfHosting" = "如果您需要自己的后端，则可以部署相同的开源堆栈并将 iOS 应用程序从“高级”>“服务器”指向您的域。";
 "settings.account.openSource.section.thirdPartyNotices" = "第三方声明";
-"settings.account.openSource.thirdPartyNotice" = "复习 Lottie 动画：Google Inc. 的 Free Owl Animation、Free Poodle Animation、Free Whale Animation、Free Peacock Animation、Free Rose Animation、Free Rainbow Animation、Free Phoenix Animation、Free Unicorn Animation、Free Snail Animation、Free Worm Animation、Free Tornado Animation 和 Free Wilted Flower Animation，Copyright © 2026 Google Inc.，依据 Creative Commons Attribution 4.0 使用。Lottie 运行时使用 MIT 和 Apache 2.0 许可证。";
+"settings.account.openSource.thirdPartyNotice" = "Review Lottie animations: Free Worm Animation, Free Tornado Animation, Free Snail Animation, Free Wilted Flower Animation, Free Owl Animation, Free Poodle Animation, Free Whale Animation, Free Peacock Animation, Free Ox Animation, Free Paw Prints Animation, Free Racehorse Animation, Free Volcano Animation, Free Rose Animation, Free Rainbow Animation, Free Phoenix Animation, and Free Unicorn Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0. Lottie runtimes use MIT and Apache 2.0 licenses.";
 "settings.account.openSource.thirdPartyNoticeFull" = "完整第三方声明";
 "settings.account.openSource.thirdPartyNoticeOwlSource" = "猫头鹰素材来源";
 "settings.account.openSource.thirdPartyNoticePoodleSource" = "贵宾犬素材来源";
 "settings.account.openSource.thirdPartyNoticeWhaleSource" = "鲸鱼素材来源";
 "settings.account.openSource.thirdPartyNoticePeacockSource" = "孔雀素材来源";
+"settings.account.openSource.thirdPartyNoticeOxSource" = "Ox Asset Source";
+"settings.account.openSource.thirdPartyNoticePawPrintsSource" = "Paw Prints Asset Source";
+"settings.account.openSource.thirdPartyNoticeRacehorseSource" = "Racehorse Asset Source";
+"settings.account.openSource.thirdPartyNoticeVolcanoSource" = "Volcano Asset Source";
 "settings.account.openSource.thirdPartyNoticeUnicornSource" = "独角兽素材来源";
 "settings.account.openSource.thirdPartyNoticeSnailSource" = "蜗牛素材来源";
 "settings.account.openSource.thirdPartyNoticeRoseSource" = "玫瑰素材来源";

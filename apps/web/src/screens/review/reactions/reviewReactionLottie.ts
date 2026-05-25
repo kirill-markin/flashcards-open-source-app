@@ -18,6 +18,10 @@ export type ReviewReactionLottieVariant =
   | "goodPoodle"
   | "goodWhale"
   | "goodPeacock"
+  | "hardOxCharge"
+  | "hardPawPrints"
+  | "hardRacehorseGallop"
+  | "hardVolcanoEruption"
   | "easyRoseBloom"
   | "easyRainbowStreak"
   | "easyPhoenixRise"
@@ -44,6 +48,10 @@ export function isReviewReactionLottieVariant(
     || variant === "goodPoodle"
     || variant === "goodWhale"
     || variant === "goodPeacock"
+    || variant === "hardOxCharge"
+    || variant === "hardPawPrints"
+    || variant === "hardRacehorseGallop"
+    || variant === "hardVolcanoEruption"
     || variant === "easyRoseBloom"
     || variant === "easyRainbowStreak"
     || variant === "easyPhoenixRise"
@@ -79,6 +87,10 @@ export function loadReviewReactionLottieAssets(): Promise<ReviewReactionLottieAs
     import("../../../assets/review_good_poodle.json"),
     import("../../../assets/review_good_whale.json"),
     import("../../../assets/review_good_peacock.json"),
+    import("../../../assets/review_hard_ox.json"),
+    import("../../../assets/review_hard_paw_prints.json"),
+    import("../../../assets/review_hard_racehorse.json"),
+    import("../../../assets/review_hard_volcano.json"),
     import("../../../assets/review_easy_rose.json"),
     import("../../../assets/review_easy_rainbow.json"),
     import("../../../assets/review_easy_phoenix.json"),
@@ -94,12 +106,20 @@ export function loadReviewReactionLottieAssets(): Promise<ReviewReactionLottieAs
       poodleAnimationModule,
       whaleAnimationModule,
       peacockAnimationModule,
+      oxAnimationModule,
+      pawPrintsAnimationModule,
+      racehorseAnimationModule,
+      volcanoAnimationModule,
       roseAnimationModule,
       rainbowAnimationModule,
       phoenixAnimationModule,
       unicornAnimationModule,
     ]: [
       ReviewReactionLottiePlayerModule,
+      ReviewReactionLottieAnimationModule,
+      ReviewReactionLottieAnimationModule,
+      ReviewReactionLottieAnimationModule,
+      ReviewReactionLottieAnimationModule,
       ReviewReactionLottieAnimationModule,
       ReviewReactionLottieAnimationModule,
       ReviewReactionLottieAnimationModule,
@@ -125,6 +145,10 @@ export function loadReviewReactionLottieAssets(): Promise<ReviewReactionLottieAs
         goodPoodle: poodleAnimationModule.default,
         goodWhale: whaleAnimationModule.default,
         goodPeacock: peacockAnimationModule.default,
+        hardOxCharge: oxAnimationModule.default,
+        hardPawPrints: pawPrintsAnimationModule.default,
+        hardRacehorseGallop: racehorseAnimationModule.default,
+        hardVolcanoEruption: volcanoAnimationModule.default,
         easyRoseBloom: roseAnimationModule.default,
         easyRainbowStreak: rainbowAnimationModule.default,
         easyPhoenixRise: phoenixAnimationModule.default,

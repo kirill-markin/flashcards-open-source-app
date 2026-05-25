@@ -29,6 +29,10 @@ fun AccountOpenSourceRoute(onBack: () -> Unit) {
     val reviewPoodleAnimationUrl: String = stringResource(id = R.string.review_poodle_animation_url)
     val reviewWhaleAnimationUrl: String = stringResource(id = R.string.review_whale_animation_url)
     val reviewPeacockAnimationUrl: String = stringResource(id = R.string.review_peacock_animation_url)
+    val reviewOxAnimationUrl: String = stringResource(id = R.string.review_ox_animation_url)
+    val reviewPawPrintsAnimationUrl: String = stringResource(id = R.string.review_paw_prints_animation_url)
+    val reviewRacehorseAnimationUrl: String = stringResource(id = R.string.review_racehorse_animation_url)
+    val reviewVolcanoAnimationUrl: String = stringResource(id = R.string.review_volcano_animation_url)
     val reviewSnailAnimationUrl: String = stringResource(id = R.string.review_snail_animation_url)
     val reviewRoseAnimationUrl: String = stringResource(id = R.string.review_rose_animation_url)
     val reviewRainbowAnimationUrl: String = stringResource(id = R.string.review_rainbow_animation_url)
@@ -122,6 +126,58 @@ fun AccountOpenSourceRoute(onBack: () -> Unit) {
                         icon = Icons.Outlined.Info,
                         onClick = {
                             openExternalUrl(context = context, url = reviewPeacockAnimationUrl)
+                        }
+                    )
+                }
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    SettingsLinkItem(
+                        title = stringResource(R.string.settings_open_source_third_party_ox_source_title),
+                        summary = stringResource(R.string.settings_open_source_third_party_ox_source_summary),
+                        icon = Icons.Outlined.Info,
+                        onClick = {
+                            openExternalUrl(context = context, url = reviewOxAnimationUrl)
+                        }
+                    )
+                }
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    SettingsLinkItem(
+                        title = stringResource(R.string.settings_open_source_third_party_paw_prints_source_title),
+                        summary = stringResource(R.string.settings_open_source_third_party_paw_prints_source_summary),
+                        icon = Icons.Outlined.Info,
+                        onClick = {
+                            openExternalUrl(context = context, url = reviewPawPrintsAnimationUrl)
+                        }
+                    )
+                }
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    SettingsLinkItem(
+                        title = stringResource(R.string.settings_open_source_third_party_racehorse_source_title),
+                        summary = stringResource(R.string.settings_open_source_third_party_racehorse_source_summary),
+                        icon = Icons.Outlined.Info,
+                        onClick = {
+                            openExternalUrl(context = context, url = reviewRacehorseAnimationUrl)
+                        }
+                    )
+                }
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    SettingsLinkItem(
+                        title = stringResource(R.string.settings_open_source_third_party_volcano_source_title),
+                        summary = stringResource(R.string.settings_open_source_third_party_volcano_source_summary),
+                        icon = Icons.Outlined.Info,
+                        onClick = {
+                            openExternalUrl(context = context, url = reviewVolcanoAnimationUrl)
                         }
                     )
                 }

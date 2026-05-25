@@ -38,6 +38,10 @@ const reviewReactionLottieContainerClassByVariant: ReviewReactionLottieContainer
   goodPoodle: "review-reaction-poodle-lottie-mark",
   goodWhale: "review-reaction-whale-lottie-mark",
   goodPeacock: "review-reaction-peacock-lottie-mark",
+  hardOxCharge: "review-reaction-ox-lottie-mark",
+  hardPawPrints: "review-reaction-paw-prints-lottie-mark",
+  hardRacehorseGallop: "review-reaction-racehorse-lottie-mark",
+  hardVolcanoEruption: "review-reaction-volcano-lottie-mark",
   easyRoseBloom: "review-reaction-rose-lottie-mark",
   easyRainbowStreak: "review-reaction-rainbow-lottie-mark",
   easyPhoenixRise: "review-reaction-phoenix-lottie-mark",
@@ -53,6 +57,10 @@ const reviewReactionLottieNaturalDurationMillisByVariant: Readonly<Record<Review
   goodPoodle: 2800,
   goodWhale: 2633,
   goodPeacock: 1333,
+  hardOxCharge: 3300,
+  hardPawPrints: 1100,
+  hardRacehorseGallop: 517,
+  hardVolcanoEruption: 1200,
   easyRoseBloom: 2400,
   easyRainbowStreak: 2000,
   easyPhoenixRise: 3933,
@@ -105,53 +113,6 @@ function makeSparklePoints(
   }
 
   return points.join(" ");
-}
-
-function HardHourglassSandReaction(): ReactElement {
-  return (
-    <g className="review-reaction-hourglass-mark">
-      <path className="review-reaction-yellow-stroke" d="M39 19 L61 19 L50 45 L61 72 L39 72 L50 45 Z" strokeWidth="3.2" />
-      <path className="review-reaction-yellow-fill" d="M42 24 L58 24 L50 42 Z" />
-      <path className="review-reaction-orange-fill" d="M50 50 L59 67 L41 67 Z" />
-      <path className="review-reaction-yellow-stroke" d="M50 42 L50 60" strokeWidth="2.6" />
-      <circle className="review-reaction-orange-fill review-reaction-sand-dot" cx="45" cy="64" r="2" />
-      <circle className="review-reaction-yellow-fill review-reaction-sand-dot" cx="55" cy="66" r="1.7" />
-    </g>
-  );
-}
-
-function HardFallingWeightReaction(): ReactElement {
-  return (
-    <g className="review-reaction-weight-mark">
-      <path className="review-reaction-dark-stroke" d="M39 33 C39 22 61 22 61 33" strokeWidth="5" />
-      <path className="review-reaction-slate-fill" d="M33 43 C33 28 67 28 67 43 L73 68 C74 76 66 81 50 81 C34 81 26 76 27 68 Z" />
-      <path className="review-reaction-slate-stroke" d="M33 43 C33 28 67 28 67 43 L73 68 C74 76 66 81 50 81 C34 81 26 76 27 68 Z" strokeWidth="3" />
-      <path className="review-reaction-yellow-stroke review-reaction-impact-lines" d="M24 83 L15 92 M38 87 L34 98 M62 87 L66 98 M76 83 L86 92" strokeWidth="3.5" />
-    </g>
-  );
-}
-
-function HardYellowCrackReaction(): ReactElement {
-  return (
-    <g className="review-reaction-crack-mark">
-      <path className="review-reaction-yellow-shadow-stroke" d="M16 34 L29 45 L38 29 L49 55 L58 43 L69 75 L83 54" strokeWidth="8" />
-      <path className="review-reaction-yellow-stroke" d="M16 34 L29 45 L38 29 L49 55 L58 43 L69 75 L83 54" strokeWidth="4" />
-      <path className="review-reaction-yellow-stroke review-reaction-crack-branch" d="M38 29 L35 15 L27 8 M58 43 L64 23 L72 18 M69 75 L62 91 L55 96" strokeWidth="3" />
-    </g>
-  );
-}
-
-function HardRollingBoulderReaction(): ReactElement {
-  return (
-    <g className="review-reaction-boulder-mark">
-      <circle className="review-reaction-stone-fill" cx="50" cy="61" r="15" />
-      <circle className="review-reaction-stone-stroke" cx="50" cy="61" r="15" />
-      <path className="review-reaction-dark-stroke" d="M42 55 L49 59 L46 68 M57 51 L61 60 L56 69 M39 64 L30 67" strokeWidth="2" />
-      <circle className="review-reaction-dust-fill review-reaction-dust-one" cx="26" cy="76" r="4" />
-      <circle className="review-reaction-dust-fill review-reaction-dust-two" cx="18" cy="72" r="3" />
-      <circle className="review-reaction-dust-fill review-reaction-dust-three" cx="11" cy="78" r="2.5" />
-    </g>
-  );
 }
 
 function EasyCrownBounceReaction(): ReactElement {
@@ -279,14 +240,11 @@ function renderReviewReactionVariant(variant: ReviewReactionRenderableVariant): 
       return renderReviewReactionVariant(reviewReactionLottieFallbackVariant);
     case "againWiltedFlower":
       return renderReviewReactionVariant(reviewReactionLottieFallbackVariant);
-    case "hardHourglassSand":
-      return <HardHourglassSandReaction />;
-    case "hardFallingWeight":
-      return <HardFallingWeightReaction />;
-    case "hardYellowCrack":
-      return <HardYellowCrackReaction />;
-    case "hardRollingBoulder":
-      return <HardRollingBoulderReaction />;
+    case "hardOxCharge":
+    case "hardPawPrints":
+    case "hardRacehorseGallop":
+    case "hardVolcanoEruption":
+      return renderReviewReactionVariant(reviewReactionLottieFallbackVariant);
     case "goodOwl":
     case "goodPoodle":
     case "goodWhale":

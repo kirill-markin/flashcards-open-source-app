@@ -22,34 +22,6 @@ enum ReviewReactionRenderer {
         }
 
         switch event.variant {
-        case .hardHourglassSand:
-            drawHardHourglassSand(
-                context: drawingContext,
-                size: drawableSize,
-                progress: drawingProgress,
-                motionMode: motionMode
-            )
-        case .hardFallingWeight:
-            drawHardFallingWeight(
-                context: drawingContext,
-                size: drawableSize,
-                progress: drawingProgress,
-                motionMode: motionMode
-            )
-        case .hardYellowCrack:
-            drawHardYellowCrack(
-                context: drawingContext,
-                size: drawableSize,
-                progress: drawingProgress,
-                motionMode: motionMode
-            )
-        case .hardRollingBoulder:
-            drawHardRollingBoulder(
-                context: drawingContext,
-                size: drawableSize,
-                progress: drawingProgress,
-                motionMode: motionMode
-            )
         case .fallbackCrownBounce:
             drawEasyCrownBounce(
                 context: drawingContext,
@@ -65,6 +37,10 @@ enum ReviewReactionRenderer {
              .goodPoodle,
              .goodWhale,
              .goodPeacock,
+             .hardOxCharge,
+             .hardPawPrints,
+             .hardRacehorseGallop,
+             .hardVolcanoEruption,
              .easyRoseBloom,
              .easyRainbowStreak,
              .easyPhoenixRise,

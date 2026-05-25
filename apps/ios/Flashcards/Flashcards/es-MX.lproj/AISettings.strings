@@ -264,12 +264,16 @@
 "settings.account.openSource.repository" = "Repositorio de GitHub (Licencia MIT)";
 "settings.account.openSource.selfHosting" = "Si necesitas tu propio backend, puedes desplegar la misma pila de codigo abierto y apuntar la app de iOS a tu dominio desde Avanzado > Servidor.";
 "settings.account.openSource.section.thirdPartyNotices" = "Avisos de terceros";
-"settings.account.openSource.thirdPartyNotice" = "Animaciones Lottie de repaso: Free Owl Animation, Free Poodle Animation, Free Whale Animation, Free Peacock Animation, Free Rose Animation, Free Rainbow Animation, Free Phoenix Animation, Free Unicorn Animation, Free Snail Animation, Free Worm Animation, Free Tornado Animation y Free Wilted Flower Animation de Google Inc., Copyright © 2026 Google Inc., usadas bajo Creative Commons Attribution 4.0. Los runtimes de Lottie usan licencias MIT y Apache 2.0.";
+"settings.account.openSource.thirdPartyNotice" = "Review Lottie animations: Free Worm Animation, Free Tornado Animation, Free Snail Animation, Free Wilted Flower Animation, Free Owl Animation, Free Poodle Animation, Free Whale Animation, Free Peacock Animation, Free Ox Animation, Free Paw Prints Animation, Free Racehorse Animation, Free Volcano Animation, Free Rose Animation, Free Rainbow Animation, Free Phoenix Animation, and Free Unicorn Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0. Lottie runtimes use MIT and Apache 2.0 licenses.";
 "settings.account.openSource.thirdPartyNoticeFull" = "Avisos completos de terceros";
 "settings.account.openSource.thirdPartyNoticeOwlSource" = "Fuente del recurso del búho";
 "settings.account.openSource.thirdPartyNoticePoodleSource" = "Fuente del recurso del caniche";
 "settings.account.openSource.thirdPartyNoticeWhaleSource" = "Fuente del recurso de la ballena";
 "settings.account.openSource.thirdPartyNoticePeacockSource" = "Fuente del recurso del pavo real";
+"settings.account.openSource.thirdPartyNoticeOxSource" = "Ox Asset Source";
+"settings.account.openSource.thirdPartyNoticePawPrintsSource" = "Paw Prints Asset Source";
+"settings.account.openSource.thirdPartyNoticeRacehorseSource" = "Racehorse Asset Source";
+"settings.account.openSource.thirdPartyNoticeVolcanoSource" = "Volcano Asset Source";
 "settings.account.openSource.thirdPartyNoticeUnicornSource" = "Fuente del recurso de unicornio";
 "settings.account.openSource.thirdPartyNoticeSnailSource" = "Fuente del recurso de caracol";
 "settings.account.openSource.thirdPartyNoticeRoseSource" = "Fuente del recurso de rosa";

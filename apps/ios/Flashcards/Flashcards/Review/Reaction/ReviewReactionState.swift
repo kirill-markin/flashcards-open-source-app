@@ -23,10 +23,10 @@ enum ReviewReactionVariant: CaseIterable, Hashable, Sendable {
     case againTornado
     case againSnailCrawl
     case againWiltedFlower
-    case hardHourglassSand
-    case hardFallingWeight
-    case hardYellowCrack
-    case hardRollingBoulder
+    case hardOxCharge
+    case hardPawPrints
+    case hardRacehorseGallop
+    case hardVolcanoEruption
     case goodOwl
     case goodPoodle
     case goodWhale
@@ -43,7 +43,7 @@ enum ReviewReactionVariant: CaseIterable, Hashable, Sendable {
 
     var animationDurationSeconds: Double {
         switch self {
-        case .hardYellowCrack:
+        case .hardRacehorseGallop:
             return 1.20
         case .easyRoseBloom:
             return 2.40
@@ -51,13 +51,13 @@ enum ReviewReactionVariant: CaseIterable, Hashable, Sendable {
             return 1.333
         case .againTornado:
             return 1.45
-        case .hardHourglassSand:
+        case .hardOxCharge:
             return 1.55
-        case .hardFallingWeight, .fallbackCrownBounce:
+        case .hardPawPrints, .fallbackCrownBounce:
             return 1.65
         case .easyRainbowStreak:
             return 2.00
-        case .hardRollingBoulder:
+        case .hardVolcanoEruption:
             return 2.05
         case .againWiltedFlower:
             return 2.40
@@ -107,10 +107,10 @@ let allReviewReactionVariantDistributionEntries: [ReviewReactionVariantDistribut
     ReviewReactionVariantDistributionEntry(rating: .again, variant: .againTornado, rollRange: 400...699),
     ReviewReactionVariantDistributionEntry(rating: .again, variant: .againSnailCrawl, rollRange: 700...919),
     ReviewReactionVariantDistributionEntry(rating: .again, variant: .againWiltedFlower, rollRange: 920...999),
-    ReviewReactionVariantDistributionEntry(rating: .hard, variant: .hardHourglassSand, rollRange: 0...399),
-    ReviewReactionVariantDistributionEntry(rating: .hard, variant: .hardFallingWeight, rollRange: 400...699),
-    ReviewReactionVariantDistributionEntry(rating: .hard, variant: .hardYellowCrack, rollRange: 700...919),
-    ReviewReactionVariantDistributionEntry(rating: .hard, variant: .hardRollingBoulder, rollRange: 920...999),
+    ReviewReactionVariantDistributionEntry(rating: .hard, variant: .hardOxCharge, rollRange: 0...399),
+    ReviewReactionVariantDistributionEntry(rating: .hard, variant: .hardPawPrints, rollRange: 400...699),
+    ReviewReactionVariantDistributionEntry(rating: .hard, variant: .hardRacehorseGallop, rollRange: 700...919),
+    ReviewReactionVariantDistributionEntry(rating: .hard, variant: .hardVolcanoEruption, rollRange: 920...999),
     ReviewReactionVariantDistributionEntry(rating: .good, variant: .goodOwl, rollRange: 0...399),
     ReviewReactionVariantDistributionEntry(rating: .good, variant: .goodPoodle, rollRange: 400...699),
     ReviewReactionVariantDistributionEntry(rating: .good, variant: .goodWhale, rollRange: 700...919),

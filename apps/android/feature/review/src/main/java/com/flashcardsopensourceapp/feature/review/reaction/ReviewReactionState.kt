@@ -19,10 +19,10 @@ internal enum class ReviewReactionVariant {
     AGAIN_TORNADO,
     AGAIN_SNAIL_CRAWL,
     AGAIN_WILTED_FLOWER,
-    HARD_HOURGLASS_SAND,
-    HARD_FALLING_WEIGHT,
-    HARD_YELLOW_CRACK,
-    HARD_ROLLING_BOULDER,
+    HARD_OX_CHARGE,
+    HARD_PAW_PRINTS,
+    HARD_RACEHORSE_GALLOP,
+    HARD_VOLCANO_ERUPTION,
     GOOD_OWL,
     GOOD_POODLE,
     GOOD_WHALE,
@@ -48,10 +48,10 @@ internal val ReviewReactionVariant.debugIdentifier: String
         ReviewReactionVariant.AGAIN_TORNADO -> "againTornado"
         ReviewReactionVariant.AGAIN_SNAIL_CRAWL -> "againSnailCrawl"
         ReviewReactionVariant.AGAIN_WILTED_FLOWER -> "againWiltedFlower"
-        ReviewReactionVariant.HARD_HOURGLASS_SAND -> "hardHourglassSand"
-        ReviewReactionVariant.HARD_FALLING_WEIGHT -> "hardFallingWeight"
-        ReviewReactionVariant.HARD_YELLOW_CRACK -> "hardYellowCrack"
-        ReviewReactionVariant.HARD_ROLLING_BOULDER -> "hardRollingBoulder"
+        ReviewReactionVariant.HARD_OX_CHARGE -> "hardOxCharge"
+        ReviewReactionVariant.HARD_PAW_PRINTS -> "hardPawPrints"
+        ReviewReactionVariant.HARD_RACEHORSE_GALLOP -> "hardRacehorseGallop"
+        ReviewReactionVariant.HARD_VOLCANO_ERUPTION -> "hardVolcanoEruption"
         ReviewReactionVariant.GOOD_OWL -> "goodOwl"
         ReviewReactionVariant.GOOD_POODLE -> "goodPoodle"
         ReviewReactionVariant.GOOD_WHALE -> "goodWhale"
@@ -101,22 +101,22 @@ internal val allReviewReactionVariantDistributionEntries: List<ReviewReactionVar
     ),
     ReviewReactionVariantDistributionEntry(
         rating = ReviewRating.HARD,
-        variant = ReviewReactionVariant.HARD_HOURGLASS_SAND,
+        variant = ReviewReactionVariant.HARD_OX_CHARGE,
         rollRange = 0..399
     ),
     ReviewReactionVariantDistributionEntry(
         rating = ReviewRating.HARD,
-        variant = ReviewReactionVariant.HARD_FALLING_WEIGHT,
+        variant = ReviewReactionVariant.HARD_PAW_PRINTS,
         rollRange = 400..699
     ),
     ReviewReactionVariantDistributionEntry(
         rating = ReviewRating.HARD,
-        variant = ReviewReactionVariant.HARD_YELLOW_CRACK,
+        variant = ReviewReactionVariant.HARD_RACEHORSE_GALLOP,
         rollRange = 700..919
     ),
     ReviewReactionVariantDistributionEntry(
         rating = ReviewRating.HARD,
-        variant = ReviewReactionVariant.HARD_ROLLING_BOULDER,
+        variant = ReviewReactionVariant.HARD_VOLCANO_ERUPTION,
         rollRange = 920..999
     ),
     ReviewReactionVariantDistributionEntry(
@@ -237,15 +237,15 @@ internal fun reviewReactionAnimationDurationMillis(
     }
 
     return when (variant) {
-        ReviewReactionVariant.HARD_YELLOW_CRACK -> 1_200
+        ReviewReactionVariant.HARD_RACEHORSE_GALLOP -> 1_200
         ReviewReactionVariant.EASY_ROSE_BLOOM -> 2_400
         ReviewReactionVariant.GOOD_PEACOCK -> 1_333
         ReviewReactionVariant.AGAIN_TORNADO -> 1_450
-        ReviewReactionVariant.HARD_HOURGLASS_SAND -> 1_550
-        ReviewReactionVariant.HARD_FALLING_WEIGHT,
+        ReviewReactionVariant.HARD_OX_CHARGE -> 1_550
+        ReviewReactionVariant.HARD_PAW_PRINTS,
         ReviewReactionVariant.FALLBACK_CROWN_BOUNCE -> 1_650
         ReviewReactionVariant.EASY_RAINBOW_STREAK -> 2_000
-        ReviewReactionVariant.HARD_ROLLING_BOULDER -> 2_050
+        ReviewReactionVariant.HARD_VOLCANO_ERUPTION -> 2_050
         ReviewReactionVariant.AGAIN_WILTED_FLOWER -> 2_400
         ReviewReactionVariant.GOOD_WHALE -> 2_633
         ReviewReactionVariant.AGAIN_SNAIL_CRAWL -> 2_700

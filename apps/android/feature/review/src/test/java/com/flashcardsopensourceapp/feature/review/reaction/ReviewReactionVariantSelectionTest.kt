@@ -19,14 +19,14 @@ class ReviewReactionVariantSelectionTest {
 
     @Test
     fun hardSelectionUsesConfiguredBoundaries() {
-        assertSelectedVariant(ReviewRating.HARD, 0, ReviewReactionVariant.HARD_HOURGLASS_SAND)
-        assertSelectedVariant(ReviewRating.HARD, 399, ReviewReactionVariant.HARD_HOURGLASS_SAND)
-        assertSelectedVariant(ReviewRating.HARD, 400, ReviewReactionVariant.HARD_FALLING_WEIGHT)
-        assertSelectedVariant(ReviewRating.HARD, 699, ReviewReactionVariant.HARD_FALLING_WEIGHT)
-        assertSelectedVariant(ReviewRating.HARD, 700, ReviewReactionVariant.HARD_YELLOW_CRACK)
-        assertSelectedVariant(ReviewRating.HARD, 919, ReviewReactionVariant.HARD_YELLOW_CRACK)
-        assertSelectedVariant(ReviewRating.HARD, 920, ReviewReactionVariant.HARD_ROLLING_BOULDER)
-        assertSelectedVariant(ReviewRating.HARD, 999, ReviewReactionVariant.HARD_ROLLING_BOULDER)
+        assertSelectedVariant(ReviewRating.HARD, 0, ReviewReactionVariant.HARD_OX_CHARGE)
+        assertSelectedVariant(ReviewRating.HARD, 399, ReviewReactionVariant.HARD_OX_CHARGE)
+        assertSelectedVariant(ReviewRating.HARD, 400, ReviewReactionVariant.HARD_PAW_PRINTS)
+        assertSelectedVariant(ReviewRating.HARD, 699, ReviewReactionVariant.HARD_PAW_PRINTS)
+        assertSelectedVariant(ReviewRating.HARD, 700, ReviewReactionVariant.HARD_RACEHORSE_GALLOP)
+        assertSelectedVariant(ReviewRating.HARD, 919, ReviewReactionVariant.HARD_RACEHORSE_GALLOP)
+        assertSelectedVariant(ReviewRating.HARD, 920, ReviewReactionVariant.HARD_VOLCANO_ERUPTION)
+        assertSelectedVariant(ReviewRating.HARD, 999, ReviewReactionVariant.HARD_VOLCANO_ERUPTION)
     }
 
     @Test
@@ -63,7 +63,7 @@ class ReviewReactionVariantSelectionTest {
         val secondEvent = makeTestReactionEvent(
             id = "reaction-2",
             rating = ReviewRating.HARD,
-            variant = ReviewReactionVariant.HARD_HOURGLASS_SAND
+            variant = ReviewReactionVariant.HARD_OX_CHARGE
         )
         val thirdEvent = makeTestReactionEvent(
             id = "reaction-3",

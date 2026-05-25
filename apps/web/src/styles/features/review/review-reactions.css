@@ -44,8 +44,6 @@
 .review-reaction-pink-stroke,
 .review-reaction-white-stroke,
 .review-reaction-dark-stroke,
-.review-reaction-slate-stroke,
-.review-reaction-stone-stroke,
 .review-reaction-red-shadow-stroke,
 .review-reaction-yellow-shadow-stroke {
   fill: none;
@@ -87,14 +85,6 @@
 
 .review-reaction-dark-stroke {
   stroke: rgba(17, 19, 24, 0.72);
-}
-
-.review-reaction-slate-stroke {
-  stroke: rgba(236, 241, 248, 0.84);
-}
-
-.review-reaction-stone-stroke {
-  stroke: rgba(32, 35, 42, 0.45);
 }
 
 .review-reaction-red-shadow-stroke {
@@ -141,36 +131,8 @@
   fill: rgba(17, 19, 24, 0.74);
 }
 
-.review-reaction-slate-fill {
-  fill: #404956;
-}
-
-.review-reaction-stone-fill {
-  fill: #8f969f;
-}
-
-.review-reaction-dust-fill {
-  fill: rgba(174, 180, 189, 0.58);
-}
-
 .review-reaction-sparkle-fill {
   fill: #fff06a;
-}
-
-.review-rating-reaction-hardHourglassSand .review-rating-reaction-art {
-  animation: review-reaction-hourglass-art var(--review-reaction-duration) ease-in-out both;
-}
-
-.review-rating-reaction-hardFallingWeight .review-rating-reaction-art {
-  animation: review-reaction-weight-art var(--review-reaction-duration) cubic-bezier(0.3, 0, 0.16, 1) both;
-}
-
-.review-rating-reaction-hardYellowCrack .review-rating-reaction-art {
-  animation: review-reaction-crack-art var(--review-reaction-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.review-rating-reaction-hardRollingBoulder .review-rating-reaction-art {
-  animation: review-reaction-boulder-art var(--review-reaction-duration) cubic-bezier(0.3, 0, 0.16, 1) both;
 }
 
 .review-rating-reaction-crown-fallback-art,
@@ -186,6 +148,10 @@
 .review-rating-reaction-goodPoodle .review-rating-reaction-lottie-art,
 .review-rating-reaction-goodWhale .review-rating-reaction-lottie-art,
 .review-rating-reaction-goodPeacock .review-rating-reaction-lottie-art,
+.review-rating-reaction-hardOxCharge .review-rating-reaction-lottie-art,
+.review-rating-reaction-hardPawPrints .review-rating-reaction-lottie-art,
+.review-rating-reaction-hardRacehorseGallop .review-rating-reaction-lottie-art,
+.review-rating-reaction-hardVolcanoEruption .review-rating-reaction-lottie-art,
 .review-rating-reaction-easyRoseBloom .review-rating-reaction-lottie-art,
 .review-rating-reaction-easyRainbowStreak .review-rating-reaction-lottie-art,
 .review-rating-reaction-easyPhoenixRise .review-rating-reaction-lottie-art,
@@ -201,6 +167,10 @@
 .review-reaction-poodle-lottie-mark,
 .review-reaction-whale-lottie-mark,
 .review-reaction-peacock-lottie-mark,
+.review-reaction-ox-lottie-mark,
+.review-reaction-paw-prints-lottie-mark,
+.review-reaction-racehorse-lottie-mark,
+.review-reaction-volcano-lottie-mark,
 .review-reaction-rose-lottie-mark,
 .review-reaction-rainbow-lottie-mark,
 .review-reaction-phoenix-lottie-mark,
@@ -258,6 +228,30 @@
   width: min(58%, 255px);
 }
 
+.review-reaction-ox-lottie-mark {
+  top: 50%;
+  left: 50%;
+  width: min(58%, 255px);
+}
+
+.review-reaction-paw-prints-lottie-mark {
+  top: 50%;
+  left: 50%;
+  width: min(56%, 245px);
+}
+
+.review-reaction-racehorse-lottie-mark {
+  top: 50%;
+  left: 50%;
+  width: min(62%, 270px);
+}
+
+.review-reaction-volcano-lottie-mark {
+  top: 50%;
+  left: 50%;
+  width: min(64%, 280px);
+}
+
 .review-reaction-rose-lottie-mark {
   top: 50%;
   left: 50%;
@@ -298,6 +292,14 @@
 .review-reaction-whale-lottie-mark > svg,
 .review-reaction-peacock-lottie-mark > div,
 .review-reaction-peacock-lottie-mark > svg,
+.review-reaction-ox-lottie-mark > div,
+.review-reaction-ox-lottie-mark > svg,
+.review-reaction-paw-prints-lottie-mark > div,
+.review-reaction-paw-prints-lottie-mark > svg,
+.review-reaction-racehorse-lottie-mark > div,
+.review-reaction-racehorse-lottie-mark > svg,
+.review-reaction-volcano-lottie-mark > div,
+.review-reaction-volcano-lottie-mark > svg,
 .review-reaction-rose-lottie-mark > div,
 .review-reaction-rose-lottie-mark > svg,
 .review-reaction-rainbow-lottie-mark > div,
@@ -311,21 +313,9 @@
   height: 100%;
 }
 
-.review-reaction-sand-dot,
-.review-reaction-dust-fill,
 .review-reaction-sparkle-fill {
   transform-box: fill-box;
   transform-origin: center;
-}
-
-.review-reaction-sand-dot {
-  animation: review-reaction-sand-dot var(--review-reaction-duration) ease-in-out both;
-}
-
-.review-reaction-dust-one,
-.review-reaction-dust-two,
-.review-reaction-dust-three {
-  animation: review-reaction-dust-puff var(--review-reaction-duration) ease-out both;
 }
 
 .review-reaction-sparkle-fill {
@@ -344,94 +334,6 @@
 
   100% {
     opacity: 0;
-  }
-}
-
-@keyframes review-reaction-hourglass-art {
-  0% {
-    transform: scale(0.92) rotate(-6deg);
-  }
-
-  34% {
-    transform: scale(1.03) rotate(5deg);
-  }
-
-  60% {
-    transform: scale(1) rotate(-3deg);
-  }
-
-  84% {
-    transform: scale(1.01) rotate(2deg);
-  }
-
-  100% {
-    transform: scale(0.94) rotate(0deg);
-  }
-}
-
-@keyframes review-reaction-weight-art {
-  0% {
-    transform: translate3d(0, -56%, 0) scale(0.88, 1.14);
-  }
-
-  52% {
-    transform: translate3d(0, 0, 0) scale(1.16, 0.86);
-  }
-
-  64% {
-    transform: translate3d(0, -8%, 0) scale(0.96, 1.08);
-  }
-
-  82% {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-
-  100% {
-    transform: translate3d(0, 6%, 0) scale(0.90);
-  }
-}
-
-@keyframes review-reaction-crack-art {
-  0% {
-    transform: scale(0.82, 0.95) rotate(-2deg);
-  }
-
-  28% {
-    transform: scale(1.04, 1) rotate(1deg);
-  }
-
-  64% {
-    transform: scale(1) rotate(-1deg);
-  }
-
-  82% {
-    transform: scale(1.02) rotate(1deg);
-  }
-
-  100% {
-    transform: scale(0.96) rotate(0deg);
-  }
-}
-
-@keyframes review-reaction-boulder-art {
-  0% {
-    transform: translate3d(-48%, 0, 0) rotate(-70deg) scale(0.88);
-  }
-
-  34% {
-    transform: translate3d(-6%, -4%, 0) rotate(160deg) scale(1.04);
-  }
-
-  62% {
-    transform: translate3d(0, 0, 0) rotate(330deg) scale(1);
-  }
-
-  82% {
-    transform: translate3d(2%, -2%, 0) rotate(410deg) scale(1.02);
-  }
-
-  100% {
-    transform: translate3d(48%, -4%, 0) rotate(560deg) scale(0.86);
   }
 }
 
@@ -454,42 +356,6 @@
 
   100% {
     transform: translate3d(0, 5%, 0) scale(0.88) rotate(0deg);
-  }
-}
-
-@keyframes review-reaction-sand-dot {
-  0% {
-    opacity: 0;
-    transform: translate3d(0, -18%, 0);
-  }
-
-  34%,
-  84% {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
-
-  100% {
-    opacity: 0;
-    transform: translate3d(0, 8%, 0);
-  }
-}
-
-@keyframes review-reaction-dust-puff {
-  0%,
-  42% {
-    opacity: 0;
-    transform: translate3d(0, 0, 0) scale(0.6);
-  }
-
-  68% {
-    opacity: 1;
-    transform: translate3d(-12%, -8%, 0) scale(1.1);
-  }
-
-  100% {
-    opacity: 0;
-    transform: translate3d(-28%, -16%, 0) scale(1.4);
   }
 }
 
@@ -543,8 +409,6 @@
   }
 
   .review-rating-reaction-event .review-rating-reaction-art,
-  .review-rating-reaction-event .review-reaction-sand-dot,
-  .review-rating-reaction-event .review-reaction-dust-fill,
   .review-rating-reaction-event .review-reaction-sparkle-fill {
     animation-duration: 340ms !important;
     animation-name: review-reaction-reduced-pop !important;

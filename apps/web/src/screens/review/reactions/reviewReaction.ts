@@ -21,10 +21,10 @@ export type ReviewReactionVariant =
   | "againTornado"
   | "againSnailCrawl"
   | "againWiltedFlower"
-  | "hardHourglassSand"
-  | "hardFallingWeight"
-  | "hardYellowCrack"
-  | "hardRollingBoulder"
+  | "hardOxCharge"
+  | "hardPawPrints"
+  | "hardRacehorseGallop"
+  | "hardVolcanoEruption"
   | "goodOwl"
   | "goodPoodle"
   | "goodWhale"
@@ -92,10 +92,10 @@ export const allReviewReactionVariantDistributionEntries: ReadonlyArray<ReviewRe
   makeReviewReactionVariantDistributionEntry("again", "againTornado", 400, 699),
   makeReviewReactionVariantDistributionEntry("again", "againSnailCrawl", 700, 919),
   makeReviewReactionVariantDistributionEntry("again", "againWiltedFlower", 920, 999),
-  makeReviewReactionVariantDistributionEntry("hard", "hardHourglassSand", 0, 399),
-  makeReviewReactionVariantDistributionEntry("hard", "hardFallingWeight", 400, 699),
-  makeReviewReactionVariantDistributionEntry("hard", "hardYellowCrack", 700, 919),
-  makeReviewReactionVariantDistributionEntry("hard", "hardRollingBoulder", 920, 999),
+  makeReviewReactionVariantDistributionEntry("hard", "hardOxCharge", 0, 399),
+  makeReviewReactionVariantDistributionEntry("hard", "hardPawPrints", 400, 699),
+  makeReviewReactionVariantDistributionEntry("hard", "hardRacehorseGallop", 700, 919),
+  makeReviewReactionVariantDistributionEntry("hard", "hardVolcanoEruption", 920, 999),
   makeReviewReactionVariantDistributionEntry("good", "goodOwl", 0, 399),
   makeReviewReactionVariantDistributionEntry("good", "goodPoodle", 400, 699),
   makeReviewReactionVariantDistributionEntry("good", "goodWhale", 700, 919),
@@ -180,7 +180,7 @@ export function matchesReducedReviewReactionMotion(): boolean {
 
 export function reviewReactionAnimationDurationMillis(variant: ReviewReactionRenderableVariant): number {
   switch (variant) {
-    case "hardYellowCrack":
+    case "hardRacehorseGallop":
       return 1200;
     case "easyRoseBloom":
       return 2400;
@@ -188,14 +188,14 @@ export function reviewReactionAnimationDurationMillis(variant: ReviewReactionRen
       return 1333;
     case "againTornado":
       return 1450;
-    case "hardHourglassSand":
+    case "hardOxCharge":
       return 1550;
-    case "hardFallingWeight":
+    case "hardPawPrints":
     case "fallbackCrownBounce":
       return 1650;
     case "easyRainbowStreak":
       return 2000;
-    case "hardRollingBoulder":
+    case "hardVolcanoEruption":
       return 2050;
     case "againWiltedFlower":
       return 2400;

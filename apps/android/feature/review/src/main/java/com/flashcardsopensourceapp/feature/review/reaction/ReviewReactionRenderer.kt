@@ -8,15 +8,6 @@ internal fun DrawScope.drawReviewReaction(
     motionMode: ReviewReactionMotionMode
 ) {
     when (event.variant) {
-        ReviewReactionVariant.HARD_HOURGLASS_SAND,
-        ReviewReactionVariant.HARD_FALLING_WEIGHT,
-        ReviewReactionVariant.HARD_YELLOW_CRACK,
-        ReviewReactionVariant.HARD_ROLLING_BOULDER -> drawHardReviewReaction(
-            variant = event.variant,
-            progress = progress,
-            motionMode = motionMode
-        )
-
         ReviewReactionVariant.AGAIN_WILTED_FLOWER,
         ReviewReactionVariant.AGAIN_WORM_WIGGLE,
         ReviewReactionVariant.AGAIN_TORNADO,
@@ -25,6 +16,10 @@ internal fun DrawScope.drawReviewReaction(
         ReviewReactionVariant.GOOD_POODLE,
         ReviewReactionVariant.GOOD_WHALE,
         ReviewReactionVariant.GOOD_PEACOCK,
+        ReviewReactionVariant.HARD_OX_CHARGE,
+        ReviewReactionVariant.HARD_PAW_PRINTS,
+        ReviewReactionVariant.HARD_RACEHORSE_GALLOP,
+        ReviewReactionVariant.HARD_VOLCANO_ERUPTION,
         ReviewReactionVariant.EASY_ROSE_BLOOM,
         ReviewReactionVariant.EASY_RAINBOW_STREAK,
         ReviewReactionVariant.EASY_PHOENIX_RISE,
