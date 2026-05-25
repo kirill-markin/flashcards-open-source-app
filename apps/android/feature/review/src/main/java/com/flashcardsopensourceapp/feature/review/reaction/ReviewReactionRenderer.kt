@@ -17,7 +17,6 @@ internal fun DrawScope.drawReviewReaction(
             motionMode = motionMode
         )
 
-        ReviewReactionVariant.EASY_SPARKLE_BURST,
         ReviewReactionVariant.AGAIN_WILTED_FLOWER,
         ReviewReactionVariant.AGAIN_WORM_WIGGLE,
         ReviewReactionVariant.AGAIN_TORNADO,
@@ -26,9 +25,11 @@ internal fun DrawScope.drawReviewReaction(
         ReviewReactionVariant.GOOD_POODLE,
         ReviewReactionVariant.GOOD_WHALE,
         ReviewReactionVariant.GOOD_PEACOCK,
+        ReviewReactionVariant.EASY_ROSE_BLOOM,
         ReviewReactionVariant.EASY_RAINBOW_STREAK,
-        ReviewReactionVariant.EASY_CROWN_BOUNCE,
-        ReviewReactionVariant.EASY_UNICORN_FLYBY -> drawEasyReviewReaction(
+        ReviewReactionVariant.EASY_PHOENIX_RISE,
+        ReviewReactionVariant.EASY_UNICORN_FLYBY,
+        ReviewReactionVariant.FALLBACK_CROWN_BOUNCE -> drawEasyReviewReaction(
             variant = event.variant,
             progress = progress,
             motionMode = motionMode

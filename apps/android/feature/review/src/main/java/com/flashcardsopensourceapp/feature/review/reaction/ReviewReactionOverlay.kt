@@ -58,14 +58,20 @@ private const val reviewGoodWhaleAnimationCenterY: Float = 0.42f
 private const val reviewGoodPeacockAnimationFrameScale: Float = 0.58f
 private const val reviewGoodPeacockAnimationCenterX: Float = 0.50f
 private const val reviewGoodPeacockAnimationCenterY: Float = 0.42f
+private const val reviewEasyRoseAnimationFrameScale: Float = 0.58f
+private const val reviewEasyRoseAnimationCenterX: Float = 0.50f
+private const val reviewEasyRoseAnimationCenterY: Float = 0.50f
 private const val reviewEasyRainbowAnimationFrameScale: Float = 0.64f
 private const val reviewEasyRainbowAnimationCenterX: Float = 0.50f
 private const val reviewEasyRainbowAnimationCenterY: Float = 0.42f
+private const val reviewEasyPhoenixAnimationFrameScale: Float = 0.64f
+private const val reviewEasyPhoenixAnimationCenterX: Float = 0.50f
+private const val reviewEasyPhoenixAnimationCenterY: Float = 0.42f
 private const val reviewEasyUnicornAnimationFrameScale: Float = 0.52f
 private const val reviewEasyUnicornAnimationCenterX: Float = 0.56f
 private const val reviewEasyUnicornAnimationCenterY: Float = 0.30f
 private val reviewReactionLottieFallbackVariant: ReviewReactionVariant =
-    ReviewReactionVariant.EASY_CROWN_BOUNCE
+    ReviewReactionVariant.FALLBACK_CROWN_BOUNCE
 
 private data class ReviewReactionLottieConfiguration(
     val composition: LottieComposition?,
@@ -83,7 +89,9 @@ private data class ReviewReactionLottieCompositionStore(
     val reviewGoodPoodleComposition: LottieComposition?,
     val reviewGoodWhaleComposition: LottieComposition?,
     val reviewGoodPeacockComposition: LottieComposition?,
+    val reviewEasyRoseComposition: LottieComposition?,
     val reviewEasyRainbowComposition: LottieComposition?,
+    val reviewEasyPhoenixComposition: LottieComposition?,
     val reviewEasyUnicornComposition: LottieComposition?
 )
 
@@ -184,11 +192,25 @@ private fun reviewReactionLottieConfiguration(
             centerY = reviewGoodPeacockAnimationCenterY
         )
 
+        ReviewReactionVariant.EASY_ROSE_BLOOM -> ReviewReactionLottieConfiguration(
+            composition = compositionStore.reviewEasyRoseComposition,
+            frameScale = reviewEasyRoseAnimationFrameScale,
+            centerX = reviewEasyRoseAnimationCenterX,
+            centerY = reviewEasyRoseAnimationCenterY
+        )
+
         ReviewReactionVariant.EASY_RAINBOW_STREAK -> ReviewReactionLottieConfiguration(
             composition = compositionStore.reviewEasyRainbowComposition,
             frameScale = reviewEasyRainbowAnimationFrameScale,
             centerX = reviewEasyRainbowAnimationCenterX,
             centerY = reviewEasyRainbowAnimationCenterY
+        )
+
+        ReviewReactionVariant.EASY_PHOENIX_RISE -> ReviewReactionLottieConfiguration(
+            composition = compositionStore.reviewEasyPhoenixComposition,
+            frameScale = reviewEasyPhoenixAnimationFrameScale,
+            centerX = reviewEasyPhoenixAnimationCenterX,
+            centerY = reviewEasyPhoenixAnimationCenterY
         )
 
         ReviewReactionVariant.EASY_UNICORN_FLYBY -> ReviewReactionLottieConfiguration(
@@ -202,8 +224,7 @@ private fun reviewReactionLottieConfiguration(
         ReviewReactionVariant.HARD_FALLING_WEIGHT,
         ReviewReactionVariant.HARD_YELLOW_CRACK,
         ReviewReactionVariant.HARD_ROLLING_BOULDER,
-        ReviewReactionVariant.EASY_SPARKLE_BURST,
-        ReviewReactionVariant.EASY_CROWN_BOUNCE -> null
+        ReviewReactionVariant.FALLBACK_CROWN_BOUNCE -> null
     }
 }
 
@@ -247,9 +268,17 @@ internal fun ReviewReactionOverlay(
             rawResourceId = R.raw.review_good_peacock,
             assetName = "review_good_peacock"
         ),
+        reviewEasyRoseComposition = rememberReviewReactionLottieComposition(
+            rawResourceId = R.raw.review_easy_rose,
+            assetName = "review_easy_rose"
+        ),
         reviewEasyRainbowComposition = rememberReviewReactionLottieComposition(
             rawResourceId = R.raw.review_easy_rainbow,
             assetName = "review_easy_rainbow"
+        ),
+        reviewEasyPhoenixComposition = rememberReviewReactionLottieComposition(
+            rawResourceId = R.raw.review_easy_phoenix,
+            assetName = "review_easy_phoenix"
         ),
         reviewEasyUnicornComposition = rememberReviewReactionLottieComposition(
             rawResourceId = R.raw.review_easy_unicorn,

@@ -29,15 +29,19 @@ export type ReviewReactionVariant =
   | "goodPoodle"
   | "goodWhale"
   | "goodPeacock"
-  | "easySparkleBurst"
+  | "easyRoseBloom"
   | "easyRainbowStreak"
-  | "easyCrownBounce"
+  | "easyPhoenixRise"
   | "easyUnicornFlyby";
+
+export type ReviewReactionFallbackVariant = "fallbackCrownBounce";
+
+export type ReviewReactionRenderableVariant = ReviewReactionVariant | ReviewReactionFallbackVariant;
 
 export type ReviewReactionEvent = Readonly<{
   id: string;
   rating: ReviewReactionRating;
-  variant: ReviewReactionVariant;
+  variant: ReviewReactionRenderableVariant;
 }>;
 
 export type ReviewReactionVariantDistributionEntry = Readonly<{
@@ -96,9 +100,9 @@ export const allReviewReactionVariantDistributionEntries: ReadonlyArray<ReviewRe
   makeReviewReactionVariantDistributionEntry("good", "goodPoodle", 400, 699),
   makeReviewReactionVariantDistributionEntry("good", "goodWhale", 700, 919),
   makeReviewReactionVariantDistributionEntry("good", "goodPeacock", 920, 999),
-  makeReviewReactionVariantDistributionEntry("easy", "easySparkleBurst", 0, 399),
+  makeReviewReactionVariantDistributionEntry("easy", "easyRoseBloom", 0, 399),
   makeReviewReactionVariantDistributionEntry("easy", "easyRainbowStreak", 400, 699),
-  makeReviewReactionVariantDistributionEntry("easy", "easyCrownBounce", 700, 919),
+  makeReviewReactionVariantDistributionEntry("easy", "easyPhoenixRise", 700, 919),
   makeReviewReactionVariantDistributionEntry("easy", "easyUnicornFlyby", 920, 999),
 ];
 
@@ -174,12 +178,12 @@ export function matchesReducedReviewReactionMotion(): boolean {
   return window.matchMedia(reducedReviewReactionMotionMediaQuery).matches;
 }
 
-export function reviewReactionAnimationDurationMillis(variant: ReviewReactionVariant): number {
+export function reviewReactionAnimationDurationMillis(variant: ReviewReactionRenderableVariant): number {
   switch (variant) {
     case "hardYellowCrack":
       return 1200;
-    case "easySparkleBurst":
-      return 1250;
+    case "easyRoseBloom":
+      return 2400;
     case "goodPeacock":
       return 1333;
     case "againTornado":
@@ -187,7 +191,7 @@ export function reviewReactionAnimationDurationMillis(variant: ReviewReactionVar
     case "hardHourglassSand":
       return 1550;
     case "hardFallingWeight":
-    case "easyCrownBounce":
+    case "fallbackCrownBounce":
       return 1650;
     case "easyRainbowStreak":
       return 2000;
@@ -199,6 +203,8 @@ export function reviewReactionAnimationDurationMillis(variant: ReviewReactionVar
       return 2633;
     case "againSnailCrawl":
       return 2700;
+    case "easyPhoenixRise":
+      return 3933;
     case "goodPoodle":
       return 2800;
     case "goodOwl":
@@ -211,7 +217,7 @@ export function reviewReactionAnimationDurationMillis(variant: ReviewReactionVar
 }
 
 export function reviewReactionCleanupDelayMillis(
-  variant: ReviewReactionVariant,
+  variant: ReviewReactionRenderableVariant,
   motionMode: ReviewReactionMotionMode,
 ): number {
   if (motionMode === "reduced") {

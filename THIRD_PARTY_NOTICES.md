@@ -82,6 +82,16 @@ This file lists third-party assets and runtime libraries bundled for the review 
 - License URL: https://creativecommons.org/licenses/by/4.0/
 - Changes: Used as the Good review peacock reaction animation in the Flashcards web, iOS, and Android clients.
 
+## Review easy rose Lottie animation
+
+- Asset: Free Rose Animation
+- Author: Google Inc.
+- Copyright: Copyright © 2026 Google Inc.
+- Source: https://iconscout.com/free-lottie-animation/free-rose-animation_12152621
+- License: Creative Commons Attribution 4.0 International
+- License URL: https://creativecommons.org/licenses/by/4.0/
+- Changes: Used as the Easy review rose reaction animation in the Flashcards web, iOS, and Android clients.
+
 ## Review easy unicorn Lottie animation
 
 - Asset: Free Unicorn Animation
@@ -101,6 +111,16 @@ This file lists third-party assets and runtime libraries bundled for the review 
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
 - Changes: Used as the Easy review rainbow reaction animation in the Flashcards web, iOS, and Android clients.
+
+## Review easy phoenix Lottie animation
+
+- Asset: Free Phoenix Animation
+- Author: Google Inc.
+- Copyright: Copyright © 2026 Google Inc.
+- Source: https://iconscout.com/free-lottie-animation/free-phoenix-animation_12152611
+- License: Creative Commons Attribution 4.0 International
+- License URL: https://creativecommons.org/licenses/by/4.0/
+- Changes: Used as the Easy review phoenix reaction animation in the Flashcards web, iOS, and Android clients.
 
 ## Lottie runtimes
 

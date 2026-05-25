@@ -1,11 +1,9 @@
 package com.flashcardsopensourceapp.feature.review.reaction
 
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import kotlin.math.PI
 import kotlin.math.abs
-import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
 
@@ -15,11 +13,6 @@ internal fun DrawScope.drawEasyReviewReaction(
     motionMode: ReviewReactionMotionMode
 ) {
     when (variant) {
-        ReviewReactionVariant.EASY_SPARKLE_BURST -> drawEasySparkleBurst(
-            progress = progress,
-            motionMode = motionMode
-        )
-
         ReviewReactionVariant.AGAIN_WILTED_FLOWER,
         ReviewReactionVariant.AGAIN_TORNADO,
         ReviewReactionVariant.AGAIN_SNAIL_CRAWL,
@@ -27,61 +20,17 @@ internal fun DrawScope.drawEasyReviewReaction(
         ReviewReactionVariant.GOOD_POODLE,
         ReviewReactionVariant.GOOD_WHALE,
         ReviewReactionVariant.GOOD_PEACOCK,
+        ReviewReactionVariant.EASY_ROSE_BLOOM,
         ReviewReactionVariant.EASY_RAINBOW_STREAK,
+        ReviewReactionVariant.EASY_PHOENIX_RISE,
         ReviewReactionVariant.AGAIN_WORM_WIGGLE,
-        ReviewReactionVariant.EASY_CROWN_BOUNCE,
-        ReviewReactionVariant.EASY_UNICORN_FLYBY -> drawEasyCrownBounce(
+        ReviewReactionVariant.EASY_UNICORN_FLYBY,
+        ReviewReactionVariant.FALLBACK_CROWN_BOUNCE -> drawEasyCrownBounce(
             progress = progress,
             motionMode = motionMode
         )
 
         else -> error("Unsupported easy review reaction variant: $variant")
-    }
-}
-
-private fun DrawScope.drawEasySparkleBurst(
-    progress: Float,
-    motionMode: ReviewReactionMotionMode
-) {
-    val phase: ReviewReactionPhaseProgress = reviewReactionPhaseProgress(
-        progress = progress,
-        enterEnd = 0.56f,
-        exitStart = 0.84f
-    )
-    val centerWaveY: Float = if (motionMode == ReviewReactionMotionMode.REDUCED) {
-        0f
-    } else {
-        sin(progress * PI.toFloat() * 2f) * 8f * (1f - phase.exit)
-    }
-    val center: Offset = Offset(x = size.width * 0.50f, y = size.height * 0.40f + centerWaveY)
-    val burstProgress: Float = if (motionMode == ReviewReactionMotionMode.REDUCED) {
-        0.65f
-    } else {
-        reviewReactionEaseOutCubic(progress = phase.enter)
-    }
-    val colors: List<Color> = listOf(
-        reviewReactionYellowColor,
-        reviewReactionPinkColor,
-        reviewReactionBlueColor,
-        reviewReactionGreenColor
-    )
-    for (index in 0 until 18) {
-        val angle: Float = index.toFloat() / 18f * PI.toFloat() * 2f
-        val localProgress: Float = if (motionMode == ReviewReactionMotionMode.REDUCED) {
-            0.72f
-        } else {
-            reviewReactionClampedProgress(progress = (phase.enter - (index % 6).toFloat() * 0.055f) / 0.76f)
-        }
-        val radius: Float = min(size.width, size.height) * (0.10f + 0.24f * burstProgress)
-        val sparkleCenter: Offset = Offset(
-            x = center.x + cos(angle) * radius * (0.72f + index.toFloat() % 3f * 0.10f),
-            y = center.y + sin(angle) * radius * (0.72f + index.toFloat() % 4f * 0.06f)
-        )
-        drawSparkle(
-            center = sparkleCenter,
-            radius = (9f + (index % 4).toFloat() * 4f) * (0.70f + localProgress * 0.50f),
-            color = colors[index % colors.size].copy(alpha = localProgress)
-        )
     }
 }
 

@@ -4,7 +4,7 @@ import {
   matchesReducedReviewReactionMotion,
   reviewReactionAnimationDurationMillis,
   type ReviewReactionEvent,
-  type ReviewReactionVariant,
+  type ReviewReactionRenderableVariant,
 } from "./reviewReaction";
 import {
   isReviewReactionLottieAssetsReady,
@@ -38,7 +38,9 @@ const reviewReactionLottieContainerClassByVariant: ReviewReactionLottieContainer
   goodPoodle: "review-reaction-poodle-lottie-mark",
   goodWhale: "review-reaction-whale-lottie-mark",
   goodPeacock: "review-reaction-peacock-lottie-mark",
+  easyRoseBloom: "review-reaction-rose-lottie-mark",
   easyRainbowStreak: "review-reaction-rainbow-lottie-mark",
+  easyPhoenixRise: "review-reaction-phoenix-lottie-mark",
   easyUnicornFlyby: "review-reaction-unicorn-lottie-mark",
 };
 
@@ -51,7 +53,9 @@ const reviewReactionLottieNaturalDurationMillisByVariant: Readonly<Record<Review
   goodPoodle: 2800,
   goodWhale: 2633,
   goodPeacock: 1333,
+  easyRoseBloom: 2400,
   easyRainbowStreak: 2000,
+  easyPhoenixRise: 3933,
   easyUnicornFlyby: 3800,
 };
 
@@ -146,33 +150,6 @@ function HardRollingBoulderReaction(): ReactElement {
       <circle className="review-reaction-dust-fill review-reaction-dust-one" cx="26" cy="76" r="4" />
       <circle className="review-reaction-dust-fill review-reaction-dust-two" cx="18" cy="72" r="3" />
       <circle className="review-reaction-dust-fill review-reaction-dust-three" cx="11" cy="78" r="2.5" />
-    </g>
-  );
-}
-
-function EasySparkleBurstReaction(): ReactElement {
-  const sparklePoints: ReadonlyArray<Readonly<{ cx: number; cy: number; radius: number; rotation: number }>> = [
-    { cx: 50, cy: 18, radius: 6, rotation: 0 },
-    { cx: 73, cy: 29, radius: 5, rotation: 0.35 },
-    { cx: 80, cy: 53, radius: 7, rotation: 0.2 },
-    { cx: 63, cy: 72, radius: 5, rotation: 0.5 },
-    { cx: 35, cy: 72, radius: 6, rotation: 0.1 },
-    { cx: 20, cy: 51, radius: 5, rotation: 0.4 },
-    { cx: 28, cy: 28, radius: 7, rotation: 0.2 },
-  ];
-
-  return (
-    <g className="review-reaction-sparkle-burst-mark">
-      {sparklePoints.map((sparkle, index) => (
-        <polygon
-          key={`${sparkle.cx}-${sparkle.cy}`}
-          className={`review-reaction-sparkle-fill review-reaction-sparkle-${index}`}
-          points={makeSparklePoints(sparkle.cx, sparkle.cy, sparkle.radius, sparkle.rotation)}
-        />
-      ))}
-      <circle className="review-reaction-pink-fill" cx="45" cy="38" r="3" />
-      <circle className="review-reaction-blue-fill" cx="59" cy="58" r="3.5" />
-      <circle className="review-reaction-yellow-fill" cx="36" cy="54" r="2.5" />
     </g>
   );
 }
@@ -292,7 +269,7 @@ function ReviewReactionLottieAnimation(props: ReviewReactionLottieAnimationProps
   );
 }
 
-function renderReviewReactionVariant(variant: ReviewReactionVariant): ReactElement {
+function renderReviewReactionVariant(variant: ReviewReactionRenderableVariant): ReactElement {
   switch (variant) {
     case "againWormWiggle":
       return renderReviewReactionVariant(reviewReactionLottieFallbackVariant);
@@ -315,11 +292,13 @@ function renderReviewReactionVariant(variant: ReviewReactionVariant): ReactEleme
     case "goodWhale":
     case "goodPeacock":
       return renderReviewReactionVariant(reviewReactionLottieFallbackVariant);
-    case "easySparkleBurst":
-      return <EasySparkleBurstReaction />;
+    case "easyRoseBloom":
+      return renderReviewReactionVariant(reviewReactionLottieFallbackVariant);
     case "easyRainbowStreak":
-      return <EasyCrownBounceReaction />;
-    case "easyCrownBounce":
+      return renderReviewReactionVariant(reviewReactionLottieFallbackVariant);
+    case "easyPhoenixRise":
+      return renderReviewReactionVariant(reviewReactionLottieFallbackVariant);
+    case "fallbackCrownBounce":
       return <EasyCrownBounceReaction />;
     case "easyUnicornFlyby":
       return renderReviewReactionVariant(reviewReactionLottieFallbackVariant);

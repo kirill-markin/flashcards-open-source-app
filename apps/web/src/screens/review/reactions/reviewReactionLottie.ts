@@ -1,5 +1,5 @@
 import type { LottiePlayer } from "lottie-web";
-import type { ReviewReactionVariant } from "./reviewReaction";
+import type { ReviewReactionFallbackVariant, ReviewReactionRenderableVariant } from "./reviewReaction";
 
 type ReviewReactionLottiePlayerModule = Readonly<{
   default: LottiePlayer;
@@ -18,7 +18,9 @@ export type ReviewReactionLottieVariant =
   | "goodPoodle"
   | "goodWhale"
   | "goodPeacock"
+  | "easyRoseBloom"
   | "easyRainbowStreak"
+  | "easyPhoenixRise"
   | "easyUnicornFlyby";
 
 export type ReviewReactionLottieAssets = Readonly<{
@@ -29,10 +31,10 @@ export type ReviewReactionLottieAssets = Readonly<{
 let reviewReactionLottieAssetsPromise: Promise<ReviewReactionLottieAssets> | null = null;
 let reviewReactionLottieAssetsReady = false;
 
-export const reviewReactionLottieFallbackVariant: ReviewReactionVariant = "easyCrownBounce";
+export const reviewReactionLottieFallbackVariant: ReviewReactionFallbackVariant = "fallbackCrownBounce";
 
 export function isReviewReactionLottieVariant(
-  variant: ReviewReactionVariant,
+  variant: ReviewReactionRenderableVariant,
 ): variant is ReviewReactionLottieVariant {
   return variant === "againWormWiggle"
     || variant === "againTornado"
@@ -42,7 +44,9 @@ export function isReviewReactionLottieVariant(
     || variant === "goodPoodle"
     || variant === "goodWhale"
     || variant === "goodPeacock"
+    || variant === "easyRoseBloom"
     || variant === "easyRainbowStreak"
+    || variant === "easyPhoenixRise"
     || variant === "easyUnicornFlyby";
 }
 
@@ -51,8 +55,8 @@ export function isReviewReactionLottieAssetsReady(): boolean {
 }
 
 export function reviewReactionVariantWithReadyLottieFallback(
-  variant: ReviewReactionVariant,
-): ReviewReactionVariant {
+  variant: ReviewReactionRenderableVariant,
+): ReviewReactionRenderableVariant {
   if (isReviewReactionLottieVariant(variant) && !isReviewReactionLottieAssetsReady()) {
     return reviewReactionLottieFallbackVariant;
   }
@@ -75,7 +79,9 @@ export function loadReviewReactionLottieAssets(): Promise<ReviewReactionLottieAs
     import("../../../assets/review_good_poodle.json"),
     import("../../../assets/review_good_whale.json"),
     import("../../../assets/review_good_peacock.json"),
+    import("../../../assets/review_easy_rose.json"),
     import("../../../assets/review_easy_rainbow.json"),
+    import("../../../assets/review_easy_phoenix.json"),
     import("../../../assets/review_easy_unicorn.json"),
   ]).then((
     [
@@ -88,10 +94,14 @@ export function loadReviewReactionLottieAssets(): Promise<ReviewReactionLottieAs
       poodleAnimationModule,
       whaleAnimationModule,
       peacockAnimationModule,
+      roseAnimationModule,
       rainbowAnimationModule,
+      phoenixAnimationModule,
       unicornAnimationModule,
     ]: [
       ReviewReactionLottiePlayerModule,
+      ReviewReactionLottieAnimationModule,
+      ReviewReactionLottieAnimationModule,
       ReviewReactionLottieAnimationModule,
       ReviewReactionLottieAnimationModule,
       ReviewReactionLottieAnimationModule,
@@ -115,7 +125,9 @@ export function loadReviewReactionLottieAssets(): Promise<ReviewReactionLottieAs
         goodPoodle: poodleAnimationModule.default,
         goodWhale: whaleAnimationModule.default,
         goodPeacock: peacockAnimationModule.default,
+        easyRoseBloom: roseAnimationModule.default,
         easyRainbowStreak: rainbowAnimationModule.default,
+        easyPhoenixRise: phoenixAnimationModule.default,
         easyUnicornFlyby: unicornAnimationModule.default,
       },
       player: lottieModule.default,

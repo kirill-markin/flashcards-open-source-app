@@ -27,10 +27,11 @@ internal enum class ReviewReactionVariant {
     GOOD_POODLE,
     GOOD_WHALE,
     GOOD_PEACOCK,
-    EASY_SPARKLE_BURST,
+    EASY_ROSE_BLOOM,
     EASY_RAINBOW_STREAK,
-    EASY_CROWN_BOUNCE,
-    EASY_UNICORN_FLYBY
+    EASY_PHOENIX_RISE,
+    EASY_UNICORN_FLYBY,
+    FALLBACK_CROWN_BOUNCE
 }
 
 internal val ReviewRating.reviewReactionDebugIdentifier: String
@@ -55,10 +56,11 @@ internal val ReviewReactionVariant.debugIdentifier: String
         ReviewReactionVariant.GOOD_POODLE -> "goodPoodle"
         ReviewReactionVariant.GOOD_WHALE -> "goodWhale"
         ReviewReactionVariant.GOOD_PEACOCK -> "goodPeacock"
-        ReviewReactionVariant.EASY_SPARKLE_BURST -> "easySparkleBurst"
+        ReviewReactionVariant.EASY_ROSE_BLOOM -> "easyRoseBloom"
         ReviewReactionVariant.EASY_RAINBOW_STREAK -> "easyRainbowStreak"
-        ReviewReactionVariant.EASY_CROWN_BOUNCE -> "easyCrownBounce"
+        ReviewReactionVariant.EASY_PHOENIX_RISE -> "easyPhoenixRise"
         ReviewReactionVariant.EASY_UNICORN_FLYBY -> "easyUnicornFlyby"
+        ReviewReactionVariant.FALLBACK_CROWN_BOUNCE -> "fallbackCrownBounce"
     }
 
 internal data class ReviewReactionVariantDistributionEntry(
@@ -139,7 +141,7 @@ internal val allReviewReactionVariantDistributionEntries: List<ReviewReactionVar
     ),
     ReviewReactionVariantDistributionEntry(
         rating = ReviewRating.EASY,
-        variant = ReviewReactionVariant.EASY_SPARKLE_BURST,
+        variant = ReviewReactionVariant.EASY_ROSE_BLOOM,
         rollRange = 0..399
     ),
     ReviewReactionVariantDistributionEntry(
@@ -149,7 +151,7 @@ internal val allReviewReactionVariantDistributionEntries: List<ReviewReactionVar
     ),
     ReviewReactionVariantDistributionEntry(
         rating = ReviewRating.EASY,
-        variant = ReviewReactionVariant.EASY_CROWN_BOUNCE,
+        variant = ReviewReactionVariant.EASY_PHOENIX_RISE,
         rollRange = 700..919
     ),
     ReviewReactionVariantDistributionEntry(
@@ -236,12 +238,12 @@ internal fun reviewReactionAnimationDurationMillis(
 
     return when (variant) {
         ReviewReactionVariant.HARD_YELLOW_CRACK -> 1_200
-        ReviewReactionVariant.EASY_SPARKLE_BURST -> 1_250
+        ReviewReactionVariant.EASY_ROSE_BLOOM -> 2_400
         ReviewReactionVariant.GOOD_PEACOCK -> 1_333
         ReviewReactionVariant.AGAIN_TORNADO -> 1_450
         ReviewReactionVariant.HARD_HOURGLASS_SAND -> 1_550
         ReviewReactionVariant.HARD_FALLING_WEIGHT,
-        ReviewReactionVariant.EASY_CROWN_BOUNCE -> 1_650
+        ReviewReactionVariant.FALLBACK_CROWN_BOUNCE -> 1_650
         ReviewReactionVariant.EASY_RAINBOW_STREAK -> 2_000
         ReviewReactionVariant.HARD_ROLLING_BOULDER -> 2_050
         ReviewReactionVariant.AGAIN_WILTED_FLOWER -> 2_400
@@ -249,6 +251,7 @@ internal fun reviewReactionAnimationDurationMillis(
         ReviewReactionVariant.AGAIN_SNAIL_CRAWL -> 2_700
         ReviewReactionVariant.GOOD_POODLE -> 2_800
         ReviewReactionVariant.GOOD_OWL -> 2_833
+        ReviewReactionVariant.EASY_PHOENIX_RISE -> 3_933
         ReviewReactionVariant.EASY_UNICORN_FLYBY -> 3_800
         ReviewReactionVariant.AGAIN_WORM_WIGGLE -> 4_267
     }
