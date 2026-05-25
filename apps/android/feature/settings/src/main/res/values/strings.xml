@@ -4,6 +4,7 @@
     <string name="flashcards_support_url" translatable="false">https://flashcards-open-source-app.com/support/</string>
     <string name="flashcards_repository_url" translatable="false">https://github.com/kirill-markin/flashcards-open-source-app</string>
     <string name="third_party_notices_url" translatable="false">https://github.com/kirill-markin/flashcards-open-source-app/blob/main/THIRD_PARTY_NOTICES.md</string>
+    <string name="review_snail_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-snail-animation_12152626</string>
     <string name="review_rainbow_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-rainbow-animation_12152617</string>
     <string name="review_unicorn_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-unicorn-animation_12152598</string>
     <string name="review_worm_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-worm-animation_12152603</string>
@@ -451,6 +452,8 @@
     <string name="settings_open_source_repository_summary">Browse the public source code and issues.</string>
     <string name="settings_open_source_third_party_unicorn_source_title">Review unicorn animation</string>
     <string name="settings_open_source_third_party_unicorn_source_summary">Free Unicorn Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_snail_source_title">Review snail animation</string>
+    <string name="settings_open_source_third_party_snail_source_summary">Free Snail Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
     <string name="settings_open_source_third_party_rainbow_source_title">Review rainbow animation</string>
     <string name="settings_open_source_third_party_rainbow_source_summary">Free Rainbow Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0. Lottie runtimes use MIT and Apache 2.0 licenses.</string>
     <string name="settings_open_source_third_party_worm_source_title">Review worm animation</string>

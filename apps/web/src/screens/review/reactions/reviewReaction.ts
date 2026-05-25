@@ -19,7 +19,7 @@ export const reviewReactionRatings: ReadonlyArray<ReviewReactionRating> = [
 export type ReviewReactionVariant =
   | "againWormWiggle"
   | "againRewindVortex"
-  | "againStampFlyby"
+  | "againSnailCrawl"
   | "againWarningTape"
   | "hardHourglassSand"
   | "hardFallingWeight"
@@ -86,7 +86,7 @@ function makeReviewReactionVariantDistributionEntry(
 export const allReviewReactionVariantDistributionEntries: ReadonlyArray<ReviewReactionVariantDistributionEntry> = [
   makeReviewReactionVariantDistributionEntry("again", "againWormWiggle", 0, 399),
   makeReviewReactionVariantDistributionEntry("again", "againRewindVortex", 400, 699),
-  makeReviewReactionVariantDistributionEntry("again", "againStampFlyby", 700, 919),
+  makeReviewReactionVariantDistributionEntry("again", "againSnailCrawl", 700, 919),
   makeReviewReactionVariantDistributionEntry("again", "againWarningTape", 920, 999),
   makeReviewReactionVariantDistributionEntry("hard", "hardHourglassSand", 0, 399),
   makeReviewReactionVariantDistributionEntry("hard", "hardFallingWeight", 400, 699),
@@ -194,12 +194,12 @@ export function reviewReactionAnimationDurationMillis(variant: ReviewReactionVar
       return 1650;
     case "goodPaperPlaneCheck":
       return 1750;
-    case "againStampFlyby":
-      return 1900;
     case "easyRainbowStreak":
       return 2000;
     case "hardRollingBoulder":
       return 2050;
+    case "againSnailCrawl":
+      return 2700;
     case "easyUnicornFlyby":
       return 3800;
     case "againWormWiggle":

@@ -6,6 +6,7 @@ import UIKit
 
 private let reviewReactionAnimationMinimumIntervalSeconds: Double = 1.0 / 60.0
 private let reviewAgainWormAnimationAssetName: String = "ReviewAgainWorm"
+private let reviewAgainSnailAnimationAssetName: String = "ReviewAgainSnail"
 private let reviewEasyRainbowAnimationAssetName: String = "ReviewEasyRainbow"
 private let reviewEasyUnicornAnimationAssetName: String = "ReviewEasyUnicorn"
 private let reviewReactionLottieReducedMotionProgress: AnimationProgressTime = 0.55
@@ -25,6 +26,7 @@ private struct ReviewReactionLottieConfiguration {
 
 private struct ReviewReactionLottieAnimationStore {
     let reviewAgainWormAnimation: LottieAnimation?
+    let reviewAgainSnailAnimation: LottieAnimation?
     let reviewEasyRainbowAnimation: LottieAnimation?
     let reviewEasyUnicornAnimation: LottieAnimation?
 }
@@ -54,6 +56,10 @@ private func makeReviewReactionLottieAnimationStore() -> ReviewReactionLottieAni
             assetName: reviewAgainWormAnimationAssetName,
             assetDescription: "worm"
         ),
+        reviewAgainSnailAnimation: makeReviewReactionLottieAnimation(
+            assetName: reviewAgainSnailAnimationAssetName,
+            assetDescription: "snail"
+        ),
         reviewEasyRainbowAnimation: makeReviewReactionLottieAnimation(
             assetName: reviewEasyRainbowAnimationAssetName,
             assetDescription: "rainbow"
@@ -75,10 +81,9 @@ private func reviewReactionFallbackEvent(event: ReviewReactionEvent) -> ReviewRe
 
 private func isReviewReactionLottieVariant(variant: ReviewReactionVariant) -> Bool {
     switch variant {
-    case .againWormWiggle, .easyRainbowStreak, .easyUnicornFlyby:
+    case .againWormWiggle, .againSnailCrawl, .easyRainbowStreak, .easyUnicornFlyby:
         return true
     case .againRewindVortex,
-         .againStampFlyby,
          .againWarningTape,
          .hardHourglassSand,
          .hardFallingWeight,
@@ -111,6 +116,18 @@ private func reviewReactionLottieConfiguration(
             centerY: 0.52,
             reducedMotionProgress: reviewReactionLottieReducedMotionProgress
         )
+    case .againSnailCrawl:
+        guard let reviewAgainSnailAnimation = animationStore.reviewAgainSnailAnimation else {
+            return nil
+        }
+
+        return ReviewReactionLottieConfiguration(
+            animation: reviewAgainSnailAnimation,
+            frameScale: 0.58,
+            centerX: 0.50,
+            centerY: 0.48,
+            reducedMotionProgress: reviewReactionLottieReducedMotionProgress
+        )
     case .easyRainbowStreak:
         guard let reviewEasyRainbowAnimation = animationStore.reviewEasyRainbowAnimation else {
             return nil
@@ -136,7 +153,6 @@ private func reviewReactionLottieConfiguration(
             reducedMotionProgress: reviewReactionLottieReducedMotionProgress
         )
     case .againRewindVortex,
-         .againStampFlyby,
          .againWarningTape,
          .hardHourglassSand,
          .hardFallingWeight,
@@ -180,6 +196,7 @@ struct ReviewReactionLayer: View {
     @State private var reviewReactionLottieAnimationStore: ReviewReactionLottieAnimationStore =
         ReviewReactionLottieAnimationStore(
             reviewAgainWormAnimation: nil,
+            reviewAgainSnailAnimation: nil,
             reviewEasyRainbowAnimation: nil,
             reviewEasyUnicornAnimation: nil
         )

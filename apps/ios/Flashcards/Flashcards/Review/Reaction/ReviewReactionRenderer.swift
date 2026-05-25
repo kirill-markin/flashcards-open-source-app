@@ -29,8 +29,8 @@ enum ReviewReactionRenderer {
                 progress: drawingProgress,
                 motionMode: motionMode
             )
-        case .againStampFlyby:
-            drawAgainStampFlyby(
+        case .againSnailCrawl:
+            drawEasyCrownBounce(
                 context: drawingContext,
                 size: drawableSize,
                 progress: drawingProgress,

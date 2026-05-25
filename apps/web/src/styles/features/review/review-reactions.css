@@ -167,10 +167,6 @@
   animation: review-reaction-vortex-art var(--review-reaction-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.review-rating-reaction-againStampFlyby .review-rating-reaction-art {
-  animation: review-reaction-stamp-flyby-art var(--review-reaction-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
 .review-rating-reaction-againWarningTape .review-rating-reaction-art {
   animation: review-reaction-warning-tape-art var(--review-reaction-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -217,12 +213,14 @@
 }
 
 .review-rating-reaction-againWormWiggle .review-rating-reaction-lottie-art,
+.review-rating-reaction-againSnailCrawl .review-rating-reaction-lottie-art,
 .review-rating-reaction-easyRainbowStreak .review-rating-reaction-lottie-art,
 .review-rating-reaction-easyUnicornFlyby .review-rating-reaction-lottie-art {
   animation: none;
 }
 
 .review-reaction-worm-lottie-mark,
+.review-reaction-snail-lottie-mark,
 .review-reaction-rainbow-lottie-mark,
 .review-reaction-unicorn-lottie-mark {
   position: absolute;
@@ -232,6 +230,12 @@
 
 .review-reaction-worm-lottie-mark {
   top: 52%;
+  left: 50%;
+  width: min(58%, 250px);
+}
+
+.review-reaction-snail-lottie-mark {
+  top: 48%;
   left: 50%;
   width: min(58%, 250px);
 }
@@ -250,6 +254,8 @@
 
 .review-reaction-worm-lottie-mark > div,
 .review-reaction-worm-lottie-mark > svg,
+.review-reaction-snail-lottie-mark > div,
+.review-reaction-snail-lottie-mark > svg,
 .review-reaction-rainbow-lottie-mark > div,
 .review-reaction-rainbow-lottie-mark > svg,
 .review-reaction-unicorn-lottie-mark > div,
@@ -315,28 +321,6 @@
 
   100% {
     transform: scale(0.86) rotate(360deg);
-  }
-}
-
-@keyframes review-reaction-stamp-flyby-art {
-  0% {
-    transform: translate3d(-48%, 22%, 0) scale(0.68) rotate(-28deg);
-  }
-
-  38% {
-    transform: translate3d(0, 0, 0) scale(1.16) rotate(8deg);
-  }
-
-  58% {
-    transform: translate3d(1%, -3%, 0) scale(1) rotate(3deg);
-  }
-
-  76% {
-    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
-  }
-
-  100% {
-    transform: translate3d(48%, -14%, 0) scale(0.82) rotate(-18deg);
   }
 }
 

@@ -25,6 +25,7 @@ fun AccountOpenSourceRoute(onBack: () -> Unit) {
     val context: Context = LocalContext.current
     val repositoryUrl: String = stringResource(id = R.string.flashcards_repository_url)
     val thirdPartyNoticesUrl: String = stringResource(id = R.string.third_party_notices_url)
+    val reviewSnailAnimationUrl: String = stringResource(id = R.string.review_snail_animation_url)
     val reviewRainbowAnimationUrl: String = stringResource(id = R.string.review_rainbow_animation_url)
     val reviewUnicornAnimationUrl: String = stringResource(id = R.string.review_unicorn_animation_url)
     val reviewWormAnimationUrl: String = stringResource(id = R.string.review_worm_animation_url)
@@ -74,6 +75,19 @@ fun AccountOpenSourceRoute(onBack: () -> Unit) {
                         icon = Icons.Outlined.Info,
                         onClick = {
                             openExternalUrl(context = context, url = reviewUnicornAnimationUrl)
+                        }
+                    )
+                }
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    SettingsLinkItem(
+                        title = stringResource(R.string.settings_open_source_third_party_snail_source_title),
+                        summary = stringResource(R.string.settings_open_source_third_party_snail_source_summary),
+                        icon = Icons.Outlined.Info,
+                        onClick = {
+                            openExternalUrl(context = context, url = reviewSnailAnimationUrl)
                         }
                     )
                 }
