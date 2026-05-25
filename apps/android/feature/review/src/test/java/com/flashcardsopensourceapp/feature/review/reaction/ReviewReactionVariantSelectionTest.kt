@@ -43,12 +43,12 @@ class ReviewReactionVariantSelectionTest {
 
     @Test
     fun easySelectionUsesConfiguredBoundaries() {
-        assertSelectedVariant(ReviewRating.EASY, 0, ReviewReactionVariant.EASY_SPARKLE_BURST)
-        assertSelectedVariant(ReviewRating.EASY, 399, ReviewReactionVariant.EASY_SPARKLE_BURST)
+        assertSelectedVariant(ReviewRating.EASY, 0, ReviewReactionVariant.EASY_ROSE_BLOOM)
+        assertSelectedVariant(ReviewRating.EASY, 399, ReviewReactionVariant.EASY_ROSE_BLOOM)
         assertSelectedVariant(ReviewRating.EASY, 400, ReviewReactionVariant.EASY_RAINBOW_STREAK)
         assertSelectedVariant(ReviewRating.EASY, 699, ReviewReactionVariant.EASY_RAINBOW_STREAK)
-        assertSelectedVariant(ReviewRating.EASY, 700, ReviewReactionVariant.EASY_CROWN_BOUNCE)
-        assertSelectedVariant(ReviewRating.EASY, 919, ReviewReactionVariant.EASY_CROWN_BOUNCE)
+        assertSelectedVariant(ReviewRating.EASY, 700, ReviewReactionVariant.EASY_PHOENIX_RISE)
+        assertSelectedVariant(ReviewRating.EASY, 919, ReviewReactionVariant.EASY_PHOENIX_RISE)
         assertSelectedVariant(ReviewRating.EASY, 920, ReviewReactionVariant.EASY_UNICORN_FLYBY)
         assertSelectedVariant(ReviewRating.EASY, 999, ReviewReactionVariant.EASY_UNICORN_FLYBY)
     }
@@ -73,7 +73,7 @@ class ReviewReactionVariantSelectionTest {
         val fourthEvent = makeTestReactionEvent(
             id = "reaction-4",
             rating = ReviewRating.EASY,
-            variant = ReviewReactionVariant.EASY_SPARKLE_BURST
+            variant = ReviewReactionVariant.EASY_ROSE_BLOOM
         )
 
         val result = appendReviewReactionEvent(

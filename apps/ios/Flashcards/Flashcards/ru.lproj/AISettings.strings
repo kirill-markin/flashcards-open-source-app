@@ -264,7 +264,7 @@
 "settings.account.openSource.repository" = "Репозиторий GitHub (лицензия MIT)";
 "settings.account.openSource.selfHosting" = "Если вам нужен собственный бэкэнд, вы можете развернуть тот же стек с открытым исходным кодом и указать приложение iOS в своем домене, выбрав «Дополнительно» > «Сервер».";
 "settings.account.openSource.section.thirdPartyNotices" = "Сторонние материалы";
-"settings.account.openSource.thirdPartyNotice" = "Lottie-анимации в повторении: Free Owl Animation, Free Poodle Animation, Free Whale Animation, Free Peacock Animation, Free Unicorn Animation, Free Snail Animation, Free Rainbow Animation, Free Worm Animation, Free Tornado Animation и Free Wilted Flower Animation от Google Inc., Copyright © 2026 Google Inc., используются по Creative Commons Attribution 4.0. Среды выполнения Lottie используют лицензии MIT и Apache 2.0.";
+"settings.account.openSource.thirdPartyNotice" = "Lottie-анимации в повторении: Free Owl Animation, Free Poodle Animation, Free Whale Animation, Free Peacock Animation, Free Rose Animation, Free Rainbow Animation, Free Phoenix Animation, Free Unicorn Animation, Free Snail Animation, Free Worm Animation, Free Tornado Animation и Free Wilted Flower Animation от Google Inc., Copyright © 2026 Google Inc., используются по Creative Commons Attribution 4.0. Среды выполнения Lottie используют лицензии MIT и Apache 2.0.";
 "settings.account.openSource.thirdPartyNoticeFull" = "Полные сведения о сторонних материалах";
 "settings.account.openSource.thirdPartyNoticeOwlSource" = "Источник ассета совы";
 "settings.account.openSource.thirdPartyNoticePoodleSource" = "Источник ассета пуделя";
@@ -272,7 +272,9 @@
 "settings.account.openSource.thirdPartyNoticePeacockSource" = "Источник ассета павлина";
 "settings.account.openSource.thirdPartyNoticeUnicornSource" = "Источник ассета единорога";
 "settings.account.openSource.thirdPartyNoticeSnailSource" = "Источник ассета улитки";
+"settings.account.openSource.thirdPartyNoticeRoseSource" = "Источник ассета розы";
 "settings.account.openSource.thirdPartyNoticeRainbowSource" = "Источник ассета радуги";
+"settings.account.openSource.thirdPartyNoticePhoenixSource" = "Источник ассета феникса";
 "settings.account.openSource.thirdPartyNoticeWormSource" = "Источник ассета червя";
 "settings.account.openSource.thirdPartyNoticeTornadoSource" = "Источник ассета торнадо";
 "settings.account.openSource.thirdPartyNoticeWiltedFlowerSource" = "Источник ассета увядшего цветка";

@@ -9,7 +9,7 @@ import {
   selectReviewReactionVariant,
   type ReviewReactionEvent,
   type ReviewReactionMotionMode,
-  type ReviewReactionVariant,
+  type ReviewReactionRenderableVariant,
 } from "./reviewReaction";
 import {
   isReviewReactionLottieVariant,
@@ -95,7 +95,7 @@ export function useReviewRatingReactions(): UseReviewRatingReactionsResult {
 
   const scheduleReactionEventCleanup = useCallback((
     eventId: string,
-    variant: ReviewReactionVariant,
+    variant: ReviewReactionRenderableVariant,
   ): void => {
     const cleanupTimerId = window.setTimeout(() => {
       removeReactionEvent(eventId);

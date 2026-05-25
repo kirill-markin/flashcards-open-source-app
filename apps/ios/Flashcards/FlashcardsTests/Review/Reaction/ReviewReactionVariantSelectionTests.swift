@@ -36,12 +36,12 @@ final class ReviewReactionVariantSelectionTests: XCTestCase {
     }
 
     func testEasyVariantBoundaries() {
-        XCTAssertEqual(selectReviewReactionVariant(rating: .easy, roll: 0), .easySparkleBurst)
-        XCTAssertEqual(selectReviewReactionVariant(rating: .easy, roll: 399), .easySparkleBurst)
+        XCTAssertEqual(selectReviewReactionVariant(rating: .easy, roll: 0), .easyRoseBloom)
+        XCTAssertEqual(selectReviewReactionVariant(rating: .easy, roll: 399), .easyRoseBloom)
         XCTAssertEqual(selectReviewReactionVariant(rating: .easy, roll: 400), .easyRainbowStreak)
         XCTAssertEqual(selectReviewReactionVariant(rating: .easy, roll: 699), .easyRainbowStreak)
-        XCTAssertEqual(selectReviewReactionVariant(rating: .easy, roll: 700), .easyCrownBounce)
-        XCTAssertEqual(selectReviewReactionVariant(rating: .easy, roll: 919), .easyCrownBounce)
+        XCTAssertEqual(selectReviewReactionVariant(rating: .easy, roll: 700), .easyPhoenixRise)
+        XCTAssertEqual(selectReviewReactionVariant(rating: .easy, roll: 919), .easyPhoenixRise)
         XCTAssertEqual(selectReviewReactionVariant(rating: .easy, roll: 920), .easyUnicornFlyby)
         XCTAssertEqual(selectReviewReactionVariant(rating: .easy, roll: 999), .easyUnicornFlyby)
     }

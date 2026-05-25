@@ -30,7 +30,9 @@ fun AccountOpenSourceRoute(onBack: () -> Unit) {
     val reviewWhaleAnimationUrl: String = stringResource(id = R.string.review_whale_animation_url)
     val reviewPeacockAnimationUrl: String = stringResource(id = R.string.review_peacock_animation_url)
     val reviewSnailAnimationUrl: String = stringResource(id = R.string.review_snail_animation_url)
+    val reviewRoseAnimationUrl: String = stringResource(id = R.string.review_rose_animation_url)
     val reviewRainbowAnimationUrl: String = stringResource(id = R.string.review_rainbow_animation_url)
+    val reviewPhoenixAnimationUrl: String = stringResource(id = R.string.review_phoenix_animation_url)
     val reviewUnicornAnimationUrl: String = stringResource(id = R.string.review_unicorn_animation_url)
     val reviewWiltedFlowerAnimationUrl: String = stringResource(id = R.string.review_wilted_flower_animation_url)
     val reviewWormAnimationUrl: String = stringResource(id = R.string.review_worm_animation_url)
@@ -154,11 +156,37 @@ fun AccountOpenSourceRoute(onBack: () -> Unit) {
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     SettingsLinkItem(
+                        title = stringResource(R.string.settings_open_source_third_party_rose_source_title),
+                        summary = stringResource(R.string.settings_open_source_third_party_rose_source_summary),
+                        icon = Icons.Outlined.Info,
+                        onClick = {
+                            openExternalUrl(context = context, url = reviewRoseAnimationUrl)
+                        }
+                    )
+                }
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    SettingsLinkItem(
                         title = stringResource(R.string.settings_open_source_third_party_rainbow_source_title),
                         summary = stringResource(R.string.settings_open_source_third_party_rainbow_source_summary),
                         icon = Icons.Outlined.Info,
                         onClick = {
                             openExternalUrl(context = context, url = reviewRainbowAnimationUrl)
+                        }
+                    )
+                }
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    SettingsLinkItem(
+                        title = stringResource(R.string.settings_open_source_third_party_phoenix_source_title),
+                        summary = stringResource(R.string.settings_open_source_third_party_phoenix_source_summary),
+                        icon = Icons.Outlined.Info,
+                        onClick = {
+                            openExternalUrl(context = context, url = reviewPhoenixAnimationUrl)
                         }
                     )
                 }

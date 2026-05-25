@@ -1,56 +1,6 @@
 import SwiftUI
 
 extension ReviewReactionRenderer {
-    static func drawEasySparkleBurst(
-        context: GraphicsContext,
-        size: CGSize,
-        progress: CGFloat,
-        motionMode: ReviewReactionMotionMode
-    ) {
-        let opacity = reviewReactionOpacity(progress: progress)
-        guard opacity > 0 else {
-            return
-        }
-
-        let phase = reviewReactionPhaseProgress(progress: progress, enterEnd: 0.56, exitStart: 0.84)
-        let center = CGPoint(
-            x: size.width * 0.50,
-            y: size.height * 0.40 + (motionMode == .reduced ? 0 : sin(progress * CGFloat.pi * 2) * 8 * (1 - phase.exit))
-        )
-        let burstProgress = motionMode == .reduced ? 0.65 : reviewReactionEaseOutCubic(progress: phase.enter)
-        let colors: [Color] = [
-            reviewReactionYellowColor(),
-            reviewReactionPinkColor(),
-            reviewReactionBlueColor(),
-            reviewReactionGreenColor()
-        ]
-        for index in 0..<18 {
-            let angle = CGFloat(index) * CGFloat.pi * 2 / 18
-            let localProgress = motionMode == .reduced
-                ? 0.70
-                : reviewReactionClampedProgress(progress: (phase.enter - CGFloat(index % 6) * 0.055) / 0.76)
-            let twinkle = 0.76 + sin((progress + CGFloat(index) * 0.07) * CGFloat.pi * 5) * 0.24
-            let distance = min(size.width, size.height) * (0.08 + 0.24 * max(burstProgress, localProgress))
-            let point = pointOnCircle(center: center, radius: distance, angle: angle)
-            if index.isMultiple(of: 3) {
-                drawSparkle(
-                    context: context,
-                    center: point,
-                    radius: (12 + CGFloat(index % 4) * 2) * twinkle,
-                    rotation: angle + progress * CGFloat.pi,
-                    color: colors[index % colors.count],
-                    opacity: opacity * Double(localProgress)
-                )
-            } else {
-                let dotRadius = (3 + CGFloat(index % 3)) * twinkle
-                context.fill(
-                    Path(ellipseIn: CGRect(x: point.x - dotRadius, y: point.y - dotRadius, width: dotRadius * 2, height: dotRadius * 2)),
-                    with: .color(colors[index % colors.count].opacity(opacity * Double(localProgress)))
-                )
-            }
-        }
-    }
-
     static func drawEasyCrownBounce(
         context: GraphicsContext,
         size: CGSize,

@@ -55,12 +55,12 @@ const boundaryExpectations: ReadonlyArray<ReviewReactionBoundaryExpectation> = [
   {
     rating: "easy",
     variants: [
-      "easySparkleBurst",
-      "easySparkleBurst",
+      "easyRoseBloom",
+      "easyRoseBloom",
       "easyRainbowStreak",
       "easyRainbowStreak",
-      "easyCrownBounce",
-      "easyCrownBounce",
+      "easyPhoenixRise",
+      "easyPhoenixRise",
       "easyUnicornFlyby",
       "easyUnicornFlyby",
     ],

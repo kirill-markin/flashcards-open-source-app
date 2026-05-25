@@ -13,10 +13,12 @@ private let reviewGoodOwlAnimationAssetName: String = "ReviewGoodOwl"
 private let reviewGoodPoodleAnimationAssetName: String = "ReviewGoodPoodle"
 private let reviewGoodWhaleAnimationAssetName: String = "ReviewGoodWhale"
 private let reviewGoodPeacockAnimationAssetName: String = "ReviewGoodPeacock"
+private let reviewEasyRoseAnimationAssetName: String = "ReviewEasyRose"
 private let reviewEasyRainbowAnimationAssetName: String = "ReviewEasyRainbow"
+private let reviewEasyPhoenixAnimationAssetName: String = "ReviewEasyPhoenix"
 private let reviewEasyUnicornAnimationAssetName: String = "ReviewEasyUnicorn"
 private let reviewReactionLottieReducedMotionProgress: AnimationProgressTime = 0.55
-private let reviewReactionLottieFallbackVariant: ReviewReactionVariant = .easyCrownBounce
+private let reviewReactionLottieFallbackVariant: ReviewReactionVariant = .fallbackCrownBounce
 private let reviewReactionLogger: Logger = Logger(
     subsystem: appBundleIdentifier(),
     category: "review_reactions"
@@ -39,7 +41,9 @@ private struct ReviewReactionLottieAnimationStore {
     let reviewGoodPoodleAnimation: LottieAnimation?
     let reviewGoodWhaleAnimation: LottieAnimation?
     let reviewGoodPeacockAnimation: LottieAnimation?
+    let reviewEasyRoseAnimation: LottieAnimation?
     let reviewEasyRainbowAnimation: LottieAnimation?
+    let reviewEasyPhoenixAnimation: LottieAnimation?
     let reviewEasyUnicornAnimation: LottieAnimation?
 }
 
@@ -96,9 +100,17 @@ private func makeReviewReactionLottieAnimationStore() -> ReviewReactionLottieAni
             assetName: reviewGoodPeacockAnimationAssetName,
             assetDescription: "peacock"
         ),
+        reviewEasyRoseAnimation: makeReviewReactionLottieAnimation(
+            assetName: reviewEasyRoseAnimationAssetName,
+            assetDescription: "rose"
+        ),
         reviewEasyRainbowAnimation: makeReviewReactionLottieAnimation(
             assetName: reviewEasyRainbowAnimationAssetName,
             assetDescription: "rainbow"
+        ),
+        reviewEasyPhoenixAnimation: makeReviewReactionLottieAnimation(
+            assetName: reviewEasyPhoenixAnimationAssetName,
+            assetDescription: "phoenix"
         ),
         reviewEasyUnicornAnimation: makeReviewReactionLottieAnimation(
             assetName: reviewEasyUnicornAnimationAssetName,
@@ -125,15 +137,16 @@ private func isReviewReactionLottieVariant(variant: ReviewReactionVariant) -> Bo
          .goodPoodle,
          .goodWhale,
          .goodPeacock,
+         .easyRoseBloom,
          .easyRainbowStreak,
+         .easyPhoenixRise,
          .easyUnicornFlyby:
         return true
     case .hardHourglassSand,
          .hardFallingWeight,
          .hardYellowCrack,
          .hardRollingBoulder,
-         .easySparkleBurst,
-         .easyCrownBounce:
+         .fallbackCrownBounce:
         return false
     }
 }
@@ -239,6 +252,18 @@ private func reviewReactionLottieConfiguration(
             centerY: 0.42,
             reducedMotionProgress: reviewReactionLottieReducedMotionProgress
         )
+    case .easyRoseBloom:
+        guard let reviewEasyRoseAnimation = animationStore.reviewEasyRoseAnimation else {
+            return nil
+        }
+
+        return ReviewReactionLottieConfiguration(
+            animation: reviewEasyRoseAnimation,
+            frameScale: 0.58,
+            centerX: 0.50,
+            centerY: 0.50,
+            reducedMotionProgress: reviewReactionLottieReducedMotionProgress
+        )
     case .easyRainbowStreak:
         guard let reviewEasyRainbowAnimation = animationStore.reviewEasyRainbowAnimation else {
             return nil
@@ -246,6 +271,18 @@ private func reviewReactionLottieConfiguration(
 
         return ReviewReactionLottieConfiguration(
             animation: reviewEasyRainbowAnimation,
+            frameScale: 0.64,
+            centerX: 0.50,
+            centerY: 0.42,
+            reducedMotionProgress: reviewReactionLottieReducedMotionProgress
+        )
+    case .easyPhoenixRise:
+        guard let reviewEasyPhoenixAnimation = animationStore.reviewEasyPhoenixAnimation else {
+            return nil
+        }
+
+        return ReviewReactionLottieConfiguration(
+            animation: reviewEasyPhoenixAnimation,
             frameScale: 0.64,
             centerX: 0.50,
             centerY: 0.42,
@@ -267,8 +304,7 @@ private func reviewReactionLottieConfiguration(
          .hardFallingWeight,
          .hardYellowCrack,
          .hardRollingBoulder,
-         .easySparkleBurst,
-         .easyCrownBounce:
+         .fallbackCrownBounce:
         return nil
     }
 }
@@ -308,7 +344,9 @@ struct ReviewReactionLayer: View {
             reviewGoodPoodleAnimation: nil,
             reviewGoodWhaleAnimation: nil,
             reviewGoodPeacockAnimation: nil,
+            reviewEasyRoseAnimation: nil,
             reviewEasyRainbowAnimation: nil,
+            reviewEasyPhoenixAnimation: nil,
             reviewEasyUnicornAnimation: nil
         )
 

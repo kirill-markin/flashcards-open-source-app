@@ -173,12 +173,8 @@
   animation: review-reaction-boulder-art var(--review-reaction-duration) cubic-bezier(0.3, 0, 0.16, 1) both;
 }
 
-.review-rating-reaction-easySparkleBurst .review-rating-reaction-art {
-  animation: review-reaction-sparkle-art var(--review-reaction-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
 .review-rating-reaction-crown-fallback-art,
-.review-rating-reaction-easyCrownBounce .review-rating-reaction-art {
+.review-rating-reaction-fallbackCrownBounce .review-rating-reaction-art {
   animation: review-reaction-crown-art var(--review-reaction-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
@@ -190,7 +186,9 @@
 .review-rating-reaction-goodPoodle .review-rating-reaction-lottie-art,
 .review-rating-reaction-goodWhale .review-rating-reaction-lottie-art,
 .review-rating-reaction-goodPeacock .review-rating-reaction-lottie-art,
+.review-rating-reaction-easyRoseBloom .review-rating-reaction-lottie-art,
 .review-rating-reaction-easyRainbowStreak .review-rating-reaction-lottie-art,
+.review-rating-reaction-easyPhoenixRise .review-rating-reaction-lottie-art,
 .review-rating-reaction-easyUnicornFlyby .review-rating-reaction-lottie-art {
   animation: none;
 }
@@ -203,7 +201,9 @@
 .review-reaction-poodle-lottie-mark,
 .review-reaction-whale-lottie-mark,
 .review-reaction-peacock-lottie-mark,
+.review-reaction-rose-lottie-mark,
 .review-reaction-rainbow-lottie-mark,
+.review-reaction-phoenix-lottie-mark,
 .review-reaction-unicorn-lottie-mark {
   position: absolute;
   aspect-ratio: 1;
@@ -258,7 +258,19 @@
   width: min(58%, 255px);
 }
 
+.review-reaction-rose-lottie-mark {
+  top: 50%;
+  left: 50%;
+  width: min(58%, 250px);
+}
+
 .review-reaction-rainbow-lottie-mark {
+  top: 42%;
+  left: 50%;
+  width: min(64%, 280px);
+}
+
+.review-reaction-phoenix-lottie-mark {
   top: 42%;
   left: 50%;
   width: min(64%, 280px);
@@ -286,8 +298,12 @@
 .review-reaction-whale-lottie-mark > svg,
 .review-reaction-peacock-lottie-mark > div,
 .review-reaction-peacock-lottie-mark > svg,
+.review-reaction-rose-lottie-mark > div,
+.review-reaction-rose-lottie-mark > svg,
 .review-reaction-rainbow-lottie-mark > div,
 .review-reaction-rainbow-lottie-mark > svg,
+.review-reaction-phoenix-lottie-mark > div,
+.review-reaction-phoenix-lottie-mark > svg,
 .review-reaction-unicorn-lottie-mark > div,
 .review-reaction-unicorn-lottie-mark > svg {
   display: block;
@@ -416,24 +432,6 @@
 
   100% {
     transform: translate3d(48%, -4%, 0) rotate(560deg) scale(0.86);
-  }
-}
-
-@keyframes review-reaction-sparkle-art {
-  0% {
-    transform: scale(0.36) rotate(-14deg);
-  }
-
-  56% {
-    transform: scale(1.08) rotate(8deg);
-  }
-
-  84% {
-    transform: scale(1) rotate(-3deg);
-  }
-
-  100% {
-    transform: scale(0.90) rotate(0deg);
   }
 }
 

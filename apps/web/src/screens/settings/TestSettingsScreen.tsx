@@ -12,7 +12,7 @@ import {
   type ReviewReactionEvent,
   type ReviewReactionMotionMode,
   type ReviewReactionRating,
-  type ReviewReactionVariant,
+  type ReviewReactionRenderableVariant,
   type ReviewReactionVariantDistributionEntry,
 } from "../review/reactions/reviewReaction";
 import { ReviewRatingReactionLayer } from "../review/reactions/ReviewRatingReactionLayer";
@@ -166,7 +166,7 @@ export function TestAnimationsScreen(): ReactElement {
 
   const scheduleReviewReactionEventCleanup = useCallback((
     eventId: string,
-    variant: ReviewReactionVariant,
+    variant: ReviewReactionRenderableVariant,
   ): void => {
     const cleanupTimerId = window.setTimeout(() => {
       removeReviewReactionEvent(eventId);

@@ -22,13 +22,6 @@ enum ReviewReactionRenderer {
         }
 
         switch event.variant {
-        case .againTornado:
-            drawEasyCrownBounce(
-                context: drawingContext,
-                size: drawableSize,
-                progress: drawingProgress,
-                motionMode: motionMode
-            )
         case .hardHourglassSand:
             drawHardHourglassSand(
                 context: drawingContext,
@@ -57,14 +50,7 @@ enum ReviewReactionRenderer {
                 progress: drawingProgress,
                 motionMode: motionMode
             )
-        case .easySparkleBurst:
-            drawEasySparkleBurst(
-                context: drawingContext,
-                size: drawableSize,
-                progress: drawingProgress,
-                motionMode: motionMode
-            )
-        case .easyCrownBounce:
+        case .fallbackCrownBounce:
             drawEasyCrownBounce(
                 context: drawingContext,
                 size: drawableSize,
@@ -73,12 +59,15 @@ enum ReviewReactionRenderer {
             )
         case .againWiltedFlower,
              .againWormWiggle,
+             .againTornado,
              .againSnailCrawl,
              .goodOwl,
              .goodPoodle,
              .goodWhale,
              .goodPeacock,
+             .easyRoseBloom,
              .easyRainbowStreak,
+             .easyPhoenixRise,
              .easyUnicornFlyby:
             drawEasyCrownBounce(
                 context: drawingContext,

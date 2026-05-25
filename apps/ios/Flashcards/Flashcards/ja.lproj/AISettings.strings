@@ -264,7 +264,7 @@
 "settings.account.openSource.repository" = "GitHub リポジトリ (MIT ライセンス)";
 "settings.account.openSource.selfHosting" = "独自のバックエンドが必要な場合は、同じオープン ソース スタックをデプロイし、[詳細] > [サーバー] から iOS アプリをドメインに指定できます。";
 "settings.account.openSource.section.thirdPartyNotices" = "サードパーティ通知";
-"settings.account.openSource.thirdPartyNotice" = "レビュー用Lottieアニメーション: Google Inc. の Free Owl Animation、Free Poodle Animation、Free Whale Animation、Free Peacock Animation、Free Unicorn Animation、Free Snail Animation、Free Rainbow Animation、Free Worm Animation、Free Tornado Animation、Free Wilted Flower Animation、Copyright © 2026 Google Inc.。Creative Commons Attribution 4.0 の下で使用しています。Lottie ランタイムは MIT および Apache 2.0 ライセンスを使用しています。";
+"settings.account.openSource.thirdPartyNotice" = "レビュー用Lottieアニメーション: Google Inc. の Free Owl Animation、Free Poodle Animation、Free Whale Animation、Free Peacock Animation、Free Rose Animation、Free Rainbow Animation、Free Phoenix Animation、Free Unicorn Animation、Free Snail Animation、Free Worm Animation、Free Tornado Animation、Free Wilted Flower Animation、Copyright © 2026 Google Inc.。Creative Commons Attribution 4.0 の下で使用しています。Lottie ランタイムは MIT および Apache 2.0 ライセンスを使用しています。";
 "settings.account.openSource.thirdPartyNoticeFull" = "完全なサードパーティ通知";
 "settings.account.openSource.thirdPartyNoticeOwlSource" = "フクロウアセットの提供元";
 "settings.account.openSource.thirdPartyNoticePoodleSource" = "プードルアセットの提供元";
@@ -272,7 +272,9 @@
 "settings.account.openSource.thirdPartyNoticePeacockSource" = "クジャクアセットの提供元";
 "settings.account.openSource.thirdPartyNoticeUnicornSource" = "ユニコーンアセット元";
 "settings.account.openSource.thirdPartyNoticeSnailSource" = "カタツムリアセット元";
+"settings.account.openSource.thirdPartyNoticeRoseSource" = "バラアセット元";
 "settings.account.openSource.thirdPartyNoticeRainbowSource" = "虹アセット元";
+"settings.account.openSource.thirdPartyNoticePhoenixSource" = "フェニックスアセット元";
 "settings.account.openSource.thirdPartyNoticeWormSource" = "ワームアセット元";
 "settings.account.openSource.thirdPartyNoticeTornadoSource" = "竜巻アセット元";
 "settings.account.openSource.thirdPartyNoticeWiltedFlowerSource" = "しおれた花アセット元";
