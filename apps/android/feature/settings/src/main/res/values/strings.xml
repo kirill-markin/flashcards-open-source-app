@@ -462,42 +462,42 @@
     <string name="settings_open_source_title">Open source</string>
     <string name="settings_open_source_repository_title">GitHub repository</string>
     <string name="settings_open_source_repository_summary">Browse the public source code and issues.</string>
-    <string name="settings_open_source_third_party_owl_source_title">Review owl animation</string>
-    <string name="settings_open_source_third_party_owl_source_summary">Free Owl Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
-    <string name="settings_open_source_third_party_poodle_source_title">Review poodle animation</string>
-    <string name="settings_open_source_third_party_poodle_source_summary">Free Poodle Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
-    <string name="settings_open_source_third_party_whale_source_title">Review whale animation</string>
-    <string name="settings_open_source_third_party_whale_source_summary">Free Whale Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
-    <string name="settings_open_source_third_party_peacock_source_title">Review peacock animation</string>
-    <string name="settings_open_source_third_party_peacock_source_summary">Free Peacock Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
-    <string name="settings_open_source_third_party_ox_source_title">Review ox animation</string>
-    <string name="settings_open_source_third_party_ox_source_summary">Free Ox Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
-    <string name="settings_open_source_third_party_paw_prints_source_title">Review paw prints animation</string>
-    <string name="settings_open_source_third_party_paw_prints_source_summary">Free Paw Prints Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
-    <string name="settings_open_source_third_party_racehorse_source_title">Review racehorse animation</string>
-    <string name="settings_open_source_third_party_racehorse_source_summary">Free Racehorse Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
-    <string name="settings_open_source_third_party_volcano_source_title">Review volcano animation</string>
-    <string name="settings_open_source_third_party_volcano_source_summary">Free Volcano Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
-    <string name="settings_open_source_third_party_unicorn_source_title">Review unicorn animation</string>
-    <string name="settings_open_source_third_party_unicorn_source_summary">Free Unicorn Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
-    <string name="settings_open_source_third_party_snail_source_title">Review snail animation</string>
-    <string name="settings_open_source_third_party_snail_source_summary">Free Snail Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
-    <string name="settings_open_source_third_party_rose_source_title">Review rose animation</string>
-    <string name="settings_open_source_third_party_rose_source_summary">Free Rose Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
-    <string name="settings_open_source_third_party_rainbow_source_title">Review rainbow animation</string>
-    <string name="settings_open_source_third_party_rainbow_source_summary">Free Rainbow Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
-    <string name="settings_open_source_third_party_phoenix_source_title">Review phoenix animation</string>
-    <string name="settings_open_source_third_party_phoenix_source_summary">Free Phoenix Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
-    <string name="settings_open_source_third_party_worm_source_title">Review worm animation</string>
-    <string name="settings_open_source_third_party_worm_source_summary">Free Worm Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
-    <string name="settings_open_source_third_party_tornado_source_title">Review tornado animation</string>
-    <string name="settings_open_source_third_party_tornado_source_summary">Free Tornado Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
-    <string name="settings_open_source_third_party_wilted_flower_source_title">Review wilted flower animation</string>
-    <string name="settings_open_source_third_party_wilted_flower_source_summary">Free Wilted Flower Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0. Lottie runtimes use MIT and Apache 2.0 licenses.</string>
-    <string name="settings_open_source_third_party_notices_title">Full third-party notices</string>
-    <string name="settings_open_source_third_party_notices_summary">Open complete third-party notices and bundled license text.</string>
-    <string name="settings_open_source_third_party_license_title">Creative Commons Attribution 4.0</string>
-    <string name="settings_open_source_third_party_license_summary">Open the license terms for the review Lottie animations.</string>
+    <string name="settings_open_source_third_party_owl_source_title" translatable="false">Review owl animation</string>
+    <string name="settings_open_source_third_party_owl_source_summary" translatable="false">Free Owl Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_poodle_source_title" translatable="false">Review poodle animation</string>
+    <string name="settings_open_source_third_party_poodle_source_summary" translatable="false">Free Poodle Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_whale_source_title" translatable="false">Review whale animation</string>
+    <string name="settings_open_source_third_party_whale_source_summary" translatable="false">Free Whale Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_peacock_source_title" translatable="false">Review peacock animation</string>
+    <string name="settings_open_source_third_party_peacock_source_summary" translatable="false">Free Peacock Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_ox_source_title" translatable="false">Review ox animation</string>
+    <string name="settings_open_source_third_party_ox_source_summary" translatable="false">Free Ox Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_paw_prints_source_title" translatable="false">Review paw prints animation</string>
+    <string name="settings_open_source_third_party_paw_prints_source_summary" translatable="false">Free Paw Prints Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_racehorse_source_title" translatable="false">Review racehorse animation</string>
+    <string name="settings_open_source_third_party_racehorse_source_summary" translatable="false">Free Racehorse Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_volcano_source_title" translatable="false">Review volcano animation</string>
+    <string name="settings_open_source_third_party_volcano_source_summary" translatable="false">Free Volcano Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_unicorn_source_title" translatable="false">Review unicorn animation</string>
+    <string name="settings_open_source_third_party_unicorn_source_summary" translatable="false">Free Unicorn Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_snail_source_title" translatable="false">Review snail animation</string>
+    <string name="settings_open_source_third_party_snail_source_summary" translatable="false">Free Snail Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_rose_source_title" translatable="false">Review rose animation</string>
+    <string name="settings_open_source_third_party_rose_source_summary" translatable="false">Free Rose Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_rainbow_source_title" translatable="false">Review rainbow animation</string>
+    <string name="settings_open_source_third_party_rainbow_source_summary" translatable="false">Free Rainbow Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_phoenix_source_title" translatable="false">Review phoenix animation</string>
+    <string name="settings_open_source_third_party_phoenix_source_summary" translatable="false">Free Phoenix Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_worm_source_title" translatable="false">Review worm animation</string>
+    <string name="settings_open_source_third_party_worm_source_summary" translatable="false">Free Worm Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_tornado_source_title" translatable="false">Review tornado animation</string>
+    <string name="settings_open_source_third_party_tornado_source_summary" translatable="false">Free Tornado Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_wilted_flower_source_title" translatable="false">Review wilted flower animation</string>
+    <string name="settings_open_source_third_party_wilted_flower_source_summary" translatable="false">Free Wilted Flower Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0. Lottie runtimes use MIT and Apache 2.0 licenses.</string>
+    <string name="settings_open_source_third_party_notices_title" translatable="false">Full third-party notices</string>
+    <string name="settings_open_source_third_party_notices_summary" translatable="false">Open complete third-party notices and bundled license text.</string>
+    <string name="settings_open_source_third_party_license_title" translatable="false">Creative Commons Attribution 4.0</string>
+    <string name="settings_open_source_third_party_license_summary" translatable="false">Open the license terms for the review Lottie animations.</string>
     <string name="settings_open_source_self_hosting_title">Self-hosting</string>
     <string name="settings_open_source_self_hosting_summary">Project direction is open-source first, with self-hosting support planned.</string>
 
