@@ -78,34 +78,6 @@ enum ReviewReactionRenderer {
                 progress: drawingProgress,
                 motionMode: motionMode
             )
-        case .goodHandDrawnCheck:
-            drawGoodHandDrawnCheck(
-                context: drawingContext,
-                size: drawableSize,
-                progress: drawingProgress,
-                motionMode: motionMode
-            )
-        case .goodLightSweep:
-            drawGoodLightSweep(
-                context: drawingContext,
-                size: drawableSize,
-                progress: drawingProgress,
-                motionMode: motionMode
-            )
-        case .goodPaperPlaneCheck:
-            drawGoodPaperPlaneCheck(
-                context: drawingContext,
-                size: drawableSize,
-                progress: drawingProgress,
-                motionMode: motionMode
-            )
-        case .goodCheckSealBounce:
-            drawGoodCheckSealBounce(
-                context: drawingContext,
-                size: drawableSize,
-                progress: drawingProgress,
-                motionMode: motionMode
-            )
         case .easySparkleBurst:
             drawEasySparkleBurst(
                 context: drawingContext,
@@ -120,14 +92,12 @@ enum ReviewReactionRenderer {
                 progress: drawingProgress,
                 motionMode: motionMode
             )
-        case .easyRainbowStreak:
-            drawEasyCrownBounce(
-                context: drawingContext,
-                size: drawableSize,
-                progress: drawingProgress,
-                motionMode: motionMode
-            )
-        case .easyUnicornFlyby:
+        case .goodOwl,
+             .goodPoodle,
+             .goodWhale,
+             .goodPeacock,
+             .easyRainbowStreak,
+             .easyUnicornFlyby:
             drawEasyCrownBounce(
                 context: drawingContext,
                 size: drawableSize,

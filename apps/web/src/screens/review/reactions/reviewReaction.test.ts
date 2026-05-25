@@ -42,14 +42,14 @@ const boundaryExpectations: ReadonlyArray<ReviewReactionBoundaryExpectation> = [
   {
     rating: "good",
     variants: [
-      "goodHandDrawnCheck",
-      "goodHandDrawnCheck",
-      "goodLightSweep",
-      "goodLightSweep",
-      "goodPaperPlaneCheck",
-      "goodPaperPlaneCheck",
-      "goodCheckSealBounce",
-      "goodCheckSealBounce",
+      "goodOwl",
+      "goodOwl",
+      "goodPoodle",
+      "goodPoodle",
+      "goodWhale",
+      "goodWhale",
+      "goodPeacock",
+      "goodPeacock",
     ],
   },
   {

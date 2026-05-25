@@ -25,10 +25,10 @@ export type ReviewReactionVariant =
   | "hardFallingWeight"
   | "hardYellowCrack"
   | "hardRollingBoulder"
-  | "goodHandDrawnCheck"
-  | "goodLightSweep"
-  | "goodPaperPlaneCheck"
-  | "goodCheckSealBounce"
+  | "goodOwl"
+  | "goodPoodle"
+  | "goodWhale"
+  | "goodPeacock"
   | "easySparkleBurst"
   | "easyRainbowStreak"
   | "easyCrownBounce"
@@ -92,10 +92,10 @@ export const allReviewReactionVariantDistributionEntries: ReadonlyArray<ReviewRe
   makeReviewReactionVariantDistributionEntry("hard", "hardFallingWeight", 400, 699),
   makeReviewReactionVariantDistributionEntry("hard", "hardYellowCrack", 700, 919),
   makeReviewReactionVariantDistributionEntry("hard", "hardRollingBoulder", 920, 999),
-  makeReviewReactionVariantDistributionEntry("good", "goodHandDrawnCheck", 0, 399),
-  makeReviewReactionVariantDistributionEntry("good", "goodLightSweep", 400, 699),
-  makeReviewReactionVariantDistributionEntry("good", "goodPaperPlaneCheck", 700, 919),
-  makeReviewReactionVariantDistributionEntry("good", "goodCheckSealBounce", 920, 999),
+  makeReviewReactionVariantDistributionEntry("good", "goodOwl", 0, 399),
+  makeReviewReactionVariantDistributionEntry("good", "goodPoodle", 400, 699),
+  makeReviewReactionVariantDistributionEntry("good", "goodWhale", 700, 919),
+  makeReviewReactionVariantDistributionEntry("good", "goodPeacock", 920, 999),
   makeReviewReactionVariantDistributionEntry("easy", "easySparkleBurst", 0, 399),
   makeReviewReactionVariantDistributionEntry("easy", "easyRainbowStreak", 400, 699),
   makeReviewReactionVariantDistributionEntry("easy", "easyCrownBounce", 700, 919),
@@ -176,16 +176,14 @@ export function matchesReducedReviewReactionMotion(): boolean {
 
 export function reviewReactionAnimationDurationMillis(variant: ReviewReactionVariant): number {
   switch (variant) {
-    case "goodHandDrawnCheck":
-      return 1150;
     case "againRedScribbleSlash":
     case "hardYellowCrack":
       return 1200;
     case "easySparkleBurst":
       return 1250;
+    case "goodPeacock":
+      return 1333;
     case "againRewindVortex":
-    case "goodLightSweep":
-    case "goodCheckSealBounce":
       return 1450;
     case "hardHourglassSand":
     case "againWarningTape":
@@ -193,14 +191,18 @@ export function reviewReactionAnimationDurationMillis(variant: ReviewReactionVar
     case "hardFallingWeight":
     case "easyCrownBounce":
       return 1650;
-    case "goodPaperPlaneCheck":
-      return 1750;
     case "againStampFlyby":
       return 1900;
     case "easyRainbowStreak":
       return 2000;
     case "hardRollingBoulder":
       return 2050;
+    case "goodWhale":
+      return 2633;
+    case "goodPoodle":
+      return 2800;
+    case "goodOwl":
+      return 2833;
     case "easyUnicornFlyby":
       return 3800;
   }

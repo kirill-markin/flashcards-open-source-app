@@ -25,14 +25,14 @@ final class ReviewReactionVariantSelectionTests: XCTestCase {
     }
 
     func testGoodVariantBoundaries() {
-        XCTAssertEqual(selectReviewReactionVariant(rating: .good, roll: 0), .goodHandDrawnCheck)
-        XCTAssertEqual(selectReviewReactionVariant(rating: .good, roll: 399), .goodHandDrawnCheck)
-        XCTAssertEqual(selectReviewReactionVariant(rating: .good, roll: 400), .goodLightSweep)
-        XCTAssertEqual(selectReviewReactionVariant(rating: .good, roll: 699), .goodLightSweep)
-        XCTAssertEqual(selectReviewReactionVariant(rating: .good, roll: 700), .goodPaperPlaneCheck)
-        XCTAssertEqual(selectReviewReactionVariant(rating: .good, roll: 919), .goodPaperPlaneCheck)
-        XCTAssertEqual(selectReviewReactionVariant(rating: .good, roll: 920), .goodCheckSealBounce)
-        XCTAssertEqual(selectReviewReactionVariant(rating: .good, roll: 999), .goodCheckSealBounce)
+        XCTAssertEqual(selectReviewReactionVariant(rating: .good, roll: 0), .goodOwl)
+        XCTAssertEqual(selectReviewReactionVariant(rating: .good, roll: 399), .goodOwl)
+        XCTAssertEqual(selectReviewReactionVariant(rating: .good, roll: 400), .goodPoodle)
+        XCTAssertEqual(selectReviewReactionVariant(rating: .good, roll: 699), .goodPoodle)
+        XCTAssertEqual(selectReviewReactionVariant(rating: .good, roll: 700), .goodWhale)
+        XCTAssertEqual(selectReviewReactionVariant(rating: .good, roll: 919), .goodWhale)
+        XCTAssertEqual(selectReviewReactionVariant(rating: .good, roll: 920), .goodPeacock)
+        XCTAssertEqual(selectReviewReactionVariant(rating: .good, roll: 999), .goodPeacock)
     }
 
     func testEasyVariantBoundaries() {

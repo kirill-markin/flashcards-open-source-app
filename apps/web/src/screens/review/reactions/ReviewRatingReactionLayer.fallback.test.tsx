@@ -4,6 +4,7 @@ import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   reducedReviewReactionMotionMediaQuery,
+  type ReviewReactionRating,
   type ReviewReactionVariant,
 } from "./reviewReaction";
 import { ReviewRatingReactionLayer } from "./ReviewRatingReactionLayer";
@@ -31,16 +32,46 @@ type ReviewReactionLayerHarnessProps = Readonly<{
 }>;
 
 type LottieFailureExpectation = Readonly<{
+  emittedRating: 0 | 1 | 2 | 3;
+  rating: ReviewReactionRating;
   randomValue: number;
   variant: ReviewReactionVariant;
 }>;
 
 const lottieFailureExpectations: ReadonlyArray<LottieFailureExpectation> = [
   {
+    emittedRating: 2,
+    rating: "good",
+    randomValue: 0,
+    variant: "goodOwl",
+  },
+  {
+    emittedRating: 2,
+    rating: "good",
+    randomValue: 0.5,
+    variant: "goodPoodle",
+  },
+  {
+    emittedRating: 2,
+    rating: "good",
+    randomValue: 0.75,
+    variant: "goodWhale",
+  },
+  {
+    emittedRating: 2,
+    rating: "good",
+    randomValue: 0.95,
+    variant: "goodPeacock",
+  },
+  {
+    emittedRating: 3,
+    rating: "easy",
     randomValue: 0.5,
     variant: "easyRainbowStreak",
   },
   {
+    emittedRating: 3,
+    rating: "easy",
     randomValue: 0.95,
     variant: "easyUnicornFlyby",
   },
@@ -161,10 +192,10 @@ describe("ReviewRatingReactionLayer Lottie fallback", () => {
     return eventElement;
   }
 
-  async function emitEasyReactionAfterLottieRenderFailure(randomValue: number): Promise<void> {
-    vi.spyOn(Math, "random").mockReturnValue(randomValue);
+  async function emitReactionAfterLottieRenderFailure(expectation: LottieFailureExpectation): Promise<void> {
+    vi.spyOn(Math, "random").mockReturnValue(expectation.randomValue);
     await act(async () => {
-      requireLatestResult().emitReaction(3);
+      requireLatestResult().emitReaction(expectation.emittedRating);
       await flushReactionPromises();
     });
   }
@@ -174,13 +205,13 @@ describe("ReviewRatingReactionLayer Lottie fallback", () => {
       installReviewReactionMotionPreference(false);
       await renderHarness();
 
-      await emitEasyReactionAfterLottieRenderFailure(expectation.randomValue);
+      await emitReactionAfterLottieRenderFailure(expectation);
 
       expect(loadAnimationMock).toHaveBeenCalledTimes(1);
       expect(requireLatestResult().events).toEqual([
         {
           id: "00000000-0000-4000-8000-000000000101",
-          rating: "easy",
+          rating: expectation.rating,
           variant: reviewReactionLottieFallbackVariant,
         },
       ]);
@@ -204,7 +235,12 @@ describe("ReviewRatingReactionLayer Lottie fallback", () => {
     installReviewReactionMotionPreference(true);
     await renderHarness();
 
-    await emitEasyReactionAfterLottieRenderFailure(0.5);
+    await emitReactionAfterLottieRenderFailure({
+      emittedRating: 3,
+      rating: "easy",
+      randomValue: 0.5,
+      variant: "easyRainbowStreak",
+    });
 
     expect(requireReactionEventElement().dataset.reviewReactionVariant).toBe(reviewReactionLottieFallbackVariant);
 

@@ -10,6 +10,10 @@ type ReviewReactionLottieAnimationModule = Readonly<{
 }>;
 
 export type ReviewReactionLottieVariant =
+  | "goodOwl"
+  | "goodPoodle"
+  | "goodWhale"
+  | "goodPeacock"
   | "easyRainbowStreak"
   | "easyUnicornFlyby";
 
@@ -26,7 +30,14 @@ export const reviewReactionLottieFallbackVariant: ReviewReactionVariant = "easyC
 export function isReviewReactionLottieVariant(
   variant: ReviewReactionVariant,
 ): variant is ReviewReactionLottieVariant {
-  return variant === "easyRainbowStreak" || variant === "easyUnicornFlyby";
+  return (
+    variant === "goodOwl"
+    || variant === "goodPoodle"
+    || variant === "goodWhale"
+    || variant === "goodPeacock"
+    || variant === "easyRainbowStreak"
+    || variant === "easyUnicornFlyby"
+  );
 }
 
 export function isReviewReactionLottieAssetsReady(): boolean {
@@ -50,15 +61,27 @@ export function loadReviewReactionLottieAssets(): Promise<ReviewReactionLottieAs
 
   reviewReactionLottieAssetsPromise = Promise.all([
     import("lottie-web/build/player/lottie_light"),
+    import("../../../assets/review_good_owl.json"),
+    import("../../../assets/review_good_poodle.json"),
+    import("../../../assets/review_good_whale.json"),
+    import("../../../assets/review_good_peacock.json"),
     import("../../../assets/review_easy_rainbow.json"),
     import("../../../assets/review_easy_unicorn.json"),
   ]).then((
     [
       lottieModule,
+      owlAnimationModule,
+      poodleAnimationModule,
+      whaleAnimationModule,
+      peacockAnimationModule,
       rainbowAnimationModule,
       unicornAnimationModule,
     ]: [
       ReviewReactionLottiePlayerModule,
+      ReviewReactionLottieAnimationModule,
+      ReviewReactionLottieAnimationModule,
+      ReviewReactionLottieAnimationModule,
+      ReviewReactionLottieAnimationModule,
       ReviewReactionLottieAnimationModule,
       ReviewReactionLottieAnimationModule,
     ],
@@ -66,6 +89,10 @@ export function loadReviewReactionLottieAssets(): Promise<ReviewReactionLottieAs
     reviewReactionLottieAssetsReady = true;
     return {
       animationDataByVariant: {
+        goodOwl: owlAnimationModule.default,
+        goodPoodle: poodleAnimationModule.default,
+        goodWhale: whaleAnimationModule.default,
+        goodPeacock: peacockAnimationModule.default,
         easyRainbowStreak: rainbowAnimationModule.default,
         easyUnicornFlyby: unicornAnimationModule.default,
       },
