@@ -27,10 +27,10 @@ enum ReviewReactionVariant: CaseIterable, Hashable, Sendable {
     case hardFallingWeight
     case hardYellowCrack
     case hardRollingBoulder
-    case goodHandDrawnCheck
-    case goodLightSweep
-    case goodPaperPlaneCheck
-    case goodCheckSealBounce
+    case goodOwl
+    case goodPoodle
+    case goodWhale
+    case goodPeacock
     case easySparkleBurst
     case easyRainbowStreak
     case easyCrownBounce
@@ -42,28 +42,32 @@ enum ReviewReactionVariant: CaseIterable, Hashable, Sendable {
 
     var animationDurationSeconds: Double {
         switch self {
-        case .goodHandDrawnCheck:
-            return 1.15
         case .hardYellowCrack:
             return 1.20
         case .easySparkleBurst:
             return 1.25
-        case .againTornado, .goodLightSweep, .goodCheckSealBounce:
+        case .goodPeacock:
+            return 1.333
+        case .againTornado:
             return 1.45
         case .hardHourglassSand:
             return 1.55
         case .hardFallingWeight, .easyCrownBounce:
             return 1.65
-        case .goodPaperPlaneCheck:
-            return 1.75
         case .easyRainbowStreak:
             return 2.00
         case .hardRollingBoulder:
             return 2.05
         case .againWiltedFlower:
             return 2.40
+        case .goodWhale:
+            return 2.633
         case .againSnailCrawl:
             return 2.70
+        case .goodPoodle:
+            return 2.800
+        case .goodOwl:
+            return 2.833
         case .easyUnicornFlyby:
             return 3.80
         case .againWormWiggle:
@@ -104,10 +108,10 @@ let allReviewReactionVariantDistributionEntries: [ReviewReactionVariantDistribut
     ReviewReactionVariantDistributionEntry(rating: .hard, variant: .hardFallingWeight, rollRange: 400...699),
     ReviewReactionVariantDistributionEntry(rating: .hard, variant: .hardYellowCrack, rollRange: 700...919),
     ReviewReactionVariantDistributionEntry(rating: .hard, variant: .hardRollingBoulder, rollRange: 920...999),
-    ReviewReactionVariantDistributionEntry(rating: .good, variant: .goodHandDrawnCheck, rollRange: 0...399),
-    ReviewReactionVariantDistributionEntry(rating: .good, variant: .goodLightSweep, rollRange: 400...699),
-    ReviewReactionVariantDistributionEntry(rating: .good, variant: .goodPaperPlaneCheck, rollRange: 700...919),
-    ReviewReactionVariantDistributionEntry(rating: .good, variant: .goodCheckSealBounce, rollRange: 920...999),
+    ReviewReactionVariantDistributionEntry(rating: .good, variant: .goodOwl, rollRange: 0...399),
+    ReviewReactionVariantDistributionEntry(rating: .good, variant: .goodPoodle, rollRange: 400...699),
+    ReviewReactionVariantDistributionEntry(rating: .good, variant: .goodWhale, rollRange: 700...919),
+    ReviewReactionVariantDistributionEntry(rating: .good, variant: .goodPeacock, rollRange: 920...999),
     ReviewReactionVariantDistributionEntry(rating: .easy, variant: .easySparkleBurst, rollRange: 0...399),
     ReviewReactionVariantDistributionEntry(rating: .easy, variant: .easyRainbowStreak, rollRange: 400...699),
     ReviewReactionVariantDistributionEntry(rating: .easy, variant: .easyCrownBounce, rollRange: 700...919),

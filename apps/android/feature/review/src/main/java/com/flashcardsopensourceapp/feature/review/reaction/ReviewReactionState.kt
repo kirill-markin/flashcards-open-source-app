@@ -23,10 +23,10 @@ internal enum class ReviewReactionVariant {
     HARD_FALLING_WEIGHT,
     HARD_YELLOW_CRACK,
     HARD_ROLLING_BOULDER,
-    GOOD_HAND_DRAWN_CHECK,
-    GOOD_LIGHT_SWEEP,
-    GOOD_PAPER_PLANE_CHECK,
-    GOOD_CHECK_SEAL_BOUNCE,
+    GOOD_OWL,
+    GOOD_POODLE,
+    GOOD_WHALE,
+    GOOD_PEACOCK,
     EASY_SPARKLE_BURST,
     EASY_RAINBOW_STREAK,
     EASY_CROWN_BOUNCE,
@@ -51,10 +51,10 @@ internal val ReviewReactionVariant.debugIdentifier: String
         ReviewReactionVariant.HARD_FALLING_WEIGHT -> "hardFallingWeight"
         ReviewReactionVariant.HARD_YELLOW_CRACK -> "hardYellowCrack"
         ReviewReactionVariant.HARD_ROLLING_BOULDER -> "hardRollingBoulder"
-        ReviewReactionVariant.GOOD_HAND_DRAWN_CHECK -> "goodHandDrawnCheck"
-        ReviewReactionVariant.GOOD_LIGHT_SWEEP -> "goodLightSweep"
-        ReviewReactionVariant.GOOD_PAPER_PLANE_CHECK -> "goodPaperPlaneCheck"
-        ReviewReactionVariant.GOOD_CHECK_SEAL_BOUNCE -> "goodCheckSealBounce"
+        ReviewReactionVariant.GOOD_OWL -> "goodOwl"
+        ReviewReactionVariant.GOOD_POODLE -> "goodPoodle"
+        ReviewReactionVariant.GOOD_WHALE -> "goodWhale"
+        ReviewReactionVariant.GOOD_PEACOCK -> "goodPeacock"
         ReviewReactionVariant.EASY_SPARKLE_BURST -> "easySparkleBurst"
         ReviewReactionVariant.EASY_RAINBOW_STREAK -> "easyRainbowStreak"
         ReviewReactionVariant.EASY_CROWN_BOUNCE -> "easyCrownBounce"
@@ -119,22 +119,22 @@ internal val allReviewReactionVariantDistributionEntries: List<ReviewReactionVar
     ),
     ReviewReactionVariantDistributionEntry(
         rating = ReviewRating.GOOD,
-        variant = ReviewReactionVariant.GOOD_HAND_DRAWN_CHECK,
+        variant = ReviewReactionVariant.GOOD_OWL,
         rollRange = 0..399
     ),
     ReviewReactionVariantDistributionEntry(
         rating = ReviewRating.GOOD,
-        variant = ReviewReactionVariant.GOOD_LIGHT_SWEEP,
+        variant = ReviewReactionVariant.GOOD_POODLE,
         rollRange = 400..699
     ),
     ReviewReactionVariantDistributionEntry(
         rating = ReviewRating.GOOD,
-        variant = ReviewReactionVariant.GOOD_PAPER_PLANE_CHECK,
+        variant = ReviewReactionVariant.GOOD_WHALE,
         rollRange = 700..919
     ),
     ReviewReactionVariantDistributionEntry(
         rating = ReviewRating.GOOD,
-        variant = ReviewReactionVariant.GOOD_CHECK_SEAL_BOUNCE,
+        variant = ReviewReactionVariant.GOOD_PEACOCK,
         rollRange = 920..999
     ),
     ReviewReactionVariantDistributionEntry(
@@ -235,20 +235,20 @@ internal fun reviewReactionAnimationDurationMillis(
     }
 
     return when (variant) {
-        ReviewReactionVariant.GOOD_HAND_DRAWN_CHECK -> 1_150
         ReviewReactionVariant.HARD_YELLOW_CRACK -> 1_200
         ReviewReactionVariant.EASY_SPARKLE_BURST -> 1_250
-        ReviewReactionVariant.AGAIN_TORNADO,
-        ReviewReactionVariant.GOOD_LIGHT_SWEEP,
-        ReviewReactionVariant.GOOD_CHECK_SEAL_BOUNCE -> 1_450
+        ReviewReactionVariant.GOOD_PEACOCK -> 1_333
+        ReviewReactionVariant.AGAIN_TORNADO -> 1_450
         ReviewReactionVariant.HARD_HOURGLASS_SAND -> 1_550
         ReviewReactionVariant.HARD_FALLING_WEIGHT,
         ReviewReactionVariant.EASY_CROWN_BOUNCE -> 1_650
-        ReviewReactionVariant.GOOD_PAPER_PLANE_CHECK -> 1_750
         ReviewReactionVariant.EASY_RAINBOW_STREAK -> 2_000
         ReviewReactionVariant.HARD_ROLLING_BOULDER -> 2_050
         ReviewReactionVariant.AGAIN_WILTED_FLOWER -> 2_400
+        ReviewReactionVariant.GOOD_WHALE -> 2_633
         ReviewReactionVariant.AGAIN_SNAIL_CRAWL -> 2_700
+        ReviewReactionVariant.GOOD_POODLE -> 2_800
+        ReviewReactionVariant.GOOD_OWL -> 2_833
         ReviewReactionVariant.EASY_UNICORN_FLYBY -> 3_800
         ReviewReactionVariant.AGAIN_WORM_WIGGLE -> 4_267
     }

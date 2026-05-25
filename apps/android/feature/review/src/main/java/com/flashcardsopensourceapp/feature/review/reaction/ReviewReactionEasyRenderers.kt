@@ -21,7 +21,12 @@ internal fun DrawScope.drawEasyReviewReaction(
         )
 
         ReviewReactionVariant.AGAIN_WILTED_FLOWER,
+        ReviewReactionVariant.AGAIN_TORNADO,
         ReviewReactionVariant.AGAIN_SNAIL_CRAWL,
+        ReviewReactionVariant.GOOD_OWL,
+        ReviewReactionVariant.GOOD_POODLE,
+        ReviewReactionVariant.GOOD_WHALE,
+        ReviewReactionVariant.GOOD_PEACOCK,
         ReviewReactionVariant.EASY_RAINBOW_STREAK,
         ReviewReactionVariant.AGAIN_WORM_WIGGLE,
         ReviewReactionVariant.EASY_CROWN_BOUNCE,

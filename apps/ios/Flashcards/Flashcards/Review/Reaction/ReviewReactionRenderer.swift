@@ -29,13 +29,6 @@ enum ReviewReactionRenderer {
                 progress: drawingProgress,
                 motionMode: motionMode
             )
-        case .againSnailCrawl:
-            drawEasyCrownBounce(
-                context: drawingContext,
-                size: drawableSize,
-                progress: drawingProgress,
-                motionMode: motionMode
-            )
         case .hardHourglassSand:
             drawHardHourglassSand(
                 context: drawingContext,
@@ -64,34 +57,6 @@ enum ReviewReactionRenderer {
                 progress: drawingProgress,
                 motionMode: motionMode
             )
-        case .goodHandDrawnCheck:
-            drawGoodHandDrawnCheck(
-                context: drawingContext,
-                size: drawableSize,
-                progress: drawingProgress,
-                motionMode: motionMode
-            )
-        case .goodLightSweep:
-            drawGoodLightSweep(
-                context: drawingContext,
-                size: drawableSize,
-                progress: drawingProgress,
-                motionMode: motionMode
-            )
-        case .goodPaperPlaneCheck:
-            drawGoodPaperPlaneCheck(
-                context: drawingContext,
-                size: drawableSize,
-                progress: drawingProgress,
-                motionMode: motionMode
-            )
-        case .goodCheckSealBounce:
-            drawGoodCheckSealBounce(
-                context: drawingContext,
-                size: drawableSize,
-                progress: drawingProgress,
-                motionMode: motionMode
-            )
         case .easySparkleBurst:
             drawEasySparkleBurst(
                 context: drawingContext,
@@ -106,28 +71,15 @@ enum ReviewReactionRenderer {
                 progress: drawingProgress,
                 motionMode: motionMode
             )
-        case .againWiltedFlower:
-            drawEasyCrownBounce(
-                context: drawingContext,
-                size: drawableSize,
-                progress: drawingProgress,
-                motionMode: motionMode
-            )
-        case .easyRainbowStreak:
-            drawEasyCrownBounce(
-                context: drawingContext,
-                size: drawableSize,
-                progress: drawingProgress,
-                motionMode: motionMode
-            )
-        case .againWormWiggle:
-            drawEasyCrownBounce(
-                context: drawingContext,
-                size: drawableSize,
-                progress: drawingProgress,
-                motionMode: motionMode
-            )
-        case .easyUnicornFlyby:
+        case .againWiltedFlower,
+             .againWormWiggle,
+             .againSnailCrawl,
+             .goodOwl,
+             .goodPoodle,
+             .goodWhale,
+             .goodPeacock,
+             .easyRainbowStreak,
+             .easyUnicornFlyby:
             drawEasyCrownBounce(
                 context: drawingContext,
                 size: drawableSize,

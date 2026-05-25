@@ -49,23 +49,43 @@ const lottieFailureExpectations: ReadonlyArray<LottieFailureExpectation> = [
     variant: "againTornado",
   },
   {
-    randomValue: 0.75,
     rating: 0,
+    randomValue: 0.75,
     variant: "againSnailCrawl",
   },
   {
-    randomValue: 0.95,
     rating: 0,
+    randomValue: 0.95,
     variant: "againWiltedFlower",
   },
   {
+    rating: 2,
+    randomValue: 0,
+    variant: "goodOwl",
+  },
+  {
+    rating: 2,
     randomValue: 0.5,
+    variant: "goodPoodle",
+  },
+  {
+    rating: 2,
+    randomValue: 0.75,
+    variant: "goodWhale",
+  },
+  {
+    rating: 2,
+    randomValue: 0.95,
+    variant: "goodPeacock",
+  },
+  {
     rating: 3,
+    randomValue: 0.5,
     variant: "easyRainbowStreak",
   },
   {
-    randomValue: 0.95,
     rating: 3,
+    randomValue: 0.95,
     variant: "easyUnicornFlyby",
   },
 ];

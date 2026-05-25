@@ -17,20 +17,15 @@ internal fun DrawScope.drawReviewReaction(
             motionMode = motionMode
         )
 
-        ReviewReactionVariant.GOOD_HAND_DRAWN_CHECK,
-        ReviewReactionVariant.GOOD_LIGHT_SWEEP,
-        ReviewReactionVariant.GOOD_PAPER_PLANE_CHECK,
-        ReviewReactionVariant.GOOD_CHECK_SEAL_BOUNCE -> drawGoodReviewReaction(
-            variant = event.variant,
-            progress = progress,
-            motionMode = motionMode
-        )
-
         ReviewReactionVariant.EASY_SPARKLE_BURST,
         ReviewReactionVariant.AGAIN_WILTED_FLOWER,
         ReviewReactionVariant.AGAIN_WORM_WIGGLE,
         ReviewReactionVariant.AGAIN_TORNADO,
         ReviewReactionVariant.AGAIN_SNAIL_CRAWL,
+        ReviewReactionVariant.GOOD_OWL,
+        ReviewReactionVariant.GOOD_POODLE,
+        ReviewReactionVariant.GOOD_WHALE,
+        ReviewReactionVariant.GOOD_PEACOCK,
         ReviewReactionVariant.EASY_RAINBOW_STREAK,
         ReviewReactionVariant.EASY_CROWN_BOUNCE,
         ReviewReactionVariant.EASY_UNICORN_FLYBY -> drawEasyReviewReaction(

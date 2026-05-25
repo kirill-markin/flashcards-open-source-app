@@ -14,6 +14,10 @@ export type ReviewReactionLottieVariant =
   | "againTornado"
   | "againSnailCrawl"
   | "againWiltedFlower"
+  | "goodOwl"
+  | "goodPoodle"
+  | "goodWhale"
+  | "goodPeacock"
   | "easyRainbowStreak"
   | "easyUnicornFlyby";
 
@@ -34,6 +38,10 @@ export function isReviewReactionLottieVariant(
     || variant === "againTornado"
     || variant === "againSnailCrawl"
     || variant === "againWiltedFlower"
+    || variant === "goodOwl"
+    || variant === "goodPoodle"
+    || variant === "goodWhale"
+    || variant === "goodPeacock"
     || variant === "easyRainbowStreak"
     || variant === "easyUnicornFlyby";
 }
@@ -63,6 +71,10 @@ export function loadReviewReactionLottieAssets(): Promise<ReviewReactionLottieAs
     import("../../../assets/review_again_tornado.json"),
     import("../../../assets/review_again_snail.json"),
     import("../../../assets/review_again_wilted_flower.json"),
+    import("../../../assets/review_good_owl.json"),
+    import("../../../assets/review_good_poodle.json"),
+    import("../../../assets/review_good_whale.json"),
+    import("../../../assets/review_good_peacock.json"),
     import("../../../assets/review_easy_rainbow.json"),
     import("../../../assets/review_easy_unicorn.json"),
   ]).then((
@@ -72,10 +84,18 @@ export function loadReviewReactionLottieAssets(): Promise<ReviewReactionLottieAs
       tornadoAnimationModule,
       snailAnimationModule,
       wiltedFlowerAnimationModule,
+      owlAnimationModule,
+      poodleAnimationModule,
+      whaleAnimationModule,
+      peacockAnimationModule,
       rainbowAnimationModule,
       unicornAnimationModule,
     ]: [
       ReviewReactionLottiePlayerModule,
+      ReviewReactionLottieAnimationModule,
+      ReviewReactionLottieAnimationModule,
+      ReviewReactionLottieAnimationModule,
+      ReviewReactionLottieAnimationModule,
       ReviewReactionLottieAnimationModule,
       ReviewReactionLottieAnimationModule,
       ReviewReactionLottieAnimationModule,
@@ -91,6 +111,10 @@ export function loadReviewReactionLottieAssets(): Promise<ReviewReactionLottieAs
         againTornado: tornadoAnimationModule.default,
         againSnailCrawl: snailAnimationModule.default,
         againWiltedFlower: wiltedFlowerAnimationModule.default,
+        goodOwl: owlAnimationModule.default,
+        goodPoodle: poodleAnimationModule.default,
+        goodWhale: whaleAnimationModule.default,
+        goodPeacock: peacockAnimationModule.default,
         easyRainbowStreak: rainbowAnimationModule.default,
         easyUnicornFlyby: unicornAnimationModule.default,
       },

@@ -31,14 +31,14 @@ class ReviewReactionVariantSelectionTest {
 
     @Test
     fun goodSelectionUsesConfiguredBoundaries() {
-        assertSelectedVariant(ReviewRating.GOOD, 0, ReviewReactionVariant.GOOD_HAND_DRAWN_CHECK)
-        assertSelectedVariant(ReviewRating.GOOD, 399, ReviewReactionVariant.GOOD_HAND_DRAWN_CHECK)
-        assertSelectedVariant(ReviewRating.GOOD, 400, ReviewReactionVariant.GOOD_LIGHT_SWEEP)
-        assertSelectedVariant(ReviewRating.GOOD, 699, ReviewReactionVariant.GOOD_LIGHT_SWEEP)
-        assertSelectedVariant(ReviewRating.GOOD, 700, ReviewReactionVariant.GOOD_PAPER_PLANE_CHECK)
-        assertSelectedVariant(ReviewRating.GOOD, 919, ReviewReactionVariant.GOOD_PAPER_PLANE_CHECK)
-        assertSelectedVariant(ReviewRating.GOOD, 920, ReviewReactionVariant.GOOD_CHECK_SEAL_BOUNCE)
-        assertSelectedVariant(ReviewRating.GOOD, 999, ReviewReactionVariant.GOOD_CHECK_SEAL_BOUNCE)
+        assertSelectedVariant(ReviewRating.GOOD, 0, ReviewReactionVariant.GOOD_OWL)
+        assertSelectedVariant(ReviewRating.GOOD, 399, ReviewReactionVariant.GOOD_OWL)
+        assertSelectedVariant(ReviewRating.GOOD, 400, ReviewReactionVariant.GOOD_POODLE)
+        assertSelectedVariant(ReviewRating.GOOD, 699, ReviewReactionVariant.GOOD_POODLE)
+        assertSelectedVariant(ReviewRating.GOOD, 700, ReviewReactionVariant.GOOD_WHALE)
+        assertSelectedVariant(ReviewRating.GOOD, 919, ReviewReactionVariant.GOOD_WHALE)
+        assertSelectedVariant(ReviewRating.GOOD, 920, ReviewReactionVariant.GOOD_PEACOCK)
+        assertSelectedVariant(ReviewRating.GOOD, 999, ReviewReactionVariant.GOOD_PEACOCK)
     }
 
     @Test
@@ -68,7 +68,7 @@ class ReviewReactionVariantSelectionTest {
         val thirdEvent = makeTestReactionEvent(
             id = "reaction-3",
             rating = ReviewRating.GOOD,
-            variant = ReviewReactionVariant.GOOD_HAND_DRAWN_CHECK
+            variant = ReviewReactionVariant.GOOD_OWL
         )
         val fourthEvent = makeTestReactionEvent(
             id = "reaction-4",

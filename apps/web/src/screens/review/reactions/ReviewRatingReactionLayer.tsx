@@ -34,6 +34,10 @@ const reviewReactionLottieContainerClassByVariant: ReviewReactionLottieContainer
   againTornado: "review-reaction-tornado-lottie-mark",
   againSnailCrawl: "review-reaction-snail-lottie-mark",
   againWiltedFlower: "review-reaction-wilted-flower-lottie-mark",
+  goodOwl: "review-reaction-owl-lottie-mark",
+  goodPoodle: "review-reaction-poodle-lottie-mark",
+  goodWhale: "review-reaction-whale-lottie-mark",
+  goodPeacock: "review-reaction-peacock-lottie-mark",
   easyRainbowStreak: "review-reaction-rainbow-lottie-mark",
   easyUnicornFlyby: "review-reaction-unicorn-lottie-mark",
 };
@@ -43,6 +47,10 @@ const reviewReactionLottieNaturalDurationMillisByVariant: Readonly<Record<Review
   againTornado: 2000,
   againSnailCrawl: 2700,
   againWiltedFlower: 2400,
+  goodOwl: 2833,
+  goodPoodle: 2800,
+  goodWhale: 2633,
+  goodPeacock: 1333,
   easyRainbowStreak: 2000,
   easyUnicornFlyby: 3800,
 };
@@ -138,48 +146,6 @@ function HardRollingBoulderReaction(): ReactElement {
       <circle className="review-reaction-dust-fill review-reaction-dust-one" cx="26" cy="76" r="4" />
       <circle className="review-reaction-dust-fill review-reaction-dust-two" cx="18" cy="72" r="3" />
       <circle className="review-reaction-dust-fill review-reaction-dust-three" cx="11" cy="78" r="2.5" />
-    </g>
-  );
-}
-
-function GoodHandDrawnCheckReaction(): ReactElement {
-  return (
-    <g className="review-reaction-check-mark">
-      <path className="review-reaction-green-shadow-stroke" d="M21 51 L41 70 L82 27" strokeWidth="12" />
-      <path className="review-reaction-green-stroke" d="M21 51 L41 70 L82 27" strokeWidth="7" />
-      <path className="review-reaction-white-stroke" d="M21 51 L41 70 L82 27" strokeWidth="2" />
-    </g>
-  );
-}
-
-function GoodLightSweepReaction(): ReactElement {
-  return (
-    <g className="review-reaction-light-sweep-mark">
-      <path className="review-reaction-yellow-stroke" d="M8 65 C29 18 58 76 92 31" strokeWidth="18" />
-      <path className="review-reaction-green-stroke" d="M8 69 C31 31 58 70 92 38" strokeWidth="9" />
-      <path className="review-reaction-white-stroke" d="M15 57 C38 32 62 58 86 32" strokeWidth="3" />
-    </g>
-  );
-}
-
-function GoodPaperPlaneCheckReaction(): ReactElement {
-  return (
-    <g className="review-reaction-plane-mark">
-      <path className="review-reaction-plane-fill" d="M73 35 L22 23 L37 47 L27 73 Z" />
-      <path className="review-reaction-green-stroke" d="M73 35 L22 23 L37 47 L27 73 Z" strokeWidth="2.6" />
-      <path className="review-reaction-blue-stroke" d="M37 47 L73 35 L22 23" strokeWidth="2" />
-      <path className="review-reaction-green-shadow-stroke" d="M48 69 L57 78 L78 55" strokeWidth="6" />
-      <path className="review-reaction-green-stroke" d="M48 69 L57 78 L78 55" strokeWidth="3.5" />
-    </g>
-  );
-}
-
-function GoodCheckSealBounceReaction(): ReactElement {
-  return (
-    <g className="review-reaction-check-seal-mark">
-      <polygon className="review-reaction-green-fill" points={makeScallopedSealPoints(50, 44, 16, 26, 0.09)} />
-      <polygon className="review-reaction-white-stroke" points={makeScallopedSealPoints(50, 44, 16, 26, 0.09)} />
-      <path className="review-reaction-white-stroke" d="M40 43 L48 51 L62 36" strokeWidth="5" />
     </g>
   );
 }
@@ -344,14 +310,11 @@ function renderReviewReactionVariant(variant: ReviewReactionVariant): ReactEleme
       return <HardYellowCrackReaction />;
     case "hardRollingBoulder":
       return <HardRollingBoulderReaction />;
-    case "goodHandDrawnCheck":
-      return <GoodHandDrawnCheckReaction />;
-    case "goodLightSweep":
-      return <GoodLightSweepReaction />;
-    case "goodPaperPlaneCheck":
-      return <GoodPaperPlaneCheckReaction />;
-    case "goodCheckSealBounce":
-      return <GoodCheckSealBounceReaction />;
+    case "goodOwl":
+    case "goodPoodle":
+    case "goodWhale":
+    case "goodPeacock":
+      return renderReviewReactionVariant(reviewReactionLottieFallbackVariant);
     case "easySparkleBurst":
       return <EasySparkleBurstReaction />;
     case "easyRainbowStreak":

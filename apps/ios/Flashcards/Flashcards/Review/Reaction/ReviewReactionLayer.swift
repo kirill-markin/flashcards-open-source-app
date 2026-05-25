@@ -9,6 +9,10 @@ private let reviewAgainWiltedFlowerAnimationAssetName: String = "ReviewAgainWilt
 private let reviewAgainWormAnimationAssetName: String = "ReviewAgainWorm"
 private let reviewAgainTornadoAnimationAssetName: String = "ReviewAgainTornado"
 private let reviewAgainSnailAnimationAssetName: String = "ReviewAgainSnail"
+private let reviewGoodOwlAnimationAssetName: String = "ReviewGoodOwl"
+private let reviewGoodPoodleAnimationAssetName: String = "ReviewGoodPoodle"
+private let reviewGoodWhaleAnimationAssetName: String = "ReviewGoodWhale"
+private let reviewGoodPeacockAnimationAssetName: String = "ReviewGoodPeacock"
 private let reviewEasyRainbowAnimationAssetName: String = "ReviewEasyRainbow"
 private let reviewEasyUnicornAnimationAssetName: String = "ReviewEasyUnicorn"
 private let reviewReactionLottieReducedMotionProgress: AnimationProgressTime = 0.55
@@ -31,6 +35,10 @@ private struct ReviewReactionLottieAnimationStore {
     let reviewAgainWormAnimation: LottieAnimation?
     let reviewAgainTornadoAnimation: LottieAnimation?
     let reviewAgainSnailAnimation: LottieAnimation?
+    let reviewGoodOwlAnimation: LottieAnimation?
+    let reviewGoodPoodleAnimation: LottieAnimation?
+    let reviewGoodWhaleAnimation: LottieAnimation?
+    let reviewGoodPeacockAnimation: LottieAnimation?
     let reviewEasyRainbowAnimation: LottieAnimation?
     let reviewEasyUnicornAnimation: LottieAnimation?
 }
@@ -72,6 +80,22 @@ private func makeReviewReactionLottieAnimationStore() -> ReviewReactionLottieAni
             assetName: reviewAgainSnailAnimationAssetName,
             assetDescription: "snail"
         ),
+        reviewGoodOwlAnimation: makeReviewReactionLottieAnimation(
+            assetName: reviewGoodOwlAnimationAssetName,
+            assetDescription: "owl"
+        ),
+        reviewGoodPoodleAnimation: makeReviewReactionLottieAnimation(
+            assetName: reviewGoodPoodleAnimationAssetName,
+            assetDescription: "poodle"
+        ),
+        reviewGoodWhaleAnimation: makeReviewReactionLottieAnimation(
+            assetName: reviewGoodWhaleAnimationAssetName,
+            assetDescription: "whale"
+        ),
+        reviewGoodPeacockAnimation: makeReviewReactionLottieAnimation(
+            assetName: reviewGoodPeacockAnimationAssetName,
+            assetDescription: "peacock"
+        ),
         reviewEasyRainbowAnimation: makeReviewReactionLottieAnimation(
             assetName: reviewEasyRainbowAnimationAssetName,
             assetDescription: "rainbow"
@@ -93,16 +117,21 @@ private func reviewReactionFallbackEvent(event: ReviewReactionEvent) -> ReviewRe
 
 private func isReviewReactionLottieVariant(variant: ReviewReactionVariant) -> Bool {
     switch variant {
-    case .againWormWiggle, .againTornado, .againSnailCrawl, .againWiltedFlower, .easyRainbowStreak, .easyUnicornFlyby:
+    case .againWormWiggle,
+         .againTornado,
+         .againSnailCrawl,
+         .againWiltedFlower,
+         .goodOwl,
+         .goodPoodle,
+         .goodWhale,
+         .goodPeacock,
+         .easyRainbowStreak,
+         .easyUnicornFlyby:
         return true
     case .hardHourglassSand,
          .hardFallingWeight,
          .hardYellowCrack,
          .hardRollingBoulder,
-         .goodHandDrawnCheck,
-         .goodLightSweep,
-         .goodPaperPlaneCheck,
-         .goodCheckSealBounce,
          .easySparkleBurst,
          .easyCrownBounce:
         return false
@@ -162,6 +191,54 @@ private func reviewReactionLottieConfiguration(
             centerY: 0.48,
             reducedMotionProgress: reviewReactionLottieReducedMotionProgress
         )
+    case .goodOwl:
+        guard let reviewGoodOwlAnimation = animationStore.reviewGoodOwlAnimation else {
+            return nil
+        }
+
+        return ReviewReactionLottieConfiguration(
+            animation: reviewGoodOwlAnimation,
+            frameScale: 0.56,
+            centerX: 0.50,
+            centerY: 0.42,
+            reducedMotionProgress: reviewReactionLottieReducedMotionProgress
+        )
+    case .goodPoodle:
+        guard let reviewGoodPoodleAnimation = animationStore.reviewGoodPoodleAnimation else {
+            return nil
+        }
+
+        return ReviewReactionLottieConfiguration(
+            animation: reviewGoodPoodleAnimation,
+            frameScale: 0.56,
+            centerX: 0.50,
+            centerY: 0.43,
+            reducedMotionProgress: reviewReactionLottieReducedMotionProgress
+        )
+    case .goodWhale:
+        guard let reviewGoodWhaleAnimation = animationStore.reviewGoodWhaleAnimation else {
+            return nil
+        }
+
+        return ReviewReactionLottieConfiguration(
+            animation: reviewGoodWhaleAnimation,
+            frameScale: 0.58,
+            centerX: 0.50,
+            centerY: 0.42,
+            reducedMotionProgress: reviewReactionLottieReducedMotionProgress
+        )
+    case .goodPeacock:
+        guard let reviewGoodPeacockAnimation = animationStore.reviewGoodPeacockAnimation else {
+            return nil
+        }
+
+        return ReviewReactionLottieConfiguration(
+            animation: reviewGoodPeacockAnimation,
+            frameScale: 0.58,
+            centerX: 0.50,
+            centerY: 0.42,
+            reducedMotionProgress: reviewReactionLottieReducedMotionProgress
+        )
     case .easyRainbowStreak:
         guard let reviewEasyRainbowAnimation = animationStore.reviewEasyRainbowAnimation else {
             return nil
@@ -190,10 +267,6 @@ private func reviewReactionLottieConfiguration(
          .hardFallingWeight,
          .hardYellowCrack,
          .hardRollingBoulder,
-         .goodHandDrawnCheck,
-         .goodLightSweep,
-         .goodPaperPlaneCheck,
-         .goodCheckSealBounce,
          .easySparkleBurst,
          .easyCrownBounce:
         return nil
@@ -231,6 +304,10 @@ struct ReviewReactionLayer: View {
             reviewAgainWormAnimation: nil,
             reviewAgainTornadoAnimation: nil,
             reviewAgainSnailAnimation: nil,
+            reviewGoodOwlAnimation: nil,
+            reviewGoodPoodleAnimation: nil,
+            reviewGoodWhaleAnimation: nil,
+            reviewGoodPeacockAnimation: nil,
             reviewEasyRainbowAnimation: nil,
             reviewEasyUnicornAnimation: nil
         )

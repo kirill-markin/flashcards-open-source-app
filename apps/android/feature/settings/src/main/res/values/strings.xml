@@ -4,6 +4,10 @@
     <string name="flashcards_support_url" translatable="false">https://flashcards-open-source-app.com/support/</string>
     <string name="flashcards_repository_url" translatable="false">https://github.com/kirill-markin/flashcards-open-source-app</string>
     <string name="third_party_notices_url" translatable="false">https://github.com/kirill-markin/flashcards-open-source-app/blob/main/THIRD_PARTY_NOTICES.md</string>
+    <string name="review_owl_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-owl-animation_12152606</string>
+    <string name="review_poodle_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-poodle-animation_12152614</string>
+    <string name="review_whale_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-whale-animation_12152600</string>
+    <string name="review_peacock_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-peacock-animation_12152610</string>
     <string name="review_snail_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-snail-animation_12152626</string>
     <string name="review_rainbow_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-rainbow-animation_12152617</string>
     <string name="review_unicorn_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-unicorn-animation_12152598</string>
@@ -452,6 +456,14 @@
     <string name="settings_open_source_title">Open source</string>
     <string name="settings_open_source_repository_title">GitHub repository</string>
     <string name="settings_open_source_repository_summary">Browse the public source code and issues.</string>
+    <string name="settings_open_source_third_party_owl_source_title">Review owl animation</string>
+    <string name="settings_open_source_third_party_owl_source_summary">Free Owl Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_poodle_source_title">Review poodle animation</string>
+    <string name="settings_open_source_third_party_poodle_source_summary">Free Poodle Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_whale_source_title">Review whale animation</string>
+    <string name="settings_open_source_third_party_whale_source_summary">Free Whale Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_peacock_source_title">Review peacock animation</string>
+    <string name="settings_open_source_third_party_peacock_source_summary">Free Peacock Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
     <string name="settings_open_source_third_party_unicorn_source_title">Review unicorn animation</string>
     <string name="settings_open_source_third_party_unicorn_source_summary">Free Unicorn Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
     <string name="settings_open_source_third_party_snail_source_title">Review snail animation</string>
