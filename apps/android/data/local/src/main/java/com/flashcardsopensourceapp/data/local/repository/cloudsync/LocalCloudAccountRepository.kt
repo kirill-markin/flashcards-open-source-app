@@ -3,18 +3,10 @@ package com.flashcardsopensourceapp.data.local.repository.cloudsync
 import com.flashcardsopensourceapp.data.local.ai.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
-import com.flashcardsopensourceapp.data.local.cloud.PendingGuestUpgradeState
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
-import com.flashcardsopensourceapp.data.local.database.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
-import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
-import com.flashcardsopensourceapp.data.local.model.CloudAccountState
-import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryReason
-import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryRequiredException
-import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryState
-import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.CloudProgressSummary
@@ -28,19 +20,11 @@ import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceResetProgressP
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceResetProgressResult
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkContext
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
-import com.flashcardsopensourceapp.data.local.model.CloudWorkspacePostAuthRoute
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
+import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
-import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
-import com.flashcardsopensourceapp.data.local.model.makeCustomCloudServiceConfiguration
-import com.flashcardsopensourceapp.data.local.model.shouldRefreshCloudIdToken
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
-import java.util.Locale
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
-import org.json.JSONObject
-
-private const val accountDeletionConfirmationTextForCloudApi: String = "delete my account"
 
 class LocalCloudAccountRepository(
     private val database: AppDatabase,
@@ -52,7 +36,84 @@ class LocalCloudAccountRepository(
     private val guestSessionStore: GuestAiSessionStore,
     private val appVersion: String
 ) : CloudAccountRepository {
-    private var isAccountDeletionRunning: Boolean = false
+    private val sessionProvider: CloudSessionProvider = CloudSessionProvider(
+        preferencesStore = preferencesStore,
+        remoteService = remoteService,
+        operationCoordinator = operationCoordinator,
+        resetCoordinator = resetCoordinator
+    )
+    private val transitionCoordinator: CloudLinkedWorkspaceTransitionCoordinator =
+        CloudLinkedWorkspaceTransitionCoordinator(
+            database = database,
+            preferencesStore = preferencesStore,
+            remoteService = remoteService,
+            syncLocalStore = syncLocalStore,
+            operationCoordinator = operationCoordinator,
+            appVersion = appVersion
+        )
+    private val signInCoordinator: CloudSignInCoordinator = CloudSignInCoordinator(
+        database = database,
+        preferencesStore = preferencesStore,
+        remoteService = remoteService,
+        syncLocalStore = syncLocalStore,
+        operationCoordinator = operationCoordinator,
+        guestSessionStore = guestSessionStore,
+        sessionProvider = sessionProvider,
+        appVersion = appVersion
+    )
+    private val workspaceLinkCoordinator: CloudWorkspaceLinkCoordinator = CloudWorkspaceLinkCoordinator(
+        database = database,
+        preferencesStore = preferencesStore,
+        remoteService = remoteService,
+        syncLocalStore = syncLocalStore,
+        operationCoordinator = operationCoordinator,
+        resetCoordinator = resetCoordinator,
+        guestSessionStore = guestSessionStore,
+        sessionProvider = sessionProvider,
+        transitionCoordinator = transitionCoordinator,
+        appVersion = appVersion
+    )
+    private val workspaceOperationsCoordinator: CloudWorkspaceOperationsCoordinator =
+        CloudWorkspaceOperationsCoordinator(
+            database = database,
+            preferencesStore = preferencesStore,
+            remoteService = remoteService,
+            syncLocalStore = syncLocalStore,
+            operationCoordinator = operationCoordinator,
+            sessionProvider = sessionProvider,
+            transitionCoordinator = transitionCoordinator,
+            appVersion = appVersion
+        )
+    private val accountDeletionCoordinator: CloudAccountDeletionCoordinator = CloudAccountDeletionCoordinator(
+        database = database,
+        preferencesStore = preferencesStore,
+        remoteService = remoteService,
+        syncLocalStore = syncLocalStore,
+        operationCoordinator = operationCoordinator,
+        resetCoordinator = resetCoordinator,
+        guestSessionStore = guestSessionStore,
+        sessionProvider = sessionProvider,
+        appVersion = appVersion
+    )
+    private val progressRemoteReader: CloudProgressRemoteReader = CloudProgressRemoteReader(
+        preferencesStore = preferencesStore,
+        remoteService = remoteService,
+        operationCoordinator = operationCoordinator,
+        guestSessionStore = guestSessionStore,
+        sessionProvider = sessionProvider
+    )
+    private val agentConnectionsReader: CloudAgentConnectionsReader = CloudAgentConnectionsReader(
+        preferencesStore = preferencesStore,
+        remoteService = remoteService,
+        sessionProvider = sessionProvider
+    )
+    private val serverConfigurationCoordinator: CloudServerConfigurationCoordinator =
+        CloudServerConfigurationCoordinator(
+            preferencesStore = preferencesStore,
+            remoteService = remoteService,
+            operationCoordinator = operationCoordinator,
+            resetCoordinator = resetCoordinator
+        )
 
     override fun observeCloudSettings(): Flow<CloudSettings> {
         return preferencesStore.observeCloudSettings()
@@ -80,531 +141,86 @@ class LocalCloudAccountRepository(
     }
 
     override suspend fun beginAccountDeletion() {
-        operationCoordinator.runExclusive {
-            preferencesStore.markAccountDeletionInProgress()
-            runAccountDeletion()
-        }
+        accountDeletionCoordinator.beginAccountDeletion()
     }
 
     override suspend fun resumePendingAccountDeletionIfNeeded() {
-        operationCoordinator.runExclusive {
-            resumePendingGuestUpgradeIfNeeded()
-            if (preferencesStore.currentAccountDeletionState() == AccountDeletionState.Hidden) {
-                return@runExclusive
-            }
-            runAccountDeletion()
-        }
+        accountDeletionCoordinator.resumePendingAccountDeletionIfNeeded()
     }
 
     override suspend fun retryPendingAccountDeletion() {
-        operationCoordinator.runExclusive {
-            preferencesStore.markAccountDeletionInProgress()
-            runAccountDeletion()
-        }
+        accountDeletionCoordinator.retryPendingAccountDeletion()
     }
 
     override suspend fun sendCode(email: String): CloudSendCodeResult {
-        val configuration = preferencesStore.currentServerConfiguration()
-        return remoteService.sendCode(
-            email = email,
-            authBaseUrl = configuration.authBaseUrl
-        )
+        return signInCoordinator.sendCode(email = email)
     }
 
     override suspend fun prepareVerifiedSignIn(credentials: StoredCloudCredentials): CloudWorkspaceLinkContext {
-        return operationCoordinator.runExclusive {
-            if (preferencesStore.loadCloudCredentialRecoveryState() == null) {
-                resumePendingGuestUpgradeIfNeeded()
-            }
-            val configuration = preferencesStore.currentServerConfiguration()
-            buildCloudWorkspaceLinkContext(
-                credentials = credentials,
-                configuration = configuration
-            )
-        }
+        return signInCoordinator.prepareVerifiedSignIn(credentials = credentials)
     }
 
     override suspend fun verifyCode(challenge: CloudOtpChallenge, code: String): CloudWorkspaceLinkContext {
-        return operationCoordinator.runExclusive {
-            val recoveryState = preferencesStore.loadCloudCredentialRecoveryState()
-            if (recoveryState?.reason == CloudCredentialRecoveryReason.INVALID_STORED_STATE) {
-                requirePendingGuestUpgradeStateIsDecodable()
-                return@runExclusive invalidStoredRecoveryLinkContext(
-                    credentials = blockedPostAuthRecoveryCredentials()
-                )
-            }
-            if (recoveryState == null) {
-                resumePendingGuestUpgradeIfNeeded()
-            }
-            val configuration = preferencesStore.currentServerConfiguration()
-            val credentials = remoteService.verifyCode(
-                challenge = challenge,
-                code = code,
-                authBaseUrl = configuration.authBaseUrl
-            )
-            val linkContext = buildCloudWorkspaceLinkContext(
-                credentials = credentials,
-                configuration = configuration
-            )
-            if (linkContext.guestUpgradeMode != null) {
-                markGuestUpgradePreparationState()
-            }
-            linkContext
-        }
-    }
-
-    /**
-     * Review accounts can skip OTP and return verified credentials
-     * directly from `sendCode()`. The UI still needs the normal post-auth link
-     * context so the live smoke can keep one continuous cross-screen story.
-     *
-     * The post-auth chooser must be driven by the remote cloud selection, not
-     * by whatever local workspace shell currently exists on Android.
-     */
-    private suspend fun buildCloudWorkspaceLinkContext(
-        credentials: StoredCloudCredentials,
-        configuration: CloudServiceConfiguration
-    ): CloudWorkspaceLinkContext {
-        val recoveryState = preferencesStore.loadCloudCredentialRecoveryState()
-        if (recoveryState != null) {
-            requirePendingGuestUpgradeStateIsDecodable()
-            return buildCloudWorkspaceRecoveryLinkContext(
-                credentials = credentials,
-                configuration = configuration,
-                recoveryState = recoveryState
-            )
-        }
-
-        val accountSnapshot = fetchCloudAccount(credentials = credentials, configuration = configuration)
-        val guestSession = activeGuestSession(configuration = configuration)
-        val guestUpgradeMode = if (guestSession == null) {
-            null
-        } else {
-            remoteService.prepareGuestUpgrade(
-                apiBaseUrl = configuration.apiBaseUrl,
-                bearerToken = credentials.idToken,
-                guestToken = guestSession.guestToken
-            )
-        }
-        return CloudWorkspaceLinkContext(
-            userId = accountSnapshot.userId,
-            email = accountSnapshot.email,
-            credentials = credentials,
-            workspaces = accountSnapshot.workspaces,
-            postAuthRoute = CloudWorkspacePostAuthRoute.NONE,
-            guestUpgradeMode = guestUpgradeMode,
-            preferredWorkspaceId = resolvePreferredPostAuthWorkspaceId(workspaces = accountSnapshot.workspaces)
+        return signInCoordinator.verifyCode(
+            challenge = challenge,
+            code = code
         )
-    }
-
-    private suspend fun buildCloudWorkspaceRecoveryLinkContext(
-        credentials: StoredCloudCredentials,
-        configuration: CloudServiceConfiguration,
-        recoveryState: CloudCredentialRecoveryState
-    ): CloudWorkspaceLinkContext {
-        if (recoveryState.reason == CloudCredentialRecoveryReason.INVALID_STORED_STATE) {
-            return invalidStoredRecoveryLinkContext(credentials = credentials)
-        }
-
-        val accountSnapshot = fetchCloudAccount(credentials = credentials, configuration = configuration)
-        return when (recoveryState.reason) {
-            CloudCredentialRecoveryReason.LINKED_CREDENTIALS_MISSING -> {
-                val route = if (recoveryState.previousCloudState == CloudAccountState.GUEST) {
-                    CloudWorkspacePostAuthRoute.PENDING_GUEST_UPGRADE_RECOVERY
-                } else {
-                    CloudWorkspacePostAuthRoute.LINKED_CREDENTIAL_RESTORE
-                }
-                CloudWorkspaceLinkContext(
-                    userId = accountSnapshot.userId,
-                    email = accountSnapshot.email,
-                    credentials = credentials,
-                    workspaces = accountSnapshot.workspaces,
-                    postAuthRoute = route,
-                    guestUpgradeMode = null,
-                    preferredWorkspaceId = resolveLinkedCredentialRecoveryPreferredWorkspaceIdOrNull(
-                        recoveryState = recoveryState,
-                        configuration = configuration,
-                        accountSnapshot = accountSnapshot
-                    )
-                )
-            }
-
-            CloudCredentialRecoveryReason.GUEST_SESSION_MISSING -> CloudWorkspaceLinkContext(
-                userId = accountSnapshot.userId,
-                email = accountSnapshot.email,
-                credentials = credentials,
-                workspaces = accountSnapshot.workspaces,
-                postAuthRoute = CloudWorkspacePostAuthRoute.GUEST_LOCAL_RECOVERY,
-                guestUpgradeMode = null,
-                preferredWorkspaceId = resolvePreferredPostAuthWorkspaceId(workspaces = accountSnapshot.workspaces)
-            )
-
-            CloudCredentialRecoveryReason.INVALID_STORED_STATE -> error(
-                "Invalid recovery state must be handled before fetching a cloud account."
-            )
-        }
-    }
-
-    private fun invalidStoredRecoveryLinkContext(
-        credentials: StoredCloudCredentials
-    ): CloudWorkspaceLinkContext {
-        return CloudWorkspaceLinkContext(
-            userId = "",
-            email = null,
-            credentials = credentials,
-            workspaces = emptyList(),
-            postAuthRoute = CloudWorkspacePostAuthRoute.INVALID_STORED_STATE,
-            guestUpgradeMode = null,
-            preferredWorkspaceId = null
-        )
-    }
-
-    private fun blockedPostAuthRecoveryCredentials(): StoredCloudCredentials {
-        return StoredCloudCredentials(
-            refreshToken = "",
-            idToken = "",
-            idTokenExpiresAtMillis = 0L
-        )
-    }
-
-    private fun requirePendingGuestUpgradeStateIsDecodable() {
-        preferencesStore.loadPendingGuestUpgrade()
     }
 
     override suspend fun completeCloudLink(
         linkContext: CloudWorkspaceLinkContext,
         selection: CloudWorkspaceLinkSelection
     ): CloudWorkspaceSummary {
-        return operationCoordinator.runExclusive {
-            val recoveryState = preferencesStore.loadCloudCredentialRecoveryState()
-            requirePostAuthRouteAllowsCloudLinkCompletion(
-                linkContext = linkContext,
-                recoveryState = recoveryState,
-                selection = selection
-            )
-            if (linkContext.postAuthRoute == CloudWorkspacePostAuthRoute.GUEST_LOCAL_RECOVERY) {
-                return@runExclusive completeGuestLocalRecoveryCloudLink(
-                    linkContext = linkContext,
-                    recoveryState = requireActiveCloudCredentialRecoveryState(recoveryState = recoveryState),
-                    selection = selection
-                )
-            }
-            val resumedGuestUpgrade = if (recoveryState == null) {
-                resumePendingGuestUpgradeIfNeeded()
-            } else {
-                null
-            }
-            if (resumedGuestUpgrade != null) {
-                return@runExclusive resumedGuestUpgrade
-            }
-            val authenticatedSession = authenticatedSession(linkContext = linkContext)
-            requireCloudLinkMatchesCredentialRecoveryBeforeSideEffects(
-                recoveryState = recoveryState,
-                authenticatedSession = authenticatedSession
-            )
-            requireWorkspaceSelectionMatchesCredentialRecoveryBeforeSideEffects(
-                recoveryState = recoveryState,
-                selection = selection
-            )
-            val selectedWorkspace = resolveWorkspaceSelection(
-                linkContext = linkContext,
-                authenticatedSession = authenticatedSession,
-                selection = selection
-            )
-            if (linkContext.postAuthRoute == CloudWorkspacePostAuthRoute.LINKED_CREDENTIAL_RESTORE) {
-                return@runExclusive completeLinkedCredentialRecoveryCloudLink(
-                    authenticatedSession = authenticatedSession,
-                    selectedWorkspace = selectedWorkspace
-                )
-            }
-            clearGuestSessionsIfNeeded()
-            applyLinkedWorkspace(
-                accountSnapshot = authenticatedSession.accountSnapshot,
-                bearerToken = authenticatedSession.credentials.idToken,
-                selectedWorkspace = selectedWorkspace
-            )
-            preferencesStore.saveCredentials(authenticatedSession.credentials)
-            preferencesStore.clearCloudCredentialRecoveryState()
-            selectedWorkspace
-        }
+        return workspaceLinkCoordinator.completeCloudLink(
+            linkContext = linkContext,
+            selection = selection
+        )
     }
 
     override suspend fun completeGuestUpgrade(
         linkContext: CloudWorkspaceLinkContext,
         selection: CloudWorkspaceLinkSelection
     ): CloudWorkspaceSummary {
-        return operationCoordinator.runExclusive {
-            require(linkContext.postAuthRoute == CloudWorkspacePostAuthRoute.NONE) {
-                "Guest upgrade cannot run while post-auth recovery is active."
-            }
-            val recoveryState = preferencesStore.loadCloudCredentialRecoveryState()
-            if (recoveryState != null) {
-                throw CloudCredentialRecoveryRequiredException(recoveryState = recoveryState)
-            }
-            val resumedGuestUpgrade = resumePendingGuestUpgradeIfNeeded()
-            if (resumedGuestUpgrade != null) {
-                return@runExclusive resumedGuestUpgrade
-            }
-            val authenticatedSession = authenticatedSession(linkContext = linkContext)
-            val configuration = preferencesStore.currentServerConfiguration()
-            val guestSession = requireNotNull(activeGuestSession(configuration = configuration)) {
-                "Guest AI session is unavailable."
-            }
-            val guestUpgradeMode = requireNotNull(linkContext.guestUpgradeMode) {
-                "Guest upgrade requires prepared guest upgrade context."
-            }
-            val validatedSelection = validateWorkspaceSelection(
-                linkContext = linkContext,
-                selection = selection
-            )
-            preferencesStore.runWithLocalOutboxWritesBlocked(
-                reason = "Guest upgrade is finishing. Wait for account linking to complete before changing cards."
-            ) {
-                drainGuestWorkspaceBeforeUpgradeComplete(
-                    configuration = configuration,
-                    guestSession = guestSession
-                )
-                val pendingGuestUpgradeState = PendingGuestUpgradeState(
-                    configuration = configuration,
-                    credentials = authenticatedSession.credentials,
-                    accountSnapshot = authenticatedSession.accountSnapshot,
-                    guestSession = guestSession,
-                    guestUpgradeMode = guestUpgradeMode,
-                    selection = validatedSelection,
-                    completion = null
-                )
-                preferencesStore.savePendingGuestUpgrade(pendingGuestUpgradeState = pendingGuestUpgradeState)
-                requireNotNull(resumePendingGuestUpgradeIfNeeded()) {
-                    "Pending guest upgrade recovery did not find the saved upgrade state."
-                }
-            }
-        }
+        return workspaceLinkCoordinator.completeGuestUpgrade(
+            linkContext = linkContext,
+            selection = selection
+        )
     }
 
     override suspend fun completeLinkedWorkspaceTransition(
         selection: CloudWorkspaceLinkSelection
     ): CloudWorkspaceSummary {
-        return operationCoordinator.runExclusive {
-            val resumedGuestUpgrade = resumePendingGuestUpgradeIfNeeded()
-            if (resumedGuestUpgrade != null) {
-                return@runExclusive resumedGuestUpgrade
-            }
-            val authenticatedSession = authenticatedSession()
-            val selectedWorkspace = when (selection) {
-                is CloudWorkspaceLinkSelection.Existing -> {
-                    require(authenticatedSession.accountSnapshot.workspaces.any { workspace ->
-                        workspace.workspaceId == selection.workspaceId
-                    }) {
-                        "Selected workspace is unavailable. Refresh the workspace list and try again."
-                    }
-                    remoteService.selectWorkspace(
-                        apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-                        bearerToken = authenticatedSession.credentials.idToken,
-                        workspaceId = selection.workspaceId
-                    )
-                }
-
-                CloudWorkspaceLinkSelection.CreateNew -> remoteService.createWorkspace(
-                    apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-                    bearerToken = authenticatedSession.credentials.idToken,
-                    name = "Personal"
-                )
-            }
-            applyLinkedWorkspaceAndSync(
-                authenticatedSession = authenticatedSession,
-                selectedWorkspace = selectedWorkspace
-            )
-            selectedWorkspace
-        }
+        return workspaceLinkCoordinator.completeLinkedWorkspaceTransition(selection = selection)
     }
 
     override suspend fun resetInvalidCloudCredentialRecoveryState() {
-        operationCoordinator.runExclusive {
-            val recoveryState = preferencesStore.loadCloudCredentialRecoveryState() ?: return@runExclusive
-            require(recoveryState.reason == CloudCredentialRecoveryReason.INVALID_STORED_STATE) {
-                "Invalid cloud credential recovery reset requires an invalid stored recovery state."
-            }
-            resetCoordinator.disconnectCloudIdentityPreservingLocalState()
-            preferencesStore.clearCloudCredentialRecoveryState()
-        }
+        workspaceLinkCoordinator.resetInvalidCloudCredentialRecoveryState()
     }
 
     override suspend fun logout() {
-        operationCoordinator.runExclusive {
-            resetCoordinator.resetLocalStateForCloudIdentityChange()
-        }
+        workspaceLinkCoordinator.logout()
     }
 
     override suspend fun renameCurrentWorkspace(name: String): CloudWorkspaceSummary {
-        return operationCoordinator.runExclusive {
-            require(preferencesStore.currentCloudSettings().cloudState == CloudAccountState.LINKED) {
-                "Workspace rename is available only for linked cloud workspaces."
-            }
-            val authenticatedSession = authenticatedSession()
-            val workspace = requireCurrentWorkspace(
-                database = database,
-                preferencesStore = preferencesStore,
-                missingWorkspaceMessage = "Workspace rename requires a current local workspace."
-            )
-            val trimmedName = name.trim()
-            require(trimmedName.isNotEmpty()) {
-                "Workspace name is required."
-            }
-
-            val renamedWorkspace = remoteService.renameWorkspace(
-                apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-                bearerToken = authenticatedSession.credentials.idToken,
-                workspaceId = workspace.workspaceId,
-                name = trimmedName
-            )
-            database.workspaceDao().updateWorkspace(
-                workspace.copy(name = renamedWorkspace.name)
-            )
-            renamedWorkspace
-        }
+        return workspaceOperationsCoordinator.renameCurrentWorkspace(name = name)
     }
 
     override suspend fun loadCurrentWorkspaceDeletePreview(): CloudWorkspaceDeletePreview {
-        require(preferencesStore.currentCloudSettings().cloudState == CloudAccountState.LINKED) {
-            "Workspace deletion is available only for linked cloud workspaces."
-        }
-        val authenticatedSession = authenticatedSession()
-        val workspaceId = requireCurrentWorkspace(
-            database = database,
-            preferencesStore = preferencesStore,
-            missingWorkspaceMessage = "Workspace deletion requires a current local workspace."
-        ).workspaceId
-        return remoteService.loadWorkspaceDeletePreview(
-            apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-            bearerToken = authenticatedSession.credentials.idToken,
-            workspaceId = workspaceId
-        )
+        return workspaceOperationsCoordinator.loadCurrentWorkspaceDeletePreview()
     }
 
     override suspend fun deleteCurrentWorkspace(confirmationText: String): CloudWorkspaceDeleteResult {
-        return operationCoordinator.runExclusive {
-            require(preferencesStore.currentCloudSettings().cloudState == CloudAccountState.LINKED) {
-                "Workspace deletion is available only for linked cloud workspaces."
-            }
-            val authenticatedSession = authenticatedSession()
-            val currentWorkspaceId = requireCurrentWorkspace(
-                database = database,
-                preferencesStore = preferencesStore,
-                missingWorkspaceMessage = "Workspace deletion requires a current local workspace."
-            ).workspaceId
-            val result = remoteService.deleteWorkspace(
-                apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-                bearerToken = authenticatedSession.credentials.idToken,
-                workspaceId = currentWorkspaceId,
-                confirmationText = confirmationText
-            )
-
-            val localReplacementWorkspace = syncLocalStore.migrateLocalShellToLinkedWorkspace(
-                workspace = result.workspace,
-                remoteWorkspaceIsEmpty = false
-            )
-            requireLocalWorkspaceSelection(
-                stage = "after local replacement for delete",
-                expectedWorkspaceId = result.workspace.workspaceId,
-                actualWorkspaceId = localReplacementWorkspace.workspaceId
-            )
-            preferencesStore.updateCloudSettings(
-                cloudState = CloudAccountState.LINKED,
-                linkedUserId = authenticatedSession.accountSnapshot.userId,
-                linkedWorkspaceId = result.workspace.workspaceId,
-                linkedEmail = authenticatedSession.accountSnapshot.email,
-                activeWorkspaceId = result.workspace.workspaceId
-            )
-            requireTransitionInvariant(
-                stage = "after prefs update for delete",
-                expectedWorkspaceId = result.workspace.workspaceId
-            )
-            runInitialLinkedWorkspaceSync(
-                authenticatedSession = authenticatedSession,
-                workspaceId = result.workspace.workspaceId
-            )
-            requireTransitionInvariant(
-                stage = "after initial sync for delete",
-                expectedWorkspaceId = result.workspace.workspaceId
-            )
-            result
-        }
+        return workspaceOperationsCoordinator.deleteCurrentWorkspace(confirmationText = confirmationText)
     }
 
     override suspend fun loadCurrentWorkspaceResetProgressPreview(): CloudWorkspaceResetProgressPreview {
-        require(preferencesStore.currentCloudSettings().cloudState == CloudAccountState.LINKED) {
-            "Workspace progress reset is available only for linked cloud workspaces."
-        }
-        return operationCoordinator.runExclusive {
-            val authenticatedSession = authenticatedSession()
-            val workspaceId = requireCurrentWorkspace(
-                database = database,
-                preferencesStore = preferencesStore,
-                missingWorkspaceMessage = "Workspace progress reset requires a current local workspace."
-            ).workspaceId
-            runCloudSyncCore(
-                cloudSettings = preferencesStore.currentCloudSettings(),
-                workspaceId = workspaceId,
-                syncSession = CloudSyncSession(
-                    apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-                    authorizationHeader = "Bearer ${authenticatedSession.credentials.idToken}"
-                ),
-                appVersion = appVersion,
-                remoteService = remoteService,
-                syncLocalStore = syncLocalStore,
-                workspaceForkRecoveryMode = CloudWorkspaceForkRecoveryMode.ENABLED
-            )
-            remoteService.loadWorkspaceResetProgressPreview(
-                apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-                bearerToken = authenticatedSession.credentials.idToken,
-                workspaceId = workspaceId
-            )
-        }
+        return workspaceOperationsCoordinator.loadCurrentWorkspaceResetProgressPreview()
     }
 
-    override suspend fun resetCurrentWorkspaceProgress(confirmationText: String): CloudWorkspaceResetProgressResult {
-        return operationCoordinator.runExclusive {
-            require(preferencesStore.currentCloudSettings().cloudState == CloudAccountState.LINKED) {
-                "Workspace progress reset is available only for linked cloud workspaces."
-            }
-            val authenticatedSession = authenticatedSession()
-            val currentWorkspaceId = requireCurrentWorkspace(
-                database = database,
-                preferencesStore = preferencesStore,
-                missingWorkspaceMessage = "Workspace progress reset requires a current local workspace."
-            ).workspaceId
-            runCloudSyncCore(
-                cloudSettings = preferencesStore.currentCloudSettings(),
-                workspaceId = currentWorkspaceId,
-                syncSession = CloudSyncSession(
-                    apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-                    authorizationHeader = "Bearer ${authenticatedSession.credentials.idToken}"
-                ),
-                appVersion = appVersion,
-                remoteService = remoteService,
-                syncLocalStore = syncLocalStore,
-                workspaceForkRecoveryMode = CloudWorkspaceForkRecoveryMode.ENABLED
-            )
-            val result = remoteService.resetWorkspaceProgress(
-                apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-                bearerToken = authenticatedSession.credentials.idToken,
-                workspaceId = currentWorkspaceId,
-                confirmationText = confirmationText
-            )
-            runCloudSyncCore(
-                cloudSettings = preferencesStore.currentCloudSettings(),
-                workspaceId = currentWorkspaceId,
-                syncSession = CloudSyncSession(
-                    apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-                    authorizationHeader = "Bearer ${authenticatedSession.credentials.idToken}"
-                ),
-                appVersion = appVersion,
-                remoteService = remoteService,
-                syncLocalStore = syncLocalStore,
-                workspaceForkRecoveryMode = CloudWorkspaceForkRecoveryMode.ENABLED
-            )
-            result
-        }
+    override suspend fun resetCurrentWorkspaceProgress(
+        confirmationText: String
+    ): CloudWorkspaceResetProgressResult {
+        return workspaceOperationsCoordinator.resetCurrentWorkspaceProgress(confirmationText = confirmationText)
     }
 
     override suspend fun loadProgressSeries(
@@ -612,957 +228,54 @@ class LocalCloudAccountRepository(
         from: String,
         to: String
     ): CloudProgressSeries {
-        return operationCoordinator.runExclusive {
-            val progressSession = progressSession()
-            remoteService.loadProgressSeries(
-                apiBaseUrl = progressSession.apiBaseUrl,
-                authorizationHeader = progressSession.authorizationHeader,
-                timeZone = timeZone,
-                from = from,
-                to = to
-            )
-        }
+        return progressRemoteReader.loadProgressSeries(
+            timeZone = timeZone,
+            from = from,
+            to = to
+        )
     }
 
-    override suspend fun loadProgressSummary(
-        timeZone: String,
-    ): CloudProgressSummary {
-        return operationCoordinator.runExclusive {
-            val progressSession = progressSession()
-            remoteService.loadProgressSummary(
-                apiBaseUrl = progressSession.apiBaseUrl,
-                authorizationHeader = progressSession.authorizationHeader,
-                timeZone = timeZone,
-            )
-        }
+    override suspend fun loadProgressSummary(timeZone: String): CloudProgressSummary {
+        return progressRemoteReader.loadProgressSummary(timeZone = timeZone)
     }
 
-    override suspend fun loadProgressReviewSchedule(
-        timeZone: String
-    ): CloudProgressReviewSchedule {
-        return operationCoordinator.runExclusive {
-            val progressSession = progressSession()
-            remoteService.loadProgressReviewSchedule(
-                apiBaseUrl = progressSession.apiBaseUrl,
-                authorizationHeader = progressSession.authorizationHeader,
-                timeZone = timeZone
-            )
-        }
+    override suspend fun loadProgressReviewSchedule(timeZone: String): CloudProgressReviewSchedule {
+        return progressRemoteReader.loadProgressReviewSchedule(timeZone = timeZone)
     }
 
     override suspend fun deleteAccount(confirmationText: String) {
-        operationCoordinator.runExclusive {
-            val authenticatedSession = authenticatedSession()
-            try {
-                remoteService.deleteAccount(
-                    apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-                    bearerToken = authenticatedSession.credentials.idToken,
-                    confirmationText = confirmationText
-                )
-            } catch (error: Exception) {
-                if (isRemoteAccountDeletedError(error = error)) {
-                    resetCoordinator.resetLocalStateForCloudIdentityChange()
-                    return@runExclusive
-                }
-                throw error
-            }
-            resetCoordinator.resetLocalStateForCloudIdentityChange()
-        }
+        accountDeletionCoordinator.deleteAccount(confirmationText = confirmationText)
     }
 
     override suspend fun listLinkedWorkspaces(): List<CloudWorkspaceSummary> {
-        val authenticatedSession = authenticatedSession()
-        return remoteService.listLinkedWorkspaces(
-            apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-            bearerToken = authenticatedSession.credentials.idToken
-        )
+        return workspaceOperationsCoordinator.listLinkedWorkspaces()
     }
 
     override suspend fun switchLinkedWorkspace(selection: CloudWorkspaceLinkSelection): CloudWorkspaceSummary {
-        return completeLinkedWorkspaceTransition(selection = selection)
+        return workspaceLinkCoordinator.completeLinkedWorkspaceTransition(selection = selection)
     }
 
     override suspend fun listAgentConnections(): AgentApiKeyConnectionsResult {
-        require(preferencesStore.currentCloudSettings().cloudState == CloudAccountState.LINKED) {
-            "Agent connections are available only for linked cloud accounts."
-        }
-        val authenticatedSession = authenticatedSession()
-        return remoteService.listAgentConnections(
-            apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-            bearerToken = authenticatedSession.credentials.idToken
-        )
+        return agentConnectionsReader.listAgentConnections()
     }
 
     override suspend fun revokeAgentConnection(connectionId: String): AgentApiKeyConnectionsResult {
-        require(preferencesStore.currentCloudSettings().cloudState == CloudAccountState.LINKED) {
-            "Agent connections are available only for linked cloud accounts."
-        }
-        val authenticatedSession = authenticatedSession()
-        return remoteService.revokeAgentConnection(
-            apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-            bearerToken = authenticatedSession.credentials.idToken,
-            connectionId = connectionId
-        )
+        return agentConnectionsReader.revokeAgentConnection(connectionId = connectionId)
     }
 
     override suspend fun currentServerConfiguration(): CloudServiceConfiguration {
-        return preferencesStore.currentServerConfiguration()
+        return serverConfigurationCoordinator.currentServerConfiguration()
     }
 
     override suspend fun validateCustomServer(customOrigin: String): CloudServiceConfiguration {
-        val configuration = makeCustomCloudServiceConfiguration(customOrigin = customOrigin)
-        remoteService.validateConfiguration(configuration)
-        return configuration
+        return serverConfigurationCoordinator.validateCustomServer(customOrigin = customOrigin)
     }
 
     override suspend fun applyCustomServer(configuration: CloudServiceConfiguration) {
-        operationCoordinator.runExclusive {
-            preferencesStore.applyCustomServer(configuration)
-            resetCoordinator.resetLocalStateForCloudIdentityChange()
-        }
+        serverConfigurationCoordinator.applyCustomServer(configuration = configuration)
     }
 
     override suspend fun resetToOfficialServer() {
-        operationCoordinator.runExclusive {
-            preferencesStore.resetToOfficialServer()
-            resetCoordinator.resetLocalStateForCloudIdentityChange()
-        }
-    }
-
-    private suspend fun runAccountDeletion() {
-        if (isAccountDeletionRunning) {
-            return
-        }
-
-        isAccountDeletionRunning = true
-        try {
-            val authenticatedSession = authenticatedSession()
-            try {
-                remoteService.deleteAccount(
-                    apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-                    bearerToken = authenticatedSession.credentials.idToken,
-                    confirmationText = accountDeletionConfirmationTextForCloudApi
-                )
-            } catch (error: Exception) {
-                if (isRemoteAccountDeletedError(error = error).not()) {
-                    preferencesStore.markAccountDeletionFailed(
-                        message = error.message ?: "Account deletion failed."
-                    )
-                    return
-                }
-            }
-            resetCoordinator.resetLocalStateForCloudIdentityChange()
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            if (isRemoteAccountDeletedError(error = error)) {
-                resetCoordinator.resetLocalStateForCloudIdentityChange()
-                return
-            }
-            preferencesStore.markAccountDeletionFailed(
-                message = error.message ?: "Account deletion failed."
-            )
-        } finally {
-            isAccountDeletionRunning = false
-        }
-    }
-
-    private suspend fun authenticatedSession(): AuthenticatedCloudSession {
-        try {
-            val configuration = preferencesStore.currentServerConfiguration()
-            val storedCredentials = requireNotNull(preferencesStore.loadCredentials()) {
-                "Cloud account is not signed in."
-            }
-
-            val refreshedCredentials = if (
-                shouldRefreshCloudIdToken(
-                    idTokenExpiresAtMillis = storedCredentials.idTokenExpiresAtMillis,
-                    nowMillis = System.currentTimeMillis()
-                )
-            ) {
-                remoteService.refreshIdToken(
-                    refreshToken = storedCredentials.refreshToken,
-                    authBaseUrl = configuration.authBaseUrl
-                ).also(preferencesStore::saveCredentials)
-            } else {
-                storedCredentials
-            }
-            val accountSnapshot = fetchCloudAccount(refreshedCredentials, configuration)
-
-            return AuthenticatedCloudSession(
-                configuration = configuration,
-                credentials = refreshedCredentials,
-                accountSnapshot = accountSnapshot
-            )
-        } catch (error: Exception) {
-            if (isRemoteAccountDeletedError(error = error)) {
-                resetCoordinator.resetLocalStateForCloudIdentityChange()
-                throw IllegalStateException("Your account has already been deleted.")
-            }
-            throw error
-        }
-    }
-
-    private suspend fun authenticatedSession(linkContext: CloudWorkspaceLinkContext): AuthenticatedCloudSession {
-        try {
-            val configuration = preferencesStore.currentServerConfiguration()
-            val refreshedCredentials = if (
-                shouldRefreshCloudIdToken(
-                    idTokenExpiresAtMillis = linkContext.credentials.idTokenExpiresAtMillis,
-                    nowMillis = System.currentTimeMillis()
-                )
-            ) {
-                remoteService.refreshIdToken(
-                    refreshToken = linkContext.credentials.refreshToken,
-                    authBaseUrl = configuration.authBaseUrl
-                )
-            } else {
-                linkContext.credentials
-            }
-            val accountSnapshot = fetchCloudAccount(refreshedCredentials, configuration)
-            require(accountSnapshot.userId == linkContext.userId) {
-                "Cloud account changed during workspace setup. Start sign-in again."
-            }
-
-            return AuthenticatedCloudSession(
-                configuration = configuration,
-                credentials = refreshedCredentials,
-                accountSnapshot = accountSnapshot
-            )
-        } catch (error: Exception) {
-            if (isRemoteAccountDeletedError(error = error)) {
-                resetCoordinator.resetLocalStateForCloudIdentityChange()
-                throw IllegalStateException("Your account has already been deleted.")
-            }
-            throw error
-        }
-    }
-
-    private fun requirePostAuthRouteAllowsCloudLinkCompletion(
-        linkContext: CloudWorkspaceLinkContext,
-        recoveryState: CloudCredentialRecoveryState?,
-        selection: CloudWorkspaceLinkSelection
-    ) {
-        when (linkContext.postAuthRoute) {
-            CloudWorkspacePostAuthRoute.NONE -> {
-                if (recoveryState != null) {
-                    throw CloudCredentialRecoveryRequiredException(recoveryState = recoveryState)
-                }
-            }
-
-            CloudWorkspacePostAuthRoute.LINKED_CREDENTIAL_RESTORE -> {
-                val linkedRecoveryState = requireActiveCloudCredentialRecoveryState(
-                    recoveryState = recoveryState
-                )
-                if (linkedRecoveryState.reason != CloudCredentialRecoveryReason.LINKED_CREDENTIALS_MISSING) {
-                    throw CloudCredentialRecoveryRequiredException(recoveryState = linkedRecoveryState)
-                }
-                requireWorkspaceSelectionMatchesCredentialRecoveryBeforeSideEffects(
-                    recoveryState = linkedRecoveryState,
-                    selection = selection
-                )
-            }
-
-            CloudWorkspacePostAuthRoute.GUEST_LOCAL_RECOVERY -> {
-                requireGuestLocalRecoveryAllowsCreateNewCompletion(
-                    recoveryState = requireActiveCloudCredentialRecoveryState(
-                        recoveryState = recoveryState
-                    ),
-                    selection = selection
-                )
-            }
-
-            CloudWorkspacePostAuthRoute.PENDING_GUEST_UPGRADE_RECOVERY,
-            CloudWorkspacePostAuthRoute.INVALID_STORED_STATE -> {
-                throw CloudCredentialRecoveryRequiredException(
-                    recoveryState = requireActiveCloudCredentialRecoveryState(
-                        recoveryState = recoveryState
-                    )
-                )
-            }
-        }
-    }
-
-    private fun requireActiveCloudCredentialRecoveryState(
-        recoveryState: CloudCredentialRecoveryState?
-    ): CloudCredentialRecoveryState {
-        return requireNotNull(recoveryState) {
-            "Cloud credential recovery state changed during sign-in. Start sign-in again."
-        }
-    }
-
-    private fun requireGuestLocalRecoveryAllowsCreateNewCompletion(
-        recoveryState: CloudCredentialRecoveryState,
-        selection: CloudWorkspaceLinkSelection
-    ) {
-        if (
-            recoveryState.reason != CloudCredentialRecoveryReason.GUEST_SESSION_MISSING ||
-            recoveryState.previousCloudState != CloudAccountState.GUEST
-        ) {
-            throw CloudCredentialRecoveryRequiredException(recoveryState = recoveryState)
-        }
-        if (selection != CloudWorkspaceLinkSelection.CreateNew) {
-            throw CloudCredentialRecoveryRequiredException(recoveryState = recoveryState)
-        }
-    }
-
-    private fun requireCloudLinkMatchesCredentialRecoveryBeforeSideEffects(
-        recoveryState: CloudCredentialRecoveryState?,
-        authenticatedSession: AuthenticatedCloudSession
-    ) {
-        when (recoveryState?.reason) {
-            null -> return
-            CloudCredentialRecoveryReason.LINKED_CREDENTIALS_MISSING -> {
-                if (
-                    linkedCredentialRecoveryConfigurationMatches(
-                        recoveryState = recoveryState,
-                        configuration = authenticatedSession.configuration
-                    ).not() ||
-                    linkedCredentialRecoveryIdentityMatches(
-                        recoveryState = recoveryState,
-                        userId = authenticatedSession.accountSnapshot.userId,
-                        email = authenticatedSession.accountSnapshot.email
-                    ).not()
-                ) {
-                    throw CloudCredentialRecoveryRequiredException(recoveryState = recoveryState)
-                }
-            }
-
-            CloudCredentialRecoveryReason.GUEST_SESSION_MISSING,
-            CloudCredentialRecoveryReason.INVALID_STORED_STATE -> {
-                throw CloudCredentialRecoveryRequiredException(recoveryState = recoveryState)
-            }
-        }
-    }
-
-    private fun resolveLinkedCredentialRecoveryPreferredWorkspaceIdOrNull(
-        recoveryState: CloudCredentialRecoveryState,
-        configuration: CloudServiceConfiguration,
-        accountSnapshot: CloudAccountSnapshot
-    ): String? {
-        if (
-            recoveryState.reason != CloudCredentialRecoveryReason.LINKED_CREDENTIALS_MISSING ||
-            recoveryState.previousCloudState != CloudAccountState.LINKED ||
-            linkedCredentialRecoveryConfigurationMatches(
-                recoveryState = recoveryState,
-                configuration = configuration
-            ).not() ||
-            linkedCredentialRecoveryIdentityMatches(
-                recoveryState = recoveryState,
-                userId = accountSnapshot.userId,
-                email = accountSnapshot.email
-            ).not()
-        ) {
-            return null
-        }
-        val expectedWorkspaceId = recoveredWorkspaceId(recoveryState = recoveryState) ?: return null
-        return if (accountSnapshot.workspaces.any { workspace -> workspace.workspaceId == expectedWorkspaceId }) {
-            expectedWorkspaceId
-        } else {
-            null
-        }
-    }
-
-    private fun requireWorkspaceSelectionMatchesCredentialRecoveryBeforeSideEffects(
-        recoveryState: CloudCredentialRecoveryState?,
-        selection: CloudWorkspaceLinkSelection
-    ) {
-        if (recoveryState?.reason != CloudCredentialRecoveryReason.LINKED_CREDENTIALS_MISSING) {
-            return
-        }
-        if (recoveryState.previousCloudState != CloudAccountState.LINKED) {
-            throw CloudCredentialRecoveryRequiredException(recoveryState = recoveryState)
-        }
-        val recoveredWorkspaceId = recoveredWorkspaceId(recoveryState = recoveryState)
-        if (recoveredWorkspaceId == null) {
-            throw CloudCredentialRecoveryRequiredException(recoveryState = recoveryState)
-        }
-
-        val selectedWorkspaceId = when (selection) {
-            is CloudWorkspaceLinkSelection.Existing -> selection.workspaceId
-            CloudWorkspaceLinkSelection.CreateNew -> throw CloudCredentialRecoveryRequiredException(
-                recoveryState = recoveryState
-            )
-        }
-        if (selectedWorkspaceId != recoveredWorkspaceId) {
-            throw CloudCredentialRecoveryRequiredException(recoveryState = recoveryState)
-        }
-    }
-
-    private fun linkedCredentialRecoveryConfigurationMatches(
-        recoveryState: CloudCredentialRecoveryState,
-        configuration: CloudServiceConfiguration
-    ): Boolean {
-        return recoveryState.previousCloudState == CloudAccountState.LINKED &&
-            recoveryState.configurationMode == configuration.mode &&
-            recoveryState.apiBaseUrl == configuration.apiBaseUrl
-    }
-
-    private fun linkedCredentialRecoveryIdentityMatches(
-        recoveryState: CloudCredentialRecoveryState,
-        userId: String,
-        email: String?
-    ): Boolean {
-        val linkedUserId = recoveryState.linkedUserId?.takeIf { storedUserId -> storedUserId.isNotBlank() }
-        if (linkedUserId != null) {
-            return userId == linkedUserId
-        }
-
-        val linkedEmail = normalizedCloudCredentialRecoveryEmail(email = recoveryState.linkedEmail)
-            ?: return false
-        return normalizedCloudCredentialRecoveryEmail(email = email) == linkedEmail
-    }
-
-    private fun normalizedCloudCredentialRecoveryEmail(email: String?): String? {
-        return email?.trim()
-            ?.lowercase(Locale.ROOT)
-            ?.takeIf { normalizedEmail -> normalizedEmail.isNotEmpty() }
-    }
-
-    private fun recoveredWorkspaceId(recoveryState: CloudCredentialRecoveryState): String? {
-        return recoveryState.activeWorkspaceId?.takeIf { workspaceId -> workspaceId.isNotBlank() }
-            ?: recoveryState.linkedWorkspaceId?.takeIf { workspaceId -> workspaceId.isNotBlank() }
-    }
-
-    private suspend fun fetchCloudAccount(
-        credentials: StoredCloudCredentials,
-        configuration: CloudServiceConfiguration
-    ): CloudAccountSnapshot {
-        return remoteService.fetchCloudAccount(
-            apiBaseUrl = configuration.apiBaseUrl,
-            bearerToken = credentials.idToken
-        )
-    }
-
-    private suspend fun resumePendingGuestUpgradeIfNeeded(): CloudWorkspaceSummary? {
-        return resumePendingGuestUpgradeRecoveryIfNeeded(
-            database = database,
-            preferencesStore = preferencesStore,
-            remoteService = remoteService,
-            syncLocalStore = syncLocalStore,
-            guestSessionStore = guestSessionStore,
-            appVersion = appVersion
-        )
-    }
-
-    /**
-     * Guest upgrade completion is allowed only after the current guest
-     * workspace has completed normal sync and Android has verified that no
-     * local guest outbox rows remain to migrate.
-     */
-    private suspend fun drainGuestWorkspaceBeforeUpgradeComplete(
-        configuration: CloudServiceConfiguration,
-        guestSession: StoredGuestAiSession
-    ) {
-        val cloudSettings: CloudSettings = preferencesStore.currentCloudSettings()
-        val guestWorkspaceId: String = requireNotNull(cloudSettings.activeWorkspaceId ?: cloudSettings.linkedWorkspaceId) {
-            "Guest upgrade requires an active guest workspace."
-        }
-        require(cloudSettings.cloudState == CloudAccountState.GUEST) {
-            "Guest upgrade requires guest cloud state before completion."
-        }
-        require(guestWorkspaceId == guestSession.workspaceId) {
-            "Guest upgrade requires current guest workspace '$guestWorkspaceId' to match stored guest session " +
-                "'${guestSession.workspaceId}'. Restart the app and try signing in again."
-        }
-
-        try {
-            runCloudSyncCore(
-                cloudSettings = cloudSettings,
-                workspaceId = guestWorkspaceId,
-                syncSession = CloudSyncSession(
-                    apiBaseUrl = configuration.apiBaseUrl,
-                    authorizationHeader = "Guest ${guestSession.guestToken}"
-                ),
-                appVersion = appVersion,
-                remoteService = remoteService,
-                syncLocalStore = syncLocalStore,
-                workspaceForkRecoveryMode = CloudWorkspaceForkRecoveryMode.DISABLED
-            )
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            val preservesBlockedSyncState = error is CloudSyncBlockedException || isCloudIdentityConflictError(error = error)
-            if (preservesBlockedSyncState.not()) {
-                syncLocalStore.markSyncFailure(
-                    workspaceId = guestWorkspaceId,
-                    errorMessage = error.message ?: "Cloud sync failed."
-                )
-            }
-            throw IllegalStateException(
-                "Guest upgrade is paused because guest sync did not finish for workspace '$guestWorkspaceId'. " +
-                    "Check your connection and try signing in again. Cause=${error.message ?: "Cloud sync failed."}",
-                error
-            )
-        }
-
-        val remainingOutboxCount: Int = syncLocalStore.countOutboxEntries(workspaceId = guestWorkspaceId)
-        if (remainingOutboxCount > 0) {
-            val message: String = "Guest upgrade is paused because guest workspace '$guestWorkspaceId' still has " +
-                "$remainingOutboxCount pending local sync operation(s). Sync again before signing in."
-            syncLocalStore.markSyncFailure(
-                workspaceId = guestWorkspaceId,
-                errorMessage = message
-            )
-            throw IllegalStateException(message)
-        }
-    }
-
-    private suspend fun resolveWorkspaceSelection(
-        linkContext: CloudWorkspaceLinkContext,
-        authenticatedSession: AuthenticatedCloudSession,
-        selection: CloudWorkspaceLinkSelection
-    ): CloudWorkspaceSummary {
-        val validatedSelection = validateWorkspaceSelection(
-            linkContext = linkContext,
-            selection = selection
-        )
-
-        return when (validatedSelection) {
-            is CloudWorkspaceLinkSelection.Existing -> remoteService.selectWorkspace(
-                apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-                bearerToken = authenticatedSession.credentials.idToken,
-                workspaceId = validatedSelection.workspaceId
-            )
-
-            CloudWorkspaceLinkSelection.CreateNew -> remoteService.createWorkspace(
-                apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-                bearerToken = authenticatedSession.credentials.idToken,
-                name = "Personal"
-            )
-        }
-    }
-
-    private suspend fun completeGuestLocalRecoveryCloudLink(
-        linkContext: CloudWorkspaceLinkContext,
-        recoveryState: CloudCredentialRecoveryState,
-        selection: CloudWorkspaceLinkSelection
-    ): CloudWorkspaceSummary {
-        require(linkContext.postAuthRoute == CloudWorkspacePostAuthRoute.GUEST_LOCAL_RECOVERY) {
-            "Guest local recovery requires the guest recovery post-auth route."
-        }
-        requireGuestLocalRecoveryAllowsCreateNewCompletion(
-            recoveryState = recoveryState,
-            selection = selection
-        )
-        val authenticatedSession = authenticatedSession(linkContext = linkContext)
-        loadResumableGuestLocalRecoveryWorkspaceOrNull(
-            authenticatedSession = authenticatedSession
-        )?.let { resumableWorkspace ->
-            preferencesStore.saveCredentials(authenticatedSession.credentials)
-            requireTransitionInvariant(
-                stage = "before resumed guest local recovery sync",
-                expectedWorkspaceId = resumableWorkspace.workspaceId
-            )
-            runInitialLinkedWorkspaceSync(
-                authenticatedSession = authenticatedSession,
-                workspaceId = resumableWorkspace.workspaceId
-            )
-            requireTransitionInvariant(
-                stage = "after resumed guest local recovery sync",
-                expectedWorkspaceId = resumableWorkspace.workspaceId
-            )
-            clearGuestSessionsIfNeeded()
-            preferencesStore.clearCloudCredentialRecoveryState()
-            return resumableWorkspace
-        }
-
-        val selectedWorkspace = remoteService.createWorkspace(
-            apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-            bearerToken = authenticatedSession.credentials.idToken,
-            name = "Personal"
-        )
-        preferencesStore.saveCredentials(authenticatedSession.credentials)
-        applyLinkedWorkspacePreservingLocalData(
-            accountSnapshot = authenticatedSession.accountSnapshot,
-            selectedWorkspace = selectedWorkspace
-        )
-        requireTransitionInvariant(
-            stage = "after guest local recovery prefs update",
-            expectedWorkspaceId = selectedWorkspace.workspaceId
-        )
-        runInitialLinkedWorkspaceSync(
-            authenticatedSession = authenticatedSession,
-            workspaceId = selectedWorkspace.workspaceId
-        )
-        requireTransitionInvariant(
-            stage = "after guest local recovery initial sync",
-            expectedWorkspaceId = selectedWorkspace.workspaceId
-        )
-        clearGuestSessionsIfNeeded()
-        preferencesStore.clearCloudCredentialRecoveryState()
-        return selectedWorkspace
-    }
-
-    private suspend fun completeLinkedCredentialRecoveryCloudLink(
-        authenticatedSession: AuthenticatedCloudSession,
-        selectedWorkspace: CloudWorkspaceSummary
-    ): CloudWorkspaceSummary {
-        preferencesStore.saveCredentials(authenticatedSession.credentials)
-        applyLinkedWorkspacePreservingLocalData(
-            accountSnapshot = authenticatedSession.accountSnapshot,
-            selectedWorkspace = selectedWorkspace
-        )
-        requireTransitionInvariant(
-            stage = "after linked credential recovery prefs update",
-            expectedWorkspaceId = selectedWorkspace.workspaceId
-        )
-        runInitialLinkedWorkspaceSync(
-            authenticatedSession = authenticatedSession,
-            workspaceId = selectedWorkspace.workspaceId
-        )
-        requireTransitionInvariant(
-            stage = "after linked credential recovery initial sync",
-            expectedWorkspaceId = selectedWorkspace.workspaceId
-        )
-        clearGuestSessionsIfNeeded()
-        preferencesStore.clearCloudCredentialRecoveryState()
-        return selectedWorkspace
-    }
-
-    private suspend fun loadResumableGuestLocalRecoveryWorkspaceOrNull(
-        authenticatedSession: AuthenticatedCloudSession
-    ): CloudWorkspaceSummary? {
-        val cloudSettings = preferencesStore.currentCloudSettings()
-        if (cloudSettings.cloudState != CloudAccountState.LINKED) {
-            return null
-        }
-        require(cloudSettings.linkedUserId == authenticatedSession.accountSnapshot.userId) {
-            "Guest local recovery retry is signed in as '${authenticatedSession.accountSnapshot.userId}', " +
-                "but the preserved linked workspace belongs to '${cloudSettings.linkedUserId}'. Start sign-in again."
-        }
-        val workspaceId = requireNotNull(cloudSettings.activeWorkspaceId ?: cloudSettings.linkedWorkspaceId) {
-            "Guest local recovery retry requires a preserved linked workspace."
-        }
-        require(cloudSettings.linkedWorkspaceId == workspaceId) {
-            "Guest local recovery retry requires active workspace '$workspaceId' to match linked workspace " +
-                "'${cloudSettings.linkedWorkspaceId}'."
-        }
-        val localWorkspace = requireNotNull(
-            database.workspaceDao().loadWorkspaceById(workspaceId = workspaceId)
-        ) {
-            "Guest local recovery retry requires local workspace '$workspaceId'."
-        }
-        requireTransitionInvariant(
-            stage = "before guest local recovery retry",
-            expectedWorkspaceId = workspaceId
-        )
-        return CloudWorkspaceSummary(
-            workspaceId = localWorkspace.workspaceId,
-            name = localWorkspace.name,
-            createdAtMillis = localWorkspace.createdAtMillis,
-            isSelected = true
-        )
-    }
-
-    private suspend fun applyLinkedWorkspace(
-        accountSnapshot: CloudAccountSnapshot,
-        bearerToken: String,
-        selectedWorkspace: CloudWorkspaceSummary
-    ) {
-        val remoteWorkspaceIsEmpty = resolveRemoteWorkspaceEmptiness(
-            bearerToken = bearerToken,
-            selectedWorkspace = selectedWorkspace
-        )
-        migrateLocalShellToLinkedWorkspace(
-            accountSnapshot = accountSnapshot,
-            selectedWorkspace = selectedWorkspace,
-            remoteWorkspaceIsEmpty = remoteWorkspaceIsEmpty
-        )
-    }
-
-    private suspend fun applyLinkedWorkspacePreservingLocalData(
-        accountSnapshot: CloudAccountSnapshot,
-        selectedWorkspace: CloudWorkspaceSummary
-    ) {
-        migrateLocalShellToLinkedWorkspace(
-            accountSnapshot = accountSnapshot,
-            selectedWorkspace = selectedWorkspace,
-            remoteWorkspaceIsEmpty = true
-        )
-    }
-
-    private suspend fun migrateLocalShellToLinkedWorkspace(
-        accountSnapshot: CloudAccountSnapshot,
-        selectedWorkspace: CloudWorkspaceSummary,
-        remoteWorkspaceIsEmpty: Boolean
-    ) {
-        val localLinkedWorkspace = syncLocalStore.migrateLocalShellToLinkedWorkspace(
-            workspace = selectedWorkspace,
-            remoteWorkspaceIsEmpty = remoteWorkspaceIsEmpty
-        )
-        finalizeLinkedWorkspaceMigration(
-            accountSnapshot = accountSnapshot,
-            selectedWorkspace = selectedWorkspace,
-            localLinkedWorkspace = localLinkedWorkspace,
-            missingWorkspaceMessage = "Linked workspace is missing locally after cloud link."
-        )
-    }
-
-    private suspend fun finalizeLinkedWorkspaceMigration(
-        accountSnapshot: CloudAccountSnapshot,
-        selectedWorkspace: CloudWorkspaceSummary,
-        localLinkedWorkspace: WorkspaceEntity,
-        missingWorkspaceMessage: String
-    ) {
-        check(localLinkedWorkspace.workspaceId == selectedWorkspace.workspaceId) {
-            "Linked workspace migration produced an unexpected local workspace. " +
-                "Expected='${selectedWorkspace.workspaceId}' Actual='${localLinkedWorkspace.workspaceId}'."
-        }
-
-        preferencesStore.updateCloudSettings(
-            cloudState = CloudAccountState.LINKED,
-            linkedUserId = accountSnapshot.userId,
-            linkedWorkspaceId = selectedWorkspace.workspaceId,
-            linkedEmail = accountSnapshot.email,
-            activeWorkspaceId = selectedWorkspace.workspaceId
-        )
-        val localCurrentWorkspace = requireCurrentWorkspace(
-            database = database,
-            preferencesStore = preferencesStore,
-            missingWorkspaceMessage = missingWorkspaceMessage
-        )
-        check(localCurrentWorkspace.workspaceId == selectedWorkspace.workspaceId) {
-            "Linked workspace '${selectedWorkspace.workspaceId}' did not become the current local workspace. " +
-                "Local workspace='${localCurrentWorkspace.workspaceId}'."
-        }
-    }
-
-    private suspend fun resolveRemoteWorkspaceEmptiness(
-        bearerToken: String,
-        selectedWorkspace: CloudWorkspaceSummary
-    ): Boolean {
-        val configuration = preferencesStore.currentServerConfiguration()
-        return remoteService.bootstrapPull(
-            apiBaseUrl = configuration.apiBaseUrl,
-            authorizationHeader = "Bearer $bearerToken",
-            workspaceId = selectedWorkspace.workspaceId,
-            body = JSONObject()
-                .put("mode", "pull")
-                .put("installationId", preferencesStore.currentCloudSettings().installationId)
-                .put("platform", androidClientPlatform)
-                .put("appVersion", appVersion)
-                .put("cursor", JSONObject.NULL)
-                .put("limit", 1)
-        ).remoteIsEmpty
-    }
-
-    private suspend fun applyLinkedWorkspaceAndSync(
-        authenticatedSession: AuthenticatedCloudSession,
-        selectedWorkspace: CloudWorkspaceSummary
-    ) {
-        applyLinkedWorkspace(
-            accountSnapshot = authenticatedSession.accountSnapshot,
-            bearerToken = authenticatedSession.credentials.idToken,
-            selectedWorkspace = selectedWorkspace
-        )
-        requireTransitionInvariant(
-            stage = "after prefs update",
-            expectedWorkspaceId = selectedWorkspace.workspaceId
-        )
-        runInitialLinkedWorkspaceSync(
-            authenticatedSession = authenticatedSession,
-            workspaceId = selectedWorkspace.workspaceId
-        )
-        requireTransitionInvariant(
-            stage = "after initial sync",
-            expectedWorkspaceId = selectedWorkspace.workspaceId
-        )
-    }
-
-    private suspend fun runInitialLinkedWorkspaceSync(
-        authenticatedSession: AuthenticatedCloudSession,
-        workspaceId: String
-    ) {
-        val cloudSettings = preferencesStore.currentCloudSettings()
-        val localWorkspaceIds = database.workspaceDao().loadWorkspaces().map { workspace -> workspace.workspaceId }
-        require(cloudSettings.cloudState == CloudAccountState.LINKED) {
-            "Initial linked workspace sync requires a linked cloud account."
-        }
-        require(cloudSettings.linkedWorkspaceId == workspaceId) {
-            buildTransitionInvariantMessage(
-                stage = "before initial sync",
-                expectedWorkspaceId = workspaceId,
-                localWorkspaceIds = localWorkspaceIds,
-                cloudSettings = cloudSettings
-            )
-        }
-        try {
-            runCloudSyncCore(
-                cloudSettings = cloudSettings,
-                workspaceId = workspaceId,
-                syncSession = CloudSyncSession(
-                    apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-                    authorizationHeader = "Bearer ${authenticatedSession.credentials.idToken}"
-                ),
-                appVersion = appVersion,
-                remoteService = remoteService,
-                syncLocalStore = syncLocalStore,
-                workspaceForkRecoveryMode = CloudWorkspaceForkRecoveryMode.ENABLED
-            )
-        } catch (error: Exception) {
-            val preservesBlockedSyncState = error is CloudSyncBlockedException || isCloudIdentityConflictError(
-                error = error
-            )
-            if (preservesBlockedSyncState.not()) {
-                syncLocalStore.markSyncFailure(
-                    workspaceId = workspaceId,
-                    errorMessage = error.message ?: "Cloud sync failed."
-                )
-            }
-            throw IllegalStateException(
-                buildTransitionInvariantMessage(
-                    stage = "initial sync failed",
-                    expectedWorkspaceId = workspaceId,
-                    localWorkspaceIds = database.workspaceDao().loadWorkspaces().map { workspace -> workspace.workspaceId },
-                    cloudSettings = preferencesStore.currentCloudSettings()
-                ) + " Cause=${error.message ?: "Cloud sync failed."}",
-                error
-            )
-        }
-    }
-
-    private suspend fun requireLocalWorkspaceSelection(
-        stage: String,
-        expectedWorkspaceId: String,
-        actualWorkspaceId: String
-    ) {
-        val localWorkspaceIds = database.workspaceDao().loadWorkspaces().map { workspace -> workspace.workspaceId }
-        val cloudSettings = preferencesStore.currentCloudSettings()
-        require(actualWorkspaceId == expectedWorkspaceId) {
-            buildTransitionInvariantMessage(
-                stage = stage,
-                expectedWorkspaceId = expectedWorkspaceId,
-                localWorkspaceIds = localWorkspaceIds,
-                cloudSettings = cloudSettings
-            ) + " ActualLocalWorkspaceId='$actualWorkspaceId'"
-        }
-    }
-
-    private suspend fun requireTransitionInvariant(
-        stage: String,
-        expectedWorkspaceId: String
-    ) {
-        val cloudSettings = preferencesStore.currentCloudSettings()
-        val localWorkspaceIds = database.workspaceDao().loadWorkspaces().map { workspace -> workspace.workspaceId }
-        require(localWorkspaceIds.size == 1) {
-            buildTransitionInvariantMessage(
-                stage = stage,
-                expectedWorkspaceId = expectedWorkspaceId,
-                localWorkspaceIds = localWorkspaceIds,
-                cloudSettings = cloudSettings
-            )
-        }
-        require(localWorkspaceIds.single() == expectedWorkspaceId) {
-            buildTransitionInvariantMessage(
-                stage = stage,
-                expectedWorkspaceId = expectedWorkspaceId,
-                localWorkspaceIds = localWorkspaceIds,
-                cloudSettings = cloudSettings
-            )
-        }
-        require(cloudSettings.linkedWorkspaceId == expectedWorkspaceId) {
-            buildTransitionInvariantMessage(
-                stage = stage,
-                expectedWorkspaceId = expectedWorkspaceId,
-                localWorkspaceIds = localWorkspaceIds,
-                cloudSettings = cloudSettings
-            )
-        }
-        require(cloudSettings.activeWorkspaceId == expectedWorkspaceId) {
-            buildTransitionInvariantMessage(
-                stage = stage,
-                expectedWorkspaceId = expectedWorkspaceId,
-                localWorkspaceIds = localWorkspaceIds,
-                cloudSettings = cloudSettings
-            )
-        }
-    }
-
-    private fun buildTransitionInvariantMessage(
-        stage: String,
-        expectedWorkspaceId: String,
-        localWorkspaceIds: List<String>,
-        cloudSettings: CloudSettings
-    ): String {
-        return "Linked workspace transition invariant failed at stage '$stage'. " +
-            "expectedWorkspaceId='$expectedWorkspaceId' " +
-            "activeWorkspaceId='${cloudSettings.activeWorkspaceId}' " +
-            "linkedWorkspaceId='${cloudSettings.linkedWorkspaceId}' " +
-            "localWorkspaceIds=$localWorkspaceIds"
-    }
-
-    private suspend fun activeGuestSession(configuration: CloudServiceConfiguration): StoredGuestAiSession? {
-        if (preferencesStore.loadCloudCredentialRecoveryState() != null) {
-            return null
-        }
-
-        val cloudSettings = preferencesStore.currentCloudSettings()
-        val guestWorkspaceId = cloudSettings.activeWorkspaceId ?: cloudSettings.linkedWorkspaceId
-        if (cloudSettings.cloudState == CloudAccountState.GUEST && guestWorkspaceId != null) {
-            val activeWorkspaceSession = guestSessionStore.loadSession(
-                localWorkspaceId = guestWorkspaceId,
-                configuration = configuration
-            )
-            if (activeWorkspaceSession != null) {
-                return activeWorkspaceSession
-            }
-        }
-
-        return guestSessionStore.loadAnySession(configuration = configuration)
-    }
-
-    private suspend fun progressSession(): ProgressCloudSession {
-        val cloudSettings = preferencesStore.currentCloudSettings()
-        return when (cloudSettings.cloudState) {
-            CloudAccountState.LINKED -> {
-                val authenticatedSession = authenticatedSession()
-                ProgressCloudSession(
-                    apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-                    authorizationHeader = "Bearer ${authenticatedSession.credentials.idToken}"
-                )
-            }
-
-            CloudAccountState.GUEST -> {
-                val configuration = preferencesStore.currentServerConfiguration()
-                val guestSession = requireNotNull(activeGuestSession(configuration = configuration)) {
-                    "Guest progress requires an active guest session."
-                }
-                ProgressCloudSession(
-                    apiBaseUrl = guestSession.apiBaseUrl,
-                    authorizationHeader = "Guest ${guestSession.guestToken}"
-                )
-            }
-
-            else -> {
-                throw IllegalStateException("Progress requires a linked or guest cloud account.")
-            }
-        }
-    }
-
-    private suspend fun markGuestUpgradePreparationState() {
-        val cloudSettings = preferencesStore.currentCloudSettings()
-        preferencesStore.updateCloudSettings(
-            cloudState = CloudAccountState.GUEST,
-            linkedUserId = null,
-            linkedWorkspaceId = null,
-            linkedEmail = null,
-            activeWorkspaceId = cloudSettings.activeWorkspaceId
-        )
-    }
-
-    private fun clearGuestSessionsIfNeeded() {
-        guestSessionStore.clearAllSessions()
+        serverConfigurationCoordinator.resetToOfficialServer()
     }
 }
-
-private data class AuthenticatedCloudSession(
-    val configuration: CloudServiceConfiguration,
-    val credentials: StoredCloudCredentials,
-    val accountSnapshot: CloudAccountSnapshot
-)
-
-private data class ProgressCloudSession(
-    val apiBaseUrl: String,
-    val authorizationHeader: String
-)
