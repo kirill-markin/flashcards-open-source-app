@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactElement } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { type TranslationKey, type TranslationValues, useI18n } from "../../i18n";
 import { settingsTestAnimationsRoute } from "../../routes";
 import {
@@ -12,10 +12,15 @@ import {
   type ReviewReactionEvent,
   type ReviewReactionMotionMode,
   type ReviewReactionRating,
+  type ReviewReactionVariant,
   type ReviewReactionVariantDistributionEntry,
 } from "../review/reactions/reviewReaction";
 import { ReviewRatingReactionLayer } from "../review/reactions/ReviewRatingReactionLayer";
-import { reviewReactionVariantWithReadyLottieFallback } from "../review/reactions/reviewReactionLottie";
+import {
+  isReviewReactionLottieVariant,
+  reviewReactionLottieFallbackVariant,
+  reviewReactionVariantWithReadyLottieFallback,
+} from "../review/reactions/reviewReactionLottie";
 import { SettingsGroup, SettingsNavigationCard, SettingsShell } from "./SettingsShared";
 
 type Translate = (key: TranslationKey, values?: TranslationValues) => string;
@@ -117,6 +122,7 @@ export function TestAnimationsScreen(): ReactElement {
   const [motionMode, setMotionMode] = useState<ReviewReactionMotionMode>(
     matchesReducedReviewReactionMotion() ? "reduced" : "standard",
   );
+  const activeReviewReactionEventsRef = useRef<ReadonlyArray<ReviewReactionEvent>>([]);
   const cleanupTimersRef = useRef<Map<string, number>>(new Map<string, number>());
 
   useEffect(() => {
@@ -149,25 +155,66 @@ export function TestAnimationsScreen(): ReactElement {
     clearTrimmedReviewReactionTimers(cleanupTimersRef.current, activeReviewReactionEvents);
   }, [activeReviewReactionEvents]);
 
+  const removeReviewReactionEvent = useCallback((eventId: string): void => {
+    clearReviewReactionTimer(cleanupTimersRef.current, eventId);
+    setActiveReviewReactionEvents((currentEvents) => {
+      const nextEvents = currentEvents.filter((activeEvent) => activeEvent.id !== eventId);
+      activeReviewReactionEventsRef.current = nextEvents;
+      return nextEvents;
+    });
+  }, []);
+
+  const scheduleReviewReactionEventCleanup = useCallback((
+    eventId: string,
+    variant: ReviewReactionVariant,
+  ): void => {
+    const cleanupTimerId = window.setTimeout(() => {
+      removeReviewReactionEvent(eventId);
+    }, reviewReactionCleanupDelayMillis(variant, motionMode));
+    cleanupTimersRef.current.set(eventId, cleanupTimerId);
+  }, [motionMode, removeReviewReactionEvent]);
+
+  const handleReviewReactionEventFallback = useCallback((eventId: string): void => {
+    const event = activeReviewReactionEventsRef.current.find((activeEvent) => activeEvent.id === eventId);
+    if (event === undefined || !isReviewReactionLottieVariant(event.variant)) {
+      return;
+    }
+
+    clearReviewReactionTimer(cleanupTimersRef.current, eventId);
+    scheduleReviewReactionEventCleanup(eventId, reviewReactionLottieFallbackVariant);
+    setActiveReviewReactionEvents((currentEvents) => {
+      const nextEvents = currentEvents.map((activeEvent) => {
+        if (activeEvent.id !== eventId || !isReviewReactionLottieVariant(activeEvent.variant)) {
+          return activeEvent;
+        }
+
+        return {
+          ...activeEvent,
+          variant: reviewReactionLottieFallbackVariant,
+        };
+      });
+      activeReviewReactionEventsRef.current = nextEvents;
+      return nextEvents;
+    });
+  }, [scheduleReviewReactionEventCleanup]);
+
   function playAnimation(entry: ReviewReactionVariantDistributionEntry): void {
     const event: ReviewReactionEvent = {
       id: crypto.randomUUID(),
       rating: entry.rating,
       variant: reviewReactionVariantWithReadyLottieFallback(entry.variant),
     };
-    const cleanupTimerId = window.setTimeout(() => {
-      clearReviewReactionTimer(cleanupTimersRef.current, event.id);
-      setActiveReviewReactionEvents((currentEvents) => (
-        currentEvents.filter((activeEvent) => activeEvent.id !== event.id)
-      ));
-    }, reviewReactionCleanupDelayMillis(event.variant, motionMode));
-    cleanupTimersRef.current.set(event.id, cleanupTimerId);
+    scheduleReviewReactionEventCleanup(event.id, event.variant);
 
-    setActiveReviewReactionEvents((currentEvents) => appendReviewReactionEvent(
-      currentEvents,
-      event,
-      reviewReactionMaximumActiveEvents,
-    ));
+    setActiveReviewReactionEvents((currentEvents) => {
+      const nextEvents = appendReviewReactionEvent(
+        currentEvents,
+        event,
+        reviewReactionMaximumActiveEvents,
+      );
+      activeReviewReactionEventsRef.current = nextEvents;
+      return nextEvents;
+    });
   }
 
   return (
@@ -202,7 +249,10 @@ export function TestAnimationsScreen(): ReactElement {
           </SettingsGroup>
         ))}
       </div>
-      <ReviewRatingReactionLayer events={activeReviewReactionEvents} />
+      <ReviewRatingReactionLayer
+        events={activeReviewReactionEvents}
+        onReactionEventFallback={handleReviewReactionEventFallback}
+      />
     </SettingsShell>
   );
 }
