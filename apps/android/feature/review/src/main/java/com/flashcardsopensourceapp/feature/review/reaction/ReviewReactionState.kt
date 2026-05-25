@@ -17,7 +17,7 @@ internal enum class ReviewReactionMotionMode {
 internal enum class ReviewReactionVariant {
     AGAIN_WORM_WIGGLE,
     AGAIN_REWIND_VORTEX,
-    AGAIN_STAMP_FLYBY,
+    AGAIN_SNAIL_CRAWL,
     AGAIN_WARNING_TAPE,
     HARD_HOURGLASS_SAND,
     HARD_FALLING_WEIGHT,
@@ -45,7 +45,7 @@ internal val ReviewReactionVariant.debugIdentifier: String
     get() = when (this) {
         ReviewReactionVariant.AGAIN_WORM_WIGGLE -> "againWormWiggle"
         ReviewReactionVariant.AGAIN_REWIND_VORTEX -> "againRewindVortex"
-        ReviewReactionVariant.AGAIN_STAMP_FLYBY -> "againStampFlyby"
+        ReviewReactionVariant.AGAIN_SNAIL_CRAWL -> "againSnailCrawl"
         ReviewReactionVariant.AGAIN_WARNING_TAPE -> "againWarningTape"
         ReviewReactionVariant.HARD_HOURGLASS_SAND -> "hardHourglassSand"
         ReviewReactionVariant.HARD_FALLING_WEIGHT -> "hardFallingWeight"
@@ -89,7 +89,7 @@ internal val allReviewReactionVariantDistributionEntries: List<ReviewReactionVar
     ),
     ReviewReactionVariantDistributionEntry(
         rating = ReviewRating.AGAIN,
-        variant = ReviewReactionVariant.AGAIN_STAMP_FLYBY,
+        variant = ReviewReactionVariant.AGAIN_SNAIL_CRAWL,
         rollRange = 700..919
     ),
     ReviewReactionVariantDistributionEntry(
@@ -246,9 +246,9 @@ internal fun reviewReactionAnimationDurationMillis(
         ReviewReactionVariant.HARD_FALLING_WEIGHT,
         ReviewReactionVariant.EASY_CROWN_BOUNCE -> 1_650
         ReviewReactionVariant.GOOD_PAPER_PLANE_CHECK -> 1_750
-        ReviewReactionVariant.AGAIN_STAMP_FLYBY -> 1_900
         ReviewReactionVariant.EASY_RAINBOW_STREAK -> 2_000
         ReviewReactionVariant.HARD_ROLLING_BOULDER -> 2_050
+        ReviewReactionVariant.AGAIN_SNAIL_CRAWL -> 2_700
         ReviewReactionVariant.EASY_UNICORN_FLYBY -> 3_800
         ReviewReactionVariant.AGAIN_WORM_WIGGLE -> 4_267
     }

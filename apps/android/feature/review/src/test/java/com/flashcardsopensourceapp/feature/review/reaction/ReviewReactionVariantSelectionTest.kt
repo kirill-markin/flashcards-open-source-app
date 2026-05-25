@@ -11,8 +11,8 @@ class ReviewReactionVariantSelectionTest {
         assertSelectedVariant(ReviewRating.AGAIN, 399, ReviewReactionVariant.AGAIN_WORM_WIGGLE)
         assertSelectedVariant(ReviewRating.AGAIN, 400, ReviewReactionVariant.AGAIN_REWIND_VORTEX)
         assertSelectedVariant(ReviewRating.AGAIN, 699, ReviewReactionVariant.AGAIN_REWIND_VORTEX)
-        assertSelectedVariant(ReviewRating.AGAIN, 700, ReviewReactionVariant.AGAIN_STAMP_FLYBY)
-        assertSelectedVariant(ReviewRating.AGAIN, 919, ReviewReactionVariant.AGAIN_STAMP_FLYBY)
+        assertSelectedVariant(ReviewRating.AGAIN, 700, ReviewReactionVariant.AGAIN_SNAIL_CRAWL)
+        assertSelectedVariant(ReviewRating.AGAIN, 919, ReviewReactionVariant.AGAIN_SNAIL_CRAWL)
         assertSelectedVariant(ReviewRating.AGAIN, 920, ReviewReactionVariant.AGAIN_WARNING_TAPE)
         assertSelectedVariant(ReviewRating.AGAIN, 999, ReviewReactionVariant.AGAIN_WARNING_TAPE)
     }

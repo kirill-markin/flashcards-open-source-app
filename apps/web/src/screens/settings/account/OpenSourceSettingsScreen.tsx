@@ -4,6 +4,7 @@ import { SettingsShell } from "../SettingsShared";
 
 const repositoryUrl: string = "https://github.com/kirill-markin/flashcards-open-source-app";
 const thirdPartyNoticesUrl: string = "https://github.com/kirill-markin/flashcards-open-source-app/blob/main/THIRD_PARTY_NOTICES.md";
+const reviewSnailAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-snail-animation_12152626";
 const reviewRainbowAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-rainbow-animation_12152617";
 const reviewUnicornAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-unicorn-animation_12152598";
 const reviewWormAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-worm-animation_12152603";
@@ -41,6 +42,9 @@ export function OpenSourceSettingsScreen(): ReactElement {
           </a>
           <a className="ghost-btn" href={reviewUnicornAnimationUrl} rel="noreferrer" target="_blank">
             {t("openSourceSettings.thirdPartyNoticeUnicornSourceAction")}
+          </a>
+          <a className="ghost-btn" href={reviewSnailAnimationUrl} rel="noreferrer" target="_blank">
+            {t("openSourceSettings.thirdPartyNoticeSnailSourceAction")}
           </a>
           <a className="ghost-btn" href={reviewRainbowAnimationUrl} rel="noreferrer" target="_blank">
             {t("openSourceSettings.thirdPartyNoticeRainbowSourceAction")}

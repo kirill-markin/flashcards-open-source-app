@@ -36,6 +36,9 @@ private const val reviewReactionReducedMotionDrawingProgress: Float = 0.55f
 private const val reviewAgainWormAnimationFrameScale: Float = 0.58f
 private const val reviewAgainWormAnimationCenterX: Float = 0.50f
 private const val reviewAgainWormAnimationCenterY: Float = 0.52f
+private const val reviewAgainSnailAnimationFrameScale: Float = 0.58f
+private const val reviewAgainSnailAnimationCenterX: Float = 0.50f
+private const val reviewAgainSnailAnimationCenterY: Float = 0.48f
 private const val reviewEasyRainbowAnimationFrameScale: Float = 0.64f
 private const val reviewEasyRainbowAnimationCenterX: Float = 0.50f
 private const val reviewEasyRainbowAnimationCenterY: Float = 0.42f
@@ -66,6 +69,7 @@ private fun logReviewReactionLottieWarning(
 private fun reviewReactionLottieConfiguration(
     variant: ReviewReactionVariant,
     reviewAgainWormComposition: LottieComposition?,
+    reviewAgainSnailComposition: LottieComposition?,
     reviewEasyRainbowComposition: LottieComposition?,
     reviewEasyUnicornComposition: LottieComposition?
 ): ReviewReactionLottieConfiguration? {
@@ -75,6 +79,13 @@ private fun reviewReactionLottieConfiguration(
             frameScale = reviewAgainWormAnimationFrameScale,
             centerX = reviewAgainWormAnimationCenterX,
             centerY = reviewAgainWormAnimationCenterY
+        )
+
+        ReviewReactionVariant.AGAIN_SNAIL_CRAWL -> ReviewReactionLottieConfiguration(
+            composition = reviewAgainSnailComposition,
+            frameScale = reviewAgainSnailAnimationFrameScale,
+            centerX = reviewAgainSnailAnimationCenterX,
+            centerY = reviewAgainSnailAnimationCenterY
         )
 
         ReviewReactionVariant.EASY_RAINBOW_STREAK -> ReviewReactionLottieConfiguration(
@@ -92,7 +103,6 @@ private fun reviewReactionLottieConfiguration(
         )
 
         ReviewReactionVariant.AGAIN_REWIND_VORTEX,
-        ReviewReactionVariant.AGAIN_STAMP_FLYBY,
         ReviewReactionVariant.AGAIN_WARNING_TAPE,
         ReviewReactionVariant.HARD_HOURGLASS_SAND,
         ReviewReactionVariant.HARD_FALLING_WEIGHT,
@@ -128,6 +138,24 @@ internal fun ReviewReactionOverlay(
     }
     val reviewAgainWormComposition: LottieComposition? = if (reviewAgainWormCompositionFailure == null) {
         reviewAgainWormCompositionResult.value
+    } else {
+        null
+    }
+
+    val reviewAgainSnailCompositionResult: LottieCompositionResult = rememberLottieComposition(
+        spec = LottieCompositionSpec.RawRes(R.raw.review_again_snail)
+    )
+    val reviewAgainSnailCompositionFailure: Throwable? = reviewAgainSnailCompositionResult.error
+    if (reviewAgainSnailCompositionFailure != null) {
+        LaunchedEffect(reviewAgainSnailCompositionFailure) {
+            logReviewReactionLottieWarning(
+                assetName = "review_again_snail",
+                error = reviewAgainSnailCompositionFailure
+            )
+        }
+    }
+    val reviewAgainSnailComposition: LottieComposition? = if (reviewAgainSnailCompositionFailure == null) {
+        reviewAgainSnailCompositionResult.value
     } else {
         null
     }
@@ -179,6 +207,7 @@ internal fun ReviewReactionOverlay(
                     event = event,
                     motionMode = motionMode,
                     reviewAgainWormComposition = reviewAgainWormComposition,
+                    reviewAgainSnailComposition = reviewAgainSnailComposition,
                     reviewEasyRainbowComposition = reviewEasyRainbowComposition,
                     reviewEasyUnicornComposition = reviewEasyUnicornComposition,
                     onEventFinished = onEventFinished
@@ -193,6 +222,7 @@ private fun ReviewReactionCanvas(
     event: ReviewReactionEvent,
     motionMode: ReviewReactionMotionMode,
     reviewAgainWormComposition: LottieComposition?,
+    reviewAgainSnailComposition: LottieComposition?,
     reviewEasyRainbowComposition: LottieComposition?,
     reviewEasyUnicornComposition: LottieComposition?,
     onEventFinished: (String) -> Unit
@@ -201,6 +231,7 @@ private fun ReviewReactionCanvas(
         reviewReactionLottieConfiguration(
             variant = event.variant,
             reviewAgainWormComposition = reviewAgainWormComposition,
+            reviewAgainSnailComposition = reviewAgainSnailComposition,
             reviewEasyRainbowComposition = reviewEasyRainbowComposition,
             reviewEasyUnicornComposition = reviewEasyUnicornComposition
         )

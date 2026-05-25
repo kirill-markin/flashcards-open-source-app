@@ -4,7 +4,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import kotlin.math.PI
-import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
@@ -16,11 +15,6 @@ internal fun DrawScope.drawAgainReviewReaction(
 ) {
     when (variant) {
         ReviewReactionVariant.AGAIN_REWIND_VORTEX -> drawAgainRewindVortex(
-            progress = progress,
-            motionMode = motionMode
-        )
-
-        ReviewReactionVariant.AGAIN_STAMP_FLYBY -> drawAgainStampFlyby(
             progress = progress,
             motionMode = motionMode
         )
@@ -97,76 +91,6 @@ private fun DrawScope.drawAgainRewindVortex(
         size = maxRadius * 0.18f,
         rotationDegrees = 42f + progress * 120f,
         color = reviewReactionOrangeColor
-    )
-}
-
-private fun DrawScope.drawAgainStampFlyby(
-    progress: Float,
-    motionMode: ReviewReactionMotionMode
-) {
-    val phase: ReviewReactionPhaseProgress = reviewReactionPhaseProgress(
-        progress = progress,
-        enterEnd = 0.38f,
-        exitStart = 0.76f
-    )
-    val targetCenter: Offset = Offset(x = size.width * 0.50f, y = size.height * 0.42f)
-    val center: Offset = if (motionMode == ReviewReactionMotionMode.REDUCED) {
-        targetCenter
-    } else if (progress < 0.38f) {
-        cubicBezierPoint(
-            start = Offset(x = size.width * -0.24f, y = size.height * 0.62f),
-            control1 = Offset(x = size.width * 0.08f, y = size.height * 0.18f),
-            control2 = Offset(x = size.width * 0.34f, y = size.height * 0.24f),
-            end = targetCenter,
-            progress = reviewReactionEaseOutCubic(progress = phase.enter)
-        )
-    } else if (progress < 0.76f) {
-        val settle: Float = sin(phase.hold * PI.toFloat() * 3f) * (1f - phase.hold)
-        Offset(x = targetCenter.x + settle * 14f, y = targetCenter.y - abs(settle) * 10f)
-    } else {
-        cubicBezierPoint(
-            start = targetCenter,
-            control1 = Offset(x = size.width * 0.58f, y = size.height * 0.34f),
-            control2 = Offset(x = size.width * 0.92f, y = size.height * 0.16f),
-            end = Offset(x = size.width * 1.18f, y = size.height * 0.32f),
-            progress = reviewReactionEaseInCubic(progress = phase.exit)
-        )
-    }
-    val radius: Float = min(size.width, size.height) * 0.12f
-    val scale: Float = if (motionMode == ReviewReactionMotionMode.REDUCED) {
-        0.95f + sin(progress * PI.toFloat()) * 0.08f
-    } else {
-        reviewReactionPopScale(
-            progress = progress,
-            enterEnd = 0.38f,
-            exitStart = 0.76f,
-            baseScale = 0.68f,
-            peakScale = 1.20f,
-            settledScale = 1.00f
-        )
-    }
-    val rotationDegrees: Float = if (motionMode == ReviewReactionMotionMode.REDUCED) {
-        -8f
-    } else {
-        reviewReactionInterpolate(
-            start = -28f,
-            end = 8f,
-            progress = reviewReactionEaseOutCubic(progress = phase.enter)
-        ) - phase.exit * 26f
-    }
-
-    drawScallopedSeal(
-        center = center,
-        radius = radius * scale,
-        rotationDegrees = rotationDegrees,
-        fillColor = reviewReactionRedColor,
-        strokeColor = Color.White.copy(alpha = 0.90f)
-    )
-    drawRefreshGlyph(
-        center = center,
-        radius = radius * 0.54f * scale,
-        rotationDegrees = rotationDegrees + 20f,
-        color = Color.White
     )
 }
 

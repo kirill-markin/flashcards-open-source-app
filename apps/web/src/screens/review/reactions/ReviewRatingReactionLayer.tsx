@@ -31,6 +31,7 @@ type ReviewReactionLottieContainerClassMap = Readonly<Record<ReviewReactionLotti
 
 const reviewReactionLottieContainerClassByVariant: ReviewReactionLottieContainerClassMap = {
   againWormWiggle: "review-reaction-worm-lottie-mark",
+  againSnailCrawl: "review-reaction-snail-lottie-mark",
   easyRainbowStreak: "review-reaction-rainbow-lottie-mark",
   easyUnicornFlyby: "review-reaction-unicorn-lottie-mark",
 };
@@ -88,17 +89,6 @@ function AgainRewindVortexReaction(): ReactElement {
       <polygon className="review-reaction-red-fill" points="31,19 43,19 35,30" />
       <polygon className="review-reaction-orange-fill" points="72,78 60,78 68,67" />
       <polygon className="review-reaction-pink-fill" points="59,17 50,25 49,11" />
-    </g>
-  );
-}
-
-function AgainStampFlybyReaction(): ReactElement {
-  return (
-    <g className="review-reaction-stamp-mark">
-      <polygon className="review-reaction-red-fill" points={makeScallopedSealPoints(50, 43, 15, 24, 0.10)} />
-      <polygon className="review-reaction-white-stroke" points={makeScallopedSealPoints(50, 43, 15, 24, 0.10)} />
-      <path className="review-reaction-white-stroke" d="M58 35 C47 29 36 38 39 49 C42 58 55 59 62 51" strokeWidth="5" />
-      <polygon className="review-reaction-white-fill" points="40,36 31,41 39,47" />
     </g>
   );
 }
@@ -358,8 +348,8 @@ function renderReviewReactionVariant(variant: ReviewReactionVariant): ReactEleme
       return renderReviewReactionVariant(reviewReactionLottieFallbackVariant);
     case "againRewindVortex":
       return <AgainRewindVortexReaction />;
-    case "againStampFlyby":
-      return <AgainStampFlybyReaction />;
+    case "againSnailCrawl":
+      return renderReviewReactionVariant(reviewReactionLottieFallbackVariant);
     case "againWarningTape":
       return <AgainWarningTapeReaction />;
     case "hardHourglassSand":
