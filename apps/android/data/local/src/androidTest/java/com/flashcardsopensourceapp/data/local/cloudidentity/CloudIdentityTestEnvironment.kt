@@ -25,12 +25,12 @@ import com.flashcardsopensourceapp.data.local.model.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.encodeSchedulerStepListJson
 import com.flashcardsopensourceapp.data.local.model.makeDefaultWorkspaceSchedulerSettings
-import com.flashcardsopensourceapp.data.local.repository.cloudsync.CloudGuestSessionCoordinator
-import com.flashcardsopensourceapp.data.local.repository.cloudsync.CloudIdentityResetCoordinator
-import com.flashcardsopensourceapp.data.local.repository.cloudsync.CloudOperationCoordinator
-import com.flashcardsopensourceapp.data.local.repository.cloudsync.LocalCloudAccountRepository
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.CloudGuestSessionCoordinator
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.CloudIdentityResetCoordinator
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.LocalCloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.progress.LocalProgressCacheStore
-import com.flashcardsopensourceapp.data.local.repository.cloudsync.LocalSyncRepository
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.LocalSyncRepository
 import com.flashcardsopensourceapp.data.local.repository.SystemTimeProvider
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.review.SharedPreferencesReviewPreferencesStore

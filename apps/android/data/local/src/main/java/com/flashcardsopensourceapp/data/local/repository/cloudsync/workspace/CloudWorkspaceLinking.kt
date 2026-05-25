@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.repository.cloudsync
+package com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace
 
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeSelection
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkContext

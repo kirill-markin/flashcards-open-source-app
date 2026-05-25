@@ -31,8 +31,8 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.repository.AiChatPreparedRemoteSession
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
-import com.flashcardsopensourceapp.data.local.repository.cloudsync.CloudGuestSessionCoordinator
-import com.flashcardsopensourceapp.data.local.repository.cloudsync.GuestCloudSessionRestoreResult
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.CloudGuestSessionCoordinator
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.GuestCloudSessionRestoreResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow

@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.repository.cloudsync
+package com.flashcardsopensourceapp.data.local.repository.cloudsync.account
 
 import com.flashcardsopensourceapp.data.local.ai.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
@@ -19,6 +19,11 @@ import com.flashcardsopensourceapp.data.local.model.CloudWorkspacePostAuthRoute
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.loadActiveGuestSessionOrNull
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.resumePendingGuestUpgradeRecoveryIfNeeded
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudSessionProvider
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.resolvePreferredPostAuthWorkspaceId
 
 internal class CloudSignInCoordinator(
     private val database: AppDatabase,

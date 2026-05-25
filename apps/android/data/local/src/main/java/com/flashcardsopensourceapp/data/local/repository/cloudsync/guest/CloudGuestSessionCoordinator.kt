@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.repository.cloudsync
+package com.flashcardsopensourceapp.data.local.repository.cloudsync.guest
 
 import com.flashcardsopensourceapp.data.local.ai.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.ai.GuestCloudSessionCreator
@@ -18,6 +18,10 @@ import com.flashcardsopensourceapp.data.local.model.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.CloudIdentityResetCoordinator
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.androidClientPlatform
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.loadCurrentWorkspaceOrNull
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 

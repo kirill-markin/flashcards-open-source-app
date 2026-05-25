@@ -31,9 +31,9 @@ import com.flashcardsopensourceapp.data.local.model.makeDefaultWorkspaceSchedule
 import com.flashcardsopensourceapp.data.local.model.matchesReviewFilter
 import com.flashcardsopensourceapp.data.local.model.resolveReviewFilterFromTagNames
 import com.flashcardsopensourceapp.data.local.model.toReviewCard
-import com.flashcardsopensourceapp.data.local.repository.cloudsync.loadCurrentWorkspaceOrNull
-import com.flashcardsopensourceapp.data.local.repository.cloudsync.observeCurrentWorkspace
-import com.flashcardsopensourceapp.data.local.repository.cloudsync.runLocalOutboxMutationTransaction
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.loadCurrentWorkspaceOrNull
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.observeCurrentWorkspace
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.runLocalOutboxMutationTransaction
 import com.flashcardsopensourceapp.data.local.repository.progress.LocalProgressCacheStore
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow

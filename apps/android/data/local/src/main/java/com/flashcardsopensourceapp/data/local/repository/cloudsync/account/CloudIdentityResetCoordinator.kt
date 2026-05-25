@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.repository.cloudsync
+package com.flashcardsopensourceapp.data.local.repository.cloudsync.account
 
 import com.flashcardsopensourceapp.data.local.ai.AiChatHistoryStore
 import com.flashcardsopensourceapp.data.local.ai.AiChatPreferencesStore

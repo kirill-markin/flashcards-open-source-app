@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.repository.cloudsync
+package com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime
 
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.currentCoroutineContext
