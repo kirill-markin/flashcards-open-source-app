@@ -11,6 +11,7 @@ type ReviewReactionLottieAnimationModule = Readonly<{
 
 export type ReviewReactionLottieVariant =
   | "againWormWiggle"
+  | "againTornado"
   | "againSnailCrawl"
   | "againWiltedFlower"
   | "easyRainbowStreak"
@@ -30,6 +31,7 @@ export function isReviewReactionLottieVariant(
   variant: ReviewReactionVariant,
 ): variant is ReviewReactionLottieVariant {
   return variant === "againWormWiggle"
+    || variant === "againTornado"
     || variant === "againSnailCrawl"
     || variant === "againWiltedFlower"
     || variant === "easyRainbowStreak"
@@ -58,6 +60,7 @@ export function loadReviewReactionLottieAssets(): Promise<ReviewReactionLottieAs
   reviewReactionLottieAssetsPromise = Promise.all([
     import("lottie-web/build/player/lottie_light"),
     import("../../../assets/review_again_worm.json"),
+    import("../../../assets/review_again_tornado.json"),
     import("../../../assets/review_again_snail.json"),
     import("../../../assets/review_again_wilted_flower.json"),
     import("../../../assets/review_easy_rainbow.json"),
@@ -66,6 +69,7 @@ export function loadReviewReactionLottieAssets(): Promise<ReviewReactionLottieAs
     [
       lottieModule,
       wormAnimationModule,
+      tornadoAnimationModule,
       snailAnimationModule,
       wiltedFlowerAnimationModule,
       rainbowAnimationModule,
@@ -77,12 +81,14 @@ export function loadReviewReactionLottieAssets(): Promise<ReviewReactionLottieAs
       ReviewReactionLottieAnimationModule,
       ReviewReactionLottieAnimationModule,
       ReviewReactionLottieAnimationModule,
+      ReviewReactionLottieAnimationModule,
     ],
   ): ReviewReactionLottieAssets => {
     reviewReactionLottieAssetsReady = true;
     return {
       animationDataByVariant: {
         againWormWiggle: wormAnimationModule.default,
+        againTornado: tornadoAnimationModule.default,
         againSnailCrawl: snailAnimationModule.default,
         againWiltedFlower: wiltedFlowerAnimationModule.default,
         easyRainbowStreak: rainbowAnimationModule.default,

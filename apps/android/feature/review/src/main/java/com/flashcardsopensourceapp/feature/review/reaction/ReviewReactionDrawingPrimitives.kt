@@ -362,32 +362,6 @@ internal fun DrawScope.drawCubicStroke(
     }
 }
 
-internal fun DrawScope.drawSpiralStroke(
-    center: Offset,
-    maxRadius: Float,
-    turns: Float,
-    rotationRadians: Float,
-    progress: Float,
-    color: Color,
-    strokeWidth: Float
-) {
-    val clampedProgress: Float = reviewReactionClampedProgress(progress = progress)
-    if (clampedProgress <= 0f) {
-        return
-    }
-
-    var previous: Offset = center
-    val steps: Int = max(1, (reviewReactionPathSampleCount * clampedProgress).toInt())
-    for (step in 1..steps) {
-        val t: Float = clampedProgress * step.toFloat() / steps.toFloat()
-        val angle: Float = t * PI.toFloat() * 2f * turns + rotationRadians
-        val radius: Float = maxRadius * t
-        val next: Offset = Offset(x = center.x + cos(angle) * radius, y = center.y + sin(angle) * radius)
-        drawLine(color = color, start = previous, end = next, strokeWidth = strokeWidth, cap = StrokeCap.Round)
-        previous = next
-    }
-}
-
 internal fun DrawScope.drawPolylineProgress(
     points: List<Offset>,
     progress: Float,

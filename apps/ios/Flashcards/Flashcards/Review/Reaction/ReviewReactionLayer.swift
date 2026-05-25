@@ -7,6 +7,7 @@ import UIKit
 private let reviewReactionAnimationMinimumIntervalSeconds: Double = 1.0 / 60.0
 private let reviewAgainWiltedFlowerAnimationAssetName: String = "ReviewAgainWiltedFlower"
 private let reviewAgainWormAnimationAssetName: String = "ReviewAgainWorm"
+private let reviewAgainTornadoAnimationAssetName: String = "ReviewAgainTornado"
 private let reviewAgainSnailAnimationAssetName: String = "ReviewAgainSnail"
 private let reviewEasyRainbowAnimationAssetName: String = "ReviewEasyRainbow"
 private let reviewEasyUnicornAnimationAssetName: String = "ReviewEasyUnicorn"
@@ -28,6 +29,7 @@ private struct ReviewReactionLottieConfiguration {
 private struct ReviewReactionLottieAnimationStore {
     let reviewAgainWiltedFlowerAnimation: LottieAnimation?
     let reviewAgainWormAnimation: LottieAnimation?
+    let reviewAgainTornadoAnimation: LottieAnimation?
     let reviewAgainSnailAnimation: LottieAnimation?
     let reviewEasyRainbowAnimation: LottieAnimation?
     let reviewEasyUnicornAnimation: LottieAnimation?
@@ -62,6 +64,10 @@ private func makeReviewReactionLottieAnimationStore() -> ReviewReactionLottieAni
             assetName: reviewAgainWormAnimationAssetName,
             assetDescription: "worm"
         ),
+        reviewAgainTornadoAnimation: makeReviewReactionLottieAnimation(
+            assetName: reviewAgainTornadoAnimationAssetName,
+            assetDescription: "tornado"
+        ),
         reviewAgainSnailAnimation: makeReviewReactionLottieAnimation(
             assetName: reviewAgainSnailAnimationAssetName,
             assetDescription: "snail"
@@ -87,10 +93,9 @@ private func reviewReactionFallbackEvent(event: ReviewReactionEvent) -> ReviewRe
 
 private func isReviewReactionLottieVariant(variant: ReviewReactionVariant) -> Bool {
     switch variant {
-    case .againWormWiggle, .againSnailCrawl, .againWiltedFlower, .easyRainbowStreak, .easyUnicornFlyby:
+    case .againWormWiggle, .againTornado, .againSnailCrawl, .againWiltedFlower, .easyRainbowStreak, .easyUnicornFlyby:
         return true
-    case .againRewindVortex,
-         .hardHourglassSand,
+    case .hardHourglassSand,
          .hardFallingWeight,
          .hardYellowCrack,
          .hardRollingBoulder,
@@ -133,6 +138,18 @@ private func reviewReactionLottieConfiguration(
             centerY: 0.52,
             reducedMotionProgress: reviewReactionLottieReducedMotionProgress
         )
+    case .againTornado:
+        guard let reviewAgainTornadoAnimation = animationStore.reviewAgainTornadoAnimation else {
+            return nil
+        }
+
+        return ReviewReactionLottieConfiguration(
+            animation: reviewAgainTornadoAnimation,
+            frameScale: 0.58,
+            centerX: 0.50,
+            centerY: 0.45,
+            reducedMotionProgress: reviewReactionLottieReducedMotionProgress
+        )
     case .againSnailCrawl:
         guard let reviewAgainSnailAnimation = animationStore.reviewAgainSnailAnimation else {
             return nil
@@ -169,8 +186,7 @@ private func reviewReactionLottieConfiguration(
             centerY: 0.30,
             reducedMotionProgress: reviewReactionLottieReducedMotionProgress
         )
-    case .againRewindVortex,
-         .hardHourglassSand,
+    case .hardHourglassSand,
          .hardFallingWeight,
          .hardYellowCrack,
          .hardRollingBoulder,
@@ -213,6 +229,7 @@ struct ReviewReactionLayer: View {
         ReviewReactionLottieAnimationStore(
             reviewAgainWiltedFlowerAnimation: nil,
             reviewAgainWormAnimation: nil,
+            reviewAgainTornadoAnimation: nil,
             reviewAgainSnailAnimation: nil,
             reviewEasyRainbowAnimation: nil,
             reviewEasyUnicornAnimation: nil
@@ -344,7 +361,7 @@ private struct ReviewReactionLottieView: View {
 
                 LottieView(animation: self.configuration.animation)
                     .resizable()
-                    .playbackMode(self.playbackMode)
+                    .playbackMode(self.playbackMode(progress: progress))
                     .frame(width: sideLength, height: sideLength)
                     .position(
                         x: proxy.size.width * self.configuration.centerX,
@@ -366,10 +383,10 @@ private struct ReviewReactionLottieView: View {
         self.isReduceMotionEnabled ? .reduced : .standard
     }
 
-    private var playbackMode: LottiePlaybackMode {
+    private func playbackMode(progress: CGFloat) -> LottiePlaybackMode {
         switch self.motionMode {
         case .standard:
-            return .playing(.fromProgress(0, toProgress: 1, loopMode: .playOnce))
+            return .paused(at: .progress(AnimationProgressTime(progress)))
         case .reduced:
             return .paused(at: .progress(self.configuration.reducedMotionProgress))
         }
