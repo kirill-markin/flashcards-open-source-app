@@ -21,12 +21,7 @@ struct TestSettingsView: View {
 }
 
 struct TestAnimationsView: View {
-    @Environment(\.accessibilityReduceMotion) private var isReduceMotionEnabled
     @State private var activeReviewReactionEvents: [ReviewReactionEvent] = []
-
-    private var reviewReactionMotionMode: ReviewReactionMotionMode {
-        self.isReduceMotionEnabled ? .reduced : .standard
-    }
 
     var body: some View {
         ZStack {
@@ -57,7 +52,10 @@ struct TestAnimationsView: View {
             .listStyle(.insetGrouped)
             .accessibilityIdentifier(UITestIdentifier.testAnimationsScreen)
 
-            ReviewReactionLayer(events: self.activeReviewReactionEvents)
+            ReviewReactionLayer(
+                events: self.activeReviewReactionEvents,
+                onEventFinished: self.removeFinishedReviewReactionEvent(eventId:)
+            )
         }
         .navigationTitle(aiSettingsLocalized("settings.test.animations.title", "Animations"))
     }
@@ -68,40 +66,16 @@ struct TestAnimationsView: View {
             rating: entry.rating,
             variant: entry.variant
         )
-        let motionMode: ReviewReactionMotionMode = self.reviewReactionMotionMode
         self.activeReviewReactionEvents = appendReviewReactionEvent(
             events: self.activeReviewReactionEvents,
             event: event,
             maximumActiveEvents: reviewReactionMaximumActiveEvents
         )
-
-        Task { @MainActor in
-            await self.removeAnimationEventAfterDelay(
-                event: event,
-                motionMode: motionMode
-            )
-        }
     }
 
-    private func removeAnimationEventAfterDelay(
-        event: ReviewReactionEvent,
-        motionMode: ReviewReactionMotionMode
-    ) async {
-        do {
-            try await Task.sleep(
-                nanoseconds: reviewReactionCleanupDelayNanoseconds(
-                    variant: event.variant,
-                    motionMode: motionMode
-                )
-            )
-        } catch is CancellationError {
-            return
-        } catch {
-            preconditionFailure("Unexpected test animation cleanup sleep error: \(error).")
-        }
-
+    private func removeFinishedReviewReactionEvent(eventId: UUID) {
         self.activeReviewReactionEvents = self.activeReviewReactionEvents.filter { activeEvent in
-            activeEvent.id != event.id
+            activeEvent.id != eventId
         }
     }
 }

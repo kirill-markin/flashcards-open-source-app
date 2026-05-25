@@ -14,7 +14,6 @@ let emptyBackTextPlaceholder: String = String(localized: "No back text", table: 
 private let reviewQueuePreviewPageSize: Int = 50
 
 struct ReviewView: View {
-    @Environment(\.accessibilityReduceMotion) private var isReduceMotionEnabled
     @Environment(FlashcardsStore.self) var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
 
@@ -123,10 +122,6 @@ struct ReviewView: View {
         return store.isReviewQueueChunkLoading
     }
 
-    private var reviewReactionMotionMode: ReviewReactionMotionMode {
-        self.isReduceMotionEnabled ? .reduced : .standard
-    }
-
     var body: some View {
         ZStack {
             Group {
@@ -139,7 +134,10 @@ struct ReviewView: View {
                 }
             }
 
-            ReviewReactionLayer(events: self.activeReviewReactionEvents)
+            ReviewReactionLayer(
+                events: self.activeReviewReactionEvents,
+                onEventFinished: self.removeFinishedReviewReactionEvent(eventId:)
+            )
         }
         .accessibilityIdentifier(UITestIdentifier.reviewScreen)
         .navigationTitle(String(localized: "Review", table: reviewCardsStringsTableName))
@@ -666,10 +664,7 @@ struct ReviewView: View {
 
     private func reviewAnswerButton(cardId: String, option: ReviewAnswerOption) -> some View {
         Button {
-            self.emitReviewReaction(
-                rating: option.rating,
-                motionMode: self.reviewReactionMotionMode
-            )
+            self.emitReviewReaction(rating: option.rating)
             self.submitReview(cardId: cardId, rating: option.rating)
         } label: {
             VStack(alignment: .center, spacing: 4) {

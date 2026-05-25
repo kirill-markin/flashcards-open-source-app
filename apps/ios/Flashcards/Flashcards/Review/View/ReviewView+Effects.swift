@@ -1,10 +1,7 @@
 import SwiftUI
 
 extension ReviewView {
-    func emitReviewReaction(
-        rating: ReviewRating,
-        motionMode: ReviewReactionMotionMode
-    ) {
+    func emitReviewReaction(rating: ReviewRating) {
         let reactionRating = makeReviewReactionRating(rating: rating)
         let event = ReviewReactionEvent(
             id: UUID(),
@@ -19,24 +16,11 @@ extension ReviewView {
             event: event,
             maximumActiveEvents: reviewReactionMaximumActiveEvents
         )
+    }
 
-        Task { @MainActor in
-            do {
-                try await Task.sleep(
-                    nanoseconds: reviewReactionCleanupDelayNanoseconds(
-                        variant: event.variant,
-                        motionMode: motionMode
-                    )
-                )
-            } catch is CancellationError {
-                return
-            } catch {
-                preconditionFailure("Unexpected review reaction cleanup sleep error: \(error).")
-            }
-
-            self.activeReviewReactionEvents = self.activeReviewReactionEvents.filter { activeEvent in
-                activeEvent.id != event.id
-            }
+    func removeFinishedReviewReactionEvent(eventId: UUID) {
+        self.activeReviewReactionEvents = self.activeReviewReactionEvents.filter { activeEvent in
+            activeEvent.id != eventId
         }
     }
 
