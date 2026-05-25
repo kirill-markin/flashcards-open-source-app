@@ -7,8 +7,9 @@ import {
   type ReviewReactionRenderableVariant,
 } from "./reviewReaction";
 import {
-  isReviewReactionLottieAssetsReady,
+  isReviewReactionLottieAssetReady,
   isReviewReactionLottieVariant,
+  loadReviewReactionLottieAsset,
   loadReviewReactionLottieAssets,
   reviewReactionLottieFallbackVariant,
   reviewReactionVariantWithReadyLottieFallback,
@@ -177,19 +178,19 @@ function ReviewReactionLottieAnimation(props: ReviewReactionLottieAnimationProps
     let isCancelled = false;
 
     async function loadReviewReactionLottieAnimation(): Promise<void> {
-      const assets = await loadReviewReactionLottieAssets();
+      const asset = await loadReviewReactionLottieAsset(variant);
 
       if (isCancelled) {
         return;
       }
 
       const isReducedMotionEnabled = matchesReducedReviewReactionMotion();
-      const nextAnimationItem = assets.player.loadAnimation({
+      const nextAnimationItem = asset.player.loadAnimation({
         container,
         renderer: "svg",
         loop: false,
         autoplay: !isReducedMotionEnabled,
-        animationData: assets.animationDataByVariant[variant],
+        animationData: asset.animationData,
       });
 
       animationItem = nextAnimationItem;
@@ -270,7 +271,7 @@ function renderReviewReactionArt(
   const { variant } = event;
 
   if (isReviewReactionLottieVariant(variant)) {
-    if (!isReviewReactionLottieAssetsReady()) {
+    if (!isReviewReactionLottieAssetReady(variant)) {
       return <ReviewReactionCrownFallbackArt />;
     }
 
@@ -297,13 +298,23 @@ export function ReviewRatingReactionLayer(props: ReviewRatingReactionLayerProps)
 
   useEffect(() => {
     let isMounted = true;
-    void loadReviewReactionLottieAssets().catch((error: unknown) => {
-      if (!isMounted) {
-        return;
-      }
+    void loadReviewReactionLottieAssets()
+      .then((preloadResult) => {
+        if (!isMounted) {
+          return;
+        }
 
-      reportReviewReactionLottieFailure(error, "preload", null);
-    });
+        for (const failure of preloadResult.failures) {
+          reportReviewReactionLottieFailure(failure.error, "preload", failure.variant);
+        }
+      })
+      .catch((error: unknown) => {
+        if (!isMounted) {
+          return;
+        }
+
+        reportReviewReactionLottieFailure(error, "preload", null);
+      });
 
     return () => {
       isMounted = false;
