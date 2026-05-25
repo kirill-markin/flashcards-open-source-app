@@ -11,8 +11,8 @@ import com.flashcardsopensourceapp.data.local.model.CardFilter
 import com.flashcardsopensourceapp.data.local.model.CardSummary
 import com.flashcardsopensourceapp.data.local.model.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.queryCards
-import com.flashcardsopensourceapp.data.local.repository.cloudsync.requireCurrentWorkspace
-import com.flashcardsopensourceapp.data.local.repository.cloudsync.runLocalOutboxMutationTransaction
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.requireCurrentWorkspace
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.runLocalOutboxMutationTransaction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map

@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.repository.cloudsync
+package com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace
 
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
@@ -10,6 +10,14 @@ import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.AuthenticatedCloudSession
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.isCloudIdentityConflictError
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.CloudSyncBlockedException
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.CloudSyncSession
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.CloudWorkspaceForkRecoveryMode
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.androidClientPlatform
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.runCloudSyncCore
 import org.json.JSONObject
 
 internal class CloudLinkedWorkspaceTransitionCoordinator(

@@ -23,10 +23,10 @@ import com.flashcardsopensourceapp.data.local.model.isNewCard
 import com.flashcardsopensourceapp.data.local.model.isReviewedCard
 import com.flashcardsopensourceapp.data.local.model.makeDefaultWorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.model.validateWorkspaceSchedulerSettingsInput
-import com.flashcardsopensourceapp.data.local.repository.cloudsync.loadCurrentWorkspaceOrNull
-import com.flashcardsopensourceapp.data.local.repository.cloudsync.observeCurrentWorkspace
-import com.flashcardsopensourceapp.data.local.repository.cloudsync.requireCurrentWorkspace
-import com.flashcardsopensourceapp.data.local.repository.cloudsync.runLocalOutboxMutationTransaction
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.loadCurrentWorkspaceOrNull
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.observeCurrentWorkspace
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.requireCurrentWorkspace
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.runLocalOutboxMutationTransaction
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine

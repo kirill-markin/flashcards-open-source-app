@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.repository.cloudsync
+package com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace
 
 import com.flashcardsopensourceapp.data.local.ai.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
@@ -19,6 +19,22 @@ import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspacePostAuthRoute
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.CloudIdentityResetCoordinator
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.requireActiveCloudCredentialRecoveryState
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.requireCloudLinkMatchesCredentialRecoveryBeforeSideEffects
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.requireGuestLocalRecoveryAllowsCreateNewCompletion
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.requirePostAuthRouteAllowsCloudLinkCompletion
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.requireWorkspaceSelectionMatchesCredentialRecoveryBeforeSideEffects
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.loadActiveGuestSessionOrNull
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.resumePendingGuestUpgradeRecoveryIfNeeded
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.AuthenticatedCloudSession
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudSessionProvider
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.isCloudIdentityConflictError
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.CloudSyncBlockedException
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.CloudSyncSession
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.CloudWorkspaceForkRecoveryMode
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.runCloudSyncCore
 import kotlinx.coroutines.CancellationException
 
 internal class CloudWorkspaceLinkCoordinator(

@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.repository.cloudsync
+package com.flashcardsopensourceapp.data.local.repository.cloudsync.guest
 
 import com.flashcardsopensourceapp.data.local.ai.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
@@ -16,6 +16,13 @@ import com.flashcardsopensourceapp.data.local.model.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.shouldRefreshCloudIdToken
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.isCloudIdentityConflictError
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.CloudSyncBlockedException
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.CloudSyncSession
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.CloudWorkspaceForkRecoveryMode
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.runCloudSyncCore
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.requireCurrentWorkspace
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.toGuestUpgradeSelection
 import kotlinx.coroutines.CancellationException
 
 internal suspend fun resumePendingGuestUpgradeRecoveryIfNeeded(
