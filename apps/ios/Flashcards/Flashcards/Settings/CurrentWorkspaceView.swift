@@ -167,7 +167,7 @@ private struct CurrentWorkspacePickerSheet: View {
                     Button {
                         self.switchWorkspace(selection: item.selection)
                     } label: {
-                        CurrentWorkspaceSelectionRow(item: item)
+                        CloudWorkspaceSelectionRow(item: item)
                     }
                     .buttonStyle(.plain)
                     .disabled(self.isSwitching)
@@ -201,41 +201,6 @@ private func currentWorkspaceSelectionButtonIdentifier(selection: CloudWorkspace
         return UITestIdentifier.currentWorkspaceCreateButton
     case .existing(let workspaceId):
         return "currentWorkspace.existingWorkspace.\(workspaceId)"
-    }
-}
-
-private struct CurrentWorkspaceSelectionRow: View {
-    let item: CloudWorkspaceSelectionItem
-
-    var body: some View {
-        HStack(spacing: 12) {
-            if let symbolName = self.item.symbolName {
-                Image(systemName: symbolName)
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                    .frame(width: 20)
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(self.item.title)
-                    .foregroundStyle(.primary)
-
-                if let subtitle = self.item.subtitle {
-                    Text(subtitle)
-                        .font(.caption.monospaced())
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Spacer()
-
-            if self.item.showsSelectedIndicator {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .contentShape(Rectangle())
-        .padding(.vertical, 2)
     }
 }
 
