@@ -136,6 +136,28 @@ private func reviewReactionLottieConfiguration(
     }
 }
 
+@MainActor
+private func finishReviewReactionEventAfterDelay(
+    event: ReviewReactionEvent,
+    motionMode: ReviewReactionMotionMode,
+    onEventFinished: (UUID) -> Void
+) async {
+    do {
+        try await Task.sleep(
+            nanoseconds: reviewReactionCleanupDelayNanoseconds(
+                variant: event.variant,
+                motionMode: motionMode
+            )
+        )
+    } catch is CancellationError {
+        return
+    } catch {
+        preconditionFailure("Unexpected review reaction visual cleanup sleep error: \(error).")
+    }
+
+    onEventFinished(event.id)
+}
+
 struct ReviewReactionLayer: View {
     @Environment(\.accessibilityReduceMotion) private var isReduceMotionEnabled
     @State private var hasStartedReviewReactionLottiePreload: Bool = false
@@ -146,6 +168,7 @@ struct ReviewReactionLayer: View {
         )
 
     let events: [ReviewReactionEvent]
+    let onEventFinished: (UUID) -> Void
 
     var body: some View {
         GeometryReader { proxy in
@@ -154,7 +177,8 @@ struct ReviewReactionLayer: View {
                     ReviewReactionEventView(
                         event: event,
                         animationStore: self.reviewReactionLottieAnimationStore,
-                        isReduceMotionEnabled: self.isReduceMotionEnabled
+                        isReduceMotionEnabled: self.isReduceMotionEnabled,
+                        onEventFinished: self.onEventFinished
                     )
                     .id(event.id)
                 }
@@ -165,6 +189,9 @@ struct ReviewReactionLayer: View {
         .accessibilityHidden(true)
         .onAppear {
             self.preloadReviewReactionLottieAnimations()
+        }
+        .onDisappear {
+            self.finishActiveEvents()
         }
     }
 
@@ -181,23 +208,32 @@ struct ReviewReactionLayer: View {
             }
         }
     }
+
+    private func finishActiveEvents() {
+        for event in self.events {
+            self.onEventFinished(event.id)
+        }
+    }
 }
 
 private struct ReviewReactionEventView: View {
     let event: ReviewReactionEvent
     let animationStore: ReviewReactionLottieAnimationStore
     let isReduceMotionEnabled: Bool
+    let onEventFinished: (UUID) -> Void
 
     @State private var shouldUseCrownFallback: Bool
 
     init(
         event: ReviewReactionEvent,
         animationStore: ReviewReactionLottieAnimationStore,
-        isReduceMotionEnabled: Bool
+        isReduceMotionEnabled: Bool,
+        onEventFinished: @escaping (UUID) -> Void
     ) {
         self.event = event
         self.animationStore = animationStore
         self.isReduceMotionEnabled = isReduceMotionEnabled
+        self.onEventFinished = onEventFinished
         self._shouldUseCrownFallback = State(
             initialValue: isReviewReactionLottieVariant(variant: event.variant)
                 && reviewReactionLottieConfiguration(
@@ -217,12 +253,14 @@ private struct ReviewReactionEventView: View {
             ReviewReactionLottieView(
                 event: self.event,
                 isReduceMotionEnabled: self.isReduceMotionEnabled,
-                configuration: lottieConfiguration
+                configuration: lottieConfiguration,
+                onEventFinished: self.onEventFinished
             )
         } else {
             ReviewReactionCanvas(
                 event: self.canvasEvent,
-                isReduceMotionEnabled: self.isReduceMotionEnabled
+                isReduceMotionEnabled: self.isReduceMotionEnabled,
+                onEventFinished: self.onEventFinished
             )
         }
     }
@@ -240,6 +278,7 @@ private struct ReviewReactionLottieView: View {
     let event: ReviewReactionEvent
     let isReduceMotionEnabled: Bool
     let configuration: ReviewReactionLottieConfiguration
+    let onEventFinished: (UUID) -> Void
 
     @State private var startedAt: Date = Date()
 
@@ -262,6 +301,13 @@ private struct ReviewReactionLottieView: View {
                     )
                     .opacity(ReviewReactionRenderer.reviewReactionOpacity(progress: progress))
             }
+        }
+        .task(id: self.event.id) {
+            await finishReviewReactionEventAfterDelay(
+                event: self.event,
+                motionMode: self.motionMode,
+                onEventFinished: self.onEventFinished
+            )
         }
     }
 
@@ -295,6 +341,7 @@ private struct ReviewReactionLottieView: View {
 private struct ReviewReactionCanvas: View {
     let event: ReviewReactionEvent
     let isReduceMotionEnabled: Bool
+    let onEventFinished: (UUID) -> Void
 
     @State private var startedAt: Date = Date()
 
@@ -311,6 +358,13 @@ private struct ReviewReactionCanvas: View {
                     motionMode: self.motionMode
                 )
             }
+        }
+        .task(id: self.event.id) {
+            await finishReviewReactionEventAfterDelay(
+                event: self.event,
+                motionMode: self.motionMode,
+                onEventFinished: self.onEventFinished
+            )
         }
     }
 
