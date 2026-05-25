@@ -8,8 +8,7 @@ internal fun DrawScope.drawReviewReaction(
     motionMode: ReviewReactionMotionMode
 ) {
     when (event.variant) {
-        ReviewReactionVariant.AGAIN_REWIND_VORTEX,
-        ReviewReactionVariant.AGAIN_WARNING_TAPE -> drawAgainReviewReaction(
+        ReviewReactionVariant.AGAIN_REWIND_VORTEX -> drawAgainReviewReaction(
             variant = event.variant,
             progress = progress,
             motionMode = motionMode
@@ -34,6 +33,7 @@ internal fun DrawScope.drawReviewReaction(
         )
 
         ReviewReactionVariant.EASY_SPARKLE_BURST,
+        ReviewReactionVariant.AGAIN_WILTED_FLOWER,
         ReviewReactionVariant.AGAIN_WORM_WIGGLE,
         ReviewReactionVariant.AGAIN_SNAIL_CRAWL,
         ReviewReactionVariant.EASY_RAINBOW_STREAK,

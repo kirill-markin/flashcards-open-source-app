@@ -61,37 +61,4 @@ extension ReviewReactionRenderer {
         }
     }
 
-    static func drawAgainWarningTape(
-        context: GraphicsContext,
-        size: CGSize,
-        progress: CGFloat,
-        motionMode: ReviewReactionMotionMode
-    ) {
-        let opacity = reviewReactionOpacity(progress: progress)
-        guard opacity > 0 else {
-            return
-        }
-
-        let phase = reviewReactionPhaseProgress(progress: progress, enterEnd: 0.34, exitStart: 0.80)
-        let snap = motionMode == .reduced ? 1 : reviewReactionEaseOutBack(progress: phase.enter, overshoot: 1.35)
-        let drift = motionMode == .reduced ? 0 : sin(phase.hold * CGFloat.pi * 2) * 18 * (1 - phase.exit)
-        let exitShift = motionMode == .reduced ? 0 : phase.exit * 48
-        let lengthScale = motionMode == .reduced ? 1 : reviewReactionInterpolate(start: 0.18, end: 1, progress: min(snap, 1))
-        drawWarningTapeBand(
-            context: context,
-            center: CGPoint(x: size.width * 0.50 + drift + exitShift, y: size.height * 0.32 - (1 - min(snap, 1)) * 22),
-            length: size.width * 1.30 * lengthScale,
-            height: 34,
-            rotationDegrees: -13 - (1 - min(snap, 1)) * 10,
-            opacity: opacity
-        )
-        drawWarningTapeBand(
-            context: context,
-            center: CGPoint(x: size.width * 0.50 - drift - exitShift, y: size.height * 0.58 + (1 - min(snap, 1)) * 18),
-            length: size.width * 1.24 * lengthScale,
-            height: 28,
-            rotationDegrees: 12 + (1 - min(snap, 1)) * 8,
-            opacity: opacity * 0.82
-        )
-    }
 }

@@ -33,6 +33,9 @@ private const val reviewReactionAnimationMaximumProgress: Float = 1f
 private const val reviewReactionCleanupExtraMillis: Long = 80L
 private const val reviewReactionLogTag: String = "ReviewReaction"
 private const val reviewReactionReducedMotionDrawingProgress: Float = 0.55f
+private const val reviewAgainWiltedFlowerAnimationFrameScale: Float = 0.56f
+private const val reviewAgainWiltedFlowerAnimationCenterX: Float = 0.50f
+private const val reviewAgainWiltedFlowerAnimationCenterY: Float = 0.50f
 private const val reviewAgainWormAnimationFrameScale: Float = 0.58f
 private const val reviewAgainWormAnimationCenterX: Float = 0.50f
 private const val reviewAgainWormAnimationCenterY: Float = 0.52f
@@ -68,12 +71,20 @@ private fun logReviewReactionLottieWarning(
 
 private fun reviewReactionLottieConfiguration(
     variant: ReviewReactionVariant,
+    reviewAgainWiltedFlowerComposition: LottieComposition?,
     reviewAgainWormComposition: LottieComposition?,
     reviewAgainSnailComposition: LottieComposition?,
     reviewEasyRainbowComposition: LottieComposition?,
     reviewEasyUnicornComposition: LottieComposition?
 ): ReviewReactionLottieConfiguration? {
     return when (variant) {
+        ReviewReactionVariant.AGAIN_WILTED_FLOWER -> ReviewReactionLottieConfiguration(
+            composition = reviewAgainWiltedFlowerComposition,
+            frameScale = reviewAgainWiltedFlowerAnimationFrameScale,
+            centerX = reviewAgainWiltedFlowerAnimationCenterX,
+            centerY = reviewAgainWiltedFlowerAnimationCenterY
+        )
+
         ReviewReactionVariant.AGAIN_WORM_WIGGLE -> ReviewReactionLottieConfiguration(
             composition = reviewAgainWormComposition,
             frameScale = reviewAgainWormAnimationFrameScale,
@@ -103,7 +114,6 @@ private fun reviewReactionLottieConfiguration(
         )
 
         ReviewReactionVariant.AGAIN_REWIND_VORTEX,
-        ReviewReactionVariant.AGAIN_WARNING_TAPE,
         ReviewReactionVariant.HARD_HOURGLASS_SAND,
         ReviewReactionVariant.HARD_FALLING_WEIGHT,
         ReviewReactionVariant.HARD_YELLOW_CRACK,
@@ -124,6 +134,25 @@ internal fun ReviewReactionOverlay(
     motionMode: ReviewReactionMotionMode,
     onEventFinished: (String) -> Unit
 ) {
+    val reviewAgainWiltedFlowerCompositionResult: LottieCompositionResult = rememberLottieComposition(
+        spec = LottieCompositionSpec.RawRes(R.raw.review_again_wilted_flower)
+    )
+    val reviewAgainWiltedFlowerCompositionFailure: Throwable? = reviewAgainWiltedFlowerCompositionResult.error
+    if (reviewAgainWiltedFlowerCompositionFailure != null) {
+        LaunchedEffect(reviewAgainWiltedFlowerCompositionFailure) {
+            logReviewReactionLottieWarning(
+                assetName = "review_again_wilted_flower",
+                error = reviewAgainWiltedFlowerCompositionFailure
+            )
+        }
+    }
+    val reviewAgainWiltedFlowerComposition: LottieComposition? =
+        if (reviewAgainWiltedFlowerCompositionFailure == null) {
+            reviewAgainWiltedFlowerCompositionResult.value
+        } else {
+            null
+        }
+
     val reviewAgainWormCompositionResult: LottieCompositionResult = rememberLottieComposition(
         spec = LottieCompositionSpec.RawRes(R.raw.review_again_worm)
     )
@@ -206,6 +235,7 @@ internal fun ReviewReactionOverlay(
                 ReviewReactionCanvas(
                     event = event,
                     motionMode = motionMode,
+                    reviewAgainWiltedFlowerComposition = reviewAgainWiltedFlowerComposition,
                     reviewAgainWormComposition = reviewAgainWormComposition,
                     reviewAgainSnailComposition = reviewAgainSnailComposition,
                     reviewEasyRainbowComposition = reviewEasyRainbowComposition,
@@ -221,6 +251,7 @@ internal fun ReviewReactionOverlay(
 private fun ReviewReactionCanvas(
     event: ReviewReactionEvent,
     motionMode: ReviewReactionMotionMode,
+    reviewAgainWiltedFlowerComposition: LottieComposition?,
     reviewAgainWormComposition: LottieComposition?,
     reviewAgainSnailComposition: LottieComposition?,
     reviewEasyRainbowComposition: LottieComposition?,
@@ -230,6 +261,7 @@ private fun ReviewReactionCanvas(
     val lottieConfiguration: ReviewReactionLottieConfiguration? = remember(event.id, event.variant) {
         reviewReactionLottieConfiguration(
             variant = event.variant,
+            reviewAgainWiltedFlowerComposition = reviewAgainWiltedFlowerComposition,
             reviewAgainWormComposition = reviewAgainWormComposition,
             reviewAgainSnailComposition = reviewAgainSnailComposition,
             reviewEasyRainbowComposition = reviewEasyRainbowComposition,

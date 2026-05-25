@@ -36,13 +36,6 @@ enum ReviewReactionRenderer {
                 progress: drawingProgress,
                 motionMode: motionMode
             )
-        case .againWarningTape:
-            drawAgainWarningTape(
-                context: drawingContext,
-                size: drawableSize,
-                progress: drawingProgress,
-                motionMode: motionMode
-            )
         case .hardHourglassSand:
             drawHardHourglassSand(
                 context: drawingContext,
@@ -107,6 +100,13 @@ enum ReviewReactionRenderer {
                 motionMode: motionMode
             )
         case .easyCrownBounce:
+            drawEasyCrownBounce(
+                context: drawingContext,
+                size: drawableSize,
+                progress: drawingProgress,
+                motionMode: motionMode
+            )
+        case .againWiltedFlower:
             drawEasyCrownBounce(
                 context: drawingContext,
                 size: drawableSize,

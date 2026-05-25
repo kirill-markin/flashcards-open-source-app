@@ -18,7 +18,7 @@ internal enum class ReviewReactionVariant {
     AGAIN_WORM_WIGGLE,
     AGAIN_REWIND_VORTEX,
     AGAIN_SNAIL_CRAWL,
-    AGAIN_WARNING_TAPE,
+    AGAIN_WILTED_FLOWER,
     HARD_HOURGLASS_SAND,
     HARD_FALLING_WEIGHT,
     HARD_YELLOW_CRACK,
@@ -46,7 +46,7 @@ internal val ReviewReactionVariant.debugIdentifier: String
         ReviewReactionVariant.AGAIN_WORM_WIGGLE -> "againWormWiggle"
         ReviewReactionVariant.AGAIN_REWIND_VORTEX -> "againRewindVortex"
         ReviewReactionVariant.AGAIN_SNAIL_CRAWL -> "againSnailCrawl"
-        ReviewReactionVariant.AGAIN_WARNING_TAPE -> "againWarningTape"
+        ReviewReactionVariant.AGAIN_WILTED_FLOWER -> "againWiltedFlower"
         ReviewReactionVariant.HARD_HOURGLASS_SAND -> "hardHourglassSand"
         ReviewReactionVariant.HARD_FALLING_WEIGHT -> "hardFallingWeight"
         ReviewReactionVariant.HARD_YELLOW_CRACK -> "hardYellowCrack"
@@ -94,7 +94,7 @@ internal val allReviewReactionVariantDistributionEntries: List<ReviewReactionVar
     ),
     ReviewReactionVariantDistributionEntry(
         rating = ReviewRating.AGAIN,
-        variant = ReviewReactionVariant.AGAIN_WARNING_TAPE,
+        variant = ReviewReactionVariant.AGAIN_WILTED_FLOWER,
         rollRange = 920..999
     ),
     ReviewReactionVariantDistributionEntry(
@@ -241,13 +241,13 @@ internal fun reviewReactionAnimationDurationMillis(
         ReviewReactionVariant.AGAIN_REWIND_VORTEX,
         ReviewReactionVariant.GOOD_LIGHT_SWEEP,
         ReviewReactionVariant.GOOD_CHECK_SEAL_BOUNCE -> 1_450
-        ReviewReactionVariant.HARD_HOURGLASS_SAND,
-        ReviewReactionVariant.AGAIN_WARNING_TAPE -> 1_550
+        ReviewReactionVariant.HARD_HOURGLASS_SAND -> 1_550
         ReviewReactionVariant.HARD_FALLING_WEIGHT,
         ReviewReactionVariant.EASY_CROWN_BOUNCE -> 1_650
         ReviewReactionVariant.GOOD_PAPER_PLANE_CHECK -> 1_750
         ReviewReactionVariant.EASY_RAINBOW_STREAK -> 2_000
         ReviewReactionVariant.HARD_ROLLING_BOULDER -> 2_050
+        ReviewReactionVariant.AGAIN_WILTED_FLOWER -> 2_400
         ReviewReactionVariant.AGAIN_SNAIL_CRAWL -> 2_700
         ReviewReactionVariant.EASY_UNICORN_FLYBY -> 3_800
         ReviewReactionVariant.AGAIN_WORM_WIGGLE -> 4_267

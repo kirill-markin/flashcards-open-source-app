@@ -167,10 +167,6 @@
   animation: review-reaction-vortex-art var(--review-reaction-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.review-rating-reaction-againWarningTape .review-rating-reaction-art {
-  animation: review-reaction-warning-tape-art var(--review-reaction-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
 .review-rating-reaction-hardHourglassSand .review-rating-reaction-art {
   animation: review-reaction-hourglass-art var(--review-reaction-duration) ease-in-out both;
 }
@@ -214,6 +210,7 @@
 
 .review-rating-reaction-againWormWiggle .review-rating-reaction-lottie-art,
 .review-rating-reaction-againSnailCrawl .review-rating-reaction-lottie-art,
+.review-rating-reaction-againWiltedFlower .review-rating-reaction-lottie-art,
 .review-rating-reaction-easyRainbowStreak .review-rating-reaction-lottie-art,
 .review-rating-reaction-easyUnicornFlyby .review-rating-reaction-lottie-art {
   animation: none;
@@ -221,6 +218,7 @@
 
 .review-reaction-worm-lottie-mark,
 .review-reaction-snail-lottie-mark,
+.review-reaction-wilted-flower-lottie-mark,
 .review-reaction-rainbow-lottie-mark,
 .review-reaction-unicorn-lottie-mark {
   position: absolute;
@@ -240,6 +238,12 @@
   width: min(58%, 250px);
 }
 
+.review-reaction-wilted-flower-lottie-mark {
+  top: 50%;
+  left: 50%;
+  width: min(56%, 245px);
+}
+
 .review-reaction-rainbow-lottie-mark {
   top: 42%;
   left: 50%;
@@ -256,6 +260,8 @@
 .review-reaction-worm-lottie-mark > svg,
 .review-reaction-snail-lottie-mark > div,
 .review-reaction-snail-lottie-mark > svg,
+.review-reaction-wilted-flower-lottie-mark > div,
+.review-reaction-wilted-flower-lottie-mark > svg,
 .review-reaction-rainbow-lottie-mark > div,
 .review-reaction-rainbow-lottie-mark > svg,
 .review-reaction-unicorn-lottie-mark > div,
@@ -321,24 +327,6 @@
 
   100% {
     transform: scale(0.86) rotate(360deg);
-  }
-}
-
-@keyframes review-reaction-warning-tape-art {
-  0% {
-    transform: translate3d(0, -6%, 0) scaleX(0.20) rotate(-3deg);
-  }
-
-  34% {
-    transform: translate3d(0, 0, 0) scaleX(1.03) rotate(1deg);
-  }
-
-  80% {
-    transform: translate3d(0, 0, 0) scaleX(1) rotate(0deg);
-  }
-
-  100% {
-    transform: translate3d(5%, 0, 0) scaleX(0.98) rotate(2deg);
   }
 }
 
