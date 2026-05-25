@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactElement } from "react";
+import { useEffect, useRef, type CSSProperties, type ReactElement } from "react";
 import type { AnimationItem } from "lottie-web";
 import {
   matchesReducedReviewReactionMotion,
@@ -17,6 +17,7 @@ import {
 
 type ReviewRatingReactionLayerProps = Readonly<{
   events: ReadonlyArray<ReviewReactionEvent>;
+  onReactionEventFallback: (eventId: string) => void;
 }>;
 
 type ReviewReactionStyle = CSSProperties & Readonly<{
@@ -284,19 +285,16 @@ function ReviewReactionCrownFallbackArt(): ReactElement {
 }
 
 type ReviewReactionLottieAnimationProps = Readonly<{
+  eventId: string;
+  onReactionEventFallback: (eventId: string) => void;
   variant: ReviewReactionLottieVariant;
 }>;
 
 function ReviewReactionLottieAnimation(props: ReviewReactionLottieAnimationProps): ReactElement {
-  const { variant } = props;
+  const { eventId, onReactionEventFallback, variant } = props;
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [shouldUseFallback, setShouldUseFallback] = useState<boolean>(false);
 
   useEffect(() => {
-    if (shouldUseFallback) {
-      return;
-    }
-
     const mountedContainer = containerRef.current;
     if (mountedContainer === null) {
       reportReviewReactionLottieFailure(
@@ -304,7 +302,7 @@ function ReviewReactionLottieAnimation(props: ReviewReactionLottieAnimationProps
         "render",
         variant,
       );
-      setShouldUseFallback(true);
+      onReactionEventFallback(eventId);
       return;
     }
     const container: HTMLDivElement = mountedContainer;
@@ -351,7 +349,7 @@ function ReviewReactionLottieAnimation(props: ReviewReactionLottieAnimationProps
       }
 
       reportReviewReactionLottieFailure(error, "render", variant);
-      setShouldUseFallback(true);
+      onReactionEventFallback(eventId);
     });
 
     return () => {
@@ -359,11 +357,7 @@ function ReviewReactionLottieAnimation(props: ReviewReactionLottieAnimationProps
       removeDomLoadedListener?.();
       animationItem?.destroy();
     };
-  }, [shouldUseFallback, variant]);
-
-  if (shouldUseFallback) {
-    return <ReviewReactionCrownFallbackArt />;
-  }
+  }, [eventId, onReactionEventFallback, variant]);
 
   return (
     <div ref={containerRef} className={reviewReactionLottieContainerClassByVariant[variant]} />
@@ -407,7 +401,12 @@ function renderReviewReactionVariant(variant: ReviewReactionVariant): ReactEleme
   }
 }
 
-function renderReviewReactionArt(variant: ReviewReactionVariant): ReactElement {
+function renderReviewReactionArt(
+  event: ReviewReactionEvent,
+  onReactionEventFallback: (eventId: string) => void,
+): ReactElement {
+  const { variant } = event;
+
   if (isReviewReactionLottieVariant(variant)) {
     if (!isReviewReactionLottieAssetsReady()) {
       return <ReviewReactionCrownFallbackArt />;
@@ -415,7 +414,11 @@ function renderReviewReactionArt(variant: ReviewReactionVariant): ReactElement {
 
     return (
       <div className="review-rating-reaction-art review-rating-reaction-lottie-art">
-        <ReviewReactionLottieAnimation variant={variant} />
+        <ReviewReactionLottieAnimation
+          eventId={event.id}
+          onReactionEventFallback={onReactionEventFallback}
+          variant={variant}
+        />
       </div>
     );
   }
@@ -428,7 +431,7 @@ function renderReviewReactionArt(variant: ReviewReactionVariant): ReactElement {
 }
 
 export function ReviewRatingReactionLayer(props: ReviewRatingReactionLayerProps): ReactElement {
-  const { events } = props;
+  const { events, onReactionEventFallback } = props;
 
   useEffect(() => {
     let isMounted = true;
@@ -456,7 +459,7 @@ export function ReviewRatingReactionLayer(props: ReviewRatingReactionLayerProps)
           data-testid="review-rating-reaction-event"
           style={makeReviewReactionStyle(event)}
         >
-          {renderReviewReactionArt(event.variant)}
+          {renderReviewReactionArt(event, onReactionEventFallback)}
         </div>
       ))}
     </div>

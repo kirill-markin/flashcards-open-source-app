@@ -16,6 +16,7 @@ export function ReviewScreen(): ReactElement {
     headerProps,
     paneProps,
     queuePanelProps,
+    reviewReactionFallbackHandler,
     reviewReactionEvents,
   } = useReviewScreenController();
 
@@ -29,7 +30,10 @@ export function ReviewScreen(): ReactElement {
           <ReviewQueuePanel {...queuePanelProps} />
         </div>
 
-        <ReviewRatingReactionLayer events={reviewReactionEvents} />
+        <ReviewRatingReactionLayer
+          events={reviewReactionEvents}
+          onReactionEventFallback={reviewReactionFallbackHandler}
+        />
       </section>
 
       <ReviewEditorModal {...editorModalProps} />

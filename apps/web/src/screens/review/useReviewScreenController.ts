@@ -35,6 +35,7 @@ export type UseReviewScreenControllerResult = Readonly<{
   headerProps: ReviewScreenHeaderProps;
   paneProps: ReviewPaneProps;
   queuePanelProps: ReviewQueuePanelProps;
+  reviewReactionFallbackHandler: UseReviewRatingReactionsResult["handleReactionEventFallback"];
   reviewReactionEvents: UseReviewRatingReactionsResult["events"];
 }>;
 
@@ -69,6 +70,7 @@ export function useReviewScreenController(): UseReviewScreenControllerResult {
   const {
     emitReaction: emitReviewReaction,
     events: reviewReactionEvents,
+    handleReactionEventFallback: handleReviewReactionEventFallback,
   } = useReviewRatingReactions();
   const {
     activeReviewQueue,
@@ -398,6 +400,7 @@ export function useReviewScreenController(): UseReviewScreenControllerResult {
       selectedCardId: selectedCard?.cardId ?? null,
       visibleQueueCardsCount,
     },
+    reviewReactionFallbackHandler: handleReviewReactionEventFallback,
     reviewReactionEvents,
   };
 }

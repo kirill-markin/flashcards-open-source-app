@@ -9,12 +9,18 @@ import {
   selectReviewReactionVariant,
   type ReviewReactionEvent,
   type ReviewReactionMotionMode,
+  type ReviewReactionVariant,
 } from "./reviewReaction";
-import { reviewReactionVariantWithReadyLottieFallback } from "./reviewReactionLottie";
+import {
+  isReviewReactionLottieVariant,
+  reviewReactionLottieFallbackVariant,
+  reviewReactionVariantWithReadyLottieFallback,
+} from "./reviewReactionLottie";
 
 export type UseReviewRatingReactionsResult = Readonly<{
   emitReaction: (rating: 0 | 1 | 2 | 3) => void;
   events: ReadonlyArray<ReviewReactionEvent>;
+  handleReactionEventFallback: (eventId: string) => void;
 }>;
 
 function clearReviewReactionTimer(
@@ -47,6 +53,7 @@ export function useReviewRatingReactions(): UseReviewRatingReactionsResult {
   const [motionMode, setMotionMode] = useState<ReviewReactionMotionMode>(
     matchesReducedReviewReactionMotion() ? "reduced" : "standard",
   );
+  const eventsRef = useRef<ReadonlyArray<ReviewReactionEvent>>([]);
   const cleanupTimersRef = useRef<Map<string, number>>(new Map<string, number>());
 
   useEffect(() => {
@@ -77,6 +84,25 @@ export function useReviewRatingReactions(): UseReviewRatingReactionsResult {
     clearTrimmedReviewReactionTimers(cleanupTimersRef.current, events);
   }, [events]);
 
+  const removeReactionEvent = useCallback((eventId: string): void => {
+    clearReviewReactionTimer(cleanupTimersRef.current, eventId);
+    setEvents((currentEvents) => {
+      const nextEvents = currentEvents.filter((activeEvent) => activeEvent.id !== eventId);
+      eventsRef.current = nextEvents;
+      return nextEvents;
+    });
+  }, []);
+
+  const scheduleReactionEventCleanup = useCallback((
+    eventId: string,
+    variant: ReviewReactionVariant,
+  ): void => {
+    const cleanupTimerId = window.setTimeout(() => {
+      removeReactionEvent(eventId);
+    }, reviewReactionCleanupDelayMillis(variant, motionMode));
+    cleanupTimersRef.current.set(eventId, cleanupTimerId);
+  }, [motionMode, removeReactionEvent]);
+
   const emitReaction = useCallback((rating: 0 | 1 | 2 | 3): void => {
     const reactionRating = makeReviewReactionRating(rating);
     const event: ReviewReactionEvent = {
@@ -89,23 +115,46 @@ export function useReviewRatingReactions(): UseReviewRatingReactionsResult {
         ),
       ),
     };
-    const cleanupTimerId = window.setTimeout(() => {
-      clearReviewReactionTimer(cleanupTimersRef.current, event.id);
-      setEvents((currentEvents) => currentEvents.filter((activeEvent) => activeEvent.id !== event.id));
-    }, reviewReactionCleanupDelayMillis(event.variant, motionMode));
-    cleanupTimersRef.current.set(event.id, cleanupTimerId);
+    scheduleReactionEventCleanup(event.id, event.variant);
 
     setEvents((currentEvents) => {
-      return appendReviewReactionEvent(
+      const nextEvents = appendReviewReactionEvent(
         currentEvents,
         event,
         reviewReactionMaximumActiveEvents,
       );
+      eventsRef.current = nextEvents;
+      return nextEvents;
     });
-  }, [motionMode]);
+  }, [scheduleReactionEventCleanup]);
+
+  const handleReactionEventFallback = useCallback((eventId: string): void => {
+    const event = eventsRef.current.find((activeEvent) => activeEvent.id === eventId);
+    if (event === undefined || !isReviewReactionLottieVariant(event.variant)) {
+      return;
+    }
+
+    clearReviewReactionTimer(cleanupTimersRef.current, eventId);
+    scheduleReactionEventCleanup(eventId, reviewReactionLottieFallbackVariant);
+    setEvents((currentEvents) => {
+      const nextEvents = currentEvents.map((activeEvent) => {
+        if (activeEvent.id !== eventId || !isReviewReactionLottieVariant(activeEvent.variant)) {
+          return activeEvent;
+        }
+
+        return {
+          ...activeEvent,
+          variant: reviewReactionLottieFallbackVariant,
+        };
+      });
+      eventsRef.current = nextEvents;
+      return nextEvents;
+    });
+  }, [scheduleReactionEventCleanup]);
 
   return {
     emitReaction,
     events,
+    handleReactionEventFallback,
   };
 }
