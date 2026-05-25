@@ -33,6 +33,7 @@ import com.flashcardsopensourceapp.core.ui.components.SectionTitle
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import com.flashcardsopensourceapp.feature.review.R
 import java.util.UUID
+import kotlin.math.roundToInt
 
 internal const val testAnimationsScreenTag: String = "test_animations_screen"
 
@@ -175,7 +176,7 @@ private fun reviewReactionRatingTitle(rating: ReviewRating): String {
 private fun testAnimationProbabilityText(entry: ReviewReactionVariantDistributionEntry): String {
     return stringResource(
         R.string.review_test_animations_probability,
-        entry.probabilityPercent
+        entry.probabilityPercent.roundToInt()
     )
 }
 

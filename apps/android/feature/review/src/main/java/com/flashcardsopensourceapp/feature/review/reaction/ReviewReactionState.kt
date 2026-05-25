@@ -66,98 +66,95 @@ internal val ReviewReactionVariant.debugIdentifier: String
 internal data class ReviewReactionVariantDistributionEntry(
     val rating: ReviewRating,
     val variant: ReviewReactionVariant,
-    val rollRange: IntRange
+    val weight: Int
 ) {
     val id: String
         get() = "${rating.reviewReactionDebugIdentifier}.${variant.debugIdentifier}"
 
-    val rollCount: Int
-        get() = rollRange.last - rollRange.first + 1
-
-    val probabilityPercent: Int
-        get() = rollCount / 10
+    val probabilityPercent: Double
+        get() = weight.toDouble() / reviewReactionVariantTotalWeight(rating = rating).toDouble() * 100.0
 }
 
 internal val allReviewReactionVariantDistributionEntries: List<ReviewReactionVariantDistributionEntry> = listOf(
     ReviewReactionVariantDistributionEntry(
         rating = ReviewRating.AGAIN,
         variant = ReviewReactionVariant.AGAIN_WORM_WIGGLE,
-        rollRange = 0..399
+        weight = 40
     ),
     ReviewReactionVariantDistributionEntry(
         rating = ReviewRating.AGAIN,
         variant = ReviewReactionVariant.AGAIN_TORNADO,
-        rollRange = 400..699
+        weight = 30
     ),
     ReviewReactionVariantDistributionEntry(
         rating = ReviewRating.AGAIN,
         variant = ReviewReactionVariant.AGAIN_SNAIL_CRAWL,
-        rollRange = 700..919
+        weight = 22
     ),
     ReviewReactionVariantDistributionEntry(
         rating = ReviewRating.AGAIN,
         variant = ReviewReactionVariant.AGAIN_WILTED_FLOWER,
-        rollRange = 920..999
+        weight = 8
     ),
     ReviewReactionVariantDistributionEntry(
         rating = ReviewRating.HARD,
         variant = ReviewReactionVariant.HARD_OX_CHARGE,
-        rollRange = 0..399
+        weight = 40
     ),
     ReviewReactionVariantDistributionEntry(
         rating = ReviewRating.HARD,
         variant = ReviewReactionVariant.HARD_PAW_PRINTS,
-        rollRange = 400..699
+        weight = 30
     ),
     ReviewReactionVariantDistributionEntry(
         rating = ReviewRating.HARD,
         variant = ReviewReactionVariant.HARD_RACEHORSE_GALLOP,
-        rollRange = 700..919
+        weight = 22
     ),
     ReviewReactionVariantDistributionEntry(
         rating = ReviewRating.HARD,
         variant = ReviewReactionVariant.HARD_VOLCANO_ERUPTION,
-        rollRange = 920..999
+        weight = 8
     ),
     ReviewReactionVariantDistributionEntry(
         rating = ReviewRating.GOOD,
         variant = ReviewReactionVariant.GOOD_OWL,
-        rollRange = 0..399
+        weight = 40
     ),
     ReviewReactionVariantDistributionEntry(
         rating = ReviewRating.GOOD,
         variant = ReviewReactionVariant.GOOD_POODLE,
-        rollRange = 400..699
+        weight = 30
     ),
     ReviewReactionVariantDistributionEntry(
         rating = ReviewRating.GOOD,
         variant = ReviewReactionVariant.GOOD_WHALE,
-        rollRange = 700..919
+        weight = 22
     ),
     ReviewReactionVariantDistributionEntry(
         rating = ReviewRating.GOOD,
         variant = ReviewReactionVariant.GOOD_PEACOCK,
-        rollRange = 920..999
+        weight = 8
     ),
     ReviewReactionVariantDistributionEntry(
         rating = ReviewRating.EASY,
         variant = ReviewReactionVariant.EASY_ROSE_BLOOM,
-        rollRange = 0..399
+        weight = 40
     ),
     ReviewReactionVariantDistributionEntry(
         rating = ReviewRating.EASY,
         variant = ReviewReactionVariant.EASY_RAINBOW_STREAK,
-        rollRange = 400..699
+        weight = 30
     ),
     ReviewReactionVariantDistributionEntry(
         rating = ReviewRating.EASY,
         variant = ReviewReactionVariant.EASY_PHOENIX_RISE,
-        rollRange = 700..919
+        weight = 22
     ),
     ReviewReactionVariantDistributionEntry(
         rating = ReviewRating.EASY,
         variant = ReviewReactionVariant.EASY_UNICORN_FLYBY,
-        rollRange = 920..999
+        weight = 8
     )
 )
 
@@ -167,6 +164,23 @@ internal fun reviewReactionVariantDistributionEntries(
     return allReviewReactionVariantDistributionEntries.filter { entry: ReviewReactionVariantDistributionEntry ->
         entry.rating == rating
     }
+}
+
+internal fun reviewReactionVariantTotalWeight(rating: ReviewRating): Int {
+    val entries: List<ReviewReactionVariantDistributionEntry> = reviewReactionVariantDistributionEntries(rating = rating)
+    require(entries.isNotEmpty()) {
+        "Review reaction distribution is missing a rating. rating=${rating.reviewReactionDebugIdentifier}"
+    }
+
+    var totalWeight = 0
+    entries.forEach { entry: ReviewReactionVariantDistributionEntry ->
+        require(entry.weight > 0) {
+            "Review reaction weight must be positive. entryId=${entry.id} weight=${entry.weight}"
+        }
+        totalWeight += entry.weight
+    }
+
+    return totalWeight
 }
 
 internal data class ReviewReactionEvent(
@@ -179,19 +193,24 @@ internal fun selectReviewReactionVariant(
     rating: ReviewRating,
     roll: Int
 ): ReviewReactionVariant {
-    require(roll in 0..999) {
-        "Review reaction roll must be in 0..999, received $roll."
+    val entries: List<ReviewReactionVariantDistributionEntry> = reviewReactionVariantDistributionEntries(rating = rating)
+    val totalWeight: Int = reviewReactionVariantTotalWeight(rating = rating)
+    require(roll in 0 until totalWeight) {
+        "Review reaction roll must be in 0 until $totalWeight, received $roll."
     }
 
-    val matchingEntry: ReviewReactionVariantDistributionEntry =
-        reviewReactionVariantDistributionEntries(rating = rating).firstOrNull { entry: ReviewReactionVariantDistributionEntry ->
-            roll in entry.rollRange
-        } ?: error(
-            "Review reaction distribution is missing a variant. " +
-                "rating=${rating.reviewReactionDebugIdentifier} roll=$roll"
-        )
+    var cumulativeWeight = 0
+    for (entry in entries) {
+        cumulativeWeight += entry.weight
+        if (roll < cumulativeWeight) {
+            return entry.variant
+        }
+    }
 
-    return matchingEntry.variant
+    error(
+        "Review reaction distribution is missing a variant. " +
+            "rating=${rating.reviewReactionDebugIdentifier} roll=$roll"
+    )
 }
 
 internal fun appendReviewReactionEvent(
@@ -220,7 +239,8 @@ internal fun reviewReactionMotionModeFromAnimatorSettings(): ReviewReactionMotio
 }
 
 internal fun makeRandomReviewReactionEvent(rating: ReviewRating): ReviewReactionEvent {
-    val roll: Int = Random.nextInt(from = 0, until = 1_000)
+    val totalWeight: Int = reviewReactionVariantTotalWeight(rating = rating)
+    val roll: Int = Random.nextInt(from = 0, until = totalWeight)
     return ReviewReactionEvent(
         id = UUID.randomUUID().toString(),
         rating = rating,
