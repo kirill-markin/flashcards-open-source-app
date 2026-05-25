@@ -48,62 +48,43 @@ export type ReviewReactionVariantDistributionEntry = Readonly<{
   id: string;
   rating: ReviewReactionRating;
   variant: ReviewReactionVariant;
-  rollRange: Readonly<{
-    lowerBound: number;
-    upperBound: number;
-  }>;
-  rollCount: number;
-  probabilityPercent: number;
+  weight: number;
 }>;
 
 function makeReviewReactionVariantDistributionEntry(
   rating: ReviewReactionRating,
   variant: ReviewReactionVariant,
-  lowerBound: number,
-  upperBound: number,
+  weight: number,
 ): ReviewReactionVariantDistributionEntry {
-  if (
-    !Number.isInteger(lowerBound)
-    || !Number.isInteger(upperBound)
-    || lowerBound < 0
-    || upperBound > 999
-    || upperBound < lowerBound
-  ) {
-    throw new RangeError(`Invalid review reaction roll range for ${rating}.${variant}: ${lowerBound}...${upperBound}`);
+  if (!Number.isInteger(weight) || weight <= 0) {
+    throw new RangeError(`Invalid review reaction weight for ${rating}.${variant}: ${weight}`);
   }
-
-  const rollCount = upperBound - lowerBound + 1;
 
   return {
     id: `${rating}.${variant}`,
     rating,
     variant,
-    rollRange: {
-      lowerBound,
-      upperBound,
-    },
-    rollCount,
-    probabilityPercent: rollCount / 10,
+    weight,
   };
 }
 
 export const allReviewReactionVariantDistributionEntries: ReadonlyArray<ReviewReactionVariantDistributionEntry> = [
-  makeReviewReactionVariantDistributionEntry("again", "againWormWiggle", 0, 399),
-  makeReviewReactionVariantDistributionEntry("again", "againTornado", 400, 699),
-  makeReviewReactionVariantDistributionEntry("again", "againSnailCrawl", 700, 919),
-  makeReviewReactionVariantDistributionEntry("again", "againWiltedFlower", 920, 999),
-  makeReviewReactionVariantDistributionEntry("hard", "hardOxCharge", 0, 399),
-  makeReviewReactionVariantDistributionEntry("hard", "hardPawPrints", 400, 699),
-  makeReviewReactionVariantDistributionEntry("hard", "hardRacehorseGallop", 700, 919),
-  makeReviewReactionVariantDistributionEntry("hard", "hardVolcanoEruption", 920, 999),
-  makeReviewReactionVariantDistributionEntry("good", "goodOwl", 0, 399),
-  makeReviewReactionVariantDistributionEntry("good", "goodPoodle", 400, 699),
-  makeReviewReactionVariantDistributionEntry("good", "goodWhale", 700, 919),
-  makeReviewReactionVariantDistributionEntry("good", "goodPeacock", 920, 999),
-  makeReviewReactionVariantDistributionEntry("easy", "easyRoseBloom", 0, 399),
-  makeReviewReactionVariantDistributionEntry("easy", "easyRainbowStreak", 400, 699),
-  makeReviewReactionVariantDistributionEntry("easy", "easyPhoenixRise", 700, 919),
-  makeReviewReactionVariantDistributionEntry("easy", "easyUnicornFlyby", 920, 999),
+  makeReviewReactionVariantDistributionEntry("again", "againWormWiggle", 40),
+  makeReviewReactionVariantDistributionEntry("again", "againTornado", 30),
+  makeReviewReactionVariantDistributionEntry("again", "againSnailCrawl", 22),
+  makeReviewReactionVariantDistributionEntry("again", "againWiltedFlower", 8),
+  makeReviewReactionVariantDistributionEntry("hard", "hardOxCharge", 40),
+  makeReviewReactionVariantDistributionEntry("hard", "hardPawPrints", 30),
+  makeReviewReactionVariantDistributionEntry("hard", "hardRacehorseGallop", 22),
+  makeReviewReactionVariantDistributionEntry("hard", "hardVolcanoEruption", 8),
+  makeReviewReactionVariantDistributionEntry("good", "goodOwl", 40),
+  makeReviewReactionVariantDistributionEntry("good", "goodPoodle", 30),
+  makeReviewReactionVariantDistributionEntry("good", "goodWhale", 22),
+  makeReviewReactionVariantDistributionEntry("good", "goodPeacock", 8),
+  makeReviewReactionVariantDistributionEntry("easy", "easyRoseBloom", 40),
+  makeReviewReactionVariantDistributionEntry("easy", "easyRainbowStreak", 30),
+  makeReviewReactionVariantDistributionEntry("easy", "easyPhoenixRise", 22),
+  makeReviewReactionVariantDistributionEntry("easy", "easyUnicornFlyby", 8),
 ];
 
 export function reviewReactionVariantDistributionEntries(
@@ -112,29 +93,58 @@ export function reviewReactionVariantDistributionEntries(
   return allReviewReactionVariantDistributionEntries.filter((entry) => entry.rating === rating);
 }
 
-function isRollInReviewReactionDistributionEntry(
+function reviewReactionVariantTotalWeightFromEntries(
+  rating: ReviewReactionRating,
+  entries: ReadonlyArray<ReviewReactionVariantDistributionEntry>,
+): number {
+  if (entries.length === 0) {
+    throw new Error(`Review reaction distribution is missing rating ${rating}.`);
+  }
+
+  let totalWeight = 0;
+  for (const entry of entries) {
+    if (!Number.isInteger(entry.weight) || entry.weight <= 0) {
+      throw new RangeError(`Invalid review reaction weight for ${entry.id}: ${entry.weight}`);
+    }
+    totalWeight += entry.weight;
+  }
+
+  return totalWeight;
+}
+
+export function reviewReactionVariantTotalWeight(rating: ReviewReactionRating): number {
+  return reviewReactionVariantTotalWeightFromEntries(
+    rating,
+    reviewReactionVariantDistributionEntries(rating),
+  );
+}
+
+export function reviewReactionVariantProbabilityPercent(
   entry: ReviewReactionVariantDistributionEntry,
-  roll: number,
-): boolean {
-  return roll >= entry.rollRange.lowerBound && roll <= entry.rollRange.upperBound;
+): number {
+  return (entry.weight / reviewReactionVariantTotalWeight(entry.rating)) * 100;
 }
 
 export function selectReviewReactionVariant(
   rating: ReviewReactionRating,
   roll: number,
 ): ReviewReactionVariant {
-  if (!Number.isInteger(roll) || roll < 0 || roll > 999) {
-    throw new RangeError(`Review reaction roll must be an integer in 0...999, received ${roll}.`);
+  const entries = reviewReactionVariantDistributionEntries(rating);
+  const totalWeight = reviewReactionVariantTotalWeightFromEntries(rating, entries);
+
+  if (!Number.isInteger(roll) || roll < 0 || roll >= totalWeight) {
+    throw new RangeError(`Review reaction roll must be an integer in 0...${totalWeight - 1}, received ${roll}.`);
   }
 
-  const entry = reviewReactionVariantDistributionEntries(rating).find((candidate) => (
-    isRollInReviewReactionDistributionEntry(candidate, roll)
-  ));
-  if (entry === undefined) {
-    throw new Error(`Review reaction distribution is missing rating ${rating} roll ${roll}.`);
+  let cumulativeWeight = 0;
+  for (const entry of entries) {
+    cumulativeWeight += entry.weight;
+    if (roll < cumulativeWeight) {
+      return entry.variant;
+    }
   }
 
-  return entry.variant;
+  throw new Error(`Review reaction distribution is missing rating ${rating} roll ${roll}.`);
 }
 
 export function makeReviewReactionRating(rating: 0 | 1 | 2 | 3): ReviewReactionRating {

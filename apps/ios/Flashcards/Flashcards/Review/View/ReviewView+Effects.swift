@@ -3,12 +3,13 @@ import SwiftUI
 extension ReviewView {
     func emitReviewReaction(rating: ReviewRating) {
         let reactionRating = makeReviewReactionRating(rating: rating)
+        let totalWeight = reviewReactionVariantTotalWeight(rating: reactionRating)
         let event = ReviewReactionEvent(
             id: UUID(),
             rating: reactionRating,
             variant: selectReviewReactionVariant(
                 rating: reactionRating,
-                roll: Int.random(in: 0...999)
+                roll: Int.random(in: 0..<totalWeight)
             )
         )
         self.activeReviewReactionEvents = appendReviewReactionEvent(

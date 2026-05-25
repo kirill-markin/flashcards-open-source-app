@@ -94,7 +94,7 @@ private func localizedReviewReactionRatingTitle(rating: ReviewReactionRating) ->
 }
 
 private func testAnimationProbabilityText(entry: ReviewReactionVariantDistributionEntry) -> String {
-    let percentText: String = "\(Int(entry.probabilityPercent))%"
+    let percentText: String = "\(Int(entry.probabilityPercent.rounded()))%"
     return aiSettingsLocalizedFormat(
         "settings.test.animations.probability",
         "%@ probability",

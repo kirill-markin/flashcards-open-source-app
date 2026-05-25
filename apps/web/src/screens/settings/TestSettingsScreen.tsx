@@ -7,6 +7,7 @@ import {
   reviewReactionCleanupDelayMillis,
   reviewReactionMaximumActiveEvents,
   reviewReactionRatings,
+  reviewReactionVariantProbabilityPercent,
   reviewReactionVariantDistributionEntries,
   reducedReviewReactionMotionMediaQuery,
   type ReviewReactionEvent,
@@ -74,7 +75,7 @@ function testAnimationProbabilityText(
   formatNumber: FormatNumber,
   t: Translate,
 ): string {
-  const percentText = `${formatNumber(entry.probabilityPercent, probabilityFormatOptions)}%`;
+  const percentText = `${formatNumber(reviewReactionVariantProbabilityPercent(entry), probabilityFormatOptions)}%`;
   return t("settingsTest.animations.probability", {
     percent: percentText,
   });

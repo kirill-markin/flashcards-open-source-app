@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  reviewReactionVariantDistributionEntries,
+  reviewReactionVariantProbabilityPercent,
   selectReviewReactionVariant,
   type ReviewReactionRating,
   type ReviewReactionVariant,
@@ -10,7 +12,8 @@ type ReviewReactionBoundaryExpectation = Readonly<{
   variants: ReadonlyArray<ReviewReactionVariant>;
 }>;
 
-const boundaryRolls: ReadonlyArray<number> = [0, 399, 400, 699, 700, 919, 920, 999];
+const boundaryRolls: ReadonlyArray<number> = [0, 39, 40, 69, 70, 91, 92, 99];
+const expectedProbabilityPercents: ReadonlyArray<number> = [40, 30, 22, 8];
 
 const boundaryExpectations: ReadonlyArray<ReviewReactionBoundaryExpectation> = [
   {
@@ -73,6 +76,15 @@ describe("selectReviewReactionVariant", () => {
       for (const [index, roll] of boundaryRolls.entries()) {
         expect(selectReviewReactionVariant(expectation.rating, roll)).toBe(expectation.variants[index]);
       }
+    }
+  });
+
+  it("computes review reaction probability percentages from weights", () => {
+    for (const expectation of boundaryExpectations) {
+      expect(
+        reviewReactionVariantDistributionEntries(expectation.rating)
+          .map((entry) => reviewReactionVariantProbabilityPercent(entry)),
+      ).toEqual(expectedProbabilityPercents);
     }
   });
 });

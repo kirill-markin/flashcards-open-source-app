@@ -87,38 +87,34 @@ enum ReviewReactionVariant: CaseIterable, Hashable, Sendable {
 struct ReviewReactionVariantDistributionEntry: Identifiable, Hashable, Sendable {
     let rating: ReviewReactionRating
     let variant: ReviewReactionVariant
-    let rollRange: ClosedRange<Int>
+    let weight: Int
 
     var id: String {
         "\(self.rating.debugIdentifier).\(self.variant.debugIdentifier)"
     }
 
-    var rollCount: Int {
-        self.rollRange.upperBound - self.rollRange.lowerBound + 1
-    }
-
     var probabilityPercent: Double {
-        Double(self.rollCount) / 10
+        Double(self.weight) / Double(reviewReactionVariantTotalWeight(rating: self.rating)) * 100
     }
 }
 
 let allReviewReactionVariantDistributionEntries: [ReviewReactionVariantDistributionEntry] = [
-    ReviewReactionVariantDistributionEntry(rating: .again, variant: .againWormWiggle, rollRange: 0...399),
-    ReviewReactionVariantDistributionEntry(rating: .again, variant: .againTornado, rollRange: 400...699),
-    ReviewReactionVariantDistributionEntry(rating: .again, variant: .againSnailCrawl, rollRange: 700...919),
-    ReviewReactionVariantDistributionEntry(rating: .again, variant: .againWiltedFlower, rollRange: 920...999),
-    ReviewReactionVariantDistributionEntry(rating: .hard, variant: .hardOxCharge, rollRange: 0...399),
-    ReviewReactionVariantDistributionEntry(rating: .hard, variant: .hardPawPrints, rollRange: 400...699),
-    ReviewReactionVariantDistributionEntry(rating: .hard, variant: .hardRacehorseGallop, rollRange: 700...919),
-    ReviewReactionVariantDistributionEntry(rating: .hard, variant: .hardVolcanoEruption, rollRange: 920...999),
-    ReviewReactionVariantDistributionEntry(rating: .good, variant: .goodOwl, rollRange: 0...399),
-    ReviewReactionVariantDistributionEntry(rating: .good, variant: .goodPoodle, rollRange: 400...699),
-    ReviewReactionVariantDistributionEntry(rating: .good, variant: .goodWhale, rollRange: 700...919),
-    ReviewReactionVariantDistributionEntry(rating: .good, variant: .goodPeacock, rollRange: 920...999),
-    ReviewReactionVariantDistributionEntry(rating: .easy, variant: .easyRoseBloom, rollRange: 0...399),
-    ReviewReactionVariantDistributionEntry(rating: .easy, variant: .easyRainbowStreak, rollRange: 400...699),
-    ReviewReactionVariantDistributionEntry(rating: .easy, variant: .easyPhoenixRise, rollRange: 700...919),
-    ReviewReactionVariantDistributionEntry(rating: .easy, variant: .easyUnicornFlyby, rollRange: 920...999)
+    ReviewReactionVariantDistributionEntry(rating: .again, variant: .againWormWiggle, weight: 40),
+    ReviewReactionVariantDistributionEntry(rating: .again, variant: .againTornado, weight: 30),
+    ReviewReactionVariantDistributionEntry(rating: .again, variant: .againSnailCrawl, weight: 22),
+    ReviewReactionVariantDistributionEntry(rating: .again, variant: .againWiltedFlower, weight: 8),
+    ReviewReactionVariantDistributionEntry(rating: .hard, variant: .hardOxCharge, weight: 40),
+    ReviewReactionVariantDistributionEntry(rating: .hard, variant: .hardPawPrints, weight: 30),
+    ReviewReactionVariantDistributionEntry(rating: .hard, variant: .hardRacehorseGallop, weight: 22),
+    ReviewReactionVariantDistributionEntry(rating: .hard, variant: .hardVolcanoEruption, weight: 8),
+    ReviewReactionVariantDistributionEntry(rating: .good, variant: .goodOwl, weight: 40),
+    ReviewReactionVariantDistributionEntry(rating: .good, variant: .goodPoodle, weight: 30),
+    ReviewReactionVariantDistributionEntry(rating: .good, variant: .goodWhale, weight: 22),
+    ReviewReactionVariantDistributionEntry(rating: .good, variant: .goodPeacock, weight: 8),
+    ReviewReactionVariantDistributionEntry(rating: .easy, variant: .easyRoseBloom, weight: 40),
+    ReviewReactionVariantDistributionEntry(rating: .easy, variant: .easyRainbowStreak, weight: 30),
+    ReviewReactionVariantDistributionEntry(rating: .easy, variant: .easyPhoenixRise, weight: 22),
+    ReviewReactionVariantDistributionEntry(rating: .easy, variant: .easyUnicornFlyby, weight: 8)
 ]
 
 func reviewReactionVariantDistributionEntries(
@@ -127,6 +123,21 @@ func reviewReactionVariantDistributionEntries(
     allReviewReactionVariantDistributionEntries.filter { entry in
         entry.rating == rating
     }
+}
+
+func reviewReactionVariantTotalWeight(
+    rating: ReviewReactionRating
+) -> Int {
+    let entries = reviewReactionVariantDistributionEntries(rating: rating)
+    precondition(!entries.isEmpty, "Review reaction distribution is missing rating \(rating.debugIdentifier).")
+
+    var totalWeight = 0
+    for entry in entries {
+        precondition(entry.weight > 0, "Invalid review reaction weight for \(entry.id): \(entry.weight).")
+        totalWeight += entry.weight
+    }
+
+    return totalWeight
 }
 
 func reviewReactionCleanupDelayNanoseconds(
@@ -151,15 +162,19 @@ func selectReviewReactionVariant(
     rating: ReviewReactionRating,
     roll: Int
 ) -> ReviewReactionVariant {
-    precondition((0...999).contains(roll), "Review reaction roll must be in 0...999, received \(roll).")
+    let entries = reviewReactionVariantDistributionEntries(rating: rating)
+    let totalWeight = reviewReactionVariantTotalWeight(rating: rating)
+    precondition((0..<totalWeight).contains(roll), "Review reaction roll must be in 0..<\(totalWeight), received \(roll).")
 
-    guard let entry = reviewReactionVariantDistributionEntries(rating: rating).first(where: { entry in
-        entry.rollRange.contains(roll)
-    }) else {
-        preconditionFailure("Review reaction distribution is missing rating \(rating.debugIdentifier) roll \(roll).")
+    var cumulativeWeight = 0
+    for entry in entries {
+        cumulativeWeight += entry.weight
+        if roll < cumulativeWeight {
+            return entry.variant
+        }
     }
 
-    return entry.variant
+    preconditionFailure("Review reaction distribution is missing rating \(rating.debugIdentifier) roll \(roll).")
 }
 
 func makeReviewReactionRating(rating: ReviewRating) -> ReviewReactionRating {

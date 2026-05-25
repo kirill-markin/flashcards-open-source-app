@@ -5,6 +5,7 @@ import {
   matchesReducedReviewReactionMotion,
   reviewReactionCleanupDelayMillis,
   reviewReactionMaximumActiveEvents,
+  reviewReactionVariantTotalWeight,
   reducedReviewReactionMotionMediaQuery,
   selectReviewReactionVariant,
   type ReviewReactionEvent,
@@ -105,13 +106,14 @@ export function useReviewRatingReactions(): UseReviewRatingReactionsResult {
 
   const emitReaction = useCallback((rating: 0 | 1 | 2 | 3): void => {
     const reactionRating = makeReviewReactionRating(rating);
+    const totalWeight = reviewReactionVariantTotalWeight(reactionRating);
     const event: ReviewReactionEvent = {
       id: crypto.randomUUID(),
       rating: reactionRating,
       variant: reviewReactionVariantWithReadyLottieFallback(
         selectReviewReactionVariant(
           reactionRating,
-          Math.floor(Math.random() * 1000),
+          Math.floor(Math.random() * totalWeight),
         ),
       ),
     };
