@@ -139,6 +139,18 @@ async function flushReactionPromises(): Promise<void> {
   await Promise.resolve();
 }
 
+function makeReviewReactionLottieResponse(): Response {
+  return new Response(JSON.stringify({
+    layers: [],
+    v: "test",
+  }), {
+    headers: {
+      "Content-Type": "application/json",
+    },
+    status: 200,
+  });
+}
+
 describe("ReviewRatingReactionLayer Lottie fallback", () => {
   let container: HTMLDivElement | null = null;
   let root: ReactDOM.Root | null = null;
@@ -150,6 +162,9 @@ describe("ReviewRatingReactionLayer Lottie fallback", () => {
     loadAnimationMock.mockImplementation(() => {
       throw new Error("Lottie render failed.");
     });
+    vi.stubGlobal("fetch", vi.fn((_input: RequestInfo | URL): Promise<Response> => (
+      Promise.resolve(makeReviewReactionLottieResponse())
+    )));
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
     vi.spyOn(crypto, "randomUUID").mockReturnValue("00000000-0000-4000-8000-000000000101");
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -170,6 +185,7 @@ describe("ReviewRatingReactionLayer Lottie fallback", () => {
     container = null;
     root = null;
     latestResult = null;
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
     vi.useRealTimers();
   });
