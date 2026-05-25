@@ -9,8 +9,8 @@ class ReviewReactionVariantSelectionTest {
     fun againSelectionUsesConfiguredBoundaries() {
         assertSelectedVariant(ReviewRating.AGAIN, 0, ReviewReactionVariant.AGAIN_WORM_WIGGLE)
         assertSelectedVariant(ReviewRating.AGAIN, 399, ReviewReactionVariant.AGAIN_WORM_WIGGLE)
-        assertSelectedVariant(ReviewRating.AGAIN, 400, ReviewReactionVariant.AGAIN_REWIND_VORTEX)
-        assertSelectedVariant(ReviewRating.AGAIN, 699, ReviewReactionVariant.AGAIN_REWIND_VORTEX)
+        assertSelectedVariant(ReviewRating.AGAIN, 400, ReviewReactionVariant.AGAIN_TORNADO)
+        assertSelectedVariant(ReviewRating.AGAIN, 699, ReviewReactionVariant.AGAIN_TORNADO)
         assertSelectedVariant(ReviewRating.AGAIN, 700, ReviewReactionVariant.AGAIN_SNAIL_CRAWL)
         assertSelectedVariant(ReviewRating.AGAIN, 919, ReviewReactionVariant.AGAIN_SNAIL_CRAWL)
         assertSelectedVariant(ReviewRating.AGAIN, 920, ReviewReactionVariant.AGAIN_WILTED_FLOWER)

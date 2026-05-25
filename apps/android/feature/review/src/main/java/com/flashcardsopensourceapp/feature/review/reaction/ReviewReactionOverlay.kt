@@ -40,6 +40,9 @@ private const val reviewAgainWiltedFlowerAnimationCenterY: Float = 0.50f
 private const val reviewAgainWormAnimationFrameScale: Float = 0.58f
 private const val reviewAgainWormAnimationCenterX: Float = 0.50f
 private const val reviewAgainWormAnimationCenterY: Float = 0.52f
+private const val reviewAgainTornadoAnimationFrameScale: Float = 0.58f
+private const val reviewAgainTornadoAnimationCenterX: Float = 0.50f
+private const val reviewAgainTornadoAnimationCenterY: Float = 0.45f
 private const val reviewAgainSnailAnimationFrameScale: Float = 0.58f
 private const val reviewAgainSnailAnimationCenterX: Float = 0.50f
 private const val reviewAgainSnailAnimationCenterY: Float = 0.48f
@@ -74,6 +77,7 @@ private data class ReviewReactionLottieConfiguration(
 private data class ReviewReactionLottieCompositionStore(
     val reviewAgainWiltedFlowerComposition: LottieComposition?,
     val reviewAgainWormComposition: LottieComposition?,
+    val reviewAgainTornadoComposition: LottieComposition?,
     val reviewAgainSnailComposition: LottieComposition?,
     val reviewGoodOwlComposition: LottieComposition?,
     val reviewGoodPoodleComposition: LottieComposition?,
@@ -138,6 +142,13 @@ private fun reviewReactionLottieConfiguration(
             centerY = reviewAgainWormAnimationCenterY
         )
 
+        ReviewReactionVariant.AGAIN_TORNADO -> ReviewReactionLottieConfiguration(
+            composition = compositionStore.reviewAgainTornadoComposition,
+            frameScale = reviewAgainTornadoAnimationFrameScale,
+            centerX = reviewAgainTornadoAnimationCenterX,
+            centerY = reviewAgainTornadoAnimationCenterY
+        )
+
         ReviewReactionVariant.AGAIN_SNAIL_CRAWL -> ReviewReactionLottieConfiguration(
             composition = compositionStore.reviewAgainSnailComposition,
             frameScale = reviewAgainSnailAnimationFrameScale,
@@ -187,7 +198,6 @@ private fun reviewReactionLottieConfiguration(
             centerY = reviewEasyUnicornAnimationCenterY
         )
 
-        ReviewReactionVariant.AGAIN_REWIND_VORTEX,
         ReviewReactionVariant.HARD_HOURGLASS_SAND,
         ReviewReactionVariant.HARD_FALLING_WEIGHT,
         ReviewReactionVariant.HARD_YELLOW_CRACK,
@@ -212,6 +222,10 @@ internal fun ReviewReactionOverlay(
         reviewAgainWormComposition = rememberReviewReactionLottieComposition(
             rawResourceId = R.raw.review_again_worm,
             assetName = "review_again_worm"
+        ),
+        reviewAgainTornadoComposition = rememberReviewReactionLottieComposition(
+            rawResourceId = R.raw.review_again_tornado,
+            assetName = "review_again_tornado"
         ),
         reviewAgainSnailComposition = rememberReviewReactionLottieComposition(
             rawResourceId = R.raw.review_again_snail,

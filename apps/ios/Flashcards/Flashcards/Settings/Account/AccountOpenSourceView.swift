@@ -10,6 +10,7 @@ private let reviewRainbowAnimationUrl: String = "https://iconscout.com/free-lott
 private let reviewUnicornAnimationUrl: String = "https://iconscout.com/free-lottie-animation/free-unicorn-animation_12152598"
 private let reviewWiltedFlowerAnimationUrl: String = "https://iconscout.com/free-lottie-animation/free-wilted-flower-animation_12152601"
 private let reviewWormAnimationUrl: String = "https://iconscout.com/free-lottie-animation/free-worm-animation_12152603"
+private let reviewTornadoAnimationUrl: String = "https://iconscout.com/free-lottie-animation/free-tornado-animation_12152595"
 private let creativeCommonsAttributionUrl: String = "https://creativecommons.org/licenses/by/4.0/"
 
 struct AccountOpenSourceView: View {
@@ -51,7 +52,7 @@ struct AccountOpenSourceView: View {
                 Text(
                     aiSettingsLocalized(
                         "settings.account.openSource.thirdPartyNotice",
-                        "Review Lottie animations: Free Owl Animation, Free Poodle Animation, Free Whale Animation, Free Peacock Animation, Free Unicorn Animation, Free Snail Animation, Free Rainbow Animation, Free Worm Animation, and Free Wilted Flower Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0. Lottie runtimes use MIT and Apache 2.0 licenses."
+                        "Review Lottie animations: Free Owl Animation, Free Poodle Animation, Free Whale Animation, Free Peacock Animation, Free Unicorn Animation, Free Snail Animation, Free Rainbow Animation, Free Worm Animation, Free Tornado Animation, and Free Wilted Flower Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0. Lottie runtimes use MIT and Apache 2.0 licenses."
                     )
                 )
                     .foregroundStyle(.secondary)
@@ -140,6 +141,16 @@ struct AccountOpenSourceView: View {
                     Link(destination: assetUrl) {
                         SettingsNavigationRow(
                             title: aiSettingsLocalized("settings.account.openSource.thirdPartyNoticeWormSource", "Worm Asset Source"),
+                            value: aiSettingsLocalized("common.open", "Open"),
+                            systemImage: "arrow.up.forward.square"
+                        )
+                    }
+                }
+
+                if let assetUrl = URL(string: reviewTornadoAnimationUrl) {
+                    Link(destination: assetUrl) {
+                        SettingsNavigationRow(
+                            title: aiSettingsLocalized("settings.account.openSource.thirdPartyNoticeTornadoSource", "Tornado Asset Source"),
                             value: aiSettingsLocalized("common.open", "Open"),
                             systemImage: "arrow.up.forward.square"
                         )

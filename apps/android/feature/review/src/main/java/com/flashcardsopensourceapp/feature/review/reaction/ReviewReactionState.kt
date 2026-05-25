@@ -16,7 +16,7 @@ internal enum class ReviewReactionMotionMode {
 
 internal enum class ReviewReactionVariant {
     AGAIN_WORM_WIGGLE,
-    AGAIN_REWIND_VORTEX,
+    AGAIN_TORNADO,
     AGAIN_SNAIL_CRAWL,
     AGAIN_WILTED_FLOWER,
     HARD_HOURGLASS_SAND,
@@ -44,7 +44,7 @@ internal val ReviewRating.reviewReactionDebugIdentifier: String
 internal val ReviewReactionVariant.debugIdentifier: String
     get() = when (this) {
         ReviewReactionVariant.AGAIN_WORM_WIGGLE -> "againWormWiggle"
-        ReviewReactionVariant.AGAIN_REWIND_VORTEX -> "againRewindVortex"
+        ReviewReactionVariant.AGAIN_TORNADO -> "againTornado"
         ReviewReactionVariant.AGAIN_SNAIL_CRAWL -> "againSnailCrawl"
         ReviewReactionVariant.AGAIN_WILTED_FLOWER -> "againWiltedFlower"
         ReviewReactionVariant.HARD_HOURGLASS_SAND -> "hardHourglassSand"
@@ -84,7 +84,7 @@ internal val allReviewReactionVariantDistributionEntries: List<ReviewReactionVar
     ),
     ReviewReactionVariantDistributionEntry(
         rating = ReviewRating.AGAIN,
-        variant = ReviewReactionVariant.AGAIN_REWIND_VORTEX,
+        variant = ReviewReactionVariant.AGAIN_TORNADO,
         rollRange = 400..699
     ),
     ReviewReactionVariantDistributionEntry(
@@ -238,7 +238,7 @@ internal fun reviewReactionAnimationDurationMillis(
         ReviewReactionVariant.HARD_YELLOW_CRACK -> 1_200
         ReviewReactionVariant.EASY_SPARKLE_BURST -> 1_250
         ReviewReactionVariant.GOOD_PEACOCK -> 1_333
-        ReviewReactionVariant.AGAIN_REWIND_VORTEX -> 1_450
+        ReviewReactionVariant.AGAIN_TORNADO -> 1_450
         ReviewReactionVariant.HARD_HOURGLASS_SAND -> 1_550
         ReviewReactionVariant.HARD_FALLING_WEIGHT,
         ReviewReactionVariant.EASY_CROWN_BOUNCE -> 1_650

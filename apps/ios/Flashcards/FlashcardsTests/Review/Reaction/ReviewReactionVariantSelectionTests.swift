@@ -5,8 +5,8 @@ final class ReviewReactionVariantSelectionTests: XCTestCase {
     func testAgainVariantBoundaries() {
         XCTAssertEqual(selectReviewReactionVariant(rating: .again, roll: 0), .againWormWiggle)
         XCTAssertEqual(selectReviewReactionVariant(rating: .again, roll: 399), .againWormWiggle)
-        XCTAssertEqual(selectReviewReactionVariant(rating: .again, roll: 400), .againRewindVortex)
-        XCTAssertEqual(selectReviewReactionVariant(rating: .again, roll: 699), .againRewindVortex)
+        XCTAssertEqual(selectReviewReactionVariant(rating: .again, roll: 400), .againTornado)
+        XCTAssertEqual(selectReviewReactionVariant(rating: .again, roll: 699), .againTornado)
         XCTAssertEqual(selectReviewReactionVariant(rating: .again, roll: 700), .againSnailCrawl)
         XCTAssertEqual(selectReviewReactionVariant(rating: .again, roll: 919), .againSnailCrawl)
         XCTAssertEqual(selectReviewReactionVariant(rating: .again, roll: 920), .againWiltedFlower)

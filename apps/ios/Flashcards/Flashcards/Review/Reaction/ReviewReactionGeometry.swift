@@ -1,35 +1,6 @@
 import SwiftUI
 
 extension ReviewReactionRenderer {
-    static func makeSpiralPath(
-        center: CGPoint,
-        maxRadius: CGFloat,
-        startAngle: CGFloat,
-        turns: CGFloat,
-        progress: CGFloat
-    ) -> Path {
-        var path = Path()
-        let steps = 76
-        let boundedProgress = min(max(progress, 0), 1)
-        for step in 0...steps {
-            let fraction = CGFloat(step) / CGFloat(steps)
-            guard fraction <= boundedProgress else {
-                break
-            }
-
-            let radius = maxRadius * fraction
-            let angle = startAngle + fraction * CGFloat.pi * 2 * turns
-            let point = pointOnCircle(center: center, radius: radius, angle: angle)
-            if step == 0 {
-                path.move(to: point)
-            } else {
-                path.addLine(to: point)
-            }
-        }
-
-        return path
-    }
-
     static func makeScallopedSealPath(
         radius: CGFloat,
         teeth: Int,

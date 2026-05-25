@@ -13,6 +13,7 @@ const reviewRainbowAnimationUrl: string = "https://iconscout.com/free-lottie-ani
 const reviewUnicornAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-unicorn-animation_12152598";
 const reviewWiltedFlowerAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-wilted-flower-animation_12152601";
 const reviewWormAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-worm-animation_12152603";
+const reviewTornadoAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-tornado-animation_12152595";
 const creativeCommonsAttributionUrl: string = "https://creativecommons.org/licenses/by/4.0/";
 
 export function OpenSourceSettingsScreen(): ReactElement {
@@ -68,6 +69,9 @@ export function OpenSourceSettingsScreen(): ReactElement {
           </a>
           <a className="ghost-btn" href={reviewWormAnimationUrl} rel="noreferrer" target="_blank">
             {t("openSourceSettings.thirdPartyNoticeWormSourceAction")}
+          </a>
+          <a className="ghost-btn" href={reviewTornadoAnimationUrl} rel="noreferrer" target="_blank">
+            {t("openSourceSettings.thirdPartyNoticeTornadoSourceAction")}
           </a>
           <a className="ghost-btn" href={reviewWiltedFlowerAnimationUrl} rel="noreferrer" target="_blank">
             {t("openSourceSettings.thirdPartyNoticeWiltedFlowerSourceAction")}

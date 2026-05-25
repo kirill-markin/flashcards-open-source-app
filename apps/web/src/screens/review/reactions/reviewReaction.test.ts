@@ -18,8 +18,8 @@ const boundaryExpectations: ReadonlyArray<ReviewReactionBoundaryExpectation> = [
     variants: [
       "againWormWiggle",
       "againWormWiggle",
-      "againRewindVortex",
-      "againRewindVortex",
+      "againTornado",
+      "againTornado",
       "againSnailCrawl",
       "againSnailCrawl",
       "againWiltedFlower",

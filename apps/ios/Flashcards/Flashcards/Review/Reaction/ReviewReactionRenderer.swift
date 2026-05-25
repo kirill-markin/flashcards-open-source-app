@@ -22,8 +22,8 @@ enum ReviewReactionRenderer {
         }
 
         switch event.variant {
-        case .againRewindVortex:
-            drawAgainRewindVortex(
+        case .againTornado:
+            drawEasyCrownBounce(
                 context: drawingContext,
                 size: drawableSize,
                 progress: drawingProgress,

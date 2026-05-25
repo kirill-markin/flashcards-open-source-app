@@ -31,6 +31,7 @@ type ReviewReactionLottieContainerClassMap = Readonly<Record<ReviewReactionLotti
 
 const reviewReactionLottieContainerClassByVariant: ReviewReactionLottieContainerClassMap = {
   againWormWiggle: "review-reaction-worm-lottie-mark",
+  againTornado: "review-reaction-tornado-lottie-mark",
   againSnailCrawl: "review-reaction-snail-lottie-mark",
   againWiltedFlower: "review-reaction-wilted-flower-lottie-mark",
   goodOwl: "review-reaction-owl-lottie-mark",
@@ -40,6 +41,23 @@ const reviewReactionLottieContainerClassByVariant: ReviewReactionLottieContainer
   easyRainbowStreak: "review-reaction-rainbow-lottie-mark",
   easyUnicornFlyby: "review-reaction-unicorn-lottie-mark",
 };
+
+const reviewReactionLottieNaturalDurationMillisByVariant: Readonly<Record<ReviewReactionLottieVariant, number>> = {
+  againWormWiggle: 4267,
+  againTornado: 2000,
+  againSnailCrawl: 2700,
+  againWiltedFlower: 2400,
+  goodOwl: 2833,
+  goodPoodle: 2800,
+  goodWhale: 2633,
+  goodPeacock: 1333,
+  easyRainbowStreak: 2000,
+  easyUnicornFlyby: 3800,
+};
+
+function reviewReactionLottiePlaybackSpeed(variant: ReviewReactionLottieVariant): number {
+  return reviewReactionLottieNaturalDurationMillisByVariant[variant] / reviewReactionAnimationDurationMillis(variant);
+}
 
 function makeReviewReactionStyle(event: ReviewReactionEvent): ReviewReactionStyle {
   const variant = reviewReactionVariantWithReadyLottieFallback(event.variant);
@@ -83,19 +101,6 @@ function makeSparklePoints(
   }
 
   return points.join(" ");
-}
-
-function AgainRewindVortexReaction(): ReactElement {
-  return (
-    <g className="review-reaction-vortex-mark">
-      <path className="review-reaction-red-stroke" d="M50 50 C36 36 53 22 68 31 C87 43 75 71 51 72 C24 73 14 39 34 21" strokeWidth="4" />
-      <path className="review-reaction-orange-stroke" d="M49 51 C64 62 49 78 34 70 C15 60 27 32 51 29 C78 25 90 59 71 78" strokeWidth="4" />
-      <path className="review-reaction-pink-stroke" d="M50 50 C52 34 72 37 75 52 C80 74 50 86 31 69 C10 50 30 18 58 18" strokeWidth="4" />
-      <polygon className="review-reaction-red-fill" points="31,19 43,19 35,30" />
-      <polygon className="review-reaction-orange-fill" points="72,78 60,78 68,67" />
-      <polygon className="review-reaction-pink-fill" points="59,17 50,25 49,11" />
-    </g>
-  );
 }
 
 function HardHourglassSandReaction(): ReactElement {
@@ -250,6 +255,7 @@ function ReviewReactionLottieAnimation(props: ReviewReactionLottieAnimationProps
       });
 
       animationItem = nextAnimationItem;
+      nextAnimationItem.setSpeed(reviewReactionLottiePlaybackSpeed(variant));
 
       if (isReducedMotionEnabled) {
         const showReducedMotionFrame = (): void => {
@@ -290,8 +296,8 @@ function renderReviewReactionVariant(variant: ReviewReactionVariant): ReactEleme
   switch (variant) {
     case "againWormWiggle":
       return renderReviewReactionVariant(reviewReactionLottieFallbackVariant);
-    case "againRewindVortex":
-      return <AgainRewindVortexReaction />;
+    case "againTornado":
+      return renderReviewReactionVariant(reviewReactionLottieFallbackVariant);
     case "againSnailCrawl":
       return renderReviewReactionVariant(reviewReactionLottieFallbackVariant);
     case "againWiltedFlower":
