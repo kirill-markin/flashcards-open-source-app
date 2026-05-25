@@ -15,11 +15,6 @@ internal fun DrawScope.drawAgainReviewReaction(
     motionMode: ReviewReactionMotionMode
 ) {
     when (variant) {
-        ReviewReactionVariant.AGAIN_RED_SCRIBBLE_SLASH -> drawAgainRedScribbleSlash(
-            progress = progress,
-            motionMode = motionMode
-        )
-
         ReviewReactionVariant.AGAIN_REWIND_VORTEX -> drawAgainRewindVortex(
             progress = progress,
             motionMode = motionMode
@@ -36,51 +31,6 @@ internal fun DrawScope.drawAgainReviewReaction(
         )
 
         else -> error("Unsupported again review reaction variant: $variant")
-    }
-}
-
-private fun DrawScope.drawAgainRedScribbleSlash(
-    progress: Float,
-    motionMode: ReviewReactionMotionMode
-) {
-    val phase: ReviewReactionPhaseProgress = reviewReactionPhaseProgress(
-        progress = progress,
-        enterEnd = 0.70f,
-        exitStart = 0.82f
-    )
-    val width: Float = size.width
-    val height: Float = size.height
-    val offsets: List<Float> = listOf(-12f, 7f, 19f)
-    offsets.forEachIndexed { index: Int, offset: Float ->
-        val stagger: Float = index.toFloat() * 0.12f
-        val drawProgress: Float = if (motionMode == ReviewReactionMotionMode.REDUCED) {
-            1f
-        } else {
-            reviewReactionClampedProgress(progress = (phase.enter - stagger) / 0.72f)
-        }
-        val shake: Float = if (motionMode == ReviewReactionMotionMode.REDUCED) {
-            0f
-        } else {
-            sin(progress * PI.toFloat() * 16f + index.toFloat() * 1.7f) * 4f * (1f - phase.exit)
-        }
-        drawCubicStroke(
-            start = Offset(x = width * 0.16f, y = height * 0.20f + offset + shake),
-            control1 = Offset(x = width * 0.28f, y = height * 0.26f + offset * 0.6f - shake),
-            control2 = Offset(x = width * 0.64f, y = height * 0.70f - offset * 0.4f + shake),
-            end = Offset(x = width * 0.84f, y = height * 0.78f + offset * 0.35f - shake * 0.6f),
-            progress = drawProgress,
-            color = reviewReactionRedColor,
-            strokeWidth = 13f + index.toFloat() * 2f
-        )
-        drawCubicStroke(
-            start = Offset(x = width * 0.16f, y = height * 0.20f + offset + shake),
-            control1 = Offset(x = width * 0.28f, y = height * 0.26f + offset * 0.6f - shake),
-            control2 = Offset(x = width * 0.64f, y = height * 0.70f - offset * 0.4f + shake),
-            end = Offset(x = width * 0.84f, y = height * 0.78f + offset * 0.35f - shake * 0.6f),
-            progress = drawProgress,
-            color = Color.White.copy(alpha = 0.52f),
-            strokeWidth = 4f + index.toFloat()
-        )
     }
 }
 

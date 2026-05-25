@@ -19,7 +19,7 @@ enum ReviewReactionRating: CaseIterable, Hashable, Sendable {
 }
 
 enum ReviewReactionVariant: CaseIterable, Hashable, Sendable {
-    case againRedScribbleSlash
+    case againWormWiggle
     case againRewindVortex
     case againStampFlyby
     case againWarningTape
@@ -44,7 +44,7 @@ enum ReviewReactionVariant: CaseIterable, Hashable, Sendable {
         switch self {
         case .goodHandDrawnCheck:
             return 1.15
-        case .againRedScribbleSlash, .hardYellowCrack:
+        case .hardYellowCrack:
             return 1.20
         case .easySparkleBurst:
             return 1.25
@@ -64,6 +64,8 @@ enum ReviewReactionVariant: CaseIterable, Hashable, Sendable {
             return 2.05
         case .easyUnicornFlyby:
             return 3.80
+        case .againWormWiggle:
+            return 4.267
         }
     }
 
@@ -92,7 +94,7 @@ struct ReviewReactionVariantDistributionEntry: Identifiable, Hashable, Sendable 
 }
 
 let allReviewReactionVariantDistributionEntries: [ReviewReactionVariantDistributionEntry] = [
-    ReviewReactionVariantDistributionEntry(rating: .again, variant: .againRedScribbleSlash, rollRange: 0...399),
+    ReviewReactionVariantDistributionEntry(rating: .again, variant: .againWormWiggle, rollRange: 0...399),
     ReviewReactionVariantDistributionEntry(rating: .again, variant: .againRewindVortex, rollRange: 400...699),
     ReviewReactionVariantDistributionEntry(rating: .again, variant: .againStampFlyby, rollRange: 700...919),
     ReviewReactionVariantDistributionEntry(rating: .again, variant: .againWarningTape, rollRange: 920...999),
