@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.cloudidentity
+package com.flashcardsopensourceapp.data.local.repository.cloudsync.account
 
 import androidx.room.withTransaction
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -15,6 +15,13 @@ import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.SyncEntityType
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.CloudSyncBlockedException
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.CloudIdentityTestEnvironment
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.FakeCloudRemoteGateway
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createCloudAccountSnapshot
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createCloudWorkspaceSummary
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createOtpChallenge
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createStoredGuestAiSession
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createSyncWorkspaceForkRequiredError
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking

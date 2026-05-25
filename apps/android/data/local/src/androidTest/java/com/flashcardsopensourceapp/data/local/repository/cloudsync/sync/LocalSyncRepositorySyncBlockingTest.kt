@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.cloudidentity
+package com.flashcardsopensourceapp.data.local.repository.cloudsync.sync
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
@@ -9,7 +9,8 @@ import com.flashcardsopensourceapp.data.local.database.OutboxEntryEntity
 import com.flashcardsopensourceapp.data.local.database.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
-import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.CloudSyncBlockedException
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.CloudIdentityTestEnvironment
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.FakeCloudRemoteGateway
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray

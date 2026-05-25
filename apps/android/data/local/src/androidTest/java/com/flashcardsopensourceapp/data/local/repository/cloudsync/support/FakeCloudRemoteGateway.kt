@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.cloudidentity
+package com.flashcardsopensourceapp.data.local.repository.cloudsync.support
 
 import com.flashcardsopensourceapp.data.local.bootstrap.localWorkspaceName
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway

@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.cloudidentity
+package com.flashcardsopensourceapp.data.local.repository.cloudsync.support
 
 import android.content.Context
 import com.flashcardsopensourceapp.data.local.database.SyncStateEntity
