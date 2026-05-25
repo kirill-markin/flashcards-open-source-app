@@ -12,6 +12,7 @@ type ReviewReactionLottieAnimationModule = Readonly<{
 export type ReviewReactionLottieVariant =
   | "againWormWiggle"
   | "againSnailCrawl"
+  | "againWiltedFlower"
   | "goodOwl"
   | "goodPoodle"
   | "goodWhale"
@@ -34,6 +35,7 @@ export function isReviewReactionLottieVariant(
 ): variant is ReviewReactionLottieVariant {
   return variant === "againWormWiggle"
     || variant === "againSnailCrawl"
+    || variant === "againWiltedFlower"
     || variant === "goodOwl"
     || variant === "goodPoodle"
     || variant === "goodWhale"
@@ -65,6 +67,7 @@ export function loadReviewReactionLottieAssets(): Promise<ReviewReactionLottieAs
     import("lottie-web/build/player/lottie_light"),
     import("../../../assets/review_again_worm.json"),
     import("../../../assets/review_again_snail.json"),
+    import("../../../assets/review_again_wilted_flower.json"),
     import("../../../assets/review_good_owl.json"),
     import("../../../assets/review_good_poodle.json"),
     import("../../../assets/review_good_whale.json"),
@@ -76,6 +79,7 @@ export function loadReviewReactionLottieAssets(): Promise<ReviewReactionLottieAs
       lottieModule,
       wormAnimationModule,
       snailAnimationModule,
+      wiltedFlowerAnimationModule,
       owlAnimationModule,
       poodleAnimationModule,
       whaleAnimationModule,
@@ -92,6 +96,7 @@ export function loadReviewReactionLottieAssets(): Promise<ReviewReactionLottieAs
       ReviewReactionLottieAnimationModule,
       ReviewReactionLottieAnimationModule,
       ReviewReactionLottieAnimationModule,
+      ReviewReactionLottieAnimationModule,
     ],
   ): ReviewReactionLottieAssets => {
     reviewReactionLottieAssetsReady = true;
@@ -99,6 +104,7 @@ export function loadReviewReactionLottieAssets(): Promise<ReviewReactionLottieAs
       animationDataByVariant: {
         againWormWiggle: wormAnimationModule.default,
         againSnailCrawl: snailAnimationModule.default,
+        againWiltedFlower: wiltedFlowerAnimationModule.default,
         goodOwl: owlAnimationModule.default,
         goodPoodle: poodleAnimationModule.default,
         goodWhale: whaleAnimationModule.default,

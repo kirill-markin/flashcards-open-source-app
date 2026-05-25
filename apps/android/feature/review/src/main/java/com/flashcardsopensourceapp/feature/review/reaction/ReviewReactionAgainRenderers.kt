@@ -19,11 +19,6 @@ internal fun DrawScope.drawAgainReviewReaction(
             motionMode = motionMode
         )
 
-        ReviewReactionVariant.AGAIN_WARNING_TAPE -> drawAgainWarningTape(
-            progress = progress,
-            motionMode = motionMode
-        )
-
         else -> error("Unsupported again review reaction variant: $variant")
     }
 }
@@ -91,47 +86,5 @@ private fun DrawScope.drawAgainRewindVortex(
         size = maxRadius * 0.18f,
         rotationDegrees = 42f + progress * 120f,
         color = reviewReactionOrangeColor
-    )
-}
-
-private fun DrawScope.drawAgainWarningTape(
-    progress: Float,
-    motionMode: ReviewReactionMotionMode
-) {
-    val phase: ReviewReactionPhaseProgress = reviewReactionPhaseProgress(
-        progress = progress,
-        enterEnd = 0.34f,
-        exitStart = 0.80f
-    )
-    val snap: Float = if (motionMode == ReviewReactionMotionMode.REDUCED) {
-        1f
-    } else {
-        reviewReactionEaseOutBack(progress = phase.enter, overshoot = 1.35f)
-    }
-    val drift: Float = if (motionMode == ReviewReactionMotionMode.REDUCED) {
-        0f
-    } else {
-        sin(phase.hold * PI.toFloat() * 2f) * 18f * (1f - phase.exit)
-    }
-    val exitShift: Float = if (motionMode == ReviewReactionMotionMode.REDUCED) 0f else phase.exit * 48f
-    val lengthScale: Float = if (motionMode == ReviewReactionMotionMode.REDUCED) {
-        1f
-    } else {
-        reviewReactionInterpolate(start = 0.18f, end = 1f, progress = min(snap, 1f))
-    }
-
-    drawWarningTapeBand(
-        center = Offset(x = size.width * 0.50f + drift + exitShift, y = size.height * 0.32f - (1f - min(snap, 1f)) * 22f),
-        length = size.width * 1.30f * lengthScale,
-        height = 34f,
-        rotationDegrees = -13f - (1f - min(snap, 1f)) * 10f,
-        alpha = 1f
-    )
-    drawWarningTapeBand(
-        center = Offset(x = size.width * 0.50f - drift - exitShift, y = size.height * 0.58f + (1f - min(snap, 1f)) * 18f),
-        length = size.width * 1.24f * lengthScale,
-        height = 28f,
-        rotationDegrees = 12f + (1f - min(snap, 1f)) * 8f,
-        alpha = 0.82f
     )
 }

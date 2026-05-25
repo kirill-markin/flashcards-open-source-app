@@ -22,7 +22,7 @@ enum ReviewReactionVariant: CaseIterable, Hashable, Sendable {
     case againWormWiggle
     case againRewindVortex
     case againSnailCrawl
-    case againWarningTape
+    case againWiltedFlower
     case hardHourglassSand
     case hardFallingWeight
     case hardYellowCrack
@@ -50,7 +50,7 @@ enum ReviewReactionVariant: CaseIterable, Hashable, Sendable {
             return 1.333
         case .againRewindVortex:
             return 1.45
-        case .hardHourglassSand, .againWarningTape:
+        case .hardHourglassSand:
             return 1.55
         case .hardFallingWeight, .easyCrownBounce:
             return 1.65
@@ -58,6 +58,8 @@ enum ReviewReactionVariant: CaseIterable, Hashable, Sendable {
             return 2.00
         case .hardRollingBoulder:
             return 2.05
+        case .againWiltedFlower:
+            return 2.40
         case .goodWhale:
             return 2.633
         case .againSnailCrawl:
@@ -101,7 +103,7 @@ let allReviewReactionVariantDistributionEntries: [ReviewReactionVariantDistribut
     ReviewReactionVariantDistributionEntry(rating: .again, variant: .againWormWiggle, rollRange: 0...399),
     ReviewReactionVariantDistributionEntry(rating: .again, variant: .againRewindVortex, rollRange: 400...699),
     ReviewReactionVariantDistributionEntry(rating: .again, variant: .againSnailCrawl, rollRange: 700...919),
-    ReviewReactionVariantDistributionEntry(rating: .again, variant: .againWarningTape, rollRange: 920...999),
+    ReviewReactionVariantDistributionEntry(rating: .again, variant: .againWiltedFlower, rollRange: 920...999),
     ReviewReactionVariantDistributionEntry(rating: .hard, variant: .hardHourglassSand, rollRange: 0...399),
     ReviewReactionVariantDistributionEntry(rating: .hard, variant: .hardFallingWeight, rollRange: 400...699),
     ReviewReactionVariantDistributionEntry(rating: .hard, variant: .hardYellowCrack, rollRange: 700...919),

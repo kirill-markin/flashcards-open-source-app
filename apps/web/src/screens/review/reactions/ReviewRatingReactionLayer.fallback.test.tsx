@@ -49,6 +49,11 @@ const lottieFailureExpectations: ReadonlyArray<LottieFailureExpectation> = [
     variant: "againSnailCrawl",
   },
   {
+    rating: 0,
+    randomValue: 0.95,
+    variant: "againWiltedFlower",
+  },
+  {
     rating: 2,
     randomValue: 0,
     variant: "goodOwl",

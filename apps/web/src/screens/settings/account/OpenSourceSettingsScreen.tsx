@@ -11,6 +11,7 @@ const reviewPeacockAnimationUrl: string = "https://iconscout.com/free-lottie-ani
 const reviewSnailAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-snail-animation_12152626";
 const reviewRainbowAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-rainbow-animation_12152617";
 const reviewUnicornAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-unicorn-animation_12152598";
+const reviewWiltedFlowerAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-wilted-flower-animation_12152601";
 const reviewWormAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-worm-animation_12152603";
 const creativeCommonsAttributionUrl: string = "https://creativecommons.org/licenses/by/4.0/";
 
@@ -67,6 +68,9 @@ export function OpenSourceSettingsScreen(): ReactElement {
           </a>
           <a className="ghost-btn" href={reviewWormAnimationUrl} rel="noreferrer" target="_blank">
             {t("openSourceSettings.thirdPartyNoticeWormSourceAction")}
+          </a>
+          <a className="ghost-btn" href={reviewWiltedFlowerAnimationUrl} rel="noreferrer" target="_blank">
+            {t("openSourceSettings.thirdPartyNoticeWiltedFlowerSourceAction")}
           </a>
           <a className="ghost-btn" href={creativeCommonsAttributionUrl} rel="noreferrer" target="_blank">
             {t("openSourceSettings.thirdPartyNoticeLicenseAction")}

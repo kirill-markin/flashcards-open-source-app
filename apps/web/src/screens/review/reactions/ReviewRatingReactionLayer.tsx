@@ -32,6 +32,7 @@ type ReviewReactionLottieContainerClassMap = Readonly<Record<ReviewReactionLotti
 const reviewReactionLottieContainerClassByVariant: ReviewReactionLottieContainerClassMap = {
   againWormWiggle: "review-reaction-worm-lottie-mark",
   againSnailCrawl: "review-reaction-snail-lottie-mark",
+  againWiltedFlower: "review-reaction-wilted-flower-lottie-mark",
   goodOwl: "review-reaction-owl-lottie-mark",
   goodPoodle: "review-reaction-poodle-lottie-mark",
   goodWhale: "review-reaction-whale-lottie-mark",
@@ -93,25 +94,6 @@ function AgainRewindVortexReaction(): ReactElement {
       <polygon className="review-reaction-red-fill" points="31,19 43,19 35,30" />
       <polygon className="review-reaction-orange-fill" points="72,78 60,78 68,67" />
       <polygon className="review-reaction-pink-fill" points="59,17 50,25 49,11" />
-    </g>
-  );
-}
-
-function AgainWarningTapeReaction(): ReactElement {
-  return (
-    <g className="review-reaction-warning-tape-mark">
-      <g transform="translate(50 31) rotate(-13)">
-        <rect className="review-reaction-yellow-fill" x="-56" y="-5" width="112" height="10" rx="2" />
-        {[-54, -36, -18, 0, 18, 36, 54].map((xPosition) => (
-          <polygon key={`top-${xPosition}`} className="review-reaction-dark-fill" points={`${xPosition},-5 ${xPosition + 9},-5 ${xPosition - 1},5 ${xPosition - 10},5`} />
-        ))}
-      </g>
-      <g transform="translate(50 59) rotate(12)">
-        <rect className="review-reaction-yellow-fill" x="-54" y="-4" width="108" height="8" rx="2" />
-        {[-52, -34, -16, 2, 20, 38, 56].map((xPosition) => (
-          <polygon key={`bottom-${xPosition}`} className="review-reaction-dark-fill" points={`${xPosition},-4 ${xPosition + 8},-4 ${xPosition - 1},4 ${xPosition - 9},4`} />
-        ))}
-      </g>
     </g>
   );
 }
@@ -312,8 +294,8 @@ function renderReviewReactionVariant(variant: ReviewReactionVariant): ReactEleme
       return <AgainRewindVortexReaction />;
     case "againSnailCrawl":
       return renderReviewReactionVariant(reviewReactionLottieFallbackVariant);
-    case "againWarningTape":
-      return <AgainWarningTapeReaction />;
+    case "againWiltedFlower":
+      return renderReviewReactionVariant(reviewReactionLottieFallbackVariant);
     case "hardHourglassSand":
       return <HardHourglassSandReaction />;
     case "hardFallingWeight":

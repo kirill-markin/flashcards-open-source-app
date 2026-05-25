@@ -873,7 +873,7 @@ const arCatalog: TranslationCatalog = {
     stackDescription: "تطبيق iOS والخادم الخلفي مفتوحا المصدر بالكامل. يمكنك فحص الكود واستخدام ترخيص MIT وتشغيل الحزمة نفسها على خوادمك الخاصة.",
     repositoryAction: "فتح المستودع",
     selfHostingDescription: "إذا كنت بحاجة إلى خادم خلفي خاص بك، فانشر الحزمة مفتوحة المصدر نفسها على بنيتك التحتية واستخدم عملاء الويب وiOS الخاصين بك مع ذلك النشر.",
-    thirdPartyNoticeDescription: "رسوم Lottie المتحركة للمراجعة: Free Owl Animation وFree Poodle Animation وFree Whale Animation وFree Peacock Animation وFree Unicorn Animation وFree Snail Animation وFree Rainbow Animation وFree Worm Animation من Google Inc.، Copyright © 2026 Google Inc.، مستخدمة بموجب Creative Commons Attribution 4.0. تستخدم أوقات تشغيل Lottie تراخيص MIT وApache 2.0.",
+    thirdPartyNoticeDescription: "رسوم Lottie المتحركة للمراجعة: Free Owl Animation وFree Poodle Animation وFree Whale Animation وFree Peacock Animation وFree Unicorn Animation وFree Snail Animation وFree Rainbow Animation وFree Worm Animation وFree Wilted Flower Animation من Google Inc.، Copyright © 2026 Google Inc.، مستخدمة بموجب Creative Commons Attribution 4.0. تستخدم أوقات تشغيل Lottie تراخيص MIT وApache 2.0.",
     thirdPartyNoticeFullAction: "فتح الإشعارات الكاملة",
     thirdPartyNoticeOwlSourceAction: "فتح مصدر البومة",
     thirdPartyNoticePoodleSourceAction: "فتح مصدر البودل",
@@ -883,6 +883,7 @@ const arCatalog: TranslationCatalog = {
     thirdPartyNoticeSnailSourceAction: "فتح مصدر الحلزون",
     thirdPartyNoticeRainbowSourceAction: "فتح مصدر قوس قزح",
     thirdPartyNoticeWormSourceAction: "فتح مصدر الدودة",
+    thirdPartyNoticeWiltedFlowerSourceAction: "فتح مصدر الزهرة الذابلة",
     thirdPartyNoticeLicenseAction: "فتح الترخيص",
   },
   agentConnections: {

@@ -873,7 +873,7 @@ const deCatalog: TranslationCatalog = {
     stackDescription: "Die iOS-App und das Backend sind vollständig Open Source. Du kannst den Code prüfen, die MIT-Lizenz nutzen und denselben Stack auf deinen eigenen Servern ausführen.",
     repositoryAction: "Repository öffnen",
     selfHostingDescription: "Wenn du dein eigenes Backend benötigst, stelle denselben Open-Source-Stack auf deiner Infrastruktur bereit und nutze deine eigenen Web- und iOS-Clients mit dieser Bereitstellung.",
-    thirdPartyNoticeDescription: "Review-Lottie-Animationen: Free Owl Animation, Free Poodle Animation, Free Whale Animation, Free Peacock Animation, Free Unicorn Animation, Free Snail Animation, Free Rainbow Animation und Free Worm Animation von Google Inc., Copyright © 2026 Google Inc., verwendet unter Creative Commons Attribution 4.0. Lottie-Laufzeiten verwenden MIT- und Apache-2.0-Lizenzen.",
+    thirdPartyNoticeDescription: "Review-Lottie-Animationen: Free Owl Animation, Free Poodle Animation, Free Whale Animation, Free Peacock Animation, Free Unicorn Animation, Free Snail Animation, Free Rainbow Animation, Free Worm Animation und Free Wilted Flower Animation von Google Inc., Copyright © 2026 Google Inc., verwendet unter Creative Commons Attribution 4.0. Lottie-Laufzeiten verwenden MIT- und Apache-2.0-Lizenzen.",
     thirdPartyNoticeFullAction: "Vollständige Hinweise öffnen",
     thirdPartyNoticeOwlSourceAction: "Eulen-Quelle öffnen",
     thirdPartyNoticePoodleSourceAction: "Pudel-Quelle öffnen",
@@ -883,6 +883,7 @@ const deCatalog: TranslationCatalog = {
     thirdPartyNoticeSnailSourceAction: "Schnecken-Quelle öffnen",
     thirdPartyNoticeRainbowSourceAction: "Regenbogen-Quelle öffnen",
     thirdPartyNoticeWormSourceAction: "Wurm-Quelle öffnen",
+    thirdPartyNoticeWiltedFlowerSourceAction: "Quelle der verwelkten Blume öffnen",
     thirdPartyNoticeLicenseAction: "Lizenz öffnen",
   },
   agentConnections: {

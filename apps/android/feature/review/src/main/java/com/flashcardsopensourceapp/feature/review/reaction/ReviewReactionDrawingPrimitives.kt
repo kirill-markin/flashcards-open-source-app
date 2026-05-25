@@ -17,69 +17,6 @@ import kotlin.math.sin
 
 private const val reviewReactionPathSampleCount: Int = 36
 
-internal fun DrawScope.drawWarningTapeBand(
-    center: Offset,
-    length: Float,
-    height: Float,
-    rotationDegrees: Float,
-    alpha: Float
-) {
-    val halfLength: Float = length * 0.50f
-    val halfHeight: Float = height * 0.50f
-    val bandPoints: List<Offset> = listOf(
-        transformLocalPoint(center = center, local = Offset(x = -halfLength, y = -halfHeight), scale = 1f, rotationDegrees = rotationDegrees),
-        transformLocalPoint(center = center, local = Offset(x = halfLength, y = -halfHeight), scale = 1f, rotationDegrees = rotationDegrees),
-        transformLocalPoint(center = center, local = Offset(x = halfLength, y = halfHeight), scale = 1f, rotationDegrees = rotationDegrees),
-        transformLocalPoint(center = center, local = Offset(x = -halfLength, y = halfHeight), scale = 1f, rotationDegrees = rotationDegrees)
-    )
-    drawPath(path = polygonPath(points = bandPoints), color = reviewReactionYellowColor.copy(alpha = alpha))
-    drawPolylineProgress(
-        points = listOf(bandPoints[0], bandPoints[1]),
-        progress = 1f,
-        color = Color.Black.copy(alpha = alpha * 0.42f),
-        strokeWidth = 3f
-    )
-    drawPolylineProgress(
-        points = listOf(bandPoints[3], bandPoints[2]),
-        progress = 1f,
-        color = Color.Black.copy(alpha = alpha * 0.42f),
-        strokeWidth = 3f
-    )
-
-    val stripeCount: Int = max(6, (length / 56f).toInt())
-    for (index in 0..stripeCount) {
-        val stripeCenterX: Float = -halfLength + index.toFloat() * length / stripeCount.toFloat()
-        val stripeWidth: Float = height * 0.42f
-        val stripePoints: List<Offset> = listOf(
-            transformLocalPoint(
-                center = center,
-                local = Offset(x = stripeCenterX - stripeWidth, y = -halfHeight),
-                scale = 1f,
-                rotationDegrees = rotationDegrees
-            ),
-            transformLocalPoint(
-                center = center,
-                local = Offset(x = stripeCenterX, y = -halfHeight),
-                scale = 1f,
-                rotationDegrees = rotationDegrees
-            ),
-            transformLocalPoint(
-                center = center,
-                local = Offset(x = stripeCenterX + stripeWidth, y = halfHeight),
-                scale = 1f,
-                rotationDegrees = rotationDegrees
-            ),
-            transformLocalPoint(
-                center = center,
-                local = Offset(x = stripeCenterX, y = halfHeight),
-                scale = 1f,
-                rotationDegrees = rotationDegrees
-            )
-        )
-        drawPath(path = polygonPath(points = stripePoints), color = Color.Black.copy(alpha = alpha * 0.70f))
-    }
-}
-
 internal fun DrawScope.drawWeight(
     center: Offset,
     width: Float,

@@ -34,6 +34,9 @@ private const val reviewReactionAnimationMaximumProgress: Float = 1f
 private const val reviewReactionCleanupExtraMillis: Long = 80L
 private const val reviewReactionLogTag: String = "ReviewReaction"
 private const val reviewReactionReducedMotionDrawingProgress: Float = 0.55f
+private const val reviewAgainWiltedFlowerAnimationFrameScale: Float = 0.56f
+private const val reviewAgainWiltedFlowerAnimationCenterX: Float = 0.50f
+private const val reviewAgainWiltedFlowerAnimationCenterY: Float = 0.50f
 private const val reviewAgainWormAnimationFrameScale: Float = 0.58f
 private const val reviewAgainWormAnimationCenterX: Float = 0.50f
 private const val reviewAgainWormAnimationCenterY: Float = 0.52f
@@ -69,6 +72,7 @@ private data class ReviewReactionLottieConfiguration(
 )
 
 private data class ReviewReactionLottieCompositionStore(
+    val reviewAgainWiltedFlowerComposition: LottieComposition?,
     val reviewAgainWormComposition: LottieComposition?,
     val reviewAgainSnailComposition: LottieComposition?,
     val reviewGoodOwlComposition: LottieComposition?,
@@ -120,6 +124,13 @@ private fun reviewReactionLottieConfiguration(
     compositionStore: ReviewReactionLottieCompositionStore
 ): ReviewReactionLottieConfiguration? {
     return when (variant) {
+        ReviewReactionVariant.AGAIN_WILTED_FLOWER -> ReviewReactionLottieConfiguration(
+            composition = compositionStore.reviewAgainWiltedFlowerComposition,
+            frameScale = reviewAgainWiltedFlowerAnimationFrameScale,
+            centerX = reviewAgainWiltedFlowerAnimationCenterX,
+            centerY = reviewAgainWiltedFlowerAnimationCenterY
+        )
+
         ReviewReactionVariant.AGAIN_WORM_WIGGLE -> ReviewReactionLottieConfiguration(
             composition = compositionStore.reviewAgainWormComposition,
             frameScale = reviewAgainWormAnimationFrameScale,
@@ -177,7 +188,6 @@ private fun reviewReactionLottieConfiguration(
         )
 
         ReviewReactionVariant.AGAIN_REWIND_VORTEX,
-        ReviewReactionVariant.AGAIN_WARNING_TAPE,
         ReviewReactionVariant.HARD_HOURGLASS_SAND,
         ReviewReactionVariant.HARD_FALLING_WEIGHT,
         ReviewReactionVariant.HARD_YELLOW_CRACK,
@@ -195,6 +205,10 @@ internal fun ReviewReactionOverlay(
     onEventFinished: (String) -> Unit
 ) {
     val compositionStore: ReviewReactionLottieCompositionStore = ReviewReactionLottieCompositionStore(
+        reviewAgainWiltedFlowerComposition = rememberReviewReactionLottieComposition(
+            rawResourceId = R.raw.review_again_wilted_flower,
+            assetName = "review_again_wilted_flower"
+        ),
         reviewAgainWormComposition = rememberReviewReactionLottieComposition(
             rawResourceId = R.raw.review_again_worm,
             assetName = "review_again_worm"
