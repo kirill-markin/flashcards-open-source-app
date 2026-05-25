@@ -19,9 +19,9 @@ enum ReviewReactionRating: CaseIterable, Hashable, Sendable {
 }
 
 enum ReviewReactionVariant: CaseIterable, Hashable, Sendable {
-    case againRedScribbleSlash
+    case againWormWiggle
     case againRewindVortex
-    case againStampFlyby
+    case againSnailCrawl
     case againWarningTape
     case hardHourglassSand
     case hardFallingWeight
@@ -42,7 +42,7 @@ enum ReviewReactionVariant: CaseIterable, Hashable, Sendable {
 
     var animationDurationSeconds: Double {
         switch self {
-        case .againRedScribbleSlash, .hardYellowCrack:
+        case .hardYellowCrack:
             return 1.20
         case .easySparkleBurst:
             return 1.25
@@ -54,20 +54,22 @@ enum ReviewReactionVariant: CaseIterable, Hashable, Sendable {
             return 1.55
         case .hardFallingWeight, .easyCrownBounce:
             return 1.65
-        case .againStampFlyby:
-            return 1.90
         case .easyRainbowStreak:
             return 2.00
         case .hardRollingBoulder:
             return 2.05
         case .goodWhale:
             return 2.633
+        case .againSnailCrawl:
+            return 2.70
         case .goodPoodle:
             return 2.800
         case .goodOwl:
             return 2.833
         case .easyUnicornFlyby:
             return 3.80
+        case .againWormWiggle:
+            return 4.267
         }
     }
 
@@ -96,9 +98,9 @@ struct ReviewReactionVariantDistributionEntry: Identifiable, Hashable, Sendable 
 }
 
 let allReviewReactionVariantDistributionEntries: [ReviewReactionVariantDistributionEntry] = [
-    ReviewReactionVariantDistributionEntry(rating: .again, variant: .againRedScribbleSlash, rollRange: 0...399),
+    ReviewReactionVariantDistributionEntry(rating: .again, variant: .againWormWiggle, rollRange: 0...399),
     ReviewReactionVariantDistributionEntry(rating: .again, variant: .againRewindVortex, rollRange: 400...699),
-    ReviewReactionVariantDistributionEntry(rating: .again, variant: .againStampFlyby, rollRange: 700...919),
+    ReviewReactionVariantDistributionEntry(rating: .again, variant: .againSnailCrawl, rollRange: 700...919),
     ReviewReactionVariantDistributionEntry(rating: .again, variant: .againWarningTape, rollRange: 920...999),
     ReviewReactionVariantDistributionEntry(rating: .hard, variant: .hardHourglassSand, rollRange: 0...399),
     ReviewReactionVariantDistributionEntry(rating: .hard, variant: .hardFallingWeight, rollRange: 400...699),

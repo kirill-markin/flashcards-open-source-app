@@ -20,7 +20,13 @@ internal fun DrawScope.drawEasyReviewReaction(
             motionMode = motionMode
         )
 
+        ReviewReactionVariant.AGAIN_SNAIL_CRAWL,
+        ReviewReactionVariant.GOOD_OWL,
+        ReviewReactionVariant.GOOD_POODLE,
+        ReviewReactionVariant.GOOD_WHALE,
+        ReviewReactionVariant.GOOD_PEACOCK,
         ReviewReactionVariant.EASY_RAINBOW_STREAK,
+        ReviewReactionVariant.AGAIN_WORM_WIGGLE,
         ReviewReactionVariant.EASY_CROWN_BOUNCE,
         ReviewReactionVariant.EASY_UNICORN_FLYBY -> drawEasyCrownBounce(
             progress = progress,

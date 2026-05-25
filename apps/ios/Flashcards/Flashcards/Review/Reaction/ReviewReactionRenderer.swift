@@ -22,22 +22,8 @@ enum ReviewReactionRenderer {
         }
 
         switch event.variant {
-        case .againRedScribbleSlash:
-            drawAgainRedScribbleSlash(
-                context: drawingContext,
-                size: drawableSize,
-                progress: drawingProgress,
-                motionMode: motionMode
-            )
         case .againRewindVortex:
             drawAgainRewindVortex(
-                context: drawingContext,
-                size: drawableSize,
-                progress: drawingProgress,
-                motionMode: motionMode
-            )
-        case .againStampFlyby:
-            drawAgainStampFlyby(
                 context: drawingContext,
                 size: drawableSize,
                 progress: drawingProgress,
@@ -92,7 +78,9 @@ enum ReviewReactionRenderer {
                 progress: drawingProgress,
                 motionMode: motionMode
             )
-        case .goodOwl,
+        case .againWormWiggle,
+             .againSnailCrawl,
+             .goodOwl,
              .goodPoodle,
              .goodWhale,
              .goodPeacock,

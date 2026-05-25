@@ -5,6 +5,8 @@ import SwiftUI
 import UIKit
 
 private let reviewReactionAnimationMinimumIntervalSeconds: Double = 1.0 / 60.0
+private let reviewAgainWormAnimationAssetName: String = "ReviewAgainWorm"
+private let reviewAgainSnailAnimationAssetName: String = "ReviewAgainSnail"
 private let reviewGoodOwlAnimationAssetName: String = "ReviewGoodOwl"
 private let reviewGoodPoodleAnimationAssetName: String = "ReviewGoodPoodle"
 private let reviewGoodWhaleAnimationAssetName: String = "ReviewGoodWhale"
@@ -27,6 +29,8 @@ private struct ReviewReactionLottieConfiguration {
 }
 
 private struct ReviewReactionLottieAnimationStore {
+    let reviewAgainWormAnimation: LottieAnimation?
+    let reviewAgainSnailAnimation: LottieAnimation?
     let reviewGoodOwlAnimation: LottieAnimation?
     let reviewGoodPoodleAnimation: LottieAnimation?
     let reviewGoodWhaleAnimation: LottieAnimation?
@@ -56,6 +60,14 @@ private func makeReviewReactionLottieAnimation(assetName: String, assetDescripti
 
 private func makeReviewReactionLottieAnimationStore() -> ReviewReactionLottieAnimationStore {
     ReviewReactionLottieAnimationStore(
+        reviewAgainWormAnimation: makeReviewReactionLottieAnimation(
+            assetName: reviewAgainWormAnimationAssetName,
+            assetDescription: "worm"
+        ),
+        reviewAgainSnailAnimation: makeReviewReactionLottieAnimation(
+            assetName: reviewAgainSnailAnimationAssetName,
+            assetDescription: "snail"
+        ),
         reviewGoodOwlAnimation: makeReviewReactionLottieAnimation(
             assetName: reviewGoodOwlAnimationAssetName,
             assetDescription: "owl"
@@ -93,16 +105,16 @@ private func reviewReactionFallbackEvent(event: ReviewReactionEvent) -> ReviewRe
 
 private func isReviewReactionLottieVariant(variant: ReviewReactionVariant) -> Bool {
     switch variant {
-    case .goodOwl,
+    case .againWormWiggle,
+         .againSnailCrawl,
+         .goodOwl,
          .goodPoodle,
          .goodWhale,
          .goodPeacock,
          .easyRainbowStreak,
          .easyUnicornFlyby:
         return true
-    case .againRedScribbleSlash,
-         .againRewindVortex,
-         .againStampFlyby,
+    case .againRewindVortex,
          .againWarningTape,
          .hardHourglassSand,
          .hardFallingWeight,
@@ -119,6 +131,30 @@ private func reviewReactionLottieConfiguration(
     animationStore: ReviewReactionLottieAnimationStore
 ) -> ReviewReactionLottieConfiguration? {
     switch variant {
+    case .againWormWiggle:
+        guard let reviewAgainWormAnimation = animationStore.reviewAgainWormAnimation else {
+            return nil
+        }
+
+        return ReviewReactionLottieConfiguration(
+            animation: reviewAgainWormAnimation,
+            frameScale: 0.58,
+            centerX: 0.50,
+            centerY: 0.52,
+            reducedMotionProgress: reviewReactionLottieReducedMotionProgress
+        )
+    case .againSnailCrawl:
+        guard let reviewAgainSnailAnimation = animationStore.reviewAgainSnailAnimation else {
+            return nil
+        }
+
+        return ReviewReactionLottieConfiguration(
+            animation: reviewAgainSnailAnimation,
+            frameScale: 0.58,
+            centerX: 0.50,
+            centerY: 0.48,
+            reducedMotionProgress: reviewReactionLottieReducedMotionProgress
+        )
     case .goodOwl:
         guard let reviewGoodOwlAnimation = animationStore.reviewGoodOwlAnimation else {
             return nil
@@ -191,9 +227,7 @@ private func reviewReactionLottieConfiguration(
             centerY: 0.30,
             reducedMotionProgress: reviewReactionLottieReducedMotionProgress
         )
-    case .againRedScribbleSlash,
-         .againRewindVortex,
-         .againStampFlyby,
+    case .againRewindVortex,
          .againWarningTape,
          .hardHourglassSand,
          .hardFallingWeight,
@@ -232,6 +266,8 @@ struct ReviewReactionLayer: View {
     @State private var hasStartedReviewReactionLottiePreload: Bool = false
     @State private var reviewReactionLottieAnimationStore: ReviewReactionLottieAnimationStore =
         ReviewReactionLottieAnimationStore(
+            reviewAgainWormAnimation: nil,
+            reviewAgainSnailAnimation: nil,
             reviewGoodOwlAnimation: nil,
             reviewGoodPoodleAnimation: nil,
             reviewGoodWhaleAnimation: nil,

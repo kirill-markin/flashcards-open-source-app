@@ -34,6 +34,12 @@ private const val reviewReactionAnimationMaximumProgress: Float = 1f
 private const val reviewReactionCleanupExtraMillis: Long = 80L
 private const val reviewReactionLogTag: String = "ReviewReaction"
 private const val reviewReactionReducedMotionDrawingProgress: Float = 0.55f
+private const val reviewAgainWormAnimationFrameScale: Float = 0.58f
+private const val reviewAgainWormAnimationCenterX: Float = 0.50f
+private const val reviewAgainWormAnimationCenterY: Float = 0.52f
+private const val reviewAgainSnailAnimationFrameScale: Float = 0.58f
+private const val reviewAgainSnailAnimationCenterX: Float = 0.50f
+private const val reviewAgainSnailAnimationCenterY: Float = 0.48f
 private const val reviewGoodOwlAnimationFrameScale: Float = 0.56f
 private const val reviewGoodOwlAnimationCenterX: Float = 0.50f
 private const val reviewGoodOwlAnimationCenterY: Float = 0.42f
@@ -63,6 +69,8 @@ private data class ReviewReactionLottieConfiguration(
 )
 
 private data class ReviewReactionLottieCompositionStore(
+    val reviewAgainWormComposition: LottieComposition?,
+    val reviewAgainSnailComposition: LottieComposition?,
     val reviewGoodOwlComposition: LottieComposition?,
     val reviewGoodPoodleComposition: LottieComposition?,
     val reviewGoodWhaleComposition: LottieComposition?,
@@ -112,6 +120,20 @@ private fun reviewReactionLottieConfiguration(
     compositionStore: ReviewReactionLottieCompositionStore
 ): ReviewReactionLottieConfiguration? {
     return when (variant) {
+        ReviewReactionVariant.AGAIN_WORM_WIGGLE -> ReviewReactionLottieConfiguration(
+            composition = compositionStore.reviewAgainWormComposition,
+            frameScale = reviewAgainWormAnimationFrameScale,
+            centerX = reviewAgainWormAnimationCenterX,
+            centerY = reviewAgainWormAnimationCenterY
+        )
+
+        ReviewReactionVariant.AGAIN_SNAIL_CRAWL -> ReviewReactionLottieConfiguration(
+            composition = compositionStore.reviewAgainSnailComposition,
+            frameScale = reviewAgainSnailAnimationFrameScale,
+            centerX = reviewAgainSnailAnimationCenterX,
+            centerY = reviewAgainSnailAnimationCenterY
+        )
+
         ReviewReactionVariant.GOOD_OWL -> ReviewReactionLottieConfiguration(
             composition = compositionStore.reviewGoodOwlComposition,
             frameScale = reviewGoodOwlAnimationFrameScale,
@@ -154,9 +176,7 @@ private fun reviewReactionLottieConfiguration(
             centerY = reviewEasyUnicornAnimationCenterY
         )
 
-        ReviewReactionVariant.AGAIN_RED_SCRIBBLE_SLASH,
         ReviewReactionVariant.AGAIN_REWIND_VORTEX,
-        ReviewReactionVariant.AGAIN_STAMP_FLYBY,
         ReviewReactionVariant.AGAIN_WARNING_TAPE,
         ReviewReactionVariant.HARD_HOURGLASS_SAND,
         ReviewReactionVariant.HARD_FALLING_WEIGHT,
@@ -175,6 +195,14 @@ internal fun ReviewReactionOverlay(
     onEventFinished: (String) -> Unit
 ) {
     val compositionStore: ReviewReactionLottieCompositionStore = ReviewReactionLottieCompositionStore(
+        reviewAgainWormComposition = rememberReviewReactionLottieComposition(
+            rawResourceId = R.raw.review_again_worm,
+            assetName = "review_again_worm"
+        ),
+        reviewAgainSnailComposition = rememberReviewReactionLottieComposition(
+            rawResourceId = R.raw.review_again_snail,
+            assetName = "review_again_snail"
+        ),
         reviewGoodOwlComposition = rememberReviewReactionLottieComposition(
             rawResourceId = R.raw.review_good_owl,
             assetName = "review_good_owl"

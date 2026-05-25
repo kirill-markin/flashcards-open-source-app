@@ -8,8 +8,10 @@ const reviewOwlAnimationUrl: string = "https://iconscout.com/free-lottie-animati
 const reviewPoodleAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-poodle-animation_12152614";
 const reviewWhaleAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-whale-animation_12152600";
 const reviewPeacockAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-peacock-animation_12152610";
+const reviewSnailAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-snail-animation_12152626";
 const reviewRainbowAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-rainbow-animation_12152617";
 const reviewUnicornAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-unicorn-animation_12152598";
+const reviewWormAnimationUrl: string = "https://iconscout.com/free-lottie-animation/free-worm-animation_12152603";
 const creativeCommonsAttributionUrl: string = "https://creativecommons.org/licenses/by/4.0/";
 
 export function OpenSourceSettingsScreen(): ReactElement {
@@ -57,8 +59,14 @@ export function OpenSourceSettingsScreen(): ReactElement {
           <a className="ghost-btn" href={reviewUnicornAnimationUrl} rel="noreferrer" target="_blank">
             {t("openSourceSettings.thirdPartyNoticeUnicornSourceAction")}
           </a>
+          <a className="ghost-btn" href={reviewSnailAnimationUrl} rel="noreferrer" target="_blank">
+            {t("openSourceSettings.thirdPartyNoticeSnailSourceAction")}
+          </a>
           <a className="ghost-btn" href={reviewRainbowAnimationUrl} rel="noreferrer" target="_blank">
             {t("openSourceSettings.thirdPartyNoticeRainbowSourceAction")}
+          </a>
+          <a className="ghost-btn" href={reviewWormAnimationUrl} rel="noreferrer" target="_blank">
+            {t("openSourceSettings.thirdPartyNoticeWormSourceAction")}
           </a>
           <a className="ghost-btn" href={creativeCommonsAttributionUrl} rel="noreferrer" target="_blank">
             {t("openSourceSettings.thirdPartyNoticeLicenseAction")}

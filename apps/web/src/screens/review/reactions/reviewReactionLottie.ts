@@ -10,6 +10,8 @@ type ReviewReactionLottieAnimationModule = Readonly<{
 }>;
 
 export type ReviewReactionLottieVariant =
+  | "againWormWiggle"
+  | "againSnailCrawl"
   | "goodOwl"
   | "goodPoodle"
   | "goodWhale"
@@ -30,14 +32,14 @@ export const reviewReactionLottieFallbackVariant: ReviewReactionVariant = "easyC
 export function isReviewReactionLottieVariant(
   variant: ReviewReactionVariant,
 ): variant is ReviewReactionLottieVariant {
-  return (
-    variant === "goodOwl"
+  return variant === "againWormWiggle"
+    || variant === "againSnailCrawl"
+    || variant === "goodOwl"
     || variant === "goodPoodle"
     || variant === "goodWhale"
     || variant === "goodPeacock"
     || variant === "easyRainbowStreak"
-    || variant === "easyUnicornFlyby"
-  );
+    || variant === "easyUnicornFlyby";
 }
 
 export function isReviewReactionLottieAssetsReady(): boolean {
@@ -61,6 +63,8 @@ export function loadReviewReactionLottieAssets(): Promise<ReviewReactionLottieAs
 
   reviewReactionLottieAssetsPromise = Promise.all([
     import("lottie-web/build/player/lottie_light"),
+    import("../../../assets/review_again_worm.json"),
+    import("../../../assets/review_again_snail.json"),
     import("../../../assets/review_good_owl.json"),
     import("../../../assets/review_good_poodle.json"),
     import("../../../assets/review_good_whale.json"),
@@ -70,6 +74,8 @@ export function loadReviewReactionLottieAssets(): Promise<ReviewReactionLottieAs
   ]).then((
     [
       lottieModule,
+      wormAnimationModule,
+      snailAnimationModule,
       owlAnimationModule,
       poodleAnimationModule,
       whaleAnimationModule,
@@ -84,11 +90,15 @@ export function loadReviewReactionLottieAssets(): Promise<ReviewReactionLottieAs
       ReviewReactionLottieAnimationModule,
       ReviewReactionLottieAnimationModule,
       ReviewReactionLottieAnimationModule,
+      ReviewReactionLottieAnimationModule,
+      ReviewReactionLottieAnimationModule,
     ],
   ): ReviewReactionLottieAssets => {
     reviewReactionLottieAssetsReady = true;
     return {
       animationDataByVariant: {
+        againWormWiggle: wormAnimationModule.default,
+        againSnailCrawl: snailAnimationModule.default,
         goodOwl: owlAnimationModule.default,
         goodPoodle: poodleAnimationModule.default,
         goodWhale: whaleAnimationModule.default,
