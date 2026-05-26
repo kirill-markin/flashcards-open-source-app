@@ -6,12 +6,12 @@ import com.flashcardsopensourceapp.data.local.model.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
+import com.flashcardsopensourceapp.feature.ai.AiCardHandoffResult
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -46,7 +46,7 @@ class AiChatRuntimeCardHandoffTest {
         runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
         advanceUntilIdle()
 
-        val didHandoff = runtime.handoffCardToChat(
+        val handoffResult = runtime.handoffCardToChat(
             cardId = "card-1",
             frontText = "Front",
             backText = "Back",
@@ -55,7 +55,7 @@ class AiChatRuntimeCardHandoffTest {
         )
         advanceUntilIdle()
 
-        assertFalse(didHandoff)
+        assertEquals(AiCardHandoffResult.REQUIRES_FRESH_CHAT, handoffResult)
         assertTrue(repository.createNewSessionRequests.isEmpty())
         assertEquals(oldSessionId, runtime.state.value.persistedState.chatSessionId)
         assertTrue(runtime.state.value.pendingAttachments.isEmpty())
@@ -83,7 +83,7 @@ class AiChatRuntimeCardHandoffTest {
         runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
         advanceUntilIdle()
 
-        val didHandoff = runtime.handoffCardToChat(
+        val handoffResult = runtime.handoffCardToChat(
             cardId = "card-1",
             frontText = "Front",
             backText = "Back",
@@ -92,7 +92,7 @@ class AiChatRuntimeCardHandoffTest {
         )
         advanceUntilIdle()
 
-        assertTrue(didHandoff)
+        assertEquals(AiCardHandoffResult.APPLIED, handoffResult)
         assertTrue(repository.createNewSessionRequests.isEmpty())
         assertEquals("session-1", runtime.state.value.persistedState.chatSessionId)
         assertEquals(1, runtime.state.value.pendingAttachments.size)
@@ -140,7 +140,7 @@ class AiChatRuntimeCardHandoffTest {
         runtime.updateDraftMessage(draftMessage = "Next draft")
         runtime.addPendingAttachment(attachment = existingAttachment)
 
-        val didHandoff = runtime.handoffCardToChat(
+        val handoffResult = runtime.handoffCardToChat(
             cardId = "card-1",
             frontText = "Front",
             backText = "Back",
@@ -149,7 +149,7 @@ class AiChatRuntimeCardHandoffTest {
         )
         advanceUntilIdle()
 
-        assertTrue(didHandoff)
+        assertEquals(AiCardHandoffResult.APPLIED, handoffResult)
         assertTrue(repository.createNewSessionRequests.isEmpty())
         assertEquals("run-1", runtime.state.value.activeRun?.runId)
         assertEquals(AiComposerPhase.RUNNING, runtime.state.value.composerPhase)
@@ -189,7 +189,7 @@ class AiChatRuntimeCardHandoffTest {
         runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
         advanceUntilIdle()
 
-        val didHandoff = runtime.handoffCardToChat(
+        val handoffResult = runtime.handoffCardToChat(
             cardId = "card-1",
             frontText = "Front",
             backText = "Back",
@@ -198,7 +198,7 @@ class AiChatRuntimeCardHandoffTest {
         )
         advanceUntilIdle()
 
-        assertFalse(didHandoff)
+        assertEquals(AiCardHandoffResult.REQUIRES_FRESH_CHAT, handoffResult)
         assertTrue(repository.createNewSessionRequests.isEmpty())
         assertEquals("session-1", runtime.state.value.persistedState.chatSessionId)
         assertEquals("Unsaved note", runtime.state.value.draftMessage)
@@ -224,7 +224,7 @@ class AiChatRuntimeCardHandoffTest {
 
         assertEquals(listOf("session-from-server"), repository.createNewSessionRequests)
         assertEquals(listOf("session-from-server"), repository.loadBootstrapSessionIds)
-        val didHandoff = runtime.handoffCardToChat(
+        val handoffResult = runtime.handoffCardToChat(
             cardId = "card-1",
             frontText = "Front",
             backText = "Back",
@@ -233,7 +233,7 @@ class AiChatRuntimeCardHandoffTest {
         )
         advanceUntilIdle()
 
-        assertTrue(didHandoff)
+        assertEquals(AiCardHandoffResult.APPLIED, handoffResult)
         assertEquals(listOf("session-from-server"), repository.createNewSessionRequests)
         assertEquals("session-from-server", runtime.state.value.persistedState.chatSessionId)
         assertEquals(1, runtime.state.value.pendingAttachments.size)

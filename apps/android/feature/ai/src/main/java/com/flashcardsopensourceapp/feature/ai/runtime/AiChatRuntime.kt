@@ -12,6 +12,7 @@ import com.flashcardsopensourceapp.data.local.model.effectiveAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.makeAiChatCardAttachment
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository
+import com.flashcardsopensourceapp.feature.ai.AiCardHandoffResult
 import com.flashcardsopensourceapp.feature.ai.AiEntryPrefill
 import com.flashcardsopensourceapp.feature.ai.aiEntryPrefillPrompt
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
@@ -279,7 +280,7 @@ internal class AiChatRuntime(
         backText: String,
         tags: List<String>,
         effortLevel: EffortLevel
-    ): Boolean {
+    ): AiCardHandoffResult {
         val currentState = runtimeStateMutable.value
         context.observability.recordAiChatBreadcrumb(
             breadcrumb = AiChatBreadcrumb.RuntimeHandoffRequested(
@@ -307,7 +308,7 @@ internal class AiChatRuntime(
                     dictationState = currentState.dictationState.name
                 )
             )
-            return false
+            return AiCardHandoffResult.DEFERRED
         }
         if (canPrepareAiDraftInComposerPhase(composerPhase = currentState.composerPhase).not()) {
             context.observability.recordAiChatWarning(
@@ -317,7 +318,7 @@ internal class AiChatRuntime(
                     composerPhase = currentState.composerPhase.name
                 )
             )
-            return false
+            return AiCardHandoffResult.DEFERRED
         }
         if (
             shouldPrepareGuestAccess(
@@ -333,7 +334,7 @@ internal class AiChatRuntime(
                     conversationBootstrapState = currentState.conversationBootstrapState.name
                 )
             )
-            return false
+            return AiCardHandoffResult.DEFERRED
         }
         val pendingCardAttachment = makeAiChatCardAttachment(
             cardId = cardId,
@@ -361,7 +362,7 @@ internal class AiChatRuntime(
                     pendingAttachmentCount = currentState.pendingAttachments.size + 1
                 )
             )
-            return true
+            return AiCardHandoffResult.APPLIED
         }
 
         if (
@@ -369,17 +370,6 @@ internal class AiChatRuntime(
                 state = currentState
             )
         ) {
-            context.observability.recordAiChatWarning(
-                warning = AiChatWarning.RuntimeHandoffRejectedDirtyState(
-                    workspaceId = currentState.workspaceId,
-                    cardId = cardId,
-                    composerPhase = currentState.composerPhase.name,
-                    pendingAttachmentCount = currentState.pendingAttachments.size,
-                    draftLength = currentState.draftMessage.length,
-                    messageCount = currentState.persistedState.messages.size,
-                    hasActiveRun = currentState.activeRun != null
-                )
-            )
             runtimeStateMutable.update { state ->
                 state.copy(
                     activeAlert = context.textProvider.generalError(
@@ -388,7 +378,7 @@ internal class AiChatRuntime(
                     errorMessage = ""
                 )
             }
-            return false
+            return AiCardHandoffResult.REQUIRES_FRESH_CHAT
         }
 
         if (currentState.persistedState.chatSessionId.isBlank()) {
@@ -404,7 +394,7 @@ internal class AiChatRuntime(
                 pendingAttachments = listOf(pendingCardAttachment),
                 shouldFocusComposer = true
             )
-            return true
+            return AiCardHandoffResult.APPLIED
         }
 
         runtimeStateMutable.update { state ->
@@ -425,7 +415,7 @@ internal class AiChatRuntime(
                 pendingAttachmentCount = 1
             )
         )
-        return true
+        return AiCardHandoffResult.APPLIED
     }
 
     fun showAlert(alert: AiAlertState) {

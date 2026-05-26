@@ -168,16 +168,6 @@ internal sealed interface AiChatWarning {
         val cloudState: String,
         val conversationBootstrapState: String
     ) : AiChatWarning
-
-    data class RuntimeHandoffRejectedDirtyState(
-        val workspaceId: String?,
-        val cardId: String,
-        val composerPhase: String,
-        val pendingAttachmentCount: Int,
-        val draftLength: Int,
-        val messageCount: Int,
-        val hasActiveRun: Boolean
-    ) : AiChatWarning
 }
 
 internal sealed interface AiChatExceptionEvent {
@@ -617,16 +607,6 @@ private fun AiChatWarning.toAndroidEvent(): AndroidWarningIssueEvent {
             cardId = cardId,
             cloudState = cloudState,
             bootstrapState = conversationBootstrapState
-        )
-        is AiChatWarning.RuntimeHandoffRejectedDirtyState -> aiWarning(
-            name = AndroidAiObservationName.RUNTIME_HANDOFF_REJECTED_DIRTY_STATE,
-            workspaceId = workspaceId,
-            cardId = cardId,
-            composerPhase = composerPhase,
-            message = hasActiveRun.toString(),
-            messageCount = messageCount,
-            pendingAttachmentCount = pendingAttachmentCount,
-            draftLength = draftLength
         )
     }
 }

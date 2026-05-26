@@ -218,7 +218,7 @@ class AiViewModel(
         backText: String,
         tags: List<String>,
         effortLevel: EffortLevel
-    ): Boolean {
+    ): AiCardHandoffResult {
         return chatRuntime.handoffCardToChat(
             cardId = cardId,
             frontText = frontText,

@@ -56,7 +56,6 @@ enum class AndroidAiObservationName(
     RUNTIME_HANDOFF_REJECTED_NOT_READY(tagValue = "ai_runtime_handoff_rejected_not_ready"),
     RUNTIME_HANDOFF_REJECTED_LOCKED_PHASE(tagValue = "ai_runtime_handoff_rejected_locked_phase"),
     RUNTIME_HANDOFF_REJECTED_ACCESS_PREPARING(tagValue = "ai_runtime_handoff_rejected_access_preparing"),
-    RUNTIME_HANDOFF_REJECTED_DIRTY_STATE(tagValue = "ai_runtime_handoff_rejected_dirty_state"),
     RUNTIME_HANDOFF_APPLIED_TO_RUNNING_DRAFT(tagValue = "ai_runtime_handoff_applied_to_running_draft"),
     RUNTIME_HANDOFF_START_FRESH_CONVERSATION(tagValue = "ai_runtime_handoff_start_fresh_conversation"),
     RUNTIME_HANDOFF_APPLIED_TO_EXISTING_SESSION(tagValue = "ai_runtime_handoff_applied_to_existing_session")
