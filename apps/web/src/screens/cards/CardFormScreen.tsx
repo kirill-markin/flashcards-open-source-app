@@ -5,6 +5,7 @@ import { useAiCardHandoff } from "../../chat/handoff/useAiCardHandoff";
 import { useI18n } from "../../i18n";
 import { CardFormFields, isCardFormStateDirty, toCardFormState, type CardFormState } from "./CardForm";
 import type { Card, CreateCardInput, TagSuggestion, UpdateCardInput } from "../../types";
+import { loadCardById } from "../../localDb/cards";
 import { loadWorkspaceTagsSummary } from "../../localDb/workspace";
 import { captureAppOperationError } from "../../observability/appOperationObservation";
 import { cardsRoute } from "../../routes";
@@ -24,7 +25,6 @@ export function CardFormScreen(): ReactElement {
   const {
     activeWorkspace,
     cloudSettings,
-    getCardById,
     createCardItem,
     updateCardItem,
     deleteCardItem,
@@ -47,6 +47,7 @@ export function CardFormScreen(): ReactElement {
     userId: null,
     installationId: null,
   });
+  const loadRequestSequenceRef = useRef<number>(0);
   const isCreateMode = cardId === undefined;
   const handoffCardToAi = useAiCardHandoff();
   observationIdentityRef.current = {
@@ -55,6 +56,12 @@ export function CardFormScreen(): ReactElement {
   };
 
   const loadScreenData = useCallback(async function loadScreenData(): Promise<void> {
+    const requestSequence = loadRequestSequenceRef.current + 1;
+    loadRequestSequenceRef.current = requestSequence;
+    const isCurrentLoadRequest = function isCurrentLoadRequest(): boolean {
+      return loadRequestSequenceRef.current === requestSequence;
+    };
+
     setLoadErrorMessage("");
     setActionErrorMessage("");
     setIsLoading(true);
@@ -64,16 +71,29 @@ export function CardFormScreen(): ReactElement {
         throw new Error("Workspace is unavailable");
       }
 
+      const workspaceId = activeWorkspace.workspaceId;
       const [tagsSummary, loadedCard] = await Promise.all([
-        loadWorkspaceTagsSummary(activeWorkspace.workspaceId),
-        isCreateMode || cardId === undefined ? Promise.resolve(null) : getCardById(cardId),
+        loadWorkspaceTagsSummary(workspaceId),
+        isCreateMode || cardId === undefined ? Promise.resolve(null) : loadCardById(workspaceId, cardId),
       ]);
+      if (isCurrentLoadRequest() === false) {
+        return;
+      }
+
       setTagSuggestions(toTagSuggestions(tagsSummary.tags));
       setCurrentCard(loadedCard);
       if (loadedCard !== null) {
         setFormState(toCardFormState(loadedCard));
       }
+      if (isCreateMode === false && loadedCard === null) {
+        setFormState(toCardFormState(null));
+        setLoadErrorMessage(t("cardForm.errors.cardNotFound"));
+      }
     } catch (error) {
+      if (isCurrentLoadRequest() === false) {
+        return;
+      }
+
       if (activeWorkspace !== null) {
         const observationIdentity = observationIdentityRef.current;
         captureAppOperationError(error, {
@@ -87,12 +107,17 @@ export function CardFormScreen(): ReactElement {
       }
       setLoadErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
-      setIsLoading(false);
+      if (isCurrentLoadRequest()) {
+        setIsLoading(false);
+      }
     }
-  }, [activeWorkspace, cardId, getCardById, isCreateMode]);
+  }, [activeWorkspace, cardId, isCreateMode, t]);
 
   useEffect(() => {
     void loadScreenData();
+    return () => {
+      loadRequestSequenceRef.current += 1;
+    };
   }, [loadScreenData, localReadVersion]);
 
   function buildUpdatePayload(): UpdateCardInput {

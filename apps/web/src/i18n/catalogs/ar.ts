@@ -601,6 +601,7 @@ const arCatalog: TranslationCatalog = {
     deleteConfirmation: "هل تريد حذف هذه البطاقة؟",
     errors: {
       cardIdRequired: "معرّف البطاقة مطلوب",
+      cardNotFound: "لم يتم العثور على البطاقة",
     },
     fields: {
       back: "الخلف",

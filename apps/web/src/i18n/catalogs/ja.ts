@@ -601,6 +601,7 @@ export const jaCatalog = {
     deleteConfirmation: "このカードを削除しますか？",
     errors: {
       cardIdRequired: "カード ID は必須です",
+      cardNotFound: "カードが見つかりません",
     },
     fields: {
       back: "裏面",

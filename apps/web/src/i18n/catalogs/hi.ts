@@ -601,6 +601,7 @@ const hiCatalog: TranslationCatalog = {
     deleteConfirmation: "क्या यह कार्ड हटाएँ?",
     errors: {
       cardIdRequired: "कार्ड ID आवश्यक है",
+      cardNotFound: "कार्ड नहीं मिला",
     },
     fields: {
       back: "पीछे",

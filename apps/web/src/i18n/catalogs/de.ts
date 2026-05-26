@@ -601,6 +601,7 @@ const deCatalog: TranslationCatalog = {
     deleteConfirmation: "Diese Karte löschen?",
     errors: {
       cardIdRequired: "Karten-ID ist erforderlich",
+      cardNotFound: "Karte nicht gefunden",
     },
     fields: {
       back: "Rückseite",
