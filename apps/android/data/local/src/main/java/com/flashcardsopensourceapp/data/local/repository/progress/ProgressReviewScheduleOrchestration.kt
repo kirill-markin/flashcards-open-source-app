@@ -234,6 +234,14 @@ internal class ProgressReviewScheduleOrchestration(
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
+            if (
+                shouldSuppressProgressReviewScheduleRemoteLoadWarning(
+                    latestStoreState = currentStoreState(),
+                    refreshStoreState = resolvedRefreshStoreState
+                )
+            ) {
+                return
+            }
             logProgressRefreshWarning(
                 observability = observability,
                 observationVersions = observationVersions,
