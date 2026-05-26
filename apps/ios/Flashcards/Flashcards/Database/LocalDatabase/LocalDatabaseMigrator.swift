@@ -5,6 +5,11 @@ private struct DueAtMillisMigrationRow {
     let dueAt: String
 }
 
+private struct FsrsLastReviewedAtMillisMigrationRow {
+    let cardId: String
+    let fsrsLastReviewedAt: String
+}
+
 struct LocalDatabaseMigrator {
     let core: DatabaseCore
 
@@ -59,6 +64,9 @@ struct LocalDatabaseMigrator {
             case 14:
                 try self.migrateSchemaVersion14To15()
                 schemaVersion = 15
+            case 15:
+                try self.migrateSchemaVersion15To16()
+                schemaVersion = 16
             default:
                 throw LocalStoreError.database("Unsupported local schema version: \(schemaVersion)")
             }
@@ -527,6 +535,21 @@ struct LocalDatabaseMigrator {
         )
     }
 
+    private func migrateSchemaVersion15To16() throws {
+        if try self.core.columnExists(tableName: "cards", columnName: "fsrs_last_reviewed_at_millis") == false {
+            try self.core.execute(
+                sql: """
+                ALTER TABLE cards
+                ADD COLUMN fsrs_last_reviewed_at_millis INTEGER
+                """,
+                values: []
+            )
+        }
+
+        try self.populateFsrsLastReviewedAtMillisFromText()
+        try self.createFsrsLastReviewedAtMillisIndex()
+    }
+
     private func populateDueAtMillisFromDueAtText() throws {
         let rows = try self.core.query(
             sql: """
@@ -575,6 +598,52 @@ struct LocalDatabaseMigrator {
             CREATE INDEX IF NOT EXISTS idx_cards_workspace_new_due_active
                 ON cards(workspace_id, created_at DESC, card_id ASC)
                 WHERE deleted_at IS NULL AND due_at IS NULL
+            """,
+            values: []
+        )
+    }
+
+    private func populateFsrsLastReviewedAtMillisFromText() throws {
+        let rows = try self.core.query(
+            sql: """
+            SELECT card_id, fsrs_last_reviewed_at
+            FROM cards
+            WHERE fsrs_last_reviewed_at IS NOT NULL
+                AND fsrs_last_reviewed_at_millis IS NULL
+            """,
+            values: []
+        ) { statement in
+            FsrsLastReviewedAtMillisMigrationRow(
+                cardId: DatabaseCore.columnText(statement: statement, index: 0),
+                fsrsLastReviewedAt: DatabaseCore.columnText(statement: statement, index: 1)
+            )
+        }
+
+        for row in rows {
+            guard let fsrsLastReviewedAtMillis = parseStrictIsoTimestampEpochMillis(value: row.fsrsLastReviewedAt) else {
+                continue
+            }
+
+            try self.core.execute(
+                sql: """
+                UPDATE cards
+                SET fsrs_last_reviewed_at_millis = ?
+                WHERE card_id = ?
+                """,
+                values: [
+                    .integer(fsrsLastReviewedAtMillis),
+                    .text(row.cardId)
+                ]
+            )
+        }
+    }
+
+    private func createFsrsLastReviewedAtMillisIndex() throws {
+        try self.core.execute(
+            sql: """
+            CREATE INDEX IF NOT EXISTS idx_cards_workspace_fsrs_last_reviewed_millis_due_active
+                ON cards(workspace_id, fsrs_last_reviewed_at_millis, due_at_millis, created_at DESC, card_id ASC)
+                WHERE deleted_at IS NULL AND due_at_millis IS NOT NULL AND fsrs_last_reviewed_at_millis IS NOT NULL
             """,
             values: []
         )

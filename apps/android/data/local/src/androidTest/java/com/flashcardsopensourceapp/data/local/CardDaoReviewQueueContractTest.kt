@@ -4,6 +4,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.CardTagEntity
 import com.flashcardsopensourceapp.data.local.database.TagEntity
+import com.flashcardsopensourceapp.data.local.database.loadTopActiveReviewCard
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -33,7 +34,7 @@ class CardDaoReviewQueueContractTest {
     }
 
     @Test
-    fun topReviewCardQueriesUseRecentDueBoundariesAndFilters(): Unit = runBlocking {
+    fun topReviewCardQueriesUseRecentReviewBoundariesAndFilters(): Unit = runBlocking {
         val nowMillis = 12 * 60 * 60 * 1_000L
         val oneHourMillis = 60 * 60 * 1_000L
         val workspaceId = bootstrapTestWorkspace(runtime = runtime, currentTimeMillis = nowMillis)
@@ -57,7 +58,7 @@ class CardDaoReviewQueueContractTest {
                     dueAtMillis = nowMillis - oneHourMillis,
                     createdAtMillis = 300L,
                     updatedAtMillis = 300L
-                ),
+                ).copy(fsrsLastReviewedAtMillis = nowMillis - oneHourMillis),
                 makeDueReviewOrderingCardEntity(
                     cardId = "recent-cutoff-b",
                     workspaceId = workspaceId,
@@ -65,7 +66,7 @@ class CardDaoReviewQueueContractTest {
                     dueAtMillis = nowMillis - oneHourMillis,
                     createdAtMillis = 300L,
                     updatedAtMillis = 300L
-                ),
+                ).copy(fsrsLastReviewedAtMillis = nowMillis - oneHourMillis),
                 makeDueReviewOrderingCardEntity(
                     cardId = "recent-cutoff-older-created",
                     workspaceId = workspaceId,
@@ -73,7 +74,7 @@ class CardDaoReviewQueueContractTest {
                     dueAtMillis = nowMillis - oneHourMillis,
                     createdAtMillis = 200L,
                     updatedAtMillis = 200L
-                ),
+                ).copy(fsrsLastReviewedAtMillis = nowMillis - oneHourMillis),
                 makeDueReviewOrderingCardEntity(
                     cardId = "old-boundary-card",
                     workspaceId = workspaceId,
@@ -104,7 +105,7 @@ class CardDaoReviewQueueContractTest {
                     dueAtMillis = nowMillis + 1L,
                     createdAtMillis = 700L,
                     updatedAtMillis = 700L
-                )
+                ).copy(fsrsLastReviewedAtMillis = nowMillis)
             )
         )
         database.tagDao().insertTags(tags = listOf(priorityTag, futureTag))
@@ -120,40 +121,53 @@ class CardDaoReviewQueueContractTest {
             )
         )
 
-        val allCardsTop = database.cardDao().loadTopReviewCard(
-            workspaceId = workspaceId,
-            nowMillis = nowMillis
-        )
-        val effortTop = database.cardDao().loadTopReviewCardByEffortLevels(
+        val allCardsTop = loadTopActiveReviewCard(
+            cardDao = database.cardDao(),
             workspaceId = workspaceId,
             nowMillis = nowMillis,
-            effortLevels = listOf(EffortLevel.FAST)
+            effortLevels = emptyList(),
+            tagNames = emptyList()
         )
-        val tagTop = database.cardDao().loadTopReviewCardByAnyTags(
+        val effortTop = loadTopActiveReviewCard(
+            cardDao = database.cardDao(),
             workspaceId = workspaceId,
             nowMillis = nowMillis,
+            effortLevels = listOf(EffortLevel.FAST),
+            tagNames = emptyList()
+        )
+        val tagTop = loadTopActiveReviewCard(
+            cardDao = database.cardDao(),
+            workspaceId = workspaceId,
+            nowMillis = nowMillis,
+            effortLevels = emptyList(),
             tagNames = listOf("Priority")
         )
-        val effortAndTagTop = database.cardDao().loadTopReviewCardByEffortLevelsAndAnyTags(
+        val effortAndTagTop = loadTopActiveReviewCard(
+            cardDao = database.cardDao(),
             workspaceId = workspaceId,
             nowMillis = nowMillis,
             effortLevels = listOf(EffortLevel.MEDIUM),
             tagNames = listOf("Priority")
         )
-        val futureOnlyTagTop = database.cardDao().loadTopReviewCardByAnyTags(
+        val futureOnlyTagTop = loadTopActiveReviewCard(
+            cardDao = database.cardDao(),
             workspaceId = workspaceId,
             nowMillis = nowMillis,
+            effortLevels = emptyList(),
             tagNames = listOf("Future Only")
         )
-        val boundedQueue = database.cardDao().observeActiveReviewQueue(
+        val cutoffMillis = nowMillis - oneHourMillis
+        val boundedQueue = database.cardDao().observeBucketedActiveReviewQueue(
             workspaceId = workspaceId,
+            cutoffMillis = cutoffMillis,
             nowMillis = nowMillis,
             limit = 4
         ).first().map { card ->
             card.card.cardId
         }
-        val effortAndTagQueue = database.cardDao().observeActiveReviewQueueByEffortLevelsAndAnyTags(
+        val effortAndTagQueue = database.cardDao().observeBucketedActiveReviewQueueByEffortLevelsAndAnyTags(
             workspaceId = workspaceId,
+            cutoffMillis = cutoffMillis,
             nowMillis = nowMillis,
             effortLevels = listOf(EffortLevel.MEDIUM),
             tagNames = listOf("Priority"),
@@ -186,7 +200,7 @@ class CardDaoReviewQueueContractTest {
         assertEquals("due-now-card", effortAndTagTop?.cardId)
         assertNull(futureOnlyTagTop)
         assertEquals(
-            listOf("recent-cutoff-a", "recent-cutoff-b", "recent-cutoff-older-created", "due-now-card"),
+            listOf("recent-cutoff-a", "recent-cutoff-b", "recent-cutoff-older-created", "old-boundary-card"),
             boundedQueue
         )
         assertEquals(listOf("due-now-card", "new-medium-card"), effortAndTagQueue)

@@ -17,7 +17,7 @@ import {
   iterateLocalStoredCardsByCreatedAtDesc,
   iterateLocalStoredCardsByDueAtMillisAscAfter,
   iterateLocalStoredCardsByDueAtMillisAscBefore,
-  iterateLocalStoredCardsByDueAtMillisAscBetweenInclusive,
+  iterateLocalStoredCardsByFsrsLastReviewedAtMillisBetweenInclusive,
   type LocalStoredCard,
 } from "./cards";
 import {
@@ -52,7 +52,7 @@ type ReviewCardCursorIterator = (
   onCard: (card: LocalStoredCard) => boolean | void,
 ) => Promise<void>;
 
-type DueAtBucketPredicate = (dueAtTimestamp: number, nowTimestamp: number) => boolean;
+type ReviewCardBucketPredicate = (card: LocalStoredCard, nowTimestamp: number) => boolean;
 
 type LocalReviewOrderBucket = "recentDue" | "oldDue" | "newNull" | "future" | "malformed";
 
@@ -149,16 +149,32 @@ function matchesResolvedReviewFilter(
   return filterResolution.allowedTagCardIds?.has(card.cardId) ?? false;
 }
 
-function isRecentDueTimestamp(dueAtTimestamp: number, nowTimestamp: number): boolean {
-  return dueAtTimestamp >= nowTimestamp - recentDuePriorityWindow && dueAtTimestamp <= nowTimestamp;
+function isRecentlyReviewed(fsrsLastReviewedAtMillis: number | null, nowTimestamp: number): boolean {
+  if (fsrsLastReviewedAtMillis === null) {
+    return false;
+  }
+
+  if (Number.isFinite(fsrsLastReviewedAtMillis) === false) {
+    return false;
+  }
+
+  return fsrsLastReviewedAtMillis >= nowTimestamp - recentDuePriorityWindow && fsrsLastReviewedAtMillis <= nowTimestamp;
 }
 
-function isOldDueTimestamp(dueAtTimestamp: number, nowTimestamp: number): boolean {
-  return dueAtTimestamp < nowTimestamp - recentDuePriorityWindow;
+function isRecentlyReviewedDueCard(card: LocalStoredCard, nowTimestamp: number): boolean {
+  return card.dueAtMillis !== null
+    && card.dueAtMillis <= nowTimestamp
+    && isRecentlyReviewed(card.fsrsLastReviewedAtMillis, nowTimestamp);
 }
 
-function isFutureDueTimestamp(dueAtTimestamp: number, nowTimestamp: number): boolean {
-  return dueAtTimestamp > nowTimestamp;
+function isOtherDueCard(card: LocalStoredCard, nowTimestamp: number): boolean {
+  return card.dueAtMillis !== null
+    && card.dueAtMillis <= nowTimestamp
+    && isRecentlyReviewed(card.fsrsLastReviewedAtMillis, nowTimestamp) === false;
+}
+
+function isFutureDueCard(card: LocalStoredCard, nowTimestamp: number): boolean {
+  return card.dueAtMillis !== null && card.dueAtMillis > nowTimestamp;
 }
 
 function getLocalReviewOrderDueTimestamp(card: LocalStoredCard): number {
@@ -187,7 +203,7 @@ function getLocalReviewOrderBucket(card: LocalStoredCard, nowTimestamp: number):
     return "future";
   }
 
-  return card.dueAtMillis >= nowTimestamp - recentDuePriorityWindow ? "recentDue" : "oldDue";
+  return isRecentlyReviewed(card.fsrsLastReviewedAtMillis, nowTimestamp) ? "recentDue" : "oldDue";
 }
 
 function compareLocalStoredCardsForReviewOrder(
@@ -230,8 +246,9 @@ function isLocalStoredCardDue(card: LocalStoredCard, nowTimestamp: number): bool
 }
 
 function toBoundaryCard(card: LocalStoredCard): Card {
-  const { dueAtMillis, ...boundaryCard } = card;
+  const { dueAtMillis, fsrsLastReviewedAtMillis, ...boundaryCard } = card;
   void dueAtMillis;
+  void fsrsLastReviewedAtMillis;
   return boundaryCard;
 }
 
@@ -240,7 +257,7 @@ async function iterateTimedReviewCardsByDueAtMillis(
   workspaceId: string,
   nowTimestamp: number,
   cursorIterator: ReviewCardCursorIterator,
-  matchesBucket: DueAtBucketPredicate,
+  matchesBucket: ReviewCardBucketPredicate,
   onCard: (card: LocalStoredCard) => boolean | void,
 ): Promise<boolean> {
   let shouldStop = false;
@@ -272,7 +289,7 @@ async function iterateTimedReviewCardsByDueAtMillis(
       return true;
     }
 
-    if (matchesBucket(card.dueAtMillis, nowTimestamp) === false) {
+    if (matchesBucket(card, nowTimestamp) === false) {
       return true;
     }
 
@@ -303,6 +320,42 @@ async function iterateTimedReviewCardsByDueAtMillis(
 
   if (currentDueGroup.length > 0) {
     if (flushCurrentDueGroup() === false) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+async function iterateRecentlyReviewedDueCards(
+  database: IDBDatabase,
+  workspaceId: string,
+  nowTimestamp: number,
+  onCard: (card: LocalStoredCard) => boolean | void,
+): Promise<boolean> {
+  const cutoffTimestamp = nowTimestamp - recentDuePriorityWindow;
+  const recentCards: Array<LocalStoredCard> = [];
+
+  await iterateLocalStoredCardsByFsrsLastReviewedAtMillisBetweenInclusive(
+    database,
+    workspaceId,
+    cutoffTimestamp,
+    nowTimestamp,
+    (card) => {
+      if (card.deletedAt !== null || isRecentlyReviewedDueCard(card, nowTimestamp) === false) {
+        return true;
+      }
+
+      recentCards.push(card);
+      return true;
+    },
+  );
+
+  const sortedRecentCards = [...recentCards].sort(
+    (leftCard, rightCard) => compareLocalStoredCardsForReviewOrder(leftCard, rightCard, nowTimestamp),
+  );
+  for (const card of sortedRecentCards) {
+    if (onCard(card) === false) {
       return false;
     }
   }
@@ -407,20 +460,10 @@ async function iterateActiveReviewCardsInCanonicalOrder(
   nowTimestamp: number,
   onCard: (card: LocalStoredCard) => boolean | void,
 ): Promise<boolean> {
-  const recentDueCutoffTimestamp = nowTimestamp - recentDuePriorityWindow;
-
-  const didFinishRecentDueCards = await iterateTimedReviewCardsByDueAtMillis(
+  const didFinishRecentDueCards = await iterateRecentlyReviewedDueCards(
     database,
     workspaceId,
     nowTimestamp,
-    (cursorDatabase, cursorWorkspaceId, cursorOnCard) => iterateLocalStoredCardsByDueAtMillisAscBetweenInclusive(
-      cursorDatabase,
-      cursorWorkspaceId,
-      recentDueCutoffTimestamp,
-      nowTimestamp,
-      cursorOnCard,
-    ),
-    isRecentDueTimestamp,
     onCard,
   );
   if (didFinishRecentDueCards === false) {
@@ -434,10 +477,10 @@ async function iterateActiveReviewCardsInCanonicalOrder(
     (cursorDatabase, cursorWorkspaceId, cursorOnCard) => iterateLocalStoredCardsByDueAtMillisAscBefore(
       cursorDatabase,
       cursorWorkspaceId,
-      recentDueCutoffTimestamp,
+      nowTimestamp + 1,
       cursorOnCard,
     ),
-    isOldDueTimestamp,
+    isOtherDueCard,
     onCard,
   );
   if (didFinishOldDueCards === false) {
@@ -468,7 +511,7 @@ async function iterateReviewCardsInCanonicalOrder(
       nowTimestamp,
       cursorOnCard,
     ),
-    isFutureDueTimestamp,
+    isFutureDueCard,
     onCard,
   );
   if (didFinishFutureCards === false) {

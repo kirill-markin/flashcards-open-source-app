@@ -49,6 +49,7 @@ import type {
 const defaultCardsQueryPageSize = 50;
 const maximumCardsQueryPageSize = 100;
 const maximumCardsQuerySortCount = 3;
+const recentDuePriorityWindowMillis = 60 * 60 * 1000;
 const cardSearchExpressionFactories: ReadonlyArray<SearchTokenClauseFactory> = [
   (paramIndex) => `lower(front_text || ' ' || back_text) LIKE $${paramIndex}`,
   (paramIndex) => `EXISTS (SELECT 1 FROM unnest(tags) AS tag WHERE lower(tag) LIKE $${paramIndex})`,
@@ -151,7 +152,49 @@ async function validateOrResetCardRowsForRead(
   return repairedRows;
 }
 
-function compareCardsForReviewQueue(leftCard: CardRow, rightCard: CardRow): number {
+function getReviewQueueRank(card: CardRow, nowTimestamp: number): number {
+  if (card.due_at === null) {
+    return 2;
+  }
+
+  const dueAtTimestamp = toDate(card.due_at).getTime();
+  if (dueAtTimestamp > nowTimestamp) {
+    return 3;
+  }
+
+  if (card.fsrs_last_reviewed_at !== null) {
+    const fsrsLastReviewedAtTimestamp = toDate(card.fsrs_last_reviewed_at).getTime();
+    if (
+      fsrsLastReviewedAtTimestamp >= nowTimestamp - recentDuePriorityWindowMillis
+      && fsrsLastReviewedAtTimestamp <= nowTimestamp
+    ) {
+      return 0;
+    }
+  }
+
+  return 1;
+}
+
+function getReviewQueueDueTimestamp(card: CardRow): number {
+  if (card.due_at === null) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  return toDate(card.due_at).getTime();
+}
+
+function compareCardsForReviewQueue(leftCard: CardRow, rightCard: CardRow, nowTimestamp: number): number {
+  const rankDifference = getReviewQueueRank(leftCard, nowTimestamp) - getReviewQueueRank(rightCard, nowTimestamp);
+  if (rankDifference !== 0) {
+    return rankDifference;
+  }
+
+  const leftDueTimestamp = getReviewQueueDueTimestamp(leftCard);
+  const rightDueTimestamp = getReviewQueueDueTimestamp(rightCard);
+  if (leftDueTimestamp !== rightDueTimestamp) {
+    return leftDueTimestamp - rightDueTimestamp;
+  }
+
   if (leftCard.due_at === null && rightCard.due_at === null) {
     const createdAtDifference = toDate(rightCard.created_at).getTime() - toDate(leftCard.created_at).getTime();
     if (createdAtDifference !== 0) {
@@ -159,19 +202,6 @@ function compareCardsForReviewQueue(leftCard: CardRow, rightCard: CardRow): numb
     }
 
     return leftCard.card_id.localeCompare(rightCard.card_id);
-  }
-
-  if (leftCard.due_at === null) {
-    return -1;
-  }
-
-  if (rightCard.due_at === null) {
-    return 1;
-  }
-
-  const dueDifference = toDate(leftCard.due_at).getTime() - toDate(rightCard.due_at).getTime();
-  if (dueDifference !== 0) {
-    return dueDifference;
   }
 
   const createdAtDifference = toDate(rightCard.created_at).getTime() - toDate(leftCard.created_at).getTime();
@@ -681,21 +711,23 @@ export async function listReviewQueue(
   limit: number,
 ): Promise<ReadonlyArray<Card>> {
   return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
+    const now = new Date();
+    const nowTimestamp = now.getTime();
     const result = await executor.query<CardRow>(
       [
         CARD_SELECT,
         "WHERE workspace_id = $1",
         "AND deleted_at IS NULL",
-        "AND (due_at IS NULL OR due_at <= now() OR fsrs_card_state = 'new')",
+        "AND (due_at IS NULL OR due_at <= $2 OR fsrs_card_state = 'new')",
         "ORDER BY created_at DESC, card_id ASC",
       ].join(" "),
-      [workspaceId],
+      [workspaceId, now],
     );
 
     const repairedRows = await validateOrResetCardRowsForRead(executor, workspaceId, result.rows);
     return repairedRows
-      .filter((row) => row.due_at === null || toDate(row.due_at).getTime() <= Date.now())
-      .sort(compareCardsForReviewQueue)
+      .filter((row) => row.due_at === null || toDate(row.due_at).getTime() <= nowTimestamp)
+      .sort((leftRow, rightRow) => compareCardsForReviewQueue(leftRow, rightRow, nowTimestamp))
       .slice(0, limit)
       .map(mapCard);
   });

@@ -1,7 +1,7 @@
 import Foundation
 
 enum LocalDatabaseSchema {
-    static let currentVersion: Int = 15
+    static let currentVersion: Int = 16
 
     static var baseMigrationSQL: String {
         let defaultEnableFuzzValue: Int = defaultSchedulerSettingsConfig.enableFuzz ? 1 : 0
@@ -48,6 +48,7 @@ enum LocalDatabaseSchema {
             fsrs_stability REAL, -- FSRS memory stability estimate
             fsrs_difficulty REAL, -- FSRS difficulty estimate
             fsrs_last_reviewed_at TEXT, -- timestamp of the most recent review incorporated into this card row
+            fsrs_last_reviewed_at_millis INTEGER, -- strict UTC epoch-millisecond key for the most recent review timestamp
             fsrs_scheduled_days INTEGER CHECK (fsrs_scheduled_days IS NULL OR fsrs_scheduled_days >= 0), -- interval length that produced the current due_at
             client_updated_at TEXT NOT NULL, -- client-side LWW timestamp for the most recent local or synced card winner
             last_modified_by_replica_id TEXT NOT NULL, -- device that produced the currently winning card row
@@ -146,6 +147,10 @@ enum LocalDatabaseSchema {
         CREATE INDEX IF NOT EXISTS idx_cards_workspace_fsrs_last_reviewed_at
             ON cards(workspace_id, fsrs_last_reviewed_at DESC)
             WHERE deleted_at IS NULL;
+
+        CREATE INDEX IF NOT EXISTS idx_cards_workspace_fsrs_last_reviewed_millis_due_active
+            ON cards(workspace_id, fsrs_last_reviewed_at_millis, due_at_millis, created_at DESC, card_id ASC)
+            WHERE deleted_at IS NULL AND due_at_millis IS NOT NULL AND fsrs_last_reviewed_at_millis IS NOT NULL;
 
         CREATE INDEX IF NOT EXISTS idx_decks_workspace_created_at
             ON decks(workspace_id, created_at DESC, deck_id DESC);

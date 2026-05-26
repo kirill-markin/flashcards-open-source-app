@@ -39,7 +39,7 @@ let cardStoreActiveDueBucketOrderSQL: String = "due_at_millis ASC, created_at DE
 
 private enum ActiveReviewQueueSQLBucket {
     case recentDue(cutoffMillis: Int64, nowMillis: Int64)
-    case oldDue(cutoffMillis: Int64)
+    case oldDue(cutoffMillis: Int64, nowMillis: Int64)
     case new
 }
 
@@ -50,22 +50,34 @@ private func makeActiveReviewQueueBucketSQL(bucket: ActiveReviewQueueSQLBucket) 
             clause: """
              AND due_at IS NOT NULL
              AND due_at_millis IS NOT NULL
-             AND due_at_millis >= ?
              AND due_at_millis <= ?
+             AND fsrs_last_reviewed_at_millis IS NOT NULL
+             AND fsrs_last_reviewed_at_millis >= ?
+             AND fsrs_last_reviewed_at_millis <= ?
             """,
             values: [
+                .integer(nowMillis),
                 .integer(cutoffMillis),
                 .integer(nowMillis)
             ]
         )
-    case .oldDue(let cutoffMillis):
+    case .oldDue(let cutoffMillis, let nowMillis):
         return ReviewQuerySQL(
             clause: """
              AND due_at IS NOT NULL
              AND due_at_millis IS NOT NULL
-             AND due_at_millis < ?
+             AND due_at_millis <= ?
+             AND (
+                fsrs_last_reviewed_at_millis IS NULL
+                OR fsrs_last_reviewed_at_millis < ?
+                OR fsrs_last_reviewed_at_millis > ?
+             )
             """,
-            values: [.integer(cutoffMillis)]
+            values: [
+                .integer(nowMillis),
+                .integer(cutoffMillis),
+                .integer(nowMillis)
+            ]
         )
     case .new:
         return ReviewQuerySQL(
@@ -81,6 +93,17 @@ private func makeActiveReviewQueueBucketOrderSQL(bucket: ActiveReviewQueueSQLBuc
         return cardStoreActiveDueBucketOrderSQL
     case .new:
         return "created_at DESC, card_id ASC"
+    }
+}
+
+private func makeActiveReviewQueueBucketTableSQL(bucket: ActiveReviewQueueSQLBucket) -> String {
+    switch bucket {
+    case .recentDue:
+        return "cards INDEXED BY idx_cards_workspace_fsrs_last_reviewed_millis_due_active"
+    case .oldDue:
+        return "cards INDEXED BY idx_cards_workspace_due_millis_active"
+    case .new:
+        return "cards INDEXED BY idx_cards_workspace_new_due_active"
     }
 }
 
@@ -285,8 +308,9 @@ extension CardStore {
         // - apps/ios/Flashcards/Flashcards/Review/Queue/ReviewQuerySupport.swift::compareCardsForReviewOrder
         // - apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/ReviewSupport.kt::sortCardsForReviewQueue
         // - apps/web/src/appData/domain/index.ts::compareCardsForReviewOrder
-        // Ordering contract: recent due cards within the inclusive one-hour window first, then older due cards,
-        // then nil dueAt new cards. Future and malformed dueAt values are excluded from the active queue.
+        // Ordering contract: recently reviewed due cards within the inclusive one-hour fsrsLastReviewedAt
+        // window first, then other due cards, then nil dueAt new cards. Future and malformed dueAt
+        // values are excluded from the active queue.
         // If this changes, mirror the same change across all three clients in the same change.
         let targetLimit = limit + 1
         let nowMillis = epochMillis(date: now)
@@ -299,7 +323,8 @@ extension CardStore {
                 nowMillis: nowMillis
             ),
             ActiveReviewQueueSQLBucket.oldDue(
-                cutoffMillis: cutoffMillis
+                cutoffMillis: cutoffMillis,
+                nowMillis: nowMillis
             ),
             ActiveReviewQueueSQLBucket.new
         ] {
@@ -336,6 +361,7 @@ extension CardStore {
             excludedCardIdsClause: excludedCardIdsClause,
             excludedCardValues: excludedCardValues,
             bucketSQL: bucketSQL,
+            tableSQL: makeActiveReviewQueueBucketTableSQL(bucket: bucket),
             orderSQL: makeActiveReviewQueueBucketOrderSQL(bucket: bucket),
             limit: limit
         )
@@ -347,6 +373,7 @@ extension CardStore {
         excludedCardIdsClause: String,
         excludedCardValues: [SQLiteValue],
         bucketSQL: ReviewQuerySQL,
+        tableSQL: String,
         orderSQL: String,
         limit: Int
     ) throws -> [Card] {
@@ -354,7 +381,7 @@ extension CardStore {
             sql: """
             SELECT
             \(cardStoreSelectColumnsSQL)
-            FROM cards
+            FROM \(tableSQL)
             WHERE workspace_id = ?
                 AND deleted_at IS NULL\(bucketSQL.clause)\(querySQL.clause)\(excludedCardIdsClause)
             ORDER BY \(orderSQL)

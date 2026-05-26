@@ -30,7 +30,7 @@ private const val androidInstallationId: String = "android-installation"
         ProgressReviewHistoryStateEntity::class,
         ProgressLocalCacheStateEntity::class
     ],
-    version = 16,
+    version = 17,
     exportSchema = false
 )
 @TypeConverters(DatabaseTypeConverters::class)
@@ -75,7 +75,8 @@ fun createAppDatabaseMigrations(): Array<Migration> {
         migration12To13,
         migration13To14,
         migration14To15,
-        migration15To16
+        migration15To16,
+        migration16To17
     )
 }
 
@@ -723,6 +724,17 @@ val migration15To16: Migration = object : Migration(15, 16) {
             UPDATE outbox_entries
             SET affectsReviewSchedule = 1
             WHERE entityType = 'card' AND operationType = 'upsert'
+            """.trimIndent()
+        )
+    }
+}
+
+val migration16To17: Migration = object : Migration(16, 17) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS $cardsRecentlyReviewedDueIndexName
+            ON cards(workspaceId, fsrsLastReviewedAtMillis, dueAtMillis, createdAtMillis, cardId)
             """.trimIndent()
         )
     }

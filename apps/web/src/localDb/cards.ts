@@ -24,11 +24,13 @@ type CardCursorIndexName =
   | "workspaceId_updatedAt_cardId"
   | "workspaceId_dueAt_cardId"
   | "workspaceId_dueAtMillis_cardId"
+  | "workspaceId_fsrsLastReviewedAtMillis_dueAtMillis_cardId"
   | "workspaceId_effort_createdAt_cardId"
   | "workspaceId_effort_updatedAt_cardId";
 
 export type LocalStoredCard = Readonly<Card & {
   dueAtMillis: number | null;
+  fsrsLastReviewedAtMillis: number | null;
 }>;
 
 type IndexedCardCursorOptions = Readonly<{
@@ -57,6 +59,7 @@ function toStoredCard(workspaceId: string, card: Card): StoredCard {
     fsrsStability: card.fsrsStability,
     fsrsDifficulty: card.fsrsDifficulty,
     fsrsLastReviewedAt: card.fsrsLastReviewedAt,
+    fsrsLastReviewedAtMillis: card.fsrsLastReviewedAt === null ? null : deriveDueAtMillis(card.fsrsLastReviewedAt),
     fsrsScheduledDays: card.fsrsScheduledDays,
     clientUpdatedAt: card.clientUpdatedAt,
     lastModifiedByReplicaId: card.lastModifiedByReplicaId,
@@ -108,6 +111,7 @@ function toLocalStoredCard(record: StoredCard): LocalStoredCard {
   return {
     ...toCard(record),
     dueAtMillis: readStoredDueAtMillis(record),
+    fsrsLastReviewedAtMillis: record.fsrsLastReviewedAtMillis,
   };
 }
 
@@ -137,6 +141,17 @@ function makeWorkspaceDueAtMillisBetweenInclusiveRange(
 
 function makeWorkspaceDueAtMillisAfterRange(workspaceId: string, dueAtMillisExclusive: number): IDBKeyRange {
   return IDBKeyRange.bound([workspaceId, dueAtMillisExclusive, []], [workspaceId, []]);
+}
+
+function makeWorkspaceFsrsLastReviewedAtMillisBetweenInclusiveRange(
+  workspaceId: string,
+  lowerFsrsLastReviewedAtMillisInclusive: number,
+  upperFsrsLastReviewedAtMillisInclusive: number,
+): IDBKeyRange {
+  return IDBKeyRange.bound(
+    [workspaceId, lowerFsrsLastReviewedAtMillisInclusive],
+    [workspaceId, upperFsrsLastReviewedAtMillisInclusive, []],
+  );
 }
 
 async function iterateCardsByIndex<CardValue extends Card>(
@@ -410,6 +425,30 @@ export async function iterateLocalStoredCardsByDueAtMillisAscAfter(
       indexName: "workspaceId_dueAtMillis_cardId",
       direction: "next",
       keyRange: makeWorkspaceDueAtMillisAfterRange(workspaceId, dueAtMillisExclusive),
+    },
+    toLocalStoredCard,
+    onCard,
+  );
+}
+
+export async function iterateLocalStoredCardsByFsrsLastReviewedAtMillisBetweenInclusive(
+  database: IDBDatabase,
+  workspaceId: string,
+  lowerFsrsLastReviewedAtMillisInclusive: number,
+  upperFsrsLastReviewedAtMillisInclusive: number,
+  onCard: (card: LocalStoredCard) => boolean | void,
+): Promise<void> {
+  await iterateCardsByIndex(
+    database,
+    workspaceId,
+    {
+      indexName: "workspaceId_fsrsLastReviewedAtMillis_dueAtMillis_cardId",
+      direction: "next",
+      keyRange: makeWorkspaceFsrsLastReviewedAtMillisBetweenInclusiveRange(
+        workspaceId,
+        lowerFsrsLastReviewedAtMillisInclusive,
+        upperFsrsLastReviewedAtMillisInclusive,
+      ),
     },
     toLocalStoredCard,
     onCard,

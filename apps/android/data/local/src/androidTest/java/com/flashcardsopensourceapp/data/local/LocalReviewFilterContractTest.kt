@@ -246,9 +246,8 @@ class LocalReviewFilterContractTest {
             pendingReviewedCards = emptySet(),
             presentedCardId = null
         ).first()
-        val boundedQueueCardIds = database.cardDao().observeActiveReviewQueueByAnyTags(
+        val boundedQueueCardIds = database.cardDao().observeNewReviewQueueByAnyTags(
             workspaceId = workspaceId,
-            nowMillis = nowMillis,
             tagNames = listOf("Éclair"),
             limit = 8
         ).first().map { card ->

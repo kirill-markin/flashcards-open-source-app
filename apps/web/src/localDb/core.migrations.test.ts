@@ -2,7 +2,7 @@
 
 import "fake-indexeddb/auto";
 import { describe, expect, it, vi } from "vitest";
-import { malformedDueAtBucketMillis, nullDueAtBucketMillis } from "../appData/domain/dueAt";
+import { malformedDueAtBucketMillis, nullDueAtBucketMillis, parseDueAtMillis } from "../appData/domain/dueAt";
 import { clearWebSyncCache } from "./cache";
 import { closeDatabaseAfter, deleteDatabase, getAllFromStore, openDatabase, type StoredCard } from "./core";
 import { listOutboxRecords, type PersistedOutboxRecord } from "./outbox";
@@ -10,7 +10,7 @@ import { loadReviewQueueSnapshot } from "./reviews";
 import { makeCard, workspaceId } from "./testSupport";
 import type { Card } from "../types";
 
-type LegacyStoredCard = Omit<StoredCard, "dueAt" | "dueAtMillis" | "dueAtBucketMillis"> & Readonly<{
+type LegacyStoredCard = Omit<StoredCard, "dueAt" | "dueAtMillis" | "dueAtBucketMillis" | "fsrsLastReviewedAtMillis"> & Readonly<{
   dueAt?: string | null;
 }>;
 
@@ -123,6 +123,7 @@ function makeLegacyVersion11StoredCard(
     dueAt: card.dueAt,
     dueAtMillis,
     dueAtBucketMillis,
+    fsrsLastReviewedAtMillis: card.fsrsLastReviewedAt === null ? null : parseDueAtMillis(card.fsrsLastReviewedAt),
   };
 }
 
@@ -297,6 +298,7 @@ describe("localDb core migrations", () => {
             effortLevel: "fast",
             dueAt: "2026-03-10T12:00:00.000Z",
             createdAt: "2026-03-10T09:00:00.000Z",
+            fsrsLastReviewedAt: "2026-03-10T12:00:00.000Z",
           })),
           makeLegacyStoredCard(makeCard({
             cardId: "short-fraction-due",
@@ -358,13 +360,17 @@ describe("localDb core migrations", () => {
       const cardsStoreIndexNames = await loadCardsStoreIndexNamesForTest();
       const dueAtMillisByCardId = new Map(storedCards.map((card) => [card.cardId, card.dueAtMillis]));
       const dueAtBucketMillisByCardId = new Map(storedCards.map((card) => [card.cardId, card.dueAtBucketMillis]));
+      const fsrsLastReviewedAtMillisByCardId = new Map(storedCards.map((card) => [card.cardId, card.fsrsLastReviewedAtMillis]));
       const migratedCalendarInvalidDueAt = storedCards.find((card) => card.cardId === "calendar-invalid-due");
       const migratedMissingDueAt = storedCards.find((card) => card.cardId === "missing-due-at");
 
       expect(cardsStoreIndexNames).toContain("workspaceId_dueAtMillis_cardId");
       expect(cardsStoreIndexNames).toContain("workspaceId_dueAtBucketMillis_cardId");
+      expect(cardsStoreIndexNames).toContain("workspaceId_fsrsLastReviewedAtMillis_dueAtMillis_cardId");
+      expect(cardsStoreIndexNames).not.toContain("workspaceId_fsrsLastReviewedAt_dueAtMillis_cardId");
       expect(dueAtMillisByCardId.get("canonical-due")).toBe(Date.parse("2026-03-10T12:00:00.000Z"));
       expect(dueAtBucketMillisByCardId.get("canonical-due")).toBe(Date.parse("2026-03-10T12:00:00.000Z"));
+      expect(fsrsLastReviewedAtMillisByCardId.get("canonical-due")).toBe(Date.parse("2026-03-10T12:00:00.000Z"));
       expect(dueAtMillisByCardId.get("short-fraction-due")).toBe(Date.parse("2026-03-10T12:00:00.100Z"));
       expect(dueAtBucketMillisByCardId.get("short-fraction-due")).toBe(Date.parse("2026-03-10T12:00:00.100Z"));
       expect(migratedCalendarInvalidDueAt?.dueAt).toBe("2026-02-31T12:00:00.000Z");

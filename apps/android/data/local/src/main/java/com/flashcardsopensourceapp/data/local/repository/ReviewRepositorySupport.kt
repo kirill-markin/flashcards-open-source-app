@@ -5,6 +5,7 @@ import com.flashcardsopensourceapp.data.local.database.CardWithRelations
 import com.flashcardsopensourceapp.data.local.database.DeckEntity
 import com.flashcardsopensourceapp.data.local.database.ReviewEffortCountRow
 import com.flashcardsopensourceapp.data.local.database.ReviewTagCountRow
+import com.flashcardsopensourceapp.data.local.database.activeReviewRecentPriorityWindowMillis
 import com.flashcardsopensourceapp.data.local.model.CardSummary
 import com.flashcardsopensourceapp.data.local.model.DeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.DeckSummary
@@ -184,18 +185,21 @@ internal fun observeActiveReviewQueue(
         "Review queue load limit must be positive."
     }
 
+    val cutoffMillis = nowMillis - activeReviewRecentPriorityWindowMillis
     return when (val tagPredicate: ReviewTagPredicate = predicate.tagPredicate) {
         ReviewTagPredicate.Impossible -> flowOf(emptyList<CardWithRelations>())
         ReviewTagPredicate.None -> {
             if (predicate.effortLevels.isEmpty()) {
-                database.cardDao().observeActiveReviewQueue(
+                database.cardDao().observeBucketedActiveReviewQueue(
                     workspaceId = workspaceId,
+                    cutoffMillis = cutoffMillis,
                     nowMillis = nowMillis,
                     limit = limit
                 )
             } else {
-                database.cardDao().observeActiveReviewQueueByEffortLevels(
+                database.cardDao().observeBucketedActiveReviewQueueByEffortLevels(
                     workspaceId = workspaceId,
+                    cutoffMillis = cutoffMillis,
                     nowMillis = nowMillis,
                     effortLevels = predicate.effortLevels,
                     limit = limit
@@ -205,15 +209,17 @@ internal fun observeActiveReviewQueue(
 
         is ReviewTagPredicate.ExactTagNames -> {
             if (predicate.effortLevels.isEmpty()) {
-                database.cardDao().observeActiveReviewQueueByAnyTags(
+                database.cardDao().observeBucketedActiveReviewQueueByAnyTags(
                     workspaceId = workspaceId,
+                    cutoffMillis = cutoffMillis,
                     nowMillis = nowMillis,
                     tagNames = tagPredicate.tagNames,
                     limit = limit
                 )
             } else {
-                database.cardDao().observeActiveReviewQueueByEffortLevelsAndAnyTags(
+                database.cardDao().observeBucketedActiveReviewQueueByEffortLevelsAndAnyTags(
                     workspaceId = workspaceId,
+                    cutoffMillis = cutoffMillis,
                     nowMillis = nowMillis,
                     effortLevels = predicate.effortLevels,
                     tagNames = tagPredicate.tagNames,

@@ -1147,6 +1147,7 @@ final class ProgressRefreshMergeTests: ProgressStoreTestCase {
                 fsrs_stability = 1.0,
                 fsrs_difficulty = 5.0,
                 fsrs_last_reviewed_at = ?,
+                fsrs_last_reviewed_at_millis = ?,
                 fsrs_scheduled_days = 1
             WHERE workspace_id = ? AND card_id = ?
             """,
@@ -1154,6 +1155,7 @@ final class ProgressRefreshMergeTests: ProgressStoreTestCase {
                 .text(dueAtText),
                 .integer(epochMillis(date: dueAt)),
                 .text(dueAtText),
+                .integer(epochMillis(date: dueAt)),
                 .text(workspaceId),
                 .text(card.cardId),
             ]

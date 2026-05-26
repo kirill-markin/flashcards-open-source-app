@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.data.local
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
+import com.flashcardsopensourceapp.data.local.database.loadTopActiveReviewCard
 import com.flashcardsopensourceapp.data.local.model.CardDraft
 import com.flashcardsopensourceapp.data.local.model.DeckDraft
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
@@ -183,7 +184,7 @@ class LocalReviewQueueContractTest {
     }
 
     @Test
-    fun reviewQueuePrioritizesRecentDueCardsBeforeOldDueNewCardsAndFutureCards(): Unit = runBlocking {
+    fun reviewQueuePrioritizesRecentlyReviewedDueCardsBeforeOtherDueNewCardsAndFutureCards(): Unit = runBlocking {
         val nowMillis = System.currentTimeMillis()
         val fiveMinutesMillis = 5 * 60 * 1_000L
         val fortyFiveMinutesMillis = 45 * 60 * 1_000L
@@ -215,7 +216,15 @@ class LocalReviewQueueContractTest {
                     dueAtMillis = nowMillis + oneDayMillis,
                     createdAtMillis = nowMillis - oneDayMillis,
                     updatedAtMillis = nowMillis - oneDayMillis
-                ),
+                ).copy(fsrsLastReviewedAtMillis = nowMillis),
+                makeDueReviewOrderingCardEntity(
+                    cardId = "due-last-hour-old-review-card",
+                    workspaceId = workspaceId,
+                    effortLevel = EffortLevel.FAST,
+                    dueAtMillis = nowMillis - fiveMinutesMillis,
+                    createdAtMillis = nowMillis - fiveMinutesMillis,
+                    updatedAtMillis = nowMillis - fiveMinutesMillis
+                ).copy(fsrsLastReviewedAtMillis = nowMillis - oneDayMillis),
                 makeDueReviewOrderingCardEntity(
                     cardId = "recent-due-1115-card",
                     workspaceId = workspaceId,
@@ -246,19 +255,22 @@ class LocalReviewQueueContractTest {
             offset = 0,
             limit = 10
         )
-        val topReviewCard = database.cardDao().loadTopReviewCard(
+        val topReviewCard = loadTopActiveReviewCard(
+            cardDao = database.cardDao(),
             workspaceId = workspaceId,
-            nowMillis = nowMillis
+            nowMillis = nowMillis,
+            effortLevels = emptyList(),
+            tagNames = emptyList()
         )
 
         assertEquals(
-            listOf("recent-due-1115-card", "recent-due-1155-card", "old-due-card", "new-card"),
+            listOf("recent-due-1115-card", "recent-due-1155-card", "old-due-card", "due-last-hour-old-review-card", "new-card"),
             sessionSnapshot.cards.map { card -> card.cardId }
         )
-        assertEquals(4, sessionSnapshot.dueCount)
-        assertEquals(5, sessionSnapshot.totalCount)
+        assertEquals(5, sessionSnapshot.dueCount)
+        assertEquals(6, sessionSnapshot.totalCount)
         assertEquals(
-            listOf("recent-due-1115-card", "recent-due-1155-card", "old-due-card", "new-card", "future-card"),
+            listOf("recent-due-1115-card", "recent-due-1155-card", "old-due-card", "due-last-hour-old-review-card", "new-card", "future-card"),
             timelinePage.cards.map { card -> card.cardId }
         )
         assertEquals("recent-due-1115-card", topReviewCard?.cardId)
@@ -315,7 +327,7 @@ class LocalReviewQueueContractTest {
         val fiveMinutesMillis = 5 * 60 * 1_000L
         val oneDayMillis = 86_400_000L
         val oldDueAtMillis = nowMillis - oneDayMillis
-        val recentDueAtMillis = nowMillis - fiveMinutesMillis
+        val recentReviewedDueAtMillis = nowMillis - fiveMinutesMillis
         val futureDueAtMillis = nowMillis + oneDayMillis
         val workspaceId = bootstrapTestWorkspace(runtime = runtime, currentTimeMillis = nowMillis)
         val reviewRepository = createTestReviewRepository(runtime = runtime)
@@ -343,7 +355,7 @@ class LocalReviewQueueContractTest {
                     cardId = "recent-card-${index.toString().padStart(length = 2, padChar = '0')}",
                     workspaceId = workspaceId,
                     effortLevel = EffortLevel.FAST,
-                    dueAtMillis = recentDueAtMillis,
+                    dueAtMillis = recentReviewedDueAtMillis,
                     createdAtMillis = nowMillis - 1_000L + index,
                     updatedAtMillis = nowMillis - 1_000L + index
                 )

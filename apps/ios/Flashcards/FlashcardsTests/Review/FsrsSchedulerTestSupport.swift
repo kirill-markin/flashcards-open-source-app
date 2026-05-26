@@ -100,6 +100,24 @@ enum FsrsSchedulerTestSupport {
         dueAt: String?,
         updatedAt: String
     ) -> Card {
+        makeTestCard(
+            cardId: cardId,
+            tags: tags,
+            effortLevel: effortLevel,
+            dueAt: dueAt,
+            fsrsLastReviewedAt: nil,
+            updatedAt: updatedAt
+        )
+    }
+
+    static func makeTestCard(
+        cardId: String,
+        tags: [String],
+        effortLevel: EffortLevel,
+        dueAt: String?,
+        fsrsLastReviewedAt: String?,
+        updatedAt: String
+    ) -> Card {
         Card(
             cardId: cardId,
             workspaceId: "test-workspace",
@@ -115,7 +133,7 @@ enum FsrsSchedulerTestSupport {
             fsrsStepIndex: nil,
             fsrsStability: nil,
             fsrsDifficulty: nil,
-            fsrsLastReviewedAt: nil,
+            fsrsLastReviewedAt: fsrsLastReviewedAt,
             fsrsScheduledDays: nil,
             clientUpdatedAt: updatedAt,
             lastModifiedByReplicaId: "replica",

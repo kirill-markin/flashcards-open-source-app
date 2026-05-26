@@ -60,12 +60,23 @@ func makeReviewOrderRank(card: Card, now: Date) -> ReviewOrderRank {
         return ReviewOrderRank(bucket: .future, dueAt: dueDate)
     }
 
-    let recentCutoff = now.addingTimeInterval(-recentDuePriorityWindow)
-    if dueDate >= recentCutoff {
+    if isRecentlyReviewed(card: card, now: now) {
         return ReviewOrderRank(bucket: .recentDue, dueAt: dueDate)
     }
 
     return ReviewOrderRank(bucket: .oldDue, dueAt: dueDate)
+}
+
+private func isRecentlyReviewed(card: Card, now: Date) -> Bool {
+    guard
+        let fsrsLastReviewedAt = card.fsrsLastReviewedAt,
+        let fsrsLastReviewedDate = parseIsoTimestamp(value: fsrsLastReviewedAt)
+    else {
+        return false
+    }
+
+    let recentCutoff = now.addingTimeInterval(-recentDuePriorityWindow)
+    return fsrsLastReviewedDate >= recentCutoff && fsrsLastReviewedDate <= now
 }
 
 func isActiveReviewOrderBucket(bucket: ReviewOrderBucket) -> Bool {
@@ -85,8 +96,9 @@ private func activeTagNames(cards: [Card]) -> [String] {
 // - apps/ios/Flashcards/Flashcards/Database/CardStore/CardStore+ReadSQL.swift review queue ORDER BY
 // - apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/ReviewSupport.kt::sortCardsForReviewQueue
 // - apps/web/src/appData/domain/index.ts::compareCardsForReviewOrder
-// Ordering contract: recent due cards within the inclusive one-hour window first, then older due cards,
-// then nil dueAt new cards, then future cards, then malformed dueAt values last.
+// Ordering contract: recently reviewed due cards within the inclusive one-hour fsrsLastReviewedAt
+// window first, then other due cards, then nil dueAt new cards, then future cards,
+// then malformed dueAt values last.
 // If this changes, mirror the same change across all three clients in the same change.
 func compareCardsForReviewOrder(leftCard: Card, rightCard: Card, now: Date) -> Bool {
     let leftRank = makeReviewOrderRank(card: leftCard, now: now)

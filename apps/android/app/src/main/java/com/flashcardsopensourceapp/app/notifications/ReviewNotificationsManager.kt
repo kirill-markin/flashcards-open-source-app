@@ -14,6 +14,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
+import com.flashcardsopensourceapp.data.local.database.loadTopActiveReviewCard
 import com.flashcardsopensourceapp.data.local.model.DeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
@@ -387,9 +388,12 @@ class ReviewNotificationsManager(
         workspaceId: String,
         nowMillis: Long
     ): CurrentReviewNotificationCard? {
-        val card = database.cardDao().loadTopReviewCard(
+        val card = loadTopActiveReviewCard(
+            cardDao = database.cardDao(),
             workspaceId = workspaceId,
-            nowMillis = nowMillis
+            nowMillis = nowMillis,
+            effortLevels = emptyList(),
+            tagNames = emptyList()
         ) ?: return null
 
         return CurrentReviewNotificationCard(
@@ -431,10 +435,12 @@ class ReviewNotificationsManager(
         effortLevel: EffortLevel,
         nowMillis: Long
     ): CurrentReviewNotificationCard? {
-        val card = database.cardDao().loadTopReviewCardByEffortLevels(
+        val card = loadTopActiveReviewCard(
+            cardDao = database.cardDao(),
             workspaceId = workspaceId,
             nowMillis = nowMillis,
-            effortLevels = listOf(effortLevel)
+            effortLevels = listOf(effortLevel),
+            tagNames = emptyList()
         ) ?: return null
 
         return CurrentReviewNotificationCard(
@@ -462,9 +468,11 @@ class ReviewNotificationsManager(
             )
         }
 
-        val card = database.cardDao().loadTopReviewCardByAnyTags(
+        val card = loadTopActiveReviewCard(
+            cardDao = database.cardDao(),
             workspaceId = workspaceId,
             nowMillis = nowMillis,
+            effortLevels = emptyList(),
             tagNames = exactTagNames
         ) ?: return null
 
@@ -491,30 +499,38 @@ class ReviewNotificationsManager(
 
         return when {
             filterDefinition.effortLevels.isEmpty() && hasTagPredicate.not() -> {
-                database.cardDao().loadTopReviewCard(
+                loadTopActiveReviewCard(
+                    cardDao = database.cardDao(),
                     workspaceId = workspaceId,
-                    nowMillis = nowMillis
+                    nowMillis = nowMillis,
+                    effortLevels = emptyList(),
+                    tagNames = emptyList()
                 )
             }
 
             filterDefinition.effortLevels.isNotEmpty() && hasTagPredicate.not() -> {
-                database.cardDao().loadTopReviewCardByEffortLevels(
+                loadTopActiveReviewCard(
+                    cardDao = database.cardDao(),
                     workspaceId = workspaceId,
                     nowMillis = nowMillis,
-                    effortLevels = filterDefinition.effortLevels
+                    effortLevels = filterDefinition.effortLevels,
+                    tagNames = emptyList()
                 )
             }
 
             filterDefinition.effortLevels.isEmpty() -> {
-                database.cardDao().loadTopReviewCardByAnyTags(
+                loadTopActiveReviewCard(
+                    cardDao = database.cardDao(),
                     workspaceId = workspaceId,
                     nowMillis = nowMillis,
+                    effortLevels = emptyList(),
                     tagNames = exactTagNames
                 )
             }
 
             else -> {
-                database.cardDao().loadTopReviewCardByEffortLevelsAndAnyTags(
+                loadTopActiveReviewCard(
+                    cardDao = database.cardDao(),
                     workspaceId = workspaceId,
                     nowMillis = nowMillis,
                     effortLevels = filterDefinition.effortLevels,

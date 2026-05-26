@@ -4,20 +4,25 @@ package com.flashcardsopensourceapp.data.local.model
 // - apps/ios/Flashcards/Flashcards/Review/Queue/ReviewQuerySupport.swift::compareCardsForReviewOrder
 // - apps/ios/Flashcards/Flashcards/Database/CardStore/CardStore+ReadSQL.swift review queue ORDER BY
 // - apps/web/src/appData/domain/index.ts::compareCardsForReviewOrder
-// Active queue contract: recent due cards within the inclusive one-hour window first,
-// then older due cards, then null due/new cards. Future cards are excluded from the
-// active queue and can appear later in timeline ordering; malformed dueAt values are
-// excluded in string-date clients and are not representable by Android dueAtMillis.
+// Active queue contract: recently reviewed due cards within the inclusive one-hour
+// fsrsLastReviewedAtMillis window first, then other due cards, then null due/new cards.
+// Future cards are excluded from the active queue and can appear later in timeline ordering;
+// malformed dueAt values are excluded in string-date clients and are not representable by Android dueAtMillis.
 // Within each bucket, earlier dueAt comes first, then newer createdAt, then cardId ascending.
 // If this changes, mirror the same change across all three clients in the same change.
-private const val recentDuePriorityWindowMillis: Long = 60L * 60L * 1_000L
+private const val recentReviewPriorityWindowMillis: Long = 60L * 60L * 1_000L
 
 private fun reviewOrderRank(card: CardSummary, nowMillis: Long): Int {
     val dueAtMillis = card.dueAtMillis
-    val recentDueCutoffMillis = nowMillis - recentDuePriorityWindowMillis
+    val fsrsLastReviewedAtMillis = card.fsrsLastReviewedAtMillis
+    val recentReviewCutoffMillis = nowMillis - recentReviewPriorityWindowMillis
     return when {
-        dueAtMillis != null && dueAtMillis >= recentDueCutoffMillis && dueAtMillis <= nowMillis -> 0
-        dueAtMillis != null && dueAtMillis < recentDueCutoffMillis -> 1
+        dueAtMillis != null &&
+            dueAtMillis <= nowMillis &&
+            fsrsLastReviewedAtMillis != null &&
+            fsrsLastReviewedAtMillis >= recentReviewCutoffMillis &&
+            fsrsLastReviewedAtMillis <= nowMillis -> 0
+        dueAtMillis != null && dueAtMillis <= nowMillis -> 1
         dueAtMillis == null -> 2
         else -> 3
     }

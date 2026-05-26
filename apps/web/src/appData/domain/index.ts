@@ -347,9 +347,10 @@ function getReviewOrderCreatedTimestamp(card: Card): number {
  * - apps/ios/Flashcards/Flashcards/Review/Queue/ReviewQuerySupport.swift::compareCardsForReviewOrder
  * - apps/ios/Flashcards/Flashcards/Database/CardStore/CardStore+ReadSQL.swift review queue ORDER BY
  * - apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/ReviewSupport.kt::sortCardsForReviewQueue
- * Ordering contract: recent due cards in the inclusive 1-hour window first, then old due,
- * then null-due/new cards, then future cards, then malformed dueAt cards.
- * Active queues include only recent due, old due, and null-due/new cards.
+ * Ordering contract: recently reviewed due cards in the inclusive 1-hour fsrsLastReviewedAt
+ * window first, then other due cards, then null-due/new cards, then future cards,
+ * then malformed dueAt cards.
+ * Active queues include only recently reviewed due, other due, and null-due/new cards.
  * Within each bucket, earlier dueAt comes first, then newer createdAt, then cardId ascending.
  * If this changes, mirror the same change across all three clients in the same change.
  */
@@ -390,7 +391,20 @@ function getReviewOrderBucket(card: Card, nowTimestamp: number): ReviewOrderBuck
     return "future";
   }
 
-  return dueAtTimestamp >= nowTimestamp - recentDuePriorityWindow ? "recentDue" : "oldDue";
+  return isRecentlyReviewed(card.fsrsLastReviewedAt, nowTimestamp) ? "recentDue" : "oldDue";
+}
+
+function isRecentlyReviewed(fsrsLastReviewedAt: string | null, nowTimestamp: number): boolean {
+  if (fsrsLastReviewedAt === null) {
+    return false;
+  }
+
+  const lastReviewedTimestamp = parseDueAtMillis(fsrsLastReviewedAt);
+  if (lastReviewedTimestamp === null) {
+    return false;
+  }
+
+  return lastReviewedTimestamp >= nowTimestamp - recentDuePriorityWindow && lastReviewedTimestamp <= nowTimestamp;
 }
 
 export function deriveReviewTimeline(cards: ReadonlyArray<Card>): ReadonlyArray<Card> {
