@@ -110,6 +110,10 @@ class LiveSmokeTest : FirebaseAppInstrumentationTimeoutTest() {
             reviewEmail = reviewEmail,
             workspaceName = workspaceName
         ) {
+            liveSmokeContext.step("clear inherited cards from the linked workspace") {
+                liveSmokeContext.deleteCurrentWorkspaceCards()
+            }
+
             liveSmokeContext.step("create one manual card in the linked workspace") {
                 liveSmokeContext.createManualCard(
                     frontText = manualFrontText,

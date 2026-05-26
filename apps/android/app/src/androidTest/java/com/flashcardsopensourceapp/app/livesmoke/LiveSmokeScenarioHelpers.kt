@@ -24,8 +24,11 @@ import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.AiChatRole
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
+import com.flashcardsopensourceapp.data.local.model.CardFilter
+import com.flashcardsopensourceapp.data.local.model.CardSummary
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import com.flashcardsopensourceapp.feature.ai.aiAssistantMessageBubbleTag
 import com.flashcardsopensourceapp.feature.ai.aiAssistantTextPartTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
@@ -80,6 +83,60 @@ internal fun LiveSmokeContext.withLinkedWorkspaceSession(
                 }
             }
         }
+    }
+}
+
+internal fun LiveSmokeContext.deleteCurrentWorkspaceCards() {
+    val deletedCards: List<CardSummary> = runBlocking {
+        val appGraph = appGraph()
+        val currentCards: List<CardSummary> = appGraph.cardsRepository.observeCards(
+            searchQuery = "",
+            filter = CardFilter(
+                tags = emptyList(),
+                effort = emptyList()
+            )
+        ).first()
+        if (currentCards.isEmpty()) {
+            return@runBlocking emptyList<CardSummary>()
+        }
+
+        currentCards.forEach { card ->
+            appGraph.cardsRepository.deleteCard(cardId = card.cardId)
+        }
+        appGraph.syncRepository.syncNow()
+
+        val syncStatus = appGraph.syncRepository.observeSyncStatus().first()
+        if (syncStatus.status != SyncStatus.Idle || syncStatus.lastErrorMessage.isNotEmpty()) {
+            throw AssertionError(
+                "Workspace card cleanup sync did not finish cleanly. " +
+                    "Status=${syncStatus.status} " +
+                    "LastError=${syncStatus.lastErrorMessage} " +
+                    "CloudSettings=${currentCloudSettingsSummary()} " +
+                    "CurrentWorkspace=${currentWorkspaceSummaryOrNull()}"
+            )
+        }
+
+        val remainingCards: List<CardSummary> = appGraph.cardsRepository.observeCards(
+            searchQuery = "",
+            filter = CardFilter(
+                tags = emptyList(),
+                effort = emptyList()
+            )
+        ).first()
+        if (remainingCards.isNotEmpty()) {
+            throw AssertionError(
+                "Workspace card cleanup left active cards behind. " +
+                    "RemainingCards=${remainingCards.map { card -> card.cardId }} " +
+                    "CloudSettings=${currentCloudSettingsSummary()} " +
+                    "CurrentWorkspace=${currentWorkspaceSummaryOrNull()}"
+            )
+        }
+
+        currentCards
+    }
+
+    if (deletedCards.isNotEmpty()) {
+        composeRule.waitForIdle()
     }
 }
 
