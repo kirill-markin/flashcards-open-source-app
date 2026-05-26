@@ -241,22 +241,23 @@ It chooses the next active card shown to the user; it does not change FSRS trans
 At queue evaluation time `now`, `recentDuePriorityWindow` is exactly `1 hour`.
 Active queue entries are presented in this order:
 
-1. recent due cards, where `dueAt` is in the inclusive range `[now - 1 hour, now]`
-2. old due cards, where `dueAt < now - 1 hour`
+1. recently reviewed due cards, where `dueAt <= now` and `fsrsLastReviewedAt` is in the inclusive range `[now - 1 hour, now]`
+2. other due cards, where `dueAt <= now`
 3. new cards, where `dueAt` is `null`
 
-The recent-due boundary is inclusive at both ends: `dueAt == now` and `dueAt == now - 1 hour` are recent due.
+The recent-review boundary is inclusive at both ends: `fsrsLastReviewedAt == now` and `fsrsLastReviewedAt == now - 1 hour` are recent reviewed.
 Cards with `dueAt > now` and cards with malformed `dueAt` values are not active queue entries, though preview or timeline surfaces may show them where supported.
+Cards that were reviewed recently but are still future-due are not active queue entries.
 
-Tie-breakers inside the recent due and old due buckets must remain stable:
+Tie-breakers inside the recently reviewed due and other due buckets must remain stable:
 
 1. `dueAt ASC`
 2. `createdAt DESC`
 3. `cardId ASC`
 
 The card currently displayed to the user remains pinned until it is answered, even if the canonical queue order changes in the background.
-Cards that become due after `Again` or another short-step review can rise ahead of a large old-overdue tail on the next normal queue refresh or review action.
-There is no requirement to refresh an idle review screen solely because a card crosses into the recent-due window.
+Cards that become due after `Again` or another short-step review can rise ahead of a large old-overdue tail on the next normal queue refresh or review action because their `fsrsLastReviewedAt` is recent.
+There is no requirement to refresh an idle review screen solely because a card crosses into the due window.
 
 ## FSRS math
 

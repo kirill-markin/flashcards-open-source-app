@@ -21,6 +21,7 @@ export function makeCard(input: Readonly<{
   dueAt: string | null;
   createdAt: string;
   updatedAt?: string;
+  fsrsLastReviewedAt?: string | null;
   reps?: number;
   lapses?: number;
   deletedAt?: string | null;
@@ -40,7 +41,7 @@ export function makeCard(input: Readonly<{
     fsrsStepIndex: null,
     fsrsStability: null,
     fsrsDifficulty: null,
-    fsrsLastReviewedAt: null,
+    fsrsLastReviewedAt: input.fsrsLastReviewedAt ?? null,
     fsrsScheduledDays: null,
     clientUpdatedAt: updatedAt,
     lastModifiedByReplicaId: "device-1",

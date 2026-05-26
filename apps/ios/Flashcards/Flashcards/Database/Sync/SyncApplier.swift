@@ -1,14 +1,22 @@
 import Foundation
 
 private func makeDueAtMillisSQLiteValue(dueAt: String?) -> SQLiteValue {
-    guard let dueAt else {
+    makeNullableIsoTimestampMillisSQLiteValue(value: dueAt)
+}
+
+private func makeFsrsLastReviewedAtMillisSQLiteValue(fsrsLastReviewedAt: String?) -> SQLiteValue {
+    makeNullableIsoTimestampMillisSQLiteValue(value: fsrsLastReviewedAt)
+}
+
+private func makeNullableIsoTimestampMillisSQLiteValue(value: String?) -> SQLiteValue {
+    guard let value else {
         return .null
     }
-    guard let dueAtMillis = parseStrictIsoTimestampEpochMillis(value: dueAt) else {
+    guard let timestampMillis = parseStrictIsoTimestampEpochMillis(value: value) else {
         return .null
     }
 
-    return .integer(dueAtMillis)
+    return .integer(timestampMillis)
 }
 
 struct SyncApplyResult: Hashable, Sendable {
@@ -119,6 +127,7 @@ struct SyncApplier {
                     fsrs_stability,
                     fsrs_difficulty,
                     fsrs_last_reviewed_at,
+                    fsrs_last_reviewed_at_millis,
                     fsrs_scheduled_days,
                     client_updated_at,
                     last_modified_by_replica_id,
@@ -126,7 +135,7 @@ struct SyncApplier {
                     updated_at,
                     deleted_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 values: [
                     .text(card.cardId),
@@ -145,6 +154,7 @@ struct SyncApplier {
                     card.fsrsStability.map(SQLiteValue.real) ?? .null,
                     card.fsrsDifficulty.map(SQLiteValue.real) ?? .null,
                     card.fsrsLastReviewedAt.map(SQLiteValue.text) ?? .null,
+                    makeFsrsLastReviewedAtMillisSQLiteValue(fsrsLastReviewedAt: card.fsrsLastReviewedAt),
                     card.fsrsScheduledDays.map { SQLiteValue.integer(Int64($0)) } ?? .null,
                     .text(card.clientUpdatedAt),
                     .text(card.lastModifiedByReplicaId),
@@ -164,7 +174,7 @@ struct SyncApplier {
         _ = try self.core.execute(
             sql: """
             UPDATE cards
-            SET front_text = ?, back_text = ?, tags_json = ?, effort_level = ?, due_at = ?, due_at_millis = ?, created_at = ?, reps = ?, lapses = ?, fsrs_card_state = ?, fsrs_step_index = ?, fsrs_stability = ?, fsrs_difficulty = ?, fsrs_last_reviewed_at = ?, fsrs_scheduled_days = ?, client_updated_at = ?, last_modified_by_replica_id = ?, last_operation_id = ?, updated_at = ?, deleted_at = ?
+            SET front_text = ?, back_text = ?, tags_json = ?, effort_level = ?, due_at = ?, due_at_millis = ?, created_at = ?, reps = ?, lapses = ?, fsrs_card_state = ?, fsrs_step_index = ?, fsrs_stability = ?, fsrs_difficulty = ?, fsrs_last_reviewed_at = ?, fsrs_last_reviewed_at_millis = ?, fsrs_scheduled_days = ?, client_updated_at = ?, last_modified_by_replica_id = ?, last_operation_id = ?, updated_at = ?, deleted_at = ?
             WHERE workspace_id = ? AND card_id = ?
             """,
             values: [
@@ -182,6 +192,7 @@ struct SyncApplier {
                 card.fsrsStability.map(SQLiteValue.real) ?? .null,
                 card.fsrsDifficulty.map(SQLiteValue.real) ?? .null,
                 card.fsrsLastReviewedAt.map(SQLiteValue.text) ?? .null,
+                makeFsrsLastReviewedAtMillisSQLiteValue(fsrsLastReviewedAt: card.fsrsLastReviewedAt),
                 card.fsrsScheduledDays.map { SQLiteValue.integer(Int64($0)) } ?? .null,
                 .text(card.clientUpdatedAt),
                 .text(card.lastModifiedByReplicaId),

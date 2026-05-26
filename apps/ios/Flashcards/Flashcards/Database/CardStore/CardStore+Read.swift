@@ -418,8 +418,11 @@ extension CardStore {
                 CASE
                     WHEN due_at IS NULL THEN 2
                     WHEN due_at_millis IS NULL THEN 4
-                    WHEN due_at_millis >= ? AND due_at_millis <= ? THEN 0
-                    WHEN due_at_millis < ? THEN 1
+                    WHEN due_at_millis <= ?
+                        AND fsrs_last_reviewed_at_millis IS NOT NULL
+                        AND fsrs_last_reviewed_at_millis >= ?
+                        AND fsrs_last_reviewed_at_millis <= ? THEN 0
+                    WHEN due_at_millis <= ? THEN 1
                     ELSE 3
                 END ASC,
                 due_at_millis ASC,
@@ -428,9 +431,10 @@ extension CardStore {
             LIMIT ? OFFSET ?
             """,
             values: [.text(workspaceId)] + querySQL.values + [
-                .integer(cutoffMillis),
                 .integer(nowMillis),
                 .integer(cutoffMillis),
+                .integer(nowMillis),
+                .integer(nowMillis),
                 .integer(Int64(limit + 1)),
                 .integer(Int64(offset))
             ]

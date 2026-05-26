@@ -12,6 +12,8 @@ import com.flashcardsopensourceapp.data.local.model.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
 
 internal const val cardsReviewQueueIndexName: String = "index_cards_workspaceId_dueAtMillis_createdAtMillis_cardId"
+internal const val cardsRecentlyReviewedDueIndexName: String =
+    "index_cards_workspaceId_fsrsLastReviewedAtMillis_dueAtMillis_createdAtMillis_cardId"
 
 @Entity(tableName = "workspaces")
 data class WorkspaceEntity(
@@ -69,6 +71,16 @@ data class DeckEntity(
         Index(
             value = ["workspaceId", "dueAtMillis", "createdAtMillis", "cardId"],
             name = cardsReviewQueueIndexName
+        ),
+        Index(
+            value = [
+                "workspaceId",
+                "fsrsLastReviewedAtMillis",
+                "dueAtMillis",
+                "createdAtMillis",
+                "cardId"
+            ],
+            name = cardsRecentlyReviewedDueIndexName
         )
     ]
 )

@@ -5,7 +5,7 @@ import type {
   ReviewEvent,
   WorkspaceSchedulerSettings,
 } from "../types";
-import { deriveDueAtBucketMillis, deriveDueAtMillis } from "../appData/domain/dueAt";
+import { deriveDueAtBucketMillis, deriveDueAtMillis, parseDueAtMillis } from "../appData/domain/dueAt";
 
 export type StoredCard = Readonly<{
   workspaceId: string;
@@ -25,6 +25,7 @@ export type StoredCard = Readonly<{
   fsrsStability: number | null;
   fsrsDifficulty: number | null;
   fsrsLastReviewedAt: string | null;
+  fsrsLastReviewedAtMillis: number | null;
   fsrsScheduledDays: number | null;
   clientUpdatedAt: string;
   lastModifiedByReplicaId: string;
@@ -79,15 +80,16 @@ export type DatabaseStores =
   | "meta";
 
 const databaseName = "flashcards-web-sync";
-const databaseVersion = 12;
+const databaseVersion = 13;
 const activeDatabaseOperationPromises = new Set<Promise<unknown>>();
 let isDatabaseDeleteInProgress = false;
 let activeDatabaseDeletePromise: Promise<void> | null = null;
 
-type StoredCardDueAtMigrationRecord = Omit<StoredCard, "dueAt" | "dueAtMillis" | "dueAtBucketMillis"> & Readonly<{
+type StoredCardDueAtMigrationRecord = Omit<StoredCard, "dueAt" | "dueAtMillis" | "dueAtBucketMillis" | "fsrsLastReviewedAtMillis"> & Readonly<{
   dueAt?: string | null;
   dueAtMillis?: number | null;
   dueAtBucketMillis?: number;
+  fsrsLastReviewedAtMillis?: number | null;
 }>;
 
 function isQuotaExceededError(error: unknown): boolean {
@@ -143,6 +145,16 @@ function createCardsDueAtBucketMillisIndex(cardsStore: IDBObjectStore): void {
   }
 }
 
+function createCardsFsrsLastReviewedAtMillisIndex(cardsStore: IDBObjectStore): void {
+  if (!cardsStore.indexNames.contains("workspaceId_fsrsLastReviewedAtMillis_dueAtMillis_cardId")) {
+    cardsStore.createIndex(
+      "workspaceId_fsrsLastReviewedAtMillis_dueAtMillis_cardId",
+      ["workspaceId", "fsrsLastReviewedAtMillis", "dueAtMillis", "cardId"],
+      { unique: false },
+    );
+  }
+}
+
 function createCardsStore(database: IDBDatabase): void {
   const cardsStore = database.createObjectStore("cards", { keyPath: ["workspaceId", "cardId"] });
   cardsStore.createIndex("workspaceId_createdAt_cardId", ["workspaceId", "createdAt", "cardId"], { unique: false });
@@ -152,6 +164,7 @@ function createCardsStore(database: IDBDatabase): void {
   createCardsDueAtMillisIndex(cardsStore);
   createCardsDueAtBucketMillisIndex(cardsStore);
   createCardsUpdatedAtIndexes(cardsStore);
+  createCardsFsrsLastReviewedAtMillisIndex(cardsStore);
 }
 
 function createCardTagsStore(database: IDBDatabase): void {
@@ -249,7 +262,22 @@ function normalizeStoredCardDueAtDerivedFields(record: StoredCardDueAtMigrationR
     dueAt,
     dueAtMillis: deriveDueAtMillis(dueAt),
     dueAtBucketMillis: deriveDueAtBucketMillis(dueAt),
+    fsrsLastReviewedAtMillis: normalizeStoredCardFsrsLastReviewedAtMillis(record),
   };
+}
+
+function normalizeStoredCardFsrsLastReviewedAtMillis(
+  record: Pick<StoredCard, "fsrsLastReviewedAt"> & Readonly<{ fsrsLastReviewedAtMillis?: number | null }>,
+): number | null {
+  if (typeof record.fsrsLastReviewedAtMillis === "number" && Number.isFinite(record.fsrsLastReviewedAtMillis)) {
+    return record.fsrsLastReviewedAtMillis;
+  }
+
+  if (record.fsrsLastReviewedAt === null) {
+    return null;
+  }
+
+  return parseDueAtMillis(record.fsrsLastReviewedAt);
 }
 
 function migrateCardsDueAtDerivedFields(cardsStore: IDBObjectStore, errorPrefix: string): void {
@@ -291,6 +319,12 @@ function upgradeToVersion11(transaction: IDBTransaction): void {
 function upgradeToVersion12(transaction: IDBTransaction): void {
   const cardsStore = transaction.objectStore("cards");
   migrateCardsDueAtDerivedFields(cardsStore, "IndexedDB dueAt sentinel migration failed");
+}
+
+function upgradeToVersion13(transaction: IDBTransaction): void {
+  const cardsStore = transaction.objectStore("cards");
+  createCardsFsrsLastReviewedAtMillisIndex(cardsStore);
+  migrateCardsDueAtDerivedFields(cardsStore, "IndexedDB fsrsLastReviewedAtMillis migration failed");
 }
 
 export function openDatabase(): Promise<IDBDatabase> {
@@ -364,6 +398,16 @@ export function openDatabase(): Promise<IDBDatabase> {
 
         upgradeToVersion12(transaction);
       }
+
+      if (oldVersion < 13) {
+        const transaction = request.transaction;
+        if (transaction === null) {
+          throw new Error("IndexedDB upgrade transaction is unavailable");
+        }
+
+        upgradeToVersion13(transaction);
+      }
+
     };
 
     request.onsuccess = () => {

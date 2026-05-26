@@ -8,6 +8,11 @@ private struct DueAtMillisMigrationTestRow {
     let dueAtMillis: Int64?
 }
 
+private struct FsrsLastReviewedAtMillisMigrationTestRow {
+    let cardId: String
+    let fsrsLastReviewedAtMillis: Int64?
+}
+
 final class LocalDatabaseLifecycleTests: XCTestCase {
     private var databaseURL: URL?
     private var database: LocalDatabase?
@@ -36,6 +41,7 @@ final class LocalDatabaseLifecycleTests: XCTestCase {
             )
         )
         XCTAssertTrue(try self.hasColumn(database: database, tableName: "cards", columnName: "due_at_millis"))
+        XCTAssertTrue(try self.hasColumn(database: database, tableName: "cards", columnName: "fsrs_last_reviewed_at_millis"))
         XCTAssertTrue(try self.hasColumn(database: database, tableName: "outbox", columnName: "review_schedule_impact"))
         XCTAssertTrue(
             try self.hasIndex(
@@ -49,6 +55,13 @@ final class LocalDatabaseLifecycleTests: XCTestCase {
                 database: database,
                 tableName: "cards",
                 indexName: "idx_cards_workspace_new_due_active"
+            )
+        )
+        XCTAssertTrue(
+            try self.hasIndex(
+                database: database,
+                tableName: "cards",
+                indexName: "idx_cards_workspace_fsrs_last_reviewed_millis_due_active"
             )
         )
         XCTAssertEqual(1, try self.countRows(database: database, tableName: "app_local_settings"))
@@ -434,6 +447,83 @@ final class LocalDatabaseLifecycleTests: XCTestCase {
         )
     }
 
+    func testSchemaVersion15MigrationBackfillsStrictFsrsLastReviewedAtMillis() throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        try self.insertMigrationCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            cardId: "canonical-valid",
+            dueAt: nil,
+            createdAt: "2026-03-09T08:00:00.000Z"
+        )
+        try self.setMigrationCardFsrsLastReviewedAt(
+            database: database,
+            cardId: "canonical-valid",
+            fsrsLastReviewedAt: "2026-03-09T08:59:00.000Z"
+        )
+        try self.insertMigrationCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            cardId: "noncanonical-valid",
+            dueAt: nil,
+            createdAt: "2026-03-09T08:30:00.000Z"
+        )
+        try self.setMigrationCardFsrsLastReviewedAt(
+            database: database,
+            cardId: "noncanonical-valid",
+            fsrsLastReviewedAt: "2026-03-09T09:00:00Z"
+        )
+        try self.insertMigrationCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            cardId: "malformed-number",
+            dueAt: nil,
+            createdAt: "2026-03-09T09:00:00.000Z"
+        )
+        try self.setMigrationCardFsrsLastReviewedAt(
+            database: database,
+            cardId: "malformed-number",
+            fsrsLastReviewedAt: "1000"
+        )
+        try database.close()
+        self.database = nil
+
+        try self.prepareSchemaVersion15Database(databaseURL: try XCTUnwrap(self.databaseURL))
+
+        let migratedDatabase = try LocalDatabase(databaseURL: try XCTUnwrap(self.databaseURL))
+        self.database = migratedDatabase
+        let rows = try self.loadFsrsLastReviewedAtMillisRows(database: migratedDatabase)
+        let rowsByCardId = Dictionary(uniqueKeysWithValues: rows.map { row in
+            (row.cardId, row.fsrsLastReviewedAtMillis)
+        })
+
+        XCTAssertEqual(LocalDatabaseSchema.currentVersion, try self.loadSchemaVersion(database: migratedDatabase))
+        XCTAssertTrue(
+            try self.hasColumn(
+                database: migratedDatabase,
+                tableName: "cards",
+                columnName: "fsrs_last_reviewed_at_millis"
+            )
+        )
+        XCTAssertTrue(
+            try self.hasIndex(
+                database: migratedDatabase,
+                tableName: "cards",
+                indexName: "idx_cards_workspace_fsrs_last_reviewed_millis_due_active"
+            )
+        )
+        XCTAssertEqual(
+            try XCTUnwrap(rowsByCardId["canonical-valid"] ?? nil),
+            try XCTUnwrap(parseStrictIsoTimestampEpochMillis(value: "2026-03-09T08:59:00.000Z"))
+        )
+        XCTAssertEqual(
+            try XCTUnwrap(rowsByCardId["noncanonical-valid"] ?? nil),
+            try XCTUnwrap(parseStrictIsoTimestampEpochMillis(value: "2026-03-09T09:00:00Z"))
+        )
+        XCTAssertNil(rowsByCardId["malformed-number"] ?? nil)
+    }
+
     private func makeDatabase() throws -> LocalDatabase {
         let databaseURL = try self.makeDatabaseURL()
         let database = try LocalDatabase(databaseURL: databaseURL)
@@ -508,6 +598,30 @@ final class LocalDatabaseLifecycleTests: XCTestCase {
         }
     }
 
+    private func loadFsrsLastReviewedAtMillisRows(
+        database: LocalDatabase
+    ) throws -> [FsrsLastReviewedAtMillisMigrationTestRow] {
+        try database.core.query(
+            sql: """
+            SELECT card_id, fsrs_last_reviewed_at_millis
+            FROM cards
+            ORDER BY card_id ASC
+            """,
+            values: []
+        ) { statement in
+            let fsrsLastReviewedAtMillis: Int64?
+            if sqlite3_column_type(statement, 1) == SQLITE_NULL {
+                fsrsLastReviewedAtMillis = nil
+            } else {
+                fsrsLastReviewedAtMillis = DatabaseCore.columnInt64(statement: statement, index: 1)
+            }
+            return FsrsLastReviewedAtMillisMigrationTestRow(
+                cardId: DatabaseCore.columnText(statement: statement, index: 0),
+                fsrsLastReviewedAtMillis: fsrsLastReviewedAtMillis
+            )
+        }
+    }
+
     private func insertMigrationCard(
         database: LocalDatabase,
         workspaceId: String,
@@ -554,6 +668,26 @@ final class LocalDatabaseLifecycleTests: XCTestCase {
                 .text(createdAt),
                 .text("operation-\(cardId)"),
                 .text(createdAt)
+            ]
+        )
+    }
+
+    private func setMigrationCardFsrsLastReviewedAt(
+        database: LocalDatabase,
+        cardId: String,
+        fsrsLastReviewedAt: String
+    ) throws {
+        try database.core.execute(
+            sql: """
+            UPDATE cards
+            SET fsrs_last_reviewed_at = ?,
+                fsrs_last_reviewed_at_millis = ?
+            WHERE card_id = ?
+            """,
+            values: [
+                .text(fsrsLastReviewedAt),
+                parseStrictIsoTimestampEpochMillis(value: fsrsLastReviewedAt).map(SQLiteValue.integer) ?? .null,
+                .text(cardId)
             ]
         )
     }
@@ -839,6 +973,125 @@ final class LocalDatabaseLifecycleTests: XCTestCase {
         guard execResult == SQLITE_OK else {
             let message = String(cString: sqlite3_errmsg(connection))
             throw LocalStoreError.database("Failed to prepare schema v14 fixture: \(message)")
+        }
+    }
+
+    private func prepareSchemaVersion15Database(databaseURL: URL) throws {
+        var connection: OpaquePointer?
+        let openResult = sqlite3_open_v2(
+            databaseURL.path,
+            &connection,
+            SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX,
+            nil
+        )
+        guard openResult == SQLITE_OK, let connection else {
+            throw LocalStoreError.database("Failed to open schema v15 test database")
+        }
+        defer {
+            sqlite3_close_v2(connection)
+        }
+
+        let downgradeSQL = """
+        PRAGMA legacy_alter_table = ON;
+        DROP INDEX IF EXISTS idx_cards_workspace_fsrs_last_reviewed_millis_due_active;
+        ALTER TABLE cards RENAME TO cards_v16;
+        CREATE TABLE cards (
+            card_id TEXT PRIMARY KEY,
+            workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id) ON DELETE CASCADE,
+            front_text TEXT NOT NULL,
+            back_text TEXT NOT NULL,
+            tags_json TEXT NOT NULL,
+            effort_level TEXT NOT NULL CHECK (effort_level IN ('fast', 'medium', 'long')),
+            due_at TEXT,
+            due_at_millis INTEGER,
+            created_at TEXT NOT NULL,
+            reps INTEGER NOT NULL CHECK (reps >= 0),
+            lapses INTEGER NOT NULL CHECK (lapses >= 0),
+            fsrs_card_state TEXT NOT NULL CHECK (fsrs_card_state IN ('new', 'learning', 'review', 'relearning')),
+            fsrs_step_index INTEGER CHECK (fsrs_step_index IS NULL OR fsrs_step_index >= 0),
+            fsrs_stability REAL,
+            fsrs_difficulty REAL,
+            fsrs_last_reviewed_at TEXT,
+            fsrs_scheduled_days INTEGER CHECK (fsrs_scheduled_days IS NULL OR fsrs_scheduled_days >= 0),
+            client_updated_at TEXT NOT NULL,
+            last_modified_by_replica_id TEXT NOT NULL,
+            last_operation_id TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            deleted_at TEXT
+        );
+        INSERT INTO cards (
+            card_id,
+            workspace_id,
+            front_text,
+            back_text,
+            tags_json,
+            effort_level,
+            due_at,
+            due_at_millis,
+            created_at,
+            reps,
+            lapses,
+            fsrs_card_state,
+            fsrs_step_index,
+            fsrs_stability,
+            fsrs_difficulty,
+            fsrs_last_reviewed_at,
+            fsrs_scheduled_days,
+            client_updated_at,
+            last_modified_by_replica_id,
+            last_operation_id,
+            updated_at,
+            deleted_at
+        )
+        SELECT
+            card_id,
+            workspace_id,
+            front_text,
+            back_text,
+            tags_json,
+            effort_level,
+            due_at,
+            due_at_millis,
+            created_at,
+            reps,
+            lapses,
+            fsrs_card_state,
+            fsrs_step_index,
+            fsrs_stability,
+            fsrs_difficulty,
+            fsrs_last_reviewed_at,
+            fsrs_scheduled_days,
+            client_updated_at,
+            last_modified_by_replica_id,
+            last_operation_id,
+            updated_at,
+            deleted_at
+        FROM cards_v16;
+        DROP TABLE cards_v16;
+        CREATE INDEX IF NOT EXISTS idx_cards_workspace_created_at
+            ON cards(workspace_id, created_at DESC, card_id ASC);
+        CREATE INDEX IF NOT EXISTS idx_cards_workspace_updated_at
+            ON cards(workspace_id, updated_at DESC, card_id ASC);
+        CREATE INDEX IF NOT EXISTS idx_cards_workspace_due_millis_active
+            ON cards(workspace_id, due_at_millis, created_at DESC, card_id ASC)
+            WHERE deleted_at IS NULL AND due_at_millis IS NOT NULL;
+        CREATE INDEX IF NOT EXISTS idx_cards_workspace_new_due_active
+            ON cards(workspace_id, created_at DESC, card_id ASC)
+            WHERE deleted_at IS NULL AND due_at IS NULL;
+        CREATE INDEX IF NOT EXISTS idx_cards_workspace_effort_created_active
+            ON cards(workspace_id, effort_level, created_at DESC, card_id ASC)
+            WHERE deleted_at IS NULL;
+        CREATE INDEX IF NOT EXISTS idx_cards_workspace_fsrs_last_reviewed_at
+            ON cards(workspace_id, fsrs_last_reviewed_at DESC)
+            WHERE deleted_at IS NULL;
+        PRAGMA legacy_alter_table = OFF;
+        PRAGMA user_version = 15;
+        """
+
+        let execResult = sqlite3_exec(connection, downgradeSQL, nil, nil, nil)
+        guard execResult == SQLITE_OK else {
+            let message = String(cString: sqlite3_errmsg(connection))
+            throw LocalStoreError.database("Failed to prepare schema v15 fixture: \(message)")
         }
     }
 

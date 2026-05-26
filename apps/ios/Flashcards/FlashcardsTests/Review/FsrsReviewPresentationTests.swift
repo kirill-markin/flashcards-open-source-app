@@ -321,7 +321,7 @@ final class FsrsReviewPresentationTests: XCTestCase {
         )
     }
 
-    func testMakeReviewQueuePrioritizesRecentDueWindowBeforeOldDueAndNewCards() throws {
+    func testMakeReviewQueuePrioritizesRecentlyReviewedDueCardsBeforeOtherDueAndNewCards() throws {
         XCTAssertEqual(recentDuePriorityWindow, 60 * 60)
 
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
@@ -359,6 +359,7 @@ final class FsrsReviewPresentationTests: XCTestCase {
                 tags: [],
                 effortLevel: .fast,
                 dueAt: "2026-03-09T08:00:00.000Z",
+                fsrsLastReviewedAt: "2026-03-09T08:00:00.000Z",
                 updatedAt: "2026-03-09T05:00:00.000Z"
             ),
             FsrsSchedulerTestSupport.makeTestCard(
@@ -366,6 +367,7 @@ final class FsrsReviewPresentationTests: XCTestCase {
                 tags: [],
                 effortLevel: .fast,
                 dueAt: "2026-03-09T08:30:00.000Z",
+                fsrsLastReviewedAt: "2026-03-09T08:30:00.000Z",
                 updatedAt: "2026-03-09T04:00:00.000Z"
             ),
             FsrsSchedulerTestSupport.makeTestCard(
@@ -373,6 +375,7 @@ final class FsrsReviewPresentationTests: XCTestCase {
                 tags: [],
                 effortLevel: .fast,
                 dueAt: "2026-03-09T08:30:00.000Z",
+                fsrsLastReviewedAt: "2026-03-09T08:30:00.000Z",
                 updatedAt: "2026-03-09T04:30:00.000Z"
             ),
             FsrsSchedulerTestSupport.makeTestCard(
@@ -380,13 +383,23 @@ final class FsrsReviewPresentationTests: XCTestCase {
                 tags: [],
                 effortLevel: .fast,
                 dueAt: "2026-03-09T09:00:00.000Z",
+                fsrsLastReviewedAt: "2026-03-09T09:00:00.000Z",
                 updatedAt: "2026-03-09T03:00:00.000Z"
+            ),
+            FsrsSchedulerTestSupport.makeTestCard(
+                cardId: "due-last-hour-old-review",
+                tags: [],
+                effortLevel: .fast,
+                dueAt: "2026-03-09T08:15:00.000Z",
+                fsrsLastReviewedAt: "2026-03-09T07:59:59.999Z",
+                updatedAt: "2026-03-09T03:30:00.000Z"
             ),
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "future-one-millisecond",
                 tags: [],
                 effortLevel: .fast,
                 dueAt: "2026-03-09T09:00:00.001Z",
+                fsrsLastReviewedAt: "2026-03-09T09:00:00.000Z",
                 updatedAt: "2026-03-09T02:00:00.000Z"
             ),
             FsrsSchedulerTestSupport.makeTestCard(
@@ -394,6 +407,7 @@ final class FsrsReviewPresentationTests: XCTestCase {
                 tags: [],
                 effortLevel: .fast,
                 dueAt: "not-an-iso-date",
+                fsrsLastReviewedAt: "2026-03-09T09:00:00.000Z",
                 updatedAt: "2026-03-09T01:00:00.000Z"
             )
         ]
@@ -408,6 +422,7 @@ final class FsrsReviewPresentationTests: XCTestCase {
                 "old-earlier",
                 "old-tie-newer",
                 "old-tie-older",
+                "due-last-hour-old-review",
                 "new-card"
             ]
         )
@@ -421,6 +436,7 @@ final class FsrsReviewPresentationTests: XCTestCase {
                 "old-earlier",
                 "old-tie-newer",
                 "old-tie-older",
+                "due-last-hour-old-review",
                 "new-card",
                 "future-one-millisecond",
                 "malformed-due"

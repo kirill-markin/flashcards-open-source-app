@@ -18,7 +18,7 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
         try super.tearDownWithError()
     }
 
-    func testSQLiteReviewQueueAndTimelineUseRecentDuePriorityBuckets() throws {
+    func testSQLiteReviewQueueAndTimelineUseRecentlyReviewedDuePriorityBuckets() throws {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
@@ -35,14 +35,27 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
             workspaceId: workspace.workspaceId,
             cardId: "recent-now",
             dueAt: "2026-03-09T09:00:00.000Z",
-            createdAt: "2026-03-09T08:00:00.000Z"
+            createdAt: "2026-03-09T08:00:00.000Z",
+            fsrsLastReviewedAt: "2026-03-09T09:00:00Z",
+            tags: []
         )
         try self.insertCard(
             database: database,
             workspaceId: workspace.workspaceId,
             cardId: "recent-cutoff",
             dueAt: "2026-03-09T08:00:00.000Z",
-            createdAt: "2026-03-09T07:30:00.000Z"
+            createdAt: "2026-03-09T07:30:00.000Z",
+            fsrsLastReviewedAt: "2026-03-09T08:00:00.000Z",
+            tags: []
+        )
+        try self.insertCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            cardId: "due-last-hour-old-review",
+            dueAt: "2026-03-09T08:15:00.000Z",
+            createdAt: "2026-03-09T07:45:00.000Z",
+            fsrsLastReviewedAt: "2026-03-09T07:59:59.999Z",
+            tags: []
         )
         try self.insertCard(
             database: database,
@@ -90,11 +103,11 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
 
         XCTAssertEqual(limitedHead.seedReviewQueue.map(\.cardId), ["recent-cutoff", "recent-now", "old-due"])
         XCTAssertTrue(limitedHead.hasMoreCards)
-        XCTAssertEqual(fullHead.seedReviewQueue.map(\.cardId), ["recent-cutoff", "recent-now", "old-due", "new-card"])
+        XCTAssertEqual(fullHead.seedReviewQueue.map(\.cardId), ["recent-cutoff", "recent-now", "old-due", "due-last-hour-old-review", "new-card"])
         XCTAssertFalse(fullHead.hasMoreCards)
         XCTAssertEqual(
             timelinePage.cards.map(\.cardId),
-            ["recent-cutoff", "recent-now", "old-due", "new-card", "future-one-millisecond", "malformed-due"]
+            ["recent-cutoff", "recent-now", "old-due", "due-last-hour-old-review", "new-card", "future-one-millisecond", "malformed-due"]
         )
         XCTAssertFalse(timelinePage.hasMoreCards)
     }
@@ -109,7 +122,9 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
             workspaceId: workspace.workspaceId,
             cardId: "recent-one-digit-fraction",
             dueAt: "2026-03-09T08:30:00.1Z",
-            createdAt: "2026-03-09T08:00:00.000Z"
+            createdAt: "2026-03-09T08:00:00.000Z",
+            fsrsLastReviewedAt: "2026-03-09T08:30:00.100Z",
+            tags: []
         )
         try self.insertCard(
             database: database,
@@ -703,7 +718,9 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
             workspaceId: workspace.workspaceId,
             cardId: "recent-due",
             dueAt: "2026-03-09T08:30:00.000Z",
-            createdAt: "2026-03-09T08:00:00.000Z"
+            createdAt: "2026-03-09T08:00:00.000Z",
+            fsrsLastReviewedAt: "2026-03-09T08:30:00.000Z",
+            tags: []
         )
         try self.insertCard(
             database: database,
@@ -774,13 +791,20 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
             WHERE workspace_id = ?
                 AND deleted_at IS NULL
                 AND due_at_millis IS NOT NULL
-                AND due_at_millis < ?
+                AND due_at_millis <= ?
+                AND (
+                    fsrs_last_reviewed_at_millis IS NULL
+                    OR fsrs_last_reviewed_at_millis < ?
+                    OR fsrs_last_reviewed_at_millis > ?
+                )
             ORDER BY \(cardStoreActiveDueBucketOrderSQL)
             LIMIT ?
             """,
             values: [
                 .text(workspace.workspaceId),
                 .integer(try XCTUnwrap(parseStrictIsoTimestampEpochMillis(value: "2026-03-09T08:00:00.000Z"))),
+                .integer(try XCTUnwrap(parseStrictIsoTimestampEpochMillis(value: "2026-03-09T08:00:00.000Z"))),
+                .integer(try XCTUnwrap(parseStrictIsoTimestampEpochMillis(value: "2026-03-09T09:00:00.000Z"))),
                 .integer(11)
             ]
         ) { statement in
@@ -824,6 +848,7 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
             cardId: cardId,
             dueAt: dueAt,
             createdAt: createdAt,
+            fsrsLastReviewedAt: nil,
             tags: []
         )
     }
@@ -834,6 +859,26 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
         cardId: String,
         dueAt: String?,
         createdAt: String,
+        tags: [String]
+    ) throws {
+        try self.insertCard(
+            database: database,
+            workspaceId: workspaceId,
+            cardId: cardId,
+            dueAt: dueAt,
+            createdAt: createdAt,
+            fsrsLastReviewedAt: nil,
+            tags: tags
+        )
+    }
+
+    private func insertCard(
+        database: LocalDatabase,
+        workspaceId: String,
+        cardId: String,
+        dueAt: String?,
+        createdAt: String,
+        fsrsLastReviewedAt: String?,
         tags: [String]
     ) throws {
         let tagsJson = try database.core.encodeJsonString(value: tags)
@@ -856,6 +901,7 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
                 fsrs_stability,
                 fsrs_difficulty,
                 fsrs_last_reviewed_at,
+                fsrs_last_reviewed_at_millis,
                 fsrs_scheduled_days,
                 client_updated_at,
                 last_modified_by_replica_id,
@@ -863,7 +909,7 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
                 updated_at,
                 deleted_at
             )
-            VALUES (?, ?, ?, ?, ?, 'fast', ?, ?, ?, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, ?, 'test-replica', ?, ?, NULL)
+            VALUES (?, ?, ?, ?, ?, 'fast', ?, ?, ?, 0, 0, 'new', NULL, NULL, NULL, ?, ?, NULL, ?, 'test-replica', ?, ?, NULL)
             """,
             values: [
                 .text(cardId),
@@ -874,6 +920,8 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
                 dueAt.map(SQLiteValue.text) ?? .null,
                 dueAt.flatMap(parseStrictIsoTimestampEpochMillis).map(SQLiteValue.integer) ?? .null,
                 .text(createdAt),
+                fsrsLastReviewedAt.map(SQLiteValue.text) ?? .null,
+                fsrsLastReviewedAt.flatMap(parseStrictIsoTimestampEpochMillis).map(SQLiteValue.integer) ?? .null,
                 .text(createdAt),
                 .text("operation-\(cardId)"),
                 .text(createdAt)

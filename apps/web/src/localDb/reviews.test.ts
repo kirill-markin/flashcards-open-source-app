@@ -259,7 +259,7 @@ describe("localDb reviews", () => {
     });
 
   describe("queue ordering", () => {
-    it("orders active review queue by recent due, old due, then null and leaves future or malformed cards for timeline", async () => {
+    it("orders active review queue by recently reviewed due cards, other due cards, then null and leaves future or malformed cards for timeline", async () => {
       const nowTimestamp = Date.parse("2026-03-10T12:00:00.000Z");
       const originalNow = Date.now;
       Date.now = () => nowTimestamp;
@@ -274,6 +274,7 @@ describe("localDb reviews", () => {
             effortLevel: "fast",
             dueAt: "2026-03-11T12:00:00.000Z",
             createdAt: "2026-03-10T09:00:00.000Z",
+            fsrsLastReviewedAt: "2026-03-10T11:55:00.000Z",
           }),
           makeCard({
             cardId: "recent-1155",
@@ -283,6 +284,7 @@ describe("localDb reviews", () => {
             effortLevel: "fast",
             dueAt: "2026-03-10T11:55:00.000Z",
             createdAt: "2026-03-10T09:00:00.000Z",
+            fsrsLastReviewedAt: "2026-03-10T11:55:00.000Z",
           }),
           makeCard({
             cardId: "new-null",
@@ -301,6 +303,7 @@ describe("localDb reviews", () => {
             effortLevel: "fast",
             dueAt: "not-a-date",
             createdAt: "2026-03-10T09:00:00.000Z",
+            fsrsLastReviewedAt: "2026-03-10T11:55:00.000Z",
           }),
           makeCard({
             cardId: "old-yesterday",
@@ -312,6 +315,16 @@ describe("localDb reviews", () => {
             createdAt: "2026-03-10T09:00:00.000Z",
           }),
           makeCard({
+            cardId: "due-last-hour-old-review",
+            frontText: "Due last hour old review",
+            backText: "back",
+            tags: ["grammar"],
+            effortLevel: "fast",
+            dueAt: "2026-03-10T11:10:00.000Z",
+            createdAt: "2026-03-10T09:00:00.000Z",
+            fsrsLastReviewedAt: "2026-03-10T10:55:00.000Z",
+          }),
+          makeCard({
             cardId: "recent-1115",
             frontText: "Recent 11:15",
             backText: "back",
@@ -319,6 +332,7 @@ describe("localDb reviews", () => {
             effortLevel: "fast",
             dueAt: "2026-03-10T11:15:00.000Z",
             createdAt: "2026-03-10T09:00:00.000Z",
+            fsrsLastReviewedAt: "2026-03-10T11:15:00.000Z",
           }),
         ]);
 
@@ -330,16 +344,20 @@ describe("localDb reviews", () => {
           "recent-1115",
           "recent-1155",
           "old-yesterday",
+          "due-last-hour-old-review",
           "new-null",
         ]);
+        expect(Object.prototype.hasOwnProperty.call(queueSnapshot.cards[0] ?? {}, "dueAtMillis")).toBe(false);
+        expect(Object.prototype.hasOwnProperty.call(queueSnapshot.cards[0] ?? {}, "fsrsLastReviewedAtMillis")).toBe(false);
         expect(queueSnapshot.reviewCounts).toEqual({
-          dueCount: 4,
-          totalCount: 6,
+          dueCount: 5,
+          totalCount: 7,
         });
         expect(timelinePage.cards.map((card) => card.cardId)).toEqual([
           "recent-1115",
           "recent-1155",
           "old-yesterday",
+          "due-last-hour-old-review",
           "new-null",
           "future-tomorrow",
           "malformed",
@@ -347,6 +365,7 @@ describe("localDb reviews", () => {
         expect(grammarQueueSnapshot.cards.map((card) => card.cardId)).toEqual([
           "recent-1115",
           "old-yesterday",
+          "due-last-hour-old-review",
           "new-null",
         ]);
       } finally {
@@ -356,7 +375,7 @@ describe("localDb reviews", () => {
     });
 
   describe("boundary parsing", () => {
-    it("keeps recent due boundaries inclusive and excludes now plus one millisecond from the active queue", async () => {
+    it("keeps recent review boundaries inclusive and excludes now plus one millisecond from the active queue", async () => {
       const nowTimestamp = Date.parse("2026-03-10T12:00:00.000Z");
       const originalNow = Date.now;
       Date.now = () => nowTimestamp;
@@ -371,6 +390,7 @@ describe("localDb reviews", () => {
             effortLevel: "fast",
             dueAt: "2026-03-10T12:00:00.001Z",
             createdAt: "2026-03-10T09:00:00.000Z",
+            fsrsLastReviewedAt: "2026-03-10T12:00:00.000Z",
           }),
           makeCard({
             cardId: "malformed-in-range",
@@ -380,6 +400,7 @@ describe("localDb reviews", () => {
             effortLevel: "fast",
             dueAt: "2026-03-10T11:30:broken",
             createdAt: "2026-03-10T09:00:00.000Z",
+            fsrsLastReviewedAt: "2026-03-10T11:30:00.000Z",
           }),
           makeCard({
             cardId: "old-one-ms",
@@ -389,6 +410,7 @@ describe("localDb reviews", () => {
             effortLevel: "fast",
             dueAt: "2026-03-10T10:59:59.999Z",
             createdAt: "2026-03-10T09:00:00.000Z",
+            fsrsLastReviewedAt: "2026-03-10T10:59:59.999Z",
           }),
           makeCard({
             cardId: "due-now",
@@ -398,6 +420,7 @@ describe("localDb reviews", () => {
             effortLevel: "fast",
             dueAt: "2026-03-10T12:00:00.000Z",
             createdAt: "2026-03-10T09:00:00.000Z",
+            fsrsLastReviewedAt: "2026-03-10T12:00:00.000Z",
           }),
           makeCard({
             cardId: "new-null",
@@ -416,6 +439,7 @@ describe("localDb reviews", () => {
             effortLevel: "fast",
             dueAt: "2026-03-10T11:00:00.000Z",
             createdAt: "2026-03-10T09:00:00.000Z",
+            fsrsLastReviewedAt: "2026-03-10T11:00:00.000Z",
           }),
         ]);
 
@@ -637,6 +661,7 @@ describe("localDb reviews", () => {
             effortLevel: "fast",
             dueAt: "2026-03-10T11:00:00.1Z",
             createdAt: "2026-03-10T09:00:00.000Z",
+            fsrsLastReviewedAt: "2026-03-10T11:00:00.100Z",
           }),
           makeCard({
             cardId: "due-now-canonical",
@@ -646,6 +671,7 @@ describe("localDb reviews", () => {
             effortLevel: "fast",
             dueAt: "2026-03-10T12:00:00.100Z",
             createdAt: "2026-03-10T09:00:00.000Z",
+            fsrsLastReviewedAt: "2026-03-10T12:00:00.100Z",
           }),
           makeCard({
             cardId: "due-now-short-fraction",
@@ -655,6 +681,7 @@ describe("localDb reviews", () => {
             effortLevel: "fast",
             dueAt: "2026-03-10T12:00:00.1Z",
             createdAt: "2026-03-10T09:03:00.000Z",
+            fsrsLastReviewedAt: "2026-03-10T12:00:00.1Z",
           }),
           makeCard({
             cardId: "due-now-two-digit-fraction",
@@ -664,6 +691,7 @@ describe("localDb reviews", () => {
             effortLevel: "fast",
             dueAt: "2026-03-10T12:00:00.10Z",
             createdAt: "2026-03-10T09:02:00.000Z",
+            fsrsLastReviewedAt: "2026-03-10T12:00:00.100Z",
           }),
           makeCard({
             cardId: "future-one-ms",
@@ -724,7 +752,7 @@ describe("localDb reviews", () => {
     });
 
   describe("cursor pagination", () => {
-    it("continues active review chunks across recent due, old due, and null buckets when the cursor card is excluded", async () => {
+    it("continues active review chunks across recently reviewed due, other due, and null buckets when the cursor card is excluded", async () => {
       const nowTimestamp = Date.parse("2026-03-10T12:00:00.000Z");
       const originalNow = Date.now;
       Date.now = () => nowTimestamp;
@@ -739,6 +767,7 @@ describe("localDb reviews", () => {
             effortLevel: "fast",
             dueAt: "2026-03-10T11:15:00.000Z",
             createdAt: "2026-03-10T09:00:00.000Z",
+            fsrsLastReviewedAt: "2026-03-10T11:15:00.000Z",
           }),
           makeCard({
             cardId: "recent-1155",
@@ -748,6 +777,7 @@ describe("localDb reviews", () => {
             effortLevel: "fast",
             dueAt: "2026-03-10T11:55:00.000Z",
             createdAt: "2026-03-10T09:00:00.000Z",
+            fsrsLastReviewedAt: "2026-03-10T11:55:00.000Z",
           }),
           makeCard({
             cardId: "old-yesterday",
@@ -817,6 +847,7 @@ describe("localDb reviews", () => {
             effortLevel: "fast",
             dueAt: "2026-03-10T11:05:00.000Z",
             createdAt: "2026-03-10T09:00:00.000Z",
+            fsrsLastReviewedAt: "2026-03-10T11:05:00.000Z",
           }),
           makeCard({
             cardId: "recent-1110",
@@ -826,6 +857,7 @@ describe("localDb reviews", () => {
             effortLevel: "fast",
             dueAt: "2026-03-10T11:10:00.000Z",
             createdAt: "2026-03-10T09:00:00.000Z",
+            fsrsLastReviewedAt: "2026-03-10T11:10:00.000Z",
           }),
           makeCard({
             cardId: "recent-1115",
@@ -835,6 +867,7 @@ describe("localDb reviews", () => {
             effortLevel: "fast",
             dueAt: "2026-03-10T11:15:00.000Z",
             createdAt: "2026-03-10T09:00:00.000Z",
+            fsrsLastReviewedAt: "2026-03-10T11:15:00.000Z",
           }),
           makeCard({
             cardId: "old-1000",
