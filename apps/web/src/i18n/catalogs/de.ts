@@ -874,7 +874,7 @@ const deCatalog: TranslationCatalog = {
     stackDescription: "Die iOS-App und das Backend sind vollständig Open Source. Du kannst den Code prüfen, die MIT-Lizenz nutzen und denselben Stack auf deinen eigenen Servern ausführen.",
     repositoryAction: "Repository öffnen",
     selfHostingDescription: "Wenn du dein eigenes Backend benötigst, stelle denselben Open-Source-Stack auf deiner Infrastruktur bereit und nutze deine eigenen Web- und iOS-Clients mit dieser Bereitstellung.",
-    thirdPartyNoticeDescription: "Review-Lottie-Animationen: 38 Tier- und Naturanimationen von Google Inc., Copyright © 2026 Google Inc., verwendet unter Creative Commons Attribution 4.0. Lottie-Runtimes verwenden MIT- und Apache-2.0-Lizenzen.",
+    thirdPartyNoticeDescription: "Review-Lottie-Animationen: 38 Tier- und Naturanimationen von Google Inc., Copyright (c) 2026 Google Inc., verwendet unter Creative Commons Attribution 4.0. Lottie-Runtimes verwenden MIT- und Apache-2.0-Lizenzen.",
     thirdPartyNoticeFullAction: "Vollständige Hinweise öffnen",
     thirdPartyNoticeRainCloudSourceAction: "Regenwolken-Quelle öffnen",
     thirdPartyNoticeWindFaceSourceAction: "Windgesicht-Quelle öffnen",

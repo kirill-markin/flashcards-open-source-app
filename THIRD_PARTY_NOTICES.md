@@ -6,7 +6,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Rain Cloud Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-rain-cloud-animation_12152618
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -16,7 +16,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Tornado Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-tornado-animation_12152595
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -26,7 +26,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Wind Face Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-wind-face-animation_12152602
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -36,7 +36,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Snowflake Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-snowflake-animation_12152628
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -46,7 +46,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Snail Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-snail-animation_12152626
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -56,7 +56,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Turtle Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-turtle-animation_12152597
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -66,7 +66,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Wilted Flower Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-wilted-flower-animation_12152601
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -76,7 +76,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Spider Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-spider-animation_12152629
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -86,7 +86,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Rat Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-rat-animation_12152619
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -96,7 +96,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Worm Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-worm-animation_12152603
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -106,7 +106,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Tiger Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-tiger-animation_12152594
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -116,7 +116,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free T Rex Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-t-rex-animation_12152596
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -126,7 +126,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Shark Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-shark-animation_12152625
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -136,7 +136,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Ox Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-ox-animation_12152607
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -146,7 +146,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Racehorse Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-racehorse-animation_12152616
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -156,7 +156,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Snake Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-snake-animation_12152627
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -166,7 +166,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Volcano Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-volcano-animation_12152599
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -176,7 +176,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Scorpion Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-scorpion-animation_12152622
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -186,7 +186,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Paw Prints Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-paw-prints-animation_12152608
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -196,7 +196,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Rooster Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-rooster-animation_12152620
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -206,7 +206,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Otter Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-otter-animation_12152605
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -216,7 +216,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Owl Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-owl-animation_12152606
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -226,7 +226,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Rabbit Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-rabbit-animation_12152615
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -236,7 +236,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Seal Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-seal-animation_12152623
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -246,7 +246,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Service Dog Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-service-dog-animation_12152624
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -256,7 +256,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Poodle Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-poodle-animation_12152614
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -266,7 +266,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Chimpanzee Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-chimpanzee-animation_12152604
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -276,7 +276,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Whale Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-whale-animation_12152600
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -286,7 +286,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Peacock Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-peacock-animation_12152610
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -296,7 +296,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Pig Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-pig-animation_12152612
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -306,7 +306,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Sunrise Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-sunrise-animation_12152630
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -316,7 +316,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Sunrise Over Mountains Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-sunrise-over-mountains-animation_12152631
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -326,7 +326,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Rose Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-rose-animation_12152621
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -336,7 +336,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Peace Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-peace-animation_12152609
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -346,7 +346,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Plant Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-plant-animation_12152613
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -356,7 +356,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Rainbow Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-rainbow-animation_12152617
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -366,7 +366,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Phoenix Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-phoenix-animation_12152611
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/
@@ -376,7 +376,7 @@ This file lists third-party assets and runtime libraries bundled for the review 
 
 - Asset: Free Unicorn Animation
 - Author: Google Inc.
-- Copyright: Copyright © 2026 Google Inc.
+- Copyright: Copyright (c) 2026 Google Inc.
 - Source: https://iconscout.com/free-lottie-animation/free-unicorn-animation_12152598
 - License: Creative Commons Attribution 4.0 International
 - License URL: https://creativecommons.org/licenses/by/4.0/

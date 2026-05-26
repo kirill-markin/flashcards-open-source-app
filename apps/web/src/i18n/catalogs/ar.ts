@@ -874,7 +874,7 @@ const arCatalog: TranslationCatalog = {
     stackDescription: "تطبيق iOS والخادم الخلفي مفتوحا المصدر بالكامل. يمكنك فحص الكود واستخدام ترخيص MIT وتشغيل الحزمة نفسها على خوادمك الخاصة.",
     repositoryAction: "فتح المستودع",
     selfHostingDescription: "إذا كنت بحاجة إلى خادم خلفي خاص بك، فانشر الحزمة مفتوحة المصدر نفسها على بنيتك التحتية واستخدم عملاء الويب وiOS الخاصين بك مع ذلك النشر.",
-    thirdPartyNoticeDescription: "رسوم Lottie لمراجعة البطاقات: 38 رسمًا متحركًا للحيوانات والطبيعة من Google Inc.، حقوق النشر © 2026 Google Inc.، مستخدمة بموجب Creative Commons Attribution 4.0. تستخدم مشغلات Lottie تراخيص MIT وApache 2.0.",
+    thirdPartyNoticeDescription: "رسوم Lottie لمراجعة البطاقات: 38 رسمًا متحركًا للحيوانات والطبيعة من Google Inc.، حقوق النشر (c) 2026 Google Inc.، مستخدمة بموجب Creative Commons Attribution 4.0. تستخدم مشغلات Lottie تراخيص MIT وApache 2.0.",
     thirdPartyNoticeFullAction: "فتح الإشعارات الكاملة",
     thirdPartyNoticeRainCloudSourceAction: "فتح مصدر سحابة المطر",
     thirdPartyNoticeWindFaceSourceAction: "فتح مصدر وجه الرياح",
