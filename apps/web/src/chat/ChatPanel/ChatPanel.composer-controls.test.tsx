@@ -9,6 +9,7 @@ import {
   createNewChatSessionMock,
   dispatchChatPanelDragEvent,
   getChatSnapshotMock,
+  binaryPendingAttachmentExceedsSizeLimitMock,
   prepareAttachmentMock,
   queryChatAttachButton,
   queryChatComposerInput,
@@ -19,6 +20,7 @@ import {
   readStoredDraftPendingAttachmentCount,
   setTextareaValue,
   setupChatPanelTest,
+  startChatRunMock,
   stopChatRunMock,
   transcribeChatAudioMock,
   useAppDataMock,
@@ -30,6 +32,7 @@ const {
   clickMicrophone,
   clickStop,
   flushAsync,
+  getAlertMock,
   getContainer,
   renderChatPanel,
   sendMessage,
@@ -213,6 +216,59 @@ describe("ChatPanel composer controls", () => {
 
     expect(prepareAttachmentMock).not.toHaveBeenCalled();
     expect(getContainer().textContent).not.toContain("disabled.txt");
+  });
+
+  it("keeps the draft unchanged when a prepared attachment exceeds the client limit", async () => {
+    prepareAttachmentMock.mockResolvedValue({
+      type: "binary",
+      fileName: "large.txt",
+      mediaType: "text/plain",
+      base64Data: "large",
+    });
+    binaryPendingAttachmentExceedsSizeLimitMock.mockReturnValue(true);
+
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    const textarea = queryChatComposerInput(getContainer());
+    expect(textarea).not.toBeNull();
+    await setTextareaValue(textarea as HTMLTextAreaElement, "draft stays");
+    await dispatchChatPanelDragEvent(getContainer(), createDropEvent(new File(["large"], "large.txt", { type: "text/plain" })));
+    await flushAsync();
+
+    expect(getContainer().textContent).not.toContain("large.txt");
+    expect(textarea?.value).toBe("draft stays");
+    expect(getAlertMock()).toHaveBeenCalledWith("Message is too large. AI chat can’t send this much content at once. Remove one or more attachments, choose a smaller file or photo, or split the request and try again.");
+  });
+
+  it("keeps the draft unchanged when an existing attachment exceeds the send limit", async () => {
+    prepareAttachmentMock.mockResolvedValue({
+      type: "binary",
+      fileName: "restored.txt",
+      mediaType: "text/plain",
+      base64Data: "restored",
+    });
+
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    const textarea = queryChatComposerInput(getContainer());
+    expect(textarea).not.toBeNull();
+    await setTextareaValue(textarea as HTMLTextAreaElement, "draft stays");
+    await dispatchChatPanelDragEvent(getContainer(), createDropEvent(new File(["restored"], "restored.txt", { type: "text/plain" })));
+    await flushAsync();
+    expect(getContainer().textContent).toContain("restored.txt");
+
+    binaryPendingAttachmentExceedsSizeLimitMock.mockReturnValue(true);
+    await sendMessage("draft stays");
+    await flushAsync();
+
+    expect(startChatRunMock).not.toHaveBeenCalled();
+    expect(textarea?.value).toBe("draft stays");
+    expect(getContainer().textContent).toContain("restored.txt");
+    expect(getAlertMock()).toHaveBeenCalledWith("Message is too large. AI chat can’t send this much content at once. Remove one or more attachments, choose a smaller file or photo, or split the request and try again.");
   });
 
   it("ignores dropped files while a send is being prepared", async () => {

@@ -732,7 +732,7 @@ export const zhHansCatalog = {
       stopAriaLabel: "停止响应",
     },
     alerts: {
-      attachmentLimit: "压缩后附件负载上限为 {{count}} MB。",
+      attachmentLimit: "消息太大。AI 聊天无法一次发送这么多内容。请移除一个或多个附件，选择更小的文件或照片，或拆分请求后重试。",
       microphoneUnavailable: "此浏览器不支持麦克风录音。",
     },
     composerPlaceholder: "询问卡片、复习历史，或附加笔记以供提取...",

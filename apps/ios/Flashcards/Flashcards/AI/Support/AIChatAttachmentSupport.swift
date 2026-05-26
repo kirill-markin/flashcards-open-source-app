@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import UniformTypeIdentifiers
 
 enum AIChatAttachmentMenuAction: String, CaseIterable, Identifiable {
@@ -82,14 +83,19 @@ func aiChatMakeAttachmentFromFile(url: URL) throws -> AIChatAttachment {
 }
 
 func aiChatMakeImageAttachment(data: Data, fileName: String, mediaType: String) throws -> AIChatAttachment {
-    try aiChatValidateAttachmentSize(data: data)
+    let preparedImage = try aiChatPrepareImageAttachmentData(
+        data: data,
+        fileName: fileName,
+        mediaType: mediaType
+    )
+    try aiChatValidateAttachmentSize(data: preparedImage.data)
 
     return AIChatAttachment(
         id: UUID().uuidString.lowercased(),
         payload: .binary(
-            fileName: fileName,
-            mediaType: mediaType,
-            base64Data: data.base64EncodedString()
+            fileName: preparedImage.fileName,
+            mediaType: preparedImage.mediaType,
+            base64Data: preparedImage.data.base64EncodedString()
         )
     )
 }
@@ -223,9 +229,141 @@ private func aiChatValidateAttachmentSize(data: Data) throws {
             userInfo: [
                 NSLocalizedDescriptionKey: aiSettingsLocalized(
                     "ai.attachment.error.fileTooLarge",
-                    "File is too large. Maximum allowed size is 20 MB."
+                    "File is too large. Maximum allowed size is 3 MB."
                 ),
             ]
         )
     }
+}
+
+private struct AIChatPreparedImageAttachment {
+    let data: Data
+    let fileName: String
+    let mediaType: String
+}
+
+private struct AIChatImageCompressionPolicy {
+    let maximumSidePixels: CGFloat
+    let quality: CGFloat
+}
+
+private let aiChatDefaultImageCompressionPolicy = AIChatImageCompressionPolicy(
+    maximumSidePixels: 2_048,
+    quality: 0.8
+)
+private let aiChatFallbackImageCompressionPolicy = AIChatImageCompressionPolicy(
+    maximumSidePixels: 1_280,
+    quality: 0.55
+)
+
+private func aiChatPrepareImageAttachmentData(
+    data: Data,
+    fileName: String,
+    mediaType: String
+) throws -> AIChatPreparedImageAttachment {
+    guard let image = UIImage(data: data) else {
+        try aiChatValidateAttachmentSize(data: data)
+        return AIChatPreparedImageAttachment(
+            data: data,
+            fileName: fileName,
+            mediaType: mediaType
+        )
+    }
+
+    let compressedData = try aiChatCompressImage(
+        image: image,
+        policy: aiChatDefaultImageCompressionPolicy
+    )
+    if compressedData.count <= aiChatMaximumAttachmentBytes {
+        return AIChatPreparedImageAttachment(
+            data: compressedData,
+            fileName: aiChatJpegFileName(fileName),
+            mediaType: "image/jpeg"
+        )
+    }
+
+    let fallbackData = try aiChatCompressImage(
+        image: image,
+        policy: aiChatFallbackImageCompressionPolicy
+    )
+    return AIChatPreparedImageAttachment(
+        data: fallbackData,
+        fileName: aiChatJpegFileName(fileName),
+        mediaType: "image/jpeg"
+    )
+}
+
+private func aiChatCompressImage(
+    image: UIImage,
+    policy: AIChatImageCompressionPolicy
+) throws -> Data {
+    let scaledSize = try aiChatScaledImageSize(
+        imageSize: image.size,
+        maximumSidePixels: policy.maximumSidePixels
+    )
+    let format = UIGraphicsImageRendererFormat.default()
+    format.scale = 1
+    format.opaque = true
+    let renderer = UIGraphicsImageRenderer(size: scaledSize, format: format)
+    let renderedImage = renderer.image { _ in
+        UIColor.white.setFill()
+        UIRectFill(CGRect(origin: .zero, size: scaledSize))
+        image.draw(in: CGRect(origin: .zero, size: scaledSize))
+    }
+
+    guard let compressedData = renderedImage.jpegData(compressionQuality: policy.quality) else {
+        throw NSError(
+            domain: "AIChatAttachment",
+            code: 3,
+            userInfo: [
+                NSLocalizedDescriptionKey: aiSettingsLocalized(
+                    "ai.attachment.error.imageEncodeFailed",
+                    "Failed to prepare the selected photo."
+                ),
+            ]
+        )
+    }
+
+    return compressedData
+}
+
+private func aiChatScaledImageSize(
+    imageSize: CGSize,
+    maximumSidePixels: CGFloat
+) throws -> CGSize {
+    guard imageSize.width > 0, imageSize.height > 0 else {
+        throw NSError(
+            domain: "AIChatAttachment",
+            code: 4,
+            userInfo: [
+                NSLocalizedDescriptionKey: aiSettingsLocalized(
+                    "ai.attachment.error.imageDimensionsInvalid",
+                    "Failed to read the selected photo."
+                ),
+            ]
+        )
+    }
+
+    let longestSide = max(imageSize.width, imageSize.height)
+    if longestSide <= maximumSidePixels {
+        return CGSize(
+            width: max(1, imageSize.width.rounded()),
+            height: max(1, imageSize.height.rounded())
+        )
+    }
+
+    let scale = maximumSidePixels / longestSide
+    return CGSize(
+        width: max(1, (imageSize.width * scale).rounded()),
+        height: max(1, (imageSize.height * scale).rounded())
+    )
+}
+
+private func aiChatJpegFileName(_ fileName: String) -> String {
+    let baseName = URL(fileURLWithPath: fileName)
+        .deletingPathExtension()
+        .lastPathComponent
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+    let resolvedBaseName = baseName.isEmpty ? "photo" : baseName
+    return "\(resolvedBaseName).jpg"
 }

@@ -1,11 +1,15 @@
 import type { ContentPart } from "../../types";
 import type { PendingAttachment } from "../attachments/FileAttachment";
 import { isBinaryPendingAttachment } from "../attachments/FileAttachment";
+import {
+  AI_CHAT_MAXIMUM_START_RUN_REQUEST_BYTES,
+  USER_VISIBLE_ATTACHMENT_LIMIT_MB as USER_VISIBLE_START_RUN_REQUEST_LIMIT_MB,
+} from "./chatSizePolicy";
 
 export const STORAGE_MODEL_KEY = "flashcards-chat-model";
 export const IMAGE_MEDIA_TYPE_PREFIX = "image/";
-export const ATTACHMENT_PAYLOAD_LIMIT_BYTES = 9_961_472;
-export const USER_VISIBLE_ATTACHMENT_LIMIT_MB = 10;
+export const ATTACHMENT_PAYLOAD_LIMIT_BYTES = AI_CHAT_MAXIMUM_START_RUN_REQUEST_BYTES;
+export const USER_VISIBLE_ATTACHMENT_LIMIT_MB = USER_VISIBLE_START_RUN_REQUEST_LIMIT_MB;
 export const MIN_WIDTH = 280;
 export const MAX_WIDTH = 600;
 export const AUTO_SCROLL_INTERVAL_MS = 2_000;

@@ -53,6 +53,23 @@ describe("ChatPanel error observation", () => {
     expect(getContainer().textContent).toContain("Chat request failed.");
   });
 
+  it("does not capture oversized chat request failures", async () => {
+    startChatRunMock.mockRejectedValue(new ApiErrorMock(
+      413,
+      "AI chat request is too large.",
+      "CHAT_REQUEST_TOO_LARGE",
+    ));
+
+    await renderChatPanel();
+    await flushAsync();
+    await sendMessage("oversized request");
+    await flushAsync();
+    await flushAsync();
+
+    expect(captureWebExceptionMock).not.toHaveBeenCalled();
+    expect(getContainer().textContent).toContain("Message is too large.");
+  });
+
   it("captures non-json 4xx chat request failures", async () => {
     const requestError = Object.assign(
       new ApiErrorMock(400, "Bad request", null),

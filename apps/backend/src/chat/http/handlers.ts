@@ -12,8 +12,14 @@ import {
   startBackendSpan,
 } from "../../observability/sentry";
 import { parseOptionalWorkspaceIdParam } from "../../server/requestContext";
-import { parseJsonBody } from "../../server/requestParsing";
 import {
+  parseJsonBody,
+  parseJsonBodyWithByteLimit,
+} from "../../server/requestParsing";
+import {
+  chatMaximumStartRunRequestBytes,
+  chatRequestTooLargeCode,
+  chatRequestTooLargeMessage,
   parseChatPageQuery,
   parseChatRequestBody,
   parseNewChatRequestBody,
@@ -145,7 +151,13 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
       context.req.raw,
       dependencies,
     );
-    const body = parseChatRequestBody(await parseJsonBody(context.req.raw));
+    const rawBody = await parseJsonBodyWithByteLimit(
+      context.req.raw,
+      chatMaximumStartRunRequestBytes,
+      chatRequestTooLargeMessage,
+      chatRequestTooLargeCode,
+    );
+    const body = parseChatRequestBody(rawBody);
     const workspaceId = await dependencies.resolveAccessibleChatWorkspaceIdFn(requestContext, body.workspaceId);
     const resumeDiagnostics = readChatResumeDiagnosticsHeaders(context.req.raw);
     const requestId = context.get("requestId") ?? null;

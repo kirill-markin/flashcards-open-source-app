@@ -1,6 +1,10 @@
 import { useRef, type ReactElement } from "react";
 import { useI18n } from "../../i18n";
 import type { EffortLevel } from "../../types";
+import {
+  AI_CHAT_MAXIMUM_ATTACHMENT_BYTES,
+  base64DataByteCount,
+} from "../shared/chatSizePolicy";
 
 export type BinaryPendingAttachment = Readonly<{
   type: "binary";
@@ -31,6 +35,13 @@ export type ImageCompressionOptions = Readonly<{
   quality: number;
 }>;
 
+export class ChatAttachmentTooLargeError extends Error {
+  constructor() {
+    super("AI chat attachment is too large.");
+    this.name = "ChatAttachmentTooLargeError";
+  }
+}
+
 const ACCEPTED_TYPES = "image/*,.pdf,.txt,.csv,.json,.xml,.xlsx,.xls,.md,.html,.py,.js,.ts,.yaml,.yml,.sql,.log,.docx";
 const IMAGE_MEDIA_TYPE_PREFIX = "image/";
 const HEIC_MEDIA_TYPES = new Set([
@@ -42,7 +53,7 @@ const HEIC_MEDIA_TYPES = new Set([
 const MB = 1024 * 1024;
 
 export const IMAGE_RAW_MAX_FILE_SIZE_BYTES = 40 * MB;
-export const NON_IMAGE_RAW_MAX_FILE_SIZE_BYTES = 20 * MB;
+export const NON_IMAGE_RAW_MAX_FILE_SIZE_BYTES = AI_CHAT_MAXIMUM_ATTACHMENT_BYTES;
 
 export const AGGRESSIVE_IMAGE_COMPRESSION: ImageCompressionOptions = {
   maxSidePixels: 2_048,
@@ -87,6 +98,10 @@ function fileSizeLimitBytes(file: File): number {
   return NON_IMAGE_RAW_MAX_FILE_SIZE_BYTES;
 }
 
+function formatMegabytes(byteCount: number): string {
+  return (byteCount / MB).toFixed(1);
+}
+
 function extractBase64Data(dataUrl: string, fileName: string): string {
   const separatorIndex = dataUrl.indexOf(",");
   if (separatorIndex <= 0 || separatorIndex >= dataUrl.length - 1) {
@@ -99,7 +114,7 @@ function extractBase64Data(dataUrl: string, fileName: string): string {
 export function checkFileSize(file: File): string | null {
   const sizeLimitBytes = fileSizeLimitBytes(file);
   if (file.size > sizeLimitBytes) {
-    const sizeMb = (file.size / MB).toFixed(1);
+    const sizeMb = formatMegabytes(file.size);
     const limitMb = (sizeLimitBytes / MB).toFixed(0);
     if (isImageFile(file)) {
       return `Image "${file.name}" is too large (${sizeMb} MB). Maximum allowed image size before compression is ${limitMb} MB.`;
@@ -109,6 +124,23 @@ export function checkFileSize(file: File): string | null {
   }
 
   return null;
+}
+
+export function binaryPendingAttachmentByteCount(attachment: BinaryPendingAttachment): number {
+  return base64DataByteCount(attachment.base64Data);
+}
+
+export function binaryPendingAttachmentExceedsSizeLimit(attachment: PendingAttachment): boolean {
+  if (attachment.type !== "binary") {
+    return false;
+  }
+
+  const byteCount = binaryPendingAttachmentByteCount(attachment);
+  return byteCount > AI_CHAT_MAXIMUM_ATTACHMENT_BYTES;
+}
+
+export function isChatAttachmentTooLargeError(error: unknown): boolean {
+  return error instanceof ChatAttachmentTooLargeError;
 }
 
 function readFileAsBase64(file: File): Promise<string> {
@@ -245,6 +277,15 @@ async function prepareImageAttachment(
   };
 }
 
+async function prepareImageAttachmentWithinSizeLimit(file: File): Promise<PendingAttachment> {
+  const attachment = await prepareImageAttachment(file, AGGRESSIVE_IMAGE_COMPRESSION);
+  if (binaryPendingAttachmentExceedsSizeLimit(attachment) === false) {
+    return attachment;
+  }
+
+  return prepareImageAttachment(file, EXTRA_AGGRESSIVE_IMAGE_COMPRESSION);
+}
+
 export async function recompressImageAttachment(
   attachment: PendingAttachment,
   options: ImageCompressionOptions,
@@ -267,8 +308,16 @@ export async function recompressImageAttachment(
 export async function prepareAttachment(file: File): Promise<PendingAttachment> {
   if (isImageFile(file)) {
     try {
-      return await prepareImageAttachment(file, AGGRESSIVE_IMAGE_COMPRESSION);
+      const attachment = await prepareImageAttachmentWithinSizeLimit(file);
+      if (binaryPendingAttachmentExceedsSizeLimit(attachment)) {
+        throw new ChatAttachmentTooLargeError();
+      }
+      return attachment;
     } catch (error) {
+      if (isChatAttachmentTooLargeError(error)) {
+        throw error;
+      }
+
       const message = error instanceof Error ? error.message : String(error);
       throw new Error(
         `Failed to process image "${file.name}". Please try another image format or a smaller file. ${message}`,
@@ -276,12 +325,17 @@ export async function prepareAttachment(file: File): Promise<PendingAttachment> 
     }
   }
 
-  return {
+  const attachment: PendingAttachment = {
     type: "binary",
     fileName: file.name,
     mediaType: file.type || "application/octet-stream",
     base64Data: await readFileAsBase64(file),
   };
+  if (binaryPendingAttachmentExceedsSizeLimit(attachment)) {
+    throw new ChatAttachmentTooLargeError();
+  }
+
+  return attachment;
 }
 
 export function FileAttachment(props: Props): ReactElement {
@@ -289,6 +343,7 @@ export function FileAttachment(props: Props): ReactElement {
   const { t } = useI18n();
   const disabled = props.disabled === true;
   const inputRef = useRef<HTMLInputElement>(null);
+  const attachmentLimitMessage = t("chatPanel.alerts.attachmentLimit");
 
   async function handleChange(): Promise<void> {
     const files = inputRef.current?.files;
@@ -300,13 +355,18 @@ export function FileAttachment(props: Props): ReactElement {
       const file = files[index];
       const sizeError = checkFileSize(file);
       if (sizeError !== null) {
-        window.alert(sizeError);
+        window.alert(attachmentLimitMessage);
         continue;
       }
 
       try {
         await onAttach(await prepareAttachment(file));
       } catch (error) {
+        if (isChatAttachmentTooLargeError(error)) {
+          window.alert(attachmentLimitMessage);
+          continue;
+        }
+
         const message = error instanceof Error ? error.message : String(error);
         window.alert(message);
       }

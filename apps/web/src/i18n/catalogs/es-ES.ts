@@ -732,7 +732,7 @@ const esEsCatalog: TranslationCatalog = {
       stopAriaLabel: "Detener respuesta",
     },
     alerts: {
-      attachmentLimit: "El límite de adjuntos es de {{count}} MB después de la compresión.",
+      attachmentLimit: "El mensaje es demasiado grande. El chat de IA no puede enviar tanto contenido a la vez. Elimina uno o más adjuntos, elige un archivo o una foto más pequeños, o divide la solicitud e inténtalo de nuevo.",
       microphoneUnavailable: "La grabación con micrófono no está disponible en este navegador.",
     },
     composerPlaceholder: "Pregunta sobre tarjetas, historial de repaso o adjunta notas...",

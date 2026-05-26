@@ -732,7 +732,7 @@ const deCatalog: TranslationCatalog = {
       stopAriaLabel: "Antwort stoppen",
     },
     alerts: {
-      attachmentLimit: "Das Limit für Anhangsdaten beträgt nach der Komprimierung {{count}} MB.",
+      attachmentLimit: "Die Nachricht ist zu groß. Der AI-Chat kann nicht so viele Inhalte auf einmal senden. Entferne einen oder mehrere Anhänge, wähle eine kleinere Datei oder ein kleineres Foto oder teile die Anfrage auf und versuche es erneut.",
       microphoneUnavailable: "Mikrofonaufnahme ist in diesem Browser nicht verfügbar.",
     },
     composerPlaceholder: "Frage nach Karten, Wiederholungsverlauf oder hänge Notizen an...",

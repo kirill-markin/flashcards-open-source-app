@@ -4,6 +4,8 @@ import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.aiChatMaximumAttachmentBytes
+import com.flashcardsopensourceapp.data.local.model.aiChatMaximumStartRunRequestBytes
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
 import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
@@ -130,6 +132,77 @@ class AiChatRuntimeSendDraftRestorationTest {
     }
 
     @Test
+    fun oversizedSendKeepsDraftAndAttachmentsBeforeSyncOrSessionProvisioning() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.persistedStates[defaultTestWorkspaceId] = makeDefaultAiChatPersistedState().copy(
+            chatSessionId = "session-1"
+        )
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
+        val runtime = makeRuntime(scope = this, repository = repository)
+        val attachment = AiChatAttachment.Binary(
+            id = "attachment-1",
+            fileName = "large.txt",
+            mediaType = "text/plain",
+            base64Data = "a".repeat(aiChatMaximumStartRunRequestBytes)
+        )
+
+        runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
+        advanceUntilIdle()
+
+        runtime.updateDraftMessage(draftMessage = "keep this draft")
+        runtime.addPendingAttachment(attachment = attachment)
+        runtime.sendMessage()
+        advanceUntilIdle()
+
+        assertEquals("keep this draft", runtime.state.value.draftMessage)
+        assertEquals(listOf(attachment), runtime.state.value.pendingAttachments)
+        assertEquals(AiComposerPhase.IDLE, runtime.state.value.composerPhase)
+        assertEquals(0, repository.ensureReadyForSendCalls)
+        assertEquals(0, repository.startRunCalls)
+        val alert = runtime.state.value.activeAlert as AiAlertState.GeneralError
+        assertEquals("Message is too large", alert.title)
+    }
+
+    @Test
+    fun oversizedRestoredAttachmentUnderRequestLimitKeepsDraftAndAttachments() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.persistedStates[defaultTestWorkspaceId] = makeDefaultAiChatPersistedState().copy(
+            chatSessionId = "session-1"
+        )
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
+        val runtime = makeRuntime(scope = this, repository = repository)
+        val attachment = AiChatAttachment.Binary(
+            id = "attachment-1",
+            fileName = "restored.txt",
+            mediaType = "text/plain",
+            base64Data = base64DataForDecodedByteCount(byteCount = aiChatMaximumAttachmentBytes + 1)
+        )
+
+        assertTrue(attachment.base64Data.length < aiChatMaximumStartRunRequestBytes)
+        runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
+        advanceUntilIdle()
+
+        runtime.updateDraftMessage(draftMessage = "keep this draft")
+        runtime.addPendingAttachment(attachment = attachment)
+        runtime.sendMessage()
+        advanceUntilIdle()
+
+        assertEquals("keep this draft", runtime.state.value.draftMessage)
+        assertEquals(listOf(attachment), runtime.state.value.pendingAttachments)
+        assertEquals(AiComposerPhase.IDLE, runtime.state.value.composerPhase)
+        assertEquals(0, repository.ensureReadyForSendCalls)
+        assertEquals(0, repository.startRunCalls)
+        val alert = runtime.state.value.activeAlert as AiAlertState.GeneralError
+        assertEquals("Message is too large", alert.title)
+    }
+
+    @Test
     fun sendPendingRemoteSessionProvisioningFailureAttemptsCreateNewSessionOnceAndRestoresDraft() = runTest {
         val repository = FakeAiChatRepository()
         repository.persistedStates[defaultTestWorkspaceId] = makeDefaultAiChatPersistedState().copy(
@@ -253,4 +326,8 @@ class AiChatRuntimeSendDraftRestorationTest {
             repository.draftStates[defaultTestWorkspaceId to "session-1"]?.pendingAttachments
         )
     }
+}
+
+private fun base64DataForDecodedByteCount(byteCount: Int): String {
+    return "a".repeat(((byteCount + 2) / 3) * 4)
 }

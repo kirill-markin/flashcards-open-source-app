@@ -54,6 +54,13 @@ private func aiChatAlertPresentation(
     error: Error,
     resumeAttemptSequence: Int?
 ) -> AIChatAlertPresentation {
+    if isAIChatRequestTooLargeError(error: error) {
+        return AIChatAlertPresentation(
+            title: aiChatRequestTooLargeTitle(),
+            message: aiChatRequestTooLargeMessage()
+        )
+    }
+
     if let liveError = error as? AIChatLiveStreamError {
         return aiChatAlertPresentation(
             liveError: liveError,

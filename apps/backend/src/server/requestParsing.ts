@@ -8,6 +8,33 @@ export async function parseJsonBody(request: Request): Promise<unknown> {
   }
 }
 
+export async function parseJsonBodyWithByteLimit(
+  request: Request,
+  maximumBodyBytes: number,
+  tooLargeMessage: string,
+  tooLargeCode: string,
+): Promise<unknown> {
+  const contentLengthHeader = request.headers.get("content-length");
+  if (contentLengthHeader !== null) {
+    const contentLength = Number.parseInt(contentLengthHeader, 10);
+    if (Number.isSafeInteger(contentLength) && contentLength > maximumBodyBytes) {
+      throw new HttpError(413, tooLargeMessage, tooLargeCode);
+    }
+  }
+
+  const bodyText = await request.text();
+  const bodyByteCount = new TextEncoder().encode(bodyText).byteLength;
+  if (bodyByteCount > maximumBodyBytes) {
+    throw new HttpError(413, tooLargeMessage, tooLargeCode);
+  }
+
+  try {
+    return JSON.parse(bodyText) as unknown;
+  } catch {
+    throw new HttpError(400, "Invalid JSON body");
+  }
+}
+
 export function expectRecord(value: unknown): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new HttpError(400, "Request body must be a JSON object");

@@ -7,8 +7,10 @@ import {
 } from "../shared/chatHelpers";
 import {
   EXTRA_AGGRESSIVE_IMAGE_COMPRESSION,
+  binaryPendingAttachmentExceedsSizeLimit,
   checkFileSize,
   isBinaryPendingAttachment,
+  isChatAttachmentTooLargeError,
   prepareAttachment,
   recompressImageAttachment,
   type PendingAttachment,
@@ -94,6 +96,11 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
 
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     let finalAttachment = attachment;
+    if (binaryPendingAttachmentExceedsSizeLimit(finalAttachment)) {
+      window.alert(attachmentLimitMessage);
+      return;
+    }
+
     let candidateAttachments = [...pendingAttachmentsRef.current, finalAttachment];
     let projectedSizeBytes = measureDraftRequestBodySize({
       attachments: candidateAttachments,
@@ -119,6 +126,10 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
       }
 
       candidateAttachments = [...pendingAttachmentsRef.current, finalAttachment];
+      if (binaryPendingAttachmentExceedsSizeLimit(finalAttachment)) {
+        window.alert(attachmentLimitMessage);
+        return;
+      }
       projectedSizeBytes = measureDraftRequestBodySize({
         attachments: candidateAttachments,
         currentSessionId,
@@ -195,13 +206,18 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
       const file = files[index];
       const sizeError = checkFileSize(file);
       if (sizeError !== null) {
-        window.alert(sizeError);
+        window.alert(attachmentLimitMessage);
         continue;
       }
 
       try {
         await handleAttach(await prepareAttachment(file));
       } catch (error) {
+        if (isChatAttachmentTooLargeError(error)) {
+          window.alert(attachmentLimitMessage);
+          continue;
+        }
+
         const message = error instanceof Error ? error.message : String(error);
         window.alert(message);
       }

@@ -7,9 +7,11 @@ import com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics
 import com.flashcardsopensourceapp.data.local.model.AiChatStartRunRequest
 import com.flashcardsopensourceapp.data.local.model.AiChatStopRunRequest
 import com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart
+import com.flashcardsopensourceapp.data.local.model.aiChatMaximumStartRunRequestBytes
 import com.sun.net.httpserver.HttpServer
 import java.net.InetSocketAddress
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
@@ -91,6 +93,49 @@ class AiChatRemoteTransportRequestTest {
             assertEquals("session-1", requestBody.getString("sessionId"))
             assertEquals(AI_CHAT_TEST_WORKSPACE_ID, requestBody.getString("workspaceId"))
             assertEquals(AI_CHAT_TEST_UI_LOCALE, requestBody.getString("uiLocale"))
+        } finally {
+            server.stop(0)
+        }
+    }
+
+    @Test
+    fun startRunRejectsRequestAboveSoftLimitBeforeNetwork() = runBlocking {
+        val requestCount = AtomicInteger(0)
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        server.createContext("/chat") { exchange ->
+            requestCount.incrementAndGet()
+            writeAiChatTestJsonResponse(exchange = exchange, body = acceptedConversationEnvelopeJson())
+        }
+        server.start()
+
+        try {
+            val service = makeAiChatTestRemoteService()
+            var thrownError: AiChatRequestTooLargeException? = null
+            try {
+                service.startRun(
+                    apiBaseUrl = "http://127.0.0.1:${server.address.port}",
+                    authorizationHeader = "Bearer token-1",
+                    request = AiChatStartRunRequest(
+                        sessionId = "session-1",
+                        workspaceId = AI_CHAT_TEST_WORKSPACE_ID,
+                        clientRequestId = "request-1",
+                        content = listOf(
+                            AiChatWireContentPart.File(
+                                fileName = "large.txt",
+                                mediaType = "text/plain",
+                                base64Data = "a".repeat(aiChatMaximumStartRunRequestBytes)
+                            )
+                        ),
+                        timezone = "Europe/Madrid",
+                        uiLocale = AI_CHAT_TEST_UI_LOCALE
+                    )
+                )
+            } catch (error: AiChatRequestTooLargeException) {
+                thrownError = error
+            }
+
+            assertEquals(0, requestCount.get())
+            assertTrue(thrownError != null)
         } finally {
             server.stop(0)
         }
