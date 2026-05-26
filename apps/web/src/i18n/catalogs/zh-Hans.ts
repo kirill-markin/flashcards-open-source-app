@@ -601,6 +601,7 @@ export const zhHansCatalog = {
     deleteConfirmation: "删除这张卡片？",
     errors: {
       cardIdRequired: "卡片 ID 为必填项",
+      cardNotFound: "未找到卡片",
     },
     fields: {
       back: "背面",

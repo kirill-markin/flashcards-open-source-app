@@ -599,6 +599,7 @@ const enCatalog = {
     deleteConfirmation: "Delete this card?",
     errors: {
       cardIdRequired: "Card ID is required",
+      cardNotFound: "Card not found",
     },
     fields: {
       back: "Back",

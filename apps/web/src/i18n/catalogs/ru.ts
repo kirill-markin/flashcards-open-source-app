@@ -601,6 +601,7 @@ export const ruCatalog = {
     deleteConfirmation: "Удалить эту карточку?",
     errors: {
       cardIdRequired: "Требуется ID карточки",
+      cardNotFound: "Карточка не найдена",
     },
     fields: {
       back: "Обратная сторона",

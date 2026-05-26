@@ -601,6 +601,7 @@ const esEsCatalog: TranslationCatalog = {
     deleteConfirmation: "¿Eliminar esta tarjeta?",
     errors: {
       cardIdRequired: "El ID de la tarjeta es obligatorio",
+      cardNotFound: "Tarjeta no encontrada",
     },
     fields: {
       back: "Reverso",
