@@ -1,19 +1,41 @@
 import type { LottiePlayer } from "lottie-web";
+import againRainCloudAnimationUrl from "../../../assets/review_again_rain_cloud.json?url";
 import againSnailCrawlAnimationUrl from "../../../assets/review_again_snail.json?url";
+import againSnowflakeAnimationUrl from "../../../assets/review_again_snowflake.json?url";
+import againSpiderAnimationUrl from "../../../assets/review_again_spider.json?url";
 import againTornadoAnimationUrl from "../../../assets/review_again_tornado.json?url";
+import againTurtleAnimationUrl from "../../../assets/review_again_turtle.json?url";
 import againWiltedFlowerAnimationUrl from "../../../assets/review_again_wilted_flower.json?url";
+import againWindFaceAnimationUrl from "../../../assets/review_again_wind_face.json?url";
 import againWormWiggleAnimationUrl from "../../../assets/review_again_worm.json?url";
+import againRatAnimationUrl from "../../../assets/review_again_rat.json?url";
+import easyPeaceAnimationUrl from "../../../assets/review_easy_peace.json?url";
+import easyPlantAnimationUrl from "../../../assets/review_easy_plant.json?url";
 import easyPhoenixRiseAnimationUrl from "../../../assets/review_easy_phoenix.json?url";
 import easyRainbowStreakAnimationUrl from "../../../assets/review_easy_rainbow.json?url";
 import easyRoseBloomAnimationUrl from "../../../assets/review_easy_rose.json?url";
+import easySunriseAnimationUrl from "../../../assets/review_easy_sunrise.json?url";
+import easySunriseOverMountainsAnimationUrl from "../../../assets/review_easy_sunrise_over_mountains.json?url";
 import easyUnicornFlybyAnimationUrl from "../../../assets/review_easy_unicorn.json?url";
+import goodChimpanzeeAnimationUrl from "../../../assets/review_good_chimpanzee.json?url";
 import goodOwlAnimationUrl from "../../../assets/review_good_owl.json?url";
 import goodPeacockAnimationUrl from "../../../assets/review_good_peacock.json?url";
+import goodPigAnimationUrl from "../../../assets/review_good_pig.json?url";
 import goodPoodleAnimationUrl from "../../../assets/review_good_poodle.json?url";
+import goodRabbitAnimationUrl from "../../../assets/review_good_rabbit.json?url";
+import goodSealAnimationUrl from "../../../assets/review_good_seal.json?url";
+import goodServiceDogAnimationUrl from "../../../assets/review_good_service_dog.json?url";
+import goodOtterAnimationUrl from "../../../assets/review_good_otter.json?url";
 import goodWhaleAnimationUrl from "../../../assets/review_good_whale.json?url";
+import hardScorpionAnimationUrl from "../../../assets/review_hard_scorpion.json?url";
+import hardRoosterAnimationUrl from "../../../assets/review_hard_rooster.json?url";
 import hardOxChargeAnimationUrl from "../../../assets/review_hard_ox.json?url";
 import hardPawPrintsAnimationUrl from "../../../assets/review_hard_paw_prints.json?url";
 import hardRacehorseGallopAnimationUrl from "../../../assets/review_hard_racehorse.json?url";
+import hardSharkAnimationUrl from "../../../assets/review_hard_shark.json?url";
+import hardSnakeAnimationUrl from "../../../assets/review_hard_snake.json?url";
+import hardTRexAnimationUrl from "../../../assets/review_hard_t_rex.json?url";
+import hardTigerAnimationUrl from "../../../assets/review_hard_tiger.json?url";
 import hardVolcanoEruptionAnimationUrl from "../../../assets/review_hard_volcano.json?url";
 import type { ReviewReactionFallbackVariant, ReviewReactionRenderableVariant } from "./reviewReaction";
 
@@ -26,19 +48,41 @@ type ReviewReactionLottieAnimationDataByVariant = Record<ReviewReactionLottieVar
 type ReviewReactionLottieAnimationPromiseByVariant = Record<ReviewReactionLottieVariant, Promise<object> | null>;
 
 export const reviewReactionLottieVariants = [
-  "againWormWiggle",
+  "againRainCloud",
   "againTornado",
+  "againWindFace",
+  "againSnowflake",
   "againSnailCrawl",
+  "againTurtle",
   "againWiltedFlower",
+  "againSpider",
+  "againRat",
+  "againWormWiggle",
+  "hardTiger",
+  "hardTRex",
+  "hardShark",
+  "hardOxCharge",
+  "hardRacehorseGallop",
+  "hardSnake",
+  "hardVolcanoEruption",
+  "hardScorpion",
+  "hardPawPrints",
+  "hardRooster",
+  "goodOtter",
   "goodOwl",
+  "goodRabbit",
+  "goodSeal",
+  "goodServiceDog",
   "goodPoodle",
+  "goodChimpanzee",
   "goodWhale",
   "goodPeacock",
-  "hardOxCharge",
-  "hardPawPrints",
-  "hardRacehorseGallop",
-  "hardVolcanoEruption",
+  "goodPig",
+  "easySunrise",
+  "easySunriseOverMountains",
   "easyRoseBloom",
+  "easyPeace",
+  "easyPlant",
   "easyRainbowStreak",
   "easyPhoenixRise",
   "easyUnicornFlyby",
@@ -65,81 +109,181 @@ const reviewReactionLottieVariantSet: ReadonlySet<ReviewReactionRenderableVarian
 );
 
 const reviewReactionLottieAnimationUrlByVariant: Readonly<Record<ReviewReactionLottieVariant, string>> = {
-  againWormWiggle: againWormWiggleAnimationUrl,
+  againRainCloud: againRainCloudAnimationUrl,
   againTornado: againTornadoAnimationUrl,
+  againWindFace: againWindFaceAnimationUrl,
+  againSnowflake: againSnowflakeAnimationUrl,
   againSnailCrawl: againSnailCrawlAnimationUrl,
+  againTurtle: againTurtleAnimationUrl,
   againWiltedFlower: againWiltedFlowerAnimationUrl,
+  againSpider: againSpiderAnimationUrl,
+  againRat: againRatAnimationUrl,
+  againWormWiggle: againWormWiggleAnimationUrl,
+  hardTiger: hardTigerAnimationUrl,
+  hardTRex: hardTRexAnimationUrl,
+  hardShark: hardSharkAnimationUrl,
+  hardOxCharge: hardOxChargeAnimationUrl,
+  hardRacehorseGallop: hardRacehorseGallopAnimationUrl,
+  hardSnake: hardSnakeAnimationUrl,
+  hardVolcanoEruption: hardVolcanoEruptionAnimationUrl,
+  hardScorpion: hardScorpionAnimationUrl,
+  hardPawPrints: hardPawPrintsAnimationUrl,
+  hardRooster: hardRoosterAnimationUrl,
+  goodOtter: goodOtterAnimationUrl,
   goodOwl: goodOwlAnimationUrl,
+  goodRabbit: goodRabbitAnimationUrl,
+  goodSeal: goodSealAnimationUrl,
+  goodServiceDog: goodServiceDogAnimationUrl,
   goodPoodle: goodPoodleAnimationUrl,
+  goodChimpanzee: goodChimpanzeeAnimationUrl,
   goodWhale: goodWhaleAnimationUrl,
   goodPeacock: goodPeacockAnimationUrl,
-  hardOxCharge: hardOxChargeAnimationUrl,
-  hardPawPrints: hardPawPrintsAnimationUrl,
-  hardRacehorseGallop: hardRacehorseGallopAnimationUrl,
-  hardVolcanoEruption: hardVolcanoEruptionAnimationUrl,
+  goodPig: goodPigAnimationUrl,
+  easySunrise: easySunriseAnimationUrl,
+  easySunriseOverMountains: easySunriseOverMountainsAnimationUrl,
   easyRoseBloom: easyRoseBloomAnimationUrl,
+  easyPeace: easyPeaceAnimationUrl,
+  easyPlant: easyPlantAnimationUrl,
   easyRainbowStreak: easyRainbowStreakAnimationUrl,
   easyPhoenixRise: easyPhoenixRiseAnimationUrl,
   easyUnicornFlyby: easyUnicornFlybyAnimationUrl,
 };
 
 const reviewReactionLottieAnimationLoaderByVariant: Readonly<Record<ReviewReactionLottieVariant, ReviewReactionLottieAnimationLoader>> = {
-  againWormWiggle: () => fetchReviewReactionLottieAnimationData("againWormWiggle"),
+  againRainCloud: () => fetchReviewReactionLottieAnimationData("againRainCloud"),
   againTornado: () => fetchReviewReactionLottieAnimationData("againTornado"),
+  againWindFace: () => fetchReviewReactionLottieAnimationData("againWindFace"),
+  againSnowflake: () => fetchReviewReactionLottieAnimationData("againSnowflake"),
   againSnailCrawl: () => fetchReviewReactionLottieAnimationData("againSnailCrawl"),
+  againTurtle: () => fetchReviewReactionLottieAnimationData("againTurtle"),
   againWiltedFlower: () => fetchReviewReactionLottieAnimationData("againWiltedFlower"),
+  againSpider: () => fetchReviewReactionLottieAnimationData("againSpider"),
+  againRat: () => fetchReviewReactionLottieAnimationData("againRat"),
+  againWormWiggle: () => fetchReviewReactionLottieAnimationData("againWormWiggle"),
+  hardTiger: () => fetchReviewReactionLottieAnimationData("hardTiger"),
+  hardTRex: () => fetchReviewReactionLottieAnimationData("hardTRex"),
+  hardShark: () => fetchReviewReactionLottieAnimationData("hardShark"),
+  hardOxCharge: () => fetchReviewReactionLottieAnimationData("hardOxCharge"),
+  hardRacehorseGallop: () => fetchReviewReactionLottieAnimationData("hardRacehorseGallop"),
+  hardSnake: () => fetchReviewReactionLottieAnimationData("hardSnake"),
+  hardVolcanoEruption: () => fetchReviewReactionLottieAnimationData("hardVolcanoEruption"),
+  hardScorpion: () => fetchReviewReactionLottieAnimationData("hardScorpion"),
+  hardPawPrints: () => fetchReviewReactionLottieAnimationData("hardPawPrints"),
+  hardRooster: () => fetchReviewReactionLottieAnimationData("hardRooster"),
+  goodOtter: () => fetchReviewReactionLottieAnimationData("goodOtter"),
   goodOwl: () => fetchReviewReactionLottieAnimationData("goodOwl"),
+  goodRabbit: () => fetchReviewReactionLottieAnimationData("goodRabbit"),
+  goodSeal: () => fetchReviewReactionLottieAnimationData("goodSeal"),
+  goodServiceDog: () => fetchReviewReactionLottieAnimationData("goodServiceDog"),
   goodPoodle: () => fetchReviewReactionLottieAnimationData("goodPoodle"),
+  goodChimpanzee: () => fetchReviewReactionLottieAnimationData("goodChimpanzee"),
   goodWhale: () => fetchReviewReactionLottieAnimationData("goodWhale"),
   goodPeacock: () => fetchReviewReactionLottieAnimationData("goodPeacock"),
-  hardOxCharge: () => fetchReviewReactionLottieAnimationData("hardOxCharge"),
-  hardPawPrints: () => fetchReviewReactionLottieAnimationData("hardPawPrints"),
-  hardRacehorseGallop: () => fetchReviewReactionLottieAnimationData("hardRacehorseGallop"),
-  hardVolcanoEruption: () => fetchReviewReactionLottieAnimationData("hardVolcanoEruption"),
+  goodPig: () => fetchReviewReactionLottieAnimationData("goodPig"),
+  easySunrise: () => fetchReviewReactionLottieAnimationData("easySunrise"),
+  easySunriseOverMountains: () => fetchReviewReactionLottieAnimationData("easySunriseOverMountains"),
   easyRoseBloom: () => fetchReviewReactionLottieAnimationData("easyRoseBloom"),
+  easyPeace: () => fetchReviewReactionLottieAnimationData("easyPeace"),
+  easyPlant: () => fetchReviewReactionLottieAnimationData("easyPlant"),
   easyRainbowStreak: () => fetchReviewReactionLottieAnimationData("easyRainbowStreak"),
   easyPhoenixRise: () => fetchReviewReactionLottieAnimationData("easyPhoenixRise"),
   easyUnicornFlyby: () => fetchReviewReactionLottieAnimationData("easyUnicornFlyby"),
 };
 
+function makeEmptyReviewReactionLottieAnimationDataByVariant(): ReviewReactionLottieAnimationDataByVariant {
+  return {
+    againRainCloud: null,
+    againTornado: null,
+    againWindFace: null,
+    againSnowflake: null,
+    againSnailCrawl: null,
+    againTurtle: null,
+    againWiltedFlower: null,
+    againSpider: null,
+    againRat: null,
+    againWormWiggle: null,
+    hardTiger: null,
+    hardTRex: null,
+    hardShark: null,
+    hardOxCharge: null,
+    hardRacehorseGallop: null,
+    hardSnake: null,
+    hardVolcanoEruption: null,
+    hardScorpion: null,
+    hardPawPrints: null,
+    hardRooster: null,
+    goodOtter: null,
+    goodOwl: null,
+    goodRabbit: null,
+    goodSeal: null,
+    goodServiceDog: null,
+    goodPoodle: null,
+    goodChimpanzee: null,
+    goodWhale: null,
+    goodPeacock: null,
+    goodPig: null,
+    easySunrise: null,
+    easySunriseOverMountains: null,
+    easyRoseBloom: null,
+    easyPeace: null,
+    easyPlant: null,
+    easyRainbowStreak: null,
+    easyPhoenixRise: null,
+    easyUnicornFlyby: null,
+  };
+}
+
+function makeEmptyReviewReactionLottieAnimationPromiseByVariant(): ReviewReactionLottieAnimationPromiseByVariant {
+  return {
+    againRainCloud: null,
+    againTornado: null,
+    againWindFace: null,
+    againSnowflake: null,
+    againSnailCrawl: null,
+    againTurtle: null,
+    againWiltedFlower: null,
+    againSpider: null,
+    againRat: null,
+    againWormWiggle: null,
+    hardTiger: null,
+    hardTRex: null,
+    hardShark: null,
+    hardOxCharge: null,
+    hardRacehorseGallop: null,
+    hardSnake: null,
+    hardVolcanoEruption: null,
+    hardScorpion: null,
+    hardPawPrints: null,
+    hardRooster: null,
+    goodOtter: null,
+    goodOwl: null,
+    goodRabbit: null,
+    goodSeal: null,
+    goodServiceDog: null,
+    goodPoodle: null,
+    goodChimpanzee: null,
+    goodWhale: null,
+    goodPeacock: null,
+    goodPig: null,
+    easySunrise: null,
+    easySunriseOverMountains: null,
+    easyRoseBloom: null,
+    easyPeace: null,
+    easyPlant: null,
+    easyRainbowStreak: null,
+    easyPhoenixRise: null,
+    easyUnicornFlyby: null,
+  };
+}
+
 let reviewReactionLottiePlayerPromise: Promise<LottiePlayer> | null = null;
 let reviewReactionLottiePlayerReady = false;
-let reviewReactionLottieAnimationDataByVariant: ReviewReactionLottieAnimationDataByVariant = {
-  againWormWiggle: null,
-  againTornado: null,
-  againSnailCrawl: null,
-  againWiltedFlower: null,
-  goodOwl: null,
-  goodPoodle: null,
-  goodWhale: null,
-  goodPeacock: null,
-  hardOxCharge: null,
-  hardPawPrints: null,
-  hardRacehorseGallop: null,
-  hardVolcanoEruption: null,
-  easyRoseBloom: null,
-  easyRainbowStreak: null,
-  easyPhoenixRise: null,
-  easyUnicornFlyby: null,
-};
-let reviewReactionLottieAnimationPromiseByVariant: ReviewReactionLottieAnimationPromiseByVariant = {
-  againWormWiggle: null,
-  againTornado: null,
-  againSnailCrawl: null,
-  againWiltedFlower: null,
-  goodOwl: null,
-  goodPoodle: null,
-  goodWhale: null,
-  goodPeacock: null,
-  hardOxCharge: null,
-  hardPawPrints: null,
-  hardRacehorseGallop: null,
-  hardVolcanoEruption: null,
-  easyRoseBloom: null,
-  easyRainbowStreak: null,
-  easyPhoenixRise: null,
-  easyUnicornFlyby: null,
-};
+let reviewReactionLottieAnimationDataByVariant: ReviewReactionLottieAnimationDataByVariant = (
+  makeEmptyReviewReactionLottieAnimationDataByVariant()
+);
+let reviewReactionLottieAnimationPromiseByVariant: ReviewReactionLottieAnimationPromiseByVariant = (
+  makeEmptyReviewReactionLottieAnimationPromiseByVariant()
+);
 
 export const reviewReactionLottieFallbackVariant: ReviewReactionFallbackVariant = "fallbackCrownBounce";
 
@@ -153,14 +297,11 @@ export function isReviewReactionLottieAssetReady(variant: ReviewReactionLottieVa
   return reviewReactionLottiePlayerReady && reviewReactionLottieAnimationDataByVariant[variant] !== null;
 }
 
-export function reviewReactionVariantWithReadyLottieFallback(
-  variant: ReviewReactionRenderableVariant,
-): ReviewReactionRenderableVariant {
-  if (isReviewReactionLottieVariant(variant) && !isReviewReactionLottieAssetReady(variant)) {
-    return reviewReactionLottieFallbackVariant;
-  }
-
-  return variant;
+export function resetReviewReactionLottieStateForTests(): void {
+  reviewReactionLottiePlayerPromise = null;
+  reviewReactionLottiePlayerReady = false;
+  reviewReactionLottieAnimationDataByVariant = makeEmptyReviewReactionLottieAnimationDataByVariant();
+  reviewReactionLottieAnimationPromiseByVariant = makeEmptyReviewReactionLottieAnimationPromiseByVariant();
 }
 
 function loadReviewReactionLottiePlayer(): Promise<LottiePlayer> {

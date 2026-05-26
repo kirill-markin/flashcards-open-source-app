@@ -9,63 +9,71 @@ import {
 
 type ReviewReactionBoundaryExpectation = Readonly<{
   rating: ReviewReactionRating;
-  variants: ReadonlyArray<ReviewReactionVariant>;
+  distribution: ReadonlyArray<ReviewReactionExpectedDistributionEntry>;
 }>;
 
-const boundaryRolls: ReadonlyArray<number> = [0, 39, 40, 69, 70, 91, 92, 99];
-const expectedProbabilityPercents: ReadonlyArray<number> = [40, 30, 22, 8];
+type ReviewReactionExpectedDistributionEntry = Readonly<{
+  variant: ReviewReactionVariant;
+  weight: number;
+}>;
 
 const boundaryExpectations: ReadonlyArray<ReviewReactionBoundaryExpectation> = [
   {
     rating: "again",
-    variants: [
-      "againWormWiggle",
-      "againWormWiggle",
-      "againTornado",
-      "againTornado",
-      "againSnailCrawl",
-      "againSnailCrawl",
-      "againWiltedFlower",
-      "againWiltedFlower",
+    distribution: [
+      { variant: "againRainCloud", weight: 32 },
+      { variant: "againTornado", weight: 26 },
+      { variant: "againWindFace", weight: 24 },
+      { variant: "againSnowflake", weight: 18 },
+      { variant: "againSnailCrawl", weight: 18 },
+      { variant: "againTurtle", weight: 16 },
+      { variant: "againWiltedFlower", weight: 12 },
+      { variant: "againSpider", weight: 8 },
+      { variant: "againRat", weight: 8 },
+      { variant: "againWormWiggle", weight: 6 },
     ],
   },
   {
     rating: "hard",
-    variants: [
-      "hardOxCharge",
-      "hardOxCharge",
-      "hardPawPrints",
-      "hardPawPrints",
-      "hardRacehorseGallop",
-      "hardRacehorseGallop",
-      "hardVolcanoEruption",
-      "hardVolcanoEruption",
+    distribution: [
+      { variant: "hardTiger", weight: 32 },
+      { variant: "hardTRex", weight: 26 },
+      { variant: "hardShark", weight: 22 },
+      { variant: "hardOxCharge", weight: 20 },
+      { variant: "hardRacehorseGallop", weight: 18 },
+      { variant: "hardSnake", weight: 16 },
+      { variant: "hardVolcanoEruption", weight: 14 },
+      { variant: "hardScorpion", weight: 10 },
+      { variant: "hardPawPrints", weight: 8 },
+      { variant: "hardRooster", weight: 8 },
     ],
   },
   {
     rating: "good",
-    variants: [
-      "goodOwl",
-      "goodOwl",
-      "goodPoodle",
-      "goodPoodle",
-      "goodWhale",
-      "goodWhale",
-      "goodPeacock",
-      "goodPeacock",
+    distribution: [
+      { variant: "goodOtter", weight: 32 },
+      { variant: "goodOwl", weight: 28 },
+      { variant: "goodRabbit", weight: 26 },
+      { variant: "goodSeal", weight: 24 },
+      { variant: "goodServiceDog", weight: 24 },
+      { variant: "goodPoodle", weight: 20 },
+      { variant: "goodChimpanzee", weight: 18 },
+      { variant: "goodWhale", weight: 16 },
+      { variant: "goodPeacock", weight: 12 },
+      { variant: "goodPig", weight: 10 },
     ],
   },
   {
     rating: "easy",
-    variants: [
-      "easyRoseBloom",
-      "easyRoseBloom",
-      "easyRainbowStreak",
-      "easyRainbowStreak",
-      "easyPhoenixRise",
-      "easyPhoenixRise",
-      "easyUnicornFlyby",
-      "easyUnicornFlyby",
+    distribution: [
+      { variant: "easySunrise", weight: 34 },
+      { variant: "easySunriseOverMountains", weight: 34 },
+      { variant: "easyRoseBloom", weight: 30 },
+      { variant: "easyPeace", weight: 28 },
+      { variant: "easyPlant", weight: 26 },
+      { variant: "easyRainbowStreak", weight: 24 },
+      { variant: "easyPhoenixRise", weight: 18 },
+      { variant: "easyUnicornFlyby", weight: 12 },
     ],
   },
 ];
@@ -73,18 +81,33 @@ const boundaryExpectations: ReadonlyArray<ReviewReactionBoundaryExpectation> = [
 describe("selectReviewReactionVariant", () => {
   it("uses the exact review reaction boundary values for every rating", () => {
     for (const expectation of boundaryExpectations) {
-      for (const [index, roll] of boundaryRolls.entries()) {
-        expect(selectReviewReactionVariant(expectation.rating, roll)).toBe(expectation.variants[index]);
+      let startRoll = 0;
+      for (const entry of expectation.distribution) {
+        const endRoll = startRoll + entry.weight - 1;
+        expect(selectReviewReactionVariant(expectation.rating, startRoll)).toBe(entry.variant);
+        expect(selectReviewReactionVariant(expectation.rating, endRoll)).toBe(entry.variant);
+        startRoll += entry.weight;
       }
     }
   });
 
-  it("computes review reaction probability percentages from weights", () => {
+  it("keeps review reaction weights and probability percentages in sync", () => {
     for (const expectation of boundaryExpectations) {
-      expect(
-        reviewReactionVariantDistributionEntries(expectation.rating)
-          .map((entry) => reviewReactionVariantProbabilityPercent(entry)),
-      ).toEqual(expectedProbabilityPercents);
+      const actualEntries = reviewReactionVariantDistributionEntries(expectation.rating);
+      const totalWeight = expectation.distribution.reduce(
+        (sum, entry) => sum + entry.weight,
+        0,
+      );
+
+      expect(actualEntries.map((entry) => entry.variant)).toEqual(
+        expectation.distribution.map((entry) => entry.variant),
+      );
+      expect(actualEntries.map((entry) => entry.weight)).toEqual(
+        expectation.distribution.map((entry) => entry.weight),
+      );
+      expect(actualEntries.map((entry) => reviewReactionVariantProbabilityPercent(entry))).toEqual(
+        expectation.distribution.map((entry) => entry.weight / totalWeight * 100),
+      );
     }
   });
 });

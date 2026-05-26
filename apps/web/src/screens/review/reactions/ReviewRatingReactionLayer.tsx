@@ -1,4 +1,4 @@
-import { useEffect, useRef, type CSSProperties, type ReactElement } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactElement } from "react";
 import type { AnimationItem } from "lottie-web";
 import {
   matchesReducedReviewReactionMotion,
@@ -7,12 +7,9 @@ import {
   type ReviewReactionRenderableVariant,
 } from "./reviewReaction";
 import {
-  isReviewReactionLottieAssetReady,
   isReviewReactionLottieVariant,
   loadReviewReactionLottieAsset,
-  loadReviewReactionLottieAssets,
   reviewReactionLottieFallbackVariant,
-  reviewReactionVariantWithReadyLottieFallback,
   type ReviewReactionLottieVariant,
 } from "./reviewReactionLottie";
 
@@ -27,42 +24,86 @@ type ReviewReactionStyle = CSSProperties & Readonly<{
 
 const reviewReactionLottieReducedMotionProgress: number = 0.55;
 
-type ReviewReactionLottieFailurePhase = "preload" | "render";
+type ReviewReactionLottieFailurePhase = "render";
 type ReviewReactionLottieContainerClassMap = Readonly<Record<ReviewReactionLottieVariant, string>>;
 
 const reviewReactionLottieContainerClassByVariant: ReviewReactionLottieContainerClassMap = {
-  againWormWiggle: "review-reaction-worm-lottie-mark",
+  againRainCloud: "review-reaction-rain-cloud-lottie-mark",
   againTornado: "review-reaction-tornado-lottie-mark",
+  againWindFace: "review-reaction-wind-face-lottie-mark",
+  againSnowflake: "review-reaction-snowflake-lottie-mark",
   againSnailCrawl: "review-reaction-snail-lottie-mark",
+  againTurtle: "review-reaction-turtle-lottie-mark",
   againWiltedFlower: "review-reaction-wilted-flower-lottie-mark",
+  againSpider: "review-reaction-spider-lottie-mark",
+  againRat: "review-reaction-rat-lottie-mark",
+  againWormWiggle: "review-reaction-worm-lottie-mark",
+  hardTiger: "review-reaction-tiger-lottie-mark",
+  hardTRex: "review-reaction-t-rex-lottie-mark",
+  hardShark: "review-reaction-shark-lottie-mark",
+  hardOxCharge: "review-reaction-ox-lottie-mark",
+  hardRacehorseGallop: "review-reaction-racehorse-lottie-mark",
+  hardSnake: "review-reaction-snake-lottie-mark",
+  hardVolcanoEruption: "review-reaction-volcano-lottie-mark",
+  hardScorpion: "review-reaction-scorpion-lottie-mark",
+  hardPawPrints: "review-reaction-paw-prints-lottie-mark",
+  hardRooster: "review-reaction-rooster-lottie-mark",
+  goodOtter: "review-reaction-otter-lottie-mark",
   goodOwl: "review-reaction-owl-lottie-mark",
+  goodRabbit: "review-reaction-rabbit-lottie-mark",
+  goodSeal: "review-reaction-seal-lottie-mark",
+  goodServiceDog: "review-reaction-service-dog-lottie-mark",
   goodPoodle: "review-reaction-poodle-lottie-mark",
+  goodChimpanzee: "review-reaction-chimpanzee-lottie-mark",
   goodWhale: "review-reaction-whale-lottie-mark",
   goodPeacock: "review-reaction-peacock-lottie-mark",
-  hardOxCharge: "review-reaction-ox-lottie-mark",
-  hardPawPrints: "review-reaction-paw-prints-lottie-mark",
-  hardRacehorseGallop: "review-reaction-racehorse-lottie-mark",
-  hardVolcanoEruption: "review-reaction-volcano-lottie-mark",
+  goodPig: "review-reaction-pig-lottie-mark",
+  easySunrise: "review-reaction-sunrise-lottie-mark",
+  easySunriseOverMountains: "review-reaction-sunrise-over-mountains-lottie-mark",
   easyRoseBloom: "review-reaction-rose-lottie-mark",
+  easyPeace: "review-reaction-peace-lottie-mark",
+  easyPlant: "review-reaction-plant-lottie-mark",
   easyRainbowStreak: "review-reaction-rainbow-lottie-mark",
   easyPhoenixRise: "review-reaction-phoenix-lottie-mark",
   easyUnicornFlyby: "review-reaction-unicorn-lottie-mark",
 };
 
 const reviewReactionLottieNaturalDurationMillisByVariant: Readonly<Record<ReviewReactionLottieVariant, number>> = {
-  againWormWiggle: 4267,
+  againRainCloud: 3267,
   againTornado: 2000,
+  againWindFace: 1600,
+  againSnowflake: 4500,
   againSnailCrawl: 2700,
+  againTurtle: 3400,
   againWiltedFlower: 2400,
+  againSpider: 2400,
+  againRat: 2633,
+  againWormWiggle: 4267,
+  hardTiger: 5100,
+  hardTRex: 1550,
+  hardShark: 3200,
+  hardOxCharge: 3300,
+  hardRacehorseGallop: 517,
+  hardSnake: 3267,
+  hardVolcanoEruption: 1200,
+  hardScorpion: 1800,
+  hardPawPrints: 1100,
+  hardRooster: 2850,
+  goodOtter: 3000,
   goodOwl: 2833,
+  goodRabbit: 1333,
+  goodSeal: 2567,
+  goodServiceDog: 3000,
   goodPoodle: 2800,
+  goodChimpanzee: 3833,
   goodWhale: 2633,
   goodPeacock: 1333,
-  hardOxCharge: 3300,
-  hardPawPrints: 1100,
-  hardRacehorseGallop: 517,
-  hardVolcanoEruption: 1200,
+  goodPig: 3567,
+  easySunrise: 5000,
+  easySunriseOverMountains: 1017,
   easyRoseBloom: 2400,
+  easyPeace: 3167,
+  easyPlant: 5750,
   easyRainbowStreak: 2000,
   easyPhoenixRise: 3933,
   easyUnicornFlyby: 3800,
@@ -73,10 +114,8 @@ function reviewReactionLottiePlaybackSpeed(variant: ReviewReactionLottieVariant)
 }
 
 function makeReviewReactionStyle(event: ReviewReactionEvent): ReviewReactionStyle {
-  const variant = reviewReactionVariantWithReadyLottieFallback(event.variant);
-
   return {
-    "--review-reaction-duration": `${reviewReactionAnimationDurationMillis(variant)}ms`,
+    "--review-reaction-duration": `${reviewReactionAnimationDurationMillis(event.variant)}ms`,
   };
 }
 
@@ -130,6 +169,14 @@ function EasyCrownBounceReaction(): ReactElement {
   );
 }
 
+function ReviewReactionCrownFallbackArt(): ReactElement {
+  return (
+    <svg className="review-rating-reaction-art review-rating-reaction-crown-fallback-art" viewBox="0 0 100 100" focusable="false">
+      {renderReviewReactionVariant(reviewReactionLottieFallbackVariant)}
+    </svg>
+  );
+}
+
 function reportReviewReactionLottieFailure(
   error: unknown,
   phase: ReviewReactionLottieFailurePhase,
@@ -142,14 +189,6 @@ function reportReviewReactionLottieFailure(
   });
 }
 
-function ReviewReactionCrownFallbackArt(): ReactElement {
-  return (
-    <svg className="review-rating-reaction-art review-rating-reaction-crown-fallback-art" viewBox="0 0 100 100" focusable="false">
-      {renderReviewReactionVariant(reviewReactionLottieFallbackVariant)}
-    </svg>
-  );
-}
-
 type ReviewReactionLottieAnimationProps = Readonly<{
   eventId: string;
   onReactionEventFallback: (eventId: string) => void;
@@ -159,8 +198,11 @@ type ReviewReactionLottieAnimationProps = Readonly<{
 function ReviewReactionLottieAnimation(props: ReviewReactionLottieAnimationProps): ReactElement {
   const { eventId, onReactionEventFallback, variant } = props;
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const [isAnimationReady, setIsAnimationReady] = useState<boolean>(false);
 
   useEffect(() => {
+    setIsAnimationReady(false);
+
     const mountedContainer = containerRef.current;
     if (mountedContainer === null) {
       reportReviewReactionLottieFailure(
@@ -176,6 +218,7 @@ function ReviewReactionLottieAnimation(props: ReviewReactionLottieAnimationProps
     let animationItem: AnimationItem | null = null;
     let removeDomLoadedListener: (() => void) | null = null;
     let isCancelled = false;
+    let hasMarkedAnimationReady = false;
 
     async function loadReviewReactionLottieAnimation(): Promise<void> {
       const asset = await loadReviewReactionLottieAsset(variant);
@@ -196,17 +239,25 @@ function ReviewReactionLottieAnimation(props: ReviewReactionLottieAnimationProps
       animationItem = nextAnimationItem;
       nextAnimationItem.setSpeed(reviewReactionLottiePlaybackSpeed(variant));
 
-      if (isReducedMotionEnabled) {
-        const showReducedMotionFrame = (): void => {
+      const markAnimationReady = (): void => {
+        if (isCancelled || hasMarkedAnimationReady) {
+          return;
+        }
+
+        hasMarkedAnimationReady = true;
+        if (isReducedMotionEnabled) {
           nextAnimationItem.goToAndStop(
             nextAnimationItem.totalFrames * reviewReactionLottieReducedMotionProgress,
             true,
           );
-        };
-        removeDomLoadedListener = nextAnimationItem.addEventListener("DOMLoaded", showReducedMotionFrame);
-        if (nextAnimationItem.isLoaded) {
-          showReducedMotionFrame();
         }
+
+        setIsAnimationReady(true);
+      };
+
+      removeDomLoadedListener = nextAnimationItem.addEventListener("DOMLoaded", markAnimationReady);
+      if (nextAnimationItem.isLoaded) {
+        markAnimationReady();
       }
     }
 
@@ -227,40 +278,56 @@ function ReviewReactionLottieAnimation(props: ReviewReactionLottieAnimationProps
   }, [eventId, onReactionEventFallback, variant]);
 
   return (
-    <div ref={containerRef} className={reviewReactionLottieContainerClassByVariant[variant]} />
+    <>
+      {isAnimationReady ? null : <ReviewReactionCrownFallbackArt />}
+      <div ref={containerRef} className={reviewReactionLottieContainerClassByVariant[variant]} />
+    </>
   );
 }
 
 function renderReviewReactionVariant(variant: ReviewReactionRenderableVariant): ReactElement {
   switch (variant) {
-    case "againWormWiggle":
-      return renderReviewReactionVariant(reviewReactionLottieFallbackVariant);
+    case "againRainCloud":
     case "againTornado":
-      return renderReviewReactionVariant(reviewReactionLottieFallbackVariant);
+    case "againWindFace":
+    case "againSnowflake":
     case "againSnailCrawl":
-      return renderReviewReactionVariant(reviewReactionLottieFallbackVariant);
+    case "againTurtle":
     case "againWiltedFlower":
-      return renderReviewReactionVariant(reviewReactionLottieFallbackVariant);
+    case "againSpider":
+    case "againRat":
+    case "againWormWiggle":
+    case "hardTiger":
+    case "hardTRex":
+    case "hardShark":
     case "hardOxCharge":
-    case "hardPawPrints":
     case "hardRacehorseGallop":
+    case "hardSnake":
     case "hardVolcanoEruption":
-      return renderReviewReactionVariant(reviewReactionLottieFallbackVariant);
+    case "hardScorpion":
+    case "hardPawPrints":
+    case "hardRooster":
+    case "goodOtter":
     case "goodOwl":
+    case "goodRabbit":
+    case "goodSeal":
+    case "goodServiceDog":
     case "goodPoodle":
+    case "goodChimpanzee":
     case "goodWhale":
     case "goodPeacock":
-      return renderReviewReactionVariant(reviewReactionLottieFallbackVariant);
+    case "goodPig":
+    case "easySunrise":
+    case "easySunriseOverMountains":
     case "easyRoseBloom":
-      return renderReviewReactionVariant(reviewReactionLottieFallbackVariant);
+    case "easyPeace":
+    case "easyPlant":
     case "easyRainbowStreak":
-      return renderReviewReactionVariant(reviewReactionLottieFallbackVariant);
     case "easyPhoenixRise":
+    case "easyUnicornFlyby":
       return renderReviewReactionVariant(reviewReactionLottieFallbackVariant);
     case "fallbackCrownBounce":
       return <EasyCrownBounceReaction />;
-    case "easyUnicornFlyby":
-      return renderReviewReactionVariant(reviewReactionLottieFallbackVariant);
   }
 }
 
@@ -271,10 +338,6 @@ function renderReviewReactionArt(
   const { variant } = event;
 
   if (isReviewReactionLottieVariant(variant)) {
-    if (!isReviewReactionLottieAssetReady(variant)) {
-      return <ReviewReactionCrownFallbackArt />;
-    }
-
     return (
       <div className="review-rating-reaction-art review-rating-reaction-lottie-art">
         <ReviewReactionLottieAnimation
@@ -295,31 +358,6 @@ function renderReviewReactionArt(
 
 export function ReviewRatingReactionLayer(props: ReviewRatingReactionLayerProps): ReactElement {
   const { events, onReactionEventFallback } = props;
-
-  useEffect(() => {
-    let isMounted = true;
-    void loadReviewReactionLottieAssets()
-      .then((preloadResult) => {
-        if (!isMounted) {
-          return;
-        }
-
-        for (const failure of preloadResult.failures) {
-          reportReviewReactionLottieFailure(failure.error, "preload", failure.variant);
-        }
-      })
-      .catch((error: unknown) => {
-        if (!isMounted) {
-          return;
-        }
-
-        reportReviewReactionLottieFailure(error, "preload", null);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   return (
     <div className="review-rating-reaction-layer" aria-hidden="true" data-testid="review-rating-reaction-layer">

@@ -4,68 +4,104 @@ import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
+private data class ExpectedReviewReactionDistribution(
+    val rating: ReviewRating,
+    val entries: List<ExpectedReviewReactionDistributionEntry>
+)
+
+private data class ExpectedReviewReactionDistributionEntry(
+    val variant: ReviewReactionVariant,
+    val weight: Int
+)
+
+private val expectedReviewReactionDistributions: List<ExpectedReviewReactionDistribution> = listOf(
+    ExpectedReviewReactionDistribution(
+        rating = ReviewRating.AGAIN,
+        entries = listOf(
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.AGAIN_RAIN_CLOUD, 32),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.AGAIN_TORNADO, 26),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.AGAIN_WIND_FACE, 24),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.AGAIN_SNOWFLAKE, 18),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.AGAIN_SNAIL_CRAWL, 18),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.AGAIN_TURTLE, 16),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.AGAIN_WILTED_FLOWER, 12),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.AGAIN_SPIDER, 8),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.AGAIN_RAT, 8),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.AGAIN_WORM_WIGGLE, 6)
+        )
+    ),
+    ExpectedReviewReactionDistribution(
+        rating = ReviewRating.HARD,
+        entries = listOf(
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.HARD_TIGER, 32),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.HARD_T_REX, 26),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.HARD_SHARK, 22),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.HARD_OX_CHARGE, 20),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.HARD_RACEHORSE_GALLOP, 18),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.HARD_SNAKE, 16),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.HARD_VOLCANO_ERUPTION, 14),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.HARD_SCORPION, 10),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.HARD_PAW_PRINTS, 8),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.HARD_ROOSTER, 8)
+        )
+    ),
+    ExpectedReviewReactionDistribution(
+        rating = ReviewRating.GOOD,
+        entries = listOf(
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.GOOD_OTTER, 32),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.GOOD_OWL, 28),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.GOOD_RABBIT, 26),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.GOOD_SEAL, 24),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.GOOD_SERVICE_DOG, 24),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.GOOD_POODLE, 20),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.GOOD_CHIMPANZEE, 18),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.GOOD_WHALE, 16),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.GOOD_PEACOCK, 12),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.GOOD_PIG, 10)
+        )
+    ),
+    ExpectedReviewReactionDistribution(
+        rating = ReviewRating.EASY,
+        entries = listOf(
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.EASY_SUNRISE, 34),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.EASY_SUNRISE_OVER_MOUNTAINS, 34),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.EASY_ROSE_BLOOM, 30),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.EASY_PEACE, 28),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.EASY_PLANT, 26),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.EASY_RAINBOW_STREAK, 24),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.EASY_PHOENIX_RISE, 18),
+            ExpectedReviewReactionDistributionEntry(ReviewReactionVariant.EASY_UNICORN_FLYBY, 12)
+        )
+    )
+)
+
 class ReviewReactionVariantSelectionTest {
     @Test
-    fun againSelectionUsesConfiguredBoundaries() {
-        assertSelectedVariant(ReviewRating.AGAIN, 0, ReviewReactionVariant.AGAIN_WORM_WIGGLE)
-        assertSelectedVariant(ReviewRating.AGAIN, 39, ReviewReactionVariant.AGAIN_WORM_WIGGLE)
-        assertSelectedVariant(ReviewRating.AGAIN, 40, ReviewReactionVariant.AGAIN_TORNADO)
-        assertSelectedVariant(ReviewRating.AGAIN, 69, ReviewReactionVariant.AGAIN_TORNADO)
-        assertSelectedVariant(ReviewRating.AGAIN, 70, ReviewReactionVariant.AGAIN_SNAIL_CRAWL)
-        assertSelectedVariant(ReviewRating.AGAIN, 91, ReviewReactionVariant.AGAIN_SNAIL_CRAWL)
-        assertSelectedVariant(ReviewRating.AGAIN, 92, ReviewReactionVariant.AGAIN_WILTED_FLOWER)
-        assertSelectedVariant(ReviewRating.AGAIN, 99, ReviewReactionVariant.AGAIN_WILTED_FLOWER)
-    }
-
-    @Test
-    fun hardSelectionUsesConfiguredBoundaries() {
-        assertSelectedVariant(ReviewRating.HARD, 0, ReviewReactionVariant.HARD_OX_CHARGE)
-        assertSelectedVariant(ReviewRating.HARD, 39, ReviewReactionVariant.HARD_OX_CHARGE)
-        assertSelectedVariant(ReviewRating.HARD, 40, ReviewReactionVariant.HARD_PAW_PRINTS)
-        assertSelectedVariant(ReviewRating.HARD, 69, ReviewReactionVariant.HARD_PAW_PRINTS)
-        assertSelectedVariant(ReviewRating.HARD, 70, ReviewReactionVariant.HARD_RACEHORSE_GALLOP)
-        assertSelectedVariant(ReviewRating.HARD, 91, ReviewReactionVariant.HARD_RACEHORSE_GALLOP)
-        assertSelectedVariant(ReviewRating.HARD, 92, ReviewReactionVariant.HARD_VOLCANO_ERUPTION)
-        assertSelectedVariant(ReviewRating.HARD, 99, ReviewReactionVariant.HARD_VOLCANO_ERUPTION)
-    }
-
-    @Test
-    fun goodSelectionUsesConfiguredBoundaries() {
-        assertSelectedVariant(ReviewRating.GOOD, 0, ReviewReactionVariant.GOOD_OWL)
-        assertSelectedVariant(ReviewRating.GOOD, 39, ReviewReactionVariant.GOOD_OWL)
-        assertSelectedVariant(ReviewRating.GOOD, 40, ReviewReactionVariant.GOOD_POODLE)
-        assertSelectedVariant(ReviewRating.GOOD, 69, ReviewReactionVariant.GOOD_POODLE)
-        assertSelectedVariant(ReviewRating.GOOD, 70, ReviewReactionVariant.GOOD_WHALE)
-        assertSelectedVariant(ReviewRating.GOOD, 91, ReviewReactionVariant.GOOD_WHALE)
-        assertSelectedVariant(ReviewRating.GOOD, 92, ReviewReactionVariant.GOOD_PEACOCK)
-        assertSelectedVariant(ReviewRating.GOOD, 99, ReviewReactionVariant.GOOD_PEACOCK)
-    }
-
-    @Test
-    fun easySelectionUsesConfiguredBoundaries() {
-        assertSelectedVariant(ReviewRating.EASY, 0, ReviewReactionVariant.EASY_ROSE_BLOOM)
-        assertSelectedVariant(ReviewRating.EASY, 39, ReviewReactionVariant.EASY_ROSE_BLOOM)
-        assertSelectedVariant(ReviewRating.EASY, 40, ReviewReactionVariant.EASY_RAINBOW_STREAK)
-        assertSelectedVariant(ReviewRating.EASY, 69, ReviewReactionVariant.EASY_RAINBOW_STREAK)
-        assertSelectedVariant(ReviewRating.EASY, 70, ReviewReactionVariant.EASY_PHOENIX_RISE)
-        assertSelectedVariant(ReviewRating.EASY, 91, ReviewReactionVariant.EASY_PHOENIX_RISE)
-        assertSelectedVariant(ReviewRating.EASY, 92, ReviewReactionVariant.EASY_UNICORN_FLYBY)
-        assertSelectedVariant(ReviewRating.EASY, 99, ReviewReactionVariant.EASY_UNICORN_FLYBY)
+    fun selectionUsesConfiguredBoundaries() {
+        expectedReviewReactionDistributions.forEach { distribution: ExpectedReviewReactionDistribution ->
+            var startRoll = 0
+            distribution.entries.forEach { entry: ExpectedReviewReactionDistributionEntry ->
+                val endRoll = startRoll + entry.weight - 1
+                assertSelectedVariant(distribution.rating, startRoll, entry.variant)
+                assertSelectedVariant(distribution.rating, endRoll, entry.variant)
+                startRoll += entry.weight
+            }
+        }
     }
 
     @Test
     fun probabilityPercentagesUseWeights() {
-        val expectedPercentages: List<Double> = listOf(40.0, 30.0, 22.0, 8.0)
+        expectedReviewReactionDistributions.forEach { distribution: ExpectedReviewReactionDistribution ->
+            val totalWeight: Int = distribution.entries.sumOf { entry: ExpectedReviewReactionDistributionEntry ->
+                entry.weight
+            }
+            val expectedPercentages: List<Double> = distribution.entries.map { entry: ExpectedReviewReactionDistributionEntry ->
+                entry.weight.toDouble() / totalWeight.toDouble() * 100.0
+            }
 
-        listOf(
-            ReviewRating.AGAIN,
-            ReviewRating.HARD,
-            ReviewRating.GOOD,
-            ReviewRating.EASY
-        ).forEach { rating: ReviewRating ->
             assertEquals(
                 expectedPercentages,
-                reviewReactionVariantDistributionEntries(rating = rating)
+                reviewReactionVariantDistributionEntries(rating = distribution.rating)
                     .map { entry: ReviewReactionVariantDistributionEntry -> entry.probabilityPercent }
             )
         }

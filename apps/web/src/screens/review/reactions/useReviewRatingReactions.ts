@@ -15,7 +15,6 @@ import {
 import {
   isReviewReactionLottieVariant,
   reviewReactionLottieFallbackVariant,
-  reviewReactionVariantWithReadyLottieFallback,
 } from "./reviewReactionLottie";
 
 export type UseReviewRatingReactionsResult = Readonly<{
@@ -110,11 +109,9 @@ export function useReviewRatingReactions(): UseReviewRatingReactionsResult {
     const event: ReviewReactionEvent = {
       id: crypto.randomUUID(),
       rating: reactionRating,
-      variant: reviewReactionVariantWithReadyLottieFallback(
-        selectReviewReactionVariant(
-          reactionRating,
-          Math.floor(Math.random() * totalWeight),
-        ),
+      variant: selectReviewReactionVariant(
+        reactionRating,
+        Math.floor(Math.random() * totalWeight),
       ),
     };
     scheduleReactionEventCleanup(event.id, event.variant);

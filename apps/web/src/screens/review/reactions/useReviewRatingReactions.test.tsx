@@ -106,7 +106,13 @@ describe("useReviewRatingReactions", () => {
     ]);
 
     await act(async () => {
-      vi.advanceTimersByTime(1830);
+      vi.advanceTimersByTime(2879);
+    });
+
+    expect(requireLatestResult().events).toHaveLength(3);
+
+    await act(async () => {
+      vi.advanceTimersByTime(1);
     });
 
     expect(requireLatestResult().events).toHaveLength(0);

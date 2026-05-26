@@ -7,7 +7,7 @@ struct TestSettingsView: View {
                 NavigationLink(value: SettingsNavigationDestination.testAnimations) {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.test.animations", "Animations"),
-                        value: aiSettingsLocalized("settings.test.animations.itemCount", "16 items"),
+                        value: aiSettingsLocalized("settings.test.animations.itemCount", "38 items"),
                         systemImage: "sparkles"
                     )
                 }

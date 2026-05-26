@@ -34,56 +34,17 @@ private const val reviewReactionAnimationMaximumProgress: Float = 1f
 private const val reviewReactionCleanupExtraMillis: Long = 80L
 private const val reviewReactionLogTag: String = "ReviewReaction"
 private const val reviewReactionReducedMotionDrawingProgress: Float = 0.55f
-private const val reviewAgainWiltedFlowerAnimationFrameScale: Float = 0.56f
-private const val reviewAgainWiltedFlowerAnimationCenterX: Float = 0.50f
-private const val reviewAgainWiltedFlowerAnimationCenterY: Float = 0.50f
-private const val reviewAgainWormAnimationFrameScale: Float = 0.58f
-private const val reviewAgainWormAnimationCenterX: Float = 0.50f
-private const val reviewAgainWormAnimationCenterY: Float = 0.52f
-private const val reviewAgainTornadoAnimationFrameScale: Float = 0.58f
-private const val reviewAgainTornadoAnimationCenterX: Float = 0.50f
-private const val reviewAgainTornadoAnimationCenterY: Float = 0.45f
-private const val reviewAgainSnailAnimationFrameScale: Float = 0.58f
-private const val reviewAgainSnailAnimationCenterX: Float = 0.50f
-private const val reviewAgainSnailAnimationCenterY: Float = 0.48f
-private const val reviewGoodOwlAnimationFrameScale: Float = 0.56f
-private const val reviewGoodOwlAnimationCenterX: Float = 0.50f
-private const val reviewGoodOwlAnimationCenterY: Float = 0.42f
-private const val reviewGoodPoodleAnimationFrameScale: Float = 0.56f
-private const val reviewGoodPoodleAnimationCenterX: Float = 0.50f
-private const val reviewGoodPoodleAnimationCenterY: Float = 0.43f
-private const val reviewGoodWhaleAnimationFrameScale: Float = 0.58f
-private const val reviewGoodWhaleAnimationCenterX: Float = 0.50f
-private const val reviewGoodWhaleAnimationCenterY: Float = 0.42f
-private const val reviewGoodPeacockAnimationFrameScale: Float = 0.58f
-private const val reviewGoodPeacockAnimationCenterX: Float = 0.50f
-private const val reviewGoodPeacockAnimationCenterY: Float = 0.42f
-private const val reviewHardOxAnimationFrameScale: Float = 0.58f
-private const val reviewHardOxAnimationCenterX: Float = 0.50f
-private const val reviewHardOxAnimationCenterY: Float = 0.50f
-private const val reviewHardPawPrintsAnimationFrameScale: Float = 0.56f
-private const val reviewHardPawPrintsAnimationCenterX: Float = 0.50f
-private const val reviewHardPawPrintsAnimationCenterY: Float = 0.50f
-private const val reviewHardRacehorseAnimationFrameScale: Float = 0.62f
-private const val reviewHardRacehorseAnimationCenterX: Float = 0.50f
-private const val reviewHardRacehorseAnimationCenterY: Float = 0.50f
-private const val reviewHardVolcanoAnimationFrameScale: Float = 0.64f
-private const val reviewHardVolcanoAnimationCenterX: Float = 0.50f
-private const val reviewHardVolcanoAnimationCenterY: Float = 0.50f
-private const val reviewEasyRoseAnimationFrameScale: Float = 0.58f
-private const val reviewEasyRoseAnimationCenterX: Float = 0.50f
-private const val reviewEasyRoseAnimationCenterY: Float = 0.50f
-private const val reviewEasyRainbowAnimationFrameScale: Float = 0.64f
-private const val reviewEasyRainbowAnimationCenterX: Float = 0.50f
-private const val reviewEasyRainbowAnimationCenterY: Float = 0.42f
-private const val reviewEasyPhoenixAnimationFrameScale: Float = 0.64f
-private const val reviewEasyPhoenixAnimationCenterX: Float = 0.50f
-private const val reviewEasyPhoenixAnimationCenterY: Float = 0.42f
-private const val reviewEasyUnicornAnimationFrameScale: Float = 0.52f
-private const val reviewEasyUnicornAnimationCenterX: Float = 0.56f
-private const val reviewEasyUnicornAnimationCenterY: Float = 0.30f
 private val reviewReactionLottieFallbackVariant: ReviewReactionVariant =
     ReviewReactionVariant.FALLBACK_CROWN_BOUNCE
+
+private data class ReviewReactionLottieAssetConfiguration(
+    val variant: ReviewReactionVariant,
+    @RawRes val rawResourceId: Int,
+    val assetName: String,
+    val frameScale: Float,
+    val centerX: Float,
+    val centerY: Float
+)
 
 private data class ReviewReactionLottieConfiguration(
     val composition: LottieComposition?,
@@ -92,23 +53,313 @@ private data class ReviewReactionLottieConfiguration(
     val centerY: Float
 )
 
-private data class ReviewReactionLottieCompositionStore(
-    val reviewAgainWiltedFlowerComposition: LottieComposition?,
-    val reviewAgainWormComposition: LottieComposition?,
-    val reviewAgainTornadoComposition: LottieComposition?,
-    val reviewAgainSnailComposition: LottieComposition?,
-    val reviewGoodOwlComposition: LottieComposition?,
-    val reviewGoodPoodleComposition: LottieComposition?,
-    val reviewGoodWhaleComposition: LottieComposition?,
-    val reviewGoodPeacockComposition: LottieComposition?,
-    val reviewHardOxComposition: LottieComposition?,
-    val reviewHardPawPrintsComposition: LottieComposition?,
-    val reviewHardRacehorseComposition: LottieComposition?,
-    val reviewHardVolcanoComposition: LottieComposition?,
-    val reviewEasyRoseComposition: LottieComposition?,
-    val reviewEasyRainbowComposition: LottieComposition?,
-    val reviewEasyPhoenixComposition: LottieComposition?,
-    val reviewEasyUnicornComposition: LottieComposition?
+private typealias ReviewReactionLottieCompositionStore = Map<ReviewReactionVariant, LottieComposition?>
+
+private val reviewReactionLottieAssetConfigurations: List<ReviewReactionLottieAssetConfiguration> = listOf(
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.AGAIN_RAIN_CLOUD,
+        rawResourceId = R.raw.review_again_rain_cloud,
+        assetName = "review_again_rain_cloud",
+        frameScale = 0.62f,
+        centerX = 0.50f,
+        centerY = 0.44f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.AGAIN_TORNADO,
+        rawResourceId = R.raw.review_again_tornado,
+        assetName = "review_again_tornado",
+        frameScale = 0.58f,
+        centerX = 0.50f,
+        centerY = 0.45f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.AGAIN_WIND_FACE,
+        rawResourceId = R.raw.review_again_wind_face,
+        assetName = "review_again_wind_face",
+        frameScale = 0.56f,
+        centerX = 0.50f,
+        centerY = 0.45f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.AGAIN_SNOWFLAKE,
+        rawResourceId = R.raw.review_again_snowflake,
+        assetName = "review_again_snowflake",
+        frameScale = 0.56f,
+        centerX = 0.50f,
+        centerY = 0.45f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.AGAIN_SNAIL_CRAWL,
+        rawResourceId = R.raw.review_again_snail,
+        assetName = "review_again_snail",
+        frameScale = 0.58f,
+        centerX = 0.50f,
+        centerY = 0.48f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.AGAIN_TURTLE,
+        rawResourceId = R.raw.review_again_turtle,
+        assetName = "review_again_turtle",
+        frameScale = 0.58f,
+        centerX = 0.50f,
+        centerY = 0.50f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.AGAIN_WILTED_FLOWER,
+        rawResourceId = R.raw.review_again_wilted_flower,
+        assetName = "review_again_wilted_flower",
+        frameScale = 0.56f,
+        centerX = 0.50f,
+        centerY = 0.50f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.AGAIN_SPIDER,
+        rawResourceId = R.raw.review_again_spider,
+        assetName = "review_again_spider",
+        frameScale = 0.54f,
+        centerX = 0.50f,
+        centerY = 0.50f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.AGAIN_RAT,
+        rawResourceId = R.raw.review_again_rat,
+        assetName = "review_again_rat",
+        frameScale = 0.56f,
+        centerX = 0.50f,
+        centerY = 0.50f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.AGAIN_WORM_WIGGLE,
+        rawResourceId = R.raw.review_again_worm,
+        assetName = "review_again_worm",
+        frameScale = 0.58f,
+        centerX = 0.50f,
+        centerY = 0.52f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.HARD_TIGER,
+        rawResourceId = R.raw.review_hard_tiger,
+        assetName = "review_hard_tiger",
+        frameScale = 0.62f,
+        centerX = 0.50f,
+        centerY = 0.48f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.HARD_T_REX,
+        rawResourceId = R.raw.review_hard_t_rex,
+        assetName = "review_hard_t_rex",
+        frameScale = 0.62f,
+        centerX = 0.50f,
+        centerY = 0.48f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.HARD_SHARK,
+        rawResourceId = R.raw.review_hard_shark,
+        assetName = "review_hard_shark",
+        frameScale = 0.62f,
+        centerX = 0.50f,
+        centerY = 0.47f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.HARD_OX_CHARGE,
+        rawResourceId = R.raw.review_hard_ox,
+        assetName = "review_hard_ox",
+        frameScale = 0.58f,
+        centerX = 0.50f,
+        centerY = 0.50f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.HARD_RACEHORSE_GALLOP,
+        rawResourceId = R.raw.review_hard_racehorse,
+        assetName = "review_hard_racehorse",
+        frameScale = 0.62f,
+        centerX = 0.50f,
+        centerY = 0.50f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.HARD_SNAKE,
+        rawResourceId = R.raw.review_hard_snake,
+        assetName = "review_hard_snake",
+        frameScale = 0.58f,
+        centerX = 0.50f,
+        centerY = 0.50f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.HARD_VOLCANO_ERUPTION,
+        rawResourceId = R.raw.review_hard_volcano,
+        assetName = "review_hard_volcano",
+        frameScale = 0.64f,
+        centerX = 0.50f,
+        centerY = 0.50f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.HARD_SCORPION,
+        rawResourceId = R.raw.review_hard_scorpion,
+        assetName = "review_hard_scorpion",
+        frameScale = 0.56f,
+        centerX = 0.50f,
+        centerY = 0.50f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.HARD_PAW_PRINTS,
+        rawResourceId = R.raw.review_hard_paw_prints,
+        assetName = "review_hard_paw_prints",
+        frameScale = 0.56f,
+        centerX = 0.50f,
+        centerY = 0.50f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.HARD_ROOSTER,
+        rawResourceId = R.raw.review_hard_rooster,
+        assetName = "review_hard_rooster",
+        frameScale = 0.58f,
+        centerX = 0.50f,
+        centerY = 0.48f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.GOOD_OTTER,
+        rawResourceId = R.raw.review_good_otter,
+        assetName = "review_good_otter",
+        frameScale = 0.58f,
+        centerX = 0.50f,
+        centerY = 0.48f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.GOOD_OWL,
+        rawResourceId = R.raw.review_good_owl,
+        assetName = "review_good_owl",
+        frameScale = 0.56f,
+        centerX = 0.50f,
+        centerY = 0.42f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.GOOD_RABBIT,
+        rawResourceId = R.raw.review_good_rabbit,
+        assetName = "review_good_rabbit",
+        frameScale = 0.56f,
+        centerX = 0.50f,
+        centerY = 0.47f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.GOOD_SEAL,
+        rawResourceId = R.raw.review_good_seal,
+        assetName = "review_good_seal",
+        frameScale = 0.58f,
+        centerX = 0.50f,
+        centerY = 0.47f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.GOOD_SERVICE_DOG,
+        rawResourceId = R.raw.review_good_service_dog,
+        assetName = "review_good_service_dog",
+        frameScale = 0.58f,
+        centerX = 0.50f,
+        centerY = 0.47f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.GOOD_POODLE,
+        rawResourceId = R.raw.review_good_poodle,
+        assetName = "review_good_poodle",
+        frameScale = 0.56f,
+        centerX = 0.50f,
+        centerY = 0.43f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.GOOD_CHIMPANZEE,
+        rawResourceId = R.raw.review_good_chimpanzee,
+        assetName = "review_good_chimpanzee",
+        frameScale = 0.56f,
+        centerX = 0.50f,
+        centerY = 0.46f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.GOOD_WHALE,
+        rawResourceId = R.raw.review_good_whale,
+        assetName = "review_good_whale",
+        frameScale = 0.58f,
+        centerX = 0.50f,
+        centerY = 0.42f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.GOOD_PEACOCK,
+        rawResourceId = R.raw.review_good_peacock,
+        assetName = "review_good_peacock",
+        frameScale = 0.58f,
+        centerX = 0.50f,
+        centerY = 0.42f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.GOOD_PIG,
+        rawResourceId = R.raw.review_good_pig,
+        assetName = "review_good_pig",
+        frameScale = 0.56f,
+        centerX = 0.50f,
+        centerY = 0.50f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.EASY_SUNRISE,
+        rawResourceId = R.raw.review_easy_sunrise,
+        assetName = "review_easy_sunrise",
+        frameScale = 0.64f,
+        centerX = 0.50f,
+        centerY = 0.42f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.EASY_SUNRISE_OVER_MOUNTAINS,
+        rawResourceId = R.raw.review_easy_sunrise_over_mountains,
+        assetName = "review_easy_sunrise_over_mountains",
+        frameScale = 0.64f,
+        centerX = 0.50f,
+        centerY = 0.44f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.EASY_ROSE_BLOOM,
+        rawResourceId = R.raw.review_easy_rose,
+        assetName = "review_easy_rose",
+        frameScale = 0.58f,
+        centerX = 0.50f,
+        centerY = 0.50f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.EASY_PEACE,
+        rawResourceId = R.raw.review_easy_peace,
+        assetName = "review_easy_peace",
+        frameScale = 0.56f,
+        centerX = 0.50f,
+        centerY = 0.48f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.EASY_PLANT,
+        rawResourceId = R.raw.review_easy_plant,
+        assetName = "review_easy_plant",
+        frameScale = 0.58f,
+        centerX = 0.50f,
+        centerY = 0.50f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.EASY_RAINBOW_STREAK,
+        rawResourceId = R.raw.review_easy_rainbow,
+        assetName = "review_easy_rainbow",
+        frameScale = 0.64f,
+        centerX = 0.50f,
+        centerY = 0.42f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.EASY_PHOENIX_RISE,
+        rawResourceId = R.raw.review_easy_phoenix,
+        assetName = "review_easy_phoenix",
+        frameScale = 0.64f,
+        centerX = 0.50f,
+        centerY = 0.42f
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant = ReviewReactionVariant.EASY_UNICORN_FLYBY,
+        rawResourceId = R.raw.review_easy_unicorn,
+        assetName = "review_easy_unicorn",
+        frameScale = 0.52f,
+        centerX = 0.56f,
+        centerY = 0.30f
+    )
 )
 
 private fun logReviewReactionLottieWarning(
@@ -151,121 +402,18 @@ private fun reviewReactionLottieConfiguration(
     variant: ReviewReactionVariant,
     compositionStore: ReviewReactionLottieCompositionStore
 ): ReviewReactionLottieConfiguration? {
-    return when (variant) {
-        ReviewReactionVariant.AGAIN_WILTED_FLOWER -> ReviewReactionLottieConfiguration(
-            composition = compositionStore.reviewAgainWiltedFlowerComposition,
-            frameScale = reviewAgainWiltedFlowerAnimationFrameScale,
-            centerX = reviewAgainWiltedFlowerAnimationCenterX,
-            centerY = reviewAgainWiltedFlowerAnimationCenterY
-        )
+    val assetConfiguration: ReviewReactionLottieAssetConfiguration = reviewReactionLottieAssetConfigurations
+        .firstOrNull { configuration: ReviewReactionLottieAssetConfiguration ->
+            configuration.variant == variant
+        }
+        ?: return null
 
-        ReviewReactionVariant.AGAIN_WORM_WIGGLE -> ReviewReactionLottieConfiguration(
-            composition = compositionStore.reviewAgainWormComposition,
-            frameScale = reviewAgainWormAnimationFrameScale,
-            centerX = reviewAgainWormAnimationCenterX,
-            centerY = reviewAgainWormAnimationCenterY
-        )
-
-        ReviewReactionVariant.AGAIN_TORNADO -> ReviewReactionLottieConfiguration(
-            composition = compositionStore.reviewAgainTornadoComposition,
-            frameScale = reviewAgainTornadoAnimationFrameScale,
-            centerX = reviewAgainTornadoAnimationCenterX,
-            centerY = reviewAgainTornadoAnimationCenterY
-        )
-
-        ReviewReactionVariant.AGAIN_SNAIL_CRAWL -> ReviewReactionLottieConfiguration(
-            composition = compositionStore.reviewAgainSnailComposition,
-            frameScale = reviewAgainSnailAnimationFrameScale,
-            centerX = reviewAgainSnailAnimationCenterX,
-            centerY = reviewAgainSnailAnimationCenterY
-        )
-
-        ReviewReactionVariant.GOOD_OWL -> ReviewReactionLottieConfiguration(
-            composition = compositionStore.reviewGoodOwlComposition,
-            frameScale = reviewGoodOwlAnimationFrameScale,
-            centerX = reviewGoodOwlAnimationCenterX,
-            centerY = reviewGoodOwlAnimationCenterY
-        )
-
-        ReviewReactionVariant.GOOD_POODLE -> ReviewReactionLottieConfiguration(
-            composition = compositionStore.reviewGoodPoodleComposition,
-            frameScale = reviewGoodPoodleAnimationFrameScale,
-            centerX = reviewGoodPoodleAnimationCenterX,
-            centerY = reviewGoodPoodleAnimationCenterY
-        )
-
-        ReviewReactionVariant.GOOD_WHALE -> ReviewReactionLottieConfiguration(
-            composition = compositionStore.reviewGoodWhaleComposition,
-            frameScale = reviewGoodWhaleAnimationFrameScale,
-            centerX = reviewGoodWhaleAnimationCenterX,
-            centerY = reviewGoodWhaleAnimationCenterY
-        )
-
-        ReviewReactionVariant.GOOD_PEACOCK -> ReviewReactionLottieConfiguration(
-            composition = compositionStore.reviewGoodPeacockComposition,
-            frameScale = reviewGoodPeacockAnimationFrameScale,
-            centerX = reviewGoodPeacockAnimationCenterX,
-            centerY = reviewGoodPeacockAnimationCenterY
-        )
-
-        ReviewReactionVariant.HARD_OX_CHARGE -> ReviewReactionLottieConfiguration(
-            composition = compositionStore.reviewHardOxComposition,
-            frameScale = reviewHardOxAnimationFrameScale,
-            centerX = reviewHardOxAnimationCenterX,
-            centerY = reviewHardOxAnimationCenterY
-        )
-
-        ReviewReactionVariant.HARD_PAW_PRINTS -> ReviewReactionLottieConfiguration(
-            composition = compositionStore.reviewHardPawPrintsComposition,
-            frameScale = reviewHardPawPrintsAnimationFrameScale,
-            centerX = reviewHardPawPrintsAnimationCenterX,
-            centerY = reviewHardPawPrintsAnimationCenterY
-        )
-
-        ReviewReactionVariant.HARD_RACEHORSE_GALLOP -> ReviewReactionLottieConfiguration(
-            composition = compositionStore.reviewHardRacehorseComposition,
-            frameScale = reviewHardRacehorseAnimationFrameScale,
-            centerX = reviewHardRacehorseAnimationCenterX,
-            centerY = reviewHardRacehorseAnimationCenterY
-        )
-
-        ReviewReactionVariant.HARD_VOLCANO_ERUPTION -> ReviewReactionLottieConfiguration(
-            composition = compositionStore.reviewHardVolcanoComposition,
-            frameScale = reviewHardVolcanoAnimationFrameScale,
-            centerX = reviewHardVolcanoAnimationCenterX,
-            centerY = reviewHardVolcanoAnimationCenterY
-        )
-
-        ReviewReactionVariant.EASY_ROSE_BLOOM -> ReviewReactionLottieConfiguration(
-            composition = compositionStore.reviewEasyRoseComposition,
-            frameScale = reviewEasyRoseAnimationFrameScale,
-            centerX = reviewEasyRoseAnimationCenterX,
-            centerY = reviewEasyRoseAnimationCenterY
-        )
-
-        ReviewReactionVariant.EASY_RAINBOW_STREAK -> ReviewReactionLottieConfiguration(
-            composition = compositionStore.reviewEasyRainbowComposition,
-            frameScale = reviewEasyRainbowAnimationFrameScale,
-            centerX = reviewEasyRainbowAnimationCenterX,
-            centerY = reviewEasyRainbowAnimationCenterY
-        )
-
-        ReviewReactionVariant.EASY_PHOENIX_RISE -> ReviewReactionLottieConfiguration(
-            composition = compositionStore.reviewEasyPhoenixComposition,
-            frameScale = reviewEasyPhoenixAnimationFrameScale,
-            centerX = reviewEasyPhoenixAnimationCenterX,
-            centerY = reviewEasyPhoenixAnimationCenterY
-        )
-
-        ReviewReactionVariant.EASY_UNICORN_FLYBY -> ReviewReactionLottieConfiguration(
-            composition = compositionStore.reviewEasyUnicornComposition,
-            frameScale = reviewEasyUnicornAnimationFrameScale,
-            centerX = reviewEasyUnicornAnimationCenterX,
-            centerY = reviewEasyUnicornAnimationCenterY
-        )
-
-        ReviewReactionVariant.FALLBACK_CROWN_BOUNCE -> null
-    }
+    return ReviewReactionLottieConfiguration(
+        composition = compositionStore[variant],
+        frameScale = assetConfiguration.frameScale,
+        centerX = assetConfiguration.centerX,
+        centerY = assetConfiguration.centerY
+    )
 }
 
 @Composable
@@ -275,72 +423,13 @@ internal fun ReviewReactionOverlay(
     motionMode: ReviewReactionMotionMode,
     onEventFinished: (String) -> Unit
 ) {
-    val compositionStore: ReviewReactionLottieCompositionStore = ReviewReactionLottieCompositionStore(
-        reviewAgainWiltedFlowerComposition = rememberReviewReactionLottieComposition(
-            rawResourceId = R.raw.review_again_wilted_flower,
-            assetName = "review_again_wilted_flower"
-        ),
-        reviewAgainWormComposition = rememberReviewReactionLottieComposition(
-            rawResourceId = R.raw.review_again_worm,
-            assetName = "review_again_worm"
-        ),
-        reviewAgainTornadoComposition = rememberReviewReactionLottieComposition(
-            rawResourceId = R.raw.review_again_tornado,
-            assetName = "review_again_tornado"
-        ),
-        reviewAgainSnailComposition = rememberReviewReactionLottieComposition(
-            rawResourceId = R.raw.review_again_snail,
-            assetName = "review_again_snail"
-        ),
-        reviewGoodOwlComposition = rememberReviewReactionLottieComposition(
-            rawResourceId = R.raw.review_good_owl,
-            assetName = "review_good_owl"
-        ),
-        reviewGoodPoodleComposition = rememberReviewReactionLottieComposition(
-            rawResourceId = R.raw.review_good_poodle,
-            assetName = "review_good_poodle"
-        ),
-        reviewGoodWhaleComposition = rememberReviewReactionLottieComposition(
-            rawResourceId = R.raw.review_good_whale,
-            assetName = "review_good_whale"
-        ),
-        reviewGoodPeacockComposition = rememberReviewReactionLottieComposition(
-            rawResourceId = R.raw.review_good_peacock,
-            assetName = "review_good_peacock"
-        ),
-        reviewHardOxComposition = rememberReviewReactionLottieComposition(
-            rawResourceId = R.raw.review_hard_ox,
-            assetName = "review_hard_ox"
-        ),
-        reviewHardPawPrintsComposition = rememberReviewReactionLottieComposition(
-            rawResourceId = R.raw.review_hard_paw_prints,
-            assetName = "review_hard_paw_prints"
-        ),
-        reviewHardRacehorseComposition = rememberReviewReactionLottieComposition(
-            rawResourceId = R.raw.review_hard_racehorse,
-            assetName = "review_hard_racehorse"
-        ),
-        reviewHardVolcanoComposition = rememberReviewReactionLottieComposition(
-            rawResourceId = R.raw.review_hard_volcano,
-            assetName = "review_hard_volcano"
-        ),
-        reviewEasyRoseComposition = rememberReviewReactionLottieComposition(
-            rawResourceId = R.raw.review_easy_rose,
-            assetName = "review_easy_rose"
-        ),
-        reviewEasyRainbowComposition = rememberReviewReactionLottieComposition(
-            rawResourceId = R.raw.review_easy_rainbow,
-            assetName = "review_easy_rainbow"
-        ),
-        reviewEasyPhoenixComposition = rememberReviewReactionLottieComposition(
-            rawResourceId = R.raw.review_easy_phoenix,
-            assetName = "review_easy_phoenix"
-        ),
-        reviewEasyUnicornComposition = rememberReviewReactionLottieComposition(
-            rawResourceId = R.raw.review_easy_unicorn,
-            assetName = "review_easy_unicorn"
+    val compositionStore: ReviewReactionLottieCompositionStore = reviewReactionLottieAssetConfigurations.associate {
+        assetConfiguration: ReviewReactionLottieAssetConfiguration ->
+        assetConfiguration.variant to rememberReviewReactionLottieComposition(
+            rawResourceId = assetConfiguration.rawResourceId,
+            assetName = assetConfiguration.assetName
         )
-    )
+    }
 
     Box(
         modifier = modifier
