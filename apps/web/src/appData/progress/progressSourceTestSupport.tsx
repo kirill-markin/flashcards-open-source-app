@@ -70,6 +70,7 @@ vi.mock("../../api", async (importOriginal) => {
 
   return {
     ApiContractError: actual.ApiContractError,
+    ApiNetworkError: actual.ApiNetworkError,
     loadProgressSummary: progressSourceMocks.loadProgressSummaryMock,
     loadProgressSeries: progressSourceMocks.loadProgressSeriesMock,
     loadProgressReviewSchedule: progressSourceMocks.loadProgressReviewScheduleMock,

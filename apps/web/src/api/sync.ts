@@ -18,7 +18,11 @@ import type {
   SyncReviewHistoryPullResult,
 } from "../types";
 import { parseContractResponse } from "./response";
-import { allowAuthRecovery, requestJson } from "./transport";
+import {
+  allowAuthRecovery,
+  allowAuthRecoveryWithTransientNetworkRetry,
+  requestJson,
+} from "./transport";
 
 export async function pushSyncOperations(
   workspaceId: string,
@@ -35,7 +39,7 @@ export async function pushSyncOperations(
       appVersion,
       operations,
     }),
-  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/sync/push`, parseSyncPushResultResponse);
+  }, allowAuthRecoveryWithTransientNetworkRetry), `POST /workspaces/${workspaceId}/sync/push`, parseSyncPushResultResponse);
 }
 
 export async function pullSyncChanges(
@@ -55,7 +59,7 @@ export async function pullSyncChanges(
       afterHotChangeId,
       limit,
     }),
-  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/sync/pull`, parseSyncPullResultResponse);
+  }, allowAuthRecoveryWithTransientNetworkRetry), `POST /workspaces/${workspaceId}/sync/pull`, parseSyncPullResultResponse);
 }
 
 export async function bootstrapPullSyncState(
@@ -76,7 +80,7 @@ export async function bootstrapPullSyncState(
       cursor,
       limit,
     }),
-  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/sync/bootstrap`, parseSyncBootstrapPullResultResponse);
+  }, allowAuthRecoveryWithTransientNetworkRetry), `POST /workspaces/${workspaceId}/sync/bootstrap`, parseSyncBootstrapPullResultResponse);
 }
 
 export async function bootstrapPushSyncState(
@@ -115,7 +119,7 @@ export async function pullReviewHistorySync(
       afterReviewSequenceId,
       limit,
     }),
-  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/sync/review-history/pull`, parseSyncReviewHistoryPullResultResponse);
+  }, allowAuthRecoveryWithTransientNetworkRetry), `POST /workspaces/${workspaceId}/sync/review-history/pull`, parseSyncReviewHistoryPullResultResponse);
 }
 
 export async function importReviewHistorySync(

@@ -19,7 +19,11 @@ import type {
   StopChatRunResponse,
 } from "../types";
 import { parseContractResponse } from "./response";
-import { allowAuthRecovery, requestJson } from "./transport";
+import {
+  allowAuthRecovery,
+  allowAuthRecoveryWithTransientNetworkRetry,
+  requestJson,
+} from "./transport";
 
 type ChatResumeRequestDiagnostics = Readonly<{
   resumeAttemptId: number;
@@ -36,7 +40,7 @@ function buildChatSnapshotPath(sessionId: string, workspaceId: string): string {
 export async function getChatSnapshot(sessionId: string, workspaceId: string): Promise<ChatSessionSnapshot> {
   return parseContractResponse(await requestJson(buildChatSnapshotPath(sessionId, workspaceId), {
     method: "GET",
-  }, allowAuthRecovery), "GET /chat", parseChatSessionSnapshotResponse);
+  }, allowAuthRecoveryWithTransientNetworkRetry), "GET /chat", parseChatSessionSnapshotResponse);
 }
 
 export async function getChatSnapshotWithResumeDiagnostics(
@@ -51,14 +55,14 @@ export async function getChatSnapshotWithResumeDiagnostics(
       "X-Client-Platform": "web",
       "X-Client-Version": webAppVersion,
     },
-  }, allowAuthRecovery), "GET /chat", parseChatSessionSnapshotResponse);
+  }, allowAuthRecoveryWithTransientNetworkRetry), "GET /chat", parseChatSessionSnapshotResponse);
 }
 
 export async function startChatRun(body: StartChatRunRequestBody): Promise<StartChatRunResponse> {
   return parseContractResponse(await requestJson("/chat", {
     method: "POST",
     body: JSON.stringify(body),
-  }, allowAuthRecovery), "POST /chat", parseStartChatRunResponse);
+  }, allowAuthRecoveryWithTransientNetworkRetry), "POST /chat", parseStartChatRunResponse);
 }
 
 export async function createNewChatSession(
@@ -75,7 +79,7 @@ export async function createNewChatSession(
   return parseContractResponse(await requestJson("/chat/new", {
     method: "POST",
     body: JSON.stringify(requestBody),
-  }, allowAuthRecovery), "POST /chat/new", parseNewChatSessionResponse);
+  }, allowAuthRecoveryWithTransientNetworkRetry), "POST /chat/new", parseNewChatSessionResponse);
 }
 
 export async function stopChatRun(

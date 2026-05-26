@@ -6,8 +6,18 @@ import {
   useRef,
   useState,
 } from "react";
-import { loadProgressReviewSchedule, loadProgressSeries, loadProgressSummary } from "../../api";
+import {
+  ApiNetworkError,
+  loadProgressReviewSchedule,
+  loadProgressSeries,
+  loadProgressSummary,
+} from "../../api";
 import { captureApiContractError } from "../../observability/apiContractObservation";
+import {
+  captureWebException,
+  type ProgressServerLoadFailureDetails,
+  type WebObservationScope,
+} from "../../observability/webObservability";
 import {
   hasPendingProgressReviewEvents,
   loadLocalProgressDailyReviews,
@@ -90,8 +100,68 @@ type ProgressReviewScheduleRefreshRequest = Readonly<{
   progressScheduleLocalVersion: number;
 }>;
 
+type ProgressServerLoadOperation = ProgressServerLoadFailureDetails["operation"];
+
+type ProgressServerLoadObservationContext = Readonly<{
+  operation: ProgressServerLoadOperation;
+  workspaceId: string | null;
+  installationId: string | null;
+}>;
+
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function getCurrentRoute(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
+
+function buildProgressNetworkErrorScope(
+  error: ApiNetworkError,
+  context: ProgressServerLoadObservationContext,
+): WebObservationScope {
+  return {
+    app: "web",
+    feature: "progress",
+    userId: null,
+    workspaceId: context.workspaceId,
+    installationId: context.installationId,
+    route: getCurrentRoute(),
+    requestId: error.requestId,
+    statusCode: error.statusCode,
+    code: error.code,
+  };
+}
+
+function captureProgressNetworkError(error: unknown, context: ProgressServerLoadObservationContext): void {
+  if (error instanceof ApiNetworkError === false) {
+    return;
+  }
+
+  captureWebException({
+    action: "progress_server_load_failed",
+    error,
+    scope: buildProgressNetworkErrorScope(error, context),
+    details: {
+      operation: context.operation,
+      workspaceId: context.workspaceId,
+    },
+  });
+}
+
+function captureProgressServerLoadError(error: unknown, context: ProgressServerLoadObservationContext): void {
+  captureApiContractError(error, {
+    feature: "progress",
+    sourceAction: context.operation,
+    userId: null,
+    workspaceId: context.workspaceId,
+    installationId: context.installationId,
+  });
+  captureProgressNetworkError(error, context);
 }
 
 export function useProgressSource(params: UseProgressSourceParams): UseProgressSourceResult {
@@ -448,10 +518,8 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
                 errorMessage: getErrorMessage(error),
                 canRenderServerBase: canLoadServerBaseRef.current,
               });
-              captureApiContractError(error, {
-                feature: "progress",
-                sourceAction: "progress_summary_server_load",
-                userId: null,
+              captureProgressServerLoadError(error, {
+                operation: "progress_summary_server_load",
                 workspaceId: activeWorkspaceId,
                 installationId: cloudSettings?.installationId ?? null,
               });
@@ -531,10 +599,8 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
                 errorMessage: getErrorMessage(error),
                 canRenderServerBase: canLoadServerBaseRef.current,
               });
-              captureApiContractError(error, {
-                feature: "progress",
-                sourceAction: "progress_series_server_load",
-                userId: null,
+              captureProgressServerLoadError(error, {
+                operation: "progress_series_server_load",
                 workspaceId: activeWorkspaceId,
                 installationId: cloudSettings?.installationId ?? null,
               });
@@ -620,10 +686,8 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
                 progressScheduleLocalVersion: requestedRefresh.progressScheduleLocalVersion,
                 canRenderServerBase: canLoadServerBaseRef.current,
               });
-              captureApiContractError(error, {
-                feature: "progress",
-                sourceAction: "progress_review_schedule_server_load",
-                userId: null,
+              captureProgressServerLoadError(error, {
+                operation: "progress_review_schedule_server_load",
                 workspaceId: activeWorkspaceId,
                 installationId: cloudSettings?.installationId ?? null,
               });

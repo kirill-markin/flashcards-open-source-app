@@ -1,4 +1,5 @@
 export type ApiResponseBodyKind = "empty" | "json" | "text" | "invalid_json";
+export const apiNetworkErrorCode: string = "API_NETWORK_ERROR";
 
 type ApiErrorParams = Readonly<{
   statusCode: number;
@@ -23,6 +24,34 @@ export class ApiError extends Error {
     this.requestId = params.requestId;
     this.endpoint = params.endpoint;
     this.responseBodyKind = params.responseBodyKind;
+  }
+}
+
+type ApiNetworkErrorParams = Readonly<{
+  endpoint: string;
+  originalErrorName: string;
+  originalErrorMessage: string;
+  attemptCount: number;
+}>;
+
+export class ApiNetworkError extends ApiError {
+  readonly originalErrorName: string;
+  readonly originalErrorMessage: string;
+  readonly attemptCount: number;
+
+  constructor(params: ApiNetworkErrorParams) {
+    super({
+      statusCode: 0,
+      message: `The API is unavailable. Try again. (${params.endpoint}; ${params.originalErrorName}: ${params.originalErrorMessage})`,
+      code: apiNetworkErrorCode,
+      requestId: null,
+      endpoint: params.endpoint,
+      responseBodyKind: "empty",
+    });
+    this.name = "ApiNetworkError";
+    this.originalErrorName = params.originalErrorName;
+    this.originalErrorMessage = params.originalErrorMessage;
+    this.attemptCount = params.attemptCount;
   }
 }
 
