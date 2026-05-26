@@ -9,6 +9,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.data.local.ai.AiChatDiagnosticsLogger
+import com.flashcardsopensourceapp.feature.ai.AiCardHandoffResult
 import com.flashcardsopensourceapp.feature.ai.AiRoute
 import com.flashcardsopensourceapp.feature.ai.createAiViewModelFactory
 
@@ -88,7 +89,7 @@ internal fun NavGraphBuilder.registerAiNavGraph(
                 )
                 return@LaunchedEffect
             }
-            val didApplyRequest = aiViewModel.handoffCardToChat(
+            val handoffResult = aiViewModel.handoffCardToChat(
                 cardId = request.cardId,
                 frontText = request.frontText,
                 backText = request.backText,
@@ -100,11 +101,16 @@ internal fun NavGraphBuilder.registerAiNavGraph(
                 fields = listOf(
                     "requestId" to request.requestId.toString(),
                     "cardId" to request.cardId,
-                    "didApplyRequest" to didApplyRequest.toString()
+                    "handoffResult" to handoffResult.name
                 )
             )
-            if (didApplyRequest) {
-                appGraph.appHandoffCoordinator.consumeAiCardHandoff(requestId = request.requestId)
+            when (handoffResult) {
+                AiCardHandoffResult.APPLIED,
+                AiCardHandoffResult.REQUIRES_FRESH_CHAT -> {
+                    appGraph.appHandoffCoordinator.consumeAiCardHandoff(requestId = request.requestId)
+                }
+
+                AiCardHandoffResult.DEFERRED -> Unit
             }
         }
 
