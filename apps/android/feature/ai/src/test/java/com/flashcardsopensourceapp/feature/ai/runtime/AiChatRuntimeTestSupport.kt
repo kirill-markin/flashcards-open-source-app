@@ -285,6 +285,7 @@ internal class FakeAiChatRepository : AiChatRepository {
     var transcribeAudioError: Exception? = null
     var ensureReadyForSendError: Exception? = null
     var startRunError: Exception? = null
+    var ensureReadyForSendCalls: Int = 0
     var loadBootstrapCalls: Int = 0
     var startRunCalls: Int = 0
     var lastStartRunState: AiChatPersistedState? = null
@@ -339,6 +340,7 @@ internal class FakeAiChatRepository : AiChatRepository {
     }
 
     override suspend fun ensureReadyForSend(workspaceId: String?) {
+        ensureReadyForSendCalls += 1
         val error: Exception? = ensureReadyForSendError
         if (error != null) {
             throw error

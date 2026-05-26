@@ -6,6 +6,31 @@ enum AIChatLiveAttachTermination: Sendable {
     case failed(message: String, requestId: String?, clientRequestId: String?)
 }
 
+func validateAIChatStartRunRequestSize(
+    sessionId: String,
+    workspaceId: String?,
+    outgoingContent: [AIChatContentPart]
+) throws {
+    let effectiveSessionId = sessionId.trimmingCharacters(in: .whitespacesAndNewlines)
+    if effectiveSessionId.isEmpty {
+        throw LocalStoreError.validation("AI chat session orchestration started without a provisioned session id.")
+    }
+
+    let encoder = JSONEncoder()
+    _ = try encodeAIChatStartRunRequestBody(
+        request: AIChatStartRunRequestBody(
+            sessionId: effectiveSessionId,
+            clientRequestId: makeAIChatClientRequestId(),
+            content: outgoingContent,
+            timezone: TimeZone.current.identifier,
+            uiLocale: currentAIChatUILocaleIdentifier(),
+            workspaceId: workspaceId
+        ),
+        encoder: encoder,
+        maximumByteCount: aiChatMaximumStartRunRequestBytes
+    )
+}
+
 actor AIChatSessionRuntime {
     private let chatService: any AIChatSessionServicing
     private let contextLoader: any AIChatContextLoading
@@ -20,6 +45,18 @@ actor AIChatSessionRuntime {
         self.chatService = chatService
         self.contextLoader = contextLoader
         self.liveStreamClient = AIChatLiveStreamClient(urlSession: urlSession)
+    }
+
+    func validateStartRunRequestSize(
+        session: CloudLinkedSession,
+        sessionId: String,
+        outgoingContent: [AIChatContentPart]
+    ) throws {
+        try validateAIChatStartRunRequestSize(
+            sessionId: sessionId,
+            workspaceId: session.workspaceId,
+            outgoingContent: outgoingContent
+        )
     }
 
     /**

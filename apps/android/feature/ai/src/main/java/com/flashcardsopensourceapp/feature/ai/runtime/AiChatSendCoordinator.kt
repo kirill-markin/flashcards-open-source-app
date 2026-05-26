@@ -1,17 +1,26 @@
 package com.flashcardsopensourceapp.feature.ai.runtime
 
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
+import com.flashcardsopensourceapp.data.local.ai.AiChatRequestTooLargeException
+import com.flashcardsopensourceapp.data.local.ai.isAiChatRequestTooLargeRemoteError
+import com.flashcardsopensourceapp.data.local.ai.requireAiChatStartRunRequestSize
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
+import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
 import com.flashcardsopensourceapp.data.local.model.AiChatDraftState
+import com.flashcardsopensourceapp.data.local.model.AiChatStartRunRequest
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
+import com.flashcardsopensourceapp.data.local.model.buildAiChatRequestContent
 import com.flashcardsopensourceapp.data.local.model.isSendableAiChatAttachment
+import com.flashcardsopensourceapp.data.local.model.requireAiChatAttachmentSize
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.TimeZone
+import java.util.UUID
 
 internal class AiChatSendCoordinator(
     private val context: AiChatRuntimeContext,
@@ -39,6 +48,26 @@ internal class AiChatSendCoordinator(
             pendingAttachments = currentState.pendingAttachments
         )
         if (outgoingContent.isEmpty()) {
+            return
+        }
+
+        if (canSendAttachmentsWithinSizeLimit(pendingAttachments = currentState.pendingAttachments).not()) {
+            context.runtimeStateMutable.update { state ->
+                state.copy(
+                    activeAlert = context.textProvider.requestTooLargeAlert(),
+                    errorMessage = ""
+                )
+            }
+            return
+        }
+
+        if (canSendStartRunRequestWithinSizeLimit(state = currentState, outgoingContent = outgoingContent).not()) {
+            context.runtimeStateMutable.update { state ->
+                state.copy(
+                    activeAlert = context.textProvider.requestTooLargeAlert(),
+                    errorMessage = ""
+                )
+            }
             return
         }
 
@@ -340,6 +369,22 @@ internal class AiChatSendCoordinator(
             return
         }
 
+        if (
+            error is AiChatRequestTooLargeException
+            || remoteError?.let(::isAiChatRequestTooLargeRemoteError) == true
+        ) {
+            context.runtimeStateMutable.update { state ->
+                state.copy(
+                    activeRun = null,
+                    isLiveAttached = false,
+                    composerPhase = AiComposerPhase.IDLE,
+                    activeAlert = context.textProvider.requestTooLargeAlert(),
+                    errorMessage = ""
+                )
+            }
+            return
+        }
+
         if (didAcceptRun.not() && remoteError?.code == "CHAT_ACTIVE_RUN_IN_PROGRESS") {
             context.runtimeStateMutable.update { state ->
                 state.copy(
@@ -436,6 +481,39 @@ internal class AiChatSendCoordinator(
 
     private fun currentServerConfiguration(): CloudServiceConfiguration {
         return context.currentServerConfiguration()
+    }
+
+    private fun canSendAttachmentsWithinSizeLimit(pendingAttachments: List<AiChatAttachment>): Boolean {
+        return try {
+            pendingAttachments.forEach(::requireAiChatAttachmentSize)
+            true
+        } catch (_: IllegalArgumentException) {
+            false
+        }
+    }
+
+    private fun canSendStartRunRequestWithinSizeLimit(
+        state: AiChatRuntimeState,
+        outgoingContent: List<AiChatContentPart>
+    ): Boolean {
+        val requestSessionId = state.persistedState.chatSessionId.ifBlank {
+            makeAiChatSessionId()
+        }
+        val request = AiChatStartRunRequest(
+            sessionId = requestSessionId,
+            workspaceId = state.workspaceId,
+            clientRequestId = UUID.randomUUID().toString().lowercase(),
+            content = buildAiChatRequestContent(content = outgoingContent),
+            timezone = TimeZone.getDefault().id,
+            uiLocale = context.currentUiLocaleTag()
+        )
+
+        return try {
+            requireAiChatStartRunRequestSize(request = request)
+            true
+        } catch (_: AiChatRequestTooLargeException) {
+            false
+        }
     }
 
     private fun updateComposerSuggestions(

@@ -730,7 +730,7 @@ const enCatalog = {
       stopAriaLabel: "Stop response",
     },
     alerts: {
-      attachmentLimit: "Attachment payload limit is {{count}} MB after compression.",
+      attachmentLimit: "Message is too large. AI chat can’t send this much content at once. Remove one or more attachments, choose a smaller file or photo, or split the request and try again.",
       microphoneUnavailable: "Microphone recording is unavailable in this browser.",
     },
     composerPlaceholder: "Ask about cards, review history, or attach notes...",

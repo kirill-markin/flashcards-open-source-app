@@ -732,7 +732,7 @@ export const jaCatalog = {
       stopAriaLabel: "応答を停止",
     },
     alerts: {
-      attachmentLimit: "圧縮後の添付ペイロード上限は {{count}} MB です。",
+      attachmentLimit: "メッセージが大きすぎます。AI チャットはこの量の内容を一度に送信できません。添付を1つ以上削除するか、小さいファイルや写真を選ぶか、依頼を分けてもう一度お試しください。",
       microphoneUnavailable: "このブラウザではマイク録音を利用できません。",
     },
     composerPlaceholder: "カードや復習履歴について質問するか、抽出用のメモを添付してください...",

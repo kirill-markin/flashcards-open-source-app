@@ -6,6 +6,11 @@ import { HttpError } from "../../shared/errors";
 import { createChatRoutes } from "../../routes/chat";
 import type { AppEnv } from "../../server/app";
 import type { RequestContext } from "../../server/requestContext";
+import {
+  chatMaximumStartRunRequestBytes,
+  chatRequestTooLargeCode,
+  chatRequestTooLargeMessage,
+} from "../http/contract";
 import type { ChatSessionSnapshot, PersistedChatMessageItem } from "../store";
 
 const SESSION_ONE = "11111111-1111-4111-8111-111111111111";
@@ -307,6 +312,50 @@ test("POST /chat captures unexpected live envelope failures before returning the
   assert.equal(exceptionLog?.requestId, "request-route-2");
   assert.equal(exceptionLog?.runId, "run-1");
   assert.equal(exceptionLog?.errorMessage, "live signer exploded");
+});
+
+test("POST /chat returns a structured request-too-large error above the app soft limit", async () => {
+  let prepareChatRunCount = 0;
+  const routes = createChatRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContext(),
+    }),
+    prepareChatRunFn: async () => {
+      prepareChatRunCount += 1;
+      throw new Error("prepareChatRunFn should not be called");
+    },
+  });
+  const app = createRoutesWithHttpErrorJson();
+  app.route("/", routes);
+
+  const response = await app.request("http://localhost/chat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      sessionId: SESSION_ONE,
+      clientRequestId: "client-request-1",
+      content: [
+        {
+          type: "image",
+          mediaType: "image/png",
+          base64Data: "a".repeat(chatMaximumStartRunRequestBytes),
+        },
+      ],
+      timezone: "Europe/Madrid",
+    }),
+  });
+
+  assert.equal(response.status, 413);
+  assert.equal(prepareChatRunCount, 0);
+  assert.deepEqual(await response.json(), {
+    error: chatRequestTooLargeMessage,
+    requestId: null,
+    code: chatRequestTooLargeCode,
+  });
 });
 
 test("POST /chat fails with a stable contract code when a running response cannot create a live stream", async () => {

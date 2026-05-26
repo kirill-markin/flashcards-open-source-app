@@ -9,6 +9,10 @@ import {
   expectUuidString,
 } from "../../server/requestParsing";
 
+export const chatMaximumStartRunRequestBytes = 5 * 1024 * 1024;
+export const chatRequestTooLargeCode = "CHAT_REQUEST_TOO_LARGE";
+export const chatRequestTooLargeMessage = `AI chat request is too large. Maximum request size is ${chatMaximumStartRunRequestBytes} bytes.`;
+
 type ChatTextContentPart = Readonly<{
   type: "text";
   text: string;

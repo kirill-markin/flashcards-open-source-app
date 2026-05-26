@@ -39,6 +39,9 @@ import com.flashcardsopensourceapp.data.local.model.AiChatStartRunResponse
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.network.awaitOkHttpResponse
+import com.flashcardsopensourceapp.data.local.model.aiChatEffortLevelWireValue
+import com.flashcardsopensourceapp.data.local.model.aiChatMaximumStartRunRequestBytes
+import com.flashcardsopensourceapp.data.local.model.aiChatRequestTooLargeCode
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.currentCoroutineContext
@@ -79,6 +82,7 @@ private val expectedAiChatHttpFailureCodes: Set<String> = setOf(
     "CHAT_LIVE_NOT_FOUND",
     "CHAT_LIVE_RUN_ID_REQUIRED",
     "CHAT_LIVE_SESSION_ID_REQUIRED",
+    "CHAT_REQUEST_TOO_LARGE",
     "CHAT_SESSION_ID_CONFLICT",
     "CHAT_TRANSCRIPTION_FILE_EMPTY",
     "CHAT_TRANSCRIPTION_FILE_REQUIRED",
@@ -138,6 +142,110 @@ class AiChatRemoteException(
     val requestId: String?,
     val responseBody: String?
 ) : Exception(message)
+
+class AiChatRequestTooLargeException(
+    val byteCount: Int,
+    val maximumByteCount: Int
+) : Exception("AI chat request is too large.")
+
+fun encodeAiChatStartRunRequestJson(request: AiChatStartRunRequest): String {
+    return encodeAiChatStartRunRequestPayload(request = request).toString()
+}
+
+fun aiChatStartRunRequestByteCount(request: AiChatStartRunRequest): Int {
+    return encodeAiChatStartRunRequestJson(request = request)
+        .toByteArray(StandardCharsets.UTF_8)
+        .size
+}
+
+fun requireAiChatStartRunRequestSize(request: AiChatStartRunRequest) {
+    val byteCount = aiChatStartRunRequestByteCount(request = request)
+    if (byteCount > aiChatMaximumStartRunRequestBytes) {
+        throw AiChatRequestTooLargeException(
+            byteCount = byteCount,
+            maximumByteCount = aiChatMaximumStartRunRequestBytes
+        )
+    }
+}
+
+fun isAiChatRequestTooLargeRemoteError(error: AiChatRemoteException): Boolean {
+    if (error.statusCode == 413) {
+        return true
+    }
+
+    return error.code?.trim()?.uppercase() == aiChatRequestTooLargeCode
+}
+
+private fun encodeAiChatStartRunRequestPayload(request: AiChatStartRunRequest): JSONObject {
+    val payload = JSONObject()
+        .put("sessionId", request.sessionId)
+        .put("clientRequestId", request.clientRequestId)
+        .put("content", JSONArray(request.content.map(::encodeAiChatWireContentPart)))
+        .put("timezone", request.timezone)
+
+    return putOptionalAiChatUiLocale(
+        payload = putOptionalAiChatWorkspaceId(
+            payload = payload,
+            workspaceId = request.workspaceId
+        ),
+        uiLocale = request.uiLocale
+    )
+}
+
+private fun encodeAiChatWireContentPart(part: com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart): JSONObject {
+    return when (part) {
+        is com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart.Text -> JSONObject()
+            .put("type", "text")
+            .put("text", part.text)
+
+        is com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart.Image -> JSONObject()
+            .put("type", "image")
+            .put("mediaType", part.mediaType)
+            .put("base64Data", part.base64Data)
+
+        is com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart.File -> JSONObject()
+            .put("type", "file")
+            .put("fileName", part.fileName)
+            .put("mediaType", part.mediaType)
+            .put("base64Data", part.base64Data)
+
+        is com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart.Card -> JSONObject()
+            .put("type", "card")
+            .put("cardId", part.cardId)
+            .put("frontText", part.frontText)
+            .put("backText", part.backText)
+            .put("tags", JSONArray(part.tags))
+            .put("effortLevel", aiChatEffortLevelWireValue(part.effortLevel))
+
+        is com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart.ToolCall -> JSONObject()
+            .put("type", "tool_call")
+            .put("id", part.toolCallId)
+            .put("name", part.name)
+            .put("status", part.status.name.lowercase())
+            .put("input", part.input)
+            .put("output", part.output)
+    }
+}
+
+private fun putOptionalAiChatWorkspaceId(
+    payload: JSONObject,
+    workspaceId: String?
+): JSONObject {
+    workspaceId?.takeIf { value -> value.isNotBlank() }?.let { resolvedWorkspaceId ->
+        payload.put("workspaceId", resolvedWorkspaceId)
+    }
+    return payload
+}
+
+private fun putOptionalAiChatUiLocale(
+    payload: JSONObject,
+    uiLocale: String?
+): JSONObject {
+    uiLocale?.takeIf { value -> value.isNotBlank() }?.let { locale ->
+        payload.put("uiLocale", locale)
+    }
+    return payload
+}
 
 class AiChatRemoteService private constructor(
     private val dispatchers: AiCoroutineDispatchers,
@@ -232,13 +340,15 @@ class AiChatRemoteService private constructor(
         authorizationHeader: String,
         request: AiChatStartRunRequest
     ): AiChatStartRunResponse = withContext(dispatchers.io) {
+        requireAiChatStartRunRequestSize(request = request)
+        val requestJson = encodeAiChatStartRunRequestJson(request = request)
         val responseBody = readResponseBody(
             request = buildRequest(
                 apiBaseUrl = apiBaseUrl,
                 path = "/chat",
                 method = "POST",
                 authorizationHeader = authorizationHeader,
-                requestBody = encodeStartRunRequest(request = request).toString().toRequestBody(aiJsonMediaType),
+                requestBody = requestJson.toRequestBody(aiJsonMediaType),
                 extraHeaders = emptyMap()
             )
         )
@@ -511,22 +621,6 @@ class AiChatRemoteService private constructor(
         }
     }
 
-    private fun encodeStartRunRequest(request: AiChatStartRunRequest): JSONObject {
-        val payload = JSONObject()
-            .put("sessionId", request.sessionId)
-            .put("clientRequestId", request.clientRequestId)
-            .put("content", JSONArray(request.content.map(::encodeWireContentPart)))
-            .put("timezone", request.timezone)
-
-        return putOptionalUiLocale(
-            payload = putOptionalWorkspaceId(
-                payload = payload,
-                workspaceId = request.workspaceId
-            ),
-            uiLocale = request.uiLocale
-        )
-    }
-
     private fun encodeNewSessionRequest(request: AiChatNewSessionRequest): JSONObject {
         val payload = JSONObject()
             .put("sessionId", request.sessionId)
@@ -582,41 +676,6 @@ class AiChatRemoteService private constructor(
             payload.put("uiLocale", locale)
         }
         return payload
-    }
-
-    private fun encodeWireContentPart(part: com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart): JSONObject {
-        return when (part) {
-            is com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart.Text -> JSONObject()
-                .put("type", "text")
-                .put("text", part.text)
-
-            is com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart.Image -> JSONObject()
-                .put("type", "image")
-                .put("mediaType", part.mediaType)
-                .put("base64Data", part.base64Data)
-
-            is com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart.File -> JSONObject()
-                .put("type", "file")
-                .put("fileName", part.fileName)
-                .put("mediaType", part.mediaType)
-                .put("base64Data", part.base64Data)
-
-            is com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart.Card -> JSONObject()
-                .put("type", "card")
-                .put("cardId", part.cardId)
-                .put("frontText", part.frontText)
-                .put("backText", part.backText)
-                .put("tags", JSONArray(part.tags))
-                .put("effortLevel", com.flashcardsopensourceapp.data.local.model.aiChatEffortLevelWireValue(part.effortLevel))
-
-            is com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart.ToolCall -> JSONObject()
-                .put("type", "tool_call")
-                .put("id", part.toolCallId)
-                .put("name", part.name)
-                .put("status", part.status.name.lowercase())
-                .put("input", part.input)
-                .put("output", part.output)
-        }
     }
 
     private fun encodeMultipartAudioBody(
@@ -870,7 +929,7 @@ private fun isExpectedAiChatHttpFailure(
     statusCode: Int,
     code: String?
 ): Boolean {
-    if (statusCode == 401 || statusCode == 403 || statusCode == 429) {
+    if (statusCode == 401 || statusCode == 403 || statusCode == 413 || statusCode == 429) {
         return true
     }
 

@@ -147,10 +147,22 @@ extension AIChatView {
                     Button {
                         self.handlePrimaryComposerAction()
                     } label: {
-                        Image(systemName: self.chatStore.canStopResponse ? "stop.circle.fill" : "arrow.up.circle.fill")
-                            .font(.system(size: 28))
-                            .frame(width: aiChatComposerSendButtonVisualSize, height: aiChatComposerSendButtonVisualSize)
-                            .foregroundStyle(self.chatStore.canStopResponse ? Color.red : Color.accentColor)
+                        if self.chatStore.composerPhase == .preparingSend {
+                            ProgressView()
+                                .controlSize(.small)
+                                .frame(
+                                    width: aiChatComposerSendButtonVisualSize,
+                                    height: aiChatComposerSendButtonVisualSize
+                                )
+                        } else {
+                            Image(systemName: self.chatStore.canStopResponse ? "stop.circle.fill" : "arrow.up.circle.fill")
+                                .font(.system(size: 28))
+                                .frame(
+                                    width: aiChatComposerSendButtonVisualSize,
+                                    height: aiChatComposerSendButtonVisualSize
+                                )
+                                .foregroundStyle(self.chatStore.canStopResponse ? Color.red : Color.accentColor)
+                        }
                     }
                     .buttonStyle(.plain)
                     .disabled(self.primaryComposerButtonDisabled)

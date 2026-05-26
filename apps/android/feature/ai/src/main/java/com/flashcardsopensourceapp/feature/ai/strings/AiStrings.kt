@@ -48,6 +48,8 @@ data class AiTextProvider(
     val selectedFileTypeUnsupported: String,
     val selectedFileTypeUnsupportedWithExtensionFormat: String,
     val attachmentTooLarge: String,
+    val requestTooLargeTitle: String,
+    val requestTooLargeMessage: String,
     val serverChatOfficialUnavailable: String,
     val serverChatCustomUnavailable: String,
     val serverDictationOfficialUnavailable: String,
@@ -79,6 +81,13 @@ data class AiTextProvider(
         return AiAlertState.GeneralError(
             title = errorTitle,
             message = message
+        )
+    }
+
+    fun requestTooLargeAlert(): AiAlertState {
+        return AiAlertState.GeneralError(
+            title = requestTooLargeTitle,
+            message = requestTooLargeMessage
         )
     }
 
@@ -207,6 +216,8 @@ fun aiTextProvider(context: Context): AiTextProvider {
         selectedFileTypeUnsupported = context.getString(R.string.ai_selected_file_type_unsupported),
         selectedFileTypeUnsupportedWithExtensionFormat = context.getString(R.string.ai_selected_file_type_unsupported_with_extension),
         attachmentTooLarge = context.getString(R.string.ai_attachment_too_large),
+        requestTooLargeTitle = context.getString(R.string.ai_request_too_large_title),
+        requestTooLargeMessage = context.getString(R.string.ai_request_too_large_message),
         serverChatOfficialUnavailable = context.getString(R.string.ai_server_chat_official_unavailable),
         serverChatCustomUnavailable = context.getString(R.string.ai_server_chat_custom_unavailable),
         serverDictationOfficialUnavailable = context.getString(R.string.ai_server_dictation_official_unavailable),
@@ -273,7 +284,9 @@ fun testAiTextProvider(): AiTextProvider {
         selectedFileNameUnavailable = "Selected file name is unavailable.",
         selectedFileTypeUnsupported = "Selected file type is unsupported.",
         selectedFileTypeUnsupportedWithExtensionFormat = "Unsupported file type: .%1\$s",
-        attachmentTooLarge = "File is too large. Maximum allowed size is 20 MB.",
+        attachmentTooLarge = "File is too large. Maximum allowed size is 3 MB.",
+        requestTooLargeTitle = "Message is too large",
+        requestTooLargeMessage = "AI chat can’t send this much content at once. Remove one or more attachments, choose a smaller file or photo, or split the request and try again.",
         serverChatOfficialUnavailable = "AI is temporarily unavailable on the official server. Try again later.",
         serverChatCustomUnavailable = "AI is unavailable on this server. Contact the server operator.",
         serverDictationOfficialUnavailable = "AI dictation is temporarily unavailable on the official server. Try again later.",

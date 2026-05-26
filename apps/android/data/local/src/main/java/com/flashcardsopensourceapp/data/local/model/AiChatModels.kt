@@ -8,7 +8,9 @@ const val aiChatDefaultProviderLabel: String = "OpenAI"
 const val aiChatDefaultReasoningEffort: String = "medium"
 const val aiChatDefaultReasoningLabel: String = "Medium"
 const val aiChatOptimisticAssistantStatusToken: String = "__ai_optimistic_assistant_status__"
-const val aiChatMaximumAttachmentBytes: Int = 20 * 1024 * 1024
+const val aiChatMaximumAttachmentBytes: Int = 3 * 1024 * 1024
+const val aiChatMaximumStartRunRequestBytes: Int = 5 * 1024 * 1024
+const val aiChatRequestTooLargeCode: String = "CHAT_REQUEST_TOO_LARGE"
 
 val aiChatSupportedFileExtensions: Set<String> = setOf(
     "pdf",
@@ -613,8 +615,32 @@ private fun escapeAiChatCardXmlValue(value: String): String {
 
 fun requireAiChatAttachmentSize(byteCount: Int) {
     require(byteCount <= aiChatMaximumAttachmentBytes) {
-        "File is too large. Maximum allowed size is 20 MB."
+        "File is too large. Maximum allowed size is 3 MB."
     }
+}
+
+fun requireAiChatAttachmentSize(attachment: AiChatAttachment) {
+    when (attachment) {
+        is AiChatAttachment.Binary -> requireAiChatAttachmentSize(
+            byteCount = aiChatBase64DataByteCount(base64Data = attachment.base64Data)
+        )
+        is AiChatAttachment.Card,
+        is AiChatAttachment.Unknown -> Unit
+    }
+}
+
+fun aiChatBase64DataByteCount(base64Data: String): Int {
+    val normalizedBase64Data = base64Data.trim()
+    if (normalizedBase64Data.isEmpty()) {
+        return 0
+    }
+
+    val paddingCharacters = when {
+        normalizedBase64Data.endsWith(suffix = "==") -> 2
+        normalizedBase64Data.endsWith(suffix = "=") -> 1
+        else -> 0
+    }
+    return (normalizedBase64Data.length * 3 / 4) - paddingCharacters
 }
 
 fun requireSupportedAiChatAttachmentExtension(fileExtension: String) {

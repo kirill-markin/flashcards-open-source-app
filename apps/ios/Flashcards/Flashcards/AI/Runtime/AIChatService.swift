@@ -45,6 +45,107 @@ enum AIChatServiceError: LocalizedError, AIChatFailureDiagnosticProviding {
     }
 }
 
+struct AIChatRequestTooLargeError: LocalizedError, Sendable, Equatable {
+    let byteCount: Int?
+    let maximumByteCount: Int
+
+    var errorDescription: String? {
+        aiChatRequestTooLargeMessage()
+    }
+}
+
+func aiChatRequestTooLargeTitle() -> String {
+    aiSettingsLocalized(
+        "ai.error.requestTooLarge.title",
+        "Message is too large"
+    )
+}
+
+func aiChatRequestTooLargeMessage() -> String {
+    aiSettingsLocalized(
+        "ai.error.requestTooLarge.message",
+        "AI chat can’t send this much content at once. Remove one or more attachments, choose a smaller file or photo, or split the request and try again."
+    )
+}
+
+func isAIChatRequestTooLargeError(error: Error) -> Bool {
+    error is AIChatRequestTooLargeError
+}
+
+func encodeAIChatStartRunRequestBody(
+    request: AIChatStartRunRequestBody,
+    encoder: JSONEncoder,
+    maximumByteCount: Int
+) throws -> Data {
+    try validateAIChatOutgoingAttachmentSizes(outgoingContent: request.content)
+    let encodedBody = try encoder.encode(request)
+    try validateAIChatStartRunRequestBodySize(
+        encodedBody: encodedBody,
+        maximumByteCount: maximumByteCount
+    )
+    return encodedBody
+}
+
+func validateAIChatStartRunRequestBodySize(
+    encodedBody: Data,
+    maximumByteCount: Int
+) throws {
+    if encodedBody.count > maximumByteCount {
+        throw AIChatRequestTooLargeError(
+            byteCount: encodedBody.count,
+            maximumByteCount: maximumByteCount
+        )
+    }
+}
+
+func validateAIChatOutgoingAttachmentSizes(outgoingContent: [AIChatContentPart]) throws {
+    for part in outgoingContent {
+        let base64Data: String?
+        switch part {
+        case .image(mediaType: _, base64Data: let imageBase64Data):
+            base64Data = imageBase64Data
+        case .file(fileName: _, mediaType: _, base64Data: let fileBase64Data):
+            base64Data = fileBase64Data
+        case .text,
+             .card,
+             .toolCall,
+             .reasoningSummary,
+             .accountUpgradePrompt,
+             .unknown:
+            base64Data = nil
+        }
+
+        guard let base64Data else {
+            continue
+        }
+
+        let byteCount = aiChatBase64DataByteCount(base64Data)
+        if byteCount > aiChatMaximumAttachmentBytes {
+            throw AIChatRequestTooLargeError(
+                byteCount: byteCount,
+                maximumByteCount: aiChatMaximumAttachmentBytes
+            )
+        }
+    }
+}
+
+private func aiChatBase64DataByteCount(_ base64Data: String) -> Int {
+    let normalizedBase64Data = base64Data.trimmingCharacters(in: .whitespacesAndNewlines)
+    if normalizedBase64Data.isEmpty {
+        return 0
+    }
+
+    let paddingCharacters: Int
+    if normalizedBase64Data.hasSuffix("==") {
+        paddingCharacters = 2
+    } else if normalizedBase64Data.hasSuffix("=") {
+        paddingCharacters = 1
+    } else {
+        paddingCharacters = 0
+    }
+    return (normalizedBase64Data.utf8.count * 3 / 4) - paddingCharacters
+}
+
 final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
     private let session: URLSession
     private let encoder: JSONEncoder
@@ -231,11 +332,16 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
             uiLocale: request.uiLocale,
             workspaceId: session.workspaceId
         )
+        let encodedBody = try encodeAIChatStartRunRequestBody(
+            request: requestBody,
+            encoder: self.encoder,
+            maximumByteCount: aiChatMaximumStartRunRequestBytes
+        )
         let urlRequest = try self.makeJsonRequest(
             session: session,
             path: "/chat",
             method: "POST",
-            body: requestBody,
+            bodyData: encodedBody,
             clientRequestId: clientRequestId
         )
         let data = try await self.execute(
@@ -395,6 +501,15 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
 
         let backendRequestId = extractChatRequestId(httpResponse: httpResponse)
         let errorDetails = decodeCloudApiErrorDetails(data: data, requestId: backendRequestId)
+        if isAIChatRequestTooLargeResponse(
+            statusCode: httpResponse.statusCode,
+            code: errorDetails.code
+        ) {
+            throw AIChatRequestTooLargeError(
+                byteCount: nil,
+                maximumByteCount: aiChatMaximumStartRunRequestBytes
+            )
+        }
         let diagnostics = AIChatFailureDiagnostics(
             clientRequestId: clientRequestId,
             backendRequestId: backendRequestId,
@@ -458,6 +573,25 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
         return request
     }
 
+    private func makeJsonRequest(
+        session: CloudLinkedSession,
+        path: String,
+        method: String,
+        bodyData: Data,
+        clientRequestId: String
+    ) throws -> URLRequest {
+        var request = try self.makeRequest(
+            session: session,
+            path: path,
+            method: method,
+            clientRequestId: clientRequestId,
+            additionalHeaders: [:]
+        )
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = bodyData
+        return request
+    }
+
     private func resumeAttemptHeaders(
         diagnostics: AIChatResumeAttemptDiagnostics?
     ) -> [String: String] {
@@ -509,6 +643,14 @@ private func extractChatRequestId(httpResponse: HTTPURLResponse) -> String? {
     }
 
     return nil
+}
+
+private func isAIChatRequestTooLargeResponse(statusCode: Int, code: String?) -> Bool {
+    if statusCode == 413 {
+        return true
+    }
+
+    return code == "CHAT_REQUEST_TOO_LARGE"
 }
 
 private func makeChatPath(basePath: String, queryItems: [URLQueryItem]) -> String {

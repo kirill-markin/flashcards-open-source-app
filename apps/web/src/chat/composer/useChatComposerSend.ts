@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { listOutboxRecords } from "../../localDb/outbox";
 import type { ChatComposerSendPhase } from "./ChatDraftContext";
-import type { PendingAttachment } from "../attachments/FileAttachment";
+import {
+  binaryPendingAttachmentExceedsSizeLimit,
+  type PendingAttachment,
+} from "../attachments/FileAttachment";
 import {
   ATTACHMENT_PAYLOAD_LIMIT_BYTES,
   buildContentParts,
@@ -158,6 +161,11 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
     const sourceSessionId = currentSessionId;
     const contentParts = buildContentParts(nextText, nextAttachments);
     if (contentParts.length === 0) {
+      return;
+    }
+
+    if (nextAttachments.some(binaryPendingAttachmentExceedsSizeLimit)) {
+      window.alert(attachmentLimitMessage);
       return;
     }
 

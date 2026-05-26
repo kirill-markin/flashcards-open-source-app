@@ -36,6 +36,8 @@ import {
   buildContentParts,
   toRequestBodySizeBytes,
 } from "../shared/chatHelpers";
+import { binaryPendingAttachmentExceedsSizeLimit } from "../attachments/FileAttachment";
+import { isAiChatRequestTooLargeError } from "../shared/chatSizePolicy";
 import type { ChatHistoryState } from "../history/useChatHistory";
 
 type FreshSessionErrorPresentation = "new_chat" | "refresh" | "silent";
@@ -113,6 +115,7 @@ function isExpectedChatProductErrorCode(code: string | null): boolean {
     case "AI_CHAT_V2_HUMAN_AUTH_REQUIRED":
     case "AUTH_UNAUTHORIZED":
     case "CHAT_ACTIVE_RUN_IN_PROGRESS":
+    case "CHAT_REQUEST_TOO_LARGE":
     case "CHAT_SESSION_ID_CONFLICT":
     case "GUEST_AUTH_INVALID":
     case "WORKSPACE_NOT_FOUND":
@@ -141,6 +144,13 @@ function shouldCaptureChatRunRequestError(error: Error): boolean {
   if (error instanceof ApiError) {
     if (error.statusCode >= 500) {
       return true;
+    }
+
+    if (isAiChatRequestTooLargeError({
+      statusCode: error.statusCode,
+      code: error.code,
+    })) {
+      return false;
     }
 
     if (isExpectedChatProductErrorCode(error.code)) {
@@ -526,6 +536,14 @@ export function useChatSessionActions(
       return { accepted: false, sessionId: state.currentSessionId };
     }
 
+    if (sendParams.attachments.some(binaryPendingAttachmentExceedsSizeLimit)) {
+      dispatch({
+        type: "error_shown",
+        message: uiMessages.attachmentLimit,
+      });
+      return { accepted: false, sessionId: state.currentSessionId };
+    }
+
     const requestSequence = getActiveRequestSequence();
     let sessionId: string;
     try {
@@ -615,6 +633,20 @@ export function useChatSessionActions(
         dispatch({
           type: "error_shown",
           message: uiMessages.activeRunInProgress,
+        });
+        return { accepted: false, sessionId: state.currentSessionId };
+      }
+
+      if (
+        isChatApiError(error)
+        && isAiChatRequestTooLargeError({
+          statusCode: error.statusCode,
+          code: error.code,
+        })
+      ) {
+        dispatch({
+          type: "error_shown",
+          message: uiMessages.attachmentLimit,
         });
         return { accepted: false, sessionId: state.currentSessionId };
       }

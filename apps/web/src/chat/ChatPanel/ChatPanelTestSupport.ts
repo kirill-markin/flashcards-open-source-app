@@ -32,6 +32,8 @@ const {
   checkFileSizeMock,
   prepareAttachmentMock,
   recompressImageAttachmentMock,
+  binaryPendingAttachmentExceedsSizeLimitMock,
+  ChatAttachmentTooLargeErrorMock,
   isBinaryPendingAttachmentMock,
 } = vi.hoisted(() => ({
   ApiErrorMock: class ApiError extends Error {
@@ -83,6 +85,13 @@ const {
   checkFileSizeMock: vi.fn(),
   prepareAttachmentMock: vi.fn(),
   recompressImageAttachmentMock: vi.fn(),
+  binaryPendingAttachmentExceedsSizeLimitMock: vi.fn(),
+  ChatAttachmentTooLargeErrorMock: class ChatAttachmentTooLargeError extends Error {
+    constructor() {
+      super("AI chat attachment is too large.");
+      this.name = "ChatAttachmentTooLargeError";
+    }
+  },
   isBinaryPendingAttachmentMock: vi.fn(),
 }));
 
@@ -132,6 +141,9 @@ vi.mock("../attachments/FileAttachment", () => ({
   checkFileSize: checkFileSizeMock,
   prepareAttachment: prepareAttachmentMock,
   recompressImageAttachment: recompressImageAttachmentMock,
+  binaryPendingAttachmentExceedsSizeLimit: binaryPendingAttachmentExceedsSizeLimitMock,
+  ChatAttachmentTooLargeError: ChatAttachmentTooLargeErrorMock,
+  isChatAttachmentTooLargeError: (error: unknown) => error instanceof ChatAttachmentTooLargeErrorMock,
   isBinaryPendingAttachment: isBinaryPendingAttachmentMock,
   EXTRA_AGGRESSIVE_IMAGE_COMPRESSION: {
     maxSidePixels: 1_280,
@@ -209,6 +221,8 @@ export {
   listOutboxRecordsMock,
   prepareAttachmentMock,
   recompressImageAttachmentMock,
+  binaryPendingAttachmentExceedsSizeLimitMock,
+  ChatAttachmentTooLargeErrorMock,
   createNewChatSessionMock,
   startChatRunMock,
   stopChatRunMock,
@@ -553,6 +567,7 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     checkFileSizeMock.mockReset();
     prepareAttachmentMock.mockReset();
     recompressImageAttachmentMock.mockReset();
+    binaryPendingAttachmentExceedsSizeLimitMock.mockReset();
     isBinaryPendingAttachmentMock.mockReset();
 
     useChatLayoutMock.mockReturnValue({
@@ -628,6 +643,7 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
       mediaType: "image/jpeg",
       base64Data: "dGVzdA==",
     });
+    binaryPendingAttachmentExceedsSizeLimitMock.mockReturnValue(false);
     isBinaryPendingAttachmentMock.mockImplementation((attachment) => attachment.type === "binary");
 
     scrollToMock = vi.fn(function thisBoundScrollTo(

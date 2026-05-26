@@ -72,17 +72,24 @@ extension AIChatStore {
         )
         self.chatSessionId = resolvedSessionId
         self.conversationScopeId = resolvedSessionId
+        do {
+            try validateAIChatStartRunRequestSize(
+                sessionId: resolvedSessionId,
+                workspaceId: nil,
+                outgoingContent: content
+            )
+        } catch {
+            self.showGeneralError(error: error)
+            return
+        }
         let draftText = self.inputText
         let draftAttachments = self.pendingAttachments
         self.transitionToPreparingSend()
         self.persistStateSynchronously(state: self.currentPersistedState())
-        self.applyComposerDraft(inputText: "", pendingAttachments: [])
         let conversationId = UUID().uuidString.lowercased()
-        self.appendOptimisticOutgoingTurn(content: content)
-        self.storePreSendSnapshot(preSendSnapshot, conversationId: conversationId)
 
         let task = Task {
-            let didAppendOptimisticMessages = true
+            var didAppendOptimisticMessages = false
             defer {
                 self.clearPreSendSnapshot(conversationId: conversationId)
                 if self.activeConversationId == conversationId {
@@ -96,9 +103,18 @@ extension AIChatStore {
 
             do {
                 let session = try await self.flashcardsStore.cloudSessionForAI()
+                try await self.runtime.validateStartRunRequestSize(
+                    session: session,
+                    sessionId: resolvedSessionId,
+                    outgoingContent: content
+                )
                 try await self.ensureAIChatReadyForSend(linkedSession: session)
                 let explicitSessionId = try await self.ensureRemoteSessionIfNeeded(session: session)
                 self.resetRunToolCallTracking()
+                self.applyComposerDraft(inputText: "", pendingAttachments: [])
+                self.appendOptimisticOutgoingTurn(content: content)
+                didAppendOptimisticMessages = true
+                self.storePreSendSnapshot(preSendSnapshot, conversationId: conversationId)
                 self.transitionToStartingRun()
                 self.activeConversationId = conversationId
                 try await self.runtime.run(
