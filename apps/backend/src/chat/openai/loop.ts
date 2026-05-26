@@ -2,7 +2,7 @@
  * OpenAI model loop for backend-owned chat runs.
  * The loop replays persisted history, streams provider events, executes tool calls, and returns replay items for the next recovery point.
  */
-import type OpenAI from "openai";
+import OpenAI from "openai";
 import type { LangfuseObservation } from "@langfuse/tracing";
 import {
   applyFunctionCallArgumentsDelta,
@@ -174,9 +174,28 @@ function isResponseCompletedEvent(
   return event.type === "response.completed";
 }
 
+const OPENAI_STREAM_ABORT_ERROR_MESSAGE = "OpenAI response stream was aborted before a final response";
+
+class OpenAIStreamAbortError extends Error {
+  constructor() {
+    super(OPENAI_STREAM_ABORT_ERROR_MESSAGE);
+    this.name = "AbortError";
+  }
+}
+
+function createOpenAIStreamAbortError(): OpenAIStreamAbortError {
+  return new OpenAIStreamAbortError();
+}
+
+function isOpenAIAbortError(error: unknown): boolean {
+  return error instanceof OpenAI.APIUserAbortError
+    || error instanceof OpenAIStreamAbortError;
+}
+
 async function getFinalResponseFromStream(
   stream: ResponseStreamWithOptionalFinalResponse,
   completedResponse: OpenAI.Responses.Response | null,
+  signal: AbortSignal | undefined,
 ): Promise<OpenAI.Responses.Response> {
   if (completedResponse !== null) {
     return completedResponse;
@@ -184,6 +203,10 @@ async function getFinalResponseFromStream(
 
   if (typeof stream.finalResponse === "function") {
     return stream.finalResponse();
+  }
+
+  if (signal?.aborted === true) {
+    throw createOpenAIStreamAbortError();
   }
 
   throw new Error("OpenAI response stream completed without a final response");
@@ -317,6 +340,19 @@ function shouldStopBeforeNextStep(params: StartOpenAILoopParams): boolean {
   return params.shouldStopBeforeNextStep?.() === true;
 }
 
+function shouldStopForOpenAIAbort(params: StartOpenAILoopParams, error: unknown): boolean {
+  return shouldStopBeforeNextStep(params) && isOpenAIAbortError(error);
+}
+
+function createStoppedBeforeNextStepCompletion(
+  continuationItems: ReadonlyArray<StoredOpenAIReplayItem>,
+): OpenAILoopCompletion {
+  return {
+    openaiItems: continuationItems,
+    terminationReason: "stopped_before_next_step",
+  };
+}
+
 async function runOneModelCall(
   client: OpenAI,
   params: StartOpenAILoopParams,
@@ -443,7 +479,7 @@ async function runOneModelCall(
     }
   }
 
-  const finalResponse = await getFinalResponseFromStream(stream, completedResponse);
+  const finalResponse = await getFinalResponseFromStream(stream, completedResponse, params.signal);
   return {
     finalResponse,
     functionCalls: finalResponse.output
@@ -482,20 +518,29 @@ async function completeToolLimitSummaryTurn(
   continuationItems: Array<StoredOpenAIReplayItem>,
 ): Promise<OpenAILoopCompletion> {
   const summaryCallIndex = CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS + 1;
-  const summaryCall = await runOneModelCallWithPhase(
-    client,
-    params,
-    onEvent,
-    buildOpenAIResponsesRequest({
-      baseInput,
-      continuationItems,
-      userId: params.userId,
-      sessionId: params.sessionId,
-      extraInput: [buildToolLimitSummaryInstruction(CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS)],
-      tools: [],
-    }),
-    summaryCallIndex,
-  );
+  let summaryCall: ModelCallResult;
+  try {
+    summaryCall = await runOneModelCallWithPhase(
+      client,
+      params,
+      onEvent,
+      buildOpenAIResponsesRequest({
+        baseInput,
+        continuationItems,
+        userId: params.userId,
+        sessionId: params.sessionId,
+        extraInput: [buildToolLimitSummaryInstruction(CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS)],
+        tools: [],
+      }),
+      summaryCallIndex,
+    );
+  } catch (error) {
+    if (shouldStopForOpenAIAbort(params, error)) {
+      return createStoppedBeforeNextStepCompletion(continuationItems);
+    }
+
+    throw error;
+  }
 
   const finalResponseText = summaryCall.finalResponse.output_text.trim();
   const finalAssistantText = finalResponseText.length > 0
@@ -541,26 +586,32 @@ async function runLoopWithDeps(
 
   for (let callIndex = 1; callIndex <= CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS; callIndex += 1) {
     if (shouldStopBeforeNextStep(params)) {
-      return {
-        openaiItems: continuationItems,
-        terminationReason: "stopped_before_next_step",
-      };
+      return createStoppedBeforeNextStepCompletion(continuationItems);
     }
 
-    const modelCall = await runOneModelCallWithPhase(
-      client,
-      params,
-      onEvent,
-      buildOpenAIResponsesRequest({
-        baseInput,
-        continuationItems,
-        userId: params.userId,
-        sessionId: params.sessionId,
-        extraInput: [],
-        tools: OPENAI_CHAT_TOOLS,
-      }),
-      callIndex,
-    );
+    let modelCall: ModelCallResult;
+    try {
+      modelCall = await runOneModelCallWithPhase(
+        client,
+        params,
+        onEvent,
+        buildOpenAIResponsesRequest({
+          baseInput,
+          continuationItems,
+          userId: params.userId,
+          sessionId: params.sessionId,
+          extraInput: [],
+          tools: OPENAI_CHAT_TOOLS,
+        }),
+        callIndex,
+      );
+    } catch (error) {
+      if (shouldStopForOpenAIAbort(params, error)) {
+        return createStoppedBeforeNextStepCompletion(continuationItems);
+      }
+
+      throw error;
+    }
 
     continuationItems.push(...modelCall.replayItems);
 
@@ -573,19 +624,13 @@ async function runLoopWithDeps(
     }
 
     if (shouldStopBeforeNextStep(params)) {
-      return {
-        openaiItems: continuationItems,
-        terminationReason: "stopped_before_next_step",
-      };
+      return createStoppedBeforeNextStepCompletion(continuationItems);
     }
 
     let toolStates = modelCall.toolStates;
     for (const functionCall of modelCall.functionCalls) {
       if (shouldStopBeforeNextStep(params)) {
-        return {
-          openaiItems: continuationItems,
-          terminationReason: "stopped_before_next_step",
-        };
+        return createStoppedBeforeNextStepCompletion(continuationItems);
       }
 
       setExecutionPhase(params, "tool");
@@ -620,10 +665,7 @@ async function runLoopWithDeps(
       }
 
       if (shouldStopBeforeNextStep(params)) {
-        return {
-          openaiItems: continuationItems,
-          terminationReason: "stopped_before_next_step",
-        };
+        return createStoppedBeforeNextStepCompletion(continuationItems);
       }
     }
 

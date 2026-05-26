@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type OpenAI from "openai";
+import OpenAI from "openai";
 import {
   CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS,
   startOpenAILoopWithDeps,
@@ -11,7 +11,7 @@ import { buildOpenAISafetyIdentifier } from "./safetyIdentifier";
 
 type OpenAILoopDependencies = Parameters<typeof startOpenAILoopWithDeps>[2];
 type OpenAIResponseStream = AsyncIterable<OpenAI.Responses.ResponseStreamEvent> & Readonly<{
-  finalResponse: () => Promise<OpenAI.Responses.Response>;
+  finalResponse?: () => Promise<OpenAI.Responses.Response>;
 }>;
 
 function createParams(
@@ -129,12 +129,21 @@ function createFunctionCallAddedEvent(
   } as OpenAI.Responses.ResponseOutputItemAddedEvent;
 }
 
+function createOutputTextDeltaEvent(text: string): OpenAI.Responses.ResponseTextDeltaEvent {
+  return {
+    type: "response.output_text.delta",
+    delta: text,
+    item_id: "message-1",
+    output_index: 0,
+    content_index: 0,
+    sequence_number: 1,
+  } as OpenAI.Responses.ResponseTextDeltaEvent;
+}
+
 function createResponseStream(
   events: ReadonlyArray<OpenAI.Responses.ResponseStreamEvent>,
   finalResponse: OpenAI.Responses.Response,
-): AsyncIterable<OpenAI.Responses.ResponseStreamEvent> & Readonly<{
-  finalResponse: () => Promise<OpenAI.Responses.Response>;
-}> {
+): OpenAIResponseStream {
   return {
     async *[Symbol.asyncIterator](): AsyncGenerator<OpenAI.Responses.ResponseStreamEvent> {
       for (const event of events) {
@@ -142,6 +151,44 @@ function createResponseStream(
       }
     },
     finalResponse: async (): Promise<OpenAI.Responses.Response> => finalResponse,
+  };
+}
+
+function createAbortedResponseStream(
+  abortController: AbortController,
+): OpenAIResponseStream {
+  return {
+    async *[Symbol.asyncIterator](): AsyncGenerator<OpenAI.Responses.ResponseStreamEvent> {
+      yield createOutputTextDeltaEvent("partial");
+      abortController.abort();
+    },
+  };
+}
+
+function createAbortedResponseStreamWithFinalResponse(
+  abortController: AbortController,
+  finalResponse: OpenAI.Responses.Response,
+): OpenAIResponseStream {
+  return {
+    async *[Symbol.asyncIterator](): AsyncGenerator<OpenAI.Responses.ResponseStreamEvent> {
+      yield createOutputTextDeltaEvent("partial");
+      abortController.abort();
+    },
+    finalResponse: async (): Promise<OpenAI.Responses.Response> => finalResponse,
+  };
+}
+
+function createSdkAbortedResponseStream(
+  abortController: AbortController,
+): OpenAIResponseStream {
+  return {
+    async *[Symbol.asyncIterator](): AsyncGenerator<OpenAI.Responses.ResponseStreamEvent> {
+      yield createOutputTextDeltaEvent("partial");
+      abortController.abort();
+    },
+    finalResponse: async (): Promise<OpenAI.Responses.Response> => {
+      throw new OpenAI.APIUserAbortError();
+    },
   };
 }
 
@@ -196,6 +243,90 @@ test("startOpenAILoopWithDeps sends a hashed safety identifier on the initial mo
   assert.equal(requests[0].safety_identifier, buildOpenAISafetyIdentifier("user-1"));
   assert.equal(requests[0].prompt_cache_key, "session-1");
   assert.equal(Object.hasOwn(requests[0], "user"), false);
+});
+
+test("startOpenAILoopWithDeps rejects with AbortError when an aborted stream ends without a final response", async () => {
+  const abortController = new AbortController();
+
+  await assert.rejects(
+    startOpenAILoopWithDeps(
+      createParams({
+        signal: abortController.signal,
+      }),
+      async (): Promise<void> => undefined,
+      createDependencies(
+        () => createAbortedResponseStream(abortController),
+        async () => {
+          throw new Error("runOneToolCall should not be called");
+        },
+      ),
+    ),
+    (error: unknown): boolean => {
+      assert(error instanceof Error);
+      assert.equal(error.name, "AbortError");
+      assert.equal(error.message, "OpenAI response stream was aborted before a final response");
+      return true;
+    },
+  );
+});
+
+test("startOpenAILoopWithDeps rejects with SDK abort errors when no stop is requested", async () => {
+  const abortController = new AbortController();
+
+  await assert.rejects(
+    startOpenAILoopWithDeps(
+      createParams({
+        signal: abortController.signal,
+      }),
+      async (): Promise<void> => undefined,
+      createDependencies(
+        () => createSdkAbortedResponseStream(abortController),
+        async () => {
+          throw new Error("runOneToolCall should not be called");
+        },
+      ),
+    ),
+    (error: unknown): boolean => {
+      assert(error instanceof OpenAI.APIUserAbortError);
+      return true;
+    },
+  );
+});
+
+test("startOpenAILoopWithDeps uses finalResponse fallback before treating a late-aborted stream as aborted", async () => {
+  const abortController = new AbortController();
+  const messageItem = createAssistantMessageItem("partial");
+  const { sink, events } = collectEvents();
+
+  const result = await startOpenAILoopWithDeps(
+    createParams({
+      signal: abortController.signal,
+    }),
+    sink,
+    createDependencies(
+      () => createAbortedResponseStreamWithFinalResponse(
+        abortController,
+        createResponse([messageItem], "partial"),
+      ),
+      async () => {
+        throw new Error("runOneToolCall should not be called");
+      },
+    ),
+  );
+
+  assert.equal(result.terminationReason, "completed");
+  assert.deepEqual(events, [
+    {
+      type: "delta",
+      text: "partial",
+      itemId: "message-1",
+      responseIndex: 0,
+      outputIndex: 0,
+      contentIndex: 0,
+      sequenceNumber: 1,
+    },
+    { type: "done" },
+  ]);
 });
 
 test("startOpenAILoopWithDeps stops before the next tool call when requested", async () => {
@@ -322,6 +453,120 @@ test("startOpenAILoopWithDeps stops after a completed tool call before the next 
   ]);
 });
 
+test("startOpenAILoopWithDeps preserves replay items when a deadline aborts before a next model final response", async () => {
+  let stopBeforeNextStep = false;
+  let streamCallCount = 0;
+  let toolCallCount = 0;
+  const abortController = new AbortController();
+  const startedFunctionCallItem = createFunctionCallItem("in_progress");
+  const completedFunctionCallItem = createFunctionCallItem("completed");
+
+  const result = await startOpenAILoopWithDeps(
+    createParams({
+      signal: abortController.signal,
+      shouldStopBeforeNextStep: (): boolean => stopBeforeNextStep,
+    }),
+    async (): Promise<void> => undefined,
+    createDependencies(
+      () => {
+        streamCallCount += 1;
+        if (streamCallCount === 1) {
+          return createResponseStream(
+            [createFunctionCallAddedEvent(startedFunctionCallItem)],
+            createResponse([completedFunctionCallItem], ""),
+          );
+        }
+
+        stopBeforeNextStep = true;
+        return createAbortedResponseStream(abortController);
+      },
+      async () => {
+        toolCallCount += 1;
+        return {
+          output: "{\"ok\":true}",
+          isMutating: false,
+          succeeded: true,
+        };
+      },
+    ),
+  );
+
+  assert.equal(streamCallCount, 2);
+  assert.equal(toolCallCount, 1);
+  assert.equal(result.terminationReason, "stopped_before_next_step");
+  assert.deepEqual(result.openaiItems, [
+    {
+      type: "function_call",
+      call_id: "call-1",
+      name: "sql",
+      arguments: "{\"sql\":\"select 1\"}",
+      status: "completed",
+    },
+    {
+      type: "function_call_output",
+      call_id: "call-1",
+      output: "{\"ok\":true}",
+    },
+  ]);
+});
+
+test("startOpenAILoopWithDeps preserves replay items when a deadline aborts a next SDK model final response", async () => {
+  let stopBeforeNextStep = false;
+  let streamCallCount = 0;
+  let toolCallCount = 0;
+  const abortController = new AbortController();
+  const startedFunctionCallItem = createFunctionCallItem("in_progress");
+  const completedFunctionCallItem = createFunctionCallItem("completed");
+
+  const result = await startOpenAILoopWithDeps(
+    createParams({
+      signal: abortController.signal,
+      shouldStopBeforeNextStep: (): boolean => stopBeforeNextStep,
+    }),
+    async (): Promise<void> => undefined,
+    createDependencies(
+      () => {
+        streamCallCount += 1;
+        if (streamCallCount === 1) {
+          return createResponseStream(
+            [createFunctionCallAddedEvent(startedFunctionCallItem)],
+            createResponse([completedFunctionCallItem], ""),
+          );
+        }
+
+        stopBeforeNextStep = true;
+        return createSdkAbortedResponseStream(abortController);
+      },
+      async () => {
+        toolCallCount += 1;
+        return {
+          output: "{\"ok\":true}",
+          isMutating: false,
+          succeeded: true,
+        };
+      },
+    ),
+  );
+
+  assert.equal(streamCallCount, 2);
+  assert.equal(toolCallCount, 1);
+  assert.equal(result.terminationReason, "stopped_before_next_step");
+  assert.deepEqual(result.openaiItems, [
+    {
+      type: "function_call",
+      call_id: "call-1",
+      name: "sql",
+      arguments: "{\"sql\":\"select 1\"}",
+      status: "completed",
+    },
+    {
+      type: "function_call_output",
+      call_id: "call-1",
+      output: "{\"ok\":true}",
+    },
+  ]);
+});
+
 test("startOpenAILoopWithDeps reports phase transitions for model and tool execution", async () => {
   let stopBeforeNextStep = false;
   const phases: Array<string> = [];
@@ -416,6 +661,60 @@ test("startOpenAILoopWithDeps reports model phase transitions for the tool-limit
     CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS,
   );
   assert.deepEqual(phases.slice(-3), ["model", "idle", "idle"]);
+});
+
+test("startOpenAILoopWithDeps preserves replay items when a deadline aborts the tool-limit summary call", async () => {
+  let stopBeforeNextStep = false;
+  let streamCallCount = 0;
+  let toolCallCount = 0;
+  const abortController = new AbortController();
+
+  const result = await startOpenAILoopWithDeps(
+    createParams({
+      signal: abortController.signal,
+      shouldStopBeforeNextStep: (): boolean => stopBeforeNextStep,
+    }),
+    async (): Promise<void> => undefined,
+    createDependencies(
+      () => {
+        streamCallCount += 1;
+        if (streamCallCount <= CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS) {
+          return createResponseStream(
+            [createFunctionCallAddedEvent(createIndexedFunctionCallItem(streamCallCount, "in_progress"))],
+            createResponse([createIndexedFunctionCallItem(streamCallCount, "completed")], ""),
+          );
+        }
+
+        stopBeforeNextStep = true;
+        return createSdkAbortedResponseStream(abortController);
+      },
+      async () => {
+        toolCallCount += 1;
+        return {
+          output: `{"call":${String(toolCallCount)}}`,
+          isMutating: false,
+          succeeded: true,
+        };
+      },
+    ),
+  );
+
+  assert.equal(result.terminationReason, "stopped_before_next_step");
+  assert.equal(streamCallCount, CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS + 1);
+  assert.equal(toolCallCount, CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS);
+  assert.equal(result.openaiItems.length, CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS * 2);
+  assert.deepEqual(result.openaiItems[0], {
+    type: "function_call",
+    call_id: "call-1",
+    name: "sql",
+    arguments: "{\"sql\":\"select 1\"}",
+    status: "completed",
+  });
+  assert.deepEqual(result.openaiItems[result.openaiItems.length - 1], {
+    type: "function_call_output",
+    call_id: `call-${String(CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS)}`,
+    output: `{"call":${String(CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS)}}`,
+  });
 });
 
 test("startOpenAILoopWithDeps completes normally when no stop is requested", async () => {
