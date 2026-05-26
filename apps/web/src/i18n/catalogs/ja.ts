@@ -874,7 +874,7 @@ export const jaCatalog = {
     stackDescription: "iOS アプリとバックエンドは完全にオープンソースです。コードを確認し、MIT ライセンスを利用し、自分のサーバーで同じスタックを実行できます。",
     repositoryAction: "リポジトリを開く",
     selfHostingDescription: "独自のバックエンドが必要な場合は、同じオープンソーススタックを自分のインフラにデプロイし、その環境に接続する独自の Web クライアントと iOS クライアントを使用できます。",
-    thirdPartyNoticeDescription: "復習用Lottieアニメーション: Google Inc. による動物と自然のアニメーション38件。Copyright © 2026 Google Inc. Creative Commons Attribution 4.0 の下で使用。Lottieランタイムは MIT および Apache 2.0 ライセンスです。",
+    thirdPartyNoticeDescription: "復習用Lottieアニメーション: Google Inc. による動物と自然のアニメーション38件。Copyright (c) 2026 Google Inc. Creative Commons Attribution 4.0 の下で使用。Lottieランタイムは MIT および Apache 2.0 ライセンスです。",
     thirdPartyNoticeFullAction: "完全な通知を開く",
     thirdPartyNoticeRainCloudSourceAction: "雨雲のソースを開く",
     thirdPartyNoticeWindFaceSourceAction: "風の顔のソースを開く",

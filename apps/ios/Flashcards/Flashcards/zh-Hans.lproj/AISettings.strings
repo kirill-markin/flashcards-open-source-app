@@ -264,7 +264,7 @@
 "settings.account.openSource.repository" = "GitHub 存储库（MIT 许可证）";
 "settings.account.openSource.selfHosting" = "如果您需要自己的后端，则可以部署相同的开源堆栈并将 iOS 应用程序从“高级”>“服务器”指向您的域。";
 "settings.account.openSource.section.thirdPartyNotices" = "第三方声明";
-"settings.account.openSource.thirdPartyNotice" = "复习 Lottie 动画：Google Inc. 提供的 38 个动物和自然动画，Copyright © 2026 Google Inc.，根据 Creative Commons Attribution 4.0 使用。Lottie 运行时使用 MIT 和 Apache 2.0 许可证。";
+"settings.account.openSource.thirdPartyNotice" = "复习 Lottie 动画：Google Inc. 提供的 38 个动物和自然动画，Copyright (c) 2026 Google Inc.，根据 Creative Commons Attribution 4.0 使用。Lottie 运行时使用 MIT 和 Apache 2.0 许可证。";
 "settings.account.openSource.thirdPartyNoticeFull" = "完整第三方声明";
 "settings.account.openSource.thirdPartyNoticeRainCloudSource" = "雨云资源来源";
 "settings.account.openSource.thirdPartyNoticeWindFaceSource" = "风脸资源来源";

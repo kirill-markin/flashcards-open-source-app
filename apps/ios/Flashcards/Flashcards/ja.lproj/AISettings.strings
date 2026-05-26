@@ -264,7 +264,7 @@
 "settings.account.openSource.repository" = "GitHub リポジトリ (MIT ライセンス)";
 "settings.account.openSource.selfHosting" = "独自のバックエンドが必要な場合は、同じオープン ソース スタックをデプロイし、[詳細] > [サーバー] から iOS アプリをドメインに指定できます。";
 "settings.account.openSource.section.thirdPartyNotices" = "サードパーティ通知";
-"settings.account.openSource.thirdPartyNotice" = "復習用Lottieアニメーション: Google Inc. による動物と自然のアニメーション38件。Copyright © 2026 Google Inc. Creative Commons Attribution 4.0 の下で使用。Lottieランタイムは MIT および Apache 2.0 ライセンスです。";
+"settings.account.openSource.thirdPartyNotice" = "復習用Lottieアニメーション: Google Inc. による動物と自然のアニメーション38件。Copyright (c) 2026 Google Inc. Creative Commons Attribution 4.0 の下で使用。Lottieランタイムは MIT および Apache 2.0 ライセンスです。";
 "settings.account.openSource.thirdPartyNoticeFull" = "完全なサードパーティ通知";
 "settings.account.openSource.thirdPartyNoticeRainCloudSource" = "雨雲アセットのソース";
 "settings.account.openSource.thirdPartyNoticeWindFaceSource" = "風の顔アセットのソース";

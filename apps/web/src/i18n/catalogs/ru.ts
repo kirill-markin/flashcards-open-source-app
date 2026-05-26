@@ -874,7 +874,7 @@ export const ruCatalog = {
     stackDescription: "Приложение для iOS и бэкенд полностью открыты. Вы можете изучить код, использовать лицензию MIT и запускать тот же стек на своих серверах.",
     repositoryAction: "Открыть репозиторий",
     selfHostingDescription: "Если вам нужен собственный бэкенд, разверните тот же open-source стек в своей инфраструктуре и используйте с ним собственные веб- и iOS-клиенты.",
-    thirdPartyNoticeDescription: "Lottie-анимации повторения: 38 анимаций животных и природы от Google Inc., Copyright © 2026 Google Inc., используются по лицензии Creative Commons Attribution 4.0. Среды выполнения Lottie используют лицензии MIT и Apache 2.0.",
+    thirdPartyNoticeDescription: "Lottie-анимации повторения: 38 анимаций животных и природы от Google Inc., Copyright (c) 2026 Google Inc., используются по лицензии Creative Commons Attribution 4.0. Среды выполнения Lottie используют лицензии MIT и Apache 2.0.",
     thirdPartyNoticeFullAction: "Открыть полный список",
     thirdPartyNoticeRainCloudSourceAction: "Открыть источник дождевого облака",
     thirdPartyNoticeWindFaceSourceAction: "Открыть источник лица ветра",

@@ -874,7 +874,7 @@ const esEsCatalog: TranslationCatalog = {
     stackDescription: "La app de iOS y el backend son completamente de código abierto. Puedes inspeccionar el código, usar la licencia MIT y ejecutar la misma pila en tus propios servidores.",
     repositoryAction: "Abrir repositorio",
     selfHostingDescription: "Si necesitas tu propio backend, despliega la misma pila de código abierto en tu infraestructura y usa tus propios clientes web e iOS con ese despliegue.",
-    thirdPartyNoticeDescription: "Animaciones Lottie de repaso: 38 animaciones de animales y naturaleza de Google Inc., Copyright © 2026 Google Inc., usadas bajo Creative Commons Attribution 4.0. Los runtimes de Lottie usan licencias MIT y Apache 2.0.",
+    thirdPartyNoticeDescription: "Animaciones Lottie de repaso: 38 animaciones de animales y naturaleza de Google Inc., Copyright (c) 2026 Google Inc., usadas bajo Creative Commons Attribution 4.0. Los runtimes de Lottie usan licencias MIT y Apache 2.0.",
     thirdPartyNoticeFullAction: "Abrir avisos completos",
     thirdPartyNoticeRainCloudSourceAction: "Abrir fuente de nube de lluvia",
     thirdPartyNoticeWindFaceSourceAction: "Abrir fuente de cara de viento",

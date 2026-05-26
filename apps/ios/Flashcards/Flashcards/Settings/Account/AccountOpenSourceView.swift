@@ -246,7 +246,7 @@ struct AccountOpenSourceView: View {
                 Text(
                     aiSettingsLocalized(
                         "settings.account.openSource.thirdPartyNotice",
-                        "Review Lottie animations: 38 animal and nature animations by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0. Lottie runtimes use MIT and Apache 2.0 licenses."
+                        "Review Lottie animations: 38 animal and nature animations by Google Inc., Copyright (c) 2026 Google Inc., used under Creative Commons Attribution 4.0. Lottie runtimes use MIT and Apache 2.0 licenses."
                     )
                 )
                     .foregroundStyle(.secondary)

@@ -874,7 +874,7 @@ const hiCatalog: TranslationCatalog = {
     stackDescription: "iOS ऐप और बैकएंड पूरी तरह ओपन सोर्स हैं। आप कोड देख सकते हैं, MIT लाइसेंस का उपयोग कर सकते हैं और वही स्टैक अपने सर्वर पर चला सकते हैं।",
     repositoryAction: "रिपॉज़िटरी खोलें",
     selfHostingDescription: "अगर आपको अपना बैकएंड चाहिए, तो वही ओपन सोर्स स्टैक अपने इंफ्रास्ट्रक्चर पर डिप्लॉय करें और उसी डिप्लॉयमेंट के साथ अपने वेब और iOS क्लाइंट इस्तेमाल करें।",
-    thirdPartyNoticeDescription: "Review Lottie ऐनिमेशन: Google Inc. के 38 animal और nature ऐनिमेशन, Copyright © 2026 Google Inc., Creative Commons Attribution 4.0 के तहत इस्तेमाल किए गए। Lottie runtimes MIT और Apache 2.0 licenses का उपयोग करते हैं।",
+    thirdPartyNoticeDescription: "Review Lottie ऐनिमेशन: Google Inc. के 38 animal और nature ऐनिमेशन, Copyright (c) 2026 Google Inc., Creative Commons Attribution 4.0 के तहत इस्तेमाल किए गए। Lottie runtimes MIT और Apache 2.0 licenses का उपयोग करते हैं।",
     thirdPartyNoticeFullAction: "पूरे नोटिस खोलें",
     thirdPartyNoticeRainCloudSourceAction: "वर्षा बादल स्रोत खोलें",
     thirdPartyNoticeWindFaceSourceAction: "हवा चेहरे का स्रोत खोलें",

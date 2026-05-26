@@ -264,7 +264,7 @@
 "settings.account.openSource.repository" = "مستودع GitHub (ترخيص MIT)";
 "settings.account.openSource.selfHosting" = "إذا كنت بحاجة إلى الواجهة الخلفية الخاصة بك، فيمكنك نشر نفس المكدس مفتوح المصدر وتوجيه تطبيق iOS إلى المجال الخاص بك من Advanced > Server.";
 "settings.account.openSource.section.thirdPartyNotices" = "إشعارات الجهات الخارجية";
-"settings.account.openSource.thirdPartyNotice" = "رسوم Lottie لمراجعة البطاقات: 38 رسمًا متحركًا للحيوانات والطبيعة من Google Inc.، حقوق النشر © 2026 Google Inc.، مستخدمة بموجب Creative Commons Attribution 4.0. تستخدم مشغلات Lottie تراخيص MIT وApache 2.0.";
+"settings.account.openSource.thirdPartyNotice" = "رسوم Lottie لمراجعة البطاقات: 38 رسمًا متحركًا للحيوانات والطبيعة من Google Inc.، حقوق النشر (c) 2026 Google Inc.، مستخدمة بموجب Creative Commons Attribution 4.0. تستخدم مشغلات Lottie تراخيص MIT وApache 2.0.";
 "settings.account.openSource.thirdPartyNoticeFull" = "إشعارات الجهات الخارجية الكاملة";
 "settings.account.openSource.thirdPartyNoticeRainCloudSource" = "مصدر أصل سحابة المطر";
 "settings.account.openSource.thirdPartyNoticeWindFaceSource" = "مصدر أصل وجه الرياح";
