@@ -249,6 +249,14 @@ internal class ProgressSummaryOrchestration(
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
+            if (
+                shouldSuppressProgressSummaryRemoteLoadWarning(
+                    latestStoreState = currentStoreState(),
+                    refreshStoreState = resolvedRefreshStoreState
+                )
+            ) {
+                return
+            }
             logProgressRefreshWarning(
                 observability = observability,
                 observationVersions = observationVersions,

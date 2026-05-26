@@ -253,6 +253,14 @@ internal class ProgressSeriesOrchestration(
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
+            if (
+                shouldSuppressProgressSeriesRemoteLoadWarning(
+                    latestStoreState = currentStoreState(),
+                    refreshStoreState = resolvedRefreshStoreState
+                )
+            ) {
+                return
+            }
             logProgressRefreshWarning(
                 observability = observability,
                 observationVersions = observationVersions,

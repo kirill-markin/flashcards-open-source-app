@@ -115,6 +115,54 @@ internal fun supportsServerRefresh(
     return cloudState == CloudAccountState.GUEST || cloudState == CloudAccountState.LINKED
 }
 
+internal fun shouldSuppressProgressSummaryRemoteLoadWarning(
+    latestStoreState: ProgressSummaryStoreState?,
+    refreshStoreState: ProgressSummaryStoreState
+): Boolean {
+    if (latestStoreState == null) {
+        return true
+    }
+    if (latestStoreState.scopeKey != refreshStoreState.scopeKey) {
+        return true
+    }
+    if (supportsServerRefresh(cloudState = latestStoreState.cloudState).not()) {
+        return true
+    }
+
+    return latestStoreState.isLocalCacheReady.not()
+}
+
+internal fun shouldSuppressProgressSeriesRemoteLoadWarning(
+    latestStoreState: ProgressSeriesStoreState?,
+    refreshStoreState: ProgressSeriesStoreState
+): Boolean {
+    if (latestStoreState == null) {
+        return true
+    }
+    if (latestStoreState.scopeKey != refreshStoreState.scopeKey) {
+        return true
+    }
+    if (supportsServerRefresh(cloudState = latestStoreState.cloudState).not()) {
+        return true
+    }
+
+    return latestStoreState.isLocalCacheReady.not()
+}
+
+internal fun shouldSuppressProgressReviewScheduleRemoteLoadWarning(
+    latestStoreState: ProgressReviewScheduleStoreState?,
+    refreshStoreState: ProgressReviewScheduleStoreState
+): Boolean {
+    if (latestStoreState == null) {
+        return true
+    }
+    if (latestStoreState.scopeKey != refreshStoreState.scopeKey) {
+        return true
+    }
+
+    return supportsServerRefresh(cloudState = latestStoreState.cloudState).not()
+}
+
 private fun extractProgressWorkspaceId(
     fields: List<Pair<String, String?>>,
     scopeId: String?

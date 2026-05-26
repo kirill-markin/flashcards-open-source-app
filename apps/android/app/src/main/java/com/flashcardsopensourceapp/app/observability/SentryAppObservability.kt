@@ -80,6 +80,7 @@ class SentryAppObservability : AppObservability {
         Log.w(sentryObservabilityLogTag, renderLogLine(prefix = "warning", event = event))
         Sentry.captureMessage(renderWarningIssueMessage(event = event), SentryLevel.WARNING) { scope ->
             applyTags(scope = scope, event = event)
+            scope.setFingerprint(warningIssueFingerprint(event = event))
             scope.setContexts("android_observability", warningContext(event = event))
         }
     }
@@ -712,6 +713,20 @@ private fun renderWarningIssueMessage(event: AndroidWarningIssueEvent): String {
         parts.add("status_$statusCode")
     }
     return parts.joinToString(separator = ":")
+}
+
+internal fun warningIssueFingerprint(event: AndroidWarningIssueEvent): List<String> {
+    val groupKey: String = warningIssueGroupKey(event = event) ?: "no_group"
+    val code: String = sanitizeSentryTagValue(fieldName = "code", value = event.tags.code) ?: "no_code"
+    val statusCode: String = event.tags.statusCode?.toString() ?: "no_status"
+    return listOf(
+        "android",
+        event.feature.tagValue,
+        event.action.tagValue,
+        groupKey,
+        code,
+        statusCode
+    )
 }
 
 private fun warningIssueGroupKey(event: AndroidWarningIssueEvent): String? {
