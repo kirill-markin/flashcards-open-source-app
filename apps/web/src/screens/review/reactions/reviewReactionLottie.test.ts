@@ -68,10 +68,7 @@ describe("reviewReactionLottie", () => {
     expect(preloadResult.failures[0]?.variant).toBe(failedVariant);
     expect(preloadResult.failures[0]?.error).toBeInstanceOf(Error);
     expect(reviewReactionLottie.isReviewReactionLottieAssetReady(failedVariant)).toBe(false);
-    expect(reviewReactionLottie.reviewReactionVariantWithReadyLottieFallback(failedVariant))
-      .toBe(reviewReactionLottie.reviewReactionLottieFallbackVariant);
     expect(reviewReactionLottie.isReviewReactionLottieAssetReady(readyVariant)).toBe(true);
-    expect(reviewReactionLottie.reviewReactionVariantWithReadyLottieFallback(readyVariant)).toBe(readyVariant);
 
     const retriedAsset = await reviewReactionLottie.loadReviewReactionLottieAsset(failedVariant);
 

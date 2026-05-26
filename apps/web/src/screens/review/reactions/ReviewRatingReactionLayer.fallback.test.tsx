@@ -4,6 +4,9 @@ import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   makeReviewReactionRating,
+  reviewReactionRatings,
+  reviewReactionVariantDistributionEntries,
+  reviewReactionVariantTotalWeight,
   reducedReviewReactionMotionMediaQuery,
   type ReviewReactionVariant,
 } from "./reviewReaction";
@@ -11,6 +14,7 @@ import { ReviewRatingReactionLayer } from "./ReviewRatingReactionLayer";
 import {
   loadReviewReactionLottieAssets,
   reviewReactionLottieFallbackVariant,
+  resetReviewReactionLottieStateForTests,
 } from "./reviewReactionLottie";
 import {
   useReviewRatingReactions,
@@ -37,68 +41,31 @@ type LottieFailureExpectation = Readonly<{
   variant: ReviewReactionVariant;
 }>;
 
-const lottieFailureExpectations: ReadonlyArray<LottieFailureExpectation> = [
-  {
-    rating: 0,
-    randomValue: 0,
-    variant: "againWormWiggle",
-  },
-  {
-    rating: 0,
-    randomValue: 0.5,
-    variant: "againTornado",
-  },
-  {
-    rating: 0,
-    randomValue: 0.75,
-    variant: "againSnailCrawl",
-  },
-  {
-    rating: 0,
-    randomValue: 0.95,
-    variant: "againWiltedFlower",
-  },
-  {
-    rating: 2,
-    randomValue: 0,
-    variant: "goodOwl",
-  },
-  {
-    rating: 2,
-    randomValue: 0.5,
-    variant: "goodPoodle",
-  },
-  {
-    rating: 2,
-    randomValue: 0.75,
-    variant: "goodWhale",
-  },
-  {
-    rating: 2,
-    randomValue: 0.95,
-    variant: "goodPeacock",
-  },
-  {
-    rating: 3,
-    randomValue: 0,
-    variant: "easyRoseBloom",
-  },
-  {
-    rating: 3,
-    randomValue: 0.5,
-    variant: "easyRainbowStreak",
-  },
-  {
-    rating: 3,
-    randomValue: 0.75,
-    variant: "easyPhoenixRise",
-  },
-  {
-    rating: 3,
-    randomValue: 0.95,
-    variant: "easyUnicornFlyby",
-  },
-];
+type RenderHarnessOptions = Readonly<{
+  shouldPreloadLottieAssets: boolean;
+}>;
+
+type DeferredReviewReactionLottieResponse = Readonly<{
+  promise: Promise<Response>;
+  resolve: (response: Response) => void;
+}>;
+
+const lottieFailureExpectations: ReadonlyArray<LottieFailureExpectation> = reviewReactionRatings.flatMap((
+  rating,
+  ratingIndex,
+) => {
+  const totalWeight = reviewReactionVariantTotalWeight(rating);
+  let cumulativeWeight = 0;
+  return reviewReactionVariantDistributionEntries(rating).map((entry) => {
+    const midpointRoll = cumulativeWeight + Math.floor(entry.weight / 2);
+    cumulativeWeight += entry.weight;
+    return {
+      rating: ratingIndex as 0 | 1 | 2 | 3,
+      randomValue: (midpointRoll + 0.1) / totalWeight,
+      variant: entry.variant,
+    };
+  });
+});
 
 function ReviewReactionLayerHarness(props: ReviewReactionLayerHarnessProps): ReactElement {
   const { onResult } = props;
@@ -151,6 +118,22 @@ function makeReviewReactionLottieResponse(): Response {
   });
 }
 
+function makeDeferredReviewReactionLottieResponse(): DeferredReviewReactionLottieResponse {
+  let resolveDeferredResponse: ((response: Response) => void) | null = null;
+  const promise = new Promise<Response>((resolve) => {
+    resolveDeferredResponse = resolve;
+  });
+
+  if (resolveDeferredResponse === null) {
+    throw new Error("Review reaction Lottie test response resolver was not initialized.");
+  }
+
+  return {
+    promise,
+    resolve: resolveDeferredResponse,
+  };
+}
+
 describe("ReviewRatingReactionLayer Lottie fallback", () => {
   let container: HTMLDivElement | null = null;
   let root: ReactDOM.Root | null = null;
@@ -158,6 +141,7 @@ describe("ReviewRatingReactionLayer Lottie fallback", () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
+    resetReviewReactionLottieStateForTests();
     loadAnimationMock.mockReset();
     loadAnimationMock.mockImplementation(() => {
       throw new Error("Lottie render failed.");
@@ -190,13 +174,15 @@ describe("ReviewRatingReactionLayer Lottie fallback", () => {
     vi.useRealTimers();
   });
 
-  async function renderHarness(): Promise<void> {
+  async function renderHarness(options: RenderHarnessOptions): Promise<void> {
     const currentRoot = root;
     if (currentRoot === null) {
       throw new Error("Review reaction test root is not ready.");
     }
 
-    await loadReviewReactionLottieAssets();
+    if (options.shouldPreloadLottieAssets) {
+      await loadReviewReactionLottieAssets();
+    }
 
     await act(async () => {
       currentRoot.render(
@@ -231,6 +217,24 @@ describe("ReviewRatingReactionLayer Lottie fallback", () => {
     return eventElement;
   }
 
+  function queryCrownFallbackArtElement(): SVGSVGElement | null {
+    const currentContainer = container;
+    if (currentContainer === null) {
+      throw new Error("Review reaction test container is not ready.");
+    }
+
+    return currentContainer.querySelector<SVGSVGElement>(".review-rating-reaction-crown-fallback-art");
+  }
+
+  function requireCrownFallbackArtElement(): SVGSVGElement {
+    const fallbackArtElement = queryCrownFallbackArtElement();
+    if (fallbackArtElement === null) {
+      throw new Error("Review reaction crown fallback art was not rendered.");
+    }
+
+    return fallbackArtElement;
+  }
+
   async function emitReactionAfterLottieRenderFailure(
     rating: 0 | 1 | 2 | 3,
     randomValue: number,
@@ -242,10 +246,63 @@ describe("ReviewRatingReactionLayer Lottie fallback", () => {
     });
   }
 
+  it("shows the crown fallback while a cold Lottie asset is still loading", async () => {
+    installReviewReactionMotionPreference(false);
+    const deferredResponse = makeDeferredReviewReactionLottieResponse();
+    let emitDomLoaded: (() => void) | null = null;
+
+    vi.mocked(fetch).mockImplementation((_input: RequestInfo | URL): Promise<Response> => deferredResponse.promise);
+    loadAnimationMock.mockImplementation(() => ({
+      addEventListener: vi.fn((_eventName: string, listener: () => void): (() => void) => {
+        emitDomLoaded = listener;
+        return () => {
+          emitDomLoaded = null;
+        };
+      }),
+      destroy: vi.fn(),
+      goToAndStop: vi.fn(),
+      isLoaded: false,
+      setSpeed: vi.fn(),
+      totalFrames: 100,
+    }));
+
+    await renderHarness({ shouldPreloadLottieAssets: false });
+
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    await act(async () => {
+      requireLatestResult().emitReaction(3);
+      await flushReactionPromises();
+    });
+
+    expect(requireReactionEventElement().dataset.reviewReactionVariant).toBe("easySunrise");
+    expect(requireCrownFallbackArtElement()).toBeInstanceOf(SVGSVGElement);
+    expect(loadAnimationMock).not.toHaveBeenCalled();
+
+    deferredResponse.resolve(makeReviewReactionLottieResponse());
+    await act(async () => {
+      await flushReactionPromises();
+    });
+
+    expect(loadAnimationMock).toHaveBeenCalledTimes(1);
+    expect(requireCrownFallbackArtElement()).toBeInstanceOf(SVGSVGElement);
+
+    const currentEmitDomLoaded = emitDomLoaded;
+    if (currentEmitDomLoaded === null) {
+      throw new Error("Review reaction Lottie DOMLoaded listener was not registered.");
+    }
+
+    await act(async () => {
+      currentEmitDomLoaded();
+      await flushReactionPromises();
+    });
+
+    expect(queryCrownFallbackArtElement()).toBeNull();
+  });
+
   for (const expectation of lottieFailureExpectations) {
     it(`converts ${expectation.variant} render failures to the crown fallback duration`, async () => {
       installReviewReactionMotionPreference(false);
-      await renderHarness();
+      await renderHarness({ shouldPreloadLottieAssets: true });
 
       await emitReactionAfterLottieRenderFailure(expectation.rating, expectation.randomValue);
 
@@ -275,7 +332,7 @@ describe("ReviewRatingReactionLayer Lottie fallback", () => {
 
   it("keeps reduced-motion cleanup at 400ms after Lottie render fallback", async () => {
     installReviewReactionMotionPreference(true);
-    await renderHarness();
+    await renderHarness({ shouldPreloadLottieAssets: true });
 
     await emitReactionAfterLottieRenderFailure(3, 0.5);
 

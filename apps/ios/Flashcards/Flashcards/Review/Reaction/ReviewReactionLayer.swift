@@ -5,28 +5,21 @@ import SwiftUI
 import UIKit
 
 private let reviewReactionAnimationMinimumIntervalSeconds: Double = 1.0 / 60.0
-private let reviewAgainWiltedFlowerAnimationAssetName: String = "ReviewAgainWiltedFlower"
-private let reviewAgainWormAnimationAssetName: String = "ReviewAgainWorm"
-private let reviewAgainTornadoAnimationAssetName: String = "ReviewAgainTornado"
-private let reviewAgainSnailAnimationAssetName: String = "ReviewAgainSnail"
-private let reviewGoodOwlAnimationAssetName: String = "ReviewGoodOwl"
-private let reviewGoodPoodleAnimationAssetName: String = "ReviewGoodPoodle"
-private let reviewGoodWhaleAnimationAssetName: String = "ReviewGoodWhale"
-private let reviewGoodPeacockAnimationAssetName: String = "ReviewGoodPeacock"
-private let reviewHardOxAnimationAssetName: String = "ReviewHardOx"
-private let reviewHardPawPrintsAnimationAssetName: String = "ReviewHardPawPrints"
-private let reviewHardRacehorseAnimationAssetName: String = "ReviewHardRacehorse"
-private let reviewHardVolcanoAnimationAssetName: String = "ReviewHardVolcano"
-private let reviewEasyRoseAnimationAssetName: String = "ReviewEasyRose"
-private let reviewEasyRainbowAnimationAssetName: String = "ReviewEasyRainbow"
-private let reviewEasyPhoenixAnimationAssetName: String = "ReviewEasyPhoenix"
-private let reviewEasyUnicornAnimationAssetName: String = "ReviewEasyUnicorn"
 private let reviewReactionLottieReducedMotionProgress: AnimationProgressTime = 0.55
 private let reviewReactionLottieFallbackVariant: ReviewReactionVariant = .fallbackCrownBounce
 private let reviewReactionLogger: Logger = Logger(
     subsystem: appBundleIdentifier(),
     category: "review_reactions"
 )
+
+private struct ReviewReactionLottieAssetConfiguration {
+    let variant: ReviewReactionVariant
+    let assetName: String
+    let assetDescription: String
+    let frameScale: CGFloat
+    let centerX: CGFloat
+    let centerY: CGFloat
+}
 
 private struct ReviewReactionLottieConfiguration {
     let animation: LottieAnimation
@@ -36,24 +29,314 @@ private struct ReviewReactionLottieConfiguration {
     let reducedMotionProgress: AnimationProgressTime
 }
 
-private struct ReviewReactionLottieAnimationStore {
-    let reviewAgainWiltedFlowerAnimation: LottieAnimation?
-    let reviewAgainWormAnimation: LottieAnimation?
-    let reviewAgainTornadoAnimation: LottieAnimation?
-    let reviewAgainSnailAnimation: LottieAnimation?
-    let reviewGoodOwlAnimation: LottieAnimation?
-    let reviewGoodPoodleAnimation: LottieAnimation?
-    let reviewGoodWhaleAnimation: LottieAnimation?
-    let reviewGoodPeacockAnimation: LottieAnimation?
-    let reviewHardOxAnimation: LottieAnimation?
-    let reviewHardPawPrintsAnimation: LottieAnimation?
-    let reviewHardRacehorseAnimation: LottieAnimation?
-    let reviewHardVolcanoAnimation: LottieAnimation?
-    let reviewEasyRoseAnimation: LottieAnimation?
-    let reviewEasyRainbowAnimation: LottieAnimation?
-    let reviewEasyPhoenixAnimation: LottieAnimation?
-    let reviewEasyUnicornAnimation: LottieAnimation?
-}
+private typealias ReviewReactionLottieAnimationStore = [ReviewReactionVariant: LottieAnimation]
+
+private let reviewReactionLottieAssetConfigurations: [ReviewReactionLottieAssetConfiguration] = [
+    ReviewReactionLottieAssetConfiguration(
+        variant: .againRainCloud,
+        assetName: "ReviewAgainRainCloud",
+        assetDescription: "rain cloud",
+        frameScale: 0.62,
+        centerX: 0.50,
+        centerY: 0.44
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .againTornado,
+        assetName: "ReviewAgainTornado",
+        assetDescription: "tornado",
+        frameScale: 0.58,
+        centerX: 0.50,
+        centerY: 0.45
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .againWindFace,
+        assetName: "ReviewAgainWindFace",
+        assetDescription: "wind face",
+        frameScale: 0.56,
+        centerX: 0.50,
+        centerY: 0.45
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .againSnowflake,
+        assetName: "ReviewAgainSnowflake",
+        assetDescription: "snowflake",
+        frameScale: 0.56,
+        centerX: 0.50,
+        centerY: 0.45
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .againSnailCrawl,
+        assetName: "ReviewAgainSnail",
+        assetDescription: "snail",
+        frameScale: 0.58,
+        centerX: 0.50,
+        centerY: 0.48
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .againTurtle,
+        assetName: "ReviewAgainTurtle",
+        assetDescription: "turtle",
+        frameScale: 0.58,
+        centerX: 0.50,
+        centerY: 0.50
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .againWiltedFlower,
+        assetName: "ReviewAgainWiltedFlower",
+        assetDescription: "wilted flower",
+        frameScale: 0.56,
+        centerX: 0.50,
+        centerY: 0.50
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .againSpider,
+        assetName: "ReviewAgainSpider",
+        assetDescription: "spider",
+        frameScale: 0.54,
+        centerX: 0.50,
+        centerY: 0.50
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .againRat,
+        assetName: "ReviewAgainRat",
+        assetDescription: "rat",
+        frameScale: 0.56,
+        centerX: 0.50,
+        centerY: 0.50
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .againWormWiggle,
+        assetName: "ReviewAgainWorm",
+        assetDescription: "worm",
+        frameScale: 0.58,
+        centerX: 0.50,
+        centerY: 0.52
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .hardTiger,
+        assetName: "ReviewHardTiger",
+        assetDescription: "tiger",
+        frameScale: 0.62,
+        centerX: 0.50,
+        centerY: 0.48
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .hardTRex,
+        assetName: "ReviewHardTRex",
+        assetDescription: "t rex",
+        frameScale: 0.62,
+        centerX: 0.50,
+        centerY: 0.48
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .hardShark,
+        assetName: "ReviewHardShark",
+        assetDescription: "shark",
+        frameScale: 0.62,
+        centerX: 0.50,
+        centerY: 0.47
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .hardOxCharge,
+        assetName: "ReviewHardOx",
+        assetDescription: "ox",
+        frameScale: 0.58,
+        centerX: 0.50,
+        centerY: 0.50
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .hardRacehorseGallop,
+        assetName: "ReviewHardRacehorse",
+        assetDescription: "racehorse",
+        frameScale: 0.62,
+        centerX: 0.50,
+        centerY: 0.50
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .hardSnake,
+        assetName: "ReviewHardSnake",
+        assetDescription: "snake",
+        frameScale: 0.58,
+        centerX: 0.50,
+        centerY: 0.50
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .hardVolcanoEruption,
+        assetName: "ReviewHardVolcano",
+        assetDescription: "volcano",
+        frameScale: 0.64,
+        centerX: 0.50,
+        centerY: 0.50
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .hardScorpion,
+        assetName: "ReviewHardScorpion",
+        assetDescription: "scorpion",
+        frameScale: 0.56,
+        centerX: 0.50,
+        centerY: 0.50
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .hardPawPrints,
+        assetName: "ReviewHardPawPrints",
+        assetDescription: "paw prints",
+        frameScale: 0.56,
+        centerX: 0.50,
+        centerY: 0.50
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .hardRooster,
+        assetName: "ReviewHardRooster",
+        assetDescription: "rooster",
+        frameScale: 0.58,
+        centerX: 0.50,
+        centerY: 0.48
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .goodOtter,
+        assetName: "ReviewGoodOtter",
+        assetDescription: "otter",
+        frameScale: 0.58,
+        centerX: 0.50,
+        centerY: 0.48
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .goodOwl,
+        assetName: "ReviewGoodOwl",
+        assetDescription: "owl",
+        frameScale: 0.56,
+        centerX: 0.50,
+        centerY: 0.42
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .goodRabbit,
+        assetName: "ReviewGoodRabbit",
+        assetDescription: "rabbit",
+        frameScale: 0.56,
+        centerX: 0.50,
+        centerY: 0.47
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .goodSeal,
+        assetName: "ReviewGoodSeal",
+        assetDescription: "seal",
+        frameScale: 0.58,
+        centerX: 0.50,
+        centerY: 0.47
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .goodServiceDog,
+        assetName: "ReviewGoodServiceDog",
+        assetDescription: "service dog",
+        frameScale: 0.58,
+        centerX: 0.50,
+        centerY: 0.47
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .goodPoodle,
+        assetName: "ReviewGoodPoodle",
+        assetDescription: "poodle",
+        frameScale: 0.56,
+        centerX: 0.50,
+        centerY: 0.43
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .goodChimpanzee,
+        assetName: "ReviewGoodChimpanzee",
+        assetDescription: "chimpanzee",
+        frameScale: 0.56,
+        centerX: 0.50,
+        centerY: 0.46
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .goodWhale,
+        assetName: "ReviewGoodWhale",
+        assetDescription: "whale",
+        frameScale: 0.58,
+        centerX: 0.50,
+        centerY: 0.42
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .goodPeacock,
+        assetName: "ReviewGoodPeacock",
+        assetDescription: "peacock",
+        frameScale: 0.58,
+        centerX: 0.50,
+        centerY: 0.42
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .goodPig,
+        assetName: "ReviewGoodPig",
+        assetDescription: "pig",
+        frameScale: 0.56,
+        centerX: 0.50,
+        centerY: 0.50
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .easySunrise,
+        assetName: "ReviewEasySunrise",
+        assetDescription: "sunrise",
+        frameScale: 0.64,
+        centerX: 0.50,
+        centerY: 0.42
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .easySunriseOverMountains,
+        assetName: "ReviewEasySunriseOverMountains",
+        assetDescription: "sunrise over mountains",
+        frameScale: 0.64,
+        centerX: 0.50,
+        centerY: 0.44
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .easyRoseBloom,
+        assetName: "ReviewEasyRose",
+        assetDescription: "rose",
+        frameScale: 0.58,
+        centerX: 0.50,
+        centerY: 0.50
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .easyPeace,
+        assetName: "ReviewEasyPeace",
+        assetDescription: "peace",
+        frameScale: 0.56,
+        centerX: 0.50,
+        centerY: 0.48
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .easyPlant,
+        assetName: "ReviewEasyPlant",
+        assetDescription: "plant",
+        frameScale: 0.58,
+        centerX: 0.50,
+        centerY: 0.50
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .easyRainbowStreak,
+        assetName: "ReviewEasyRainbow",
+        assetDescription: "rainbow",
+        frameScale: 0.64,
+        centerX: 0.50,
+        centerY: 0.42
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .easyPhoenixRise,
+        assetName: "ReviewEasyPhoenix",
+        assetDescription: "phoenix",
+        frameScale: 0.64,
+        centerX: 0.50,
+        centerY: 0.42
+    ),
+    ReviewReactionLottieAssetConfiguration(
+        variant: .easyUnicornFlyby,
+        assetName: "ReviewEasyUnicorn",
+        assetDescription: "unicorn",
+        frameScale: 0.52,
+        centerX: 0.56,
+        centerY: 0.30
+    )
+]
 
 private func makeReviewReactionLottieAnimation(assetName: String, assetDescription: String) -> LottieAnimation? {
     guard let dataAsset: NSDataAsset = NSDataAsset(name: assetName) else {
@@ -75,72 +358,17 @@ private func makeReviewReactionLottieAnimation(assetName: String, assetDescripti
 }
 
 private func makeReviewReactionLottieAnimationStore() -> ReviewReactionLottieAnimationStore {
-    ReviewReactionLottieAnimationStore(
-        reviewAgainWiltedFlowerAnimation: makeReviewReactionLottieAnimation(
-            assetName: reviewAgainWiltedFlowerAnimationAssetName,
-            assetDescription: "wilted flower"
-        ),
-        reviewAgainWormAnimation: makeReviewReactionLottieAnimation(
-            assetName: reviewAgainWormAnimationAssetName,
-            assetDescription: "worm"
-        ),
-        reviewAgainTornadoAnimation: makeReviewReactionLottieAnimation(
-            assetName: reviewAgainTornadoAnimationAssetName,
-            assetDescription: "tornado"
-        ),
-        reviewAgainSnailAnimation: makeReviewReactionLottieAnimation(
-            assetName: reviewAgainSnailAnimationAssetName,
-            assetDescription: "snail"
-        ),
-        reviewGoodOwlAnimation: makeReviewReactionLottieAnimation(
-            assetName: reviewGoodOwlAnimationAssetName,
-            assetDescription: "owl"
-        ),
-        reviewGoodPoodleAnimation: makeReviewReactionLottieAnimation(
-            assetName: reviewGoodPoodleAnimationAssetName,
-            assetDescription: "poodle"
-        ),
-        reviewGoodWhaleAnimation: makeReviewReactionLottieAnimation(
-            assetName: reviewGoodWhaleAnimationAssetName,
-            assetDescription: "whale"
-        ),
-        reviewGoodPeacockAnimation: makeReviewReactionLottieAnimation(
-            assetName: reviewGoodPeacockAnimationAssetName,
-            assetDescription: "peacock"
-        ),
-        reviewHardOxAnimation: makeReviewReactionLottieAnimation(
-            assetName: reviewHardOxAnimationAssetName,
-            assetDescription: "ox"
-        ),
-        reviewHardPawPrintsAnimation: makeReviewReactionLottieAnimation(
-            assetName: reviewHardPawPrintsAnimationAssetName,
-            assetDescription: "paw prints"
-        ),
-        reviewHardRacehorseAnimation: makeReviewReactionLottieAnimation(
-            assetName: reviewHardRacehorseAnimationAssetName,
-            assetDescription: "racehorse"
-        ),
-        reviewHardVolcanoAnimation: makeReviewReactionLottieAnimation(
-            assetName: reviewHardVolcanoAnimationAssetName,
-            assetDescription: "volcano"
-        ),
-        reviewEasyRoseAnimation: makeReviewReactionLottieAnimation(
-            assetName: reviewEasyRoseAnimationAssetName,
-            assetDescription: "rose"
-        ),
-        reviewEasyRainbowAnimation: makeReviewReactionLottieAnimation(
-            assetName: reviewEasyRainbowAnimationAssetName,
-            assetDescription: "rainbow"
-        ),
-        reviewEasyPhoenixAnimation: makeReviewReactionLottieAnimation(
-            assetName: reviewEasyPhoenixAnimationAssetName,
-            assetDescription: "phoenix"
-        ),
-        reviewEasyUnicornAnimation: makeReviewReactionLottieAnimation(
-            assetName: reviewEasyUnicornAnimationAssetName,
-            assetDescription: "unicorn"
-        )
-    )
+    var animationStore: ReviewReactionLottieAnimationStore = [:]
+    for assetConfiguration in reviewReactionLottieAssetConfigurations {
+        if let animation = makeReviewReactionLottieAnimation(
+            assetName: assetConfiguration.assetName,
+            assetDescription: assetConfiguration.assetDescription
+        ) {
+            animationStore[assetConfiguration.variant] = animation
+        }
+    }
+
+    return animationStore
 }
 
 private func reviewReactionFallbackEvent(event: ReviewReactionEvent) -> ReviewReactionEvent {
@@ -152,26 +380,8 @@ private func reviewReactionFallbackEvent(event: ReviewReactionEvent) -> ReviewRe
 }
 
 private func isReviewReactionLottieVariant(variant: ReviewReactionVariant) -> Bool {
-    switch variant {
-    case .againWormWiggle,
-         .againTornado,
-         .againSnailCrawl,
-         .againWiltedFlower,
-         .goodOwl,
-         .goodPoodle,
-         .goodWhale,
-         .goodPeacock,
-         .hardOxCharge,
-         .hardPawPrints,
-         .hardRacehorseGallop,
-         .hardVolcanoEruption,
-         .easyRoseBloom,
-         .easyRainbowStreak,
-         .easyPhoenixRise,
-         .easyUnicornFlyby:
-        return true
-    case .fallbackCrownBounce:
-        return false
+    reviewReactionLottieAssetConfigurations.contains { assetConfiguration in
+        assetConfiguration.variant == variant
     }
 }
 
@@ -179,202 +389,22 @@ private func reviewReactionLottieConfiguration(
     variant: ReviewReactionVariant,
     animationStore: ReviewReactionLottieAnimationStore
 ) -> ReviewReactionLottieConfiguration? {
-    switch variant {
-    case .againWiltedFlower:
-        guard let reviewAgainWiltedFlowerAnimation = animationStore.reviewAgainWiltedFlowerAnimation else {
-            return nil
-        }
-
-        return ReviewReactionLottieConfiguration(
-            animation: reviewAgainWiltedFlowerAnimation,
-            frameScale: 0.56,
-            centerX: 0.50,
-            centerY: 0.50,
-            reducedMotionProgress: reviewReactionLottieReducedMotionProgress
-        )
-    case .againWormWiggle:
-        guard let reviewAgainWormAnimation = animationStore.reviewAgainWormAnimation else {
-            return nil
-        }
-
-        return ReviewReactionLottieConfiguration(
-            animation: reviewAgainWormAnimation,
-            frameScale: 0.58,
-            centerX: 0.50,
-            centerY: 0.52,
-            reducedMotionProgress: reviewReactionLottieReducedMotionProgress
-        )
-    case .againTornado:
-        guard let reviewAgainTornadoAnimation = animationStore.reviewAgainTornadoAnimation else {
-            return nil
-        }
-
-        return ReviewReactionLottieConfiguration(
-            animation: reviewAgainTornadoAnimation,
-            frameScale: 0.58,
-            centerX: 0.50,
-            centerY: 0.45,
-            reducedMotionProgress: reviewReactionLottieReducedMotionProgress
-        )
-    case .againSnailCrawl:
-        guard let reviewAgainSnailAnimation = animationStore.reviewAgainSnailAnimation else {
-            return nil
-        }
-
-        return ReviewReactionLottieConfiguration(
-            animation: reviewAgainSnailAnimation,
-            frameScale: 0.58,
-            centerX: 0.50,
-            centerY: 0.48,
-            reducedMotionProgress: reviewReactionLottieReducedMotionProgress
-        )
-    case .goodOwl:
-        guard let reviewGoodOwlAnimation = animationStore.reviewGoodOwlAnimation else {
-            return nil
-        }
-
-        return ReviewReactionLottieConfiguration(
-            animation: reviewGoodOwlAnimation,
-            frameScale: 0.56,
-            centerX: 0.50,
-            centerY: 0.42,
-            reducedMotionProgress: reviewReactionLottieReducedMotionProgress
-        )
-    case .goodPoodle:
-        guard let reviewGoodPoodleAnimation = animationStore.reviewGoodPoodleAnimation else {
-            return nil
-        }
-
-        return ReviewReactionLottieConfiguration(
-            animation: reviewGoodPoodleAnimation,
-            frameScale: 0.56,
-            centerX: 0.50,
-            centerY: 0.43,
-            reducedMotionProgress: reviewReactionLottieReducedMotionProgress
-        )
-    case .goodWhale:
-        guard let reviewGoodWhaleAnimation = animationStore.reviewGoodWhaleAnimation else {
-            return nil
-        }
-
-        return ReviewReactionLottieConfiguration(
-            animation: reviewGoodWhaleAnimation,
-            frameScale: 0.58,
-            centerX: 0.50,
-            centerY: 0.42,
-            reducedMotionProgress: reviewReactionLottieReducedMotionProgress
-        )
-    case .goodPeacock:
-        guard let reviewGoodPeacockAnimation = animationStore.reviewGoodPeacockAnimation else {
-            return nil
-        }
-
-        return ReviewReactionLottieConfiguration(
-            animation: reviewGoodPeacockAnimation,
-            frameScale: 0.58,
-            centerX: 0.50,
-            centerY: 0.42,
-            reducedMotionProgress: reviewReactionLottieReducedMotionProgress
-        )
-    case .hardOxCharge:
-        guard let reviewHardOxAnimation = animationStore.reviewHardOxAnimation else {
-            return nil
-        }
-
-        return ReviewReactionLottieConfiguration(
-            animation: reviewHardOxAnimation,
-            frameScale: 0.58,
-            centerX: 0.50,
-            centerY: 0.50,
-            reducedMotionProgress: reviewReactionLottieReducedMotionProgress
-        )
-    case .hardPawPrints:
-        guard let reviewHardPawPrintsAnimation = animationStore.reviewHardPawPrintsAnimation else {
-            return nil
-        }
-
-        return ReviewReactionLottieConfiguration(
-            animation: reviewHardPawPrintsAnimation,
-            frameScale: 0.56,
-            centerX: 0.50,
-            centerY: 0.50,
-            reducedMotionProgress: reviewReactionLottieReducedMotionProgress
-        )
-    case .hardRacehorseGallop:
-        guard let reviewHardRacehorseAnimation = animationStore.reviewHardRacehorseAnimation else {
-            return nil
-        }
-
-        return ReviewReactionLottieConfiguration(
-            animation: reviewHardRacehorseAnimation,
-            frameScale: 0.62,
-            centerX: 0.50,
-            centerY: 0.50,
-            reducedMotionProgress: reviewReactionLottieReducedMotionProgress
-        )
-    case .hardVolcanoEruption:
-        guard let reviewHardVolcanoAnimation = animationStore.reviewHardVolcanoAnimation else {
-            return nil
-        }
-
-        return ReviewReactionLottieConfiguration(
-            animation: reviewHardVolcanoAnimation,
-            frameScale: 0.64,
-            centerX: 0.50,
-            centerY: 0.50,
-            reducedMotionProgress: reviewReactionLottieReducedMotionProgress
-        )
-    case .easyRoseBloom:
-        guard let reviewEasyRoseAnimation = animationStore.reviewEasyRoseAnimation else {
-            return nil
-        }
-
-        return ReviewReactionLottieConfiguration(
-            animation: reviewEasyRoseAnimation,
-            frameScale: 0.58,
-            centerX: 0.50,
-            centerY: 0.50,
-            reducedMotionProgress: reviewReactionLottieReducedMotionProgress
-        )
-    case .easyRainbowStreak:
-        guard let reviewEasyRainbowAnimation = animationStore.reviewEasyRainbowAnimation else {
-            return nil
-        }
-
-        return ReviewReactionLottieConfiguration(
-            animation: reviewEasyRainbowAnimation,
-            frameScale: 0.64,
-            centerX: 0.50,
-            centerY: 0.42,
-            reducedMotionProgress: reviewReactionLottieReducedMotionProgress
-        )
-    case .easyPhoenixRise:
-        guard let reviewEasyPhoenixAnimation = animationStore.reviewEasyPhoenixAnimation else {
-            return nil
-        }
-
-        return ReviewReactionLottieConfiguration(
-            animation: reviewEasyPhoenixAnimation,
-            frameScale: 0.64,
-            centerX: 0.50,
-            centerY: 0.42,
-            reducedMotionProgress: reviewReactionLottieReducedMotionProgress
-        )
-    case .easyUnicornFlyby:
-        guard let reviewEasyUnicornAnimation = animationStore.reviewEasyUnicornAnimation else {
-            return nil
-        }
-
-        return ReviewReactionLottieConfiguration(
-            animation: reviewEasyUnicornAnimation,
-            frameScale: 0.52,
-            centerX: 0.56,
-            centerY: 0.30,
-            reducedMotionProgress: reviewReactionLottieReducedMotionProgress
-        )
-    case .fallbackCrownBounce:
+    guard let assetConfiguration = reviewReactionLottieAssetConfigurations.first(where: { configuration in
+        configuration.variant == variant
+    }) else {
         return nil
     }
+    guard let animation = animationStore[variant] else {
+        return nil
+    }
+
+    return ReviewReactionLottieConfiguration(
+        animation: animation,
+        frameScale: assetConfiguration.frameScale,
+        centerX: assetConfiguration.centerX,
+        centerY: assetConfiguration.centerY,
+        reducedMotionProgress: reviewReactionLottieReducedMotionProgress
+    )
 }
 
 @MainActor
@@ -402,25 +432,7 @@ private func finishReviewReactionEventAfterDelay(
 struct ReviewReactionLayer: View {
     @Environment(\.accessibilityReduceMotion) private var isReduceMotionEnabled
     @State private var hasStartedReviewReactionLottiePreload: Bool = false
-    @State private var reviewReactionLottieAnimationStore: ReviewReactionLottieAnimationStore =
-        ReviewReactionLottieAnimationStore(
-            reviewAgainWiltedFlowerAnimation: nil,
-            reviewAgainWormAnimation: nil,
-            reviewAgainTornadoAnimation: nil,
-            reviewAgainSnailAnimation: nil,
-            reviewGoodOwlAnimation: nil,
-            reviewGoodPoodleAnimation: nil,
-            reviewGoodWhaleAnimation: nil,
-            reviewGoodPeacockAnimation: nil,
-            reviewHardOxAnimation: nil,
-            reviewHardPawPrintsAnimation: nil,
-            reviewHardRacehorseAnimation: nil,
-            reviewHardVolcanoAnimation: nil,
-            reviewEasyRoseAnimation: nil,
-            reviewEasyRainbowAnimation: nil,
-            reviewEasyPhoenixAnimation: nil,
-            reviewEasyUnicornAnimation: nil
-        )
+    @State private var reviewReactionLottieAnimationStore: ReviewReactionLottieAnimationStore = [:]
 
     let events: [ReviewReactionEvent]
     let onEventFinished: (UUID) -> Void

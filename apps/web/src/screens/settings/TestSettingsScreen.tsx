@@ -20,7 +20,6 @@ import { ReviewRatingReactionLayer } from "../review/reactions/ReviewRatingReact
 import {
   isReviewReactionLottieVariant,
   reviewReactionLottieFallbackVariant,
-  reviewReactionVariantWithReadyLottieFallback,
 } from "../review/reactions/reviewReactionLottie";
 import { SettingsGroup, SettingsNavigationCard, SettingsShell } from "./SettingsShared";
 
@@ -203,7 +202,7 @@ export function TestAnimationsScreen(): ReactElement {
     const event: ReviewReactionEvent = {
       id: crypto.randomUUID(),
       rating: entry.rating,
-      variant: reviewReactionVariantWithReadyLottieFallback(entry.variant),
+      variant: entry.variant,
     };
     scheduleReviewReactionEventCleanup(event.id, event.variant);
 

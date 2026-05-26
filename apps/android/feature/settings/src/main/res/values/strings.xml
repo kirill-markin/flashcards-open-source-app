@@ -20,6 +20,28 @@
     <string name="review_wilted_flower_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-wilted-flower-animation_12152601</string>
     <string name="review_worm_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-worm-animation_12152603</string>
     <string name="review_tornado_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-tornado-animation_12152595</string>
+    <string name="review_rain_cloud_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-rain-cloud-animation_12152618</string>
+    <string name="review_wind_face_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-wind-face-animation_12152602</string>
+    <string name="review_snowflake_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-snowflake-animation_12152628</string>
+    <string name="review_turtle_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-turtle-animation_12152597</string>
+    <string name="review_spider_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-spider-animation_12152629</string>
+    <string name="review_rat_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-rat-animation_12152619</string>
+    <string name="review_tiger_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-tiger-animation_12152594</string>
+    <string name="review_t_rex_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-t-rex-animation_12152596</string>
+    <string name="review_shark_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-shark-animation_12152625</string>
+    <string name="review_snake_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-snake-animation_12152627</string>
+    <string name="review_scorpion_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-scorpion-animation_12152622</string>
+    <string name="review_rooster_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-rooster-animation_12152620</string>
+    <string name="review_otter_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-otter-animation_12152605</string>
+    <string name="review_rabbit_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-rabbit-animation_12152615</string>
+    <string name="review_seal_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-seal-animation_12152623</string>
+    <string name="review_service_dog_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-service-dog-animation_12152624</string>
+    <string name="review_chimpanzee_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-chimpanzee-animation_12152604</string>
+    <string name="review_pig_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-pig-animation_12152612</string>
+    <string name="review_sunrise_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-sunrise-animation_12152630</string>
+    <string name="review_sunrise_over_mountains_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-sunrise-over-mountains-animation_12152631</string>
+    <string name="review_peace_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-peace-animation_12152609</string>
+    <string name="review_plant_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-plant-animation_12152613</string>
     <string name="creative_commons_attribution_url" translatable="false">https://creativecommons.org/licenses/by/4.0/</string>
     <string name="flashcards_support_email_address" translatable="false">kirill+flashcards@kirill-markin.com</string>
 
@@ -66,7 +88,7 @@
     <string name="settings_test_title">Test</string>
     <string name="settings_test_tools_section">Tools</string>
     <string name="settings_test_animations_title">Animations</string>
-    <string name="settings_test_animations_summary">16 items</string>
+    <string name="settings_test_animations_summary">38 items</string>
 
     <string name="settings_cloud_status_disconnected">Disconnected</string>
     <string name="settings_cloud_status_choose_workspace">Choose workspace</string>
@@ -462,6 +484,50 @@
     <string name="settings_open_source_title">Open source</string>
     <string name="settings_open_source_repository_title">GitHub repository</string>
     <string name="settings_open_source_repository_summary">Browse the public source code and issues.</string>
+    <string name="settings_open_source_third_party_rain_cloud_source_title" translatable="false">Review rain cloud animation</string>
+    <string name="settings_open_source_third_party_rain_cloud_source_summary" translatable="false">Free Rain Cloud Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_wind_face_source_title" translatable="false">Review wind face animation</string>
+    <string name="settings_open_source_third_party_wind_face_source_summary" translatable="false">Free Wind Face Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_snowflake_source_title" translatable="false">Review snowflake animation</string>
+    <string name="settings_open_source_third_party_snowflake_source_summary" translatable="false">Free Snowflake Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_turtle_source_title" translatable="false">Review turtle animation</string>
+    <string name="settings_open_source_third_party_turtle_source_summary" translatable="false">Free Turtle Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_spider_source_title" translatable="false">Review spider animation</string>
+    <string name="settings_open_source_third_party_spider_source_summary" translatable="false">Free Spider Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_rat_source_title" translatable="false">Review rat animation</string>
+    <string name="settings_open_source_third_party_rat_source_summary" translatable="false">Free Rat Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_tiger_source_title" translatable="false">Review tiger animation</string>
+    <string name="settings_open_source_third_party_tiger_source_summary" translatable="false">Free Tiger Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_t_rex_source_title" translatable="false">Review T Rex animation</string>
+    <string name="settings_open_source_third_party_t_rex_source_summary" translatable="false">Free T Rex Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_shark_source_title" translatable="false">Review shark animation</string>
+    <string name="settings_open_source_third_party_shark_source_summary" translatable="false">Free Shark Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_snake_source_title" translatable="false">Review snake animation</string>
+    <string name="settings_open_source_third_party_snake_source_summary" translatable="false">Free Snake Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_scorpion_source_title" translatable="false">Review scorpion animation</string>
+    <string name="settings_open_source_third_party_scorpion_source_summary" translatable="false">Free Scorpion Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_rooster_source_title" translatable="false">Review rooster animation</string>
+    <string name="settings_open_source_third_party_rooster_source_summary" translatable="false">Free Rooster Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_otter_source_title" translatable="false">Review otter animation</string>
+    <string name="settings_open_source_third_party_otter_source_summary" translatable="false">Free Otter Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_rabbit_source_title" translatable="false">Review rabbit animation</string>
+    <string name="settings_open_source_third_party_rabbit_source_summary" translatable="false">Free Rabbit Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_seal_source_title" translatable="false">Review seal animation</string>
+    <string name="settings_open_source_third_party_seal_source_summary" translatable="false">Free Seal Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_service_dog_source_title" translatable="false">Review service dog animation</string>
+    <string name="settings_open_source_third_party_service_dog_source_summary" translatable="false">Free Service Dog Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_chimpanzee_source_title" translatable="false">Review chimpanzee animation</string>
+    <string name="settings_open_source_third_party_chimpanzee_source_summary" translatable="false">Free Chimpanzee Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_pig_source_title" translatable="false">Review pig animation</string>
+    <string name="settings_open_source_third_party_pig_source_summary" translatable="false">Free Pig Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_sunrise_source_title" translatable="false">Review sunrise animation</string>
+    <string name="settings_open_source_third_party_sunrise_source_summary" translatable="false">Free Sunrise Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_sunrise_over_mountains_source_title" translatable="false">Review sunrise over mountains animation</string>
+    <string name="settings_open_source_third_party_sunrise_over_mountains_source_summary" translatable="false">Free Sunrise Over Mountains Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_peace_source_title" translatable="false">Review peace animation</string>
+    <string name="settings_open_source_third_party_peace_source_summary" translatable="false">Free Peace Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
+    <string name="settings_open_source_third_party_plant_source_title" translatable="false">Review plant animation</string>
+    <string name="settings_open_source_third_party_plant_source_summary" translatable="false">Free Plant Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
     <string name="settings_open_source_third_party_owl_source_title" translatable="false">Review owl animation</string>
     <string name="settings_open_source_third_party_owl_source_summary" translatable="false">Free Owl Animation by Google Inc., Copyright © 2026 Google Inc., used under Creative Commons Attribution 4.0.</string>
     <string name="settings_open_source_third_party_poodle_source_title" translatable="false">Review poodle animation</string>

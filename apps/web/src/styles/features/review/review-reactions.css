@@ -140,44 +140,20 @@
   animation: review-reaction-crown-art var(--review-reaction-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.review-rating-reaction-againWormWiggle .review-rating-reaction-lottie-art,
-.review-rating-reaction-againTornado .review-rating-reaction-lottie-art,
-.review-rating-reaction-againSnailCrawl .review-rating-reaction-lottie-art,
-.review-rating-reaction-againWiltedFlower .review-rating-reaction-lottie-art,
-.review-rating-reaction-goodOwl .review-rating-reaction-lottie-art,
-.review-rating-reaction-goodPoodle .review-rating-reaction-lottie-art,
-.review-rating-reaction-goodWhale .review-rating-reaction-lottie-art,
-.review-rating-reaction-goodPeacock .review-rating-reaction-lottie-art,
-.review-rating-reaction-hardOxCharge .review-rating-reaction-lottie-art,
-.review-rating-reaction-hardPawPrints .review-rating-reaction-lottie-art,
-.review-rating-reaction-hardRacehorseGallop .review-rating-reaction-lottie-art,
-.review-rating-reaction-hardVolcanoEruption .review-rating-reaction-lottie-art,
-.review-rating-reaction-easyRoseBloom .review-rating-reaction-lottie-art,
-.review-rating-reaction-easyRainbowStreak .review-rating-reaction-lottie-art,
-.review-rating-reaction-easyPhoenixRise .review-rating-reaction-lottie-art,
-.review-rating-reaction-easyUnicornFlyby .review-rating-reaction-lottie-art {
+.review-rating-reaction-lottie-art {
   animation: none;
 }
 
-.review-reaction-worm-lottie-mark,
-.review-reaction-tornado-lottie-mark,
-.review-reaction-snail-lottie-mark,
-.review-reaction-wilted-flower-lottie-mark,
-.review-reaction-owl-lottie-mark,
-.review-reaction-poodle-lottie-mark,
-.review-reaction-whale-lottie-mark,
-.review-reaction-peacock-lottie-mark,
-.review-reaction-ox-lottie-mark,
-.review-reaction-paw-prints-lottie-mark,
-.review-reaction-racehorse-lottie-mark,
-.review-reaction-volcano-lottie-mark,
-.review-reaction-rose-lottie-mark,
-.review-reaction-rainbow-lottie-mark,
-.review-reaction-phoenix-lottie-mark,
-.review-reaction-unicorn-lottie-mark {
+.review-rating-reaction-lottie-art > div {
   position: absolute;
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
+}
+
+.review-reaction-rain-cloud-lottie-mark {
+  top: 44%;
+  left: 50%;
+  width: min(62%, 270px);
 }
 
 .review-reaction-worm-lottie-mark {
@@ -192,8 +168,26 @@
   width: min(58%, 255px);
 }
 
+.review-reaction-wind-face-lottie-mark {
+  top: 45%;
+  left: 50%;
+  width: min(56%, 245px);
+}
+
+.review-reaction-snowflake-lottie-mark {
+  top: 45%;
+  left: 50%;
+  width: min(56%, 245px);
+}
+
 .review-reaction-snail-lottie-mark {
   top: 48%;
+  left: 50%;
+  width: min(58%, 250px);
+}
+
+.review-reaction-turtle-lottie-mark {
+  top: 50%;
   left: 50%;
   width: min(58%, 250px);
 }
@@ -204,14 +198,82 @@
   width: min(56%, 245px);
 }
 
+.review-reaction-spider-lottie-mark {
+  top: 50%;
+  left: 50%;
+  width: min(54%, 235px);
+}
+
+.review-reaction-rat-lottie-mark {
+  top: 50%;
+  left: 50%;
+  width: min(56%, 245px);
+}
+
+.review-reaction-tiger-lottie-mark,
+.review-reaction-t-rex-lottie-mark {
+  top: 48%;
+  left: 50%;
+  width: min(62%, 270px);
+}
+
+.review-reaction-shark-lottie-mark {
+  top: 47%;
+  left: 50%;
+  width: min(62%, 270px);
+}
+
+.review-reaction-snake-lottie-mark {
+  top: 50%;
+  left: 50%;
+  width: min(58%, 250px);
+}
+
+.review-reaction-scorpion-lottie-mark {
+  top: 50%;
+  left: 50%;
+  width: min(56%, 245px);
+}
+
+.review-reaction-rooster-lottie-mark {
+  top: 48%;
+  left: 50%;
+  width: min(58%, 250px);
+}
+
+.review-reaction-otter-lottie-mark {
+  top: 48%;
+  left: 50%;
+  width: min(58%, 250px);
+}
+
 .review-reaction-owl-lottie-mark {
   top: 42%;
   left: 50%;
   width: min(56%, 245px);
 }
 
+.review-reaction-rabbit-lottie-mark {
+  top: 47%;
+  left: 50%;
+  width: min(56%, 245px);
+}
+
+.review-reaction-seal-lottie-mark,
+.review-reaction-service-dog-lottie-mark {
+  top: 47%;
+  left: 50%;
+  width: min(58%, 250px);
+}
+
 .review-reaction-poodle-lottie-mark {
   top: 43%;
+  left: 50%;
+  width: min(56%, 245px);
+}
+
+.review-reaction-chimpanzee-lottie-mark {
+  top: 46%;
   left: 50%;
   width: min(56%, 245px);
 }
@@ -226,6 +288,12 @@
   top: 42%;
   left: 50%;
   width: min(58%, 255px);
+}
+
+.review-reaction-pig-lottie-mark {
+  top: 50%;
+  left: 50%;
+  width: min(56%, 245px);
 }
 
 .review-reaction-ox-lottie-mark {
@@ -252,7 +320,31 @@
   width: min(64%, 280px);
 }
 
+.review-reaction-sunrise-lottie-mark {
+  top: 42%;
+  left: 50%;
+  width: min(64%, 280px);
+}
+
+.review-reaction-sunrise-over-mountains-lottie-mark {
+  top: 44%;
+  left: 50%;
+  width: min(64%, 280px);
+}
+
 .review-reaction-rose-lottie-mark {
+  top: 50%;
+  left: 50%;
+  width: min(58%, 250px);
+}
+
+.review-reaction-peace-lottie-mark {
+  top: 48%;
+  left: 50%;
+  width: min(56%, 245px);
+}
+
+.review-reaction-plant-lottie-mark {
   top: 50%;
   left: 50%;
   width: min(58%, 250px);
@@ -276,38 +368,8 @@
   width: min(52%, 230px);
 }
 
-.review-reaction-worm-lottie-mark > div,
-.review-reaction-worm-lottie-mark > svg,
-.review-reaction-tornado-lottie-mark > div,
-.review-reaction-tornado-lottie-mark > svg,
-.review-reaction-snail-lottie-mark > div,
-.review-reaction-snail-lottie-mark > svg,
-.review-reaction-wilted-flower-lottie-mark > div,
-.review-reaction-wilted-flower-lottie-mark > svg,
-.review-reaction-owl-lottie-mark > div,
-.review-reaction-owl-lottie-mark > svg,
-.review-reaction-poodle-lottie-mark > div,
-.review-reaction-poodle-lottie-mark > svg,
-.review-reaction-whale-lottie-mark > div,
-.review-reaction-whale-lottie-mark > svg,
-.review-reaction-peacock-lottie-mark > div,
-.review-reaction-peacock-lottie-mark > svg,
-.review-reaction-ox-lottie-mark > div,
-.review-reaction-ox-lottie-mark > svg,
-.review-reaction-paw-prints-lottie-mark > div,
-.review-reaction-paw-prints-lottie-mark > svg,
-.review-reaction-racehorse-lottie-mark > div,
-.review-reaction-racehorse-lottie-mark > svg,
-.review-reaction-volcano-lottie-mark > div,
-.review-reaction-volcano-lottie-mark > svg,
-.review-reaction-rose-lottie-mark > div,
-.review-reaction-rose-lottie-mark > svg,
-.review-reaction-rainbow-lottie-mark > div,
-.review-reaction-rainbow-lottie-mark > svg,
-.review-reaction-phoenix-lottie-mark > div,
-.review-reaction-phoenix-lottie-mark > svg,
-.review-reaction-unicorn-lottie-mark > div,
-.review-reaction-unicorn-lottie-mark > svg {
+.review-rating-reaction-lottie-art > div > div,
+.review-rating-reaction-lottie-art > div > svg {
   display: block;
   width: 100%;
   height: 100%;

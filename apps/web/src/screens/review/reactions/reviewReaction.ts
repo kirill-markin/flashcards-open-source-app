@@ -17,19 +17,41 @@ export const reviewReactionRatings: ReadonlyArray<ReviewReactionRating> = [
 ];
 
 export type ReviewReactionVariant =
-  | "againWormWiggle"
+  | "againRainCloud"
   | "againTornado"
+  | "againWindFace"
+  | "againSnowflake"
   | "againSnailCrawl"
+  | "againTurtle"
   | "againWiltedFlower"
+  | "againSpider"
+  | "againRat"
+  | "againWormWiggle"
+  | "hardTiger"
+  | "hardTRex"
+  | "hardShark"
   | "hardOxCharge"
-  | "hardPawPrints"
   | "hardRacehorseGallop"
+  | "hardSnake"
   | "hardVolcanoEruption"
+  | "hardScorpion"
+  | "hardPawPrints"
+  | "hardRooster"
+  | "goodOtter"
   | "goodOwl"
+  | "goodRabbit"
+  | "goodSeal"
+  | "goodServiceDog"
   | "goodPoodle"
+  | "goodChimpanzee"
   | "goodWhale"
   | "goodPeacock"
+  | "goodPig"
+  | "easySunrise"
+  | "easySunriseOverMountains"
   | "easyRoseBloom"
+  | "easyPeace"
+  | "easyPlant"
   | "easyRainbowStreak"
   | "easyPhoenixRise"
   | "easyUnicornFlyby";
@@ -69,22 +91,44 @@ function makeReviewReactionVariantDistributionEntry(
 }
 
 export const allReviewReactionVariantDistributionEntries: ReadonlyArray<ReviewReactionVariantDistributionEntry> = [
-  makeReviewReactionVariantDistributionEntry("again", "againWormWiggle", 40),
-  makeReviewReactionVariantDistributionEntry("again", "againTornado", 30),
-  makeReviewReactionVariantDistributionEntry("again", "againSnailCrawl", 22),
-  makeReviewReactionVariantDistributionEntry("again", "againWiltedFlower", 8),
-  makeReviewReactionVariantDistributionEntry("hard", "hardOxCharge", 40),
-  makeReviewReactionVariantDistributionEntry("hard", "hardPawPrints", 30),
-  makeReviewReactionVariantDistributionEntry("hard", "hardRacehorseGallop", 22),
-  makeReviewReactionVariantDistributionEntry("hard", "hardVolcanoEruption", 8),
-  makeReviewReactionVariantDistributionEntry("good", "goodOwl", 40),
-  makeReviewReactionVariantDistributionEntry("good", "goodPoodle", 30),
-  makeReviewReactionVariantDistributionEntry("good", "goodWhale", 22),
-  makeReviewReactionVariantDistributionEntry("good", "goodPeacock", 8),
-  makeReviewReactionVariantDistributionEntry("easy", "easyRoseBloom", 40),
-  makeReviewReactionVariantDistributionEntry("easy", "easyRainbowStreak", 30),
-  makeReviewReactionVariantDistributionEntry("easy", "easyPhoenixRise", 22),
-  makeReviewReactionVariantDistributionEntry("easy", "easyUnicornFlyby", 8),
+  makeReviewReactionVariantDistributionEntry("again", "againRainCloud", 32),
+  makeReviewReactionVariantDistributionEntry("again", "againTornado", 26),
+  makeReviewReactionVariantDistributionEntry("again", "againWindFace", 24),
+  makeReviewReactionVariantDistributionEntry("again", "againSnowflake", 18),
+  makeReviewReactionVariantDistributionEntry("again", "againSnailCrawl", 18),
+  makeReviewReactionVariantDistributionEntry("again", "againTurtle", 16),
+  makeReviewReactionVariantDistributionEntry("again", "againWiltedFlower", 12),
+  makeReviewReactionVariantDistributionEntry("again", "againSpider", 8),
+  makeReviewReactionVariantDistributionEntry("again", "againRat", 8),
+  makeReviewReactionVariantDistributionEntry("again", "againWormWiggle", 6),
+  makeReviewReactionVariantDistributionEntry("hard", "hardTiger", 32),
+  makeReviewReactionVariantDistributionEntry("hard", "hardTRex", 26),
+  makeReviewReactionVariantDistributionEntry("hard", "hardShark", 22),
+  makeReviewReactionVariantDistributionEntry("hard", "hardOxCharge", 20),
+  makeReviewReactionVariantDistributionEntry("hard", "hardRacehorseGallop", 18),
+  makeReviewReactionVariantDistributionEntry("hard", "hardSnake", 16),
+  makeReviewReactionVariantDistributionEntry("hard", "hardVolcanoEruption", 14),
+  makeReviewReactionVariantDistributionEntry("hard", "hardScorpion", 10),
+  makeReviewReactionVariantDistributionEntry("hard", "hardPawPrints", 8),
+  makeReviewReactionVariantDistributionEntry("hard", "hardRooster", 8),
+  makeReviewReactionVariantDistributionEntry("good", "goodOtter", 32),
+  makeReviewReactionVariantDistributionEntry("good", "goodOwl", 28),
+  makeReviewReactionVariantDistributionEntry("good", "goodRabbit", 26),
+  makeReviewReactionVariantDistributionEntry("good", "goodSeal", 24),
+  makeReviewReactionVariantDistributionEntry("good", "goodServiceDog", 24),
+  makeReviewReactionVariantDistributionEntry("good", "goodPoodle", 20),
+  makeReviewReactionVariantDistributionEntry("good", "goodChimpanzee", 18),
+  makeReviewReactionVariantDistributionEntry("good", "goodWhale", 16),
+  makeReviewReactionVariantDistributionEntry("good", "goodPeacock", 12),
+  makeReviewReactionVariantDistributionEntry("good", "goodPig", 10),
+  makeReviewReactionVariantDistributionEntry("easy", "easySunrise", 34),
+  makeReviewReactionVariantDistributionEntry("easy", "easySunriseOverMountains", 34),
+  makeReviewReactionVariantDistributionEntry("easy", "easyRoseBloom", 30),
+  makeReviewReactionVariantDistributionEntry("easy", "easyPeace", 28),
+  makeReviewReactionVariantDistributionEntry("easy", "easyPlant", 26),
+  makeReviewReactionVariantDistributionEntry("easy", "easyRainbowStreak", 24),
+  makeReviewReactionVariantDistributionEntry("easy", "easyPhoenixRise", 18),
+  makeReviewReactionVariantDistributionEntry("easy", "easyUnicornFlyby", 12),
 ];
 
 export function reviewReactionVariantDistributionEntries(
@@ -190,9 +234,19 @@ export function matchesReducedReviewReactionMotion(): boolean {
 
 export function reviewReactionAnimationDurationMillis(variant: ReviewReactionRenderableVariant): number {
   switch (variant) {
+    case "againWindFace":
+      return 1600;
+    case "hardTRex":
+      return 1550;
     case "hardRacehorseGallop":
       return 1200;
+    case "easySunriseOverMountains":
+      return 1200;
+    case "goodRabbit":
+      return 1333;
     case "easyRoseBloom":
+      return 2400;
+    case "againSpider":
       return 2400;
     case "goodPeacock":
       return 1333;
@@ -200,6 +254,8 @@ export function reviewReactionAnimationDurationMillis(variant: ReviewReactionRen
       return 1450;
     case "hardOxCharge":
       return 1550;
+    case "hardScorpion":
+      return 1800;
     case "hardPawPrints":
     case "fallbackCrownBounce":
       return 1650;
@@ -209,18 +265,45 @@ export function reviewReactionAnimationDurationMillis(variant: ReviewReactionRen
       return 2050;
     case "againWiltedFlower":
       return 2400;
+    case "goodSeal":
+      return 2567;
     case "goodWhale":
+      return 2633;
+    case "againRat":
       return 2633;
     case "againSnailCrawl":
       return 2700;
+    case "hardRooster":
+      return 2850;
     case "easyPhoenixRise":
       return 3933;
     case "goodPoodle":
       return 2800;
     case "goodOwl":
       return 2833;
+    case "goodOtter":
+    case "goodServiceDog":
+      return 3000;
+    case "easyPeace":
+      return 3167;
+    case "hardShark":
+      return 3200;
+    case "againRainCloud":
+    case "hardSnake":
+      return 3267;
+    case "againTurtle":
+      return 3400;
+    case "goodPig":
+      return 3567;
+    case "goodChimpanzee":
+      return 3833;
     case "easyUnicornFlyby":
       return 3800;
+    case "againSnowflake":
+    case "hardTiger":
+    case "easySunrise":
+    case "easyPlant":
+      return 4200;
     case "againWormWiggle":
       return 4267;
   }
