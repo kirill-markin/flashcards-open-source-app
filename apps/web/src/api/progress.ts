@@ -13,7 +13,7 @@ import type {
   ProgressSummaryPayload,
 } from "../types";
 import { parseContractResponse } from "./response";
-import { allowAuthRecovery, requestJson } from "./transport";
+import { allowAuthRecoveryWithTransientNetworkRetry, requestJson } from "./transport";
 
 export async function loadProgressSummary(input: ProgressSummaryInput): Promise<ProgressSummaryPayload> {
   const searchParams = new URLSearchParams({
@@ -23,7 +23,7 @@ export async function loadProgressSummary(input: ProgressSummaryInput): Promise<
   return parseContractResponse(
     await requestJson(`/me/progress/summary?${searchParams.toString()}`, {
       method: "GET",
-    }, allowAuthRecovery),
+    }, allowAuthRecoveryWithTransientNetworkRetry),
     "GET /me/progress/summary",
     parseProgressSummaryResponse,
   );
@@ -39,7 +39,7 @@ export async function loadProgressSeries(input: ProgressSeriesInput): Promise<Pr
   return parseContractResponse(
     await requestJson(`/me/progress/series?${searchParams.toString()}`, {
       method: "GET",
-    }, allowAuthRecovery),
+    }, allowAuthRecoveryWithTransientNetworkRetry),
     "GET /me/progress/series",
     parseProgressSeriesResponse,
   );
@@ -55,7 +55,7 @@ export async function loadProgressReviewSchedule(
   return parseContractResponse(
     await requestJson(`/me/progress/review-schedule?${searchParams.toString()}`, {
       method: "GET",
-    }, allowAuthRecovery),
+    }, allowAuthRecoveryWithTransientNetworkRetry),
     endpoint,
     (value: unknown, parseEndpoint: string): ProgressReviewSchedule => {
       const schedule = parseProgressReviewScheduleResponse(value, parseEndpoint);

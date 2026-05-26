@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
+import { ApiNetworkError } from "../api/errors";
 import { sanitizeSentryBreadcrumbForPrivacy, sanitizeSentryEventForPrivacy } from "./instrument";
+import {
+  buildWebExceptionFingerprint,
+  type WebExceptionEvent,
+  type WebObservationScope,
+} from "./webObservability";
 
 type SentryPrivacyEvent = Parameters<typeof sanitizeSentryEventForPrivacy>[0];
 type SentryPrivacyBreadcrumb = Parameters<typeof sanitizeSentryBreadcrumbForPrivacy>[0];
@@ -184,5 +190,37 @@ describe("Sentry privacy sanitizer", () => {
     expect(sanitizedEvent.extra?.messageCount).toBe(3);
     expect(serializeEvent(sanitizedEvent)).not.toContain(sensitiveCardText);
     expect(serializeEvent(sanitizedEvent)).not.toContain(sensitiveAiText);
+  });
+
+  it("groups API network errors by transport endpoint", () => {
+    const scope: WebObservationScope = {
+      app: "web",
+      feature: "chat",
+      userId: "user-1",
+      workspaceId: "workspace-1",
+      installationId: "installation-1",
+      route: "/review",
+      requestId: null,
+      statusCode: 0,
+      code: "API_NETWORK_ERROR",
+    };
+    const event: WebExceptionEvent = {
+      action: "chat_snapshot_failed",
+      error: new ApiNetworkError({
+        endpoint: "GET /chat",
+        originalErrorName: "TypeError",
+        originalErrorMessage: "Failed to fetch",
+        attemptCount: 3,
+      }),
+      scope,
+      details: {
+        sessionId: "session-1",
+        workspaceId: "workspace-1",
+        trigger: "initial_hydration",
+        resumeAttemptId: null,
+      },
+    };
+
+    expect(buildWebExceptionFingerprint(event)).toEqual(["{{ default }}", "api_network_failed", "GET /chat"]);
   });
 });

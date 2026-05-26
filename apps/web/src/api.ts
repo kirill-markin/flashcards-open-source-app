@@ -9,6 +9,7 @@ export type {
 } from "./api/authUrls";
 export {
   ApiError,
+  ApiNetworkError,
   AuthRedirectError,
 } from "./api/errors";
 export type {

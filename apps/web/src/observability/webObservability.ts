@@ -1,5 +1,6 @@
 import * as Sentry from "@sentry/react";
 import type { Scope } from "@sentry/react";
+import { ApiNetworkError } from "../api/errors";
 import { isWebSentryEnabled } from "./instrument";
 
 export type WebObservationFeature =
@@ -172,6 +173,14 @@ export type SyncFailureDetails = Readonly<{
   workspaceId: string;
 }>;
 
+export type ProgressServerLoadFailureDetails = Readonly<{
+  operation:
+    | "progress_summary_server_load"
+    | "progress_series_server_load"
+    | "progress_review_schedule_server_load";
+  workspaceId: string | null;
+}>;
+
 export type AuthResetCleanupFailureDetails = Readonly<{
   operation: "auth_reset_cleanup_failed";
 }>;
@@ -268,6 +277,12 @@ export type WebExceptionEvent =
     details: SyncFailureDetails;
   }>
   | Readonly<{
+    action: "progress_server_load_failed";
+    error: Error;
+    scope: WebObservationScope;
+    details: ProgressServerLoadFailureDetails;
+  }>
+  | Readonly<{
     action: "auth_reset_cleanup_failed";
     error: Error;
     scope: WebObservationScope;
@@ -324,6 +339,8 @@ type ErrorMetadata = Readonly<{
   statusCode: number | null;
   code: string | null;
   bodyKind: string | null;
+  networkAttemptCount: number | null;
+  networkErrorName: string | null;
 }>;
 
 type ErrorMetadataValue = string | number | null;
@@ -388,14 +405,18 @@ export function captureWebException(event: WebExceptionEvent): void {
 
   Sentry.withScope((scope: Scope): void => {
     applyObservationScope(scope, event.scope, event.action);
-    scope.setFingerprint(buildExceptionFingerprint(event));
+    scope.setFingerprint(buildWebExceptionFingerprint(event));
     scope.setContext("web.exception", detailsToContext(event.details));
     scope.setContext("web.error", errorMetadataToContext(readErrorMetadata(event.error)));
     Sentry.captureException(toSafeCapturedError(event.action, event.error));
   });
 }
 
-function buildExceptionFingerprint(event: WebExceptionEvent): Array<string> {
+export function buildWebExceptionFingerprint(event: WebExceptionEvent): Array<string> {
+  if (event.error instanceof ApiNetworkError) {
+    return ["{{ default }}", "api_network_failed", event.error.endpoint];
+  }
+
   if (event.action === "app_operation_failed") {
     return ["{{ default }}", event.action, event.details.operation];
   }
@@ -428,6 +449,8 @@ function readErrorMetadata(error: Error): ErrorMetadata {
       statusCode: null,
       code: null,
       bodyKind: null,
+      networkAttemptCount: null,
+      networkErrorName: null,
     };
   }
 
@@ -438,6 +461,8 @@ function readErrorMetadata(error: Error): ErrorMetadata {
     statusCode: readNumberMetadata(error, "statusCode"),
     code: readStringMetadata(error, "code"),
     bodyKind: readStringMetadata(error, "responseBodyKind"),
+    networkAttemptCount: readNumberMetadata(error, "attemptCount"),
+    networkErrorName: readStringMetadata(error, "originalErrorName"),
   };
 }
 
@@ -449,6 +474,8 @@ function errorMetadataToContext(metadata: ErrorMetadata): SentryContext {
     statusCode: metadata.statusCode,
     code: metadata.code,
     bodyKind: metadata.bodyKind,
+    networkAttemptCount: metadata.networkAttemptCount,
+    networkErrorName: metadata.networkErrorName,
   };
 }
 
