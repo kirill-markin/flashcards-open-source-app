@@ -14,7 +14,11 @@ import {
   type WebObservationScope,
 } from "../../observability/webObservability";
 import type { Locale } from "../../i18n/types";
-import type { NewChatSessionResponse } from "../../types";
+import type {
+  NewChatSessionResponse,
+  StartChatRunRequestBody,
+  StartChatRunResponse,
+} from "../../types";
 import { loadStoredChatConfig, storeChatConfig } from "./config";
 import {
   createClientChatSessionId,
@@ -173,6 +177,10 @@ function shouldCaptureChatRunRequestError(error: Error): boolean {
   return true;
 }
 
+function isChatSessionIdConflictError(error: unknown): boolean {
+  return isChatApiError(error) && error.code === "CHAT_SESSION_ID_CONFLICT";
+}
+
 function captureChatRunRequestError(
   caughtError: unknown,
   workspaceId: string | null,
@@ -223,6 +231,7 @@ export function useChatSessionActions(
   const {
     appendUserMessage,
     clearHistory,
+    replaceMessages,
     startAssistantMessage,
   } = history;
   const {
@@ -252,6 +261,11 @@ export function useChatSessionActions(
     sessionId: string;
     provisionedResponse: NewChatSessionResponse | null;
   }>;
+
+  type SessionConflictRecovery =
+    | Readonly<{ status: "not_recoverable" }>
+    | Readonly<{ status: "recovered"; session: NewChatSessionResponse }>
+    | Readonly<{ status: "stale" }>;
 
   function createRemoteSessionProvisioningError(message: string): Error {
     return new Error(message);
@@ -334,6 +348,63 @@ export function useChatSessionActions(
     return clearConversationRequestSequenceRef.current === requestSequence
       && runtimeRefs.currentWorkspaceIdRef.current === workspaceId;
   }, [runtimeRefs, workspaceId]);
+
+  const canRecoverFromSessionIdConflict = useCallback((
+    requestSequence: number,
+    sourceSessionId: string | null,
+  ): boolean => {
+    if (
+      workspaceId === null
+      || isRequestSequenceCurrent(requestSequence) === false
+      || runtimeRefs.currentSessionIdRef.current !== sourceSessionId
+    ) {
+      return false;
+    }
+
+    return runtimeRefs.messagesRef.current.length === 0
+      && runtimeRefs.runStateRef.current === "idle";
+  }, [isRequestSequenceCurrent, runtimeRefs, workspaceId]);
+
+  const recoverFromSessionIdConflict = useCallback(async (
+    requestSequence: number,
+    sourceSessionId: string | null,
+  ): Promise<SessionConflictRecovery> => {
+    if (isRequestSequenceCurrent(requestSequence) === false) {
+      return { status: "stale" };
+    }
+
+    if (canRecoverFromSessionIdConflict(requestSequence, sourceSessionId) === false) {
+      return { status: "not_recoverable" };
+    }
+
+    invalidatePendingSnapshotRequests();
+    resetSnapshotTracking(null);
+    const nextSessionId = createClientChatSessionId();
+    remoteSessionProvisioningRef.current = null;
+    const response = await provisionRemoteSession(nextSessionId);
+    if (response.sessionId !== nextSessionId) {
+      throw createRemoteSessionProvisioningError(uiMessages.unexpectedSessionId);
+    }
+
+    if (
+      isRequestSequenceCurrent(requestSequence) === false
+      || canRecoverFromSessionIdConflict(requestSequence, sourceSessionId) === false
+    ) {
+      return { status: "stale" };
+    }
+
+    return {
+      status: "recovered",
+      session: response,
+    };
+  }, [
+    canRecoverFromSessionIdConflict,
+    invalidatePendingSnapshotRequests,
+    isRequestSequenceCurrent,
+    provisionRemoteSession,
+    resetSnapshotTracking,
+    uiMessages,
+  ]);
 
   const isFreshSessionEnsureCurrent = useCallback((
     sessionId: string,
@@ -521,6 +592,12 @@ export function useChatSessionActions(
   const sendMessage = useCallback(async (
     sendParams: SendChatMessageParams,
   ): Promise<SendChatMessageResult> => {
+    const createRejectedSendResult = (sessionId: string | null): SendChatMessageResult => ({
+      status: "rejected",
+      accepted: false,
+      sessionId,
+    });
+
     if (
       workspaceId === null
       || isRemoteReady === false
@@ -528,12 +605,12 @@ export function useChatSessionActions(
       || state.runState === "running"
       || state.isStopping
     ) {
-      return { accepted: false, sessionId: state.currentSessionId };
+      return createRejectedSendResult(state.currentSessionId);
     }
 
     const contentParts = buildContentParts(sendParams.text, sendParams.attachments);
     if (contentParts.length === 0) {
-      return { accepted: false, sessionId: state.currentSessionId };
+      return createRejectedSendResult(state.currentSessionId);
     }
 
     if (sendParams.attachments.some(binaryPendingAttachmentExceedsSizeLimit)) {
@@ -541,18 +618,19 @@ export function useChatSessionActions(
         type: "error_shown",
         message: uiMessages.attachmentLimit,
       });
-      return { accepted: false, sessionId: state.currentSessionId };
+      return createRejectedSendResult(state.currentSessionId);
     }
 
     const requestSequence = getActiveRequestSequence();
-    let sessionId: string;
-    try {
-      sessionId = await ensureRemoteSession();
-    } catch (error) {
-      if (isRequestSequenceCurrent(requestSequence) === false) {
-        return { accepted: false, sessionId: runtimeRefs.currentSessionIdRef.current };
-      }
+    const sourceSessionId = runtimeRefs.currentSessionIdRef.current;
 
+    const finishStaleRequest = (): SendChatMessageResult => ({
+      status: "stale",
+      accepted: false,
+      sessionId: runtimeRefs.currentSessionIdRef.current,
+    });
+
+    const failRemoteSessionRequest = (error: unknown): SendChatMessageResult => {
       captureChatRunRequestError(error, workspaceId, {
         operation: "chat_remote_session_failed",
         sessionId: runtimeRefs.currentSessionIdRef.current,
@@ -562,79 +640,127 @@ export function useChatSessionActions(
         type: "error_shown",
         message: `${uiMessages.requestFailedPrefix} ${toErrorMessage(error, uiMessages.errorFallbacks)}`,
       });
-      return { accepted: false, sessionId: state.currentSessionId };
+      return createRejectedSendResult(state.currentSessionId);
+    };
+
+    let preparedDraftSessionId: string | null = sourceSessionId;
+    const prepareDraftTargetSession = (targetSessionId: string): boolean => {
+      if (isRequestSequenceCurrent(requestSequence) === false) {
+        return false;
+      }
+
+      if (preparedDraftSessionId === targetSessionId) {
+        return true;
+      }
+
+      sendParams.onSessionDraftTargetReady(targetSessionId);
+      preparedDraftSessionId = targetSessionId;
+      return true;
+    };
+
+    const activateRecoveredSession = (session: NewChatSessionResponse): boolean => {
+      if (prepareDraftTargetSession(session.sessionId) === false) {
+        return false;
+      }
+
+      invalidatePendingSnapshotRequests();
+      resetSnapshotTracking(null);
+      runtimeRefs.messagesRef.current = [];
+      clearHistory();
+      dispatch({
+        type: "fresh_session_ready",
+        sessionId: session.sessionId,
+        composerSuggestions: session.composerSuggestions,
+        chatConfig: session.chatConfig,
+      });
+      storeChatConfig(session.chatConfig);
+      return true;
+    };
+
+    const recoverAndActivateSession = async (): Promise<SessionConflictRecovery> => {
+      const recovery = await recoverFromSessionIdConflict(requestSequence, sourceSessionId);
+      if (recovery.status === "recovered" && activateRecoveredSession(recovery.session) === false) {
+        return { status: "stale" };
+      }
+
+      return recovery;
+    };
+
+    let sessionId: string | null = null;
+    let didRecoverSessionIdConflict = false;
+
+    try {
+      sessionId = await ensureRemoteSession();
+      if (prepareDraftTargetSession(sessionId) === false) {
+        return finishStaleRequest();
+      }
+    } catch (error) {
+      if (isRequestSequenceCurrent(requestSequence) === false) {
+        return finishStaleRequest();
+      }
+
+      if (isChatSessionIdConflictError(error)) {
+        try {
+          const recovery = await recoverAndActivateSession();
+          if (recovery.status === "recovered") {
+            didRecoverSessionIdConflict = true;
+            sessionId = recovery.session.sessionId;
+          } else if (recovery.status === "stale") {
+            return finishStaleRequest();
+          }
+        } catch (recoveryError) {
+          if (isRequestSequenceCurrent(requestSequence) === false) {
+            return finishStaleRequest();
+          }
+
+          return failRemoteSessionRequest(recoveryError);
+        }
+      }
+
+      if (isChatSessionIdConflictError(error) === false || didRecoverSessionIdConflict === false) {
+        return failRemoteSessionRequest(error);
+      }
+    }
+
+    if (sessionId === null) {
+      return failRemoteSessionRequest(createRemoteSessionProvisioningError(uiMessages.unexpectedSessionId));
     }
 
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const requestBody = {
-      sessionId,
+    const createStartRunRequestBody = (requestSessionId: string): StartChatRunRequestBody => ({
+      sessionId: requestSessionId,
       workspaceId,
       clientRequestId: sendParams.clientRequestId,
       content: contentParts,
       timezone,
       // Optional on the wire so older backend/client contract phases keep working.
       uiLocale,
+    });
+
+    const startRunForSession = async (requestSessionId: string): Promise<StartChatRunResponse | null> => {
+      const requestBody = createStartRunRequestBody(requestSessionId);
+      if (toRequestBodySizeBytes(requestBody) > ATTACHMENT_PAYLOAD_LIMIT_BYTES) {
+        dispatch({
+          type: "error_shown",
+          message: uiMessages.attachmentLimit,
+        });
+        return null;
+      }
+
+      return startChatRun(requestBody);
     };
-    if (toRequestBodySizeBytes(requestBody) > ATTACHMENT_PAYLOAD_LIMIT_BYTES) {
-      dispatch({
-        type: "error_shown",
-        message: uiMessages.attachmentLimit,
-      });
-      return { accepted: false, sessionId: state.currentSessionId };
-    }
 
-    try {
-      const response = await startChatRun(requestBody);
-      if (isRequestSequenceCurrent(requestSequence) === false) {
-        return {
-          accepted: false,
-          sessionId: runtimeRefs.currentSessionIdRef.current,
-        };
-      }
-
-      // Accepted responses can already include tool-call content for the
-      // current run, whether the snapshot is terminal or still active. The
-      // accepted response is compared against the current local history so
-      // older server messages do not get mistaken for the new run.
-      markRunHadToolCallsFromSnapshot(
-        response.activeRun,
-        response.conversation.messages,
-        runtimeRefs.messagesRef.current,
-        contentParts,
-      );
-      appendUserMessage(contentParts);
-      startAssistantMessage(null);
-      dispatch({
-        type: "run_started",
-        sessionId: response.sessionId,
-        runState: response.activeRun === null ? "idle" : "running",
-        composerSuggestions: response.composerSuggestions,
-        chatConfig: response.chatConfig,
-      });
-      storeChatConfig(response.chatConfig);
-      setKnownActiveRunId(response.activeRun?.runId ?? null);
-      setKnownLiveCursor(response.activeRun?.live.cursor ?? null);
-      if (response.activeRun === null) {
-        reconcileTerminalSnapshot();
-      } else if (isDocumentVisibleRef.current) {
-        startActiveRunLiveStream(response.sessionId, response.activeRun, null);
-      }
-
-      return {
-        accepted: true,
-        sessionId: response.sessionId,
-      };
-    } catch (error) {
-      if (isRequestSequenceCurrent(requestSequence) === false) {
-        return { accepted: false, sessionId: runtimeRefs.currentSessionIdRef.current };
-      }
-
+    const failStartRunRequest = (
+      error: unknown,
+      requestSessionId: string,
+      resultSessionId: string | null,
+    ): SendChatMessageResult => {
       if (isChatApiError(error) && error.code === "CHAT_ACTIVE_RUN_IN_PROGRESS") {
         dispatch({
           type: "error_shown",
           message: uiMessages.activeRunInProgress,
         });
-        return { accepted: false, sessionId: state.currentSessionId };
+        return createRejectedSendResult(resultSessionId);
       }
 
       if (
@@ -648,29 +774,132 @@ export function useChatSessionActions(
           type: "error_shown",
           message: uiMessages.attachmentLimit,
         });
-        return { accepted: false, sessionId: state.currentSessionId };
+        return createRejectedSendResult(resultSessionId);
       }
 
       captureChatRunRequestError(error, workspaceId, {
         operation: "chat_start_run_failed",
-        sessionId,
+        sessionId: requestSessionId,
         workspaceId,
       });
       dispatch({
         type: "error_shown",
         message: `${uiMessages.requestFailedPrefix} ${toErrorMessage(error, uiMessages.errorFallbacks)}`,
       });
-      return { accepted: false, sessionId: state.currentSessionId };
+      return createRejectedSendResult(resultSessionId);
+    };
+
+    let response: StartChatRunResponse | null = null;
+
+    try {
+      const initialResponse = await startRunForSession(sessionId);
+      if (initialResponse === null) {
+        return createRejectedSendResult(didRecoverSessionIdConflict ? sessionId : state.currentSessionId);
+      }
+      response = initialResponse;
+    } catch (error) {
+      if (isRequestSequenceCurrent(requestSequence) === false) {
+        return finishStaleRequest();
+      }
+
+      if (isChatSessionIdConflictError(error) && didRecoverSessionIdConflict === false) {
+        try {
+          const recovery = await recoverAndActivateSession();
+          if (recovery.status === "recovered") {
+            didRecoverSessionIdConflict = true;
+            sessionId = recovery.session.sessionId;
+
+            try {
+              const retryResponse = await startRunForSession(recovery.session.sessionId);
+              if (retryResponse === null) {
+                return createRejectedSendResult(recovery.session.sessionId);
+              }
+              response = retryResponse;
+            } catch (retryError) {
+              if (isRequestSequenceCurrent(requestSequence) === false) {
+                return finishStaleRequest();
+              }
+
+              return failStartRunRequest(retryError, recovery.session.sessionId, recovery.session.sessionId);
+            }
+          } else if (recovery.status === "not_recoverable") {
+            return failStartRunRequest(error, sessionId, state.currentSessionId);
+          } else {
+            return finishStaleRequest();
+          }
+        } catch (retryError) {
+          if (isRequestSequenceCurrent(requestSequence) === false) {
+            return finishStaleRequest();
+          }
+
+          return failStartRunRequest(retryError, sessionId, state.currentSessionId);
+        }
+      } else {
+        return failStartRunRequest(error, sessionId, didRecoverSessionIdConflict ? sessionId : state.currentSessionId);
+      }
     }
+
+    if (response === null) {
+      return createRejectedSendResult(state.currentSessionId);
+    }
+
+    if (isRequestSequenceCurrent(requestSequence) === false) {
+      return finishStaleRequest();
+    }
+
+    invalidatePendingSnapshotRequests();
+
+    // Accepted responses can already include tool-call content for the
+    // current run, whether the snapshot is terminal or still active. The
+    // accepted response is compared against the current local history so
+    // older server messages do not get mistaken for the new run.
+    markRunHadToolCallsFromSnapshot(
+      response.activeRun,
+      response.conversation.messages,
+      runtimeRefs.messagesRef.current,
+      contentParts,
+    );
+    if (response.activeRun === null && response.conversation.messages.length > 0) {
+      runtimeRefs.messagesRef.current = response.conversation.messages;
+      replaceMessages(response.conversation.messages);
+    } else {
+      appendUserMessage(contentParts);
+      startAssistantMessage(null);
+    }
+    dispatch({
+      type: "run_started",
+      sessionId: response.sessionId,
+      runState: response.activeRun === null ? "idle" : "running",
+      composerSuggestions: response.composerSuggestions,
+      chatConfig: response.chatConfig,
+    });
+    storeChatConfig(response.chatConfig);
+    setKnownActiveRunId(response.activeRun?.runId ?? null);
+    setKnownLiveCursor(response.activeRun?.live.cursor ?? null);
+    if (response.activeRun === null) {
+      reconcileTerminalSnapshot(response.sessionId);
+    } else if (isDocumentVisibleRef.current) {
+      startActiveRunLiveStream(response.sessionId, response.activeRun, null);
+    }
+
+    return {
+      status: "accepted",
+      accepted: true,
+      sessionId: response.sessionId,
+    };
   }, [
     appendUserMessage,
     dispatch,
     getActiveRequestSequence,
+    invalidatePendingSnapshotRequests,
     isDocumentVisibleRef,
     isRemoteReady,
     isRequestSequenceCurrent,
     markRunHadToolCallsFromSnapshot,
     reconcileTerminalSnapshot,
+    recoverFromSessionIdConflict,
+    replaceMessages,
+    resetSnapshotTracking,
     runtimeRefs,
     setKnownActiveRunId,
     setKnownLiveCursor,
@@ -691,17 +920,38 @@ export function useChatSessionActions(
       return;
     }
 
-    dispatch({ type: "stop_requested" });
-    const activeRunId = runtimeRefs.activeRunIdRef.current;
+    const requestSessionId = state.currentSessionId;
+    const requestWorkspaceId = workspaceId;
+    const requestActiveRunId = runtimeRefs.activeRunIdRef.current;
+    const isStopRequestSessionCurrent = (): boolean => {
+      return requestWorkspaceId !== null
+        && runtimeRefs.currentSessionIdRef.current === requestSessionId
+        && runtimeRefs.currentWorkspaceIdRef.current === requestWorkspaceId;
+    };
+    const isStopRequestCurrent = (): boolean => {
+      return isStopRequestSessionCurrent()
+        && runtimeRefs.activeRunIdRef.current === requestActiveRunId;
+    };
+
+    dispatch({ type: "stop_requested", runId: requestActiveRunId });
     try {
-      if (workspaceId === null) {
+      if (requestWorkspaceId === null) {
         throw createRemoteSessionProvisioningError(uiMessages.workspaceRequired);
       }
 
-      const response = await stopChatRun(state.currentSessionId, workspaceId, activeRunId);
+      const response = await stopChatRun(requestSessionId, requestWorkspaceId, requestActiveRunId);
+      if (isStopRequestCurrent() === false) {
+        if (isStopRequestSessionCurrent()) {
+          dispatch({ type: "stop_request_stale", runId: requestActiveRunId });
+        }
+        return;
+      }
+
       if (response.stopped === false) {
-        setKnownActiveRunId(null);
-        reconcileTerminalSnapshot();
+        if (response.stillRunning === false) {
+          setKnownActiveRunId(null);
+        }
+        reconcileTerminalSnapshot(requestSessionId);
         dispatch({
           type: "stop_finished",
           runState: response.stillRunning ? "running" : "idle",
@@ -710,17 +960,25 @@ export function useChatSessionActions(
       }
 
       if (response.stopped && response.stillRunning === false && hasActiveLiveConnection() === false) {
-        reconcileTerminalSnapshot();
+        reconcileTerminalSnapshot(requestSessionId);
         dispatch({
           type: "stop_finished",
           runState: "idle",
         });
+        return;
       }
     } catch (error) {
-      captureChatRunRequestError(error, workspaceId, {
+      if (requestWorkspaceId !== null && isStopRequestCurrent() === false) {
+        if (isStopRequestSessionCurrent()) {
+          dispatch({ type: "stop_request_stale", runId: requestActiveRunId });
+        }
+        return;
+      }
+
+      captureChatRunRequestError(error, requestWorkspaceId, {
         operation: "chat_stop_run_failed",
-        sessionId: state.currentSessionId,
-        workspaceId,
+        sessionId: requestSessionId,
+        workspaceId: requestWorkspaceId,
       });
       dispatch({
         type: "run_interrupted",
@@ -741,6 +999,8 @@ export function useChatSessionActions(
     reconcileTerminalSnapshot,
     runtimeRefs.runStateRef,
     runtimeRefs.activeRunIdRef,
+    runtimeRefs.currentSessionIdRef,
+    runtimeRefs.currentWorkspaceIdRef,
     setKnownActiveRunId,
     state.currentSessionId,
     state.isStopping,

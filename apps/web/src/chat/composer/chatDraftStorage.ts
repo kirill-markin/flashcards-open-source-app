@@ -15,8 +15,16 @@ type StoredChatDraftWorkspaceState = Readonly<{
   draftsBySessionId: Record<string, StoredChatDraft>;
 }>;
 
+type ChatDraftWorkspaceStateChangeListener = (workspaceId: string | null) => void;
+
+type ChatDraftWorkspaceStateChangedDetail = Readonly<{
+  workspaceId: string | null;
+}>;
+
 const CHAT_DRAFT_STORAGE_KEY_PREFIX = "flashcards-chat-drafts::";
+const CHAT_DRAFT_STORAGE_CHANGED_EVENT = "flashcards-chat-draft-storage-changed";
 const CHAT_DRAFT_STORAGE_VERSION = 1;
+let chatDraftUpdateSequence = Date.now();
 
 function getBrowserStorage(): Storage | null {
   if (typeof window === "undefined") {
@@ -33,6 +41,14 @@ function getBrowserStorage(): Storage | null {
   }
 
   return storageValue;
+}
+
+function getBrowserWindow(): Window | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return window;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -153,6 +169,14 @@ function resolveWorkspaceStorageKey(workspaceId: string): string {
   return `${CHAT_DRAFT_STORAGE_KEY_PREFIX}${workspaceId}`;
 }
 
+function parseWorkspaceIdFromStorageKey(storageKey: string | null): string | null {
+  if (storageKey === null || storageKey.startsWith(CHAT_DRAFT_STORAGE_KEY_PREFIX) === false) {
+    return null;
+  }
+
+  return normalizeWorkspaceId(storageKey.slice(CHAT_DRAFT_STORAGE_KEY_PREFIX.length));
+}
+
 function normalizeWorkspaceId(workspaceId: string | null): string | null {
   if (workspaceId === null) {
     return null;
@@ -164,6 +188,86 @@ function normalizeWorkspaceId(workspaceId: string | null): string | null {
 
 function isDraftEmpty(draft: ChatDraftContent): boolean {
   return draft.inputText.trim() === "" && draft.pendingAttachments.length === 0;
+}
+
+function createNextDraftUpdatedAt(): number {
+  const nextUpdatedAt = Math.max(Date.now(), chatDraftUpdateSequence + 1);
+  chatDraftUpdateSequence = nextUpdatedAt;
+  return nextUpdatedAt;
+}
+
+function areStringArraysEqual(
+  left: ReadonlyArray<string>,
+  right: ReadonlyArray<string>,
+): boolean {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+function arePendingAttachmentsEqual(
+  left: PendingAttachment,
+  right: PendingAttachment,
+): boolean {
+  if (left.type !== right.type) {
+    return false;
+  }
+
+  if (left.type === "binary") {
+    return right.type === "binary"
+      && left.fileName === right.fileName
+      && left.mediaType === right.mediaType
+      && left.base64Data === right.base64Data;
+  }
+
+  return right.type === "card"
+    && left.attachmentId === right.attachmentId
+    && left.cardId === right.cardId
+    && left.frontText === right.frontText
+    && left.backText === right.backText
+    && areStringArraysEqual(left.tags, right.tags)
+    && left.effortLevel === right.effortLevel;
+}
+
+export function areChatDraftContentsEqual(
+  left: ChatDraftContent,
+  right: ChatDraftContent,
+): boolean {
+  return left.inputText === right.inputText
+    && left.pendingAttachments.length === right.pendingAttachments.length
+    && left.pendingAttachments.every((attachment, index) => {
+      const rightAttachment = right.pendingAttachments[index];
+      return rightAttachment !== undefined && arePendingAttachmentsEqual(attachment, rightAttachment);
+    });
+}
+
+function parseChatDraftWorkspaceStateChangedDetail(value: unknown): ChatDraftWorkspaceStateChangedDetail | null {
+  if (isRecord(value) === false) {
+    return null;
+  }
+
+  const workspaceIdValue = value.workspaceId;
+  if (workspaceIdValue !== null && typeof workspaceIdValue !== "string") {
+    return null;
+  }
+
+  return {
+    workspaceId: normalizeWorkspaceId(workspaceIdValue),
+  };
+}
+
+function notifyChatDraftWorkspaceStateChanged(workspaceId: string | null): void {
+  const windowValue = getBrowserWindow();
+  if (windowValue === null) {
+    return;
+  }
+
+  windowValue.dispatchEvent(new CustomEvent<ChatDraftWorkspaceStateChangedDetail>(
+    CHAT_DRAFT_STORAGE_CHANGED_EVENT,
+    {
+      detail: {
+        workspaceId: normalizeWorkspaceId(workspaceId),
+      },
+    },
+  ));
 }
 
 function loadWorkspaceDraftState(workspaceId: string | null): StoredChatDraftWorkspaceState {
@@ -286,6 +390,76 @@ export function storeChatDraftWorkspaceState(
   });
 }
 
+export function clearStoredChatDraftForSessionIfUnchanged(
+  workspaceId: string | null,
+  sessionId: string | null,
+  expectedDraft: ChatDraftContent,
+  expectedUpdatedAt: number | null,
+): void {
+  if (sessionId === null || expectedUpdatedAt === null) {
+    return;
+  }
+
+  const currentState = loadWorkspaceDraftState(workspaceId);
+  const currentDraft = readStoredChatDraftForSession(currentState.draftsBySessionId, sessionId);
+  if (
+    currentDraft === null
+    || currentDraft.updatedAt !== expectedUpdatedAt
+    || areChatDraftContentsEqual(currentDraft, expectedDraft) === false
+  ) {
+    return;
+  }
+
+  const nextDraftsBySessionId = replaceChatDraftForSession(
+    currentState.draftsBySessionId,
+    sessionId,
+    createChatDraftContent("", []),
+  );
+  storeWorkspaceDraftState(workspaceId, {
+    version: CHAT_DRAFT_STORAGE_VERSION,
+    draftsBySessionId: { ...nextDraftsBySessionId },
+  });
+  notifyChatDraftWorkspaceStateChanged(workspaceId);
+}
+
+export function subscribeToChatDraftWorkspaceStateChanges(
+  listener: ChatDraftWorkspaceStateChangeListener,
+): () => void {
+  const windowValue = getBrowserWindow();
+  if (windowValue === null) {
+    return () => undefined;
+  }
+
+  const handleEvent = (event: Event): void => {
+    if (event instanceof CustomEvent === false) {
+      return;
+    }
+
+    const detail = parseChatDraftWorkspaceStateChangedDetail(event.detail);
+    if (detail === null) {
+      return;
+    }
+
+    listener(detail.workspaceId);
+  };
+
+  const handleStorageEvent = (event: StorageEvent): void => {
+    const changedWorkspaceId = parseWorkspaceIdFromStorageKey(event.key);
+    if (changedWorkspaceId === null) {
+      return;
+    }
+
+    listener(changedWorkspaceId);
+  };
+
+  windowValue.addEventListener(CHAT_DRAFT_STORAGE_CHANGED_EVENT, handleEvent);
+  windowValue.addEventListener("storage", handleStorageEvent);
+  return () => {
+    windowValue.removeEventListener(CHAT_DRAFT_STORAGE_CHANGED_EVENT, handleEvent);
+    windowValue.removeEventListener("storage", handleStorageEvent);
+  };
+}
+
 export function replaceChatDraftForSession(
   draftsBySessionId: Readonly<Record<string, StoredChatDraft>>,
   sessionId: string | null,
@@ -306,7 +480,7 @@ export function replaceChatDraftForSession(
   nextDraftsBySessionId[sessionKey] = {
     inputText: draft.inputText,
     pendingAttachments: draft.pendingAttachments,
-    updatedAt: Date.now(),
+    updatedAt: createNextDraftUpdatedAt(),
   };
   return nextDraftsBySessionId;
 }
@@ -315,6 +489,21 @@ export function readChatDraftForSession(
   draftsBySessionId: Readonly<Record<string, StoredChatDraft>>,
   sessionId: string | null,
 ): ChatDraftContent | null {
+  const storedDraft = readStoredChatDraftForSession(draftsBySessionId, sessionId);
+  if (storedDraft === null) {
+    return null;
+  }
+
+  return {
+    inputText: storedDraft.inputText,
+    pendingAttachments: storedDraft.pendingAttachments,
+  };
+}
+
+export function readStoredChatDraftForSession(
+  draftsBySessionId: Readonly<Record<string, StoredChatDraft>>,
+  sessionId: string | null,
+): StoredChatDraft | null {
   if (sessionId === null) {
     return null;
   }
@@ -327,5 +516,6 @@ export function readChatDraftForSession(
   return {
     inputText: draft.inputText,
     pendingAttachments: draft.pendingAttachments,
+    updatedAt: draft.updatedAt,
   };
 }

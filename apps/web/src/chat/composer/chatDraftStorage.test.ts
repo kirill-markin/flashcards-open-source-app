@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   loadChatDraftWorkspaceState,
   readChatDraftForSession,
+  readStoredChatDraftForSession,
   replaceChatDraftForSession,
   storeChatDraftWorkspaceState,
 } from "./chatDraftStorage";
@@ -34,6 +35,10 @@ beforeEach(() => {
     configurable: true,
     value: localStorageMock,
   });
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe("chatDraftStorage", () => {
@@ -76,5 +81,27 @@ describe("chatDraftStorage", () => {
     const storedDrafts = loadChatDraftWorkspaceState("workspace-1");
     expect(readChatDraftForSession(storedDrafts, "session-1")?.inputText).toBe("keep me");
     expect(readChatDraftForSession(storedDrafts, "session-2")).toBeNull();
+  });
+
+  it("keeps draft revisions monotonic after a session draft is deleted", () => {
+    vi.spyOn(Date, "now").mockReturnValue(1000);
+    const firstDrafts = replaceChatDraftForSession({}, "session-1", {
+      inputText: "same draft",
+      pendingAttachments: [],
+    });
+    const firstUpdatedAt = readStoredChatDraftForSession(firstDrafts, "session-1")?.updatedAt;
+    const clearedDrafts = replaceChatDraftForSession(firstDrafts, "session-1", {
+      inputText: "",
+      pendingAttachments: [],
+    });
+    const secondDrafts = replaceChatDraftForSession(clearedDrafts, "session-1", {
+      inputText: "same draft",
+      pendingAttachments: [],
+    });
+    const secondUpdatedAt = readStoredChatDraftForSession(secondDrafts, "session-1")?.updatedAt;
+
+    expect(typeof firstUpdatedAt).toBe("number");
+    expect(typeof secondUpdatedAt).toBe("number");
+    expect(secondUpdatedAt).toBeGreaterThan(firstUpdatedAt as number);
   });
 });

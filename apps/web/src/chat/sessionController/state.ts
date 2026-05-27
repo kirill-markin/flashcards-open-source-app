@@ -9,6 +9,7 @@ export type ChatSessionControllerState = Readonly<{
   isHistoryLoaded: boolean;
   runState: ChatRunState;
   isStopping: boolean;
+  stoppingRunId: string | null;
   pendingToolRunPostSync: boolean;
   mainContentInvalidationVersion: number;
   chatConfig: ChatConfig;
@@ -28,9 +29,10 @@ export type ChatSessionControllerAction =
   | Readonly<{ type: "run_interrupted"; message: string }>
   | Readonly<{ type: "run_started"; sessionId: string; runState: ChatRunState; composerSuggestions: ReadonlyArray<ChatComposerSuggestion>; chatConfig: ChatConfig }>
   | Readonly<{ type: "set_history_loaded"; isHistoryLoaded: boolean }>
-  | Readonly<{ type: "snapshot_applied"; sessionId: string; runState: ChatRunState; mainContentInvalidationVersion: number; composerSuggestions: ReadonlyArray<ChatComposerSuggestion>; chatConfig: ChatConfig }>
+  | Readonly<{ type: "snapshot_applied"; sessionId: string; runState: ChatRunState; activeRunId: string | null; mainContentInvalidationVersion: number; composerSuggestions: ReadonlyArray<ChatComposerSuggestion>; chatConfig: ChatConfig }>
   | Readonly<{ type: "stop_finished"; runState: ChatRunState }>
-  | Readonly<{ type: "stop_requested" }>
+  | Readonly<{ type: "stop_requested"; runId: string | null }>
+  | Readonly<{ type: "stop_request_stale"; runId: string | null }>
   | Readonly<{ type: "tool_run_post_sync_consumed" }>
   | Readonly<{ type: "tool_run_post_sync_marked" }>
   | Readonly<{ type: "warm_start_applied"; sessionId: string; mainContentInvalidationVersion: number; chatConfig: ChatConfig; pendingToolRunPostSync: boolean }>
@@ -64,6 +66,7 @@ function createEmptyConversationState(
     isHistoryLoaded,
     runState: "idle",
     isStopping: false,
+    stoppingRunId: null,
     pendingToolRunPostSync: false,
     mainContentInvalidationVersion: 0,
     composerSuggestions: [],
@@ -87,6 +90,7 @@ export function createInitialChatSessionControllerBootstrap(
     isHistoryLoaded: workspaceId === null || initialWarmStartSnapshot !== null,
     runState: "idle",
     isStopping: false,
+    stoppingRunId: null,
     pendingToolRunPostSync: initialWarmStartSnapshot !== null && initialWarmStartSnapshotIsStale === false
       ? initialWarmStartSnapshot.pendingToolRunPostSync
       : false,
@@ -135,8 +139,14 @@ export function chatSessionControllerReducer(
       return {
         ...state,
         currentSessionId: action.sessionId,
+        runState: "idle",
+        isStopping: false,
+        stoppingRunId: null,
+        pendingToolRunPostSync: false,
+        mainContentInvalidationVersion: 0,
         composerSuggestions: action.composerSuggestions,
         chatConfig: action.chatConfig,
+        ...clearUiState(state),
       };
     case "fresh_session_requested":
       return {
@@ -145,6 +155,7 @@ export function chatSessionControllerReducer(
         isHistoryLoaded: true,
         runState: "idle",
         isStopping: false,
+        stoppingRunId: null,
         pendingToolRunPostSync: false,
         mainContentInvalidationVersion: 0,
         chatConfig: action.chatConfig,
@@ -163,12 +174,14 @@ export function chatSessionControllerReducer(
         ...state,
         runState: "idle",
         isStopping: false,
+        stoppingRunId: null,
       };
     case "run_interrupted":
       return {
         ...state,
         runState: "interrupted",
         isStopping: false,
+        stoppingRunId: null,
         composerNotice: null,
         errorDialogMessage: action.message,
       };
@@ -178,6 +191,7 @@ export function chatSessionControllerReducer(
         currentSessionId: action.sessionId,
         runState: action.runState,
         isStopping: false,
+        stoppingRunId: null,
         chatConfig: action.chatConfig,
         composerSuggestions: action.composerSuggestions,
         ...clearUiState(state),
@@ -187,27 +201,42 @@ export function chatSessionControllerReducer(
         ...state,
         isHistoryLoaded: action.isHistoryLoaded,
       };
-    case "snapshot_applied":
+    case "snapshot_applied": {
+      const shouldClearStaleStop = state.isStopping
+        && (action.activeRunId === null || state.stoppingRunId !== action.activeRunId);
       return {
         ...state,
         currentSessionId: action.sessionId,
         runState: action.runState,
+        isStopping: shouldClearStaleStop ? false : state.isStopping,
+        stoppingRunId: shouldClearStaleStop ? null : state.stoppingRunId,
         mainContentInvalidationVersion: action.mainContentInvalidationVersion,
         chatConfig: action.chatConfig,
         composerSuggestions: action.composerSuggestions,
         composerNotice: null,
       };
+    }
     case "stop_finished":
       return {
         ...state,
         runState: action.runState,
         isStopping: false,
+        stoppingRunId: null,
       };
     case "stop_requested":
       return {
         ...state,
         isStopping: true,
+        stoppingRunId: action.runId,
       };
+    case "stop_request_stale":
+      return state.isStopping === false || state.stoppingRunId !== action.runId
+        ? state
+        : {
+          ...state,
+          isStopping: false,
+          stoppingRunId: null,
+        };
     case "tool_run_post_sync_consumed":
       return state.pendingToolRunPostSync === false
         ? state
@@ -229,6 +258,7 @@ export function chatSessionControllerReducer(
         isHistoryLoaded: true,
         runState: "idle",
         isStopping: false,
+        stoppingRunId: null,
         pendingToolRunPostSync: action.pendingToolRunPostSync,
         mainContentInvalidationVersion: action.mainContentInvalidationVersion,
         chatConfig: action.chatConfig,
@@ -242,6 +272,7 @@ export function chatSessionControllerReducer(
         isHistoryLoaded: true,
         runState: "idle",
         isStopping: false,
+        stoppingRunId: null,
         pendingToolRunPostSync: false,
         mainContentInvalidationVersion: 0,
         chatConfig: action.chatConfig,
