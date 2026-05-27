@@ -1,7 +1,7 @@
 [versions]
 agp = "9.2.1"
 kotlin = "2.3.21"
-ksp = "2.3.8"
+ksp = "2.3.9"
 coreKtx = "1.18.0"
 splashscreen = "1.2.0"
 activityCompose = "1.13.0"
@@ -21,10 +21,10 @@ espresso = "3.7.0"
 uiautomator = "2.3.0"
 testOrchestrator = "1.6.1"
 securityCrypto = "1.1.0"
-json = "20251224"
+json = "20260522"
 okhttp = "5.3.2"
-sentry = "8.41.0"
-sentryAndroidGradlePlugin = "6.7.1"
+sentry = "8.42.0"
+sentryAndroidGradlePlugin = "6.8.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
