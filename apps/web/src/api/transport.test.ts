@@ -7,6 +7,7 @@ import { persistLocalePreference } from "../i18n/runtime";
 import type { NewChatSessionResponse } from "../types";
 import {
   createChatSnapshotResponse,
+  createJsonResponse,
   createNewChatSessionResponse,
   createSessionResponse,
   createStartChatRunResponse,
@@ -26,14 +27,29 @@ import {
 import { ApiError, ApiNetworkError, AuthRedirectError } from "./errors";
 import { pullSyncChanges } from "./sync";
 import {
+  allowAuthRecovery,
   getSession,
   primeSessionCsrfToken,
+  requestJson,
   resetApiClientStateForTests,
   setNavigationHandlerForTests,
 } from "./transport";
+import { listWorkspaces } from "./workspaces";
 
 async function createTransportBackedChatSession(sessionId: string): Promise<NewChatSessionResponse> {
   return createNewChatSession(sessionId, "workspace-1", "en");
+}
+
+function createWorkspacesResponse(): Response {
+  return createJsonResponse({
+    workspaces: [{
+      workspaceId: "workspace-1",
+      name: "Default",
+      createdAt: "2026-04-10T00:00:00.000Z",
+      isSelected: true,
+    }],
+    nextCursor: null,
+  });
 }
 
 type DeferredResponsePromise = Readonly<{
@@ -464,6 +480,84 @@ describe("unsafe request session transport", () => {
 });
 
 describe("API transport network retry", () => {
+  it("retries a transient network failure for session bootstrap reads", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation((): void => {});
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+      .mockResolvedValueOnce(createSessionResponse(null));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(getSession()).resolves.toMatchObject({
+      userId: "user-1",
+      selectedWorkspaceId: "workspace-1",
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("http://localhost:8080/v1/me");
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("http://localhost:8080/v1/me");
+    expect(consoleWarnSpy).toHaveBeenCalledWith("API transport retry", expect.objectContaining({
+      endpoint: "GET /me",
+      attemptCount: 1,
+      maximumAttemptCount: 3,
+      nextAttemptCount: 2,
+      originalErrorName: "TypeError",
+      originalErrorMessage: "Failed to fetch",
+    }));
+  });
+
+  it("raises a structured API network error after session bootstrap retry attempts are exhausted", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation((): void => {});
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockRejectedValue(new TypeError("Failed to fetch"));
+    vi.stubGlobal("fetch", fetchMock);
+    const sessionPromise = getSession();
+
+    await expect(sessionPromise).rejects.toBeInstanceOf(ApiNetworkError);
+    await expect(sessionPromise).rejects.toMatchObject({
+      statusCode: 0,
+      code: "API_NETWORK_ERROR",
+      requestId: null,
+      endpoint: "GET /me",
+      responseBodyKind: "empty",
+      originalErrorName: "TypeError",
+      originalErrorMessage: "Failed to fetch",
+      attemptCount: 3,
+    } satisfies Partial<ApiNetworkError>);
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(consoleWarnSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries a transient network failure for workspace bootstrap reads", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation((): void => {});
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+      .mockResolvedValueOnce(createWorkspacesResponse());
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(listWorkspaces()).resolves.toEqual([{
+      workspaceId: "workspace-1",
+      name: "Default",
+      createdAt: "2026-04-10T00:00:00.000Z",
+      isSelected: true,
+    }]);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("http://localhost:8080/v1/workspaces?limit=100");
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("http://localhost:8080/v1/workspaces?limit=100");
+    expect(consoleWarnSpy).toHaveBeenCalledWith("API transport retry", expect.objectContaining({
+      endpoint: "GET /workspaces",
+      attemptCount: 1,
+      maximumAttemptCount: 3,
+      nextAttemptCount: 2,
+      originalErrorName: "TypeError",
+      originalErrorMessage: "Failed to fetch",
+    }));
+  });
+
   it("retries a transient network failure for chat snapshot reads", async () => {
     vi.spyOn(Math, "random").mockReturnValue(0);
     const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation((): void => {});
@@ -692,7 +786,7 @@ describe("API transport network retry", () => {
     }));
   });
 
-  it("upgrades active auth recovery retry mode before retry-enabled unsafe requests", async () => {
+  it("upgrades active non-retry auth recovery before retry-enabled unsafe requests", async () => {
     vi.spyOn(Math, "random").mockReturnValue(0);
     const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation((): void => {});
     const workspaceId = "99782554-9362-416c-93c7-0eb1d8079948";
@@ -716,7 +810,7 @@ describe("API transport network retry", () => {
       }));
     vi.stubGlobal("fetch", fetchMock);
 
-    const nonRetryErrorPromise = getSession()
+    const nonRetryErrorPromise = requestJson("/me", { method: "GET" }, allowAuthRecovery)
       .catch((error: unknown): unknown => error);
     await waitForFetchCallCount(fetchMock, 2);
 

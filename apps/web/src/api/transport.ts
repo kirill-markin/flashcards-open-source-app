@@ -625,7 +625,7 @@ export async function requestJson(
  * CSRF token when the backend authenticates the request via shared cookies.
  */
 export async function getSession(): Promise<SessionInfo> {
-  return loadSessionInfoWithRecovery(allowAuthRecovery);
+  return loadSessionInfoWithRecovery(allowAuthRecoveryWithTransientNetworkRetry);
 }
 
 /**
@@ -633,7 +633,7 @@ export async function getSession(): Promise<SessionInfo> {
  * UI state. Callers should use this on tab resume before background sync.
  */
 export async function revalidateSession(): Promise<SessionInfo> {
-  return loadSessionInfoWithRecovery(allowAuthRecovery);
+  return loadSessionInfoWithRecovery(allowAuthRecoveryWithTransientNetworkRetry);
 }
 
 /**
