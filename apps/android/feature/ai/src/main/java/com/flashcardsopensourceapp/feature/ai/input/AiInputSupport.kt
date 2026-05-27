@@ -10,6 +10,7 @@ import android.webkit.MimeTypeMap
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.aiChatMaximumAttachmentBytes
 import com.flashcardsopensourceapp.data.local.model.aiChatSupportedFileExtensions
+import com.flashcardsopensourceapp.data.local.model.canonicalAiChatAttachmentMediaTypeForExtension
 import com.flashcardsopensourceapp.data.local.model.makeAiChatAttachment
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
 import java.io.ByteArrayOutputStream
@@ -172,10 +173,11 @@ fun makeAiChatDocumentAttachmentFromUri(
         fileExtension = fileExtension,
         textProvider = textProvider
     )
+    val canonicalMediaType = canonicalAiChatAttachmentMediaTypeForExtension(fileExtension = fileExtension)
 
     return makeAiChatAttachment(
         fileName = displayName,
-        mediaType = mediaType,
+        mediaType = canonicalMediaType,
         base64Data = bytes.base64()
     )
 }

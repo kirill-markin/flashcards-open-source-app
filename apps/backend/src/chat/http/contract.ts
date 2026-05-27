@@ -4,6 +4,10 @@ import {
 } from "../composerSuggestions";
 import { HttpError } from "../../shared/errors";
 import {
+  normalizeChatFileAttachmentMediaType,
+  normalizeChatImageAttachmentMediaType,
+} from "../attachmentPolicy";
+import {
   expectNonEmptyString,
   expectRecord,
   expectUuidString,
@@ -184,19 +188,22 @@ function parseChatContentPart(value: unknown, context: string): ChatContentPart 
   }
 
   if (type === "image") {
+    const mediaType = expectString(body.mediaType, `${context}.mediaType`);
     return {
       type: "image",
-      mediaType: expectNonEmptyString(body.mediaType, `${context}.mediaType`),
+      mediaType: normalizeChatImageAttachmentMediaType(mediaType),
       base64Data: expectNonEmptyString(body.base64Data, `${context}.base64Data`),
     };
   }
 
   if (type === "file") {
+    const mediaType = expectString(body.mediaType, `${context}.mediaType`);
+    const fileName = expectNonEmptyString(body.fileName, `${context}.fileName`);
     return {
       type: "file",
-      mediaType: expectNonEmptyString(body.mediaType, `${context}.mediaType`),
+      mediaType: normalizeChatFileAttachmentMediaType(fileName, mediaType),
       base64Data: expectNonEmptyString(body.base64Data, `${context}.base64Data`),
-      fileName: expectNonEmptyString(body.fileName, `${context}.fileName`),
+      fileName,
     };
   }
 

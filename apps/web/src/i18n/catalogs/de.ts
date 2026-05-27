@@ -733,6 +733,7 @@ const deCatalog: TranslationCatalog = {
     },
     alerts: {
       attachmentLimit: "Die Nachricht ist zu groß. Der AI-Chat kann nicht so viele Inhalte auf einmal senden. Entferne einen oder mehrere Anhänge, wähle eine kleinere Datei oder ein kleineres Foto oder teile die Anfrage auf und versuche es erneut.",
+      attachmentUnsupported: "Dieser Dateityp wird im AI-Chat nicht unterstützt. Entferne die Datei oder speichere sie als PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX oder Bild und versuche es erneut.",
       microphoneUnavailable: "Mikrofonaufnahme ist in diesem Browser nicht verfügbar.",
     },
     composerPlaceholder: "Frage nach Karten, Wiederholungsverlauf oder hänge Notizen an...",

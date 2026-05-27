@@ -39,6 +39,8 @@
 "ai.error.title" = "エラー";
 "ai.error.requestTooLarge.title" = "メッセージが大きすぎます";
 "ai.error.requestTooLarge.message" = "AI チャットは一度にこれだけの内容を送信できません。添付ファイルを 1 つ以上削除するか、より小さいファイルまたは写真を選ぶか、リクエストを分けてもう一度お試しください。";
+"ai.error.attachmentUnsupported.title" = "サポートされていないファイル形式";
+"ai.error.attachmentUnsupported.message" = "このファイル形式は AI チャットでサポートされていません。ファイルを削除するか、PDF、TXT、CSV、JSON、XML、Markdown、HTML、Python、JavaScript、TypeScript、YAML、XLS/XLSX、DOCX、または画像として保存してから、もう一度お試しください。";
 "ai.error.summary.couldNotContinue" = "AI の応答を続行できませんでした";
 "ai.error.summary.invalidResponse" = "無効な AI 応答を受信しました";
 "ai.error.summary.configuration" = "AI 構成エラー";

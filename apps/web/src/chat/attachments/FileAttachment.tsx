@@ -5,6 +5,10 @@ import {
   AI_CHAT_MAXIMUM_ATTACHMENT_BYTES,
   base64DataByteCount,
 } from "../shared/chatSizePolicy";
+import {
+  isChatAttachmentUnsupportedTypeError,
+  normalizeChatAttachmentFileMediaType,
+} from "./attachmentMediaTypes";
 
 export type BinaryPendingAttachment = Readonly<{
   type: "binary";
@@ -50,6 +54,7 @@ const HEIC_MEDIA_TYPES = new Set([
   "image/heic-sequence",
   "image/heif-sequence",
 ]);
+const COMMON_IMAGE_FILE_EXTENSIONS = [".gif", ".jpeg", ".jpg", ".png", ".webp"] as const;
 const MB = 1024 * 1024;
 
 export const IMAGE_RAW_MAX_FILE_SIZE_BYTES = 40 * MB;
@@ -82,8 +87,15 @@ function hasHeicFileExtension(fileName: string): boolean {
   return normalizedFileName.endsWith(".heic") || normalizedFileName.endsWith(".heif");
 }
 
+function hasCommonImageFileExtension(fileName: string): boolean {
+  const normalizedFileName = fileName.toLowerCase();
+  return COMMON_IMAGE_FILE_EXTENSIONS.some((extension) => normalizedFileName.endsWith(extension));
+}
+
 function isImageFile(file: File): boolean {
-  return isImageMediaType(file.type) || hasHeicFileExtension(file.name);
+  return isImageMediaType(file.type)
+    || hasCommonImageFileExtension(file.name)
+    || hasHeicFileExtension(file.name);
 }
 
 function isHeicFile(file: File): boolean {
@@ -328,7 +340,7 @@ export async function prepareAttachment(file: File): Promise<PendingAttachment> 
   const attachment: PendingAttachment = {
     type: "binary",
     fileName: file.name,
-    mediaType: file.type || "application/octet-stream",
+    mediaType: normalizeChatAttachmentFileMediaType(file.name, file.type),
     base64Data: await readFileAsBase64(file),
   };
   if (binaryPendingAttachmentExceedsSizeLimit(attachment)) {
@@ -344,6 +356,7 @@ export function FileAttachment(props: Props): ReactElement {
   const disabled = props.disabled === true;
   const inputRef = useRef<HTMLInputElement>(null);
   const attachmentLimitMessage = t("chatPanel.alerts.attachmentLimit");
+  const attachmentUnsupportedMessage = t("chatPanel.alerts.attachmentUnsupported");
 
   async function handleChange(): Promise<void> {
     const files = inputRef.current?.files;
@@ -364,6 +377,11 @@ export function FileAttachment(props: Props): ReactElement {
       } catch (error) {
         if (isChatAttachmentTooLargeError(error)) {
           window.alert(attachmentLimitMessage);
+          continue;
+        }
+
+        if (isChatAttachmentUnsupportedTypeError(error)) {
+          window.alert(attachmentUnsupportedMessage);
           continue;
         }
 

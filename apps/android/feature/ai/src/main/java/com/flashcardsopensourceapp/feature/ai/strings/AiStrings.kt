@@ -48,6 +48,8 @@ data class AiTextProvider(
     val selectedFileTypeUnsupported: String,
     val selectedFileTypeUnsupportedWithExtensionFormat: String,
     val attachmentTooLarge: String,
+    val attachmentUnsupportedTitle: String,
+    val attachmentUnsupportedMessage: String,
     val requestTooLargeTitle: String,
     val requestTooLargeMessage: String,
     val serverChatOfficialUnavailable: String,
@@ -88,6 +90,13 @@ data class AiTextProvider(
         return AiAlertState.GeneralError(
             title = requestTooLargeTitle,
             message = requestTooLargeMessage
+        )
+    }
+
+    fun attachmentUnsupportedAlert(): AiAlertState {
+        return AiAlertState.GeneralError(
+            title = attachmentUnsupportedTitle,
+            message = attachmentUnsupportedMessage
         )
     }
 
@@ -216,6 +225,8 @@ fun aiTextProvider(context: Context): AiTextProvider {
         selectedFileTypeUnsupported = context.getString(R.string.ai_selected_file_type_unsupported),
         selectedFileTypeUnsupportedWithExtensionFormat = context.getString(R.string.ai_selected_file_type_unsupported_with_extension),
         attachmentTooLarge = context.getString(R.string.ai_attachment_too_large),
+        attachmentUnsupportedTitle = context.getString(R.string.ai_attachment_unsupported_title),
+        attachmentUnsupportedMessage = context.getString(R.string.ai_attachment_unsupported_message),
         requestTooLargeTitle = context.getString(R.string.ai_request_too_large_title),
         requestTooLargeMessage = context.getString(R.string.ai_request_too_large_message),
         serverChatOfficialUnavailable = context.getString(R.string.ai_server_chat_official_unavailable),
@@ -285,6 +296,8 @@ fun testAiTextProvider(): AiTextProvider {
         selectedFileTypeUnsupported = "Selected file type is unsupported.",
         selectedFileTypeUnsupportedWithExtensionFormat = "Unsupported file type: .%1\$s",
         attachmentTooLarge = "File is too large. Maximum allowed size is 3 MB.",
+        attachmentUnsupportedTitle = "Unsupported file type",
+        attachmentUnsupportedMessage = "This file type is not supported for AI chat. Remove the file or save it as PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, or an image, then try again.",
         requestTooLargeTitle = "Message is too large",
         requestTooLargeMessage = "AI chat can’t send this much content at once. Remove one or more attachments, choose a smaller file or photo, or split the request and try again.",
         serverChatOfficialUnavailable = "AI is temporarily unavailable on the official server. Try again later.",

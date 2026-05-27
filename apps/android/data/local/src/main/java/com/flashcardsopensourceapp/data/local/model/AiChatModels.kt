@@ -10,6 +10,7 @@ const val aiChatDefaultReasoningLabel: String = "Medium"
 const val aiChatOptimisticAssistantStatusToken: String = "__ai_optimistic_assistant_status__"
 const val aiChatMaximumAttachmentBytes: Int = 3 * 1024 * 1024
 const val aiChatMaximumStartRunRequestBytes: Int = 5 * 1024 * 1024
+const val aiChatAttachmentUnsupportedTypeCode: String = "CHAT_ATTACHMENT_UNSUPPORTED_TYPE"
 const val aiChatRequestTooLargeCode: String = "CHAT_REQUEST_TOO_LARGE"
 
 val aiChatSupportedFileExtensions: Set<String> = setOf(
@@ -30,6 +31,26 @@ val aiChatSupportedFileExtensions: Set<String> = setOf(
     "sql",
     "log",
     "docx"
+)
+
+private val aiChatCanonicalFileMediaTypesByExtension: Map<String, String> = mapOf(
+    "csv" to "text/csv",
+    "docx" to "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "html" to "text/html",
+    "js" to "text/javascript",
+    "json" to "application/json",
+    "log" to "text/plain",
+    "md" to "text/markdown",
+    "pdf" to "application/pdf",
+    "py" to "text/x-python",
+    "sql" to "text/plain",
+    "ts" to "application/typescript",
+    "txt" to "text/plain",
+    "xls" to "application/vnd.ms-excel",
+    "xlsx" to "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "xml" to "text/xml",
+    "yaml" to "application/x-yaml",
+    "yml" to "application/x-yaml"
 )
 
 data class AiChatProvider(
@@ -646,6 +667,13 @@ fun aiChatBase64DataByteCount(base64Data: String): Int {
 fun requireSupportedAiChatAttachmentExtension(fileExtension: String) {
     val normalizedExtension = fileExtension.trim().lowercase()
     require(aiChatSupportedFileExtensions.contains(normalizedExtension)) {
+        "Unsupported file type: .$normalizedExtension"
+    }
+}
+
+fun canonicalAiChatAttachmentMediaTypeForExtension(fileExtension: String): String {
+    val normalizedExtension = fileExtension.trim().lowercase()
+    return requireNotNull(aiChatCanonicalFileMediaTypesByExtension[normalizedExtension]) {
         "Unsupported file type: .$normalizedExtension"
     }
 }

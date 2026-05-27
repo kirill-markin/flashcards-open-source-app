@@ -8,6 +8,7 @@ import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.ai.AiChatRequestTooLargeException
+import com.flashcardsopensourceapp.data.local.ai.isAiChatAttachmentUnsupportedTypeRemoteError
 import com.flashcardsopensourceapp.data.local.ai.isAiChatRequestTooLargeRemoteError
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import java.io.IOException
@@ -316,6 +317,10 @@ private fun isExpectedAiChatRemoteError(error: AiChatRemoteException): Boolean {
         return true
     }
 
+    if (isAiChatAttachmentUnsupportedTypeRemoteError(error = error)) {
+        return true
+    }
+
     val statusCode = error.statusCode
     if (statusCode == 401 || statusCode == 403 || statusCode == 429) {
         return true
@@ -335,6 +340,7 @@ private val expectedAiChatRemoteErrorCodes: Set<String> = setOf(
     "CHAT_LIVE_NOT_FOUND",
     "CHAT_LIVE_RUN_ID_REQUIRED",
     "CHAT_LIVE_SESSION_ID_REQUIRED",
+    "CHAT_ATTACHMENT_UNSUPPORTED_TYPE",
     "CHAT_REQUEST_TOO_LARGE",
     "CHAT_SESSION_ID_CONFLICT",
     "CHAT_TRANSCRIPTION_FILE_EMPTY",

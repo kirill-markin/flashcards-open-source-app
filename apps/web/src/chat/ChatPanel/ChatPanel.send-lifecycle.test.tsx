@@ -1499,6 +1499,31 @@ describe("ChatPanel send lifecycle", () => {
     expect(getContainer().textContent).not.toContain("AI chat request is too large.");
   });
 
+  it("keeps the draft and shows clean copy when the backend rejects an unsupported attachment", async () => {
+    startChatRunMock.mockRejectedValue(new ApiErrorMock(
+      400,
+      "This file type is not supported for AI chat.",
+      "CHAT_ATTACHMENT_UNSUPPORTED_TYPE",
+    ));
+
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    const sessionId = createNewChatSessionMock.mock.calls[0]?.[0];
+    expect(typeof sessionId).toBe("string");
+
+    await sendMessage("keep this attachment draft");
+    await flushAsync();
+    await flushAsync();
+
+    const textarea = queryChatComposerInput(getContainer());
+    expect(textarea?.value).toBe("keep this attachment draft");
+    expect(readStoredDraftInputText("workspace-1", sessionId as string)).toBe("keep this attachment draft");
+    expect(getContainer().textContent).toContain("This file type is not supported for AI chat.");
+    expect(getContainer().textContent).not.toContain("Chat request failed.");
+  });
+
   it("restores the stored draft after an app remount while turn acceptance is still pending", async () => {
     startChatRunMock.mockImplementation(() => new Promise(() => undefined));
 

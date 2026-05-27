@@ -1,6 +1,7 @@
 export const AI_CHAT_MAXIMUM_ATTACHMENT_BYTES = 3 * 1024 * 1024;
 export const AI_CHAT_MAXIMUM_START_RUN_REQUEST_BYTES = 5 * 1024 * 1024;
 export const USER_VISIBLE_ATTACHMENT_LIMIT_MB = 5;
+export const CHAT_ATTACHMENT_UNSUPPORTED_TYPE_CODE = "CHAT_ATTACHMENT_UNSUPPORTED_TYPE";
 export const CHAT_REQUEST_TOO_LARGE_CODE = "CHAT_REQUEST_TOO_LARGE";
 
 export function base64DataByteCount(base64Data: string): number {
@@ -26,4 +27,11 @@ export function isAiChatRequestTooLargeError(params: Readonly<{
   }
 
   return params.code === CHAT_REQUEST_TOO_LARGE_CODE;
+}
+
+export function isAiChatAttachmentUnsupportedTypeError(params: Readonly<{
+  statusCode: number | null;
+  code: string | null;
+}>): boolean {
+  return params.statusCode === 400 && params.code === CHAT_ATTACHMENT_UNSUPPORTED_TYPE_CODE;
 }

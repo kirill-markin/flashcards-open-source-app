@@ -61,6 +61,13 @@ private func aiChatAlertPresentation(
         )
     }
 
+    if isAIChatAttachmentUnsupportedTypeError(error: error) {
+        return AIChatAlertPresentation(
+            title: aiChatAttachmentUnsupportedTypeTitle(),
+            message: aiChatAttachmentUnsupportedTypeMessage()
+        )
+    }
+
     if let liveError = error as? AIChatLiveStreamError {
         return aiChatAlertPresentation(
             liveError: liveError,

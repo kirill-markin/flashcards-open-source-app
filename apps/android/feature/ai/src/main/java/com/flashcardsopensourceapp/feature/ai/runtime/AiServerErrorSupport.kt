@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.feature.ai.runtime
 
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
+import com.flashcardsopensourceapp.data.local.model.aiChatAttachmentUnsupportedTypeCode
 import com.flashcardsopensourceapp.data.local.model.aiChatRequestTooLargeCode
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
 
@@ -71,6 +72,8 @@ fun makeAiChatUserFacingErrorMessage(
 ): String {
     val mappedMessage = if (code == null) {
         null
+    } else if (code == aiChatAttachmentUnsupportedTypeCode) {
+        textProvider.attachmentUnsupportedMessage
     } else if (code == aiChatRequestTooLargeCode) {
         textProvider.requestTooLargeMessage
     } else {

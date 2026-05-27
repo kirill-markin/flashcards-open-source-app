@@ -8,6 +8,7 @@ import type { ChatComposerAction, ChatRunState } from "./runState";
 export type ChatSessionControllerUiMessages = Readonly<{
   activeRunInProgress: string;
   attachmentLimit: string;
+  attachmentUnsupported: string;
   errorFallbacks: ChatErrorFallbackMessages;
   genericChatFailed: string;
   liveStreamEndedBeforeCompletion: string;
