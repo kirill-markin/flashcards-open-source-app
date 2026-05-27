@@ -44,6 +44,7 @@ export function ChatSessionControllerProvider(props: Props): ReactElement {
       attachmentLimit: t("chatPanel.alerts.attachmentLimit", {
         count: formatNumber(USER_VISIBLE_ATTACHMENT_LIMIT_MB),
       }),
+      attachmentUnsupported: t("chatPanel.alerts.attachmentUnsupported"),
       errorFallbacks: {
         emptyBackendResponse: t("chatPanel.errors.emptyBackendResponse"),
         upstreamHtmlResponse: t("chatPanel.errors.upstreamHtmlResponse"),

@@ -733,6 +733,7 @@ const hiCatalog: TranslationCatalog = {
     },
     alerts: {
       attachmentLimit: "संदेश बहुत बड़ा है। AI चैट एक बार में इतना कंटेंट नहीं भेज सकती। एक या अधिक अटैचमेंट हटाएँ, छोटी फ़ाइल या फ़ोटो चुनें, या अनुरोध को बाँटकर फिर कोशिश करें।",
+      attachmentUnsupported: "AI चैट में यह फ़ाइल प्रकार समर्थित नहीं है। फ़ाइल हटाएँ या उसे PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX या इमेज के रूप में सहेजें, फिर दोबारा कोशिश करें।",
       microphoneUnavailable: "इस ब्राउज़र में माइक्रोफ़ोन रिकॉर्डिंग उपलब्ध नहीं है।",
     },
     composerPlaceholder: "कार्ड, रिव्यू इतिहास के बारे में पूछें या नोट्स अटैच करें...",

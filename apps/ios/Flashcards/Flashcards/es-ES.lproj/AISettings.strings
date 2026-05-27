@@ -39,6 +39,8 @@
 "ai.error.title" = "Error";
 "ai.error.requestTooLarge.title" = "El mensaje es demasiado grande";
 "ai.error.requestTooLarge.message" = "El chat de IA no puede enviar tanto contenido a la vez. Elimina uno o mas adjuntos, elige un archivo o una foto mas pequena, o divide la solicitud e intentalo de nuevo.";
+"ai.error.attachmentUnsupported.title" = "Tipo de archivo no compatible";
+"ai.error.attachmentUnsupported.message" = "Este tipo de archivo no es compatible con el chat de IA. Elimina el archivo o guardalo como PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX o una imagen, y vuelve a intentarlo.";
 "ai.error.summary.couldNotContinue" = "No se pudo continuar la respuesta de IA";
 "ai.error.summary.invalidResponse" = "Se recibio una respuesta de IA no valida";
 "ai.error.summary.configuration" = "Error de configuracion de IA";

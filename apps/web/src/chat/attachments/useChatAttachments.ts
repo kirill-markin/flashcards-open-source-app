@@ -15,6 +15,7 @@ import {
   recompressImageAttachment,
   type PendingAttachment,
 } from "./FileAttachment";
+import { isChatAttachmentUnsupportedTypeError } from "./attachmentMediaTypes";
 
 type DraftAttachmentRequestBody = Readonly<{
   content: ReturnType<typeof buildContentParts>;
@@ -24,6 +25,7 @@ type DraftAttachmentRequestBody = Readonly<{
 
 type UseChatAttachmentsParams = Readonly<{
   attachmentLimitMessage: string;
+  attachmentUnsupportedMessage: string;
   canAttachDraftFiles: boolean;
   currentSessionId: string | null;
   draftInputText: string;
@@ -78,6 +80,7 @@ function measureDraftRequestBodySize(params: Readonly<{
 export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttachmentControls {
   const {
     attachmentLimitMessage,
+    attachmentUnsupportedMessage,
     canAttachDraftFiles,
     currentSessionId,
     draftInputText,
@@ -215,6 +218,11 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
       } catch (error) {
         if (isChatAttachmentTooLargeError(error)) {
           window.alert(attachmentLimitMessage);
+          continue;
+        }
+
+        if (isChatAttachmentUnsupportedTypeError(error)) {
+          window.alert(attachmentUnsupportedMessage);
           continue;
         }
 

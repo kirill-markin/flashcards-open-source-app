@@ -39,6 +39,8 @@
 "ai.error.title" = "त्रुटि";
 "ai.error.requestTooLarge.title" = "संदेश बहुत बड़ा है";
 "ai.error.requestTooLarge.message" = "AI चैट एक बार में इतनी सामग्री नहीं भेज सकती। एक या अधिक अनुलग्नक हटाएं, छोटी फ़ाइल या फ़ोटो चुनें, या अनुरोध को बांटकर फिर से प्रयास करें।";
+"ai.error.attachmentUnsupported.title" = "असमर्थित फ़ाइल प्रकार";
+"ai.error.attachmentUnsupported.message" = "AI चैट में यह फ़ाइल प्रकार समर्थित नहीं है। फ़ाइल हटाएँ या उसे PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX या इमेज के रूप में सहेजें, फिर दोबारा कोशिश करें।";
 "ai.error.summary.couldNotContinue" = "एआई प्रतिक्रिया जारी नहीं रखी जा सकी";
 "ai.error.summary.invalidResponse" = "एक अमान्य AI प्रतिक्रिया प्राप्त हुई";
 "ai.error.summary.configuration" = "एआई कॉन्फ़िगरेशन त्रुटि";

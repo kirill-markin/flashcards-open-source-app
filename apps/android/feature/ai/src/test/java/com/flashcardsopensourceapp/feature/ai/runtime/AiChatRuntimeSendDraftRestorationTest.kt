@@ -4,6 +4,7 @@ import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.aiChatAttachmentUnsupportedTypeCode
 import com.flashcardsopensourceapp.data.local.model.aiChatMaximumAttachmentBytes
 import com.flashcardsopensourceapp.data.local.model.aiChatMaximumStartRunRequestBytes
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
@@ -276,6 +277,53 @@ class AiChatRuntimeSendDraftRestorationTest {
         assertFalse(runtime.state.value.isLiveAttached)
         val alert = runtime.state.value.activeAlert as AiAlertState.GeneralError
         assertTrue(alert.message.isNotEmpty())
+    }
+
+    @Test
+    fun unsupportedAttachmentRemoteFailureRestoresDraftAndShowsAttachmentAlert() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.persistedStates[defaultTestWorkspaceId] = makeDefaultAiChatPersistedState().copy(
+            chatSessionId = "session-1"
+        )
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
+        repository.startRunError = AiChatRemoteException(
+            message = "This file type is not supported for AI chat.",
+            statusCode = 400,
+            code = aiChatAttachmentUnsupportedTypeCode,
+            stage = null,
+            requestId = "request-1",
+            responseBody = null
+        )
+        val runtime = makeRuntime(scope = this, repository = repository)
+        val attachment = AiChatAttachment.Binary(
+            id = "attachment-1",
+            fileName = "notes.csv",
+            mediaType = "text/csv",
+            base64Data = "ZmlsZQ=="
+        )
+
+        runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
+        advanceUntilIdle()
+
+        runtime.updateDraftMessage(draftMessage = "retry me")
+        runtime.addPendingAttachment(attachment = attachment)
+        runtime.sendMessage()
+        assertEquals("", runtime.state.value.draftMessage)
+        assertTrue(runtime.state.value.pendingAttachments.isEmpty())
+        advanceUntilIdle()
+
+        assertEquals("retry me", runtime.state.value.draftMessage)
+        assertEquals(listOf(attachment), runtime.state.value.pendingAttachments)
+        assertEquals(AiComposerPhase.IDLE, runtime.state.value.composerPhase)
+        val alert = runtime.state.value.activeAlert as AiAlertState.GeneralError
+        assertEquals("Unsupported file type", alert.title)
+        assertEquals(
+            "This file type is not supported for AI chat. Remove the file or save it as PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, or an image, then try again.",
+            alert.message
+        )
     }
 
     @Test

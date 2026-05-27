@@ -2,6 +2,26 @@ import Foundation
 import UIKit
 import UniformTypeIdentifiers
 
+private let aiChatCanonicalFileMediaTypesByExtension: [String: String] = [
+    "csv": "text/csv",
+    "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "html": "text/html",
+    "js": "text/javascript",
+    "json": "application/json",
+    "log": "text/plain",
+    "md": "text/markdown",
+    "pdf": "application/pdf",
+    "py": "text/x-python",
+    "sql": "text/plain",
+    "ts": "application/typescript",
+    "txt": "text/plain",
+    "xls": "application/vnd.ms-excel",
+    "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "xml": "text/xml",
+    "yaml": "application/x-yaml",
+    "yml": "application/x-yaml"
+]
+
 enum AIChatAttachmentMenuAction: String, CaseIterable, Identifiable {
     case takePhoto
     case choosePhoto
@@ -70,16 +90,35 @@ func aiChatMakeAttachmentFromFile(url: URL) throws -> AIChatAttachment {
 
     let data = try Data(contentsOf: url)
     try aiChatValidateAttachmentSize(data: data)
-    let contentType = UTType(filenameExtension: fileExtension)
+    let mediaType = try aiChatCanonicalFileAttachmentMediaType(fileExtension: fileExtension)
 
     return AIChatAttachment(
         id: UUID().uuidString.lowercased(),
         payload: .binary(
             fileName: url.lastPathComponent,
-            mediaType: contentType?.preferredMIMEType ?? "application/octet-stream",
+            mediaType: mediaType,
             base64Data: data.base64EncodedString()
         )
     )
+}
+
+private func aiChatCanonicalFileAttachmentMediaType(fileExtension: String) throws -> String {
+    let normalizedExtension = fileExtension.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    guard let mediaType = aiChatCanonicalFileMediaTypesByExtension[normalizedExtension] else {
+        throw NSError(
+            domain: "AIChatAttachment",
+            code: 1,
+            userInfo: [
+                NSLocalizedDescriptionKey: aiSettingsLocalizedFormat(
+                    "ai.attachment.error.unsupportedType",
+                    "Unsupported file type: .%@",
+                    normalizedExtension
+                )
+            ]
+        )
+    }
+
+    return mediaType
 }
 
 func aiChatMakeImageAttachment(data: Data, fileName: String, mediaType: String) throws -> AIChatAttachment {

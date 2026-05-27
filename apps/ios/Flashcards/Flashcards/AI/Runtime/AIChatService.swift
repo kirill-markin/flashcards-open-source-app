@@ -72,6 +72,34 @@ func isAIChatRequestTooLargeError(error: Error) -> Bool {
     error is AIChatRequestTooLargeError
 }
 
+private let aiChatAttachmentUnsupportedTypeCode = "CHAT_ATTACHMENT_UNSUPPORTED_TYPE"
+
+func aiChatAttachmentUnsupportedTypeTitle() -> String {
+    aiSettingsLocalized(
+        "ai.error.attachmentUnsupported.title",
+        "Unsupported file type"
+    )
+}
+
+func aiChatAttachmentUnsupportedTypeMessage() -> String {
+    aiSettingsLocalized(
+        "ai.error.attachmentUnsupported.message",
+        "This file type is not supported for AI chat. Remove the file or save it as PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, or an image, then try again."
+    )
+}
+
+func isAIChatAttachmentUnsupportedTypeError(error: Error) -> Bool {
+    guard let serviceError = error as? AIChatServiceError else {
+        return false
+    }
+
+    guard case .invalidResponse(let errorDetails, _, _) = serviceError else {
+        return false
+    }
+
+    return errorDetails.code == aiChatAttachmentUnsupportedTypeCode
+}
+
 func encodeAIChatStartRunRequestBody(
     request: AIChatStartRunRequestBody,
     encoder: JSONEncoder,

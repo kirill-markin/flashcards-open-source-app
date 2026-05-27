@@ -3,6 +3,52 @@ import XCTest
 @testable import Flashcards
 
 final class AIChatDraftPersistenceTests: XCTestCase {
+    func testAIChatMakeAttachmentFromFileNormalizesCsvMediaType() throws {
+        let directoryUrl = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ai-chat-attachment-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(
+            at: directoryUrl,
+            withIntermediateDirectories: true
+        )
+        defer {
+            try? FileManager.default.removeItem(at: directoryUrl)
+        }
+        let fileUrl = directoryUrl.appendingPathComponent("deck.csv")
+        try Data("front,back".utf8).write(to: fileUrl)
+
+        let attachment = try aiChatMakeAttachmentFromFile(url: fileUrl)
+
+        guard case .binary(let fileName, let mediaType, let base64Data) = attachment.payload else {
+            return XCTFail("Expected a binary attachment.")
+        }
+        XCTAssertEqual(fileName, "deck.csv")
+        XCTAssertEqual(mediaType, "text/csv")
+        XCTAssertEqual(base64Data, "ZnJvbnQsYmFjaw==")
+    }
+
+    func testAIChatMakeAttachmentFromFileNormalizesXmlMediaType() throws {
+        let directoryUrl = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ai-chat-attachment-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(
+            at: directoryUrl,
+            withIntermediateDirectories: true
+        )
+        defer {
+            try? FileManager.default.removeItem(at: directoryUrl)
+        }
+        let fileUrl = directoryUrl.appendingPathComponent("cards.xml")
+        try Data("<cards />".utf8).write(to: fileUrl)
+
+        let attachment = try aiChatMakeAttachmentFromFile(url: fileUrl)
+
+        guard case .binary(let fileName, let mediaType, let base64Data) = attachment.payload else {
+            return XCTFail("Expected a binary attachment.")
+        }
+        XCTAssertEqual(fileName, "cards.xml")
+        XCTAssertEqual(mediaType, "text/xml")
+        XCTAssertEqual(base64Data, "PGNhcmRzIC8+")
+    }
+
     func testAIChatHistoryStorePersistsDraftsOnlyForExplicitSessionIdsAndPrunesEmptyDrafts() async {
         let suiteName = "ai-chat-draft-persistence-\(UUID().uuidString)"
         let userDefaults = UserDefaults(suiteName: suiteName)!

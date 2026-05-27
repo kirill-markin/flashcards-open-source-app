@@ -39,6 +39,8 @@
 "ai.error.title" = "Fehler";
 "ai.error.requestTooLarge.title" = "Nachricht ist zu groß";
 "ai.error.requestTooLarge.message" = "Der AI-Chat kann nicht so viel Inhalt auf einmal senden. Entfernen Sie einen oder mehrere Anhänge, wählen Sie eine kleinere Datei oder ein kleineres Foto, oder teilen Sie die Anfrage auf und versuchen Sie es erneut.";
+"ai.error.attachmentUnsupported.title" = "Nicht unterstützter Dateityp";
+"ai.error.attachmentUnsupported.message" = "Dieser Dateityp wird im AI-Chat nicht unterstützt. Entfernen Sie die Datei oder speichern Sie sie als PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX oder Bild und versuchen Sie es erneut.";
 "ai.error.summary.couldNotContinue" = "KI-Antwort konnte nicht fortgesetzt werden";
 "ai.error.summary.invalidResponse" = "Es wurde eine ungültige AI-Antwort empfangen";
 "ai.error.summary.configuration" = "KI-Konfigurationsfehler";

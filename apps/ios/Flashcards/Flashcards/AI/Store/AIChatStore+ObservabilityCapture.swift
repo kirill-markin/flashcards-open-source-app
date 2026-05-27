@@ -74,6 +74,10 @@ extension AIChatStore {
             return
         }
 
+        if isAIChatAttachmentUnsupportedTypeError(error: error) {
+            return
+        }
+
         if let liveStreamError = error as? AIChatLiveStreamError {
             self.captureUserVisibleAILiveStreamFailure(error: liveStreamError)
             return

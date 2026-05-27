@@ -6,6 +6,35 @@ import org.junit.Test
 
 class AiChatModelsTest {
     @Test
+    fun canonicalAiChatAttachmentMediaTypeForExtensionNormalizesCsv() {
+        assertEquals(
+            "text/csv",
+            canonicalAiChatAttachmentMediaTypeForExtension(fileExtension = "csv")
+        )
+    }
+
+    @Test
+    fun canonicalAiChatAttachmentMediaTypeForExtensionNormalizesXml() {
+        assertEquals(
+            "text/xml",
+            canonicalAiChatAttachmentMediaTypeForExtension(fileExtension = "xml")
+        )
+    }
+
+    @Test
+    fun canonicalAiChatAttachmentMediaTypeForExtensionRejectsUnsupportedExtensions() {
+        var thrownError: IllegalArgumentException? = null
+
+        try {
+            canonicalAiChatAttachmentMediaTypeForExtension(fileExtension = "rtf")
+        } catch (error: IllegalArgumentException) {
+            thrownError = error
+        }
+
+        assertEquals("Unsupported file type: .rtf", thrownError?.message)
+    }
+
+    @Test
     fun buildAiChatCardContextXmlMatchesBackendSerializer() {
         assertEquals(
             listOf(

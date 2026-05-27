@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.feature.ai.runtime
 
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.ai.AiChatRequestTooLargeException
+import com.flashcardsopensourceapp.data.local.ai.isAiChatAttachmentUnsupportedTypeRemoteError
 import com.flashcardsopensourceapp.data.local.ai.isAiChatRequestTooLargeRemoteError
 import com.flashcardsopensourceapp.data.local.ai.requireAiChatStartRunRequestSize
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
@@ -379,6 +380,19 @@ internal class AiChatSendCoordinator(
                     isLiveAttached = false,
                     composerPhase = AiComposerPhase.IDLE,
                     activeAlert = context.textProvider.requestTooLargeAlert(),
+                    errorMessage = ""
+                )
+            }
+            return
+        }
+
+        if (remoteError?.let(::isAiChatAttachmentUnsupportedTypeRemoteError) == true) {
+            context.runtimeStateMutable.update { state ->
+                state.copy(
+                    activeRun = null,
+                    isLiveAttached = false,
+                    composerPhase = AiComposerPhase.IDLE,
+                    activeAlert = context.textProvider.attachmentUnsupportedAlert(),
                     errorMessage = ""
                 )
             }

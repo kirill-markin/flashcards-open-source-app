@@ -37,7 +37,10 @@ import {
   toRequestBodySizeBytes,
 } from "../shared/chatHelpers";
 import { binaryPendingAttachmentExceedsSizeLimit } from "../attachments/FileAttachment";
-import { isAiChatRequestTooLargeError } from "../shared/chatSizePolicy";
+import {
+  isAiChatAttachmentUnsupportedTypeError,
+  isAiChatRequestTooLargeError,
+} from "../shared/chatSizePolicy";
 import type { ChatHistoryState } from "../history/useChatHistory";
 
 type FreshSessionErrorPresentation = "new_chat" | "refresh" | "silent";
@@ -115,6 +118,7 @@ function isExpectedChatProductErrorCode(code: string | null): boolean {
     case "AI_CHAT_V2_HUMAN_AUTH_REQUIRED":
     case "AUTH_UNAUTHORIZED":
     case "CHAT_ACTIVE_RUN_IN_PROGRESS":
+    case "CHAT_ATTACHMENT_UNSUPPORTED_TYPE":
     case "CHAT_REQUEST_TOO_LARGE":
     case "CHAT_SESSION_ID_CONFLICT":
     case "GUEST_AUTH_INVALID":
@@ -647,6 +651,20 @@ export function useChatSessionActions(
         dispatch({
           type: "error_shown",
           message: uiMessages.attachmentLimit,
+        });
+        return { accepted: false, sessionId: state.currentSessionId };
+      }
+
+      if (
+        isChatApiError(error)
+        && isAiChatAttachmentUnsupportedTypeError({
+          statusCode: error.statusCode,
+          code: error.code,
+        })
+      ) {
+        dispatch({
+          type: "error_shown",
+          message: uiMessages.attachmentUnsupported,
         });
         return { accepted: false, sessionId: state.currentSessionId };
       }
