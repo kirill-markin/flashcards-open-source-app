@@ -40,6 +40,10 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun workspaceSchedulerSettingsDao(): WorkspaceSchedulerSettingsDao
     abstract fun deckDao(): DeckDao
     abstract fun cardDao(): CardDao
+    abstract fun reviewQueueDao(): ReviewQueueDao
+    abstract fun reviewCardSelectionDao(): ReviewCardSelectionDao
+    abstract fun reviewCountDao(): ReviewCountDao
+    abstract fun progressCardDao(): ProgressCardDao
     abstract fun tagDao(): TagDao
     abstract fun reviewLogDao(): ReviewLogDao
     abstract fun outboxDao(): OutboxDao

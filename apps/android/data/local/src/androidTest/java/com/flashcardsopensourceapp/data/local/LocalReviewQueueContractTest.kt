@@ -256,7 +256,7 @@ class LocalReviewQueueContractTest {
             limit = 10
         )
         val topReviewCard = loadTopActiveReviewCard(
-            cardDao = database.cardDao(),
+            reviewCardSelectionDao = database.reviewCardSelectionDao(),
             workspaceId = workspaceId,
             nowMillis = nowMillis,
             effortLevels = emptyList(),

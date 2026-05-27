@@ -186,11 +186,11 @@ class LocalReviewRepository(
                     )
                 }
                 val filterOptionsFlow: Flow<ReviewFilterOptionsState> = combine(
-                    database.cardDao().observeReviewEffortDueCounts(
+                    database.reviewCountDao().observeReviewEffortDueCounts(
                         workspaceId = queryBase.workspaceId,
                         nowMillis = queryBase.nowMillis
                     ),
-                    database.cardDao().observeReviewTagDueCounts(
+                    database.reviewCountDao().observeReviewTagDueCounts(
                         workspaceId = queryBase.workspaceId,
                         nowMillis = queryBase.nowMillis
                     )

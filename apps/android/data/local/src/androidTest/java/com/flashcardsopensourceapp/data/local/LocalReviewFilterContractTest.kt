@@ -246,19 +246,19 @@ class LocalReviewFilterContractTest {
             pendingReviewedCards = emptySet(),
             presentedCardId = null
         ).first()
-        val boundedQueueCardIds = database.cardDao().observeNewReviewQueueByAnyTags(
+        val boundedQueueCardIds = database.reviewQueueDao().observeNewReviewQueueByAnyTags(
             workspaceId = workspaceId,
             tagNames = listOf("Éclair"),
             limit = 8
         ).first().map { card ->
             card.card.cardId
         }
-        val dueCount = database.cardDao().observeReviewDueCountByAnyTags(
+        val dueCount = database.reviewCountDao().observeReviewDueCountByAnyTags(
             workspaceId = workspaceId,
             nowMillis = nowMillis,
             tagNames = listOf("Éclair")
         ).first()
-        val totalCount = database.cardDao().observeReviewTotalCountByAnyTags(
+        val totalCount = database.reviewCountDao().observeReviewTotalCountByAnyTags(
             workspaceId = workspaceId,
             tagNames = listOf("Éclair")
         ).first()
