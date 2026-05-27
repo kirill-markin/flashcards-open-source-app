@@ -7,11 +7,11 @@
     "lint": "redocly lint src/openapi.yaml"
   },
   "devDependencies": {
-    "@redocly/cli": "^2.31.2"
+    "@redocly/cli": "^2.31.4"
   },
   "overrides": {
     "fast-xml-parser": "5.8.0",
-    "protobufjs": "^7.5.8"
+    "protobufjs": "^8.4.2"
   },
   "engines": {
     "node": "24.x"

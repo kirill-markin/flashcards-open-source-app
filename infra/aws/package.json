@@ -13,16 +13,19 @@
   },
   "dependencies": {
     "@aws-crypto/client-node": "^5.0.0",
-    "@aws-sdk/client-cloudwatch": "^3.1050.0",
-    "@aws-sdk/client-s3": "^3.1050.0",
-    "aws-cdk-lib": "^2.256.0",
+    "@aws-sdk/client-cloudwatch": "^3.1054.0",
+    "@aws-sdk/client-s3": "^3.1054.0",
+    "aws-cdk-lib": "^2.257.0",
     "constructs": "^10.6.0"
   },
   "devDependencies": {
     "@types/node": "^24.12.4",
-    "aws-cdk": "^2.1123.0",
+    "aws-cdk": "^2.1124.1",
     "esbuild": "^0.28.0",
     "typescript": "^6.0.3"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
   },
   "engines": {
     "node": "24.x"

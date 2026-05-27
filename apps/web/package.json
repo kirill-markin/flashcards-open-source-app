@@ -12,8 +12,8 @@
     "test:e2e:prod": "FLASHCARDS_E2E_TARGET=prod playwright test"
   },
   "dependencies": {
-    "@sentry/react": "^10.53.1",
-    "heic-to": "^1.4.3",
+    "@sentry/react": "^10.54.0",
+    "heic-to": "^1.5.2",
     "lottie-web": "^5.13.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
@@ -29,15 +29,15 @@
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^29.1.1",
     "typescript": "^6.0.3",
-    "vite": "^8.0.13",
-    "vitest": "^4.1.6"
+    "vite": "^8.0.14",
+    "vitest": "^4.1.7"
   },
   "overrides": {
     "jsdom": {
       "cssstyle": "6.2.0"
     },
     "cssstyle": {
-      "@asamuzakjp/css-color": "5.1.11"
+      "@asamuzakjp/css-color": "6.0.2"
     }
   },
   "engines": {
