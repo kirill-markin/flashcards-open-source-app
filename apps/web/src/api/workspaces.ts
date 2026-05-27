@@ -14,7 +14,11 @@ import type {
   WorkspaceSummary,
 } from "../types";
 import { parseContractResponse } from "./response";
-import { allowAuthRecovery, requestJson } from "./transport";
+import {
+  allowAuthRecovery,
+  allowAuthRecoveryWithTransientNetworkRetry,
+  requestJson,
+} from "./transport";
 
 const collectionPageLimit = 100;
 
@@ -31,7 +35,11 @@ export async function listWorkspaces(): Promise<ReadonlyArray<WorkspaceSummary>>
     }
 
     const payload = parseContractResponse(
-      await requestJson(`/workspaces?${searchParams.toString()}`, { method: "GET" }, allowAuthRecovery),
+      await requestJson(
+        `/workspaces?${searchParams.toString()}`,
+        { method: "GET" },
+        allowAuthRecoveryWithTransientNetworkRetry,
+      ),
       "GET /workspaces",
       parseWorkspacesEnvelopeResponse,
     );
