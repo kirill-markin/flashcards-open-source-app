@@ -122,42 +122,42 @@ class CardDaoReviewQueueContractTest {
         )
 
         val allCardsTop = loadTopActiveReviewCard(
-            cardDao = database.cardDao(),
+            reviewCardSelectionDao = database.reviewCardSelectionDao(),
             workspaceId = workspaceId,
             nowMillis = nowMillis,
             effortLevels = emptyList(),
             tagNames = emptyList()
         )
         val effortTop = loadTopActiveReviewCard(
-            cardDao = database.cardDao(),
+            reviewCardSelectionDao = database.reviewCardSelectionDao(),
             workspaceId = workspaceId,
             nowMillis = nowMillis,
             effortLevels = listOf(EffortLevel.FAST),
             tagNames = emptyList()
         )
         val tagTop = loadTopActiveReviewCard(
-            cardDao = database.cardDao(),
+            reviewCardSelectionDao = database.reviewCardSelectionDao(),
             workspaceId = workspaceId,
             nowMillis = nowMillis,
             effortLevels = emptyList(),
             tagNames = listOf("Priority")
         )
         val effortAndTagTop = loadTopActiveReviewCard(
-            cardDao = database.cardDao(),
+            reviewCardSelectionDao = database.reviewCardSelectionDao(),
             workspaceId = workspaceId,
             nowMillis = nowMillis,
             effortLevels = listOf(EffortLevel.MEDIUM),
             tagNames = listOf("Priority")
         )
         val futureOnlyTagTop = loadTopActiveReviewCard(
-            cardDao = database.cardDao(),
+            reviewCardSelectionDao = database.reviewCardSelectionDao(),
             workspaceId = workspaceId,
             nowMillis = nowMillis,
             effortLevels = emptyList(),
             tagNames = listOf("Future Only")
         )
         val cutoffMillis = nowMillis - oneHourMillis
-        val boundedQueue = database.cardDao().observeBucketedActiveReviewQueue(
+        val boundedQueue = database.reviewQueueDao().observeBucketedActiveReviewQueue(
             workspaceId = workspaceId,
             cutoffMillis = cutoffMillis,
             nowMillis = nowMillis,
@@ -165,7 +165,7 @@ class CardDaoReviewQueueContractTest {
         ).first().map { card ->
             card.card.cardId
         }
-        val effortAndTagQueue = database.cardDao().observeBucketedActiveReviewQueueByEffortLevelsAndAnyTags(
+        val effortAndTagQueue = database.reviewQueueDao().observeBucketedActiveReviewQueueByEffortLevelsAndAnyTags(
             workspaceId = workspaceId,
             cutoffMillis = cutoffMillis,
             nowMillis = nowMillis,
@@ -175,21 +175,21 @@ class CardDaoReviewQueueContractTest {
         ).first().map { card ->
             card.card.cardId
         }
-        val priorityDueCount = database.cardDao().observeReviewDueCountByAnyTags(
+        val priorityDueCount = database.reviewCountDao().observeReviewDueCountByAnyTags(
             workspaceId = workspaceId,
             nowMillis = nowMillis,
             tagNames = listOf("Priority")
         ).first()
-        val priorityTotalCount = database.cardDao().observeReviewTotalCountByAnyTags(
+        val priorityTotalCount = database.reviewCountDao().observeReviewTotalCountByAnyTags(
             workspaceId = workspaceId,
             tagNames = listOf("Priority")
         ).first()
-        val futureOnlyDueCount = database.cardDao().observeReviewDueCountByAnyTags(
+        val futureOnlyDueCount = database.reviewCountDao().observeReviewDueCountByAnyTags(
             workspaceId = workspaceId,
             nowMillis = nowMillis,
             tagNames = listOf("Future Only")
         ).first()
-        val futureOnlyTotalCount = database.cardDao().observeReviewTotalCountByAnyTags(
+        val futureOnlyTotalCount = database.reviewCountDao().observeReviewTotalCountByAnyTags(
             workspaceId = workspaceId,
             tagNames = listOf("Future Only")
         ).first()

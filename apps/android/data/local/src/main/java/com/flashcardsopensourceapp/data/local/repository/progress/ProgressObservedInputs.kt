@@ -99,7 +99,7 @@ internal fun observeProgressInputs(
         preferencesStore.observeCloudSettings(),
         database.workspaceDao().observeWorkspaces(),
         localCacheInputsFlow,
-        database.cardDao().observeProgressReviewScheduleCardDueDates()
+        database.progressCardDao().observeProgressReviewScheduleCardDueDates()
     ) { cloudSettings, workspaces, localCacheInputs, reviewScheduleCards ->
         ProgressPrimaryObservedInputs(
             cloudSettings = cloudSettings,

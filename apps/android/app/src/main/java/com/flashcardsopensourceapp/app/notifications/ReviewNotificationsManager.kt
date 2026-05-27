@@ -389,7 +389,7 @@ class ReviewNotificationsManager(
         nowMillis: Long
     ): CurrentReviewNotificationCard? {
         val card = loadTopActiveReviewCard(
-            cardDao = database.cardDao(),
+            reviewCardSelectionDao = database.reviewCardSelectionDao(),
             workspaceId = workspaceId,
             nowMillis = nowMillis,
             effortLevels = emptyList(),
@@ -436,7 +436,7 @@ class ReviewNotificationsManager(
         nowMillis: Long
     ): CurrentReviewNotificationCard? {
         val card = loadTopActiveReviewCard(
-            cardDao = database.cardDao(),
+            reviewCardSelectionDao = database.reviewCardSelectionDao(),
             workspaceId = workspaceId,
             nowMillis = nowMillis,
             effortLevels = listOf(effortLevel),
@@ -469,7 +469,7 @@ class ReviewNotificationsManager(
         }
 
         val card = loadTopActiveReviewCard(
-            cardDao = database.cardDao(),
+            reviewCardSelectionDao = database.reviewCardSelectionDao(),
             workspaceId = workspaceId,
             nowMillis = nowMillis,
             effortLevels = emptyList(),
@@ -500,7 +500,7 @@ class ReviewNotificationsManager(
         return when {
             filterDefinition.effortLevels.isEmpty() && hasTagPredicate.not() -> {
                 loadTopActiveReviewCard(
-                    cardDao = database.cardDao(),
+                    reviewCardSelectionDao = database.reviewCardSelectionDao(),
                     workspaceId = workspaceId,
                     nowMillis = nowMillis,
                     effortLevels = emptyList(),
@@ -510,7 +510,7 @@ class ReviewNotificationsManager(
 
             filterDefinition.effortLevels.isNotEmpty() && hasTagPredicate.not() -> {
                 loadTopActiveReviewCard(
-                    cardDao = database.cardDao(),
+                    reviewCardSelectionDao = database.reviewCardSelectionDao(),
                     workspaceId = workspaceId,
                     nowMillis = nowMillis,
                     effortLevels = filterDefinition.effortLevels,
@@ -520,7 +520,7 @@ class ReviewNotificationsManager(
 
             filterDefinition.effortLevels.isEmpty() -> {
                 loadTopActiveReviewCard(
-                    cardDao = database.cardDao(),
+                    reviewCardSelectionDao = database.reviewCardSelectionDao(),
                     workspaceId = workspaceId,
                     nowMillis = nowMillis,
                     effortLevels = emptyList(),
@@ -530,7 +530,7 @@ class ReviewNotificationsManager(
 
             else -> {
                 loadTopActiveReviewCard(
-                    cardDao = database.cardDao(),
+                    reviewCardSelectionDao = database.reviewCardSelectionDao(),
                     workspaceId = workspaceId,
                     nowMillis = nowMillis,
                     effortLevels = filterDefinition.effortLevels,

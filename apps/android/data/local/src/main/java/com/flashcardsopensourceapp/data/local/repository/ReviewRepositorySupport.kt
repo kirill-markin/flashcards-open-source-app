@@ -190,14 +190,14 @@ internal fun observeActiveReviewQueue(
         ReviewTagPredicate.Impossible -> flowOf(emptyList<CardWithRelations>())
         ReviewTagPredicate.None -> {
             if (predicate.effortLevels.isEmpty()) {
-                database.cardDao().observeBucketedActiveReviewQueue(
+                database.reviewQueueDao().observeBucketedActiveReviewQueue(
                     workspaceId = workspaceId,
                     cutoffMillis = cutoffMillis,
                     nowMillis = nowMillis,
                     limit = limit
                 )
             } else {
-                database.cardDao().observeBucketedActiveReviewQueueByEffortLevels(
+                database.reviewQueueDao().observeBucketedActiveReviewQueueByEffortLevels(
                     workspaceId = workspaceId,
                     cutoffMillis = cutoffMillis,
                     nowMillis = nowMillis,
@@ -209,7 +209,7 @@ internal fun observeActiveReviewQueue(
 
         is ReviewTagPredicate.ExactTagNames -> {
             if (predicate.effortLevels.isEmpty()) {
-                database.cardDao().observeBucketedActiveReviewQueueByAnyTags(
+                database.reviewQueueDao().observeBucketedActiveReviewQueueByAnyTags(
                     workspaceId = workspaceId,
                     cutoffMillis = cutoffMillis,
                     nowMillis = nowMillis,
@@ -217,7 +217,7 @@ internal fun observeActiveReviewQueue(
                     limit = limit
                 )
             } else {
-                database.cardDao().observeBucketedActiveReviewQueueByEffortLevelsAndAnyTags(
+                database.reviewQueueDao().observeBucketedActiveReviewQueueByEffortLevelsAndAnyTags(
                     workspaceId = workspaceId,
                     cutoffMillis = cutoffMillis,
                     nowMillis = nowMillis,
@@ -240,12 +240,12 @@ internal fun observeReviewDueCount(
         ReviewTagPredicate.Impossible -> flowOf(0)
         ReviewTagPredicate.None -> {
             if (predicate.effortLevels.isEmpty()) {
-                database.cardDao().observeReviewDueCount(
+                database.reviewCountDao().observeReviewDueCount(
                     workspaceId = workspaceId,
                     nowMillis = nowMillis
                 )
             } else {
-                database.cardDao().observeReviewDueCountByEffortLevels(
+                database.reviewCountDao().observeReviewDueCountByEffortLevels(
                     workspaceId = workspaceId,
                     nowMillis = nowMillis,
                     effortLevels = predicate.effortLevels
@@ -255,13 +255,13 @@ internal fun observeReviewDueCount(
 
         is ReviewTagPredicate.ExactTagNames -> {
             if (predicate.effortLevels.isEmpty()) {
-                database.cardDao().observeReviewDueCountByAnyTags(
+                database.reviewCountDao().observeReviewDueCountByAnyTags(
                     workspaceId = workspaceId,
                     nowMillis = nowMillis,
                     tagNames = tagPredicate.tagNames
                 )
             } else {
-                database.cardDao().observeReviewDueCountByEffortLevelsAndAnyTags(
+                database.reviewCountDao().observeReviewDueCountByEffortLevelsAndAnyTags(
                     workspaceId = workspaceId,
                     nowMillis = nowMillis,
                     effortLevels = predicate.effortLevels,
@@ -281,9 +281,9 @@ internal fun observeReviewTotalCount(
         ReviewTagPredicate.Impossible -> flowOf(0)
         ReviewTagPredicate.None -> {
             if (predicate.effortLevels.isEmpty()) {
-                database.cardDao().observeReviewTotalCount(workspaceId = workspaceId)
+                database.reviewCountDao().observeReviewTotalCount(workspaceId = workspaceId)
             } else {
-                database.cardDao().observeReviewTotalCountByEffortLevels(
+                database.reviewCountDao().observeReviewTotalCountByEffortLevels(
                     workspaceId = workspaceId,
                     effortLevels = predicate.effortLevels
                 )
@@ -292,12 +292,12 @@ internal fun observeReviewTotalCount(
 
         is ReviewTagPredicate.ExactTagNames -> {
             if (predicate.effortLevels.isEmpty()) {
-                database.cardDao().observeReviewTotalCountByAnyTags(
+                database.reviewCountDao().observeReviewTotalCountByAnyTags(
                     workspaceId = workspaceId,
                     tagNames = tagPredicate.tagNames
                 )
             } else {
-                database.cardDao().observeReviewTotalCountByEffortLevelsAndAnyTags(
+                database.reviewCountDao().observeReviewTotalCountByEffortLevelsAndAnyTags(
                     workspaceId = workspaceId,
                     effortLevels = predicate.effortLevels,
                     tagNames = tagPredicate.tagNames
@@ -501,12 +501,12 @@ internal suspend fun countReviewDueCards(
         ReviewTagPredicate.Impossible -> 0
         ReviewTagPredicate.None -> {
             if (predicate.effortLevels.isEmpty()) {
-                database.cardDao().countReviewDueCards(
+                database.reviewCountDao().countReviewDueCards(
                     workspaceId = workspaceId,
                     nowMillis = nowMillis
                 )
             } else {
-                database.cardDao().countReviewDueCardsByEffortLevels(
+                database.reviewCountDao().countReviewDueCardsByEffortLevels(
                     workspaceId = workspaceId,
                     nowMillis = nowMillis,
                     effortLevels = predicate.effortLevels
@@ -516,13 +516,13 @@ internal suspend fun countReviewDueCards(
 
         is ReviewTagPredicate.ExactTagNames -> {
             if (predicate.effortLevels.isEmpty()) {
-                database.cardDao().countReviewDueCardsByAnyTags(
+                database.reviewCountDao().countReviewDueCardsByAnyTags(
                     workspaceId = workspaceId,
                     nowMillis = nowMillis,
                     tagNames = tagPredicate.tagNames
                 )
             } else {
-                database.cardDao().countReviewDueCardsByEffortLevelsAndAnyTags(
+                database.reviewCountDao().countReviewDueCardsByEffortLevelsAndAnyTags(
                     workspaceId = workspaceId,
                     nowMillis = nowMillis,
                     effortLevels = predicate.effortLevels,
