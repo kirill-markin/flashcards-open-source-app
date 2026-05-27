@@ -733,6 +733,7 @@ export const jaCatalog = {
     },
     alerts: {
       attachmentLimit: "メッセージが大きすぎます。AI チャットはこの量の内容を一度に送信できません。添付を1つ以上削除するか、小さいファイルや写真を選ぶか、依頼を分けてもう一度お試しください。",
+      attachmentUnsupported: "このファイル形式は AI チャットでサポートされていません。ファイルを削除するか、PDF、TXT、CSV、JSON、XML、Markdown、HTML、Python、JavaScript、TypeScript、YAML、XLS/XLSX、DOCX、または画像として保存してから、もう一度お試しください。",
       microphoneUnavailable: "このブラウザではマイク録音を利用できません。",
     },
     composerPlaceholder: "カードや復習履歴について質問するか、抽出用のメモを添付してください...",

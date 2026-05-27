@@ -7,6 +7,10 @@ import type { ContentPart, FileContentPart, ImageContentPart } from "../types";
 import { buildSystemInstructions } from "../shared";
 import { buildCardContextXml } from "../cardContext";
 import {
+  normalizeChatFileAttachmentMediaType,
+  normalizeChatImageAttachmentMediaType,
+} from "../attachmentPolicy";
+import {
   normalizeStoredOpenAIReplayItems,
   toOpenAIResponseInputItem,
   type ServerChatMessage,
@@ -15,8 +19,14 @@ import {
 type OpenAIInputItem = OpenAI.Responses.ResponseInputItem;
 type OpenAIInputContent = OpenAI.Responses.ResponseInputMessageContentList[number];
 
+function buildImageDataUrl(part: ImageContentPart): string {
+  const mediaType = normalizeChatImageAttachmentMediaType(part.mediaType);
+  return `data:${mediaType};base64,${part.base64Data}`;
+}
+
 function buildFileDataUrl(part: FileContentPart): string {
-  return `data:${part.mediaType};base64,${part.base64Data}`;
+  const mediaType = normalizeChatFileAttachmentMediaType(part.fileName, part.mediaType);
+  return `data:${mediaType};base64,${part.base64Data}`;
 }
 
 async function mapAttachmentPart(
@@ -26,7 +36,7 @@ async function mapAttachmentPart(
     return [{
       type: "input_image",
       detail: "auto",
-      image_url: `data:${part.mediaType};base64,${part.base64Data}`,
+      image_url: buildImageDataUrl(part),
     }];
   }
 

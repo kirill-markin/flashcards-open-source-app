@@ -733,6 +733,7 @@ const arCatalog: TranslationCatalog = {
     },
     alerts: {
       attachmentLimit: "الرسالة كبيرة جدًا. لا يمكن لدردشة الذكاء الاصطناعي إرسال هذا القدر من المحتوى دفعة واحدة. أزل مرفقًا واحدًا أو أكثر، أو اختر ملفًا أو صورة أصغر، أو قسّم الطلب ثم حاول مرة أخرى.",
+      attachmentUnsupported: "نوع الملف هذا غير مدعوم في دردشة الذكاء الاصطناعي. أزل الملف أو احفظه كـ PDF أو TXT أو CSV أو JSON أو XML أو Markdown أو HTML أو Python أو JavaScript أو TypeScript أو YAML أو XLS/XLSX أو DOCX أو صورة، ثم حاول مرة أخرى.",
       microphoneUnavailable: "تسجيل الميكروفون غير متاح في هذا المتصفح.",
     },
     composerPlaceholder: "اسأل عن البطاقات أو سجل المراجعة أو أرفق ملاحظات...",

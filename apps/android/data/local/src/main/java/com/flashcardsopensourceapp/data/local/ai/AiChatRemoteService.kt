@@ -40,6 +40,7 @@ import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMod
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.network.awaitOkHttpResponse
 import com.flashcardsopensourceapp.data.local.model.aiChatEffortLevelWireValue
+import com.flashcardsopensourceapp.data.local.model.aiChatAttachmentUnsupportedTypeCode
 import com.flashcardsopensourceapp.data.local.model.aiChatMaximumStartRunRequestBytes
 import com.flashcardsopensourceapp.data.local.model.aiChatRequestTooLargeCode
 import kotlinx.coroutines.CancellationException
@@ -82,6 +83,7 @@ private val expectedAiChatHttpFailureCodes: Set<String> = setOf(
     "CHAT_LIVE_NOT_FOUND",
     "CHAT_LIVE_RUN_ID_REQUIRED",
     "CHAT_LIVE_SESSION_ID_REQUIRED",
+    "CHAT_ATTACHMENT_UNSUPPORTED_TYPE",
     "CHAT_REQUEST_TOO_LARGE",
     "CHAT_SESSION_ID_CONFLICT",
     "CHAT_TRANSCRIPTION_FILE_EMPTY",
@@ -174,6 +176,11 @@ fun isAiChatRequestTooLargeRemoteError(error: AiChatRemoteException): Boolean {
     }
 
     return error.code?.trim()?.uppercase() == aiChatRequestTooLargeCode
+}
+
+fun isAiChatAttachmentUnsupportedTypeRemoteError(error: AiChatRemoteException): Boolean {
+    return error.statusCode == 400
+        && error.code?.trim()?.uppercase() == aiChatAttachmentUnsupportedTypeCode
 }
 
 private fun encodeAiChatStartRunRequestPayload(request: AiChatStartRunRequest): JSONObject {

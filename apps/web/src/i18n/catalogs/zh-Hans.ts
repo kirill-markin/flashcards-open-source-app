@@ -733,6 +733,7 @@ export const zhHansCatalog = {
     },
     alerts: {
       attachmentLimit: "消息太大。AI 聊天无法一次发送这么多内容。请移除一个或多个附件，选择更小的文件或照片，或拆分请求后重试。",
+      attachmentUnsupported: "AI 聊天不支持此文件类型。请移除该文件，或将其另存为 PDF、TXT、CSV、JSON、XML、Markdown、HTML、Python、JavaScript、TypeScript、YAML、XLS/XLSX、DOCX 或图片，然后重试。",
       microphoneUnavailable: "此浏览器不支持麦克风录音。",
     },
     composerPlaceholder: "询问卡片、复习历史，或附加笔记以供提取...",

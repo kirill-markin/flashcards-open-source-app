@@ -39,6 +39,8 @@
 "ai.error.title" = "错误";
 "ai.error.requestTooLarge.title" = "消息太大";
 "ai.error.requestTooLarge.message" = "AI 聊天一次无法发送这么多内容。请移除一个或多个附件，选择更小的文件或照片，或拆分请求后重试。";
+"ai.error.attachmentUnsupported.title" = "不支持的文件类型";
+"ai.error.attachmentUnsupported.message" = "AI 聊天不支持此文件类型。请移除该文件，或将其另存为 PDF、TXT、CSV、JSON、XML、Markdown、HTML、Python、JavaScript、TypeScript、YAML、XLS/XLSX、DOCX 或图片，然后重试。";
 "ai.error.summary.couldNotContinue" = "无法继续 AI 回复";
 "ai.error.summary.invalidResponse" = "收到无效的 AI 响应";
 "ai.error.summary.configuration" = "AI配置错误";

@@ -731,6 +731,7 @@ const enCatalog = {
     },
     alerts: {
       attachmentLimit: "Message is too large. AI chat can’t send this much content at once. Remove one or more attachments, choose a smaller file or photo, or split the request and try again.",
+      attachmentUnsupported: "This file type is not supported for AI chat. Remove the file or save it as PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, or an image, then try again.",
       microphoneUnavailable: "Microphone recording is unavailable in this browser.",
     },
     composerPlaceholder: "Ask about cards, review history, or attach notes...",

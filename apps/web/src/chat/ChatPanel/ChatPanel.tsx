@@ -84,6 +84,7 @@ export function ChatPanel(props: Props): ReactElement {
   const attachmentLimitMessage = t("chatPanel.alerts.attachmentLimit", {
     count: formatNumber(USER_VISIBLE_ATTACHMENT_LIMIT_MB),
   });
+  const attachmentUnsupportedMessage = t("chatPanel.alerts.attachmentUnsupported");
   const {
     beginResizeDrag,
     isDragging,
@@ -170,6 +171,7 @@ export function ChatPanel(props: Props): ReactElement {
     removeAttachment,
   } = useChatAttachments({
     attachmentLimitMessage,
+    attachmentUnsupportedMessage,
     canAttachDraftFiles,
     currentSessionId,
     draftInputText,

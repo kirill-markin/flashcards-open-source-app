@@ -110,6 +110,8 @@
     <string name="ai_selected_file_type_unsupported">Selected file type is unsupported.</string>
     <string name="ai_selected_file_type_unsupported_with_extension">Unsupported file type: .%1$s</string>
     <string name="ai_attachment_too_large">File is too large. Maximum allowed size is 3 MB.</string>
+    <string name="ai_attachment_unsupported_title">Unsupported file type</string>
+    <string name="ai_attachment_unsupported_message">This file type is not supported for AI chat. Remove the file or save it as PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, or an image, then try again.</string>
     <string name="ai_request_too_large_title">Message is too large</string>
     <string name="ai_request_too_large_message">AI chat can’t send this much content at once. Remove one or more attachments, choose a smaller file or photo, or split the request and try again.</string>
     <string name="ai_server_chat_official_unavailable">AI is temporarily unavailable on the official server. Try again later.</string>

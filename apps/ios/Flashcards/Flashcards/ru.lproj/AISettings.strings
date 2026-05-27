@@ -39,6 +39,8 @@
 "ai.error.title" = "Ошибка";
 "ai.error.requestTooLarge.title" = "Сообщение слишком большое";
 "ai.error.requestTooLarge.message" = "AI-чат не может отправить столько содержимого за один раз. Удалите одно или несколько вложений, выберите файл или фото меньшего размера либо разделите запрос и повторите попытку.";
+"ai.error.attachmentUnsupported.title" = "Неподдерживаемый тип файла";
+"ai.error.attachmentUnsupported.message" = "Этот тип файла не поддерживается в AI-чате. Удалите файл или сохраните его как PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX или изображение, затем попробуйте снова.";
 "ai.error.summary.couldNotContinue" = "Не удалось продолжить ответ ИИ";
 "ai.error.summary.invalidResponse" = "Получен неверный ответ AI";
 "ai.error.summary.configuration" = "Ошибка конфигурации ИИ";
