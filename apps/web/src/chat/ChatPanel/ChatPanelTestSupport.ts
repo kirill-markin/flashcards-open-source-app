@@ -1,4 +1,4 @@
-import { act, createElement, useEffect } from "react";
+import { StrictMode, act, createElement, useEffect, type ReactNode } from "react";
 import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, expect, vi } from "vitest";
 import { I18nProvider, useI18n } from "../../i18n";
@@ -193,6 +193,8 @@ type ChatPanelTestHarness = Readonly<{
   setMobileViewport: (isMobile: boolean) => void;
   flushAsync: () => Promise<void>;
   renderChatPanel: (mode?: "sidebar" | "fullscreen") => Promise<void>;
+  renderChatPanelStrictMode: () => Promise<void>;
+  hideChatPanel: () => Promise<void>;
   setLocalePreference: (localePreference: LocalePreference) => Promise<void>;
   unmountChatPanel: () => Promise<void>;
   sendMessage: (text: string) => Promise<void>;
@@ -756,27 +758,42 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     return null;
   }
 
-  async function renderChatPanel(mode: "sidebar" | "fullscreen" = "fullscreen"): Promise<void> {
+  async function renderChatPanelShell(panel: ReactNode, shouldUseStrictMode: boolean): Promise<void> {
     expect(root).not.toBeNull();
     await act(async () => {
-      root?.render(
+      const providerTree = createElement(
+        I18nProvider,
+        null,
         createElement(
-          I18nProvider,
+          ChatSessionControllerProvider,
           null,
           createElement(
-            ChatSessionControllerProvider,
+            ChatDraftProvider,
             null,
-            createElement(
-              ChatDraftProvider,
-              null,
-              createElement(LocalePreferenceProbe),
-              createElement(ChatPanel, { key: mode, mode }),
-            ),
+            createElement(LocalePreferenceProbe),
+            panel,
           ),
         ),
       );
+      root?.render(
+        shouldUseStrictMode
+          ? createElement(StrictMode, null, providerTree)
+          : providerTree,
+      );
       await Promise.resolve();
     });
+  }
+
+  async function renderChatPanel(mode: "sidebar" | "fullscreen" = "fullscreen"): Promise<void> {
+    await renderChatPanelShell(createElement(ChatPanel, { key: mode, mode }), false);
+  }
+
+  async function renderChatPanelStrictMode(): Promise<void> {
+    await renderChatPanelShell(createElement(ChatPanel, { key: "strict-fullscreen", mode: "fullscreen" }), true);
+  }
+
+  async function hideChatPanel(): Promise<void> {
+    await renderChatPanelShell(null, false);
   }
 
   async function setLocalePreference(localePreference: LocalePreference): Promise<void> {
@@ -871,6 +888,8 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     setMobileViewport,
     flushAsync,
     renderChatPanel,
+    renderChatPanelStrictMode,
+    hideChatPanel,
     setLocalePreference,
     unmountChatPanel,
     sendMessage,

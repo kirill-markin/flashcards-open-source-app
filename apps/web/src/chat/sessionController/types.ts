@@ -34,12 +34,12 @@ export type SendChatMessageParams = Readonly<{
   clientRequestId: string;
   text: string;
   attachments: ReadonlyArray<PendingAttachment>;
+  onSessionDraftTargetReady: (sessionId: string) => number | null;
 }>;
 
-export type SendChatMessageResult = Readonly<{
-  accepted: boolean;
-  sessionId: string | null;
-}>;
+export type SendChatMessageResult =
+  | Readonly<{ status: "accepted"; accepted: true; sessionId: string }>
+  | Readonly<{ status: "rejected" | "stale"; accepted: false; sessionId: string | null }>;
 
 export type ChatSessionController = Readonly<{
   messages: ReadonlyArray<StoredMessage>;

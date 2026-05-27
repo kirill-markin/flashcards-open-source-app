@@ -96,7 +96,7 @@ export type ChatSessionSnapshotSync = Readonly<{
     snapshot: ChatSessionSnapshot,
     resumeAttemptId: number | null,
   ) => void;
-  reconcileTerminalSnapshot: () => void;
+  reconcileTerminalSnapshot: (sessionId: string | null) => void;
   markRunHadToolCallsFromSnapshot: (
     activeRun: ChatActiveRun | null,
     messages: ReadonlyArray<ChatSessionHistoryMessage>,
@@ -456,7 +456,7 @@ export function useChatSessionSnapshotSync(
   const activeToolRunPostSyncPromiseRef = useRef<Promise<void> | null>(null);
   const liveCursorRef = useRef<string | null>(null);
   const resumeAttemptCounterRef = useRef<number>(0);
-  const reconcileTerminalSnapshotRef = useRef<() => void>(() => {});
+  const reconcileTerminalSnapshotRef = useRef<(sessionId: string | null) => void>(() => {});
   const pendingToolRunPostSyncRef = useRef<boolean>(state.pendingToolRunPostSync);
 
   const runtimeRefs: ChatSessionSnapshotRuntimeRefs = {
@@ -471,33 +471,16 @@ export function useChatSessionSnapshotSync(
     liveCursorRef,
   };
 
+  currentWorkspaceIdRef.current = workspaceId;
+  currentSessionIdRef.current = state.currentSessionId;
+  runStateRef.current = state.runState;
+  messagesRef.current = messages;
+  chatConfigRef.current = state.chatConfig;
+  pendingToolRunPostSyncRef.current = state.pendingToolRunPostSync;
+
   const debugLog = useCallback((event: string, details: ChatDebugDetails): void => {
     logChatControllerDebug(controllerId, event, details);
   }, [controllerId]);
-
-  useEffect(() => {
-    currentWorkspaceIdRef.current = workspaceId;
-  }, [workspaceId]);
-
-  useEffect(() => {
-    currentSessionIdRef.current = state.currentSessionId;
-  }, [state.currentSessionId]);
-
-  useEffect(() => {
-    runStateRef.current = state.runState;
-  }, [state.runState]);
-
-  useEffect(() => {
-    messagesRef.current = messages;
-  }, [messages]);
-
-  useEffect(() => {
-    chatConfigRef.current = state.chatConfig;
-  }, [state.chatConfig]);
-
-  useEffect(() => {
-    pendingToolRunPostSyncRef.current = state.pendingToolRunPostSync;
-  }, [state.pendingToolRunPostSync]);
 
   const setKnownLiveCursor = useCallback((cursor: string | null): void => {
     liveCursorRef.current = cursor;
@@ -624,7 +607,7 @@ export function useChatSessionSnapshotSync(
         event.isStopped,
       );
       if (didFinish === false) {
-        reconcileTerminalSnapshotRef.current();
+        reconcileTerminalSnapshotRef.current(event.sessionId);
         return;
       }
 
@@ -639,6 +622,7 @@ export function useChatSessionSnapshotSync(
         type: "snapshot_applied",
         sessionId: state.currentSessionId ?? event.sessionId,
         runState: runStateRef.current,
+        activeRunId: activeRunIdRef.current,
         mainContentInvalidationVersion: state.mainContentInvalidationVersion,
         composerSuggestions: event.suggestions,
         chatConfig: chatConfigRef.current,
@@ -653,7 +637,7 @@ export function useChatSessionSnapshotSync(
     setKnownActiveRunId(null);
 
     if (event.outcome === "reset_required") {
-      reconcileTerminalSnapshotRef.current();
+      reconcileTerminalSnapshotRef.current(event.sessionId);
       return;
     }
 
@@ -858,6 +842,7 @@ export function useChatSessionSnapshotSync(
         type: "snapshot_applied",
         sessionId: snapshot.sessionId,
         runState: nextRunState,
+        activeRunId: snapshot.activeRun?.runId ?? null,
         // Keep the server invalidation version in controller state for snapshot
         // parity and warm-start persistence even though AI-triggered refreshes
         // now come only from tool-call detection + terminal run completion.
@@ -878,6 +863,7 @@ export function useChatSessionSnapshotSync(
       }
 
       if (shouldReplaceVisibleMessages) {
+        messagesRef.current = snapshot.conversation.messages;
         replaceMessages(snapshot.conversation.messages);
       }
 
@@ -897,6 +883,10 @@ export function useChatSessionSnapshotSync(
       });
       return snapshot;
     } catch (error) {
+      if (requestVersion !== snapshotRequestVersionRef.current) {
+        return null;
+      }
+
       debugLog("snapshot_request_failed", {
         workspaceId,
         currentSessionId: sessionId,
@@ -946,20 +936,15 @@ export function useChatSessionSnapshotSync(
     startActiveRunLiveStream(snapshot.sessionId, snapshot.activeRun, resumeAttemptId);
   }, [detachLiveStream, startActiveRunLiveStream]);
 
-  const reconcileTerminalSnapshot = useCallback((): void => {
-    if (workspaceId === null || isRemoteReady === false) {
+  const reconcileTerminalSnapshot = useCallback((sessionId: string | null): void => {
+    if (workspaceId === null || isRemoteReady === false || sessionId === null) {
       return;
     }
 
     void (async (): Promise<void> => {
       try {
-        const currentSessionId = currentSessionIdRef.current;
-        if (currentSessionId === null) {
-          return;
-        }
-
         const snapshot = await loadAndApplySnapshot(
-          currentSessionId,
+          sessionId,
           true,
           "terminal_reconcile",
           null,
