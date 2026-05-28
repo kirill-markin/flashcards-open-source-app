@@ -4,13 +4,15 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.navigation
 import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionLottieConfigurationStore
 import kotlinx.coroutines.CoroutineScope
 
 internal fun NavGraphBuilder.registerSettingsNavGraph(
     appGraph: AppGraph,
     navController: NavHostController,
     packageInfo: AppPackageInfo,
-    coroutineScope: CoroutineScope
+    coroutineScope: CoroutineScope,
+    reviewReactionLottieConfigurationStore: ReviewReactionLottieConfigurationStore
 ) {
     navigation(
         startDestination = SettingsDestination.route,
@@ -20,7 +22,8 @@ internal fun NavGraphBuilder.registerSettingsNavGraph(
             appGraph = appGraph,
             navController = navController,
             packageInfo = packageInfo,
-            coroutineScope = coroutineScope
+            coroutineScope = coroutineScope,
+            reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore
         )
         registerSettingsWorkspaceNavGraph(
             appGraph = appGraph,

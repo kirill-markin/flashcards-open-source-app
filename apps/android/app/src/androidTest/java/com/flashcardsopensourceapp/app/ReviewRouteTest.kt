@@ -21,6 +21,7 @@ import com.flashcardsopensourceapp.feature.review.ReviewRoute
 import com.flashcardsopensourceapp.feature.review.ReviewUiState
 import com.flashcardsopensourceapp.feature.review.reviewProgressBadgeTag
 import com.flashcardsopensourceapp.feature.review.reviewQueueButtonTag
+import com.flashcardsopensourceapp.feature.review.reaction.rememberReviewReactionLottieConfigurationStore
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -52,6 +53,8 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
 
         composeRule.setContent {
             FlashcardsTheme {
+                val reviewReactionLottieConfigurationStore =
+                    rememberReviewReactionLottieConfigurationStore()
                 ReviewRoute(
                     uiState = ReviewUiState(
                         isLoading = false,
@@ -81,6 +84,7 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         isNotificationPermissionPromptVisible = false,
                         isHardAnswerReminderVisible = false
                     ),
+                    reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore,
                     onSelectFilter = {},
                     onOpenPreview = {
                         openPreviewCalls += 1
