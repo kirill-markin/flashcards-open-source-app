@@ -7,10 +7,15 @@ import {
   createCard,
   createDecks,
   loadReviewQueueSnapshotMock,
+  reviewReactionLottieLoadAnimationMock,
   reviewStylesContain,
   setTextFieldValueAsync,
   setupReviewScreenTest,
 } from "../testSupport/ReviewScreenTestSupport";
+import {
+  isReviewReactionLottieAssetReady,
+  reviewReactionLottieVariants,
+} from "../reactions/reviewReactionLottie";
 
 const {
   dispatchDocumentKeydown,
@@ -21,7 +26,14 @@ const {
   revealAnswer,
 } = setupReviewScreenTest();
 
-async function flushReviewScreenMicrotasks(): Promise<void> {
+async function waitForReviewReactionLottieTestPrewarm(): Promise<void> {
+  await vi.waitFor(() => {
+    expect(reviewReactionLottieVariants.every((variant) => isReviewReactionLottieAssetReady(variant))).toBe(true);
+  });
+  expect(reviewReactionLottieLoadAnimationMock).toHaveBeenCalled();
+}
+
+async function flushReviewScreenPromises(): Promise<void> {
   await act(async () => {
     await Promise.resolve();
     await Promise.resolve();
@@ -124,6 +136,7 @@ describe("ReviewScreen controls", () => {
     });
 
     await renderReviewScreen();
+    await waitForReviewReactionLottieTestPrewarm();
     await revealAnswer();
 
     const goodButton = getContainer().querySelector("[data-testid='review-rate-good']");
@@ -132,7 +145,7 @@ describe("ReviewScreen controls", () => {
     }
 
     await clickElementAsync(goodButton);
-    await flushReviewScreenMicrotasks();
+    await flushReviewScreenPromises();
 
     const reactionLayer = getContainer().querySelector("[data-testid='review-rating-reaction-layer']");
     if (!(reactionLayer instanceof HTMLElement)) {
@@ -145,6 +158,7 @@ describe("ReviewScreen controls", () => {
 
     expect(reactionLayer.getAttribute("aria-hidden")).toBe("true");
     expect(getContainer().querySelectorAll("[data-testid='review-rating-reaction-event']")).toHaveLength(1);
+    expect(getContainer().querySelector(".review-rating-reaction-crown-fallback-art")).toBeNull();
     expect(state.appData.submitReviewItem).toHaveBeenCalledWith("card-reaction-first", 2);
     expect(reviewPane.getAttribute("data-review-current-card-id")).toBe("card-reaction-second");
     expect(getContainer().textContent).toContain("Second reaction question");
@@ -170,6 +184,7 @@ describe("ReviewScreen controls", () => {
     });
 
     await renderReviewScreen();
+    await waitForReviewReactionLottieTestPrewarm();
 
     for (let index = 0; index < 4; index += 1) {
       await revealAnswer();
@@ -179,7 +194,7 @@ describe("ReviewScreen controls", () => {
       }
 
       await clickElementAsync(goodButton);
-      await flushReviewScreenMicrotasks();
+      await flushReviewScreenPromises();
     }
 
     expect(getContainer().querySelectorAll("[data-testid='review-rating-reaction-event']")).toHaveLength(3);

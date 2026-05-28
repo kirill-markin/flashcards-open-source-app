@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactElement } from "react";
 import { type TranslationKey, type TranslationValues, useI18n } from "../../i18n";
 import { settingsTestAnimationsRoute } from "../../routes";
 import {
@@ -19,7 +19,11 @@ import {
 import { ReviewRatingReactionLayer } from "../review/reactions/ReviewRatingReactionLayer";
 import {
   isReviewReactionLottieVariant,
+  loadReviewReactionLottieAsset,
+  releaseReviewReactionLottieRender,
+  reserveReviewReactionLottieRender,
   reviewReactionLottieFallbackVariant,
+  startReviewReactionLottiePrewarm,
 } from "../review/reactions/reviewReactionLottie";
 import { SettingsGroup, SettingsNavigationCard, SettingsShell } from "./SettingsShared";
 
@@ -112,6 +116,7 @@ function clearTrimmedReviewReactionTimers(
   for (const eventId of cleanupTimers.keys()) {
     if (!retainedEventIds.has(eventId)) {
       clearReviewReactionTimer(cleanupTimers, eventId);
+      releaseReviewReactionLottieRender(eventId);
     }
   }
 }
@@ -124,6 +129,22 @@ export function TestAnimationsScreen(): ReactElement {
   );
   const activeReviewReactionEventsRef = useRef<ReadonlyArray<ReviewReactionEvent>>([]);
   const cleanupTimersRef = useRef<Map<string, number>>(new Map<string, number>());
+  const isMountedRef = useRef<boolean>(false);
+
+  function reportTestAnimationPlaybackFailure(
+    error: unknown,
+    entry: ReviewReactionVariantDistributionEntry,
+  ): void {
+    console.warn("Review reaction test animation failed.", {
+      error,
+      rating: entry.rating,
+      variant: entry.variant,
+    });
+  }
+
+  useEffect(() => {
+    startReviewReactionLottiePrewarm();
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
@@ -143,20 +164,28 @@ export function TestAnimationsScreen(): ReactElement {
   }, []);
 
   useEffect(() => {
+    isMountedRef.current = true;
+
     return (): void => {
+      isMountedRef.current = false;
       for (const timerId of cleanupTimersRef.current.values()) {
         window.clearTimeout(timerId);
       }
       cleanupTimersRef.current.clear();
+      for (const event of activeReviewReactionEventsRef.current) {
+        releaseReviewReactionLottieRender(event.id);
+      }
+      activeReviewReactionEventsRef.current = [];
     };
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     clearTrimmedReviewReactionTimers(cleanupTimersRef.current, activeReviewReactionEvents);
   }, [activeReviewReactionEvents]);
 
   const removeReviewReactionEvent = useCallback((eventId: string): void => {
     clearReviewReactionTimer(cleanupTimersRef.current, eventId);
+    releaseReviewReactionLottieRender(eventId);
     setActiveReviewReactionEvents((currentEvents) => {
       const nextEvents = currentEvents.filter((activeEvent) => activeEvent.id !== eventId);
       activeReviewReactionEventsRef.current = nextEvents;
@@ -181,7 +210,9 @@ export function TestAnimationsScreen(): ReactElement {
     }
 
     clearReviewReactionTimer(cleanupTimersRef.current, eventId);
-    scheduleReviewReactionEventCleanup(eventId, reviewReactionLottieFallbackVariant);
+    releaseReviewReactionLottieRender(eventId);
+    const fallbackEventId = crypto.randomUUID();
+    scheduleReviewReactionEventCleanup(fallbackEventId, reviewReactionLottieFallbackVariant);
     setActiveReviewReactionEvents((currentEvents) => {
       const nextEvents = currentEvents.map((activeEvent) => {
         if (activeEvent.id !== eventId || !isReviewReactionLottieVariant(activeEvent.variant)) {
@@ -190,6 +221,7 @@ export function TestAnimationsScreen(): ReactElement {
 
         return {
           ...activeEvent,
+          id: fallbackEventId,
           variant: reviewReactionLottieFallbackVariant,
         };
       });
@@ -198,9 +230,39 @@ export function TestAnimationsScreen(): ReactElement {
     });
   }, [scheduleReviewReactionEventCleanup]);
 
-  function playAnimation(entry: ReviewReactionVariantDistributionEntry): void {
+  async function reserveTestAnimationRender(
+    eventId: string,
+    variant: ReviewReactionVariantDistributionEntry["variant"],
+  ): Promise<void> {
+    if (!isReviewReactionLottieVariant(variant)) {
+      throw new Error(`Test animation variant ${variant} is not a Lottie variant.`);
+    }
+    if (reserveReviewReactionLottieRender(eventId, variant)) {
+      return;
+    }
+
+    await loadReviewReactionLottieAsset(variant);
+    if (reserveReviewReactionLottieRender(eventId, variant)) {
+      return;
+    }
+
+    throw new Error(`Test animation variant ${variant} was not available after prewarm.`);
+  }
+
+  async function playAnimation(entry: ReviewReactionVariantDistributionEntry): Promise<void> {
+    if (!isReviewReactionLottieVariant(entry.variant)) {
+      throw new Error(`Test animation entry ${entry.id} is not a Lottie variant.`);
+    }
+
+    const eventId = crypto.randomUUID();
+    await reserveTestAnimationRender(eventId, entry.variant);
+    if (!isMountedRef.current) {
+      releaseReviewReactionLottieRender(eventId);
+      return;
+    }
+
     const event: ReviewReactionEvent = {
-      id: crypto.randomUUID(),
+      id: eventId,
       rating: entry.rating,
       variant: entry.variant,
     };
@@ -237,7 +299,11 @@ export function TestAnimationsScreen(): ReactElement {
                   data-review-reaction-rating={entry.rating}
                   data-review-reaction-variant={entry.variant}
                   data-testid="test-animation-row"
-                  onClick={() => playAnimation(entry)}
+                  onClick={() => {
+                    void playAnimation(entry).catch((error: unknown) => {
+                      reportTestAnimationPlaybackFailure(error, entry);
+                    });
+                  }}
                 >
                   <span className="settings-test-animation-name">{entry.variant}</span>
                   <span className="badge">

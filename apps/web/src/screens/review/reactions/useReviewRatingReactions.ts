@@ -1,19 +1,26 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   appendReviewReactionEvent,
   makeReviewReactionRating,
   matchesReducedReviewReactionMotion,
   reviewReactionCleanupDelayMillis,
   reviewReactionMaximumActiveEvents,
+  reviewReactionVariantDistributionEntries,
   reviewReactionVariantTotalWeight,
   reducedReviewReactionMotionMediaQuery,
   selectReviewReactionVariant,
   type ReviewReactionEvent,
   type ReviewReactionMotionMode,
+  type ReviewReactionRating,
   type ReviewReactionRenderableVariant,
+  type ReviewReactionVariant,
+  type ReviewReactionVariantDistributionEntry,
 } from "./reviewReaction";
 import {
+  isReviewReactionLottieAssetReady,
   isReviewReactionLottieVariant,
+  releaseReviewReactionLottieRender,
+  reserveReviewReactionLottieRender,
   reviewReactionLottieFallbackVariant,
 } from "./reviewReactionLottie";
 
@@ -44,8 +51,91 @@ function clearTrimmedReviewReactionTimers(
   for (const eventId of cleanupTimers.keys()) {
     if (!retainedEventIds.has(eventId)) {
       clearReviewReactionTimer(cleanupTimers, eventId);
+      releaseReviewReactionLottieRender(eventId);
     }
   }
+}
+
+function reviewReactionDistributionEntryTotalWeight(
+  rating: ReviewReactionRating,
+  entries: ReadonlyArray<ReviewReactionVariantDistributionEntry>,
+): number {
+  if (entries.length === 0) {
+    throw new Error(`Review reaction ready distribution is missing rating ${rating}.`);
+  }
+
+  let totalWeight = 0;
+  for (const entry of entries) {
+    if (!Number.isInteger(entry.weight) || entry.weight <= 0) {
+      throw new RangeError(`Invalid review reaction ready weight for ${entry.id}: ${entry.weight}`);
+    }
+    totalWeight += entry.weight;
+  }
+
+  return totalWeight;
+}
+
+function selectReviewReactionVariantFromEntries(
+  rating: ReviewReactionRating,
+  entries: ReadonlyArray<ReviewReactionVariantDistributionEntry>,
+  roll: number,
+): ReviewReactionVariant {
+  const totalWeight = reviewReactionDistributionEntryTotalWeight(rating, entries);
+  if (!Number.isInteger(roll) || roll < 0 || roll >= totalWeight) {
+    throw new RangeError(`Review reaction ready roll must be an integer in 0...${totalWeight - 1}, received ${roll}.`);
+  }
+
+  let cumulativeWeight = 0;
+  for (const entry of entries) {
+    cumulativeWeight += entry.weight;
+    if (roll < cumulativeWeight) {
+      return entry.variant;
+    }
+  }
+
+  throw new Error(`Review reaction ready distribution is missing rating ${rating} roll ${roll}.`);
+}
+
+function readyReviewReactionVariantDistributionEntries(
+  rating: ReviewReactionRating,
+): ReadonlyArray<ReviewReactionVariantDistributionEntry> {
+  return reviewReactionVariantDistributionEntries(rating).filter((entry) => (
+    isReviewReactionLottieVariant(entry.variant) && isReviewReactionLottieAssetReady(entry.variant)
+  ));
+}
+
+function reserveReviewReactionEventVariant(
+  eventId: string,
+  rating: ReviewReactionRating,
+  selectedVariant: ReviewReactionVariant,
+): ReviewReactionVariant | null {
+  if (
+    isReviewReactionLottieVariant(selectedVariant)
+    && isReviewReactionLottieAssetReady(selectedVariant)
+    && reserveReviewReactionLottieRender(eventId, selectedVariant)
+  ) {
+    return selectedVariant;
+  }
+
+  const readyEntries = readyReviewReactionVariantDistributionEntries(rating);
+  if (readyEntries.length === 0) {
+    return null;
+  }
+
+  const totalWeight = reviewReactionDistributionEntryTotalWeight(rating, readyEntries);
+  const readyVariant = selectReviewReactionVariantFromEntries(
+    rating,
+    readyEntries,
+    Math.floor(Math.random() * totalWeight),
+  );
+  if (!isReviewReactionLottieVariant(readyVariant)) {
+    throw new Error(`Review reaction ready variant ${readyVariant} is not a Lottie variant.`);
+  }
+  if (!reserveReviewReactionLottieRender(eventId, readyVariant)) {
+    return null;
+  }
+
+  return readyVariant;
 }
 
 export function useReviewRatingReactions(): UseReviewRatingReactionsResult {
@@ -77,15 +167,20 @@ export function useReviewRatingReactions(): UseReviewRatingReactionsResult {
         window.clearTimeout(timerId);
       }
       cleanupTimersRef.current.clear();
+      for (const event of eventsRef.current) {
+        releaseReviewReactionLottieRender(event.id);
+      }
+      eventsRef.current = [];
     };
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     clearTrimmedReviewReactionTimers(cleanupTimersRef.current, events);
   }, [events]);
 
   const removeReactionEvent = useCallback((eventId: string): void => {
     clearReviewReactionTimer(cleanupTimersRef.current, eventId);
+    releaseReviewReactionLottieRender(eventId);
     setEvents((currentEvents) => {
       const nextEvents = currentEvents.filter((activeEvent) => activeEvent.id !== eventId);
       eventsRef.current = nextEvents;
@@ -106,13 +201,24 @@ export function useReviewRatingReactions(): UseReviewRatingReactionsResult {
   const emitReaction = useCallback((rating: 0 | 1 | 2 | 3): void => {
     const reactionRating = makeReviewReactionRating(rating);
     const totalWeight = reviewReactionVariantTotalWeight(reactionRating);
+    const eventId = crypto.randomUUID();
+    const selectedVariant = selectReviewReactionVariant(
+      reactionRating,
+      Math.floor(Math.random() * totalWeight),
+    );
+    const reservedVariant = reserveReviewReactionEventVariant(
+      eventId,
+      reactionRating,
+      selectedVariant,
+    );
+    if (reservedVariant === null) {
+      return;
+    }
+
     const event: ReviewReactionEvent = {
-      id: crypto.randomUUID(),
+      id: eventId,
       rating: reactionRating,
-      variant: selectReviewReactionVariant(
-        reactionRating,
-        Math.floor(Math.random() * totalWeight),
-      ),
+      variant: reservedVariant,
     };
     scheduleReactionEventCleanup(event.id, event.variant);
 
@@ -134,7 +240,9 @@ export function useReviewRatingReactions(): UseReviewRatingReactionsResult {
     }
 
     clearReviewReactionTimer(cleanupTimersRef.current, eventId);
-    scheduleReactionEventCleanup(eventId, reviewReactionLottieFallbackVariant);
+    releaseReviewReactionLottieRender(eventId);
+    const fallbackEventId = crypto.randomUUID();
+    scheduleReactionEventCleanup(fallbackEventId, reviewReactionLottieFallbackVariant);
     setEvents((currentEvents) => {
       const nextEvents = currentEvents.map((activeEvent) => {
         if (activeEvent.id !== eventId || !isReviewReactionLottieVariant(activeEvent.variant)) {
@@ -143,6 +251,7 @@ export function useReviewRatingReactions(): UseReviewRatingReactionsResult {
 
         return {
           ...activeEvent,
+          id: fallbackEventId,
           variant: reviewReactionLottieFallbackVariant,
         };
       });
