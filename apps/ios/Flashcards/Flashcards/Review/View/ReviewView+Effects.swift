@@ -1,16 +1,41 @@
 import SwiftUI
 
 extension ReviewView {
+    func prewarmReviewReactionLottieAssets() {
+        if self.hasStartedReviewReactionLottiePrewarm {
+            return
+        }
+
+        self.hasStartedReviewReactionLottiePrewarm = true
+        startReviewReactionLottieAssetPrewarm { loadResult in
+            self.reviewReactionLottieAssetStore = self.reviewReactionLottieAssetStore.recordingLoadResult(
+                loadResult: loadResult
+            )
+        }
+    }
+
     func emitReviewReaction(rating: ReviewRating) {
         let reactionRating = makeReviewReactionRating(rating: rating)
-        let totalWeight = reviewReactionVariantTotalWeight(rating: reactionRating)
+        let availableVariants: Set<ReviewReactionVariant> = self.reviewReactionLottieAssetStore.availableVariants
+        let totalWeight: Int = reviewReactionAvailableVariantTotalWeight(
+            rating: reactionRating,
+            availableVariants: availableVariants
+        )
+        guard totalWeight > 0 else {
+            return
+        }
+        guard let variant: ReviewReactionVariant = selectAvailableReviewReactionVariant(
+            rating: reactionRating,
+            availableVariants: availableVariants,
+            roll: Int.random(in: 0..<totalWeight)
+        ) else {
+            return
+        }
+
         let event = ReviewReactionEvent(
             id: UUID(),
             rating: reactionRating,
-            variant: selectReviewReactionVariant(
-                rating: reactionRating,
-                roll: Int.random(in: 0..<totalWeight)
-            )
+            variant: variant
         )
         self.activeReviewReactionEvents = appendReviewReactionEvent(
             events: self.activeReviewReactionEvents,

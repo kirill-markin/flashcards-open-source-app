@@ -218,6 +218,60 @@ func reviewReactionVariantTotalWeight(
     return totalWeight
 }
 
+func reviewReactionReadyVariantDistributionEntries(
+    rating: ReviewReactionRating,
+    readyVariants: Set<ReviewReactionVariant>
+) -> [ReviewReactionVariantDistributionEntry] {
+    reviewReactionVariantDistributionEntries(rating: rating).filter { entry in
+        readyVariants.contains(entry.variant)
+    }
+}
+
+func reviewReactionReadyVariantTotalWeight(
+    rating: ReviewReactionRating,
+    readyVariants: Set<ReviewReactionVariant>
+) -> Int {
+    let entries: [ReviewReactionVariantDistributionEntry] = reviewReactionReadyVariantDistributionEntries(
+        rating: rating,
+        readyVariants: readyVariants
+    )
+
+    var totalWeight: Int = 0
+    for entry in entries {
+        precondition(entry.weight > 0, "Invalid review reaction weight for \(entry.id): \(entry.weight).")
+        totalWeight += entry.weight
+    }
+
+    return totalWeight
+}
+
+func reviewReactionAvailableVariantDistributionEntries(
+    rating: ReviewReactionRating,
+    availableVariants: Set<ReviewReactionVariant>
+) -> [ReviewReactionVariantDistributionEntry] {
+    reviewReactionVariantDistributionEntries(rating: rating).filter { entry in
+        availableVariants.contains(entry.variant)
+    }
+}
+
+func reviewReactionAvailableVariantTotalWeight(
+    rating: ReviewReactionRating,
+    availableVariants: Set<ReviewReactionVariant>
+) -> Int {
+    let entries: [ReviewReactionVariantDistributionEntry] = reviewReactionAvailableVariantDistributionEntries(
+        rating: rating,
+        availableVariants: availableVariants
+    )
+
+    var totalWeight: Int = 0
+    for entry in entries {
+        precondition(entry.weight > 0, "Invalid review reaction weight for \(entry.id): \(entry.weight).")
+        totalWeight += entry.weight
+    }
+
+    return totalWeight
+}
+
 func reviewReactionCleanupDelayNanoseconds(
     variant: ReviewReactionVariant,
     motionMode: ReviewReactionMotionMode
@@ -253,6 +307,66 @@ func selectReviewReactionVariant(
     }
 
     preconditionFailure("Review reaction distribution is missing rating \(rating.debugIdentifier) roll \(roll).")
+}
+
+func selectReadyReviewReactionVariant(
+    rating: ReviewReactionRating,
+    readyVariants: Set<ReviewReactionVariant>,
+    roll: Int
+) -> ReviewReactionVariant? {
+    let entries: [ReviewReactionVariantDistributionEntry] = reviewReactionReadyVariantDistributionEntries(
+        rating: rating,
+        readyVariants: readyVariants
+    )
+    guard entries.isEmpty == false else {
+        return nil
+    }
+
+    let totalWeight: Int = reviewReactionReadyVariantTotalWeight(
+        rating: rating,
+        readyVariants: readyVariants
+    )
+    precondition((0..<totalWeight).contains(roll), "Ready review reaction roll must be in 0..<\(totalWeight), received \(roll).")
+
+    var cumulativeWeight: Int = 0
+    for entry in entries {
+        cumulativeWeight += entry.weight
+        if roll < cumulativeWeight {
+            return entry.variant
+        }
+    }
+
+    preconditionFailure("Ready review reaction distribution is missing rating \(rating.debugIdentifier) roll \(roll).")
+}
+
+func selectAvailableReviewReactionVariant(
+    rating: ReviewReactionRating,
+    availableVariants: Set<ReviewReactionVariant>,
+    roll: Int
+) -> ReviewReactionVariant? {
+    let entries: [ReviewReactionVariantDistributionEntry] = reviewReactionAvailableVariantDistributionEntries(
+        rating: rating,
+        availableVariants: availableVariants
+    )
+    guard entries.isEmpty == false else {
+        return nil
+    }
+
+    let totalWeight: Int = reviewReactionAvailableVariantTotalWeight(
+        rating: rating,
+        availableVariants: availableVariants
+    )
+    precondition((0..<totalWeight).contains(roll), "Available review reaction roll must be in 0..<\(totalWeight), received \(roll).")
+
+    var cumulativeWeight: Int = 0
+    for entry in entries {
+        cumulativeWeight += entry.weight
+        if roll < cumulativeWeight {
+            return entry.variant
+        }
+    }
+
+    preconditionFailure("Available review reaction distribution is missing rating \(rating.debugIdentifier) roll \(roll).")
 }
 
 func makeReviewReactionRating(rating: ReviewRating) -> ReviewReactionRating {

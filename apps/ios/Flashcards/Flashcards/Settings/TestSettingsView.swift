@@ -21,6 +21,8 @@ struct TestSettingsView: View {
 }
 
 struct TestAnimationsView: View {
+    @State private var hasStartedReviewReactionLottiePrewarm: Bool = false
+    @State private var reviewReactionLottieAssetStore: ReviewReactionLottieAssetStore = makePendingReviewReactionLottieAssetStore()
     @State private var activeReviewReactionEvents: [ReviewReactionEvent] = []
 
     var body: some View {
@@ -29,6 +31,7 @@ struct TestAnimationsView: View {
                 ForEach(ReviewReactionRating.allCases, id: \.self) { rating in
                     Section(localizedReviewReactionRatingTitle(rating: rating)) {
                         ForEach(reviewReactionVariantDistributionEntries(rating: rating)) { entry in
+                            let assetStatus: ReviewReactionLottieAssetStatus = self.assetStatus(entry: entry)
                             Button {
                                 self.playAnimation(entry: entry)
                             } label: {
@@ -39,12 +42,13 @@ struct TestAnimationsView: View {
 
                                     Spacer(minLength: 0)
 
-                                    Text(testAnimationProbabilityText(entry: entry))
+                                    Text(testAnimationDetailText(entry: entry, assetStatus: assetStatus))
                                         .font(.subheadline.monospacedDigit())
                                         .foregroundStyle(.secondary)
                                 }
                             }
-                            .accessibilityLabel(testAnimationAccessibilityLabel(entry: entry))
+                            .disabled(assetStatus == .pending)
+                            .accessibilityLabel(testAnimationAccessibilityLabel(entry: entry, assetStatus: assetStatus))
                         }
                     }
                 }
@@ -54,13 +58,34 @@ struct TestAnimationsView: View {
 
             ReviewReactionLayer(
                 events: self.activeReviewReactionEvents,
+                lottieAssetStore: self.reviewReactionLottieAssetStore,
                 onEventFinished: self.removeFinishedReviewReactionEvent(eventId:)
             )
         }
         .navigationTitle(aiSettingsLocalized("settings.test.animations.title", "Animations"))
+        .onAppear {
+            self.prewarmReviewReactionLottieAssets()
+        }
+    }
+
+    private func prewarmReviewReactionLottieAssets() {
+        if self.hasStartedReviewReactionLottiePrewarm {
+            return
+        }
+
+        self.hasStartedReviewReactionLottiePrewarm = true
+        startReviewReactionLottieAssetPrewarm { loadResult in
+            self.reviewReactionLottieAssetStore = self.reviewReactionLottieAssetStore.recordingLoadResult(
+                loadResult: loadResult
+            )
+        }
     }
 
     private func playAnimation(entry: ReviewReactionVariantDistributionEntry) {
+        guard self.assetStatus(entry: entry) != .pending else {
+            return
+        }
+
         let event = ReviewReactionEvent(
             id: UUID(),
             rating: entry.rating,
@@ -77,6 +102,13 @@ struct TestAnimationsView: View {
         self.activeReviewReactionEvents = self.activeReviewReactionEvents.filter { activeEvent in
             activeEvent.id != eventId
         }
+    }
+
+    private func assetStatus(entry: ReviewReactionVariantDistributionEntry) -> ReviewReactionLottieAssetStatus {
+        reviewReactionLottieAssetStatus(
+            variant: entry.variant,
+            readiness: self.reviewReactionLottieAssetStore.readiness
+        )
     }
 }
 
@@ -102,12 +134,27 @@ private func testAnimationProbabilityText(entry: ReviewReactionVariantDistributi
     )
 }
 
-private func testAnimationAccessibilityLabel(entry: ReviewReactionVariantDistributionEntry) -> String {
+private func testAnimationDetailText(
+    entry: ReviewReactionVariantDistributionEntry,
+    assetStatus: ReviewReactionLottieAssetStatus
+) -> String {
+    switch assetStatus {
+    case .pending:
+        return aiSettingsLocalized("common.loading", "Loading...")
+    case .ready, .failed, .notLottie:
+        return testAnimationProbabilityText(entry: entry)
+    }
+}
+
+private func testAnimationAccessibilityLabel(
+    entry: ReviewReactionVariantDistributionEntry,
+    assetStatus: ReviewReactionLottieAssetStatus
+) -> String {
     aiSettingsLocalizedFormat(
         "settings.test.animations.playAccessibility",
         "Play %@ animation, %@",
         entry.variant.debugIdentifier,
-        testAnimationProbabilityText(entry: entry)
+        testAnimationDetailText(entry: entry, assetStatus: assetStatus)
     )
 }
 
