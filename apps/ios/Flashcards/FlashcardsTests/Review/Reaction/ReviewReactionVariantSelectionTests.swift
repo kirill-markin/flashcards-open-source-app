@@ -85,6 +85,252 @@ final class ReviewReactionVariantSelectionTests: XCTestCase {
         }
     }
 
+    func testLottieAssetConfigurationsMatchDistributedVariants() {
+        let distributedVariants: Set<ReviewReactionVariant> = Set(
+            allReviewReactionVariantDistributionEntries.map(\.variant)
+        )
+        let configuredVariants: Set<ReviewReactionVariant> = Set(
+            reviewReactionLottieAssetConfigurations.map(\.variant)
+        )
+
+        XCTAssertEqual(configuredVariants, distributedVariants)
+    }
+
+    func testLottieAssetConfigurationNamesAreUnique() {
+        let assetNames: [String] = reviewReactionLottieAssetConfigurations.map(\.assetName)
+
+        XCTAssertEqual(Set(assetNames).count, assetNames.count)
+    }
+
+    func testLottieAssetConfigurationVariantsAreUnique() {
+        let variants: [ReviewReactionVariant] = reviewReactionLottieAssetConfigurations.map(\.variant)
+
+        XCTAssertEqual(Set(variants).count, variants.count)
+    }
+
+    func testReviewReactionLottiePrewarmAssetConfigurationsInterleaveRatingGroups() {
+        let prewarmVariants: [ReviewReactionVariant] = reviewReactionLottiePrewarmAssetConfigurations().map(\.variant)
+        let configuredVariants: [ReviewReactionVariant] = reviewReactionLottieAssetConfigurations.map(\.variant)
+
+        XCTAssertEqual(prewarmVariants.count, configuredVariants.count)
+        XCTAssertEqual(Set(prewarmVariants), Set(configuredVariants))
+        XCTAssertEqual(
+            Array(prewarmVariants.prefix(4)),
+            [.againRainCloud, .hardTiger, .goodOtter, .easySunrise]
+        )
+        XCTAssertEqual(
+            Array(prewarmVariants.dropFirst(4).prefix(4)),
+            [.againTornado, .hardTRex, .goodOwl, .easySunriseOverMountains]
+        )
+    }
+
+    func testConfiguredLottieAssetsLoad() {
+        var failedAssetMessages: [String] = []
+
+        for assetConfiguration in reviewReactionLottieAssetConfigurations {
+            let loadResult: ReviewReactionLottieAssetLoadResult = loadReviewReactionLottieAsset(
+                assetConfiguration: assetConfiguration
+            )
+            switch loadResult {
+            case .ready(let variant, _):
+                XCTAssertEqual(variant, assetConfiguration.variant)
+            case .failed(let failure):
+                failedAssetMessages.append(
+                    "\(failure.assetName): \(failure.failureReason) \(failure.message)"
+                )
+            }
+        }
+
+        XCTAssertTrue(failedAssetMessages.isEmpty, failedAssetMessages.joined(separator: "\n"))
+    }
+
+    func testReadyVariantSelectionPreservesBoundariesWhenAllRatingVariantsAreReady() {
+        for distribution in expectedReviewReactionDistributions {
+            let readyVariants: Set<ReviewReactionVariant> = Set(distribution.entries.map(\.variant))
+            var startRoll: Int = 0
+            for entry in distribution.entries {
+                let endRoll: Int = startRoll + entry.weight - 1
+                XCTAssertEqual(
+                    selectReadyReviewReactionVariant(
+                        rating: distribution.rating,
+                        readyVariants: readyVariants,
+                        roll: startRoll
+                    ),
+                    entry.variant
+                )
+                XCTAssertEqual(
+                    selectReadyReviewReactionVariant(
+                        rating: distribution.rating,
+                        readyVariants: readyVariants,
+                        roll: endRoll
+                    ),
+                    entry.variant
+                )
+                startRoll += entry.weight
+            }
+        }
+    }
+
+    func testReadyVariantSelectionReturnsNilWhenRatingHasNoReadyVariants() {
+        let readyVariants: Set<ReviewReactionVariant> = [.hardTiger, .goodOwl, .easySunrise]
+
+        XCTAssertEqual(
+            reviewReactionReadyVariantTotalWeight(
+                rating: .again,
+                readyVariants: readyVariants
+            ),
+            0
+        )
+        XCTAssertNil(
+            selectReadyReviewReactionVariant(
+                rating: .again,
+                readyVariants: readyVariants,
+                roll: 0
+            )
+        )
+    }
+
+    func testReadyVariantSelectionUsesReadySameRatingVariantWhenHigherWeightVariantIsPending() {
+        let readyVariants: Set<ReviewReactionVariant> = [.goodOwl]
+
+        XCTAssertEqual(
+            reviewReactionReadyVariantTotalWeight(
+                rating: .good,
+                readyVariants: readyVariants
+            ),
+            28
+        )
+        XCTAssertEqual(
+            selectReadyReviewReactionVariant(
+                rating: .good,
+                readyVariants: readyVariants,
+                roll: 0
+            ),
+            .goodOwl
+        )
+        XCTAssertEqual(
+            selectReadyReviewReactionVariant(
+                rating: .good,
+                readyVariants: readyVariants,
+                roll: 27
+            ),
+            .goodOwl
+        )
+    }
+
+    func testAvailableVariantSelectionPreservesBoundariesWhenAllRatingVariantsAreAvailable() {
+        for distribution in expectedReviewReactionDistributions {
+            let availableVariants: Set<ReviewReactionVariant> = Set(distribution.entries.map(\.variant))
+            var startRoll: Int = 0
+            for entry in distribution.entries {
+                let endRoll: Int = startRoll + entry.weight - 1
+                XCTAssertEqual(
+                    selectAvailableReviewReactionVariant(
+                        rating: distribution.rating,
+                        availableVariants: availableVariants,
+                        roll: startRoll
+                    ),
+                    entry.variant
+                )
+                XCTAssertEqual(
+                    selectAvailableReviewReactionVariant(
+                        rating: distribution.rating,
+                        availableVariants: availableVariants,
+                        roll: endRoll
+                    ),
+                    entry.variant
+                )
+                startRoll += entry.weight
+            }
+        }
+    }
+
+    func testAvailableVariantSelectionReturnsNilWhenRatingHasNoAvailableVariants() {
+        let availableVariants: Set<ReviewReactionVariant> = [.hardTiger, .goodOwl, .easySunrise]
+
+        XCTAssertEqual(
+            reviewReactionAvailableVariantTotalWeight(
+                rating: .again,
+                availableVariants: availableVariants
+            ),
+            0
+        )
+        XCTAssertNil(
+            selectAvailableReviewReactionVariant(
+                rating: .again,
+                availableVariants: availableVariants,
+                roll: 0
+            )
+        )
+    }
+
+    func testAvailableVariantSelectionCanChooseFailedAssetFallbackCandidate() {
+        let availableVariants: Set<ReviewReactionVariant> = [.goodOtter]
+
+        XCTAssertEqual(
+            reviewReactionAvailableVariantTotalWeight(
+                rating: .good,
+                availableVariants: availableVariants
+            ),
+            32
+        )
+        XCTAssertEqual(
+            selectAvailableReviewReactionVariant(
+                rating: .good,
+                availableVariants: availableVariants,
+                roll: 0
+            ),
+            .goodOtter
+        )
+        XCTAssertEqual(
+            selectAvailableReviewReactionVariant(
+                rating: .good,
+                availableVariants: availableVariants,
+                roll: 31
+            ),
+            .goodOtter
+        )
+    }
+
+    func testLottieAssetStoreAvailableVariantsExcludePendingVariants() {
+        let failedAsset: ReviewReactionLottieAssetFailure = ReviewReactionLottieAssetFailure(
+            variant: .goodOtter,
+            assetName: "ReviewGoodOtter",
+            assetDescription: "test asset",
+            failureReason: "decode_failed",
+            message: "test failure"
+        )
+        let store: ReviewReactionLottieAssetStore = ReviewReactionLottieAssetStore(
+            readyAnimations: [:],
+            failedAssets: [.goodOtter: failedAsset],
+            pendingVariants: [.goodOwl]
+        )
+
+        XCTAssertEqual(store.availableVariants, [.goodOtter])
+    }
+
+    func testPendingLottieAssetDoesNotUseCrownFallback() {
+        let readiness: ReviewReactionLottieAssetReadiness = ReviewReactionLottieAssetReadiness(
+            readyVariants: [],
+            pendingVariants: [.goodOtter],
+            failedVariants: []
+        )
+
+        XCTAssertEqual(reviewReactionLottieAssetStatus(variant: .goodOtter, readiness: readiness), .pending)
+        XCTAssertFalse(shouldUseReviewReactionCrownFallback(variant: .goodOtter, readiness: readiness))
+    }
+
+    func testFailedLottieAssetUsesCrownFallback() {
+        let readiness: ReviewReactionLottieAssetReadiness = ReviewReactionLottieAssetReadiness(
+            readyVariants: [],
+            pendingVariants: [],
+            failedVariants: [.goodOtter]
+        )
+
+        XCTAssertEqual(reviewReactionLottieAssetStatus(variant: .goodOtter, readiness: readiness), .failed)
+        XCTAssertTrue(shouldUseReviewReactionCrownFallback(variant: .goodOtter, readiness: readiness))
+    }
+
     func testProbabilityPercentagesUseWeights() {
         for distribution in expectedReviewReactionDistributions {
             let totalWeight = distribution.entries.reduce(0) { result, entry in

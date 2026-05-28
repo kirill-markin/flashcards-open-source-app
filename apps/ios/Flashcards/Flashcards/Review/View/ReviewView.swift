@@ -22,6 +22,8 @@ struct ReviewView: View {
     @State var preparedRevealState: PreparedReviewRevealState? = nil
     // Keep the next review card warm so the next front can appear immediately after rating.
     @State var preparedNextRevealState: PreparedReviewRevealState? = nil
+    @State var hasStartedReviewReactionLottiePrewarm: Bool = false
+    @State var reviewReactionLottieAssetStore: ReviewReactionLottieAssetStore = makePendingReviewReactionLottieAssetStore()
     @State var activeReviewReactionEvents: [ReviewReactionEvent] = []
     @State var isQueuePreviewPresented: Bool = false
     @State var isEditorPresented: Bool = false
@@ -136,11 +138,15 @@ struct ReviewView: View {
 
             ReviewReactionLayer(
                 events: self.activeReviewReactionEvents,
+                lottieAssetStore: self.reviewReactionLottieAssetStore,
                 onEventFinished: self.removeFinishedReviewReactionEvent(eventId:)
             )
         }
         .accessibilityIdentifier(UITestIdentifier.reviewScreen)
         .navigationTitle(String(localized: "Review", table: reviewCardsStringsTableName))
+        .onAppear {
+            self.prewarmReviewReactionLottieAssets()
+        }
         .onChange(of: currentCard?.cardId) { _, _ in
             isAnswerVisible = false
             self.reviewSpeechController.stopSpeech()
