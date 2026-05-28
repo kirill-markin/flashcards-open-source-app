@@ -2,6 +2,25 @@
 import { act, useEffect, type ReactElement } from "react";
 import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const {
+  readyLottieVariants,
+  releaseReviewReactionLottieRenderMock,
+  reserveReviewReactionLottieRenderMock,
+} = vi.hoisted(() => ({
+  readyLottieVariants: new Set<string>(),
+  releaseReviewReactionLottieRenderMock: vi.fn(),
+  reserveReviewReactionLottieRenderMock: vi.fn(),
+}));
+
+vi.mock("./reviewReactionLottie", () => ({
+  isReviewReactionLottieAssetReady: (variant: string): boolean => readyLottieVariants.has(variant),
+  isReviewReactionLottieVariant: (variant: string): boolean => variant !== "fallbackCrownBounce",
+  releaseReviewReactionLottieRender: releaseReviewReactionLottieRenderMock,
+  reserveReviewReactionLottieRender: reserveReviewReactionLottieRenderMock,
+  reviewReactionLottieFallbackVariant: "fallbackCrownBounce",
+}));
+
 import {
   useReviewRatingReactions,
   type UseReviewRatingReactionsResult,
@@ -22,7 +41,12 @@ function ReviewRatingReactionHarness(props: ReviewRatingReactionHarnessProps): R
   return (
     <div>
       {result.events.map((event) => (
-        <span key={event.id} data-testid="review-reaction-event" data-event-id={event.id} />
+        <span
+          key={event.id}
+          data-testid="review-reaction-event"
+          data-event-id={event.id}
+          data-event-variant={event.variant}
+        />
       ))}
     </div>
   );
@@ -35,6 +59,26 @@ describe("useReviewRatingReactions", () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
+    readyLottieVariants.clear();
+    for (const variant of [
+      "goodOtter",
+      "goodOwl",
+      "goodRabbit",
+      "goodSeal",
+      "goodServiceDog",
+      "goodPoodle",
+      "goodChimpanzee",
+      "goodWhale",
+      "goodPeacock",
+      "goodPig",
+    ]) {
+      readyLottieVariants.add(variant);
+    }
+    releaseReviewReactionLottieRenderMock.mockReset();
+    reserveReviewReactionLottieRenderMock.mockReset();
+    reserveReviewReactionLottieRenderMock.mockImplementation((_eventId: string, variant: string): boolean => (
+      readyLottieVariants.has(variant)
+    ));
     vi.spyOn(Math, "random").mockReturnValue(0.72);
     vi.spyOn(crypto, "randomUUID")
       .mockReturnValueOnce("00000000-0000-4000-8000-000000000001")
@@ -116,5 +160,42 @@ describe("useReviewRatingReactions", () => {
     });
 
     expect(requireLatestResult().events).toHaveLength(0);
+  });
+
+  it("uses a ready same-rating variant when the selected variant is not prewarmed", async () => {
+    readyLottieVariants.clear();
+    readyLottieVariants.add("goodRabbit");
+    vi.mocked(Math.random)
+      .mockReturnValueOnce(0)
+      .mockReturnValueOnce(0);
+    await renderHarness();
+
+    await act(async () => {
+      requireLatestResult().emitReaction(2);
+    });
+
+    expect(requireLatestResult().events).toEqual([
+      {
+        id: "00000000-0000-4000-8000-000000000001",
+        rating: "good",
+        variant: "goodRabbit",
+      },
+    ]);
+    expect(reserveReviewReactionLottieRenderMock).toHaveBeenCalledWith(
+      "00000000-0000-4000-8000-000000000001",
+      "goodRabbit",
+    );
+  });
+
+  it("does not emit a decorative event when the rating group has no ready variants", async () => {
+    readyLottieVariants.clear();
+    await renderHarness();
+
+    await act(async () => {
+      requireLatestResult().emitReaction(2);
+    });
+
+    expect(requireLatestResult().events).toHaveLength(0);
+    expect(reserveReviewReactionLottieRenderMock).not.toHaveBeenCalled();
   });
 });

@@ -1,4 +1,4 @@
-import type { LottiePlayer } from "lottie-web";
+import type { AnimationItem, LottiePlayer } from "lottie-web";
 import againRainCloudAnimationUrl from "../../../assets/review_again_rain_cloud.json?url";
 import againSnailCrawlAnimationUrl from "../../../assets/review_again_snail.json?url";
 import againSnowflakeAnimationUrl from "../../../assets/review_again_snowflake.json?url";
@@ -46,6 +46,9 @@ type ReviewReactionLottiePlayerModule = Readonly<{
 type ReviewReactionLottieAnimationLoader = () => Promise<object>;
 type ReviewReactionLottieAnimationDataByVariant = Record<ReviewReactionLottieVariant, object | null>;
 type ReviewReactionLottieAnimationPromiseByVariant = Record<ReviewReactionLottieVariant, Promise<object> | null>;
+type ReviewReactionLottiePreparedRenderByVariant = Record<ReviewReactionLottieVariant, ReviewReactionLottiePreparedRender | null>;
+type ReviewReactionLottiePreparedRenderPromiseByVariant = Record<ReviewReactionLottieVariant, Promise<ReviewReactionLottiePreparedRender> | null>;
+type ReviewReactionLottieFailureByVariant = Record<ReviewReactionLottieVariant, unknown | null>;
 
 export const reviewReactionLottieVariants = [
   "againRainCloud",
@@ -102,6 +105,18 @@ export type ReviewReactionLottieAssetFailure = Readonly<{
 
 export type ReviewReactionLottiePreloadResult = Readonly<{
   failures: ReadonlyArray<ReviewReactionLottieAssetFailure>;
+}>;
+
+export type ReviewReactionLottieMountedRender = Readonly<{
+  animationItem: AnimationItem;
+}>;
+
+type ReviewReactionLottiePreparedRender = Readonly<{
+  animationData: object;
+  animationItem: AnimationItem;
+  container: HTMLDivElement;
+  player: LottiePlayer;
+  variant: ReviewReactionLottieVariant;
 }>;
 
 const reviewReactionLottieVariantSet: ReadonlySet<ReviewReactionRenderableVariant> = new Set(
@@ -276,6 +291,135 @@ function makeEmptyReviewReactionLottieAnimationPromiseByVariant(): ReviewReactio
   };
 }
 
+function makeEmptyReviewReactionLottiePreparedRenderByVariant(): ReviewReactionLottiePreparedRenderByVariant {
+  return {
+    againRainCloud: null,
+    againTornado: null,
+    againWindFace: null,
+    againSnowflake: null,
+    againSnailCrawl: null,
+    againTurtle: null,
+    againWiltedFlower: null,
+    againSpider: null,
+    againRat: null,
+    againWormWiggle: null,
+    hardTiger: null,
+    hardTRex: null,
+    hardShark: null,
+    hardOxCharge: null,
+    hardRacehorseGallop: null,
+    hardSnake: null,
+    hardVolcanoEruption: null,
+    hardScorpion: null,
+    hardPawPrints: null,
+    hardRooster: null,
+    goodOtter: null,
+    goodOwl: null,
+    goodRabbit: null,
+    goodSeal: null,
+    goodServiceDog: null,
+    goodPoodle: null,
+    goodChimpanzee: null,
+    goodWhale: null,
+    goodPeacock: null,
+    goodPig: null,
+    easySunrise: null,
+    easySunriseOverMountains: null,
+    easyRoseBloom: null,
+    easyPeace: null,
+    easyPlant: null,
+    easyRainbowStreak: null,
+    easyPhoenixRise: null,
+    easyUnicornFlyby: null,
+  };
+}
+
+function makeEmptyReviewReactionLottiePreparedRenderPromiseByVariant(): ReviewReactionLottiePreparedRenderPromiseByVariant {
+  return {
+    againRainCloud: null,
+    againTornado: null,
+    againWindFace: null,
+    againSnowflake: null,
+    againSnailCrawl: null,
+    againTurtle: null,
+    againWiltedFlower: null,
+    againSpider: null,
+    againRat: null,
+    againWormWiggle: null,
+    hardTiger: null,
+    hardTRex: null,
+    hardShark: null,
+    hardOxCharge: null,
+    hardRacehorseGallop: null,
+    hardSnake: null,
+    hardVolcanoEruption: null,
+    hardScorpion: null,
+    hardPawPrints: null,
+    hardRooster: null,
+    goodOtter: null,
+    goodOwl: null,
+    goodRabbit: null,
+    goodSeal: null,
+    goodServiceDog: null,
+    goodPoodle: null,
+    goodChimpanzee: null,
+    goodWhale: null,
+    goodPeacock: null,
+    goodPig: null,
+    easySunrise: null,
+    easySunriseOverMountains: null,
+    easyRoseBloom: null,
+    easyPeace: null,
+    easyPlant: null,
+    easyRainbowStreak: null,
+    easyPhoenixRise: null,
+    easyUnicornFlyby: null,
+  };
+}
+
+function makeEmptyReviewReactionLottieFailureByVariant(): ReviewReactionLottieFailureByVariant {
+  return {
+    againRainCloud: null,
+    againTornado: null,
+    againWindFace: null,
+    againSnowflake: null,
+    againSnailCrawl: null,
+    againTurtle: null,
+    againWiltedFlower: null,
+    againSpider: null,
+    againRat: null,
+    againWormWiggle: null,
+    hardTiger: null,
+    hardTRex: null,
+    hardShark: null,
+    hardOxCharge: null,
+    hardRacehorseGallop: null,
+    hardSnake: null,
+    hardVolcanoEruption: null,
+    hardScorpion: null,
+    hardPawPrints: null,
+    hardRooster: null,
+    goodOtter: null,
+    goodOwl: null,
+    goodRabbit: null,
+    goodSeal: null,
+    goodServiceDog: null,
+    goodPoodle: null,
+    goodChimpanzee: null,
+    goodWhale: null,
+    goodPeacock: null,
+    goodPig: null,
+    easySunrise: null,
+    easySunriseOverMountains: null,
+    easyRoseBloom: null,
+    easyPeace: null,
+    easyPlant: null,
+    easyRainbowStreak: null,
+    easyPhoenixRise: null,
+    easyUnicornFlyby: null,
+  };
+}
+
 let reviewReactionLottiePlayerPromise: Promise<LottiePlayer> | null = null;
 let reviewReactionLottiePlayerReady = false;
 let reviewReactionLottieAnimationDataByVariant: ReviewReactionLottieAnimationDataByVariant = (
@@ -284,6 +428,22 @@ let reviewReactionLottieAnimationDataByVariant: ReviewReactionLottieAnimationDat
 let reviewReactionLottieAnimationPromiseByVariant: ReviewReactionLottieAnimationPromiseByVariant = (
   makeEmptyReviewReactionLottieAnimationPromiseByVariant()
 );
+let reviewReactionLottiePreparedRenderByVariant: ReviewReactionLottiePreparedRenderByVariant = (
+  makeEmptyReviewReactionLottiePreparedRenderByVariant()
+);
+let reviewReactionLottiePreparedRenderPromiseByVariant: ReviewReactionLottiePreparedRenderPromiseByVariant = (
+  makeEmptyReviewReactionLottiePreparedRenderPromiseByVariant()
+);
+let reviewReactionLottieFailureByVariant: ReviewReactionLottieFailureByVariant = (
+  makeEmptyReviewReactionLottieFailureByVariant()
+);
+let reviewReactionLottieReservedRenderByEventId: Map<string, ReviewReactionLottiePreparedRender> = (
+  new Map<string, ReviewReactionLottiePreparedRender>()
+);
+let reviewReactionLottieMountedRenderEventIds: Set<string> = new Set<string>();
+let reviewReactionLottieReleaseRequestedEventIds: Set<string> = new Set<string>();
+let reviewReactionLottieOffscreenRoot: HTMLDivElement | null = null;
+let reviewReactionLottieStateGeneration = 0;
 
 export const reviewReactionLottieFallbackVariant: ReviewReactionFallbackVariant = "fallbackCrownBounce";
 
@@ -294,14 +454,47 @@ export function isReviewReactionLottieVariant(
 }
 
 export function isReviewReactionLottieAssetReady(variant: ReviewReactionLottieVariant): boolean {
-  return reviewReactionLottiePlayerReady && reviewReactionLottieAnimationDataByVariant[variant] !== null;
+  return reviewReactionLottiePlayerReady && reviewReactionLottiePreparedRenderByVariant[variant] !== null;
+}
+
+export function reviewReactionLottieAssetFailure(variant: ReviewReactionLottieVariant): unknown | null {
+  return reviewReactionLottieFailureByVariant[variant];
 }
 
 export function resetReviewReactionLottieStateForTests(): void {
+  reviewReactionLottieStateGeneration += 1;
+  destroyReviewReactionLottiePreparedRenders(reviewReactionLottiePreparedRenderByVariant);
+  for (const preparedRender of reviewReactionLottieReservedRenderByEventId.values()) {
+    destroyReviewReactionLottiePreparedRender(preparedRender);
+  }
+  reviewReactionLottieOffscreenRoot?.remove();
+
   reviewReactionLottiePlayerPromise = null;
   reviewReactionLottiePlayerReady = false;
   reviewReactionLottieAnimationDataByVariant = makeEmptyReviewReactionLottieAnimationDataByVariant();
   reviewReactionLottieAnimationPromiseByVariant = makeEmptyReviewReactionLottieAnimationPromiseByVariant();
+  reviewReactionLottiePreparedRenderByVariant = makeEmptyReviewReactionLottiePreparedRenderByVariant();
+  reviewReactionLottiePreparedRenderPromiseByVariant = makeEmptyReviewReactionLottiePreparedRenderPromiseByVariant();
+  reviewReactionLottieFailureByVariant = makeEmptyReviewReactionLottieFailureByVariant();
+  reviewReactionLottieReservedRenderByEventId = new Map<string, ReviewReactionLottiePreparedRender>();
+  reviewReactionLottieMountedRenderEventIds = new Set<string>();
+  reviewReactionLottieReleaseRequestedEventIds = new Set<string>();
+  reviewReactionLottieOffscreenRoot = null;
+}
+
+function destroyReviewReactionLottiePreparedRenders(
+  preparedRenderByVariant: ReviewReactionLottiePreparedRenderByVariant,
+): void {
+  for (const preparedRender of Object.values(preparedRenderByVariant)) {
+    if (preparedRender !== null) {
+      destroyReviewReactionLottiePreparedRender(preparedRender);
+    }
+  }
+}
+
+function destroyReviewReactionLottiePreparedRender(preparedRender: ReviewReactionLottiePreparedRender): void {
+  preparedRender.animationItem.destroy();
+  preparedRender.container.remove();
 }
 
 function loadReviewReactionLottiePlayer(): Promise<LottiePlayer> {
@@ -309,14 +502,19 @@ function loadReviewReactionLottiePlayer(): Promise<LottiePlayer> {
     return reviewReactionLottiePlayerPromise;
   }
 
+  const generation = reviewReactionLottieStateGeneration;
   reviewReactionLottiePlayerPromise = import("lottie-web/build/player/lottie_light")
     .then((lottieModule: ReviewReactionLottiePlayerModule): LottiePlayer => {
-      reviewReactionLottiePlayerReady = true;
+      if (generation === reviewReactionLottieStateGeneration) {
+        reviewReactionLottiePlayerReady = true;
+      }
       return lottieModule.default;
     })
     .catch((error: unknown): never => {
-      reviewReactionLottiePlayerReady = false;
-      reviewReactionLottiePlayerPromise = null;
+      if (generation === reviewReactionLottieStateGeneration) {
+        reviewReactionLottiePlayerReady = false;
+        reviewReactionLottiePlayerPromise = null;
+      }
       throw error;
     });
 
@@ -411,31 +609,257 @@ function loadReviewReactionLottieAnimationData(variant: ReviewReactionLottieVari
   return animationDataPromise;
 }
 
-export async function loadReviewReactionLottieAsset(
+function requireReviewReactionLottieDocumentBody(): HTMLElement {
+  if (typeof document === "undefined" || document.body === null) {
+    throw new Error("Review reaction Lottie prewarm requires a mounted document body.");
+  }
+
+  return document.body;
+}
+
+function makeReviewReactionLottieOffscreenRoot(): HTMLDivElement {
+  const existingRoot = reviewReactionLottieOffscreenRoot;
+  if (existingRoot !== null && existingRoot.isConnected) {
+    return existingRoot;
+  }
+
+  const body = requireReviewReactionLottieDocumentBody();
+  const root = document.createElement("div");
+  root.setAttribute("aria-hidden", "true");
+  root.setAttribute("data-review-reaction-lottie-prewarm-root", "true");
+  root.style.position = "absolute";
+  root.style.width = "1px";
+  root.style.height = "1px";
+  root.style.overflow = "hidden";
+  root.style.left = "-10000px";
+  root.style.top = "-10000px";
+  root.style.opacity = "0";
+  root.style.pointerEvents = "none";
+  body.appendChild(root);
+  reviewReactionLottieOffscreenRoot = root;
+  return root;
+}
+
+function makeReviewReactionLottieOffscreenContainer(): HTMLDivElement {
+  const root = makeReviewReactionLottieOffscreenRoot();
+  const container = document.createElement("div");
+  root.appendChild(container);
+  return container;
+}
+
+function moveReviewReactionLottieRenderToOffscreenRoot(
+  preparedRender: ReviewReactionLottiePreparedRender,
+): void {
+  makeReviewReactionLottieOffscreenRoot().appendChild(preparedRender.container);
+}
+
+function makeReviewReactionLottieRenderEventError(
+  eventName: "data_failed" | "error",
   variant: ReviewReactionLottieVariant,
-): Promise<ReviewReactionLottieAsset> {
+): Error {
+  return new Error(
+    `Review reaction Lottie render instance for variant ${variant} emitted ${eventName}.`,
+  );
+}
+
+function waitForReviewReactionLottiePreparedRender(
+  animationItem: AnimationItem,
+  variant: ReviewReactionLottieVariant,
+): Promise<void> {
+  if (animationItem.isLoaded) {
+    return Promise.resolve();
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    let removeDomLoadedListener: (() => void) | null = null;
+    let removeDataFailedListener: (() => void) | null = null;
+    let removeErrorListener: (() => void) | null = null;
+    let hasSettled = false;
+
+    const removeListeners = (): void => {
+      removeDomLoadedListener?.();
+      removeDataFailedListener?.();
+      removeErrorListener?.();
+      removeDomLoadedListener = null;
+      removeDataFailedListener = null;
+      removeErrorListener = null;
+    };
+
+    const markRenderReady = (): void => {
+      if (hasSettled) {
+        return;
+      }
+
+      hasSettled = true;
+      removeListeners();
+      resolve();
+    };
+
+    const markRenderFailed = (eventName: "data_failed" | "error"): void => {
+      if (hasSettled) {
+        return;
+      }
+
+      hasSettled = true;
+      removeListeners();
+      reject(makeReviewReactionLottieRenderEventError(eventName, variant));
+    };
+
+    removeDomLoadedListener = animationItem.addEventListener("DOMLoaded", markRenderReady);
+    removeDataFailedListener = animationItem.addEventListener("data_failed", () => {
+      markRenderFailed("data_failed");
+    });
+    removeErrorListener = animationItem.addEventListener("error", () => {
+      markRenderFailed("error");
+    });
+    if (animationItem.isLoaded) {
+      markRenderReady();
+    }
+  });
+}
+
+async function makeReviewReactionLottiePreparedRender(
+  variant: ReviewReactionLottieVariant,
+): Promise<ReviewReactionLottiePreparedRender> {
   const [player, animationData] = await Promise.all([
     loadReviewReactionLottiePlayer(),
     loadReviewReactionLottieAnimationData(variant),
   ]);
+  const container = makeReviewReactionLottieOffscreenContainer();
+  let animationItem: AnimationItem;
+
+  try {
+    animationItem = player.loadAnimation({
+      container,
+      renderer: "svg",
+      loop: false,
+      autoplay: false,
+      animationData,
+    });
+  } catch (error: unknown) {
+    container.remove();
+    throw new Error(
+      `Failed to create review reaction Lottie render instance for variant ${variant}.`,
+      { cause: error },
+    );
+  }
+
+  try {
+    await waitForReviewReactionLottiePreparedRender(animationItem, variant);
+  } catch (error: unknown) {
+    animationItem.destroy();
+    container.remove();
+    throw new Error(
+      `Failed to prepare review reaction Lottie render instance for variant ${variant}.`,
+      { cause: error },
+    );
+  }
 
   return {
     animationData,
+    animationItem,
+    container,
     player,
+    variant,
   };
 }
 
-export async function loadReviewReactionLottieAssets(): Promise<ReviewReactionLottiePreloadResult> {
-  await loadReviewReactionLottiePlayer();
+function prewarmReviewReactionLottieVariant(
+  variant: ReviewReactionLottieVariant,
+): Promise<ReviewReactionLottiePreparedRender> {
+  const preparedRender = reviewReactionLottiePreparedRenderByVariant[variant];
+  if (preparedRender !== null) {
+    return Promise.resolve(preparedRender);
+  }
 
-  const settledAnimationData = await Promise.allSettled(
-    reviewReactionLottieVariants.map((variant) => loadReviewReactionLottieAnimationData(variant)),
+  const preparedRenderPromise = reviewReactionLottiePreparedRenderPromiseByVariant[variant];
+  if (preparedRenderPromise !== null) {
+    return preparedRenderPromise;
+  }
+
+  const generation = reviewReactionLottieStateGeneration;
+  const nextPreparedRenderPromise = makeReviewReactionLottiePreparedRender(variant)
+    .then((nextPreparedRender: ReviewReactionLottiePreparedRender): ReviewReactionLottiePreparedRender => {
+      if (generation !== reviewReactionLottieStateGeneration) {
+        destroyReviewReactionLottiePreparedRender(nextPreparedRender);
+        return nextPreparedRender;
+      }
+
+      reviewReactionLottiePreparedRenderByVariant = {
+        ...reviewReactionLottiePreparedRenderByVariant,
+        [variant]: nextPreparedRender,
+      };
+      reviewReactionLottiePreparedRenderPromiseByVariant = {
+        ...reviewReactionLottiePreparedRenderPromiseByVariant,
+        [variant]: null,
+      };
+      reviewReactionLottieFailureByVariant = {
+        ...reviewReactionLottieFailureByVariant,
+        [variant]: null,
+      };
+      return nextPreparedRender;
+    })
+    .catch((error: unknown): never => {
+      if (generation === reviewReactionLottieStateGeneration) {
+        reviewReactionLottiePreparedRenderByVariant = {
+          ...reviewReactionLottiePreparedRenderByVariant,
+          [variant]: null,
+        };
+        reviewReactionLottiePreparedRenderPromiseByVariant = {
+          ...reviewReactionLottiePreparedRenderPromiseByVariant,
+          [variant]: null,
+        };
+        reviewReactionLottieFailureByVariant = {
+          ...reviewReactionLottieFailureByVariant,
+          [variant]: error,
+        };
+      }
+      throw error;
+    });
+
+  reviewReactionLottiePreparedRenderPromiseByVariant = {
+    ...reviewReactionLottiePreparedRenderPromiseByVariant,
+    [variant]: nextPreparedRenderPromise,
+  };
+
+  return nextPreparedRenderPromise;
+}
+
+function reportReviewReactionLottiePrewarmFailure(
+  error: unknown,
+  variant: ReviewReactionLottieVariant | null,
+): void {
+  console.warn("Review reaction Lottie prewarm failed.", {
+    error,
+    variant,
+  });
+}
+
+function startReviewReactionLottieVariantPrewarm(variant: ReviewReactionLottieVariant): void {
+  void prewarmReviewReactionLottieVariant(variant).catch((error: unknown) => {
+    reportReviewReactionLottiePrewarmFailure(error, variant);
+  });
+}
+
+export async function loadReviewReactionLottieAsset(
+  variant: ReviewReactionLottieVariant,
+): Promise<ReviewReactionLottieAsset> {
+  const preparedRender = await prewarmReviewReactionLottieVariant(variant);
+  return {
+    animationData: preparedRender.animationData,
+    player: preparedRender.player,
+  };
+}
+
+export async function prewarmReviewReactionLottieAssets(): Promise<ReviewReactionLottiePreloadResult> {
+  const settledPreparedRenders = await Promise.allSettled(
+    reviewReactionLottieVariants.map((variant) => prewarmReviewReactionLottieVariant(variant)),
   );
   const failures: Array<ReviewReactionLottieAssetFailure> = [];
 
-  for (const [index, settledAsset] of settledAnimationData.entries()) {
-    if (settledAsset.status === "rejected") {
-      const error: unknown = settledAsset.reason;
+  for (const [index, settledPreparedRender] of settledPreparedRenders.entries()) {
+    if (settledPreparedRender.status === "rejected") {
+      const error: unknown = settledPreparedRender.reason;
       failures.push({
         error,
         variant: reviewReactionLottieVariants[index],
@@ -444,4 +868,100 @@ export async function loadReviewReactionLottieAssets(): Promise<ReviewReactionLo
   }
 
   return { failures };
+}
+
+export async function loadReviewReactionLottieAssets(): Promise<ReviewReactionLottiePreloadResult> {
+  return prewarmReviewReactionLottieAssets();
+}
+
+export function startReviewReactionLottiePrewarm(): void {
+  void prewarmReviewReactionLottieAssets()
+    .then((result: ReviewReactionLottiePreloadResult): void => {
+      for (const failure of result.failures) {
+        reportReviewReactionLottiePrewarmFailure(failure.error, failure.variant);
+      }
+    })
+    .catch((error: unknown): void => {
+      reportReviewReactionLottiePrewarmFailure(error, null);
+    });
+}
+
+export function reserveReviewReactionLottieRender(
+  eventId: string,
+  variant: ReviewReactionLottieVariant,
+): boolean {
+  if (reviewReactionLottieReservedRenderByEventId.has(eventId)) {
+    throw new Error(`Review reaction Lottie render reservation already exists for event ${eventId}.`);
+  }
+
+  const preparedRender = reviewReactionLottiePreparedRenderByVariant[variant];
+  if (preparedRender === null) {
+    return false;
+  }
+
+  reviewReactionLottiePreparedRenderByVariant = {
+    ...reviewReactionLottiePreparedRenderByVariant,
+    [variant]: null,
+  };
+  reviewReactionLottieReservedRenderByEventId.set(eventId, preparedRender);
+  startReviewReactionLottieVariantPrewarm(variant);
+  return true;
+}
+
+export function mountReservedReviewReactionLottieRender(
+  eventId: string,
+  variant: ReviewReactionLottieVariant,
+  container: HTMLDivElement,
+): ReviewReactionLottieMountedRender {
+  const preparedRender = reviewReactionLottieReservedRenderByEventId.get(eventId);
+  if (preparedRender === undefined) {
+    throw new Error(`Review reaction Lottie render reservation is missing for event ${eventId} variant ${variant}.`);
+  }
+  if (preparedRender.variant !== variant) {
+    throw new Error(
+      `Review reaction Lottie render reservation for event ${eventId} expected variant ${variant}, `
+        + `received ${preparedRender.variant}.`,
+    );
+  }
+
+  container.appendChild(preparedRender.container);
+  reviewReactionLottieMountedRenderEventIds.add(eventId);
+  return {
+    animationItem: preparedRender.animationItem,
+  };
+}
+
+export function unmountReservedReviewReactionLottieRender(eventId: string): void {
+  const preparedRender = reviewReactionLottieReservedRenderByEventId.get(eventId);
+  if (preparedRender === undefined) {
+    return;
+  }
+
+  reviewReactionLottieMountedRenderEventIds.delete(eventId);
+  if (reviewReactionLottieReleaseRequestedEventIds.has(eventId)) {
+    reviewReactionLottieReleaseRequestedEventIds.delete(eventId);
+    reviewReactionLottieReservedRenderByEventId.delete(eventId);
+    destroyReviewReactionLottiePreparedRender(preparedRender);
+    return;
+  }
+
+  moveReviewReactionLottieRenderToOffscreenRoot(preparedRender);
+}
+
+export function releaseReviewReactionLottieRender(eventId: string): void {
+  const preparedRender = reviewReactionLottieReservedRenderByEventId.get(eventId);
+  if (preparedRender === undefined) {
+    reviewReactionLottieMountedRenderEventIds.delete(eventId);
+    reviewReactionLottieReleaseRequestedEventIds.delete(eventId);
+    return;
+  }
+
+  if (reviewReactionLottieMountedRenderEventIds.has(eventId)) {
+    reviewReactionLottieReleaseRequestedEventIds.add(eventId);
+    return;
+  }
+
+  reviewReactionLottieReservedRenderByEventId.delete(eventId);
+  reviewReactionLottieReleaseRequestedEventIds.delete(eventId);
+  destroyReviewReactionLottiePreparedRender(preparedRender);
 }

@@ -12,6 +12,7 @@ import {
 } from "./reviewReaction";
 import { ReviewRatingReactionLayer } from "./ReviewRatingReactionLayer";
 import {
+  loadReviewReactionLottieAsset,
   loadReviewReactionLottieAssets,
   reviewReactionLottieFallbackVariant,
   resetReviewReactionLottieStateForTests,
@@ -134,6 +135,58 @@ function makeDeferredReviewReactionLottieResponse(): DeferredReviewReactionLotti
   };
 }
 
+function makeLoadedReviewReactionLottieAnimationItem(): object {
+  return {
+    addEventListener: vi.fn((_eventName: string, _listener: () => void): (() => void) => vi.fn()),
+    destroy: vi.fn(),
+    goToAndStop: vi.fn(),
+    isLoaded: true,
+    play: vi.fn(),
+    setSpeed: vi.fn(),
+    totalFrames: 100,
+  };
+}
+
+function makeFailingPlaybackReviewReactionLottieAnimationItem(): object {
+  const listenersByEventName = new Map<string, Array<() => void>>();
+  let isDestroyed = false;
+  const emitEvent = (eventName: string): void => {
+    for (const listener of listenersByEventName.get(eventName) ?? []) {
+      listener();
+    }
+  };
+
+  return {
+    addEventListener: vi.fn((eventName: string, listener: () => void): (() => void) => {
+      const listeners = listenersByEventName.get(eventName) ?? [];
+      listeners.push(listener);
+      listenersByEventName.set(eventName, listeners);
+      return () => {
+        if (isDestroyed) {
+          throw new Error("Lottie listener was removed after destroy.");
+        }
+
+        listenersByEventName.set(
+          eventName,
+          listeners.filter((existingListener) => existingListener !== listener),
+        );
+      };
+    }),
+    destroy: vi.fn(() => {
+      isDestroyed = true;
+    }),
+    goToAndStop: vi.fn(() => {
+      emitEvent("error");
+    }),
+    isLoaded: true,
+    play: vi.fn(() => {
+      emitEvent("error");
+    }),
+    setSpeed: vi.fn(),
+    totalFrames: 100,
+  };
+}
+
 describe("ReviewRatingReactionLayer Lottie fallback", () => {
   let container: HTMLDivElement | null = null;
   let root: ReactDOM.Root | null = null;
@@ -143,14 +196,15 @@ describe("ReviewRatingReactionLayer Lottie fallback", () => {
     vi.useFakeTimers();
     resetReviewReactionLottieStateForTests();
     loadAnimationMock.mockReset();
-    loadAnimationMock.mockImplementation(() => {
-      throw new Error("Lottie render failed.");
-    });
+    loadAnimationMock.mockImplementation(() => makeLoadedReviewReactionLottieAnimationItem());
     vi.stubGlobal("fetch", vi.fn((_input: RequestInfo | URL): Promise<Response> => (
       Promise.resolve(makeReviewReactionLottieResponse())
     )));
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    vi.spyOn(crypto, "randomUUID").mockReturnValue("00000000-0000-4000-8000-000000000101");
+    vi.spyOn(crypto, "randomUUID")
+      .mockReturnValueOnce("00000000-0000-4000-8000-000000000101")
+      .mockReturnValueOnce("00000000-0000-4000-8000-000000000102")
+      .mockReturnValue("00000000-0000-4000-8000-000000000103");
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
     container = document.createElement("div");
@@ -217,6 +271,15 @@ describe("ReviewRatingReactionLayer Lottie fallback", () => {
     return eventElement;
   }
 
+  function queryReactionEventElement(): HTMLElement | null {
+    const currentContainer = container;
+    if (currentContainer === null) {
+      throw new Error("Review reaction test container is not ready.");
+    }
+
+    return currentContainer.querySelector<HTMLElement>("[data-testid='review-rating-reaction-event']");
+  }
+
   function queryCrownFallbackArtElement(): SVGSVGElement | null {
     const currentContainer = container;
     if (currentContainer === null) {
@@ -235,7 +298,7 @@ describe("ReviewRatingReactionLayer Lottie fallback", () => {
     return fallbackArtElement;
   }
 
-  async function emitReactionAfterLottieRenderFailure(
+  async function emitReactionAfterLottiePlaybackFailure(
     rating: 0 | 1 | 2 | 3,
     randomValue: number,
   ): Promise<void> {
@@ -246,25 +309,11 @@ describe("ReviewRatingReactionLayer Lottie fallback", () => {
     });
   }
 
-  it("shows the crown fallback while a cold Lottie asset is still loading", async () => {
+  it("does not show the crown fallback while a cold Lottie asset is still loading", async () => {
     installReviewReactionMotionPreference(false);
     const deferredResponse = makeDeferredReviewReactionLottieResponse();
-    let emitDomLoaded: (() => void) | null = null;
-
     vi.mocked(fetch).mockImplementation((_input: RequestInfo | URL): Promise<Response> => deferredResponse.promise);
-    loadAnimationMock.mockImplementation(() => ({
-      addEventListener: vi.fn((_eventName: string, listener: () => void): (() => void) => {
-        emitDomLoaded = listener;
-        return () => {
-          emitDomLoaded = null;
-        };
-      }),
-      destroy: vi.fn(),
-      goToAndStop: vi.fn(),
-      isLoaded: false,
-      setSpeed: vi.fn(),
-      totalFrames: 100,
-    }));
+    const loadingAssetPromise = loadReviewReactionLottieAsset("easySunrise");
 
     await renderHarness({ shouldPreloadLottieAssets: false });
 
@@ -274,47 +323,35 @@ describe("ReviewRatingReactionLayer Lottie fallback", () => {
       await flushReactionPromises();
     });
 
-    expect(requireReactionEventElement().dataset.reviewReactionVariant).toBe("easySunrise");
-    expect(requireCrownFallbackArtElement()).toBeInstanceOf(SVGSVGElement);
+    expect(requireLatestResult().events).toHaveLength(0);
+    expect(queryReactionEventElement()).toBeNull();
+    expect(queryCrownFallbackArtElement()).toBeNull();
     expect(loadAnimationMock).not.toHaveBeenCalled();
 
     deferredResponse.resolve(makeReviewReactionLottieResponse());
     await act(async () => {
+      await loadingAssetPromise;
       await flushReactionPromises();
     });
-
-    expect(loadAnimationMock).toHaveBeenCalledTimes(1);
-    expect(requireCrownFallbackArtElement()).toBeInstanceOf(SVGSVGElement);
-
-    const currentEmitDomLoaded = emitDomLoaded;
-    if (currentEmitDomLoaded === null) {
-      throw new Error("Review reaction Lottie DOMLoaded listener was not registered.");
-    }
-
-    await act(async () => {
-      currentEmitDomLoaded();
-      await flushReactionPromises();
-    });
-
-    expect(queryCrownFallbackArtElement()).toBeNull();
   });
 
   for (const expectation of lottieFailureExpectations) {
-    it(`converts ${expectation.variant} render failures to the crown fallback duration`, async () => {
+    it(`converts ${expectation.variant} playback error events to the crown fallback duration`, async () => {
       installReviewReactionMotionPreference(false);
+      loadAnimationMock.mockImplementation(() => makeFailingPlaybackReviewReactionLottieAnimationItem());
       await renderHarness({ shouldPreloadLottieAssets: true });
 
-      await emitReactionAfterLottieRenderFailure(expectation.rating, expectation.randomValue);
+      await emitReactionAfterLottiePlaybackFailure(expectation.rating, expectation.randomValue);
 
-      expect(loadAnimationMock).toHaveBeenCalledTimes(1);
       expect(requireLatestResult().events).toEqual([
         {
-          id: "00000000-0000-4000-8000-000000000101",
+          id: "00000000-0000-4000-8000-000000000102",
           rating: makeReviewReactionRating(expectation.rating),
           variant: reviewReactionLottieFallbackVariant,
         },
       ]);
       expect(requireReactionEventElement().dataset.reviewReactionVariant).toBe(reviewReactionLottieFallbackVariant);
+      expect(requireCrownFallbackArtElement()).toBeInstanceOf(SVGSVGElement);
 
       await act(async () => {
         vi.advanceTimersByTime(1729);
@@ -330,11 +367,12 @@ describe("ReviewRatingReactionLayer Lottie fallback", () => {
     });
   }
 
-  it("keeps reduced-motion cleanup at 400ms after Lottie render fallback", async () => {
+  it("keeps reduced-motion cleanup at 400ms after Lottie playback error fallback", async () => {
     installReviewReactionMotionPreference(true);
+    loadAnimationMock.mockImplementation(() => makeFailingPlaybackReviewReactionLottieAnimationItem());
     await renderHarness({ shouldPreloadLottieAssets: true });
 
-    await emitReactionAfterLottieRenderFailure(3, 0.5);
+    await emitReactionAfterLottiePlaybackFailure(3, 0.5);
 
     expect(requireReactionEventElement().dataset.reviewReactionVariant).toBe(reviewReactionLottieFallbackVariant);
 

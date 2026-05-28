@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactElement } from "react";
+import { useEffect, useRef, type CSSProperties, type ReactElement } from "react";
 import type { AnimationItem } from "lottie-web";
 import {
   matchesReducedReviewReactionMotion,
@@ -8,8 +8,9 @@ import {
 } from "./reviewReaction";
 import {
   isReviewReactionLottieVariant,
-  loadReviewReactionLottieAsset,
+  mountReservedReviewReactionLottieRender,
   reviewReactionLottieFallbackVariant,
+  unmountReservedReviewReactionLottieRender,
   type ReviewReactionLottieVariant,
 } from "./reviewReactionLottie";
 
@@ -24,7 +25,7 @@ type ReviewReactionStyle = CSSProperties & Readonly<{
 
 const reviewReactionLottieReducedMotionProgress: number = 0.55;
 
-type ReviewReactionLottieFailurePhase = "render";
+type ReviewReactionLottieFailurePhase = "render" | "playback";
 type ReviewReactionLottieContainerClassMap = Readonly<Record<ReviewReactionLottieVariant, string>>;
 
 const reviewReactionLottieContainerClassByVariant: ReviewReactionLottieContainerClassMap = {
@@ -169,20 +170,12 @@ function EasyCrownBounceReaction(): ReactElement {
   );
 }
 
-function ReviewReactionCrownFallbackArt(): ReactElement {
-  return (
-    <svg className="review-rating-reaction-art review-rating-reaction-crown-fallback-art" viewBox="0 0 100 100" focusable="false">
-      {renderReviewReactionVariant(reviewReactionLottieFallbackVariant)}
-    </svg>
-  );
-}
-
 function reportReviewReactionLottieFailure(
   error: unknown,
   phase: ReviewReactionLottieFailurePhase,
   variant: ReviewReactionLottieVariant | null,
 ): void {
-  console.warn("Review reaction Lottie asset failed to load.", {
+  console.warn("Review reaction Lottie render failed.", {
     error,
     phase,
     variant,
@@ -198,11 +191,8 @@ type ReviewReactionLottieAnimationProps = Readonly<{
 function ReviewReactionLottieAnimation(props: ReviewReactionLottieAnimationProps): ReactElement {
   const { eventId, onReactionEventFallback, variant } = props;
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [isAnimationReady, setIsAnimationReady] = useState<boolean>(false);
 
   useEffect(() => {
-    setIsAnimationReady(false);
-
     const mountedContainer = containerRef.current;
     if (mountedContainer === null) {
       reportReviewReactionLottieFailure(
@@ -213,75 +203,59 @@ function ReviewReactionLottieAnimation(props: ReviewReactionLottieAnimationProps
       onReactionEventFallback(eventId);
       return;
     }
-    const container: HTMLDivElement = mountedContainer;
 
-    let animationItem: AnimationItem | null = null;
-    let removeDomLoadedListener: (() => void) | null = null;
-    let isCancelled = false;
-    let hasMarkedAnimationReady = false;
-
-    async function loadReviewReactionLottieAnimation(): Promise<void> {
-      const asset = await loadReviewReactionLottieAsset(variant);
-
-      if (isCancelled) {
-        return;
-      }
-
-      const isReducedMotionEnabled = matchesReducedReviewReactionMotion();
-      const nextAnimationItem = asset.player.loadAnimation({
-        container,
-        renderer: "svg",
-        loop: false,
-        autoplay: !isReducedMotionEnabled,
-        animationData: asset.animationData,
-      });
-
-      animationItem = nextAnimationItem;
-      nextAnimationItem.setSpeed(reviewReactionLottiePlaybackSpeed(variant));
-
-      const markAnimationReady = (): void => {
-        if (isCancelled || hasMarkedAnimationReady) {
-          return;
-        }
-
-        hasMarkedAnimationReady = true;
-        if (isReducedMotionEnabled) {
-          nextAnimationItem.goToAndStop(
-            nextAnimationItem.totalFrames * reviewReactionLottieReducedMotionProgress,
-            true,
-          );
-        }
-
-        setIsAnimationReady(true);
-      };
-
-      removeDomLoadedListener = nextAnimationItem.addEventListener("DOMLoaded", markAnimationReady);
-      if (nextAnimationItem.isLoaded) {
-        markAnimationReady();
-      }
-    }
-
-    void loadReviewReactionLottieAnimation().catch((error: unknown) => {
-      if (isCancelled) {
-        return;
-      }
-
+    let animationItem: AnimationItem;
+    try {
+      animationItem = mountReservedReviewReactionLottieRender(eventId, variant, mountedContainer).animationItem;
+    } catch (error: unknown) {
       reportReviewReactionLottieFailure(error, "render", variant);
       onReactionEventFallback(eventId);
+      return;
+    }
+
+    let hasReportedFailure = false;
+    const handlePlaybackFailure = (error: unknown): void => {
+      if (hasReportedFailure) {
+        return;
+      }
+
+      hasReportedFailure = true;
+      reportReviewReactionLottieFailure(error, "playback", variant);
+      onReactionEventFallback(eventId);
+    };
+    const removeErrorListener = animationItem.addEventListener("error", () => {
+      handlePlaybackFailure(new Error(`Review reaction Lottie playback emitted error for variant ${variant}.`));
+    });
+    const removeDataFailedListener = animationItem.addEventListener("data_failed", () => {
+      handlePlaybackFailure(new Error(`Review reaction Lottie playback emitted data_failed for variant ${variant}.`));
     });
 
+    try {
+      animationItem.setSpeed(reviewReactionLottiePlaybackSpeed(variant));
+      if (matchesReducedReviewReactionMotion()) {
+        animationItem.goToAndStop(
+          animationItem.totalFrames * reviewReactionLottieReducedMotionProgress,
+          true,
+        );
+      } else {
+        animationItem.goToAndStop(0, true);
+        if (!hasReportedFailure) {
+          animationItem.play();
+        }
+      }
+    } catch (error: unknown) {
+      handlePlaybackFailure(error);
+    }
+
     return () => {
-      isCancelled = true;
-      removeDomLoadedListener?.();
-      animationItem?.destroy();
+      removeErrorListener();
+      removeDataFailedListener();
+      unmountReservedReviewReactionLottieRender(eventId);
     };
   }, [eventId, onReactionEventFallback, variant]);
 
   return (
-    <>
-      {isAnimationReady ? null : <ReviewReactionCrownFallbackArt />}
-      <div ref={containerRef} className={reviewReactionLottieContainerClassByVariant[variant]} />
-    </>
+    <div ref={containerRef} className={reviewReactionLottieContainerClassByVariant[variant]} />
   );
 }
 
@@ -349,8 +323,12 @@ function renderReviewReactionArt(
     );
   }
 
+  const artClassName = variant === reviewReactionLottieFallbackVariant
+    ? "review-rating-reaction-art review-rating-reaction-crown-fallback-art"
+    : "review-rating-reaction-art";
+
   return (
-    <svg className="review-rating-reaction-art" viewBox="0 0 100 100" focusable="false">
+    <svg className={artClassName} viewBox="0 0 100 100" focusable="false">
       {renderReviewReactionVariant(variant)}
     </svg>
   );
