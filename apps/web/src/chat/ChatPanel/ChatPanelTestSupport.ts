@@ -270,6 +270,14 @@ export function createChatSnapshot(
   };
 }
 
+export function createChatSessionIdConflictError(): Error {
+  return new ApiErrorMock(
+    409,
+    "Requested chat session id is already in use.",
+    "CHAT_SESSION_ID_CONFLICT",
+  );
+}
+
 export function setTextareaValue(textarea: HTMLTextAreaElement, value: string): void {
   const descriptor = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value");
   descriptor?.set?.call(textarea, value);
