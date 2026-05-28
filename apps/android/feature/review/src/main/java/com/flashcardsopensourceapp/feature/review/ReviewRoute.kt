@@ -2,7 +2,6 @@ package com.flashcardsopensourceapp.feature.review
 
 import androidx.compose.material3.AlertDialog
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,9 +27,10 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionEvent
+import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionLottieConfigurationStore
 import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionOverlay
 import com.flashcardsopensourceapp.feature.review.reaction.appendReviewReactionEvent
-import com.flashcardsopensourceapp.feature.review.reaction.makeRandomReviewReactionEvent
+import com.flashcardsopensourceapp.feature.review.reaction.makeRandomReadyReviewReactionEvent
 import com.flashcardsopensourceapp.feature.review.reaction.reviewReactionMaximumActiveEvents
 import com.flashcardsopensourceapp.feature.review.reaction.reviewReactionMotionModeFromAnimatorSettings
 import java.util.Locale
@@ -39,6 +39,7 @@ import java.util.Locale
 @Composable
 fun ReviewRoute(
     uiState: ReviewUiState,
+    reviewReactionLottieConfigurationStore: ReviewReactionLottieConfigurationStore,
     onSelectFilter: (ReviewFilter) -> Unit,
     onOpenPreview: () -> Unit,
     onOpenCurrentCard: (String) -> Unit,
@@ -85,9 +86,14 @@ fun ReviewRoute(
         )
     }
     fun emitReviewReaction(rating: ReviewRating): Unit {
+        val event: ReviewReactionEvent = makeRandomReadyReviewReactionEvent(
+            rating = rating,
+            configurationStore = reviewReactionLottieConfigurationStore
+        ) ?: return
+
         activeReviewReactionEvents = appendReviewReactionEvent(
             events = activeReviewReactionEvents,
-            event = makeRandomReviewReactionEvent(rating = rating),
+            event = event,
             maximumActiveEvents = reviewReactionMaximumActiveEvents
         )
     }
@@ -240,6 +246,7 @@ fun ReviewRoute(
                 modifier = Modifier.matchParentSize(),
                 events = activeReviewReactionEvents,
                 motionMode = reviewReactionMotionMode,
+                configurationStore = reviewReactionLottieConfigurationStore,
                 onEventFinished = { eventId ->
                     activeReviewReactionEvents = activeReviewReactionEvents.filter { event ->
                         event.id != eventId

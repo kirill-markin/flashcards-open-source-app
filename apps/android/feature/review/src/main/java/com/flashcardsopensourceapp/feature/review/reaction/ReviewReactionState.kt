@@ -215,6 +215,80 @@ internal fun selectReviewReactionVariant(
     )
 }
 
+internal fun selectReadyReviewReactionVariant(
+    rating: ReviewRating,
+    preferredVariant: ReviewReactionVariant,
+    readyVariants: Set<ReviewReactionVariant>,
+    replacementRoll: Int
+): ReviewReactionVariant? {
+    val readyEntries: List<ReviewReactionVariantDistributionEntry> =
+        reviewReactionReadyDistributionEntries(
+            rating = rating,
+            readyVariants = readyVariants
+        )
+    val hasReadyPreferredVariant: Boolean = readyEntries.any { entry: ReviewReactionVariantDistributionEntry ->
+        entry.variant == preferredVariant
+    }
+    if (hasReadyPreferredVariant) {
+        return preferredVariant
+    }
+
+    if (readyEntries.isEmpty()) {
+        return null
+    }
+
+    val totalReadyWeight: Int = readyEntries.sumOf { entry: ReviewReactionVariantDistributionEntry ->
+        entry.weight
+    }
+    require(replacementRoll in 0 until totalReadyWeight) {
+        "Review reaction replacement roll must be in 0 until $totalReadyWeight, received $replacementRoll."
+    }
+
+    var cumulativeWeight = 0
+    for (entry in readyEntries) {
+        cumulativeWeight += entry.weight
+        if (replacementRoll < cumulativeWeight) {
+            return entry.variant
+        }
+    }
+
+    error(
+        "Ready review reaction distribution is missing a variant. " +
+            "rating=${rating.reviewReactionDebugIdentifier} replacementRoll=$replacementRoll"
+    )
+}
+
+private fun reviewReactionReadyDistributionEntries(
+    rating: ReviewRating,
+    readyVariants: Set<ReviewReactionVariant>
+): List<ReviewReactionVariantDistributionEntry> {
+    return reviewReactionVariantDistributionEntries(rating = rating)
+        .filter { entry: ReviewReactionVariantDistributionEntry ->
+            entry.variant in readyVariants
+        }
+}
+
+internal fun makeReviewReactionEventForReadyVariants(
+    id: String,
+    rating: ReviewRating,
+    preferredVariant: ReviewReactionVariant,
+    readyVariants: Set<ReviewReactionVariant>,
+    replacementRoll: Int
+): ReviewReactionEvent? {
+    val variant: ReviewReactionVariant = selectReadyReviewReactionVariant(
+        rating = rating,
+        preferredVariant = preferredVariant,
+        readyVariants = readyVariants,
+        replacementRoll = replacementRoll
+    ) ?: return null
+
+    return ReviewReactionEvent(
+        id = id,
+        rating = rating,
+        variant = variant
+    )
+}
+
 internal fun appendReviewReactionEvent(
     events: List<ReviewReactionEvent>,
     event: ReviewReactionEvent,
@@ -240,13 +314,47 @@ internal fun reviewReactionMotionModeFromAnimatorSettings(): ReviewReactionMotio
     }
 }
 
-internal fun makeRandomReviewReactionEvent(rating: ReviewRating): ReviewReactionEvent {
+internal fun makeRandomReadyReviewReactionEvent(
+    rating: ReviewRating,
+    configurationStore: ReviewReactionLottieConfigurationStore
+): ReviewReactionEvent? {
     val totalWeight: Int = reviewReactionVariantTotalWeight(rating = rating)
-    val roll: Int = Random.nextInt(from = 0, until = totalWeight)
-    return ReviewReactionEvent(
+    val preferredRoll: Int = Random.nextInt(from = 0, until = totalWeight)
+    val preferredVariant: ReviewReactionVariant = selectReviewReactionVariant(
+        rating = rating,
+        roll = preferredRoll
+    )
+    val readyVariants: Set<ReviewReactionVariant> = reviewReactionReadyVariants(
+        rating = rating,
+        configurationStore = configurationStore
+    )
+    val readyEntries: List<ReviewReactionVariantDistributionEntry> =
+        reviewReactionReadyDistributionEntries(
+            rating = rating,
+            readyVariants = readyVariants
+        )
+    if (readyEntries.isEmpty()) {
+        return null
+    }
+
+    val isPreferredVariantReady: Boolean = readyEntries.any { entry: ReviewReactionVariantDistributionEntry ->
+        entry.variant == preferredVariant
+    }
+    val replacementRoll: Int = if (isPreferredVariantReady) {
+        0
+    } else {
+        val totalReadyWeight: Int = readyEntries.sumOf { entry: ReviewReactionVariantDistributionEntry ->
+            entry.weight
+        }
+        Random.nextInt(from = 0, until = totalReadyWeight)
+    }
+
+    return makeReviewReactionEventForReadyVariants(
         id = UUID.randomUUID().toString(),
         rating = rating,
-        variant = selectReviewReactionVariant(rating = rating, roll = roll)
+        preferredVariant = preferredVariant,
+        readyVariants = readyVariants,
+        replacementRoll = replacementRoll
     )
 }
 

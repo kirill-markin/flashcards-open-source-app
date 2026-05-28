@@ -47,6 +47,7 @@ private val testAnimationRatingOrder: List<ReviewRating> = listOf(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TestAnimationsRoute(
+    reviewReactionLottieConfigurationStore: ReviewReactionLottieConfigurationStore,
     onBack: () -> Unit
 ) {
     var activeReviewReactionEvents by remember {
@@ -117,6 +118,7 @@ fun TestAnimationsRoute(
                 modifier = Modifier.fillMaxSize(),
                 events = activeReviewReactionEvents,
                 motionMode = reviewReactionMotionMode,
+                configurationStore = reviewReactionLottieConfigurationStore,
                 onEventFinished = { eventId: String ->
                     activeReviewReactionEvents = activeReviewReactionEvents.filter { event: ReviewReactionEvent ->
                         event.id != eventId

@@ -76,6 +76,7 @@ import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersRecon
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncSource
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
+import com.flashcardsopensourceapp.feature.review.reaction.rememberReviewReactionLottieConfigurationStore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -111,6 +112,7 @@ fun FlashcardsApp(
         }
 
         val snackbarHostState = remember { SnackbarHostState() }
+        val reviewReactionLottieConfigurationStore = rememberReviewReactionLottieConfigurationStore()
         LaunchedEffect(appGraph.appMessageBus, snackbarHostState) {
             appGraph.appMessageBus.messages.collect { message ->
                 snackbarHostState.showSnackbar(message = message)
@@ -443,6 +445,7 @@ fun FlashcardsApp(
                 AppNavHost(
                     appGraph = appGraph,
                     navController = navController,
+                    reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore,
                     appNotificationTapRequest = appNotificationTapRequest,
                     consumeAppNotificationTap = consumeAppNotificationTap
                 )

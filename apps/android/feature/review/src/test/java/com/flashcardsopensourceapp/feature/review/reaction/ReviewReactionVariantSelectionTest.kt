@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.feature.review.reaction
 
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 private data class ExpectedReviewReactionDistribution(
@@ -137,6 +138,63 @@ class ReviewReactionVariantSelectionTest {
         )
 
         assertEquals(listOf(secondEvent, thirdEvent, fourthEvent), result)
+    }
+
+    @Test
+    fun pendingCompositionDoesNotUseCrownFallback() {
+        assertNull(
+            reviewReactionFallbackVariantForReadiness(
+                readiness = ReviewReactionLottieReadiness.Pending
+            )
+        )
+    }
+
+    @Test
+    fun failedCompositionUsesCrownFallback() {
+        assertEquals(
+            ReviewReactionVariant.FALLBACK_CROWN_BOUNCE,
+            reviewReactionFallbackVariantForReadiness(
+                readiness = ReviewReactionLottieReadiness.Failed(
+                    error = IllegalStateException("Missing test composition.")
+                )
+            )
+        )
+    }
+
+    @Test
+    fun readySelectionSkipsEventWhenRatingHasNoReadyVariants() {
+        assertNull(
+            makeReviewReactionEventForReadyVariants(
+                id = "reaction-1",
+                rating = ReviewRating.GOOD,
+                preferredVariant = ReviewReactionVariant.GOOD_OWL,
+                readyVariants = emptySet(),
+                replacementRoll = 0
+            )
+        )
+    }
+
+    @Test
+    fun readySelectionReplacesUnavailablePreferredVariantWithReadyVariant() {
+        val result: ReviewReactionEvent? = makeReviewReactionEventForReadyVariants(
+            id = "reaction-1",
+            rating = ReviewRating.AGAIN,
+            preferredVariant = ReviewReactionVariant.AGAIN_RAIN_CLOUD,
+            readyVariants = setOf(
+                ReviewReactionVariant.AGAIN_TURTLE,
+                ReviewReactionVariant.AGAIN_WORM_WIGGLE
+            ),
+            replacementRoll = 16
+        )
+
+        assertEquals(
+            makeTestReactionEvent(
+                id = "reaction-1",
+                rating = ReviewRating.AGAIN,
+                variant = ReviewReactionVariant.AGAIN_WORM_WIGGLE
+            ),
+            result
+        )
     }
 }
 

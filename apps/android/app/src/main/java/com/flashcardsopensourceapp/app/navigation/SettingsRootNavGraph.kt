@@ -13,6 +13,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.feature.review.reaction.TestAnimationsRoute
+import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionLottieConfigurationStore
 import com.flashcardsopensourceapp.feature.settings.SettingsRoute
 import com.flashcardsopensourceapp.feature.settings.TestSettingsRoute
 import com.flashcardsopensourceapp.feature.settings.createSettingsViewModelFactory
@@ -26,7 +27,8 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
     appGraph: AppGraph,
     navController: NavHostController,
     packageInfo: AppPackageInfo,
-    coroutineScope: CoroutineScope
+    coroutineScope: CoroutineScope,
+    reviewReactionLottieConfigurationStore: ReviewReactionLottieConfigurationStore
 ) {
     composable(route = SettingsDestination.route) { backStackEntry ->
         val context = LocalContext.current
@@ -160,6 +162,7 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
 
     composable(route = SettingsTestAnimationsDestination.route) {
         TestAnimationsRoute(
+            reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore,
             onBack = {
                 navController.popBackStack()
             }

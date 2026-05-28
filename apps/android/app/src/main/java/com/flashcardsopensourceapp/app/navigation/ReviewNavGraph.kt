@@ -21,10 +21,12 @@ import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersRecon
 import com.flashcardsopensourceapp.feature.review.ReviewPreviewRoute
 import com.flashcardsopensourceapp.feature.review.ReviewRoute
 import com.flashcardsopensourceapp.feature.review.createReviewViewModelFactory
+import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionLottieConfigurationStore
 
 internal fun NavGraphBuilder.registerReviewNavGraph(
     appGraph: AppGraph,
-    navController: NavHostController
+    navController: NavHostController,
+    reviewReactionLottieConfigurationStore: ReviewReactionLottieConfigurationStore
 ) {
     fun handleNotificationPermissionGranted() {
         appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotifications(
@@ -80,6 +82,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
 
         ReviewRoute(
             uiState = uiState,
+            reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore,
             onSelectFilter = reviewViewModel::selectFilter,
             onOpenPreview = {
                 navController.navigate(route = ReviewPreviewDestination.route)

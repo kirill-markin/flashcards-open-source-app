@@ -1,4 +1,5 @@
 package com.flashcardsopensourceapp.app.navigation
+
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -10,11 +11,13 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.notifications.AppNotificationTapType
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
+import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionLottieConfigurationStore
 
 @Composable
 fun AppNavHost(
     appGraph: AppGraph,
     navController: NavHostController,
+    reviewReactionLottieConfigurationStore: ReviewReactionLottieConfigurationStore,
     appNotificationTapRequest: AppNotificationTapHandoffRequest?,
     consumeAppNotificationTap: (Long) -> Unit
 ) {
@@ -67,7 +70,8 @@ fun AppNavHost(
     ) {
         registerReviewNavGraph(
             appGraph = appGraph,
-            navController = navController
+            navController = navController,
+            reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore
         )
         registerCardsNavGraph(
             appGraph = appGraph,
@@ -85,7 +89,8 @@ fun AppNavHost(
             appGraph = appGraph,
             navController = navController,
             packageInfo = packageInfo,
-            coroutineScope = coroutineScope
+            coroutineScope = coroutineScope,
+            reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore
         )
     }
 }
