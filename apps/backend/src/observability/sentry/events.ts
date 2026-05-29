@@ -104,6 +104,14 @@ export type SyncBootstrapDetails = Readonly<{
   platform: string;
   appVersion: string | null;
   mode: string;
+  cursorPresent: boolean | null;
+  limit: number | null;
+  entriesCount: number | null;
+  appliedEntriesCount: number | null;
+  hasMore: boolean | null;
+  nextCursorPresent: boolean | null;
+  bootstrapHotChangeId: number | null;
+  remoteIsEmpty: boolean | null;
 }>;
 
 export type SyncReviewHistoryPullDetails = Readonly<{

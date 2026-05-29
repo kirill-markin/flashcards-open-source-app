@@ -10,7 +10,7 @@ import {
   loadReviewQueueSnapshot,
   loadReviewTimelinePage,
 } from "../../../localDb/reviews";
-import { loadWorkspaceTagsSummary } from "../../../localDb/workspace";
+import { hasHydratedHotState, loadWorkspaceTagsSummary } from "../../../localDb/workspace";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
 import type {
   Card,
@@ -59,14 +59,18 @@ import {
 
 type UseReviewScreenDataParams = Readonly<{
   activeWorkspaceId: string | null;
+  appErrorMessage: string;
   getCardById: (cardId: string) => Promise<Card>;
   installationId: string | null;
+  isSyncing: boolean;
   localReadVersion: number;
   selectedReviewFilter: ReviewFilter;
   setErrorMessage: (message: string) => void;
   submitReviewItem: (cardId: string, rating: 0 | 1 | 2 | 3) => Promise<Card>;
   userId: string | null;
 }>;
+
+type LocalHotStateStatus = "loading" | "hydrated" | "unhydrated";
 
 export type ReviewSubmissionOutcome = "saved" | "failed" | "stale";
 
@@ -77,6 +81,7 @@ export type UseReviewScreenDataResult = Readonly<{
   hasLoadedReviewData: boolean;
   isInitialReviewLoad: boolean;
   isReviewLoading: boolean;
+  localWorkspaceCardCount: number;
   queueCards: ReadonlyArray<Card>;
   resolvedReviewFilter: ReviewFilter;
   reviewCounts: ReviewCounts;
@@ -90,8 +95,10 @@ export type UseReviewScreenDataResult = Readonly<{
 export function useReviewScreenData(params: UseReviewScreenDataParams): UseReviewScreenDataResult {
   const {
     activeWorkspaceId,
+    appErrorMessage,
     getCardById,
     installationId,
+    isSyncing,
     localReadVersion,
     selectedReviewFilter,
     setErrorMessage,
@@ -109,10 +116,13 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
   const [resolvedReviewFilter, setResolvedReviewFilter] = useState<ReviewFilter>(ALL_CARDS_REVIEW_FILTER);
   const [selectedReviewFilterTitle, setSelectedReviewFilterTitle] = useState<string>(t("filters.allCards"));
   const [isReviewLoading, setIsReviewLoading] = useState<boolean>(true);
+  const [localHotStateStatus, setLocalHotStateStatus] = useState<LocalHotStateStatus>("loading");
+  const [localWorkspaceCardCount, setLocalWorkspaceCardCount] = useState<number>(0);
   const [reviewLoadErrorMessage, setReviewLoadErrorMessage] = useState<string>("");
   const [hasLoadedReviewData, setHasLoadedReviewData] = useState<boolean>(false);
   const [presentedCard, setPresentedCard] = useState<Card | null>(null);
   const activeWorkspaceIdRef = useRef<string | null>(activeWorkspaceId);
+  const loadedWorkspaceIdRef = useRef<string | null>(null);
   const previousReviewFilterRef = useRef<ReviewFilter | null>(null);
   const canonicalReviewQueueRef = useRef<ReadonlyArray<Card>>([]);
   const deckSummariesRef = useRef<ReadonlyArray<DeckSummary>>([]);
@@ -135,7 +145,16 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
   const reviewLoadingSnapshot = activeWorkspaceId === null
     ? null
     : readReviewLoadingSnapshot(activeWorkspaceId, selectedReviewFilter);
-  const isInitialReviewLoad = isReviewLoading && hasLoadedReviewData === false;
+  const hasColdEmptyLocalHotState = localHotStateStatus !== "hydrated" && localWorkspaceCardCount === 0;
+  const hasColdEmptyRestoreFailure = hasColdEmptyLocalHotState && isSyncing === false && appErrorMessage !== "";
+  const visibleHasLoadedReviewData = hasColdEmptyRestoreFailure ? false : hasLoadedReviewData;
+  const visibleReviewLoadErrorMessage = reviewLoadErrorMessage !== ""
+    ? reviewLoadErrorMessage
+    : hasColdEmptyRestoreFailure
+      ? appErrorMessage
+      : "";
+  const isLocalEmptyHotStateRestoring = hasColdEmptyLocalHotState && hasColdEmptyRestoreFailure === false;
+  const isInitialReviewLoad = (isReviewLoading && visibleHasLoadedReviewData === false) || isLocalEmptyHotStateRestoring;
   const activeReviewQueue = buildDisplayedReviewQueue(canonicalReviewQueue, presentedCard);
   observationIdentityRef.current = {
     userId,
@@ -216,6 +235,10 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
       if (shouldShowBlockingLoader) {
         setIsReviewLoading(true);
       }
+      if (loadedWorkspaceIdRef.current !== activeWorkspaceId) {
+        setLocalHotStateStatus("loading");
+        setLocalWorkspaceCardCount(0);
+      }
       setReviewLoadErrorMessage("");
 
       try {
@@ -228,11 +251,13 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
           reviewTimelinePage,
           tagsSummary,
           decksSnapshot,
+          isHotStateHydrated,
         ] = await Promise.all([
           loadReviewQueueSnapshot(activeWorkspaceId, selectedReviewFilter, 8),
           loadReviewTimelinePage(activeWorkspaceId, selectedReviewFilter, 200, 0),
           loadWorkspaceTagsSummary(activeWorkspaceId),
           loadDecksListSnapshot(activeWorkspaceId),
+          hasHydratedHotState(activeWorkspaceId),
         ]);
         if (isCancelled) {
           return;
@@ -301,6 +326,9 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
         setReviewQueueCursorState(reviewQueueSnapshot.nextCursor);
         setQueueCardsState(nextQueueCards);
         setReviewTagSummaries(tagsSummary.tags);
+        setLocalWorkspaceCardCount(tagsSummary.totalCards);
+        setLocalHotStateStatus(isHotStateHydrated ? "hydrated" : "unhydrated");
+        loadedWorkspaceIdRef.current = activeWorkspaceId;
         setTagSuggestions(toTagSuggestions(tagsSummary.tags));
         setDeckSummariesState(decksSnapshot.deckSummaries);
         writeReviewLoadingSnapshot({
@@ -596,13 +624,14 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     activeReviewQueue,
     deckSummaries,
     handleReview,
-    hasLoadedReviewData,
+    hasLoadedReviewData: visibleHasLoadedReviewData,
     isInitialReviewLoad,
     isReviewLoading,
+    localWorkspaceCardCount,
     queueCards,
     resolvedReviewFilter,
     reviewCounts,
-    reviewLoadErrorMessage,
+    reviewLoadErrorMessage: visibleReviewLoadErrorMessage,
     reviewLoadingSnapshot,
     reviewTagSummaries,
     selectedReviewFilterTitle,

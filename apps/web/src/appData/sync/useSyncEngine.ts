@@ -327,6 +327,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         const installationId = requireCloudInstallationId(cloudSettings);
         syncInstallationId = installationId;
         const syncFlags = await runWorkspaceRemoteSync({
+          userId: session.userId,
           workspaceId,
           installationId,
           requireWorkspaceSyncNotDiscarded: requireCurrentWorkspaceSync,

@@ -18,6 +18,7 @@ import type {
 } from "../../../types";
 
 const {
+  hasHydratedHotStateMock,
   loadDecksListSnapshotMock,
   loadReviewQueueChunkMock,
   loadReviewQueueSnapshotMock,
@@ -27,6 +28,7 @@ const {
   useAppDataMock,
   useReviewProgressBadgeMock,
 } = vi.hoisted(() => ({
+  hasHydratedHotStateMock: vi.fn(),
   loadDecksListSnapshotMock: vi.fn(),
   loadReviewQueueChunkMock: vi.fn(),
   loadReviewQueueSnapshotMock: vi.fn(),
@@ -53,6 +55,7 @@ vi.mock("../../../localDb/reviews", () => ({
 }));
 
 vi.mock("../../../localDb/workspace", () => ({
+  hasHydratedHotState: hasHydratedHotStateMock,
   loadWorkspaceTagsSummary: loadWorkspaceTagsSummaryMock,
 }));
 
@@ -138,11 +141,15 @@ export function ReviewScreenDataHarness(props: ReviewScreenDataHarnessProps): Re
   } = props;
   const result = useReviewScreenData({
     activeWorkspaceId: state.appData.activeWorkspace?.workspaceId ?? null,
+    appErrorMessage: state.appData.errorMessage,
     getCardById: state.appData.getCardById,
+    installationId: state.appData.cloudSettings?.installationId ?? null,
+    isSyncing: state.appData.isSyncing,
     localReadVersion: state.appData.localReadVersion,
     selectedReviewFilter: state.appData.selectedReviewFilter,
     setErrorMessage: state.appData.setErrorMessage,
     submitReviewItem: state.appData.submitReviewItem,
+    userId: state.appData.session?.userId ?? null,
   });
 
   useEffect(() => {
@@ -489,6 +496,7 @@ export function setupReviewScreenTest(): ReviewScreenTestHarness {
     root = ReactDOM.createRoot(container);
 
     useAppDataMock.mockReset();
+    hasHydratedHotStateMock.mockReset();
     loadDecksListSnapshotMock.mockReset();
     loadReviewQueueChunkMock.mockReset();
     loadReviewQueueSnapshotMock.mockReset();
@@ -498,6 +506,7 @@ export function setupReviewScreenTest(): ReviewScreenTestHarness {
 
     useAppDataMock.mockImplementation(() => state.appData);
     useReviewProgressBadgeMock.mockImplementation(() => state.reviewProgressBadge);
+    hasHydratedHotStateMock.mockResolvedValue(true);
     loadDecksListSnapshotMock.mockImplementation(async (): Promise<DecksListSnapshot> => createDecksSnapshot(state));
     loadReviewQueueChunkMock.mockResolvedValue({
       cards: [],
@@ -587,6 +596,7 @@ export function setupReviewScreenTest(): ReviewScreenTestHarness {
 
 export {
   loadDecksListSnapshotMock,
+  hasHydratedHotStateMock,
   loadReviewQueueChunkMock,
   loadReviewQueueSnapshotMock,
   loadReviewTimelinePageMock,
