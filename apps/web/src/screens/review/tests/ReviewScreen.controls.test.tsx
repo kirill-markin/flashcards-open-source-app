@@ -7,6 +7,7 @@ import {
   clickElementAsync,
   createCard,
   createDecks,
+  hasHydratedHotStateMock,
   loadReviewQueueSnapshotMock,
   reviewReactionLottieLoadAnimationMock,
   reviewStylesContain,
@@ -106,6 +107,46 @@ const reviewRatingShortcutDismissCases: ReadonlyArray<ReviewRatingShortcutDismis
 ];
 
 describe("ReviewScreen controls", () => {
+  it("keeps a cold empty local workspace in loading state until sync hydrates it", async () => {
+    hasHydratedHotStateMock.mockResolvedValue(false);
+
+    await renderReviewScreen();
+    await flushReviewScreenPromises();
+
+    const reviewPane = getContainer().querySelector("[data-testid='review-pane']");
+    if (!(reviewPane instanceof HTMLElement)) {
+      throw new Error("Review pane was not found");
+    }
+
+    expect(reviewPane.dataset.reviewPaneState).toBe("loading");
+    expect(reviewPane.dataset.reviewPaneEmptyReason).toBe("none");
+    expect(getContainer().textContent).not.toContain("No Cards Yet");
+  });
+
+  it("shows a retry path instead of staying in cold empty loading after sync fails", async () => {
+    const state = getState();
+    state.appData.errorMessage = "Cloud sync failed";
+    state.appData.isSyncing = false;
+    hasHydratedHotStateMock.mockResolvedValue(false);
+
+    await renderReviewScreen();
+    await flushReviewScreenPromises();
+
+    const reviewPane = getContainer().querySelector("[data-testid='review-pane']");
+    if (!(reviewPane instanceof HTMLElement)) {
+      throw new Error("Review pane was not found");
+    }
+
+    const retryButton = getContainer().querySelector(".review-loading-retry-btn");
+    if (!(retryButton instanceof HTMLButtonElement)) {
+      throw new Error("Review retry button was not found");
+    }
+
+    expect(reviewPane.dataset.reviewPaneState).toBe("empty");
+    expect(reviewPane.dataset.reviewPaneEmptyReason).toBe("no-cards");
+    expect(getContainer().textContent).toContain("Cloud sync failed");
+  });
+
   it("renders compact review header controls with scope before streak", async () => {
     const state = getState();
     const card = createCard({

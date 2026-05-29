@@ -308,6 +308,20 @@ export type WorkspaceStateWarningDetails = Readonly<{
   activeWorkspaceId: string | null;
 }>;
 
+export type SyncRestoreWarningDetails = Readonly<{
+  eventName: "sync_hot_bootstrap_slow";
+  workspaceId: string;
+  installationId: string;
+  durationMs: number;
+  pageCount: number;
+  entriesCount: number;
+  localCardCountBefore: number;
+  localCardCountAfter: number;
+  lastAppliedHotChangeIdBefore: number | null;
+  nextHotChangeId: number | null;
+  remoteIsEmpty: boolean | null;
+}>;
+
 export type WebWarningEvent =
   | Readonly<{
     action: "api_contract_warning";
@@ -318,6 +332,11 @@ export type WebWarningEvent =
     action: "workspace_state_inconsistency";
     scope: WebObservationScope;
     details: WorkspaceStateWarningDetails;
+  }>
+  | Readonly<{
+    action: "sync_restore_slow";
+    scope: WebObservationScope;
+    details: SyncRestoreWarningDetails;
   }>;
 
 type SentryContextValue =

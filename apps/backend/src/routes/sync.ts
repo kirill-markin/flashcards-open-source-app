@@ -11,6 +11,9 @@ import {
   processSyncPush,
   processSyncReviewHistoryImport,
   processSyncReviewHistoryPull,
+  type SyncBootstrapInput,
+  type SyncBootstrapPullResult,
+  type SyncBootstrapPushResult,
   type SyncPullInput,
   type SyncPullResult,
   type SyncReviewHistoryPullInput,
@@ -35,6 +38,7 @@ import {
   normalizeCaughtError,
   type BackendObservationScope,
   type BackendSyncConflictDetails,
+  type SyncBootstrapDetails,
   type SyncPullDetails,
   type SyncReviewHistoryPullDetails,
 } from "../observability/sentry";
@@ -105,6 +109,82 @@ function getSyncReviewHistoryPullInputDetails(
     platform: input.platform,
     appVersion: input.appVersion ?? null,
     afterReviewSequenceId: input.afterReviewSequenceId,
+  };
+}
+
+function buildSyncBootstrapPullDetails(
+  input: Extract<SyncBootstrapInput, Readonly<{ mode: "pull" }>>,
+  result: SyncBootstrapPullResult,
+): SyncBootstrapDetails {
+  return {
+    statusCode: 200,
+    installationId: input.installationId,
+    platform: input.platform,
+    appVersion: input.appVersion ?? null,
+    mode: input.mode,
+    cursorPresent: input.cursor !== null,
+    limit: input.limit,
+    entriesCount: result.entries.length,
+    appliedEntriesCount: null,
+    hasMore: result.hasMore,
+    nextCursorPresent: result.nextCursor !== null,
+    bootstrapHotChangeId: result.bootstrapHotChangeId,
+    remoteIsEmpty: result.remoteIsEmpty,
+  };
+}
+
+function buildSyncBootstrapPushDetails(
+  input: Extract<SyncBootstrapInput, Readonly<{ mode: "push" }>>,
+  result: SyncBootstrapPushResult,
+): SyncBootstrapDetails {
+  return {
+    statusCode: 200,
+    installationId: input.installationId,
+    platform: input.platform,
+    appVersion: input.appVersion ?? null,
+    mode: input.mode,
+    cursorPresent: null,
+    limit: null,
+    entriesCount: input.entries.length,
+    appliedEntriesCount: result.appliedEntriesCount,
+    hasMore: null,
+    nextCursorPresent: null,
+    bootstrapHotChangeId: result.bootstrapHotChangeId,
+    remoteIsEmpty: null,
+  };
+}
+
+function buildSyncBootstrapDetails(
+  input: SyncBootstrapInput,
+  result: SyncBootstrapPullResult | SyncBootstrapPushResult,
+): SyncBootstrapDetails {
+  if (input.mode === "pull" && result.mode === "pull") {
+    return buildSyncBootstrapPullDetails(input, result);
+  }
+
+  if (input.mode === "push" && result.mode === "push") {
+    return buildSyncBootstrapPushDetails(input, result);
+  }
+
+  throw new Error(`Sync bootstrap result mode mismatch: input=${input.mode} result=${result.mode}`);
+}
+
+function getSyncBootstrapFailureInputDetails(
+  input: SyncBootstrapInput,
+): Omit<SyncBootstrapDetails, "statusCode"> {
+  return {
+    installationId: input.installationId,
+    platform: input.platform,
+    appVersion: input.appVersion ?? null,
+    mode: input.mode,
+    cursorPresent: input.mode === "pull" ? input.cursor !== null : null,
+    limit: input.mode === "pull" ? input.limit : null,
+    entriesCount: input.mode === "push" ? input.entries.length : null,
+    appliedEntriesCount: null,
+    hasMore: null,
+    nextCursorPresent: null,
+    bootstrapHotChangeId: null,
+    remoteIsEmpty: null,
   };
 }
 
@@ -314,22 +394,13 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
       addBackendBreadcrumb({
         action: "sync_bootstrap",
         scope: createSyncScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId),
-        details: {
-          statusCode: 200,
-          installationId: input.installationId,
-          platform: input.platform,
-          appVersion: input.appVersion ?? null,
-          mode: input.mode,
-        },
+        details: buildSyncBootstrapDetails(input, result),
       });
       return context.json(result);
     } catch (error) {
       const scope = createSyncScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
       const details = {
-        installationId: input.installationId,
-        platform: input.platform,
-        appVersion: input.appVersion ?? null,
-        mode: input.mode,
+        ...getSyncBootstrapFailureInputDetails(input),
         ...createBackendFailureDetails(error),
         ...getSyncConflictLogContext(error),
       };

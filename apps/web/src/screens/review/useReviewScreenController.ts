@@ -44,10 +44,11 @@ export function useReviewScreenController(): UseReviewScreenControllerResult {
   const {
     activeWorkspace,
     cloudSettings,
+    errorMessage,
     selectedReviewFilter,
     workspaceSettings,
+    isSyncing,
     localReadVersion,
-    localCardCount,
     getCardById,
     refreshLocalData,
     selectReviewFilter,
@@ -80,6 +81,7 @@ export function useReviewScreenController(): UseReviewScreenControllerResult {
     handleReview: handleReviewData,
     hasLoadedReviewData,
     isInitialReviewLoad,
+    localWorkspaceCardCount,
     queueCards,
     resolvedReviewFilter,
     reviewLoadErrorMessage,
@@ -89,8 +91,10 @@ export function useReviewScreenController(): UseReviewScreenControllerResult {
     tagSuggestions,
   } = useReviewScreenData({
     activeWorkspaceId: activeWorkspace?.workspaceId ?? null,
+    appErrorMessage: errorMessage,
     getCardById,
     installationId: cloudSettings?.installationId ?? null,
+    isSyncing,
     localReadVersion,
     selectedReviewFilter,
     setErrorMessage,
@@ -156,7 +160,7 @@ export function useReviewScreenController(): UseReviewScreenControllerResult {
   const nowTimestamp = Date.now();
   const selectedFrontSpeakableText = selectedCard === null ? "" : makeReviewSpeakableText(selectedCard.frontText);
   const selectedBackSpeakableText = selectedCard === null ? "" : makeReviewSpeakableText(selectedCard.backText);
-  const hasCards = localCardCount > 0;
+  const hasCards = localWorkspaceCardCount > 0;
   const shouldShowSwitchToAllCardsAction = resolvedReviewFilter.kind !== "allCards";
   const loadingReviewCurrentCard = reviewLoadingSnapshot?.currentCard ?? reviewLoadingSnapshot?.queuePreview[0] ?? null;
   const visibleSelectedReviewFilterTitle = isInitialReviewLoad && reviewLoadingSnapshot !== null

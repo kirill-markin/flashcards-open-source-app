@@ -5,7 +5,7 @@ import {
   pushSyncOperations,
 } from "../../api";
 import { webAppVersion } from "../../clientIdentity";
-import { loadCardsByIds } from "../../localDb/cards";
+import { loadActiveCardCount, loadCardsByIds } from "../../localDb/cards";
 import {
   deleteOutboxRecord,
   isScheduleRelevantCardOutboxRecord,
@@ -16,10 +16,10 @@ import {
 import {
   applyHotSyncPage,
   applyReviewHistorySyncPage,
-  hasHydratedHotState,
   hasHydratedReviewHistory,
   loadLastAppliedHotChangeId,
   loadLastAppliedReviewSequenceId,
+  loadWorkspaceSyncState,
 } from "../../localDb/workspace";
 import type {
   SyncBootstrapEntry,
@@ -31,8 +31,10 @@ import {
   doesCardMutationAffectReviewSchedule,
   getErrorMessage,
 } from "../domain";
+import { observeSlowHotBootstrap } from "./syncLifecycleObservation";
 
 const syncPageSize = 200;
+const slowHotBootstrapWarningThresholdMs = 2000;
 
 type HotSyncEntry = SyncBootstrapEntry | SyncChange;
 type CardHotSyncEntry = Extract<HotSyncEntry, Readonly<{ entityType: "card" }>>;
@@ -43,6 +45,7 @@ export type RemoteSyncFlags = Readonly<{
 }>;
 
 export type WorkspaceRemoteSyncInput = Readonly<{
+  userId: string;
   workspaceId: string;
   installationId: string;
   requireWorkspaceSyncNotDiscarded: (workspaceId: string) => void;
@@ -102,6 +105,10 @@ function isCardHotSyncEntry(entry: HotSyncEntry): entry is CardHotSyncEntry {
   return entry.entityType === "card";
 }
 
+function shouldObserveHotBootstrap(durationMs: number, pageCount: number): boolean {
+  return durationMs >= slowHotBootstrapWarningThresholdMs || pageCount > 1;
+}
+
 async function doHotSyncEntriesAffectReviewSchedule(
   workspaceId: string,
   entries: ReadonlyArray<HotSyncEntry>,
@@ -123,14 +130,21 @@ async function doHotSyncEntriesAffectReviewSchedule(
 }
 
 async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promise<RemoteSyncFlags> {
-  const hotStateHydrated = await hasHydratedHotState(input.workspaceId);
+  const syncStateBefore = await loadWorkspaceSyncState(input.workspaceId);
+  const hotStateHydrated = syncStateBefore?.hasHydratedHotState ?? false;
   input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
   if (hotStateHydrated) {
     return createEmptyRemoteSyncFlags();
   }
 
+  const startedAtMs = Date.now();
+  const localCardCountBefore = await loadActiveCardCount(input.workspaceId);
   let didChangeReviewSchedule = false;
   let bootstrapCursor: string | null = null;
+  let pageCount = 0;
+  let entriesCount = 0;
+  let nextHotChangeId: number | null = null;
+  let remoteIsEmpty: boolean | null = null;
 
   while (true) {
     input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
@@ -143,6 +157,10 @@ async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promise<Remot
       syncPageSize,
     );
     input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
+    pageCount += 1;
+    entriesCount += bootstrapResult.entries.length;
+    nextHotChangeId = bootstrapResult.bootstrapHotChangeId;
+    remoteIsEmpty = bootstrapResult.remoteIsEmpty;
 
     if (await doHotSyncEntriesAffectReviewSchedule(input.workspaceId, bootstrapResult.entries)) {
       didChangeReviewSchedule = true;
@@ -171,6 +189,24 @@ async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promise<Remot
   input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
   await input.refreshWorkspaceView(input.workspaceId);
   input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
+  const durationMs = Date.now() - startedAtMs;
+  const localCardCountAfter = await loadActiveCardCount(input.workspaceId);
+  if (shouldObserveHotBootstrap(durationMs, pageCount)) {
+    observeSlowHotBootstrap({
+      userId: input.userId,
+      workspaceId: input.workspaceId,
+      installationId: input.installationId,
+      durationMs,
+      pageCount,
+      entriesCount,
+      localCardCountBefore,
+      localCardCountAfter,
+      lastAppliedHotChangeIdBefore: syncStateBefore?.lastAppliedHotChangeId ?? null,
+      nextHotChangeId,
+      remoteIsEmpty,
+    });
+  }
+
   return {
     didChangeProgressHistory: false,
     didChangeReviewSchedule,
