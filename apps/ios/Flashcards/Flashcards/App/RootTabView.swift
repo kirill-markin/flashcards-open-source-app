@@ -35,6 +35,84 @@ struct RootTabView: View {
         )
     }
 
+    private var guestSignInAfterReviewPromptPresentation: Binding<Bool> {
+        Binding<Bool>(
+            get: {
+                store.isGuestSignInAfterReviewPromptPresented
+            },
+            set: { isPresented in
+                if isPresented == false {
+                    store.dismissGuestSignInAfterReviewPrompt()
+                }
+            }
+        )
+    }
+
+    private var accountDeletionSuccessPresentation: Binding<Bool> {
+        Binding<Bool>(
+            get: {
+                store.accountDeletionSuccessMessage != nil
+            },
+            set: { isPresented in
+                if isPresented == false {
+                    store.dismissAccountDeletionSuccessMessage()
+                }
+            }
+        )
+    }
+
+    private var guestSignInAfterReviewPromptTitle: String {
+        String(
+            localized: "root_tab.guest_sign_in_after_review_prompt.title",
+            defaultValue: "Save your progress",
+            table: "Foundation",
+            comment: "Guest sign-in prompt title after reviewing enough cards"
+        )
+    }
+
+    private var guestSignInAfterReviewPromptMessage: String {
+        String(
+            localized: "root_tab.guest_sign_in_after_review_prompt.message",
+            defaultValue: "Sign in with email so these cards and review progress are not lost.",
+            table: "Foundation",
+            comment: "Guest sign-in prompt body after reviewing enough cards"
+        )
+    }
+
+    private var guestSignInAfterReviewPromptLaterTitle: String {
+        String(
+            localized: "root_tab.guest_sign_in_after_review_prompt.later",
+            defaultValue: "Later",
+            table: "Foundation",
+            comment: "Guest sign-in prompt secondary button"
+        )
+    }
+
+    private var guestSignInAfterReviewPromptSignInTitle: String {
+        String(
+            localized: "root_tab.guest_sign_in_after_review_prompt.sign_in",
+            defaultValue: "Sign in",
+            table: "Foundation",
+            comment: "Guest sign-in prompt primary button"
+        )
+    }
+
+    private var accountDeletedTitle: String {
+        String(
+            localized: "root_tab.account_deleted.title",
+            table: "Foundation",
+            comment: "Account deletion success alert title"
+        )
+    }
+
+    private var confirmationButtonTitle: String {
+        String(
+            localized: "shared.ok",
+            table: "Foundation",
+            comment: "Confirmation button title"
+        )
+    }
+
     @MainActor
     private func reconcileGuestSignInAfterReviewPrompt() {
         self.store.reconcileGuestSignInAfterReviewPrompt(
@@ -353,30 +431,11 @@ struct RootTabView: View {
                 .environment(store)
         }
         .alert(
-            String(
-                localized: "root_tab.guest_sign_in_after_review_prompt.title",
-                defaultValue: "Save your progress",
-                table: "Foundation",
-                comment: "Guest sign-in prompt title after reviewing enough cards"
-            ),
-            isPresented: Binding(
-                get: {
-                    store.isGuestSignInAfterReviewPromptPresented
-                },
-                set: { isPresented in
-                    if isPresented == false {
-                        store.dismissGuestSignInAfterReviewPrompt()
-                    }
-                }
-            )
+            self.guestSignInAfterReviewPromptTitle,
+            isPresented: self.guestSignInAfterReviewPromptPresentation
         ) {
             Button(
-                String(
-                    localized: "root_tab.guest_sign_in_after_review_prompt.later",
-                    defaultValue: "Later",
-                    table: "Foundation",
-                    comment: "Guest sign-in prompt secondary button"
-                ),
+                self.guestSignInAfterReviewPromptLaterTitle,
                 role: .cancel
             ) {
                 store.snoozeGuestSignInAfterReviewPrompt(
@@ -385,49 +444,20 @@ struct RootTabView: View {
                 )
             }
             Button(
-                String(
-                    localized: "root_tab.guest_sign_in_after_review_prompt.sign_in",
-                    defaultValue: "Sign in",
-                    table: "Foundation",
-                    comment: "Guest sign-in prompt primary button"
-                )
+                self.guestSignInAfterReviewPromptSignInTitle
             ) {
                 store.acceptGuestSignInAfterReviewPrompt(now: Date())
                 self.isGuestSignInCloudSignInPresented = true
             }
         } message: {
-            Text(
-                String(
-                    localized: "root_tab.guest_sign_in_after_review_prompt.message",
-                    defaultValue: "Sign in with email so these cards and review progress are not lost.",
-                    table: "Foundation",
-                    comment: "Guest sign-in prompt body after reviewing enough cards"
-                )
-            )
+            Text(self.guestSignInAfterReviewPromptMessage)
         }
         .alert(
-            String(
-                localized: "root_tab.account_deleted.title",
-                table: "Foundation",
-                comment: "Account deletion success alert title"
-            ),
-            isPresented: Binding(
-                get: {
-                    store.accountDeletionSuccessMessage != nil
-                },
-                set: { isPresented in
-                    if isPresented == false {
-                        store.dismissAccountDeletionSuccessMessage()
-                    }
-                }
-            )
+            self.accountDeletedTitle,
+            isPresented: self.accountDeletionSuccessPresentation
         ) {
             Button(
-                String(
-                    localized: "shared.ok",
-                    table: "Foundation",
-                    comment: "Confirmation button title"
-                ),
+                self.confirmationButtonTitle,
                 role: .cancel
             ) {
                 store.dismissAccountDeletionSuccessMessage()

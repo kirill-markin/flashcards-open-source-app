@@ -233,12 +233,6 @@ extension FlashcardsStore {
         return pendingState.common.userId
     }
 
-    func shouldFinalizeCompletedPendingGuestUpgradeForRecoveredLink(
-        linkContext: CloudWorkspaceLinkContext
-    ) throws -> Bool {
-        try self.completedPendingGuestUpgradeStateForRecoveredLink(linkContext: linkContext) != nil
-    }
-
     func validateCompletedPendingGuestUpgradeRecoverySelection(
         selection: CloudWorkspaceLinkSelection,
         workspace: CloudWorkspaceSummary

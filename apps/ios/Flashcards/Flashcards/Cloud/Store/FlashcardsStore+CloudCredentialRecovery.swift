@@ -432,7 +432,7 @@ extension FlashcardsStore {
         )
     }
 
-    private func blockCloudSyncForCredentialRecovery() {
+    func blockCloudSyncForCredentialRecovery() {
         guard let recoveryState = self.cloudCredentialRecoveryState else {
             return
         }
