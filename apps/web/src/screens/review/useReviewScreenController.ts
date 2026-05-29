@@ -30,6 +30,7 @@ import { useReviewRatingReactions, type UseReviewRatingReactionsResult } from ".
 import { makeReviewSpeakableText, useReviewSpeech } from "./speech/reviewSpeech";
 
 export type UseReviewScreenControllerResult = Readonly<{
+  dismissReviewReactions: UseReviewRatingReactionsResult["dismissReactions"];
   editorModalProps: ReviewEditorModalProps;
   hardReminderDialogProps: ReviewHardReminderDialogProps;
   headerProps: ReviewScreenHeaderProps;
@@ -68,6 +69,7 @@ export function useReviewScreenController(): UseReviewScreenControllerResult {
   const lastCapturedReviewButtonErrorKeyRef = useRef<string>("");
   const { message: reviewSpeechMessage, showMessage: showReviewSpeechMessage } = useTransientMessage(3000);
   const {
+    dismissReactions: dismissReviewReactions,
     emitReaction: emitReviewReaction,
     events: reviewReactionEvents,
     handleReactionEventFallback: handleReviewReactionEventFallback,
@@ -270,6 +272,7 @@ export function useReviewScreenController(): UseReviewScreenControllerResult {
     isHardReminderVisible,
     isReviewFilterMenuOpen,
     isSubmitting,
+    onShortcutInputStart: dismissReviewReactions,
     selectedCard,
     setIsAnswerVisible: (value) => {
       setIsAnswerVisible(value);
@@ -326,6 +329,7 @@ export function useReviewScreenController(): UseReviewScreenControllerResult {
   ]);
 
   return {
+    dismissReviewReactions,
     editorModalProps: {
       editingCard,
       editorErrorMessage,

@@ -25,6 +25,7 @@ import {
 } from "./reviewReactionLottie";
 
 export type UseReviewRatingReactionsResult = Readonly<{
+  dismissReactions: () => void;
   emitReaction: (rating: 0 | 1 | 2 | 3) => void;
   events: ReadonlyArray<ReviewReactionEvent>;
   handleReactionEventFallback: (eventId: string) => void;
@@ -188,6 +189,23 @@ export function useReviewRatingReactions(): UseReviewRatingReactionsResult {
     });
   }, []);
 
+  const dismissReactions = useCallback((): void => {
+    if (eventsRef.current.length === 0 && cleanupTimersRef.current.size === 0) {
+      return;
+    }
+
+    for (const timerId of cleanupTimersRef.current.values()) {
+      window.clearTimeout(timerId);
+    }
+    cleanupTimersRef.current.clear();
+
+    for (const event of eventsRef.current) {
+      releaseReviewReactionLottieRender(event.id);
+    }
+    eventsRef.current = [];
+    setEvents([]);
+  }, []);
+
   const scheduleReactionEventCleanup = useCallback((
     eventId: string,
     variant: ReviewReactionRenderableVariant,
@@ -261,6 +279,7 @@ export function useReviewRatingReactions(): UseReviewRatingReactionsResult {
   }, [scheduleReactionEventCleanup]);
 
   return {
+    dismissReactions,
     emitReaction,
     events,
     handleReactionEventFallback,

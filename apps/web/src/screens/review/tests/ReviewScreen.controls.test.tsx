@@ -3,6 +3,7 @@ import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { Card } from "../../../types";
 import {
+  clickElement,
   clickElementAsync,
   createCard,
   createDecks,
@@ -39,6 +40,70 @@ async function flushReviewScreenPromises(): Promise<void> {
     await Promise.resolve();
   });
 }
+
+function dispatchPointerDown(element: Element): void {
+  element.dispatchEvent(new Event("pointerdown", { bubbles: true, cancelable: true }));
+}
+
+async function pointerDownElementAsync(element: Element): Promise<void> {
+  await act(async () => {
+    dispatchPointerDown(element);
+  });
+}
+
+async function pointerDownAndClickElementAsync(element: Element): Promise<void> {
+  await act(async () => {
+    dispatchPointerDown(element);
+    clickElement(element);
+  });
+}
+
+async function createStaleReviewReactionOnSecondCard(cards: ReadonlyArray<Card>): Promise<Card> {
+  if (cards.length < 2) {
+    throw new Error(`Stale reaction setup requires at least two cards, received ${cards.length}.`);
+  }
+
+  const state = getState();
+  state.cards = [...cards];
+  state.reviewQueue = [...cards];
+  state.reviewTimeline = [...cards];
+  state.appData.submitReviewItem.mockImplementation(async (cardId: string): Promise<Card> => {
+    const submittedCard = state.cards.find((card) => card.cardId === cardId);
+    if (submittedCard === undefined) {
+      throw new Error(`Unexpected submitted review card id: ${cardId}`);
+    }
+
+    return submittedCard;
+  });
+
+  await renderReviewScreen();
+  await waitForReviewReactionLottieTestPrewarm();
+  await revealAnswer();
+
+  const goodButton = getContainer().querySelector("[data-testid='review-rate-good']");
+  if (!(goodButton instanceof HTMLButtonElement)) {
+    throw new Error("Good rating button was not found");
+  }
+
+  await clickElementAsync(goodButton);
+  await flushReviewScreenPromises();
+
+  expect(getContainer().querySelectorAll("[data-testid='review-rating-reaction-event']")).toHaveLength(1);
+  return cards[1];
+}
+
+type ReviewRatingShortcutDismissCase = Readonly<{
+  expectedReactionRating: string;
+  expectedSubmitRating: 0 | 1 | 2 | 3;
+  key: string;
+}>;
+
+const reviewRatingShortcutDismissCases: ReadonlyArray<ReviewRatingShortcutDismissCase> = [
+  { expectedReactionRating: "again", expectedSubmitRating: 0, key: "1" },
+  { expectedReactionRating: "hard", expectedSubmitRating: 1, key: "2" },
+  { expectedReactionRating: "good", expectedSubmitRating: 2, key: "3" },
+  { expectedReactionRating: "easy", expectedSubmitRating: 3, key: "4" },
+];
 
 describe("ReviewScreen controls", () => {
   it("renders compact review header controls with scope before streak", async () => {
@@ -163,6 +228,129 @@ describe("ReviewScreen controls", () => {
     expect(reviewPane.getAttribute("data-review-current-card-id")).toBe("card-reaction-second");
     expect(getContainer().textContent).toContain("Second reaction question");
   });
+
+  it("dismisses an active decorative reaction on review pointer input without changing the card", async () => {
+    const secondCard = await createStaleReviewReactionOnSecondCard([
+      createCard({
+        cardId: "card-pointer-first",
+        frontText: "Pointer first question",
+        backText: "Pointer first answer",
+      }),
+      createCard({
+        cardId: "card-pointer-second",
+        frontText: "Pointer second question",
+        backText: "Pointer second answer",
+      }),
+    ]);
+
+    const reviewScreen = getContainer().querySelector("[data-testid='review-screen']");
+    if (!(reviewScreen instanceof HTMLElement)) {
+      throw new Error("Review screen main element was not found");
+    }
+
+    await pointerDownElementAsync(reviewScreen);
+
+    const reviewPane = getContainer().querySelector("[data-testid='review-pane']");
+    if (!(reviewPane instanceof HTMLElement)) {
+      throw new Error("Review pane was not found");
+    }
+
+    expect(getContainer().querySelectorAll("[data-testid='review-rating-reaction-event']")).toHaveLength(0);
+    expect(reviewPane.getAttribute("data-review-current-card-id")).toBe(secondCard.cardId);
+    expect(getContainer().textContent).toContain("Pointer second question");
+    expect(getState().appData.submitReviewItem).toHaveBeenCalledTimes(1);
+  });
+
+  it("dismisses an active decorative reaction while the same reveal click still shows the answer", async () => {
+    await createStaleReviewReactionOnSecondCard([
+      createCard({
+        cardId: "card-pointer-reveal-first",
+        frontText: "Pointer reveal first question",
+        backText: "Pointer reveal first answer",
+      }),
+      createCard({
+        cardId: "card-pointer-reveal-second",
+        frontText: "Pointer reveal second question",
+        backText: "Pointer reveal second answer",
+      }),
+    ]);
+
+    const revealButton = getContainer().querySelector(".review-reveal-btn");
+    if (!(revealButton instanceof HTMLButtonElement)) {
+      throw new Error("Reveal answer button was not found");
+    }
+
+    await pointerDownAndClickElementAsync(revealButton);
+
+    expect(getContainer().querySelectorAll("[data-testid='review-rating-reaction-event']")).toHaveLength(0);
+    expect(getContainer().textContent).toContain("Pointer reveal second answer");
+    expect(getState().appData.submitReviewItem).toHaveBeenCalledTimes(1);
+  });
+
+  it("dismisses an active decorative reaction on Space while still revealing the answer", async () => {
+    await createStaleReviewReactionOnSecondCard([
+      createCard({
+        cardId: "card-space-first",
+        frontText: "Space first question",
+        backText: "Space first answer",
+      }),
+      createCard({
+        cardId: "card-space-second",
+        frontText: "Space second question",
+        backText: "Space second answer",
+      }),
+    ]);
+
+    await dispatchDocumentKeydown(" ");
+
+    expect(getContainer().querySelectorAll("[data-testid='review-rating-reaction-event']")).toHaveLength(0);
+    expect(getContainer().textContent).toContain("Space second answer");
+    expect(getState().appData.submitReviewItem).toHaveBeenCalledTimes(1);
+  });
+
+  for (const shortcutCase of reviewRatingShortcutDismissCases) {
+    it(`dismisses an active decorative reaction before rating shortcut ${shortcutCase.key} submits`, async () => {
+      const secondCard = await createStaleReviewReactionOnSecondCard([
+        createCard({
+          cardId: `card-shortcut-${shortcutCase.key}-first`,
+          frontText: `Shortcut ${shortcutCase.key} first question`,
+          backText: `Shortcut ${shortcutCase.key} first answer`,
+        }),
+        createCard({
+          cardId: `card-shortcut-${shortcutCase.key}-second`,
+          frontText: `Shortcut ${shortcutCase.key} second question`,
+          backText: `Shortcut ${shortcutCase.key} second answer`,
+        }),
+        createCard({
+          cardId: `card-shortcut-${shortcutCase.key}-third`,
+          frontText: `Shortcut ${shortcutCase.key} third question`,
+          backText: `Shortcut ${shortcutCase.key} third answer`,
+        }),
+      ]);
+
+      await revealAnswer();
+      await dispatchDocumentKeydown(shortcutCase.key);
+      await flushReviewScreenPromises();
+
+      const reactionEvents = getContainer().querySelectorAll("[data-testid='review-rating-reaction-event']");
+      const [reactionEvent] = reactionEvents;
+      if (!(reactionEvent instanceof HTMLElement)) {
+        throw new Error(`Review reaction event for shortcut ${shortcutCase.key} was not found`);
+      }
+      const reviewPane = getContainer().querySelector("[data-testid='review-pane']");
+      if (!(reviewPane instanceof HTMLElement)) {
+        throw new Error("Review pane was not found");
+      }
+
+      expect(reactionEvents).toHaveLength(1);
+      expect(reactionEvent.getAttribute("data-review-reaction-rating")).toBe(shortcutCase.expectedReactionRating);
+      expect(getState().appData.submitReviewItem).toHaveBeenLastCalledWith(
+        secondCard.cardId,
+        shortcutCase.expectedSubmitRating,
+      );
+      expect(reviewPane.getAttribute("data-review-current-card-id")).toBe(`card-shortcut-${shortcutCase.key}-third`);
+    });
+  }
 
   it("keeps only the newest three decorative reactions active", async () => {
     const state = getState();

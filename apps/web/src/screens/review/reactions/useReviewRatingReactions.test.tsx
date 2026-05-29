@@ -162,6 +162,34 @@ describe("useReviewRatingReactions", () => {
     expect(requireLatestResult().events).toHaveLength(0);
   });
 
+  it("dismisses active reactions immediately and clears scheduled cleanup", async () => {
+    await renderHarness();
+
+    await act(async () => {
+      requireLatestResult().emitReaction(2);
+    });
+
+    const [activeEvent] = requireLatestResult().events;
+    if (activeEvent === undefined) {
+      throw new Error("Review reaction event was not emitted");
+    }
+
+    await act(async () => {
+      requireLatestResult().dismissReactions();
+    });
+
+    expect(requireLatestResult().events).toHaveLength(0);
+    expect(releaseReviewReactionLottieRenderMock).toHaveBeenCalledTimes(1);
+    expect(releaseReviewReactionLottieRenderMock).toHaveBeenCalledWith(activeEvent.id);
+
+    await act(async () => {
+      vi.advanceTimersByTime(10000);
+    });
+
+    expect(requireLatestResult().events).toHaveLength(0);
+    expect(releaseReviewReactionLottieRenderMock).toHaveBeenCalledTimes(1);
+  });
+
   it("uses a ready same-rating variant when the selected variant is not prewarmed", async () => {
     readyLottieVariants.clear();
     readyLottieVariants.add("goodRabbit");
