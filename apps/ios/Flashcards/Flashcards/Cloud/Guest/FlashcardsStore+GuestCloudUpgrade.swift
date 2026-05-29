@@ -212,6 +212,12 @@ extension FlashcardsStore {
         try self.completedPendingGuestUpgradeStateForRecoveredLink(linkContext: linkContext)?.workspace
     }
 
+    func shouldFinalizeCompletedPendingGuestUpgradeForRecoveredLink(
+        linkContext: CloudWorkspaceLinkContext
+    ) throws -> Bool {
+        try self.completedPendingGuestUpgradeStateForRecoveredLink(linkContext: linkContext) != nil
+    }
+
     func completedPendingGuestUpgradeRecoveryUserId(apiBaseUrl: String) throws -> String? {
         try self.completedPendingGuestUpgradeRecoveryCheckpoint(apiBaseUrl: apiBaseUrl)?.common.userId
     }
