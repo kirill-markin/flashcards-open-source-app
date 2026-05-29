@@ -7,8 +7,8 @@ import type { ContentPart, FileContentPart, ImageContentPart } from "../types";
 import { buildSystemInstructions } from "../shared";
 import { buildCardContextXml } from "../cardContext";
 import {
-  normalizeChatFileAttachmentMediaType,
-  normalizeChatImageAttachmentMediaType,
+  validateChatFileAttachmentContent,
+  validateChatImageAttachmentContent,
 } from "../attachmentPolicy";
 import {
   normalizeStoredOpenAIReplayItems,
@@ -20,13 +20,13 @@ type OpenAIInputItem = OpenAI.Responses.ResponseInputItem;
 type OpenAIInputContent = OpenAI.Responses.ResponseInputMessageContentList[number];
 
 function buildImageDataUrl(part: ImageContentPart): string {
-  const mediaType = normalizeChatImageAttachmentMediaType(part.mediaType);
-  return `data:${mediaType};base64,${part.base64Data}`;
+  const attachment = validateChatImageAttachmentContent(part.mediaType, part.base64Data);
+  return `data:${attachment.mediaType};base64,${attachment.base64Data}`;
 }
 
 function buildFileDataUrl(part: FileContentPart): string {
-  const mediaType = normalizeChatFileAttachmentMediaType(part.fileName, part.mediaType);
-  return `data:${mediaType};base64,${part.base64Data}`;
+  const attachment = validateChatFileAttachmentContent(part.fileName, part.mediaType, part.base64Data);
+  return `data:${attachment.mediaType};base64,${attachment.base64Data}`;
 }
 
 async function mapAttachmentPart(

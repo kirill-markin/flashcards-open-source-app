@@ -1,5 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { HttpError } from "../../shared/errors";
+import {
+  chatAttachmentUnsupportedTypeCode,
+  chatAttachmentUnsupportedTypeMessage,
+} from "../attachmentPolicy";
 import { buildChatCompletionInput } from "./input";
 
 test("buildChatCompletionInput serializes card parts into deterministic XML before user text", async () => {
@@ -123,4 +128,31 @@ test("buildChatCompletionInput normalizes persisted history attachment aliases b
       file_data: "data:text/csv;base64,ZnJvbnQsYmFjaw==",
     },
   ]);
+});
+
+test("buildChatCompletionInput rejects invalid persisted history attachments with the attachment error", async () => {
+  await assert.rejects(
+    () => buildChatCompletionInput([
+      {
+        role: "user",
+        content: [
+          {
+            type: "file",
+            fileName: "notes.pdf",
+            mediaType: "application/pdf",
+            base64Data: "cGxhaW4gdGV4dA==",
+          },
+        ],
+      },
+    ], [
+      {
+        type: "text",
+        text: "Continue.",
+      },
+    ], "Europe/Madrid"),
+    (error: unknown) => error instanceof HttpError
+      && error.statusCode === 400
+      && error.code === chatAttachmentUnsupportedTypeCode
+      && error.message === chatAttachmentUnsupportedTypeMessage,
+  );
 });

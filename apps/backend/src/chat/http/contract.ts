@@ -4,8 +4,8 @@ import {
 } from "../composerSuggestions";
 import { HttpError } from "../../shared/errors";
 import {
-  normalizeChatFileAttachmentMediaType,
-  normalizeChatImageAttachmentMediaType,
+  validateChatFileAttachmentContent,
+  validateChatImageAttachmentContent,
 } from "../attachmentPolicy";
 import {
   expectNonEmptyString,
@@ -189,20 +189,29 @@ function parseChatContentPart(value: unknown, context: string): ChatContentPart 
 
   if (type === "image") {
     const mediaType = expectString(body.mediaType, `${context}.mediaType`);
+    const attachment = validateChatImageAttachmentContent(
+      mediaType,
+      expectNonEmptyString(body.base64Data, `${context}.base64Data`),
+    );
     return {
       type: "image",
-      mediaType: normalizeChatImageAttachmentMediaType(mediaType),
-      base64Data: expectNonEmptyString(body.base64Data, `${context}.base64Data`),
+      mediaType: attachment.mediaType,
+      base64Data: attachment.base64Data,
     };
   }
 
   if (type === "file") {
     const mediaType = expectString(body.mediaType, `${context}.mediaType`);
     const fileName = expectNonEmptyString(body.fileName, `${context}.fileName`);
+    const attachment = validateChatFileAttachmentContent(
+      fileName,
+      mediaType,
+      expectNonEmptyString(body.base64Data, `${context}.base64Data`),
+    );
     return {
       type: "file",
-      mediaType: normalizeChatFileAttachmentMediaType(fileName, mediaType),
-      base64Data: expectNonEmptyString(body.base64Data, `${context}.base64Data`),
+      mediaType: attachment.mediaType,
+      base64Data: attachment.base64Data,
       fileName,
     };
   }

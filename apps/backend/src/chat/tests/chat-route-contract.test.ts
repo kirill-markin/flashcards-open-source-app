@@ -19,6 +19,14 @@ import {
 import type { ChatSessionSnapshot, PersistedChatMessageItem } from "../store";
 
 const SESSION_ONE = "11111111-1111-4111-8111-111111111111";
+const PLAIN_TEXT_BASE64 = "cGxhaW4gdGV4dA==";
+const VALID_PDF_BASE64 = "JVBERi0xLjEKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCAxIDFdID4+CmVuZG9iagp4cmVmCjAgNAowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1Jvb3QgMSAwIFIgL1NpemUgNCA+PgpzdGFydHhyZWYKMTgyCiUlRU9GCg==";
+const TRUNCATED_PDF_BASE64 = "JVBERi0xLjcK";
+const VALID_PNG_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+const TRUNCATED_PNG_BASE64 = "iVBORw0KGgo=";
+const WINDOWS_1252_CSV_BASE64 = "ZnJvbnQsYmFjawpjYWbpLGNvZmZlZQo=";
+const UTF16_LE_CSV_BASE64 = "//5mAHIAbwBuAHQALABiAGEAYwBrAAoAYwBhAGYA6QAsAGMAbwBmAGYAZQBlAAoA";
+const BINARY_TEXT_FILE_BASE64 = "AAECAwQFBgc=";
 
 type ConsoleMethod = "log" | "warn" | "error";
 type StructuredLogRecord = Readonly<Record<string, unknown> & {
@@ -201,6 +209,80 @@ test("parseChatRequestBody normalizes supported attachment media type aliases", 
     assert.ok(part !== undefined);
     if (part.type !== "file") {
       throw new Error("Expected a file content part.");
+    }
+    assert.equal(part.mediaType, testCase.expectedMediaType);
+  }
+});
+
+test("parseChatRequestBody accepts valid attachment payload signatures", () => {
+  const cases = [
+    {
+      content: [{
+        type: "file",
+        fileName: "deck.csv",
+        mediaType: "text/comma-separated-values",
+        base64Data: "ZnJvbnQsYmFjaw==",
+      }],
+      expectedMediaType: "text/csv",
+    },
+    {
+      content: [{
+        type: "file",
+        fileName: "cards.xml",
+        mediaType: "application/xml",
+        base64Data: "PGNhcmRzIC8+",
+      }],
+      expectedMediaType: "text/xml",
+    },
+    {
+      content: [{
+        type: "file",
+        fileName: "deck.csv",
+        mediaType: "text/csv",
+        base64Data: WINDOWS_1252_CSV_BASE64,
+      }],
+      expectedMediaType: "text/csv",
+    },
+    {
+      content: [{
+        type: "file",
+        fileName: "deck.csv",
+        mediaType: "text/csv",
+        base64Data: UTF16_LE_CSV_BASE64,
+      }],
+      expectedMediaType: "text/csv",
+    },
+    {
+      content: [{
+        type: "file",
+        fileName: "notes.pdf",
+        mediaType: "application/pdf",
+        base64Data: VALID_PDF_BASE64,
+      }],
+      expectedMediaType: "application/pdf",
+    },
+    {
+      content: [{
+        type: "image",
+        mediaType: "image/png",
+        base64Data: VALID_PNG_BASE64,
+      }],
+      expectedMediaType: "image/png",
+    },
+  ] as const;
+
+  for (const testCase of cases) {
+    const body = parseChatRequestBody({
+      sessionId: SESSION_ONE,
+      clientRequestId: "client-request-1",
+      content: testCase.content,
+      timezone: "Europe/Madrid",
+    });
+
+    const part = body.content[0];
+    assert.ok(part !== undefined);
+    if (part.type !== "file" && part.type !== "image") {
+      throw new Error("Expected an attachment content part.");
     }
     assert.equal(part.mediaType, testCase.expectedMediaType);
   }
@@ -477,6 +559,95 @@ test("POST /chat rejects unsupported attachments before preparing a run", async 
     requestId: null,
     code: chatAttachmentUnsupportedTypeCode,
   });
+});
+
+test("POST /chat rejects invalid attachment payloads before preparing a run", async () => {
+  let prepareChatRunCount = 0;
+  const routes = createChatRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContext(),
+    }),
+    prepareChatRunFn: async () => {
+      prepareChatRunCount += 1;
+      throw new Error("prepareChatRunFn should not be called");
+    },
+  });
+  const app = createRoutesWithHttpErrorJson();
+  app.route("/", routes);
+  const cases = [
+    {
+      content: [{
+        type: "file",
+        fileName: "notes.txt",
+        mediaType: "text/plain",
+        base64Data: "not-base64!",
+      }],
+    },
+    {
+      content: [{
+        type: "image",
+        mediaType: "image/png",
+        base64Data: `data:image/png;base64,${VALID_PNG_BASE64}`,
+      }],
+    },
+    {
+      content: [{
+        type: "file",
+        fileName: "notes.pdf",
+        mediaType: "application/pdf",
+        base64Data: PLAIN_TEXT_BASE64,
+      }],
+    },
+    {
+      content: [{
+        type: "file",
+        fileName: "notes.pdf",
+        mediaType: "application/pdf",
+        base64Data: TRUNCATED_PDF_BASE64,
+      }],
+    },
+    {
+      content: [{
+        type: "image",
+        mediaType: "image/png",
+        base64Data: TRUNCATED_PNG_BASE64,
+      }],
+    },
+    {
+      content: [{
+        type: "file",
+        fileName: "notes.txt",
+        mediaType: "text/plain",
+        base64Data: BINARY_TEXT_FILE_BASE64,
+      }],
+    },
+  ] as const;
+
+  for (const testCase of cases) {
+    const response = await app.request("http://localhost/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        sessionId: SESSION_ONE,
+        clientRequestId: "client-request-1",
+        content: testCase.content,
+        timezone: "Europe/Madrid",
+      }),
+    });
+
+    assert.equal(response.status, 400);
+    assert.deepEqual(await response.json(), {
+      error: chatAttachmentUnsupportedTypeMessage,
+      requestId: null,
+      code: chatAttachmentUnsupportedTypeCode,
+    });
+  }
+
+  assert.equal(prepareChatRunCount, 0);
 });
 
 test("POST /chat fails with a stable contract code when a running response cannot create a live stream", async () => {
