@@ -242,21 +242,22 @@ extension FlashcardsStore {
                 email: linkContext.email,
                 apiBaseUrl: linkContext.apiBaseUrl
             )
-            if linkContext.guestUpgradeMode == nil
-                && (try self.shouldFinalizeCompletedPendingGuestUpgradeForRecoveredLink(linkContext: linkContext)),
-                let completedGuestUpgradeWorkspace = try self.completedPendingGuestUpgradeWorkspaceForRecoveredLink(
+            if linkContext.guestUpgradeMode == nil {
+                let completedGuestUpgradeWorkspace: CloudWorkspaceSummary? = try self.completedPendingGuestUpgradeWorkspaceForRecoveredLink(
                     linkContext: linkContext
-                ) {
-                try self.validateCompletedPendingGuestUpgradeRecoverySelection(
-                    selection: selection,
-                    workspace: completedGuestUpgradeWorkspace
                 )
-                if let completedGuestUpgradeWorkspace = try await self.finalizeCompletedPendingGuestUpgradeForRecoveredLinkIfNeeded(
-                    linkContext: linkContext,
-                    trigger: trigger
-                ) {
-                    self.globalErrorMessage = ""
-                    return completedGuestUpgradeWorkspace
+                if let completedGuestUpgradeWorkspace {
+                    try self.validateCompletedPendingGuestUpgradeRecoverySelection(
+                        selection: selection,
+                        workspace: completedGuestUpgradeWorkspace
+                    )
+                    if let completedGuestUpgradeWorkspace = try await self.finalizeCompletedPendingGuestUpgradeForRecoveredLinkIfNeeded(
+                        linkContext: linkContext,
+                        trigger: trigger
+                    ) {
+                        self.globalErrorMessage = ""
+                        return completedGuestUpgradeWorkspace
+                    }
                 }
             }
             try self.validateCloudCredentialRecoveryWorkspaceSelectionBeforeIdentitySideEffects(
