@@ -33,10 +33,10 @@ extension AIChatStore {
             pendingAttachments: self.pendingAttachments
         )
         if self.chatSessionId.isEmpty && self.messages.isEmpty && draft.isEmpty && self.activeRunId == nil {
-            self.applyComposerDraft(inputText: "", pendingAttachments: [attachment])
-            self.schedulePersistCurrentDraftState()
-            self.activeAlert = nil
-            self.repairStatus = nil
+            self.startFreshLocalSession(
+                inputText: "",
+                pendingAttachments: [attachment]
+            )
             return true
         }
         if self.shouldAutoStartFreshLocalSession(persistedState: self.currentPersistedState()) {

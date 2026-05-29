@@ -512,6 +512,9 @@ struct AIChatView: View {
             return
         }
         self.captureAIChatPresentationRequest(request: resolvedRequest)
+        guard self.chatStore.hasExternalProviderConsent else {
+            return
+        }
         guard self.chatStore.isChatInteractive else {
             return
         }
@@ -608,10 +611,12 @@ struct AIChatView: View {
         }
 
         self.syncChatSurface(refreshConsent: true)
+        self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
     }
 
     func handleSurfaceInputsChange() {
         self.syncChatSurface(refreshConsent: false)
+        self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
     }
 
     func handleSelectedTabChange(nextTab: AppTab) {
@@ -622,6 +627,7 @@ struct AIChatView: View {
         }
 
         self.syncChatSurface(refreshConsent: false)
+        self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
         self.scheduleDeferredBottomSyncIfNeeded()
     }
 
