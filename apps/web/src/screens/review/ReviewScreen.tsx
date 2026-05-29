@@ -12,6 +12,7 @@ export { normalizeReviewMarkdownForWeb } from "./components/ReviewCardSide";
 
 export function ReviewScreen(): ReactElement {
   const {
+    dismissReviewReactions,
     editorModalProps,
     hardReminderDialogProps,
     headerProps,
@@ -26,7 +27,7 @@ export function ReviewScreen(): ReactElement {
   }, []);
 
   return (
-    <main className="container" data-testid="review-screen">
+    <main className="container" data-testid="review-screen" onPointerDownCapture={dismissReviewReactions}>
       <section className="panel review-screen-panel">
         <ReviewScreenHeader {...headerProps} />
 

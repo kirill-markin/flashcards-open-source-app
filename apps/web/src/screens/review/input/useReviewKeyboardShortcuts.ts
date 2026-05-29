@@ -8,6 +8,7 @@ type UseReviewKeyboardShortcutsParams = Readonly<{
   isHardReminderVisible: boolean;
   isReviewFilterMenuOpen: boolean;
   isSubmitting: boolean;
+  onShortcutInputStart: () => void;
   selectedCard: Card | null;
   setIsAnswerVisible: (value: boolean) => void;
 }>;
@@ -41,6 +42,7 @@ export function useReviewKeyboardShortcuts(params: UseReviewKeyboardShortcutsPar
     isHardReminderVisible,
     isReviewFilterMenuOpen,
     isSubmitting,
+    onShortcutInputStart,
     selectedCard,
     setIsAnswerVisible,
   } = params;
@@ -58,6 +60,7 @@ export function useReviewKeyboardShortcuts(params: UseReviewKeyboardShortcutsPar
     }
 
     if (event.key === " ") {
+      onShortcutInputStart();
       if (isAnswerVisible) {
         return;
       }
@@ -68,7 +71,12 @@ export function useReviewKeyboardShortcuts(params: UseReviewKeyboardShortcutsPar
     }
 
     const rating = reviewShortcutRatingsByKey[event.key];
-    if (rating === undefined || !isAnswerVisible) {
+    if (rating === undefined) {
+      return;
+    }
+
+    onShortcutInputStart();
+    if (!isAnswerVisible) {
       return;
     }
 
