@@ -1,9 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import {
+  chatAttachmentUnsupportedTypeCode,
+  chatAttachmentUnsupportedTypeMessage,
+} from "../attachmentPolicy";
 import { ChatRunRowNotFoundError } from "../errors";
 import type { ChatRuntimeDependencies, StartPersistedChatRunParams } from "../runtime";
 import { runPersistedChatSessionWithDeps } from "../runtime";
 import type { OpenAILoopCompletion, OpenAILoopEventSink, StartOpenAILoopParams } from "../openai/loop";
+import { HttpError } from "../../shared/errors";
 
 type ConsoleMethod = "log" | "warn" | "error";
 type StructuredLogRecord = Readonly<Record<string, unknown> & {
@@ -48,6 +53,20 @@ function createProviderApiError(rawMessage: string): Error & Readonly<{
     status: 429,
     code: "rate_limit_exceeded",
     requestID: "req_provider_123",
+  });
+}
+
+function createProviderInvalidFileError(rawMessage: string): Error & Readonly<{
+  status: number;
+  code: string;
+  requestID: string;
+}> {
+  const error = new Error(rawMessage);
+  error.name = "BadRequestError";
+  return Object.assign(error, {
+    status: 400,
+    code: "invalid_file",
+    requestID: "req_invalid_file_123",
   });
 }
 
@@ -931,6 +950,87 @@ test("runPersistedChatSessionWithDeps persists a failed run for real provider er
   assert.equal(terminalLog?.errorClass, undefined);
   assert.equal(terminalLog?.errorMessage, undefined);
   assert.equal(JSON.stringify(terminalLog).includes(rawProviderMessage), false);
+});
+
+test("runPersistedChatSessionWithDeps maps provider invalid_file failures to attachment guidance", async () => {
+  let terminalPersistParams: PersistAssistantTerminalErrorParams | null = null;
+  const rawProviderMessage = "provider invalid_file response included attachment details";
+
+  const logs = await withCapturedLogs(async () => {
+    const result = await runPersistedChatSessionWithDeps(
+      createParams(),
+      createDependencies({
+        startOpenAILoop: async (): Promise<OpenAILoopCompletion> => {
+          throw createProviderInvalidFileError(rawProviderMessage);
+        },
+        persistAssistantTerminalError: async (_userId, _workspaceId, params) => {
+          terminalPersistParams = params;
+        },
+      }),
+    );
+
+    assert.deepEqual(result, {
+      outcome: "failed",
+      abortReason: null,
+      runStatus: "failed",
+      sessionState: "idle",
+    });
+  });
+
+  assert.equal(
+    requireTerminalPersistParams(terminalPersistParams).errorMessage,
+    chatAttachmentUnsupportedTypeMessage,
+  );
+  const terminalLog = findLog(logs, "chat_worker_terminal_state_persisted");
+  assert.equal(terminalLog?.consoleMethod, "warn");
+  assert.equal(terminalLog?.providerErrorClass, "BadRequestError");
+  assert.equal(terminalLog?.providerErrorMessage, null);
+  assert.equal(terminalLog?.providerErrorStatus, 400);
+  assert.equal(terminalLog?.providerErrorCode, "invalid_file");
+  assert.equal(terminalLog?.providerErrorCategory, "provider_error");
+  assert.equal(terminalLog?.providerRequestId, "req_invalid_file_123");
+  assert.equal(terminalLog?.errorClass, undefined);
+  assert.equal(terminalLog?.errorMessage, undefined);
+  assert.equal(JSON.stringify(terminalLog).includes(rawProviderMessage), false);
+});
+
+test("runPersistedChatSessionWithDeps maps local attachment validation failures to attachment guidance", async () => {
+  let terminalPersistParams: PersistAssistantTerminalErrorParams | null = null;
+
+  const logs = await withCapturedLogs(async () => {
+    const result = await runPersistedChatSessionWithDeps(
+      createParams(),
+      createDependencies({
+        startOpenAILoop: async (): Promise<OpenAILoopCompletion> => {
+          throw new HttpError(
+            400,
+            chatAttachmentUnsupportedTypeMessage,
+            chatAttachmentUnsupportedTypeCode,
+          );
+        },
+        persistAssistantTerminalError: async (_userId, _workspaceId, params) => {
+          terminalPersistParams = params;
+        },
+      }),
+    );
+
+    assert.deepEqual(result, {
+      outcome: "failed",
+      abortReason: null,
+      runStatus: "failed",
+      sessionState: "idle",
+    });
+  });
+
+  assert.equal(
+    requireTerminalPersistParams(terminalPersistParams).errorMessage,
+    chatAttachmentUnsupportedTypeMessage,
+  );
+  const terminalLog = findLog(logs, "chat_worker_terminal_state_persisted");
+  assert.equal(terminalLog?.consoleMethod, "warn");
+  assert.equal(terminalLog?.providerErrorMessage, null);
+  assert.equal(terminalLog?.errorClass, undefined);
+  assert.equal(terminalLog?.errorMessage, undefined);
 });
 
 test("runPersistedChatSessionWithDeps captures unexpected runtime failures as backend exceptions", async () => {

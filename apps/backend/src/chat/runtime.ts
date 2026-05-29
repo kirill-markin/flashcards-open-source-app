@@ -9,6 +9,10 @@ import {
   type ChatComposerSuggestionsLocale,
   type ChatComposerSuggestion,
 } from "./composerSuggestions";
+import {
+  chatAttachmentUnsupportedTypeMessage,
+  isChatAttachmentUnsupportedTypeError,
+} from "./attachmentPolicy";
 import { isChatStorageEntityNotFoundError } from "./errors";
 import { getAIProviderFailureMetadata } from "./providerFailure";
 import { getErrorLogContext } from "../server/logging";
@@ -245,6 +249,11 @@ function createSafeProviderErrorDetails(error: unknown | null): SafeProviderErro
 function createPublicTerminalErrorMessage(error: unknown): string {
   const providerMetadata = getAIProviderFailureMetadata(error);
   const category = classifyProviderErrorCategory(error, providerMetadata.upstreamStatus);
+  const providerErrorCode = readErrorRecordStringField(error, "code");
+
+  if (isChatAttachmentUnsupportedTypeError(error) || providerErrorCode === "invalid_file") {
+    return chatAttachmentUnsupportedTypeMessage;
+  }
 
   if (category === "provider_auth") {
     return PROVIDER_AUTH_ERROR_MESSAGE;
@@ -270,6 +279,10 @@ function createPublicTerminalErrorMessage(error: unknown): string {
 }
 
 function isHandledProviderFailure(error: unknown): boolean {
+  if (isChatAttachmentUnsupportedTypeError(error)) {
+    return true;
+  }
+
   const providerMetadata = getAIProviderFailureMetadata(error);
   const category = classifyProviderErrorCategory(error, providerMetadata.upstreamStatus);
   return category !== null && category !== "runtime_error";
