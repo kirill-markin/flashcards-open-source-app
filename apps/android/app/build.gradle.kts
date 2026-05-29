@@ -138,7 +138,7 @@ android {
         minSdk = 34
         targetSdk = 36
         versionCode = androidVersionCode ?: 1
-        versionName = "1.4.0"
+        versionName = "1.5.0"
         testInstrumentationRunner = "com.flashcardsopensourceapp.app.FlashcardsAndroidTestRunner"
         testInstrumentationRunnerArguments["clearPackageData"] = "true"
         buildConfigField("String", "ANDROID_SENTRY_DSN", toBuildConfigString(androidSentryDsn))
