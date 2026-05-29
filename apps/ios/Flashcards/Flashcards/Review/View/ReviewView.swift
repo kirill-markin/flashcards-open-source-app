@@ -163,6 +163,12 @@ struct ReviewView: View {
         .safeAreaBar(edge: .bottom, spacing: 0) {
             reviewBottomAccessory
         }
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    self.dismissActiveReviewReactions()
+                }
+        )
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 reviewFilterMenu
