@@ -33,14 +33,14 @@ extension AIChatStore {
             pendingAttachments: self.pendingAttachments
         )
         if self.chatSessionId.isEmpty && self.messages.isEmpty && draft.isEmpty && self.activeRunId == nil {
-            self.startFreshLocalSession(
+            self.startFreshLocalDraftSession(
                 inputText: "",
                 pendingAttachments: [attachment]
             )
             return true
         }
         if self.shouldAutoStartFreshLocalSession(persistedState: self.currentPersistedState()) {
-            self.startFreshLocalSession(
+            self.startFreshLocalDraftSession(
                 inputText: "",
                 pendingAttachments: [attachment]
             )
@@ -53,7 +53,7 @@ extension AIChatStore {
             activeRunId: self.activeRunId,
             currentSessionId: self.chatSessionId
         ) == false {
-            self.startFreshLocalSession(
+            self.startFreshLocalDraftSession(
                 inputText: "",
                 pendingAttachments: [attachment]
             )
@@ -65,6 +65,19 @@ extension AIChatStore {
         self.activeAlert = nil
         self.repairStatus = nil
         return true
+    }
+
+    func startFreshLocalDraftSession(
+        inputText: String,
+        pendingAttachments: [AIChatAttachment]
+    ) {
+        self.bootstrapPhase = .ready
+        self.invalidatePendingNewSessionRequest()
+        self.resetConversationForNewSession(
+            sessionId: makeAIChatSessionId(),
+            inputText: inputText,
+            pendingAttachments: pendingAttachments
+        )
     }
 
     func startFreshLocalSession(

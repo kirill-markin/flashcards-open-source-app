@@ -44,6 +44,14 @@ extension ReviewView {
         )
     }
 
+    func dismissActiveReviewReactions() {
+        if self.activeReviewReactionEvents.isEmpty {
+            return
+        }
+
+        self.activeReviewReactionEvents = []
+    }
+
     func removeFinishedReviewReactionEvent(eventId: UUID) {
         self.activeReviewReactionEvents = self.activeReviewReactionEvents.filter { activeEvent in
             activeEvent.id != eventId
