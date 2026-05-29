@@ -21,8 +21,20 @@ extension AIChatStore {
             id: UUID().uuidString.lowercased(),
             payload: .card(card)
         )
+        if aiChatPendingAttachmentsContainMatchingCard(
+            pendingAttachments: self.pendingAttachments,
+            card: card
+        ) {
+            self.activeAlert = nil
+            self.repairStatus = nil
+            return true
+        }
         if self.composerPhase == .running {
-            self.pendingAttachments.append(attachment)
+            self.pendingAttachments = aiChatPendingAttachmentsReplacingCard(
+                pendingAttachments: self.pendingAttachments,
+                attachment: attachment,
+                cardId: card.cardId
+            )
             self.activeAlert = nil
             self.repairStatus = nil
             return true
@@ -676,6 +688,43 @@ extension AIChatStore {
             }
         }
     }
+}
+
+private func aiChatPendingAttachmentsContainMatchingCard(
+    pendingAttachments: [AIChatAttachment],
+    card: AIChatCardReference
+) -> Bool {
+    pendingAttachments.contains { attachment in
+        guard case .card(let existingCard) = attachment.payload else {
+            return false
+        }
+
+        return existingCard == card
+    }
+}
+
+private func aiChatPendingAttachmentsReplacingCard(
+    pendingAttachments: [AIChatAttachment],
+    attachment: AIChatAttachment,
+    cardId: String
+) -> [AIChatAttachment] {
+    var didReplaceCard = false
+    var updatedAttachments: [AIChatAttachment] = pendingAttachments.map { pendingAttachment in
+        guard case .card(let existingCard) = pendingAttachment.payload,
+              existingCard.cardId == cardId
+        else {
+            return pendingAttachment
+        }
+
+        didReplaceCard = true
+        return attachment
+    }
+
+    if didReplaceCard == false {
+        updatedAttachments.append(attachment)
+    }
+
+    return updatedAttachments
 }
 
 private func aiChatNewSessionRetryLogMetadata(
