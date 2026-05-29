@@ -1,6 +1,8 @@
 package com.flashcardsopensourceapp.feature.review
 
 import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,6 +23,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -85,6 +89,14 @@ fun ReviewRoute(
             unavailableMessage = context.getString(R.string.review_speech_unavailable)
         )
     }
+    fun dismissReviewReactions(): Unit {
+        if (activeReviewReactionEvents.isEmpty()) {
+            return
+        }
+
+        activeReviewReactionEvents = emptyList()
+    }
+
     fun emitReviewReaction(rating: ReviewRating): Unit {
         val event: ReviewReactionEvent = makeRandomReadyReviewReactionEvent(
             rating = rating,
@@ -184,7 +196,19 @@ fun ReviewRoute(
             SnackbarHost(hostState = snackbarHostState)
         }
     ) { innerPadding ->
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    awaitEachGesture {
+                        awaitFirstDown(
+                            requireUnconsumed = false,
+                            pass = PointerEventPass.Initial
+                        )
+                        dismissReviewReactions()
+                    }
+                }
+        ) {
             ReviewContent(
                 uiState = uiState,
                 activeSpeechSide = reviewSpeechController.activeSide,
