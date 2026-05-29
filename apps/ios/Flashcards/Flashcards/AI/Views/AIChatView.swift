@@ -512,6 +512,9 @@ struct AIChatView: View {
             return
         }
         self.captureAIChatPresentationRequest(request: resolvedRequest)
+        guard self.navigation.selectedTab == .ai else {
+            return
+        }
         guard self.chatStore.hasExternalProviderConsent else {
             return
         }
@@ -626,7 +629,7 @@ struct AIChatView: View {
             return
         }
 
-        self.syncChatSurface(refreshConsent: false)
+        self.syncChatSurface(refreshConsent: true)
         self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
         self.scheduleDeferredBottomSyncIfNeeded()
     }
