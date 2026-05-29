@@ -512,9 +512,6 @@ struct AIChatView: View {
             return
         }
         self.captureAIChatPresentationRequest(request: resolvedRequest)
-        guard self.chatStore.hasExternalProviderConsent else {
-            return
-        }
         guard self.chatStore.isChatInteractive else {
             return
         }

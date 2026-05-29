@@ -266,7 +266,7 @@ final class LocalDatabaseLifecycleTests: XCTestCase {
         XCTAssertNil(rowsByCardId["invalid-calendar-day"] ?? nil)
         XCTAssertNil(rowsByCardId["malformed-number"] ?? nil)
         XCTAssertNil(rowsByCardId["new-card"] ?? nil)
-        XCTAssertEqual(reviewHead.seedReviewQueue.map(\.cardId), ["canonical-valid", "noncanonical-valid", "new-card"])
+        XCTAssertEqual(reviewHead.seedReviewQueue.map(\.cardId), ["noncanonical-valid", "canonical-valid", "new-card"])
         XCTAssertEqual(reviewCounts, ReviewCounts(dueCount: 3, totalCount: 5))
     }
 

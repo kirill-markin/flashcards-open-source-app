@@ -87,9 +87,12 @@ extension AIChatStore {
         self.transitionToPreparingSend()
         self.persistStateSynchronously(state: self.currentPersistedState())
         let conversationId = UUID().uuidString.lowercased()
+        self.applyComposerDraft(inputText: "", pendingAttachments: [])
+        self.appendOptimisticOutgoingTurn(content: content)
+        self.storePreSendSnapshot(preSendSnapshot, conversationId: conversationId)
+        self.activeConversationId = conversationId
 
         let task = Task {
-            var didAppendOptimisticMessages = false
             defer {
                 self.clearPreSendSnapshot(conversationId: conversationId)
                 if self.activeConversationId == conversationId {
@@ -111,12 +114,7 @@ extension AIChatStore {
                 try await self.ensureAIChatReadyForSend(linkedSession: session)
                 let explicitSessionId = try await self.ensureRemoteSessionIfNeeded(session: session)
                 self.resetRunToolCallTracking()
-                self.applyComposerDraft(inputText: "", pendingAttachments: [])
-                self.appendOptimisticOutgoingTurn(content: content)
-                didAppendOptimisticMessages = true
-                self.storePreSendSnapshot(preSendSnapshot, conversationId: conversationId)
                 self.transitionToStartingRun()
-                self.activeConversationId = conversationId
                 try await self.runtime.run(
                     session: session,
                     sessionId: explicitSessionId,
@@ -131,7 +129,7 @@ extension AIChatStore {
                 self.handleSendMessageError(
                     error,
                     didAcceptRun: self.composerPhase == .running,
-                    didAppendOptimisticMessages: didAppendOptimisticMessages,
+                    didAppendOptimisticMessages: true,
                     preSendSnapshot: preSendSnapshot,
                     draftText: draftText,
                     draftAttachments: draftAttachments
