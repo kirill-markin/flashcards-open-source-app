@@ -61,7 +61,7 @@ export type ChatContentPart =
   | ChatToolCallContentPart;
 
 export type ChatRequestBody = Readonly<{
-  // First-party clients at 1.4.0 no longer rely on omitting sessionId on
+  // First-party clients at 1.5.0 no longer rely on omitting sessionId on
   // /chat. Keep this optional only for temporary backward compatibility with
   // older released clients, and remove the session-less path in a future
   // legacy chat cleanup.
@@ -80,7 +80,7 @@ export type ChatRequestBody = Readonly<{
 }>;
 
 export type NewChatRequestBody = Readonly<{
-  // First-party clients at 1.4.0 no longer rely on omitting sessionId on
+  // First-party clients at 1.5.0 no longer rely on omitting sessionId on
   // /chat/new. Keep this optional only for temporary backward compatibility
   // with older released clients, and remove the session-less path in a future
   // legacy chat cleanup.
@@ -113,7 +113,7 @@ export type ChatPageQuery = Readonly<{
 const MAX_CHAT_PAGE_LIMIT = 50;
 
 const UNSUPPORTED_CHAT_REQUEST_FIELDS = [
-  // First-party clients at 1.4.0 no longer send these legacy request-shape
+  // First-party clients at 1.5.0 no longer send these legacy request-shape
   // fields. Keep rejecting them while the remaining compatibility branches are
   // still present, then revisit this guard in the future legacy chat cleanup.
   "messages",
