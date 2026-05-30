@@ -1,7 +1,7 @@
 import SwiftUI
 
 let reviewReactionDefaultAnchorY: CGFloat = 0.50
-let reviewReactionTargetAnchorY: CGFloat = 0.70
+let reviewReactionTargetAnchorY: CGFloat = 0.80
 let reviewReactionVerticalShift: CGFloat = reviewReactionTargetAnchorY - reviewReactionDefaultAnchorY
 
 func adjustedReviewReactionCenterY(
