@@ -327,16 +327,13 @@ extension FlashcardsStore {
         }
     }
 
-    func runLinkedSyncPreservingSessionContext(
-        linkedSession: CloudLinkedSession
-    ) async throws -> CloudSyncResult {
-        if case .blocked(let message) = self.syncStatus {
-            throw LocalStoreError.validation(message)
-        }
-
+    func withCloudSessionPreservingStableContext<Result>(
+        linkedSession: CloudLinkedSession,
+        operation: (CloudLinkedSession) async throws -> Result
+    ) async throws -> Result {
         switch linkedSession.authorization {
         case .guest:
-            return try await self.runLinkedSync(linkedSession: linkedSession)
+            return try await operation(linkedSession)
         case .bearer:
             do {
                 return try await self.withStoredAuthenticatedCredentials { credentials, _ in
@@ -348,7 +345,7 @@ extension FlashcardsStore {
                         apiBaseUrl: linkedSession.apiBaseUrl,
                         authorization: .bearer(credentials.idToken)
                     )
-                    return try await self.runLinkedSync(linkedSession: refreshedSession)
+                    return try await operation(refreshedSession)
                 }
             } catch {
                 if self.isCloudAccountDeletedError(error) {
@@ -361,6 +358,18 @@ extension FlashcardsStore {
 
                 throw error
             }
+        }
+    }
+
+    func runLinkedSyncPreservingSessionContext(
+        linkedSession: CloudLinkedSession
+    ) async throws -> CloudSyncResult {
+        if case .blocked(let message) = self.syncStatus {
+            throw LocalStoreError.validation(message)
+        }
+
+        return try await self.withCloudSessionPreservingStableContext(linkedSession: linkedSession) { refreshedSession in
+            try await self.runLinkedSync(linkedSession: refreshedSession)
         }
     }
 

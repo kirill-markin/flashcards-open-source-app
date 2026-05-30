@@ -119,10 +119,11 @@ extension AIChatStore {
         self.schedulePersistState(state: clearedState)
     }
 
-    func prepareForWorkspaceChange() {
+    func prepareForWorkspaceChange() async {
         self.invalidatePendingNewSessionRequest()
-        self.invalidatePendingRemoteSessionProvisionRequest()
-        self.resetLocalHistoryState()
+        self.prepareLocalHistoryStateReset()
+        await self.stopStreamingForWorkspaceChange()
+        self.resetLocalHistoryStateAfterStreamingStopped()
         self.bootstrapPhase = .loading
     }
 
@@ -444,11 +445,19 @@ extension AIChatStore {
     }
 
     func resetLocalHistoryState() {
+        self.prepareLocalHistoryStateReset()
+        self.cancelStreaming()
+        self.resetLocalHistoryStateAfterStreamingStopped()
+    }
+
+    private func prepareLocalHistoryStateReset() {
         self.invalidateActiveBootstrapTask()
         self.activeWarmUpTask?.cancel()
         self.activeWarmUpTask = nil
         self.invalidatePendingRemoteSessionProvisionRequest()
-        self.cancelStreaming()
+    }
+
+    private func resetLocalHistoryStateAfterStreamingStopped() {
         self.cancelDictation()
         let resolvedSessionId = aiChatResolvedSessionId(
             workspaceId: self.historyWorkspaceId(),

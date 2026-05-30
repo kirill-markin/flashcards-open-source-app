@@ -216,7 +216,7 @@ enum AIChatStoreTestSupport {
         var loadBootstrapGate: AsyncGate?
         var startRunRequests: [AIChatStartRunRequestBody]
         var createNewSessionRequests: [AIChatNewSessionRequestBody]
-        var stopRunRequests: [(sessionId: String, runId: String?)]
+        var stopRunRequests: [(sessionId: String, runId: String?, workspaceId: String, authorizationHeader: String)]
         var stopRunGate: AsyncGate?
         var loadBootstrapHandler: ((String?) throws -> AIChatBootstrapResponse)?
         var startRunHandler: ((AIChatStartRunRequestBody) throws -> AIChatStartRunResponse)?
@@ -316,9 +316,13 @@ enum AIChatStoreTestSupport {
             sessionId: String,
             runId: String?
         ) async throws -> AIChatStopRunResponse {
-            _ = session
             self.events.append("stopRun:\(sessionId):\(runId ?? "nil")")
-            self.stopRunRequests.append((sessionId: sessionId, runId: runId))
+            self.stopRunRequests.append((
+                sessionId: sessionId,
+                runId: runId,
+                workspaceId: session.workspaceId,
+                authorizationHeader: session.authorizationHeaderValue
+            ))
             if let stopRunGate = self.stopRunGate {
                 await stopRunGate.wait()
                 self.stopRunGate = nil
