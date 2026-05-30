@@ -20,8 +20,8 @@ extension FlashcardsStore {
         self.clearTransientBanners()
     }
 
-    func prepareWorkspaceScopedStateForSwitch(nextWorkspaceId: String) {
-        self.cachedAIChatStore?.prepareForWorkspaceChange()
+    func prepareWorkspaceScopedStateForSwitch(nextWorkspaceId: String) async {
+        await self.cachedAIChatStore?.prepareForWorkspaceChange()
         self.resetReviewRuntimeForWorkspace(nextWorkspaceId: nextWorkspaceId)
     }
 

@@ -62,7 +62,7 @@ extension FlashcardsStore {
         )
 
         self.cloudRuntime.cancelForWorkspaceSwitch()
-        self.prepareWorkspaceScopedStateForSwitch(nextWorkspaceId: linkedSession.workspaceId)
+        await self.prepareWorkspaceScopedStateForSwitch(nextWorkspaceId: linkedSession.workspaceId)
         try database.switchActiveWorkspace(workspace: workspaceSummary, linkedSession: linkedSession)
         self.cloudRuntime.setActiveCloudSession(linkedSession: linkedSession)
         try self.reload()

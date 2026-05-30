@@ -112,6 +112,195 @@ final class AIChatStoreRunStopTests: XCTestCase {
         XCTAssertEqual(context.chatService.stopRunRequests.map { $0.runId }, ["run-1"])
     }
 
+    func testActiveCancelRestoresCloudSessionBeforeRemoteStop() async throws {
+        let context = AIChatStoreTestSupport.Context.make()
+        defer {
+            context.tearDown()
+        }
+
+        try context.configureLinkedCloudSession(workspaceId: "workspace-1")
+        context.flashcardsStore.cloudRuntime.disconnectSession()
+        let store = context.makeStore()
+        let activeRun = AIChatStoreTestSupport.makeActiveRun()
+        store.chatSessionId = "session-1"
+        store.conversationScopeId = "session-1"
+        store.transitionToStreaming(
+            activeRun: AIChatActiveRunSession(
+                sessionId: "session-1",
+                conversationScopeId: "session-1",
+                runId: activeRun.runId,
+                liveStream: activeRun.live.stream,
+                liveCursor: activeRun.live.cursor,
+                streamEpoch: nil
+            )
+        )
+
+        store.cancelStreaming()
+
+        let didSettle = await AIChatStoreTestSupport.waitForCondition(
+            description: "restored cloud session stop request",
+            timeout: .seconds(3),
+            pollInterval: .milliseconds(10),
+            condition: {
+                context.chatService.stopRunRequests.count == 1
+                    && store.composerPhase == .idle
+            }
+        )
+
+        XCTAssertTrue(didSettle)
+        XCTAssertEqual(context.chatService.stopRunRequests.map { $0.sessionId }, ["session-1"])
+        XCTAssertEqual(context.chatService.stopRunRequests.map { $0.runId }, ["run-1"])
+        XCTAssertEqual(context.chatService.stopRunRequests.map { $0.workspaceId }, ["workspace-1"])
+    }
+
+    func testActiveCancelRefreshesCapturedLinkedSessionTokenBeforeRemoteStop() async throws {
+        let context = AIChatStoreTestSupport.Context.make()
+        defer {
+            context.tearDown()
+        }
+
+        try context.configureLinkedCloudSession(workspaceId: "workspace-1")
+        try context.flashcardsStore.cloudRuntime.saveCredentials(
+            credentials: StoredCloudCredentials(
+                refreshToken: "refresh-token-1",
+                idToken: "token-2",
+                idTokenExpiresAt: "2099-01-01T00:00:00Z"
+            )
+        )
+        let store = context.makeStore()
+        let activeRun = AIChatStoreTestSupport.makeActiveRun()
+        store.chatSessionId = "session-1"
+        store.conversationScopeId = "session-1"
+        store.transitionToStreaming(
+            activeRun: AIChatActiveRunSession(
+                sessionId: "session-1",
+                conversationScopeId: "session-1",
+                runId: activeRun.runId,
+                liveStream: activeRun.live.stream,
+                liveCursor: activeRun.live.cursor,
+                streamEpoch: nil
+            )
+        )
+
+        store.cancelStreaming()
+
+        let didSettle = await AIChatStoreTestSupport.waitForCondition(
+            description: "refreshed captured session stop request",
+            timeout: .seconds(3),
+            pollInterval: .milliseconds(10),
+            condition: {
+                context.chatService.stopRunRequests.count == 1
+                    && store.composerPhase == .idle
+            }
+        )
+
+        XCTAssertTrue(didSettle)
+        XCTAssertEqual(context.chatService.stopRunRequests.map { $0.sessionId }, ["session-1"])
+        XCTAssertEqual(context.chatService.stopRunRequests.map { $0.runId }, ["run-1"])
+        XCTAssertEqual(context.chatService.stopRunRequests.map { $0.workspaceId }, ["workspace-1"])
+        XCTAssertEqual(context.chatService.stopRunRequests.map { $0.authorizationHeader }, ["Bearer token-2"])
+    }
+
+    func testActiveCancelUsesCapturedCloudSessionWhenWorkspaceChangesBeforeStopRuns() async throws {
+        let context = AIChatStoreTestSupport.Context.make()
+        defer {
+            context.tearDown()
+        }
+
+        try context.configureLinkedCloudSession(workspaceId: "workspace-1")
+        let store = context.makeStore()
+        let activeRun = AIChatStoreTestSupport.makeActiveRun()
+        store.chatSessionId = "session-1"
+        store.conversationScopeId = "session-1"
+        store.transitionToStreaming(
+            activeRun: AIChatActiveRunSession(
+                sessionId: "session-1",
+                conversationScopeId: "session-1",
+                runId: activeRun.runId,
+                liveStream: activeRun.live.stream,
+                liveCursor: activeRun.live.cursor,
+                streamEpoch: nil
+            )
+        )
+
+        store.cancelStreaming()
+        try context.configureLinkedCloudSession(workspaceId: "workspace-2")
+
+        let didSettle = await AIChatStoreTestSupport.waitForCondition(
+            description: "captured workspace stop request",
+            timeout: .seconds(3),
+            pollInterval: .milliseconds(10),
+            condition: {
+                context.chatService.stopRunRequests.count == 1
+                    && store.composerPhase == .idle
+            }
+        )
+
+        XCTAssertTrue(didSettle)
+        XCTAssertEqual(context.chatService.stopRunRequests.map { $0.sessionId }, ["session-1"])
+        XCTAssertEqual(context.chatService.stopRunRequests.map { $0.runId }, ["run-1"])
+        XCTAssertEqual(context.chatService.stopRunRequests.map { $0.workspaceId }, ["workspace-1"])
+    }
+
+    func testWorkspaceChangePreparationWaitsForRemoteStopBeforeReset() async throws {
+        let context = AIChatStoreTestSupport.Context.make()
+        defer {
+            context.tearDown()
+        }
+
+        try context.configureLinkedCloudSession(workspaceId: "workspace-1")
+        let store = context.makeStore()
+        let activeRun = AIChatStoreTestSupport.makeActiveRun()
+        store.chatSessionId = "session-1"
+        store.conversationScopeId = "session-1"
+        store.messages = [
+            AIChatStoreTestSupport.makeUserTextMessage(
+                id: "message-1",
+                text: "Question before workspace switch",
+                timestamp: "2026-04-08T10:00:00Z"
+            )
+        ]
+        store.transitionToStreaming(
+            activeRun: AIChatActiveRunSession(
+                sessionId: "session-1",
+                conversationScopeId: "session-1",
+                runId: activeRun.runId,
+                liveStream: activeRun.live.stream,
+                liveCursor: activeRun.live.cursor,
+                streamEpoch: nil
+            )
+        )
+
+        let stopRunGate = AIChatStoreTestSupport.AsyncGate()
+        context.chatService.stopRunGate = stopRunGate
+        let prepareTask = Task { @MainActor in
+            await store.prepareForWorkspaceChange()
+        }
+
+        let didReachStopRun = await AIChatStoreTestSupport.waitForCondition(
+            description: "workspace change stop request",
+            timeout: .seconds(3),
+            pollInterval: .milliseconds(10),
+            condition: {
+                context.chatService.stopRunRequests.count == 1
+                    && store.composerPhase == .stopping
+            }
+        )
+        XCTAssertTrue(didReachStopRun)
+        XCTAssertEqual(store.messages.count, 1)
+
+        await stopRunGate.release()
+        await prepareTask.value
+
+        XCTAssertEqual(context.chatService.stopRunRequests.map { $0.sessionId }, ["session-1"])
+        XCTAssertEqual(context.chatService.stopRunRequests.map { $0.runId }, ["run-1"])
+        XCTAssertEqual(context.chatService.stopRunRequests.map { $0.workspaceId }, ["workspace-1"])
+        XCTAssertEqual(store.messages, [])
+        XCTAssertEqual(store.chatSessionId, "")
+        XCTAssertEqual(store.composerPhase, .idle)
+        XCTAssertEqual(store.bootstrapPhase, .loading)
+    }
+
     func testNoopStopClearsStoppingAndReloadsBootstrap() async throws {
         let context = AIChatStoreTestSupport.Context.make()
         defer {

@@ -86,7 +86,7 @@ extension FlashcardsStore {
         }
 
         self.cloudRuntime.cancelForWorkspaceSwitch()
-        self.prepareWorkspaceScopedStateForSwitch(nextWorkspaceId: selectedWorkspace.workspaceId)
+        await self.prepareWorkspaceScopedStateForSwitch(nextWorkspaceId: selectedWorkspace.workspaceId)
         let database = try requireLocalDatabase(database: self.database)
         try database.switchActiveWorkspace(
             workspace: selectedWorkspace,
@@ -228,7 +228,7 @@ extension FlashcardsStore {
             )
             let database = try requireLocalDatabase(database: self.database)
             self.cloudRuntime.cancelForWorkspaceSwitch()
-            self.prepareWorkspaceScopedStateForSwitch(nextWorkspaceId: replacementSession.workspaceId)
+            await self.prepareWorkspaceScopedStateForSwitch(nextWorkspaceId: replacementSession.workspaceId)
             try database.replaceLocalWorkspaceAfterRemoteDelete(
                 localWorkspaceId: localWorkspaceId,
                 replacementWorkspace: deleteResult.1.workspace,
