@@ -50,6 +50,7 @@ enum IOSWarningEvent: Sendable {
     case cloudRetry(CloudRetryWarning)
     case localDataRepair(LocalDataRepairWarning)
     case invalidCardDueAt(InvalidCardDueAtWarning)
+    case notificationSchedulingFailed(NotificationSchedulingFailureWarning)
     case notificationTapDropped(NotificationTapDroppedWarning)
     case progressCacheRemoved(ProgressCacheRemovedWarning)
     case staleGuestCredentials(StaleGuestCredentialsWarning)
@@ -221,6 +222,22 @@ struct NotificationTapDroppedWarning: Sendable, Hashable {
     let detailSummary: String?
 }
 
+struct NotificationSchedulingFailureWarning: Sendable, Hashable {
+    let action: String
+    let scope: IOSObservationScope
+    let notificationKind: String
+    let workspaceId: String?
+    let requestId: String?
+    let stage: String
+    let plannedCount: Int
+    let acceptedCount: Int
+    let pendingBeforeCount: Int
+    let pendingAfterCount: Int
+    let errorDomain: String?
+    let errorCode: Int?
+    let messageSummary: String?
+}
+
 struct CloudRetryWarning: Sendable, Hashable {
     let action: String
     let scope: IOSObservationScope
@@ -319,4 +336,3 @@ struct LocalDataRepairFailureDetails: Sendable, Hashable {
     let reason: String
     let messageSummary: String?
 }
-

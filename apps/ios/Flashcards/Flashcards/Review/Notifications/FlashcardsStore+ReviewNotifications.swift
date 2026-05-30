@@ -339,7 +339,10 @@ extension FlashcardsStore {
             reviewFilter: self.selectedReviewFilter,
             now: now,
             settings: self.reviewNotificationsSettings,
-            lastActiveAt: lastActiveAt
+            lastActiveAt: lastActiveAt,
+            pendingRequestLimit: reviewNotificationPendingRequestsLimit(
+                strictRemindersSettings: self.strictRemindersSettings
+            )
         )
 
         let loadResult: ScheduledReviewNotificationLoadResult
@@ -379,6 +382,10 @@ extension FlashcardsStore {
         }
 
         let payloads = loadResult.payloads
+        let pendingBeforeRequestIdentifiers = await pendingAppNotificationRequestIdentifiers(center: center)
+        let pendingBeforeCount = pendingBeforeRequestIdentifiers.count
+        var addFailure: Error?
+        var failedRequestId: String?
 
         for payload in payloads {
             guard self.reviewNotificationsRescheduleGeneration == generation else {
@@ -403,7 +410,13 @@ extension FlashcardsStore {
                 content: content,
                 trigger: trigger
             )
-            try? await center.add(request)
+            do {
+                try await center.add(request)
+            } catch {
+                addFailure = error
+                failedRequestId = payload.requestId
+                break
+            }
         }
 
         guard self.reviewNotificationsRescheduleGeneration == generation else {
@@ -412,7 +425,78 @@ extension FlashcardsStore {
         guard Task.isCancelled == false else {
             return
         }
-        self.persistScheduledReviewNotifications(payloads: payloads)
+
+        let pendingAfterRequestIdentifiers = await pendingAppNotificationRequestIdentifiers(center: center)
+        guard self.reviewNotificationsRescheduleGeneration == generation else {
+            return
+        }
+        guard Task.isCancelled == false else {
+            return
+        }
+        let acceptedPayloads = acceptedReviewNotificationPayloads(
+            payloads: payloads,
+            pendingRequestIdentifiers: pendingAfterRequestIdentifiers
+        )
+        if let addFailure {
+            FlashcardsObservability.captureWarning(
+                .notificationSchedulingFailed(
+                    makeNotificationSchedulingFailureWarning(
+                        action: "review_schedule_add_failed",
+                        scope: IOSObservationScope(
+                            feature: .notifications,
+                            userId: nil,
+                            workspaceId: workspaceId,
+                            requestId: nil,
+                            clientRequestId: nil,
+                            sessionId: nil,
+                            runId: nil,
+                            cloudState: self.cloudSettings?.cloudState,
+                            configurationMode: nil
+                        ),
+                        notificationKind: .reviewReminder,
+                        workspaceId: workspaceId,
+                        requestId: failedRequestId,
+                        stage: "add",
+                        plannedCount: payloads.count,
+                        acceptedCount: acceptedPayloads.count,
+                        pendingBeforeCount: pendingBeforeCount,
+                        pendingAfterCount: pendingAfterRequestIdentifiers.count,
+                        error: addFailure,
+                        messageSummary: nil
+                    )
+                )
+            )
+        } else if acceptedPayloads.count != payloads.count {
+            FlashcardsObservability.captureWarning(
+                .notificationSchedulingFailed(
+                    makeNotificationSchedulingFailureWarning(
+                        action: "review_schedule_readback_mismatch",
+                        scope: IOSObservationScope(
+                            feature: .notifications,
+                            userId: nil,
+                            workspaceId: workspaceId,
+                            requestId: nil,
+                            clientRequestId: nil,
+                            sessionId: nil,
+                            runId: nil,
+                            cloudState: self.cloudSettings?.cloudState,
+                            configurationMode: nil
+                        ),
+                        notificationKind: .reviewReminder,
+                        workspaceId: workspaceId,
+                        requestId: nil,
+                        stage: "readback",
+                        plannedCount: payloads.count,
+                        acceptedCount: acceptedPayloads.count,
+                        pendingBeforeCount: pendingBeforeCount,
+                        pendingAfterCount: pendingAfterRequestIdentifiers.count,
+                        error: nil,
+                        messageSummary: "Notification Center accepted fewer review reminders than planned"
+                    )
+                )
+            )
+        }
+        self.persistScheduledReviewNotifications(payloads: acceptedPayloads)
     }
 
     private func persistScheduledReviewNotifications(payloads: [ScheduledReviewNotificationPayload]) {

@@ -81,6 +81,24 @@ final class ReviewNotificationsSupportTests: XCTestCase {
         XCTAssertTrue(settings.isEnabled)
     }
 
+    func testReviewNotificationPendingLimitReservesStrictReminderCapacityWhenEnabled() {
+        let settings = StrictRemindersSettings(isEnabled: true)
+
+        XCTAssertEqual(
+            reviewNotificationPendingRequestsLimit(strictRemindersSettings: settings),
+            appNotificationPendingRequestsLimit - strictReminderPendingRequestsLimit
+        )
+    }
+
+    func testReviewNotificationPendingLimitUsesFullLimitWhenStrictRemindersDisabled() {
+        let settings = StrictRemindersSettings(isEnabled: false)
+
+        XCTAssertEqual(
+            reviewNotificationPendingRequestsLimit(strictRemindersSettings: settings),
+            appNotificationPendingRequestsLimit
+        )
+    }
+
     func testStrictReminderNotificationScopePersistsAndValidatesCurrentNotification() {
         let suiteName = "ReviewNotificationsSupportTests-\(UUID().uuidString)"
         guard let userDefaults = UserDefaults(suiteName: suiteName) else {
@@ -573,6 +591,58 @@ final class ReviewNotificationsSupportTests: XCTestCase {
         )
     }
 
+    func testLoadScheduledReviewNotificationPayloadsRespectsExplicitLimit() async throws {
+        let (database, databaseURL) = try makeTemporaryLocalDatabase()
+        defer {
+            try? database.close()
+            try? removeTemporaryDatabase(at: databaseURL)
+        }
+
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        _ = try database.saveCard(
+            workspaceId: workspace.workspaceId,
+            input: CardEditorInput(
+                frontText: "Question",
+                backText: "Answer",
+                tags: [],
+                effortLevel: .medium
+            ),
+            cardId: nil
+        )
+        let calendar = makeCalendar()
+        let now = try XCTUnwrap(makeDate(year: 2026, month: 4, day: 3, hour: 9, minute: 0, calendar: calendar))
+        let settings = ReviewNotificationsSettings(
+            isEnabled: true,
+            selectedMode: .daily,
+            daily: DailyReviewNotificationsSettings(
+                hour: defaultDailyReminderHour,
+                minute: defaultDailyReminderMinute
+            ),
+            inactivity: InactivityReviewNotificationsSettings(
+                windowStartHour: defaultDailyReminderHour,
+                windowStartMinute: defaultDailyReminderMinute,
+                windowEndHour: defaultInactivityReminderWindowEndHour,
+                windowEndMinute: defaultInactivityReminderWindowEndMinute,
+                idleMinutes: 120
+            ),
+            showAppIconBadge: true
+        )
+
+        let result = try await loadScheduledReviewNotificationPayloads(
+            snapshot: ReviewNotificationSchedulingSnapshot(
+                databaseURL: databaseURL,
+                workspaceId: workspace.workspaceId,
+                reviewFilter: .allCards,
+                now: now,
+                settings: settings,
+                lastActiveAt: nil,
+                pendingRequestLimit: 3
+            )
+        )
+
+        XCTAssertEqual(result.payloads.count, 3)
+    }
+
     func testRepeatedPayloadsUseReplacementCurrentCardAndUniqueIdentifiers() throws {
         let calendar = makeCalendar()
         let scheduledDates = [
@@ -671,6 +741,57 @@ final class ReviewNotificationsSupportTests: XCTestCase {
         )
     }
 
+    func testAcceptedNotificationPayloadFiltersKeepOnlyPendingReadbackIdentifiers() throws {
+        let calendar = makeCalendar()
+        let scheduledDates = [
+            try XCTUnwrap(makeDate(year: 2026, month: 4, day: 3, hour: 12, minute: 15, calendar: calendar)),
+            try XCTUnwrap(makeDate(year: 2026, month: 4, day: 3, hour: 14, minute: 15, calendar: calendar)),
+            try XCTUnwrap(makeDate(year: 2026, month: 4, day: 3, hour: 16, minute: 15, calendar: calendar))
+        ]
+        let reviewPayloads = buildFallbackReviewNotificationPayloads(
+            workspaceId: "workspace-1",
+            reviewFilter: .allCards,
+            scheduledDates: scheduledDates,
+            calendar: calendar,
+            mode: .daily
+        )
+        let strictPayloads = buildStrictReminderPayloadsForIncompleteDay(
+            dayStart: try XCTUnwrap(makeDate(year: 2026, month: 4, day: 3, hour: 0, minute: 0, calendar: calendar)),
+            startOfNextDay: try XCTUnwrap(makeDate(year: 2026, month: 4, day: 4, hour: 0, minute: 0, calendar: calendar)),
+            now: try XCTUnwrap(makeDate(year: 2026, month: 4, day: 3, hour: 9, minute: 0, calendar: calendar)),
+            calendar: calendar
+        )
+
+        XCTAssertEqual(
+            acceptedReviewNotificationPayloads(
+                payloads: reviewPayloads,
+                pendingRequestIdentifiers: [
+                    reviewPayloads[0].requestId,
+                    "unrelated-request",
+                    reviewPayloads[2].requestId
+                ]
+            )
+            .map(\.requestId),
+            [
+                reviewPayloads[0].requestId,
+                reviewPayloads[2].requestId
+            ]
+        )
+        XCTAssertEqual(
+            acceptedStrictReminderPayloads(
+                payloads: strictPayloads,
+                pendingRequestIdentifiers: [
+                    strictPayloads[1].requestId,
+                    "review-notification::workspace-1::daily::2026-04-03-10-00"
+                ]
+            )
+            .map(\.requestId),
+            [
+                strictPayloads[1].requestId
+            ]
+        )
+    }
+
     func testStrictReminderPayloadsSkipCompletedDaysAndKeepOnlyFutureCandidates() throws {
         let calendar = makeCalendar()
         let now = try XCTUnwrap(makeDate(year: 2026, month: 4, day: 3, hour: 21, minute: 5, calendar: calendar))
@@ -693,6 +814,20 @@ final class ReviewNotificationsSupportTests: XCTestCase {
         )
         XCTAssertEqual(payloads.first?.offset, .twoHours)
         XCTAssertTrue(payloads.allSatisfy { $0.requestId.hasPrefix("strict-reminder::") })
+    }
+
+    func testStrictReminderPayloadsStayWithinPendingRequestLimit() throws {
+        let calendar = makeCalendar()
+        let now = try XCTUnwrap(makeDate(year: 2026, month: 4, day: 3, hour: 9, minute: 0, calendar: calendar))
+
+        let payloads = try buildStrictReminderPayloads(
+            now: now,
+            calendar: calendar,
+            completedDayStartMillis: []
+        )
+
+        XCTAssertEqual(payloads.count, strictReminderPendingRequestsLimit)
+        XCTAssertLessThanOrEqual(payloads.count, appNotificationPendingRequestsLimit)
     }
 
     func testLoadScheduledStrictReminderPayloadsSkipsTodayAfterAppWideReview() throws {

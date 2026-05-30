@@ -269,6 +269,31 @@ extension SentryObservabilityAdapter {
                 context: context,
                 localFields: stringifyContext(context)
             )
+        case .notificationSchedulingFailed(let warning):
+            let context: [String: Any] = [
+                "notification_kind": warning.notificationKind,
+                "workspace_id": warning.workspaceId ?? "",
+                "notification_request_id_hash": warning.requestId.map {
+                    hashedObservationIdentifier($0, key: "notification_request_id")
+                } ?? "",
+                "stage": warning.stage,
+                "planned_count": String(warning.plannedCount),
+                "accepted_count": String(warning.acceptedCount),
+                "pending_before_count": String(warning.pendingBeforeCount),
+                "pending_after_count": String(warning.pendingAfterCount),
+                "error_domain": warning.errorDomain ?? "",
+                "error_code": warning.errorCode.map { errorCode in String(errorCode) } ?? "",
+                "message_summary": warning.messageSummary ?? ""
+            ]
+            return ObservationPayload(
+                message: "iOS notification scheduling warning: \(warning.action)",
+                action: warning.action,
+                scope: warning.scope,
+                statusCode: nil,
+                backendCode: nil,
+                context: context,
+                localFields: stringifyContext(context)
+            )
         case .notificationTapDropped(let warning):
             var context: [String: Any] = self.notificationTapContext(warning.observation)
             context["reason"] = warning.reason

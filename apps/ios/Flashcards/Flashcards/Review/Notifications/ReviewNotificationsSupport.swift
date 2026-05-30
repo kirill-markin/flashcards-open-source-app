@@ -6,7 +6,7 @@ let reviewNotificationPermissionPromptThreshold: Int = 6
 let defaultDailyReminderHour: Int = 10
 let defaultDailyReminderMinute: Int = 0
 let dailyReminderSchedulingHorizonDays: Int = 7
-let reviewNotificationPendingRequestsLimit: Int = 64
+let appNotificationPendingRequestsLimit: Int = 64
 let defaultInactivityReminderWindowEndHour: Int = 19
 let defaultInactivityReminderWindowEndMinute: Int = 0
 let reviewNotificationFallbackBodyText: String = String(
@@ -291,6 +291,7 @@ struct ReviewNotificationSchedulingSnapshot: Sendable {
     let now: Date
     let settings: ReviewNotificationsSettings
     let lastActiveAt: Date?
+    let pendingRequestLimit: Int
 }
 
 struct ScheduledReviewNotificationLoadResult: Sendable {
@@ -376,6 +377,14 @@ func hasEnoughReviewHistoryForNotificationPrompt(reviewCount: Int) -> Bool {
     reviewCount >= reviewNotificationPermissionPromptThreshold
 }
 
+func reviewNotificationPendingRequestsLimit(strictRemindersSettings: StrictRemindersSettings) -> Int {
+    guard strictRemindersSettings.isEnabled else {
+        return appNotificationPendingRequestsLimit
+    }
+
+    return max(0, appNotificationPendingRequestsLimit - strictReminderPendingRequestsLimit)
+}
+
 func makeReviewNotificationsSettingsUserDefaultsKey(workspaceId: String) -> String {
     "\(reviewNotificationsSettingsUserDefaultsKeyPrefix)\(workspaceId)"
 }
@@ -454,6 +463,16 @@ func filterReviewNotificationRequestIdentifiers(identifiers: [String]) -> [Strin
     identifiers.filter(isReviewNotificationRequestIdentifier)
 }
 
+func pendingAppNotificationRequestIdentifiers(
+    center: UNUserNotificationCenter
+) async -> [String] {
+    await withCheckedContinuation { continuation in
+        center.getPendingNotificationRequests { requests in
+            continuation.resume(returning: requests.map(\.identifier))
+        }
+    }
+}
+
 /// Returns the identifiers of pending review reminders queued by the app.
 func pendingReviewNotificationRequestIdentifiers(
     center: UNUserNotificationCenter
@@ -509,6 +528,16 @@ func makeReviewNotificationRequestIdentifiers(
     scheduledPayloads: [ScheduledReviewNotificationPayload]
 ) -> [String] {
     scheduledPayloads.map(\.requestId)
+}
+
+func acceptedReviewNotificationPayloads(
+    payloads: [ScheduledReviewNotificationPayload],
+    pendingRequestIdentifiers: [String]
+) -> [ScheduledReviewNotificationPayload] {
+    let pendingRequestIdentifierSet: Set<String> = Set(pendingRequestIdentifiers)
+    return payloads.filter { payload in
+        pendingRequestIdentifierSet.contains(payload.requestId)
+    }
 }
 
 func buildDailyReviewNotificationDates(
@@ -729,7 +758,7 @@ func loadScheduledReviewNotificationPayloads(
             )
         }
 
-        let limitedScheduledDates = Array(scheduledDates.prefix(reviewNotificationPendingRequestsLimit))
+        let limitedScheduledDates = Array(scheduledDates.prefix(max(0, snapshot.pendingRequestLimit)))
         let payloads: [ScheduledReviewNotificationPayload]
         if let currentCard {
             payloads = buildRepeatedReviewNotificationPayloads(
@@ -807,6 +836,46 @@ func appNotificationTapType(request: AppNotificationTapRequest) -> String {
     case .fallback(let fallback):
         return fallback.notificationType ?? "fallback"
     }
+}
+
+func makeNotificationSchedulingFailureWarning(
+    action: String,
+    scope: IOSObservationScope,
+    notificationKind: AppNotificationTapType,
+    workspaceId: String?,
+    requestId: String?,
+    stage: String,
+    plannedCount: Int,
+    acceptedCount: Int,
+    pendingBeforeCount: Int,
+    pendingAfterCount: Int,
+    error: Error?,
+    messageSummary: String?
+) -> NotificationSchedulingFailureWarning {
+    let nsError: NSError? = error.map { value in value as NSError }
+    let safeErrorDomain: String?
+    if let rawDomain = nsError?.domain {
+        let candidateDomain = safeDiagnosticIdentifier(rawDomain)
+        safeErrorDomain = candidateDomain == filteredDiagnosticValue ? nil : candidateDomain
+    } else {
+        safeErrorDomain = nil
+    }
+
+    return NotificationSchedulingFailureWarning(
+        action: action,
+        scope: scope,
+        notificationKind: notificationKind.rawValue,
+        workspaceId: workspaceId,
+        requestId: requestId,
+        stage: stage,
+        plannedCount: plannedCount,
+        acceptedCount: acceptedCount,
+        pendingBeforeCount: pendingBeforeCount,
+        pendingAfterCount: pendingAfterCount,
+        errorDomain: safeErrorDomain,
+        errorCode: nsError?.code,
+        messageSummary: error.map { value in Flashcards.errorMessage(error: value) } ?? messageSummary
+    )
 }
 
 func savePendingAppNotificationTap(
