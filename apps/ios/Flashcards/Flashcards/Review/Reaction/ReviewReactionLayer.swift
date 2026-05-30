@@ -179,6 +179,11 @@ private struct ReviewReactionLottieView: View {
                     min(proxy.size.width, proxy.size.height) * self.configuration.frameScale,
                     1
                 )
+                let centerY: CGFloat = adjustedReviewReactionCenterY(
+                    configuredCenterY: self.configuration.centerY,
+                    sideLength: sideLength,
+                    containerHeight: proxy.size.height
+                )
 
                 LottieView(animation: self.configuration.animation)
                     .resizable()
@@ -186,7 +191,7 @@ private struct ReviewReactionLottieView: View {
                     .frame(width: sideLength, height: sideLength)
                     .position(
                         x: proxy.size.width * self.configuration.centerX,
-                        y: proxy.size.height * self.configuration.centerY
+                        y: centerY
                     )
                     .opacity(ReviewReactionRenderer.reviewReactionOpacity(progress: progress))
             }
