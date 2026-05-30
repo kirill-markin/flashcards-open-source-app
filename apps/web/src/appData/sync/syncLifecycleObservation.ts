@@ -1,5 +1,6 @@
 import {
   captureWebWarning,
+  type SyncRestoreLocalBootstrapState,
   type WebObservationScope,
 } from "../../observability/webObservability";
 
@@ -8,10 +9,12 @@ export type HotBootstrapSlowObservationInput = Readonly<{
   workspaceId: string;
   installationId: string;
   durationMs: number;
+  pageSize: number;
   pageCount: number;
   entriesCount: number;
   localCardCountBefore: number;
   localCardCountAfter: number;
+  localBootstrapState: SyncRestoreLocalBootstrapState;
   lastAppliedHotChangeIdBefore: number | null;
   nextHotChangeId: number | null;
   remoteIsEmpty: boolean | null;
@@ -52,10 +55,12 @@ export function observeSlowHotBootstrap(input: HotBootstrapSlowObservationInput)
       workspaceId: input.workspaceId,
       installationId: input.installationId,
       durationMs: input.durationMs,
+      pageSize: input.pageSize,
       pageCount: input.pageCount,
       entriesCount: input.entriesCount,
       localCardCountBefore: input.localCardCountBefore,
       localCardCountAfter: input.localCardCountAfter,
+      localBootstrapState: input.localBootstrapState,
       lastAppliedHotChangeIdBefore: input.lastAppliedHotChangeIdBefore,
       nextHotChangeId: input.nextHotChangeId,
       remoteIsEmpty: input.remoteIsEmpty,

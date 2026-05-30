@@ -49,6 +49,7 @@ type SyncRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
   loadRequestContextFromRequestFn?: typeof loadRequestContextFromRequest;
   assertUserHasWorkspaceAccessFn?: typeof assertUserHasWorkspaceAccess;
+  processSyncBootstrapFn?: typeof processSyncBootstrap;
   processSyncPullFn?: typeof processSyncPull;
   processSyncReviewHistoryPullFn?: typeof processSyncReviewHistoryPull;
   withTransientDatabaseRetryFn?: typeof withTransientDatabaseRetry;
@@ -115,9 +116,11 @@ function getSyncReviewHistoryPullInputDetails(
 function buildSyncBootstrapPullDetails(
   input: Extract<SyncBootstrapInput, Readonly<{ mode: "pull" }>>,
   result: SyncBootstrapPullResult,
+  durationMs: number,
 ): SyncBootstrapDetails {
   return {
     statusCode: 200,
+    durationMs,
     installationId: input.installationId,
     platform: input.platform,
     appVersion: input.appVersion ?? null,
@@ -136,9 +139,11 @@ function buildSyncBootstrapPullDetails(
 function buildSyncBootstrapPushDetails(
   input: Extract<SyncBootstrapInput, Readonly<{ mode: "push" }>>,
   result: SyncBootstrapPushResult,
+  durationMs: number,
 ): SyncBootstrapDetails {
   return {
     statusCode: 200,
+    durationMs,
     installationId: input.installationId,
     platform: input.platform,
     appVersion: input.appVersion ?? null,
@@ -157,13 +162,14 @@ function buildSyncBootstrapPushDetails(
 function buildSyncBootstrapDetails(
   input: SyncBootstrapInput,
   result: SyncBootstrapPullResult | SyncBootstrapPushResult,
+  durationMs: number,
 ): SyncBootstrapDetails {
   if (input.mode === "pull" && result.mode === "pull") {
-    return buildSyncBootstrapPullDetails(input, result);
+    return buildSyncBootstrapPullDetails(input, result, durationMs);
   }
 
   if (input.mode === "push" && result.mode === "push") {
-    return buildSyncBootstrapPushDetails(input, result);
+    return buildSyncBootstrapPushDetails(input, result, durationMs);
   }
 
   throw new Error(`Sync bootstrap result mode mismatch: input=${input.mode} result=${result.mode}`);
@@ -171,8 +177,10 @@ function buildSyncBootstrapDetails(
 
 function getSyncBootstrapFailureInputDetails(
   input: SyncBootstrapInput,
+  durationMs: number,
 ): Omit<SyncBootstrapDetails, "statusCode"> {
   return {
+    durationMs,
     installationId: input.installationId,
     platform: input.platform,
     appVersion: input.appVersion ?? null,
@@ -251,6 +259,7 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   const loadRequestContextFromRequestFn = options.loadRequestContextFromRequestFn ?? loadRequestContextFromRequest;
   const assertUserHasWorkspaceAccessFn = options.assertUserHasWorkspaceAccessFn ?? assertUserHasWorkspaceAccess;
+  const processSyncBootstrapFn = options.processSyncBootstrapFn ?? processSyncBootstrap;
   const processSyncPullFn = options.processSyncPullFn ?? processSyncPull;
   const processSyncReviewHistoryPullFn = options.processSyncReviewHistoryPullFn ?? processSyncReviewHistoryPull;
   const withTransientDatabaseRetryFn = options.withTransientDatabaseRetryFn ?? withTransientDatabaseRetry;
@@ -388,19 +397,22 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
     await assertUserHasWorkspaceAccessFn(requestContext.userId, workspaceId);
     const input = parseSyncBootstrapInput(await parseJsonBody(context.req.raw));
     const requestId = context.get("requestId");
+    const startedAtMs = Date.now();
 
     try {
-      const result = await processSyncBootstrap(workspaceId, requestContext.userId, input);
+      const result = await processSyncBootstrapFn(workspaceId, requestContext.userId, input);
+      const durationMs = Date.now() - startedAtMs;
       addBackendBreadcrumb({
         action: "sync_bootstrap",
         scope: createSyncScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId),
-        details: buildSyncBootstrapDetails(input, result),
+        details: buildSyncBootstrapDetails(input, result, durationMs),
       });
       return context.json(result);
     } catch (error) {
+      const durationMs = Date.now() - startedAtMs;
       const scope = createSyncScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
       const details = {
-        ...getSyncBootstrapFailureInputDetails(input),
+        ...getSyncBootstrapFailureInputDetails(input, durationMs),
         ...createBackendFailureDetails(error),
         ...getSyncConflictLogContext(error),
       };

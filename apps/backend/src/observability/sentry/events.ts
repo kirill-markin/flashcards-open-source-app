@@ -100,6 +100,7 @@ export type SyncPullDetails = Readonly<{
 
 export type SyncBootstrapDetails = Readonly<{
   statusCode: number;
+  durationMs: number;
   installationId: string;
   platform: string;
   appVersion: string | null;

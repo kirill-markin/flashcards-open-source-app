@@ -34,6 +34,7 @@ export type WorkspaceTransitionBreadcrumbDetails = Readonly<{
     | "auth_reset_cleanup_deferred"
     | "session_bootstrap_redirected"
     | "workspace_activate_bootstrap_started"
+    | "workspace_activate_bootstrap_deferred"
     | "workspace_activate_bootstrap_succeeded"
     | "workspace_activate_bootstrap_redirected"
     | "workspace_activate_started"
@@ -308,15 +309,23 @@ export type WorkspaceStateWarningDetails = Readonly<{
   activeWorkspaceId: string | null;
 }>;
 
+export type SyncRestoreLocalBootstrapState =
+  | "no_sync_state_no_cards"
+  | "no_sync_state_with_cards"
+  | "unhydrated_sync_state"
+  | "unhydrated_with_cards";
+
 export type SyncRestoreWarningDetails = Readonly<{
   eventName: "sync_hot_bootstrap_slow";
   workspaceId: string;
   installationId: string;
   durationMs: number;
+  pageSize: number;
   pageCount: number;
   entriesCount: number;
   localCardCountBefore: number;
   localCardCountAfter: number;
+  localBootstrapState: SyncRestoreLocalBootstrapState;
   lastAppliedHotChangeIdBefore: number | null;
   nextHotChangeId: number | null;
   remoteIsEmpty: boolean | null;
