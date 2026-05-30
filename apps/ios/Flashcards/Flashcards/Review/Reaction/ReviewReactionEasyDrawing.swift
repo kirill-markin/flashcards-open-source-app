@@ -13,14 +13,9 @@ extension ReviewReactionRenderer {
         }
 
         let phase = reviewReactionPhaseProgress(progress: progress, enterEnd: 0.44, exitStart: 0.82)
-        let sideLength: CGFloat = max(min(size.width, size.height) * 0.64, 1)
         let targetCenter: CGPoint = CGPoint(
-            x: size.width * 0.50,
-            y: adjustedReviewReactionCenterY(
-                configuredCenterY: reviewReactionDefaultAnchorY,
-                sideLength: sideLength,
-                containerHeight: size.height
-            )
+            x: size.width * reviewReactionCenterX,
+            y: size.height * reviewReactionCenterY
         )
         let bounce = motionMode == .reduced ? sin(progress * CGFloat.pi) : sin(phase.hold * CGFloat.pi * 3) * (1 - phase.hold)
         let center = CGPoint(

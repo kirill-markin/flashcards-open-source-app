@@ -15,8 +15,6 @@ struct ReviewReactionLottieAssetConfiguration: Hashable, Sendable {
     let assetName: String
     let assetDescription: String
     let frameScale: CGFloat
-    let centerX: CGFloat
-    let centerY: CGFloat
 }
 
 struct ReviewReactionLottieAssetFailure: Hashable, Sendable {
@@ -124,305 +122,229 @@ let reviewReactionLottieAssetConfigurations: [ReviewReactionLottieAssetConfigura
         variant: .againRainCloud,
         assetName: "ReviewAgainRainCloud",
         assetDescription: "rain cloud",
-        frameScale: 0.62,
-        centerX: 0.50,
-        centerY: 0.44
+        frameScale: 0.62
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .againTornado,
         assetName: "ReviewAgainTornado",
         assetDescription: "tornado",
-        frameScale: 0.58,
-        centerX: 0.50,
-        centerY: 0.45
+        frameScale: 0.58
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .againWindFace,
         assetName: "ReviewAgainWindFace",
         assetDescription: "wind face",
-        frameScale: 0.56,
-        centerX: 0.50,
-        centerY: 0.45
+        frameScale: 0.56
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .againSnowflake,
         assetName: "ReviewAgainSnowflake",
         assetDescription: "snowflake",
-        frameScale: 0.56,
-        centerX: 0.50,
-        centerY: 0.45
+        frameScale: 0.56
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .againSnailCrawl,
         assetName: "ReviewAgainSnail",
         assetDescription: "snail",
-        frameScale: 0.58,
-        centerX: 0.50,
-        centerY: 0.48
+        frameScale: 0.58
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .againTurtle,
         assetName: "ReviewAgainTurtle",
         assetDescription: "turtle",
-        frameScale: 0.58,
-        centerX: 0.50,
-        centerY: 0.50
+        frameScale: 0.58
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .againWiltedFlower,
         assetName: "ReviewAgainWiltedFlower",
         assetDescription: "wilted flower",
-        frameScale: 0.56,
-        centerX: 0.50,
-        centerY: 0.50
+        frameScale: 0.56
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .againSpider,
         assetName: "ReviewAgainSpider",
         assetDescription: "spider",
-        frameScale: 0.54,
-        centerX: 0.50,
-        centerY: 0.50
+        frameScale: 0.54
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .againRat,
         assetName: "ReviewAgainRat",
         assetDescription: "rat",
-        frameScale: 0.56,
-        centerX: 0.50,
-        centerY: 0.50
+        frameScale: 0.56
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .againWormWiggle,
         assetName: "ReviewAgainWorm",
         assetDescription: "worm",
-        frameScale: 0.58,
-        centerX: 0.50,
-        centerY: 0.52
+        frameScale: 0.58
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .hardTiger,
         assetName: "ReviewHardTiger",
         assetDescription: "tiger",
-        frameScale: 0.62,
-        centerX: 0.50,
-        centerY: 0.48
+        frameScale: 0.62
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .hardTRex,
         assetName: "ReviewHardTRex",
         assetDescription: "t rex",
-        frameScale: 0.62,
-        centerX: 0.50,
-        centerY: 0.48
+        frameScale: 0.62
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .hardShark,
         assetName: "ReviewHardShark",
         assetDescription: "shark",
-        frameScale: 0.62,
-        centerX: 0.50,
-        centerY: 0.47
+        frameScale: 0.62
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .hardOxCharge,
         assetName: "ReviewHardOx",
         assetDescription: "ox",
-        frameScale: 0.58,
-        centerX: 0.50,
-        centerY: 0.50
+        frameScale: 0.58
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .hardRacehorseGallop,
         assetName: "ReviewHardRacehorse",
         assetDescription: "racehorse",
-        frameScale: 0.62,
-        centerX: 0.50,
-        centerY: 0.50
+        frameScale: 0.62
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .hardSnake,
         assetName: "ReviewHardSnake",
         assetDescription: "snake",
-        frameScale: 0.58,
-        centerX: 0.50,
-        centerY: 0.50
+        frameScale: 0.58
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .hardVolcanoEruption,
         assetName: "ReviewHardVolcano",
         assetDescription: "volcano",
-        frameScale: 0.64,
-        centerX: 0.50,
-        centerY: 0.50
+        frameScale: 0.64
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .hardScorpion,
         assetName: "ReviewHardScorpion",
         assetDescription: "scorpion",
-        frameScale: 0.56,
-        centerX: 0.50,
-        centerY: 0.50
+        frameScale: 0.56
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .hardPawPrints,
         assetName: "ReviewHardPawPrints",
         assetDescription: "paw prints",
-        frameScale: 0.56,
-        centerX: 0.50,
-        centerY: 0.50
+        frameScale: 0.56
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .hardRooster,
         assetName: "ReviewHardRooster",
         assetDescription: "rooster",
-        frameScale: 0.58,
-        centerX: 0.50,
-        centerY: 0.48
+        frameScale: 0.58
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .goodOtter,
         assetName: "ReviewGoodOtter",
         assetDescription: "otter",
-        frameScale: 0.58,
-        centerX: 0.50,
-        centerY: 0.48
+        frameScale: 0.58
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .goodOwl,
         assetName: "ReviewGoodOwl",
         assetDescription: "owl",
-        frameScale: 0.56,
-        centerX: 0.50,
-        centerY: 0.42
+        frameScale: 0.56
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .goodRabbit,
         assetName: "ReviewGoodRabbit",
         assetDescription: "rabbit",
-        frameScale: 0.56,
-        centerX: 0.50,
-        centerY: 0.47
+        frameScale: 0.56
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .goodSeal,
         assetName: "ReviewGoodSeal",
         assetDescription: "seal",
-        frameScale: 0.58,
-        centerX: 0.50,
-        centerY: 0.47
+        frameScale: 0.58
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .goodServiceDog,
         assetName: "ReviewGoodServiceDog",
         assetDescription: "service dog",
-        frameScale: 0.58,
-        centerX: 0.50,
-        centerY: 0.47
+        frameScale: 0.58
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .goodPoodle,
         assetName: "ReviewGoodPoodle",
         assetDescription: "poodle",
-        frameScale: 0.56,
-        centerX: 0.50,
-        centerY: 0.43
+        frameScale: 0.56
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .goodChimpanzee,
         assetName: "ReviewGoodChimpanzee",
         assetDescription: "chimpanzee",
-        frameScale: 0.56,
-        centerX: 0.50,
-        centerY: 0.46
+        frameScale: 0.56
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .goodWhale,
         assetName: "ReviewGoodWhale",
         assetDescription: "whale",
-        frameScale: 0.58,
-        centerX: 0.50,
-        centerY: 0.42
+        frameScale: 0.58
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .goodPeacock,
         assetName: "ReviewGoodPeacock",
         assetDescription: "peacock",
-        frameScale: 0.58,
-        centerX: 0.50,
-        centerY: 0.42
+        frameScale: 0.58
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .goodPig,
         assetName: "ReviewGoodPig",
         assetDescription: "pig",
-        frameScale: 0.56,
-        centerX: 0.50,
-        centerY: 0.50
+        frameScale: 0.56
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .easySunrise,
         assetName: "ReviewEasySunrise",
         assetDescription: "sunrise",
-        frameScale: 0.64,
-        centerX: 0.50,
-        centerY: 0.42
+        frameScale: 0.64
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .easySunriseOverMountains,
         assetName: "ReviewEasySunriseOverMountains",
         assetDescription: "sunrise over mountains",
-        frameScale: 0.64,
-        centerX: 0.50,
-        centerY: 0.44
+        frameScale: 0.64
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .easyRoseBloom,
         assetName: "ReviewEasyRose",
         assetDescription: "rose",
-        frameScale: 0.58,
-        centerX: 0.50,
-        centerY: 0.50
+        frameScale: 0.58
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .easyPeace,
         assetName: "ReviewEasyPeace",
         assetDescription: "peace",
-        frameScale: 0.56,
-        centerX: 0.50,
-        centerY: 0.48
+        frameScale: 0.56
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .easyPlant,
         assetName: "ReviewEasyPlant",
         assetDescription: "plant",
-        frameScale: 0.58,
-        centerX: 0.50,
-        centerY: 0.50
+        frameScale: 0.58
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .easyRainbowStreak,
         assetName: "ReviewEasyRainbow",
         assetDescription: "rainbow",
-        frameScale: 0.64,
-        centerX: 0.50,
-        centerY: 0.42
+        frameScale: 0.64
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .easyPhoenixRise,
         assetName: "ReviewEasyPhoenix",
         assetDescription: "phoenix",
-        frameScale: 0.64,
-        centerX: 0.50,
-        centerY: 0.42
+        frameScale: 0.64
     ),
     ReviewReactionLottieAssetConfiguration(
         variant: .easyUnicornFlyby,
         assetName: "ReviewEasyUnicorn",
         assetDescription: "unicorn",
-        frameScale: 0.52,
-        centerX: 0.56,
-        centerY: 0.30
+        frameScale: 0.52
     )
 ]
 

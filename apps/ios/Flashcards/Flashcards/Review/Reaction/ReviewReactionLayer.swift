@@ -8,8 +8,6 @@ private let reviewReactionLottieReducedMotionProgress: AnimationProgressTime = 0
 private struct ReviewReactionLottieConfiguration {
     let animation: LottieAnimation
     let frameScale: CGFloat
-    let centerX: CGFloat
-    let centerY: CGFloat
     let reducedMotionProgress: AnimationProgressTime
 }
 
@@ -35,8 +33,6 @@ private func reviewReactionLottieConfiguration(
     return ReviewReactionLottieConfiguration(
         animation: animation,
         frameScale: assetConfiguration.frameScale,
-        centerX: assetConfiguration.centerX,
-        centerY: assetConfiguration.centerY,
         reducedMotionProgress: reviewReactionLottieReducedMotionProgress
     )
 }
@@ -179,19 +175,14 @@ private struct ReviewReactionLottieView: View {
                     min(proxy.size.width, proxy.size.height) * self.configuration.frameScale,
                     1
                 )
-                let centerY: CGFloat = adjustedReviewReactionCenterY(
-                    configuredCenterY: self.configuration.centerY,
-                    sideLength: sideLength,
-                    containerHeight: proxy.size.height
-                )
 
                 LottieView(animation: self.configuration.animation)
                     .resizable()
                     .playbackMode(self.playbackMode(progress: progress))
                     .frame(width: sideLength, height: sideLength)
                     .position(
-                        x: proxy.size.width * self.configuration.centerX,
-                        y: centerY
+                        x: proxy.size.width * reviewReactionCenterX,
+                        y: proxy.size.height * reviewReactionCenterY
                     )
                     .opacity(ReviewReactionRenderer.reviewReactionOpacity(progress: progress))
             }
