@@ -21,6 +21,7 @@ import {
   loadLastAppliedReviewSequenceId,
   loadWorkspaceSyncState,
 } from "../../localDb/workspace";
+import type { SyncRestoreLocalBootstrapState } from "../../observability/webObservability";
 import type {
   SyncBootstrapEntry,
   SyncChange,
@@ -33,7 +34,7 @@ import {
 } from "../domain";
 import { observeSlowHotBootstrap } from "./syncLifecycleObservation";
 
-const syncPageSize = 200;
+const syncPageSize = 500;
 const slowHotBootstrapWarningThresholdMs = 2000;
 
 type HotSyncEntry = SyncBootstrapEntry | SyncChange;
@@ -109,6 +110,17 @@ function shouldObserveHotBootstrap(durationMs: number, pageCount: number): boole
   return durationMs >= slowHotBootstrapWarningThresholdMs || pageCount > 1;
 }
 
+function determineLocalBootstrapState(
+  syncStateBefore: Awaited<ReturnType<typeof loadWorkspaceSyncState>>,
+  localCardCountBefore: number,
+): SyncRestoreLocalBootstrapState {
+  if (syncStateBefore === null) {
+    return localCardCountBefore === 0 ? "no_sync_state_no_cards" : "no_sync_state_with_cards";
+  }
+
+  return localCardCountBefore === 0 ? "unhydrated_sync_state" : "unhydrated_with_cards";
+}
+
 async function doHotSyncEntriesAffectReviewSchedule(
   workspaceId: string,
   entries: ReadonlyArray<HotSyncEntry>,
@@ -139,6 +151,7 @@ async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promise<Remot
 
   const startedAtMs = Date.now();
   const localCardCountBefore = await loadActiveCardCount(input.workspaceId);
+  const localBootstrapState = determineLocalBootstrapState(syncStateBefore, localCardCountBefore);
   let didChangeReviewSchedule = false;
   let bootstrapCursor: string | null = null;
   let pageCount = 0;
@@ -197,10 +210,12 @@ async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promise<Remot
       workspaceId: input.workspaceId,
       installationId: input.installationId,
       durationMs,
+      pageSize: syncPageSize,
       pageCount,
       entriesCount,
       localCardCountBefore,
       localCardCountAfter,
+      localBootstrapState,
       lastAppliedHotChangeIdBefore: syncStateBefore?.lastAppliedHotChangeId ?? null,
       nextHotChangeId,
       remoteIsEmpty,

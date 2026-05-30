@@ -32,6 +32,7 @@ export type WorkspaceTransitionLogDetails = Readonly<{
 type WorkspaceTransitionEventName =
   | "session_bootstrap_redirected"
   | "workspace_activate_bootstrap_started"
+  | "workspace_activate_bootstrap_deferred"
   | "workspace_activate_bootstrap_succeeded"
   | "workspace_activate_bootstrap_redirected"
   | "workspace_activate_started"

@@ -49,6 +49,13 @@ type HarnessActions = Readonly<{
   deleteWorkspace: (workspaceId: string, confirmationText: string) => Promise<void>;
 }>;
 
+type CapturedWebBreadcrumb = Readonly<{
+  action: string;
+  details?: Readonly<{
+    eventName?: string;
+  }>;
+}>;
+
 type DiscardAllSyncWorkForTest = (runWhileDiscarding: () => Promise<void>) => Promise<void>;
 
 type TestHarnessProps = Readonly<{
@@ -338,6 +345,13 @@ async function flushEffects(): Promise<void> {
   await act(async () => {
     await Promise.resolve();
   });
+}
+
+function getWorkspaceTransitionEventNames(): ReadonlyArray<string> {
+  return observabilityMocks.addWebBreadcrumbMock.mock.calls
+    .map((call) => call[0] as CapturedWebBreadcrumb)
+    .filter((event) => event.action === "workspace_transition")
+    .map((event) => event.details?.eventName ?? "");
 }
 
 describe("useWorkspaceSession bootstrap", () => {
@@ -637,10 +651,16 @@ describe("useWorkspaceSession bootstrap", () => {
       .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]));
     vi.stubGlobal("fetch", fetchMock);
 
-    const refreshWorkspaceViewMock = vi.fn(async (): Promise<void> => {});
+    const initialLocalRefreshDeferred = createDeferredVoidPromise();
+    const refreshWorkspaceViewMock = vi.fn(async (): Promise<void> => {
+      await initialLocalRefreshDeferred.promise;
+    });
     const runSyncMock = vi.fn(async (): Promise<void> => {});
     const runSyncSilentlyMock = vi.fn(async (): Promise<void> => {});
-    const runSyncForWorkspaceMock = vi.fn(async (_workspace: WorkspaceSummary): Promise<void> => {});
+    const initialVerifiedSyncDeferred = createDeferredVoidPromise();
+    const runSyncForWorkspaceMock = vi.fn(async (_workspace: WorkspaceSummary): Promise<void> => {
+      await initialVerifiedSyncDeferred.promise;
+    });
 
     await act(async () => {
       root?.render(
@@ -669,15 +689,28 @@ describe("useWorkspaceSession bootstrap", () => {
       expect(latestState?.sessionLoadState).toBe("ready");
       expect(latestState?.sessionVerificationState).toBe("verified");
     });
-    await vi.waitFor(() => {
-      expect(runSyncForWorkspaceMock).toHaveBeenCalledTimes(1);
-    });
+    await flushEffects();
 
     expect(redirectedUrl).toBeNull();
     expect(latestState?.sessionErrorMessage).toBe("");
     expect(latestState?.activeWorkspace?.workspaceId).toBe("workspace-1");
     expect(latestState?.session?.csrfToken).toBe("csrf-retry");
     expect(latestState?.cloudSettings?.cloudState).toBe("linked");
+    expect(runSyncForWorkspaceMock).not.toHaveBeenCalled();
+    initialLocalRefreshDeferred.resolve();
+    await act(async () => {
+      await initialLocalRefreshDeferred.promise;
+    });
+    await vi.waitFor(() => {
+      expect(runSyncForWorkspaceMock).toHaveBeenCalledTimes(1);
+    });
+    expect(runSyncForWorkspaceMock).toHaveBeenLastCalledWith(seededWorkspace);
+    expect(getWorkspaceTransitionEventNames()).toContain("workspace_activate_bootstrap_deferred");
+    expect(getWorkspaceTransitionEventNames()).not.toContain("workspace_activate_bootstrap_succeeded");
+    initialVerifiedSyncDeferred.resolve();
+    await vi.waitFor(() => {
+      expect(getWorkspaceTransitionEventNames()).toContain("workspace_activate_bootstrap_succeeded");
+    });
     expect(window.localStorage.getItem(WARM_START_SNAPSHOT_STORAGE_KEY)).not.toBeNull();
     await expect(loadCloudSettings()).resolves.toEqual(expect.objectContaining({
       cloudState: "linked",
@@ -833,6 +866,7 @@ describe("useWorkspaceSession bootstrap", () => {
     expect(observabilityMocks.setWebObservabilityUserMock).toHaveBeenCalledWith({ id: "user-2" });
     expect(runSyncSilentlyMock).not.toHaveBeenCalled();
     expect(runSyncForWorkspaceMock).toHaveBeenCalledTimes(2);
+    expect(runSyncForWorkspaceMock).toHaveBeenLastCalledWith(replacementWorkspace);
     expect(window.localStorage.getItem(WARM_START_SNAPSHOT_STORAGE_KEY)).toBeNull();
     await expect(loadCloudSettings()).resolves.toEqual(expect.objectContaining({
       linkedUserId: "user-2",
@@ -861,12 +895,7 @@ describe("useWorkspaceSession bootstrap", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const runSyncSilentlyMock = vi.fn(async (): Promise<void> => {});
-    const oldBootstrapDeferred = createDeferredVoidPromise();
-    const runSyncForWorkspaceMock = vi.fn(async (_workspace: WorkspaceSummary): Promise<void> => {
-      if (runSyncForWorkspaceMock.mock.calls.length === 1) {
-        await oldBootstrapDeferred.promise;
-      }
-    });
+    const runSyncForWorkspaceMock = vi.fn(async (_workspace: WorkspaceSummary): Promise<void> => {});
 
     await act(async () => {
       root?.render(
@@ -913,11 +942,6 @@ describe("useWorkspaceSession bootstrap", () => {
     expect(observabilityMocks.setWebObservabilityUserMock).toHaveBeenCalledWith({ id: "user-2" });
     expect(runSyncSilentlyMock).not.toHaveBeenCalled();
     expect(runSyncForWorkspaceMock).toHaveBeenCalledTimes(1);
-
-    oldBootstrapDeferred.resolve();
-    await flushEffects();
-    expect(latestState?.sessionLoadState).toBe("error");
-    expect(latestState?.sessionErrorMessage).toBe("Switch bootstrap failed");
   });
 
   it("shows the generic bootstrap error state for real backend failures instead of redirecting", async () => {
@@ -1019,6 +1043,7 @@ describe("useWorkspaceSession bootstrap", () => {
       expect(latestState?.sessionVerificationState).toBe("verified");
       expect(runSyncForWorkspaceMock).toHaveBeenCalledTimes(1);
     });
+    await flushEffects();
 
     if (latestActions === null) {
       throw new Error("Workspace session actions were not published");
@@ -1034,6 +1059,7 @@ describe("useWorkspaceSession bootstrap", () => {
     expect(discardWorkspaceSyncMock.mock.invocationCallOrder[0]).toBeLessThan(
       runSyncForWorkspaceMock.mock.invocationCallOrder[1],
     );
+    expect(getWorkspaceTransitionEventNames()).toContain("workspace_activate_bootstrap_succeeded");
     expect(latestState?.activeWorkspace?.workspaceId).toBe("workspace-2");
     expect(latestState?.availableWorkspaces.map((workspace) => workspace.workspaceId)).toEqual(["workspace-2"]);
     await expect(loadCloudSettings()).resolves.toEqual(expect.objectContaining({

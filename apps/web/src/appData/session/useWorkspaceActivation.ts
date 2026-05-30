@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createWorkspace as createWorkspaceRequest,
   isAuthRedirectError,
@@ -29,11 +29,13 @@ import {
 import type {
   WorkspaceSessionActivation,
   WorkspaceSessionSetters,
+  WorkspaceSessionState,
   WorkspaceSessionSyncActions,
   WorkspaceSessionUiActions,
 } from "./workspaceSessionTypes";
 
 type UseWorkspaceActivationParams =
+  & Pick<WorkspaceSessionState, "activeWorkspace" | "sessionVerificationState">
   & WorkspaceSessionSetters
   & WorkspaceSessionSyncActions
   & WorkspaceSessionUiActions;
@@ -52,11 +54,16 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
     runSyncForWorkspace,
     discardAllSyncWork,
     resetUserScopedUiState,
+    activeWorkspace,
+    sessionVerificationState,
   } = params;
   const workspaceBootstrapGenerationRef = useRef<number>(0);
+  const deferredBootstrapWorkspaceRef = useRef<WorkspaceSummary | null>(null);
+  const [deferredBootstrapVersion, setDeferredBootstrapVersion] = useState<number>(0);
 
   const clearConfirmedUserScopedState = useCallback(async function clearConfirmedUserScopedState(): Promise<void> {
     workspaceBootstrapGenerationRef.current += 1;
+    deferredBootstrapWorkspaceRef.current = null;
     setSession(null);
     setActiveWorkspace(null);
     setAvailableWorkspaces([]);
@@ -109,11 +116,27 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
 
     logWorkspaceTransition("workspace_activate_bootstrap_started", {
       workspaceId: workspace.workspaceId,
+      sessionVerificationState,
     });
 
     void (async (): Promise<void> => {
       try {
         await refreshWorkspaceView(workspace.workspaceId);
+        if (sessionVerificationState !== "verified") {
+          if (isCurrentBootstrapGeneration() === false) {
+            return;
+          }
+
+          deferredBootstrapWorkspaceRef.current = workspace;
+          setDeferredBootstrapVersion((currentVersion) => currentVersion + 1);
+          logWorkspaceTransition("workspace_activate_bootstrap_deferred", {
+            workspaceId: workspace.workspaceId,
+            sessionVerificationState,
+          });
+          return;
+        }
+
+        deferredBootstrapWorkspaceRef.current = null;
         await runSyncForWorkspace(workspace);
         if (isCurrentBootstrapGeneration() === false) {
           return;
@@ -123,6 +146,7 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
         setErrorMessage("");
         logWorkspaceTransition("workspace_activate_bootstrap_succeeded", {
           workspaceId: workspace.workspaceId,
+          sessionVerificationState,
         });
       } catch (error) {
         if (isCurrentBootstrapGeneration() === false) {
@@ -133,6 +157,7 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
           logWorkspaceTransition("workspace_activate_bootstrap_redirected", {
             workspaceId: workspace.workspaceId,
             redirected: true,
+            sessionVerificationState,
           });
           setSessionLoadState("redirecting");
           return;
@@ -142,6 +167,7 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
         captureWorkspaceTransitionError("workspace_activate_bootstrap_failed", {
           workspaceId: workspace.workspaceId,
           errorMessage: nextErrorMessage,
+          sessionVerificationState,
         }, error);
         setSessionErrorMessage(nextErrorMessage);
         setErrorMessage(nextErrorMessage);
@@ -150,9 +176,34 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
   }, [
     refreshWorkspaceView,
     runSyncForWorkspace,
+    sessionVerificationState,
     setErrorMessage,
     setSessionErrorMessage,
     setSessionLoadState,
+  ]);
+
+  useEffect(() => {
+    if (sessionVerificationState !== "verified") {
+      return;
+    }
+
+    const deferredWorkspace = deferredBootstrapWorkspaceRef.current;
+    if (deferredWorkspace === null) {
+      return;
+    }
+
+    if (activeWorkspace?.workspaceId !== deferredWorkspace.workspaceId) {
+      deferredBootstrapWorkspaceRef.current = null;
+      return;
+    }
+
+    deferredBootstrapWorkspaceRef.current = null;
+    bootstrapWorkspaceInBackground(activeWorkspace);
+  }, [
+    activeWorkspace,
+    bootstrapWorkspaceInBackground,
+    deferredBootstrapVersion,
+    sessionVerificationState,
   ]);
 
   const activateWorkspace = useCallback(async function activateWorkspace(
