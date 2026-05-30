@@ -1,26 +1,7 @@
 import SwiftUI
 
-let reviewReactionDefaultAnchorY: CGFloat = 0.50
-let reviewReactionTargetAnchorY: CGFloat = 0.80
-let reviewReactionVerticalShift: CGFloat = reviewReactionTargetAnchorY - reviewReactionDefaultAnchorY
-
-func adjustedReviewReactionCenterY(
-    configuredCenterY: CGFloat,
-    sideLength: CGFloat,
-    containerHeight: CGFloat
-) -> CGFloat {
-    let shiftedCenterY: CGFloat = (configuredCenterY + reviewReactionVerticalShift) * containerHeight
-    let halfSideLength: CGFloat = max(sideLength, 0) / 2
-
-    guard containerHeight > 0 else {
-        return 0
-    }
-    guard sideLength < containerHeight else {
-        return containerHeight / 2
-    }
-
-    return min(max(shiftedCenterY, halfSideLength), containerHeight - halfSideLength)
-}
+let reviewReactionCenterX: CGFloat = 0.50
+let reviewReactionCenterY: CGFloat = 0.80
 
 extension ReviewReactionRenderer {
     static func makeScallopedSealPath(
