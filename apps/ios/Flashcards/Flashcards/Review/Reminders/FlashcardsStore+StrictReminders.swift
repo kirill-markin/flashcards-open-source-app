@@ -21,7 +21,7 @@ extension FlashcardsStore {
     func updateStrictRemindersSettings(settings: StrictRemindersSettings) {
         self.strictRemindersSettings = settings
         self.persistStrictRemindersSettings()
-        self.reconcileStrictReminders(trigger: .settingsChanged, now: Date())
+        self.reconcileNotificationsAfterStrictRemindersSettingsChanged(now: Date())
     }
 
     func updateStrictRemindersEnabled(isEnabled: Bool) {
@@ -42,6 +42,44 @@ extension FlashcardsStore {
 
         self.activeStrictRemindersRescheduleTask = Task { @MainActor in
             await self.drainStrictRemindersReconcileRequests()
+        }
+    }
+
+    private func reconcileNotificationsAfterStrictRemindersSettingsChanged(now: Date) {
+        guard self.strictRemindersSettings.isEnabled else {
+            self.reconcileStrictReminders(trigger: .settingsChanged, now: now)
+            Task { @MainActor in
+                await self.waitForStrictRemindersReconcileToSettle()
+                guard Task.isCancelled == false else {
+                    return
+                }
+                guard self.strictRemindersSettings.isEnabled == false else {
+                    return
+                }
+                self.reconcileReviewNotifications(trigger: .settingsChanged, now: now)
+            }
+            return
+        }
+
+        self.reconcileReviewNotifications(trigger: .settingsChanged, now: now)
+        self.reconcileStrictReminders(trigger: .settingsChanged, now: now)
+    }
+
+    private func waitForStrictRemindersReconcileToSettle() async {
+        while let task = self.activeStrictRemindersRescheduleTask {
+            await task.value
+            guard Task.isCancelled == false else {
+                return
+            }
+        }
+    }
+
+    private func waitForReviewNotificationsReconcileToSettle() async {
+        while let task = self.activeReviewNotificationsRescheduleTask {
+            await task.value
+            guard Task.isCancelled == false else {
+                return
+            }
         }
     }
 
@@ -113,6 +151,10 @@ extension FlashcardsStore {
             self.persistScheduledStrictReminders(payloads: [])
             return
         }
+        await self.waitForReviewNotificationsReconcileToSettle()
+        guard Task.isCancelled == false else {
+            return
+        }
 
         let payloads: [ScheduledStrictReminderPayload]
         do {
@@ -178,37 +220,52 @@ extension FlashcardsStore {
             return
         }
 
-        do {
-            let notificationScope = loadStrictReminderNotificationScope(userDefaults: self.userDefaults)
-            for payload in payloads {
-                guard Task.isCancelled == false else {
-                    return
-                }
-                let content = UNMutableNotificationContent()
-                content.title = appDisplayName()
-                content.body = payload.notificationBodyText
-                content.sound = .default
-                content.userInfo = buildStrictReminderNotificationUserInfo(scope: notificationScope)
-
-                let interval = max(1, TimeInterval(payload.scheduledAtMillis) / 1_000 - request.now.timeIntervalSince1970)
-                let request = UNNotificationRequest(
-                    identifier: payload.requestId,
-                    content: content,
-                    trigger: UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
-                )
-
-                do {
-                    try await center.add(request)
-                } catch {
-                    throw LocalStoreError.validation(
-                        "Strict reminder request could not be scheduled: requestId=\(payload.requestId), message=\(Flashcards.errorMessage(error: error))"
-                    )
-                }
+        let notificationScope = loadStrictReminderNotificationScope(userDefaults: self.userDefaults)
+        let pendingBeforeRequestIdentifiers = await pendingAppNotificationRequestIdentifiers(center: center)
+        let pendingBeforeCount = pendingBeforeRequestIdentifiers.count
+        var addFailure: Error?
+        var failedRequestId: String?
+        for payload in payloads {
+            guard Task.isCancelled == false else {
+                return
             }
-        } catch {
+            let content = UNMutableNotificationContent()
+            content.title = appDisplayName()
+            content.body = payload.notificationBodyText
+            content.sound = .default
+            content.userInfo = buildStrictReminderNotificationUserInfo(scope: notificationScope)
+
+            let interval = max(1, TimeInterval(payload.scheduledAtMillis) / 1_000 - request.now.timeIntervalSince1970)
+            let request = UNNotificationRequest(
+                identifier: payload.requestId,
+                content: content,
+                trigger: UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
+            )
+
+            do {
+                try await center.add(request)
+            } catch {
+                addFailure = error
+                failedRequestId = payload.requestId
+                break
+            }
+        }
+        guard Task.isCancelled == false else {
+            return
+        }
+
+        let pendingAfterRequestIdentifiers = await pendingAppNotificationRequestIdentifiers(center: center)
+        guard Task.isCancelled == false else {
+            return
+        }
+        let acceptedPayloads = acceptedStrictReminderPayloads(
+            payloads: payloads,
+            pendingRequestIdentifiers: pendingAfterRequestIdentifiers
+        )
+        if let addFailure {
             FlashcardsObservability.captureWarning(
-                .localDataRepair(
-                    LocalDataRepairWarning(
+                .notificationSchedulingFailed(
+                    makeNotificationSchedulingFailureWarning(
                         action: "strict_schedule_add_failed",
                         scope: IOSObservationScope(
                             feature: .notifications,
@@ -221,16 +278,49 @@ extension FlashcardsStore {
                             cloudState: self.cloudSettings?.cloudState,
                             configurationMode: nil
                         ),
+                        notificationKind: .strictReminder,
                         workspaceId: self.workspace?.workspaceId,
-                        cardId: nil,
-                        reason: Flashcards.errorMessage(error: error),
-                        repair: "clear_scheduled_strict_reminders"
+                        requestId: failedRequestId,
+                        stage: "add",
+                        plannedCount: payloads.count,
+                        acceptedCount: acceptedPayloads.count,
+                        pendingBeforeCount: pendingBeforeCount,
+                        pendingAfterCount: pendingAfterRequestIdentifiers.count,
+                        error: addFailure,
+                        messageSummary: nil
                     )
                 )
             )
-            self.persistScheduledStrictReminders(payloads: [])
-            return
+        } else if acceptedPayloads.count != payloads.count {
+            FlashcardsObservability.captureWarning(
+                .notificationSchedulingFailed(
+                    makeNotificationSchedulingFailureWarning(
+                        action: "strict_schedule_readback_mismatch",
+                        scope: IOSObservationScope(
+                            feature: .notifications,
+                            userId: nil,
+                            workspaceId: self.workspace?.workspaceId,
+                            requestId: nil,
+                            clientRequestId: nil,
+                            sessionId: nil,
+                            runId: nil,
+                            cloudState: self.cloudSettings?.cloudState,
+                            configurationMode: nil
+                        ),
+                        notificationKind: .strictReminder,
+                        workspaceId: self.workspace?.workspaceId,
+                        requestId: nil,
+                        stage: "readback",
+                        plannedCount: payloads.count,
+                        acceptedCount: acceptedPayloads.count,
+                        pendingBeforeCount: pendingBeforeCount,
+                        pendingAfterCount: pendingAfterRequestIdentifiers.count,
+                        error: nil,
+                        messageSummary: "Notification Center accepted fewer strict reminders than planned"
+                    )
+                )
+            )
         }
-        self.persistScheduledStrictReminders(payloads: payloads)
+        self.persistScheduledStrictReminders(payloads: acceptedPayloads)
     }
 }

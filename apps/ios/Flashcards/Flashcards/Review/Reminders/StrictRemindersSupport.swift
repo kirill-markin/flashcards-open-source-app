@@ -357,6 +357,16 @@ func filterStrictReminderRequestIdentifiers(identifiers: [String]) -> [String] {
     identifiers.filter(isStrictReminderRequestIdentifier)
 }
 
+func acceptedStrictReminderPayloads(
+    payloads: [ScheduledStrictReminderPayload],
+    pendingRequestIdentifiers: [String]
+) -> [ScheduledStrictReminderPayload] {
+    let pendingRequestIdentifierSet: Set<String> = Set(pendingRequestIdentifiers)
+    return payloads.filter { payload in
+        pendingRequestIdentifierSet.contains(payload.requestId)
+    }
+}
+
 func pendingStrictReminderRequestIdentifiers(
     center: UNUserNotificationCenter
 ) async -> [String] {
