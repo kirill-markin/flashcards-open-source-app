@@ -67,30 +67,16 @@ private fun DrawScope.drawEasyCrownBounce(
         enterEnd = 0.44f,
         exitStart = 0.82f
     )
-    val targetCenter: Offset = Offset(x = size.width * 0.50f, y = size.height * 0.40f)
+    val targetCenter: Offset = Offset(
+        x = size.width * reviewReactionCenterX,
+        y = size.height * reviewReactionCenterY
+    )
     val bounce: Float = if (motionMode == ReviewReactionMotionMode.REDUCED) {
         sin(progress * PI.toFloat())
     } else {
         sin(phase.hold * PI.toFloat() * 3f) * (1f - phase.hold)
     }
-    val centerWaveX: Float = if (motionMode == ReviewReactionMotionMode.REDUCED) {
-        0f
-    } else {
-        sin(progress * PI.toFloat() * 2f) * 6f * (1f - phase.exit)
-    }
-    val centerY: Float = if (motionMode == ReviewReactionMotionMode.REDUCED) {
-        targetCenter.y
-    } else {
-        reviewReactionInterpolate(
-            start = -min(size.width, size.height) * 0.16f,
-            end = targetCenter.y,
-            progress = reviewReactionEaseOutBack(progress = phase.enter, overshoot = 1.10f)
-        ) - bounce * 28f + phase.exit * 18f
-    }
-    val center: Offset = Offset(
-        x = targetCenter.x + centerWaveX,
-        y = centerY
-    )
+    val center: Offset = targetCenter
     val scaleMultiplier: Float = if (motionMode == ReviewReactionMotionMode.REDUCED) {
         1f
     } else {
