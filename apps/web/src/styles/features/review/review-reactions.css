@@ -1,7 +1,9 @@
 .review-rating-reaction-layer {
   --review-reaction-center-x: 50%;
-  --review-reaction-center-y: 75%;
-  --review-reaction-center-y-offset: 25%;
+  /* Mobile clients use 75%, but web pane proportions read better at 65%. */
+  --review-reaction-center-y: 65%;
+  /* Full-canvas SVG fallback starts at 50%, so this is its standalone shift to the same visual center. */
+  --review-reaction-svg-fallback-shift-y: 15%;
   position: absolute;
   inset: 0;
   z-index: 20;
@@ -27,7 +29,7 @@
 }
 
 .review-rating-reaction-art:not(.review-rating-reaction-lottie-art) {
-  transform: translateY(var(--review-reaction-center-y-offset));
+  transform: translateY(var(--review-reaction-svg-fallback-shift-y));
 }
 
 .review-rating-reaction-art * {
@@ -338,23 +340,23 @@
 
 @keyframes review-reaction-crown-art {
   0% {
-    transform: translateY(var(--review-reaction-center-y-offset)) scale(0.58) rotate(-14deg);
+    transform: translateY(var(--review-reaction-svg-fallback-shift-y)) scale(0.58) rotate(-14deg);
   }
 
   44% {
-    transform: translateY(var(--review-reaction-center-y-offset)) scale(1.17) rotate(4deg);
+    transform: translateY(var(--review-reaction-svg-fallback-shift-y)) scale(1.17) rotate(4deg);
   }
 
   62% {
-    transform: translateY(var(--review-reaction-center-y-offset)) scale(1.02) rotate(-2deg);
+    transform: translateY(var(--review-reaction-svg-fallback-shift-y)) scale(1.02) rotate(-2deg);
   }
 
   82% {
-    transform: translateY(var(--review-reaction-center-y-offset)) scale(1) rotate(1deg);
+    transform: translateY(var(--review-reaction-svg-fallback-shift-y)) scale(1) rotate(1deg);
   }
 
   100% {
-    transform: translateY(var(--review-reaction-center-y-offset)) scale(0.88) rotate(0deg);
+    transform: translateY(var(--review-reaction-svg-fallback-shift-y)) scale(0.88) rotate(0deg);
   }
 }
 
@@ -403,15 +405,15 @@
 
 @keyframes review-reaction-reduced-shifted-pop {
   0% {
-    transform: translateY(var(--review-reaction-center-y-offset)) scale(0.94);
+    transform: translateY(var(--review-reaction-svg-fallback-shift-y)) scale(0.94);
   }
 
   50% {
-    transform: translateY(var(--review-reaction-center-y-offset)) scale(1.01);
+    transform: translateY(var(--review-reaction-svg-fallback-shift-y)) scale(1.01);
   }
 
   100% {
-    transform: translateY(var(--review-reaction-center-y-offset)) scale(0.98);
+    transform: translateY(var(--review-reaction-svg-fallback-shift-y)) scale(0.98);
   }
 }
 
