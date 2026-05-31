@@ -73,8 +73,6 @@ private fun ReviewReactionCanvas(
                     motionMode = motionMode,
                     composition = readiness.composition,
                     frameScale = lottieConfiguration.frameScale,
-                    centerX = lottieConfiguration.centerX,
-                    centerY = lottieConfiguration.centerY,
                     onEventFinished = onEventFinished
                 )
                 return
@@ -191,8 +189,6 @@ private fun ReviewReactionLottieAnimation(
     motionMode: ReviewReactionMotionMode,
     composition: LottieComposition,
     frameScale: Float,
-    centerX: Float,
-    centerY: Float,
     onEventFinished: (String) -> Unit
 ) {
     val durationMillis: Int = reviewReactionAnimationDurationMillis(
@@ -210,8 +206,6 @@ private fun ReviewReactionLottieAnimation(
             progress = reviewReactionReducedMotionDrawingProgress,
             alpha = 1f,
             frameScale = frameScale,
-            centerX = centerX,
-            centerY = centerY,
             composition = composition
         )
         return
@@ -242,8 +236,6 @@ private fun ReviewReactionLottieAnimation(
         progress = drawingProgress,
         alpha = alpha,
         frameScale = frameScale,
-        centerX = centerX,
-        centerY = centerY,
         composition = composition
     )
 }
@@ -253,8 +245,6 @@ private fun ReviewReactionLottieFrame(
     progress: Float,
     alpha: Float,
     frameScale: Float,
-    centerX: Float,
-    centerY: Float,
     composition: LottieComposition
 ) {
     BoxWithConstraints(
@@ -271,8 +261,8 @@ private fun ReviewReactionLottieFrame(
             modifier = Modifier
                 .size(size = sideLength)
                 .offset(
-                    x = maxWidth * centerX - sideLength / 2f,
-                    y = maxHeight * centerY - sideLength / 2f
+                    x = maxWidth * reviewReactionCenterX - sideLength / 2f,
+                    y = maxHeight * reviewReactionCenterY - sideLength / 2f
                 )
                 .align(alignment = Alignment.TopStart)
         )

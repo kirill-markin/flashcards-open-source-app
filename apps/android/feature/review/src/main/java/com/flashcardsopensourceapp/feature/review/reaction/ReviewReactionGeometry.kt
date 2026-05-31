@@ -6,6 +6,9 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
+internal const val reviewReactionCenterX: Float = 0.50f
+internal const val reviewReactionCenterY: Float = 0.80f
+
 internal fun polygonPath(points: List<Offset>): Path {
     val path: Path = Path()
     points.forEachIndexed { index: Int, point: Offset ->
