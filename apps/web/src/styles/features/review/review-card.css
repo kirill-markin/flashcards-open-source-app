@@ -13,7 +13,8 @@
 
 .review-pane {
   position: relative;
-  align-content: start;
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
