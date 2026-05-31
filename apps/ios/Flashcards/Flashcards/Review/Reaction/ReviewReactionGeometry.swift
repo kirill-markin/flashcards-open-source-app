@@ -1,7 +1,7 @@
 import SwiftUI
 
 let reviewReactionCenterX: CGFloat = 0.50
-let reviewReactionCenterY: CGFloat = 0.80
+let reviewReactionCenterY: CGFloat = 0.75
 
 extension ReviewReactionRenderer {
     static func makeScallopedSealPath(
