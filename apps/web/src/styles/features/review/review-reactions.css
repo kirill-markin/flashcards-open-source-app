@@ -146,225 +146,155 @@
 
 .review-rating-reaction-lottie-art > div {
   position: absolute;
+  top: 50%;
+  left: 50%;
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
 }
 
 .review-reaction-rain-cloud-lottie-mark {
-  top: 44%;
-  left: 50%;
   width: min(62%, 270px);
 }
 
 .review-reaction-worm-lottie-mark {
-  top: 52%;
-  left: 50%;
   width: min(58%, 250px);
 }
 
 .review-reaction-tornado-lottie-mark {
-  top: 45%;
-  left: 50%;
   width: min(58%, 255px);
 }
 
 .review-reaction-wind-face-lottie-mark {
-  top: 45%;
-  left: 50%;
   width: min(56%, 245px);
 }
 
 .review-reaction-snowflake-lottie-mark {
-  top: 45%;
-  left: 50%;
   width: min(56%, 245px);
 }
 
 .review-reaction-snail-lottie-mark {
-  top: 48%;
-  left: 50%;
   width: min(58%, 250px);
 }
 
 .review-reaction-turtle-lottie-mark {
-  top: 50%;
-  left: 50%;
   width: min(58%, 250px);
 }
 
 .review-reaction-wilted-flower-lottie-mark {
-  top: 50%;
-  left: 50%;
   width: min(56%, 245px);
 }
 
 .review-reaction-spider-lottie-mark {
-  top: 50%;
-  left: 50%;
   width: min(54%, 235px);
 }
 
 .review-reaction-rat-lottie-mark {
-  top: 50%;
-  left: 50%;
   width: min(56%, 245px);
 }
 
 .review-reaction-tiger-lottie-mark,
 .review-reaction-t-rex-lottie-mark {
-  top: 48%;
-  left: 50%;
   width: min(62%, 270px);
 }
 
 .review-reaction-shark-lottie-mark {
-  top: 47%;
-  left: 50%;
   width: min(62%, 270px);
 }
 
 .review-reaction-snake-lottie-mark {
-  top: 50%;
-  left: 50%;
   width: min(58%, 250px);
 }
 
 .review-reaction-scorpion-lottie-mark {
-  top: 50%;
-  left: 50%;
   width: min(56%, 245px);
 }
 
 .review-reaction-rooster-lottie-mark {
-  top: 48%;
-  left: 50%;
   width: min(58%, 250px);
 }
 
 .review-reaction-otter-lottie-mark {
-  top: 48%;
-  left: 50%;
   width: min(58%, 250px);
 }
 
 .review-reaction-owl-lottie-mark {
-  top: 42%;
-  left: 50%;
   width: min(56%, 245px);
 }
 
 .review-reaction-rabbit-lottie-mark {
-  top: 47%;
-  left: 50%;
   width: min(56%, 245px);
 }
 
 .review-reaction-seal-lottie-mark,
 .review-reaction-service-dog-lottie-mark {
-  top: 47%;
-  left: 50%;
   width: min(58%, 250px);
 }
 
 .review-reaction-poodle-lottie-mark {
-  top: 43%;
-  left: 50%;
   width: min(56%, 245px);
 }
 
 .review-reaction-chimpanzee-lottie-mark {
-  top: 46%;
-  left: 50%;
   width: min(56%, 245px);
 }
 
 .review-reaction-whale-lottie-mark {
-  top: 42%;
-  left: 50%;
   width: min(58%, 255px);
 }
 
 .review-reaction-peacock-lottie-mark {
-  top: 42%;
-  left: 50%;
   width: min(58%, 255px);
 }
 
 .review-reaction-pig-lottie-mark {
-  top: 50%;
-  left: 50%;
   width: min(56%, 245px);
 }
 
 .review-reaction-ox-lottie-mark {
-  top: 50%;
-  left: 50%;
   width: min(58%, 255px);
 }
 
 .review-reaction-paw-prints-lottie-mark {
-  top: 50%;
-  left: 50%;
   width: min(56%, 245px);
 }
 
 .review-reaction-racehorse-lottie-mark {
-  top: 50%;
-  left: 50%;
   width: min(62%, 270px);
 }
 
 .review-reaction-volcano-lottie-mark {
-  top: 50%;
-  left: 50%;
   width: min(64%, 280px);
 }
 
 .review-reaction-sunrise-lottie-mark {
-  top: 42%;
-  left: 50%;
   width: min(64%, 280px);
 }
 
 .review-reaction-sunrise-over-mountains-lottie-mark {
-  top: 44%;
-  left: 50%;
   width: min(64%, 280px);
 }
 
 .review-reaction-rose-lottie-mark {
-  top: 50%;
-  left: 50%;
   width: min(58%, 250px);
 }
 
 .review-reaction-peace-lottie-mark {
-  top: 48%;
-  left: 50%;
   width: min(56%, 245px);
 }
 
 .review-reaction-plant-lottie-mark {
-  top: 50%;
-  left: 50%;
   width: min(58%, 250px);
 }
 
 .review-reaction-rainbow-lottie-mark {
-  top: 42%;
-  left: 50%;
   width: min(64%, 280px);
 }
 
 .review-reaction-phoenix-lottie-mark {
-  top: 42%;
-  left: 50%;
   width: min(64%, 280px);
 }
 
 .review-reaction-unicorn-lottie-mark {
-  top: 30%;
-  left: 56%;
   width: min(52%, 230px);
 }
 
@@ -401,23 +331,23 @@
 
 @keyframes review-reaction-crown-art {
   0% {
-    transform: translate3d(0, -44%, 0) scale(0.58) rotate(-14deg);
+    transform: scale(0.58) rotate(-14deg);
   }
 
   44% {
-    transform: translate3d(0, 0, 0) scale(1.17) rotate(4deg);
+    transform: scale(1.17) rotate(4deg);
   }
 
   62% {
-    transform: translate3d(0, -5%, 0) scale(1.02) rotate(-2deg);
+    transform: scale(1.02) rotate(-2deg);
   }
 
   82% {
-    transform: translate3d(0, 0, 0) scale(1) rotate(1deg);
+    transform: scale(1) rotate(1deg);
   }
 
   100% {
-    transform: translate3d(0, 5%, 0) scale(0.88) rotate(0deg);
+    transform: scale(0.88) rotate(0deg);
   }
 }
 

@@ -159,13 +159,13 @@ function makeSparklePoints(
 function EasyCrownBounceReaction(): ReactElement {
   return (
     <g className="review-reaction-crown-mark">
-      <path className="review-reaction-yellow-fill" d="M27 62 L31 27 L43 47 L50 22 L57 47 L69 27 L73 62 Z" />
-      <path className="review-reaction-orange-stroke" d="M27 62 L31 27 L43 47 L50 22 L57 47 L69 27 L73 62 Z" strokeWidth="3" />
-      <rect className="review-reaction-orange-fill" x="25" y="58" width="50" height="11" rx="4" />
-      <circle className="review-reaction-pink-fill" cx="31" cy="27" r="4" />
-      <circle className="review-reaction-blue-fill" cx="50" cy="22" r="4" />
-      <circle className="review-reaction-green-fill" cx="69" cy="27" r="4" />
-      <polygon className="review-reaction-sparkle-fill" points={makeSparklePoints(78, 26, 5, 0.2)} />
+      <path className="review-reaction-yellow-fill" d="M27 69 L31 34 L43 54 L50 29 L57 54 L69 34 L73 69 Z" />
+      <path className="review-reaction-orange-stroke" d="M27 69 L31 34 L43 54 L50 29 L57 54 L69 34 L73 69 Z" strokeWidth="3" />
+      <rect className="review-reaction-orange-fill" x="25" y="65" width="50" height="11" rx="4" />
+      <circle className="review-reaction-pink-fill" cx="31" cy="34" r="4" />
+      <circle className="review-reaction-blue-fill" cx="50" cy="29" r="4" />
+      <circle className="review-reaction-green-fill" cx="69" cy="34" r="4" />
+      <polygon className="review-reaction-sparkle-fill" points={makeSparklePoints(78, 33, 5, 0.2)} />
     </g>
   );
 }
