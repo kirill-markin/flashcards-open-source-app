@@ -1,4 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
+import type { LocalBrowserDataCleanupReason } from "../../accountDeletion";
 import type { TranslationKey } from "../../i18n";
 import type {
   CloudSettings,
@@ -73,5 +74,5 @@ export type WorkspaceSessionActivation = Readonly<{
     workspace: WorkspaceSummary,
   ) => Promise<void>;
   resolveInitialWorkspace: (currentSession: SessionInfo) => Promise<void>;
-  clearConfirmedUserScopedState: () => Promise<void>;
+  clearConfirmedUserScopedState: (reason: LocalBrowserDataCleanupReason) => Promise<void>;
 }>;

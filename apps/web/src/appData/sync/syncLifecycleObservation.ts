@@ -3,6 +3,7 @@ import {
   type SyncRestoreLocalBootstrapState,
   type WebObservationScope,
 } from "../../observability/webObservability";
+import type { SyncRestoreHistoryEntry } from "./syncRestoreHistory";
 
 export type HotBootstrapSlowObservationInput = Readonly<{
   userId: string;
@@ -18,6 +19,16 @@ export type HotBootstrapSlowObservationInput = Readonly<{
   lastAppliedHotChangeIdBefore: number | null;
   nextHotChangeId: number | null;
   remoteIsEmpty: boolean | null;
+}>;
+
+export type LocalDbMissingObservationInput = Readonly<{
+  userId: string;
+  workspaceId: string;
+  installationId: string;
+  localBootstrapState: SyncRestoreLocalBootstrapState;
+  localCardCountBefore: number;
+  previousRestoreHistory: SyncRestoreHistoryEntry;
+  currentWebAppVersion: string;
 }>;
 
 function getCurrentRoute(): string | null {
@@ -64,6 +75,25 @@ export function observeSlowHotBootstrap(input: HotBootstrapSlowObservationInput)
       lastAppliedHotChangeIdBefore: input.lastAppliedHotChangeIdBefore,
       nextHotChangeId: input.nextHotChangeId,
       remoteIsEmpty: input.remoteIsEmpty,
+    },
+  });
+}
+
+export function observeLocalDbMissing(input: LocalDbMissingObservationInput): void {
+  captureWebWarning({
+    action: "sync_local_db_missing",
+    scope: buildSyncObservationScope(input.userId, input.workspaceId, input.installationId),
+    details: {
+      eventName: "sync_local_db_missing",
+      workspaceId: input.workspaceId,
+      installationId: input.installationId,
+      localBootstrapState: input.localBootstrapState,
+      localCardCountBefore: input.localCardCountBefore,
+      previousHydratedAt: input.previousRestoreHistory.hydratedAt,
+      previousWebAppVersion: input.previousRestoreHistory.webAppVersion,
+      previousLastAppliedHotChangeId: input.previousRestoreHistory.lastAppliedHotChangeId,
+      previousLocalCardCount: input.previousRestoreHistory.localCardCount,
+      currentWebAppVersion: input.currentWebAppVersion,
     },
   });
 }

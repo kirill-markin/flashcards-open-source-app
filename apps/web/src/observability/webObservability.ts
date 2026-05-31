@@ -91,6 +91,24 @@ export type ProgressCacheMissBreadcrumbDetails = Readonly<{
   workspaceIds: ReadonlyArray<string>;
 }>;
 
+export type LocalBrowserDataCleanupReason =
+  | "logout_marker"
+  | "account_deleted_marker"
+  | "account_deletion_submit"
+  | "confirmed_account_switch"
+  | "reauth_owner_unknown";
+
+export type LocalBrowserDataCleanupBreadcrumbDetails = Readonly<{
+  eventName:
+    | "local_browser_data_cleanup_started"
+    | "local_browser_data_cleanup_succeeded"
+    | "local_browser_data_cleanup_failed";
+  reason: LocalBrowserDataCleanupReason;
+  indexedDbCleared: boolean;
+  localStorageCleared: boolean;
+  errorMessage: string | null;
+}>;
+
 export type WebBreadcrumbEvent =
   | Readonly<{
     action: "workspace_transition";
@@ -111,6 +129,11 @@ export type WebBreadcrumbEvent =
     action: "progress_cache_miss";
     scope: WebObservationScope;
     details: ProgressCacheMissBreadcrumbDetails;
+  }>
+  | Readonly<{
+    action: "local_browser_data_cleanup";
+    scope: WebObservationScope;
+    details: LocalBrowserDataCleanupBreadcrumbDetails;
   }>;
 
 export type ApiContractFailureDetails = Readonly<{
@@ -331,6 +354,19 @@ export type SyncRestoreWarningDetails = Readonly<{
   remoteIsEmpty: boolean | null;
 }>;
 
+export type SyncLocalDbMissingWarningDetails = Readonly<{
+  eventName: "sync_local_db_missing";
+  workspaceId: string;
+  installationId: string;
+  localBootstrapState: SyncRestoreLocalBootstrapState;
+  localCardCountBefore: number;
+  previousHydratedAt: string;
+  previousWebAppVersion: string;
+  previousLastAppliedHotChangeId: number;
+  previousLocalCardCount: number;
+  currentWebAppVersion: string;
+}>;
+
 export type WebWarningEvent =
   | Readonly<{
     action: "api_contract_warning";
@@ -346,6 +382,11 @@ export type WebWarningEvent =
     action: "sync_restore_slow";
     scope: WebObservationScope;
     details: SyncRestoreWarningDetails;
+  }>
+  | Readonly<{
+    action: "sync_local_db_missing";
+    scope: WebObservationScope;
+    details: SyncLocalDbMissingWarningDetails;
   }>;
 
 type SentryContextValue =

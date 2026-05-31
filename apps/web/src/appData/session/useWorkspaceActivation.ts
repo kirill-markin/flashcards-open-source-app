@@ -5,7 +5,10 @@ import {
   listWorkspaces,
   selectWorkspace,
 } from "../../api";
-import { clearAllLocalBrowserData } from "../../accountDeletion";
+import {
+  clearAllLocalBrowserData,
+  type LocalBrowserDataCleanupReason,
+} from "../../accountDeletion";
 import { putCloudSettings } from "../../localDb/cloudSettings";
 import type {
   SessionInfo,
@@ -61,7 +64,9 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
   const deferredBootstrapWorkspaceRef = useRef<WorkspaceSummary | null>(null);
   const [deferredBootstrapVersion, setDeferredBootstrapVersion] = useState<number>(0);
 
-  const clearConfirmedUserScopedState = useCallback(async function clearConfirmedUserScopedState(): Promise<void> {
+  const clearConfirmedUserScopedState = useCallback(async function clearConfirmedUserScopedState(
+    reason: LocalBrowserDataCleanupReason,
+  ): Promise<void> {
     workspaceBootstrapGenerationRef.current += 1;
     deferredBootstrapWorkspaceRef.current = null;
     setSession(null);
@@ -71,7 +76,9 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
     setSessionLoadState("loading");
     setSessionVerificationState("unverified");
     resetUserScopedUiState();
-    await discardAllSyncWork(clearAllLocalBrowserData);
+    await discardAllSyncWork(async (): Promise<void> => {
+      await clearAllLocalBrowserData(reason);
+    });
   }, [
     discardAllSyncWork,
     resetUserScopedUiState,
