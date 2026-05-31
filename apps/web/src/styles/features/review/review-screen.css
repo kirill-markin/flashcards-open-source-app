@@ -23,6 +23,14 @@
   min-height: 0;
 }
 
+.review-pane-reaction-frame {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  border-radius: var(--radius-lg);
+}
+
 .review-screen-head {
   align-items: flex-start;
 }

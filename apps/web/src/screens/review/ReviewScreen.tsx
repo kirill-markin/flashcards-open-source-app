@@ -32,14 +32,15 @@ export function ReviewScreen(): ReactElement {
         <ReviewScreenHeader {...headerProps} />
 
         <div className="review-layout">
-          <ReviewPane {...paneProps} />
+          <div className="review-pane-reaction-frame">
+            <ReviewPane {...paneProps} />
+            <ReviewRatingReactionLayer
+              events={reviewReactionEvents}
+              onReactionEventFallback={reviewReactionFallbackHandler}
+            />
+          </div>
           <ReviewQueuePanel {...queuePanelProps} />
         </div>
-
-        <ReviewRatingReactionLayer
-          events={reviewReactionEvents}
-          onReactionEventFallback={reviewReactionFallbackHandler}
-        />
       </section>
 
       <ReviewEditorModal {...editorModalProps} />
