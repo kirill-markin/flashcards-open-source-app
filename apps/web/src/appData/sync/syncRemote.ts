@@ -32,7 +32,15 @@ import {
   doesCardMutationAffectReviewSchedule,
   getErrorMessage,
 } from "../domain";
-import { observeSlowHotBootstrap } from "./syncLifecycleObservation";
+import {
+  observeLocalDbMissing,
+  observeSlowHotBootstrap,
+} from "./syncLifecycleObservation";
+import {
+  loadSyncRestoreHistoryEntry,
+  storeSyncRestoreHistoryEntry,
+  type SyncRestoreHistoryEntry,
+} from "./syncRestoreHistory";
 
 const syncPageSize = 500;
 const slowHotBootstrapWarningThresholdMs = 2000;
@@ -121,6 +129,40 @@ function determineLocalBootstrapState(
   return localCardCountBefore === 0 ? "unhydrated_sync_state" : "unhydrated_with_cards";
 }
 
+function loadWorkspaceRestoreHistory(input: WorkspaceRemoteSyncInput): SyncRestoreHistoryEntry | null {
+  return loadSyncRestoreHistoryEntry({
+    userId: input.userId,
+    workspaceId: input.workspaceId,
+    installationId: input.installationId,
+  });
+}
+
+async function storeCurrentWorkspaceRestoreHistory(
+  input: WorkspaceRemoteSyncInput,
+  lastAppliedHotChangeId: number,
+): Promise<void> {
+  const localCardCount = await loadActiveCardCount(input.workspaceId);
+  storeSyncRestoreHistoryEntry({
+    userId: input.userId,
+    workspaceId: input.workspaceId,
+    installationId: input.installationId,
+    lastAppliedHotChangeId,
+    localCardCount,
+  });
+}
+
+async function backfillRestoreHistoryForHydratedState(
+  input: WorkspaceRemoteSyncInput,
+  syncStateBefore: NonNullable<Awaited<ReturnType<typeof loadWorkspaceSyncState>>>,
+): Promise<void> {
+  const restoreHistory = loadWorkspaceRestoreHistory(input);
+  if (restoreHistory !== null) {
+    return;
+  }
+
+  await storeCurrentWorkspaceRestoreHistory(input, syncStateBefore.lastAppliedHotChangeId);
+}
+
 async function doHotSyncEntriesAffectReviewSchedule(
   workspaceId: string,
   entries: ReadonlyArray<HotSyncEntry>,
@@ -146,18 +188,37 @@ async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promise<Remot
   const hotStateHydrated = syncStateBefore?.hasHydratedHotState ?? false;
   input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
   if (hotStateHydrated) {
+    if (syncStateBefore === null) {
+      throw new Error(`Workspace ${input.workspaceId} hot state is hydrated without sync state`);
+    }
+
+    await backfillRestoreHistoryForHydratedState(input, syncStateBefore);
+    input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
     return createEmptyRemoteSyncFlags();
   }
 
   const startedAtMs = Date.now();
   const localCardCountBefore = await loadActiveCardCount(input.workspaceId);
   const localBootstrapState = determineLocalBootstrapState(syncStateBefore, localCardCountBefore);
+  const restoreHistoryBefore = loadWorkspaceRestoreHistory(input);
   let didChangeReviewSchedule = false;
   let bootstrapCursor: string | null = null;
   let pageCount = 0;
   let entriesCount = 0;
   let nextHotChangeId: number | null = null;
   let remoteIsEmpty: boolean | null = null;
+
+  if (syncStateBefore === null && localCardCountBefore === 0 && restoreHistoryBefore !== null) {
+    observeLocalDbMissing({
+      userId: input.userId,
+      workspaceId: input.workspaceId,
+      installationId: input.installationId,
+      localBootstrapState,
+      localCardCountBefore,
+      previousRestoreHistory: restoreHistoryBefore,
+      currentWebAppVersion: webAppVersion,
+    });
+  }
 
   while (true) {
     input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
@@ -204,6 +265,17 @@ async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promise<Remot
   input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
   const durationMs = Date.now() - startedAtMs;
   const localCardCountAfter = await loadActiveCardCount(input.workspaceId);
+  if (nextHotChangeId === null) {
+    throw new Error(`Workspace ${input.workspaceId} bootstrap did not return a hot change id`);
+  }
+
+  storeSyncRestoreHistoryEntry({
+    userId: input.userId,
+    workspaceId: input.workspaceId,
+    installationId: input.installationId,
+    lastAppliedHotChangeId: nextHotChangeId,
+    localCardCount: localCardCountAfter,
+  });
   if (shouldObserveHotBootstrap(durationMs, pageCount)) {
     observeSlowHotBootstrap({
       userId: input.userId,

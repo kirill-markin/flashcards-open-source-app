@@ -8,6 +8,7 @@ import {
   clearBrowserReauthRequired,
   consumeAccountDeletedMarker,
   isBrowserReauthRequired,
+  type LocalBrowserDataCleanupReason,
 } from "../../accountDeletion";
 import type { TranslationKey } from "../../i18n";
 import { loadCloudSettings, putCloudSettings } from "../../localDb/cloudSettings";
@@ -15,7 +16,7 @@ import { setWebObservabilityUser } from "../../observability/webObservability";
 import { getErrorMessage } from "../domain";
 import {
   buildLinkingReadyCloudSettings,
-  shouldClearLocalDataForVerifiedSession,
+  resolveLocalDataCleanupReasonForVerifiedSession,
 } from "./workspaceSessionCloud";
 import {
   consumeLoggedOutMarker,
@@ -41,7 +42,7 @@ type UseWorkspaceLifecycleParams =
     runSync: () => Promise<void>;
     runSyncSilently: () => Promise<void>;
     resolveInitialWorkspace: (currentSession: SessionInfo) => Promise<void>;
-    clearConfirmedUserScopedState: () => Promise<void>;
+    clearConfirmedUserScopedState: (reason: LocalBrowserDataCleanupReason) => Promise<void>;
   }>
   & WorkspaceSessionState
   & WorkspaceSessionSetters;
@@ -95,11 +96,11 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
 
     try {
       if (consumeLoggedOutMarker()) {
-        await clearConfirmedUserScopedState();
+        await clearConfirmedUserScopedState("logout_marker");
       }
 
       if (consumeAccountDeletedMarker()) {
-        await clearConfirmedUserScopedState();
+        await clearConfirmedUserScopedState("account_deleted_marker");
         setSession(null);
         setWebObservabilityUser(null);
         setSessionLoadState("deleted");
@@ -112,8 +113,13 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       const currentSession = await getSession();
       setWebObservabilityUser({ id: currentSession.userId });
       const persistedCloudSettings = await loadCloudSettings();
-      if (shouldClearLocalDataForVerifiedSession(persistedCloudSettings, currentSession, wasBrowserReauthRequired)) {
-        await clearConfirmedUserScopedState();
+      const localDataCleanupReason = resolveLocalDataCleanupReasonForVerifiedSession(
+        persistedCloudSettings,
+        currentSession,
+        wasBrowserReauthRequired,
+      );
+      if (localDataCleanupReason !== null) {
+        await clearConfirmedUserScopedState(localDataCleanupReason);
       }
 
       clearBrowserReauthRequired();
@@ -184,7 +190,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       if (currentSession.userId !== session.userId) {
         try {
           setWebObservabilityUser({ id: currentSession.userId });
-          await clearConfirmedUserScopedState();
+          await clearConfirmedUserScopedState("confirmed_account_switch");
           clearBrowserReauthRequired();
           const linkingReadyCloudSettings = buildLinkingReadyCloudSettings(currentSession);
           await putCloudSettings(linkingReadyCloudSettings);

@@ -318,11 +318,11 @@ export function AppShell(): ReactElement {
         primeSessionCsrfToken(persistedCsrfToken);
       }
       await deleteMyAccount(deleteAccountConfirmationText);
-      await clearAllLocalBrowserData();
+      await clearAllLocalBrowserData("account_deletion_submit");
       window.location.href = buildLogoutLocalUrl();
     } catch (error) {
       if (error instanceof ApiError && error.code === "ACCOUNT_DELETED") {
-        await clearAllLocalBrowserData();
+        await clearAllLocalBrowserData("account_deletion_submit");
         window.location.href = buildLogoutLocalUrl();
         return;
       }

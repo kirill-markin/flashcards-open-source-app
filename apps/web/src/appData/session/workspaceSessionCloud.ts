@@ -1,4 +1,5 @@
 import { getStableInstallationId } from "../../clientIdentity";
+import type { LocalBrowserDataCleanupReason } from "../../accountDeletion";
 import type { CloudSettings, SessionInfo } from "../../types";
 
 export function buildLinkingReadyCloudSettings(session: SessionInfo): CloudSettings {
@@ -25,22 +26,34 @@ export function buildLinkedCloudSettings(session: SessionInfo, workspaceId: stri
   };
 }
 
+export function resolveLocalDataCleanupReasonForVerifiedSession(
+  persistedCloudSettings: CloudSettings | null,
+  currentSession: SessionInfo,
+  wasBrowserReauthRequired: boolean,
+): LocalBrowserDataCleanupReason | null {
+  if (persistedCloudSettings === null) {
+    return wasBrowserReauthRequired ? "reauth_owner_unknown" : null;
+  }
+
+  if (persistedCloudSettings.linkedUserId === currentSession.userId) {
+    return null;
+  }
+
+  if (persistedCloudSettings.linkedUserId === null) {
+    return wasBrowserReauthRequired ? "reauth_owner_unknown" : null;
+  }
+
+  return "confirmed_account_switch";
+}
+
 export function shouldClearLocalDataForVerifiedSession(
   persistedCloudSettings: CloudSettings | null,
   currentSession: SessionInfo,
   wasBrowserReauthRequired: boolean,
 ): boolean {
-  if (persistedCloudSettings === null) {
-    return wasBrowserReauthRequired;
-  }
-
-  if (persistedCloudSettings.linkedUserId === currentSession.userId) {
-    return false;
-  }
-
-  if (persistedCloudSettings.linkedUserId === null) {
-    return wasBrowserReauthRequired;
-  }
-
-  return true;
+  return resolveLocalDataCleanupReasonForVerifiedSession(
+    persistedCloudSettings,
+    currentSession,
+    wasBrowserReauthRequired,
+  ) !== null;
 }

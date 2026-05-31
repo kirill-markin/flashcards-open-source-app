@@ -1,7 +1,14 @@
 import { INSTALLATION_ID_STORAGE_KEY } from "./clientIdentity";
 import { LOCALE_PREFERENCE_STORAGE_KEY } from "./i18n/runtime";
 import { clearWebSyncCache } from "./localDb/cache";
+import {
+  addWebBreadcrumb,
+  type LocalBrowserDataCleanupReason,
+  type WebObservationScope,
+} from "./observability/webObservability";
 import { TEST_MODE_STORAGE_KEY } from "./testMode";
+
+export type { LocalBrowserDataCleanupReason } from "./observability/webObservability";
 
 export const deleteAccountConfirmationText: string = "delete my account";
 
@@ -112,6 +119,48 @@ function normalizeCleanupError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
 }
 
+function getCurrentRoute(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
+
+function buildCleanupObservationScope(browserStorage: Storage | null): WebObservationScope {
+  return {
+    app: "web",
+    feature: "auth",
+    userId: null,
+    workspaceId: null,
+    installationId: browserStorage?.getItem(INSTALLATION_ID_STORAGE_KEY) ?? null,
+    route: getCurrentRoute(),
+    requestId: null,
+    statusCode: null,
+    code: null,
+  };
+}
+
+function logLocalBrowserDataCleanup(
+  browserStorage: Storage | null,
+  input: Readonly<{
+    eventName:
+      | "local_browser_data_cleanup_started"
+      | "local_browser_data_cleanup_succeeded"
+      | "local_browser_data_cleanup_failed";
+    reason: LocalBrowserDataCleanupReason;
+    indexedDbCleared: boolean;
+    localStorageCleared: boolean;
+    errorMessage: string | null;
+  }>,
+): void {
+  addWebBreadcrumb({
+    action: "local_browser_data_cleanup",
+    scope: buildCleanupObservationScope(browserStorage),
+    details: input,
+  });
+}
+
 function clearUserScopedBrowserStorage(browserStorage: Storage, shouldRemoveStorageKey: BrowserStorageKeyPredicate): void {
   const storageKeysToRemove: Array<string> = [];
   for (let index = 0; index < browserStorage.length; index += 1) {
@@ -188,9 +237,17 @@ export function clearAuthResetRequired(): void {
  * UI language, and local tester tooling across re-login while still clearing
  * application data.
  */
-export async function clearAllLocalBrowserData(): Promise<void> {
+export async function clearAllLocalBrowserData(reason: LocalBrowserDataCleanupReason): Promise<void> {
   const browserStorage = getBrowserStorage();
   let indexedDbError: Error | null = null;
+
+  logLocalBrowserDataCleanup(browserStorage, {
+    eventName: "local_browser_data_cleanup_started",
+    reason,
+    indexedDbCleared: false,
+    localStorageCleared: false,
+    errorMessage: null,
+  });
 
   try {
     await clearWebSyncCache();
@@ -206,6 +263,21 @@ export async function clearAllLocalBrowserData(): Promise<void> {
   }
 
   if (indexedDbError !== null) {
+    logLocalBrowserDataCleanup(browserStorage, {
+      eventName: "local_browser_data_cleanup_failed",
+      reason,
+      indexedDbCleared: false,
+      localStorageCleared: browserStorage !== null,
+      errorMessage: indexedDbError.message,
+    });
     throw indexedDbError;
   }
+
+  logLocalBrowserDataCleanup(browserStorage, {
+    eventName: "local_browser_data_cleanup_succeeded",
+    reason,
+    indexedDbCleared: true,
+    localStorageCleared: browserStorage !== null,
+    errorMessage: null,
+  });
 }
