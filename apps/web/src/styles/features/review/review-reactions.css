@@ -1,4 +1,7 @@
 .review-rating-reaction-layer {
+  --review-reaction-center-x: 50%;
+  --review-reaction-center-y: 75%;
+  --review-reaction-center-y-offset: 25%;
   position: absolute;
   inset: 0;
   z-index: 20;
@@ -21,6 +24,10 @@
   height: 100%;
   overflow: visible;
   transform-origin: 50% 50%;
+}
+
+.review-rating-reaction-art:not(.review-rating-reaction-lottie-art) {
+  transform: translateY(var(--review-reaction-center-y-offset));
 }
 
 .review-rating-reaction-art * {
@@ -146,8 +153,8 @@
 
 .review-rating-reaction-lottie-art > div {
   position: absolute;
-  top: 50%;
-  left: 50%;
+  top: var(--review-reaction-center-y);
+  left: var(--review-reaction-center-x);
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
 }
@@ -331,23 +338,23 @@
 
 @keyframes review-reaction-crown-art {
   0% {
-    transform: scale(0.58) rotate(-14deg);
+    transform: translateY(var(--review-reaction-center-y-offset)) scale(0.58) rotate(-14deg);
   }
 
   44% {
-    transform: scale(1.17) rotate(4deg);
+    transform: translateY(var(--review-reaction-center-y-offset)) scale(1.17) rotate(4deg);
   }
 
   62% {
-    transform: scale(1.02) rotate(-2deg);
+    transform: translateY(var(--review-reaction-center-y-offset)) scale(1.02) rotate(-2deg);
   }
 
   82% {
-    transform: scale(1) rotate(1deg);
+    transform: translateY(var(--review-reaction-center-y-offset)) scale(1) rotate(1deg);
   }
 
   100% {
-    transform: scale(0.88) rotate(0deg);
+    transform: translateY(var(--review-reaction-center-y-offset)) scale(0.88) rotate(0deg);
   }
 }
 
@@ -394,6 +401,20 @@
   }
 }
 
+@keyframes review-reaction-reduced-shifted-pop {
+  0% {
+    transform: translateY(var(--review-reaction-center-y-offset)) scale(0.94);
+  }
+
+  50% {
+    transform: translateY(var(--review-reaction-center-y-offset)) scale(1.01);
+  }
+
+  100% {
+    transform: translateY(var(--review-reaction-center-y-offset)) scale(0.98);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .review-rating-reaction-event {
     animation-duration: 340ms !important;
@@ -404,5 +425,9 @@
   .review-rating-reaction-event .review-reaction-sparkle-fill {
     animation-duration: 340ms !important;
     animation-name: review-reaction-reduced-pop !important;
+  }
+
+  .review-rating-reaction-event .review-rating-reaction-art:not(.review-rating-reaction-lottie-art) {
+    animation-name: review-reaction-reduced-shifted-pop !important;
   }
 }
