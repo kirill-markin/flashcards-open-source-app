@@ -57,5 +57,5 @@ class SentryAppObservabilityTest {
     }
 }
 
-private const val testAppVersion: String = "1.6.0"
+private const val testAppVersion: String = "1.7.0"
 private const val testVersionCode: Int = 1
