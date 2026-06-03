@@ -1,6 +1,8 @@
-package com.flashcardsopensourceapp.data.local.repository.progress
+package com.flashcardsopensourceapp.data.local.repository.progress.cache
 
 import com.flashcardsopensourceapp.data.local.repository.TimeProvider
+import com.flashcardsopensourceapp.data.local.repository.progress.runtime.ProgressLocalCacheRebuildCoordinator
+import com.flashcardsopensourceapp.data.local.repository.progress.runtime.ProgressLocalCacheRebuildLease
 
 internal class ProgressLocalCacheReadinessCoordinator(
     private val localProgressCacheStore: LocalProgressCacheStore,

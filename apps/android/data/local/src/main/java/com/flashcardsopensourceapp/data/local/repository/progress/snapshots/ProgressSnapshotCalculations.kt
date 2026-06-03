@@ -1,18 +1,18 @@
-package com.flashcardsopensourceapp.data.local.repository.progress
+package com.flashcardsopensourceapp.data.local.repository.progress.snapshots
 
 import com.flashcardsopensourceapp.data.local.database.entities.OutboxEntryEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressLocalCacheStateEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressLocalDayCountEntity
-import com.flashcardsopensourceapp.data.local.database.entities.ProgressReviewScheduleCardDueEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressReviewHistoryStateEntity
+import com.flashcardsopensourceapp.data.local.database.entities.ProgressReviewScheduleCardDueEntity
 import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.progress.CloudDailyReviewPoint
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewScheduleBucket
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleBucketKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleSnapshot
@@ -21,12 +21,14 @@ import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesSnaps
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSnapshotSource
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummaryScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
-import org.json.JSONObject
+import com.flashcardsopensourceapp.data.local.repository.progress.inputs.ProgressPendingReviewFingerprintEntry
+import com.flashcardsopensourceapp.data.local.repository.progress.inputs.ProgressPendingReviewLocalDate
+import com.flashcardsopensourceapp.data.local.repository.progress.progressHistoryDayCount
+import com.flashcardsopensourceapp.data.local.repository.progress.runtime.logProgressRepositoryWarning
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeParseException
-
-const val progressHistoryDayCount: Long = 140L
+import org.json.JSONObject
 
 internal fun createProgressSummaryScopeKey(
     cloudSettings: CloudSettings,

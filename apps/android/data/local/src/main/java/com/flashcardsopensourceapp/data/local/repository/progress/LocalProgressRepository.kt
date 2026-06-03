@@ -10,6 +10,16 @@ import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.ProgressRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.TimeProvider
+import com.flashcardsopensourceapp.data.local.repository.progress.cache.LocalProgressCacheStore
+import com.flashcardsopensourceapp.data.local.repository.progress.cache.ProgressLocalCacheReadinessCoordinator
+import com.flashcardsopensourceapp.data.local.repository.progress.inputs.ProgressObservedInputs
+import com.flashcardsopensourceapp.data.local.repository.progress.inputs.createProgressClockSnapshot
+import com.flashcardsopensourceapp.data.local.repository.progress.inputs.observeProgressInputs
+import com.flashcardsopensourceapp.data.local.repository.progress.orchestration.ProgressReviewScheduleOrchestration
+import com.flashcardsopensourceapp.data.local.repository.progress.orchestration.ProgressSeriesOrchestration
+import com.flashcardsopensourceapp.data.local.repository.progress.orchestration.ProgressSummaryOrchestration
+import com.flashcardsopensourceapp.data.local.repository.progress.runtime.ProgressBackgroundLauncher
+import com.flashcardsopensourceapp.data.local.repository.progress.runtime.createProgressObservationVersions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow

@@ -1,13 +1,23 @@
-package com.flashcardsopensourceapp.data.local.repository.progress
+package com.flashcardsopensourceapp.data.local.repository.progress.cache
 
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSnapshotSource
+import com.flashcardsopensourceapp.data.local.repository.progress.createCloudSettings
+import com.flashcardsopensourceapp.data.local.repository.progress.createPendingScheduleReviewCardUpsertOutboxEntry
+import com.flashcardsopensourceapp.data.local.repository.progress.createReviewSchedule
+import com.flashcardsopensourceapp.data.local.repository.progress.createSyncState
+import com.flashcardsopensourceapp.data.local.repository.progress.inputs.hasPendingProgressReviewScheduleCardChanges
+import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.createProgressReviewScheduleScopeKey
+import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.createProgressReviewScheduleSnapshot
+import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.isProgressReviewScheduleLocalScopeHydrated
+import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.serializeProgressReviewScheduleScopeKey
+import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.serializeProgressReviewScheduleServerCacheKey
+import java.time.LocalDate
+import java.time.ZoneId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.LocalDate
-import java.time.ZoneId
 
 class ProgressReviewScheduleCacheTest {
     @Test

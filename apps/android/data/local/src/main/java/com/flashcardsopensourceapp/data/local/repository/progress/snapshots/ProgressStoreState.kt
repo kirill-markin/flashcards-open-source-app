@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.repository.progress
+package com.flashcardsopensourceapp.data.local.repository.progress.snapshots
 
 import com.flashcardsopensourceapp.data.local.database.entities.OutboxEntryEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressLocalDayCountEntity
@@ -14,6 +14,7 @@ import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesSnaps
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummaryScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
+import com.flashcardsopensourceapp.data.local.repository.progress.inputs.ProgressPendingReviewLocalDate
 import java.time.LocalDate
 import java.time.ZoneId
 
