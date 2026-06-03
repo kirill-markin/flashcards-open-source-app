@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.app.navigation
+package com.flashcardsopensourceapp.app.navigation.settings
 
 internal data object SettingsRootGraph {
     const val route: String = "settings/root"

@@ -7,6 +7,10 @@ import androidx.compose.runtime.remember
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
+import com.flashcardsopensourceapp.app.navigation.cards.CardEditorDestination
+import com.flashcardsopensourceapp.app.navigation.settings.SettingsWorkspaceDecksDestination
+import com.flashcardsopensourceapp.app.navigation.settings.SettingsWorkspaceDestination
+import com.flashcardsopensourceapp.app.navigation.settings.SettingsWorkspaceTagsDestination
 
 @Composable
 internal fun rememberRouteBackStackEntry(

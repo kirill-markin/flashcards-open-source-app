@@ -59,11 +59,11 @@ import com.flashcardsopensourceapp.app.navigation.AppNotificationTapHandoffReque
 import com.flashcardsopensourceapp.app.navigation.AiDestination
 import com.flashcardsopensourceapp.app.navigation.CardsDestination
 import com.flashcardsopensourceapp.app.navigation.ReviewDestination
-import com.flashcardsopensourceapp.app.navigation.SettingsAccountSignInEmailDestination
 import com.flashcardsopensourceapp.app.navigation.TopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.currentVisibleAppScreen
 import com.flashcardsopensourceapp.app.navigation.currentTopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.navigateToTopLevelDestination
+import com.flashcardsopensourceapp.app.navigation.settings.SettingsAccountSignInEmailDestination
 import com.flashcardsopensourceapp.app.navigation.topLevelDestinations
 import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState

@@ -1,9 +1,11 @@
-package com.flashcardsopensourceapp.app.navigation
+package com.flashcardsopensourceapp.app.navigation.settings
 
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.navigation
 import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.app.navigation.AppPackageInfo
+import com.flashcardsopensourceapp.app.navigation.SettingsDestination
 import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionLottieConfigurationStore
 import kotlinx.coroutines.CoroutineScope
 

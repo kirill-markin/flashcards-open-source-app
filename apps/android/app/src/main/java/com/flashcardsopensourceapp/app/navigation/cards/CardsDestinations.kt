@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.app.navigation
+package com.flashcardsopensourceapp.app.navigation.cards
 
 data object CardEditorDestination {
     const val routePrefix: String = "cards/editor"

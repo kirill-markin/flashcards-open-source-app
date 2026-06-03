@@ -9,6 +9,14 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.app.navigation.ai.registerAiNavGraph
+import com.flashcardsopensourceapp.app.navigation.cards.registerCardsNavGraph
+import com.flashcardsopensourceapp.app.navigation.progress.registerProgressNavGraph
+import com.flashcardsopensourceapp.app.navigation.review.ReviewPreviewDestination
+import com.flashcardsopensourceapp.app.navigation.review.registerReviewNavGraph
+import com.flashcardsopensourceapp.app.navigation.settings.SettingsCurrentWorkspaceDestination
+import com.flashcardsopensourceapp.app.navigation.settings.SettingsWorkspaceOverviewDestination
+import com.flashcardsopensourceapp.app.navigation.settings.registerSettingsNavGraph
 import com.flashcardsopensourceapp.app.notifications.AppNotificationTapType
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionLottieConfigurationStore

@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.app.navigation
+package com.flashcardsopensourceapp.app.navigation.settings
 
 import android.os.SystemClock
 import androidx.compose.runtime.Composable
@@ -12,8 +12,11 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import com.flashcardsopensourceapp.app.di.AppGraph
-import com.flashcardsopensourceapp.feature.review.reaction.TestAnimationsRoute
+import com.flashcardsopensourceapp.app.navigation.AppPackageInfo
+import com.flashcardsopensourceapp.app.navigation.SettingsDestination
+import com.flashcardsopensourceapp.app.navigation.rememberRouteBackStackEntry
 import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionLottieConfigurationStore
+import com.flashcardsopensourceapp.feature.review.reaction.TestAnimationsRoute
 import com.flashcardsopensourceapp.feature.settings.SettingsRoute
 import com.flashcardsopensourceapp.feature.settings.TestSettingsRoute
 import com.flashcardsopensourceapp.feature.settings.createSettingsViewModelFactory
