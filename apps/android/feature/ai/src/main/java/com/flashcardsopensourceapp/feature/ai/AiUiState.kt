@@ -1,11 +1,11 @@
 package com.flashcardsopensourceapp.feature.ai
 
-import com.flashcardsopensourceapp.data.local.model.AiChatMessage
-import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
-import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
-import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
-import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
-import com.flashcardsopensourceapp.data.local.model.AiChatServerConfig
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatMessage
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatRepairAttemptStatus
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatServerConfig
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
 
 data class AiBootstrapErrorPresentation(

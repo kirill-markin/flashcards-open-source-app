@@ -7,7 +7,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
-import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
+import com.flashcardsopensourceapp.data.local.model.cloud.AccountDeletionState
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test

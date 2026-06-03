@@ -6,9 +6,9 @@ import com.flashcardsopensourceapp.data.local.database.AppLocalSettingsEntity
 import com.flashcardsopensourceapp.data.local.database.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.database.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.database.WorkspaceSchedulerSettingsEntity
-import com.flashcardsopensourceapp.data.local.model.CloudAccountState
-import com.flashcardsopensourceapp.data.local.model.encodeSchedulerStepListJson
-import com.flashcardsopensourceapp.data.local.model.makeDefaultWorkspaceSchedulerSettings
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.scheduling.encodeSchedulerStepListJson
+import com.flashcardsopensourceapp.data.local.model.scheduling.makeDefaultWorkspaceSchedulerSettings
 import java.util.UUID
 
 const val localWorkspaceName: String = "Personal"

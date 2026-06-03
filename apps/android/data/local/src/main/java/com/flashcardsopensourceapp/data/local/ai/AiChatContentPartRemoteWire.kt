@@ -1,11 +1,11 @@
 package com.flashcardsopensourceapp.data.local.ai
 
 import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
-import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
-import com.flashcardsopensourceapp.data.local.model.AiChatReasoningSummary
-import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
-import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatReasoningSummary
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatToolCall
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatToolCallStatus
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject

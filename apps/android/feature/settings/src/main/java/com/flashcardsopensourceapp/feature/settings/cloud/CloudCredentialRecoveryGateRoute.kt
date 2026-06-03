@@ -23,9 +23,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryReason
-import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryState
-import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryReason
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.feature.settings.R
 
 const val cloudCredentialRecoveryGateTag: String = "cloud_credential_recovery_gate"

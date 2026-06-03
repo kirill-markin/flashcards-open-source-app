@@ -1,6 +1,6 @@
 package com.flashcardsopensourceapp.app
 
-import com.flashcardsopensourceapp.data.local.model.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
 import kotlinx.coroutines.CoroutineScope

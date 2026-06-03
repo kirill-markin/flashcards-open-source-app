@@ -2,7 +2,7 @@ import Foundation
 
 // Keep in sync with apps/backend/src/cards/types.ts::EffortLevel,
 // apps/web/src/types.ts::EffortLevel, and
-// apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FlashcardsModels.kt::EffortLevel.
+// apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/scheduling/SchedulingModels.kt::EffortLevel.
 enum EffortLevel: String, CaseIterable, Codable, Hashable, Identifiable, Sendable {
     case fast
     case medium
@@ -38,7 +38,7 @@ enum EffortLevel: String, CaseIterable, Codable, Hashable, Identifiable, Sendabl
 
 // Keep in sync with apps/backend/src/decks/index.ts::DeckFilterDefinition,
 // apps/web/src/types.ts::DeckFilterDefinition, and
-// apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FlashcardsModels.kt::DeckFilterDefinition.
+// apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/cards/CardModels.kt::DeckFilterDefinition.
 struct DeckFilterDefinition: Codable, Hashable, Sendable {
     let version: Int
     let effortLevels: [EffortLevel]
@@ -50,7 +50,7 @@ struct CardFilter: Codable, Hashable, Sendable {
     let effort: [EffortLevel]
 }
 
-// Keep in sync with apps/backend/src/cards/types.ts::Card, apps/web/src/types.ts::Card, and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FlashcardsModels.kt::CardSummary.
+// Keep in sync with apps/backend/src/cards/types.ts::Card, apps/web/src/types.ts::Card, and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/cards/CardModels.kt::CardSummary.
 struct Card: Codable, Identifiable, Hashable, Sendable {
     let cardId: String
     let workspaceId: String

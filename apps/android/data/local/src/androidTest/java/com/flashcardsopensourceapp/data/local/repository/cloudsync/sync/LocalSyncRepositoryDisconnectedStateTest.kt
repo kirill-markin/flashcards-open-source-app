@@ -4,14 +4,14 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.bootstrap.localWorkspaceName
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.database.CardEntity
-import com.flashcardsopensourceapp.data.local.model.CloudAccountState
-import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryReason
-import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryRequiredException
-import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
-import com.flashcardsopensourceapp.data.local.model.FsrsCardState
-import com.flashcardsopensourceapp.data.local.model.SyncStatus
-import com.flashcardsopensourceapp.data.local.model.cloudCredentialRecoveryRequiredMessage
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryReason
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryRequiredException
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
+import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
+import com.flashcardsopensourceapp.data.local.model.cloud.cloudCredentialRecoveryRequiredMessage
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.CloudIdentityTestEnvironment
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.FakeCloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createCloudAccountSnapshot
@@ -75,7 +75,7 @@ class LocalSyncRepositoryDisconnectedStateTest {
         assertEquals(CloudAccountState.DISCONNECTED, environment.cloudPreferencesStore.currentCloudSettings().cloudState)
         assertEquals(initialInstallationId, environment.cloudPreferencesStore.currentCloudSettings().installationId)
         assertEquals(
-            com.flashcardsopensourceapp.data.local.model.AccountDeletionState.Hidden,
+            com.flashcardsopensourceapp.data.local.model.cloud.AccountDeletionState.Hidden,
             environment.cloudPreferencesStore.currentAccountDeletionState()
         )
         assertNull(environment.cloudPreferencesStore.loadCredentials())

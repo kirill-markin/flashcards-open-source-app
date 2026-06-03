@@ -1,11 +1,11 @@
 package com.flashcardsopensourceapp.data.local.repository.cloudsync.account
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.flashcardsopensourceapp.data.local.model.CloudAccountState
-import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeMode
-import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
-import com.flashcardsopensourceapp.data.local.model.CloudWorkspacePostAuthRoute
-import com.flashcardsopensourceapp.data.local.model.makeOfficialCloudServiceConfiguration
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspacePostAuthRoute
+import com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.CloudIdentityTestEnvironment
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.FakeCloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createCloudAccountSnapshot

@@ -10,7 +10,7 @@ import com.flashcardsopensourceapp.core.ui.TestModeStore
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenRepository
-import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncCompletion
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncEvent
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository

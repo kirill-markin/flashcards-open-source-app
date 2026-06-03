@@ -8,11 +8,11 @@ import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.CardEntity
 import com.flashcardsopensourceapp.data.local.database.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.database.WorkspaceSchedulerSettingsEntity
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
-import com.flashcardsopensourceapp.data.local.model.FsrsCardState
-import com.flashcardsopensourceapp.data.local.model.WorkspaceSchedulerSettings
-import com.flashcardsopensourceapp.data.local.model.encodeSchedulerStepListJson
-import com.flashcardsopensourceapp.data.local.model.makeDefaultWorkspaceSchedulerSettings
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
+import com.flashcardsopensourceapp.data.local.model.scheduling.WorkspaceSchedulerSettings
+import com.flashcardsopensourceapp.data.local.model.scheduling.encodeSchedulerStepListJson
+import com.flashcardsopensourceapp.data.local.model.scheduling.makeDefaultWorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.repository.SystemTimeProvider
 import com.flashcardsopensourceapp.data.local.repository.progress.LocalProgressCacheStore
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore

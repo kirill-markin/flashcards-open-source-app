@@ -14,10 +14,10 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
-import com.flashcardsopensourceapp.data.local.model.ReviewCard
-import com.flashcardsopensourceapp.data.local.model.ReviewCardQueueStatus
-import com.flashcardsopensourceapp.data.local.model.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.review.ReviewCard
+import com.flashcardsopensourceapp.data.local.model.review.ReviewCardQueueStatus
+import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.feature.review.PreparedReviewPreviewCardPresentation
 import com.flashcardsopensourceapp.feature.review.R as ReviewR
 import com.flashcardsopensourceapp.feature.review.ReviewPreviewListItem

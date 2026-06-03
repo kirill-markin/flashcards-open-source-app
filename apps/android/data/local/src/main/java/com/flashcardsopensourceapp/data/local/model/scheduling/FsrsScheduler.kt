@@ -1,5 +1,8 @@
-package com.flashcardsopensourceapp.data.local.model
+package com.flashcardsopensourceapp.data.local.model.scheduling
 
+import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
+import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
+import com.flashcardsopensourceapp.data.local.model.review.ReviewSchedule
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter

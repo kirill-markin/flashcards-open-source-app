@@ -1,5 +1,6 @@
-package com.flashcardsopensourceapp.data.local.model
+package com.flashcardsopensourceapp.data.local.model.ai
 
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

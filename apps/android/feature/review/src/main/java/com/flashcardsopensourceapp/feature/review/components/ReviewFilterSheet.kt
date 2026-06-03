@@ -21,11 +21,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.core.ui.bidiWrap
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
-import com.flashcardsopensourceapp.data.local.model.ReviewDeckFilterOption
-import com.flashcardsopensourceapp.data.local.model.ReviewEffortFilterOption
-import com.flashcardsopensourceapp.data.local.model.ReviewFilter
-import com.flashcardsopensourceapp.data.local.model.ReviewTagFilterOption
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.review.ReviewDeckFilterOption
+import com.flashcardsopensourceapp.data.local.model.review.ReviewEffortFilterOption
+import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.review.ReviewTagFilterOption
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -15,11 +15,11 @@ import androidx.work.WorkManager
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.loadTopActiveReviewCard
-import com.flashcardsopensourceapp.data.local.model.DeckFilterDefinition
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
-import com.flashcardsopensourceapp.data.local.model.ReviewFilter
-import com.flashcardsopensourceapp.data.local.model.decodeDeckFilterDefinitionJson
-import com.flashcardsopensourceapp.data.local.model.normalizeTagKey
+import com.flashcardsopensourceapp.data.local.model.cards.DeckFilterDefinition
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.cards.decodeDeckFilterDefinitionJson
+import com.flashcardsopensourceapp.data.local.model.cards.normalizeTagKey
 import com.flashcardsopensourceapp.data.local.notifications.CurrentReviewNotificationCard
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationMode
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger

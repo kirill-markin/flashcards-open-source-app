@@ -18,7 +18,7 @@ Repository implementations:
 - backend workspace scheduler settings: `apps/backend/src/scheduling/workspaceSettings.ts`
 - iOS scheduler: `apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift`
 - iOS local persistence: `apps/ios/Flashcards/Flashcards/LocalDatabase.swift`
-- Android scheduler: `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FsrsScheduler.kt`
+- Android scheduler: `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/scheduling/FsrsScheduler.kt`
 - Android local persistence: `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/repository/LocalRepositories.kt`
 - web FSRS type mirror: `apps/web/src/types.ts`
 - web local review submit flow: `apps/web/src/appData/sync/syncLocalMutations.ts`
@@ -31,7 +31,7 @@ The repository has exactly three independent implementations of the FSRS schedul
 
 - backend: `apps/backend/src/scheduling/index.ts`
 - iOS: `apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift`
-- Android: `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FsrsScheduler.kt`
+- Android: `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/scheduling/FsrsScheduler.kt`
 
 They are full platform-specific copies of the same algorithm and must stay behaviorally identical.
 The web app does not contain a fourth standalone scheduler implementation in this repository.
@@ -45,7 +45,7 @@ Supporting mirrors around the scheduler contract:
 - web local review submit flow reusing backend scheduler: `apps/web/src/appData/sync/syncLocalMutations.ts`
 - backend scheduler settings: `apps/backend/src/scheduling/workspaceSettings.ts`
 - iOS scheduler settings: `apps/ios/Flashcards/Flashcards/LocalDatabase.swift`
-- Android scheduler settings: `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/WorkspaceSchedulerSettingsSupport.kt`
+- Android scheduler settings: `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/scheduling/WorkspaceSchedulerSettingsSupport.kt`
 - shared parity vectors: `tests/fsrs-full-vectors.json`
 - backend parity tests: `apps/backend/src/scheduling/index.test.ts`
 - iOS parity tests: `apps/ios/Flashcards/FlashcardsTests/Review/FsrsSchedulerParityTests.swift`
@@ -69,7 +69,7 @@ Core scheduler symbol parity:
 | `addMinutes` / `addDays` | `FlashcardsLogic.swift` `addMinutes(date:minutes:)` / `addDays(date:days:)` |
 | `clamp`, `roundTo8`, `dateDiffInDays`, `stateRequiresMemory`, `getIntervalModifier`, `formatSeedNumber`, `mapRatingToFsrsGrade`, `getStepsForState`, `getCurrentStepIndex`, `getLearningStrategyStepIndex`, `getHardStepMinutes`, `getLearningStepResult`, `initStability`, `initDifficulty`, `meanReversion`, `linearDamping`, `nextDifficulty`, `forgettingCurve`, `nextRecallStability`, `nextForgetStability`, `nextShortTermStability`, `createInitialMemoryState`, `computeNextShortTermMemoryState`, `computeNextReviewMemoryState`, `getFuzzRange`, `getIntervalSeed`, `nextInterval`, `getMemoryState`, `buildShortTermSchedule`, `buildGraduatedReviewSchedule`, `buildReviewSuccessSchedule`, `createEmptyReviewableCardScheduleState`, `computeReviewSchedule`, `rebuildCardScheduleState` | same symbol names in Swift style |
 
-Android keeps the same scheduler symbol set in `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FsrsScheduler.kt`.
+Android keeps the same scheduler symbol set in `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/scheduling/FsrsScheduler.kt`.
 Because Android persistence uses epoch milliseconds instead of `Date`, the Android mirror uses `*Millis` timestamp fields while keeping the same transition logic, helper structure, seed rules, and validation semantics as backend and iOS.
 
 Scheduler-entrypoint parity:

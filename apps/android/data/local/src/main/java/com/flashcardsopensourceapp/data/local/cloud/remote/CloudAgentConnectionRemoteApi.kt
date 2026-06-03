@@ -6,8 +6,8 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudNullableIso
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudNullableString
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudObject
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
-import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnection
-import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
+import com.flashcardsopensourceapp.data.local.model.cloud.AgentApiKeyConnection
+import com.flashcardsopensourceapp.data.local.model.cloud.AgentApiKeyConnectionsResult
 import org.json.JSONObject
 
 internal class CloudAgentConnectionRemoteApi(

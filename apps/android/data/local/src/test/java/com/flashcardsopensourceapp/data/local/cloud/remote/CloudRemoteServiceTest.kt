@@ -2,9 +2,9 @@ package com.flashcardsopensourceapp.data.local.cloud.remote
 
 import com.flashcardsopensourceapp.data.local.cloud.identity.syncWorkspaceForkRequiredErrorCode
 import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
-import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeSelection
-import com.flashcardsopensourceapp.data.local.model.ProgressReviewScheduleBucketKey
-import com.flashcardsopensourceapp.data.local.model.SyncEntityType
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeSelection
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleBucketKey
+import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows

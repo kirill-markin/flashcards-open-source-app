@@ -1,7 +1,7 @@
 package com.flashcardsopensourceapp.feature.progress
 
-import com.flashcardsopensourceapp.data.local.model.CloudProgressSummary
-import com.flashcardsopensourceapp.data.local.model.ProgressReviewScheduleBucketKey
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleBucketKey
 import java.time.LocalDate
 
 data class ProgressHistoryDayUiState(

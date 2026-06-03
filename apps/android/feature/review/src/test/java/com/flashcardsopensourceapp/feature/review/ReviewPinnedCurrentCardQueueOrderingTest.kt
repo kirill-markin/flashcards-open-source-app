@@ -1,13 +1,13 @@
 package com.flashcardsopensourceapp.feature.review
 
-import com.flashcardsopensourceapp.data.local.model.CardSummary
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
-import com.flashcardsopensourceapp.data.local.model.FsrsCardState
-import com.flashcardsopensourceapp.data.local.model.ReviewFilter
-import com.flashcardsopensourceapp.data.local.model.ReviewRating
-import com.flashcardsopensourceapp.data.local.model.ReviewSessionSnapshot
-import com.flashcardsopensourceapp.data.local.model.buildBoundedReviewSessionSnapshot
-import com.flashcardsopensourceapp.data.local.model.makeDefaultWorkspaceSchedulerSettings
+import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
+import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
+import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionSnapshot
+import com.flashcardsopensourceapp.data.local.model.review.buildBoundedReviewSessionSnapshot
+import com.flashcardsopensourceapp.data.local.model.scheduling.makeDefaultWorkspaceSchedulerSettings
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

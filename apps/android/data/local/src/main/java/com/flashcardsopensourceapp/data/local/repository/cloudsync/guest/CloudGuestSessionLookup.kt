@@ -2,10 +2,10 @@ package com.flashcardsopensourceapp.data.local.repository.cloudsync.guest
 
 import com.flashcardsopensourceapp.data.local.ai.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
-import com.flashcardsopensourceapp.data.local.model.CloudAccountState
-import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
-import com.flashcardsopensourceapp.data.local.model.CloudSettings
-import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.ai.StoredGuestAiSession
 
 internal fun loadActiveGuestSessionOrNull(
     preferencesStore: CloudPreferencesStore,

@@ -1,6 +1,6 @@
 package com.flashcardsopensourceapp.feature.review
 
-import com.flashcardsopensourceapp.data.local.model.ReviewRating
+import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 
 internal const val hardAnswerReminderRecentRatingWindowSize: Int = 8
 internal const val hardAnswerReminderHardCountThreshold: Int = 5

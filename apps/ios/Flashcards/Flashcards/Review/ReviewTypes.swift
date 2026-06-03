@@ -8,7 +8,7 @@ let allCardsDeckLabel: String = String(
 
 // Keep raw values in sync with apps/backend/src/scheduling/index.ts::ReviewRating,
 // apps/web/src/types.ts review rating wire fields, and
-// apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FlashcardsModels.kt::ReviewRating.
+// apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/review/ReviewModels.kt::ReviewRating.
 enum ReviewRating: Int, CaseIterable, Codable, Hashable, Identifiable, Sendable {
     case again = 0
     case hard = 1

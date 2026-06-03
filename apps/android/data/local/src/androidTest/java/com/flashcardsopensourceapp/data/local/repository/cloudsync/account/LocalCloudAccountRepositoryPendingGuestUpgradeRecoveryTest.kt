@@ -9,14 +9,14 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteReviewHistoryPu
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.CardEntity
 import com.flashcardsopensourceapp.data.local.database.SyncStateEntity
-import com.flashcardsopensourceapp.data.local.model.CloudAccountState
-import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeCompletion
-import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeMode
-import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeSelection
-import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
-import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
-import com.flashcardsopensourceapp.data.local.model.FsrsCardState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeCompletion
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeSelection
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.CloudIdentityTestEnvironment
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.FakeCloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createCloudAccountSnapshot
@@ -129,7 +129,7 @@ class LocalCloudAccountRepositoryPendingGuestUpgradeRecoveryTest {
         assertEquals(
             storedGuestSession,
             environment.guestAiSessionStore.loadAnySession(
-                configuration = com.flashcardsopensourceapp.data.local.model.makeOfficialCloudServiceConfiguration()
+                configuration = com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration()
             )
         )
 
@@ -155,7 +155,7 @@ class LocalCloudAccountRepositoryPendingGuestUpgradeRecoveryTest {
         assertNotNull(restartedRuntime.cloudPreferencesStore.loadCredentials())
         assertNull(
             restartedRuntime.guestAiSessionStore.loadAnySession(
-                configuration = com.flashcardsopensourceapp.data.local.model.makeOfficialCloudServiceConfiguration()
+                configuration = com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration()
             )
         )
     }

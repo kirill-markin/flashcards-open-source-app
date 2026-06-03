@@ -1,15 +1,15 @@
 package com.flashcardsopensourceapp.feature.ai.runtime
 
 import com.flashcardsopensourceapp.core.observability.AppObservability
-import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
-import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
-import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
-import com.flashcardsopensourceapp.data.local.model.CloudAccountState
-import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
-import com.flashcardsopensourceapp.data.local.model.SyncStatus
-import com.flashcardsopensourceapp.data.local.model.effectiveAiChatServerConfig
-import com.flashcardsopensourceapp.data.local.model.makeAiChatCardAttachment
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
+import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
+import com.flashcardsopensourceapp.data.local.model.ai.effectiveAiChatServerConfig
+import com.flashcardsopensourceapp.data.local.model.ai.makeAiChatCardAttachment
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository
 import com.flashcardsopensourceapp.feature.ai.AiCardHandoffResult
@@ -478,7 +478,7 @@ internal class AiChatRuntime(
         lifecycleCoordinator.onScreenHidden()
     }
     fun warmUpLinkedSessionIfNeeded(
-        resumeDiagnostics: com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics?
+        resumeDiagnostics: com.flashcardsopensourceapp.data.local.model.ai.AiChatResumeDiagnostics?
     ) {
         lifecycleCoordinator.warmUpLinkedSessionIfNeeded(resumeDiagnostics = resumeDiagnostics)
     }

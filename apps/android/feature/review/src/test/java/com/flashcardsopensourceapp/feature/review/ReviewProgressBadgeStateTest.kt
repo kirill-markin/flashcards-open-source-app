@@ -1,10 +1,10 @@
 package com.flashcardsopensourceapp.feature.review
 
 import androidx.lifecycle.Lifecycle
-import com.flashcardsopensourceapp.data.local.model.CloudProgressSummary
-import com.flashcardsopensourceapp.data.local.model.ProgressSnapshotSource
-import com.flashcardsopensourceapp.data.local.model.ProgressSummaryScopeKey
-import com.flashcardsopensourceapp.data.local.model.ProgressSummarySnapshot
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressSnapshotSource
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummaryScopeKey
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

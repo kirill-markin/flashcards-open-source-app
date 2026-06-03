@@ -2,15 +2,15 @@ package com.flashcardsopensourceapp.data.local.repository.cloudsync.support
 
 import android.content.Context
 import com.flashcardsopensourceapp.data.local.database.SyncStateEntity
-import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
-import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeDroppedEntity
-import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeDroppedEntityType
-import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeReconciliation
-import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
-import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
-import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
-import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
-import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
+import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeDroppedEntity
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeDroppedEntityType
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeReconciliation
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
+import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
+import com.flashcardsopensourceapp.data.local.model.ai.StoredGuestAiSession
 
 internal fun clearCloudAndAiPreferences(context: Context) {
     context.deleteSharedPreferences("flashcards-cloud-metadata")

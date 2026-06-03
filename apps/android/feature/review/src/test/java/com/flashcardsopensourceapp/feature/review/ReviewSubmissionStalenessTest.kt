@@ -1,7 +1,7 @@
 package com.flashcardsopensourceapp.feature.review
 
-import com.flashcardsopensourceapp.data.local.model.PendingReviewedCard
-import com.flashcardsopensourceapp.data.local.model.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
+import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Test

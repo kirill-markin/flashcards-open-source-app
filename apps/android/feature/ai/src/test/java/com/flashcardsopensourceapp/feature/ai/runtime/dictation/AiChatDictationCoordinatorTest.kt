@@ -5,10 +5,10 @@ import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiComposerPha
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.makeAiDraftState
 import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.AiChatDictationCoordinator
 import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.AiChatSessionCoordinator
-import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
-import com.flashcardsopensourceapp.data.local.model.AiChatTranscriptionResult
-import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
-import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatTranscriptionResult
+import com.flashcardsopensourceapp.data.local.model.ai.defaultAiChatServerConfig
+import com.flashcardsopensourceapp.data.local.model.ai.makeDefaultAiChatPersistedState
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle

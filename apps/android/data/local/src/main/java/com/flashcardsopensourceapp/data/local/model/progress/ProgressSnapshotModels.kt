@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.model
+package com.flashcardsopensourceapp.data.local.model.progress
 
 data class ProgressSummaryScopeKey(
     val scopeId: String,

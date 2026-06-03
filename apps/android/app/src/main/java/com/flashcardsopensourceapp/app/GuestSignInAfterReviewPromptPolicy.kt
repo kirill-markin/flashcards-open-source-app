@@ -1,6 +1,6 @@
 package com.flashcardsopensourceapp.app
 
-import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 
 const val guestSignInAfterReviewPromptReviewThreshold: Int = 20
 const val guestSignInAfterReviewPromptSnoozeMillis: Long = 7L * 24L * 60L * 60L * 1_000L

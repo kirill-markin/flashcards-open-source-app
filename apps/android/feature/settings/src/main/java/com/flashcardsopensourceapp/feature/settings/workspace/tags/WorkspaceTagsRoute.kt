@@ -26,7 +26,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.flashcardsopensourceapp.data.local.model.normalizeTagKey
+import com.flashcardsopensourceapp.data.local.model.cards.normalizeTagKey
 import com.flashcardsopensourceapp.feature.settings.R
 
 const val workspaceTagsSearchFieldTag: String = "workspace_tags_search_field"

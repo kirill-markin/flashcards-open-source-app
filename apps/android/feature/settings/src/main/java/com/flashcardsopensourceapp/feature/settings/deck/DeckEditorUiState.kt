@@ -1,7 +1,7 @@
 package com.flashcardsopensourceapp.feature.settings.deck
 
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
-import com.flashcardsopensourceapp.data.local.model.WorkspaceTagSummary
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagSummary
 
 data class DeckEditorUiState(
     val isLoading: Boolean,

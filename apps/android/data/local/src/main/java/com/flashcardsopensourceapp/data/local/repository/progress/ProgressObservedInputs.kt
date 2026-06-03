@@ -12,8 +12,8 @@ import com.flashcardsopensourceapp.data.local.database.ProgressSeriesCacheEntity
 import com.flashcardsopensourceapp.data.local.database.ProgressSummaryCacheEntity
 import com.flashcardsopensourceapp.data.local.database.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.database.WorkspaceEntity
-import com.flashcardsopensourceapp.data.local.model.CloudSettings
-import com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine

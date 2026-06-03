@@ -4,8 +4,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteBootstrapPushResponse
 import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteReviewHistoryImportResponse
-import com.flashcardsopensourceapp.data.local.model.SyncEntityType
-import com.flashcardsopensourceapp.data.local.model.SyncStatus
+import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
+import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.CloudIdentityTestEnvironment
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.FakeCloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createSyncWorkspaceForkRequiredError

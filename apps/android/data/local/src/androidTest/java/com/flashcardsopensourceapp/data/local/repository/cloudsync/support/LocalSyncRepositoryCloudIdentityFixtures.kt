@@ -5,7 +5,7 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.CloudSyncConflictDeta
 import com.flashcardsopensourceapp.data.local.cloud.identity.syncWorkspaceForkRequiredErrorCode
 import com.flashcardsopensourceapp.data.local.database.CardEntity
 import com.flashcardsopensourceapp.data.local.database.OutboxEntryEntity
-import com.flashcardsopensourceapp.data.local.model.SyncEntityType
+import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import org.json.JSONArray
 import org.json.JSONObject
 

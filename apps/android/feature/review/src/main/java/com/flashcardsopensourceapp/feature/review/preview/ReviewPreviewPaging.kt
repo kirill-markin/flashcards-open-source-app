@@ -1,6 +1,6 @@
 package com.flashcardsopensourceapp.feature.review
 
-import com.flashcardsopensourceapp.data.local.model.ReviewTimelinePage
+import com.flashcardsopensourceapp.data.local.model.review.ReviewTimelinePage
 
 internal const val reviewPreviewPageSize: Int = 20
 

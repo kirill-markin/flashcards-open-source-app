@@ -37,7 +37,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatToolCall
 import com.flashcardsopensourceapp.feature.ai.R
 import com.flashcardsopensourceapp.feature.ai.aiToolCallCardTag
 import com.flashcardsopensourceapp.feature.ai.aiToolCallExpandButtonTag

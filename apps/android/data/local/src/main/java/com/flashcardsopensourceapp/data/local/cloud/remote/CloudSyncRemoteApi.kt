@@ -10,7 +10,7 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudLong
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudNullableString
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudObject
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
-import com.flashcardsopensourceapp.data.local.model.SyncEntityType
+import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import org.json.JSONArray
 import org.json.JSONObject
 

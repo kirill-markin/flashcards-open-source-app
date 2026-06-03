@@ -1,14 +1,14 @@
 package com.flashcardsopensourceapp.data.local.repository.progress
 
-import com.flashcardsopensourceapp.data.local.model.CloudAccountState
-import com.flashcardsopensourceapp.data.local.model.CloudProgressReviewSchedule
-import com.flashcardsopensourceapp.data.local.model.ProgressReviewScheduleScopeKey
-import com.flashcardsopensourceapp.data.local.model.ProgressReviewScheduleSnapshot
-import com.flashcardsopensourceapp.data.local.model.ProgressSeriesScopeKey
-import com.flashcardsopensourceapp.data.local.model.ProgressSnapshotSource
-import com.flashcardsopensourceapp.data.local.model.ProgressSummaryScopeKey
-import com.flashcardsopensourceapp.data.local.model.SyncStatus
-import com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleScopeKey
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleSnapshot
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesScopeKey
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressSnapshotSource
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummaryScopeKey
+import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
+import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test

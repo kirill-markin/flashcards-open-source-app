@@ -21,7 +21,7 @@ import com.flashcardsopensourceapp.app.navigation.navigateToTopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.rememberRouteBackStackEntry
 import com.flashcardsopensourceapp.app.notifications.hasNotificationPermission
 import com.flashcardsopensourceapp.data.local.ai.AiChatDiagnosticsLogger
-import com.flashcardsopensourceapp.data.local.model.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersReconcileTrigger
 import com.flashcardsopensourceapp.feature.review.ReviewPreviewRoute
@@ -151,10 +151,10 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 reviewViewModel.selectFilter(reviewFilter = ReviewFilter.AllCards)
             },
             onRevealAnswer = reviewViewModel::revealAnswer,
-            onRateAgain = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.ReviewRating.AGAIN) },
-            onRateHard = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.ReviewRating.HARD) },
-            onRateGood = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.ReviewRating.GOOD) },
-            onRateEasy = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.ReviewRating.EASY) },
+            onRateAgain = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.review.ReviewRating.AGAIN) },
+            onRateHard = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.review.ReviewRating.HARD) },
+            onRateGood = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.review.ReviewRating.GOOD) },
+            onRateEasy = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.review.ReviewRating.EASY) },
             onDismissHardAnswerReminder = reviewViewModel::dismissHardAnswerReminder,
             onDismissErrorMessage = reviewViewModel::dismissErrorMessage,
             onDismissNotificationPermissionPrompt = reviewViewModel::dismissNotificationPermissionPrompt,

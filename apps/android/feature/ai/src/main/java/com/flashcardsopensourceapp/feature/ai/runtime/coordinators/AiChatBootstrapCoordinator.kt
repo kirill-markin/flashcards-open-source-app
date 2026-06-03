@@ -2,13 +2,13 @@ package com.flashcardsopensourceapp.feature.ai.runtime.coordinators
 
 import com.flashcardsopensourceapp.data.local.ai.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
-import com.flashcardsopensourceapp.data.local.model.AiChatBootstrapResponse
-import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
-import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
-import com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics
-import com.flashcardsopensourceapp.data.local.model.AiChatSessionProvisioningResult
-import com.flashcardsopensourceapp.data.local.model.CloudAccountState
-import com.flashcardsopensourceapp.data.local.model.SyncStatus
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatBootstrapResponse
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatPersistedState
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatResumeDiagnostics
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionProvisioningResult
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.feature.ai.emptyAiBootstrapErrorPresentation
 import com.flashcardsopensourceapp.feature.ai.runtime.AiChatRuntimeContext
 import com.flashcardsopensourceapp.feature.ai.runtime.aiChatBootstrapPageLimit
@@ -147,7 +147,7 @@ internal class AiChatBootstrapCoordinator(
                             pendingAttachments = emptyList(),
                             serverComposerSuggestions = emptyList(),
                             composerPhase = AiComposerPhase.IDLE,
-                            dictationState = com.flashcardsopensourceapp.data.local.model.AiChatDictationState.IDLE,
+                            dictationState = com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState.IDLE,
                             conversationBootstrapState = AiConversationBootstrapState.LOADING,
                             conversationBootstrapErrorPresentation = emptyAiBootstrapErrorPresentation(),
                             repairStatus = null,
@@ -161,7 +161,7 @@ internal class AiChatBootstrapCoordinator(
                             activeRun = state.activeRun,
                             isLiveAttached = false,
                             composerPhase = AiComposerPhase.IDLE,
-                            dictationState = com.flashcardsopensourceapp.data.local.model.AiChatDictationState.IDLE,
+                            dictationState = com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState.IDLE,
                             conversationBootstrapState = AiConversationBootstrapState.LOADING,
                             conversationBootstrapErrorPresentation = emptyAiBootstrapErrorPresentation(),
                             repairStatus = null,
@@ -404,7 +404,7 @@ internal class AiChatBootstrapCoordinator(
                         pendingAttachments = draftStateToPreserve?.pendingAttachments ?: emptyList(),
                         serverComposerSuggestions = emptyList(),
                         composerPhase = AiComposerPhase.IDLE,
-                        dictationState = com.flashcardsopensourceapp.data.local.model.AiChatDictationState.IDLE,
+                        dictationState = com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState.IDLE,
                         conversationBootstrapState = AiConversationBootstrapState.FAILED,
                         conversationBootstrapErrorPresentation = presentation,
                         repairStatus = null,
@@ -674,7 +674,7 @@ internal class AiChatBootstrapCoordinator(
                     dictationState = if (preserveLocalComposerState) {
                         state.dictationState
                     } else {
-                        com.flashcardsopensourceapp.data.local.model.AiChatDictationState.IDLE
+                        com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState.IDLE
                     },
                     conversationBootstrapState = AiConversationBootstrapState.READY,
                     conversationBootstrapErrorPresentation = emptyAiBootstrapErrorPresentation(),

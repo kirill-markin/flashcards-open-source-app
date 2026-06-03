@@ -7,8 +7,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
-import com.flashcardsopensourceapp.data.local.model.CloudAccountState
-import com.flashcardsopensourceapp.data.local.model.SyncStatus
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
@@ -63,12 +63,12 @@ class AccountStatusViewModel(
             installationId = cloudSettings.installationId,
             syncStatusText = when (val status = syncStatus.status) {
                 is SyncStatus.Blocked -> status.message
-                is com.flashcardsopensourceapp.data.local.model.SyncStatus.Failed -> status.message
-                com.flashcardsopensourceapp.data.local.model.SyncStatus.Idle -> when (cloudSettings.cloudState) {
+                is com.flashcardsopensourceapp.data.local.model.sync.SyncStatus.Failed -> status.message
+                com.flashcardsopensourceapp.data.local.model.sync.SyncStatus.Idle -> when (cloudSettings.cloudState) {
                     CloudAccountState.GUEST -> strings.get(R.string.settings_cloud_status_guest_ai_session)
                     else -> strings.resolveAppMetadataSyncStatusText(status = metadata.syncStatus)
                 }
-                com.flashcardsopensourceapp.data.local.model.SyncStatus.Syncing -> strings.get(R.string.settings_sync_status_syncing)
+                com.flashcardsopensourceapp.data.local.model.sync.SyncStatus.Syncing -> strings.get(R.string.settings_sync_status_syncing)
             },
             lastSuccessfulSync = formatTimestampLabel(
                 timestampMillis = syncStatus.lastSuccessfulSyncAtMillis,

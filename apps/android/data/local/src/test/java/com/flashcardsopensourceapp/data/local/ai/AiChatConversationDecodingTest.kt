@@ -1,7 +1,7 @@
 package com.flashcardsopensourceapp.data.local.ai
 
-import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
-import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue

@@ -1,6 +1,6 @@
 package com.flashcardsopensourceapp.feature.review.reaction
 
-import com.flashcardsopensourceapp.data.local.model.ReviewRating
+import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

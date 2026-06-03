@@ -1,9 +1,9 @@
 package com.flashcardsopensourceapp.data.local.database
 
 import androidx.room.TypeConverter
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
-import com.flashcardsopensourceapp.data.local.model.FsrsCardState
-import com.flashcardsopensourceapp.data.local.model.ReviewRating
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
+import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 
 class DatabaseTypeConverters {
     @TypeConverter

@@ -1,6 +1,6 @@
 package com.flashcardsopensourceapp.feature.ai.toolcall
 
-import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatToolCallStatus
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
 
 /*

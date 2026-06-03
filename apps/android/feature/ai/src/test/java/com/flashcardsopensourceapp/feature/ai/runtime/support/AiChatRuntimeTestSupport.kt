@@ -6,31 +6,31 @@ import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
-import com.flashcardsopensourceapp.data.local.model.AiChatAcceptedConversationEnvelope
-import com.flashcardsopensourceapp.data.local.model.AiChatActiveRun
-import com.flashcardsopensourceapp.data.local.model.AiChatActiveRunLive
-import com.flashcardsopensourceapp.data.local.model.AiChatBootstrapResponse
-import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
-import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
-import com.flashcardsopensourceapp.data.local.model.AiChatConversation
-import com.flashcardsopensourceapp.data.local.model.AiChatDraftState
-import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
-import com.flashcardsopensourceapp.data.local.model.AiChatLiveEventMetadata
-import com.flashcardsopensourceapp.data.local.model.AiChatLiveStreamEnvelope
-import com.flashcardsopensourceapp.data.local.model.AiChatMessage
-import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
-import com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics
-import com.flashcardsopensourceapp.data.local.model.AiChatRunTerminalOutcome
-import com.flashcardsopensourceapp.data.local.model.AiChatSessionProvisioningResult
-import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
-import com.flashcardsopensourceapp.data.local.model.AiChatStartRunResponse
-import com.flashcardsopensourceapp.data.local.model.AiChatStopRunResponse
-import com.flashcardsopensourceapp.data.local.model.AiChatTranscriptionResult
-import com.flashcardsopensourceapp.data.local.model.CloudAccountState
-import com.flashcardsopensourceapp.data.local.model.SyncStatus
-import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
-import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
-import com.flashcardsopensourceapp.data.local.model.makeOfficialCloudServiceConfiguration
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatAcceptedConversationEnvelope
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatActiveRun
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatActiveRunLive
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatBootstrapResponse
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatConversation
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatDraftState
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveEvent
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveEventMetadata
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveStreamEnvelope
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatMessage
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatPersistedState
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatResumeDiagnostics
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatRunTerminalOutcome
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionProvisioningResult
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionSnapshot
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatStartRunResponse
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatStopRunResponse
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatTranscriptionResult
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
+import com.flashcardsopensourceapp.data.local.model.ai.defaultAiChatServerConfig
+import com.flashcardsopensourceapp.data.local.model.ai.makeDefaultAiChatPersistedState
+import com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.AiChatPreparedRemoteSession
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncEvent
@@ -231,7 +231,7 @@ internal fun makeSessionSnapshot(
     sessionId: String,
     composerSuggestions: List<AiChatComposerSuggestion>
 ): AiChatSessionSnapshot {
-    return com.flashcardsopensourceapp.data.local.model.AiChatConversationEnvelope(
+    return com.flashcardsopensourceapp.data.local.model.ai.AiChatConversationEnvelope(
         sessionId = sessionId,
         conversationScopeId = sessionId,
         conversation = AiChatConversation(
@@ -488,7 +488,7 @@ internal class FakeAiChatRepository : AiChatRepository {
         if (createNewSessionResponses.isNotEmpty()) {
             return createNewSessionResponses.removeFirst()
         }
-        return com.flashcardsopensourceapp.data.local.model.AiChatConversationEnvelope(
+        return com.flashcardsopensourceapp.data.local.model.ai.AiChatConversationEnvelope(
             sessionId = sessionId,
             conversationScopeId = sessionId,
             conversation = AiChatConversation(

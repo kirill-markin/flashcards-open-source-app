@@ -2,9 +2,9 @@ package com.flashcardsopensourceapp.feature.cards
 
 import android.content.Context
 import android.content.res.Resources
-import com.flashcardsopensourceapp.data.local.model.CardFilter
-import com.flashcardsopensourceapp.data.local.model.CardSummary
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.cards.CardFilter
+import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter

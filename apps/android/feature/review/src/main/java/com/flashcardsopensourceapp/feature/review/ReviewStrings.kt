@@ -2,10 +2,10 @@ package com.flashcardsopensourceapp.feature.review
 
 import android.content.Context
 import android.content.res.Resources
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
-import com.flashcardsopensourceapp.data.local.model.ReviewDeckFilterOption
-import com.flashcardsopensourceapp.data.local.model.ReviewFilter
-import com.flashcardsopensourceapp.data.local.model.ReviewIntervalDescription
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.review.ReviewDeckFilterOption
+import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.review.ReviewIntervalDescription
 import com.flashcardsopensourceapp.data.local.notifications.StrictReminderTimeOffset
 import java.time.Instant
 import java.time.ZoneId

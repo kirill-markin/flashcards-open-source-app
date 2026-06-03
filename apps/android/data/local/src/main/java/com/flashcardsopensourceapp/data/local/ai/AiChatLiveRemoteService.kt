@@ -1,9 +1,9 @@
 package com.flashcardsopensourceapp.data.local.ai
 
 import com.flashcardsopensourceapp.core.observability.AppObservability
-import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
-import com.flashcardsopensourceapp.data.local.model.AiChatLiveStreamEnvelope
-import com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveEvent
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveStreamEnvelope
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatResumeDiagnostics
 import com.flashcardsopensourceapp.data.local.network.TracePropagationTarget
 import com.flashcardsopensourceapp.data.local.network.awaitOkHttpResponse
 import kotlinx.coroutines.CancellationException

@@ -1,10 +1,10 @@
 package com.flashcardsopensourceapp.feature.review
 
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
-import com.flashcardsopensourceapp.data.local.model.PendingReviewedCard
-import com.flashcardsopensourceapp.data.local.model.ReviewCard
-import com.flashcardsopensourceapp.data.local.model.ReviewCardQueueStatus
-import com.flashcardsopensourceapp.data.local.model.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
+import com.flashcardsopensourceapp.data.local.model.review.ReviewCard
+import com.flashcardsopensourceapp.data.local.model.review.ReviewCardQueueStatus
+import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 
 internal const val pinnedReviewNowMillis: Long = 3_600_000L
 internal const val pinnedReviewOneHourMillis: Long = 60L * 60L * 1_000L

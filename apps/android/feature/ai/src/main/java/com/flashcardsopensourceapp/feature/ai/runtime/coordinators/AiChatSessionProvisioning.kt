@@ -2,9 +2,9 @@ package com.flashcardsopensourceapp.feature.ai.runtime.coordinators
 
 import com.flashcardsopensourceapp.data.local.ai.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
-import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
-import com.flashcardsopensourceapp.data.local.model.AiChatSessionProvisioningResult
-import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatPersistedState
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionProvisioningResult
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.repository.AiChatPreparedRemoteSession
 import com.flashcardsopensourceapp.feature.ai.runtime.AiChatRuntimeContext
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.remoteErrorFields

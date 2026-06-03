@@ -5,7 +5,7 @@ import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 
 data class ReviewEffortCountRow(
-    val effortLevel: com.flashcardsopensourceapp.data.local.model.EffortLevel,
+    val effortLevel: com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel,
     val totalCount: Int
 )
 
@@ -35,7 +35,7 @@ interface ReviewCountDao {
     )
     fun observeReviewTotalCountByEffortLevels(
         workspaceId: String,
-        effortLevels: List<com.flashcardsopensourceapp.data.local.model.EffortLevel>
+        effortLevels: List<com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel>
     ): Flow<Int>
 
     @Query(
@@ -76,7 +76,7 @@ interface ReviewCountDao {
     )
     fun observeReviewTotalCountByEffortLevelsAndAnyTags(
         workspaceId: String,
-        effortLevels: List<com.flashcardsopensourceapp.data.local.model.EffortLevel>,
+        effortLevels: List<com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel>,
         tagNames: List<String>
     ): Flow<Int>
 
@@ -102,7 +102,7 @@ interface ReviewCountDao {
     fun observeReviewDueCountByEffortLevels(
         workspaceId: String,
         nowMillis: Long,
-        effortLevels: List<com.flashcardsopensourceapp.data.local.model.EffortLevel>
+        effortLevels: List<com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel>
     ): Flow<Int>
 
     @Query(
@@ -147,7 +147,7 @@ interface ReviewCountDao {
     fun observeReviewDueCountByEffortLevelsAndAnyTags(
         workspaceId: String,
         nowMillis: Long,
-        effortLevels: List<com.flashcardsopensourceapp.data.local.model.EffortLevel>,
+        effortLevels: List<com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel>,
         tagNames: List<String>
     ): Flow<Int>
 
@@ -173,7 +173,7 @@ interface ReviewCountDao {
     suspend fun countReviewDueCardsByEffortLevels(
         workspaceId: String,
         nowMillis: Long,
-        effortLevels: List<com.flashcardsopensourceapp.data.local.model.EffortLevel>
+        effortLevels: List<com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel>
     ): Int
 
     @Query(
@@ -218,7 +218,7 @@ interface ReviewCountDao {
     suspend fun countReviewDueCardsByEffortLevelsAndAnyTags(
         workspaceId: String,
         nowMillis: Long,
-        effortLevels: List<com.flashcardsopensourceapp.data.local.model.EffortLevel>,
+        effortLevels: List<com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel>,
         tagNames: List<String>
     ): Int
 

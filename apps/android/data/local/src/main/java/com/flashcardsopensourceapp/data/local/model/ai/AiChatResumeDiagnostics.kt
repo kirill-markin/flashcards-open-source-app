@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.model
+package com.flashcardsopensourceapp.data.local.model.ai
 
 data class AiChatResumeDiagnostics(
     val resumeAttemptId: Long,

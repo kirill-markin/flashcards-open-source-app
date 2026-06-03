@@ -37,11 +37,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.flashcardsopensourceapp.data.local.model.CardFilter
-import com.flashcardsopensourceapp.data.local.model.CardSummary
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
-import com.flashcardsopensourceapp.data.local.model.WorkspaceTagSummary
-import com.flashcardsopensourceapp.data.local.model.buildCardFilter
+import com.flashcardsopensourceapp.data.local.model.cards.CardFilter
+import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagSummary
+import com.flashcardsopensourceapp.data.local.model.cards.buildCardFilter
 
 const val cardsCardRowTag: String = "cards_card_row"
 const val cardsCardFrontTextTag: String = "cards_card_front_text"

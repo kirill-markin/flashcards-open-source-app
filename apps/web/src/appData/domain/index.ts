@@ -143,7 +143,7 @@ function findMatchingTag(tags: ReadonlyArray<string>, requestedTag: string): str
   return tags.find((tag) => normalizeTagKey(tag) === requestedTagKey)?.trim() ?? null;
 }
 
-/** Keep deck matching semantics aligned with apps/ios/Flashcards/Flashcards/Cards/CardFilterSupport.swift and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FilterSupport.kt: effort is inclusive and tags match on any overlap. */
+/** Keep deck matching semantics aligned with apps/ios/Flashcards/Flashcards/Cards/CardFilterSupport.swift and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/cards/FilterSupport.kt: effort is inclusive and tags match on any overlap. */
 export function matchesDeckFilterDefinition(filterDefinition: DeckFilterDefinition, card: Card): boolean {
   if (filterDefinition.effortLevels.length > 0 && filterDefinition.effortLevels.includes(card.effortLevel) === false) {
     return false;
@@ -346,7 +346,7 @@ function getReviewOrderCreatedTimestamp(card: Card): number {
  * Keep review queue ordering aligned with:
  * - apps/ios/Flashcards/Flashcards/Review/Queue/ReviewQuerySupport.swift::compareCardsForReviewOrder
  * - apps/ios/Flashcards/Flashcards/Database/CardStore/CardStore+ReadSQL.swift review queue ORDER BY
- * - apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/ReviewSupport.kt::sortCardsForReviewQueue
+ * - apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/review/ReviewSupport.kt::sortCardsForReviewQueue
  * Ordering contract: recently reviewed due cards in the inclusive 1-hour fsrsLastReviewedAt
  * window first, then other due cards, then null-due/new cards, then future cards,
  * then malformed dueAt cards.

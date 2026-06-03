@@ -1,9 +1,9 @@
 package com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace
 
-import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeSelection
-import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkContext
-import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
-import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeSelection
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkContext
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 
 internal fun validateWorkspaceSelection(
     linkContext: CloudWorkspaceLinkContext,

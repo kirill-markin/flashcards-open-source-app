@@ -1,15 +1,15 @@
 package com.flashcardsopensourceapp.data.local.repository.cloudsync.account
 
-import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
-import com.flashcardsopensourceapp.data.local.model.CloudAccountState
-import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryReason
-import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryRequiredException
-import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryState
-import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
-import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkContext
-import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
-import com.flashcardsopensourceapp.data.local.model.CloudWorkspacePostAuthRoute
-import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
+import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryReason
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryRequiredException
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkContext
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspacePostAuthRoute
+import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.AuthenticatedCloudSession
 import java.util.Locale
 

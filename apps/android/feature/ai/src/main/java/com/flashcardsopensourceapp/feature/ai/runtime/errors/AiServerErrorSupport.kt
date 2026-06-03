@@ -1,8 +1,8 @@
 package com.flashcardsopensourceapp.feature.ai.runtime.errors
 
-import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
-import com.flashcardsopensourceapp.data.local.model.aiChatAttachmentUnsupportedTypeCode
-import com.flashcardsopensourceapp.data.local.model.aiChatRequestTooLargeCode
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
+import com.flashcardsopensourceapp.data.local.model.ai.aiChatAttachmentUnsupportedTypeCode
+import com.flashcardsopensourceapp.data.local.model.ai.aiChatRequestTooLargeCode
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
 
 enum class AiErrorSurface {

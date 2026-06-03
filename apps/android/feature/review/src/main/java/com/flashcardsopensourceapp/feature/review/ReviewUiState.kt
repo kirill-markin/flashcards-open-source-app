@@ -1,9 +1,9 @@
 package com.flashcardsopensourceapp.feature.review
 
-import com.flashcardsopensourceapp.data.local.model.ReviewDeckFilterOption
-import com.flashcardsopensourceapp.data.local.model.ReviewEffortFilterOption
-import com.flashcardsopensourceapp.data.local.model.ReviewFilter
-import com.flashcardsopensourceapp.data.local.model.ReviewTagFilterOption
+import com.flashcardsopensourceapp.data.local.model.review.ReviewDeckFilterOption
+import com.flashcardsopensourceapp.data.local.model.review.ReviewEffortFilterOption
+import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.review.ReviewTagFilterOption
 
 data class ReviewProgressBadgeState(
     val streakDays: Int,

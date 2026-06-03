@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.model
+package com.flashcardsopensourceapp.data.local.model.cloud
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

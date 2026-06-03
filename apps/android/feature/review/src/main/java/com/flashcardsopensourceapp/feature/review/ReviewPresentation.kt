@@ -19,10 +19,10 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.flashcardsopensourceapp.data.local.model.ReviewAnswerOption
-import com.flashcardsopensourceapp.data.local.model.ReviewCard
-import com.flashcardsopensourceapp.data.local.model.ReviewCardQueueStatus
-import com.flashcardsopensourceapp.data.local.model.ReviewRating
+import com.flashcardsopensourceapp.data.local.model.review.ReviewAnswerOption
+import com.flashcardsopensourceapp.data.local.model.review.ReviewCard
+import com.flashcardsopensourceapp.data.local.model.review.ReviewCardQueueStatus
+import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 
 /*
  Keep review content presentation heuristics aligned with:

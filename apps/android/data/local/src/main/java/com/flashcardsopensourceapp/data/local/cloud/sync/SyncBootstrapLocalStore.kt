@@ -8,7 +8,7 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.buildDeckBootstrapEntry
 import com.flashcardsopensourceapp.data.local.cloud.wire.buildReviewHistoryImportEventJson
 import com.flashcardsopensourceapp.data.local.cloud.wire.buildWorkspaceSchedulerSettingsBootstrapEntryJson
 import com.flashcardsopensourceapp.data.local.cloud.wire.toCardSummary
-import com.flashcardsopensourceapp.data.local.model.SyncEntityType
+import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import kotlinx.coroutines.flow.first
 import org.json.JSONArray
 import java.util.UUID

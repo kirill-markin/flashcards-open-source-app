@@ -6,12 +6,12 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudObjectOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudBoolean
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudObject
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
-import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeCompletion
-import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeDroppedEntity
-import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeDroppedEntityType
-import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeMode
-import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeReconciliation
-import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeSelection
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeCompletion
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeDroppedEntity
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeDroppedEntityType
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeReconciliation
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeSelection
 import org.json.JSONArray
 import org.json.JSONObject
 

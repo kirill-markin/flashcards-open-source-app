@@ -1,12 +1,12 @@
 package com.flashcardsopensourceapp.feature.review
 
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
-import com.flashcardsopensourceapp.data.local.model.PendingReviewedCard
-import com.flashcardsopensourceapp.data.local.model.ReviewCard
-import com.flashcardsopensourceapp.data.local.model.ReviewDeckFilterOption
-import com.flashcardsopensourceapp.data.local.model.ReviewEffortFilterOption
-import com.flashcardsopensourceapp.data.local.model.ReviewFilter
-import com.flashcardsopensourceapp.data.local.model.ReviewTagFilterOption
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
+import com.flashcardsopensourceapp.data.local.model.review.ReviewCard
+import com.flashcardsopensourceapp.data.local.model.review.ReviewDeckFilterOption
+import com.flashcardsopensourceapp.data.local.model.review.ReviewEffortFilterOption
+import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.review.ReviewTagFilterOption
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

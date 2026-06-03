@@ -1,15 +1,15 @@
 package com.flashcardsopensourceapp.feature.ai.runtime
 
-import com.flashcardsopensourceapp.data.local.model.AppMetadataSummary
-import com.flashcardsopensourceapp.data.local.model.AppMetadataStorage
-import com.flashcardsopensourceapp.data.local.model.AppMetadataSyncStatus
-import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
-import com.flashcardsopensourceapp.data.local.model.AiChatServerConfig
-import com.flashcardsopensourceapp.data.local.model.CloudAccountState
-import com.flashcardsopensourceapp.data.local.model.CloudSettings
-import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
-import com.flashcardsopensourceapp.data.local.model.effectiveAiChatServerConfig
-import com.flashcardsopensourceapp.data.local.model.isSendableAiChatAttachment
+import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataSummary
+import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataStorage
+import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataSyncStatus
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatServerConfig
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.ai.defaultAiChatServerConfig
+import com.flashcardsopensourceapp.data.local.model.ai.effectiveAiChatServerConfig
+import com.flashcardsopensourceapp.data.local.model.ai.isSendableAiChatAttachment
 import com.flashcardsopensourceapp.feature.ai.AiUiState
 import com.flashcardsopensourceapp.feature.ai.emptyAiBootstrapErrorPresentation
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiAccessContext

@@ -3,7 +3,7 @@ package com.flashcardsopensourceapp.data.local.ai
 import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
 import com.flashcardsopensourceapp.data.local.cloud.wire.buildRemoteContractMismatch
 import com.flashcardsopensourceapp.data.local.cloud.wire.strictRemoteJson
-import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatToolCallStatus
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

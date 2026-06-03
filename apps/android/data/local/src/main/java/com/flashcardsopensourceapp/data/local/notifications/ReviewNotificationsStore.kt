@@ -2,8 +2,8 @@ package com.flashcardsopensourceapp.data.local.notifications
 
 import android.content.Context
 import androidx.core.content.edit
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
-import com.flashcardsopensourceapp.data.local.model.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime

@@ -3,8 +3,8 @@ package com.flashcardsopensourceapp.feature.settings
 import android.content.Context
 import androidx.annotation.PluralsRes
 import androidx.annotation.StringRes
-import com.flashcardsopensourceapp.data.local.model.AppMetadataStorage
-import com.flashcardsopensourceapp.data.local.model.AppMetadataSyncStatus
+import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataStorage
+import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataSyncStatus
 import java.util.Locale
 
 interface SettingsStringResolver {

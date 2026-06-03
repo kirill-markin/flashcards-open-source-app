@@ -2,11 +2,11 @@ package com.flashcardsopensourceapp.data.local
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
-import com.flashcardsopensourceapp.data.local.model.CardDraft
-import com.flashcardsopensourceapp.data.local.model.DeckDraft
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
-import com.flashcardsopensourceapp.data.local.model.ReviewRating
-import com.flashcardsopensourceapp.data.local.model.buildDeckFilterDefinition
+import com.flashcardsopensourceapp.data.local.model.cards.CardDraft
+import com.flashcardsopensourceapp.data.local.model.cards.DeckDraft
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
+import com.flashcardsopensourceapp.data.local.model.cards.buildDeckFilterDefinition
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.json.JSONObject

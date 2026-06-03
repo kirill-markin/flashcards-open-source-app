@@ -1,7 +1,7 @@
 package com.flashcardsopensourceapp.app
 
-import com.flashcardsopensourceapp.data.local.model.CloudSettings
-import com.flashcardsopensourceapp.data.local.model.FeedbackPromptReviewActivity
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.feedback.FeedbackPromptReviewActivity
 import java.time.Instant
 import java.time.ZoneId
 

@@ -1,9 +1,9 @@
 package com.flashcardsopensourceapp.feature.cards
 
-import com.flashcardsopensourceapp.data.local.model.CardFilter
-import com.flashcardsopensourceapp.data.local.model.CardSummary
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
-import com.flashcardsopensourceapp.data.local.model.WorkspaceTagSummary
+import com.flashcardsopensourceapp.data.local.model.cards.CardFilter
+import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagSummary
 
 data class CardsUiState(
     val isLoading: Boolean,

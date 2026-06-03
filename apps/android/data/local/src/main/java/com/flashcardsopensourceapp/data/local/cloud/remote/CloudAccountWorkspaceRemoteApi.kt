@@ -7,12 +7,12 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudIsoTimestam
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudNullableString
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudObject
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
-import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
-import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeletePreview
-import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeleteResult
-import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceResetProgressPreview
-import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceResetProgressResult
-import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
+import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeletePreview
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeleteResult
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetProgressPreview
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetProgressResult
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import org.json.JSONObject
 
 internal class CloudAccountWorkspaceRemoteApi(

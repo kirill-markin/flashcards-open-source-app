@@ -39,8 +39,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.flashcardsopensourceapp.data.local.model.CardFilter
-import com.flashcardsopensourceapp.data.local.model.cardFilterActiveDimensionCount
+import com.flashcardsopensourceapp.data.local.model.cards.CardFilter
+import com.flashcardsopensourceapp.data.local.model.cards.cardFilterActiveDimensionCount
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

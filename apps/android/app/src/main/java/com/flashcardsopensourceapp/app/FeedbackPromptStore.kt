@@ -3,7 +3,7 @@ package com.flashcardsopensourceapp.app
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
-import com.flashcardsopensourceapp.data.local.model.CloudFeedbackState
+import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackState
 
 const val feedbackPromptPreferencesName: String = "feedback_prompt_preferences"
 

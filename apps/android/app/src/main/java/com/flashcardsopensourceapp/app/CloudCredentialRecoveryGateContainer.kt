@@ -13,7 +13,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.flashcardsopensourceapp.app.di.AppGraph
-import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.feature.settings.cloud.CloudCredentialRecoveryGateRoute
 import com.flashcardsopensourceapp.feature.settings.cloud.CloudCredentialRecoveryGateStep
 import com.flashcardsopensourceapp.feature.settings.cloud.CloudPostAuthUiState

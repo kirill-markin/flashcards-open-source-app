@@ -1,7 +1,7 @@
 package com.flashcardsopensourceapp.feature.review.reaction
 
 import android.animation.ValueAnimator
-import com.flashcardsopensourceapp.data.local.model.ReviewRating
+import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import java.util.UUID
 import kotlin.random.Random
 

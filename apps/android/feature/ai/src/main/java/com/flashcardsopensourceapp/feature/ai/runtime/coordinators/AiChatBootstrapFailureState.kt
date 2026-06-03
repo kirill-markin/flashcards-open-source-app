@@ -1,7 +1,7 @@
 package com.flashcardsopensourceapp.feature.ai.runtime.coordinators
 
-import com.flashcardsopensourceapp.data.local.model.AiChatDraftState
-import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatDraftState
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatPersistedState
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiChatRuntimeState
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.resolveAiChatSessionIdForWorkspace
 

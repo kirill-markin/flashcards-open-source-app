@@ -16,7 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.flashcardsopensourceapp.data.local.model.CloudFeedbackTrigger
+import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackTrigger
 
 const val feedbackPromptDialogTag: String = "feedback_prompt_dialog"
 const val feedbackPromptMessageFieldTag: String = "feedback_prompt_message_field"

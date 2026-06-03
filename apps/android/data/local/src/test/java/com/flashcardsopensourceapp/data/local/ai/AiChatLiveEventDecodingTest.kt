@@ -1,10 +1,10 @@
 package com.flashcardsopensourceapp.data.local.ai
 
 import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
-import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
-import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
-import com.flashcardsopensourceapp.data.local.model.AiChatLiveStreamEnvelope
-import com.flashcardsopensourceapp.data.local.model.AiChatRunTerminalOutcome
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveEvent
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveStreamEnvelope
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatRunTerminalOutcome
 import com.sun.net.httpserver.HttpServer
 import java.net.InetSocketAddress
 import kotlinx.coroutines.flow.toList

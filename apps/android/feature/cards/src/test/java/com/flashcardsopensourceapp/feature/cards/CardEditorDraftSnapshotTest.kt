@@ -1,7 +1,7 @@
 package com.flashcardsopensourceapp.feature.cards
 
-import com.flashcardsopensourceapp.data.local.model.CardDraft
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.cards.CardDraft
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

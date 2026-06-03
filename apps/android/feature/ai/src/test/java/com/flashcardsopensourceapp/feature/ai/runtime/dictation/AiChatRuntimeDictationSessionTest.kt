@@ -2,10 +2,10 @@ package com.flashcardsopensourceapp.feature.ai.runtime
 
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiConversationBootstrapState
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
-import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
-import com.flashcardsopensourceapp.data.local.model.AiChatTranscriptionResult
-import com.flashcardsopensourceapp.data.local.model.CloudAccountState
-import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatTranscriptionResult
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.ai.makeDefaultAiChatPersistedState
 import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi

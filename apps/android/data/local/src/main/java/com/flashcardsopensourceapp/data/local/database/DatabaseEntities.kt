@@ -7,9 +7,9 @@ import androidx.room.Index
 import androidx.room.Junction
 import androidx.room.PrimaryKey
 import androidx.room.Relation
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
-import com.flashcardsopensourceapp.data.local.model.FsrsCardState
-import com.flashcardsopensourceapp.data.local.model.ReviewRating
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
+import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 
 internal const val cardsReviewQueueIndexName: String = "index_cards_workspaceId_dueAtMillis_createdAtMillis_cardId"
 internal const val cardsRecentlyReviewedDueIndexName: String =

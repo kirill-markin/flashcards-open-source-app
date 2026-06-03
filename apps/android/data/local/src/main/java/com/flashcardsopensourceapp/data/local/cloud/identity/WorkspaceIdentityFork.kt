@@ -6,7 +6,7 @@ import com.flashcardsopensourceapp.data.local.database.OutboxEntryEntity
 import com.flashcardsopensourceapp.data.local.database.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.cloud.wire.parseSyncEntityType
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
-import com.flashcardsopensourceapp.data.local.model.SyncEntityType
+import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import org.json.JSONObject
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets

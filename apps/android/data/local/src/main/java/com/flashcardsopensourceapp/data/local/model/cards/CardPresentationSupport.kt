@@ -1,5 +1,6 @@
-package com.flashcardsopensourceapp.data.local.model
+package com.flashcardsopensourceapp.data.local.model.cards
 
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter

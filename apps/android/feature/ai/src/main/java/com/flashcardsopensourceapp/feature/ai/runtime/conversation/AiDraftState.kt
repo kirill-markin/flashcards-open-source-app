@@ -1,13 +1,13 @@
 package com.flashcardsopensourceapp.feature.ai.runtime.conversation
 
-import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
-import com.flashcardsopensourceapp.data.local.model.AiChatActiveRun
-import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
-import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
-import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
-import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
-import com.flashcardsopensourceapp.data.local.model.CloudAccountState
-import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatActiveRun
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatPersistedState
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatRepairAttemptStatus
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.ai.makeDefaultAiChatPersistedState
 import com.flashcardsopensourceapp.feature.ai.AiBootstrapErrorPresentation
 import com.flashcardsopensourceapp.feature.ai.emptyAiBootstrapErrorPresentation
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
