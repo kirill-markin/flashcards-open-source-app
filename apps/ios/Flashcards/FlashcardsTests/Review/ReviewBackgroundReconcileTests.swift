@@ -63,7 +63,9 @@ final class ReviewBackgroundReconcileTests: ProgressStoreTestCase {
             reviewCountsLoader: { _, _, _, _ in
                 expectedCounts
             },
-            reviewQueueChunkLoader: defaultReviewQueueChunkLoader,
+            reviewQueueChunkLoader: { _, _, _, _, _, _ in
+                try failUnexpectedReviewQueueChunkLoadForBackgroundReconcileTest()
+            },
             reviewQueueWindowLoader: { _, _, _, _, limit in
                 XCTAssertEqual(currentQueue.count, limit)
                 return ReviewQueueWindowLoadState(
@@ -614,7 +616,9 @@ final class ReviewBackgroundReconcileTests: ProgressStoreTestCase {
             reviewCountsLoader: { _, _, _, _ in
                 reviewCounts
             },
-            reviewQueueChunkLoader: defaultReviewQueueChunkLoader,
+            reviewQueueChunkLoader: { _, _, _, _, _, _ in
+                try failUnexpectedReviewQueueChunkLoadForBackgroundReconcileTest()
+            },
             reviewQueueWindowLoader: { _, _, _, _, limit in
                 await windowLimitRecorder?.record(limit: limit)
                 XCTAssertEqual(expectedWindowLimit, limit)
@@ -649,6 +653,12 @@ private func makePinnedRefreshCard(cardId: String, dueAt: String, updatedAt: Str
         dueAt: dueAt,
         updatedAt: updatedAt
     )
+}
+
+private func failUnexpectedReviewQueueChunkLoadForBackgroundReconcileTest() throws -> ReviewQueueChunkLoadState {
+    let message: String = "Background reconcile test unexpectedly requested a review queue chunk"
+    XCTFail(message)
+    throw LocalStoreError.validation(message)
 }
 
 private func makeReviewSubmissionSessionSignatureForBackgroundTest(

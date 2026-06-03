@@ -45,6 +45,30 @@ typealias ReviewTimelinePageLoader = @Sendable (
 let reviewSeedQueueSize: Int = 8
 let reviewQueueReplenishmentThreshold: Int = 4
 
+private func withTemporaryReviewLoaderDatabase<Result>(
+    databaseURL: URL,
+    operation: (LocalDatabase) throws -> Result
+) throws -> Result {
+    let database = try LocalDatabase(databaseURL: databaseURL)
+    let result: Result
+    do {
+        result = try operation(database)
+    } catch {
+        let operationError = error
+        do {
+            try database.close()
+        } catch {
+            throw LocalStoreError.database(
+                "Failed to close temporary review loader database at \(databaseURL.path) after operation error: \(operationError.localizedDescription). Close error: \(error.localizedDescription)"
+            )
+        }
+        throw operationError
+    }
+
+    try database.close()
+    return result
+}
+
 func defaultReviewHeadLoader(
     databaseURL: URL,
     workspaceId: String,
@@ -55,14 +79,15 @@ func defaultReviewHeadLoader(
 ) async throws -> ReviewHeadLoadState {
     try await Task.detached(priority: .userInitiated) {
         try Task.checkCancellation()
-        let database = try LocalDatabase(databaseURL: databaseURL)
-        return try database.loadReviewHead(
-            workspaceId: workspaceId,
-            resolvedReviewFilter: resolvedReviewFilter,
-            reviewQueryDefinition: reviewQueryDefinition,
-            now: now,
-            limit: seedQueueSize
-        )
+        return try withTemporaryReviewLoaderDatabase(databaseURL: databaseURL) { database in
+            try database.loadReviewHead(
+                workspaceId: workspaceId,
+                resolvedReviewFilter: resolvedReviewFilter,
+                reviewQueryDefinition: reviewQueryDefinition,
+                now: now,
+                limit: seedQueueSize
+            )
+        }
     }.value
 }
 
@@ -74,12 +99,13 @@ func defaultReviewCountsLoader(
 ) async throws -> ReviewCounts {
     try await Task.detached(priority: .utility) {
         try Task.checkCancellation()
-        let database = try LocalDatabase(databaseURL: databaseURL)
-        return try database.loadReviewCounts(
-            workspaceId: workspaceId,
-            reviewQueryDefinition: reviewQueryDefinition,
-            now: now
-        )
+        return try withTemporaryReviewLoaderDatabase(databaseURL: databaseURL) { database in
+            try database.loadReviewCounts(
+                workspaceId: workspaceId,
+                reviewQueryDefinition: reviewQueryDefinition,
+                now: now
+            )
+        }
     }.value
 }
 
@@ -93,14 +119,15 @@ func defaultReviewQueueChunkLoader(
 ) async throws -> ReviewQueueChunkLoadState {
     try await Task.detached(priority: .utility) {
         try Task.checkCancellation()
-        let database = try LocalDatabase(databaseURL: databaseURL)
-        return try database.loadReviewQueueChunk(
-            workspaceId: workspaceId,
-            reviewQueryDefinition: reviewQueryDefinition,
-            now: now,
-            limit: chunkSize,
-            excludedCardIds: excludedCardIds
-        )
+        return try withTemporaryReviewLoaderDatabase(databaseURL: databaseURL) { database in
+            try database.loadReviewQueueChunk(
+                workspaceId: workspaceId,
+                reviewQueryDefinition: reviewQueryDefinition,
+                now: now,
+                limit: chunkSize,
+                excludedCardIds: excludedCardIds
+            )
+        }
     }.value
 }
 
@@ -113,13 +140,14 @@ func defaultReviewQueueWindowLoader(
 ) async throws -> ReviewQueueWindowLoadState {
     return try await Task.detached(priority: .utility) {
         try Task.checkCancellation()
-        let database = try LocalDatabase(databaseURL: databaseURL)
-        return try database.loadReviewQueueWindow(
-            workspaceId: workspaceId,
-            reviewQueryDefinition: reviewQueryDefinition,
-            now: now,
-            limit: limit
-        )
+        return try withTemporaryReviewLoaderDatabase(databaseURL: databaseURL) { database in
+            try database.loadReviewQueueWindow(
+                workspaceId: workspaceId,
+                reviewQueryDefinition: reviewQueryDefinition,
+                now: now,
+                limit: limit
+            )
+        }
     }.value
 }
 
@@ -133,13 +161,14 @@ func defaultReviewTimelinePageLoader(
 ) async throws -> ReviewTimelinePage {
     try await Task.detached(priority: .utility) {
         try Task.checkCancellation()
-        let database = try LocalDatabase(databaseURL: databaseURL)
-        return try database.loadReviewTimelinePage(
-            workspaceId: workspaceId,
-            reviewQueryDefinition: reviewQueryDefinition,
-            now: now,
-            limit: limit,
-            offset: offset
-        )
+        return try withTemporaryReviewLoaderDatabase(databaseURL: databaseURL) { database in
+            try database.loadReviewTimelinePage(
+                workspaceId: workspaceId,
+                reviewQueryDefinition: reviewQueryDefinition,
+                now: now,
+                limit: limit,
+                offset: offset
+            )
+        }
     }.value
 }
