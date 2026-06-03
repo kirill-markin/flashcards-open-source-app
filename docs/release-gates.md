@@ -3,7 +3,7 @@
 Pushes to `main` use three independent release streams:
 
 - `.github/workflows/aws-web-release.yml` handles AWS/backend/web release work
-- when AWS/backend/web changed, it deploys production, runs the native Playwright smoke in `apps/web/e2e/live-smoke.spec.ts`, runs the external agent API smoke in `scripts/check-agent-api-smoke.sh`, and only finishes healthy when both post-deploy checks pass
+- when AWS/backend/web changed, it deploys production, runs the native Playwright smoke in `apps/web/e2e/live-smoke.spec.ts`, runs the external agent API smoke in `scripts/checks/check-agent-api-smoke.sh`, and only finishes healthy when both post-deploy checks pass
 - rollback is automatic only when the failed AWS release did not include new DB migrations
 - migration-bearing AWS failures are explicit fix-forward cases; the next push must still be allowed to run
 - when Android-impacting files changed, `.github/workflows/android-release.yml` runs independently, enforces the fast GitHub-hosted Android gate, uploads the Google Play production-track draft, and keeps Firebase Test Lab results traceable in parallel for the same release metadata

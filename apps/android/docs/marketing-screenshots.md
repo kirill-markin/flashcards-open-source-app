@@ -37,7 +37,7 @@ The unified screenshot flow captures an exam-prep concept card about opportunity
 - Manual screenshot entrypoint: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/marketing/screenshots/MarketingAllScreenshotsScript.kt`
 - Manual guest cleanup entrypoint: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/marketing/screenshots/MarketingScreenshotGuestCleanupScript.kt`
 - Shared screenshot helpers: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/marketing/screenshots/MarketingScreenshotTestSupport.kt`
-- Supported manual wrapper script: `scripts/capture-android-marketing-screenshots.sh`
+- Supported manual wrapper script: `scripts/android/capture-android-marketing-screenshots.sh`
 - Expected generated output PNG targets:
   - `apps/android/docs/media/play-store-screenshots/en-1_review-card-front-google-play-opportunity-cost.png`
   - `apps/android/docs/media/play-store-screenshots/en-2_review-card-result-google-play-opportunity-cost.png`
@@ -56,13 +56,13 @@ Prerequisites:
 Command:
 
 ```bash
-bash scripts/capture-android-marketing-screenshots.sh
+bash scripts/android/capture-android-marketing-screenshots.sh
 ```
 
 To target a configured locale other than the default `en`, set `FLASHCARDS_MARKETING_LOCALE_PREFIX` for the wrapper run:
 
 ```bash
-FLASHCARDS_MARKETING_LOCALE_PREFIX=de-DE bash scripts/capture-android-marketing-screenshots.sh
+FLASHCARDS_MARKETING_LOCALE_PREFIX=de-DE bash scripts/android/capture-android-marketing-screenshots.sh
 ```
 
 These scripts are not part of Android CI, release gates, or default `androidTest` runs.
@@ -80,6 +80,6 @@ Future marketing screenshot flows should follow the same structure:
 1. Add a dedicated manual screenshot entrypoint that creates or prepares the required in-app state.
 2. Drive the UI to the exact screen that marketing needs.
 3. Save the screenshot PNG or PNGs into `/sdcard/Download/flashcards-marketing-screenshots/` from instrumentation.
-4. Add a small shell wrapper in `scripts/` that runs just that manual entrypoint and pulls the generated PNG file or files into `apps/android/docs/media/play-store-screenshots/`.
+4. Add a small shell wrapper in `scripts/android/` that runs just that manual entrypoint and pulls the generated PNG file or files into `apps/android/docs/media/play-store-screenshots/`.
 
 This keeps screenshot generation deterministic, reviewable, runnable without manual emulator interaction, and fully separate from the normal Android test suite and shipping Play-first localization flow.

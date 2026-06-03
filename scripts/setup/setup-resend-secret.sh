@@ -7,7 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REGION=""
 
 # shellcheck disable=SC1091
-source "${SCRIPT_DIR}/lib/root-env.sh"
+source "${SCRIPT_DIR}/../lib/root-env.sh"
 load_root_env
 
 RESEND_SECRET_NAME="flashcards-open-source-app/resend-api-key"

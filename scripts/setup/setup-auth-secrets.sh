@@ -10,7 +10,7 @@ TEMP_DIR="$(mktemp -d)"
 DEMO_PASSWORD_SECRET_NAME="flashcards-open-source-app/demo-password-dostip"
 
 # shellcheck disable=SC1091
-source "${SCRIPT_DIR}/lib/root-env.sh"
+source "${SCRIPT_DIR}/../lib/root-env.sh"
 load_root_env
 
 cleanup() {

@@ -32,12 +32,12 @@ ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExampleMetabase metabase@cloud'
 Then run the normal setup and deploy flow:
 
 ```bash
-bash scripts/setup-github.sh
+bash scripts/setup/setup-github.sh
 ```
 
 and deploy through the normal AWS release path.
 
-Important: `bash scripts/setup-github.sh` only adds missing GitHub Actions variables and secrets. It does not remove or overwrite existing analytical SSH variables once they already exist in GitHub.
+Important: `bash scripts/setup/setup-github.sh` only adds missing GitHub Actions variables and secrets. It does not remove or overwrite existing analytical SSH variables once they already exist in GitHub.
 
 ## How to disable it
 
@@ -80,7 +80,7 @@ Use those outputs as the source of truth for connection settings.
 The supported operator shortcut is:
 
 ```bash
-bash scripts/get-analytics-db-access.sh --stack-name FlashcardsOpenSourceApp
+bash scripts/setup/get-analytics-db-access.sh --stack-name FlashcardsOpenSourceApp
 ```
 
 That helper reads the current stack outputs, resolves the current reporting secret by ARN, and prints a JSON bundle with the current SSH, database, and password values.
@@ -160,7 +160,7 @@ Those policies currently use `USING (true)`, which means the role is allowed to 
 1. Resolve the current access bundle:
 
 ```bash
-bash scripts/get-analytics-db-access.sh --stack-name FlashcardsOpenSourceApp
+bash scripts/setup/get-analytics-db-access.sh --stack-name FlashcardsOpenSourceApp
 ```
 
 Example output:

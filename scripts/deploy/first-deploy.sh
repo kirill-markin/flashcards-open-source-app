@@ -4,7 +4,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 # shellcheck disable=SC1091
 source "${ROOT_DIR}/scripts/cloudflare/dns-utils.sh"
 # shellcheck disable=SC1091
@@ -81,15 +81,15 @@ else
   echo "Skipping apex redirect bootstrap for ${DOMAIN}: apex is already in use (${APEX_RECORD_SUMMARY})."
 fi
 
-bash "${ROOT_DIR}/scripts/bootstrap.sh" --region "$REGION" --stack-name "$STACK_NAME"
+bash "${ROOT_DIR}/scripts/deploy/bootstrap.sh" --region "$REGION" --stack-name "$STACK_NAME"
 
 if [[ "$SETUP_DNS" == "true" ]]; then
   bash "${ROOT_DIR}/scripts/cloudflare/setup-dns.sh" --stack-name "$STACK_NAME" --domain "$DOMAIN"
-  bash "${ROOT_DIR}/scripts/check-public-endpoints.sh" --stack-name "$STACK_NAME"
+  bash "${ROOT_DIR}/scripts/checks/check-public-endpoints.sh" --stack-name "$STACK_NAME"
 fi
 
 if [[ "$SETUP_GITHUB" == "true" ]]; then
-  bash "${ROOT_DIR}/scripts/setup-github.sh" --stack-name "$STACK_NAME" --repo "$GITHUB_REPO"
+  bash "${ROOT_DIR}/scripts/setup/setup-github.sh" --stack-name "$STACK_NAME" --repo "$GITHUB_REPO"
 fi
 
 echo "First deploy finished."

@@ -15,11 +15,11 @@ It is separate from the admin analytics flow documented in [docs/admin-app.md](.
 ## Operator Controls
 
 - Set `GLOBAL_METRICS_VISIBLE` in the root `.env` for the local/bootstrap setup surface.
-- `bash scripts/setup-github.sh` copies that value into the GitHub variable `CDK_GLOBAL_METRICS_VISIBLE` only when the GitHub variable does not already exist.
+- `bash scripts/setup/setup-github.sh` copies that value into the GitHub variable `CDK_GLOBAL_METRICS_VISIBLE` only when the GitHub variable does not already exist.
 - GitHub Actions deploys from `CDK_GLOBAL_METRICS_VISIBLE`. After bootstrap, that GitHub variable is the deploy-time source of truth.
 - Only the exact raw string `true` makes `GET /v1/global/snapshot` visible. Any other value keeps it hidden.
-- If you change `.env` later and rerun `bash scripts/setup-github.sh`, the script preserves an existing `CDK_GLOBAL_METRICS_VISIBLE` value and does not flip visibility automatically.
-- To change visibility after bootstrap, edit `CDK_GLOBAL_METRICS_VISIBLE` in GitHub and redeploy, or delete that GitHub variable before rerunning `bash scripts/setup-github.sh`.
+- If you change `.env` later and rerun `bash scripts/setup/setup-github.sh`, the script preserves an existing `CDK_GLOBAL_METRICS_VISIBLE` value and does not flip visibility automatically.
+- To change visibility after bootstrap, edit `CDK_GLOBAL_METRICS_VISIBLE` in GitHub and redeploy, or delete that GitHub variable before rerunning `bash scripts/setup/setup-github.sh`.
 
 ## Snapshot Contract
 

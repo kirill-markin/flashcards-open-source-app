@@ -23,7 +23,7 @@ make admin-dev
 This starts:
 
 1. `postgres` on port `5432`
-2. `migrate` via `scripts/migrate.sh`
+2. `migrate` via `scripts/deploy/migrate.sh`
 3. `auth` on port `8081`
 4. `backend` on port `8080`
 5. `web` on port `3000`
@@ -87,7 +87,7 @@ Keep the operator config in root `.env`. The important deploy-time values are:
 Then run:
 
 ```bash
-bash scripts/first-deploy.sh \
+bash scripts/deploy/first-deploy.sh \
   --region eu-central-1 \
   --domain flashcards-open-source-app.com \
   --alert-email alerts@example.com
@@ -116,18 +116,18 @@ Public domains after deploy:
 If the apex domain already points to an existing site, bootstrap leaves it untouched and manages only `app.<domain>`, `admin.<domain>`, `api.<domain>`, and `auth.<domain>`.
 
 For the admin app, the supported browser entrypoints are `http://localhost:3001` and `https://admin.<domain>`. Treat `admin.<domain>` as the only supported deployed browser entrypoint.
-For the first admin-domain rollout, treat `bash scripts/cloudflare/setup-admin-domain.sh --domain <domain>`, `bash scripts/setup-github.sh`, a deploy, and then `bash scripts/cloudflare/setup-dns.sh --stack-name <stack-name> --domain <domain>` as one complete setup sequence. If the GitHub variables were created after a workflow had already started, run another deploy or rerun the workflow after the variables exist.
+For the first admin-domain rollout, treat `bash scripts/cloudflare/setup-admin-domain.sh --domain <domain>`, `bash scripts/setup/setup-github.sh`, a deploy, and then `bash scripts/cloudflare/setup-dns.sh --stack-name <stack-name> --domain <domain>` as one complete setup sequence. If the GitHub variables were created after a workflow had already started, run another deploy or rerun the workflow after the variables exist.
 
 ## Later secret updates
 
 ```bash
-bash scripts/setup-resend-secret.sh --region eu-central-1
-bash scripts/setup-ai-secrets.sh --region eu-central-1
-bash scripts/setup-auth-secrets.sh --region eu-central-1
-bash scripts/setup-github.sh
+bash scripts/setup/setup-resend-secret.sh --region eu-central-1
+bash scripts/setup/setup-ai-secrets.sh --region eu-central-1
+bash scripts/setup/setup-auth-secrets.sh --region eu-central-1
+bash scripts/setup/setup-github.sh
 ```
 
-Run only the secret setup scripts you actually need. `setup-github.sh` rediscovers the current AWS ARNs and fills in any missing matching GitHub variables afterward, leaving existing values untouched.
+Run only the secret setup scripts you actually need. `scripts/setup/setup-github.sh` rediscovers the current AWS ARNs and fills in any missing matching GitHub variables afterward, leaving existing values untouched.
 This bootstrap-only rule also applies to `CDK_ADMIN_EMAILS`: after the first setup, change that GitHub variable manually when you need to change the deployed bootstrap admin list.
 
 ## Optional review account auth
@@ -137,8 +137,8 @@ This bootstrap-only rule also applies to `CDK_ADMIN_EMAILS`: after the first set
 If review account access is enabled, create the matching `@example.com` Cognito users manually and keep their emails and shared password aligned with the deployed allowlist and review account password secret. The intended setup flow is:
 
 1. keep `DEMO_EMAIL_DOSTIP` and `DEMO_PASSWORD_DOSTIP` in the local root `.env`
-2. run `bash scripts/setup-auth-secrets.sh --region <aws-region>`
-3. run `bash scripts/setup-github.sh`
+2. run `bash scripts/setup/setup-auth-secrets.sh --region <aws-region>`
+3. run `bash scripts/setup/setup-github.sh`
 
 We intentionally keep Cognito user creation manual instead of adding an automated provisioning script for these insecure review-only accounts.
 
@@ -156,15 +156,15 @@ The daily global metrics snapshot pipeline always exists for this feature. The o
 For self-hosted deploys:
 
 1. set `GLOBAL_METRICS_VISIBLE=true` in root `.env` if you want `GET /v1/global/snapshot` exposed
-2. run `bash scripts/setup-github.sh`
+2. run `bash scripts/setup/setup-github.sh`
 3. deploy through the normal AWS/Web release flow
 
 Bootstrap behavior is sharp here:
 
-- `bash scripts/setup-github.sh` uses `set_variable_if_missing`, so it creates `CDK_GLOBAL_METRICS_VISIBLE` only if that GitHub variable is missing.
-- If `CDK_GLOBAL_METRICS_VISIBLE` already exists, rerunning `bash scripts/setup-github.sh` preserves the existing GitHub value and does not update it from local `.env`.
+- `bash scripts/setup/setup-github.sh` uses `set_variable_if_missing`, so it creates `CDK_GLOBAL_METRICS_VISIBLE` only if that GitHub variable is missing.
+- If `CDK_GLOBAL_METRICS_VISIBLE` already exists, rerunning `bash scripts/setup/setup-github.sh` preserves the existing GitHub value and does not update it from local `.env`.
 - After bootstrap, `CDK_GLOBAL_METRICS_VISIBLE` in GitHub is the deploy-time source of truth.
-- To enable or disable visibility later, edit `CDK_GLOBAL_METRICS_VISIBLE` in GitHub and redeploy, or delete it first and then rerun `bash scripts/setup-github.sh`.
+- To enable or disable visibility later, edit `CDK_GLOBAL_METRICS_VISIBLE` in GitHub and redeploy, or delete it first and then rerun `bash scripts/setup/setup-github.sh`.
 
 When visibility is enabled, websites and future mobile-app endpoint consumers can fetch the snapshot. `apps/web`, `apps/ios`, and `apps/android` do not render those metrics yet.
 
@@ -195,7 +195,7 @@ For AWS-backed changes, the main-branch order is:
 4. publish `apps/web` and `apps/admin` assets after CDK deploy
 5. run the deployed API/custom-domain checks after the full release is in place
 6. run the native Playwright live smoke in `apps/web/e2e/live-smoke.spec.ts`
-7. run the external agent API smoke in `scripts/check-agent-api-smoke.sh`
+7. run the external agent API smoke in `scripts/checks/check-agent-api-smoke.sh`
 8. finish green only if the post-deploy checks pass
 9. finish red if a post-deploy smoke fails, without rolling production back
 

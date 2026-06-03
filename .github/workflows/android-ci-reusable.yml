@@ -45,7 +45,7 @@ jobs:
       - name: Run Android unit tests, build debug artifacts, and lint
         env:
           ANDROID_VERSION_CODE: ${{ inputs.android_version_code }}
-        run: bash scripts/run-android-ci.sh
+        run: bash scripts/android/run-android-ci.sh
 
       - name: Upload debug APKs
         uses: actions/upload-artifact@v7

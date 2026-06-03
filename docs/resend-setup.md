@@ -33,7 +33,7 @@ Use two separate local Resend secrets:
 1. Store the runtime Resend key in AWS Secrets Manager:
 
 ```bash
-bash scripts/setup-resend-secret.sh --region eu-central-1
+bash scripts/setup/setup-resend-secret.sh --region eu-central-1
 ```
 
 This creates or updates:
@@ -44,7 +44,7 @@ This creates or updates:
 2. Create or reuse the Resend transactional domain, write its DNS records to Cloudflare, and ask Resend to verify it:
 
 ```bash
-bash scripts/setup-resend-domain.sh --domain flashcards-open-source-app.com --subdomain mail
+bash scripts/setup/setup-resend-domain.sh --domain flashcards-open-source-app.com --subdomain mail
 ```
 
 This script:
@@ -57,7 +57,7 @@ This script:
 3. Populate any missing deploy-time config in GitHub Actions:
 
 ```bash
-bash scripts/setup-github.sh
+bash scripts/setup/setup-github.sh
 ```
 
 4. Push the repo changes to `main` so CI/CD deploys the updated Cognito custom sender flow.
@@ -67,7 +67,7 @@ bash scripts/setup-github.sh
 Preview DNS changes without mutating Resend or Cloudflare:
 
 ```bash
-bash scripts/setup-resend-domain.sh --domain flashcards-open-source-app.com --subdomain mail --dry-run
+bash scripts/setup/setup-resend-domain.sh --domain flashcards-open-source-app.com --subdomain mail --dry-run
 ```
 
 ## Notes

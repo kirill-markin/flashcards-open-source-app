@@ -7,7 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO=""
 
 # shellcheck disable=SC1091
-source "${SCRIPT_DIR}/lib/deploy-config.sh"
+source "${SCRIPT_DIR}/../lib/deploy-config.sh"
 load_root_env
 
 while [[ $# -gt 0 ]]; do

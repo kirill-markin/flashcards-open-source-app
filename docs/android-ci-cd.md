@@ -50,10 +50,10 @@ And these repository secrets:
 Push them to the repository with:
 
 ```bash
-bash scripts/setup-github-android.sh
+bash scripts/android/setup-github-android.sh
 ```
 
-This Android-specific sync is separate from the AWS deploy bootstrap script `bash scripts/setup-github.sh`.
+This Android-specific sync is separate from the AWS deploy bootstrap script `bash scripts/setup/setup-github.sh`.
 
 ## What runs
 
@@ -64,7 +64,7 @@ GitHub Actions reusable workflow: `.github/workflows/android-ci-reusable.yml`
 - Builds `:app:assembleDebugAndroidTest`
 - Builds `:data:local:assembleDebugAndroidTest`
 - Runs `:app:lintDebug`
-- Delegates the GitHub-hosted Android Gradle entrypoints to repo-root shell scripts in `scripts/`
+- Delegates the GitHub-hosted Android Gradle entrypoints to repo-root shell scripts in `scripts/android/`
 - Uploads the debug APK, Android test APK, unit test reports, and lint report as workflow artifacts
 - Boots a headless Android 16 / API 36 emulator in GitHub Actions with `-gpu auto`
 - Runs `:data:local:connectedDebugAndroidTest` on that emulator
@@ -327,7 +327,7 @@ Set the Google Play release variables and secrets before expecting `.github/work
 
 `ANDROID_PLAY_PACKAGE_NAME` should match the Android `applicationId`. In this repository that value is `com.flashcardsopensourceapp.app`.
 
-`scripts/setup-github-android.sh` requires the Sentry repository variables in the local environment when updating GitHub configuration. `SENTRY_AUTH_TOKEN` is only written when present locally, so operators can update variables without replacing an existing GitHub secret.
+`scripts/android/setup-github-android.sh` requires the Sentry repository variables in the local environment when updating GitHub configuration. `SENTRY_AUTH_TOKEN` is only written when present locally, so operators can update variables without replacing an existing GitHub secret.
 
 ## One-time Play Console setup
 
@@ -394,7 +394,7 @@ For local instrumentation runs, prefer one clean emulator only:
 Build the same artifacts CI expects:
 
 ```bash
-bash scripts/run-android-ci.sh
+bash scripts/android/run-android-ci.sh
 ```
 
 Run the retained Android FSRS parity test against the shared vectors:
@@ -408,7 +408,7 @@ Build the signed release bundle with the same inputs that the release workflow u
 For local release and upload paths, export or source the Sentry variables before invoking Gradle or the helper script: `ANDROID_SENTRY_DSN`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_ANDROID_PROJECT`.
 
 ```bash
-bash scripts/run-android-release.sh \
+bash scripts/android/run-android-release.sh \
   --version-code "12345" \
   --keystore-path "/absolute/path/to/upload-key.jks" \
   --keystore-password "YOUR_KEYSTORE_PASSWORD" \
@@ -435,7 +435,7 @@ cd apps/android && ./gradlew clean :app:connectedDebugAndroidTest -Pandroid.test
 Run the full app instrumentation package in Firebase Test Lab directly after authenticating with `gcloud`:
 
 ```bash
-bash scripts/run-android-firebase-test-lab.sh \
+bash scripts/android/run-android-firebase-test-lab.sh \
   --project-id "YOUR_GCP_PROJECT_ID" \
   --device-model "YOUR_DEVICE_MODEL" \
   --device-version "36" \

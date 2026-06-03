@@ -29,7 +29,7 @@ services:
     volumes:
       - ../../scripts:/scripts:ro
       - ../../db:/db:ro
-    entrypoint: ["bash", "/scripts/migrate.sh"]
+    entrypoint: ["bash", "/scripts/deploy/migrate.sh"]
     restart: "no"
 
   auth:
