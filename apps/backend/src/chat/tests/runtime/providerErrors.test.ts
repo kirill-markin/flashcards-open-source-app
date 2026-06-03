@@ -3,18 +3,18 @@ import test from "node:test";
 import {
   chatAttachmentUnsupportedTypeCode,
   chatAttachmentUnsupportedTypeMessage,
-} from "../attachmentPolicy";
+} from "../../attachmentPolicy";
 import {
   runPersistedChatSessionWithDeps,
-} from "../runtime";
+} from "../../runtime";
 import type {
   OpenAILoopCompletion,
   OpenAILoopEventSink,
   StartOpenAILoopParams,
-} from "../openai/loop";
+} from "../../openai/loop";
 import {
   HttpError,
-} from "../../shared/errors";
+} from "../../../shared/errors";
 import {
   type PersistAssistantTerminalErrorParams,
   createCompletedLoopCompletion,
@@ -25,7 +25,7 @@ import {
   findLog,
   requireTerminalPersistParams,
   withCapturedLogs,
-} from "./chat-runtime-test-support";
+} from "./testSupport";
 
 test("runPersistedChatSessionWithDeps persists a failed run for real provider errors", async () => {
   let terminalPersistCount = 0;

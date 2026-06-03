@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   runPersistedChatSessionWithDeps,
-} from "../runtime";
+} from "../../runtime";
 import type {
   OpenAILoopCompletion,
   OpenAILoopEventSink,
   StartOpenAILoopParams,
-} from "../openai/loop";
+} from "../../openai/loop";
 import {
   CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS,
   DEADLINE_REACHED_MESSAGE,
@@ -19,7 +19,7 @@ import {
   findLog,
   withCapturedLogs,
   withControlledHeartbeat,
-} from "./chat-runtime-test-support";
+} from "./testSupport";
 
 test("runPersistedChatSessionWithDeps interrupts immediately when the lambda is already inside the pre-timeout buffer", async () => {
   let startOpenAILoopCalled = false;

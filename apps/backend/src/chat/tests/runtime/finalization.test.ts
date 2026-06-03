@@ -2,21 +2,21 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   ChatRunRowNotFoundError,
-} from "../errors";
+} from "../../errors";
 import {
   runPersistedChatSessionWithDeps,
-} from "../runtime";
+} from "../../runtime";
 import type {
   OpenAILoopCompletion,
   OpenAILoopEventSink,
   StartOpenAILoopParams,
-} from "../openai/loop";
+} from "../../openai/loop";
 import {
   createDependencies,
   createParams,
   findLog,
   withCapturedLogs,
-} from "./chat-runtime-test-support";
+} from "./testSupport";
 
 test("runPersistedChatSessionWithDeps exits without failing when the claimed run disappears before completion persistence", async () => {
   let cancelledPersistCount = 0;
