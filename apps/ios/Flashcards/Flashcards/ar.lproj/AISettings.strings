@@ -132,7 +132,7 @@
 "settings.row.access.itemCount" = "4 عناصر";
 "settings.section.test" = "اختبار";
 "settings.row.test" = "اختبار";
-"settings.row.test.itemCount" = "عنصر واحد";
+"settings.row.test.itemCount" = "عنصران";
 "settings.sync.success" = "تمت المزامنة بنجاح";
 "settings.sync.guestAiActive" = "الذكاء الاصطناعي الضيف نشط";
 "settings.sync.notSyncing" = "لا توجد مزامنة";
@@ -190,6 +190,8 @@
 "settings.test.animations.title" = "الرسوم المتحركة";
 "settings.test.animations.probability" = "احتمال %@";
 "settings.test.animations.playAccessibility" = "تشغيل حركة %@، %@";
+"settings.test.storeReviewPromptReset" = "إعادة ضبط مطالبة مراجعة App Store";
+"settings.test.storeReviewPromptReset.value" = "الحالة المحلية";
 
 "settings.access.title" = "الوصول";
 "settings.access.section.permissions" = "الأذونات";

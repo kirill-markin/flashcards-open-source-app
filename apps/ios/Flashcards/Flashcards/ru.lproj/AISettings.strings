@@ -132,7 +132,7 @@
 "settings.row.access.itemCount" = "4 предмета";
 "settings.section.test" = "Тест";
 "settings.row.test" = "Тест";
-"settings.row.test.itemCount" = "1 пункт";
+"settings.row.test.itemCount" = "2 пункта";
 "settings.sync.success" = "Синхронизировано успешно";
 "settings.sync.guestAiActive" = "Гостевой AI активен";
 "settings.sync.notSyncing" = "Нет синхронизации";
@@ -190,6 +190,8 @@
 "settings.test.animations.title" = "Анимации";
 "settings.test.animations.probability" = "Вероятность %@";
 "settings.test.animations.playAccessibility" = "Воспроизвести анимацию %@, %@";
+"settings.test.storeReviewPromptReset" = "Сбросить запрос отзыва в App Store";
+"settings.test.storeReviewPromptReset.value" = "Локальное состояние";
 
 "settings.access.title" = "Доступ";
 "settings.access.section.permissions" = "Разрешения";

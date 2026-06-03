@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct TestSettingsView: View {
+    @Environment(FlashcardsStore.self) private var store: FlashcardsStore
+
     var body: some View {
         List {
             Section(aiSettingsLocalized("settings.test.section.tools", "Tools")) {
@@ -12,6 +14,16 @@ struct TestSettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.testSettingsAnimationsRow)
+
+                Button {
+                    store.clearStoreReviewPromptStateForTests()
+                } label: {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.test.storeReviewPromptReset", "Reset App Store review prompt"),
+                        value: aiSettingsLocalized("settings.test.storeReviewPromptReset.value", "Local state"),
+                        systemImage: "star.bubble"
+                    )
+                }
             }
         }
         .listStyle(.insetGrouped)
@@ -161,6 +173,7 @@ private func testAnimationAccessibilityLabel(
 #Preview("Test") {
     NavigationStack {
         TestSettingsView()
+            .environment(FlashcardsStore())
     }
 }
 

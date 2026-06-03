@@ -132,7 +132,7 @@
 "settings.row.access.itemCount" = "4 आइटम";
 "settings.section.test" = "टेस्ट";
 "settings.row.test" = "टेस्ट";
-"settings.row.test.itemCount" = "1 आइटम";
+"settings.row.test.itemCount" = "2 आइटम";
 "settings.sync.success" = "सफलतापूर्वक समन्वयित";
 "settings.sync.guestAiActive" = "अतिथि AI सक्रिय है";
 "settings.sync.notSyncing" = "कोई सिंक्रनाइज़ेशन नहीं";
@@ -190,6 +190,8 @@
 "settings.test.animations.title" = "ऐनिमेशन";
 "settings.test.animations.probability" = "%@ संभावना";
 "settings.test.animations.playAccessibility" = "%@ ऐनिमेशन चलाएं, %@";
+"settings.test.storeReviewPromptReset" = "App Store समीक्षा प्रॉम्प्ट रीसेट करें";
+"settings.test.storeReviewPromptReset.value" = "स्थानीय स्थिति";
 
 "settings.access.title" = "एक्सेस";
 "settings.access.section.permissions" = "अनुमतियाँ";

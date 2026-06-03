@@ -99,6 +99,7 @@ final class FlashcardsStore {
     var activeCloudSignInSheetCount: Int
     var accountDeletionState: AccountDeletionState
     var accountDeletionSuccessMessage: String?
+    var pendingStoreReviewRequestAttempt: StoreReviewRequestAttempt?
     var uiTestLaunchPreparationStatus: FlashcardsUITestLaunchPreparationStatus
     var localReadVersion: Int
 
@@ -388,6 +389,7 @@ final class FlashcardsStore {
         self.activeCloudSignInSheetCount = 0
         self.accountDeletionState = .hidden
         self.accountDeletionSuccessMessage = nil
+        self.pendingStoreReviewRequestAttempt = nil
         self.uiTestLaunchPreparationStatus = .hidden
         self.localReadVersion = 0
         self.database = database
