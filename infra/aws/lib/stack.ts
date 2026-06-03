@@ -231,6 +231,8 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       langfuseSecretKeySecretArn,
       langfuseBaseUrl,
       ...sentryContext,
+      resendApiKeySecretArn,
+      resendSenderEmail,
       demoEmailDostip,
       guestAiWeightedMonthlyTokenCap,
       globalMetricsVisible,

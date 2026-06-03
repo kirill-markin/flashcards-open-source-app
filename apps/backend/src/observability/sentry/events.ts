@@ -171,6 +171,22 @@ export type AccountDeleteDetails = Readonly<{
   transport: string;
 }>;
 
+export type FeedbackStateDetails = Readonly<{
+  statusCode: number;
+}>;
+
+export type FeedbackPromptEventDetails = Readonly<{
+  statusCode: number;
+  platform: string | null;
+  eventType: string | null;
+}>;
+
+export type FeedbackSubmissionDetails = Readonly<{
+  statusCode: number;
+  platform: string | null;
+  trigger: string | null;
+}>;
+
 export type WorkspaceTagsListDetails = Readonly<{
   statusCode: number;
   tagsCount: number | null;
@@ -528,6 +544,23 @@ export type GlobalMetricsS3RetryDetails = Readonly<{
   errorMessage: string;
 }>;
 
+export type FeedbackEmailRetryDetails = Readonly<{
+  feedbackSubmissionId: string;
+  attempt: number;
+  maxAttempts: number;
+  delayMs: number;
+  errorClass: string;
+  errorMessage: string;
+  statusCode: number | null;
+  responseBody: string | null;
+}>;
+
+export type FeedbackEmailFailureDetails = Readonly<{
+  feedbackSubmissionId: string;
+  errorClass: string;
+  errorMessage: string;
+}>;
+
 export type MigrationFailureDetails = Readonly<{
   migrationSurface: "lambda";
   operation: "run_migrations";
@@ -567,6 +600,12 @@ export type BackendBreadcrumbEvent =
   | EventByAction<"me_progress_series_error", FailureDetailsFor<ProgressSeriesDetails>>
   | EventByAction<"account_delete", AccountDeleteDetails>
   | EventByAction<"account_delete_error", FailureDetailsFor<AccountDeleteDetails>>
+  | EventByAction<"feedback_state", FeedbackStateDetails>
+  | EventByAction<"feedback_state_error", FailureDetailsFor<FeedbackStateDetails>>
+  | EventByAction<"feedback_prompt_event", FeedbackPromptEventDetails>
+  | EventByAction<"feedback_prompt_event_error", FailureDetailsFor<FeedbackPromptEventDetails>>
+  | EventByAction<"feedback_submission", FeedbackSubmissionDetails>
+  | EventByAction<"feedback_submission_error", FailureDetailsFor<FeedbackSubmissionDetails>>
   | EventByAction<"workspace_tags_list", WorkspaceTagsListDetails>
   | EventByAction<"workspace_tags_list_error", FailureDetailsFor<WorkspaceTagsListDetails>>
   | EventByAction<"cards_query", CardsQueryDetails>
@@ -616,6 +655,8 @@ export type BackendWarningEvent =
   }>> & Readonly<{ message: string }>)
   | EventByAction<"unsafe_transaction_rollback_failed", DatabaseRollbackFailureDetails>
   | EventByAction<"database_pool_error", DatabasePoolErrorDetails>
+  | EventByAction<"feedback_notification_email_retry", FeedbackEmailRetryDetails>
+  | EventByAction<"feedback_notification_email_failed", FeedbackEmailFailureDetails>
   | EventByAction<"reporting_read_only_transaction_rollback_failed", DatabaseRollbackFailureDetails>
   | (EventByAction<"chat_live_backlog_failed", ChatLiveLifecycleDetails> & Readonly<{ message: string }>)
   | (EventByAction<"chat_live_write_failed", ChatLiveLifecycleDetails> & Readonly<{ message: string }>)
@@ -670,6 +711,9 @@ export type BackendExceptionEvent =
   | (EventByAction<"me_progress_review_schedule_error", FailureDetailsFor<ProgressReviewScheduleDetails>> & Readonly<{ error: Error }>)
   | (EventByAction<"me_progress_series_error", FailureDetailsFor<ProgressSeriesDetails>> & Readonly<{ error: Error }>)
   | (EventByAction<"account_delete_error", FailureDetailsFor<AccountDeleteDetails>> & Readonly<{ error: Error }>)
+  | (EventByAction<"feedback_state_error", FailureDetailsFor<FeedbackStateDetails>> & Readonly<{ error: Error }>)
+  | (EventByAction<"feedback_prompt_event_error", FailureDetailsFor<FeedbackPromptEventDetails>> & Readonly<{ error: Error }>)
+  | (EventByAction<"feedback_submission_error", FailureDetailsFor<FeedbackSubmissionDetails>> & Readonly<{ error: Error }>)
   | (EventByAction<"workspace_tags_list_error", FailureDetailsFor<WorkspaceTagsListDetails>> & Readonly<{ error: Error }>)
   | (EventByAction<"cards_query_error", FailureDetailsFor<CardsQueryDetails>> & Readonly<{ error: Error }>)
   | (EventByAction<"guest_upgrade_complete_error", FailureDetailsFor<GuestUpgradeCompleteDetails>> & Readonly<{ error: Error }>)
