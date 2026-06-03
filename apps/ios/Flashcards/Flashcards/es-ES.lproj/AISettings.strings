@@ -132,7 +132,7 @@
 "settings.row.access.itemCount" = "4 elementos";
 "settings.section.test" = "Prueba";
 "settings.row.test" = "Prueba";
-"settings.row.test.itemCount" = "1 elemento";
+"settings.row.test.itemCount" = "2 elementos";
 "settings.sync.success" = "Sincronizado correctamente";
 "settings.sync.guestAiActive" = "La IA de invitado esta activa";
 "settings.sync.notSyncing" = "Sin sincronizacion";
@@ -190,6 +190,8 @@
 "settings.test.animations.title" = "Animaciones";
 "settings.test.animations.probability" = "%@ de probabilidad";
 "settings.test.animations.playAccessibility" = "Reproducir la animacion %@, %@";
+"settings.test.storeReviewPromptReset" = "Restablecer solicitud de resena de App Store";
+"settings.test.storeReviewPromptReset.value" = "Estado local";
 
 "settings.access.title" = "Acceso";
 "settings.access.section.permissions" = "Permisos";

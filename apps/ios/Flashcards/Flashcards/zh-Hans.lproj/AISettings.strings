@@ -132,7 +132,7 @@
 "settings.row.access.itemCount" = "4 件";
 "settings.section.test" = "测试";
 "settings.row.test" = "测试";
-"settings.row.test.itemCount" = "1 项";
+"settings.row.test.itemCount" = "2 项";
 "settings.sync.success" = "同步成功";
 "settings.sync.guestAiActive" = "访客AI已激活";
 "settings.sync.notSyncing" = "不同步";
@@ -190,6 +190,8 @@
 "settings.test.animations.title" = "动画";
 "settings.test.animations.probability" = "%@ 概率";
 "settings.test.animations.playAccessibility" = "播放 %@ 动画，%@";
+"settings.test.storeReviewPromptReset" = "重置 App Store 评论提示";
+"settings.test.storeReviewPromptReset.value" = "本地状态";
 
 "settings.access.title" = "访问";
 "settings.access.section.permissions" = "权限";

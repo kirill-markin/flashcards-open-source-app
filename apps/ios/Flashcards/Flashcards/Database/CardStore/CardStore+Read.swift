@@ -275,6 +275,35 @@ extension CardStore {
         ) == 1
     }
 
+    func hasAppWideReviewEvent(before: Date) throws -> Bool {
+        try self.core.scalarInt(
+            sql: """
+            SELECT EXISTS(
+                SELECT 1
+                FROM review_events
+                WHERE reviewed_at_client < ?
+            )
+            """,
+            values: [
+                .text(formatIsoTimestamp(date: before))
+            ]
+        ) == 1
+    }
+
+    func loadAppWideReviewEventCount(start: Date, end: Date) throws -> Int {
+        try self.core.scalarInt(
+            sql: """
+            SELECT COUNT(*)
+            FROM review_events
+            WHERE reviewed_at_client >= ? AND reviewed_at_client < ?
+            """,
+            values: [
+                .text(formatIsoTimestamp(date: start)),
+                .text(formatIsoTimestamp(date: end))
+            ]
+        )
+    }
+
     func loadReviewCounts(
         workspaceId: String,
         reviewQueryDefinition: ReviewQueryDefinition,

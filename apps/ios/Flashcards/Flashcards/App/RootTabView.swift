@@ -1,4 +1,11 @@
+import StoreKit
 import SwiftUI
+
+private struct StoreReviewRequestTaskID: Hashable {
+    let isSceneActive: Bool
+    let isPresentationBlocked: Bool
+    let requestAttemptId: String?
+}
 
 private struct GuestSignInAfterReviewPromptRecheckTaskID: Hashable {
     let isSceneActive: Bool
@@ -9,6 +16,7 @@ private struct GuestSignInAfterReviewPromptRecheckTaskID: Hashable {
 }
 
 struct RootTabView: View {
+    @Environment(\.requestReview) private var requestReview
     @Environment(\.scenePhase) private var scenePhase
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
@@ -25,6 +33,11 @@ struct RootTabView: View {
             || store.isReviewHardReminderPresented
     }
 
+    private var isStoreReviewRequestBlockedByPresentation: Bool {
+        self.isGuestSignInAfterReviewPromptBlockedByModal
+            || store.isGuestSignInAfterReviewPromptPresented
+    }
+
     private var guestSignInAfterReviewPromptRecheckTaskID: GuestSignInAfterReviewPromptRecheckTaskID {
         GuestSignInAfterReviewPromptRecheckTaskID(
             isSceneActive: self.scenePhase == .active,
@@ -32,6 +45,14 @@ struct RootTabView: View {
             reviewedCount: store.homeSnapshot.reviewedCount,
             promptState: store.guestSignInAfterReviewPromptState,
             isModalOrAuthFlowActive: self.isGuestSignInAfterReviewPromptBlockedByModal
+        )
+    }
+
+    private var storeReviewRequestTaskID: StoreReviewRequestTaskID {
+        StoreReviewRequestTaskID(
+            isSceneActive: self.scenePhase == .active,
+            isPresentationBlocked: self.isStoreReviewRequestBlockedByPresentation,
+            requestAttemptId: store.pendingStoreReviewRequestAttempt?.id
         )
     }
 
@@ -162,6 +183,25 @@ struct RootTabView: View {
         }
 
         self.reconcileGuestSignInAfterReviewPrompt()
+    }
+
+    @MainActor
+    private func requestStoreReviewIfNeeded() async {
+        guard self.scenePhase == .active else {
+            return
+        }
+        guard self.isStoreReviewRequestBlockedByPresentation == false else {
+            return
+        }
+        guard let requestAttempt = store.pendingStoreReviewRequestAttempt else {
+            return
+        }
+        guard store.recordStoreReviewRequestAttempt(requestAttempt: requestAttempt, now: Date()) else {
+            return
+        }
+
+        self.requestReview()
+        store.consumeStoreReviewRequestAttempt(attemptId: requestAttempt.id)
     }
 
     @MainActor
@@ -360,6 +400,9 @@ struct RootTabView: View {
         }
         .task(id: self.guestSignInAfterReviewPromptRecheckTaskID) {
             await self.waitForGuestSignInAfterReviewPromptRecheckIfNeeded()
+        }
+        .task(id: self.storeReviewRequestTaskID) {
+            await self.requestStoreReviewIfNeeded()
         }
         .overlay {
             ZStack {

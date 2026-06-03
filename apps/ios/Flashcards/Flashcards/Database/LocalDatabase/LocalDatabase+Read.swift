@@ -212,6 +212,14 @@ extension LocalDatabase {
         try self.cardStore.hasAppWideReviewEvent(start: start, end: end)
     }
 
+    func hasAppWideReviewEvent(before: Date) throws -> Bool {
+        try self.cardStore.hasAppWideReviewEvent(before: before)
+    }
+
+    func loadAppWideReviewEventCount(start: Date, end: Date) throws -> Int {
+        try self.cardStore.loadAppWideReviewEventCount(start: start, end: end)
+    }
+
     func loadCardsListSnapshot(
         workspaceId: String,
         searchText: String,
