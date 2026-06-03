@@ -4,11 +4,11 @@ import { PassThrough } from "node:stream";
 import {
   runLiveStreamWithDependencies,
   type ChatLiveStreamResult,
-} from "../live";
-import type { ChatComposerSuggestion } from "../composerSuggestions";
-import type { ChatRunSnapshot } from "../runs";
-import type { PersistedChatMessageItem } from "../store";
-import type { ContentPart } from "../types";
+} from "../../live";
+import type { ChatComposerSuggestion } from "../../composerSuggestions";
+import type { ChatRunSnapshot } from "../../runs";
+import type { PersistedChatMessageItem } from "../../store";
+import type { ContentPart } from "../../types";
 
 function makeAssistantMessage(
   params: Readonly<{

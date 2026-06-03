@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { diffAssistantContent } from "../live/diff";
-import type { ContentPart } from "../types";
+import { diffAssistantContent } from "../../live/diff";
+import type { ContentPart } from "../../types";
 
 function createToolCallPart(params: Readonly<{
   id: string;

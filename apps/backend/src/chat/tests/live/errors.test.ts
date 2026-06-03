@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { HttpError } from "../../shared/errors";
+import { HttpError } from "../../../shared/errors";
 import {
   CHAT_LIVE_RUN_ID_REQUIRED_CODE,
   createChatLiveErrorResponse,
-} from "../live/errors";
-import { handleLiveRequest, readOptionalChatRequestIdHeader } from "../live/request";
+} from "../../live/errors";
+import { handleLiveRequest, readOptionalChatRequestIdHeader } from "../../live/request";
 
 const EXPLICIT_WORKSPACE_ID = "33333333-3333-4333-8333-333333333333";
 
