@@ -17,6 +17,7 @@ import { createGlobalSnapshotRoutes, globalSnapshotPath } from "../routes/global
 import { createSyncRoutes } from "../routes/sync";
 import { createSystemRoutes } from "../routes/system";
 import { createAdminRoutes } from "../routes/admin";
+import { createFeedbackRoutes } from "../routes/feedback";
 import { createGuestAuthRoutes } from "../routes/guestAuth";
 import { createWorkspaceRoutes } from "../routes/workspaces";
 import {
@@ -363,6 +364,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
   app.route("/", createAgentRoutes({ allowedOrigins }));
   app.route("/", createWorkspaceRoutes({ allowedOrigins }));
   app.route("/", createAdminRoutes({ allowedOrigins }));
+  app.route("/", createFeedbackRoutes({ allowedOrigins }));
   app.route("/", createCardsRoutes({ allowedOrigins }));
   app.route("/", createGlobalSnapshotRoutes({}));
   app.route("/", createGuestAuthRoutes());

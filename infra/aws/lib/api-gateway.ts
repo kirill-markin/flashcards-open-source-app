@@ -598,6 +598,11 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   meProgress.addResource("series").addMethod("GET", integration);
   me.addResource("delete").addMethod("POST", integration);
 
+  const feedback = restApi.root.addResource("feedback");
+  feedback.addResource("state").addMethod("GET", integration);
+  feedback.addResource("prompt-events").addMethod("POST", integration);
+  feedback.addResource("submissions").addMethod("POST", integration);
+
   const admin = restApi.root.addResource("admin");
   admin.addResource("session").addMethod("GET", integration);
   const adminReports = admin.addResource("reports");

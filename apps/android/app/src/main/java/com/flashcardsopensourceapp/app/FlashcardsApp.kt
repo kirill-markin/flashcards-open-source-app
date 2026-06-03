@@ -68,6 +68,7 @@ import com.flashcardsopensourceapp.app.navigation.topLevelDestinations
 import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryState
+import com.flashcardsopensourceapp.data.local.model.CloudFeedbackTrigger
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
@@ -199,6 +200,17 @@ fun FlashcardsApp(
                     reviewCount = 0
                 )
             )
+        val feedbackPromptUiState by appGraph.feedbackPromptController
+            .observeUiState()
+            .collectAsStateWithLifecycle(
+                initialValue = FeedbackPromptUiState(
+                    isVisible = false,
+                    trigger = CloudFeedbackTrigger.SETTINGS,
+                    message = "",
+                    isSubmitting = false,
+                    errorMessage = null
+                )
+            )
         val syncStatusSnapshot by appGraph.syncRepository.observeSyncStatus().collectAsStateWithLifecycle(
             initialValue = SyncStatusSnapshot(
                 status = SyncStatus.Idle,
@@ -227,7 +239,16 @@ fun FlashcardsApp(
         val guestSignInAfterReviewPromptContext = GuestSignInAfterReviewPromptContext(
             isAuthFlowActive = isGuestSignInAfterReviewPromptAuthRoute(route = currentRoute),
             isAppModalActive = isGuestSignInAfterReviewPromptModalActive(
-                accountDeletionState = accountDeletionState
+                accountDeletionState = accountDeletionState,
+                isFeedbackPromptVisible = feedbackPromptUiState.isVisible
+            )
+        )
+        val feedbackPromptContext = FeedbackPromptContext(
+            isAppResumed = isAppResumed,
+            isAuthFlowActive = isFeedbackPromptAuthRoute(route = currentRoute),
+            isAppModalActive = isFeedbackPromptModalActive(
+                accountDeletionState = accountDeletionState,
+                isGuestSignInAfterReviewPromptVisible = guestSignInAfterReviewPromptUiState.isVisible
             )
         )
 
@@ -249,6 +270,10 @@ fun FlashcardsApp(
             appGraph.guestSignInAfterReviewPromptController.updateAppContext(
                 context = guestSignInAfterReviewPromptContext
             )
+        }
+
+        LaunchedEffect(feedbackPromptContext) {
+            appGraph.feedbackPromptController.updateAppContext(context = feedbackPromptContext)
         }
 
         LaunchedEffect(shouldHideNavigationSuite) {
@@ -476,6 +501,20 @@ fun FlashcardsApp(
                         }
                     )
                 }
+                if (
+                    feedbackPromptUiState.isVisible &&
+                    feedbackPromptContext.isAppResumed &&
+                    feedbackPromptContext.isAuthFlowActive.not() &&
+                    feedbackPromptContext.isAppModalActive.not()
+                ) {
+                    FeedbackPromptDialog(
+                        uiState = feedbackPromptUiState,
+                        onMessageChange = appGraph.feedbackPromptController::updateMessage,
+                        onShown = appGraph.feedbackPromptController::markVisibleDialogShown,
+                        onSubmit = appGraph.feedbackPromptController::submit,
+                        onDismiss = appGraph.feedbackPromptController::dismiss
+                    )
+                }
             }
         }
     }
@@ -513,8 +552,22 @@ private fun isGuestSignInAfterReviewPromptAuthRoute(route: String?): Boolean {
     return route?.startsWith(prefix = SettingsAccountSignInEmailDestination.route) == true
 }
 
-private fun isGuestSignInAfterReviewPromptModalActive(accountDeletionState: AccountDeletionState): Boolean {
-    return accountDeletionState != AccountDeletionState.Hidden
+private fun isGuestSignInAfterReviewPromptModalActive(
+    accountDeletionState: AccountDeletionState,
+    isFeedbackPromptVisible: Boolean
+): Boolean {
+    return accountDeletionState != AccountDeletionState.Hidden || isFeedbackPromptVisible
+}
+
+private fun isFeedbackPromptAuthRoute(route: String?): Boolean {
+    return route?.startsWith(prefix = SettingsAccountSignInEmailDestination.route) == true
+}
+
+private fun isFeedbackPromptModalActive(
+    accountDeletionState: AccountDeletionState,
+    isGuestSignInAfterReviewPromptVisible: Boolean
+): Boolean {
+    return accountDeletionState != AccountDeletionState.Hidden || isGuestSignInAfterReviewPromptVisible
 }
 
 @Composable

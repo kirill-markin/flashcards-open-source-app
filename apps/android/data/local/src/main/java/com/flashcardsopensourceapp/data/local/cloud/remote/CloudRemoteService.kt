@@ -3,6 +3,9 @@ package com.flashcardsopensourceapp.data.local.cloud.remote
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
+import com.flashcardsopensourceapp.data.local.model.CloudFeedbackPromptEventRequest
+import com.flashcardsopensourceapp.data.local.model.CloudFeedbackState
+import com.flashcardsopensourceapp.data.local.model.CloudFeedbackSubmissionRequest
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeCompletion
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeSelection
@@ -60,6 +63,7 @@ class CloudRemoteService private constructor(
     private val guestUpgradeApi = CloudGuestUpgradeRemoteApi(httpClient = httpClient)
     private val accountWorkspaceApi = CloudAccountWorkspaceRemoteApi(httpClient = httpClient)
     private val progressApi = CloudProgressRemoteApi(httpClient = httpClient)
+    private val feedbackApi = CloudFeedbackRemoteApi(httpClient = httpClient)
     private val agentConnectionApi = CloudAgentConnectionRemoteApi(httpClient = httpClient)
     private val syncApi = CloudSyncRemoteApi(httpClient = httpClient)
 
@@ -256,6 +260,40 @@ class CloudRemoteService private constructor(
             apiBaseUrl = apiBaseUrl,
             authorizationHeader = authorizationHeader,
             timeZone = timeZone
+        )
+    }
+
+    override suspend fun loadFeedbackState(
+        apiBaseUrl: String,
+        authorizationHeader: String
+    ): CloudFeedbackState {
+        return feedbackApi.loadFeedbackState(
+            apiBaseUrl = apiBaseUrl,
+            authorizationHeader = authorizationHeader
+        )
+    }
+
+    override suspend fun recordFeedbackPromptEvent(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        request: CloudFeedbackPromptEventRequest
+    ): CloudFeedbackState {
+        return feedbackApi.recordFeedbackPromptEvent(
+            apiBaseUrl = apiBaseUrl,
+            authorizationHeader = authorizationHeader,
+            request = request
+        )
+    }
+
+    override suspend fun submitFeedback(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        request: CloudFeedbackSubmissionRequest
+    ): CloudFeedbackState {
+        return feedbackApi.submitFeedback(
+            apiBaseUrl = apiBaseUrl,
+            authorizationHeader = authorizationHeader,
+            request = request
         )
     }
 

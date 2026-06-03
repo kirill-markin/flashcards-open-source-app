@@ -2,6 +2,9 @@ package com.flashcardsopensourceapp.data.local.cloud.remote
 
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
+import com.flashcardsopensourceapp.data.local.model.CloudFeedbackPromptEventRequest
+import com.flashcardsopensourceapp.data.local.model.CloudFeedbackState
+import com.flashcardsopensourceapp.data.local.model.CloudFeedbackSubmissionRequest
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeCompletion
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeSelection
@@ -95,6 +98,17 @@ interface CloudRemoteGateway {
         authorizationHeader: String,
         timeZone: String
     ): CloudProgressReviewSchedule
+    suspend fun loadFeedbackState(apiBaseUrl: String, authorizationHeader: String): CloudFeedbackState
+    suspend fun recordFeedbackPromptEvent(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        request: CloudFeedbackPromptEventRequest
+    ): CloudFeedbackState
+    suspend fun submitFeedback(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        request: CloudFeedbackSubmissionRequest
+    ): CloudFeedbackState
 
     suspend fun deleteAccount(apiBaseUrl: String, bearerToken: String, confirmationText: String)
     suspend fun listAgentConnections(apiBaseUrl: String, bearerToken: String): AgentApiKeyConnectionsResult

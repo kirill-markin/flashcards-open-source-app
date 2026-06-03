@@ -72,6 +72,9 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                     )
                     appGraph.guestSignInAfterReviewPromptController.requestReevaluation()
                 },
+                onAutomaticFeedbackPromptCandidate = {
+                    appGraph.feedbackPromptController.requestAutomaticReevaluation()
+                },
                 onNotificationPermissionGranted = ::handleNotificationPermissionGranted,
                 reviewPreferencesStore = appGraph.reviewPreferencesStore,
                 visibleAppScreenRepository = appGraph.visibleAppScreenController,
@@ -185,6 +188,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                     )
                     appGraph.guestSignInAfterReviewPromptController.requestReevaluation()
                 },
+                onAutomaticFeedbackPromptCandidate = {},
                 onNotificationPermissionGranted = ::handleNotificationPermissionGranted,
                 reviewPreferencesStore = appGraph.reviewPreferencesStore,
                 visibleAppScreenRepository = appGraph.visibleAppScreenController,

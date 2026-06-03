@@ -79,6 +79,8 @@
     <string name="settings_root_device_title">This Device</string>
     <string name="settings_root_access_title">Access</string>
     <string name="settings_root_access_summary">Camera, microphone, photos, and files</string>
+    <string name="settings_root_feedback_title">Send feedback</string>
+    <string name="settings_root_feedback_summary">Share an idea to improve the app</string>
     <string name="settings_root_test_title">Test</string>
     <string name="settings_root_test_summary">1 item</string>
     <string name="settings_root_workspace_summary">%1$s | %2$s | %3$s</string>
