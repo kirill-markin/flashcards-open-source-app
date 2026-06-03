@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.settings.workspace
+package com.flashcardsopensourceapp.feature.settings.workspace.current
 
 enum class CurrentWorkspaceLoadState {
     Loading,

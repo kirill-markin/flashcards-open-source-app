@@ -19,8 +19,8 @@ import com.flashcardsopensourceapp.feature.settings.TestSettingsRoute
 import com.flashcardsopensourceapp.feature.settings.createSettingsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.device.DeviceDiagnosticsRoute
 import com.flashcardsopensourceapp.feature.settings.device.createDeviceDiagnosticsViewModelFactory
-import com.flashcardsopensourceapp.feature.settings.workspace.CurrentWorkspaceRoute
-import com.flashcardsopensourceapp.feature.settings.workspace.createCurrentWorkspaceViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.workspace.current.CurrentWorkspaceRoute
+import com.flashcardsopensourceapp.feature.settings.workspace.current.createCurrentWorkspaceViewModelFactory
 import kotlinx.coroutines.CoroutineScope
 
 internal fun NavGraphBuilder.registerSettingsRootDestinations(
@@ -81,7 +81,7 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
         val manageSignInMessage = stringResource(
             id = com.flashcardsopensourceapp.feature.settings.R.string.settings_current_workspace_manage_sign_in_message
         )
-        val currentWorkspaceViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.workspace.CurrentWorkspaceViewModel>(
+        val currentWorkspaceViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.workspace.current.CurrentWorkspaceViewModel>(
             factory = createCurrentWorkspaceViewModelFactory(
                 workspaceRepository = appGraph.workspaceRepository,
                 cloudAccountRepository = appGraph.cloudAccountRepository,

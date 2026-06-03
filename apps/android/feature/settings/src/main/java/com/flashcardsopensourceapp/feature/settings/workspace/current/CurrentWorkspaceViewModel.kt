@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.settings.workspace
+package com.flashcardsopensourceapp.feature.settings.workspace.current
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
@@ -28,6 +28,7 @@ import com.flashcardsopensourceapp.feature.settings.cloud.resolveSelectedWorkspa
 import com.flashcardsopensourceapp.feature.settings.cloud.workspaceSelectionTitle
 import com.flashcardsopensourceapp.feature.settings.createSettingsStringResolver
 import com.flashcardsopensourceapp.feature.settings.resolveWorkspaceName
+import com.flashcardsopensourceapp.feature.settings.workspace.shared.workspaceUpdatedOnAnotherDeviceMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow

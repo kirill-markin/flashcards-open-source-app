@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.settings.workspace
+package com.flashcardsopensourceapp.feature.settings.workspace.tags
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider

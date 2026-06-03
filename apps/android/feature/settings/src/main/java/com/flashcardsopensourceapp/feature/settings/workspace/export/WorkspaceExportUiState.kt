@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.settings.workspace
+package com.flashcardsopensourceapp.feature.settings.workspace.export
 
 data class WorkspaceExportUiState(
     val workspaceName: String,

@@ -6,7 +6,7 @@ import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsStringResolver
 import com.flashcardsopensourceapp.feature.settings.formatTimestampLabel
-import com.flashcardsopensourceapp.feature.settings.workspace.CurrentWorkspaceItemUiState
+import com.flashcardsopensourceapp.feature.settings.workspace.current.CurrentWorkspaceItemUiState
 
 internal fun displayCloudAccountStateTitle(
     cloudState: CloudAccountState,

@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.settings.workspace
+package com.flashcardsopensourceapp.feature.settings.workspace.tags
 
 import com.flashcardsopensourceapp.data.local.model.WorkspaceTagSummary
 
