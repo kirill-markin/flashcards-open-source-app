@@ -10,24 +10,24 @@ import type {
   ProgressSummary,
   ProgressSummaryPayload,
   WorkspaceSummary,
-} from "../../types";
+} from "../../../types";
 import {
   resetProgressInvalidationStateForTests,
   useProgressInvalidationRefresh,
   useProgressInvalidationState,
-} from "./progressInvalidation";
+} from "../invalidation/progressInvalidation";
 import {
   buildProgressScopeKey,
   useProgressSource,
-} from "./progressSource";
+} from "../progressSource";
 import {
   buildProgressDateContext,
   buildProgressSeriesInputForDateContext,
   buildProgressSummaryInputForDateContext,
-} from "../../progress/progressDates";
-import { buildProgressSummaryScopeKey } from "./progressScope";
-import { resetProgressTimeContextStateForTests } from "./progressTimeContext";
-import type { SessionVerificationState } from "../session/warmStart";
+} from "../../../progress/progressDates";
+import { buildProgressSummaryScopeKey } from "../state/progressScope";
+import { resetProgressTimeContextStateForTests } from "../time/progressTimeContext";
+import type { SessionVerificationState } from "../../session/warmStart";
 
 const progressSourceMocks = vi.hoisted(() => ({
   loadProgressSummaryMock: vi.fn<(input: Readonly<{ timeZone: string; today: string }>) => Promise<ProgressSummaryPayload>>(),
@@ -65,8 +65,8 @@ const {
   setWebObservabilityUserMock,
 } = progressSourceMocks;
 
-vi.mock("../../api", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../api")>();
+vi.mock("../../../api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../api")>();
 
   return {
     ApiContractError: actual.ApiContractError,
@@ -77,7 +77,7 @@ vi.mock("../../api", async (importOriginal) => {
   };
 });
 
-vi.mock("../../observability/webObservability", () => ({
+vi.mock("../../../observability/webObservability", () => ({
   addWebBreadcrumb: progressSourceMocks.addWebBreadcrumbMock,
   captureWebException: progressSourceMocks.captureWebExceptionMock,
   captureWebWarning: progressSourceMocks.captureWebWarningMock,
@@ -85,14 +85,14 @@ vi.mock("../../observability/webObservability", () => ({
   setWebObservabilityUser: progressSourceMocks.setWebObservabilityUserMock,
 }));
 
-vi.mock("../../localDb/progress/progress", () => ({
+vi.mock("../../../localDb/progress/progress", () => ({
   hasPendingProgressReviewEvents: progressSourceMocks.hasPendingProgressReviewEventsMock,
   loadLocalProgressSummary: progressSourceMocks.loadLocalProgressSummaryMock,
   loadLocalProgressDailyReviews: progressSourceMocks.loadLocalProgressDailyReviewsMock,
   loadPendingProgressDailyReviews: progressSourceMocks.loadPendingProgressDailyReviewsMock,
 }));
 
-vi.mock("../../localDb/reviewSchedule", () => ({
+vi.mock("../../../localDb/reviewSchedule", () => ({
   calculatePendingProgressReviewScheduleCardTotalDelta: progressSourceMocks.calculatePendingProgressReviewScheduleCardTotalDeltaMock,
   hasCompleteLocalProgressReviewScheduleCoverage: progressSourceMocks.hasCompleteLocalProgressReviewScheduleCoverageMock,
   hasPendingProgressReviewScheduleCardChanges: progressSourceMocks.hasPendingProgressReviewScheduleCardChangesMock,

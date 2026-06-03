@@ -5,8 +5,8 @@ import type {
   ProgressSeriesInput,
   ProgressSummaryInput,
   WorkspaceSummary,
-} from "../../types";
-import type { SessionVerificationState } from "../session/warmStart";
+} from "../../../types";
+import type { SessionVerificationState } from "../../session/warmStart";
 
 export type ProgressSourceSections = Readonly<{
   includeSummary: boolean;

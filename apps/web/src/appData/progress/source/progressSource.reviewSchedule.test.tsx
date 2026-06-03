@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import { describe, expect, it } from "vitest";
-import type { ProgressReviewSchedule } from "../../types";
-import { invalidateLocalReviewSchedule } from "./progressInvalidation";
+import type { ProgressReviewSchedule } from "../../../types";
+import { invalidateLocalReviewSchedule } from "../invalidation/progressInvalidation";
 import {
   buildCurrentReviewScheduleInput,
   buildServerReviewSchedule,

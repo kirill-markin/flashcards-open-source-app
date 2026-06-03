@@ -5,7 +5,7 @@ import type {
   ProgressSeriesSnapshot,
   ProgressSourceState,
   ProgressSummarySnapshot,
-} from "../../types";
+} from "../../../types";
 import {
   areProgressSourceStatesEqual,
   createEmptyProgressReviewScheduleSourceState,
@@ -17,7 +17,7 @@ import {
   createNextSummaryState,
   resolveProgressReviewScheduleLoadedServerBaseLocalCardTotalDelta,
   resolveProgressReviewScheduleServerBaseLocalCardTotalDelta,
-} from "./progressSnapshots";
+} from "../snapshots/progressSnapshots";
 
 export type ProgressSourceAction =
   | Readonly<{ type: "summary_scope_reset" }>

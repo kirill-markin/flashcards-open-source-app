@@ -5,12 +5,12 @@ import type {
   ProgressScopeKey,
   ProgressSeries,
   ProgressSummaryPayload,
-} from "../../types";
-import { INSTALLATION_ID_STORAGE_KEY } from "../../clientIdentity";
-import { addWebBreadcrumb, type WebObservationScope } from "../../observability/webObservability";
-import { progressReviewScheduleBucketKeys } from "../../types";
-import { findProgressReviewScheduleValidationIssue } from "../../progress/progressReviewScheduleValidation";
-import { normalizeProgressSeries } from "./progressSnapshots";
+} from "../../../types";
+import { INSTALLATION_ID_STORAGE_KEY } from "../../../clientIdentity";
+import { addWebBreadcrumb, type WebObservationScope } from "../../../observability/webObservability";
+import { progressReviewScheduleBucketKeys } from "../../../types";
+import { findProgressReviewScheduleValidationIssue } from "../../../progress/progressReviewScheduleValidation";
+import { normalizeProgressSeries } from "../snapshots/progressSnapshots";
 
 const progressSummaryStorageKeyPrefix = "flashcards-progress-server-summary";
 const progressSeriesStorageKeyPrefix = "flashcards-progress-server-series";

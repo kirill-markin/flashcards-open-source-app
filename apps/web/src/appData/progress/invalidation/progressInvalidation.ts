@@ -2,7 +2,7 @@ import { useEffect, useRef, useSyncExternalStore } from "react";
 import {
   progressTimeContextPollIntervalMs,
   updateProgressTimeContext,
-} from "./progressTimeContext";
+} from "../time/progressTimeContext";
 
 type ProgressInvalidationSnapshot = Readonly<{
   progressLocalVersion: number;

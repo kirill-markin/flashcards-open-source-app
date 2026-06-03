@@ -4,7 +4,7 @@ import type {
   ProgressReviewSchedule,
   ProgressSeries,
   ProgressSummaryPayload,
-} from "../../types";
+} from "../../../types";
 import {
   addWebBreadcrumbMock,
   buildCurrentReviewScheduleInput,

@@ -8,7 +8,7 @@ import {
   useProgressInvalidationRefresh,
   useProgressInvalidationState,
 } from "./progressInvalidation";
-import { resetProgressTimeContextStateForTests } from "./progressTimeContext";
+import { resetProgressTimeContextStateForTests } from "../time/progressTimeContext";
 
 type ProgressInvalidationSnapshot = ReturnType<typeof useProgressInvalidationState>;
 

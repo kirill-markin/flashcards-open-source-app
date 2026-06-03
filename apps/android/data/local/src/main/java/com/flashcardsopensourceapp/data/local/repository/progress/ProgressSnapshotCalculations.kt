@@ -767,7 +767,7 @@ internal fun validateProgressReviewScheduleCacheTimeZone(
 // Decide whether the local review-schedule fallback can replace the server-base schedule.
 //
 // Gating contract (must match iOS FlashcardsStore+ProgressSnapshot.swift:155-184 and
-// web apps/web/src/appData/progress/progressSnapshots.ts:175-185):
+// web apps/web/src/appData/progress/snapshots/progressSnapshots.ts:175-185):
 //   1. The local cache must be fully hydrated for the scope (isLocalReviewScheduleScopeHydrated).
 //      Without full hydration the local cards table cannot represent the user-wide schedule.
 //   2. localFallback.totalCards - pendingCardTotalDelta must equal serverBase.totalCards.
