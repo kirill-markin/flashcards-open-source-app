@@ -110,6 +110,25 @@ export type LocalBrowserDataCleanupBreadcrumbDetails = Readonly<{
   errorMessage: string | null;
 }>;
 
+export type PersistentStorageBreadcrumbDetails = Readonly<{
+  eventName: "persistent_storage_checked";
+  storagePersisted: boolean | null;
+  storageUsage: number | null;
+  storageQuota: number | null;
+  storageErrorName: string | null;
+}>;
+
+export type IndexedDbOperation = "open";
+
+export type IndexedDbOperationBreadcrumbDetails = Readonly<{
+  eventName: "indexed_db_operation_failed";
+  indexedDbOperation: IndexedDbOperation;
+  databaseName: string;
+  databaseVersion: number;
+  indexedDbErrorName: string | null;
+  errorMessage: string;
+}>;
+
 export type WebBreadcrumbEvent =
   | Readonly<{
     action: "workspace_transition";
@@ -135,6 +154,16 @@ export type WebBreadcrumbEvent =
     action: "local_browser_data_cleanup";
     scope: WebObservationScope;
     details: LocalBrowserDataCleanupBreadcrumbDetails;
+  }>
+  | Readonly<{
+    action: "persistent_storage";
+    scope: WebObservationScope;
+    details: PersistentStorageBreadcrumbDetails;
+  }>
+  | Readonly<{
+    action: "indexed_db_operation";
+    scope: WebObservationScope;
+    details: IndexedDbOperationBreadcrumbDetails;
   }>;
 
 export type ApiContractFailureDetails = Readonly<{
@@ -370,6 +399,10 @@ export type SyncLocalDbMissingWarningDetails = Readonly<{
   previousLastAppliedHotChangeId: number;
   previousLocalCardCount: number;
   currentWebAppVersion: string;
+  storagePersisted: boolean | null;
+  storageUsage: number | null;
+  storageQuota: number | null;
+  storageErrorName: string | null;
 }>;
 
 export type WebWarningEvent =
@@ -415,6 +448,10 @@ type ErrorMetadata = Readonly<{
   bodyKind: string | null;
   networkAttemptCount: number | null;
   networkErrorName: string | null;
+  indexedDbOperation: string | null;
+  databaseName: string | null;
+  databaseVersion: number | null;
+  indexedDbErrorName: string | null;
 }>;
 
 type ErrorMetadataValue = string | number | null;
@@ -525,6 +562,10 @@ function readErrorMetadata(error: Error): ErrorMetadata {
       bodyKind: null,
       networkAttemptCount: null,
       networkErrorName: null,
+      indexedDbOperation: null,
+      databaseName: null,
+      databaseVersion: null,
+      indexedDbErrorName: null,
     };
   }
 
@@ -537,6 +578,10 @@ function readErrorMetadata(error: Error): ErrorMetadata {
     bodyKind: readStringMetadata(error, "responseBodyKind"),
     networkAttemptCount: readNumberMetadata(error, "attemptCount"),
     networkErrorName: readStringMetadata(error, "originalErrorName"),
+    indexedDbOperation: readStringMetadata(error, "indexedDbOperation"),
+    databaseName: readStringMetadata(error, "databaseName"),
+    databaseVersion: readNumberMetadata(error, "databaseVersion"),
+    indexedDbErrorName: readStringMetadata(error, "indexedDbErrorName"),
   };
 }
 
@@ -550,6 +595,10 @@ function errorMetadataToContext(metadata: ErrorMetadata): SentryContext {
     bodyKind: metadata.bodyKind,
     networkAttemptCount: metadata.networkAttemptCount,
     networkErrorName: metadata.networkErrorName,
+    indexedDbOperation: metadata.indexedDbOperation,
+    databaseName: metadata.databaseName,
+    databaseVersion: metadata.databaseVersion,
+    indexedDbErrorName: metadata.indexedDbErrorName,
   };
 }
 

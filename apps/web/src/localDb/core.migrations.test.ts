@@ -10,6 +10,14 @@ import { loadReviewQueueSnapshot } from "./reviews";
 import { makeCard, workspaceId } from "./testSupport";
 import type { Card } from "../types";
 
+const observabilityMocks = vi.hoisted(() => ({
+  addWebBreadcrumbMock: vi.fn(),
+}));
+
+vi.mock("../observability/webObservability", () => ({
+  addWebBreadcrumb: observabilityMocks.addWebBreadcrumbMock,
+}));
+
 type LegacyStoredCard = Omit<StoredCard, "dueAt" | "dueAtMillis" | "dueAtBucketMillis" | "fsrsLastReviewedAtMillis"> & Readonly<{
   dueAt?: string | null;
 }>;
@@ -239,6 +247,46 @@ async function loadCardsStoreIndexNamesForTest(): Promise<ReadonlyArray<string>>
 }
 
 describe("localDb core migrations", () => {
+  it("adds IndexedDB open metadata and breadcrumb when opening database fails", async () => {
+    const sourceError = new DOMException("Open failed", "InvalidStateError");
+    const openRequest = {
+      error: sourceError,
+      onerror: null,
+      onsuccess: null,
+      onupgradeneeded: null,
+    } as unknown as IDBOpenDBRequest;
+    const openDatabaseSpy = vi.spyOn(indexedDB, "open").mockReturnValue(openRequest);
+    observabilityMocks.addWebBreadcrumbMock.mockReset();
+
+    try {
+      const openTask = openDatabase();
+      if (openRequest.onerror === null) {
+        throw new Error("IndexedDB open error handler was not registered");
+      }
+
+      openRequest.onerror.call(openRequest, new Event("error"));
+
+      await expect(openTask).rejects.toMatchObject({
+        indexedDbOperation: "open",
+        databaseName: webSyncDatabaseName,
+        databaseVersion: 13,
+        indexedDbErrorName: "InvalidStateError",
+      });
+      expect(observabilityMocks.addWebBreadcrumbMock).toHaveBeenCalledWith(expect.objectContaining({
+        action: "indexed_db_operation",
+        details: expect.objectContaining({
+          eventName: "indexed_db_operation_failed",
+          indexedDbOperation: "open",
+          databaseName: webSyncDatabaseName,
+          databaseVersion: 13,
+          indexedDbErrorName: "InvalidStateError",
+        }),
+      }));
+    } finally {
+      openDatabaseSpy.mockRestore();
+    }
+  });
+
   it("waits for managed IndexedDB operations before deleting browser data", async () => {
     await clearWebSyncCache();
     const readStarted = createDeferredVoid();

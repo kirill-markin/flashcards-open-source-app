@@ -1,8 +1,10 @@
 import {
+  addWebBreadcrumb,
   captureWebWarning,
   type SyncRestoreLocalBootstrapState,
   type WebObservationScope,
 } from "../../observability/webObservability";
+import type { PersistentStorageState } from "../../localDb/cloudSettings";
 import type { SyncRestoreHistoryEntry } from "./syncRestoreHistory";
 
 export type HotBootstrapSlowObservationInput = Readonly<{
@@ -29,6 +31,14 @@ export type LocalDbMissingObservationInput = Readonly<{
   localCardCountBefore: number;
   previousRestoreHistory: SyncRestoreHistoryEntry;
   currentWebAppVersion: string;
+  persistentStorageState: PersistentStorageState;
+}>;
+
+export type PersistentStorageObservationInput = Readonly<{
+  userId: string;
+  workspaceId: string;
+  installationId: string;
+  persistentStorageState: PersistentStorageState;
 }>;
 
 function getCurrentRoute(): string | null {
@@ -94,6 +104,24 @@ export function observeLocalDbMissing(input: LocalDbMissingObservationInput): vo
       previousLastAppliedHotChangeId: input.previousRestoreHistory.lastAppliedHotChangeId,
       previousLocalCardCount: input.previousRestoreHistory.localCardCount,
       currentWebAppVersion: input.currentWebAppVersion,
+      storagePersisted: input.persistentStorageState.persisted,
+      storageUsage: input.persistentStorageState.usage,
+      storageQuota: input.persistentStorageState.quota,
+      storageErrorName: input.persistentStorageState.errorName,
+    },
+  });
+}
+
+export function observePersistentStorageState(input: PersistentStorageObservationInput): void {
+  addWebBreadcrumb({
+    action: "persistent_storage",
+    scope: buildSyncObservationScope(input.userId, input.workspaceId, input.installationId),
+    details: {
+      eventName: "persistent_storage_checked",
+      storagePersisted: input.persistentStorageState.persisted,
+      storageUsage: input.persistentStorageState.usage,
+      storageQuota: input.persistentStorageState.quota,
+      storageErrorName: input.persistentStorageState.errorName,
     },
   });
 }

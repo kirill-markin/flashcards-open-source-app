@@ -14,6 +14,7 @@ import {
 } from "./syncRestoreHistory";
 
 const observabilityMocks = vi.hoisted(() => ({
+  addWebBreadcrumbMock: vi.fn(),
   captureWebWarningMock: vi.fn(),
 }));
 
@@ -25,6 +26,7 @@ const apiMocks = vi.hoisted(() => ({
 }));
 
 vi.mock("../../observability/webObservability", () => ({
+  addWebBreadcrumb: observabilityMocks.addWebBreadcrumbMock,
   captureWebWarning: observabilityMocks.captureWebWarningMock,
 }));
 
@@ -79,6 +81,41 @@ function createStorageMock(
   };
 }
 
+type PersistentStorageMock = Readonly<{
+  persistedMock: ReturnType<typeof vi.fn<() => Promise<boolean>>>;
+  persistMock: ReturnType<typeof vi.fn<() => Promise<boolean>>>;
+  estimateMock: ReturnType<typeof vi.fn<() => Promise<StorageEstimate>>>;
+}>;
+
+function installPersistentStorageMock(): PersistentStorageMock {
+  let persisted = false;
+  const persistedMock = vi.fn<() => Promise<boolean>>().mockImplementation(async () => persisted);
+  const persistMock = vi.fn<() => Promise<boolean>>().mockImplementation(async () => {
+    persisted = true;
+    return persisted;
+  });
+  const estimateMock = vi.fn<() => Promise<StorageEstimate>>().mockResolvedValue({
+    quota: 456,
+    usage: 123,
+  });
+  const storageManager = {
+    persisted: persistedMock,
+    persist: persistMock,
+    estimate: estimateMock,
+  } satisfies Partial<StorageManager>;
+
+  Object.defineProperty(navigator, "storage", {
+    configurable: true,
+    value: storageManager,
+  });
+
+  return {
+    persistedMock,
+    persistMock,
+    estimateMock,
+  };
+}
+
 function primeEmptyRemoteSync(): void {
   apiMocks.bootstrapPullSyncStateMock.mockResolvedValue({
     entries: [],
@@ -118,6 +155,8 @@ describe("sync lifecycle observation", () => {
       }),
     });
     window.localStorage.clear();
+    installPersistentStorageMock();
+    observabilityMocks.addWebBreadcrumbMock.mockReset();
     observabilityMocks.captureWebWarningMock.mockReset();
     apiMocks.bootstrapPullSyncStateMock.mockReset();
     apiMocks.pullReviewHistorySyncMock.mockReset();
@@ -128,6 +167,10 @@ describe("sync lifecycle observation", () => {
 
   afterEach(async () => {
     window.localStorage.clear();
+    Object.defineProperty(navigator, "storage", {
+      configurable: true,
+      value: undefined,
+    });
     vi.restoreAllMocks();
     await clearWebSyncCache();
   });
@@ -165,6 +208,8 @@ describe("sync lifecycle observation", () => {
   });
 
   it("warns when an empty local database had previous restore history", async () => {
+    const persistentStorageMock = installPersistentStorageMock();
+
     storeSyncRestoreHistoryEntry({
       userId: "user-1",
       workspaceId: "workspace-1",
@@ -186,11 +231,18 @@ describe("sync lifecycle observation", () => {
         previousLastAppliedHotChangeId: 301,
         previousLocalCardCount: 42,
         currentWebAppVersion: webAppVersion,
+        storagePersisted: false,
+        storageUsage: 123,
+        storageQuota: 456,
+        storageErrorName: null,
       }),
     }));
+    expect(persistentStorageMock.persistMock).toHaveBeenCalledTimes(1);
   });
 
   it("stores restore history after a successful hot bootstrap", async () => {
+    const persistentStorageMock = installPersistentStorageMock();
+
     await runWorkspaceRemoteSync(createRemoteSyncInput());
 
     expect(loadSyncRestoreHistoryEntry({
@@ -205,9 +257,22 @@ describe("sync lifecycle observation", () => {
       lastAppliedHotChangeId: 12,
       localCardCount: 0,
     }));
+    expect(persistentStorageMock.persistMock).toHaveBeenCalledTimes(1);
+    expect(observabilityMocks.addWebBreadcrumbMock).toHaveBeenCalledWith(expect.objectContaining({
+      action: "persistent_storage",
+      details: expect.objectContaining({
+        eventName: "persistent_storage_checked",
+        storagePersisted: true,
+        storageUsage: 123,
+        storageQuota: 456,
+        storageErrorName: null,
+      }),
+    }));
   });
 
   it("backfills restore history for an already hydrated local database without warning", async () => {
+    const persistentStorageMock = installPersistentStorageMock();
+
     await applyHotSyncPage("workspace-1", [], {
       lastAppliedHotChangeId: 88,
       markHotStateHydrated: true,
@@ -223,6 +288,84 @@ describe("sync lifecycle observation", () => {
       installationId: "installation-1",
     })).toEqual(expect.objectContaining({
       lastAppliedHotChangeId: 88,
+    }));
+    expect(persistentStorageMock.persistMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not warn for a slow empty remote bootstrap", async () => {
+    let nowMs = 0;
+    vi.spyOn(Date, "now")
+      .mockImplementation(() => nowMs);
+    apiMocks.bootstrapPullSyncStateMock.mockResolvedValue({
+      entries: [],
+      bootstrapHotChangeId: 12,
+      nextCursor: null,
+      hasMore: false,
+      remoteIsEmpty: true,
+    });
+
+    await runWorkspaceRemoteSync({
+      ...createRemoteSyncInput(),
+      refreshWorkspaceView: async (_workspaceId: string): Promise<void> => {
+        nowMs = 3000;
+      },
+    });
+
+    expect(findCapturedWarning("sync_restore_slow")).toBeNull();
+  });
+
+  it("keeps warning for a slow non-empty remote bootstrap", async () => {
+    let nowMs = 0;
+    vi.spyOn(Date, "now")
+      .mockImplementation(() => nowMs);
+    apiMocks.bootstrapPullSyncStateMock.mockResolvedValue({
+      entries: [],
+      bootstrapHotChangeId: 12,
+      nextCursor: null,
+      hasMore: false,
+      remoteIsEmpty: false,
+    });
+
+    await runWorkspaceRemoteSync({
+      ...createRemoteSyncInput(),
+      refreshWorkspaceView: async (_workspaceId: string): Promise<void> => {
+        nowMs = 3000;
+      },
+    });
+
+    expect(findCapturedWarning("sync_restore_slow")).toEqual(expect.objectContaining({
+      action: "sync_restore_slow",
+    }));
+  });
+
+  it("does not fail sync when persistent storage observation fails", async () => {
+    const persistedMock = vi.fn<() => Promise<boolean>>().mockRejectedValue(new DOMException("Denied", "SecurityError"));
+    const persistMock = vi.fn<() => Promise<boolean>>().mockResolvedValue(false);
+    const estimateMock = vi.fn<() => Promise<StorageEstimate>>().mockResolvedValue({
+      quota: 456,
+      usage: 123,
+    });
+    Object.defineProperty(navigator, "storage", {
+      configurable: true,
+      value: {
+        persisted: persistedMock,
+        persist: persistMock,
+        estimate: estimateMock,
+      } satisfies Partial<StorageManager>,
+    });
+
+    await expect(runWorkspaceRemoteSync(createRemoteSyncInput())).resolves.toEqual({
+      didChangeProgressHistory: false,
+      didChangeReviewSchedule: false,
+    });
+    expect(observabilityMocks.addWebBreadcrumbMock).toHaveBeenCalledWith(expect.objectContaining({
+      action: "persistent_storage",
+      details: expect.objectContaining({
+        storagePersisted: null,
+        storageUsage: null,
+        storageQuota: null,
+        storageErrorName: "SecurityError",
+      }),
     }));
   });
 
