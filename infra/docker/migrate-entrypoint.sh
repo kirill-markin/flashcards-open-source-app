@@ -7,4 +7,4 @@ export PGHOST="$DB_HOST"
 export PGPORT=5432
 export PGDATABASE="$DB_NAME"
 export PGSSLMODE=require
-exec bash /scripts/migrate.sh
+exec bash /scripts/deploy/migrate.sh

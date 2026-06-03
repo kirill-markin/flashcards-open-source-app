@@ -4,13 +4,13 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 CDK_DIR="${ROOT_DIR}/infra/aws"
 TEMP_DIR="$(mktemp -d)"
 SENTRY_DSN_SECRET_NAME="flashcards-open-source-app/sentry-dsn"
 
 # shellcheck disable=SC1091
-source "${SCRIPT_DIR}/lib/deploy-config.sh"
+source "${SCRIPT_DIR}/../lib/deploy-config.sh"
 load_root_env
 
 REGION="${AWS_REGION:-}"
@@ -118,10 +118,10 @@ echo "=== Bundle OpenAPI spec ==="
 npm run bundle --silent --prefix "${ROOT_DIR}/api"
 
 echo "=== Configure required Resend secret ==="
-bash "${ROOT_DIR}/scripts/setup-resend-secret.sh" --region "$REGION"
+bash "${ROOT_DIR}/scripts/setup/setup-resend-secret.sh" --region "$REGION"
 
 echo "=== Configure optional AI secrets ==="
-bash "${ROOT_DIR}/scripts/setup-ai-secrets.sh" --region "$REGION"
+bash "${ROOT_DIR}/scripts/setup/setup-ai-secrets.sh" --region "$REGION"
 
 echo "=== Configure required Sentry DSN secret ==="
 ensure_sentry_dsn_secret
@@ -129,11 +129,11 @@ ensure_bootstrap_sentry_context_defaults
 
 if [[ -n "${DEMO_PASSWORD_DOSTIP:-}" ]]; then
   echo "=== Configure optional review account auth secret ==="
-  bash "${ROOT_DIR}/scripts/setup-auth-secrets.sh" --region "$REGION"
+  bash "${ROOT_DIR}/scripts/setup/setup-auth-secrets.sh" --region "$REGION"
 fi
 
 echo "=== Generate CDK context ==="
-bash "${ROOT_DIR}/scripts/generate-cdk-context.sh" \
+bash "${ROOT_DIR}/scripts/generate/generate-cdk-context.sh" \
   --output "${CDK_DIR}/cdk.context.local.json" \
   --region "$REGION"
 
@@ -145,24 +145,24 @@ echo "=== CDK deploy ==="
 npx cdk deploy --all --require-approval never
 
 echo "=== Run database migrations ==="
-bash "${ROOT_DIR}/scripts/migrate-aws.sh" --stack-name "$STACK_NAME"
+bash "${ROOT_DIR}/scripts/deploy/migrate-aws.sh" --stack-name "$STACK_NAME"
 
 echo "=== Seed global metrics snapshot ==="
-bash "${ROOT_DIR}/scripts/generate-global-metrics-snapshot.sh" --stack-name "$STACK_NAME"
+bash "${ROOT_DIR}/scripts/generate/generate-global-metrics-snapshot.sh" --stack-name "$STACK_NAME"
 
 echo "=== Check API health ==="
-bash "${ROOT_DIR}/scripts/check-api-health.sh" --stack-name "$STACK_NAME"
+bash "${ROOT_DIR}/scripts/checks/check-api-health.sh" --stack-name "$STACK_NAME"
 
 echo "=== Build and deploy web ==="
 npm run build --silent --prefix "${ROOT_DIR}/apps/web"
-bash "${ROOT_DIR}/scripts/deploy-web.sh" --stack-name "$STACK_NAME"
+bash "${ROOT_DIR}/scripts/deploy/deploy-web.sh" --stack-name "$STACK_NAME"
 
 echo "=== Build and deploy admin ==="
 npm run build --silent --prefix "${ROOT_DIR}/apps/admin"
-bash "${ROOT_DIR}/scripts/deploy-admin.sh" --stack-name "$STACK_NAME"
+bash "${ROOT_DIR}/scripts/deploy/deploy-admin.sh" --stack-name "$STACK_NAME"
 
 echo ""
 echo "=== Bootstrap complete ==="
 echo "Next steps:"
 echo "  1. Configure DNS: bash scripts/cloudflare/setup-dns.sh --stack-name ${STACK_NAME}"
-echo "  2. Configure GitHub Actions secrets/vars: bash scripts/setup-github.sh --stack-name ${STACK_NAME}"
+echo "  2. Configure GitHub Actions secrets/vars: bash scripts/setup/setup-github.sh --stack-name ${STACK_NAME}"

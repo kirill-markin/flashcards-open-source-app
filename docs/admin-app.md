@@ -43,7 +43,7 @@ Active admin access means `revoked_at IS NULL`.
 
 `auth.admin_users` is the runtime source of truth for active admin access.
 
-`ADMIN_EMAILS` is only the local bootstrap input for local/manual deploy flows. For GitHub Actions deploys, the non-secret CI input is `CDK_ADMIN_EMAILS`, and `scripts/setup-github.sh` creates it only if missing. After bootstrap, edit `CDK_ADMIN_EMAILS` manually in GitHub when changing the deployed bootstrap admin list. Migration/deploy paths:
+`ADMIN_EMAILS` is only the local bootstrap input for local/manual deploy flows. For GitHub Actions deploys, the non-secret CI input is `CDK_ADMIN_EMAILS`, and `scripts/setup/setup-github.sh` creates it only if missing. After bootstrap, edit `CDK_ADMIN_EMAILS` manually in GitHub when changing the deployed bootstrap admin list. Migration/deploy paths:
 
 - upsert active bootstrap grants for listed emails
 - revoke removed bootstrap grants only when their current `source` is `bootstrap`
@@ -121,10 +121,10 @@ For the first `admin.<domain>` rollout, use this exact order:
 
 1. Set `ADMIN_EMAILS` in root `.env` for the initial bootstrap.
 2. Run `bash scripts/cloudflare/setup-admin-domain.sh --domain <domain>` when the admin certificate does not exist yet.
-3. Run `bash scripts/setup-github.sh` so GitHub Actions picks up the admin certificate ARN and the initial bootstrap admin list.
+3. Run `bash scripts/setup/setup-github.sh` so GitHub Actions picks up the admin certificate ARN and the initial bootstrap admin list.
 4. Deploy normally.
 5. Run `bash scripts/cloudflare/setup-dns.sh --stack-name <stack-name> --domain <domain>` after the stack exposes `AdminCustomDomainTarget`.
-6. Run `bash scripts/check-public-endpoints.sh --stack-name <stack-name>` after the DNS change.
+6. Run `bash scripts/checks/check-public-endpoints.sh --stack-name <stack-name>` after the DNS change.
 7. Open `https://admin.<domain>`.
 8. Sign in with the existing Cognito email.
 9. Confirm that the dashboard loads.

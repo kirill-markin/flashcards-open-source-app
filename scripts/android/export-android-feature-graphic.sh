@@ -3,7 +3,7 @@
 set -euo pipefail
 
 if [[ "$#" -ne 1 ]]; then
-    echo "Usage: bash scripts/export-android-feature-graphic.sh <locale>" >&2
+    echo "Usage: bash scripts/android/export-android-feature-graphic.sh <locale>" >&2
     exit 1
 fi
 
@@ -24,7 +24,7 @@ if [[ "$is_supported" != "true" ]]; then
     exit 1
 fi
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 template_path="$repo_root/apps/android/docs/media/play-store-feature-graphic/index.html"
 output_path="$repo_root/apps/android/docs/media/play-store-feature-graphic/$locale-feature-graphic.png"
 template_url="file://$template_path?locale=$locale"

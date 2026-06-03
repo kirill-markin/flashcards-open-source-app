@@ -149,7 +149,7 @@ cleanup_test_identifier="MarketingScreenshotsTests/testCleanupMarketingGuestSess
 
 localization_code="$(resolve_requested_locale "$requested_locale")"
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 project_path="$repo_root/apps/ios/Flashcards/Flashcards Open Source App.xcodeproj"
 scheme_name="Flashcards Open Source App"
 derived_data_path="$repo_root/tmp/ios-derived-data"

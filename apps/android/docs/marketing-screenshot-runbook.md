@@ -19,13 +19,13 @@ The screenshot reset rule also deletes any stored guest cloud screenshot session
 Run this command from the repository root:
 
 ```bash
-bash scripts/capture-android-marketing-screenshots.sh
+bash scripts/android/capture-android-marketing-screenshots.sh
 ```
 
 To target a configured locale prefix other than the default `en`, set `FLASHCARDS_MARKETING_LOCALE_PREFIX` for the wrapper run:
 
 ```bash
-FLASHCARDS_MARKETING_LOCALE_PREFIX=en bash scripts/capture-android-marketing-screenshots.sh
+FLASHCARDS_MARKETING_LOCALE_PREFIX=en bash scripts/android/capture-android-marketing-screenshots.sh
 ```
 
 The wrapper passes that prefix into the manual AndroidTest entrypoint, which resolves the matching screenshot locale configuration before preparing the app state and file names.
@@ -109,7 +109,7 @@ On a weak machine, `-gpu auto` plus a warmed emulator is usually more reliable t
 Before each wrapper run, dismiss blocking Android system dialogs with:
 
 ```bash
-bash scripts/android-dismiss-system-dialogs.sh
+bash scripts/android/android-dismiss-system-dialogs.sh
 ```
 
 The screenshot helpers also defend against recurring system ANR dialogs during the run.
@@ -127,7 +127,7 @@ It is most often emulator startup churn plus package install, locale reconfigura
 If that happens:
 
 1. Check for ANR windows with `adb shell dumpsys window windows | grep -E 'Application Not Responding|aerr_wait|isn.t responding'`.
-2. Dismiss system dialogs again with `bash scripts/android-dismiss-system-dialogs.sh`.
+2. Dismiss system dialogs again with `bash scripts/android/android-dismiss-system-dialogs.sh`.
 3. Re-run the same screenshot wrapper once on the same already-booted emulator.
 
 Do not immediately switch locale or assume the screenshot content is wrong.
@@ -138,7 +138,7 @@ If the rerun starts as `Starting 1 tests` instead of the broken `0/0` path, the 
 Example:
 
 ```bash
-bash scripts/capture-android-marketing-screenshots.sh
+bash scripts/android/capture-android-marketing-screenshots.sh
 ```
 
 Each wrapper script does the following:

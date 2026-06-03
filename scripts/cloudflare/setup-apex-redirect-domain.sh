@@ -101,4 +101,4 @@ aws acm wait certificate-validated \
 echo ""
 echo "Certificate ISSUED."
 echo "ARN: ${CERT_ARN}"
-echo "This certificate can now be rediscovered by setup-github.sh and generate-cdk-context.sh."
+echo "This certificate can now be rediscovered by scripts/setup/setup-github.sh and scripts/generate/generate-cdk-context.sh."

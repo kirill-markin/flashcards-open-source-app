@@ -56,7 +56,7 @@ Certificate ARNs and secret ARNs are discovered from AWS. They are not meant to 
 Preferred flow from the repo root:
 
 ```bash
-bash scripts/first-deploy.sh \
+bash scripts/deploy/first-deploy.sh \
   --region eu-central-1 \
   --domain flashcards-open-source-app.com \
   --alert-email alerts@example.com
@@ -78,11 +78,11 @@ You can still run CDK manually from `infra/aws`; the local helper scripts assemb
 
 ## Secret setup helpers
 
-- `bash scripts/setup-resend-secret.sh --region <aws-region>`
+- `bash scripts/setup/setup-resend-secret.sh --region <aws-region>`
   Stores `RESEND_API_KEY` in AWS Secrets Manager and derives `no-reply@mail.<domain>` from `DOMAIN_NAME`.
-- `bash scripts/setup-ai-secrets.sh --region <aws-region>`
+- `bash scripts/setup/setup-ai-secrets.sh --region <aws-region>`
   Stores optional AI provider keys and Langfuse keys in AWS Secrets Manager.
-- `bash scripts/setup-auth-secrets.sh --region <aws-region>`
+- `bash scripts/setup/setup-auth-secrets.sh --region <aws-region>`
   Stores the shared insecure review/demo password in AWS Secrets Manager when `DEMO_PASSWORD_DOSTIP` is set.
 
 These scripts do not write back into repo config files. They only update AWS state.
@@ -92,7 +92,7 @@ These scripts do not write back into repo config files. They only update AWS sta
 Run:
 
 ```bash
-bash scripts/setup-github.sh
+bash scripts/setup/setup-github.sh
 ```
 
 This script:
@@ -106,7 +106,7 @@ This script:
 The deploy workflow assembles its own `cdk.context.local.json` from those GitHub variables inside CI.
 Backend source map uploads use `SENTRY_BACKEND_PROJECT`; web source map uploads use `SENTRY_WEB_PROJECT` when `VITE_SENTRY_DSN` enables web Sentry.
 
-`bash scripts/setup-github.sh` is intentionally bootstrap-oriented: it sets missing GitHub Actions variables and secrets, but it does not remove values that already exist in GitHub. If you need to disable an optional feature that was previously enabled through a GitHub variable, delete that GitHub variable explicitly and then redeploy.
+`bash scripts/setup/setup-github.sh` is intentionally bootstrap-oriented: it sets missing GitHub Actions variables and secrets, but it does not remove values that already exist in GitHub. If you need to disable an optional feature that was previously enabled through a GitHub variable, delete that GitHub variable explicitly and then redeploy.
 This also applies to `CDK_ADMIN_EMAILS`: root `.env` is not the deployed CI source of truth after bootstrap, so later changes to the deployed bootstrap admin list must be made manually in GitHub and then redeployed.
 This same write-once bootstrap behavior applies to `GLOBAL_METRICS_VISIBLE` -> `CDK_GLOBAL_METRICS_VISIBLE`: only the exact raw string `true` exposes `GET /v1/global/snapshot`, and changing deployed visibility later requires manually updating or deleting `CDK_GLOBAL_METRICS_VISIBLE` in GitHub before redeploying.
 
@@ -132,7 +132,7 @@ Details, granted database permissions, the helper script, manual tunnel workflow
 This AWS bootstrap helper does not manage the Android Google Cloud and Firebase Test Lab repository variables. Android CI/CD uses its own setup flow and helper script:
 
 - docs: [`docs/android-ci-cd.md`](../../docs/android-ci-cd.md)
-- sync command: `bash scripts/setup-github-android.sh`
+- sync command: `bash scripts/android/setup-github-android.sh`
 
 ## Langfuse tracing
 
@@ -150,8 +150,8 @@ Required deploy inputs when Langfuse is enabled:
 The helper flow is:
 
 1. Set `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, and optionally `LANGFUSE_BASE_URL` in root `.env`.
-2. Run `bash scripts/setup-ai-secrets.sh --region <aws-region>`.
-3. Run `bash scripts/setup-github.sh`.
+2. Run `bash scripts/setup/setup-ai-secrets.sh --region <aws-region>`.
+3. Run `bash scripts/setup/setup-github.sh`.
 4. Deploy as usual.
 5. Verify traces in Langfuse using [`docs/langfuse-operations.md`](../../docs/langfuse-operations.md).
 
@@ -168,16 +168,16 @@ These settings do not provision Cognito users. If review/demo bypass is enabled:
 Validate deployed state with:
 
 ```bash
-bash scripts/check-demo-cognito-users.sh --stack-name FlashcardsOpenSourceApp --region eu-central-1
+bash scripts/checks/check-demo-cognito-users.sh --stack-name FlashcardsOpenSourceApp --region eu-central-1
 ```
 
 ## Post-deploy
 
 1. Confirm the SNS subscription in the `ALERT_EMAIL` inbox.
-2. Configure Resend DNS with `bash scripts/setup-resend-domain.sh --domain <base-domain> --subdomain mail`.
+2. Configure Resend DNS with `bash scripts/setup/setup-resend-domain.sh --domain <base-domain> --subdomain mail`.
 3. Configure Cloudflare public DNS with `bash scripts/cloudflare/setup-dns.sh --stack-name FlashcardsOpenSourceApp --domain <base-domain>`.
-4. Populate any missing GitHub Actions config with `bash scripts/setup-github.sh`.
-5. Run `bash scripts/check-public-endpoints.sh --stack-name FlashcardsOpenSourceApp` after DNS changes.
+4. Populate any missing GitHub Actions config with `bash scripts/setup/setup-github.sh`.
+5. Run `bash scripts/checks/check-public-endpoints.sh --stack-name FlashcardsOpenSourceApp` after DNS changes.
 
 The supported deployed admin browser entrypoint is `https://admin.<domain>` only.
 

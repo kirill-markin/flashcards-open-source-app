@@ -12,7 +12,7 @@ LANGFUSE_PUBLIC_KEY_SECRET_NAME="flashcards-open-source-app/langfuse-public-key"
 LANGFUSE_SECRET_KEY_SECRET_NAME="flashcards-open-source-app/langfuse-secret-key"
 
 # shellcheck disable=SC1091
-source "${SCRIPT_DIR}/lib/root-env.sh"
+source "${SCRIPT_DIR}/../lib/root-env.sh"
 load_root_env
 
 cleanup() {

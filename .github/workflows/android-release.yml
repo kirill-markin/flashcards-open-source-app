@@ -8,10 +8,10 @@ on:
       - '!apps/android/README.md'
       - '!apps/android/docs/**'
       - 'cloudbuild.android.yaml'
-      - 'scripts/run-android-ci.sh'
-      - 'scripts/run-android-firebase-test-lab.sh'
-      - 'scripts/run-android-release.sh'
-      - 'scripts/setup-github-android.sh'
+      - 'scripts/android/run-android-ci.sh'
+      - 'scripts/android/run-android-firebase-test-lab.sh'
+      - 'scripts/android/run-android-release.sh'
+      - 'scripts/android/setup-github-android.sh'
       - '.github/workflows/android-ci-reusable.yml'
       - '.github/workflows/android-release.yml'
   workflow_dispatch:
@@ -88,7 +88,7 @@ jobs:
             case "${changed_path}" in
               apps/android/README.md) ;;
               apps/android/docs/*) ;;
-              apps/android/*|cloudbuild.android.yaml|scripts/run-android-ci.sh|scripts/run-android-firebase-test-lab.sh|scripts/run-android-release.sh|scripts/setup-github-android.sh|.github/workflows/android-ci-reusable.yml|.github/workflows/android-release.yml)
+              apps/android/*|cloudbuild.android.yaml|scripts/android/run-android-ci.sh|scripts/android/run-android-firebase-test-lab.sh|scripts/android/run-android-release.sh|scripts/android/setup-github-android.sh|.github/workflows/android-ci-reusable.yml|.github/workflows/android-release.yml)
                 android_changed=true
                 break
                 ;;
@@ -263,7 +263,7 @@ jobs:
 
           if [[ "${#missing_values[@]}" -gt 0 ]]; then
             printf 'Missing required GitHub Actions variables for Android app instrumentation: %s\n' "${missing_values[*]}" >&2
-            echo "Configure them with bash scripts/setup-github-android.sh or in the GitHub repository settings." >&2
+            echo "Configure them with bash scripts/android/setup-github-android.sh or in the GitHub repository settings." >&2
             echo "submission_state=configuration_invalid" >> "${GITHUB_OUTPUT}"
           else
             echo "submission_state=ready" >> "${GITHUB_OUTPUT}"
@@ -344,7 +344,7 @@ jobs:
           command_output_file="${RUNNER_TEMP}/firebase-test-lab-submit.log"
 
           set +e
-          bash scripts/run-android-firebase-test-lab.sh \
+          bash scripts/android/run-android-firebase-test-lab.sh \
             --project-id "${GCP_PROJECT_ID}" \
             --device-model "${ANDROID_FTL_DEVICE_MODEL}" \
             --device-version "${ANDROID_FTL_DEVICE_VERSION}" \
@@ -484,7 +484,7 @@ jobs:
 
           if [[ "${#missing_values[@]}" -gt 0 ]]; then
             printf 'Missing required GitHub Actions variables: %s\n' "${missing_values[*]}" >&2
-            echo "Configure them in the GitHub repository settings or with bash scripts/setup-github-android.sh." >&2
+            echo "Configure them in the GitHub repository settings or with bash scripts/android/setup-github-android.sh." >&2
             exit 1
           fi
 
@@ -509,7 +509,7 @@ jobs:
 
           if [[ "${#missing_values[@]}" -gt 0 ]]; then
             printf 'Missing required Android Sentry release values: %s\n' "${missing_values[*]}" >&2
-            echo "Configure repository variables/secrets or run bash scripts/setup-github-android.sh." >&2
+            echo "Configure repository variables/secrets or run bash scripts/android/setup-github-android.sh." >&2
             exit 1
           fi
 
@@ -559,7 +559,7 @@ jobs:
 
           if [[ "${#missing_secrets[@]}" -gt 0 ]]; then
             printf 'Missing required GitHub Actions secrets: %s\n' "${missing_secrets[*]}" >&2
-            echo "Configure them in the GitHub repository settings or with bash scripts/setup-github-android.sh." >&2
+            echo "Configure them in the GitHub repository settings or with bash scripts/android/setup-github-android.sh." >&2
             exit 1
           fi
 
@@ -584,7 +584,7 @@ jobs:
           ANDROID_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
-          bash scripts/run-android-release.sh \
+          bash scripts/android/run-android-release.sh \
             --version-code "${ANDROID_VERSION_CODE}" \
             --keystore-path "${ANDROID_KEYSTORE_PATH}" \
             --keystore-password "${ANDROID_UPLOAD_KEYSTORE_PASSWORD}" \

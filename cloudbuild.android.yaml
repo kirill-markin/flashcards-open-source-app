@@ -63,7 +63,7 @@ steps:
     entrypoint: bash
     args:
       - -ceu
-      - /workspace/scripts/run-android-ci.sh
+      - /workspace/scripts/android/run-android-ci.sh
 
   - id: Run Firebase Test Lab instrumentation tests
     name: flashcards-android-ci:latest
@@ -84,4 +84,4 @@ steps:
           --results-dir "${_ANDROID_FTL_RESULTS_DIR}"
         )
 
-        /workspace/scripts/run-android-firebase-test-lab.sh "${test_lab_args[@]}"
+        /workspace/scripts/android/run-android-firebase-test-lab.sh "${test_lab_args[@]}"

@@ -4,7 +4,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 OUTPUT_FILE="${ROOT_DIR}/infra/aws/cdk.context.local.json"
 REGION_OVERRIDE=""
 DOMAIN_OVERRIDE=""
@@ -13,7 +13,7 @@ GITHUB_REPO_OVERRIDE=""
 SENTRY_DSN_SECRET_NAME="flashcards-open-source-app/sentry-dsn"
 
 # shellcheck disable=SC1091
-source "${SCRIPT_DIR}/lib/deploy-config.sh"
+source "${SCRIPT_DIR}/../lib/deploy-config.sh"
 load_root_env
 
 while [[ $# -gt 0 ]]; do

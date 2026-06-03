@@ -140,7 +140,7 @@ That workflow works well for:
 For the current Android Play Store feature graphics, the expected workflow is:
 
 1. Edit `apps/android/docs/media/play-store-feature-graphic/index.html`.
-2. Run `bash scripts/export-android-feature-graphic.sh <locale>` for one locale, or `bash scripts/export-android-feature-graphics.sh` for the full supported set.
+2. Run `bash scripts/android/export-android-feature-graphic.sh <locale>` for one locale, or `bash scripts/android/export-android-feature-graphics.sh` for the full supported set.
 3. Verify that each exported file in `apps/android/docs/media/play-store-feature-graphic/` is 1024 x 500.
 
 The current local Android app uses:
@@ -187,7 +187,7 @@ The Android live smoke scenario matches the other clients on purpose:
 
 Android CI/CD is documented in [`docs/android-ci-cd.md`](../../docs/android-ci-cd.md).
 
-That document also lists the required GitHub repository variables for Google Cloud authentication and Firebase Test Lab, plus the helper sync command `bash scripts/setup-github-android.sh`.
+That document also lists the required GitHub repository variables for Google Cloud authentication and Firebase Test Lab, plus the helper sync command `bash scripts/android/setup-github-android.sh`.
 
 The repository policy for Android CI/CD is:
 

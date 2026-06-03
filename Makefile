@@ -39,16 +39,16 @@ lint:
 	npm run build --prefix infra/aws
 
 migrate:
-	bash scripts/migrate.sh
+	bash scripts/deploy/migrate.sh
 
 migrate-aws:
-	bash scripts/migrate-aws.sh
+	bash scripts/deploy/migrate-aws.sh
 
 check-api-health:
-	bash scripts/check-api-health.sh
+	bash scripts/checks/check-api-health.sh
 
 check-public-endpoints:
-	bash scripts/check-public-endpoints.sh
+	bash scripts/checks/check-public-endpoints.sh
 
 auth-dev:
 	cd apps/auth && node --env-file=../../.env ./node_modules/tsx/dist/cli.mjs watch src/index.ts

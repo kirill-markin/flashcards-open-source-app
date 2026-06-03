@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 marketing_background_color="rgb(31,31,31)"
 marketing_margin_px="120"
 marketing_output_root="$repo_root/apps/ios/docs/media/marketing-materials"
@@ -38,7 +38,7 @@ EOF
 }
 
 print_supported_locales() {
-    bash "$repo_root/scripts/capture-ios-marketing-screenshot.sh" --list-locales
+    bash "$repo_root/scripts/ios/capture-ios-marketing-screenshot.sh" --list-locales
 }
 
 canonicalize_locale() {
@@ -244,7 +244,7 @@ capture_raw_screenshots_for_locale() {
     local locale="$1"
 
     echo "Capturing raw marketing screenshots for locale $locale"
-    bash "$repo_root/scripts/capture-ios-marketing-screenshots.sh" --locale "$locale"
+    bash "$repo_root/scripts/ios/capture-ios-marketing-screenshots.sh" --locale "$locale"
 }
 
 compose_marketing_material() {

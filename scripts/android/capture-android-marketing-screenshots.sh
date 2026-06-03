@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 android_dir="$repo_root/apps/android"
 locale_prefix="${FLASHCARDS_MARKETING_LOCALE_PREFIX:-en}"
 script_class="com.flashcardsopensourceapp.app.marketing.screenshots.MarketingAllScreenshotsScript"
@@ -37,7 +37,7 @@ if [[ "$device_sdk" != "36" ]]; then
 fi
 
 run_marketing_guest_cleanup() {
-    "$repo_root/scripts/android-dismiss-system-dialogs.sh"
+    "$repo_root/scripts/android/android-dismiss-system-dialogs.sh"
     (
         cd "$android_dir"
         echo "Running Android marketing screenshot guest cleanup."
@@ -61,8 +61,8 @@ cleanup_on_exit() {
     exit "$exit_status"
 }
 
-"$repo_root/scripts/android-set-device-locale.sh" "$locale_prefix"
-"$repo_root/scripts/android-dismiss-system-dialogs.sh"
+"$repo_root/scripts/android/android-set-device-locale.sh" "$locale_prefix"
+"$repo_root/scripts/android/android-dismiss-system-dialogs.sh"
 trap cleanup_on_exit EXIT
 run_marketing_guest_cleanup
 
