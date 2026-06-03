@@ -27,6 +27,8 @@ export interface ApiGatewayProps {
   sentryEnvironment: string | undefined;
   sentryRelease: string | undefined;
   sentryTracesSampleRate: string | undefined;
+  resendApiKeySecretArn: string | undefined;
+  resendSenderEmail: string | undefined;
   demoEmailDostip: string | undefined;
   guestAiWeightedMonthlyTokenCap: string | undefined;
   globalMetricsVisible: boolean;
@@ -65,6 +67,8 @@ interface BackendFunctionProps {
   langfuseSecretKeySecretArn: string | undefined;
   langfuseBaseUrl: string | undefined;
   sentryConfig: BackendSentryConfig;
+  resendApiKeySecretArn: string | undefined;
+  resendSenderEmail: string | undefined;
   demoEmailDostip: string | undefined;
   guestAiWeightedMonthlyTokenCap: string | undefined;
   globalMetricsConfig: GlobalMetricsConfig | undefined;
@@ -354,6 +358,16 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
     );
   }
   addBackendSentryEnvironment(scope, fn, props.sentryConfig, props.constructId);
+  addLambdaSecretEnvironment(
+    scope,
+    fn,
+    props.resendApiKeySecretArn,
+    `${props.constructId}ResendApiKeySecret`,
+    "RESEND_API_KEY",
+  );
+  if (hasConfiguredValue(props.resendSenderEmail)) {
+    fn.addEnvironment("RESEND_FROM_EMAIL", props.resendSenderEmail);
+  }
   if (props.demoEmailDostip !== undefined && props.demoEmailDostip !== "") {
     fn.addEnvironment("DEMO_EMAIL_DOSTIP", props.demoEmailDostip);
   }
@@ -424,6 +438,8 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
       release: props.sentryRelease,
       tracesSampleRate: props.sentryTracesSampleRate,
     },
+    resendApiKeySecretArn: props.resendApiKeySecretArn,
+    resendSenderEmail: props.resendSenderEmail,
     demoEmailDostip: props.demoEmailDostip,
     guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
     globalMetricsConfig: {
@@ -458,6 +474,8 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
       release: props.sentryRelease,
       tracesSampleRate: props.sentryTracesSampleRate,
     },
+    resendApiKeySecretArn: undefined,
+    resendSenderEmail: undefined,
     demoEmailDostip: props.demoEmailDostip,
     guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
     globalMetricsConfig: undefined,
@@ -488,6 +506,8 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
       release: props.sentryRelease,
       tracesSampleRate: props.sentryTracesSampleRate,
     },
+    resendApiKeySecretArn: undefined,
+    resendSenderEmail: undefined,
     demoEmailDostip: props.demoEmailDostip,
     guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
     globalMetricsConfig: undefined,
@@ -597,6 +617,11 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   meProgress.addResource("review-schedule").addMethod("GET", integration);
   meProgress.addResource("series").addMethod("GET", integration);
   me.addResource("delete").addMethod("POST", integration);
+
+  const feedback = restApi.root.addResource("feedback");
+  feedback.addResource("state").addMethod("GET", integration);
+  feedback.addResource("prompt-events").addMethod("POST", integration);
+  feedback.addResource("submissions").addMethod("POST", integration);
 
   const admin = restApi.root.addResource("admin");
   admin.addResource("session").addMethod("GET", integration);
