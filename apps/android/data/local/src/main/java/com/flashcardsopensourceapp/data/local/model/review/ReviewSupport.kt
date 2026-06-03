@@ -6,6 +6,7 @@ import com.flashcardsopensourceapp.data.local.model.cards.formatCardEffortLabel
 import com.flashcardsopensourceapp.data.local.model.cards.isCardDue
 import com.flashcardsopensourceapp.data.local.model.cards.matchesDeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.cards.normalizeTagKey
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.scheduling.WorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagsSummary
 
