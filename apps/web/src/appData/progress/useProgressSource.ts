@@ -23,7 +23,7 @@ import {
   loadLocalProgressDailyReviews,
   loadLocalProgressSummary,
   loadPendingProgressDailyReviews,
-} from "../../localDb/progress";
+} from "../../localDb/progress/progress";
 import {
   calculatePendingProgressReviewScheduleCardTotalDelta,
   hasCompleteLocalProgressReviewScheduleCoverage,

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
-import { listOutboxRecords } from "../../localDb/outbox";
+import { listOutboxRecords } from "../../localDb/sync/outbox";
 import type { ChatComposerSendPhase } from "./ChatDraftContext";
 import {
   clearStoredChatDraftForSessionIfUnchanged,

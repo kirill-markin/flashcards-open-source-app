@@ -11,7 +11,7 @@ import {
   type LocalBrowserDataCleanupReason,
 } from "../../accountDeletion";
 import type { TranslationKey } from "../../i18n";
-import { loadCloudSettings, putCloudSettings } from "../../localDb/cloudSettings";
+import { loadCloudSettings, putCloudSettings } from "../../localDb/sync/cloudSettings";
 import { setWebObservabilityUser } from "../../observability/webObservability";
 import { getErrorMessage } from "../domain";
 import {

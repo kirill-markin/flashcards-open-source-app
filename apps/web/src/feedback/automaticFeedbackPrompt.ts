@@ -1,8 +1,8 @@
-import type { FeedbackPromptState } from "../localDb/feedback";
+import type { FeedbackPromptState } from "../localDb/feedback/feedback";
 import {
   loadLocalProgressDailyReviews,
   loadLocalProgressSummary,
-} from "../localDb/progress";
+} from "../localDb/progress/progress";
 import { buildProgressDateContext } from "../progress/progressDates";
 
 export type AutomaticFeedbackPromptReviewActivity = Readonly<{

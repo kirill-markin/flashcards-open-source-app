@@ -29,7 +29,7 @@ import {
   storeFeedbackSubmittedAt,
   storeFetchedFeedbackState,
   type FeedbackPromptState,
-} from "../../localDb/feedback";
+} from "../../localDb/feedback/feedback";
 import { captureAppOperationError } from "../../observability/appOperationObservation";
 import { normalizeCaughtError } from "../../observability/webObservability";
 import { useAiCardHandoff } from "../../chat/handoff/useAiCardHandoff";

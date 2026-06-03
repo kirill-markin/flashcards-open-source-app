@@ -1,4 +1,4 @@
-import { loadCloudSettings } from "../../localDb/cloudSettings";
+import { loadCloudSettings } from "../../localDb/sync/cloudSettings";
 import type { CloudSettings } from "../../types";
 
 export function requireCloudInstallationId(cloudSettings: CloudSettings | null): string {

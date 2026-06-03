@@ -11,7 +11,7 @@ import { useI18n } from "../../i18n";
 import {
   buildFeedbackPromptIdentityKey,
   storeFeedbackSubmittedAt,
-} from "../../localDb/feedback";
+} from "../../localDb/feedback/feedback";
 import { captureAppOperationError } from "../../observability/appOperationObservation";
 import {
   accountSettingsRoute,

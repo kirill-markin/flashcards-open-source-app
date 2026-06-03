@@ -10,7 +10,7 @@ import {
 } from "../../api";
 import {
   loadCloudSettings,
-} from "../../localDb/cloudSettings";
+} from "../../localDb/sync/cloudSettings";
 import {
   loadWorkspaceSettings,
 } from "../../localDb/workspace";

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { emptyFeedbackPromptState } from "../localDb/feedback";
+import { emptyFeedbackPromptState } from "../localDb/feedback/feedback";
 import {
   shouldRequestAutomaticFeedbackState,
 } from "./automaticFeedbackPrompt";

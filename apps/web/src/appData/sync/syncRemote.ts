@@ -10,14 +10,14 @@ import {
   ensurePersistentStorage,
   readPersistentStorageState,
   type PersistentStorageState,
-} from "../../localDb/cloudSettings";
+} from "../../localDb/sync/cloudSettings";
 import {
   deleteOutboxRecord,
   isScheduleRelevantCardOutboxRecord,
   listOutboxRecords,
   putOutboxRecord,
   type PersistedOutboxRecord,
-} from "../../localDb/outbox";
+} from "../../localDb/sync/outbox";
 import {
   applyHotSyncPage,
   applyReviewHistorySyncPage,
