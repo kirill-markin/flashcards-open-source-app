@@ -3,8 +3,8 @@ package com.flashcardsopensourceapp.data.local.repository.cloudsync.support
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudSyncConflictDetails
 import com.flashcardsopensourceapp.data.local.cloud.identity.syncWorkspaceForkRequiredErrorCode
-import com.flashcardsopensourceapp.data.local.database.CardEntity
-import com.flashcardsopensourceapp.data.local.database.OutboxEntryEntity
+import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
+import com.flashcardsopensourceapp.data.local.database.entities.OutboxEntryEntity
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import org.json.JSONArray
 import org.json.JSONObject

@@ -1,7 +1,7 @@
 package com.flashcardsopensourceapp.app.notifications
 
-import com.flashcardsopensourceapp.data.local.database.ReviewLogDao
-import com.flashcardsopensourceapp.data.local.database.ReviewLogEntity
+import com.flashcardsopensourceapp.data.local.database.review.ReviewLogDao
+import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.notifications.ScheduledStrictReminderPayload
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersReconcileTrigger
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersSettings

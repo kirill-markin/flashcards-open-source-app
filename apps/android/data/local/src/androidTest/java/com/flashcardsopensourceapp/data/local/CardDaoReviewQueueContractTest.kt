@@ -1,10 +1,10 @@
 package com.flashcardsopensourceapp.data.local
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.flashcardsopensourceapp.data.local.database.AppDatabase
-import com.flashcardsopensourceapp.data.local.database.CardTagEntity
-import com.flashcardsopensourceapp.data.local.database.TagEntity
-import com.flashcardsopensourceapp.data.local.database.loadTopActiveReviewCard
+import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
+import com.flashcardsopensourceapp.data.local.database.entities.CardTagEntity
+import com.flashcardsopensourceapp.data.local.database.entities.TagEntity
+import com.flashcardsopensourceapp.data.local.database.review.loadTopActiveReviewCard
 import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking

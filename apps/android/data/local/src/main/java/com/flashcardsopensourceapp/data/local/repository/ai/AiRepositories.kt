@@ -6,7 +6,7 @@ import com.flashcardsopensourceapp.data.local.ai.AiChatPreferencesStore
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteService
 import com.flashcardsopensourceapp.data.local.ai.makeAiChatHistoryScopedWorkspaceId
-import com.flashcardsopensourceapp.data.local.database.AppDatabase
+import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatPersistedState

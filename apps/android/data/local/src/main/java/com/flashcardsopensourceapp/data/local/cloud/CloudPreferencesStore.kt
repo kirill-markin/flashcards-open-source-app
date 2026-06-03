@@ -3,8 +3,8 @@ package com.flashcardsopensourceapp.data.local.cloud
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
-import com.flashcardsopensourceapp.data.local.database.AppDatabase
-import com.flashcardsopensourceapp.data.local.database.AppLocalSettingsEntity
+import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
+import com.flashcardsopensourceapp.data.local.database.entities.AppLocalSettingsEntity
 import com.flashcardsopensourceapp.data.local.cloud.wire.putNullableString
 import com.flashcardsopensourceapp.data.local.model.cloud.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot

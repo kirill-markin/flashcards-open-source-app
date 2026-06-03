@@ -1,11 +1,11 @@
 package com.flashcardsopensourceapp.data.local.repository.progress
 
 import androidx.room.withTransaction
-import com.flashcardsopensourceapp.data.local.database.AppDatabase
-import com.flashcardsopensourceapp.data.local.database.ProgressLocalCacheStateEntity
-import com.flashcardsopensourceapp.data.local.database.ProgressLocalDayCountEntity
-import com.flashcardsopensourceapp.data.local.database.ProgressReviewHistoryStateEntity
-import com.flashcardsopensourceapp.data.local.database.ReviewLogEntity
+import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
+import com.flashcardsopensourceapp.data.local.database.entities.ProgressLocalCacheStateEntity
+import com.flashcardsopensourceapp.data.local.database.entities.ProgressLocalDayCountEntity
+import com.flashcardsopensourceapp.data.local.database.entities.ProgressReviewHistoryStateEntity
+import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.repository.TimeProvider
 import java.time.Instant
 import java.time.ZoneId

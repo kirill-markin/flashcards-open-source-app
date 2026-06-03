@@ -1,8 +1,8 @@
 package com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace
 
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
-import com.flashcardsopensourceapp.data.local.database.AppDatabase
-import com.flashcardsopensourceapp.data.local.database.WorkspaceEntity
+import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
+import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 

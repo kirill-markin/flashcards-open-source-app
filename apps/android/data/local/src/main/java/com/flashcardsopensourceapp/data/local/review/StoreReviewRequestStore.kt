@@ -1,7 +1,7 @@
 package com.flashcardsopensourceapp.data.local.review
 
 import android.content.Context
-import com.flashcardsopensourceapp.data.local.database.ReviewLogDao
+import com.flashcardsopensourceapp.data.local.database.review.ReviewLogDao
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId

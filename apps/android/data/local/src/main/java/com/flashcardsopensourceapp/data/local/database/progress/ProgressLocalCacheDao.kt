@@ -1,9 +1,12 @@
-package com.flashcardsopensourceapp.data.local.database
+package com.flashcardsopensourceapp.data.local.database.progress
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import com.flashcardsopensourceapp.data.local.database.entities.ProgressLocalCacheStateEntity
+import com.flashcardsopensourceapp.data.local.database.entities.ProgressLocalDayCountEntity
+import com.flashcardsopensourceapp.data.local.database.entities.ProgressReviewHistoryStateEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao

@@ -1,12 +1,12 @@
 package com.flashcardsopensourceapp.data.local.cloud.sync
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.flashcardsopensourceapp.data.local.database.AppDatabase
-import com.flashcardsopensourceapp.data.local.database.CardEntity
-import com.flashcardsopensourceapp.data.local.database.CardTagEntity
-import com.flashcardsopensourceapp.data.local.database.DeckEntity
-import com.flashcardsopensourceapp.data.local.database.ReviewLogEntity
-import com.flashcardsopensourceapp.data.local.database.TagEntity
+import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
+import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
+import com.flashcardsopensourceapp.data.local.database.entities.CardTagEntity
+import com.flashcardsopensourceapp.data.local.database.entities.DeckEntity
+import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
+import com.flashcardsopensourceapp.data.local.database.entities.TagEntity
 import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter

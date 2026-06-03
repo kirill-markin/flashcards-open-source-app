@@ -1,7 +1,7 @@
 package com.flashcardsopensourceapp.data.local.cloud.sync
 
 import androidx.room.withTransaction
-import com.flashcardsopensourceapp.data.local.database.AppDatabase
+import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteBootstrapEntry
 import com.flashcardsopensourceapp.data.local.cloud.wire.buildCardBootstrapEntryJson
 import com.flashcardsopensourceapp.data.local.cloud.wire.buildDeckBootstrapEntryJson

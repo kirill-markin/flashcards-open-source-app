@@ -1,6 +1,6 @@
 package com.flashcardsopensourceapp.data.local.repository.progress
 
-import com.flashcardsopensourceapp.data.local.database.OutboxEntryEntity
+import com.flashcardsopensourceapp.data.local.database.entities.OutboxEntryEntity
 import org.json.JSONObject
 import java.time.Instant
 import java.time.ZoneId

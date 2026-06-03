@@ -1,7 +1,7 @@
 package com.flashcardsopensourceapp.data.local.repository.cloudsync.support
 
 import android.content.Context
-import com.flashcardsopensourceapp.data.local.database.SyncStateEntity
+import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeDroppedEntity
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeDroppedEntityType

@@ -6,11 +6,11 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteOpenHelper
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.flashcardsopensourceapp.data.local.database.cardsRecentlyReviewedDueIndexName
-import com.flashcardsopensourceapp.data.local.database.cardsReviewQueueIndexName
-import com.flashcardsopensourceapp.data.local.database.migration14To15
-import com.flashcardsopensourceapp.data.local.database.migration15To16
-import com.flashcardsopensourceapp.data.local.database.migration16To17
+import com.flashcardsopensourceapp.data.local.database.entities.cardsRecentlyReviewedDueIndexName
+import com.flashcardsopensourceapp.data.local.database.entities.cardsReviewQueueIndexName
+import com.flashcardsopensourceapp.data.local.database.migrations.migration14To15
+import com.flashcardsopensourceapp.data.local.database.migrations.migration15To16
+import com.flashcardsopensourceapp.data.local.database.migrations.migration16To17
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

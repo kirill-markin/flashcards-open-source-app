@@ -2,8 +2,8 @@ package com.flashcardsopensourceapp.data.local.cloud.sync
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteReviewHistoryEvent
-import com.flashcardsopensourceapp.data.local.database.AppDatabase
-import com.flashcardsopensourceapp.data.local.database.ReviewLogEntity
+import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
+import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import kotlinx.coroutines.CoroutineStart

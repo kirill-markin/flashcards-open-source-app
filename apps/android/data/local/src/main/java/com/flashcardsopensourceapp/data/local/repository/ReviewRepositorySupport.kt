@@ -1,11 +1,11 @@
 package com.flashcardsopensourceapp.data.local.repository
 
-import com.flashcardsopensourceapp.data.local.database.AppDatabase
-import com.flashcardsopensourceapp.data.local.database.CardWithRelations
-import com.flashcardsopensourceapp.data.local.database.DeckEntity
-import com.flashcardsopensourceapp.data.local.database.ReviewEffortCountRow
-import com.flashcardsopensourceapp.data.local.database.ReviewTagCountRow
-import com.flashcardsopensourceapp.data.local.database.activeReviewRecentPriorityWindowMillis
+import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
+import com.flashcardsopensourceapp.data.local.database.entities.CardWithRelations
+import com.flashcardsopensourceapp.data.local.database.entities.DeckEntity
+import com.flashcardsopensourceapp.data.local.database.review.ReviewEffortCountRow
+import com.flashcardsopensourceapp.data.local.database.review.ReviewTagCountRow
+import com.flashcardsopensourceapp.data.local.database.review.activeReviewRecentPriorityWindowMillis
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.data.local.model.cards.DeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.cards.DeckSummary

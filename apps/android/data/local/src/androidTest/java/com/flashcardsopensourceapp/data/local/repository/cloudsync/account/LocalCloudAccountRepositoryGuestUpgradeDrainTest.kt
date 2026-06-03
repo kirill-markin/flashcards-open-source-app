@@ -5,8 +5,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteBootstrapPullResponse
 import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteBootstrapPushResponse
-import com.flashcardsopensourceapp.data.local.database.CardEntity
-import com.flashcardsopensourceapp.data.local.database.SyncStateEntity
+import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
+import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode

@@ -1,6 +1,6 @@
 package com.flashcardsopensourceapp.data.local.repository
 
-import com.flashcardsopensourceapp.data.local.database.WorkspaceSchedulerSettingsEntity
+import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceSchedulerSettingsEntity
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.data.local.model.scheduling.WorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagSummary

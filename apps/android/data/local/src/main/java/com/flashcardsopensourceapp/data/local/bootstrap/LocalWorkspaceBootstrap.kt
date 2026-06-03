@@ -1,11 +1,11 @@
 package com.flashcardsopensourceapp.data.local.bootstrap
 
 import androidx.room.withTransaction
-import com.flashcardsopensourceapp.data.local.database.AppDatabase
-import com.flashcardsopensourceapp.data.local.database.AppLocalSettingsEntity
-import com.flashcardsopensourceapp.data.local.database.SyncStateEntity
-import com.flashcardsopensourceapp.data.local.database.WorkspaceEntity
-import com.flashcardsopensourceapp.data.local.database.WorkspaceSchedulerSettingsEntity
+import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
+import com.flashcardsopensourceapp.data.local.database.entities.AppLocalSettingsEntity
+import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
+import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceEntity
+import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceSchedulerSettingsEntity
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.scheduling.encodeSchedulerStepListJson
 import com.flashcardsopensourceapp.data.local.model.scheduling.makeDefaultWorkspaceSchedulerSettings

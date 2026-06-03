@@ -7,8 +7,8 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.RemotePullResponse
 import com.flashcardsopensourceapp.data.local.cloud.remote.RemotePushResponse
 import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteReviewHistoryPullResponse
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
-import com.flashcardsopensourceapp.data.local.database.CardEntity
-import com.flashcardsopensourceapp.data.local.database.SyncStateEntity
+import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
+import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeCompletion
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode

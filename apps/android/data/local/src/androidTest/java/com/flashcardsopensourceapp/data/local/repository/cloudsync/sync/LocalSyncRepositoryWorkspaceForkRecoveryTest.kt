@@ -4,9 +4,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.cloud.remote.RemotePushOperationResult
 import com.flashcardsopensourceapp.data.local.cloud.remote.RemotePushResponse
-import com.flashcardsopensourceapp.data.local.database.CardEntity
-import com.flashcardsopensourceapp.data.local.database.OutboxEntryEntity
-import com.flashcardsopensourceapp.data.local.database.SyncStateEntity
+import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
+import com.flashcardsopensourceapp.data.local.database.entities.OutboxEntryEntity
+import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState

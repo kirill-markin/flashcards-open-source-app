@@ -1,8 +1,8 @@
 package com.flashcardsopensourceapp.data.local.repository.progress
 
-import com.flashcardsopensourceapp.data.local.database.ProgressReviewScheduleCacheEntity
-import com.flashcardsopensourceapp.data.local.database.ProgressSeriesCacheEntity
-import com.flashcardsopensourceapp.data.local.database.ProgressSummaryCacheEntity
+import com.flashcardsopensourceapp.data.local.database.entities.ProgressReviewScheduleCacheEntity
+import com.flashcardsopensourceapp.data.local.database.entities.ProgressSeriesCacheEntity
+import com.flashcardsopensourceapp.data.local.database.entities.ProgressSummaryCacheEntity
 import com.flashcardsopensourceapp.data.local.model.progress.CloudDailyReviewPoint
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewScheduleBucket

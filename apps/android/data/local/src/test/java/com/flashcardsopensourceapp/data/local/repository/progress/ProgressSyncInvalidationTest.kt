@@ -1,6 +1,6 @@
 package com.flashcardsopensourceapp.data.local.repository.progress
 
-import com.flashcardsopensourceapp.data.local.database.SyncStateEntity
+import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
