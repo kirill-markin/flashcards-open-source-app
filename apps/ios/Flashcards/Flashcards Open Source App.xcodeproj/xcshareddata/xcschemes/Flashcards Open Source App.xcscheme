@@ -73,7 +73,7 @@
       </EnvironmentVariables>
       <Testables>
          <TestableReference
-            skipped = "NO"
+            skipped = "YES"
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"

@@ -525,10 +525,22 @@ struct AIChatView: View {
             return
         }
 
+        if self.chatStore.hasAppliedPresentationRequest(request: resolvedRequest) {
+            self.completeAIChatPresentationRequest()
+            return
+        }
+
         let didApplyRequest = self.chatStore.applyPresentationRequest(request: resolvedRequest)
         guard didApplyRequest else {
             return
         }
+        guard self.chatStore.hasAppliedPresentationRequest(request: resolvedRequest) else {
+            return
+        }
+        self.completeAIChatPresentationRequest()
+    }
+
+    func completeAIChatPresentationRequest() {
         self.deferredPresentationRequest = nil
         self.isComposerFocused = true
         self.navigation.clearAIChatPresentationRequest()
@@ -591,6 +603,15 @@ struct AIChatView: View {
 
     func handlePresentationRequestChange(request: AIChatPresentationRequest?) {
         self.captureAIChatPresentationRequest(request: request)
+        guard self.deferredPresentationRequest != nil else {
+            return
+        }
+        guard self.navigation.selectedTab == .ai else {
+            self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
+            return
+        }
+
+        self.syncChatSurface(refreshConsent: false)
         self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
     }
 

@@ -1,6 +1,18 @@
 import Foundation
 
 extension AIChatStore {
+    func hasAppliedPresentationRequest(request: AIChatPresentationRequest) -> Bool {
+        switch request {
+        case .createCard:
+            return self.inputText == aiChatCreateCardDraftPrompt
+        case .attachCard(let card):
+            return aiChatPendingAttachmentsContainMatchingCard(
+                pendingAttachments: self.pendingAttachments,
+                card: card
+            )
+        }
+    }
+
     func clearHistory() {
         guard self.canStartNewChat else {
             return
@@ -25,6 +37,7 @@ extension AIChatStore {
             pendingAttachments: self.pendingAttachments,
             card: card
         ) {
+            self.schedulePersistCurrentDraftState()
             self.activeAlert = nil
             self.repairStatus = nil
             return true
@@ -35,6 +48,7 @@ extension AIChatStore {
                 attachment: attachment,
                 cardId: card.cardId
             )
+            self.schedulePersistCurrentDraftState()
             self.activeAlert = nil
             self.repairStatus = nil
             return true
