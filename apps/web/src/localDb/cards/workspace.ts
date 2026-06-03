@@ -19,7 +19,7 @@ import {
 } from "../core/database";
 import { loadDecksListSnapshot, putDeckInTransaction } from "./decks";
 import { loadProgressCacheState, markProgressCacheDirtyInTransaction } from "../progress/progress";
-import { putReviewEventInTransaction } from "../reviews";
+import { putReviewEventInTransaction } from "../reviews/reviews";
 
 type HotSyncStateUpdate = Readonly<{
   lastAppliedHotChangeId: number;

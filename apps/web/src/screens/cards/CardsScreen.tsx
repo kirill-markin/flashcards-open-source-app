@@ -6,8 +6,8 @@ import { EFFORT_LEVELS } from "../../deckFilters";
 import { useI18n } from "../../i18n";
 import { CardTagsInput, type CardTagsInputHandle } from "./CardTagsInput";
 import { EditableCardEffortCell, EditableCardTagsCell, EditableCardTextCell } from "./CardsTableEditors";
-import { queryLocalCardsPage } from "../../localDb/cards";
-import { loadWorkspaceTagsSummary } from "../../localDb/workspace";
+import { queryLocalCardsPage } from "../../localDb/cards/cards";
+import { loadWorkspaceTagsSummary } from "../../localDb/cards/workspace";
 import { captureAppOperationError } from "../../observability/appOperationObservation";
 import type { Card, CardFilter, CardQuerySort, CardQuerySortDirection, CardQuerySortKey, QueryCardsPage, TagSuggestion, UpdateCardInput } from "../../types";
 import {

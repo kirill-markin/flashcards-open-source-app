@@ -11,8 +11,8 @@ import {
   settingsSchedulerRoute,
   settingsTagsRoute,
 } from "../../../routes";
-import { loadDecksListSnapshot } from "../../../localDb/decks";
-import { loadWorkspaceTagsSummary } from "../../../localDb/workspace";
+import { loadDecksListSnapshot } from "../../../localDb/cards/decks";
+import { loadWorkspaceTagsSummary } from "../../../localDb/cards/workspace";
 import { captureApiContractError } from "../../../observability/apiContractObservation";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
 import { SettingsActionCard, SettingsGroup, SettingsNavigationCard, SettingsShell } from "../SettingsShared";

@@ -6,7 +6,7 @@ import { malformedDueAtBucketMillis, nullDueAtBucketMillis, parseDueAtMillis } f
 import { clearWebSyncCache } from "./cache";
 import { closeDatabaseAfter, deleteDatabase, getAllFromStore, openDatabase, type StoredCard } from "./database";
 import { listOutboxRecords, type PersistedOutboxRecord } from "../sync/outbox";
-import { loadReviewQueueSnapshot } from "../reviews";
+import { loadReviewQueueSnapshot } from "../reviews/reviews";
 import { makeCard, workspaceId } from "./testSupport";
 import type { Card } from "../../types";
 

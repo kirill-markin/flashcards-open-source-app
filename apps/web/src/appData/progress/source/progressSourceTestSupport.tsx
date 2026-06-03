@@ -92,7 +92,7 @@ vi.mock("../../../localDb/progress/progress", () => ({
   loadPendingProgressDailyReviews: progressSourceMocks.loadPendingProgressDailyReviewsMock,
 }));
 
-vi.mock("../../../localDb/reviewSchedule", () => ({
+vi.mock("../../../localDb/reviews/reviewSchedule", () => ({
   calculatePendingProgressReviewScheduleCardTotalDelta: progressSourceMocks.calculatePendingProgressReviewScheduleCardTotalDeltaMock,
   hasCompleteLocalProgressReviewScheduleCoverage: progressSourceMocks.hasCompleteLocalProgressReviewScheduleCoverageMock,
   hasPendingProgressReviewScheduleCardChanges: progressSourceMocks.hasPendingProgressReviewScheduleCardChangesMock,

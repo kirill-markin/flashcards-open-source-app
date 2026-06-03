@@ -1,10 +1,10 @@
 import { computeReviewSchedule, type ReviewRating } from "../../../../backend/src/scheduling";
-import { loadCardById, putCard } from "../../localDb/cards";
+import { loadCardById, putCard } from "../../localDb/cards/cards";
 import { loadCloudSettings } from "../../localDb/sync/cloudSettings";
-import { loadDeckById, putDeck } from "../../localDb/decks";
+import { loadDeckById, putDeck } from "../../localDb/cards/decks";
 import { putOutboxRecord, type PersistedOutboxRecord } from "../../localDb/sync/outbox";
-import { putReviewEvent } from "../../localDb/reviews";
-import { loadWorkspaceSettings } from "../../localDb/workspace";
+import { putReviewEvent } from "../../localDb/reviews/reviews";
+import { loadWorkspaceSettings } from "../../localDb/cards/workspace";
 import type {
   Card,
   CreateCardInput,

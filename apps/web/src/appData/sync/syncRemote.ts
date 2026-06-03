@@ -5,7 +5,7 @@ import {
   pushSyncOperations,
 } from "../../api";
 import { webAppVersion } from "../../clientIdentity";
-import { loadActiveCardCount, loadCardsByIds } from "../../localDb/cards";
+import { loadActiveCardCount, loadCardsByIds } from "../../localDb/cards/cards";
 import {
   ensurePersistentStorage,
   readPersistentStorageState,
@@ -25,7 +25,7 @@ import {
   loadLastAppliedHotChangeId,
   loadLastAppliedReviewSequenceId,
   loadWorkspaceSyncState,
-} from "../../localDb/workspace";
+} from "../../localDb/cards/workspace";
 import type { SyncRestoreLocalBootstrapState } from "../../observability/webObservability";
 import type {
   SyncBootstrapEntry,

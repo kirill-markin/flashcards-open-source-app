@@ -1,4 +1,4 @@
-import { loadAllActiveCardsForSql } from "./localDb/cards";
+import { loadAllActiveCardsForSql } from "./localDb/cards/cards";
 import type { Card } from "./types";
 
 type WorkspaceExportUrlApi = Readonly<{

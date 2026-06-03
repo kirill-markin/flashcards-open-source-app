@@ -4,7 +4,7 @@ import { useAppData } from "../../../../appData";
 import { ALL_CARDS_DECK_SLUG } from "../../../../deckFilters";
 import { useI18n } from "../../../../i18n";
 import { buildSettingsDeckDetailRoute, settingsDeckNewRoute } from "../../../../routes";
-import { loadDecksListSnapshot } from "../../../../localDb/decks";
+import { loadDecksListSnapshot } from "../../../../localDb/cards/decks";
 import { captureAppOperationError } from "../../../../observability/appOperationObservation";
 import type { DeckCardStats, DecksListSnapshot } from "../../../../types";
 import { formatDeckFilterSummary } from "../../../shared/featureFormatting";
