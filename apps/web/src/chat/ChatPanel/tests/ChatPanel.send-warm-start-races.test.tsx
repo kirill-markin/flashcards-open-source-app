@@ -11,7 +11,7 @@ import {
   setupChatPanelTest,
   startChatRunMock,
 } from "./support/ChatPanelTestSupport";
-import { storeChatSessionWarmStartSnapshot } from "../../sessionController/warmStart";
+import { storeChatSessionWarmStartSnapshot } from "../../sessionController/lifecycle/warmStart";
 
 const {
   flushAsync,

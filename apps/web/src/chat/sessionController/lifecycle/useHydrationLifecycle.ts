@@ -1,23 +1,23 @@
 import { useCallback, useEffect, useEffectEvent, useRef, type Dispatch } from "react";
-import type { Locale } from "../../i18n/types";
-import { loadStoredChatConfig } from "./config";
+import type { Locale } from "../../../i18n/types";
+import { loadStoredChatConfig } from "../support/config";
 import type {
   ChatSessionControllerAction,
   ChatSessionControllerState,
-} from "./state";
+} from "../state/state";
 import {
   createClientChatSessionId,
   resolveInitialHydrationSessionId,
   toErrorMessage,
-} from "./helpers";
+} from "../support/helpers";
 import { isChatSessionStale } from "./freshness";
-import type { ChatSessionSnapshotSync } from "./useSnapshotSync";
+import type { ChatSessionSnapshotSync } from "../snapshotSync/useSnapshotSync";
 import {
   loadChatSessionWarmStartSnapshot,
   type WarmStartChatSessionSnapshot,
 } from "./warmStart";
-import type { ChatHistoryState } from "../history/useChatHistory";
-import type { ChatSessionControllerUiMessages } from "./types";
+import type { ChatHistoryState } from "../../history/useChatHistory";
+import type { ChatSessionControllerUiMessages } from "../support/types";
 
 type UseChatSessionHydrationLifecycleParams = Readonly<{
   workspaceId: string | null;

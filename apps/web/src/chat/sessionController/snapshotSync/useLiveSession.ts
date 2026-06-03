@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from "react";
-import type { ChatLiveStream } from "../../types";
+import type { ChatLiveStream } from "../../../types";
 import {
   ChatLiveContractError,
   ChatLiveHttpError,
   consumeChatLiveStream,
   type ChatLiveEvent,
-} from "../streaming/liveStream";
+} from "../../streaming/liveStream";
 import {
   captureWebException,
   normalizeCaughtError,
   type WebObservationScope,
-} from "../../observability/webObservability";
+} from "../../../observability/webObservability";
 
 type ActiveLiveStreamConnection = Readonly<{
   sessionId: string;

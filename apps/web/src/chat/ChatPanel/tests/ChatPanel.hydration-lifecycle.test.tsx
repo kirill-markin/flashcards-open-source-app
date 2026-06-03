@@ -13,7 +13,7 @@ import {
   createUnverifiedWorkspaceAppDataMock,
   createVerifiedWorkspaceAppDataMock,
 } from "./support/ChatPanelTestFixtures";
-import { storeChatSessionWarmStartSnapshot } from "../../sessionController/warmStart";
+import { storeChatSessionWarmStartSnapshot } from "../../sessionController/lifecycle/warmStart";
 
 const {
   flushAsync,

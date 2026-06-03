@@ -1,9 +1,9 @@
-import type { Locale } from "../../i18n/types";
-import type { ChatConfig, ChatComposerSuggestion } from "../../types";
-import type { ChatErrorFallbackMessages } from "../shared/chatHelpers";
-import type { PendingAttachment } from "../attachments/FileAttachment";
-import type { StoredMessage } from "../history/useChatHistory";
-import type { ChatComposerAction, ChatRunState } from "./runState";
+import type { Locale } from "../../../i18n/types";
+import type { ChatConfig, ChatComposerSuggestion } from "../../../types";
+import type { ChatErrorFallbackMessages } from "../../shared/chatHelpers";
+import type { PendingAttachment } from "../../attachments/FileAttachment";
+import type { StoredMessage } from "../../history/useChatHistory";
+import type { ChatComposerAction, ChatRunState } from "../state/runState";
 
 export type ChatSessionControllerUiMessages = Readonly<{
   activeRunInProgress: string;

@@ -6,46 +6,50 @@ import {
   createNewChatSession,
   startChatRun,
   stopChatRun,
-} from "../../api";
+} from "../../../api";
 import {
   captureWebException,
   normalizeCaughtError,
   type ChatRunRequestFailureDetails,
   type WebObservationScope,
-} from "../../observability/webObservability";
-import type { Locale } from "../../i18n/types";
+} from "../../../observability/webObservability";
+import type { Locale } from "../../../i18n/types";
 import type {
   NewChatSessionResponse,
   StartChatRunRequestBody,
   StartChatRunResponse,
-} from "../../types";
-import { loadStoredChatConfig, storeChatConfig } from "./config";
+} from "../../../types";
+import {
+  getChatApiObservationMetadata,
+  getCurrentRoute,
+} from "../support/apiObservation";
+import { loadStoredChatConfig, storeChatConfig } from "../support/config";
 import {
   createClientChatSessionId,
   isChatApiError,
   toErrorMessage,
-} from "./helpers";
+} from "../support/helpers";
 import type {
   ChatSessionControllerAction,
   ChatSessionControllerState,
-} from "./state";
+} from "../state/state";
 import type {
   ChatSessionControllerUiMessages,
   SendChatMessageParams,
   SendChatMessageResult,
-} from "./types";
-import type { ChatSessionSnapshotSync } from "./useSnapshotSync";
+} from "../support/types";
+import type { ChatSessionSnapshotSync } from "../snapshotSync/useSnapshotSync";
 import {
   ATTACHMENT_PAYLOAD_LIMIT_BYTES,
   buildContentParts,
   toRequestBodySizeBytes,
-} from "../shared/chatHelpers";
-import { binaryPendingAttachmentExceedsSizeLimit } from "../attachments/FileAttachment";
+} from "../../shared/chatHelpers";
+import { binaryPendingAttachmentExceedsSizeLimit } from "../../attachments/FileAttachment";
 import {
   isAiChatAttachmentUnsupportedTypeError,
   isAiChatRequestTooLargeError,
-} from "../shared/chatSizePolicy";
-import type { ChatHistoryState } from "../history/useChatHistory";
+} from "../../shared/chatSizePolicy";
+import type { ChatHistoryState } from "../../history/useChatHistory";
 
 type FreshSessionErrorPresentation = "new_chat" | "refresh" | "silent";
 
@@ -70,36 +74,6 @@ type ChatSessionActions = Readonly<{
   ensureFreshSessionWithRefreshError: (sessionId: string, requestSequence: number) => void;
   getFreshSessionRequestSequence: () => number;
 }>;
-
-type ChatApiObservationMetadata = Readonly<{
-  requestId: string | null;
-  statusCode: number | null;
-  code: string | null;
-}>;
-
-function getCurrentRoute(): string | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
-}
-
-function getChatApiObservationMetadata(error: Error): ChatApiObservationMetadata {
-  if (error instanceof ApiError || error instanceof ApiContractError) {
-    return {
-      requestId: error.requestId,
-      statusCode: error.statusCode,
-      code: error.code,
-    };
-  }
-
-  return {
-    requestId: null,
-    statusCode: null,
-    code: null,
-  };
-}
 
 function buildChatRequestScope(workspaceId: string | null, error: Error): WebObservationScope {
   const metadata = getChatApiObservationMetadata(error);
@@ -694,8 +668,9 @@ export function useChatSessionActions(
     let didRecoverSessionIdConflict = false;
 
     try {
-      sessionId = await ensureRemoteSession();
-      if (prepareDraftTargetSession(sessionId) === false) {
+      const ensuredSessionId = await ensureRemoteSession();
+      sessionId = ensuredSessionId;
+      if (prepareDraftTargetSession(ensuredSessionId) === false) {
         return finishStaleRequest();
       }
     } catch (error) {

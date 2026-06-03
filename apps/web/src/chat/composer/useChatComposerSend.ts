@@ -20,7 +20,7 @@ import type {
   SendChatMessageParams,
   SendChatMessageResult,
 } from "../sessionController";
-import type { ChatComposerAction } from "../sessionController/runState";
+import type { ChatComposerAction } from "../sessionController/state/runState";
 
 type UseChatComposerSendParams = Readonly<{
   activeWorkspaceId: string | null;

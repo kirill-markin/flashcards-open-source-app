@@ -1,15 +1,15 @@
-import { ApiError } from "../../api";
-import { addWebBreadcrumb, type WebObservationScope } from "../../observability/webObservability";
+import { ApiError } from "../../../api";
+import { addWebBreadcrumb, type WebObservationScope } from "../../../observability/webObservability";
 import type {
   ChatComposerSuggestion,
   ChatConfig,
   ContentPart,
   ReasoningSummaryContentPart,
   ToolCallContentPart,
-} from "../../types";
-import { sanitizeErrorTextWithFallbackMessages, type ChatErrorFallbackMessages } from "../shared/chatHelpers";
-import type { ChatLiveEvent } from "../streaming/liveStream";
-import type { StoredMessage } from "../history/useChatHistory";
+} from "../../../types";
+import { sanitizeErrorTextWithFallbackMessages, type ChatErrorFallbackMessages } from "../../shared/chatHelpers";
+import type { ChatLiveEvent } from "../../streaming/liveStream";
+import type { StoredMessage } from "../../history/useChatHistory";
 
 type ChatDebugDetailValue = string | number | boolean | null;
 export type ChatDebugDetails = Readonly<Record<string, ChatDebugDetailValue>>;

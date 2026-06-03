@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, vi } from "vitest";
 import { I18nProvider, useI18n } from "../../../../i18n";
 import type { Locale, LocalePreference } from "../../../../i18n/types";
 import type { ChatSessionSnapshot, StartChatRunRequestBody } from "../../../../types";
-import { defaultChatConfig } from "../../../sessionController/config";
+import { defaultChatConfig } from "../../../sessionController/support/config";
 import { ChatDraftProvider } from "../../../composer/ChatDraftContext";
 import { ChatSessionControllerProvider } from "../../../sessionController";
 import {
