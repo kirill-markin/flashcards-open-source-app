@@ -30,6 +30,8 @@ import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceResetProgressP
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceResetProgressResult
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
+import com.flashcardsopensourceapp.data.local.model.CloudFeedbackState
+import com.flashcardsopensourceapp.data.local.model.CloudFeedbackTrigger
 import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnection
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
@@ -43,6 +45,7 @@ import com.flashcardsopensourceapp.data.local.model.ProgressSeriesSnapshot
 import com.flashcardsopensourceapp.data.local.model.ProgressSummarySnapshot
 import com.flashcardsopensourceapp.data.local.model.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.FeedbackPromptReviewActivity
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.ReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.ReviewTimelinePage
@@ -106,6 +109,11 @@ interface ReviewRepository {
 
     suspend fun countRecordedReviewsInCurrentWorkspace(): Int
 
+    suspend fun loadFeedbackPromptReviewActivity(
+        currentLocalDayStartMillis: Long,
+        nextLocalDayStartMillis: Long
+    ): FeedbackPromptReviewActivity
+
     suspend fun loadReviewCardForRollback(selectedFilter: ReviewFilter, cardId: String): ReviewCard?
 
     suspend fun recordReview(cardId: String, rating: ReviewRating, reviewedAtMillis: Long)
@@ -127,6 +135,12 @@ interface ProgressRepository {
     suspend fun refreshSummaryManually()
     suspend fun refreshSeriesManually()
     suspend fun refreshReviewScheduleManually()
+}
+
+interface FeedbackRepository {
+    suspend fun loadFeedbackStateForExistingCloudSession(): CloudFeedbackState?
+    suspend fun recordAutomaticPromptShownForExistingCloudSession(): CloudFeedbackState?
+    suspend fun submitFeedback(trigger: CloudFeedbackTrigger, message: String): CloudFeedbackState
 }
 
 interface CloudAccountRepository {

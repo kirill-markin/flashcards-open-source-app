@@ -22,6 +22,17 @@ interface ReviewLogDao {
 
     @Query(
         """
+        SELECT COUNT(*)
+        FROM review_logs
+        WHERE workspaceId = :workspaceId
+            AND reviewedAtMillis >= :startMillis
+            AND reviewedAtMillis < :endMillis
+        """
+    )
+    suspend fun countReviewLogsBetween(workspaceId: String, startMillis: Long, endMillis: Long): Int
+
+    @Query(
+        """
         SELECT EXISTS(
             SELECT 1
             FROM review_logs
@@ -32,6 +43,19 @@ interface ReviewLogDao {
         """
     )
     suspend fun hasReviewLogsBetween(startMillis: Long, endMillis: Long): Boolean
+
+    @Query(
+        """
+        SELECT EXISTS(
+            SELECT 1
+            FROM review_logs
+            WHERE workspaceId = :workspaceId
+                AND reviewedAtMillis < :beforeMillis
+            LIMIT 1
+        )
+        """
+    )
+    suspend fun hasReviewLogsBefore(workspaceId: String, beforeMillis: Long): Boolean
 
     @Query(
         """

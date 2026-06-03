@@ -15,6 +15,16 @@
     <string name="guest_sign_in_after_review_prompt_body">Sign in with email so these cards and review progress are not lost.</string>
     <string name="guest_sign_in_after_review_prompt_sign_in">Sign in</string>
     <string name="guest_sign_in_after_review_prompt_later">Later</string>
+    <string name="feedback_prompt_title">Have an idea for Flashcards?</string>
+    <string name="feedback_prompt_body">Share what would make the app better. The creator reads every message personally.</string>
+    <string name="feedback_prompt_message_label">Write your idea here</string>
+    <string name="feedback_prompt_send">Send</string>
+    <string name="feedback_prompt_cancel">Cancel</string>
+    <string name="feedback_prompt_not_now">Not now</string>
+    <string name="feedback_prompt_submit_success">Thanks. Your feedback was sent.</string>
+    <string name="feedback_prompt_submit_failed">Feedback could not be sent. Check your connection and try again.</string>
+    <string name="feedback_prompt_empty_message">Write a message before sending.</string>
+    <string name="feedback_prompt_message_too_long">Feedback must be %1$d characters or fewer.</string>
     <string name="review_notification_channel_name">Review reminders</string>
     <string name="review_notification_channel_description">Study reminders with cards from your review queue.</string>
 </resources>

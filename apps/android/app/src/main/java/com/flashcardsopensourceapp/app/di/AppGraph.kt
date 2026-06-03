@@ -5,10 +5,12 @@ import android.util.Log
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import com.flashcardsopensourceapp.app.AutoSyncController
+import com.flashcardsopensourceapp.app.FeedbackPromptController
 import com.flashcardsopensourceapp.app.GuestSignInAfterReviewPromptController
 import com.flashcardsopensourceapp.app.navigation.AppPackageInfo
 import com.flashcardsopensourceapp.app.navigation.loadPackageInfo
 import com.flashcardsopensourceapp.app.ProgressContextRefreshController
+import com.flashcardsopensourceapp.app.SharedPreferencesFeedbackPromptStore
 import com.flashcardsopensourceapp.app.observability.renderSanitizedThrowableLogFields
 import com.flashcardsopensourceapp.app.SharedPreferencesGuestSignInAfterReviewPromptStore
 import com.flashcardsopensourceapp.app.store.NoOpStoreReviewAnalyticsReporter
@@ -56,10 +58,12 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.CloudGu
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.DecksRepository
+import com.flashcardsopensourceapp.data.local.repository.FeedbackRepository
 import com.flashcardsopensourceapp.data.local.repository.ai.LocalAiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.LocalCloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.LocalCardsRepository
 import com.flashcardsopensourceapp.data.local.repository.LocalDecksRepository
+import com.flashcardsopensourceapp.data.local.repository.LocalFeedbackRepository
 import com.flashcardsopensourceapp.data.local.repository.progress.LocalProgressCacheStore
 import com.flashcardsopensourceapp.data.local.repository.progress.LocalProgressRepository
 import com.flashcardsopensourceapp.data.local.repository.LocalReviewRepository
@@ -153,6 +157,7 @@ class AppGraph(
     private val guestSignInAfterReviewPromptStore = SharedPreferencesGuestSignInAfterReviewPromptStore(
         context = context
     )
+    private val feedbackPromptStore = SharedPreferencesFeedbackPromptStore(context = context)
     private val notificationsStore = SharedPreferencesReviewNotificationsStore(context = context)
     val reviewNotificationsStore: ReviewNotificationsStore = notificationsStore
     val strictRemindersStore: StrictRemindersStore = notificationsStore
@@ -283,11 +288,27 @@ class AppGraph(
         syncLocalStore = syncLocalStore,
         localProgressCacheStore = localProgressCacheStore
     )
+    val feedbackRepository: FeedbackRepository = LocalFeedbackRepository(
+        database = database,
+        preferencesStore = cloudPreferencesStore,
+        remoteService = cloudRemoteService,
+        cloudGuestSessionCoordinator = cloudGuestSessionCoordinator,
+        syncRepository = syncRepository,
+        appVersion = appPackageInfo.versionName
+    )
     val guestSignInAfterReviewPromptController = GuestSignInAfterReviewPromptController(
         appScope = appScope,
         cloudAccountRepository = cloudAccountRepository,
         reviewRepository = reviewRepository,
         promptStore = guestSignInAfterReviewPromptStore
+    )
+    val feedbackPromptController = FeedbackPromptController(
+        appScope = appScope,
+        context = context,
+        feedbackRepository = feedbackRepository,
+        reviewRepository = reviewRepository,
+        promptStore = feedbackPromptStore,
+        messageController = appMessageBus
     )
     val progressRepository: ProgressRepository = LocalProgressRepository(
         appScope = appScope,

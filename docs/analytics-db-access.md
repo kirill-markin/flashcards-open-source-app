@@ -105,7 +105,7 @@ The baseline schema migration creates a dedicated login role and its read-only g
 - role name: `reporting_readonly`
 - login enabled
 - `CONNECT` on database `flashcards`
-- `USAGE` on schemas `org`, `content`, `sync`
+- `USAGE` on schemas `org`, `content`, `sync`, `support`
 - `SELECT` only on the allowed tables listed below
 
 The baseline schema migration also enforces the persistent runtime policy for this role:
@@ -130,6 +130,7 @@ The role gets `USAGE` on these schemas:
 - `org`
 - `content`
 - `sync`
+- `support`
 
 ## Granted tables
 
@@ -143,6 +144,8 @@ The role gets `SELECT` on these tables only:
 - `content.review_events`
 - `sync.workspace_replicas`
 - `sync.installations`
+- `support.feedback_submissions`
+- `support.feedback_prompt_events`
 
 No write access is granted.
 
@@ -247,3 +250,8 @@ Use sync tables only when the investigation actually needs sync-level state:
 
 - `sync.workspace_replicas`
 - `sync.installations`
+
+Use support tables when the investigation needs submitted product feedback or automatic feedback prompt history:
+
+- `support.feedback_submissions`
+- `support.feedback_prompt_events`

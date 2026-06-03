@@ -81,6 +81,7 @@ fun SettingsRoute(
     onOpenAccount: () -> Unit,
     onOpenDevice: () -> Unit,
     onOpenAccess: () -> Unit,
+    onOpenFeedback: () -> Unit,
     onOpenTest: () -> Unit
 ) {
     SettingsScreenScaffold(
@@ -186,6 +187,20 @@ fun SettingsRoute(
                             Text(stringResource(R.string.settings_root_access_summary))
                         },
                         modifier = Modifier.clickable(onClick = onOpenAccess)
+                    )
+                }
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    ListItem(
+                        headlineContent = {
+                            Text(stringResource(R.string.settings_root_feedback_title))
+                        },
+                        supportingContent = {
+                            Text(stringResource(R.string.settings_root_feedback_summary))
+                        },
+                        modifier = Modifier.clickable(onClick = onOpenFeedback)
                     )
                 }
             }

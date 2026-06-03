@@ -53,6 +53,7 @@ class ReviewViewModel(
     private val onReviewNotificationsChanged: (ReviewNotificationsReconcileTrigger) -> Unit,
     private val onSuccessfulReviewRecorded: (Long) -> Unit,
     private val onStoreReviewOpportunity: suspend () -> Boolean,
+    private val onAutomaticFeedbackPromptCandidate: () -> Unit,
     private val onNotificationPermissionGranted: () -> Unit,
     private val reviewPreferencesStore: ReviewPreferencesStore,
     visibleAppScreenRepository: VisibleAppScreenRepository,
@@ -331,10 +332,10 @@ class ReviewViewModel(
                 } else {
                     false
                 }
+                val shouldRequestPostReviewPrompt = isCurrentSubmissionContext && didShowHardAnswerReminder.not()
                 handleSuccessfulReviewRecorded(
                     reviewedAtMillis = reviewedAtMillis,
-                    canEvaluatePostReviewPrompts = isCurrentSubmissionContext
-                        && didShowHardAnswerReminder.not()
+                    canEvaluatePostReviewPrompts = shouldRequestPostReviewPrompt
                 )
             } catch (error: Throwable) {
                 if (error is CancellationException) {
@@ -436,26 +437,27 @@ class ReviewViewModel(
         }
 
         val promptState = reviewNotificationsStore.loadPromptState()
-        if (hasEnoughReviewHistoryForNotificationPrompt(reviewCount = reviewCount).not()) {
-            return
-        }
-        if (promptState.hasShownPrePrompt || promptState.hasRequestedSystemPermission || promptState.hasDismissedPrePrompt) {
-            return
-        }
-        if (shouldShowNotificationPermissionPrePrompt().not()) {
+        if (
+            hasEnoughReviewHistoryForNotificationPrompt(reviewCount = reviewCount) &&
+            promptState.hasShownPrePrompt.not() &&
+            promptState.hasRequestedSystemPermission.not() &&
+            promptState.hasDismissedPrePrompt.not() &&
+            shouldShowNotificationPermissionPrePrompt()
+        ) {
+            draftState.update { state ->
+                state.copy(isNotificationPermissionPromptVisible = true)
+            }
+            reviewNotificationsStore.savePromptState(
+                state = NotificationPermissionPromptState(
+                    hasShownPrePrompt = true,
+                    hasRequestedSystemPermission = false,
+                    hasDismissedPrePrompt = false
+                )
+            )
             return
         }
 
-        draftState.update { state ->
-            state.copy(isNotificationPermissionPromptVisible = true)
-        }
-        reviewNotificationsStore.savePromptState(
-            state = NotificationPermissionPromptState(
-                hasShownPrePrompt = true,
-                hasRequestedSystemPermission = false,
-                hasDismissedPrePrompt = false
-            )
-        )
+        onAutomaticFeedbackPromptCandidate()
     }
 
     private fun isReviewPromptVisible(): Boolean {
@@ -731,6 +733,7 @@ fun createReviewViewModelFactory(
     onReviewNotificationsChanged: (ReviewNotificationsReconcileTrigger) -> Unit,
     onSuccessfulReviewRecorded: (Long) -> Unit,
     onStoreReviewOpportunity: suspend () -> Boolean,
+    onAutomaticFeedbackPromptCandidate: () -> Unit,
     onNotificationPermissionGranted: () -> Unit,
     reviewPreferencesStore: ReviewPreferencesStore,
     visibleAppScreenRepository: VisibleAppScreenRepository,
@@ -749,6 +752,7 @@ fun createReviewViewModelFactory(
                 onReviewNotificationsChanged = onReviewNotificationsChanged,
                 onSuccessfulReviewRecorded = onSuccessfulReviewRecorded,
                 onStoreReviewOpportunity = onStoreReviewOpportunity,
+                onAutomaticFeedbackPromptCandidate = onAutomaticFeedbackPromptCandidate,
                 onNotificationPermissionGranted = onNotificationPermissionGranted,
                 reviewPreferencesStore = reviewPreferencesStore,
                 visibleAppScreenRepository = visibleAppScreenRepository,

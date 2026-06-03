@@ -11,6 +11,7 @@ import com.flashcardsopensourceapp.data.local.database.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.database.WorkspaceSchedulerSettingsEntity
 import com.flashcardsopensourceapp.data.local.model.CardSummary
 import com.flashcardsopensourceapp.data.local.model.DeckSummary
+import com.flashcardsopensourceapp.data.local.model.FeedbackPromptReviewActivity
 import com.flashcardsopensourceapp.data.local.model.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.ReviewCardQueueStatus
@@ -287,6 +288,31 @@ class LocalReviewRepository(
         ) ?: return 0
 
         return database.reviewLogDao().countReviewLogs(workspaceId = workspace.workspaceId)
+    }
+
+    override suspend fun loadFeedbackPromptReviewActivity(
+        currentLocalDayStartMillis: Long,
+        nextLocalDayStartMillis: Long
+    ): FeedbackPromptReviewActivity {
+        val workspace: WorkspaceEntity = loadCurrentWorkspaceOrNull(
+            database = database,
+            preferencesStore = preferencesStore
+        ) ?: return FeedbackPromptReviewActivity(
+            currentLocalDayReviewCount = 0,
+            hasPreviousLocalReviewDay = false
+        )
+
+        return FeedbackPromptReviewActivity(
+            currentLocalDayReviewCount = database.reviewLogDao().countReviewLogsBetween(
+                workspaceId = workspace.workspaceId,
+                startMillis = currentLocalDayStartMillis,
+                endMillis = nextLocalDayStartMillis
+            ),
+            hasPreviousLocalReviewDay = database.reviewLogDao().hasReviewLogsBefore(
+                workspaceId = workspace.workspaceId,
+                beforeMillis = currentLocalDayStartMillis
+            )
+        )
     }
 
     override suspend fun loadReviewCardForRollback(selectedFilter: ReviewFilter, cardId: String): ReviewCard? {

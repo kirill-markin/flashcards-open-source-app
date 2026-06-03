@@ -11,6 +11,9 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteReviewHistoryIm
 import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteReviewHistoryPullResponse
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
+import com.flashcardsopensourceapp.data.local.model.CloudFeedbackPromptEventRequest
+import com.flashcardsopensourceapp.data.local.model.CloudFeedbackState
+import com.flashcardsopensourceapp.data.local.model.CloudFeedbackSubmissionRequest
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeCompletion
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeReconciliation
@@ -544,6 +547,29 @@ internal class FakeCloudRemoteGateway private constructor(
         throw UnsupportedOperationException()
     }
 
+    override suspend fun loadFeedbackState(
+        apiBaseUrl: String,
+        authorizationHeader: String
+    ): CloudFeedbackState {
+        return createDefaultFeedbackState()
+    }
+
+    override suspend fun recordFeedbackPromptEvent(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        request: CloudFeedbackPromptEventRequest
+    ): CloudFeedbackState {
+        return createDefaultFeedbackState()
+    }
+
+    override suspend fun submitFeedback(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        request: CloudFeedbackSubmissionRequest
+    ): CloudFeedbackState {
+        return createDefaultFeedbackState()
+    }
+
     override suspend fun deleteAccount(
         apiBaseUrl: String,
         bearerToken: String,
@@ -710,5 +736,13 @@ internal class FakeCloudRemoteGateway private constructor(
         val error = importReviewHistoryErrors[importReviewHistoryErrorIndex]
         importReviewHistoryErrorIndex += 1
         return error
+    }
+
+    private fun createDefaultFeedbackState(): CloudFeedbackState {
+        return CloudFeedbackState(
+            lastAutomaticPromptShownAtMillis = null,
+            lastFeedbackSubmittedAtMillis = null,
+            nextAutomaticPromptAtMillis = null
+        )
     }
 }

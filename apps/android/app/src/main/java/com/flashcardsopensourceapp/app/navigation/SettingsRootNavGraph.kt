@@ -67,6 +67,9 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             onOpenAccess = {
                 navController.navigate(route = SettingsAccessDestination.route)
             },
+            onOpenFeedback = {
+                appGraph.feedbackPromptController.openSettingsFeedback()
+            },
             onOpenTest = {
                 navController.navigate(route = SettingsTestDestination.route)
             }
