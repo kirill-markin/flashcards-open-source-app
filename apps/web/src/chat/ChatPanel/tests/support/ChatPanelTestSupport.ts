@@ -1,16 +1,16 @@
 import { StrictMode, act, createElement, useEffect, type ReactNode } from "react";
 import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, expect, vi } from "vitest";
-import { I18nProvider, useI18n } from "../../i18n";
-import type { Locale, LocalePreference } from "../../i18n/types";
-import type { ChatSessionSnapshot, StartChatRunRequestBody } from "../../types";
-import { defaultChatConfig } from "../sessionController/config";
-import { ChatDraftProvider } from "../composer/ChatDraftContext";
-import { ChatSessionControllerProvider } from "../sessionController";
+import { I18nProvider, useI18n } from "../../../../i18n";
+import type { Locale, LocalePreference } from "../../../../i18n/types";
+import type { ChatSessionSnapshot, StartChatRunRequestBody } from "../../../../types";
+import { defaultChatConfig } from "../../../sessionController/config";
+import { ChatDraftProvider } from "../../../composer/ChatDraftContext";
+import { ChatSessionControllerProvider } from "../../../sessionController";
 import {
   loadChatDraftWorkspaceState,
   readChatDraftForSession,
-} from "../composer/chatDraftStorage";
+} from "../../../composer/chatDraftStorage";
 
 const {
   ApiErrorMock,
@@ -95,15 +95,15 @@ const {
   isBinaryPendingAttachmentMock: vi.fn(),
 }));
 
-vi.mock("../../appData", () => ({
+vi.mock("../../../../appData", () => ({
   useAppData: useAppDataMock,
 }));
 
-vi.mock("../layout/ChatLayoutContext", () => ({
+vi.mock("../../../layout/ChatLayoutContext", () => ({
   useChatLayout: useChatLayoutMock,
 }));
 
-vi.mock("../../api", () => ({
+vi.mock("../../../../api", () => ({
   ApiError: ApiErrorMock,
   AuthRedirectError: AuthRedirectErrorMock,
   ApiContractError: ApiContractErrorMock,
@@ -115,7 +115,7 @@ vi.mock("../../api", () => ({
   transcribeChatAudio: transcribeChatAudioMock,
 }));
 
-vi.mock("../../observability/webObservability", () => ({
+vi.mock("../../../../observability/webObservability", () => ({
   addWebBreadcrumb: addWebBreadcrumbMock,
   captureWebException: captureWebExceptionMock,
   captureWebWarning: captureWebWarningMock,
@@ -129,15 +129,15 @@ vi.mock("../../observability/webObservability", () => ({
   setWebObservabilityUser: setWebObservabilityUserMock,
 }));
 
-vi.mock("../../localDb/outbox", () => ({
+vi.mock("../../../../localDb/outbox", () => ({
   listOutboxRecords: listOutboxRecordsMock,
 }));
 
-vi.mock("../streaming/liveStream", () => ({
+vi.mock("../../../streaming/liveStream", () => ({
   consumeChatLiveStream: consumeChatLiveStreamMock,
 }));
 
-vi.mock("../attachments/FileAttachment", () => ({
+vi.mock("../../../attachments/FileAttachment", () => ({
   checkFileSize: checkFileSizeMock,
   prepareAttachment: prepareAttachmentMock,
   recompressImageAttachment: recompressImageAttachmentMock,
@@ -183,7 +183,7 @@ vi.mock("../attachments/FileAttachment", () => ({
   ),
 }));
 
-import { ChatPanel } from "./ChatPanel";
+import { ChatPanel } from "../../ChatPanel";
 
 type ChatPanelTestHarness = Readonly<{
   getContainer: () => HTMLDivElement;

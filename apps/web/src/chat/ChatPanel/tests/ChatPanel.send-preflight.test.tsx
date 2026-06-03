@@ -10,14 +10,14 @@ import {
   setupChatPanelTest,
   startChatRunMock,
   useAppDataMock,
-} from "./ChatPanelTestSupport";
-import { createVerifiedWorkspaceAppDataMock } from "./ChatPanelTestFixtures";
+} from "./support/ChatPanelTestSupport";
+import { createVerifiedWorkspaceAppDataMock } from "./support/ChatPanelTestFixtures";
 import {
   createChatDraftContent,
   loadChatDraftWorkspaceState,
   replaceChatDraftForSession,
   storeChatDraftWorkspaceState,
-} from "../composer/chatDraftStorage";
+} from "../../composer/chatDraftStorage";
 
 const {
   flushAsync,

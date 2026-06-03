@@ -6,7 +6,7 @@ import {
   createChatSnapshot,
   getChatSnapshotMock,
   setupChatPanelTest,
-} from "./ChatPanelTestSupport";
+} from "./support/ChatPanelTestSupport";
 
 const {
   flushAsync,
