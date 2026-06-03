@@ -2,7 +2,7 @@ import {
   ensureSqlSourceColumnExists,
   getSqlColumnDescriptor,
   isSqlResourceName,
-} from "./sqlDialectSchema";
+} from "./schema";
 import type {
   ParsedSqlStatement,
   SqlAggregateFunctionName,
@@ -20,7 +20,7 @@ import type {
   SqlSelectStatement,
   SqlShowTablesStatement,
   SqlUpdateStatement,
-} from "./sqlDialectTypes";
+} from "./types";
 
 function upperCaseKeyword(value: string): string {
   return value.trim().replace(/\s+/g, " ").toUpperCase();
@@ -1005,7 +1005,7 @@ function parseDeleteStatement(normalizedSql: string): SqlDeleteStatement {
  * Canonical SQL-dialect parser for backend and browser-local runtimes.
  *
  * iOS mirror:
- * `apps/backend/src/aiTools/sqlDialectParser.ts::parseSqlStatement`
+ * `apps/backend/src/aiTools/sqlDialect/parser.ts::parseSqlStatement`
  */
 export function parseSqlStatement(value: string): ParsedSqlStatement {
   const normalizedSql = normalizeSqlWhitespace(value);

@@ -2,7 +2,7 @@
  * Shared system-prompt builders for the backend-owned chat stack.
  * These helpers keep the new server-owned chat contract aligned across routes, runtime, and replay.
  */
-import { SQL_TOOL_PROMPT_EXAMPLE_LINES } from "../aiTools/sqlToolContract";
+import { SQL_TOOL_PROMPT_EXAMPLE_LINES } from "../aiTools/toolContract/sqlToolContract";
 
 function joinLines(lines: ReadonlyArray<string>): string {
   return lines.join("\n");

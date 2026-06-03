@@ -3,7 +3,7 @@ import type {
   SqlFromSource,
   SqlResourceDescriptor,
   SqlResourceName,
-} from "./sqlDialectTypes";
+} from "./types";
 
 const cardColumnDescriptors: ReadonlyArray<SqlColumnDescriptor> = Object.freeze([
   {

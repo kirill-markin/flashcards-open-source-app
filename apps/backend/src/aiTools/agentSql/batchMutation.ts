@@ -6,7 +6,7 @@ import {
   updateCardInExecutor,
   type Card,
   type UpdateCardInput,
-} from "../cards";
+} from "../../cards";
 import {
   createDeckInExecutor,
   deleteDeckInExecutor,
@@ -15,11 +15,11 @@ import {
   type Deck,
   type DeckFilterDefinition,
   type UpdateDeckInput,
-} from "../decks";
-import { transactionWithWorkspaceScope } from "../database";
-import { HttpError } from "../shared/errors";
-import type { AgentToolOperationDependencies } from "./agentToolOperations";
-import { executeSqlSelect } from "./sqlDialect";
+} from "../../decks";
+import { transactionWithWorkspaceScope } from "../../database";
+import { HttpError } from "../../shared/errors";
+import type { AgentToolOperationDependencies } from "./operations";
+import { executeSqlSelect } from "../sqlDialect";
 import {
   MAX_SQL_LIMIT,
   assertSqlMutationRecordLimit,
@@ -38,7 +38,7 @@ import {
   type AgentSqlMutationAssignment,
   type AgentSqlMutationStatement,
   type AgentSqlSinglePayload,
-} from "./agentSqlShared";
+} from "./shared";
 
 type MutationBatchState = Readonly<{
   cards: ReadonlyArray<Card>;

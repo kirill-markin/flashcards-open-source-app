@@ -2,26 +2,26 @@ import { HttpError } from "../shared/errors";
 import {
   DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
   type AgentToolOperationDependencies,
-} from "./agentToolOperations";
+} from "./agentSql/operations";
 import {
   parseSqlStatement,
   splitSqlStatements,
   type ParsedSqlStatement,
 } from "./sqlDialect";
-import { executeSqlMutationBatch } from "./agentSqlBatchMutation";
-import { executeSqlReadBatch, executeSqlReadStatement } from "./agentSqlReadExecution";
+import { executeSqlMutationBatch } from "./agentSql/batchMutation";
+import { executeSqlReadBatch, executeSqlReadStatement } from "./agentSql/readExecution";
 import {
   isSqlMutationStatement,
   isSqlReadStatement,
   type AgentSqlContext,
-} from "./agentSqlShared";
-import { executeSqlMutationStatement } from "./agentSqlSingleMutation";
-import { MAX_SQL_BATCH_STATEMENT_COUNT } from "./sqlToolLimits";
+} from "./agentSql/shared";
+import { executeSqlMutationStatement } from "./agentSql/singleMutation";
+import { MAX_SQL_BATCH_STATEMENT_COUNT } from "./toolContract/sqlToolLimits";
 
 export type {
   AgentSqlExecutionResult,
   AgentSqlPayload,
-} from "./agentSqlShared";
+} from "./agentSql/shared";
 
 function buildInvalidSqlError(message: string): HttpError {
   return new HttpError(400, message, "QUERY_INVALID_SQL", {
