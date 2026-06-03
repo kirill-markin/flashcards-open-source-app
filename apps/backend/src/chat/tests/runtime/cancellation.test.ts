@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   runPersistedChatSessionWithDeps,
-} from "../runtime";
+} from "../../runtime";
 import type {
   OpenAILoopCompletion,
   OpenAILoopEventSink,
   StartOpenAILoopParams,
-} from "../openai/loop";
+} from "../../openai/loop";
 import {
   CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS,
   createAbortError,
@@ -18,7 +18,7 @@ import {
   findLog,
   withCapturedLogs,
   withControlledHeartbeat,
-} from "./chat-runtime-test-support";
+} from "./testSupport";
 
 test("runPersistedChatSessionWithDeps finalizes a cancelled run when the user stops during the provider call", async () => {
   let heartbeatCallCount = 0;

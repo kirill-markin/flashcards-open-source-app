@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import type {
   ChatRuntimeDependencies,
   StartPersistedChatRunParams,
-} from "../runtime";
+} from "../../runtime";
 import type {
   OpenAILoopCompletion,
-} from "../openai/loop";
+} from "../../openai/loop";
 
 type ConsoleMethod = "log" | "warn" | "error";
 type StructuredLogRecord = Readonly<Record<string, unknown> & {
