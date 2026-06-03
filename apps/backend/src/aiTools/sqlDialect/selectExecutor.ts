@@ -1,4 +1,4 @@
-import { getSqlSourceColumnDescriptors } from "./sqlDialectSchema";
+import { getSqlSourceColumnDescriptors } from "./schema";
 import type {
   SqlAggregateFunctionName,
   SqlFromSource,
@@ -13,7 +13,7 @@ import type {
   SqlSelectItem,
   SqlSelectOrderBy,
   SqlSelectStatement,
-} from "./sqlDialectTypes";
+} from "./types";
 
 function defaultAggregateAlias(functionName: SqlAggregateFunctionName, columnName: string | null): string {
   if (functionName === "count") {
@@ -539,7 +539,7 @@ function isGroupedSelect(statement: SqlSelectStatement): boolean {
 
 /**
  * iOS mirror:
- * `apps/backend/src/aiTools/sqlDialectSelectExecutor.ts::executeSqlSelect`
+ * `apps/backend/src/aiTools/sqlDialect/selectExecutor.ts::executeSqlSelect`
  */
 export function executeSqlSelect(
   statement: SqlSelectStatement,

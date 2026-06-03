@@ -26,7 +26,7 @@ import {
   type CreateCardInput,
   type EffortLevel,
   type UpdateCardInput,
-} from "../cards";
+} from "../../cards";
 import {
   createDecks,
   deleteDecks,
@@ -40,17 +40,17 @@ import {
   type CreateDeckInput,
   type Deck,
   type UpdateDeckInput,
-} from "../decks";
-import { HttpError } from "../shared/errors";
-import { ensureAgentSyncReplica } from "../agent/syncIdentity";
+} from "../../decks";
+import { HttpError } from "../../shared/errors";
+import { ensureAgentSyncReplica } from "../../agent/syncIdentity";
 import {
   getWorkspaceSchedulerSettings,
   type WorkspaceSchedulerSettings,
-} from "../scheduling/workspaceSettings";
+} from "../../scheduling/workspaceSettings";
 import {
   listUserWorkspacesForSelectedWorkspace,
   type WorkspaceSummary,
-} from "../workspaces";
+} from "../../workspaces";
 
 type SharedAiToolName =
   | "create_cards"

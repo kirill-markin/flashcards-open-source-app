@@ -6,8 +6,8 @@ import {
   updateAgentCardsOperation,
   updateAgentDecksOperation,
   type AgentToolOperationDependencies,
-} from "./agentToolOperations";
-import { executeSqlSelect, type SqlRow } from "./sqlDialect";
+} from "./operations";
+import { executeSqlSelect, type SqlRow } from "../sqlDialect";
 import {
   assertSqlMutationRecordLimit,
   buildCardUpdateInput,
@@ -21,9 +21,9 @@ import {
   type AgentSqlContext,
   type AgentSqlMutationExecutionResult,
   type AgentSqlMutationStatement,
-} from "./agentSqlShared";
-import { loadSelectRows } from "./agentSqlReadExecution";
-import { HttpError } from "../shared/errors";
+} from "./shared";
+import { loadSelectRows } from "./readExecution";
+import { HttpError } from "../../shared/errors";
 
 function selectTargetRows(
   statement: Extract<AgentSqlMutationStatement, Readonly<{ type: "update" | "delete" }>>,

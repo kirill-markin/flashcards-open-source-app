@@ -1,12 +1,12 @@
-import type { Card, ReviewHistoryItem } from "../cards";
-import type { Deck } from "../decks";
-import { HttpError } from "../shared/errors";
+import type { Card, ReviewHistoryItem } from "../../cards";
+import type { Deck } from "../../decks";
+import { HttpError } from "../../shared/errors";
 import type {
   ParsedSqlStatement,
   SqlResourceName,
   SqlRow,
-} from "./sqlDialect";
-import { MAX_SQL_RECORD_LIMIT } from "./sqlToolLimits";
+} from "../sqlDialect";
+import { MAX_SQL_RECORD_LIMIT } from "../toolContract/sqlToolLimits";
 
 export type AgentSqlContext = Readonly<{
   userId: string;
@@ -67,7 +67,7 @@ export type AgentSqlExecutionResult = Readonly<{
 
 /**
  * Keep this alias aligned with:
- * - `apps/backend/src/aiTools/sqlToolLimits.ts`
+ * - `apps/backend/src/aiTools/toolContract/sqlToolLimits.ts`
  * - `apps/web/src/types.ts`
  * - `apps/ios/Flashcards/Flashcards/AI/AIChatTypes.swift`
  */

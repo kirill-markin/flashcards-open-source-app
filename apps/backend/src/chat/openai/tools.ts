@@ -9,14 +9,14 @@ import { executeAgentSql } from "../../aiTools/agentSql";
 import {
   DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
   type AgentToolOperationDependencies,
-} from "../../aiTools/agentToolOperations";
+} from "../../aiTools/agentSql/operations";
 import { parseSqlStatement, splitSqlStatements } from "../../aiTools/sqlDialect";
-import { isSqlMutationStatement } from "../../aiTools/agentSqlShared";
+import { isSqlMutationStatement } from "../../aiTools/agentSql/shared";
 import {
   OPENAI_SQL_TOOL,
   SQL_TOOL_ARGUMENT_VALIDATOR,
   SQL_TOOL_NAME,
-} from "../../aiTools/sqlToolContract";
+} from "../../aiTools/toolContract/sqlToolContract";
 
 export type OpenAIToolContext = Readonly<{
   userId: string;

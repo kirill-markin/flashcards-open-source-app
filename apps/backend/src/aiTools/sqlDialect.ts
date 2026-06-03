@@ -4,20 +4,20 @@
  * Keep import paths stable by re-exporting the split runtime modules from this
  * file.
  */
-export * from "./sqlDialectTypes";
+export * from "./sqlDialect/types";
 export {
   getSqlColumnDescriptor,
   getSqlResourceDescriptor,
   getSqlResourceDescriptors,
-} from "./sqlDialectSchema";
+} from "./sqlDialect/schema";
 export {
   parseSqlStatement,
   parseSqlStatements,
   splitSqlStatements,
-} from "./sqlDialectParser";
+} from "./sqlDialect/parser";
 export {
   executeSqlSelect,
   likePatternToRegExp,
   normalizeSqlLimit,
   normalizeSqlOffset,
-} from "./sqlDialectSelectExecutor";
+} from "./sqlDialect/selectExecutor";

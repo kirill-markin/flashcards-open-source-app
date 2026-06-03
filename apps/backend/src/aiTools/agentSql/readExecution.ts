@@ -4,7 +4,7 @@ import {
   listAgentReviewEventsOperation,
   loadAgentWorkspaceOperation,
   type AgentToolOperationDependencies,
-} from "./agentToolOperations";
+} from "./operations";
 import {
   executeSqlSelect,
   getSqlResourceDescriptor,
@@ -12,7 +12,7 @@ import {
   likePatternToRegExp,
   type SqlResourceName,
   type SqlRow,
-} from "./sqlDialect";
+} from "../sqlDialect";
 import {
   MAX_SQL_LIMIT,
   buildBatchReadInstructions,
@@ -27,7 +27,7 @@ import {
   type AgentSqlReadExecutionResult,
   type AgentSqlReadStatement,
   type AgentSqlSinglePayload,
-} from "./agentSqlShared";
+} from "./shared";
 
 async function collectCardRows(
   dependencies: AgentToolOperationDependencies,
