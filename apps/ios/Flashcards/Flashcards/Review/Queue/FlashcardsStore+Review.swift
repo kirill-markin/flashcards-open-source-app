@@ -318,29 +318,82 @@ extension FlashcardsStore {
             if bootstrapRefreshOutcome.didChange || didReconcileReviewState {
                 self.localReadVersion += 1
             }
-            self.prepareStoreReviewRequestAttemptAfterSuccessfulReview(now: now)
+            func triggerSuccessfulReviewCloudSync() {
+                self.triggerCloudSyncIfLinked(
+                    trigger: CloudSyncTrigger(
+                        source: .localMutation,
+                        now: now,
+                        extendsFastPolling: true,
+                        allowsVisibleChangeBanner: false,
+                        surfacesGlobalErrorMessage: false
+                    )
+                )
+            }
+
             let reviewedAt = parseIsoTimestamp(value: request.reviewedAtClient) ?? now
-            self.handleSuccessfulReviewNotificationTrigger(
+            let shouldShowReviewNotificationPrePrompt = await self.resolveSuccessfulReviewNotificationPrePromptDecision(
                 reviewedAt: reviewedAt,
                 now: now
             )
+            guard self.successfulReviewSubmissionPromptContextMatchesCurrentState(
+                request: request,
+                now: Date()
+            ) else {
+                triggerSuccessfulReviewCloudSync()
+                return
+            }
+
             self.handleSuccessfulReviewHardReminder(
                 rating: request.rating,
                 now: now
             )
+            let didShowReviewNotificationPrePrompt = self.isReviewHardReminderPresented == false
+                && shouldShowReviewNotificationPrePrompt
+                && self.presentReviewNotificationPrePromptIfAllowed()
+            if didShowReviewNotificationPrePrompt == false
+                && self.isReviewNotificationPrePromptPresented == false
+                && self.isReviewHardReminderPresented == false
+                && self.pendingStoreReviewRequestAttempt == nil {
+                self.prepareStoreReviewRequestAttemptAfterSuccessfulReview(now: now)
+            }
             self.startAutomaticFeedbackPromptCheckAfterSuccessfulReview(now: now)
-            self.triggerCloudSyncIfLinked(
-                trigger: CloudSyncTrigger(
-                    source: .localMutation,
-                    now: now,
-                    extendsFastPolling: true,
-                    allowsVisibleChangeBanner: false,
-                    surfacesGlobalErrorMessage: false
-                )
-            )
+            triggerSuccessfulReviewCloudSync()
         } catch {
             self.handleReviewSubmissionFailure(request: request, submissionError: error)
         }
+    }
+
+    private func successfulReviewSubmissionPromptContextMatchesCurrentState(
+        request: ReviewSubmissionRequest,
+        now: Date
+    ) -> Bool {
+        guard let validationContext = self.makeReviewSubmissionRollbackValidationContext(now: now) else {
+            return false
+        }
+        let currentReviewState = self.currentReviewPublishedState()
+        guard request.workspaceId == validationContext.currentWorkspaceId else {
+            return false
+        }
+        guard request.reviewContext.selectedReviewFilter == currentReviewState.selectedReviewFilter else {
+            return false
+        }
+
+        let currentReviewContext = makeReviewSubmissionContext(
+            selectedReviewFilter: currentReviewState.selectedReviewFilter,
+            decks: validationContext.decks,
+            cards: validationContext.cards
+        )
+        guard currentReviewContext == request.reviewContext else {
+            return false
+        }
+
+        let currentReviewSessionSignature = makeReviewSessionSignature(
+            selectedReviewFilter: currentReviewState.selectedReviewFilter,
+            reviewQueue: self.reviewRuntime.effectiveReviewQueue(publishedState: currentReviewState),
+            schedulerSettings: validationContext.schedulerSettings,
+            seedQueueSize: reviewSeedQueueSize
+        )
+        return currentReviewSessionSignature == request.reviewSessionSignature
     }
 
     private func reviewSubmissionRequestMatchesCurrentContext(

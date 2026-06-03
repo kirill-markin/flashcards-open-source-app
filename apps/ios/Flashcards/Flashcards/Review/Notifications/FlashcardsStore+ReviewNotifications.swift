@@ -189,7 +189,7 @@ extension FlashcardsStore {
         }
     }
 
-    func handleSuccessfulReviewNotificationTrigger(reviewedAt: Date, now: Date) {
+    func resolveSuccessfulReviewNotificationPrePromptDecision(reviewedAt: Date, now: Date) async -> Bool {
         let nextCount = self.userDefaults.integer(forKey: reviewNotificationSuccessfulReviewCountUserDefaultsKey) + 1
         self.userDefaults.set(nextCount, forKey: reviewNotificationSuccessfulReviewCountUserDefaultsKey)
         self.userDefaults.set(now.timeIntervalSince1970, forKey: reviewNotificationLastActiveAtUserDefaultsKey)
@@ -197,37 +197,52 @@ extension FlashcardsStore {
         self.clearAppIconBadge()
         self.recordSuccessfulStrictReminderReview(reviewedAt: reviewedAt, now: now)
         let reviewCount = self.loadReviewNotificationPromptReviewCount(persistedReviewCount: nextCount)
-        Task { @MainActor in
-            defer {
-                self.requestGuestSignInAfterReviewPromptReconciliation()
-            }
 
-            let permissionStatus = await resolveReviewNotificationPermissionStatus()
-            guard permissionStatus == .notRequested else {
-                return
-            }
-            guard hasEnoughReviewHistoryForNotificationPrompt(reviewCount: reviewCount) else {
-                return
-            }
-            guard self.notificationPermissionPromptState.hasShownPrePrompt == false else {
-                return
-            }
-            guard self.notificationPermissionPromptState.hasDismissedPrePrompt == false else {
-                return
-            }
-            guard self.notificationPermissionPromptState.hasRequestedSystemPermission == false else {
-                return
-            }
-
-            self.isReviewNotificationPrePromptPresented = true
-            self.updateNotificationPermissionPromptState(
-                state: NotificationPermissionPromptState(
-                    hasShownPrePrompt: true,
-                    hasRequestedSystemPermission: false,
-                    hasDismissedPrePrompt: false
-                )
-            )
+        defer {
+            self.requestGuestSignInAfterReviewPromptReconciliation()
         }
+
+        let permissionStatus = await resolveReviewNotificationPermissionStatus()
+        guard permissionStatus == .notRequested else {
+            return false
+        }
+        guard hasEnoughReviewHistoryForNotificationPrompt(reviewCount: reviewCount) else {
+            return false
+        }
+        guard self.notificationPermissionPromptState.hasShownPrePrompt == false else {
+            return false
+        }
+        guard self.notificationPermissionPromptState.hasDismissedPrePrompt == false else {
+            return false
+        }
+        guard self.notificationPermissionPromptState.hasRequestedSystemPermission == false else {
+            return false
+        }
+
+        return true
+    }
+
+    func presentReviewNotificationPrePromptIfAllowed() -> Bool {
+        guard self.notificationPermissionPromptState.hasShownPrePrompt == false else {
+            return false
+        }
+        guard self.notificationPermissionPromptState.hasDismissedPrePrompt == false else {
+            return false
+        }
+        guard self.notificationPermissionPromptState.hasRequestedSystemPermission == false else {
+            return false
+        }
+
+        self.isReviewNotificationPrePromptPresented = true
+        self.updateNotificationPermissionPromptState(
+            state: NotificationPermissionPromptState(
+                hasShownPrePrompt: true,
+                hasRequestedSystemPermission: false,
+                hasDismissedPrePrompt: false
+            )
+        )
+
+        return true
     }
 
     private func loadReviewNotificationPromptReviewCount(persistedReviewCount: Int) -> Int {
