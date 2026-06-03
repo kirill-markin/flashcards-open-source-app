@@ -11,7 +11,7 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudBooleanOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudIntOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudObjectOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudStringOrNull
-import com.flashcardsopensourceapp.data.local.model.SyncEntityType
+import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import com.flashcardsopensourceapp.data.local.network.awaitOkHttpResponse
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers

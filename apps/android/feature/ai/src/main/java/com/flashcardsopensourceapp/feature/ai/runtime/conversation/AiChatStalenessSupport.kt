@@ -1,7 +1,7 @@
 package com.flashcardsopensourceapp.feature.ai.runtime.conversation
 
-import com.flashcardsopensourceapp.data.local.model.AiChatMessage
-import com.flashcardsopensourceapp.data.local.model.AiChatRole
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatMessage
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatRole
 
 internal const val aiChatStalenessThresholdMillis: Long = 6L * 60L * 60L * 1000L
 

@@ -20,11 +20,11 @@ import com.flashcardsopensourceapp.data.local.database.CardEntity
 import com.flashcardsopensourceapp.data.local.database.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.database.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.database.WorkspaceSchedulerSettingsEntity
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
-import com.flashcardsopensourceapp.data.local.model.FsrsCardState
-import com.flashcardsopensourceapp.data.local.model.ReviewRating
-import com.flashcardsopensourceapp.data.local.model.encodeSchedulerStepListJson
-import com.flashcardsopensourceapp.data.local.model.makeDefaultWorkspaceSchedulerSettings
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
+import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
+import com.flashcardsopensourceapp.data.local.model.scheduling.encodeSchedulerStepListJson
+import com.flashcardsopensourceapp.data.local.model.scheduling.makeDefaultWorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.CloudGuestSessionCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.CloudIdentityResetCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
@@ -245,7 +245,7 @@ internal class CloudIdentityTestEnvironment private constructor(
             credentials = createStoredCloudCredentials(idTokenExpiresAtMillis = Long.MAX_VALUE)
         )
         cloudPreferencesStore.updateCloudSettings(
-            cloudState = com.flashcardsopensourceapp.data.local.model.CloudAccountState.LINKED,
+            cloudState = com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState.LINKED,
             linkedUserId = "user-1",
             linkedWorkspaceId = localWorkspaceId,
             linkedEmail = "user@example.com",

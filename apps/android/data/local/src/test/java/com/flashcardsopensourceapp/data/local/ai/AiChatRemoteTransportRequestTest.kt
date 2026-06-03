@@ -1,13 +1,13 @@
 package com.flashcardsopensourceapp.data.local.ai
 
-import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
-import com.flashcardsopensourceapp.data.local.model.AiChatLiveStreamEnvelope
-import com.flashcardsopensourceapp.data.local.model.AiChatNewSessionRequest
-import com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics
-import com.flashcardsopensourceapp.data.local.model.AiChatStartRunRequest
-import com.flashcardsopensourceapp.data.local.model.AiChatStopRunRequest
-import com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart
-import com.flashcardsopensourceapp.data.local.model.aiChatMaximumStartRunRequestBytes
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveEvent
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveStreamEnvelope
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatNewSessionRequest
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatResumeDiagnostics
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatStartRunRequest
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatStopRunRequest
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatWireContentPart
+import com.flashcardsopensourceapp.data.local.model.ai.aiChatMaximumStartRunRequestBytes
 import com.sun.net.httpserver.HttpServer
 import java.net.InetSocketAddress
 import java.nio.charset.StandardCharsets

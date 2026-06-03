@@ -14,12 +14,12 @@ import com.flashcardsopensourceapp.data.local.database.DeckEntity
 import com.flashcardsopensourceapp.data.local.database.OutboxEntryEntity
 import com.flashcardsopensourceapp.data.local.database.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.database.WorkspaceSchedulerSettingsEntity
-import com.flashcardsopensourceapp.data.local.model.PersistedOutboxEntry
-import com.flashcardsopensourceapp.data.local.model.ReviewEventSyncPayload
-import com.flashcardsopensourceapp.data.local.model.SyncAction
-import com.flashcardsopensourceapp.data.local.model.SyncEntityType
-import com.flashcardsopensourceapp.data.local.model.SyncOperationPayload
-import com.flashcardsopensourceapp.data.local.model.formatIsoTimestamp
+import com.flashcardsopensourceapp.data.local.model.sync.PersistedOutboxEntry
+import com.flashcardsopensourceapp.data.local.model.sync.ReviewEventSyncPayload
+import com.flashcardsopensourceapp.data.local.model.sync.SyncAction
+import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
+import com.flashcardsopensourceapp.data.local.model.sync.SyncOperationPayload
+import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.repository.TimeProvider
 import java.util.UUID
 

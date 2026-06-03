@@ -16,10 +16,10 @@ import com.flashcardsopensourceapp.data.local.cloud.sync.ReviewHistoryChangePubl
 import com.flashcardsopensourceapp.data.local.cloud.sync.ReviewHistoryChangedEvent
 import com.flashcardsopensourceapp.data.local.cloud.sync.emptySyncStateEntity
 import com.flashcardsopensourceapp.data.local.cloud.wire.toRemoteValue
-import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
-import com.flashcardsopensourceapp.data.local.model.SyncEntityType
-import com.flashcardsopensourceapp.data.local.model.encodeSchedulerStepListJson
-import com.flashcardsopensourceapp.data.local.model.makeDefaultWorkspaceSchedulerSettings
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
+import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
+import com.flashcardsopensourceapp.data.local.model.scheduling.encodeSchedulerStepListJson
+import com.flashcardsopensourceapp.data.local.model.scheduling.makeDefaultWorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.repository.progress.LocalProgressCacheStore
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.loadCurrentWorkspaceOrNull
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore

@@ -3,12 +3,12 @@ package com.flashcardsopensourceapp.feature.ai.runtime
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiConversationBootstrapState
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.makeAssistantStatusMessage
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.makeUserMessage
-import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
-import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
-import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
-import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
-import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
-import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
+import com.flashcardsopensourceapp.data.local.model.ai.defaultAiChatServerConfig
+import com.flashcardsopensourceapp.data.local.model.ai.makeDefaultAiChatPersistedState
 import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -69,7 +69,7 @@ class AiChatRuntimeConversationResetRaceTest {
             sessionId = "session-1",
             activeRun = null,
         ).copy(
-            conversation = com.flashcardsopensourceapp.data.local.model.AiChatConversation(
+            conversation = com.flashcardsopensourceapp.data.local.model.ai.AiChatConversation(
                 messages = listOf(
                     makeUserMessage(
                         content = listOf(AiChatContentPart.Text(text = "Hello")),
@@ -96,7 +96,7 @@ class AiChatRuntimeConversationResetRaceTest {
             sessionId = "session-1",
             activeRun = null,
         ).copy(
-            conversation = com.flashcardsopensourceapp.data.local.model.AiChatConversation(
+            conversation = com.flashcardsopensourceapp.data.local.model.ai.AiChatConversation(
                 messages = listOf(
                     makeUserMessage(
                         content = listOf(AiChatContentPart.Text(text = "Reloaded")),
@@ -143,7 +143,7 @@ class AiChatRuntimeConversationResetRaceTest {
             chatSessionId = "session-1"
         )
         repository.draftStates[defaultTestWorkspaceId to "session-1"] =
-            com.flashcardsopensourceapp.data.local.model.AiChatDraftState(
+            com.flashcardsopensourceapp.data.local.model.ai.AiChatDraftState(
                 draftMessage = "Keep the old draft",
                 pendingAttachments = listOf(
                     AiChatAttachment.Binary(
@@ -193,7 +193,7 @@ class AiChatRuntimeConversationResetRaceTest {
                     assistantItemId = null
                 )
             ),
-            conversation = com.flashcardsopensourceapp.data.local.model.AiChatConversation(
+            conversation = com.flashcardsopensourceapp.data.local.model.ai.AiChatConversation(
                 messages = listOf(
                     makeUserMessage(
                         content = listOf(AiChatContentPart.Text(text = "Reloaded")),

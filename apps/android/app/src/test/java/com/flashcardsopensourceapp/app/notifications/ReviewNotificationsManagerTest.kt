@@ -1,7 +1,7 @@
 package com.flashcardsopensourceapp.app.notifications
 
-import com.flashcardsopensourceapp.data.local.model.DeckFilterDefinition
-import com.flashcardsopensourceapp.data.local.model.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.cards.DeckFilterDefinition
+import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

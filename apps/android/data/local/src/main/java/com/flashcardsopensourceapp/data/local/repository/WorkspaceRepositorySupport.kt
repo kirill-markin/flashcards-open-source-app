@@ -1,13 +1,13 @@
 package com.flashcardsopensourceapp.data.local.repository
 
 import com.flashcardsopensourceapp.data.local.database.WorkspaceSchedulerSettingsEntity
-import com.flashcardsopensourceapp.data.local.model.CardSummary
-import com.flashcardsopensourceapp.data.local.model.WorkspaceSchedulerSettings
-import com.flashcardsopensourceapp.data.local.model.WorkspaceTagSummary
-import com.flashcardsopensourceapp.data.local.model.WorkspaceTagsSummary
-import com.flashcardsopensourceapp.data.local.model.decodeSchedulerStepListJson
-import com.flashcardsopensourceapp.data.local.model.encodeSchedulerStepListJson
-import com.flashcardsopensourceapp.data.local.model.validateWorkspaceSchedulerSettingsInput
+import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
+import com.flashcardsopensourceapp.data.local.model.scheduling.WorkspaceSchedulerSettings
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagSummary
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagsSummary
+import com.flashcardsopensourceapp.data.local.model.scheduling.decodeSchedulerStepListJson
+import com.flashcardsopensourceapp.data.local.model.scheduling.encodeSchedulerStepListJson
+import com.flashcardsopensourceapp.data.local.model.scheduling.validateWorkspaceSchedulerSettingsInput
 
 internal fun toWorkspaceSchedulerSettingsEntity(
     settings: WorkspaceSchedulerSettings

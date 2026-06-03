@@ -2,11 +2,11 @@ package com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime
 
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
-import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
-import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
-import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkContext
-import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
-import com.flashcardsopensourceapp.data.local.model.shouldRefreshCloudIdToken
+import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkContext
+import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
+import com.flashcardsopensourceapp.data.local.model.cloud.shouldRefreshCloudIdToken
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.CloudIdentityResetCoordinator
 
 internal data class AuthenticatedCloudSession(

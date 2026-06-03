@@ -1,6 +1,6 @@
 package com.flashcardsopensourceapp.feature.review
 
-import com.flashcardsopensourceapp.data.local.model.PendingReviewedCard
+import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

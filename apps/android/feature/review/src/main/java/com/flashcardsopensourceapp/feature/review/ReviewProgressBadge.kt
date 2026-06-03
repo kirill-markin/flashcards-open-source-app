@@ -1,7 +1,7 @@
 package com.flashcardsopensourceapp.feature.review
 
 import androidx.lifecycle.Lifecycle
-import com.flashcardsopensourceapp.data.local.model.ProgressSummarySnapshot
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
 
 private const val reviewProgressBadgeOverflowThreshold: Int = 99
 

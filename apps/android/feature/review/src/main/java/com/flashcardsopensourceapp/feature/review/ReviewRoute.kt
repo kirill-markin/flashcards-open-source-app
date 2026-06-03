@@ -28,8 +28,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.flashcardsopensourceapp.data.local.model.ReviewFilter
-import com.flashcardsopensourceapp.data.local.model.ReviewRating
+import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionEvent
 import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionLottieConfigurationStore
 import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionOverlay
@@ -52,7 +52,7 @@ fun ReviewRoute(
         frontText: String,
         backText: String,
         tags: List<String>,
-        effortLevel: com.flashcardsopensourceapp.data.local.model.EffortLevel
+        effortLevel: com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
     ) -> Unit,
     onOpenDeckManagement: () -> Unit,
     onCreateCard: () -> Unit,

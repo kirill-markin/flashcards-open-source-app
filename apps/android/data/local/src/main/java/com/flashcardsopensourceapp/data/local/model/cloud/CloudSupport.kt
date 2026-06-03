@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.model
+package com.flashcardsopensourceapp.data.local.model.cloud
 
 import java.net.URI
 import java.time.Instant

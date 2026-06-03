@@ -1,5 +1,6 @@
-package com.flashcardsopensourceapp.data.local.model
+package com.flashcardsopensourceapp.data.local.model.cards
 
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import org.json.JSONArray
 import org.json.JSONObject
 

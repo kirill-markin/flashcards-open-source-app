@@ -3,7 +3,7 @@ package com.flashcardsopensourceapp.data.local.database
 import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Transaction
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import kotlinx.coroutines.flow.Flow
 
 @Dao

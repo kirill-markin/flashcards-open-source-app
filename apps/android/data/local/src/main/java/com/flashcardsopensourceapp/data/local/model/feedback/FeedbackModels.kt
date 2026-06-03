@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.model
+package com.flashcardsopensourceapp.data.local.model.feedback
 
 const val cloudFeedbackMessageMaximumLength: Int = 5000
 

@@ -1,6 +1,6 @@
 package com.flashcardsopensourceapp.app
 
-import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test

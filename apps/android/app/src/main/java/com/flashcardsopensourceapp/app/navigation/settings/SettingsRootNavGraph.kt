@@ -103,14 +103,14 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             },
             onSwitchToExistingWorkspace = { workspaceId ->
                 currentWorkspaceViewModel.switchWorkspaceAsync(
-                    selection = com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection.Existing(
+                    selection = com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection.Existing(
                         workspaceId = workspaceId
                     )
                 )
             },
             onCreateWorkspace = {
                 currentWorkspaceViewModel.switchWorkspaceAsync(
-                    selection = com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection.CreateNew
+                    selection = com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection.CreateNew
                 )
             },
             onOpenSignIn = {

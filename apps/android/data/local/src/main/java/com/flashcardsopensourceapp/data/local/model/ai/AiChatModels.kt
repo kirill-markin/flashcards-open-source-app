@@ -1,5 +1,7 @@
-package com.flashcardsopensourceapp.data.local.model
+package com.flashcardsopensourceapp.data.local.model.ai
 
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import java.util.UUID
 
 const val aiChatDefaultModelId: String = "gpt-5.4"

@@ -6,8 +6,8 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteBootstrapEntry
 import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.OutboxEntryEntity
-import com.flashcardsopensourceapp.data.local.model.SyncEntityType
-import com.flashcardsopensourceapp.data.local.model.SyncOperationPayload
+import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
+import com.flashcardsopensourceapp.data.local.model.sync.SyncOperationPayload
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject

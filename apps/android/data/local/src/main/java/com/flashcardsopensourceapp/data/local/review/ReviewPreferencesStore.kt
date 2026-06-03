@@ -2,8 +2,8 @@ package com.flashcardsopensourceapp.data.local.review
 
 import android.content.Context
 import androidx.core.content.edit
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
-import com.flashcardsopensourceapp.data.local.model.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import org.json.JSONObject
 
 private const val reviewPreferencesName: String = "flashcards-review-preferences"

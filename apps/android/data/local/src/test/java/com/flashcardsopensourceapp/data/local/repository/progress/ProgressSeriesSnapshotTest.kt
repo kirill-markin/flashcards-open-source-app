@@ -1,9 +1,9 @@
 package com.flashcardsopensourceapp.data.local.repository.progress
 
-import com.flashcardsopensourceapp.data.local.model.CloudAccountState
-import com.flashcardsopensourceapp.data.local.model.CloudDailyReviewPoint
-import com.flashcardsopensourceapp.data.local.model.CloudProgressSeries
-import com.flashcardsopensourceapp.data.local.model.ProgressSnapshotSource
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.progress.CloudDailyReviewPoint
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressSnapshotSource
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.Instant

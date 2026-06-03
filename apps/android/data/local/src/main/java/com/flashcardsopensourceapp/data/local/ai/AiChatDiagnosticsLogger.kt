@@ -1,7 +1,7 @@
 package com.flashcardsopensourceapp.data.local.ai
 
 import android.util.Log
-import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
 
 private const val aiChatDiagnosticsLogTag: String = "FlashcardsAI"
 private const val aiChatDiagnosticsMaxValueLength: Int = 1_200

@@ -2,7 +2,7 @@ package com.flashcardsopensourceapp.data.local.database
 
 import androidx.room.Dao
 import androidx.room.Query
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 
 internal const val activeReviewRecentPriorityWindowMillis: Long = 60L * 60L * 1_000L
 

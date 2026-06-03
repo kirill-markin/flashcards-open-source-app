@@ -3,23 +3,23 @@ package com.flashcardsopensourceapp.data.local.ai
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
-import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
-import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
-import com.flashcardsopensourceapp.data.local.model.AiChatDraftState
-import com.flashcardsopensourceapp.data.local.model.AiChatMessage
-import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
-import com.flashcardsopensourceapp.data.local.model.AiChatReasoningSummary
-import com.flashcardsopensourceapp.data.local.model.AiChatRole
-import com.flashcardsopensourceapp.data.local.model.AiChatServerConfig
-import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
-import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
-import com.flashcardsopensourceapp.data.local.model.CloudAccountState
-import com.flashcardsopensourceapp.data.local.model.CloudSettings
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
-import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
-import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatDraftState
-import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
-import com.flashcardsopensourceapp.data.local.model.isEmpty
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatDraftState
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatMessage
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatPersistedState
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatReasoningSummary
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatRole
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatServerConfig
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatToolCall
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatToolCallStatus
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.ai.defaultAiChatServerConfig
+import com.flashcardsopensourceapp.data.local.model.ai.makeDefaultAiChatDraftState
+import com.flashcardsopensourceapp.data.local.model.ai.makeDefaultAiChatPersistedState
+import com.flashcardsopensourceapp.data.local.model.ai.isEmpty
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -273,20 +273,20 @@ class AiChatHistoryStore(
         }
 
         return AiChatServerConfig(
-            provider = com.flashcardsopensourceapp.data.local.model.AiChatProvider(
+            provider = com.flashcardsopensourceapp.data.local.model.ai.AiChatProvider(
                 id = provider.optString("id", defaultAiChatServerConfig.provider.id),
                 label = provider.optString("label", defaultAiChatServerConfig.provider.label)
             ),
-            model = com.flashcardsopensourceapp.data.local.model.AiChatServerModel(
+            model = com.flashcardsopensourceapp.data.local.model.ai.AiChatServerModel(
                 id = model.optString("id", defaultAiChatServerConfig.model.id),
                 label = model.optString("label", defaultAiChatServerConfig.model.label),
                 badgeLabel = model.optString("badgeLabel", defaultAiChatServerConfig.model.badgeLabel)
             ),
-            reasoning = com.flashcardsopensourceapp.data.local.model.AiChatReasoning(
+            reasoning = com.flashcardsopensourceapp.data.local.model.ai.AiChatReasoning(
                 effort = reasoning.optString("effort", defaultAiChatServerConfig.reasoning.effort),
                 label = reasoning.optString("label", defaultAiChatServerConfig.reasoning.label)
             ),
-            features = com.flashcardsopensourceapp.data.local.model.AiChatFeatures(
+            features = com.flashcardsopensourceapp.data.local.model.ai.AiChatFeatures(
                 modelPickerEnabled = features.optBoolean("modelPickerEnabled", false),
                 dictationEnabled = features.optBoolean("dictationEnabled", true),
                 attachmentsEnabled = features.optBoolean("attachmentsEnabled", true)

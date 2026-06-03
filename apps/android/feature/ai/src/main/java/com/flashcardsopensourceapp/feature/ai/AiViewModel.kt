@@ -8,11 +8,11 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
-import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
-import com.flashcardsopensourceapp.data.local.model.CloudAccountState
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
-import com.flashcardsopensourceapp.data.local.model.SyncStatus
-import com.flashcardsopensourceapp.data.local.model.makeOfficialCloudServiceConfiguration
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
+import com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
@@ -71,7 +71,7 @@ class AiViewModel(
     private val syncStatusState = syncRepository.observeSyncStatus().stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
-        initialValue = com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot(
+        initialValue = com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot(
             status = SyncStatus.Idle,
             lastSuccessfulSyncAtMillis = null,
             lastErrorMessage = ""
@@ -160,7 +160,7 @@ class AiViewModel(
         chatRuntime.warmUpLinkedSessionIfNeeded(resumeDiagnostics = null)
     }
 
-    fun addPendingAttachment(attachment: com.flashcardsopensourceapp.data.local.model.AiChatAttachment) {
+    fun addPendingAttachment(attachment: com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment) {
         chatRuntime.addPendingAttachment(attachment = attachment)
     }
 

@@ -3,9 +3,9 @@ package com.flashcardsopensourceapp.data.local.repository.progress
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
-import com.flashcardsopensourceapp.data.local.model.ProgressReviewScheduleSnapshot
-import com.flashcardsopensourceapp.data.local.model.ProgressSeriesSnapshot
-import com.flashcardsopensourceapp.data.local.model.ProgressSummarySnapshot
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleSnapshot
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesSnapshot
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.ProgressRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository

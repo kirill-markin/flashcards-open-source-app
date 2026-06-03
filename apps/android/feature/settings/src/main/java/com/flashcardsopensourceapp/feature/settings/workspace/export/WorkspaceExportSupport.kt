@@ -2,7 +2,7 @@ package com.flashcardsopensourceapp.feature.settings.workspace.export
 
 import android.content.ContentResolver
 import android.net.Uri
-import com.flashcardsopensourceapp.data.local.model.WorkspaceExportData
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceExportData
 import java.time.LocalDate
 
 fun makeWorkspaceExportFilename(workspaceName: String, date: LocalDate): String {

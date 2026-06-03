@@ -7,13 +7,13 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteBootstrapPullRe
 import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteBootstrapPushResponse
 import com.flashcardsopensourceapp.data.local.database.CardEntity
 import com.flashcardsopensourceapp.data.local.database.SyncStateEntity
-import com.flashcardsopensourceapp.data.local.model.CloudAccountState
-import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeMode
-import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
-import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
-import com.flashcardsopensourceapp.data.local.model.FsrsCardState
-import com.flashcardsopensourceapp.data.local.model.SyncEntityType
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
+import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.CloudSyncBlockedException
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.CloudIdentityTestEnvironment
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.FakeCloudRemoteGateway
@@ -98,7 +98,7 @@ class LocalCloudAccountRepositoryGuestUpgradeDrainTest {
         assertNotNull(environment.cloudPreferencesStore.loadCredentials())
         assertNull(
             environment.guestAiSessionStore.loadAnySession(
-                configuration = com.flashcardsopensourceapp.data.local.model.makeOfficialCloudServiceConfiguration()
+                configuration = com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration()
             )
         )
         assertEquals(1, remoteGateway.prepareGuestUpgradeCalls)

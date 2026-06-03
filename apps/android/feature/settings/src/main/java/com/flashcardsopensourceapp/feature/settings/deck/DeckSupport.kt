@@ -1,8 +1,8 @@
 package com.flashcardsopensourceapp.feature.settings.deck
 
-import com.flashcardsopensourceapp.data.local.model.DeckFilterDefinition
-import com.flashcardsopensourceapp.data.local.model.DeckSummary
-import com.flashcardsopensourceapp.data.local.model.WorkspaceOverviewSummary
+import com.flashcardsopensourceapp.data.local.model.cards.DeckFilterDefinition
+import com.flashcardsopensourceapp.data.local.model.cards.DeckSummary
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceOverviewSummary
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsStringResolver
 
@@ -83,9 +83,9 @@ internal fun formatDeckFilter(
                     R.string.settings_deck_filter_effort,
                     filterDefinition.effortLevels.joinToString(separator = ", ") { effortLevel ->
                         when (effortLevel) {
-                            com.flashcardsopensourceapp.data.local.model.EffortLevel.FAST -> strings.get(R.string.settings_effort_fast)
-                            com.flashcardsopensourceapp.data.local.model.EffortLevel.MEDIUM -> strings.get(R.string.settings_effort_medium)
-                            com.flashcardsopensourceapp.data.local.model.EffortLevel.LONG -> strings.get(R.string.settings_effort_long)
+                            com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel.FAST -> strings.get(R.string.settings_effort_fast)
+                            com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel.MEDIUM -> strings.get(R.string.settings_effort_medium)
+                            com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel.LONG -> strings.get(R.string.settings_effort_long)
                         }
                     }
                 )

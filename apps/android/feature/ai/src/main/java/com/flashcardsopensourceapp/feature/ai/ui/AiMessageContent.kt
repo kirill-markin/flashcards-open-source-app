@@ -46,14 +46,14 @@ import com.flashcardsopensourceapp.feature.ai.aiAssistantTextPartTag
 import com.flashcardsopensourceapp.feature.ai.aiUserMessageBubbleTag
 import com.flashcardsopensourceapp.core.ui.bidiWrap
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
-import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
-import com.flashcardsopensourceapp.data.local.model.AiChatMessage
-import com.flashcardsopensourceapp.data.local.model.AiChatReasoningSummary
-import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
-import com.flashcardsopensourceapp.data.local.model.AiChatRole
-import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
-import com.flashcardsopensourceapp.data.local.model.buildAiChatCardContextXml
-import com.flashcardsopensourceapp.data.local.model.aiChatOptimisticAssistantStatusToken
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatMessage
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatReasoningSummary
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatRepairAttemptStatus
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatRole
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatToolCallStatus
+import com.flashcardsopensourceapp.data.local.model.ai.buildAiChatCardContextXml
+import com.flashcardsopensourceapp.data.local.model.ai.aiChatOptimisticAssistantStatusToken
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
 import com.flashcardsopensourceapp.feature.ai.strings.aiTextProvider
 import com.flashcardsopensourceapp.feature.ai.toolcall.ToolCallCard
@@ -304,7 +304,7 @@ private fun CardContextContentCard(
     frontText: String,
     backText: String,
     tags: List<String>,
-    effortLevel: com.flashcardsopensourceapp.data.local.model.EffortLevel,
+    effortLevel: com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel,
     textProvider: AiTextProvider
 ) {
     val context = LocalContext.current

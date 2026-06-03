@@ -1,8 +1,8 @@
 package com.flashcardsopensourceapp.feature.ai.runtime
 
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiComposerPhase
-import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
-import com.flashcardsopensourceapp.data.local.model.AiChatStopRunResponse
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveEvent
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatStopRunResponse
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.advanceUntilIdle

@@ -1,12 +1,12 @@
 package com.flashcardsopensourceapp.data.local.ai
 
-import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
-import com.flashcardsopensourceapp.data.local.model.AiChatLiveEventMetadata
-import com.flashcardsopensourceapp.data.local.model.AiChatReasoningSummary
-import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
-import com.flashcardsopensourceapp.data.local.model.AiChatRunTerminalOutcome
-import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
-import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveEvent
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveEventMetadata
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatReasoningSummary
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatRepairAttemptStatus
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatRunTerminalOutcome
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatToolCall
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatToolCallStatus
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject

@@ -3,9 +3,9 @@ package com.flashcardsopensourceapp.data.local.ai
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
-import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
-import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
-import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
+import com.flashcardsopensourceapp.data.local.model.ai.StoredGuestAiSession
 import org.json.JSONObject
 
 private const val guestAiSessionPreferencesName: String = "flashcards-ai-chat-guest-session"

@@ -1,4 +1,6 @@
-package com.flashcardsopensourceapp.data.local.model
+package com.flashcardsopensourceapp.data.local.model.cards
+
+import com.flashcardsopensourceapp.data.local.model.scheduling.ReviewableCardScheduleState
 
 fun isCardDue(card: CardSummary, nowMillis: Long): Boolean {
     val dueAtMillis = card.dueAtMillis

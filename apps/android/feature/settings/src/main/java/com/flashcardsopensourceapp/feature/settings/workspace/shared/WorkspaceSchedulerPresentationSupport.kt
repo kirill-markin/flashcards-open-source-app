@@ -1,6 +1,6 @@
 package com.flashcardsopensourceapp.feature.settings.workspace.shared
 
-import com.flashcardsopensourceapp.data.local.model.WorkspaceSchedulerSettings
+import com.flashcardsopensourceapp.data.local.model.scheduling.WorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsStringResolver
 import com.flashcardsopensourceapp.feature.settings.formatTimestampLabel

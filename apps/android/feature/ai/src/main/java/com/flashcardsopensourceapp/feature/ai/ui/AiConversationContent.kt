@@ -40,7 +40,7 @@ import com.flashcardsopensourceapp.feature.ai.aiEmptyStateContentTag
 import com.flashcardsopensourceapp.feature.ai.aiEmptyStateTag
 import com.flashcardsopensourceapp.core.ui.bidiWrap
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
-import com.flashcardsopensourceapp.data.local.model.AiChatMessage
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatMessage
 import kotlinx.coroutines.delay
 
 private val aiEmptyStateMaxWidth = 420.dp

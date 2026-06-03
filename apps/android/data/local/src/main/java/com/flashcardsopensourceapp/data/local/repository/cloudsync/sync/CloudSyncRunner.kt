@@ -9,11 +9,11 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.putNullableString
 import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteBootstrapPullResponse
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.cloud.identity.syncWorkspaceForkRequiredErrorCode
-import com.flashcardsopensourceapp.data.local.model.CloudSettings
-import com.flashcardsopensourceapp.data.local.model.PersistedOutboxEntry
-import com.flashcardsopensourceapp.data.local.model.SyncEntityType
-import com.flashcardsopensourceapp.data.local.model.SyncOperationPayload
-import com.flashcardsopensourceapp.data.local.model.buildDeckFilterDefinitionJsonObject
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.sync.PersistedOutboxEntry
+import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
+import com.flashcardsopensourceapp.data.local.model.sync.SyncOperationPayload
+import com.flashcardsopensourceapp.data.local.model.cards.buildDeckFilterDefinitionJsonObject
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.isCloudIdentityConflictError
 import kotlinx.coroutines.CancellationException
 import org.json.JSONArray
@@ -690,22 +690,22 @@ private fun buildOperationPayload(payload: SyncOperationPayload): JSONObject {
     }
 }
 
-private fun buildDeckFilterDefinitionJson(filterDefinition: com.flashcardsopensourceapp.data.local.model.DeckFilterDefinition): JSONObject {
+private fun buildDeckFilterDefinitionJson(filterDefinition: com.flashcardsopensourceapp.data.local.model.cards.DeckFilterDefinition): JSONObject {
     return buildDeckFilterDefinitionJsonObject(filterDefinition = filterDefinition)
 }
 
-private fun com.flashcardsopensourceapp.data.local.model.SyncEntityType.toRemoteValue(): String {
+private fun com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType.toRemoteValue(): String {
     return when (this) {
-        com.flashcardsopensourceapp.data.local.model.SyncEntityType.CARD -> "card"
-        com.flashcardsopensourceapp.data.local.model.SyncEntityType.DECK -> "deck"
-        com.flashcardsopensourceapp.data.local.model.SyncEntityType.WORKSPACE_SCHEDULER_SETTINGS -> "workspace_scheduler_settings"
-        com.flashcardsopensourceapp.data.local.model.SyncEntityType.REVIEW_EVENT -> "review_event"
+        com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType.CARD -> "card"
+        com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType.DECK -> "deck"
+        com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType.WORKSPACE_SCHEDULER_SETTINGS -> "workspace_scheduler_settings"
+        com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType.REVIEW_EVENT -> "review_event"
     }
 }
 
-private fun com.flashcardsopensourceapp.data.local.model.SyncAction.toRemoteValue(): String {
+private fun com.flashcardsopensourceapp.data.local.model.sync.SyncAction.toRemoteValue(): String {
     return when (this) {
-        com.flashcardsopensourceapp.data.local.model.SyncAction.UPSERT -> "upsert"
-        com.flashcardsopensourceapp.data.local.model.SyncAction.APPEND -> "append"
+        com.flashcardsopensourceapp.data.local.model.sync.SyncAction.UPSERT -> "upsert"
+        com.flashcardsopensourceapp.data.local.model.sync.SyncAction.APPEND -> "append"
     }
 }

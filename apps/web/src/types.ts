@@ -12,11 +12,12 @@ import type { Locale } from "./i18n/types";
  * - apps/backend/src/scheduling/workspaceSettings.ts
  * - apps/ios/Flashcards/Flashcards/Cards/CardDeckTypes.swift
  * - apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsTypes.swift
- * - apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FlashcardsModels.kt
+ * - apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/cards/CardModels.kt
+ * - apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/scheduling/SchedulingModels.kt
  * - docs/fsrs-scheduling-logic.md
  */
 export type EffortLevel = "fast" | "medium" | "long";
-// Keep in sync with apps/backend/src/scheduling/index.ts::FsrsCardState, apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsTypes.swift::FsrsCardState, and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FlashcardsModels.kt::FsrsCardState.
+// Keep in sync with apps/backend/src/scheduling/index.ts::FsrsCardState, apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsTypes.swift::FsrsCardState, and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/scheduling/SchedulingModels.kt::FsrsCardState.
 export type FsrsCardState = "new" | "learning" | "review" | "relearning";
 
 export type CardFilter = Readonly<{
@@ -446,7 +447,7 @@ export type HomeSnapshot = Readonly<{
   reviewedCount: number;
 }>;
 
-// Keep in sync with apps/backend/src/cards/types.ts::Card, apps/ios/Flashcards/Flashcards/Cards/CardDeckTypes.swift::Card, and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FlashcardsModels.kt::CardSummary.
+// Keep in sync with apps/backend/src/cards/types.ts::Card, apps/ios/Flashcards/Flashcards/Cards/CardDeckTypes.swift::Card, and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/cards/CardModels.kt::CardSummary.
 export type Card = Readonly<{
   cardId: string;
   frontText: string;

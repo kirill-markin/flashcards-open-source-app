@@ -15,34 +15,34 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudInt
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudLong
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudObject
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
-import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
-import com.flashcardsopensourceapp.data.local.model.AiChatNewSessionRequest
-import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
-import com.flashcardsopensourceapp.data.local.model.AiChatTranscriptionResult
-import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
-import com.flashcardsopensourceapp.data.local.model.AiChatMessage
-import com.flashcardsopensourceapp.data.local.model.AiChatReasoningSummary
-import com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics
-import com.flashcardsopensourceapp.data.local.model.AiChatRole
-import com.flashcardsopensourceapp.data.local.model.AiChatServerConfig
-import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
-import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
-import com.flashcardsopensourceapp.data.local.model.AiChatStartRunRequest
-import com.flashcardsopensourceapp.data.local.model.AiChatStopRunRequest
-import com.flashcardsopensourceapp.data.local.model.AiToolCallRequest
-import com.flashcardsopensourceapp.data.local.model.AiChatBootstrapResponse
-import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
-import com.flashcardsopensourceapp.data.local.model.AiChatLiveStreamEnvelope
-import com.flashcardsopensourceapp.data.local.model.AiChatOlderMessagesResponse
-import com.flashcardsopensourceapp.data.local.model.AiChatStopRunResponse
-import com.flashcardsopensourceapp.data.local.model.AiChatStartRunResponse
-import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
-import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatRepairAttemptStatus
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatNewSessionRequest
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionSnapshot
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatTranscriptionResult
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatMessage
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatReasoningSummary
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatResumeDiagnostics
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatRole
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatServerConfig
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatToolCall
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatToolCallStatus
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatStartRunRequest
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatStopRunRequest
+import com.flashcardsopensourceapp.data.local.model.ai.AiToolCallRequest
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatBootstrapResponse
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveEvent
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveStreamEnvelope
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatOlderMessagesResponse
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatStopRunResponse
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatStartRunResponse
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
+import com.flashcardsopensourceapp.data.local.model.ai.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.network.awaitOkHttpResponse
-import com.flashcardsopensourceapp.data.local.model.aiChatEffortLevelWireValue
-import com.flashcardsopensourceapp.data.local.model.aiChatAttachmentUnsupportedTypeCode
-import com.flashcardsopensourceapp.data.local.model.aiChatMaximumStartRunRequestBytes
-import com.flashcardsopensourceapp.data.local.model.aiChatRequestTooLargeCode
+import com.flashcardsopensourceapp.data.local.model.ai.aiChatEffortLevelWireValue
+import com.flashcardsopensourceapp.data.local.model.ai.aiChatAttachmentUnsupportedTypeCode
+import com.flashcardsopensourceapp.data.local.model.ai.aiChatMaximumStartRunRequestBytes
+import com.flashcardsopensourceapp.data.local.model.ai.aiChatRequestTooLargeCode
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.currentCoroutineContext
@@ -199,24 +199,24 @@ private fun encodeAiChatStartRunRequestPayload(request: AiChatStartRunRequest): 
     )
 }
 
-private fun encodeAiChatWireContentPart(part: com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart): JSONObject {
+private fun encodeAiChatWireContentPart(part: com.flashcardsopensourceapp.data.local.model.ai.AiChatWireContentPart): JSONObject {
     return when (part) {
-        is com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart.Text -> JSONObject()
+        is com.flashcardsopensourceapp.data.local.model.ai.AiChatWireContentPart.Text -> JSONObject()
             .put("type", "text")
             .put("text", part.text)
 
-        is com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart.Image -> JSONObject()
+        is com.flashcardsopensourceapp.data.local.model.ai.AiChatWireContentPart.Image -> JSONObject()
             .put("type", "image")
             .put("mediaType", part.mediaType)
             .put("base64Data", part.base64Data)
 
-        is com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart.File -> JSONObject()
+        is com.flashcardsopensourceapp.data.local.model.ai.AiChatWireContentPart.File -> JSONObject()
             .put("type", "file")
             .put("fileName", part.fileName)
             .put("mediaType", part.mediaType)
             .put("base64Data", part.base64Data)
 
-        is com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart.Card -> JSONObject()
+        is com.flashcardsopensourceapp.data.local.model.ai.AiChatWireContentPart.Card -> JSONObject()
             .put("type", "card")
             .put("cardId", part.cardId)
             .put("frontText", part.frontText)
@@ -224,7 +224,7 @@ private fun encodeAiChatWireContentPart(part: com.flashcardsopensourceapp.data.l
             .put("tags", JSONArray(part.tags))
             .put("effortLevel", aiChatEffortLevelWireValue(part.effortLevel))
 
-        is com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart.ToolCall -> JSONObject()
+        is com.flashcardsopensourceapp.data.local.model.ai.AiChatWireContentPart.ToolCall -> JSONObject()
             .put("type", "tool_call")
             .put("id", part.toolCallId)
             .put("name", part.name)

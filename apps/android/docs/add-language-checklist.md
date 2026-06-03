@@ -80,8 +80,8 @@ Not all UI text comes straight from composables with `stringResource(...)`.
 
 Check these provider and resolver entry points:
 
-- `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/CardPresentationSupport.kt`
-- `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/ReviewSupport.kt`
+- `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/cards/CardPresentationSupport.kt`
+- `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/review/ReviewSupport.kt`
 - `apps/android/feature/cards/src/main/java/com/flashcardsopensourceapp/feature/cards/CardsStrings.kt`
 - `apps/android/feature/ai/src/main/java/com/flashcardsopensourceapp/feature/ai/AiStrings.kt`
 - `apps/android/feature/review/src/main/java/com/flashcardsopensourceapp/feature/review/ReviewStrings.kt`

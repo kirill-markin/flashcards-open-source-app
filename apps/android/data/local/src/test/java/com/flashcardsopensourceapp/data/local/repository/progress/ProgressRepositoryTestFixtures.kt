@@ -6,11 +6,11 @@ import com.flashcardsopensourceapp.data.local.database.ProgressLocalDayCountEnti
 import com.flashcardsopensourceapp.data.local.database.ProgressReviewScheduleCardDueEntity
 import com.flashcardsopensourceapp.data.local.database.ProgressReviewHistoryStateEntity
 import com.flashcardsopensourceapp.data.local.database.SyncStateEntity
-import com.flashcardsopensourceapp.data.local.model.CloudAccountState
-import com.flashcardsopensourceapp.data.local.model.CloudProgressReviewSchedule
-import com.flashcardsopensourceapp.data.local.model.CloudProgressReviewScheduleBucket
-import com.flashcardsopensourceapp.data.local.model.CloudSettings
-import com.flashcardsopensourceapp.data.local.model.ProgressReviewScheduleBucketKey
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewScheduleBucket
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleBucketKey
 import java.time.LocalDate
 import java.time.ZoneId
 

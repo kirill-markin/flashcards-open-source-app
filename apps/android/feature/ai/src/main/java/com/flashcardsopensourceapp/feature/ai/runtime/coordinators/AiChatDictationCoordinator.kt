@@ -1,8 +1,8 @@
 package com.flashcardsopensourceapp.feature.ai.runtime.coordinators
 
 import com.flashcardsopensourceapp.data.local.ai.AiChatDiagnosticsLogger
-import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
-import com.flashcardsopensourceapp.data.local.model.effectiveAiChatServerConfig
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
+import com.flashcardsopensourceapp.data.local.model.ai.effectiveAiChatServerConfig
 import com.flashcardsopensourceapp.feature.ai.runtime.AiChatRuntimeContext
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiChatRuntimeState
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiConversationBootstrapState

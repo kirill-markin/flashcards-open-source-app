@@ -6,9 +6,9 @@ import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
-import com.flashcardsopensourceapp.data.local.model.ProgressReviewScheduleSnapshot
-import com.flashcardsopensourceapp.data.local.model.ProgressSeriesSnapshot
-import com.flashcardsopensourceapp.data.local.model.ProgressSummarySnapshot
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleSnapshot
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesSnapshot
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
 import com.flashcardsopensourceapp.data.local.repository.ProgressRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope

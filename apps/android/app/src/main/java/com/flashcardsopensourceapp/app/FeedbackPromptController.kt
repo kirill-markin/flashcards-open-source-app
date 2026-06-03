@@ -2,9 +2,9 @@ package com.flashcardsopensourceapp.app
 
 import android.content.Context
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
-import com.flashcardsopensourceapp.data.local.model.CloudFeedbackState
-import com.flashcardsopensourceapp.data.local.model.CloudFeedbackTrigger
-import com.flashcardsopensourceapp.data.local.model.cloudFeedbackMessageMaximumLength
+import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackState
+import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackTrigger
+import com.flashcardsopensourceapp.data.local.model.feedback.cloudFeedbackMessageMaximumLength
 import com.flashcardsopensourceapp.data.local.repository.FeedbackRepository
 import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
 import java.time.ZoneId

@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.model
+package com.flashcardsopensourceapp.data.local.model.scheduling
 
 private const val defaultDesiredRetention: Double = 0.90
 private const val defaultMaximumIntervalDays: Int = 36_500

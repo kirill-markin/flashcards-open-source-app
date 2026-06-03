@@ -1,12 +1,12 @@
 package com.flashcardsopensourceapp.feature.review
 
-import com.flashcardsopensourceapp.data.local.model.PendingReviewedCard
-import com.flashcardsopensourceapp.data.local.model.ReviewCard
-import com.flashcardsopensourceapp.data.local.model.ReviewDeckFilterOption
-import com.flashcardsopensourceapp.data.local.model.ReviewEffortFilterOption
-import com.flashcardsopensourceapp.data.local.model.ReviewFilter
-import com.flashcardsopensourceapp.data.local.model.ReviewSessionSnapshot
-import com.flashcardsopensourceapp.data.local.model.ReviewTagFilterOption
+import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
+import com.flashcardsopensourceapp.data.local.model.review.ReviewCard
+import com.flashcardsopensourceapp.data.local.model.review.ReviewDeckFilterOption
+import com.flashcardsopensourceapp.data.local.model.review.ReviewEffortFilterOption
+import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionSnapshot
+import com.flashcardsopensourceapp.data.local.model.review.ReviewTagFilterOption
 
 internal data class ReviewDraftState(
     val requestedFilter: ReviewFilter,

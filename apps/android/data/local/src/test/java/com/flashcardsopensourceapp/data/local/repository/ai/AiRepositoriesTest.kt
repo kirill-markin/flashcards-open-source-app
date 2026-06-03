@@ -1,6 +1,6 @@
 package com.flashcardsopensourceapp.data.local.repository.ai
 
-import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
+import com.flashcardsopensourceapp.data.local.model.ai.makeDefaultAiChatPersistedState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

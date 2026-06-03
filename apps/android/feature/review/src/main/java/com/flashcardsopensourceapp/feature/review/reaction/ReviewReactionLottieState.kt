@@ -13,7 +13,7 @@ import com.airbnb.lottie.LottieComposition
 import com.airbnb.lottie.compose.LottieCompositionResult
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
-import com.flashcardsopensourceapp.data.local.model.ReviewRating
+import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.feature.review.R
 
 private const val reviewReactionLogTag: String = "ReviewReaction"

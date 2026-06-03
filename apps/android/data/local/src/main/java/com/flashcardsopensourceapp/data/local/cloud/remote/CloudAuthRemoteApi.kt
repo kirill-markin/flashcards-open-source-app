@@ -5,10 +5,10 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudStringOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudBoolean
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudInt
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
-import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
-import com.flashcardsopensourceapp.data.local.model.CloudSendCodeResult
-import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
-import com.flashcardsopensourceapp.data.local.model.makeIdTokenExpiryTimestampMillis
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSendCodeResult
+import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
+import com.flashcardsopensourceapp.data.local.model.cloud.makeIdTokenExpiryTimestampMillis
 import org.json.JSONObject
 
 internal class CloudAuthRemoteApi(

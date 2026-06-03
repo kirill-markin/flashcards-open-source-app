@@ -1,17 +1,17 @@
 package com.flashcardsopensourceapp.data.local.repository
 
 import com.flashcardsopensourceapp.data.local.database.DeckEntity
-import com.flashcardsopensourceapp.data.local.model.CardSummary
-import com.flashcardsopensourceapp.data.local.model.DeckDraft
-import com.flashcardsopensourceapp.data.local.model.DeckFilterDefinition
-import com.flashcardsopensourceapp.data.local.model.DeckSummary
-import com.flashcardsopensourceapp.data.local.model.buildDeckFilterDefinition
-import com.flashcardsopensourceapp.data.local.model.decodeDeckFilterDefinitionJson
-import com.flashcardsopensourceapp.data.local.model.encodeDeckFilterDefinitionJson
-import com.flashcardsopensourceapp.data.local.model.isCardDue
-import com.flashcardsopensourceapp.data.local.model.isNewCard
-import com.flashcardsopensourceapp.data.local.model.isReviewedCard
-import com.flashcardsopensourceapp.data.local.model.matchesDeckFilterDefinition
+import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
+import com.flashcardsopensourceapp.data.local.model.cards.DeckDraft
+import com.flashcardsopensourceapp.data.local.model.cards.DeckFilterDefinition
+import com.flashcardsopensourceapp.data.local.model.cards.DeckSummary
+import com.flashcardsopensourceapp.data.local.model.cards.buildDeckFilterDefinition
+import com.flashcardsopensourceapp.data.local.model.cards.decodeDeckFilterDefinitionJson
+import com.flashcardsopensourceapp.data.local.model.cards.encodeDeckFilterDefinitionJson
+import com.flashcardsopensourceapp.data.local.model.cards.isCardDue
+import com.flashcardsopensourceapp.data.local.model.cards.isNewCard
+import com.flashcardsopensourceapp.data.local.model.cards.isReviewedCard
+import com.flashcardsopensourceapp.data.local.model.cards.matchesDeckFilterDefinition
 
 internal fun normalizeDeckDraft(deckDraft: DeckDraft): DeckDraft {
     val trimmedName: String = deckDraft.name.trim()

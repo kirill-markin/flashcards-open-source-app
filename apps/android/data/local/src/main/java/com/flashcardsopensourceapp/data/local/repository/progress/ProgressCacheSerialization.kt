@@ -3,15 +3,15 @@ package com.flashcardsopensourceapp.data.local.repository.progress
 import com.flashcardsopensourceapp.data.local.database.ProgressReviewScheduleCacheEntity
 import com.flashcardsopensourceapp.data.local.database.ProgressSeriesCacheEntity
 import com.flashcardsopensourceapp.data.local.database.ProgressSummaryCacheEntity
-import com.flashcardsopensourceapp.data.local.model.CloudDailyReviewPoint
-import com.flashcardsopensourceapp.data.local.model.CloudProgressReviewSchedule
-import com.flashcardsopensourceapp.data.local.model.CloudProgressReviewScheduleBucket
-import com.flashcardsopensourceapp.data.local.model.CloudProgressSeries
-import com.flashcardsopensourceapp.data.local.model.CloudProgressSummary
-import com.flashcardsopensourceapp.data.local.model.ProgressReviewScheduleBucketKey
-import com.flashcardsopensourceapp.data.local.model.ProgressReviewScheduleScopeKey
-import com.flashcardsopensourceapp.data.local.model.ProgressSeriesScopeKey
-import com.flashcardsopensourceapp.data.local.model.ProgressSummaryScopeKey
+import com.flashcardsopensourceapp.data.local.model.progress.CloudDailyReviewPoint
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewScheduleBucket
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleBucketKey
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleScopeKey
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesScopeKey
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummaryScopeKey
 import org.json.JSONArray
 import org.json.JSONObject
 

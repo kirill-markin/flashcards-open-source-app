@@ -1,6 +1,6 @@
 package com.flashcardsopensourceapp.feature.settings.deck
 
-import com.flashcardsopensourceapp.data.local.model.CardSummary
+import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 
 sealed interface DeckDetailInfoUiState {
     val title: String

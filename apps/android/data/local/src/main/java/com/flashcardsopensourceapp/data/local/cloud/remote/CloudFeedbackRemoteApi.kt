@@ -4,9 +4,9 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.putNullableString
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudInt
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudNullableIsoTimestampMillis
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudObject
-import com.flashcardsopensourceapp.data.local.model.CloudFeedbackPromptEventRequest
-import com.flashcardsopensourceapp.data.local.model.CloudFeedbackState
-import com.flashcardsopensourceapp.data.local.model.CloudFeedbackSubmissionRequest
+import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackPromptEventRequest
+import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackState
+import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackSubmissionRequest
 import org.json.JSONObject
 
 internal class CloudFeedbackRemoteApi(

@@ -400,7 +400,7 @@ bash scripts/android/run-android-ci.sh
 Run the retained Android FSRS parity test against the shared vectors:
 
 ```bash
-cd apps/android && ./gradlew --no-daemon :data:local:testDebugUnitTest --tests com.flashcardsopensourceapp.data.local.model.FsrsSchedulerParityTest
+cd apps/android && ./gradlew --no-daemon :data:local:testDebugUnitTest --tests com.flashcardsopensourceapp.data.local.model.scheduling.FsrsSchedulerParityTest
 ```
 
 Build the signed release bundle with the same inputs that the release workflow uses:

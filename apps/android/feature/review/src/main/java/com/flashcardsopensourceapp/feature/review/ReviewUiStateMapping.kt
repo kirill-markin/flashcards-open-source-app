@@ -1,13 +1,13 @@
 package com.flashcardsopensourceapp.feature.review
 
-import com.flashcardsopensourceapp.data.local.model.AppMetadataStorage
-import com.flashcardsopensourceapp.data.local.model.AppMetadataSummary
-import com.flashcardsopensourceapp.data.local.model.AppMetadataSyncStatus
-import com.flashcardsopensourceapp.data.local.model.ProgressSummarySnapshot
-import com.flashcardsopensourceapp.data.local.model.ReviewAnswerOption
-import com.flashcardsopensourceapp.data.local.model.ReviewCard
-import com.flashcardsopensourceapp.data.local.model.ReviewFilter
-import com.flashcardsopensourceapp.data.local.model.ReviewSessionSnapshot
+import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataStorage
+import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataSummary
+import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataSyncStatus
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
+import com.flashcardsopensourceapp.data.local.model.review.ReviewAnswerOption
+import com.flashcardsopensourceapp.data.local.model.review.ReviewCard
+import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionSnapshot
 
 internal fun initialReviewAppMetadataSummary(textProvider: ReviewTextProvider): AppMetadataSummary {
     return AppMetadataSummary(

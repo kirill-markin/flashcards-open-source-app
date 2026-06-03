@@ -8,12 +8,12 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudInt
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudNullableString
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudObject
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
-import com.flashcardsopensourceapp.data.local.model.CloudDailyReviewPoint
-import com.flashcardsopensourceapp.data.local.model.CloudProgressReviewSchedule
-import com.flashcardsopensourceapp.data.local.model.CloudProgressReviewScheduleBucket
-import com.flashcardsopensourceapp.data.local.model.CloudProgressSeries
-import com.flashcardsopensourceapp.data.local.model.CloudProgressSummary
-import com.flashcardsopensourceapp.data.local.model.ProgressReviewScheduleBucketKey
+import com.flashcardsopensourceapp.data.local.model.progress.CloudDailyReviewPoint
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewScheduleBucket
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleBucketKey
 import org.json.JSONObject
 
 internal class CloudProgressRemoteApi(

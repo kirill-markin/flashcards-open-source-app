@@ -48,7 +48,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.flashcardsopensourceapp.data.local.model.ProgressReviewScheduleBucketKey
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleBucketKey
 import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.atan2

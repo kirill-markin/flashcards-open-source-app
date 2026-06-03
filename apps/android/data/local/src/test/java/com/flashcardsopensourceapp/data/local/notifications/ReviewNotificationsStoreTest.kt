@@ -1,7 +1,7 @@
 package com.flashcardsopensourceapp.data.local.notifications
 
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
-import com.flashcardsopensourceapp.data.local.model.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId

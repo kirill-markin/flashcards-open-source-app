@@ -55,8 +55,8 @@ import com.flashcardsopensourceapp.feature.ai.aiComposerSuggestionRowTag
 import com.flashcardsopensourceapp.feature.ai.input.dictationStatusLabel
 import com.flashcardsopensourceapp.core.ui.bidiWrap
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
-import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
-import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
 import com.flashcardsopensourceapp.feature.ai.strings.aiTextProvider
 
 private val aiComposerActionSize = 40.dp
@@ -68,7 +68,7 @@ private const val aiComposerMaximumLineCount = 5
 internal fun AiComposer(
     uiState: AiUiState,
     onDraftMessageChange: (String) -> Unit,
-    onApplyComposerSuggestion: (com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion) -> Unit,
+    onApplyComposerSuggestion: (com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion) -> Unit,
     onSendMessage: () -> Unit,
     onCancelStreaming: () -> Unit,
     onRemovePendingAttachment: (String) -> Unit,

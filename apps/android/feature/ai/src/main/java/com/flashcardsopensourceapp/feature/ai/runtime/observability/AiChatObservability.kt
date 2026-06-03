@@ -10,7 +10,7 @@ import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.ai.AiChatRequestTooLargeException
 import com.flashcardsopensourceapp.data.local.ai.isAiChatAttachmentUnsupportedTypeRemoteError
 import com.flashcardsopensourceapp.data.local.ai.isAiChatRequestTooLargeRemoteError
-import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
 import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.AiChatBootstrapBlockedException
 import java.io.IOException
 
