@@ -25,14 +25,14 @@ import com.flashcardsopensourceapp.feature.settings.review.ReviewNotificationsRo
 import com.flashcardsopensourceapp.feature.settings.review.createReviewNotificationsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.scheduler.SchedulerSettingsRoute
 import com.flashcardsopensourceapp.feature.settings.scheduler.createSchedulerSettingsViewModelFactory
-import com.flashcardsopensourceapp.feature.settings.workspace.WorkspaceExportRoute
-import com.flashcardsopensourceapp.feature.settings.workspace.WorkspaceOverviewRoute
-import com.flashcardsopensourceapp.feature.settings.workspace.WorkspaceSettingsRoute
-import com.flashcardsopensourceapp.feature.settings.workspace.WorkspaceTagsRoute
-import com.flashcardsopensourceapp.feature.settings.workspace.createWorkspaceExportViewModelFactory
-import com.flashcardsopensourceapp.feature.settings.workspace.createWorkspaceOverviewViewModelFactory
-import com.flashcardsopensourceapp.feature.settings.workspace.createWorkspaceSettingsViewModelFactory
-import com.flashcardsopensourceapp.feature.settings.workspace.createWorkspaceTagsViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.workspace.export.WorkspaceExportRoute
+import com.flashcardsopensourceapp.feature.settings.workspace.export.createWorkspaceExportViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.workspace.overview.WorkspaceOverviewRoute
+import com.flashcardsopensourceapp.feature.settings.workspace.overview.createWorkspaceOverviewViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.workspace.settings.WorkspaceSettingsRoute
+import com.flashcardsopensourceapp.feature.settings.workspace.settings.createWorkspaceSettingsViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.workspace.tags.WorkspaceTagsRoute
+import com.flashcardsopensourceapp.feature.settings.workspace.tags.createWorkspaceTagsViewModelFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -49,7 +49,7 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
     ) {
         composable(route = SettingsWorkspaceDestination.route) {
             val context = LocalContext.current
-            val workspaceSettingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.workspace.WorkspaceSettingsViewModel>(
+            val workspaceSettingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.workspace.settings.WorkspaceSettingsViewModel>(
                 factory = createWorkspaceSettingsViewModelFactory(
                     workspaceRepository = appGraph.workspaceRepository,
                     cloudAccountRepository = appGraph.cloudAccountRepository,
@@ -145,7 +145,7 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
 
         composable(route = SettingsWorkspaceOverviewDestination.route) {
             val context = LocalContext.current
-            val workspaceOverviewViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.workspace.WorkspaceOverviewViewModel>(
+            val workspaceOverviewViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.workspace.overview.WorkspaceOverviewViewModel>(
                 factory = createWorkspaceOverviewViewModelFactory(
                     workspaceRepository = appGraph.workspaceRepository,
                     cloudAccountRepository = appGraph.cloudAccountRepository,
@@ -337,7 +337,7 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
         }
 
         composable(route = SettingsWorkspaceTagsDestination.route) {
-            val workspaceTagsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.workspace.WorkspaceTagsViewModel>(
+            val workspaceTagsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.workspace.tags.WorkspaceTagsViewModel>(
                 factory = createWorkspaceTagsViewModelFactory(workspaceRepository = appGraph.workspaceRepository)
             )
             val uiState by workspaceTagsViewModel.uiState.collectAsStateWithLifecycle()
@@ -389,7 +389,7 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
 
         composable(route = SettingsWorkspaceExportDestination.route) {
             val context = LocalContext.current
-            val workspaceExportViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.workspace.WorkspaceExportViewModel>(
+            val workspaceExportViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.workspace.export.WorkspaceExportViewModel>(
                 factory = createWorkspaceExportViewModelFactory(
                     workspaceRepository = appGraph.workspaceRepository,
                     applicationContext = context.applicationContext

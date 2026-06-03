@@ -1,6 +1,6 @@
 package com.flashcardsopensourceapp.feature.settings.cloud
 
-import com.flashcardsopensourceapp.feature.settings.workspace.CurrentWorkspaceItemUiState
+import com.flashcardsopensourceapp.feature.settings.workspace.current.CurrentWorkspaceItemUiState
 
 enum class CloudPostAuthMode {
     IDLE,

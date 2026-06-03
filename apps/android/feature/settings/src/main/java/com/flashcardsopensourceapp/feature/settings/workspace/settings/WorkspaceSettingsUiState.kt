@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.settings.workspace
+package com.flashcardsopensourceapp.feature.settings.workspace.settings
 
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceResetProgressPreview
 import com.flashcardsopensourceapp.feature.settings.DestructiveActionState

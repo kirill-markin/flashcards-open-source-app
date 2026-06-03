@@ -12,8 +12,8 @@ import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsStringResolver
 import com.flashcardsopensourceapp.feature.settings.createSettingsStringResolver
-import com.flashcardsopensourceapp.feature.settings.workspace.formatWorkspaceSchedulerDesiredRetention
-import com.flashcardsopensourceapp.feature.settings.workspace.formatWorkspaceSchedulerUpdatedAtLabel
+import com.flashcardsopensourceapp.feature.settings.workspace.shared.formatWorkspaceSchedulerDesiredRetention
+import com.flashcardsopensourceapp.feature.settings.workspace.shared.formatWorkspaceSchedulerUpdatedAtLabel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow

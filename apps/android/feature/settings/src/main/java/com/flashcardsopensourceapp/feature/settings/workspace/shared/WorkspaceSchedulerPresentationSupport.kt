@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.settings.workspace
+package com.flashcardsopensourceapp.feature.settings.workspace.shared
 
 import com.flashcardsopensourceapp.data.local.model.WorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.feature.settings.R

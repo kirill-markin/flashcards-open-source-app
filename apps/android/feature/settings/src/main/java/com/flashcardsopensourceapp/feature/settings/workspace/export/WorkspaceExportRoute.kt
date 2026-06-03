@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.settings.workspace
+package com.flashcardsopensourceapp.feature.settings.workspace.export
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts

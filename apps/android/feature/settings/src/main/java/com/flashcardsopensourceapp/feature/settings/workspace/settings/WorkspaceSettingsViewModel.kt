@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.settings.workspace
+package com.flashcardsopensourceapp.feature.settings.workspace.settings
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
@@ -15,6 +15,7 @@ import com.flashcardsopensourceapp.feature.settings.DestructiveActionState
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsStringResolver
 import com.flashcardsopensourceapp.feature.settings.createSettingsStringResolver
+import com.flashcardsopensourceapp.feature.settings.workspace.shared.formatWorkspaceSchedulerSummary
 import com.flashcardsopensourceapp.feature.settings.workspaceResetProgressConfirmationText
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted

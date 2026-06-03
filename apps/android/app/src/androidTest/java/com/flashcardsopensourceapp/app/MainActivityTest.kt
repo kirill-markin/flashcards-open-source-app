@@ -43,9 +43,9 @@ import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerLearningS
 import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerMaximumIntervalFieldTag
 import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerRelearningStepsFieldTag
 import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerSaveButtonTag
-import com.flashcardsopensourceapp.feature.settings.workspace.workspaceTagCardsCountTag
-import com.flashcardsopensourceapp.feature.settings.workspace.workspaceTagRowTag
-import com.flashcardsopensourceapp.feature.settings.workspace.workspaceTagsSearchFieldTag
+import com.flashcardsopensourceapp.feature.settings.workspace.tags.workspaceTagCardsCountTag
+import com.flashcardsopensourceapp.feature.settings.workspace.tags.workspaceTagRowTag
+import com.flashcardsopensourceapp.feature.settings.workspace.tags.workspaceTagsSearchFieldTag
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
 import org.junit.Rule
