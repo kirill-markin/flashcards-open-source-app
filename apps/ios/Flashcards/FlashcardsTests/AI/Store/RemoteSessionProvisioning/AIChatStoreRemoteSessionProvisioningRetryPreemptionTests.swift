@@ -1,0 +1,435 @@
+import XCTest
+@testable import Flashcards
+
+@MainActor
+final class AIChatStoreRemoteSessionProvisioningRetryPreemptionTests: XCTestCase {
+    func testBootstrapRetryExhaustsAfterThreeAttemptsAndFailsWithoutStartingRun() async throws {
+        let context = AIChatStoreTestSupport.Context.make()
+        defer {
+            context.tearDown()
+        }
+
+        try context.configureLinkedCloudSession()
+        let store = context.makeStore()
+        store.acceptExternalProviderConsent()
+        store.activeAlert = .generalError(title: "Stale", message: "Previous failure")
+        context.chatService.createNewSessionHandler = { request in
+            guard let sessionId = request.sessionId, sessionId.isEmpty == false else {
+                throw LocalStoreError.validation("Expected an explicit AI chat session id before bootstrap retry.")
+            }
+
+            return AIChatStoreTestSupport.makeNewSessionResponse(sessionId: sessionId)
+        }
+        context.chatService.loadBootstrapHandler = { sessionId in
+            guard let sessionId, sessionId.isEmpty == false else {
+                throw LocalStoreError.validation("Expected an explicit AI chat session id during bootstrap retry.")
+            }
+
+            throw URLError(.networkConnectionLost)
+        }
+
+        store.startLinkedBootstrap(forceReloadState: false, resumeAttemptDiagnostics: nil)
+        await AIChatStoreTestSupport.waitForBootstrapToSettle(store: store)
+
+        let explicitSessionId = try XCTUnwrap(context.chatService.createNewSessionSessionIds.first ?? nil)
+        XCTAssertEqual(context.chatService.createNewSessionSessionIds, [explicitSessionId])
+        XCTAssertEqual(context.chatService.loadBootstrapSessionIds, [
+            explicitSessionId,
+            explicitSessionId,
+            explicitSessionId
+        ])
+        XCTAssertEqual(context.chatService.events, [
+            "createNewSession:\(explicitSessionId)",
+            "loadBootstrap:\(explicitSessionId)",
+            "loadBootstrap:\(explicitSessionId)",
+            "loadBootstrap:\(explicitSessionId)"
+        ])
+        XCTAssertTrue(context.chatService.startRunRequests.isEmpty)
+        XCTAssertNil(store.activeAlert)
+        guard case .failed(let presentation) = store.bootstrapPhase else {
+            XCTFail("Expected bootstrapPhase.failed after bounded retry exhaustion.")
+            return
+        }
+        XCTAssertEqual(
+            presentation.message,
+            "The connection was interrupted while loading AI chat. Check your connection and try again."
+        )
+    }
+
+    func testSendRemoteSessionProvisioningFailureAttemptsOnceAndRestoresState() async throws {
+        let context = AIChatStoreTestSupport.Context.make()
+        defer {
+            context.tearDown()
+        }
+
+        try context.configureGuestCloudSession()
+        let store = context.makeStore()
+        store.acceptExternalProviderConsent()
+        store.bootstrapPhase = .ready
+        store.chatSessionId = ""
+        store.conversationScopeId = ""
+        let expectedDraft = AIChatComposerDraft(
+            inputText: "Help me review this card.",
+            pendingAttachments: []
+        )
+        store.inputText = expectedDraft.inputText
+        context.chatService.createNewSessionHandler = { request in
+            guard let sessionId = request.sessionId, sessionId.isEmpty == false else {
+                throw LocalStoreError.validation("Expected an explicit AI chat session id for foreground provisioning.")
+            }
+            XCTAssertEqual(request.uiLocale, currentAIChatUILocaleIdentifier())
+            throw URLError(.networkConnectionLost)
+        }
+
+        store.sendMessage()
+        XCTAssertEqual(store.inputText, "")
+        XCTAssertTrue(store.pendingAttachments.isEmpty)
+        await AIChatStoreTestSupport.waitForSendToSettle(store: store)
+        await store.waitForPendingStatePersistence()
+
+        let explicitSessionId = try XCTUnwrap(context.chatService.createNewSessionSessionIds.first ?? nil)
+        XCTAssertEqual(context.chatService.events, ["createNewSession:\(explicitSessionId)"])
+        XCTAssertEqual(context.chatService.createNewSessionSessionIds, [explicitSessionId])
+        XCTAssertTrue(context.chatService.loadBootstrapSessionIds.isEmpty)
+        XCTAssertTrue(context.chatService.startRunRequests.isEmpty)
+        XCTAssertEqual(store.messages, [])
+        XCTAssertEqual(store.chatSessionId, explicitSessionId)
+        XCTAssertEqual(store.conversationScopeId, explicitSessionId)
+        XCTAssertTrue(store.requiresRemoteSessionProvisioning)
+        XCTAssertEqual(store.inputText, expectedDraft.inputText)
+        XCTAssertTrue(store.pendingAttachments.isEmpty)
+        XCTAssertEqual(store.composerPhase, .idle)
+        XCTAssertNotNil(store.activeAlert)
+        XCTAssertEqual(
+            context.historyStore.loadDraft(
+                workspaceId: store.historyWorkspaceId(),
+                sessionId: explicitSessionId
+            ),
+            expectedDraft
+        )
+    }
+
+    func testRemoteSessionProvisioningRetryReusesSameExplicitSessionId() async throws {
+        let context = AIChatStoreTestSupport.Context.make()
+        defer {
+            context.tearDown()
+        }
+
+        try context.configureLinkedCloudSession()
+        let store = context.makeStore()
+        store.acceptExternalProviderConsent()
+        var createAttempts = 0
+        context.chatService.createNewSessionHandler = { request in
+            guard let sessionId = request.sessionId, sessionId.isEmpty == false else {
+                throw LocalStoreError.validation("Expected an explicit AI chat session id for retry coverage.")
+            }
+            XCTAssertEqual(request.uiLocale, currentAIChatUILocaleIdentifier())
+            createAttempts += 1
+            if createAttempts == 1 {
+                throw LocalStoreError.validation("Transient AI chat provisioning failure.")
+            }
+            return AIChatStoreTestSupport.makeNewSessionResponse(sessionId: sessionId)
+        }
+
+        store.startFreshLocalSession(
+            inputText: "",
+            pendingAttachments: []
+        )
+        await AIChatStoreTestSupport.waitForNewSessionToSettle(store: store)
+
+        let explicitSessionId = store.chatSessionId
+        XCTAssertFalse(explicitSessionId.isEmpty)
+        XCTAssertTrue(store.requiresRemoteSessionProvisioning)
+
+        let retriedSessionId = try await store.ensureRemoteSessionIfNeeded()
+
+        XCTAssertEqual(retriedSessionId, explicitSessionId)
+        XCTAssertEqual(context.chatService.createNewSessionSessionIds, [
+            explicitSessionId,
+            explicitSessionId
+        ])
+        XCTAssertFalse(store.requiresRemoteSessionProvisioning)
+    }
+
+    func testFreshLocalSessionProvisioningRetryExhaustionShowsFailedStateInsteadOfAlert() async throws {
+        let context = AIChatStoreTestSupport.Context.make()
+        defer {
+            context.tearDown()
+        }
+
+        try context.configureLinkedCloudSession()
+        let store = context.makeStore()
+        store.acceptExternalProviderConsent()
+        context.chatService.createNewSessionHandler = { request in
+            guard request.sessionId?.isEmpty == false else {
+                throw LocalStoreError.validation("Expected an explicit AI chat session id during new chat provisioning.")
+            }
+            throw URLError(.timedOut)
+        }
+
+        store.startFreshLocalSession(
+            inputText: "Draft survives",
+            pendingAttachments: []
+        )
+        await AIChatStoreTestSupport.waitForNewSessionToSettle(store: store)
+
+        let explicitSessionId = try XCTUnwrap(context.chatService.createNewSessionSessionIds.first ?? nil)
+        XCTAssertEqual(context.chatService.createNewSessionSessionIds, [
+            explicitSessionId,
+            explicitSessionId,
+            explicitSessionId
+        ])
+        XCTAssertEqual(context.chatService.events, [
+            "createNewSession:\(explicitSessionId)",
+            "createNewSession:\(explicitSessionId)",
+            "createNewSession:\(explicitSessionId)"
+        ])
+        XCTAssertEqual(store.chatSessionId, explicitSessionId)
+        XCTAssertTrue(store.requiresRemoteSessionProvisioning)
+        XCTAssertEqual(store.inputText, "Draft survives")
+        XCTAssertNil(store.activeAlert)
+        guard case .failed(let presentation) = store.bootstrapPhase else {
+            XCTFail("Expected failed bootstrap state after new chat provisioning retry exhaustion.")
+            return
+        }
+        XCTAssertEqual(
+            presentation.message,
+            "The connection was interrupted while loading AI chat. Check your connection and try again."
+        )
+        XCTAssertNotNil(presentation.technicalDetails)
+    }
+
+    func testFreshLocalSessionRetryFailurePreservesPendingDraftAndAttachments() async throws {
+        let context = AIChatStoreTestSupport.Context.make()
+        defer {
+            context.tearDown()
+        }
+
+        try context.configureLinkedCloudSession()
+        let store = context.makeStore()
+        store.acceptExternalProviderConsent()
+        let expectedAttachment = AIChatAttachment(
+            id: "attachment-1",
+            payload: .binary(
+                fileName: "card.png",
+                mediaType: "image/png",
+                base64Data: "aW1hZ2U="
+            )
+        )
+        let expectedDraft = AIChatComposerDraft(
+            inputText: "Draft survives retry",
+            pendingAttachments: [expectedAttachment]
+        )
+        context.chatService.createNewSessionHandler = { request in
+            guard request.sessionId?.isEmpty == false else {
+                throw LocalStoreError.validation("Expected an explicit AI chat session id during new chat retry.")
+            }
+            throw URLError(.timedOut)
+        }
+
+        store.startFreshLocalSession(
+            inputText: expectedDraft.inputText,
+            pendingAttachments: expectedDraft.pendingAttachments
+        )
+        await AIChatStoreTestSupport.waitForNewSessionToSettle(store: store)
+        let explicitSessionId = store.chatSessionId
+        XCTAssertFalse(explicitSessionId.isEmpty)
+
+        store.activeAlert = .generalError(title: "Stale", message: "Previous failure")
+        store.retryLinkedBootstrap()
+        await AIChatStoreTestSupport.waitForBootstrapToSettle(store: store)
+        await store.waitForPendingStatePersistence()
+
+        XCTAssertEqual(context.chatService.createNewSessionSessionIds, [
+            explicitSessionId,
+            explicitSessionId,
+            explicitSessionId,
+            explicitSessionId,
+            explicitSessionId,
+            explicitSessionId
+        ])
+        XCTAssertEqual(store.chatSessionId, explicitSessionId)
+        XCTAssertEqual(store.conversationScopeId, explicitSessionId)
+        XCTAssertTrue(store.requiresRemoteSessionProvisioning)
+        XCTAssertEqual(store.inputText, expectedDraft.inputText)
+        XCTAssertEqual(store.pendingAttachments, expectedDraft.pendingAttachments)
+        XCTAssertNil(store.activeAlert)
+        XCTAssertEqual(
+            context.historyStore.loadDraft(
+                workspaceId: store.historyWorkspaceId(),
+                sessionId: explicitSessionId
+            ),
+            expectedDraft
+        )
+    }
+
+    func testFreshLocalProvisionedSessionBootstrapRetryFailurePreservesPendingDraftAndAttachments() async throws {
+        let context = AIChatStoreTestSupport.Context.make()
+        defer {
+            context.tearDown()
+        }
+
+        try context.configureLinkedCloudSession()
+        let store = context.makeStore()
+        store.acceptExternalProviderConsent()
+        let expectedAttachment = AIChatAttachment(
+            id: "attachment-1",
+            payload: .binary(
+                fileName: "card.png",
+                mediaType: "image/png",
+                base64Data: "aW1hZ2U="
+            )
+        )
+        let expectedDraft = AIChatComposerDraft(
+            inputText: "Draft survives provisioned retry",
+            pendingAttachments: [expectedAttachment]
+        )
+        context.chatService.createNewSessionHandler = { request in
+            guard let sessionId = request.sessionId, sessionId.isEmpty == false else {
+                throw LocalStoreError.validation("Expected an explicit AI chat session id during provisioning.")
+            }
+
+            return AIChatStoreTestSupport.makeNewSessionResponse(sessionId: sessionId)
+        }
+
+        store.startFreshLocalSession(
+            inputText: expectedDraft.inputText,
+            pendingAttachments: expectedDraft.pendingAttachments
+        )
+        await AIChatStoreTestSupport.waitForNewSessionToSettle(store: store)
+        await store.waitForPendingStatePersistence()
+
+        let explicitSessionId = try XCTUnwrap(context.chatService.createNewSessionSessionIds.first ?? nil)
+        XCTAssertEqual(store.chatSessionId, explicitSessionId)
+        XCTAssertFalse(store.requiresRemoteSessionProvisioning)
+
+        context.chatService.loadBootstrapHandler = { sessionId in
+            XCTAssertEqual(sessionId, explicitSessionId)
+            throw URLError(.timedOut)
+        }
+
+        store.activeAlert = .generalError(title: "Stale", message: "Previous failure")
+        store.retryLinkedBootstrap()
+        await AIChatStoreTestSupport.waitForBootstrapToSettle(store: store)
+        await store.waitForPendingStatePersistence()
+
+        XCTAssertEqual(context.chatService.createNewSessionSessionIds, [explicitSessionId])
+        XCTAssertEqual(context.chatService.loadBootstrapSessionIds, [
+            explicitSessionId,
+            explicitSessionId,
+            explicitSessionId
+        ])
+        XCTAssertEqual(store.chatSessionId, explicitSessionId)
+        XCTAssertEqual(store.conversationScopeId, explicitSessionId)
+        XCTAssertFalse(store.requiresRemoteSessionProvisioning)
+        XCTAssertEqual(store.inputText, expectedDraft.inputText)
+        XCTAssertEqual(store.pendingAttachments, expectedDraft.pendingAttachments)
+        XCTAssertNil(store.activeAlert)
+        XCTAssertEqual(
+            context.historyStore.loadDraft(
+                workspaceId: store.historyWorkspaceId(),
+                sessionId: explicitSessionId
+            ),
+            expectedDraft
+        )
+    }
+
+    func testFreshLocalSessionRetriesTransientCloudSessionSetupBeforeProvisioning() async throws {
+        let context = AIChatStoreTestSupport.Context.make()
+        defer {
+            context.tearDown()
+        }
+
+        try context.configureLinkedCloudSession()
+        context.flashcardsStore.cloudRuntime.disconnectSession()
+        context.cloudSyncService.runLinkedSyncErrors = [URLError(.timedOut)]
+        let store = context.makeStore()
+        store.acceptExternalProviderConsent()
+        context.chatService.createNewSessionHandler = { request in
+            XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 2)
+            guard let sessionId = request.sessionId, sessionId.isEmpty == false else {
+                throw LocalStoreError.validation("Expected an explicit AI chat session id after session setup retry.")
+            }
+            return AIChatStoreTestSupport.makeNewSessionResponse(sessionId: sessionId)
+        }
+
+        store.startFreshLocalSession(
+            inputText: "Draft survives setup retry",
+            pendingAttachments: []
+        )
+        await AIChatStoreTestSupport.waitForNewSessionToSettle(store: store)
+
+        let explicitSessionId = try XCTUnwrap(context.chatService.createNewSessionSessionIds.first ?? nil)
+        XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 2)
+        XCTAssertEqual(context.chatService.createNewSessionSessionIds, [explicitSessionId])
+        XCTAssertTrue(context.chatService.loadBootstrapSessionIds.isEmpty)
+        XCTAssertFalse(store.chatSessionId.isEmpty)
+        XCTAssertFalse(store.requiresRemoteSessionProvisioning)
+        XCTAssertEqual(store.inputText, "Draft survives setup retry")
+        XCTAssertEqual(store.bootstrapPhase, .ready)
+    }
+
+    func testSendPreemptsPendingFreshLocalSessionProvisioningRetry() async throws {
+        let context = AIChatStoreTestSupport.Context.make()
+        defer {
+            context.tearDown()
+        }
+
+        try context.configureGuestCloudSession()
+        let store = context.makeStore()
+        store.acceptExternalProviderConsent()
+        store.bootstrapPhase = .ready
+        var createAttempts: Int = 0
+        context.chatService.createNewSessionHandler = { request in
+            guard let sessionId = request.sessionId, sessionId.isEmpty == false else {
+                throw LocalStoreError.validation("Expected an explicit AI chat session id for foreground preemption.")
+            }
+            createAttempts += 1
+            if createAttempts == 1 {
+                throw URLError(.networkConnectionLost)
+            }
+            return AIChatStoreTestSupport.makeNewSessionResponse(sessionId: sessionId)
+        }
+        context.chatService.startRunHandler = { request in
+            guard let sessionId = request.sessionId, sessionId.isEmpty == false else {
+                throw LocalStoreError.validation("Expected an explicit AI chat session id after foreground preemption.")
+            }
+            return AIChatStoreTestSupport.makeAcceptedStartRunResponse(
+                sessionId: sessionId,
+                userText: "Help me review this card."
+            )
+        }
+
+        store.startFreshLocalSession(
+            inputText: "Help me review this card.",
+            pendingAttachments: []
+        )
+
+        let didReachRetrySleep = await AIChatStoreTestSupport.waitForCondition(
+            description: "new chat provisioning retry sleep",
+            timeout: .seconds(3),
+            pollInterval: .milliseconds(10),
+            condition: {
+                store.activeNewSessionTask != nil
+                    && context.chatService.createNewSessionSessionIds.count == 1
+                    && store.requiresRemoteSessionProvisioning
+            }
+        )
+        XCTAssertTrue(didReachRetrySleep)
+        let explicitSessionId = try XCTUnwrap(context.chatService.createNewSessionSessionIds.first ?? nil)
+
+        store.sendMessage()
+        await AIChatStoreTestSupport.waitForSendToSettle(store: store)
+        try await Task.sleep(for: .milliseconds(450))
+
+        XCTAssertNil(store.activeNewSessionTask)
+        XCTAssertEqual(context.chatService.createNewSessionSessionIds, [
+            explicitSessionId,
+            explicitSessionId
+        ])
+        XCTAssertEqual(context.chatService.startRunRequests.map(\.sessionId), [explicitSessionId])
+        XCTAssertEqual(store.bootstrapPhase, .ready)
+        XCTAssertNil(store.activeAlert)
+        XCTAssertFalse(store.requiresRemoteSessionProvisioning)
+    }
+}
