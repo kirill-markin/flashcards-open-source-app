@@ -7,6 +7,11 @@ import {
 import { webAppVersion } from "../../clientIdentity";
 import { loadActiveCardCount, loadCardsByIds } from "../../localDb/cards";
 import {
+  ensurePersistentStorage,
+  readPersistentStorageState,
+  type PersistentStorageState,
+} from "../../localDb/cloudSettings";
+import {
   deleteOutboxRecord,
   isScheduleRelevantCardOutboxRecord,
   listOutboxRecords,
@@ -34,6 +39,7 @@ import {
 } from "../domain";
 import {
   observeLocalDbMissing,
+  observePersistentStorageState,
   observeSlowHotBootstrap,
 } from "./syncLifecycleObservation";
 import {
@@ -114,8 +120,26 @@ function isCardHotSyncEntry(entry: HotSyncEntry): entry is CardHotSyncEntry {
   return entry.entityType === "card";
 }
 
-function shouldObserveHotBootstrap(durationMs: number, pageCount: number): boolean {
-  return durationMs >= slowHotBootstrapWarningThresholdMs || pageCount > 1;
+function isEmptyRemoteBootstrapNoise(
+  remoteIsEmpty: boolean | null,
+  entriesCount: number,
+  localCardCountAfter: number,
+): boolean {
+  return remoteIsEmpty === true && localCardCountAfter === 0 && entriesCount <= 1;
+}
+
+function shouldObserveHotBootstrap(input: Readonly<{
+  durationMs: number;
+  pageCount: number;
+  entriesCount: number;
+  localCardCountAfter: number;
+  remoteIsEmpty: boolean | null;
+}>): boolean {
+  if (isEmptyRemoteBootstrapNoise(input.remoteIsEmpty, input.entriesCount, input.localCardCountAfter)) {
+    return false;
+  }
+
+  return input.durationMs >= slowHotBootstrapWarningThresholdMs || input.pageCount > 1;
 }
 
 function determineLocalBootstrapState(
@@ -149,6 +173,19 @@ async function storeCurrentWorkspaceRestoreHistory(
     lastAppliedHotChangeId,
     localCardCount,
   });
+}
+
+async function observePersistentStorageForHydratedWorkspace(
+  input: WorkspaceRemoteSyncInput,
+): Promise<PersistentStorageState> {
+  const persistentStorageState = await ensurePersistentStorage();
+  observePersistentStorageState({
+    userId: input.userId,
+    workspaceId: input.workspaceId,
+    installationId: input.installationId,
+    persistentStorageState,
+  });
+  return persistentStorageState;
 }
 
 async function backfillRestoreHistoryForHydratedState(
@@ -193,6 +230,7 @@ async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promise<Remot
     }
 
     await backfillRestoreHistoryForHydratedState(input, syncStateBefore);
+    await observePersistentStorageForHydratedWorkspace(input);
     input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
     return createEmptyRemoteSyncFlags();
   }
@@ -209,6 +247,7 @@ async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promise<Remot
   let remoteIsEmpty: boolean | null = null;
 
   if (syncStateBefore === null && localCardCountBefore === 0 && restoreHistoryBefore !== null) {
+    const persistentStorageStateBeforeMissingWarning = await readPersistentStorageState();
     observeLocalDbMissing({
       userId: input.userId,
       workspaceId: input.workspaceId,
@@ -217,6 +256,7 @@ async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promise<Remot
       localCardCountBefore,
       previousRestoreHistory: restoreHistoryBefore,
       currentWebAppVersion: webAppVersion,
+      persistentStorageState: persistentStorageStateBeforeMissingWarning,
     });
   }
 
@@ -276,7 +316,14 @@ async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promise<Remot
     lastAppliedHotChangeId: nextHotChangeId,
     localCardCount: localCardCountAfter,
   });
-  if (shouldObserveHotBootstrap(durationMs, pageCount)) {
+  await observePersistentStorageForHydratedWorkspace(input);
+  if (shouldObserveHotBootstrap({
+    durationMs,
+    pageCount,
+    entriesCount,
+    localCardCountAfter,
+    remoteIsEmpty,
+  })) {
     observeSlowHotBootstrap({
       userId: input.userId,
       workspaceId: input.workspaceId,

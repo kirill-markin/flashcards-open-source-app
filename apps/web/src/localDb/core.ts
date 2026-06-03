@@ -6,6 +6,11 @@ import type {
   WorkspaceSchedulerSettings,
 } from "../types";
 import { deriveDueAtBucketMillis, deriveDueAtMillis, parseDueAtMillis } from "../appData/domain/dueAt";
+import {
+  addWebBreadcrumb,
+  type IndexedDbOperation,
+  type WebObservationScope,
+} from "../observability/webObservability";
 
 export type StoredCard = Readonly<{
   workspaceId: string;
@@ -96,6 +101,19 @@ function isQuotaExceededError(error: unknown): boolean {
   return error instanceof DOMException && error.name === "QuotaExceededError";
 }
 
+function readNamedErrorName(error: unknown): string | null {
+  if (typeof error !== "object" || error === null || "name" in error === false) {
+    return null;
+  }
+
+  const errorName = (error as Readonly<{ name: unknown }>).name;
+  return typeof errorName === "string" && errorName.trim() !== "" ? errorName : null;
+}
+
+function getIndexedDbErrorName(error: unknown): string | null {
+  return readNamedErrorName(error);
+}
+
 export function describeIndexedDbError(prefix: string, error: unknown): Error {
   if (isQuotaExceededError(error)) {
     return new Error(`${prefix}: browser storage quota was exceeded`);
@@ -106,6 +124,69 @@ export function describeIndexedDbError(prefix: string, error: unknown): Error {
   }
 
   return new Error(`${prefix}: unknown error`);
+}
+
+function attachIndexedDbOperationMetadata(
+  error: Error,
+  operation: IndexedDbOperation,
+  sourceError: unknown,
+): Error {
+  Object.assign(error, {
+    indexedDbOperation: operation,
+    databaseName,
+    databaseVersion,
+    indexedDbErrorName: getIndexedDbErrorName(sourceError),
+  });
+  return error;
+}
+
+function describeIndexedDbOperationError(
+  prefix: string,
+  error: unknown,
+  operation: IndexedDbOperation,
+): Error {
+  return attachIndexedDbOperationMetadata(describeIndexedDbError(prefix, error), operation, error);
+}
+
+function getCurrentRoute(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
+
+function buildIndexedDbObservationScope(): WebObservationScope {
+  return {
+    app: "web",
+    feature: "sync",
+    userId: null,
+    workspaceId: null,
+    installationId: null,
+    route: getCurrentRoute(),
+    requestId: null,
+    statusCode: null,
+    code: null,
+  };
+}
+
+function addIndexedDbOperationFailedBreadcrumb(
+  operation: IndexedDbOperation,
+  sourceError: unknown,
+  error: Error,
+): void {
+  addWebBreadcrumb({
+    action: "indexed_db_operation",
+    scope: buildIndexedDbObservationScope(),
+    details: {
+      eventName: "indexed_db_operation_failed",
+      indexedDbOperation: operation,
+      databaseName,
+      databaseVersion,
+      indexedDbErrorName: getIndexedDbErrorName(sourceError),
+      errorMessage: error.message,
+    },
+  });
 }
 
 function deleteExistingStore(database: IDBDatabase, storeName: string): void {
@@ -332,7 +413,9 @@ export function openDatabase(): Promise<IDBDatabase> {
     const request = indexedDB.open(databaseName, databaseVersion);
 
     request.onerror = () => {
-      reject(describeIndexedDbError("Failed to open IndexedDB", request.error));
+      const error = describeIndexedDbOperationError("Failed to open IndexedDB", request.error, "open");
+      addIndexedDbOperationFailedBreadcrumb("open", request.error, error);
+      reject(error);
     };
 
     request.onupgradeneeded = (event) => {
