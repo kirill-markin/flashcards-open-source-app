@@ -3,7 +3,7 @@ import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { webAppVersion } from "../../clientIdentity";
 import { clearWebSyncCache } from "../../localDb/cache";
-import { applyHotSyncPage } from "../../localDb/workspace";
+import { applyHotSyncPage } from "../../localDb/cards/workspace";
 import { runWorkspaceRemoteSync, type WorkspaceRemoteSyncInput } from "./syncRemote";
 import {
   observeSlowHotBootstrap,

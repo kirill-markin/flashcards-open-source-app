@@ -88,7 +88,7 @@ function parseProgressSummary(
 //
 // The shared in-memory types (`ProgressSummaryPayload`, `ProgressSeries`,
 // `ProgressReviewSchedule`) keep `generatedAt: string | null` because callers also
-// construct local-only fallback snapshots (e.g. `localDb/reviewSchedule.ts`,
+// construct local-only fallback snapshots (e.g. `localDb/reviews/reviewSchedule.ts`,
 // `progressSnapshots.buildLocalFallbackSeries`) where there is no server timestamp;
 // assigning a strictly-parsed `string` into the nullable field is type-safe.
 export function parseProgressSeriesResponse(value: unknown, endpoint: string): ProgressSeries {

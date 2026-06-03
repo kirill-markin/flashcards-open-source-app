@@ -6,8 +6,8 @@ import {
 } from "../../appData/domain";
 import { parseDueAtMillis } from "../../appData/domain/dueAt";
 import { clearWebSyncCache } from "./cache";
-import { replaceCards } from "../cards";
-import { replaceDecks } from "../decks";
+import { replaceCards } from "../cards/cards";
+import { replaceDecks } from "../cards/decks";
 import type { Card, Deck, QueryCardsInput, ReviewFilter } from "../../types";
 
 export const workspaceId = "workspace-1";

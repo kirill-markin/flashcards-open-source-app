@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent, type ReactElement } from "
 import { ApiContractError, loadWorkspaceDeletePreview } from "../../../api";
 import { useAppData } from "../../../appData";
 import { useI18n } from "../../../i18n";
-import { loadWorkspaceOverviewSnapshot } from "../../../localDb/workspace";
+import { loadWorkspaceOverviewSnapshot } from "../../../localDb/cards/workspace";
 import { captureApiContractError } from "../../../observability/apiContractObservation";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
 import type { WorkspaceDeletePreview, WorkspaceOverviewSnapshot } from "../../../types";

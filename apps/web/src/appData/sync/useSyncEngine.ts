@@ -13,7 +13,7 @@ import {
 } from "../../localDb/sync/cloudSettings";
 import {
   loadWorkspaceSettings,
-} from "../../localDb/workspace";
+} from "../../localDb/cards/workspace";
 import type {
   Card,
   CloudSettings,

@@ -4,13 +4,13 @@ import {
   isReviewFilterEqual,
 } from "../../../appData/domain";
 import { useI18n } from "../../../i18n";
-import { loadDecksListSnapshot } from "../../../localDb/decks";
+import { loadDecksListSnapshot } from "../../../localDb/cards/decks";
 import {
   loadReviewQueueChunk,
   loadReviewQueueSnapshot,
   loadReviewTimelinePage,
-} from "../../../localDb/reviews";
-import { hasHydratedHotState, loadWorkspaceTagsSummary } from "../../../localDb/workspace";
+} from "../../../localDb/reviews/reviews";
+import { hasHydratedHotState, loadWorkspaceTagsSummary } from "../../../localDb/cards/workspace";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
 import type {
   Card,

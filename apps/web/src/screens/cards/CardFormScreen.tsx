@@ -5,8 +5,8 @@ import { useAiCardHandoff } from "../../chat/handoff/useAiCardHandoff";
 import { useI18n } from "../../i18n";
 import { CardFormFields, isCardFormStateDirty, toCardFormState, type CardFormState } from "./CardForm";
 import type { Card, CreateCardInput, TagSuggestion, UpdateCardInput } from "../../types";
-import { loadCardById } from "../../localDb/cards";
-import { loadWorkspaceTagsSummary } from "../../localDb/workspace";
+import { loadCardById } from "../../localDb/cards/cards";
+import { loadWorkspaceTagsSummary } from "../../localDb/cards/workspace";
 import { captureAppOperationError } from "../../observability/appOperationObservation";
 import { cardsRoute } from "../../routes";
 

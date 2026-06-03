@@ -2,7 +2,7 @@ import {
   hasHydratedHotState,
   hasHydratedReviewHistory,
   loadWorkspaceSettings,
-} from "../../localDb/workspace";
+} from "../../localDb/cards/workspace";
 import type { WorkspaceSummary } from "../../types";
 import type {
   TestSeedCardInput,

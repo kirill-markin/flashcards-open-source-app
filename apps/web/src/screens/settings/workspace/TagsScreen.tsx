@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
 import { useAppData } from "../../../appData";
 import { useI18n } from "../../../i18n";
-import { loadWorkspaceTagsSummary } from "../../../localDb/workspace";
+import { loadWorkspaceTagsSummary } from "../../../localDb/cards/workspace";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
 import type { WorkspaceTagsSummary } from "../../../types";
 

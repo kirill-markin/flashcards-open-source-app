@@ -61,17 +61,17 @@ vi.mock("../../../appData", () => ({
   useReviewProgressBadge: useReviewProgressBadgeMock,
 }));
 
-vi.mock("../../../localDb/decks", () => ({
+vi.mock("../../../localDb/cards/decks", () => ({
   loadDecksListSnapshot: loadDecksListSnapshotMock,
 }));
 
-vi.mock("../../../localDb/reviews", () => ({
+vi.mock("../../../localDb/reviews/reviews", () => ({
   loadReviewQueueChunk: loadReviewQueueChunkMock,
   loadReviewQueueSnapshot: loadReviewQueueSnapshotMock,
   loadReviewTimelinePage: loadReviewTimelinePageMock,
 }));
 
-vi.mock("../../../localDb/workspace", () => ({
+vi.mock("../../../localDb/cards/workspace", () => ({
   hasHydratedHotState: hasHydratedHotStateMock,
   loadWorkspaceTagsSummary: loadWorkspaceTagsSummaryMock,
 }));

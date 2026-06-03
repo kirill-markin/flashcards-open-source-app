@@ -8,7 +8,7 @@ import {
   type ReactElement,
 } from "react";
 import { useI18n } from "../../i18n";
-import { loadActiveCardCount } from "../../localDb/cards";
+import { loadActiveCardCount } from "../../localDb/cards/cards";
 import type {
   CloudSettings,
   ReviewFilter,

@@ -29,7 +29,7 @@ import {
   hasCompleteLocalProgressReviewScheduleCoverage,
   hasPendingProgressReviewScheduleCardChanges,
   loadLocalProgressReviewSchedule,
-} from "../../../localDb/reviewSchedule";
+} from "../../../localDb/reviews/reviewSchedule";
 import type {
   CloudSettings,
   ProgressReviewScheduleInput,

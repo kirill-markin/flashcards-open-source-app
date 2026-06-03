@@ -5,7 +5,7 @@ import { ALL_CARDS_DECK_SLUG, buildDeckFilterDefinition, EFFORT_LEVELS } from ".
 import { useI18n } from "../../../../i18n";
 import { buildSettingsDeckDetailRoute, settingsDecksRoute } from "../../../../routes";
 import { CardFormTagsField } from "../../../cards/CardFormTagsField";
-import { loadWorkspaceTagsSummary } from "../../../../localDb/workspace";
+import { loadWorkspaceTagsSummary } from "../../../../localDb/cards/workspace";
 import { captureAppOperationError } from "../../../../observability/appOperationObservation";
 import type { EffortLevel, TagSuggestion, UpdateDeckInput } from "../../../../types";
 import { formatDeckFilterSummary, formatEffortLevelLabel } from "../../../shared/featureFormatting";
