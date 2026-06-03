@@ -122,7 +122,7 @@ Review these locale-sensitive formatting and speech entry points:
 - `apps/android/feature/settings/src/main/java/com/flashcardsopensourceapp/feature/settings/SettingsSupport.kt`
 - `apps/android/feature/settings/src/main/java/com/flashcardsopensourceapp/feature/settings/WorkspaceSchedulerPresentationSupport.kt`
 - `apps/android/feature/settings/src/main/java/com/flashcardsopensourceapp/feature/settings/ReviewNotificationsRoute.kt`
-- `apps/android/feature/review/src/main/java/com/flashcardsopensourceapp/feature/review/ReviewSpeechSupport.kt`
+- `apps/android/feature/review/src/main/java/com/flashcardsopensourceapp/feature/review/speech/ReviewSpeechSupport.kt`
 - `apps/android/feature/review/src/main/java/com/flashcardsopensourceapp/feature/review/ReviewRoute.kt`
 
 Likely failure modes:
