@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import * as Sentry from "@sentry/aws-serverless";
-import { HttpError } from "../../shared/errors";
-import { transcribeChatAudioUploadWithDependencies } from "../transcriptions";
+import { HttpError } from "../../../shared/errors";
+import { transcribeChatAudioUploadWithDependencies } from "../../transcriptions";
 
 type MutableSentryModule = typeof Sentry & {
   addBreadcrumb: (

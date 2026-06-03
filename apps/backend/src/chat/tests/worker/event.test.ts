@@ -6,13 +6,13 @@ import type {
   BackendObservationScope,
   BackendTraceCarrier,
   ChatWorkerDispatchFailureDetails,
-} from "../../observability/sentry";
-import type { ChatWorkerEvent } from "../worker";
+} from "../../../observability/sentry";
+import type { ChatWorkerEvent } from "../../worker";
 import {
   invokeChatWorkerOrPersistFailureWithDependencies,
   invokeChatWorkerWithDependencies,
   type ChatWorkerInvocation,
-} from "../worker/invoke";
+} from "../../worker/invoke";
 
 type ChatWorkerDispatchFailureEvent = Readonly<{
   action: "chat_worker_dispatch_failed";
