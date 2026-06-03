@@ -1,10 +1,10 @@
 package com.flashcardsopensourceapp.feature.ai.runtime.coordinators
 
 import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
-import com.flashcardsopensourceapp.data.local.ai.AiChatLiveStreamException
-import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
-import com.flashcardsopensourceapp.data.local.ai.aiChatLiveStreamEndedBeforeTerminalCode
-import com.flashcardsopensourceapp.data.local.ai.aiChatLiveStreamReadFailedCode
+import com.flashcardsopensourceapp.data.local.ai.remote.AiChatLiveStreamException
+import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
+import com.flashcardsopensourceapp.data.local.ai.remote.aiChatLiveStreamEndedBeforeTerminalCode
+import com.flashcardsopensourceapp.data.local.ai.remote.aiChatLiveStreamReadFailedCode
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatActiveRun
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveEvent

@@ -1,8 +1,9 @@
-package com.flashcardsopensourceapp.data.local.ai
+package com.flashcardsopensourceapp.data.local.ai.store
 
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
+import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDraftState

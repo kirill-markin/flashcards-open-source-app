@@ -1,11 +1,11 @@
 package com.flashcardsopensourceapp.data.local.repository.ai
 
-import com.flashcardsopensourceapp.data.local.ai.AiChatHistoryStore
-import com.flashcardsopensourceapp.data.local.ai.AiChatDiagnosticsLogger
-import com.flashcardsopensourceapp.data.local.ai.AiChatPreferencesStore
-import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
-import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteService
-import com.flashcardsopensourceapp.data.local.ai.makeAiChatHistoryScopedWorkspaceId
+import com.flashcardsopensourceapp.data.local.ai.store.AiChatHistoryStore
+import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
+import com.flashcardsopensourceapp.data.local.ai.store.AiChatPreferencesStore
+import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
+import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteService
+import com.flashcardsopensourceapp.data.local.ai.store.makeAiChatHistoryScopedWorkspaceId
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDraftState

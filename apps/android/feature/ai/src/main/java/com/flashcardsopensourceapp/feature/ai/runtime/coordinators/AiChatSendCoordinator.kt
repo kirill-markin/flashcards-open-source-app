@@ -1,10 +1,10 @@
 package com.flashcardsopensourceapp.feature.ai.runtime.coordinators
 
-import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
-import com.flashcardsopensourceapp.data.local.ai.AiChatRequestTooLargeException
-import com.flashcardsopensourceapp.data.local.ai.isAiChatAttachmentUnsupportedTypeRemoteError
-import com.flashcardsopensourceapp.data.local.ai.isAiChatRequestTooLargeRemoteError
-import com.flashcardsopensourceapp.data.local.ai.requireAiChatStartRunRequestSize
+import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
+import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRequestTooLargeException
+import com.flashcardsopensourceapp.data.local.ai.remote.isAiChatAttachmentUnsupportedTypeRemoteError
+import com.flashcardsopensourceapp.data.local.ai.remote.isAiChatRequestTooLargeRemoteError
+import com.flashcardsopensourceapp.data.local.ai.remote.requireAiChatStartRunRequestSize
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart

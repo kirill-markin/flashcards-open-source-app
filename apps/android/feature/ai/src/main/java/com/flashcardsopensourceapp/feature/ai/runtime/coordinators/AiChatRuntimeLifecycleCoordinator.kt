@@ -1,6 +1,6 @@
 package com.flashcardsopensourceapp.feature.ai.runtime.coordinators
 
-import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
+import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatResumeDiagnostics
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.feature.ai.runtime.AiChatRuntimeContext

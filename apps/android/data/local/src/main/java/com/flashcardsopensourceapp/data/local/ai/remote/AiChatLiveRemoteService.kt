@@ -1,6 +1,9 @@
-package com.flashcardsopensourceapp.data.local.ai
+package com.flashcardsopensourceapp.data.local.ai.remote
 
 import com.flashcardsopensourceapp.core.observability.AppObservability
+import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
+import com.flashcardsopensourceapp.data.local.ai.wire.AiChatLiveEventPayloadDecodeResult
+import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatLiveEventPayloadResult
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveEvent
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveStreamEnvelope
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatResumeDiagnostics

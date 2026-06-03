@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.ai
+package com.flashcardsopensourceapp.data.local.ai.remote
 
 import com.sun.net.httpserver.HttpExchange
 import java.net.URLDecoder

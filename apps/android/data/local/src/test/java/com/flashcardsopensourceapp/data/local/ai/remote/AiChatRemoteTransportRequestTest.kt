@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.ai
+package com.flashcardsopensourceapp.data.local.ai.remote
 
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveEvent
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveStreamEnvelope

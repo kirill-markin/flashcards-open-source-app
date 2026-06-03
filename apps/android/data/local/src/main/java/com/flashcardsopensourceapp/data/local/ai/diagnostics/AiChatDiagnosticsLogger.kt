@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.ai
+package com.flashcardsopensourceapp.data.local.ai.diagnostics
 
 import android.util.Log
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart

@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.ai
+package com.flashcardsopensourceapp.data.local.ai.remote
 
 import com.flashcardsopensourceapp.core.observability.AndroidBreadcrumbEvent
 import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
@@ -6,6 +6,14 @@ import com.flashcardsopensourceapp.core.observability.AndroidObservationFeature
 import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
+import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
+import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatBootstrapResponse
+import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatGuestSession
+import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatNewSession
+import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatSessionSnapshot
+import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatStartRunResponse
+import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatStopRunResponse
+import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatTranscription
 import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudStringOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudObjectOrNull

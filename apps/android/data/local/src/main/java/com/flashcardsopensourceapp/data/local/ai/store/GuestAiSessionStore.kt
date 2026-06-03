@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.ai
+package com.flashcardsopensourceapp.data.local.ai.store
 
 import android.content.Context
 import android.content.SharedPreferences

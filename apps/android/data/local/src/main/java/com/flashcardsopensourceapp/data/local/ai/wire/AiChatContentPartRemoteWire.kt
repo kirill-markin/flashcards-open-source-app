@@ -1,5 +1,6 @@
-package com.flashcardsopensourceapp.data.local.ai
+package com.flashcardsopensourceapp.data.local.ai.wire
 
+import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatReasoningSummary

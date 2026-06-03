@@ -1,6 +1,6 @@
 package com.flashcardsopensourceapp.feature.ai.runtime.observability
 
-import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
+import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.feature.ai.AiBootstrapErrorPresentation
 import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.AiChatBootstrapBlockedException

@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.ai
+package com.flashcardsopensourceapp.data.local.ai.wire
 
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode

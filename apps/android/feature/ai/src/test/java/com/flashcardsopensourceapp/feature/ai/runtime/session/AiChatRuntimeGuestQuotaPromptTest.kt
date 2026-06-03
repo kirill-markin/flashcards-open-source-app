@@ -3,7 +3,7 @@ package com.flashcardsopensourceapp.feature.ai.runtime
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiComposerPhase
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.makeAssistantStatusMessage
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.makeUserMessage
-import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
+import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
