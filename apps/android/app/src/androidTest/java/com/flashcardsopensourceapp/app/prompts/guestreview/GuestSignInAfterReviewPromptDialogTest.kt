@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.app
+package com.flashcardsopensourceapp.app.prompts.guestreview
 
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
@@ -13,6 +13,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.flashcardsopensourceapp.app.FirebaseAppInstrumentationTimeoutTest
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsAccountSignInEmailDestination
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
 import com.flashcardsopensourceapp.feature.settings.cloud.CloudSignInEmailRoute

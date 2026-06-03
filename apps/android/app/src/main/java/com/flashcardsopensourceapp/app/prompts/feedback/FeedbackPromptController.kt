@@ -1,6 +1,7 @@
-package com.flashcardsopensourceapp.app
+package com.flashcardsopensourceapp.app.prompts.feedback
 
 import android.content.Context
+import com.flashcardsopensourceapp.app.R
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackState
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackTrigger

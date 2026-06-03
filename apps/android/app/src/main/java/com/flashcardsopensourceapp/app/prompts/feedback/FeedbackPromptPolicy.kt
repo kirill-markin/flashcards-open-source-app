@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.app
+package com.flashcardsopensourceapp.app.prompts.feedback
 
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.feedback.FeedbackPromptReviewActivity

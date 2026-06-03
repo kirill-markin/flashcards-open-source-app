@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.app
+package com.flashcardsopensourceapp.app.prompts.guestreview
 
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import org.junit.Assert.assertFalse

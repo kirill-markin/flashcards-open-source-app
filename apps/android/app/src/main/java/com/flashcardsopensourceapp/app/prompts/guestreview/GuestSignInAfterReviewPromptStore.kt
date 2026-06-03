@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.app
+package com.flashcardsopensourceapp.app.prompts.guestreview
 
 import android.content.Context
 import android.content.SharedPreferences
