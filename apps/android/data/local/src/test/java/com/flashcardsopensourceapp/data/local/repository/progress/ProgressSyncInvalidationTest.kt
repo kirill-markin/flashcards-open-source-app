@@ -1,6 +1,12 @@
 package com.flashcardsopensourceapp.data.local.repository.progress
 
 import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
+import com.flashcardsopensourceapp.data.local.repository.progress.inputs.ProgressPendingReviewFingerprintEntry
+import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.createReviewHistoryFingerprint
+import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.didSyncCompleteWithReviewHistoryChange
+import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.didSyncCompleteWithReviewScheduleChange
+import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.isProgressLocalCacheReady
+import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.updateProgressReviewScheduleSyncRefreshTrackerState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

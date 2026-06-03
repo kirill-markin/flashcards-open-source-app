@@ -1,12 +1,13 @@
-package com.flashcardsopensourceapp.data.local.repository.progress
+package com.flashcardsopensourceapp.data.local.repository.progress.snapshots
 
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSnapshotSource
-import org.junit.Assert.assertEquals
-import org.junit.Test
+import com.flashcardsopensourceapp.data.local.repository.progress.createCloudSettings
 import java.time.LocalDate
 import java.time.ZoneId
+import org.junit.Assert.assertEquals
+import org.junit.Test
 
 class ProgressSummarySnapshotTest {
     @Test
@@ -19,12 +20,12 @@ class ProgressSummarySnapshotTest {
         val localFallback = createLocalFallbackSummary(
             scopeKey = scopeKey,
             localDayCounts = listOf(
-                createProgressLocalDayCount(
+                com.flashcardsopensourceapp.data.local.repository.progress.createProgressLocalDayCount(
                     workspaceId = "workspace-1",
                     localDate = "2026-04-17",
                     reviewCount = 1
                 ),
-                createProgressLocalDayCount(
+                com.flashcardsopensourceapp.data.local.repository.progress.createProgressLocalDayCount(
                     workspaceId = "workspace-1",
                     localDate = "2026-04-18",
                     reviewCount = 1
@@ -60,12 +61,12 @@ class ProgressSummarySnapshotTest {
         val localFallback = createLocalFallbackSummary(
             scopeKey = scopeKey,
             localDayCounts = listOf(
-                createProgressLocalDayCount(
+                com.flashcardsopensourceapp.data.local.repository.progress.createProgressLocalDayCount(
                     workspaceId = "workspace-1",
                     localDate = "2026-04-14",
                     reviewCount = 1
                 ),
-                createProgressLocalDayCount(
+                com.flashcardsopensourceapp.data.local.repository.progress.createProgressLocalDayCount(
                     workspaceId = "workspace-1",
                     localDate = "2026-04-15",
                     reviewCount = 1

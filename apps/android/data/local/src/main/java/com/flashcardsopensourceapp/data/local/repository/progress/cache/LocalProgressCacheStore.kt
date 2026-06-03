@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.repository.progress
+package com.flashcardsopensourceapp.data.local.repository.progress.cache
 
 import androidx.room.withTransaction
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase

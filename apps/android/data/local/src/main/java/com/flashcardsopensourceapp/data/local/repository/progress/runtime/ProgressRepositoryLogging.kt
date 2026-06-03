@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.repository.progress
+package com.flashcardsopensourceapp.data.local.repository.progress.runtime
 
 import android.util.Log
 

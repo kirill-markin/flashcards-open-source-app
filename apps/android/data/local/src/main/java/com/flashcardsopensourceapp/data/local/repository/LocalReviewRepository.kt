@@ -35,7 +35,7 @@ import com.flashcardsopensourceapp.data.local.model.review.toReviewCard
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.loadCurrentWorkspaceOrNull
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.observeCurrentWorkspace
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.runLocalOutboxMutationTransaction
-import com.flashcardsopensourceapp.data.local.repository.progress.LocalProgressCacheStore
+import com.flashcardsopensourceapp.data.local.repository.progress.cache.LocalProgressCacheStore
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine

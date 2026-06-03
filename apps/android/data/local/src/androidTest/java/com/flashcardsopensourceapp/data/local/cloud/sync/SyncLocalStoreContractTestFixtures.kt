@@ -14,7 +14,7 @@ import com.flashcardsopensourceapp.data.local.model.scheduling.WorkspaceSchedule
 import com.flashcardsopensourceapp.data.local.model.scheduling.encodeSchedulerStepListJson
 import com.flashcardsopensourceapp.data.local.model.scheduling.makeDefaultWorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.repository.SystemTimeProvider
-import com.flashcardsopensourceapp.data.local.repository.progress.LocalProgressCacheStore
+import com.flashcardsopensourceapp.data.local.repository.progress.cache.LocalProgressCacheStore
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.review.SharedPreferencesReviewPreferencesStore
 

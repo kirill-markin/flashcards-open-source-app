@@ -1,15 +1,21 @@
-package com.flashcardsopensourceapp.data.local.repository.progress
+package com.flashcardsopensourceapp.data.local.repository.progress.snapshots
 
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressReviewScheduleCacheEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressSeriesCacheEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressSummaryCacheEntity
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.repository.progress.cache.findProgressReviewScheduleServerBase
+import com.flashcardsopensourceapp.data.local.repository.progress.cache.toCloudProgressReviewScheduleOrNull
+import com.flashcardsopensourceapp.data.local.repository.progress.cache.toCloudProgressSeriesOrNull
+import com.flashcardsopensourceapp.data.local.repository.progress.cache.toCloudProgressSummaryOrNull
+import com.flashcardsopensourceapp.data.local.repository.progress.createCloudSettings
+import com.flashcardsopensourceapp.data.local.repository.progress.createReviewSchedule
+import java.time.LocalDate
+import java.time.ZoneId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.LocalDate
-import java.time.ZoneId
 
 class ProgressCacheValidationTest {
     @Test

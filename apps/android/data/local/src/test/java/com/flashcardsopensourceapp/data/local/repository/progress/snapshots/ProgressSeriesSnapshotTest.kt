@@ -1,14 +1,17 @@
-package com.flashcardsopensourceapp.data.local.repository.progress
+package com.flashcardsopensourceapp.data.local.repository.progress.snapshots
 
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.progress.CloudDailyReviewPoint
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSnapshotSource
-import org.junit.Assert.assertEquals
-import org.junit.Test
+import com.flashcardsopensourceapp.data.local.repository.progress.createCloudSettings
+import com.flashcardsopensourceapp.data.local.repository.progress.createPendingReviewOutboxEntry
+import com.flashcardsopensourceapp.data.local.repository.progress.inputs.createProgressPendingReviewLocalDates
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import org.junit.Assert.assertEquals
+import org.junit.Test
 
 class ProgressSeriesSnapshotTest {
     @Test
@@ -21,7 +24,7 @@ class ProgressSeriesSnapshotTest {
         val localFallback = createLocalFallbackSeries(
             scopeKey = scopeKey,
             localDayCounts = listOf(
-                createProgressLocalDayCount(
+                com.flashcardsopensourceapp.data.local.repository.progress.createProgressLocalDayCount(
                     workspaceId = "workspace-1",
                     localDate = Instant.parse("2026-04-18T10:00:00Z")
                         .atZone(ZoneId.of("Europe/Madrid"))

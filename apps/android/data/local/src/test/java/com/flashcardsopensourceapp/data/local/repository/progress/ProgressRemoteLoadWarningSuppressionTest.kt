@@ -9,6 +9,12 @@ import com.flashcardsopensourceapp.data.local.model.progress.ProgressSnapshotSou
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummaryScopeKey
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
+import com.flashcardsopensourceapp.data.local.repository.progress.runtime.shouldSuppressProgressReviewScheduleRemoteLoadWarning
+import com.flashcardsopensourceapp.data.local.repository.progress.runtime.shouldSuppressProgressSeriesRemoteLoadWarning
+import com.flashcardsopensourceapp.data.local.repository.progress.runtime.shouldSuppressProgressSummaryRemoteLoadWarning
+import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressReviewScheduleStoreState
+import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressSeriesStoreState
+import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressSummaryStoreState
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test

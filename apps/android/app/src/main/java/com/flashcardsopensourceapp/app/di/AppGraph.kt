@@ -65,7 +65,7 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.Local
 import com.flashcardsopensourceapp.data.local.repository.LocalCardsRepository
 import com.flashcardsopensourceapp.data.local.repository.LocalDecksRepository
 import com.flashcardsopensourceapp.data.local.repository.LocalFeedbackRepository
-import com.flashcardsopensourceapp.data.local.repository.progress.LocalProgressCacheStore
+import com.flashcardsopensourceapp.data.local.repository.progress.cache.LocalProgressCacheStore
 import com.flashcardsopensourceapp.data.local.repository.progress.LocalProgressRepository
 import com.flashcardsopensourceapp.data.local.repository.LocalReviewRepository
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.LocalSyncRepository
