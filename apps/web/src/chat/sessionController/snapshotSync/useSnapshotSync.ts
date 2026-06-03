@@ -5,14 +5,18 @@ import {
   AuthRedirectError,
   getChatSnapshot,
   getChatSnapshotWithResumeDiagnostics,
-} from "../../api";
+} from "../../../api";
 import {
   captureWebException,
   normalizeCaughtError,
   type WebObservationScope,
-} from "../../observability/webObservability";
-import type { ChatActiveRun, ChatSessionHistoryMessage, ContentPart } from "../../types";
-import { storeChatConfig } from "./config";
+} from "../../../observability/webObservability";
+import type { ChatActiveRun, ChatSessionHistoryMessage, ContentPart } from "../../../types";
+import {
+  getChatApiObservationMetadata,
+  getCurrentRoute,
+} from "../support/apiObservation";
+import { storeChatConfig } from "../support/config";
 import {
   areChatConfigsEqual,
   areContentPartsEqual,
@@ -24,16 +28,16 @@ import {
   toAssistantToolCallContentPart,
   toErrorMessage,
   type ChatDebugDetails,
-} from "./helpers";
+} from "../support/helpers";
 import type {
   ChatSessionControllerAction,
   ChatSessionControllerState,
-} from "./state";
-import type { ChatSessionSnapshot } from "./snapshot";
-import type { ChatSessionControllerUiMessages } from "./types";
+} from "../state/state";
+import type { ChatSessionSnapshot } from "../state/snapshot";
+import type { ChatSessionControllerUiMessages } from "../support/types";
 import { useChatLiveSession } from "./useLiveSession";
-import type { ChatHistoryState } from "../history/useChatHistory";
-import type { ChatLiveEvent } from "../streaming/liveStream";
+import type { ChatHistoryState } from "../../history/useChatHistory";
+import type { ChatLiveEvent } from "../../streaming/liveStream";
 
 type UseChatSessionSnapshotSyncParams = Readonly<{
   controllerId: string;
@@ -52,12 +56,6 @@ type SnapshotRequestTrigger =
   | "terminal_reconcile"
   | "unexpected_stream_end"
   | "visible_resume";
-
-type ChatApiObservationMetadata = Readonly<{
-  requestId: string | null;
-  statusCode: number | null;
-  code: string | null;
-}>;
 
 export type ChatSessionSnapshotRuntimeRefs = Readonly<{
   currentWorkspaceIdRef: MutableRefObject<string | null>;
@@ -107,30 +105,6 @@ export type ChatSessionSnapshotSync = Readonly<{
 
 function toSnapshotRunState(snapshot: ChatSessionSnapshot): ChatSessionControllerState["runState"] {
   return snapshot.activeRun === null ? "idle" : "running";
-}
-
-function getCurrentRoute(): string | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
-}
-
-function getChatApiObservationMetadata(error: Error): ChatApiObservationMetadata {
-  if (error instanceof ApiError || error instanceof ApiContractError) {
-    return {
-      requestId: error.requestId,
-      statusCode: error.statusCode,
-      code: error.code,
-    };
-  }
-
-  return {
-    requestId: null,
-    statusCode: null,
-    code: null,
-  };
 }
 
 function buildChatSnapshotScope(workspaceId: string | null, error: Error): WebObservationScope {

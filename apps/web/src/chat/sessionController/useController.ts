@@ -3,36 +3,36 @@ import {
   createChatControllerDebugId,
   createClientChatSessionId,
   logChatControllerDebug,
-} from "./helpers";
+} from "./support/helpers";
 import {
   chatSessionControllerReducer,
   createInitialChatSessionControllerBootstrap,
   selectChatConfig,
   selectChatSessionComposerAction,
   selectIsAssistantRunActive,
-} from "./state";
-import { isChatSessionStale } from "./freshness";
+} from "./state/state";
+import { isChatSessionStale } from "./lifecycle/freshness";
 import type {
   ChatSessionController,
   SendChatMessageParams,
   SendChatMessageResult,
   UseChatSessionControllerParams,
-} from "./types";
+} from "./support/types";
 import {
   loadChatSessionWarmStartSnapshot,
   storeChatSessionWarmStartSnapshot,
-} from "./warmStart";
+} from "./lifecycle/warmStart";
 import { useChatHistory } from "../history/useChatHistory";
-import { useChatSessionActions } from "./useActions";
-import { useChatSessionHydrationLifecycle } from "./useHydrationLifecycle";
-import { useChatSessionSnapshotSync } from "./useSnapshotSync";
+import { useChatSessionActions } from "./actions/useActions";
+import { useChatSessionHydrationLifecycle } from "./lifecycle/useHydrationLifecycle";
+import { useChatSessionSnapshotSync } from "./snapshotSync/useSnapshotSync";
 
 export type {
   ChatSessionController,
   SendChatMessageParams,
   SendChatMessageResult,
   UseChatSessionControllerParams,
-} from "./types";
+} from "./support/types";
 
 export function useChatSessionController(
   params: UseChatSessionControllerParams,

@@ -1,8 +1,8 @@
-import type { ChatComposerSuggestion, ChatConfig } from "../../types";
-import type { StoredMessage } from "../history/useChatHistory";
-import { defaultChatConfig, loadStoredChatConfig } from "./config";
+import type { ChatComposerSuggestion, ChatConfig } from "../../../types";
+import type { StoredMessage } from "../../history/useChatHistory";
+import { defaultChatConfig, loadStoredChatConfig } from "../support/config";
 import { getChatComposerAction, isChatRunActive, type ChatComposerAction, type ChatRunState } from "./runState";
-import type { WarmStartChatSessionSnapshot } from "./warmStart";
+import type { WarmStartChatSessionSnapshot } from "../lifecycle/warmStart";
 
 export type ChatSessionControllerState = Readonly<{
   currentSessionId: string | null;

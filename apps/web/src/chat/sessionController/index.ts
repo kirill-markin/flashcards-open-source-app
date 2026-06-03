@@ -9,4 +9,4 @@ export type {
   SendChatMessageParams,
   SendChatMessageResult,
   UseChatSessionControllerParams,
-} from "./types";
+} from "./support/types";
