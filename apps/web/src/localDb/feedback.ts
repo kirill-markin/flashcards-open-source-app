@@ -1,4 +1,5 @@
 import type { FeedbackState } from "../types";
+import { getStableInstallationId } from "../clientIdentity";
 import {
   closeDatabaseAfter,
   closeDatabaseAfterWrite,
@@ -13,27 +14,38 @@ export type FeedbackPromptState = Readonly<{
   lastFeedbackStateFetchedAt: string | null;
 }>;
 
+export type FeedbackPromptIdentityKey = string;
+
+export type FeedbackPromptIdentityInput = Readonly<{
+  sessionUserId: string | null;
+  linkedUserId: string | null;
+}>;
+
 type FeedbackPromptStateRecord = Readonly<{
-  key: "feedback_prompt_state";
+  key: string;
+  identityKey: FeedbackPromptIdentityKey;
   state: FeedbackPromptState;
 }>;
 
 type FeedbackStateFetchedInput = Readonly<{
+  identityKey: FeedbackPromptIdentityKey;
   feedbackState: FeedbackState;
   fetchedAt: string;
 }>;
 
 type FeedbackSubmittedInput = Readonly<{
+  identityKey: FeedbackPromptIdentityKey;
   feedbackState: FeedbackState;
   submittedAt: string;
 }>;
 
 type AutomaticPromptShownInput = Readonly<{
+  identityKey: FeedbackPromptIdentityKey;
   shownAt: string;
   nextAutomaticFeedbackPromptAt: string | null;
 }>;
 
-const feedbackPromptStateKey = "feedback_prompt_state";
+const feedbackPromptStateKeyPrefix = "feedback_prompt_state:";
 
 export const emptyFeedbackPromptState: FeedbackPromptState = {
   lastAutomaticFeedbackPromptShownAt: null,
@@ -44,6 +56,46 @@ export const emptyFeedbackPromptState: FeedbackPromptState = {
 
 function isPlainObject(value: unknown): value is Readonly<Record<string, unknown>> {
   return typeof value === "object" && value !== null && Array.isArray(value) === false;
+}
+
+function optionalTrimmedString(value: string | null): string | null {
+  if (value === null) {
+    return null;
+  }
+
+  const trimmedValue = value.trim();
+  return trimmedValue === "" ? null : trimmedValue;
+}
+
+function buildFeedbackPromptStateKey(identityKey: FeedbackPromptIdentityKey): string {
+  return `${feedbackPromptStateKeyPrefix}${identityKey}`;
+}
+
+function parseTimestampMillis(timestamp: string, fieldName: keyof FeedbackPromptState | keyof FeedbackState): number {
+  const timestampMillis = new Date(timestamp).getTime();
+  if (Number.isNaN(timestampMillis)) {
+    throw new Error(`Invalid local feedback prompt state: ${fieldName} must be an ISO timestamp`);
+  }
+
+  return timestampMillis;
+}
+
+function getLaterNullableIsoTimestamp(
+  currentValue: string | null,
+  nextValue: string | null,
+  fieldName: keyof FeedbackPromptState | keyof FeedbackState,
+): string | null {
+  if (currentValue === null) {
+    return nextValue;
+  }
+
+  if (nextValue === null) {
+    return currentValue;
+  }
+
+  return parseTimestampMillis(currentValue, fieldName) >= parseTimestampMillis(nextValue, fieldName)
+    ? currentValue
+    : nextValue;
 }
 
 function parseNullableStringField(
@@ -75,75 +127,136 @@ function parseFeedbackPromptState(value: unknown): FeedbackPromptState {
   };
 }
 
-function parseFeedbackPromptStateRecord(value: unknown): FeedbackPromptStateRecord {
+function parseFeedbackPromptStateRecord(
+  value: unknown,
+  identityKey: FeedbackPromptIdentityKey,
+): FeedbackPromptStateRecord {
   if (isPlainObject(value) === false) {
     throw new Error("Invalid local feedback prompt state: record must be an object");
   }
 
-  if (value.key !== feedbackPromptStateKey) {
-    throw new Error("Invalid local feedback prompt state: key must be feedback_prompt_state");
+  const expectedKey = buildFeedbackPromptStateKey(identityKey);
+  if (value.key !== expectedKey) {
+    throw new Error("Invalid local feedback prompt state: key must match the feedback identity key");
+  }
+
+  if (value.identityKey !== identityKey) {
+    throw new Error("Invalid local feedback prompt state: identityKey must match the requested identity");
   }
 
   return {
-    key: feedbackPromptStateKey,
+    key: expectedKey,
+    identityKey,
     state: parseFeedbackPromptState(value.state),
   };
 }
 
-function buildFeedbackPromptStateRecord(state: FeedbackPromptState): FeedbackPromptStateRecord {
+function buildFeedbackPromptStateRecord(
+  identityKey: FeedbackPromptIdentityKey,
+  state: FeedbackPromptState,
+): FeedbackPromptStateRecord {
   return {
-    key: feedbackPromptStateKey,
+    key: buildFeedbackPromptStateKey(identityKey),
+    identityKey,
     state,
   };
 }
 
-export async function loadFeedbackPromptState(): Promise<FeedbackPromptState> {
-  const storedRecord = await closeDatabaseAfter((database) => getFromStore<unknown>(database, "meta", feedbackPromptStateKey));
+export function buildFeedbackPromptIdentityKey(input: FeedbackPromptIdentityInput): FeedbackPromptIdentityKey {
+  const userId = optionalTrimmedString(input.sessionUserId) ?? optionalTrimmedString(input.linkedUserId);
+  if (userId !== null) {
+    return `user:${userId}`;
+  }
+
+  return `installation:${getStableInstallationId()}`;
+}
+
+export async function loadFeedbackPromptState(identityKey: FeedbackPromptIdentityKey): Promise<FeedbackPromptState> {
+  const storedRecord = await closeDatabaseAfter((database) => getFromStore<unknown>(
+    database,
+    "meta",
+    buildFeedbackPromptStateKey(identityKey),
+  ));
   if (storedRecord === undefined) {
     return emptyFeedbackPromptState;
   }
 
-  return parseFeedbackPromptStateRecord(storedRecord).state;
+  return parseFeedbackPromptStateRecord(storedRecord, identityKey).state;
 }
 
-export async function putFeedbackPromptState(state: FeedbackPromptState): Promise<void> {
+export async function putFeedbackPromptState(
+  identityKey: FeedbackPromptIdentityKey,
+  state: FeedbackPromptState,
+): Promise<void> {
   await closeDatabaseAfterWrite(async (database) => {
     await runReadwrite(database, ["meta"], (transaction) => transaction.objectStore("meta").put(
-      buildFeedbackPromptStateRecord(state),
+      buildFeedbackPromptStateRecord(identityKey, state),
     ));
   });
 }
 
 export async function storeFetchedFeedbackState(input: FeedbackStateFetchedInput): Promise<FeedbackPromptState> {
-  const currentState = await loadFeedbackPromptState();
+  const currentState = await loadFeedbackPromptState(input.identityKey);
   const nextState: FeedbackPromptState = {
     ...currentState,
+    lastAutomaticFeedbackPromptShownAt: getLaterNullableIsoTimestamp(
+      currentState.lastAutomaticFeedbackPromptShownAt,
+      input.feedbackState.lastAutomaticPromptShownAt,
+      "lastAutomaticPromptShownAt",
+    ),
+    lastFeedbackSubmittedAt: getLaterNullableIsoTimestamp(
+      currentState.lastFeedbackSubmittedAt,
+      input.feedbackState.lastFeedbackSubmittedAt,
+      "lastFeedbackSubmittedAt",
+    ),
     nextAutomaticFeedbackPromptAt: input.feedbackState.nextAutomaticPromptAt,
     lastFeedbackStateFetchedAt: input.fetchedAt,
   };
-  await putFeedbackPromptState(nextState);
+  await putFeedbackPromptState(input.identityKey, nextState);
   return nextState;
 }
 
 export async function storeFeedbackSubmittedAt(input: FeedbackSubmittedInput): Promise<FeedbackPromptState> {
-  const currentState = await loadFeedbackPromptState();
+  const currentState = await loadFeedbackPromptState(input.identityKey);
+  const localSubmittedAt = getLaterNullableIsoTimestamp(
+    currentState.lastFeedbackSubmittedAt,
+    input.submittedAt,
+    "lastFeedbackSubmittedAt",
+  );
   const nextState: FeedbackPromptState = {
     ...currentState,
-    lastFeedbackSubmittedAt: input.submittedAt,
+    lastAutomaticFeedbackPromptShownAt: getLaterNullableIsoTimestamp(
+      currentState.lastAutomaticFeedbackPromptShownAt,
+      input.feedbackState.lastAutomaticPromptShownAt,
+      "lastAutomaticPromptShownAt",
+    ),
+    lastFeedbackSubmittedAt: getLaterNullableIsoTimestamp(
+      localSubmittedAt,
+      input.feedbackState.lastFeedbackSubmittedAt,
+      "lastFeedbackSubmittedAt",
+    ),
     nextAutomaticFeedbackPromptAt: input.feedbackState.nextAutomaticPromptAt,
     lastFeedbackStateFetchedAt: input.submittedAt,
   };
-  await putFeedbackPromptState(nextState);
+  await putFeedbackPromptState(input.identityKey, nextState);
   return nextState;
 }
 
 export async function storeAutomaticFeedbackPromptShownAt(input: AutomaticPromptShownInput): Promise<FeedbackPromptState> {
-  const currentState = await loadFeedbackPromptState();
+  const currentState = await loadFeedbackPromptState(input.identityKey);
   const nextState: FeedbackPromptState = {
     ...currentState,
-    lastAutomaticFeedbackPromptShownAt: input.shownAt,
-    nextAutomaticFeedbackPromptAt: input.nextAutomaticFeedbackPromptAt,
+    lastAutomaticFeedbackPromptShownAt: getLaterNullableIsoTimestamp(
+      currentState.lastAutomaticFeedbackPromptShownAt,
+      input.shownAt,
+      "lastAutomaticFeedbackPromptShownAt",
+    ),
+    nextAutomaticFeedbackPromptAt: getLaterNullableIsoTimestamp(
+      currentState.nextAutomaticFeedbackPromptAt,
+      input.nextAutomaticFeedbackPromptAt,
+      "nextAutomaticFeedbackPromptAt",
+    ),
   };
-  await putFeedbackPromptState(nextState);
+  await putFeedbackPromptState(input.identityKey, nextState);
   return nextState;
 }

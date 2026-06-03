@@ -45,6 +45,7 @@ extension LocalDatabase {
     }
 
     func loadFeedbackReviewActivitySummary(
+        workspaceId: String,
         now: Date,
         timeZone: TimeZone
     ) throws -> FeedbackReviewActivitySummary {
@@ -59,9 +60,10 @@ extension LocalDatabase {
             sql: """
             SELECT COUNT(*)
             FROM review_events
-            WHERE reviewed_at_client >= ? AND reviewed_at_client < ?
+            WHERE workspace_id = ? AND reviewed_at_client >= ? AND reviewed_at_client < ?
             """,
             values: [
+                .text(workspaceId),
                 .text(formatIsoTimestamp(date: currentDayStart)),
                 .text(formatIsoTimestamp(date: nextDayStart))
             ]
@@ -71,10 +73,11 @@ extension LocalDatabase {
             SELECT EXISTS(
                 SELECT 1
                 FROM review_events
-                WHERE reviewed_at_client < ?
+                WHERE workspace_id = ? AND reviewed_at_client < ?
             )
             """,
             values: [
+                .text(workspaceId),
                 .text(formatIsoTimestamp(date: currentDayStart))
             ]
         ) == 1

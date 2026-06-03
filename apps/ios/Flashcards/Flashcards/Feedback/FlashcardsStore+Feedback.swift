@@ -22,11 +22,18 @@ extension FlashcardsStore {
     }
 
     func loadFeedbackDraftMessage() -> String {
-        loadFeedbackDraft(userDefaults: self.userDefaults)
+        loadFeedbackDraft(
+            identityKey: self.feedbackPromptIdentityKey,
+            userDefaults: self.userDefaults
+        )
     }
 
     func saveFeedbackDraftMessage(message: String) {
-        saveFeedbackDraft(message: message, userDefaults: self.userDefaults)
+        saveFeedbackDraft(
+            identityKey: self.feedbackPromptIdentityKey,
+            message: message,
+            userDefaults: self.userDefaults
+        )
     }
 
     func submitFeedback(
@@ -72,7 +79,10 @@ extension FlashcardsStore {
                 submittedAt: Date()
             )
         )
-        clearFeedbackDraft(userDefaults: self.userDefaults)
+        clearFeedbackDraft(
+            identityKey: self.feedbackPromptIdentityKey,
+            userDefaults: self.userDefaults
+        )
         self.dismissFeedbackSheet()
         self.enqueueTransientBanner(banner: makeFeedbackSentBanner())
     }
@@ -105,12 +115,25 @@ extension FlashcardsStore {
         self.feedbackPromptState = makeDefaultFeedbackPromptState()
         self.activeAutomaticFeedbackPromptTask?.cancel()
         self.activeAutomaticFeedbackPromptTask = nil
-        self.userDefaults.removeObject(forKey: feedbackPromptStateUserDefaultsKey)
-        self.userDefaults.removeObject(forKey: feedbackDraftUserDefaultsKey)
+        clearFeedbackPromptPersistence(
+            identityKey: self.feedbackPromptIdentityKey,
+            userDefaults: self.userDefaults
+        )
+    }
+
+    func reloadFeedbackPromptStateForCurrentIdentity() {
+        self.feedbackPromptState = loadFeedbackPromptState(
+            identityKey: self.feedbackPromptIdentityKey,
+            userDefaults: self.userDefaults,
+            decoder: self.decoder
+        )
     }
 
     private func runAutomaticFeedbackPromptCheck(now: Date) async {
         do {
+            guard let workspaceId = self.workspace?.workspaceId else {
+                return
+            }
             guard self.isAutomaticFeedbackPromptBlockedByModal == false else {
                 return
             }
@@ -120,6 +143,7 @@ extension FlashcardsStore {
 
             let database = try requireLocalDatabase(database: self.database)
             let reviewActivity = try database.loadFeedbackReviewActivitySummary(
+                workspaceId: workspaceId,
                 now: now,
                 timeZone: TimeZone.current
             )
@@ -221,9 +245,14 @@ extension FlashcardsStore {
     private func updateFeedbackPromptState(state: PersistedFeedbackPromptState) {
         self.feedbackPromptState = state
         saveFeedbackPromptState(
+            identityKey: self.feedbackPromptIdentityKey,
             state: state,
             userDefaults: self.userDefaults,
             encoder: self.encoder
         )
+    }
+
+    private var feedbackPromptIdentityKey: FeedbackPromptIdentityKey {
+        makeFeedbackPromptIdentityKey(cloudSettings: self.cloudSettings)
     }
 }

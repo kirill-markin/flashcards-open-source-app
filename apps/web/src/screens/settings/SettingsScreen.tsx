@@ -8,7 +8,10 @@ import {
   normalizeFeedbackMessage,
 } from "../../feedback/feedbackSubmission";
 import { useI18n } from "../../i18n";
-import { storeFeedbackSubmittedAt } from "../../localDb/feedback";
+import {
+  buildFeedbackPromptIdentityKey,
+  storeFeedbackSubmittedAt,
+} from "../../localDb/feedback";
 import { captureAppOperationError } from "../../observability/appOperationObservation";
 import {
   accountSettingsRoute,
@@ -46,6 +49,10 @@ export function SettingsScreen(): ReactElement {
   const isWorkspaceLocked = isWorkspaceManagementLocked(isSessionVerified, cloudSettings);
   const currentWorkspaceName = activeWorkspace?.name ?? t("common.unavailable");
   const workspaceManagementLockedMessage = t("workspaceManagement.lockedMessage");
+  const feedbackPromptIdentityKey = buildFeedbackPromptIdentityKey({
+    sessionUserId: session?.userId ?? null,
+    linkedUserId: cloudSettings?.linkedUserId ?? null,
+  });
 
   function openFeedbackDialog(): void {
     setFeedbackMessage("");
@@ -99,6 +106,7 @@ export function SettingsScreen(): ReactElement {
       const feedbackState = await submitFeedback(submissionRequest);
       try {
         await storeFeedbackSubmittedAt({
+          identityKey: feedbackPromptIdentityKey,
           feedbackState,
           submittedAt: submissionRequest.createdAtClient,
         });

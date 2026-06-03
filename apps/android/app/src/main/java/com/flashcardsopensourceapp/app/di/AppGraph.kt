@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModelStoreOwner
 import com.flashcardsopensourceapp.app.AutoSyncController
 import com.flashcardsopensourceapp.app.FeedbackPromptController
 import com.flashcardsopensourceapp.app.GuestSignInAfterReviewPromptController
+import com.flashcardsopensourceapp.app.feedbackPromptIdentityKey
 import com.flashcardsopensourceapp.app.navigation.AppPackageInfo
 import com.flashcardsopensourceapp.app.navigation.loadPackageInfo
 import com.flashcardsopensourceapp.app.ProgressContextRefreshController
@@ -308,7 +309,10 @@ class AppGraph(
         feedbackRepository = feedbackRepository,
         reviewRepository = reviewRepository,
         promptStore = feedbackPromptStore,
-        messageController = appMessageBus
+        messageController = appMessageBus,
+        feedbackPromptIdentityKeyProvider = {
+            feedbackPromptIdentityKey(cloudSettings = cloudPreferencesStore.currentCloudSettings())
+        }
     )
     val progressRepository: ProgressRepository = LocalProgressRepository(
         appScope = appScope,

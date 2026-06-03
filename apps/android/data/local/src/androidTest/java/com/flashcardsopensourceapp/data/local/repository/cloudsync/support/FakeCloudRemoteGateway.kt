@@ -740,6 +740,7 @@ internal class FakeCloudRemoteGateway private constructor(
 
     private fun createDefaultFeedbackState(): CloudFeedbackState {
         return CloudFeedbackState(
+            automaticPromptCooldownDays = 30,
             lastAutomaticPromptShownAtMillis = null,
             lastFeedbackSubmittedAtMillis = null,
             nextAutomaticPromptAtMillis = null

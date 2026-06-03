@@ -16,6 +16,7 @@ enum class CloudFeedbackPromptEventType(
 }
 
 data class CloudFeedbackState(
+    val automaticPromptCooldownDays: Int,
     val lastAutomaticPromptShownAtMillis: Long?,
     val lastFeedbackSubmittedAtMillis: Long?,
     val nextAutomaticPromptAtMillis: Long?

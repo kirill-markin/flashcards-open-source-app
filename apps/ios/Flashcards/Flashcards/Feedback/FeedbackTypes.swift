@@ -15,6 +15,7 @@ enum FeedbackPromptEventType: String, Codable, Hashable, Sendable {
 }
 
 struct FeedbackState: Codable, Hashable, Sendable {
+    let automaticPromptCooldownDays: Int
     let lastAutomaticPromptShownAt: String?
     let lastFeedbackSubmittedAt: String?
     let nextAutomaticPromptAt: String?
@@ -64,6 +65,31 @@ struct PersistedFeedbackPromptState: Codable, Hashable, Sendable {
 struct FeedbackReviewActivitySummary: Hashable, Sendable {
     let hasPreviousLocalReviewDay: Bool
     let currentLocalDayReviewCount: Int
+}
+
+struct FeedbackPromptIdentityKey: Hashable, Sendable {
+    let rawValue: String
+}
+
+private func trimmedFeedbackIdentityValue(_ value: String?) -> String? {
+    guard let value else {
+        return nil
+    }
+
+    let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    return trimmedValue.isEmpty ? nil : trimmedValue
+}
+
+func makeFeedbackPromptIdentityKey(cloudSettings: CloudSettings?) -> FeedbackPromptIdentityKey {
+    if let linkedUserId = trimmedFeedbackIdentityValue(cloudSettings?.linkedUserId) {
+        return FeedbackPromptIdentityKey(rawValue: "user:\(linkedUserId)")
+    }
+
+    if let installationId = trimmedFeedbackIdentityValue(cloudSettings?.installationId) {
+        return FeedbackPromptIdentityKey(rawValue: "installation:\(installationId)")
+    }
+
+    return FeedbackPromptIdentityKey(rawValue: "installation:local")
 }
 
 func makeDefaultFeedbackPromptState() -> PersistedFeedbackPromptState {

@@ -111,18 +111,18 @@ function createFeedbackStateForUser(state: FeedbackStoreState, userId: string): 
   const submissionTimes = Array.from(state.submissions.values())
     .filter((submission) => submission.userId === userId)
     .map((submission) => submission.createdAtServer);
-  const lastAutomaticPromptAt = promptTimes.length === 0
+  const lastAutomaticPromptShownAt = promptTimes.length === 0
     ? null
     : promptTimes.reduce((latest, current) => getLaterIsoTimestamp(latest, current) ?? current);
-  const lastSubmittedAt = submissionTimes.length === 0
+  const lastFeedbackSubmittedAt = submissionTimes.length === 0
     ? null
     : submissionTimes.reduce((latest, current) => getLaterIsoTimestamp(latest, current) ?? current);
-  const cooldownBaseAt = getLaterIsoTimestamp(lastAutomaticPromptAt, lastSubmittedAt);
+  const cooldownBaseAt = getLaterIsoTimestamp(lastAutomaticPromptShownAt, lastFeedbackSubmittedAt);
 
   return {
     automaticPromptCooldownDays: 30,
-    lastAutomaticPromptAt,
-    lastSubmittedAt,
+    lastAutomaticPromptShownAt,
+    lastFeedbackSubmittedAt,
     nextAutomaticPromptAt: cooldownBaseAt === null ? null : addDaysToIsoTimestamp(cooldownBaseAt, 30),
   };
 }
@@ -323,10 +323,12 @@ test("GET /feedback/state returns empty state", async () => {
 
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), {
-    automaticPromptCooldownDays: 30,
-    lastAutomaticPromptAt: null,
-    lastSubmittedAt: null,
-    nextAutomaticPromptAt: null,
+    feedbackState: {
+      automaticPromptCooldownDays: 30,
+      lastAutomaticPromptShownAt: null,
+      lastFeedbackSubmittedAt: null,
+      nextAutomaticPromptAt: null,
+    },
   });
 });
 
@@ -345,16 +347,20 @@ test("POST /feedback/prompt-events records automatic prompt state idempotently",
   assert.equal(firstResponse.status, 200);
   assert.equal(secondResponse.status, 200);
   assert.deepEqual(await firstResponse.json(), {
-    automaticPromptCooldownDays: 30,
-    lastAutomaticPromptAt: "2026-06-03T10:00:00.000Z",
-    lastSubmittedAt: null,
-    nextAutomaticPromptAt: "2026-07-03T10:00:00.000Z",
+    feedbackState: {
+      automaticPromptCooldownDays: 30,
+      lastAutomaticPromptShownAt: "2026-06-03T10:00:00.000Z",
+      lastFeedbackSubmittedAt: null,
+      nextAutomaticPromptAt: "2026-07-03T10:00:00.000Z",
+    },
   });
   assert.deepEqual(await secondResponse.json(), {
-    automaticPromptCooldownDays: 30,
-    lastAutomaticPromptAt: "2026-06-03T10:00:00.000Z",
-    lastSubmittedAt: null,
-    nextAutomaticPromptAt: "2026-07-03T10:00:00.000Z",
+    feedbackState: {
+      automaticPromptCooldownDays: 30,
+      lastAutomaticPromptShownAt: "2026-06-03T10:00:00.000Z",
+      lastFeedbackSubmittedAt: null,
+      nextAutomaticPromptAt: "2026-07-03T10:00:00.000Z",
+    },
   });
   assert.equal(state.promptEvents.size, 1);
 });
@@ -379,8 +385,8 @@ test("POST /feedback/submissions records submission state and does not duplicate
     createdAtServer: "2026-06-03T10:00:00.000Z",
     feedbackState: {
       automaticPromptCooldownDays: 30,
-      lastAutomaticPromptAt: null,
-      lastSubmittedAt: "2026-06-03T10:00:00.000Z",
+      lastAutomaticPromptShownAt: null,
+      lastFeedbackSubmittedAt: "2026-06-03T10:00:00.000Z",
       nextAutomaticPromptAt: "2026-07-03T10:00:00.000Z",
     },
   });
@@ -389,16 +395,18 @@ test("POST /feedback/submissions records submission state and does not duplicate
     createdAtServer: "2026-06-03T10:00:00.000Z",
     feedbackState: {
       automaticPromptCooldownDays: 30,
-      lastAutomaticPromptAt: null,
-      lastSubmittedAt: "2026-06-03T10:00:00.000Z",
+      lastAutomaticPromptShownAt: null,
+      lastFeedbackSubmittedAt: "2026-06-03T10:00:00.000Z",
       nextAutomaticPromptAt: "2026-07-03T10:00:00.000Z",
     },
   });
   assert.deepEqual(await stateResponse.json(), {
-    automaticPromptCooldownDays: 30,
-    lastAutomaticPromptAt: null,
-    lastSubmittedAt: "2026-06-03T10:00:00.000Z",
-    nextAutomaticPromptAt: "2026-07-03T10:00:00.000Z",
+    feedbackState: {
+      automaticPromptCooldownDays: 30,
+      lastAutomaticPromptShownAt: null,
+      lastFeedbackSubmittedAt: "2026-06-03T10:00:00.000Z",
+      nextAutomaticPromptAt: "2026-07-03T10:00:00.000Z",
+    },
   });
   assert.equal(state.submissions.size, 1);
   assert.equal(state.sentEmails.length, 1);
@@ -542,8 +550,8 @@ test("POST /feedback/submissions returns success when email notification fails",
     createdAtServer: "2026-06-03T10:00:00.000Z",
     feedbackState: {
       automaticPromptCooldownDays: 30,
-      lastAutomaticPromptAt: null,
-      lastSubmittedAt: "2026-06-03T10:00:00.000Z",
+      lastAutomaticPromptShownAt: null,
+      lastFeedbackSubmittedAt: "2026-06-03T10:00:00.000Z",
       nextAutomaticPromptAt: "2026-07-03T10:00:00.000Z",
     },
   });

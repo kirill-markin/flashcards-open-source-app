@@ -156,6 +156,9 @@ function setupSettingsScreenTest(): SettingsScreenTestHarness {
     window.localStorage.setItem(INSTALLATION_ID_STORAGE_KEY, "installation-1");
     submitFeedbackMock.mockReset();
     submitFeedbackMock.mockResolvedValue({
+      automaticPromptCooldownDays: 30,
+      lastAutomaticPromptShownAt: null,
+      lastFeedbackSubmittedAt: "2026-04-18T09:00:00.000Z",
       nextAutomaticPromptAt: null,
     });
     useAppDataMock.mockReset();
