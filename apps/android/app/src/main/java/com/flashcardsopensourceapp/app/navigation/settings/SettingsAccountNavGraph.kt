@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.app.navigation
+package com.flashcardsopensourceapp.app.navigation.settings
 
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext

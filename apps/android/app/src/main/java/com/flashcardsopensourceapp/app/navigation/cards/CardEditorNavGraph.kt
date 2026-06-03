@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.app.navigation
+package com.flashcardsopensourceapp.app.navigation.cards
 
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.res.stringResource
@@ -10,6 +10,9 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.app.navigation.AiDestination
+import com.flashcardsopensourceapp.app.navigation.navigateToTopLevelDestination
+import com.flashcardsopensourceapp.app.navigation.rememberRouteBackStackEntry
 import com.flashcardsopensourceapp.feature.cards.CardEditorRoute
 import com.flashcardsopensourceapp.feature.cards.CardTagsRoute
 import com.flashcardsopensourceapp.feature.cards.CardTextEditorRoute

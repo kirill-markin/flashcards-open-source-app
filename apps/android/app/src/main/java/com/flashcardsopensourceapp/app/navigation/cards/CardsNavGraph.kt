@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.app.navigation
+package com.flashcardsopensourceapp.app.navigation.cards
 
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
