@@ -1,6 +1,6 @@
 package com.flashcardsopensourceapp.data.local.repository
 
-import com.flashcardsopensourceapp.data.local.database.DeckEntity
+import com.flashcardsopensourceapp.data.local.database.entities.DeckEntity
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.data.local.model.cards.DeckDraft
 import com.flashcardsopensourceapp.data.local.model.cards.DeckFilterDefinition

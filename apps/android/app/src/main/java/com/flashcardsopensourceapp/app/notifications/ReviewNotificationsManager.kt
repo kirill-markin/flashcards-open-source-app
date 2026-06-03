@@ -13,8 +13,9 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
-import com.flashcardsopensourceapp.data.local.database.AppDatabase
-import com.flashcardsopensourceapp.data.local.database.loadTopActiveReviewCard
+import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
+import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
+import com.flashcardsopensourceapp.data.local.database.review.loadTopActiveReviewCard
 import com.flashcardsopensourceapp.data.local.model.cards.DeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
@@ -487,7 +488,7 @@ class ReviewNotificationsManager(
         workspaceId: String,
         nowMillis: Long,
         filterDefinition: DeckFilterDefinition
-    ): com.flashcardsopensourceapp.data.local.database.CardEntity? {
+    ): CardEntity? {
         val exactTagNames = loadExactStoredReviewTagNames(
             workspaceId = workspaceId,
             requestedTagNames = filterDefinition.tags

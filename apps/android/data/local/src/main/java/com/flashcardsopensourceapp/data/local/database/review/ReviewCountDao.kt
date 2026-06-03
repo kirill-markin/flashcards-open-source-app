@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.database
+package com.flashcardsopensourceapp.data.local.database.review
 
 import androidx.room.Dao
 import androidx.room.Query

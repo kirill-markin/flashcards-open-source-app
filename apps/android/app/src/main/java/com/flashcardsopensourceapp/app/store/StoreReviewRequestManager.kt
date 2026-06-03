@@ -4,7 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.Lifecycle
-import com.flashcardsopensourceapp.data.local.database.ReviewLogDao
+import com.flashcardsopensourceapp.data.local.database.review.ReviewLogDao
 import com.flashcardsopensourceapp.data.local.review.StoreReviewRequestStore
 import com.flashcardsopensourceapp.data.local.review.determineStoreReviewRequestEligibility
 import com.google.android.gms.tasks.Task

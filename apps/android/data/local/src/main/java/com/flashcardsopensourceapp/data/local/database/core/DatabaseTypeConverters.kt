@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.database
+package com.flashcardsopensourceapp.data.local.database.core
 
 import androidx.room.TypeConverter
 import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel

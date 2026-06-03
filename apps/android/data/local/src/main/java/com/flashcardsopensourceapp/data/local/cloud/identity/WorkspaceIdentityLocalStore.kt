@@ -2,15 +2,15 @@ package com.flashcardsopensourceapp.data.local.cloud.identity
 
 import android.util.Log
 import androidx.room.withTransaction
-import com.flashcardsopensourceapp.data.local.database.AppDatabase
-import com.flashcardsopensourceapp.data.local.database.CardEntity
-import com.flashcardsopensourceapp.data.local.database.CardTagEntity
-import com.flashcardsopensourceapp.data.local.database.DeckEntity
-import com.flashcardsopensourceapp.data.local.database.OutboxEntryEntity
-import com.flashcardsopensourceapp.data.local.database.ReviewLogEntity
-import com.flashcardsopensourceapp.data.local.database.TagEntity
-import com.flashcardsopensourceapp.data.local.database.WorkspaceEntity
-import com.flashcardsopensourceapp.data.local.database.WorkspaceSchedulerSettingsEntity
+import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
+import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
+import com.flashcardsopensourceapp.data.local.database.entities.CardTagEntity
+import com.flashcardsopensourceapp.data.local.database.entities.DeckEntity
+import com.flashcardsopensourceapp.data.local.database.entities.OutboxEntryEntity
+import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
+import com.flashcardsopensourceapp.data.local.database.entities.TagEntity
+import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceEntity
+import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceSchedulerSettingsEntity
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.sync.ReviewHistoryChangePublisher
 import com.flashcardsopensourceapp.data.local.cloud.sync.ReviewHistoryChangedEvent

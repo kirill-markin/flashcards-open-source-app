@@ -1,12 +1,12 @@
 package com.flashcardsopensourceapp.data.local.cloud.sync
 
 import androidx.room.withTransaction
-import com.flashcardsopensourceapp.data.local.database.AppDatabase
-import com.flashcardsopensourceapp.data.local.database.CardEntity
-import com.flashcardsopensourceapp.data.local.database.CardTagEntity
-import com.flashcardsopensourceapp.data.local.database.DeckEntity
-import com.flashcardsopensourceapp.data.local.database.TagEntity
-import com.flashcardsopensourceapp.data.local.database.WorkspaceSchedulerSettingsEntity
+import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
+import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
+import com.flashcardsopensourceapp.data.local.database.entities.CardTagEntity
+import com.flashcardsopensourceapp.data.local.database.entities.DeckEntity
+import com.flashcardsopensourceapp.data.local.database.entities.TagEntity
+import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceSchedulerSettingsEntity
 import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteSyncChange
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudDoubleOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudIntOrNull

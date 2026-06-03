@@ -9,7 +9,7 @@ import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
-import com.flashcardsopensourceapp.data.local.database.ReviewLogDao
+import com.flashcardsopensourceapp.data.local.database.review.ReviewLogDao
 import com.flashcardsopensourceapp.data.local.notifications.ScheduledStrictReminderPayload
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersReconcileTrigger
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersStore

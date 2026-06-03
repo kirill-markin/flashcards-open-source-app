@@ -1,11 +1,11 @@
 package com.flashcardsopensourceapp.data.local.repository.progress
 
-import com.flashcardsopensourceapp.data.local.database.OutboxEntryEntity
-import com.flashcardsopensourceapp.data.local.database.ProgressLocalCacheStateEntity
-import com.flashcardsopensourceapp.data.local.database.ProgressLocalDayCountEntity
-import com.flashcardsopensourceapp.data.local.database.ProgressReviewScheduleCardDueEntity
-import com.flashcardsopensourceapp.data.local.database.ProgressReviewHistoryStateEntity
-import com.flashcardsopensourceapp.data.local.database.SyncStateEntity
+import com.flashcardsopensourceapp.data.local.database.entities.OutboxEntryEntity
+import com.flashcardsopensourceapp.data.local.database.entities.ProgressLocalCacheStateEntity
+import com.flashcardsopensourceapp.data.local.database.entities.ProgressLocalDayCountEntity
+import com.flashcardsopensourceapp.data.local.database.entities.ProgressReviewScheduleCardDueEntity
+import com.flashcardsopensourceapp.data.local.database.entities.ProgressReviewHistoryStateEntity
+import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewScheduleBucket

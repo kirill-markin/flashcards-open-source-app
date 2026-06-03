@@ -1,10 +1,11 @@
-package com.flashcardsopensourceapp.data.local.database
+package com.flashcardsopensourceapp.data.local.database.core
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import com.flashcardsopensourceapp.data.local.database.entities.AppLocalSettingsEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao

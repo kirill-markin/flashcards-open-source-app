@@ -1,7 +1,7 @@
 package com.flashcardsopensourceapp.data.local.cloud.sync
 
-import com.flashcardsopensourceapp.data.local.database.AppDatabase
-import com.flashcardsopensourceapp.data.local.database.SyncStateEntity
+import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
+import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
 
 internal class SyncStateLocalStore(
     private val database: AppDatabase

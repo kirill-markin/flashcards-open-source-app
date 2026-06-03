@@ -6,7 +6,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteOpenHelper
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.flashcardsopensourceapp.data.local.database.migration5To6
+import com.flashcardsopensourceapp.data.local.database.migrations.migration5To6
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

@@ -2,7 +2,7 @@ package com.flashcardsopensourceapp.data.local.repository.progress
 
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
-import com.flashcardsopensourceapp.data.local.database.AppDatabase
+import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
