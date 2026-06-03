@@ -9,7 +9,7 @@ import {
 } from "./accountDeletion";
 import { INSTALLATION_ID_STORAGE_KEY } from "./clientIdentity";
 import { LOCALE_PREFERENCE_STORAGE_KEY } from "./i18n/runtime";
-import { loadCloudSettings, putCloudSettings } from "./localDb/cloudSettings";
+import { loadCloudSettings, putCloudSettings } from "./localDb/sync/cloudSettings";
 import { clearWebSyncCache } from "./localDb/cache";
 import { SYNC_RESTORE_HISTORY_STORAGE_KEY } from "./appData/sync/syncRestoreHistory";
 import type { CloudSettings } from "./types";

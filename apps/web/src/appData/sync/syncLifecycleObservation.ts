@@ -4,7 +4,7 @@ import {
   type SyncRestoreLocalBootstrapState,
   type WebObservationScope,
 } from "../../observability/webObservability";
-import type { PersistentStorageState } from "../../localDb/cloudSettings";
+import type { PersistentStorageState } from "../../localDb/sync/cloudSettings";
 import type { SyncRestoreHistoryEntry } from "./syncRestoreHistory";
 
 export type HotBootstrapSlowObservationInput = Readonly<{

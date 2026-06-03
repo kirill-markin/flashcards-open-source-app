@@ -12,7 +12,7 @@ import { INSTALLATION_ID_STORAGE_KEY } from "../../clientIdentity";
 import { LOCALE_PREFERENCE_STORAGE_KEY } from "../../i18n/runtime";
 import { loadWarmStartSnapshot, WARM_START_SNAPSHOT_STORAGE_KEY } from "./warmStart";
 import { useWorkspaceSession } from "./useWorkspaceSession";
-import { putCloudSettings, loadCloudSettings } from "../../localDb/cloudSettings";
+import { putCloudSettings, loadCloudSettings } from "../../localDb/sync/cloudSettings";
 import type { CloudSettings, SessionInfo, WorkspaceSummary } from "../../types";
 import type { TranslationKey } from "../../i18n";
 import type { SessionLoadState } from "../context/types";

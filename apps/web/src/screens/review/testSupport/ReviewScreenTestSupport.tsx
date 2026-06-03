@@ -18,23 +18,40 @@ import type {
 } from "../../../types";
 
 const {
+  buildFeedbackPromptIdentityKeyMock,
+  feedbackPromptStateForTest,
   hasHydratedHotStateMock,
   loadDecksListSnapshotMock,
+  loadFeedbackPromptStateMock,
   loadReviewQueueChunkMock,
   loadReviewQueueSnapshotMock,
   loadReviewTimelinePageMock,
   loadWorkspaceTagsSummaryMock,
   reviewReactionLottieLoadAnimationMock,
+  storeAutomaticFeedbackPromptShownAtMock,
+  storeFeedbackSubmittedAtMock,
+  storeFetchedFeedbackStateMock,
   useAppDataMock,
   useReviewProgressBadgeMock,
 } = vi.hoisted(() => ({
+  buildFeedbackPromptIdentityKeyMock: vi.fn(),
+  feedbackPromptStateForTest: {
+    lastAutomaticFeedbackPromptShownAt: null,
+    lastFeedbackSubmittedAt: null,
+    nextAutomaticFeedbackPromptAt: null,
+    lastFeedbackStateFetchedAt: null,
+  },
   hasHydratedHotStateMock: vi.fn(),
   loadDecksListSnapshotMock: vi.fn(),
+  loadFeedbackPromptStateMock: vi.fn(),
   loadReviewQueueChunkMock: vi.fn(),
   loadReviewQueueSnapshotMock: vi.fn(),
   loadReviewTimelinePageMock: vi.fn(),
   loadWorkspaceTagsSummaryMock: vi.fn(),
   reviewReactionLottieLoadAnimationMock: vi.fn(),
+  storeAutomaticFeedbackPromptShownAtMock: vi.fn(),
+  storeFeedbackSubmittedAtMock: vi.fn(),
+  storeFetchedFeedbackStateMock: vi.fn(),
   useAppDataMock: vi.fn(),
   useReviewProgressBadgeMock: vi.fn(),
 }));
@@ -57,6 +74,14 @@ vi.mock("../../../localDb/reviews", () => ({
 vi.mock("../../../localDb/workspace", () => ({
   hasHydratedHotState: hasHydratedHotStateMock,
   loadWorkspaceTagsSummary: loadWorkspaceTagsSummaryMock,
+}));
+
+vi.mock("../../../localDb/feedback/feedback", () => ({
+  buildFeedbackPromptIdentityKey: buildFeedbackPromptIdentityKeyMock,
+  loadFeedbackPromptState: loadFeedbackPromptStateMock,
+  storeAutomaticFeedbackPromptShownAt: storeAutomaticFeedbackPromptShownAtMock,
+  storeFeedbackSubmittedAt: storeFeedbackSubmittedAtMock,
+  storeFetchedFeedbackState: storeFetchedFeedbackStateMock,
 }));
 
 vi.mock("lottie-web/build/player/lottie_light", () => ({
@@ -498,14 +523,24 @@ export function setupReviewScreenTest(): ReviewScreenTestHarness {
     useAppDataMock.mockReset();
     hasHydratedHotStateMock.mockReset();
     loadDecksListSnapshotMock.mockReset();
+    buildFeedbackPromptIdentityKeyMock.mockReset();
+    loadFeedbackPromptStateMock.mockReset();
     loadReviewQueueChunkMock.mockReset();
     loadReviewQueueSnapshotMock.mockReset();
     loadReviewTimelinePageMock.mockReset();
     loadWorkspaceTagsSummaryMock.mockReset();
+    storeAutomaticFeedbackPromptShownAtMock.mockReset();
+    storeFeedbackSubmittedAtMock.mockReset();
+    storeFetchedFeedbackStateMock.mockReset();
     useReviewProgressBadgeMock.mockReset();
 
     useAppDataMock.mockImplementation(() => state.appData);
     useReviewProgressBadgeMock.mockImplementation(() => state.reviewProgressBadge);
+    buildFeedbackPromptIdentityKeyMock.mockReturnValue("test-feedback-prompt-identity");
+    loadFeedbackPromptStateMock.mockResolvedValue(feedbackPromptStateForTest);
+    storeAutomaticFeedbackPromptShownAtMock.mockResolvedValue(feedbackPromptStateForTest);
+    storeFeedbackSubmittedAtMock.mockResolvedValue(feedbackPromptStateForTest);
+    storeFetchedFeedbackStateMock.mockResolvedValue(feedbackPromptStateForTest);
     hasHydratedHotStateMock.mockResolvedValue(true);
     loadDecksListSnapshotMock.mockImplementation(async (): Promise<DecksListSnapshot> => createDecksSnapshot(state));
     loadReviewQueueChunkMock.mockResolvedValue({

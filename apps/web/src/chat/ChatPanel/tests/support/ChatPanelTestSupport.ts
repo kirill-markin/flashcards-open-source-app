@@ -129,7 +129,7 @@ vi.mock("../../../../observability/webObservability", () => ({
   setWebObservabilityUser: setWebObservabilityUserMock,
 }));
 
-vi.mock("../../../../localDb/outbox", () => ({
+vi.mock("../../../../localDb/sync/outbox", () => ({
   listOutboxRecords: listOutboxRecordsMock,
 }));
 

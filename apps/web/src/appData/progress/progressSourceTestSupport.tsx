@@ -85,7 +85,7 @@ vi.mock("../../observability/webObservability", () => ({
   setWebObservabilityUser: progressSourceMocks.setWebObservabilityUserMock,
 }));
 
-vi.mock("../../localDb/progress", () => ({
+vi.mock("../../localDb/progress/progress", () => ({
   hasPendingProgressReviewEvents: progressSourceMocks.hasPendingProgressReviewEventsMock,
   loadLocalProgressSummary: progressSourceMocks.loadLocalProgressSummaryMock,
   loadLocalProgressDailyReviews: progressSourceMocks.loadLocalProgressDailyReviewsMock,

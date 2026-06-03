@@ -9,7 +9,7 @@ import {
   clearAllLocalBrowserData,
   type LocalBrowserDataCleanupReason,
 } from "../../accountDeletion";
-import { putCloudSettings } from "../../localDb/cloudSettings";
+import { putCloudSettings } from "../../localDb/sync/cloudSettings";
 import type {
   SessionInfo,
   WorkspaceSummary,
