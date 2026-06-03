@@ -29,6 +29,52 @@ function handleExecutorScopeQuery<Row extends pg.QueryResultRow>(
   return createQueryResult<Row>([]);
 }
 
+function handleFeedbackExecutorQuery<Row extends pg.QueryResultRow>(
+  context: GuestUpgradeHandlerContext,
+  text: string,
+  params: ReadonlyArray<GuestUpgradeExecutorParam>,
+): pg.QueryResult<Row> | null {
+  if (text !== "SELECT support.transfer_guest_feedback($1, $2, $3, $4)") {
+    return null;
+  }
+
+  const { state } = context;
+  const sourceGuestUserId = String(params[0]);
+  const sourceGuestWorkspaceId = String(params[1]);
+  const targetUserId = String(params[2]);
+  const targetWorkspaceId = String(params[3]);
+  context.scope.requireCurrentWorkspaceScope(targetUserId, targetWorkspaceId);
+
+  state.feedbackPromptEvents = state.feedbackPromptEvents.map((event) => {
+    if (event.user_id !== sourceGuestUserId) {
+      return event;
+    }
+
+    return {
+      ...event,
+      user_id: targetUserId,
+      workspace_id: event.workspace_id === sourceGuestWorkspaceId
+        ? targetWorkspaceId
+        : event.workspace_id,
+    };
+  });
+  state.feedbackSubmissions = state.feedbackSubmissions.map((submission) => {
+    if (submission.user_id !== sourceGuestUserId) {
+      return submission;
+    }
+
+    return {
+      ...submission,
+      user_id: targetUserId,
+      workspace_id: submission.workspace_id === sourceGuestWorkspaceId
+        ? targetWorkspaceId
+        : submission.workspace_id,
+    };
+  });
+
+  return createQueryResult<Row>([]);
+}
+
 export function createGuestUpgradeExecutor(state: MutableState): DatabaseExecutor {
   function requireCurrentUserScope(userId: string): void {
     assert.equal(
@@ -90,6 +136,11 @@ export function createGuestUpgradeExecutor(state: MutableState): DatabaseExecuto
         return contentResult;
       }
 
+      const feedbackResult = handleFeedbackExecutorQuery<Row>(context, text, params);
+      if (feedbackResult !== null) {
+        return feedbackResult;
+      }
+
       throw new Error(`Unexpected query: ${text}`);
     },
   };
@@ -109,6 +160,7 @@ export function isGuestUpgradeMergeOnlyExecutorQuery(text: string): boolean {
     || text.includes("UPDATE sync.workspace_replicas")
     || text.includes("INSERT INTO auth.guest_upgrade_history")
     || text.includes("INSERT INTO auth.guest_replica_aliases")
+    || text === "SELECT support.transfer_guest_feedback($1, $2, $3, $4)"
     || text === "UPDATE auth.guest_sessions SET revoked_at = now() WHERE session_id = $1"
     || text === "SELECT workspace_id FROM sync.find_conflicting_workspace_id($1, $2) LIMIT 1"
     || text.includes("FROM sync.hot_changes")

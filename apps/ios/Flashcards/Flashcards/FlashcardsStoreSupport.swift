@@ -32,6 +32,20 @@ protocol CloudSyncServing {
         authorizationHeader: String,
         timeZone: String
     ) async throws -> UserReviewSchedule
+    func loadFeedbackState(
+        apiBaseUrl: String,
+        authorizationHeader: String
+    ) async throws -> FeedbackState
+    func recordFeedbackPromptEvent(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        request: FeedbackPromptEventRequest
+    ) async throws -> FeedbackState
+    func submitFeedback(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        request: FeedbackSubmissionRequest
+    ) async throws -> FeedbackState
     func createWorkspace(apiBaseUrl: String, bearerToken: String, name: String) async throws -> CloudWorkspaceSummary
     func renameWorkspace(
         apiBaseUrl: String,

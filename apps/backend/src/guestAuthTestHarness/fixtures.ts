@@ -170,6 +170,8 @@ export function createMergeState(params: Readonly<{
     guestUpgradeHistory: [],
     guestReplicaAliases: [],
     hotChanges: [],
+    feedbackPromptEvents: [],
+    feedbackSubmissions: [],
   };
 }
 

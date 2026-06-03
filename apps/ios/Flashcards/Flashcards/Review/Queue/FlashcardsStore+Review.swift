@@ -328,6 +328,7 @@ extension FlashcardsStore {
                 rating: request.rating,
                 now: now
             )
+            self.startAutomaticFeedbackPromptCheckAfterSuccessfulReview(now: now)
             self.triggerCloudSyncIfLinked(
                 trigger: CloudSyncTrigger(
                     source: .localMutation,

@@ -69,6 +69,18 @@ struct SettingsView: View {
             }
 
             Section {
+                Button {
+                    store.presentFeedbackSheet(trigger: .settings)
+                } label: {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.row.sendFeedback", "Send Feedback"),
+                        value: aiSettingsLocalized("settings.row.sendFeedback.value", "Share an idea"),
+                        systemImage: "text.bubble"
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier(UITestIdentifier.settingsFeedbackRow)
+
                 NavigationLink(value: SettingsNavigationDestination.device) {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.thisDevice", "This Device"),
