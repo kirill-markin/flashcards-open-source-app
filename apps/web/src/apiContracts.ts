@@ -31,6 +31,11 @@ export {
   ApiContractError,
 } from "./apiContracts/core";
 export {
+  parseFeedbackPromptEventResponse,
+  parseFeedbackStateEnvelopeResponse,
+  parseFeedbackSubmissionResponse,
+} from "./apiContracts/feedback";
+export {
   parseProgressReviewScheduleResponse,
   parseProgressSeriesResponse,
   parseProgressSummaryResponse,

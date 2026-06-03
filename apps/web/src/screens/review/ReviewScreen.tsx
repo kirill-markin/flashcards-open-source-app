@@ -1,4 +1,5 @@
 import { useEffect, type ReactElement } from "react";
+import { FeedbackDialog } from "../../feedback/FeedbackDialog";
 import { ReviewEditorModal } from "./components/ReviewEditorModal";
 import { ReviewPane } from "./components/ReviewPane";
 import { ReviewQueuePanel } from "./components/ReviewQueuePanel";
@@ -14,6 +15,7 @@ export function ReviewScreen(): ReactElement {
   const {
     dismissReviewReactions,
     editorModalProps,
+    feedbackDialogProps,
     hardReminderDialogProps,
     headerProps,
     paneProps,
@@ -44,6 +46,7 @@ export function ReviewScreen(): ReactElement {
       </section>
 
       <ReviewEditorModal {...editorModalProps} />
+      <FeedbackDialog {...feedbackDialogProps} />
       <ReviewHardReminderDialog {...hardReminderDialogProps} />
     </main>
   );
