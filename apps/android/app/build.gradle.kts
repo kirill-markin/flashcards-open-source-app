@@ -282,6 +282,7 @@ dependencies {
     implementation(libs.androidx.compose.adaptive.navigation.suite)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.google.play.review)
     implementation(libs.okhttp)
     implementation(libs.sentry.android)
     implementation(libs.sentry.okhttp)

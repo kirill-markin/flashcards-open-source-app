@@ -11,6 +11,9 @@ import com.flashcardsopensourceapp.app.navigation.loadPackageInfo
 import com.flashcardsopensourceapp.app.ProgressContextRefreshController
 import com.flashcardsopensourceapp.app.observability.renderSanitizedThrowableLogFields
 import com.flashcardsopensourceapp.app.SharedPreferencesGuestSignInAfterReviewPromptStore
+import com.flashcardsopensourceapp.app.store.NoOpStoreReviewAnalyticsReporter
+import com.flashcardsopensourceapp.app.store.StoreReviewActivityProvider
+import com.flashcardsopensourceapp.app.store.StoreReviewRequestManager
 import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
@@ -43,6 +46,8 @@ import com.flashcardsopensourceapp.data.local.model.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.review.SharedPreferencesReviewPreferencesStore
+import com.flashcardsopensourceapp.data.local.review.SharedPreferencesStoreReviewRequestStore
+import com.flashcardsopensourceapp.data.local.review.StoreReviewRequestStore
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository
 import com.flashcardsopensourceapp.data.local.repository.CardsRepository
@@ -126,6 +131,7 @@ class AppGraph(
     val appMessageBus = AppMessageBus()
     val testModeStore = TestModeStore(context = context.applicationContext)
     val visibleAppScreenController = VisibleAppScreenController()
+    val storeReviewActivityProvider = StoreReviewActivityProvider()
     val cloudCredentialRecoveryGateViewModelStoreOwner: ViewModelStoreOwner =
         object : ViewModelStoreOwner {
             override val viewModelStore: ViewModelStore = ViewModelStore()
@@ -143,6 +149,7 @@ class AppGraph(
     private val aiChatHistoryStore = AiChatHistoryStore(context = context)
     private val guestAiSessionStore = GuestAiSessionStore(context = context)
     val reviewPreferencesStore: ReviewPreferencesStore = SharedPreferencesReviewPreferencesStore(context = context)
+    val storeReviewRequestStore: StoreReviewRequestStore = SharedPreferencesStoreReviewRequestStore(context = context)
     private val guestSignInAfterReviewPromptStore = SharedPreferencesGuestSignInAfterReviewPromptStore(
         context = context
     )
@@ -190,6 +197,20 @@ class AppGraph(
         reviewLogDao = database.reviewLogDao(),
         scheduler = strictRemindersScheduler,
         zoneIdProvider = ZoneId::systemDefault
+    )
+    val storeReviewRequestManager = StoreReviewRequestManager(
+        context = context,
+        reviewLogDao = database.reviewLogDao(),
+        storeReviewRequestStore = storeReviewRequestStore,
+        appVersion = appPackageInfo.versionName,
+        installationIdProvider = {
+            cloudPreferencesStore.currentCloudSettings().installationId
+        },
+        analyticsReporter = NoOpStoreReviewAnalyticsReporter,
+        zoneIdProvider = ZoneId::systemDefault,
+        currentTimeMillisProvider = {
+            System.currentTimeMillis()
+        }
     )
     private val cloudIdentityResetCoordinator = CloudIdentityResetCoordinator(
         database = database,
