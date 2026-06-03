@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { Hono } from "hono";
-import { HttpError } from "../../shared/errors";
-import type { AppEnv } from "../../server/app";
-import type { BackendTraceCarrier } from "../../observability/sentry";
-import { createChatRoutes } from "../../routes/chat";
-import { ChatSessionConflictError } from "../store";
+import { HttpError } from "../../../shared/errors";
+import type { AppEnv } from "../../../server/app";
+import type { BackendTraceCarrier } from "../../../observability/sentry";
+import { createChatRoutes } from "../../../routes/chat";
+import { ChatSessionConflictError } from "../../store";
 import {
   EXPLICIT_WORKSPACE_ID,
   LEGACY_WORKSPACE_ID,
@@ -15,7 +15,7 @@ import {
   createRequestContext,
   createRequestContextWithSelectedWorkspace,
   createRunningSnapshot,
-} from "./chat-routes-test-support";
+} from "./testSupport";
 
 test("POST /chat can return an active run before the current turn appears in messages", async () => {
   let preparedClientRequestId: string | null = null;
