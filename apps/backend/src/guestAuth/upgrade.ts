@@ -27,6 +27,7 @@ import {
   loadWorkspaceSummaryInExecutor,
   recordGuestUpgradeHistoryInExecutor,
   selectWorkspaceForUserInExecutor,
+  transferGuestFeedbackInExecutor,
   updateUserEmailInExecutor,
   type GuestSessionRecord,
 } from "./store";
@@ -531,7 +532,16 @@ export async function completeGuestUpgradeInExecutor(
     guestUpgradeResolution.targetWorkspaceId,
   );
 
-  // Phase 11: revoke and delete guest source rows.
+  // Phase 11: transfer guest-owned support data before deleting source rows.
+  await transferGuestFeedbackInExecutor(
+    executor,
+    guestSession.userId,
+    guestUpgradeResolution.guestWorkspaceId,
+    guestUpgradeResolution.targetUserId,
+    guestUpgradeResolution.targetWorkspaceId,
+  );
+
+  // Phase 12: revoke and delete guest source rows.
   await cleanupGuestSessionSourceInExecutor(
     executor,
     guestSession.userId,
@@ -539,7 +549,7 @@ export async function completeGuestUpgradeInExecutor(
     guestUpgradeResolution.guestWorkspaceId,
   );
 
-  // Phase 12: load the final workspace summary for the response.
+  // Phase 13: load the final workspace summary for the response.
   return {
     workspace: await loadWorkspaceSummaryInExecutor(
       executor,

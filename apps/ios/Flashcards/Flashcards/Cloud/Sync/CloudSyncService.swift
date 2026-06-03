@@ -124,6 +124,50 @@ final class CloudSyncService: @unchecked Sendable {
         )
     }
 
+    func loadFeedbackState(
+        apiBaseUrl: String,
+        authorizationHeader: String
+    ) async throws -> FeedbackState {
+        let response: FeedbackStateEnvelope = try await self.transport.request(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: authorizationHeader,
+            path: "/feedback/state",
+            method: "GET",
+            body: Optional<String>.none
+        )
+        return response.feedbackState
+    }
+
+    func recordFeedbackPromptEvent(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        request: FeedbackPromptEventRequest
+    ) async throws -> FeedbackState {
+        let response: FeedbackStateEnvelope = try await self.transport.request(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: authorizationHeader,
+            path: "/feedback/prompt-events",
+            method: "POST",
+            body: request
+        )
+        return response.feedbackState
+    }
+
+    func submitFeedback(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        request: FeedbackSubmissionRequest
+    ) async throws -> FeedbackState {
+        let response: FeedbackStateEnvelope = try await self.transport.request(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: authorizationHeader,
+            path: "/feedback/submissions",
+            method: "POST",
+            body: request
+        )
+        return response.feedbackState
+    }
+
     func createWorkspace(apiBaseUrl: String, bearerToken: String, name: String) async throws -> CloudWorkspaceSummary {
         logCloudFlowPhase(phase: .workspaceCreate, outcome: "start", selection: "create_new")
         let response: WorkspaceEnvelope = try await self.transport.request(

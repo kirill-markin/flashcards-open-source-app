@@ -43,6 +43,17 @@ test("completeGuestUpgradeInExecutor reassigns guest installation ownership duri
     guestSchedulerUpdatedAt: "2026-04-02T14:00:00.000Z",
     targetSchedulerUpdatedAt: "2026-04-02T14:05:00.000Z",
   });
+  state.feedbackPromptEvents.push({
+    prompt_event_id: "prompt-event-1",
+    user_id: guestUserId,
+    workspace_id: guestWorkspaceId,
+  });
+  state.feedbackSubmissions.push({
+    feedback_submission_id: "feedback-submission-1",
+    user_id: guestUserId,
+    workspace_id: guestWorkspaceId,
+    message: "Keep this feedback after upgrade.",
+  });
 
   const executor = createGuestUpgradeExecutor(state);
   const result = await completeGuestUpgradeInExecutor(
@@ -65,6 +76,17 @@ test("completeGuestUpgradeInExecutor reassigns guest installation ownership duri
   assert.equal(state.guestUpgradeHistory.length, 1);
   assert.equal(state.guestReplicaAliases.length, 1);
   assert.equal(state.guestReplicaAliases[0]?.source_guest_replica_id, guestReplicaId);
+  assert.deepEqual(state.feedbackPromptEvents, [{
+    prompt_event_id: "prompt-event-1",
+    user_id: targetUserId,
+    workspace_id: targetWorkspaceId,
+  }]);
+  assert.deepEqual(state.feedbackSubmissions, [{
+    feedback_submission_id: "feedback-submission-1",
+    user_id: targetUserId,
+    workspace_id: targetWorkspaceId,
+    message: "Keep this feedback after upgrade.",
+  }]);
   assert.equal(result.outcome, "fresh_completion");
   assert.equal(result.targetWorkspaceId, targetWorkspaceId);
 

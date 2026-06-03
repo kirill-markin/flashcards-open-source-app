@@ -556,3 +556,14 @@
 "settings.workspace.tags.multipleCards" = "%d-Karten";
 "settings.workspace.tags.totalCards" = "Gesamtzahl der Karten";
 "settings.workspace.tags.totalCardsDescription" = "Diese Zählung gilt für den gesamten Arbeitsbereich und zählt keine Karten mit gemeinsamen Tags doppelt.";
+
+"settings.row.sendFeedback" = "Feedback senden";
+"settings.row.sendFeedback.value" = "Idee teilen";
+"feedback.sheet.title" = "Haben Sie eine Idee für Flashcards?";
+"feedback.sheet.body" = "Teilen Sie mit, was die App besser machen würde. Der Entwickler liest jede Nachricht persönlich.";
+"feedback.sheet.placeholder" = "Schreiben Sie hier Ihre Idee";
+"feedback.sheet.send" = "Senden";
+"feedback.sheet.notNow" = "Nicht jetzt";
+"feedback.sheet.success" = "Danke. Ihr Feedback wurde gesendet.";
+"feedback.sheet.messageTooLong" = "Feedback bitte unter %d Zeichen halten.";
+"feedback.sheet.emptyMessageError" = "Schreiben Sie Feedback, bevor Sie senden.";

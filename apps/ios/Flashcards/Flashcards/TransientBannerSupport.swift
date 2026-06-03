@@ -52,6 +52,7 @@ enum TransientBannerKind: Hashable, Sendable {
     case reviewSpeechUnavailable
     case testModeEnabled
     case testModeDisabled
+    case feedbackSent
 
     var iconSystemName: String {
         switch self {
@@ -69,6 +70,8 @@ enum TransientBannerKind: Hashable, Sendable {
             return "speaker.slash.fill"
         case .testModeEnabled, .testModeDisabled:
             return "wrench.and.screwdriver.fill"
+        case .feedbackSent:
+            return "checkmark.message.fill"
         }
     }
 }
@@ -148,6 +151,15 @@ func makeTestModeDisabledBanner() -> TransientBanner {
         id: UUID().uuidString.lowercased(),
         message: testModeDisabledBannerMessage,
         kind: .testModeDisabled,
+        dismissDelayNanoseconds: transientBannerDefaultDismissDelayNanoseconds
+    )
+}
+
+func makeFeedbackSentBanner() -> TransientBanner {
+    TransientBanner(
+        id: UUID().uuidString.lowercased(),
+        message: aiSettingsLocalized("feedback.sheet.success", "Thanks. Your feedback was sent."),
+        kind: .feedbackSent,
         dismissDelayNanoseconds: transientBannerDefaultDismissDelayNanoseconds
     )
 }

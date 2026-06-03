@@ -25,6 +25,7 @@ struct RootTabView: View {
 
     private var isGuestSignInAfterReviewPromptBlockedByModal: Bool {
         self.isGuestSignInCloudSignInPresented
+            || store.feedbackPresentation != nil
             || store.activeCloudSignInSheetCount > 0
             || store.accountDeletionState != .hidden
             || store.accountDeletionSuccessMessage != nil
@@ -77,6 +78,21 @@ struct RootTabView: View {
             set: { isPresented in
                 if isPresented == false {
                     store.dismissAccountDeletionSuccessMessage()
+                }
+            }
+        )
+    }
+
+    private var feedbackPresentation: Binding<FeedbackPresentation?> {
+        Binding<FeedbackPresentation?>(
+            get: {
+                store.feedbackPresentation
+            },
+            set: { presentation in
+                if presentation == nil {
+                    store.dismissFeedbackSheet()
+                } else {
+                    store.feedbackPresentation = presentation
                 }
             }
         )
@@ -443,6 +459,9 @@ struct RootTabView: View {
         .onChange(of: store.guestSignInAfterReviewPromptReconciliationToken) { _, _ in
             self.reconcileGuestSignInAfterReviewPrompt()
         }
+        .onChange(of: store.feedbackPresentation) { _, _ in
+            self.reconcileGuestSignInAfterReviewPrompt()
+        }
         .onChange(of: store.activeCloudSignInSheetCount) { _, _ in
             self.reconcileGuestSignInAfterReviewPrompt()
         }
@@ -471,6 +490,10 @@ struct RootTabView: View {
         }
         .sheet(isPresented: self.$isGuestSignInCloudSignInPresented) {
             CloudSignInSheet(presentationContext: .standard)
+                .environment(store)
+        }
+        .sheet(item: self.feedbackPresentation) { presentation in
+            FeedbackSheet(presentation: presentation)
                 .environment(store)
         }
         .alert(

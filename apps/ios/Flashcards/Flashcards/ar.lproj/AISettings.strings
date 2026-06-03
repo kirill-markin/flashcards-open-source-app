@@ -556,3 +556,14 @@
 "settings.workspace.tags.multipleCards" = "بطاقات %d";
 "settings.workspace.tags.totalCards" = "إجمالي البطاقات";
 "settings.workspace.tags.totalCardsDescription" = "هذا العدد مخصص لمساحة العمل بأكملها ولا يضاعف عدد البطاقات التي تشترك في العلامات.";
+
+"settings.row.sendFeedback" = "إرسال ملاحظات";
+"settings.row.sendFeedback.value" = "شارك فكرة";
+"feedback.sheet.title" = "هل لديك فكرة لبطاقات Flashcards؟";
+"feedback.sheet.body" = "شارك ما يمكن أن يجعل التطبيق أفضل. يقرأ منشئ التطبيق كل رسالة بنفسه.";
+"feedback.sheet.placeholder" = "اكتب فكرتك هنا";
+"feedback.sheet.send" = "إرسال";
+"feedback.sheet.notNow" = "ليس الآن";
+"feedback.sheet.success" = "شكرًا. تم إرسال ملاحظاتك.";
+"feedback.sheet.messageTooLong" = "اجعل الملاحظات أقل من %d حرف.";
+"feedback.sheet.emptyMessageError" = "اكتب ملاحظات قبل الإرسال.";
