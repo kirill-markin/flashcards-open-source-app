@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createChatRoutes } from "../../routes/chat";
-import { buildInitialChatComposerSuggestions } from "../composerSuggestions";
-import { createChatSessionRequestedSessionIdConflictError } from "../errors";
+import { createChatRoutes } from "../../../routes/chat";
+import { buildInitialChatComposerSuggestions } from "../../composerSuggestions";
+import { createChatSessionRequestedSessionIdConflictError } from "../../errors";
 import {
   EXPLICIT_WORKSPACE_ID,
   LEGACY_WORKSPACE_ID,
@@ -14,7 +14,7 @@ import {
   createRequestContextWithSelectedWorkspace,
   createRunningSnapshot,
   createSnapshot,
-} from "./chat-routes-test-support";
+} from "./testSupport";
 
 test("POST /chat/new returns the current session when history is empty", async () => {
   let rolloverCallCount = 0;
@@ -530,4 +530,3 @@ test("POST /chat/new uses an explicit workspaceId from JSON before the legacy se
   assert.equal(response.status, 200);
   assert.deepEqual(requestedWorkspaceIds, [EXPLICIT_WORKSPACE_ID]);
 });
-

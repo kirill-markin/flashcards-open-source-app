@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { HttpError } from "../../shared/errors";
-import { createChatRoutes } from "../../routes/chat";
-import { createChatSessionRequestedSessionIdConflictError } from "../errors";
-import type { RecoveredPaginatedSession } from "../runs";
+import { HttpError } from "../../../shared/errors";
+import { createChatRoutes } from "../../../routes/chat";
+import { createChatSessionRequestedSessionIdConflictError } from "../../errors";
+import type { RecoveredPaginatedSession } from "../../runs";
 import {
   EXPLICIT_WORKSPACE_ID,
   LEGACY_WORKSPACE_ID,
@@ -14,7 +14,7 @@ import {
   createRequestContext,
   createRequestContextWithSelectedWorkspace,
   createSnapshot,
-} from "./chat-routes-test-support";
+} from "./testSupport";
 
 test("DELETE /chat is no longer routed", async () => {
   const app = createChatRoutes({

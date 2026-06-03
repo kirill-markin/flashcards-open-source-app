@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createChatRoutes } from "../../routes/chat";
+import { createChatRoutes } from "../../../routes/chat";
 import {
   EXPLICIT_WORKSPACE_ID,
   LEGACY_WORKSPACE_ID,
@@ -10,7 +10,7 @@ import {
   createRequestContext,
   createRoutesWithHttpErrorJson,
   createRequestContextWithSelectedWorkspace,
-} from "./chat-routes-test-support";
+} from "./testSupport";
 
 test("POST /chat/stop returns not found for an unknown explicit session id", async () => {
   const routes = createChatRoutes({

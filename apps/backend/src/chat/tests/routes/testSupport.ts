@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import { HttpError } from "../../shared/errors";
-import type { ChatSessionSnapshot } from "../store";
-import type { RequestContext } from "../../server/requestContext";
+import { HttpError } from "../../../shared/errors";
+import type { ChatSessionSnapshot } from "../../store";
+import type { RequestContext } from "../../../server/requestContext";
 
 export const SESSION_ONE = "11111111-1111-4111-8111-111111111111";
 export const SESSION_TWO = "22222222-2222-4222-8222-222222222222";

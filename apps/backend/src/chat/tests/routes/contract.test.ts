@@ -2,21 +2,21 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import { HttpError } from "../../shared/errors";
-import { createChatRoutes } from "../../routes/chat";
-import type { AppEnv } from "../../server/app";
-import type { RequestContext } from "../../server/requestContext";
+import { HttpError } from "../../../shared/errors";
+import { createChatRoutes } from "../../../routes/chat";
+import type { AppEnv } from "../../../server/app";
+import type { RequestContext } from "../../../server/requestContext";
 import {
   chatMaximumStartRunRequestBytes,
   chatRequestTooLargeCode,
   chatRequestTooLargeMessage,
   parseChatRequestBody,
-} from "../http/contract";
+} from "../../http/contract";
 import {
   chatAttachmentUnsupportedTypeCode,
   chatAttachmentUnsupportedTypeMessage,
-} from "../attachmentPolicy";
-import type { ChatSessionSnapshot, PersistedChatMessageItem } from "../store";
+} from "../../attachmentPolicy";
+import type { ChatSessionSnapshot, PersistedChatMessageItem } from "../../store";
 
 const SESSION_ONE = "11111111-1111-4111-8111-111111111111";
 const PLAIN_TEXT_BASE64 = "cGxhaW4gdGV4dA==";
