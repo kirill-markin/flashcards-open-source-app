@@ -132,7 +132,7 @@
 "settings.row.access.itemCount" = "4 elementos";
 "settings.section.test" = "Prueba";
 "settings.row.test" = "Prueba";
-"settings.row.test.itemCount" = "1 elemento";
+"settings.row.test.itemCount" = "2 elementos";
 "settings.sync.success" = "Sincronizado correctamente";
 "settings.sync.guestAiActive" = "La IA de invitado esta activa";
 "settings.sync.notSyncing" = "Sin sincronizacion";
@@ -190,6 +190,8 @@
 "settings.test.animations.title" = "Animaciones";
 "settings.test.animations.probability" = "%@ de probabilidad";
 "settings.test.animations.playAccessibility" = "Reproducir la animacion %@, %@";
+"settings.test.storeReviewPromptReset" = "Restablecer solicitud de resena de App Store";
+"settings.test.storeReviewPromptReset.value" = "Estado local";
 
 "settings.access.title" = "Acceso";
 "settings.access.section.permissions" = "Permisos";
@@ -554,3 +556,14 @@
 "settings.workspace.tags.multipleCards" = "%d tarjetas";
 "settings.workspace.tags.totalCards" = "Tarjetas totales";
 "settings.workspace.tags.totalCardsDescription" = "Este recuento corresponde a todo el espacio de trabajo y no cuenta dos veces las tarjetas que comparten etiquetas.";
+
+"settings.row.sendFeedback" = "Enviar comentarios";
+"settings.row.sendFeedback.value" = "Comparte una idea";
+"feedback.sheet.title" = "¿Tienes una idea para Flashcards?";
+"feedback.sheet.body" = "Cuéntanos qué mejoraría la app. El creador lee personalmente cada mensaje.";
+"feedback.sheet.placeholder" = "Escribe tu idea aquí";
+"feedback.sheet.send" = "Enviar";
+"feedback.sheet.notNow" = "Ahora no";
+"feedback.sheet.success" = "Gracias. Tus comentarios se han enviado.";
+"feedback.sheet.messageTooLong" = "Mantén los comentarios por debajo de %d caracteres.";
+"feedback.sheet.emptyMessageError" = "Escribe un comentario antes de enviarlo.";

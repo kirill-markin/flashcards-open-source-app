@@ -222,6 +222,11 @@ const esEsCatalog: TranslationCatalog = {
       description: "Revisa los permisos del navegador para archivos, cámara y micrófono.",
       value: "Permisos",
     },
+    feedback: {
+      title: "Enviar comentarios",
+      description: "Comparte una idea para mejorar la app.",
+      value: "Abrir",
+    },
     testGroupTitle: "Prueba",
     test: {
       title: "Prueba",
@@ -545,6 +550,19 @@ const esEsCatalog: TranslationCatalog = {
     body: "Si no sabías la respuesta, elige \"Otra vez\". \"Difícil\" es solo para respuestas que sabías, pero te costó recordar.",
     dismiss: "Entendido",
     title: "Recordatorio rápido",
+  },
+  feedback: {
+    title: "¿Tienes una idea para Flashcards?",
+    body: "Comparte qué mejoraría la app. El creador lee personalmente cada mensaje.",
+    fieldLabel: "Comentarios",
+    placeholder: "Escribe tu idea aquí",
+    send: "Enviar",
+    sending: "Enviando...",
+    notNow: "Ahora no",
+    success: "Gracias. Tus comentarios se han enviado.",
+    emptyError: "Escribe un mensaje antes de enviarlo.",
+    tooLongError: "Los comentarios deben tener 5000 caracteres o menos.",
+    submitError: "No se pudieron enviar los comentarios. Comprueba tu conexión e inténtalo de nuevo.",
   },
   cardsScreen: {
     counts: {

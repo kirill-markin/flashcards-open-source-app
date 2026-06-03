@@ -132,7 +132,7 @@
 "settings.row.access.itemCount" = "4 アイテム";
 "settings.section.test" = "テスト";
 "settings.row.test" = "テスト";
-"settings.row.test.itemCount" = "1項目";
+"settings.row.test.itemCount" = "2項目";
 "settings.sync.success" = "正常に同期されました";
 "settings.sync.guestAiActive" = "ゲスト AI がアクティブです";
 "settings.sync.notSyncing" = "同期なし";
@@ -190,6 +190,8 @@
 "settings.test.animations.title" = "アニメーション";
 "settings.test.animations.probability" = "確率 %@";
 "settings.test.animations.playAccessibility" = "%@ のアニメーションを再生、%@";
+"settings.test.storeReviewPromptReset" = "App Storeレビューのプロンプトをリセット";
+"settings.test.storeReviewPromptReset.value" = "ローカル状態";
 
 "settings.access.title" = "アクセス";
 "settings.access.section.permissions" = "権限";
@@ -554,3 +556,14 @@
 "settings.workspace.tags.multipleCards" = "%d カード";
 "settings.workspace.tags.totalCards" = "合計カード";
 "settings.workspace.tags.totalCardsDescription" = "このカウントはワークスペース全体を対象とし、タグを共有するカードは二重にカウントされません。";
+
+"settings.row.sendFeedback" = "フィードバックを送信";
+"settings.row.sendFeedback.value" = "アイデアを共有";
+"feedback.sheet.title" = "Flashcards へのアイデアがありますか？";
+"feedback.sheet.body" = "アプリをより良くするための意見を共有してください。作成者がすべてのメッセージを直接読みます。";
+"feedback.sheet.placeholder" = "ここにアイデアを書く";
+"feedback.sheet.send" = "送信";
+"feedback.sheet.notNow" = "今はしない";
+"feedback.sheet.success" = "ありがとうございます。フィードバックを送信しました。";
+"feedback.sheet.messageTooLong" = "フィードバックは %d 文字以内にしてください。";
+"feedback.sheet.emptyMessageError" = "送信する前にフィードバックを書いてください。";

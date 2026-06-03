@@ -164,6 +164,37 @@ final class GuestUpgradeDrainCloudSyncService: CloudSyncServing {
         )
     }
 
+    func loadFeedbackState(
+        apiBaseUrl: String,
+        authorizationHeader: String
+    ) async throws -> FeedbackState {
+        _ = apiBaseUrl
+        _ = authorizationHeader
+        fatalError("Not used in GuestCloudUpgradeDrainTests.")
+    }
+
+    func recordFeedbackPromptEvent(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        request: FeedbackPromptEventRequest
+    ) async throws -> FeedbackState {
+        _ = apiBaseUrl
+        _ = authorizationHeader
+        _ = request
+        fatalError("Not used in GuestCloudUpgradeDrainTests.")
+    }
+
+    func submitFeedback(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        request: FeedbackSubmissionRequest
+    ) async throws -> FeedbackState {
+        _ = apiBaseUrl
+        _ = authorizationHeader
+        _ = request
+        fatalError("Not used in GuestCloudUpgradeDrainTests.")
+    }
+
     func createWorkspace(apiBaseUrl: String, bearerToken: String, name: String) async throws -> CloudWorkspaceSummary {
         self.createWorkspaceCallCount += 1
         if let createWorkspaceHandler {

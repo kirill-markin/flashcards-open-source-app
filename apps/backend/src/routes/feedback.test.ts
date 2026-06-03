@@ -2,48 +2,214 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import {
-  deriveFeedbackState,
-  type FeedbackPromptEventInput,
-  type FeedbackState,
-  type FeedbackSubmissionInput,
-} from "../feedback";
-import { HttpError } from "../shared/errors";
-import type { RequestContext } from "../server/requestContext";
+import { AuthError } from "../auth";
 import type { AppEnv } from "../server/app";
+import type { RequestContext } from "../server/requestContext";
+import { HttpError } from "../shared/errors";
+import type { BackendObservationScope } from "../observability/sentry";
+import type {
+  FeedbackNotificationEmailInput,
+  FeedbackPromptEventInput,
+  FeedbackState,
+  FeedbackSubmissionInput,
+  StoredFeedbackSubmission,
+} from "../feedback/types";
+import type { FeedbackServiceDependencies } from "../feedback";
 import { createFeedbackRoutes } from "./feedback";
+
+type PromptEventRecord = FeedbackPromptEventInput & Readonly<{
+  userId: string;
+  createdAtServer: string;
+}>;
+
+type SubmissionRecord = FeedbackSubmissionInput & Readonly<{
+  userId: string;
+  email: string | null;
+  createdAtServer: string;
+  emailNotificationStatus: "pending" | "sent" | "failed";
+  emailNotificationError: string | null;
+}>;
+
+type FeedbackStoreState = {
+  promptEvents: Map<string, PromptEventRecord>;
+  submissions: Map<string, SubmissionRecord>;
+  sentEmails: Array<FeedbackNotificationEmailInput>;
+  sendEmailError: Error | null;
+  nextTimestampIndex: number;
+};
 
 type FeedbackTestAppOptions = Readonly<{
   transport: RequestContext["transport"];
-  onLoadState?: (userId: string) => Promise<FeedbackState>;
-  onRecordPromptEvent?: (
-    userId: string,
-    input: FeedbackPromptEventInput,
-  ) => Promise<FeedbackState>;
-  onSubmitFeedback?: (
-    userId: string,
-    input: FeedbackSubmissionInput,
-  ) => Promise<FeedbackState>;
+  state: FeedbackStoreState;
+  loadRequestContextError: AuthError | null;
 }>;
+
+const workspaceId = "11111111-1111-4111-8111-111111111111";
+const promptEventId = "22222222-2222-4222-8222-222222222222";
+const submissionId = "33333333-3333-4333-8333-333333333333";
+const installationId = "44444444-4444-4444-8444-444444444444";
+const serverTimestamps = [
+  "2026-06-03T10:00:00.000Z",
+  "2026-06-03T10:01:00.000Z",
+  "2026-06-03T10:02:00.000Z",
+] as const;
 
 function createRequestContext(transport: RequestContext["transport"]): RequestContext {
   return {
     userId: "user-1",
     subjectUserId: "subject-1",
-    selectedWorkspaceId: "11111111-1111-4111-8111-111111111111",
-    email: "user@example.com",
+    selectedWorkspaceId: workspaceId,
+    email: transport === "guest" ? null : "user@example.com",
     locale: "en",
-    userSettingsCreatedAt: "2026-04-01T00:00:00.000Z",
+    userSettingsCreatedAt: "2026-04-17T00:00:00.000Z",
     transport,
     connectionId: transport === "api_key" ? "connection-1" : null,
   };
 }
 
-function createState(): FeedbackState {
-  return deriveFeedbackState(
-    "2026-04-01T00:00:00.000Z",
-    "2026-04-02T00:00:00.000Z",
-  );
+function createEmptyStoreState(sendEmailError: Error | null): FeedbackStoreState {
+  return {
+    promptEvents: new Map(),
+    submissions: new Map(),
+    sentEmails: [],
+    sendEmailError,
+    nextTimestampIndex: 0,
+  };
+}
+
+function nextServerTimestamp(state: FeedbackStoreState): string {
+  const timestamp = serverTimestamps[state.nextTimestampIndex];
+  if (timestamp === undefined) {
+    throw new Error("Test timestamp fixture exhausted");
+  }
+
+  state.nextTimestampIndex += 1;
+  return timestamp;
+}
+
+function addDaysToIsoTimestamp(value: string, days: number): string {
+  const date = new Date(value);
+  return new Date(date.getTime() + days * 86_400_000).toISOString();
+}
+
+function getLaterIsoTimestamp(left: string | null, right: string | null): string | null {
+  if (left === null) {
+    return right;
+  }
+
+  if (right === null) {
+    return left;
+  }
+
+  return new Date(left).getTime() >= new Date(right).getTime() ? left : right;
+}
+
+function createFeedbackStateForUser(state: FeedbackStoreState, userId: string): FeedbackState {
+  const promptTimes = Array.from(state.promptEvents.values())
+    .filter((event) => event.userId === userId && event.eventType === "automatic_prompt_shown")
+    .map((event) => event.createdAtServer);
+  const submissionTimes = Array.from(state.submissions.values())
+    .filter((submission) => submission.userId === userId)
+    .map((submission) => submission.createdAtServer);
+  const lastAutomaticPromptAt = promptTimes.length === 0
+    ? null
+    : promptTimes.reduce((latest, current) => getLaterIsoTimestamp(latest, current) ?? current);
+  const lastSubmittedAt = submissionTimes.length === 0
+    ? null
+    : submissionTimes.reduce((latest, current) => getLaterIsoTimestamp(latest, current) ?? current);
+  const cooldownBaseAt = getLaterIsoTimestamp(lastAutomaticPromptAt, lastSubmittedAt);
+
+  return {
+    automaticPromptCooldownDays: 30,
+    lastAutomaticPromptAt,
+    lastSubmittedAt,
+    nextAutomaticPromptAt: cooldownBaseAt === null ? null : addDaysToIsoTimestamp(cooldownBaseAt, 30),
+  };
+}
+
+function createFeedbackDependencies(state: FeedbackStoreState): FeedbackServiceDependencies {
+  return {
+    loadFeedbackStateForUserFn: async (userId) => createFeedbackStateForUser(state, userId),
+    recordFeedbackPromptEventForUserFn: async (userId, input) => {
+      const existing = state.promptEvents.get(input.feedbackPromptEventId);
+      if (existing !== undefined && existing.userId !== userId) {
+        throw new HttpError(
+          409,
+          "feedbackPromptEventId is already used by another feedback prompt event.",
+          "FEEDBACK_PROMPT_EVENT_ID_CONFLICT",
+        );
+      }
+
+      if (existing === undefined) {
+        state.promptEvents.set(input.feedbackPromptEventId, {
+          ...input,
+          userId,
+          createdAtServer: nextServerTimestamp(state),
+        });
+      }
+
+      return createFeedbackStateForUser(state, userId);
+    },
+    storeFeedbackSubmissionForUserFn: async (userId, email, input): Promise<StoredFeedbackSubmission> => {
+      const existing = state.submissions.get(input.feedbackSubmissionId);
+      if (existing !== undefined && existing.userId !== userId) {
+        throw new HttpError(
+          409,
+          "feedbackSubmissionId is already used by another feedback submission.",
+          "FEEDBACK_SUBMISSION_ID_CONFLICT",
+        );
+      }
+
+      if (existing !== undefined) {
+        return {
+          feedbackSubmissionId: existing.feedbackSubmissionId,
+          createdAtServer: existing.createdAtServer,
+          emailNotificationRequired: false,
+        };
+      }
+
+      const createdAtServer = nextServerTimestamp(state);
+      state.submissions.set(input.feedbackSubmissionId, {
+        ...input,
+        userId,
+        email,
+        createdAtServer,
+        emailNotificationStatus: "pending",
+        emailNotificationError: null,
+      });
+      return {
+        feedbackSubmissionId: input.feedbackSubmissionId,
+        createdAtServer,
+        emailNotificationRequired: true,
+      };
+    },
+    updateFeedbackSubmissionEmailStatusFn: async (userId, targetSubmissionId, status, errorMessage) => {
+      const existing = state.submissions.get(targetSubmissionId);
+      if (existing === undefined || existing.userId !== userId) {
+        throw new Error(`Missing submission ${targetSubmissionId}`);
+      }
+
+      state.submissions.set(targetSubmissionId, {
+        ...existing,
+        emailNotificationStatus: status,
+        emailNotificationError: errorMessage,
+      });
+    },
+    sendFeedbackNotificationEmailFn: async (input) => {
+      if (state.sendEmailError !== null) {
+        throw state.sendEmailError;
+      }
+
+      state.sentEmails.push(input);
+    },
+  };
+}
+
+async function runWithoutRetry<Result>(
+  operation: () => Promise<Result>,
+  _getObservationScope: () => BackendObservationScope,
+): Promise<Result> {
+  return operation();
 }
 
 function createFeedbackTestApp(options: FeedbackTestAppOptions): Hono<AppEnv> {
@@ -53,6 +219,15 @@ function createFeedbackTestApp(options: FeedbackTestAppOptions): Hono<AppEnv> {
     await next();
   });
   app.onError((error, context) => {
+    if (error instanceof AuthError) {
+      context.status(error.statusCode as ContentfulStatusCode);
+      return context.json({
+        error: error.message,
+        requestId: context.get("requestId"),
+        code: "AUTH_UNAUTHORIZED",
+      });
+    }
+
     if (error instanceof HttpError) {
       context.status(error.statusCode as ContentfulStatusCode);
       return context.json({
@@ -71,306 +246,308 @@ function createFeedbackTestApp(options: FeedbackTestAppOptions): Hono<AppEnv> {
   });
   app.route("/", createFeedbackRoutes({
     allowedOrigins: [],
-    loadRequestContextFromRequestFn: async () => ({
-      requestAuthInputs: {} as never,
-      requestContext: createRequestContext(options.transport),
-    }),
-    loadFeedbackStateForUserFn: options.onLoadState ?? (async () => createState()),
-    recordFeedbackPromptEventForUserFn: options.onRecordPromptEvent ?? (async () => createState()),
-    submitFeedbackForUserFn: options.onSubmitFeedback ?? (async () => createState()),
-    withTransientDatabaseRetryFn: async (operation) => operation(),
+    loadRequestContextFromRequestFn: async () => {
+      if (options.loadRequestContextError !== null) {
+        throw options.loadRequestContextError;
+      }
+
+      return {
+        requestAuthInputs: {} as never,
+        requestContext: createRequestContext(options.transport),
+      };
+    },
+    feedbackServiceDependencies: createFeedbackDependencies(options.state),
+    withTransientDatabaseRetryFn: runWithoutRetry,
   }));
   return app;
 }
 
-test("feedback state cooldown uses latest prompt or submission timestamp", () => {
-  assert.deepEqual(
-    deriveFeedbackState(
-      "2026-04-01T00:00:00.000Z",
-      "2026-04-03T00:00:00.000Z",
-    ),
-    {
-      lastAutomaticPromptShownAt: "2026-04-01T00:00:00.000Z",
-      lastFeedbackSubmittedAt: "2026-04-03T00:00:00.000Z",
-      nextAutomaticPromptAt: "2026-05-03T00:00:00.000Z",
+function createPromptEventBody(): FeedbackPromptEventInput {
+  return {
+    feedbackPromptEventId: promptEventId,
+    workspaceId,
+    installationId,
+    platform: "ios",
+    appVersion: "1.2.3",
+    locale: "en-US",
+    timezone: "Europe/Madrid",
+    eventType: "automatic_prompt_shown",
+    createdAtClient: "2026-06-03T09:59:00.000Z",
+  };
+}
+
+function createSubmissionBody(message: string): FeedbackSubmissionInput {
+  return {
+    feedbackSubmissionId: submissionId,
+    workspaceId,
+    installationId,
+    platform: "web",
+    appVersion: "1.2.3",
+    locale: "en-US",
+    timezone: "Europe/Madrid",
+    trigger: "settings",
+    message,
+    createdAtClient: "2026-06-03T10:00:00.000Z",
+  };
+}
+
+async function postJson(app: Hono<AppEnv>, path: string, body: unknown): Promise<Response> {
+  return app.request(`http://localhost${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
     },
-  );
-});
+    body: JSON.stringify(body),
+  });
+}
 
-test("GET /feedback/state returns feedback state for human authentication", async () => {
-  const humanTransports: ReadonlyArray<RequestContext["transport"]> = ["bearer", "guest", "session"];
+async function postRawJson(app: Hono<AppEnv>, path: string, body: string): Promise<Response> {
+  return app.request(`http://localhost${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body,
+  });
+}
 
-  for (const transport of humanTransports) {
-    const app = createFeedbackTestApp({
-      transport,
-      onLoadState: async (userId) => {
-        assert.equal(userId, "user-1");
-        return createState();
-      },
-    });
-
-    const response = await app.request("http://localhost/feedback/state");
-
-    assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), {
-      feedbackState: createState(),
-    });
-  }
-});
-
-test("feedback endpoints reject ApiKey authentication", async () => {
-  let called = false;
+test("GET /feedback/state returns empty state", async () => {
+  const state = createEmptyStoreState(null);
   const app = createFeedbackTestApp({
-    transport: "api_key",
-    onLoadState: async () => {
-      called = true;
-      return createState();
-    },
-    onSubmitFeedback: async () => {
-      called = true;
-      return createState();
-    },
+    transport: "bearer",
+    state,
+    loadRequestContextError: null,
   });
 
   const response = await app.request("http://localhost/feedback/state");
 
-  assert.equal(response.status, 403);
-  assert.equal(called, false);
+  assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), {
-    error: "This endpoint requires Guest, Bearer, or Session authentication",
+    automaticPromptCooldownDays: 30,
+    lastAutomaticPromptAt: null,
+    lastSubmittedAt: null,
+    nextAutomaticPromptAt: null,
+  });
+});
+
+test("POST /feedback/prompt-events records automatic prompt state idempotently", async () => {
+  const state = createEmptyStoreState(null);
+  const app = createFeedbackTestApp({
+    transport: "session",
+    state,
+    loadRequestContextError: null,
+  });
+  const body = createPromptEventBody();
+
+  const firstResponse = await postJson(app, "/feedback/prompt-events", body);
+  const secondResponse = await postJson(app, "/feedback/prompt-events", body);
+
+  assert.equal(firstResponse.status, 200);
+  assert.equal(secondResponse.status, 200);
+  assert.deepEqual(await firstResponse.json(), {
+    automaticPromptCooldownDays: 30,
+    lastAutomaticPromptAt: "2026-06-03T10:00:00.000Z",
+    lastSubmittedAt: null,
+    nextAutomaticPromptAt: "2026-07-03T10:00:00.000Z",
+  });
+  assert.deepEqual(await secondResponse.json(), {
+    automaticPromptCooldownDays: 30,
+    lastAutomaticPromptAt: "2026-06-03T10:00:00.000Z",
+    lastSubmittedAt: null,
+    nextAutomaticPromptAt: "2026-07-03T10:00:00.000Z",
+  });
+  assert.equal(state.promptEvents.size, 1);
+});
+
+test("POST /feedback/submissions records submission state and does not duplicate email on replay", async () => {
+  const state = createEmptyStoreState(null);
+  const app = createFeedbackTestApp({
+    transport: "bearer",
+    state,
+    loadRequestContextError: null,
+  });
+  const body = createSubmissionBody(" Please make review faster. ");
+
+  const firstResponse = await postJson(app, "/feedback/submissions", body);
+  const secondResponse = await postJson(app, "/feedback/submissions", body);
+  const stateResponse = await app.request("http://localhost/feedback/state");
+
+  assert.equal(firstResponse.status, 200);
+  assert.equal(secondResponse.status, 200);
+  assert.deepEqual(await firstResponse.json(), {
+    feedbackSubmissionId: submissionId,
+    createdAtServer: "2026-06-03T10:00:00.000Z",
+    feedbackState: {
+      automaticPromptCooldownDays: 30,
+      lastAutomaticPromptAt: null,
+      lastSubmittedAt: "2026-06-03T10:00:00.000Z",
+      nextAutomaticPromptAt: "2026-07-03T10:00:00.000Z",
+    },
+  });
+  assert.deepEqual(await secondResponse.json(), {
+    feedbackSubmissionId: submissionId,
+    createdAtServer: "2026-06-03T10:00:00.000Z",
+    feedbackState: {
+      automaticPromptCooldownDays: 30,
+      lastAutomaticPromptAt: null,
+      lastSubmittedAt: "2026-06-03T10:00:00.000Z",
+      nextAutomaticPromptAt: "2026-07-03T10:00:00.000Z",
+    },
+  });
+  assert.deepEqual(await stateResponse.json(), {
+    automaticPromptCooldownDays: 30,
+    lastAutomaticPromptAt: null,
+    lastSubmittedAt: "2026-06-03T10:00:00.000Z",
+    nextAutomaticPromptAt: "2026-07-03T10:00:00.000Z",
+  });
+  assert.equal(state.submissions.size, 1);
+  assert.equal(state.sentEmails.length, 1);
+  assert.equal(state.sentEmails[0]?.message, "Please make review faster.");
+  assert.equal(state.submissions.get(submissionId)?.emailNotificationStatus, "sent");
+});
+
+test("POST /feedback/submissions rejects empty and too-long messages", async () => {
+  const state = createEmptyStoreState(null);
+  const app = createFeedbackTestApp({
+    transport: "bearer",
+    state,
+    loadRequestContextError: null,
+  });
+
+  const emptyResponse = await postJson(app, "/feedback/submissions", createSubmissionBody("   "));
+  const tooLongResponse = await postJson(app, "/feedback/submissions", createSubmissionBody("x".repeat(5001)));
+
+  assert.equal(emptyResponse.status, 400);
+  assert.deepEqual(await emptyResponse.json(), {
+    error: "Feedback request is invalid.",
+    requestId: "request-1",
+    code: "FEEDBACK_INVALID_INPUT",
+  });
+  assert.equal(tooLongResponse.status, 400);
+  assert.deepEqual(await tooLongResponse.json(), {
+    error: "Feedback request is invalid.",
+    requestId: "request-1",
+    code: "FEEDBACK_INVALID_INPUT",
+  });
+  assert.equal(state.submissions.size, 0);
+});
+
+test("POST /feedback/submissions accepts a 5000-character escaped Unicode message", async () => {
+  const state = createEmptyStoreState(null);
+  const app = createFeedbackTestApp({
+    transport: "bearer",
+    state,
+    loadRequestContextError: null,
+  });
+  const body = createSubmissionBody("placeholder");
+  const escapedMessage = "\\u0800".repeat(5000);
+  const rawBody = JSON.stringify({ ...body, message: "__MESSAGE__" })
+    .replace("\"__MESSAGE__\"", `"${escapedMessage}"`);
+
+  const response = await postRawJson(app, "/feedback/submissions", rawBody);
+
+  assert.equal(response.status, 200);
+  assert.equal(state.submissions.get(submissionId)?.message.length, 5000);
+  assert.equal(state.sentEmails.length, 1);
+});
+
+test("feedback routes accept human and guest auth and reject ApiKey auth", async () => {
+  const acceptedTransports: ReadonlyArray<RequestContext["transport"]> = ["session", "bearer", "guest"];
+  for (const transport of acceptedTransports) {
+    const state = createEmptyStoreState(null);
+    const app = createFeedbackTestApp({
+      transport,
+      state,
+      loadRequestContextError: null,
+    });
+    const response = await app.request("http://localhost/feedback/state");
+
+    assert.equal(response.status, 200);
+  }
+
+  const apiKeyState = createEmptyStoreState(null);
+  const apiKeyApp = createFeedbackTestApp({
+    transport: "api_key",
+    state: apiKeyState,
+    loadRequestContextError: null,
+  });
+  const apiKeyResponse = await apiKeyApp.request("http://localhost/feedback/state");
+
+  assert.equal(apiKeyResponse.status, 403);
+  assert.deepEqual(await apiKeyResponse.json(), {
+    error: "This endpoint requires Guest, Bearer, or Session authentication.",
     requestId: "request-1",
     code: "FEEDBACK_HUMAN_AUTH_REQUIRED",
   });
 });
 
-test("POST /feedback/submissions validates, trims, and submits feedback", async () => {
-  let receivedInput: FeedbackSubmissionInput | null = null;
+test("feedback routes require authentication", async () => {
+  const state = createEmptyStoreState(null);
   const app = createFeedbackTestApp({
     transport: "bearer",
-    onSubmitFeedback: async (userId, input) => {
-      assert.equal(userId, "user-1");
-      receivedInput = input;
-      return createState();
-    },
+    state,
+    loadRequestContextError: new AuthError(401, "Missing authentication token"),
   });
 
-  const response = await app.request("http://localhost/feedback/submissions", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      feedbackSubmissionId: "22222222-2222-4222-8222-222222222222",
-      workspaceId: "11111111-1111-4111-8111-111111111111",
-      installationId: " installation-1 ",
-      platform: "android",
-      appVersion: "1.6.0",
-      locale: "en-US",
-      timezone: "Europe/Madrid",
-      trigger: "settings",
-      message: "  Make review faster.  ",
-      createdAtClient: "2026-04-17T10:11:12.123Z",
-    }),
-  });
+  const response = await app.request("http://localhost/feedback/state");
 
-  assert.equal(response.status, 200);
-  assert.deepEqual(receivedInput, {
-    feedbackSubmissionId: "22222222-2222-4222-8222-222222222222",
-    workspaceId: "11111111-1111-4111-8111-111111111111",
-    installationId: "installation-1",
-    platform: "android",
-    appVersion: "1.6.0",
-    locale: "en-US",
-    timezone: "Europe/Madrid",
-    trigger: "settings",
-    message: "Make review faster.",
-    createdAtClient: "2026-04-17T10:11:12.123Z",
-  });
+  assert.equal(response.status, 401);
   assert.deepEqual(await response.json(), {
-    feedbackState: createState(),
-  });
-});
-
-test("POST /feedback/submissions rejects empty messages", async () => {
-  let called = false;
-  const app = createFeedbackTestApp({
-    transport: "session",
-    onSubmitFeedback: async () => {
-      called = true;
-      return createState();
-    },
-  });
-
-  const response = await app.request("http://localhost/feedback/submissions", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      feedbackSubmissionId: "22222222-2222-4222-8222-222222222222",
-      platform: "android",
-      locale: "en-US",
-      timezone: "Europe/Madrid",
-      trigger: "settings",
-      message: "   ",
-      createdAtClient: "2026-04-17T10:11:12.123Z",
-    }),
-  });
-
-  assert.equal(response.status, 400);
-  assert.equal(called, false);
-});
-
-test("POST /feedback/submissions rejects messages over the maximum length", async () => {
-  let called = false;
-  const app = createFeedbackTestApp({
-    transport: "session",
-    onSubmitFeedback: async () => {
-      called = true;
-      return createState();
-    },
-  });
-
-  const response = await app.request("http://localhost/feedback/submissions", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      feedbackSubmissionId: "22222222-2222-4222-8222-222222222222",
-      platform: "android",
-      locale: "en-US",
-      timezone: "Europe/Madrid",
-      trigger: "settings",
-      message: "x".repeat(5001),
-      createdAtClient: "2026-04-17T10:11:12.123Z",
-    }),
-  });
-
-  assert.equal(response.status, 400);
-  assert.equal(called, false);
-  assert.deepEqual(await response.json(), {
-    error: "message must be 5000 characters or fewer",
+    error: "Missing authentication token",
     requestId: "request-1",
-    code: "FEEDBACK_MESSAGE_TOO_LONG",
+    code: "AUTH_UNAUTHORIZED",
   });
 });
 
-test("POST /feedback/submissions accepts idempotent retry submissions", async () => {
-  let submitCount = 0;
+test("POST feedback routes authenticate before parsing invalid bodies", async () => {
+  const state = createEmptyStoreState(null);
   const app = createFeedbackTestApp({
     transport: "bearer",
-    onSubmitFeedback: async (_userId, input) => {
-      submitCount += 1;
-      assert.equal(input.feedbackSubmissionId, "22222222-2222-4222-8222-222222222222");
-      return createState();
-    },
-  });
-  const requestBody = JSON.stringify({
-    feedbackSubmissionId: "22222222-2222-4222-8222-222222222222",
-    platform: "android",
-    locale: "en-US",
-    timezone: "Europe/Madrid",
-    trigger: "settings",
-    message: "Improve reviews.",
-    createdAtClient: "2026-04-17T10:11:12.123Z",
+    state,
+    loadRequestContextError: new AuthError(401, "Missing authentication token"),
   });
 
-  const firstResponse = await app.request("http://localhost/feedback/submissions", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-    },
-    body: requestBody,
-  });
-  const retryResponse = await app.request("http://localhost/feedback/submissions", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-    },
-    body: requestBody,
-  });
+  const promptResponse = await postJson(app, "/feedback/prompt-events", { invalid: true });
+  const submissionResponse = await postJson(app, "/feedback/submissions", { invalid: true });
 
-  assert.equal(firstResponse.status, 200);
-  assert.equal(retryResponse.status, 200);
-  assert.equal(submitCount, 2);
-  assert.deepEqual(await retryResponse.json(), {
-    feedbackState: createState(),
+  assert.equal(promptResponse.status, 401);
+  assert.deepEqual(await promptResponse.json(), {
+    error: "Missing authentication token",
+    requestId: "request-1",
+    code: "AUTH_UNAUTHORIZED",
   });
+  assert.equal(submissionResponse.status, 401);
+  assert.deepEqual(await submissionResponse.json(), {
+    error: "Missing authentication token",
+    requestId: "request-1",
+    code: "AUTH_UNAUTHORIZED",
+  });
+  assert.equal(state.promptEvents.size, 0);
+  assert.equal(state.submissions.size, 0);
 });
 
-test("POST /feedback/prompt-events records automatic prompt shown events", async () => {
-  let receivedInput: FeedbackPromptEventInput | null = null;
+test("POST /feedback/submissions returns success when email notification fails", async () => {
+  const state = createEmptyStoreState(new Error("Resend is unavailable"));
   const app = createFeedbackTestApp({
     transport: "guest",
-    onRecordPromptEvent: async (userId, input) => {
-      assert.equal(userId, "user-1");
-      receivedInput = input;
-      return createState();
-    },
+    state,
+    loadRequestContextError: null,
   });
 
-  const response = await app.request("http://localhost/feedback/prompt-events", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      feedbackPromptEventId: "33333333-3333-4333-8333-333333333333",
-      workspaceId: null,
-      installationId: null,
-      platform: "android",
-      appVersion: null,
-      locale: "en-US",
-      timezone: "Europe/Madrid",
-      eventType: "automatic_prompt_shown",
-      createdAtClient: "2026-04-17T10:11:12.123Z",
-    }),
-  });
+  const response = await postJson(app, "/feedback/submissions", createSubmissionBody("Offline mode needs a clearer badge."));
 
   assert.equal(response.status, 200);
-  assert.deepEqual(receivedInput, {
-    feedbackPromptEventId: "33333333-3333-4333-8333-333333333333",
-    workspaceId: null,
-    installationId: null,
-    platform: "android",
-    appVersion: null,
-    locale: "en-US",
-    timezone: "Europe/Madrid",
-    eventType: "automatic_prompt_shown",
-    createdAtClient: "2026-04-17T10:11:12.123Z",
-  });
-});
-
-test("POST /feedback/submissions propagates optional workspace access errors", async () => {
-  const app = createFeedbackTestApp({
-    transport: "bearer",
-    onSubmitFeedback: async () => {
-      throw new HttpError(404, "Workspace not found", "WORKSPACE_NOT_FOUND");
-    },
-  });
-
-  const response = await app.request("http://localhost/feedback/submissions", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      feedbackSubmissionId: "22222222-2222-4222-8222-222222222222",
-      workspaceId: "11111111-1111-4111-8111-111111111111",
-      platform: "android",
-      locale: "en-US",
-      timezone: "Europe/Madrid",
-      trigger: "automatic",
-      message: "Improve reviews.",
-      createdAtClient: "2026-04-17T10:11:12.123Z",
-    }),
-  });
-
-  assert.equal(response.status, 404);
   assert.deepEqual(await response.json(), {
-    error: "Workspace not found",
-    requestId: "request-1",
-    code: "WORKSPACE_NOT_FOUND",
+    feedbackSubmissionId: submissionId,
+    createdAtServer: "2026-06-03T10:00:00.000Z",
+    feedbackState: {
+      automaticPromptCooldownDays: 30,
+      lastAutomaticPromptAt: null,
+      lastSubmittedAt: "2026-06-03T10:00:00.000Z",
+      nextAutomaticPromptAt: "2026-07-03T10:00:00.000Z",
+    },
   });
+  assert.equal(state.sentEmails.length, 0);
+  assert.equal(state.submissions.get(submissionId)?.emailNotificationStatus, "failed");
+  assert.equal(state.submissions.get(submissionId)?.emailNotificationError, "Resend is unavailable");
 });

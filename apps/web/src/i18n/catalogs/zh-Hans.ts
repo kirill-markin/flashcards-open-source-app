@@ -222,6 +222,11 @@ export const zhHansCatalog = {
       description: "查看浏览器对文件、摄像头和麦克风的权限。",
       value: "权限",
     },
+    feedback: {
+      title: "发送反馈",
+      description: "分享一个改进应用的想法。",
+      value: "打开",
+    },
     testGroupTitle: "测试",
     test: {
       title: "测试",
@@ -545,6 +550,19 @@ export const zhHansCatalog = {
     body: "如果您不知道答案，请选择“重来”。“困难”只适用于您知道答案但回忆起来较困难的情况。",
     dismiss: "知道了",
     title: "快速提醒",
+  },
+  feedback: {
+    title: "对 Flashcards 有想法吗？",
+    body: "告诉我们什么能让应用更好。创建者会亲自阅读每条消息。",
+    fieldLabel: "反馈",
+    placeholder: "在这里写下你的想法",
+    send: "发送",
+    sending: "正在发送...",
+    notNow: "暂不",
+    success: "谢谢。你的反馈已发送。",
+    emptyError: "请先写下消息再发送。",
+    tooLongError: "反馈必须不超过 5000 个字符。",
+    submitError: "无法发送反馈。请检查连接后重试。",
   },
   cardsScreen: {
     counts: {

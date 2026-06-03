@@ -1,279 +1,303 @@
 import { Hono } from "hono";
-import {
-  loadFeedbackStateForUser,
-  recordFeedbackPromptEventForUser,
-  submitFeedbackForUser,
-  type FeedbackPlatform,
-  type FeedbackPromptEventInput,
-  type FeedbackPromptEventType,
-  type FeedbackState,
-  type FeedbackSubmissionInput,
-  type FeedbackTrigger,
-} from "../feedback";
-import { HttpError } from "../shared/errors";
 import { withTransientDatabaseRetry } from "../database/transient";
 import {
-  loadRequestContextFromRequest,
-  type RequestContext,
-} from "../server/requestContext";
+  feedbackServiceDependencies,
+  loadFeedbackStateForRequest,
+  recordFeedbackPromptEventForRequest,
+  submitFeedbackForRequest,
+  type FeedbackPromptEventInput,
+  type FeedbackRequestUser,
+  type FeedbackServiceDependencies,
+  type FeedbackSubmissionInput,
+} from "../feedback";
+import { parseFeedbackPromptEventInput, parseFeedbackSubmissionInput } from "../feedback/input";
+import { HttpError } from "../shared/errors";
+import { loadRequestContextFromRequest, type RequestContext } from "../server/requestContext";
+import { expectRecord, parseJsonBodyWithByteLimit } from "../server/requestParsing";
+import { createBackendFailureDetails } from "../server/logging";
 import {
-  expectNonEmptyString,
-  expectRecord,
-  expectUuidString,
-  parseJsonBody,
-} from "../server/requestParsing";
-import {
+  addBackendBreadcrumb,
   createBackendObservationScope,
+  normalizeCaughtError,
   type BackendObservationScope,
 } from "../observability/sentry";
+import { reportBackendExceptionOrBreadcrumb } from "../observability/reporting";
 import type { AppEnv } from "../server/app";
 
 type FeedbackRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
   loadRequestContextFromRequestFn?: typeof loadRequestContextFromRequest;
-  loadFeedbackStateForUserFn?: typeof loadFeedbackStateForUser;
-  recordFeedbackPromptEventForUserFn?: typeof recordFeedbackPromptEventForUser;
-  submitFeedbackForUserFn?: typeof submitFeedbackForUser;
+  feedbackServiceDependencies?: FeedbackServiceDependencies;
   withTransientDatabaseRetryFn?: typeof withTransientDatabaseRetry;
 }>;
 
-type FeedbackStateResponse = Readonly<{
-  feedbackState: FeedbackState;
-}>;
+const feedbackJsonBodyMaxBytes = 65_536;
 
-const feedbackMessageMaximumLength = 5000;
-const feedbackPlatforms: ReadonlySet<string> = new Set(["web", "ios", "android"]);
-const feedbackTriggers: ReadonlySet<string> = new Set(["settings", "automatic"]);
-const feedbackPromptEventTypes: ReadonlySet<string> = new Set(["automatic_prompt_shown"]);
+function getRequestContextUserId(requestContext: RequestContext | null): string | null {
+  return requestContext === null ? null : requestContext.userId;
+}
 
 function createFeedbackRouteScope(
   requestId: string,
   route: string,
   method: string,
-  requestContext: RequestContext | null,
+  userId: string | null,
+  workspaceId: string | null,
 ): BackendObservationScope {
   return createBackendObservationScope(
     "backend-api",
     requestId,
     route,
     method,
-    requestContext?.userId ?? null,
-    null,
+    userId,
+    workspaceId,
     null,
     null,
     null,
   );
 }
 
-function assertFeedbackHumanTransport(transport: RequestContext["transport"]): void {
-  if (transport !== "api_key") {
-    return;
-  }
-
-  throw new HttpError(
-    403,
-    "This endpoint requires Guest, Bearer, or Session authentication",
-    "FEEDBACK_HUMAN_AUTH_REQUIRED",
-  );
-}
-
-function expectOptionalNullableUuidString(
-  value: unknown,
-  fieldName: string,
-): string | null {
-  if (value === undefined || value === null) {
-    return null;
-  }
-
-  return expectUuidString(value, fieldName);
-}
-
-function expectOptionalNullableTrimmedString(
-  value: unknown,
-  fieldName: string,
-): string | null {
-  if (value === undefined || value === null) {
-    return null;
-  }
-  if (typeof value !== "string") {
-    throw new HttpError(400, `${fieldName} must be a string`, "FEEDBACK_INVALID_REQUEST");
-  }
-
-  const trimmed = value.trim();
-  return trimmed === "" ? null : trimmed;
-}
-
-function expectFeedbackPlatform(value: unknown): FeedbackPlatform {
-  const platform = expectNonEmptyString(value, "platform");
-  if (feedbackPlatforms.has(platform)) {
-    return platform as FeedbackPlatform;
-  }
-
-  throw new HttpError(400, "platform must be web, ios, or android", "FEEDBACK_PLATFORM_INVALID");
-}
-
-function expectFeedbackTrigger(value: unknown): FeedbackTrigger {
-  const trigger = expectNonEmptyString(value, "trigger");
-  if (feedbackTriggers.has(trigger)) {
-    return trigger as FeedbackTrigger;
-  }
-
-  throw new HttpError(400, "trigger must be settings or automatic", "FEEDBACK_TRIGGER_INVALID");
-}
-
-function expectFeedbackPromptEventType(value: unknown): FeedbackPromptEventType {
-  const eventType = expectNonEmptyString(value, "eventType");
-  if (feedbackPromptEventTypes.has(eventType)) {
-    return eventType as FeedbackPromptEventType;
-  }
-
-  throw new HttpError(
-    400,
-    "eventType must be automatic_prompt_shown",
-    "FEEDBACK_PROMPT_EVENT_TYPE_INVALID",
-  );
-}
-
-function expectIsoTimestamp(value: unknown, fieldName: string): string {
-  const rawValue = expectNonEmptyString(value, fieldName);
-  const timestampMillis = Date.parse(rawValue);
-  if (!Number.isFinite(timestampMillis)) {
-    throw new HttpError(400, `${fieldName} must be an ISO timestamp`, "FEEDBACK_TIMESTAMP_INVALID");
-  }
-
-  return new Date(timestampMillis).toISOString();
-}
-
-function expectTimeZone(value: unknown): string {
-  const timeZone = expectNonEmptyString(value, "timezone");
-  try {
-    new Intl.DateTimeFormat("en-US", { timeZone });
-  } catch {
-    throw new HttpError(400, "timezone must be a valid IANA timezone", "FEEDBACK_TIMEZONE_INVALID");
-  }
-
-  return timeZone;
-}
-
-function expectFeedbackMessage(value: unknown): string {
-  const message = expectNonEmptyString(value, "message");
-  if (message.length > feedbackMessageMaximumLength) {
+function assertFeedbackTransport(requestContext: RequestContext): void {
+  if (requestContext.transport === "api_key") {
     throw new HttpError(
-      400,
-      `message must be ${feedbackMessageMaximumLength} characters or fewer`,
-      "FEEDBACK_MESSAGE_TOO_LONG",
+      403,
+      "This endpoint requires Guest, Bearer, or Session authentication.",
+      "FEEDBACK_HUMAN_AUTH_REQUIRED",
     );
   }
-
-  return message;
 }
 
-function parseFeedbackPromptEventInput(body: Record<string, unknown>): FeedbackPromptEventInput {
+function toFeedbackRequestUser(requestContext: RequestContext): FeedbackRequestUser {
   return {
-    feedbackPromptEventId: expectUuidString(body.feedbackPromptEventId, "feedbackPromptEventId"),
-    workspaceId: expectOptionalNullableUuidString(body.workspaceId, "workspaceId"),
-    installationId: expectOptionalNullableTrimmedString(body.installationId, "installationId"),
-    platform: expectFeedbackPlatform(body.platform),
-    appVersion: expectOptionalNullableTrimmedString(body.appVersion, "appVersion"),
-    locale: expectNonEmptyString(body.locale, "locale"),
-    timezone: expectTimeZone(body.timezone),
-    eventType: expectFeedbackPromptEventType(body.eventType),
-    createdAtClient: expectIsoTimestamp(body.createdAtClient, "createdAtClient"),
+    userId: requestContext.userId,
+    email: requestContext.email,
   };
 }
 
-function parseFeedbackSubmissionInput(body: Record<string, unknown>): FeedbackSubmissionInput {
-  return {
-    feedbackSubmissionId: expectUuidString(body.feedbackSubmissionId, "feedbackSubmissionId"),
-    workspaceId: expectOptionalNullableUuidString(body.workspaceId, "workspaceId"),
-    installationId: expectOptionalNullableTrimmedString(body.installationId, "installationId"),
-    platform: expectFeedbackPlatform(body.platform),
-    appVersion: expectOptionalNullableTrimmedString(body.appVersion, "appVersion"),
-    locale: expectNonEmptyString(body.locale, "locale"),
-    timezone: expectTimeZone(body.timezone),
-    trigger: expectFeedbackTrigger(body.trigger),
-    message: expectFeedbackMessage(body.message),
-    createdAtClient: expectIsoTimestamp(body.createdAtClient, "createdAtClient"),
-  };
+async function parseFeedbackJsonBody(request: Request): Promise<Record<string, unknown>> {
+  return expectRecord(await parseJsonBodyWithByteLimit(
+    request,
+    feedbackJsonBodyMaxBytes,
+    "Feedback request body is too large.",
+    "FEEDBACK_BODY_TOO_LARGE",
+  ));
 }
 
 export function createFeedbackRoutes(options: FeedbackRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   const loadRequestContextFromRequestFn = options.loadRequestContextFromRequestFn ?? loadRequestContextFromRequest;
-  const loadFeedbackStateForUserFn = options.loadFeedbackStateForUserFn ?? loadFeedbackStateForUser;
-  const recordFeedbackPromptEventForUserFn = options.recordFeedbackPromptEventForUserFn
-    ?? recordFeedbackPromptEventForUser;
-  const submitFeedbackForUserFn = options.submitFeedbackForUserFn ?? submitFeedbackForUser;
+  const dependencies = options.feedbackServiceDependencies ?? feedbackServiceDependencies;
   const withTransientDatabaseRetryFn = options.withTransientDatabaseRetryFn ?? withTransientDatabaseRetry;
 
   app.get("/feedback/state", async (context) => {
     const requestId = context.get("requestId");
     let requestContext: RequestContext | null = null;
-    const feedbackState = await withTransientDatabaseRetryFn(
-      async () => {
-        const loadedContext = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
-        requestContext = loadedContext.requestContext;
-        assertFeedbackHumanTransport(requestContext.transport);
-        return loadFeedbackStateForUserFn(requestContext.userId);
-      },
-      () => createFeedbackRouteScope(requestId, context.req.path, context.req.method, requestContext),
-    );
 
-    return context.json({ feedbackState } satisfies FeedbackStateResponse);
+    try {
+      const state = await withTransientDatabaseRetryFn(
+        async () => {
+          const loadedContext = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
+          requestContext = loadedContext.requestContext;
+          assertFeedbackTransport(loadedContext.requestContext);
+          return loadFeedbackStateForRequest(
+            toFeedbackRequestUser(loadedContext.requestContext),
+            createFeedbackRouteScope(requestId, context.req.path, context.req.method, loadedContext.requestContext.userId, null),
+            withTransientDatabaseRetryFn,
+            dependencies,
+          );
+        },
+        () => createFeedbackRouteScope(
+          requestId,
+          context.req.path,
+          context.req.method,
+          getRequestContextUserId(requestContext),
+          null,
+        ),
+      );
+
+      addBackendBreadcrumb({
+        action: "feedback_state",
+        scope: createFeedbackRouteScope(
+          requestId,
+          context.req.path,
+          context.req.method,
+          getRequestContextUserId(requestContext),
+          null,
+        ),
+        details: {
+          statusCode: 200,
+        },
+      });
+      return context.json(state);
+    } catch (error) {
+      const scope = createFeedbackRouteScope(
+        requestId,
+        context.req.path,
+        context.req.method,
+        getRequestContextUserId(requestContext),
+        null,
+      );
+      const details = {
+        ...createBackendFailureDetails(error),
+      };
+      reportBackendExceptionOrBreadcrumb(
+        error,
+        { action: "feedback_state_error", error: normalizeCaughtError(error), scope, details },
+        { action: "feedback_state_error", scope, details },
+      );
+      throw error;
+    }
   });
 
   app.post("/feedback/prompt-events", async (context) => {
     const requestId = context.get("requestId");
     let requestContext: RequestContext | null = null;
-    let body: Promise<Record<string, unknown>> | null = null;
+    let input: FeedbackPromptEventInput | null = null;
 
-    function loadBody(): Promise<Record<string, unknown>> {
-      if (body === null) {
-        body = parseJsonBody(context.req.raw).then(expectRecord);
-      }
+    try {
+      const loadedContext = await withTransientDatabaseRetryFn(
+        async () => {
+          const loadedContext = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
+          requestContext = loadedContext.requestContext;
+          assertFeedbackTransport(loadedContext.requestContext);
+          return loadedContext;
+        },
+        () => createFeedbackRouteScope(
+          requestId,
+          context.req.path,
+          context.req.method,
+          getRequestContextUserId(requestContext),
+          null,
+        ),
+      );
+      input = parseFeedbackPromptEventInput(await parseFeedbackJsonBody(context.req.raw));
 
-      return body;
+      const state = await recordFeedbackPromptEventForRequest(
+        toFeedbackRequestUser(loadedContext.requestContext),
+        input,
+        createFeedbackRouteScope(
+          requestId,
+          context.req.path,
+          context.req.method,
+          loadedContext.requestContext.userId,
+          input.workspaceId,
+        ),
+        withTransientDatabaseRetryFn,
+        dependencies,
+      );
+
+      addBackendBreadcrumb({
+        action: "feedback_prompt_event",
+        scope: createFeedbackRouteScope(
+          requestId,
+          context.req.path,
+          context.req.method,
+          getRequestContextUserId(requestContext),
+          input?.workspaceId ?? null,
+        ),
+        details: {
+          statusCode: 200,
+          platform: input?.platform ?? null,
+          eventType: input?.eventType ?? null,
+        },
+      });
+      return context.json(state);
+    } catch (error) {
+      const scope = createFeedbackRouteScope(
+        requestId,
+        context.req.path,
+        context.req.method,
+        getRequestContextUserId(requestContext),
+        input?.workspaceId ?? null,
+      );
+      const details = {
+        platform: input?.platform ?? null,
+        eventType: input?.eventType ?? null,
+        ...createBackendFailureDetails(error),
+      };
+      reportBackendExceptionOrBreadcrumb(
+        error,
+        { action: "feedback_prompt_event_error", error: normalizeCaughtError(error), scope, details },
+        { action: "feedback_prompt_event_error", scope, details },
+      );
+      throw error;
     }
-
-    const feedbackState = await withTransientDatabaseRetryFn(
-      async () => {
-        const loadedContext = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
-        requestContext = loadedContext.requestContext;
-        assertFeedbackHumanTransport(requestContext.transport);
-        const input = parseFeedbackPromptEventInput(await loadBody());
-        return recordFeedbackPromptEventForUserFn(requestContext.userId, input);
-      },
-      () => createFeedbackRouteScope(requestId, context.req.path, context.req.method, requestContext),
-    );
-
-    return context.json({ feedbackState } satisfies FeedbackStateResponse);
   });
 
   app.post("/feedback/submissions", async (context) => {
     const requestId = context.get("requestId");
     let requestContext: RequestContext | null = null;
-    let body: Promise<Record<string, unknown>> | null = null;
+    let input: FeedbackSubmissionInput | null = null;
 
-    function loadBody(): Promise<Record<string, unknown>> {
-      if (body === null) {
-        body = parseJsonBody(context.req.raw).then(expectRecord);
-      }
+    try {
+      const loadedContext = await withTransientDatabaseRetryFn(
+        async () => {
+          const loadedRequestContext = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
+          requestContext = loadedRequestContext.requestContext;
+          assertFeedbackTransport(loadedRequestContext.requestContext);
+          return loadedRequestContext;
+        },
+        () => createFeedbackRouteScope(
+          requestId,
+          context.req.path,
+          context.req.method,
+          getRequestContextUserId(requestContext),
+          null,
+        ),
+      );
+      input = parseFeedbackSubmissionInput(await parseFeedbackJsonBody(context.req.raw));
 
-      return body;
+      const response = await submitFeedbackForRequest(
+        toFeedbackRequestUser(loadedContext.requestContext),
+        input,
+        requestId,
+        createFeedbackRouteScope(
+          requestId,
+          context.req.path,
+          context.req.method,
+          loadedContext.requestContext.userId,
+          input.workspaceId,
+        ),
+        withTransientDatabaseRetryFn,
+        dependencies,
+      );
+
+      addBackendBreadcrumb({
+        action: "feedback_submission",
+        scope: createFeedbackRouteScope(
+          requestId,
+          context.req.path,
+          context.req.method,
+          loadedContext.requestContext.userId,
+          input.workspaceId,
+        ),
+        details: {
+          statusCode: 200,
+          platform: input.platform,
+          trigger: input.trigger,
+        },
+      });
+      return context.json(response);
+    } catch (error) {
+      const scope = createFeedbackRouteScope(
+        requestId,
+        context.req.path,
+        context.req.method,
+        getRequestContextUserId(requestContext),
+        input?.workspaceId ?? null,
+      );
+      const details = {
+        platform: input?.platform ?? null,
+        trigger: input?.trigger ?? null,
+        ...createBackendFailureDetails(error),
+      };
+      reportBackendExceptionOrBreadcrumb(
+        error,
+        { action: "feedback_submission_error", error: normalizeCaughtError(error), scope, details },
+        { action: "feedback_submission_error", scope, details },
+      );
+      throw error;
     }
-
-    const feedbackState = await withTransientDatabaseRetryFn(
-      async () => {
-        const loadedContext = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
-        requestContext = loadedContext.requestContext;
-        assertFeedbackHumanTransport(requestContext.transport);
-        const input = parseFeedbackSubmissionInput(await loadBody());
-        return submitFeedbackForUserFn(requestContext.userId, input);
-      },
-      () => createFeedbackRouteScope(requestId, context.req.path, context.req.method, requestContext),
-    );
-
-    return context.json({ feedbackState } satisfies FeedbackStateResponse);
   });
 
   return app;

@@ -1,13 +1,38 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReviewRating } from "../../../../backend/src/scheduling";
+import {
+  loadFeedbackState,
+  recordFeedbackPromptEvent,
+  submitFeedback,
+} from "../../api";
 import { useAppData, useReviewProgressBadge } from "../../appData";
 import { ALL_CARDS_REVIEW_FILTER, currentReviewCard } from "../../appData/domain";
+import {
+  buildNextAutomaticFeedbackPromptAt,
+  evaluateAutomaticFeedbackPromptEligibility,
+  loadAutomaticFeedbackPromptReviewActivity,
+  shouldRequestAutomaticFeedbackState,
+  type AutomaticFeedbackPromptReviewActivity,
+} from "../../feedback/automaticFeedbackPrompt";
+import type { FeedbackDialogProps } from "../../feedback/FeedbackDialog";
+import {
+  buildFeedbackSubmissionRequest,
+  feedbackMaximumMessageLength,
+  normalizeFeedbackMessage,
+} from "../../feedback/feedbackSubmission";
 import { useI18n } from "../../i18n";
+import {
+  loadFeedbackPromptState,
+  storeAutomaticFeedbackPromptShownAt,
+  storeFeedbackSubmittedAt,
+  storeFetchedFeedbackState,
+  type FeedbackPromptState,
+} from "../../localDb/feedback";
 import { captureAppOperationError } from "../../observability/appOperationObservation";
 import { normalizeCaughtError } from "../../observability/webObservability";
 import { useAiCardHandoff } from "../../chat/handoff/useAiCardHandoff";
 import { useTransientMessage } from "../../useTransientMessage";
-import type { Card } from "../../types";
+import type { Card, FeedbackPromptEventType, FeedbackSubmissionRequest } from "../../types";
 import { isCardFormStateDirty } from "../cards/CardForm";
 import type { ReviewEditorModalProps } from "./components/ReviewEditorModal";
 import type { ReviewPaneProps } from "./components/ReviewPane";
@@ -32,12 +57,20 @@ import { makeReviewSpeakableText, useReviewSpeech } from "./speech/reviewSpeech"
 export type UseReviewScreenControllerResult = Readonly<{
   dismissReviewReactions: UseReviewRatingReactionsResult["dismissReactions"];
   editorModalProps: ReviewEditorModalProps;
+  feedbackDialogProps: FeedbackDialogProps;
   hardReminderDialogProps: ReviewHardReminderDialogProps;
   headerProps: ReviewScreenHeaderProps;
   paneProps: ReviewPaneProps;
   queuePanelProps: ReviewQueuePanelProps;
   reviewReactionFallbackHandler: UseReviewRatingReactionsResult["handleReactionEventFallback"];
   reviewReactionEvents: UseReviewRatingReactionsResult["events"];
+}>;
+
+type AutomaticFeedbackPromptUiState = Readonly<{
+  isEditorPresented: boolean;
+  isFeedbackDialogOpen: boolean;
+  isHardReminderVisible: boolean;
+  isReviewFilterMenuOpen: boolean;
 }>;
 
 export function useReviewScreenController(): UseReviewScreenControllerResult {
@@ -65,10 +98,21 @@ export function useReviewScreenController(): UseReviewScreenControllerResult {
   const [reviewSubmitState, setReviewSubmitState] = useState<ReviewSubmitState>("idle");
   const [lastSubmittedReview, setLastSubmittedReview] = useState<LastSubmittedReview | null>(null);
   const [isHardReminderVisible, setIsHardReminderVisible] = useState<boolean>(false);
+  const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState<boolean>(false);
+  const [feedbackMessage, setFeedbackMessage] = useState<string>("");
+  const [feedbackErrorMessage, setFeedbackErrorMessage] = useState<string>("");
+  const [isFeedbackSubmitting, setIsFeedbackSubmitting] = useState<boolean>(false);
   const [hardReminderLastShownAt, setHardReminderLastShownAt] = useState<number | null>(() => loadReviewHardReminderLastShownAt());
+  const automaticFeedbackPromptUiStateRef = useRef<AutomaticFeedbackPromptUiState>({
+    isEditorPresented: false,
+    isFeedbackDialogOpen: false,
+    isHardReminderVisible: false,
+    isReviewFilterMenuOpen: false,
+  });
   const recentReviewRatingsRef = useRef<Array<ReviewRating>>([]);
   const lastCapturedReviewButtonErrorKeyRef = useRef<string>("");
   const { message: reviewSpeechMessage, showMessage: showReviewSpeechMessage } = useTransientMessage(3000);
+  const { message: reviewFeedbackMessage, showMessage: showReviewFeedbackMessage } = useTransientMessage(3000);
   const {
     dismissReactions: dismissReviewReactions,
     emitReaction: emitReviewReaction,
@@ -157,6 +201,12 @@ export function useReviewScreenController(): UseReviewScreenControllerResult {
     workspaceId: activeWorkspace?.workspaceId ?? null,
   });
   const handoffCardToAi = useAiCardHandoff();
+  automaticFeedbackPromptUiStateRef.current = {
+    isEditorPresented,
+    isFeedbackDialogOpen,
+    isHardReminderVisible,
+    isReviewFilterMenuOpen,
+  };
   const nowTimestamp = Date.now();
   const selectedFrontSpeakableText = selectedCard === null ? "" : makeReviewSpeakableText(selectedCard.frontText);
   const selectedBackSpeakableText = selectedCard === null ? "" : makeReviewSpeakableText(selectedCard.backText);
@@ -173,6 +223,168 @@ export function useReviewScreenController(): UseReviewScreenControllerResult {
   let reviewButtonOptions: Array<ReviewButtonOption> = [];
   let reviewButtonErrorMessage: string = "";
   let reviewButtonScheduleError: Error | null = null;
+
+  function captureFeedbackOperationError(
+    error: unknown,
+    operation: "feedback_activity_load" | "feedback_state_load" | "feedback_prompt_event" | "feedback_submit",
+    entityId: string | null,
+  ): void {
+    captureAppOperationError(error, {
+      feature: "feedback",
+      operation,
+      userId: session?.userId ?? null,
+      workspaceId: activeWorkspace?.workspaceId ?? null,
+      installationId: cloudSettings?.installationId ?? null,
+      entityId,
+    });
+  }
+
+  function isAutomaticFeedbackPromptUiBlocked(): boolean {
+    const uiState = automaticFeedbackPromptUiStateRef.current;
+    return uiState.isEditorPresented
+      || uiState.isFeedbackDialogOpen
+      || uiState.isHardReminderVisible
+      || uiState.isReviewFilterMenuOpen;
+  }
+
+  async function postAutomaticFeedbackPromptEvent(eventType: FeedbackPromptEventType): Promise<void> {
+    try {
+      const feedbackState = await recordFeedbackPromptEvent({ eventType });
+      await storeFetchedFeedbackState({
+        feedbackState,
+        fetchedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      captureFeedbackOperationError(error, "feedback_prompt_event", eventType);
+    }
+  }
+
+  async function maybeOpenAutomaticFeedbackPrompt(): Promise<void> {
+    const workspaceId = activeWorkspace?.workspaceId ?? null;
+    if (workspaceId === null || isAutomaticFeedbackPromptUiBlocked()) {
+      return;
+    }
+
+    try {
+      const now = new Date();
+      const nowMillis = now.getTime();
+      let reviewActivity: AutomaticFeedbackPromptReviewActivity;
+      try {
+        reviewActivity = await loadAutomaticFeedbackPromptReviewActivity(workspaceId, now);
+      } catch (error) {
+        captureFeedbackOperationError(error, "feedback_activity_load", null);
+        return;
+      }
+
+      let promptState: FeedbackPromptState;
+      try {
+        promptState = await loadFeedbackPromptState();
+      } catch (error) {
+        captureFeedbackOperationError(error, "feedback_state_load", null);
+        return;
+      }
+
+      let decisionInput = {
+        reviewActivity,
+        promptState,
+        nowMillis,
+      };
+      if (shouldRequestAutomaticFeedbackState(decisionInput)) {
+        try {
+          const feedbackState = await loadFeedbackState();
+          promptState = await storeFetchedFeedbackState({
+            feedbackState,
+            fetchedAt: new Date().toISOString(),
+          });
+          decisionInput = {
+            reviewActivity,
+            promptState,
+            nowMillis: Date.now(),
+          };
+        } catch (error) {
+          captureFeedbackOperationError(error, "feedback_state_load", null);
+          return;
+        }
+      }
+
+      if (evaluateAutomaticFeedbackPromptEligibility(decisionInput).isEligible === false) {
+        return;
+      }
+
+      if (isAutomaticFeedbackPromptUiBlocked()) {
+        return;
+      }
+
+      const shownAt = new Date();
+      await storeAutomaticFeedbackPromptShownAt({
+        shownAt: shownAt.toISOString(),
+        nextAutomaticFeedbackPromptAt: buildNextAutomaticFeedbackPromptAt(shownAt),
+      });
+      setFeedbackMessage("");
+      setFeedbackErrorMessage("");
+      setIsFeedbackSubmitting(false);
+      setIsFeedbackDialogOpen(true);
+      void postAutomaticFeedbackPromptEvent("automatic_prompt_shown");
+    } catch (error) {
+      captureFeedbackOperationError(error, "feedback_state_load", null);
+    }
+  }
+
+  function closeFeedbackDialog(): void {
+    setIsFeedbackDialogOpen(false);
+    setFeedbackMessage("");
+    setFeedbackErrorMessage("");
+  }
+
+  function dismissAutomaticFeedbackDialog(): void {
+    closeFeedbackDialog();
+    void postAutomaticFeedbackPromptEvent("automatic_prompt_dismissed");
+  }
+
+  async function submitAutomaticFeedback(): Promise<void> {
+    const normalizedMessage = normalizeFeedbackMessage(feedbackMessage);
+    if (normalizedMessage === "") {
+      setFeedbackErrorMessage(t("feedback.emptyError"));
+      return;
+    }
+
+    if (normalizedMessage.length > feedbackMaximumMessageLength) {
+      setFeedbackErrorMessage(t("feedback.tooLongError"));
+      return;
+    }
+
+    let submissionRequest: FeedbackSubmissionRequest;
+    try {
+      submissionRequest = buildFeedbackSubmissionRequest({
+        workspaceId: activeWorkspace?.workspaceId ?? null,
+        locale,
+        trigger: "automatic",
+        message: normalizedMessage,
+        now: new Date(),
+      });
+    } catch (error) {
+      captureFeedbackOperationError(error, "feedback_submit", null);
+      setFeedbackErrorMessage(t("feedback.submitError"));
+      return;
+    }
+
+    setIsFeedbackSubmitting(true);
+    setFeedbackErrorMessage("");
+    try {
+      const feedbackState = await submitFeedback(submissionRequest);
+      await storeFeedbackSubmittedAt({
+        feedbackState,
+        submittedAt: submissionRequest.createdAtClient,
+      });
+      closeFeedbackDialog();
+      showReviewFeedbackMessage(t("feedback.success"));
+    } catch (error) {
+      captureFeedbackOperationError(error, "feedback_submit", submissionRequest.feedbackSubmissionId);
+      setFeedbackErrorMessage(t("feedback.submitError"));
+    } finally {
+      setIsFeedbackSubmitting(false);
+    }
+  }
 
   async function handleReview(card: Card, rating: ReviewRating): Promise<void> {
     emitReviewReaction(rating);
@@ -192,15 +404,20 @@ export function useReviewScreenController(): UseReviewScreenControllerResult {
 
       const nextRecentReviewRatings = appendRecentReviewRatings(recentReviewRatingsRef.current, rating);
       recentReviewRatingsRef.current = nextRecentReviewRatings;
-      if (rating !== 1) {
-        return;
+
+      let didShowHardReminder = false;
+      if (rating === 1) {
+        const nowMillis = Date.now();
+        if (shouldShowReviewHardReminder(nextRecentReviewRatings, hardReminderLastShownAt, nowMillis)) {
+          setHardReminderLastShownAt(nowMillis);
+          saveReviewHardReminderLastShownAt(nowMillis);
+          setIsHardReminderVisible(true);
+          didShowHardReminder = true;
+        }
       }
 
-      const nowMillis = Date.now();
-      if (shouldShowReviewHardReminder(nextRecentReviewRatings, hardReminderLastShownAt, nowMillis)) {
-        setHardReminderLastShownAt(nowMillis);
-        saveReviewHardReminderLastShownAt(nowMillis);
-        setIsHardReminderVisible(true);
+      if (didShowHardReminder === false) {
+        void maybeOpenAutomaticFeedbackPrompt();
       }
     } finally {
       setIsSubmitting(false);
@@ -259,6 +476,10 @@ export function useReviewScreenController(): UseReviewScreenControllerResult {
   useEffect(() => {
     recentReviewRatingsRef.current = [];
     setIsHardReminderVisible(false);
+    setIsFeedbackDialogOpen(false);
+    setFeedbackMessage("");
+    setFeedbackErrorMessage("");
+    setIsFeedbackSubmitting(false);
   }, [activeWorkspace?.workspaceId]);
 
   useEffect(() => {
@@ -273,6 +494,7 @@ export function useReviewScreenController(): UseReviewScreenControllerResult {
     },
     isAnswerVisible,
     isEditorPresented,
+    isFeedbackDialogOpen,
     isHardReminderVisible,
     isReviewFilterMenuOpen,
     isSubmitting,
@@ -347,6 +569,15 @@ export function useReviewScreenController(): UseReviewScreenControllerResult {
       onSave: handleEditorSave,
       tagSuggestions,
     },
+    feedbackDialogProps: {
+      isOpen: isFeedbackDialogOpen,
+      message: feedbackMessage,
+      errorMessage: feedbackErrorMessage,
+      isSubmitting: isFeedbackSubmitting,
+      onMessageChange: setFeedbackMessage,
+      onSubmit: submitAutomaticFeedback,
+      onDismiss: dismissAutomaticFeedbackDialog,
+    },
     hardReminderDialogProps: {
       isOpen: isHardReminderVisible,
       onDismiss: handleDismissHardReminder,
@@ -374,7 +605,7 @@ export function useReviewScreenController(): UseReviewScreenControllerResult {
       onRetry: handleRetryReviewLoad,
       reviewLoadErrorMessage,
       reviewProgressBadge,
-      reviewSpeechMessage,
+      reviewSpeechMessage: reviewFeedbackMessage !== "" ? reviewFeedbackMessage : reviewSpeechMessage,
     },
     paneProps: {
       activeSpeechSide,

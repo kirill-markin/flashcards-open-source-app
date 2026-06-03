@@ -318,6 +318,7 @@ extension FlashcardsStore {
             if bootstrapRefreshOutcome.didChange || didReconcileReviewState {
                 self.localReadVersion += 1
             }
+            self.prepareStoreReviewRequestAttemptAfterSuccessfulReview(now: now)
             let reviewedAt = parseIsoTimestamp(value: request.reviewedAtClient) ?? now
             self.handleSuccessfulReviewNotificationTrigger(
                 reviewedAt: reviewedAt,
@@ -327,6 +328,7 @@ extension FlashcardsStore {
                 rating: request.rating,
                 now: now
             )
+            self.startAutomaticFeedbackPromptCheckAfterSuccessfulReview(now: now)
             self.triggerCloudSyncIfLinked(
                 trigger: CloudSyncTrigger(
                     source: .localMutation,

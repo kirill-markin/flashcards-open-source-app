@@ -222,6 +222,11 @@ const arCatalog: TranslationCatalog = {
       description: "راجع أذونات المتصفح للملفات والكاميرا والميكروفون.",
       value: "الأذونات",
     },
+    feedback: {
+      title: "إرسال ملاحظات",
+      description: "شارك فكرة لتحسين التطبيق.",
+      value: "فتح",
+    },
     testGroupTitle: "اختبار",
     test: {
       title: "اختبار",
@@ -545,6 +550,19 @@ const arCatalog: TranslationCatalog = {
     body: "إذا لم تكن تعرف الإجابة، فاختر \"مرة أخرى\". خيار \"صعب\" مخصص فقط للإجابات التي عرفتها لكن كان من الصعب تذكرها.",
     dismiss: "فهمت",
     title: "تذكير سريع",
+  },
+  feedback: {
+    title: "هل لديك فكرة لـ Flashcards؟",
+    body: "شارك ما قد يجعل التطبيق أفضل. يقرأ المنشئ كل رسالة شخصيًا.",
+    fieldLabel: "الملاحظات",
+    placeholder: "اكتب فكرتك هنا",
+    send: "إرسال",
+    sending: "جارٍ الإرسال...",
+    notNow: "ليس الآن",
+    success: "شكرًا. تم إرسال ملاحظاتك.",
+    emptyError: "اكتب رسالة قبل الإرسال.",
+    tooLongError: "يجب ألا تتجاوز الملاحظات 5000 حرف.",
+    submitError: "تعذر إرسال الملاحظات. تحقق من اتصالك وحاول مجددًا.",
   },
   cardsScreen: {
     counts: {

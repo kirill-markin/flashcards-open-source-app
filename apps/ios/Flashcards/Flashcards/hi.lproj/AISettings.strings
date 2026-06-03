@@ -132,7 +132,7 @@
 "settings.row.access.itemCount" = "4 आइटम";
 "settings.section.test" = "टेस्ट";
 "settings.row.test" = "टेस्ट";
-"settings.row.test.itemCount" = "1 आइटम";
+"settings.row.test.itemCount" = "2 आइटम";
 "settings.sync.success" = "सफलतापूर्वक समन्वयित";
 "settings.sync.guestAiActive" = "अतिथि AI सक्रिय है";
 "settings.sync.notSyncing" = "कोई सिंक्रनाइज़ेशन नहीं";
@@ -190,6 +190,8 @@
 "settings.test.animations.title" = "ऐनिमेशन";
 "settings.test.animations.probability" = "%@ संभावना";
 "settings.test.animations.playAccessibility" = "%@ ऐनिमेशन चलाएं, %@";
+"settings.test.storeReviewPromptReset" = "App Store समीक्षा प्रॉम्प्ट रीसेट करें";
+"settings.test.storeReviewPromptReset.value" = "स्थानीय स्थिति";
 
 "settings.access.title" = "एक्सेस";
 "settings.access.section.permissions" = "अनुमतियाँ";
@@ -554,3 +556,14 @@
 "settings.workspace.tags.multipleCards" = "%d कार्ड";
 "settings.workspace.tags.totalCards" = "कुल कार्ड";
 "settings.workspace.tags.totalCardsDescription" = "यह गिनती संपूर्ण कार्यक्षेत्र के लिए है और टैग साझा करने वाले कार्डों की दोगुनी गिनती नहीं करती है।";
+
+"settings.row.sendFeedback" = "प्रतिक्रिया भेजें";
+"settings.row.sendFeedback.value" = "एक विचार साझा करें";
+"feedback.sheet.title" = "Flashcards के लिए कोई विचार है?";
+"feedback.sheet.body" = "बताएँ कि ऐप को बेहतर क्या बनाएगा। निर्माता हर संदेश खुद पढ़ते हैं।";
+"feedback.sheet.placeholder" = "अपना विचार यहाँ लिखें";
+"feedback.sheet.send" = "भेजें";
+"feedback.sheet.notNow" = "अभी नहीं";
+"feedback.sheet.success" = "धन्यवाद। आपकी प्रतिक्रिया भेज दी गई है।";
+"feedback.sheet.messageTooLong" = "प्रतिक्रिया को %d वर्णों से कम रखें।";
+"feedback.sheet.emptyMessageError" = "भेजने से पहले प्रतिक्रिया लिखें।";

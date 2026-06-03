@@ -127,6 +127,19 @@ export type HotChangeState = Readonly<{
   entity_id: string;
 }>;
 
+export type FeedbackPromptEventState = Readonly<{
+  prompt_event_id: string;
+  user_id: string;
+  workspace_id: string | null;
+}>;
+
+export type FeedbackSubmissionState = Readonly<{
+  feedback_submission_id: string;
+  user_id: string;
+  workspace_id: string | null;
+  message: string;
+}>;
+
 export type MutableState = {
   currentUserId: string | null;
   currentWorkspaceId: string | null;
@@ -145,6 +158,8 @@ export type MutableState = {
   guestUpgradeHistory: Array<GuestUpgradeHistoryState>;
   guestReplicaAliases: Array<GuestReplicaAliasState>;
   hotChanges: Array<HotChangeState>;
+  feedbackPromptEvents: Array<FeedbackPromptEventState>;
+  feedbackSubmissions: Array<FeedbackSubmissionState>;
 };
 
 export type ReviewEventClientEventDedupMergeFixture = Readonly<{

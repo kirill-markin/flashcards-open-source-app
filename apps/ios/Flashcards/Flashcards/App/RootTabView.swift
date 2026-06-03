@@ -1,4 +1,11 @@
+import StoreKit
 import SwiftUI
+
+private struct StoreReviewRequestTaskID: Hashable {
+    let isSceneActive: Bool
+    let isPresentationBlocked: Bool
+    let requestAttemptId: String?
+}
 
 private struct GuestSignInAfterReviewPromptRecheckTaskID: Hashable {
     let isSceneActive: Bool
@@ -9,6 +16,7 @@ private struct GuestSignInAfterReviewPromptRecheckTaskID: Hashable {
 }
 
 struct RootTabView: View {
+    @Environment(\.requestReview) private var requestReview
     @Environment(\.scenePhase) private var scenePhase
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
@@ -17,12 +25,18 @@ struct RootTabView: View {
 
     private var isGuestSignInAfterReviewPromptBlockedByModal: Bool {
         self.isGuestSignInCloudSignInPresented
+            || store.feedbackPresentation != nil
             || store.activeCloudSignInSheetCount > 0
             || store.accountDeletionState != .hidden
             || store.accountDeletionSuccessMessage != nil
             || store.reviewSubmissionFailure != nil
             || store.isReviewNotificationPrePromptPresented
             || store.isReviewHardReminderPresented
+    }
+
+    private var isStoreReviewRequestBlockedByPresentation: Bool {
+        self.isGuestSignInAfterReviewPromptBlockedByModal
+            || store.isGuestSignInAfterReviewPromptPresented
     }
 
     private var guestSignInAfterReviewPromptRecheckTaskID: GuestSignInAfterReviewPromptRecheckTaskID {
@@ -32,6 +46,14 @@ struct RootTabView: View {
             reviewedCount: store.homeSnapshot.reviewedCount,
             promptState: store.guestSignInAfterReviewPromptState,
             isModalOrAuthFlowActive: self.isGuestSignInAfterReviewPromptBlockedByModal
+        )
+    }
+
+    private var storeReviewRequestTaskID: StoreReviewRequestTaskID {
+        StoreReviewRequestTaskID(
+            isSceneActive: self.scenePhase == .active,
+            isPresentationBlocked: self.isStoreReviewRequestBlockedByPresentation,
+            requestAttemptId: store.pendingStoreReviewRequestAttempt?.id
         )
     }
 
@@ -56,6 +78,21 @@ struct RootTabView: View {
             set: { isPresented in
                 if isPresented == false {
                     store.dismissAccountDeletionSuccessMessage()
+                }
+            }
+        )
+    }
+
+    private var feedbackPresentation: Binding<FeedbackPresentation?> {
+        Binding<FeedbackPresentation?>(
+            get: {
+                store.feedbackPresentation
+            },
+            set: { presentation in
+                if presentation == nil {
+                    store.dismissFeedbackSheet()
+                } else {
+                    store.feedbackPresentation = presentation
                 }
             }
         )
@@ -162,6 +199,25 @@ struct RootTabView: View {
         }
 
         self.reconcileGuestSignInAfterReviewPrompt()
+    }
+
+    @MainActor
+    private func requestStoreReviewIfNeeded() async {
+        guard self.scenePhase == .active else {
+            return
+        }
+        guard self.isStoreReviewRequestBlockedByPresentation == false else {
+            return
+        }
+        guard let requestAttempt = store.pendingStoreReviewRequestAttempt else {
+            return
+        }
+        guard store.recordStoreReviewRequestAttempt(requestAttempt: requestAttempt, now: Date()) else {
+            return
+        }
+
+        self.requestReview()
+        store.consumeStoreReviewRequestAttempt(attemptId: requestAttempt.id)
     }
 
     @MainActor
@@ -361,6 +417,9 @@ struct RootTabView: View {
         .task(id: self.guestSignInAfterReviewPromptRecheckTaskID) {
             await self.waitForGuestSignInAfterReviewPromptRecheckIfNeeded()
         }
+        .task(id: self.storeReviewRequestTaskID) {
+            await self.requestStoreReviewIfNeeded()
+        }
         .overlay {
             ZStack {
                 GlobalTransientBannerHost()
@@ -400,6 +459,9 @@ struct RootTabView: View {
         .onChange(of: store.guestSignInAfterReviewPromptReconciliationToken) { _, _ in
             self.reconcileGuestSignInAfterReviewPrompt()
         }
+        .onChange(of: store.feedbackPresentation) { _, _ in
+            self.reconcileGuestSignInAfterReviewPrompt()
+        }
         .onChange(of: store.activeCloudSignInSheetCount) { _, _ in
             self.reconcileGuestSignInAfterReviewPrompt()
         }
@@ -428,6 +490,10 @@ struct RootTabView: View {
         }
         .sheet(isPresented: self.$isGuestSignInCloudSignInPresented) {
             CloudSignInSheet(presentationContext: .standard)
+                .environment(store)
+        }
+        .sheet(item: self.feedbackPresentation) { presentation in
+            FeedbackSheet(presentation: presentation)
                 .environment(store)
         }
         .alert(

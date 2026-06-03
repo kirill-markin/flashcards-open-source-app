@@ -96,9 +96,12 @@ final class FlashcardsStore {
     var guestSignInAfterReviewPromptState: GuestSignInAfterReviewPromptState
     var isGuestSignInAfterReviewPromptPresented: Bool
     var guestSignInAfterReviewPromptReconciliationToken: Int
+    var feedbackPresentation: FeedbackPresentation?
+    var feedbackPromptState: PersistedFeedbackPromptState
     var activeCloudSignInSheetCount: Int
     var accountDeletionState: AccountDeletionState
     var accountDeletionSuccessMessage: String?
+    var pendingStoreReviewRequestAttempt: StoreReviewRequestAttempt?
     var uiTestLaunchPreparationStatus: FlashcardsUITestLaunchPreparationStatus
     var localReadVersion: Int
 
@@ -145,6 +148,7 @@ final class FlashcardsStore {
     @ObservationIgnored var progressReviewScheduleLocalRevision: Int
     @ObservationIgnored var progressReviewedAtClientCache: ProgressReviewedAtClientCacheEntry?
     @ObservationIgnored var progressReviewScheduleLocalCache: ProgressReviewScheduleLocalCacheEntry?
+    @ObservationIgnored var activeAutomaticFeedbackPromptTask: Task<Void, Never>?
 
     var aiChatStore: AIChatStore {
         if let cachedAIChatStore {
@@ -158,6 +162,7 @@ final class FlashcardsStore {
 
     func shutdownForTests() {
         self.cachedAIChatStore?.shutdownForTests()
+        self.activeAutomaticFeedbackPromptTask?.cancel()
         self.reviewRuntime.cancelForAccountDeletion()
         self.cloudRuntime.cancelForAccountDeletion()
     }
@@ -385,9 +390,15 @@ final class FlashcardsStore {
         )
         self.isGuestSignInAfterReviewPromptPresented = false
         self.guestSignInAfterReviewPromptReconciliationToken = 0
+        self.feedbackPresentation = nil
+        self.feedbackPromptState = loadFeedbackPromptState(
+            userDefaults: userDefaults,
+            decoder: decoder
+        )
         self.activeCloudSignInSheetCount = 0
         self.accountDeletionState = .hidden
         self.accountDeletionSuccessMessage = nil
+        self.pendingStoreReviewRequestAttempt = nil
         self.uiTestLaunchPreparationStatus = .hidden
         self.localReadVersion = 0
         self.database = database
@@ -439,6 +450,7 @@ final class FlashcardsStore {
         self.progressReviewScheduleLocalRevision = 0
         self.progressReviewedAtClientCache = nil
         self.progressReviewScheduleLocalCache = nil
+        self.activeAutomaticFeedbackPromptTask = nil
 
         if database != nil && initialGlobalErrorMessage.isEmpty {
             do {

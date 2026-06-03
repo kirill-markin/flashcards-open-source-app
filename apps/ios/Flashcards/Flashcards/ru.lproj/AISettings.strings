@@ -132,7 +132,7 @@
 "settings.row.access.itemCount" = "4 предмета";
 "settings.section.test" = "Тест";
 "settings.row.test" = "Тест";
-"settings.row.test.itemCount" = "1 пункт";
+"settings.row.test.itemCount" = "2 пункта";
 "settings.sync.success" = "Синхронизировано успешно";
 "settings.sync.guestAiActive" = "Гостевой AI активен";
 "settings.sync.notSyncing" = "Нет синхронизации";
@@ -190,6 +190,8 @@
 "settings.test.animations.title" = "Анимации";
 "settings.test.animations.probability" = "Вероятность %@";
 "settings.test.animations.playAccessibility" = "Воспроизвести анимацию %@, %@";
+"settings.test.storeReviewPromptReset" = "Сбросить запрос отзыва в App Store";
+"settings.test.storeReviewPromptReset.value" = "Локальное состояние";
 
 "settings.access.title" = "Доступ";
 "settings.access.section.permissions" = "Разрешения";
@@ -554,3 +556,14 @@
 "settings.workspace.tags.multipleCards" = "Карты %d";
 "settings.workspace.tags.totalCards" = "Всего карт";
 "settings.workspace.tags.totalCardsDescription" = "Этот подсчет относится ко всей рабочей области и не учитывает дважды карты с общими тегами.";
+
+"settings.row.sendFeedback" = "Отправить отзыв";
+"settings.row.sendFeedback.value" = "Поделиться идеей";
+"feedback.sheet.title" = "Есть идея для Flashcards?";
+"feedback.sheet.body" = "Расскажите, что сделало бы приложение лучше. Создатель лично читает каждое сообщение.";
+"feedback.sheet.placeholder" = "Напишите идею здесь";
+"feedback.sheet.send" = "Отправить";
+"feedback.sheet.notNow" = "Не сейчас";
+"feedback.sheet.success" = "Спасибо. Ваш отзыв отправлен.";
+"feedback.sheet.messageTooLong" = "Отзыв должен быть короче %d символов.";
+"feedback.sheet.emptyMessageError" = "Напишите отзыв перед отправкой.";

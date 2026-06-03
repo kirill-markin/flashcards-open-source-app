@@ -222,6 +222,11 @@ const deCatalog: TranslationCatalog = {
       description: "Prüfe Browserberechtigungen für Dateien, Kamera und Mikrofon.",
       value: "Berechtigungen",
     },
+    feedback: {
+      title: "Feedback senden",
+      description: "Teile eine Idee, um die App zu verbessern.",
+      value: "Öffnen",
+    },
     testGroupTitle: "Test",
     test: {
       title: "Test",
@@ -545,6 +550,19 @@ const deCatalog: TranslationCatalog = {
     body: "Wenn du die Antwort nicht wusstest, wähle \"Nochmal\". \"Schwer\" ist nur für Antworten, die du wusstest, die aber schwer abzurufen waren.",
     dismiss: "Verstanden",
     title: "Kurze Erinnerung",
+  },
+  feedback: {
+    title: "Hast du eine Idee für Flashcards?",
+    body: "Teile, was die App besser machen würde. Der Ersteller liest jede Nachricht persönlich.",
+    fieldLabel: "Feedback",
+    placeholder: "Schreibe deine Idee hier",
+    send: "Senden",
+    sending: "Wird gesendet...",
+    notNow: "Nicht jetzt",
+    success: "Danke. Dein Feedback wurde gesendet.",
+    emptyError: "Schreibe eine Nachricht, bevor du sendest.",
+    tooLongError: "Feedback darf höchstens 5000 Zeichen lang sein.",
+    submitError: "Feedback konnte nicht gesendet werden. Prüfe deine Verbindung und versuche es erneut.",
   },
   cardsScreen: {
     counts: {

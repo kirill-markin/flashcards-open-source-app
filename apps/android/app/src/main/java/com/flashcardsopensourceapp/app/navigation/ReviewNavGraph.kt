@@ -72,6 +72,16 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                     )
                     appGraph.guestSignInAfterReviewPromptController.requestReevaluation()
                 },
+                onStoreReviewOpportunity = {
+                    val currentActivity = appGraph.storeReviewActivityProvider.currentActivity()
+                    if (currentActivity == null) {
+                        false
+                    } else {
+                        appGraph.storeReviewRequestManager.requestStoreReviewIfEligible(
+                            activity = currentActivity
+                        )
+                    }
+                },
                 onAutomaticFeedbackPromptCandidate = {
                     appGraph.feedbackPromptController.requestAutomaticReevaluation()
                 },
@@ -187,6 +197,9 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                         nowMillis = System.currentTimeMillis()
                     )
                     appGraph.guestSignInAfterReviewPromptController.requestReevaluation()
+                },
+                onStoreReviewOpportunity = {
+                    false
                 },
                 onAutomaticFeedbackPromptCandidate = {},
                 onNotificationPermissionGranted = ::handleNotificationPermissionGranted,

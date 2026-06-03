@@ -132,7 +132,7 @@
 "settings.row.access.itemCount" = "4 件";
 "settings.section.test" = "测试";
 "settings.row.test" = "测试";
-"settings.row.test.itemCount" = "1 项";
+"settings.row.test.itemCount" = "2 项";
 "settings.sync.success" = "同步成功";
 "settings.sync.guestAiActive" = "访客AI已激活";
 "settings.sync.notSyncing" = "不同步";
@@ -190,6 +190,8 @@
 "settings.test.animations.title" = "动画";
 "settings.test.animations.probability" = "%@ 概率";
 "settings.test.animations.playAccessibility" = "播放 %@ 动画，%@";
+"settings.test.storeReviewPromptReset" = "重置 App Store 评论提示";
+"settings.test.storeReviewPromptReset.value" = "本地状态";
 
 "settings.access.title" = "访问";
 "settings.access.section.permissions" = "权限";
@@ -554,3 +556,14 @@
 "settings.workspace.tags.multipleCards" = "%d 卡";
 "settings.workspace.tags.totalCards" = "总卡";
 "settings.workspace.tags.totalCardsDescription" = "此计数适用于整个工作区，不会重复计算共享标签的卡片。";
+
+"settings.row.sendFeedback" = "发送反馈";
+"settings.row.sendFeedback.value" = "分享想法";
+"feedback.sheet.title" = "对 Flashcards 有想法吗？";
+"feedback.sheet.body" = "告诉我们怎样能让应用变得更好。创建者会亲自阅读每一条消息。";
+"feedback.sheet.placeholder" = "在这里写下你的想法";
+"feedback.sheet.send" = "发送";
+"feedback.sheet.notNow" = "暂不";
+"feedback.sheet.success" = "谢谢。你的反馈已发送。";
+"feedback.sheet.messageTooLong" = "请将反馈控制在 %d 个字符以内。";
+"feedback.sheet.emptyMessageError" = "发送前请先填写反馈。";

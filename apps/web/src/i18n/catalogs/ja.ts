@@ -222,6 +222,11 @@ export const jaCatalog = {
       description: "ファイル、カメラ、マイクに対するブラウザ権限を確認します。",
       value: "権限",
     },
+    feedback: {
+      title: "フィードバックを送信",
+      description: "アプリを改善するアイデアを共有します。",
+      value: "開く",
+    },
     testGroupTitle: "テスト",
     test: {
       title: "テスト",
@@ -545,6 +550,19 @@ export const jaCatalog = {
     body: "答えが分からなかった場合は「もう一度」を選んでください。「難しい」は、答えは知っていたが思い出すのが大変だった場合だけに使います。",
     dismiss: "了解",
     title: "クイックリマインダー",
+  },
+  feedback: {
+    title: "Flashcards へのアイデアがありますか？",
+    body: "アプリをより良くするための意見を共有してください。作成者がすべてのメッセージを直接読みます。",
+    fieldLabel: "フィードバック",
+    placeholder: "ここにアイデアを書いてください",
+    send: "送信",
+    sending: "送信中...",
+    notNow: "後で",
+    success: "ありがとうございます。フィードバックを送信しました。",
+    emptyError: "送信する前にメッセージを書いてください。",
+    tooLongError: "フィードバックは5000文字以内で入力してください。",
+    submitError: "フィードバックを送信できませんでした。接続を確認してもう一度お試しください。",
   },
   cardsScreen: {
     counts: {

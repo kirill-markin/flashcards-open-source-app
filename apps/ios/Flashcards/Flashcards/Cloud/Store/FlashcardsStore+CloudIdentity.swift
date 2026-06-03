@@ -38,6 +38,7 @@ extension FlashcardsStore {
         self.userDefaults.removeObject(forKey: accountDeletionPendingUserDefaultsKey)
         self.userDefaults.removeObject(forKey: aiChatExternalProviderConsentUserDefaultsKey)
         self.clearGuestSignInAfterReviewPromptState()
+        self.clearFeedbackPromptState()
         self.cachedAIChatStore?.clearLocalHistory()
         clearStoredAIChatHistories(userDefaults: self.userDefaults)
         self.reviewRuntime = ReviewQueueRuntime(

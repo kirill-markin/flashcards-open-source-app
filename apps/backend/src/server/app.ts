@@ -13,11 +13,11 @@ import { createChatRoutes } from "../routes/chat";
 import { createChatTranscriptionsRoutes } from "../routes/chatTranscriptions";
 import { createAgentRoutes } from "../routes/agent";
 import { createCardsRoutes } from "../routes/cards";
+import { createFeedbackRoutes } from "../routes/feedback";
 import { createGlobalSnapshotRoutes, globalSnapshotPath } from "../routes/globalSnapshot";
 import { createSyncRoutes } from "../routes/sync";
 import { createSystemRoutes } from "../routes/system";
 import { createAdminRoutes } from "../routes/admin";
-import { createFeedbackRoutes } from "../routes/feedback";
 import { createGuestAuthRoutes } from "../routes/guestAuth";
 import { createWorkspaceRoutes } from "../routes/workspaces";
 import {
@@ -364,8 +364,8 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
   app.route("/", createAgentRoutes({ allowedOrigins }));
   app.route("/", createWorkspaceRoutes({ allowedOrigins }));
   app.route("/", createAdminRoutes({ allowedOrigins }));
-  app.route("/", createFeedbackRoutes({ allowedOrigins }));
   app.route("/", createCardsRoutes({ allowedOrigins }));
+  app.route("/", createFeedbackRoutes({ allowedOrigins }));
   app.route("/", createGlobalSnapshotRoutes({}));
   app.route("/", createGuestAuthRoutes());
   app.route("/", createChatTranscriptionsRoutes({ allowedOrigins }));

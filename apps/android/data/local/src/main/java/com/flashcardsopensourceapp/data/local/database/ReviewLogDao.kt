@@ -57,6 +57,28 @@ interface ReviewLogDao {
     )
     suspend fun hasReviewLogsBefore(workspaceId: String, beforeMillis: Long): Boolean
 
+    @Query(
+        """
+        SELECT EXISTS(
+            SELECT 1
+            FROM review_logs
+            WHERE reviewedAtMillis < :endMillis
+            LIMIT 1
+        )
+        """
+    )
+    suspend fun hasReviewLogsBefore(endMillis: Long): Boolean
+
+    @Query(
+        """
+        SELECT COUNT(*)
+        FROM review_logs
+        WHERE reviewedAtMillis >= :startMillis
+            AND reviewedAtMillis < :endMillis
+        """
+    )
+    suspend fun countReviewLogsBetween(startMillis: Long, endMillis: Long): Int
+
     @Query("SELECT * FROM review_logs ORDER BY reviewedAtMillis DESC")
     suspend fun loadReviewLogs(): List<ReviewLogEntity>
 
