@@ -1,6 +1,6 @@
 import type { ComponentProps, ReactElement } from "react";
 import { Link } from "react-router-dom";
-import { formatReviewProgressBadgeValue } from "../../../appData/progress/reviewProgressBadge";
+import { formatReviewProgressBadgeValue } from "../../../appData/progress/badge/reviewProgressBadge";
 import { useI18n } from "../../../i18n";
 import { progressRoute } from "../../../routes";
 import { ReviewProgressBadgeIcon } from "../../shared/ReviewProgressBadgeIcon";

@@ -14,8 +14,8 @@ import type {
   ProgressSummaryPayload,
   ProgressSummarySnapshot,
   ProgressSummarySourceState,
-} from "../../types";
-import { shiftLocalDate } from "../../progress/progressDates";
+} from "../../../types";
+import { shiftLocalDate } from "../../../progress/progressDates";
 
 export function createProgressChartData(dailyReviews: ReadonlyArray<DailyReviewPoint>): ProgressChartData {
   return {

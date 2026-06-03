@@ -18,7 +18,7 @@ import type {
 } from "../../types";
 import { ALL_CARDS_REVIEW_FILTER, isReviewFilterEqual } from "../domain";
 import type { AppDataContextValue, Props, SessionLoadState } from "./types";
-import { useProgressInvalidationRefresh } from "../progress/progressInvalidation";
+import { useProgressInvalidationRefresh } from "../progress/invalidation/progressInvalidation";
 import { isTestSeedBridgeEnabled, type AppDataTestSeedBridge } from "../sync/testSeedBridge";
 import { useSyncEngine } from "../sync/useSyncEngine";
 import { useWorkspaceSession } from "../session/useWorkspaceSession";

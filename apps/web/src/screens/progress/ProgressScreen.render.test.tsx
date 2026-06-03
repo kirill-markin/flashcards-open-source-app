@@ -26,7 +26,7 @@ vi.mock("../../appData", () => ({
   useAppData: useAppDataMock,
 }));
 
-vi.mock("../../appData/progress/progressInvalidation", () => ({
+vi.mock("../../appData/progress/invalidation/progressInvalidation", () => ({
   useProgressInvalidationState: useProgressInvalidationStateMock,
 }));
 

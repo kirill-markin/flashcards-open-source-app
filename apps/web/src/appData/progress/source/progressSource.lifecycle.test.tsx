@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import type {
   ProgressSeries,
   ProgressSummaryPayload,
-} from "../../types";
+} from "../../../types";
 import {
   buildCurrentSeriesInput,
   buildCurrentSeriesScopeKey,

@@ -11,25 +11,25 @@ import {
   loadProgressReviewSchedule,
   loadProgressSeries,
   loadProgressSummary,
-} from "../../api";
-import { captureApiContractError } from "../../observability/apiContractObservation";
+} from "../../../api";
+import { captureApiContractError } from "../../../observability/apiContractObservation";
 import {
   captureWebException,
   type ProgressServerLoadFailureDetails,
   type WebObservationScope,
-} from "../../observability/webObservability";
+} from "../../../observability/webObservability";
 import {
   hasPendingProgressReviewEvents,
   loadLocalProgressDailyReviews,
   loadLocalProgressSummary,
   loadPendingProgressDailyReviews,
-} from "../../localDb/progress/progress";
+} from "../../../localDb/progress/progress";
 import {
   calculatePendingProgressReviewScheduleCardTotalDelta,
   hasCompleteLocalProgressReviewScheduleCoverage,
   hasPendingProgressReviewScheduleCardChanges,
   loadLocalProgressReviewSchedule,
-} from "../../localDb/reviewSchedule";
+} from "../../../localDb/reviewSchedule";
 import type {
   CloudSettings,
   ProgressReviewScheduleInput,
@@ -38,18 +38,18 @@ import type {
   ProgressSourceState,
   ProgressSummaryInput,
   WorkspaceSummary,
-} from "../../types";
+} from "../../../types";
 import {
   buildProgressReviewScheduleInputForDateContext,
   buildProgressSeriesInputForDateContext,
   buildProgressSummaryInputForDateContext,
-} from "../../progress/progressDates";
-import type { SessionVerificationState } from "../session/warmStart";
-import { useProgressTimeContext } from "./progressTimeContext";
+} from "../../../progress/progressDates";
+import type { SessionVerificationState } from "../../session/warmStart";
+import { useProgressTimeContext } from "../time/progressTimeContext";
 import {
   createInitialProgressSourceState,
   progressSourceReducer,
-} from "./progressReducer";
+} from "../state/progressReducer";
 import {
   buildProgressRefreshKey,
   buildProgressReviewScheduleRefreshKey,
@@ -61,7 +61,7 @@ import {
   resolveProgressSeriesScopeKey,
   resolveProgressSummaryScopeKey,
   type ProgressSourceSections,
-} from "./progressScope";
+} from "../state/progressScope";
 import {
   buildLocalFallbackSeries,
   createProgressChartData,
@@ -69,7 +69,7 @@ import {
   createProgressSeriesSnapshot,
   createProgressSummarySnapshot,
   normalizeProgressSeries,
-} from "./progressSnapshots";
+} from "../snapshots/progressSnapshots";
 import {
   loadPersistedProgressReviewSchedule,
   loadPersistedProgressSeries,
@@ -77,7 +77,7 @@ import {
   storePersistedProgressReviewSchedule,
   storePersistedProgressSeries,
   storePersistedProgressSummary,
-} from "./progressStorage";
+} from "../storage/progressStorage";
 
 type UseProgressSourceParams = Readonly<{
   activeWorkspace: WorkspaceSummary | null;

@@ -3,8 +3,8 @@ import { useAppData } from "../../appData";
 import {
   buildReviewProgressBadgeStateFromSummarySnapshot,
   formatReviewProgressBadgeValue,
-} from "../../appData/progress/reviewProgressBadge";
-import { useProgressInvalidationState } from "../../appData/progress/progressInvalidation";
+} from "../../appData/progress/badge/reviewProgressBadge";
+import { useProgressInvalidationState } from "../../appData/progress/invalidation/progressInvalidation";
 import { useProgressSource } from "../../appData/progress/progressSource";
 import { resolveLocaleWeekContext, useI18n, type LocaleDirection } from "../../i18n";
 import { parseLocalDate, shiftLocalDate } from "../../progress/progressDates";

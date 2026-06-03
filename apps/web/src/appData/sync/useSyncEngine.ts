@@ -37,7 +37,7 @@ import {
   invalidateLocalProgress,
   invalidateLocalReviewSchedule,
   invalidateProgress,
-} from "../progress/progressInvalidation";
+} from "../progress/invalidation/progressInvalidation";
 import {
   requireCloudInstallationId,
 } from "./syncCloudSettings";
