@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.ai
+package com.flashcardsopensourceapp.data.local.ai.store
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider

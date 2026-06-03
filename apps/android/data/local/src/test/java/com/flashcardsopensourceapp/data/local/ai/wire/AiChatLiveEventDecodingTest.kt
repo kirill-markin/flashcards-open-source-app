@@ -1,5 +1,8 @@
-package com.flashcardsopensourceapp.data.local.ai
+package com.flashcardsopensourceapp.data.local.ai.wire
 
+import com.flashcardsopensourceapp.data.local.ai.remote.AI_CHAT_TEST_WORKSPACE_ID
+import com.flashcardsopensourceapp.data.local.ai.remote.makeAiChatTestLiveRemoteService
+import com.flashcardsopensourceapp.data.local.ai.remote.writeAiChatTestSseResponse
 import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveEvent

@@ -1,7 +1,7 @@
 package com.flashcardsopensourceapp.feature.ai.runtime.coordinators
 
-import com.flashcardsopensourceapp.data.local.ai.AiChatDiagnosticsLogger
-import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
+import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
+import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatPersistedState

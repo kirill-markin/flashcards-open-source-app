@@ -2,7 +2,7 @@ package com.flashcardsopensourceapp.data.local.repository.cloudsync.guest
 
 import android.content.Context
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.flashcardsopensourceapp.data.local.ai.GuestCloudSessionCreator
+import com.flashcardsopensourceapp.data.local.ai.remote.GuestCloudSessionCreator
 import com.flashcardsopensourceapp.data.local.cloud.PendingGuestUpgradeState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryReason

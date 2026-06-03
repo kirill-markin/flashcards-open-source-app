@@ -1,6 +1,6 @@
 package com.flashcardsopensourceapp.feature.ai.runtime.coordinators
 
-import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
+import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import java.io.IOException
 import java.net.ConnectException

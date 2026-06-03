@@ -1,8 +1,8 @@
 package com.flashcardsopensourceapp.data.local.repository.cloudsync.account
 
-import com.flashcardsopensourceapp.data.local.ai.AiChatHistoryStore
-import com.flashcardsopensourceapp.data.local.ai.AiChatPreferencesStore
-import com.flashcardsopensourceapp.data.local.ai.GuestAiSessionStore
+import com.flashcardsopensourceapp.data.local.ai.store.AiChatHistoryStore
+import com.flashcardsopensourceapp.data.local.ai.store.AiChatPreferencesStore
+import com.flashcardsopensourceapp.data.local.ai.store.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.bootstrap.ensureLocalWorkspaceShell
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase

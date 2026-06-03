@@ -18,8 +18,8 @@ import androidx.compose.ui.test.performTextReplacement
 import com.flashcardsopensourceapp.app.RepositorySeedCard
 import com.flashcardsopensourceapp.app.RepositorySeedScenario
 import com.flashcardsopensourceapp.app.createRepositorySeedExecutor
-import com.flashcardsopensourceapp.data.local.ai.AiChatHistoryStore
-import com.flashcardsopensourceapp.data.local.ai.makeAiChatHistoryScopedWorkspaceId
+import com.flashcardsopensourceapp.data.local.ai.store.AiChatHistoryStore
+import com.flashcardsopensourceapp.data.local.ai.store.makeAiChatHistoryScopedWorkspaceId
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatRole

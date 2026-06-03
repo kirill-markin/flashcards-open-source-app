@@ -6,10 +6,10 @@ import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
 import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
-import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
-import com.flashcardsopensourceapp.data.local.ai.AiChatRequestTooLargeException
-import com.flashcardsopensourceapp.data.local.ai.isAiChatAttachmentUnsupportedTypeRemoteError
-import com.flashcardsopensourceapp.data.local.ai.isAiChatRequestTooLargeRemoteError
+import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
+import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRequestTooLargeException
+import com.flashcardsopensourceapp.data.local.ai.remote.isAiChatAttachmentUnsupportedTypeRemoteError
+import com.flashcardsopensourceapp.data.local.ai.remote.isAiChatRequestTooLargeRemoteError
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
 import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.AiChatBootstrapBlockedException
 import java.io.IOException
