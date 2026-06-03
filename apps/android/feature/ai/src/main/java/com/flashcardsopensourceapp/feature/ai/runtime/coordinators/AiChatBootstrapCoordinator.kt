@@ -2,17 +2,13 @@ package com.flashcardsopensourceapp.feature.ai.runtime.coordinators
 
 import com.flashcardsopensourceapp.data.local.ai.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
-import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.model.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
-import com.flashcardsopensourceapp.data.local.model.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics
 import com.flashcardsopensourceapp.data.local.model.AiChatSessionProvisioningResult
-import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
-import com.flashcardsopensourceapp.data.local.repository.AiChatPreparedRemoteSession
 import com.flashcardsopensourceapp.feature.ai.emptyAiBootstrapErrorPresentation
 import com.flashcardsopensourceapp.feature.ai.runtime.AiChatRuntimeContext
 import com.flashcardsopensourceapp.feature.ai.runtime.aiChatBootstrapPageLimit
@@ -23,7 +19,6 @@ import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiConversatio
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.normalizeAiChatPersistedStateForWorkspace
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.resolveAiChatSessionIdForWorkspace
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.runtimeKey
-import com.flashcardsopensourceapp.feature.ai.runtime.conversation.setPendingToolRunPostSync
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.snapshotRunHasToolCalls
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatBreadcrumb
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatExceptionEvent
@@ -37,30 +32,12 @@ import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChat
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChatException
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChatWarning
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.remoteErrorFields
-import java.io.IOException
-import java.net.ConnectException
-import java.net.MalformedURLException
-import java.net.NoRouteToHostException
-import java.net.ProtocolException
-import java.net.SocketException
-import java.net.SocketTimeoutException
-import java.net.UnknownHostException
-import javax.net.ssl.SSLException
-import javax.net.ssl.SSLHandshakeException
-import javax.net.ssl.SSLPeerUnverifiedException
-import javax.net.ssl.SSLProtocolException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlin.random.Random
-
-private const val aiBootstrapMaxRetryCount: Int = 2
-private const val aiBootstrapFirstRetryDelayMillis: Long = 300L
-private const val aiBootstrapSecondRetryDelayMillis: Long = 900L
-private const val aiBootstrapRetryJitterUpperBoundMillis: Long = 151L
 
 internal class AiChatBootstrapCoordinator(
     private val context: AiChatRuntimeContext,
@@ -533,6 +510,7 @@ internal class AiChatBootstrapCoordinator(
                 }
 
                 val ensuredSession = resolveRemoteBootstrapSession(
+                    context = context,
                     preparedSession = preparedSession,
                     persistedState = persistedState,
                     bootstrapProvisionalSessionId = bootstrapProvisionalSessionId,
@@ -609,60 +587,6 @@ internal class AiChatBootstrapCoordinator(
                 }
             }
         }
-    }
-
-    private suspend fun resolveRemoteBootstrapSession(
-        preparedSession: AiChatPreparedRemoteSession,
-        persistedState: AiChatPersistedState,
-        bootstrapProvisionalSessionId: String?,
-        onInitialProvisioningAttempted: () -> Unit,
-        onInitialProvisioningCompleted: () -> Unit,
-        onRemoteSessionProvisioned: (String) -> Unit
-    ): AiChatSessionProvisioningResult {
-        val normalizedSessionId = persistedState.chatSessionId.trim().ifEmpty { null }
-        if (normalizedSessionId != null && persistedState.requiresRemoteSessionProvisioning.not()) {
-            return AiChatSessionProvisioningResult(
-                sessionId = normalizedSessionId,
-                snapshot = null
-            )
-        }
-
-        val targetSessionId = normalizedSessionId ?: requireNotNull(bootstrapProvisionalSessionId) {
-            "AI bootstrap requires a provisional session id when persisted session id is blank."
-        }
-        if (normalizedSessionId == null) {
-            onInitialProvisioningAttempted()
-        }
-        val snapshot = createNewAiChatSessionFromPreparedSession(
-            preparedSession = preparedSession,
-            targetSessionId = targetSessionId
-        )
-        onRemoteSessionProvisioned(targetSessionId)
-        if (normalizedSessionId == null) {
-            onInitialProvisioningCompleted()
-        }
-        return AiChatSessionProvisioningResult(
-            sessionId = targetSessionId,
-            snapshot = snapshot
-        )
-    }
-
-    private suspend fun createNewAiChatSessionFromPreparedSession(
-        preparedSession: AiChatPreparedRemoteSession,
-        targetSessionId: String
-    ): AiChatSessionSnapshot {
-        val snapshot = context.aiChatRepository.createNewSessionFromPreparedSession(
-            preparedSession = preparedSession,
-            sessionId = targetSessionId,
-            uiLocale = context.currentUiLocaleTag()
-        )
-        if (snapshot.sessionId != targetSessionId) {
-            throw IllegalStateException(
-                "AI chat session provisioning returned mismatched sessionId. " +
-                    "expected=$targetSessionId actual=${snapshot.sessionId}"
-            )
-        }
-        return snapshot
     }
 
     suspend fun applyActiveBootstrap(response: AiChatBootstrapResponse, expectedSessionId: String) {
@@ -819,296 +743,7 @@ internal class AiChatBootstrapCoordinator(
 
 internal class AiChatBootstrapBlockedException(message: String) : IllegalStateException(message)
 
-private class AiChatBootstrapSessionMismatchException(message: String) : IllegalStateException(message)
-
 private data class AiBootstrapRemoteResult(
     val ensuredSession: AiChatSessionProvisioningResult,
     val bootstrap: AiChatBootstrapResponse
 )
-
-private fun shouldPreserveConversationStateOnBootstrapFailure(
-    error: Exception,
-    forceReloadState: Boolean,
-    preBootstrapState: AiChatRuntimeState,
-    workspaceId: String,
-    persistedState: AiChatPersistedState
-): Boolean {
-    if (isConversationPreservableBootstrapFailure(error = error).not()) {
-        return false
-    }
-    if (forceReloadState) {
-        return false
-    }
-    if (preBootstrapState.workspaceId != workspaceId) {
-        return false
-    }
-    val preBootstrapSessionId = resolveAiChatSessionIdForWorkspace(
-        workspaceId = workspaceId,
-        sessionId = preBootstrapState.persistedState.chatSessionId
-    )
-    val targetSessionId = resolveAiChatSessionIdForWorkspace(
-        workspaceId = workspaceId,
-        sessionId = persistedState.chatSessionId
-    )
-    return preBootstrapSessionId != null && preBootstrapSessionId == targetSessionId
-}
-
-private fun freshSessionDraftToPreserveOnBootstrapFailure(
-    forceReloadState: Boolean,
-    preBootstrapState: AiChatRuntimeState,
-    workspaceId: String,
-    failureSessionId: String
-): AiChatDraftState? {
-    if (forceReloadState.not()) {
-        return null
-    }
-    if (preBootstrapState.workspaceId != workspaceId) {
-        return null
-    }
-    if (preBootstrapState.persistedState.requiresRemoteSessionProvisioning.not()) {
-        return null
-    }
-    if (preBootstrapState.persistedState.messages.isNotEmpty()) {
-        return null
-    }
-    val preBootstrapSessionId = resolveAiChatSessionIdForWorkspace(
-        workspaceId = workspaceId,
-        sessionId = preBootstrapState.persistedState.chatSessionId
-    )
-    val targetSessionId = resolveAiChatSessionIdForWorkspace(
-        workspaceId = workspaceId,
-        sessionId = failureSessionId
-    )
-    if (preBootstrapSessionId == null || preBootstrapSessionId != targetSessionId) {
-        return null
-    }
-    if (preBootstrapState.draftMessage.isBlank() && preBootstrapState.pendingAttachments.isEmpty()) {
-        return null
-    }
-    return AiChatDraftState(
-        draftMessage = preBootstrapState.draftMessage,
-        pendingAttachments = preBootstrapState.pendingAttachments
-    )
-}
-
-private fun isConversationPreservableBootstrapFailure(error: Exception): Boolean {
-    return error is AiChatBootstrapSessionMismatchException ||
-        error::class.java.name == "com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException"
-}
-
-internal fun shouldRetryBootstrap(error: Exception, retryCount: Int): Boolean {
-    if (retryCount >= aiBootstrapMaxRetryCount) {
-        return false
-    }
-    return isRetryableBootstrapFailure(error = error)
-}
-
-internal fun isRetryableBootstrapFailure(error: Exception): Boolean {
-    if (error is CancellationException) {
-        return false
-    }
-    val remoteError = error as? AiChatRemoteException
-    if (remoteError != null) {
-        return shouldRetryHttpStatus(statusCode = remoteError.statusCode)
-    }
-    val cloudRemoteError = error as? CloudRemoteException ?: findCloudRemoteCause(error = error)
-    if (cloudRemoteError != null) {
-        return shouldRetryHttpStatus(statusCode = cloudRemoteError.statusCode)
-    }
-    return error is IOException && isLikelyTransientBootstrapIoException(error = error)
-}
-
-private fun findCloudRemoteCause(error: Throwable): CloudRemoteException? {
-    var currentCause: Throwable? = error.cause
-    while (currentCause != null) {
-        if (currentCause is CloudRemoteException) {
-            return currentCause
-        }
-        currentCause = currentCause.cause
-    }
-    return null
-}
-
-private fun isLikelyTransientBootstrapIoException(error: IOException): Boolean {
-    if (error is MalformedURLException || error is ProtocolException) {
-        return false
-    }
-    if (
-        error is SSLHandshakeException ||
-        error is SSLPeerUnverifiedException ||
-        error is SSLProtocolException
-    ) {
-        return false
-    }
-    if (
-        error is SocketTimeoutException ||
-        error is ConnectException ||
-        error is UnknownHostException ||
-        error is NoRouteToHostException ||
-        error is SocketException
-    ) {
-        return true
-    }
-    if (error is SSLException) {
-        return isTransportLikeSslException(error = error)
-    }
-    return hasTransientTransportMessage(error = error)
-}
-
-private fun isTransportLikeSslException(error: SSLException): Boolean {
-    if (hasTransientTransportCause(error = error)) {
-        return true
-    }
-    return hasTransientTransportMessage(error = error)
-}
-
-private fun hasTransientTransportMessage(error: Throwable): Boolean {
-    val message = error.message?.lowercase() ?: return false
-    val transportMessageFragments: List<String> = listOf(
-        "connection reset",
-        "connection closed",
-        "connection abort",
-        "broken pipe",
-        "socket closed",
-        "read error",
-        "write error",
-        "timed out",
-        "timeout"
-    )
-    return transportMessageFragments.any { fragment -> message.contains(fragment) }
-}
-
-private fun hasTransientTransportCause(error: Throwable): Boolean {
-    var currentCause: Throwable? = error.cause
-    while (currentCause != null) {
-        if (
-            currentCause is SSLHandshakeException ||
-            currentCause is SSLPeerUnverifiedException ||
-            currentCause is SSLProtocolException
-        ) {
-            return false
-        }
-        if (
-            currentCause is SocketTimeoutException ||
-            currentCause is ConnectException ||
-            currentCause is UnknownHostException ||
-            currentCause is NoRouteToHostException ||
-            currentCause is SocketException
-        ) {
-            return true
-        }
-        currentCause = currentCause.cause
-    }
-    return false
-}
-
-internal suspend fun createNewAiChatSessionWithBootstrapRetry(
-    context: AiChatRuntimeContext,
-    workspaceId: String?,
-    targetSessionId: String,
-    retryEvent: String
-): AiChatSessionSnapshot {
-    var retryCount: Int = 0
-    while (true) {
-        try {
-            val preparedSession = context.aiChatRepository.prepareSessionForAi(workspaceId = workspaceId)
-            return createNewAiChatSessionFromPreparedSessionOnce(
-                context = context,
-                preparedSession = preparedSession,
-                targetSessionId = targetSessionId
-            )
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            if (shouldRetryBootstrap(error = error, retryCount = retryCount).not()) {
-                throw error
-            }
-            logAiChatSessionProvisioningRetry(
-                context = context,
-                workspaceId = workspaceId,
-                targetSessionId = targetSessionId,
-                retryCount = retryCount,
-                retryEvent = retryEvent,
-                error = error
-            )
-            delay(timeMillis = nextBootstrapRetryDelayMillis(retryCount = retryCount))
-            retryCount += 1
-        }
-    }
-}
-
-internal suspend fun createNewAiChatSessionOnce(
-    context: AiChatRuntimeContext,
-    workspaceId: String?,
-    targetSessionId: String
-): AiChatSessionSnapshot {
-    val snapshot = context.aiChatRepository.createNewSession(
-        workspaceId = workspaceId,
-        sessionId = targetSessionId,
-        uiLocale = context.currentUiLocaleTag()
-    )
-    if (snapshot.sessionId != targetSessionId) {
-        throw IllegalStateException(
-            "AI chat session provisioning returned mismatched sessionId. " +
-                "expected=$targetSessionId actual=${snapshot.sessionId}"
-        )
-    }
-    return snapshot
-}
-
-private suspend fun createNewAiChatSessionFromPreparedSessionOnce(
-    context: AiChatRuntimeContext,
-    preparedSession: AiChatPreparedRemoteSession,
-    targetSessionId: String
-): AiChatSessionSnapshot {
-    val snapshot = context.aiChatRepository.createNewSessionFromPreparedSession(
-        preparedSession = preparedSession,
-        sessionId = targetSessionId,
-        uiLocale = context.currentUiLocaleTag()
-    )
-    if (snapshot.sessionId != targetSessionId) {
-        throw IllegalStateException(
-            "AI chat session provisioning returned mismatched sessionId. " +
-                "expected=$targetSessionId actual=${snapshot.sessionId}"
-        )
-    }
-    return snapshot
-}
-
-private fun logAiChatSessionProvisioningRetry(
-    context: AiChatRuntimeContext,
-    workspaceId: String?,
-    targetSessionId: String,
-    retryCount: Int,
-    retryEvent: String,
-    error: Exception
-) {
-    val retryFields: List<Pair<String, String?>> = listOf(
-        "workspaceId" to workspaceId,
-        "cloudState" to context.currentCloudState().name,
-        "chatSessionId" to targetSessionId,
-        "nextAttempt" to (retryCount + 2).toString(),
-        "errorType" to error::class.java.name
-    )
-    AiChatDiagnosticsLogger.warn(
-        event = retryEvent,
-        fields = retryFields + remoteErrorFields(error = error as? AiChatRemoteException)
-    )
-}
-
-private fun shouldRetryHttpStatus(statusCode: Int?): Boolean {
-    val resolvedStatusCode = statusCode ?: return false
-    return resolvedStatusCode == 408 || resolvedStatusCode == 429 || resolvedStatusCode in 500..599
-}
-
-private fun nextBootstrapRetryDelayMillis(retryCount: Int): Long {
-    val baseDelayMillis = if (retryCount == 0) {
-        aiBootstrapFirstRetryDelayMillis
-    } else {
-        aiBootstrapSecondRetryDelayMillis
-    }
-    return baseDelayMillis + Random.nextLong(
-        from = 0L,
-        until = aiBootstrapRetryJitterUpperBoundMillis
-    )
-}
