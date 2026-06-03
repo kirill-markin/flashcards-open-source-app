@@ -5,6 +5,7 @@ import type { ProgressReviewSchedule } from "../types";
 import { persistLocalePreference } from "../i18n/runtime";
 import {
   createChatSnapshotResponse,
+  createJsonResponse,
   createNewChatSessionResponse,
   createProgressReviewScheduleResponse,
   createProgressReviewScheduleResponseValue,
@@ -23,6 +24,11 @@ import {
   stopChatRun,
   transcribeChatAudio,
 } from "./chat";
+import {
+  loadFeedbackState,
+  recordFeedbackPromptEvent,
+  submitFeedback,
+} from "./feedback";
 import {
   loadProgressReviewSchedule,
   loadProgressSeries,
@@ -375,6 +381,101 @@ describe("progress API endpoints", () => {
     })).rejects.toThrow(
       "Invalid API response for GET /me/progress/series: generatedAt must be string",
     );
+  });
+});
+
+describe("feedback API endpoints", () => {
+  it("decodes feedback state responses", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createJsonResponse({
+        feedbackState: {
+          nextAutomaticPromptAt: null,
+        },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadFeedbackState()).resolves.toEqual({
+      nextAutomaticPromptAt: null,
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/v1/feedback/state",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
+  it("sends automatic prompt event payloads and accepts ok envelopes", async () => {
+    primeSessionCsrfToken("csrf-token-1");
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createJsonResponse({
+        ok: true,
+        feedbackState: {
+          nextAutomaticPromptAt: "2026-05-18T09:00:00.000Z",
+        },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(recordFeedbackPromptEvent({
+      eventType: "automatic_prompt_shown",
+    })).resolves.toEqual({
+      nextAutomaticPromptAt: "2026-05-18T09:00:00.000Z",
+    });
+
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("http://localhost:8080/v1/feedback/prompt-events");
+    expect(requestInit?.method).toBe("POST");
+    expect(requestInit?.body).toBe(JSON.stringify({
+      eventType: "automatic_prompt_shown",
+    }));
+  });
+
+  it("sends feedback submission contract payloads and parses returned state", async () => {
+    primeSessionCsrfToken("csrf-token-1");
+    const submissionPayload = {
+      feedbackSubmissionId: "feedback-submission-1",
+      workspaceId: "workspace-1",
+      installationId: "installation-1",
+      platform: "web" as const,
+      appVersion: "1.6.0",
+      locale: "en" as const,
+      timezone: "Europe/Madrid",
+      trigger: "settings" as const,
+      message: "Make review faster",
+      createdAtClient: "2026-04-18T09:00:00.000Z",
+    };
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createJsonResponse({
+        ok: true,
+        feedbackState: {
+          nextAutomaticPromptAt: "2026-05-18T09:00:00.000Z",
+        },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(submitFeedback(submissionPayload)).resolves.toEqual({
+      nextAutomaticPromptAt: "2026-05-18T09:00:00.000Z",
+    });
+
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("http://localhost:8080/v1/feedback/submissions");
+    expect(requestInit?.method).toBe("POST");
+    expect(requestInit?.body).toBe(JSON.stringify(submissionPayload));
+  });
+
+  it("rejects feedback POST responses with non-true ok values", async () => {
+    primeSessionCsrfToken("csrf-token-1");
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createJsonResponse({
+        ok: false,
+        feedbackState: {
+          nextAutomaticPromptAt: null,
+        },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(recordFeedbackPromptEvent({
+      eventType: "automatic_prompt_dismissed",
+    })).rejects.toThrow("Invalid API response for POST /feedback/prompt-events: ok must be true");
   });
 });
 

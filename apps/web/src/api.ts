@@ -32,6 +32,11 @@ export {
   transcribeChatAudio,
 } from "./api/chat";
 export {
+  loadFeedbackState,
+  recordFeedbackPromptEvent,
+  submitFeedback,
+} from "./api/feedback";
+export {
   loadProgressReviewSchedule,
   loadProgressSeries,
   loadProgressSummary,

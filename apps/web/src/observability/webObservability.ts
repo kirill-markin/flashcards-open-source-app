@@ -10,6 +10,7 @@ export type WebObservationFeature =
   | "chat"
   | "cards"
   | "review"
+  | "feedback"
   | "progress"
   | "settings";
 
@@ -226,6 +227,10 @@ export type WebAppOperation =
   | "review_card_save"
   | "review_card_delete"
   | "review_schedule_preview"
+  | "feedback_activity_load"
+  | "feedback_state_load"
+  | "feedback_prompt_event"
+  | "feedback_submit"
   | "deck_list_load"
   | "deck_detail_load"
   | "deck_save"

@@ -220,6 +220,11 @@ const enCatalog = {
       description: "Review browser permissions for files, camera, and microphone.",
       value: "Permissions",
     },
+    feedback: {
+      title: "Send Feedback",
+      description: "Share an idea to improve the app.",
+      value: "Open",
+    },
     testGroupTitle: "Test",
     test: {
       title: "Test",
@@ -543,6 +548,19 @@ const enCatalog = {
     body: "If you did not know the answer, choose \"Again\". \"Hard\" is only for answers you knew but it was difficult to recall.",
     dismiss: "Got it",
     title: "Quick reminder",
+  },
+  feedback: {
+    title: "Have an idea for Flashcards?",
+    body: "Share what would make the app better. The creator reads every message personally.",
+    fieldLabel: "Feedback",
+    placeholder: "Write your idea here",
+    send: "Send",
+    sending: "Sending...",
+    notNow: "Not now",
+    success: "Thanks. Your feedback was sent.",
+    emptyError: "Write a message before sending.",
+    tooLongError: "Feedback must be 5000 characters or fewer.",
+    submitError: "Feedback could not be sent. Check your connection and try again.",
   },
   cardsScreen: {
     counts: {

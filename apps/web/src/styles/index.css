@@ -7,6 +7,7 @@
 @import "./features/cards.css" layer(features);
 @import "./features/tags.css" layer(features);
 @import "./features/forms.css" layer(features);
+@import "./features/feedback.css" layer(features);
 @import "./features/review.css" layer(features);
 @import "./features/chat.css" layer(features);
 @import "./features/settings.css" layer(features);

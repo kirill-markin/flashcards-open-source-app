@@ -218,6 +218,45 @@ export type ProgressSourceState = Readonly<{
   reviewSchedule: ProgressReviewScheduleSourceState;
 }>;
 
+export type FeedbackTrigger = "settings" | "automatic";
+
+export type FeedbackPlatform = "web";
+
+export type FeedbackPromptEventType = "automatic_prompt_shown" | "automatic_prompt_dismissed";
+
+export type FeedbackState = Readonly<{
+  nextAutomaticPromptAt: string | null;
+}>;
+
+export type FeedbackStateEnvelope = Readonly<{
+  feedbackState: FeedbackState;
+}>;
+
+export type FeedbackPromptEventRequest = Readonly<{
+  eventType: FeedbackPromptEventType;
+}>;
+
+export type FeedbackPromptEventResponse = FeedbackStateEnvelope & Readonly<{
+  ok?: true;
+}>;
+
+export type FeedbackSubmissionRequest = Readonly<{
+  feedbackSubmissionId: string;
+  workspaceId: string | null;
+  installationId: string | null;
+  platform: FeedbackPlatform;
+  appVersion: string;
+  locale: Locale;
+  timezone: string;
+  trigger: FeedbackTrigger;
+  message: string;
+  createdAtClient: string;
+}>;
+
+export type FeedbackSubmissionResponse = FeedbackStateEnvelope & Readonly<{
+  ok?: true;
+}>;
+
 export type AgentApiKeyConnection = Readonly<{
   connectionId: string;
   label: string;
