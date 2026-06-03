@@ -1,7 +1,30 @@
-package com.flashcardsopensourceapp.feature.ai.runtime
+package com.flashcardsopensourceapp.feature.ai.runtime.coordinators
 
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
+import com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.feature.ai.runtime.AiChatRuntimeContext
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiAccessContext
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiComposerPhase
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiConversationBootstrapState
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.makeAiDraftState
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.normalizeAiChatPersistedStateForWorkspace
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.resolveAiChatSessionIdForWorkspace
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.runtimeKey
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.shouldBootstrapConversation
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.shouldPrepareGuestAccess
+import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiErrorSurface
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatBreadcrumb
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatExceptionEvent
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatFailureIssueDisposition
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatWarning
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.aiChatFailureIssueDisposition
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.aiChatFailureWarningMessage
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.aiChatRemoteErrorDetails
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.makeAiUserFacingErrorMessage
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChatBreadcrumb
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChatException
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChatWarning
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
@@ -10,7 +33,7 @@ import kotlinx.coroutines.launch
 
 internal class AiChatRuntimeLifecycleCoordinator(
     private val context: AiChatRuntimeContext,
-    private val startConversationBootstrap: (Boolean, com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics?) -> Unit,
+    private val startConversationBootstrap: (Boolean, AiChatResumeDiagnostics?) -> Unit,
     private val detachLiveStream: (String) -> Unit,
     private val cancelActiveDictation: (String) -> Unit
 ) {
@@ -126,7 +149,7 @@ internal class AiChatRuntimeLifecycleCoordinator(
     }
 
     fun warmUpLinkedSessionIfNeeded(
-        resumeDiagnostics: com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics?
+        resumeDiagnostics: AiChatResumeDiagnostics?
     ) {
         val currentState = context.runtimeStateMutable.value
         val accessContext = context.activeAccessContext

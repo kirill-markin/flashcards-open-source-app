@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.ai.runtime
+package com.flashcardsopensourceapp.feature.ai.runtime.errors
 
 sealed interface AiAlertState {
     val title: String

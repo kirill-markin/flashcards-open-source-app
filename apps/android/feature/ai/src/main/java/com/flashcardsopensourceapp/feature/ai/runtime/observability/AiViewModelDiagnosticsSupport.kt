@@ -1,15 +1,19 @@
-package com.flashcardsopensourceapp.feature.ai.runtime
+package com.flashcardsopensourceapp.feature.ai.runtime.observability
 
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.feature.ai.AiBootstrapErrorPresentation
+import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.AiChatBootstrapBlockedException
+import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiErrorSurface
+import com.flashcardsopensourceapp.feature.ai.runtime.errors.aiChatAvailabilityMessage
+import com.flashcardsopensourceapp.feature.ai.runtime.errors.makeAiChatUserFacingErrorMessage
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
 import java.io.IOException
 
 private const val cloudContractMismatchExceptionName: String =
     "com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException"
 private const val aiChatBootstrapSessionMismatchExceptionName: String =
-    "com.flashcardsopensourceapp.feature.ai.runtime.AiChatBootstrapSessionMismatchException"
+    "com.flashcardsopensourceapp.feature.ai.runtime.coordinators.AiChatBootstrapSessionMismatchException"
 
 internal fun makeAiUserFacingErrorMessage(
     error: Exception,

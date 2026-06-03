@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.ai.runtime
+package com.flashcardsopensourceapp.feature.ai.runtime.conversation
 
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatActiveRun
@@ -10,6 +10,7 @@ import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
 import com.flashcardsopensourceapp.feature.ai.AiBootstrapErrorPresentation
 import com.flashcardsopensourceapp.feature.ai.emptyAiBootstrapErrorPresentation
+import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
 import java.util.UUID
 
 internal enum class AiComposerPhase {

@@ -10,6 +10,13 @@ import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncRequest
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncSource
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiAccessContext
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiChatRuntimeState
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.clearPendingToolRunPostSync
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.makeDefaultAiDraftState
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatWarning
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.createAiChatRuntimeObservability
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChatWarning
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicLong

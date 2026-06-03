@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.ai.runtime
+package com.flashcardsopensourceapp.feature.ai.runtime.coordinators
 
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
@@ -9,6 +9,22 @@ import com.flashcardsopensourceapp.data.local.model.AiChatSessionProvisioningRes
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.feature.ai.emptyAiBootstrapErrorPresentation
+import com.flashcardsopensourceapp.feature.ai.runtime.AiChatRuntimeContext
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiChatRuntimeState
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiComposerPhase
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiConversationBootstrapState
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.makeAiChatSessionId
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatBreadcrumb
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatExceptionEvent
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatFailureIssueDisposition
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatWarning
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.aiChatFailureIssueDisposition
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.aiChatFailureWarningMessage
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.aiChatRemoteErrorDetails
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.makeAiBootstrapErrorPresentation
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChatBreadcrumb
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChatException
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChatWarning
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.update

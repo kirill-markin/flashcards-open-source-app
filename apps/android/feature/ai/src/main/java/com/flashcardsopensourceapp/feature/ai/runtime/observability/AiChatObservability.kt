@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.ai.runtime
+package com.flashcardsopensourceapp.feature.ai.runtime.observability
 
 import com.flashcardsopensourceapp.core.observability.AndroidAiObservationName
 import com.flashcardsopensourceapp.core.observability.AndroidBreadcrumbEvent
@@ -11,6 +11,7 @@ import com.flashcardsopensourceapp.data.local.ai.AiChatRequestTooLargeException
 import com.flashcardsopensourceapp.data.local.ai.isAiChatAttachmentUnsupportedTypeRemoteError
 import com.flashcardsopensourceapp.data.local.ai.isAiChatRequestTooLargeRemoteError
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
+import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.AiChatBootstrapBlockedException
 import java.io.IOException
 
 internal data class AiChatContentPartCounts(
