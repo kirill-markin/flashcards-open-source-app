@@ -77,6 +77,9 @@ struct AIChatView: View {
             .onChange(of: self.chatStore.composerPhase) { _, nextPhase in
                 self.handleComposerPhaseChange(nextPhase: nextPhase)
             }
+            .onChange(of: self.chatStore.hasExternalProviderConsent) { _, hasConsent in
+                self.handleExternalProviderConsentChange(hasConsent: hasConsent)
+            }
             .onChange(of: self.scenePhase) { _, nextPhase in
                 self.handleScenePhaseChange(nextPhase: nextPhase)
             }
@@ -604,6 +607,15 @@ struct AIChatView: View {
             return
         }
 
+        self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
+    }
+
+    func handleExternalProviderConsentChange(hasConsent: Bool) {
+        guard hasConsent else {
+            return
+        }
+
+        self.syncChatSurface(refreshConsent: false)
         self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
     }
 

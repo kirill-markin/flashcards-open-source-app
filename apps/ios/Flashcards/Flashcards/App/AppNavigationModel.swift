@@ -85,13 +85,13 @@ final class AppNavigationModel {
     }
 
     func openAICardCreation() {
-        self.aiChatPresentationRequest = .createCard
         self.selectedTab = .ai
+        self.aiChatPresentationRequest = .createCard
     }
 
     func openAICardHandoff(card: AIChatCardReference) {
-        self.aiChatPresentationRequest = .attachCard(card)
         self.selectedTab = .ai
+        self.aiChatPresentationRequest = .attachCard(card)
     }
 
     func openSettings(destination: SettingsNavigationDestination) {
