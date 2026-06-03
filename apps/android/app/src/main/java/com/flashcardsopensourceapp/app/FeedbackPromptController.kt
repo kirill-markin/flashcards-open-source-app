@@ -34,14 +34,17 @@ class FeedbackPromptController(
     private val feedbackRepository: FeedbackRepository,
     private val reviewRepository: ReviewRepository,
     private val promptStore: FeedbackPromptStore,
-    private val messageController: TransientMessageController
+    private val messageController: TransientMessageController,
+    private val feedbackPromptIdentityKeyProvider: () -> FeedbackPromptIdentityKey
 ) {
     private val applicationContext = context.applicationContext
+    private val initialFeedbackPromptIdentityKey = feedbackPromptIdentityKeyProvider()
+    private val activeFeedbackPromptIdentityKeyMutable = MutableStateFlow(initialFeedbackPromptIdentityKey)
     private val uiStateMutable = MutableStateFlow(
         FeedbackPromptUiState(
             isVisible = false,
             trigger = CloudFeedbackTrigger.SETTINGS,
-            message = promptStore.loadState().draftMessage,
+            message = promptStore.loadState(identityKey = initialFeedbackPromptIdentityKey).draftMessage,
             isSubmitting = false,
             errorMessage = null
         )
@@ -83,7 +86,10 @@ class FeedbackPromptController(
             return
         }
 
-        promptStore.saveDraftMessage(message = currentUiState.message)
+        promptStore.saveDraftMessage(
+            identityKey = activeFeedbackPromptIdentityKeyMutable.value,
+            message = currentUiState.message
+        )
         uiStateMutable.value = currentUiState.copy(
             isVisible = false,
             errorMessage = null
@@ -100,10 +106,12 @@ class FeedbackPromptController(
             return
         }
 
+        val identityKey = feedbackPromptIdentityKeyProvider()
+        activeFeedbackPromptIdentityKeyMutable.value = identityKey
         uiStateMutable.value = currentUiState.copy(
             isVisible = true,
             trigger = CloudFeedbackTrigger.SETTINGS,
-            message = promptStore.loadState().draftMessage,
+            message = promptStore.loadState(identityKey = identityKey).draftMessage,
             isSubmitting = false,
             errorMessage = null
         )
@@ -115,7 +123,10 @@ class FeedbackPromptController(
             return
         }
 
-        promptStore.saveDraftMessage(message = message)
+        promptStore.saveDraftMessage(
+            identityKey = activeFeedbackPromptIdentityKeyMutable.value,
+            message = message
+        )
         uiStateMutable.value = currentUiState.copy(
             message = message,
             errorMessage = null
@@ -128,7 +139,10 @@ class FeedbackPromptController(
             return
         }
 
-        promptStore.saveDraftMessage(message = currentUiState.message)
+        promptStore.saveDraftMessage(
+            identityKey = activeFeedbackPromptIdentityKeyMutable.value,
+            message = currentUiState.message
+        )
         uiStateMutable.value = currentUiState.copy(
             isVisible = false,
             errorMessage = null
@@ -148,10 +162,12 @@ class FeedbackPromptController(
         }
 
         val nowMillis = System.currentTimeMillis()
-        promptStore.recordAutomaticPromptShown(nowMillis = nowMillis)
+        val identityKey = activeFeedbackPromptIdentityKeyMutable.value
+        promptStore.recordAutomaticPromptShown(identityKey = identityKey, nowMillis = nowMillis)
         appScope.launch {
             val feedbackState = recordAutomaticPromptShownOrNull() ?: return@launch
             promptStore.recordFetchedFeedbackState(
+                identityKey = identityKey,
                 feedbackState = feedbackState,
                 nowMillis = System.currentTimeMillis()
             )
@@ -176,7 +192,8 @@ class FeedbackPromptController(
             isSubmitting = true,
             errorMessage = null
         )
-        promptStore.saveDraftMessage(message = trimmedMessage)
+        val identityKey = activeFeedbackPromptIdentityKeyMutable.value
+        promptStore.saveDraftMessage(identityKey = identityKey, message = trimmedMessage)
 
         appScope.launch {
             try {
@@ -185,10 +202,11 @@ class FeedbackPromptController(
                     message = trimmedMessage
                 )
                 promptStore.recordFeedbackSubmitted(
+                    identityKey = identityKey,
                     feedbackState = feedbackState,
                     nowMillis = System.currentTimeMillis()
                 )
-                promptStore.clearDraftMessage()
+                promptStore.clearDraftMessage(identityKey = identityKey)
                 uiStateMutable.value = FeedbackPromptUiState(
                     isVisible = false,
                     trigger = CloudFeedbackTrigger.SETTINGS,
@@ -202,7 +220,7 @@ class FeedbackPromptController(
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
-                promptStore.saveDraftMessage(message = trimmedMessage)
+                promptStore.saveDraftMessage(identityKey = identityKey, message = trimmedMessage)
                 uiStateMutable.update { state ->
                     state.copy(
                         isSubmitting = false,
@@ -221,6 +239,7 @@ class FeedbackPromptController(
             return
         }
 
+        val identityKey = feedbackPromptIdentityKeyProvider()
         val localDayWindow = feedbackPromptLocalDayWindow(
             nowMillis = nowMillis,
             zoneId = ZoneId.systemDefault()
@@ -229,7 +248,7 @@ class FeedbackPromptController(
             currentLocalDayStartMillis = localDayWindow.startMillis,
             nextLocalDayStartMillis = localDayWindow.endMillis
         )
-        var promptState = promptStore.loadState()
+        var promptState = promptStore.loadState(identityKey = identityKey)
         if (
             isAutomaticFeedbackPromptLocallyEligible(
                 reviewActivity = reviewActivity,
@@ -247,16 +266,20 @@ class FeedbackPromptController(
             }
             when (val result = loadFeedbackStateForAutomaticPrompt()) {
                 FeedbackStateFetchResult.Failed -> {
-                    promptStore.recordFeedbackStateFetchAttempt(nowMillis = System.currentTimeMillis())
+                    promptStore.recordFeedbackStateFetchAttempt(
+                        identityKey = identityKey,
+                        nowMillis = System.currentTimeMillis()
+                    )
                     return
                 }
                 FeedbackStateFetchResult.NoExistingCloudSession -> Unit
                 is FeedbackStateFetchResult.Loaded -> {
                     promptStore.recordFetchedFeedbackState(
+                        identityKey = identityKey,
                         feedbackState = result.feedbackState,
                         nowMillis = System.currentTimeMillis()
                     )
-                    promptState = promptStore.loadState()
+                    promptState = promptStore.loadState(identityKey = identityKey)
                 }
             }
         }
@@ -275,15 +298,16 @@ class FeedbackPromptController(
             return
         }
 
-        showAutomaticPrompt()
+        showAutomaticPrompt(identityKey = identityKey)
     }
 
-    private fun showAutomaticPrompt() {
+    private fun showAutomaticPrompt(identityKey: FeedbackPromptIdentityKey) {
         automaticPromptShownEventRecorded.set(false)
+        activeFeedbackPromptIdentityKeyMutable.value = identityKey
         uiStateMutable.value = FeedbackPromptUiState(
             isVisible = true,
             trigger = CloudFeedbackTrigger.AUTOMATIC,
-            message = promptStore.loadState().draftMessage,
+            message = promptStore.loadState(identityKey = identityKey).draftMessage,
             isSubmitting = false,
             errorMessage = null
         )

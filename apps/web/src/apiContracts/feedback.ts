@@ -8,6 +8,7 @@ import {
   parseBoolean,
   parseLiteral,
   parseNullableString,
+  parseNumber,
   parseObject,
   parseOptionalField,
   parseRequiredField,
@@ -17,6 +18,27 @@ function parseFeedbackState(value: unknown, endpoint: string, path: string): Fee
   const objectValue = parseObject(value, endpoint, path);
 
   return {
+    automaticPromptCooldownDays: parseRequiredField(
+      objectValue,
+      "automaticPromptCooldownDays",
+      endpoint,
+      path,
+      parseNumber,
+    ),
+    lastAutomaticPromptShownAt: parseRequiredField(
+      objectValue,
+      "lastAutomaticPromptShownAt",
+      endpoint,
+      path,
+      parseNullableString,
+    ),
+    lastFeedbackSubmittedAt: parseRequiredField(
+      objectValue,
+      "lastFeedbackSubmittedAt",
+      endpoint,
+      path,
+      parseNullableString,
+    ),
     nextAutomaticPromptAt: parseRequiredField(objectValue, "nextAutomaticPromptAt", endpoint, path, parseNullableString),
   };
 }

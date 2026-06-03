@@ -16,12 +16,14 @@ import {
 } from "../../feedback/automaticFeedbackPrompt";
 import type { FeedbackDialogProps } from "../../feedback/FeedbackDialog";
 import {
+  buildFeedbackPromptEventRequest,
   buildFeedbackSubmissionRequest,
   feedbackMaximumMessageLength,
   normalizeFeedbackMessage,
 } from "../../feedback/feedbackSubmission";
 import { useI18n } from "../../i18n";
 import {
+  buildFeedbackPromptIdentityKey,
   loadFeedbackPromptState,
   storeAutomaticFeedbackPromptShownAt,
   storeFeedbackSubmittedAt,
@@ -212,6 +214,10 @@ export function useReviewScreenController(): UseReviewScreenControllerResult {
   const selectedBackSpeakableText = selectedCard === null ? "" : makeReviewSpeakableText(selectedCard.backText);
   const hasCards = localWorkspaceCardCount > 0;
   const shouldShowSwitchToAllCardsAction = resolvedReviewFilter.kind !== "allCards";
+  const feedbackPromptIdentityKey = buildFeedbackPromptIdentityKey({
+    sessionUserId: session?.userId ?? null,
+    linkedUserId: cloudSettings?.linkedUserId ?? null,
+  });
   const loadingReviewCurrentCard = reviewLoadingSnapshot?.currentCard ?? reviewLoadingSnapshot?.queuePreview[0] ?? null;
   const visibleSelectedReviewFilterTitle = isInitialReviewLoad && reviewLoadingSnapshot !== null
     ? reviewLoadingSnapshot.resolvedReviewFilterTitle
@@ -249,10 +255,17 @@ export function useReviewScreenController(): UseReviewScreenControllerResult {
 
   async function postAutomaticFeedbackPromptEvent(eventType: FeedbackPromptEventType): Promise<void> {
     try {
-      const feedbackState = await recordFeedbackPromptEvent({ eventType });
+      const now = new Date();
+      const feedbackState = await recordFeedbackPromptEvent(buildFeedbackPromptEventRequest({
+        workspaceId: activeWorkspace?.workspaceId ?? null,
+        locale,
+        eventType,
+        now,
+      }));
       await storeFetchedFeedbackState({
+        identityKey: feedbackPromptIdentityKey,
         feedbackState,
-        fetchedAt: new Date().toISOString(),
+        fetchedAt: now.toISOString(),
       });
     } catch (error) {
       captureFeedbackOperationError(error, "feedback_prompt_event", eventType);
@@ -278,7 +291,7 @@ export function useReviewScreenController(): UseReviewScreenControllerResult {
 
       let promptState: FeedbackPromptState;
       try {
-        promptState = await loadFeedbackPromptState();
+        promptState = await loadFeedbackPromptState(feedbackPromptIdentityKey);
       } catch (error) {
         captureFeedbackOperationError(error, "feedback_state_load", null);
         return;
@@ -293,6 +306,7 @@ export function useReviewScreenController(): UseReviewScreenControllerResult {
         try {
           const feedbackState = await loadFeedbackState();
           promptState = await storeFetchedFeedbackState({
+            identityKey: feedbackPromptIdentityKey,
             feedbackState,
             fetchedAt: new Date().toISOString(),
           });
@@ -317,6 +331,7 @@ export function useReviewScreenController(): UseReviewScreenControllerResult {
 
       const shownAt = new Date();
       await storeAutomaticFeedbackPromptShownAt({
+        identityKey: feedbackPromptIdentityKey,
         shownAt: shownAt.toISOString(),
         nextAutomaticFeedbackPromptAt: buildNextAutomaticFeedbackPromptAt(shownAt),
       });
@@ -373,6 +388,7 @@ export function useReviewScreenController(): UseReviewScreenControllerResult {
     try {
       const feedbackState = await submitFeedback(submissionRequest);
       await storeFeedbackSubmittedAt({
+        identityKey: feedbackPromptIdentityKey,
         feedbackState,
         submittedAt: submissionRequest.createdAtClient,
       });

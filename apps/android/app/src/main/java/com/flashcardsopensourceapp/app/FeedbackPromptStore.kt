@@ -16,13 +16,21 @@ private const val lastFeedbackStateFetchAttemptAtMillisKey: String = "lastFeedba
 private const val draftMessageKey: String = "draftMessage"
 
 interface FeedbackPromptStore {
-    fun loadState(): FeedbackPromptLocalState
-    fun recordFeedbackStateFetchAttempt(nowMillis: Long)
-    fun recordFetchedFeedbackState(feedbackState: CloudFeedbackState, nowMillis: Long)
-    fun recordAutomaticPromptShown(nowMillis: Long)
-    fun recordFeedbackSubmitted(feedbackState: CloudFeedbackState, nowMillis: Long)
-    fun saveDraftMessage(message: String)
-    fun clearDraftMessage()
+    fun loadState(identityKey: FeedbackPromptIdentityKey): FeedbackPromptLocalState
+    fun recordFeedbackStateFetchAttempt(identityKey: FeedbackPromptIdentityKey, nowMillis: Long)
+    fun recordFetchedFeedbackState(
+        identityKey: FeedbackPromptIdentityKey,
+        feedbackState: CloudFeedbackState,
+        nowMillis: Long
+    )
+    fun recordAutomaticPromptShown(identityKey: FeedbackPromptIdentityKey, nowMillis: Long)
+    fun recordFeedbackSubmitted(
+        identityKey: FeedbackPromptIdentityKey,
+        feedbackState: CloudFeedbackState,
+        nowMillis: Long
+    )
+    fun saveDraftMessage(identityKey: FeedbackPromptIdentityKey, message: String)
+    fun clearDraftMessage(identityKey: FeedbackPromptIdentityKey)
 }
 
 class SharedPreferencesFeedbackPromptStore(
@@ -33,102 +41,150 @@ class SharedPreferencesFeedbackPromptStore(
         Context.MODE_PRIVATE
     )
 
-    override fun loadState(): FeedbackPromptLocalState {
+    override fun loadState(identityKey: FeedbackPromptIdentityKey): FeedbackPromptLocalState {
         return FeedbackPromptLocalState(
             lastAutomaticFeedbackPromptShownAtMillis = loadLongOrNull(
+                identityKey = identityKey,
                 key = lastAutomaticFeedbackPromptShownAtMillisKey
             ),
-            lastFeedbackSubmittedAtMillis = loadLongOrNull(key = lastFeedbackSubmittedAtMillisKey),
+            lastFeedbackSubmittedAtMillis = loadLongOrNull(
+                identityKey = identityKey,
+                key = lastFeedbackSubmittedAtMillisKey
+            ),
             nextAutomaticFeedbackPromptAtMillis = loadLongOrNull(
+                identityKey = identityKey,
                 key = nextAutomaticFeedbackPromptAtMillisKey
             ),
-            lastFeedbackStateFetchedAtMillis = loadLongOrNull(key = lastFeedbackStateFetchedAtMillisKey),
+            lastFeedbackStateFetchedAtMillis = loadLongOrNull(
+                identityKey = identityKey,
+                key = lastFeedbackStateFetchedAtMillisKey
+            ),
             lastFeedbackStateFetchAttemptAtMillis = loadLongOrNull(
+                identityKey = identityKey,
                 key = lastFeedbackStateFetchAttemptAtMillisKey
             ),
-            draftMessage = preferences.getString(draftMessageKey, null) ?: ""
+            draftMessage = preferences.getString(
+                scopedKey(identityKey = identityKey, key = draftMessageKey),
+                null
+            ) ?: ""
         )
     }
 
-    override fun recordFeedbackStateFetchAttempt(nowMillis: Long) {
+    override fun recordFeedbackStateFetchAttempt(
+        identityKey: FeedbackPromptIdentityKey,
+        nowMillis: Long
+    ) {
         preferences.edit(commit = true) {
-            putLong(lastFeedbackStateFetchAttemptAtMillisKey, nowMillis)
+            putLong(
+                scopedKey(identityKey = identityKey, key = lastFeedbackStateFetchAttemptAtMillisKey),
+                nowMillis
+            )
         }
     }
 
-    override fun recordFetchedFeedbackState(feedbackState: CloudFeedbackState, nowMillis: Long) {
-        val currentState = loadState()
+    override fun recordFetchedFeedbackState(
+        identityKey: FeedbackPromptIdentityKey,
+        feedbackState: CloudFeedbackState,
+        nowMillis: Long
+    ) {
+        val currentState = loadState(identityKey = identityKey)
         preferences.edit(commit = true) {
             putMergedLong(
-                key = lastAutomaticFeedbackPromptShownAtMillisKey,
+                key = scopedKey(identityKey = identityKey, key = lastAutomaticFeedbackPromptShownAtMillisKey),
                 currentValue = currentState.lastAutomaticFeedbackPromptShownAtMillis,
                 nextValue = feedbackState.lastAutomaticPromptShownAtMillis
             )
             putMergedLong(
-                key = lastFeedbackSubmittedAtMillisKey,
+                key = scopedKey(identityKey = identityKey, key = lastFeedbackSubmittedAtMillisKey),
                 currentValue = currentState.lastFeedbackSubmittedAtMillis,
                 nextValue = feedbackState.lastFeedbackSubmittedAtMillis
             )
             putMergedLong(
-                key = nextAutomaticFeedbackPromptAtMillisKey,
+                key = scopedKey(identityKey = identityKey, key = nextAutomaticFeedbackPromptAtMillisKey),
                 currentValue = currentState.nextAutomaticFeedbackPromptAtMillis,
                 nextValue = feedbackState.nextAutomaticPromptAtMillis
             )
-            putLong(lastFeedbackStateFetchedAtMillisKey, nowMillis)
+            putLong(
+                scopedKey(identityKey = identityKey, key = lastFeedbackStateFetchedAtMillisKey),
+                nowMillis
+            )
         }
     }
 
-    override fun recordAutomaticPromptShown(nowMillis: Long) {
+    override fun recordAutomaticPromptShown(identityKey: FeedbackPromptIdentityKey, nowMillis: Long) {
         preferences.edit(commit = true) {
-            putLong(lastAutomaticFeedbackPromptShownAtMillisKey, nowMillis)
-            putLong(nextAutomaticFeedbackPromptAtMillisKey, nextAutomaticFeedbackPromptAtMillis(nowMillis = nowMillis))
+            putLong(
+                scopedKey(identityKey = identityKey, key = lastAutomaticFeedbackPromptShownAtMillisKey),
+                nowMillis
+            )
+            putLong(
+                scopedKey(identityKey = identityKey, key = nextAutomaticFeedbackPromptAtMillisKey),
+                nextAutomaticFeedbackPromptAtMillis(nowMillis = nowMillis)
+            )
         }
     }
 
-    override fun recordFeedbackSubmitted(feedbackState: CloudFeedbackState, nowMillis: Long) {
+    override fun recordFeedbackSubmitted(
+        identityKey: FeedbackPromptIdentityKey,
+        feedbackState: CloudFeedbackState,
+        nowMillis: Long
+    ) {
         val submittedAtMillis = feedbackState.lastFeedbackSubmittedAtMillis ?: nowMillis
         val nextPromptAtMillis = feedbackState.nextAutomaticPromptAtMillis
             ?: nextAutomaticFeedbackPromptAtMillis(nowMillis = submittedAtMillis)
-        val currentState = loadState()
+        val currentState = loadState(identityKey = identityKey)
         preferences.edit(commit = true) {
             putMergedLong(
-                key = lastAutomaticFeedbackPromptShownAtMillisKey,
+                key = scopedKey(identityKey = identityKey, key = lastAutomaticFeedbackPromptShownAtMillisKey),
                 currentValue = currentState.lastAutomaticFeedbackPromptShownAtMillis,
                 nextValue = feedbackState.lastAutomaticPromptShownAtMillis
             )
             putMergedLong(
-                key = lastFeedbackSubmittedAtMillisKey,
+                key = scopedKey(identityKey = identityKey, key = lastFeedbackSubmittedAtMillisKey),
                 currentValue = currentState.lastFeedbackSubmittedAtMillis,
                 nextValue = submittedAtMillis
             )
             putMergedLong(
-                key = nextAutomaticFeedbackPromptAtMillisKey,
+                key = scopedKey(identityKey = identityKey, key = nextAutomaticFeedbackPromptAtMillisKey),
                 currentValue = currentState.nextAutomaticFeedbackPromptAtMillis,
                 nextValue = nextPromptAtMillis
             )
-            putLong(lastFeedbackStateFetchedAtMillisKey, nowMillis)
+            putLong(
+                scopedKey(identityKey = identityKey, key = lastFeedbackStateFetchedAtMillisKey),
+                nowMillis
+            )
         }
     }
 
-    override fun saveDraftMessage(message: String) {
+    override fun saveDraftMessage(identityKey: FeedbackPromptIdentityKey, message: String) {
+        val storageKey = scopedKey(identityKey = identityKey, key = draftMessageKey)
         preferences.edit {
-            putString(draftMessageKey, message)
+            if (message.isEmpty()) {
+                remove(storageKey)
+            } else {
+                putString(storageKey, message)
+            }
         }
     }
 
-    override fun clearDraftMessage() {
+    override fun clearDraftMessage(identityKey: FeedbackPromptIdentityKey) {
         preferences.edit(commit = true) {
-            remove(draftMessageKey)
+            remove(scopedKey(identityKey = identityKey, key = draftMessageKey))
         }
     }
 
-    private fun loadLongOrNull(key: String): Long? {
-        if (preferences.contains(key).not()) {
+    private fun loadLongOrNull(identityKey: FeedbackPromptIdentityKey, key: String): Long? {
+        val storageKey = scopedKey(identityKey = identityKey, key = key)
+        if (preferences.contains(storageKey).not()) {
             return null
         }
 
-        return preferences.getLong(key, 0L)
+        return preferences.getLong(storageKey, 0L)
     }
+}
+
+private fun scopedKey(identityKey: FeedbackPromptIdentityKey, key: String): String {
+    return "${identityKey.value}:$key"
 }
 
 private fun SharedPreferences.Editor.putMergedLong(

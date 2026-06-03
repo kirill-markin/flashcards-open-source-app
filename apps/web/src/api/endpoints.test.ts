@@ -385,18 +385,28 @@ describe("progress API endpoints", () => {
 });
 
 describe("feedback API endpoints", () => {
+  const emptyFeedbackState = {
+    automaticPromptCooldownDays: 30,
+    lastAutomaticPromptShownAt: null,
+    lastFeedbackSubmittedAt: null,
+    nextAutomaticPromptAt: null,
+  };
+
+  const nextFeedbackState = {
+    automaticPromptCooldownDays: 30,
+    lastAutomaticPromptShownAt: "2026-04-18T09:00:00.000Z",
+    lastFeedbackSubmittedAt: null,
+    nextAutomaticPromptAt: "2026-05-18T09:00:00.000Z",
+  };
+
   it("decodes feedback state responses", async () => {
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(createJsonResponse({
-        feedbackState: {
-          nextAutomaticPromptAt: null,
-        },
+        feedbackState: emptyFeedbackState,
       }));
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(loadFeedbackState()).resolves.toEqual({
-      nextAutomaticPromptAt: null,
-    });
+    await expect(loadFeedbackState()).resolves.toEqual(emptyFeedbackState);
 
     expect(fetchMock).toHaveBeenCalledWith(
       "http://localhost:8080/v1/feedback/state",
@@ -409,24 +419,28 @@ describe("feedback API endpoints", () => {
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(createJsonResponse({
         ok: true,
-        feedbackState: {
-          nextAutomaticPromptAt: "2026-05-18T09:00:00.000Z",
-        },
+        feedbackState: nextFeedbackState,
       }));
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(recordFeedbackPromptEvent({
+    const promptEventPayload = {
+      feedbackPromptEventId: "feedback-prompt-event-1",
+      workspaceId: "workspace-1",
+      installationId: "installation-1",
+      platform: "web" as const,
+      appVersion: "1.6.0",
+      locale: "en" as const,
+      timezone: "Europe/Madrid",
       eventType: "automatic_prompt_shown",
-    })).resolves.toEqual({
-      nextAutomaticPromptAt: "2026-05-18T09:00:00.000Z",
-    });
+      createdAtClient: "2026-04-18T09:00:00.000Z",
+    };
+
+    await expect(recordFeedbackPromptEvent(promptEventPayload)).resolves.toEqual(nextFeedbackState);
 
     const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
     expect(fetchMock.mock.calls[0]?.[0]).toBe("http://localhost:8080/v1/feedback/prompt-events");
     expect(requestInit?.method).toBe("POST");
-    expect(requestInit?.body).toBe(JSON.stringify({
-      eventType: "automatic_prompt_shown",
-    }));
+    expect(requestInit?.body).toBe(JSON.stringify(promptEventPayload));
   });
 
   it("sends feedback submission contract payloads and parses returned state", async () => {
@@ -446,15 +460,11 @@ describe("feedback API endpoints", () => {
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(createJsonResponse({
         ok: true,
-        feedbackState: {
-          nextAutomaticPromptAt: "2026-05-18T09:00:00.000Z",
-        },
+        feedbackState: nextFeedbackState,
       }));
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(submitFeedback(submissionPayload)).resolves.toEqual({
-      nextAutomaticPromptAt: "2026-05-18T09:00:00.000Z",
-    });
+    await expect(submitFeedback(submissionPayload)).resolves.toEqual(nextFeedbackState);
 
     const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
     expect(fetchMock.mock.calls[0]?.[0]).toBe("http://localhost:8080/v1/feedback/submissions");
@@ -467,14 +477,20 @@ describe("feedback API endpoints", () => {
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(createJsonResponse({
         ok: false,
-        feedbackState: {
-          nextAutomaticPromptAt: null,
-        },
+        feedbackState: emptyFeedbackState,
       }));
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(recordFeedbackPromptEvent({
+      feedbackPromptEventId: "feedback-prompt-event-2",
+      workspaceId: "workspace-1",
+      installationId: "installation-1",
+      platform: "web",
+      appVersion: "1.6.0",
+      locale: "en",
+      timezone: "Europe/Madrid",
       eventType: "automatic_prompt_dismissed",
+      createdAtClient: "2026-04-18T09:00:00.000Z",
     })).rejects.toThrow("Invalid API response for POST /feedback/prompt-events: ok must be true");
   });
 });

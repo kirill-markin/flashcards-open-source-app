@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.app
 
+import com.flashcardsopensourceapp.data.local.model.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.FeedbackPromptReviewActivity
 import java.time.Instant
 import java.time.ZoneId
@@ -18,6 +19,11 @@ data class FeedbackPromptLocalState(
     val draftMessage: String
 )
 
+@JvmInline
+value class FeedbackPromptIdentityKey(
+    val value: String
+)
+
 data class FeedbackPromptContext(
     val isAppResumed: Boolean,
     val isAuthFlowActive: Boolean,
@@ -28,6 +34,17 @@ data class FeedbackPromptLocalDayWindow(
     val startMillis: Long,
     val endMillis: Long
 )
+
+fun feedbackPromptIdentityKey(cloudSettings: CloudSettings): FeedbackPromptIdentityKey {
+    val linkedUserId = cloudSettings.linkedUserId?.trim()?.takeIf { value ->
+        value.isNotEmpty()
+    }
+    if (linkedUserId != null) {
+        return FeedbackPromptIdentityKey(value = "user:$linkedUserId")
+    }
+
+    return FeedbackPromptIdentityKey(value = "installation:${cloudSettings.installationId}")
+}
 
 fun feedbackPromptLocalDayWindow(nowMillis: Long, zoneId: ZoneId): FeedbackPromptLocalDayWindow {
     val localDate = Instant.ofEpochMilli(nowMillis).atZone(zoneId).toLocalDate()

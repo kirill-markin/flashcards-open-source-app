@@ -51,13 +51,13 @@ function getLaterIsoTimestamp(left: string | null, right: string | null): string
 }
 
 function toFeedbackState(row: FeedbackStateRow): FeedbackState {
-  const lastAutomaticPromptAt = toOptionalIsoString(row.last_automatic_prompt_at);
-  const lastSubmittedAt = toOptionalIsoString(row.last_submitted_at);
-  const cooldownBaseAt = getLaterIsoTimestamp(lastAutomaticPromptAt, lastSubmittedAt);
+  const lastAutomaticPromptShownAt = toOptionalIsoString(row.last_automatic_prompt_at);
+  const lastFeedbackSubmittedAt = toOptionalIsoString(row.last_submitted_at);
+  const cooldownBaseAt = getLaterIsoTimestamp(lastAutomaticPromptShownAt, lastFeedbackSubmittedAt);
   return {
     automaticPromptCooldownDays: feedbackAutomaticPromptCooldownDays,
-    lastAutomaticPromptAt,
-    lastSubmittedAt,
+    lastAutomaticPromptShownAt,
+    lastFeedbackSubmittedAt,
     nextAutomaticPromptAt: cooldownBaseAt === null
       ? null
       : addDaysToIsoTimestamp(cooldownBaseAt, feedbackAutomaticPromptCooldownDays),

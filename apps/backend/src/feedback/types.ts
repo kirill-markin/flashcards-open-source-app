@@ -9,9 +9,13 @@ export type FeedbackEmailNotificationStatus = "pending" | "sent" | "failed";
 
 export type FeedbackState = Readonly<{
   automaticPromptCooldownDays: number;
-  lastAutomaticPromptAt: string | null;
-  lastSubmittedAt: string | null;
+  lastAutomaticPromptShownAt: string | null;
+  lastFeedbackSubmittedAt: string | null;
   nextAutomaticPromptAt: string | null;
+}>;
+
+export type FeedbackStateEnvelope = Readonly<{
+  feedbackState: FeedbackState;
 }>;
 
 export type FeedbackPromptEventInput = Readonly<{

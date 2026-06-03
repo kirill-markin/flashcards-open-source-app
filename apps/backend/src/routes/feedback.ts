@@ -128,7 +128,7 @@ export function createFeedbackRoutes(options: FeedbackRoutesOptions): Hono<AppEn
           statusCode: 200,
         },
       });
-      return context.json(state);
+      return context.json({ feedbackState: state });
     } catch (error) {
       const scope = createFeedbackRouteScope(
         requestId,
@@ -201,7 +201,7 @@ export function createFeedbackRoutes(options: FeedbackRoutesOptions): Hono<AppEn
           eventType: input?.eventType ?? null,
         },
       });
-      return context.json(state);
+      return context.json({ feedbackState: state });
     } catch (error) {
       const scope = createFeedbackRouteScope(
         requestId,

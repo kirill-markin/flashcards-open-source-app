@@ -392,6 +392,7 @@ final class FlashcardsStore {
         self.guestSignInAfterReviewPromptReconciliationToken = 0
         self.feedbackPresentation = nil
         self.feedbackPromptState = loadFeedbackPromptState(
+            identityKey: makeFeedbackPromptIdentityKey(cloudSettings: nil),
             userDefaults: userDefaults,
             decoder: decoder
         )

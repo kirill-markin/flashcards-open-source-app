@@ -1,5 +1,7 @@
 import { getStableInstallationId, webAppVersion } from "../clientIdentity";
 import type {
+  FeedbackPromptEventRequest,
+  FeedbackPromptEventType,
   FeedbackSubmissionRequest,
   FeedbackTrigger,
 } from "../types";
@@ -13,6 +15,13 @@ export type BuildFeedbackSubmissionRequestInput = Readonly<{
   locale: Locale;
   trigger: FeedbackTrigger;
   message: string;
+  now: Date;
+}>;
+
+export type BuildFeedbackPromptEventRequestInput = Readonly<{
+  workspaceId: string | null;
+  locale: Locale;
+  eventType: FeedbackPromptEventType;
   now: Date;
 }>;
 
@@ -47,6 +56,22 @@ export function buildFeedbackSubmissionRequest(
     timezone: buildProgressDateContext(input.now).timeZone,
     trigger: input.trigger,
     message: normalizedMessage,
+    createdAtClient: input.now.toISOString(),
+  };
+}
+
+export function buildFeedbackPromptEventRequest(
+  input: BuildFeedbackPromptEventRequestInput,
+): FeedbackPromptEventRequest {
+  return {
+    feedbackPromptEventId: crypto.randomUUID().toLowerCase(),
+    workspaceId: input.workspaceId,
+    installationId: getStableInstallationId(),
+    platform: "web",
+    appVersion: webAppVersion,
+    locale: input.locale,
+    timezone: buildProgressDateContext(input.now).timeZone,
+    eventType: input.eventType,
     createdAtClient: input.now.toISOString(),
   };
 }

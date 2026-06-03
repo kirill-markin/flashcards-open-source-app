@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.data.local.cloud.remote
 
 import com.flashcardsopensourceapp.data.local.cloud.wire.putNullableString
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudInt
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudNullableIsoTimestampMillis
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudObject
 import com.flashcardsopensourceapp.data.local.model.CloudFeedbackPromptEventRequest
@@ -67,6 +68,10 @@ private fun parseCloudFeedbackStateResponse(
 ): CloudFeedbackState {
     val feedbackState = response.requireCloudObject("feedbackState", "$fieldPath.feedbackState")
     return CloudFeedbackState(
+        automaticPromptCooldownDays = feedbackState.requireCloudInt(
+            key = "automaticPromptCooldownDays",
+            fieldPath = "$fieldPath.feedbackState.automaticPromptCooldownDays"
+        ),
         lastAutomaticPromptShownAtMillis = feedbackState.requireCloudNullableIsoTimestampMillis(
             key = "lastAutomaticPromptShownAt",
             fieldPath = "$fieldPath.feedbackState.lastAutomaticPromptShownAt"
