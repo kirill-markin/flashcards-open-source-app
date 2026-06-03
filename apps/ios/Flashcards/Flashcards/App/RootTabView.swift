@@ -268,8 +268,12 @@ struct RootTabView: View {
     }
 
     private var tabRoot: some View {
+        self.tabRootAlerts
+    }
+
+    private var tabRootBase: some View {
         @Bindable var navigation = self.navigation
-        let selectedTabBinding = Binding(
+        let selectedTabBinding = Binding<AppTab>(
             get: {
                 navigation.selectedTab
             },
@@ -280,138 +284,19 @@ struct RootTabView: View {
         )
 
         return TabView(selection: selectedTabBinding) {
-            NavigationStack {
-                ReviewView()
-            }
-            .tabItem {
-                Label(
-                    String(
-                        localized: "root_tab.review.title",
-                        table: "Foundation",
-                        comment: "Review tab title"
-                    ),
-                    systemImage: "rectangle.on.rectangle"
-                )
-                .accessibilityIdentifier(UITestIdentifier.rootTabReviewItem)
-            }
-            .tag(AppTab.review)
-
-            NavigationStack {
-                ProgressScreen()
-            }
-            .tabItem {
-                Label(
-                    String(
-                        localized: "root_tab.progress.title",
-                        defaultValue: "Progress",
-                        table: "Foundation",
-                        comment: "Progress tab title"
-                    ),
-                    systemImage: "chart.bar.xaxis"
-                )
-                .accessibilityIdentifier(UITestIdentifier.rootTabProgressItem)
-            }
-            .tag(AppTab.progress)
-
-            NavigationStack {
-                AIChatView(chatStore: store.aiChatStore)
-            }
-            .tabItem {
-                Label(
-                    String(
-                        localized: "root_tab.ai.title",
-                        defaultValue: "AI",
-                        table: "Foundation",
-                        comment: "AI tab title"
-                    ),
-                    systemImage: "sparkles.rectangle.stack"
-                )
-                .accessibilityIdentifier(UITestIdentifier.rootTabAIItem)
-            }
-            .tag(AppTab.ai)
-
-            NavigationStack {
-                CardsScreen()
-            }
-            .tabItem {
-                Label(
-                    String(
-                        localized: "root_tab.cards.title",
-                        defaultValue: "Cards",
-                        table: "Foundation",
-                        comment: "Cards tab title"
-                    ),
-                    systemImage: "rectangle.stack"
-                )
-                .accessibilityIdentifier(UITestIdentifier.rootTabCardsItem)
-            }
-            .tag(AppTab.cards)
-
-            NavigationStack(path: $navigation.settingsPath) {
-                SettingsView()
-                    .navigationDestination(for: SettingsNavigationDestination.self) { destination in
-                        switch destination {
-                        case .currentWorkspace:
-                            CurrentWorkspaceView()
-                        case .device:
-                            ThisDeviceSettingsView()
-                        case .access:
-                            AccessSettingsView()
-                        case .accessPermissionDetail(let kind):
-                            AccessPermissionDetailView(kind: kind)
-                        case .test:
-                            TestSettingsView()
-                        case .testAnimations:
-                            TestAnimationsView()
-                        case .workspace:
-                            WorkspaceSettingsView()
-                        case .workspaceNotifications:
-                            ReviewNotificationsSettingsView()
-                        case .workspaceOverview:
-                            WorkspaceOverviewView()
-                        case .workspaceScheduler:
-                            SchedulerSettingsDetailView()
-                        case .workspaceExport:
-                            WorkspaceExportView()
-                        case .workspaceDecks:
-                            DecksScreen()
-                        case .workspaceTags:
-                            TagsScreen()
-                        case .account:
-                            AccountSettingsView()
-                        case .accountStatus:
-                            AccountStatusView()
-                        case .accountLegalSupport:
-                            AccountLegalSupportView()
-                        case .accountOpenSource:
-                            AccountOpenSourceView()
-                        case .accountAdvanced:
-                            AccountAdvancedSettingsView()
-                        case .accountServer:
-                            ServerSettingsView()
-                        case .accountAgentConnections:
-                            AgentConnectionsView()
-                        case .accountDangerZone:
-                            DangerZoneView()
-                        }
-                    }
-            }
-            .tabItem {
-                Label(
-                    String(
-                        localized: "root_tab.settings.title",
-                        table: "Foundation",
-                        comment: "Settings tab title"
-                    ),
-                    systemImage: "gearshape"
-                )
-                .accessibilityIdentifier(UITestIdentifier.rootTabSettingsItem)
-            }
-            .tag(AppTab.settings)
+            self.reviewTab
+            self.progressTab
+            self.aiTab
+            self.cardsTab
+            self.settingsTab(settingsPath: $navigation.settingsPath)
         }
+    }
+
+    private var tabRootTasks: some View {
+        self.tabRootBase
         .tabBarMinimizeBehavior(.never)
         .task {
-            store.prepareVisibleTabForPresentation(tab: navigation.selectedTab, now: Date())
+            store.prepareVisibleTabForPresentation(tab: self.navigation.selectedTab, now: Date())
             self.reconcileGuestSignInAfterReviewPrompt()
         }
         .task(id: self.guestSignInAfterReviewPromptRecheckTaskID) {
@@ -432,7 +317,11 @@ struct RootTabView: View {
                 self.uiTestLaunchPreparationStatusMarker
             }
         }
-        .onChange(of: navigation.selectedTab) { _, nextTab in
+    }
+
+    private var tabRootChangeHandlers: some View {
+        self.tabRootTasks
+        .onChange(of: self.navigation.selectedTab) { _, nextTab in
             self.prepareTabForPresentationIfNeeded(nextTab: nextTab)
             Task { @MainActor in
                 await self.refreshSelectedTabIfNeeded(nextTab: nextTab)
@@ -488,6 +377,10 @@ struct RootTabView: View {
         .onChange(of: self.isGuestSignInCloudSignInPresented) { _, _ in
             self.reconcileGuestSignInAfterReviewPrompt()
         }
+    }
+
+    private var tabRootSheets: some View {
+        self.tabRootChangeHandlers
         .sheet(isPresented: self.$isGuestSignInCloudSignInPresented) {
             CloudSignInSheet(presentationContext: .standard)
                 .environment(store)
@@ -496,6 +389,10 @@ struct RootTabView: View {
             FeedbackSheet(presentation: presentation)
                 .environment(store)
         }
+    }
+
+    private var tabRootAlerts: some View {
+        self.tabRootSheets
         .alert(
             self.guestSignInAfterReviewPromptTitle,
             isPresented: self.guestSignInAfterReviewPromptPresentation
@@ -530,6 +427,150 @@ struct RootTabView: View {
             }
         } message: {
             Text(store.accountDeletionSuccessMessage ?? "")
+        }
+    }
+
+    private var reviewTab: some View {
+        NavigationStack {
+            ReviewView()
+        }
+        .tabItem {
+            Label(
+                String(
+                    localized: "root_tab.review.title",
+                    table: "Foundation",
+                    comment: "Review tab title"
+                ),
+                systemImage: "rectangle.on.rectangle"
+            )
+            .accessibilityIdentifier(UITestIdentifier.rootTabReviewItem)
+        }
+        .tag(AppTab.review)
+    }
+
+    private var progressTab: some View {
+        NavigationStack {
+            ProgressScreen()
+        }
+        .tabItem {
+            Label(
+                String(
+                    localized: "root_tab.progress.title",
+                    defaultValue: "Progress",
+                    table: "Foundation",
+                    comment: "Progress tab title"
+                ),
+                systemImage: "chart.bar.xaxis"
+            )
+            .accessibilityIdentifier(UITestIdentifier.rootTabProgressItem)
+        }
+        .tag(AppTab.progress)
+    }
+
+    private var aiTab: some View {
+        NavigationStack {
+            AIChatView(chatStore: store.aiChatStore)
+        }
+        .tabItem {
+            Label(
+                String(
+                    localized: "root_tab.ai.title",
+                    defaultValue: "AI",
+                    table: "Foundation",
+                    comment: "AI tab title"
+                ),
+                systemImage: "sparkles.rectangle.stack"
+            )
+            .accessibilityIdentifier(UITestIdentifier.rootTabAIItem)
+        }
+        .tag(AppTab.ai)
+    }
+
+    private var cardsTab: some View {
+        NavigationStack {
+            CardsScreen()
+        }
+        .tabItem {
+            Label(
+                String(
+                    localized: "root_tab.cards.title",
+                    defaultValue: "Cards",
+                    table: "Foundation",
+                    comment: "Cards tab title"
+                ),
+                systemImage: "rectangle.stack"
+            )
+            .accessibilityIdentifier(UITestIdentifier.rootTabCardsItem)
+        }
+        .tag(AppTab.cards)
+    }
+
+    private func settingsTab(settingsPath: Binding<[SettingsNavigationDestination]>) -> some View {
+        NavigationStack(path: settingsPath) {
+            SettingsView()
+                .navigationDestination(for: SettingsNavigationDestination.self) { destination in
+                    self.settingsDestinationView(destination: destination)
+                }
+        }
+        .tabItem {
+            Label(
+                String(
+                    localized: "root_tab.settings.title",
+                    table: "Foundation",
+                    comment: "Settings tab title"
+                ),
+                systemImage: "gearshape"
+            )
+            .accessibilityIdentifier(UITestIdentifier.rootTabSettingsItem)
+        }
+        .tag(AppTab.settings)
+    }
+
+    @ViewBuilder
+    private func settingsDestinationView(destination: SettingsNavigationDestination) -> some View {
+        switch destination {
+        case .currentWorkspace:
+            CurrentWorkspaceView()
+        case .device:
+            ThisDeviceSettingsView()
+        case .access:
+            AccessSettingsView()
+        case .accessPermissionDetail(let kind):
+            AccessPermissionDetailView(kind: kind)
+        case .test:
+            TestSettingsView()
+        case .testAnimations:
+            TestAnimationsView()
+        case .workspace:
+            WorkspaceSettingsView()
+        case .workspaceNotifications:
+            ReviewNotificationsSettingsView()
+        case .workspaceOverview:
+            WorkspaceOverviewView()
+        case .workspaceScheduler:
+            SchedulerSettingsDetailView()
+        case .workspaceExport:
+            WorkspaceExportView()
+        case .workspaceDecks:
+            DecksScreen()
+        case .workspaceTags:
+            TagsScreen()
+        case .account:
+            AccountSettingsView()
+        case .accountStatus:
+            AccountStatusView()
+        case .accountLegalSupport:
+            AccountLegalSupportView()
+        case .accountOpenSource:
+            AccountOpenSourceView()
+        case .accountAdvanced:
+            AccountAdvancedSettingsView()
+        case .accountServer:
+            ServerSettingsView()
+        case .accountAgentConnections:
+            AgentConnectionsView()
+        case .accountDangerZone:
+            DangerZoneView()
         }
     }
 }
