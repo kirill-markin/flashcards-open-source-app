@@ -188,7 +188,7 @@ extension FlashcardsStore {
     }
 
     private func withFeedbackCloudSession<Result>(
-        operation: (any CloudSyncServing, CloudLinkedSession) async throws -> Result
+        operation: @MainActor (any CloudSyncServing, CloudLinkedSession) async throws -> Result
     ) async throws -> Result {
         let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.dependencies.cloudSyncService)
         let session = try await self.cloudSessionForFeedback()

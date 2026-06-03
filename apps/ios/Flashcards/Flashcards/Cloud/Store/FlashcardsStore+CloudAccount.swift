@@ -329,7 +329,7 @@ extension FlashcardsStore {
 
     func withCloudSessionPreservingStableContext<Result>(
         linkedSession: CloudLinkedSession,
-        operation: (CloudLinkedSession) async throws -> Result
+        operation: @MainActor (CloudLinkedSession) async throws -> Result
     ) async throws -> Result {
         switch linkedSession.authorization {
         case .guest:

@@ -258,7 +258,7 @@ extension FlashcardsStore {
     }
 
     func withStoredAuthenticatedCredentials<Result>(
-        operation: (StoredCloudCredentials, CloudServiceConfiguration) async throws -> Result
+        operation: @MainActor (StoredCloudCredentials, CloudServiceConfiguration) async throws -> Result
     ) async throws -> Result {
         try self.throwIfCloudCredentialRecoveryRequired()
         if try self.markLinkedCredentialRecoveryForMissingCredentialsIfNeeded(detectedAt: Date()) {
