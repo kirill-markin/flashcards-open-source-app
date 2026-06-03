@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.app
+package com.flashcardsopensourceapp.app.prompts.feedback
 
 import android.content.Context
 import androidx.test.ext.junit.runners.AndroidJUnit4

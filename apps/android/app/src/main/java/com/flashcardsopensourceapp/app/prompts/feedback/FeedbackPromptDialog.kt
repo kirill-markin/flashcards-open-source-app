@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.app
+package com.flashcardsopensourceapp.app.prompts.feedback
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.flashcardsopensourceapp.app.R
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackTrigger
 
 const val feedbackPromptDialogTag: String = "feedback_prompt_dialog"

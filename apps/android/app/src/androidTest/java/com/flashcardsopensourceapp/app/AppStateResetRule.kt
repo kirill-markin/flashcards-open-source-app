@@ -7,6 +7,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import com.flashcardsopensourceapp.app.livesmoke.currentBlockingSystemDialogSummaryOrNull
 import com.flashcardsopensourceapp.app.livesmoke.dismissBlockingSystemDialogIfPresent
+import com.flashcardsopensourceapp.app.prompts.guestreview.guestSignInAfterReviewPromptPreferencesName
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import java.util.concurrent.CountDownLatch
