@@ -6,7 +6,7 @@ import {
   captureWebExceptionMock,
   setupChatPanelTest,
   startChatRunMock,
-} from "./ChatPanelTestSupport";
+} from "./support/ChatPanelTestSupport";
 
 const {
   flushAsync,

@@ -8,15 +8,15 @@ import {
   setupChatPanelTest,
   startChatRunMock,
   useAppDataMock,
-} from "./ChatPanelTestSupport";
+} from "./support/ChatPanelTestSupport";
 import {
   createCompletedToolCallAssistantMessage,
   createVerifiedWorkspaceAppDataMock,
-} from "./ChatPanelTestFixtures";
+} from "./support/ChatPanelTestFixtures";
 import {
   loadChatSessionWarmStartSnapshot,
   storeChatSessionWarmStartSnapshot,
-} from "../sessionController/warmStart";
+} from "../../sessionController/warmStart";
 
 const {
   flushAsync,

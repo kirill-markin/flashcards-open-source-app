@@ -14,13 +14,13 @@ import {
   setTextareaValue,
   setupChatPanelTest,
   startChatRunMock,
-} from "./ChatPanelTestSupport";
+} from "./support/ChatPanelTestSupport";
 import {
   createChatDraftContent,
   loadChatDraftWorkspaceState,
   replaceChatDraftForSession,
   storeChatDraftWorkspaceState,
-} from "../composer/chatDraftStorage";
+} from "../../composer/chatDraftStorage";
 
 const {
   clickAddAttachment,

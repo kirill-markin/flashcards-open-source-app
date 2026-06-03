@@ -14,8 +14,8 @@ import {
   startChatRunMock,
   stopChatRunMock,
   useAppDataMock,
-} from "./ChatPanelTestSupport";
-import { createVerifiedWorkspaceAppDataMock } from "./ChatPanelTestFixtures";
+} from "./support/ChatPanelTestSupport";
+import { createVerifiedWorkspaceAppDataMock } from "./support/ChatPanelTestFixtures";
 
 const {
   clickStop,

@@ -24,9 +24,9 @@ import {
   stopChatRunMock,
   transcribeChatAudioMock,
   useAppDataMock,
-} from "./ChatPanelTestSupport";
-import { createVerifiedWorkspaceAppDataMock } from "./ChatPanelTestFixtures";
-import { getChatComposerCapabilities } from "../composer/chatComposerState";
+} from "./support/ChatPanelTestSupport";
+import { createVerifiedWorkspaceAppDataMock } from "./support/ChatPanelTestFixtures";
+import { getChatComposerCapabilities } from "../../composer/chatComposerState";
 
 const {
   clickMicrophone,

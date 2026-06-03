@@ -8,12 +8,12 @@ import {
   getChatSnapshotMock,
   setupChatPanelTest,
   useAppDataMock,
-} from "./ChatPanelTestSupport";
+} from "./support/ChatPanelTestSupport";
 import {
   createUnverifiedWorkspaceAppDataMock,
   createVerifiedWorkspaceAppDataMock,
-} from "./ChatPanelTestFixtures";
-import { storeChatSessionWarmStartSnapshot } from "../sessionController/warmStart";
+} from "./support/ChatPanelTestFixtures";
+import { storeChatSessionWarmStartSnapshot } from "../../sessionController/warmStart";
 
 const {
   flushAsync,
