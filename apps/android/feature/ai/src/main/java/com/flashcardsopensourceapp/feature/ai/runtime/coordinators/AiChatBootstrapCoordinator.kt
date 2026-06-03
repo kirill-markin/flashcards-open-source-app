@@ -1,17 +1,42 @@
-package com.flashcardsopensourceapp.feature.ai.runtime
+package com.flashcardsopensourceapp.feature.ai.runtime.coordinators
 
 import com.flashcardsopensourceapp.data.local.ai.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.model.AiChatBootstrapResponse
+import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
+import com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics
 import com.flashcardsopensourceapp.data.local.model.AiChatSessionProvisioningResult
 import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import com.flashcardsopensourceapp.data.local.repository.AiChatPreparedRemoteSession
 import com.flashcardsopensourceapp.feature.ai.emptyAiBootstrapErrorPresentation
+import com.flashcardsopensourceapp.feature.ai.runtime.AiChatRuntimeContext
+import com.flashcardsopensourceapp.feature.ai.runtime.aiChatBootstrapPageLimit
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiAccessContext
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiChatRuntimeState
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiComposerPhase
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiConversationBootstrapState
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.normalizeAiChatPersistedStateForWorkspace
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.resolveAiChatSessionIdForWorkspace
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.runtimeKey
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.setPendingToolRunPostSync
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.snapshotRunHasToolCalls
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatBreadcrumb
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatExceptionEvent
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatFailureIssueDisposition
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatWarning
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.aiChatFailureIssueDisposition
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.aiChatFailureWarningMessage
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.aiChatRemoteErrorDetails
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.makeAiBootstrapErrorPresentation
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChatBreadcrumb
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChatException
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChatWarning
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.remoteErrorFields
 import java.io.IOException
 import java.net.ConnectException
 import java.net.MalformedURLException
@@ -42,7 +67,7 @@ internal class AiChatBootstrapCoordinator(
     private val attachBootstrapLiveStream: (
         String,
         AiChatBootstrapResponse,
-        com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics?
+        AiChatResumeDiagnostics?
     ) -> Unit
 ) {
     private var activeBootstrapRequestToken: Long = 0L
@@ -80,7 +105,7 @@ internal class AiChatBootstrapCoordinator(
 
     fun startConversationBootstrap(
         forceReloadState: Boolean,
-        resumeDiagnostics: com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics?
+        resumeDiagnostics: AiChatResumeDiagnostics?
     ) {
         val accessContext = context.activeAccessContext ?: return
         val workspaceId = accessContext.workspaceId ?: return
@@ -480,7 +505,7 @@ internal class AiChatBootstrapCoordinator(
         workspaceId: String,
         persistedState: AiChatPersistedState,
         bootstrapProvisionalSessionId: String?,
-        resumeDiagnostics: com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics?,
+        resumeDiagnostics: AiChatResumeDiagnostics?,
         accessContext: AiAccessContext,
         bootstrapRequestToken: Long,
         bootstrapJob: Job?,
@@ -588,7 +613,7 @@ internal class AiChatBootstrapCoordinator(
 
     private suspend fun resolveRemoteBootstrapSession(
         preparedSession: AiChatPreparedRemoteSession,
-        persistedState: com.flashcardsopensourceapp.data.local.model.AiChatPersistedState,
+        persistedState: AiChatPersistedState,
         bootstrapProvisionalSessionId: String?,
         onInitialProvisioningAttempted: () -> Unit,
         onInitialProvisioningCompleted: () -> Unit,
@@ -751,7 +776,7 @@ internal class AiChatBootstrapCoordinator(
 
     private fun updateComposerSuggestions(
         state: AiChatRuntimeState,
-        nextSuggestions: List<com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion>
+        nextSuggestions: List<AiChatComposerSuggestion>
     ): AiChatRuntimeState {
         return state.copy(serverComposerSuggestions = nextSuggestions)
     }

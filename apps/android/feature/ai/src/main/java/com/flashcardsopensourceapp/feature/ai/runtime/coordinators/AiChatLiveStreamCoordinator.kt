@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.ai.runtime
+package com.flashcardsopensourceapp.feature.ai.runtime.coordinators
 
 import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
 import com.flashcardsopensourceapp.data.local.ai.AiChatLiveStreamException
@@ -10,9 +10,23 @@ import com.flashcardsopensourceapp.data.local.model.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveStreamEnvelope
 import com.flashcardsopensourceapp.data.local.model.AiChatReasoningSummary
+import com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics
 import com.flashcardsopensourceapp.data.local.model.AiChatRunTerminalOutcome
 import com.flashcardsopensourceapp.data.local.model.AiChatStartRunResponse
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
+import com.flashcardsopensourceapp.feature.ai.runtime.AiChatRuntimeContext
+import com.flashcardsopensourceapp.feature.ai.runtime.aiChatBootstrapPageLimit
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiComposerPhase
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.clearOptimisticAssistantStatusIfNeeded
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.completeAssistantReasoningSummary
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.finalizeAssistantMessage
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.latestAssistantErrorMessage
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.setPendingToolRunPostSync
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.upsertAssistantReasoningSummary
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.upsertAssistantText
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.upsertAssistantToolCall
+import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiErrorSurface
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.makeAiUserFacingErrorMessage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collect
@@ -26,13 +40,13 @@ private enum class AiLiveAttachDisposition {
 
 internal class AiChatLiveStreamCoordinator(
     private val context: AiChatRuntimeContext,
-    private val restartConversationBootstrap: (Boolean, com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics?) -> Unit,
+    private val restartConversationBootstrap: (Boolean, AiChatResumeDiagnostics?) -> Unit,
     private val applyActiveBootstrap: suspend (AiChatBootstrapResponse, String) -> Unit
 ) {
     fun attachBootstrapLiveIfNeeded(
         workspaceId: String,
         response: AiChatBootstrapResponse,
-        resumeDiagnostics: com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics?
+        resumeDiagnostics: AiChatResumeDiagnostics?
     ) {
         val activeRun = response.activeRun
         if (activeRun == null) {
@@ -127,7 +141,7 @@ internal class AiChatLiveStreamCoordinator(
         runId: String,
         liveStream: AiChatLiveStreamEnvelope,
         afterCursor: String?,
-        resumeDiagnostics: com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics?,
+        resumeDiagnostics: AiChatResumeDiagnostics?,
         cancellationMessage: String
     ) {
         context.activeLiveJob?.cancel(

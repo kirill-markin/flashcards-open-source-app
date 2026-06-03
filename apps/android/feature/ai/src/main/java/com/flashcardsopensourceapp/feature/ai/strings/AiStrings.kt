@@ -6,8 +6,8 @@ import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.feature.ai.R
-import com.flashcardsopensourceapp.feature.ai.runtime.AiAlertState
-import com.flashcardsopensourceapp.feature.ai.runtime.AiAttachmentSettingsSource
+import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
+import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAttachmentSettingsSource
 import com.flashcardsopensourceapp.feature.settings.access.AccessCapability
 import java.util.Locale
 

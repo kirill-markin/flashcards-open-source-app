@@ -36,6 +36,7 @@ import com.flashcardsopensourceapp.data.local.repository.AiChatPreparedRemoteSes
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncEvent
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncRequest
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiAccessContext
 import com.flashcardsopensourceapp.feature.ai.strings.testAiTextProvider
 import java.util.ArrayDeque
 import kotlinx.coroutines.CompletableDeferred

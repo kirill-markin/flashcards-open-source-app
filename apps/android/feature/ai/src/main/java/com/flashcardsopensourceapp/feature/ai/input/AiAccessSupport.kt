@@ -1,7 +1,7 @@
 package com.flashcardsopensourceapp.feature.ai.input
 
-import com.flashcardsopensourceapp.feature.ai.runtime.AiAlertState
-import com.flashcardsopensourceapp.feature.ai.runtime.AiAttachmentSettingsSource
+import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
+import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAttachmentSettingsSource
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
 import com.flashcardsopensourceapp.feature.settings.access.AccessCapability
 import com.flashcardsopensourceapp.feature.settings.access.AccessStatus

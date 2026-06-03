@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.ai.runtime
+package com.flashcardsopensourceapp.feature.ai.runtime.coordinators
 
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.ai.AiChatRequestTooLargeException
@@ -10,12 +10,38 @@ import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
 import com.flashcardsopensourceapp.data.local.model.AiChatDraftState
+import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.AiChatStartRunRequest
+import com.flashcardsopensourceapp.data.local.model.AiChatStartRunResponse
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.buildAiChatRequestContent
 import com.flashcardsopensourceapp.data.local.model.isSendableAiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.requireAiChatAttachmentSize
+import com.flashcardsopensourceapp.feature.ai.runtime.AiChatRuntimeContext
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiChatRuntimeState
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiComposerPhase
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiConversationBootstrapState
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.appendAssistantAccountUpgradePrompt
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.makeAiChatSessionId
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.makeAssistantStatusMessage
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.makeUserContent
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.makeUserMessage
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.setPendingToolRunPostSync
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.snapshotRunHasToolCalls
+import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiErrorSurface
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatBreadcrumb
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatExceptionEvent
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatFailureIssueDisposition
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatWarning
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.aiChatFailureIssueDisposition
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.aiChatFailureWarningMessage
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.aiChatRemoteErrorDetails
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.countAiChatContentParts
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.makeAiUserFacingErrorMessage
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChatBreadcrumb
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChatException
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChatWarning
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.update
@@ -276,7 +302,7 @@ internal class AiChatSendCoordinator(
     }
 
     private suspend fun applyAcceptedRunResponse(
-        response: com.flashcardsopensourceapp.data.local.model.AiChatStartRunResponse,
+        response: AiChatStartRunResponse,
         targetSessionId: String
     ) {
         if (sessionCoordinator.canApplySessionScopedResult(targetSessionId = targetSessionId).not()) {
@@ -336,7 +362,7 @@ internal class AiChatSendCoordinator(
         targetSessionId: String,
         didAcceptRun: Boolean,
         didAppendOptimisticMessages: Boolean,
-        rollbackPersistedState: com.flashcardsopensourceapp.data.local.model.AiChatPersistedState,
+        rollbackPersistedState: AiChatPersistedState,
         draftMessage: String,
         pendingAttachments: List<AiChatAttachment>
     ) {
@@ -462,7 +488,7 @@ internal class AiChatSendCoordinator(
 
     private fun restorePreAcceptFailureState(
         didAppendOptimisticMessages: Boolean,
-        rollbackPersistedState: com.flashcardsopensourceapp.data.local.model.AiChatPersistedState,
+        rollbackPersistedState: AiChatPersistedState,
         draftMessage: String,
         pendingAttachments: List<AiChatAttachment>
     ) {

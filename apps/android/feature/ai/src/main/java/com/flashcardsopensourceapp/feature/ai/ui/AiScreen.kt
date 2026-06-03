@@ -69,7 +69,7 @@ import com.flashcardsopensourceapp.feature.ai.input.makeAiChatAttachmentFromCame
 import com.flashcardsopensourceapp.feature.ai.input.makeAiChatDocumentAttachmentFromUri
 import com.flashcardsopensourceapp.feature.ai.input.makeAiChatImageAttachmentFromUri
 import com.flashcardsopensourceapp.feature.ai.input.startDictationRecording
-import com.flashcardsopensourceapp.feature.ai.runtime.AiAlertState
+import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
 import com.flashcardsopensourceapp.feature.ai.strings.aiTextProvider
 import com.flashcardsopensourceapp.feature.settings.access.AccessCapability
 import com.flashcardsopensourceapp.feature.settings.access.AccessStatus

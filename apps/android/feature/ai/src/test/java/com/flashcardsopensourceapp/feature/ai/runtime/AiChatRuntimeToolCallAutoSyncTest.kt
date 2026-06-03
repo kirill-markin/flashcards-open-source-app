@@ -6,6 +6,8 @@ import com.flashcardsopensourceapp.data.local.model.AiChatRunTerminalOutcome
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.makeAssistantStatusMessage
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.makeUserMessage
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.advanceUntilIdle

@@ -6,7 +6,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
 import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
 import com.flashcardsopensourceapp.data.local.model.AiChatServerConfig
-import com.flashcardsopensourceapp.feature.ai.runtime.AiAlertState
+import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
 
 data class AiBootstrapErrorPresentation(
     val message: String,

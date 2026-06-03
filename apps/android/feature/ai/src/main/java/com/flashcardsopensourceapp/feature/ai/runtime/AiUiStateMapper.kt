@@ -12,6 +12,15 @@ import com.flashcardsopensourceapp.data.local.model.effectiveAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.isSendableAiChatAttachment
 import com.flashcardsopensourceapp.feature.ai.AiUiState
 import com.flashcardsopensourceapp.feature.ai.emptyAiBootstrapErrorPresentation
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiAccessContext
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiChatRuntimeState
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiComposerPhase
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiConversationBootstrapState
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canEditAiDraft
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canEditAiDraftText
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canManageAiDraftAttachments
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canPrepareAiDraftInComposerPhase
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.shouldPrepareGuestAccess
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
 
 internal fun initialAiAppMetadataSummary(textProvider: AiTextProvider): AppMetadataSummary {

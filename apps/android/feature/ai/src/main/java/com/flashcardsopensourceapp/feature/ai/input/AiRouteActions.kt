@@ -3,7 +3,7 @@ package com.flashcardsopensourceapp.feature.ai.input
 import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResultLauncher
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
-import com.flashcardsopensourceapp.feature.ai.runtime.AiAlertState
+import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
 import com.flashcardsopensourceapp.feature.settings.access.AccessCapability
 import com.flashcardsopensourceapp.feature.settings.access.AccessStatus
