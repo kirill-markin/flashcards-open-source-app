@@ -7,9 +7,9 @@ import * as apigw from "aws-cdk-lib/aws-apigateway";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import { Construct } from "constructs";
-import { backendNodejsProjectPaths, resolveFromRepoRoot } from "./nodejs-project-paths";
+import { backendNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-project-paths";
 import { createSafeApiGatewayAccessLogFormat } from "./api-gateway-access-log";
-import { createSentrySourceMapUploadCommand } from "./sentry-source-maps";
+import { createSentrySourceMapUploadCommand } from "../sentry-source-maps";
 
 export interface ApiGatewayProps {
   vpc: ec2.Vpc;

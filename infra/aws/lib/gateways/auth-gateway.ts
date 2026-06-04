@@ -7,7 +7,7 @@ import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as logs from "aws-cdk-lib/aws-logs";
 import { Construct } from "constructs";
 import { createSafeApiGatewayAccessLogFormat } from "./api-gateway-access-log";
-import { authNodejsProjectPaths, resolveFromRepoRoot } from "./nodejs-project-paths";
+import { authNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-project-paths";
 
 export interface AuthGatewayProps {
   vpc: ec2.Vpc;

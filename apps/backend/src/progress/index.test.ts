@@ -809,7 +809,7 @@ test("published contract excludes progress endpoints while the API Gateway resou
   assert.equal(openApiDocument.paths?.["/me/progress/review-schedule"], undefined);
   assert.equal(openApiDocument.paths?.["/me/progress/series"], undefined);
 
-  const apiGatewayPath = path.resolve(process.cwd(), "../../infra/aws/lib/api-gateway.ts");
+  const apiGatewayPath = path.resolve(process.cwd(), "../../infra/aws/lib/gateways/api-gateway.ts");
   const apiGatewaySource = fs.readFileSync(apiGatewayPath, "utf8");
   assert.match(apiGatewaySource, /const meProgress = me\.addResource\("progress"\);/);
   assert.doesNotMatch(apiGatewaySource, /meProgress\.addMethod\("GET", integration\);/);
