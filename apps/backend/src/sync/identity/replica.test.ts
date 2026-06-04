@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type pg from "pg";
-import type { DatabaseExecutor } from "../database";
-import { HttpError } from "../shared/errors";
+import type { DatabaseExecutor } from "../../database";
+import { HttpError } from "../../shared/errors";
 import {
   buildSystemWorkspaceReplicaId,
   ensureBootstrapSystemWorkspaceReplicaInExecutor,
   ensureSystemWorkspaceReplicaInExecutor,
   ensureWorkspaceReplicaInExecutor,
-} from "./identity";
+} from "./replica";
 
 type ClaimStatus = "inserted" | "refreshed" | "reassigned" | "platform_mismatch";
 

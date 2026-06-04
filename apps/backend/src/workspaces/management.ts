@@ -15,7 +15,7 @@ import {
   type WorkspaceTransactionDetails,
 } from "../observability/sentry";
 import { markBackendExceptionWrapperAsReported } from "../observability/reporting";
-import { ensureSystemWorkspaceReplicaInExecutor } from "../sync/identity";
+import { ensureSystemWorkspaceReplicaInExecutor } from "../sync/identity/replica";
 import { lockWorkspaceAccessLifecycleInExecutor } from "./accessLocks";
 import { createWorkspaceInExecutorWithObservationScope } from "./create";
 import {

@@ -1,15 +1,15 @@
 import type {
   CardMutationMetadata,
   CardSnapshotInput,
-} from "../cards";
+} from "../../cards";
 import type {
   DeckMutationMetadata,
   DeckSnapshotInput,
-} from "../decks";
+} from "../../decks";
 import type {
   WorkspaceSchedulerSettingsMutationMetadata,
   WorkspaceSchedulerSettingsSnapshotInput,
-} from "../scheduling/workspaceSettings";
+} from "../../scheduling/workspaceSettings";
 
 type MutationMetadataInput = Readonly<{
   clientUpdatedAt: string;

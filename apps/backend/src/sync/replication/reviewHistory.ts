@@ -1,22 +1,22 @@
-import { appendReviewEventSnapshotInExecutor } from "../cards";
+import { appendReviewEventSnapshotInExecutor } from "../../cards";
 import {
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
-} from "../database";
-import { HttpError } from "../shared/errors";
-import { ensureWorkspaceReplicaInExecutor } from "./identity";
-import { annotateSyncConflictHttpError } from "./fork";
+} from "../../database";
+import { HttpError } from "../../shared/errors";
+import { ensureWorkspaceReplicaInExecutor } from "../identity/replica";
+import { annotateSyncConflictHttpError } from "../conflicts/fork";
 import type {
   SyncReviewHistoryImportInput,
   SyncReviewHistoryPullInput,
-} from "./input";
+} from "../contracts/input";
 import type {
   ReviewHistoryRow,
   ReviewSequenceRow,
   SyncReviewHistoryImportResult,
   SyncReviewHistoryPullResult,
   TimestampValue,
-} from "./types";
+} from "../contracts/types";
 
 function toNumber(value: string | number | null): number | null {
   if (value === null) {
@@ -51,7 +51,7 @@ async function loadCurrentReviewSequenceId(
   return toNumber(row.review_sequence) ?? 0;
 }
 
-export function mapReviewHistoryRows(rows: ReadonlyArray<ReviewHistoryRow>): ReadonlyArray<import("../cards").ReviewEvent> {
+export function mapReviewHistoryRows(rows: ReadonlyArray<ReviewHistoryRow>): ReadonlyArray<import("../../cards").ReviewEvent> {
   return rows.map((row) => ({
     reviewEventId: row.review_event_id,
     workspaceId: row.workspace_id,

@@ -363,7 +363,7 @@ struct SyncOperation: Hashable {
     let payload: SyncOperationPayload
 }
 
-/// Mirrors one `/sync/push` operation result from `apps/backend/src/sync/types.ts`.
+/// Mirrors one `/sync/push` operation result from `apps/backend/src/sync/contracts/types.ts`.
 struct SyncOperationResult: Codable, Hashable {
     let operationId: String
     let entityType: SyncEntityType
@@ -373,7 +373,7 @@ struct SyncOperationResult: Codable, Hashable {
     let error: String?
 }
 
-/// Mirrors the `/sync/push` response from `apps/backend/src/sync/types.ts`.
+/// Mirrors the `/sync/push` response from `apps/backend/src/sync/contracts/types.ts`.
 struct SyncPushResponse: Codable, Hashable {
     let operations: [SyncOperationResult]
 }

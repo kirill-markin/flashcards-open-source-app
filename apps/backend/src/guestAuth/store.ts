@@ -11,7 +11,7 @@ import type {
   SyncClientPlatform,
   WorkspaceReplicaActorKind,
   WorkspaceReplicaPlatform,
-} from "../sync/identity";
+} from "../sync/identity/replica";
 import { lockWorkspaceAccessLifecycleInExecutor } from "../workspaces/accessLocks";
 import {
   lockUserSettingsForWorkspaceLifecycleInExecutor,

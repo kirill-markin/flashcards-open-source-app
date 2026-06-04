@@ -9,7 +9,7 @@ import {
   incomingLwwMetadataWins,
   normalizeIsoTimestamp,
   type LwwMetadata,
-} from "../sync/lww";
+} from "../sync/conflicts/lww";
 import {
   buildTokenizedOrLikeClause,
   MAX_SEARCH_TOKEN_COUNT,
@@ -20,11 +20,11 @@ import {
   encodeOpaqueCursor,
   type CursorPageInput,
 } from "../shared/pagination";
-import { findLatestSyncChangeId, insertSyncChange } from "../sync/changes";
+import { findLatestSyncChangeId, insertSyncChange } from "../sync/replication/changes";
 import {
   createSyncConflictHttpError,
   findSyncConflictWorkspaceIdInExecutor,
-} from "../sync/fork";
+} from "../sync/conflicts/fork";
 import type { EffortLevel } from "../cards";
 
 type TimestampValue = Date | string;

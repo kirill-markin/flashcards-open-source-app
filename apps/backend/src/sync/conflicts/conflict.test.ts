@@ -3,18 +3,18 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 import type pg from "pg";
-import { createPublicHttpErrorBody } from "../server/app";
-import { upsertCardSnapshotInExecutor } from "../cards";
-import type { DatabaseExecutor } from "../database";
-import { upsertDeckSnapshotInExecutor } from "../decks";
-import { HttpError } from "../shared/errors";
+import { createPublicHttpErrorBody } from "../../server/app";
+import { upsertCardSnapshotInExecutor } from "../../cards";
+import type { DatabaseExecutor } from "../../database";
+import { upsertDeckSnapshotInExecutor } from "../../decks";
+import { HttpError } from "../../shared/errors";
 import {
   annotateSyncConflictHttpError,
   createSyncConflictHttpError,
   findSyncConflictWorkspaceIdInExecutor,
   SYNC_WORKSPACE_FORK_REQUIRED,
 } from "./fork";
-import { processSyncReviewHistoryImportInExecutor } from "./reviewHistory";
+import { processSyncReviewHistoryImportInExecutor } from "../replication/reviewHistory";
 
 type EntityType = "card" | "deck" | "review_event";
 
@@ -149,7 +149,7 @@ test("findSyncConflictWorkspaceIdInExecutor resolves conflicts without membershi
 
 test("0048 sync conflict lookup casts target ids once and compares UUID columns directly", () => {
   const migration = readFileSync(
-    join(__dirname, "../../../../db/migrations/0048_sync_conflict_lookup.sql"),
+    join(__dirname, "../../../../../db/migrations/0048_sync_conflict_lookup.sql"),
     "utf8",
   );
 

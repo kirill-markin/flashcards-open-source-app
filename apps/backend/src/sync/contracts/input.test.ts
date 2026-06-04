@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { CardSnapshotInput } from "../cards";
-import { HttpError } from "../shared/errors";
-import { parseBootstrapEntryRow } from "./bootstrap";
+import type { CardSnapshotInput } from "../../cards";
+import { HttpError } from "../../shared/errors";
+import { parseBootstrapEntryRow } from "../replication/bootstrap";
 import { parseSyncPushInput } from "./input";
 import type { BootstrapProjectionRow } from "./types";
 

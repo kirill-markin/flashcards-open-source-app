@@ -1,26 +1,26 @@
-import type { CardRow } from "../cards/types";
-import { mapCard } from "../cards/shared";
+import type { CardRow } from "../../cards/types";
+import { mapCard } from "../../cards/shared";
 import {
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
-} from "../database";
+} from "../../database";
 import type {
   Deck,
   DeckRow,
-} from "../decks";
-import { mapDeck } from "../decks";
-import { HttpError } from "../shared/errors";
-import { ensureWorkspaceReplicaInExecutor } from "./identity";
+} from "../../decks";
+import { mapDeck } from "../../decks";
+import { HttpError } from "../../shared/errors";
+import { ensureWorkspaceReplicaInExecutor } from "../identity/replica";
 import { ensureWorkspaceSyncMetadataInExecutor, loadMinAvailableHotChangeId } from "./changes";
-import type { WorkspaceSchedulerSettings } from "../scheduling/workspaceSettings";
-import type { SyncPullInput } from "./input";
+import type { WorkspaceSchedulerSettings } from "../../scheduling/workspaceSettings";
+import type { SyncPullInput } from "../contracts/input";
 import type {
   HotChangeRow,
   SyncBootstrapEntry,
   SyncPullResult,
   TimestampValue,
   WorkspaceSchedulerSettingsRow,
-} from "./types";
+} from "../contracts/types";
 
 function toNumber(value: string | number | null): number | null {
   if (value === null) {
@@ -82,7 +82,7 @@ async function loadCardsByIdsInExecutor(
   executor: DatabaseExecutor,
   workspaceId: string,
   cardIds: ReadonlyArray<string>,
-): Promise<ReadonlyMap<string, import("../cards").Card>> {
+): Promise<ReadonlyMap<string, import("../../cards").Card>> {
   if (cardIds.length === 0) {
     return new Map();
   }

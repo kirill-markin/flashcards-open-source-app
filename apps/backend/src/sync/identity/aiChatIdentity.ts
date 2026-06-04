@@ -1,4 +1,4 @@
-import { ensureSystemWorkspaceReplica, type SyncClientPlatform } from "./identity";
+import { ensureSystemWorkspaceReplica, type SyncClientPlatform } from "./replica";
 
 /**
  * Backend-executed AI chat writes must show up through the normal sync flow,

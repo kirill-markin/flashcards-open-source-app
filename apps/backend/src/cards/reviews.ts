@@ -8,7 +8,7 @@ import {
 import {
   createSyncConflictHttpError,
   findSyncConflictWorkspaceIdInExecutor,
-} from "../sync/fork";
+} from "../sync/conflicts/fork";
 import { getWorkspaceSchedulerConfig } from "../scheduling/workspaceSettings";
 import { validateOrResetReviewableCardRow } from "./fsrs";
 import {

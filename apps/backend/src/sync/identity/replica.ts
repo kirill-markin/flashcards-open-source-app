@@ -3,9 +3,9 @@ import {
   applyWorkspaceDatabaseScopeInExecutor,
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
-} from "../database";
-import { HttpError } from "../shared/errors";
-import { lockWorkspaceAccessLifecycleInExecutor } from "../workspaces/accessLocks";
+} from "../../database";
+import { HttpError } from "../../shared/errors";
+import { lockWorkspaceAccessLifecycleInExecutor } from "../../workspaces/accessLocks";
 
 export type SyncClientPlatform = "ios" | "android" | "web";
 export type WorkspaceReplicaActorKind =

@@ -1,8 +1,8 @@
 /*
  Keep sync wire contracts aligned with:
- - apps/backend/src/sync/input.ts
- - apps/backend/src/sync/types.ts
- - apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/cloud/CloudRemoteService.kt
+ - apps/backend/src/sync/contracts/input.ts
+ - apps/backend/src/sync/contracts/types.ts
+ - apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/cloud/remote/CloudSyncRemoteApi.kt
  */
 
 struct MeResponse: Decodable {
@@ -50,7 +50,7 @@ struct DeleteAccountResponse: Decodable {
 
 /// Wire contract for `POST /sync/push`.
 ///
-/// Keep this request aligned with `apps/backend/src/sync/input.ts`
+/// Keep this request aligned with `apps/backend/src/sync/contracts/input.ts`
 /// `syncPushInputSchema`.
 struct PushRequest: Encodable {
     let installationId: String
@@ -61,7 +61,7 @@ struct PushRequest: Encodable {
 
 /// Wire contract for `POST /sync/pull`.
 ///
-/// Keep this request aligned with `apps/backend/src/sync/input.ts`
+/// Keep this request aligned with `apps/backend/src/sync/contracts/input.ts`
 /// `syncPullInputSchema` and the iOS sync tests that cover pull encoding.
 struct PullRequest: Encodable {
     let installationId: String
@@ -73,10 +73,10 @@ struct PullRequest: Encodable {
 
 /// Wire contract for `POST /sync/bootstrap` pull pages.
 ///
-/// The backend parser in `apps/backend/src/sync/input.ts` expects the `cursor` key to
+/// The backend parser in `apps/backend/src/sync/contracts/input.ts` expects the `cursor` key to
 /// exist on every request. The first page must therefore send `"cursor": null`
 /// instead of omitting the key entirely. Keep this struct aligned with
-/// `apps/backend/src/sync/input.ts` `syncBootstrapPullInputSchema`.
+/// `apps/backend/src/sync/contracts/input.ts` `syncBootstrapPullInputSchema`.
 struct BootstrapPullRequest: Encodable {
     let mode: String
     let installationId: String
@@ -97,7 +97,7 @@ struct BootstrapPullRequest: Encodable {
     /// Encodes `cursor` explicitly as JSON `null` on the first bootstrap page.
     ///
     /// If you change this payload shape, update the matching backend validator in
-    /// `apps/backend/src/sync/input.ts` and the iOS sync tests that cover bootstrap encoding.
+    /// `apps/backend/src/sync/contracts/input.ts` and the iOS sync tests that cover bootstrap encoding.
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(self.mode, forKey: .mode)
@@ -116,7 +116,7 @@ struct BootstrapPullRequest: Encodable {
 /// Wire contract for `POST /sync/bootstrap` when the client uploads the current
 /// hot workspace winners into an empty remote workspace.
 ///
-/// Keep this request aligned with `apps/backend/src/sync/input.ts`
+/// Keep this request aligned with `apps/backend/src/sync/contracts/input.ts`
 /// `syncBootstrapPushInputSchema`.
 struct BootstrapPushRequest: Encodable {
     let mode: String
@@ -140,7 +140,7 @@ private func encodeNullableBootstrapValue<Key: CodingKey, Value: Encodable>(
 
 /// Wire contract for `POST /sync/review-history/pull`.
 ///
-/// Keep this request aligned with `apps/backend/src/sync/input.ts`
+/// Keep this request aligned with `apps/backend/src/sync/contracts/input.ts`
 /// `syncReviewHistoryPullInputSchema`.
 struct ReviewHistoryPullRequest: Encodable {
     let installationId: String
@@ -152,7 +152,7 @@ struct ReviewHistoryPullRequest: Encodable {
 
 /// Wire contract for `POST /sync/review-history/import`.
 ///
-/// Keep this request aligned with `apps/backend/src/sync/input.ts`
+/// Keep this request aligned with `apps/backend/src/sync/contracts/input.ts`
 /// `syncReviewHistoryImportInputSchema`.
 struct ReviewHistoryImportRequest: Encodable {
     let installationId: String
@@ -163,7 +163,7 @@ struct ReviewHistoryImportRequest: Encodable {
 
 /// Encodes one `/sync/push` operation using the shared backend field names.
 ///
-/// If you change this envelope, update `apps/backend/src/sync/input.ts` and the iOS
+/// If you change this envelope, update `apps/backend/src/sync/contracts/input.ts` and the iOS
 /// sync tests that cover push encoding.
 struct SyncOperationEnvelope: Encodable {
     let operation: SyncOperation
@@ -226,7 +226,7 @@ struct SyncBootstrapEntryEnvelope: Encodable {
     }
 }
 
-/// Keep this encoder aligned with `apps/backend/src/sync/input.ts`
+/// Keep this encoder aligned with `apps/backend/src/sync/contracts/input.ts`
 /// `cardBootstrapPushPayloadSchema`.
 private struct BootstrapCardPayload: Encodable {
     let snapshot: CardSyncPayload
@@ -299,7 +299,7 @@ private struct BootstrapCardPayload: Encodable {
     }
 }
 
-/// Keep this encoder aligned with `apps/backend/src/sync/input.ts`
+/// Keep this encoder aligned with `apps/backend/src/sync/contracts/input.ts`
 /// `deckBootstrapPushPayloadSchema`.
 private struct BootstrapDeckPayload: Encodable {
     let snapshot: DeckSyncPayload
@@ -557,14 +557,14 @@ struct RemoteSyncChangeEnvelope: Decodable {
     }
 }
 
-/// Decodes `/sync/pull` responses shaped by `apps/backend/src/sync/types.ts`.
+/// Decodes `/sync/pull` responses shaped by `apps/backend/src/sync/contracts/types.ts`.
 struct RemotePullResponseEnvelope: Decodable {
     let changes: [RemoteSyncChangeEnvelope]
     let nextHotChangeId: Int64
     let hasMore: Bool
 }
 
-/// Decodes `/sync/bootstrap` pull responses shaped by `apps/backend/src/sync/types.ts`.
+/// Decodes `/sync/bootstrap` pull responses shaped by `apps/backend/src/sync/contracts/types.ts`.
 struct RemoteBootstrapPullResponseEnvelope: Decodable {
     let entries: [RemoteSyncBootstrapEntryEnvelope]
     let nextCursor: String?
@@ -573,20 +573,20 @@ struct RemoteBootstrapPullResponseEnvelope: Decodable {
     let remoteIsEmpty: Bool
 }
 
-/// Decodes `/sync/bootstrap` push responses shaped by `apps/backend/src/sync/types.ts`.
+/// Decodes `/sync/bootstrap` push responses shaped by `apps/backend/src/sync/contracts/types.ts`.
 struct RemoteBootstrapPushResponseEnvelope: Decodable {
     let appliedEntriesCount: Int
     let bootstrapHotChangeId: Int64?
 }
 
-/// Decodes `/sync/review-history/pull` responses shaped by `apps/backend/src/sync/types.ts`.
+/// Decodes `/sync/review-history/pull` responses shaped by `apps/backend/src/sync/contracts/types.ts`.
 struct RemoteReviewHistoryPullResponseEnvelope: Decodable {
     let reviewEvents: [RemoteReviewEventEnvelope]
     let nextReviewSequenceId: Int64
     let hasMore: Bool
 }
 
-/// Decodes `/sync/review-history/import` responses shaped by `apps/backend/src/sync/types.ts`.
+/// Decodes `/sync/review-history/import` responses shaped by `apps/backend/src/sync/contracts/types.ts`.
 struct RemoteReviewHistoryImportResponseEnvelope: Decodable {
     let importedCount: Int
     let duplicateCount: Int

@@ -22,18 +22,18 @@ import {
 } from "../observability/sentry";
 import {
   compareLwwMetadata,
-} from "../sync/lww";
+} from "../sync/conflicts/lww";
 import {
   upsertDeckSnapshotInExecutor,
   type DeckMutationMetadata,
   type DeckSnapshotInput,
 } from "../decks";
-import { insertSyncChange } from "../sync/changes";
+import { insertSyncChange } from "../sync/replication/changes";
 import {
   ensureSystemWorkspaceReplicaInExecutor,
   ensureWorkspaceReplicaInExecutor,
-} from "../sync/identity";
-import { SYNC_WORKSPACE_FORK_REQUIRED } from "../sync/fork";
+} from "../sync/identity/replica";
+import { SYNC_WORKSPACE_FORK_REQUIRED } from "../sync/conflicts/fork";
 import {
   deleteGuestWorkspaceContentInExecutor,
   loadGuestCardsInExecutor,

@@ -21,8 +21,8 @@ import {
   incomingLwwMetadataWins,
   normalizeIsoTimestamp,
   type LwwMetadata,
-} from "../sync/lww";
-import { findLatestSyncChangeId, insertSyncChange } from "../sync/changes";
+} from "../sync/conflicts/lww";
+import { findLatestSyncChangeId, insertSyncChange } from "../sync/replication/changes";
 import {
   defaultWorkspaceSchedulerConfig,
   type SchedulerAlgorithm,

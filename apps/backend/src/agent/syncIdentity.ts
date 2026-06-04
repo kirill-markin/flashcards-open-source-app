@@ -1,4 +1,4 @@
-import { ensureSystemWorkspaceReplica } from "../sync/identity";
+import { ensureSystemWorkspaceReplica } from "../sync/identity/replica";
 
 /**
  * External AI-agent writes must still emit sync-aware metadata so first-party

@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { HttpError } from "../shared/errors";
+import { HttpError } from "../../shared/errors";
 import type {
   HttpErrorDetails,
   ValidationIssueSummary,
-} from "../shared/errors";
-import { normalizeIsoTimestamp } from "./lww";
+} from "../../shared/errors";
+import { normalizeIsoTimestamp } from "../conflicts/lww";
 
 type Platform = "ios" | "android" | "web";
 

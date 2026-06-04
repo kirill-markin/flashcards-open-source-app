@@ -1,24 +1,24 @@
-import { upsertCardSnapshotInExecutor } from "../cards";
+import { upsertCardSnapshotInExecutor } from "../../cards";
 import {
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
-} from "../database";
-import { upsertDeckSnapshotInExecutor } from "../decks";
-import { HttpError } from "../shared/errors";
+} from "../../database";
+import { upsertDeckSnapshotInExecutor } from "../../decks";
+import { HttpError } from "../../shared/errors";
 import {
   decodeOpaqueCursor,
   encodeOpaqueCursor,
-} from "../shared/pagination";
-import { ensureWorkspaceReplicaInExecutor } from "./identity";
+} from "../../shared/pagination";
+import { ensureWorkspaceReplicaInExecutor } from "../identity/replica";
 import { ensureWorkspaceSyncMetadataInExecutor } from "./changes";
-import { annotateSyncConflictHttpError } from "./fork";
-import { applyWorkspaceSchedulerSettingsSnapshotInExecutor } from "../scheduling/workspaceSettings";
+import { annotateSyncConflictHttpError } from "../conflicts/fork";
+import { applyWorkspaceSchedulerSettingsSnapshotInExecutor } from "../../scheduling/workspaceSettings";
 import {
   cardPayloadSchema,
   deckPayloadSchema,
   type SyncBootstrapInput,
   workspaceSchedulerSettingsPayloadSchema,
-} from "./input";
+} from "../contracts/input";
 import {
   toCardMutationMetadata,
   toCardSnapshotInput,
@@ -26,7 +26,7 @@ import {
   toDeckSnapshotInput,
   toWorkspaceSchedulerSettingsMutationMetadata,
   toWorkspaceSchedulerSettingsSnapshotInput,
-} from "./snapshots";
+} from "../contracts/snapshots";
 import type {
   BootstrapProjectionRow,
   MaxChangeIdRow,
@@ -35,7 +35,7 @@ import type {
   SyncBootstrapEntry,
   SyncBootstrapPullResult,
   SyncBootstrapPushResult,
-} from "./types";
+} from "../contracts/types";
 
 function toNumber(value: string | number | null): number | null {
   if (value === null) {
