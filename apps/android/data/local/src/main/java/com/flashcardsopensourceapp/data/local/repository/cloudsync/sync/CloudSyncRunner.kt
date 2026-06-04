@@ -6,7 +6,7 @@ import com.flashcardsopensourceapp.data.local.cloud.sync.PendingLocalHotEntityKe
 import com.flashcardsopensourceapp.data.local.cloud.wire.putNullableDouble
 import com.flashcardsopensourceapp.data.local.cloud.wire.putNullableInt
 import com.flashcardsopensourceapp.data.local.cloud.wire.putNullableString
-import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteBootstrapPullResponse
+import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteBootstrapPullResponse
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.cloud.identity.syncWorkspaceForkRequiredErrorCode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings

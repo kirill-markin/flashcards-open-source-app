@@ -1,5 +1,7 @@
-package com.flashcardsopensourceapp.data.local.cloud.remote
+package com.flashcardsopensourceapp.data.local.cloud.remote.agent
 
+import com.flashcardsopensourceapp.data.local.cloud.remote.transport.CloudJsonHttpClient
+import com.flashcardsopensourceapp.data.local.cloud.remote.transport.buildPaginatedCloudPath
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudArray
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudIsoTimestampMillis
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudNullableIsoTimestampMillis

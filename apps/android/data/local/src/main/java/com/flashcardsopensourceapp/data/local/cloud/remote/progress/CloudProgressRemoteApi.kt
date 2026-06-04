@@ -1,5 +1,9 @@
-package com.flashcardsopensourceapp.data.local.cloud.remote
+package com.flashcardsopensourceapp.data.local.cloud.remote.progress
 
+import com.flashcardsopensourceapp.data.local.cloud.remote.transport.CloudJsonHttpClient
+import com.flashcardsopensourceapp.data.local.cloud.remote.transport.buildProgressReviewScheduleCloudPath
+import com.flashcardsopensourceapp.data.local.cloud.remote.transport.buildProgressSeriesCloudPath
+import com.flashcardsopensourceapp.data.local.cloud.remote.transport.buildProgressSummaryCloudPath
 import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudStringOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudArray

@@ -1,7 +1,7 @@
 package com.flashcardsopensourceapp.data.local.cloud.sync
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteBootstrapEntry
+import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteBootstrapEntry
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.entities.CardTagEntity
