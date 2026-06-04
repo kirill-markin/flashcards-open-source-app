@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.settings.cloud
+package com.flashcardsopensourceapp.feature.settings.cloud.signIn
 
 /**
  * Distinguishes the two valid navigation paths after `sendCode()`.

@@ -17,10 +17,10 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecover
 import com.flashcardsopensourceapp.feature.settings.cloud.CloudCredentialRecoveryGateRoute
 import com.flashcardsopensourceapp.feature.settings.cloud.CloudCredentialRecoveryGateStep
 import com.flashcardsopensourceapp.feature.settings.cloud.CloudPostAuthUiState
-import com.flashcardsopensourceapp.feature.settings.cloud.CloudSendCodeNavigationOutcome
 import com.flashcardsopensourceapp.feature.settings.cloud.CloudSignInUiState
 import com.flashcardsopensourceapp.feature.settings.cloud.CloudSignInViewModel
 import com.flashcardsopensourceapp.feature.settings.cloud.createCloudSignInViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.cloud.signIn.CloudSendCodeNavigationOutcome
 import com.flashcardsopensourceapp.feature.settings.R as SettingsR
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope

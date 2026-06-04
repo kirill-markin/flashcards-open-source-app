@@ -29,9 +29,9 @@ import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
-import com.flashcardsopensourceapp.feature.settings.cloud.CloudPostAuthMode
-import com.flashcardsopensourceapp.feature.settings.cloud.CloudSendCodeNavigationOutcome
-import com.flashcardsopensourceapp.feature.settings.cloud.CloudSignInViewModel
+import com.flashcardsopensourceapp.feature.settings.cloud.postAuth.CloudPostAuthMode
+import com.flashcardsopensourceapp.feature.settings.cloud.signIn.CloudSendCodeNavigationOutcome
+import com.flashcardsopensourceapp.feature.settings.cloud.signIn.CloudSignInViewModel
 import java.io.IOException
 import java.util.Locale
 import kotlinx.coroutines.CompletableDeferred

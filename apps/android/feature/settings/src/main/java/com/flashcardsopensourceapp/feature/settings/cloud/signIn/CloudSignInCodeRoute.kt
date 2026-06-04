@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.settings.cloud
+package com.flashcardsopensourceapp.feature.settings.cloud.signIn
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,7 +12,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.feature.settings.R
@@ -20,20 +19,17 @@ import com.flashcardsopensourceapp.feature.settings.SettingsScreenScaffold
 import com.flashcardsopensourceapp.feature.settings.settingsScreenCardSpacing
 import com.flashcardsopensourceapp.feature.settings.settingsScreenContentPadding
 
-const val cloudSignInEmailFieldTag: String = "cloud_sign_in_email_field"
-const val cloudSignInSendCodeButtonTag: String = "cloud_sign_in_send_code_button"
-
 @Composable
-fun CloudSignInEmailRoute(
+fun CloudSignInCodeRoute(
     uiState: CloudSignInUiState,
-    onEmailChange: (String) -> Unit,
-    onSendCode: () -> Unit,
+    onCodeChange: (String) -> Unit,
+    onVerifyCode: () -> Unit,
     onBack: () -> Unit
 ) {
     SettingsScreenScaffold(
-        title = stringResource(R.string.settings_sign_in_title),
+        title = stringResource(R.string.settings_sign_in_verify_title),
         onBack = onBack,
-        isBackEnabled = uiState.isSendingCode.not()
+        isBackEnabled = uiState.isVerifyingCode.not()
     ) { innerPadding ->
         LazyColumn(
             contentPadding = settingsScreenContentPadding(innerPadding = innerPadding),
@@ -44,9 +40,15 @@ fun CloudSignInEmailRoute(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Text(
                         text = if (uiState.isGuestUpgrade) {
-                            stringResource(R.string.settings_sign_in_guest_upgrade_body)
+                            stringResource(
+                                R.string.settings_sign_in_verify_guest_body,
+                                uiState.challengeEmail ?: stringResource(R.string.settings_sign_in_email_fallback)
+                            )
                         } else {
-                            stringResource(R.string.settings_sign_in_device_link_body)
+                            stringResource(
+                                R.string.settings_sign_in_verify_body,
+                                uiState.challengeEmail ?: stringResource(R.string.settings_sign_in_email_fallback)
+                            )
                         },
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(20.dp)
@@ -66,30 +68,26 @@ fun CloudSignInEmailRoute(
 
             item {
                 OutlinedTextField(
-                    value = uiState.email,
-                    onValueChange = onEmailChange,
+                    value = uiState.code,
+                    onValueChange = onCodeChange,
                     label = {
-                        Text(stringResource(R.string.settings_sign_in_email_title))
+                        Text(stringResource(R.string.settings_sign_in_code_label))
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag(tag = cloudSignInEmailFieldTag)
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
 
             item {
                 Button(
-                    onClick = onSendCode,
-                    enabled = uiState.isSendingCode.not(),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag(tag = cloudSignInSendCodeButtonTag)
+                    onClick = onVerifyCode,
+                    enabled = uiState.isVerifyingCode.not(),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        if (uiState.isSendingCode) {
-                            stringResource(R.string.settings_sign_in_sending_code)
+                        if (uiState.isVerifyingCode) {
+                            stringResource(R.string.settings_sign_in_verifying)
                         } else {
-                            stringResource(R.string.settings_sign_in_send_code_button)
+                            stringResource(R.string.settings_sign_in_verify_button)
                         }
                     )
                 }
