@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local
+package com.flashcardsopensourceapp.data.local.migrations
 
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase

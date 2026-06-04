@@ -1,10 +1,12 @@
-package com.flashcardsopensourceapp.data.local
+package com.flashcardsopensourceapp.data.local.migrations
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
+import com.flashcardsopensourceapp.data.local.support.clearLocalDatabaseSharedPreferences
+import com.flashcardsopensourceapp.data.local.support.createInMemoryAppDatabase
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals

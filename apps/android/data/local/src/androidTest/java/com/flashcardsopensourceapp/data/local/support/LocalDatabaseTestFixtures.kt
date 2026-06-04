@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local
+package com.flashcardsopensourceapp.data.local.support
 
 import android.content.Context
 import androidx.room.Room
