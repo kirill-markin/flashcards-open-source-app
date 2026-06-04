@@ -1,6 +1,6 @@
 @file:OptIn(androidx.compose.ui.test.ExperimentalTestApi::class)
 
-package com.flashcardsopensourceapp.app.livesmoke
+package com.flashcardsopensourceapp.app.livesmoke.flows
 
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
@@ -10,7 +10,35 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
-import com.flashcardsopensourceapp.app.FlashcardsApplication
+import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickTag
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickText
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.dismissExternalSystemDialogIfPresent
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.hasVisibleText
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.nodeSummary
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.tapBackIcon
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitForFlowValue
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitForTagToExist
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitUntilAtLeastOneExistsOrFail
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitUntilWithMitigation
+import com.flashcardsopensourceapp.app.livesmoke.support.LiveSmokeContext
+import com.flashcardsopensourceapp.app.livesmoke.support.appGraph
+import com.flashcardsopensourceapp.app.livesmoke.support.captureVisibleWorkspaceRows
+import com.flashcardsopensourceapp.app.livesmoke.support.currentCloudSettingsSummary
+import com.flashcardsopensourceapp.app.livesmoke.support.currentWorkspaceErrorMessageOrNull
+import com.flashcardsopensourceapp.app.livesmoke.support.currentWorkspaceNameOrNull
+import com.flashcardsopensourceapp.app.livesmoke.support.currentWorkspaceOperationMessageOrNull
+import com.flashcardsopensourceapp.app.livesmoke.support.currentWorkspaceSummaryOrNull
+import com.flashcardsopensourceapp.app.livesmoke.support.externalUiTimeoutMillis
+import com.flashcardsopensourceapp.app.livesmoke.support.internalUiTimeoutMillis
+import com.flashcardsopensourceapp.app.livesmoke.support.selectedWorkspaceSummary
+import com.flashcardsopensourceapp.app.livesmoke.support.selectedWorkspaceSummaryOrNull
+import com.flashcardsopensourceapp.app.livesmoke.support.waitForCurrentWorkspaceName
+import com.flashcardsopensourceapp.app.livesmoke.support.waitForCurrentWorkspaceScreenToSettle
+import com.flashcardsopensourceapp.app.livesmoke.support.waitForSelectedWorkspaceSummary
+import com.flashcardsopensourceapp.app.livesmoke.support.waitForSelectedWorkspaceSummaryToChange
+import com.flashcardsopensourceapp.app.livesmoke.support.workspaceOverviewErrorMessageOrNull
+import com.flashcardsopensourceapp.app.livesmoke.support.workspaceOverviewNameFieldValueOrNull
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceCreateButtonTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceExistingRowTag
@@ -207,7 +235,7 @@ internal fun LiveSmokeContext.forceLinkedSyncAndWaitForWorkspace(
         timeoutMillis = timeoutMillis,
         context = "before forcing linked sync before cleanup"
     )
-    val appGraph = (composeRule.activity.application as FlashcardsApplication).appGraph
+    val appGraph: AppGraph = appGraph()
     try {
         runBlocking {
             appGraph.syncRepository.syncNow()
@@ -469,7 +497,7 @@ private fun LiveSmokeContext.waitForLinkedWorkspaceSelection(
     context: String,
     predicate: (LinkedWorkspaceSelectionSnapshot) -> Boolean
 ): LinkedWorkspaceSelectionSnapshot {
-    val appGraph = appGraph()
+    val appGraph: AppGraph = appGraph()
     try {
         return waitForFlowValue(
             timeoutMillis = timeoutMillis,

@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.app.livesmoke
+package com.flashcardsopensourceapp.app.livesmoke.diagnostics
 
 import android.os.ParcelFileDescriptor
 import androidx.compose.ui.semantics.SemanticsNode
@@ -20,7 +20,13 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
-import com.flashcardsopensourceapp.app.FlashcardsApplication
+import com.flashcardsopensourceapp.app.livesmoke.support.LiveSmokeContext
+import com.flashcardsopensourceapp.app.livesmoke.support.currentWorkspaceVisibleErrorMessageOrNull
+import com.flashcardsopensourceapp.app.livesmoke.support.internalUiTimeoutMillis
+import com.flashcardsopensourceapp.app.livesmoke.support.systemDialogAlertTitleResourceId
+import com.flashcardsopensourceapp.app.livesmoke.support.systemDialogCloseAppButtonResourceId
+import com.flashcardsopensourceapp.app.livesmoke.support.systemDialogWaitButtonResourceId
+import com.flashcardsopensourceapp.app.livesmoke.support.workspaceOverviewErrorMessageOrNull
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.time.Instant
@@ -398,9 +404,6 @@ private fun runShellCommand(command: String): String {
         }
     }
 }
-
-internal fun LiveSmokeContext.appGraph() =
-    (composeRule.activity.application as FlashcardsApplication).appGraph
 
 internal fun LiveSmokeContext.scrollToText(text: String) {
     composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(text))

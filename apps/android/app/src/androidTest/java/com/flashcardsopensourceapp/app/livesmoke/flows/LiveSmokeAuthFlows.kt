@@ -1,6 +1,6 @@
 @file:OptIn(androidx.compose.ui.test.ExperimentalTestApi::class)
 
-package com.flashcardsopensourceapp.app.livesmoke
+package com.flashcardsopensourceapp.app.livesmoke.flows
 
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
@@ -8,6 +8,21 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickNode
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickTag
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickText
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.currentBlockingSystemDialogSummaryOrNull
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.dismissExternalSystemDialogIfPresent
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.hasVisibleText
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.runWithInlineRawScreenStateOnFailure
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.tapBackIcon
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitUntilWithMitigation
+import com.flashcardsopensourceapp.app.livesmoke.support.LiveSmokeContext
+import com.flashcardsopensourceapp.app.livesmoke.support.appGraph
+import com.flashcardsopensourceapp.app.livesmoke.support.captureVisibleWorkspaceRows
+import com.flashcardsopensourceapp.app.livesmoke.support.cloudSyncChooserPrompt
+import com.flashcardsopensourceapp.app.livesmoke.support.currentCloudSettingsSummary
+import com.flashcardsopensourceapp.app.livesmoke.support.currentWorkspaceSummaryOrNull
 import com.flashcardsopensourceapp.feature.settings.cloud.cloudPostAuthExistingButtonTag
 import com.flashcardsopensourceapp.feature.settings.cloud.cloudPostAuthWorkspaceRowTag
 import com.flashcardsopensourceapp.feature.settings.cloud.cloudSignInEmailFieldTag
