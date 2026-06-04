@@ -2,10 +2,10 @@ package com.flashcardsopensourceapp.data.local.repository.cloudsync.account
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
-import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteBootstrapPullResponse
-import com.flashcardsopensourceapp.data.local.cloud.remote.RemotePullResponse
-import com.flashcardsopensourceapp.data.local.cloud.remote.RemotePushResponse
-import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteReviewHistoryPullResponse
+import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteBootstrapPullResponse
+import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemotePullResponse
+import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemotePushResponse
+import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteReviewHistoryPullResponse
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity

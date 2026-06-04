@@ -1,5 +1,7 @@
-package com.flashcardsopensourceapp.data.local.cloud.remote
+package com.flashcardsopensourceapp.data.local.cloud.remote.sync
 
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
+import com.flashcardsopensourceapp.data.local.cloud.remote.transport.CloudJsonHttpClient
 import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudLongOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudStringOrNull

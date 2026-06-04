@@ -3,8 +3,8 @@ package com.flashcardsopensourceapp.data.local.repository.cloudsync.account
 import androidx.room.withTransaction
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
-import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteBootstrapPullResponse
-import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteBootstrapPushResponse
+import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteBootstrapPullResponse
+import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteBootstrapPushResponse
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState

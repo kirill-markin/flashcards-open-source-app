@@ -7,7 +7,7 @@ import com.flashcardsopensourceapp.data.local.database.entities.CardTagEntity
 import com.flashcardsopensourceapp.data.local.database.entities.DeckEntity
 import com.flashcardsopensourceapp.data.local.database.entities.TagEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceSchedulerSettingsEntity
-import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteSyncChange
+import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteSyncChange
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudDoubleOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudIntOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.parseEffortLevel

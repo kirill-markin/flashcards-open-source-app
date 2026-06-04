@@ -1,5 +1,6 @@
-package com.flashcardsopensourceapp.data.local.cloud.remote
+package com.flashcardsopensourceapp.data.local.cloud.remote.feedback
 
+import com.flashcardsopensourceapp.data.local.cloud.remote.transport.CloudJsonHttpClient
 import com.flashcardsopensourceapp.data.local.cloud.wire.putNullableString
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudInt
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudNullableIsoTimestampMillis

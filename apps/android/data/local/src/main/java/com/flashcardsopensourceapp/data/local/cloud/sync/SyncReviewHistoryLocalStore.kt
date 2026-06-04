@@ -3,7 +3,7 @@ package com.flashcardsopensourceapp.data.local.cloud.sync
 import androidx.room.withTransaction
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
-import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteReviewHistoryEvent
+import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteReviewHistoryEvent
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.cloud.parseIsoTimestamp
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.LocalProgressCacheStore

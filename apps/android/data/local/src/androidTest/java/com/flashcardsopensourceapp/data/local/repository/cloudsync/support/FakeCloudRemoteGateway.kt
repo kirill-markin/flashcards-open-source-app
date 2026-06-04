@@ -2,13 +2,13 @@ package com.flashcardsopensourceapp.data.local.repository.cloudsync.support
 
 import com.flashcardsopensourceapp.data.local.bootstrap.localWorkspaceName
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
-import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteBootstrapPullResponse
-import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteBootstrapPushResponse
-import com.flashcardsopensourceapp.data.local.cloud.remote.RemotePullResponse
-import com.flashcardsopensourceapp.data.local.cloud.remote.RemotePushOperationResult
-import com.flashcardsopensourceapp.data.local.cloud.remote.RemotePushResponse
-import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteReviewHistoryImportResponse
-import com.flashcardsopensourceapp.data.local.cloud.remote.RemoteReviewHistoryPullResponse
+import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteBootstrapPullResponse
+import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteBootstrapPushResponse
+import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemotePullResponse
+import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemotePushOperationResult
+import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemotePushResponse
+import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteReviewHistoryImportResponse
+import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteReviewHistoryPullResponse
 import com.flashcardsopensourceapp.data.local.model.cloud.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackPromptEventRequest
