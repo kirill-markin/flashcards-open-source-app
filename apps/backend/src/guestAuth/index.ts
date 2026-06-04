@@ -1,15 +1,15 @@
 import { unsafeTransaction } from "../database/unsafe";
 import {
   deleteGuestSessionInExecutor,
-} from "./delete";
+} from "./delete/index";
 import {
   authenticateGuestSession,
   createGuestSessionInExecutor,
-} from "./session";
+} from "./session/index";
 import {
   completeGuestUpgradeInExecutor,
   prepareGuestUpgradeInExecutor,
-} from "./upgrade";
+} from "./upgrade/index";
 import type {
   GuestUpgradeCompleteCapabilities,
   GuestSessionSnapshot,
