@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.repository.cloudsync.account
+package com.flashcardsopensourceapp.data.local.repository.cloudsync.account.guestUpgrade
 
 import androidx.room.withTransaction
 import androidx.test.ext.junit.runners.AndroidJUnit4

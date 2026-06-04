@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.repository.cloudsync.account
+package com.flashcardsopensourceapp.data.local.repository.cloudsync.account.signIn
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
