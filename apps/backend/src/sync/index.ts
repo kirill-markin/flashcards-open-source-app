@@ -5,7 +5,7 @@ export type {
   SyncPullInput,
   SyncReviewHistoryImportInput,
   SyncReviewHistoryPullInput,
-} from "./input";
+} from "./contracts/input";
 
 export {
   parseSyncBootstrapInput,
@@ -13,7 +13,7 @@ export {
   parseSyncPullInput,
   parseSyncReviewHistoryImportInput,
   parseSyncReviewHistoryPullInput,
-} from "./input";
+} from "./contracts/input";
 
 export type {
   SyncBootstrapEntry,
@@ -24,12 +24,12 @@ export type {
   SyncPushResult,
   SyncReviewHistoryImportResult,
   SyncReviewHistoryPullResult,
-} from "./types";
+} from "./contracts/types";
 
-export { processSyncBootstrap } from "./bootstrap";
-export { processSyncPull } from "./hotPull";
-export { processSyncPush } from "./push";
+export { processSyncBootstrap } from "./replication/bootstrap";
+export { processSyncPull } from "./replication/hotPull";
+export { processSyncPush } from "./replication/push";
 export {
   processSyncReviewHistoryImport,
   processSyncReviewHistoryPull,
-} from "./reviewHistory";
+} from "./replication/reviewHistory";

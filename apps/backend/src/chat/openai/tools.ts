@@ -4,7 +4,7 @@
  */
 import type OpenAI from "openai";
 import { HttpError } from "../../shared/errors";
-import { ensureAIChatSyncReplica } from "../../sync/aiChatIdentity";
+import { ensureAIChatSyncReplica } from "../../sync/identity/aiChatIdentity";
 import { executeAgentSql } from "../../aiTools/agentSql";
 import {
   DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,

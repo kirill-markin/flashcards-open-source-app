@@ -1,5 +1,5 @@
-import type { DatabaseExecutor } from "../database";
-import { normalizeIsoTimestamp } from "./lww";
+import type { DatabaseExecutor } from "../../database";
+import { normalizeIsoTimestamp } from "../conflicts/lww";
 
 export type SyncEntityType = "card" | "deck" | "workspace_scheduler_settings";
 export type SyncChangeAction = "upsert";

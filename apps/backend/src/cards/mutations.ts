@@ -7,12 +7,12 @@ import { HttpError } from "../shared/errors";
 import {
   incomingLwwMetadataWins,
   normalizeIsoTimestamp,
-} from "../sync/lww";
-import { findLatestSyncChangeId } from "../sync/changes";
+} from "../sync/conflicts/lww";
+import { findLatestSyncChangeId } from "../sync/replication/changes";
 import {
   createSyncConflictHttpError,
   findSyncConflictWorkspaceIdInExecutor,
-} from "../sync/fork";
+} from "../sync/conflicts/fork";
 import { assertConsistentFsrsState } from "./fsrs";
 import {
   CARD_COLUMNS,

@@ -2,11 +2,11 @@ import Foundation
 
 /*
  Keep the iOS sync runner flow aligned with:
- - apps/backend/src/sync/bootstrap.ts
- - apps/backend/src/sync/hotPull.ts
- - apps/backend/src/sync/push.ts
- - apps/backend/src/sync/reviewHistory.ts
- - apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/repository/CloudRepositories.kt
+ - apps/backend/src/sync/replication/bootstrap.ts
+ - apps/backend/src/sync/replication/hotPull.ts
+ - apps/backend/src/sync/replication/push.ts
+ - apps/backend/src/sync/replication/reviewHistory.ts
+ - apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/repository/cloudsync/sync/CloudSyncRunner.kt
  */
 
 private let syncWorkspaceForkRequiredErrorCode: String = "SYNC_WORKSPACE_FORK_REQUIRED"
@@ -355,8 +355,8 @@ struct CloudSyncRunner {
     ///
     /// Every request to `\(syncBasePath)/bootstrap` must use the same explicit
     /// nullable `cursor` contract documented in `BootstrapPullRequest` above and
-    /// accepted by `apps/backend/src/sync/input.ts`. Keep this flow aligned with
-    /// `apps/backend/src/sync/input.ts` `syncBootstrapPullInputSchema`.
+    /// accepted by `apps/backend/src/sync/contracts/input.ts`. Keep this flow aligned with
+    /// `apps/backend/src/sync/contracts/input.ts` `syncBootstrapPullInputSchema`.
     ///
     /// If the remote workspace is empty, the local workspace becomes the source
     /// of truth through bootstrap push/import instead of replaying the entire

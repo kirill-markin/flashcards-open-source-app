@@ -1,20 +1,20 @@
 import {
   appendReviewEventSnapshotInExecutor,
   upsertCardSnapshotInExecutor,
-} from "../cards";
+} from "../../cards";
 import {
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
-} from "../database";
-import { upsertDeckSnapshotInExecutor } from "../decks";
-import { normalizeIsoTimestamp } from "./lww";
-import { ensureWorkspaceReplicaInExecutor } from "./identity";
+} from "../../database";
+import { upsertDeckSnapshotInExecutor } from "../../decks";
+import { normalizeIsoTimestamp } from "../conflicts/lww";
+import { ensureWorkspaceReplicaInExecutor } from "../identity/replica";
 import { ensureWorkspaceSyncMetadataInExecutor } from "./changes";
-import { applyWorkspaceSchedulerSettingsSnapshotInExecutor } from "../scheduling/workspaceSettings";
+import { applyWorkspaceSchedulerSettingsSnapshotInExecutor } from "../../scheduling/workspaceSettings";
 import type {
   SyncPushInput,
   SyncPushOperation,
-} from "./input";
+} from "../contracts/input";
 import {
   toCardMutationMetadata,
   toCardSnapshotInput,
@@ -22,12 +22,12 @@ import {
   toDeckSnapshotInput,
   toWorkspaceSchedulerSettingsMutationMetadata,
   toWorkspaceSchedulerSettingsSnapshotInput,
-} from "./snapshots";
+} from "../contracts/snapshots";
 import type {
   AppliedOperationRow,
   SyncPushOperationResult,
   SyncPushResult,
-} from "./types";
+} from "../contracts/types";
 
 function toNumber(value: string | number | null): number | null {
   if (value === null) {

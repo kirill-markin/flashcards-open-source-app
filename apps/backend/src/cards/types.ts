@@ -1,4 +1,4 @@
-import type { LwwMetadata } from "../sync/lww";
+import type { LwwMetadata } from "../sync/conflicts/lww";
 import type {
   FsrsCardState,
   ReviewRating,

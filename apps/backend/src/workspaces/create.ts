@@ -17,8 +17,8 @@ import { markBackendExceptionWrapperAsReported } from "../observability/reportin
 import {
   buildSystemWorkspaceReplicaId,
   ensureBootstrapSystemWorkspaceReplicaInExecutor,
-} from "../sync/identity";
-import { insertSyncChange } from "../sync/changes";
+} from "../sync/identity/replica";
+import { insertSyncChange } from "../sync/replication/changes";
 import {
   createWorkspaceCreateFailedError,
   createWorkspaceInvariantError,

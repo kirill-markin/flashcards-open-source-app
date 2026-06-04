@@ -1,9 +1,9 @@
 import type {
   Card,
   ReviewEvent,
-} from "../cards";
-import type { Deck } from "../decks";
-import type { WorkspaceSchedulerSettings } from "../scheduling/workspaceSettings";
+} from "../../cards";
+import type { Deck } from "../../decks";
+import type { WorkspaceSchedulerSettings } from "../../scheduling/workspaceSettings";
 
 export type TimestampValue = Date | string;
 
