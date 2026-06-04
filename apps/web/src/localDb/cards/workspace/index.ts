@@ -5,9 +5,9 @@ import type {
   WorkspaceSchedulerSettings,
   WorkspaceSummary,
   WorkspaceTagsSummary,
-} from "../../types";
-import { iterateAllCardTags } from "./cardTags";
-import { loadActiveCardCountWithDatabase, putCardInTransaction } from "./cards";
+} from "../../../types";
+import { iterateAllCardTags } from "../tags";
+import { loadActiveCardCountWithDatabase, putCardInTransaction } from "../cards";
 import {
   closeDatabaseAfter,
   closeDatabaseAfterWrite,
@@ -16,10 +16,10 @@ import {
   runReadwrite,
   type WorkspaceSettingsRecord,
   type WorkspaceSyncStateRecord,
-} from "../core/database";
-import { loadDecksListSnapshot, putDeckInTransaction } from "./decks";
-import { loadProgressCacheState, markProgressCacheDirtyInTransaction } from "../progress/progress";
-import { putReviewEventInTransaction } from "../reviews/reviews";
+} from "../../core/database";
+import { loadDecksListSnapshot, putDeckInTransaction } from "../decks";
+import { loadProgressCacheState, markProgressCacheDirtyInTransaction } from "../../progress/progress";
+import { putReviewEventInTransaction } from "../../reviews/reviews";
 
 type HotSyncStateUpdate = Readonly<{
   lastAppliedHotChangeId: number;

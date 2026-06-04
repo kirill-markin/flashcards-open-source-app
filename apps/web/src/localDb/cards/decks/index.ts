@@ -3,21 +3,21 @@ import type {
   Deck,
   DeckCardStats,
   DecksListSnapshot,
-} from "../../types";
+} from "../../../types";
 import {
   isCardDue,
   isCardNew,
   isCardReviewed,
   matchesDeckFilterDefinition,
-} from "../../appData/domain";
-import { iterateCardsByCreatedAtDesc } from "./cards";
+} from "../../../appData/domain";
+import { iterateCardsByCreatedAtDesc } from "../cards";
 import {
   closeDatabaseAfter,
   closeDatabaseAfterWrite,
   describeIndexedDbError,
   getFromStore,
   runReadwrite,
-} from "../core/database";
+} from "../../core/database";
 
 type DeckStatsAccumulator = Readonly<{
   totalCards: number;

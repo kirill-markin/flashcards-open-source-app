@@ -12,7 +12,7 @@ import {
   matchesDeckFilterDefinition,
   recentDuePriorityWindow,
 } from "../../appData/domain";
-import { loadAllowedCardIdsForTag } from "../cards/cardTags";
+import { loadAllowedCardIdsForTag } from "../cards/tags";
 import {
   iterateLocalStoredCardsByCreatedAtDesc,
   iterateLocalStoredCardsByDueAtMillisAscAfter,
