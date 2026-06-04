@@ -1,12 +1,18 @@
 @file:OptIn(androidx.compose.ui.test.ExperimentalTestApi::class)
 
-package com.flashcardsopensourceapp.app.livesmoke
+package com.flashcardsopensourceapp.app.livesmoke.flows
 
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performTextReplacement
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickNode
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickText
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.tapBackIcon
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitUntilAtLeastOneExistsOrFail
+import com.flashcardsopensourceapp.app.livesmoke.support.LiveSmokeContext
+import com.flashcardsopensourceapp.app.livesmoke.support.internalUiTimeoutMillis
 
 internal fun LiveSmokeContext.openCardsTab() {
     clickNode(

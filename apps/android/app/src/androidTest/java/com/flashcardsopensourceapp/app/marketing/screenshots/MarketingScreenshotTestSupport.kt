@@ -27,7 +27,7 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import com.flashcardsopensourceapp.app.MainActivity
-import com.flashcardsopensourceapp.app.livesmoke.dismissBlockingSystemDialogIfPresent
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.dismissBlockingSystemDialogIfPresent
 import com.flashcardsopensourceapp.app.navigation.AiDestination
 import com.flashcardsopensourceapp.app.navigation.CardsDestination
 import com.flashcardsopensourceapp.app.navigation.ProgressDestination

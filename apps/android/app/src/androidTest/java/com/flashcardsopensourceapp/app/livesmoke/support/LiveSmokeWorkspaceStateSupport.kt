@@ -1,6 +1,6 @@
 @file:OptIn(androidx.compose.ui.test.ExperimentalTestApi::class)
 
-package com.flashcardsopensourceapp.app.livesmoke
+package com.flashcardsopensourceapp.app.livesmoke.support
 
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
@@ -8,7 +8,10 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollToNode
-import com.flashcardsopensourceapp.app.FlashcardsApplication
+import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.nodeSummary
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.nodeSummaryIncludingDescendants
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitUntilWithMitigation
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceCreateButtonTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceErrorMessageTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceExistingRowTag
@@ -227,7 +230,7 @@ internal fun LiveSmokeContext.captureVisibleWorkspaceRows(rowTag: String): List<
 
 internal fun LiveSmokeContext.currentCloudSettingsSummary(): String {
     return runBlocking {
-        val appGraph = (composeRule.activity.application as FlashcardsApplication).appGraph
+        val appGraph: AppGraph = appGraph()
         val cloudSettings = appGraph.cloudAccountRepository.observeCloudSettings().first()
         "cloudState=${cloudSettings.cloudState} " +
             "linkedUserId=${cloudSettings.linkedUserId} " +
@@ -239,7 +242,7 @@ internal fun LiveSmokeContext.currentCloudSettingsSummary(): String {
 
 internal fun LiveSmokeContext.currentWorkspaceSummaryOrNull(): String? {
     return runBlocking {
-        val appGraph = (composeRule.activity.application as FlashcardsApplication).appGraph
+        val appGraph: AppGraph = appGraph()
         appGraph.workspaceRepository.observeWorkspace().first()?.let { workspace ->
             "workspaceId=${workspace.workspaceId} name=${workspace.name}"
         }
