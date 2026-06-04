@@ -1,6 +1,6 @@
-import { useWorkspaceActions } from "./useWorkspaceActions";
-import { useWorkspaceActivation } from "./useWorkspaceActivation";
-import { useWorkspaceLifecycle } from "./useWorkspaceLifecycle";
+import { useWorkspaceActions } from "./actions/useWorkspaceActions";
+import { useWorkspaceActivation } from "./activation/useWorkspaceActivation";
+import { useWorkspaceLifecycle } from "./lifecycle/useWorkspaceLifecycle";
 import type {
   UseWorkspaceSessionParams,
   WorkspaceSession,

@@ -44,7 +44,7 @@ import {
   buildProgressSeriesInputForDateContext,
   buildProgressSummaryInputForDateContext,
 } from "../../../progress/progressDates";
-import type { SessionVerificationState } from "../../session/warmStart";
+import type { SessionVerificationState } from "../../session/workspaceSessionTypes";
 import { useProgressTimeContext } from "../time/progressTimeContext";
 import {
   createInitialProgressSourceState,

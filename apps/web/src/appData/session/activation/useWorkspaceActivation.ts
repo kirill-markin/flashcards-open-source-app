@@ -4,39 +4,39 @@ import {
   isAuthRedirectError,
   listWorkspaces,
   selectWorkspace,
-} from "../../api";
+} from "../../../api";
 import {
   clearAllLocalBrowserData,
   type LocalBrowserDataCleanupReason,
-} from "../../accountDeletion";
-import { putCloudSettings } from "../../localDb/sync/cloudSettings";
+} from "../../../accountDeletion";
+import { putCloudSettings } from "../../../localDb/sync/cloudSettings";
 import type {
   SessionInfo,
   WorkspaceSummary,
-} from "../../types";
+} from "../../../types";
 import {
   findWorkspaceById,
   getErrorMessage,
   markSelectedWorkspaces,
-} from "../domain";
+} from "../../domain";
 import {
   buildLinkedCloudSettings,
-} from "./workspaceSessionCloud";
+} from "../cloud/workspaceSessionCloud";
 import {
   defaultWorkspaceName,
-} from "./workspaceSessionHelpers";
+} from "./workspaceActivationHelpers";
 import {
   captureWorkspaceTransitionError,
   logWorkspaceTransition,
-} from "./workspaceSessionObservation";
+} from "../observation/workspaceSessionObservation";
 import type {
   WorkspaceSessionActivation,
   WorkspaceSessionSetters,
   WorkspaceSessionState,
   WorkspaceSessionSyncActions,
   WorkspaceSessionUiActions,
-} from "./workspaceSessionTypes";
-import type { WorkspaceActivationBootstrapPhase } from "../../observability/webObservability";
+} from "../workspaceSessionTypes";
+import type { WorkspaceActivationBootstrapPhase } from "../../../observability/webObservability";
 
 type UseWorkspaceActivationParams =
   & Pick<WorkspaceSessionState, "activeWorkspace" | "sessionVerificationState">

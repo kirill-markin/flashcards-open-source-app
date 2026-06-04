@@ -7,31 +7,31 @@ import {
   renameWorkspace as renameWorkspaceRequest,
   resetWorkspaceProgress as resetWorkspaceProgressRequest,
   selectWorkspace,
-} from "../../api";
-import type { TranslationKey } from "../../i18n";
-import { captureApiContractError } from "../../observability/apiContractObservation";
+} from "../../../api";
+import type { TranslationKey } from "../../../i18n";
+import { captureApiContractError } from "../../../observability/apiContractObservation";
 import type {
   ResetWorkspaceProgressResponse,
   SessionInfo,
   WorkspaceResetProgressPreview,
   WorkspaceSummary,
-} from "../../types";
-import { getErrorMessage } from "../domain";
-import type { SessionVerificationState } from "./warmStart";
+} from "../../../types";
+import { getErrorMessage } from "../../domain";
 import {
   createRemoteActionLockedError,
   replaceWorkspaceSummary,
-} from "./workspaceSessionHelpers";
+} from "./workspaceActionHelpers";
 import {
   buildWorkspaceInteractionLogDetails,
   captureWorkspaceTransitionError,
   logWorkspaceTransition,
-} from "./workspaceSessionObservation";
+} from "../observation/workspaceSessionObservation";
 import type {
+  SessionVerificationState,
   WorkspaceSessionCommands,
   WorkspaceSessionSetters,
   WorkspaceSessionState,
-} from "./workspaceSessionTypes";
+} from "../workspaceSessionTypes";
 
 type UseWorkspaceActionsParams =
   & Readonly<{

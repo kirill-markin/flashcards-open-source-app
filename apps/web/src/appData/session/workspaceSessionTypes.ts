@@ -9,7 +9,8 @@ import type {
   WorkspaceSummary,
 } from "../../types";
 import type { SessionLoadState } from "../context/types";
-import type { SessionVerificationState } from "./warmStart";
+
+export type SessionVerificationState = "unverified" | "verified";
 
 export type WorkspaceSessionState = Readonly<{
   sessionLoadState: SessionLoadState;
