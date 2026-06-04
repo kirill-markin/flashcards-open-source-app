@@ -109,6 +109,8 @@ export function CurrentWorkspaceScreen(): ReactElement {
           nextWorkspaceIds: [],
           redirected: false,
           errorMessage: details.errorMessage,
+          bootstrapPhase: null,
+          syncRunId: null,
         },
       });
       showMessage(workspaceManagementLockedMessage);

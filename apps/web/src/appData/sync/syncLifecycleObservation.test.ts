@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { webAppVersion } from "../../clientIdentity";
 import { clearWebSyncCache } from "../../localDb/cache";
 import { applyHotSyncPage } from "../../localDb/cards/workspace";
+import type { PersistentStorageState } from "../../localDb/sync/cloudSettings";
 import { runWorkspaceRemoteSync, type WorkspaceRemoteSyncInput } from "./syncRemote";
 import {
   observeSlowHotBootstrap,
@@ -42,9 +43,28 @@ function createRemoteSyncInput(): WorkspaceRemoteSyncInput {
     userId: "user-1",
     workspaceId: "workspace-1",
     installationId: "installation-1",
+    syncRunId: "sync-run-1",
     requireWorkspaceSyncNotDiscarded: (_workspaceId: string): void => {},
     publishWorkspaceSettings: (_workspaceId, _settings): void => {},
     refreshWorkspaceView: async (_workspaceId: string): Promise<void> => {},
+  };
+}
+
+function createPersistentStorageState(
+  persisted: boolean | null,
+  usage: number | null,
+  quota: number | null,
+  errorName: string | null,
+  persistAttempted: boolean,
+  persistGranted: boolean | null,
+): PersistentStorageState {
+  return {
+    persisted,
+    usage,
+    quota,
+    errorName,
+    persistAttempted,
+    persistGranted,
   };
 }
 
@@ -180,6 +200,7 @@ describe("sync lifecycle observation", () => {
       userId: "user-1",
       workspaceId: "workspace-1",
       installationId: "installation-1",
+      syncRunId: "sync-run-1",
       durationMs: 3000,
       pageSize: 500,
       pageCount: 5,
@@ -216,6 +237,7 @@ describe("sync lifecycle observation", () => {
       installationId: "installation-1",
       lastAppliedHotChangeId: 301,
       localCardCount: 42,
+      persistentStorageState: createPersistentStorageState(true, 321, 654, null, true, true),
     });
 
     await runWorkspaceRemoteSync(createRemoteSyncInput());
@@ -224,20 +246,74 @@ describe("sync lifecycle observation", () => {
       action: "sync_local_db_missing",
       details: expect.objectContaining({
         eventName: "sync_local_db_missing",
+        syncRunId: "sync-run-1",
         workspaceId: "workspace-1",
         installationId: "installation-1",
         localBootstrapState: "no_sync_state_no_cards",
         localCardCountBefore: 0,
         previousLastAppliedHotChangeId: 301,
         previousLocalCardCount: 42,
+        previousPersistentStoragePersisted: true,
+        previousPersistentStorageUsage: 321,
+        previousPersistentStorageQuota: 654,
+        previousPersistentStorageErrorName: null,
+        previousPersistentStoragePersistAttempted: true,
+        previousPersistentStoragePersistGranted: true,
         currentWebAppVersion: webAppVersion,
         storagePersisted: false,
         storageUsage: 123,
         storageQuota: 456,
         storageErrorName: null,
+        storagePersistAttempted: false,
+        storagePersistGranted: null,
+      }),
+    }));
+    expect(observabilityMocks.captureWebWarningMock).toHaveBeenCalledWith(expect.objectContaining({
+      action: "sync_local_db_recovery_succeeded",
+      details: expect.objectContaining({
+        eventName: "sync_local_db_recovery_succeeded",
+        syncRunId: "sync-run-1",
+        localCardCountBefore: 0,
+        localCardCountAfter: 0,
+        storagePersistedBefore: false,
+        storagePersistedAfter: true,
+        storagePersistAttemptedAfter: true,
+        storagePersistGrantedAfter: true,
       }),
     }));
     expect(persistentStorageMock.persistMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("parses old restore history entries without persistent storage fields", () => {
+    window.localStorage.setItem("flashcards-sync-restore-history-v1", JSON.stringify({
+      version: 1,
+      entries: [
+        {
+          userId: "user-1",
+          workspaceId: "workspace-1",
+          installationId: "installation-1",
+          hydratedAt: "2026-05-01T00:00:00.000Z",
+          webAppVersion: "web@old",
+          lastAppliedHotChangeId: 77,
+          localCardCount: 5,
+        },
+      ],
+    }));
+
+    expect(loadSyncRestoreHistoryEntry({
+      userId: "user-1",
+      workspaceId: "workspace-1",
+      installationId: "installation-1",
+    })).toEqual(expect.objectContaining({
+      lastAppliedHotChangeId: 77,
+      persistentStorageCheckedAt: null,
+      persistentStoragePersisted: null,
+      persistentStorageUsage: null,
+      persistentStorageQuota: null,
+      persistentStorageErrorName: null,
+      persistentStoragePersistAttempted: null,
+      persistentStoragePersistGranted: null,
+    }));
   });
 
   it("stores restore history after a successful hot bootstrap", async () => {
@@ -256,6 +332,12 @@ describe("sync lifecycle observation", () => {
       webAppVersion,
       lastAppliedHotChangeId: 12,
       localCardCount: 0,
+      persistentStoragePersisted: true,
+      persistentStorageUsage: 123,
+      persistentStorageQuota: 456,
+      persistentStorageErrorName: null,
+      persistentStoragePersistAttempted: true,
+      persistentStoragePersistGranted: true,
     }));
     expect(persistentStorageMock.persistMock).toHaveBeenCalledTimes(1);
     expect(observabilityMocks.addWebBreadcrumbMock).toHaveBeenCalledWith(expect.objectContaining({
@@ -266,6 +348,8 @@ describe("sync lifecycle observation", () => {
         storageUsage: 123,
         storageQuota: 456,
         storageErrorName: null,
+        storagePersistAttempted: true,
+        storagePersistGranted: true,
       }),
     }));
   });
@@ -288,8 +372,41 @@ describe("sync lifecycle observation", () => {
       installationId: "installation-1",
     })).toEqual(expect.objectContaining({
       lastAppliedHotChangeId: 88,
+      persistentStoragePersisted: true,
+      persistentStoragePersistAttempted: true,
+      persistentStoragePersistGranted: true,
     }));
     expect(persistentStorageMock.persistMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("emits recovery failure details and rethrows when rebuilding a missing local database fails", async () => {
+    storeSyncRestoreHistoryEntry({
+      userId: "user-1",
+      workspaceId: "workspace-1",
+      installationId: "installation-1",
+      lastAppliedHotChangeId: 301,
+      localCardCount: 42,
+      persistentStorageState: createPersistentStorageState(true, 321, 654, null, true, true),
+    });
+    apiMocks.bootstrapPullSyncStateMock.mockRejectedValue(new DOMException("Bootstrap failed", "NetworkError"));
+
+    await expect(runWorkspaceRemoteSync(createRemoteSyncInput())).rejects.toThrow("Bootstrap failed");
+
+    expect(observabilityMocks.captureWebWarningMock).toHaveBeenCalledWith(expect.objectContaining({
+      action: "sync_local_db_recovery_failed",
+      details: expect.objectContaining({
+        eventName: "sync_local_db_recovery_failed",
+        syncRunId: "sync-run-1",
+        failurePhase: "bootstrap_pull",
+        errorName: "NetworkError",
+        localCardCountBefore: 0,
+        localCardCountAfter: null,
+        pageCount: 0,
+        entriesCount: 0,
+        storagePersistedBefore: false,
+        storagePersistedAfter: null,
+      }),
+    }));
   });
 
   it("does not warn for a slow empty remote bootstrap", async () => {
@@ -365,6 +482,8 @@ describe("sync lifecycle observation", () => {
         storageUsage: null,
         storageQuota: null,
         storageErrorName: "SecurityError",
+        storagePersistAttempted: false,
+        storagePersistGranted: null,
       }),
     }));
   });

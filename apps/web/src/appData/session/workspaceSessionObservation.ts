@@ -10,6 +10,7 @@ import {
   normalizeCaughtError,
   type WebObservationFeature,
   type WebObservationScope,
+  type WorkspaceActivationBootstrapPhase,
   type WorkspaceTransitionBreadcrumbDetails,
 } from "../../observability/webObservability";
 import type { SessionVerificationState } from "./warmStart";
@@ -27,6 +28,8 @@ export type WorkspaceTransitionLogDetails = Readonly<{
   nextWorkspaceIds?: ReadonlyArray<string>;
   redirected?: boolean;
   errorMessage?: string;
+  bootstrapPhase?: WorkspaceActivationBootstrapPhase;
+  syncRunId?: string;
 }>;
 
 type WorkspaceTransitionEventName =
@@ -76,6 +79,15 @@ function getErrorCode(error: Error): string | null {
   return error instanceof ApiError || error instanceof ApiContractError ? error.code : null;
 }
 
+function getErrorSyncRunId(error: Error): string | null {
+  if (typeof error !== "object" || error === null || "syncRunId" in error === false) {
+    return null;
+  }
+
+  const syncRunId = (error as Readonly<{ syncRunId: unknown }>).syncRunId;
+  return typeof syncRunId === "string" && syncRunId.trim() !== "" ? syncRunId : null;
+}
+
 function buildWorkspaceObservationScope(
   feature: WebObservationFeature,
   details: WorkspaceTransitionLogDetails,
@@ -112,6 +124,8 @@ function normalizeWorkspaceTransitionDetails(
     nextWorkspaceIds: details.nextWorkspaceIds ?? [],
     redirected: details.redirected ?? false,
     errorMessage: details.errorMessage ?? null,
+    bootstrapPhase: details.bootstrapPhase ?? null,
+    syncRunId: details.syncRunId ?? null,
   };
 }
 
@@ -132,6 +146,7 @@ export function captureWorkspaceTransitionError(
   caughtError: unknown,
 ): void {
   const error = normalizeCaughtError(caughtError);
+  const syncRunId = details.syncRunId ?? getErrorSyncRunId(error);
   const scope = buildWorkspaceObservationScope(
     event === "session_bootstrap_failed" || event === "session_account_switch_failed" ? "auth" : "workspace",
     details,
@@ -186,6 +201,8 @@ export function captureWorkspaceTransitionError(
     details: {
       operation: event,
       workspaceId: details.workspaceId ?? details.activeWorkspaceId ?? details.selectedWorkspaceId ?? null,
+      bootstrapPhase: details.bootstrapPhase ?? null,
+      syncRunId,
     },
   });
 }

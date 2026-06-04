@@ -3,9 +3,15 @@ import type {
   ProgressSeriesInput,
   ProgressSummaryInput,
 } from "../types";
+import {
+  captureWebWarning,
+  type WebObservationScope,
+} from "../observability/webObservability";
 
 export const progressRangeDayCount: number = 140;
 export const progressRangeStartOffsetDays: number = 1 - progressRangeDayCount;
+const fallbackProgressTimeZone = "UTC";
+const observedInvalidProgressTimeZoneWarnings = new Set<string>();
 
 export type ProgressDateContext = Readonly<{
   timeZone: string;
@@ -25,11 +31,91 @@ function getRequiredDatePart(
   return partValue;
 }
 
-function getBrowserTimeZone(): string {
-  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+function getCurrentRoute(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
 
-  if (typeof timeZone !== "string" || timeZone.trim() === "") {
-    throw new Error("Browser timezone is unavailable");
+  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
+
+function buildProgressObservationScope(): WebObservationScope {
+  return {
+    app: "web",
+    feature: "progress",
+    userId: null,
+    workspaceId: null,
+    installationId: null,
+    route: getCurrentRoute(),
+    requestId: null,
+    statusCode: null,
+    code: null,
+  };
+}
+
+function readErrorName(error: unknown): string {
+  if (typeof error !== "object" || error === null || "name" in error === false) {
+    return "Error";
+  }
+
+  const errorName = (error as Readonly<{ name: unknown }>).name;
+  return typeof errorName === "string" && errorName.trim() !== "" ? errorName : "Error";
+}
+
+function observeInvalidProgressTimeZone(
+  observedTimeZone: string | null,
+  errorName: string,
+): void {
+  const warningKey = `${observedTimeZone ?? "null"}:${errorName}`;
+  if (observedInvalidProgressTimeZoneWarnings.has(warningKey)) {
+    return;
+  }
+
+  observedInvalidProgressTimeZoneWarnings.add(warningKey);
+  captureWebWarning({
+    action: "progress_timezone_invalid",
+    scope: buildProgressObservationScope(),
+    details: {
+      eventName: "progress_timezone_invalid",
+      observedTimeZone,
+      fallbackTimeZone: fallbackProgressTimeZone,
+      errorName,
+    },
+  });
+}
+
+function assertUsableTimeZone(timeZone: string): void {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  formatter.formatToParts(new Date(0));
+}
+
+function getBrowserTimeZone(): string {
+  let timeZone: string | null = null;
+  try {
+    const observedTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    timeZone = typeof observedTimeZone === "string" && observedTimeZone.trim() !== ""
+      ? observedTimeZone
+      : null;
+  } catch (error) {
+    observeInvalidProgressTimeZone(null, readErrorName(error));
+    return fallbackProgressTimeZone;
+  }
+
+  if (timeZone === null) {
+    observeInvalidProgressTimeZone(null, "Error");
+    return fallbackProgressTimeZone;
+  }
+
+  try {
+    assertUsableTimeZone(timeZone);
+  } catch (error) {
+    observeInvalidProgressTimeZone(timeZone, readErrorName(error));
+    return fallbackProgressTimeZone;
   }
 
   return timeZone;

@@ -1,4 +1,5 @@
 import { webAppVersion } from "../../clientIdentity";
+import type { PersistentStorageState } from "../../localDb/sync/cloudSettings";
 
 export const SYNC_RESTORE_HISTORY_STORAGE_KEY = "flashcards-sync-restore-history-v1";
 
@@ -20,6 +21,13 @@ export type SyncRestoreHistoryEntry = Readonly<{
   webAppVersion: string;
   lastAppliedHotChangeId: number;
   localCardCount: number;
+  persistentStorageCheckedAt: string | null;
+  persistentStoragePersisted: boolean | null;
+  persistentStorageUsage: number | null;
+  persistentStorageQuota: number | null;
+  persistentStorageErrorName: string | null;
+  persistentStoragePersistAttempted: boolean | null;
+  persistentStoragePersistGranted: boolean | null;
 }>;
 
 export type SyncRestoreHistoryLookup = Readonly<{
@@ -40,15 +48,51 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
-function isSyncRestoreHistoryEntry(value: unknown): value is SyncRestoreHistoryEntry {
-  return isRecord(value)
-    && isNonEmptyString(value.userId)
-    && isNonEmptyString(value.workspaceId)
-    && isNonEmptyString(value.installationId)
-    && isNonEmptyString(value.hydratedAt)
-    && isNonEmptyString(value.webAppVersion)
-    && isFiniteNumber(value.lastAppliedHotChangeId)
-    && isFiniteNumber(value.localCardCount);
+function readNullableString(value: unknown): string | null {
+  return isNonEmptyString(value) ? value : null;
+}
+
+function readNullableNumber(value: unknown): number | null {
+  return isFiniteNumber(value) ? value : null;
+}
+
+function readNullableBoolean(value: unknown): boolean | null {
+  return typeof value === "boolean" ? value : null;
+}
+
+function parseSyncRestoreHistoryEntry(value: unknown): SyncRestoreHistoryEntry | null {
+  if (isRecord(value) === false) {
+    return null;
+  }
+
+  if (
+    isNonEmptyString(value.userId) === false
+    || isNonEmptyString(value.workspaceId) === false
+    || isNonEmptyString(value.installationId) === false
+    || isNonEmptyString(value.hydratedAt) === false
+    || isNonEmptyString(value.webAppVersion) === false
+    || isFiniteNumber(value.lastAppliedHotChangeId) === false
+    || isFiniteNumber(value.localCardCount) === false
+  ) {
+    return null;
+  }
+
+  return {
+    userId: value.userId,
+    workspaceId: value.workspaceId,
+    installationId: value.installationId,
+    hydratedAt: value.hydratedAt,
+    webAppVersion: value.webAppVersion,
+    lastAppliedHotChangeId: value.lastAppliedHotChangeId,
+    localCardCount: value.localCardCount,
+    persistentStorageCheckedAt: readNullableString(value.persistentStorageCheckedAt),
+    persistentStoragePersisted: readNullableBoolean(value.persistentStoragePersisted),
+    persistentStorageUsage: readNullableNumber(value.persistentStorageUsage),
+    persistentStorageQuota: readNullableNumber(value.persistentStorageQuota),
+    persistentStorageErrorName: readNullableString(value.persistentStorageErrorName),
+    persistentStoragePersistAttempted: readNullableBoolean(value.persistentStoragePersistAttempted),
+    persistentStoragePersistGranted: readNullableBoolean(value.persistentStoragePersistGranted),
+  };
 }
 
 function getBrowserStorage(): Storage | null {
@@ -91,7 +135,9 @@ function parseSyncRestoreHistoryEnvelope(rawValue: string | null): SyncRestoreHi
       };
     }
 
-    const entries = parsedValue.entries.filter(isSyncRestoreHistoryEntry);
+    const entries = parsedValue.entries
+      .map(parseSyncRestoreHistoryEntry)
+      .filter((entry): entry is SyncRestoreHistoryEntry => entry !== null);
     return {
       version: syncRestoreHistoryVersion,
       entries,
@@ -157,16 +203,25 @@ export function storeSyncRestoreHistoryEntry(
     installationId: string;
     lastAppliedHotChangeId: number;
     localCardCount: number;
+    persistentStorageState: PersistentStorageState;
   }>,
 ): SyncRestoreHistoryEntry {
+  const hydratedAt = new Date().toISOString();
   const nextEntry: SyncRestoreHistoryEntry = {
     userId: input.userId,
     workspaceId: input.workspaceId,
     installationId: input.installationId,
-    hydratedAt: new Date().toISOString(),
+    hydratedAt,
     webAppVersion,
     lastAppliedHotChangeId: input.lastAppliedHotChangeId,
     localCardCount: input.localCardCount,
+    persistentStorageCheckedAt: hydratedAt,
+    persistentStoragePersisted: input.persistentStorageState.persisted,
+    persistentStorageUsage: input.persistentStorageState.usage,
+    persistentStorageQuota: input.persistentStorageState.quota,
+    persistentStorageErrorName: input.persistentStorageState.errorName,
+    persistentStoragePersistAttempted: input.persistentStorageState.persistAttempted,
+    persistentStoragePersistGranted: input.persistentStorageState.persistGranted,
   };
   const envelope = loadSyncRestoreHistoryEnvelope();
   const nextEntries = [
