@@ -240,7 +240,7 @@ Localize the user-facing labels around them, not the technical values themselves
 
 Current iOS smoke launches intentionally force English in:
 
-- [apps/ios/Flashcards/FlashcardsUITests/LiveSmokeSupport/LiveSmokeLaunching.swift](../apps/ios/Flashcards/FlashcardsUITests/LiveSmokeSupport/LiveSmokeLaunching.swift)
+- [apps/ios/Flashcards/FlashcardsUITests/LiveSmokeSupport/Configuration/LiveSmokeLaunching.swift](../apps/ios/Flashcards/FlashcardsUITests/LiveSmokeSupport/Configuration/LiveSmokeLaunching.swift)
 
 That means:
 
