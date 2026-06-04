@@ -92,6 +92,75 @@ describe("useProgressSource summary and series", () => {
     expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(8);
   });
 
+  it("keeps reviewed-today summary visible after pending uploads clear before the server summary catches up", async () => {
+    const currentSeriesInput = buildCurrentSeriesInput();
+    hasPendingProgressReviewEventsMock.mockResolvedValue(false);
+    loadProgressSummaryMock.mockResolvedValue({
+      timeZone: "Europe/Madrid",
+      generatedAt: "2026-04-20T09:15:00.000Z",
+      summary: {
+        currentStreakDays: 1,
+        hasReviewedToday: false,
+        lastReviewedOn: "2026-04-19",
+        activeReviewDays: 7,
+      },
+    });
+    loadProgressSeriesMock.mockResolvedValue({
+      timeZone: currentSeriesInput.timeZone,
+      from: currentSeriesInput.from,
+      to: currentSeriesInput.to,
+      generatedAt: "2026-04-20T09:15:00.000Z",
+      dailyReviews: [
+        {
+          date: currentSeriesInput.to,
+          reviewCount: 0,
+        },
+      ],
+    });
+    loadLocalProgressSummaryMock.mockResolvedValue({
+      currentStreakDays: 2,
+      hasReviewedToday: true,
+      lastReviewedOn: "2026-04-20",
+      activeReviewDays: 8,
+    });
+    loadLocalProgressDailyReviewsMock.mockResolvedValue([
+      {
+        date: currentSeriesInput.to,
+        reviewCount: 1,
+      },
+    ]);
+
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: summaryAndSeriesSections,
+    });
+
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.summary.serverBase?.summary.hasReviewedToday).toBe(false);
+    expect(harness.getApi().progressSourceState.summary.hasPendingLocalReviews).toBe(false);
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.source).toBe("server");
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.isApproximate).toBe(true);
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary).toEqual({
+      currentStreakDays: 2,
+      hasReviewedToday: true,
+      lastReviewedOn: "2026-04-20",
+      activeReviewDays: 8,
+    });
+    expect(harness.getApi().progressSourceState.series.serverBase?.dailyReviews).toContainEqual({
+      date: currentSeriesInput.to,
+      reviewCount: 0,
+    });
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.source).toBe("server");
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.isApproximate).toBe(true);
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
+      date: currentSeriesInput.to,
+      reviewCount: 1,
+    });
+  });
+
   it("renders server series with pending local review overlay as approximate", async () => {
     const currentSeriesInput = buildCurrentSeriesInput();
     loadProgressSeriesMock.mockResolvedValue(buildServerSeries(4, "2026-04-18T09:18:00.000Z"));
