@@ -1,6 +1,6 @@
-import type { Card } from "../../types";
-import { normalizeTagKey } from "../../appData/domain";
-import { describeIndexedDbError } from "../core/database";
+import type { Card } from "../../../types";
+import { normalizeTagKey } from "../../../appData/domain";
+import { describeIndexedDbError } from "../../core/database";
 
 export type CardTagRecord = Readonly<{
   workspaceId: string;
