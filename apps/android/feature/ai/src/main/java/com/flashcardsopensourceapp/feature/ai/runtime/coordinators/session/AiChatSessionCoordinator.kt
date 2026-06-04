@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.ai.runtime.coordinators
+package com.flashcardsopensourceapp.feature.ai.runtime.coordinators.session
 
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
@@ -14,6 +14,7 @@ import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiChatRuntime
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiComposerPhase
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiConversationBootstrapState
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.makeAiChatSessionId
+import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.bootstrap.isRetryableBootstrapFailure
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatBreadcrumb
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatExceptionEvent
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatFailureIssueDisposition

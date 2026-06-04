@@ -2,7 +2,7 @@ package com.flashcardsopensourceapp.feature.ai.runtime
 
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration
-import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.AiChatBootstrapBlockedException
+import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.bootstrap.AiChatBootstrapBlockedException
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.makeAiBootstrapErrorPresentation
 import com.flashcardsopensourceapp.feature.ai.strings.testAiTextProvider
 import java.io.IOException

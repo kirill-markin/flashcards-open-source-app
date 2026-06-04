@@ -3,7 +3,7 @@ package com.flashcardsopensourceapp.feature.ai.runtime.observability
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.feature.ai.AiBootstrapErrorPresentation
-import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.AiChatBootstrapBlockedException
+import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.bootstrap.AiChatBootstrapBlockedException
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiErrorSurface
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.aiChatAvailabilityMessage
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.makeAiChatUserFacingErrorMessage
@@ -13,7 +13,7 @@ import java.io.IOException
 private const val cloudContractMismatchExceptionName: String =
     "com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException"
 private const val aiChatBootstrapSessionMismatchExceptionName: String =
-    "com.flashcardsopensourceapp.feature.ai.runtime.coordinators.AiChatBootstrapSessionMismatchException"
+    "com.flashcardsopensourceapp.feature.ai.runtime.coordinators.bootstrap.AiChatBootstrapSessionMismatchException"
 
 internal fun makeAiUserFacingErrorMessage(
     error: Exception,

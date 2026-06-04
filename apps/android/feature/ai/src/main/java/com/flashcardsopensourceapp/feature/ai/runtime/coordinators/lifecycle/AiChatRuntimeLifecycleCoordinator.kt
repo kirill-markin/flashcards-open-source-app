@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.ai.runtime.coordinators
+package com.flashcardsopensourceapp.feature.ai.runtime.coordinators.lifecycle
 
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatResumeDiagnostics

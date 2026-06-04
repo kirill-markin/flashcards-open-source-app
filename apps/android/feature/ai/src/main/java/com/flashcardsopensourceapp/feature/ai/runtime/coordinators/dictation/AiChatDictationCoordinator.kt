@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.ai.runtime.coordinators
+package com.flashcardsopensourceapp.feature.ai.runtime.coordinators.dictation
 
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
@@ -8,6 +8,7 @@ import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiChatRuntime
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiConversationBootstrapState
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.appendTranscriptToDraft
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canPrepareAiDraftInComposerPhase
+import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.session.AiChatSessionCoordinator
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiErrorSurface
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.makeAiUserFacingErrorMessage
 import kotlinx.coroutines.CancellationException

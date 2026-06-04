@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.ai.runtime.coordinators
+package com.flashcardsopensourceapp.feature.ai.runtime.coordinators.send
 
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRequestTooLargeException
@@ -29,6 +29,8 @@ import com.flashcardsopensourceapp.feature.ai.runtime.conversation.makeUserConte
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.makeUserMessage
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.setPendingToolRunPostSync
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.snapshotRunHasToolCalls
+import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.live.AiChatLiveStreamCoordinator
+import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.session.AiChatSessionCoordinator
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiErrorSurface
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatBreadcrumb
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatExceptionEvent
