@@ -52,7 +52,7 @@ The apex `<domain>` is an optional CloudFront redirect to `app.<domain>`.
 
 ### Auth service
 
-- `infra/aws/lib/auth-gateway.ts` deploys a dedicated API Gateway + Lambda for auth.
+- `infra/aws/lib/gateways/auth-gateway.ts` deploys a dedicated API Gateway + Lambda for auth.
 - The auth Lambda runs in the VPC, reads its own DB secret, and talks to Cognito.
 - Browser and native sign-in use the same passwordless email OTP foundation, but different session handling:
   - Web uses signed cookies plus session refresh.
@@ -61,7 +61,7 @@ The apex `<domain>` is an optional CloudFront redirect to `app.<domain>`.
 
 ### Backend API
 
-- `infra/aws/lib/api-gateway.ts` deploys the main API Gateway and two backend Lambda entrypoints:
+- `infra/aws/lib/gateways/api-gateway.ts` deploys the main API Gateway and two backend Lambda entrypoints:
   - a buffered backend Lambda for normal JSON endpoints
   - a detached worker Lambda for backend-owned chat runs
 - The backend Lambda runs in the VPC, reads the backend DB secret, verifies Cognito ID tokens, and can optionally read model-provider secrets.

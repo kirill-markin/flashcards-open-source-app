@@ -102,7 +102,7 @@ Details and key files: [docs/auth-service.md](docs/auth-service.md).
 - In the iOS app, every user tap should trigger immediate Apple-standard UI feedback, with background loading shown in place or on the next surface, failed actions restoring the previous state, and successful actions clearly exposing the next step.
 - In the iOS app and the web app, user actions should feel instantaneous. In key flows we proactively prepare the most likely next states, and where that is not possible or too expensive, we react immediately and show in-place loading feedback such as a spinner or small partial-loading spinners while data arrives.
 - Always mention the schema explicitly in migrations.
-- When adding, removing, or renaming backend HTTP routes, update `infra/aws/lib/api-gateway.ts` in the same change so API Gateway stays in sync.
+- When adding, removing, or renaming backend HTTP routes, update `infra/aws/lib/gateways/api-gateway.ts` in the same change so API Gateway stays in sync.
 - AWS CLI access is available in this environment. When debugging backend, AI, or SSE issues, prefer checking the exact Lambda log group first instead of inferring only from client symptoms.
 - For CloudWatch investigations, avoid complex OR filter patterns. Fetch fresh events first, then filter locally by `requestId` and chat error signals.
 - For live SSE issues, correlate the CloudWatch structured log, the `X-Request-Id` response header, and the client-visible error body.

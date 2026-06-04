@@ -4,7 +4,7 @@ import { networking } from "./networking";
 import { database } from "./database";
 import { preSignUp } from "./pre-signup";
 import { auth } from "./auth";
-import { apiGateway } from "./api-gateway";
+import { apiGateway } from "./gateways/api-gateway";
 import { monitoring } from "./monitoring";
 import { ciCd } from "./ci-cd";
 import { backupPlan } from "./backup";
@@ -12,7 +12,7 @@ import { outputs } from "./outputs";
 import { webApp } from "./web";
 import { adminApp } from "./admin";
 import { migrationRunner } from "./migration-runner";
-import { authGateway } from "./auth-gateway";
+import { authGateway } from "./gateways/auth-gateway";
 import { analyticsAccess, type AnalyticsAccessResult } from "./analytics-access";
 import { globalMetrics } from "./global-metrics";
 
