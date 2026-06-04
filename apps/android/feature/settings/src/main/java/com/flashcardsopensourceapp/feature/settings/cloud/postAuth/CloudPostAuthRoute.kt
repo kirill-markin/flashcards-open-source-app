@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.settings.cloud
+package com.flashcardsopensourceapp.feature.settings.cloud.postAuth
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement

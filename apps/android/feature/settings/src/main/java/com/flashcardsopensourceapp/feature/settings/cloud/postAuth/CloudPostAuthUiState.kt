@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.settings.cloud
+package com.flashcardsopensourceapp.feature.settings.cloud.postAuth
 
 import com.flashcardsopensourceapp.feature.settings.workspace.current.CurrentWorkspaceItemUiState
 

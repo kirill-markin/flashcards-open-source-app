@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.settings.cloud
+package com.flashcardsopensourceapp.feature.settings.cloud.credentialRecovery
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
@@ -27,6 +27,13 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecover
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.feature.settings.R
+import com.flashcardsopensourceapp.feature.settings.cloud.postAuth.CloudPostAuthMode
+import com.flashcardsopensourceapp.feature.settings.cloud.postAuth.CloudPostAuthRoute
+import com.flashcardsopensourceapp.feature.settings.cloud.postAuth.CloudPostAuthUiState
+import com.flashcardsopensourceapp.feature.settings.cloud.signIn.CloudSignInCodeRoute
+import com.flashcardsopensourceapp.feature.settings.cloud.signIn.CloudSignInEmailRoute
+import com.flashcardsopensourceapp.feature.settings.cloud.signIn.CloudSignInErrorCard
+import com.flashcardsopensourceapp.feature.settings.cloud.signIn.CloudSignInUiState
 
 const val cloudCredentialRecoveryGateTag: String = "cloud_credential_recovery_gate"
 const val cloudCredentialRecoveryGateSignInButtonTag: String =
