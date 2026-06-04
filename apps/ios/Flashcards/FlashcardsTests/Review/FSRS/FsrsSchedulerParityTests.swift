@@ -631,6 +631,7 @@ private extension FsrsSchedulerParityTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
+            .deletingLastPathComponent()
             .appendingPathComponent("tests/fsrs-full-vectors.json")
         guard FileManager.default.fileExists(atPath: repositoryFixtureURL.path) else {
             throw LocalStoreError.uninitialized(
