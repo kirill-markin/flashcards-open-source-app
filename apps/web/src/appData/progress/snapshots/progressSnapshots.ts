@@ -125,43 +125,118 @@ export function buildLocalFallbackSeries(
   };
 }
 
+type ProgressSeriesMergeResult = Readonly<{
+  series: ProgressSeries;
+  hasOverlay: boolean;
+}>;
+
 function mergeProgressSeriesWithOverlay(
   serverBase: ProgressSeries,
   overlay: ProgressChartData | null,
-): ProgressSeries {
-  if (overlay === null || overlay.dailyReviews.length === 0) {
-    return normalizeProgressSeries(serverBase);
-  }
-
-  const pendingReviewCounts = buildDailyReviewCountMap(overlay.dailyReviews);
+  localFallback: ProgressSeriesSnapshot | null,
+): ProgressSeriesMergeResult {
+  const pendingReviewCounts = buildDailyReviewCountMap(overlay?.dailyReviews ?? []);
+  const localFallbackReviewCounts = localFallback === null
+    ? new Map<string, number>()
+    : buildDailyReviewCountMap(localFallback.dailyReviews);
   const normalizedServerBase = normalizeProgressSeries(serverBase);
   let hasOverlay = false;
   const dailyReviews = normalizedServerBase.dailyReviews.map((day) => {
     const pendingReviewCount = pendingReviewCounts.get(day.date) ?? 0;
+    const localFallbackReviewCount = localFallbackReviewCounts.get(day.date) ?? 0;
+    const reviewCountWithPendingOverlay = day.reviewCount + pendingReviewCount;
+    const reviewCount = Math.max(reviewCountWithPendingOverlay, localFallbackReviewCount);
 
-    if (pendingReviewCount === 0) {
+    if (reviewCount === day.reviewCount) {
       return day;
     }
 
     hasOverlay = true;
     return {
       date: day.date,
-      reviewCount: day.reviewCount + pendingReviewCount,
+      reviewCount,
     };
   });
 
   if (hasOverlay === false) {
-    return normalizedServerBase;
+    return {
+      series: normalizedServerBase,
+      hasOverlay: false,
+    };
   }
 
   return {
-    ...normalizedServerBase,
-    dailyReviews,
+    series: {
+      ...normalizedServerBase,
+      dailyReviews,
+    },
+    hasOverlay: true,
   };
 }
 
-function hasPendingOverlayActivity(overlay: ProgressChartData | null): boolean {
-  return overlay?.dailyReviews.some((day) => day.reviewCount > 0) ?? false;
+function isLocalDateAfter(
+  first: string | null,
+  second: string | null,
+): boolean {
+  if (first === null) {
+    return false;
+  }
+
+  if (second === null) {
+    return true;
+  }
+
+  return first > second;
+}
+
+function maxLocalDate(
+  first: string | null,
+  second: string | null,
+): string | null {
+  if (first === null) {
+    return second;
+  }
+
+  if (second === null) {
+    return first;
+  }
+
+  return first >= second ? first : second;
+}
+
+function hasProgressSummaryOverlay(
+  localFallback: ProgressSummarySnapshot,
+  serverBase: ProgressSummarySnapshot,
+): boolean {
+  return localFallback.summary.currentStreakDays > serverBase.summary.currentStreakDays
+    || (localFallback.summary.hasReviewedToday && serverBase.summary.hasReviewedToday === false)
+    || isLocalDateAfter(localFallback.summary.lastReviewedOn, serverBase.summary.lastReviewedOn)
+    || localFallback.summary.activeReviewDays > serverBase.summary.activeReviewDays;
+}
+
+function mergeProgressSummary(
+  serverBase: ProgressSummarySnapshot,
+  localFallback: ProgressSummarySnapshot,
+): ProgressSummaryPayload {
+  return {
+    timeZone: serverBase.timeZone,
+    generatedAt: serverBase.generatedAt,
+    summary: {
+      currentStreakDays: Math.max(
+        serverBase.summary.currentStreakDays,
+        localFallback.summary.currentStreakDays,
+      ),
+      hasReviewedToday: serverBase.summary.hasReviewedToday || localFallback.summary.hasReviewedToday,
+      lastReviewedOn: maxLocalDate(
+        serverBase.summary.lastReviewedOn,
+        localFallback.summary.lastReviewedOn,
+      ),
+      activeReviewDays: Math.max(
+        serverBase.summary.activeReviewDays,
+        localFallback.summary.activeReviewDays,
+      ),
+    },
+  };
 }
 
 function isProgressReviewScheduleServerBaseStale(
@@ -190,7 +265,19 @@ function buildRenderedSummary(
   hasPendingLocalReviews: boolean,
   canRenderServerBase: boolean,
 ): ProgressSummarySnapshot | null {
-  if (canRenderServerBase && serverBase !== null && hasPendingLocalReviews === false) {
+  if (canRenderServerBase && serverBase !== null) {
+    if (hasPendingLocalReviews) {
+      return localFallback;
+    }
+
+    if (localFallback !== null && hasProgressSummaryOverlay(localFallback, serverBase)) {
+      return createProgressSummarySnapshot(
+        mergeProgressSummary(serverBase, localFallback),
+        "server",
+        true,
+      );
+    }
+
     return serverBase;
   }
 
@@ -204,8 +291,12 @@ function buildRenderedSeries(
   canRenderServerBase: boolean,
 ): ProgressSeriesSnapshot | null {
   if (canRenderServerBase && serverBase !== null) {
-    const mergedSeries = mergeProgressSeriesWithOverlay(serverBase, pendingLocalOverlay);
-    return createProgressSeriesSnapshot(mergedSeries, "server", hasPendingOverlayActivity(pendingLocalOverlay));
+    const mergeResult = mergeProgressSeriesWithOverlay(serverBase, pendingLocalOverlay, localFallback);
+    return createProgressSeriesSnapshot(
+      mergeResult.series,
+      "server",
+      mergeResult.hasOverlay,
+    );
   }
 
   return localFallback;

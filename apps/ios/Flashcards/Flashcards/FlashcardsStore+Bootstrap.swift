@@ -147,6 +147,17 @@ extension FlashcardsStore {
 
     @discardableResult
     func refreshBootstrapSnapshotWithoutReset(now: Date) throws -> BootstrapSnapshotRefreshOutcome {
+        let outcome = try self.refreshBootstrapSnapshotContentWithoutReset(now: now)
+        self.handleProgressContextDidChange(now: now)
+        return outcome
+    }
+
+    @discardableResult
+    func refreshBootstrapSnapshotWithoutProgressContextRefresh(now: Date) throws -> BootstrapSnapshotRefreshOutcome {
+        try self.refreshBootstrapSnapshotContentWithoutReset(now: now)
+    }
+
+    private func refreshBootstrapSnapshotContentWithoutReset(now: Date) throws -> BootstrapSnapshotRefreshOutcome {
         let database = try requireLocalDatabase(database: self.database)
         let bootstrapSnapshot = try database.loadBootstrapSnapshot()
         let nextCards = try database.loadActiveCards(workspaceId: bootstrapSnapshot.workspace.workspaceId)
@@ -194,7 +205,6 @@ extension FlashcardsStore {
         }
         self.reconcileReviewNotifications(trigger: .workspaceChanged, now: now)
         self.reconcileStrictReminders(trigger: .workspaceChanged, now: now)
-        self.handleProgressContextDidChange(now: now)
 
         return BootstrapSnapshotRefreshOutcome(
             didChange: didChange,

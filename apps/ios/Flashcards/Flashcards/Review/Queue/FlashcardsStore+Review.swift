@@ -290,7 +290,7 @@ extension FlashcardsStore {
                 return
             }
 
-            let bootstrapRefreshOutcome = try self.refreshBootstrapSnapshotWithoutReset(now: now)
+            let bootstrapRefreshOutcome = try self.refreshBootstrapSnapshotWithoutProgressContextRefresh(now: now)
             let didReconcileReviewState = try await self.reconcileReviewState(
                 now: now,
                 trigger: .localReview
