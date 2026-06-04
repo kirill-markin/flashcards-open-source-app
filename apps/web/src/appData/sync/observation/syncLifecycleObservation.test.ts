@@ -1,18 +1,18 @@
 // @vitest-environment jsdom
 import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { webAppVersion } from "../../clientIdentity";
-import { clearWebSyncCache } from "../../localDb/cache";
-import { applyHotSyncPage } from "../../localDb/cards/workspace";
-import type { PersistentStorageState } from "../../localDb/sync/cloudSettings";
-import { runWorkspaceRemoteSync, type WorkspaceRemoteSyncInput } from "./syncRemote";
+import { webAppVersion } from "../../../clientIdentity";
+import { clearWebSyncCache } from "../../../localDb/cache";
+import { applyHotSyncPage } from "../../../localDb/cards/workspace";
+import type { PersistentStorageState } from "../../../localDb/sync/cloudSettings";
+import { runWorkspaceRemoteSync, type WorkspaceRemoteSyncInput } from "../remote/syncRemote";
 import {
   observeSlowHotBootstrap,
 } from "./syncLifecycleObservation";
 import {
   loadSyncRestoreHistoryEntry,
   storeSyncRestoreHistoryEntry,
-} from "./syncRestoreHistory";
+} from "../restore/syncRestoreHistory";
 
 const observabilityMocks = vi.hoisted(() => ({
   addWebBreadcrumbMock: vi.fn(),
@@ -26,12 +26,12 @@ const apiMocks = vi.hoisted(() => ({
   pushSyncOperationsMock: vi.fn(),
 }));
 
-vi.mock("../../observability/webObservability", () => ({
+vi.mock("../../../observability/webObservability", () => ({
   addWebBreadcrumb: observabilityMocks.addWebBreadcrumbMock,
   captureWebWarning: observabilityMocks.captureWebWarningMock,
 }));
 
-vi.mock("../../api", () => ({
+vi.mock("../../../api", () => ({
   bootstrapPullSyncState: apiMocks.bootstrapPullSyncStateMock,
   pullReviewHistorySync: apiMocks.pullReviewHistorySyncMock,
   pullSyncChanges: apiMocks.pullSyncChangesMock,
