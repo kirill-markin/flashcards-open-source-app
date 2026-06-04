@@ -12,8 +12,8 @@ import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiConversatio
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.makeAssistantStatusMessage
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.makeAiDraftState
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.makeUserMessage
-import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.AiChatBootstrapCoordinator
-import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.AiChatRuntimeLifecycleCoordinator
+import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.bootstrap.AiChatBootstrapCoordinator
+import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.lifecycle.AiChatRuntimeLifecycleCoordinator
 import java.io.IOException
 import java.net.MalformedURLException
 import java.net.SocketException

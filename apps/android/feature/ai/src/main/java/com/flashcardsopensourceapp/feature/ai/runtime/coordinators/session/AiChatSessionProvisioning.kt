@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.ai.runtime.coordinators
+package com.flashcardsopensourceapp.feature.ai.runtime.coordinators.session
 
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
@@ -7,6 +7,8 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionProvisioning
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.repository.AiChatPreparedRemoteSession
 import com.flashcardsopensourceapp.feature.ai.runtime.AiChatRuntimeContext
+import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.bootstrap.nextBootstrapRetryDelayMillis
+import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.bootstrap.shouldRetryBootstrap
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.remoteErrorFields
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
