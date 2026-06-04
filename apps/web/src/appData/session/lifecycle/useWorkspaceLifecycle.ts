@@ -3,21 +3,21 @@ import {
   getSession,
   isAuthRedirectError,
   revalidateSession as revalidateSessionRequest,
-} from "../../api";
+} from "../../../api";
 import {
   clearBrowserReauthRequired,
   consumeAccountDeletedMarker,
   isBrowserReauthRequired,
   type LocalBrowserDataCleanupReason,
-} from "../../accountDeletion";
-import type { TranslationKey } from "../../i18n";
-import { loadCloudSettings, putCloudSettings } from "../../localDb/sync/cloudSettings";
-import { setWebObservabilityUser } from "../../observability/webObservability";
-import { getErrorMessage } from "../domain";
+} from "../../../accountDeletion";
+import type { TranslationKey } from "../../../i18n";
+import { loadCloudSettings, putCloudSettings } from "../../../localDb/sync/cloudSettings";
+import { setWebObservabilityUser } from "../../../observability/webObservability";
+import { getErrorMessage } from "../../domain";
 import {
   buildLinkingReadyCloudSettings,
   resolveLocalDataCleanupReasonForVerifiedSession,
-} from "./workspaceSessionCloud";
+} from "../cloud/workspaceSessionCloud";
 import {
   consumeLoggedOutMarker,
   createSessionAccountSwitchError,
@@ -25,16 +25,16 @@ import {
   resumeRetryCount,
   resumeRetryDelayMs,
   waitForDelay,
-} from "./workspaceSessionHelpers";
+} from "./workspaceLifecycleHelpers";
 import {
   captureWorkspaceTransitionError,
   logWorkspaceTransition,
-} from "./workspaceSessionObservation";
+} from "../observation/workspaceSessionObservation";
 import type {
   WorkspaceSessionSetters,
   WorkspaceSessionState,
-} from "./workspaceSessionTypes";
-import type { SessionInfo } from "../../types";
+} from "../workspaceSessionTypes";
+import type { SessionInfo } from "../../../types";
 
 type UseWorkspaceLifecycleParams =
   & Readonly<{

@@ -68,7 +68,7 @@ import {
 } from "../local/syncSeed";
 import type { TestSeedRequest, TestSeedResult } from "../local/testSeedBridge";
 import type { SessionLoadState } from "../../context/types";
-import type { SessionVerificationState } from "../../session/warmStart";
+import type { SessionVerificationState } from "../../session/workspaceSessionTypes";
 
 type UseSyncEngineParams = Readonly<{
   sessionLoadState: SessionLoadState;

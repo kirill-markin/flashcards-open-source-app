@@ -1,9 +1,9 @@
 import {
   ApiContractError,
   ApiError,
-} from "../../api";
-import { getStableInstallationId } from "../../clientIdentity";
-import type { CloudSettings, SessionInfo, WorkspaceSummary } from "../../types";
+} from "../../../api";
+import { getStableInstallationId } from "../../../clientIdentity";
+import type { CloudSettings, SessionInfo, WorkspaceSummary } from "../../../types";
 import {
   addWebBreadcrumb,
   captureWebException,
@@ -12,8 +12,8 @@ import {
   type WebObservationScope,
   type WorkspaceActivationBootstrapPhase,
   type WorkspaceTransitionBreadcrumbDetails,
-} from "../../observability/webObservability";
-import type { SessionVerificationState } from "./warmStart";
+} from "../../../observability/webObservability";
+import type { SessionVerificationState } from "../workspaceSessionTypes";
 
 export type WorkspaceTransitionLogDetails = Readonly<{
   sessionVerificationState?: SessionVerificationState;

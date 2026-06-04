@@ -14,7 +14,7 @@ import type {
   WorkspaceSchedulerSettings,
   WorkspaceSummary,
 } from "../../types";
-import type { SessionVerificationState } from "../session/warmStart";
+import type { SessionVerificationState } from "../session/workspaceSessionTypes";
 
 export type SessionLoadState = "loading" | "ready" | "redirecting" | "selecting_workspace" | "error" | "deleted";
 

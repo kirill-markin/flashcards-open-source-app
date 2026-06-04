@@ -22,8 +22,8 @@ import { useProgressInvalidationRefresh } from "../progress/invalidation/progres
 import { isTestSeedBridgeEnabled, type AppDataTestSeedBridge } from "../sync/testSeedBridge";
 import { useSyncEngine } from "../sync/useSyncEngine";
 import { useWorkspaceSession } from "../session/useWorkspaceSession";
-import type { SessionVerificationState } from "../session/warmStart";
-import { loadWarmStartSnapshot, storeWarmStartSnapshot } from "../session/warmStart";
+import type { SessionVerificationState } from "../session/workspaceSessionTypes";
+import { loadWarmStartSnapshot, storeWarmStartSnapshot } from "../session/activation/warmStart";
 
 const AppDataContext = createContext<AppDataContextValue | null>(null);
 const SELECTED_REVIEW_FILTER_STORAGE_KEY = "selected-review-filter";

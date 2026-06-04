@@ -1,7 +1,7 @@
-import { isBrowserReauthRequired } from "../../accountDeletion";
-import type { SessionInfo, WorkspaceSummary } from "../../types";
+import { isBrowserReauthRequired } from "../../../accountDeletion";
+import type { SessionInfo, WorkspaceSummary } from "../../../types";
 
-export type SessionVerificationState = "unverified" | "verified";
+export type { SessionVerificationState } from "../workspaceSessionTypes";
 
 export type WarmStartSnapshot = Readonly<{
   version: 1;
