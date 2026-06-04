@@ -9,7 +9,7 @@ import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnap
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.ProgressRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
-import com.flashcardsopensourceapp.data.local.repository.TimeProvider
+import com.flashcardsopensourceapp.data.local.repository.shared.TimeProvider
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.LocalProgressCacheStore
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.ProgressLocalCacheReadinessCoordinator
 import com.flashcardsopensourceapp.data.local.repository.progress.inputs.ProgressObservedInputs

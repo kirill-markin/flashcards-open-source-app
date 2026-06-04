@@ -20,7 +20,7 @@ import com.flashcardsopensourceapp.data.local.model.sync.SyncAction
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import com.flashcardsopensourceapp.data.local.model.sync.SyncOperationPayload
 import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
-import com.flashcardsopensourceapp.data.local.repository.TimeProvider
+import com.flashcardsopensourceapp.data.local.repository.shared.TimeProvider
 import java.util.UUID
 
 private const val outboxBatchLimit: Int = 200

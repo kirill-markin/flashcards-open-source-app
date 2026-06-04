@@ -15,11 +15,11 @@ import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagSummary
 import com.flashcardsopensourceapp.data.local.model.cards.normalizeTags
-import com.flashcardsopensourceapp.data.local.repository.AutoSyncCompletion
-import com.flashcardsopensourceapp.data.local.repository.AutoSyncEvent
-import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository
-import com.flashcardsopensourceapp.data.local.repository.AutoSyncOutcome
-import com.flashcardsopensourceapp.data.local.repository.AutoSyncRequest
+import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncCompletion
+import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEvent
+import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepository
+import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncOutcome
+import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncRequest
 import com.flashcardsopensourceapp.data.local.repository.CardsRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi

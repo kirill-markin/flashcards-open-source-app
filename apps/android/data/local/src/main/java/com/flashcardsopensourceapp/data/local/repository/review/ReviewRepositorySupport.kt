@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.repository
+package com.flashcardsopensourceapp.data.local.repository.review
 
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.CardWithRelations
@@ -22,6 +22,7 @@ import com.flashcardsopensourceapp.data.local.model.cards.isCardDue
 import com.flashcardsopensourceapp.data.local.model.scheduling.makeDefaultWorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.model.review.matchesReviewFilter
 import com.flashcardsopensourceapp.data.local.model.cards.normalizeTagKey
+import com.flashcardsopensourceapp.data.local.repository.decks.decodeDeckFilterDefinition
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope

@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.repository
+package com.flashcardsopensourceapp.data.local.repository.sync
 
 import kotlinx.coroutines.flow.Flow
 

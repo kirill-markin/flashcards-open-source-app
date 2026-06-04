@@ -11,7 +11,7 @@ import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.ai.effectiveAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.ai.makeAiChatCardAttachment
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
-import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository
+import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepository
 import com.flashcardsopensourceapp.feature.ai.AiCardHandoffResult
 import com.flashcardsopensourceapp.feature.ai.AiEntryPrefill
 import com.flashcardsopensourceapp.feature.ai.aiEntryPrefillPrompt

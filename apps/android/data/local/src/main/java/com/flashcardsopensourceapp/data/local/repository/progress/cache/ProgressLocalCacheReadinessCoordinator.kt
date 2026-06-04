@@ -1,6 +1,6 @@
 package com.flashcardsopensourceapp.data.local.repository.progress.cache
 
-import com.flashcardsopensourceapp.data.local.repository.TimeProvider
+import com.flashcardsopensourceapp.data.local.repository.shared.TimeProvider
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.ProgressLocalCacheRebuildCoordinator
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.ProgressLocalCacheRebuildLease
 

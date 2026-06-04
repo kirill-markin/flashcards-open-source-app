@@ -1,8 +1,8 @@
 package com.flashcardsopensourceapp.app
 
-import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository
-import com.flashcardsopensourceapp.data.local.repository.AutoSyncRequest
-import com.flashcardsopensourceapp.data.local.repository.AutoSyncSource
+import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepository
+import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncRequest
+import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncSource
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope

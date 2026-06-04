@@ -12,11 +12,11 @@ import com.flashcardsopensourceapp.core.ui.VisibleAppScreenRepository
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
-import com.flashcardsopensourceapp.data.local.repository.AutoSyncCompletion
-import com.flashcardsopensourceapp.data.local.repository.AutoSyncEvent
-import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository
-import com.flashcardsopensourceapp.data.local.repository.AutoSyncOutcome
-import com.flashcardsopensourceapp.data.local.repository.AutoSyncRequest
+import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncCompletion
+import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEvent
+import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepository
+import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncOutcome
+import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncRequest
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import com.flashcardsopensourceapp.feature.settings.R
