@@ -1,8 +1,13 @@
-package com.flashcardsopensourceapp.data.local
+package com.flashcardsopensourceapp.data.local.workspace
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.bootstrap.localWorkspaceName
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
+import com.flashcardsopensourceapp.data.local.support.LocalDatabaseTestRuntime
+import com.flashcardsopensourceapp.data.local.support.bootstrapTestWorkspace
+import com.flashcardsopensourceapp.data.local.support.closeLocalDatabaseTestRuntime
+import com.flashcardsopensourceapp.data.local.support.createLocalDatabaseTestRuntime
+import com.flashcardsopensourceapp.data.local.support.createTestWorkspaceRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
