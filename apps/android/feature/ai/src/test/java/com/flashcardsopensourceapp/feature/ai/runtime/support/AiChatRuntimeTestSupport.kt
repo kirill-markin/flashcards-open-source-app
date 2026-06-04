@@ -33,9 +33,9 @@ import com.flashcardsopensourceapp.data.local.model.ai.makeDefaultAiChatPersiste
 import com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.AiChatPreparedRemoteSession
-import com.flashcardsopensourceapp.data.local.repository.AutoSyncEvent
-import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository
-import com.flashcardsopensourceapp.data.local.repository.AutoSyncRequest
+import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEvent
+import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepository
+import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncRequest
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiAccessContext
 import com.flashcardsopensourceapp.feature.ai.strings.testAiTextProvider
 import java.util.ArrayDeque

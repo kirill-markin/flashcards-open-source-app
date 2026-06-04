@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.repository
+package com.flashcardsopensourceapp.data.local.repository.workspace
 
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
@@ -23,6 +23,9 @@ import com.flashcardsopensourceapp.data.local.model.cards.isNewCard
 import com.flashcardsopensourceapp.data.local.model.cards.isReviewedCard
 import com.flashcardsopensourceapp.data.local.model.scheduling.makeDefaultWorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.model.scheduling.validateWorkspaceSchedulerSettingsInput
+import com.flashcardsopensourceapp.data.local.repository.SyncRepository
+import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
+import com.flashcardsopensourceapp.data.local.repository.cards.toCardSummary
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.loadCurrentWorkspaceOrNull
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.observeCurrentWorkspace
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.requireCurrentWorkspace

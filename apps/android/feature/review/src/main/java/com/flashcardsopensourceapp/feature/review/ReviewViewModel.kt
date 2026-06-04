@@ -18,11 +18,11 @@ import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsR
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsStore
 import com.flashcardsopensourceapp.data.local.notifications.reviewNotificationPermissionPromptThreshold
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
-import com.flashcardsopensourceapp.data.local.repository.AutoSyncCompletion
-import com.flashcardsopensourceapp.data.local.repository.AutoSyncEvent
-import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository
-import com.flashcardsopensourceapp.data.local.repository.AutoSyncOutcome
-import com.flashcardsopensourceapp.data.local.repository.AutoSyncRequest
+import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncCompletion
+import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEvent
+import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepository
+import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncOutcome
+import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncRequest
 import com.flashcardsopensourceapp.data.local.repository.ProgressRepository
 import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository

@@ -1,6 +1,6 @@
 package com.flashcardsopensourceapp.data.local.repository.progress.inputs
 
-import com.flashcardsopensourceapp.data.local.repository.TimeProvider
+import com.flashcardsopensourceapp.data.local.repository.shared.TimeProvider
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId

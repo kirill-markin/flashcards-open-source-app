@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.repository
+package com.flashcardsopensourceapp.data.local.repository.decks
 
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
@@ -10,6 +10,8 @@ import com.flashcardsopensourceapp.data.local.model.cards.DeckDraft
 import com.flashcardsopensourceapp.data.local.model.cards.DeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.cards.DeckSummary
 import com.flashcardsopensourceapp.data.local.model.cards.matchesDeckFilterDefinition
+import com.flashcardsopensourceapp.data.local.repository.DecksRepository
+import com.flashcardsopensourceapp.data.local.repository.cards.toCardSummary
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.requireCurrentWorkspace
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.runLocalOutboxMutationTransaction
 import kotlinx.coroutines.flow.Flow

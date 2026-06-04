@@ -80,7 +80,7 @@ import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersReconcileTrigger
-import com.flashcardsopensourceapp.data.local.repository.AutoSyncSource
+import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncSource
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
 import com.flashcardsopensourceapp.feature.review.reaction.rememberReviewReactionLottieConfigurationStore

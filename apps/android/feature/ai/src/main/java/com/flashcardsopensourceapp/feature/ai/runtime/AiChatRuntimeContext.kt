@@ -7,9 +7,9 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
-import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository
-import com.flashcardsopensourceapp.data.local.repository.AutoSyncRequest
-import com.flashcardsopensourceapp.data.local.repository.AutoSyncSource
+import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepository
+import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncRequest
+import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncSource
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiAccessContext
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiChatRuntimeState
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.clearPendingToolRunPostSync

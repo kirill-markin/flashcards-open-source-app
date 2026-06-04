@@ -6,7 +6,7 @@ import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleSnapshot
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
-import com.flashcardsopensourceapp.data.local.repository.TimeProvider
+import com.flashcardsopensourceapp.data.local.repository.shared.TimeProvider
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.findProgressReviewScheduleServerBase
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.toCacheEntity
 import com.flashcardsopensourceapp.data.local.repository.progress.inputs.ProgressClockSnapshot

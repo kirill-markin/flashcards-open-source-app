@@ -14,7 +14,7 @@ import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
-import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository
+import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepository
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository

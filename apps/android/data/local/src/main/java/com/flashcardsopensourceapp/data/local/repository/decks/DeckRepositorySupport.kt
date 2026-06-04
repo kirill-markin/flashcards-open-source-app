@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.repository
+package com.flashcardsopensourceapp.data.local.repository.decks
 
 import com.flashcardsopensourceapp.data.local.database.entities.DeckEntity
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary

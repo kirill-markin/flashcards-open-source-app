@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.repository
+package com.flashcardsopensourceapp.data.local.repository.cards
 
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.CardTagEntity

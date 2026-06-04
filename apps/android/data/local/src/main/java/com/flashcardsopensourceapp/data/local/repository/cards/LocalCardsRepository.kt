@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local.repository
+package com.flashcardsopensourceapp.data.local.repository.cards
 
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
@@ -11,6 +11,7 @@ import com.flashcardsopensourceapp.data.local.model.cards.CardFilter
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.cards.queryCards
+import com.flashcardsopensourceapp.data.local.repository.CardsRepository
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.requireCurrentWorkspace
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.runLocalOutboxMutationTransaction
 import kotlinx.coroutines.flow.Flow

@@ -31,7 +31,7 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.Cloud
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.LocalCloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.LocalProgressCacheStore
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.LocalSyncRepository
-import com.flashcardsopensourceapp.data.local.repository.SystemTimeProvider
+import com.flashcardsopensourceapp.data.local.repository.shared.SystemTimeProvider
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.review.SharedPreferencesReviewPreferencesStore
 import kotlinx.coroutines.Dispatchers

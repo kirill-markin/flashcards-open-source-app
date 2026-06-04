@@ -6,7 +6,7 @@ import com.flashcardsopensourceapp.data.local.database.entities.ProgressLocalCac
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressLocalDayCountEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressReviewHistoryStateEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
-import com.flashcardsopensourceapp.data.local.repository.TimeProvider
+import com.flashcardsopensourceapp.data.local.repository.shared.TimeProvider
 import java.time.Instant
 import java.time.ZoneId
 
