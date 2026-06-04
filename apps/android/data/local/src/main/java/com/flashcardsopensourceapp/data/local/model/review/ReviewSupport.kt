@@ -11,7 +11,7 @@ import com.flashcardsopensourceapp.data.local.model.scheduling.WorkspaceSchedule
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagsSummary
 
 // Keep review queue ordering aligned with:
-// - apps/ios/Flashcards/Flashcards/Review/Queue/ReviewQuerySupport.swift::compareCardsForReviewOrder
+// - apps/ios/Flashcards/Flashcards/Review/Queue/Query/ReviewQuerySupport.swift::compareCardsForReviewOrder
 // - apps/ios/Flashcards/Flashcards/Database/CardStore/CardStore+ReadSQL.swift review queue ORDER BY
 // - apps/web/src/appData/domain/index.ts::compareCardsForReviewOrder
 // Active queue contract: recently reviewed due cards within the inclusive one-hour
