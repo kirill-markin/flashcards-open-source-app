@@ -305,7 +305,7 @@ extension CardStore {
         }
 
         // Keep review queue ordering aligned with:
-        // - apps/ios/Flashcards/Flashcards/Review/Queue/ReviewQuerySupport.swift::compareCardsForReviewOrder
+        // - apps/ios/Flashcards/Flashcards/Review/Queue/Query/ReviewQuerySupport.swift::compareCardsForReviewOrder
         // - apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/review/ReviewSupport.kt::sortCardsForReviewQueue
         // - apps/web/src/appData/domain/index.ts::compareCardsForReviewOrder
         // Ordering contract: recently reviewed due cards within the inclusive one-hour fsrsLastReviewedAt
