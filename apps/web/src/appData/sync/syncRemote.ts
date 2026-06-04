@@ -26,7 +26,10 @@ import {
   loadLastAppliedReviewSequenceId,
   loadWorkspaceSyncState,
 } from "../../localDb/cards/workspace";
-import type { SyncRestoreLocalBootstrapState } from "../../observability/webObservability";
+import type {
+  SyncLocalDbRecoveryFailurePhase,
+  SyncRestoreLocalBootstrapState,
+} from "../../observability/webObservability";
 import type {
   SyncBootstrapEntry,
   SyncChange,
@@ -39,6 +42,8 @@ import {
 } from "../domain";
 import {
   observeLocalDbMissing,
+  observeLocalDbRecoveryFailed,
+  observeLocalDbRecoverySucceeded,
   observePersistentStorageState,
   observeSlowHotBootstrap,
 } from "./syncLifecycleObservation";
@@ -63,6 +68,7 @@ export type WorkspaceRemoteSyncInput = Readonly<{
   userId: string;
   workspaceId: string;
   installationId: string;
+  syncRunId: string;
   requireWorkspaceSyncNotDiscarded: (workspaceId: string) => void;
   publishWorkspaceSettings: (workspaceId: string, settings: WorkspaceSchedulerSettings) => void;
   refreshWorkspaceView: (workspaceId: string) => Promise<void>;
@@ -164,15 +170,26 @@ function loadWorkspaceRestoreHistory(input: WorkspaceRemoteSyncInput): SyncResto
 async function storeCurrentWorkspaceRestoreHistory(
   input: WorkspaceRemoteSyncInput,
   lastAppliedHotChangeId: number,
+  localCardCount: number,
+  persistentStorageState: PersistentStorageState,
 ): Promise<void> {
-  const localCardCount = await loadActiveCardCount(input.workspaceId);
   storeSyncRestoreHistoryEntry({
     userId: input.userId,
     workspaceId: input.workspaceId,
     installationId: input.installationId,
     lastAppliedHotChangeId,
     localCardCount,
+    persistentStorageState,
   });
+}
+
+async function loadAndStoreCurrentWorkspaceRestoreHistory(
+  input: WorkspaceRemoteSyncInput,
+  lastAppliedHotChangeId: number,
+  persistentStorageState: PersistentStorageState,
+): Promise<void> {
+  const localCardCount = await loadActiveCardCount(input.workspaceId);
+  await storeCurrentWorkspaceRestoreHistory(input, lastAppliedHotChangeId, localCardCount, persistentStorageState);
 }
 
 async function observePersistentStorageForHydratedWorkspace(
@@ -186,18 +203,6 @@ async function observePersistentStorageForHydratedWorkspace(
     persistentStorageState,
   });
   return persistentStorageState;
-}
-
-async function backfillRestoreHistoryForHydratedState(
-  input: WorkspaceRemoteSyncInput,
-  syncStateBefore: NonNullable<Awaited<ReturnType<typeof loadWorkspaceSyncState>>>,
-): Promise<void> {
-  const restoreHistory = loadWorkspaceRestoreHistory(input);
-  if (restoreHistory !== null) {
-    return;
-  }
-
-  await storeCurrentWorkspaceRestoreHistory(input, syncStateBefore.lastAppliedHotChangeId);
 }
 
 async function doHotSyncEntriesAffectReviewSchedule(
@@ -220,6 +225,15 @@ async function doHotSyncEntriesAffectReviewSchedule(
   ));
 }
 
+function readErrorName(error: unknown): string {
+  if (typeof error !== "object" || error === null || "name" in error === false) {
+    return "Error";
+  }
+
+  const errorName = (error as Readonly<{ name: unknown }>).name;
+  return typeof errorName === "string" && errorName.trim() !== "" ? errorName : "Error";
+}
+
 async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promise<RemoteSyncFlags> {
   const syncStateBefore = await loadWorkspaceSyncState(input.workspaceId);
   const hotStateHydrated = syncStateBefore?.hasHydratedHotState ?? false;
@@ -229,8 +243,12 @@ async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promise<Remot
       throw new Error(`Workspace ${input.workspaceId} hot state is hydrated without sync state`);
     }
 
-    await backfillRestoreHistoryForHydratedState(input, syncStateBefore);
-    await observePersistentStorageForHydratedWorkspace(input);
+    const persistentStorageState = await observePersistentStorageForHydratedWorkspace(input);
+    await loadAndStoreCurrentWorkspaceRestoreHistory(
+      input,
+      syncStateBefore.lastAppliedHotChangeId,
+      persistentStorageState,
+    );
     input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
     return createEmptyRemoteSyncFlags();
   }
@@ -238,6 +256,7 @@ async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promise<Remot
   const startedAtMs = Date.now();
   const localCardCountBefore = await loadActiveCardCount(input.workspaceId);
   const localBootstrapState = determineLocalBootstrapState(syncStateBefore, localCardCountBefore);
+  const lastAppliedHotChangeIdBefore = syncStateBefore?.lastAppliedHotChangeId ?? null;
   const restoreHistoryBefore = loadWorkspaceRestoreHistory(input);
   let didChangeReviewSchedule = false;
   let bootstrapCursor: string | null = null;
@@ -245,106 +264,176 @@ async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promise<Remot
   let entriesCount = 0;
   let nextHotChangeId: number | null = null;
   let remoteIsEmpty: boolean | null = null;
+  let localCardCountAfter: number | null = null;
+  let persistentStorageStateBeforeRecovery: PersistentStorageState | null = null;
+  let persistentStorageStateAfterRecovery: PersistentStorageState | null = null;
+  let recoveryFailurePhase: SyncLocalDbRecoveryFailurePhase = "pre_bootstrap_storage_read";
+  const isLocalDbRecovery = syncStateBefore === null
+    && localCardCountBefore === 0
+    && restoreHistoryBefore !== null;
 
-  if (syncStateBefore === null && localCardCountBefore === 0 && restoreHistoryBefore !== null) {
-    const persistentStorageStateBeforeMissingWarning = await readPersistentStorageState();
-    observeLocalDbMissing({
-      userId: input.userId,
-      workspaceId: input.workspaceId,
-      installationId: input.installationId,
-      localBootstrapState,
-      localCardCountBefore,
-      previousRestoreHistory: restoreHistoryBefore,
-      currentWebAppVersion: webAppVersion,
-      persistentStorageState: persistentStorageStateBeforeMissingWarning,
-    });
-  }
-
-  while (true) {
-    input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
-    const bootstrapResult = await bootstrapPullSyncState(
-      input.workspaceId,
-      input.installationId,
-      "web",
-      webAppVersion,
-      bootstrapCursor,
-      syncPageSize,
-    );
-    input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
-    pageCount += 1;
-    entriesCount += bootstrapResult.entries.length;
-    nextHotChangeId = bootstrapResult.bootstrapHotChangeId;
-    remoteIsEmpty = bootstrapResult.remoteIsEmpty;
-
-    if (await doHotSyncEntriesAffectReviewSchedule(input.workspaceId, bootstrapResult.entries)) {
-      didChangeReviewSchedule = true;
+  try {
+    if (isLocalDbRecovery && restoreHistoryBefore !== null) {
+      recoveryFailurePhase = "pre_bootstrap_storage_read";
+      persistentStorageStateBeforeRecovery = await readPersistentStorageState();
+      observeLocalDbMissing({
+        userId: input.userId,
+        workspaceId: input.workspaceId,
+        installationId: input.installationId,
+        syncRunId: input.syncRunId,
+        localBootstrapState,
+        localCardCountBefore,
+        previousRestoreHistory: restoreHistoryBefore,
+        currentWebAppVersion: webAppVersion,
+        persistentStorageState: persistentStorageStateBeforeRecovery,
+      });
     }
-    input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
 
-    await applyHotSyncPage(
-      input.workspaceId,
-      bootstrapResult.entries,
-      bootstrapResult.hasMore
-        ? null
-        : {
-          lastAppliedHotChangeId: bootstrapResult.bootstrapHotChangeId,
-          markHotStateHydrated: true,
-        },
-    );
-    input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
-    publishWorkspaceSettingsFromEntries(input, bootstrapResult.entries);
+    while (true) {
+      input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
+      recoveryFailurePhase = "bootstrap_pull";
+      const bootstrapResult = await bootstrapPullSyncState(
+        input.workspaceId,
+        input.installationId,
+        "web",
+        webAppVersion,
+        bootstrapCursor,
+        syncPageSize,
+      );
+      input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
+      pageCount += 1;
+      entriesCount += bootstrapResult.entries.length;
+      nextHotChangeId = bootstrapResult.bootstrapHotChangeId;
+      remoteIsEmpty = bootstrapResult.remoteIsEmpty;
 
-    bootstrapCursor = bootstrapResult.nextCursor;
-    if (bootstrapResult.hasMore === false) {
-      break;
+      if (await doHotSyncEntriesAffectReviewSchedule(input.workspaceId, bootstrapResult.entries)) {
+        didChangeReviewSchedule = true;
+      }
+      input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
+
+      recoveryFailurePhase = "apply_hot_page";
+      await applyHotSyncPage(
+        input.workspaceId,
+        bootstrapResult.entries,
+        bootstrapResult.hasMore
+          ? null
+          : {
+            lastAppliedHotChangeId: bootstrapResult.bootstrapHotChangeId,
+            markHotStateHydrated: true,
+          },
+      );
+      input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
+      publishWorkspaceSettingsFromEntries(input, bootstrapResult.entries);
+
+      bootstrapCursor = bootstrapResult.nextCursor;
+      if (bootstrapResult.hasMore === false) {
+        break;
+      }
     }
-  }
 
-  input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
-  await input.refreshWorkspaceView(input.workspaceId);
-  input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
-  const durationMs = Date.now() - startedAtMs;
-  const localCardCountAfter = await loadActiveCardCount(input.workspaceId);
-  if (nextHotChangeId === null) {
-    throw new Error(`Workspace ${input.workspaceId} bootstrap did not return a hot change id`);
-  }
+    input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
+    recoveryFailurePhase = "final_refresh";
+    await input.refreshWorkspaceView(input.workspaceId);
+    input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
+    const durationMs = Date.now() - startedAtMs;
+    recoveryFailurePhase = "local_card_count_after";
+    localCardCountAfter = await loadActiveCardCount(input.workspaceId);
+    recoveryFailurePhase = "validate_bootstrap_result";
+    if (nextHotChangeId === null) {
+      throw new Error(`Workspace ${input.workspaceId} bootstrap did not return a hot change id`);
+    }
 
-  storeSyncRestoreHistoryEntry({
-    userId: input.userId,
-    workspaceId: input.workspaceId,
-    installationId: input.installationId,
-    lastAppliedHotChangeId: nextHotChangeId,
-    localCardCount: localCardCountAfter,
-  });
-  await observePersistentStorageForHydratedWorkspace(input);
-  if (shouldObserveHotBootstrap({
-    durationMs,
-    pageCount,
-    entriesCount,
-    localCardCountAfter,
-    remoteIsEmpty,
-  })) {
-    observeSlowHotBootstrap({
-      userId: input.userId,
-      workspaceId: input.workspaceId,
-      installationId: input.installationId,
+    recoveryFailurePhase = "persistent_storage";
+    persistentStorageStateAfterRecovery = await observePersistentStorageForHydratedWorkspace(input);
+    recoveryFailurePhase = "restore_history_store";
+    await storeCurrentWorkspaceRestoreHistory(
+      input,
+      nextHotChangeId,
+      localCardCountAfter,
+      persistentStorageStateAfterRecovery,
+    );
+
+    if (isLocalDbRecovery && restoreHistoryBefore !== null) {
+      observeLocalDbRecoverySucceeded({
+        userId: input.userId,
+        workspaceId: input.workspaceId,
+        installationId: input.installationId,
+        syncRunId: input.syncRunId,
+        localBootstrapState,
+        localCardCountBefore,
+        localCardCountAfter,
+        previousRestoreHistory: restoreHistoryBefore,
+        currentWebAppVersion: webAppVersion,
+        durationMs,
+        pageSize: syncPageSize,
+        pageCount,
+        entriesCount,
+        lastAppliedHotChangeIdBefore,
+        nextHotChangeId,
+        remoteIsEmpty,
+        persistentStorageStateBefore: persistentStorageStateBeforeRecovery,
+        persistentStorageStateAfter: persistentStorageStateAfterRecovery,
+      });
+    }
+
+    recoveryFailurePhase = "slow_bootstrap_observation";
+    if (shouldObserveHotBootstrap({
       durationMs,
-      pageSize: syncPageSize,
       pageCount,
       entriesCount,
-      localCardCountBefore,
       localCardCountAfter,
-      localBootstrapState,
-      lastAppliedHotChangeIdBefore: syncStateBefore?.lastAppliedHotChangeId ?? null,
-      nextHotChangeId,
       remoteIsEmpty,
-    });
-  }
+    })) {
+      observeSlowHotBootstrap({
+        userId: input.userId,
+        workspaceId: input.workspaceId,
+        installationId: input.installationId,
+        syncRunId: input.syncRunId,
+        durationMs,
+        pageSize: syncPageSize,
+        pageCount,
+        entriesCount,
+        localCardCountBefore,
+        localCardCountAfter,
+        localBootstrapState,
+        lastAppliedHotChangeIdBefore,
+        nextHotChangeId,
+        remoteIsEmpty,
+      });
+    }
 
-  return {
-    didChangeProgressHistory: false,
-    didChangeReviewSchedule,
-  };
+    return {
+      didChangeProgressHistory: false,
+      didChangeReviewSchedule,
+    };
+  } catch (error) {
+    if (isLocalDbRecovery && restoreHistoryBefore !== null) {
+      observeLocalDbRecoveryFailed({
+        userId: input.userId,
+        workspaceId: input.workspaceId,
+        installationId: input.installationId,
+        syncRunId: input.syncRunId,
+        failurePhase: recoveryFailurePhase,
+        errorName: readErrorName(error),
+        localBootstrapState,
+        localCardCountBefore,
+        localCardCountAfter,
+        previousRestoreHistory: restoreHistoryBefore,
+        currentWebAppVersion: webAppVersion,
+        durationMs: Date.now() - startedAtMs,
+        pageSize: syncPageSize,
+        pageCount,
+        entriesCount,
+        lastAppliedHotChangeIdBefore,
+        nextHotChangeId,
+        remoteIsEmpty,
+        persistentStorageStateBefore: persistentStorageStateBeforeRecovery,
+        persistentStorageStateAfter: persistentStorageStateAfterRecovery,
+      });
+    }
+
+    throw error;
+  }
 }
 
 async function pushOutbox(input: WorkspaceRemoteSyncInput): Promise<RemoteSyncFlags> {

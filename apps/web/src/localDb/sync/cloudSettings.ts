@@ -12,6 +12,8 @@ export type PersistentStorageState = Readonly<{
   quota: number | null;
   usage: number | null;
   errorName: string | null;
+  persistAttempted: boolean;
+  persistGranted: boolean | null;
 }>;
 
 function createPersistentStorageState(
@@ -19,12 +21,16 @@ function createPersistentStorageState(
   quota: number | null,
   usage: number | null,
   errorName: string | null,
+  persistAttempted: boolean,
+  persistGranted: boolean | null,
 ): PersistentStorageState {
   return {
     persisted,
     quota,
     usage,
     errorName,
+    persistAttempted,
+    persistGranted,
   };
 }
 
@@ -64,30 +70,48 @@ export async function clearCloudSettings(): Promise<void> {
 export async function ensurePersistentStorage(): Promise<PersistentStorageState> {
   const storageManager = navigator.storage;
   if (storageManager === undefined) {
-    return createPersistentStorageState(null, null, null, null);
+    return createPersistentStorageState(null, null, null, null, false, null);
   }
 
   let persisted: boolean | null = null;
   let quota: number | null = null;
   let usage: number | null = null;
+  let persistAttempted = false;
+  let persistGranted: boolean | null = null;
   try {
     persisted = typeof storageManager.persisted === "function"
       ? await storageManager.persisted()
       : null;
-    if (persisted === false && typeof storageManager.persist === "function") {
-      await storageManager.persist();
+    if (persisted !== true && typeof storageManager.persist === "function") {
+      persistAttempted = true;
+      persistGranted = await storageManager.persist();
     }
 
-    return await readPersistentStorageState();
+    const storageState = await readPersistentStorageState();
+    return createPersistentStorageState(
+      storageState.persisted,
+      storageState.quota,
+      storageState.usage,
+      storageState.errorName,
+      persistAttempted,
+      persistGranted,
+    );
   } catch (error) {
-    return createPersistentStorageState(persisted, quota, usage, getStorageErrorName(error));
+    return createPersistentStorageState(
+      persisted,
+      quota,
+      usage,
+      getStorageErrorName(error),
+      persistAttempted,
+      persistGranted,
+    );
   }
 }
 
 export async function readPersistentStorageState(): Promise<PersistentStorageState> {
   const storageManager = navigator.storage;
   if (storageManager === undefined) {
-    return createPersistentStorageState(null, null, null, null);
+    return createPersistentStorageState(null, null, null, null, false, null);
   }
 
   let persisted: boolean | null = null;
@@ -103,8 +127,8 @@ export async function readPersistentStorageState(): Promise<PersistentStorageSta
     quota = estimate?.quota ?? null;
     usage = estimate?.usage ?? null;
   } catch (error) {
-    return createPersistentStorageState(persisted, quota, usage, getStorageErrorName(error));
+    return createPersistentStorageState(persisted, quota, usage, getStorageErrorName(error), false, null);
   }
 
-  return createPersistentStorageState(persisted, quota, usage, null);
+  return createPersistentStorageState(persisted, quota, usage, null, false, null);
 }

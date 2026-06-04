@@ -102,6 +102,15 @@ type SyncEngine = Readonly<{
   seedLinkedWorkspace: (request: TestSeedRequest) => Promise<TestSeedResult>;
 }>;
 
+function createSyncRunId(): string {
+  const cryptoValue = globalThis.crypto;
+  if (typeof cryptoValue?.randomUUID === "function") {
+    return cryptoValue.randomUUID();
+  }
+
+  return `sync-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
   const {
     sessionLoadState,
@@ -304,6 +313,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
     const syncTask = (async (): Promise<void> => {
       let syncInstallationId: string | null = null;
+      const syncRunId = createSyncRunId();
       const requireCurrentWorkspaceSync = function requireCurrentWorkspaceSync(currentWorkspaceId: string): void {
         requireWorkspaceSyncNotDiscarded(currentWorkspaceId, syncGeneration);
       };
@@ -330,6 +340,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
           userId: session.userId,
           workspaceId,
           installationId,
+          syncRunId,
           requireWorkspaceSyncNotDiscarded: requireCurrentWorkspaceSync,
           publishWorkspaceSettings: publishCurrentWorkspaceSettings,
           refreshWorkspaceView: refreshCurrentWorkspaceView,
@@ -367,14 +378,17 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         }
 
         const normalizedError = normalizeCaughtError(error);
+        Object.assign(normalizedError, {
+          syncRunId,
+        });
         observeSyncFailure({
           error: normalizedError,
           userId: session.userId,
           workspaceId,
           installationId: syncInstallationId,
         });
-        reportSyncError(getErrorMessage(error));
-        throw error;
+        reportSyncError(getErrorMessage(normalizedError));
+        throw normalizedError;
       } finally {
         if (syncGeneration === syncGenerationRef.current) {
           syncPromisesRef.current.delete(workspaceId);

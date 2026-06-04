@@ -30,6 +30,13 @@ export type WebObservabilityUser = Readonly<{
   id: string;
 }>;
 
+export type WorkspaceActivationBootstrapPhase =
+  | "refresh_before_sync"
+  | "deferred_until_verified"
+  | "run_sync"
+  | "final_refresh"
+  | "completed";
+
 export type WorkspaceTransitionBreadcrumbDetails = Readonly<{
   eventName:
     | "auth_reset_cleanup_deferred"
@@ -62,6 +69,8 @@ export type WorkspaceTransitionBreadcrumbDetails = Readonly<{
   nextWorkspaceIds: ReadonlyArray<string>;
   redirected: boolean;
   errorMessage: string | null;
+  bootstrapPhase: WorkspaceActivationBootstrapPhase | null;
+  syncRunId: string | null;
 }>;
 
 export type ChatControllerDebugBreadcrumbDetails = Readonly<{
@@ -116,6 +125,8 @@ export type PersistentStorageBreadcrumbDetails = Readonly<{
   storageUsage: number | null;
   storageQuota: number | null;
   storageErrorName: string | null;
+  storagePersistAttempted: boolean;
+  storagePersistGranted: boolean | null;
 }>;
 
 export type IndexedDbOperation = "open";
@@ -187,6 +198,8 @@ export type WorkspaceActivationFailureDetails = Readonly<{
     | "workspace_create_client_failed"
     | "workspace_delete_client_failed";
   workspaceId: string | null;
+  bootstrapPhase: WorkspaceActivationBootstrapPhase | null;
+  syncRunId: string | null;
 }>;
 
 export type SessionBootstrapFailureDetails = Readonly<{
@@ -374,6 +387,7 @@ export type SyncRestoreLocalBootstrapState =
 
 export type SyncRestoreWarningDetails = Readonly<{
   eventName: "sync_hot_bootstrap_slow";
+  syncRunId: string;
   workspaceId: string;
   installationId: string;
   durationMs: number;
@@ -390,6 +404,7 @@ export type SyncRestoreWarningDetails = Readonly<{
 
 export type SyncLocalDbMissingWarningDetails = Readonly<{
   eventName: "sync_local_db_missing";
+  syncRunId: string;
   workspaceId: string;
   installationId: string;
   localBootstrapState: SyncRestoreLocalBootstrapState;
@@ -398,11 +413,122 @@ export type SyncLocalDbMissingWarningDetails = Readonly<{
   previousWebAppVersion: string;
   previousLastAppliedHotChangeId: number;
   previousLocalCardCount: number;
+  previousPersistentStorageCheckedAt: string | null;
+  previousPersistentStoragePersisted: boolean | null;
+  previousPersistentStorageUsage: number | null;
+  previousPersistentStorageQuota: number | null;
+  previousPersistentStorageErrorName: string | null;
+  previousPersistentStoragePersistAttempted: boolean | null;
+  previousPersistentStoragePersistGranted: boolean | null;
   currentWebAppVersion: string;
   storagePersisted: boolean | null;
   storageUsage: number | null;
   storageQuota: number | null;
   storageErrorName: string | null;
+  storagePersistAttempted: boolean;
+  storagePersistGranted: boolean | null;
+}>;
+
+export type SyncLocalDbRecoverySucceededWarningDetails = Readonly<{
+  eventName: "sync_local_db_recovery_succeeded";
+  syncRunId: string;
+  workspaceId: string;
+  installationId: string;
+  localBootstrapState: SyncRestoreLocalBootstrapState;
+  localCardCountBefore: number;
+  localCardCountAfter: number;
+  previousHydratedAt: string;
+  previousWebAppVersion: string;
+  previousLastAppliedHotChangeId: number;
+  previousLocalCardCount: number;
+  previousPersistentStorageCheckedAt: string | null;
+  previousPersistentStoragePersisted: boolean | null;
+  previousPersistentStorageUsage: number | null;
+  previousPersistentStorageQuota: number | null;
+  previousPersistentStorageErrorName: string | null;
+  previousPersistentStoragePersistAttempted: boolean | null;
+  previousPersistentStoragePersistGranted: boolean | null;
+  currentWebAppVersion: string;
+  durationMs: number;
+  pageSize: number;
+  pageCount: number;
+  entriesCount: number;
+  lastAppliedHotChangeIdBefore: number | null;
+  nextHotChangeId: number | null;
+  remoteIsEmpty: boolean | null;
+  storagePersistedBefore: boolean | null;
+  storageUsageBefore: number | null;
+  storageQuotaBefore: number | null;
+  storageErrorNameBefore: string | null;
+  storagePersistAttemptedBefore: boolean;
+  storagePersistGrantedBefore: boolean | null;
+  storagePersistedAfter: boolean | null;
+  storageUsageAfter: number | null;
+  storageQuotaAfter: number | null;
+  storageErrorNameAfter: string | null;
+  storagePersistAttemptedAfter: boolean;
+  storagePersistGrantedAfter: boolean | null;
+}>;
+
+export type SyncLocalDbRecoveryFailurePhase =
+  | "pre_bootstrap_storage_read"
+  | "bootstrap_pull"
+  | "apply_hot_page"
+  | "final_refresh"
+  | "local_card_count_after"
+  | "validate_bootstrap_result"
+  | "persistent_storage"
+  | "restore_history_store"
+  | "slow_bootstrap_observation";
+
+export type SyncLocalDbRecoveryFailedWarningDetails = Readonly<{
+  eventName: "sync_local_db_recovery_failed";
+  syncRunId: string;
+  workspaceId: string;
+  installationId: string;
+  failurePhase: SyncLocalDbRecoveryFailurePhase;
+  errorName: string;
+  localBootstrapState: SyncRestoreLocalBootstrapState;
+  localCardCountBefore: number;
+  localCardCountAfter: number | null;
+  previousHydratedAt: string;
+  previousWebAppVersion: string;
+  previousLastAppliedHotChangeId: number;
+  previousLocalCardCount: number;
+  previousPersistentStorageCheckedAt: string | null;
+  previousPersistentStoragePersisted: boolean | null;
+  previousPersistentStorageUsage: number | null;
+  previousPersistentStorageQuota: number | null;
+  previousPersistentStorageErrorName: string | null;
+  previousPersistentStoragePersistAttempted: boolean | null;
+  previousPersistentStoragePersistGranted: boolean | null;
+  currentWebAppVersion: string;
+  durationMs: number;
+  pageSize: number;
+  pageCount: number;
+  entriesCount: number;
+  lastAppliedHotChangeIdBefore: number | null;
+  nextHotChangeId: number | null;
+  remoteIsEmpty: boolean | null;
+  storagePersistedBefore: boolean | null;
+  storageUsageBefore: number | null;
+  storageQuotaBefore: number | null;
+  storageErrorNameBefore: string | null;
+  storagePersistAttemptedBefore: boolean | null;
+  storagePersistGrantedBefore: boolean | null;
+  storagePersistedAfter: boolean | null;
+  storageUsageAfter: number | null;
+  storageQuotaAfter: number | null;
+  storageErrorNameAfter: string | null;
+  storagePersistAttemptedAfter: boolean | null;
+  storagePersistGrantedAfter: boolean | null;
+}>;
+
+export type ProgressTimezoneInvalidWarningDetails = Readonly<{
+  eventName: "progress_timezone_invalid";
+  observedTimeZone: string | null;
+  fallbackTimeZone: "UTC";
+  errorName: string;
 }>;
 
 export type WebWarningEvent =
@@ -425,6 +551,21 @@ export type WebWarningEvent =
     action: "sync_local_db_missing";
     scope: WebObservationScope;
     details: SyncLocalDbMissingWarningDetails;
+  }>
+  | Readonly<{
+    action: "sync_local_db_recovery_succeeded";
+    scope: WebObservationScope;
+    details: SyncLocalDbRecoverySucceededWarningDetails;
+  }>
+  | Readonly<{
+    action: "sync_local_db_recovery_failed";
+    scope: WebObservationScope;
+    details: SyncLocalDbRecoveryFailedWarningDetails;
+  }>
+  | Readonly<{
+    action: "progress_timezone_invalid";
+    scope: WebObservationScope;
+    details: ProgressTimezoneInvalidWarningDetails;
   }>;
 
 type SentryContextValue =
@@ -452,6 +593,7 @@ type ErrorMetadata = Readonly<{
   databaseName: string | null;
   databaseVersion: number | null;
   indexedDbErrorName: string | null;
+  syncRunId: string | null;
 }>;
 
 type ErrorMetadataValue = string | number | null;
@@ -566,6 +708,7 @@ function readErrorMetadata(error: Error): ErrorMetadata {
       databaseName: null,
       databaseVersion: null,
       indexedDbErrorName: null,
+      syncRunId: null,
     };
   }
 
@@ -582,6 +725,7 @@ function readErrorMetadata(error: Error): ErrorMetadata {
     databaseName: readStringMetadata(error, "databaseName"),
     databaseVersion: readNumberMetadata(error, "databaseVersion"),
     indexedDbErrorName: readStringMetadata(error, "indexedDbErrorName"),
+    syncRunId: readStringMetadata(error, "syncRunId"),
   };
 }
 
@@ -599,6 +743,7 @@ function errorMetadataToContext(metadata: ErrorMetadata): SentryContext {
     databaseName: metadata.databaseName,
     databaseVersion: metadata.databaseVersion,
     indexedDbErrorName: metadata.indexedDbErrorName,
+    syncRunId: metadata.syncRunId,
   };
 }
 

@@ -36,6 +36,7 @@ import type {
   WorkspaceSessionSyncActions,
   WorkspaceSessionUiActions,
 } from "./workspaceSessionTypes";
+import type { WorkspaceActivationBootstrapPhase } from "../../observability/webObservability";
 
 type UseWorkspaceActivationParams =
   & Pick<WorkspaceSessionState, "activeWorkspace" | "sessionVerificationState">
@@ -124,9 +125,11 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
     logWorkspaceTransition("workspace_activate_bootstrap_started", {
       workspaceId: workspace.workspaceId,
       sessionVerificationState,
+      bootstrapPhase: "refresh_before_sync",
     });
 
     void (async (): Promise<void> => {
+      let bootstrapPhase: WorkspaceActivationBootstrapPhase = "refresh_before_sync";
       try {
         await refreshWorkspaceView(workspace.workspaceId);
         if (sessionVerificationState !== "verified") {
@@ -134,26 +137,37 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
             return;
           }
 
+          bootstrapPhase = "deferred_until_verified";
           deferredBootstrapWorkspaceRef.current = workspace;
           setDeferredBootstrapVersion((currentVersion) => currentVersion + 1);
           logWorkspaceTransition("workspace_activate_bootstrap_deferred", {
             workspaceId: workspace.workspaceId,
             sessionVerificationState,
+            bootstrapPhase,
           });
           return;
         }
 
         deferredBootstrapWorkspaceRef.current = null;
+        bootstrapPhase = "run_sync";
         await runSyncForWorkspace(workspace);
         if (isCurrentBootstrapGeneration() === false) {
           return;
         }
 
+        bootstrapPhase = "final_refresh";
+        await refreshWorkspaceView(workspace.workspaceId);
+        if (isCurrentBootstrapGeneration() === false) {
+          return;
+        }
+
+        bootstrapPhase = "completed";
         setSessionErrorMessage("");
         setErrorMessage("");
         logWorkspaceTransition("workspace_activate_bootstrap_succeeded", {
           workspaceId: workspace.workspaceId,
           sessionVerificationState,
+          bootstrapPhase,
         });
       } catch (error) {
         if (isCurrentBootstrapGeneration() === false) {
@@ -165,6 +179,7 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
             workspaceId: workspace.workspaceId,
             redirected: true,
             sessionVerificationState,
+            bootstrapPhase,
           });
           setSessionLoadState("redirecting");
           return;
@@ -175,6 +190,7 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
           workspaceId: workspace.workspaceId,
           errorMessage: nextErrorMessage,
           sessionVerificationState,
+          bootstrapPhase,
         }, error);
         setSessionErrorMessage(nextErrorMessage);
         setErrorMessage(nextErrorMessage);

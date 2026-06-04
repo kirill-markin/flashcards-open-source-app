@@ -12,6 +12,7 @@ import { INSTALLATION_ID_STORAGE_KEY } from "../../clientIdentity";
 import { LOCALE_PREFERENCE_STORAGE_KEY } from "../../i18n/runtime";
 import { loadWarmStartSnapshot, WARM_START_SNAPSHOT_STORAGE_KEY } from "./warmStart";
 import { useWorkspaceSession } from "./useWorkspaceSession";
+import { captureWorkspaceTransitionError } from "./workspaceSessionObservation";
 import { putCloudSettings, loadCloudSettings } from "../../localDb/sync/cloudSettings";
 import type { CloudSettings, SessionInfo, WorkspaceSummary } from "../../types";
 import type { TranslationKey } from "../../i18n";
@@ -410,6 +411,28 @@ describe("useWorkspaceSession bootstrap", () => {
     markBrowserReauthRequired();
 
     expect(loadWarmStartSnapshot()).toBeNull();
+  });
+
+  it("captures workspace activation bootstrap phase and sync run id", () => {
+    const syncError = Object.assign(new Error("Sync failed"), {
+      syncRunId: "sync-run-1",
+    });
+
+    captureWorkspaceTransitionError("workspace_activate_bootstrap_failed", {
+      workspaceId: "workspace-1",
+      sessionVerificationState: "verified",
+      bootstrapPhase: "run_sync",
+    }, syncError);
+
+    expect(observabilityMocks.captureWebExceptionMock).toHaveBeenCalledWith(expect.objectContaining({
+      action: "workspace_activation_failed",
+      details: expect.objectContaining({
+        operation: "workspace_activate_bootstrap_failed",
+        workspaceId: "workspace-1",
+        bootstrapPhase: "run_sync",
+        syncRunId: "sync-run-1",
+      }),
+    }));
   });
 
   it("redirects after unrecoverable bootstrap auth failure, preserves local data, and skips the generic error state", async () => {
