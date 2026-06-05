@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
-import { persistLocalePreference } from "../../../i18n/runtime";
+import { persistLocalePreference } from "../../../../i18n/runtime";
 import {
   createChatActiveRun,
   createChatSnapshot,
@@ -10,20 +10,20 @@ import {
   setupChatPanelTest,
   startChatRunMock,
   useAppDataMock,
-} from "./support/ChatPanelTestSupport";
+} from "../support/ChatPanelTestSupport";
 import {
   createCompletedToolCallAssistantMessage,
   createUnverifiedWorkspaceAppDataMock,
   createVerifiedWorkspaceAppDataMock,
-} from "./support/ChatPanelTestFixtures";
+} from "../support/ChatPanelTestFixtures";
 import {
   loadChatDraftWorkspaceState,
   readChatDraftForSession,
-} from "../../composer/chatDraftStorage";
+} from "../../../composer/chatDraftStorage";
 import {
   loadChatSessionWarmStartSnapshot,
   storeChatSessionWarmStartSnapshot,
-} from "../../sessionController/lifecycle/warmStart";
+} from "../../../sessionController/lifecycle/warmStart";
 
 const {
   flushAsync,
