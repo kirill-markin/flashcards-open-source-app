@@ -39,6 +39,9 @@ type ChatTurnTelemetryParams = Readonly<{
   workspaceId: string;
   sessionId: string;
   model: string;
+  aiCostMode: string;
+  chatTurnsLast7d: number;
+  goodReviewDaysLast7d: number;
   turnIndex: number;
   runState: string;
   turnInput: unknown;
@@ -354,6 +357,9 @@ function buildChatTurnMetadata(
     requestId: metadataValue(params.requestId),
     workspaceId: metadataValue(params.workspaceId),
     model: metadataValue(params.model),
+    aiCostMode: metadataValue(params.aiCostMode),
+    chatTurnsLast7d: metadataValue(params.chatTurnsLast7d),
+    goodReviewDaysLast7d: metadataValue(params.goodReviewDaysLast7d),
     turnIndex: metadataValue(params.turnIndex),
     hasAttachments: metadataValue(attachmentCount > 0),
     attachmentCount: metadataValue(attachmentCount),

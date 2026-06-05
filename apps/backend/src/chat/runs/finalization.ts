@@ -26,6 +26,8 @@ import {
 } from "./repository";
 import type { ChatRunDiagnostics, ClaimedChatRun } from "./types";
 
+type ChatRunCostDiagnostics = Pick<ChatRunDiagnostics, "aiCostMode" | "chatTurnsLast7d" | "goodReviewDaysLast7d">;
+
 function findAssistantItem(
   messages: ReadonlyArray<PersistedChatMessageItem>,
   assistantItemId: string,
@@ -206,6 +208,7 @@ export function createDiagnostics(
   scope: WorkspaceDatabaseScope,
   run: ChatRunRow,
   localMessages: ClaimedChatRun["localMessages"],
+  costDiagnostics: ChatRunCostDiagnostics,
 ): ChatRunDiagnostics {
   return {
     requestId: run.request_id,
@@ -213,6 +216,9 @@ export function createDiagnostics(
     workspaceId: scope.workspaceId,
     sessionId: run.session_id,
     model: run.model_id,
+    aiCostMode: costDiagnostics.aiCostMode,
+    chatTurnsLast7d: costDiagnostics.chatTurnsLast7d,
+    goodReviewDaysLast7d: costDiagnostics.goodReviewDaysLast7d,
     messageCount: localMessages.length,
     hasAttachments: run.turn_input.some((part) => part.type !== "text"),
     attachmentFileNames: run.turn_input

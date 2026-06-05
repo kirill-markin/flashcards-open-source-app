@@ -2,6 +2,11 @@ import type {
   ChatComposerSuggestionsLocale,
 } from "../composerSuggestions";
 import type {
+  ChatRuntimeModelId,
+  ChatRuntimeReasoningEffort,
+} from "../config";
+import type { ChatCostPolicyMode } from "../costPolicy";
+import type {
   ServerChatMessage,
 } from "../openai/replayItems";
 import type {
@@ -14,6 +19,9 @@ type ChatRunDiagnostics = Readonly<{
   workspaceId: string;
   sessionId: string;
   model: string;
+  aiCostMode: ChatCostPolicyMode;
+  chatTurnsLast7d: number;
+  goodReviewDaysLast7d: number;
   messageCount: number;
   hasAttachments: boolean;
   attachmentFileNames: ReadonlyArray<string>;
@@ -28,6 +36,8 @@ export type StartPersistedChatRunParams = Readonly<{
   sessionId: string;
   timezone: string;
   uiLocale: ChatComposerSuggestionsLocale | null;
+  modelId: ChatRuntimeModelId;
+  reasoningEffort: ChatRuntimeReasoningEffort;
   assistantItemId: string;
   localMessages: ReadonlyArray<ServerChatMessage>;
   turnInput: ReadonlyArray<ContentPart>;

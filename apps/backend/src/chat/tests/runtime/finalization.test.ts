@@ -125,3 +125,56 @@ test("runPersistedChatSessionWithDeps completes a successful run and persists co
   assert.equal(composerSuggestionUiLocale, "es-MX");
   assert.equal(findLog(logs, "chat_worker_terminal_state_persisted")?.runStatus, "completed");
 });
+
+test("runPersistedChatSessionWithDeps passes low-cost model and policy metadata to runtime dependencies", async () => {
+  const baseParams = createParams();
+  let observedModel: string | null = null;
+  let observedAiCostMode: string | null = null;
+  let observedChatTurnsLast7d: number | null = null;
+  let observedGoodReviewDaysLast7d: number | null = null;
+  let openAIModel: string | null = null;
+  let openAIReasoningEffort: string | null = null;
+
+  const result = await runPersistedChatSessionWithDeps(
+    {
+      ...baseParams,
+      modelId: "gpt-5.4-nano",
+      reasoningEffort: "low",
+      diagnostics: {
+        ...baseParams.diagnostics,
+        model: "gpt-5.4-nano",
+        aiCostMode: "low_cost",
+        chatTurnsLast7d: 20,
+        goodReviewDaysLast7d: 1,
+      },
+    },
+    createDependencies({
+      startChatTurnObservation: async (params, execute) => {
+        observedModel = params.model;
+        observedAiCostMode = params.aiCostMode;
+        observedChatTurnsLast7d = params.chatTurnsLast7d;
+        observedGoodReviewDaysLast7d = params.goodReviewDaysLast7d;
+        await execute(null);
+      },
+      startOpenAILoop: async (
+        params: StartOpenAILoopParams,
+        _onEvent: OpenAILoopEventSink,
+      ): Promise<OpenAILoopCompletion> => {
+        openAIModel = params.modelId;
+        openAIReasoningEffort = params.reasoningEffort;
+        return {
+          openaiItems: [],
+          terminationReason: "completed",
+        };
+      },
+    }),
+  );
+
+  assert.equal(result.outcome, "completed");
+  assert.equal(observedModel, "gpt-5.4-nano");
+  assert.equal(observedAiCostMode, "low_cost");
+  assert.equal(observedChatTurnsLast7d, 20);
+  assert.equal(observedGoodReviewDaysLast7d, 1);
+  assert.equal(openAIModel, "gpt-5.4-nano");
+  assert.equal(openAIReasoningEffort, "low");
+});

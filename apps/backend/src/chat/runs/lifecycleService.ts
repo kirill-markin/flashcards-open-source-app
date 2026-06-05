@@ -8,6 +8,15 @@ import type { StoredOpenAIReplayItem } from "../openai/replayItems";
 import type { ChatSessionRow } from "../store/repository";
 import type { ChatSessionRunState } from "../store";
 import {
+  decideChatCostPolicyWithExecutor,
+} from "../costPolicy";
+import {
+  CHAT_MODEL_ID,
+  CHAT_MODEL_REASONING_EFFORT,
+  parseChatRuntimeModelId,
+  parseChatRuntimeReasoningEffort,
+} from "../config";
+import {
   type ChatComposerSuggestionsLocale,
   type ChatComposerSuggestion,
 } from "../composerSuggestions";
@@ -44,6 +53,7 @@ import {
   selectChatRunBySessionRequestWithExecutor,
   selectChatRunForUpdateWithExecutor,
   selectSessionForUpdateWithExecutor,
+  updateChatRunPolicySnapshotWithExecutor,
   updateChatRunStatusWithExecutor,
   type ChatRunRow,
 } from "./repository";
@@ -111,13 +121,24 @@ export async function prepareChatRun(
       content: [],
     });
 
-    const run = await insertChatRunWithExecutor(executor, scope, {
+    const insertedRun = await insertChatRunWithExecutor(executor, scope, {
       sessionId: session.session_id,
       assistantItemId: assistantItem.itemId,
       requestId,
+      modelId: CHAT_MODEL_ID,
+      reasoningEffort: CHAT_MODEL_REASONING_EFFORT,
       timezone,
       uiLocale,
       turnInput: content,
+    });
+    const costPolicy = await decideChatCostPolicyWithExecutor(executor, scope, timezone);
+    const run = await updateChatRunPolicySnapshotWithExecutor(executor, scope, {
+      runId: insertedRun.run_id,
+      modelId: costPolicy.modelId,
+      reasoningEffort: costPolicy.reasoningEffort,
+      aiCostMode: costPolicy.mode,
+      chatTurnsLast7d: costPolicy.chatTurnsLast7d,
+      goodReviewDaysLast7d: costPolicy.goodReviewDaysLast7d,
     });
 
     await updateChatSessionRunStateWithExecutor(
@@ -206,6 +227,8 @@ export async function claimChatRun(
     );
 
     const messages = await buildLocalMessagesForClaimedRun(executor, scope, claimedRun.session_id, claimedRun.assistant_item_id);
+    const modelId = parseChatRuntimeModelId(claimedRun.model_id);
+    const reasoningEffort = parseChatRuntimeReasoningEffort(claimedRun.reasoning_effort);
 
     return {
       runId: claimedRun.run_id,
@@ -215,10 +238,16 @@ export async function claimChatRun(
       workspaceId,
       timezone: claimedRun.timezone,
       uiLocale: claimedRun.ui_locale,
+      modelId,
+      reasoningEffort,
       assistantItemId: claimedRun.assistant_item_id,
       localMessages: messages,
       turnInput: claimedRun.turn_input,
-      diagnostics: createDiagnostics(scope, claimedRun, messages),
+      diagnostics: createDiagnostics(scope, claimedRun, messages, {
+        aiCostMode: claimedRun.ai_cost_mode,
+        chatTurnsLast7d: claimedRun.chat_turns_last_7d,
+        goodReviewDaysLast7d: claimedRun.good_review_days_last_7d,
+      }),
     };
   });
 }
