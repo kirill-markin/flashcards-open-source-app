@@ -11,11 +11,8 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatConversationEnvelop
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatFeatures
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveStreamEnvelope
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatMessage
-import com.flashcardsopensourceapp.data.local.model.ai.AiChatProvider
-import com.flashcardsopensourceapp.data.local.model.ai.AiChatReasoning
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatRole
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatServerConfig
-import com.flashcardsopensourceapp.data.local.model.ai.AiChatServerModel
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatStartRunResponse
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatStopRunResponse
@@ -33,36 +30,13 @@ private enum class AiChatRoleWire {
 }
 
 @Serializable
-private data class AiChatProviderWire(
-    val id: StrictRemoteString,
-    val label: StrictRemoteString
-)
-
-@Serializable
-private data class AiChatServerModelWire(
-    val id: StrictRemoteString,
-    val label: StrictRemoteString,
-    val badgeLabel: StrictRemoteString
-)
-
-@Serializable
-private data class AiChatReasoningWire(
-    val effort: StrictRemoteString,
-    val label: StrictRemoteString
-)
-
-@Serializable
 private data class AiChatFeaturesWire(
-    val modelPickerEnabled: StrictRemoteBoolean,
     val dictationEnabled: StrictRemoteBoolean,
     val attachmentsEnabled: StrictRemoteBoolean
 )
 
 @Serializable
 private data class AiChatServerConfigWire(
-    val provider: AiChatProviderWire,
-    val model: AiChatServerModelWire,
-    val reasoning: AiChatReasoningWire,
     val features: AiChatFeaturesWire
 )
 
@@ -238,18 +212,7 @@ private fun AiChatRoleWire.asDomain(): AiChatRole {
 
 private fun AiChatServerConfigWire.asDomain(): AiChatServerConfig {
     return AiChatServerConfig(
-        provider = AiChatProvider(id = this.provider.id.value, label = this.provider.label.value),
-        model = AiChatServerModel(
-            id = this.model.id.value,
-            label = this.model.label.value,
-            badgeLabel = this.model.badgeLabel.value
-        ),
-        reasoning = AiChatReasoning(
-            effort = this.reasoning.effort.value,
-            label = this.reasoning.label.value
-        ),
         features = AiChatFeatures(
-            modelPickerEnabled = this.features.modelPickerEnabled.value,
             dictationEnabled = this.features.dictationEnabled.value,
             attachmentsEnabled = this.features.attachmentsEnabled.value
         )

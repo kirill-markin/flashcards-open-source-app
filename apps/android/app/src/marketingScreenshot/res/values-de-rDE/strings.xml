@@ -54,7 +54,7 @@
     <string name="ai_privacy_policy">Datenschutz</string>
     <string name="ai_terms_of_service">Nutzungsbedingungen</string>
     <string name="ai_support">Support</string>
-    <string name="ai_consent_workspace_disclosure">AI-Anfragen aus dem Arbeitsbereich &quot;%1$s&quot; können Eingaben, hochgeladene Dateien, Bilder und diktierte Audiodaten an OpenAI senden.</string>
+    <string name="ai_consent_workspace_disclosure">AI-Anfragen aus dem Arbeitsbereich &quot;%1$s&quot; können Eingaben, hochgeladene Dateien, Bilder und diktierte Audiodaten an den gehosteten AI-Dienst senden.</string>
     <string name="ai_message_label">Nachricht</string>
     <string name="ai_attach">Anhängen</string>
     <string name="ai_dictate">Diktieren</string>

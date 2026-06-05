@@ -22,7 +22,7 @@
     <string name="ai_privacy_policy">Privacy Policy</string>
     <string name="ai_terms_of_service">Terms of Service</string>
     <string name="ai_support">Support</string>
-    <string name="ai_consent_workspace_disclosure">AI requests from the &quot;%1$s&quot; workspace can send prompts, uploaded files, images, and dictated audio to OpenAI.</string>
+    <string name="ai_consent_workspace_disclosure">AI requests from the &quot;%1$s&quot; workspace can send prompts, uploaded files, images, and dictated audio to the hosted AI service.</string>
     <string name="ai_attachment_take_photo">Take photo</string>
     <string name="ai_attachment_take_photo_body">Capture a photo directly from Android.</string>
     <string name="ai_attachment_open_camera">Open camera</string>

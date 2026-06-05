@@ -7,6 +7,7 @@ import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLo
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDraftState
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatFeatures
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatMessage
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatReasoningSummary
@@ -236,59 +237,21 @@ class AiChatHistoryStore(
     private fun encodeChatConfig(config: AiChatServerConfig): JSONObject {
         return JSONObject()
             .put(
-                "provider",
-                JSONObject()
-                    .put("id", config.provider.id)
-                    .put("label", config.provider.label)
-            )
-            .put(
-                "model",
-                JSONObject()
-                    .put("id", config.model.id)
-                    .put("label", config.model.label)
-                    .put("badgeLabel", config.model.badgeLabel)
-            )
-            .put(
-                "reasoning",
-                JSONObject()
-                    .put("effort", config.reasoning.effort)
-                    .put("label", config.reasoning.label)
-            )
-            .put(
                 "features",
                 JSONObject()
-                    .put("modelPickerEnabled", config.features.modelPickerEnabled)
                     .put("dictationEnabled", config.features.dictationEnabled)
                     .put("attachmentsEnabled", config.features.attachmentsEnabled)
             )
     }
 
     private fun decodeChatConfig(jsonObject: JSONObject): AiChatServerConfig {
-        val provider = jsonObject.optJSONObject("provider")
-        val model = jsonObject.optJSONObject("model")
-        val reasoning = jsonObject.optJSONObject("reasoning")
         val features = jsonObject.optJSONObject("features")
-
-        if (provider == null || model == null || reasoning == null || features == null) {
+        if (features == null) {
             return defaultAiChatServerConfig
         }
 
         return AiChatServerConfig(
-            provider = com.flashcardsopensourceapp.data.local.model.ai.AiChatProvider(
-                id = provider.optString("id", defaultAiChatServerConfig.provider.id),
-                label = provider.optString("label", defaultAiChatServerConfig.provider.label)
-            ),
-            model = com.flashcardsopensourceapp.data.local.model.ai.AiChatServerModel(
-                id = model.optString("id", defaultAiChatServerConfig.model.id),
-                label = model.optString("label", defaultAiChatServerConfig.model.label),
-                badgeLabel = model.optString("badgeLabel", defaultAiChatServerConfig.model.badgeLabel)
-            ),
-            reasoning = com.flashcardsopensourceapp.data.local.model.ai.AiChatReasoning(
-                effort = reasoning.optString("effort", defaultAiChatServerConfig.reasoning.effort),
-                label = reasoning.optString("label", defaultAiChatServerConfig.reasoning.label)
-            ),
-            features = com.flashcardsopensourceapp.data.local.model.ai.AiChatFeatures(
-                modelPickerEnabled = features.optBoolean("modelPickerEnabled", false),
+            features = AiChatFeatures(
                 dictationEnabled = features.optBoolean("dictationEnabled", true),
                 attachmentsEnabled = features.optBoolean("attachmentsEnabled", true)
             )

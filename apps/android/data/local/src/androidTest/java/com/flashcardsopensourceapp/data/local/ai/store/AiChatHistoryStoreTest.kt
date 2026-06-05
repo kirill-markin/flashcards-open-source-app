@@ -10,6 +10,7 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatMessage
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatRole
 import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.ai.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.ai.makeDefaultAiChatPersistedState
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
@@ -157,6 +158,69 @@ class AiChatHistoryStoreTest {
 
         val loadedState = store.loadState(workspaceId = "workspace-1")
         assertEquals(state, loadedState)
+    }
+
+    @Test
+    fun saveStatePersistsOnlyChatFeatureConfig() = runBlocking {
+        val state = AiChatPersistedState(
+            messages = emptyList(),
+            chatSessionId = "session-1",
+            lastKnownChatConfig = defaultAiChatServerConfig,
+            pendingToolRunPostSync = false,
+            requiresRemoteSessionProvisioning = false
+        )
+
+        store.saveState(workspaceId = "workspace-1", state = state)
+
+        val preferences = context.getSharedPreferences("flashcards-ai-chat-history", Context.MODE_PRIVATE)
+        val savedState = JSONObject(requireNotNull(preferences.getString(historyKey(workspaceId = "workspace-1"), null)))
+        val savedConfig = savedState.getJSONObject("lastKnownChatConfig")
+        val savedFeatures = savedConfig.getJSONObject("features")
+
+        assertFalse(savedConfig.has("provider"))
+        assertFalse(savedConfig.has("model"))
+        assertFalse(savedConfig.has("reasoning"))
+        assertTrue(savedFeatures.getBoolean("dictationEnabled"))
+        assertTrue(savedFeatures.getBoolean("attachmentsEnabled"))
+        assertEquals(state, store.loadState(workspaceId = "workspace-1"))
+    }
+
+    @Test
+    fun loadStateReadsLegacyChatConfigFeatures() = runBlocking {
+        val preferences = context.getSharedPreferences("flashcards-ai-chat-history", Context.MODE_PRIVATE)
+        preferences.edit()
+            .putString(
+                historyKey(workspaceId = "workspace-1"),
+                JSONObject()
+                    .put("messages", JSONArray())
+                    .put("chatSessionId", "session-1")
+                    .put(
+                        "lastKnownChatConfig",
+                        JSONObject()
+                            .put("provider", JSONObject().put("id", "legacy-provider").put("label", "Legacy provider"))
+                            .put(
+                                "model",
+                                JSONObject()
+                                    .put("id", "legacy-model")
+                                    .put("label", "Legacy model")
+                                    .put("badgeLabel", "Legacy model · legacy reasoning")
+                            )
+                            .put("reasoning", JSONObject().put("effort", "legacy").put("label", "Legacy reasoning"))
+                            .put(
+                                "features",
+                                JSONObject()
+                                    .put("dictationEnabled", false)
+                                    .put("attachmentsEnabled", false)
+                            )
+                    )
+                    .toString()
+            )
+            .commit()
+
+        val loadedConfig = requireNotNull(store.loadState(workspaceId = "workspace-1").lastKnownChatConfig)
+
+        assertFalse(loadedConfig.features.dictationEnabled)
+        assertFalse(loadedConfig.features.attachmentsEnabled)
     }
 
     @Test

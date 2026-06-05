@@ -66,7 +66,7 @@
     <string name="ai_privacy_policy">سياسة الخصوصية</string>
     <string name="ai_terms_of_service">شروط الخدمة</string>
     <string name="ai_support">الدعم</string>
-    <string name="ai_consent_workspace_disclosure">قد ترسل طلبات AI من مساحة العمل &quot;%1$s&quot; المطالبات والملفات المرفوعة والصور والصوت المملى إلى OpenAI.</string>
+    <string name="ai_consent_workspace_disclosure">قد ترسل طلبات AI من مساحة العمل &quot;%1$s&quot; المطالبات والملفات المرفوعة والصور والصوت المملى إلى خدمة AI المستضافة.</string>
     <string name="ai_message_label">الرسالة</string>
     <string name="ai_attach">إرفاق</string>
     <string name="ai_dictate">إملاء</string>
