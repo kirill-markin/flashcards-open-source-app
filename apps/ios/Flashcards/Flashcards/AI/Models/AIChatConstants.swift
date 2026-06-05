@@ -1,10 +1,5 @@
 import Foundation
 
-let aiChatDefaultModelId: String = "gpt-5.4"
-let aiChatDefaultModelLabel: String = "GPT-5.4"
-let aiChatDefaultProviderLabel: String = "OpenAI"
-let aiChatDefaultReasoningEffort: String = "medium"
-let aiChatDefaultReasoningLabel: String = "Medium"
 let aiChatClientPlatform: String = "ios"
 let aiChatCreateCardDraftPrompt: String = "Help me create a card."
 let aiChatExternalProviderConsentUserDefaultsKey: String = "ai-chat-external-provider-consent"
@@ -38,8 +33,8 @@ let aiChatToolNames: Set<String> = [
     "sql",
 ]
 let aiChatExternalProviderDisclosureItems: [String] = [
-    "Typed prompts and card-derived context needed for your request can be sent to OpenAI.",
-    "Uploaded files and images can be uploaded to OpenAI for AI processing.",
-    "Dictated audio and transcription requests can be sent to OpenAI for speech processing.",
+    "Typed prompts and card-derived context needed for your request can be sent to the hosted AI service.",
+    "Uploaded files and images can be sent to the hosted AI service for AI processing.",
+    "Dictated audio and transcription requests can be sent to the hosted AI service for speech processing.",
     "Technical diagnostics about failed or slow AI requests can be sent to help debug the hosted AI service.",
 ]

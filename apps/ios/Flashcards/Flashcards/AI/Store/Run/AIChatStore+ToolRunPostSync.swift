@@ -89,7 +89,7 @@ extension AIChatStore {
         let clearedState = AIChatPersistedState(
             messages: persistedState.messages,
             chatSessionId: persistedState.chatSessionId,
-            lastKnownChatConfig: persistedState.lastKnownChatConfig,
+            lastKnownChatFeatures: persistedState.lastKnownChatFeatures,
             pendingToolRunPostSync: false,
             requiresRemoteSessionProvisioning: persistedState.requiresRemoteSessionProvisioning,
             suppressDraftRestore: persistedState.suppressDraftRestore

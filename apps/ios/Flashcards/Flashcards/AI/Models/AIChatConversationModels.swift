@@ -1,54 +1,47 @@
 import Foundation
 
-struct AIChatProviderDescriptor: Codable, Hashable, Sendable {
-    let id: String
-    let label: String
-}
-
-struct AIChatReasoningDescriptor: Codable, Hashable, Sendable {
-    let effort: String
-    let label: String
-}
-
 struct AIChatFeatureFlags: Codable, Hashable, Sendable {
-    let modelPickerEnabled: Bool
     let dictationEnabled: Bool
     let attachmentsEnabled: Bool
-}
 
-struct AIChatModelDescriptor: Codable, Hashable, Sendable {
-    let id: String
-    let label: String
-    let badgeLabel: String
+    private enum CodingKeys: String, CodingKey {
+        case dictationEnabled
+        case attachmentsEnabled
+    }
 }
 
 struct AIChatServerConfig: Codable, Hashable, Sendable {
-    let provider: AIChatProviderDescriptor
-    let model: AIChatModelDescriptor
-    let reasoning: AIChatReasoningDescriptor
     let features: AIChatFeatureFlags
+
+    private enum CodingKeys: String, CodingKey {
+        case features
+    }
+
+    init(features: AIChatFeatureFlags) {
+        self.features = features
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.features = try container.decode(AIChatFeatureFlags.self, forKey: .features)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.features, forKey: .features)
+    }
 }
 
 let aiChatDefaultServerConfig = AIChatServerConfig(
-    provider: AIChatProviderDescriptor(
-        id: "openai",
-        label: aiChatDefaultProviderLabel
-    ),
-    model: AIChatModelDescriptor(
-        id: aiChatDefaultModelId,
-        label: aiChatDefaultModelLabel,
-        badgeLabel: "\(aiChatDefaultModelLabel) · \(aiChatDefaultReasoningLabel)"
-    ),
-    reasoning: AIChatReasoningDescriptor(
-        effort: aiChatDefaultReasoningEffort,
-        label: aiChatDefaultReasoningLabel
-    ),
     features: AIChatFeatureFlags(
-        modelPickerEnabled: false,
         dictationEnabled: true,
         attachmentsEnabled: true
     )
 )
+
+func aiChatServerConfig(lastKnownFeatures: AIChatFeatureFlags?) -> AIChatServerConfig {
+    AIChatServerConfig(features: lastKnownFeatures ?? aiChatDefaultServerConfig.features)
+}
 
 struct AIChatStartRunRequestBody: Codable, Hashable, Sendable {
     let sessionId: String?

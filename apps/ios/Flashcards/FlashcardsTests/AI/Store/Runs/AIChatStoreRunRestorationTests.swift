@@ -38,7 +38,7 @@ final class AIChatStoreRunRestorationTests: XCTestCase {
                     optimisticAssistantMessage
                 ],
                 chatSessionId: "session-restore",
-                lastKnownChatConfig: aiChatDefaultServerConfig,
+                lastKnownChatFeatures: aiChatDefaultServerConfig.features,
                 pendingToolRunPostSync: false
             )
         )
@@ -85,7 +85,7 @@ final class AIChatStoreRunRestorationTests: XCTestCase {
                     optimisticAssistantMessage
                 ],
                 chatSessionId: "session-restore",
-                lastKnownChatConfig: aiChatDefaultServerConfig,
+                lastKnownChatFeatures: aiChatDefaultServerConfig.features,
                 pendingToolRunPostSync: false
             )
         )
@@ -165,7 +165,7 @@ final class AIChatStoreRunRestorationTests: XCTestCase {
                     optimisticAssistantMessage
                 ],
                 chatSessionId: "session-restore",
-                lastKnownChatConfig: aiChatDefaultServerConfig,
+                lastKnownChatFeatures: aiChatDefaultServerConfig.features,
                 pendingToolRunPostSync: false
             )
         )
@@ -272,7 +272,7 @@ final class AIChatStoreRunRestorationTests: XCTestCase {
                     stampedOptimisticAssistantMessage
                 ],
                 chatSessionId: "session-restore",
-                lastKnownChatConfig: aiChatDefaultServerConfig,
+                lastKnownChatFeatures: aiChatDefaultServerConfig.features,
                 pendingToolRunPostSync: false
             )
         )

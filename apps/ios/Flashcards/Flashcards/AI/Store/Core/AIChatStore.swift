@@ -505,7 +505,7 @@ final class AIChatStore {
         return AIChatPersistedState(
             messages: self.messages,
             chatSessionId: self.chatSessionId,
-            lastKnownChatConfig: self.serverChatConfig,
+            lastKnownChatFeatures: self.serverChatConfig.features,
             pendingToolRunPostSync: self.pendingToolRunPostSync,
             requiresRemoteSessionProvisioning: self.requiresRemoteSessionProvisioning,
             suppressDraftRestore: self.suppressDraftRestore
@@ -598,7 +598,7 @@ final class AIChatStore {
         )
         self.runLifecycle = .idle
         self.activeRunSession = nil
-        self.serverChatConfig = persistedState.lastKnownChatConfig ?? aiChatDefaultServerConfig
+        self.serverChatConfig = aiChatServerConfig(lastKnownFeatures: persistedState.lastKnownChatFeatures)
         self.hasExternalProviderConsent = initialConsentState
         self.chatSessionId = aiChatResolvedSessionId(
             workspaceId: initialHistoryWorkspaceId,

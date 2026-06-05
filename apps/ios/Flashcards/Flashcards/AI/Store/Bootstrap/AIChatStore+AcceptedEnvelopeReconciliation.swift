@@ -128,7 +128,7 @@ extension AIChatStore {
     func restorePreSendState(_ preSendSnapshot: AIChatPreSendSnapshot) {
         let preSendState = preSendSnapshot.persistedState
         self.messages = preSendState.messages
-        self.serverChatConfig = preSendState.lastKnownChatConfig ?? aiChatDefaultServerConfig
+        self.serverChatConfig = aiChatServerConfig(lastKnownFeatures: preSendState.lastKnownChatFeatures)
         self.requiresRemoteSessionProvisioning = preSendSnapshot.requiresRemoteSessionProvisioning
         self.runHadToolCalls = preSendState.pendingToolRunPostSync
         self.pendingToolRunPostSync = preSendState.pendingToolRunPostSync

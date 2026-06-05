@@ -17,20 +17,20 @@ func aiSettingsLocalizedFormat(_ key: String, _ defaultValue: String, _ argument
 
 func localizedAIChatDisclosureItem(_ item: String) -> String {
     switch item {
-    case "Typed prompts and card-derived context needed for your request can be sent to OpenAI.":
+    case "Typed prompts and card-derived context needed for your request can be sent to the hosted AI service.":
         return aiSettingsLocalized(
             "ai.consent.disclosure.prompts",
-            "Typed prompts and card-derived context needed for your request can be sent to OpenAI."
+            "Typed prompts and card-derived context needed for your request can be sent to the hosted AI service."
         )
-    case "Uploaded files and images can be uploaded to OpenAI for AI processing.":
+    case "Uploaded files and images can be sent to the hosted AI service for AI processing.":
         return aiSettingsLocalized(
             "ai.consent.disclosure.files",
-            "Uploaded files and images can be uploaded to OpenAI for AI processing."
+            "Uploaded files and images can be sent to the hosted AI service for AI processing."
         )
-    case "Dictated audio and transcription requests can be sent to OpenAI for speech processing.":
+    case "Dictated audio and transcription requests can be sent to the hosted AI service for speech processing.":
         return aiSettingsLocalized(
             "ai.consent.disclosure.audio",
-            "Dictated audio and transcription requests can be sent to OpenAI for speech processing."
+            "Dictated audio and transcription requests can be sent to the hosted AI service for speech processing."
         )
     case "Technical diagnostics about failed or slow AI requests can be sent to help debug the hosted AI service.":
         return aiSettingsLocalized(

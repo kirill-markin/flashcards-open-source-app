@@ -85,7 +85,7 @@ struct AccountLegalSupportView: View {
                 Text(
                     aiSettingsLocalized(
                         "settings.account.legal.aiDataUseDescription",
-                        "Using hosted AI is optional. If you enable it on this device, the following request data may be sent to third-party AI providers configured on the server:"
+                        "Using hosted AI is optional. If you enable it on this device, the following request data may be sent to the hosted AI service:"
                     )
                 )
                     .foregroundStyle(.secondary)

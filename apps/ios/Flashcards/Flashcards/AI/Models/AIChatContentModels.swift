@@ -719,7 +719,7 @@ struct AIChatMessage: Codable, Hashable, Identifiable, Sendable {
 struct AIChatPersistedState: Codable, Hashable, Sendable {
     let messages: [AIChatMessage]
     let chatSessionId: String
-    let lastKnownChatConfig: AIChatServerConfig?
+    let lastKnownChatFeatures: AIChatFeatureFlags?
     let pendingToolRunPostSync: Bool
     let requiresRemoteSessionProvisioning: Bool
     let suppressDraftRestore: Bool
@@ -727,6 +727,7 @@ struct AIChatPersistedState: Codable, Hashable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case messages
         case chatSessionId
+        case lastKnownChatFeatures
         case lastKnownChatConfig
         case pendingToolRunPostSync
         case requiresRemoteSessionProvisioning
@@ -736,13 +737,13 @@ struct AIChatPersistedState: Codable, Hashable, Sendable {
     init(
         messages: [AIChatMessage],
         chatSessionId: String,
-        lastKnownChatConfig: AIChatServerConfig?,
+        lastKnownChatFeatures: AIChatFeatureFlags?,
         pendingToolRunPostSync: Bool
     ) {
         self.init(
             messages: messages,
             chatSessionId: chatSessionId,
-            lastKnownChatConfig: lastKnownChatConfig,
+            lastKnownChatFeatures: lastKnownChatFeatures,
             pendingToolRunPostSync: pendingToolRunPostSync,
             requiresRemoteSessionProvisioning: false,
             suppressDraftRestore: false
@@ -752,14 +753,14 @@ struct AIChatPersistedState: Codable, Hashable, Sendable {
     init(
         messages: [AIChatMessage],
         chatSessionId: String,
-        lastKnownChatConfig: AIChatServerConfig?,
+        lastKnownChatFeatures: AIChatFeatureFlags?,
         pendingToolRunPostSync: Bool,
         requiresRemoteSessionProvisioning: Bool,
         suppressDraftRestore: Bool
     ) {
         self.messages = messages
         self.chatSessionId = chatSessionId
-        self.lastKnownChatConfig = lastKnownChatConfig
+        self.lastKnownChatFeatures = lastKnownChatFeatures
         self.pendingToolRunPostSync = pendingToolRunPostSync
         self.requiresRemoteSessionProvisioning = requiresRemoteSessionProvisioning
         self.suppressDraftRestore = suppressDraftRestore
@@ -768,14 +769,14 @@ struct AIChatPersistedState: Codable, Hashable, Sendable {
     init(
         messages: [AIChatMessage],
         chatSessionId: String,
-        lastKnownChatConfig: AIChatServerConfig?,
+        lastKnownChatFeatures: AIChatFeatureFlags?,
         pendingToolRunPostSync: Bool,
         suppressDraftRestore: Bool
     ) {
         self.init(
             messages: messages,
             chatSessionId: chatSessionId,
-            lastKnownChatConfig: lastKnownChatConfig,
+            lastKnownChatFeatures: lastKnownChatFeatures,
             pendingToolRunPostSync: pendingToolRunPostSync,
             requiresRemoteSessionProvisioning: false,
             suppressDraftRestore: suppressDraftRestore
@@ -786,7 +787,7 @@ struct AIChatPersistedState: Codable, Hashable, Sendable {
         self.init(
             messages: messages,
             chatSessionId: "",
-            lastKnownChatConfig: nil,
+            lastKnownChatFeatures: nil,
             pendingToolRunPostSync: false
         )
     }
@@ -795,10 +796,17 @@ struct AIChatPersistedState: Codable, Hashable, Sendable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.messages = try container.decode([AIChatMessage].self, forKey: .messages)
         self.chatSessionId = try container.decode(String.self, forKey: .chatSessionId)
-        self.lastKnownChatConfig = try container.decodeIfPresent(
-            AIChatServerConfig.self,
-            forKey: .lastKnownChatConfig
-        )
+        if let features = try container.decodeIfPresent(
+            AIChatFeatureFlags.self,
+            forKey: .lastKnownChatFeatures
+        ) {
+            self.lastKnownChatFeatures = features
+        } else {
+            self.lastKnownChatFeatures = try container.decodeIfPresent(
+                AIChatServerConfig.self,
+                forKey: .lastKnownChatConfig
+            )?.features
+        }
         self.pendingToolRunPostSync = try container.decodeIfPresent(
             Bool.self,
             forKey: .pendingToolRunPostSync
@@ -817,7 +825,7 @@ struct AIChatPersistedState: Codable, Hashable, Sendable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(self.messages, forKey: .messages)
         try container.encode(self.chatSessionId, forKey: .chatSessionId)
-        try container.encodeIfPresent(self.lastKnownChatConfig, forKey: .lastKnownChatConfig)
+        try container.encodeIfPresent(self.lastKnownChatFeatures, forKey: .lastKnownChatFeatures)
         try container.encode(self.pendingToolRunPostSync, forKey: .pendingToolRunPostSync)
         try container.encode(
             self.requiresRemoteSessionProvisioning,
