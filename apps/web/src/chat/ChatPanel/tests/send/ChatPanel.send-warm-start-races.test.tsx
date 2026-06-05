@@ -10,8 +10,8 @@ import {
   queryChatComposerInput,
   setupChatPanelTest,
   startChatRunMock,
-} from "./support/ChatPanelTestSupport";
-import { storeChatSessionWarmStartSnapshot } from "../../sessionController/lifecycle/warmStart";
+} from "../support/ChatPanelTestSupport";
+import { storeChatSessionWarmStartSnapshot } from "../../../sessionController/lifecycle/warmStart";
 
 const {
   flushAsync,

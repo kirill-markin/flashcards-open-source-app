@@ -9,7 +9,7 @@ import {
   readStoredDraftInputText,
   setupChatPanelTest,
   startChatRunMock,
-} from "./support/ChatPanelTestSupport";
+} from "../support/ChatPanelTestSupport";
 
 const {
   flushAsync,

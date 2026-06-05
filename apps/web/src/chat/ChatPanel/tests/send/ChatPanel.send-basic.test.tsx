@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import { persistLocalePreference } from "../../../i18n/runtime";
+import { persistLocalePreference } from "../../../../i18n/runtime";
 import {
   createNewChatSessionMock,
   pressTextareaKey,
@@ -11,7 +11,7 @@ import {
   setTextareaValue,
   setupChatPanelTest,
   startChatRunMock,
-} from "./support/ChatPanelTestSupport";
+} from "../support/ChatPanelTestSupport";
 
 const {
   flushAsync,
