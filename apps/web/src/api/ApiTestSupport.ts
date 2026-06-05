@@ -1,12 +1,23 @@
 import { expect, vi } from "vitest";
 import { INSTALLATION_ID_STORAGE_KEY } from "../clientIdentity";
 import { LOCALE_PREFERENCE_STORAGE_KEY } from "../i18n/runtime";
-import type { ProgressReviewSchedule } from "../types";
+import type { ChatConfig, ProgressReviewSchedule } from "../types";
 
 type SessionResponseProfile = Readonly<{
   email: string | null;
   locale: string;
   createdAt: string;
+}>;
+
+type LegacyChatConfigResponseValue = Readonly<{
+  provider: Readonly<{ id: "openai"; label: string }>;
+  model: Readonly<{ id: string; label: string; badgeLabel: string }>;
+  reasoning: Readonly<{ effort: "medium"; label: string }>;
+  features: Readonly<{
+    modelPickerEnabled: boolean;
+    dictationEnabled: boolean;
+    attachmentsEnabled: boolean;
+  }>;
 }>;
 
 export type SessionResponseOverrides = Readonly<{
@@ -135,16 +146,16 @@ export function createJsonResponse(value: unknown): Response {
   });
 }
 
-export function createChatConfigResponseValue(): Readonly<{
-  provider: Readonly<{ id: "openai"; label: string }>;
-  model: Readonly<{ id: string; label: string; badgeLabel: string }>;
-  reasoning: Readonly<{ effort: "medium"; label: string }>;
-  features: Readonly<{
-    modelPickerEnabled: boolean;
-    dictationEnabled: boolean;
-    attachmentsEnabled: boolean;
-  }>;
-}> {
+export function createChatConfigResponseValue(): ChatConfig {
+  return {
+    features: {
+      dictationEnabled: true,
+      attachmentsEnabled: true,
+    },
+  };
+}
+
+export function createLegacyChatConfigResponseValue(): LegacyChatConfigResponseValue {
   return {
     provider: {
       id: "openai",

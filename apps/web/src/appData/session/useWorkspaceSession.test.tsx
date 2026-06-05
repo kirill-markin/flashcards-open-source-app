@@ -334,7 +334,10 @@ function seedBrowserStorage(): void {
     },
   }));
   window.localStorage.setItem("flashcards-ai-chat-config", JSON.stringify({
-    provider: { id: "openai", label: "OpenAI" },
+    features: {
+      dictationEnabled: true,
+      attachmentsEnabled: true,
+    },
   }));
 }
 

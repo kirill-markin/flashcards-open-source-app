@@ -306,21 +306,7 @@ export type ChatSessionHistoryMessage = Readonly<{
 }>;
 
 export type ChatConfig = Readonly<{
-  provider: Readonly<{
-    id: "openai";
-    label: string;
-  }>;
-  model: Readonly<{
-    id: string;
-    label: string;
-    badgeLabel: string;
-  }>;
-  reasoning: Readonly<{
-    effort: "low" | "medium" | "high" | "minimal";
-    label: string;
-  }>;
   features: Readonly<{
-    modelPickerEnabled: boolean;
     dictationEnabled: boolean;
     attachmentsEnabled: boolean;
   }>;

@@ -246,7 +246,6 @@ export function ChatPanel(props: Props): ReactElement {
       <div className="chat-header">
         <div>
           <span className="chat-header-title">{t("chatPanel.providerTitle")}</span>
-          <div className="chat-subtitle">{chatConfig.provider.label} · {chatConfig.model.badgeLabel}</div>
         </div>
         <div className="chat-header-actions">
           <button
