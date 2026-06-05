@@ -190,15 +190,7 @@ export function areMessagesEqual(
 }
 
 export function areChatConfigsEqual(left: ChatConfig, right: ChatConfig): boolean {
-  return left.provider.id === right.provider.id
-    && left.provider.label === right.provider.label
-    && left.model.id === right.model.id
-    && left.model.label === right.model.label
-    && left.model.badgeLabel === right.model.badgeLabel
-    && left.reasoning.effort === right.reasoning.effort
-    && left.reasoning.label === right.reasoning.label
-    && left.features.modelPickerEnabled === right.features.modelPickerEnabled
-    && left.features.dictationEnabled === right.features.dictationEnabled
+  return left.features.dictationEnabled === right.features.dictationEnabled
     && left.features.attachmentsEnabled === right.features.attachmentsEnabled;
 }
 

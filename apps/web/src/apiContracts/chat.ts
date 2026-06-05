@@ -30,32 +30,10 @@ import { parseEffortLevel } from "./studyData";
 
 function parseChatConfig(value: unknown, endpoint: string, path: string): ChatConfig {
   const objectValue = parseObject(value, endpoint, path);
-  const providerValue = parseRequiredField(objectValue, "provider", endpoint, path, parseObject);
-  const modelValue = parseRequiredField(objectValue, "model", endpoint, path, parseObject);
-  const reasoningValue = parseRequiredField(objectValue, "reasoning", endpoint, path, parseObject);
   const featuresValue = parseRequiredField(objectValue, "features", endpoint, path, parseObject);
 
   return {
-    provider: {
-      id: parseLiteral(
-        parseRequiredField(providerValue, "id", endpoint, joinPath(path, "provider"), parseString),
-        endpoint,
-        joinPath(joinPath(path, "provider"), "id"),
-        "openai",
-      ),
-      label: parseRequiredField(providerValue, "label", endpoint, joinPath(path, "provider"), parseString),
-    },
-    model: {
-      id: parseRequiredField(modelValue, "id", endpoint, joinPath(path, "model"), parseString),
-      label: parseRequiredField(modelValue, "label", endpoint, joinPath(path, "model"), parseString),
-      badgeLabel: parseRequiredField(modelValue, "badgeLabel", endpoint, joinPath(path, "model"), parseString),
-    },
-    reasoning: {
-      effort: parseRequiredField(reasoningValue, "effort", endpoint, joinPath(path, "reasoning"), parseReasoningEffort),
-      label: parseRequiredField(reasoningValue, "label", endpoint, joinPath(path, "reasoning"), parseString),
-    },
     features: {
-      modelPickerEnabled: parseRequiredField(featuresValue, "modelPickerEnabled", endpoint, joinPath(path, "features"), parseBoolean),
       dictationEnabled: parseRequiredField(featuresValue, "dictationEnabled", endpoint, joinPath(path, "features"), parseBoolean),
       attachmentsEnabled: parseRequiredField(featuresValue, "attachmentsEnabled", endpoint, joinPath(path, "features"), parseBoolean),
     },
@@ -261,10 +239,6 @@ export function parseContentPartArray(value: unknown, endpoint: string, path: st
 
 function parseChatRole(value: unknown, endpoint: string, path: string): "user" | "assistant" {
   return parseEnum(value, endpoint, path, ["user", "assistant"]);
-}
-
-function parseReasoningEffort(value: unknown, endpoint: string, path: string): "low" | "medium" | "high" | "minimal" {
-  return parseEnum(value, endpoint, path, ["low", "medium", "high", "minimal"]);
 }
 
 function parseContentPartType(

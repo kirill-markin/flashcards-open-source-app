@@ -6,6 +6,7 @@ import { persistLocalePreference } from "../i18n/runtime";
 import {
   createChatSnapshotResponse,
   createJsonResponse,
+  createLegacyChatConfigResponseValue,
   createNewChatSessionResponse,
   createProgressReviewScheduleResponse,
   createProgressReviewScheduleResponseValue,
@@ -549,6 +550,33 @@ describe("chat API endpoints", () => {
     expect(requestUrl.pathname).toBe("/v1/chat");
     expect(requestUrl.searchParams.get("sessionId")).toBe("session-1");
     expect(requestUrl.searchParams.get("workspaceId")).toBe("workspace-1");
+  });
+
+  it("accepts legacy chat config metadata without exposing it in web state", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createJsonResponse({
+        sessionId: "session-1",
+        conversationScopeId: "session-1",
+        conversation: {
+          messages: [],
+          updatedAt: 1,
+          mainContentInvalidationVersion: 0,
+        },
+        composerSuggestions: [],
+        chatConfig: createLegacyChatConfigResponseValue(),
+        activeRun: null,
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(getChatSnapshot("session-1", "workspace-1")).resolves.toMatchObject({
+      sessionId: "session-1",
+      chatConfig: {
+        features: {
+          dictationEnabled: true,
+          attachmentsEnabled: true,
+        },
+      },
+    });
   });
 
   it("accepts reduced POST /chat/stop responses without unused run identifiers", async () => {

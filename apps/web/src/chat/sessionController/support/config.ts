@@ -3,25 +3,36 @@ import type { ChatConfig } from "../../../types";
 const chatConfigStorageKey = "flashcards-ai-chat-config";
 
 export const defaultChatConfig: ChatConfig = {
-  provider: {
-    id: "openai",
-    label: "OpenAI",
-  },
-  model: {
-    id: "gpt-5.4",
-    label: "GPT-5.4",
-    badgeLabel: "GPT-5.4 · Medium",
-  },
-  reasoning: {
-    effort: "medium",
-    label: "Medium",
-  },
   features: {
-    modelPickerEnabled: false,
     dictationEnabled: true,
     attachmentsEnabled: true,
   },
 };
+
+type StoredChatConfigObject = Readonly<Record<string, unknown>>;
+
+function isStoredChatConfigObject(value: unknown): value is StoredChatConfigObject {
+  return typeof value === "object" && value !== null && Array.isArray(value) === false;
+}
+
+function normalizeStoredChatConfig(value: unknown): ChatConfig {
+  if (isStoredChatConfigObject(value) === false || isStoredChatConfigObject(value.features) === false) {
+    return defaultChatConfig;
+  }
+
+  const dictationEnabled = value.features.dictationEnabled;
+  const attachmentsEnabled = value.features.attachmentsEnabled;
+  if (typeof dictationEnabled !== "boolean" || typeof attachmentsEnabled !== "boolean") {
+    return defaultChatConfig;
+  }
+
+  return {
+    features: {
+      dictationEnabled,
+      attachmentsEnabled,
+    },
+  };
+}
 
 export function loadStoredChatConfig(): ChatConfig {
   if (typeof window === "undefined" || typeof window.localStorage?.getItem !== "function") {
@@ -34,9 +45,13 @@ export function loadStoredChatConfig(): ChatConfig {
   }
 
   try {
-    return JSON.parse(rawValue) as ChatConfig;
-  } catch {
-    return defaultChatConfig;
+    return normalizeStoredChatConfig(JSON.parse(rawValue));
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      return defaultChatConfig;
+    }
+
+    throw error;
   }
 }
 
@@ -45,5 +60,10 @@ export function storeChatConfig(chatConfig: ChatConfig): void {
     return;
   }
 
-  window.localStorage.setItem(chatConfigStorageKey, JSON.stringify(chatConfig));
+  window.localStorage.setItem(chatConfigStorageKey, JSON.stringify({
+    features: {
+      dictationEnabled: chatConfig.features.dictationEnabled,
+      attachmentsEnabled: chatConfig.features.attachmentsEnabled,
+    },
+  }));
 }

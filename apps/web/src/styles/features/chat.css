@@ -488,9 +488,7 @@
 .chat-send-btn,
 .chat-stop-btn,
 .chat-mic-btn,
-.chat-attach-btn,
-.chat-model-select,
-.chat-model-label {
+.chat-attach-btn {
   min-height: 40px;
   border-radius: var(--radius-pill);
 }
@@ -683,20 +681,6 @@
     transform: scaleY(1.3);
     opacity: 1;
   }
-}
-
-.chat-model-select,
-.chat-model-label {
-  font-size: 14px;
-  padding: 0 14px;
-  border: 1px solid var(--panel-border);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text-secondary);
-}
-
-.chat-model-label {
-  display: inline-flex;
-  align-items: center;
 }
 
 .chat-attachment-preview {
@@ -935,9 +919,7 @@
   .chat-send-btn,
   .chat-stop-btn,
   .chat-mic-btn,
-  .chat-attach-btn,
-  .chat-model-select,
-  .chat-model-label {
+  .chat-attach-btn {
     width: 100%;
   }
 
