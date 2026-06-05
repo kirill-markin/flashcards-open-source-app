@@ -54,7 +54,7 @@
     <string name="ai_privacy_policy">Política de privacidad</string>
     <string name="ai_terms_of_service">Términos del servicio</string>
     <string name="ai_support">Soporte</string>
-    <string name="ai_consent_workspace_disclosure">Las solicitudes de AI del espacio de trabajo &quot;%1$s&quot; pueden enviar a OpenAI indicaciones, archivos subidos, imágenes y audio dictado.</string>
+    <string name="ai_consent_workspace_disclosure">Las solicitudes de AI del espacio de trabajo &quot;%1$s&quot; pueden enviar indicaciones, archivos subidos, imágenes y audio dictado al servicio de AI alojado.</string>
     <string name="ai_message_label">Mensaje</string>
     <string name="ai_attach">Adjuntar</string>
     <string name="ai_dictate">Dictar</string>

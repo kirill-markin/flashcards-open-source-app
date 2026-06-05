@@ -60,7 +60,7 @@
     <string name="ai_privacy_policy">Политика конфиденциальности</string>
     <string name="ai_terms_of_service">Условия использования</string>
     <string name="ai_support">Поддержка</string>
-    <string name="ai_consent_workspace_disclosure">AI-запросы из рабочего пространства &quot;%1$s&quot; могут отправлять в OpenAI подсказки, загруженные файлы, изображения и продиктованное аудио.</string>
+    <string name="ai_consent_workspace_disclosure">AI-запросы из рабочего пространства &quot;%1$s&quot; могут отправлять подсказки, загруженные файлы, изображения и продиктованное аудио в размещенный AI-сервис.</string>
     <string name="ai_message_label">Сообщение</string>
     <string name="ai_attach">Прикрепить</string>
     <string name="ai_dictate">Диктовать</string>

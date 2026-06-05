@@ -4,6 +4,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -79,7 +80,6 @@ internal fun AiComposer(
     val context = LocalContext.current
     val textProvider = remember(context) { aiTextProvider(context = context) }
     val focusRequester = remember { FocusRequester() }
-    val providerAndModelLabel = "${uiState.chatConfig.provider.label} · ${uiState.chatConfig.model.badgeLabel}"
     val primaryActionLabel = stringResource(
         id = if (uiState.canStopStreaming) {
             R.string.ai_stop
@@ -297,14 +297,7 @@ internal fun AiComposer(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = providerAndModelLabel,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodySmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
+                Spacer(modifier = Modifier.weight(1f))
 
                 if (uiState.isStreaming) {
                     CircularProgressIndicator(

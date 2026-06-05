@@ -51,7 +51,7 @@
     <string name="ai_privacy_policy">隐私政策</string>
     <string name="ai_terms_of_service">服务条款</string>
     <string name="ai_support">支持</string>
-    <string name="ai_consent_workspace_disclosure">来自“%1$s”工作区的 AI 请求可能会将提示、上传的文件、图片和语音输入发送给 OpenAI。</string>
+    <string name="ai_consent_workspace_disclosure">来自“%1$s”工作区的 AI 请求可能会将提示、上传的文件、图片和语音输入发送给托管式 AI 服务。</string>
     <string name="ai_message_label">消息</string>
     <string name="ai_attach">附加</string>
     <string name="ai_dictate">语音输入</string>

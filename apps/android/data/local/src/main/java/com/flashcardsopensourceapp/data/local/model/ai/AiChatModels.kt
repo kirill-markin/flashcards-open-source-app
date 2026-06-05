@@ -4,11 +4,6 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurat
 import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import java.util.UUID
 
-const val aiChatDefaultModelId: String = "gpt-5.4"
-const val aiChatDefaultModelLabel: String = "GPT-5.4"
-const val aiChatDefaultProviderLabel: String = "OpenAI"
-const val aiChatDefaultReasoningEffort: String = "medium"
-const val aiChatDefaultReasoningLabel: String = "Medium"
 const val aiChatOptimisticAssistantStatusToken: String = "__ai_optimistic_assistant_status__"
 const val aiChatMaximumAttachmentBytes: Int = 3 * 1024 * 1024
 const val aiChatMaximumStartRunRequestBytes: Int = 5 * 1024 * 1024
@@ -55,32 +50,12 @@ private val aiChatCanonicalFileMediaTypesByExtension: Map<String, String> = mapO
     "yml" to "application/x-yaml"
 )
 
-data class AiChatProvider(
-    val id: String,
-    val label: String
-)
-
-data class AiChatReasoning(
-    val effort: String,
-    val label: String
-)
-
 data class AiChatFeatures(
-    val modelPickerEnabled: Boolean,
     val dictationEnabled: Boolean,
     val attachmentsEnabled: Boolean
 )
 
-data class AiChatServerModel(
-    val id: String,
-    val label: String,
-    val badgeLabel: String
-)
-
 data class AiChatServerConfig(
-    val provider: AiChatProvider,
-    val model: AiChatServerModel,
-    val reasoning: AiChatReasoning,
     val features: AiChatFeatures
 )
 
@@ -122,21 +97,7 @@ data class AiChatConversationEnvelope(
 typealias AiChatSessionSnapshot = AiChatConversationEnvelope
 
 val defaultAiChatServerConfig: AiChatServerConfig = AiChatServerConfig(
-    provider = AiChatProvider(
-        id = "openai",
-        label = aiChatDefaultProviderLabel
-    ),
-    model = AiChatServerModel(
-        id = aiChatDefaultModelId,
-        label = aiChatDefaultModelLabel,
-        badgeLabel = "$aiChatDefaultModelLabel · $aiChatDefaultReasoningLabel"
-    ),
-    reasoning = AiChatReasoning(
-        effort = aiChatDefaultReasoningEffort,
-        label = aiChatDefaultReasoningLabel
-    ),
     features = AiChatFeatures(
-        modelPickerEnabled = false,
         dictationEnabled = true,
         attachmentsEnabled = true
     )

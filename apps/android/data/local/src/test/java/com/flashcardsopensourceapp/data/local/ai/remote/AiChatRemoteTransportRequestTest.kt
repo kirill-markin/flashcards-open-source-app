@@ -459,11 +459,7 @@ class AiChatRemoteTransportRequestTest {
               },
               "composerSuggestions": [],
               "chatConfig": {
-                "provider": { "id": "openai", "label": "OpenAI" },
-                "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
-                "reasoning": { "effort": "medium", "label": "Medium" },
                 "features": {
-                  "modelPickerEnabled": false,
                   "dictationEnabled": true,
                   "attachmentsEnabled": true
                 },
@@ -489,11 +485,7 @@ class AiChatRemoteTransportRequestTest {
               },
               "composerSuggestions": [],
               "chatConfig": {
-                "provider": { "id": "openai", "label": "OpenAI" },
-                "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
-                "reasoning": { "effort": "medium", "label": "Medium" },
                 "features": {
-                  "modelPickerEnabled": false,
                   "dictationEnabled": true,
                   "attachmentsEnabled": true
                 },
@@ -518,11 +510,7 @@ class AiChatRemoteTransportRequestTest {
               },
               "composerSuggestions": [],
               "chatConfig": {
-                "provider": { "id": "openai", "label": "OpenAI" },
-                "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
-                "reasoning": { "effort": "medium", "label": "Medium" },
                 "features": {
-                  "modelPickerEnabled": false,
                   "dictationEnabled": true,
                   "attachmentsEnabled": true
                 },
@@ -550,11 +538,7 @@ class AiChatRemoteTransportRequestTest {
             {
               "sessionId": "session-1",
               "chatConfig": {
-                "provider": { "id": "openai", "label": "OpenAI" },
-                "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
-                "reasoning": { "effort": "medium", "label": "Medium" },
                 "features": {
-                  "modelPickerEnabled": false,
                   "dictationEnabled": true,
                   "attachmentsEnabled": true
                 },

@@ -9,7 +9,7 @@ import org.junit.Test
 
 class AiChatConversationDecodingTest {
     @Test
-    fun decodeAcceptedEnvelopeIncludesActiveRun() {
+    fun decodeAcceptedEnvelopeIncludesActiveRunAndIgnoresLegacyChatMetadata() {
         val response = decodeAiChatStartRunResponse(
             payload = """
             {
@@ -58,6 +58,8 @@ class AiChatConversationDecodingTest {
         assertEquals("run-1", response.activeRun?.runId)
         assertEquals("9", response.activeRun?.live?.cursor)
         assertEquals(false, response.deduplicated)
+        assertTrue(response.chatConfig.features.dictationEnabled)
+        assertTrue(response.chatConfig.features.attachmentsEnabled)
     }
 
     @Test
@@ -76,11 +78,7 @@ class AiChatConversationDecodingTest {
                 "oldestCursor": null
               },
               "chatConfig": {
-                "provider": { "id": "openai", "label": "OpenAI" },
-                "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
-                "reasoning": { "effort": "medium", "label": "Medium" },
                 "features": {
-                  "modelPickerEnabled": false,
                   "dictationEnabled": true,
                   "attachmentsEnabled": true
                 },
@@ -110,11 +108,7 @@ class AiChatConversationDecodingTest {
               },
               "composerSuggestions": [],
               "chatConfig": {
-                "provider": { "id": "openai", "label": "OpenAI" },
-                "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
-                "reasoning": { "effort": "medium", "label": "Medium" },
                 "features": {
-                  "modelPickerEnabled": false,
                   "dictationEnabled": true,
                   "attachmentsEnabled": true
                 },
@@ -162,11 +156,7 @@ class AiChatConversationDecodingTest {
               },
               "composerSuggestions": [],
               "chatConfig": {
-                "provider": { "id": "openai", "label": "OpenAI" },
-                "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
-                "reasoning": { "effort": "medium", "label": "Medium" },
                 "features": {
-                  "modelPickerEnabled": false,
                   "dictationEnabled": true,
                   "attachmentsEnabled": true
                 },
@@ -198,11 +188,7 @@ class AiChatConversationDecodingTest {
                 "oldestCursor": null
               },
               "chatConfig": {
-                "provider": { "id": "openai", "label": "OpenAI" },
-                "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
-                "reasoning": { "effort": "medium", "label": "Medium" },
                 "features": {
-                  "modelPickerEnabled": false,
                   "dictationEnabled": true,
                   "attachmentsEnabled": true
                 },
@@ -231,11 +217,7 @@ class AiChatConversationDecodingTest {
                 "oldestCursor": null
               },
               "chatConfig": {
-                "provider": { "id": "openai", "label": "OpenAI" },
-                "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
-                "reasoning": { "effort": "medium", "label": "Medium" },
                 "features": {
-                  "modelPickerEnabled": false,
                   "dictationEnabled": true,
                   "attachmentsEnabled": true
                 },
@@ -265,11 +247,7 @@ class AiChatConversationDecodingTest {
               },
               "composerSuggestions": [],
               "chatConfig": {
-                "provider": { "id": "openai", "label": "OpenAI" },
-                "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
-                "reasoning": { "effort": "medium", "label": "Medium" },
                 "features": {
-                  "modelPickerEnabled": false,
                   "dictationEnabled": true,
                   "attachmentsEnabled": true
                 },
@@ -305,11 +283,7 @@ class AiChatConversationDecodingTest {
             {
               "sessionId": "session-1",
               "chatConfig": {
-                "provider": { "id": "openai", "label": "OpenAI" },
-                "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
-                "reasoning": { "effort": "medium", "label": "Medium" },
                 "features": {
-                  "modelPickerEnabled": false,
                   "dictationEnabled": true,
                   "attachmentsEnabled": true
                 },
@@ -353,11 +327,7 @@ class AiChatConversationDecodingTest {
               },
               "composerSuggestions": [],
               "chatConfig": {
-                "provider": { "id": "openai", "label": "OpenAI" },
-                "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
-                "reasoning": { "effort": "medium", "label": "Medium" },
                 "features": {
-                  "modelPickerEnabled": false,
                   "dictationEnabled": true,
                   "attachmentsEnabled": true
                 },

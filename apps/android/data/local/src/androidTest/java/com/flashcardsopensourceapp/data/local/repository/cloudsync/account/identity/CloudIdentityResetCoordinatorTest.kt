@@ -106,12 +106,11 @@ class CloudIdentityResetCoordinatorTest {
         assertEquals(localWorkspaceName, resetWorkspace.name)
         assertEquals(1, environment.database.workspaceDao().countWorkspaces())
         assertEquals(0, environment.database.outboxDao().countOutboxEntries())
-        assertEquals(
-            "gpt-5.4",
-            effectiveAiChatServerConfig(
-                environment.aiChatHistoryStore.loadState(workspaceId = resetWorkspace.workspaceId).lastKnownChatConfig
-            ).model.id
+        val resetChatConfig = effectiveAiChatServerConfig(
+            environment.aiChatHistoryStore.loadState(workspaceId = resetWorkspace.workspaceId).lastKnownChatConfig
         )
+        assertTrue(resetChatConfig.features.dictationEnabled)
+        assertTrue(resetChatConfig.features.attachmentsEnabled)
         assertNull(
             environment.guestAiSessionStore.loadSession(
                 localWorkspaceId = resetWorkspace.workspaceId,
