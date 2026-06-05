@@ -58,6 +58,7 @@ export function createRunningSnapshot(messages: ChatSessionSnapshot["messages"])
 
 export function createExpectedChatConfig(): Record<string, unknown> {
   return {
+    // Legacy response metadata kept in route responses for older released clients.
     provider: {
       id: "openai",
       label: "OpenAI",

@@ -46,10 +46,15 @@ export const CHAT_MODEL: ChatModelDef = {
 };
 
 /**
- * Returns the fixed backend-owned chat configuration that clients can render but not override.
+ * Returns backend-owned runtime configuration plus legacy client display metadata.
+ * `provider`, `model`, `reasoning`, and `features.modelPickerEnabled` are legacy
+ * response metadata for older released clients; clients can render them but
+ * cannot override model/provider/reasoning selection.
  */
 export function getChatConfig(): ChatConfig {
   return {
+    // Legacy response metadata for older released clients. The backend remains
+    // the runtime authority for provider, model, and reasoning selection.
     provider: {
       id: CHAT_VENDOR,
       label: CHAT_PROVIDER_LABEL,
@@ -64,6 +69,8 @@ export function getChatConfig(): ChatConfig {
       label: CHAT_MODEL_REASONING_LABEL,
     },
     features: {
+      // Legacy response metadata for older released clients; model selection is
+      // intentionally not client-selectable.
       modelPickerEnabled: false,
       dictationEnabled: true,
       attachmentsEnabled: true,

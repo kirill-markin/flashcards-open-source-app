@@ -14,10 +14,10 @@ import type {
 } from "../../observability/sentry";
 
 const GENERIC_RUNTIME_ERROR_MESSAGE = "The AI response failed before it could finish. Please try again.";
-const PROVIDER_ERROR_MESSAGE = "The AI provider could not complete the response. Please try again.";
-const PROVIDER_AUTH_ERROR_MESSAGE = "The AI provider could not authenticate the request. Please try again later.";
-const PROVIDER_RATE_LIMITED_ERROR_MESSAGE = "The AI provider is rate limited right now. Please try again in a few minutes.";
-const PROVIDER_UNAVAILABLE_ERROR_MESSAGE = "The AI provider is temporarily unavailable. Please try again soon.";
+const PROVIDER_ERROR_MESSAGE = "The AI service could not complete the response. Please try again.";
+const PROVIDER_AUTH_ERROR_MESSAGE = "The AI service could not authenticate the request. Please try again later.";
+const PROVIDER_RATE_LIMITED_ERROR_MESSAGE = "The AI service is rate limited right now. Please try again in a few minutes.";
+const PROVIDER_UNAVAILABLE_ERROR_MESSAGE = "The AI service is temporarily unavailable. Please try again soon.";
 const PROVIDER_ABORT_ERROR_MESSAGE = "The AI request was interrupted. Please try again.";
 
 type SafeProviderErrorDetails = Pick<
