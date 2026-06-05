@@ -116,6 +116,8 @@ const UNSUPPORTED_CHAT_REQUEST_FIELDS = [
   // First-party clients at >1.5.0 no longer send these legacy request-shape
   // fields. Keep rejecting them while the remaining compatibility branches are
   // still present, then revisit this guard in the future legacy chat cleanup.
+  // Model selection fields and legacy vendor/thinking aliases stay rejected
+  // because the server owns runtime model/provider/reasoning selection.
   "messages",
   "model",
   "selectedModel",

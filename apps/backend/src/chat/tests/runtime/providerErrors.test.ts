@@ -68,7 +68,7 @@ test("runPersistedChatSessionWithDeps persists a failed run for real provider er
   assert.equal(terminalPersistCount, 1);
   assert.equal(
     requireTerminalPersistParams(terminalPersistParams).errorMessage,
-    "The AI provider is rate limited right now. Please try again in a few minutes.",
+    "The AI service is rate limited right now. Please try again in a few minutes.",
   );
   assert.equal(findLog(logs, "chat_worker_provider_call_aborted"), undefined);
   const terminalLog = findLog(logs, "chat_worker_terminal_state_persisted");
@@ -241,7 +241,7 @@ test("runPersistedChatSessionWithDeps does not log raw provider terminal event m
 
   assert.equal(
     requireTerminalPersistParams(terminalPersistParams).errorMessage,
-    "The AI provider could not complete the response. Please try again.",
+    "The AI service could not complete the response. Please try again.",
   );
   const terminalLog = findLog(logs, "chat_worker_terminal_state_persisted");
   assert.equal(terminalLog?.consoleMethod, "warn");
