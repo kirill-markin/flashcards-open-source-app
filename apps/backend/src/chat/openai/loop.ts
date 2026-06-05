@@ -30,9 +30,9 @@ import {
 import { buildOpenAISafetyIdentifier } from "./safetyIdentifier";
 import type { ChatStreamEvent, ContentPart } from "../types";
 import {
-  CHAT_MODEL_ID,
-  CHAT_MODEL_REASONING_EFFORT,
   CHAT_MODEL_REASONING_SUMMARY,
+  type ChatRuntimeModelId,
+  type ChatRuntimeReasoningEffort,
 } from "../config";
 
 export const CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS = 30;
@@ -68,13 +68,13 @@ type ResponseStreamWithOptionalFinalResponse = AsyncIterable<OpenAI.Responses.Re
 }>;
 
 type OpenAIResponsesRequest = Readonly<{
-  model: typeof CHAT_MODEL_ID;
+  model: ChatRuntimeModelId;
   store: false;
   include: ["reasoning.encrypted_content"];
   tools: Array<OpenAI.Responses.Tool>;
   input: Array<OpenAI.Responses.ResponseInputItem>;
   reasoning: Readonly<{
-    effort: typeof CHAT_MODEL_REASONING_EFFORT;
+    effort: ChatRuntimeReasoningEffort;
     summary: typeof CHAT_MODEL_REASONING_SUMMARY;
   }>;
   prompt_cache_key: string;
@@ -86,6 +86,8 @@ type BuildOpenAIResponsesRequestParams = Readonly<{
   continuationItems: ReadonlyArray<StoredOpenAIReplayItem>;
   userId: string;
   sessionId: string;
+  modelId: ChatRuntimeModelId;
+  reasoningEffort: ChatRuntimeReasoningEffort;
   extraInput: ReadonlyArray<OpenAI.Responses.ResponseInputItem>;
   tools: ReadonlyArray<OpenAI.Responses.Tool>;
 }>;
@@ -95,6 +97,8 @@ export type StartOpenAILoopParams = Readonly<{
   userId: string;
   workspaceId: string;
   sessionId: string;
+  modelId: ChatRuntimeModelId;
+  reasoningEffort: ChatRuntimeReasoningEffort;
   timezone: string;
   localMessages: ReadonlyArray<ServerChatMessage>;
   turnInput: ReadonlyArray<ContentPart>;
@@ -315,13 +319,13 @@ export function buildPromptCacheKey(sessionId: string): string {
 
 function buildOpenAIResponsesRequest(params: BuildOpenAIResponsesRequestParams): OpenAIResponsesRequest {
   return {
-    model: CHAT_MODEL_ID,
+    model: params.modelId,
     store: false,
     include: ["reasoning.encrypted_content"],
     tools: [...params.tools],
     input: buildOpenAIInput(params.baseInput, params.continuationItems, params.extraInput),
     reasoning: {
-      effort: CHAT_MODEL_REASONING_EFFORT,
+      effort: params.reasoningEffort,
       summary: CHAT_MODEL_REASONING_SUMMARY,
     },
     prompt_cache_key: buildPromptCacheKey(params.sessionId),
@@ -529,6 +533,8 @@ async function completeToolLimitSummaryTurn(
         continuationItems,
         userId: params.userId,
         sessionId: params.sessionId,
+        modelId: params.modelId,
+        reasoningEffort: params.reasoningEffort,
         extraInput: [buildToolLimitSummaryInstruction(CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS)],
         tools: [],
       }),
@@ -600,6 +606,8 @@ async function runLoopWithDeps(
           continuationItems,
           userId: params.userId,
           sessionId: params.sessionId,
+          modelId: params.modelId,
+          reasoningEffort: params.reasoningEffort,
           extraInput: [],
           tools: OPENAI_CHAT_TOOLS,
         }),

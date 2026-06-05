@@ -90,6 +90,8 @@ export async function handleChatWorkerEvent(
     sessionId: claimedRun.sessionId,
     timezone: claimedRun.timezone,
     uiLocale: claimedRun.uiLocale,
+    modelId: claimedRun.modelId,
+    reasoningEffort: claimedRun.reasoningEffort,
     assistantItemId: claimedRun.assistantItemId,
     localMessages: claimedRun.localMessages,
     turnInput: claimedRun.turnInput,

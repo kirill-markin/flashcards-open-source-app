@@ -2,13 +2,15 @@ import type { QueryResultRow } from "pg";
 import {
   applyWorkspaceDatabaseScopeInExecutor,
   type DatabaseExecutor,
+  type SqlValue,
   type WorkspaceDatabaseScope,
 } from "../../database";
 import { ChatRunRowNotFoundError, ChatSessionRowNotFoundError } from "../errors";
 import {
-  CHAT_MODEL_ID,
-  CHAT_MODEL_REASONING_EFFORT,
+  type ChatRuntimeModelId,
+  type ChatRuntimeReasoningEffort,
 } from "../config";
+import type { ChatCostPolicyMode } from "../costPolicy";
 import type { ChatComposerSuggestionsLocale } from "../composerSuggestions";
 import type { ChatSessionRunState } from "../store";
 import type { ChatSessionRow } from "../store/repository";
@@ -23,6 +25,9 @@ export type ChatRunRow = Readonly<{
   request_id: string;
   model_id: string;
   reasoning_effort: string;
+  ai_cost_mode: ChatCostPolicyMode;
+  chat_turns_last_7d: number;
+  good_review_days_last_7d: number;
   timezone: string;
   ui_locale: ChatComposerSuggestionsLocale | null;
   turn_input: ReadonlyArray<ContentPart>;
@@ -38,9 +43,20 @@ export type InsertChatRunParams = Readonly<{
   sessionId: string;
   assistantItemId: string;
   requestId: string;
+  modelId: ChatRuntimeModelId;
+  reasoningEffort: ChatRuntimeReasoningEffort;
   timezone: string;
   uiLocale: ChatComposerSuggestionsLocale | null;
   turnInput: ReadonlyArray<ContentPart>;
+}>;
+
+export type UpdateChatRunPolicySnapshotParams = Readonly<{
+  runId: string;
+  modelId: ChatRuntimeModelId;
+  reasoningEffort: ChatRuntimeReasoningEffort;
+  aiCostMode: ChatCostPolicyMode;
+  chatTurnsLast7d: number;
+  goodReviewDaysLast7d: number;
 }>;
 
 export type UpdateChatRunStatusParams = Readonly<{
@@ -64,8 +80,7 @@ type CreateChatRunStatusUpdateFromRowParams = Readonly<{
   lastErrorMessage: string | null;
 }>;
 
-const SELECT_CHAT_RUN_SQL = `
-  SELECT
+const CHAT_RUN_COLUMNS_SQL = `
     run_id,
     session_id,
     assistant_item_id,
@@ -73,6 +88,9 @@ const SELECT_CHAT_RUN_SQL = `
     request_id,
     model_id,
     reasoning_effort,
+    ai_cost_mode,
+    chat_turns_last_7d,
+    good_review_days_last_7d,
     timezone,
     ui_locale,
     turn_input,
@@ -82,28 +100,18 @@ const SELECT_CHAT_RUN_SQL = `
     started_at,
     finished_at,
     last_error_message
+`;
+
+const SELECT_CHAT_RUN_SQL = `
+  SELECT
+${CHAT_RUN_COLUMNS_SQL}
   FROM ai.chat_runs
   WHERE run_id = $1
 `;
 
 const SELECT_CHAT_RUN_FOR_UPDATE_SQL = `
   SELECT
-    run_id,
-    session_id,
-    assistant_item_id,
-    status,
-    request_id,
-    model_id,
-    reasoning_effort,
-    timezone,
-    ui_locale,
-    turn_input,
-    worker_claimed_at,
-    worker_heartbeat_at,
-    cancel_requested_at,
-    started_at,
-    finished_at,
-    last_error_message
+${CHAT_RUN_COLUMNS_SQL}
   FROM ai.chat_runs
   WHERE run_id = $1
   FOR UPDATE
@@ -124,22 +132,7 @@ const INSERT_CHAT_RUN_SQL = `
   )
   VALUES ($1, $2, 'queued', $3, $4, $5, $6, $7, $8::jsonb, now())
   RETURNING
-    run_id,
-    session_id,
-    assistant_item_id,
-    status,
-    request_id,
-    model_id,
-    reasoning_effort,
-    timezone,
-    ui_locale,
-    turn_input,
-    worker_claimed_at,
-    worker_heartbeat_at,
-    cancel_requested_at,
-    started_at,
-    finished_at,
-    last_error_message
+${CHAT_RUN_COLUMNS_SQL}
 `;
 
 const UPDATE_CHAT_RUN_STATUS_SQL = `
@@ -154,22 +147,20 @@ const UPDATE_CHAT_RUN_STATUS_SQL = `
       updated_at = now()
   WHERE run_id = $1
   RETURNING
-    run_id,
-    session_id,
-    assistant_item_id,
-    status,
-    request_id,
-    model_id,
-    reasoning_effort,
-    timezone,
-    ui_locale,
-    turn_input,
-    worker_claimed_at,
-    worker_heartbeat_at,
-    cancel_requested_at,
-    started_at,
-    finished_at,
-    last_error_message
+${CHAT_RUN_COLUMNS_SQL}
+`;
+
+const UPDATE_CHAT_RUN_POLICY_SNAPSHOT_SQL = `
+  UPDATE ai.chat_runs
+  SET model_id = $2,
+      reasoning_effort = $3,
+      ai_cost_mode = $4,
+      chat_turns_last_7d = $5,
+      good_review_days_last_7d = $6,
+      updated_at = now()
+  WHERE run_id = $1
+  RETURNING
+${CHAT_RUN_COLUMNS_SQL}
 `;
 
 const SELECT_SESSION_FOR_UPDATE_SQL = `
@@ -192,22 +183,7 @@ const SELECT_SESSION_FOR_UPDATE_SQL = `
 
 const SELECT_CHAT_RUN_BY_SESSION_REQUEST_SQL = `
   SELECT
-    run_id,
-    session_id,
-    assistant_item_id,
-    status,
-    request_id,
-    model_id,
-    reasoning_effort,
-    timezone,
-    ui_locale,
-    turn_input,
-    worker_claimed_at,
-    worker_heartbeat_at,
-    cancel_requested_at,
-    started_at,
-    finished_at,
-    last_error_message
+${CHAT_RUN_COLUMNS_SQL}
   FROM ai.chat_runs
   WHERE session_id = $1
     AND request_id = $2
@@ -218,7 +194,7 @@ const SELECT_CHAT_RUN_BY_SESSION_REQUEST_SQL = `
 async function executeQuery<Row extends QueryResultRow>(
   executor: DatabaseExecutor,
   text: string,
-  params: ReadonlyArray<string | null>,
+  params: ReadonlyArray<SqlValue>,
 ): Promise<ReadonlyArray<Row>> {
   const result = await executor.query<Row>(text, params);
   return result.rows;
@@ -353,13 +329,31 @@ export async function insertChatRunWithExecutor(
       params.sessionId,
       params.assistantItemId,
       params.requestId,
-      CHAT_MODEL_ID,
-      CHAT_MODEL_REASONING_EFFORT,
+      params.modelId,
+      params.reasoningEffort,
       params.timezone,
       params.uiLocale,
       JSON.stringify(params.turnInput),
     ]);
     return requireRunRow(rows[0], "insert");
+  });
+}
+
+export async function updateChatRunPolicySnapshotWithExecutor(
+  executor: DatabaseExecutor,
+  scope: WorkspaceDatabaseScope,
+  params: UpdateChatRunPolicySnapshotParams,
+): Promise<ChatRunRow> {
+  return withScopedExecutor(executor, scope, async () => {
+    const rows = await executeQuery<ChatRunRow>(executor, UPDATE_CHAT_RUN_POLICY_SNAPSHOT_SQL, [
+      params.runId,
+      params.modelId,
+      params.reasoningEffort,
+      params.aiCostMode,
+      params.chatTurnsLast7d,
+      params.goodReviewDaysLast7d,
+    ]);
+    return requireRunRow(rows[0], "policy snapshot update");
   });
 }
 
