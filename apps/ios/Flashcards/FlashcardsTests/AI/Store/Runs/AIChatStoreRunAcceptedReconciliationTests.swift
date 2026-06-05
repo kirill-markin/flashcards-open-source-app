@@ -66,7 +66,7 @@ final class AIChatStoreRunAcceptedReconciliationTests: XCTestCase {
                 persistedState: AIChatPersistedState(
                     messages: baselineMessages,
                     chatSessionId: "session-1",
-                    lastKnownChatConfig: aiChatDefaultServerConfig,
+                    lastKnownChatFeatures: aiChatDefaultServerConfig.features,
                     pendingToolRunPostSync: false
                 ),
                 requiresRemoteSessionProvisioning: false,
@@ -175,7 +175,7 @@ final class AIChatStoreRunAcceptedReconciliationTests: XCTestCase {
                 persistedState: AIChatPersistedState(
                     messages: baselineMessages,
                     chatSessionId: "session-1",
-                    lastKnownChatConfig: aiChatDefaultServerConfig,
+                    lastKnownChatFeatures: aiChatDefaultServerConfig.features,
                     pendingToolRunPostSync: false
                 ),
                 requiresRemoteSessionProvisioning: false,
@@ -293,7 +293,7 @@ final class AIChatStoreRunAcceptedReconciliationTests: XCTestCase {
                 persistedState: AIChatPersistedState(
                     messages: baselineMessages,
                     chatSessionId: "session-1",
-                    lastKnownChatConfig: aiChatDefaultServerConfig,
+                    lastKnownChatFeatures: aiChatDefaultServerConfig.features,
                     pendingToolRunPostSync: false
                 ),
                 requiresRemoteSessionProvisioning: false,
@@ -423,7 +423,7 @@ final class AIChatStoreRunAcceptedReconciliationTests: XCTestCase {
                 persistedState: AIChatPersistedState(
                     messages: baselineMessages,
                     chatSessionId: "session-1",
-                    lastKnownChatConfig: aiChatDefaultServerConfig,
+                    lastKnownChatFeatures: aiChatDefaultServerConfig.features,
                     pendingToolRunPostSync: false
                 ),
                 requiresRemoteSessionProvisioning: false,
@@ -540,7 +540,7 @@ final class AIChatStoreRunAcceptedReconciliationTests: XCTestCase {
                 persistedState: AIChatPersistedState(
                     messages: baselineMessages,
                     chatSessionId: "session-1",
-                    lastKnownChatConfig: aiChatDefaultServerConfig,
+                    lastKnownChatFeatures: aiChatDefaultServerConfig.features,
                     pendingToolRunPostSync: false
                 ),
                 requiresRemoteSessionProvisioning: false,

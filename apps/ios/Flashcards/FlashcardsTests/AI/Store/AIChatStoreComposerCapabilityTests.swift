@@ -184,11 +184,7 @@ final class AIChatStoreComposerCapabilityTests: XCTestCase {
         let store = context.makeStore()
         store.acceptExternalProviderConsent()
         store.serverChatConfig = AIChatServerConfig(
-            provider: aiChatDefaultServerConfig.provider,
-            model: aiChatDefaultServerConfig.model,
-            reasoning: aiChatDefaultServerConfig.reasoning,
             features: AIChatFeatureFlags(
-                modelPickerEnabled: aiChatDefaultServerConfig.features.modelPickerEnabled,
                 dictationEnabled: aiChatDefaultServerConfig.features.dictationEnabled,
                 attachmentsEnabled: false
             )

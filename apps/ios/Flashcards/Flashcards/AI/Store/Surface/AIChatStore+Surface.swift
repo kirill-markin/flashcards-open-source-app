@@ -126,7 +126,7 @@ extension AIChatStore {
         let clearedState = AIChatPersistedState(
             messages: [],
             chatSessionId: self.chatSessionId,
-            lastKnownChatConfig: self.serverChatConfig,
+            lastKnownChatFeatures: self.serverChatConfig.features,
             pendingToolRunPostSync: false
         )
         self.conversationScopeId = self.chatSessionId
@@ -295,7 +295,7 @@ extension AIChatStore {
     func restorePersistedState(_ persistedState: AIChatPersistedState) {
         self.invalidatePendingRemoteSessionProvisionRequest()
         self.messages = persistedState.messages
-        self.serverChatConfig = persistedState.lastKnownChatConfig ?? aiChatDefaultServerConfig
+        self.serverChatConfig = aiChatServerConfig(lastKnownFeatures: persistedState.lastKnownChatFeatures)
         let resolvedSessionId = aiChatResolvedSessionId(
             workspaceId: self.historyWorkspaceId(),
             sessionId: persistedState.chatSessionId
@@ -324,7 +324,7 @@ extension AIChatStore {
                 state: AIChatPersistedState(
                     messages: persistedState.messages,
                     chatSessionId: resolvedSessionId,
-                    lastKnownChatConfig: persistedState.lastKnownChatConfig,
+                    lastKnownChatFeatures: persistedState.lastKnownChatFeatures,
                     pendingToolRunPostSync: persistedState.pendingToolRunPostSync,
                     requiresRemoteSessionProvisioning: persistedState.requiresRemoteSessionProvisioning,
                     suppressDraftRestore: false

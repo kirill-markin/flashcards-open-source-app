@@ -2,9 +2,9 @@
 "ai.newChat" = "Neu";
 "ai.consent.title" = "Bevor Sie KI verwenden";
 "ai.consent.warning" = "KI kann Fehler machen. Überprüfen Sie wichtige Ergebnisse, bevor Sie sich darauf verlassen.";
-"ai.consent.disclosure.prompts" = "Die für Ihre Anfrage erforderlichen typisierten Nachrichten und der von der Karte abgeleitete Kontext können an OpenAI gesendet werden.";
-"ai.consent.disclosure.files" = "Hochgeladene Dateien und Bilder können zur KI-Verarbeitung an OpenAI gesendet werden.";
-"ai.consent.disclosure.audio" = "Diktat-Audio- und Transkriptionsanfragen können zur Sprachverarbeitung an OpenAI gesendet werden.";
+"ai.consent.disclosure.prompts" = "Die für Ihre Anfrage erforderlichen eingegebenen Nachrichten und der von Karten abgeleitete Kontext können an den gehosteten KI-Dienst gesendet werden.";
+"ai.consent.disclosure.files" = "Hochgeladene Dateien und Bilder können zur KI-Verarbeitung an den gehosteten KI-Dienst gesendet werden.";
+"ai.consent.disclosure.audio" = "Diktat-Audio- und Transkriptionsanfragen können zur Sprachverarbeitung an den gehosteten KI-Dienst gesendet werden.";
 "ai.consent.disclosure.diagnostics" = "Technische Diagnosen zu fehlgeschlagenen oder langsamen KI-Anfragen können gesendet werden, um beim Debuggen des gehosteten KI-Dienstes zu helfen.";
 "ai.warning.accuracy" = "KI-Antworten können ungenau oder unvollständig sein. Überprüfen Sie wichtige Ergebnisse, bevor Sie sich darauf verlassen.";
 "ai.loading.title" = "Chat wird geladen";
@@ -260,7 +260,7 @@
 "settings.account.legal.accepted" = "Akzeptiert";
 "settings.account.legal.notAccepted" = "Nicht akzeptiert";
 "settings.account.legal.supportContactDescription" = "Nutzen Sie die Support-Seite für Fragen zur gehosteten App, Hilfe beim Löschen des Kontos und zum Verfolgen von App Store-Bewertungen.";
-"settings.account.legal.aiDataUseDescription" = "Die Verwendung gehosteter KI ist optional. Wenn Sie es auf diesem Gerät aktivieren, werden möglicherweise die folgenden Anforderungsdaten an auf dem Server konfigurierte Drittanbieter von KI gesendet:";
+"settings.account.legal.aiDataUseDescription" = "Die Verwendung gehosteter KI ist optional. Wenn Sie sie auf diesem Gerät aktivieren, werden möglicherweise die folgenden Anforderungsdaten an den gehosteten KI-Dienst gesendet:";
 "settings.account.legal.disclosureBullet" = "- %@";
 "settings.account.legal.reviewAiDataUse" = "Überprüfen Sie die Verwendung von KI-Daten auf der Registerkarte „KI“ und stimmen Sie ihr zu, bevor Sie gehostete KI verwenden.";
 

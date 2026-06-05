@@ -186,7 +186,6 @@ extension AIChatView {
                 }
 
                 HStack {
-                    self.composerModelControl
                     Spacer()
 
                     HStack(spacing: 8) {
@@ -251,13 +250,6 @@ extension AIChatView {
         case .transcribing:
             return aiSettingsLocalized("ai.composer.dictation.transcribing", "Transcribing...")
         }
-    }
-
-    @ViewBuilder
-    var composerModelControl: some View {
-        Text("\(self.chatStore.serverChatConfig.provider.label) · \(self.chatStore.serverChatConfig.model.badgeLabel)")
-            .font(.footnote)
-            .foregroundStyle(.secondary)
     }
 
     var primaryComposerButtonDisabled: Bool {

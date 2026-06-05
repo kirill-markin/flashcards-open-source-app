@@ -2,9 +2,9 @@
 "ai.newChat" = "新規";
 "ai.consent.title" = "AIを使用する前に";
 "ai.consent.warning" = "AI は間違いを犯す可能性があります。重要な結果を信頼する前に確認してください。";
-"ai.consent.disclosure.prompts" = "リクエストに必要な入力されたメッセージとカードから派生したコンテキストを OpenAI に送信できます。";
-"ai.consent.disclosure.files" = "アップロードされたファイルと画像は、AI 処理のために OpenAI に送信できます。";
-"ai.consent.disclosure.audio" = "ディクテーション音声および文字起こしリクエストは、音声処理のために OpenAI に送信できます。";
+"ai.consent.disclosure.prompts" = "リクエストに必要な入力済みメッセージとカード由来のコンテキストは、ホスト型AIサービスに送信される場合があります。";
+"ai.consent.disclosure.files" = "アップロードされたファイルと画像は、AI処理のためにホスト型AIサービスに送信される場合があります。";
+"ai.consent.disclosure.audio" = "ディクテーション音声と文字起こしリクエストは、音声処理のためにホスト型AIサービスに送信される場合があります。";
 "ai.consent.disclosure.diagnostics" = "失敗した AI リクエストまたは遅い AI リクエストに関する技術診断を送信して、ホストされた AI サービスのデバッグに役立てることができます。";
 "ai.warning.accuracy" = "AI の応答は不正確または不完全である可能性があります。重要な結果を信頼する前に確認してください。";
 "ai.loading.title" = "チャットを読み込み中";
@@ -260,7 +260,7 @@
 "settings.account.legal.accepted" = "承認されました";
 "settings.account.legal.notAccepted" = "未承認";
 "settings.account.legal.supportContactDescription" = "ホストされているアプリに関する質問、アカウント削除のヘルプ、App Store レビューの追跡については、サポート ページをご利用ください。";
-"settings.account.legal.aiDataUseDescription" = "ホストされた AI の利用は任意です。このデバイスで有効にすると、次のリクエスト データがサーバーで構成されたサードパーティの AI プロバイダーに送信される場合があります:";
+"settings.account.legal.aiDataUseDescription" = "ホスト型AIの利用は任意です。このデバイスで有効にすると、次のリクエストデータがホスト型AIサービスに送信される場合があります:";
 "settings.account.legal.disclosureBullet" = "- %@";
 "settings.account.legal.reviewAiDataUse" = "Hosted AI を使用する前に、[AI] タブで AI データの使用を確認し、同意します。";
 

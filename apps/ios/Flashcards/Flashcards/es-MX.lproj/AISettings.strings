@@ -2,9 +2,9 @@
 "ai.newChat" = "Nuevo";
 "ai.consent.title" = "Antes de usar IA";
 "ai.consent.warning" = "La IA puede equivocarse. Revisa los resultados importantes antes de confiar en ellos.";
-"ai.consent.disclosure.prompts" = "Los mensajes escritos y el contexto derivado de tarjetas necesarios para tu solicitud pueden enviarse a OpenAI.";
-"ai.consent.disclosure.files" = "Los archivos e imagenes subidos pueden enviarse a OpenAI para el procesamiento con IA.";
-"ai.consent.disclosure.audio" = "El audio dictado y las solicitudes de transcripcion pueden enviarse a OpenAI para el procesamiento de voz.";
+"ai.consent.disclosure.prompts" = "Los mensajes escritos y el contexto derivado de tarjetas necesarios para tu solicitud pueden enviarse al servicio de IA alojado.";
+"ai.consent.disclosure.files" = "Los archivos e imágenes subidos pueden enviarse al servicio de IA alojado para su procesamiento con IA.";
+"ai.consent.disclosure.audio" = "El audio dictado y las solicitudes de transcripción pueden enviarse al servicio de IA alojado para el procesamiento de voz.";
 "ai.consent.disclosure.diagnostics" = "Los diagnosticos tecnicos sobre solicitudes de IA fallidas o lentas pueden enviarse para ayudar a depurar el servicio de IA alojado.";
 "ai.warning.accuracy" = "Las respuestas de IA pueden ser inexactas o incompletas. Revisa los resultados importantes antes de confiar en ellos.";
 "ai.loading.title" = "Cargando chat";
@@ -260,7 +260,7 @@
 "settings.account.legal.accepted" = "Aceptado";
 "settings.account.legal.notAccepted" = "No aceptado";
 "settings.account.legal.supportContactDescription" = "Usa la pagina de soporte para preguntas sobre la app alojada, ayuda con la eliminacion de cuentas y seguimiento de revisiones de la App Store.";
-"settings.account.legal.aiDataUseDescription" = "Usar IA alojada es opcional. Si la activas en este dispositivo, los siguientes datos de solicitud pueden enviarse a proveedores de IA de terceros configurados en el servidor:";
+"settings.account.legal.aiDataUseDescription" = "Usar IA alojada es opcional. Si la activas en este dispositivo, los siguientes datos de solicitud pueden enviarse al servicio de IA alojado:";
 "settings.account.legal.disclosureBullet" = "- %@";
 "settings.account.legal.reviewAiDataUse" = "Revisa y acepta el uso de datos de IA desde la pestana IA antes de usar la IA alojada.";
 
