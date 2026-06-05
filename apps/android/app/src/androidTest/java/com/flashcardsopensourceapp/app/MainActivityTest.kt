@@ -21,6 +21,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.app.R as AppR
+import com.flashcardsopensourceapp.app.support.AppStateResetRule
 import com.flashcardsopensourceapp.feature.ai.R as AiFeatureR
 import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
 import com.flashcardsopensourceapp.feature.ai.aiConversationLoadingTag

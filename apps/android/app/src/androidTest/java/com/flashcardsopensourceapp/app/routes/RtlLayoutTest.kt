@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.app
+package com.flashcardsopensourceapp.app.routes
 
 import android.app.LocaleManager
 import android.os.LocaleList
@@ -13,6 +13,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.flashcardsopensourceapp.app.FirebaseAppInstrumentationTimeoutTest
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
 import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCard

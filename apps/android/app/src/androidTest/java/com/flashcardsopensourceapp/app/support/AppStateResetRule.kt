@@ -1,10 +1,11 @@
-package com.flashcardsopensourceapp.app
+package com.flashcardsopensourceapp.app.support
 
 import android.content.Context
 import androidx.core.app.NotificationManagerCompat
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
+import com.flashcardsopensourceapp.app.FlashcardsApplication
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.currentBlockingSystemDialogSummaryOrNull
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.dismissBlockingSystemDialogIfPresent
 import com.flashcardsopensourceapp.app.prompts.guestreview.guestSignInAfterReviewPromptPreferencesName

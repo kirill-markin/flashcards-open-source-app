@@ -1,23 +1,24 @@
-package com.flashcardsopensourceapp.app
+package com.flashcardsopensourceapp.app.support
 
 import android.content.Context
 import androidx.room.withTransaction
 import androidx.test.core.app.ApplicationProvider
+import com.flashcardsopensourceapp.app.FlashcardsApplication
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.entities.CardTagEntity
 import com.flashcardsopensourceapp.data.local.database.entities.CardWithRelations
 import com.flashcardsopensourceapp.data.local.database.entities.TagEntity
 import com.flashcardsopensourceapp.data.local.model.cards.CardDraft
+import com.flashcardsopensourceapp.data.local.model.cards.normalizeTags
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
-import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
+import java.util.UUID
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
-import java.util.UUID
-import com.flashcardsopensourceapp.data.local.model.cards.normalizeTags
 
 internal data class RepositorySeedReview(
     val rating: ReviewRating,

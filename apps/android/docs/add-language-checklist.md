@@ -166,16 +166,16 @@ rg -n 'onNodeWithText\\(|assertTextEquals\\(|assertTextContains\\(' \
 Current examples worth checking:
 
 - `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MainActivityTest.kt`
-- `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/SettingsAuthRouteTest.kt`
-- `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/CloudPostAuthRouteTest.kt`
-- `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/AccountDeletionBlockingSurfaceTest.kt`
+- `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/routes/SettingsAuthRouteTest.kt`
+- `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/routes/CloudPostAuthRouteTest.kt`
+- `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/routes/AccountDeletionBlockingSurfaceTest.kt`
 - `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/livesmoke/support/LiveSmokeScenarioAiHelpers.kt`
 - `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/livesmoke/support/LiveSmokeScenarioCardHelpers.kt`
 - `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/livesmoke/support/LiveSmokeScenarioAccountAssertions.kt`
 - `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/livesmoke/flows/LiveSmokeWorkspaceLifecycleFlows.kt`
 - `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/livesmoke/flows/LiveSmokeWorkspaceProgressFlows.kt`
 - `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/marketing/screenshots/MarketingScreenshotTestSupport.kt`
-- `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/ReviewPreviewRouteTest.kt`
+- `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/routes/ReviewPreviewRouteTest.kt`
 
 When updating tests:
 
@@ -183,7 +183,7 @@ When updating tests:
 - Leave seeded card content or other user-generated text alone unless the test is specifically about localization.
 - Prefer one or two focused instrumentation checks for RTL mirroring over broad churn across unrelated test files.
 - Keep RTL instrumentation layout-oriented and predictable: assert start/end mirroring on existing routes instead of rewriting the suite around translated copy.
-- The current focused RTL entry point is `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/RtlLayoutTest.kt`. Extend that path first if a new screen needs explicit RTL coverage.
+- The current focused RTL entry point is `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/routes/RtlLayoutTest.kt`. Extend that path first if a new screen needs explicit RTL coverage.
 
 For RTL validation in tests:
 

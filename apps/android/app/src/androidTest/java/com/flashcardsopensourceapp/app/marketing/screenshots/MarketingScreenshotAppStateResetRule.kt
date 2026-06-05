@@ -6,8 +6,8 @@ import android.content.Context
 import android.os.LocaleList
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
-import com.flashcardsopensourceapp.app.AppStateResetRule
 import com.flashcardsopensourceapp.app.FlashcardsApplication
+import com.flashcardsopensourceapp.app.support.AppStateResetRule
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 

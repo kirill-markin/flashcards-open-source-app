@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.app
+package com.flashcardsopensourceapp.app.notifications
 
 import android.Manifest
 import android.app.Notification

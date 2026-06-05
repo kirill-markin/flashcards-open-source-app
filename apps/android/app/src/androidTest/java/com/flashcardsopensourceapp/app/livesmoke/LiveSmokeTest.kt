@@ -4,7 +4,6 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
-import com.flashcardsopensourceapp.app.AppStateResetRule
 import com.flashcardsopensourceapp.app.FirebaseAppInstrumentationTimeoutTest
 import com.flashcardsopensourceapp.app.MainActivity
 import com.flashcardsopensourceapp.app.livesmoke.flows.assertWorkspaceTodayCounts
@@ -22,6 +21,7 @@ import com.flashcardsopensourceapp.app.livesmoke.support.externalUiTimeoutMillis
 import com.flashcardsopensourceapp.app.livesmoke.support.internalUiTimeoutMillis
 import com.flashcardsopensourceapp.app.livesmoke.support.rateVisibleReviewCardGood
 import com.flashcardsopensourceapp.app.livesmoke.support.reviewEmailArgumentKey
+import com.flashcardsopensourceapp.app.support.AppStateResetRule
 import com.flashcardsopensourceapp.app.livesmoke.support.seedCardViaRepository
 import com.flashcardsopensourceapp.app.livesmoke.support.startNewChatAndAssertConversationReset
 import com.flashcardsopensourceapp.app.livesmoke.support.step
