@@ -5,7 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.app.FlashcardsApplication
 import com.flashcardsopensourceapp.app.ManualOnlyAndroidTest
-import com.flashcardsopensourceapp.app.resetAndroidTestAppState
+import com.flashcardsopensourceapp.app.support.resetAndroidTestAppState
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Test

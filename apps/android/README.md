@@ -175,7 +175,7 @@ The Android app uses native Android and Compose testing:
 
 - targeted integration coverage runs through native instrumentation and Compose UI testing in `apps/android/app/src/androidTest` and `apps/android/data/local/src/androidTest`
 - shared FSRS scheduler parity stays in `apps/android/data/local/src/test/java/com/flashcardsopensourceapp/data/local/model/FsrsSchedulerParityTest.kt` and uses `tests/fsrs-full-vectors.json`
-- release-gate app UI instrumentation runs through the full `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app` package in Firebase Test Lab, with `LiveSmokeTest.kt` and `NotificationTapSmokeTest.kt` kept as the highest-confidence stateful flows inside that package
+- release-gate app UI instrumentation runs through the full `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app` instrumentation tree in Firebase Test Lab, with `livesmoke/LiveSmokeTest.kt` and `notifications/NotificationTapSmokeTest.kt` kept as the highest-confidence stateful flows there
 - the live smoke flow relies on stable Compose test tags from the production UI modules, not on a separate mock shell
 
 The Android live smoke scenario matches the other clients on purpose:

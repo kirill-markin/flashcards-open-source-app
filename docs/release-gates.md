@@ -18,7 +18,7 @@ Cross-client live smoke references:
 
 - iOS: `apps/ios/Flashcards/FlashcardsUITests/LiveSmoke*Tests.swift`
 - Android: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/livesmoke/LiveSmokeTest.kt`
-- Android notification tap gate: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/NotificationTapSmokeTest.kt`
+- Android notification tap gate: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/notifications/NotificationTapSmokeTest.kt`
 - Web: `apps/web/e2e/live-smoke.spec.ts`
 
 These live smoke flows are the highest-confidence checks in the repository because they exercise the real app closest to production conditions.

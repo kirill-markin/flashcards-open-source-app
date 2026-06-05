@@ -1,8 +1,8 @@
 package com.flashcardsopensourceapp.app.marketing.screenshots
 
-import com.flashcardsopensourceapp.app.RepositorySeedCard
-import com.flashcardsopensourceapp.app.RepositorySeedReview
-import com.flashcardsopensourceapp.app.RepositorySeedScenario
+import com.flashcardsopensourceapp.app.support.RepositorySeedCard
+import com.flashcardsopensourceapp.app.support.RepositorySeedReview
+import com.flashcardsopensourceapp.app.support.RepositorySeedScenario
 import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import java.time.Instant

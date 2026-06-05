@@ -155,7 +155,7 @@ Android app-internal translations are Play-first:
 Cross-client live smoke references:
 
 - Android: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/livesmoke/LiveSmokeTest.kt`
-- Android notification tap gate: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/NotificationTapSmokeTest.kt`
+- Android notification tap gate: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/notifications/NotificationTapSmokeTest.kt`
 - iOS: `apps/ios/Flashcards/FlashcardsUITests/LiveSmoke*Tests.swift`
 - Web: `apps/web/e2e/live-smoke.spec.ts`
 
@@ -429,7 +429,7 @@ Run another app instrumentation class on a local emulator:
 
 ```bash
 adb devices
-cd apps/android && ./gradlew clean :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.flashcardsopensourceapp.app.NotificationTapSmokeTest
+cd apps/android && ./gradlew clean :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.flashcardsopensourceapp.app.notifications.NotificationTapSmokeTest
 ```
 
 Run the full app instrumentation package in Firebase Test Lab directly after authenticating with `gcloud`:

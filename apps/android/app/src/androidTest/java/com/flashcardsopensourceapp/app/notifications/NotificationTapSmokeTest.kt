@@ -1,14 +1,16 @@
-package com.flashcardsopensourceapp.app
+package com.flashcardsopensourceapp.app.notifications
 
 import android.content.Context
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.core.app.ApplicationProvider
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.ext.junit.rules.ActivityScenarioRule
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
+import com.flashcardsopensourceapp.app.FirebaseAppInstrumentationTimeoutTest
+import com.flashcardsopensourceapp.app.MainActivity
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitForFlowValue
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitUntilAtLeastOneExistsOrFail
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitUntilWithMitigation
@@ -18,6 +20,7 @@ import com.flashcardsopensourceapp.app.livesmoke.support.appGraph
 import com.flashcardsopensourceapp.app.livesmoke.support.externalUiTimeoutMillis
 import com.flashcardsopensourceapp.app.livesmoke.support.internalUiTimeoutMillis
 import com.flashcardsopensourceapp.app.livesmoke.support.step
+import com.flashcardsopensourceapp.app.support.AppStateResetRule
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import org.junit.Rule
 import org.junit.Test
