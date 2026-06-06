@@ -79,6 +79,46 @@ class LocalSyncRepositorySyncBlockingTest {
     }
 
     @Test
+    fun syncBlocksGuestSessionPlatformMismatchWithoutResettingIdentity() = runBlocking {
+        val initialLocalWorkspaceId = environment.requireLocalWorkspaceId()
+        val initialInstallationId = environment.cloudPreferencesStore.currentCloudSettings().installationId
+        val remoteGateway = FakeCloudRemoteGateway.forBootstrapPullError(
+            bootstrapPullError = CloudRemoteException(
+                message = "Cloud request failed with status 403 for /sync/bootstrap-pull",
+                statusCode = 403,
+                responseBody = JSONObject()
+                    .put("code", "GUEST_SESSION_PLATFORM_MISMATCH")
+                    .put("requestId", "request-guest-platform-mismatch")
+                    .toString(),
+                errorCode = "GUEST_SESSION_PLATFORM_MISMATCH",
+                requestId = "request-guest-platform-mismatch",
+                syncConflict = null
+            )
+        )
+        val syncRepository = environment.createSyncRepository(remoteGateway = remoteGateway)
+
+        environment.prepareLinkedCloudIdentity(localWorkspaceId = initialLocalWorkspaceId)
+
+        try {
+            syncRepository.syncNow()
+        } catch (_: CloudRemoteException) {
+        }
+
+        val cloudSettings = environment.cloudPreferencesStore.currentCloudSettings()
+        val syncStatus = syncRepository.observeSyncStatus().first().status
+        assertEquals(CloudAccountState.LINKED, cloudSettings.cloudState)
+        assertEquals(initialInstallationId, cloudSettings.installationId)
+        assertEquals(initialLocalWorkspaceId, cloudSettings.activeWorkspaceId)
+        assertEquals(initialLocalWorkspaceId, environment.database.workspaceDao().loadAnyWorkspace()?.workspaceId)
+        assertNotNull(environment.cloudPreferencesStore.loadCredentials())
+        assertTrue(syncStatus is SyncStatus.Blocked)
+        assertEquals(
+            "Cloud request failed with status 403 for /sync/bootstrap-pull",
+            (syncStatus as SyncStatus.Blocked).message
+        )
+    }
+
+    @Test
     fun syncBlocksReplicaConflictWithoutResettingIdentity() = runBlocking {
         val initialLocalWorkspaceId = environment.requireLocalWorkspaceId()
         val initialInstallationId = environment.cloudPreferencesStore.currentCloudSettings().installationId

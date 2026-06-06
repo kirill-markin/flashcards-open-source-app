@@ -1,9 +1,12 @@
+export type GuestSessionPlatform = "ios" | "android";
+
 export type GuestUpgradeMode = "bound" | "merge_required";
 
 export type GuestSessionSnapshot = Readonly<{
   guestToken: string;
   userId: string;
   workspaceId: string;
+  platform: GuestSessionPlatform | null;
 }>;
 
 export type GuestUpgradePreparation = Readonly<{

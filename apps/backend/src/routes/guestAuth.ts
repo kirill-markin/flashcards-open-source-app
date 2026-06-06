@@ -6,6 +6,7 @@ import {
   createGuestSession,
   deleteGuestSession,
   prepareGuestUpgrade,
+  type GuestSessionPlatform,
   type GuestUpgradeCompleteCapabilities,
   type GuestUpgradeSelection,
 } from "../guestAuth";
@@ -52,9 +53,56 @@ type GuestUpgradeCompleteEnvelope = Readonly<{
 
 type GuestAuthRoutesOptions = Readonly<{
   authenticateRequestFn?: typeof authenticateRequest;
+  createGuestSessionFn?: typeof createGuestSession;
   completeGuestUpgradeFn?: typeof completeGuestUpgrade;
   deleteGuestSessionFn?: typeof deleteGuestSession;
 }>;
+
+function parseGuestSessionPlatformValue(value: unknown): GuestSessionPlatform | null {
+  if (value === undefined) {
+    // Pre-1.7.0 iOS/Android clients create guest sessions without platform.
+    // Keep this unbound legacy path until those mobile versions are no longer supported.
+    return null;
+  }
+
+  if (typeof value !== "string") {
+    throw new HttpError(400, "platform must be ios or android", "GUEST_SESSION_PLATFORM_INVALID");
+  }
+
+  const platform = value.trim();
+  if (platform === "ios" || platform === "android") {
+    return platform;
+  }
+
+  if (platform === "web") {
+    throw new HttpError(
+      403,
+      "Guest web sessions are not supported. Sign in before using cloud sync on the web app.",
+      "GUEST_WEB_SESSION_UNSUPPORTED",
+    );
+  }
+
+  throw new HttpError(400, "platform must be ios or android", "GUEST_SESSION_PLATFORM_INVALID");
+}
+
+async function parseGuestSessionCreatePlatform(request: Request): Promise<GuestSessionPlatform | null> {
+  const rawBody = await request.text();
+  if (rawBody.trim() === "") {
+    // Pre-1.7.0 iOS/Android clients create guest sessions with an empty body.
+    // Keep this unbound legacy path until those mobile versions are no longer supported.
+    return null;
+  }
+
+  let parsedBody: unknown;
+  try {
+    parsedBody = JSON.parse(rawBody) as unknown;
+  } catch {
+    throw new HttpError(400, "Invalid JSON body");
+  }
+
+  const body = expectRecord(parsedBody);
+  return parseGuestSessionPlatformValue(body.platform);
+}
 
 function parseGuestUpgradeSelection(value: unknown): GuestUpgradeSelection {
   const body = expectRecord(value);
@@ -135,11 +183,13 @@ function createGuestUpgradeScope(
 export function createGuestAuthRoutes(options: GuestAuthRoutesOptions = {}): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   const authenticateRequestFn = options.authenticateRequestFn ?? authenticateRequest;
+  const createGuestSessionFn = options.createGuestSessionFn ?? createGuestSession;
   const completeGuestUpgradeFn = options.completeGuestUpgradeFn ?? completeGuestUpgrade;
   const deleteGuestSessionFn = options.deleteGuestSessionFn ?? deleteGuestSession;
 
   app.post("/guest-auth/session", async (context) => {
-    const session = await createGuestSession();
+    const platform = await parseGuestSessionCreatePlatform(context.req.raw);
+    const session = await createGuestSessionFn(platform);
     return context.json({
       guestToken: session.guestToken,
       userId: session.userId,

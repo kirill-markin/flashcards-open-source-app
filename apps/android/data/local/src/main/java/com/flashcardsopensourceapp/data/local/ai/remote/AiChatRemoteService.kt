@@ -78,6 +78,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 internal const val chatRequestIdHeaderName: String = "X-Chat-Request-Id"
 private const val requestIdHeaderName: String = "X-Request-Id"
+private const val guestSessionClientPlatform: String = "android"
 private const val officialAiApiHost: String = "api.flashcards-open-source-app.com"
 private const val officialAiApiPathPrefix: String = "/v1"
 private val aiJsonMediaType = "application/json".toMediaType()
@@ -103,6 +104,10 @@ private val expectedAiChatHttpFailureCodes: Set<String> = setOf(
     "CHAT_TRANSCRIPTION_SOURCE_INVALID",
     "GUEST_AI_LIMIT_REACHED",
     "GUEST_AUTH_INVALID",
+    "GUEST_SESSION_PLATFORM_INVALID",
+    "GUEST_SESSION_PLATFORM_MISMATCH",
+    "GUEST_WEB_SESSION_UNSUPPORTED",
+    "GUEST_WEB_SYNC_UNSUPPORTED",
     "WORKSPACE_ID_INVALID",
     "WORKSPACE_ID_REQUIRED",
     "WORKSPACE_NOT_FOUND",
@@ -339,7 +344,10 @@ class AiChatRemoteService private constructor(
                 path = "/guest-auth/session",
                 method = "POST",
                 authorizationHeader = null,
-                requestBody = ByteArray(size = 0).toRequestBody(),
+                requestBody = JSONObject()
+                    .put("platform", guestSessionClientPlatform)
+                    .toString()
+                    .toRequestBody(aiJsonMediaType),
                 extraHeaders = emptyMap()
             )
         )

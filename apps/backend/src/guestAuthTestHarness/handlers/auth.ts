@@ -19,6 +19,7 @@ export function handleAuthExecutorQuery<Row extends pg.QueryResultRow>(
     const rows = guestSession !== null && requestedHash === guestSession.session_secret_hash ? [{
       session_id: guestSession.session_id,
       user_id: guestSession.user_id,
+      platform: guestSession.platform,
       revoked_at: guestSession.revoked_at,
     } as unknown as Row] : [];
     return createQueryResult<Row>(rows);

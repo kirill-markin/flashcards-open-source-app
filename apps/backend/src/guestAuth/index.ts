@@ -4,6 +4,7 @@ import {
 } from "./delete/index";
 import {
   authenticateGuestSession,
+  bindGuestSessionPlatform,
   createGuestSessionInExecutor,
 } from "./session/index";
 import {
@@ -12,6 +13,7 @@ import {
 } from "./upgrade/index";
 import type {
   GuestUpgradeCompleteCapabilities,
+  GuestSessionPlatform,
   GuestSessionSnapshot,
   GuestUpgradeCompletion,
   GuestUpgradePreparation,
@@ -20,6 +22,7 @@ import type {
 
 export type {
   GuestUpgradeCompleteCapabilities,
+  GuestSessionPlatform,
   GuestSessionSnapshot,
   GuestUpgradeCompletion,
   GuestUpgradePreparation,
@@ -28,13 +31,14 @@ export type {
 
 export {
   authenticateGuestSession,
+  bindGuestSessionPlatform,
   completeGuestUpgradeInExecutor,
   deleteGuestSessionInExecutor,
   prepareGuestUpgradeInExecutor,
 };
 
-export async function createGuestSession(): Promise<GuestSessionSnapshot> {
-  return unsafeTransaction(async (executor) => createGuestSessionInExecutor(executor));
+export async function createGuestSession(platform: GuestSessionPlatform | null): Promise<GuestSessionSnapshot> {
+  return unsafeTransaction(async (executor) => createGuestSessionInExecutor(executor, platform));
 }
 
 export async function prepareGuestUpgrade(

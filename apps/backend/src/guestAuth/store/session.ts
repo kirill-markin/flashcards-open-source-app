@@ -1,3 +1,4 @@
+import type pg from "pg";
 import {
   applyUserDatabaseScopeInExecutor,
   type DatabaseExecutor,
@@ -7,9 +8,18 @@ import {
   lockUserSettingsForWorkspaceLifecycleInExecutor,
   UserSettingsRowNotFoundError,
 } from "../../workspaces/state";
+import { guestSessionPlatformColumnExistsInExecutor } from "../platformColumn";
 import { hashGuestToken } from "../shared";
+import type { GuestSessionPlatform } from "../types";
 
 type GuestSessionRow = Readonly<{
+  session_id: string;
+  user_id: string;
+  platform: GuestSessionPlatform | null;
+  revoked_at: Date | string | null;
+}>;
+
+type LegacyGuestSessionRow = Readonly<{
   session_id: string;
   user_id: string;
   revoked_at: Date | string | null;
@@ -18,6 +28,7 @@ type GuestSessionRow = Readonly<{
 export type GuestSessionRecord = Readonly<{
   sessionId: string;
   userId: string;
+  platform: GuestSessionPlatform | null;
   revokedAt: Date | string | null;
 }>;
 
@@ -29,6 +40,16 @@ function mapGuestSessionRecord(row: GuestSessionRow): GuestSessionRecord {
   return {
     sessionId: row.session_id,
     userId: row.user_id,
+    platform: row.platform,
+    revokedAt: row.revoked_at,
+  };
+}
+
+function mapLegacyGuestSessionRecord(row: LegacyGuestSessionRow): GuestSessionRecord {
+  return {
+    sessionId: row.session_id,
+    userId: row.user_id,
+    platform: null,
     revokedAt: row.revoked_at,
   };
 }
@@ -38,18 +59,33 @@ export async function loadGuestSessionRecordInExecutor(
   guestToken: string,
   lockForUpdate: boolean,
 ): Promise<GuestSessionRecord | null> {
-  const result = await executor.query<GuestSessionRow>(
+  const sessionSecretHash = hashGuestToken(guestToken);
+  let result: pg.QueryResult<GuestSessionRow>;
+  if (await guestSessionPlatformColumnExistsInExecutor(executor)) {
+    result = await executor.query<GuestSessionRow>(
+      [
+        "SELECT session_id, user_id, platform, revoked_at",
+        "FROM auth.guest_sessions",
+        "WHERE session_secret_hash = $1",
+        lockForUpdate ? "FOR UPDATE" : "",
+      ].join(" "),
+      [sessionSecretHash],
+    );
+    const row = result.rows[0];
+    return row === undefined ? null : mapGuestSessionRecord(row);
+  }
+
+  const legacyResult = await executor.query<LegacyGuestSessionRow>(
     [
       "SELECT session_id, user_id, revoked_at",
       "FROM auth.guest_sessions",
       "WHERE session_secret_hash = $1",
       lockForUpdate ? "FOR UPDATE" : "",
     ].join(" "),
-    [hashGuestToken(guestToken)],
+    [sessionSecretHash],
   );
-
-  const row = result.rows[0];
-  return row === undefined ? null : mapGuestSessionRecord(row);
+  const legacyRow = legacyResult.rows[0];
+  return legacyRow === undefined ? null : mapLegacyGuestSessionRecord(legacyRow);
 }
 
 export async function loadGuestSessionRecordWithUserSettingsLockInExecutor(

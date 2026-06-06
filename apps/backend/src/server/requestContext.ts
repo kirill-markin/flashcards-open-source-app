@@ -1,4 +1,5 @@
 import { authenticateRequest, type AuthTransport } from "../auth";
+import type { GuestSessionPlatform } from "../guestAuth";
 import { isDeletedSubject } from "../auth/deletedSubjects";
 import { HttpError } from "../shared/errors";
 import { ensureUserProfile } from "../auth/ensureUser";
@@ -19,6 +20,8 @@ export type RequestContext = Readonly<{
   userSettingsCreatedAt: string;
   transport: AuthTransport;
   connectionId: string | null;
+  guestSessionId: string | null;
+  guestPlatform: GuestSessionPlatform | null;
 }>;
 
 export type WorkspaceRequestContext = Readonly<{
@@ -85,6 +88,8 @@ export async function loadRequestContextWithDependencies(
     userSettingsCreatedAt: userProfile.createdAt,
     transport: auth.transport,
     connectionId: auth.connectionId,
+    guestSessionId: auth.guestSessionId,
+    guestPlatform: auth.guestPlatform,
   };
 }
 

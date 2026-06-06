@@ -2,6 +2,7 @@ export type GuestSessionState = Readonly<{
   session_id: string;
   session_secret_hash: string;
   user_id: string;
+  platform: "ios" | "android" | null;
   revoked_at: string | null;
 }>;
 
