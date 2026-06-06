@@ -181,8 +181,26 @@ test("backend Sentry beforeSend redacts exception text and request query strings
     },
     request: {
       query_string: "token=secret&search=private",
+      url: "https://api.example.invalid/v1/cards?token=secret#debug",
     },
     contexts: {
+      backend: {
+        adminEmail: "local-admin@localhost",
+        userEmail: "user@example.com",
+        safeText:
+          "contact user@example.com with key sk-proj-123456789012345678901234 and jwt eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+        serializedPayload: JSON.stringify({
+          authorization: "Bearer token-value",
+          query: "token=secret&search=private",
+          email: "payload@example.com",
+          safeText: "contact payload@example.com",
+          nested: {
+            hasToken: true,
+            tokenCount: 7,
+            sessionToken: "session-token-value",
+          },
+        }),
+      },
       rawRequest: {
         queryString: "query=private",
         querystring: "userText=private",
@@ -206,6 +224,29 @@ test("backend Sentry beforeSend redacts exception text and request query strings
     vars: "<redacted-content>",
   });
   assert.equal(sanitized?.request?.query_string, "<redacted-content>");
+  assert.equal(sanitized?.request?.url, "https://api.example.invalid/v1/cards");
+  assert.equal(sanitized?.contexts?.backend?.adminEmail, "<redacted-content>");
+  assert.equal(sanitized?.contexts?.backend?.userEmail, "<redacted-content>");
+  assert.equal(
+    sanitized?.contexts?.backend?.safeText,
+    "contact <masked-email> with key <masked-api-key> and jwt <masked-jwt>",
+  );
+  const serializedPayload = sanitized?.contexts?.backend?.serializedPayload;
+  assert.equal(typeof serializedPayload, "string");
+  if (typeof serializedPayload !== "string") {
+    throw new Error("Expected serialized Sentry payload to remain a string.");
+  }
+  assert.deepEqual(JSON.parse(serializedPayload), {
+    authorization: "<redacted-secret>",
+    query: "<redacted-content>",
+    email: "<redacted-content>",
+    safeText: "contact <masked-email>",
+    nested: {
+      hasToken: true,
+      tokenCount: 7,
+      sessionToken: "<redacted-secret>",
+    },
+  });
   assert.equal(sanitized?.contexts?.rawRequest?.queryString, "<redacted-content>");
   assert.equal(sanitized?.contexts?.rawRequest?.querystring, "<redacted-content>");
 });
@@ -299,12 +340,15 @@ test("backend Sentry beforeSend preserves structural database exception diagnost
   assert.equal(sanitized.tags?.["db.sql_state"], "23503");
   assert.equal(sanitized.tags?.["db.constraint"], "workspace_replicas_workspace_id_fkey");
   assert.equal(sanitized.tags?.["db.table"], "workspace_replicas");
-  assert.deepEqual(sanitized.request, { headers: "<redacted-content>" });
-  assert.equal(sanitized.contexts?.backend?.prompt, "<redacted-content>");
+  assert.deepEqual(sanitized.request, { headers: { authorization: "<redacted-secret>" } });
+  assert.equal(sanitized.contexts?.backend?.prompt, "private prompt");
   assert.equal(sanitized.contexts?.backend?.sqlState, "23503");
   assert.equal(sanitized.contexts?.backend?.constraint, "workspace_replicas_workspace_id_fkey");
   assert.equal(sanitized.contexts?.backend?.table, "workspace_replicas");
-  assert.equal(sanitized.contexts?.rawRequest?.requestBody, "<redacted-content>");
+  assert.deepEqual(sanitized.contexts?.rawRequest?.requestBody, {
+    frontText: "private question",
+    backText: "private answer",
+  });
   assert.deepEqual(sanitized.exception?.values?.[0]?.stacktrace?.frames?.[0], {
     context_line: "<redacted-content>",
     vars: "<redacted-content>",
@@ -426,7 +470,7 @@ test("backend Sentry beforeSend preserves typed warning action title only", () =
   });
 });
 
-test("backend Sentry scope preserves backend request id tags before capture", () => {
+test("backend Sentry scope preserves raw backend identifiers before capture", () => {
   const safeRequestId = "11111111-2222-4333-8444-555555555555";
   const safeChatRequestId = "22222222-3333-4444-8555-666666666666";
   const backendRequestId = "api-gateway-request-1";
@@ -453,16 +497,16 @@ test("backend Sentry scope preserves backend request id tags before capture", ()
   assert.equal(capturedUnsafeScope.tags.get("requestId"), backendRequestId);
   assert.equal(capturedUnsafeScope.tags.get("requestIdHash"), undefined);
   assert.equal(capturedUnsafeScope.tags.get("chatRequestId"), safeChatRequestId);
-  assert.equal(capturedUnsafeScope.tags.get("workspaceId"), undefined);
-  assert.equal(capturedUnsafeScope.tags.get("runId"), undefined);
-  assert.equal(capturedUnsafeScope.tags.get("sessionId"), undefined);
-  assert.equal(capturedUnsafeScope.tags.get("userId"), undefined);
-  assert.match(String(capturedUnsafeScope.tags.get("workspaceIdHash")), /^[a-f0-9]{64}$/);
-  assert.match(String(capturedUnsafeScope.tags.get("runIdHash")), /^[a-f0-9]{64}$/);
-  assert.match(String(capturedUnsafeScope.tags.get("sessionIdHash")), /^[a-f0-9]{64}$/);
-  assert.match(String(capturedUnsafeScope.tags.get("userIdHash")), /^[a-f0-9]{64}$/);
+  assert.equal(capturedUnsafeScope.tags.get("workspaceId"), "workspace-1");
+  assert.equal(capturedUnsafeScope.tags.get("runId"), "run-1");
+  assert.equal(capturedUnsafeScope.tags.get("sessionId"), "session-1");
+  assert.equal(capturedUnsafeScope.tags.get("userId"), "user-1");
+  assert.equal(capturedUnsafeScope.tags.get("workspaceIdHash"), undefined);
+  assert.equal(capturedUnsafeScope.tags.get("runIdHash"), undefined);
+  assert.equal(capturedUnsafeScope.tags.get("sessionIdHash"), undefined);
+  assert.equal(capturedUnsafeScope.tags.get("userIdHash"), undefined);
   assert.deepEqual(capturedUnsafeScope.users, [
-    { id: capturedUnsafeScope.tags.get("userIdHash") },
+    { id: "user-1" },
   ]);
 
   const unsafeBackendContext = requireRecord(capturedUnsafeScope.contexts.get("backend"));
@@ -471,6 +515,10 @@ test("backend Sentry scope preserves backend request id tags before capture", ()
   assert.equal(unsafeBackendContext.route, "/v1/chat/live");
   assert.equal(unsafeBackendContext.method, "GET");
   assert.equal(unsafeBackendContext.chatRequestId, safeChatRequestId);
+  assert.equal(unsafeBackendContext.userId, "user-1");
+  assert.equal(unsafeBackendContext.workspaceId, "workspace-1");
+  assert.equal(unsafeBackendContext.runId, "run-1");
+  assert.equal(unsafeBackendContext.sessionId, "session-1");
 
   const capturedSafeScope = createCapturedScope();
   setSentryScope(
@@ -497,10 +545,14 @@ test("backend Sentry scope preserves backend request id tags before capture", ()
     contexts: Object.fromEntries(capturedUnsafeScope.contexts),
   });
   assert.match(serializedUnsafeScope, /api-gateway-request-1/);
-  assert.doesNotMatch(serializedUnsafeScope, /workspace-1|user-1|run-1|session-1/);
+  assert.match(serializedUnsafeScope, /workspace-1/);
+  assert.match(serializedUnsafeScope, /user-1/);
+  assert.match(serializedUnsafeScope, /run-1/);
+  assert.match(serializedUnsafeScope, /session-1/);
+  assert.doesNotMatch(serializedUnsafeScope, /userIdHash|workspaceIdHash|runIdHash|sessionIdHash/);
 });
 
-test("backend Sentry beforeSend preserves backend request ids and hashes client/entity identifiers", () => {
+test("backend Sentry beforeSend preserves raw backend and entity identifiers", () => {
   resetBackendSentryForTests();
   let capturedInitOptions: CapturedSentryInitOptions | null = null;
 
@@ -563,7 +615,9 @@ test("backend Sentry beforeSend preserves backend request ids and hashes client/
         clientRequestId: legacyClientRequestId,
         selectedWorkspaceId: "workspace-2",
         selectedWorkspaceIdBeforeDelete: "workspace-3",
+        targetUserId: "user-3",
         targetSubjectUserId: "user-2",
+        affectedUserIds: ["user-4", "user-5"],
         cardId: "card-1",
       },
     },
@@ -598,17 +652,17 @@ test("backend Sentry beforeSend preserves backend request ids and hashes client/
   assert.equal(sanitized.tags?.providerRequestId, "provider-correlation-1");
   assert.equal(sanitized.tags?.upstreamRequestId, "upstream-correlation-1");
   assert.equal(sanitized.tags?.chatRequestId, safeChatRequestId);
-  assert.equal(sanitized.tags?.clientRequestId, undefined);
-  assert.equal(sanitized.tags?.userId, undefined);
-  assert.equal(sanitized.tags?.workspaceId, undefined);
-  assert.equal(sanitized.tags?.runId, undefined);
-  assert.equal(sanitized.tags?.sessionId, undefined);
+  assert.equal(sanitized.tags?.clientRequestId, legacyClientRequestId);
+  assert.equal(sanitized.tags?.userId, "user-1");
+  assert.equal(sanitized.tags?.workspaceId, "workspace-1");
+  assert.equal(sanitized.tags?.runId, "run-1");
+  assert.equal(sanitized.tags?.sessionId, "session-1");
   assert.equal(sanitized.tags?.requestIdHash, undefined);
-  assert.match(String(sanitized.tags?.clientRequestIdHash), /^[a-f0-9]{64}$/);
-  assert.match(String(sanitized.tags?.userIdHash), /^[a-f0-9]{64}$/);
-  assert.match(String(sanitized.tags?.workspaceIdHash), /^[a-f0-9]{64}$/);
-  assert.match(String(sanitized.tags?.runIdHash), /^[a-f0-9]{64}$/);
-  assert.match(String(sanitized.tags?.sessionIdHash), /^[a-f0-9]{64}$/);
+  assert.equal(sanitized.tags?.clientRequestIdHash, undefined);
+  assert.equal(sanitized.tags?.userIdHash, undefined);
+  assert.equal(sanitized.tags?.workspaceIdHash, undefined);
+  assert.equal(sanitized.tags?.runIdHash, undefined);
+  assert.equal(sanitized.tags?.sessionIdHash, undefined);
 
   assert.deepEqual(sanitized.contexts?.backend, {
     requestId: backendRequestId,
@@ -618,42 +672,63 @@ test("backend Sentry beforeSend preserves backend request ids and hashes client/
     providerRequestId: "provider-correlation-1",
     upstreamRequestId: "upstream-correlation-1",
     chatRequestId: safeChatRequestId,
-    clientRequestIdHash: sanitized.tags?.clientRequestIdHash,
-    userIdHash: sanitized.tags?.userIdHash,
-    workspaceIdHash: sanitized.tags?.workspaceIdHash,
-    runIdHash: sanitized.tags?.runIdHash,
-    sessionIdHash: sanitized.tags?.sessionIdHash,
+    clientRequestId: legacyClientRequestId,
+    userId: "user-1",
+    workspaceId: "workspace-1",
+    runId: "run-1",
+    sessionId: "session-1",
   });
   assert.equal(sanitized.contexts?.details?.requestId, backendRequestId);
   assert.equal(sanitized.contexts?.details?.requestIdHash, undefined);
-  assert.equal(sanitized.contexts?.details?.clientRequestId, undefined);
-  assert.match(String(sanitized.contexts?.details?.clientRequestIdHash), /^[a-f0-9]{64}$/);
-  assert.equal(sanitized.contexts?.details?.chatRequestId, undefined);
-  assert.match(String(sanitized.contexts?.details?.chatRequestIdHash), /^[a-f0-9]{64}$/);
-  assert.equal(sanitized.contexts?.details?.selectedWorkspaceId, undefined);
-  assert.match(String(sanitized.contexts?.details?.selectedWorkspaceIdHash), /^[a-f0-9]{64}$/);
+  assert.equal(sanitized.contexts?.details?.clientRequestId, legacyClientRequestId);
+  assert.equal(sanitized.contexts?.details?.clientRequestIdHash, undefined);
+  assert.equal(sanitized.contexts?.details?.chatRequestId, legacyChatRequestId);
+  assert.equal(sanitized.contexts?.details?.chatRequestIdHash, undefined);
+  assert.equal(sanitized.contexts?.details?.selectedWorkspaceId, "workspace-2");
+  assert.equal(sanitized.contexts?.details?.selectedWorkspaceIdHash, undefined);
   assert.equal(sanitized.contexts?.details?.hasWorkspaceId, true);
-  assert.equal(sanitized.contexts?.details?.selectedWorkspaceIdBeforeDelete, undefined);
-  assert.match(String(sanitized.contexts?.details?.selectedWorkspaceIdBeforeDeleteHash), /^[a-f0-9]{64}$/);
-  assert.equal(sanitized.contexts?.details?.targetSubjectUserId, undefined);
-  assert.match(String(sanitized.contexts?.details?.targetSubjectUserIdHash), /^[a-f0-9]{64}$/);
-  assert.equal(sanitized.contexts?.details?.cardId, undefined);
-  assert.match(String(sanitized.contexts?.details?.cardIdHash), /^[a-f0-9]{64}$/);
+  assert.equal(sanitized.contexts?.details?.selectedWorkspaceIdBeforeDelete, "workspace-3");
+  assert.equal(sanitized.contexts?.details?.selectedWorkspaceIdBeforeDeleteHash, undefined);
+  assert.equal(sanitized.contexts?.details?.targetUserId, "user-3");
+  assert.equal(sanitized.contexts?.details?.targetUserIdHash, undefined);
+  assert.equal(sanitized.contexts?.details?.targetSubjectUserId, "user-2");
+  assert.equal(sanitized.contexts?.details?.targetSubjectUserIdHash, undefined);
+  assert.deepEqual(sanitized.contexts?.details?.affectedUserIds, ["user-4", "user-5"]);
+  assert.equal(sanitized.contexts?.details?.affectedUserIdsHash, undefined);
+  assert.equal(sanitized.contexts?.details?.cardId, "card-1");
+  assert.equal(sanitized.contexts?.details?.cardIdHash, undefined);
 
   const breadcrumbData = sanitized.breadcrumbs?.[0]?.data;
   assert.equal(breadcrumbData?.scope?.requestId, backendRequestId);
   assert.equal(breadcrumbData?.scope?.requestIdHash, undefined);
-  assert.equal(breadcrumbData?.scope?.workspaceId, undefined);
-  assert.match(String(breadcrumbData?.scope?.workspaceIdHash), /^[a-f0-9]{64}$/);
-  assert.equal(breadcrumbData?.details?.clientRequestId, undefined);
-  assert.match(String(breadcrumbData?.details?.clientRequestIdHash), /^[a-f0-9]{64}$/);
-  assert.equal(breadcrumbData?.details?.sourceGuestWorkspaceId, undefined);
-  assert.match(String(breadcrumbData?.details?.sourceGuestWorkspaceIdHash), /^[a-f0-9]{64}$/);
-  assert.equal(breadcrumbData?.details?.reviewEventId, undefined);
-  assert.match(String(breadcrumbData?.details?.reviewEventIdHash), /^[a-f0-9]{64}$/);
+  assert.equal(breadcrumbData?.scope?.workspaceId, "workspace-1");
+  assert.equal(breadcrumbData?.scope?.workspaceIdHash, undefined);
+  assert.equal(breadcrumbData?.details?.clientRequestId, legacyClientRequestId);
+  assert.equal(breadcrumbData?.details?.clientRequestIdHash, undefined);
+  assert.equal(breadcrumbData?.details?.sourceGuestWorkspaceId, "workspace-2");
+  assert.equal(breadcrumbData?.details?.sourceGuestWorkspaceIdHash, undefined);
+  assert.equal(breadcrumbData?.details?.reviewEventId, "review-event-1");
+  assert.equal(breadcrumbData?.details?.reviewEventIdHash, undefined);
 
   const serializedPayload = JSON.stringify(sanitized);
-  assert.doesNotMatch(serializedPayload, /legacy-client-request|legacy-chat-request|workspace-1|workspace-2|workspace-3|user-1|user-2|run-1|session-1|card-1|review-event-1/);
+  assert.match(serializedPayload, /legacy-client-request/);
+  assert.match(serializedPayload, /legacy-chat-request/);
+  assert.match(serializedPayload, /workspace-1/);
+  assert.match(serializedPayload, /workspace-2/);
+  assert.match(serializedPayload, /workspace-3/);
+  assert.match(serializedPayload, /user-1/);
+  assert.match(serializedPayload, /user-2/);
+  assert.match(serializedPayload, /user-3/);
+  assert.match(serializedPayload, /user-4/);
+  assert.match(serializedPayload, /user-5/);
+  assert.match(serializedPayload, /run-1/);
+  assert.match(serializedPayload, /session-1/);
+  assert.match(serializedPayload, /card-1/);
+  assert.match(serializedPayload, /review-event-1/);
+  assert.doesNotMatch(
+    serializedPayload,
+    /clientRequestIdHash|userIdHash|workspaceIdHash|runIdHash|sessionIdHash|targetUserIdHash|targetSubjectUserIdHash|affectedUserIdsHash|cardIdHash|reviewEventIdHash/,
+  );
   assert.match(serializedPayload, /lambda-request-1/);
   assert.match(serializedPayload, /lambda-correlation-1/);
   assert.match(serializedPayload, /route-correlation-1/);
@@ -697,7 +772,12 @@ test("backend Sentry beforeSendSpan sanitizes span payloads", () => {
       "http.response.body": "private response body",
       output: "private output",
       hasArguments: true,
+      hasToken: true,
+      input_tokens: 11,
+      outputTokens: 12,
       outputLength: 42,
+      sessionToken: "session-token-value",
+      tokenCount: 7,
     },
     description: "POST /v1/cards?token=secret&query=private",
     op: "http.client",
@@ -709,19 +789,24 @@ test("backend Sentry beforeSendSpan sanitizes span payloads", () => {
     trace_id: "11111111111111111111111111111111",
   });
 
-  assert.equal(sanitized.description, "POST /v1/cards?<redacted-query>");
+  assert.equal(sanitized.description, "POST /v1/cards");
   assert.deepEqual(sanitized.data, {
     authorization: "<redacted-secret>",
     query: "<redacted-content>",
-    "gen_ai.prompt": "<redacted-content>",
-    "gen_ai.completion": "<redacted-content>",
-    "gen_ai.prompt.0.content": "<redacted-content>",
-    tool_arguments: "<redacted-content>",
-    "http.request.header.x-user": "<redacted-content>",
-    "http.response.body": "<redacted-content>",
-    output: "<redacted-content>",
+    "gen_ai.prompt": "private prompt",
+    "gen_ai.completion": "private completion",
+    "gen_ai.prompt.0.content": "private prompt part",
+    tool_arguments: "{\"frontText\":\"private question\"}",
+    "http.request.header.x-user": "private header",
+    "http.response.body": "private response body",
+    output: "private output",
     hasArguments: true,
+    hasToken: true,
+    input_tokens: 11,
+    outputTokens: 12,
     outputLength: 42,
+    sessionToken: "<redacted-secret>",
+    tokenCount: 7,
   });
 
   const sanitizedTransaction = requireSynchronousSentryHookResult(beforeSendTransaction({
@@ -749,9 +834,9 @@ test("backend Sentry beforeSendSpan sanitizes span payloads", () => {
   if (sanitizedTransaction === null) {
     throw new Error("Expected backend Sentry beforeSendTransaction to keep the event.");
   }
-  assert.equal(sanitizedTransaction.transaction, "GET /v1/cards?<redacted-query>");
+  assert.equal(sanitizedTransaction.transaction, "GET /v1/cards");
   assert.deepEqual(sanitizedTransaction.spans?.[0]?.data, {
-    input: "<redacted-content>",
+    input: "private input",
     hasArguments: true,
   });
 });
