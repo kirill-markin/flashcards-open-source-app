@@ -17,8 +17,11 @@ type AiChatRunState = "idle" | "running" | "interrupted";
 type AiSendPhase = "idle" | "preparingSend" | "startingRun";
 type AiDraftState = "empty" | "filled";
 type AiCanSend = "true" | "false";
+type AiHistoryLoaded = "true" | "false";
 
 export type AiComposerContract = Readonly<{
+  sessionId: string | null;
+  historyLoaded: AiHistoryLoaded;
   composerState: AiComposerState;
   composerAction: AiComposerAction;
   chatRunState: AiChatRunState;
@@ -159,6 +162,32 @@ export async function waitForAiChatSendReadiness(
       }),
       { timeout: externalUiTimeoutMs },
     ).toBe(0);
+  });
+
+  await diagnostics.runAction("wait for AI chat composer to have a stable ready session before send", async () => {
+    let previousReadySessionId: string | null = null;
+    let readySince = 0;
+
+    await expect.poll(
+      async () => {
+        const composerContract = await readAiComposerContract(page);
+        const isComposerReady = isAiComposerReadyForDraftInput(composerContract);
+        if (isComposerReady === false || composerContract.sessionId === null) {
+          previousReadySessionId = null;
+          readySince = 0;
+          return false;
+        }
+
+        if (previousReadySessionId !== composerContract.sessionId) {
+          previousReadySessionId = composerContract.sessionId;
+          readySince = Date.now();
+          return false;
+        }
+
+        return Date.now() - readySince >= 500;
+      },
+      { timeout: externalUiTimeoutMs },
+    ).toBe(true);
   });
 }
 
@@ -428,7 +457,28 @@ export async function readAiComposerContract(page: Page): Promise<AiComposerCont
       return attributeValue;
     }
 
+    function readHistoryLoaded(attributeName: string): AiHistoryLoaded {
+      const attributeValue = readRequiredAttribute(attributeName);
+      if (attributeValue !== "true" && attributeValue !== "false") {
+        throw new Error(`Unsupported AI history-loaded state "${attributeValue}".`);
+      }
+
+      return attributeValue;
+    }
+
+    function readSessionId(attributeName: string): string | null {
+      const attributeValue = element.getAttribute(attributeName);
+      if (attributeValue === null) {
+        throw new Error(`Missing AI composer contract attribute "${attributeName}".`);
+      }
+
+      const trimmedAttributeValue = attributeValue.trim();
+      return trimmedAttributeValue === "" ? null : trimmedAttributeValue;
+    }
+
     return {
+      sessionId: readSessionId("data-chat-session-id"),
+      historyLoaded: readHistoryLoaded("data-history-loaded"),
       composerState: readComposerState("data-composer-state"),
       composerAction: readComposerAction("data-composer-action"),
       chatRunState: readChatRunState("data-chat-run-state"),
@@ -460,4 +510,12 @@ export function isAiComposerTerminalIdle(contract: AiComposerContract): boolean 
     && contract.sendPhase === "idle"
     && contract.draftState === "empty"
     && contract.canSend === "false";
+}
+
+function isAiComposerReadyForDraftInput(contract: AiComposerContract): boolean {
+  if (isAiComposerTerminalIdle(contract) === false) {
+    return false;
+  }
+
+  return contract.sessionId !== null && contract.historyLoaded === "true";
 }

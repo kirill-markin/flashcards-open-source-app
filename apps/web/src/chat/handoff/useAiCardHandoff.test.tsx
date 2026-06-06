@@ -112,6 +112,7 @@ describe("useAiCardHandoff", () => {
   it("switches dirty handoff into a fresh session and preserves source ownership", async () => {
     const replaceDraftForSession = vi.fn();
     const requestComposerFocus = vi.fn();
+    const suppressNextSessionDraftCarryover = vi.fn();
     const clearConversation = vi.fn(async (): Promise<string> => "session-2");
     const setIsOpen = vi.fn();
     const onResult = vi.fn();
@@ -131,6 +132,7 @@ describe("useAiCardHandoff", () => {
       replaceDraftForSession,
       replaceComposerSendPhase: vi.fn(),
       requestComposerFocus,
+      suppressNextSessionDraftCarryover,
     });
     useOptionalChatSessionMock.mockReturnValue({
       currentSessionId: "session-1",
@@ -159,7 +161,12 @@ describe("useAiCardHandoff", () => {
     });
 
     expect(onResult).toHaveBeenCalledWith(true);
+    expect(suppressNextSessionDraftCarryover).toHaveBeenCalledTimes(1);
+    expect(suppressNextSessionDraftCarryover).toHaveBeenCalledWith("session-1");
     expect(clearConversation).toHaveBeenCalledTimes(1);
+    expect(suppressNextSessionDraftCarryover.mock.invocationCallOrder[0]).toBeLessThan(
+      clearConversation.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY,
+    );
     expect(replaceDraftForSession).toHaveBeenCalledTimes(1);
     expect(replaceDraftForSession).toHaveBeenCalledWith("session-2", {
       inputText: "",
@@ -199,6 +206,7 @@ describe("useAiCardHandoff", () => {
       replaceDraftForSession,
       replaceComposerSendPhase: vi.fn(),
       requestComposerFocus,
+      suppressNextSessionDraftCarryover: vi.fn(),
     });
     useOptionalChatSessionMock.mockReturnValue({
       currentSessionId: "session-1",
@@ -261,6 +269,7 @@ describe("useAiCardHandoff", () => {
         replaceDraftForSession,
         replaceComposerSendPhase: vi.fn(),
         requestComposerFocus,
+        suppressNextSessionDraftCarryover: vi.fn(),
       });
       useOptionalChatSessionMock.mockReturnValue({
         currentSessionId: "session-1",
@@ -322,6 +331,7 @@ describe("useAiCardHandoff", () => {
       replaceDraftForSession,
       replaceComposerSendPhase: vi.fn(),
       requestComposerFocus,
+      suppressNextSessionDraftCarryover: vi.fn(),
     });
     useOptionalChatSessionMock.mockReturnValue({
       currentSessionId: "session-1",
@@ -396,6 +406,7 @@ describe("useAiCardHandoff", () => {
       replaceDraftForSession,
       replaceComposerSendPhase: vi.fn(),
       requestComposerFocus,
+      suppressNextSessionDraftCarryover: vi.fn(),
     });
     useOptionalChatSessionMock.mockReturnValue({
       currentSessionId: "session-1",

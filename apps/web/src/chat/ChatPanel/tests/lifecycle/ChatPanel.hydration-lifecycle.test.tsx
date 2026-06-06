@@ -6,7 +6,9 @@ import {
   createChatSnapshot,
   createNewChatSessionMock,
   getChatSnapshotMock,
+  readStoredDraftInputText,
   setupChatPanelTest,
+  setTextareaValue,
   useAppDataMock,
 } from "../support/ChatPanelTestSupport";
 import {
@@ -97,6 +99,51 @@ describe("ChatPanel hydration lifecycle", () => {
     await flushAsync();
 
     expect(getChatSnapshotMock).toHaveBeenCalledWith("session-local-fresh", "workspace-1");
+  });
+
+  it("keeps a typed draft when hydration accepts a replacement session id", async () => {
+    let resolveHydrationSnapshot: ((snapshot: ReturnType<typeof createChatSnapshot>) => void) | null = null;
+    storeChatSessionWarmStartSnapshot("workspace-1", createChatSnapshot({
+      sessionId: "session-pending",
+      conversationScopeId: "session-pending",
+      conversation: {
+        updatedAt: 1,
+        mainContentInvalidationVersion: 0,
+        messages: [],
+      },
+    }), false);
+    getChatSnapshotMock.mockImplementationOnce((sessionId: string) => new Promise((resolve) => {
+      resolveHydrationSnapshot = (snapshot) => resolve(snapshot);
+      expect(sessionId).toBe("session-pending");
+    }));
+
+    await renderChatPanel();
+    await flushAsync();
+
+    const textarea = getContainer().querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
+    expect(textarea).not.toBeNull();
+
+    await setTextareaValue(textarea as HTMLTextAreaElement, "draft typed during hydration");
+    await flushAsync();
+
+    expect(readStoredDraftInputText("workspace-1", "session-pending")).toBe("draft typed during hydration");
+
+    resolveHydrationSnapshot?.(createChatSnapshot({
+      sessionId: "session-accepted",
+      conversationScopeId: "session-accepted",
+      conversation: {
+        updatedAt: 2,
+        mainContentInvalidationVersion: 0,
+        messages: [],
+      },
+    }));
+    await flushAsync();
+    await flushAsync();
+
+    const acceptedTextarea = getContainer().querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
+    expect(acceptedTextarea?.value).toBe("draft typed during hydration");
+    expect(readStoredDraftInputText("workspace-1", "session-pending")).toBeNull();
+    expect(readStoredDraftInputText("workspace-1", "session-accepted")).toBe("draft typed during hydration");
   });
 
   it("opens a stale warm-start session as a fresh local chat without loading the stale session", async () => {

@@ -73,13 +73,13 @@ async function signInWithReviewAccount(session: LiveSmokeSession): Promise<void>
     diagnostics,
     "confirm primary navigation is visible after auth",
     page.locator("nav.nav"),
-    localUiTimeoutMs,
+    externalUiTimeoutMs,
   );
   await trackedExpectVisible(
     diagnostics,
     "confirm review navigation link is visible after auth",
     page.locator('nav.nav a[href="/review"]').first(),
-    localUiTimeoutMs,
+    externalUiTimeoutMs,
   );
 }
 
