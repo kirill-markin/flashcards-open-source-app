@@ -73,14 +73,15 @@ export function parseChatRuntimeReasoningEffort(value: string): ChatRuntimeReaso
 
 /**
  * Returns backend-owned runtime configuration plus legacy client display metadata.
- * `provider`, `model`, `reasoning`, and `features.modelPickerEnabled` are legacy
- * response metadata for older released clients; clients can render them but
+ * First-party AI clients newer than 1.5.0 no longer read `provider`, `model`,
+ * `reasoning`, or `features.modelPickerEnabled`. Keep these response fields
+ * only for released clients at 1.5.0 and older; clients can render them but
  * cannot override model/provider/reasoning selection.
  */
 export function getChatConfig(): ChatConfig {
   return {
-    // Legacy response metadata for older released clients. The backend remains
-    // the runtime authority for provider, model, and reasoning selection.
+    // Legacy response metadata for released clients at 1.5.0 and older. The
+    // backend remains the runtime authority for provider, model, and reasoning.
     provider: {
       id: CHAT_VENDOR,
       label: CHAT_PROVIDER_LABEL,
@@ -95,15 +96,15 @@ export function getChatConfig(): ChatConfig {
       label: CHAT_MODEL_REASONING_LABEL,
     },
     features: {
-      // Legacy response metadata for older released clients; model selection is
-      // intentionally not client-selectable.
+      // Legacy response metadata for released clients at 1.5.0 and older;
+      // model selection is intentionally not client-selectable.
       modelPickerEnabled: false,
       dictationEnabled: true,
       attachmentsEnabled: true,
     },
-    // First-party clients at >1.5.0 no longer read chatConfig.liveUrl at
-    // runtime. Keep returning it temporarily for backward compatibility with
-    // older released clients, and remove it in a future legacy chat cleanup.
+    // First-party AI clients newer than 1.5.0 no longer read chatConfig.liveUrl
+    // at runtime. Keep returning it temporarily for released clients at 1.5.0
+    // and older, and remove it in a future legacy chat cleanup.
     liveUrl: process.env.CHAT_LIVE_URL || null,
   };
 }

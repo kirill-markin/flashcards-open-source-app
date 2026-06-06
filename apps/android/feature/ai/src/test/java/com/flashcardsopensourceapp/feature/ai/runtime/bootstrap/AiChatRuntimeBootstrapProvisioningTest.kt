@@ -18,6 +18,7 @@ import java.io.IOException
 import java.net.MalformedURLException
 import java.net.SocketException
 import java.net.SocketTimeoutException
+import javax.net.ssl.SSLHandshakeException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -276,6 +277,68 @@ class AiChatRuntimeBootstrapProvisioningTest {
     }
 
     @Test
+    fun bootstrapRetriesTransientSslHandshakeFailure() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.persistedStates[defaultTestWorkspaceId] = makeDefaultAiChatPersistedState().copy(
+            chatSessionId = "session-1"
+        )
+        repository.loadBootstrapErrors += SSLHandshakeException("connection closed")
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
+        val runtime = makeRuntimeWithCloudState(
+            scope = this,
+            repository = repository,
+            autoSyncEventRepository = FakeAutoSyncEventRepository(),
+            cloudState = CloudAccountState.GUEST
+        )
+
+        runtime.onScreenVisible()
+        runtime.updateAccessContext(
+            makeAccessContext(workspaceId = defaultTestWorkspaceId)
+        )
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(defaultTestWorkspaceId, defaultTestWorkspaceId),
+            repository.prepareSessionRequests
+        )
+        assertEquals(2, repository.loadBootstrapCalls)
+        assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
+    }
+
+    @Test
+    fun bootstrapDoesNotRetryNonTransientSslHandshakeFailure() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.persistedStates[defaultTestWorkspaceId] = makeDefaultAiChatPersistedState().copy(
+            chatSessionId = "session-1"
+        )
+        repository.loadBootstrapErrors += SSLHandshakeException("Trust anchor for certification path not found.")
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
+        val runtime = makeRuntimeWithCloudState(
+            scope = this,
+            repository = repository,
+            autoSyncEventRepository = FakeAutoSyncEventRepository(),
+            cloudState = CloudAccountState.GUEST
+        )
+
+        runtime.onScreenVisible()
+        runtime.updateAccessContext(
+            makeAccessContext(workspaceId = defaultTestWorkspaceId)
+        )
+        advanceUntilIdle()
+
+        assertEquals(listOf(defaultTestWorkspaceId), repository.prepareSessionRequests)
+        assertEquals(1, repository.loadBootstrapCalls)
+        assertEquals(AiConversationBootstrapState.FAILED, runtime.state.value.conversationBootstrapState)
+        assertEquals("session-1", runtime.state.value.persistedState.chatSessionId)
+    }
+
+    @Test
     fun bootstrapDoesNotRetryRemoteCallsWhenDraftLoadingFailsLocally() = runTest {
         val repository = FakeAiChatRepository()
         repository.persistedStates[defaultTestWorkspaceId] = makeDefaultAiChatPersistedState().copy(
@@ -506,6 +569,55 @@ class AiChatRuntimeBootstrapProvisioningTest {
             repository.prepareSessionRequests
         )
         assertEquals(listOf("session-1"), repository.loadBootstrapSessionIds)
+    }
+
+    @Test
+    fun disconnectedGuestAccessWarmUpRetriesTransientPrepareSessionFailure() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.prepareSessionErrors += SSLHandshakeException("connection closed")
+        val runtime = makeRuntimeWithCloudState(
+            scope = this,
+            repository = repository,
+            autoSyncEventRepository = FakeAutoSyncEventRepository(),
+            cloudState = CloudAccountState.DISCONNECTED
+        )
+
+        runtime.updateAccessContext(
+            makeAccessContext(workspaceId = defaultTestWorkspaceId).copy(
+                cloudState = CloudAccountState.DISCONNECTED
+            )
+        )
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(defaultTestWorkspaceId, defaultTestWorkspaceId),
+            repository.prepareSessionRequests
+        )
+        assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
+        assertNull(runtime.state.value.activeAlert)
+    }
+
+    @Test
+    fun disconnectedGuestAccessWarmUpFailureDoesNotShowAlert() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.prepareSessionErrors += MalformedURLException("bad guest auth URL")
+        val runtime = makeRuntimeWithCloudState(
+            scope = this,
+            repository = repository,
+            autoSyncEventRepository = FakeAutoSyncEventRepository(),
+            cloudState = CloudAccountState.DISCONNECTED
+        )
+
+        runtime.updateAccessContext(
+            makeAccessContext(workspaceId = defaultTestWorkspaceId).copy(
+                cloudState = CloudAccountState.DISCONNECTED
+            )
+        )
+        advanceUntilIdle()
+
+        assertEquals(listOf(defaultTestWorkspaceId), repository.prepareSessionRequests)
+        assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
+        assertNull(runtime.state.value.activeAlert)
     }
 
     @Test

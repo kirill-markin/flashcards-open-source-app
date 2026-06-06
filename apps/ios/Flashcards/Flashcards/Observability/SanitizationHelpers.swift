@@ -1,17 +1,7 @@
-import CryptoKit
 import Foundation
 import Sentry
 
 let filteredDiagnosticValue: String = "[Filtered]"
-
-func appSpecificObservabilityHash(_ value: String, namespace: String) -> String {
-    let hashInput: String = "\(appBundleIdentifier()):observability:\(namespace):\(value)"
-    let digest: SHA256.Digest = SHA256.hash(data: Data(hashInput.utf8))
-    return digest.map { byte in
-        String(format: "%02x", byte)
-    }
-    .joined()
-}
 
 func safeDiagnosticIdentifier(_ value: String) -> String {
     let trimmedValue: String = value.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -67,10 +57,7 @@ func sanitizeSentrySpan(_ span: any Span) -> (any Span)? {
 
 private func sanitizedSpanDataValue(_ value: Any, key: String) -> Any {
     let normalizedKey: String = normalizedDiagnosticKey(key)
-    if stableObservationIdentifierHashKey(key) != nil {
-        return hashedObservationIdentifierValue(value, key: key)
-    }
-    if isSensitiveKey(key) || normalizedKey.contains("query") || normalizedKey.contains("fragment") {
+    if isSensitiveKey(key) || isSensitiveURLComponentKey(key) {
         return filteredDiagnosticValue
     }
     if normalizedKey.contains("url"), let urlString = value as? String {
@@ -104,14 +91,10 @@ private func sanitizedBreadcrumbData(_ dictionary: [String: Any]?) -> [String: A
     var sanitized: [String: Any] = [:]
     for (key, value) in dictionary {
         let normalizedKey: String = normalizedDiagnosticKey(key)
-        if let hashKey: String = stableObservationIdentifierHashKey(key) {
-            sanitized[hashKey] = hashedObservationIdentifierValue(value, key: key)
-        } else if isSensitiveKey(key) {
+        if isSensitiveKey(key) || isSensitiveURLComponentKey(key) {
             sanitized[key] = "[Filtered]"
         } else if normalizedKey == "url", let urlString = value as? String {
             sanitized[key] = redactedURLString(urlString)
-        } else if normalizedKey == "httpquery" || normalizedKey == "httpfragment" {
-            sanitized[key] = "[Filtered]"
         } else {
             sanitized[key] = sanitizedValue(value)
         }
@@ -154,10 +137,11 @@ func sanitizedDictionary(_ dictionary: [String: Any]?) -> [String: Any]? {
 
     var sanitized: [String: Any] = [:]
     for (key, value) in dictionary {
-        if let hashKey: String = stableObservationIdentifierHashKey(key) {
-            sanitized[hashKey] = hashedObservationIdentifierValue(value, key: key)
-        } else if isSensitiveKey(key) {
+        let normalizedKey: String = normalizedDiagnosticKey(key)
+        if isSensitiveKey(key) || isSensitiveURLComponentKey(key) {
             sanitized[key] = "[Filtered]"
+        } else if normalizedKey == "url", let urlString = value as? String {
+            sanitized[key] = redactedURLString(urlString)
         } else {
             sanitized[key] = sanitizedValue(value)
         }
@@ -172,10 +156,11 @@ func sanitizedStringDictionary(_ dictionary: [String: String]?) -> [String: Stri
 
     var sanitized: [String: String] = [:]
     for (key, value) in dictionary {
-        if let hashKey: String = stableObservationIdentifierHashKey(key) {
-            sanitized[hashKey] = hashedObservationIdentifier(value, key: key)
-        } else if isSensitiveKey(key) {
+        let normalizedKey: String = normalizedDiagnosticKey(key)
+        if isSensitiveKey(key) || isSensitiveURLComponentKey(key) {
             sanitized[key] = "[Filtered]"
+        } else if normalizedKey == "url" {
+            sanitized[key] = redactedURLString(value)
         } else {
             sanitized[key] = redactedString(value)
         }
@@ -199,87 +184,8 @@ private func sanitizedValue(_ value: Any) -> Any {
     return value
 }
 
-private func stableObservationIdentifierHashKey(_ key: String) -> String? {
-    let normalizedKey: String = normalizedDiagnosticKey(key)
-    let passThroughIdentifierKeys: Set<String> = [
-        "requestid",
-        "clientrequestid",
-        "backendrequestid"
-    ]
-    guard passThroughIdentifierKeys.contains(normalizedKey) == false else {
-        return nil
-    }
-
-    if normalizedKey == "userid" ||
-        normalizedKey == "cardid" ||
-        normalizedKey == "entityid" ||
-        normalizedKey == "conversationscopeid" ||
-        normalizedKey == "eventconversationscopeid" ||
-        normalizedKey == "cursor" ||
-        normalizedKey == "aftercursor" ||
-        normalizedKey == "eventcursor" ||
-        normalizedKey == "livecursor" ||
-        normalizedKey == "oldestcursor" ||
-        normalizedKey == "streamepoch" ||
-        normalizedKey == "eventstreamepoch" ||
-        normalizedKey == "activestreamepoch" ||
-        normalizedKey == "installationid" ||
-        normalizedKey.hasSuffix("sessionid") ||
-        normalizedKey.hasSuffix("runid") ||
-        normalizedKey.hasSuffix("itemid") ||
-        normalizedKey.hasSuffix("messageid") ||
-        normalizedKey.hasSuffix("toolcallid") ||
-        normalizedKey.hasSuffix("workspaceid") {
-        return key.hasSuffix("_hash") ? key : "\(key)_hash"
-    }
-
-    return nil
-}
-
-private func hashedObservationIdentifierValue(_ value: Any, key: String) -> Any {
-    if let stringValue: String = value as? String {
-        return hashedObservationIdentifier(stringValue, key: key)
-    }
-    if let stringArray: [String] = value as? [String] {
-        return stringArray.map { item in
-            hashedObservationIdentifier(item, key: key)
-        }
-    }
-    return filteredDiagnosticValue
-}
-
-func hashedObservationIdentifierLogValue(_ value: String?, key: String) -> String {
-    guard let value, value.isEmpty == false else {
-        return "-"
-    }
-    return hashedObservationIdentifier(value, key: key)
-}
-
-func hashedObservationIdentifier(_ value: String, key: String) -> String {
-    guard value.isEmpty == false else {
-        return value
-    }
-    return appSpecificObservabilityHash(
-        value,
-        namespace: "observation_\(normalizedDiagnosticKey(key))"
-    )
-}
-
 func isSensitiveKey(_ key: String) -> Bool {
     let normalizedKey: String = normalizedDiagnosticKey(key)
-    let safeDiagnosticKeys: Set<String> = [
-        "codingpath",
-        "decodersummarylength",
-        "eventtype",
-        "hasdecodersummary",
-        "payloadbytes",
-        "payloadlength",
-        "rawsnippetlength"
-    ]
-    if safeDiagnosticKeys.contains(normalizedKey) {
-        return false
-    }
-
     let sensitiveFragments: [String] = [
         "authorization",
         "cookie",
@@ -288,28 +194,33 @@ func isSensitiveKey(_ key: String) -> Bool {
         "idtoken",
         "otpsessiontoken",
         "token",
-        "fronttext",
-        "backtext",
-        "prompt",
-        "rawoutput",
-        "rawsnippet",
-        "payloadsnippet",
-        "responsebody",
-        "requestbody",
-        "body",
-        "localizeddescription",
-        "debugdescription",
-        "decodersummary",
-        "underlyingerror",
-        "messagesummary",
-        "errorsummary",
-        "detailsummary",
-        "base64data",
+        "password",
+        "secret",
         "email"
     ]
     return sensitiveFragments.contains { fragment in
         normalizedKey.contains(fragment)
     }
+}
+
+private func isSensitiveURLComponentKey(_ key: String) -> Bool {
+    let normalizedKey: String = normalizedDiagnosticKey(key)
+    let sensitiveKeys: Set<String> = [
+        "query",
+        "querystring",
+        "httpquery",
+        "urlquery",
+        "fragment",
+        "httpfragment",
+        "urlfragment"
+    ]
+    if sensitiveKeys.contains(normalizedKey) {
+        return true
+    }
+
+    return normalizedKey.hasSuffix("query") ||
+        normalizedKey.hasSuffix("querystring") ||
+        normalizedKey.hasSuffix("fragment")
 }
 
 private func normalizedDiagnosticKey(_ key: String) -> String {
@@ -473,4 +384,12 @@ func stringifyContext(_ context: [String: Any]) -> [String: String] {
         fields[key] = String(describing: value)
     }
     return fields
+}
+
+func sanitizedObservationLogValue(_ value: String?) -> String {
+    guard let value, value.isEmpty == false else {
+        return "-"
+    }
+
+    return redactedString(value)
 }

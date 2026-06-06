@@ -320,8 +320,8 @@ internal class AiChatRuntime(
             || currentState.conversationBootstrapState != AiConversationBootstrapState.READY
             || currentState.dictationState != AiChatDictationState.IDLE
         ) {
-            context.observability.recordAiChatWarning(
-                warning = AiChatWarning.RuntimeHandoffRejectedNotReady(
+            context.observability.recordAiChatBreadcrumb(
+                breadcrumb = AiChatBreadcrumb.RuntimeHandoffDeferredNotReady(
                     workspaceId = currentState.workspaceId,
                     cardId = cardId,
                     conversationBootstrapState = currentState.conversationBootstrapState.name,

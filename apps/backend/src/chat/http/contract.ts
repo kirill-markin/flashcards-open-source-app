@@ -61,47 +61,47 @@ export type ChatContentPart =
   | ChatToolCallContentPart;
 
 export type ChatRequestBody = Readonly<{
-  // First-party clients at >1.5.0 no longer rely on omitting sessionId on
-  // /chat. Keep this optional only for temporary backward compatibility with
-  // older released clients, and remove the session-less path in a future
-  // legacy chat cleanup.
+  // First-party AI clients newer than 1.5.0 no longer rely on omitting
+  // sessionId on /chat. Keep this optional only for released clients at 1.5.0
+  // and older, and remove the session-less path in a future legacy chat cleanup.
   sessionId?: string;
   clientRequestId: string;
   content: ReadonlyArray<ChatContentPart>;
   timezone: string;
-  // Optional explicit routing during the workspaceId client migration. Older
-  // released clients still rely on the server-side selected-workspace
-  // fallback until every supported build sends workspaceId.
+  // Optional explicit routing during the workspaceId client migration.
+  // First-party AI clients newer than 1.5.0 send workspaceId; keep the
+  // selected-workspace fallback only for released clients at 1.5.0 and older.
   workspaceId?: string;
-  // Optional for backward compatibility with released clients that still send
-  // the pre-uiLocale request shape. Remove once the minimum supported client
-  // versions all send uiLocale.
+  // Optional for released clients at 1.5.0 and older that still send the
+  // pre-uiLocale request shape. Remove once the minimum supported first-party
+  // AI client version is greater than 1.5.0.
   uiLocale?: ChatComposerSuggestionsLocale;
 }>;
 
 export type NewChatRequestBody = Readonly<{
-  // First-party clients at >1.5.0 no longer rely on omitting sessionId on
-  // /chat/new. Keep this optional only for temporary backward compatibility
-  // with older released clients, and remove the session-less path in a future
-  // legacy chat cleanup.
+  // First-party AI clients newer than 1.5.0 no longer rely on omitting
+  // sessionId on /chat/new. Keep this optional only for released clients at
+  // 1.5.0 and older, and remove the session-less path in a future legacy chat
+  // cleanup.
   sessionId?: string;
-  // Optional explicit routing during the workspaceId client migration. Older
-  // released clients still rely on the server-side selected-workspace
-  // fallback until every supported build sends workspaceId.
+  // Optional explicit routing during the workspaceId client migration.
+  // First-party AI clients newer than 1.5.0 send workspaceId; keep the
+  // selected-workspace fallback only for released clients at 1.5.0 and older.
   workspaceId?: string;
-  // Optional for backward compatibility with released clients that still send
-  // the pre-uiLocale request shape. Remove once the minimum supported client
-  // versions all send uiLocale.
+  // Optional for released clients at 1.5.0 and older that still send the
+  // pre-uiLocale request shape. Remove once the minimum supported first-party
+  // AI client version is greater than 1.5.0.
   uiLocale?: ChatComposerSuggestionsLocale;
 }>;
 
 export type StopChatRequestBody = Readonly<{
   sessionId: string;
-  // TODO: Remove optional runId and make it required after most users have updated to the latest version. This is a legacy path.
+  // TODO: Make runId required once the minimum supported first-party AI client
+  // version is greater than 1.5.0. This optional path supports older releases.
   runId?: string;
-  // Optional explicit routing during the workspaceId client migration. Older
-  // released clients still rely on the server-side selected-workspace
-  // fallback until every supported build sends workspaceId.
+  // Optional explicit routing during the workspaceId client migration.
+  // First-party AI clients newer than 1.5.0 send workspaceId; keep the
+  // selected-workspace fallback only for released clients at 1.5.0 and older.
   workspaceId?: string;
 }>;
 
@@ -113,9 +113,10 @@ export type ChatPageQuery = Readonly<{
 const MAX_CHAT_PAGE_LIMIT = 50;
 
 const UNSUPPORTED_CHAT_REQUEST_FIELDS = [
-  // First-party clients at >1.5.0 no longer send these legacy request-shape
-  // fields. Keep rejecting them while the remaining compatibility branches are
-  // still present, then revisit this guard in the future legacy chat cleanup.
+  // First-party AI clients newer than 1.5.0 no longer send these legacy
+  // request-shape fields. Keep rejecting them while the remaining compatibility
+  // branches are still present, then revisit this guard in the future legacy
+  // chat cleanup.
   // Model selection fields and legacy vendor/thinking aliases stay rejected
   // because the server owns runtime model/provider/reasoning selection.
   "messages",
@@ -154,9 +155,10 @@ function expectString(value: unknown, fieldName: string): string {
 
 /**
  * `uiLocale` remains optional for backward compatibility while clients migrate
- * to the explicit request field. Older clients still omit it and intentionally
- * receive the English fallback path. Once every supported client sends
- * `uiLocale`, this parser branch can be simplified.
+ * to the explicit request field. Released clients at 1.5.0 and older still omit
+ * it and intentionally receive the English fallback path. This branch can be
+ * simplified once the minimum supported first-party AI client version is greater
+ * than 1.5.0.
  */
 function parseOptionalUiLocale(
   value: unknown,

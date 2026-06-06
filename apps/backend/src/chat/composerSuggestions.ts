@@ -332,12 +332,11 @@ function normalizeLocaleTag(value: string): string | null {
 }
 
 /**
- * `uiLocale` stays optional while older clients migrate to the explicit request
- * field. Missing locale therefore falls back to English on purpose, but an
- * invalid provided locale is rejected by the route parser instead of silently
- * changing languages. This path can be simplified after every supported client
- * sends `uiLocale` and the minimum supported client versions no longer depend
- * on the legacy English fallback.
+ * `uiLocale` stays optional while released clients at 1.5.0 and older migrate
+ * to the explicit request field. Missing locale therefore falls back to English
+ * on purpose, but an invalid provided locale is rejected by the route parser
+ * instead of silently changing languages. This path can be simplified once the
+ * minimum supported first-party AI client version is greater than 1.5.0.
  */
 export function normalizeChatComposerSuggestionsUiLocale(
   uiLocale: string | null | undefined,

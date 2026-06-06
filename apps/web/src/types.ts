@@ -354,12 +354,14 @@ export type ChatSessionSnapshot = Readonly<{
 
 export type StartChatRunRequestBody = Readonly<{
   sessionId: string;
-  // Optional on the wire so older backend/client contract phases keep working.
+  // Optional on the wire until the minimum supported backend and first-party AI
+  // client versions are greater than 1.5.0.
   workspaceId?: string;
   clientRequestId: string;
   content: ReadonlyArray<ContentPart>;
   timezone: string;
-  // Optional so newer clients can hint the active UI locale without breaking older contract phases.
+  // Optional on the wire until the minimum supported backend and first-party AI
+  // client versions are greater than 1.5.0.
   uiLocale?: Locale;
 }>;
 
@@ -370,9 +372,11 @@ export type StartChatRunResponse = ChatSessionSnapshot & Readonly<{
 
 export type NewChatSessionRequestBody = Readonly<{
   sessionId: string;
-  // Optional on the wire so older backend/client contract phases keep working.
+  // Optional on the wire until the minimum supported backend and first-party AI
+  // client versions are greater than 1.5.0.
   workspaceId?: string;
-  // Optional so newer clients can hint the active UI locale without breaking older contract phases.
+  // Optional on the wire until the minimum supported backend and first-party AI
+  // client versions are greater than 1.5.0.
   uiLocale?: Locale;
 }>;
 
@@ -391,9 +395,11 @@ export type StopChatRunResponse = Readonly<{
 
 export type StopChatRunRequestBody = Readonly<{
   sessionId: string;
-  // Optional on the wire so older backend/client contract phases keep working.
+  // Optional on the wire until the minimum supported backend and first-party AI
+  // client versions are greater than 1.5.0.
   workspaceId?: string;
-  // TODO: Remove optional runId and make it required after most users have updated to the latest version. This is a legacy path.
+  // TODO: Make runId required once the minimum supported first-party AI client
+  // version is greater than 1.5.0. This optional path supports older releases.
   runId?: string;
 }>;
 

@@ -83,21 +83,20 @@ internal fun sanitizeSentryQueryString(value: String?): String? {
 }
 
 internal fun isUnsafeSentryFieldName(fieldName: String): Boolean {
-    val normalizedName = fieldName.lowercase()
-    return normalizedName.contains("fronttext") ||
-        normalizedName.contains("backtext") ||
-        normalizedName.contains("prompt") ||
-        normalizedName.contains("responsebody") ||
-        normalizedName.contains("rawbody") ||
-        normalizedName.contains("body") ||
-        normalizedName.contains("attachment") ||
-        normalizedName.contains("token") ||
+    val normalizedName: String = normalizeSentryFieldName(fieldName = fieldName)
+    return normalizedName.contains("token") ||
         normalizedName.contains("authorization") ||
         normalizedName.contains("cookie") ||
         normalizedName.contains("email") ||
         normalizedName.contains("password") ||
         normalizedName.contains("secret") ||
-        normalizedName.contains("query")
+        normalizedName.contains("apikey") ||
+        normalizedName.contains("query") ||
+        normalizedName.contains("fragment")
+}
+
+private fun normalizeSentryFieldName(fieldName: String): String {
+    return fieldName.lowercase().filter { character: Char -> character.isLetterOrDigit() }
 }
 
 private fun sanitizeSentryString(
@@ -153,13 +152,13 @@ private fun topStackFrame(error: Throwable): String? {
 }
 
 private val rawBodyPattern: Regex = Regex(
-    pattern = """(?i)\b((?:response\s+body|raw\s+body|raw\s+response|payload)\s*[:=]\s*).*$"""
+    pattern = """(?i)\b((?:response\s+body|raw\s+body|raw\s+response)\s*[:=]\s*).*$"""
 )
 private val urlQueryPattern: Regex = Regex(
     pattern = """\b((?:https?|wss?)://[^\s?#]+)\?[^\s]+"""
 )
 private val queryParameterPattern: Regex = Regex(
-    pattern = """(?i)\b(sessionId|runId|workspaceId|userId|installationId|afterCursor|cursor|token|code|email|key|api[-_]?key)=([^&\s]+)"""
+    pattern = """(?i)\b(token|code|email|key|api[-_]?key|password|secret)=([^&\s]+)"""
 )
 private val authHeaderPattern: Regex = Regex(
     pattern = """(?i)\b(authorization|x-api-key|api[-_]?key|token|secret|password)\b\s*[:=]\s*[^,\s]+"""

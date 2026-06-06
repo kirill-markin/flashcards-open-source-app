@@ -88,6 +88,13 @@ internal sealed interface AiChatBreadcrumb {
         val messageCount: Int
     ) : AiChatBreadcrumb
 
+    data class RuntimeHandoffDeferredNotReady(
+        val workspaceId: String?,
+        val cardId: String,
+        val conversationBootstrapState: String,
+        val dictationState: String
+    ) : AiChatBreadcrumb
+
     data class RuntimeHandoffAppliedToRunningDraft(
         val workspaceId: String?,
         val cardId: String,
@@ -151,13 +158,6 @@ internal sealed interface AiChatWarning {
         val cloudState: String,
         val remoteError: AiChatRemoteErrorDetails?,
         val message: String?
-    ) : AiChatWarning
-
-    data class RuntimeHandoffRejectedNotReady(
-        val workspaceId: String?,
-        val cardId: String,
-        val conversationBootstrapState: String,
-        val dictationState: String
     ) : AiChatWarning
 
     data class RuntimeHandoffRejectedLockedPhase(
@@ -526,6 +526,13 @@ private fun AiChatBreadcrumb.toAndroidEvent(): AndroidBreadcrumbEvent.AiRuntimeB
             pendingAttachmentCount = pendingAttachmentCount,
             draftLength = draftLength
         )
+        is AiChatBreadcrumb.RuntimeHandoffDeferredNotReady -> aiBreadcrumb(
+            name = AndroidAiObservationName.RUNTIME_HANDOFF_REJECTED_NOT_READY,
+            workspaceId = workspaceId,
+            cardId = cardId,
+            bootstrapState = conversationBootstrapState,
+            dictationState = dictationState
+        )
         is AiChatBreadcrumb.RuntimeHandoffAppliedToRunningDraft -> aiBreadcrumb(
             name = AndroidAiObservationName.RUNTIME_HANDOFF_APPLIED_TO_RUNNING_DRAFT,
             workspaceId = workspaceId,
@@ -604,13 +611,6 @@ private fun AiChatWarning.toAndroidEvent(): AndroidWarningIssueEvent {
             bootstrapState = null,
             remoteError = remoteError,
             message = message
-        )
-        is AiChatWarning.RuntimeHandoffRejectedNotReady -> aiWarning(
-            name = AndroidAiObservationName.RUNTIME_HANDOFF_REJECTED_NOT_READY,
-            workspaceId = workspaceId,
-            cardId = cardId,
-            bootstrapState = conversationBootstrapState,
-            dictationState = dictationState
         )
         is AiChatWarning.RuntimeHandoffRejectedLockedPhase -> aiWarning(
             name = AndroidAiObservationName.RUNTIME_HANDOFF_REJECTED_LOCKED_PHASE,

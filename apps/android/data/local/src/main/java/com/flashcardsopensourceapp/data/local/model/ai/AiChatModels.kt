@@ -296,7 +296,8 @@ data class AiChatNewSessionRequest(
 data class AiChatStopRunRequest(
     val sessionId: String,
     val workspaceId: String?,
-    // TODO: Remove optional runId and make it required after most users have updated to the latest version. This is a legacy path.
+    // TODO: Make runId required once the minimum supported first-party AI client
+    // version is greater than 1.5.0. This optional path supports older releases.
     val runId: String?,
 )
 

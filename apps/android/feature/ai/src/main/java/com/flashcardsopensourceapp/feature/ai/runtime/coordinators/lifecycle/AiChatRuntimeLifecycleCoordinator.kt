@@ -13,7 +13,8 @@ import com.flashcardsopensourceapp.feature.ai.runtime.conversation.resolveAiChat
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.runtimeKey
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.shouldBootstrapConversation
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.shouldPrepareGuestAccess
-import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiErrorSurface
+import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.bootstrap.nextBootstrapRetryDelayMillis
+import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.bootstrap.shouldRetryBootstrap
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatBreadcrumb
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatExceptionEvent
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatFailureIssueDisposition
@@ -21,14 +22,13 @@ import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatWarnin
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.aiChatFailureIssueDisposition
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.aiChatFailureWarningMessage
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.aiChatRemoteErrorDetails
-import com.flashcardsopensourceapp.feature.ai.runtime.observability.makeAiUserFacingErrorMessage
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChatBreadcrumb
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChatException
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChatWarning
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 internal class AiChatRuntimeLifecycleCoordinator(
@@ -186,7 +186,7 @@ internal class AiChatRuntimeLifecycleCoordinator(
                         hasConsent = context.hasConsent()
                     )
                 ) {
-                    context.aiChatRepository.prepareSessionForAi(workspaceId = accessContext.workspaceId)
+                    prepareGuestAccessWithRetry(accessContext = accessContext)
                 } else if (shouldBootstrapConversation(
                         accessContext = accessContext,
                         hasConsent = context.hasConsent()
@@ -231,18 +231,6 @@ internal class AiChatRuntimeLifecycleCoordinator(
                         )
                     }
                 }
-                val message = makeAiUserFacingErrorMessage(
-                    error = error,
-                    surface = AiErrorSurface.CHAT,
-                    configuration = context.currentServerConfiguration(),
-                    textProvider = context.textProvider
-                )
-                context.runtimeStateMutable.update { state ->
-                    state.copy(
-                        activeAlert = context.textProvider.generalError(message = message),
-                        errorMessage = ""
-                    )
-                }
             } finally {
                 val shouldRetryWarmUp = shouldRetryWarmUpAfterWorkspaceSwitch()
                 if (context.activeWarmUpJob === warmUpJob) {
@@ -285,6 +273,24 @@ internal class AiChatRuntimeLifecycleCoordinator(
             return
         }
         warmUpLinkedSessionIfNeeded(resumeDiagnostics = null)
+    }
+
+    private suspend fun prepareGuestAccessWithRetry(accessContext: AiAccessContext) {
+        var retryCount: Int = 0
+        while (true) {
+            try {
+                context.aiChatRepository.prepareSessionForAi(workspaceId = accessContext.workspaceId)
+                return
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                if (shouldRetryBootstrap(error = error, retryCount = retryCount).not()) {
+                    throw error
+                }
+                delay(timeMillis = nextBootstrapRetryDelayMillis(retryCount = retryCount))
+                retryCount += 1
+            }
+        }
     }
 
     private fun shouldRetryWarmUpAfterWorkspaceSwitch(): Boolean {

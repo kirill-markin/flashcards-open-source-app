@@ -173,8 +173,9 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
         body.content,
         body.clientRequestId,
         body.timezone,
-        // Older clients still omit uiLocale, so keep the null fallback until
-        // every supported app version has migrated to the explicit field.
+        // Released clients at 1.5.0 and older still omit uiLocale, so keep the
+        // null fallback until the minimum supported first-party AI client
+        // version is greater than 1.5.0.
         body.uiLocale ?? null,
       ));
     } catch (error) {
@@ -229,12 +230,12 @@ export function createPostChatNewHandler(dependencies: ChatRouteDependencies): H
     const workspaceId = await dependencies.resolveAccessibleChatWorkspaceIdFn(requestContext, body.workspaceId);
 
     // Preferred modern flow: clients send an explicit client-generated
-    // sessionId. First-party clients at >1.5.0 already follow that flow.
+    // sessionId. First-party AI clients newer than 1.5.0 already follow that flow.
     // When an explicit id is present, this route is idempotent: create exactly
     // that session if it does not exist yet, otherwise return the existing
     // session unchanged. The omitted-sessionId path below stays temporarily
-    // for backward compatibility with older clients and should be removed in a
-    // future legacy chat cleanup.
+    // for released clients at 1.5.0 and older and should be removed in a future
+    // legacy chat cleanup.
     if (body.sessionId !== undefined) {
       let existingSessionId: string | null;
       try {
@@ -349,9 +350,10 @@ export function createPostChatStopHandler(dependencies: ChatRouteDependencies): 
 
     return context.json({
       sessionId: stopState.sessionId,
-      // First-party clients at >1.5.0 no longer depend on these duplicate
-      // legacy stop-response fields. Keep returning them temporarily for older
-      // released clients and remove them in a future legacy chat cleanup.
+      // First-party AI clients newer than 1.5.0 no longer depend on these
+      // duplicate legacy stop-response fields. Keep returning them temporarily
+      // for released clients at 1.5.0 and older and remove them in a future
+      // legacy chat cleanup.
       conversationScopeId: stopState.sessionId,
       runId: stopState.runId,
       stopped: stopState.stopped,
