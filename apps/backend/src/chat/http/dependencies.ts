@@ -87,8 +87,9 @@ export function createChatRouteDependencies(options: ChatRoutesOptions): ChatRou
 
         // Route tests often stub request context directly and do not exercise
         // the real workspace access path, so keep a minimal local fallback.
-        // Legacy fallback for released AI clients that still omit workspaceId.
-        // TODO: Remove this fallback once every supported AI client sends workspaceId.
+        // Legacy fallback for released AI clients at 1.5.0 and older that still
+        // omit workspaceId. TODO: Remove once the minimum supported first-party
+        // AI client version is greater than 1.5.0.
         if (requestContext.selectedWorkspaceId === null) {
           throw new HttpError(
             409,

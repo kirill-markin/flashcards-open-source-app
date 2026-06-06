@@ -686,7 +686,7 @@ class AiChatRemoteService private constructor(
         payload: JSONObject,
         uiLocale: String?
     ): JSONObject {
-        // Keep uiLocale optional so older backend deployments still accept requests during rollout.
+        // Keep uiLocale optional until the minimum supported backend version is greater than 1.5.0.
         uiLocale?.takeIf { value -> value.isNotBlank() }?.let { locale ->
             payload.put("uiLocale", locale)
         }
