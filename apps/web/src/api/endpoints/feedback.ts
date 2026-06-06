@@ -2,18 +2,18 @@ import {
   parseFeedbackPromptEventResponse,
   parseFeedbackStateEnvelopeResponse,
   parseFeedbackSubmissionResponse,
-} from "../apiContracts/feedback";
+} from "../../apiContracts/feedback";
 import type {
   FeedbackPromptEventRequest,
   FeedbackState,
   FeedbackSubmissionRequest,
-} from "../types";
-import { parseContractResponse } from "./response";
+} from "../../types";
+import { parseContractResponse } from "../transport/response";
 import {
   allowAuthRecovery,
   allowAuthRecoveryWithTransientNetworkRetry,
   requestJson,
-} from "./transport";
+} from "../transport/transport";
 
 export async function loadFeedbackState(): Promise<FeedbackState> {
   return parseContractResponse(

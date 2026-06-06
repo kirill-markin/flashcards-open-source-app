@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { isBrowserReauthRequired } from "../accountDeletion";
-import { ApiContractError } from "../apiContracts/core";
-import { persistLocalePreference } from "../i18n/runtime";
-import type { NewChatSessionResponse } from "../types";
+import { isBrowserReauthRequired } from "../../accountDeletion";
+import { ApiContractError } from "../../apiContracts/core";
+import { persistLocalePreference } from "../../i18n/runtime";
+import type { NewChatSessionResponse } from "../../types";
 import {
   createChatSnapshotResponse,
   createJsonResponse,
@@ -17,15 +17,15 @@ import {
   mockBlockedDeleteDatabase,
   seedLocalBrowserState,
   setNavigatorLanguages,
-} from "./ApiTestSupport";
+} from "../ApiTestSupport";
 import {
   createNewChatSession,
   getChatSnapshot,
   startChatRun,
   stopChatRun,
-} from "./chat";
+} from "../endpoints/chat";
 import { ApiError, ApiNetworkError, AuthRedirectError } from "./errors";
-import { pullSyncChanges } from "./sync";
+import { pullSyncChanges } from "../endpoints/sync";
 import {
   allowAuthRecovery,
   getSession,
@@ -34,7 +34,7 @@ import {
   resetApiClientStateForTests,
   setNavigationHandlerForTests,
 } from "./transport";
-import { listWorkspaces } from "./workspaces";
+import { listWorkspaces } from "../endpoints/workspaces";
 
 async function createTransportBackedChatSession(sessionId: string): Promise<NewChatSessionResponse> {
   return createNewChatSession(sessionId, "workspace-1", "en");

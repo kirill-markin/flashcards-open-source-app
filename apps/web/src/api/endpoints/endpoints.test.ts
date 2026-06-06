@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ProgressReviewSchedule } from "../types";
-import { persistLocalePreference } from "../i18n/runtime";
+import type { ProgressReviewSchedule } from "../../types";
+import { persistLocalePreference } from "../../i18n/runtime";
 import {
   createChatSnapshotResponse,
   createJsonResponse,
@@ -16,8 +16,8 @@ import {
   replaceProgressReviewScheduleBucketCount,
   setNavigatorLanguages,
   swapFirstProgressReviewScheduleBuckets,
-} from "./ApiTestSupport";
-import { buildLoginUrl, getPreferredAuthUiLocale } from "./authUrls";
+} from "../ApiTestSupport";
+import { buildLoginUrl, getPreferredAuthUiLocale } from "../authUrls";
 import {
   createNewChatSession,
   getChatSnapshot,
@@ -35,7 +35,7 @@ import {
   loadProgressSeries,
   loadProgressSummary,
 } from "./progress";
-import { primeSessionCsrfToken, resetApiClientStateForTests } from "./transport";
+import { primeSessionCsrfToken, resetApiClientStateForTests } from "../transport/transport";
 
 const observabilityMocks = vi.hoisted(() => ({
   addWebBreadcrumbMock: vi.fn(),
@@ -44,7 +44,7 @@ const observabilityMocks = vi.hoisted(() => ({
   setWebObservabilityUserMock: vi.fn(),
 }));
 
-vi.mock("../observability/webObservability", () => ({
+vi.mock("../../observability/webObservability", () => ({
   addWebBreadcrumb: observabilityMocks.addWebBreadcrumbMock,
   captureWebException: observabilityMocks.captureWebExceptionMock,
   captureWebWarning: observabilityMocks.captureWebWarningMock,

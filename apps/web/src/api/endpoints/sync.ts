@@ -5,7 +5,7 @@ import {
   parseSyncPushResultResponse,
   parseSyncReviewHistoryImportResultResponse,
   parseSyncReviewHistoryPullResultResponse,
-} from "../apiContracts/sync";
+} from "../../apiContracts/sync";
 import type {
   ReviewEvent,
   SyncBootstrapEntry,
@@ -16,13 +16,13 @@ import type {
   SyncPushResult,
   SyncReviewHistoryImportResult,
   SyncReviewHistoryPullResult,
-} from "../types";
-import { parseContractResponse } from "./response";
+} from "../../types";
+import { parseContractResponse } from "../transport/response";
 import {
   allowAuthRecovery,
   allowAuthRecoveryWithTransientNetworkRetry,
   requestJson,
-} from "./transport";
+} from "../transport/transport";
 
 export async function pushSyncOperations(
   workspaceId: string,
