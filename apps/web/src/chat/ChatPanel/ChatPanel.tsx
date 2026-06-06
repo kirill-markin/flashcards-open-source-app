@@ -45,6 +45,7 @@ export function ChatPanel(props: Props): ReactElement {
     clearDraftForSession,
     composerSendPhase: sendPhase,
     replaceComposerSendPhase: setSendPhase,
+    suppressNextSessionDraftCarryover,
   } = useChatDraft();
   const { setIsOpen, chatWidth, setChatWidth } = useChatLayout();
   const draftInputText = draft.inputText;
@@ -252,6 +253,7 @@ export function ChatPanel(props: Props): ReactElement {
             type="button"
             className="chat-close-btn"
             onClick={() => {
+              suppressNextSessionDraftCarryover(currentSessionId);
               startNewConversationComposerReset(currentSessionId);
               discardDictation();
               void clearConversation()
@@ -324,6 +326,8 @@ export function ChatPanel(props: Props): ReactElement {
         data-composer-action={composerAction}
         data-chat-run-state={runState}
         data-send-phase={sendPhase}
+        data-chat-session-id={currentSessionId ?? ""}
+        data-history-loaded={isHistoryLoaded ? "true" : "false"}
         data-assistant-run-active={isAssistantRunActive ? "true" : "false"}
         data-stopping={isStopping ? "true" : "false"}
         data-draft-state={hasDraftContent ? "filled" : "empty"}

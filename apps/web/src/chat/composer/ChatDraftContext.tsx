@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type MutableRefObject, type ReactElement, type ReactNode } from "react";
 import { useAppData } from "../../appData";
 import type { PendingAttachment } from "../attachments/FileAttachment";
 import {
@@ -35,6 +35,7 @@ type ChatDraftContextValue = Readonly<{
   replaceDraftForSession: (sessionId: string | null, nextDraft: ChatDraftContent) => void;
   replaceComposerSendPhase: (nextSendPhase: ChatComposerSendPhase) => void;
   requestComposerFocus: () => void;
+  suppressNextSessionDraftCarryover: (sourceSessionId: string | null) => void;
   clearDraft: () => void;
   clearDraftForSession: (sessionId: string | null) => void;
 }>;
@@ -46,6 +47,11 @@ type Props = Readonly<{
 type TransientChatDraft = Readonly<{
   workspaceId: string | null;
   draft: ChatDraftContent;
+}>;
+
+type DraftTarget = Readonly<{
+  workspaceId: string | null;
+  sessionId: string | null;
 }>;
 
 const ChatDraftContext = createContext<ChatDraftContextValue | null>(null);
@@ -72,6 +78,11 @@ export function ChatDraftProvider(props: Props): ReactElement {
   const [transientDraft, setTransientDraft] = useState<TransientChatDraft | null>(null);
   const [composerSendPhase, setComposerSendPhase] = useState<ChatComposerSendPhase>("idle");
   const [focusComposerRequestVersion, setFocusComposerRequestVersion] = useState<number>(0);
+  const previousDraftTargetRef = useRef<DraftTarget>({
+    workspaceId: activeWorkspaceId,
+    sessionId: activeSessionId,
+  });
+  const suppressedDraftCarryoverRef = useRef<DraftTarget | null>(null);
 
   useEffect(() => {
     const nextDraftsBySessionId = loadChatDraftWorkspaceState(activeWorkspaceId);
@@ -117,6 +128,41 @@ export function ChatDraftProvider(props: Props): ReactElement {
     setTransientDraft(null);
   }, [activeSessionId, activeWorkspaceId, transientDraft]);
 
+  useEffect(() => {
+    const previousDraftTarget = previousDraftTargetRef.current;
+
+    if (previousDraftTarget.workspaceId !== activeWorkspaceId) {
+      previousDraftTargetRef.current = {
+        workspaceId: activeWorkspaceId,
+        sessionId: activeSessionId,
+      };
+      suppressedDraftCarryoverRef.current = null;
+      return;
+    }
+
+    if (previousDraftTarget.sessionId === activeSessionId) {
+      return;
+    }
+
+    const shouldSuppressCarryover = consumeSuppressedDraftCarryover(
+      suppressedDraftCarryoverRef,
+      previousDraftTarget,
+    );
+
+    if (
+      shouldSuppressCarryover === false
+      && activeWorkspaceId !== null
+      && activeSessionId !== null
+    ) {
+      carryDraftToSession(previousDraftTarget.sessionId, activeSessionId);
+    }
+
+    previousDraftTargetRef.current = {
+      workspaceId: activeWorkspaceId,
+      sessionId: activeSessionId,
+    };
+  }, [activeSessionId, activeWorkspaceId, transientDraft]);
+
   const draft = getActiveDraft(activeWorkspaceId, activeSessionId, draftsBySessionId, transientDraft);
 
   function replaceDraftForSession(sessionId: string | null, nextDraft: ChatDraftContent): void {
@@ -139,6 +185,47 @@ export function ChatDraftProvider(props: Props): ReactElement {
     draftsBySessionIdRef.current = nextDraftsBySessionId;
     storeChatDraftWorkspaceState(activeWorkspaceId, nextDraftsBySessionId);
     setDraftsBySessionId(nextDraftsBySessionId);
+  }
+
+  function carryDraftToSession(
+    sourceSessionId: string | null,
+    targetSessionId: string,
+  ): void {
+    const currentDraftsBySessionId = draftsBySessionIdRef.current;
+    const targetDraft = readStoredChatDraftForSession(currentDraftsBySessionId, targetSessionId);
+    if (targetDraft !== null) {
+      return;
+    }
+
+    const carriedDraft = readDraftContentForCarryover(
+      currentDraftsBySessionId,
+      sourceSessionId,
+      activeWorkspaceId,
+      transientDraft,
+    );
+    if (carriedDraft === null) {
+      return;
+    }
+
+    const targetDraftsBySessionId = replaceChatDraftForSession(
+      currentDraftsBySessionId,
+      targetSessionId,
+      carriedDraft,
+    );
+    const nextDraftsBySessionId = sourceSessionId === null
+      ? targetDraftsBySessionId
+      : replaceChatDraftForSession(
+        targetDraftsBySessionId,
+        sourceSessionId,
+        createChatDraftContent("", []),
+      );
+
+    draftsBySessionIdRef.current = nextDraftsBySessionId;
+    storeChatDraftWorkspaceState(activeWorkspaceId, nextDraftsBySessionId);
+    setDraftsBySessionId(nextDraftsBySessionId);
+    if (sourceSessionId === null) {
+      setTransientDraft(null);
+    }
   }
 
   function moveDraftToSession(
@@ -210,6 +297,13 @@ export function ChatDraftProvider(props: Props): ReactElement {
     setFocusComposerRequestVersion((currentVersion) => currentVersion + 1);
   }
 
+  function suppressNextSessionDraftCarryover(sourceSessionId: string | null): void {
+    suppressedDraftCarryoverRef.current = {
+      workspaceId: activeWorkspaceId,
+      sessionId: sourceSessionId,
+    };
+  }
+
   return (
     <ChatDraftContext.Provider
       value={{
@@ -223,6 +317,7 @@ export function ChatDraftProvider(props: Props): ReactElement {
         replaceDraftForSession,
         replaceComposerSendPhase,
         requestComposerFocus,
+        suppressNextSessionDraftCarryover,
         clearDraft,
         clearDraftForSession,
       }}
@@ -268,6 +363,48 @@ function getActiveDraft(
 
 function isChatDraftContentEmpty(draft: ChatDraftContent): boolean {
   return draft.inputText.trim() === "" && draft.pendingAttachments.length === 0;
+}
+
+function consumeSuppressedDraftCarryover(
+  suppressedDraftCarryoverRef: MutableRefObject<DraftTarget | null>,
+  previousDraftTarget: DraftTarget,
+): boolean {
+  const suppressedDraftCarryover = suppressedDraftCarryoverRef.current;
+  if (suppressedDraftCarryover === null) {
+    return false;
+  }
+
+  suppressedDraftCarryoverRef.current = null;
+  return suppressedDraftCarryover.workspaceId === previousDraftTarget.workspaceId
+    && suppressedDraftCarryover.sessionId === previousDraftTarget.sessionId;
+}
+
+function readDraftContentForCarryover(
+  draftsBySessionId: Readonly<Record<string, StoredChatDraft>>,
+  sourceSessionId: string | null,
+  workspaceId: string | null,
+  transientDraft: TransientChatDraft | null,
+): ChatDraftContent | null {
+  const carriedDraft = sourceSessionId === null
+    ? readTransientDraftContentForCarryover(workspaceId, transientDraft)
+    : readStoredChatDraftForSession(draftsBySessionId, sourceSessionId);
+
+  if (carriedDraft === null || isChatDraftContentEmpty(carriedDraft)) {
+    return null;
+  }
+
+  return createChatDraftContent(carriedDraft.inputText, carriedDraft.pendingAttachments);
+}
+
+function readTransientDraftContentForCarryover(
+  workspaceId: string | null,
+  transientDraft: TransientChatDraft | null,
+): ChatDraftContent | null {
+  if (transientDraft === null || transientDraft.workspaceId !== workspaceId) {
+    return null;
+  }
+
+  return transientDraft.draft;
 }
 
 export function useChatDraft(): ChatDraftContextValue {

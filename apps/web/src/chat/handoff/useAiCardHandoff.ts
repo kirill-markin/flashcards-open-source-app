@@ -55,6 +55,7 @@ export function useAiCardHandoff(): (card: Card) => Promise<boolean> {
 
     try {
       if (sourceSessionId === null || isDirtyConversation) {
+        draftContext.suppressNextSessionDraftCarryover(sourceSessionId);
         const clearedSessionId = await session.clearConversation();
         if (clearedSessionId !== null) {
           targetSessionId = clearedSessionId;
