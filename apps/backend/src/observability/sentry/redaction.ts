@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import * as Sentry from "@sentry/aws-serverless";
 import {
   sanitizeBackendTelemetryValue,
@@ -30,65 +29,74 @@ export const backendActionTagName = "backend.action";
 export const manualBackendCaptureTagValue = "true";
 
 const redactedExceptionTextValue = "<redacted-content>";
+const redactedSentrySecretValue = "<redacted-secret>";
 const exceptionTextFieldNames: ReadonlySet<string> = new Set([
   "errormessage",
   "errorstack",
   "errorvalue",
   "exceptionmessage",
   "exceptionvalue",
+  "contextline",
   "message",
   "providererrormessage",
   "rawstack",
   "stack",
   "value",
 ]);
+const exceptionPayloadFieldNames: ReadonlySet<string> = new Set([
+  "vars",
+]);
 const cloudWatchActionableExceptionTextFieldNames: ReadonlySet<string> = new Set([
   "errormessage",
   "errorstack",
 ]);
-const sentryIdentifierHashInputPrefix = "flashcards-open-source-app:backend:sentry";
-const sentryIdentifierPassThroughKeyNames: ReadonlySet<string> = new Set([
-  "backendrequestid",
-  "hasworkspaceid",
-  "lambdarequestid",
-  "providerrequestid",
-  "requestid",
-  "routerequestid",
-  "upstreamrequestid",
-]);
-const sentryClientCorrelationIdentifierKeyNames: ReadonlySet<string> = new Set([
-  "chatrequestid",
-  "clientrequestid",
-]);
-const sentryClientCorrelationIdentifierPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const sentryStableIdentifierKeyNames: ReadonlySet<string> = new Set([
-  "cardid",
-  "conversationscopeid",
-  "entityid",
-  "eventconversationscopeid",
-  "installationid",
-  "operationid",
-  "replicaid",
-  "revieweventid",
-  "userid",
-]);
-const sentryStableIdentifierKeySuffixes: ReadonlyArray<string> = [
-  "cardid",
-  "connectionid",
-  "entityid",
-  "itemid",
-  "messageid",
-  "operationid",
-  "replicaid",
-  "runid",
-  "sessionid",
-  "toolcallid",
-  "userid",
-  "workspaceid",
+const sentrySecretKeyFragments: ReadonlyArray<string> = [
+  "authorization",
+  "cookie",
+  "csrf",
+  "otp",
+  "password",
+  "secret",
+  "token",
+  "apikey",
 ];
-const sentryStableIdentifierKeyFragments: ReadonlyArray<string> = [
-  "userid",
-  "workspaceid",
+const sentryOperationalTokenMetricKeyNames: ReadonlySet<string> = new Set([
+  "completiontokens",
+  "inputtokens",
+  "outputtokens",
+  "prompttokens",
+  "tokencount",
+  "totaltokens",
+]);
+const sentryQueryLikeKeyNames: ReadonlySet<string> = new Set([
+  "fragment",
+  "httpquery",
+  "query",
+  "querystring",
+  "requestquerystring",
+  "search",
+  "searchparams",
+  "urlquery",
+  "urlsearchparams",
+]);
+const sentryAbsoluteUrlWithQueryOrFragmentPattern = /\b([A-Za-z][A-Za-z0-9+.-]*:\/\/[^\s"'<>?#)]+)(?:\?[^\s"'<>#)]*)?(?:#[^\s"'<>)]*)?/g;
+const sentryRelativeUrlWithQueryOrFragmentPattern = /(^|[\s("'])(\/[^\s"'<>?#)]+)(?:\?[^\s"'<>#)]*)?(?:#[^\s"'<>)]*)?/g;
+const sentryTextMaskPatterns: ReadonlyArray<Readonly<{
+  pattern: RegExp;
+  replacement: string;
+}>> = [
+  {
+    pattern: /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,
+    replacement: "<masked-email>",
+  },
+  {
+    pattern: /\b(?:sk|pk|rk)[_-][A-Za-z0-9_-]{16,}\b/g,
+    replacement: "<masked-api-key>",
+  },
+  {
+    pattern: /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g,
+    replacement: "<masked-jwt>",
+  },
 ];
 const nonSqlStateDatabaseErrorCodes: ReadonlySet<string> = new Set([
   "ECONNRESET",
@@ -163,68 +171,33 @@ function normalizeTelemetryKey(key: string): string {
   return key.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
-function shouldHashSentryClientCorrelationIdentifierValue(value: unknown): boolean {
-  if (value === null || value === undefined || value === "") {
-    return false;
-  }
-
-  return typeof value !== "string" || sentryClientCorrelationIdentifierPattern.test(value) === false;
-}
-
-function shouldHashSentryIdentifierKey(key: string, value: unknown): boolean {
+function shouldRedactSentrySecretKey(key: string): boolean {
   const normalizedKey = normalizeTelemetryKey(key);
-  if (normalizedKey.endsWith("hash")) {
+  return sentrySecretKeyFragments.some((fragment) => normalizedKey.includes(fragment));
+}
+
+function isSentryOperationalTokenMetricKey(key: string): boolean {
+  return sentryOperationalTokenMetricKeyNames.has(normalizeTelemetryKey(key));
+}
+
+function shouldRedactSentrySecretEntry(key: string, value: unknown): boolean {
+  if (typeof value === "boolean") {
     return false;
   }
 
-  if (sentryClientCorrelationIdentifierKeyNames.has(normalizedKey)) {
-    return shouldHashSentryClientCorrelationIdentifierValue(value);
-  }
-
-  if (sentryIdentifierPassThroughKeyNames.has(normalizedKey)) {
+  if (typeof value === "number" && isSentryOperationalTokenMetricKey(key)) {
     return false;
   }
 
-  return sentryStableIdentifierKeyNames.has(normalizedKey)
-    || sentryStableIdentifierKeySuffixes.some((suffix) => normalizedKey.endsWith(suffix))
-    || sentryStableIdentifierKeyFragments.some((fragment) => normalizedKey.includes(fragment));
+  return shouldRedactSentrySecretKey(key);
 }
 
-function createSentryIdentifierHashKey(key: string): string {
-  if (key.endsWith("_hash") || key.endsWith("Hash")) {
-    return key;
-  }
-
-  return key.includes("_") ? `${key}_hash` : `${key}Hash`;
+function shouldRedactSentryQueryLikeKey(key: string): boolean {
+  return sentryQueryLikeKeyNames.has(normalizeTelemetryKey(key));
 }
 
-export function hashSentryIdentifier(key: string, value: string): string {
-  if (value === "") {
-    return value;
-  }
-
-  return createHash("sha256")
-    .update(`${sentryIdentifierHashInputPrefix}:${normalizeTelemetryKey(key)}:${value}`)
-    .digest("hex");
-}
-
-export function sanitizeBackendSentryIdentifierValue(
-  key: string,
-  value: unknown,
-): SanitizedTelemetryValue {
-  if (typeof value === "string") {
-    return hashSentryIdentifier(key, value);
-  }
-
-  if (Array.isArray(value)) {
-    return value.map((item) => sanitizeBackendSentryIdentifierValue(key, item));
-  }
-
-  if (typeof value === "number" || typeof value === "boolean" || value === null) {
-    return value;
-  }
-
-  return undefined;
+function shouldRedactSentryStructuredEmailKey(key: string): boolean {
+  return normalizeTelemetryKey(key).endsWith("email");
 }
 
 function sanitizeBackendSentryTelemetryObject(
@@ -239,23 +212,66 @@ function sanitizeBackendSentryTelemetryEntry(
   key: string,
   value: unknown,
 ): readonly [string, SanitizedTelemetryValue] {
-  if (shouldHashSentryIdentifierKey(key, value)) {
-    return [
-      createSentryIdentifierHashKey(key),
-      sanitizeBackendSentryIdentifierValue(key, value),
-    ];
+  if (shouldRedactSentrySecretEntry(key, value)) {
+    return [key, redactedSentrySecretValue];
   }
 
-  const sanitizedObject = sanitizeBackendTelemetryValue({ [key]: value });
-  if (typeof sanitizedObject !== "object" || sanitizedObject === null || Array.isArray(sanitizedObject)) {
-    throw new Error("Expected sanitized Sentry telemetry entry to remain an object");
+  if (shouldRedactSentryQueryLikeKey(key) || shouldRedactSentryStructuredEmailKey(key)) {
+    return [key, redactedExceptionTextValue];
   }
 
-  const sanitizedValue = (sanitizedObject as Readonly<Record<string, SanitizedTelemetryValue>>)[key];
   return [
     key,
-    sanitizeBackendSentryTelemetryValue(sanitizedValue),
+    sanitizeBackendSentryTelemetryValue(value),
   ];
+}
+
+function stripSentryUrlQueryAndFragment(value: string): string {
+  return value
+    .replace(sentryAbsoluteUrlWithQueryOrFragmentPattern, "$1")
+    .replace(
+      sentryRelativeUrlWithQueryOrFragmentPattern,
+      (_match: string, prefix: string, path: string): string => `${prefix}${path}`,
+    );
+}
+
+function isSentrySerializedJsonContainerString(value: string): boolean {
+  const trimmedValue = value.trim();
+  return (trimmedValue.startsWith("{") && trimmedValue.endsWith("}"))
+    || (trimmedValue.startsWith("[") && trimmedValue.endsWith("]"));
+}
+
+function sanitizeSentrySerializedJsonContainerString(value: string): string | null {
+  if (isSentrySerializedJsonContainerString(value) === false) {
+    return null;
+  }
+
+  try {
+    const parsedValue: unknown = JSON.parse(value);
+    if (typeof parsedValue !== "object" || parsedValue === null) {
+      return null;
+    }
+
+    return JSON.stringify(sanitizeBackendSentryTelemetryValue(parsedValue));
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
+function sanitizeSentryTextValue(value: string): string {
+  const serializedJsonValue = sanitizeSentrySerializedJsonContainerString(value);
+  if (serializedJsonValue !== null) {
+    return serializedJsonValue;
+  }
+
+  return sentryTextMaskPatterns.reduce(
+    (sanitizedValue, maskPattern) => sanitizedValue.replace(maskPattern.pattern, maskPattern.replacement),
+    stripSentryUrlQueryAndFragment(value),
+  );
 }
 
 export function sanitizeBackendSentryTelemetryValue(value: unknown): SanitizedTelemetryValue {
@@ -267,7 +283,20 @@ export function sanitizeBackendSentryTelemetryValue(value: unknown): SanitizedTe
     return sanitizeBackendSentryTelemetryObject(value as Readonly<Record<string, unknown>>);
   }
 
-  return sanitizeBackendTelemetryValue(value);
+  if (typeof value === "string") {
+    return sanitizeSentryTextValue(value);
+  }
+
+  if (
+    typeof value === "number"
+    || typeof value === "boolean"
+    || value === null
+    || value === undefined
+  ) {
+    return value;
+  }
+
+  return undefined;
 }
 
 function readRecord(value: unknown): Readonly<Record<string, unknown>> | null {
@@ -429,7 +458,9 @@ function restoreSentryDatabaseExceptionDiagnostics(
 }
 
 function shouldRedactExceptionTextField(key: string, value: unknown): boolean {
-  return typeof value === "string" && exceptionTextFieldNames.has(normalizeTelemetryKey(key));
+  const normalizedKey = normalizeTelemetryKey(key);
+  return exceptionPayloadFieldNames.has(normalizedKey)
+    || (typeof value === "string" && exceptionTextFieldNames.has(normalizedKey));
 }
 
 export function redactExceptionTextFields(value: unknown): unknown {
