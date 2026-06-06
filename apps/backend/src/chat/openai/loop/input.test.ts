@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { HttpError } from "../../shared/errors";
+import { HttpError } from "../../../shared/errors";
 import {
   chatAttachmentUnsupportedTypeCode,
   chatAttachmentUnsupportedTypeMessage,
-} from "../attachmentPolicy";
+} from "../../attachmentPolicy";
 import { buildChatCompletionInput } from "./input";
 
 test("buildChatCompletionInput serializes card parts into deterministic XML before user text", async () => {

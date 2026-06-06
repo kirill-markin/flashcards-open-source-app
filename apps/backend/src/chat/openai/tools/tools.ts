@@ -3,20 +3,20 @@
  * The runtime always routes provider tool calls through this module so SQL validation and output envelopes stay consistent.
  */
 import type OpenAI from "openai";
-import { HttpError } from "../../shared/errors";
-import { ensureAIChatSyncReplica } from "../../sync/identity/aiChatIdentity";
-import { executeAgentSql } from "../../aiTools/agentSql";
+import { HttpError } from "../../../shared/errors";
+import { ensureAIChatSyncReplica } from "../../../sync/identity/aiChatIdentity";
+import { executeAgentSql } from "../../../aiTools/agentSql";
 import {
   DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
   type AgentToolOperationDependencies,
-} from "../../aiTools/agentSql/operations";
-import { parseSqlStatement, splitSqlStatements } from "../../aiTools/sqlDialect";
-import { isSqlMutationStatement } from "../../aiTools/agentSql/shared";
+} from "../../../aiTools/agentSql/operations";
+import { parseSqlStatement, splitSqlStatements } from "../../../aiTools/sqlDialect";
+import { isSqlMutationStatement } from "../../../aiTools/agentSql/shared";
 import {
   OPENAI_SQL_TOOL,
   SQL_TOOL_ARGUMENT_VALIDATOR,
   SQL_TOOL_NAME,
-} from "../../aiTools/toolContract/sqlToolContract";
+} from "../../../aiTools/toolContract/sqlToolContract";
 
 export type OpenAIToolContext = Readonly<{
   userId: string;

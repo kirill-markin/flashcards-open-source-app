@@ -2,7 +2,7 @@
  * Tool-call state machine for the backend-owned OpenAI loop.
  * These helpers merge provider deltas into stable tool-call events that can be persisted and replayed.
  */
-import type { ChatStreamEvent } from "../types";
+import type { ChatStreamEvent } from "../../types";
 
 export const INTERRUPTED_TOOL_CALL_OUTPUT = "Interrupted before output was captured.";
 

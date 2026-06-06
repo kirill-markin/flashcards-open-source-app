@@ -7,7 +7,7 @@ import {
   type OpenAILoopEventSink,
   type StartOpenAILoopParams,
 } from "./loop";
-import { buildOpenAISafetyIdentifier } from "./safetyIdentifier";
+import { buildOpenAISafetyIdentifier } from "../safetyIdentifier";
 
 type OpenAILoopDependencies = Parameters<typeof startOpenAILoopWithDeps>[2];
 type OpenAIResponseStream = AsyncIterable<OpenAI.Responses.ResponseStreamEvent> & Readonly<{
