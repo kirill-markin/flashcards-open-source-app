@@ -5,7 +5,7 @@ import {
   hasHydratedReviewHistory,
   loadLastAppliedReviewSequenceId,
 } from "../../../localDb/cards/workspace";
-import { syncPageSize } from "./constants";
+import { syncIncrementalPageSize } from "./constants";
 import type {
   RemoteSyncFlags,
   WorkspaceRemoteSyncInput,
@@ -25,7 +25,7 @@ export async function pullReviewHistory(input: WorkspaceRemoteSyncInput): Promis
       "web",
       webAppVersion,
       afterReviewSequenceId,
-      syncPageSize,
+      syncIncrementalPageSize,
     );
     input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
 

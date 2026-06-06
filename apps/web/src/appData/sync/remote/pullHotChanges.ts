@@ -4,7 +4,7 @@ import {
   applyHotSyncPage,
   loadLastAppliedHotChangeId,
 } from "../../../localDb/cards/workspace";
-import { syncPageSize } from "./constants";
+import { syncIncrementalPageSize } from "./constants";
 import {
   doHotSyncEntriesAffectReviewSchedule,
   publishWorkspaceSettingsFromEntries,
@@ -27,7 +27,7 @@ export async function pullHotChanges(input: WorkspaceRemoteSyncInput): Promise<R
       "web",
       webAppVersion,
       afterHotChangeId,
-      syncPageSize,
+      syncIncrementalPageSize,
     );
     input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
 
