@@ -75,6 +75,21 @@ function handleFeedbackExecutorQuery<Row extends pg.QueryResultRow>(
   return createQueryResult<Row>([]);
 }
 
+function handleSchemaExecutorQuery<Row extends pg.QueryResultRow>(
+  text: string,
+): pg.QueryResult<Row> | null {
+  if (
+    !text.includes("FROM information_schema.columns")
+    || !text.includes("table_schema = 'auth'")
+    || !text.includes("table_name = 'guest_sessions'")
+    || !text.includes("column_name = 'platform'")
+  ) {
+    return null;
+  }
+
+  return createQueryResult<Row>([{ column_exists: true } as unknown as Row]);
+}
+
 export function createGuestUpgradeExecutor(state: MutableState): DatabaseExecutor {
   function requireCurrentUserScope(userId: string): void {
     assert.equal(
@@ -109,6 +124,11 @@ export function createGuestUpgradeExecutor(state: MutableState): DatabaseExecuto
       const scopeResult = handleExecutorScopeQuery<Row>(context, text, params);
       if (scopeResult !== null) {
         return scopeResult;
+      }
+
+      const schemaResult = handleSchemaExecutorQuery<Row>(text);
+      if (schemaResult !== null) {
+        return schemaResult;
       }
 
       const authResult = handleAuthExecutorQuery<Row>(context, text, params);
@@ -147,7 +167,13 @@ export function createGuestUpgradeExecutor(state: MutableState): DatabaseExecuto
 }
 
 export function isGuestUpgradeMergeOnlyExecutorQuery(text: string): boolean {
-  return text.includes("FROM sync.claim_installation")
+  return (
+    text.includes("FROM information_schema.columns")
+    && text.includes("table_schema = 'auth'")
+    && text.includes("table_name = 'guest_sessions'")
+    && text.includes("column_name = 'platform'")
+  )
+    || text.includes("FROM sync.claim_installation")
     || (text.includes("pg_advisory_xact_lock") && text.includes("hashtextextended"))
     || (
       text.startsWith("SELECT")

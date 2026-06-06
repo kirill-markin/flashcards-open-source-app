@@ -6,6 +6,7 @@ private enum PersistedCloudStateReconciliationOutcome {
 }
 
 private let blockedCloudIdentityConflictCodes: Set<String> = [
+    "GUEST_SESSION_PLATFORM_MISMATCH",
     "SYNC_INSTALLATION_PLATFORM_MISMATCH",
     "SYNC_REPLICA_CONFLICT",
     "SYNC_WORKSPACE_FORK_REQUIRED"

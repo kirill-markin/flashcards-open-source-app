@@ -28,6 +28,10 @@ private struct GuestSessionEnvelope: Decodable {
     let workspaceId: String
 }
 
+private struct GuestSessionCreateRequest: Encodable {
+    let platform: String
+}
+
 private struct DeleteGuestSessionResponse: Decodable {
     let ok: Bool
 }
@@ -81,7 +85,7 @@ final class GuestCloudAuthService {
             authorizationHeader: nil,
             path: "/guest-auth/session",
             method: "POST",
-            body: Optional<String>.none
+            body: GuestSessionCreateRequest(platform: "ios")
         )
         return StoredGuestCloudSession(
             guestToken: response.guestToken,

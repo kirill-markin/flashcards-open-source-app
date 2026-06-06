@@ -27,6 +27,8 @@ function createRequestContext(): RequestContext {
     userSettingsCreatedAt: "2026-04-17T00:00:00.000Z",
     transport: "bearer",
     connectionId: null,
+    guestSessionId: null,
+    guestPlatform: null,
   };
 }
 

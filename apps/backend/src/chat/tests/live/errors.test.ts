@@ -125,6 +125,8 @@ test("handleLiveRequest prefers an explicit workspaceId for non-Live auth fallba
         transport: "bearer",
         connectionId: null,
         selectedWorkspaceId: null,
+        guestSessionId: null,
+        guestPlatform: null,
       }),
       ensureUserProfileFn: async () => ({
         userId: "user-1",

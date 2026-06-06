@@ -33,6 +33,8 @@ function createRequestContext(
     userSettingsCreatedAt: "2026-04-01T00:00:00.000Z",
     transport,
     connectionId: transport === "api_key" ? "connection-1" : null,
+    guestSessionId: transport === "guest" ? "guest-session-1" : null,
+    guestPlatform: transport === "guest" ? "ios" : null,
   };
 }
 

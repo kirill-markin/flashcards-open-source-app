@@ -5,7 +5,33 @@ import XCTest
 @MainActor
 final class CloudSyncIdentityConflictStatusTests: XCTestCase {
     func testOrdinaryLinkedSyncBlocksWorkspaceForkRequiredError() async throws {
-        let suiteName: String = "linked-sync-fork-required-\(UUID().uuidString)"
+        try await self.assertOrdinaryLinkedSyncBlocksIdentityConflict(
+            suiteNamePrefix: "linked-sync-fork-required",
+            errorCode: "SYNC_WORKSPACE_FORK_REQUIRED",
+            statusCode: 409,
+            message: "Sync detected content copied from another workspace. Retry after forking ids.",
+            requestId: "request-fork"
+        )
+    }
+
+    func testOrdinarySyncBlocksGuestSessionPlatformMismatchError() async throws {
+        try await self.assertOrdinaryLinkedSyncBlocksIdentityConflict(
+            suiteNamePrefix: "linked-sync-guest-platform-mismatch",
+            errorCode: "GUEST_SESSION_PLATFORM_MISMATCH",
+            statusCode: 403,
+            message: "Guest session platform does not match this sync request. Create a new guest session for this device.",
+            requestId: "request-guest-platform"
+        )
+    }
+
+    private func assertOrdinaryLinkedSyncBlocksIdentityConflict(
+        suiteNamePrefix: String,
+        errorCode: String,
+        statusCode: Int,
+        message: String,
+        requestId: String
+    ) async throws {
+        let suiteName: String = "\(suiteNamePrefix)-\(UUID().uuidString)"
         let userDefaults: UserDefaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         let encoder: JSONEncoder = JSONEncoder()
         let decoder: JSONDecoder = JSONDecoder()
@@ -61,17 +87,17 @@ final class CloudSyncIdentityConflictStatusTests: XCTestCase {
             userDefaults.removePersistentDomain(forName: suiteName)
         }
 
-        let expectedMessage: String = "Sync detected content copied from another workspace. Retry after forking ids. Reference: request-fork"
+        let expectedMessage: String = "\(message) Reference: \(requestId)"
         cloudSyncService.runLinkedSyncHandler = { (linkedSession: CloudLinkedSession) in
             XCTAssertEqual(.bearer("id-token-fresh"), linkedSession.authorization)
             throw CloudSyncError.invalidResponse(
                 CloudApiErrorDetails(
-                    message: "Sync detected content copied from another workspace. Retry after forking ids.",
-                    requestId: "request-fork",
-                    code: "SYNC_WORKSPACE_FORK_REQUIRED",
+                    message: message,
+                    requestId: requestId,
+                    code: errorCode,
                     syncConflict: nil
                 ),
-                409
+                statusCode
             )
         }
         try credentialStore.saveCredentials(
@@ -104,14 +130,14 @@ final class CloudSyncIdentityConflictStatusTests: XCTestCase {
 
         do {
             try await store.syncCloudNow(trigger: store.manualCloudSyncTrigger(now: Date(timeIntervalSince1970: 0)))
-            XCTFail("Expected typed workspace fork conflict to block ordinary linked sync.")
+            XCTFail("Expected typed identity conflict to block ordinary linked sync.")
         } catch let error as CloudSyncError {
-            guard case .invalidResponse(let details, let statusCode) = error else {
+            guard case .invalidResponse(let details, let receivedStatusCode) = error else {
                 XCTFail("Expected invalid response error.")
                 return
             }
-            XCTAssertEqual("SYNC_WORKSPACE_FORK_REQUIRED", details.code)
-            XCTAssertEqual(409, statusCode)
+            XCTAssertEqual(errorCode, details.code)
+            XCTAssertEqual(statusCode, receivedStatusCode)
         } catch {
             XCTFail("Unexpected sync error: \(Flashcards.errorMessage(error: error))")
         }

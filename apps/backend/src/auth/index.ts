@@ -14,7 +14,7 @@ import { authenticateAgentApiKey } from "../agent/apiKeys";
 import { getAuthConfig } from "./config";
 import { unsafeQuery } from "../database/unsafe";
 import { HttpError } from "../shared/errors";
-import { authenticateGuestSession } from "../guestAuth";
+import { authenticateGuestSession, type GuestSessionPlatform } from "../guestAuth";
 
 export type AuthTransport = "none" | "bearer" | "session" | "api_key" | "guest";
 
@@ -29,6 +29,8 @@ export type AuthResult = Readonly<{
   transport: AuthTransport;
   connectionId: string | null;
   selectedWorkspaceId: string | null;
+  guestSessionId: string | null;
+  guestPlatform: GuestSessionPlatform | null;
 }>;
 
 export type AuthRequest = Readonly<{
@@ -203,6 +205,8 @@ export async function authenticateRequest(request: AuthRequest): Promise<AuthRes
       transport: "none",
       connectionId: null,
       selectedWorkspaceId: null,
+      guestSessionId: null,
+      guestPlatform: null,
     };
   }
 
@@ -217,6 +221,8 @@ export async function authenticateRequest(request: AuthRequest): Promise<AuthRes
       transport: "api_key",
       connectionId: auth.connectionId,
       selectedWorkspaceId: auth.selectedWorkspaceId,
+      guestSessionId: null,
+      guestPlatform: null,
     };
   }
 
@@ -230,6 +236,8 @@ export async function authenticateRequest(request: AuthRequest): Promise<AuthRes
       transport: "bearer",
       connectionId: null,
       selectedWorkspaceId: null,
+      guestSessionId: null,
+      guestPlatform: null,
     };
   }
 
@@ -243,6 +251,8 @@ export async function authenticateRequest(request: AuthRequest): Promise<AuthRes
       transport: "guest",
       connectionId: null,
       selectedWorkspaceId: null,
+      guestSessionId: guestSession.sessionId,
+      guestPlatform: guestSession.platform,
     };
   }
 
@@ -256,6 +266,8 @@ export async function authenticateRequest(request: AuthRequest): Promise<AuthRes
       transport: "session",
       connectionId: null,
       selectedWorkspaceId: null,
+      guestSessionId: null,
+      guestPlatform: null,
     };
   }
 

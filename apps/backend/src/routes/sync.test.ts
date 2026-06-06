@@ -6,6 +6,7 @@ import type { AppEnv } from "../server/app";
 import { HttpError } from "../shared/errors";
 import { isTransientDatabaseError } from "../database/transient";
 import type { RequestContext } from "../server/requestContext";
+import type { GuestSessionPlatform } from "../guestAuth";
 import { createSyncRoutes } from "./sync";
 
 const workspaceId = "11111111-1111-4111-8111-111111111111";
@@ -17,15 +18,28 @@ function createCodedError(code: string, message: string): Error & Readonly<{ cod
 }
 
 function createRequestContext(): RequestContext {
+  return createRequestContextWithTransport("bearer");
+}
+
+function createRequestContextWithTransport(transport: RequestContext["transport"]): RequestContext {
   return {
     userId: "user-1",
     subjectUserId: "subject-1",
     selectedWorkspaceId: workspaceId,
-    email: "user@example.com",
+    email: transport === "guest" ? null : "user@example.com",
     locale: "en",
     userSettingsCreatedAt: "2026-04-17T00:00:00.000Z",
-    transport: "bearer",
+    transport,
     connectionId: null,
+    guestSessionId: transport === "guest" ? "guest-session-1" : null,
+    guestPlatform: null,
+  };
+}
+
+function createGuestRequestContext(guestPlatform: GuestSessionPlatform | null): RequestContext {
+  return {
+    ...createRequestContextWithTransport("guest"),
+    guestPlatform,
   };
 }
 
@@ -91,6 +105,325 @@ async function retryTransientOnce<Result>(operation: () => Promise<Result>): Pro
 
   return operation();
 }
+
+test("sync routes reject guest web platform before creating a workspace replica", async () => {
+  const routes = createSyncRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createGuestRequestContext(null),
+    }),
+    assertUserHasWorkspaceAccessFn: async (userId, requestedWorkspaceId) => {
+      assert.equal(userId, "user-1");
+      assert.equal(requestedWorkspaceId, workspaceId);
+    },
+    processSyncBootstrapFn: async () => {
+      throw new Error("Guest web bootstrap should be rejected before sync processing");
+    },
+    processSyncPullFn: async () => {
+      throw new Error("Guest web pull should be rejected before sync processing");
+    },
+    processSyncReviewHistoryPullFn: async () => {
+      throw new Error("Guest web review-history pull should be rejected before sync processing");
+    },
+    bindGuestSessionPlatformFn: async () => {
+      throw new Error("Guest web sync should be rejected before platform binding");
+    },
+    withTransientDatabaseRetryFn: retryTransientOnce,
+  });
+  const app = createSyncTestApp(routes);
+  const requests: ReadonlyArray<Readonly<{
+    name: string;
+    path: string;
+    body: Readonly<Record<string, unknown>>;
+  }>> = [
+    {
+      name: "push",
+      path: `/workspaces/${workspaceId}/sync/push`,
+      body: {
+        installationId: "install-1",
+        platform: "web",
+        appVersion: "1.0.0",
+        operations: [],
+      },
+    },
+    {
+      name: "pull",
+      path: `/workspaces/${workspaceId}/sync/pull`,
+      body: {
+        installationId: "install-1",
+        platform: "web",
+        appVersion: "1.0.0",
+        afterHotChangeId: 0,
+        limit: 100,
+      },
+    },
+    {
+      name: "bootstrap",
+      path: `/workspaces/${workspaceId}/sync/bootstrap`,
+      body: {
+        mode: "pull",
+        installationId: "install-1",
+        platform: "web",
+        appVersion: "1.0.0",
+        cursor: null,
+        limit: 100,
+      },
+    },
+    {
+      name: "review-history pull",
+      path: `/workspaces/${workspaceId}/sync/review-history/pull`,
+      body: {
+        installationId: "install-1",
+        platform: "web",
+        appVersion: "1.0.0",
+        afterReviewSequenceId: 0,
+        limit: 100,
+      },
+    },
+    {
+      name: "review-history import",
+      path: `/workspaces/${workspaceId}/sync/review-history/import`,
+      body: {
+        installationId: "install-1",
+        platform: "web",
+        appVersion: "1.0.0",
+        reviewEvents: [],
+      },
+    },
+  ];
+
+  for (const request of requests) {
+    const response = await app.request(`http://localhost${request.path}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request.body),
+    });
+
+    assert.equal(response.status, 403, request.name);
+    assert.deepEqual(await response.json(), {
+      error: "Guest web sync is not supported. Sign in before syncing from the web app.",
+      requestId: "request-1",
+      code: "GUEST_WEB_SYNC_UNSUPPORTED",
+    }, request.name);
+  }
+});
+
+for (const platform of ["ios", "android"] as const) {
+  test(`POST /sync/pull allows guest ${platform} platform`, async () => {
+    let processCalls = 0;
+    const routes = createSyncRoutes({
+      allowedOrigins: [],
+      loadRequestContextFromRequestFn: async () => ({
+        requestAuthInputs: {} as never,
+        requestContext: createGuestRequestContext(platform),
+      }),
+      assertUserHasWorkspaceAccessFn: async (userId, requestedWorkspaceId) => {
+        assert.equal(userId, "user-1");
+        assert.equal(requestedWorkspaceId, workspaceId);
+      },
+      processSyncPullFn: async (requestedWorkspaceId, userId, input) => {
+        processCalls += 1;
+        assert.equal(requestedWorkspaceId, workspaceId);
+        assert.equal(userId, "user-1");
+        assert.equal(input.platform, platform);
+        return {
+          changes: [],
+          nextHotChangeId: 0,
+          hasMore: false,
+        };
+      },
+      bindGuestSessionPlatformFn: async () => {
+        throw new Error("Bound guest platform should not be rebound");
+      },
+      withTransientDatabaseRetryFn: retryTransientOnce,
+    });
+    const app = createSyncTestApp(routes);
+
+    const response = await app.request(`http://localhost/workspaces/${workspaceId}/sync/pull`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        installationId: "install-1",
+        platform,
+        appVersion: "1.0.0",
+        afterHotChangeId: 0,
+        limit: 100,
+      }),
+    });
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      changes: [],
+      nextHotChangeId: 0,
+      hasMore: false,
+    });
+    assert.equal(processCalls, 1);
+  });
+}
+
+test("POST /sync/pull rejects guest platform mismatch before sync processing", async () => {
+  let processCalls = 0;
+  let bindCalls = 0;
+  const routes = createSyncRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createGuestRequestContext("ios"),
+    }),
+    assertUserHasWorkspaceAccessFn: async (userId, requestedWorkspaceId) => {
+      assert.equal(userId, "user-1");
+      assert.equal(requestedWorkspaceId, workspaceId);
+    },
+    processSyncPullFn: async () => {
+      processCalls += 1;
+      throw new Error("Guest platform mismatch should be rejected before sync processing");
+    },
+    bindGuestSessionPlatformFn: async () => {
+      bindCalls += 1;
+    },
+    withTransientDatabaseRetryFn: retryTransientOnce,
+  });
+  const app = createSyncTestApp(routes);
+
+  const response = await app.request(`http://localhost/workspaces/${workspaceId}/sync/pull`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      installationId: "install-1",
+      platform: "android",
+      appVersion: "1.0.0",
+      afterHotChangeId: 0,
+      limit: 100,
+    }),
+  });
+
+  assert.equal(response.status, 403);
+  assert.deepEqual(await response.json(), {
+    error: "Guest session platform does not match this sync request. Create a new guest session for this device.",
+    requestId: "request-1",
+    code: "GUEST_SESSION_PLATFORM_MISMATCH",
+  });
+  assert.equal(processCalls, 0);
+  assert.equal(bindCalls, 0);
+});
+
+test("POST /sync/pull binds a legacy guest session to the first mobile platform", async () => {
+  let processCalls = 0;
+  let bindGuestSessionId: string | null = null;
+  let bindPlatform: GuestSessionPlatform | null = null;
+  const routes = createSyncRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createGuestRequestContext(null),
+    }),
+    assertUserHasWorkspaceAccessFn: async (userId, requestedWorkspaceId) => {
+      assert.equal(userId, "user-1");
+      assert.equal(requestedWorkspaceId, workspaceId);
+    },
+    processSyncPullFn: async (requestedWorkspaceId, userId, input) => {
+      processCalls += 1;
+      assert.equal(requestedWorkspaceId, workspaceId);
+      assert.equal(userId, "user-1");
+      assert.equal(input.platform, "ios");
+      return {
+        changes: [],
+        nextHotChangeId: 0,
+        hasMore: false,
+      };
+    },
+    bindGuestSessionPlatformFn: async (guestSessionId, platform) => {
+      bindGuestSessionId = guestSessionId;
+      bindPlatform = platform;
+    },
+    withTransientDatabaseRetryFn: retryTransientOnce,
+  });
+  const app = createSyncTestApp(routes);
+
+  const response = await app.request(`http://localhost/workspaces/${workspaceId}/sync/pull`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      installationId: "install-1",
+      platform: "ios",
+      appVersion: "1.0.0",
+      afterHotChangeId: 0,
+      limit: 100,
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    changes: [],
+    nextHotChangeId: 0,
+    hasMore: false,
+  });
+  assert.equal(bindGuestSessionId, "guest-session-1");
+  assert.equal(bindPlatform, "ios");
+  assert.equal(processCalls, 1);
+});
+
+test("POST /sync/pull allows signed-in web sync without guest platform binding", async () => {
+  let processCalls = 0;
+  const routes = createSyncRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContext(),
+    }),
+    assertUserHasWorkspaceAccessFn: async (userId, requestedWorkspaceId) => {
+      assert.equal(userId, "user-1");
+      assert.equal(requestedWorkspaceId, workspaceId);
+    },
+    processSyncPullFn: async (requestedWorkspaceId, userId, input) => {
+      processCalls += 1;
+      assert.equal(requestedWorkspaceId, workspaceId);
+      assert.equal(userId, "user-1");
+      assert.equal(input.platform, "web");
+      return {
+        changes: [],
+        nextHotChangeId: 0,
+        hasMore: false,
+      };
+    },
+    bindGuestSessionPlatformFn: async () => {
+      throw new Error("Signed-in web sync should not bind a guest session platform");
+    },
+    withTransientDatabaseRetryFn: retryTransientOnce,
+  });
+  const app = createSyncTestApp(routes);
+
+  const response = await app.request(`http://localhost/workspaces/${workspaceId}/sync/pull`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      installationId: "install-1",
+      platform: "web",
+      appVersion: "1.0.0",
+      afterHotChangeId: 0,
+      limit: 100,
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    changes: [],
+    nextHotChangeId: 0,
+    hasMore: false,
+  });
+  assert.equal(processCalls, 1);
+});
 
 test("POST /sync/pull retries transient database failures during request preflight", async () => {
   let loadCalls = 0;

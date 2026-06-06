@@ -110,6 +110,7 @@ export function createMergeState(params: Readonly<{
       session_id: params.guestSessionId,
       session_secret_hash: hashGuestToken(params.guestToken),
       user_id: params.guestUserId,
+      platform: "ios",
       revoked_at: null,
     },
     identityMappings: new Map<string, string>([[params.targetSubject, params.targetUserId]]),

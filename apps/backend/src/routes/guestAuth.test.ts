@@ -7,6 +7,8 @@ import type { AuthResult } from "../auth";
 import { AuthError } from "../auth";
 import { HttpError } from "../shared/errors";
 import type {
+  GuestSessionPlatform,
+  GuestSessionSnapshot,
   GuestUpgradeCompleteCapabilities,
   GuestUpgradeCompletion,
   GuestUpgradeSelection,
@@ -21,8 +23,18 @@ type GuestAuthTestAppOptions = Readonly<{
     selection: GuestUpgradeSelection,
     capabilities: GuestUpgradeCompleteCapabilities,
   ) => Promise<GuestUpgradeCompletion>;
+  onCreateGuestSession?: (platform: GuestSessionPlatform | null) => Promise<GuestSessionSnapshot>;
   onDeleteGuestSession?: (guestToken: string) => Promise<void>;
 }>;
+
+function createGuestSessionSnapshot(platform: GuestSessionPlatform | null): GuestSessionSnapshot {
+  return {
+    guestToken: "guest-token-create-route",
+    userId: "guest-user-create-route",
+    workspaceId: "guest-workspace-create-route",
+    platform,
+  };
+}
 
 function createGuestAuthTestApp(options: GuestAuthTestAppOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
@@ -58,6 +70,13 @@ function createGuestAuthTestApp(options: GuestAuthTestAppOptions): Hono<AppEnv> 
   });
   app.route("/", createGuestAuthRoutes({
     authenticateRequestFn: async () => options.authResult,
+    createGuestSessionFn: async (platform) => {
+      if (options.onCreateGuestSession !== undefined) {
+        return options.onCreateGuestSession(platform);
+      }
+
+      return createGuestSessionSnapshot(platform);
+    },
     completeGuestUpgradeFn: options.onCompleteGuestUpgrade,
     deleteGuestSessionFn: async (guestToken) => {
       await options.onDeleteGuestSession?.(guestToken);
@@ -75,8 +94,87 @@ function createAuthResult(transport: AuthResult["transport"]): AuthResult {
     transport,
     connectionId: null,
     selectedWorkspaceId: "guest-workspace",
+    guestSessionId: transport === "guest" ? "guest-session-1" : null,
+    guestPlatform: transport === "guest" ? "ios" : null,
   };
 }
+
+test("POST /guest-auth/session keeps empty-body legacy session creation unbound", async () => {
+  let receivedPlatform: GuestSessionPlatform | null | undefined;
+  const app = createGuestAuthTestApp({
+    authResult: createAuthResult("none"),
+    onCreateGuestSession: async (platform) => {
+      receivedPlatform = platform;
+      return createGuestSessionSnapshot(platform);
+    },
+  });
+
+  const response = await app.request("http://localhost/guest-auth/session", {
+    method: "POST",
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(receivedPlatform, null);
+  assert.deepEqual(await response.json(), {
+    guestToken: "guest-token-create-route",
+    userId: "guest-user-create-route",
+    workspaceId: "guest-workspace-create-route",
+  });
+});
+
+test("POST /guest-auth/session creates a platform-bound native guest session", async () => {
+  let receivedPlatform: GuestSessionPlatform | null | undefined;
+  const app = createGuestAuthTestApp({
+    authResult: createAuthResult("none"),
+    onCreateGuestSession: async (platform) => {
+      receivedPlatform = platform;
+      return createGuestSessionSnapshot(platform);
+    },
+  });
+
+  const response = await app.request("http://localhost/guest-auth/session", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ platform: "ios" }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(receivedPlatform, "ios");
+  assert.deepEqual(await response.json(), {
+    guestToken: "guest-token-create-route",
+    userId: "guest-user-create-route",
+    workspaceId: "guest-workspace-create-route",
+  });
+});
+
+test("POST /guest-auth/session rejects web guest sessions", async () => {
+  let createCalls = 0;
+  const app = createGuestAuthTestApp({
+    authResult: createAuthResult("none"),
+    onCreateGuestSession: async (platform) => {
+      createCalls += 1;
+      return createGuestSessionSnapshot(platform);
+    },
+  });
+
+  const response = await app.request("http://localhost/guest-auth/session", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ platform: "web" }),
+  });
+
+  assert.equal(response.status, 403);
+  assert.equal(createCalls, 0);
+  assert.deepEqual(await response.json(), {
+    error: "Guest web sessions are not supported. Sign in before using cloud sync on the web app.",
+    requestId: "request-1",
+    code: "GUEST_WEB_SESSION_UNSUPPORTED",
+  });
+});
 
 test("POST /guest-auth/session/delete deletes a guest session with Guest authentication", async () => {
   let deletedGuestToken: string | null = null;

@@ -22,6 +22,7 @@ import {
 import {
   assertUserHasWorkspaceAccess,
 } from "../workspaces";
+import { bindGuestSessionPlatform, type GuestSessionPlatform } from "../guestAuth";
 import {
   loadRequestContextFromRequest,
   parseWorkspaceIdParam,
@@ -53,7 +54,10 @@ type SyncRoutesOptions = Readonly<{
   processSyncPullFn?: typeof processSyncPull;
   processSyncReviewHistoryPullFn?: typeof processSyncReviewHistoryPull;
   withTransientDatabaseRetryFn?: typeof withTransientDatabaseRetry;
+  bindGuestSessionPlatformFn?: typeof bindGuestSessionPlatform;
 }>;
+
+type SyncClientPlatform = "ios" | "android" | "web";
 
 type SyncPullRouteState = Readonly<{
   requestContext: RequestContext;
@@ -255,6 +259,52 @@ function createSyncScope(
   );
 }
 
+function toGuestSessionPlatform(platform: SyncClientPlatform): GuestSessionPlatform | null {
+  if (platform === "ios" || platform === "android") {
+    return platform;
+  }
+
+  return null;
+}
+
+async function requireSupportedSyncPlatformForTransport(
+  requestContext: RequestContext,
+  platform: SyncClientPlatform,
+  bindGuestSessionPlatformFn: typeof bindGuestSessionPlatform,
+): Promise<void> {
+  if (requestContext.transport !== "guest") {
+    return;
+  }
+
+  const guestPlatform = toGuestSessionPlatform(platform);
+  if (guestPlatform === null) {
+    throw new HttpError(
+      403,
+      "Guest web sync is not supported. Sign in before syncing from the web app.",
+      "GUEST_WEB_SYNC_UNSUPPORTED",
+    );
+  }
+
+  if (requestContext.guestSessionId === null) {
+    throw new Error("Guest sync request context is missing guestSessionId");
+  }
+
+  if (requestContext.guestPlatform === null) {
+    // Pre-1.7.0 iOS/Android guest sessions are unbound at creation time.
+    // Bind them on first native sync, then remove this path after those versions are no longer supported.
+    await bindGuestSessionPlatformFn(requestContext.guestSessionId, guestPlatform);
+    return;
+  }
+
+  if (requestContext.guestPlatform !== guestPlatform) {
+    throw new HttpError(
+      403,
+      "Guest session platform does not match this sync request. Create a new guest session for this device.",
+      "GUEST_SESSION_PLATFORM_MISMATCH",
+    );
+  }
+}
+
 export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   const loadRequestContextFromRequestFn = options.loadRequestContextFromRequestFn ?? loadRequestContextFromRequest;
@@ -263,12 +313,14 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
   const processSyncPullFn = options.processSyncPullFn ?? processSyncPull;
   const processSyncReviewHistoryPullFn = options.processSyncReviewHistoryPullFn ?? processSyncReviewHistoryPull;
   const withTransientDatabaseRetryFn = options.withTransientDatabaseRetryFn ?? withTransientDatabaseRetry;
+  const bindGuestSessionPlatformFn = options.bindGuestSessionPlatformFn ?? bindGuestSessionPlatform;
 
   app.post("/workspaces/:workspaceId/sync/push", async (context) => {
     const { requestContext } = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
     const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
     await assertUserHasWorkspaceAccessFn(requestContext.userId, workspaceId);
     const input = parseSyncPushInput(await parseJsonBody(context.req.raw));
+    await requireSupportedSyncPlatformForTransport(requestContext, input.platform, bindGuestSessionPlatformFn);
     const requestId = context.get("requestId");
     const entityTypes = [...new Set(input.operations.map((operation) => operation.entityType))];
 
@@ -332,6 +384,7 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
           workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
           await assertUserHasWorkspaceAccessFn(requestContext.userId, workspaceId);
           input = await loadSyncPullInput();
+          await requireSupportedSyncPlatformForTransport(requestContext, input.platform, bindGuestSessionPlatformFn);
           const result = await processSyncPullFn(workspaceId, requestContext.userId, input);
           return {
             requestContext,
@@ -396,6 +449,7 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
     const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
     await assertUserHasWorkspaceAccessFn(requestContext.userId, workspaceId);
     const input = parseSyncBootstrapInput(await parseJsonBody(context.req.raw));
+    await requireSupportedSyncPlatformForTransport(requestContext, input.platform, bindGuestSessionPlatformFn);
     const requestId = context.get("requestId");
     const startedAtMs = Date.now();
 
@@ -450,6 +504,7 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
           workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
           await assertUserHasWorkspaceAccessFn(requestContext.userId, workspaceId);
           input = await loadSyncReviewHistoryPullInput();
+          await requireSupportedSyncPlatformForTransport(requestContext, input.platform, bindGuestSessionPlatformFn);
           const result = await processSyncReviewHistoryPullFn(workspaceId, requestContext.userId, input);
           return {
             requestContext,
@@ -514,6 +569,7 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
     const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
     await assertUserHasWorkspaceAccessFn(requestContext.userId, workspaceId);
     const input = parseSyncReviewHistoryImportInput(await parseJsonBody(context.req.raw));
+    await requireSupportedSyncPlatformForTransport(requestContext, input.platform, bindGuestSessionPlatformFn);
     const requestId = context.get("requestId");
 
     try {
