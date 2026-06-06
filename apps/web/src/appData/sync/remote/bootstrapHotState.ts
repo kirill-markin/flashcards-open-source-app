@@ -270,13 +270,16 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
     }
 
     recoveryFailurePhase = "slow_bootstrap_observation";
-    if (shouldObserveHotBootstrap({
-      durationMs,
-      pageCount,
-      entriesCount,
-      localCardCountAfter,
-      remoteIsEmpty,
-    })) {
+    if (
+      isLocalDbRecovery === false
+      && shouldObserveHotBootstrap({
+        durationMs,
+        pageCount,
+        entriesCount,
+        localCardCountAfter,
+        remoteIsEmpty,
+      })
+    ) {
       observeSlowHotBootstrap({
         userId: input.userId,
         workspaceId: input.workspaceId,
