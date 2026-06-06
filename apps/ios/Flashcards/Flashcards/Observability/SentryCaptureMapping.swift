@@ -26,19 +26,9 @@ extension SentryObservabilityAdapter {
             return
         }
 
-        let hashedUserId: String = appSpecificObservabilityHash(
-            identity.userId,
-            namespace: "sentry_user_id"
-        )
-        let hashedWorkspaceId: String? = identity.workspaceId.map { workspaceId in
-            appSpecificObservabilityHash(
-                workspaceId,
-                namespace: "sentry_workspace_id"
-            )
-        }
-        let user: User = User(userId: hashedUserId)
+        let user: User = User(userId: identity.userId)
         user.data = [
-            "workspace_id_hash": hashedWorkspaceId ?? "",
+            "workspace_id": identity.workspaceId ?? "",
             "account_kind": identity.accountKind.rawValue
         ]
         SentrySDK.setUser(user)
@@ -241,8 +231,8 @@ extension SentryObservabilityAdapter {
         case .localDataRepair(let warning):
             let context: [String: Any] = [
                 "workspace_id": warning.workspaceId ?? "",
-                "card_id_hash": hashedObservationIdentifierLogValue(warning.cardId, key: "card_id"),
-                "reason_hash": hashedObservationIdentifier(warning.reason, key: "local_data_repair_reason"),
+                "card_id": warning.cardId ?? "",
+                "reason": warning.reason,
                 "reason_length": warning.reason.count,
                 "repair": warning.repair
             ]
@@ -257,7 +247,7 @@ extension SentryObservabilityAdapter {
             )
         case .invalidCardDueAt(let warning):
             let context: [String: Any] = [
-                "card_id_hash": hashedObservationIdentifier(warning.cardId, key: "card_id"),
+                "card_id": warning.cardId,
                 "due_at": warning.dueAt
             ]
             return ObservationPayload(
@@ -273,9 +263,7 @@ extension SentryObservabilityAdapter {
             let context: [String: Any] = [
                 "notification_kind": warning.notificationKind,
                 "workspace_id": warning.workspaceId ?? "",
-                "notification_request_id_hash": warning.requestId.map {
-                    hashedObservationIdentifier($0, key: "notification_request_id")
-                } ?? "",
+                "notification_request_id": warning.requestId ?? "",
                 "stage": warning.stage,
                 "planned_count": String(warning.plannedCount),
                 "accepted_count": String(warning.acceptedCount),
@@ -320,17 +308,10 @@ extension SentryObservabilityAdapter {
         case .progressCacheRemoved(let warning):
             let context: [String: Any] = [
                 "cache_kind": warning.cacheKind,
-                "cache_key_hash": hashedObservationIdentifier(
-                    warning.key,
-                    key: "progress_cache_key"
-                ),
+                "cache_key": warning.key,
                 "reason": warning.reason,
-                "expected_scope_key_hash": warning.expectedScopeKey.map {
-                    hashedObservationIdentifier($0, key: "progress_expected_scope_key")
-                } ?? "",
-                "actual_scope_key_hash": warning.actualScopeKey.map {
-                    hashedObservationIdentifier($0, key: "progress_actual_scope_key")
-                } ?? "",
+                "expected_scope_key": warning.expectedScopeKey ?? "",
+                "actual_scope_key": warning.actualScopeKey ?? "",
                 "has_actual_scope_key": warning.actualScopeKey == nil ? "false" : "true",
                 "error_summary": warning.errorSummary ?? ""
             ]
@@ -488,8 +469,8 @@ extension SentryObservabilityAdapter {
         case .localDataRepairFailed(let error, let scope, let details):
             let context: [String: Any] = [
                 "workspace_id": details.workspaceId ?? "",
-                "entity_id_hash": hashedObservationIdentifierLogValue(details.entityId, key: "entity_id"),
-                "reason_hash": hashedObservationIdentifier(details.reason, key: "local_data_repair_failure_reason"),
+                "entity_id": details.entityId ?? "",
+                "reason": details.reason,
                 "reason_length": details.reason.count,
                 "message_summary": details.messageSummary ?? ""
             ]
@@ -680,22 +661,10 @@ extension SentryObservabilityAdapter {
     }
 
     private static func logCloudFlow(_ observation: CloudFlowObservation) {
-        let workspaceIdHash: String = hashedObservationIdentifierLogValue(
-            observation.workspaceId,
-            key: "workspace_id"
-        )
-        let installationIdHash: String = hashedObservationIdentifierLogValue(
-            observation.installationId,
-            key: "installation_id"
-        )
-        let sourceWorkspaceIdHash: String = hashedObservationIdentifierLogValue(
-            observation.sourceWorkspaceId,
-            key: "source_workspace_id"
-        )
-        let targetWorkspaceIdHash: String = hashedObservationIdentifierLogValue(
-            observation.targetWorkspaceId,
-            key: "target_workspace_id"
-        )
+        let workspaceId: String = sanitizedObservationLogValue(observation.workspaceId)
+        let installationId: String = sanitizedObservationLogValue(observation.installationId)
+        let sourceWorkspaceId: String = sanitizedObservationLogValue(observation.sourceWorkspaceId)
+        let targetWorkspaceId: String = sanitizedObservationLogValue(observation.targetWorkspaceId)
         self.cloudLogger.log(
             """
             phase=\(observation.phase.rawValue, privacy: .public) \
@@ -703,11 +672,11 @@ extension SentryObservabilityAdapter {
             requestId=\(observation.requestId ?? "-", privacy: .public) \
             code=\(observation.backendCode ?? "-", privacy: .public) \
             status=\(observation.statusCode.map { statusCode in String(statusCode) } ?? "-", privacy: .public) \
-            workspaceIdHash=\(workspaceIdHash, privacy: .public) \
-            installationIdHash=\(installationIdHash, privacy: .public) \
+            workspaceId=\(workspaceId, privacy: .public) \
+            installationId=\(installationId, privacy: .public) \
             selection=\(observation.selection ?? "-", privacy: .public) \
-            sourceWorkspaceIdHash=\(sourceWorkspaceIdHash, privacy: .public) \
-            targetWorkspaceIdHash=\(targetWorkspaceIdHash, privacy: .public) \
+            sourceWorkspaceId=\(sourceWorkspaceId, privacy: .public) \
+            targetWorkspaceId=\(targetWorkspaceId, privacy: .public) \
             migrationKind=\(observation.migrationKind ?? "-", privacy: .public) \
             remoteWorkspaceIsEmpty=\(observation.remoteWorkspaceIsEmpty.map { remoteWorkspaceIsEmpty in String(remoteWorkspaceIsEmpty) } ?? "-", privacy: .public) \
             operations=\(observation.operationsCount.map { operationsCount in String(operationsCount) } ?? "-", privacy: .public) \
