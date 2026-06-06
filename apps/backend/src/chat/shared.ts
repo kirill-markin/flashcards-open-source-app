@@ -37,6 +37,16 @@ function buildCardSideContractSection(): string {
   ]);
 }
 
+function buildCardStyleAlignmentSection(): string {
+  return joinLines([
+    "Card style alignment:",
+    "- When creating new cards or editing existing cards, if the user did not ask for a specific format, first inspect a small set of related existing cards with the shared sql tool.",
+    "- Infer the user's local card style from similar cards and follow it unless it would violate the card side contract.",
+    "- Preserve patterns such as one-word fronts, topic-specific examples on backs, punctuation choices, sentence length, Markdown density, tag style, and effort level.",
+    "- If similar cards conflict, prefer the pattern from the closest topic or deck and keep the proposed change simple.",
+  ]);
+}
+
 function buildCardEffortSection(): string {
   return joinLines([
     "Card effort rules:",
@@ -125,6 +135,7 @@ export function buildSystemInstructions(timezone: string): string {
     buildAssistantRoleSection(),
     buildWorkspaceSection(),
     buildCardSideContractSection(),
+    buildCardStyleAlignmentSection(),
     buildCardEffortSection(),
     buildPlainTextChatFormattingSection(),
     buildWritePolicySection(),
