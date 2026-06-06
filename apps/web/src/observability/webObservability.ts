@@ -131,7 +131,7 @@ export type PersistentStorageBreadcrumbDetails = Readonly<{
 
 export type IndexedDbOperation = "open";
 
-export type IndexedDbOperationBreadcrumbDetails = Readonly<{
+export type IndexedDbOperationFailedBreadcrumbDetails = Readonly<{
   eventName: "indexed_db_operation_failed";
   indexedDbOperation: IndexedDbOperation;
   databaseName: string;
@@ -139,6 +139,20 @@ export type IndexedDbOperationBreadcrumbDetails = Readonly<{
   indexedDbErrorName: string | null;
   errorMessage: string;
 }>;
+
+export type IndexedDbOpenLifecycleBreadcrumbDetails = Readonly<{
+  eventName: "indexed_db_open_lifecycle";
+  databaseName: string;
+  databaseVersion: number;
+  indexedDbOldVersion: number;
+  indexedDbNewVersion: number;
+  indexedDbDatabaseCreated: boolean;
+  indexedDbDatabaseUpgraded: boolean;
+}>;
+
+export type IndexedDbOperationBreadcrumbDetails =
+  | IndexedDbOperationFailedBreadcrumbDetails
+  | IndexedDbOpenLifecycleBreadcrumbDetails;
 
 export type WebBreadcrumbEvent =
   | Readonly<{
@@ -435,6 +449,11 @@ export type SyncLocalDbMissingWarningDetails = Readonly<{
   storageErrorName: string | null;
   storagePersistAttempted: boolean;
   storagePersistGranted: boolean | null;
+  indexedDbOpenObservedAt: string | null;
+  indexedDbOpenOldVersion: number | null;
+  indexedDbOpenNewVersion: number | null;
+  indexedDbDatabaseCreated: boolean | null;
+  indexedDbDatabaseUpgraded: boolean | null;
 }>;
 
 export type SyncLocalDbRecoverySucceededWarningDetails = SyncBootstrapTimingDetails & Readonly<{
@@ -476,6 +495,11 @@ export type SyncLocalDbRecoverySucceededWarningDetails = SyncBootstrapTimingDeta
   storageErrorNameAfter: string | null;
   storagePersistAttemptedAfter: boolean;
   storagePersistGrantedAfter: boolean | null;
+  indexedDbOpenObservedAt: string | null;
+  indexedDbOpenOldVersion: number | null;
+  indexedDbOpenNewVersion: number | null;
+  indexedDbDatabaseCreated: boolean | null;
+  indexedDbDatabaseUpgraded: boolean | null;
 }>;
 
 export type SyncLocalDbRecoveryFailurePhase =
@@ -530,6 +554,11 @@ export type SyncLocalDbRecoveryFailedWarningDetails = SyncBootstrapTimingDetails
   storageErrorNameAfter: string | null;
   storagePersistAttemptedAfter: boolean | null;
   storagePersistGrantedAfter: boolean | null;
+  indexedDbOpenObservedAt: string | null;
+  indexedDbOpenOldVersion: number | null;
+  indexedDbOpenNewVersion: number | null;
+  indexedDbDatabaseCreated: boolean | null;
+  indexedDbDatabaseUpgraded: boolean | null;
 }>;
 
 export type ProgressTimezoneInvalidWarningDetails = Readonly<{

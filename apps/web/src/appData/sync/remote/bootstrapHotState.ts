@@ -2,6 +2,7 @@ import { bootstrapPullSyncState } from "../../../api";
 import { webAppVersion } from "../../../clientIdentity";
 import { loadActiveCardCount } from "../../../localDb/cards/cards";
 import { applyHotSyncPage, loadWorkspaceSyncState } from "../../../localDb/cards/workspace";
+import { readIndexedDbOpenLifecycleSnapshotForDiagnostics } from "../../../localDb/core/database";
 import {
   ensurePersistentStorage,
   readPersistentStorageState,
@@ -140,6 +141,7 @@ function readErrorName(error: unknown): string {
 
 export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promise<RemoteSyncFlags> {
   const syncStateBefore = await loadWorkspaceSyncState(input.workspaceId);
+  const indexedDbOpenLifecycleSnapshot = readIndexedDbOpenLifecycleSnapshotForDiagnostics();
   const hotStateHydrated = syncStateBefore?.hasHydratedHotState ?? false;
   input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
   if (hotStateHydrated) {
@@ -205,6 +207,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
         previousRestoreHistory: restoreHistoryBefore,
         currentWebAppVersion: webAppVersion,
         persistentStorageState: persistentStorageStateBeforeRecovery,
+        indexedDbOpenLifecycleSnapshot,
       });
     }
 
@@ -303,6 +306,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
         persistentStorageStateBefore: persistentStorageStateBeforeRecovery,
         persistentStorageStateAfter: persistentStorageStateAfterRecovery,
         ...readBootstrapTimingDetails(),
+        indexedDbOpenLifecycleSnapshot,
       });
     }
 
@@ -364,6 +368,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
         persistentStorageStateBefore: persistentStorageStateBeforeRecovery,
         persistentStorageStateAfter: persistentStorageStateAfterRecovery,
         ...readBootstrapTimingDetails(),
+        indexedDbOpenLifecycleSnapshot,
       });
     }
 

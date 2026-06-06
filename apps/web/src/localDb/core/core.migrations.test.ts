@@ -4,7 +4,15 @@ import "fake-indexeddb/auto";
 import { describe, expect, it, vi } from "vitest";
 import { malformedDueAtBucketMillis, nullDueAtBucketMillis, parseDueAtMillis } from "../../appData/domain/dueAt";
 import { clearWebSyncCache } from "./cache";
-import { closeDatabaseAfter, deleteDatabase, getAllFromStore, openDatabase, type StoredCard } from "./database";
+import {
+  closeDatabaseAfter,
+  deleteDatabase,
+  getAllFromStore,
+  openDatabase,
+  readIndexedDbOpenLifecycleSnapshotForDiagnostics,
+  readLastIndexedDbOpenLifecycleSnapshot,
+  type StoredCard,
+} from "./database";
 import { listOutboxRecords, type PersistedOutboxRecord } from "../sync/outbox";
 import { loadReviewQueueSnapshot } from "../reviews/reviews";
 import { makeCard, workspaceId } from "./testSupport";
@@ -285,6 +293,58 @@ describe("localDb core migrations", () => {
     } finally {
       openDatabaseSpy.mockRestore();
     }
+  });
+
+  it("records IndexedDB open lifecycle for a newly created database", async () => {
+    await clearWebSyncCache();
+    observabilityMocks.addWebBreadcrumbMock.mockReset();
+
+    const database = await openDatabase();
+    database.close();
+
+    expect(readLastIndexedDbOpenLifecycleSnapshot()).toEqual(expect.objectContaining({
+      observedAt: expect.any(String),
+      databaseName: webSyncDatabaseName,
+      databaseVersion: 13,
+      oldVersion: 0,
+      newVersion: 13,
+      databaseCreated: true,
+      databaseUpgraded: false,
+    }));
+    expect(observabilityMocks.addWebBreadcrumbMock).toHaveBeenCalledWith(expect.objectContaining({
+      action: "indexed_db_operation",
+      details: expect.objectContaining({
+        eventName: "indexed_db_open_lifecycle",
+        databaseName: webSyncDatabaseName,
+        databaseVersion: 13,
+        indexedDbOldVersion: 0,
+        indexedDbNewVersion: 13,
+        indexedDbDatabaseCreated: true,
+        indexedDbDatabaseUpgraded: false,
+      }),
+    }));
+
+    const reopenedDatabase = await openDatabase();
+    reopenedDatabase.close();
+
+    expect(readLastIndexedDbOpenLifecycleSnapshot()).toEqual(expect.objectContaining({
+      databaseName: webSyncDatabaseName,
+      databaseVersion: 13,
+      oldVersion: null,
+      newVersion: 13,
+      databaseCreated: false,
+      databaseUpgraded: false,
+    }));
+    expect(readIndexedDbOpenLifecycleSnapshotForDiagnostics()).toEqual(expect.objectContaining({
+      databaseName: webSyncDatabaseName,
+      databaseVersion: 13,
+      oldVersion: 0,
+      newVersion: 13,
+      databaseCreated: true,
+      databaseUpgraded: false,
+    }));
+
+    await clearWebSyncCache();
   });
 
   it("waits for managed IndexedDB operations before deleting browser data", async () => {

@@ -84,11 +84,23 @@ export type DatabaseStores =
   | "outbox"
   | "meta";
 
+export type IndexedDbOpenLifecycleSnapshot = Readonly<{
+  observedAt: string;
+  databaseName: string;
+  databaseVersion: number;
+  oldVersion: number | null;
+  newVersion: number;
+  databaseCreated: boolean;
+  databaseUpgraded: boolean;
+}>;
+
 const databaseName = "flashcards-web-sync";
 const databaseVersion = 13;
 const activeDatabaseOperationPromises = new Set<Promise<unknown>>();
 let isDatabaseDeleteInProgress = false;
 let activeDatabaseDeletePromise: Promise<void> | null = null;
+let lastIndexedDbOpenLifecycleSnapshot: IndexedDbOpenLifecycleSnapshot | null = null;
+let lastIndexedDbVersionChangeLifecycleSnapshot: IndexedDbOpenLifecycleSnapshot | null = null;
 
 type StoredCardDueAtMigrationRecord = Omit<StoredCard, "dueAt" | "dueAtMillis" | "dueAtBucketMillis" | "fsrsLastReviewedAtMillis"> & Readonly<{
   dueAt?: string | null;
@@ -187,6 +199,14 @@ function addIndexedDbOperationFailedBreadcrumb(
       errorMessage: error.message,
     },
   });
+}
+
+export function readLastIndexedDbOpenLifecycleSnapshot(): IndexedDbOpenLifecycleSnapshot | null {
+  return lastIndexedDbOpenLifecycleSnapshot;
+}
+
+export function readIndexedDbOpenLifecycleSnapshotForDiagnostics(): IndexedDbOpenLifecycleSnapshot | null {
+  return lastIndexedDbVersionChangeLifecycleSnapshot ?? lastIndexedDbOpenLifecycleSnapshot;
 }
 
 function deleteExistingStore(database: IDBDatabase, storeName: string): void {
@@ -411,6 +431,7 @@ function upgradeToVersion13(transaction: IDBTransaction): void {
 export function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(databaseName, databaseVersion);
+    let oldVersionDuringUpgrade: number | null = null;
 
     request.onerror = () => {
       const error = describeIndexedDbOperationError("Failed to open IndexedDB", request.error, "open");
@@ -420,6 +441,7 @@ export function openDatabase(): Promise<IDBDatabase> {
 
     request.onupgradeneeded = (event) => {
       const oldVersion = event.oldVersion;
+      oldVersionDuringUpgrade = oldVersion;
 
       if (oldVersion < 4) {
         upgradeToVersion4(request.result);
@@ -494,6 +516,34 @@ export function openDatabase(): Promise<IDBDatabase> {
     };
 
     request.onsuccess = () => {
+      const indexedDbOpenLifecycleSnapshot: IndexedDbOpenLifecycleSnapshot = {
+        observedAt: new Date().toISOString(),
+        databaseName,
+        databaseVersion,
+        oldVersion: oldVersionDuringUpgrade,
+        newVersion: request.result.version,
+        databaseCreated: oldVersionDuringUpgrade === 0,
+        databaseUpgraded: oldVersionDuringUpgrade !== null && oldVersionDuringUpgrade > 0,
+      };
+      lastIndexedDbOpenLifecycleSnapshot = indexedDbOpenLifecycleSnapshot;
+
+      if (oldVersionDuringUpgrade !== null) {
+        lastIndexedDbVersionChangeLifecycleSnapshot = indexedDbOpenLifecycleSnapshot;
+        addWebBreadcrumb({
+          action: "indexed_db_operation",
+          scope: buildIndexedDbObservationScope(),
+          details: {
+            eventName: "indexed_db_open_lifecycle",
+            databaseName,
+            databaseVersion,
+            indexedDbOldVersion: oldVersionDuringUpgrade,
+            indexedDbNewVersion: request.result.version,
+            indexedDbDatabaseCreated: indexedDbOpenLifecycleSnapshot.databaseCreated,
+            indexedDbDatabaseUpgraded: indexedDbOpenLifecycleSnapshot.databaseUpgraded,
+          },
+        });
+      }
+
       resolve(request.result);
     };
   });

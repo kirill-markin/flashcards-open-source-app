@@ -6,6 +6,7 @@ import {
   type SyncRestoreLocalBootstrapState,
   type WebObservationScope,
 } from "../../../observability/webObservability";
+import type { IndexedDbOpenLifecycleSnapshot } from "../../../localDb/core/database";
 import type { PersistentStorageState } from "../../../localDb/sync/cloudSettings";
 import type { SyncRestoreHistoryEntry } from "../restore/syncRestoreHistory";
 
@@ -36,6 +37,7 @@ export type LocalDbMissingObservationInput = Readonly<{
   previousRestoreHistory: SyncRestoreHistoryEntry;
   currentWebAppVersion: string;
   persistentStorageState: PersistentStorageState;
+  indexedDbOpenLifecycleSnapshot: IndexedDbOpenLifecycleSnapshot | null;
 }>;
 
 export type PersistentStorageObservationInput = Readonly<{
@@ -64,6 +66,7 @@ export type LocalDbRecoveryObservationInput = SyncBootstrapTimingDetails & Reado
   remoteIsEmpty: boolean | null;
   persistentStorageStateBefore: PersistentStorageState | null;
   persistentStorageStateAfter: PersistentStorageState | null;
+  indexedDbOpenLifecycleSnapshot: IndexedDbOpenLifecycleSnapshot | null;
 }>;
 
 export type LocalDbRecoveryFailedObservationInput = LocalDbRecoveryObservationInput & Readonly<{
@@ -107,6 +110,36 @@ function buildSyncBootstrapTimingDetails(input: SyncBootstrapTimingDetails): Syn
   };
 }
 
+type IndexedDbOpenLifecycleObservationFields = Readonly<{
+  indexedDbOpenObservedAt: string | null;
+  indexedDbOpenOldVersion: number | null;
+  indexedDbOpenNewVersion: number | null;
+  indexedDbDatabaseCreated: boolean | null;
+  indexedDbDatabaseUpgraded: boolean | null;
+}>;
+
+function buildIndexedDbOpenLifecycleObservationFields(
+  snapshot: IndexedDbOpenLifecycleSnapshot | null,
+): IndexedDbOpenLifecycleObservationFields {
+  if (snapshot === null) {
+    return {
+      indexedDbOpenObservedAt: null,
+      indexedDbOpenOldVersion: null,
+      indexedDbOpenNewVersion: null,
+      indexedDbDatabaseCreated: null,
+      indexedDbDatabaseUpgraded: null,
+    };
+  }
+
+  return {
+    indexedDbOpenObservedAt: snapshot.observedAt,
+    indexedDbOpenOldVersion: snapshot.oldVersion,
+    indexedDbOpenNewVersion: snapshot.newVersion,
+    indexedDbDatabaseCreated: snapshot.databaseCreated,
+    indexedDbDatabaseUpgraded: snapshot.databaseUpgraded,
+  };
+}
+
 export function observeSlowHotBootstrap(input: HotBootstrapSlowObservationInput): void {
   captureWebWarning({
     action: "sync_restore_slow",
@@ -132,6 +165,9 @@ export function observeSlowHotBootstrap(input: HotBootstrapSlowObservationInput)
 }
 
 export function observeLocalDbMissing(input: LocalDbMissingObservationInput): void {
+  const indexedDbOpenLifecycleFields = buildIndexedDbOpenLifecycleObservationFields(
+    input.indexedDbOpenLifecycleSnapshot,
+  );
   captureWebWarning({
     action: "sync_local_db_missing",
     scope: buildSyncObservationScope(input.userId, input.workspaceId, input.installationId),
@@ -160,6 +196,7 @@ export function observeLocalDbMissing(input: LocalDbMissingObservationInput): vo
       storageErrorName: input.persistentStorageState.errorName,
       storagePersistAttempted: input.persistentStorageState.persistAttempted,
       storagePersistGranted: input.persistentStorageState.persistGranted,
+      ...indexedDbOpenLifecycleFields,
     },
   });
 }
@@ -182,6 +219,9 @@ function persistentStorageStateOrNull(state: PersistentStorageState | null): Per
 export function observeLocalDbRecoverySucceeded(input: LocalDbRecoveryObservationInput): void {
   const persistentStorageStateBefore = persistentStorageStateOrNull(input.persistentStorageStateBefore);
   const persistentStorageStateAfter = persistentStorageStateOrNull(input.persistentStorageStateAfter);
+  const indexedDbOpenLifecycleFields = buildIndexedDbOpenLifecycleObservationFields(
+    input.indexedDbOpenLifecycleSnapshot,
+  );
   captureWebWarning({
     action: "sync_local_db_recovery_succeeded",
     scope: buildSyncObservationScope(input.userId, input.workspaceId, input.installationId),
@@ -225,6 +265,7 @@ export function observeLocalDbRecoverySucceeded(input: LocalDbRecoveryObservatio
       storagePersistAttemptedAfter: persistentStorageStateAfter.persistAttempted,
       storagePersistGrantedAfter: persistentStorageStateAfter.persistGranted,
       ...buildSyncBootstrapTimingDetails(input),
+      ...indexedDbOpenLifecycleFields,
     },
   });
 }
@@ -232,6 +273,9 @@ export function observeLocalDbRecoverySucceeded(input: LocalDbRecoveryObservatio
 export function observeLocalDbRecoveryFailed(input: LocalDbRecoveryFailedObservationInput): void {
   const persistentStorageStateBefore = persistentStorageStateOrNull(input.persistentStorageStateBefore);
   const persistentStorageStateAfter = persistentStorageStateOrNull(input.persistentStorageStateAfter);
+  const indexedDbOpenLifecycleFields = buildIndexedDbOpenLifecycleObservationFields(
+    input.indexedDbOpenLifecycleSnapshot,
+  );
   captureWebWarning({
     action: "sync_local_db_recovery_failed",
     scope: buildSyncObservationScope(input.userId, input.workspaceId, input.installationId),
@@ -281,6 +325,7 @@ export function observeLocalDbRecoveryFailed(input: LocalDbRecoveryFailedObserva
         : persistentStorageStateAfter.persistAttempted,
       storagePersistGrantedAfter: persistentStorageStateAfter.persistGranted,
       ...buildSyncBootstrapTimingDetails(input),
+      ...indexedDbOpenLifecycleFields,
     },
   });
 }
