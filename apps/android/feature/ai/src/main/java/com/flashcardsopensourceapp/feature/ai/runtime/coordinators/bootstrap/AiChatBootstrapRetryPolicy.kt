@@ -10,6 +10,8 @@ import java.net.ProtocolException
 import java.net.SocketException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
+import java.security.cert.CertPathValidatorException
+import java.security.cert.CertificateException
 import javax.net.ssl.SSLException
 import javax.net.ssl.SSLHandshakeException
 import javax.net.ssl.SSLPeerUnverifiedException
@@ -71,12 +73,11 @@ private fun isLikelyTransientBootstrapIoException(error: IOException): Boolean {
     if (error is MalformedURLException || error is ProtocolException) {
         return false
     }
-    if (
-        error is SSLHandshakeException ||
-        error is SSLPeerUnverifiedException ||
-        error is SSLProtocolException
-    ) {
+    if (error is SSLPeerUnverifiedException || error is SSLProtocolException) {
         return false
+    }
+    if (error is SSLHandshakeException) {
+        return isTransientSslHandshakeException(error = error)
     }
     if (
         error is SocketTimeoutException ||
@@ -93,7 +94,20 @@ private fun isLikelyTransientBootstrapIoException(error: IOException): Boolean {
     return hasTransientTransportMessage(error = error)
 }
 
+private fun isTransientSslHandshakeException(error: SSLHandshakeException): Boolean {
+    if (hasNonRetryableTlsCause(error = error)) {
+        return false
+    }
+    if (hasTransientTransportCause(error = error)) {
+        return true
+    }
+    return hasTransientTransportMessage(error = error)
+}
+
 private fun isTransportLikeSslException(error: SSLException): Boolean {
+    if (hasNonRetryableTlsCause(error = error)) {
+        return false
+    }
     if (hasTransientTransportCause(error = error)) {
         return true
     }
@@ -116,11 +130,26 @@ private fun hasTransientTransportMessage(error: Throwable): Boolean {
     return transportMessageFragments.any { fragment -> message.contains(fragment) }
 }
 
+private fun hasNonRetryableTlsCause(error: Throwable): Boolean {
+    var currentCause: Throwable? = error.cause
+    while (currentCause != null) {
+        if (
+            currentCause is SSLPeerUnverifiedException ||
+            currentCause is SSLProtocolException ||
+            currentCause is CertPathValidatorException ||
+            currentCause is CertificateException
+        ) {
+            return true
+        }
+        currentCause = currentCause.cause
+    }
+    return false
+}
+
 private fun hasTransientTransportCause(error: Throwable): Boolean {
     var currentCause: Throwable? = error.cause
     while (currentCause != null) {
         if (
-            currentCause is SSLHandshakeException ||
             currentCause is SSLPeerUnverifiedException ||
             currentCause is SSLProtocolException
         ) {
