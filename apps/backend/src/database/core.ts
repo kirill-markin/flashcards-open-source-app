@@ -155,6 +155,22 @@ export async function unsafeQuery<Row extends pg.QueryResultRow>(
 export async function unsafeTransaction<Result>(
   callback: (executor: DatabaseExecutor) => Promise<Result>,
 ): Promise<Result> {
+  return unsafeTransactionWithBeginStatement("BEGIN", callback);
+}
+
+export async function unsafeRepeatableReadTransaction<Result>(
+  callback: (executor: DatabaseExecutor) => Promise<Result>,
+): Promise<Result> {
+  return unsafeTransactionWithBeginStatement(
+    "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ",
+    callback,
+  );
+}
+
+async function unsafeTransactionWithBeginStatement<Result>(
+  beginStatement: string,
+  callback: (executor: DatabaseExecutor) => Promise<Result>,
+): Promise<Result> {
   let client: pg.PoolClient;
   try {
     client = await (await getPool()).connect();
@@ -174,7 +190,7 @@ export async function unsafeTransaction<Result>(
   let releaseError: Error | undefined;
   try {
     try {
-      await client.query("BEGIN");
+      await client.query(beginStatement);
     } catch (error) {
       releaseError = toClientReleaseError(error);
       throw toDatabaseBoundaryError(error);

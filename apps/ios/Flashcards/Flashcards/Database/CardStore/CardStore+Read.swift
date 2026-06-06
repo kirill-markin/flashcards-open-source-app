@@ -132,6 +132,7 @@ extension CardStore {
         let schedule = makeReviewSchedule(
             timeZone: timeZone,
             generatedAt: nil,
+            reviewHistoryWatermarks: [],
             totalCards: totalCards,
             buckets: buckets
         )

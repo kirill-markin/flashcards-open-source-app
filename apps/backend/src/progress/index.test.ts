@@ -36,6 +36,11 @@ type ReviewScheduleCountRow = Readonly<{
   later_count: string | number;
 }>;
 
+type ReviewHistoryWatermarkRow = Readonly<{
+  workspace_id: string;
+  review_sequence_id: string | number;
+}>;
+
 type WorkspaceMembershipRow = Readonly<{
   workspace_id: string;
 }>;
@@ -45,6 +50,7 @@ type ProgressExecutorFixture = Readonly<{
   reviewRowsByRequest: Readonly<Record<string, ReadonlyArray<DailyReviewCountRow>>>;
   allReviewDateRowsByRequest: Readonly<Record<string, ReadonlyArray<ReviewDateRow>>>;
   reviewScheduleRowsByRequest: Readonly<Record<string, ReadonlyArray<ReviewScheduleCountRow>>>;
+  reviewSequenceIdsByWorkspaceId: Readonly<Record<string, string | number>>;
 }>;
 
 type RecordedQuery = Readonly<{
@@ -177,6 +183,10 @@ function createQueryResult<Row extends QueryResultRow>(rows: ReadonlyArray<Row>)
   };
 }
 
+function isStringArray(value: SqlValue | undefined): value is ReadonlyArray<string> {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
 function createProgressExecutor(
   fixture: ProgressExecutorFixture,
 ): Readonly<{
@@ -218,6 +228,38 @@ function createProgressExecutor(
         return createQueryResult<WorkspaceMembershipRow>(
           (fixture.workspaceIdsByUser[userId] ?? []).map((workspaceId) => ({ workspace_id: workspaceId })),
         ) as unknown as pg.QueryResult<Row>;
+      }
+
+      if (
+        text.includes("COALESCE(MAX(review_events.review_sequence), 0) AS review_sequence_id")
+        && text.includes("FROM unnest($1::uuid[]) AS requested_workspace_ids(workspace_id)")
+      ) {
+        const workspaceIdsParam = params[0];
+        if (!isStringArray(workspaceIdsParam)) {
+          throw new Error("Review-history watermark query requires workspace id array parameter");
+        }
+
+        if (scope.userId === null || scope.workspaceId === null) {
+          throw new Error("Review-history watermark query requires workspace scope");
+        }
+
+        const rows = workspaceIdsParam.map((workspaceId) => {
+          if (workspaceId !== scope.workspaceId) {
+            throw new Error("Review-history watermark query requires matching workspace scope");
+          }
+
+          const reviewSequenceId = fixture.reviewSequenceIdsByWorkspaceId[workspaceId];
+          if (reviewSequenceId === undefined) {
+            throw new Error(`Missing review-history watermark fixture for ${workspaceId}`);
+          }
+
+          return {
+            workspace_id: workspaceId,
+            review_sequence_id: reviewSequenceId,
+          };
+        }).sort((left, right) => left.workspace_id.localeCompare(right.workspace_id));
+
+        return createQueryResult<ReviewHistoryWatermarkRow>(rows) as unknown as pg.QueryResult<Row>;
       }
 
       if (
@@ -323,6 +365,9 @@ test("loadUserProgressSeriesInExecutor returns a zero-filled series for an empty
     reviewRowsByRequest: {},
     allReviewDateRowsByRequest: {},
     reviewScheduleRowsByRequest: {},
+    reviewSequenceIdsByWorkspaceId: {
+      "workspace-1": 0,
+    },
   });
 
   const progress = await loadUserProgressSeriesInExecutor(executor, {
@@ -337,6 +382,7 @@ test("loadUserProgressSeriesInExecutor returns a zero-filled series for an empty
     from: progress.from,
     to: progress.to,
     dailyReviews: progress.dailyReviews,
+    reviewHistoryWatermarks: progress.reviewHistoryWatermarks,
   }, {
     timeZone: "Europe/Madrid",
     from: "2026-04-11",
@@ -345,6 +391,9 @@ test("loadUserProgressSeriesInExecutor returns a zero-filled series for an empty
       { date: "2026-04-11", reviewCount: 0 },
       { date: "2026-04-12", reviewCount: 0 },
       { date: "2026-04-13", reviewCount: 0 },
+    ],
+    reviewHistoryWatermarks: [
+      { workspaceId: "workspace-1", reviewSequenceId: 0 },
     ],
   });
   assert.match(progress.generatedAt, /^\d{4}-\d{2}-\d{2}T/);
@@ -358,6 +407,9 @@ test("loadUserProgressSummaryInExecutor returns zero summary metrics for an empt
     reviewRowsByRequest: {},
     allReviewDateRowsByRequest: {},
     reviewScheduleRowsByRequest: {},
+    reviewSequenceIdsByWorkspaceId: {
+      "workspace-1": 0,
+    },
   });
 
   const progress = await loadUserProgressSummaryInExecutor(executor, {
@@ -374,6 +426,9 @@ test("loadUserProgressSummaryInExecutor returns zero summary metrics for an empt
       activeReviewDays: 0,
     },
     generatedAt: progress.generatedAt,
+    reviewHistoryWatermarks: [
+      { workspaceId: "workspace-1", reviewSequenceId: 0 },
+    ],
   });
   assert.match(progress.generatedAt, /^\d{4}-\d{2}-\d{2}T/);
 });
@@ -390,6 +445,9 @@ test("loadUserProgressReviewScheduleInExecutor returns stable zero buckets for a
         createEmptyReviewScheduleCountRow(),
       ],
     },
+    reviewSequenceIdsByWorkspaceId: {
+      "workspace-1": 0,
+    },
   });
 
   const progress = await loadUserProgressReviewScheduleInExecutor(executor, {
@@ -403,7 +461,116 @@ test("loadUserProgressReviewScheduleInExecutor returns stable zero buckets for a
   })));
   assert.equal(progress.timeZone, "Europe/Madrid");
   assert.equal(progress.totalCards, 0);
+  assert.deepEqual(progress.reviewHistoryWatermarks, [
+    { workspaceId: "workspace-1", reviewSequenceId: 0 },
+  ]);
   assert.match(progress.generatedAt, /^\d{4}-\d{2}-\d{2}T/);
+});
+
+test("progress responses include sorted review-history watermarks for accessible workspaces", async () => {
+  const expectedWatermarks = [
+    { workspaceId: "workspace-1", reviewSequenceId: 42 },
+    { workspaceId: "workspace-2", reviewSequenceId: 7 },
+  ];
+  const { executor, recordedQueries } = createProgressExecutor({
+    workspaceIdsByUser: {
+      "user-1": ["workspace-2", "workspace-1"],
+    },
+    reviewRowsByRequest: {},
+    allReviewDateRowsByRequest: {},
+    reviewScheduleRowsByRequest: {
+      "workspace-1|Europe/Madrid": [
+        createEmptyReviewScheduleCountRow(),
+      ],
+      "workspace-2|Europe/Madrid": [
+        createEmptyReviewScheduleCountRow(),
+      ],
+    },
+    reviewSequenceIdsByWorkspaceId: {
+      "workspace-1": "42",
+      "workspace-2": 7,
+    },
+  });
+
+  const summary = await loadUserProgressSummaryInExecutor(executor, {
+    userId: "user-1",
+    timeZone: "Europe/Madrid",
+  });
+  const series = await loadUserProgressSeriesInExecutor(executor, {
+    userId: "user-1",
+    timeZone: "Europe/Madrid",
+    from: "2026-04-11",
+    to: "2026-04-12",
+  });
+  const reviewSchedule = await loadUserProgressReviewScheduleInExecutor(executor, {
+    userId: "user-1",
+    timeZone: "Europe/Madrid",
+  });
+
+  assert.deepEqual(summary.reviewHistoryWatermarks, expectedWatermarks);
+  assert.deepEqual(series.reviewHistoryWatermarks, expectedWatermarks);
+  assert.deepEqual(reviewSchedule.reviewHistoryWatermarks, expectedWatermarks);
+
+  const watermarkQueries = recordedQueries.filter((query) => (
+    query.text.includes("COALESCE(MAX(review_events.review_sequence), 0) AS review_sequence_id")
+  ));
+  assert.ok(watermarkQueries.length > 0);
+  assert.ok(watermarkQueries.every((query) => (
+    query.text.includes("WHERE security.current_workspace_access_allowed(requested_workspace_ids.workspace_id)")
+  )));
+});
+
+test("progress responses return empty review-history watermarks when the user has no workspaces", async () => {
+  const { executor } = createProgressExecutor({
+    workspaceIdsByUser: {
+      "user-1": [],
+    },
+    reviewRowsByRequest: {},
+    allReviewDateRowsByRequest: {},
+    reviewScheduleRowsByRequest: {},
+    reviewSequenceIdsByWorkspaceId: {},
+  });
+
+  const summary = await loadUserProgressSummaryInExecutor(executor, {
+    userId: "user-1",
+    timeZone: "Europe/Madrid",
+  });
+  const series = await loadUserProgressSeriesInExecutor(executor, {
+    userId: "user-1",
+    timeZone: "Europe/Madrid",
+    from: "2026-04-11",
+    to: "2026-04-12",
+  });
+  const reviewSchedule = await loadUserProgressReviewScheduleInExecutor(executor, {
+    userId: "user-1",
+    timeZone: "Europe/Madrid",
+  });
+
+  assert.deepEqual(summary.reviewHistoryWatermarks, []);
+  assert.deepEqual(series.reviewHistoryWatermarks, []);
+  assert.deepEqual(reviewSchedule.reviewHistoryWatermarks, []);
+});
+
+test("loadUserProgressSummaryInExecutor raises workspace context for invalid review-history sequence", async () => {
+  const { executor } = createProgressExecutor({
+    workspaceIdsByUser: {
+      "user-1": ["workspace-1"],
+    },
+    reviewRowsByRequest: {},
+    allReviewDateRowsByRequest: {},
+    reviewScheduleRowsByRequest: {},
+    reviewSequenceIdsByWorkspaceId: {
+      "workspace-1": "42-invalid",
+    },
+  });
+
+  await assert.rejects(
+    () => loadUserProgressSummaryInExecutor(executor, {
+      userId: "user-1",
+      timeZone: "Europe/Madrid",
+    }),
+    /Invalid review_sequence returned for progress watermark: workspaceId=workspace-1/,
+  );
 });
 
 test("loadUserProgressSeriesInExecutor fills gaps and merges review counts across multiple workspaces", async () => {
@@ -423,6 +590,10 @@ test("loadUserProgressSeriesInExecutor fills gaps and merges review counts acros
     },
     allReviewDateRowsByRequest: {},
     reviewScheduleRowsByRequest: {},
+    reviewSequenceIdsByWorkspaceId: {
+      "workspace-1": 4,
+      "workspace-2": 3,
+    },
   });
 
   const progress = await loadUserProgressSeriesInExecutor(executor, {
@@ -437,6 +608,10 @@ test("loadUserProgressSeriesInExecutor fills gaps and merges review counts acros
     { date: "2026-04-12", reviewCount: 0 },
     { date: "2026-04-13", reviewCount: 4 },
     { date: "2026-04-14", reviewCount: 3 },
+  ]);
+  assert.deepEqual(progress.reviewHistoryWatermarks, [
+    { workspaceId: "workspace-1", reviewSequenceId: 4 },
+    { workspaceId: "workspace-2", reviewSequenceId: 3 },
   ]);
 });
 
@@ -473,6 +648,10 @@ test("loadUserProgressReviewScheduleInExecutor merges bucket counts across works
         }),
       ],
     },
+    reviewSequenceIdsByWorkspaceId: {
+      "workspace-1": 8,
+      "workspace-2": "80",
+    },
   });
 
   const progress = await loadUserProgressReviewScheduleInExecutor(executor, {
@@ -491,6 +670,10 @@ test("loadUserProgressReviewScheduleInExecutor merges bucket counts across works
     { key: "later", count: 88 },
   ]);
   assert.equal(progress.totalCards, 396);
+  assert.deepEqual(progress.reviewHistoryWatermarks, [
+    { workspaceId: "workspace-1", reviewSequenceId: 8 },
+    { workspaceId: "workspace-2", reviewSequenceId: 80 },
+  ]);
 
   const scheduleQueries = recordedQueries.filter((query) => (
     query.text.includes("COUNT(*) FILTER (WHERE cards.due_at IS NULL)::int AS new_count")
@@ -524,6 +707,10 @@ test("loadUserProgressSummaryInExecutor merges all-time review dates across work
       ],
     },
     reviewScheduleRowsByRequest: {},
+    reviewSequenceIdsByWorkspaceId: {
+      "workspace-1": 3,
+      "workspace-2": 2,
+    },
   });
 
   const progress = await loadUserProgressSummaryInExecutor(executor, {
@@ -537,6 +724,10 @@ test("loadUserProgressSummaryInExecutor merges all-time review dates across work
     lastReviewedOn: "2026-04-14",
     activeReviewDays: 4,
   });
+  assert.deepEqual(progress.reviewHistoryWatermarks, [
+    { workspaceId: "workspace-1", reviewSequenceId: 3 },
+    { workspaceId: "workspace-2", reviewSequenceId: 2 },
+  ]);
 });
 
 test("loadUserProgressReviewScheduleInExecutor uses timezone calendar boundaries in SQL aggregate buckets", async () => {
@@ -550,6 +741,9 @@ test("loadUserProgressReviewScheduleInExecutor uses timezone calendar boundaries
       "workspace-1|America/Los_Angeles": [
         createEmptyReviewScheduleCountRow(),
       ],
+    },
+    reviewSequenceIdsByWorkspaceId: {
+      "workspace-1": 0,
     },
   });
 
@@ -597,6 +791,9 @@ test("loadUserProgressSeriesInExecutor buckets review counts by reviewed_at_clie
     },
     allReviewDateRowsByRequest: {},
     reviewScheduleRowsByRequest: {},
+    reviewSequenceIdsByWorkspaceId: {
+      "workspace-1": 1,
+    },
   });
 
   await loadUserProgressSeriesInExecutor(executor, {
@@ -634,6 +831,9 @@ test("loadUserProgressSummaryInExecutor derives active review dates from reviewe
       ],
     },
     reviewScheduleRowsByRequest: {},
+    reviewSequenceIdsByWorkspaceId: {
+      "workspace-1": 1,
+    },
   });
 
   await loadUserProgressSummaryInExecutor(executor, {
@@ -670,6 +870,10 @@ test("loadUserProgressSeriesInExecutor applies user scope for memberships and wo
     },
     allReviewDateRowsByRequest: {},
     reviewScheduleRowsByRequest: {},
+    reviewSequenceIdsByWorkspaceId: {
+      "workspace-1": 3,
+      "workspace-2": 1,
+    },
   });
 
   await loadUserProgressSeriesInExecutor(executor, {
@@ -706,6 +910,10 @@ test("loadUserProgressSummaryInExecutor applies user scope for memberships and w
       ],
     },
     reviewScheduleRowsByRequest: {},
+    reviewSequenceIdsByWorkspaceId: {
+      "workspace-1": 1,
+      "workspace-2": 1,
+    },
   });
 
   await loadUserProgressSummaryInExecutor(executor, {
@@ -749,6 +957,9 @@ test("loadUserProgressSummaryInExecutor keeps summary independent from the reque
       ],
     },
     reviewScheduleRowsByRequest: {},
+    reviewSequenceIdsByWorkspaceId: {
+      "workspace-1": 4,
+    },
   });
 
   const progress = await loadUserProgressSummaryInExecutor(executor, {
@@ -782,6 +993,9 @@ test("loadUserProgressSummaryInExecutor keeps hasReviewedToday true when a futur
       ],
     },
     reviewScheduleRowsByRequest: {},
+    reviewSequenceIdsByWorkspaceId: {
+      "workspace-1": 3,
+    },
   });
 
   const progress = await loadUserProgressSummaryInExecutor(executor, {

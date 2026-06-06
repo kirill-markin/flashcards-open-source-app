@@ -4,7 +4,12 @@ import com.flashcardsopensourceapp.data.local.database.entities.ProgressReviewSc
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressSeriesCacheEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressSummaryCacheEntity
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.progress.CloudDailyReviewPoint
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewHistoryWatermark
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.findProgressReviewScheduleServerBase
+import com.flashcardsopensourceapp.data.local.repository.progress.cache.toCacheEntity
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.toCloudProgressReviewScheduleOrNull
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.toCloudProgressSeriesOrNull
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.toCloudProgressSummaryOrNull
@@ -25,6 +30,7 @@ class ProgressCacheValidationTest {
             scopeId = "local:installation-1",
             timeZone = "Europe/Madrid",
             generatedAt = "2026-04-18T10:00:00Z",
+            reviewHistoryWatermarksJson = """[]""",
             currentStreakDays = 2,
             hasReviewedToday = true,
             lastReviewedOn = "not-a-date",
@@ -44,6 +50,7 @@ class ProgressCacheValidationTest {
             fromLocalDate = "2026-04-01",
             toLocalDate = "2026-04-18",
             generatedAt = "2026-04-18T10:00:00Z",
+            reviewHistoryWatermarksJson = """[]""",
             dailyReviewsJson = "{not-json}",
             updatedAtMillis = 1L
         )
@@ -59,6 +66,7 @@ class ProgressCacheValidationTest {
             timeZone = "Europe/Madrid",
             referenceLocalDate = "2026-05-03",
             generatedAt = "2026-05-03T10:00:00Z",
+            reviewHistoryWatermarksJson = """[]""",
             totalCards = 1,
             bucketsJson = """[{"key":"today","count":1},{"key":"new","count":0}]""",
             updatedAtMillis = 1L
@@ -105,6 +113,7 @@ class ProgressCacheValidationTest {
             timeZone = "UTC",
             referenceLocalDate = scopeKey.referenceLocalDate,
             generatedAt = "2026-05-03T10:00:00Z",
+            reviewHistoryWatermarksJson = """[]""",
             totalCards = 0,
             bucketsJson = """[]""",
             updatedAtMillis = 1L
@@ -116,6 +125,84 @@ class ProgressCacheValidationTest {
                 reviewScheduleCaches = listOf(cacheEntity),
                 scopeKey = scopeKey
             )
+        )
+    }
+
+    @Test
+    fun progressServerCachesPreserveReviewHistoryWatermarks(): Unit {
+        val watermarks = listOf(
+            ProgressReviewHistoryWatermark(
+                workspaceId = "workspace-1",
+                reviewSequenceId = 42L
+            ),
+            ProgressReviewHistoryWatermark(
+                workspaceId = "workspace-2",
+                reviewSequenceId = 7L
+            )
+        )
+        val summaryScopeKey = createProgressSummaryScopeKey(
+            cloudSettings = createCloudSettings(cloudState = CloudAccountState.LINKED),
+            today = LocalDate.parse("2026-04-18"),
+            zoneId = ZoneId.of("Europe/Madrid")
+        )
+        val seriesScopeKey = createProgressSeriesScopeKey(
+            cloudSettings = createCloudSettings(cloudState = CloudAccountState.LINKED),
+            today = LocalDate.parse("2026-04-18"),
+            zoneId = ZoneId.of("Europe/Madrid")
+        )
+        val scheduleScopeKey = createProgressReviewScheduleScopeKey(
+            cloudSettings = createCloudSettings(cloudState = CloudAccountState.LINKED),
+            today = LocalDate.parse("2026-04-18"),
+            zoneId = ZoneId.of("Europe/Madrid"),
+            workspaceIds = listOf("workspace-1", "workspace-2")
+        )
+        val summary = CloudProgressSummary(
+            currentStreakDays = 3,
+            hasReviewedToday = true,
+            lastReviewedOn = "2026-04-18",
+            activeReviewDays = 9,
+            reviewHistoryWatermarks = watermarks
+        )
+        val series = CloudProgressSeries(
+            timeZone = seriesScopeKey.timeZone,
+            from = seriesScopeKey.from,
+            to = seriesScopeKey.to,
+            dailyReviews = listOf(
+                CloudDailyReviewPoint(
+                    date = seriesScopeKey.to,
+                    reviewCount = 2
+                )
+            ),
+            generatedAt = "2026-04-18T10:00:00Z",
+            reviewHistoryWatermarks = watermarks,
+            summary = null
+        )
+        val schedule = createReviewSchedule(
+            timeZone = scheduleScopeKey.timeZone,
+            newCount = 1,
+            todayCount = 2
+        ).copy(reviewHistoryWatermarks = watermarks)
+
+        assertEquals(
+            watermarks,
+            summary.toCacheEntity(
+                scopeKey = summaryScopeKey,
+                updatedAtMillis = 1L
+            ).toCloudProgressSummaryOrNull()?.reviewHistoryWatermarks
+        )
+        assertEquals(
+            watermarks,
+            series.toCacheEntity(
+                scopeKey = seriesScopeKey,
+                updatedAtMillis = 1L
+            ).toCloudProgressSeriesOrNull()?.reviewHistoryWatermarks
+        )
+        assertEquals(
+            watermarks,
+            schedule.toCacheEntity(
+                scopeKey = scheduleScopeKey,
+                updatedAtMillis = 1L
+            ).toCloudProgressReviewScheduleOrNull()?.reviewHistoryWatermarks
         )
     }
 }

@@ -9,6 +9,7 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudStringOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudArray
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudBoolean
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudInt
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudLong
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudNullableString
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudObject
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
@@ -18,6 +19,7 @@ import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReview
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleBucketKey
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewHistoryWatermark
 import org.json.JSONObject
 
 internal class CloudProgressRemoteApi(
@@ -76,6 +78,9 @@ internal class CloudProgressRemoteApi(
                 }
             },
             generatedAt = response.optCloudStringOrNull("generatedAt", "progress.generatedAt"),
+            reviewHistoryWatermarks = response.requireProgressReviewHistoryWatermarks(
+                fieldPath = "progress"
+            ),
             summary = null
         )
     }
@@ -101,19 +106,25 @@ internal fun parseCloudProgressSummaryResponse(
     response: JSONObject,
     fieldPath: String
 ): CloudProgressSummary {
+    val reviewHistoryWatermarks = response.requireProgressReviewHistoryWatermarks(
+        fieldPath = fieldPath
+    )
     return response.requireCloudObject("summary", "$fieldPath.summary").toCloudProgressSummary(
-        fieldPath = "$fieldPath.summary"
+        fieldPath = "$fieldPath.summary",
+        reviewHistoryWatermarks = reviewHistoryWatermarks
     )
 }
 
 private fun JSONObject.toCloudProgressSummary(
-    fieldPath: String
+    fieldPath: String,
+    reviewHistoryWatermarks: List<ProgressReviewHistoryWatermark>
 ): CloudProgressSummary {
     return CloudProgressSummary(
         currentStreakDays = requireCloudInt("currentStreakDays", "$fieldPath.currentStreakDays"),
         hasReviewedToday = requireCloudBoolean("hasReviewedToday", "$fieldPath.hasReviewedToday"),
         lastReviewedOn = requireCloudNullableString("lastReviewedOn", "$fieldPath.lastReviewedOn"),
-        activeReviewDays = requireCloudInt("activeReviewDays", "$fieldPath.activeReviewDays")
+        activeReviewDays = requireCloudInt("activeReviewDays", "$fieldPath.activeReviewDays"),
+        reviewHistoryWatermarks = reviewHistoryWatermarks
     )
 }
 
@@ -169,9 +180,49 @@ internal fun parseCloudProgressReviewScheduleResponse(
     return CloudProgressReviewSchedule(
         timeZone = response.requireCloudString("timeZone", "$fieldPath.timeZone"),
         generatedAt = response.requireCloudString("generatedAt", "$fieldPath.generatedAt"),
+        reviewHistoryWatermarks = response.requireProgressReviewHistoryWatermarks(
+            fieldPath = fieldPath
+        ),
         totalCards = totalCards,
         buckets = buckets
     )
+}
+
+private fun JSONObject.requireProgressReviewHistoryWatermarks(
+    fieldPath: String
+): List<ProgressReviewHistoryWatermark> {
+    val watermarksArray = requireCloudArray("reviewHistoryWatermarks", "$fieldPath.reviewHistoryWatermarks")
+    return buildList {
+        for (index in 0 until watermarksArray.length()) {
+            val watermark = watermarksArray.requireCloudObject(index, "$fieldPath.reviewHistoryWatermarks[$index]")
+            add(
+                ProgressReviewHistoryWatermark(
+                    workspaceId = watermark.requireCloudString(
+                        "workspaceId",
+                        "$fieldPath.reviewHistoryWatermarks[$index].workspaceId"
+                    ),
+                    reviewSequenceId = requireNonNegativeReviewHistorySequenceId(
+                        value = watermark.requireCloudLong(
+                            "reviewSequenceId",
+                            "$fieldPath.reviewHistoryWatermarks[$index].reviewSequenceId"
+                        ),
+                        fieldPath = "$fieldPath.reviewHistoryWatermarks[$index].reviewSequenceId"
+                    )
+                )
+            )
+        }
+    }
+}
+
+private fun requireNonNegativeReviewHistorySequenceId(
+    value: Long,
+    fieldPath: String
+): Long {
+    if (value < 0L) {
+        throw CloudContractMismatchException("$fieldPath must not be negative.")
+    }
+
+    return value
 }
 
 private fun requireNonNegativeReviewScheduleInt(

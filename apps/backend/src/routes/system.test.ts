@@ -48,6 +48,9 @@ function createProgressSummaryResponse(): ProgressSummaryResponse {
       activeReviewDays: 12,
     },
     generatedAt: "2026-04-17T10:11:12.000Z",
+    reviewHistoryWatermarks: [
+      { workspaceId: "workspace-1", reviewSequenceId: 42 },
+    ],
   };
 }
 
@@ -66,6 +69,9 @@ function createProgressSeries(): ProgressSeries {
       { date: "2026-04-17", reviewCount: 4 },
     ],
     generatedAt: "2026-04-17T10:11:12.000Z",
+    reviewHistoryWatermarks: [
+      { workspaceId: "workspace-1", reviewSequenceId: 42 },
+    ],
   };
 }
 
@@ -83,6 +89,9 @@ function createProgressReviewSchedule(): ProgressReviewSchedule {
       { key: "days91To360", count: 12 },
       { key: "years1To2", count: 14 },
       { key: "later", count: 16 },
+    ],
+    reviewHistoryWatermarks: [
+      { workspaceId: "workspace-1", reviewSequenceId: 42 },
     ],
   };
 }

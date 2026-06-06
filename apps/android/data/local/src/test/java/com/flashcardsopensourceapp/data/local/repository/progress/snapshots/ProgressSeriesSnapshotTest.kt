@@ -75,6 +75,7 @@ class ProgressSeriesSnapshotTest {
                 )
             ),
             generatedAt = null,
+            reviewHistoryWatermarks = emptyList(),
             summary = null
         )
         val serverBase = CloudProgressSeries(
@@ -92,6 +93,7 @@ class ProgressSeriesSnapshotTest {
                 )
             ),
             generatedAt = "2026-04-18T12:00:00Z",
+            reviewHistoryWatermarks = emptyList(),
             summary = null
         )
 

@@ -5,6 +5,7 @@ import type {
   ProgressReviewScheduleBucket,
   ProgressReviewScheduleSnapshot,
   ProgressReviewScheduleSourceState,
+  ProgressReviewHistoryWatermark,
   ProgressSeries,
   ProgressSeriesInput,
   ProgressSeriesSnapshot,
@@ -64,6 +65,7 @@ export function normalizeProgressSeries(series: ProgressSeries): ProgressSeries 
     from: series.from,
     to: series.to,
     generatedAt: series.generatedAt,
+    reviewHistoryWatermarks: series.reviewHistoryWatermarks,
     dailyReviews: expandProgressDailyReviews(input, series.dailyReviews),
   };
 }
@@ -76,6 +78,7 @@ export function createProgressSummarySnapshot(
   return {
     timeZone: payload.timeZone,
     generatedAt: payload.generatedAt,
+    reviewHistoryWatermarks: payload.reviewHistoryWatermarks,
     summary: payload.summary,
     source,
     isApproximate,
@@ -105,6 +108,7 @@ export function createProgressReviewScheduleSnapshot(
   return {
     timeZone: reviewSchedule.timeZone,
     generatedAt: reviewSchedule.generatedAt,
+    reviewHistoryWatermarks: reviewSchedule.reviewHistoryWatermarks,
     totalCards: reviewSchedule.totalCards,
     buckets: reviewSchedule.buckets,
     source,
@@ -121,6 +125,7 @@ export function buildLocalFallbackSeries(
     from: input.from,
     to: input.to,
     generatedAt: null,
+    reviewHistoryWatermarks: [],
     dailyReviews: expandProgressDailyReviews(input, dailyReviews),
   };
 }
@@ -221,6 +226,7 @@ function mergeProgressSummary(
   return {
     timeZone: serverBase.timeZone,
     generatedAt: serverBase.generatedAt,
+    reviewHistoryWatermarks: serverBase.reviewHistoryWatermarks,
     summary: {
       currentStreakDays: Math.max(
         serverBase.summary.currentStreakDays,
@@ -453,6 +459,29 @@ function areProgressSummariesEqual(left: ProgressSummary, right: ProgressSummary
     && left.activeReviewDays === right.activeReviewDays;
 }
 
+function areProgressReviewHistoryWatermarksEqual(
+  left: ReadonlyArray<ProgressReviewHistoryWatermark>,
+  right: ReadonlyArray<ProgressReviewHistoryWatermark>,
+): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  for (let index = 0; index < left.length; index += 1) {
+    const leftWatermark = left[index];
+    const rightWatermark = right[index];
+
+    if (
+      leftWatermark?.workspaceId !== rightWatermark?.workspaceId
+      || leftWatermark?.reviewSequenceId !== rightWatermark?.reviewSequenceId
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 function areProgressSummaryPayloadsEqual(
   left: ProgressSummaryPayload | null,
   right: ProgressSummaryPayload | null,
@@ -467,6 +496,7 @@ function areProgressSummaryPayloadsEqual(
 
   return left.timeZone === right.timeZone
     && left.generatedAt === right.generatedAt
+    && areProgressReviewHistoryWatermarksEqual(left.reviewHistoryWatermarks, right.reviewHistoryWatermarks)
     && areProgressSummariesEqual(left.summary, right.summary);
 }
 
@@ -500,6 +530,7 @@ function areProgressSeriesEqual(left: ProgressSeries | null, right: ProgressSeri
     && left.from === right.from
     && left.to === right.to
     && left.generatedAt === right.generatedAt
+    && areProgressReviewHistoryWatermarksEqual(left.reviewHistoryWatermarks, right.reviewHistoryWatermarks)
     && areDailyReviewsEqual(left.dailyReviews, right.dailyReviews);
 }
 
@@ -554,6 +585,7 @@ function areProgressReviewSchedulesEqual(
 
   return left.timeZone === right.timeZone
     && left.generatedAt === right.generatedAt
+    && areProgressReviewHistoryWatermarksEqual(left.reviewHistoryWatermarks, right.reviewHistoryWatermarks)
     && left.totalCards === right.totalCards
     && areProgressReviewScheduleBucketsEqual(left.buckets, right.buckets);
 }

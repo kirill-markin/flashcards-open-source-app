@@ -37,7 +37,8 @@ final class ProgressSnapshotValidationTests: XCTestCase {
                     )
                 ],
                 summary: nil,
-                generatedAt: nil
+                generatedAt: nil,
+                reviewHistoryWatermarks: []
             )
 
             XCTAssertThrowsError(
@@ -77,7 +78,8 @@ final class ProgressSnapshotValidationTests: XCTestCase {
                 ProgressDay(date: "2026-02-03", reviewCount: 2),
             ],
             summary: nil,
-            generatedAt: nil
+            generatedAt: nil,
+            reviewHistoryWatermarks: []
         )
 
         XCTAssertThrowsError(
@@ -115,7 +117,8 @@ final class ProgressSnapshotValidationTests: XCTestCase {
                 ProgressDay(date: "2026-02-03", reviewCount: -1)
             ],
             summary: nil,
-            generatedAt: nil
+            generatedAt: nil,
+            reviewHistoryWatermarks: []
         )
 
         XCTAssertThrowsError(

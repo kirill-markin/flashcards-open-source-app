@@ -126,7 +126,7 @@ describe("useProgressSource cache", () => {
     const currentSeriesInput = buildCurrentSeriesInput();
     const seriesScopeKey = buildCurrentSeriesScopeKey();
     const malformedCachedSeries = {
-      version: 1,
+      version: 2,
       scopeKey: seriesScopeKey,
       savedAt: "2026-04-18T09:00:00.000Z",
       serverBase: {
@@ -134,6 +134,9 @@ describe("useProgressSource cache", () => {
         from: "not-a-local-date",
         to: currentSeriesInput.to,
         generatedAt: "2026-04-18T09:10:00.000Z",
+        reviewHistoryWatermarks: [
+          { workspaceId: "workspace-1", reviewSequenceId: 12 },
+        ],
         dailyReviews: [
           {
             date: currentSeriesInput.to,

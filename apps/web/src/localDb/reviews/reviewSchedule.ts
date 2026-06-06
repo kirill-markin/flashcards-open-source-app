@@ -600,6 +600,7 @@ export async function loadLocalProgressReviewSchedule(
     return {
       timeZone: input.timeZone,
       generatedAt: null,
+      reviewHistoryWatermarks: [],
       totalCards: 0,
       buckets,
     };
@@ -612,6 +613,7 @@ export async function loadLocalProgressReviewSchedule(
     return {
       timeZone: input.timeZone,
       generatedAt: null,
+      reviewHistoryWatermarks: [],
       totalCards: sumBucketCounts(buckets),
       buckets,
     };

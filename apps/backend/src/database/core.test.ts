@@ -205,6 +205,23 @@ test("unsafeTransaction classifies transaction failures and discards clients whe
         rollbackErrorMessage: "terminating connection due to administrator command",
       },
     ]);
+
+    rollbackError = null;
+    queries.length = 0;
+    releaseArguments.length = 0;
+
+    const repeatableReadResult = await dbCore.unsafeRepeatableReadTransaction(async (executor) => {
+      await executor.query("SELECT app.progress()", []);
+      return "ok";
+    });
+
+    assert.equal(repeatableReadResult, "ok");
+    assert.deepEqual(queries, [
+      { text: "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ", params: null },
+      { text: "SELECT app.progress()", params: [] },
+      { text: "COMMIT", params: null },
+    ]);
+    assert.deepEqual(releaseArguments, [undefined]);
   } finally {
     (pg as unknown as { Pool: typeof pg.Pool }).Pool = originalPool;
     console.warn = originalWarn;

@@ -325,6 +325,9 @@ export function buildServerSummary(activeReviewDays: number, generatedAt: string
   return {
     timeZone: "Europe/Madrid",
     generatedAt,
+    reviewHistoryWatermarks: [
+      { workspaceId: workspace.workspaceId, reviewSequenceId: activeReviewDays },
+    ],
     summary: {
       currentStreakDays: activeReviewDays,
       hasReviewedToday: true,
@@ -342,6 +345,9 @@ export function buildServerSeries(reviewCount: number, generatedAt: string): Pro
     from: input.from,
     to: input.to,
     generatedAt,
+    reviewHistoryWatermarks: [
+      { workspaceId: workspace.workspaceId, reviewSequenceId: reviewCount },
+    ],
     dailyReviews: [
       {
         date: input.to,
@@ -355,6 +361,9 @@ export function buildServerReviewSchedule(newCount: number, generatedAt: string 
   return {
     timeZone: "Europe/Madrid",
     generatedAt,
+    reviewHistoryWatermarks: [
+      { workspaceId: workspace.workspaceId, reviewSequenceId: newCount },
+    ],
     totalCards: newCount + 3,
     buckets: [
       { key: "new", count: newCount },
@@ -438,7 +447,7 @@ export function storePersistedProgressSummaryForTest(
   serverBase: ProgressSummaryPayload,
 ): void {
   window.localStorage.setItem(`flashcards-progress-server-summary:${scopeKey}`, JSON.stringify({
-    version: 1,
+    version: 2,
     scopeKey,
     savedAt: "2026-04-18T09:00:00.000Z",
     serverBase,
@@ -450,7 +459,7 @@ export function storePersistedProgressSeriesForTest(
   serverBase: ProgressSeries,
 ): void {
   window.localStorage.setItem(`flashcards-progress-server-series:${scopeKey}`, JSON.stringify({
-    version: 1,
+    version: 2,
     scopeKey,
     savedAt: "2026-04-18T09:00:00.000Z",
     serverBase,
@@ -462,7 +471,7 @@ export function storePersistedProgressReviewScheduleForTest(
   serverBase: ProgressReviewSchedule,
 ): void {
   window.localStorage.setItem(`flashcards-progress-server-review-schedule:${scopeKey}`, JSON.stringify({
-    version: 1,
+    version: 2,
     scopeKey,
     savedAt: "2026-04-18T09:00:00.000Z",
     serverBase,

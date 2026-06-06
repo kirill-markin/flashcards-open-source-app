@@ -4,7 +4,7 @@ import {
   type DatabaseExecutor,
   type SqlValue,
 } from "../database";
-import { unsafeTransaction } from "../database/unsafe";
+import { unsafeRepeatableReadTransaction } from "../database/unsafe";
 import { HttpError } from "../shared/errors";
 import { listUserWorkspaceIdsInExecutor } from "../workspaces/queries";
 
@@ -64,11 +64,20 @@ export type ProgressSummary = Readonly<{
   activeReviewDays: number;
 }>;
 
+export type ProgressReviewHistoryWatermark = Readonly<{
+  workspaceId: string;
+  reviewSequenceId: number;
+}>;
+
+export type ProgressReviewHistoryWatermarkPayload = Readonly<{
+  reviewHistoryWatermarks: ReadonlyArray<ProgressReviewHistoryWatermark>;
+}>;
+
 export type ProgressSummaryResponse = Readonly<{
   timeZone: string;
   summary: ProgressSummary;
   generatedAt: string;
-}>;
+}> & ProgressReviewHistoryWatermarkPayload;
 
 export type ProgressSeries = Readonly<{
   timeZone: string;
@@ -76,14 +85,14 @@ export type ProgressSeries = Readonly<{
   to: string;
   dailyReviews: ReadonlyArray<DailyReviewPoint>;
   generatedAt: string;
-}>;
+}> & ProgressReviewHistoryWatermarkPayload;
 
 export type ProgressReviewSchedule = Readonly<{
   timeZone: string;
   generatedAt: string;
   totalCards: number;
   buckets: ReadonlyArray<ReviewScheduleBucket>;
-}>;
+}> & ProgressReviewHistoryWatermarkPayload;
 
 type DailyReviewCountRow = Readonly<{
   review_date: string;
@@ -103,6 +112,11 @@ type ReviewScheduleCountRow = Readonly<{
   days_91_to_360_count: string | number;
   years_1_to_2_count: string | number;
   later_count: string | number;
+}>;
+
+type ReviewHistoryWatermarkRow = Readonly<{
+  workspace_id: string;
+  review_sequence_id: string | number;
 }>;
 
 type ReviewScheduleBucketCounts = Readonly<Record<ReviewScheduleBucketKey, number>>;
@@ -357,6 +371,72 @@ function normalizeNonNegativeIntegerFromQuery(value: string | number, fieldName:
   return normalizedValue;
 }
 
+function parseReviewSequenceId(value: string | number): number {
+  if (typeof value === "number") {
+    return value;
+  }
+
+  const trimmedValue = value.trim();
+  if (!/^\d+$/.test(trimmedValue)) {
+    return Number.NaN;
+  }
+
+  return Number.parseInt(trimmedValue, 10);
+}
+
+function normalizeReviewSequenceId(value: string | number, workspaceId: string): number {
+  const normalizedValue = parseReviewSequenceId(value);
+  if (!Number.isSafeInteger(normalizedValue) || normalizedValue < 0) {
+    throw new Error(
+      `Invalid review_sequence returned for progress watermark: workspaceId=${workspaceId}, value=${String(value)}`,
+    );
+  }
+
+  return normalizedValue;
+}
+
+function mapReviewHistoryWatermarkRow(row: ReviewHistoryWatermarkRow): ProgressReviewHistoryWatermark {
+  const workspaceId = row.workspace_id.trim();
+  if (workspaceId === "") {
+    throw new Error("Invalid workspace_id returned for progress watermark");
+  }
+
+  return {
+    workspaceId,
+    reviewSequenceId: normalizeReviewSequenceId(row.review_sequence_id, workspaceId),
+  };
+}
+
+function createSortedWorkspaceIds(workspaceIds: ReadonlyArray<string>): ReadonlyArray<string> {
+  return [...new Set(workspaceIds)].sort((left, right) => left.localeCompare(right));
+}
+
+function assertWatermarkRowsCoverWorkspaceIds(
+  workspaceIds: ReadonlyArray<string>,
+  rows: ReadonlyArray<ReviewHistoryWatermarkRow>,
+): void {
+  const expectedWorkspaceIds = createSortedWorkspaceIds(workspaceIds);
+  const actualWorkspaceIds = createSortedWorkspaceIds(rows.map((row) => row.workspace_id));
+  const hasMismatchedWorkspaceIds = expectedWorkspaceIds.length !== actualWorkspaceIds.length
+    || expectedWorkspaceIds.some((workspaceId, index) => workspaceId !== actualWorkspaceIds[index]);
+
+  if (hasMismatchedWorkspaceIds) {
+    throw new Error(
+      [
+        "Review-history watermark query did not return one row per workspace",
+        `expectedWorkspaceIds=${expectedWorkspaceIds.join(",")}`,
+        `returnedWorkspaceIds=${actualWorkspaceIds.join(",")}`,
+      ].join("; "),
+    );
+  }
+}
+
+function sortReviewHistoryWatermarks(
+  watermarks: ReadonlyArray<ProgressReviewHistoryWatermark>,
+): ReadonlyArray<ProgressReviewHistoryWatermark> {
+  return [...watermarks].sort((left, right) => left.workspaceId.localeCompare(right.workspaceId));
+}
+
 function createEmptyReviewScheduleBucketCounts(): ReviewScheduleBucketCounts {
   return Object.fromEntries(
     reviewScheduleBucketKeys.map((key) => [key, 0]),
@@ -419,6 +499,37 @@ function createDailyReviews(
     date,
     reviewCount: aggregate.get(date) ?? 0,
   }));
+}
+
+async function loadReviewHistoryWatermarksInExecutor(
+  executor: DatabaseExecutor,
+  workspaceIds: ReadonlyArray<string>,
+): Promise<ReadonlyArray<ProgressReviewHistoryWatermark>> {
+  if (workspaceIds.length === 0) {
+    return [];
+  }
+
+  const result = await executor.query<ReviewHistoryWatermarkRow>(
+    [
+      "WITH requested_workspaces AS (",
+      "SELECT requested_workspace_ids.workspace_id",
+      "FROM unnest($1::uuid[]) AS requested_workspace_ids(workspace_id)",
+      "WHERE security.current_workspace_access_allowed(requested_workspace_ids.workspace_id)",
+      ")",
+      "SELECT",
+      "requested_workspaces.workspace_id::text AS workspace_id,",
+      "COALESCE(MAX(review_events.review_sequence), 0) AS review_sequence_id",
+      "FROM requested_workspaces",
+      "LEFT JOIN content.review_events AS review_events",
+      "ON review_events.workspace_id = requested_workspaces.workspace_id",
+      "GROUP BY requested_workspaces.workspace_id",
+      "ORDER BY requested_workspaces.workspace_id ASC",
+    ].join(" "),
+    [workspaceIds],
+  );
+
+  assertWatermarkRowsCoverWorkspaceIds(workspaceIds, result.rows);
+  return result.rows.map(mapReviewHistoryWatermarkRow);
 }
 
 async function loadDailyReviewCountRowsInExecutor(
@@ -577,6 +688,7 @@ async function buildUserProgressSummaryInExecutor(
   // user can still access; AI workspace routing does not change that contract.
   const workspaceIds = await listUserWorkspaceIdsInExecutor(executor, request.userId);
   let lastReviewedOn: string | null = null;
+  let reviewHistoryWatermarks: ReadonlyArray<ProgressReviewHistoryWatermark> = [];
 
   for (const workspaceId of workspaceIds) {
     await applyWorkspaceDatabaseScopeInExecutor(executor, {
@@ -589,6 +701,9 @@ async function buildUserProgressSummaryInExecutor(
     });
     accumulateReviewDates(reviewDates, rows);
     lastReviewedOn = findLatestReviewedOn(lastReviewedOn, rows[0]?.review_date ?? null);
+    reviewHistoryWatermarks = reviewHistoryWatermarks.concat(
+      await loadReviewHistoryWatermarksInExecutor(executor, [workspaceId]),
+    );
   }
 
   const today = formatDateAsTimeZoneLocalDate(generatedAtDate, request.timeZone);
@@ -606,6 +721,7 @@ async function buildUserProgressSummaryInExecutor(
       lastReviewedOn,
     ),
     generatedAt: generatedAtDate.toISOString(),
+    reviewHistoryWatermarks: sortReviewHistoryWatermarks(reviewHistoryWatermarks),
   };
 }
 
@@ -617,6 +733,7 @@ async function buildUserProgressReviewScheduleInExecutor(
   let counts = createEmptyReviewScheduleBucketCounts();
   await applyUserDatabaseScopeInExecutor(executor, { userId: request.userId });
   const workspaceIds = await listUserWorkspaceIdsInExecutor(executor, request.userId);
+  let reviewHistoryWatermarks: ReadonlyArray<ProgressReviewHistoryWatermark> = [];
 
   for (const workspaceId of workspaceIds) {
     await applyWorkspaceDatabaseScopeInExecutor(executor, {
@@ -629,6 +746,9 @@ async function buildUserProgressReviewScheduleInExecutor(
       generatedAt: generatedAtDate,
     });
     counts = addReviewScheduleCountRow(counts, row);
+    reviewHistoryWatermarks = reviewHistoryWatermarks.concat(
+      await loadReviewHistoryWatermarksInExecutor(executor, [workspaceId]),
+    );
   }
 
   return {
@@ -636,6 +756,7 @@ async function buildUserProgressReviewScheduleInExecutor(
     generatedAt: generatedAtDate.toISOString(),
     totalCards: calculateReviewScheduleTotalCards(counts),
     buckets: createReviewScheduleBuckets(counts),
+    reviewHistoryWatermarks: sortReviewHistoryWatermarks(reviewHistoryWatermarks),
   };
 }
 
@@ -647,6 +768,7 @@ async function buildUserProgressSeriesInExecutor(
   const dailyReviewCounts = new Map<string, number>();
   await applyUserDatabaseScopeInExecutor(executor, { userId: request.userId });
   const workspaceIds = await listUserWorkspaceIdsInExecutor(executor, request.userId);
+  let reviewHistoryWatermarks: ReadonlyArray<ProgressReviewHistoryWatermark> = [];
 
   for (const workspaceId of workspaceIds) {
     // review_events reads are workspace-scoped by RLS, so aggregate one
@@ -662,6 +784,9 @@ async function buildUserProgressSeriesInExecutor(
       to: request.to,
     });
     accumulateDailyReviewCounts(dailyReviewCounts, rows);
+    reviewHistoryWatermarks = reviewHistoryWatermarks.concat(
+      await loadReviewHistoryWatermarksInExecutor(executor, [workspaceId]),
+    );
   }
 
   return {
@@ -673,6 +798,7 @@ async function buildUserProgressSeriesInExecutor(
       dailyReviewCounts,
     ),
     generatedAt: generatedAtDate.toISOString(),
+    reviewHistoryWatermarks: sortReviewHistoryWatermarks(reviewHistoryWatermarks),
   };
 }
 
@@ -698,15 +824,17 @@ export async function loadUserProgressSeriesInExecutor(
 }
 
 export async function loadUserProgressSummary(request: ProgressSummaryRequest): Promise<ProgressSummaryResponse> {
-  return unsafeTransaction(async (executor) => loadUserProgressSummaryInExecutor(executor, request));
+  return unsafeRepeatableReadTransaction(async (executor) => loadUserProgressSummaryInExecutor(executor, request));
 }
 
 export async function loadUserProgressReviewSchedule(
   request: ProgressReviewScheduleRequest,
 ): Promise<ProgressReviewSchedule> {
-  return unsafeTransaction(async (executor) => loadUserProgressReviewScheduleInExecutor(executor, request));
+  return unsafeRepeatableReadTransaction(
+    async (executor) => loadUserProgressReviewScheduleInExecutor(executor, request),
+  );
 }
 
 export async function loadUserProgressSeries(request: ProgressSeriesRequest): Promise<ProgressSeries> {
-  return unsafeTransaction(async (executor) => loadUserProgressSeriesInExecutor(executor, request));
+  return unsafeRepeatableReadTransaction(async (executor) => loadUserProgressSeriesInExecutor(executor, request));
 }

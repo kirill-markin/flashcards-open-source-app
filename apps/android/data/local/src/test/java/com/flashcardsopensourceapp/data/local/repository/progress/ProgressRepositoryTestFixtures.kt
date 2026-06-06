@@ -127,6 +127,7 @@ internal fun createReviewSchedule(
     return CloudProgressReviewSchedule(
         timeZone = timeZone,
         generatedAt = null,
+        reviewHistoryWatermarks = emptyList(),
         totalCards = buckets.sumOf(CloudProgressReviewScheduleBucket::count),
         buckets = buckets
     )

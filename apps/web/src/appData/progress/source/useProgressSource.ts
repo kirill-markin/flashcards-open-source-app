@@ -328,6 +328,7 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
         localFallback: createProgressSummarySnapshot({
           timeZone: summaryInput.timeZone,
           generatedAt: null,
+          reviewHistoryWatermarks: [],
           summary: localSummary,
         }, "local_only", true),
         hasPendingLocalReviews,

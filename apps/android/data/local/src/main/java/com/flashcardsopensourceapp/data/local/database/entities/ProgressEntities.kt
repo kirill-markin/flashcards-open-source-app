@@ -11,6 +11,7 @@ data class ProgressSummaryCacheEntity(
     val scopeId: String,
     val timeZone: String,
     val generatedAt: String?,
+    val reviewHistoryWatermarksJson: String,
     val currentStreakDays: Int,
     val hasReviewedToday: Boolean,
     val lastReviewedOn: String?,
@@ -26,6 +27,7 @@ data class ProgressSeriesCacheEntity(
     val fromLocalDate: String,
     val toLocalDate: String,
     val generatedAt: String?,
+    val reviewHistoryWatermarksJson: String,
     val dailyReviewsJson: String,
     val updatedAtMillis: Long
 )
@@ -37,6 +39,7 @@ data class ProgressReviewScheduleCacheEntity(
     val timeZone: String,
     val referenceLocalDate: String,
     val generatedAt: String?,
+    val reviewHistoryWatermarksJson: String,
     val totalCards: Int,
     val bucketsJson: String,
     val updatedAtMillis: Long

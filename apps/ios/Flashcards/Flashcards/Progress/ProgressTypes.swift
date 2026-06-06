@@ -21,15 +21,52 @@ struct ProgressSummary: Codable, Hashable, Sendable {
     let activeReviewDays: Int
 }
 
+struct ProgressReviewHistoryWatermark: Codable, Hashable, Sendable {
+    let workspaceId: String
+    let reviewSequenceId: Int64
+
+    enum CodingKeys: String, CodingKey {
+        case workspaceId
+        case reviewSequenceId
+    }
+
+    init(
+        workspaceId: String,
+        reviewSequenceId: Int64
+    ) {
+        self.workspaceId = workspaceId
+        self.reviewSequenceId = reviewSequenceId
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let reviewSequenceId = try container.decode(Int64.self, forKey: .reviewSequenceId)
+        guard reviewSequenceId >= 0 else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .reviewSequenceId,
+                in: container,
+                debugDescription: "reviewSequenceId must not be negative"
+            )
+        }
+
+        self.init(
+            workspaceId: try container.decode(String.self, forKey: .workspaceId),
+            reviewSequenceId: reviewSequenceId
+        )
+    }
+}
+
 struct UserProgressSummary: Codable, Hashable, Sendable {
     let timeZone: String?
     let summary: ProgressSummary
     let generatedAt: String?
+    let reviewHistoryWatermarks: [ProgressReviewHistoryWatermark]
 
     enum CodingKeys: String, CodingKey {
         case timeZone
         case summary
         case generatedAt
+        case reviewHistoryWatermarks
         case currentStreakDays
         case hasReviewedToday
         case lastReviewedOn
@@ -39,11 +76,13 @@ struct UserProgressSummary: Codable, Hashable, Sendable {
     init(
         timeZone: String?,
         summary: ProgressSummary,
-        generatedAt: String?
+        generatedAt: String?,
+        reviewHistoryWatermarks: [ProgressReviewHistoryWatermark]
     ) {
         self.timeZone = timeZone
         self.summary = summary
         self.generatedAt = generatedAt
+        self.reviewHistoryWatermarks = reviewHistoryWatermarks
     }
 
     init(from decoder: Decoder) throws {
@@ -52,7 +91,11 @@ struct UserProgressSummary: Codable, Hashable, Sendable {
             self.init(
                 timeZone: try container.decodeIfPresent(String.self, forKey: .timeZone),
                 summary: try container.decode(ProgressSummary.self, forKey: .summary),
-                generatedAt: try container.decodeIfPresent(String.self, forKey: .generatedAt)
+                generatedAt: try container.decodeIfPresent(String.self, forKey: .generatedAt),
+                reviewHistoryWatermarks: try container.decode(
+                    [ProgressReviewHistoryWatermark].self,
+                    forKey: .reviewHistoryWatermarks
+                )
             )
             return
         }
@@ -65,7 +108,11 @@ struct UserProgressSummary: Codable, Hashable, Sendable {
                 lastReviewedOn: try container.decodeIfPresent(String.self, forKey: .lastReviewedOn),
                 activeReviewDays: try container.decode(Int.self, forKey: .activeReviewDays)
             ),
-            generatedAt: try container.decodeIfPresent(String.self, forKey: .generatedAt)
+            generatedAt: try container.decodeIfPresent(String.self, forKey: .generatedAt),
+            reviewHistoryWatermarks: try container.decode(
+                [ProgressReviewHistoryWatermark].self,
+                forKey: .reviewHistoryWatermarks
+            )
         )
     }
 
@@ -74,6 +121,7 @@ struct UserProgressSummary: Codable, Hashable, Sendable {
         try container.encodeIfPresent(self.timeZone, forKey: .timeZone)
         try container.encode(self.summary, forKey: .summary)
         try container.encodeIfPresent(self.generatedAt, forKey: .generatedAt)
+        try container.encode(self.reviewHistoryWatermarks, forKey: .reviewHistoryWatermarks)
     }
 }
 
@@ -84,6 +132,7 @@ struct UserProgressSeries: Codable, Hashable, Sendable {
     let dailyReviews: [ProgressDay]
     let summary: ProgressSummary?
     let generatedAt: String?
+    let reviewHistoryWatermarks: [ProgressReviewHistoryWatermark]
 
     init(
         timeZone: String,
@@ -91,7 +140,8 @@ struct UserProgressSeries: Codable, Hashable, Sendable {
         to: String,
         dailyReviews: [ProgressDay],
         summary: ProgressSummary?,
-        generatedAt: String?
+        generatedAt: String?,
+        reviewHistoryWatermarks: [ProgressReviewHistoryWatermark]
     ) {
         self.timeZone = timeZone
         self.from = from
@@ -99,6 +149,7 @@ struct UserProgressSeries: Codable, Hashable, Sendable {
         self.dailyReviews = dailyReviews
         self.summary = summary
         self.generatedAt = generatedAt
+        self.reviewHistoryWatermarks = reviewHistoryWatermarks
     }
 }
 
@@ -140,6 +191,7 @@ struct ReviewScheduleBucket: Codable, Hashable, Identifiable, Sendable {
 struct UserReviewSchedule: Codable, Hashable, Sendable {
     let timeZone: String
     let generatedAt: String?
+    let reviewHistoryWatermarks: [ProgressReviewHistoryWatermark]
     let totalCards: Int
     let buckets: [ReviewScheduleBucket]
 }
@@ -523,7 +575,8 @@ func makeProgressSeries(
     to: String,
     dailyReviews: [ProgressDay],
     summary: ProgressSummary?,
-    generatedAt: String?
+    generatedAt: String?,
+    reviewHistoryWatermarks: [ProgressReviewHistoryWatermark]
 ) -> UserProgressSeries {
     UserProgressSeries(
         timeZone: timeZone,
@@ -531,19 +584,22 @@ func makeProgressSeries(
         to: to,
         dailyReviews: dailyReviews,
         summary: summary,
-        generatedAt: generatedAt
+        generatedAt: generatedAt,
+        reviewHistoryWatermarks: reviewHistoryWatermarks
     )
 }
 
 func makeReviewSchedule(
     timeZone: String,
     generatedAt: String?,
+    reviewHistoryWatermarks: [ProgressReviewHistoryWatermark],
     totalCards: Int,
     buckets: [ReviewScheduleBucket]
 ) -> UserReviewSchedule {
     UserReviewSchedule(
         timeZone: timeZone,
         generatedAt: generatedAt,
+        reviewHistoryWatermarks: reviewHistoryWatermarks,
         totalCards: totalCards,
         buckets: buckets
     )

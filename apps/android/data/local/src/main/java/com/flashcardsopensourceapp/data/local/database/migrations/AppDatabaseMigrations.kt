@@ -23,7 +23,8 @@ fun createAppDatabaseMigrations(): Array<Migration> {
         migration13To14,
         migration14To15,
         migration15To16,
-        migration16To17
+        migration16To17,
+        migration17To18
     )
 }
 
@@ -682,6 +683,29 @@ val migration16To17: Migration = object : Migration(16, 17) {
             """
             CREATE INDEX IF NOT EXISTS $cardsRecentlyReviewedDueIndexName
             ON cards(workspaceId, fsrsLastReviewedAtMillis, dueAtMillis, createdAtMillis, cardId)
+            """.trimIndent()
+        )
+    }
+}
+
+val migration17To18: Migration = object : Migration(17, 18) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            ALTER TABLE progress_summary_cache
+            ADD COLUMN reviewHistoryWatermarksJson TEXT NOT NULL DEFAULT '[]'
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            ALTER TABLE progress_series_cache
+            ADD COLUMN reviewHistoryWatermarksJson TEXT NOT NULL DEFAULT '[]'
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            ALTER TABLE progress_review_schedule_cache
+            ADD COLUMN reviewHistoryWatermarksJson TEXT NOT NULL DEFAULT '[]'
             """.trimIndent()
         )
     }

@@ -8,6 +8,7 @@ import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReview
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewScheduleBucket
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewHistoryWatermark
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleBucketKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesScopeKey
@@ -32,6 +33,9 @@ internal fun CloudProgressSummary.toCacheEntity(
         scopeId = scopeKey.scopeId,
         timeZone = scopeKey.timeZone,
         generatedAt = null,
+        reviewHistoryWatermarksJson = serializeProgressReviewHistoryWatermarks(
+            watermarks = reviewHistoryWatermarks
+        ),
         currentStreakDays = currentStreakDays,
         hasReviewedToday = hasReviewedToday,
         lastReviewedOn = lastReviewedOn,
@@ -51,6 +55,9 @@ internal fun CloudProgressSeries.toCacheEntity(
         fromLocalDate = from,
         toLocalDate = to,
         generatedAt = generatedAt,
+        reviewHistoryWatermarksJson = serializeProgressReviewHistoryWatermarks(
+            watermarks = reviewHistoryWatermarks
+        ),
         dailyReviewsJson = JSONArray().apply {
             dailyReviews.forEach { point ->
                 put(
@@ -74,6 +81,9 @@ internal fun CloudProgressReviewSchedule.toCacheEntity(
         timeZone = timeZone,
         referenceLocalDate = scopeKey.referenceLocalDate,
         generatedAt = generatedAt,
+        reviewHistoryWatermarksJson = serializeProgressReviewHistoryWatermarks(
+            watermarks = reviewHistoryWatermarks
+        ),
         totalCards = totalCards,
         bucketsJson = JSONArray().apply {
             buckets.forEach { bucket ->
@@ -167,11 +177,15 @@ internal fun ProgressSummaryCacheEntity.toCloudProgressSummaryOrNull(): CloudPro
         lastReviewedOn?.let { cachedLastReviewedOn ->
             parseLocalDate(rawDate = cachedLastReviewedOn)
         }
+        val reviewHistoryWatermarks = parseProgressReviewHistoryWatermarks(
+            rawJson = reviewHistoryWatermarksJson
+        )
         CloudProgressSummary(
             currentStreakDays = currentStreakDays,
             hasReviewedToday = hasReviewedToday,
             lastReviewedOn = lastReviewedOn,
-            activeReviewDays = activeReviewDays
+            activeReviewDays = activeReviewDays,
+            reviewHistoryWatermarks = reviewHistoryWatermarks
         )
     }.getOrElse { error ->
         logProgressRepositoryWarning(
@@ -208,9 +222,13 @@ internal fun ProgressReviewScheduleCacheEntity.toCloudProgressReviewScheduleOrNu
             buckets = buckets,
             totalCards = totalCards
         )
+        val reviewHistoryWatermarks = parseProgressReviewHistoryWatermarks(
+            rawJson = reviewHistoryWatermarksJson
+        )
         CloudProgressReviewSchedule(
             timeZone = timeZone,
             generatedAt = generatedAt,
+            reviewHistoryWatermarks = reviewHistoryWatermarks,
             totalCards = totalCards,
             buckets = buckets
         )
@@ -239,6 +257,9 @@ internal fun ProgressSeriesCacheEntity.toCloudProgressSeriesOrNull(): CloudProgr
         }
 
         val dailyReviewsArray = JSONArray(dailyReviewsJson)
+        val reviewHistoryWatermarks = parseProgressReviewHistoryWatermarks(
+            rawJson = reviewHistoryWatermarksJson
+        )
         CloudProgressSeries(
             timeZone = timeZone,
             from = fromLocalDate,
@@ -257,6 +278,7 @@ internal fun ProgressSeriesCacheEntity.toCloudProgressSeriesOrNull(): CloudProgr
                 }
             },
             generatedAt = generatedAt,
+            reviewHistoryWatermarks = reviewHistoryWatermarks,
             summary = null
         )
     }.getOrElse { error ->
@@ -272,4 +294,55 @@ internal fun ProgressSeriesCacheEntity.toCloudProgressSeriesOrNull(): CloudProgr
         )
         null
     }
+}
+
+private fun serializeProgressReviewHistoryWatermarks(
+    watermarks: List<ProgressReviewHistoryWatermark>
+): String {
+    return JSONArray().apply {
+        watermarks.forEach { watermark ->
+            put(
+                JSONObject()
+                    .put("workspaceId", watermark.workspaceId)
+                    .put("reviewSequenceId", watermark.reviewSequenceId)
+            )
+        }
+    }.toString()
+}
+
+private fun parseProgressReviewHistoryWatermarks(
+    rawJson: String
+): List<ProgressReviewHistoryWatermark> {
+    val watermarksArray = JSONArray(rawJson)
+    return buildList {
+        for (index in 0 until watermarksArray.length()) {
+            val watermark = watermarksArray.getJSONObject(index)
+            val workspaceId = watermark.getString("workspaceId")
+            if (workspaceId.isBlank()) {
+                throw IllegalArgumentException("Progress review-history watermark workspaceId must not be blank.")
+            }
+            add(
+                ProgressReviewHistoryWatermark(
+                    workspaceId = workspaceId,
+                    reviewSequenceId = parseProgressReviewHistorySequenceId(
+                        watermark = watermark
+                    )
+                )
+            )
+        }
+    }
+}
+
+private fun parseProgressReviewHistorySequenceId(watermark: JSONObject): Long {
+    val value = watermark.get("reviewSequenceId") as? Number
+    if (value == null) {
+        throw IllegalArgumentException("Progress review-history watermark reviewSequenceId must be an integer.")
+    }
+
+    val longValue = value.toLong()
+    if (value.toDouble() != longValue.toDouble() || longValue < 0L) {
+        throw IllegalArgumentException("Progress review-history watermark reviewSequenceId must be non-negative.")
+    }
+
+    return longValue
 }
