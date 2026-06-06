@@ -48,9 +48,9 @@ struct AIChatStartRunRequestBody: Codable, Hashable, Sendable {
     let clientRequestId: String
     let content: [AIChatContentPart]
     let timezone: String
-    // Keep this additive field optional while older client and backend builds roll out independently.
+    // Keep optional until minimum supported backend and first-party AI client versions are greater than 1.5.0.
     let uiLocale: String?
-    // Keep this additive field optional while older client and backend builds roll out independently.
+    // Keep optional until minimum supported backend and first-party AI client versions are greater than 1.5.0.
     let workspaceId: String?
 }
 
@@ -150,9 +150,9 @@ struct AIChatLiveStreamEnvelope: Codable, Hashable, Sendable {
 
 struct AIChatNewSessionRequestBody: Codable, Hashable, Sendable {
     let sessionId: String?
-    // Keep this additive field optional while older client and backend builds roll out independently.
+    // Keep optional until minimum supported backend and first-party AI client versions are greater than 1.5.0.
     let uiLocale: String?
-    // Keep this additive field optional while older client and backend builds roll out independently.
+    // Keep optional until minimum supported backend and first-party AI client versions are greater than 1.5.0.
     let workspaceId: String?
 }
 
@@ -189,9 +189,10 @@ struct AIChatStopRunResponse: Decodable, Hashable, Sendable {
 
 struct AIChatStopRunRequestBody: Codable, Hashable, Sendable {
     let sessionId: String
-    // TODO: Remove optional runId and make it required after most users have updated to the latest version. This is a legacy path.
+    // TODO: Make runId required once the minimum supported first-party AI client
+    // version is greater than 1.5.0. This optional path supports older releases.
     let runId: String?
-    // Keep this additive field optional while older client and backend builds roll out independently.
+    // Keep optional until minimum supported backend and first-party AI client versions are greater than 1.5.0.
     let workspaceId: String?
 }
 

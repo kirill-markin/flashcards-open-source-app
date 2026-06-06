@@ -9,6 +9,7 @@ type SessionResponseProfile = Readonly<{
   createdAt: string;
 }>;
 
+// Mirrors backend legacy chatConfig metadata kept for released clients at 1.5.0 and older.
 type LegacyChatConfigResponseValue = Readonly<{
   provider: Readonly<{ id: "openai"; label: string }>;
   model: Readonly<{ id: string; label: string; badgeLabel: string }>;
