@@ -5,6 +5,10 @@ import { webAppVersion } from "../../../clientIdentity";
 import { clearWebSyncCache } from "../../../localDb/cache";
 import { applyHotSyncPage } from "../../../localDb/cards/workspace";
 import type { PersistentStorageState } from "../../../localDb/sync/cloudSettings";
+import type {
+  SyncBootstrapEntry,
+  SyncBootstrapPullResult,
+} from "../../../types";
 import { runWorkspaceRemoteSync, type WorkspaceRemoteSyncInput } from "../remote/syncRemote";
 import {
   observeSlowHotBootstrap,
@@ -65,6 +69,67 @@ function createPersistentStorageState(
     errorName,
     persistAttempted,
     persistGranted,
+  };
+}
+
+function createBootstrapPullResult(input: Readonly<{
+  entries: ReadonlyArray<SyncBootstrapEntry>;
+  bootstrapHotChangeId: number;
+  nextCursor: string | null;
+  hasMore: boolean;
+  remoteIsEmpty: boolean;
+}>): SyncBootstrapPullResult {
+  return {
+    mode: "pull",
+    entries: input.entries,
+    bootstrapHotChangeId: input.bootstrapHotChangeId,
+    nextCursor: input.nextCursor,
+    hasMore: input.hasMore,
+    remoteIsEmpty: input.remoteIsEmpty,
+  };
+}
+
+function createDeckBootstrapEntry(workspaceId: string): SyncBootstrapEntry {
+  const timestamp = "2026-05-01T00:00:00.000Z";
+  return {
+    entityType: "deck",
+    entityId: "deck-1",
+    action: "upsert",
+    payload: {
+      deckId: "deck-1",
+      workspaceId,
+      name: "Deck",
+      filterDefinition: {
+        version: 2,
+        effortLevels: [],
+        tags: [],
+      },
+      createdAt: timestamp,
+      clientUpdatedAt: timestamp,
+      lastModifiedByReplicaId: "replica-1",
+      lastOperationId: "operation-1",
+      updatedAt: timestamp,
+      deletedAt: null,
+    },
+  };
+}
+
+type TestClock = Readonly<{
+  advance: (durationMs: number) => void;
+}>;
+
+function installMutableDateNow(initialNowMs: number): TestClock {
+  let nowMs = initialNowMs;
+  vi.spyOn(Date, "now").mockImplementation(() => nowMs);
+
+  return {
+    advance: (durationMs: number): void => {
+      if (Number.isFinite(durationMs) === false || durationMs < 0) {
+        throw new Error(`Invalid test clock duration: ${durationMs}`);
+      }
+
+      nowMs += durationMs;
+    },
   };
 }
 
@@ -136,14 +201,55 @@ function installPersistentStorageMock(): PersistentStorageMock {
   };
 }
 
+function installPersistentStorageMockWithClock(
+  clock: TestClock,
+  persistedDurationMs: number,
+  persistDurationMs: number,
+  estimateDurationMs: number,
+): PersistentStorageMock {
+  let persisted = false;
+  const persistedMock = vi.fn<() => Promise<boolean>>().mockImplementation(async () => {
+    clock.advance(persistedDurationMs);
+    return persisted;
+  });
+  const persistMock = vi.fn<() => Promise<boolean>>().mockImplementation(async () => {
+    clock.advance(persistDurationMs);
+    persisted = true;
+    return persisted;
+  });
+  const estimateMock = vi.fn<() => Promise<StorageEstimate>>().mockImplementation(async () => {
+    clock.advance(estimateDurationMs);
+    return {
+      quota: 456,
+      usage: 123,
+    };
+  });
+  const storageManager = {
+    persisted: persistedMock,
+    persist: persistMock,
+    estimate: estimateMock,
+  } satisfies Partial<StorageManager>;
+
+  Object.defineProperty(navigator, "storage", {
+    configurable: true,
+    value: storageManager,
+  });
+
+  return {
+    persistedMock,
+    persistMock,
+    estimateMock,
+  };
+}
+
 function primeEmptyRemoteSync(): void {
-  apiMocks.bootstrapPullSyncStateMock.mockResolvedValue({
+  apiMocks.bootstrapPullSyncStateMock.mockResolvedValue(createBootstrapPullResult({
     entries: [],
     bootstrapHotChangeId: 12,
     nextCursor: null,
     hasMore: false,
     remoteIsEmpty: false,
-  });
+  }));
   apiMocks.pullSyncChangesMock.mockResolvedValue({
     changes: [],
     nextHotChangeId: 12,
@@ -211,6 +317,11 @@ describe("sync lifecycle observation", () => {
       lastAppliedHotChangeIdBefore: null,
       nextHotChangeId: 30147,
       remoteIsEmpty: false,
+      bootstrapPullDurationMs: 1200,
+      applyHotPagesDurationMs: 900,
+      finalRefreshDurationMs: 400,
+      persistentStorageDurationMs: 50,
+      bootstrapPageDurationMs: [200, 250, 300, 450],
     });
 
     expect(observabilityMocks.captureWebWarningMock).toHaveBeenCalledWith(expect.objectContaining({
@@ -218,6 +329,11 @@ describe("sync lifecycle observation", () => {
       details: expect.objectContaining({
         pageSize: 500,
         localBootstrapState: "no_sync_state_no_cards",
+        bootstrapPullDurationMs: 1200,
+        applyHotPagesDurationMs: 900,
+        finalRefreshDurationMs: 400,
+        persistentStorageDurationMs: 50,
+        bootstrapPageDurationMs: [200, 250, 300, 450],
       }),
     }));
   });
@@ -229,10 +345,18 @@ describe("sync lifecycle observation", () => {
   });
 
   it("deduplicates slow warnings for successful local database recovery", async () => {
-    const persistentStorageMock = installPersistentStorageMock();
-    let nowMs = 0;
-    vi.spyOn(Date, "now")
-      .mockImplementation(() => nowMs);
+    const clock = installMutableDateNow(0);
+    const persistentStorageMock = installPersistentStorageMockWithClock(clock, 0, 7, 0);
+    apiMocks.bootstrapPullSyncStateMock.mockImplementation(async () => {
+      clock.advance(40);
+      return createBootstrapPullResult({
+        entries: [],
+        bootstrapHotChangeId: 12,
+        nextCursor: null,
+        hasMore: false,
+        remoteIsEmpty: false,
+      });
+    });
 
     storeSyncRestoreHistoryEntry({
       userId: "user-1",
@@ -246,7 +370,7 @@ describe("sync lifecycle observation", () => {
     await runWorkspaceRemoteSync({
       ...createRemoteSyncInput(),
       refreshWorkspaceView: async (_workspaceId: string): Promise<void> => {
-        nowMs = 3000;
+        clock.advance(15);
       },
     });
 
@@ -287,6 +411,12 @@ describe("sync lifecycle observation", () => {
         storagePersistedAfter: true,
         storagePersistAttemptedAfter: true,
         storagePersistGrantedAfter: true,
+        durationMs: 55,
+        bootstrapPullDurationMs: 40,
+        applyHotPagesDurationMs: 0,
+        finalRefreshDurationMs: 15,
+        persistentStorageDurationMs: 7,
+        bootstrapPageDurationMs: [40],
       }),
     }));
     expect(findCapturedWarning("sync_restore_slow")).toBeNull();
@@ -397,23 +527,44 @@ describe("sync lifecycle observation", () => {
       localCardCount: 42,
       persistentStorageState: createPersistentStorageState(true, 321, 654, null, true, true),
     });
-    apiMocks.bootstrapPullSyncStateMock.mockRejectedValue(new DOMException("Bootstrap failed", "NetworkError"));
+    const clock = installMutableDateNow(0);
+    installPersistentStorageMockWithClock(clock, 0, 7, 0);
+    apiMocks.bootstrapPullSyncStateMock.mockImplementation(async () => {
+      clock.advance(25);
+      return createBootstrapPullResult({
+        entries: [createDeckBootstrapEntry("other-workspace")],
+        bootstrapHotChangeId: 44,
+        nextCursor: null,
+        hasMore: false,
+        remoteIsEmpty: false,
+      });
+    });
 
-    await expect(runWorkspaceRemoteSync(createRemoteSyncInput())).rejects.toThrow("Bootstrap failed");
+    await expect(runWorkspaceRemoteSync(createRemoteSyncInput())).rejects.toThrow(
+      "Deck sync payload workspace mismatch: other-workspace",
+    );
 
     expect(observabilityMocks.captureWebWarningMock).toHaveBeenCalledWith(expect.objectContaining({
       action: "sync_local_db_recovery_failed",
       details: expect.objectContaining({
         eventName: "sync_local_db_recovery_failed",
         syncRunId: "sync-run-1",
-        failurePhase: "bootstrap_pull",
-        errorName: "NetworkError",
+        failurePhase: "apply_hot_page",
+        errorName: "Error",
         localCardCountBefore: 0,
         localCardCountAfter: null,
-        pageCount: 0,
-        entriesCount: 0,
+        pageCount: 1,
+        entriesCount: 1,
+        nextHotChangeId: 44,
+        remoteIsEmpty: false,
         storagePersistedBefore: false,
         storagePersistedAfter: null,
+        durationMs: 25,
+        bootstrapPullDurationMs: 25,
+        applyHotPagesDurationMs: 0,
+        finalRefreshDurationMs: 0,
+        persistentStorageDurationMs: 0,
+        bootstrapPageDurationMs: [25],
       }),
     }));
   });
@@ -422,13 +573,13 @@ describe("sync lifecycle observation", () => {
     let nowMs = 0;
     vi.spyOn(Date, "now")
       .mockImplementation(() => nowMs);
-    apiMocks.bootstrapPullSyncStateMock.mockResolvedValue({
+    apiMocks.bootstrapPullSyncStateMock.mockResolvedValue(createBootstrapPullResult({
       entries: [],
       bootstrapHotChangeId: 12,
       nextCursor: null,
       hasMore: false,
       remoteIsEmpty: true,
-    });
+    }));
 
     await runWorkspaceRemoteSync({
       ...createRemoteSyncInput(),
@@ -441,26 +592,36 @@ describe("sync lifecycle observation", () => {
   });
 
   it("keeps warning for a slow non-empty remote bootstrap", async () => {
-    let nowMs = 0;
-    vi.spyOn(Date, "now")
-      .mockImplementation(() => nowMs);
-    apiMocks.bootstrapPullSyncStateMock.mockResolvedValue({
-      entries: [],
-      bootstrapHotChangeId: 12,
-      nextCursor: null,
-      hasMore: false,
-      remoteIsEmpty: false,
+    const clock = installMutableDateNow(0);
+    installPersistentStorageMockWithClock(clock, 0, 7, 0);
+    apiMocks.bootstrapPullSyncStateMock.mockImplementation(async () => {
+      clock.advance(800);
+      return createBootstrapPullResult({
+        entries: [],
+        bootstrapHotChangeId: 12,
+        nextCursor: null,
+        hasMore: false,
+        remoteIsEmpty: false,
+      });
     });
 
     await runWorkspaceRemoteSync({
       ...createRemoteSyncInput(),
       refreshWorkspaceView: async (_workspaceId: string): Promise<void> => {
-        nowMs = 3000;
+        clock.advance(1200);
       },
     });
 
     expect(findCapturedWarning("sync_restore_slow")).toEqual(expect.objectContaining({
       action: "sync_restore_slow",
+      details: expect.objectContaining({
+        durationMs: 2000,
+        bootstrapPullDurationMs: 800,
+        applyHotPagesDurationMs: 0,
+        finalRefreshDurationMs: 1200,
+        persistentStorageDurationMs: 7,
+        bootstrapPageDurationMs: [800],
+      }),
     }));
   });
 

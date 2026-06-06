@@ -1,6 +1,7 @@
 import {
   addWebBreadcrumb,
   captureWebWarning,
+  type SyncBootstrapTimingDetails,
   type SyncLocalDbRecoveryFailurePhase,
   type SyncRestoreLocalBootstrapState,
   type WebObservationScope,
@@ -8,7 +9,7 @@ import {
 import type { PersistentStorageState } from "../../../localDb/sync/cloudSettings";
 import type { SyncRestoreHistoryEntry } from "../restore/syncRestoreHistory";
 
-export type HotBootstrapSlowObservationInput = Readonly<{
+export type HotBootstrapSlowObservationInput = SyncBootstrapTimingDetails & Readonly<{
   userId: string;
   workspaceId: string;
   installationId: string;
@@ -44,7 +45,7 @@ export type PersistentStorageObservationInput = Readonly<{
   persistentStorageState: PersistentStorageState;
 }>;
 
-export type LocalDbRecoveryObservationInput = Readonly<{
+export type LocalDbRecoveryObservationInput = SyncBootstrapTimingDetails & Readonly<{
   userId: string;
   workspaceId: string;
   installationId: string;
@@ -96,6 +97,16 @@ function buildSyncObservationScope(
   };
 }
 
+function buildSyncBootstrapTimingDetails(input: SyncBootstrapTimingDetails): SyncBootstrapTimingDetails {
+  return {
+    bootstrapPullDurationMs: input.bootstrapPullDurationMs,
+    applyHotPagesDurationMs: input.applyHotPagesDurationMs,
+    finalRefreshDurationMs: input.finalRefreshDurationMs,
+    persistentStorageDurationMs: input.persistentStorageDurationMs,
+    bootstrapPageDurationMs: input.bootstrapPageDurationMs,
+  };
+}
+
 export function observeSlowHotBootstrap(input: HotBootstrapSlowObservationInput): void {
   captureWebWarning({
     action: "sync_restore_slow",
@@ -115,6 +126,7 @@ export function observeSlowHotBootstrap(input: HotBootstrapSlowObservationInput)
       lastAppliedHotChangeIdBefore: input.lastAppliedHotChangeIdBefore,
       nextHotChangeId: input.nextHotChangeId,
       remoteIsEmpty: input.remoteIsEmpty,
+      ...buildSyncBootstrapTimingDetails(input),
     },
   });
 }
@@ -212,6 +224,7 @@ export function observeLocalDbRecoverySucceeded(input: LocalDbRecoveryObservatio
       storageErrorNameAfter: persistentStorageStateAfter.errorName,
       storagePersistAttemptedAfter: persistentStorageStateAfter.persistAttempted,
       storagePersistGrantedAfter: persistentStorageStateAfter.persistGranted,
+      ...buildSyncBootstrapTimingDetails(input),
     },
   });
 }
@@ -267,6 +280,7 @@ export function observeLocalDbRecoveryFailed(input: LocalDbRecoveryFailedObserva
         ? null
         : persistentStorageStateAfter.persistAttempted,
       storagePersistGrantedAfter: persistentStorageStateAfter.persistGranted,
+      ...buildSyncBootstrapTimingDetails(input),
     },
   });
 }

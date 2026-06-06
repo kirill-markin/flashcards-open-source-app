@@ -385,7 +385,15 @@ export type SyncRestoreLocalBootstrapState =
   | "unhydrated_sync_state"
   | "unhydrated_with_cards";
 
-export type SyncRestoreWarningDetails = Readonly<{
+export type SyncBootstrapTimingDetails = Readonly<{
+  bootstrapPullDurationMs: number;
+  applyHotPagesDurationMs: number;
+  finalRefreshDurationMs: number;
+  persistentStorageDurationMs: number;
+  bootstrapPageDurationMs: ReadonlyArray<number>;
+}>;
+
+export type SyncRestoreWarningDetails = SyncBootstrapTimingDetails & Readonly<{
   eventName: "sync_hot_bootstrap_slow";
   syncRunId: string;
   workspaceId: string;
@@ -429,7 +437,7 @@ export type SyncLocalDbMissingWarningDetails = Readonly<{
   storagePersistGranted: boolean | null;
 }>;
 
-export type SyncLocalDbRecoverySucceededWarningDetails = Readonly<{
+export type SyncLocalDbRecoverySucceededWarningDetails = SyncBootstrapTimingDetails & Readonly<{
   eventName: "sync_local_db_recovery_succeeded";
   syncRunId: string;
   workspaceId: string;
@@ -481,7 +489,7 @@ export type SyncLocalDbRecoveryFailurePhase =
   | "restore_history_store"
   | "slow_bootstrap_observation";
 
-export type SyncLocalDbRecoveryFailedWarningDetails = Readonly<{
+export type SyncLocalDbRecoveryFailedWarningDetails = SyncBootstrapTimingDetails & Readonly<{
   eventName: "sync_local_db_recovery_failed";
   syncRunId: string;
   workspaceId: string;

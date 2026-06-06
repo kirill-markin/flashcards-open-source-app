@@ -8,6 +8,7 @@ import {
   type PersistentStorageState,
 } from "../../../localDb/sync/cloudSettings";
 import type {
+  SyncBootstrapTimingDetails,
   SyncLocalDbRecoveryFailurePhase,
   SyncRestoreLocalBootstrapState,
 } from "../../../observability/webObservability";
@@ -35,6 +36,19 @@ import type {
   RemoteSyncFlags,
   WorkspaceRemoteSyncInput,
 } from "./types";
+
+const maximumBootstrapPageDurationCount = 20;
+
+function appendBootstrapPageDurationMs(
+  bootstrapPageDurationMs: ReadonlyArray<number>,
+  durationMs: number,
+): ReadonlyArray<number> {
+  if (bootstrapPageDurationMs.length >= maximumBootstrapPageDurationCount) {
+    return bootstrapPageDurationMs;
+  }
+
+  return [...bootstrapPageDurationMs, durationMs];
+}
 
 function isEmptyRemoteBootstrapNoise(
   remoteIsEmpty: boolean | null,
@@ -160,6 +174,18 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
   let localCardCountAfter: number | null = null;
   let persistentStorageStateBeforeRecovery: PersistentStorageState | null = null;
   let persistentStorageStateAfterRecovery: PersistentStorageState | null = null;
+  let bootstrapPullDurationMs = 0;
+  let applyHotPagesDurationMs = 0;
+  let finalRefreshDurationMs = 0;
+  let persistentStorageDurationMs = 0;
+  let bootstrapPageDurationMs: ReadonlyArray<number> = [];
+  const readBootstrapTimingDetails = (): SyncBootstrapTimingDetails => ({
+    bootstrapPullDurationMs,
+    applyHotPagesDurationMs,
+    finalRefreshDurationMs,
+    persistentStorageDurationMs,
+    bootstrapPageDurationMs,
+  });
   let recoveryFailurePhase: SyncLocalDbRecoveryFailurePhase = "pre_bootstrap_storage_read";
   const isLocalDbRecovery = syncStateBefore === null
     && localCardCountBefore === 0
@@ -185,6 +211,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
     while (true) {
       input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
       recoveryFailurePhase = "bootstrap_pull";
+      const bootstrapPullStartedAtMs = Date.now();
       const bootstrapResult = await bootstrapPullSyncState(
         input.workspaceId,
         input.installationId,
@@ -193,6 +220,9 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
         bootstrapCursor,
         syncPageSize,
       );
+      const bootstrapPullElapsedMs = Date.now() - bootstrapPullStartedAtMs;
+      bootstrapPullDurationMs += bootstrapPullElapsedMs;
+      bootstrapPageDurationMs = appendBootstrapPageDurationMs(bootstrapPageDurationMs, bootstrapPullElapsedMs);
       input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
       pageCount += 1;
       entriesCount += bootstrapResult.entries.length;
@@ -205,6 +235,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
       input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
 
       recoveryFailurePhase = "apply_hot_page";
+      const applyHotPageStartedAtMs = Date.now();
       await applyHotSyncPage(
         input.workspaceId,
         bootstrapResult.entries,
@@ -215,6 +246,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
             markHotStateHydrated: true,
           },
       );
+      applyHotPagesDurationMs += Date.now() - applyHotPageStartedAtMs;
       input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
       publishWorkspaceSettingsFromEntries(input, bootstrapResult.entries);
 
@@ -226,7 +258,9 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
 
     input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
     recoveryFailurePhase = "final_refresh";
+    const finalRefreshStartedAtMs = Date.now();
     await input.refreshWorkspaceView(input.workspaceId);
+    finalRefreshDurationMs = Date.now() - finalRefreshStartedAtMs;
     input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
     const durationMs = Date.now() - startedAtMs;
     recoveryFailurePhase = "local_card_count_after";
@@ -237,7 +271,9 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
     }
 
     recoveryFailurePhase = "persistent_storage";
+    const persistentStorageStartedAtMs = Date.now();
     persistentStorageStateAfterRecovery = await observePersistentStorageForHydratedWorkspace(input);
+    persistentStorageDurationMs = Date.now() - persistentStorageStartedAtMs;
     recoveryFailurePhase = "restore_history_store";
     await storeCurrentWorkspaceRestoreHistory(
       input,
@@ -266,6 +302,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
         remoteIsEmpty,
         persistentStorageStateBefore: persistentStorageStateBeforeRecovery,
         persistentStorageStateAfter: persistentStorageStateAfterRecovery,
+        ...readBootstrapTimingDetails(),
       });
     }
 
@@ -295,6 +332,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
         lastAppliedHotChangeIdBefore,
         nextHotChangeId,
         remoteIsEmpty,
+        ...readBootstrapTimingDetails(),
       });
     }
 
@@ -325,6 +363,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
         remoteIsEmpty,
         persistentStorageStateBefore: persistentStorageStateBeforeRecovery,
         persistentStorageStateAfter: persistentStorageStateAfterRecovery,
+        ...readBootstrapTimingDetails(),
       });
     }
 
