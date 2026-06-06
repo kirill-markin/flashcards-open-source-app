@@ -4,9 +4,9 @@ import {
   parseNewChatSessionResponse,
   parseStartChatRunResponse,
   parseStopChatRunResponse,
-} from "../apiContracts/chat";
-import { webAppVersion } from "../clientIdentity";
-import type { Locale } from "../i18n/types";
+} from "../../apiContracts/chat";
+import { webAppVersion } from "../../clientIdentity";
+import type { Locale } from "../../i18n/types";
 import type {
   ChatSessionSnapshot,
   ChatTranscriptionResponse,
@@ -17,13 +17,13 @@ import type {
   StartChatRunResponse,
   StopChatRunRequestBody,
   StopChatRunResponse,
-} from "../types";
-import { parseContractResponse } from "./response";
+} from "../../types";
+import { parseContractResponse } from "../transport/response";
 import {
   allowAuthRecovery,
   allowAuthRecoveryWithTransientNetworkRetry,
   requestJson,
-} from "./transport";
+} from "../transport/transport";
 
 type ChatResumeRequestDiagnostics = Readonly<{
   resumeAttemptId: number;

@@ -5,20 +5,20 @@ import {
   parseWorkspaceEnvelopeResponse,
   parseWorkspaceResetProgressPreviewResponse,
   parseWorkspacesEnvelopeResponse,
-} from "../apiContracts/account";
+} from "../../apiContracts/account";
 import type {
   DeleteWorkspaceResponse,
   ResetWorkspaceProgressResponse,
   WorkspaceDeletePreview,
   WorkspaceResetProgressPreview,
   WorkspaceSummary,
-} from "../types";
-import { parseContractResponse } from "./response";
+} from "../../types";
+import { parseContractResponse } from "../transport/response";
 import {
   allowAuthRecovery,
   allowAuthRecoveryWithTransientNetworkRetry,
   requestJson,
-} from "./transport";
+} from "../transport/transport";
 
 const collectionPageLimit = 100;
 

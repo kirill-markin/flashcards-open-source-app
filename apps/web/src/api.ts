@@ -11,18 +11,18 @@ export {
   ApiError,
   ApiNetworkError,
   AuthRedirectError,
-} from "./api/errors";
+} from "./api/transport/errors";
 export type {
   ApiResponseBodyKind,
-} from "./api/errors";
+} from "./api/transport/errors";
 export {
   deleteMyAccount,
   listAgentApiKeys,
   revokeAgentApiKey,
-} from "./api/account";
+} from "./api/endpoints/account";
 export {
   queryCards,
-} from "./api/cards";
+} from "./api/endpoints/cards";
 export {
   createNewChatSession,
   getChatSnapshot,
@@ -30,17 +30,17 @@ export {
   startChatRun,
   stopChatRun,
   transcribeChatAudio,
-} from "./api/chat";
+} from "./api/endpoints/chat";
 export {
   loadFeedbackState,
   recordFeedbackPromptEvent,
   submitFeedback,
-} from "./api/feedback";
+} from "./api/endpoints/feedback";
 export {
   loadProgressReviewSchedule,
   loadProgressSeries,
   loadProgressSummary,
-} from "./api/progress";
+} from "./api/endpoints/progress";
 export {
   bootstrapPullSyncState,
   bootstrapPushSyncState,
@@ -48,7 +48,7 @@ export {
   pullReviewHistorySync,
   pullSyncChanges,
   pushSyncOperations,
-} from "./api/sync";
+} from "./api/endpoints/sync";
 export {
   getCachedSessionCsrfToken,
   getSession,
@@ -57,7 +57,7 @@ export {
   resetApiClientStateForTests,
   revalidateSession,
   setNavigationHandlerForTests,
-} from "./api/transport";
+} from "./api/transport/transport";
 export {
   createWorkspace,
   deleteWorkspace,
@@ -67,7 +67,7 @@ export {
   renameWorkspace,
   resetWorkspaceProgress,
   selectWorkspace,
-} from "./api/workspaces";
+} from "./api/endpoints/workspaces";
 export {
   ApiContractError,
 } from "./apiContracts/core";

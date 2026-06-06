@@ -1,10 +1,10 @@
-import { parseQueryCardsPageResponse } from "../apiContracts/cards";
+import { parseQueryCardsPageResponse } from "../../apiContracts/cards";
 import type {
   QueryCardsInput,
   QueryCardsPage,
-} from "../types";
-import { parseContractResponse } from "./response";
-import { allowAuthRecovery, requestJson } from "./transport";
+} from "../../types";
+import { parseContractResponse } from "../transport/response";
+import { allowAuthRecovery, requestJson } from "../transport/transport";
 
 export async function queryCards(
   workspaceId: string,

@@ -2,14 +2,14 @@ import {
   parseAgentApiKeyConnectionsEnvelopeResponse,
   parseAgentApiKeyRevokeResponse,
   parseDeleteAccountResponse,
-} from "../apiContracts/account";
+} from "../../apiContracts/account";
 import type {
   AgentApiKeyConnection,
   AgentApiKeyConnectionsResponse,
   AgentApiKeyRevokeResponse,
-} from "../types";
-import { parseContractResponse } from "./response";
-import { allowAuthRecovery, requestJson } from "./transport";
+} from "../../types";
+import { parseContractResponse } from "../transport/response";
+import { allowAuthRecovery, requestJson } from "../transport/transport";
 
 const collectionPageLimit = 100;
 

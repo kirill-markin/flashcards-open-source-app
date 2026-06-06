@@ -1,8 +1,8 @@
-import { parseSessionInfoResponse } from "../apiContracts/account";
-import { markBrowserReauthRequired } from "../accountDeletion";
-import { getAppConfig } from "../config";
-import type { SessionInfo } from "../types";
-import { buildLoginUrl, getPreferredAuthUiLocale } from "./authUrls";
+import { parseSessionInfoResponse } from "../../apiContracts/account";
+import { markBrowserReauthRequired } from "../../accountDeletion";
+import { getAppConfig } from "../../config";
+import type { SessionInfo } from "../../types";
+import { buildLoginUrl, getPreferredAuthUiLocale } from "../authUrls";
 import { ApiError, ApiNetworkError, AuthRedirectError } from "./errors";
 import {
   getJsonErrorMessage,

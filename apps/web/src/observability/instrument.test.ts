@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import { ApiNetworkError } from "../api/errors";
+import { ApiNetworkError } from "../api";
 import { sanitizeSentryBreadcrumbForPrivacy, sanitizeSentryEventForPrivacy } from "./instrument";
 import {
   buildWebExceptionFingerprint,

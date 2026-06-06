@@ -1,7 +1,7 @@
 import {
   ApiContractError,
   enrichApiContractError,
-} from "../apiContracts/core";
+} from "../../apiContracts/core";
 import { ApiError, type ApiResponseBodyKind } from "./errors";
 
 type JsonObject = Readonly<{

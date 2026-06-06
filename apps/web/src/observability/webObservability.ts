@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/react";
 import type { Scope } from "@sentry/react";
-import { ApiNetworkError } from "../api/errors";
+import { ApiNetworkError } from "../api";
 import { isWebSentryEnabled } from "./instrument";
 
 export type WebObservationFeature =
