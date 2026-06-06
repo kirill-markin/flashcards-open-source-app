@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { webAppVersion } from "../../../clientIdentity";
 import { clearWebSyncCache } from "../../../localDb/cache";
 import { applyHotSyncPage } from "../../../localDb/cards/workspace";
-import type { PersistentStorageState } from "../../../localDb/sync/cloudSettings";
+import { loadCloudSettings, type PersistentStorageState } from "../../../localDb/sync/cloudSettings";
 import type {
   SyncBootstrapEntry,
   SyncBootstrapPullResult,
@@ -366,6 +366,7 @@ describe("sync lifecycle observation", () => {
       localCardCount: 42,
       persistentStorageState: createPersistentStorageState(true, 321, 654, null, true, true),
     });
+    await expect(loadCloudSettings()).resolves.toBeNull();
 
     await runWorkspaceRemoteSync({
       ...createRemoteSyncInput(),
@@ -398,6 +399,11 @@ describe("sync lifecycle observation", () => {
         storageErrorName: null,
         storagePersistAttempted: false,
         storagePersistGranted: null,
+        indexedDbOpenObservedAt: expect.any(String),
+        indexedDbOpenOldVersion: 0,
+        indexedDbOpenNewVersion: 13,
+        indexedDbDatabaseCreated: true,
+        indexedDbDatabaseUpgraded: false,
       }),
     }));
     expect(observabilityMocks.captureWebWarningMock).toHaveBeenCalledWith(expect.objectContaining({
@@ -417,6 +423,11 @@ describe("sync lifecycle observation", () => {
         finalRefreshDurationMs: 15,
         persistentStorageDurationMs: 7,
         bootstrapPageDurationMs: [40],
+        indexedDbOpenObservedAt: expect.any(String),
+        indexedDbOpenOldVersion: 0,
+        indexedDbOpenNewVersion: 13,
+        indexedDbDatabaseCreated: true,
+        indexedDbDatabaseUpgraded: false,
       }),
     }));
     expect(findCapturedWarning("sync_restore_slow")).toBeNull();
