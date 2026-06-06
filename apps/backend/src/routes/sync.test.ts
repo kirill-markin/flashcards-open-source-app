@@ -565,7 +565,7 @@ test("POST /sync/bootstrap logs successful pull timing and cursor details", asyn
       }
 
       assert.equal(input.cursor, null);
-      assert.equal(input.limit, 500);
+      assert.equal(input.limit, 1000);
       return {
         mode: "pull",
         entries: [],
@@ -592,7 +592,7 @@ test("POST /sync/bootstrap logs successful pull timing and cursor details", asyn
         platform: "web",
         appVersion: "1.0.0",
         cursor: null,
-        limit: 500,
+        limit: 1000,
       }),
     });
     responseStatus = response.status;
@@ -617,7 +617,50 @@ test("POST /sync/bootstrap logs successful pull timing and cursor details", asyn
   assert.equal(syncLog?.hasMore, true);
   assert.equal(syncLog?.nextCursorPresent, true);
   assert.equal(syncLog?.cursorPresent, false);
-  assert.equal(syncLog?.limit, 500);
+  assert.equal(syncLog?.limit, 1000);
+});
+
+test("POST /sync/bootstrap rejects pull limit above bootstrap max", async () => {
+  let processCalls = 0;
+  const routes = createSyncRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContext(),
+    }),
+    assertUserHasWorkspaceAccessFn: async (userId, requestedWorkspaceId) => {
+      assert.equal(userId, "user-1");
+      assert.equal(requestedWorkspaceId, workspaceId);
+    },
+    processSyncBootstrapFn: async () => {
+      processCalls += 1;
+      throw new Error("Invalid bootstrap limit should be rejected before sync processing");
+    },
+  });
+  const app = createSyncTestApp(routes);
+
+  const response = await app.request(`http://localhost/workspaces/${workspaceId}/sync/bootstrap`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      mode: "pull",
+      installationId: "install-1",
+      platform: "web",
+      appVersion: "1.0.0",
+      cursor: null,
+      limit: 1001,
+    }),
+  });
+
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), {
+    error: "Cloud sync failed. Try again.",
+    requestId: "request-1",
+    code: "SYNC_INVALID_INPUT",
+  });
+  assert.equal(processCalls, 0);
 });
 
 test("POST /sync/bootstrap logs failure timing before returning sync errors", async () => {

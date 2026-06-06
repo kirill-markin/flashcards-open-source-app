@@ -27,7 +27,7 @@ import {
 } from "../restore/syncRestoreHistory";
 import {
   slowHotBootstrapWarningThresholdMs,
-  syncPageSize,
+  syncBootstrapPageSize,
 } from "./constants";
 import {
   doHotSyncEntriesAffectReviewSchedule,
@@ -221,7 +221,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
         "web",
         webAppVersion,
         bootstrapCursor,
-        syncPageSize,
+        syncBootstrapPageSize,
       );
       const bootstrapPullElapsedMs = Date.now() - bootstrapPullStartedAtMs;
       bootstrapPullDurationMs += bootstrapPullElapsedMs;
@@ -297,7 +297,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
         previousRestoreHistory: restoreHistoryBefore,
         currentWebAppVersion: webAppVersion,
         durationMs,
-        pageSize: syncPageSize,
+        pageSize: syncBootstrapPageSize,
         pageCount,
         entriesCount,
         lastAppliedHotChangeIdBefore,
@@ -327,7 +327,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
         installationId: input.installationId,
         syncRunId: input.syncRunId,
         durationMs,
-        pageSize: syncPageSize,
+        pageSize: syncBootstrapPageSize,
         pageCount,
         entriesCount,
         localCardCountBefore,
@@ -359,7 +359,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
         previousRestoreHistory: restoreHistoryBefore,
         currentWebAppVersion: webAppVersion,
         durationMs: Date.now() - startedAtMs,
-        pageSize: syncPageSize,
+        pageSize: syncBootstrapPageSize,
         pageCount,
         entriesCount,
         lastAppliedHotChangeIdBefore,

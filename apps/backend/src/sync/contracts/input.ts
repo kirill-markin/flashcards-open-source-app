@@ -14,6 +14,9 @@ const reviewRatingSchema = z.union([z.literal(0), z.literal(1), z.literal(2), z.
 const platformSchema = z.enum(["ios", "android", "web"]);
 const isoTimestampStringSchema = z.string().datetime();
 const isoDatePrefixPattern = /^(\d{4})-(\d{2})-(\d{2})T/i;
+const syncIncrementalPullLimit = 500;
+const syncReviewHistoryPullLimit = 500;
+const syncBootstrapPullLimit = 1000;
 const commonDaysByMonth: ReadonlyArray<number> = [
   31,
   28,
@@ -287,7 +290,7 @@ const syncPullInputSchema = z.object({
   platform: platformSchema,
   appVersion: z.string().min(1).nullable().optional(),
   afterHotChangeId: z.number().int().nonnegative(),
-  limit: z.number().int().positive().max(500),
+  limit: z.number().int().positive().max(syncIncrementalPullLimit),
 });
 
 const syncBootstrapPullInputSchema = z.object({
@@ -296,7 +299,7 @@ const syncBootstrapPullInputSchema = z.object({
   platform: platformSchema,
   appVersion: z.string().min(1).nullable().optional(),
   cursor: z.string().min(1).nullable(),
-  limit: z.number().int().positive().max(500),
+  limit: z.number().int().positive().max(syncBootstrapPullLimit),
 });
 
 const syncBootstrapPushInputSchema = z.object({
@@ -333,7 +336,7 @@ const syncReviewHistoryPullInputSchema = z.object({
   platform: platformSchema,
   appVersion: z.string().min(1).nullable().optional(),
   afterReviewSequenceId: z.number().int().nonnegative(),
-  limit: z.number().int().positive().max(500),
+  limit: z.number().int().positive().max(syncReviewHistoryPullLimit),
 });
 
 const syncReviewHistoryImportInputSchema = z.object({

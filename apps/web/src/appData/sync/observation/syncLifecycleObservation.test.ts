@@ -308,7 +308,7 @@ describe("sync lifecycle observation", () => {
       installationId: "installation-1",
       syncRunId: "sync-run-1",
       durationMs: 3000,
-      pageSize: 500,
+      pageSize: 1000,
       pageCount: 5,
       entriesCount: 2026,
       localCardCountBefore: 0,
@@ -327,7 +327,7 @@ describe("sync lifecycle observation", () => {
     expect(observabilityMocks.captureWebWarningMock).toHaveBeenCalledWith(expect.objectContaining({
       action: "sync_restore_slow",
       details: expect.objectContaining({
-        pageSize: 500,
+        pageSize: 1000,
         localBootstrapState: "no_sync_state_no_cards",
         bootstrapPullDurationMs: 1200,
         applyHotPagesDurationMs: 900,
@@ -342,6 +342,35 @@ describe("sync lifecycle observation", () => {
     await runWorkspaceRemoteSync(createRemoteSyncInput());
 
     expect(findCapturedWarning("sync_local_db_missing")).toBeNull();
+  });
+
+  it("uses separate page sizes for bootstrap and incremental pulls", async () => {
+    await runWorkspaceRemoteSync(createRemoteSyncInput());
+
+    expect(apiMocks.bootstrapPullSyncStateMock).toHaveBeenCalledWith(
+      "workspace-1",
+      "installation-1",
+      "web",
+      webAppVersion,
+      null,
+      1000,
+    );
+    expect(apiMocks.pullSyncChangesMock).toHaveBeenCalledWith(
+      "workspace-1",
+      "installation-1",
+      "web",
+      webAppVersion,
+      12,
+      500,
+    );
+    expect(apiMocks.pullReviewHistorySyncMock).toHaveBeenCalledWith(
+      "workspace-1",
+      "installation-1",
+      "web",
+      webAppVersion,
+      0,
+      500,
+    );
   });
 
   it("deduplicates slow warnings for successful local database recovery", async () => {
@@ -418,6 +447,7 @@ describe("sync lifecycle observation", () => {
         storagePersistAttemptedAfter: true,
         storagePersistGrantedAfter: true,
         durationMs: 55,
+        pageSize: 1000,
         bootstrapPullDurationMs: 40,
         applyHotPagesDurationMs: 0,
         finalRefreshDurationMs: 15,
@@ -571,6 +601,7 @@ describe("sync lifecycle observation", () => {
         storagePersistedBefore: false,
         storagePersistedAfter: null,
         durationMs: 25,
+        pageSize: 1000,
         bootstrapPullDurationMs: 25,
         applyHotPagesDurationMs: 0,
         finalRefreshDurationMs: 0,
@@ -627,6 +658,7 @@ describe("sync lifecycle observation", () => {
       action: "sync_restore_slow",
       details: expect.objectContaining({
         durationMs: 2000,
+        pageSize: 1000,
         bootstrapPullDurationMs: 800,
         applyHotPagesDurationMs: 0,
         finalRefreshDurationMs: 1200,
