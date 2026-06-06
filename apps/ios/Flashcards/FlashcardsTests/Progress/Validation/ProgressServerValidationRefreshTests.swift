@@ -28,7 +28,8 @@ final class ProgressServerValidationRefreshTests: ProgressStoreTestCase {
             to: requestRange.to,
             dailyReviews: [],
             summary: nil,
-            generatedAt: "2026-04-18T11:59:00.000Z"
+            generatedAt: "2026-04-18T11:59:00.000Z",
+            reviewHistoryWatermarks: []
         )
         let serverSummary = try makeTestProgressSummary(
             timeZone: requestRange.timeZone,
@@ -94,7 +95,8 @@ final class ProgressServerValidationRefreshTests: ProgressStoreTestCase {
                 )
             ],
             summary: nil,
-            generatedAt: "2026-04-18T11:59:00.000Z"
+            generatedAt: "2026-04-18T11:59:00.000Z",
+            reviewHistoryWatermarks: []
         )
         let serverSummary = try makeTestProgressSummary(
             timeZone: requestRange.timeZone,

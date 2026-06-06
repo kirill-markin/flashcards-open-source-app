@@ -1,5 +1,6 @@
 import type {
   DailyReviewPoint,
+  ProgressReviewHistoryWatermark,
   ProgressReviewSchedule,
   ProgressReviewScheduleBucket,
   ProgressScopeKey,
@@ -15,26 +16,26 @@ import { normalizeProgressSeries } from "../snapshots/progressSnapshots";
 const progressSummaryStorageKeyPrefix = "flashcards-progress-server-summary";
 const progressSeriesStorageKeyPrefix = "flashcards-progress-server-series";
 const progressReviewScheduleStorageKeyPrefix = "flashcards-progress-server-review-schedule";
-const progressServerSummaryVersion = 1;
-const progressServerSeriesVersion = 1;
-const progressServerReviewScheduleVersion = 1;
+const progressServerSummaryVersion = 2;
+const progressServerSeriesVersion = 2;
+const progressServerReviewScheduleVersion = 2;
 
 type PersistedProgressSummary = Readonly<{
-  version: 1;
+  version: 2;
   scopeKey: ProgressScopeKey;
   savedAt: string;
   serverBase: ProgressSummaryPayload;
 }>;
 
 type PersistedProgressSeries = Readonly<{
-  version: 1;
+  version: 2;
   scopeKey: ProgressScopeKey;
   savedAt: string;
   serverBase: ProgressSeries;
 }>;
 
 type PersistedProgressReviewSchedule = Readonly<{
-  version: 1;
+  version: 2;
   scopeKey: ProgressScopeKey;
   savedAt: string;
   serverBase: ProgressReviewSchedule;
@@ -57,6 +58,41 @@ const localDatePattern = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && Array.isArray(value) === false;
+}
+
+function isValidProgressReviewHistoryWatermark(value: unknown): value is ProgressReviewHistoryWatermark {
+  return isRecord(value)
+    && typeof value.workspaceId === "string"
+    && typeof value.reviewSequenceId === "number"
+    && Number.isSafeInteger(value.reviewSequenceId)
+    && value.reviewSequenceId >= 0;
+}
+
+function parsePersistedProgressReviewHistoryWatermarks(
+  value: unknown,
+): ReadonlyArray<ProgressReviewHistoryWatermark> | null {
+  if (Array.isArray(value) === false) {
+    return null;
+  }
+
+  const watermarks = value
+    .map((watermark): ProgressReviewHistoryWatermark | null => {
+      if (isValidProgressReviewHistoryWatermark(watermark) === false) {
+        return null;
+      }
+
+      return {
+        workspaceId: watermark.workspaceId,
+        reviewSequenceId: watermark.reviewSequenceId,
+      };
+    })
+    .filter((watermark): watermark is ProgressReviewHistoryWatermark => watermark !== null);
+
+  if (watermarks.length !== value.length) {
+    return null;
+  }
+
+  return watermarks;
 }
 
 function isValidLocalDateValue(value: string): boolean {
@@ -254,15 +290,26 @@ function parsePersistedProgressSummary(rawValue: string | null): ProgressCacheRe
     };
   }
 
+  const reviewHistoryWatermarks = parsePersistedProgressReviewHistoryWatermarks(
+    parsedValue.serverBase.reviewHistoryWatermarks,
+  );
+  if (reviewHistoryWatermarks === null) {
+    return {
+      status: "miss",
+      reason: "invalid_shape",
+    };
+  }
+
   return {
     status: "hit",
     value: {
-      version: 1,
+      version: 2,
       scopeKey: parsedValue.scopeKey,
       savedAt: parsedValue.savedAt,
       serverBase: {
         timeZone: parsedValue.serverBase.timeZone,
         generatedAt: parsedValue.serverBase.generatedAt,
+        reviewHistoryWatermarks,
         summary: {
           currentStreakDays: parsedValue.serverBase.summary.currentStreakDays,
           hasReviewedToday: parsedValue.serverBase.summary.hasReviewedToday,
@@ -325,11 +372,22 @@ function parsePersistedProgressSeries(rawValue: string | null): ProgressCacheRea
     };
   }
 
+  const reviewHistoryWatermarks = parsePersistedProgressReviewHistoryWatermarks(
+    parsedValue.serverBase.reviewHistoryWatermarks,
+  );
+  if (reviewHistoryWatermarks === null) {
+    return {
+      status: "miss",
+      reason: "invalid_shape",
+    };
+  }
+
   const normalizedServerBase = normalizePersistedProgressSeries({
     timeZone: parsedValue.serverBase.timeZone,
     from: parsedValue.serverBase.from,
     to: parsedValue.serverBase.to,
     generatedAt: parsedValue.serverBase.generatedAt,
+    reviewHistoryWatermarks,
     dailyReviews,
   });
   if (normalizedServerBase.status === "miss") {
@@ -342,7 +400,7 @@ function parsePersistedProgressSeries(rawValue: string | null): ProgressCacheRea
   return {
     status: "hit",
     value: {
-      version: 1,
+      version: 2,
       scopeKey: parsedValue.scopeKey,
       savedAt: parsedValue.savedAt,
       serverBase: normalizedServerBase.value,
@@ -386,6 +444,16 @@ function parsePersistedProgressReviewSchedule(
     };
   }
 
+  const reviewHistoryWatermarks = parsePersistedProgressReviewHistoryWatermarks(
+    parsedValue.serverBase.reviewHistoryWatermarks,
+  );
+  if (reviewHistoryWatermarks === null) {
+    return {
+      status: "miss",
+      reason: "invalid_shape",
+    };
+  }
+
   const buckets = parsedValue.serverBase.buckets
     .map((bucket): ProgressReviewScheduleBucket | null => {
       if (
@@ -413,6 +481,7 @@ function parsePersistedProgressReviewSchedule(
   const serverBase: ProgressReviewSchedule = {
     timeZone: parsedValue.serverBase.timeZone,
     generatedAt: parsedValue.serverBase.generatedAt,
+    reviewHistoryWatermarks,
     totalCards: parsedValue.serverBase.totalCards,
     buckets,
   };
@@ -428,7 +497,7 @@ function parsePersistedProgressReviewSchedule(
   return {
     status: "hit",
     value: {
-      version: 1,
+      version: 2,
       scopeKey: parsedValue.scopeKey,
       savedAt: parsedValue.savedAt,
       serverBase,
@@ -515,7 +584,7 @@ function assertProgressReviewScheduleTimeZone(
 
 export function storePersistedProgressSummary(scopeKey: ProgressScopeKey, serverBase: ProgressSummaryPayload): void {
   const persistedValue: PersistedProgressSummary = {
-    version: 1,
+    version: 2,
     scopeKey,
     savedAt: new Date().toISOString(),
     serverBase,
@@ -526,7 +595,7 @@ export function storePersistedProgressSummary(scopeKey: ProgressScopeKey, server
 
 export function storePersistedProgressSeries(scopeKey: ProgressScopeKey, serverBase: ProgressSeries): void {
   const persistedValue: PersistedProgressSeries = {
-    version: 1,
+    version: 2,
     scopeKey,
     savedAt: new Date().toISOString(),
     serverBase: normalizeProgressSeries(serverBase),
@@ -543,7 +612,7 @@ export function storePersistedProgressReviewSchedule(
   assertProgressReviewScheduleTimeZone(serverBase, expectedTimeZone);
 
   const persistedValue: PersistedProgressReviewSchedule = {
-    version: 1,
+    version: 2,
     scopeKey,
     savedAt: new Date().toISOString(),
     serverBase,

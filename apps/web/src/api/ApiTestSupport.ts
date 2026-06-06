@@ -231,6 +231,9 @@ export function createProgressReviewScheduleResponseValue(): ProgressReviewSched
   return {
     timeZone: "Europe/Madrid",
     generatedAt: "2026-04-18T09:15:00.000Z",
+    reviewHistoryWatermarks: [
+      { workspaceId: "workspace-1", reviewSequenceId: 42 },
+    ],
     totalCards: 12,
     buckets: [
       { key: "new", count: 2 },

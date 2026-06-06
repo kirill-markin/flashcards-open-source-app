@@ -91,7 +91,8 @@ extension AIChatStoreTestSupport {
                     lastReviewedOn: nil,
                     activeReviewDays: 0
                 ),
-                generatedAt: "2026-04-25T00:00:00.000Z"
+                generatedAt: "2026-04-25T00:00:00.000Z",
+                reviewHistoryWatermarks: []
             )
         }
 
@@ -122,7 +123,8 @@ extension AIChatStoreTestSupport {
                     lastReviewedOn: nil,
                     activeReviewDays: 0
                 ),
-                generatedAt: "2026-04-25T00:00:00.000Z"
+                generatedAt: "2026-04-25T00:00:00.000Z",
+                reviewHistoryWatermarks: []
             )
         }
 
@@ -141,6 +143,7 @@ extension AIChatStoreTestSupport {
             return makeReviewSchedule(
                 timeZone: timeZone,
                 generatedAt: "2026-04-25T00:00:00.000Z",
+                reviewHistoryWatermarks: [],
                 totalCards: 0,
                 buckets: ReviewScheduleBucketKey.stableOrder.map { bucketKey in
                     ReviewScheduleBucket(key: bucketKey, count: 0)

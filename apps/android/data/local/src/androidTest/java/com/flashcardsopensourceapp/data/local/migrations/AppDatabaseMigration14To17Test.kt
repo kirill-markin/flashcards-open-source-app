@@ -11,6 +11,7 @@ import com.flashcardsopensourceapp.data.local.database.entities.cardsReviewQueue
 import com.flashcardsopensourceapp.data.local.database.migrations.migration14To15
 import com.flashcardsopensourceapp.data.local.database.migrations.migration15To16
 import com.flashcardsopensourceapp.data.local.database.migrations.migration16To17
+import com.flashcardsopensourceapp.data.local.database.migrations.migration17To18
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -20,6 +21,7 @@ import org.junit.runner.RunWith
 private const val migration14To15DatabaseName: String = "migration-14-to-15-test.db"
 private const val migration15To16DatabaseName: String = "migration-15-to-16-test.db"
 private const val migration16To17DatabaseName: String = "migration-16-to-17-test.db"
+private const val migration17To18DatabaseName: String = "migration-17-to-18-test.db"
 
 @RunWith(AndroidJUnit4::class)
 class AppDatabaseMigration14To17Test {
@@ -37,6 +39,10 @@ class AppDatabaseMigration14To17Test {
         deleteMigrationDatabaseFixture(
             context = context,
             databaseName = migration16To17DatabaseName
+        )
+        deleteMigrationDatabaseFixture(
+            context = context,
+            databaseName = migration17To18DatabaseName
         )
     }
 
@@ -154,6 +160,48 @@ class AppDatabaseMigration14To17Test {
                 readMigrationIndexColumns(
                     database = database,
                     indexName = cardsRecentlyReviewedDueIndexName
+                )
+            )
+        } finally {
+            database.close()
+            openHelper.close()
+        }
+    }
+
+    @Test
+    fun migration17To18AddsProgressWatermarkCacheColumns(): Unit {
+        val context: Context = ApplicationProvider.getApplicationContext()
+        createVersion17Database(context = context)
+
+        val openHelper: SupportSQLiteOpenHelper = openMigrationDatabaseAtVersion(
+            context = context,
+            databaseName = migration17To18DatabaseName,
+            version = 17
+        )
+        val database: SupportSQLiteDatabase = openHelper.writableDatabase
+
+        try {
+            migration17To18.migrate(database)
+
+            assertEquals(
+                "[]",
+                readMigrationSingleString(
+                    database = database,
+                    sql = "SELECT reviewHistoryWatermarksJson FROM progress_summary_cache WHERE scopeKey = 'summary-scope'"
+                )
+            )
+            assertEquals(
+                "[]",
+                readMigrationSingleString(
+                    database = database,
+                    sql = "SELECT reviewHistoryWatermarksJson FROM progress_series_cache WHERE scopeKey = 'series-scope'"
+                )
+            )
+            assertEquals(
+                "[]",
+                readMigrationSingleString(
+                    database = database,
+                    sql = "SELECT reviewHistoryWatermarksJson FROM progress_review_schedule_cache WHERE scopeKey = 'schedule-scope'"
                 )
             )
         } finally {
@@ -328,6 +376,129 @@ class AppDatabaseMigration14To17Test {
                 """
                 CREATE INDEX $cardsReviewQueueIndexName
                 ON cards(workspaceId, dueAtMillis, createdAtMillis, cardId)
+                """.trimIndent()
+            )
+        }
+    }
+
+    private fun createVersion17Database(context: Context): Unit {
+        createMigrationDatabaseFixture(
+            context = context,
+            databaseName = migration17To18DatabaseName,
+            version = 17
+        ) { sqliteDatabase: SQLiteDatabase ->
+            sqliteDatabase.execSQL(
+                """
+                CREATE TABLE progress_summary_cache (
+                    scopeKey TEXT NOT NULL PRIMARY KEY,
+                    scopeId TEXT NOT NULL,
+                    timeZone TEXT NOT NULL,
+                    generatedAt TEXT,
+                    currentStreakDays INTEGER NOT NULL,
+                    hasReviewedToday INTEGER NOT NULL,
+                    lastReviewedOn TEXT,
+                    activeReviewDays INTEGER NOT NULL,
+                    updatedAtMillis INTEGER NOT NULL
+                )
+                """.trimIndent()
+            )
+            sqliteDatabase.execSQL(
+                """
+                INSERT INTO progress_summary_cache (
+                    scopeKey,
+                    scopeId,
+                    timeZone,
+                    generatedAt,
+                    currentStreakDays,
+                    hasReviewedToday,
+                    lastReviewedOn,
+                    activeReviewDays,
+                    updatedAtMillis
+                ) VALUES (
+                    'summary-scope',
+                    'scope-1',
+                    'Europe/Madrid',
+                    NULL,
+                    3,
+                    1,
+                    '2026-04-18',
+                    12,
+                    100
+                )
+                """.trimIndent()
+            )
+            sqliteDatabase.execSQL(
+                """
+                CREATE TABLE progress_series_cache (
+                    scopeKey TEXT NOT NULL PRIMARY KEY,
+                    scopeId TEXT NOT NULL,
+                    timeZone TEXT NOT NULL,
+                    fromLocalDate TEXT NOT NULL,
+                    toLocalDate TEXT NOT NULL,
+                    generatedAt TEXT,
+                    dailyReviewsJson TEXT NOT NULL,
+                    updatedAtMillis INTEGER NOT NULL
+                )
+                """.trimIndent()
+            )
+            sqliteDatabase.execSQL(
+                """
+                INSERT INTO progress_series_cache (
+                    scopeKey,
+                    scopeId,
+                    timeZone,
+                    fromLocalDate,
+                    toLocalDate,
+                    generatedAt,
+                    dailyReviewsJson,
+                    updatedAtMillis
+                ) VALUES (
+                    'series-scope',
+                    'scope-1',
+                    'Europe/Madrid',
+                    '2026-04-12',
+                    '2026-04-18',
+                    '2026-04-18T10:00:00Z',
+                    '[]',
+                    100
+                )
+                """.trimIndent()
+            )
+            sqliteDatabase.execSQL(
+                """
+                CREATE TABLE progress_review_schedule_cache (
+                    scopeKey TEXT NOT NULL PRIMARY KEY,
+                    scopeId TEXT NOT NULL,
+                    timeZone TEXT NOT NULL,
+                    referenceLocalDate TEXT NOT NULL,
+                    generatedAt TEXT,
+                    totalCards INTEGER NOT NULL,
+                    bucketsJson TEXT NOT NULL,
+                    updatedAtMillis INTEGER NOT NULL
+                )
+                """.trimIndent()
+            )
+            sqliteDatabase.execSQL(
+                """
+                INSERT INTO progress_review_schedule_cache (
+                    scopeKey,
+                    scopeId,
+                    timeZone,
+                    referenceLocalDate,
+                    generatedAt,
+                    totalCards,
+                    bucketsJson,
+                    updatedAtMillis
+                ) VALUES (
+                    'schedule-scope',
+                    'scope-1',
+                    'Europe/Madrid',
+                    '2026-04-18',
+                    '2026-04-18T10:00:00Z',
+                    0,
+                    '[]',
+                    100
+                )
                 """.trimIndent()
             )
         }

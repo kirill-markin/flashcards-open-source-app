@@ -78,7 +78,8 @@ func makeTestProgressSeries(
         to: requestRange.to,
         dailyReviews: dailyReviews,
         summary: summary,
-        generatedAt: generatedAt
+        generatedAt: generatedAt,
+        reviewHistoryWatermarks: makeTestProgressReviewHistoryWatermarks(reviewSequenceId: 42)
     )
 }
 
@@ -95,7 +96,8 @@ func makeTestProgressSummary(
             timeZone: timeZone,
             generatedAt: generatedAtDate
         ),
-        generatedAt: generatedAt
+        generatedAt: generatedAt,
+        reviewHistoryWatermarks: makeTestProgressReviewHistoryWatermarks(reviewSequenceId: 42)
     )
 }
 
@@ -113,11 +115,21 @@ func makeTestReviewSchedule(
     return makeReviewSchedule(
         timeZone: timeZone,
         generatedAt: generatedAt,
+        reviewHistoryWatermarks: makeTestProgressReviewHistoryWatermarks(reviewSequenceId: 42),
         totalCards: buckets.reduce(0) { partialResult, bucket in
             partialResult + bucket.count
         },
         buckets: buckets
     )
+}
+
+func makeTestProgressReviewHistoryWatermarks(reviewSequenceId: Int64) -> [ProgressReviewHistoryWatermark] {
+    [
+        ProgressReviewHistoryWatermark(
+            workspaceId: "workspace-1",
+            reviewSequenceId: reviewSequenceId
+        ),
+    ]
 }
 
 func makeEmptyReviewScheduleForTests(timeZone: String) -> UserReviewSchedule {

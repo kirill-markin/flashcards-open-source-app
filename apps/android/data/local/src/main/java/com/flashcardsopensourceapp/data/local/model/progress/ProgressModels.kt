@@ -5,11 +5,17 @@ data class CloudDailyReviewPoint(
     val reviewCount: Int
 )
 
+data class ProgressReviewHistoryWatermark(
+    val workspaceId: String,
+    val reviewSequenceId: Long
+)
+
 data class CloudProgressSummary(
     val currentStreakDays: Int,
     val hasReviewedToday: Boolean,
     val lastReviewedOn: String?,
-    val activeReviewDays: Int
+    val activeReviewDays: Int,
+    val reviewHistoryWatermarks: List<ProgressReviewHistoryWatermark>
 )
 
 data class CloudProgressSeries(
@@ -18,6 +24,7 @@ data class CloudProgressSeries(
     val to: String,
     val dailyReviews: List<CloudDailyReviewPoint>,
     val generatedAt: String?,
+    val reviewHistoryWatermarks: List<ProgressReviewHistoryWatermark>,
     val summary: CloudProgressSummary?
 )
 
@@ -60,6 +67,7 @@ data class CloudProgressReviewScheduleBucket(
 data class CloudProgressReviewSchedule(
     val timeZone: String,
     val generatedAt: String?,
+    val reviewHistoryWatermarks: List<ProgressReviewHistoryWatermark>,
     val totalCards: Int,
     val buckets: List<CloudProgressReviewScheduleBucket>
 )

@@ -1,4 +1,5 @@
 import type {
+  ProgressReviewHistoryWatermark,
   ProgressReviewSchedule,
   ProgressSeries,
   ProgressSummaryPayload,
@@ -30,6 +31,38 @@ function parseDailyReviewPoint(
   };
 }
 
+function parseProgressReviewHistoryWatermarkSequenceId(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ProgressReviewHistoryWatermark["reviewSequenceId"] {
+  const reviewSequenceId = parseNumber(value, endpoint, path);
+
+  if (Number.isSafeInteger(reviewSequenceId) === false || reviewSequenceId < 0) {
+    throw new ApiContractError(endpoint, describePath(path), "a non-negative safe integer");
+  }
+
+  return reviewSequenceId;
+}
+
+function parseProgressReviewHistoryWatermark(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ProgressReviewHistoryWatermark {
+  const objectValue = parseObject(value, endpoint, path);
+  return {
+    workspaceId: parseRequiredField(objectValue, "workspaceId", endpoint, path, parseString),
+    reviewSequenceId: parseRequiredField(
+      objectValue,
+      "reviewSequenceId",
+      endpoint,
+      path,
+      parseProgressReviewHistoryWatermarkSequenceId,
+    ),
+  };
+}
+
 function parseProgressReviewScheduleBucketKey(
   value: unknown,
   endpoint: string,
@@ -56,6 +89,14 @@ function parseDailyReviewPointArray(
   path: string,
 ): ProgressSeries["dailyReviews"] {
   return parseArray(value, endpoint, path, parseDailyReviewPoint);
+}
+
+function parseProgressReviewHistoryWatermarkArray(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ReadonlyArray<ProgressReviewHistoryWatermark> {
+  return parseArray(value, endpoint, path, parseProgressReviewHistoryWatermark);
 }
 
 function parseProgressReviewScheduleBucketArray(
@@ -98,6 +139,13 @@ export function parseProgressSeriesResponse(value: unknown, endpoint: string): P
     from: parseRequiredField(objectValue, "from", endpoint, "", parseString),
     to: parseRequiredField(objectValue, "to", endpoint, "", parseString),
     generatedAt: parseRequiredField(objectValue, "generatedAt", endpoint, "", parseString),
+    reviewHistoryWatermarks: parseRequiredField(
+      objectValue,
+      "reviewHistoryWatermarks",
+      endpoint,
+      "",
+      parseProgressReviewHistoryWatermarkArray,
+    ),
     dailyReviews: parseRequiredField(objectValue, "dailyReviews", endpoint, "", parseDailyReviewPointArray),
   };
 }
@@ -108,6 +156,13 @@ export function parseProgressSummaryResponse(value: unknown, endpoint: string): 
   return {
     timeZone: parseRequiredField(objectValue, "timeZone", endpoint, "", parseString),
     generatedAt: parseRequiredField(objectValue, "generatedAt", endpoint, "", parseString),
+    reviewHistoryWatermarks: parseRequiredField(
+      objectValue,
+      "reviewHistoryWatermarks",
+      endpoint,
+      "",
+      parseProgressReviewHistoryWatermarkArray,
+    ),
     summary: parseRequiredField(objectValue, "summary", endpoint, "", parseProgressSummary),
   };
 }
@@ -117,6 +172,13 @@ export function parseProgressReviewScheduleResponse(value: unknown, endpoint: st
   const schedule: ProgressReviewSchedule = {
     timeZone: parseRequiredField(objectValue, "timeZone", endpoint, "", parseString),
     generatedAt: parseRequiredField(objectValue, "generatedAt", endpoint, "", parseString),
+    reviewHistoryWatermarks: parseRequiredField(
+      objectValue,
+      "reviewHistoryWatermarks",
+      endpoint,
+      "",
+      parseProgressReviewHistoryWatermarkArray,
+    ),
     totalCards: parseRequiredField(objectValue, "totalCards", endpoint, "", parseNumber),
     buckets: parseRequiredField(objectValue, "buckets", endpoint, "", parseProgressReviewScheduleBucketArray),
   };

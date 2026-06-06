@@ -154,6 +154,7 @@ function createProgressSummarySnapshot(): ProgressSummarySnapshot {
   return {
     timeZone: "UTC",
     generatedAt: "2026-04-21T10:00:00.000Z",
+    reviewHistoryWatermarks: [],
     summary: {
       currentStreakDays: 2,
       hasReviewedToday: true,
@@ -183,6 +184,7 @@ function createProgressSeriesSnapshot(): ProgressSeriesSnapshot {
     from: "2026-04-13",
     to: "2026-04-21",
     generatedAt: "2026-04-21T10:00:00.000Z",
+    reviewHistoryWatermarks: [],
     dailyReviews,
     chartData: {
       dailyReviews,
@@ -196,6 +198,7 @@ function createReviewScheduleSnapshot(): ProgressReviewScheduleSnapshot {
   return {
     timeZone: "UTC",
     generatedAt: "2026-04-21T10:00:00.000Z",
+    reviewHistoryWatermarks: [],
     totalCards: 10,
     buckets: [
       { key: "new", count: 2 },

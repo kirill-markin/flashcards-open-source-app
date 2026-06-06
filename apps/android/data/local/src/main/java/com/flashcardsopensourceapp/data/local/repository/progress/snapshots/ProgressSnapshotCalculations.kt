@@ -132,7 +132,8 @@ internal fun createLocalFallbackSummary(
         currentStreakDays = currentStreakDays,
         hasReviewedToday = activeReviewDateSet.contains(today.toString()),
         lastReviewedOn = lastReviewedOn,
-        activeReviewDays = activeReviewDates.size
+        activeReviewDays = activeReviewDates.size,
+        reviewHistoryWatermarks = emptyList()
     )
 }
 
@@ -174,6 +175,7 @@ internal fun createLocalFallbackSeries(
             )
         },
         generatedAt = null,
+        reviewHistoryWatermarks = emptyList(),
         summary = null
     )
 }
@@ -207,6 +209,7 @@ internal fun createLocalFallbackReviewSchedule(
     return CloudProgressReviewSchedule(
         timeZone = scopeKey.timeZone,
         generatedAt = null,
+        reviewHistoryWatermarks = emptyList(),
         totalCards = bucketCounts.values.sum(),
         buckets = ProgressReviewScheduleBucketKey.orderedEntries.map { key ->
             CloudProgressReviewScheduleBucket(
@@ -250,6 +253,7 @@ internal fun createPendingLocalOverlaySeries(
             )
         },
         generatedAt = null,
+        reviewHistoryWatermarks = emptyList(),
         summary = null
     )
 }
@@ -394,7 +398,8 @@ internal fun mergeProgressSummary(
             first = base.lastReviewedOn,
             second = localFallback.lastReviewedOn
         ),
-        activeReviewDays = maxOf(base.activeReviewDays, localFallback.activeReviewDays)
+        activeReviewDays = maxOf(base.activeReviewDays, localFallback.activeReviewDays),
+        reviewHistoryWatermarks = base.reviewHistoryWatermarks
     )
 }
 
@@ -417,6 +422,7 @@ internal fun mergeProgressSeries(
         to = base.to,
         dailyReviews = mergedDailyReviews,
         generatedAt = base.generatedAt,
+        reviewHistoryWatermarks = base.reviewHistoryWatermarks,
         summary = null
     )
 }
@@ -619,7 +625,8 @@ internal fun createEmptyProgressSummary(): CloudProgressSummary {
         currentStreakDays = 0,
         hasReviewedToday = false,
         lastReviewedOn = null,
-        activeReviewDays = 0
+        activeReviewDays = 0,
+        reviewHistoryWatermarks = emptyList()
     )
 }
 
@@ -640,6 +647,7 @@ internal fun createEmptyProgressSeries(
             )
         },
         generatedAt = null,
+        reviewHistoryWatermarks = emptyList(),
         summary = null
     )
 }
@@ -650,6 +658,7 @@ internal fun createEmptyProgressReviewSchedule(
     return CloudProgressReviewSchedule(
         timeZone = scopeKey.timeZone,
         generatedAt = null,
+        reviewHistoryWatermarks = emptyList(),
         totalCards = 0,
         buckets = ProgressReviewScheduleBucketKey.orderedEntries.map { key ->
             CloudProgressReviewScheduleBucket(

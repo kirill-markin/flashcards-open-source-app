@@ -67,6 +67,9 @@ class CloudRemoteServiceTest {
                 "lastReviewedOn": "2026-04-18",
                 "activeReviewDays": 21
               },
+              "reviewHistoryWatermarks": [
+                { "workspaceId": "workspace-1", "reviewSequenceId": 42 }
+              ],
               "generatedAt": "2026-04-18T12:00:00Z"
             }
             """.trimIndent()
@@ -81,6 +84,7 @@ class CloudRemoteServiceTest {
         assertEquals(true, summary.hasReviewedToday)
         assertEquals("2026-04-18", summary.lastReviewedOn)
         assertEquals(21, summary.activeReviewDays)
+        assertEquals(42L, summary.reviewHistoryWatermarks.single().reviewSequenceId)
     }
 
     @Test(expected = CloudContractMismatchException::class)
@@ -93,6 +97,9 @@ class CloudRemoteServiceTest {
               "hasReviewedToday": true,
               "lastReviewedOn": "2026-04-18",
               "activeReviewDays": 21,
+              "reviewHistoryWatermarks": [
+                { "workspaceId": "workspace-1", "reviewSequenceId": 42 }
+              ],
               "generatedAt": "2026-04-18T12:00:00Z"
             }
             """.trimIndent()
@@ -111,6 +118,9 @@ class CloudRemoteServiceTest {
             {
               "timeZone": "Europe/Madrid",
               "generatedAt": "2026-05-03T12:00:00Z",
+              "reviewHistoryWatermarks": [
+                { "workspaceId": "workspace-1", "reviewSequenceId": 42 }
+              ],
               "totalCards": 8,
               "buckets": [
                 { "key": "new", "count": 1 },
@@ -133,6 +143,7 @@ class CloudRemoteServiceTest {
 
         assertEquals("Europe/Madrid", schedule.timeZone)
         assertEquals("2026-05-03T12:00:00Z", schedule.generatedAt)
+        assertEquals(42L, schedule.reviewHistoryWatermarks.single().reviewSequenceId)
         assertEquals(8, schedule.totalCards)
         assertEquals(ProgressReviewScheduleBucketKey.orderedEntries, schedule.buckets.map { bucket -> bucket.key })
     }

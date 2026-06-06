@@ -193,7 +193,8 @@ func makeProgressSeriesFromReviewedAtClients(
         to: requestRange.to,
         dailyReviews: progressDays,
         summary: nil,
-        generatedAt: nil
+        generatedAt: nil,
+        reviewHistoryWatermarks: []
     )
 }
 
@@ -250,7 +251,8 @@ func mergeProgressSeries(
         to: serverBase.to,
         dailyReviews: mergedDailyReviews,
         summary: nil,
-        generatedAt: serverBase.generatedAt
+        generatedAt: serverBase.generatedAt,
+        reviewHistoryWatermarks: serverBase.reviewHistoryWatermarks
     )
 }
 
@@ -319,7 +321,8 @@ func patchProgressSnapshot(
         to: scopeKey.to,
         dailyReviews: dailyReviews,
         summary: nil,
-        generatedAt: snapshot.generatedAt
+        generatedAt: snapshot.generatedAt,
+        reviewHistoryWatermarks: []
     )
 
     return try makeProgressSnapshot(

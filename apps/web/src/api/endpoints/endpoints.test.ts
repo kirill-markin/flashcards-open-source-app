@@ -124,6 +124,9 @@ describe("progress API endpoints", () => {
       .mockResolvedValueOnce(new Response(JSON.stringify({
         timeZone: "Europe/Madrid",
         generatedAt: "2026-04-18T09:15:00.000Z",
+        reviewHistoryWatermarks: [
+          { workspaceId: "workspace-1", reviewSequenceId: 42 },
+        ],
         summary: {
           currentStreakDays: 1,
           hasReviewedToday: true,
@@ -144,6 +147,9 @@ describe("progress API endpoints", () => {
     })).resolves.toEqual({
       timeZone: "Europe/Madrid",
       generatedAt: "2026-04-18T09:15:00.000Z",
+      reviewHistoryWatermarks: [
+        { workspaceId: "workspace-1", reviewSequenceId: 42 },
+      ],
       summary: {
         currentStreakDays: 1,
         hasReviewedToday: true,
@@ -160,6 +166,9 @@ describe("progress API endpoints", () => {
         from: "2026-04-01",
         to: "2026-04-03",
         generatedAt: "2026-04-18T09:15:00.000Z",
+        reviewHistoryWatermarks: [
+          { workspaceId: "workspace-1", reviewSequenceId: 42 },
+        ],
         dailyReviews: [
           {
             date: "2026-04-01",
@@ -191,6 +200,9 @@ describe("progress API endpoints", () => {
       from: "2026-04-01",
       to: "2026-04-03",
       generatedAt: "2026-04-18T09:15:00.000Z",
+      reviewHistoryWatermarks: [
+        { workspaceId: "workspace-1", reviewSequenceId: 42 },
+      ],
       dailyReviews: [
         {
           date: "2026-04-01",

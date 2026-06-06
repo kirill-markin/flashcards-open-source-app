@@ -98,6 +98,9 @@ describe("useProgressSource summary and series", () => {
     loadProgressSummaryMock.mockResolvedValue({
       timeZone: "Europe/Madrid",
       generatedAt: "2026-04-20T09:15:00.000Z",
+      reviewHistoryWatermarks: [
+        { workspaceId: "workspace-1", reviewSequenceId: 42 },
+      ],
       summary: {
         currentStreakDays: 1,
         hasReviewedToday: false,
@@ -110,6 +113,9 @@ describe("useProgressSource summary and series", () => {
       from: currentSeriesInput.from,
       to: currentSeriesInput.to,
       generatedAt: "2026-04-20T09:15:00.000Z",
+      reviewHistoryWatermarks: [
+        { workspaceId: "workspace-1", reviewSequenceId: 42 },
+      ],
       dailyReviews: [
         {
           date: currentSeriesInput.to,

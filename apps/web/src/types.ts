@@ -112,6 +112,11 @@ export type ProgressSummary = Readonly<{
   activeReviewDays: number;
 }>;
 
+export type ProgressReviewHistoryWatermark = Readonly<{
+  workspaceId: string;
+  reviewSequenceId: number;
+}>;
+
 export type ReviewProgressBadgeState = Readonly<{
   streakDays: number;
   hasReviewedToday: boolean;
@@ -125,6 +130,7 @@ export type ProgressChartData = Readonly<{
 export type ProgressSummaryPayload = Readonly<{
   timeZone: string;
   generatedAt: string | null;
+  reviewHistoryWatermarks: ReadonlyArray<ProgressReviewHistoryWatermark>;
   summary: ProgressSummary;
 }>;
 
@@ -133,6 +139,7 @@ export type ProgressSeries = Readonly<{
   from: string;
   to: string;
   generatedAt: string | null;
+  reviewHistoryWatermarks: ReadonlyArray<ProgressReviewHistoryWatermark>;
   dailyReviews: ReadonlyArray<DailyReviewPoint>;
 }>;
 
@@ -158,6 +165,7 @@ export type ProgressReviewScheduleBucket = Readonly<{
 export type ProgressReviewSchedule = Readonly<{
   timeZone: string;
   generatedAt: string | null;
+  reviewHistoryWatermarks: ReadonlyArray<ProgressReviewHistoryWatermark>;
   totalCards: number;
   buckets: ReadonlyArray<ProgressReviewScheduleBucket>;
 }>;

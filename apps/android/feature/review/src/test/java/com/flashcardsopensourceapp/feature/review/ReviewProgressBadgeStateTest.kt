@@ -57,7 +57,8 @@ private fun createProgressSummarySnapshot(
         currentStreakDays = currentStreakDays,
         hasReviewedToday = hasReviewedToday,
         lastReviewedOn = "2026-04-18",
-        activeReviewDays = 32
+        activeReviewDays = 32,
+        reviewHistoryWatermarks = emptyList()
     )
 
     return ProgressSummarySnapshot(

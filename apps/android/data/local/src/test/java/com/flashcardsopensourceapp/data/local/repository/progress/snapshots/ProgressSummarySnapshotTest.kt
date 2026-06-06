@@ -92,13 +92,15 @@ class ProgressSummarySnapshotTest {
             currentStreakDays = 10,
             hasReviewedToday = true,
             lastReviewedOn = "2026-04-18",
-            activeReviewDays = 33
+            activeReviewDays = 33,
+            reviewHistoryWatermarks = emptyList()
         )
         val serverBase = CloudProgressSummary(
             currentStreakDays = 9,
             hasReviewedToday = false,
             lastReviewedOn = "2026-04-17",
-            activeReviewDays = 32
+            activeReviewDays = 32,
+            reviewHistoryWatermarks = emptyList()
         )
 
         val snapshot = createProgressSummarySnapshot(

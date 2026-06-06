@@ -396,19 +396,22 @@ private fun createProgressSummarySnapshot(): ProgressSummarySnapshot {
             currentStreakDays = 12,
             hasReviewedToday = true,
             lastReviewedOn = "2026-04-18",
-            activeReviewDays = 50
+            activeReviewDays = 50,
+            reviewHistoryWatermarks = emptyList()
         ),
         localFallback = CloudProgressSummary(
             currentStreakDays = 12,
             hasReviewedToday = true,
             lastReviewedOn = "2026-04-18",
-            activeReviewDays = 50
+            activeReviewDays = 50,
+            reviewHistoryWatermarks = emptyList()
         ),
         serverBase = CloudProgressSummary(
             currentStreakDays = 12,
             hasReviewedToday = true,
             lastReviewedOn = "2026-04-18",
-            activeReviewDays = 50
+            activeReviewDays = 50,
+            reviewHistoryWatermarks = emptyList()
         ),
         source = ProgressSnapshotSource.SERVER_BASE,
         isApproximate = false
@@ -445,6 +448,7 @@ private fun createProgressSeriesSnapshot(
         to = scopeKey.to,
         dailyReviews = dailyReviews,
         generatedAt = null,
+        reviewHistoryWatermarks = emptyList(),
         summary = null
     )
     return ProgressSeriesSnapshot(
@@ -460,6 +464,7 @@ private fun createProgressSeriesSnapshot(
                 point.copy(reviewCount = 0)
             },
             generatedAt = null,
+            reviewHistoryWatermarks = emptyList(),
             summary = null
         ),
         source = ProgressSnapshotSource.LOCAL_ONLY,
@@ -477,6 +482,7 @@ private fun createProgressReviewScheduleSnapshot(): ProgressReviewScheduleSnapsh
     val schedule = CloudProgressReviewSchedule(
         timeZone = scopeKey.timeZone,
         generatedAt = null,
+        reviewHistoryWatermarks = emptyList(),
         totalCards = 4,
         buckets = ProgressReviewScheduleBucketKey.orderedEntries.map { key ->
             CloudProgressReviewScheduleBucket(
