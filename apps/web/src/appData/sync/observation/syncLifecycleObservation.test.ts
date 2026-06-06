@@ -228,8 +228,11 @@ describe("sync lifecycle observation", () => {
     expect(findCapturedWarning("sync_local_db_missing")).toBeNull();
   });
 
-  it("warns when an empty local database had previous restore history", async () => {
+  it("deduplicates slow warnings for successful local database recovery", async () => {
     const persistentStorageMock = installPersistentStorageMock();
+    let nowMs = 0;
+    vi.spyOn(Date, "now")
+      .mockImplementation(() => nowMs);
 
     storeSyncRestoreHistoryEntry({
       userId: "user-1",
@@ -240,7 +243,12 @@ describe("sync lifecycle observation", () => {
       persistentStorageState: createPersistentStorageState(true, 321, 654, null, true, true),
     });
 
-    await runWorkspaceRemoteSync(createRemoteSyncInput());
+    await runWorkspaceRemoteSync({
+      ...createRemoteSyncInput(),
+      refreshWorkspaceView: async (_workspaceId: string): Promise<void> => {
+        nowMs = 3000;
+      },
+    });
 
     expect(observabilityMocks.captureWebWarningMock).toHaveBeenCalledWith(expect.objectContaining({
       action: "sync_local_db_missing",
@@ -281,6 +289,7 @@ describe("sync lifecycle observation", () => {
         storagePersistGrantedAfter: true,
       }),
     }));
+    expect(findCapturedWarning("sync_restore_slow")).toBeNull();
     expect(persistentStorageMock.persistMock).toHaveBeenCalledTimes(1);
   });
 
