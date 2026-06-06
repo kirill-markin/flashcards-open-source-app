@@ -3,18 +3,18 @@
  * The server reconstructs provider input from persisted messages instead of trusting client-owned transcripts.
  */
 import type OpenAI from "openai";
-import type { ContentPart, FileContentPart, ImageContentPart } from "../types";
-import { buildSystemInstructions } from "../shared";
-import { buildCardContextXml } from "../cardContext";
+import type { ContentPart, FileContentPart, ImageContentPart } from "../../types";
+import { buildSystemInstructions } from "../../shared";
+import { buildCardContextXml } from "../../cardContext";
 import {
   validateChatFileAttachmentContent,
   validateChatImageAttachmentContent,
-} from "../attachmentPolicy";
+} from "../../attachmentPolicy";
 import {
   normalizeStoredOpenAIReplayItems,
   toOpenAIResponseInputItem,
   type ServerChatMessage,
-} from "./replayItems";
+} from "../replayItems";
 
 type OpenAIInputItem = OpenAI.Responses.ResponseInputItem;
 type OpenAIInputContent = OpenAI.Responses.ResponseInputMessageContentList[number];

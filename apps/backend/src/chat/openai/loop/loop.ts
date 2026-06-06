@@ -12,28 +12,28 @@ import {
   createToolCallStateMap,
   type FunctionToolCallRawItem,
   type ToolCallPosition,
-} from "./toolCalls";
+} from "../tools/toolCalls";
 import { buildChatCompletionInput } from "./input";
-import { getObservedOpenAIClient } from "./client";
-import { runOneToolCall as runObservedToolCall } from "./toolExecutor";
+import { getObservedOpenAIClient } from "../client";
+import { runOneToolCall as runObservedToolCall } from "../tools/toolExecutor";
 import {
   toOpenAIResponseInputItem,
   toStoredOpenAIReplayItem,
   type ServerChatMessage,
   type StoredOpenAIReplayItem,
   type StoredOpenAIReplayMessage,
-} from "./replayItems";
+} from "../replayItems";
 import {
   OPENAI_CHAT_TOOLS,
   type ExecutedChatToolCall,
-} from "./tools";
-import { buildOpenAISafetyIdentifier } from "./safetyIdentifier";
-import type { ChatStreamEvent, ContentPart } from "../types";
+} from "../tools/tools";
+import { buildOpenAISafetyIdentifier } from "../safetyIdentifier";
+import type { ChatStreamEvent, ContentPart } from "../../types";
 import {
   CHAT_MODEL_REASONING_SUMMARY,
   type ChatRuntimeModelId,
   type ChatRuntimeReasoningEffort,
-} from "../config";
+} from "../../config";
 
 export const CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS = 30;
 const MAX_REASONING_ITEMS = 8;
