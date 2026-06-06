@@ -303,20 +303,24 @@ internal fun createProgressSeriesSnapshot(
     pendingLocalOverlay: CloudProgressSeries,
     cloudState: CloudAccountState
 ): ProgressSeriesSnapshot {
-    val hasPendingLocalOverlay = pendingLocalOverlay.dailyReviews.any { point ->
-        point.reviewCount > 0
-    }
     val renderedSeries = if (serverBase == null) {
         localFallback
     } else {
         mergeProgressSeries(
             base = serverBase,
-            overlay = pendingLocalOverlay
+            pendingLocalOverlay = pendingLocalOverlay,
+            localFallback = localFallback
         )
     }
+    val hasLocalOverlay = serverBase?.let { base ->
+        hasProgressSeriesOverlay(
+            base = base,
+            renderedSeries = renderedSeries
+        )
+    } ?: false
     val source = when {
         serverBase == null -> ProgressSnapshotSource.LOCAL_ONLY
-        hasPendingLocalOverlay -> ProgressSnapshotSource.SERVER_BASE_WITH_LOCAL_OVERLAY
+        hasLocalOverlay -> ProgressSnapshotSource.SERVER_BASE_WITH_LOCAL_OVERLAY
         else -> ProgressSnapshotSource.SERVER_BASE
     }
     return ProgressSeriesSnapshot(
@@ -327,7 +331,7 @@ internal fun createProgressSeriesSnapshot(
         pendingLocalOverlay = pendingLocalOverlay,
         source = source,
         isApproximate = source == ProgressSnapshotSource.LOCAL_ONLY ||
-            hasPendingLocalOverlay ||
+            hasLocalOverlay ||
             cloudState == CloudAccountState.DISCONNECTED ||
             cloudState == CloudAccountState.LINKING_READY
     )
@@ -405,15 +409,24 @@ internal fun mergeProgressSummary(
 
 internal fun mergeProgressSeries(
     base: CloudProgressSeries,
-    overlay: CloudProgressSeries
+    pendingLocalOverlay: CloudProgressSeries,
+    localFallback: CloudProgressSeries
 ): CloudProgressSeries {
-    val overlayCountsByDate = overlay.dailyReviews.associate { point ->
-        point.date to point.reviewCount
-    }
+    validateProgressSeriesMergeInputs(
+        base = base,
+        pendingLocalOverlay = pendingLocalOverlay,
+        localFallback = localFallback
+    )
+    val pendingCountsByDate = buildProgressSeriesReviewCountsByDate(series = pendingLocalOverlay)
+    val localFallbackCountsByDate = buildProgressSeriesReviewCountsByDate(series = localFallback)
     val mergedDailyReviews = base.dailyReviews.map { point ->
+        val serverPlusPending = point.reviewCount + (pendingCountsByDate[point.date] ?: 0)
         CloudDailyReviewPoint(
             date = point.date,
-            reviewCount = point.reviewCount + (overlayCountsByDate[point.date] ?: 0)
+            reviewCount = maxOf(
+                serverPlusPending,
+                localFallbackCountsByDate[point.date] ?: 0
+            )
         )
     }
     return CloudProgressSeries(
@@ -425,6 +438,73 @@ internal fun mergeProgressSeries(
         reviewHistoryWatermarks = base.reviewHistoryWatermarks,
         summary = null
     )
+}
+
+private fun validateProgressSeriesMergeInputs(
+    base: CloudProgressSeries,
+    pendingLocalOverlay: CloudProgressSeries,
+    localFallback: CloudProgressSeries
+) {
+    validateProgressSeriesMergeInput(
+        base = base,
+        candidate = pendingLocalOverlay,
+        candidateName = "pendingLocalOverlay"
+    )
+    validateProgressSeriesMergeInput(
+        base = base,
+        candidate = localFallback,
+        candidateName = "localFallback"
+    )
+}
+
+private fun validateProgressSeriesMergeInput(
+    base: CloudProgressSeries,
+    candidate: CloudProgressSeries,
+    candidateName: String
+) {
+    val mismatches: List<String> = buildList {
+        if (base.timeZone != candidate.timeZone) {
+            add("timeZone base='${base.timeZone}' $candidateName='${candidate.timeZone}'")
+        }
+        if (base.from != candidate.from) {
+            add("from base='${base.from}' $candidateName='${candidate.from}'")
+        }
+        if (base.to != candidate.to) {
+            add("to base='${base.to}' $candidateName='${candidate.to}'")
+        }
+    }
+    if (mismatches.isEmpty()) {
+        return
+    }
+
+    throw IllegalArgumentException(
+        "Progress series merge inputs must share the same scope. " +
+            "Mismatches: ${mismatches.joinToString(separator = "; ")}."
+    )
+}
+
+private fun buildProgressSeriesReviewCountsByDate(
+    series: CloudProgressSeries
+): Map<String, Int> {
+    val reviewCountsByDate = linkedMapOf<String, Int>()
+    series.dailyReviews.forEach { point ->
+        reviewCountsByDate[point.date] = (reviewCountsByDate[point.date] ?: 0) + point.reviewCount
+    }
+    return reviewCountsByDate
+}
+
+private fun hasProgressSeriesOverlay(
+    base: CloudProgressSeries,
+    renderedSeries: CloudProgressSeries
+): Boolean {
+    if (base.dailyReviews.size != renderedSeries.dailyReviews.size) {
+        return true
+    }
+
+    return base.dailyReviews.zip(renderedSeries.dailyReviews).any { pair ->
+        pair.first.date != pair.second.date ||
+            pair.first.reviewCount != pair.second.reviewCount
+    }
 }
 
 internal fun createReviewHistoryFingerprint(
