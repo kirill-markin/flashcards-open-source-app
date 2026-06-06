@@ -161,7 +161,7 @@ private val queryParameterPattern: Regex = Regex(
     pattern = """(?i)\b(token|code|email|key|api[-_]?key|password|secret)=([^&\s]+)"""
 )
 private val authHeaderPattern: Regex = Regex(
-    pattern = """(?i)\b(authorization|x-api-key|api[-_]?key|token|secret|password)\b\s*[:=]\s*[^,\s]+"""
+    pattern = """(?i)\b(authorization|x-api-key|api[-_]?key|token|secret|password)\b\s*[:=]\s*[^,&\s]+"""
 )
 private val emailPattern: Regex = Regex(
     pattern = """(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b"""
