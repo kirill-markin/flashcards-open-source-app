@@ -104,6 +104,12 @@ fun DeckDetailRoute(
                             text = detail.filterSummary,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        if (detail is DeckDetailInfoUiState.PersistedDeck && !detail.hasFilterRules) {
+                            Text(
+                                text = stringResource(R.string.settings_deck_empty_rules_includes_all_cards),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                         OverviewRow(title = stringResource(R.string.settings_cards_title), value = detail.totalCards)
                         OverviewRow(title = stringResource(R.string.settings_workspace_due_title), value = detail.dueCards)
                         OverviewRow(title = stringResource(R.string.settings_workspace_new_title), value = detail.newCards)

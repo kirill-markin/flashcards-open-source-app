@@ -321,6 +321,7 @@
     <string name="settings_deck_matching_cards_title">Matching cards</string>
     <string name="settings_deck_empty_all_cards">This workspace does not have any cards yet.</string>
     <string name="settings_deck_empty_filtered">This filtered deck has no matching cards yet.</string>
+    <string name="settings_deck_empty_rules_includes_all_cards">This deck has no rules, so it includes all cards.</string>
     <string name="settings_deck_detail_review_button">Review this deck</string>
     <string name="settings_deck_detail_edit_button">Edit deck</string>
     <string name="settings_deck_detail_delete_button">Delete deck</string>
