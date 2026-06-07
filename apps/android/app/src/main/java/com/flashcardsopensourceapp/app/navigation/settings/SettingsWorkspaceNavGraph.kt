@@ -27,10 +27,12 @@ import com.flashcardsopensourceapp.feature.settings.review.ReviewNotificationsRo
 import com.flashcardsopensourceapp.feature.settings.review.createReviewNotificationsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.scheduler.SchedulerSettingsRoute
 import com.flashcardsopensourceapp.feature.settings.scheduler.createSchedulerSettingsViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.workspace.delete.DeleteCurrentWorkspaceRoute
 import com.flashcardsopensourceapp.feature.settings.workspace.export.WorkspaceExportRoute
 import com.flashcardsopensourceapp.feature.settings.workspace.export.createWorkspaceExportViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.workspace.overview.WorkspaceOverviewRoute
 import com.flashcardsopensourceapp.feature.settings.workspace.overview.createWorkspaceOverviewViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.workspace.reset.ResetStudyProgressRoute
 import com.flashcardsopensourceapp.feature.settings.workspace.settings.WorkspaceSettingsRoute
 import com.flashcardsopensourceapp.feature.settings.workspace.settings.createWorkspaceSettingsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.workspace.tags.WorkspaceTagsRoute
@@ -81,6 +83,32 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
                 onOpenExport = {
                     navController.navigate(route = SettingsWorkspaceExportDestination.route)
                 },
+                onOpenResetConfirmation = workspaceSettingsViewModel::openResetConfirmation,
+                onDismissResetConfirmation = workspaceSettingsViewModel::dismissResetConfirmation,
+                onResetConfirmationTextChange = workspaceSettingsViewModel::updateResetConfirmationText,
+                onRequestResetProgress = workspaceSettingsViewModel::requestResetProgressAsync,
+                onDismissResetPreviewAlert = workspaceSettingsViewModel::dismissResetPreviewAlert,
+                onResetProgress = workspaceSettingsViewModel::resetProgressAsync,
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(route = SettingsWorkspaceResetStudyProgressDestination.route) {
+            val context = LocalContext.current
+            val workspaceSettingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.workspace.settings.WorkspaceSettingsViewModel>(
+                factory = createWorkspaceSettingsViewModelFactory(
+                    workspaceRepository = appGraph.workspaceRepository,
+                    cloudAccountRepository = appGraph.cloudAccountRepository,
+                    reviewNotificationsStore = appGraph.reviewNotificationsStore,
+                    applicationContext = context.applicationContext
+                )
+            )
+            val uiState by workspaceSettingsViewModel.uiState.collectAsStateWithLifecycle()
+
+            ResetStudyProgressRoute(
+                uiState = uiState,
                 onOpenResetConfirmation = workspaceSettingsViewModel::openResetConfirmation,
                 onDismissResetConfirmation = workspaceSettingsViewModel::dismissResetConfirmation,
                 onResetConfirmationTextChange = workspaceSettingsViewModel::updateResetConfirmationText,
@@ -163,6 +191,34 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
                 uiState = uiState,
                 onWorkspaceNameChange = workspaceOverviewViewModel::updateWorkspaceNameDraft,
                 onSaveWorkspaceName = workspaceOverviewViewModel::saveWorkspaceNameAsync,
+                onRequestDeleteWorkspace = workspaceOverviewViewModel::requestDeleteWorkspaceAsync,
+                onDismissDeletePreviewAlert = workspaceOverviewViewModel::dismissDeletePreviewAlert,
+                onOpenDeleteConfirmation = workspaceOverviewViewModel::openDeleteConfirmation,
+                onDeleteConfirmationTextChange = workspaceOverviewViewModel::updateDeleteConfirmationText,
+                onDismissDeleteConfirmation = workspaceOverviewViewModel::dismissDeleteConfirmation,
+                onDeleteWorkspace = workspaceOverviewViewModel::deleteWorkspaceAsync,
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(route = SettingsWorkspaceDeleteCurrentDestination.route) {
+            val context = LocalContext.current
+            val workspaceOverviewViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.workspace.overview.WorkspaceOverviewViewModel>(
+                factory = createWorkspaceOverviewViewModelFactory(
+                    workspaceRepository = appGraph.workspaceRepository,
+                    cloudAccountRepository = appGraph.cloudAccountRepository,
+                    autoSyncEventRepository = appGraph.autoSyncEventRepository,
+                    messageController = appGraph.appMessageBus,
+                    visibleAppScreenRepository = appGraph.visibleAppScreenController,
+                    applicationContext = context.applicationContext
+                )
+            )
+            val uiState by workspaceOverviewViewModel.uiState.collectAsStateWithLifecycle()
+
+            DeleteCurrentWorkspaceRoute(
+                uiState = uiState,
                 onRequestDeleteWorkspace = workspaceOverviewViewModel::requestDeleteWorkspaceAsync,
                 onDismissDeletePreviewAlert = workspaceOverviewViewModel::dismissDeletePreviewAlert,
                 onOpenDeleteConfirmation = workspaceOverviewViewModel::openDeleteConfirmation,

@@ -102,11 +102,9 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
 
         openSettingsTab()
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_root_current_workspace_title)).fetchSemanticsNode()
-        composeRule.onNode(
-            matcher = hasText(settingsString(SettingsR.string.settings_root_workspace_title)).and(other = hasClickAction())
-        ).performClick()
 
-        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_workspace_title)).fetchSemanticsNode()
+        openSettingsRow(rowTitle = settingsString(SettingsR.string.settings_root_current_workspace_title))
+        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_root_current_workspace_title)).fetchSemanticsNode()
         composeRule.onNodeWithContentDescription(settingsString(SettingsR.string.settings_back_content_description)).fetchSemanticsNode()
         tapVisibleBackButton()
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_root_current_workspace_title)).fetchSemanticsNode()
@@ -116,13 +114,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     fun accountStatusAndSignInShowTitlesAndVisibleBackButton() {
         waitForCardsEmptyState()
 
-        openSettingsTab()
-        composeRule.onNode(
-            matcher = hasText(settingsString(SettingsR.string.settings_root_account_title)).and(other = hasClickAction())
-        ).performClick()
-        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_account_title)).fetchSemanticsNode()
-
-        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_account_status_title)).performClick()
+        openSettingsRow(rowTitle = settingsString(SettingsR.string.settings_account_status_title))
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_account_status_screen_title)).fetchSemanticsNode()
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_account_status_sign_in_button)).performClick()
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_sign_in_title)).fetchSemanticsNode()
@@ -257,8 +249,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         waitForCardsEmptyState()
         createCardsForWorkspaceSettingsFlows()
 
-        openSettingsSection(sectionTitle = settingsString(SettingsR.string.settings_section_workspace))
-        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_workspace_decks_title)).performClick()
+        openSettingsRow(rowTitle = settingsString(SettingsR.string.settings_workspace_decks_title))
 
         composeRule.onNodeWithContentDescription(settingsString(SettingsR.string.settings_decks_add_content_description)).performClick()
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_deck_editor_name_label)).performTextInput("Storage deck")
@@ -287,8 +278,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         waitForCardsEmptyState()
         createCardsForWorkspaceSettingsFlows()
 
-        openSettingsSection(sectionTitle = settingsString(SettingsR.string.settings_section_workspace))
-        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_workspace_tags_title)).performClick()
+        openSettingsRow(rowTitle = settingsString(SettingsR.string.settings_workspace_tags_title))
         waitForWorkspaceTagsScreen()
         composeRule.onNodeWithTag(workspaceTagsSearchFieldTag).performClick()
         composeRule.onNodeWithTag(workspaceTagsSearchFieldTag).performTextReplacement("ui")
@@ -304,11 +294,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     fun schedulerSettingsFlowUpdatesWorkspaceSummaryFromEmptyState() {
         waitForCardsEmptyState()
 
-        openSettingsTab()
-        composeRule.onNode(
-            matcher = hasText(settingsString(SettingsR.string.settings_root_workspace_title)).and(other = hasClickAction())
-        ).performClick()
-        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_workspace_scheduler_title)).performClick()
+        openSettingsRow(rowTitle = settingsString(SettingsR.string.settings_scheduling_title))
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithTag(schedulerDesiredRetentionFieldTag).fetchSemanticsNodes().isNotEmpty()
                 && composeRule.onAllNodesWithTag(schedulerLearningStepsFieldTag).fetchSemanticsNodes().isNotEmpty()
@@ -330,10 +316,9 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         }
         composeRule.onNodeWithTag(schedulerApplyButtonTag).performClick()
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithText("Overview").fetchSemanticsNodes().isNotEmpty()
-                && composeRule.onAllNodesWithText("Scheduler").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithText(settingsString(SettingsR.string.settings_scheduling_title)).fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithText("Scheduler").performClick()
+        openSettingsRow(rowTitle = settingsString(SettingsR.string.settings_scheduling_title))
         composeRule.onNodeWithTag(schedulerDesiredRetentionFieldTag).performScrollTo()
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText("0.85").fetchSemanticsNodes().isNotEmpty()
@@ -344,9 +329,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     fun workspaceOverviewShowsRenameNoticeFromEmptyState() {
         waitForCardsEmptyState()
 
-        openWorkspaceSettings()
-        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_workspace_overview_title)).performClick()
-        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_account_danger_zone_card_title)).fetchSemanticsNode()
+        openSettingsRow(rowTitle = settingsString(SettingsR.string.settings_root_current_workspace_title))
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_workspace_rename_guidance)).fetchSemanticsNode()
     }
 
@@ -354,8 +337,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     fun accountStatusShowsCloudStatusFromEmptyState() {
         waitForCardsEmptyState()
 
-        openAccountSettings()
-        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_account_status_title)).performClick()
+        openSettingsRow(rowTitle = settingsString(SettingsR.string.settings_account_status_title))
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_account_status_cloud_status_label)).fetchSemanticsNode()
     }
 
@@ -363,8 +345,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     fun accountAgentConnectionsShowsSignInGuidanceFromEmptyState() {
         waitForCardsEmptyState()
 
-        openAccountSettings()
-        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_account_agent_connections_title)).performClick()
+        openSettingsRow(rowTitle = settingsString(SettingsR.string.settings_account_agent_connections_title))
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_agent_connections_title)).fetchSemanticsNode()
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_agent_connections_sign_in_guidance)).fetchSemanticsNode()
     }
@@ -373,10 +354,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     fun accountDangerZoneShowsDeleteActionFromEmptyState() {
         waitForCardsEmptyState()
 
-        openAccountSettings()
-        composeRule.onNode(
-            matcher = hasText(settingsString(SettingsR.string.settings_account_danger_zone_section)).and(other = hasClickAction())
-        ).performClick()
+        openSettingsRow(rowTitle = settingsString(SettingsR.string.settings_account_danger_zone_dialog_title))
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_account_danger_zone_title)).fetchSemanticsNode()
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_account_danger_zone_delete_button)).fetchSemanticsNode()
     }
@@ -385,7 +363,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     fun deviceDiagnosticsShowWorkspaceIdFromEmptyState() {
         waitForCardsEmptyState()
 
-        openSettingsSection(sectionTitle = settingsString(SettingsR.string.settings_root_device_title))
+        openSettingsRow(rowTitle = settingsString(SettingsR.string.settings_device_diagnostics_title))
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText(settingsString(SettingsR.string.settings_device_workspace_id_label)).fetchSemanticsNodes().isNotEmpty()
         }
@@ -395,7 +373,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     fun accessCameraUsageDetailsOpenFromEmptyState() {
         waitForCardsEmptyState()
 
-        openSettingsSection(sectionTitle = settingsString(SettingsR.string.settings_root_access_title))
+        openSettingsRow(rowTitle = settingsString(SettingsR.string.settings_root_access_title))
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_access_camera_title)).fetchSemanticsNode()
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_access_camera_title)).performClick()
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_access_usage_label)).fetchSemanticsNode()
@@ -405,8 +383,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     fun workspaceExportShowsCsvActionFromEmptyState() {
         waitForCardsEmptyState()
 
-        openSettingsSection(sectionTitle = settingsString(SettingsR.string.settings_section_workspace))
-        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_workspace_export_title)).performClick()
+        openSettingsRow(rowTitle = settingsString(SettingsR.string.settings_workspace_export_title))
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_export_csv_title)).fetchSemanticsNode()
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_export_csv_summary)).fetchSemanticsNode()
     }
@@ -716,20 +693,6 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         ).performClick()
     }
 
-    private fun openWorkspaceSettings() {
-        openSettingsTab()
-        composeRule.onNode(
-            matcher = hasText(settingsString(SettingsR.string.settings_root_workspace_title)).and(other = hasClickAction())
-        ).performClick()
-    }
-
-    private fun openAccountSettings() {
-        openSettingsTab()
-        composeRule.onNode(
-            matcher = hasText(settingsString(SettingsR.string.settings_root_account_title)).and(other = hasClickAction())
-        ).performClick()
-    }
-
     private fun updateCardText(summaryTag: String, editorFieldTag: String, value: String) {
         composeRule.onNodeWithTag(summaryTag).performScrollTo()
         composeRule.onNodeWithTag(summaryTag).performClick()
@@ -749,15 +712,18 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         ).performClick()
     }
 
-    private fun openSettingsSection(sectionTitle: String) {
+    private fun openSettingsRow(rowTitle: String) {
         openSettingsTab()
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(
+            matcher = hasText(rowTitle).and(other = hasClickAction())
+        )
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodes(
-                matcher = hasText(sectionTitle).and(other = hasClickAction())
+                matcher = hasText(rowTitle).and(other = hasClickAction())
             ).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNode(
-            matcher = hasText(sectionTitle).and(other = hasClickAction())
+            matcher = hasText(rowTitle).and(other = hasClickAction())
         ).performClick()
     }
 

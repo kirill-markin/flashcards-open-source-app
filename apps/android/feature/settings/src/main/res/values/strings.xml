@@ -69,14 +69,13 @@
     <string name="settings_delete">Delete</string>
 
     <string name="settings_root_title">Settings</string>
-    <string name="settings_section_workspace">Workspace</string>
     <string name="settings_section_account">Account</string>
+    <string name="settings_section_general">General</string>
+    <string name="settings_section_support">Support</string>
+    <string name="settings_section_advanced">Advanced</string>
+    <string name="settings_section_workspace">Workspace</string>
     <string name="settings_section_device">Device</string>
-    <string name="settings_section_test">Test</string>
     <string name="settings_root_current_workspace_title">Current Workspace</string>
-    <string name="settings_root_workspace_title">Workspace</string>
-    <string name="settings_root_account_title">Account</string>
-    <string name="settings_root_device_title">This Device</string>
     <string name="settings_root_access_title">Access</string>
     <string name="settings_root_access_summary">Camera, microphone, photos, and files</string>
     <string name="settings_root_feedback_title">Send feedback</string>
@@ -84,6 +83,22 @@
     <string name="settings_root_test_title">Test</string>
     <string name="settings_root_test_summary">1 item</string>
     <string name="settings_root_workspace_summary">%1$s | %2$s | %3$s</string>
+    <string name="settings_review_reminders_title">Review reminders</string>
+    <string name="settings_review_reminders_summary">Workspace reminders and strict reminders for this device</string>
+    <string name="settings_language_title">Language</string>
+    <string name="settings_language_summary">Android system and per-app language settings</string>
+    <string name="settings_language_body">Android controls the app language through system and per-app language settings. Change the Android system language or this app\'s language setting, then return to Flashcards.</string>
+    <string name="settings_language_supported_languages_title">Supported languages</string>
+    <string name="settings_language_open_android_settings">Open Android language settings</string>
+    <string name="settings_decks_summary">Manage decks in this workspace</string>
+    <string name="settings_tags_summary">Browse tags used by workspace cards</string>
+    <string name="settings_scheduling_title">Scheduling / FSRS</string>
+    <string name="settings_scheduling_summary">Retention, learning steps, and interval behavior</string>
+    <string name="settings_device_diagnostics_title">This device / diagnostics</string>
+    <string name="settings_reset_study_progress_title">Reset study progress</string>
+    <string name="settings_delete_current_workspace_title">Delete current workspace</string>
+    <string name="settings_feedback_screen_body">Send an idea, bug report, or rough note about what would make Flashcards better.</string>
+    <string name="settings_feedback_open_form_button">Open feedback form</string>
     <string name="settings_labeled_value">%1$s: %2$s</string>
     <string name="settings_test_mode_enabled_message">Test version enabled.</string>
     <string name="settings_test_mode_disabled_message">Test version disabled.</string>
@@ -231,7 +246,7 @@
     <string name="settings_access_photos_guidance">Android 14+ uses the system photo picker here, so broad storage access is not required.</string>
     <string name="settings_access_files_guidance">Android uses the system document picker here, so broad storage access is not required.</string>
 
-    <string name="settings_notifications_title">Notifications</string>
+    <string name="settings_notifications_title">Review reminders</string>
     <string name="settings_notifications_this_device_title">This device only</string>
     <string name="settings_notifications_this_device_body">Workspace review reminders stay attached to the current workspace. Strict reminders are app-wide. Both apply only to this device, and study reminders never include marketing messages.</string>
     <string name="settings_notifications_permission_title">Permission</string>
@@ -260,7 +275,7 @@
     <string name="settings_workspace_overview_title">Overview</string>
     <string name="settings_workspace_decks_title">Decks</string>
     <string name="settings_workspace_tags_title">Tags</string>
-    <string name="settings_workspace_notifications_title">Notifications</string>
+    <string name="settings_workspace_notifications_title">Review reminders</string>
     <string name="settings_workspace_scheduler_title">Scheduler</string>
     <string name="settings_workspace_export_title">Export</string>
     <string name="settings_workspace_reset_card_title">Danger zone</string>

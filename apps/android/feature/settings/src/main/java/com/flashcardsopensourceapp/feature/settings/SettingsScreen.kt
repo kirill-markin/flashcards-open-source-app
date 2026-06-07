@@ -7,8 +7,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -21,7 +21,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.core.ui.components.SectionTitle
@@ -76,12 +75,24 @@ internal fun SettingsScreenScaffold(
 @Composable
 fun SettingsRoute(
     uiState: SettingsUiState,
+    onOpenAccountStatus: () -> Unit,
     onOpenCurrentWorkspace: () -> Unit,
-    onOpenWorkspace: () -> Unit,
-    onOpenAccount: () -> Unit,
-    onOpenDevice: () -> Unit,
+    onOpenReviewReminders: () -> Unit,
+    onOpenLanguage: () -> Unit,
     onOpenAccess: () -> Unit,
+    onOpenDecks: () -> Unit,
+    onOpenTags: () -> Unit,
+    onOpenExport: () -> Unit,
     onOpenFeedback: () -> Unit,
+    onOpenLegalSupport: () -> Unit,
+    onOpenOpenSource: () -> Unit,
+    onOpenScheduling: () -> Unit,
+    onOpenAgentConnections: () -> Unit,
+    onOpenServer: () -> Unit,
+    onOpenDeviceDiagnostics: () -> Unit,
+    onOpenResetStudyProgress: () -> Unit,
+    onOpenDeleteCurrentWorkspace: () -> Unit,
+    onOpenDeleteAccount: () -> Unit,
     onOpenTest: () -> Unit
 ) {
     SettingsScreenScaffold(
@@ -95,138 +106,216 @@ fun SettingsRoute(
             modifier = Modifier.fillMaxSize()
         ) {
             item {
-                SectionTitle(text = stringResource(R.string.settings_section_workspace))
-            }
-
-            item {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    ListItem(
-                        headlineContent = {
-                            Text(stringResource(R.string.settings_root_current_workspace_title))
-                        },
-                        supportingContent = {
-                            Text(uiState.currentWorkspaceName)
-                        },
-                        modifier = Modifier.clickable(onClick = onOpenCurrentWorkspace)
-                    )
-                }
-            }
-
-            item {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    ListItem(
-                        headlineContent = {
-                            Text(stringResource(R.string.settings_root_workspace_title))
-                        },
-                        supportingContent = {
-                            Text(
-                                stringResource(
-                                    R.string.settings_root_workspace_summary,
-                                    uiState.workspaceName,
-                                    pluralStringResource(
-                                        R.plurals.settings_decks_count,
-                                        uiState.deckCount,
-                                        uiState.deckCount
-                                    ),
-                                    pluralStringResource(
-                                        R.plurals.settings_cards_count,
-                                        uiState.cardCount,
-                                        uiState.cardCount
-                                    )
-                                )
-                            )
-                        },
-                        modifier = Modifier.clickable(onClick = onOpenWorkspace)
-                    )
-                }
-            }
-
-            item {
                 SectionTitle(text = stringResource(R.string.settings_section_account))
             }
 
             item {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    ListItem(
-                        headlineContent = {
-                            Text(stringResource(R.string.settings_root_account_title))
-                        },
-                        supportingContent = {
-                            Text(uiState.accountStatusTitle)
-                        },
-                        modifier = Modifier.clickable(onClick = onOpenAccount)
-                    )
-                }
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_account_status_title),
+                    summary = uiState.accountStatusTitle,
+                    testTag = settingsAccountStatusRowTag,
+                    onClick = onOpenAccountStatus
+                )
             }
 
             item {
-                SectionTitle(text = stringResource(R.string.settings_section_device))
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_root_current_workspace_title),
+                    summary = uiState.currentWorkspaceName,
+                    testTag = settingsCurrentWorkspaceRowTag,
+                    onClick = onOpenCurrentWorkspace
+                )
             }
 
             item {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    ListItem(
-                        headlineContent = {
-                            Text(stringResource(R.string.settings_root_device_title))
-                        },
-                        supportingContent = {
-                            Text(uiState.storageLabel)
-                        },
-                        modifier = Modifier.clickable(onClick = onOpenDevice)
-                    )
-                }
+                SectionTitle(text = stringResource(R.string.settings_section_general))
             }
 
             item {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    ListItem(
-                        headlineContent = {
-                            Text(stringResource(R.string.settings_root_access_title))
-                        },
-                        supportingContent = {
-                            Text(stringResource(R.string.settings_root_access_summary))
-                        },
-                        modifier = Modifier.clickable(onClick = onOpenAccess)
-                    )
-                }
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_review_reminders_title),
+                    summary = stringResource(R.string.settings_review_reminders_summary),
+                    testTag = settingsReviewRemindersRowTag,
+                    onClick = onOpenReviewReminders
+                )
             }
 
             item {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    ListItem(
-                        headlineContent = {
-                            Text(stringResource(R.string.settings_root_feedback_title))
-                        },
-                        supportingContent = {
-                            Text(stringResource(R.string.settings_root_feedback_summary))
-                        },
-                        modifier = Modifier.clickable(onClick = onOpenFeedback)
-                    )
-                }
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_language_title),
+                    summary = stringResource(R.string.settings_language_summary),
+                    testTag = settingsLanguageRowTag,
+                    onClick = onOpenLanguage
+                )
+            }
+
+            item {
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_root_access_title),
+                    summary = stringResource(R.string.settings_root_access_summary),
+                    testTag = settingsAccessRowTag,
+                    onClick = onOpenAccess
+                )
+            }
+
+            item {
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_workspace_decks_title),
+                    summary = stringResource(R.string.settings_decks_summary),
+                    testTag = settingsDecksRowTag,
+                    onClick = onOpenDecks
+                )
+            }
+
+            item {
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_workspace_tags_title),
+                    summary = stringResource(R.string.settings_tags_summary),
+                    testTag = settingsTagsRowTag,
+                    onClick = onOpenTags
+                )
+            }
+
+            item {
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_workspace_export_title),
+                    summary = stringResource(R.string.settings_export_csv_summary),
+                    testTag = settingsExportRowTag,
+                    onClick = onOpenExport
+                )
+            }
+
+            item {
+                SectionTitle(text = stringResource(R.string.settings_section_support))
+            }
+
+            item {
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_root_feedback_title),
+                    summary = stringResource(R.string.settings_root_feedback_summary),
+                    testTag = settingsFeedbackRowTag,
+                    onClick = onOpenFeedback
+                )
+            }
+
+            item {
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_account_legal_support_title),
+                    summary = stringResource(R.string.settings_account_legal_support_summary),
+                    testTag = settingsLegalSupportRowTag,
+                    onClick = onOpenLegalSupport
+                )
+            }
+
+            item {
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_account_open_source_title),
+                    summary = stringResource(R.string.settings_account_open_source_summary),
+                    testTag = settingsOpenSourceRowTag,
+                    onClick = onOpenOpenSource
+                )
+            }
+
+            item {
+                SectionTitle(text = stringResource(R.string.settings_section_advanced))
+            }
+
+            item {
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_scheduling_title),
+                    summary = stringResource(R.string.settings_scheduling_summary),
+                    testTag = settingsSchedulingRowTag,
+                    onClick = onOpenScheduling
+                )
+            }
+
+            item {
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_account_agent_connections_title),
+                    summary = stringResource(R.string.settings_account_agent_connections_summary),
+                    testTag = settingsAgentConnectionsRowTag,
+                    onClick = onOpenAgentConnections
+                )
+            }
+
+            item {
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_server_title),
+                    summary = stringResource(R.string.settings_server_summary),
+                    testTag = settingsServerRowTag,
+                    onClick = onOpenServer
+                )
+            }
+
+            item {
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_device_diagnostics_title),
+                    summary = uiState.storageLabel,
+                    testTag = settingsDeviceDiagnosticsRowTag,
+                    onClick = onOpenDeviceDiagnostics
+                )
+            }
+
+            item {
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_reset_study_progress_title),
+                    summary = stringResource(R.string.settings_workspace_reset_body),
+                    testTag = settingsResetStudyProgressRowTag,
+                    onClick = onOpenResetStudyProgress
+                )
+            }
+
+            item {
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_delete_current_workspace_title),
+                    summary = stringResource(R.string.settings_workspace_delete_body),
+                    testTag = settingsDeleteCurrentWorkspaceRowTag,
+                    onClick = onOpenDeleteCurrentWorkspace
+                )
+            }
+
+            item {
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_account_danger_zone_dialog_title),
+                    summary = stringResource(R.string.settings_account_danger_zone_body),
+                    testTag = settingsDeleteAccountRowTag,
+                    onClick = onOpenDeleteAccount
+                )
             }
 
             if (uiState.isTestModeEnabled) {
                 item {
-                    SectionTitle(text = stringResource(R.string.settings_section_test))
-                }
-
-                item {
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        ListItem(
-                            headlineContent = {
-                                Text(stringResource(R.string.settings_root_test_title))
-                            },
-                            supportingContent = {
-                                Text(stringResource(R.string.settings_root_test_summary))
-                            },
-                            modifier = Modifier
-                                .testTag(tag = settingsTestRowTag)
-                                .clickable(onClick = onOpenTest)
-                        )
-                    }
+                    SettingsRootRow(
+                        title = stringResource(R.string.settings_root_test_title),
+                        summary = stringResource(R.string.settings_root_test_summary),
+                        testTag = settingsTestRowTag,
+                        onClick = onOpenTest
+                    )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SettingsRootRow(
+    title: String,
+    summary: String,
+    testTag: String,
+    onClick: () -> Unit
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        ListItem(
+            headlineContent = {
+                Text(title)
+            },
+            supportingContent = {
+                Text(summary)
+            },
+            modifier = Modifier
+                .testTag(tag = testTag)
+                .clickable(onClick = onClick)
+        )
     }
 }
 

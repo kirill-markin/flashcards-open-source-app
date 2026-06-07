@@ -1,8 +1,13 @@
 package com.flashcardsopensourceapp.app.navigation.settings
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.SystemClock
+import android.provider.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -22,9 +27,13 @@ import com.flashcardsopensourceapp.feature.settings.TestSettingsRoute
 import com.flashcardsopensourceapp.feature.settings.createSettingsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.device.DeviceDiagnosticsRoute
 import com.flashcardsopensourceapp.feature.settings.device.createDeviceDiagnosticsViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.feedback.FeedbackSettingsRoute
+import com.flashcardsopensourceapp.feature.settings.language.LanguageSettingsRoute
 import com.flashcardsopensourceapp.feature.settings.workspace.current.CurrentWorkspaceRoute
 import com.flashcardsopensourceapp.feature.settings.workspace.current.createCurrentWorkspaceViewModelFactory
+import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
+import org.xmlpull.v1.XmlPullParser
 
 internal fun NavGraphBuilder.registerSettingsRootDestinations(
     appGraph: AppGraph,
@@ -55,23 +64,59 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
 
         SettingsRoute(
             uiState = uiState,
+            onOpenAccountStatus = {
+                navController.navigate(route = SettingsAccountStatusDestination.route)
+            },
             onOpenCurrentWorkspace = {
                 navController.navigate(route = SettingsCurrentWorkspaceDestination.route)
             },
-            onOpenWorkspace = {
-                navController.navigate(route = SettingsWorkspaceDestination.route)
+            onOpenReviewReminders = {
+                navController.navigate(route = SettingsWorkspaceNotificationsDestination.route)
             },
-            onOpenAccount = {
-                navController.navigate(route = SettingsAccountDestination.route)
-            },
-            onOpenDevice = {
-                navController.navigate(route = SettingsDeviceDestination.route)
+            onOpenLanguage = {
+                navController.navigate(route = SettingsLanguageDestination.route)
             },
             onOpenAccess = {
                 navController.navigate(route = SettingsAccessDestination.route)
             },
+            onOpenDecks = {
+                navController.navigate(route = SettingsWorkspaceDecksDestination.route)
+            },
+            onOpenTags = {
+                navController.navigate(route = SettingsWorkspaceTagsDestination.route)
+            },
+            onOpenExport = {
+                navController.navigate(route = SettingsWorkspaceExportDestination.route)
+            },
             onOpenFeedback = {
-                appGraph.feedbackPromptController.openSettingsFeedback()
+                navController.navigate(route = SettingsFeedbackDestination.route)
+            },
+            onOpenLegalSupport = {
+                navController.navigate(route = SettingsAccountLegalSupportDestination.route)
+            },
+            onOpenOpenSource = {
+                navController.navigate(route = SettingsAccountOpenSourceDestination.route)
+            },
+            onOpenScheduling = {
+                navController.navigate(route = SettingsWorkspaceSchedulerDestination.route)
+            },
+            onOpenAgentConnections = {
+                navController.navigate(route = SettingsAccountAgentConnectionsDestination.route)
+            },
+            onOpenServer = {
+                navController.navigate(route = SettingsAccountServerDestination.route)
+            },
+            onOpenDeviceDiagnostics = {
+                navController.navigate(route = SettingsDeviceDestination.route)
+            },
+            onOpenResetStudyProgress = {
+                navController.navigate(route = SettingsWorkspaceResetStudyProgressDestination.route)
+            },
+            onOpenDeleteCurrentWorkspace = {
+                navController.navigate(route = SettingsWorkspaceDeleteCurrentDestination.route)
+            },
+            onOpenDeleteAccount = {
+                navController.navigate(route = SettingsAccountDangerZoneDestination.route)
             },
             onOpenTest = {
                 navController.navigate(route = SettingsTestDestination.route)
@@ -113,6 +158,8 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
                     selection = com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection.CreateNew
                 )
             },
+            onWorkspaceNameChange = currentWorkspaceViewModel::updateWorkspaceNameDraft,
+            onSaveWorkspaceName = currentWorkspaceViewModel::saveWorkspaceNameAsync,
             onOpenSignIn = {
                 appGraph.appMessageBus.showMessage(
                     message = manageSignInMessage
@@ -121,6 +168,33 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             },
             onRetryLastWorkspaceAction = {
                 currentWorkspaceViewModel.retryLastWorkspaceActionAsync()
+            },
+            onBack = {
+                navController.popBackStack()
+            }
+        )
+    }
+
+    composable(route = SettingsLanguageDestination.route) {
+        val context = LocalContext.current
+        val supportedLanguageLabels = remember(context) {
+            loadSupportedLanguageLabels(context = context)
+        }
+        LanguageSettingsRoute(
+            supportedLanguageLabels = supportedLanguageLabels,
+            onOpenAndroidLanguageSettings = {
+                openAndroidAppLanguageSettings(context = context)
+            },
+            onBack = {
+                navController.popBackStack()
+            }
+        )
+    }
+
+    composable(route = SettingsFeedbackDestination.route) {
+        FeedbackSettingsRoute(
+            onOpenFeedbackForm = {
+                appGraph.feedbackPromptController.openSettingsFeedback()
             },
             onBack = {
                 navController.popBackStack()
@@ -174,6 +248,56 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             }
         )
     }
+}
+
+private fun loadSupportedLanguageLabels(context: Context): List<String> {
+    val displayLocale = context.resources.configuration.locales[0] ?: Locale.getDefault()
+    val parser = context.resources.getXml(com.flashcardsopensourceapp.app.R.xml.locales_config)
+    val labels = mutableListOf<String>()
+
+    try {
+        while (parser.next() != XmlPullParser.END_DOCUMENT) {
+            if (parser.eventType == XmlPullParser.START_TAG && parser.name == "locale") {
+                val languageTag = parser.getAttributeValue(
+                    "http://schemas.android.com/apk/res/android",
+                    "name"
+                )?.trim().orEmpty()
+                require(languageTag.isNotEmpty()) {
+                    "Supported Android locale entry is missing android:name."
+                }
+                labels += languageLabel(languageTag = languageTag, displayLocale = displayLocale)
+            }
+        }
+    } finally {
+        parser.close()
+    }
+
+    require(labels.isNotEmpty()) {
+        "apps/android/app/src/main/res/xml/locales_config.xml must declare at least one supported locale."
+    }
+    return labels
+}
+
+private fun languageLabel(languageTag: String, displayLocale: Locale): String {
+    val locale = Locale.forLanguageTag(languageTag)
+    require(locale.language.isNotBlank()) {
+        "Unsupported Android locale tag in locales_config.xml: $languageTag"
+    }
+    val displayName = locale.getDisplayName(displayLocale).replaceFirstChar { char ->
+        if (char.isLowerCase()) {
+            char.titlecase(displayLocale)
+        } else {
+            char.toString()
+        }
+    }
+    return "$displayName ($languageTag)"
+}
+
+private fun openAndroidAppLanguageSettings(context: Context) {
+    val intent = Intent(Settings.ACTION_APP_LOCALE_SETTINGS).apply {
+        data = Uri.fromParts("package", context.packageName, null)
+    }
+    context.startActivity(intent)
 }
 
 @Composable
