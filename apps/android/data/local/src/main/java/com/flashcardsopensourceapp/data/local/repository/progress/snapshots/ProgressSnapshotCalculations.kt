@@ -437,6 +437,7 @@ internal fun mergeProgressSummary(
         )
     val serverCurrentStreakDaysWithRenderedDelta = progressCurrentStreakDaysWithRenderedDelta(
         serverBase = base,
+        localFallbackActiveDates = localFallbackActiveDates,
         renderedSeriesActiveDates = renderedSeriesContext?.activeDates,
         referenceLocalDate = referenceLocalDate
     )
@@ -680,6 +681,7 @@ private fun progressShouldApplyActiveReviewDayDelta(
 
 private fun progressCurrentStreakDaysWithRenderedDelta(
     serverBase: CloudProgressSummary,
+    localFallbackActiveDates: Set<String>,
     renderedSeriesActiveDates: Set<String>?,
     referenceLocalDate: String
 ): Int {
@@ -689,11 +691,18 @@ private fun progressCurrentStreakDaysWithRenderedDelta(
     if (serverBase.currentStreakDays <= 0) {
         return serverBase.currentStreakDays
     }
-    if (renderedSeriesActiveDates?.contains(referenceLocalDate) != true) {
-        return serverBase.currentStreakDays
+    val lastReviewedOn = serverBase.lastReviewedOn ?: return serverBase.currentStreakDays
+    val referenceDate: LocalDate = parseLocalDate(rawDate = referenceLocalDate)
+    val activeDates: Set<String> = localFallbackActiveDates + (renderedSeriesActiveDates ?: emptySet())
+    var currentDate: LocalDate = parseLocalDate(rawDate = lastReviewedOn).plusDays(1L)
+    var localDelta: Int = 0
+
+    while (currentDate <= referenceDate && activeDates.contains(currentDate.toString())) {
+        localDelta += 1
+        currentDate = currentDate.plusDays(1L)
     }
 
-    return serverBase.currentStreakDays + 1
+    return serverBase.currentStreakDays + localDelta
 }
 
 private fun validateProgressSeriesMergeInputs(
