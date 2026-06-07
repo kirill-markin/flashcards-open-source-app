@@ -2,7 +2,7 @@ import { authenticateRequest, type AuthTransport } from "../auth";
 import type { GuestSessionPlatform } from "../guestAuth";
 import { isDeletedSubject } from "../auth/deletedSubjects";
 import { HttpError } from "../shared/errors";
-import { ensureUserProfile } from "../auth/ensureUser";
+import { ensureUserProfile, type AccountPreferences } from "../auth/ensureUser";
 import { assertUserHasWorkspaceAccess } from "../workspaces";
 import {
   enforceSessionCsrfProtection,
@@ -18,6 +18,7 @@ export type RequestContext = Readonly<{
   email: string | null;
   locale: string;
   userSettingsCreatedAt: string;
+  preferences: AccountPreferences;
   transport: AuthTransport;
   connectionId: string | null;
   guestSessionId: string | null;
@@ -86,6 +87,7 @@ export async function loadRequestContextWithDependencies(
     email: userProfile.email,
     locale: userProfile.locale,
     userSettingsCreatedAt: userProfile.createdAt,
+    preferences: userProfile.preferences,
     transport: auth.transport,
     connectionId: auth.connectionId,
     guestSessionId: auth.guestSessionId,

@@ -4,6 +4,7 @@ import { deleteAccountForAuthenticatedUser } from "../auth/accountDeletion";
 import { createAgentDiscoveryEnvelope } from "../agent/discovery";
 import { createAgentAccountEnvelope, shouldUseAgentSetupEnvelope } from "../agent/setup";
 import { HttpError } from "../shared/errors";
+import { queryWithUserScope } from "../database";
 import {
   loadUserProgressReviewSchedule,
   loadUserProgressSeries,
@@ -23,7 +24,7 @@ import {
   getSessionCsrfToken,
   toAuthRequest,
 } from "../auth/requestSecurity";
-import { expectRecord, parseJsonBody } from "../server/requestParsing";
+import { expectBoolean, expectRecord, parseJsonBody } from "../server/requestParsing";
 import { loadRequestContextFromRequest } from "../server/requestContext";
 import { createBackendFailureDetails } from "../server/logging";
 import {
@@ -34,6 +35,8 @@ import {
 } from "../observability/sentry";
 import { reportBackendExceptionOrBreadcrumb } from "../observability/reporting";
 import type { AppEnv } from "../server/app";
+import type { AuthTransport } from "../auth";
+import type { AccountPreferences } from "../auth/ensureUser";
 
 type SystemRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
@@ -41,6 +44,7 @@ type SystemRoutesOptions = Readonly<{
   loadUserProgressReviewScheduleFn?: typeof loadUserProgressReviewSchedule;
   loadUserProgressSeriesFn?: typeof loadUserProgressSeries;
   loadUserProgressSummaryFn?: typeof loadUserProgressSummary;
+  updateAccountPreferencesFn?: UpdateAccountPreferencesFn;
 }>;
 
 type ProgressRequestedParameters = Readonly<{
@@ -49,11 +53,26 @@ type ProgressRequestedParameters = Readonly<{
   to: string | null;
 }>;
 
+type AccountPreferencesRow = Readonly<{
+  review_reaction_animations_enabled: boolean;
+}>;
+
+type UpdateAccountPreferencesFn = (
+  userId: string,
+  preferences: AccountPreferences,
+) => Promise<AccountPreferences>;
+
 function readRequestedProgressParameters(requestUrl: URL): ProgressRequestedParameters {
   return {
     timeZone: requestUrl.searchParams.get("timeZone"),
     from: requestUrl.searchParams.get("from"),
     to: requestUrl.searchParams.get("to"),
+  };
+}
+
+function mapAccountPreferencesRow(row: AccountPreferencesRow): AccountPreferences {
+  return {
+    reviewReactionAnimationsEnabled: row.review_reaction_animations_enabled,
   };
 }
 
@@ -65,6 +84,57 @@ function assertProgressHumanTransport(transport: string): void {
       "PROGRESS_HUMAN_AUTH_REQUIRED",
     );
   }
+}
+
+function assertAccountPreferencesHumanTransport(transport: AuthTransport): void {
+  if (transport !== "session" && transport !== "bearer" && transport !== "guest") {
+    throw new HttpError(
+      403,
+      "This endpoint requires Guest, Bearer, or Session authentication",
+      "ACCOUNT_PREFERENCES_HUMAN_AUTH_REQUIRED",
+    );
+  }
+}
+
+function parseAccountPreferencesInput(body: Record<string, unknown>): AccountPreferences {
+  const unexpectedKey = Object.keys(body).find((key) => key !== "reviewReactionAnimationsEnabled");
+  if (unexpectedKey !== undefined) {
+    throw new HttpError(
+      400,
+      `Unexpected preference field: ${unexpectedKey}`,
+      "ACCOUNT_PREFERENCES_FIELD_UNKNOWN",
+    );
+  }
+
+  return {
+    reviewReactionAnimationsEnabled: expectBoolean(
+      body.reviewReactionAnimationsEnabled,
+      "reviewReactionAnimationsEnabled",
+    ),
+  };
+}
+
+async function updateAccountPreferences(
+  userId: string,
+  preferences: AccountPreferences,
+): Promise<AccountPreferences> {
+  const result = await queryWithUserScope<AccountPreferencesRow>(
+    { userId },
+    [
+      "UPDATE org.user_settings",
+      "SET review_reaction_animations_enabled = $2",
+      "WHERE user_id = $1",
+      "RETURNING review_reaction_animations_enabled",
+    ].join(" "),
+    [userId, preferences.reviewReactionAnimationsEnabled],
+  );
+
+  const row = result.rows[0];
+  if (row === undefined) {
+    throw new Error(`Failed to update account preferences for user ${userId}`);
+  }
+
+  return mapAccountPreferencesRow(row);
 }
 
 function createSystemScope(
@@ -92,6 +162,7 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
   const loadUserProgressReviewScheduleFn = options.loadUserProgressReviewScheduleFn ?? loadUserProgressReviewSchedule;
   const loadUserProgressSeriesFn = options.loadUserProgressSeriesFn ?? loadUserProgressSeries;
   const loadUserProgressSummaryFn = options.loadUserProgressSummaryFn ?? loadUserProgressSummary;
+  const updateAccountPreferencesFn = options.updateAccountPreferencesFn ?? updateAccountPreferences;
 
   app.get("/", async (context) => context.json(createAgentDiscoveryEnvelope(context.req.url)));
   app.get("/agent", async (context) => context.json(createAgentDiscoveryEnvelope(context.req.url)));
@@ -128,6 +199,24 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
         locale: requestContext.locale,
         createdAt: requestContext.userSettingsCreatedAt,
       },
+      preferences: requestContext.preferences,
+    });
+  });
+
+  app.patch("/me/preferences", async (context) => {
+    const { requestContext } = await loadRequestContextFromRequestFn(
+      context.req.raw,
+      options.allowedOrigins,
+    );
+
+    assertAccountPreferencesHumanTransport(requestContext.transport);
+
+    const body = expectRecord(await parseJsonBody(context.req.raw));
+    const preferencesInput = parseAccountPreferencesInput(body);
+    const preferences = await updateAccountPreferencesFn(requestContext.userId, preferencesInput);
+
+    return context.json({
+      preferences,
     });
   });
 

@@ -5,18 +5,24 @@
 import { transactionWithUserScope, type DatabaseExecutor } from "../database";
 import { ensureUserSelectedWorkspaceInExecutor } from "../workspaces";
 
+export type AccountPreferences = Readonly<{
+  reviewReactionAnimationsEnabled: boolean;
+}>;
+
 export type UserProfile = Readonly<{
   userId: string;
   selectedWorkspaceId: string | null;
   email: string | null;
   locale: string;
   createdAt: string;
+  preferences: AccountPreferences;
 }>;
 
 type UserSettingsRow = Readonly<{
   workspace_id: string | null;
   email: string | null;
   locale: string;
+  review_reaction_animations_enabled: boolean;
   created_at: Date | string;
 }>;
 
@@ -44,7 +50,12 @@ export async function ensureUserProfileInExecutor(
   );
 
   const existing = await executor.query<UserSettingsRow>(
-    "SELECT workspace_id, email, locale, created_at FROM org.user_settings WHERE user_id = $1 FOR UPDATE",
+    [
+      "SELECT workspace_id, email, locale, review_reaction_animations_enabled, created_at",
+      "FROM org.user_settings",
+      "WHERE user_id = $1",
+      "FOR UPDATE",
+    ].join(" "),
     [userId],
   );
 
@@ -65,6 +76,9 @@ export async function ensureUserProfileInExecutor(
     email: settings.email,
     locale: settings.locale,
     createdAt: toIsoString(settings.created_at),
+    preferences: {
+      reviewReactionAnimationsEnabled: settings.review_reaction_animations_enabled,
+    },
   };
 }
 

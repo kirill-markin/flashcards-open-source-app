@@ -46,6 +46,91 @@ paths:
     $ref: paths/api_agent_send-code.yaml
   /api/agent/verify-code:
     $ref: paths/api_agent_verify-code.yaml
+  /me:
+    get:
+      tags:
+        - bootstrap
+      summary: Load signed-in account context
+      description: >-
+        Returns the authenticated account profile, selected workspace id,
+        CSRF token for session callers, and server-owned account preferences.
+      security:
+        - BearerAuth: []
+        - GuestAuthorizationHeader: []
+        - SessionCookie: []
+      responses:
+        '200':
+          description: Account context
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeResponse'
+              example:
+                userId: user-1
+                selectedWorkspaceId: 50b5b928-7f04-4cc8-878d-6cd0e8b98474
+                authTransport: session
+                csrfToken: csrf-token
+                profile:
+                  email: kirill@example.com
+                  locale: en
+                  createdAt: '2026-03-07T10:40:54.589Z'
+                preferences:
+                  reviewReactionAnimationsEnabled: true
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /me/preferences:
+    patch:
+      tags:
+        - bootstrap
+      summary: Update signed-in account preferences
+      description: >-
+        Persists server-owned preferences on the account. Session callers must
+        send a valid X-CSRF-Token header. ApiKey authentication is rejected.
+      security:
+        - BearerAuth: []
+        - GuestAuthorizationHeader: []
+        - SessionCookie: []
+          CsrfTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountPreferences'
+            example:
+              reviewReactionAnimationsEnabled: false
+      responses:
+        '200':
+          description: Updated account preferences
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountPreferencesResponse'
+              example:
+                preferences:
+                  reviewReactionAnimationsEnabled: false
+        '400':
+          description: Invalid preference payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden authentication transport or invalid session CSRF token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /agent/me:
     $ref: paths/agent_me.yaml
   /agent/workspaces:
@@ -58,3 +143,101 @@ components:
   securitySchemes:
     ApiKeyHeader:
       $ref: ./components/security-schemes/ApiKeyHeader.yaml
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Cognito ID token
+    GuestAuthorizationHeader:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Guest session token formatted as `Guest <token>`.
+    SessionCookie:
+      type: apiKey
+      in: cookie
+      name: session
+    CsrfTokenHeader:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+  schemas:
+    AccountPreferences:
+      type: object
+      additionalProperties: false
+      required:
+        - reviewReactionAnimationsEnabled
+      properties:
+        reviewReactionAnimationsEnabled:
+          type: boolean
+          default: true
+    AccountPreferencesResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - preferences
+      properties:
+        preferences:
+          $ref: '#/components/schemas/AccountPreferences'
+    ErrorResponse:
+      type: object
+      additionalProperties: true
+      required:
+        - error
+      properties:
+        error:
+          type: string
+        requestId:
+          type:
+            - string
+            - 'null'
+        code:
+          type:
+            - string
+            - 'null'
+    MeResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - userId
+        - selectedWorkspaceId
+        - authTransport
+        - csrfToken
+        - profile
+        - preferences
+      properties:
+        userId:
+          type: string
+        selectedWorkspaceId:
+          anyOf:
+            - $ref: ./components/schemas/UuidString.yaml
+            - type: 'null'
+        authTransport:
+          type: string
+          enum:
+            - bearer
+            - guest
+            - session
+        csrfToken:
+          type:
+            - string
+            - 'null'
+        profile:
+          type: object
+          additionalProperties: false
+          required:
+            - email
+            - locale
+            - createdAt
+          properties:
+            email:
+              type:
+                - string
+                - 'null'
+              format: email
+            locale:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
+        preferences:
+          $ref: '#/components/schemas/AccountPreferences'

@@ -134,6 +134,9 @@ test("handleLiveRequest prefers an explicit workspaceId for non-Live auth fallba
         email: null,
         locale: "en",
         createdAt: "2026-03-30T00:00:00.000Z",
+        preferences: {
+          reviewReactionAnimationsEnabled: true,
+        },
       }),
       verifyChatLiveAuthorizationHeaderFn: async () => {
         throw new Error("verifyChatLiveAuthorizationHeaderFn should not run for Bearer auth");

@@ -136,7 +136,7 @@ export const globalMetricsCorsPreflightOptions: apigw.CorsOptions = {
 function createBrowserCorsPreflightOptions(allowedOrigins: string[]): apigw.CorsOptions {
   return {
     allowOrigins: allowedOrigins,
-    allowMethods: ["GET", "POST", "OPTIONS"],
+    allowMethods: ["GET", "POST", "PATCH", "OPTIONS"],
     allowHeaders: [...browserCorsAllowHeaders],
     allowCredentials: true,
   };
@@ -159,7 +159,7 @@ export function createGatewayErrorResponseHeaders(): GatewayErrorResponseHeaders
     "Access-Control-Allow-Origin": "method.request.header.Origin",
     "Vary": "'Origin'",
     "Access-Control-Allow-Headers": `'${browserCorsAllowHeaders.join(",")}'`,
-    "Access-Control-Allow-Methods": "'GET,POST,OPTIONS'",
+    "Access-Control-Allow-Methods": "'GET,POST,PATCH,OPTIONS'",
     "Access-Control-Allow-Credentials": "'true'",
     "Access-Control-Expose-Headers": `'${gatewayErrorCorsExposeHeaders.join(",")}'`,
   };
@@ -612,6 +612,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
 
   const me = restApi.root.addResource("me");
   me.addMethod("GET", integration);
+  me.addResource("preferences").addMethod("PATCH", integration);
   const meProgress = me.addResource("progress");
   meProgress.addResource("summary").addMethod("GET", integration);
   meProgress.addResource("review-schedule").addMethod("GET", integration);
