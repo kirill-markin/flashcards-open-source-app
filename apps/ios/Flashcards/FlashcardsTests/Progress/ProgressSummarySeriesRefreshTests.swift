@@ -69,6 +69,151 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
     }
 
     @MainActor
+    func testRefreshProgressIfNeededExtendsLongServerSummaryThroughConsecutiveLocalDates() async throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
+        let timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        try self.addReviewedCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            reviewedAtClient: try makeReviewedAtClientForTests(
+                localDate: "2026-04-17",
+                hour: 9,
+                timeZoneIdentifier: timeZone.identifier
+            )
+        )
+        try self.addReviewedCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            reviewedAtClient: try makeReviewedAtClientForTests(
+                localDate: "2026-04-18",
+                hour: 9,
+                timeZoneIdentifier: timeZone.identifier
+            )
+        )
+        let outboxEntries = try database.loadOutboxEntries(workspaceId: workspace.workspaceId, limit: Int.max)
+        try database.deleteOutboxEntries(operationIds: outboxEntries.map(\.operationId))
+
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T12:00:00.000Z"))
+        let requestRange = try makeTestProgressRequestRange(
+            now: now,
+            timeZone: timeZone,
+            dayCount: 140
+        )
+        let serverSeries = try makeTestProgressSeries(
+            requestRange: requestRange,
+            reviewCountsByDate: [
+                "2026-04-16": 1
+            ],
+            generatedAt: "2026-04-18T11:59:00.000Z"
+        )
+        let serverSummary = UserProgressSummary(
+            timeZone: requestRange.timeZone,
+            summary: ProgressSummary(
+                currentStreakDays: 200,
+                hasReviewedToday: false,
+                lastReviewedOn: "2026-04-16",
+                activeReviewDays: 200
+            ),
+            generatedAt: "2026-04-18T11:59:00.000Z",
+            reviewHistoryWatermarks: makeTestProgressReviewHistoryWatermarks(reviewSequenceId: 42)
+        )
+        let context = try self.makeProgressStoreContext(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            installationId: cloudSettings.installationId,
+            serverSummary: serverSummary,
+            serverSeries: serverSeries,
+            loadProgressSummaryError: nil,
+            loadProgressSeriesError: nil,
+            cloudState: .guest
+        )
+        defer { context.tearDown() }
+
+        await context.store.refreshProgressIfNeeded(now: now)
+
+        let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
+        XCTAssertEqual(.serverBaseWithPendingLocalOverlay, progressSnapshot.summarySourceState)
+        XCTAssertEqual(.serverBaseWithPendingLocalOverlay, progressSnapshot.seriesSourceState)
+        XCTAssertEqual(202, progressSnapshot.summary.currentStreakDays)
+        XCTAssertTrue(progressSnapshot.summary.hasReviewedToday)
+        XCTAssertEqual("2026-04-18", progressSnapshot.summary.lastReviewedOn)
+        XCTAssertEqual(202, progressSnapshot.summary.activeReviewDays)
+        XCTAssertEqual(1, progressReviewCount(snapshot: progressSnapshot, localDate: "2026-04-16"))
+        XCTAssertEqual(1, progressReviewCount(snapshot: progressSnapshot, localDate: "2026-04-17"))
+        XCTAssertEqual(1, progressReviewCount(snapshot: progressSnapshot, localDate: "2026-04-18"))
+    }
+
+    @MainActor
+    func testRefreshProgressIfNeededExtendsLongServerSummaryThroughYesterdayWhenTodayIsInactive() async throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
+        let timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        try self.addReviewedCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            reviewedAtClient: try makeReviewedAtClientForTests(
+                localDate: "2026-04-19",
+                hour: 9,
+                timeZoneIdentifier: timeZone.identifier
+            )
+        )
+        let outboxEntries = try database.loadOutboxEntries(workspaceId: workspace.workspaceId, limit: Int.max)
+        try database.deleteOutboxEntries(operationIds: outboxEntries.map(\.operationId))
+
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-20T12:00:00.000Z"))
+        let requestRange = try makeTestProgressRequestRange(
+            now: now,
+            timeZone: timeZone,
+            dayCount: 140
+        )
+        let serverSeries = try makeTestProgressSeries(
+            requestRange: requestRange,
+            reviewCountsByDate: [
+                "2026-04-18": 1
+            ],
+            generatedAt: "2026-04-20T11:59:00.000Z"
+        )
+        let serverSummary = UserProgressSummary(
+            timeZone: requestRange.timeZone,
+            summary: ProgressSummary(
+                currentStreakDays: 200,
+                hasReviewedToday: false,
+                lastReviewedOn: "2026-04-18",
+                activeReviewDays: 200
+            ),
+            generatedAt: "2026-04-20T11:59:00.000Z",
+            reviewHistoryWatermarks: makeTestProgressReviewHistoryWatermarks(reviewSequenceId: 42)
+        )
+        let context = try self.makeProgressStoreContext(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            installationId: cloudSettings.installationId,
+            serverSummary: serverSummary,
+            serverSeries: serverSeries,
+            loadProgressSummaryError: nil,
+            loadProgressSeriesError: nil,
+            cloudState: .guest
+        )
+        defer { context.tearDown() }
+
+        await context.store.refreshProgressIfNeeded(now: now)
+
+        let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
+        XCTAssertEqual(.serverBaseWithPendingLocalOverlay, progressSnapshot.summarySourceState)
+        XCTAssertEqual(.serverBaseWithPendingLocalOverlay, progressSnapshot.seriesSourceState)
+        XCTAssertEqual(201, progressSnapshot.summary.currentStreakDays)
+        XCTAssertFalse(progressSnapshot.summary.hasReviewedToday)
+        XCTAssertEqual("2026-04-19", progressSnapshot.summary.lastReviewedOn)
+        XCTAssertEqual(201, progressSnapshot.summary.activeReviewDays)
+        XCTAssertEqual(1, progressReviewCount(snapshot: progressSnapshot, localDate: "2026-04-18"))
+        XCTAssertEqual(1, progressReviewCount(snapshot: progressSnapshot, localDate: "2026-04-19"))
+        XCTAssertEqual(0, progressReviewCount(snapshot: progressSnapshot, localDate: "2026-04-20"))
+    }
+
+    @MainActor
     func testRefreshProgressIfNeededExtendsStaleSummaryActiveDaysWhenServerSeriesIsFresher() async throws {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()

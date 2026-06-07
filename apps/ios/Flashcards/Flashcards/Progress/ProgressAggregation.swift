@@ -227,8 +227,9 @@ private func mergeProgressSummary(
             serverAndSeriesShareReviewHistoryBase: serverAndSeriesShareReviewHistoryBase,
             referenceLocalDate: referenceLocalDate
         )
-    let serverCurrentStreakDaysWithRenderedDelta = progressCurrentStreakDaysWithRenderedDelta(
+    let serverCurrentStreakDaysWithRenderedDelta = try progressCurrentStreakDaysWithRenderedDelta(
         serverBase: serverBase,
+        localFallbackActiveDates: localFallbackActiveDates,
         renderedSeriesActiveDates: renderedSeriesContext?.activeDates,
         referenceLocalDate: referenceLocalDate
     )
@@ -346,9 +347,10 @@ private func progressShouldApplyActiveReviewDayDelta(
 
 private func progressCurrentStreakDaysWithRenderedDelta(
     serverBase: ProgressSummary,
+    localFallbackActiveDates: Set<String>,
     renderedSeriesActiveDates: Set<String>?,
     referenceLocalDate: String
-) -> Int {
+) throws -> Int {
     guard serverBase.hasReviewedToday == false else {
         return serverBase.currentStreakDays
     }
@@ -357,11 +359,20 @@ private func progressCurrentStreakDaysWithRenderedDelta(
         return serverBase.currentStreakDays
     }
 
-    guard renderedSeriesActiveDates?.contains(referenceLocalDate) == true else {
+    guard let lastReviewedOn = serverBase.lastReviewedOn else {
         return serverBase.currentStreakDays
     }
 
-    return serverBase.currentStreakDays + 1
+    let activeDates = localFallbackActiveDates.union(renderedSeriesActiveDates ?? Set<String>())
+    var currentDate = try progressShiftLocalDateForStore(value: lastReviewedOn, offsetDays: 1)
+    var localDelta = 0
+
+    while currentDate <= referenceLocalDate, activeDates.contains(currentDate) {
+        localDelta += 1
+        currentDate = try progressShiftLocalDateForStore(value: currentDate, offsetDays: 1)
+    }
+
+    return serverBase.currentStreakDays + localDelta
 }
 
 private func validateProgressSeriesMergeInputs(
