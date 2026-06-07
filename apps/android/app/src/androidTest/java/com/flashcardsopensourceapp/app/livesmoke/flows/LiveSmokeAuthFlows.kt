@@ -2,13 +2,10 @@
 
 package com.flashcardsopensourceapp.app.livesmoke.flows
 
-import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
-import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickNode
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickTag
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickText
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.currentBlockingSystemDialogSummaryOrNull
@@ -27,6 +24,7 @@ import com.flashcardsopensourceapp.feature.settings.cloud.cloudPostAuthExistingB
 import com.flashcardsopensourceapp.feature.settings.cloud.cloudPostAuthWorkspaceRowTag
 import com.flashcardsopensourceapp.feature.settings.cloud.cloudSignInEmailFieldTag
 import com.flashcardsopensourceapp.feature.settings.cloud.cloudSignInSendCodeButtonTag
+import com.flashcardsopensourceapp.feature.settings.settingsAccountStatusRowTag
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
@@ -38,12 +36,7 @@ private const val cloudPostAuthRetryButtonText: String = "Retry"
 private const val accountStatusSyncNowButtonText: String = "Sync now"
 
 internal fun LiveSmokeContext.signInWithReviewAccount(reviewEmail: String) {
-    openSettingsTab()
-    clickNode(
-        matcher = hasText("Account").and(other = hasClickAction()),
-        label = "Account"
-    )
-    clickText(text = "Account status", substring = false)
+    openSettingsRow(rowTag = settingsAccountStatusRowTag, rowLabel = "Account status")
     clickText(text = "Sign in or sign up", substring = false)
     composeRule.onNodeWithTag(cloudSignInEmailFieldTag).performTextInput(reviewEmail)
     clickTag(tag = cloudSignInSendCodeButtonTag, label = "Send code")
