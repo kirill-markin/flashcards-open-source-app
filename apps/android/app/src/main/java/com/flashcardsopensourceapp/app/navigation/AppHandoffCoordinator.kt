@@ -1,8 +1,9 @@
 package com.flashcardsopensourceapp.app.navigation
 
 import com.flashcardsopensourceapp.app.notifications.AppNotificationTapRequest
-import com.flashcardsopensourceapp.feature.ai.AiEntryPrefill
+import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
+import com.flashcardsopensourceapp.feature.ai.AiEntryPrefill
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,6 +28,11 @@ data class CardEditorRequest(
     val cardId: String?
 )
 
+data class ReviewFilterRequest(
+    val requestId: Long,
+    val reviewFilter: ReviewFilter
+)
+
 data class AppNotificationTapHandoffRequest(
     val requestId: Long,
     val request: AppNotificationTapRequest
@@ -48,6 +54,7 @@ class AppHandoffCoordinator {
     private val aiEntryPrefillState = MutableStateFlow<AiEntryPrefillRequest?>(value = null)
     private val aiCardHandoffState = MutableStateFlow<AiCardHandoffRequest?>(value = null)
     private val cardEditorState = MutableStateFlow<CardEditorRequest?>(value = null)
+    private val reviewFilterState = MutableStateFlow<ReviewFilterRequest?>(value = null)
     private val settingsNavigationState = MutableStateFlow<SettingsNavigationRequest?>(value = null)
 
     fun observeAiEntryPrefill(): StateFlow<AiEntryPrefillRequest?> {
@@ -60,6 +67,10 @@ class AppHandoffCoordinator {
 
     fun observeCardEditor(): StateFlow<CardEditorRequest?> {
         return cardEditorState.asStateFlow()
+    }
+
+    fun observeReviewFilter(): StateFlow<ReviewFilterRequest?> {
+        return reviewFilterState.asStateFlow()
     }
 
     fun observeSettingsNavigation(): StateFlow<SettingsNavigationRequest?> {
@@ -119,6 +130,21 @@ class AppHandoffCoordinator {
         }
 
         cardEditorState.value = null
+    }
+
+    fun requestReviewFilter(reviewFilter: ReviewFilter) {
+        reviewFilterState.value = ReviewFilterRequest(
+            requestId = nextRequestId.incrementAndGet(),
+            reviewFilter = reviewFilter
+        )
+    }
+
+    fun consumeReviewFilter(requestId: Long) {
+        if (reviewFilterState.value?.requestId != requestId) {
+            return
+        }
+
+        reviewFilterState.value = null
     }
 
     fun requestSettingsNavigation(target: SettingsNavigationTarget) {

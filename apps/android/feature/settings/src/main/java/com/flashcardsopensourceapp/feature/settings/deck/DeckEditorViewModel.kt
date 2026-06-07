@@ -7,8 +7,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.data.local.model.cards.DeckDraft
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.cards.buildDeckFilterDefinition
+import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.repository.DecksRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import com.flashcardsopensourceapp.feature.settings.R
@@ -21,6 +21,14 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+
+sealed interface DeckEditorSaveResult {
+    data class Created(
+        val deckId: String
+    ) : DeckEditorSaveResult
+
+    data object Updated : DeckEditorSaveResult
+}
 
 class DeckEditorViewModel(
     private val decksRepository: DecksRepository,
@@ -105,7 +113,7 @@ class DeckEditorViewModel(
         }
     }
 
-    suspend fun save(editingDeckId: String?): Boolean {
+    suspend fun save(editingDeckId: String?): DeckEditorSaveResult? {
         val state = uiState.value
         val trimmedName = state.name.trim()
 
@@ -113,7 +121,19 @@ class DeckEditorViewModel(
             inputState.update { currentState ->
                 currentState.copy(errorMessage = strings.get(R.string.settings_deck_editor_name_required))
             }
-            return false
+            return null
+        }
+
+        if (
+            isDeckFilterEmpty(
+                selectedEffortLevels = state.selectedEffortLevels,
+                selectedTags = state.selectedTags
+            )
+        ) {
+            inputState.update { currentState ->
+                currentState.copy(errorMessage = strings.get(R.string.settings_deck_editor_filter_required))
+            }
+            return null
         }
 
         val deckDraft = DeckDraft(
@@ -125,11 +145,12 @@ class DeckEditorViewModel(
         )
 
         return if (editingDeckId == null) {
-            decksRepository.createDeck(deckDraft = deckDraft)
-            true
+            DeckEditorSaveResult.Created(
+                deckId = decksRepository.createDeck(deckDraft = deckDraft)
+            )
         } else {
             decksRepository.updateDeck(deckId = editingDeckId, deckDraft = deckDraft)
-            true
+            DeckEditorSaveResult.Updated
         }
     }
 
@@ -175,4 +196,8 @@ private fun toggleTagSelection(selectedTags: List<String>, tag: String): List<St
     }
 
     return selectedTags + tag
+}
+
+private fun isDeckFilterEmpty(selectedEffortLevels: List<EffortLevel>, selectedTags: List<String>): Boolean {
+    return selectedEffortLevels.isEmpty() && selectedTags.isEmpty()
 }

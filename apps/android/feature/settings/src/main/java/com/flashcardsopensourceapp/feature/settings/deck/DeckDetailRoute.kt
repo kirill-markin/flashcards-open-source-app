@@ -33,6 +33,7 @@ import com.flashcardsopensourceapp.feature.settings.R
 fun DeckDetailRoute(
     uiState: DeckDetailUiState,
     onEditDeck: (String) -> Unit,
+    onReviewDeck: (String) -> Unit,
     onOpenCard: (String) -> Unit,
     onDeleteDeck: (String) -> Unit,
     onBack: () -> Unit
@@ -113,25 +114,38 @@ fun DeckDetailRoute(
 
             item {
                 if (detail is DeckDetailInfoUiState.PersistedDeck) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        OutlinedButton(
-                            onClick = {
-                                onEditDeck(detail.deckId)
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(stringResource(R.string.settings_deck_detail_edit_button))
-                        }
                         Button(
                             onClick = {
-                                onDeleteDeck(detail.deckId)
+                                onReviewDeck(detail.deckId)
                             },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(stringResource(R.string.settings_deck_detail_delete_button))
+                            Text(stringResource(R.string.settings_deck_detail_review_button))
+                        }
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            OutlinedButton(
+                                onClick = {
+                                    onEditDeck(detail.deckId)
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(stringResource(R.string.settings_deck_detail_edit_button))
+                            }
+                            OutlinedButton(
+                                onClick = {
+                                    onDeleteDeck(detail.deckId)
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(stringResource(R.string.settings_deck_detail_delete_button))
+                            }
                         }
                     }
                 }

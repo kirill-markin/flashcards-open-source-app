@@ -162,6 +162,15 @@ class ReviewViewModel(
         onReviewNotificationsChanged(ReviewNotificationsReconcileTrigger.FILTER_CHANGED)
     }
 
+    fun selectFilterForHandoff(reviewFilter: ReviewFilter): Boolean {
+        if (activeWorkspaceId == null) {
+            return false
+        }
+
+        selectFilter(reviewFilter = reviewFilter)
+        return true
+    }
+
     private fun persistSelectedReviewFilter(reviewFilter: ReviewFilter) {
         val workspaceId = activeWorkspaceId ?: return
         reviewPreferencesStore.saveSelectedReviewFilter(

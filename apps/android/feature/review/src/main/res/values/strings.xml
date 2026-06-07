@@ -47,12 +47,12 @@
     <string name="review_scope_title">Review scope</string>
     <string name="review_scope_subtitle_all_cards">Review the full local queue</string>
     <string name="review_decks_title">Decks</string>
-    <string name="review_filtered_deck_subtitle">Filtered deck</string>
+    <string name="review_filtered_deck_subtitle">Smart filter</string>
     <string name="review_effort_title">Effort</string>
     <string name="review_virtual_effort_filter_subtitle">Virtual effort filter</string>
     <string name="review_tags_title">Tags</string>
     <string name="review_workspace_tag_subtitle">Workspace tag</string>
-    <string name="review_manage_filtered_decks">Manage filtered decks</string>
+    <string name="review_manage_filtered_decks">Manage decks</string>
     <string name="review_current_chip">Current</string>
     <string name="review_updated_on_another_device">This review updated on another device.</string>
     <string name="review_could_not_be_saved">Review could not be saved.</string>

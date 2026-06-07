@@ -321,12 +321,15 @@
     <string name="settings_deck_matching_cards_title">Matching cards</string>
     <string name="settings_deck_empty_all_cards">This workspace does not have any cards yet.</string>
     <string name="settings_deck_empty_filtered">This filtered deck has no matching cards yet.</string>
+    <string name="settings_deck_detail_review_button">Review this deck</string>
     <string name="settings_deck_detail_edit_button">Edit deck</string>
     <string name="settings_deck_detail_delete_button">Delete deck</string>
     <string name="settings_deck_detail_cards_title">Cards</string>
     <string name="settings_deck_detail_empty">No cards match this deck yet.</string>
     <string name="settings_deck_editor_new_title">New deck</string>
     <string name="settings_deck_editor_edit_title">Edit deck</string>
+    <string name="settings_deck_editor_explainer_title">Decks are smart filters</string>
+    <string name="settings_deck_editor_explainer_body">Selected effort levels and tags decide which cards match. Select this deck from the Review filter.</string>
     <string name="settings_deck_editor_name_label">Deck name</string>
     <string name="settings_deck_editor_effort_title">Effort</string>
     <string name="settings_deck_editor_tags_title">Tags</string>
@@ -335,6 +338,7 @@
     <string name="settings_deck_editor_cancel_button">Cancel</string>
     <string name="settings_deck_editor_delete_button">Delete deck</string>
     <string name="settings_deck_editor_name_required">Deck name is required.</string>
+    <string name="settings_deck_editor_filter_required">Choose at least one effort level or tag, or use All cards in Review.</string>
     <string name="settings_deck_editor_save_failed">Could not save the deck.</string>
     <string name="settings_deck_filter_effort">effort in %1$s</string>
     <string name="settings_deck_filter_tags_any">tags any of %1$s</string>

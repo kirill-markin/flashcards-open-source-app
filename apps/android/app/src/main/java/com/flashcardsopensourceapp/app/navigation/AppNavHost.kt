@@ -31,6 +31,7 @@ fun AppNavHost(
 ) {
     val coroutineScope = rememberCoroutineScope()
     val cardEditorRequest by appGraph.appHandoffCoordinator.observeCardEditor().collectAsStateWithLifecycle()
+    val reviewFilterRequest by appGraph.appHandoffCoordinator.observeReviewFilter().collectAsStateWithLifecycle()
     val settingsNavigationRequest by appGraph.appHandoffCoordinator.observeSettingsNavigation().collectAsStateWithLifecycle()
     val packageInfo = appGraph.appPackageInfo
 
@@ -41,6 +42,16 @@ fun AppNavHost(
             cardId = request.cardId
         )
         appGraph.appHandoffCoordinator.consumeCardEditor(requestId = request.requestId)
+    }
+
+    LaunchedEffect(reviewFilterRequest?.requestId) {
+        if (reviewFilterRequest == null) {
+            return@LaunchedEffect
+        }
+        navigateToTopLevelDestination(
+            navController = navController,
+            destination = ReviewDestination
+        )
     }
 
     LaunchedEffect(appNotificationTapRequest?.requestId) {

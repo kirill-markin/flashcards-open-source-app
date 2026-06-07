@@ -72,7 +72,7 @@ class LocalDecksRepository(
         }
     }
 
-    override suspend fun createDeck(deckDraft: DeckDraft) {
+    override suspend fun createDeck(deckDraft: DeckDraft): String {
         val workspace: WorkspaceEntity = requireCurrentWorkspace(
             database = database,
             preferencesStore = preferencesStore,
@@ -99,6 +99,8 @@ class LocalDecksRepository(
             database.deckDao().insertDeck(deck = deck)
             syncLocalStore.enqueueDeckUpsert(deck)
         }
+
+        return deck.deckId
     }
 
     override suspend fun updateDeck(deckId: String, deckDraft: DeckDraft) {
