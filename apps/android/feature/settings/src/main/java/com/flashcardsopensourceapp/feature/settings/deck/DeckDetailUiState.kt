@@ -23,6 +23,7 @@ sealed interface DeckDetailInfoUiState {
         val deckId: String,
         override val title: String,
         override val filterSummary: String,
+        val hasFilterRules: Boolean,
         override val totalCards: Int,
         override val dueCards: Int,
         override val newCards: Int,

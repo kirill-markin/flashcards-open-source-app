@@ -65,11 +65,16 @@ internal fun toPersistedDeckDetailInfo(
         deckId = deck.deckId,
         title = deck.name,
         filterSummary = formatDeckFilter(filterDefinition = deck.filterDefinition, strings = strings),
+        hasFilterRules = hasDeckFilterRules(filterDefinition = deck.filterDefinition),
         totalCards = deck.totalCards,
         dueCards = deck.dueCards,
         newCards = deck.newCards,
         reviewedCards = deck.reviewedCards
     )
+}
+
+private fun hasDeckFilterRules(filterDefinition: DeckFilterDefinition): Boolean {
+    return filterDefinition.effortLevels.isNotEmpty() || filterDefinition.tags.isNotEmpty()
 }
 
 internal fun formatDeckFilter(
