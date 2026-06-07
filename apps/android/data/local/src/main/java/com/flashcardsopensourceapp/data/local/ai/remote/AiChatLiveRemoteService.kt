@@ -243,12 +243,7 @@ class AiChatLiveRemoteService private constructor(
 
                 val requestId = readAiChatRequestIdHeader(response = response)
                 try {
-                    val responseBody = response.body ?: throw AiChatLiveStreamException(
-                        message = "AI live attach returned a successful response without an event stream body.",
-                        requestId = requestId,
-                        code = "ai_live_stream_body_missing",
-                        cause = IllegalStateException("AI live stream response body is missing.")
-                    )
+                    val responseBody = response.body
                     var currentEventType: String? = null
                     val dataLines = mutableListOf<String>()
 

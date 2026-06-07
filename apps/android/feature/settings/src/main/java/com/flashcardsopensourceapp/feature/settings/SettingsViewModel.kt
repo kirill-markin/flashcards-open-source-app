@@ -29,7 +29,7 @@ import kotlinx.coroutines.launch
 
 class SettingsViewModel(
     workspaceRepository: WorkspaceRepository,
-    cloudAccountRepository: CloudAccountRepository,
+    private val cloudAccountRepository: CloudAccountRepository,
     private val autoSyncEventRepository: AutoSyncEventRepository,
     private val messageController: TransientMessageController,
     testModeStore: TestModeStore,

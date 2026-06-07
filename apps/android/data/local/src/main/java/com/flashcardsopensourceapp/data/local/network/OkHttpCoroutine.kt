@@ -13,9 +13,9 @@ internal suspend fun Call.awaitOkHttpResponse(): Response {
             cancel()
         }
         enqueue(object : Callback {
-            override fun onFailure(call: Call, error: IOException) {
+            override fun onFailure(call: Call, e: IOException) {
                 if (continuation.isActive) {
-                    continuation.resumeWithException(error)
+                    continuation.resumeWithException(e)
                 }
             }
 
