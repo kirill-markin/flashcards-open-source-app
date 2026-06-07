@@ -29,6 +29,9 @@ function createRequestContextWithTransport(transport: RequestContext["transport"
     email: transport === "guest" ? null : "user@example.com",
     locale: "en",
     userSettingsCreatedAt: "2026-04-17T00:00:00.000Z",
+    preferences: {
+      reviewReactionAnimationsEnabled: true,
+    },
     transport,
     connectionId: null,
     guestSessionId: transport === "guest" ? "guest-session-1" : null,

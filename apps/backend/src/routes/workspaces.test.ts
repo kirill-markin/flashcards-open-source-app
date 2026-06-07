@@ -25,6 +25,9 @@ function createRequestContext(): RequestContext {
     email: "user@example.com",
     locale: "en",
     userSettingsCreatedAt: "2026-04-17T00:00:00.000Z",
+    preferences: {
+      reviewReactionAnimationsEnabled: true,
+    },
     transport: "bearer",
     connectionId: null,
     guestSessionId: null,
