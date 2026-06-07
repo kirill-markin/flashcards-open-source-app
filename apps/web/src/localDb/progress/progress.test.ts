@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { clearWebSyncCache } from "../core/cache";
 import { putOutboxRecord } from "../sync/outbox";
 import {
+  loadLocalProgressActiveDates,
   loadLocalProgressDailyReviews,
   loadLocalProgressSummary,
   loadPendingProgressDailyReviews,
@@ -272,5 +273,55 @@ describe("localDb progress", () => {
       lastReviewedOn: "2025-01-08",
       activeReviewDays: 3,
     });
+  });
+
+  it("loads distinct all-time active local review dates for accessible workspaces", async () => {
+    await putReviewEvent({
+      reviewEventId: "active-date-review-1",
+      workspaceId,
+      cardId: "due-other",
+      replicaId: "device-1",
+      clientEventId: "active-date-client-event-1",
+      rating: 2,
+      reviewedAtClient: "2025-01-06T08:00:00.000Z",
+      reviewedAtServer: "2025-01-06T08:00:00.000Z",
+    });
+    await putReviewEvent({
+      reviewEventId: "active-date-review-2",
+      workspaceId,
+      cardId: "due-same-a",
+      replicaId: "device-1",
+      clientEventId: "active-date-client-event-2",
+      rating: 3,
+      reviewedAtClient: "2025-01-06T09:00:00.000Z",
+      reviewedAtServer: "2025-01-06T09:00:00.000Z",
+    });
+    await putReviewEvent({
+      reviewEventId: "active-date-review-3",
+      workspaceId: "workspace-2",
+      cardId: "card-2",
+      replicaId: "device-2",
+      clientEventId: "active-date-client-event-3",
+      rating: 1,
+      reviewedAtClient: "2025-01-08T10:00:00.000Z",
+      reviewedAtServer: "2025-01-08T10:00:00.000Z",
+    });
+    await putReviewEvent({
+      reviewEventId: "active-date-inaccessible-review",
+      workspaceId: "workspace-3",
+      cardId: "card-3",
+      replicaId: "device-3",
+      clientEventId: "active-date-inaccessible-client-event",
+      rating: 1,
+      reviewedAtClient: "2025-01-09T10:00:00.000Z",
+      reviewedAtServer: "2025-01-09T10:00:00.000Z",
+    });
+
+    const result = await loadLocalProgressActiveDates([workspaceId, "workspace-2"], "UTC");
+
+    expect(result).toEqual([
+      "2025-01-06",
+      "2025-01-08",
+    ]);
   });
 });

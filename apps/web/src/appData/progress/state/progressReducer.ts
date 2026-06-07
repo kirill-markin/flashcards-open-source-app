@@ -3,8 +3,10 @@ import type {
   ProgressReviewScheduleSnapshot,
   ProgressScopeKey,
   ProgressSeriesSnapshot,
+  ProgressSeriesSourceState,
   ProgressSourceState,
   ProgressSummarySnapshot,
+  ProgressSummarySourceState,
 } from "../../../types";
 import {
   areProgressSourceStatesEqual,
@@ -12,6 +14,7 @@ import {
   createEmptyProgressSeriesSourceState,
   createEmptyProgressSourceState,
   createEmptyProgressSummarySourceState,
+  createProgressRenderedSeriesSummaryContext,
   createNextReviewScheduleState,
   createNextSeriesState,
   createNextSummaryState,
@@ -21,11 +24,12 @@ import {
 
 export type ProgressSourceAction =
   | Readonly<{ type: "summary_scope_reset" }>
-  | Readonly<{ type: "series_scope_reset" }>
+  | Readonly<{ type: "series_scope_reset"; canRenderServerBase: boolean }>
   | Readonly<{ type: "review_schedule_scope_reset" }>
   | Readonly<{
     type: "summary_scope_initialized";
     scopeKey: ProgressScopeKey;
+    referenceLocalDate: string;
     serverBase: ProgressSummarySnapshot | null;
     canRenderServerBase: boolean;
   }>
@@ -46,6 +50,7 @@ export type ProgressSourceAction =
     type: "summary_local_load_succeeded";
     scopeKey: ProgressScopeKey;
     localFallback: ProgressSummarySnapshot;
+    localFallbackActiveDates: ReadonlyArray<string>;
     hasPendingLocalReviews: boolean;
     canRenderServerBase: boolean;
   }>
@@ -137,6 +142,19 @@ export function createInitialProgressSourceState(): ProgressSourceState {
   return createEmptyProgressSourceState();
 }
 
+function createSummaryStateWithRenderedSeriesContext(
+  summaryState: ProgressSummarySourceState,
+  seriesState: ProgressSeriesSourceState,
+  canRenderServerBase: boolean,
+): ProgressSummarySourceState {
+  return createNextSummaryState(summaryState, {
+    renderedSeriesContext: createProgressRenderedSeriesSummaryContext(
+      seriesState.serverBase,
+      seriesState.renderedSnapshot,
+    ),
+  }, canRenderServerBase);
+}
+
 function reduceProgressSourceState(
   state: ProgressSourceState,
   action: ProgressSourceAction,
@@ -147,11 +165,18 @@ function reduceProgressSourceState(
         ...state,
         summary: createEmptyProgressSummarySourceState(),
       };
-    case "series_scope_reset":
+    case "series_scope_reset": {
+      const nextSeriesState = createEmptyProgressSeriesSourceState();
       return {
         ...state,
-        series: createEmptyProgressSeriesSourceState(),
+        summary: createSummaryStateWithRenderedSeriesContext(
+          state.summary,
+          nextSeriesState,
+          action.canRenderServerBase,
+        ),
+        series: nextSeriesState,
       };
+    }
     case "review_schedule_scope_reset":
       return {
         ...state,
@@ -162,25 +187,36 @@ function reduceProgressSourceState(
         ...state,
         summary: createNextSummaryState(state.summary, {
           scopeKey: action.scopeKey,
+          referenceLocalDate: action.referenceLocalDate,
           localFallback: null,
+          localFallbackActiveDates: [],
           serverBase: action.serverBase,
           hasPendingLocalReviews: false,
+          renderedSeriesContext: null,
           isLoading: true,
           errorMessage: "",
         }, action.canRenderServerBase),
       };
-    case "series_scope_initialized":
+    case "series_scope_initialized": {
+      const nextSeriesState = createNextSeriesState(state.series, {
+        scopeKey: action.scopeKey,
+        localFallback: null,
+        serverBase: action.serverBase,
+        pendingLocalOverlay: null,
+        isLoading: true,
+        errorMessage: "",
+      }, action.canRenderServerBase);
+
       return {
         ...state,
-        series: createNextSeriesState(state.series, {
-          scopeKey: action.scopeKey,
-          localFallback: null,
-          serverBase: action.serverBase,
-          pendingLocalOverlay: null,
-          isLoading: true,
-          errorMessage: "",
-        }, action.canRenderServerBase),
+        summary: createSummaryStateWithRenderedSeriesContext(
+          state.summary,
+          nextSeriesState,
+          action.canRenderServerBase,
+        ),
+        series: nextSeriesState,
       };
+    }
     case "review_schedule_scope_initialized":
       return {
         ...state,
@@ -210,6 +246,7 @@ function reduceProgressSourceState(
         summary: createNextSummaryState(state.summary, {
           scopeKey: action.scopeKey,
           localFallback: action.localFallback,
+          localFallbackActiveDates: action.localFallbackActiveDates,
           hasPendingLocalReviews: action.hasPendingLocalReviews,
           isLoading: false,
         }, action.canRenderServerBase),
@@ -224,40 +261,57 @@ function reduceProgressSourceState(
         summary: createNextSummaryState(state.summary, {
           scopeKey: action.scopeKey,
           localFallback: null,
+          localFallbackActiveDates: [],
           hasPendingLocalReviews: false,
           isLoading: false,
           errorMessage: action.errorMessage,
         }, action.canRenderServerBase),
       };
-    case "series_local_load_succeeded":
+    case "series_local_load_succeeded": {
       if (state.series.scopeKey !== action.scopeKey) {
         return state;
       }
 
+      const nextSeriesState = createNextSeriesState(state.series, {
+        scopeKey: action.scopeKey,
+        localFallback: action.localFallback,
+        pendingLocalOverlay: action.pendingLocalOverlay,
+        isLoading: false,
+      }, action.canRenderServerBase);
+
       return {
         ...state,
-        series: createNextSeriesState(state.series, {
-          scopeKey: action.scopeKey,
-          localFallback: action.localFallback,
-          pendingLocalOverlay: action.pendingLocalOverlay,
-          isLoading: false,
-        }, action.canRenderServerBase),
+        summary: createSummaryStateWithRenderedSeriesContext(
+          state.summary,
+          nextSeriesState,
+          action.canRenderServerBase,
+        ),
+        series: nextSeriesState,
       };
-    case "series_local_load_failed":
+    }
+    case "series_local_load_failed": {
       if (state.series.scopeKey !== action.scopeKey) {
         return state;
       }
 
+      const nextSeriesState = createNextSeriesState(state.series, {
+        scopeKey: action.scopeKey,
+        localFallback: null,
+        pendingLocalOverlay: null,
+        isLoading: false,
+        errorMessage: action.errorMessage,
+      }, action.canRenderServerBase);
+
       return {
         ...state,
-        series: createNextSeriesState(state.series, {
-          scopeKey: action.scopeKey,
-          localFallback: null,
-          pendingLocalOverlay: null,
-          isLoading: false,
-          errorMessage: action.errorMessage,
-        }, action.canRenderServerBase),
+        summary: createSummaryStateWithRenderedSeriesContext(
+          state.summary,
+          nextSeriesState,
+          action.canRenderServerBase,
+        ),
+        series: nextSeriesState,
       };
+    }
     case "review_schedule_local_load_succeeded":
       if (state.reviewSchedule.scopeKey !== action.scopeKey) {
         return state;
@@ -329,33 +383,49 @@ function reduceProgressSourceState(
           errorMessage: action.errorMessage,
         }, action.canRenderServerBase),
       };
-    case "series_server_load_succeeded":
+    case "series_server_load_succeeded": {
       if (state.series.scopeKey !== action.scopeKey) {
         return state;
       }
 
+      const nextSeriesState = createNextSeriesState(state.series, {
+        scopeKey: action.scopeKey,
+        serverBase: action.serverBase,
+        isLoading: false,
+        errorMessage: "",
+      }, action.canRenderServerBase);
+
       return {
         ...state,
-        series: createNextSeriesState(state.series, {
-          scopeKey: action.scopeKey,
-          serverBase: action.serverBase,
-          isLoading: false,
-          errorMessage: "",
-        }, action.canRenderServerBase),
+        summary: createSummaryStateWithRenderedSeriesContext(
+          state.summary,
+          nextSeriesState,
+          action.canRenderServerBase,
+        ),
+        series: nextSeriesState,
       };
-    case "series_server_load_failed":
+    }
+    case "series_server_load_failed": {
       if (state.series.scopeKey !== action.scopeKey) {
         return state;
       }
 
+      const nextSeriesState = createNextSeriesState(state.series, {
+        scopeKey: action.scopeKey,
+        isLoading: false,
+        errorMessage: action.errorMessage,
+      }, action.canRenderServerBase);
+
       return {
         ...state,
-        series: createNextSeriesState(state.series, {
-          scopeKey: action.scopeKey,
-          isLoading: false,
-          errorMessage: action.errorMessage,
-        }, action.canRenderServerBase),
+        summary: createSummaryStateWithRenderedSeriesContext(
+          state.summary,
+          nextSeriesState,
+          action.canRenderServerBase,
+        ),
+        series: nextSeriesState,
       };
+    }
     case "review_schedule_server_load_succeeded":
       if (state.reviewSchedule.scopeKey !== action.scopeKey) {
         return state;

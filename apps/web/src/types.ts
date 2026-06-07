@@ -186,11 +186,21 @@ export type ProgressReviewScheduleSnapshot = ProgressReviewSchedule & Readonly<{
   isApproximate: boolean;
 }>;
 
+export type ProgressRenderedSeriesSummaryContext = Readonly<{
+  lowerBoundSummary: ProgressSummary;
+  activeDates: ReadonlyArray<string>;
+  activeDatesMissingFromServerBase: ReadonlyArray<string>;
+  serverBaseReviewHistoryWatermarks: ReadonlyArray<ProgressReviewHistoryWatermark> | null;
+}>;
+
 export type ProgressSummarySourceState = Readonly<{
   scopeKey: ProgressScopeKey | null;
+  referenceLocalDate: string | null;
   localFallback: ProgressSummarySnapshot | null;
+  localFallbackActiveDates: ReadonlyArray<string>;
   serverBase: ProgressSummarySnapshot | null;
   hasPendingLocalReviews: boolean;
+  renderedSeriesContext: ProgressRenderedSeriesSummaryContext | null;
   renderedSnapshot: ProgressSummarySnapshot | null;
   isLoading: boolean;
   errorMessage: string;

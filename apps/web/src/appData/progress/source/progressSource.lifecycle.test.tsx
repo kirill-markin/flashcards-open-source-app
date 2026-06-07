@@ -143,9 +143,12 @@ describe("useProgressSource lifecycle", () => {
 
     expect(harness.getApi().progressSourceState.summary).toEqual({
       scopeKey: null,
+      referenceLocalDate: null,
       localFallback: null,
+      localFallbackActiveDates: [],
       serverBase: null,
       hasPendingLocalReviews: false,
+      renderedSeriesContext: null,
       renderedSnapshot: null,
       isLoading: false,
       errorMessage: "",
