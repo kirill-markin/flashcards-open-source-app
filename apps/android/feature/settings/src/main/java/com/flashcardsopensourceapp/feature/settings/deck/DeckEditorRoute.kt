@@ -42,6 +42,7 @@ fun DeckEditorRoute(
     onBack: () -> Unit
 ) {
     val strings = createSettingsStringResolver(context = LocalContext.current)
+    val isEditorEnabled: Boolean = uiState.isLoading.not() && uiState.isDeckMissing.not()
     Scaffold(
         topBar = {
             TopAppBar(
@@ -51,6 +52,37 @@ fun DeckEditorRoute(
             )
         }
     ) { innerPadding ->
+        if (uiState.isDeckMissing) {
+            LazyColumn(
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    top = innerPadding.calculateTopPadding() + 16.dp,
+                    end = 16.dp,
+                    bottom = innerPadding.calculateBottomPadding() + 32.dp
+                ),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = stringResource(R.string.settings_deck_not_found),
+                            modifier = Modifier.padding(20.dp)
+                        )
+                    }
+                }
+                item {
+                    OutlinedButton(
+                        onClick = onBack,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(stringResource(R.string.settings_deck_editor_cancel_button))
+                    }
+                }
+            }
+            return@Scaffold
+        }
+
         LazyColumn(
             contentPadding = PaddingValues(
                 start = 16.dp,
@@ -95,6 +127,7 @@ fun DeckEditorRoute(
                 OutlinedTextField(
                     value = uiState.name,
                     onValueChange = onNameChange,
+                    enabled = isEditorEnabled,
                     label = {
                         Text(stringResource(R.string.settings_deck_editor_name_label))
                     },
@@ -117,6 +150,7 @@ fun DeckEditorRoute(
                     EffortLevel.entries.forEach { effortLevel ->
                         FilterChip(
                             selected = uiState.selectedEffortLevels.contains(effortLevel),
+                            enabled = isEditorEnabled,
                             onClick = {
                                 onToggleEffortLevel(effortLevel)
                             },
@@ -157,6 +191,7 @@ fun DeckEditorRoute(
                         uiState.availableTags.forEach { tagSummary ->
                             FilterChip(
                                 selected = uiState.selectedTags.contains(tagSummary.tag),
+                                enabled = isEditorEnabled,
                                 onClick = {
                                     onToggleTag(tagSummary.tag)
                                 },
@@ -213,6 +248,7 @@ fun DeckEditorRoute(
                     }
                     Button(
                         onClick = onSave,
+                        enabled = isEditorEnabled,
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(stringResource(R.string.settings_save))
@@ -228,6 +264,7 @@ fun DeckEditorRoute(
                 item {
                     OutlinedButton(
                         onClick = onDelete,
+                        enabled = isEditorEnabled,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(stringResource(R.string.settings_deck_editor_delete_button))

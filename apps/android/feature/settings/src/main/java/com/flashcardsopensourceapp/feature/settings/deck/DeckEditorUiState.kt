@@ -5,6 +5,7 @@ import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagSummar
 
 data class DeckEditorUiState(
     val isLoading: Boolean,
+    val isDeckMissing: Boolean,
     val title: String,
     val isEditing: Boolean,
     val name: String,

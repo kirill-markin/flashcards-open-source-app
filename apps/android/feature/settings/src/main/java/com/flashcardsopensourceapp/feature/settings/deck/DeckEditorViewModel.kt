@@ -7,8 +7,10 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.data.local.model.cards.DeckDraft
+import com.flashcardsopensourceapp.data.local.model.cards.DeckSummary
 import com.flashcardsopensourceapp.data.local.model.cards.buildDeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagSummary
 import com.flashcardsopensourceapp.data.local.repository.DecksRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import com.flashcardsopensourceapp.feature.settings.R
@@ -18,9 +20,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 sealed interface DeckEditorSaveResult {
     data class Created(
@@ -33,54 +35,55 @@ sealed interface DeckEditorSaveResult {
 class DeckEditorViewModel(
     private val decksRepository: DecksRepository,
     workspaceRepository: WorkspaceRepository,
-    editingDeckId: String?,
+    private val editingDeckId: String?,
     private val strings: SettingsStringResolver
 ) : ViewModel() {
     private val inputState = MutableStateFlow(
-        value = DeckEditorUiState(
-            isLoading = true,
-            title = if (editingDeckId == null) {
-                strings.get(R.string.settings_deck_editor_new_title)
-            } else {
-                strings.get(R.string.settings_deck_editor_edit_title)
-            },
-            isEditing = editingDeckId != null,
+        value = DeckEditorInputState(
             name = "",
             selectedEffortLevels = emptyList(),
             selectedTags = emptyList(),
-            availableTags = emptyList(),
-            errorMessage = ""
+            errorMessage = "",
+            loadedEditingDeckId = null,
+            isEditingDeckMissing = false
         )
     )
 
+    init {
+        val deckId: String? = editingDeckId
+        if (deckId != null) {
+            viewModelScope.launch {
+                decksRepository.observeDeck(deckId = deckId).collect { deck ->
+                    inputState.update { currentState ->
+                        applyObservedEditingDeck(
+                            currentState = currentState,
+                            deck = deck
+                        )
+                    }
+                }
+            }
+        }
+    }
+
     val uiState: StateFlow<DeckEditorUiState> = combine(
-        if (editingDeckId == null) {
-            flowOf(null)
-        } else {
-            decksRepository.observeDeck(deckId = editingDeckId)
-        },
         workspaceRepository.observeWorkspaceTagsSummary(),
         inputState
-    ) { deck, tagsSummary, currentState ->
-        currentState.copy(
-            isLoading = false,
+    ) { tagsSummary, currentState ->
+        toDeckEditorUiState(
+            inputState = currentState,
             availableTags = tagsSummary.tags,
-            name = if (currentState.name.isEmpty() && deck != null) deck.name else currentState.name,
-            selectedEffortLevels = if (currentState.selectedEffortLevels.isEmpty() && deck != null) {
-                deck.filterDefinition.effortLevels
-            } else {
-                currentState.selectedEffortLevels
-            },
-            selectedTags = if (currentState.selectedTags.isEmpty() && deck != null) {
-                deck.filterDefinition.tags
-            } else {
-                currentState.selectedTags
-            }
+            editingDeckId = editingDeckId,
+            strings = strings
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
-        initialValue = inputState.value
+        initialValue = toDeckEditorUiState(
+            inputState = inputState.value,
+            availableTags = emptyList(),
+            editingDeckId = editingDeckId,
+            strings = strings
+        )
     )
 
     fun updateName(name: String) {
@@ -116,6 +119,10 @@ class DeckEditorViewModel(
     suspend fun save(editingDeckId: String?): DeckEditorSaveResult? {
         val state = uiState.value
         val trimmedName = state.name.trim()
+
+        if (state.isDeckMissing) {
+            return null
+        }
 
         if (trimmedName.isEmpty()) {
             inputState.update { currentState ->
@@ -200,4 +207,69 @@ private fun toggleTagSelection(selectedTags: List<String>, tag: String): List<St
 
 private fun isDeckFilterEmpty(selectedEffortLevels: List<EffortLevel>, selectedTags: List<String>): Boolean {
     return selectedEffortLevels.isEmpty() && selectedTags.isEmpty()
+}
+
+private data class DeckEditorInputState(
+    val name: String,
+    val selectedEffortLevels: List<EffortLevel>,
+    val selectedTags: List<String>,
+    val errorMessage: String,
+    val loadedEditingDeckId: String?,
+    val isEditingDeckMissing: Boolean
+)
+
+private fun applyObservedEditingDeck(
+    currentState: DeckEditorInputState,
+    deck: DeckSummary?
+): DeckEditorInputState {
+    if (deck == null) {
+        return currentState.copy(isEditingDeckMissing = true)
+    }
+
+    if (currentState.loadedEditingDeckId == deck.deckId) {
+        return currentState.copy(isEditingDeckMissing = false)
+    }
+
+    return currentState.copy(
+        name = deck.name,
+        selectedEffortLevels = deck.filterDefinition.effortLevels,
+        selectedTags = deck.filterDefinition.tags,
+        loadedEditingDeckId = deck.deckId,
+        isEditingDeckMissing = false
+    )
+}
+
+private fun toDeckEditorUiState(
+    inputState: DeckEditorInputState,
+    availableTags: List<WorkspaceTagSummary>,
+    editingDeckId: String?,
+    strings: SettingsStringResolver
+): DeckEditorUiState {
+    return DeckEditorUiState(
+        isLoading = isDeckEditorLoading(
+            inputState = inputState,
+            editingDeckId = editingDeckId
+        ),
+        isDeckMissing = inputState.isEditingDeckMissing,
+        title = if (editingDeckId == null) {
+            strings.get(R.string.settings_deck_editor_new_title)
+        } else {
+            strings.get(R.string.settings_deck_editor_edit_title)
+        },
+        isEditing = editingDeckId != null,
+        name = inputState.name,
+        selectedEffortLevels = inputState.selectedEffortLevels,
+        selectedTags = inputState.selectedTags,
+        availableTags = availableTags,
+        errorMessage = inputState.errorMessage
+    )
+}
+
+private fun isDeckEditorLoading(
+    inputState: DeckEditorInputState,
+    editingDeckId: String?
+): Boolean {
+    return editingDeckId != null &&
+        inputState.loadedEditingDeckId == null &&
+        inputState.isEditingDeckMissing.not()
 }
