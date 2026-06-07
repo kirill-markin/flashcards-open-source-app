@@ -10,9 +10,14 @@ struct MeResponse: Decodable {
         let email: String?
     }
 
+    struct Preferences: Decodable {
+        let reviewReactionAnimationsEnabled: Bool
+    }
+
     let userId: String
     let selectedWorkspaceId: String?
     let profile: Profile
+    let preferences: Preferences
 }
 
 struct WorkspacesResponse: Decodable {
@@ -46,6 +51,10 @@ struct DeleteAccountRequest: Encodable {
 
 struct DeleteAccountResponse: Decodable {
     let ok: Bool
+}
+
+struct UpdateAccountPreferencesResponse: Decodable {
+    let preferences: AccountPreferences
 }
 
 /// Wire contract for `POST /sync/push`.

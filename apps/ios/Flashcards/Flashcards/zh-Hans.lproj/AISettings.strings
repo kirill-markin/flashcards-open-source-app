@@ -110,7 +110,9 @@
 "common.edit" = "编辑";
 "common.email" = "邮箱";
 "common.loading" = "正在加载...";
+"common.off" = "关";
 "common.ok" = "好的";
+"common.on" = "开";
 "common.open" = "打开";
 "common.openSettings" = "打开设置";
 "common.privacyPolicy" = "隐私政策";
@@ -132,6 +134,7 @@
 "settings.row.currentWorkspace" = "当前工作空间";
 "settings.row.reviewReminders" = "复习提醒";
 "settings.row.reviewReminders.value" = "本设备";
+"settings.row.reviewAnimations" = "复习动画";
 "settings.row.language" = "语言";
 "settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 个权限";
@@ -163,6 +166,8 @@
 "settings.row.test.itemCount" = "2 项";
 "settings.currentWorkspace.section.rename" = "重命名";
 "settings.currentWorkspace.renameLinkedOnly" = "只有已关联的云端工作空间可以重命名。";
+"settings.reviewAnimations.title" = "复习动画";
+"settings.reviewAnimations.toggle" = "给卡片评分后显示动画";
 "settings.language.title" = "语言";
 "settings.language.systemDescription" = "iOS 控制 App 语言。请在 iOS 设置中更改系统语言或 App 专用语言。";
 "settings.language.section.supportedLanguages" = "支持的语言";

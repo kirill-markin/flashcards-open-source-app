@@ -77,6 +77,7 @@ extension FlashcardsStore {
         self.userSettings = snapshot.userSettings
         self.schedulerSettings = snapshot.schedulerSettings
         self.cloudSettings = snapshot.cloudSettings
+        self.reloadCachedAccountPreferencesForCurrentIdentity()
         self.reloadFeedbackPromptStateForCurrentIdentity()
         self.cards = []
         self.decks = []
@@ -192,6 +193,7 @@ extension FlashcardsStore {
         self.userSettings = bootstrapSnapshot.userSettings
         self.schedulerSettings = bootstrapSnapshot.schedulerSettings
         self.cloudSettings = bootstrapSnapshot.cloudSettings
+        self.reloadCachedAccountPreferencesForCurrentIdentity()
         self.reloadFeedbackPromptStateForCurrentIdentity()
         self.cards = nextCards
         self.decks = nextDecks

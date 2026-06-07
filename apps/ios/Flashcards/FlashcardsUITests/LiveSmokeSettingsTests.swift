@@ -46,6 +46,11 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
         try self.assertTextExistsScrollingIntoView("Workspace Review Reminders", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         try self.returnToSettingsRoot()
 
+        try self.assertReviewAnimationsRowOrder()
+        try self.openSettingsRootRow(identifier: LiveSmokeIdentifier.settingsReviewAnimationsRow)
+        try self.assertScreenVisible(screen: .reviewAnimationsSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.returnToSettingsRoot()
+
         try self.openSettingsRootRow(identifier: LiveSmokeIdentifier.settingsLanguageRow)
         try self.assertScreenVisible(screen: .languageSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.assertElementExists(
@@ -109,6 +114,35 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
         try self.tapButtonScrollingIntoView(
             identifier: identifier,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+    }
+
+    @MainActor
+    private func assertReviewAnimationsRowOrder() throws {
+        try self.assertElementExistsScrollingIntoView(
+            identifier: LiveSmokeIdentifier.settingsReviewRemindersRow,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+        try self.assertElementExistsScrollingIntoView(
+            identifier: LiveSmokeIdentifier.settingsReviewAnimationsRow,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+        try self.assertElementExistsScrollingIntoView(
+            identifier: LiveSmokeIdentifier.settingsLanguageRow,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+
+        let remindersFrame = self.app.buttons[LiveSmokeIdentifier.settingsReviewRemindersRow].firstMatch.frame
+        let animationsFrame = self.app.buttons[LiveSmokeIdentifier.settingsReviewAnimationsRow].firstMatch.frame
+        let languageFrame = self.app.buttons[LiveSmokeIdentifier.settingsLanguageRow].firstMatch.frame
+        if remindersFrame.minY < animationsFrame.minY && animationsFrame.minY < languageFrame.minY {
+            return
+        }
+
+        throw LiveSmokeFailure.unexpectedAccountState(
+            message: "Review Animations row should appear after Review Reminders and before Language.",
+            screen: self.currentScreenSummary(),
+            step: self.currentStepTitle
         )
     }
 

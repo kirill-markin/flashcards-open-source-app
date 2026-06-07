@@ -349,6 +349,7 @@ final class CloudCredentialRecoveryStatePersistenceTests: CloudCredentialRecover
                 apiBaseUrl: configuration.apiBaseUrl,
                 credentials: credentials,
                 workspaces: [],
+                preferences: makeDefaultAccountPreferences(),
                 guestUpgradeMode: .mergeRequired,
                 postAuthRecoveryRoute: .none
             ),

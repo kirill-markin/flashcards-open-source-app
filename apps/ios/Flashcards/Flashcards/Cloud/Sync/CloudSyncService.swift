@@ -30,6 +30,48 @@ struct CloudAccountSnapshot: Hashable {
     let userId: String
     let email: String?
     let workspaces: [CloudWorkspaceSummary]
+    let preferences: AccountPreferences
+
+    init(
+        userId: String,
+        email: String?,
+        workspaces: [CloudWorkspaceSummary],
+        preferences: AccountPreferences
+    ) {
+        self.userId = userId
+        self.email = email
+        self.workspaces = workspaces
+        self.preferences = preferences
+    }
+
+    init(
+        userId: String,
+        email: String?,
+        workspaces: [CloudWorkspaceSummary]
+    ) {
+        self.init(
+            userId: userId,
+            email: email,
+            workspaces: workspaces,
+            preferences: makeDefaultAccountPreferences()
+        )
+    }
+}
+
+struct CloudAccountContext: Hashable, Sendable {
+    let userId: String
+    let email: String?
+    let preferences: AccountPreferences
+}
+
+private func makeCloudAccountContext(meResponse: MeResponse) -> CloudAccountContext {
+    CloudAccountContext(
+        userId: meResponse.userId,
+        email: meResponse.profile.email,
+        preferences: AccountPreferences(
+            reviewReactionAnimationsEnabled: meResponse.preferences.reviewReactionAnimationsEnabled
+        )
+    )
 }
 
 final class CloudSyncService: @unchecked Sendable {
@@ -41,23 +83,45 @@ final class CloudSyncService: @unchecked Sendable {
         self.transport = CloudSyncTransport(session: session)
     }
 
+    func fetchCloudAccountContext(
+        apiBaseUrl: String,
+        authorizationHeader: String
+    ) async throws -> CloudAccountContext {
+        let meResponse: MeResponse = try await self.transport.request(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: authorizationHeader,
+            path: "/me",
+            method: "GET",
+            body: Optional<String>.none
+        )
+        return makeCloudAccountContext(meResponse: meResponse)
+    }
+
     func fetchCloudAccount(apiBaseUrl: String, bearerToken: String) async throws -> CloudAccountSnapshot {
+        try await self.fetchCloudAccount(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: "Bearer \(bearerToken)"
+        )
+    }
+
+    func fetchCloudAccount(apiBaseUrl: String, authorizationHeader: String) async throws -> CloudAccountSnapshot {
         logCloudFlowPhase(phase: .workspaceList, outcome: "start")
         async let meResponseTask: MeResponse = self.transport.request(
             apiBaseUrl: apiBaseUrl,
-            authorizationHeader: "Bearer \(bearerToken)",
+            authorizationHeader: authorizationHeader,
             path: "/me",
             method: "GET",
             body: Optional<String>.none
         )
         async let workspacesResponseTask = self.transport.listWorkspaces(
             apiBaseUrl: apiBaseUrl,
-            authorizationHeader: "Bearer \(bearerToken)"
+            authorizationHeader: authorizationHeader
         )
 
         let meResponse = try await meResponseTask
         let workspacesResponse = try await workspacesResponseTask
         let selectedWorkspaceId = meResponse.selectedWorkspaceId
+        let accountContext = makeCloudAccountContext(meResponse: meResponse)
         let workspaces = workspacesResponse.map { workspace in
             CloudWorkspaceSummary(
                 workspaceId: workspace.workspaceId,
@@ -68,9 +132,10 @@ final class CloudSyncService: @unchecked Sendable {
         }
 
         let snapshot = CloudAccountSnapshot(
-            userId: meResponse.userId,
-            email: meResponse.profile.email,
-            workspaces: workspaces
+            userId: accountContext.userId,
+            email: accountContext.email,
+            workspaces: workspaces,
+            preferences: accountContext.preferences
         )
         logCloudFlowPhase(
             phase: .workspaceList,
@@ -78,6 +143,21 @@ final class CloudSyncService: @unchecked Sendable {
             changesCount: workspaces.count
         )
         return snapshot
+    }
+
+    func updateAccountPreferences(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        preferences: AccountPreferences
+    ) async throws -> AccountPreferences {
+        let response: UpdateAccountPreferencesResponse = try await self.transport.request(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: authorizationHeader,
+            path: "/me/preferences",
+            method: "PATCH",
+            body: preferences
+        )
+        return response.preferences
     }
 
     func loadProgressSummary(

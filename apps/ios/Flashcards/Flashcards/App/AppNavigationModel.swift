@@ -5,6 +5,8 @@ func makeSettingsNavigationPath(destination: SettingsNavigationDestination) -> [
     switch destination {
     case .currentWorkspace:
         return [.currentWorkspace]
+    case .reviewAnimations:
+        return [.reviewAnimations]
     case .language:
         return [.language]
     case .feedback:

@@ -166,6 +166,7 @@ extension FlashcardsStore {
             apiBaseUrl: verifiedContext.apiBaseUrl,
             credentials: verifiedContext.credentials,
             workspaces: account.workspaces,
+            preferences: account.preferences,
             guestUpgradeMode: guestUpgradeMode,
             postAuthRecoveryRoute: postAuthRecoveryRoute
         )
@@ -188,6 +189,7 @@ extension FlashcardsStore {
             apiBaseUrl: verifiedContext.apiBaseUrl,
             credentials: verifiedContext.credentials,
             workspaces: [expectedWorkspace],
+            preferences: account.preferences,
             guestUpgradeMode: nil,
             postAuthRecoveryRoute: .linkedCredentialRestore
         )
@@ -206,6 +208,7 @@ extension FlashcardsStore {
             apiBaseUrl: verifiedContext.apiBaseUrl,
             credentials: verifiedContext.credentials,
             workspaces: account.workspaces,
+            preferences: account.preferences,
             guestUpgradeMode: nil,
             postAuthRecoveryRoute: postAuthRecoveryRoute
         )
@@ -251,10 +254,21 @@ extension FlashcardsStore {
                         selection: selection,
                         workspace: completedGuestUpgradeWorkspace
                     )
-                    if let completedGuestUpgradeWorkspace = try await self.finalizeCompletedPendingGuestUpgradeForRecoveredLinkIfNeeded(
-                        linkContext: linkContext,
-                        trigger: trigger
-                    ) {
+                    let finalizedCompletedGuestUpgradeWorkspace: CloudWorkspaceSummary?
+                    do {
+                        defer {
+                            self.applyCloudAccountPreferences(
+                                preferences: linkContext.preferences,
+                                linkContext: linkContext
+                            )
+                        }
+
+                        finalizedCompletedGuestUpgradeWorkspace = try await self.finalizeCompletedPendingGuestUpgradeForRecoveredLinkIfNeeded(
+                            linkContext: linkContext,
+                            trigger: trigger
+                        )
+                    }
+                    if let completedGuestUpgradeWorkspace = finalizedCompletedGuestUpgradeWorkspace {
                         self.globalErrorMessage = ""
                         return completedGuestUpgradeWorkspace
                     }
@@ -287,17 +301,27 @@ extension FlashcardsStore {
 
             try self.cloudRuntime.saveCredentials(credentials: linkContext.credentials)
             let configuration = try self.currentCloudServiceConfiguration()
-            try await self.finishCloudLink(
-                linkedSession: CloudLinkedSession(
-                    userId: linkContext.userId,
-                    workspaceId: linkedWorkspace.workspaceId,
-                    email: linkContext.email,
-                    configurationMode: configuration.mode,
-                    apiBaseUrl: linkContext.apiBaseUrl,
-                    authorization: .bearer(linkContext.credentials.idToken)
-                ),
-                trigger: trigger
+            let linkedSession = CloudLinkedSession(
+                userId: linkContext.userId,
+                workspaceId: linkedWorkspace.workspaceId,
+                email: linkContext.email,
+                configurationMode: configuration.mode,
+                apiBaseUrl: linkContext.apiBaseUrl,
+                authorization: .bearer(linkContext.credentials.idToken)
             )
+            do {
+                defer {
+                    self.applyCloudAccountPreferences(
+                        preferences: linkContext.preferences,
+                        linkContext: linkContext
+                    )
+                }
+
+                try await self.finishCloudLink(
+                    linkedSession: linkedSession,
+                    trigger: trigger
+                )
+            }
             if linkContext.guestUpgradeMode == nil {
                 self.clearPendingGuestUpgradeStateAndUnblockMutations()
             }
@@ -368,13 +392,22 @@ extension FlashcardsStore {
                 )
             }
 
-            _ = try await self.finishGuestLocalRecoveryCloudLink(
-                linkContext: linkContext,
-                linkedWorkspace: linkedWorkspace,
-                configuration: configuration,
-                credentials: credentials,
-                trigger: trigger
-            )
+            do {
+                defer {
+                    self.applyCloudAccountPreferences(
+                        preferences: linkContext.preferences,
+                        linkContext: linkContext
+                    )
+                }
+
+                _ = try await self.finishGuestLocalRecoveryCloudLink(
+                    linkContext: linkContext,
+                    linkedWorkspace: linkedWorkspace,
+                    configuration: configuration,
+                    credentials: credentials,
+                    trigger: trigger
+                )
+            }
             self.clearPendingGuestUpgradeStateAndUnblockMutations()
             try self.clearGuestSessionIfNeeded()
             self.clearCloudCredentialRecoveryState()
@@ -490,6 +523,7 @@ extension FlashcardsStore {
             apiBaseUrl: linkContext.apiBaseUrl,
             credentials: credentials,
             workspaces: linkContext.workspaces,
+            preferences: linkContext.preferences,
             guestUpgradeMode: linkContext.guestUpgradeMode,
             postAuthRecoveryRoute: linkContext.postAuthRecoveryRoute
         )
@@ -593,6 +627,7 @@ extension FlashcardsStore {
             apiBaseUrl: verifiedContext.apiBaseUrl,
             credentials: verifiedContext.credentials,
             workspaces: account.workspaces,
+            preferences: account.preferences,
             guestUpgradeMode: nil,
             postAuthRecoveryRoute: .pendingGuestUpgradeRecovery
         )
@@ -616,6 +651,7 @@ extension FlashcardsStore {
             apiBaseUrl: verifiedContext.apiBaseUrl,
             credentials: verifiedContext.credentials,
             workspaces: [completedGuestUpgradeWorkspace],
+            preferences: account.preferences,
             guestUpgradeMode: nil,
             postAuthRecoveryRoute: .pendingGuestUpgradeRecovery
         )

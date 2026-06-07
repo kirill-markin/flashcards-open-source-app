@@ -110,7 +110,9 @@
 "common.edit" = "Редактировать";
 "common.email" = "Электронная почта";
 "common.loading" = "Загрузка...";
+"common.off" = "Выкл";
 "common.ok" = "ОК";
+"common.on" = "Вкл";
 "common.open" = "Открыть";
 "common.openSettings" = "Откройте настройки";
 "common.privacyPolicy" = "Политика конфиденциальности";
@@ -132,6 +134,7 @@
 "settings.row.currentWorkspace" = "Текущая рабочая область";
 "settings.row.reviewReminders" = "Напоминания о повторении";
 "settings.row.reviewReminders.value" = "Это устройство";
+"settings.row.reviewAnimations" = "Анимации повторения";
 "settings.row.language" = "Язык";
 "settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 разрешения";
@@ -163,6 +166,8 @@
 "settings.row.test.itemCount" = "2 пункта";
 "settings.currentWorkspace.section.rename" = "Переименовать";
 "settings.currentWorkspace.renameLinkedOnly" = "Переименование рабочей области доступно только для связанных облачных рабочих областей.";
+"settings.reviewAnimations.title" = "Анимации повторения";
+"settings.reviewAnimations.toggle" = "Показывать анимации после оценки карточки";
 "settings.language.title" = "Язык";
 "settings.language.systemDescription" = "iOS управляет языком приложения. Измените системный язык или язык приложения в Настройках iOS.";
 "settings.language.section.supportedLanguages" = "Поддерживаемые языки";

@@ -57,6 +57,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
                 apiBaseUrl: configuration.apiBaseUrl,
                 credentials: credentials,
                 workspaces: [],
+                preferences: makeDefaultAccountPreferences(),
                 guestUpgradeMode: .mergeRequired,
                 postAuthRecoveryRoute: .none
             ),
@@ -196,6 +197,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
             apiBaseUrl: configuration.apiBaseUrl,
             credentials: credentials,
             workspaces: [],
+            preferences: makeDefaultAccountPreferences(),
             guestUpgradeMode: nil,
             postAuthRecoveryRoute: .none
         )
@@ -213,6 +215,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
                 apiBaseUrl: recoveredLinkContext.apiBaseUrl,
                 credentials: credentials,
                 workspaces: [],
+                preferences: makeDefaultAccountPreferences(),
                 guestUpgradeMode: .mergeRequired,
                 postAuthRecoveryRoute: .none
             ),
@@ -335,6 +338,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
                 apiBaseUrl: configuration.apiBaseUrl,
                 credentials: credentials,
                 workspaces: [],
+                preferences: makeDefaultAccountPreferences(),
                 guestUpgradeMode: .mergeRequired,
                 postAuthRecoveryRoute: .none
             ),
@@ -484,6 +488,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
                 apiBaseUrl: configuration.apiBaseUrl,
                 credentials: credentials,
                 workspaces: [],
+                preferences: makeDefaultAccountPreferences(),
                 guestUpgradeMode: .mergeRequired,
                 postAuthRecoveryRoute: .none
             ),
@@ -641,6 +646,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
                 apiBaseUrl: configuration.apiBaseUrl,
                 credentials: credentials,
                 workspaces: [],
+                preferences: makeDefaultAccountPreferences(),
                 guestUpgradeMode: .mergeRequired,
                 postAuthRecoveryRoute: .none
             ),
@@ -698,6 +704,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
                     apiBaseUrl: configuration.apiBaseUrl,
                     credentials: credentials,
                     workspaces: [completedWorkspace],
+                    preferences: makeDefaultAccountPreferences(),
                     guestUpgradeMode: nil,
                     postAuthRecoveryRoute: .pendingGuestUpgradeRecovery
                 ),
@@ -790,6 +797,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
                 apiBaseUrl: configuration.apiBaseUrl,
                 credentials: credentials,
                 workspaces: [],
+                preferences: makeDefaultAccountPreferences(),
                 guestUpgradeMode: .mergeRequired,
                 postAuthRecoveryRoute: .none
             ),
@@ -832,6 +840,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
                     apiBaseUrl: configuration.apiBaseUrl,
                     credentials: credentials,
                     workspaces: [],
+                    preferences: makeDefaultAccountPreferences(),
                     guestUpgradeMode: .mergeRequired,
                     postAuthRecoveryRoute: .pendingGuestUpgradeRecovery
                 ),
@@ -911,6 +920,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
                 apiBaseUrl: configuration.apiBaseUrl,
                 credentials: credentials,
                 workspaces: [],
+                preferences: makeDefaultAccountPreferences(),
                 guestUpgradeMode: .mergeRequired,
                 postAuthRecoveryRoute: .none
             ),

@@ -14,7 +14,14 @@ protocol CloudAuthServing {
 
 @MainActor
 protocol CloudSyncServing {
+    func fetchCloudAccountContext(apiBaseUrl: String, authorizationHeader: String) async throws -> CloudAccountContext
     func fetchCloudAccount(apiBaseUrl: String, bearerToken: String) async throws -> CloudAccountSnapshot
+    func fetchCloudAccount(apiBaseUrl: String, authorizationHeader: String) async throws -> CloudAccountSnapshot
+    func updateAccountPreferences(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        preferences: AccountPreferences
+    ) async throws -> AccountPreferences
     func loadProgressSummary(
         apiBaseUrl: String,
         authorizationHeader: String,
@@ -98,6 +105,42 @@ protocol CloudSyncServing {
     func deleteAccount(apiBaseUrl: String, bearerToken: String, confirmationText: String) async throws
     func runLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult
     func runGuestLocalRecoveryLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult
+}
+
+@MainActor
+extension CloudSyncServing {
+    func fetchCloudAccountContext(apiBaseUrl: String, authorizationHeader: String) async throws -> CloudAccountContext {
+        let account = try await self.fetchCloudAccount(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: authorizationHeader
+        )
+        return CloudAccountContext(
+            userId: account.userId,
+            email: account.email,
+            preferences: account.preferences
+        )
+    }
+
+    func fetchCloudAccount(apiBaseUrl: String, authorizationHeader: String) async throws -> CloudAccountSnapshot {
+        let bearerPrefix = "Bearer "
+        guard authorizationHeader.hasPrefix(bearerPrefix) else {
+            throw LocalStoreError.validation("Cloud account fetch is unavailable for this authorization transport")
+        }
+
+        let bearerToken = String(authorizationHeader.dropFirst(bearerPrefix.count))
+        return try await self.fetchCloudAccount(apiBaseUrl: apiBaseUrl, bearerToken: bearerToken)
+    }
+
+    func updateAccountPreferences(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        preferences: AccountPreferences
+    ) async throws -> AccountPreferences {
+        _ = apiBaseUrl
+        _ = authorizationHeader
+        _ = preferences
+        throw LocalStoreError.validation("Account preferences update is unavailable")
+    }
 }
 
 protocol CredentialStoring {

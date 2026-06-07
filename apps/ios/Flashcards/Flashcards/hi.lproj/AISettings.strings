@@ -110,7 +110,9 @@
 "common.edit" = "संपादित करें";
 "common.email" = "ईमेल";
 "common.loading" = "लोड हो रहा है...";
+"common.off" = "बंद";
 "common.ok" = "ठीक है";
+"common.on" = "चालू";
 "common.open" = "खोलें";
 "common.openSettings" = "सेटिंग्स खोलें";
 "common.privacyPolicy" = "गोपनीयता नीति";
@@ -132,6 +134,7 @@
 "settings.row.currentWorkspace" = "वर्तमान कार्यक्षेत्र";
 "settings.row.reviewReminders" = "समीक्षा रिमाइंडर";
 "settings.row.reviewReminders.value" = "यह डिवाइस";
+"settings.row.reviewAnimations" = "समीक्षा एनिमेशन";
 "settings.row.language" = "भाषा";
 "settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 अनुमतियां";
@@ -163,6 +166,8 @@
 "settings.row.test.itemCount" = "2 आइटम";
 "settings.currentWorkspace.section.rename" = "नाम बदलें";
 "settings.currentWorkspace.renameLinkedOnly" = "कार्यस्थान का नाम बदलना केवल लिंक किए गए क्लाउड कार्यस्थानों के लिए उपलब्ध है।";
+"settings.reviewAnimations.title" = "समीक्षा एनिमेशन";
+"settings.reviewAnimations.toggle" = "कार्ड को रेट करने के बाद एनिमेशन दिखाएं";
 "settings.language.title" = "भाषा";
 "settings.language.systemDescription" = "iOS ऐप की भाषा नियंत्रित करता है। सिस्टम भाषा या ऐप-विशिष्ट भाषा iOS सेटिंग्स में बदलें।";
 "settings.language.section.supportedLanguages" = "समर्थित भाषाएं";

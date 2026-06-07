@@ -38,6 +38,7 @@ extension FlashcardsStore {
                 apiBaseUrl: session.apiBaseUrl,
                 bearerToken: session.bearerToken
             )
+            self.applyCloudAccountPreferences(account: account)
             return account.workspaces
         }
     }

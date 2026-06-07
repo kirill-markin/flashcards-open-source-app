@@ -60,6 +60,7 @@ final class FlashcardsStore {
     var userSettings: UserSettings?
     var schedulerSettings: WorkspaceSchedulerSettings?
     var cloudSettings: CloudSettings?
+    var accountPreferences: AccountPreferences
     var cards: [Card]
     var decks: [Deck]
     var deckItems: [DeckListItem]
@@ -114,6 +115,9 @@ final class FlashcardsStore {
     @ObservationIgnored var reviewRuntime: ReviewQueueRuntime
     @ObservationIgnored var reviewSubmissionOutboxMutationGate: ReviewSubmissionOutboxMutationGate
     @ObservationIgnored var cloudRuntime: CloudSessionRuntime
+    @ObservationIgnored var accountPreferencesIdentityKey: String?
+    @ObservationIgnored var accountPreferencesRefreshGeneration: Int
+    @ObservationIgnored var isAccountPreferencesUpdateInFlight: Bool
     @ObservationIgnored var isAccountDeletionRunning: Bool
     @ObservationIgnored var isGuestUpgradeLocalOutboxMutationBlocked: Bool
     @ObservationIgnored var cachedAIChatStore: AIChatStore?
@@ -332,6 +336,7 @@ final class FlashcardsStore {
         self.userSettings = nil
         self.schedulerSettings = nil
         self.cloudSettings = nil
+        self.accountPreferences = makeDefaultAccountPreferences()
         self.cards = []
         self.decks = []
         self.deckItems = []
@@ -418,6 +423,9 @@ final class FlashcardsStore {
             cloudSyncService: dependencies.cloudSyncService,
             credentialStore: dependencies.credentialStore
         )
+        self.accountPreferencesIdentityKey = nil
+        self.accountPreferencesRefreshGeneration = 0
+        self.isAccountPreferencesUpdateInFlight = false
         self.isAccountDeletionRunning = false
         self.isGuestUpgradeLocalOutboxMutationBlocked = false
         self.currentVisibleTab = .review

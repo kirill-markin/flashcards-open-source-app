@@ -18,6 +18,7 @@ enum AppTab: Hashable, CaseIterable, Sendable {
 
 enum SettingsNavigationDestination: Hashable, Sendable {
     case currentWorkspace
+    case reviewAnimations
     case language
     case feedback
     case device
