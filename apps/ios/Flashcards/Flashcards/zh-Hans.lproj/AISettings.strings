@@ -524,7 +524,10 @@
 "settings.workspace.export.fileUnavailable" = "导出的文件不可用。";
 "settings.workspace.export.workspaceUnavailable" = "工作区不可用";
 
-"settings.workspace.decks.description" = "甲板将相关卡片组合在一起，以便您可以一起研究主题。";
+"settings.workspace.decks.description" = "牌组是智能筛选器，会包含符合你选择的努力级别和标签的卡片。";
+"settings.workspace.decks.editorSmartFilterDescription" = "牌组是智能筛选器。";
+"settings.workspace.decks.editorMatchingRulesDescription" = "卡片会按你选择的努力级别和标签匹配。你可以在“复习”左上角菜单中选择该牌组。";
+"settings.workspace.decks.emptyRuleValidation" = "请选择至少一个努力级别或标签，或在“复习”中使用“所有卡片”。";
 "settings.workspace.decks.loading" = "正在加载牌组...";
 "settings.workspace.decks.noMatching" = "没有匹配的牌组";
 "settings.workspace.decks.searchPrompt" = "搜索套牌";
@@ -537,6 +540,8 @@
 "settings.workspace.decks.emptyDeck" = "该套牌还没有匹配的牌。";
 "settings.workspace.decks.section.deckRules" = "牌组规则";
 "settings.workspace.decks.openReview" = "开放审核";
+"settings.workspace.decks.reviewThisDeck" = "复习此牌组";
+"settings.workspace.decks.emptyRulesIncludesAllCards" = "这个牌组没有规则，因此包含所有卡片。";
 "settings.workspace.decks.section.matchingCards" = "配套卡";
 "settings.workspace.decks.deleteDeck" = "删除牌组";
 "settings.workspace.decks.deck" = "牌组";

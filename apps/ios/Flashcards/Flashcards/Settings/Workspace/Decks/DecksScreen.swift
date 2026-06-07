@@ -8,6 +8,8 @@ struct DecksScreen: View {
     @State private var isEditorPresented: Bool = false
     @State private var deckFormState: DeckFormState = emptyDeckFormState()
     @State private var screenErrorMessage: String = ""
+    @State private var editorErrorMessage: String = ""
+    @State private var createdDeckDestination: DeckScreenDestination? = nil
     @State private var decksSnapshot: DecksListSnapshot = DecksListSnapshot(
         deckSummaries: [],
         allCardsStats: DeckCardStats(totalCards: 0, dueCards: 0, newCards: 0, reviewedCards: 0)
@@ -37,7 +39,7 @@ struct DecksScreen: View {
             }
 
             Section {
-                Text(aiSettingsLocalized("settings.workspace.decks.description", "Decks group related cards so you can study a topic together."))
+                Text(aiSettingsLocalized("settings.workspace.decks.description", "Decks are smart filters that include cards matching the effort levels and tags you choose."))
                     .foregroundStyle(.secondary)
             }
 
@@ -89,6 +91,9 @@ struct DecksScreen: View {
         .task(id: store.localReadVersion) {
             await self.reloadDecksSnapshot()
         }
+        .navigationDestination(item: self.$createdDeckDestination) { destination in
+            DeckDetailScreen(destination: destination)
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -103,6 +108,7 @@ struct DecksScreen: View {
                 DeckEditorView(
                     title: aiSettingsLocalized("settings.workspace.decks.newDeck", "New deck"),
                     availableTagSuggestions: self.availableTagSuggestions,
+                    errorMessage: self.editorErrorMessage,
                     formState: $deckFormState,
                     onCancel: {
                         isEditorPresented = false
@@ -119,6 +125,7 @@ struct DecksScreen: View {
         self.dismissDecksSearch()
         self.deckFormState = emptyDeckFormState()
         self.screenErrorMessage = ""
+        self.editorErrorMessage = ""
         self.isEditorPresented = true
     }
 
@@ -128,12 +135,19 @@ struct DecksScreen: View {
     }
 
     private func saveDeck() {
+        guard deckFormStateHasFilterRules(formState: self.deckFormState) else {
+            self.editorErrorMessage = deckEditorEmptyRulesValidationMessage()
+            return
+        }
+
         do {
-            try store.createDeck(input: makeDeckEditorInput(formState: deckFormState))
+            let createdDeck: Deck = try store.createDeck(input: makeDeckEditorInput(formState: deckFormState))
             self.screenErrorMessage = ""
+            self.editorErrorMessage = ""
             self.isEditorPresented = false
+            self.createdDeckDestination = .deck(deckId: createdDeck.deckId)
         } catch {
-            self.screenErrorMessage = Flashcards.errorMessage(error: error)
+            self.editorErrorMessage = Flashcards.errorMessage(error: error)
         }
     }
 
@@ -237,9 +251,18 @@ private struct DeckListRow: View {
     }
 }
 
-private enum DeckScreenDestination: Hashable {
+private enum DeckScreenDestination: Hashable, Identifiable {
     case allCards
     case deck(deckId: String)
+
+    var id: String {
+        switch self {
+        case .allCards:
+            return "all-cards"
+        case .deck(let deckId):
+            return "deck-\(deckId)"
+        }
+    }
 }
 
 private struct DeckScreenListItem: Identifiable, Hashable {
@@ -313,6 +336,15 @@ private enum DeckDetailScreenState {
             return true
         }
     }
+
+    var hasEmptyDeckRules: Bool {
+        switch self {
+        case .allCards:
+            return false
+        case .deck(let deckItem, _):
+            return deckFilterDefinitionHasRules(filterDefinition: deckItem.deck.filterDefinition) == false
+        }
+    }
 }
 
 private struct DeckDetailScreen: View {
@@ -325,6 +357,7 @@ private struct DeckDetailScreen: View {
     @State private var isEditorPresented: Bool = false
     @State private var deckFormState: DeckFormState = emptyDeckFormState()
     @State private var screenErrorMessage: String = ""
+    @State private var editorErrorMessage: String = ""
     @State private var detailState: DeckDetailScreenState? = nil
     @State private var availableTagSuggestions: [TagSuggestion] = []
 
@@ -373,13 +406,18 @@ private struct DeckDetailScreen: View {
                     )
                     Text(detailState.filterSummary)
                         .foregroundStyle(.secondary)
+
+                    if detailState.hasEmptyDeckRules {
+                        Text(aiSettingsLocalized("settings.workspace.decks.emptyRulesIncludesAllCards", "This deck has no rules, so it includes all cards."))
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 Section {
                     Button {
                         self.openReview()
                     } label: {
-                        Label(aiSettingsLocalized("settings.workspace.decks.openReview", "Open review"), systemImage: "rectangle.on.rectangle")
+                        Label(reviewActionTitle(detailState: detailState), systemImage: "rectangle.on.rectangle")
                     }
                 }
 
@@ -427,6 +465,7 @@ private struct DeckDetailScreen: View {
                 DeckEditorView(
                     title: aiSettingsLocalized("settings.workspace.decks.editDeck", "Edit deck"),
                     availableTagSuggestions: self.availableTagSuggestions,
+                    errorMessage: self.editorErrorMessage,
                     formState: $deckFormState,
                     onCancel: {
                         isEditorPresented = false
@@ -452,6 +491,7 @@ private struct DeckDetailScreen: View {
             do {
                 self.deckFormState = try makeDeckFormState(deck: deckItem.deck)
                 self.screenErrorMessage = ""
+                self.editorErrorMessage = ""
                 self.isEditorPresented = true
             } catch {
                 self.screenErrorMessage = Flashcards.errorMessage(error: error)
@@ -461,16 +501,22 @@ private struct DeckDetailScreen: View {
 
     private func saveDeckChanges() {
         guard let deckId = currentDeckId else {
-            self.screenErrorMessage = aiSettingsLocalized("settings.workspace.decks.notFound", "Deck not found.")
+            self.editorErrorMessage = aiSettingsLocalized("settings.workspace.decks.notFound", "Deck not found.")
+            return
+        }
+
+        guard deckFormStateHasFilterRules(formState: self.deckFormState) else {
+            self.editorErrorMessage = deckEditorEmptyRulesValidationMessage()
             return
         }
 
         do {
             try store.updateDeck(deckId: deckId, input: makeDeckEditorInput(formState: deckFormState))
             self.screenErrorMessage = ""
+            self.editorErrorMessage = ""
             self.isEditorPresented = false
         } catch {
-            self.screenErrorMessage = Flashcards.errorMessage(error: error)
+            self.editorErrorMessage = Flashcards.errorMessage(error: error)
         }
     }
 
@@ -532,6 +578,7 @@ private struct DeckDetailScreen: View {
 private struct DeckEditorView: View {
     let title: String
     let availableTagSuggestions: [TagSuggestion]
+    let errorMessage: String
     @Binding var formState: DeckFormState
     let onCancel: () -> Void
     let onSave: () -> Void
@@ -542,6 +589,18 @@ private struct DeckEditorView: View {
             horizontalPadding: 0
         ) {
             Form {
+                if errorMessage.isEmpty == false {
+                    Section {
+                        CopyableErrorMessageView(message: errorMessage)
+                    }
+                }
+
+                Section {
+                    Text(aiSettingsLocalized("settings.workspace.decks.editorSmartFilterDescription", "A Deck is a smart filter."))
+                    Text(aiSettingsLocalized("settings.workspace.decks.editorMatchingRulesDescription", "Cards match by the effort levels and tags you select. You can select the Deck from the top-left menu on Review."))
+                }
+                .foregroundStyle(.secondary)
+
                 Section(aiSettingsLocalized("settings.workspace.decks.section.name", "Name")) {
                     TextField(aiSettingsLocalized("settings.workspace.decks.deckName", "Deck name"), text: $formState.name)
                 }
@@ -634,6 +693,35 @@ private func makeDeckFormState(deck: Deck) throws -> DeckFormState {
         selectedEffortLevels: deck.filterDefinition.effortLevels,
         tags: deck.filterDefinition.tags
     )
+}
+
+private func deckFormStateHasFilterRules(formState: DeckFormState) -> Bool {
+    deckFilterDefinitionHasRules(
+        filterDefinition: buildDeckFilterDefinition(
+            effortLevels: formState.selectedEffortLevels,
+            tags: formState.tags
+        )
+    )
+}
+
+private func deckFilterDefinitionHasRules(filterDefinition: DeckFilterDefinition) -> Bool {
+    filterDefinition.effortLevels.isEmpty == false || filterDefinition.tags.isEmpty == false
+}
+
+private func deckEditorEmptyRulesValidationMessage() -> String {
+    aiSettingsLocalized(
+        "settings.workspace.decks.emptyRuleValidation",
+        "Choose at least one effort level or tag, or use All Cards on Review."
+    )
+}
+
+private func reviewActionTitle(detailState: DeckDetailScreenState) -> String {
+    switch detailState {
+    case .allCards:
+        return aiSettingsLocalized("settings.workspace.decks.openReview", "Open review")
+    case .deck:
+        return aiSettingsLocalized("settings.workspace.decks.reviewThisDeck", "Review this deck")
+    }
 }
 
 private func makeDeckScreenListItems(decksSnapshot: DecksListSnapshot) -> [DeckScreenListItem] {

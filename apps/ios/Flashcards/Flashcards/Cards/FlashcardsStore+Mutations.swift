@@ -70,12 +70,13 @@ extension FlashcardsStore {
         return result
     }
 
-    func createDeck(input: DeckEditorInput) throws {
+    func createDeck(input: DeckEditorInput) throws -> Deck {
         let context = try self.requireLocalOutboxMutationContext()
         let now = Date()
-        _ = try context.database.createDeck(workspaceId: context.workspaceId, input: input)
+        let createdDeck = try context.database.createDeck(workspaceId: context.workspaceId, input: input)
         self.refreshLocalReadModels(now: now)
         self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
+        return createdDeck
     }
 
     func updateDeck(deckId: String, input: DeckEditorInput) throws {

@@ -524,7 +524,10 @@
 "settings.workspace.export.fileUnavailable" = "الملف الذي تم تصديره غير متوفر.";
 "settings.workspace.export.workspaceUnavailable" = "مساحة العمل غير متاحة";
 
-"settings.workspace.decks.description" = "تقوم التشكيلات بتجميع البطاقات ذات الصلة معًا حتى تتمكنوا من دراسة موضوع ما معًا.";
+"settings.workspace.decks.description" = "التشكيلات مرشحات ذكية تضم البطاقات المطابقة لمستويات الجهد والوسوم التي تختارها.";
+"settings.workspace.decks.editorSmartFilterDescription" = "المجموعة مرشح ذكي.";
+"settings.workspace.decks.editorMatchingRulesDescription" = "تتطابق البطاقات حسب مستويات الجهد والوسوم التي تحددها. يمكنك اختيار المجموعة من القائمة العلوية اليسرى في المراجعة.";
+"settings.workspace.decks.emptyRuleValidation" = "اختر مستوى جهد واحدًا أو وسمًا واحدًا على الأقل، أو استخدم كل البطاقات في المراجعة.";
 "settings.workspace.decks.loading" = "جارٍ تحميل التشكيلات...";
 "settings.workspace.decks.noMatching" = "لا توجد تشكيلات مطابقة";
 "settings.workspace.decks.searchPrompt" = "مجموعات البحث";
@@ -537,6 +540,8 @@
 "settings.workspace.decks.emptyDeck" = "لا تحتوي هذه المجموعة على بطاقات مطابقة بعد.";
 "settings.workspace.decks.section.deckRules" = "قواعد المجموعة";
 "settings.workspace.decks.openReview" = "مراجعة مفتوحة";
+"settings.workspace.decks.reviewThisDeck" = "راجع هذه المجموعة";
+"settings.workspace.decks.emptyRulesIncludesAllCards" = "لا تحتوي هذه المجموعة على قواعد، لذلك تشمل كل البطاقات.";
 "settings.workspace.decks.section.matchingCards" = "بطاقات المطابقة";
 "settings.workspace.decks.deleteDeck" = "حذف المجموعة";
 "settings.workspace.decks.deck" = "مجموعة";

@@ -524,7 +524,10 @@
 "settings.workspace.export.fileUnavailable" = "Экспортированный файл недоступен.";
 "settings.workspace.export.workspaceUnavailable" = "Рабочая область недоступна";
 
-"settings.workspace.decks.description" = "Колоды группируют связанные карты, чтобы вы могли вместе изучать тему.";
+"settings.workspace.decks.description" = "Колоды — это умные фильтры, которые включают карточки, соответствующие выбранным уровням усилия и тегам.";
+"settings.workspace.decks.editorSmartFilterDescription" = "Колода — это умный фильтр.";
+"settings.workspace.decks.editorMatchingRulesDescription" = "Карточки подбираются по выбранным уровням усилия и тегам. Колоду можно выбрать в меню сверху слева на экране «Повторение».";
+"settings.workspace.decks.emptyRuleValidation" = "Выберите хотя бы один уровень усилия или тег либо используйте «Все карточки» на экране «Повторение».";
 "settings.workspace.decks.loading" = "Загрузка колод...";
 "settings.workspace.decks.noMatching" = "Нет подходящих колод";
 "settings.workspace.decks.searchPrompt" = "Поиск колод";
@@ -537,6 +540,8 @@
 "settings.workspace.decks.emptyDeck" = "В этой колоде еще нет подходящих карт.";
 "settings.workspace.decks.section.deckRules" = "Правила колоды";
 "settings.workspace.decks.openReview" = "Открыть обзор";
+"settings.workspace.decks.reviewThisDeck" = "Повторять эту колоду";
+"settings.workspace.decks.emptyRulesIncludesAllCards" = "У этой колоды нет правил, поэтому она включает все карточки.";
 "settings.workspace.decks.section.matchingCards" = "Соответствующие карты";
 "settings.workspace.decks.deleteDeck" = "Удалить колоду";
 "settings.workspace.decks.deck" = "Молоток";
