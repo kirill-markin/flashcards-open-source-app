@@ -456,6 +456,7 @@ const enCatalog = {
     },
   },
   reviewFilterMenu: {
+    deckSmartFilterLabel: "Smart filter",
     editDecks: "Edit decks",
     empty: "No filters found",
     menuAriaLabel: "Review filter",
@@ -662,7 +663,7 @@ const enCatalog = {
       new: "new",
       reviewed: "reviewed",
     },
-    subtitle: "Decks group related cards so you can study a topic together.",
+    subtitle: "Decks are smart filters, not containers. They match cards by effort level and tags.",
     title: "Decks",
   },
   deckDetail: {
@@ -672,6 +673,8 @@ const enCatalog = {
       deleting: "Deleting...",
       edit: "Edit deck",
       openReview: "Open review",
+      reviewAllCards: "Review all cards",
+      reviewDeck: "Review this deck",
     },
     deleteConfirmation: "Delete this deck?",
     empty: {
@@ -700,7 +703,14 @@ const enCatalog = {
       title: "Deck rules",
     },
     subtitle: "Inspect the deck rules, matching cards, and review entry point.",
+    subtitles: {
+      allCards: "All Cards is the full review scope across every card.",
+      smartFilter: "This deck is a saved smart filter over effort level and tags.",
+    },
     title: "Deck",
+    warnings: {
+      emptyRules: "This deck has no rules, so it includes all cards.",
+    },
   },
   deckForm: {
     actions: {
@@ -709,17 +719,22 @@ const enCatalog = {
       saveDeck: "Save deck",
       saving: "Saving...",
     },
+    errors: {
+      emptyRules: "Choose at least one effort level or tag, or use All Cards on Review.",
+    },
     fields: {
       effort: "Effort",
       name: "Name",
-      summary: "Summary",
+      summary: "Rules",
       tags: "Tags",
     },
-    filterPreview: "Filter preview",
+    filterPreview: "Rules preview",
+    rulesPreviewHelp: "These rules decide which cards appear in this Deck.",
+    smartFilterExplanation: "You are creating a smart filter called a Deck. It matches cards by effort level and tags, then can be selected from the Review filter.",
     systemDeckReadonly: "System deck cannot be edited.",
     subtitles: {
-      edit: "Update a reusable card filter set.",
-      new: "Save a reusable card filter set.",
+      edit: "Update a saved smart filter for matching cards.",
+      new: "Save a smart filter for matching cards.",
     },
     title: {
       edit: "Edit deck",

@@ -458,6 +458,7 @@ const arCatalog: TranslationCatalog = {
     },
   },
   reviewFilterMenu: {
+    deckSmartFilterLabel: "فلتر ذكي",
     editDecks: "حرّر المجموعات",
     empty: "لم يتم العثور على فلاتر",
     menuAriaLabel: "فلتر المراجعة",
@@ -664,7 +665,7 @@ const arCatalog: TranslationCatalog = {
       new: "جديدة",
       reviewed: "تمت مراجعتها",
     },
-    subtitle: "تجمع المجموعات البطاقات المرتبطة حتى تتمكن من دراسة موضوع معًا.",
+    subtitle: "المجموعات فلاتر ذكية وليست حاويات. تطابق البطاقات حسب مستوى الجهد والوسوم.",
     title: "المجموعات",
   },
   deckDetail: {
@@ -674,6 +675,8 @@ const arCatalog: TranslationCatalog = {
       deleting: "جارٍ الحذف...",
       edit: "تحرير المجموعة",
       openReview: "فتح المراجعة",
+      reviewAllCards: "راجع كل البطاقات",
+      reviewDeck: "راجع هذه المجموعة",
     },
     deleteConfirmation: "هل تريد حذف هذه المجموعة؟",
     empty: {
@@ -702,7 +705,14 @@ const arCatalog: TranslationCatalog = {
       title: "قواعد المجموعة",
     },
     subtitle: "افحص قواعد المجموعة والبطاقات المطابقة ونقطة الدخول إلى المراجعة.",
+    subtitles: {
+      allCards: "كل البطاقات هو نطاق المراجعة الكامل عبر كل بطاقة.",
+      smartFilter: "هذه المجموعة فلتر ذكي محفوظ حسب مستوى الجهد والوسوم.",
+    },
     title: "المجموعة",
+    warnings: {
+      emptyRules: "لا تحتوي هذه المجموعة على قواعد، لذلك تشمل كل البطاقات.",
+    },
   },
   deckForm: {
     actions: {
@@ -711,17 +721,22 @@ const arCatalog: TranslationCatalog = {
       saveDeck: "حفظ المجموعة",
       saving: "جارٍ الحفظ...",
     },
+    errors: {
+      emptyRules: "اختر مستوى جهد واحدًا أو وسمًا واحدًا على الأقل، أو استخدم كل البطاقات في المراجعة.",
+    },
     fields: {
       effort: "الجهد",
       name: "الاسم",
-      summary: "الملخص",
+      summary: "القواعد",
       tags: "الوسوم",
     },
-    filterPreview: "معاينة الفلتر",
+    filterPreview: "معاينة القواعد",
+    rulesPreviewHelp: "تحدد هذه القواعد البطاقات التي تظهر في هذه المجموعة.",
+    smartFilterExplanation: "أنت تنشئ فلترًا ذكيًا يسمى مجموعة. يطابق البطاقات حسب مستوى الجهد والوسوم، ثم يمكن اختياره من فلتر المراجعة.",
     systemDeckReadonly: "لا يمكن تحرير مجموعة النظام.",
     subtitles: {
-      edit: "حدّث مجموعة قابلة لإعادة الاستخدام من فلاتر البطاقات.",
-      new: "احفظ مجموعة قابلة لإعادة الاستخدام من فلاتر البطاقات.",
+      edit: "حدّث فلترًا ذكيًا محفوظًا للبطاقات المطابقة.",
+      new: "احفظ فلترًا ذكيًا للبطاقات المطابقة.",
     },
     title: {
       edit: "تحرير المجموعة",
