@@ -40,6 +40,54 @@ extension LiveSmokeTestCase {
     }
 
     @MainActor
+    func assertElementExistsScrollingIntoView(identifier: String, timeout: TimeInterval) throws {
+        try self.runWithInlineRawScreenStateOnFailure(action: "assert_element_exists_scrolling.\(identifier)") {
+            let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+            let deadline = Date().addingTimeInterval(timeout)
+
+            while Date() < deadline {
+                if element.exists {
+                    return
+                }
+
+                self.scrollBestEffort()
+                RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
+            }
+
+            throw LiveSmokeFailure.missingElement(
+                identifier: identifier,
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+    }
+
+    @MainActor
+    func assertTextExistsScrollingIntoView(_ text: String, timeout: TimeInterval) throws {
+        try self.runWithInlineRawScreenStateOnFailure(action: "assert_text_exists_scrolling.\(text)") {
+            let textElement = self.exactVisibleText(text).firstMatch
+            let deadline = Date().addingTimeInterval(timeout)
+
+            while Date() < deadline {
+                if textElement.exists {
+                    return
+                }
+
+                self.scrollBestEffort()
+                RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
+            }
+
+            throw LiveSmokeFailure.missingText(
+                text: text,
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+    }
+
+    @MainActor
     func assertElementEnabled(identifier: String, timeout: TimeInterval) throws {
         try self.runWithInlineRawScreenStateOnFailure(action: "assert_element_enabled.\(identifier)") {
             let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch

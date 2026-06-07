@@ -117,7 +117,6 @@ extension LiveSmokeTestCase {
             let didUseWorkspaceChooser = try self.completeCloudWorkspaceSelectionIfNeeded()
             try self.assertLinkedEmailVisible(reviewEmail: reviewEmail, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
             try self.tapFirstNavigationBackButton()
-            try self.tapFirstNavigationBackButton()
             return didUseWorkspaceChooser
         } else if self.isAccountStatusLinked() {
             let visibleEmail = self.visibleLinkedEmailLabel()
@@ -129,7 +128,6 @@ extension LiveSmokeTestCase {
                 )
             }
             try self.assertLinkedEmailVisible(reviewEmail: reviewEmail, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
-            try self.tapFirstNavigationBackButton()
             try self.tapFirstNavigationBackButton()
             return false
         } else {
@@ -166,26 +164,20 @@ extension LiveSmokeTestCase {
     @MainActor
     func renameLinkedWorkspace(workspaceName: String) throws {
         try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        try self.tapButton(
-            identifier: LiveSmokeIdentifier.settingsWorkspaceSettingsRow,
-            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-        )
-        try self.assertScreenVisible(screen: .workspaceSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        try self.tapButton(
-            identifier: LiveSmokeIdentifier.workspaceSettingsOverviewRow,
-            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-        )
-        try self.assertScreenVisible(screen: .workspaceOverview, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        try self.replaceTextSafely(
-            workspaceName,
-            inElementWithIdentifier: LiveSmokeIdentifier.workspaceOverviewNameField,
-            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-        )
-        try self.tapButton(
-            identifier: LiveSmokeIdentifier.workspaceOverviewSaveNameButton,
+        try self.tapButtonScrollingIntoView(
+            identifier: LiveSmokeIdentifier.settingsCurrentWorkspaceRow,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
-        try self.tapFirstNavigationBackButton()
+        try self.assertScreenVisible(screen: .currentWorkspace, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.replaceTextSafely(
+            workspaceName,
+            inElementWithIdentifier: LiveSmokeIdentifier.currentWorkspaceNameField,
+            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+        )
+        try self.tapButton(
+            identifier: LiveSmokeIdentifier.currentWorkspaceSaveNameButton,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
         try self.tapFirstNavigationBackButton()
         try self.assertTextExists(workspaceName, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
     }
@@ -201,7 +193,7 @@ extension LiveSmokeTestCase {
             result: "start",
             note: "cleanup begins"
         )
-        try self.openWorkspaceOverviewFromSettings()
+        try self.openDeleteCurrentWorkspaceFromSettings()
         try self.tapButtonScrollingIntoViewPreservingAlerts(
             identifier: LiveSmokeIdentifier.workspaceOverviewDeleteWorkspaceButton,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
@@ -247,11 +239,11 @@ extension LiveSmokeTestCase {
     func openWorkspaceResetProgressFlow() throws {
         try self.tapTabBarItem(selectedTab: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        try self.tapButton(
-            identifier: LiveSmokeIdentifier.settingsWorkspaceSettingsRow,
-            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+        try self.tapButtonScrollingIntoView(
+            identifier: LiveSmokeIdentifier.settingsResetStudyProgressRow,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
-        try self.assertScreenVisible(screen: .workspaceSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertScreenVisible(screen: .resetStudyProgress, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.tapButtonPreservingAlerts(
             identifier: LiveSmokeIdentifier.workspaceSettingsResetProgressButton,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
@@ -309,29 +301,32 @@ extension LiveSmokeTestCase {
 
     @MainActor
     func openAccountStatus() throws {
-        try self.openAccountSettingsFromSettings()
-        try self.openAccountStatusFromAccountSettings()
+        try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.tapButtonScrollingIntoView(
+            identifier: LiveSmokeIdentifier.settingsAccountStatusRow,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+        try self.assertScreenVisible(screen: .accountStatus, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
     }
 
     @MainActor
     func openAccountDangerZone() throws {
-        try self.openAccountSettingsFromSettings()
-        try self.openAccountDangerZoneFromAccountSettings()
+        try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.tapButtonScrollingIntoView(
+            identifier: LiveSmokeIdentifier.settingsDeleteAccountRow,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+        try self.assertScreenVisible(screen: .dangerZone, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
     }
 
     @MainActor
-    func openWorkspaceOverviewFromSettings() throws {
+    func openDeleteCurrentWorkspaceFromSettings() throws {
         try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.tapButtonScrollingIntoView(
-            identifier: LiveSmokeIdentifier.settingsWorkspaceSettingsRow,
+            identifier: LiveSmokeIdentifier.settingsDeleteCurrentWorkspaceRow,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
-        try self.assertScreenVisible(screen: .workspaceSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        try self.tapButtonScrollingIntoView(
-            identifier: LiveSmokeIdentifier.workspaceSettingsOverviewRow,
-            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
-        )
-        try self.assertScreenVisible(screen: .workspaceOverview, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertScreenVisible(screen: .deleteCurrentWorkspace, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
     }
 
     @MainActor
@@ -341,105 +336,6 @@ extension LiveSmokeTestCase {
             timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
         )
         try self.tapAlertButton(label: "Log out", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-    }
-
-    @MainActor
-    private func openAccountSettingsFromSettings() throws {
-        try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.longUiTimeoutSeconds)
-
-        while Date() < deadline {
-            let accountSettingsScreen = self.app.descendants(matching: .any)
-                .matching(identifier: LiveSmokeIdentifier.accountSettingsScreen)
-                .firstMatch
-            if accountSettingsScreen.exists {
-                return
-            }
-
-            try self.tapButtonScrollingIntoView(
-                identifier: LiveSmokeIdentifier.settingsAccountSettingsRow,
-                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-            )
-
-            if accountSettingsScreen.waitForExistence(timeout: liveSmokeFocusPollIntervalSeconds) {
-                return
-            }
-
-        }
-
-        throw LiveSmokeFailure.missingScreen(
-            screen: LiveSmokeScreen.accountSettings.title,
-            identifier: LiveSmokeScreen.accountSettings.identifier,
-            timeoutSeconds: LiveSmokeConfiguration.longUiTimeoutSeconds,
-            currentScreen: self.currentScreenSummary(),
-            step: self.currentStepTitle
-        )
-    }
-
-    @MainActor
-    private func openAccountStatusFromAccountSettings() throws {
-        try self.assertScreenVisible(screen: .accountSettings, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
-        let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.longUiTimeoutSeconds)
-
-        while Date() < deadline {
-            let accountStatusScreen = self.app.descendants(matching: .any)
-                .matching(identifier: LiveSmokeIdentifier.accountStatusScreen)
-                .firstMatch
-            if accountStatusScreen.exists {
-                return
-            }
-
-            try self.tapButtonScrollingIntoView(
-                identifier: LiveSmokeIdentifier.accountSettingsAccountStatusRow,
-                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-            )
-
-            if accountStatusScreen.waitForExistence(timeout: liveSmokeFocusPollIntervalSeconds) {
-                return
-            }
-
-        }
-
-        throw LiveSmokeFailure.missingScreen(
-            screen: LiveSmokeScreen.accountStatus.title,
-            identifier: LiveSmokeScreen.accountStatus.identifier,
-            timeoutSeconds: LiveSmokeConfiguration.longUiTimeoutSeconds,
-            currentScreen: self.currentScreenSummary(),
-            step: self.currentStepTitle
-        )
-    }
-
-    @MainActor
-    private func openAccountDangerZoneFromAccountSettings() throws {
-        try self.assertScreenVisible(screen: .accountSettings, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
-        let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.longUiTimeoutSeconds)
-
-        while Date() < deadline {
-            let dangerZoneScreen = self.app.descendants(matching: .any)
-                .matching(identifier: LiveSmokeIdentifier.dangerZoneScreen)
-                .firstMatch
-            if dangerZoneScreen.exists {
-                return
-            }
-
-            try self.tapButtonScrollingIntoView(
-                identifier: LiveSmokeIdentifier.accountSettingsDangerZoneRow,
-                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-            )
-
-            if dangerZoneScreen.waitForExistence(timeout: liveSmokeFocusPollIntervalSeconds) {
-                return
-            }
-
-        }
-
-        throw LiveSmokeFailure.missingScreen(
-            screen: LiveSmokeScreen.dangerZone.title,
-            identifier: LiveSmokeScreen.dangerZone.identifier,
-            timeoutSeconds: LiveSmokeConfiguration.longUiTimeoutSeconds,
-            currentScreen: self.currentScreenSummary(),
-            step: self.currentStepTitle
-        )
     }
 
     @MainActor

@@ -40,8 +40,6 @@ final class LiveSmokeRTLTests: LiveSmokeTestCase {
                 timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
             )
             try self.tapFirstNavigationBackButton()
-            try self.assertScreenVisible(screen: .accountSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-            try self.tapFirstNavigationBackButton()
             try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         }
     }

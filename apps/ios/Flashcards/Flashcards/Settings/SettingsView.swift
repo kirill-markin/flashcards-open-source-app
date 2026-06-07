@@ -15,8 +15,12 @@ struct SyncStatusPresentation: Equatable {
 struct SettingsView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
-    private var isWorkspaceManagementLocked: Bool {
-        self.store.cloudSettings?.cloudState != .linked
+    private var accountStatusValue: String {
+        displayCloudAccountStateTitle(cloudState: store.cloudSettings?.cloudState ?? .disconnected)
+    }
+
+    private var currentWorkspaceValue: String {
+        store.workspace?.name ?? aiSettingsLocalized("common.unavailable", "Unavailable")
     }
 
     var body: some View {
@@ -27,79 +31,176 @@ struct SettingsView: View {
                 }
             }
 
-            Section {
-                if self.isWorkspaceManagementLocked {
+            Section(aiSettingsLocalized("settings.section.account", "Account")) {
+                NavigationLink(value: SettingsNavigationDestination.accountStatus) {
                     SettingsNavigationRow(
-                        title: aiSettingsLocalized("settings.row.currentWorkspace", "Current Workspace"),
-                        value: store.workspace?.name ?? aiSettingsLocalized("common.unavailable", "Unavailable"),
-                        systemImage: "square.stack"
-                    )
-                    .foregroundStyle(.secondary)
-                    .accessibilityIdentifier(UITestIdentifier.settingsCurrentWorkspaceRow)
-                } else {
-                    NavigationLink(value: SettingsNavigationDestination.currentWorkspace) {
-                        SettingsNavigationRow(
-                            title: aiSettingsLocalized("settings.row.currentWorkspace", "Current Workspace"),
-                            value: store.workspace?.name ?? aiSettingsLocalized("common.unavailable", "Unavailable"),
-                            systemImage: "square.stack"
-                        )
-                    }
-                    .accessibilityIdentifier(UITestIdentifier.settingsCurrentWorkspaceRow)
-                }
-            }
-
-            Section {
-                NavigationLink(value: SettingsNavigationDestination.workspace) {
-                    SettingsNavigationRow(
-                        title: aiSettingsLocalized("settings.row.workspaceSettings", "Workspace Settings"),
-                        value: store.workspace?.name ?? aiSettingsLocalized("common.unavailable", "Unavailable"),
-                        systemImage: "square.grid.2x2"
-                    )
-                }
-                .accessibilityIdentifier(UITestIdentifier.settingsWorkspaceSettingsRow)
-
-                NavigationLink(value: SettingsNavigationDestination.account) {
-                    SettingsNavigationRow(
-                        title: aiSettingsLocalized("settings.row.accountSettings", "Account Settings"),
-                        value: displayCloudAccountStateTitle(cloudState: store.cloudSettings?.cloudState ?? .disconnected),
+                        title: aiSettingsLocalized("settings.row.accountStatus", "Account Status"),
+                        value: self.accountStatusValue,
                         systemImage: "person.crop.circle"
                     )
                 }
-                .accessibilityIdentifier(UITestIdentifier.settingsAccountSettingsRow)
+                .accessibilityIdentifier(UITestIdentifier.settingsAccountStatusRow)
+
+                NavigationLink(value: SettingsNavigationDestination.currentWorkspace) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.row.currentWorkspace", "Current Workspace"),
+                        value: self.currentWorkspaceValue,
+                        systemImage: "square.stack"
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsCurrentWorkspaceRow)
             }
 
-            Section {
-                Button {
-                    store.presentFeedbackSheet(trigger: .settings)
-                } label: {
+            Section(aiSettingsLocalized("settings.section.general", "General")) {
+                NavigationLink(value: SettingsNavigationDestination.workspaceNotifications) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.row.reviewReminders", "Review Reminders"),
+                        value: aiSettingsLocalized("settings.row.reviewReminders.value", "This Device"),
+                        systemImage: "bell.badge"
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsReviewRemindersRow)
+
+                NavigationLink(value: SettingsNavigationDestination.language) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.row.language", "Language"),
+                        value: aiSettingsLocalized("settings.row.language.value", "iOS"),
+                        systemImage: "globe"
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsLanguageRow)
+
+                NavigationLink(value: SettingsNavigationDestination.access) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.row.access", "Access"),
+                        value: aiSettingsLocalized("settings.row.access.permissionsCount", "3 permissions"),
+                        systemImage: "hand.raised"
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsAccessRow)
+
+                NavigationLink(value: SettingsNavigationDestination.workspaceDecks) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.row.decks", "Decks"),
+                        value: aiSettingsLocalized("settings.row.workspaceScoped.value", "Workspace"),
+                        systemImage: "rectangle.stack"
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsDecksRow)
+
+                NavigationLink(value: SettingsNavigationDestination.workspaceTags) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.row.tags", "Tags"),
+                        value: aiSettingsLocalized("settings.row.workspaceScoped.value", "Workspace"),
+                        systemImage: "tag"
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsTagsRow)
+
+                NavigationLink(value: SettingsNavigationDestination.workspaceExport) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.row.export", "Export"),
+                        value: "CSV",
+                        systemImage: "square.and.arrow.up"
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsExportRow)
+            }
+
+            Section(aiSettingsLocalized("settings.section.support", "Support")) {
+                NavigationLink(value: SettingsNavigationDestination.feedback) {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.sendFeedback", "Send Feedback"),
                         value: aiSettingsLocalized("settings.row.sendFeedback.value", "Share an idea"),
                         systemImage: "text.bubble"
                     )
                 }
-                .buttonStyle(.plain)
                 .accessibilityIdentifier(UITestIdentifier.settingsFeedbackRow)
+
+                NavigationLink(value: SettingsNavigationDestination.accountLegalSupport) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.row.legalSupport", "Legal & Support"),
+                        value: aiSettingsLocalized("settings.account.row.legalSupportValue", "Privacy + Support"),
+                        systemImage: "doc.text"
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsLegalSupportRow)
+
+                NavigationLink(value: SettingsNavigationDestination.accountOpenSource) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.row.openSource", "Open Source"),
+                        value: aiSettingsLocalized("settings.account.row.openSourceValue", "GitHub + MIT"),
+                        systemImage: "chevron.left.forwardslash.chevron.right"
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsOpenSourceRow)
+            }
+
+            Section(aiSettingsLocalized("settings.section.advanced", "Advanced")) {
+                NavigationLink(value: SettingsNavigationDestination.workspaceScheduler) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.row.scheduling", "Scheduling / FSRS"),
+                        value: "FSRS",
+                        systemImage: "calendar.badge.clock"
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsSchedulingRow)
+
+                NavigationLink(value: SettingsNavigationDestination.accountAgentConnections) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.row.agentConnections", "Agent Connections"),
+                        value: aiSettingsLocalized("settings.row.agentConnections.value", "API keys"),
+                        systemImage: "link"
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsAgentConnectionsRow)
+
+                NavigationLink(value: SettingsNavigationDestination.accountServer) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.row.server", "Server"),
+                        value: aiSettingsLocalized("settings.row.server.value", "Domain"),
+                        systemImage: "network"
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsServerRow)
 
                 NavigationLink(value: SettingsNavigationDestination.device) {
                     SettingsNavigationRow(
-                        title: aiSettingsLocalized("settings.row.thisDevice", "This Device"),
-                        value: "SwiftUI + SQLite",
+                        title: aiSettingsLocalized("settings.row.deviceDiagnostics", "This Device / Diagnostics"),
+                        value: aiSettingsLocalized("settings.row.deviceDiagnostics.value", "SwiftUI + SQLite"),
                         systemImage: "internaldrive"
                     )
                 }
+                .accessibilityIdentifier(UITestIdentifier.settingsDeviceDiagnosticsRow)
 
-                NavigationLink(value: SettingsNavigationDestination.access) {
+                NavigationLink(value: SettingsNavigationDestination.resetStudyProgress) {
                     SettingsNavigationRow(
-                        title: aiSettingsLocalized("settings.row.access", "Access"),
-                        value: aiSettingsLocalized("settings.row.access.itemCount", "4 items"),
-                        systemImage: "hand.raised"
+                        title: aiSettingsLocalized("settings.row.resetStudyProgress", "Reset Study Progress"),
+                        value: aiSettingsLocalized("settings.row.resetStudyProgress.value", "Progress"),
+                        systemImage: "arrow.counterclockwise.circle"
                     )
                 }
-            }
+                .accessibilityIdentifier(UITestIdentifier.settingsResetStudyProgressRow)
 
-            if store.isTestModeEnabled {
-                Section(aiSettingsLocalized("settings.section.test", "Test")) {
+                NavigationLink(value: SettingsNavigationDestination.deleteCurrentWorkspace) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.row.deleteCurrentWorkspace", "Delete Current Workspace"),
+                        value: aiSettingsLocalized("settings.row.permanent.value", "Permanent"),
+                        systemImage: "trash"
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsDeleteCurrentWorkspaceRow)
+
+                NavigationLink(value: SettingsNavigationDestination.accountDangerZone) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.row.deleteAccount", "Delete Account"),
+                        value: aiSettingsLocalized("settings.row.permanent.value", "Permanent"),
+                        systemImage: "person.crop.circle.badge.xmark"
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsDeleteAccountRow)
+
+                if store.isTestModeEnabled {
                     NavigationLink(value: SettingsNavigationDestination.test) {
                         SettingsNavigationRow(
                             title: aiSettingsLocalized("settings.row.test", "Test"),
