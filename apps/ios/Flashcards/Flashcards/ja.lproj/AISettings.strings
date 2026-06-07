@@ -524,7 +524,10 @@
 "settings.workspace.export.fileUnavailable" = "エクスポートされたファイルは利用できません。";
 "settings.workspace.export.workspaceUnavailable" = "ワークスペースが利用できません";
 
-"settings.workspace.decks.description" = "デッキは関連するカードをグループ化しているため、トピックを一緒に学ぶことができます。";
+"settings.workspace.decks.description" = "デッキはスマートフィルターです。選択した努力レベルとタグに一致するカードが含まれます。";
+"settings.workspace.decks.editorSmartFilterDescription" = "デッキはスマートフィルターです。";
+"settings.workspace.decks.editorMatchingRulesDescription" = "選択した努力レベルとタグでカードが一致します。復習の左上メニューからデッキを選択できます。";
+"settings.workspace.decks.emptyRuleValidation" = "少なくとも 1 つの努力レベルまたはタグを選択するか、復習ですべてのカードを使用してください。";
 "settings.workspace.decks.loading" = "デッキをロード中...";
 "settings.workspace.decks.noMatching" = "一致するデッキがありません";
 "settings.workspace.decks.searchPrompt" = "デッキを検索";
@@ -537,6 +540,8 @@
 "settings.workspace.decks.emptyDeck" = "このデッキには一致するカードがまだありません。";
 "settings.workspace.decks.section.deckRules" = "デッキルール";
 "settings.workspace.decks.openReview" = "レビューを開く";
+"settings.workspace.decks.reviewThisDeck" = "このデッキを復習";
+"settings.workspace.decks.emptyRulesIncludesAllCards" = "このデッキにはルールがないため、すべてのカードが含まれます。";
 "settings.workspace.decks.section.matchingCards" = "一致するカード";
 "settings.workspace.decks.deleteDeck" = "デッキを削除";
 "settings.workspace.decks.deck" = "デッキ";

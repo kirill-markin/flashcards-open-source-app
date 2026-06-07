@@ -524,7 +524,10 @@
 "settings.workspace.export.fileUnavailable" = "निर्यात की गई फ़ाइल उपलब्ध नहीं है.";
 "settings.workspace.export.workspaceUnavailable" = "कार्यस्थल उपलब्ध नहीं है";
 
-"settings.workspace.decks.description" = "डेक संबंधित कार्डों को एक साथ समूहित करते हैं ताकि आप एक साथ किसी विषय का अध्ययन कर सकें।";
+"settings.workspace.decks.description" = "डेक स्मार्ट फ़िल्टर हैं जो आपके चुने गए प्रयास स्तरों और टैग से मेल खाने वाले कार्ड शामिल करते हैं।";
+"settings.workspace.decks.editorSmartFilterDescription" = "डेक एक स्मार्ट फ़िल्टर है।";
+"settings.workspace.decks.editorMatchingRulesDescription" = "कार्ड आपके चुने गए प्रयास स्तरों और टैग से मेल खाते हैं। आप समीक्षा में ऊपर-बाएं मेनू से डेक चुन सकते हैं।";
+"settings.workspace.decks.emptyRuleValidation" = "कम से कम एक प्रयास स्तर या टैग चुनें, या समीक्षा में सभी कार्ड का उपयोग करें.";
 "settings.workspace.decks.loading" = "डेक लोड हो रहा है...";
 "settings.workspace.decks.noMatching" = "कोई मेल खाता डेक नहीं";
 "settings.workspace.decks.searchPrompt" = "खोज डेक";
@@ -537,6 +540,8 @@
 "settings.workspace.decks.emptyDeck" = "इस डेक में अभी तक मेल खाने वाले कार्ड नहीं हैं.";
 "settings.workspace.decks.section.deckRules" = "डेक नियम";
 "settings.workspace.decks.openReview" = "खुली समीक्षा";
+"settings.workspace.decks.reviewThisDeck" = "इस डेक की समीक्षा करें";
+"settings.workspace.decks.emptyRulesIncludesAllCards" = "इस डेक में कोई नियम नहीं हैं, इसलिए इसमें सभी कार्ड शामिल हैं.";
 "settings.workspace.decks.section.matchingCards" = "मिलान कार्ड";
 "settings.workspace.decks.deleteDeck" = "डेक हटाएं";
 "settings.workspace.decks.deck" = "डेक";

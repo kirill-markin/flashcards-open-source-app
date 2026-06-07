@@ -524,7 +524,10 @@
 "settings.workspace.export.fileUnavailable" = "Die exportierte Datei ist nicht verfügbar.";
 "settings.workspace.export.workspaceUnavailable" = "Arbeitsbereich ist nicht verfügbar";
 
-"settings.workspace.decks.description" = "Decks gruppieren verwandte Karten, sodass Sie gemeinsam ein Thema studieren können.";
+"settings.workspace.decks.description" = "Decks sind intelligente Filter, die Karten einschließen, die den gewählten Aufwandsstufen und Tags entsprechen.";
+"settings.workspace.decks.editorSmartFilterDescription" = "Ein Deck ist ein intelligenter Filter.";
+"settings.workspace.decks.editorMatchingRulesDescription" = "Karten werden über die Aufwandsstufen und Tags gefunden, die Sie auswählen. Sie können das Deck im Menü oben links unter „Wiederholen“ auswählen.";
+"settings.workspace.decks.emptyRuleValidation" = "Wählen Sie mindestens eine Aufwandsstufe oder ein Tag aus, oder verwenden Sie „Alle Karten“ unter „Wiederholen“.";
 "settings.workspace.decks.loading" = "Ladedecks...";
 "settings.workspace.decks.noMatching" = "Keine passenden Decks";
 "settings.workspace.decks.searchPrompt" = "Decks durchsuchen";
@@ -537,6 +540,8 @@
 "settings.workspace.decks.emptyDeck" = "Zu diesem Deck gibt es noch keine passenden Karten.";
 "settings.workspace.decks.section.deckRules" = "Deckregeln";
 "settings.workspace.decks.openReview" = "Rezension öffnen";
+"settings.workspace.decks.reviewThisDeck" = "Dieses Deck wiederholen";
+"settings.workspace.decks.emptyRulesIncludesAllCards" = "Dieses Deck hat keine Regeln und enthält daher alle Karten.";
 "settings.workspace.decks.section.matchingCards" = "Passende Karten";
 "settings.workspace.decks.deleteDeck" = "Deck löschen";
 "settings.workspace.decks.deck" = "Hammer";
