@@ -92,7 +92,7 @@ private suspend fun fetchCloudAccount(
 ): CloudAccountSnapshot {
     return remoteService.fetchCloudAccount(
         apiBaseUrl = configuration.apiBaseUrl,
-        bearerToken = credentials.idToken
+        authorizationHeader = "Bearer ${credentials.idToken}"
     )
 }
 
@@ -122,6 +122,7 @@ private suspend fun finalizePendingGuestUpgradeRecovery(
         pendingGuestUpgradeState = pendingGuestUpgradeState,
         completion = completion
     )
+    preferencesStore.saveAccountPreferences(preferences = pendingGuestUpgradeState.accountSnapshot.preferences)
     preferencesStore.saveCredentials(pendingGuestUpgradeState.credentials)
     preferencesStore.clearCloudCredentialRecoveryState()
     requireNoPendingGuestUpgradeOutbox(

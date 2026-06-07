@@ -86,6 +86,7 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         isHardAnswerReminderVisible = false
                     ),
                     reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore,
+                    reviewReactionAnimationsEnabled = true,
                     onSelectFilter = {},
                     onOpenPreview = {
                         openPreviewCalls += 1

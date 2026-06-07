@@ -54,6 +54,8 @@
     <string name="settings_off">Off</string>
     <string name="settings_ok">OK</string>
     <string name="settings_cancel">Cancel</string>
+    <string name="settings_common_on">On</string>
+    <string name="settings_common_off">Off</string>
     <string name="settings_save">Save</string>
     <string name="settings_continue">Continue</string>
     <string name="settings_retry">Retry</string>
@@ -85,6 +87,12 @@
     <string name="settings_root_workspace_summary">%1$s | %2$s | %3$s</string>
     <string name="settings_review_reminders_title">Review reminders</string>
     <string name="settings_review_reminders_summary">Workspace reminders and strict reminders for this device</string>
+    <string name="settings_review_animations_title">Review Animations</string>
+    <string name="settings_review_animations_summary">Show animations after rating a card</string>
+    <string name="settings_review_animations_toggle_title">Show animations after rating a card</string>
+    <string name="settings_review_animations_toggle_body">Review reaction animations appear briefly after Again, Hard, Good, and Easy.</string>
+    <string name="settings_review_animations_update_failed">Could not update review animations.</string>
+    <string name="settings_account_preferences_refresh_failed">Could not refresh account preferences.</string>
     <string name="settings_language_title">Language</string>
     <string name="settings_language_summary">Android system and per-app language settings</string>
     <string name="settings_language_body">Android controls the app language through system and per-app language settings. Change the Android system language or this app\'s language setting, then return to Flashcards.</string>

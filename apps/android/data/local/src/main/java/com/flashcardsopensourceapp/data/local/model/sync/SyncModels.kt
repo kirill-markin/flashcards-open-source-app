@@ -36,9 +36,18 @@ data class SyncStatusSnapshot(
     val lastErrorMessage: String
 )
 
+data class AccountPreferences(
+    val reviewReactionAnimationsEnabled: Boolean
+)
+
+fun defaultAccountPreferences(): AccountPreferences {
+    return AccountPreferences(reviewReactionAnimationsEnabled = true)
+}
+
 data class CloudAccountSnapshot(
     val userId: String,
     val email: String?,
+    val preferences: AccountPreferences,
     val workspaces: List<CloudWorkspaceSummary>
 )
 

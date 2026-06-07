@@ -32,6 +32,10 @@ data object SettingsLanguageDestination {
     const val route: String = "settings/language"
 }
 
+data object SettingsReviewAnimationsDestination {
+    const val route: String = "settings/review-animations"
+}
+
 data object SettingsFeedbackDestination {
     const val route: String = "settings/feedback"
 }

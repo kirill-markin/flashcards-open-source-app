@@ -232,6 +232,9 @@ fun FlashcardsApp(
         var hasTriggeredLaunchAutoSync by remember {
             mutableStateOf(value = false)
         }
+        var hasTriggeredLaunchAccountContextRefresh by remember {
+            mutableStateOf(value = false)
+        }
         val pollingResetAtMillis by appGraph.autoSyncController.observePollingResetAtMillis().collectAsStateWithLifecycle(
             initialValue = 0L
         )
@@ -240,7 +243,12 @@ fun FlashcardsApp(
             accountDeletionState = accountDeletionState,
             syncStatus = syncStatusSnapshot.status
         )
+        val canRefreshCloudAccountContext = shouldRefreshCloudAccountContext(
+            cloudState = cloudSettings.cloudState,
+            accountDeletionState = accountDeletionState
+        )
         val currentCanRunImmediateAutoSync by rememberUpdatedState(newValue = canRunImmediateAutoSync)
+        val currentCanRefreshCloudAccountContext by rememberUpdatedState(newValue = canRefreshCloudAccountContext)
         val currentVisibleAppScreenState by rememberUpdatedState(newValue = currentVisibleAppScreen)
         val guestSignInAfterReviewPromptContext = GuestSignInAfterReviewPromptContext(
             isAuthFlowActive = isGuestSignInAfterReviewPromptAuthRoute(route = currentRoute),
@@ -312,11 +320,26 @@ fun FlashcardsApp(
             )
         }
 
+        LaunchedEffect(
+            canRefreshCloudAccountContext,
+            hasTriggeredLaunchAccountContextRefresh
+        ) {
+            if (hasTriggeredLaunchAccountContextRefresh || canRefreshCloudAccountContext.not()) {
+                return@LaunchedEffect
+            }
+
+            hasTriggeredLaunchAccountContextRefresh = true
+            appGraph.refreshAccountContextInBackground(source = "app_launch")
+        }
+
         DisposableEffect(lifecycleOwner) {
             val observer = LifecycleEventObserver { _, event ->
                 when (event) {
                     Lifecycle.Event.ON_RESUME -> {
                         isAppResumed = true
+                        if (currentCanRefreshCloudAccountContext) {
+                            appGraph.refreshAccountContextInBackground(source = "app_foreground")
+                        }
                         appGraph.progressContextRefreshController.refreshIfInvalidated(
                             visibleScreen = currentVisibleAppScreenState
                         )
@@ -542,6 +565,14 @@ private fun shouldHideNavigationSuite(
     return destination == AiDestination &&
         navigationSuiteType == NavigationSuiteType.NavigationBar &&
         isImeVisible
+}
+
+private fun shouldRefreshCloudAccountContext(
+    cloudState: CloudAccountState,
+    accountDeletionState: AccountDeletionState
+): Boolean {
+    return accountDeletionState == AccountDeletionState.Hidden &&
+        (cloudState == CloudAccountState.LINKED || cloudState == CloudAccountState.GUEST)
 }
 
 private fun isProgressContextRefreshBroadcastAction(action: String?): Boolean {

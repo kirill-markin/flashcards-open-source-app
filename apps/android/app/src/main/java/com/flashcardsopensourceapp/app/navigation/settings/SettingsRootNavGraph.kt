@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.SystemClock
 import android.provider.Settings
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
@@ -22,6 +23,7 @@ import com.flashcardsopensourceapp.app.navigation.SettingsDestination
 import com.flashcardsopensourceapp.app.navigation.rememberRouteBackStackEntry
 import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionLottieConfigurationStore
 import com.flashcardsopensourceapp.feature.review.reaction.TestAnimationsRoute
+import com.flashcardsopensourceapp.feature.settings.review.ReviewAnimationsRoute
 import com.flashcardsopensourceapp.feature.settings.SettingsRoute
 import com.flashcardsopensourceapp.feature.settings.TestSettingsRoute
 import com.flashcardsopensourceapp.feature.settings.createSettingsViewModelFactory
@@ -62,6 +64,10 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
         )
         val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
 
+        LaunchedEffect(settingsViewModel) {
+            settingsViewModel.refreshAccountContextAsync()
+        }
+
         SettingsRoute(
             uiState = uiState,
             onOpenAccountStatus = {
@@ -72,6 +78,9 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             },
             onOpenReviewReminders = {
                 navController.navigate(route = SettingsWorkspaceNotificationsDestination.route)
+            },
+            onOpenReviewAnimations = {
+                navController.navigate(route = SettingsReviewAnimationsDestination.route)
             },
             onOpenLanguage = {
                 navController.navigate(route = SettingsLanguageDestination.route)
@@ -120,6 +129,40 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             },
             onOpenTest = {
                 navController.navigate(route = SettingsTestDestination.route)
+            }
+        )
+    }
+
+    composable(route = SettingsReviewAnimationsDestination.route) { backStackEntry ->
+        val context = LocalContext.current
+        val settingsRootBackStackEntry = settingsRootBackStackEntry(
+            navController = navController,
+            currentBackStackEntry = backStackEntry
+        )
+        val settingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.SettingsViewModel>(
+            viewModelStoreOwner = settingsRootBackStackEntry,
+            factory = createSettingsViewModelFactory(
+                workspaceRepository = appGraph.workspaceRepository,
+                cloudAccountRepository = appGraph.cloudAccountRepository,
+                autoSyncEventRepository = appGraph.autoSyncEventRepository,
+                messageController = appGraph.appMessageBus,
+                testModeStore = appGraph.testModeStore,
+                visibleAppScreenRepository = appGraph.visibleAppScreenController,
+                applicationContext = context.applicationContext
+            )
+        )
+        val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
+
+        LaunchedEffect(settingsViewModel) {
+            settingsViewModel.refreshAccountContextAsync()
+        }
+
+        ReviewAnimationsRoute(
+            reviewReactionAnimationsEnabled = uiState.reviewReactionAnimationsEnabled,
+            canManageAccountPreferences = uiState.canManageAccountPreferences,
+            onUpdateReviewReactionAnimationsEnabled = settingsViewModel::updateReviewReactionAnimationsEnabled,
+            onBack = {
+                navController.popBackStack()
             }
         )
     }

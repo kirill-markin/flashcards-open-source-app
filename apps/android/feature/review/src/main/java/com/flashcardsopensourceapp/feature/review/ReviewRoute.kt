@@ -44,6 +44,7 @@ import java.util.Locale
 fun ReviewRoute(
     uiState: ReviewUiState,
     reviewReactionLottieConfigurationStore: ReviewReactionLottieConfigurationStore,
+    reviewReactionAnimationsEnabled: Boolean,
     onSelectFilter: (ReviewFilter) -> Unit,
     onOpenPreview: () -> Unit,
     onOpenCurrentCard: (String) -> Unit,
@@ -98,6 +99,10 @@ fun ReviewRoute(
     }
 
     fun emitReviewReaction(rating: ReviewRating): Unit {
+        if (reviewReactionAnimationsEnabled.not()) {
+            return
+        }
+
         val event: ReviewReactionEvent = makeRandomReadyReviewReactionEvent(
             rating = rating,
             configurationStore = reviewReactionLottieConfigurationStore
@@ -133,6 +138,12 @@ fun ReviewRoute(
 
         snackbarHostState.showSnackbar(message = uiState.errorMessage)
         onDismissErrorMessage()
+    }
+
+    LaunchedEffect(reviewReactionAnimationsEnabled) {
+        if (reviewReactionAnimationsEnabled.not()) {
+            activeReviewReactionEvents = emptyList()
+        }
     }
 
     LaunchedEffect(speechErrorMessage) {

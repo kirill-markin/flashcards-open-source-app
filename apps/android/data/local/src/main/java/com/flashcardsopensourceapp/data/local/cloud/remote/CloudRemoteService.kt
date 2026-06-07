@@ -19,6 +19,7 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.transport.NoopCloudHt
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.createCloudHttpObservationVersions
 import com.flashcardsopensourceapp.data.local.cloud.remote.workspace.CloudAccountWorkspaceRemoteApi
 import com.flashcardsopensourceapp.data.local.model.cloud.AgentApiKeyConnectionsResult
+import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackPromptEventRequest
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackState
@@ -117,8 +118,23 @@ class CloudRemoteService private constructor(
         guestUpgradeApi.deleteGuestSession(apiBaseUrl = apiBaseUrl, guestToken = guestToken)
     }
 
-    override suspend fun fetchCloudAccount(apiBaseUrl: String, bearerToken: String): CloudAccountSnapshot {
-        return accountWorkspaceApi.fetchCloudAccount(apiBaseUrl = apiBaseUrl, bearerToken = bearerToken)
+    override suspend fun fetchCloudAccount(apiBaseUrl: String, authorizationHeader: String): CloudAccountSnapshot {
+        return accountWorkspaceApi.fetchCloudAccount(
+            apiBaseUrl = apiBaseUrl,
+            authorizationHeader = authorizationHeader
+        )
+    }
+
+    override suspend fun updateAccountPreferences(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        preferences: AccountPreferences
+    ): AccountPreferences {
+        return accountWorkspaceApi.updateAccountPreferences(
+            apiBaseUrl = apiBaseUrl,
+            authorizationHeader = authorizationHeader,
+            preferences = preferences
+        )
     }
 
     override suspend fun listLinkedWorkspaces(

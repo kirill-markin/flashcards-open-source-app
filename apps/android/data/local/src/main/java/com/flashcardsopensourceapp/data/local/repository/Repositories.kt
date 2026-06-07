@@ -36,6 +36,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.cloud.AgentApiKeyConnection
 import com.flashcardsopensourceapp.data.local.model.cloud.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.cloud.AccountDeletionState
+import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
 import com.flashcardsopensourceapp.data.local.model.cards.DeckDraft
 import com.flashcardsopensourceapp.data.local.model.cards.DeckSummary
 import com.flashcardsopensourceapp.data.local.model.sync.DeviceDiagnosticsSummary
@@ -145,6 +146,7 @@ interface FeedbackRepository {
 
 interface CloudAccountRepository {
     fun observeCloudSettings(): Flow<CloudSettings>
+    fun observeAccountPreferences(): Flow<AccountPreferences>
     fun observeAccountDeletionState(): Flow<AccountDeletionState>
     fun observeServerConfiguration(): Flow<CloudServiceConfiguration>
     fun observeCloudCredentialRecoveryState(): Flow<CloudCredentialRecoveryState?>
@@ -152,6 +154,8 @@ interface CloudAccountRepository {
     suspend fun beginAccountDeletion()
     suspend fun resumePendingAccountDeletionIfNeeded()
     suspend fun retryPendingAccountDeletion()
+    suspend fun refreshAccountContext()
+    suspend fun updateAccountPreferences(preferences: AccountPreferences): AccountPreferences
     suspend fun sendCode(email: String): CloudSendCodeResult
     suspend fun prepareVerifiedSignIn(credentials: StoredCloudCredentials): CloudWorkspaceLinkContext
     suspend fun verifyCode(challenge: CloudOtpChallenge, code: String): CloudWorkspaceLinkContext

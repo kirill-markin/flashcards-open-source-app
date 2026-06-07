@@ -36,6 +36,7 @@ class CloudIdentityResetCoordinator(
             resetMutex.withLock {
                 cloudPreferencesStore.clearCredentials()
                 cloudPreferencesStore.clearCloudCredentialRecoveryState()
+                cloudPreferencesStore.clearAccountPreferences()
                 aiChatPreferencesStore.clearConsent()
                 aiChatHistoryStore.clearAllState()
                 guestAiSessionStore.clearAllSessions()
@@ -85,6 +86,7 @@ class CloudIdentityResetCoordinator(
                 cloudPreferencesStore.clearAccountDeletionState()
                 cloudPreferencesStore.clearCredentials()
                 cloudPreferencesStore.clearPendingGuestUpgrade()
+                cloudPreferencesStore.clearAccountPreferences()
                 aiChatPreferencesStore.clearConsent()
                 aiChatHistoryStore.clearAllState()
                 guestAiSessionStore.clearAllSessions()
@@ -104,6 +106,7 @@ class CloudIdentityResetCoordinator(
         withContext(Dispatchers.IO) {
             resetMutex.withLock {
                 cloudPreferencesStore.clearCredentials()
+                cloudPreferencesStore.clearAccountPreferences()
                 database.syncStateDao().clearBlockedSyncState()
                 val activeWorkspaceId = ensureLocalWorkspaceShell(
                     database = database,

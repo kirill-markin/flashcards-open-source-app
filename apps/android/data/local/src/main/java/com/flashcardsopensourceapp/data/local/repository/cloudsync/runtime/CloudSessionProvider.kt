@@ -2,11 +2,13 @@ package com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime
 
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
-import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkContext
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.cloud.shouldRefreshCloudIdToken
+import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.CloudIdentityResetCoordinator
 
 internal data class AuthenticatedCloudSession(
@@ -45,6 +47,8 @@ internal class CloudSessionProvider(
                 credentials = refreshedCredentials,
                 configuration = configuration
             )
+            requireFetchedAccountMatchesActiveLinkedIdentity(accountSnapshot = accountSnapshot)
+            preferencesStore.saveAccountPreferences(preferences = accountSnapshot.preferences)
 
             return AuthenticatedCloudSession(
                 configuration = configuration,
@@ -104,7 +108,7 @@ internal class CloudSessionProvider(
     ): CloudAccountSnapshot {
         return remoteService.fetchCloudAccount(
             apiBaseUrl = configuration.apiBaseUrl,
-            bearerToken = credentials.idToken
+            authorizationHeader = "Bearer ${credentials.idToken}"
         )
     }
 
@@ -112,5 +116,24 @@ internal class CloudSessionProvider(
         operationCoordinator.runExclusive {
             resetCoordinator.resetLocalStateForCloudIdentityChange()
         }
+    }
+
+    private suspend fun requireFetchedAccountMatchesActiveLinkedIdentity(accountSnapshot: CloudAccountSnapshot) {
+        val cloudSettings: CloudSettings = preferencesStore.currentCloudSettings()
+        if (cloudSettings.cloudState != CloudAccountState.LINKED) {
+            return
+        }
+
+        val expectedUserId: String = cloudSettings.linkedUserId?.trim()?.ifEmpty { null } ?: return
+        if (expectedUserId == accountSnapshot.userId) {
+            return
+        }
+
+        operationCoordinator.runExclusive {
+            resetCoordinator.resetLocalStateForCloudIdentityChange()
+        }
+        throw IllegalStateException(
+            "Cloud account changed during authenticated session refresh. Local cloud identity was reset; sign in again."
+        )
     }
 }

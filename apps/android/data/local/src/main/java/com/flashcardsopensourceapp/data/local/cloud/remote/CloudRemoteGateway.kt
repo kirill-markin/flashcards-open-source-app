@@ -7,6 +7,7 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemotePushRespon
 import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteReviewHistoryImportResponse
 import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteReviewHistoryPullResponse
 import com.flashcardsopensourceapp.data.local.model.cloud.AgentApiKeyConnectionsResult
+import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackPromptEventRequest
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackState
@@ -54,7 +55,12 @@ interface CloudRemoteGateway {
     suspend fun verifyCode(challenge: CloudOtpChallenge, code: String, authBaseUrl: String): StoredCloudCredentials
     suspend fun refreshIdToken(refreshToken: String, authBaseUrl: String): StoredCloudCredentials
     suspend fun deleteGuestSession(apiBaseUrl: String, guestToken: String)
-    suspend fun fetchCloudAccount(apiBaseUrl: String, bearerToken: String): CloudAccountSnapshot
+    suspend fun fetchCloudAccount(apiBaseUrl: String, authorizationHeader: String): CloudAccountSnapshot
+    suspend fun updateAccountPreferences(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        preferences: AccountPreferences
+    ): AccountPreferences
     suspend fun listLinkedWorkspaces(apiBaseUrl: String, bearerToken: String): List<CloudWorkspaceSummary>
     suspend fun prepareGuestUpgrade(apiBaseUrl: String, bearerToken: String, guestToken: String): CloudGuestUpgradeMode
     suspend fun completeGuestUpgrade(

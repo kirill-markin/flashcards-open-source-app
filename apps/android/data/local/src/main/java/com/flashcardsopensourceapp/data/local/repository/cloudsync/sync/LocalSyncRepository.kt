@@ -231,6 +231,19 @@ class LocalSyncRepository(
                     )
                     throw error
                 }
+                if (error is CloudLinkedAccountMismatchException) {
+                    val message = error.message ?: "Cloud account changed during sync."
+                    syncStatusState.value = SyncStatusSnapshot(
+                        status = SyncStatus.Failed(message),
+                        lastSuccessfulSyncAtMillis = syncStatusState.value.lastSuccessfulSyncAtMillis,
+                        lastErrorMessage = message
+                    )
+                    emitAutoSyncFailure(
+                        autoSyncRequest = autoSyncRequest,
+                        error = error
+                    )
+                    throw error
+                }
                 val workspaceIdForFailure = syncTarget?.workspaceId ?: failureWorkspaceId
                 if (workspaceIdForFailure != null) {
                     syncLocalStore.markSyncFailure(
@@ -369,12 +382,31 @@ class LocalSyncRepository(
         }
         val accountSnapshot = remoteService.fetchCloudAccount(
             apiBaseUrl = configuration.apiBaseUrl,
-            bearerToken = refreshedCredentials.idToken
+            authorizationHeader = "Bearer ${refreshedCredentials.idToken}"
         )
+        requireFetchedAccountMatchesActiveLinkedIdentity(accountSnapshot = accountSnapshot)
+        preferencesStore.saveAccountPreferences(preferences = accountSnapshot.preferences)
         return SyncAuthenticatedCloudSession(
             configuration = configuration,
             credentials = refreshedCredentials,
             accountSnapshot = accountSnapshot
+        )
+    }
+
+    private suspend fun requireFetchedAccountMatchesActiveLinkedIdentity(accountSnapshot: CloudAccountSnapshot) {
+        val cloudSettings: CloudSettings = preferencesStore.currentCloudSettings()
+        if (cloudSettings.cloudState != CloudAccountState.LINKED) {
+            return
+        }
+
+        val expectedUserId: String = cloudSettings.linkedUserId?.trim()?.ifEmpty { null } ?: return
+        if (expectedUserId == accountSnapshot.userId) {
+            return
+        }
+
+        resetCoordinator.resetLocalStateForCloudIdentityChange()
+        throw CloudLinkedAccountMismatchException(
+            "Cloud account changed during sync. Local cloud identity was reset; sign in again."
         )
     }
 
@@ -407,6 +439,10 @@ private data class SyncAuthenticatedCloudSession(
     val credentials: StoredCloudCredentials,
     val accountSnapshot: CloudAccountSnapshot
 )
+
+private class CloudLinkedAccountMismatchException(
+    message: String
+) : IllegalStateException(message)
 
 private data class CloudSyncTarget(
     val workspaceId: String,
