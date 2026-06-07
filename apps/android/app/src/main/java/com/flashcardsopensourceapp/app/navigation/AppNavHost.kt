@@ -15,6 +15,7 @@ import com.flashcardsopensourceapp.app.navigation.progress.registerProgressNavGr
 import com.flashcardsopensourceapp.app.navigation.review.ReviewPreviewDestination
 import com.flashcardsopensourceapp.app.navigation.review.registerReviewNavGraph
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsCurrentWorkspaceDestination
+import com.flashcardsopensourceapp.app.navigation.settings.SettingsWorkspaceDeleteCurrentDestination
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsWorkspaceOverviewDestination
 import com.flashcardsopensourceapp.app.navigation.settings.registerSettingsNavGraph
 import com.flashcardsopensourceapp.app.notifications.AppNotificationTapType
@@ -141,7 +142,8 @@ fun currentVisibleAppScreen(navController: NavHostController): VisibleAppScreen 
         route == CardsDestination.route -> VisibleAppScreen.CARDS
         route == SettingsDestination.route -> VisibleAppScreen.SETTINGS_ROOT
         route == SettingsCurrentWorkspaceDestination.route -> VisibleAppScreen.SETTINGS_CURRENT_WORKSPACE
-        route == SettingsWorkspaceOverviewDestination.route -> VisibleAppScreen.SETTINGS_WORKSPACE_OVERVIEW
+        route == SettingsWorkspaceOverviewDestination.route ||
+            route == SettingsWorkspaceDeleteCurrentDestination.route -> VisibleAppScreen.SETTINGS_WORKSPACE_OVERVIEW
         else -> VisibleAppScreen.OTHER
     }
 }

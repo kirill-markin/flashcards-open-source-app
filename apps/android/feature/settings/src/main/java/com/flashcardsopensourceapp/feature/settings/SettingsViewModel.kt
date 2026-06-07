@@ -144,17 +144,15 @@ class SettingsViewModel(
 
 private data class SettingsVisibleSignature(
     val currentWorkspaceName: String,
-    val workspaceName: String,
-    val cardCount: Int,
-    val deckCount: Int
+    val accountStatusTitle: String,
+    val storageLabel: String
 )
 
 private fun buildSettingsVisibleSignature(uiState: SettingsUiState): SettingsVisibleSignature {
     return SettingsVisibleSignature(
         currentWorkspaceName = uiState.currentWorkspaceName,
-        workspaceName = uiState.workspaceName,
-        cardCount = uiState.cardCount,
-        deckCount = uiState.deckCount
+        accountStatusTitle = uiState.accountStatusTitle,
+        storageLabel = uiState.storageLabel
     )
 }
 
