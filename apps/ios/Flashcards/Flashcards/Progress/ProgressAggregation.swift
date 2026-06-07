@@ -662,10 +662,10 @@ func mergeProgressSeries(
         sourceName: "localFallback",
         rangeDescription: rangeDescription
     )
-    let mergedDailyReviews = zeroFilledDays.map { progressDay in
+    let mergedDailyReviews: [ProgressDay] = zeroFilledDays.map { progressDay in
         let serverOverlayCount = (serverCounts[progressDay.date] ?? 0) + (pendingCounts[progressDay.date] ?? 0)
         let localFallbackCount = localFallbackCounts[progressDay.date] ?? 0
-        ProgressDay(
+        return ProgressDay(
             date: progressDay.date,
             reviewCount: max(serverOverlayCount, localFallbackCount)
         )
