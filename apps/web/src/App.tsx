@@ -523,7 +523,7 @@ export function AppShell(): ReactElement {
                 isBusy={isChoosingWorkspace}
                 isWorkspaceManagementLocked={isWorkspaceLocked}
                 workspaceManagementLockedMessage={workspaceManagementLockedMessage}
-                accountSettingsUrl={accountSettingsRoute}
+                accountSettingsUrl={settingsHubRoute}
                 logoutUrl={buildLogoutUrl()}
                 onSelectWorkspace={chooseWorkspace}
                 onCreateWorkspace={createWorkspace}
