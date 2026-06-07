@@ -121,7 +121,7 @@ extension FlashcardsStore {
         if let serverBase = self.progressReviewScheduleServerBaseCache,
            serverBase.scopeKey == scopeKey {
             try self.publishReviewScheduleSnapshotFromServerBase(
-                serverBaseSchedule: serverBase.serverBase,
+                serverBase: serverBase,
                 scopeKey: scopeKey
             )
             return
@@ -155,67 +155,122 @@ extension FlashcardsStore {
     }
 
     private func publishReviewScheduleSnapshotFromServerBase(
-        serverBaseSchedule: UserReviewSchedule,
+        serverBase: PersistedReviewScheduleServerBase,
         scopeKey: ReviewScheduleScopeKey
     ) throws {
-        guard self.progressReviewScheduleInvalidatedScopeKeys.contains(scopeKey) else {
-            try self.publishReviewScheduleSnapshot(
-                schedule: serverBaseSchedule,
-                scopeKey: scopeKey,
-                sourceState: .serverBase
-            )
-            return
-        }
-
         let database = try requireLocalDatabase(database: self.database)
         let workspaceIds = try self.loadCanonicalProgressWorkspaceIds(database: database)
-        let pendingLocalOverlayState = try self.loadReviewSchedulePendingLocalOverlayState(
+        let renderedServerBase = try self.makeProgressReviewScheduleRenderedServerBase(
+            serverBase: serverBase,
+            database: database,
+            workspaceIds: workspaceIds
+        )
+        try self.publishReviewScheduleSnapshot(
+            schedule: renderedServerBase.renderedSchedule,
+            scopeKey: scopeKey,
+            sourceState: renderedServerBase.sourceState
+        )
+    }
+
+    func makeProgressReviewScheduleRenderedServerBase(
+        serverBase: PersistedReviewScheduleServerBase,
+        database: LocalDatabase,
+        workspaceIds: [String]
+    ) throws -> ProgressReviewScheduleRenderedServerBase {
+        let serverBaseSchedule = serverBase.serverBase
+        let pendingLocalOverlayState = try self.computeReviewSchedulePendingLocalOverlayState(
             database: database,
             workspaceIds: workspaceIds
         )
 
-        guard pendingLocalOverlayState == .present else {
-            try self.publishReviewScheduleSnapshot(
-                schedule: serverBaseSchedule,
-                scopeKey: scopeKey,
+        if pendingLocalOverlayState == .empty && serverBase.requiresRefresh == false {
+            return ProgressReviewScheduleRenderedServerBase(
+                renderedSchedule: serverBaseSchedule,
                 sourceState: .serverBase
             )
-            return
         }
 
-        let localFallbackCoverage = try self.loadReviewScheduleLocalCoverage(
+        let localEntry = try self.ensureProgressReviewScheduleLocalCacheEntry(
             database: database,
             workspaceIds: workspaceIds
         )
-        guard localFallbackCoverage == .userWide else {
-            try self.publishReviewScheduleSnapshot(
-                schedule: serverBaseSchedule,
-                scopeKey: scopeKey,
-                sourceState: .serverBaseWithPendingLocalOverlay
+
+        if pendingLocalOverlayState == .present {
+            return self.makeProgressReviewSchedulePendingOverlayRender(
+                serverBaseSchedule: serverBaseSchedule,
+                localEntry: localEntry
             )
-            return
         }
 
-        let localFallbackSchedule = try self.loadReviewScheduleLocalFallback(
+        return self.makeProgressReviewScheduleDirtyCacheRender(
+            serverBaseSchedule: serverBaseSchedule,
+            localEntry: localEntry
+        )
+    }
+
+    func acceptFreshProgressReviewScheduleServerBase(
+        scopeKey: ReviewScheduleScopeKey,
+        serverBaseSchedule: UserReviewSchedule,
+        storedAt: String,
+        database: LocalDatabase,
+        workspaceIds: [String]
+    ) throws {
+        let pendingLocalOverlayState = try self.computeReviewSchedulePendingLocalOverlayState(
             database: database,
             workspaceIds: workspaceIds
         )
-        let pendingLocalCardTotalDelta = try self.loadReviewSchedulePendingLocalCardTotalDelta(
-            database: database,
-            workspaceIds: workspaceIds
-        )
-        guard localFallbackSchedule.totalCards - pendingLocalCardTotalDelta == serverBaseSchedule.totalCards else {
-            try self.publishReviewScheduleSnapshot(
-                schedule: serverBaseSchedule,
-                scopeKey: scopeKey,
-                sourceState: .serverBaseWithPendingLocalOverlay
-            )
-            return
-        }
-
-        try self.publishReviewScheduleSnapshot(
-            schedule: localFallbackSchedule,
+        let requiresRefresh = pendingLocalOverlayState == .present
+        let persistedServerBase = PersistedReviewScheduleServerBase(
             scopeKey: scopeKey,
+            serverBase: serverBaseSchedule,
+            storedAt: storedAt,
+            requiresRefresh: requiresRefresh
+        )
+        try self.persistReviewScheduleServerBase(serverBase: persistedServerBase)
+        self.progressReviewScheduleServerBaseCache = persistedServerBase
+        if requiresRefresh {
+            self.progressReviewScheduleInvalidatedScopeKeys.insert(scopeKey)
+        } else {
+            self.progressReviewScheduleInvalidatedScopeKeys.remove(scopeKey)
+        }
+    }
+
+    private func makeProgressReviewScheduleDirtyCacheRender(
+        serverBaseSchedule: UserReviewSchedule,
+        localEntry: ProgressReviewScheduleLocalCacheEntry
+    ) -> ProgressReviewScheduleRenderedServerBase {
+        switch localEntry.localCoverage {
+        case .userWide:
+            return ProgressReviewScheduleRenderedServerBase(
+                renderedSchedule: localEntry.reviewSchedule,
+                sourceState: .serverBaseWithPendingLocalOverlay
+            )
+        case .partialOrUnknown:
+            return ProgressReviewScheduleRenderedServerBase(
+                renderedSchedule: serverBaseSchedule,
+                sourceState: .serverBaseWithPendingLocalOverlay
+            )
+        }
+    }
+
+    private func makeProgressReviewSchedulePendingOverlayRender(
+        serverBaseSchedule: UserReviewSchedule,
+        localEntry: ProgressReviewScheduleLocalCacheEntry
+    ) -> ProgressReviewScheduleRenderedServerBase {
+        guard canReplaceServerReviewScheduleForPendingLocalChange(
+            serverBaseSchedule: serverBaseSchedule,
+            localFallbackSchedule: localEntry.reviewSchedule,
+            localFallbackCoverage: localEntry.localCoverage,
+            pendingLocalCardTotalDelta: localEntry.pendingCardTotalDelta
+        ) else {
+            return ProgressReviewScheduleRenderedServerBase(
+                renderedSchedule: serverBaseSchedule,
+                sourceState: .serverBaseWithPendingLocalOverlay
+            )
+        }
+
+        return ProgressReviewScheduleRenderedServerBase(
+            renderedSchedule: localEntry.reviewSchedule,
             sourceState: .serverBaseWithPendingLocalOverlay
         )
     }
@@ -279,27 +334,7 @@ extension FlashcardsStore {
         ).sources
     }
 
-    private func loadReviewSchedulePendingLocalOverlayState(
-        database: LocalDatabase,
-        workspaceIds: [String]
-    ) throws -> ProgressPendingLocalOverlayState {
-        try self.ensureProgressReviewScheduleLocalCacheEntry(
-            database: database,
-            workspaceIds: workspaceIds
-        ).pendingOverlayState
-    }
-
-    private func loadReviewSchedulePendingLocalCardTotalDelta(
-        database: LocalDatabase,
-        workspaceIds: [String]
-    ) throws -> Int {
-        try self.ensureProgressReviewScheduleLocalCacheEntry(
-            database: database,
-            workspaceIds: workspaceIds
-        ).pendingCardTotalDelta
-    }
-
-    private func loadReviewScheduleLocalFallback(
+    func loadReviewScheduleLocalFallback(
         database: LocalDatabase,
         workspaceIds: [String]
     ) throws -> UserReviewSchedule {
@@ -307,16 +342,6 @@ extension FlashcardsStore {
             database: database,
             workspaceIds: workspaceIds
         ).reviewSchedule
-    }
-
-    private func loadReviewScheduleLocalCoverage(
-        database: LocalDatabase,
-        workspaceIds: [String]
-    ) throws -> ReviewScheduleLocalCoverage {
-        try self.ensureProgressReviewScheduleLocalCacheEntry(
-            database: database,
-            workspaceIds: workspaceIds
-        ).localCoverage
     }
 
     private func ensureProgressReviewedAtClientCacheEntry(
@@ -515,7 +540,7 @@ extension FlashcardsStore {
         )
     }
 
-    private func loadCanonicalProgressWorkspaceIds(database: LocalDatabase) throws -> [String] {
+    func loadCanonicalProgressWorkspaceIds(database: LocalDatabase) throws -> [String] {
         let workspaceIds = try database.workspaceSettingsStore.loadCachedWorkspaces().map(\.workspaceId)
         guard workspaceIds.isEmpty == false else {
             throw LocalStoreError.database("Progress requires at least one cached workspace")

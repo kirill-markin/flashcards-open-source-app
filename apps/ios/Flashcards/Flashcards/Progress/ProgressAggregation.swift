@@ -178,6 +178,19 @@ func makeProgressRenderedReviewSchedule(
     }
 }
 
+func canReplaceServerReviewScheduleForPendingLocalChange(
+    serverBaseSchedule: UserReviewSchedule,
+    localFallbackSchedule: UserReviewSchedule,
+    localFallbackCoverage: ReviewScheduleLocalCoverage,
+    pendingLocalCardTotalDelta: Int
+) -> Bool {
+    guard localFallbackCoverage == .userWide else {
+        return false
+    }
+
+    return localFallbackSchedule.totalCards - pendingLocalCardTotalDelta == serverBaseSchedule.totalCards
+}
+
 private func progressSeriesSourceState(
     serverBase: UserProgressSeries,
     renderedSeries: UserProgressSeries

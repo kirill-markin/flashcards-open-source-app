@@ -167,7 +167,7 @@ extension FlashcardsStore {
                 scopeKey: scopeKey,
                 summaryScopeKey: progressSummaryScopeKey(seriesScopeKey: scopeKey)
             )
-            self.markProgressReviewSchedulePendingLocalOverlay(scopeKey: scheduleScopeKey)
+            try self.markProgressReviewSchedulePendingLocalOverlay(scopeKey: scheduleScopeKey)
             try self.publishReviewProgressBadgeState(scopeKey: scopeKey)
             self.publishReviewScheduleSnapshotIsolatingErrors(
                 scopeKey: scheduleScopeKey
@@ -195,7 +195,7 @@ extension FlashcardsStore {
             let scopeKey = try self.prepareProgressScope(now: now)
             let scheduleScopeKey = reviewScheduleScopeKey(seriesScopeKey: scopeKey)
             self.progressReviewScheduleLocalRevision += 1
-            self.markProgressReviewSchedulePendingLocalOverlay(scopeKey: scheduleScopeKey)
+            try self.markProgressReviewSchedulePendingLocalOverlay(scopeKey: scheduleScopeKey)
             guard self.currentVisibleTab == .progress else {
                 return
             }
@@ -236,7 +236,10 @@ extension FlashcardsStore {
             if reviewProgressDataChanged {
                 self.invalidateProgressSummaryAndSeries(scopeKey: scopeKey, summaryScopeKey: summaryScopeKey)
                 if reviewScheduleDataChanged {
-                    self.invalidateProgressReviewSchedule(scopeKey: scheduleScopeKey)
+                    try self.markProgressReviewScheduleChangedAfterSync(
+                        scopeKey: scheduleScopeKey,
+                        syncResult: syncResult
+                    )
                 }
                 if isReviewVisible {
                     try self.publishReviewProgressBadgeState(scopeKey: scopeKey)
@@ -244,7 +247,10 @@ extension FlashcardsStore {
                     try self.publishProgressSnapshot(scopeKey: scopeKey)
                 }
             } else {
-                self.invalidateProgressReviewSchedule(scopeKey: scheduleScopeKey)
+                try self.markProgressReviewScheduleChangedAfterSync(
+                    scopeKey: scheduleScopeKey,
+                    syncResult: syncResult
+                )
             }
 
             if reviewScheduleDataChanged && isReviewVisible == false {
@@ -267,6 +273,20 @@ extension FlashcardsStore {
 
             self.replaceProgressErrorMessage(message: Flashcards.errorMessage(error: error))
         }
+    }
+
+    private func markProgressReviewScheduleChangedAfterSync(
+        scopeKey: ReviewScheduleScopeKey,
+        syncResult: CloudSyncResult
+    ) throws {
+        let didAcknowledgeLocalScheduleChange = syncResult.acknowledgedReviewScheduleImpactingOperationCount > 0
+            || syncResult.cleanedUpReviewScheduleImpactingOperationCount > 0
+        let didPullScheduleChange = syncResult.reviewScheduleImpactingPullChangeCount > 0
+        guard didAcknowledgeLocalScheduleChange || didPullScheduleChange else {
+            return
+        }
+
+        try self.markProgressReviewSchedulePendingLocalOverlay(scopeKey: scopeKey)
     }
 
     func prepareProgressForCurrentVisibleTab(now: Date) {

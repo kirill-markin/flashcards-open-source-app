@@ -196,7 +196,67 @@ final class ProgressSyncCompletionTests: ProgressStoreTestCase {
         )
         let reviewScheduleSnapshot = try XCTUnwrap(context.store.reviewScheduleSnapshot)
         XCTAssertEqual(.serverBase, reviewScheduleSnapshot.sourceState)
+        XCTAssertFalse(reviewScheduleSnapshot.isApproximate)
         XCTAssertEqual(3, reviewScheduleCount(snapshot: reviewScheduleSnapshot, key: .days1To7))
+    }
+
+    @MainActor
+    func testHandleProgressSyncCompletionMarksReviewScheduleDirtyForMixedAckAndPullChanges() async throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T12:00:00.000Z"))
+        let requestRange = try makeTestProgressRequestRange(
+            now: now,
+            timeZone: TimeZone.current,
+            dayCount: 140
+        )
+        let initialServerSeries = try makeTestProgressSeries(
+            requestRange: requestRange,
+            reviewCountsByDate: [:],
+            generatedAt: "2026-04-18T11:59:00.000Z"
+        )
+        let initialServerSummary = try makeTestProgressSummary(
+            timeZone: requestRange.timeZone,
+            reviewDates: [],
+            generatedAt: "2026-04-18T11:59:00.000Z"
+        )
+        let context = try self.makeProgressStoreContext(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            installationId: cloudSettings.installationId,
+            serverSummary: initialServerSummary,
+            serverSeries: initialServerSeries,
+            loadProgressSummaryError: nil,
+            loadProgressSeriesError: nil,
+            cloudState: .guest
+        )
+        defer { context.tearDown() }
+
+        await context.store.refreshProgressIfNeeded(now: now)
+        let scopeKey = try XCTUnwrap(context.store.progressObservedScopeKey)
+        let scheduleScopeKey = reviewScheduleScopeKey(seriesScopeKey: scopeKey)
+        context.store.updateCurrentVisibleTab(tab: .cards)
+
+        await context.store.handleProgressSyncCompletion(
+            now: now,
+            syncResult: CloudSyncResult(
+                appliedPullChangeCount: 1,
+                reviewScheduleImpactingPullChangeCount: 1,
+                changedEntityTypes: [.card],
+                localIdRepairEntityTypes: [],
+                acknowledgedOperationCount: 1,
+                acknowledgedReviewEventOperationCount: 0,
+                acknowledgedReviewScheduleImpactingOperationCount: 1,
+                cleanedUpOperationCount: 0,
+                cleanedUpReviewEventOperationCount: 0,
+                cleanedUpReviewScheduleImpactingOperationCount: 0
+            )
+        )
+
+        XCTAssertTrue(context.store.progressReviewScheduleServerBaseCache?.requiresRefresh ?? false)
+        XCTAssertTrue(context.store.progressReviewScheduleInvalidatedScopeKeys.contains(scheduleScopeKey))
+        XCTAssertTrue(context.store.shouldRefreshProgressReviewSchedule(scopeKey: scheduleScopeKey))
     }
 
     @MainActor
