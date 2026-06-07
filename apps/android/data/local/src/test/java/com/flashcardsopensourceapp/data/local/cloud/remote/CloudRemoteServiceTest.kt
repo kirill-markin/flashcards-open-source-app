@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.data.local.cloud.remote
 import com.flashcardsopensourceapp.data.local.cloud.identity.syncWorkspaceForkRequiredErrorCode
 import com.flashcardsopensourceapp.data.local.cloud.remote.guest.buildGuestUpgradeCompleteRequest
 import com.flashcardsopensourceapp.data.local.cloud.remote.progress.parseCloudProgressReviewScheduleResponse
+import com.flashcardsopensourceapp.data.local.cloud.remote.progress.parseCloudProgressSeriesResponse
 import com.flashcardsopensourceapp.data.local.cloud.remote.progress.parseCloudProgressSummaryResponse
 import com.flashcardsopensourceapp.data.local.cloud.remote.sync.parseRemotePushResponse
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.parseCloudErrorPayload
@@ -87,6 +88,31 @@ class CloudRemoteServiceTest {
         assertEquals(42L, summary.reviewHistoryWatermarks.single().reviewSequenceId)
     }
 
+    @Test
+    fun parseCloudProgressSummaryResponseAcceptsMissingReviewHistoryWatermarks() {
+        val response = JSONObject(
+            """
+            {
+              "timeZone": "Europe/Madrid",
+              "summary": {
+                "currentStreakDays": 8,
+                "hasReviewedToday": true,
+                "lastReviewedOn": "2026-04-18",
+                "activeReviewDays": 21
+              },
+              "generatedAt": "2026-04-18T12:00:00Z"
+            }
+            """.trimIndent()
+        )
+
+        val summary = parseCloudProgressSummaryResponse(
+            response = response,
+            fieldPath = "progressSummary"
+        )
+
+        assertTrue(summary.reviewHistoryWatermarks.isEmpty())
+    }
+
     @Test(expected = CloudContractMismatchException::class)
     fun parseCloudProgressSummaryResponseRequiresNestedSummaryObject() {
         val response = JSONObject(
@@ -109,6 +135,61 @@ class CloudRemoteServiceTest {
             response = response,
             fieldPath = "progressSummary"
         )
+    }
+
+    @Test
+    fun parseCloudProgressSeriesResponseReadsWatermarks() {
+        val response = JSONObject(
+            """
+            {
+              "timeZone": "Europe/Madrid",
+              "from": "2026-04-01",
+              "to": "2026-04-03",
+              "dailyReviews": [
+                { "date": "2026-04-01", "reviewCount": 3 }
+              ],
+              "reviewHistoryWatermarks": [
+                { "workspaceId": "workspace-1", "reviewSequenceId": 42 }
+              ],
+              "generatedAt": "2026-04-18T12:00:00Z"
+            }
+            """.trimIndent()
+        )
+
+        val series = parseCloudProgressSeriesResponse(
+            response = response,
+            fieldPath = "progress"
+        )
+
+        assertEquals("Europe/Madrid", series.timeZone)
+        assertEquals("2026-04-01", series.from)
+        assertEquals("2026-04-03", series.to)
+        assertEquals(3, series.dailyReviews.single().reviewCount)
+        assertEquals(42L, series.reviewHistoryWatermarks.single().reviewSequenceId)
+    }
+
+    @Test
+    fun parseCloudProgressSeriesResponseAcceptsMissingReviewHistoryWatermarks() {
+        val response = JSONObject(
+            """
+            {
+              "timeZone": "Europe/Madrid",
+              "from": "2026-04-01",
+              "to": "2026-04-03",
+              "dailyReviews": [
+                { "date": "2026-04-01", "reviewCount": 3 }
+              ],
+              "generatedAt": "2026-04-18T12:00:00Z"
+            }
+            """.trimIndent()
+        )
+
+        val series = parseCloudProgressSeriesResponse(
+            response = response,
+            fieldPath = "progress"
+        )
+
+        assertTrue(series.reviewHistoryWatermarks.isEmpty())
     }
 
     @Test
@@ -146,6 +227,96 @@ class CloudRemoteServiceTest {
         assertEquals(42L, schedule.reviewHistoryWatermarks.single().reviewSequenceId)
         assertEquals(8, schedule.totalCards)
         assertEquals(ProgressReviewScheduleBucketKey.orderedEntries, schedule.buckets.map { bucket -> bucket.key })
+    }
+
+    @Test
+    fun parseCloudProgressReviewScheduleResponseAcceptsMissingReviewHistoryWatermarks() {
+        val response = JSONObject(
+            """
+            {
+              "timeZone": "Europe/Madrid",
+              "generatedAt": "2026-05-03T12:00:00Z",
+              "totalCards": 8,
+              "buckets": [
+                { "key": "new", "count": 1 },
+                { "key": "today", "count": 1 },
+                { "key": "days1To7", "count": 1 },
+                { "key": "days8To30", "count": 1 },
+                { "key": "days31To90", "count": 1 },
+                { "key": "days91To360", "count": 1 },
+                { "key": "years1To2", "count": 1 },
+                { "key": "later", "count": 1 }
+              ]
+            }
+            """.trimIndent()
+        )
+
+        val schedule = parseCloudProgressReviewScheduleResponse(
+            response = response,
+            fieldPath = "progress.reviewSchedule"
+        )
+
+        assertTrue(schedule.reviewHistoryWatermarks.isEmpty())
+    }
+
+    @Test
+    fun parseCloudProgressSummaryResponseRejectsNegativeReviewHistoryWatermarkSequenceId() {
+        val response = JSONObject(
+            """
+            {
+              "timeZone": "Europe/Madrid",
+              "summary": {
+                "currentStreakDays": 8,
+                "hasReviewedToday": true,
+                "lastReviewedOn": "2026-04-18",
+                "activeReviewDays": 21
+              },
+              "reviewHistoryWatermarks": [
+                { "workspaceId": "workspace-1", "reviewSequenceId": -1 }
+              ],
+              "generatedAt": "2026-04-18T12:00:00Z"
+            }
+            """.trimIndent()
+        )
+
+        val error = assertThrows(CloudContractMismatchException::class.java) {
+            parseCloudProgressSummaryResponse(
+                response = response,
+                fieldPath = "progressSummary"
+            )
+        }
+
+        assertTrue(error.message.orEmpty().contains("progressSummary.reviewHistoryWatermarks[0].reviewSequenceId"))
+    }
+
+    @Test
+    fun parseCloudProgressSummaryResponseRejectsMalformedReviewHistoryWatermarkItem() {
+        val response = JSONObject(
+            """
+            {
+              "timeZone": "Europe/Madrid",
+              "summary": {
+                "currentStreakDays": 8,
+                "hasReviewedToday": true,
+                "lastReviewedOn": "2026-04-18",
+                "activeReviewDays": 21
+              },
+              "reviewHistoryWatermarks": [
+                "not-an-object"
+              ],
+              "generatedAt": "2026-04-18T12:00:00Z"
+            }
+            """.trimIndent()
+        )
+
+        val error = assertThrows(CloudContractMismatchException::class.java) {
+            parseCloudProgressSummaryResponse(
+                response = response,
+                fieldPath = "progressSummary"
+            )
+        }
+
+        assertTrue(error.message.orEmpty().contains("progressSummary.reviewHistoryWatermarks[0]"))
     }
 
     @Test(expected = CloudContractMismatchException::class)

@@ -3,6 +3,91 @@ import XCTest
 @testable import Flashcards
 
 final class ProgressSnapshotValidationTests: XCTestCase {
+    func testProgressSummaryDecodesMissingReviewHistoryWatermarksAsEmpty() throws {
+        let json = """
+        {
+          "timeZone": "Europe/Madrid",
+          "generatedAt": "2026-04-18T09:15:00.000Z",
+          "summary": {
+            "currentStreakDays": 1,
+            "hasReviewedToday": true,
+            "lastReviewedOn": "2026-04-03",
+            "activeReviewDays": 2
+          }
+        }
+        """
+
+        let summary = try JSONDecoder().decode(UserProgressSummary.self, from: Data(json.utf8))
+
+        XCTAssertTrue(summary.reviewHistoryWatermarks.isEmpty)
+    }
+
+    func testProgressSeriesDecodesMissingReviewHistoryWatermarksAsEmpty() throws {
+        let json = """
+        {
+          "timeZone": "Europe/Madrid",
+          "from": "2026-04-01",
+          "to": "2026-04-03",
+          "dailyReviews": [
+            {
+              "date": "2026-04-01",
+              "reviewCount": 3
+            }
+          ],
+          "generatedAt": "2026-04-18T09:15:00.000Z"
+        }
+        """
+
+        let series = try JSONDecoder().decode(UserProgressSeries.self, from: Data(json.utf8))
+
+        XCTAssertTrue(series.reviewHistoryWatermarks.isEmpty)
+    }
+
+    func testReviewScheduleDecodesMissingReviewHistoryWatermarksAsEmpty() throws {
+        let json = """
+        {
+          "timeZone": "Europe/Madrid",
+          "generatedAt": "2026-05-03T12:00:00.000Z",
+          "totalCards": 1,
+          "buckets": [
+            {
+              "key": "new",
+              "count": 1
+            }
+          ]
+        }
+        """
+
+        let schedule = try JSONDecoder().decode(UserReviewSchedule.self, from: Data(json.utf8))
+
+        XCTAssertTrue(schedule.reviewHistoryWatermarks.isEmpty)
+    }
+
+    func testProgressSummaryDecodingRejectsNegativeReviewHistoryWatermarkSequenceId() throws {
+        let json = """
+        {
+          "timeZone": "Europe/Madrid",
+          "generatedAt": "2026-04-18T09:15:00.000Z",
+          "reviewHistoryWatermarks": [
+            {
+              "workspaceId": "workspace-1",
+              "reviewSequenceId": -1
+            }
+          ],
+          "summary": {
+            "currentStreakDays": 1,
+            "hasReviewedToday": true,
+            "lastReviewedOn": "2026-04-03",
+            "activeReviewDays": 2
+          }
+        }
+        """
+
+        XCTAssertThrowsError(
+            try JSONDecoder().decode(UserProgressSummary.self, from: Data(json.utf8))
+        )
+    }
+
     func testProgressSnapshotRejectsInvalidDailyReviewDates() throws {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
