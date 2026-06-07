@@ -110,7 +110,9 @@
 "common.edit" = "編集";
 "common.email" = "メール";
 "common.loading" = "読み込み中...";
+"common.off" = "オフ";
 "common.ok" = "OK";
+"common.on" = "オン";
 "common.open" = "開く";
 "common.openSettings" = "設定を開く";
 "common.privacyPolicy" = "プライバシー ポリシー";
@@ -132,6 +134,7 @@
 "settings.row.currentWorkspace" = "現在のワークスペース";
 "settings.row.reviewReminders" = "復習リマインダー";
 "settings.row.reviewReminders.value" = "このデバイス";
+"settings.row.reviewAnimations" = "復習アニメーション";
 "settings.row.language" = "言語";
 "settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3件の権限";
@@ -163,6 +166,8 @@
 "settings.row.test.itemCount" = "2項目";
 "settings.currentWorkspace.section.rename" = "名前を変更";
 "settings.currentWorkspace.renameLinkedOnly" = "ワークスペース名の変更は、リンク済みのクラウドワークスペースでのみ利用できます。";
+"settings.reviewAnimations.title" = "復習アニメーション";
+"settings.reviewAnimations.toggle" = "カード評価後にアニメーションを表示";
 "settings.language.title" = "言語";
 "settings.language.systemDescription" = "iOS がアプリの言語を管理します。システム言語またはアプリ固有の言語は iOS の設定で変更してください。";
 "settings.language.section.supportedLanguages" = "対応言語";

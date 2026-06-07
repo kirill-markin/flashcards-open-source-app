@@ -39,6 +39,7 @@ extension FlashcardsStore {
         self.userDefaults.removeObject(forKey: aiChatExternalProviderConsentUserDefaultsKey)
         self.clearGuestSignInAfterReviewPromptState()
         self.clearFeedbackPromptState()
+        self.resetAccountPreferencesForCloudIdentityReset()
         self.cachedAIChatStore?.clearLocalHistory()
         clearStoredAIChatHistories(userDefaults: self.userDefaults)
         self.reviewRuntime = ReviewQueueRuntime(
@@ -162,17 +163,23 @@ extension FlashcardsStore {
         )
         let selectedWorkspace = try self.selectedWorkspaceForAuthenticatedSilentRestore(account: account)
 
-        try await self.finishCloudLink(
-            linkedSession: CloudLinkedSession(
-                userId: account.userId,
-                workspaceId: selectedWorkspace.workspaceId,
-                email: account.email,
-                configurationMode: configuration.mode,
-                apiBaseUrl: configuration.apiBaseUrl,
-                authorization: .bearer(credentials.idToken)
-            ),
-            trigger: trigger
-        )
+        do {
+            defer {
+                self.applyCloudAccountPreferences(account: account)
+            }
+
+            try await self.finishCloudLink(
+                linkedSession: CloudLinkedSession(
+                    userId: account.userId,
+                    workspaceId: selectedWorkspace.workspaceId,
+                    email: account.email,
+                    configurationMode: configuration.mode,
+                    apiBaseUrl: configuration.apiBaseUrl,
+                    authorization: .bearer(credentials.idToken)
+                ),
+                trigger: trigger
+            )
+        }
     }
 
     func restoreAuthenticatedCloudSessionAfterReinstall(
@@ -223,6 +230,7 @@ extension FlashcardsStore {
         }
 
         if linkedUserId == authenticatedAccount.userId {
+            self.applyCloudAccountPreferences(account: authenticatedAccount)
             return false
         }
 

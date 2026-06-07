@@ -69,6 +69,14 @@ enum CloudAuthorization: Hashable, Sendable {
     }
 }
 
+struct AccountPreferences: Codable, Hashable, Sendable {
+    let reviewReactionAnimationsEnabled: Bool
+}
+
+func makeDefaultAccountPreferences() -> AccountPreferences {
+    AccountPreferences(reviewReactionAnimationsEnabled: true)
+}
+
 struct CloudLinkedSession: Hashable, Sendable {
     let userId: String
     let workspaceId: String
@@ -142,6 +150,7 @@ struct CloudWorkspaceLinkContext: Hashable, Identifiable, Sendable {
     let apiBaseUrl: String
     let credentials: StoredCloudCredentials
     let workspaces: [CloudWorkspaceSummary]
+    let preferences: AccountPreferences
     let guestUpgradeMode: CloudGuestUpgradeMode?
     let postAuthRecoveryRoute: CloudPostAuthRecoveryRoute
 

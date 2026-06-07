@@ -49,6 +49,7 @@ final class CloudPendingGuestUpgradeTokenLossRecoveryTests: CloudCredentialRecov
                 apiBaseUrl: configuration.apiBaseUrl,
                 credentials: credentials,
                 workspaces: [],
+                preferences: makeDefaultAccountPreferences(),
                 guestUpgradeMode: .mergeRequired,
                 postAuthRecoveryRoute: .none
             ),
@@ -210,6 +211,7 @@ final class CloudPendingGuestUpgradeTokenLossRecoveryTests: CloudCredentialRecov
                 apiBaseUrl: configuration.apiBaseUrl,
                 credentials: credentials,
                 workspaces: [],
+                preferences: makeDefaultAccountPreferences(),
                 guestUpgradeMode: .mergeRequired,
                 postAuthRecoveryRoute: .none
             ),
@@ -341,6 +343,7 @@ final class CloudPendingGuestUpgradeTokenLossRecoveryTests: CloudCredentialRecov
                             isSelected: true
                         )
                     ],
+                    preferences: makeDefaultAccountPreferences(),
                     guestUpgradeMode: .mergeRequired,
                     postAuthRecoveryRoute: .none
                 ),

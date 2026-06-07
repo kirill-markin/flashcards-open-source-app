@@ -61,10 +61,19 @@ extension FlashcardsStore {
                     state: inFlightState,
                     detectedAt: trigger.now
                 )
-                try await self.finalizePendingGuestUpgradeCompletion(
-                    state: completionState,
-                    trigger: trigger
-                )
+                do {
+                    defer {
+                        self.applyCloudAccountPreferences(
+                            preferences: linkContext.preferences,
+                            linkContext: linkContext
+                        )
+                    }
+
+                    try await self.finalizePendingGuestUpgradeCompletion(
+                        state: completionState,
+                        trigger: trigger
+                    )
+                }
                 self.unblockGuestUpgradeLocalOutboxMutationsIfPossible()
                 return completionState.workspace
             } catch {
@@ -356,7 +365,18 @@ extension FlashcardsStore {
             state: pendingState,
             detectedAt: trigger.now
         )
-        try await self.finalizePendingGuestUpgradeCompletion(state: completionState, trigger: trigger)
+        do {
+            defer {
+                self.applyCloudAccountPreferences(
+                    preferences: completionState.common.preferences,
+                    userId: completionState.common.userId,
+                    configurationMode: completionState.common.configurationMode,
+                    apiBaseUrl: completionState.common.apiBaseUrl
+                )
+            }
+
+            try await self.finalizePendingGuestUpgradeCompletion(state: completionState, trigger: trigger)
+        }
         return completionState.workspace
     }
 

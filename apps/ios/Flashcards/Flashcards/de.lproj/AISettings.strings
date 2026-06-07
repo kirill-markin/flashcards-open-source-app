@@ -110,7 +110,9 @@
 "common.edit" = "Bearbeiten";
 "common.email" = "E-Mail";
 "common.loading" = "Wird geladen...";
+"common.off" = "Aus";
 "common.ok" = "OK";
+"common.on" = "Ein";
 "common.open" = "Öffnen";
 "common.openSettings" = "Öffnen Sie Einstellungen";
 "common.privacyPolicy" = "Datenschutzrichtlinie";
@@ -132,6 +134,7 @@
 "settings.row.currentWorkspace" = "Aktueller Arbeitsbereich";
 "settings.row.reviewReminders" = "Wiederholungserinnerungen";
 "settings.row.reviewReminders.value" = "Dieses Gerät";
+"settings.row.reviewAnimations" = "Wiederholungsanimationen";
 "settings.row.language" = "Sprache";
 "settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 Berechtigungen";
@@ -163,6 +166,8 @@
 "settings.row.test.itemCount" = "2 Elemente";
 "settings.currentWorkspace.section.rename" = "Umbenennen";
 "settings.currentWorkspace.renameLinkedOnly" = "Das Umbenennen von Arbeitsbereichen ist nur fur verknupfte Cloud-Arbeitsbereiche verfugbar.";
+"settings.reviewAnimations.title" = "Wiederholungsanimationen";
+"settings.reviewAnimations.toggle" = "Animationen nach dem Bewerten einer Karte anzeigen";
 "settings.language.title" = "Sprache";
 "settings.language.systemDescription" = "iOS steuert die App-Sprache. Ändern Sie die Systemsprache oder die app-spezifische Sprache in den iOS-Einstellungen.";
 "settings.language.section.supportedLanguages" = "Unterstützte Sprachen";

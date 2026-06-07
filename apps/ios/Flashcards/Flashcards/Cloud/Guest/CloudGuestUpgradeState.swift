@@ -1,8 +1,8 @@
 import Foundation
 
 let pendingGuestUpgradeUserDefaultsKey: String = "pending-guest-upgrade"
-private let pendingGuestUpgradeSchemaVersion: Int = 5
-private let supportedPendingGuestUpgradeSchemaVersions: Set<Int> = [pendingGuestUpgradeSchemaVersion, 4, 3, 2]
+private let pendingGuestUpgradeSchemaVersion: Int = 6
+private let supportedPendingGuestUpgradeSchemaVersions: Set<Int> = [pendingGuestUpgradeSchemaVersion, 5, 4, 3, 2]
 
 private enum PendingGuestUpgradePhase: String, Codable, Hashable {
     case inFlight = "in_flight"
@@ -49,6 +49,7 @@ struct PendingGuestUpgradeCommonState: Hashable {
     let configurationMode: CloudServiceConfigurationMode
     let userId: String
     let email: String?
+    let preferences: AccountPreferences
 }
 
 struct PendingGuestUpgradeGuestIdentityState: Hashable {
@@ -83,6 +84,7 @@ enum PendingGuestUpgradeState: Codable, Hashable {
         case configurationMode
         case userId
         case email
+        case preferences
         case guestUserId
         case guestWorkspaceId
         case selection
@@ -116,7 +118,9 @@ enum PendingGuestUpgradeState: Codable, Hashable {
                 forKey: .configurationMode
             ),
             userId: try container.decode(String.self, forKey: .userId),
-            email: try container.decodeIfPresent(String.self, forKey: .email)
+            email: try container.decodeIfPresent(String.self, forKey: .email),
+            preferences: try container.decodeIfPresent(AccountPreferences.self, forKey: .preferences)
+                ?? makeDefaultAccountPreferences()
         )
         // Schema versions 2 and 3 only persisted completed checkpoints and did
         // not include a phase field, so missing phase normalizes to completed.
@@ -173,6 +177,7 @@ enum PendingGuestUpgradeState: Codable, Hashable {
         try container.encode(common.configurationMode, forKey: .configurationMode)
         try container.encode(common.userId, forKey: .userId)
         try container.encodeIfPresent(common.email, forKey: .email)
+        try container.encode(common.preferences, forKey: .preferences)
 
         switch self {
         case .inFlight(let state):
@@ -270,7 +275,8 @@ func pendingGuestUpgradeInFlightState(
                 apiBaseUrl: linkContext.apiBaseUrl,
                 configurationMode: configuration.mode,
                 userId: linkContext.userId,
-                email: linkContext.email
+                email: linkContext.email,
+                preferences: linkContext.preferences
             ),
             guestIdentity: PendingGuestUpgradeGuestIdentityState(
                 userId: guestSession.userId,

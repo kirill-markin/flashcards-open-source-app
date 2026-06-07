@@ -233,6 +233,7 @@ struct FlashcardsApp: App {
                                 surfacesGlobalErrorMessage: false
                             )
                         )
+                        store.triggerCloudAccountContextRefreshIfActive(surfacesGlobalErrorMessage: false)
                         store.reconcileReviewNotifications(trigger: .appActive, now: now)
                         store.reconcileStrictReminders(trigger: .appActive, now: now)
                     } else if nextPhase == .background || nextPhase == .inactive {
@@ -331,6 +332,7 @@ struct FlashcardsApp: App {
                         surfacesGlobalErrorMessage: false
                     )
                 )
+                self.store.triggerCloudAccountContextRefreshIfActive(surfacesGlobalErrorMessage: false)
             }
             self.store.reconcileReviewNotifications(trigger: .appActive, now: now)
             self.store.reconcileStrictReminders(trigger: .appActive, now: now)

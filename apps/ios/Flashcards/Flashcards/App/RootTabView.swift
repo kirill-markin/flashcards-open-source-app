@@ -531,6 +531,8 @@ struct RootTabView: View {
         switch destination {
         case .currentWorkspace:
             CurrentWorkspaceView()
+        case .reviewAnimations:
+            ReviewAnimationsSettingsView()
         case .language:
             LanguageSettingsView()
         case .feedback:

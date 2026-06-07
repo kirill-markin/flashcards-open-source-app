@@ -156,6 +156,7 @@ final class GuestCloudUpgradeDrainTests: XCTestCase {
                 idTokenExpiresAt: "2099-01-01T00:00:00.000Z"
             ),
             workspaces: [],
+            preferences: makeDefaultAccountPreferences(),
             guestUpgradeMode: .mergeRequired,
             postAuthRecoveryRoute: .none
         )
@@ -279,6 +280,7 @@ final class GuestCloudUpgradeDrainTests: XCTestCase {
                 idTokenExpiresAt: "2099-01-01T00:00:00.000Z"
             ),
             workspaces: [],
+            preferences: makeDefaultAccountPreferences(),
             guestUpgradeMode: .mergeRequired,
             postAuthRecoveryRoute: .none
         )

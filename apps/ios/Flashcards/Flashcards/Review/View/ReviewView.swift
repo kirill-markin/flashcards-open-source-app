@@ -145,7 +145,16 @@ struct ReviewView: View {
         .accessibilityIdentifier(UITestIdentifier.reviewScreen)
         .navigationTitle(String(localized: "Review", table: reviewCardsStringsTableName))
         .onAppear {
-            self.prewarmReviewReactionLottieAssets()
+            if store.accountPreferences.reviewReactionAnimationsEnabled {
+                self.prewarmReviewReactionLottieAssets()
+            }
+        }
+        .onChange(of: store.accountPreferences.reviewReactionAnimationsEnabled) { _, isEnabled in
+            if isEnabled {
+                self.prewarmReviewReactionLottieAssets()
+            } else {
+                self.dismissActiveReviewReactions()
+            }
         }
         .onChange(of: currentCard?.cardId) { _, _ in
             isAnswerVisible = false
@@ -676,7 +685,9 @@ struct ReviewView: View {
 
     private func reviewAnswerButton(cardId: String, option: ReviewAnswerOption) -> some View {
         Button {
-            self.emitReviewReaction(rating: option.rating)
+            if store.accountPreferences.reviewReactionAnimationsEnabled {
+                self.emitReviewReaction(rating: option.rating)
+            }
             self.submitReview(cardId: cardId, rating: option.rating)
         } label: {
             VStack(alignment: .center, spacing: 4) {

@@ -110,7 +110,9 @@
 "common.edit" = "تحرير";
 "common.email" = "البريد الإلكتروني";
 "common.loading" = "جاري التحميل...";
+"common.off" = "إيقاف";
 "common.ok" = "موافق";
+"common.on" = "تشغيل";
 "common.open" = "فتح";
 "common.openSettings" = "افتح الإعدادات";
 "common.privacyPolicy" = "سياسة الخصوصية";
@@ -132,6 +134,7 @@
 "settings.row.currentWorkspace" = "مساحة العمل الحالية";
 "settings.row.reviewReminders" = "تذكيرات المراجعة";
 "settings.row.reviewReminders.value" = "هذا الجهاز";
+"settings.row.reviewAnimations" = "رسوم المراجعة المتحركة";
 "settings.row.language" = "اللغة";
 "settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 أذونات";
@@ -163,6 +166,8 @@
 "settings.row.test.itemCount" = "عنصران";
 "settings.currentWorkspace.section.rename" = "إعادة تسمية";
 "settings.currentWorkspace.renameLinkedOnly" = "إعادة تسمية مساحة العمل متاحة فقط لمساحات العمل السحابية المرتبطة.";
+"settings.reviewAnimations.title" = "رسوم المراجعة المتحركة";
+"settings.reviewAnimations.toggle" = "إظهار الرسوم المتحركة بعد تقييم بطاقة";
 "settings.language.title" = "اللغة";
 "settings.language.systemDescription" = "يتحكم iOS في لغة التطبيق. غيّر لغة النظام أو لغة التطبيق المحددة من إعدادات iOS.";
 "settings.language.section.supportedLanguages" = "اللغات المدعومة";

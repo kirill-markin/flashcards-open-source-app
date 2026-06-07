@@ -26,6 +26,7 @@ enum LiveSmokeIdentifier {
     static let settingsAccountStatusRow: String = "settings.accountStatusRow"
     static let settingsCurrentWorkspaceRow: String = "settings.currentWorkspaceRow"
     static let settingsReviewRemindersRow: String = "settings.reviewRemindersRow"
+    static let settingsReviewAnimationsRow: String = "settings.reviewAnimationsRow"
     static let settingsLanguageRow: String = "settings.languageRow"
     static let settingsAccessRow: String = "settings.accessRow"
     static let settingsDecksRow: String = "settings.decksRow"
@@ -42,6 +43,7 @@ enum LiveSmokeIdentifier {
     static let settingsDeleteCurrentWorkspaceRow: String = "settings.deleteCurrentWorkspaceRow"
     static let settingsDeleteAccountRow: String = "settings.deleteAccountRow"
     static let settingsTestRow: String = "settings.testRow"
+    static let reviewAnimationsSettingsScreen: String = "reviewAnimationsSettings.screen"
     static let languageSettingsScreen: String = "languageSettings.screen"
     static let languageSettingsSystemText: String = "languageSettings.systemText"
     static let languageSettingsSupportedLanguagesList: String = "languageSettings.supportedLanguagesList"
@@ -303,6 +305,7 @@ enum LiveSmokeScreen: CaseIterable {
     case cloudSignInPostAuthSync
     case cloudSignInPostAuthFailure
     case currentWorkspace
+    case reviewAnimationsSettings
     case languageSettings
     case workspaceSettings
     case workspaceOverview
@@ -336,6 +339,8 @@ enum LiveSmokeScreen: CaseIterable {
             return LiveSmokeIdentifier.cloudSignInPostAuthFailureScreen
         case .currentWorkspace:
             return LiveSmokeIdentifier.currentWorkspaceScreen
+        case .reviewAnimationsSettings:
+            return LiveSmokeIdentifier.reviewAnimationsSettingsScreen
         case .languageSettings:
             return LiveSmokeIdentifier.languageSettingsScreen
         case .workspaceSettings:
@@ -379,6 +384,8 @@ enum LiveSmokeScreen: CaseIterable {
             return "Cloud Sign In Post-Auth Failure"
         case .currentWorkspace:
             return "Current Workspace"
+        case .reviewAnimationsSettings:
+            return "Review Animations"
         case .languageSettings:
             return "Language"
         case .workspaceSettings:

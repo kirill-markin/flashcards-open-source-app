@@ -601,6 +601,7 @@ final class CloudLinkedCredentialRecoveryTests: CloudCredentialRecoveryTestCase 
                     isSelected: true
                 )
             ],
+            preferences: makeDefaultAccountPreferences(),
             guestUpgradeMode: nil,
             postAuthRecoveryRoute: .linkedCredentialRestore
         )

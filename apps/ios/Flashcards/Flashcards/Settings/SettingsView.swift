@@ -61,6 +61,17 @@ struct SettingsView: View {
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsReviewRemindersRow)
 
+                NavigationLink(value: SettingsNavigationDestination.reviewAnimations) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.row.reviewAnimations", "Review Animations"),
+                        value: store.accountPreferences.reviewReactionAnimationsEnabled
+                            ? aiSettingsLocalized("common.on", "On")
+                            : aiSettingsLocalized("common.off", "Off"),
+                        systemImage: "sparkles"
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsReviewAnimationsRow)
+
                 NavigationLink(value: SettingsNavigationDestination.language) {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.language", "Language"),
@@ -215,6 +226,9 @@ struct SettingsView: View {
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.settingsScreen)
         .navigationTitle(aiSettingsLocalized("settings.title", "Settings"))
+        .onAppear {
+            store.triggerCloudAccountContextRefreshIfActive(surfacesGlobalErrorMessage: false)
+        }
     }
 }
 

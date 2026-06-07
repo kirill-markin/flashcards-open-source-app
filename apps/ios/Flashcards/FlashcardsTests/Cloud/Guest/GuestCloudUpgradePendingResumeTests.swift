@@ -130,6 +130,7 @@ final class GuestCloudUpgradePendingResumeTests: XCTestCase {
                 idTokenExpiresAt: "2099-01-01T00:00:00.000Z"
             ),
             workspaces: [],
+            preferences: makeDefaultAccountPreferences(),
             guestUpgradeMode: .mergeRequired,
             postAuthRecoveryRoute: .none
         )
@@ -302,6 +303,7 @@ final class GuestCloudUpgradePendingResumeTests: XCTestCase {
         try await self.verifyCompletedPendingGuestUpgradeResume(schemaVersion: 3, phase: nil)
         try await self.verifyCompletedPendingGuestUpgradeResume(schemaVersion: 4, phase: "completed")
         try await self.verifyCompletedPendingGuestUpgradeResume(schemaVersion: 5, phase: "completed")
+        try await self.verifyCompletedPendingGuestUpgradeResume(schemaVersion: 6, phase: "completed")
     }
 
     private func verifyCompletedPendingGuestUpgradeResume(
@@ -422,6 +424,16 @@ final class GuestCloudUpgradePendingResumeTests: XCTestCase {
         } else {
             phaseLine = ""
         }
+        let preferencesLine: String
+        if schemaVersion >= 6 {
+            preferencesLine = """
+              "preferences": {
+                "reviewReactionAnimationsEnabled": true
+              },
+            """
+        } else {
+            preferencesLine = ""
+        }
 
         return Data(
             """
@@ -431,7 +443,7 @@ final class GuestCloudUpgradePendingResumeTests: XCTestCase {
               "configurationMode": "custom",
               "userId": "linked-user-\(schemaVersion)",
               "email": "user-\(schemaVersion)@example.com",
-              "workspace": {
+            \(preferencesLine)  "workspace": {
                 "workspaceId": "workspace-linked-\(schemaVersion)",
                 "name": "Personal",
                 "createdAt": "2026-04-01T00:00:00.000Z",
@@ -450,12 +462,15 @@ final class GuestCloudUpgradePendingResumeTests: XCTestCase {
         Data(
             """
             {
-              "schemaVersion": 5,
+              "schemaVersion": 6,
               "phase": "in_flight",
               "apiBaseUrl": "\(apiBaseUrl)",
               "configurationMode": "custom",
               "userId": "linked-user",
               "email": "user@example.com",
+              "preferences": {
+                "reviewReactionAnimationsEnabled": true
+              },
               "guestUserId": "\(guestUserId)",
               "guestWorkspaceId": "\(guestWorkspaceId)",
               "selection": {

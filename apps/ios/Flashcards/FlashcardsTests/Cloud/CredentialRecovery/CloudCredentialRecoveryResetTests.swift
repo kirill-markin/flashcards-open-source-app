@@ -59,6 +59,7 @@ final class CloudCredentialRecoveryResetTests: CloudCredentialRecoveryTestCase {
                 apiBaseUrl: configuration.apiBaseUrl,
                 credentials: credentials,
                 workspaces: [],
+                preferences: makeDefaultAccountPreferences(),
                 guestUpgradeMode: .mergeRequired,
                 postAuthRecoveryRoute: .none
             ),
@@ -184,6 +185,7 @@ final class CloudCredentialRecoveryResetTests: CloudCredentialRecoveryTestCase {
                 apiBaseUrl: configuration.apiBaseUrl,
                 credentials: credentials,
                 workspaces: [],
+                preferences: makeDefaultAccountPreferences(),
                 guestUpgradeMode: .mergeRequired,
                 postAuthRecoveryRoute: .none
             ),
