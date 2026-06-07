@@ -38,6 +38,13 @@ struct ProgressRenderedReviewSchedule: Hashable, Sendable {
     let sourceState: ProgressSourceState
 }
 
+struct ProgressRenderedSeriesSummaryContext: Hashable, Sendable {
+    let lowerBoundSummary: ProgressSummary
+    let activeDates: Set<String>
+    let activeDatesMissingFromServerBase: Set<String>
+    let serverBaseReviewHistoryWatermarks: [ProgressReviewHistoryWatermark]?
+}
+
 func progressSummaryScopeKey(seriesScopeKey: ProgressScopeKey) -> ProgressSummaryScopeKey {
     ProgressSummaryScopeKey(
         cloudState: seriesScopeKey.cloudState,
@@ -62,26 +69,45 @@ func makeProgressRenderedSummary(
     serverBase: PersistedProgressSummaryServerBase?,
     scopeKey: ProgressSummaryScopeKey,
     localFallbackSummary: ProgressSummary,
+    localFallbackActiveDates: Set<String>,
+    renderedSeriesContext: ProgressRenderedSeriesSummaryContext?,
     pendingLocalOverlayState: ProgressPendingLocalOverlayState
-) -> ProgressRenderedSummary {
-    guard let serverBaseSummary = serverBase?.serverBase.summary,
-          serverBase?.scopeKey == scopeKey else {
+) throws -> ProgressRenderedSummary {
+    guard let persistedServerBase = serverBase,
+          persistedServerBase.scopeKey == scopeKey else {
         return ProgressRenderedSummary(
             summary: localFallbackSummary,
             sourceState: .localOnly
         )
     }
 
+    let serverBaseSummary = persistedServerBase.serverBase.summary
+    let renderedSummary = try mergeProgressSummary(
+        serverBase: serverBaseSummary,
+        serverBaseReviewHistoryWatermarks: persistedServerBase.serverBase.reviewHistoryWatermarks,
+        localFallback: localFallbackSummary,
+        localFallbackActiveDates: localFallbackActiveDates,
+        renderedSeriesContext: renderedSeriesContext,
+        referenceLocalDate: scopeKey.referenceLocalDate
+    )
+
     switch pendingLocalOverlayState {
     case .present:
         return ProgressRenderedSummary(
-            summary: localFallbackSummary,
+            summary: renderedSummary,
             sourceState: .serverBaseWithPendingLocalOverlay
         )
     case .empty:
+        guard renderedSummary != serverBaseSummary else {
+            return ProgressRenderedSummary(
+                summary: serverBaseSummary,
+                sourceState: .serverBase
+            )
+        }
+
         return ProgressRenderedSummary(
-            summary: serverBaseSummary,
-            sourceState: .serverBase
+            summary: renderedSummary,
+            sourceState: .serverBaseWithPendingLocalOverlay
         )
     }
 }
@@ -90,8 +116,7 @@ func makeProgressRenderedSeries(
     serverBase: PersistedProgressSeriesServerBase?,
     scopeKey: ProgressScopeKey,
     localFallbackSeries: UserProgressSeries,
-    pendingLocalOverlaySeries: UserProgressSeries,
-    pendingLocalOverlayState: ProgressPendingLocalOverlayState
+    pendingLocalOverlaySeries: UserProgressSeries
 ) throws -> ProgressRenderedSeries {
     guard let serverBaseSeries = serverBase?.serverBase,
           serverBase?.scopeKey == scopeKey else {
@@ -101,12 +126,18 @@ func makeProgressRenderedSeries(
         )
     }
 
+    let renderedSeries = try mergeProgressSeries(
+        serverBase: serverBaseSeries,
+        pendingLocalOverlay: pendingLocalOverlaySeries,
+        localFallback: localFallbackSeries
+    )
+
     return ProgressRenderedSeries(
-        series: try mergeProgressSeries(
+        series: renderedSeries,
+        sourceState: progressSeriesSourceState(
             serverBase: serverBaseSeries,
-            pendingLocalOverlay: pendingLocalOverlaySeries
-        ),
-        sourceState: progressSeriesSourceState(pendingLocalOverlayState: pendingLocalOverlayState)
+            renderedSeries: renderedSeries
+        )
     )
 }
 
@@ -148,14 +179,349 @@ func makeProgressRenderedReviewSchedule(
 }
 
 private func progressSeriesSourceState(
-    pendingLocalOverlayState: ProgressPendingLocalOverlayState
+    serverBase: UserProgressSeries,
+    renderedSeries: UserProgressSeries
 ) -> ProgressSourceState {
-    switch pendingLocalOverlayState {
-    case .empty:
+    if serverBase.dailyReviews == renderedSeries.dailyReviews {
         return .serverBase
-    case .present:
-        return .serverBaseWithPendingLocalOverlay
     }
+
+    return .serverBaseWithPendingLocalOverlay
+}
+
+private func mergeProgressSummary(
+    serverBase: ProgressSummary,
+    serverBaseReviewHistoryWatermarks: [ProgressReviewHistoryWatermark],
+    localFallback: ProgressSummary,
+    localFallbackActiveDates: Set<String>,
+    renderedSeriesContext: ProgressRenderedSeriesSummaryContext?,
+    referenceLocalDate: String
+) throws -> ProgressSummary {
+    let renderedSeriesLowerBound = renderedSeriesContext?.lowerBoundSummary
+    let serverAndSeriesShareReviewHistoryBase = progressServerAndSeriesShareReviewHistoryBase(
+        serverBaseReviewHistoryWatermarks: serverBaseReviewHistoryWatermarks,
+        renderedSeriesContext: renderedSeriesContext
+    )
+    let serverActiveReviewDaysWithRenderedDelta = serverBase.activeReviewDays
+        + progressActiveReviewDayDelta(
+            activeReviewDayDeltaCandidates: progressActiveReviewDayDeltaCandidates(
+                renderedSeriesContext: renderedSeriesContext,
+                localFallbackActiveDates: localFallbackActiveDates,
+                serverBase: serverBase,
+                serverAndSeriesShareReviewHistoryBase: serverAndSeriesShareReviewHistoryBase
+            ),
+            serverBase: serverBase,
+            serverAndSeriesShareReviewHistoryBase: serverAndSeriesShareReviewHistoryBase,
+            referenceLocalDate: referenceLocalDate
+        )
+    let serverCurrentStreakDaysWithRenderedDelta = progressCurrentStreakDaysWithRenderedDelta(
+        serverBase: serverBase,
+        renderedSeriesActiveDates: renderedSeriesContext?.activeDates,
+        referenceLocalDate: referenceLocalDate
+    )
+
+    return ProgressSummary(
+        currentStreakDays: max(
+            serverCurrentStreakDaysWithRenderedDelta,
+            localFallback.currentStreakDays,
+            renderedSeriesLowerBound?.currentStreakDays ?? 0
+        ),
+        hasReviewedToday: serverBase.hasReviewedToday
+            || localFallback.hasReviewedToday
+            || (renderedSeriesLowerBound?.hasReviewedToday ?? false),
+        lastReviewedOn: maxProgressLocalDate(
+            left: maxProgressLocalDate(
+                left: serverBase.lastReviewedOn,
+                right: localFallback.lastReviewedOn
+            ),
+            right: renderedSeriesLowerBound?.lastReviewedOn
+        ),
+        activeReviewDays: max(
+            serverActiveReviewDaysWithRenderedDelta,
+            localFallback.activeReviewDays,
+            renderedSeriesLowerBound?.activeReviewDays ?? 0
+        )
+    )
+}
+
+private func progressServerAndSeriesShareReviewHistoryBase(
+    serverBaseReviewHistoryWatermarks: [ProgressReviewHistoryWatermark],
+    renderedSeriesContext: ProgressRenderedSeriesSummaryContext?
+) -> Bool {
+    guard let seriesBaseReviewHistoryWatermarks = renderedSeriesContext?.serverBaseReviewHistoryWatermarks else {
+        return false
+    }
+
+    return seriesBaseReviewHistoryWatermarks == serverBaseReviewHistoryWatermarks
+}
+
+private func progressActiveReviewDayDeltaCandidates(
+    renderedSeriesContext: ProgressRenderedSeriesSummaryContext?,
+    localFallbackActiveDates: Set<String>,
+    serverBase: ProgressSummary,
+    serverAndSeriesShareReviewHistoryBase: Bool
+) -> Set<String> {
+    let renderedSeriesCandidates: Set<String>
+    if let renderedSeriesContext {
+        if serverAndSeriesShareReviewHistoryBase {
+            renderedSeriesCandidates = renderedSeriesContext.activeDatesMissingFromServerBase
+        } else {
+            renderedSeriesCandidates = renderedSeriesContext.activeDates
+        }
+    } else {
+        renderedSeriesCandidates = []
+    }
+
+    return renderedSeriesCandidates.union(
+        progressLocalFallbackActiveReviewDayDeltaCandidates(
+            localFallbackActiveDates: localFallbackActiveDates,
+            serverBase: serverBase
+        )
+    )
+}
+
+private func progressLocalFallbackActiveReviewDayDeltaCandidates(
+    localFallbackActiveDates: Set<String>,
+    serverBase: ProgressSummary
+) -> Set<String> {
+    guard let lastReviewedOn = serverBase.lastReviewedOn else {
+        return localFallbackActiveDates
+    }
+
+    return Set(localFallbackActiveDates.filter { localDate in
+        localDate > lastReviewedOn
+    })
+}
+
+private func progressActiveReviewDayDelta(
+    activeReviewDayDeltaCandidates: Set<String>,
+    serverBase: ProgressSummary,
+    serverAndSeriesShareReviewHistoryBase: Bool,
+    referenceLocalDate: String
+) -> Int {
+    activeReviewDayDeltaCandidates.filter { localDate in
+        progressShouldApplyActiveReviewDayDelta(
+            localDate: localDate,
+            serverBase: serverBase,
+            serverAndSeriesShareReviewHistoryBase: serverAndSeriesShareReviewHistoryBase,
+            referenceLocalDate: referenceLocalDate
+        )
+    }.count
+}
+
+private func progressShouldApplyActiveReviewDayDelta(
+    localDate: String,
+    serverBase: ProgressSummary,
+    serverAndSeriesShareReviewHistoryBase: Bool,
+    referenceLocalDate: String
+) -> Bool {
+    if localDate == referenceLocalDate,
+       serverBase.hasReviewedToday {
+        return false
+    }
+
+    if serverAndSeriesShareReviewHistoryBase {
+        return true
+    }
+
+    guard let lastReviewedOn = serverBase.lastReviewedOn else {
+        return true
+    }
+
+    return localDate > lastReviewedOn
+}
+
+private func progressCurrentStreakDaysWithRenderedDelta(
+    serverBase: ProgressSummary,
+    renderedSeriesActiveDates: Set<String>?,
+    referenceLocalDate: String
+) -> Int {
+    guard serverBase.hasReviewedToday == false else {
+        return serverBase.currentStreakDays
+    }
+
+    guard serverBase.currentStreakDays > 0 else {
+        return serverBase.currentStreakDays
+    }
+
+    guard renderedSeriesActiveDates?.contains(referenceLocalDate) == true else {
+        return serverBase.currentStreakDays
+    }
+
+    return serverBase.currentStreakDays + 1
+}
+
+private func validateProgressSeriesMergeInputs(
+    serverBase: UserProgressSeries,
+    pendingLocalOverlay: UserProgressSeries,
+    localFallback: UserProgressSeries
+) throws {
+    guard
+        serverBase.timeZone == pendingLocalOverlay.timeZone,
+        serverBase.from == pendingLocalOverlay.from,
+        serverBase.to == pendingLocalOverlay.to,
+        serverBase.timeZone == localFallback.timeZone,
+        serverBase.from == localFallback.from,
+        serverBase.to == localFallback.to
+    else {
+        throw LocalStoreError.validation(
+            """
+            Progress merge inputs must share the same time range. \
+            serverBase=\(serverBase.timeZone) \(serverBase.from)...\(serverBase.to), \
+            pendingLocalOverlay=\(pendingLocalOverlay.timeZone) \(pendingLocalOverlay.from)...\(pendingLocalOverlay.to), \
+            localFallback=\(localFallback.timeZone) \(localFallback.from)...\(localFallback.to).
+            """
+        )
+    }
+}
+
+private func validateProgressSeriesPairInputs(
+    serverBase: UserProgressSeries,
+    renderedSeries: UserProgressSeries
+) throws {
+    guard
+        serverBase.timeZone == renderedSeries.timeZone,
+        serverBase.from == renderedSeries.from,
+        serverBase.to == renderedSeries.to
+    else {
+        throw LocalStoreError.validation(
+            """
+            Progress series comparison inputs must share the same time range. \
+            serverBase=\(serverBase.timeZone) \(serverBase.from)...\(serverBase.to), \
+            renderedSeries=\(renderedSeries.timeZone) \(renderedSeries.from)...\(renderedSeries.to).
+            """
+        )
+    }
+}
+
+private func progressCountsByLocalDate(
+    series: UserProgressSeries,
+    sourceName: String
+) throws -> [String: Int] {
+    var countsByLocalDate: [String: Int] = [:]
+    for progressDay in series.dailyReviews {
+        guard progressDay.reviewCount >= 0 else {
+            throw LocalStoreError.validation(
+                """
+                Progress merge \(sourceName) contained a negative review count. \
+                localDate=\(progressDay.date), reviewCount=\(progressDay.reviewCount).
+                """
+            )
+        }
+
+        guard countsByLocalDate.updateValue(progressDay.reviewCount, forKey: progressDay.date) == nil else {
+            throw LocalStoreError.validation(
+                "Progress merge \(sourceName) contained a duplicate local date. localDate=\(progressDay.date)."
+            )
+        }
+    }
+
+    return countsByLocalDate
+}
+
+private func validateProgressCountsInRange(
+    countsByLocalDate: [String: Int],
+    rangeLocalDates: Set<String>,
+    sourceName: String,
+    rangeDescription: String
+) throws {
+    for localDate in countsByLocalDate.keys where rangeLocalDates.contains(localDate) == false {
+        throw LocalStoreError.validation(
+            """
+            Progress merge \(sourceName) contained a local date outside the merge range. \
+            localDate=\(localDate), range=\(rangeDescription).
+            """
+        )
+    }
+}
+
+func makeProgressRenderedSeriesSummaryContext(
+    serverBase: PersistedProgressSeriesServerBase?,
+    scopeKey: ProgressScopeKey,
+    series: UserProgressSeries
+) throws -> ProgressRenderedSeriesSummaryContext {
+    let activeDates = try progressActiveDatesFromSeries(series: series)
+    let activeDatesMissingFromServerBase: Set<String>
+    let serverBaseReviewHistoryWatermarks: [ProgressReviewHistoryWatermark]?
+    if let serverBaseSeries = serverBase?.serverBase,
+       serverBase?.scopeKey == scopeKey {
+        activeDatesMissingFromServerBase = try progressActiveDatesMissingFromServerBase(
+            serverBase: serverBaseSeries,
+            renderedSeries: series
+        )
+        serverBaseReviewHistoryWatermarks = serverBaseSeries.reviewHistoryWatermarks
+    } else {
+        activeDatesMissingFromServerBase = []
+        serverBaseReviewHistoryWatermarks = nil
+    }
+
+    return ProgressRenderedSeriesSummaryContext(
+        lowerBoundSummary: try makeProgressSummaryLowerBoundFromSeries(series: series, activeDates: activeDates),
+        activeDates: activeDates,
+        activeDatesMissingFromServerBase: activeDatesMissingFromServerBase,
+        serverBaseReviewHistoryWatermarks: serverBaseReviewHistoryWatermarks
+    )
+}
+
+private func makeProgressSummaryLowerBoundFromSeries(
+    series: UserProgressSeries,
+    activeDates: Set<String>
+) throws -> ProgressSummary {
+    try makeProgressSummary(
+        reviewDates: activeDates,
+        timeZone: series.timeZone,
+        generatedAt: progressReferenceDate(
+            localDate: series.to,
+            timeZoneIdentifier: series.timeZone
+        )
+    )
+}
+
+private func progressActiveDatesFromSeries(series: UserProgressSeries) throws -> Set<String> {
+    let countsByLocalDate = try progressCountsByLocalDate(series: series, sourceName: "renderedSeries")
+    return Set(countsByLocalDate.compactMap { localDate, reviewCount in
+        reviewCount > 0 ? localDate : nil
+    })
+}
+
+private func progressActiveDatesMissingFromServerBase(
+    serverBase: UserProgressSeries,
+    renderedSeries: UserProgressSeries
+) throws -> Set<String> {
+    try validateProgressSeriesPairInputs(
+        serverBase: serverBase,
+        renderedSeries: renderedSeries
+    )
+
+    let serverCounts = try progressCountsByLocalDate(series: serverBase, sourceName: "serverBase")
+    let renderedCounts = try progressCountsByLocalDate(series: renderedSeries, sourceName: "renderedSeries")
+    let zeroFilledDays = try makeZeroFilledProgressDays(
+        requestRange: ProgressRequestRange(
+            timeZone: serverBase.timeZone,
+            from: serverBase.from,
+            to: serverBase.to
+        )
+    )
+    let rangeLocalDates = Set(zeroFilledDays.map(\.date))
+    let rangeDescription = "\(serverBase.from)...\(serverBase.to)"
+    try validateProgressCountsInRange(
+        countsByLocalDate: serverCounts,
+        rangeLocalDates: rangeLocalDates,
+        sourceName: "serverBase",
+        rangeDescription: rangeDescription
+    )
+    try validateProgressCountsInRange(
+        countsByLocalDate: renderedCounts,
+        rangeLocalDates: rangeLocalDates,
+        sourceName: "renderedSeries",
+        rangeDescription: rangeDescription
+    )
+
+    return Set(zeroFilledDays.compactMap { progressDay in
+        let serverCount = serverCounts[progressDay.date] ?? 0
+        let renderedCount = renderedCounts[progressDay.date] ?? 0
+        return renderedCount > 0 && serverCount == 0 ? progressDay.date : nil
+    })
 }
 
 func makeProgressSeriesFromReviewedAtClients(
@@ -198,23 +564,31 @@ func makeProgressSeriesFromReviewedAtClients(
     )
 }
 
-func makeProgressSummaryFromReviewedAtClients(
+func progressActiveDatesFromReviewedAtClients(
     reviewedAtClients: [String],
-    timeZone: String,
-    referenceLocalDate: String
-) throws -> ProgressSummary {
+    timeZone: String
+) throws -> Set<String> {
     let resolvedTimeZone = try progressTimeZone(identifier: timeZone)
     let calendar = makeProgressStoreCalendar(timeZone: resolvedTimeZone)
-    let reviewDates = try Set(reviewedAtClients.map { reviewedAtClient in
+    return try Set(reviewedAtClients.map { reviewedAtClient in
         guard let reviewedAtDate = parseIsoTimestamp(value: reviewedAtClient) else {
             throw LocalStoreError.validation("Progress reviewedAtClient timestamp is invalid: \(reviewedAtClient)")
         }
 
         return progressLocalDateStringForStore(date: reviewedAtDate, calendar: calendar)
     })
+}
 
+func makeProgressSummaryFromReviewedAtClients(
+    reviewedAtClients: [String],
+    timeZone: String,
+    referenceLocalDate: String
+) throws -> ProgressSummary {
     return try makeProgressSummary(
-        reviewDates: reviewDates,
+        reviewDates: progressActiveDatesFromReviewedAtClients(
+            reviewedAtClients: reviewedAtClients,
+            timeZone: timeZone
+        ),
         timeZone: timeZone,
         generatedAt: progressReferenceDate(
             localDate: referenceLocalDate,
@@ -225,23 +599,51 @@ func makeProgressSummaryFromReviewedAtClients(
 
 func mergeProgressSeries(
     serverBase: UserProgressSeries,
-    pendingLocalOverlay: UserProgressSeries
+    pendingLocalOverlay: UserProgressSeries,
+    localFallback: UserProgressSeries
 ) throws -> UserProgressSeries {
-    guard
-        serverBase.timeZone == pendingLocalOverlay.timeZone,
-        serverBase.from == pendingLocalOverlay.from,
-        serverBase.to == pendingLocalOverlay.to
-    else {
-        throw LocalStoreError.validation("Progress merge inputs must share the same time range")
-    }
+    try validateProgressSeriesMergeInputs(
+        serverBase: serverBase,
+        pendingLocalOverlay: pendingLocalOverlay,
+        localFallback: localFallback
+    )
 
-    let overlayCounts = Dictionary(uniqueKeysWithValues: pendingLocalOverlay.dailyReviews.map { progressDay in
-        (progressDay.date, progressDay.reviewCount)
-    })
-    let mergedDailyReviews = serverBase.dailyReviews.map { progressDay in
+    let serverCounts = try progressCountsByLocalDate(series: serverBase, sourceName: "serverBase")
+    let pendingCounts = try progressCountsByLocalDate(series: pendingLocalOverlay, sourceName: "pendingLocalOverlay")
+    let localFallbackCounts = try progressCountsByLocalDate(series: localFallback, sourceName: "localFallback")
+    let zeroFilledDays = try makeZeroFilledProgressDays(
+        requestRange: ProgressRequestRange(
+            timeZone: serverBase.timeZone,
+            from: serverBase.from,
+            to: serverBase.to
+        )
+    )
+    let rangeLocalDates = Set(zeroFilledDays.map(\.date))
+    let rangeDescription = "\(serverBase.from)...\(serverBase.to)"
+    try validateProgressCountsInRange(
+        countsByLocalDate: serverCounts,
+        rangeLocalDates: rangeLocalDates,
+        sourceName: "serverBase",
+        rangeDescription: rangeDescription
+    )
+    try validateProgressCountsInRange(
+        countsByLocalDate: pendingCounts,
+        rangeLocalDates: rangeLocalDates,
+        sourceName: "pendingLocalOverlay",
+        rangeDescription: rangeDescription
+    )
+    try validateProgressCountsInRange(
+        countsByLocalDate: localFallbackCounts,
+        rangeLocalDates: rangeLocalDates,
+        sourceName: "localFallback",
+        rangeDescription: rangeDescription
+    )
+    let mergedDailyReviews = zeroFilledDays.map { progressDay in
+        let serverOverlayCount = (serverCounts[progressDay.date] ?? 0) + (pendingCounts[progressDay.date] ?? 0)
+        let localFallbackCount = localFallbackCounts[progressDay.date] ?? 0
         ProgressDay(
             date: progressDay.date,
-            reviewCount: progressDay.reviewCount + (overlayCounts[progressDay.date] ?? 0)
+            reviewCount: max(serverOverlayCount, localFallbackCount)
         )
     }
 

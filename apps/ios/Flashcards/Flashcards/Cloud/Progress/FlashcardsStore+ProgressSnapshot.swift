@@ -47,12 +47,42 @@ extension FlashcardsStore {
     func publishProgressSnapshot(scopeKey: ProgressScopeKey) throws {
         let timeZone = try progressTimeZone(identifier: scopeKey.timeZone)
         let calendar = makeProgressStoreCalendar(timeZone: timeZone)
-        let summaryScopeKey = progressSummaryScopeKey(seriesScopeKey: scopeKey)
         let reviewedAtClientSources = try self.loadProgressReviewedAtClientSources()
-        let localFallbackSummary = try makeProgressSummaryFromReviewedAtClients(
+        let renderedProgress = try self.makeProgressRenderedSummaryAndSeries(
+            scopeKey: scopeKey,
+            reviewedAtClientSources: reviewedAtClientSources
+        )
+
+        let snapshot = try makeProgressSnapshot(
+            summary: renderedProgress.renderedSummary.summary,
+            series: renderedProgress.renderedSeries.series,
+            scopeKey: scopeKey,
+            summarySourceState: renderedProgress.renderedSummary.sourceState,
+            seriesSourceState: renderedProgress.renderedSeries.sourceState,
+            calendar: calendar
+        )
+        self.applyProgressSnapshot(snapshot: snapshot)
+    }
+
+    private func makeProgressRenderedSummaryAndSeries(
+        scopeKey: ProgressScopeKey,
+        reviewedAtClientSources: ProgressReviewedAtClientSources
+    ) throws -> (
+        renderedSummary: ProgressRenderedSummary,
+        renderedSeries: ProgressRenderedSeries
+    ) {
+        let summaryScopeKey = progressSummaryScopeKey(seriesScopeKey: scopeKey)
+        let localFallbackActiveDates = try progressActiveDatesFromReviewedAtClients(
             reviewedAtClients: reviewedAtClientSources.canonicalReviewedAtClients,
+            timeZone: summaryScopeKey.timeZone
+        )
+        let localFallbackSummary = try makeProgressSummary(
+            reviewDates: localFallbackActiveDates,
             timeZone: summaryScopeKey.timeZone,
-            referenceLocalDate: scopeKey.to
+            generatedAt: progressReferenceDate(
+                localDate: scopeKey.to,
+                timeZoneIdentifier: summaryScopeKey.timeZone
+            )
         )
         let localFallbackSeries = try makeProgressSeriesFromReviewedAtClients(
             reviewedAtClients: reviewedAtClientSources.canonicalReviewedAtClients,
@@ -62,29 +92,29 @@ extension FlashcardsStore {
             reviewedAtClients: reviewedAtClientSources.pendingReviewedAtClients,
             requestRange: progressRequestRange(scopeKey: scopeKey)
         )
-        let renderedSummary = makeProgressRenderedSummary(
-            serverBase: self.progressSummaryServerBaseCache,
-            scopeKey: summaryScopeKey,
-            localFallbackSummary: localFallbackSummary,
-            pendingLocalOverlayState: reviewedAtClientSources.pendingLocalOverlayState
-        )
         let renderedSeries = try makeProgressRenderedSeries(
             serverBase: self.progressSeriesServerBaseCache,
             scopeKey: scopeKey,
             localFallbackSeries: localFallbackSeries,
-            pendingLocalOverlaySeries: pendingLocalOverlaySeries,
+            pendingLocalOverlaySeries: pendingLocalOverlaySeries
+        )
+        let renderedSummary = try makeProgressRenderedSummary(
+            serverBase: self.progressSummaryServerBaseCache,
+            scopeKey: summaryScopeKey,
+            localFallbackSummary: localFallbackSummary,
+            localFallbackActiveDates: localFallbackActiveDates,
+            renderedSeriesContext: try makeProgressRenderedSeriesSummaryContext(
+                serverBase: self.progressSeriesServerBaseCache,
+                scopeKey: scopeKey,
+                series: renderedSeries.series
+            ),
             pendingLocalOverlayState: reviewedAtClientSources.pendingLocalOverlayState
         )
 
-        let snapshot = try makeProgressSnapshot(
-            summary: renderedSummary.summary,
-            series: renderedSeries.series,
-            scopeKey: scopeKey,
-            summarySourceState: renderedSummary.sourceState,
-            seriesSourceState: renderedSeries.sourceState,
-            calendar: calendar
+        return (
+            renderedSummary: renderedSummary,
+            renderedSeries: renderedSeries
         )
-        self.applyProgressSnapshot(snapshot: snapshot)
     }
 
     func publishReviewScheduleSnapshot(scopeKey: ReviewScheduleScopeKey) throws {
@@ -204,22 +234,14 @@ extension FlashcardsStore {
     }
 
     func publishReviewProgressBadgeState(scopeKey: ProgressScopeKey) throws {
-        let summaryScopeKey = progressSummaryScopeKey(seriesScopeKey: scopeKey)
         let reviewedAtClientSources = try self.loadProgressReviewedAtClientSources()
-        let localFallbackSummary = try makeProgressSummaryFromReviewedAtClients(
-            reviewedAtClients: reviewedAtClientSources.canonicalReviewedAtClients,
-            timeZone: summaryScopeKey.timeZone,
-            referenceLocalDate: scopeKey.to
-        )
-        let renderedSummary = makeProgressRenderedSummary(
-            serverBase: self.progressSummaryServerBaseCache,
-            scopeKey: summaryScopeKey,
-            localFallbackSummary: localFallbackSummary,
-            pendingLocalOverlayState: reviewedAtClientSources.pendingLocalOverlayState
+        let renderedProgress = try self.makeProgressRenderedSummaryAndSeries(
+            scopeKey: scopeKey,
+            reviewedAtClientSources: reviewedAtClientSources
         )
 
         self.applyReviewProgressBadgeState(
-            badgeState: makeReviewProgressBadgeState(summary: renderedSummary.summary)
+            badgeState: makeReviewProgressBadgeState(summary: renderedProgress.renderedSummary.summary)
         )
     }
 
