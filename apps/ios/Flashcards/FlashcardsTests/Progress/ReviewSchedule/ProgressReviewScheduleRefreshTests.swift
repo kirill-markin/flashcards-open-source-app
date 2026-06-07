@@ -57,6 +57,13 @@ final class ProgressReviewScheduleRefreshTests: ProgressStoreTestCase {
         XCTAssertEqual(4, reviewScheduleSnapshot.schedule.totalCards)
         XCTAssertEqual(4, reviewScheduleCount(snapshot: reviewScheduleSnapshot, key: .today))
         XCTAssertEqual(1, context.cloudSyncService.loadProgressReviewScheduleCallCount)
+        XCTAssertFalse(
+            context.store.progressReviewScheduleInvalidatedScopeKeys.contains(reviewScheduleSnapshot.scopeKey)
+        )
+
+        await context.store.refreshProgressIfNeeded(now: now)
+
+        XCTAssertEqual(1, context.cloudSyncService.loadProgressReviewScheduleCallCount)
     }
 
     @MainActor
@@ -360,7 +367,7 @@ final class ProgressReviewScheduleRefreshTests: ProgressStoreTestCase {
     }
 
     @MainActor
-    func testReviewScheduleServerBaseRenderDoesNotLoadBrokenLocalFallbackWithoutPendingOverlay() async throws {
+    func testReviewScheduleServerBaseRenderDoesNotLoadBrokenLocalFallbackWithoutDirtyCacheOrPendingOverlay() async throws {
         let database = try self.makeDatabase()
         let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()

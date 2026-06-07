@@ -26,3 +26,8 @@ struct ProgressReviewScheduleLocalCacheEntry: Sendable {
     let pendingCardTotalDelta: Int
     let localCoverage: ReviewScheduleLocalCoverage
 }
+
+struct ProgressReviewScheduleRenderedServerBase: Sendable {
+    let renderedSchedule: UserReviewSchedule
+    let sourceState: ProgressSourceState
+}

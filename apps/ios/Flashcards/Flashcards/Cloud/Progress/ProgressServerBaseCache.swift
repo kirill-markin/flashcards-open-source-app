@@ -16,6 +16,36 @@ struct PersistedReviewScheduleServerBase: Codable, Hashable, Sendable {
     let scopeKey: ReviewScheduleScopeKey
     let serverBase: UserReviewSchedule
     let storedAt: String
+    let requiresRefresh: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case scopeKey
+        case serverBase
+        case storedAt
+        case requiresRefresh
+    }
+
+    init(
+        scopeKey: ReviewScheduleScopeKey,
+        serverBase: UserReviewSchedule,
+        storedAt: String,
+        requiresRefresh: Bool
+    ) {
+        self.scopeKey = scopeKey
+        self.serverBase = serverBase
+        self.storedAt = storedAt
+        self.requiresRefresh = requiresRefresh
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            scopeKey: try container.decode(ReviewScheduleScopeKey.self, forKey: .scopeKey),
+            serverBase: try container.decode(UserReviewSchedule.self, forKey: .serverBase),
+            storedAt: try container.decode(String.self, forKey: .storedAt),
+            requiresRefresh: try container.decodeIfPresent(Bool.self, forKey: .requiresRefresh) ?? false
+        )
+    }
 }
 
 private let progressSummaryServerBaseCacheUserDefaultsKeyPrefix: String = "progress-summary-server-base"

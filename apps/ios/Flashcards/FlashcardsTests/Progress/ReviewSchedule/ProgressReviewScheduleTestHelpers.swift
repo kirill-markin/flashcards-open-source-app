@@ -74,4 +74,26 @@ extension ProgressStoreTestCase {
             ]
         )
     }
+
+    func moveReviewScheduleCardDueAt(
+        database: LocalDatabase,
+        workspaceId: String,
+        cardId: String,
+        dueAt: Date
+    ) throws {
+        let dueAtText = formatIsoTimestamp(date: dueAt)
+        try database.core.execute(
+            sql: """
+            UPDATE cards
+            SET due_at = ?, due_at_millis = ?
+            WHERE workspace_id = ? AND card_id = ?
+            """,
+            values: [
+                .text(dueAtText),
+                .integer(epochMillis(date: dueAt)),
+                .text(workspaceId),
+                .text(cardId),
+            ]
+        )
+    }
 }
