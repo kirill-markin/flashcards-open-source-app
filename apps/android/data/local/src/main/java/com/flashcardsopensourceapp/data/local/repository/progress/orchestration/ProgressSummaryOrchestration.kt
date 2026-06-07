@@ -9,11 +9,13 @@ import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.shared.TimeProvider
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.ProgressLocalCacheReadinessCoordinator
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.toCacheEntity
+import com.flashcardsopensourceapp.data.local.repository.progress.cache.toCloudProgressSeriesOrNull
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.toCloudProgressSummaryOrNull
 import com.flashcardsopensourceapp.data.local.repository.progress.inputs.ProgressClockSnapshot
 import com.flashcardsopensourceapp.data.local.repository.progress.inputs.ProgressObservedInputs
 import com.flashcardsopensourceapp.data.local.repository.progress.inputs.createProgressClockSnapshot
 import com.flashcardsopensourceapp.data.local.repository.progress.inputs.createProgressPendingReviewFingerprintEntries
+import com.flashcardsopensourceapp.data.local.repository.progress.inputs.createProgressPendingReviewLocalDates
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.ProgressBackgroundLauncher
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.ProgressObservationVersions
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.ProgressRefreshCoordinator
@@ -25,11 +27,13 @@ import com.flashcardsopensourceapp.data.local.repository.progress.runtime.should
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.supportsServerRefresh
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressSummaryStoreInputs
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressSummaryStoreState
+import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.createProgressSeriesScopeKey
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.createProgressSummaryScopeKey
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.createProgressSummaryStoreState
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.createReviewHistoryFingerprint
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.didSyncCompleteWithReviewHistoryChange
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.isProgressLocalCacheReady
+import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.serializeProgressSeriesScopeKey
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.serializeProgressSummaryScopeKey
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
@@ -340,6 +344,11 @@ internal class ProgressSummaryOrchestration(
             today = clockSnapshot.today,
             zoneId = clockSnapshot.zoneId
         )
+        val seriesScopeKey = createProgressSeriesScopeKey(
+            cloudSettings = inputs.cloudSettings,
+            today = clockSnapshot.today,
+            zoneId = clockSnapshot.zoneId
+        )
         val workspaceIds: List<String> = inputs.workspaces.map(WorkspaceEntity::workspaceId)
         val pendingReviewFingerprintEntries = createProgressPendingReviewFingerprintEntries(
             pendingReviewOutboxEntries = inputs.pendingReviewOutboxEntries,
@@ -360,6 +369,19 @@ internal class ProgressSummaryOrchestration(
             serverBase = inputs.summaryCaches.firstOrNull { entry ->
                 entry.scopeKey == serializeProgressSummaryScopeKey(scopeKey = scopeKey)
             }?.toCloudProgressSummaryOrNull(),
+            seriesScopeKey = seriesScopeKey,
+            seriesServerBase = inputs.seriesCaches.firstOrNull { entry ->
+                entry.scopeKey == serializeProgressSeriesScopeKey(scopeKey = seriesScopeKey)
+            }?.toCloudProgressSeriesOrNull(),
+            pendingReviewLocalDates = if (isLocalCacheReady) {
+                createProgressPendingReviewLocalDates(
+                    pendingReviewOutboxEntries = inputs.pendingReviewOutboxEntries,
+                    workspaceIds = workspaceIds,
+                    timeZone = scopeKey.timeZone
+                )
+            } else {
+                emptyList()
+            },
             reviewHistoryFingerprint = createReviewHistoryFingerprint(
                 reviewHistoryStates = inputs.reviewHistoryStates,
                 pendingReviewEntries = pendingReviewFingerprintEntries,
