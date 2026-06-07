@@ -446,11 +446,6 @@ export const zhHansCatalog = {
   accessSettings: {
     title: "访问权限",
     subtitle: "查看此设备上聊天和附件可使用的浏览器权限。",
-    notifications: {
-      title: "通知",
-      description: "查看当前设备上此工作区的学习提醒选项。",
-      value: "此设备",
-    },
     photosAndFiles: {
       title: "照片和文件",
       description: "只有当您通过文件选择器选择文件时，浏览器才会获得文件访问权限。",

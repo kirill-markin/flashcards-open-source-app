@@ -446,11 +446,6 @@ const hiCatalog: TranslationCatalog = {
   accessSettings: {
     title: "एक्सेस",
     subtitle: "देखें कि इस डिवाइस पर चैट और अटैचमेंट किन ब्राउज़र अनुमतियों का उपयोग कर सकते हैं।",
-    notifications: {
-      title: "सूचनाएं",
-      description: "मौजूदा डिवाइस पर इस वर्कस्पेस के लिए अध्ययन रिमाइंडर विकल्प देखें।",
-      value: "यह डिवाइस",
-    },
     photosAndFiles: {
       title: "फ़ोटो और फ़ाइलें",
       description: "ब्राउज़र फ़ाइल एक्सेस केवल तभी दी जाती है जब आप फ़ाइल पिकर से फ़ाइल चुनते हैं।",

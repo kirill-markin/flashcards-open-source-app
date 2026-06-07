@@ -446,11 +446,6 @@ const esMxCatalog: TranslationCatalog = {
   accessSettings: {
     title: "Acceso",
     subtitle: "Revisa qué permisos del navegador pueden usar el chat y los archivos adjuntos en este dispositivo.",
-    notifications: {
-      title: "Notificaciones",
-      description: "Revisa las opciones de recordatorios de estudio para este espacio de trabajo en el dispositivo actual.",
-      value: "Este dispositivo",
-    },
     photosAndFiles: {
       title: "Fotos y archivos",
       description: "El acceso a archivos del navegador solo se concede cuando eliges archivos desde el selector.",
