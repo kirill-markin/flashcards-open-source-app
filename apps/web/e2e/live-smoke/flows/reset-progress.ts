@@ -58,19 +58,19 @@ async function completeResetProgressFlow(session: LiveSmokeSession): Promise<voi
   );
   await trackedExpectVisible(
     diagnostics,
-    "confirm settings screen is visible before opening workspace settings",
+    "confirm settings screen is visible before opening reset progress",
     page.locator(".settings-panel"),
     localUiTimeoutMs,
   );
   await trackedClick(
     diagnostics,
-    "open workspace settings screen before reset",
-    page.locator('.settings-switcher a[href="/settings/workspace"]').first(),
+    "open reset progress settings screen",
+    page.getByTestId("settings-row-reset-study-progress"),
   );
   await trackedExpectVisible(
     diagnostics,
-    "confirm workspace settings screen is visible before reset",
-    page.locator(".settings-panel"),
+    "confirm reset progress settings screen is visible",
+    page.getByTestId("workspace-reset-progress-open"),
     localUiTimeoutMs,
   );
   const resetDialog = page.getByTestId("workspace-reset-progress-dialog");
@@ -169,7 +169,7 @@ async function ensureScenarioWorkspaceSelected(
     await trackedClick(
       diagnostics,
       `open current workspace settings while recovering workspace ${actionSuffix}`,
-      page.locator('.settings-switcher a[href="/settings/current-workspace"]').first(),
+      page.getByTestId("settings-row-current-workspace"),
     );
     const workspaceActionCard = page.locator(".settings-nav-card-button[data-workspace-management-state]").first();
     await trackedExpectAttribute(

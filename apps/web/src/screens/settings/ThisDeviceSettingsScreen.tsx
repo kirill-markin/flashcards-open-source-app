@@ -1,7 +1,7 @@
 import { useRef, type ReactElement } from "react";
 import { useAppData } from "../../appData";
 import { webAppBuild, webAppVersion } from "../../clientIdentity";
-import { autoLocalePreference, supportedLocales, type Locale, type LocalePreference, type TranslationKey, useI18n } from "../../i18n";
+import { useI18n } from "../../i18n";
 import { useTestMode } from "../../testMode";
 import { useTransientMessage } from "../../useTransientMessage";
 import { SettingsShell } from "./SettingsShared";
@@ -26,8 +26,6 @@ type WebDeviceInfoStaticStrings = Readonly<{
   unavailable: string;
   workspaceScope: string;
 }>;
-
-type LocaleNameTranslationKey = `locale.names.${Locale}`;
 
 function formatUnavailable(value: string | null, unavailableLabel: string): string {
   if (value === null || value.trim() === "") {
@@ -81,34 +79,6 @@ function detectBrowser(userAgent: string): string {
   return "";
 }
 
-function localeNameKey(locale: Locale): LocaleNameTranslationKey {
-  return `locale.names.${locale}`;
-}
-
-function parseLocalePreference(value: string): LocalePreference {
-  if (value === autoLocalePreference) {
-    return autoLocalePreference;
-  }
-
-  const locale = supportedLocales.find((supportedLocale) => supportedLocale === value);
-  if (locale !== undefined) {
-    return locale;
-  }
-
-  throw new Error(`Unsupported locale preference: ${value}`);
-}
-
-function formatLocalePreferenceLabel(
-  localePreference: LocalePreference,
-  t: (key: TranslationKey) => string,
-): string {
-  if (localePreference === "auto") {
-    return t("locale.preferenceAuto");
-  }
-
-  return t(localeNameKey(localePreference));
-}
-
 function buildWebDeviceInfo(installationId: string, strings: WebDeviceInfoStaticStrings): WebDeviceInfo {
   const userAgent = navigator.userAgent;
 
@@ -126,7 +96,7 @@ function buildWebDeviceInfo(installationId: string, strings: WebDeviceInfoStatic
 
 export function ThisDeviceSettingsScreen(): ReactElement {
   const { activeWorkspace, cloudSettings } = useAppData();
-  const { locale, localePreference, setLocalePreference, t } = useI18n();
+  const { t } = useI18n();
   const { toggleTestMode } = useTestMode();
   const { message, showMessage } = useTransientMessage(3000);
   const appVersionTapCountRef = useRef<number>(0);
@@ -138,8 +108,6 @@ export function ThisDeviceSettingsScreen(): ReactElement {
     storage: t("settingsDevice.values.storage"),
     workspaceScope: t("settingsDevice.values.workspaceScope"),
   });
-  const localeLabel = t(localeNameKey(locale));
-  const localePreferenceLabel = formatLocalePreferenceLabel(localePreference, t);
 
   function handleAppVersionTap(now: number): void {
     const lastAppVersionTapAt = lastAppVersionTapAtRef.current;
@@ -171,39 +139,6 @@ export function ThisDeviceSettingsScreen(): ReactElement {
       {message === "" ? null : <p className="settings-temporary-banner" role="status">{message}</p>}
 
       <div className="settings-nav-list">
-        <article className="content-card settings-summary-card" data-testid="device-language-preference-card">
-          <div className="cell-stack">
-            <strong className="panel-subtitle">{t("settingsDevice.languageCardTitle")}</strong>
-            <p className="subtitle">{t("settingsDevice.languageCardDescription")}</p>
-          </div>
-          <label className="cell-stack" htmlFor="device-language-preference">
-            <span className="cell-secondary">{t("locale.labels.languageSelection")}</span>
-            <select
-              id="device-language-preference"
-              className="settings-select"
-              value={localePreference}
-              data-testid="device-language-preference-select"
-              onChange={(event) => {
-                setLocalePreference(parseLocalePreference(event.target.value));
-              }}
-            >
-              <option value={autoLocalePreference}>{t("locale.preferenceAuto")}</option>
-              {supportedLocales.map((supportedLocale) => (
-                <option key={supportedLocale} value={supportedLocale}>
-                  {t(localeNameKey(supportedLocale))}
-                </option>
-              ))}
-            </select>
-          </label>
-        </article>
-        <article className="content-card settings-summary-card">
-          <span className="cell-secondary">{t("locale.labels.appLanguage")}</span>
-          <strong className="panel-subtitle">{localeLabel}</strong>
-        </article>
-        <article className="content-card settings-summary-card">
-          <span className="cell-secondary">{t("locale.labels.languagePreference")}</span>
-          <strong className="panel-subtitle">{localePreferenceLabel}</strong>
-        </article>
         <article className="content-card settings-summary-card">
           <span className="cell-secondary">{t("settingsDevice.labels.workspace")}</span>
           <strong className="panel-subtitle">{activeWorkspace?.name ?? unavailableLabel}</strong>

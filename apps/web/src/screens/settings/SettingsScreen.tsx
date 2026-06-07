@@ -1,236 +1,239 @@
-import { useState, type ReactElement } from "react";
-import { submitFeedback } from "../../api";
+import type { ReactElement } from "react";
 import { useAppData } from "../../appData";
-import { FeedbackDialog } from "../../feedback/FeedbackDialog";
 import {
-  buildFeedbackSubmissionRequest,
-  feedbackMaximumMessageLength,
-  normalizeFeedbackMessage,
-} from "../../feedback/feedbackSubmission";
-import { useI18n } from "../../i18n";
+  autoLocalePreference,
+  type Locale,
+  type LocalePreference,
+  type TranslationKey,
+  useI18n,
+} from "../../i18n";
 import {
-  buildFeedbackPromptIdentityKey,
-  storeFeedbackSubmittedAt,
-} from "../../localDb/feedback/feedback";
-import { captureAppOperationError } from "../../observability/appOperationObservation";
-import {
-  accountSettingsRoute,
+  accountAgentConnectionsRoute,
+  accountDangerZoneRoute,
+  accountLegalSupportRoute,
+  accountOpenSourceRoute,
+  accountStatusRoute,
   settingsAccessRoute,
   settingsCurrentWorkspaceRoute,
+  settingsDecksRoute,
+  settingsDeleteCurrentWorkspaceRoute,
   settingsDeviceRoute,
+  settingsExportRoute,
+  settingsFeedbackRoute,
+  settingsLanguageRoute,
+  settingsNotificationsRoute,
+  settingsResetStudyProgressRoute,
+  settingsSchedulerRoute,
+  settingsServerRoute,
+  settingsTagsRoute,
   settingsTestRoute,
-  workspaceSettingsRoute,
 } from "../../routes";
 import { useTestMode } from "../../testMode";
-import type { FeedbackSubmissionRequest } from "../../types";
-import { useTransientMessage } from "../../useTransientMessage";
-import { isWorkspaceManagementLocked } from "../../workspaceManagement";
 import {
-  SettingsActionCard,
   SettingsGroup,
   SettingsNavigationCard,
   SettingsShell,
 } from "./SettingsShared";
 
+type LocaleNameTranslationKey = `locale.names.${Locale}`;
+
+function accountStatusValue(linkedEmail: string | null, unavailableLabel: string): string {
+  if (linkedEmail === null || linkedEmail === "") {
+    return unavailableLabel;
+  }
+
+  return linkedEmail;
+}
+
+function localeNameKey(locale: Locale): LocaleNameTranslationKey {
+  return `locale.names.${locale}`;
+}
+
+function formatLocalePreferenceLabel(
+  localePreference: LocalePreference,
+  t: (key: TranslationKey) => string,
+): string {
+  if (localePreference === autoLocalePreference) {
+    return t("locale.preferenceAuto");
+  }
+
+  return t(localeNameKey(localePreference));
+}
+
 export function SettingsScreen(): ReactElement {
   const {
     activeWorkspace,
     cloudSettings,
-    isSessionVerified,
     session,
+    workspaceSettings,
   } = useAppData();
-  const { locale, t } = useI18n();
+  const { localePreference, t } = useI18n();
   const { isTestModeEnabled } = useTestMode();
-  const { message, showMessage } = useTransientMessage(3000);
-  const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState<boolean>(false);
-  const [feedbackMessage, setFeedbackMessage] = useState<string>("");
-  const [feedbackErrorMessage, setFeedbackErrorMessage] = useState<string>("");
-  const [isFeedbackSubmitting, setIsFeedbackSubmitting] = useState<boolean>(false);
-  const isWorkspaceLocked = isWorkspaceManagementLocked(isSessionVerified, cloudSettings);
   const currentWorkspaceName = activeWorkspace?.name ?? t("common.unavailable");
-  const workspaceManagementLockedMessage = t("workspaceManagement.lockedMessage");
-  const feedbackPromptIdentityKey = buildFeedbackPromptIdentityKey({
-    sessionUserId: session?.userId ?? null,
-    linkedUserId: cloudSettings?.linkedUserId ?? null,
-  });
-
-  function openFeedbackDialog(): void {
-    setFeedbackMessage("");
-    setFeedbackErrorMessage("");
-    setIsFeedbackDialogOpen(true);
-  }
-
-  function closeFeedbackDialog(): void {
-    setIsFeedbackDialogOpen(false);
-    setFeedbackMessage("");
-    setFeedbackErrorMessage("");
-  }
-
-  async function submitSettingsFeedback(): Promise<void> {
-    const normalizedMessage = normalizeFeedbackMessage(feedbackMessage);
-    if (normalizedMessage === "") {
-      setFeedbackErrorMessage(t("feedback.emptyError"));
-      return;
-    }
-
-    if (normalizedMessage.length > feedbackMaximumMessageLength) {
-      setFeedbackErrorMessage(t("feedback.tooLongError"));
-      return;
-    }
-
-    let submissionRequest: FeedbackSubmissionRequest;
-    try {
-      submissionRequest = buildFeedbackSubmissionRequest({
-        workspaceId: activeWorkspace?.workspaceId ?? null,
-        locale,
-        trigger: "settings",
-        message: normalizedMessage,
-        now: new Date(),
-      });
-    } catch (error) {
-      captureAppOperationError(error, {
-        feature: "feedback",
-        operation: "feedback_submit",
-        userId: session?.userId ?? null,
-        workspaceId: activeWorkspace?.workspaceId ?? null,
-        installationId: cloudSettings?.installationId ?? null,
-        entityId: null,
-      });
-      setFeedbackErrorMessage(t("feedback.submitError"));
-      return;
-    }
-
-    setIsFeedbackSubmitting(true);
-    setFeedbackErrorMessage("");
-    try {
-      const feedbackState = await submitFeedback(submissionRequest);
-      try {
-        await storeFeedbackSubmittedAt({
-          identityKey: feedbackPromptIdentityKey,
-          feedbackState,
-          submittedAt: submissionRequest.createdAtClient,
-        });
-      } catch (error) {
-        captureAppOperationError(error, {
-          feature: "feedback",
-          operation: "feedback_submit",
-          userId: session?.userId ?? null,
-          workspaceId: activeWorkspace?.workspaceId ?? null,
-          installationId: cloudSettings?.installationId ?? null,
-          entityId: submissionRequest.feedbackSubmissionId,
-        });
-      }
-      closeFeedbackDialog();
-      showMessage(t("feedback.success"));
-    } catch (error) {
-      captureAppOperationError(error, {
-        feature: "feedback",
-        operation: "feedback_submit",
-        userId: session?.userId ?? null,
-        workspaceId: activeWorkspace?.workspaceId ?? null,
-        installationId: cloudSettings?.installationId ?? null,
-        entityId: submissionRequest.feedbackSubmissionId,
-      });
-      setFeedbackErrorMessage(t("feedback.submitError"));
-    } finally {
-      setIsFeedbackSubmitting(false);
-    }
-  }
+  const accountStatus = accountStatusValue(cloudSettings?.linkedEmail ?? session?.profile.email ?? null, t("common.unavailable"));
+  const languagePreferenceLabel = formatLocalePreferenceLabel(localePreference, t);
+  const schedulerValue = workspaceSettings === null ? t("common.unavailable") : workspaceSettings.algorithm.toUpperCase();
 
   return (
-    <>
-      <SettingsShell
-        title={t("settingsHome.title")}
-        subtitle={t("settingsHome.subtitle")}
-        activeTab="general"
-      >
-        {message === "" ? null : <p className="settings-temporary-banner" role="status">{message}</p>}
+    <SettingsShell
+      title={t("settingsHome.title")}
+      subtitle={t("settingsHome.subtitle")}
+      activeTab="general"
+    >
+      <SettingsGroup title={t("settingsHome.groups.account")}>
+        <div className="settings-nav-list">
+          <SettingsNavigationCard
+            title={t("accountSettings.accountStatus.title")}
+            description={t("accountSettings.accountStatus.description")}
+            value={accountStatus}
+            to={accountStatusRoute}
+            testId="settings-row-account-status"
+          />
+          <SettingsNavigationCard
+            title={t("settingsCurrentWorkspace.title")}
+            description={t("settingsCurrentWorkspace.subtitle")}
+            value={currentWorkspaceName}
+            to={settingsCurrentWorkspaceRoute}
+            testId="settings-row-current-workspace"
+          />
+        </div>
+      </SettingsGroup>
 
-        <SettingsGroup>
-          <div className="settings-nav-list">
-            {isWorkspaceLocked ? (
-              <SettingsActionCard
-                title={t("settingsHome.currentWorkspace.title")}
-                description={t("settingsHome.currentWorkspace.description")}
-                value={currentWorkspaceName}
-                onClick={() => showMessage(workspaceManagementLockedMessage)}
-                isMuted
-              />
-            ) : (
-              <SettingsNavigationCard
-                title={t("settingsHome.currentWorkspace.title")}
-                description={t("settingsHome.currentWorkspace.description")}
-                value={currentWorkspaceName}
-                to={settingsCurrentWorkspaceRoute}
-              />
-            )}
-            <SettingsActionCard
-              title={t("settingsHome.feedback.title")}
-              description={t("settingsHome.feedback.description")}
-              value={t("settingsHome.feedback.value")}
-              onClick={openFeedbackDialog}
-              testId="settings-feedback-row"
-            />
-          </div>
-        </SettingsGroup>
+      <SettingsGroup title={t("settingsHome.groups.general")}>
+        <div className="settings-nav-list">
+          <SettingsNavigationCard
+            title={t("notificationsSettings.title")}
+            description={t("notificationsSettings.subtitle")}
+            value={t("settingsWorkspace.notifications.value")}
+            to={settingsNotificationsRoute}
+            testId="settings-row-review-reminders"
+          />
+          <SettingsNavigationCard
+            title={t("settingsHome.language.title")}
+            description={t("settingsHome.language.description")}
+            value={languagePreferenceLabel}
+            to={settingsLanguageRoute}
+            testId="settings-row-language"
+          />
+          <SettingsNavigationCard
+            title={t("accessSettings.title")}
+            description={t("accessSettings.subtitle")}
+            value={t("settingsHome.access.value")}
+            to={settingsAccessRoute}
+            testId="settings-row-access"
+          />
+          <SettingsNavigationCard
+            title={t("settingsWorkspace.decks.title")}
+            description={t("settingsWorkspace.decks.description")}
+            value={t("common.open")}
+            to={settingsDecksRoute}
+            testId="settings-row-decks"
+          />
+          <SettingsNavigationCard
+            title={t("settingsWorkspace.tags.title")}
+            description={t("settingsWorkspace.tags.description")}
+            value={t("common.open")}
+            to={settingsTagsRoute}
+            testId="settings-row-tags"
+          />
+          <SettingsNavigationCard
+            title={t("settingsWorkspace.export.title")}
+            description={t("settingsWorkspace.export.description")}
+            value={t("settingsWorkspace.export.value")}
+            to={settingsExportRoute}
+            testId="settings-row-export"
+          />
+        </div>
+      </SettingsGroup>
 
-        <SettingsGroup>
-          <div className="settings-nav-list">
-            <SettingsNavigationCard
-              title={t("settingsHome.workspaceSettings.title")}
-              description={t("settingsHome.workspaceSettings.description")}
-              value={t("settingsHome.workspaceSettings.value")}
-              to={workspaceSettingsRoute}
-            />
-            <SettingsNavigationCard
-              title={t("settingsHome.accountSettings.title")}
-              description={t("settingsHome.accountSettings.description")}
-              value={t("settingsHome.accountSettings.value")}
-              to={accountSettingsRoute}
-            />
-          </div>
-        </SettingsGroup>
+      <SettingsGroup title={t("settingsHome.groups.support")}>
+        <div className="settings-nav-list">
+          <SettingsNavigationCard
+            title={t("settingsHome.feedback.title")}
+            description={t("settingsHome.feedback.description")}
+            value={t("settingsHome.feedback.value")}
+            to={settingsFeedbackRoute}
+            testId="settings-row-feedback"
+          />
+          <SettingsNavigationCard
+            title={t("legalSupport.title")}
+            description={t("legalSupport.subtitle")}
+            value={t("accountSettings.legalSupport.value")}
+            to={accountLegalSupportRoute}
+            testId="settings-row-legal-support"
+          />
+          <SettingsNavigationCard
+            title={t("openSourceSettings.title")}
+            description={t("openSourceSettings.subtitle")}
+            value={t("accountSettings.openSource.value")}
+            to={accountOpenSourceRoute}
+            testId="settings-row-open-source"
+          />
+        </div>
+      </SettingsGroup>
 
-        <SettingsGroup>
-          <div className="settings-inline-nav-list">
+      <SettingsGroup title={t("settingsHome.groups.advanced")}>
+        <div className="settings-nav-list">
+          <SettingsNavigationCard
+            title={t("workspaceScheduler.title")}
+            description={t("workspaceScheduler.subtitle")}
+            value={schedulerValue}
+            to={settingsSchedulerRoute}
+            testId="settings-row-scheduling"
+          />
+          <SettingsNavigationCard
+            title={t("agentConnections.title")}
+            description={t("agentConnections.subtitle")}
+            value={t("accountSettings.agentConnections.value")}
+            to={accountAgentConnectionsRoute}
+            testId="settings-row-agent-connections"
+          />
+          <SettingsNavigationCard
+            title={t("settingsHome.server.title")}
+            description={t("settingsHome.server.description")}
+            value={t("settingsHome.server.value")}
+            to={settingsServerRoute}
+            testId="settings-row-server"
+          />
+          <SettingsNavigationCard
+            title={t("settingsDevice.title")}
+            description={t("settingsDevice.subtitle")}
+            value={t("settingsHome.device.value")}
+            to={settingsDeviceRoute}
+            testId="settings-row-device-diagnostics"
+          />
+          <SettingsNavigationCard
+            title={t("settingsWorkspace.resetProgress.title")}
+            description={t("settingsWorkspace.resetProgress.description")}
+            value={t("settingsWorkspace.resetProgress.value")}
+            to={settingsResetStudyProgressRoute}
+            testId="settings-row-reset-study-progress"
+          />
+          <SettingsNavigationCard
+            title={t("settingsHome.deleteCurrentWorkspace.title")}
+            description={t("settingsHome.deleteCurrentWorkspace.description")}
+            value={t("settingsHome.deleteCurrentWorkspace.value")}
+            to={settingsDeleteCurrentWorkspaceRoute}
+            testId="settings-row-delete-current-workspace"
+          />
+          <SettingsNavigationCard
+            title={t("dangerZone.deleteTitle")}
+            description={t("dangerZone.deleteDescription")}
+            value={t("accountSettings.dangerZone.value")}
+            to={accountDangerZoneRoute}
+            testId="settings-row-delete-account"
+          />
+          {isTestModeEnabled ? (
             <SettingsNavigationCard
-              title={t("settingsHome.device.title")}
-              description={t("settingsHome.device.description")}
-              value={t("settingsHome.device.value")}
-              to={settingsDeviceRoute}
+              title={t("settingsTest.title")}
+              description={t("settingsTest.subtitle")}
+              value={t("settingsHome.test.value")}
+              to={settingsTestRoute}
+              testId="settings-row-test"
             />
-            <SettingsNavigationCard
-              title={t("settingsHome.access.title")}
-              description={t("settingsHome.access.description")}
-              value={t("settingsHome.access.value")}
-              to={settingsAccessRoute}
-            />
-          </div>
-        </SettingsGroup>
-
-        {isTestModeEnabled ? (
-          <SettingsGroup title={t("settingsHome.testGroupTitle")}>
-            <div className="settings-nav-list">
-              <SettingsNavigationCard
-                title={t("settingsHome.test.title")}
-                description={t("settingsHome.test.description")}
-                value={t("settingsHome.test.value")}
-                to={settingsTestRoute}
-                testId="settings-test-row"
-              />
-            </div>
-          </SettingsGroup>
-        ) : null}
-      </SettingsShell>
-      <FeedbackDialog
-        isOpen={isFeedbackDialogOpen}
-        message={feedbackMessage}
-        errorMessage={feedbackErrorMessage}
-        isSubmitting={isFeedbackSubmitting}
-        onMessageChange={(nextMessage) => setFeedbackMessage(nextMessage)}
-        onSubmit={submitSettingsFeedback}
-        onDismiss={closeFeedbackDialog}
-      />
-    </>
+          ) : null}
+        </div>
+      </SettingsGroup>
+    </SettingsShell>
   );
 }

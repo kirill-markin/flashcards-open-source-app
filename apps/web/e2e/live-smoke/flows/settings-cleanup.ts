@@ -7,7 +7,7 @@ import {
   trackedGoto,
   trackedReadRequiredTextContent,
 } from "../../live-smoke.actions";
-import { settingsOverviewRoute } from "../../../src/routes";
+import { settingsDeleteCurrentWorkspaceRoute } from "../../../src/routes";
 import { externalUiTimeoutMs, localUiTimeoutMs } from "../config";
 import { waitForDeleteWorkspaceConfirmation } from "../observations/workspace-delete";
 import { runLiveSmokeStep } from "../steps";
@@ -25,14 +25,14 @@ async function deleteEphemeralWorkspace(session: LiveSmokeSession): Promise<void
   await trackedGoto(
     page,
     diagnostics,
-    "open workspace overview route before cleanup",
-    `${baseUrl}${settingsOverviewRoute}`,
+    "open delete current workspace route before cleanup",
+    `${baseUrl}${settingsDeleteCurrentWorkspaceRoute}`,
     externalUiTimeoutMs,
   );
   await trackedExpectVisible(
     diagnostics,
-    "confirm workspace overview screen is visible before cleanup",
-    page.locator('button.settings-danger-btn').first(),
+    "confirm delete current workspace screen is visible before cleanup",
+    page.getByTestId("delete-current-workspace-open"),
     localUiTimeoutMs,
   );
 
@@ -42,7 +42,7 @@ async function deleteEphemeralWorkspace(session: LiveSmokeSession): Promise<void
     activeWorkspaceTopbar,
   );
 
-  await trackedClick(diagnostics, "open delete workspace dialog", page.locator('button.settings-danger-btn').first());
+  await trackedClick(diagnostics, "open delete workspace dialog", page.getByTestId("delete-current-workspace-open"));
   const deleteDialog = page.locator(".settings-delete-dialog-backdrop");
   await trackedExpectVisible(
     diagnostics,

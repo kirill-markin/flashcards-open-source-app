@@ -197,10 +197,20 @@ export const jaCatalog = {
   },
   settingsHome: {
     title: "設定",
-    subtitle: "現在のワークスペース、アカウント、このデバイス、ブラウザアクセスを管理します。",
+    subtitle: "アカウント、ワークスペース、サポート、詳細な Web 設定を管理します。",
+    groups: {
+      account: "アカウント",
+      general: "一般",
+      support: "サポート",
+      advanced: "詳細",
+    },
     currentWorkspace: {
       title: "現在のワークスペース",
       description: "アクティブなワークスペースを切り替えるか、このアカウント用に新しいワークスペースを作成します。",
+    },
+    language: {
+      title: "言語",
+      description: "このブラウザで使うアプリ言語を選択します。",
     },
     workspaceSettings: {
       title: "ワークスペース設定",
@@ -213,7 +223,7 @@ export const jaCatalog = {
       value: "アカウント",
     },
     device: {
-      title: "このデバイス",
+      title: "このデバイス / 診断",
       description: "ブラウザ、ビルド、ストレージ、デバイス内ワークスペースの詳細を確認します。",
       value: "デバイス",
     },
@@ -226,6 +236,16 @@ export const jaCatalog = {
       title: "フィードバックを送信",
       description: "アプリを改善するアイデアを共有します。",
       value: "開く",
+    },
+    server: {
+      title: "サーバー",
+      description: "ブラウザクライアントはホストされた Web デプロイを使用します。Web 設定ではカスタムサーバーへの切り替えはできません。",
+      value: "ホスト済み",
+    },
+    deleteCurrentWorkspace: {
+      title: "現在のワークスペースを削除",
+      description: "アクティブなワークスペースと、その中のすべてのカード、デッキ、復習、同期履歴を完全に削除します。",
+      value: "削除",
     },
     testGroupTitle: "テスト",
     test: {
@@ -252,7 +272,7 @@ export const jaCatalog = {
     createWorkspace: "ワークスペースを作成",
   },
   settingsDevice: {
-    title: "このデバイス",
+    title: "このデバイス / 診断",
     subtitle: "現在のワークスペースに対するブラウザ内の挙動、ストレージ、デバイス詳細を確認します。",
     languageCardTitle: "言語の上書き設定",
     languageCardDescription: "このブラウザ専用のアプリ言語を選択します。この設定はこのデバイス内にのみ保存されます。",
@@ -323,7 +343,7 @@ export const jaCatalog = {
     },
     dangerZoneGroupTitle: "危険な操作",
     resetProgress: {
-      title: "すべての進捗をリセット",
+      title: "学習進捗をリセット",
       description: "このワークスペース内のすべての有効なカードの学習進捗をリセットします。",
       value: "リセット",
       availabilityHint: "すべての進捗のリセットは、リンクされたクラウドワークスペースでのみ利用できます。",
@@ -388,7 +408,7 @@ export const jaCatalog = {
     },
   },
   workspaceScheduler: {
-    title: "スケジューラー",
+    title: "スケジューリング / FSRS",
     subtitle: "今後の復習に使われるスケジューラー設定を確認します。",
     schedulerLabel: "スケジューラー",
     labels: {
@@ -416,9 +436,9 @@ export const jaCatalog = {
     exportButton: "CSV をエクスポート",
   },
   notificationsSettings: {
-    title: "通知",
-    subtitle: "通知設定はこのワークスペースに紐づきますが、リマインダーは受け取りたいデバイスごとに設定されます。",
-    cardTitle: "iPhone または Android で通知を設定",
+    title: "復習リマインダー",
+    subtitle: "復習リマインダー設定はこのワークスペースに紐づきますが、リマインダーは受け取りたいデバイスごとに設定されます。",
+    cardTitle: "iPhone または Android で復習リマインダーを設定",
     paragraphOne: "復習リマインダー設定はこのワークスペースに属しますが、有効化と管理は各デバイスで個別に行います。",
     paragraphTwo: "学習通知を受け取りたい場合は、通知を受け取りたい iPhone または Android デバイスでこのワークスペースを開き、そこで通知を設定してください。",
     paragraphThree: "Web アプリは通知に対応していないため、この画面には通知の設定項目はありません。",

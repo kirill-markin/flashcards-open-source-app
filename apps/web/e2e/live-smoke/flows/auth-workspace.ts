@@ -89,7 +89,7 @@ async function createEphemeralWorkspace(session: LiveSmokeSession): Promise<void
   await trackedClick(
     diagnostics,
     "open current workspace settings",
-    page.locator('.settings-switcher a[href="/settings/current-workspace"]').first(),
+    page.getByTestId("settings-row-current-workspace"),
   );
   const workspaceActionCard = page.locator(".settings-nav-card-button[data-workspace-management-state]").first();
   await trackedExpectAttribute(
@@ -139,19 +139,8 @@ async function assertLinkedAccountStatus(session: LiveSmokeSession): Promise<voi
   );
   await trackedClick(
     diagnostics,
-    "open account settings screen",
-    page.locator('.settings-switcher a[href="/settings/account"]').first(),
-  );
-  await trackedExpectVisible(
-    diagnostics,
-    "confirm account settings heading is visible",
-    page.locator(".settings-panel"),
-    localUiTimeoutMs,
-  );
-  await trackedClick(
-    diagnostics,
     "open account status screen",
-    page.locator('a[href="/settings/account/status"]').first(),
+    page.getByTestId("settings-row-account-status"),
   );
   await trackedExpectText(
     diagnostics,

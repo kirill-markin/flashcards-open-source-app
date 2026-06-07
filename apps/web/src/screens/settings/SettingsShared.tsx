@@ -1,16 +1,5 @@
 import type { ReactElement, ReactNode } from "react";
-import { Link, NavLink } from "react-router-dom";
-import { useI18n } from "../../i18n";
-import {
-  accountSettingsRoute,
-  settingsAccessRoute,
-  settingsCurrentWorkspaceRoute,
-  settingsDeviceRoute,
-  settingsHubRoute,
-  settingsTestRoute,
-  workspaceSettingsRoute,
-} from "../../routes";
-import { useTestMode } from "../../testMode";
+import { Link } from "react-router-dom";
 
 type SettingsTab = "general" | "current-workspace" | "workspace" | "account" | "device" | "access" | "test";
 
@@ -46,98 +35,15 @@ type SettingsGroupProps = Readonly<{
   children: ReactNode;
 }>;
 
-type SettingsTabItem = Readonly<{
-  key: SettingsTab;
-  labelKey:
-    | "settingsTabs.general"
-    | "settingsTabs.currentWorkspace"
-    | "settingsTabs.workspace"
-    | "settingsTabs.account"
-    | "settingsTabs.device"
-    | "settingsTabs.access"
-    | "settingsTabs.test";
-  to: string;
-  end: boolean;
-  requiresTestMode: boolean;
-}>;
-
-const settingsTabs: ReadonlyArray<SettingsTabItem> = [
-  {
-    key: "general",
-    labelKey: "settingsTabs.general",
-    to: settingsHubRoute,
-    end: true,
-    requiresTestMode: false,
-  },
-  {
-    key: "current-workspace",
-    labelKey: "settingsTabs.currentWorkspace",
-    to: settingsCurrentWorkspaceRoute,
-    end: true,
-    requiresTestMode: false,
-  },
-  {
-    key: "workspace",
-    labelKey: "settingsTabs.workspace",
-    to: workspaceSettingsRoute,
-    end: false,
-    requiresTestMode: false,
-  },
-  {
-    key: "account",
-    labelKey: "settingsTabs.account",
-    to: accountSettingsRoute,
-    end: false,
-    requiresTestMode: false,
-  },
-  {
-    key: "device",
-    labelKey: "settingsTabs.device",
-    to: settingsDeviceRoute,
-    end: true,
-    requiresTestMode: false,
-  },
-  {
-    key: "access",
-    labelKey: "settingsTabs.access",
-    to: settingsAccessRoute,
-    end: false,
-    requiresTestMode: false,
-  },
-  {
-    key: "test",
-    labelKey: "settingsTabs.test",
-    to: settingsTestRoute,
-    end: false,
-    requiresTestMode: true,
-  },
-] as const;
-
 export function SettingsShell(props: SettingsShellProps): ReactElement {
   const { title, subtitle, activeTab, children, panelClassName } = props;
-  const { t } = useI18n();
-  const { isTestModeEnabled } = useTestMode();
-  const visibleSettingsTabs = settingsTabs.filter((tab) => tab.requiresTestMode === false || isTestModeEnabled);
   const settingsPanelClassName = panelClassName === undefined
     ? "panel settings-panel"
     : `panel settings-panel ${panelClassName}`;
 
   return (
     <main className="container settings-page">
-      <section className={settingsPanelClassName}>
-        <nav className="settings-switcher" aria-label={t("settingsTabs.ariaLabel")} data-active-tab={activeTab}>
-          {visibleSettingsTabs.map((tab) => (
-            <NavLink
-              key={tab.key}
-              className={({ isActive }) => `settings-switcher-link${isActive ? " settings-switcher-link-active" : ""}`}
-              to={tab.to}
-              end={tab.end}
-            >
-              {t(tab.labelKey)}
-            </NavLink>
-          ))}
-        </nav>
-
+      <section className={settingsPanelClassName} data-active-tab={activeTab}>
         <div className="screen-head">
           <div>
             <h1 className="panel-subtitle">{title}</h1>

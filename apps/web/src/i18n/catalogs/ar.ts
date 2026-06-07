@@ -197,10 +197,20 @@ const arCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "الإعدادات",
-    subtitle: "أدر مساحة العمل الحالية والحساب وهذا الجهاز ووصول المتصفح.",
+    subtitle: "أدر الحساب ومساحة العمل والدعم وإعدادات الويب المتقدمة.",
+    groups: {
+      account: "الحساب",
+      general: "عام",
+      support: "الدعم",
+      advanced: "متقدم",
+    },
     currentWorkspace: {
       title: "مساحة العمل الحالية",
       description: "غيّر مساحة العمل النشطة أو أنشئ مساحة عمل جديدة لهذا الحساب.",
+    },
+    language: {
+      title: "اللغة",
+      description: "اختر لغة التطبيق لهذا المتصفح.",
     },
     workspaceSettings: {
       title: "إعدادات مساحة العمل",
@@ -213,7 +223,7 @@ const arCatalog: TranslationCatalog = {
       value: "الحساب",
     },
     device: {
-      title: "هذا الجهاز",
+      title: "هذا الجهاز / التشخيصات",
       description: "راجع المتصفح والإصدار والبناء وتفاصيل مساحة العمل المحلية على الجهاز.",
       value: "الجهاز",
     },
@@ -226,6 +236,16 @@ const arCatalog: TranslationCatalog = {
       title: "إرسال ملاحظات",
       description: "شارك فكرة لتحسين التطبيق.",
       value: "فتح",
+    },
+    server: {
+      title: "الخادم",
+      description: "يستخدم عميل المتصفح نشر الويب المستضاف. لا يتوفر تبديل الخادم المخصص في إعدادات الويب.",
+      value: "مستضاف",
+    },
+    deleteCurrentWorkspace: {
+      title: "حذف مساحة العمل الحالية",
+      description: "احذف مساحة العمل النشطة وجميع البطاقات والمجموعات والمراجعات وسجل المزامنة داخلها نهائيًا.",
+      value: "حذف",
     },
     testGroupTitle: "اختبار",
     test: {
@@ -252,7 +272,7 @@ const arCatalog: TranslationCatalog = {
     createWorkspace: "أنشئ مساحة عمل",
   },
   settingsDevice: {
-    title: "هذا الجهاز",
+    title: "هذا الجهاز / التشخيصات",
     subtitle: "راجع سلوك المتصفح المحلي والتخزين وتفاصيل الجهاز لمساحة العمل الحالية.",
     languageCardTitle: "تجاوز اللغة",
     languageCardDescription: "اختر لغة التطبيق لهذا المتصفح فقط. يبقى هذا التفضيل محليًا على هذا الجهاز.",
@@ -323,7 +343,7 @@ const arCatalog: TranslationCatalog = {
     },
     dangerZoneGroupTitle: "منطقة الخطر",
     resetProgress: {
-      title: "إعادة تعيين كل التقدم",
+      title: "إعادة تعيين تقدم الدراسة",
       description: "أعد تعيين تقدم الدراسة لكل بطاقة نشطة في مساحة العمل هذه.",
       value: "إعادة تعيين",
       availabilityHint: "تتوافر إعادة تعيين كل التقدم فقط لمساحات العمل السحابية المرتبطة.",
@@ -388,7 +408,7 @@ const arCatalog: TranslationCatalog = {
     },
   },
   workspaceScheduler: {
-    title: "الجدولة",
+    title: "الجدولة / FSRS",
     subtitle: "راجع إعدادات الجدولة المستخدمة للمراجعات القادمة.",
     schedulerLabel: "الجدولة",
     labels: {
@@ -416,9 +436,9 @@ const arCatalog: TranslationCatalog = {
     exportButton: "تصدير CSV",
   },
   notificationsSettings: {
-    title: "الإشعارات",
-    subtitle: "تبقى تفضيلات الإشعارات مرتبطة بمساحة العمل هذه، لكن يتم ضبط التذكيرات فقط على الجهاز الذي تريد استلامها عليه.",
-    cardTitle: "أعد الإشعارات على iPhone أو Android",
+    title: "تذكيرات المراجعة",
+    subtitle: "تبقى تفضيلات تذكيرات المراجعة مرتبطة بمساحة العمل هذه، لكن يتم ضبط التذكيرات فقط على الجهاز الذي تريد استلامها عليه.",
+    cardTitle: "أعد تذكيرات المراجعة على iPhone أو Android",
     paragraphOne: "تنتمي إعدادات تذكير المراجعة إلى مساحة العمل هذه، لكنها تُفعَّل وتُدار بشكل منفصل على كل جهاز.",
     paragraphTwo: "إذا كنت تريد إشعارات الدراسة، فافتح مساحة العمل هذه على جهاز iPhone أو Android الذي تريد استلامها عليه واضبط الإشعارات هناك.",
     paragraphThree: "لا يدعم تطبيق الويب الإشعارات، لذلك لا توجد عناصر تحكم بالإشعارات في هذه الشاشة.",

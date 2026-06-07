@@ -197,10 +197,20 @@ const hiCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "सेटिंग्स",
-    subtitle: "मौजूदा वर्कस्पेस, खाते, इस डिवाइस और ब्राउज़र एक्सेस को मैनेज करें।",
+    subtitle: "खाता, वर्कस्पेस, सहायता और उन्नत वेब सेटिंग्स मैनेज करें।",
+    groups: {
+      account: "खाता",
+      general: "सामान्य",
+      support: "सहायता",
+      advanced: "उन्नत",
+    },
     currentWorkspace: {
       title: "मौजूदा वर्कस्पेस",
       description: "सक्रिय वर्कस्पेस बदलें या इस खाते के लिए नया वर्कस्पेस बनाएँ।",
+    },
+    language: {
+      title: "भाषा",
+      description: "इस ब्राउज़र के लिए ऐप भाषा चुनें।",
     },
     workspaceSettings: {
       title: "वर्कस्पेस सेटिंग्स",
@@ -213,7 +223,7 @@ const hiCatalog: TranslationCatalog = {
       value: "खाता",
     },
     device: {
-      title: "यह डिवाइस",
+      title: "यह डिवाइस / डायग्नॉस्टिक्स",
       description: "ब्राउज़र, बिल्ड, स्टोरेज और डिवाइस-लोकल वर्कस्पेस विवरण देखें।",
       value: "डिवाइस",
     },
@@ -226,6 +236,16 @@ const hiCatalog: TranslationCatalog = {
       title: "फ़ीडबैक भेजें",
       description: "ऐप को बेहतर बनाने के लिए कोई विचार साझा करें।",
       value: "खोलें",
+    },
+    server: {
+      title: "सर्वर",
+      description: "ब्राउज़र क्लाइंट होस्टेड वेब डिप्लॉयमेंट का उपयोग करता है। वेब सेटिंग्स में कस्टम सर्वर बदलना उपलब्ध नहीं है।",
+      value: "होस्टेड",
+    },
+    deleteCurrentWorkspace: {
+      title: "मौजूदा वर्कस्पेस हटाएँ",
+      description: "सक्रिय वर्कस्पेस और उसके सभी कार्ड, डेक, रिव्यू और सिंक इतिहास को स्थायी रूप से हटा दें।",
+      value: "हटाएँ",
     },
     testGroupTitle: "टेस्ट",
     test: {
@@ -252,7 +272,7 @@ const hiCatalog: TranslationCatalog = {
     createWorkspace: "वर्कस्पेस बनाएँ",
   },
   settingsDevice: {
-    title: "यह डिवाइस",
+    title: "यह डिवाइस / डायग्नॉस्टिक्स",
     subtitle: "मौजूदा वर्कस्पेस के लिए ब्राउज़र-लोकल व्यवहार, स्टोरेज और डिवाइस विवरण देखें।",
     languageCardTitle: "भाषा ओवरराइड",
     languageCardDescription: "सिर्फ इस ब्राउज़र के लिए ऐप भाषा चुनें। यह वरीयता इसी डिवाइस पर स्थानीय रहेगी।",
@@ -323,7 +343,7 @@ const hiCatalog: TranslationCatalog = {
     },
     dangerZoneGroupTitle: "खतरे का क्षेत्र",
     resetProgress: {
-      title: "सारी प्रगति रीसेट करें",
+      title: "अध्ययन प्रगति रीसेट करें",
       description: "इस वर्कस्पेस के हर सक्रिय कार्ड की अध्ययन प्रगति रीसेट करें।",
       value: "रीसेट",
       availabilityHint: "सारी प्रगति रीसेट करना केवल लिंक किए गए क्लाउड वर्कस्पेस के लिए उपलब्ध है।",
@@ -388,7 +408,7 @@ const hiCatalog: TranslationCatalog = {
     },
   },
   workspaceScheduler: {
-    title: "शेड्यूलर",
+    title: "शेड्यूलिंग / FSRS",
     subtitle: "आने वाले रिव्यू के लिए उपयोग की जाने वाली शेड्यूलर कॉन्फ़िगरेशन देखें।",
     schedulerLabel: "शेड्यूलर",
     labels: {
@@ -416,9 +436,9 @@ const hiCatalog: TranslationCatalog = {
     exportButton: "CSV एक्सपोर्ट करें",
   },
   notificationsSettings: {
-    title: "सूचनाएं",
-    subtitle: "सूचना वरीयताएं इस वर्कस्पेस से जुड़ी रहती हैं, लेकिन रिमाइंडर सिर्फ उसी डिवाइस पर कॉन्फ़िगर किए जाते हैं जहाँ आप उन्हें पाना चाहते हैं।",
-    cardTitle: "iPhone या Android पर सूचनाएं सेट करें",
+    title: "रिव्यू रिमाइंडर",
+    subtitle: "रिव्यू रिमाइंडर वरीयताएं इस वर्कस्पेस से जुड़ी रहती हैं, लेकिन रिमाइंडर सिर्फ उसी डिवाइस पर कॉन्फ़िगर किए जाते हैं जहाँ आप उन्हें पाना चाहते हैं।",
+    cardTitle: "iPhone या Android पर रिव्यू रिमाइंडर सेट करें",
     paragraphOne: "रिव्यू रिमाइंडर सेटिंग्स इस वर्कस्पेस की हैं, लेकिन उन्हें हर डिवाइस पर अलग से चालू और मैनेज किया जाता है।",
     paragraphTwo: "अगर आप अध्ययन सूचनाएं चाहते हैं, तो इस वर्कस्पेस को उस iPhone या Android डिवाइस पर खोलें जहाँ आप उन्हें पाना चाहते हैं और वहीं सूचनाएं कॉन्फ़िगर करें।",
     paragraphThree: "वेब ऐप सूचनाओं का समर्थन नहीं करती, इसलिए इस स्क्रीन पर कोई सूचना नियंत्रण नहीं है।",
