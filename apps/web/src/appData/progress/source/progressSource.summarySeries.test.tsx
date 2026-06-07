@@ -8,6 +8,7 @@ import {
   flushEffects,
   hasPendingProgressReviewEventsMock,
   linkedCloudSettings,
+  loadLocalProgressActiveDatesMock,
   loadLocalProgressDailyReviewsMock,
   loadLocalProgressSummaryMock,
   loadPendingProgressDailyReviewsMock,
@@ -88,7 +89,8 @@ describe("useProgressSource summary and series", () => {
     await flushEffects();
 
     expect(harness.getApi().progressSourceState.summary.serverBase?.source).toBe("server");
-    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.source).toBe("local_only");
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.source).toBe("server");
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.isApproximate).toBe(true);
     expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(8);
   });
 
@@ -167,6 +169,320 @@ describe("useProgressSource summary and series", () => {
     });
   });
 
+  it("extends a long server streak when local review history adds today", async () => {
+    const currentSeriesInput = buildCurrentSeriesInput();
+    loadProgressSummaryMock.mockResolvedValue({
+      timeZone: "Europe/Madrid",
+      generatedAt: "2026-04-20T09:15:00.000Z",
+      reviewHistoryWatermarks: [
+        { workspaceId: "workspace-1", reviewSequenceId: 42 },
+      ],
+      summary: {
+        currentStreakDays: 200,
+        hasReviewedToday: false,
+        lastReviewedOn: "2026-04-19",
+        activeReviewDays: 200,
+      },
+    });
+    loadProgressSeriesMock.mockResolvedValue({
+      timeZone: currentSeriesInput.timeZone,
+      from: currentSeriesInput.from,
+      to: currentSeriesInput.to,
+      generatedAt: "2026-04-20T09:15:00.000Z",
+      reviewHistoryWatermarks: [
+        { workspaceId: "workspace-1", reviewSequenceId: 42 },
+      ],
+      dailyReviews: [
+        {
+          date: "2026-04-19",
+          reviewCount: 1,
+        },
+      ],
+    });
+    loadLocalProgressSummaryMock.mockResolvedValue({
+      currentStreakDays: 1,
+      hasReviewedToday: true,
+      lastReviewedOn: "2026-04-20",
+      activeReviewDays: 1,
+    });
+    loadLocalProgressActiveDatesMock.mockResolvedValue(["2026-04-20"]);
+    loadLocalProgressDailyReviewsMock.mockResolvedValue([
+      {
+        date: "2026-04-20",
+        reviewCount: 1,
+      },
+    ]);
+
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: summaryAndSeriesSections,
+    });
+
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.source).toBe("server");
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.isApproximate).toBe(true);
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary).toEqual({
+      currentStreakDays: 201,
+      hasReviewedToday: true,
+      lastReviewedOn: "2026-04-20",
+      activeReviewDays: 201,
+    });
+  });
+
+  it("extends a long server streak through consecutive local active dates", async () => {
+    const currentSeriesInput = buildCurrentSeriesInput();
+    loadProgressSummaryMock.mockResolvedValue({
+      timeZone: "Europe/Madrid",
+      generatedAt: "2026-04-20T09:15:00.000Z",
+      reviewHistoryWatermarks: [
+        { workspaceId: "workspace-1", reviewSequenceId: 42 },
+      ],
+      summary: {
+        currentStreakDays: 200,
+        hasReviewedToday: false,
+        lastReviewedOn: "2026-04-18",
+        activeReviewDays: 200,
+      },
+    });
+    loadProgressSeriesMock.mockResolvedValue({
+      timeZone: currentSeriesInput.timeZone,
+      from: currentSeriesInput.from,
+      to: currentSeriesInput.to,
+      generatedAt: "2026-04-20T09:15:00.000Z",
+      reviewHistoryWatermarks: [
+        { workspaceId: "workspace-1", reviewSequenceId: 42 },
+      ],
+      dailyReviews: [
+        {
+          date: "2026-04-18",
+          reviewCount: 1,
+        },
+      ],
+    });
+    loadLocalProgressSummaryMock.mockResolvedValue({
+      currentStreakDays: 2,
+      hasReviewedToday: true,
+      lastReviewedOn: "2026-04-20",
+      activeReviewDays: 2,
+    });
+    loadLocalProgressActiveDatesMock.mockResolvedValue([
+      "2026-04-19",
+      "2026-04-20",
+    ]);
+    loadLocalProgressDailyReviewsMock.mockResolvedValue([
+      {
+        date: "2026-04-19",
+        reviewCount: 1,
+      },
+      {
+        date: "2026-04-20",
+        reviewCount: 1,
+      },
+    ]);
+
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: summaryAndSeriesSections,
+    });
+
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary).toEqual({
+      currentStreakDays: 202,
+      hasReviewedToday: true,
+      lastReviewedOn: "2026-04-20",
+      activeReviewDays: 202,
+    });
+  });
+
+  it("adds local active dates after server last reviewed even outside the visible chart range", async () => {
+    const currentSeriesInput = buildCurrentSeriesInput();
+    loadProgressSummaryMock.mockResolvedValue({
+      timeZone: "Europe/Madrid",
+      generatedAt: "2026-04-20T09:15:00.000Z",
+      reviewHistoryWatermarks: [
+        { workspaceId: "workspace-1", reviewSequenceId: 42 },
+      ],
+      summary: {
+        currentStreakDays: 0,
+        hasReviewedToday: false,
+        lastReviewedOn: "2025-11-15",
+        activeReviewDays: 200,
+      },
+    });
+    loadProgressSeriesMock.mockResolvedValue({
+      timeZone: currentSeriesInput.timeZone,
+      from: currentSeriesInput.from,
+      to: currentSeriesInput.to,
+      generatedAt: "2026-04-20T09:15:00.000Z",
+      reviewHistoryWatermarks: [
+        { workspaceId: "workspace-1", reviewSequenceId: 42 },
+      ],
+      dailyReviews: [],
+    });
+    loadLocalProgressSummaryMock.mockResolvedValue({
+      currentStreakDays: 0,
+      hasReviewedToday: false,
+      lastReviewedOn: "2025-11-16",
+      activeReviewDays: 1,
+    });
+    loadLocalProgressActiveDatesMock.mockResolvedValue(["2025-11-16"]);
+    loadLocalProgressDailyReviewsMock.mockResolvedValue([]);
+
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: summaryAndSeriesSections,
+    });
+
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary).toEqual({
+      currentStreakDays: 0,
+      hasReviewedToday: false,
+      lastReviewedOn: "2025-11-16",
+      activeReviewDays: 201,
+    });
+  });
+
+  it("does not double-count today when server summary already includes it", async () => {
+    const currentSeriesInput = buildCurrentSeriesInput();
+    loadProgressSummaryMock.mockResolvedValue({
+      timeZone: "Europe/Madrid",
+      generatedAt: "2026-04-20T09:15:00.000Z",
+      reviewHistoryWatermarks: [
+        { workspaceId: "workspace-1", reviewSequenceId: 42 },
+      ],
+      summary: {
+        currentStreakDays: 200,
+        hasReviewedToday: true,
+        lastReviewedOn: "2026-04-20",
+        activeReviewDays: 200,
+      },
+    });
+    loadProgressSeriesMock.mockResolvedValue({
+      timeZone: currentSeriesInput.timeZone,
+      from: currentSeriesInput.from,
+      to: currentSeriesInput.to,
+      generatedAt: "2026-04-20T09:15:00.000Z",
+      reviewHistoryWatermarks: [
+        { workspaceId: "workspace-1", reviewSequenceId: 42 },
+      ],
+      dailyReviews: [
+        {
+          date: "2026-04-20",
+          reviewCount: 1,
+        },
+      ],
+    });
+    loadLocalProgressSummaryMock.mockResolvedValue({
+      currentStreakDays: 1,
+      hasReviewedToday: true,
+      lastReviewedOn: "2026-04-20",
+      activeReviewDays: 1,
+    });
+    loadLocalProgressActiveDatesMock.mockResolvedValue(["2026-04-20"]);
+    loadLocalProgressDailyReviewsMock.mockResolvedValue([
+      {
+        date: "2026-04-20",
+        reviewCount: 1,
+      },
+    ]);
+
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: summaryAndSeriesSections,
+    });
+
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.source).toBe("server");
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.isApproximate).toBe(false);
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary).toEqual({
+      currentStreakDays: 200,
+      hasReviewedToday: true,
+      lastReviewedOn: "2026-04-20",
+      activeReviewDays: 200,
+    });
+  });
+
+  it("keeps disjoint visible server and local days consistent between chart and summary", async () => {
+    const currentSeriesInput = buildCurrentSeriesInput();
+    loadProgressSummaryMock.mockResolvedValue({
+      timeZone: "Europe/Madrid",
+      generatedAt: "2026-04-20T09:15:00.000Z",
+      reviewHistoryWatermarks: [
+        { workspaceId: "workspace-1", reviewSequenceId: 42 },
+      ],
+      summary: {
+        currentStreakDays: 0,
+        hasReviewedToday: false,
+        lastReviewedOn: "2026-04-18",
+        activeReviewDays: 200,
+      },
+    });
+    loadProgressSeriesMock.mockResolvedValue({
+      timeZone: currentSeriesInput.timeZone,
+      from: currentSeriesInput.from,
+      to: currentSeriesInput.to,
+      generatedAt: "2026-04-20T09:15:00.000Z",
+      reviewHistoryWatermarks: [
+        { workspaceId: "workspace-1", reviewSequenceId: 42 },
+      ],
+      dailyReviews: [
+        {
+          date: "2026-04-18",
+          reviewCount: 1,
+        },
+      ],
+    });
+    loadLocalProgressSummaryMock.mockResolvedValue({
+      currentStreakDays: 1,
+      hasReviewedToday: false,
+      lastReviewedOn: "2026-04-19",
+      activeReviewDays: 1,
+    });
+    loadLocalProgressActiveDatesMock.mockResolvedValue(["2026-04-19"]);
+    loadLocalProgressDailyReviewsMock.mockResolvedValue([
+      {
+        date: "2026-04-19",
+        reviewCount: 1,
+      },
+    ]);
+
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: summaryAndSeriesSections,
+    });
+
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary).toEqual({
+      currentStreakDays: 2,
+      hasReviewedToday: false,
+      lastReviewedOn: "2026-04-19",
+      activeReviewDays: 201,
+    });
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
+      date: "2026-04-18",
+      reviewCount: 1,
+    });
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
+      date: "2026-04-19",
+      reviewCount: 1,
+    });
+  });
+
   it("renders server series with pending local review overlay as approximate", async () => {
     const currentSeriesInput = buildCurrentSeriesInput();
     loadProgressSeriesMock.mockResolvedValue(buildServerSeries(4, "2026-04-18T09:18:00.000Z"));
@@ -210,6 +526,7 @@ describe("useProgressSource summary and series", () => {
 
     expect(loadProgressSummaryMock).toHaveBeenCalledTimes(1);
     expect(loadLocalProgressSummaryMock).toHaveBeenCalledTimes(1);
+    expect(loadLocalProgressActiveDatesMock).toHaveBeenCalledTimes(1);
     expect(hasPendingProgressReviewEventsMock).toHaveBeenCalledTimes(1);
     expect(loadProgressSeriesMock).not.toHaveBeenCalled();
     expect(loadLocalProgressDailyReviewsMock).not.toHaveBeenCalled();

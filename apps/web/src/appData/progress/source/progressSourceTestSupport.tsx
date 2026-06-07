@@ -34,6 +34,7 @@ const progressSourceMocks = vi.hoisted(() => ({
   loadProgressSeriesMock: vi.fn<(input: Readonly<{ timeZone: string; from: string; to: string }>) => Promise<ProgressSeries>>(),
   loadProgressReviewScheduleMock: vi.fn<(input: Readonly<{ timeZone: string; today: string }>) => Promise<ProgressReviewSchedule>>(),
   hasPendingProgressReviewEventsMock: vi.fn<(workspaceIds: ReadonlyArray<string>) => Promise<boolean>>(),
+  loadLocalProgressActiveDatesMock: vi.fn<(workspaceIds: ReadonlyArray<string>, timeZone: string) => Promise<ReadonlyArray<string>>>(),
   loadLocalProgressSummaryMock: vi.fn<(workspaceIds: ReadonlyArray<string>, input: Readonly<{ timeZone: string; today: string }>) => Promise<ProgressSummary>>(),
   loadLocalProgressDailyReviewsMock: vi.fn<(workspaceIds: ReadonlyArray<string>, input: Readonly<{ timeZone: string; from: string; to: string }>) => Promise<ReadonlyArray<Readonly<{ date: string; reviewCount: number }>>>>(),
   loadPendingProgressDailyReviewsMock: vi.fn<(workspaceIds: ReadonlyArray<string>, input: Readonly<{ timeZone: string; from: string; to: string }>) => Promise<ReadonlyArray<Readonly<{ date: string; reviewCount: number }>>>>(),
@@ -52,6 +53,7 @@ const {
   loadProgressSeriesMock,
   loadProgressReviewScheduleMock,
   hasPendingProgressReviewEventsMock,
+  loadLocalProgressActiveDatesMock,
   loadLocalProgressSummaryMock,
   loadLocalProgressDailyReviewsMock,
   loadPendingProgressDailyReviewsMock,
@@ -87,6 +89,7 @@ vi.mock("../../../observability/webObservability", () => ({
 
 vi.mock("../../../localDb/progress/progress", () => ({
   hasPendingProgressReviewEvents: progressSourceMocks.hasPendingProgressReviewEventsMock,
+  loadLocalProgressActiveDates: progressSourceMocks.loadLocalProgressActiveDatesMock,
   loadLocalProgressSummary: progressSourceMocks.loadLocalProgressSummaryMock,
   loadLocalProgressDailyReviews: progressSourceMocks.loadLocalProgressDailyReviewsMock,
   loadPendingProgressDailyReviews: progressSourceMocks.loadPendingProgressDailyReviewsMock,
@@ -518,6 +521,7 @@ beforeEach(() => {
   loadProgressSeriesMock.mockReset();
   loadProgressReviewScheduleMock.mockReset();
   hasPendingProgressReviewEventsMock.mockReset();
+  loadLocalProgressActiveDatesMock.mockReset();
   loadLocalProgressSummaryMock.mockReset();
   loadLocalProgressDailyReviewsMock.mockReset();
   loadPendingProgressDailyReviewsMock.mockReset();
@@ -539,6 +543,7 @@ beforeEach(() => {
     lastReviewedOn: null,
     activeReviewDays: 0,
   });
+  loadLocalProgressActiveDatesMock.mockResolvedValue([]);
   loadLocalProgressDailyReviewsMock.mockResolvedValue([]);
   loadPendingProgressDailyReviewsMock.mockResolvedValue([]);
   loadLocalProgressReviewScheduleMock.mockResolvedValue(buildServerReviewSchedule(0, null));
@@ -568,6 +573,7 @@ export {
   hasCompleteLocalProgressReviewScheduleCoverageMock,
   hasPendingProgressReviewEventsMock,
   hasPendingProgressReviewScheduleCardChangesMock,
+  loadLocalProgressActiveDatesMock,
   loadLocalProgressDailyReviewsMock,
   loadLocalProgressReviewScheduleMock,
   loadLocalProgressSummaryMock,

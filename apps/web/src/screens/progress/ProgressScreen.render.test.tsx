@@ -243,9 +243,12 @@ describe("ProgressScreen", () => {
       progressSourceState: {
         summary: {
           scopeKey: "progress::summary::UTC::2026-04-21",
+          referenceLocalDate: "2026-04-21",
           localFallback: null,
+          localFallbackActiveDates: [],
           serverBase: createProgressSummarySnapshot(),
           hasPendingLocalReviews: false,
+          renderedSeriesContext: null,
           renderedSnapshot: createProgressSummarySnapshot(),
           isLoading: false,
           errorMessage: "",
@@ -474,9 +477,12 @@ describe("ProgressScreen", () => {
       progressSourceState: {
         summary: {
           scopeKey: "progress::summary::UTC::2026-04-21",
+          referenceLocalDate: "2026-04-21",
           localFallback: null,
+          localFallbackActiveDates: [],
           serverBase: createProgressSummarySnapshot(),
           hasPendingLocalReviews: false,
+          renderedSeriesContext: null,
           renderedSnapshot: createProgressSummarySnapshot(),
           isLoading: false,
           errorMessage: "",

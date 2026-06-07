@@ -20,6 +20,7 @@ import {
 } from "../../../observability/webObservability";
 import {
   hasPendingProgressReviewEvents,
+  loadLocalProgressActiveDates,
   loadLocalProgressDailyReviews,
   loadLocalProgressSummary,
   loadPendingProgressDailyReviews,
@@ -258,16 +259,20 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     dispatch({
       type: "summary_scope_initialized",
       scopeKey: summaryScopeKey,
+      referenceLocalDate: summaryInput.today,
       serverBase: persistedSummary === null ? null : createProgressSummarySnapshot(persistedSummary, "server", false),
       canRenderServerBase: canLoadServerBaseRef.current,
     });
-  }, [canLoadServerBase, summaryScopeKey]);
+  }, [canLoadServerBase, summaryInput.today, summaryScopeKey]);
 
   useEffect(() => {
     currentSeriesScopeKeyRef.current = seriesScopeKey;
 
     if (seriesScopeKey === null) {
-      dispatch({ type: "series_scope_reset" });
+      dispatch({
+        type: "series_scope_reset",
+        canRenderServerBase: canLoadServerBaseRef.current,
+      });
       return;
     }
 
@@ -316,8 +321,9 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
 
     void Promise.all([
       loadLocalProgressSummary(accessibleWorkspaceIds, summaryInput),
+      loadLocalProgressActiveDates(accessibleWorkspaceIds, summaryInput.timeZone),
       hasPendingProgressReviewEvents(accessibleWorkspaceIds),
-    ]).then(([localSummary, hasPendingLocalReviews]) => {
+    ]).then(([localSummary, localFallbackActiveDates, hasPendingLocalReviews]) => {
       if (currentSummaryScopeKeyRef.current !== summaryScopeKey || summaryLocalLoadSequenceRef.current !== currentSequence) {
         return;
       }
@@ -331,6 +337,7 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
           reviewHistoryWatermarks: [],
           summary: localSummary,
         }, "local_only", true),
+        localFallbackActiveDates,
         hasPendingLocalReviews,
         canRenderServerBase: canLoadServerBaseRef.current,
       });

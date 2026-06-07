@@ -52,14 +52,20 @@ function createEmptyProgressSummary(): ProgressSummary {
   };
 }
 
+function buildProgressActiveDates(
+  dailyReviewCounts: ReadonlyMap<string, number>,
+): ReadonlyArray<string> {
+  return [...dailyReviewCounts.entries()]
+    .filter(([, reviewCount]) => reviewCount > 0)
+    .map(([date]) => date)
+    .sort((leftDate, rightDate) => leftDate.localeCompare(rightDate));
+}
+
 function buildProgressSummary(
   today: string,
   dailyReviewCounts: ReadonlyMap<string, number>,
 ): ProgressSummary {
-  const reviewDates = [...dailyReviewCounts.entries()]
-    .filter(([, reviewCount]) => reviewCount > 0)
-    .map(([date]) => date)
-    .sort((leftDate, rightDate) => leftDate.localeCompare(rightDate));
+  const reviewDates = buildProgressActiveDates(dailyReviewCounts);
 
   if (reviewDates.length === 0) {
     return createEmptyProgressSummary();
@@ -209,6 +215,26 @@ export async function loadLocalProgressSummary(
     ).flat();
 
     return buildProgressSummary(input.today, buildMergedDailyReviewMap(progressDailyCounts));
+  });
+}
+
+export async function loadLocalProgressActiveDates(
+  workspaceIds: ReadonlyArray<string>,
+  timeZone: string,
+): Promise<ReadonlyArray<string>> {
+  if (workspaceIds.length === 0) {
+    return [];
+  }
+
+  return closeDatabaseAfter(async (database) => {
+    await ensureLocalProgressCacheReady(database, timeZone);
+    const progressDailyCounts = (
+      await Promise.all(
+        workspaceIds.map((workspaceId) => loadWorkspaceProgressDailyCounts(database, workspaceId, null)),
+      )
+    ).flat();
+
+    return buildProgressActiveDates(buildMergedDailyReviewMap(progressDailyCounts));
   });
 }
 
