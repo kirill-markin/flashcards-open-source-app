@@ -197,7 +197,7 @@ export function AccountMenu(props: Props): ReactElement {
           )}
           <div className="account-menu-separator" />
           <a className="account-menu-item account-menu-link" href={accountSettingsUrl}>
-            {t("accountMenu.accountSettings")}
+            {t("navigation.settings")}
           </a>
           <a className="account-menu-item account-menu-link" href={logoutUrl}>
             {t("accountMenu.logout")}
