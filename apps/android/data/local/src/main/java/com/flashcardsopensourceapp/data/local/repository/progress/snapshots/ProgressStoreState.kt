@@ -25,6 +25,9 @@ internal data class ProgressSummaryStoreInputs(
     val localDayCounts: List<ProgressLocalDayCountEntity>,
     val isLocalCacheReady: Boolean,
     val serverBase: CloudProgressSummary?,
+    val seriesScopeKey: ProgressSeriesScopeKey,
+    val seriesServerBase: CloudProgressSeries?,
+    val pendingReviewLocalDates: List<ProgressPendingReviewLocalDate>,
     val reviewHistoryFingerprint: String,
     val syncStatus: SyncStatusSnapshot,
     val today: LocalDate
@@ -87,6 +90,15 @@ internal data class ProgressReviewScheduleStoreState(
 internal fun createProgressSummaryStoreState(
     inputs: ProgressSummaryStoreInputs
 ): ProgressSummaryStoreState {
+    val localFallbackActiveDates = if (inputs.isLocalCacheReady) {
+        createLocalFallbackActiveDates(
+            scopeKey = inputs.scopeKey,
+            localDayCounts = inputs.localDayCounts,
+            workspaceIds = inputs.workspaceIds
+        )
+    } else {
+        emptySet()
+    }
     val localFallback = if (inputs.isLocalCacheReady) {
         createLocalFallbackSummary(
             scopeKey = inputs.scopeKey,
@@ -97,6 +109,32 @@ internal fun createProgressSummaryStoreState(
     } else {
         createEmptyProgressSummary()
     }
+    val renderedSeriesContext = if (inputs.isLocalCacheReady) {
+        val localFallbackSeries = createLocalFallbackSeries(
+            scopeKey = inputs.seriesScopeKey,
+            localDayCounts = inputs.localDayCounts,
+            workspaceIds = inputs.workspaceIds
+        )
+        val pendingLocalOverlay = createPendingLocalOverlaySeries(
+            scopeKey = inputs.seriesScopeKey,
+            pendingReviewLocalDates = inputs.pendingReviewLocalDates,
+            workspaceIds = inputs.workspaceIds
+        )
+        val renderedSeries = createProgressSeriesSnapshot(
+            scopeKey = inputs.seriesScopeKey,
+            localFallback = localFallbackSeries,
+            serverBase = inputs.seriesServerBase,
+            pendingLocalOverlay = pendingLocalOverlay,
+            cloudState = inputs.cloudState
+        ).renderedSeries
+        createProgressRenderedSeriesSummaryContext(
+            serverBase = inputs.seriesServerBase,
+            scopeKey = inputs.seriesScopeKey,
+            renderedSeries = renderedSeries
+        )
+    } else {
+        null
+    }
     return ProgressSummaryStoreState(
         scopeKey = inputs.scopeKey,
         cloudState = inputs.cloudState,
@@ -104,7 +142,9 @@ internal fun createProgressSummaryStoreState(
             createProgressSummarySnapshot(
                 scopeKey = inputs.scopeKey,
                 localFallback = localFallback,
+                localFallbackActiveDates = localFallbackActiveDates,
                 serverBase = inputs.serverBase,
+                renderedSeriesContext = renderedSeriesContext,
                 cloudState = inputs.cloudState
             )
         } else {
