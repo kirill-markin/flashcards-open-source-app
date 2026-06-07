@@ -239,9 +239,6 @@ class CloudGuestSessionCoordinator(
             require(createSessionIfMissing) {
                 "Guest AI session is unavailable."
             }
-            if (activeRecoveryState != null) {
-                throw CloudCredentialRecoveryRequiredException(recoveryState = activeRecoveryState)
-            }
             // A missing stored session here means we already crossed a full
             // local identity reset boundary such as logout or account deletion.
             // The recreated guest session must therefore be treated as a brand
