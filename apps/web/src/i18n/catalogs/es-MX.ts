@@ -197,10 +197,20 @@ const esMxCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Configuración",
-    subtitle: "Administra el espacio de trabajo actual, la cuenta, este dispositivo y el acceso del navegador.",
+    subtitle: "Administra la cuenta, el espacio de trabajo, el soporte y la configuración web avanzada.",
+    groups: {
+      account: "Cuenta",
+      general: "General",
+      support: "Soporte",
+      advanced: "Avanzado",
+    },
     currentWorkspace: {
       title: "Espacio de trabajo actual",
       description: "Cambia el espacio de trabajo activo o crea uno nuevo para esta cuenta.",
+    },
+    language: {
+      title: "Idioma",
+      description: "Elige el idioma de la app para este navegador.",
     },
     workspaceSettings: {
       title: "Configuración del espacio de trabajo",
@@ -213,7 +223,7 @@ const esMxCatalog: TranslationCatalog = {
       value: "Cuenta",
     },
     device: {
-      title: "Este dispositivo",
+      title: "Este dispositivo / diagnósticos",
       description: "Revisa el navegador, la build, el almacenamiento y los detalles locales del espacio de trabajo.",
       value: "Dispositivo",
     },
@@ -226,6 +236,16 @@ const esMxCatalog: TranslationCatalog = {
       title: "Enviar comentarios",
       description: "Comparte una idea para mejorar la app.",
       value: "Abrir",
+    },
+    server: {
+      title: "Servidor",
+      description: "El cliente del navegador usa la implementación web alojada. El cambio de servidor personalizado no está disponible en la configuración web.",
+      value: "Alojado",
+    },
+    deleteCurrentWorkspace: {
+      title: "Eliminar espacio de trabajo actual",
+      description: "Elimina permanentemente el espacio de trabajo activo y todas las tarjetas, mazos, repasos e historial de sincronización que contiene.",
+      value: "Eliminar",
     },
     testGroupTitle: "Prueba",
     test: {
@@ -252,7 +272,7 @@ const esMxCatalog: TranslationCatalog = {
     createWorkspace: "Crear espacio de trabajo",
   },
   settingsDevice: {
-    title: "Este dispositivo",
+    title: "Este dispositivo / diagnósticos",
     subtitle: "Revisa el comportamiento local del navegador, el almacenamiento y los detalles del dispositivo para el espacio de trabajo actual.",
     languageCardTitle: "Idioma de la app",
     languageCardDescription: "Elige el idioma de la app solo para este navegador. Esta preferencia se guarda únicamente en este dispositivo.",
@@ -323,7 +343,7 @@ const esMxCatalog: TranslationCatalog = {
     },
     dangerZoneGroupTitle: "Zona de peligro",
     resetProgress: {
-      title: "Restablecer todo el progreso",
+      title: "Restablecer progreso de estudio",
       description: "Restablece el progreso de estudio de cada tarjeta activa de este espacio de trabajo.",
       value: "Restablecer",
       availabilityHint: "Restablecer todo el progreso solo está disponible para espacios de trabajo vinculados en la nube.",
@@ -388,7 +408,7 @@ const esMxCatalog: TranslationCatalog = {
     },
   },
   workspaceScheduler: {
-    title: "Programador",
+    title: "Programación / FSRS",
     subtitle: "Revisa la configuración del programador que se usará en futuros repasos.",
     schedulerLabel: "Programador",
     labels: {
@@ -416,9 +436,9 @@ const esMxCatalog: TranslationCatalog = {
     exportButton: "Exportar CSV",
   },
   notificationsSettings: {
-    title: "Notificaciones",
-    subtitle: "Las preferencias de notificaciones siguen asociadas a este espacio de trabajo, pero los recordatorios solo se configuran en el dispositivo donde quieras recibirlos.",
-    cardTitle: "Configura las notificaciones en iPhone o Android",
+    title: "Recordatorios de repaso",
+    subtitle: "Las preferencias de recordatorios de repaso siguen asociadas a este espacio de trabajo, pero los recordatorios solo se configuran en el dispositivo donde quieras recibirlos.",
+    cardTitle: "Configura los recordatorios de repaso en iPhone o Android",
     paragraphOne: "La configuración de recordatorios de repaso pertenece a este espacio de trabajo, pero se activa y se administra por separado en cada dispositivo.",
     paragraphTwo: "Si quieres notificaciones de estudio, abre este espacio de trabajo en el iPhone o Android donde quieras recibirlas y configúralas ahí.",
     paragraphThree: "La app web no admite notificaciones, así que no hay controles de notificaciones en esta pantalla.",

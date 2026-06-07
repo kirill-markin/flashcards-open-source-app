@@ -195,10 +195,20 @@ const enCatalog = {
   },
   settingsHome: {
     title: "Settings",
-    subtitle: "Manage the current workspace, account, this device, and browser access.",
+    subtitle: "Manage account, workspace, support, and advanced web settings.",
+    groups: {
+      account: "Account",
+      general: "General",
+      support: "Support",
+      advanced: "Advanced",
+    },
     currentWorkspace: {
       title: "Current Workspace",
       description: "Change the active workspace or create a new workspace for this account.",
+    },
+    language: {
+      title: "Language",
+      description: "Choose the app language for this browser.",
     },
     workspaceSettings: {
       title: "Workspace Settings",
@@ -211,7 +221,7 @@ const enCatalog = {
       value: "Account",
     },
     device: {
-      title: "This Device",
+      title: "This device / diagnostics",
       description: "Review browser, build, storage, and device-local workspace details.",
       value: "Device",
     },
@@ -224,6 +234,16 @@ const enCatalog = {
       title: "Send Feedback",
       description: "Share an idea to improve the app.",
       value: "Open",
+    },
+    server: {
+      title: "Server",
+      description: "The browser client uses the hosted web deployment. Custom server switching is not available in web settings.",
+      value: "Hosted",
+    },
+    deleteCurrentWorkspace: {
+      title: "Delete current workspace",
+      description: "Permanently delete the active workspace and all cards, decks, reviews, and sync history inside it.",
+      value: "Delete",
     },
     testGroupTitle: "Test",
     test: {
@@ -250,7 +270,7 @@ const enCatalog = {
     createWorkspace: "Create workspace",
   },
   settingsDevice: {
-    title: "This Device",
+    title: "This device / diagnostics",
     subtitle: "Review browser-local behavior, storage, and device details for the current workspace.",
     languageCardTitle: "Language override",
     languageCardDescription: "Choose the app language for this browser only. This preference stays local to this device.",
@@ -321,7 +341,7 @@ const enCatalog = {
     },
     dangerZoneGroupTitle: "Danger Zone",
     resetProgress: {
-      title: "Reset all progress",
+      title: "Reset study progress",
       description: "Reset study progress for every active card in this workspace.",
       value: "Reset",
       availabilityHint: "Reset all progress is available only for linked cloud workspaces.",
@@ -386,7 +406,7 @@ const enCatalog = {
     },
   },
   workspaceScheduler: {
-    title: "Scheduler",
+    title: "Scheduling / FSRS",
     subtitle: "Review the scheduler configuration used for future reviews.",
     schedulerLabel: "Scheduler",
     labels: {
@@ -414,9 +434,9 @@ const enCatalog = {
     exportButton: "Export CSV",
   },
   notificationsSettings: {
-    title: "Notifications",
-    subtitle: "Notification preferences stay attached to this workspace, but reminders are configured only on the device where you want to receive them.",
-    cardTitle: "Set up notifications on iPhone or Android",
+    title: "Review reminders",
+    subtitle: "Review reminder preferences stay attached to this workspace, but reminders are configured only on the device where you want to receive them.",
+    cardTitle: "Set up review reminders on iPhone or Android",
     paragraphOne: "Review reminder settings belong to this workspace, but they are turned on and managed separately on each device.",
     paragraphTwo: "If you want study notifications, open this workspace on the iPhone or Android device where you want to receive them and configure notifications there.",
     paragraphThree: "The web app does not support notifications, so there are no notification controls on this screen.",

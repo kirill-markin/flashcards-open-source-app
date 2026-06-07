@@ -197,10 +197,20 @@ export const zhHansCatalog = {
   },
   settingsHome: {
     title: "设置",
-    subtitle: "管理当前工作区、账户、此设备和浏览器访问权限。",
+    subtitle: "管理账户、工作区、支持和高级 Web 设置。",
+    groups: {
+      account: "账户",
+      general: "通用",
+      support: "支持",
+      advanced: "高级",
+    },
     currentWorkspace: {
       title: "当前工作区",
       description: "切换当前活动工作区，或为此账户创建新的工作区。",
+    },
+    language: {
+      title: "语言",
+      description: "为此浏览器选择应用语言。",
     },
     workspaceSettings: {
       title: "工作区设置",
@@ -213,7 +223,7 @@ export const zhHansCatalog = {
       value: "账户",
     },
     device: {
-      title: "此设备",
+      title: "此设备 / 诊断",
       description: "查看浏览器、构建、存储和设备本地工作区详情。",
       value: "设备",
     },
@@ -226,6 +236,16 @@ export const zhHansCatalog = {
       title: "发送反馈",
       description: "分享一个改进应用的想法。",
       value: "打开",
+    },
+    server: {
+      title: "服务器",
+      description: "浏览器客户端使用托管的 Web 部署。Web 设置中不支持切换自定义服务器。",
+      value: "托管",
+    },
+    deleteCurrentWorkspace: {
+      title: "删除当前工作区",
+      description: "永久删除活动工作区以及其中的所有卡片、牌组、复习记录和同步历史。",
+      value: "删除",
     },
     testGroupTitle: "测试",
     test: {
@@ -252,7 +272,7 @@ export const zhHansCatalog = {
     createWorkspace: "创建工作区",
   },
   settingsDevice: {
-    title: "此设备",
+    title: "此设备 / 诊断",
     subtitle: "查看当前工作区在浏览器中的本地行为、存储和设备详情。",
     languageCardTitle: "语言覆盖设置",
     languageCardDescription: "仅为此浏览器选择应用语言。该偏好只保存在此设备本地。",
@@ -323,7 +343,7 @@ export const zhHansCatalog = {
     },
     dangerZoneGroupTitle: "危险区域",
     resetProgress: {
-      title: "重置所有进度",
+      title: "重置学习进度",
       description: "重置此工作区中每张活动卡片的学习进度。",
       value: "重置",
       availabilityHint: "只有已连接的云端工作区才能重置所有进度。",
@@ -388,7 +408,7 @@ export const zhHansCatalog = {
     },
   },
   workspaceScheduler: {
-    title: "调度器",
+    title: "调度 / FSRS",
     subtitle: "查看用于未来复习的调度器配置。",
     schedulerLabel: "调度器",
     labels: {
@@ -416,9 +436,9 @@ export const zhHansCatalog = {
     exportButton: "导出 CSV",
   },
   notificationsSettings: {
-    title: "通知",
-    subtitle: "通知偏好会绑定到此工作区，但提醒只会在您希望接收它们的设备上配置。",
-    cardTitle: "在 iPhone 或 Android 上设置通知",
+    title: "复习提醒",
+    subtitle: "复习提醒偏好会绑定到此工作区，但提醒只会在您希望接收它们的设备上配置。",
+    cardTitle: "在 iPhone 或 Android 上设置复习提醒",
     paragraphOne: "复习提醒设置属于此工作区，但需要在每台设备上分别启用和管理。",
     paragraphTwo: "如果您希望接收学习通知，请在您希望接收通知的 iPhone 或 Android 设备上打开此工作区，并在该设备上配置通知。",
     paragraphThree: "Web 应用不支持通知，因此此界面没有通知控制项。",

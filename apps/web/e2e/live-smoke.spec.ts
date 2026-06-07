@@ -3,6 +3,7 @@ import { runAiCardCreationFlow, runAiConversationResetFlow } from "./live-smoke/
 import { runLinkedWorkspaceSetupFlow } from "./live-smoke/flows/auth-workspace";
 import { runSeededCardReviewFlow } from "./live-smoke/flows/cards-review";
 import { runResetProgressFlow } from "./live-smoke/flows/reset-progress";
+import { runSettingsIaFlow } from "./live-smoke/flows/settings-ia";
 import { runWorkspaceCleanupFlow } from "./live-smoke/flows/settings-cleanup";
 import {
   attachPageSnapshot,
@@ -37,6 +38,10 @@ test.describe.serial("live smoke flow uses the configured review account across 
 
   test("configured review account creates and seeds a linked workspace", async ({ liveSmokeSession }) => {
     await runLinkedWorkspaceSetupFlow(liveSmokeSession);
+  });
+
+  test("settings first-level IA opens key detail screens", async ({ liveSmokeSession }) => {
+    await runSettingsIaFlow(liveSmokeSession);
   });
 
   test("seeded linked-workspace card can be reviewed", async ({ liveSmokeSession }) => {

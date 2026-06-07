@@ -1,37 +1,35 @@
 // @vitest-environment jsdom
-import "fake-indexeddb/auto";
-import { act } from "react";
+import { act, type ReactElement } from "react";
 import ReactDOM from "react-dom/client";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppDataContextValue } from "../../appData";
-import { INSTALLATION_ID_STORAGE_KEY } from "../../clientIdentity";
 import { I18nProvider } from "../../i18n";
-import { createStorageMock } from "../../api/ApiTestSupport";
+import {
+  accountDangerZoneRoute,
+  accountStatusRoute,
+  settingsCurrentWorkspaceRoute,
+  settingsFeedbackRoute,
+  settingsLanguageRoute,
+  settingsSchedulerRoute,
+  settingsServerRoute,
+} from "../../routes";
 import type {
   Card,
   Deck,
-  FeedbackSubmissionRequest,
   ResetWorkspaceProgressResponse,
   ReviewFilter,
   WorkspaceResetProgressPreview,
 } from "../../types";
+import { SettingsScreen } from "./SettingsScreen";
 
 const {
-  submitFeedbackMock,
   useAppDataMock,
+  isTestModeEnabledRef,
 } = vi.hoisted(() => ({
-  submitFeedbackMock: vi.fn(),
   useAppDataMock: vi.fn(),
+  isTestModeEnabledRef: { current: false },
 }));
-
-vi.mock("../../api", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../api")>();
-  return {
-    ...actual,
-    submitFeedback: submitFeedbackMock,
-  };
-});
 
 vi.mock("../../appData", () => ({
   useAppData: useAppDataMock,
@@ -42,23 +40,19 @@ vi.mock("../../testMode", async (importOriginal) => {
   return {
     ...actual,
     useTestMode: () => ({
-      isTestModeEnabled: false,
+      isTestModeEnabled: isTestModeEnabledRef.current,
     }),
   };
 });
-
-import { SettingsScreen } from "./SettingsScreen";
 
 type Mutable<Type> = {
   -readonly [Key in keyof Type]: Type[Key];
 };
 
 type SettingsScreenTestHarness = Readonly<{
-  clickFeedbackRow: () => Promise<void>;
-  clickSubmit: () => Promise<void>;
+  clickRow: (testId: string) => Promise<void>;
   getContainer: () => HTMLDivElement;
   renderSettingsScreen: () => Promise<void>;
-  setFeedbackText: (value: string) => Promise<void>;
 }>;
 
 function throwNotUsed(functionName: string): never {
@@ -90,7 +84,18 @@ function createAppData(): Mutable<AppDataContextValue> {
     },
     availableWorkspaces: [],
     isChoosingWorkspace: false,
-    workspaceSettings: null,
+    workspaceSettings: {
+      algorithm: "fsrs-6",
+      desiredRetention: 0.9,
+      learningStepsMinutes: [1, 10],
+      relearningStepsMinutes: [10],
+      maximumIntervalDays: 36500,
+      enableFuzz: true,
+      clientUpdatedAt: "2026-03-10T00:00:00.000Z",
+      lastModifiedByReplicaId: "replica-1",
+      lastOperationId: "operation-1",
+      updatedAt: "2026-03-10T00:00:00.000Z",
+    },
     cloudSettings: {
       installationId: "installation-1",
       cloudState: "linked",
@@ -133,10 +138,10 @@ function clickElement(element: Element): void {
   element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 }
 
-function setTextAreaValue(textarea: HTMLTextAreaElement, value: string): void {
-  const descriptor = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value");
-  descriptor?.set?.call(textarea, value);
-  textarea.dispatchEvent(new Event("input", { bubbles: true }));
+function LocationProbe(): ReactElement {
+  const location = useLocation();
+
+  return <span data-testid="location-pathname">{location.pathname}</span>;
 }
 
 function setupSettingsScreenTest(): SettingsScreenTestHarness {
@@ -145,22 +150,7 @@ function setupSettingsScreenTest(): SettingsScreenTestHarness {
 
   beforeEach(() => {
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-    Object.defineProperty(window, "localStorage", {
-      configurable: true,
-      value: createStorageMock(),
-    });
-    vi.stubGlobal("crypto", {
-      ...globalThis.crypto,
-      randomUUID: vi.fn(() => "feedback-submission-1"),
-    });
-    window.localStorage.setItem(INSTALLATION_ID_STORAGE_KEY, "installation-1");
-    submitFeedbackMock.mockReset();
-    submitFeedbackMock.mockResolvedValue({
-      automaticPromptCooldownDays: 30,
-      lastAutomaticPromptShownAt: null,
-      lastFeedbackSubmittedAt: "2026-04-18T09:00:00.000Z",
-      nextAutomaticPromptAt: null,
-    });
+    isTestModeEnabledRef.current = false;
     useAppDataMock.mockReset();
     useAppDataMock.mockReturnValue(createAppData());
     container = document.createElement("div");
@@ -176,7 +166,6 @@ function setupSettingsScreenTest(): SettingsScreenTestHarness {
     container?.remove();
     container = null;
     root = null;
-    vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
@@ -197,113 +186,132 @@ function setupSettingsScreenTest(): SettingsScreenTestHarness {
     await act(async () => {
       currentRoot.render(
         <I18nProvider>
-          <MemoryRouter>
+          <MemoryRouter initialEntries={["/settings"]}>
             <SettingsScreen />
+            <LocationProbe />
           </MemoryRouter>
         </I18nProvider>,
       );
     });
   }
 
-  async function clickFeedbackRow(): Promise<void> {
-    const feedbackRow = getContainer().querySelector("[data-testid='settings-feedback-row']");
-    if (!(feedbackRow instanceof HTMLButtonElement)) {
-      throw new Error("Settings feedback row was not found");
+  async function clickRow(testId: string): Promise<void> {
+    const row = getContainer().querySelector(`[data-testid='${testId}']`);
+    if (!(row instanceof HTMLAnchorElement)) {
+      throw new Error(`Settings row ${testId} was not found`);
     }
 
     await act(async () => {
-      clickElement(feedbackRow);
-    });
-  }
-
-  async function setFeedbackText(value: string): Promise<void> {
-    const textarea = getContainer().querySelector("[data-testid='feedback-message']");
-    if (!(textarea instanceof HTMLTextAreaElement)) {
-      throw new Error("Feedback textarea was not found");
-    }
-
-    await act(async () => {
-      setTextAreaValue(textarea, value);
-    });
-  }
-
-  async function clickSubmit(): Promise<void> {
-    const submitButton = getContainer().querySelector("[data-testid='feedback-submit']");
-    if (!(submitButton instanceof HTMLButtonElement)) {
-      throw new Error("Feedback submit button was not found");
-    }
-
-    await act(async () => {
-      clickElement(submitButton);
-      await Promise.resolve();
-      await Promise.resolve();
+      clickElement(row);
     });
   }
 
   return {
-    clickFeedbackRow,
-    clickSubmit,
+    clickRow,
     getContainer,
     renderSettingsScreen,
-    setFeedbackText,
   };
 }
 
 const {
-  clickFeedbackRow,
-  clickSubmit,
+  clickRow,
   getContainer,
   renderSettingsScreen,
-  setFeedbackText,
 } = setupSettingsScreenTest();
 
-describe("SettingsScreen feedback", () => {
-  it("opens the feedback form from the Settings row", async () => {
-    await renderSettingsScreen();
-    await clickFeedbackRow();
+function textContent(): string {
+  return getContainer().textContent ?? "";
+}
 
-    expect(getContainer().querySelector("[data-testid='feedback-dialog']")).not.toBeNull();
-    expect(getContainer().textContent).toContain("Have an idea for Flashcards?");
+function expectGroupLabelNotClickable(label: string): void {
+  const heading = Array.from(getContainer().querySelectorAll("h2")).find((element) => element.textContent === label);
+  expect(heading).toBeTruthy();
+  expect(heading?.closest("a,button")).toBeNull();
+}
+
+function expectRowVisible(testId: string): void {
+  expect(getContainer().querySelector(`[data-testid='${testId}']`)).not.toBeNull();
+}
+
+function currentPathname(): string {
+  const location = getContainer().querySelector("[data-testid='location-pathname']");
+  if (location === null) {
+    throw new Error("Location probe was not found");
+  }
+
+  return location.textContent ?? "";
+}
+
+describe("SettingsScreen navigation", () => {
+  it("renders the shared first-level settings tree without clickable group labels", async () => {
+    await renderSettingsScreen();
+
+    expect(textContent()).toContain("Account");
+    expect(textContent()).toContain("General");
+    expect(textContent()).toContain("Support");
+    expect(textContent()).toContain("Advanced");
+    expectGroupLabelNotClickable("Account");
+    expectGroupLabelNotClickable("General");
+    expectGroupLabelNotClickable("Support");
+    expectGroupLabelNotClickable("Advanced");
+
+    [
+      "settings-row-account-status",
+      "settings-row-current-workspace",
+      "settings-row-review-reminders",
+      "settings-row-language",
+      "settings-row-access",
+      "settings-row-decks",
+      "settings-row-tags",
+      "settings-row-export",
+      "settings-row-feedback",
+      "settings-row-legal-support",
+      "settings-row-open-source",
+      "settings-row-scheduling",
+      "settings-row-agent-connections",
+      "settings-row-server",
+      "settings-row-device-diagnostics",
+      "settings-row-reset-study-progress",
+      "settings-row-delete-current-workspace",
+      "settings-row-delete-account",
+    ].forEach(expectRowVisible);
+    expect(getContainer().querySelector("[data-testid='settings-row-test']")).toBeNull();
   });
 
-  it("keeps empty trimmed feedback from submitting", async () => {
+  it("shows the Test row under Advanced when test mode is enabled", async () => {
+    isTestModeEnabledRef.current = true;
+
     await renderSettingsScreen();
-    await clickFeedbackRow();
-    await setFeedbackText("   ");
 
-    const submitButton = getContainer().querySelector("[data-testid='feedback-submit']");
-    if (!(submitButton instanceof HTMLButtonElement)) {
-      throw new Error("Feedback submit button was not found");
-    }
-
-    expect(submitButton.disabled).toBe(true);
-    await clickSubmit();
-    expect(submitFeedbackMock).not.toHaveBeenCalled();
+    expectRowVisible("settings-row-test");
   });
 
-  it("submits Settings feedback with trigger metadata and shows success", async () => {
+  it("navigates representative root rows to their detail routes", async () => {
     await renderSettingsScreen();
-    await clickFeedbackRow();
-    await setFeedbackText("  Please add faster review controls.  ");
-    await clickSubmit();
 
-    await vi.waitFor(() => {
-      expect(submitFeedbackMock).toHaveBeenCalledTimes(1);
-    });
-    const submissionRequest = submitFeedbackMock.mock.calls[0]?.[0] as FeedbackSubmissionRequest | undefined;
-    expect(submissionRequest).toEqual(expect.objectContaining({
-      feedbackSubmissionId: "feedback-submission-1",
-      workspaceId: "workspace-1",
-      installationId: "installation-1",
-      platform: "web",
-      locale: "en",
-      trigger: "settings",
-      message: "Please add faster review controls.",
-    }));
-    expect(submissionRequest?.timezone).toEqual(expect.any(String));
-    await vi.waitFor(() => {
-      expect(getContainer().querySelector("[data-testid='feedback-dialog']")).toBeNull();
-    });
-    expect(getContainer().textContent).toContain("Thanks. Your feedback was sent.");
+    await clickRow("settings-row-account-status");
+    expect(currentPathname()).toBe(accountStatusRoute);
+
+    await clickRow("settings-row-current-workspace");
+    expect(currentPathname()).toBe(settingsCurrentWorkspaceRoute);
+
+    await clickRow("settings-row-language");
+    expect(currentPathname()).toBe(settingsLanguageRoute);
+
+    await clickRow("settings-row-scheduling");
+    expect(currentPathname()).toBe(settingsSchedulerRoute);
+
+    await clickRow("settings-row-server");
+    expect(currentPathname()).toBe(settingsServerRoute);
+
+    await clickRow("settings-row-delete-account");
+    expect(currentPathname()).toBe(accountDangerZoneRoute);
+  });
+
+  it("navigates the Send feedback row to the feedback settings screen", async () => {
+    await renderSettingsScreen();
+    await clickRow("settings-row-feedback");
+
+    expect(currentPathname()).toBe(settingsFeedbackRoute);
   });
 });

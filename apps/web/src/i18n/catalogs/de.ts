@@ -197,10 +197,20 @@ const deCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Einstellungen",
-    subtitle: "Verwalte den aktuellen Arbeitsbereich, dein Konto, dieses Gerät und den Browserzugriff.",
+    subtitle: "Verwalte Konto, Arbeitsbereich, Support und erweiterte Web-Einstellungen.",
+    groups: {
+      account: "Konto",
+      general: "Allgemein",
+      support: "Support",
+      advanced: "Erweitert",
+    },
     currentWorkspace: {
       title: "Aktueller Arbeitsbereich",
       description: "Ändere den aktiven Arbeitsbereich oder erstelle einen neuen Arbeitsbereich für dieses Konto.",
+    },
+    language: {
+      title: "Sprache",
+      description: "Wähle die App-Sprache für diesen Browser.",
     },
     workspaceSettings: {
       title: "Arbeitsbereichseinstellungen",
@@ -213,7 +223,7 @@ const deCatalog: TranslationCatalog = {
       value: "Konto",
     },
     device: {
-      title: "Dieses Gerät",
+      title: "Dieses Gerät / Diagnose",
       description: "Prüfe Browser, Build, Speicher und gerätelokale Arbeitsbereichsdetails.",
       value: "Gerät",
     },
@@ -226,6 +236,16 @@ const deCatalog: TranslationCatalog = {
       title: "Feedback senden",
       description: "Teile eine Idee, um die App zu verbessern.",
       value: "Öffnen",
+    },
+    server: {
+      title: "Server",
+      description: "Der Browser-Client verwendet die gehostete Web-Bereitstellung. Ein Wechsel zu einem eigenen Server ist in den Web-Einstellungen nicht verfügbar.",
+      value: "Gehostet",
+    },
+    deleteCurrentWorkspace: {
+      title: "Aktuellen Arbeitsbereich löschen",
+      description: "Lösche den aktiven Arbeitsbereich und alle darin enthaltenen Karten, Decks, Wiederholungen und die Synchronisierungshistorie dauerhaft.",
+      value: "Löschen",
     },
     testGroupTitle: "Test",
     test: {
@@ -252,7 +272,7 @@ const deCatalog: TranslationCatalog = {
     createWorkspace: "Arbeitsbereich erstellen",
   },
   settingsDevice: {
-    title: "Dieses Gerät",
+    title: "Dieses Gerät / Diagnose",
     subtitle: "Prüfe browserlokales Verhalten, Speicher und Gerätedetails für den aktuellen Arbeitsbereich.",
     languageCardTitle: "Sprachüberschreibung",
     languageCardDescription: "Wähle die App-Sprache nur für diesen Browser. Diese Einstellung bleibt lokal auf diesem Gerät.",
@@ -323,7 +343,7 @@ const deCatalog: TranslationCatalog = {
     },
     dangerZoneGroupTitle: "Gefahrenbereich",
     resetProgress: {
-      title: "Gesamten Fortschritt zurücksetzen",
+      title: "Lernfortschritt zurücksetzen",
       description: "Setze den Lernfortschritt für jede aktive Karte in diesem Arbeitsbereich zurück.",
       value: "Zurücksetzen",
       availabilityHint: "Das Zurücksetzen des gesamten Fortschritts ist nur für verknüpfte Cloud-Arbeitsbereiche verfügbar.",
@@ -388,7 +408,7 @@ const deCatalog: TranslationCatalog = {
     },
   },
   workspaceScheduler: {
-    title: "Planer",
+    title: "Planung / FSRS",
     subtitle: "Prüfe die Planer-Konfiguration für zukünftige Wiederholungen.",
     schedulerLabel: "Planer",
     labels: {
@@ -416,9 +436,9 @@ const deCatalog: TranslationCatalog = {
     exportButton: "CSV exportieren",
   },
   notificationsSettings: {
-    title: "Benachrichtigungen",
-    subtitle: "Benachrichtigungseinstellungen bleiben diesem Arbeitsbereich zugeordnet, aber Erinnerungen werden nur auf dem Gerät eingerichtet, auf dem du sie erhalten möchtest.",
-    cardTitle: "Benachrichtigungen auf iPhone oder Android einrichten",
+    title: "Wiederholungs-Erinnerungen",
+    subtitle: "Einstellungen für Wiederholungs-Erinnerungen bleiben diesem Arbeitsbereich zugeordnet, aber Erinnerungen werden nur auf dem Gerät eingerichtet, auf dem du sie erhalten möchtest.",
+    cardTitle: "Wiederholungs-Erinnerungen auf iPhone oder Android einrichten",
     paragraphOne: "Erinnerungseinstellungen für Wiederholungen gehören zu diesem Arbeitsbereich, werden aber auf jedem Gerät separat aktiviert und verwaltet.",
     paragraphTwo: "Wenn du Lernbenachrichtigungen möchtest, öffne diesen Arbeitsbereich auf dem iPhone- oder Android-Gerät, auf dem du sie erhalten möchtest, und richte dort die Benachrichtigungen ein.",
     paragraphThree: "Die Web-App unterstützt keine Benachrichtigungen, daher gibt es auf diesem Bildschirm keine Benachrichtigungssteuerung.",
