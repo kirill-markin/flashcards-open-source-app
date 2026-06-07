@@ -458,6 +458,7 @@ const hiCatalog: TranslationCatalog = {
     },
   },
   reviewFilterMenu: {
+    deckSmartFilterLabel: "स्मार्ट फ़िल्टर",
     editDecks: "डेक संपादित करें",
     empty: "कोई फ़िल्टर नहीं मिला",
     menuAriaLabel: "रिव्यू फ़िल्टर",
@@ -664,7 +665,7 @@ const hiCatalog: TranslationCatalog = {
       new: "नए",
       reviewed: "रिव्यू किए गए",
     },
-    subtitle: "डेक संबंधित कार्डों को समूहित करते हैं ताकि आप किसी विषय का साथ में अध्ययन कर सकें।",
+    subtitle: "डेक स्मार्ट फ़िल्टर हैं, कंटेनर नहीं। वे प्रयास स्तर और टैग से कार्ड मिलाते हैं।",
     title: "डेक",
   },
   deckDetail: {
@@ -674,6 +675,8 @@ const hiCatalog: TranslationCatalog = {
       deleting: "हटाया जा रहा है...",
       edit: "डेक संपादित करें",
       openReview: "रिव्यू खोलें",
+      reviewAllCards: "सभी कार्ड रिव्यू करें",
+      reviewDeck: "इस डेक को रिव्यू करें",
     },
     deleteConfirmation: "क्या यह डेक हटाएँ?",
     empty: {
@@ -702,7 +705,14 @@ const hiCatalog: TranslationCatalog = {
       title: "डेक नियम",
     },
     subtitle: "डेक नियम, मिलते-जुलते कार्ड और रिव्यू एंट्री पॉइंट देखें।",
+    subtitles: {
+      allCards: "सभी कार्ड हर कार्ड के लिए पूरा रिव्यू दायरा है।",
+      smartFilter: "यह डेक प्रयास स्तर और टैग पर आधारित सहेजा गया स्मार्ट फ़िल्टर है।",
+    },
     title: "डेक",
+    warnings: {
+      emptyRules: "इस डेक में कोई नियम नहीं है, इसलिए इसमें सभी कार्ड शामिल हैं।",
+    },
   },
   deckForm: {
     actions: {
@@ -711,17 +721,22 @@ const hiCatalog: TranslationCatalog = {
       saveDeck: "डेक सहेजें",
       saving: "सहेजा जा रहा है...",
     },
+    errors: {
+      emptyRules: "कम से कम एक प्रयास स्तर या टैग चुनें, या रिव्यू में सभी कार्ड का उपयोग करें।",
+    },
     fields: {
       effort: "प्रयास",
       name: "नाम",
-      summary: "सारांश",
+      summary: "नियम",
       tags: "टैग",
     },
-    filterPreview: "फ़िल्टर पूर्वावलोकन",
+    filterPreview: "नियम पूर्वावलोकन",
+    rulesPreviewHelp: "ये नियम तय करते हैं कि इस डेक में कौन से कार्ड दिखाई देंगे।",
+    smartFilterExplanation: "आप डेक नाम का स्मार्ट फ़िल्टर बना रहे हैं। यह प्रयास स्तर और टैग से कार्ड मिलाता है, फिर इसे रिव्यू फ़िल्टर से चुना जा सकता है।",
     systemDeckReadonly: "सिस्टम डेक संपादित नहीं किया जा सकता।",
     subtitles: {
-      edit: "दोबारा उपयोग किए जा सकने वाले कार्ड फ़िल्टर सेट को अपडेट करें।",
-      new: "दोबारा उपयोग किए जा सकने वाले कार्ड फ़िल्टर सेट को सहेजें।",
+      edit: "मिलते-जुलते कार्डों के लिए सहेजा गया स्मार्ट फ़िल्टर अपडेट करें।",
+      new: "मिलते-जुलते कार्डों के लिए स्मार्ट फ़िल्टर सहेजें।",
     },
     title: {
       edit: "डेक संपादित करें",

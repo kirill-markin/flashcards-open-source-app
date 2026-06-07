@@ -35,6 +35,10 @@ function toggleEffortLevel(
   return [...effortLevels, effortLevel];
 }
 
+function hasDeckRules(formState: FormState): boolean {
+  return formState.effortLevels.length > 0 || formState.tags.length > 0;
+}
+
 export function DeckFormScreen(): ReactElement {
   const { deckId } = useParams();
   const navigate = useNavigate();
@@ -54,6 +58,7 @@ export function DeckFormScreen(): ReactElement {
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [screenErrorMessage, setScreenErrorMessage] = useState<string>("");
+  const [formErrorMessage, setFormErrorMessage] = useState<string>("");
   const observationIdentityRef = useRef<Readonly<{
     userId: string | null;
     installationId: string | null;
@@ -75,6 +80,7 @@ export function DeckFormScreen(): ReactElement {
   const loadScreenData = useCallback(async function loadScreenData(): Promise<void> {
     setIsLoading(true);
     setScreenErrorMessage("");
+    setFormErrorMessage("");
 
     try {
       if (activeWorkspace === null) {
@@ -127,6 +133,7 @@ export function DeckFormScreen(): ReactElement {
   }, [loadScreenData, localReadVersion]);
 
   function updateField<Key extends keyof FormState>(key: Key, value: FormState[Key]): void {
+    setFormErrorMessage("");
     setFormState((currentFormState) => ({
       ...currentFormState,
       [key]: value,
@@ -134,8 +141,15 @@ export function DeckFormScreen(): ReactElement {
   }
 
   async function handleSubmit(): Promise<void> {
-    setIsSaving(true);
     setErrorMessage("");
+    setFormErrorMessage("");
+
+    if (hasDeckRules(formState) === false) {
+      setFormErrorMessage(t("deckForm.errors.emptyRules"));
+      return;
+    }
+
+    setIsSaving(true);
 
     try {
       const payload: UpdateDeckInput = {
@@ -212,8 +226,14 @@ export function DeckFormScreen(): ReactElement {
           </div>
         </div>
 
+        {formErrorMessage !== "" ? <p className="error-banner" role="alert">{formErrorMessage}</p> : null}
+
         <div className="card-form-layout">
           <section className="card-form-panel">
+            <section className="content-card content-card-section">
+              <p className="subtitle">{t("deckForm.smartFilterExplanation")}</p>
+            </section>
+
             <label className="form-label content-card content-card-section" htmlFor={nameFieldId}>
               <span>{t("deckForm.fields.name")}</span>
               <input
@@ -261,6 +281,7 @@ export function DeckFormScreen(): ReactElement {
 
           <aside className="card-meta-panel">
             <h2 className="panel-subtitle">{t("deckForm.filterPreview")}</h2>
+            <p className="subtitle">{t("deckForm.rulesPreviewHelp")}</p>
             <dl className="meta-list">
               <div className="meta-row">
                 <dt>{t("deckForm.fields.summary")}</dt>

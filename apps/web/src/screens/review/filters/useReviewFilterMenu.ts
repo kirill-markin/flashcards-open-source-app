@@ -21,6 +21,7 @@ export type ReviewFilterChoiceMenuItem = Readonly<{
   key: string;
   label: string;
   reviewFilter: ReviewFilter;
+  subtitle: string | null;
 }>;
 
 type UseReviewFilterMenuParams = Readonly<{
@@ -78,6 +79,7 @@ function buildReviewEffortFilterMenuItems(
       key: toReviewFilterMenuItemKey(reviewFilter),
       label: formatEffortLabel(effortLevel),
       reviewFilter,
+      subtitle: null,
       isSelected: toReviewFilterMenuItemKey(selectedReviewFilter) === toReviewFilterMenuItemKey(reviewFilter),
     };
   });
@@ -87,12 +89,14 @@ function buildReviewDeckFilterMenuItems(
   decks: ReadonlyArray<DeckSummary>,
   selectedReviewFilter: ReviewFilter,
   allCardsLabel: string,
+  deckSubtitle: string,
 ): Array<ReviewFilterChoiceMenuItem> {
   return [
     {
       key: toReviewFilterMenuItemKey(ALL_CARDS_REVIEW_FILTER),
       label: allCardsLabel,
       reviewFilter: ALL_CARDS_REVIEW_FILTER,
+      subtitle: null,
       isSelected: toReviewFilterMenuItemKey(selectedReviewFilter) === toReviewFilterMenuItemKey(ALL_CARDS_REVIEW_FILTER),
     },
     ...decks.map((deck) => {
@@ -105,6 +109,7 @@ function buildReviewDeckFilterMenuItems(
         key: toReviewFilterMenuItemKey(reviewFilter),
         label: deck.name,
         reviewFilter,
+        subtitle: deckSubtitle,
         isSelected: toReviewFilterMenuItemKey(selectedReviewFilter) === toReviewFilterMenuItemKey(reviewFilter),
       };
     }),
@@ -125,6 +130,7 @@ function buildReviewTagFilterMenuItems(
       key: toReviewFilterMenuItemKey(reviewFilter),
       label: `${tagSummary.tag} (${tagSummary.cardsCount})`,
       reviewFilter,
+      subtitle: null,
       isSelected: toReviewFilterMenuItemKey(selectedReviewFilter) === toReviewFilterMenuItemKey(reviewFilter),
     };
   });
@@ -156,7 +162,12 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
   const reviewFilterMenuWrapRef = useRef<HTMLDivElement | null>(null);
   const reviewFilterTriggerRef = useRef<HTMLButtonElement | null>(null);
   const reviewDeckSearchInputRef = useRef<HTMLInputElement | null>(null);
-  const reviewDeckFilterMenuItems = buildReviewDeckFilterMenuItems(deckSummaries, selectedReviewFilter, t("filters.allCards"));
+  const reviewDeckFilterMenuItems = buildReviewDeckFilterMenuItems(
+    deckSummaries,
+    selectedReviewFilter,
+    t("filters.allCards"),
+    t("reviewFilterMenu.deckSmartFilterLabel"),
+  );
   const reviewEffortFilterMenuItems = buildReviewEffortFilterMenuItems(selectedReviewFilter, (effortLevel) => formatEffortLevelLabel(t, effortLevel));
   const reviewTagFilterMenuItems = buildReviewTagFilterMenuItems(reviewTagSummaries, selectedReviewFilter);
   const reviewFilterMenuItems = buildReviewFilterMenuItems(t("reviewFilterMenu.editDecks"));

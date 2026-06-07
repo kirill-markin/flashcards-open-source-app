@@ -8,7 +8,7 @@ import { buildSettingsDeckEditRoute, reviewRoute, settingsDecksRoute } from "../
 import { loadCardsMatchingDeck } from "../../../../localDb/cards/cards";
 import { loadDeckById, loadDecksListSnapshot } from "../../../../localDb/cards/decks";
 import { captureAppOperationError } from "../../../../observability/appOperationObservation";
-import type { Card, ReviewFilter } from "../../../../types";
+import type { Card, DeckFilterDefinition, ReviewFilter } from "../../../../types";
 import { formatDeckFilterSummary, formatEffortLevelLabel, formatNullableDateTime, formatTagSummary } from "../../../shared/featureFormatting";
 
 type DeckDetailState = Readonly<{
@@ -17,11 +17,17 @@ type DeckDetailState = Readonly<{
   cards: ReadonlyArray<Card>;
   reviewFilter: ReviewFilter;
   allowsEditing: boolean;
+  hasRules: boolean;
+  isPersistedDeck: boolean;
   emptyMessage: string;
 }>;
 
 function buildDeckEditPath(deckId: string): string {
   return buildSettingsDeckEditRoute(deckId);
+}
+
+function hasDeckFilterRules(filterDefinition: DeckFilterDefinition): boolean {
+  return filterDefinition.effortLevels.length > 0 || filterDefinition.tags.length > 0;
 }
 
 export function DeckDetailScreen(): ReactElement {
@@ -85,6 +91,8 @@ export function DeckDetailScreen(): ReactElement {
           cards: allCards,
           reviewFilter: ALL_CARDS_REVIEW_FILTER,
           allowsEditing: false,
+          hasRules: false,
+          isPersistedDeck: false,
           emptyMessage: t("deckDetail.empty.allCards"),
         });
         setScreenErrorMessage("");
@@ -111,6 +119,8 @@ export function DeckDetailScreen(): ReactElement {
           deckId: deck.deckId,
         },
         allowsEditing: true,
+        hasRules: hasDeckFilterRules(deck.filterDefinition),
+        isPersistedDeck: true,
         emptyMessage: t("deckDetail.empty.deckCards"),
       });
     } catch (error) {
@@ -208,13 +218,19 @@ export function DeckDetailScreen(): ReactElement {
         <div className="screen-head">
           <div>
             <h1 className="title">{detailState?.title ?? t("deckDetail.title")}</h1>
-            <p className="subtitle">{t("deckDetail.subtitle")}</p>
+            <p className="subtitle">
+              {detailState === null
+                ? t("deckDetail.subtitle")
+                : detailState.isPersistedDeck
+                  ? t("deckDetail.subtitles.smartFilter")
+                  : t("deckDetail.subtitles.allCards")}
+            </p>
           </div>
           <div className="screen-actions">
             <Link className="ghost-btn" to={settingsDecksRoute}>{t("deckDetail.actions.back")}</Link>
             {detailState !== null ? (
               <button type="button" className="primary-btn" onClick={handleOpenReview} data-testid="deck-detail-open-review">
-                {t("deckDetail.actions.openReview")}
+                {detailState.isPersistedDeck ? t("deckDetail.actions.reviewDeck") : t("deckDetail.actions.reviewAllCards")}
               </button>
             ) : null}
             {detailState?.allowsEditing ? (
@@ -249,6 +265,9 @@ export function DeckDetailScreen(): ReactElement {
                 <span className="deck-detail-stat-label">{t("deckDetail.rules.summary")}</span>
                 <p className="deck-card-summary">{detailState.filterSummary}</p>
               </div>
+              {detailState.isPersistedDeck && detailState.hasRules === false ? (
+                <p className="error-banner">{t("deckDetail.warnings.emptyRules")}</p>
+              ) : null}
 
               {detailState.allowsEditing ? (
                 <button

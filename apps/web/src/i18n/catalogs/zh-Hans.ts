@@ -458,6 +458,7 @@ export const zhHansCatalog = {
     },
   },
   reviewFilterMenu: {
+    deckSmartFilterLabel: "智能筛选器",
     editDecks: "编辑牌组",
     empty: "未找到筛选条件",
     menuAriaLabel: "复习筛选器",
@@ -664,7 +665,7 @@ export const zhHansCatalog = {
       new: "新建",
       reviewed: "已复习",
     },
-    subtitle: "牌组会将相关卡片分组，方便您一起学习某个主题。",
+    subtitle: "牌组是智能筛选器，不是容器。它们会按难度和标签匹配卡片。",
     title: "牌组",
   },
   deckDetail: {
@@ -674,6 +675,8 @@ export const zhHansCatalog = {
       deleting: "正在删除...",
       edit: "编辑牌组",
       openReview: "打开复习",
+      reviewAllCards: "复习所有卡片",
+      reviewDeck: "复习这个牌组",
     },
     deleteConfirmation: "删除这个牌组？",
     empty: {
@@ -702,7 +705,14 @@ export const zhHansCatalog = {
       title: "牌组规则",
     },
     subtitle: "查看牌组规则、匹配的卡片以及复习入口。",
+    subtitles: {
+      allCards: "所有卡片是涵盖每张卡片的完整复习范围。",
+      smartFilter: "这个牌组是按难度和标签保存的智能筛选器。",
+    },
     title: "牌组",
+    warnings: {
+      emptyRules: "这个牌组没有规则，因此会包含所有卡片。",
+    },
   },
   deckForm: {
     actions: {
@@ -711,17 +721,22 @@ export const zhHansCatalog = {
       saveDeck: "保存牌组",
       saving: "正在保存...",
     },
+    errors: {
+      emptyRules: "请选择至少一个难度或标签，或者在复习中使用所有卡片。",
+    },
     fields: {
       effort: "难度",
       name: "名称",
-      summary: "摘要",
+      summary: "规则",
       tags: "标签",
     },
-    filterPreview: "筛选预览",
+    filterPreview: "规则预览",
+    rulesPreviewHelp: "这些规则决定哪些卡片会出现在这个牌组中。",
+    smartFilterExplanation: "您正在创建一个名为牌组的智能筛选器。它会按难度和标签匹配卡片，然后可从复习筛选器中选择。",
     systemDeckReadonly: "系统牌组不可编辑。",
     subtitles: {
-      edit: "更新可重复使用的卡片筛选条件集合。",
-      new: "保存可重复使用的卡片筛选条件集合。",
+      edit: "更新用于匹配卡片的已保存智能筛选器。",
+      new: "保存用于匹配卡片的智能筛选器。",
     },
     title: {
       edit: "编辑牌组",

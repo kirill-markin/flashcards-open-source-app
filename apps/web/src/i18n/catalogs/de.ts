@@ -458,6 +458,7 @@ const deCatalog: TranslationCatalog = {
     },
   },
   reviewFilterMenu: {
+    deckSmartFilterLabel: "Intelligenter Filter",
     editDecks: "Decks bearbeiten",
     empty: "Keine Filter gefunden",
     menuAriaLabel: "Wiederholungsfilter",
@@ -664,7 +665,7 @@ const deCatalog: TranslationCatalog = {
       new: "neu",
       reviewed: "wiederholt",
     },
-    subtitle: "Decks gruppieren zusammengehörige Karten, damit du ein Thema gemeinsam lernen kannst.",
+    subtitle: "Decks sind intelligente Filter, keine Container. Sie finden Karten nach Aufwand und Tags.",
     title: "Decks",
   },
   deckDetail: {
@@ -674,6 +675,8 @@ const deCatalog: TranslationCatalog = {
       deleting: "Wird gelöscht...",
       edit: "Deck bearbeiten",
       openReview: "Wiederholung öffnen",
+      reviewAllCards: "Alle Karten wiederholen",
+      reviewDeck: "Dieses Deck wiederholen",
     },
     deleteConfirmation: "Dieses Deck löschen?",
     empty: {
@@ -702,7 +705,14 @@ const deCatalog: TranslationCatalog = {
       title: "Deck-Regeln",
     },
     subtitle: "Prüfe Deck-Regeln, passende Karten und den Einstiegspunkt zur Wiederholung.",
+    subtitles: {
+      allCards: "Alle Karten ist der vollständige Wiederholungsumfang über alle Karten.",
+      smartFilter: "Dieses Deck ist ein gespeicherter intelligenter Filter nach Aufwand und Tags.",
+    },
     title: "Deck",
+    warnings: {
+      emptyRules: "Dieses Deck hat keine Regeln und enthält daher alle Karten.",
+    },
   },
   deckForm: {
     actions: {
@@ -711,17 +721,22 @@ const deCatalog: TranslationCatalog = {
       saveDeck: "Deck speichern",
       saving: "Wird gespeichert...",
     },
+    errors: {
+      emptyRules: "Wähle mindestens einen Aufwand oder Tag aus, oder verwende Alle Karten in der Wiederholung.",
+    },
     fields: {
       effort: "Aufwand",
       name: "Name",
-      summary: "Zusammenfassung",
+      summary: "Regeln",
       tags: "Tags",
     },
-    filterPreview: "Filtervorschau",
+    filterPreview: "Regelvorschau",
+    rulesPreviewHelp: "Diese Regeln bestimmen, welche Karten in diesem Deck erscheinen.",
+    smartFilterExplanation: "Du erstellst einen intelligenten Filter namens Deck. Er findet Karten nach Aufwand und Tags und kann dann im Wiederholungsfilter ausgewählt werden.",
     systemDeckReadonly: "System-Deck kann nicht bearbeitet werden.",
     subtitles: {
-      edit: "Aktualisiere einen wiederverwendbaren Kartenfiltersatz.",
-      new: "Speichere einen wiederverwendbaren Kartenfiltersatz.",
+      edit: "Aktualisiere einen gespeicherten intelligenten Filter für passende Karten.",
+      new: "Speichere einen intelligenten Filter für passende Karten.",
     },
     title: {
       edit: "Deck bearbeiten",

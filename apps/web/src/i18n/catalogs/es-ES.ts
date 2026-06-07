@@ -458,6 +458,7 @@ const esEsCatalog: TranslationCatalog = {
     },
   },
   reviewFilterMenu: {
+    deckSmartFilterLabel: "Filtro inteligente",
     editDecks: "Editar mazos",
     empty: "No se han encontrado filtros",
     menuAriaLabel: "Filtro de repaso",
@@ -664,7 +665,7 @@ const esEsCatalog: TranslationCatalog = {
       new: "nuevas",
       reviewed: "repasadas",
     },
-    subtitle: "Los mazos agrupan tarjetas relacionadas para que puedas estudiar un tema en conjunto.",
+    subtitle: "Los mazos son filtros inteligentes, no contenedores. Coinciden con tarjetas por esfuerzo y etiquetas.",
     title: "Mazos",
   },
   deckDetail: {
@@ -674,6 +675,8 @@ const esEsCatalog: TranslationCatalog = {
       deleting: "Eliminando...",
       edit: "Editar mazo",
       openReview: "Abrir repaso",
+      reviewAllCards: "Repasar todas las tarjetas",
+      reviewDeck: "Repasar este mazo",
     },
     deleteConfirmation: "¿Eliminar este mazo?",
     empty: {
@@ -702,7 +705,14 @@ const esEsCatalog: TranslationCatalog = {
       title: "Reglas del mazo",
     },
     subtitle: "Consulta las reglas del mazo, las tarjetas coincidentes y el punto de entrada al repaso.",
+    subtitles: {
+      allCards: "Todas las tarjetas es el ámbito completo de repaso de todas las tarjetas.",
+      smartFilter: "Este mazo es un filtro inteligente guardado sobre esfuerzo y etiquetas.",
+    },
     title: "Mazo",
+    warnings: {
+      emptyRules: "Este mazo no tiene reglas, así que incluye todas las tarjetas.",
+    },
   },
   deckForm: {
     actions: {
@@ -711,17 +721,22 @@ const esEsCatalog: TranslationCatalog = {
       saveDeck: "Guardar mazo",
       saving: "Guardando...",
     },
+    errors: {
+      emptyRules: "Elige al menos un nivel de esfuerzo o una etiqueta, o usa Todas las tarjetas en Repaso.",
+    },
     fields: {
       effort: "Esfuerzo",
       name: "Nombre",
-      summary: "Resumen",
+      summary: "Reglas",
       tags: "Etiquetas",
     },
-    filterPreview: "Vista previa del filtro",
+    filterPreview: "Vista previa de reglas",
+    rulesPreviewHelp: "Estas reglas deciden qué tarjetas aparecen en este mazo.",
+    smartFilterExplanation: "Estás creando un filtro inteligente llamado mazo. Coincide con tarjetas por esfuerzo y etiquetas, y luego se puede seleccionar desde el filtro de Repaso.",
     systemDeckReadonly: "El mazo del sistema no se puede editar.",
     subtitles: {
-      edit: "Actualiza un conjunto reutilizable de filtros de tarjetas.",
-      new: "Guarda un conjunto reutilizable de filtros de tarjetas.",
+      edit: "Actualiza un filtro inteligente guardado para tarjetas coincidentes.",
+      new: "Guarda un filtro inteligente para tarjetas coincidentes.",
     },
     title: {
       edit: "Editar mazo",

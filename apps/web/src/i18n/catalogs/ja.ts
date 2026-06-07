@@ -458,6 +458,7 @@ export const jaCatalog = {
     },
   },
   reviewFilterMenu: {
+    deckSmartFilterLabel: "スマートフィルター",
     editDecks: "デッキを編集",
     empty: "フィルターが見つかりません",
     menuAriaLabel: "復習フィルター",
@@ -664,7 +665,7 @@ export const jaCatalog = {
       new: "新規",
       reviewed: "復習済み",
     },
-    subtitle: "デッキは関連するカードをまとめ、同じトピックを一緒に学習できるようにします。",
+    subtitle: "デッキはコンテナではなくスマートフィルターです。学習負荷とタグでカードに一致します。",
     title: "デッキ",
   },
   deckDetail: {
@@ -674,6 +675,8 @@ export const jaCatalog = {
       deleting: "削除しています...",
       edit: "デッキを編集",
       openReview: "復習を開く",
+      reviewAllCards: "すべてのカードを復習",
+      reviewDeck: "このデッキを復習",
     },
     deleteConfirmation: "このデッキを削除しますか？",
     empty: {
@@ -702,7 +705,14 @@ export const jaCatalog = {
       title: "デッキルール",
     },
     subtitle: "デッキルール、一致するカード、復習開始ポイントを確認します。",
+    subtitles: {
+      allCards: "すべてのカードは、全カードを対象にした完全な復習範囲です。",
+      smartFilter: "このデッキは、学習負荷とタグに基づく保存済みスマートフィルターです。",
+    },
     title: "デッキ",
+    warnings: {
+      emptyRules: "このデッキにはルールがないため、すべてのカードが含まれます。",
+    },
   },
   deckForm: {
     actions: {
@@ -711,17 +721,22 @@ export const jaCatalog = {
       saveDeck: "デッキを保存",
       saving: "保存しています...",
     },
+    errors: {
+      emptyRules: "学習負荷またはタグを少なくとも 1 つ選ぶか、復習で「すべてのカード」を使用してください。",
+    },
     fields: {
       effort: "学習負荷",
       name: "名前",
-      summary: "概要",
+      summary: "ルール",
       tags: "タグ",
     },
-    filterPreview: "フィルタープレビュー",
+    filterPreview: "ルールプレビュー",
+    rulesPreviewHelp: "これらのルールにより、このデッキに表示されるカードが決まります。",
+    smartFilterExplanation: "デッキというスマートフィルターを作成しています。学習負荷とタグでカードに一致し、その後、復習フィルターから選択できます。",
     systemDeckReadonly: "システムデッキは編集できません。",
     subtitles: {
-      edit: "再利用できるカードフィルターセットを更新します。",
-      new: "再利用できるカードフィルターセットを保存します。",
+      edit: "一致するカード用の保存済みスマートフィルターを更新します。",
+      new: "一致するカード用のスマートフィルターを保存します。",
     },
     title: {
       edit: "デッキを編集",

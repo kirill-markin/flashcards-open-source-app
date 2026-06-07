@@ -128,6 +128,7 @@ export function ReviewFilterMenu(props: ReviewFilterMenuProps): ReactElement {
               type="button"
               role="menuitemradio"
               aria-checked={item.isSelected}
+              aria-label={item.subtitle === null ? undefined : `${item.label}. ${item.subtitle}`}
               data-review-filter-key={item.key}
               onClick={() => handleReviewFilterSelect(item.reviewFilter)}
             >
@@ -136,7 +137,15 @@ export function ReviewFilterMenu(props: ReviewFilterMenuProps): ReactElement {
                   <ReviewFilterCheckIcon />
                 </span>
               </span>
-              <span className="review-filter-menu-item-label">{item.label}</span>
+              <span className="review-filter-menu-item-label">
+                <span>{item.label}</span>
+                {item.subtitle === null ? null : (
+                  <>
+                    <br />
+                    <span className="review-filter-label">{item.subtitle}</span>
+                  </>
+                )}
+              </span>
             </button>
           ))}
           {reviewFilterMenuItems.map((item) => (
