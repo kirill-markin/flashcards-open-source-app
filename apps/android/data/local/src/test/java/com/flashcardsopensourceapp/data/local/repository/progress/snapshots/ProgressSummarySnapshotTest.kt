@@ -198,6 +198,151 @@ class ProgressSummarySnapshotTest {
     }
 
     @Test
+    fun longServerStreakExtendsThroughConsecutiveLocalDates() {
+        val summaryScopeKey = createProgressSummaryScopeKey(
+            cloudSettings = createCloudSettings(cloudState = CloudAccountState.LINKED),
+            today = LocalDate.parse("2026-04-20"),
+            zoneId = ZoneId.of("Europe/Madrid")
+        )
+        val seriesScopeKey = createProgressSeriesScopeKey(
+            cloudSettings = createCloudSettings(cloudState = CloudAccountState.LINKED),
+            today = LocalDate.parse("2026-04-20"),
+            zoneId = ZoneId.of("Europe/Madrid")
+        )
+        val localDayCounts = listOf(
+            createProgressLocalDayCount(
+                workspaceId = "workspace-1",
+                localDate = "2026-04-19",
+                reviewCount = 1
+            ),
+            createProgressLocalDayCount(
+                workspaceId = "workspace-1",
+                localDate = "2026-04-20",
+                reviewCount = 1
+            )
+        )
+        val localFallback = createLocalFallbackSummary(
+            scopeKey = summaryScopeKey,
+            localDayCounts = localDayCounts,
+            workspaceIds = listOf("workspace-1"),
+            today = LocalDate.parse("2026-04-20")
+        )
+        val serverWatermarks = createWatermarks(reviewSequenceId = 42L)
+        val serverSeries = createSeries(
+            scopeKey = seriesScopeKey,
+            reviewCountsByDate = mapOf("2026-04-18" to 1),
+            reviewHistoryWatermarks = serverWatermarks
+        )
+        val localFallbackSeries = createLocalFallbackSeries(
+            scopeKey = seriesScopeKey,
+            localDayCounts = localDayCounts,
+            workspaceIds = listOf("workspace-1")
+        )
+        val renderedSeriesContext = createRenderedSeriesContext(
+            scopeKey = seriesScopeKey,
+            serverBase = serverSeries,
+            localFallback = localFallbackSeries,
+            pendingLocalOverlay = createPendingLocalOverlaySeries(
+                scopeKey = seriesScopeKey,
+                pendingReviewLocalDates = emptyList(),
+                workspaceIds = listOf("workspace-1")
+            )
+        )
+        val serverBase = CloudProgressSummary(
+            currentStreakDays = 200,
+            hasReviewedToday = false,
+            lastReviewedOn = "2026-04-18",
+            activeReviewDays = 200,
+            reviewHistoryWatermarks = serverWatermarks
+        )
+
+        val snapshot = createProgressSummarySnapshot(
+            scopeKey = summaryScopeKey,
+            localFallback = localFallback,
+            localFallbackActiveDates = setOf("2026-04-19", "2026-04-20"),
+            serverBase = serverBase,
+            renderedSeriesContext = renderedSeriesContext,
+            cloudState = CloudAccountState.LINKED
+        )
+
+        assertEquals(ProgressSnapshotSource.SERVER_BASE_WITH_LOCAL_OVERLAY, snapshot.source)
+        assertEquals(202, snapshot.renderedSummary.currentStreakDays)
+        assertEquals(true, snapshot.renderedSummary.hasReviewedToday)
+        assertEquals("2026-04-20", snapshot.renderedSummary.lastReviewedOn)
+        assertEquals(202, snapshot.renderedSummary.activeReviewDays)
+    }
+
+    @Test
+    fun longServerStreakExtendsToYesterdayWhenTodayHasNoReview() {
+        val summaryScopeKey = createProgressSummaryScopeKey(
+            cloudSettings = createCloudSettings(cloudState = CloudAccountState.LINKED),
+            today = LocalDate.parse("2026-04-20"),
+            zoneId = ZoneId.of("Europe/Madrid")
+        )
+        val seriesScopeKey = createProgressSeriesScopeKey(
+            cloudSettings = createCloudSettings(cloudState = CloudAccountState.LINKED),
+            today = LocalDate.parse("2026-04-20"),
+            zoneId = ZoneId.of("Europe/Madrid")
+        )
+        val localDayCounts = listOf(
+            createProgressLocalDayCount(
+                workspaceId = "workspace-1",
+                localDate = "2026-04-19",
+                reviewCount = 1
+            )
+        )
+        val localFallback = createLocalFallbackSummary(
+            scopeKey = summaryScopeKey,
+            localDayCounts = localDayCounts,
+            workspaceIds = listOf("workspace-1"),
+            today = LocalDate.parse("2026-04-20")
+        )
+        val serverWatermarks = createWatermarks(reviewSequenceId = 42L)
+        val serverSeries = createSeries(
+            scopeKey = seriesScopeKey,
+            reviewCountsByDate = mapOf("2026-04-18" to 1),
+            reviewHistoryWatermarks = serverWatermarks
+        )
+        val localFallbackSeries = createLocalFallbackSeries(
+            scopeKey = seriesScopeKey,
+            localDayCounts = localDayCounts,
+            workspaceIds = listOf("workspace-1")
+        )
+        val renderedSeriesContext = createRenderedSeriesContext(
+            scopeKey = seriesScopeKey,
+            serverBase = serverSeries,
+            localFallback = localFallbackSeries,
+            pendingLocalOverlay = createPendingLocalOverlaySeries(
+                scopeKey = seriesScopeKey,
+                pendingReviewLocalDates = emptyList(),
+                workspaceIds = listOf("workspace-1")
+            )
+        )
+        val serverBase = CloudProgressSummary(
+            currentStreakDays = 200,
+            hasReviewedToday = false,
+            lastReviewedOn = "2026-04-18",
+            activeReviewDays = 200,
+            reviewHistoryWatermarks = serverWatermarks
+        )
+
+        val snapshot = createProgressSummarySnapshot(
+            scopeKey = summaryScopeKey,
+            localFallback = localFallback,
+            localFallbackActiveDates = setOf("2026-04-19"),
+            serverBase = serverBase,
+            renderedSeriesContext = renderedSeriesContext,
+            cloudState = CloudAccountState.LINKED
+        )
+
+        assertEquals(ProgressSnapshotSource.SERVER_BASE_WITH_LOCAL_OVERLAY, snapshot.source)
+        assertEquals(201, snapshot.renderedSummary.currentStreakDays)
+        assertEquals(false, snapshot.renderedSummary.hasReviewedToday)
+        assertEquals("2026-04-19", snapshot.renderedSummary.lastReviewedOn)
+        assertEquals(201, snapshot.renderedSummary.activeReviewDays)
+    }
+
+    @Test
     fun localActiveDateOutsideVisibleChartRangeExtendsActiveDays() {
         val summaryScopeKey = createProgressSummaryScopeKey(
             cloudSettings = createCloudSettings(cloudState = CloudAccountState.LINKED),
