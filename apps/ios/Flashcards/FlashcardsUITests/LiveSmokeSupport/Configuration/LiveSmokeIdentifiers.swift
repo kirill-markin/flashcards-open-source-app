@@ -23,10 +23,31 @@ enum LiveSmokeIdentifier {
     static let progressReviewsSection: String = "progress.reviewsSection"
     static let cardsScreen: String = "cards.screen"
     static let settingsScreen: String = "settings.screen"
+    static let settingsAccountStatusRow: String = "settings.accountStatusRow"
     static let settingsCurrentWorkspaceRow: String = "settings.currentWorkspaceRow"
-    static let settingsWorkspaceSettingsRow: String = "settings.workspaceSettingsRow"
-    static let settingsAccountSettingsRow: String = "settings.accountSettingsRow"
+    static let settingsReviewRemindersRow: String = "settings.reviewRemindersRow"
+    static let settingsLanguageRow: String = "settings.languageRow"
+    static let settingsAccessRow: String = "settings.accessRow"
+    static let settingsDecksRow: String = "settings.decksRow"
+    static let settingsTagsRow: String = "settings.tagsRow"
+    static let settingsExportRow: String = "settings.exportRow"
+    static let settingsFeedbackRow: String = "settings.feedbackRow"
+    static let settingsLegalSupportRow: String = "settings.legalSupportRow"
+    static let settingsOpenSourceRow: String = "settings.openSourceRow"
+    static let settingsSchedulingRow: String = "settings.schedulingRow"
+    static let settingsAgentConnectionsRow: String = "settings.agentConnectionsRow"
+    static let settingsServerRow: String = "settings.serverRow"
+    static let settingsDeviceDiagnosticsRow: String = "settings.deviceDiagnosticsRow"
+    static let settingsResetStudyProgressRow: String = "settings.resetStudyProgressRow"
+    static let settingsDeleteCurrentWorkspaceRow: String = "settings.deleteCurrentWorkspaceRow"
+    static let settingsDeleteAccountRow: String = "settings.deleteAccountRow"
+    static let settingsTestRow: String = "settings.testRow"
+    static let languageSettingsScreen: String = "languageSettings.screen"
+    static let languageSettingsSystemText: String = "languageSettings.systemText"
+    static let languageSettingsSupportedLanguagesList: String = "languageSettings.supportedLanguagesList"
     static let currentWorkspaceScreen: String = "currentWorkspace.screen"
+    static let currentWorkspaceNameField: String = "currentWorkspace.nameField"
+    static let currentWorkspaceSaveNameButton: String = "currentWorkspace.saveNameButton"
     static let accountSettingsAccountStatusRow: String = "accountSettings.accountStatusRow"
     static let accountSettingsDangerZoneRow: String = "accountSettings.dangerZoneRow"
     static let workspaceSettingsScreen: String = "workspaceSettings.screen"
@@ -44,6 +65,8 @@ enum LiveSmokeIdentifier {
     static let resetWorkspaceProgressContinueButton: String = "resetWorkspaceProgress.continueButton"
     static let resetWorkspaceProgressCardsCount: String = "resetWorkspaceProgress.cardsToResetCount"
     static let resetWorkspaceProgressButton: String = "resetWorkspaceProgress.resetButton"
+    static let resetStudyProgressScreen: String = "resetStudyProgress.screen"
+    static let deleteCurrentWorkspaceScreen: String = "deleteCurrentWorkspace.screen"
     static let accountStatusSignInButton: String = "accountStatus.signInButton"
     static let accountStatusLinkedEmailValue: String = "accountStatus.linkedEmailValue"
     static let accountStatusSyncNowButton: String = "accountStatus.syncNowButton"
@@ -280,8 +303,11 @@ enum LiveSmokeScreen: CaseIterable {
     case cloudSignInPostAuthSync
     case cloudSignInPostAuthFailure
     case currentWorkspace
+    case languageSettings
     case workspaceSettings
     case workspaceOverview
+    case resetStudyProgress
+    case deleteCurrentWorkspace
     case accountSettings
     case accountStatus
     case dangerZone
@@ -310,10 +336,16 @@ enum LiveSmokeScreen: CaseIterable {
             return LiveSmokeIdentifier.cloudSignInPostAuthFailureScreen
         case .currentWorkspace:
             return LiveSmokeIdentifier.currentWorkspaceScreen
+        case .languageSettings:
+            return LiveSmokeIdentifier.languageSettingsScreen
         case .workspaceSettings:
             return LiveSmokeIdentifier.workspaceSettingsScreen
         case .workspaceOverview:
             return LiveSmokeIdentifier.workspaceOverviewScreen
+        case .resetStudyProgress:
+            return LiveSmokeIdentifier.resetStudyProgressScreen
+        case .deleteCurrentWorkspace:
+            return LiveSmokeIdentifier.deleteCurrentWorkspaceScreen
         case .accountSettings:
             return LiveSmokeIdentifier.accountSettingsScreen
         case .accountStatus:
@@ -347,10 +379,16 @@ enum LiveSmokeScreen: CaseIterable {
             return "Cloud Sign In Post-Auth Failure"
         case .currentWorkspace:
             return "Current Workspace"
+        case .languageSettings:
+            return "Language"
         case .workspaceSettings:
             return "Workspace Settings"
         case .workspaceOverview:
             return "Workspace Overview"
+        case .resetStudyProgress:
+            return "Reset Study Progress"
+        case .deleteCurrentWorkspace:
+            return "Delete Current Workspace"
         case .accountSettings:
             return "Account Settings"
         case .accountStatus:

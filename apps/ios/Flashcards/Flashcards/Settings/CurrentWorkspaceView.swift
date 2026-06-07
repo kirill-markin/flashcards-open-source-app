@@ -7,6 +7,9 @@ struct CurrentWorkspaceView: View {
     @State private var linkedWorkspaces: [CloudWorkspaceSummary]? = nil
     @State private var isWorkspacePickerPresented: Bool = false
     @State private var isWorkspacePickerLoading: Bool = false
+    @State private var workspaceNameDraft: String = ""
+    @State private var renameErrorMessage: String = ""
+    @State private var isRenameSubmitting: Bool = false
 
     private var currentWorkspaceName: String {
         self.store.workspace?.name ?? aiSettingsLocalized("common.unavailable", "Unavailable")
@@ -14,6 +17,14 @@ struct CurrentWorkspaceView: View {
 
     private var isWorkspaceManagementLocked: Bool {
         self.store.cloudSettings?.cloudState != .linked
+    }
+
+    private var isRenameDisabled: Bool {
+        let trimmedWorkspaceName = self.workspaceNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        return self.isWorkspaceManagementLocked
+            || self.isRenameSubmitting
+            || trimmedWorkspaceName.isEmpty
+            || trimmedWorkspaceName == store.workspace?.name
     }
 
     var body: some View {
@@ -40,10 +51,56 @@ struct CurrentWorkspaceView: View {
                 .foregroundStyle(self.isWorkspaceManagementLocked ? .secondary : .primary)
                 .accessibilityIdentifier(UITestIdentifier.currentWorkspaceRowButton)
             }
+
+            Section(aiSettingsLocalized("settings.currentWorkspace.section.rename", "Rename")) {
+                if self.isWorkspaceManagementLocked {
+                    LabeledContent(aiSettingsLocalized("settings.workspace.overview.workspace", "Workspace")) {
+                        Text(self.currentWorkspaceName)
+                    }
+
+                    Text(
+                        aiSettingsLocalized(
+                            "settings.currentWorkspace.renameLinkedOnly",
+                            "Workspace rename is available only for linked cloud workspaces."
+                        )
+                    )
+                        .foregroundStyle(.secondary)
+                } else {
+                    TextField(
+                        aiSettingsLocalized("settings.workspace.overview.workspaceName", "Workspace name"),
+                        text: self.$workspaceNameDraft
+                    )
+                        .textInputAutocapitalization(.words)
+                        .autocorrectionDisabled(true)
+                        .accessibilityIdentifier(UITestIdentifier.currentWorkspaceNameField)
+
+                    if self.renameErrorMessage.isEmpty == false {
+                        CopyableErrorMessageView(message: self.renameErrorMessage)
+                    }
+
+                    Button(
+                        self.isRenameSubmitting
+                            ? aiSettingsLocalized("common.saving", "Saving...")
+                            : aiSettingsLocalized("settings.workspace.overview.saveName", "Save name")
+                    ) {
+                        Task {
+                            await self.renameWorkspace()
+                        }
+                    }
+                    .disabled(self.isRenameDisabled)
+                    .accessibilityIdentifier(UITestIdentifier.currentWorkspaceSaveNameButton)
+                }
+            }
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.currentWorkspaceScreen)
         .navigationTitle(aiSettingsLocalized("settings.currentWorkspace.title", "Current Workspace"))
+        .task(id: store.workspace?.workspaceId) {
+            self.workspaceNameDraft = store.workspace?.name ?? ""
+        }
+        .task(id: store.workspace?.name) {
+            self.workspaceNameDraft = store.workspace?.name ?? ""
+        }
         .sheet(isPresented: self.$isWorkspacePickerPresented) {
             CurrentWorkspacePickerContainer(
                 workspaces: self.linkedWorkspaces,
@@ -84,6 +141,20 @@ struct CurrentWorkspaceView: View {
                 self.screenErrorMessage = Flashcards.errorMessage(error: error)
             }
         }
+    }
+
+    @MainActor
+    private func renameWorkspace() async {
+        self.isRenameSubmitting = true
+        self.renameErrorMessage = ""
+
+        do {
+            try await store.renameCurrentWorkspace(name: self.workspaceNameDraft)
+        } catch {
+            self.renameErrorMessage = Flashcards.errorMessage(error: error)
+        }
+
+        self.isRenameSubmitting = false
     }
 }
 

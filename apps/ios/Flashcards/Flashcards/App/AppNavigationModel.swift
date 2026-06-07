@@ -5,6 +5,10 @@ func makeSettingsNavigationPath(destination: SettingsNavigationDestination) -> [
     switch destination {
     case .currentWorkspace:
         return [.currentWorkspace]
+    case .language:
+        return [.language]
+    case .feedback:
+        return [.feedback]
     case .device:
         return [.device]
     case .access:
@@ -18,33 +22,37 @@ func makeSettingsNavigationPath(destination: SettingsNavigationDestination) -> [
     case .workspace:
         return [.workspace]
     case .workspaceNotifications:
-        return [.workspace, .workspaceNotifications]
+        return [.workspaceNotifications]
     case .workspaceOverview:
         return [.workspace, .workspaceOverview]
     case .workspaceScheduler:
-        return [.workspace, .workspaceScheduler]
+        return [.workspaceScheduler]
     case .workspaceExport:
-        return [.workspace, .workspaceExport]
+        return [.workspaceExport]
     case .workspaceDecks:
-        return [.workspace, .workspaceDecks]
+        return [.workspaceDecks]
     case .workspaceTags:
-        return [.workspace, .workspaceTags]
+        return [.workspaceTags]
     case .account:
         return [.account]
     case .accountStatus:
-        return [.account, .accountStatus]
+        return [.accountStatus]
     case .accountLegalSupport:
-        return [.account, .accountLegalSupport]
+        return [.accountLegalSupport]
     case .accountOpenSource:
-        return [.account, .accountOpenSource]
+        return [.accountOpenSource]
     case .accountAdvanced:
         return [.account, .accountAdvanced]
     case .accountServer:
-        return [.account, .accountAdvanced, .accountServer]
+        return [.accountServer]
     case .accountAgentConnections:
-        return [.account, .accountAgentConnections]
+        return [.accountAgentConnections]
     case .accountDangerZone:
-        return [.account, .accountDangerZone]
+        return [.accountDangerZone]
+    case .resetStudyProgress:
+        return [.resetStudyProgress]
+    case .deleteCurrentWorkspace:
+        return [.deleteCurrentWorkspace]
     }
 }
 

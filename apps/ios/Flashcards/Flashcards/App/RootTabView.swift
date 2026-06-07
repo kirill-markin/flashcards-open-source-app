@@ -531,6 +531,10 @@ struct RootTabView: View {
         switch destination {
         case .currentWorkspace:
             CurrentWorkspaceView()
+        case .language:
+            LanguageSettingsView()
+        case .feedback:
+            FeedbackSettingsView()
         case .device:
             ThisDeviceSettingsView()
         case .access:
@@ -571,6 +575,10 @@ struct RootTabView: View {
             AgentConnectionsView()
         case .accountDangerZone:
             DangerZoneView()
+        case .resetStudyProgress:
+            ResetStudyProgressView()
+        case .deleteCurrentWorkspace:
+            DeleteCurrentWorkspaceView()
         }
     }
 }

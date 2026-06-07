@@ -22,26 +22,100 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
 
             try self.tapTabBarItem(selectedTab: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-            try self.openAccountStatus()
-            try self.assertElementExists(
-                identifier: LiveSmokeIdentifier.accountStatusSignInButton,
-                timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
-            )
-            try self.tapFirstNavigationBackButton()
-            try self.assertScreenVisible(screen: .accountSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-            try self.tapFirstNavigationBackButton()
-            try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-
-            try self.openAccountDangerZone()
-            try self.assertElementExists(
-                identifier: LiveSmokeIdentifier.dangerZoneDeleteAccountButton,
-                timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
-            )
-            try self.tapFirstNavigationBackButton()
-            try self.assertScreenVisible(screen: .accountSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-            try self.tapFirstNavigationBackButton()
+            try self.verifySettingsInformationArchitecture()
             try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         }
+    }
+
+    @MainActor
+    private func verifySettingsInformationArchitecture() throws {
+        try self.assertTextExists("Account", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.openSettingsRootRow(identifier: LiveSmokeIdentifier.settingsAccountStatusRow)
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.accountStatusSignInButton,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+        try self.returnToSettingsRoot()
+
+        try self.openSettingsRootRow(identifier: LiveSmokeIdentifier.settingsCurrentWorkspaceRow)
+        try self.assertScreenVisible(screen: .currentWorkspace, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.returnToSettingsRoot()
+
+        try self.assertTextExistsScrollingIntoView("General", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.openSettingsRootRow(identifier: LiveSmokeIdentifier.settingsReviewRemindersRow)
+        try self.assertTextExistsScrollingIntoView("Workspace Review Reminders", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.returnToSettingsRoot()
+
+        try self.openSettingsRootRow(identifier: LiveSmokeIdentifier.settingsLanguageRow)
+        try self.assertScreenVisible(screen: .languageSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.languageSettingsSystemText,
+            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+        )
+        try self.assertTextExistsScrollingIntoView("English", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertTextExistsScrollingIntoView("Spanish Spain", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.returnToSettingsRoot()
+
+        try self.openSettingsRootRow(identifier: LiveSmokeIdentifier.settingsAccessRow)
+        try self.assertTextExists("Permissions", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.returnToSettingsRoot()
+
+        try self.assertElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsDecksRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsTagsRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsExportRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+
+        try self.assertTextExistsScrollingIntoView("Support", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsFeedbackRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsLegalSupportRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsOpenSourceRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+
+        try self.assertTextExistsScrollingIntoView("Advanced", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.openSettingsRootRow(identifier: LiveSmokeIdentifier.settingsSchedulingRow)
+        try self.assertTextExists("Scheduler", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.returnToSettingsRoot()
+
+        try self.assertElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsAgentConnectionsRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+
+        try self.openSettingsRootRow(identifier: LiveSmokeIdentifier.settingsServerRow)
+        try self.assertTextExists("Current Server", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.returnToSettingsRoot()
+
+        try self.openSettingsRootRow(identifier: LiveSmokeIdentifier.settingsDeviceDiagnosticsRow)
+        try self.assertTextExists("Operating system", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.returnToSettingsRoot()
+
+        try self.assertElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsResetStudyProgressRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsDeleteCurrentWorkspaceRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+
+        try self.openSettingsRootRow(identifier: LiveSmokeIdentifier.settingsDeleteAccountRow)
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.dangerZoneDeleteAccountButton,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+        try self.returnToSettingsRoot()
+
+        if self.app.buttons[LiveSmokeIdentifier.settingsTestRow].firstMatch.exists {
+            throw LiveSmokeFailure.unexpectedAccountState(
+                message: "Test settings row should be hidden when test mode is off.",
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+    }
+
+    @MainActor
+    private func openSettingsRootRow(identifier: String) throws {
+        try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.tapButtonScrollingIntoView(
+            identifier: identifier,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+    }
+
+    @MainActor
+    private func returnToSettingsRoot() throws {
+        try self.tapFirstNavigationBackButton()
+        try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
     }
 
     @MainActor
@@ -77,19 +151,15 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
                     identifier: LiveSmokeIdentifier.resetWorkspaceProgressButton,
                     timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
                 )
-                try self.assertScreenVisible(screen: .workspaceSettings, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+                try self.assertScreenVisible(screen: .resetStudyProgress, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+                try self.tapFirstNavigationBackButton()
+                try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             }
 
             try self.step("verify the reset card is reviewable again") {
                 try self.tapTabBarItem(selectedTab: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
                 try self.reviewCurrentCard(expectedFrontText: context.manualFrontText)
                 try self.tapTabBarItem(selectedTab: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-                let workspaceSettingsScreen = self.app.descendants(matching: .any)
-                    .matching(identifier: LiveSmokeIdentifier.workspaceSettingsScreen)
-                    .firstMatch
-                if workspaceSettingsScreen.exists {
-                    try self.tapFirstNavigationBackButton()
-                }
                 try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             }
         }

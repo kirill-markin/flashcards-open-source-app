@@ -4,14 +4,6 @@ struct AccessSettingsView: View {
     var body: some View {
         List {
             Section(aiSettingsLocalized("settings.access.section.permissions", "Permissions")) {
-                NavigationLink(value: SettingsNavigationDestination.workspaceNotifications) {
-                    SettingsNavigationRow(
-                        title: aiSettingsLocalized("settings.access.notifications", "Notifications"),
-                        value: aiSettingsLocalized("settings.access.thisDevice", "This Device"),
-                        systemImage: "bell.badge"
-                    )
-                }
-
                 ForEach(AccessPermissionKind.allCases) { kind in
                     NavigationLink(value: SettingsNavigationDestination.accessPermissionDetail(kind)) {
                         HStack(spacing: 12) {

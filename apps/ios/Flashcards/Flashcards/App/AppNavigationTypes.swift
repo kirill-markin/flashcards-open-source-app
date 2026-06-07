@@ -2,10 +2,9 @@ import Foundation
 
 /**
  Keep workspace navigation aligned with web and Android:
- the primary destinations are Review, Progress, AI, Cards, and Settings.
- Decks and tags belong under workspace settings on both platforms.
- Web exposes account settings from the account menu, while iOS nests account
- settings inside the Settings tab. Android keeps the same product destinations
+ the primary destinations are Review, Progress, AI, Cards, and Settings,
+ with shared first-level Settings rows across supported clients.
+ Android keeps the same product destinations
  in `apps/android/app/src/main/java/com/flashcardsopensourceapp/app/navigation/TopLevelDestinations.kt`,
  with nested settings destinations in `apps/android/app/src/main/java/com/flashcardsopensourceapp/app/navigation/SettingsDestinations.kt`.
  */
@@ -19,6 +18,8 @@ enum AppTab: Hashable, CaseIterable, Sendable {
 
 enum SettingsNavigationDestination: Hashable, Sendable {
     case currentWorkspace
+    case language
+    case feedback
     case device
     case access
     case accessPermissionDetail(AccessPermissionKind)
@@ -39,4 +40,6 @@ enum SettingsNavigationDestination: Hashable, Sendable {
     case accountServer
     case accountAgentConnections
     case accountDangerZone
+    case resetStudyProgress
+    case deleteCurrentWorkspace
 }
