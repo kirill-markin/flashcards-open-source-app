@@ -50,6 +50,10 @@ private data class CurrentWorkspaceDraftState(
     val pendingWorkspaceTitle: String?,
     val retryAction: CurrentWorkspaceRetryAction?,
     val errorMessage: String,
+    val successMessage: String,
+    val workspaceNameDraft: String,
+    val hasUserEditedName: Boolean,
+    val isSavingName: Boolean,
     val workspaces: List<CloudWorkspaceSummary>
 )
 
@@ -68,6 +72,10 @@ class CurrentWorkspaceViewModel(
             pendingWorkspaceTitle = null,
             retryAction = null,
             errorMessage = "",
+            successMessage = "",
+            workspaceNameDraft = "",
+            hasUserEditedName = false,
+            isSavingName = false,
             workspaces = emptyList()
         )
     )
@@ -113,6 +121,11 @@ class CurrentWorkspaceViewModel(
         } else {
             strings.get(R.string.settings_unavailable)
         }
+        val workspaceNameDraft = if (draft.hasUserEditedName) {
+            draft.workspaceNameDraft
+        } else {
+            currentWorkspaceName
+        }
         CurrentWorkspaceUiState(
             cloudStatusTitle = displayCloudAccountStateTitle(
                 cloudState = cloudSettings.cloudState,
@@ -134,6 +147,9 @@ class CurrentWorkspaceViewModel(
             } else {
                 selectionErrorMessage.orEmpty()
             },
+            successMessage = draft.successMessage,
+            workspaceNameDraft = workspaceNameDraft,
+            isSavingName = draft.isSavingName,
             workspaces = buildCurrentWorkspaceItems(
                 activeWorkspaceId = cloudSettings.activeWorkspaceId,
                 workspaces = draft.workspaces,
@@ -156,6 +172,9 @@ class CurrentWorkspaceViewModel(
             pendingWorkspaceTitle = null,
             canRetryLastWorkspaceAction = false,
             errorMessage = "",
+            successMessage = "",
+            workspaceNameDraft = "",
+            isSavingName = false,
             workspaces = emptyList()
         )
     )
@@ -181,7 +200,8 @@ class CurrentWorkspaceViewModel(
             state.copy(
                 operation = CurrentWorkspaceOperation.LOADING,
                 workspaceLoadState = CurrentWorkspaceLoadState.Loading,
-                errorMessage = ""
+                errorMessage = "",
+                successMessage = ""
             )
         }
         try {
@@ -191,6 +211,7 @@ class CurrentWorkspaceViewModel(
                     operation = CurrentWorkspaceOperation.IDLE,
                     workspaceLoadState = CurrentWorkspaceLoadState.Loaded,
                     errorMessage = "",
+                    successMessage = "",
                     workspaces = workspaces
                 )
             }
@@ -199,7 +220,8 @@ class CurrentWorkspaceViewModel(
                 state.copy(
                     operation = CurrentWorkspaceOperation.IDLE,
                     workspaceLoadState = CurrentWorkspaceLoadState.Failed,
-                    errorMessage = error.message ?: strings.get(R.string.settings_current_workspace_load_failed)
+                    errorMessage = error.message ?: strings.get(R.string.settings_current_workspace_load_failed),
+                    successMessage = ""
                 )
             }
         }
@@ -225,7 +247,9 @@ class CurrentWorkspaceViewModel(
                     strings = strings
                 ),
                 retryAction = CurrentWorkspaceRetryAction.CompleteLink(selection = selection),
-                errorMessage = ""
+                errorMessage = "",
+                successMessage = "",
+                hasUserEditedName = false
             )
         }
         try {
@@ -254,6 +278,9 @@ class CurrentWorkspaceViewModel(
                     pendingWorkspaceTitle = null,
                     retryAction = null,
                     errorMessage = "",
+                    successMessage = "",
+                    workspaceNameDraft = workspace.name,
+                    hasUserEditedName = false,
                     workspaces = workspaces
                 )
             }
@@ -265,7 +292,8 @@ class CurrentWorkspaceViewModel(
                 state.copy(
                     operation = CurrentWorkspaceOperation.IDLE,
                     workspaceLoadState = CurrentWorkspaceLoadState.Loaded,
-                    errorMessage = error.message ?: strings.get(R.string.settings_current_workspace_switch_failed)
+                    errorMessage = error.message ?: strings.get(R.string.settings_current_workspace_switch_failed),
+                    successMessage = ""
                 )
             }
         }
@@ -287,6 +315,81 @@ class CurrentWorkspaceViewModel(
     fun retryLastWorkspaceActionAsync() {
         viewModelScope.launch {
             retryLastWorkspaceAction()
+        }
+    }
+
+    fun updateWorkspaceNameDraft(name: String) {
+        draftState.update { state ->
+            state.copy(
+                workspaceNameDraft = name,
+                hasUserEditedName = true,
+                errorMessage = "",
+                successMessage = ""
+            )
+        }
+    }
+
+    suspend fun saveWorkspaceName(): Boolean {
+        if (uiState.value.isLinked.not()) {
+            draftState.update { state ->
+                state.copy(
+                    errorMessage = strings.get(R.string.settings_workspace_rename_guidance),
+                    successMessage = ""
+                )
+            }
+            return false
+        }
+
+        val nextName = uiState.value.workspaceNameDraft.trim()
+        if (nextName.isEmpty()) {
+            draftState.update { state ->
+                state.copy(
+                    errorMessage = strings.get(R.string.settings_workspace_name_required),
+                    successMessage = ""
+                )
+            }
+            return false
+        }
+
+        draftState.update { state ->
+            state.copy(
+                isSavingName = true,
+                errorMessage = "",
+                successMessage = ""
+            )
+        }
+
+        return try {
+            val renamedWorkspace = cloudAccountRepository.renameCurrentWorkspace(name = nextName)
+            draftState.update { state ->
+                state.copy(
+                    workspaceNameDraft = renamedWorkspace.name,
+                    hasUserEditedName = false,
+                    isSavingName = false,
+                    errorMessage = "",
+                    successMessage = strings.get(R.string.settings_workspace_name_saved),
+                    workspaces = renameSelectedWorkspace(
+                        workspaces = state.workspaces,
+                        renamedWorkspace = renamedWorkspace
+                    )
+                )
+            }
+            true
+        } catch (error: Exception) {
+            draftState.update { state ->
+                state.copy(
+                    isSavingName = false,
+                    errorMessage = error.message ?: strings.get(R.string.settings_workspace_name_save_failed),
+                    successMessage = ""
+                )
+            }
+            false
+        }
+    }
+
+    fun saveWorkspaceNameAsync() {
+        viewModelScope.launch {
+            saveWorkspaceName()
         }
     }
 
@@ -384,13 +487,16 @@ private fun buildCurrentWorkspaceVisibleSignature(
     )
 }
 
-private fun applyOptimisticWorkspaceSelection(
+private fun renameSelectedWorkspace(
     workspaces: List<CloudWorkspaceSummary>,
-    selectedWorkspace: CloudWorkspaceSummary
+    renamedWorkspace: CloudWorkspaceSummary
 ): List<CloudWorkspaceSummary> {
-    return (workspaces.filterNot { workspace -> workspace.workspaceId == selectedWorkspace.workspaceId } +
-        selectedWorkspace.copy(isSelected = true)).map { workspace ->
-        workspace.copy(isSelected = workspace.workspaceId == selectedWorkspace.workspaceId)
+    return workspaces.map { workspace ->
+        if (workspace.workspaceId == renamedWorkspace.workspaceId) {
+            workspace.copy(name = renamedWorkspace.name)
+        } else {
+            workspace
+        }
     }
 }
 

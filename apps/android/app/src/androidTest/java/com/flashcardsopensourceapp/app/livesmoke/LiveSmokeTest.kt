@@ -6,7 +6,8 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import com.flashcardsopensourceapp.app.FirebaseAppInstrumentationTimeoutTest
 import com.flashcardsopensourceapp.app.MainActivity
-import com.flashcardsopensourceapp.app.livesmoke.flows.assertWorkspaceTodayCounts
+import com.flashcardsopensourceapp.app.livesmoke.flows.assertSettingsInformationArchitecture
+import com.flashcardsopensourceapp.app.livesmoke.flows.openSettingsInformationArchitectureDetails
 import com.flashcardsopensourceapp.app.livesmoke.flows.openReviewTab
 import com.flashcardsopensourceapp.app.livesmoke.flows.resetWorkspaceProgressFromSettings
 import com.flashcardsopensourceapp.app.livesmoke.support.LiveSmokeContext
@@ -21,11 +22,11 @@ import com.flashcardsopensourceapp.app.livesmoke.support.externalUiTimeoutMillis
 import com.flashcardsopensourceapp.app.livesmoke.support.internalUiTimeoutMillis
 import com.flashcardsopensourceapp.app.livesmoke.support.rateVisibleReviewCardGood
 import com.flashcardsopensourceapp.app.livesmoke.support.reviewEmailArgumentKey
-import com.flashcardsopensourceapp.app.support.AppStateResetRule
 import com.flashcardsopensourceapp.app.livesmoke.support.seedCardViaRepository
 import com.flashcardsopensourceapp.app.livesmoke.support.startNewChatAndAssertConversationReset
 import com.flashcardsopensourceapp.app.livesmoke.support.step
 import com.flashcardsopensourceapp.app.livesmoke.support.withLinkedWorkspaceSession
+import com.flashcardsopensourceapp.app.support.AppStateResetRule
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.RuleChain
@@ -54,6 +55,16 @@ class LiveSmokeTest : FirebaseAppInstrumentationTimeoutTest() {
         currentStepLabel = "test bootstrap",
         hasPrintedInlineRawScreenStateForCurrentFailure = false
     )
+
+    @Test
+    fun settingsRootMatchesSharedInformationArchitecture() {
+        liveSmokeContext.step("verify settings root shared information architecture") {
+            liveSmokeContext.assertSettingsInformationArchitecture()
+        }
+        liveSmokeContext.step("open representative settings detail screens") {
+            liveSmokeContext.openSettingsInformationArchitectureDetails()
+        }
+    }
 
     @Test
     fun linkedWorkspaceAccountStatusAndWorkspaceStateAreVisible() {
@@ -151,14 +162,6 @@ class LiveSmokeTest : FirebaseAppInstrumentationTimeoutTest() {
 
             liveSmokeContext.step("open reset all progress flow and confirm the preview count is one") {
                 liveSmokeContext.resetWorkspaceProgressFromSettings(expectedCardsToResetCount = 1)
-            }
-
-            liveSmokeContext.step("verify the workspace summary reflects the reset card state") {
-                liveSmokeContext.assertWorkspaceTodayCounts(
-                    expectedDueCount = 1,
-                    expectedNewCount = 1,
-                    expectedReviewedCount = 0
-                )
             }
 
             liveSmokeContext.step("verify the same card reappears in review") {

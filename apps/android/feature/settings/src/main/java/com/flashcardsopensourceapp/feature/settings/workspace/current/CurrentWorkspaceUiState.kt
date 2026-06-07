@@ -26,6 +26,9 @@ data class CurrentWorkspaceUiState(
     val pendingWorkspaceTitle: String?,
     val canRetryLastWorkspaceAction: Boolean,
     val errorMessage: String,
+    val successMessage: String,
+    val workspaceNameDraft: String,
+    val isSavingName: Boolean,
     val workspaces: List<CurrentWorkspaceItemUiState>
 )
 

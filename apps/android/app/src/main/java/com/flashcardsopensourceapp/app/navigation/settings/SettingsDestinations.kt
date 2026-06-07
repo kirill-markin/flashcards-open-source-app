@@ -28,6 +28,14 @@ data object SettingsCurrentWorkspaceDestination {
     const val route: String = "settings/current-workspace"
 }
 
+data object SettingsLanguageDestination {
+    const val route: String = "settings/language"
+}
+
+data object SettingsFeedbackDestination {
+    const val route: String = "settings/feedback"
+}
+
 data object SettingsWorkspaceOverviewDestination {
     const val route: String = "settings/workspace/overview"
 }
@@ -74,6 +82,14 @@ data object SettingsWorkspaceNotificationsDestination {
 
 data object SettingsWorkspaceExportDestination {
     const val route: String = "settings/workspace/export"
+}
+
+data object SettingsWorkspaceResetStudyProgressDestination {
+    const val route: String = "settings/workspace/reset-study-progress"
+}
+
+data object SettingsWorkspaceDeleteCurrentDestination {
+    const val route: String = "settings/workspace/delete-current"
 }
 
 data object SettingsAccountDestination {

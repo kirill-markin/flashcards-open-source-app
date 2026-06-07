@@ -11,6 +11,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,6 +35,8 @@ const val currentWorkspaceErrorMessageTag: String = "current_workspace_error_mes
 const val currentWorkspaceOperationMessageTag: String = "current_workspace_operation_message"
 const val currentWorkspaceLoadingStateTag: String = "current_workspace_loading_state"
 const val currentWorkspaceReloadButtonTag: String = "current_workspace_reload_button"
+const val currentWorkspaceNameFieldTag: String = "current_workspace_name_field"
+const val currentWorkspaceSaveNameButtonTag: String = "current_workspace_save_name_button"
 
 fun currentWorkspaceExistingButtonTag(workspaceId: String): String {
     return currentWorkspaceExistingButtonTagPrefix + workspaceId
@@ -49,6 +52,8 @@ fun CurrentWorkspaceRoute(
     onReload: () -> Unit,
     onSwitchToExistingWorkspace: (String) -> Unit,
     onCreateWorkspace: () -> Unit,
+    onWorkspaceNameChange: (String) -> Unit,
+    onSaveWorkspaceName: () -> Unit,
     onOpenSignIn: () -> Unit,
     onRetryLastWorkspaceAction: () -> Unit,
     onBack: () -> Unit
@@ -135,6 +140,68 @@ fun CurrentWorkspaceRoute(
                                 .padding(20.dp)
                                 .testTag(tag = currentWorkspaceErrorMessageTag)
                         )
+                    }
+                }
+            }
+
+            if (uiState.successMessage.isNotEmpty()) {
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = uiState.successMessage,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(20.dp)
+                        )
+                    }
+                }
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.padding(20.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.settings_workspace_name_section_title),
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        if (uiState.isLinked) {
+                            OutlinedTextField(
+                                value = uiState.workspaceNameDraft,
+                                onValueChange = onWorkspaceNameChange,
+                                enabled = uiState.isSavingName.not() && uiState.isSwitching.not(),
+                                label = {
+                                    Text(stringResource(R.string.settings_workspace_name_label))
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag(tag = currentWorkspaceNameFieldTag)
+                            )
+                            Button(
+                                onClick = onSaveWorkspaceName,
+                                enabled = uiState.isSavingName.not() &&
+                                    uiState.isSwitching.not() &&
+                                    uiState.workspaceNameDraft.trim().isNotEmpty() &&
+                                    uiState.workspaceNameDraft != uiState.currentWorkspaceName,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag(tag = currentWorkspaceSaveNameButtonTag)
+                            ) {
+                                Text(
+                                    if (uiState.isSavingName) {
+                                        stringResource(R.string.settings_saving)
+                                    } else {
+                                        stringResource(R.string.settings_workspace_save_name_button)
+                                    }
+                                )
+                            }
+                        } else {
+                            Text(
+                                text = stringResource(R.string.settings_workspace_rename_guidance),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }

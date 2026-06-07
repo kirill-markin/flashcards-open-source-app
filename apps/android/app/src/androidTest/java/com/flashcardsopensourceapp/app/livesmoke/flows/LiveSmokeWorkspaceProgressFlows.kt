@@ -2,12 +2,9 @@
 
 package com.flashcardsopensourceapp.app.livesmoke.flows
 
-import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTextReplacement
-import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickNode
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickTag
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.nodeSummary
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitForTagToDisappear
@@ -17,9 +14,7 @@ import com.flashcardsopensourceapp.app.livesmoke.support.LiveSmokeContext
 import com.flashcardsopensourceapp.app.livesmoke.support.currentCloudSettingsSummary
 import com.flashcardsopensourceapp.app.livesmoke.support.currentWorkspaceSummaryOrNull
 import com.flashcardsopensourceapp.app.livesmoke.support.externalUiTimeoutMillis
-import com.flashcardsopensourceapp.feature.settings.workspace.overview.workspaceOverviewTodayDueCountTag
-import com.flashcardsopensourceapp.feature.settings.workspace.overview.workspaceOverviewTodayNewCountTag
-import com.flashcardsopensourceapp.feature.settings.workspace.overview.workspaceOverviewTodayReviewedCountTag
+import com.flashcardsopensourceapp.feature.settings.settingsResetStudyProgressRowTag
 import com.flashcardsopensourceapp.feature.settings.workspace.settings.workspaceSettingsResetProgressButtonTag
 import com.flashcardsopensourceapp.feature.settings.workspace.settings.workspaceSettingsResetProgressConfirmationButtonTag
 import com.flashcardsopensourceapp.feature.settings.workspace.settings.workspaceSettingsResetProgressConfirmationDialogTag
@@ -31,7 +26,7 @@ import com.flashcardsopensourceapp.feature.settings.workspace.settings.workspace
 import com.flashcardsopensourceapp.feature.settings.workspace.settings.workspaceSettingsResetProgressPreviewDialogTag
 
 internal fun LiveSmokeContext.resetWorkspaceProgressFromSettings(expectedCardsToResetCount: Int) {
-    openSettingsSection(sectionTitle = "Workspace")
+    openSettingsRow(rowTag = settingsResetStudyProgressRowTag, rowLabel = "Reset study progress")
     clickTag(tag = workspaceSettingsResetProgressButtonTag, label = "Reset all progress")
     waitForResetProgressConfirmationReady()
 
@@ -53,53 +48,6 @@ internal fun LiveSmokeContext.resetWorkspaceProgressFromSettings(expectedCardsTo
         timeoutMillis = externalUiTimeoutMillis,
         context = "while waiting for reset progress to complete"
     )
-}
-
-internal fun LiveSmokeContext.assertWorkspaceTodayCounts(
-    expectedDueCount: Int,
-    expectedNewCount: Int,
-    expectedReviewedCount: Int
-) {
-    openSettingsSection(sectionTitle = "Workspace")
-    clickNode(
-        matcher = hasText("Overview").and(other = hasClickAction()),
-        label = "Workspace overview"
-    )
-    waitUntilWithMitigation(
-        timeoutMillis = externalUiTimeoutMillis,
-        context = "while waiting for workspace overview counts"
-    ) {
-        readTaggedTextOrNull(workspaceOverviewTodayDueCountTag) != null &&
-            readTaggedTextOrNull(workspaceOverviewTodayNewCountTag) != null &&
-            readTaggedTextOrNull(workspaceOverviewTodayReviewedCountTag) != null
-    }
-
-    val dueCount = readTaggedText(
-        tag = workspaceOverviewTodayDueCountTag,
-        label = "workspace overview due count"
-    ).toInt()
-    val newCount = readTaggedText(
-        tag = workspaceOverviewTodayNewCountTag,
-        label = "workspace overview new count"
-    ).toInt()
-    val reviewedCount = readTaggedText(
-        tag = workspaceOverviewTodayReviewedCountTag,
-        label = "workspace overview reviewed count"
-    ).toInt()
-
-    if (
-        dueCount != expectedDueCount ||
-        newCount != expectedNewCount ||
-        reviewedCount != expectedReviewedCount
-    ) {
-        throw AssertionError(
-            "Workspace overview counts did not match. " +
-                "Expected due/new/reviewed=$expectedDueCount/$expectedNewCount/$expectedReviewedCount " +
-                "but was $dueCount/$newCount/$reviewedCount. " +
-                "CloudSettings=${currentCloudSettingsSummary()} " +
-                "CurrentWorkspace=${currentWorkspaceSummaryOrNull()}"
-        )
-    }
 }
 
 private fun LiveSmokeContext.waitForResetProgressConfirmationReady() {
