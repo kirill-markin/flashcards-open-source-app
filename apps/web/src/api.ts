@@ -19,6 +19,7 @@ export {
   deleteMyAccount,
   listAgentApiKeys,
   revokeAgentApiKey,
+  updateAccountPreferences,
 } from "./api/endpoints/account";
 export {
   queryCards,

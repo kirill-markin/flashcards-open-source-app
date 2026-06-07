@@ -41,6 +41,8 @@ export const jaCatalog = {
     noBackText: "裏面テキストなし",
     notRevoked: "取り消されていません",
     ok: "OK",
+    off: "オフ",
+    on: "オン",
     open: "開く",
     perAction: "操作ごと",
     refresh: "更新",
@@ -442,6 +444,12 @@ export const jaCatalog = {
     paragraphOne: "復習リマインダー設定はこのワークスペースに属しますが、有効化と管理は各デバイスで個別に行います。",
     paragraphTwo: "学習通知を受け取りたい場合は、通知を受け取りたい iPhone または Android デバイスでこのワークスペースを開き、そこで通知を設定してください。",
     paragraphThree: "Web アプリは通知に対応していないため、この画面には通知の設定項目はありません。",
+  },
+  reviewAnimationsSettings: {
+    title: "復習アニメーション",
+    subtitle: "カード評価後のリアクションアニメーションを設定します。",
+    toggleTitle: "カード評価後にアニメーションを表示",
+    toggleDescription: "復習時のリアクションアニメーションだけに適用されます。",
   },
   accessSettings: {
     title: "アクセス",

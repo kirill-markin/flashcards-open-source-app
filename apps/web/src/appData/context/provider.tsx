@@ -7,9 +7,11 @@ import {
   useState,
   type ReactElement,
 } from "react";
+import { revalidateSession } from "../../api";
 import { useI18n } from "../../i18n";
 import { loadActiveCardCount } from "../../localDb/cards/cards";
 import type {
+  AccountPreferences,
   CloudSettings,
   ReviewFilter,
   SessionInfo,
@@ -93,6 +95,43 @@ function loadSelectedReviewFilter(): ReviewFilter {
   return parsePersistedReviewFilter(window.localStorage.getItem(SELECTED_REVIEW_FILTER_STORAGE_KEY));
 }
 
+function replaceSessionAccountPreferences(
+  session: SessionInfo,
+  preferences: AccountPreferences,
+): SessionInfo {
+  return {
+    ...session,
+    preferences,
+  };
+}
+
+function mergeRefreshedAccountSession(
+  previousSession: SessionInfo,
+  refreshedSession: SessionInfo,
+): SessionInfo {
+  return {
+    ...previousSession,
+    selectedWorkspaceId: refreshedSession.selectedWorkspaceId,
+    authTransport: refreshedSession.authTransport,
+    csrfToken: refreshedSession.csrfToken,
+    preferences: refreshedSession.preferences,
+    profile: refreshedSession.profile,
+  };
+}
+
+function mergeRefreshedAccountSessionWithoutPreferences(
+  previousSession: SessionInfo,
+  refreshedSession: SessionInfo,
+): SessionInfo {
+  return {
+    ...previousSession,
+    selectedWorkspaceId: refreshedSession.selectedWorkspaceId,
+    authTransport: refreshedSession.authTransport,
+    csrfToken: refreshedSession.csrfToken,
+    profile: refreshedSession.profile,
+  };
+}
+
 export function AppDataProvider(props: Props): ReactElement {
   const { children } = props;
   const { t } = useI18n();
@@ -119,6 +158,7 @@ export function AppDataProvider(props: Props): ReactElement {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [selectedReviewFilterState, setSelectedReviewFilterState] = useState<ReviewFilter>(loadSelectedReviewFilter);
   const shouldSkipSelectedReviewFilterPersistRef = useRef<boolean>(false);
+  const accountPreferencesMutationVersionRef = useRef<number>(0);
 
   const syncEngine = useSyncEngine({
     sessionLoadState,
@@ -240,6 +280,59 @@ export function AppDataProvider(props: Props): ReactElement {
     setSelectedReviewFilterState(reviewFilter);
   }, []);
 
+  const setAccountPreferences = useCallback(function setAccountPreferences(
+    userId: string,
+    preferences: AccountPreferences,
+  ): void {
+    accountPreferencesMutationVersionRef.current += 1;
+    setSession((currentSession): SessionInfo | null => {
+      if (currentSession === null || currentSession.userId !== userId) {
+        return currentSession;
+      }
+
+      return replaceSessionAccountPreferences(currentSession, preferences);
+    });
+  }, []);
+
+  const refreshAccountPreferences = useCallback(async function refreshAccountPreferences(): Promise<AccountPreferences> {
+    const sessionUserId = session?.userId ?? null;
+    if (sessionUserId === null) {
+      throw new Error(t("app.sessionUnavailable"));
+    }
+
+    if (sessionLoadState !== "ready" || sessionVerificationState !== "verified") {
+      throw new Error(t("app.sessionRestoringActionLocked"));
+    }
+
+    const refreshStartedAtMutationVersion = accountPreferencesMutationVersionRef.current;
+    const refreshedSession = await revalidateSession();
+    if (refreshedSession.userId !== sessionUserId) {
+      throw new Error(t("app.sessionUnavailable"));
+    }
+
+    setSession((currentSession): SessionInfo | null => {
+      if (currentSession === null || currentSession.userId !== refreshedSession.userId) {
+        return currentSession;
+      }
+
+      if (refreshStartedAtMutationVersion !== accountPreferencesMutationVersionRef.current) {
+        return mergeRefreshedAccountSessionWithoutPreferences(currentSession, refreshedSession);
+      }
+
+      return mergeRefreshedAccountSession(currentSession, refreshedSession);
+    });
+    setSessionErrorMessage("");
+    setErrorMessage("");
+    return refreshedSession.preferences;
+  }, [
+    session?.userId,
+    sessionLoadState,
+    sessionVerificationState,
+    t,
+    setErrorMessage,
+    setSessionErrorMessage,
+  ]);
+
   const {
     initialize,
     chooseWorkspace,
@@ -291,6 +384,8 @@ export function AppDataProvider(props: Props): ReactElement {
     selectedReviewFilter: selectedReviewFilterState,
     errorMessage,
     setErrorMessage,
+    setAccountPreferences,
+    refreshAccountPreferences,
     initialize,
     chooseWorkspace,
     createWorkspace,

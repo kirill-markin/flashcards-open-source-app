@@ -270,6 +270,8 @@ export type WebAppOperation =
   | "account_deletion_submit"
   | "agent_connections_load"
   | "agent_connection_revoke"
+  | "account_preferences_refresh"
+  | "account_preferences_update"
   | "card_form_load"
   | "card_save"
   | "card_delete"

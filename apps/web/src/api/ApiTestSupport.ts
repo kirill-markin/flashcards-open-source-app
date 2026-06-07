@@ -9,6 +9,10 @@ type SessionResponseProfile = Readonly<{
   createdAt: string;
 }>;
 
+type SessionResponsePreferences = Readonly<{
+  reviewReactionAnimationsEnabled: boolean;
+}>;
+
 // Mirrors backend legacy chatConfig metadata kept for released clients at 1.5.0 and older.
 type LegacyChatConfigResponseValue = Readonly<{
   provider: Readonly<{ id: "openai"; label: string }>;
@@ -26,6 +30,7 @@ export type SessionResponseOverrides = Readonly<{
   selectedWorkspaceId?: string | null;
   authTransport?: "session" | "bearer";
   csrfToken?: string | null;
+  preferences?: Partial<SessionResponsePreferences>;
   profile?: Partial<SessionResponseProfile>;
 }>;
 
@@ -119,6 +124,9 @@ export function createSessionResponse(overrides: SessionResponseOverrides | null
     locale: "en",
     createdAt: "2026-04-10T00:00:00.000Z",
   };
+  const basePreferences: SessionResponsePreferences = {
+    reviewReactionAnimationsEnabled: true,
+  };
 
   return new Response(JSON.stringify({
     userId: "user-1",
@@ -126,6 +134,10 @@ export function createSessionResponse(overrides: SessionResponseOverrides | null
     authTransport: "session",
     csrfToken: "csrf-token-1",
     ...overrides,
+    preferences: {
+      ...basePreferences,
+      ...overrides?.preferences,
+    },
     profile: {
       ...baseProfile,
       ...overrides?.profile,

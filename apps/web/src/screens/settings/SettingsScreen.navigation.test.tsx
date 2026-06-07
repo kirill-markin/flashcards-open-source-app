@@ -11,6 +11,7 @@ import {
   settingsCurrentWorkspaceRoute,
   settingsFeedbackRoute,
   settingsLanguageRoute,
+  settingsReviewAnimationsRoute,
   settingsSchedulerRoute,
   settingsServerRoute,
 } from "../../routes";
@@ -70,6 +71,9 @@ function createAppData(): Mutable<AppDataContextValue> {
       selectedWorkspaceId: "workspace-1",
       authTransport: "session",
       csrfToken: "csrf-token-1",
+      preferences: {
+        reviewReactionAnimationsEnabled: true,
+      },
       profile: {
         email: "user@example.com",
         locale: "en",
@@ -111,6 +115,10 @@ function createAppData(): Mutable<AppDataContextValue> {
     selectedReviewFilter: { kind: "allCards" } satisfies ReviewFilter,
     errorMessage: "",
     setErrorMessage: vi.fn(),
+    setAccountPreferences: vi.fn(),
+    refreshAccountPreferences: vi.fn(async () => ({
+      reviewReactionAnimationsEnabled: true,
+    })),
     initialize: vi.fn(async (): Promise<void> => undefined),
     chooseWorkspace: vi.fn(async (_workspaceId: string): Promise<void> => undefined),
     createWorkspace: vi.fn(async (_name: string): Promise<void> => undefined),
@@ -233,6 +241,16 @@ function expectRowVisible(testId: string): void {
   expect(getContainer().querySelector(`[data-testid='${testId}']`)).not.toBeNull();
 }
 
+function rowIndex(testId: string): number {
+  const rows = Array.from(getContainer().querySelectorAll("[data-testid]"));
+  const index = rows.findIndex((row) => row.getAttribute("data-testid") === testId);
+  if (index === -1) {
+    throw new Error(`Settings row ${testId} was not found`);
+  }
+
+  return index;
+}
+
 function currentPathname(): string {
   const location = getContainer().querySelector("[data-testid='location-pathname']");
   if (location === null) {
@@ -259,6 +277,7 @@ describe("SettingsScreen navigation", () => {
       "settings-row-account-status",
       "settings-row-current-workspace",
       "settings-row-review-reminders",
+      "settings-row-review-animations",
       "settings-row-language",
       "settings-row-access",
       "settings-row-decks",
@@ -275,6 +294,8 @@ describe("SettingsScreen navigation", () => {
       "settings-row-delete-current-workspace",
       "settings-row-delete-account",
     ].forEach(expectRowVisible);
+    expect(rowIndex("settings-row-review-reminders")).toBeLessThan(rowIndex("settings-row-review-animations"));
+    expect(rowIndex("settings-row-review-animations")).toBeLessThan(rowIndex("settings-row-language"));
     expect(getContainer().querySelector("[data-testid='settings-row-test']")).toBeNull();
   });
 
@@ -297,6 +318,9 @@ describe("SettingsScreen navigation", () => {
 
     await clickRow("settings-row-language");
     expect(currentPathname()).toBe(settingsLanguageRoute);
+
+    await clickRow("settings-row-review-animations");
+    expect(currentPathname()).toBe(settingsReviewAnimationsRoute);
 
     await clickRow("settings-row-scheduling");
     expect(currentPathname()).toBe(settingsSchedulerRoute);

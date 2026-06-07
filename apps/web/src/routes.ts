@@ -16,6 +16,7 @@ export const settingsDeviceRoute: string = "/settings/device";
 export const settingsAccessRoute: string = "/settings/access";
 export const settingsFeedbackRoute: string = "/settings/feedback";
 export const settingsLanguageRoute: string = "/settings/language";
+export const settingsReviewAnimationsRoute: string = "/settings/review-animations";
 export const settingsServerRoute: string = "/settings/server";
 export const settingsResetStudyProgressRoute: string = "/settings/reset-study-progress";
 export const settingsDeleteCurrentWorkspaceRoute: string = "/settings/delete-current-workspace";

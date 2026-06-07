@@ -37,6 +37,8 @@ function isSessionInfo(value: unknown): value is SessionInfo {
     && (typeof value.selectedWorkspaceId === "string" || value.selectedWorkspaceId === null)
     && typeof value.authTransport === "string"
     && (typeof value.csrfToken === "string" || value.csrfToken === null)
+    && isRecord(value.preferences)
+    && typeof value.preferences.reviewReactionAnimationsEnabled === "boolean"
     && isRecord(value.profile)
     && (typeof value.profile.email === "string" || value.profile.email === null)
     && typeof value.profile.locale === "string"

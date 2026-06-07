@@ -1,9 +1,12 @@
 import {
   parseAgentApiKeyConnectionsEnvelopeResponse,
   parseAgentApiKeyRevokeResponse,
+  parseAccountPreferencesEnvelopeResponse,
   parseDeleteAccountResponse,
 } from "../../apiContracts/account";
 import type {
+  AccountPreferences,
+  AccountPreferencesEnvelope,
   AgentApiKeyConnection,
   AgentApiKeyConnectionsResponse,
   AgentApiKeyRevokeResponse,
@@ -48,6 +51,15 @@ export async function revokeAgentApiKey(connectionId: string): Promise<AgentApiK
     `POST /agent-api-keys/${connectionId}/revoke`,
     parseAgentApiKeyRevokeResponse,
   );
+}
+
+export async function updateAccountPreferences(
+  request: AccountPreferences,
+): Promise<AccountPreferencesEnvelope> {
+  return parseContractResponse(await requestJson("/me/preferences", {
+    method: "PATCH",
+    body: JSON.stringify(request),
+  }, allowAuthRecovery), "PATCH /me/preferences", parseAccountPreferencesEnvelopeResponse);
 }
 
 export async function deleteMyAccount(confirmationText: string): Promise<Readonly<{ ok: true }>> {

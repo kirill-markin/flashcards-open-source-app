@@ -1,4 +1,6 @@
 import type {
+  AccountPreferences,
+  AccountPreferencesEnvelope,
   AgentApiKeyConnection,
   DeleteWorkspaceResponse,
   ResetWorkspaceProgressResponse,
@@ -32,6 +34,19 @@ export type AgentApiKeyConnectionsEnvelope = Readonly<{
   instructions: string;
   nextCursor: string | null;
 }>;
+
+function parseAccountPreferences(value: unknown, endpoint: string, path: string): AccountPreferences {
+  const objectValue = parseObject(value, endpoint, path);
+  return {
+    reviewReactionAnimationsEnabled: parseRequiredField(
+      objectValue,
+      "reviewReactionAnimationsEnabled",
+      endpoint,
+      path,
+      parseBoolean,
+    ),
+  };
+}
 
 function parseWorkspaceSummary(value: unknown, endpoint: string, path: string): WorkspaceSummary {
   const objectValue = parseObject(value, endpoint, path);
@@ -75,11 +90,22 @@ export function parseSessionInfoResponse(value: unknown, endpoint: string): Sess
     selectedWorkspaceId: parseRequiredField(objectValue, "selectedWorkspaceId", endpoint, "", parseNullableString),
     authTransport: parseRequiredField(objectValue, "authTransport", endpoint, "", parseString),
     csrfToken: parseRequiredField(objectValue, "csrfToken", endpoint, "", parseNullableString),
+    preferences: parseRequiredField(objectValue, "preferences", endpoint, "", parseAccountPreferences),
     profile: {
       email: parseRequiredField(profileValue, "email", endpoint, "profile", parseNullableString),
       locale: parseRequiredField(profileValue, "locale", endpoint, "profile", parseString),
       createdAt: parseRequiredField(profileValue, "createdAt", endpoint, "profile", parseString),
     },
+  };
+}
+
+export function parseAccountPreferencesEnvelopeResponse(
+  value: unknown,
+  endpoint: string,
+): AccountPreferencesEnvelope {
+  const objectValue = parseObject(value, endpoint, "");
+  return {
+    preferences: parseRequiredField(objectValue, "preferences", endpoint, "", parseAccountPreferences),
   };
 }
 

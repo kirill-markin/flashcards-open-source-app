@@ -41,6 +41,8 @@ const arCatalog: TranslationCatalog = {
     noBackText: "لا يوجد نص خلفي",
     notRevoked: "غير ملغى",
     ok: "موافق",
+    off: "إيقاف",
+    on: "تشغيل",
     open: "فتح",
     perAction: "لكل إجراء",
     refresh: "تحديث",
@@ -442,6 +444,12 @@ const arCatalog: TranslationCatalog = {
     paragraphOne: "تنتمي إعدادات تذكير المراجعة إلى مساحة العمل هذه، لكنها تُفعَّل وتُدار بشكل منفصل على كل جهاز.",
     paragraphTwo: "إذا كنت تريد إشعارات الدراسة، فافتح مساحة العمل هذه على جهاز iPhone أو Android الذي تريد استلامها عليه واضبط الإشعارات هناك.",
     paragraphThree: "لا يدعم تطبيق الويب الإشعارات، لذلك لا توجد عناصر تحكم بالإشعارات في هذه الشاشة.",
+  },
+  reviewAnimationsSettings: {
+    title: "رسوم المراجعة المتحركة",
+    subtitle: "تحكم في رسوم التفاعل المتحركة بعد تقييم البطاقات.",
+    toggleTitle: "إظهار الرسوم المتحركة بعد تقييم بطاقة",
+    toggleDescription: "ينطبق هذا فقط على رسوم التفاعل المتحركة في المراجعة.",
   },
   accessSettings: {
     title: "الوصول",

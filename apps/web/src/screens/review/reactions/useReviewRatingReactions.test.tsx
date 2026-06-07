@@ -28,11 +28,14 @@ import {
 
 type ReviewRatingReactionHarnessProps = Readonly<{
   onResult: (result: UseReviewRatingReactionsResult) => void;
+  reviewReactionAnimationsEnabled: boolean;
 }>;
 
 function ReviewRatingReactionHarness(props: ReviewRatingReactionHarnessProps): ReactElement {
-  const { onResult } = props;
-  const result = useReviewRatingReactions();
+  const { onResult, reviewReactionAnimationsEnabled } = props;
+  const result = useReviewRatingReactions({
+    reviewReactionAnimationsEnabled,
+  });
 
   useEffect(() => {
     onResult(result);
@@ -107,7 +110,7 @@ describe("useReviewRatingReactions", () => {
     vi.useRealTimers();
   });
 
-  function renderHarness(): Promise<void> {
+  function renderHarness(reviewReactionAnimationsEnabled: boolean): Promise<void> {
     const currentRoot = root;
     if (currentRoot === null) {
       throw new Error("Review reaction test root is not ready");
@@ -119,6 +122,7 @@ describe("useReviewRatingReactions", () => {
           onResult={(result) => {
             latestResult = result;
           }}
+          reviewReactionAnimationsEnabled={reviewReactionAnimationsEnabled}
         />,
       );
     });
@@ -133,7 +137,7 @@ describe("useReviewRatingReactions", () => {
   }
 
   it("cleans up retained reactions after batched emissions trim older events", async () => {
-    await renderHarness();
+    await renderHarness(true);
     const { emitReaction } = requireLatestResult();
 
     await act(async () => {
@@ -163,7 +167,7 @@ describe("useReviewRatingReactions", () => {
   });
 
   it("dismisses active reactions immediately and clears scheduled cleanup", async () => {
-    await renderHarness();
+    await renderHarness(true);
 
     await act(async () => {
       requireLatestResult().emitReaction(2);
@@ -196,7 +200,7 @@ describe("useReviewRatingReactions", () => {
     vi.mocked(Math.random)
       .mockReturnValueOnce(0)
       .mockReturnValueOnce(0);
-    await renderHarness();
+    await renderHarness(true);
 
     await act(async () => {
       requireLatestResult().emitReaction(2);
@@ -217,7 +221,18 @@ describe("useReviewRatingReactions", () => {
 
   it("does not emit a decorative event when the rating group has no ready variants", async () => {
     readyLottieVariants.clear();
-    await renderHarness();
+    await renderHarness(true);
+
+    await act(async () => {
+      requireLatestResult().emitReaction(2);
+    });
+
+    expect(requireLatestResult().events).toHaveLength(0);
+    expect(reserveReviewReactionLottieRenderMock).not.toHaveBeenCalled();
+  });
+
+  it("does not create reaction events when review animations are disabled", async () => {
+    await renderHarness(false);
 
     await act(async () => {
       requireLatestResult().emitReaction(2);

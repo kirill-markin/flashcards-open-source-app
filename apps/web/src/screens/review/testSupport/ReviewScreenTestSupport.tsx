@@ -226,6 +226,10 @@ function createAppData(state: ReviewScreenTestState): ReviewScreenAppData {
     selectedReviewFilter: { kind: "allCards" },
     errorMessage: "",
     setErrorMessage: vi.fn(),
+    setAccountPreferences: vi.fn(),
+    refreshAccountPreferences: vi.fn(async () => ({
+      reviewReactionAnimationsEnabled: true,
+    })),
     runSync: vi.fn(async (): Promise<void> => undefined),
     initialize: vi.fn(async (): Promise<void> => undefined),
     chooseWorkspace: vi.fn(async (_workspaceId: string): Promise<void> => undefined),

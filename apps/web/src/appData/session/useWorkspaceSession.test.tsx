@@ -89,6 +89,9 @@ const seededSession: SessionInfo = {
   selectedWorkspaceId: "workspace-1",
   authTransport: "session",
   csrfToken: "csrf-seeded",
+  preferences: {
+    reviewReactionAnimationsEnabled: true,
+  },
   profile: {
     email: "user@example.com",
     locale: "en",
@@ -176,6 +179,9 @@ function buildSessionResponseForUser(userId: string, selectedWorkspaceId: string
     selectedWorkspaceId,
     authTransport: "session",
     csrfToken,
+    preferences: {
+      reviewReactionAnimationsEnabled: true,
+    },
     profile: {
       email: "user@example.com",
       locale: "en",

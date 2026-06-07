@@ -41,6 +41,8 @@ const esEsCatalog: TranslationCatalog = {
     noBackText: "Sin texto en el reverso",
     notRevoked: "Sin revocar",
     ok: "OK",
+    off: "Desactivado",
+    on: "Activado",
     open: "Abrir",
     perAction: "Por acción",
     refresh: "Actualizar",
@@ -442,6 +444,12 @@ const esEsCatalog: TranslationCatalog = {
     paragraphOne: "Los ajustes de recordatorios de repaso pertenecen a este espacio de trabajo, pero se activan y se gestionan por separado en cada dispositivo.",
     paragraphTwo: "Si quieres notificaciones de estudio, abre este espacio de trabajo en el iPhone o Android donde quieras recibirlas y configúralas allí.",
     paragraphThree: "La app web no admite notificaciones, así que no hay controles de notificaciones en esta pantalla.",
+  },
+  reviewAnimationsSettings: {
+    title: "Animaciones de repaso",
+    subtitle: "Controla las animaciones de reacción después de calificar tarjetas.",
+    toggleTitle: "Mostrar animaciones después de calificar una tarjeta",
+    toggleDescription: "Solo afecta a las animaciones de reacción del repaso.",
   },
   accessSettings: {
     title: "Acceso",

@@ -24,6 +24,73 @@
   gap: 8px;
 }
 
+.settings-toggle-card {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.settings-toggle-control {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 6px 10px 6px 6px;
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.settings-toggle-control:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
+.settings-toggle-control:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.settings-toggle-track {
+  position: relative;
+  width: 46px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  transition: background 140ms ease;
+}
+
+.settings-toggle-thumb {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.32);
+  transition: transform 140ms ease;
+}
+
+.settings-toggle-control[data-state="on"] .settings-toggle-track {
+  background: rgba(196, 75, 45, 0.78);
+}
+
+.settings-toggle-control[data-state="on"] .settings-toggle-thumb {
+  transform: translateX(18px);
+}
+
+.settings-toggle-value {
+  min-width: 26px;
+  text-align: start;
+}
+
 .settings-nav-list {
   display: grid;
   gap: 14px;
@@ -332,5 +399,10 @@
 
   .settings-inline-nav-list {
     grid-template-columns: 1fr;
+  }
+
+  .settings-toggle-card {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
