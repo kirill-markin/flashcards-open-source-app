@@ -159,6 +159,41 @@ describe("progress API endpoints", () => {
     });
   });
 
+  it("decodes progress summary responses without review-history watermark metadata", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        timeZone: "Europe/Madrid",
+        generatedAt: "2026-04-18T09:15:00.000Z",
+        summary: {
+          currentStreakDays: 1,
+          hasReviewedToday: true,
+          lastReviewedOn: "2026-04-03",
+          activeReviewDays: 2,
+        },
+      }), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressSummary({
+      timeZone: "Europe/Madrid",
+      today: "2026-04-18",
+    })).resolves.toEqual({
+      timeZone: "Europe/Madrid",
+      generatedAt: "2026-04-18T09:15:00.000Z",
+      reviewHistoryWatermarks: [],
+      summary: {
+        currentStreakDays: 1,
+        hasReviewedToday: true,
+        lastReviewedOn: "2026-04-03",
+        activeReviewDays: 2,
+      },
+    });
+  });
+
   it("decodes progress series responses without summary metadata", async () => {
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(new Response(JSON.stringify({
@@ -220,6 +255,62 @@ describe("progress API endpoints", () => {
     });
   });
 
+  it("decodes progress series responses without review-history watermark metadata", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        timeZone: "Europe/Madrid",
+        from: "2026-04-01",
+        to: "2026-04-03",
+        generatedAt: "2026-04-18T09:15:00.000Z",
+        dailyReviews: [
+          {
+            date: "2026-04-01",
+            reviewCount: 3,
+          },
+          {
+            date: "2026-04-02",
+            reviewCount: 0,
+          },
+          {
+            date: "2026-04-03",
+            reviewCount: 1,
+          },
+        ],
+      }), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressSeries({
+      timeZone: "Europe/Madrid",
+      from: "2026-04-01",
+      to: "2026-04-03",
+    })).resolves.toEqual({
+      timeZone: "Europe/Madrid",
+      from: "2026-04-01",
+      to: "2026-04-03",
+      generatedAt: "2026-04-18T09:15:00.000Z",
+      reviewHistoryWatermarks: [],
+      dailyReviews: [
+        {
+          date: "2026-04-01",
+          reviewCount: 3,
+        },
+        {
+          date: "2026-04-02",
+          reviewCount: 0,
+        },
+        {
+          date: "2026-04-03",
+          reviewCount: 1,
+        },
+      ],
+    });
+  });
+
   it("decodes review schedule responses and sends only the timezone query", async () => {
     const responseValue = createProgressReviewScheduleResponseValue();
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
@@ -235,6 +326,27 @@ describe("progress API endpoints", () => {
       "http://localhost:8080/v1/me/progress/review-schedule?timeZone=Europe%2FMadrid",
       expect.objectContaining({ method: "GET" }),
     );
+  });
+
+  it("decodes review schedule responses without review-history watermark metadata", async () => {
+    const baseResponse = createProgressReviewScheduleResponseValue();
+    const responseWithoutWatermarks = {
+      timeZone: baseResponse.timeZone,
+      generatedAt: baseResponse.generatedAt,
+      totalCards: baseResponse.totalCards,
+      buckets: baseResponse.buckets,
+    };
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createJsonResponse(responseWithoutWatermarks));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressReviewSchedule({
+      timeZone: "Europe/Madrid",
+      today: "2026-04-18",
+    })).resolves.toEqual({
+      ...baseResponse,
+      reviewHistoryWatermarks: [],
+    });
   });
 
   const invalidProgressReviewScheduleCases: ReadonlyArray<Readonly<{
@@ -393,6 +505,34 @@ describe("progress API endpoints", () => {
       to: "2026-04-03",
     })).rejects.toThrow(
       "Invalid API response for GET /me/progress/series: generatedAt must be string",
+    );
+  });
+
+  it("rejects progress summary responses with malformed review-history watermark metadata", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        timeZone: "Europe/Madrid",
+        generatedAt: "2026-04-18T09:15:00.000Z",
+        reviewHistoryWatermarks: [
+          { workspaceId: "workspace-1", reviewSequenceId: -1 },
+        ],
+        summary: {
+          currentStreakDays: 1,
+          hasReviewedToday: true,
+          lastReviewedOn: "2026-04-03",
+          activeReviewDays: 2,
+        },
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressSummary({
+      timeZone: "Europe/Madrid",
+      today: "2026-04-18",
+    })).rejects.toThrow(
+      "Invalid API response for GET /me/progress/summary: reviewHistoryWatermarks[0].reviewSequenceId must be a non-negative safe integer",
     );
   });
 });

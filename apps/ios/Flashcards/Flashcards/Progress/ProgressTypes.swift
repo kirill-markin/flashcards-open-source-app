@@ -56,6 +56,17 @@ struct ProgressReviewHistoryWatermark: Codable, Hashable, Sendable {
     }
 }
 
+private func decodeProgressReviewHistoryWatermarksIfAvailable<Key: CodingKey>(
+    container: KeyedDecodingContainer<Key>,
+    key: Key
+) throws -> [ProgressReviewHistoryWatermark] {
+    guard container.contains(key) else {
+        return []
+    }
+
+    return try container.decode([ProgressReviewHistoryWatermark].self, forKey: key)
+}
+
 struct UserProgressSummary: Codable, Hashable, Sendable {
     let timeZone: String?
     let summary: ProgressSummary
@@ -92,9 +103,9 @@ struct UserProgressSummary: Codable, Hashable, Sendable {
                 timeZone: try container.decodeIfPresent(String.self, forKey: .timeZone),
                 summary: try container.decode(ProgressSummary.self, forKey: .summary),
                 generatedAt: try container.decodeIfPresent(String.self, forKey: .generatedAt),
-                reviewHistoryWatermarks: try container.decode(
-                    [ProgressReviewHistoryWatermark].self,
-                    forKey: .reviewHistoryWatermarks
+                reviewHistoryWatermarks: try decodeProgressReviewHistoryWatermarksIfAvailable(
+                    container: container,
+                    key: .reviewHistoryWatermarks
                 )
             )
             return
@@ -109,9 +120,9 @@ struct UserProgressSummary: Codable, Hashable, Sendable {
                 activeReviewDays: try container.decode(Int.self, forKey: .activeReviewDays)
             ),
             generatedAt: try container.decodeIfPresent(String.self, forKey: .generatedAt),
-            reviewHistoryWatermarks: try container.decode(
-                [ProgressReviewHistoryWatermark].self,
-                forKey: .reviewHistoryWatermarks
+            reviewHistoryWatermarks: try decodeProgressReviewHistoryWatermarksIfAvailable(
+                container: container,
+                key: .reviewHistoryWatermarks
             )
         )
     }
@@ -134,6 +145,16 @@ struct UserProgressSeries: Codable, Hashable, Sendable {
     let generatedAt: String?
     let reviewHistoryWatermarks: [ProgressReviewHistoryWatermark]
 
+    enum CodingKeys: String, CodingKey {
+        case timeZone
+        case from
+        case to
+        case dailyReviews
+        case summary
+        case generatedAt
+        case reviewHistoryWatermarks
+    }
+
     init(
         timeZone: String,
         from: String,
@@ -150,6 +171,22 @@ struct UserProgressSeries: Codable, Hashable, Sendable {
         self.summary = summary
         self.generatedAt = generatedAt
         self.reviewHistoryWatermarks = reviewHistoryWatermarks
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            timeZone: try container.decode(String.self, forKey: .timeZone),
+            from: try container.decode(String.self, forKey: .from),
+            to: try container.decode(String.self, forKey: .to),
+            dailyReviews: try container.decode([ProgressDay].self, forKey: .dailyReviews),
+            summary: try container.decodeIfPresent(ProgressSummary.self, forKey: .summary),
+            generatedAt: try container.decodeIfPresent(String.self, forKey: .generatedAt),
+            reviewHistoryWatermarks: try decodeProgressReviewHistoryWatermarksIfAvailable(
+                container: container,
+                key: .reviewHistoryWatermarks
+            )
+        )
     }
 }
 
@@ -194,6 +231,42 @@ struct UserReviewSchedule: Codable, Hashable, Sendable {
     let reviewHistoryWatermarks: [ProgressReviewHistoryWatermark]
     let totalCards: Int
     let buckets: [ReviewScheduleBucket]
+
+    enum CodingKeys: String, CodingKey {
+        case timeZone
+        case generatedAt
+        case reviewHistoryWatermarks
+        case totalCards
+        case buckets
+    }
+
+    init(
+        timeZone: String,
+        generatedAt: String?,
+        reviewHistoryWatermarks: [ProgressReviewHistoryWatermark],
+        totalCards: Int,
+        buckets: [ReviewScheduleBucket]
+    ) {
+        self.timeZone = timeZone
+        self.generatedAt = generatedAt
+        self.reviewHistoryWatermarks = reviewHistoryWatermarks
+        self.totalCards = totalCards
+        self.buckets = buckets
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            timeZone: try container.decode(String.self, forKey: .timeZone),
+            generatedAt: try container.decodeIfPresent(String.self, forKey: .generatedAt),
+            reviewHistoryWatermarks: try decodeProgressReviewHistoryWatermarksIfAvailable(
+                container: container,
+                key: .reviewHistoryWatermarks
+            ),
+            totalCards: try container.decode(Int.self, forKey: .totalCards),
+            buckets: try container.decode([ReviewScheduleBucket].self, forKey: .buckets)
+        )
+    }
 }
 
 enum ProgressSourceState: String, Codable, Hashable, Sendable {

@@ -57,31 +57,9 @@ internal class CloudProgressRemoteApi(
             ),
             authorizationHeader = authorizationHeader
         )
-        val dailyReviews = response.requireCloudArray("dailyReviews", "progress.dailyReviews")
-
-        return CloudProgressSeries(
-            timeZone = response.requireCloudString("timeZone", "progress.timeZone"),
-            from = response.requireCloudString("from", "progress.from"),
-            to = response.requireCloudString("to", "progress.to"),
-            dailyReviews = buildList {
-                for (index in 0 until dailyReviews.length()) {
-                    val point = dailyReviews.requireCloudObject(index, "progress.dailyReviews[$index]")
-                    add(
-                        CloudDailyReviewPoint(
-                            date = point.requireCloudString("date", "progress.dailyReviews[$index].date"),
-                            reviewCount = point.requireCloudInt(
-                                "reviewCount",
-                                "progress.dailyReviews[$index].reviewCount"
-                            )
-                        )
-                    )
-                }
-            },
-            generatedAt = response.optCloudStringOrNull("generatedAt", "progress.generatedAt"),
-            reviewHistoryWatermarks = response.requireProgressReviewHistoryWatermarks(
-                fieldPath = "progress"
-            ),
-            summary = null
+        return parseCloudProgressSeriesResponse(
+            response = response,
+            fieldPath = "progress"
         )
     }
 
@@ -112,6 +90,38 @@ internal fun parseCloudProgressSummaryResponse(
     return response.requireCloudObject("summary", "$fieldPath.summary").toCloudProgressSummary(
         fieldPath = "$fieldPath.summary",
         reviewHistoryWatermarks = reviewHistoryWatermarks
+    )
+}
+
+internal fun parseCloudProgressSeriesResponse(
+    response: JSONObject,
+    fieldPath: String
+): CloudProgressSeries {
+    val dailyReviews = response.requireCloudArray("dailyReviews", "$fieldPath.dailyReviews")
+
+    return CloudProgressSeries(
+        timeZone = response.requireCloudString("timeZone", "$fieldPath.timeZone"),
+        from = response.requireCloudString("from", "$fieldPath.from"),
+        to = response.requireCloudString("to", "$fieldPath.to"),
+        dailyReviews = buildList {
+            for (index in 0 until dailyReviews.length()) {
+                val point = dailyReviews.requireCloudObject(index, "$fieldPath.dailyReviews[$index]")
+                add(
+                    CloudDailyReviewPoint(
+                        date = point.requireCloudString("date", "$fieldPath.dailyReviews[$index].date"),
+                        reviewCount = point.requireCloudInt(
+                            "reviewCount",
+                            "$fieldPath.dailyReviews[$index].reviewCount"
+                        )
+                    )
+                )
+            }
+        },
+        generatedAt = response.optCloudStringOrNull("generatedAt", "$fieldPath.generatedAt"),
+        reviewHistoryWatermarks = response.requireProgressReviewHistoryWatermarks(
+            fieldPath = fieldPath
+        ),
+        summary = null
     )
 }
 
@@ -191,6 +201,10 @@ internal fun parseCloudProgressReviewScheduleResponse(
 private fun JSONObject.requireProgressReviewHistoryWatermarks(
     fieldPath: String
 ): List<ProgressReviewHistoryWatermark> {
+    if (has("reviewHistoryWatermarks").not()) {
+        return emptyList()
+    }
+
     val watermarksArray = requireCloudArray("reviewHistoryWatermarks", "$fieldPath.reviewHistoryWatermarks")
     return buildList {
         for (index in 0 until watermarksArray.length()) {

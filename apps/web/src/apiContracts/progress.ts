@@ -9,12 +9,14 @@ import { findProgressReviewScheduleValidationIssue } from "../progress/progressR
 import {
   ApiContractError,
   describePath,
+  type JsonObject,
   parseArray,
   parseBoolean,
   parseEnum,
   parseNullableString,
   parseNumber,
   parseObject,
+  parseOptionalField,
   parseRequiredField,
   parseString,
 } from "./core";
@@ -99,6 +101,20 @@ function parseProgressReviewHistoryWatermarkArray(
   return parseArray(value, endpoint, path, parseProgressReviewHistoryWatermark);
 }
 
+function parseOptionalProgressReviewHistoryWatermarkArray(
+  objectValue: JsonObject,
+  endpoint: string,
+  parentPath: string,
+): ReadonlyArray<ProgressReviewHistoryWatermark> {
+  return parseOptionalField(
+    objectValue,
+    "reviewHistoryWatermarks",
+    endpoint,
+    parentPath,
+    parseProgressReviewHistoryWatermarkArray,
+  ) ?? [];
+}
+
 function parseProgressReviewScheduleBucketArray(
   value: unknown,
   endpoint: string,
@@ -139,12 +155,10 @@ export function parseProgressSeriesResponse(value: unknown, endpoint: string): P
     from: parseRequiredField(objectValue, "from", endpoint, "", parseString),
     to: parseRequiredField(objectValue, "to", endpoint, "", parseString),
     generatedAt: parseRequiredField(objectValue, "generatedAt", endpoint, "", parseString),
-    reviewHistoryWatermarks: parseRequiredField(
+    reviewHistoryWatermarks: parseOptionalProgressReviewHistoryWatermarkArray(
       objectValue,
-      "reviewHistoryWatermarks",
       endpoint,
       "",
-      parseProgressReviewHistoryWatermarkArray,
     ),
     dailyReviews: parseRequiredField(objectValue, "dailyReviews", endpoint, "", parseDailyReviewPointArray),
   };
@@ -156,12 +170,10 @@ export function parseProgressSummaryResponse(value: unknown, endpoint: string): 
   return {
     timeZone: parseRequiredField(objectValue, "timeZone", endpoint, "", parseString),
     generatedAt: parseRequiredField(objectValue, "generatedAt", endpoint, "", parseString),
-    reviewHistoryWatermarks: parseRequiredField(
+    reviewHistoryWatermarks: parseOptionalProgressReviewHistoryWatermarkArray(
       objectValue,
-      "reviewHistoryWatermarks",
       endpoint,
       "",
-      parseProgressReviewHistoryWatermarkArray,
     ),
     summary: parseRequiredField(objectValue, "summary", endpoint, "", parseProgressSummary),
   };
@@ -172,12 +184,10 @@ export function parseProgressReviewScheduleResponse(value: unknown, endpoint: st
   const schedule: ProgressReviewSchedule = {
     timeZone: parseRequiredField(objectValue, "timeZone", endpoint, "", parseString),
     generatedAt: parseRequiredField(objectValue, "generatedAt", endpoint, "", parseString),
-    reviewHistoryWatermarks: parseRequiredField(
+    reviewHistoryWatermarks: parseOptionalProgressReviewHistoryWatermarkArray(
       objectValue,
-      "reviewHistoryWatermarks",
       endpoint,
       "",
-      parseProgressReviewHistoryWatermarkArray,
     ),
     totalCards: parseRequiredField(objectValue, "totalCards", endpoint, "", parseNumber),
     buckets: parseRequiredField(objectValue, "buckets", endpoint, "", parseProgressReviewScheduleBucketArray),
