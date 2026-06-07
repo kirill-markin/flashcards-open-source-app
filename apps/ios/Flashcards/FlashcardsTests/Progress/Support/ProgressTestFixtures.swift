@@ -39,6 +39,30 @@ func makeTestProgressRequestRange(
     )
 }
 
+func makeReviewedAtClientForTests(
+    localDate: String,
+    hour: Int,
+    timeZoneIdentifier: String
+) throws -> String {
+    guard let timeZone = TimeZone(identifier: timeZoneIdentifier) else {
+        throw LocalStoreError.validation("Test reviewed-at-client timezone is invalid: \(timeZoneIdentifier)")
+    }
+    guard (0..<24).contains(hour) else {
+        throw LocalStoreError.validation("Test reviewed-at-client hour is invalid: \(hour)")
+    }
+
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = timeZone
+    guard
+        let startOfDay = progressDateForTests(localDate: localDate, calendar: calendar),
+        let reviewedAt = calendar.date(byAdding: .hour, value: hour, to: startOfDay)
+    else {
+        throw LocalStoreError.validation("Test reviewed-at-client local date is invalid: \(localDate)")
+    }
+
+    return formatIsoTimestamp(date: reviewedAt)
+}
+
 func makeTestProgressSeries(
     requestRange: ProgressSeriesLoadRequest,
     reviewCountsByDate: [String: Int],

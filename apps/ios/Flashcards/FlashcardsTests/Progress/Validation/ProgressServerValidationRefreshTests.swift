@@ -51,9 +51,11 @@ final class ProgressServerValidationRefreshTests: ProgressStoreTestCase {
         await context.store.refreshProgressIfNeeded(now: now)
 
         let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
-        XCTAssertEqual(.serverBase, progressSnapshot.summarySourceState)
+        XCTAssertEqual(.serverBaseWithPendingLocalOverlay, progressSnapshot.summarySourceState)
         XCTAssertEqual(.localOnly, progressSnapshot.seriesSourceState)
         XCTAssertTrue(progressSnapshot.isApproximate)
+        XCTAssertEqual(2, progressSnapshot.summary.activeReviewDays)
+        XCTAssertEqual("2026-04-02", progressSnapshot.summary.lastReviewedOn)
         XCTAssertEqual(1, progressReviewCount(snapshot: progressSnapshot, localDate: "2026-04-02"))
         XCTAssertNil(context.store.progressSeriesServerBaseCache)
         let persistedSeriesCacheKeys = context.userDefaults.dictionaryRepresentation().keys.filter { key in
@@ -118,9 +120,11 @@ final class ProgressServerValidationRefreshTests: ProgressStoreTestCase {
         await context.store.refreshProgressIfNeeded(now: now)
 
         let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
-        XCTAssertEqual(.serverBase, progressSnapshot.summarySourceState)
+        XCTAssertEqual(.serverBaseWithPendingLocalOverlay, progressSnapshot.summarySourceState)
         XCTAssertEqual(.localOnly, progressSnapshot.seriesSourceState)
         XCTAssertTrue(progressSnapshot.isApproximate)
+        XCTAssertEqual(2, progressSnapshot.summary.activeReviewDays)
+        XCTAssertEqual("2026-04-02", progressSnapshot.summary.lastReviewedOn)
         XCTAssertEqual(1, progressReviewCount(snapshot: progressSnapshot, localDate: "2026-04-02"))
         XCTAssertNil(context.store.progressSeriesServerBaseCache)
         let persistedSeriesCacheKeys = context.userDefaults.dictionaryRepresentation().keys.filter { key in
