@@ -213,8 +213,6 @@
     <string name="settings_account_danger_zone_delete_failed">Account deletion failed.</string>
 
     <string name="settings_access_title">Access</string>
-    <string name="settings_access_notifications_title">Notifications</string>
-    <string name="settings_access_notifications_summary">Review and strict reminder settings for this device</string>
     <string name="settings_access_status_label">Status</string>
     <string name="settings_access_usage_label">Usage</string>
     <string name="settings_access_status_allowed">Allowed</string>
