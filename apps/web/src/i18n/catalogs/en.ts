@@ -444,11 +444,6 @@ const enCatalog = {
   accessSettings: {
     title: "Access",
     subtitle: "Review which browser permissions the chat and attachments can use on this device.",
-    notifications: {
-      title: "Notifications",
-      description: "Review study reminder options for this workspace on the current device.",
-      value: "This device",
-    },
     photosAndFiles: {
       title: "Photos and files",
       description: "Browser file access is granted only when you choose files from the picker.",

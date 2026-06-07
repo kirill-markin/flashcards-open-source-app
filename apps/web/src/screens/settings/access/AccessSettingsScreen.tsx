@@ -4,7 +4,7 @@ import {
   type BrowserPermissionState,
 } from "../../../access/browserAccess";
 import { useI18n } from "../../../i18n";
-import { buildSettingsAccessDetailRoute, settingsNotificationsRoute } from "../../../routes";
+import { buildSettingsAccessDetailRoute } from "../../../routes";
 import { SettingsNavigationCard, SettingsShell } from "../SettingsShared";
 
 type BrowserPermissionSnapshot = Readonly<{
@@ -67,12 +67,6 @@ export function AccessSettingsScreen(): ReactElement {
       activeTab="access"
     >
       <div className="settings-nav-list">
-        <SettingsNavigationCard
-          title={t("accessSettings.notifications.title")}
-          description={t("accessSettings.notifications.description")}
-          value={t("accessSettings.notifications.value")}
-          to={settingsNotificationsRoute}
-        />
         <SettingsNavigationCard
           title={t("accessSettings.photosAndFiles.title")}
           description={t("accessSettings.photosAndFiles.description")}

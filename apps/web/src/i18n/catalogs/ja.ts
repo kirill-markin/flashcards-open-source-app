@@ -446,11 +446,6 @@ export const jaCatalog = {
   accessSettings: {
     title: "アクセス",
     subtitle: "このデバイスでチャットや添付ファイルが利用できるブラウザ権限を確認します。",
-    notifications: {
-      title: "通知",
-      description: "現在のデバイスで、このワークスペースの学習リマインダー設定を確認します。",
-      value: "このデバイス",
-    },
     photosAndFiles: {
       title: "写真とファイル",
       description: "ブラウザのファイルアクセスは、ファイルピッカーでファイルを選択したときにのみ許可されます。",

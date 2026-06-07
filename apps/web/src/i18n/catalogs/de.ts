@@ -446,11 +446,6 @@ const deCatalog: TranslationCatalog = {
   accessSettings: {
     title: "Zugriff",
     subtitle: "Prüfe, welche Browserberechtigungen Chat und Anhänge auf diesem Gerät verwenden können.",
-    notifications: {
-      title: "Benachrichtigungen",
-      description: "Prüfe Erinnerungsoptionen für diesen Arbeitsbereich auf dem aktuellen Gerät.",
-      value: "Dieses Gerät",
-    },
     photosAndFiles: {
       title: "Fotos und Dateien",
       description: "Browser-Dateizugriff wird nur gewährt, wenn du Dateien im Picker auswählst.",

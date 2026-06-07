@@ -446,11 +446,6 @@ const arCatalog: TranslationCatalog = {
   accessSettings: {
     title: "الوصول",
     subtitle: "راجع أذونات المتصفح التي يمكن أن تستخدمها الدردشة والمرفقات على هذا الجهاز.",
-    notifications: {
-      title: "الإشعارات",
-      description: "راجع خيارات تذكير الدراسة لمساحة العمل هذه على الجهاز الحالي.",
-      value: "هذا الجهاز",
-    },
     photosAndFiles: {
       title: "الصور والملفات",
       description: "يُمنح الوصول إلى ملفات المتصفح فقط عندما تختار ملفات من المنتقي.",
