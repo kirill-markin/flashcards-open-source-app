@@ -25,7 +25,6 @@ import com.flashcardsopensourceapp.feature.settings.settingsScreenContentPadding
 
 @Composable
 fun AccessRoute(
-    onOpenNotifications: () -> Unit,
     onOpenCapability: (AccessCapability) -> Unit,
     onBack: () -> Unit
 ) {
@@ -66,26 +65,6 @@ fun AccessRoute(
             verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
             modifier = Modifier.fillMaxSize()
         ) {
-            item {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    ListItem(
-                        headlineContent = {
-                            Text(stringResource(R.string.settings_access_notifications_title))
-                        },
-                        supportingContent = {
-                            Text(stringResource(R.string.settings_access_notifications_summary))
-                        },
-                        leadingContent = {
-                            Icon(
-                                imageVector = Icons.Outlined.Info,
-                                contentDescription = null
-                            )
-                        },
-                        modifier = Modifier.clickable(onClick = onOpenNotifications)
-                    )
-                }
-            }
-
             items(capabilityStates, key = { item -> item.capability.name }) { item ->
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
