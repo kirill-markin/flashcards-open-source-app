@@ -45,6 +45,8 @@ private val expectedCloudHttpFailureCodes: Set<String> = setOf(
     "AGENT_API_KEY_ID_REQUIRED",
     "AGENT_API_KEY_NOT_FOUND",
     "ACCOUNT_DELETED",
+    "ACCOUNT_PREFERENCES_FIELD_UNKNOWN",
+    "ACCOUNT_PREFERENCES_HUMAN_AUTH_REQUIRED",
     "ACCOUNT_SIGN_IN_REQUIRED",
     "AUTH_UNAUTHORIZED",
     "FEEDBACK_HUMAN_AUTH_REQUIRED",
@@ -107,7 +109,8 @@ internal enum class CloudHttpMethod(
     val requestMethod: String
 ) {
     GET(requestMethod = "GET"),
-    POST(requestMethod = "POST")
+    POST(requestMethod = "POST"),
+    PATCH(requestMethod = "PATCH")
 }
 
 internal data class ParsedCloudErrorPayload(
@@ -225,6 +228,21 @@ internal class CloudJsonHttpClient(
         )
     }
 
+    suspend fun patchJson(
+        baseUrl: String,
+        path: String,
+        authorizationHeader: String?,
+        body: JSONObject?
+    ): JSONObject {
+        return executeJsonRequest(
+            baseUrl = baseUrl,
+            path = path,
+            method = CloudHttpMethod.PATCH,
+            authorizationHeader = authorizationHeader,
+            body = body
+        )
+    }
+
     @OptIn(InternalCoroutinesApi::class)
     private suspend fun executeJsonRequest(
         baseUrl: String,
@@ -332,7 +350,8 @@ internal class CloudJsonHttpClient(
         }
         val requestBody = when (method) {
             CloudHttpMethod.GET -> null
-            CloudHttpMethod.POST -> body?.toString()?.toRequestBody(cloudJsonMediaType)
+            CloudHttpMethod.POST,
+            CloudHttpMethod.PATCH -> body?.toString()?.toRequestBody(cloudJsonMediaType)
                 ?: ByteArray(size = 0).toRequestBody(cloudJsonMediaType)
         }
         val requestBuilder = Request.Builder()

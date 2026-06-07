@@ -10,6 +10,7 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemotePushRespon
 import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteReviewHistoryImportResponse
 import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteReviewHistoryPullResponse
 import com.flashcardsopensourceapp.data.local.model.cloud.AgentApiKeyConnectionsResult
+import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackPromptEventRequest
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackState
@@ -62,7 +63,7 @@ internal class FakeCloudRemoteGateway private constructor(
     private val createdWorkspace: CloudWorkspaceSummary = config.createdWorkspace
     private val onFetchCloudAccountEntered: CompletableDeferred<Unit>? = config.onFetchCloudAccountEntered
     private val blockFetchCloudAccount: CompletableDeferred<Unit>? = config.blockFetchCloudAccount
-    private val accountSnapshot: CloudAccountSnapshot = config.accountSnapshot
+    private var accountSnapshot: CloudAccountSnapshot = config.accountSnapshot
     private var bootstrapPullResponseIndex: Int = 0
     private var bootstrapPushErrorIndex: Int = 0
     private var importReviewHistoryErrorIndex: Int = 0
@@ -406,7 +407,7 @@ internal class FakeCloudRemoteGateway private constructor(
 
     override suspend fun fetchCloudAccount(
         apiBaseUrl: String,
-        bearerToken: String
+        authorizationHeader: String
     ): CloudAccountSnapshot {
         fetchCloudAccountCalls += 1
         onFetchCloudAccountEntered?.complete(Unit)
@@ -417,11 +418,20 @@ internal class FakeCloudRemoteGateway private constructor(
         return accountSnapshot
     }
 
+    override suspend fun updateAccountPreferences(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        preferences: AccountPreferences
+    ): AccountPreferences {
+        accountSnapshot = accountSnapshot.copy(preferences = preferences)
+        return preferences
+    }
+
     override suspend fun listLinkedWorkspaces(
         apiBaseUrl: String,
         bearerToken: String
     ): List<CloudWorkspaceSummary> {
-        return fetchCloudAccount(apiBaseUrl = apiBaseUrl, bearerToken = bearerToken).workspaces
+        return fetchCloudAccount(apiBaseUrl = apiBaseUrl, authorizationHeader = "Bearer $bearerToken").workspaces
     }
 
     override suspend fun prepareGuestUpgrade(

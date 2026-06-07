@@ -11,6 +11,7 @@ import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenRepository
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncCompletion
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEvent
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepository
@@ -19,6 +20,7 @@ import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncRequest
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import com.flashcardsopensourceapp.feature.settings.workspace.shared.workspaceUpdatedOnAnotherDeviceMessage
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -46,8 +48,9 @@ class SettingsViewModel(
     val uiState: StateFlow<SettingsUiState> = combine(
         workspaceRepository.observeAppMetadata(),
         cloudAccountRepository.observeCloudSettings(),
+        cloudAccountRepository.observeAccountPreferences(),
         testModeStore.observeIsEnabled()
-    ) { metadata, cloudSettings, isTestModeEnabled ->
+    ) { metadata, cloudSettings, accountPreferences, isTestModeEnabled ->
         SettingsUiState(
             currentWorkspaceName = strings.resolveWorkspaceName(workspaceName = metadata.currentWorkspaceName),
             workspaceName = strings.resolveWorkspaceName(workspaceName = metadata.workspaceName),
@@ -61,6 +64,8 @@ class SettingsViewModel(
                 CloudAccountState.GUEST -> strings.get(R.string.settings_cloud_status_guest_ai)
                 CloudAccountState.LINKED -> cloudSettings.linkedEmail ?: strings.get(R.string.settings_cloud_status_linked)
             },
+            reviewReactionAnimationsEnabled = accountPreferences.reviewReactionAnimationsEnabled,
+            canManageAccountPreferences = canManageAccountPreferences(cloudState = cloudSettings.cloudState),
             isTestModeEnabled = isTestModeEnabled
         )
     }.stateIn(
@@ -74,12 +79,49 @@ class SettingsViewModel(
             storageLabel = strings.get(R.string.settings_device_storage_room_sqlite),
             syncStatusText = strings.get(R.string.settings_loading),
             accountStatusTitle = strings.get(R.string.settings_loading),
+            reviewReactionAnimationsEnabled = true,
+            canManageAccountPreferences = false,
             isTestModeEnabled = false
         )
     )
 
     init {
         observeAutoSyncDrivenSettingsChanges()
+    }
+
+    fun refreshAccountContextAsync() {
+        viewModelScope.launch {
+            try {
+                cloudAccountRepository.refreshAccountContext()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                messageController.showMessage(message = strings.get(R.string.settings_account_preferences_refresh_failed))
+            }
+        }
+    }
+
+    fun updateReviewReactionAnimationsEnabled(isEnabled: Boolean) {
+        viewModelScope.launch {
+            try {
+                cloudAccountRepository.updateAccountPreferences(
+                    preferences = AccountPreferences(reviewReactionAnimationsEnabled = isEnabled)
+                )
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                messageController.showMessage(message = strings.get(R.string.settings_review_animations_update_failed))
+                return@launch
+            }
+
+            try {
+                cloudAccountRepository.refreshAccountContext()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                messageController.showMessage(message = strings.get(R.string.settings_account_preferences_refresh_failed))
+            }
+        }
     }
 
     private fun observeAutoSyncDrivenSettingsChanges() {
@@ -154,6 +196,10 @@ private fun buildSettingsVisibleSignature(uiState: SettingsUiState): SettingsVis
         accountStatusTitle = uiState.accountStatusTitle,
         storageLabel = uiState.storageLabel
     )
+}
+
+private fun canManageAccountPreferences(cloudState: CloudAccountState): Boolean {
+    return cloudState == CloudAccountState.LINKED || cloudState == CloudAccountState.GUEST
 }
 
 fun createSettingsViewModelFactory(

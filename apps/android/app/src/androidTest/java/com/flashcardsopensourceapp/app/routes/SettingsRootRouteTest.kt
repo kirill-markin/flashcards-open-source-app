@@ -8,6 +8,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.fetchSemanticsNode
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
@@ -37,12 +38,14 @@ import com.flashcardsopensourceapp.feature.settings.settingsLanguageRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsLegalSupportRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsOpenSourceRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsResetStudyProgressRowTag
+import com.flashcardsopensourceapp.feature.settings.settingsReviewAnimationsRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsReviewRemindersRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsSchedulingRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsServerRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsTagsRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsTestRowTag
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -58,6 +61,7 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
 
         renderSettingsRoute(
             isTestModeEnabled = false,
+            canManageAccountPreferences = true,
             clickedRows = clickedRows
         )
 
@@ -74,6 +78,7 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             settingsAccountStatusRowTag,
             settingsCurrentWorkspaceRowTag,
             settingsReviewRemindersRowTag,
+            settingsReviewAnimationsRowTag,
             settingsLanguageRowTag,
             settingsAccessRowTag,
             settingsDecksRowTag,
@@ -92,6 +97,14 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         ).forEach { rowTag ->
             assertRootRowVisible(rowTag = rowTag)
         }
+        assertRootRowOrder(
+            firstRowTag = settingsReviewRemindersRowTag,
+            secondRowTag = settingsReviewAnimationsRowTag
+        )
+        assertRootRowOrder(
+            firstRowTag = settingsReviewAnimationsRowTag,
+            secondRowTag = settingsLanguageRowTag
+        )
         composeRule.onAllNodesWithTag(settingsTestRowTag).assertCountEquals(0)
 
         assertRowClick(
@@ -102,6 +115,11 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         assertRowClick(
             rowTag = settingsCurrentWorkspaceRowTag,
             expectedClick = "current_workspace",
+            clickedRows = clickedRows
+        )
+        assertRowClick(
+            rowTag = settingsReviewAnimationsRowTag,
+            expectedClick = "review_animations",
             clickedRows = clickedRows
         )
         assertRowClick(
@@ -132,6 +150,7 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
 
         renderSettingsRoute(
             isTestModeEnabled = true,
+            canManageAccountPreferences = true,
             clickedRows = clickedRows
         )
 
@@ -144,8 +163,20 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         )
     }
 
+    @Test
+    fun reviewAnimationsRowIsHiddenWhenAccountPreferencesCannotBeManaged() {
+        renderSettingsRoute(
+            isTestModeEnabled = false,
+            canManageAccountPreferences = false,
+            clickedRows = mutableListOf()
+        )
+
+        composeRule.onAllNodesWithTag(settingsReviewAnimationsRowTag).assertCountEquals(0)
+    }
+
     private fun renderSettingsRoute(
         isTestModeEnabled: Boolean,
+        canManageAccountPreferences: Boolean,
         clickedRows: MutableList<String>
     ) {
         composeRule.setContent {
@@ -159,6 +190,8 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         storageLabel = "Room + SQLite",
                         syncStatusText = "Local",
                         accountStatusTitle = "Not signed in",
+                        reviewReactionAnimationsEnabled = true,
+                        canManageAccountPreferences = canManageAccountPreferences,
                         isTestModeEnabled = isTestModeEnabled
                     ),
                     onOpenAccountStatus = {
@@ -169,6 +202,9 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     },
                     onOpenReviewReminders = {
                         clickedRows += "review_reminders"
+                    },
+                    onOpenReviewAnimations = {
+                        clickedRows += "review_animations"
                     },
                     onOpenLanguage = {
                         clickedRows += "language"
@@ -232,6 +268,18 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
     private fun assertRootRowVisible(rowTag: String) {
         composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(matcher = hasTestTag(rowTag))
         composeRule.onNodeWithTag(rowTag).assertIsDisplayed()
+    }
+
+    private fun assertRootRowOrder(
+        firstRowTag: String,
+        secondRowTag: String
+    ) {
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(matcher = hasTestTag(firstRowTag))
+        composeRule.onNodeWithTag(firstRowTag).assertIsDisplayed()
+        composeRule.onNodeWithTag(secondRowTag).assertIsDisplayed()
+        val firstTop = composeRule.onNodeWithTag(firstRowTag).fetchSemanticsNode().boundsInRoot.top
+        val secondTop = composeRule.onNodeWithTag(secondRowTag).fetchSemanticsNode().boundsInRoot.top
+        assertTrue("$firstRowTag should appear before $secondRowTag", firstTop < secondTop)
     }
 
     private fun assertRowClick(

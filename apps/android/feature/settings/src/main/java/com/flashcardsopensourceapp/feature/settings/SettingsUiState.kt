@@ -8,5 +8,7 @@ data class SettingsUiState(
     val storageLabel: String,
     val syncStatusText: String,
     val accountStatusTitle: String,
+    val reviewReactionAnimationsEnabled: Boolean,
+    val canManageAccountPreferences: Boolean,
     val isTestModeEnabled: Boolean
 )

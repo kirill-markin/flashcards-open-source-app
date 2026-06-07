@@ -464,6 +464,21 @@ class AppGraph(
         startStartup()
     }
 
+    fun refreshAccountContextInBackground(source: String) {
+        appScope.launch {
+            try {
+                cloudAccountRepository.refreshAccountContext()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                Log.w(
+                    appGraphLogTag,
+                    "event=account_context_refresh_failed source=$source ${renderSanitizedThrowableLogFields(error = error)}"
+                )
+            }
+        }
+    }
+
     suspend fun close() {
         cloudCredentialRecoveryGateViewModelStoreOwner.viewModelStore.clear()
         startupJob?.cancelAndJoin()

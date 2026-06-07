@@ -5,31 +5,38 @@ import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
+import com.flashcardsopensourceapp.data.local.model.ai.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.model.cloud.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.cloud.AgentApiKeyConnectionsResult
-import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
-import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
-import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeleteResult
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetProgressPreview
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetProgressResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkContext
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetProgressPreview
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetProgressResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
+import com.flashcardsopensourceapp.data.local.model.cloud.shouldRefreshCloudIdToken
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
+import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
+import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.loadActiveGuestSessionOrNull
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.progress.CloudProgressRemoteReader
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudSessionProvider
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.CloudLinkedWorkspaceTransitionCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.CloudWorkspaceLinkCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.CloudWorkspaceOperationsCoordinator
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 
 class LocalCloudAccountRepository(
@@ -125,6 +132,10 @@ class LocalCloudAccountRepository(
         return preferencesStore.observeCloudSettings()
     }
 
+    override fun observeAccountPreferences(): Flow<AccountPreferences> {
+        return preferencesStore.observeAccountPreferences()
+    }
+
     override fun observeAccountDeletionState(): Flow<AccountDeletionState> {
         return preferencesStore.observeAccountDeletionState()
     }
@@ -156,6 +167,37 @@ class LocalCloudAccountRepository(
 
     override suspend fun retryPendingAccountDeletion() {
         accountDeletionCoordinator.retryPendingAccountDeletion()
+    }
+
+    override suspend fun refreshAccountContext() {
+        operationCoordinator.runExclusive {
+            refreshAccountContextLocked()
+        }
+    }
+
+    override suspend fun updateAccountPreferences(preferences: AccountPreferences): AccountPreferences {
+        return operationCoordinator.runExclusive {
+            val previousPreferences = preferencesStore.currentAccountPreferences()
+            preferencesStore.saveAccountPreferences(preferences = preferences)
+
+            try {
+                val session = requireNotNull(resolveAccountContextSessionLocked()) {
+                    "Account preferences require an active linked or guest cloud account."
+                }
+                val updatedPreferences = remoteService.updateAccountPreferences(
+                    apiBaseUrl = session.apiBaseUrl,
+                    authorizationHeader = session.authorizationHeader,
+                    preferences = preferences
+                )
+                preferencesStore.saveAccountPreferences(preferences = updatedPreferences)
+                updatedPreferences
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                preferencesStore.saveAccountPreferences(preferences = previousPreferences)
+                throw error
+            }
+        }
     }
 
     override suspend fun sendCode(email: String): CloudSendCodeResult {
@@ -284,4 +326,101 @@ class LocalCloudAccountRepository(
     override suspend fun resetToOfficialServer() {
         serverConfigurationCoordinator.resetToOfficialServer()
     }
+
+    private suspend fun refreshAccountContextLocked() {
+        val session = resolveAccountContextSessionLocked() ?: return
+        val accountSnapshot = remoteService.fetchCloudAccount(
+            apiBaseUrl = session.apiBaseUrl,
+            authorizationHeader = session.authorizationHeader
+        )
+        persistAccountSnapshotForCurrentCloudIdentity(accountSnapshot = accountSnapshot)
+    }
+
+    private suspend fun resolveAccountContextSessionLocked(): AccountContextSession? {
+        if (preferencesStore.loadCloudCredentialRecoveryState() != null) {
+            return null
+        }
+
+        val cloudSettings = preferencesStore.currentCloudSettings()
+        val configuration = preferencesStore.currentServerConfiguration()
+        return when (cloudSettings.cloudState) {
+            CloudAccountState.LINKED -> {
+                val storedCredentials = requireNotNull(preferencesStore.loadCredentials()) {
+                    "Cloud account is not signed in."
+                }
+                val refreshedCredentials = if (
+                    shouldRefreshCloudIdToken(
+                        idTokenExpiresAtMillis = storedCredentials.idTokenExpiresAtMillis,
+                        nowMillis = System.currentTimeMillis()
+                    )
+                ) {
+                    remoteService.refreshIdToken(
+                        refreshToken = storedCredentials.refreshToken,
+                        authBaseUrl = configuration.authBaseUrl
+                    ).also(preferencesStore::saveCredentials)
+                } else {
+                    storedCredentials
+                }
+                AccountContextSession(
+                    apiBaseUrl = configuration.apiBaseUrl,
+                    authorizationHeader = "Bearer ${refreshedCredentials.idToken}"
+                )
+            }
+
+            CloudAccountState.GUEST -> {
+                val guestSession: StoredGuestAiSession = requireNotNull(
+                    loadActiveGuestSessionOrNull(
+                        preferencesStore = preferencesStore,
+                        guestSessionStore = guestSessionStore,
+                        configuration = configuration
+                    )
+                ) {
+                    "Guest cloud session is unavailable."
+                }
+                AccountContextSession(
+                    apiBaseUrl = guestSession.apiBaseUrl,
+                    authorizationHeader = "Guest ${guestSession.guestToken}"
+                )
+            }
+
+            CloudAccountState.DISCONNECTED,
+            CloudAccountState.LINKING_READY -> null
+        }
+    }
+
+    private suspend fun persistAccountSnapshotForCurrentCloudIdentity(accountSnapshot: CloudAccountSnapshot) {
+        val cloudSettings = preferencesStore.currentCloudSettings()
+        if (cloudSettings.cloudState != CloudAccountState.LINKED && cloudSettings.cloudState != CloudAccountState.GUEST) {
+            return
+        }
+
+        val expectedUserId = cloudSettings.linkedUserId?.trim()?.ifEmpty { null }
+        if (expectedUserId != null && expectedUserId != accountSnapshot.userId) {
+            resetCoordinator.resetLocalStateForCloudIdentityChange()
+            throw IllegalStateException(
+                "Cloud account changed during account context refresh. Local cloud identity was reset; sign in again."
+            )
+        }
+
+        preferencesStore.saveAccountPreferences(preferences = accountSnapshot.preferences)
+        val updatedLinkedEmail = if (cloudSettings.cloudState == CloudAccountState.LINKED) {
+            accountSnapshot.email
+        } else {
+            cloudSettings.linkedEmail
+        }
+        if (cloudSettings.linkedUserId != accountSnapshot.userId || cloudSettings.linkedEmail != updatedLinkedEmail) {
+            preferencesStore.updateCloudSettings(
+                cloudState = cloudSettings.cloudState,
+                linkedUserId = accountSnapshot.userId,
+                linkedWorkspaceId = cloudSettings.linkedWorkspaceId,
+                linkedEmail = updatedLinkedEmail,
+                activeWorkspaceId = cloudSettings.activeWorkspaceId
+            )
+        }
+    }
 }
+
+private data class AccountContextSession(
+    val apiBaseUrl: String,
+    val authorizationHeader: String
+)

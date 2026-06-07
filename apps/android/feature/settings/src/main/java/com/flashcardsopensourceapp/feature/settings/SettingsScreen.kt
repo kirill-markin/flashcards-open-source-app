@@ -78,6 +78,7 @@ fun SettingsRoute(
     onOpenAccountStatus: () -> Unit,
     onOpenCurrentWorkspace: () -> Unit,
     onOpenReviewReminders: () -> Unit,
+    onOpenReviewAnimations: () -> Unit,
     onOpenLanguage: () -> Unit,
     onOpenAccess: () -> Unit,
     onOpenDecks: () -> Unit,
@@ -138,6 +139,21 @@ fun SettingsRoute(
                     testTag = settingsReviewRemindersRowTag,
                     onClick = onOpenReviewReminders
                 )
+            }
+
+            if (uiState.canManageAccountPreferences) {
+                item {
+                    SettingsRootRow(
+                        title = stringResource(R.string.settings_review_animations_title),
+                        summary = if (uiState.reviewReactionAnimationsEnabled) {
+                            stringResource(R.string.settings_common_on)
+                        } else {
+                            stringResource(R.string.settings_common_off)
+                        },
+                        testTag = settingsReviewAnimationsRowTag,
+                        onClick = onOpenReviewAnimations
+                    )
+                }
             }
 
             item {

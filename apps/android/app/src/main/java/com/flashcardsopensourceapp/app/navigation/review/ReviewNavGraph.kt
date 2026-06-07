@@ -23,6 +23,7 @@ import com.flashcardsopensourceapp.app.navigation.rememberRouteBackStackEntry
 import com.flashcardsopensourceapp.app.notifications.hasNotificationPermission
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.sync.defaultAccountPreferences
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersReconcileTrigger
 import com.flashcardsopensourceapp.feature.review.ReviewPreviewRoute
@@ -99,6 +100,9 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
             )
         )
         val uiState by reviewViewModel.uiState.collectAsStateWithLifecycle()
+        val accountPreferences by appGraph.cloudAccountRepository.observeAccountPreferences().collectAsStateWithLifecycle(
+            initialValue = defaultAccountPreferences()
+        )
         val reviewFilterRequest by appGraph.appHandoffCoordinator.observeReviewFilter().collectAsStateWithLifecycle()
 
         LaunchedEffect(reviewFilterRequest?.requestId, uiState) {
@@ -112,6 +116,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
         ReviewRoute(
             uiState = uiState,
             reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore,
+            reviewReactionAnimationsEnabled = accountPreferences.reviewReactionAnimationsEnabled,
             onSelectFilter = reviewViewModel::selectFilter,
             onOpenPreview = {
                 navController.navigate(route = ReviewPreviewDestination.route)

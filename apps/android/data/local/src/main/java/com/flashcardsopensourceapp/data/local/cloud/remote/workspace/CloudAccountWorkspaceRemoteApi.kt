@@ -9,6 +9,7 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudIsoTimestam
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudNullableString
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudObject
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
+import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeleteResult
@@ -20,18 +21,22 @@ import org.json.JSONObject
 internal class CloudAccountWorkspaceRemoteApi(
     private val httpClient: CloudJsonHttpClient
 ) {
-    suspend fun fetchCloudAccount(apiBaseUrl: String, bearerToken: String): CloudAccountSnapshot {
+    suspend fun fetchCloudAccount(apiBaseUrl: String, authorizationHeader: String): CloudAccountSnapshot {
         val meResponse = httpClient.getJson(
             baseUrl = apiBaseUrl,
             path = "/me",
-            authorizationHeader = "Bearer $bearerToken"
+            authorizationHeader = authorizationHeader
         )
         val selectedWorkspaceId = meResponse.requireCloudNullableString("selectedWorkspaceId", "me.selectedWorkspaceId")
         val profile = meResponse.requireCloudObject("profile", "me.profile")
+        val preferences = parseAccountPreferences(
+            preferences = meResponse.requireCloudObject("preferences", "me.preferences"),
+            fieldPath = "me.preferences"
+        )
         val firstWorkspacePageResponse = httpClient.getJson(
             baseUrl = apiBaseUrl,
             path = buildPaginatedCloudPath(basePath = "/workspaces", cursor = null),
-            authorizationHeader = "Bearer $bearerToken"
+            authorizationHeader = authorizationHeader
         )
         val firstWorkspacePage = parseCloudWorkspacePage(
             response = firstWorkspacePageResponse,
@@ -44,7 +49,7 @@ internal class CloudAccountWorkspaceRemoteApi(
                 response = httpClient.getJson(
                     baseUrl = apiBaseUrl,
                     path = buildPaginatedCloudPath(basePath = "/workspaces", cursor = nextCursor),
-                    authorizationHeader = "Bearer $bearerToken"
+                    authorizationHeader = authorizationHeader
                 ),
                 selectedWorkspaceId = selectedWorkspaceId
             )
@@ -55,12 +60,31 @@ internal class CloudAccountWorkspaceRemoteApi(
         return CloudAccountSnapshot(
             userId = meResponse.requireCloudString("userId", "me.userId"),
             email = profile.requireCloudNullableString("email", "me.profile.email"),
+            preferences = preferences,
             workspaces = workspaces
         )
     }
 
     suspend fun listLinkedWorkspaces(apiBaseUrl: String, bearerToken: String): List<CloudWorkspaceSummary> {
-        return fetchCloudAccount(apiBaseUrl = apiBaseUrl, bearerToken = bearerToken).workspaces
+        return fetchCloudAccount(apiBaseUrl = apiBaseUrl, authorizationHeader = "Bearer $bearerToken").workspaces
+    }
+
+    suspend fun updateAccountPreferences(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        preferences: AccountPreferences
+    ): AccountPreferences {
+        val response = httpClient.patchJson(
+            baseUrl = apiBaseUrl,
+            path = "/me/preferences",
+            authorizationHeader = authorizationHeader,
+            body = JSONObject()
+                .put("reviewReactionAnimationsEnabled", preferences.reviewReactionAnimationsEnabled)
+        )
+        return parseAccountPreferences(
+            preferences = response.requireCloudObject("preferences", "accountPreferences.preferences"),
+            fieldPath = "accountPreferences.preferences"
+        )
     }
 
     suspend fun createWorkspace(apiBaseUrl: String, bearerToken: String, name: String): CloudWorkspaceSummary {
@@ -231,6 +255,18 @@ internal fun parseCloudWorkspace(
         name = workspace.requireCloudString("name", "$fieldPath.name"),
         createdAtMillis = workspace.requireCloudIsoTimestampMillis("createdAt", "$fieldPath.createdAt"),
         isSelected = isSelected
+    )
+}
+
+internal fun parseAccountPreferences(
+    preferences: JSONObject,
+    fieldPath: String
+): AccountPreferences {
+    return AccountPreferences(
+        reviewReactionAnimationsEnabled = preferences.requireCloudBoolean(
+            "reviewReactionAnimationsEnabled",
+            "$fieldPath.reviewReactionAnimationsEnabled"
+        )
     )
 }
 

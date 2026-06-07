@@ -24,8 +24,10 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetPro
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetProgressResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
+import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
+import com.flashcardsopensourceapp.data.local.model.sync.defaultAccountPreferences
 import com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
@@ -761,6 +763,7 @@ private class FakeCloudAccountRepository : CloudAccountRepository {
             updatedAtMillis = 0L
         )
     )
+    private val accountPreferences = MutableStateFlow(defaultAccountPreferences())
     private val accountDeletionState = MutableStateFlow<AccountDeletionState>(AccountDeletionState.Hidden)
     private val serverConfiguration = MutableStateFlow(makeOfficialCloudServiceConfiguration())
     private val cloudCredentialRecoveryState = MutableStateFlow<CloudCredentialRecoveryState?>(null)
@@ -807,6 +810,10 @@ private class FakeCloudAccountRepository : CloudAccountRepository {
         return cloudSettings
     }
 
+    override fun observeAccountPreferences(): Flow<AccountPreferences> {
+        return accountPreferences
+    }
+
     override fun observeAccountDeletionState(): Flow<AccountDeletionState> {
         return accountDeletionState
     }
@@ -833,6 +840,14 @@ private class FakeCloudAccountRepository : CloudAccountRepository {
 
     override suspend fun retryPendingAccountDeletion() {
         throw UnsupportedOperationException()
+    }
+
+    override suspend fun refreshAccountContext() {
+    }
+
+    override suspend fun updateAccountPreferences(preferences: AccountPreferences): AccountPreferences {
+        accountPreferences.value = preferences
+        return preferences
     }
 
     override suspend fun sendCode(email: String): CloudSendCodeResult {

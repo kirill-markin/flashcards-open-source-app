@@ -102,6 +102,7 @@ internal class CloudLinkedWorkspaceTransitionCoordinator(
             linkedEmail = authenticatedSession.accountSnapshot.email,
             activeWorkspaceId = replacementWorkspace.workspaceId
         )
+        preferencesStore.saveAccountPreferences(preferences = authenticatedSession.accountSnapshot.preferences)
         requireTransitionInvariant(
             stage = "after prefs update for delete",
             expectedWorkspaceId = replacementWorkspace.workspaceId
@@ -249,6 +250,7 @@ internal class CloudLinkedWorkspaceTransitionCoordinator(
             linkedEmail = accountSnapshot.email,
             activeWorkspaceId = selectedWorkspace.workspaceId
         )
+        preferencesStore.saveAccountPreferences(preferences = accountSnapshot.preferences)
         val localCurrentWorkspace: WorkspaceEntity = requireCurrentWorkspace(
             database = database,
             preferencesStore = preferencesStore,

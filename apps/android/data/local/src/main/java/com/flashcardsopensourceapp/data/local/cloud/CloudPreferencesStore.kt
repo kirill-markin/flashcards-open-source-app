@@ -25,6 +25,8 @@ import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.ai.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.model.cloud.makeCustomCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration
+import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
+import com.flashcardsopensourceapp.data.local.model.sync.defaultAccountPreferences
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -54,6 +56,7 @@ private const val accountDeletionStatusKey: String = "account-deletion-status"
 private const val accountDeletionFailureMessageKey: String = "account-deletion-failure-message"
 private const val customOriginKey: String = "custom-origin"
 private const val cloudCredentialRecoveryStateKey: String = "cloud-credential-recovery-state"
+private const val reviewReactionAnimationsEnabledKey: String = "review-reaction-animations-enabled"
 private const val refreshTokenKey: String = "refresh-token"
 private const val idTokenKey: String = "id-token"
 private const val idTokenExpiresAtMillisKey: String = "id-token-expires-at-millis"
@@ -84,6 +87,7 @@ class CloudPreferencesStore(
     )
 
     private val cloudSettingsState = MutableStateFlow(loadLegacyCloudSettingsEntity().toCloudSettings())
+    private val accountPreferencesState = MutableStateFlow(loadAccountPreferences())
     private val accountDeletionState = MutableStateFlow(loadAccountDeletionState())
     private val serverConfigurationState = MutableStateFlow(loadServerConfiguration())
     private val cloudCredentialRecoveryStateJson = MutableStateFlow(loadCloudCredentialRecoveryStateJsonFromPreferences())
@@ -94,6 +98,10 @@ class CloudPreferencesStore(
 
     fun observeCloudSettings(): StateFlow<CloudSettings> {
         return cloudSettingsState.asStateFlow()
+    }
+
+    fun observeAccountPreferences(): StateFlow<AccountPreferences> {
+        return accountPreferencesState.asStateFlow()
     }
 
     fun observeServerConfiguration(): StateFlow<CloudServiceConfiguration> {
@@ -112,6 +120,10 @@ class CloudPreferencesStore(
 
     fun currentCloudSettings(): CloudSettings {
         return cloudSettingsState.value
+    }
+
+    fun currentAccountPreferences(): AccountPreferences {
+        return accountPreferencesState.value
     }
 
     fun currentServerConfiguration(): CloudServiceConfiguration {
@@ -181,6 +193,23 @@ class CloudPreferencesStore(
             putString(idTokenKey, idToken)
             putLong(idTokenExpiresAtMillisKey, idTokenExpiresAtMillis)
         }
+    }
+
+    fun saveAccountPreferences(preferences: AccountPreferences) {
+        metadataPreferences.edit(commit = true) {
+            putBoolean(
+                reviewReactionAnimationsEnabledKey,
+                preferences.reviewReactionAnimationsEnabled
+            )
+        }
+        accountPreferencesState.value = preferences
+    }
+
+    fun clearAccountPreferences() {
+        metadataPreferences.edit(commit = true) {
+            remove(reviewReactionAnimationsEnabledKey)
+        }
+        accountPreferencesState.value = defaultAccountPreferences()
     }
 
     internal fun loadPendingGuestUpgrade(): PendingGuestUpgradeState? {
@@ -431,6 +460,19 @@ class CloudPreferencesStore(
         }
     }
 
+    private fun loadAccountPreferences(): AccountPreferences {
+        return if (metadataPreferences.contains(reviewReactionAnimationsEnabledKey)) {
+            AccountPreferences(
+                reviewReactionAnimationsEnabled = metadataPreferences.getBoolean(
+                    reviewReactionAnimationsEnabledKey,
+                    true
+                )
+            )
+        } else {
+            defaultAccountPreferences()
+        }
+    }
+
     private fun loadCloudCredentialRecoveryStateJsonFromPreferences(): String? {
         return metadataPreferences.getString(cloudCredentialRecoveryStateKey, null)
     }
@@ -633,6 +675,7 @@ private fun encodeAccountSnapshot(accountSnapshot: CloudAccountSnapshot): JSONOb
     return JSONObject()
         .put("userId", accountSnapshot.userId)
         .putNullableString(key = "email", value = accountSnapshot.email)
+        .put("preferences", encodeAccountPreferences(preferences = accountSnapshot.preferences))
         .put("workspaces", encodeWorkspaces(workspaces = accountSnapshot.workspaces))
 }
 
@@ -640,8 +683,29 @@ private fun decodeAccountSnapshot(jsonObject: JSONObject): CloudAccountSnapshot 
     return CloudAccountSnapshot(
         userId = jsonObject.getString("userId"),
         email = jsonObject.getNullableString(key = "email"),
+        preferences = decodeStoredAccountPreferences(jsonObject = jsonObject),
         workspaces = decodeWorkspaces(jsonArray = jsonObject.getJSONArray("workspaces"))
     )
+}
+
+private fun encodeAccountPreferences(preferences: AccountPreferences): JSONObject {
+    return JSONObject()
+        .put("reviewReactionAnimationsEnabled", preferences.reviewReactionAnimationsEnabled)
+}
+
+private fun decodeAccountPreferences(jsonObject: JSONObject?): AccountPreferences {
+    jsonObject ?: return defaultAccountPreferences()
+    return AccountPreferences(
+        reviewReactionAnimationsEnabled = jsonObject.getBoolean("reviewReactionAnimationsEnabled")
+    )
+}
+
+private fun decodeStoredAccountPreferences(jsonObject: JSONObject): AccountPreferences {
+    return if (jsonObject.has("preferences").not() || jsonObject.isNull("preferences")) {
+        defaultAccountPreferences()
+    } else {
+        decodeAccountPreferences(jsonObject = jsonObject.getJSONObject("preferences"))
+    }
 }
 
 private fun encodeWorkspaces(workspaces: List<CloudWorkspaceSummary>): JSONArray {
