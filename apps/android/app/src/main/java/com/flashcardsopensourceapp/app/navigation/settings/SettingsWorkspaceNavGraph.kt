@@ -11,9 +11,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
 import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersReconcileTrigger
 import com.flashcardsopensourceapp.feature.settings.deck.DeckDetailRoute
+import com.flashcardsopensourceapp.feature.settings.deck.DeckEditorSaveResult
 import com.flashcardsopensourceapp.feature.settings.deck.DeckEditorRoute
 import com.flashcardsopensourceapp.feature.settings.deck.DeckListTargetUiState
 import com.flashcardsopensourceapp.feature.settings.deck.DecksRoute
@@ -224,6 +226,7 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
             DeckDetailRoute(
                 uiState = uiState,
                 onEditDeck = {},
+                onReviewDeck = {},
                 onOpenCard = { cardId ->
                     appGraph.appHandoffCoordinator.requestCardEditor(cardId = cardId)
                 },
@@ -259,6 +262,11 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
                 uiState = uiState,
                 onEditDeck = { editingDeckId ->
                     navController.navigate(route = SettingsWorkspaceDeckEditorDestination.createRoute(deckId = editingDeckId))
+                },
+                onReviewDeck = { reviewingDeckId ->
+                    appGraph.appHandoffCoordinator.requestReviewFilter(
+                        reviewFilter = ReviewFilter.Deck(deckId = reviewingDeckId)
+                    )
                 },
                 onOpenCard = { cardId ->
                     appGraph.appHandoffCoordinator.requestCardEditor(cardId = cardId)
@@ -305,10 +313,23 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
                 onToggleTag = deckEditorViewModel::toggleTag,
                 onSave = {
                     coroutineScope.launch {
-                        val didSave = deckEditorViewModel.save(editingDeckId = editingDeckId)
-                        if (didSave) {
-                            withContext(Dispatchers.Main.immediate) {
-                                navController.popBackStack()
+                        val saveResult = deckEditorViewModel.save(editingDeckId = editingDeckId)
+                        withContext(Dispatchers.Main.immediate) {
+                            when (saveResult) {
+                                is DeckEditorSaveResult.Created -> {
+                                    navController.popBackStack()
+                                    navController.navigate(
+                                        route = SettingsWorkspaceDeckDetailDestination.createRoute(deckId = saveResult.deckId)
+                                    ) {
+                                        launchSingleTop = true
+                                    }
+                                }
+
+                                DeckEditorSaveResult.Updated -> {
+                                    navController.popBackStack()
+                                }
+
+                                null -> Unit
                             }
                         }
                     }

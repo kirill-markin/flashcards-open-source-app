@@ -69,7 +69,7 @@ interface DecksRepository {
     fun observeDecks(): Flow<List<DeckSummary>>
     fun observeDeck(deckId: String): Flow<DeckSummary?>
     fun observeDeckCards(deckId: String): Flow<List<CardSummary>>
-    suspend fun createDeck(deckDraft: DeckDraft)
+    suspend fun createDeck(deckDraft: DeckDraft): String
     suspend fun updateDeck(deckId: String, deckDraft: DeckDraft)
     suspend fun deleteDeck(deckId: String)
 }

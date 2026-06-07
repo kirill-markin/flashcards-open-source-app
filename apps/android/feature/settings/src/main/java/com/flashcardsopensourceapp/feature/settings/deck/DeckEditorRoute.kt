@@ -74,6 +74,24 @@ fun DeckEditorRoute(
             }
 
             item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.settings_deck_editor_explainer_title),
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        Text(
+                            text = stringResource(R.string.settings_deck_editor_explainer_body),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            item {
                 OutlinedTextField(
                     value = uiState.name,
                     onValueChange = onNameChange,

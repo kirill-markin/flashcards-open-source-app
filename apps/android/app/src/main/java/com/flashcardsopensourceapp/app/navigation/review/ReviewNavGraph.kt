@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -98,6 +99,15 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
             )
         )
         val uiState by reviewViewModel.uiState.collectAsStateWithLifecycle()
+        val reviewFilterRequest by appGraph.appHandoffCoordinator.observeReviewFilter().collectAsStateWithLifecycle()
+
+        LaunchedEffect(reviewFilterRequest?.requestId, uiState) {
+            val request = reviewFilterRequest ?: return@LaunchedEffect
+            val didSelectFilter = reviewViewModel.selectFilterForHandoff(reviewFilter = request.reviewFilter)
+            if (didSelectFilter) {
+                appGraph.appHandoffCoordinator.consumeReviewFilter(requestId = request.requestId)
+            }
+        }
 
         ReviewRoute(
             uiState = uiState,
