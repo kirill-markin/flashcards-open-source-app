@@ -1,4 +1,5 @@
 import { useEffect, type ReactElement } from "react";
+import { useAppData } from "../../appData";
 import { FeedbackDialog } from "../../feedback/FeedbackDialog";
 import { ReviewEditorModal } from "./components/ReviewEditorModal";
 import { ReviewPane } from "./components/ReviewPane";
@@ -12,6 +13,8 @@ import { useReviewScreenController } from "./useReviewScreenController";
 export { normalizeReviewMarkdownForWeb } from "./components/ReviewCardSide";
 
 export function ReviewScreen(): ReactElement {
+  const { session } = useAppData();
+  const reviewReactionAnimationsEnabled = session?.preferences.reviewReactionAnimationsEnabled !== false;
   const {
     dismissReviewReactions,
     editorModalProps,
@@ -22,11 +25,18 @@ export function ReviewScreen(): ReactElement {
     queuePanelProps,
     reviewReactionFallbackHandler,
     reviewReactionEvents,
-  } = useReviewScreenController();
+  } = useReviewScreenController({
+    reviewReactionAnimationsEnabled,
+  });
 
   useEffect(() => {
-    startReviewReactionLottiePrewarm();
-  }, []);
+    if (reviewReactionAnimationsEnabled) {
+      startReviewReactionLottiePrewarm();
+      return;
+    }
+
+    dismissReviewReactions();
+  }, [dismissReviewReactions, reviewReactionAnimationsEnabled]);
 
   return (
     <main className="container" data-testid="review-screen" onPointerDownCapture={dismissReviewReactions}>

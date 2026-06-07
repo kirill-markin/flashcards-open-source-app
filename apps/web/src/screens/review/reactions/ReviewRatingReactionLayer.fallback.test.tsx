@@ -70,7 +70,9 @@ const lottieFailureExpectations: ReadonlyArray<LottieFailureExpectation> = revie
 
 function ReviewReactionLayerHarness(props: ReviewReactionLayerHarnessProps): ReactElement {
   const { onResult } = props;
-  const result = useReviewRatingReactions();
+  const result = useReviewRatingReactions({
+    reviewReactionAnimationsEnabled: true,
+  });
 
   useEffect(() => {
     onResult(result);

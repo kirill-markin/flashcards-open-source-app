@@ -24,6 +24,10 @@ import {
   reviewReactionLottieFallbackVariant,
 } from "./reviewReactionLottie";
 
+export type UseReviewRatingReactionsParams = Readonly<{
+  reviewReactionAnimationsEnabled: boolean;
+}>;
+
 export type UseReviewRatingReactionsResult = Readonly<{
   dismissReactions: () => void;
   emitReaction: (rating: 0 | 1 | 2 | 3) => void;
@@ -139,7 +143,10 @@ function reserveReviewReactionEventVariant(
   return readyVariant;
 }
 
-export function useReviewRatingReactions(): UseReviewRatingReactionsResult {
+export function useReviewRatingReactions(
+  params: UseReviewRatingReactionsParams,
+): UseReviewRatingReactionsResult {
+  const { reviewReactionAnimationsEnabled } = params;
   const [events, setEvents] = useState<ReadonlyArray<ReviewReactionEvent>>([]);
   const [motionMode, setMotionMode] = useState<ReviewReactionMotionMode>(
     matchesReducedReviewReactionMotion() ? "reduced" : "standard",
@@ -206,6 +213,12 @@ export function useReviewRatingReactions(): UseReviewRatingReactionsResult {
     setEvents([]);
   }, []);
 
+  useEffect(() => {
+    if (reviewReactionAnimationsEnabled === false) {
+      dismissReactions();
+    }
+  }, [dismissReactions, reviewReactionAnimationsEnabled]);
+
   const scheduleReactionEventCleanup = useCallback((
     eventId: string,
     variant: ReviewReactionRenderableVariant,
@@ -217,6 +230,10 @@ export function useReviewRatingReactions(): UseReviewRatingReactionsResult {
   }, [motionMode, removeReactionEvent]);
 
   const emitReaction = useCallback((rating: 0 | 1 | 2 | 3): void => {
+    if (reviewReactionAnimationsEnabled === false) {
+      return;
+    }
+
     const reactionRating = makeReviewReactionRating(rating);
     const totalWeight = reviewReactionVariantTotalWeight(reactionRating);
     const eventId = crypto.randomUUID();
@@ -249,7 +266,7 @@ export function useReviewRatingReactions(): UseReviewRatingReactionsResult {
       eventsRef.current = nextEvents;
       return nextEvents;
     });
-  }, [scheduleReactionEventCleanup]);
+  }, [reviewReactionAnimationsEnabled, scheduleReactionEventCleanup]);
 
   const handleReactionEventFallback = useCallback((eventId: string): void => {
     const event = eventsRef.current.find((activeEvent) => activeEvent.id === eventId);

@@ -52,6 +52,7 @@ import {
   settingsLanguageRoute,
   settingsNotificationsRoute,
   settingsOverviewRoute,
+  settingsReviewAnimationsRoute,
   settingsResetStudyProgressRoute,
   settingsSchedulerRoute,
   settingsServerRoute,
@@ -120,6 +121,9 @@ const OpenSourceSettingsScreen = lazy(async () => import("./screens/settings/acc
 })));
 const NotificationsSettingsScreen = lazy(async () => import("./screens/settings/NotificationsSettingsScreen").then((module) => ({
   default: module.NotificationsSettingsScreen,
+})));
+const ReviewAnimationsSettingsScreen = lazy(async () => import("./screens/settings/ReviewAnimationsSettingsScreen").then((module) => ({
+  default: module.ReviewAnimationsSettingsScreen,
 })));
 const ThisDeviceSettingsScreen = lazy(async () => import("./screens/settings/ThisDeviceSettingsScreen").then((module) => ({
   default: module.ThisDeviceSettingsScreen,
@@ -609,6 +613,7 @@ export function RoutedShell(): ReactElement {
           <Route path={settingsAccessDetailRoutePattern} element={renderDeferredRoute(<AccessPermissionDetailScreen />, "loading.accessDetails")} />
           <Route path={workspaceSettingsRoute} element={renderDeferredRoute(<WorkspaceSettingsScreen />, "loading.workspaceSettings")} />
           <Route path={settingsNotificationsRoute} element={renderDeferredRoute(<NotificationsSettingsScreen />, "loading.notificationSettings")} />
+          <Route path={settingsReviewAnimationsRoute} element={renderDeferredRoute(<ReviewAnimationsSettingsScreen />, "loading.settings")} />
           <Route path={settingsOverviewRoute} element={renderDeferredRoute(<WorkspaceOverviewScreen />, "loading.workspaceOverview")} />
           <Route path={settingsSchedulerRoute} element={renderDeferredRoute(<WorkspaceSchedulerScreen />, "loading.schedulerSettings")} />
           <Route path={settingsExportRoute} element={renderDeferredRoute(<WorkspaceExportScreen />, "loading.exportSettings")} />

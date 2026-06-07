@@ -100,6 +100,10 @@ function createAppData(): AppDataContextValue {
     selectedReviewFilter: { kind: "allCards" },
     errorMessage: "",
     setErrorMessage: vi.fn(),
+    setAccountPreferences: vi.fn(),
+    refreshAccountPreferences: vi.fn(async () => ({
+      reviewReactionAnimationsEnabled: true,
+    })),
     initialize: vi.fn(async (): Promise<void> => undefined),
     chooseWorkspace: vi.fn(async (_workspaceId: string): Promise<void> => undefined),
     createWorkspace: vi.fn(async (_name: string): Promise<void> => undefined),

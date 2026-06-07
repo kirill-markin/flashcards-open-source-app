@@ -39,6 +39,8 @@ const enCatalog = {
     noBackText: "No back text",
     notRevoked: "Not revoked",
     ok: "OK",
+    off: "Off",
+    on: "On",
     open: "Open",
     perAction: "Per action",
     refresh: "Refresh",
@@ -440,6 +442,12 @@ const enCatalog = {
     paragraphOne: "Review reminder settings belong to this workspace, but they are turned on and managed separately on each device.",
     paragraphTwo: "If you want study notifications, open this workspace on the iPhone or Android device where you want to receive them and configure notifications there.",
     paragraphThree: "The web app does not support notifications, so there are no notification controls on this screen.",
+  },
+  reviewAnimationsSettings: {
+    title: "Review Animations",
+    subtitle: "Control the reaction animations shown after rating cards.",
+    toggleTitle: "Show animations after rating a card",
+    toggleDescription: "Only the review reaction animations are affected.",
   },
   accessSettings: {
     title: "Access",

@@ -31,11 +31,20 @@ export type DeckFilterDefinition = Readonly<{
   tags: ReadonlyArray<string>;
 }>;
 
+export type AccountPreferences = Readonly<{
+  reviewReactionAnimationsEnabled: boolean;
+}>;
+
+export type AccountPreferencesEnvelope = Readonly<{
+  preferences: AccountPreferences;
+}>;
+
 export type SessionInfo = Readonly<{
   userId: string;
   selectedWorkspaceId: string | null;
   authTransport: string;
   csrfToken: string | null;
+  preferences: AccountPreferences;
   profile: Readonly<{
     email: string | null;
     locale: string;

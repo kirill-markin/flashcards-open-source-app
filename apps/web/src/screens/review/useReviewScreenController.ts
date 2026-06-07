@@ -68,6 +68,10 @@ export type UseReviewScreenControllerResult = Readonly<{
   reviewReactionEvents: UseReviewRatingReactionsResult["events"];
 }>;
 
+export type UseReviewScreenControllerParams = Readonly<{
+  reviewReactionAnimationsEnabled: boolean;
+}>;
+
 type AutomaticFeedbackPromptUiState = Readonly<{
   isEditorPresented: boolean;
   isFeedbackDialogOpen: boolean;
@@ -75,7 +79,10 @@ type AutomaticFeedbackPromptUiState = Readonly<{
   isReviewFilterMenuOpen: boolean;
 }>;
 
-export function useReviewScreenController(): UseReviewScreenControllerResult {
+export function useReviewScreenController(
+  params: UseReviewScreenControllerParams,
+): UseReviewScreenControllerResult {
+  const { reviewReactionAnimationsEnabled } = params;
   const {
     activeWorkspace,
     cloudSettings,
@@ -120,7 +127,9 @@ export function useReviewScreenController(): UseReviewScreenControllerResult {
     emitReaction: emitReviewReaction,
     events: reviewReactionEvents,
     handleReactionEventFallback: handleReviewReactionEventFallback,
-  } = useReviewRatingReactions();
+  } = useReviewRatingReactions({
+    reviewReactionAnimationsEnabled,
+  });
   const {
     activeReviewQueue,
     deckSummaries,

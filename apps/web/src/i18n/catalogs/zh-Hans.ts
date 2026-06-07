@@ -41,6 +41,8 @@ export const zhHansCatalog = {
     noBackText: "无背面文本",
     notRevoked: "未撤销",
     ok: "确定",
+    off: "关",
+    on: "开",
     open: "打开",
     perAction: "每次操作",
     refresh: "刷新",
@@ -442,6 +444,12 @@ export const zhHansCatalog = {
     paragraphOne: "复习提醒设置属于此工作区，但需要在每台设备上分别启用和管理。",
     paragraphTwo: "如果您希望接收学习通知，请在您希望接收通知的 iPhone 或 Android 设备上打开此工作区，并在该设备上配置通知。",
     paragraphThree: "Web 应用不支持通知，因此此界面没有通知控制项。",
+  },
+  reviewAnimationsSettings: {
+    title: "复习动画",
+    subtitle: "控制给卡片评分后的反应动画。",
+    toggleTitle: "评分后显示动画",
+    toggleDescription: "只影响复习评分后的反应动画。",
   },
   accessSettings: {
     title: "访问权限",

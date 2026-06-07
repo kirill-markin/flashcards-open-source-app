@@ -41,6 +41,8 @@ const deCatalog: TranslationCatalog = {
     noBackText: "Kein Rückseitentext",
     notRevoked: "Nicht widerrufen",
     ok: "OK",
+    off: "Aus",
+    on: "Ein",
     open: "Öffnen",
     perAction: "Pro Aktion",
     refresh: "Aktualisieren",
@@ -442,6 +444,12 @@ const deCatalog: TranslationCatalog = {
     paragraphOne: "Erinnerungseinstellungen für Wiederholungen gehören zu diesem Arbeitsbereich, werden aber auf jedem Gerät separat aktiviert und verwaltet.",
     paragraphTwo: "Wenn du Lernbenachrichtigungen möchtest, öffne diesen Arbeitsbereich auf dem iPhone- oder Android-Gerät, auf dem du sie erhalten möchtest, und richte dort die Benachrichtigungen ein.",
     paragraphThree: "Die Web-App unterstützt keine Benachrichtigungen, daher gibt es auf diesem Bildschirm keine Benachrichtigungssteuerung.",
+  },
+  reviewAnimationsSettings: {
+    title: "Wiederholungsanimationen",
+    subtitle: "Steuere Reaktionsanimationen nach Kartenbewertungen.",
+    toggleTitle: "Animationen nach der Bewertung einer Karte anzeigen",
+    toggleDescription: "Betrifft nur die Reaktionsanimationen beim Wiederholen.",
   },
   accessSettings: {
     title: "Zugriff",

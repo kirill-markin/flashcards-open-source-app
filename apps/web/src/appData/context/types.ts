@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type {
+  AccountPreferences,
   Card,
   CloudSettings,
   CreateCardInput,
@@ -35,6 +36,8 @@ export type AppDataContextValue = Readonly<{
   selectedReviewFilter: ReviewFilter;
   errorMessage: string;
   setErrorMessage: (message: string) => void;
+  setAccountPreferences: (userId: string, preferences: AccountPreferences) => void;
+  refreshAccountPreferences: () => Promise<AccountPreferences>;
   initialize: () => Promise<void>;
   chooseWorkspace: (workspaceId: string) => Promise<void>;
   createWorkspace: (name: string) => Promise<void>;

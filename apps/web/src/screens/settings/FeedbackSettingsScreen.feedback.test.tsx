@@ -64,6 +64,9 @@ function createAppData(): Mutable<AppDataContextValue> {
       selectedWorkspaceId: "workspace-1",
       authTransport: "session",
       csrfToken: "csrf-token-1",
+      preferences: {
+        reviewReactionAnimationsEnabled: true,
+      },
       profile: {
         email: "user@example.com",
         locale: "en",
@@ -94,6 +97,10 @@ function createAppData(): Mutable<AppDataContextValue> {
     selectedReviewFilter: { kind: "allCards" } satisfies ReviewFilter,
     errorMessage: "",
     setErrorMessage: vi.fn(),
+    setAccountPreferences: vi.fn(),
+    refreshAccountPreferences: vi.fn(async () => ({
+      reviewReactionAnimationsEnabled: true,
+    })),
     initialize: vi.fn(async (): Promise<void> => undefined),
     chooseWorkspace: vi.fn(async (_workspaceId: string): Promise<void> => undefined),
     createWorkspace: vi.fn(async (_name: string): Promise<void> => undefined),

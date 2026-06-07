@@ -1,4 +1,5 @@
-import type { ReactElement } from "react";
+import { useEffect, type ReactElement } from "react";
+import { isAuthRedirectError } from "../../api";
 import { useAppData } from "../../appData";
 import {
   autoLocalePreference,
@@ -22,6 +23,7 @@ import {
   settingsFeedbackRoute,
   settingsLanguageRoute,
   settingsNotificationsRoute,
+  settingsReviewAnimationsRoute,
   settingsResetStudyProgressRoute,
   settingsSchedulerRoute,
   settingsServerRoute,
@@ -64,7 +66,10 @@ export function SettingsScreen(): ReactElement {
   const {
     activeWorkspace,
     cloudSettings,
+    isSessionVerified,
+    refreshAccountPreferences,
     session,
+    setErrorMessage,
     workspaceSettings,
   } = useAppData();
   const { localePreference, t } = useI18n();
@@ -73,6 +78,20 @@ export function SettingsScreen(): ReactElement {
   const accountStatus = accountStatusValue(cloudSettings?.linkedEmail ?? session?.profile.email ?? null, t("common.unavailable"));
   const languagePreferenceLabel = formatLocalePreferenceLabel(localePreference, t);
   const schedulerValue = workspaceSettings === null ? t("common.unavailable") : workspaceSettings.algorithm.toUpperCase();
+
+  useEffect(() => {
+    if (session === null || isSessionVerified === false) {
+      return;
+    }
+
+    void refreshAccountPreferences().catch((error: unknown) => {
+      if (isAuthRedirectError(error)) {
+        return;
+      }
+
+      setErrorMessage(error instanceof Error ? error.message : String(error));
+    });
+  }, [isSessionVerified, refreshAccountPreferences, session?.userId, setErrorMessage]);
 
   return (
     <SettingsShell
@@ -107,6 +126,13 @@ export function SettingsScreen(): ReactElement {
             value={t("settingsWorkspace.notifications.value")}
             to={settingsNotificationsRoute}
             testId="settings-row-review-reminders"
+          />
+          <SettingsNavigationCard
+            title={t("reviewAnimationsSettings.title")}
+            description={t("reviewAnimationsSettings.subtitle")}
+            value={session?.preferences.reviewReactionAnimationsEnabled === false ? t("common.off") : t("common.on")}
+            to={settingsReviewAnimationsRoute}
+            testId="settings-row-review-animations"
           />
           <SettingsNavigationCard
             title={t("settingsHome.language.title")}
