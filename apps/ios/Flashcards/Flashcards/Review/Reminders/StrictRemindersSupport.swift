@@ -36,19 +36,19 @@ enum StrictReminderOffset: Int, Codable, CaseIterable, Hashable, Sendable, Ident
             return String(
                 localized: "strict_reminder.body.4h",
                 table: "Foundation",
-                comment: "Strict reminder body sent 4 hours before the end of the local day"
+                comment: "Streak reminder body sent 4 hours before the end of the local day"
             )
         case .threeHours:
             return String(
                 localized: "strict_reminder.body.3h",
                 table: "Foundation",
-                comment: "Strict reminder body sent 3 hours before the end of the local day"
+                comment: "Streak reminder body sent 3 hours before the end of the local day"
             )
         case .twoHours:
             return String(
                 localized: "strict_reminder.body.2h",
                 table: "Foundation",
-                comment: "Strict reminder body sent 2 hours before the end of the local day"
+                comment: "Streak reminder body sent 2 hours before the end of the local day"
             )
         }
     }

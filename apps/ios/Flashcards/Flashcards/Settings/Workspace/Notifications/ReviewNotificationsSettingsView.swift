@@ -28,7 +28,7 @@ struct ReviewNotificationsSettingsView: View {
                 Text(
                     aiSettingsLocalized(
                         "settings.notifications.reviewReminders.description",
-                        "These reminders use the current workspace only, stay on this device, and remain internally enabled even if system notification permission is off."
+                        "These reminders use the current workspace only and stay on this device."
                     )
                 )
                     .foregroundStyle(.secondary)
@@ -47,10 +47,10 @@ struct ReviewNotificationsSettingsView: View {
             }
 
             if store.reviewNotificationsSettings.selectedMode == .daily {
-                Section(aiSettingsLocalized("settings.notifications.section.dailyReminder", "Daily Reminder")) {
+                Section(aiSettingsLocalized("settings.notifications.section.dailyReminder", "Daily reminder")) {
                     self.reviewNotificationModePicker
 
-                    Text(aiSettingsLocalized("settings.notifications.dailyExample", "Example: send one card every day at the selected local time."))
+                    Text(aiSettingsLocalized("settings.notifications.dailyExample", "Send one card every day at the selected time."))
                         .foregroundStyle(.secondary)
 
                     DatePicker(
@@ -72,17 +72,15 @@ struct ReviewNotificationsSettingsView: View {
                         ),
                         displayedComponents: [.hourAndMinute]
                     )
-
-                    self.appIconBadgeToggle
                 }
             } else {
-                Section(aiSettingsLocalized("settings.notifications.section.inactivityReminder", "Inactivity Reminder")) {
+                Section(aiSettingsLocalized("settings.notifications.section.inactivityReminder", "Cards reminder")) {
                     self.reviewNotificationModePicker
 
                     Text(
                         aiSettingsLocalized(
                             "settings.notifications.inactivityExample",
-                            "Example: between the selected local times, remind me after I have been away from the app for the chosen interval, keep reminding me every chosen interval inside that window, and repeat that pattern on later days until I come back."
+                            "Send a card after you have been away for a while, during the time window you choose."
                         )
                     )
                         .foregroundStyle(.secondary)
@@ -154,14 +152,16 @@ struct ReviewNotificationsSettingsView: View {
                             Text(formatIdleMinutes(minutes: minutes)).tag(minutes)
                         }
                     }
-
-                    self.appIconBadgeToggle
                 }
             }
 
-            Section(aiSettingsLocalized("settings.notifications.section.strictReminders", "Strict reminders")) {
+            Section(aiSettingsLocalized("settings.notifications.section.appIconBadge", "App Icon Badge")) {
+                self.appIconBadgeToggle
+            }
+
+            Section(aiSettingsLocalized("settings.notifications.section.strictReminders", "Streak reminders")) {
                 Toggle(
-                    aiSettingsLocalized("settings.notifications.enableStrictReminders", "Enable strict reminders"),
+                    aiSettingsLocalized("settings.notifications.enableStrictReminders", "Enable streak reminders"),
                     isOn: Binding(
                         get: {
                             store.strictRemindersSettings.isEnabled
@@ -175,7 +175,7 @@ struct ReviewNotificationsSettingsView: View {
                 Text(
                     aiSettingsLocalized(
                         "settings.notifications.strictReminders.description",
-                        "If you have not reviewed anywhere in the app on a local day, Flashcards reminds you 4, 3, and 2 hours before that day ends."
+                        "If you have not reviewed today, Flashcards reminds you 4, 3, and 2 hours before midnight so you can keep your streak."
                     )
                 )
                     .foregroundStyle(.secondary)
@@ -183,7 +183,7 @@ struct ReviewNotificationsSettingsView: View {
                 Text(
                     aiSettingsLocalized(
                         "settings.notifications.strictReminders.deviceNote",
-                        "Strict reminders are app-level, apply only to this device, and remain internally enabled even if system notification permission is off."
+                        "Works across the app on this device."
                     )
                 )
                     .foregroundStyle(.secondary)
@@ -193,7 +193,7 @@ struct ReviewNotificationsSettingsView: View {
                 Text(
                     aiSettingsLocalized(
                         "settings.notifications.description",
-                        "Workspace review reminders and strict reminders stay enabled inside Flashcards by default. Delivery still depends on the system notification permission. Study notifications contain cards only and never marketing messages."
+                        "Study reminders stay on this device and contain cards only, never marketing."
                     )
                 )
                     .foregroundStyle(.secondary)
@@ -242,7 +242,7 @@ struct ReviewNotificationsSettingsView: View {
             Text(
                 aiSettingsLocalized(
                     "settings.notifications.appIconBadge.description",
-                    "When a review reminder fires and you haven't reviewed any card yet today, a red 1 appears on the app icon. The badge clears as soon as you review a card or open the app."
+                    "Show a red 1 on the app icon when a reminder fires and you have not reviewed today. It clears when you review or open the app."
                 )
             )
                 .foregroundStyle(.secondary)

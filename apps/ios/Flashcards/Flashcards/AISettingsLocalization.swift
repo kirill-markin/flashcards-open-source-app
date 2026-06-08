@@ -233,7 +233,7 @@ func localizedReviewNotificationModeTitle(_ mode: ReviewNotificationMode) -> Str
     case .daily:
         return aiSettingsLocalized("settings.notifications.mode.daily", "Daily")
     case .inactivity:
-        return aiSettingsLocalized("settings.notifications.mode.inactivity", "Inactivity")
+        return aiSettingsLocalized("settings.notifications.mode.inactivity", "Cards")
     }
 }
 

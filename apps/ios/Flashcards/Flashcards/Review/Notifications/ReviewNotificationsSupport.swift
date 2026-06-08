@@ -44,7 +44,7 @@ enum ReviewNotificationMode: String, Codable, CaseIterable, Identifiable, Hashab
             return String(
                 localized: "review_notification.mode.inactivity",
                 table: "Foundation",
-                comment: "Inactivity review notification mode title"
+                comment: "Cards review notification mode title"
             )
         }
     }

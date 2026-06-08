@@ -2716,178 +2716,178 @@
       }
     },
     "strict_reminder.body.2h" : {
-      "comment" : "Strict reminder body sent 2 hours before the end of the local day",
+      "comment" : "Streak reminder body sent 2 hours before the end of the local day",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "تبقت ساعتان اليوم. حافظ على سلسلتك الصارمة في Flashcards."
+            "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت ساعتان."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Noch zwei Stunden heute. Halte deine strenge Serie in Flashcards aufrecht."
+            "value" : "Halte deine Serie heute. Wiederhole vor Mitternacht. Noch 2 Stunden."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Two hours left today. Keep your strict streak alive in Flashcards."
+            "value" : "Keep your streak today. Review before midnight. 2 hours left."
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Quedan dos horas hoy. Mantén tu racha estricta en Flashcards."
+            "value" : "Mantén tu racha hoy. Repasa antes de medianoche. Quedan 2 horas."
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Quedan dos horas hoy. Mantén tu racha estricta en Flashcards."
+            "value" : "Mantén tu racha hoy. Repasa antes de medianoche. Quedan 2 horas."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "आज दो घंटे बाकी हैं। Flashcards में अपनी सख्त स्ट्रीक बनाए रखें।"
+            "value" : "आज अपनी स्ट्रीक बनाए रखें। आधी रात से पहले रिव्यू करें। 2 घंटे बाकी हैं।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "今日はあと2時間です。Flashcards でストリクト連続記録を守りましょう。"
+            "value" : "今日の連続記録を保ちましょう。午前0時までに復習してください。あと2時間です。"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "До конца дня осталось два часа. Сохраните строгую серию в Flashcards."
+            "value" : "Сохраните серию сегодня. Повторите до полуночи. Осталось 2 часа."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "今天还剩 2 小时。在 Flashcards 中保持你的严格连续记录。"
+            "value" : "今天保持连续记录。午夜前复习。还剩 2 小时。"
           }
         }
       }
     },
     "strict_reminder.body.3h" : {
-      "comment" : "Strict reminder body sent 3 hours before the end of the local day",
+      "comment" : "Streak reminder body sent 3 hours before the end of the local day",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "تبقت ثلاث ساعات اليوم. حافظ على سلسلتك الصارمة في Flashcards."
+            "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت ثلاث ساعات."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Noch drei Stunden heute. Halte deine strenge Serie in Flashcards aufrecht."
+            "value" : "Halte deine Serie heute. Wiederhole vor Mitternacht. Noch 3 Stunden."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Three hours left today. Keep your strict streak alive in Flashcards."
+            "value" : "Keep your streak today. Review before midnight. 3 hours left."
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Quedan tres horas hoy. Mantén tu racha estricta en Flashcards."
+            "value" : "Mantén tu racha hoy. Repasa antes de medianoche. Quedan 3 horas."
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Quedan tres horas hoy. Mantén tu racha estricta en Flashcards."
+            "value" : "Mantén tu racha hoy. Repasa antes de medianoche. Quedan 3 horas."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "आज तीन घंटे बाकी हैं। Flashcards में अपनी सख्त स्ट्रीक बनाए रखें।"
+            "value" : "आज अपनी स्ट्रीक बनाए रखें। आधी रात से पहले रिव्यू करें। 3 घंटे बाकी हैं।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "今日はあと3時間です。Flashcards でストリクト連続記録を守りましょう。"
+            "value" : "今日の連続記録を保ちましょう。午前0時までに復習してください。あと3時間です。"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "До конца дня осталось три часа. Сохраните строгую серию в Flashcards."
+            "value" : "Сохраните серию сегодня. Повторите до полуночи. Осталось 3 часа."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "今天还剩 3 小时。在 Flashcards 中保持你的严格连续记录。"
+            "value" : "今天保持连续记录。午夜前复习。还剩 3 小时。"
           }
         }
       }
     },
     "strict_reminder.body.4h" : {
-      "comment" : "Strict reminder body sent 4 hours before the end of the local day",
+      "comment" : "Streak reminder body sent 4 hours before the end of the local day",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "تبقت أربع ساعات اليوم. حافظ على سلسلتك الصارمة في Flashcards."
+            "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت أربع ساعات."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Noch vier Stunden heute. Halte deine strenge Serie in Flashcards aufrecht."
+            "value" : "Halte deine Serie heute. Wiederhole vor Mitternacht. Noch 4 Stunden."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Four hours left today. Keep your strict streak alive in Flashcards."
+            "value" : "Keep your streak today. Review before midnight. 4 hours left."
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Quedan cuatro horas hoy. Mantén tu racha estricta en Flashcards."
+            "value" : "Mantén tu racha hoy. Repasa antes de medianoche. Quedan 4 horas."
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Quedan cuatro horas hoy. Mantén tu racha estricta en Flashcards."
+            "value" : "Mantén tu racha hoy. Repasa antes de medianoche. Quedan 4 horas."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "आज चार घंटे बाकी हैं। Flashcards में अपनी सख्त स्ट्रीक बनाए रखें।"
+            "value" : "आज अपनी स्ट्रीक बनाए रखें। आधी रात से पहले रिव्यू करें। 4 घंटे बाकी हैं।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "今日はあと4時間です。Flashcards でストリクト連続記録を守りましょう。"
+            "value" : "今日の連続記録を保ちましょう。午前0時までに復習してください。あと4時間です。"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "До конца дня осталось четыре часа. Сохраните строгую серию в Flashcards."
+            "value" : "Сохраните серию сегодня. Повторите до полуночи. Осталось 4 часа."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "今天还剩 4 小时。在 Flashcards 中保持你的严格连续记录。"
+            "value" : "今天保持连续记录。午夜前复习。还剩 4 小时。"
           }
         }
       }
@@ -2952,60 +2952,60 @@
       }
     },
     "review_notification.mode.inactivity" : {
-      "comment" : "Inactivity review notification mode title",
+      "comment" : "Cards review notification mode title",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "عدم النشاط"
+            "value" : "البطاقات"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Inaktivität"
+            "value" : "Karten"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Inactivity"
+            "value" : "Cards"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Inactividad"
+            "value" : "Tarjetas"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Inactividad"
+            "value" : "Tarjetas"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "निष्क्रियता"
+            "value" : "कार्ड"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "非アクティブ時"
+            "value" : "カード"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Бездействие"
+            "value" : "Карточки"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "不活跃"
+            "value" : "卡片"
           }
         }
       }
