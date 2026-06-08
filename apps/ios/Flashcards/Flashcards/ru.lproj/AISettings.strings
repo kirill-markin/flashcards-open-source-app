@@ -156,8 +156,6 @@
 "settings.row.deleteCurrentWorkspace" = "Удалить текущую рабочую область";
 "settings.row.permanent.value" = "Навсегда";
 "settings.row.deleteAccount" = "Удалить аккаунт";
-"settings.row.workspaceSettings" = "Настройки рабочей области";
-"settings.row.accountSettings" = "Настройки учетной записи";
 "settings.row.thisDevice" = "Устройство";
 "settings.row.access" = "Доступ";
 "settings.row.access.itemCount" = "4 предмета";
@@ -270,20 +268,7 @@
 "settings.access.guidance.limited" = "Откройте «Настройки», чтобы просмотреть или расширить этот доступ.";
 "settings.access.guidance.unavailable" = "Этот доступ недоступен на текущем устройстве.";
 
-"settings.account.title" = "Настройки учетной записи";
-"settings.account.row.accountStatus" = "Статус аккаунта";
-"settings.account.row.legal" = "Юридическая информация";
-"settings.account.row.support" = "Поддержка";
-"settings.account.row.openSource" = "Открытый исходный код";
 "settings.account.row.openSourceValue" = "GitHub + MIT";
-"settings.account.row.advanced" = "Дополнительно";
-"settings.account.row.serverValue" = "Сервер";
-"settings.account.row.agentConnections" = "Подключения агента";
-"settings.account.row.agentConnectionsValue" = "Соединения";
-"settings.account.row.dangerZone" = "Опасная зона";
-"settings.account.row.dangerZoneValue" = "Удалить";
-"settings.account.section.support" = "Поддержка";
-"settings.account.section.connections" = "Соединения";
 "settings.account.status.title" = "Статус аккаунта";
 "settings.account.status.section.accountStatus" = "Статус аккаунта";
 "settings.account.status.state" = "Статус";
@@ -365,11 +350,7 @@
 "settings.account.openSource.thirdPartyNoticeWiltedFlowerSource" = "Источник ассета увядшего цветка";
 "settings.account.openSource.thirdPartyNoticeLicense" = "Creative Commons Attribution 4.0";
 
-"settings.account.advanced.title" = "Дополнительно";
-"settings.account.advanced.section.advanced" = "Дополнительно";
-"settings.account.advanced.description" = "Эти настройки предназначены для технических пользователей, которые точно знают, какой сервер они хотят использовать.";
 "settings.account.advanced.server" = "Сервер";
-"settings.account.advanced.serverValue" = "Пользовательский домен";
 
 "settings.account.agentConnections.title" = "Подключения агента";
 "settings.account.agentConnections.section.agentConnections" = "Подключения агента";
@@ -460,31 +441,20 @@
 "settings.account.server.confirmationButton.reset" = "Отключение и сброс ";
 "settings.account.server.confirmationMessage" = "Это устройство будет отключено от текущего сервера. Локальные данные остаются на этом устройстве, синхронизация не запустится автоматически, и вам придется снова войти в систему вручную.";
 
-"settings.workspace.title" = "Настройки рабочей области";
-"settings.workspace.row.overview" = "Резюме";
 "settings.workspace.row.decks" = "Колоды";
 "settings.workspace.row.tags" = "Теги";
-"settings.workspace.row.scheduler" = "Программист";
-"settings.workspace.row.notifications" = "Уведомления";
 "settings.workspace.row.export" = "Экспорт";
-"settings.workspace.section.workspaceData" = "Данные рабочей области";
-"settings.workspace.section.settings" = "Настройки";
-"settings.workspace.section.dangerZone" = "Опасная зона";
 "settings.workspace.resetProgressDescription" = "Постоянно сбрасывает прогресс исследования для каждой карты в этом рабочем пространстве.";
 "settings.workspace.resetAllProgress" = "Сбросить весь прогресс";
 "settings.workspace.resetAlertTitle" = "Сбросить весь прогресс?";
 "settings.workspace.resetAlertMessage" = "Это навсегда сбрасывает прогресс изучения всех карточек в текущей рабочей области.";
 
-"settings.workspace.overview.section.workspace" = "Рабочая область";
 "settings.workspace.overview.workspaceName" = "Имя рабочей области";
 "settings.workspace.overview.saveName" = "Сохранить имя";
 "settings.workspace.overview.workspace" = "Рабочая область";
 "settings.workspace.overview.cards" = "Карты";
-"settings.workspace.overview.section.today" = "Сегодня";
 "settings.workspace.overview.due" = "Серьги";
 "settings.workspace.overview.new" = "Новый";
-"settings.workspace.overview.reviewed" = "Отзыв ";
-"settings.workspace.overview.linkedOnly" = "Переименование и удаление рабочей области доступны только для связанных облачных рабочих областей.";
 "settings.workspace.overview.deleteDescription" = "Полностью удалите это рабочее пространство и все содержащиеся в нем карты, колоды, обзоры и историю синхронизации.";
 "settings.workspace.overview.deleteWorkspace" = "Удалить рабочую область";
 "settings.workspace.overview.deleteAlertTitle" = "Удалить это рабочее пространство?";

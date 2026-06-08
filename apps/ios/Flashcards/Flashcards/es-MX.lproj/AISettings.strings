@@ -156,8 +156,6 @@
 "settings.row.deleteCurrentWorkspace" = "Eliminar espacio de trabajo actual";
 "settings.row.permanent.value" = "Permanente";
 "settings.row.deleteAccount" = "Eliminar cuenta";
-"settings.row.workspaceSettings" = "Ajustes del espacio de trabajo";
-"settings.row.accountSettings" = "Ajustes de la cuenta";
 "settings.row.thisDevice" = "Dispositivo";
 "settings.row.access" = "Acceso";
 "settings.row.access.itemCount" = "4 elementos";
@@ -270,20 +268,7 @@
 "settings.access.guidance.limited" = "Abre Ajustes para revisar o ampliar este acceso.";
 "settings.access.guidance.unavailable" = "Este acceso no esta disponible en el dispositivo actual.";
 
-"settings.account.title" = "Ajustes de la cuenta";
-"settings.account.row.accountStatus" = "Estado de la cuenta";
-"settings.account.row.legal" = "Legal";
-"settings.account.row.support" = "Soporte";
-"settings.account.row.openSource" = "Codigo abierto";
 "settings.account.row.openSourceValue" = "GitHub + MIT";
-"settings.account.row.advanced" = "Avanzado";
-"settings.account.row.serverValue" = "Servidor";
-"settings.account.row.agentConnections" = "Conexiones de agentes";
-"settings.account.row.agentConnectionsValue" = "Conexiones";
-"settings.account.row.dangerZone" = "Zona de peligro";
-"settings.account.row.dangerZoneValue" = "Eliminar";
-"settings.account.section.support" = "Soporte";
-"settings.account.section.connections" = "Conexiones";
 "settings.account.status.title" = "Estado de la cuenta";
 "settings.account.status.section.accountStatus" = "Estado de la cuenta";
 "settings.account.status.state" = "Estado";
@@ -365,11 +350,7 @@
 "settings.account.openSource.thirdPartyNoticeWiltedFlowerSource" = "Fuente del recurso de flor marchita";
 "settings.account.openSource.thirdPartyNoticeLicense" = "Creative Commons Attribution 4.0";
 
-"settings.account.advanced.title" = "Avanzado";
-"settings.account.advanced.section.advanced" = "Avanzado";
-"settings.account.advanced.description" = "Estos ajustes estan pensados para usuarios tecnicos que saben exactamente que servidor quieren usar.";
 "settings.account.advanced.server" = "Servidor";
-"settings.account.advanced.serverValue" = "Dominio personalizado";
 
 "settings.account.agentConnections.title" = "Conexiones de agentes";
 "settings.account.agentConnections.section.agentConnections" = "Conexiones de agentes";
@@ -460,31 +441,20 @@
 "settings.account.server.confirmationButton.reset" = "Desconectar y restablecer";
 "settings.account.server.confirmationMessage" = "Este dispositivo se desconectara del servidor actual. Los datos locales permanecen en este dispositivo, la sincronizacion no se iniciara automaticamente y tendras que iniciar sesion de nuevo manualmente.";
 
-"settings.workspace.title" = "Ajustes del espacio de trabajo";
-"settings.workspace.row.overview" = "Resumen";
 "settings.workspace.row.decks" = "Mazos";
 "settings.workspace.row.tags" = "Etiquetas";
-"settings.workspace.row.scheduler" = "Programador";
-"settings.workspace.row.notifications" = "Notificaciones";
 "settings.workspace.row.export" = "Exportar";
-"settings.workspace.section.workspaceData" = "Datos del espacio de trabajo";
-"settings.workspace.section.settings" = "Ajustes";
-"settings.workspace.section.dangerZone" = "Zona de peligro";
 "settings.workspace.resetProgressDescription" = "Restablece de forma permanente el progreso de estudio de cada tarjeta de este espacio de trabajo.";
 "settings.workspace.resetAllProgress" = "Restablecer todo el progreso";
 "settings.workspace.resetAlertTitle" = "Restablecer todo el progreso?";
 "settings.workspace.resetAlertMessage" = "Esto restablece permanentemente el progreso de estudio de todas las tarjetas del espacio de trabajo actual.";
 
-"settings.workspace.overview.section.workspace" = "Espacio de trabajo";
 "settings.workspace.overview.workspaceName" = "Nombre del espacio de trabajo";
 "settings.workspace.overview.saveName" = "Guardar nombre";
 "settings.workspace.overview.workspace" = "Espacio de trabajo";
 "settings.workspace.overview.cards" = "Tarjetas";
-"settings.workspace.overview.section.today" = "Hoy";
 "settings.workspace.overview.due" = "Pendientes";
 "settings.workspace.overview.new" = "Nuevas";
-"settings.workspace.overview.reviewed" = "Repasadas";
-"settings.workspace.overview.linkedOnly" = "El cambio de nombre y la eliminacion del espacio de trabajo solo estan disponibles para espacios de trabajo en la nube vinculados.";
 "settings.workspace.overview.deleteDescription" = "Elimina de forma permanente este espacio de trabajo y todas las tarjetas, mazos, repasos e historial de sincronizacion que contiene.";
 "settings.workspace.overview.deleteWorkspace" = "Eliminar espacio de trabajo";
 "settings.workspace.overview.deleteAlertTitle" = "Eliminar este espacio de trabajo?";

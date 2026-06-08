@@ -156,8 +156,6 @@
 "settings.row.deleteCurrentWorkspace" = "現在のワークスペースを削除";
 "settings.row.permanent.value" = "永久";
 "settings.row.deleteAccount" = "アカウントを削除";
-"settings.row.workspaceSettings" = "ワークスペース設定";
-"settings.row.accountSettings" = "アカウント設定";
 "settings.row.thisDevice" = "デバイス";
 "settings.row.access" = "アクセス";
 "settings.row.access.itemCount" = "4 アイテム";
@@ -270,20 +268,7 @@
 "settings.access.guidance.limited" = "このアクセスを確認または拡張するには、[設定] を開いてください。";
 "settings.access.guidance.unavailable" = "このアクセスは現在のデバイスでは利用できません。";
 
-"settings.account.title" = "アカウント設定";
-"settings.account.row.accountStatus" = "アカウント ステータス";
-"settings.account.row.legal" = "法務";
-"settings.account.row.support" = "サポート";
-"settings.account.row.openSource" = "オープンソース";
 "settings.account.row.openSourceValue" = "GitHub + MIT";
-"settings.account.row.advanced" = "上級";
-"settings.account.row.serverValue" = "サーバー";
-"settings.account.row.agentConnections" = "エージェント接続";
-"settings.account.row.agentConnectionsValue" = "接続";
-"settings.account.row.dangerZone" = "危険ゾーン";
-"settings.account.row.dangerZoneValue" = "削除";
-"settings.account.section.support" = "サポート";
-"settings.account.section.connections" = "接続";
 "settings.account.status.title" = "アカウント ステータス";
 "settings.account.status.section.accountStatus" = "アカウントのステータス";
 "settings.account.status.state" = "ステータス";
@@ -365,11 +350,7 @@
 "settings.account.openSource.thirdPartyNoticeWiltedFlowerSource" = "しおれた花アセット元";
 "settings.account.openSource.thirdPartyNoticeLicense" = "Creative Commons Attribution 4.0";
 
-"settings.account.advanced.title" = "上級";
-"settings.account.advanced.section.advanced" = "上級";
-"settings.account.advanced.description" = "これらの設定は、使用するサーバーを正確に知っている技術ユーザーを対象としています。";
 "settings.account.advanced.server" = "サーバー";
-"settings.account.advanced.serverValue" = "カスタムドメイン";
 
 "settings.account.agentConnections.title" = "エージェント接続";
 "settings.account.agentConnections.section.agentConnections" = "エージェント接続";
@@ -460,31 +441,20 @@
 "settings.account.server.confirmationButton.reset" = "切断してリセット";
 "settings.account.server.confirmationMessage" = "このデバイスは現在のサーバーから切断されます。ローカル データはこのデバイスに残ります。同期は自動的に開始されないため、手動で再度ログインする必要があります。";
 
-"settings.workspace.title" = "ワークスペース設定";
-"settings.workspace.row.overview" = "概要";
 "settings.workspace.row.decks" = "デッキ";
 "settings.workspace.row.tags" = "タグ";
-"settings.workspace.row.scheduler" = "プログラマー";
-"settings.workspace.row.notifications" = "通知";
 "settings.workspace.row.export" = "エクスポート";
-"settings.workspace.section.workspaceData" = "ワークスペース データ";
-"settings.workspace.section.settings" = "設定";
-"settings.workspace.section.dangerZone" = "危険ゾーン";
 "settings.workspace.resetProgressDescription" = "このワークスペース内の各カードのスタディの進行状況を永続的にリセットします。";
 "settings.workspace.resetAllProgress" = "すべての進行状況をリセット";
 "settings.workspace.resetAlertTitle" = "すべての進行状況をリセットしますか?";
 "settings.workspace.resetAlertMessage" = "これにより、現在のワークスペース内のすべてのカードの学習の進行状況が永久にリセットされます。";
 
-"settings.workspace.overview.section.workspace" = "ワークスペース";
 "settings.workspace.overview.workspaceName" = "ワークスペース名";
 "settings.workspace.overview.saveName" = "保存名";
 "settings.workspace.overview.workspace" = "ワークスペース";
 "settings.workspace.overview.cards" = "カード";
-"settings.workspace.overview.section.today" = "今日";
 "settings.workspace.overview.due" = "期限";
 "settings.workspace.overview.new" = "新しい";
-"settings.workspace.overview.reviewed" = "レビュー済み";
-"settings.workspace.overview.linkedOnly" = "ワークスペースの名前変更と削除は、リンクされたクラウド ワークスペースでのみ使用できます。";
 "settings.workspace.overview.deleteDescription" = "このワークスペースと、そこに含まれるすべてのカード、デッキ、レビュー、同期履歴を完全に削除します。";
 "settings.workspace.overview.deleteWorkspace" = "ワークスペースを削除";
 "settings.workspace.overview.deleteAlertTitle" = "このワークスペースを削除しますか?";

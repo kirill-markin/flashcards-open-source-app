@@ -156,8 +156,6 @@
 "settings.row.deleteCurrentWorkspace" = "Aktuellen Arbeitsbereich löschen";
 "settings.row.permanent.value" = "Dauerhaft";
 "settings.row.deleteAccount" = "Konto löschen";
-"settings.row.workspaceSettings" = "Arbeitsbereichseinstellungen";
-"settings.row.accountSettings" = "Kontoeinstellungen";
 "settings.row.thisDevice" = "Gerät";
 "settings.row.access" = "Zugriff";
 "settings.row.access.itemCount" = "4 Artikel";
@@ -270,20 +268,7 @@
 "settings.access.guidance.limited" = "Öffnen Sie „Einstellungen“, um diesen Zugriff zu überprüfen oder zu erweitern.";
 "settings.access.guidance.unavailable" = "Dieser Zugriff ist auf dem aktuellen Gerät nicht verfügbar.";
 
-"settings.account.title" = "Kontoeinstellungen";
-"settings.account.row.accountStatus" = "Kontostatus";
-"settings.account.row.legal" = "Rechtliches";
-"settings.account.row.support" = "Support";
-"settings.account.row.openSource" = "Open Source";
 "settings.account.row.openSourceValue" = "GitHub + MIT";
-"settings.account.row.advanced" = "Erweitert";
-"settings.account.row.serverValue" = "Server";
-"settings.account.row.agentConnections" = "Agentenverbindungen";
-"settings.account.row.agentConnectionsValue" = "Verbindungen";
-"settings.account.row.dangerZone" = "Gefahrenbereich";
-"settings.account.row.dangerZoneValue" = "Löschen";
-"settings.account.section.support" = "Unterstützung";
-"settings.account.section.connections" = "Verbindungen";
 "settings.account.status.title" = "Kontostatus";
 "settings.account.status.section.accountStatus" = "Kontostatus";
 "settings.account.status.state" = "Status";
@@ -365,11 +350,7 @@
 "settings.account.openSource.thirdPartyNoticeWiltedFlowerSource" = "Asset-Quelle der verwelkten Blume";
 "settings.account.openSource.thirdPartyNoticeLicense" = "Creative Commons Attribution 4.0";
 
-"settings.account.advanced.title" = "Erweitert";
-"settings.account.advanced.section.advanced" = "Erweitert";
-"settings.account.advanced.description" = "Diese Einstellungen sind für technische Benutzer gedacht, die genau wissen, welchen Server sie verwenden möchten.";
 "settings.account.advanced.server" = "Server";
-"settings.account.advanced.serverValue" = "Benutzerdefinierte Domäne";
 
 "settings.account.agentConnections.title" = "Agentenverbindungen";
 "settings.account.agentConnections.section.agentConnections" = "Agentenverbindungen";
@@ -460,31 +441,20 @@
 "settings.account.server.confirmationButton.reset" = "Trennen und zurücksetzen";
 "settings.account.server.confirmationMessage" = "Dieses Gerät wird vom aktuellen Server getrennt. Lokale Daten verbleiben auf diesem Gerät, die Synchronisierung startet nicht automatisch und Sie müssen sich erneut manuell anmelden.";
 
-"settings.workspace.title" = "Arbeitsbereichseinstellungen";
-"settings.workspace.row.overview" = "Zusammenfassung";
 "settings.workspace.row.decks" = "Decks";
 "settings.workspace.row.tags" = "Schlagworte";
-"settings.workspace.row.scheduler" = "Programmierer";
-"settings.workspace.row.notifications" = "Benachrichtigungen";
 "settings.workspace.row.export" = "Exportieren";
-"settings.workspace.section.workspaceData" = "Arbeitsbereichsdaten";
-"settings.workspace.section.settings" = "Einstellungen";
-"settings.workspace.section.dangerZone" = "Gefahrenbereich";
 "settings.workspace.resetProgressDescription" = "Setzt den Lernfortschritt für jede Karte in diesem Arbeitsbereich dauerhaft zurück.";
 "settings.workspace.resetAllProgress" = "Gesamten Fortschritt zurücksetzen";
 "settings.workspace.resetAlertTitle" = "Gesamten Fortschritt zurücksetzen?";
 "settings.workspace.resetAlertMessage" = "Dadurch wird der Lernfortschritt aller Karten im aktuellen Arbeitsbereich dauerhaft zurückgesetzt.";
 
-"settings.workspace.overview.section.workspace" = "Arbeitsbereich";
 "settings.workspace.overview.workspaceName" = "Arbeitsbereichsname";
 "settings.workspace.overview.saveName" = "Name speichern";
 "settings.workspace.overview.workspace" = "Arbeitsbereich";
 "settings.workspace.overview.cards" = "Karten";
-"settings.workspace.overview.section.today" = "Heute";
 "settings.workspace.overview.due" = "Ohrringe";
 "settings.workspace.overview.new" = "Neu";
-"settings.workspace.overview.reviewed" = "Bewertet";
-"settings.workspace.overview.linkedOnly" = "Das Umbenennen und Löschen von Arbeitsbereichen ist nur für verknüpfte Cloud-Arbeitsbereiche verfügbar.";
 "settings.workspace.overview.deleteDescription" = "Löschen Sie diesen Arbeitsbereich und alle darin enthaltenen Karten, Decks, Rezensionen und den Synchronisierungsverlauf dauerhaft.";
 "settings.workspace.overview.deleteWorkspace" = "Arbeitsbereich löschen";
 "settings.workspace.overview.deleteAlertTitle" = "Diesen Arbeitsbereich löschen?";
