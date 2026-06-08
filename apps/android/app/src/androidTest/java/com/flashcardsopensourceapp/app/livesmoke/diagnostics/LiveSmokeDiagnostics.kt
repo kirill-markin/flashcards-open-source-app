@@ -26,7 +26,7 @@ import com.flashcardsopensourceapp.app.livesmoke.support.internalUiTimeoutMillis
 import com.flashcardsopensourceapp.app.livesmoke.support.systemDialogAlertTitleResourceId
 import com.flashcardsopensourceapp.app.livesmoke.support.systemDialogCloseAppButtonResourceId
 import com.flashcardsopensourceapp.app.livesmoke.support.systemDialogWaitButtonResourceId
-import com.flashcardsopensourceapp.app.livesmoke.support.workspaceOverviewErrorMessageOrNull
+import com.flashcardsopensourceapp.app.livesmoke.support.deleteCurrentWorkspaceErrorMessageOrNull
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.time.Instant
@@ -288,7 +288,7 @@ internal fun LiveSmokeContext.failIfVisibleAppError(context: String) {
 internal fun LiveSmokeContext.visibleAppErrors(): List<String> {
     return listOfNotNull(
         currentWorkspaceVisibleErrorMessageOrNull(),
-        workspaceOverviewErrorMessageOrNull()
+        deleteCurrentWorkspaceErrorMessageOrNull()
     )
         .distinct()
 }

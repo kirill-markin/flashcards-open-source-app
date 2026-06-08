@@ -38,7 +38,7 @@ import com.flashcardsopensourceapp.app.livesmoke.support.waitForCurrentWorkspace
 import com.flashcardsopensourceapp.app.livesmoke.support.waitForCurrentWorkspaceScreenToSettle
 import com.flashcardsopensourceapp.app.livesmoke.support.waitForSelectedWorkspaceSummary
 import com.flashcardsopensourceapp.app.livesmoke.support.waitForSelectedWorkspaceSummaryToChange
-import com.flashcardsopensourceapp.app.livesmoke.support.workspaceOverviewErrorMessageOrNull
+import com.flashcardsopensourceapp.app.livesmoke.support.deleteCurrentWorkspaceErrorMessageOrNull
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.feature.settings.settingsCurrentWorkspaceRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsDeleteCurrentWorkspaceRowTag
@@ -47,16 +47,16 @@ import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWor
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceListTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceNameFieldTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceSaveNameButtonTag
-import com.flashcardsopensourceapp.feature.settings.workspace.overview.workspaceOverviewDeleteConfirmationButtonTag
-import com.flashcardsopensourceapp.feature.settings.workspace.overview.workspaceOverviewDeleteConfirmationDialogTag
-import com.flashcardsopensourceapp.feature.settings.workspace.overview.workspaceOverviewDeleteConfirmationErrorTag
-import com.flashcardsopensourceapp.feature.settings.workspace.overview.workspaceOverviewDeleteConfirmationFieldTag
-import com.flashcardsopensourceapp.feature.settings.workspace.overview.workspaceOverviewDeleteConfirmationLoadingTag
-import com.flashcardsopensourceapp.feature.settings.workspace.overview.workspaceOverviewDeleteConfirmationPhraseTag
-import com.flashcardsopensourceapp.feature.settings.workspace.overview.workspaceOverviewDeletePreviewBodyTag
-import com.flashcardsopensourceapp.feature.settings.workspace.overview.workspaceOverviewDeletePreviewContinueButtonTag
-import com.flashcardsopensourceapp.feature.settings.workspace.overview.workspaceOverviewDeletePreviewDialogTag
-import com.flashcardsopensourceapp.feature.settings.workspace.overview.workspaceOverviewDeleteWorkspaceButtonTag
+import com.flashcardsopensourceapp.feature.settings.workspace.delete.workspaceOverviewDeleteConfirmationButtonTag
+import com.flashcardsopensourceapp.feature.settings.workspace.delete.workspaceOverviewDeleteConfirmationDialogTag
+import com.flashcardsopensourceapp.feature.settings.workspace.delete.workspaceOverviewDeleteConfirmationErrorTag
+import com.flashcardsopensourceapp.feature.settings.workspace.delete.workspaceOverviewDeleteConfirmationFieldTag
+import com.flashcardsopensourceapp.feature.settings.workspace.delete.workspaceOverviewDeleteConfirmationLoadingTag
+import com.flashcardsopensourceapp.feature.settings.workspace.delete.workspaceOverviewDeleteConfirmationPhraseTag
+import com.flashcardsopensourceapp.feature.settings.workspace.delete.workspaceOverviewDeletePreviewBodyTag
+import com.flashcardsopensourceapp.feature.settings.workspace.delete.workspaceOverviewDeletePreviewContinueButtonTag
+import com.flashcardsopensourceapp.feature.settings.workspace.delete.workspaceOverviewDeletePreviewDialogTag
+import com.flashcardsopensourceapp.feature.settings.workspace.delete.workspaceOverviewDeleteWorkspaceButtonTag
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -205,7 +205,7 @@ internal fun LiveSmokeContext.deleteEphemeralWorkspace(workspaceHandle: Ephemera
                 "CurrentWorkspace=${currentWorkspaceSummaryOrNull()} " +
                 "CloudSettings=${currentCloudSettingsSummary()} " +
                 "VisibleRows=${captureVisibleWorkspaceRows(rowTag = currentWorkspaceExistingRowTag)} " +
-                "WorkspaceOverviewError=${workspaceOverviewErrorMessageOrNull()} " +
+                "DeleteCurrentWorkspaceError=${deleteCurrentWorkspaceErrorMessageOrNull()} " +
                 "PreviewDialogVisible=${isDeletePreviewDialogVisible()} " +
                 "ConfirmationDialogVisible=${isDeleteConfirmationDialogVisible()}",
             error
@@ -280,7 +280,7 @@ private fun LiveSmokeContext.openDeletePreview(workspaceName: String) {
     throw AssertionError(
         "Delete workspace preview resolved with an error state. " +
             "Workspace=$workspaceName " +
-            "WorkspaceOverviewError=${workspaceOverviewErrorMessageOrNull()} " +
+            "DeleteCurrentWorkspaceError=${deleteCurrentWorkspaceErrorMessageOrNull()} " +
             "PreviewBody=${deletePreviewBodyTextOrNull()} " +
             "VisibleRows=${captureVisibleWorkspaceRows(rowTag = currentWorkspaceExistingRowTag)} " +
             "CloudSettings=${currentCloudSettingsSummary()} " +
@@ -296,12 +296,12 @@ private fun LiveSmokeContext.waitForDeletePreviewResolution(
             timeoutMillis = externalUiTimeoutMillis,
             context = "while waiting for delete preview resolution for '$workspaceName'"
         ) {
-            isDeletePreviewDialogVisible() || workspaceOverviewErrorMessageOrNull() != null
+            isDeletePreviewDialogVisible() || deleteCurrentWorkspaceErrorMessageOrNull() != null
         }
     } catch (error: Throwable) {
         throw AssertionError(
             "Delete workspace preview did not resolve for '$workspaceName'. " +
-                "WorkspaceOverviewError=${workspaceOverviewErrorMessageOrNull()} " +
+                "DeleteCurrentWorkspaceError=${deleteCurrentWorkspaceErrorMessageOrNull()} " +
                 "PreviewBody=${deletePreviewBodyTextOrNull()} " +
                 "VisibleRows=${captureVisibleWorkspaceRows(rowTag = currentWorkspaceExistingRowTag)} " +
                 "CloudSettings=${currentCloudSettingsSummary()} " +
@@ -339,7 +339,7 @@ private fun LiveSmokeContext.waitForDeleteConfirmationReady(workspaceName: Strin
                 "ConfirmationPhrase=${deleteConfirmationPhraseOrNull()} " +
                 "ConfirmationError=${deleteConfirmationErrorOrNull()} " +
                 "ConfirmationLoading=${isDeleteConfirmationLoadingVisible()} " +
-                "WorkspaceOverviewError=${workspaceOverviewErrorMessageOrNull()}",
+                "DeleteCurrentWorkspaceError=${deleteCurrentWorkspaceErrorMessageOrNull()}",
             error
         )
     }
@@ -371,7 +371,7 @@ private fun LiveSmokeContext.tapDeleteWorkspaceConfirmation(workspaceName: Strin
                 "ConfirmationError=${deleteConfirmationErrorOrNull()} " +
                 "ConfirmationLoading=${isDeleteConfirmationLoadingVisible()} " +
                 "ConfirmationPhrase=${deleteConfirmationPhraseOrNull()} " +
-                "WorkspaceOverviewError=${workspaceOverviewErrorMessageOrNull()} " +
+                "DeleteCurrentWorkspaceError=${deleteCurrentWorkspaceErrorMessageOrNull()} " +
                 "CloudSettings=${currentCloudSettingsSummary()} " +
                 "CurrentWorkspace=${currentWorkspaceSummaryOrNull()}",
             error
@@ -485,7 +485,7 @@ private fun LiveSmokeContext.waitForDeleteCurrentWorkspaceReady(
             timeoutMillis = externalUiTimeoutMillis,
             context = "while waiting for delete current workspace readiness $context"
         ) {
-            workspaceOverviewErrorMessageOrNull() == null &&
+            deleteCurrentWorkspaceErrorMessageOrNull() == null &&
                 hasVisibleText(text = "Loading", substring = true).not() &&
                 (
                     requireExpectedWorkspaceName.not() ||
@@ -496,7 +496,7 @@ private fun LiveSmokeContext.waitForDeleteCurrentWorkspaceReady(
         throw AssertionError(
             "Delete current workspace screen did not settle $context. " +
                 "ExpectedWorkspaceName=$expectedWorkspaceName " +
-                "Error=${workspaceOverviewErrorMessageOrNull()}",
+                "Error=${deleteCurrentWorkspaceErrorMessageOrNull()}",
             error
         )
     }

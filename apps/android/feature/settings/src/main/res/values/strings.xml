@@ -84,7 +84,6 @@
     <string name="settings_root_feedback_summary">Share an idea to improve the app</string>
     <string name="settings_root_test_title">Test</string>
     <string name="settings_root_test_summary">1 item</string>
-    <string name="settings_root_workspace_summary">%1$s | %2$s | %3$s</string>
     <string name="settings_review_reminders_title">Review reminders</string>
     <string name="settings_review_reminders_summary">Workspace reminders and streak reminders for this device</string>
     <string name="settings_review_animations_title">Review Animations</string>
@@ -141,24 +140,13 @@
     <string name="settings_current_workspace_switching">Switching to %1$s...</string>
     <string name="settings_current_workspace_syncing">Syncing %1$s...</string>
 
-    <string name="settings_account_title">Account Settings</string>
     <string name="settings_account_status_title">Account status</string>
-    <string name="settings_account_workspace_summary">Workspace: %1$s</string>
-    <string name="settings_account_support_section">Support</string>
     <string name="settings_account_legal_title">Legal</string>
-    <string name="settings_account_legal_summary">Privacy and terms</string>
     <string name="settings_account_support_title">Support</string>
-    <string name="settings_account_support_summary">Support page and contact</string>
     <string name="settings_account_open_source_title">Open source</string>
     <string name="settings_account_open_source_summary">GitHub repository and self-hosting direction</string>
-    <string name="settings_account_advanced_section">Advanced</string>
-    <string name="settings_account_advanced_title">Advanced</string>
-    <string name="settings_account_advanced_summary">Server configuration</string>
-    <string name="settings_account_connections_section">Connections</string>
     <string name="settings_account_agent_connections_title">Agent connections</string>
     <string name="settings_account_agent_connections_summary">Review and revoke long-lived bot connections</string>
-    <string name="settings_account_danger_zone_section">Danger zone</string>
-    <string name="settings_account_danger_zone_summary">Delete account</string>
 
     <string name="settings_account_status_screen_title">Account Status</string>
     <string name="settings_account_actions_title">Actions</string>
@@ -177,7 +165,6 @@
     <string name="settings_account_status_sync_failed">Cloud sync failed.</string>
     <string name="settings_account_status_logged_out_message">Logged out. This device is disconnected.</string>
 
-    <string name="settings_account_advanced_screen_title">Advanced</string>
     <string name="settings_server_title">Server</string>
     <string name="settings_server_summary">Official or self-hosted server configuration</string>
     <string name="settings_server_current_title">Current server</string>
@@ -279,14 +266,9 @@
     <string name="settings_notifications_to_title">To</string>
     <string name="settings_notifications_remind_after_title">Remind me after</string>
 
-    <string name="settings_workspace_title">Workspace Settings</string>
-    <string name="settings_workspace_overview_title">Overview</string>
     <string name="settings_workspace_decks_title">Decks</string>
     <string name="settings_workspace_tags_title">Tags</string>
-    <string name="settings_workspace_notifications_title">Review reminders</string>
-    <string name="settings_workspace_scheduler_title">Scheduler</string>
     <string name="settings_workspace_export_title">Export</string>
-    <string name="settings_workspace_reset_card_title">Danger zone</string>
     <string name="settings_workspace_reset_body">Reset study progress for every card in this workspace. Card content stays intact.</string>
     <string name="settings_workspace_reset_button">Reset all progress</string>
     <string name="settings_workspace_reset_sign_in_guidance">Sign in to a linked cloud workspace before resetting progress.</string>
@@ -303,13 +285,11 @@
     <string name="settings_workspace_reset_preview_empty">No cards in this workspace currently have progress to reset.</string>
     <string name="settings_workspace_resetting">Resetting...</string>
 
-    <string name="settings_workspace_overview_screen_title">Overview</string>
     <string name="settings_workspace_name_section_title">Workspace</string>
     <string name="settings_workspace_name_label">Workspace name</string>
     <string name="settings_workspace_save_name_button">Save name</string>
     <string name="settings_workspace_rename_guidance">Workspace rename is available only for linked cloud workspaces.</string>
     <string name="settings_cards_title">Cards</string>
-    <string name="settings_workspace_today_title">Today</string>
     <string name="settings_workspace_due_title">Due</string>
     <string name="settings_workspace_new_title">New</string>
     <string name="settings_workspace_reviewed_title">Reviewed</string>

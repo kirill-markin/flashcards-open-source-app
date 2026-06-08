@@ -32,18 +32,27 @@ import com.flashcardsopensourceapp.feature.settings.createSettingsStringResolver
 import com.flashcardsopensourceapp.feature.settings.settingsScreenCardSpacing
 import com.flashcardsopensourceapp.feature.settings.settingsScreenContentPadding
 import com.flashcardsopensourceapp.feature.settings.workspace.settings.WorkspaceSettingsUiState
-import com.flashcardsopensourceapp.feature.settings.workspace.settings.workspaceSettingsResetProgressButtonTag
-import com.flashcardsopensourceapp.feature.settings.workspace.settings.workspaceSettingsResetProgressConfirmationButtonTag
-import com.flashcardsopensourceapp.feature.settings.workspace.settings.workspaceSettingsResetProgressConfirmationDialogTag
-import com.flashcardsopensourceapp.feature.settings.workspace.settings.workspaceSettingsResetProgressConfirmationFieldTag
-import com.flashcardsopensourceapp.feature.settings.workspace.settings.workspaceSettingsResetProgressConfirmationPhraseTag
-import com.flashcardsopensourceapp.feature.settings.workspace.settings.workspaceSettingsResetProgressDialogErrorTag
-import com.flashcardsopensourceapp.feature.settings.workspace.settings.workspaceSettingsResetProgressErrorTag
-import com.flashcardsopensourceapp.feature.settings.workspace.settings.workspaceSettingsResetProgressLoadingTag
-import com.flashcardsopensourceapp.feature.settings.workspace.settings.workspaceSettingsResetProgressPreviewBodyTag
-import com.flashcardsopensourceapp.feature.settings.workspace.settings.workspaceSettingsResetProgressPreviewButtonTag
-import com.flashcardsopensourceapp.feature.settings.workspace.settings.workspaceSettingsResetProgressPreviewDialogTag
 import com.flashcardsopensourceapp.feature.settings.workspaceResetProgressConfirmationText
+
+const val workspaceSettingsResetProgressButtonTag: String = "workspace_settings_reset_progress_button"
+const val workspaceSettingsResetProgressLoadingTag: String = "workspace_settings_reset_progress_loading"
+const val workspaceSettingsResetProgressErrorTag: String = "workspace_settings_reset_progress_error"
+const val workspaceSettingsResetProgressDialogErrorTag: String =
+    "workspace_settings_reset_progress_dialog_error"
+const val workspaceSettingsResetProgressConfirmationDialogTag: String =
+    "workspace_settings_reset_progress_confirmation_dialog"
+const val workspaceSettingsResetProgressConfirmationPhraseTag: String =
+    "workspace_settings_reset_progress_confirmation_phrase"
+const val workspaceSettingsResetProgressConfirmationFieldTag: String =
+    "workspace_settings_reset_progress_confirmation_field"
+const val workspaceSettingsResetProgressConfirmationButtonTag: String =
+    "workspace_settings_reset_progress_confirmation_button"
+const val workspaceSettingsResetProgressPreviewDialogTag: String =
+    "workspace_settings_reset_progress_preview_dialog"
+const val workspaceSettingsResetProgressPreviewBodyTag: String =
+    "workspace_settings_reset_progress_preview_body"
+const val workspaceSettingsResetProgressPreviewButtonTag: String =
+    "workspace_settings_reset_progress_preview_button"
 
 @Composable
 fun ResetStudyProgressRoute(
