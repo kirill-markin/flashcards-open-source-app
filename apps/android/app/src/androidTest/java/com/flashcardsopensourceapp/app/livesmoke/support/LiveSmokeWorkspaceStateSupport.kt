@@ -2,8 +2,6 @@
 
 package com.flashcardsopensourceapp.app.livesmoke.support
 
-import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -21,8 +19,7 @@ import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWor
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceOperationMessageTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceReloadButtonTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceSelectedSummaryTag
-import com.flashcardsopensourceapp.feature.settings.workspace.overview.workspaceOverviewErrorMessageTag
-import com.flashcardsopensourceapp.feature.settings.workspace.overview.workspaceOverviewNameFieldTag
+import com.flashcardsopensourceapp.feature.settings.workspace.delete.workspaceOverviewErrorMessageTag
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
@@ -158,16 +155,7 @@ private fun LiveSmokeContext.selectedWorkspaceSummaryFromSemanticsTree(
         ?.takeIf { summary -> summary.isNotBlank() }
 }
 
-internal fun LiveSmokeContext.workspaceOverviewNameFieldValueOrNull(): String? {
-    return composeRule.onAllNodesWithTag(workspaceOverviewNameFieldTag)
-        .fetchSemanticsNodes()
-        .singleOrNull()
-        ?.config
-        ?.getOrNull(SemanticsProperties.EditableText)
-        ?.text
-}
-
-internal fun LiveSmokeContext.workspaceOverviewErrorMessageOrNull(): String? {
+internal fun LiveSmokeContext.deleteCurrentWorkspaceErrorMessageOrNull(): String? {
     return composeRule.onAllNodesWithTag(workspaceOverviewErrorMessageTag)
         .fetchSemanticsNodes()
         .singleOrNull()

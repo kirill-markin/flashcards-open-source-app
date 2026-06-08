@@ -9,7 +9,6 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import com.flashcardsopensourceapp.app.navigation.cards.CardEditorDestination
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsWorkspaceDecksDestination
-import com.flashcardsopensourceapp.app.navigation.settings.SettingsWorkspaceDestination
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsWorkspaceTagsDestination
 
 @Composable
@@ -58,7 +57,6 @@ fun navigateToTopLevelDestination(
 
 internal val SettingsNavigationTarget.route: String
     get() = when (this) {
-        SettingsNavigationTarget.WORKSPACE -> SettingsWorkspaceDestination.route
         SettingsNavigationTarget.WORKSPACE_DECKS -> SettingsWorkspaceDecksDestination.route
         SettingsNavigationTarget.WORKSPACE_TAGS -> SettingsWorkspaceTagsDestination.route
     }

@@ -29,17 +29,25 @@ import com.flashcardsopensourceapp.feature.settings.SettingsScreenScaffold
 import com.flashcardsopensourceapp.feature.settings.settingsScreenCardSpacing
 import com.flashcardsopensourceapp.feature.settings.settingsScreenContentPadding
 import com.flashcardsopensourceapp.feature.settings.workspace.overview.WorkspaceOverviewUiState
-import com.flashcardsopensourceapp.feature.settings.workspace.overview.workspaceOverviewDeleteConfirmationButtonTag
-import com.flashcardsopensourceapp.feature.settings.workspace.overview.workspaceOverviewDeleteConfirmationDialogTag
-import com.flashcardsopensourceapp.feature.settings.workspace.overview.workspaceOverviewDeleteConfirmationErrorTag
-import com.flashcardsopensourceapp.feature.settings.workspace.overview.workspaceOverviewDeleteConfirmationFieldTag
-import com.flashcardsopensourceapp.feature.settings.workspace.overview.workspaceOverviewDeleteConfirmationLoadingTag
-import com.flashcardsopensourceapp.feature.settings.workspace.overview.workspaceOverviewDeleteConfirmationPhraseTag
-import com.flashcardsopensourceapp.feature.settings.workspace.overview.workspaceOverviewDeletePreviewBodyTag
-import com.flashcardsopensourceapp.feature.settings.workspace.overview.workspaceOverviewDeletePreviewContinueButtonTag
-import com.flashcardsopensourceapp.feature.settings.workspace.overview.workspaceOverviewDeletePreviewDialogTag
-import com.flashcardsopensourceapp.feature.settings.workspace.overview.workspaceOverviewDeleteWorkspaceButtonTag
-import com.flashcardsopensourceapp.feature.settings.workspace.overview.workspaceOverviewErrorMessageTag
+
+const val workspaceOverviewErrorMessageTag: String = "workspace_overview_error_message"
+const val workspaceOverviewDeleteWorkspaceButtonTag: String = "workspace_overview_delete_workspace_button"
+const val workspaceOverviewDeletePreviewDialogTag: String = "workspace_overview_delete_preview_dialog"
+const val workspaceOverviewDeletePreviewBodyTag: String = "workspace_overview_delete_preview_body"
+const val workspaceOverviewDeletePreviewContinueButtonTag: String =
+    "workspace_overview_delete_preview_continue_button"
+const val workspaceOverviewDeleteConfirmationDialogTag: String =
+    "workspace_overview_delete_confirmation_dialog"
+const val workspaceOverviewDeleteConfirmationPhraseTag: String =
+    "workspace_overview_delete_confirmation_phrase"
+const val workspaceOverviewDeleteConfirmationFieldTag: String =
+    "workspace_overview_delete_confirmation_field"
+const val workspaceOverviewDeleteConfirmationButtonTag: String =
+    "workspace_overview_delete_confirmation_button"
+const val workspaceOverviewDeleteConfirmationErrorTag: String =
+    "workspace_overview_delete_confirmation_error"
+const val workspaceOverviewDeleteConfirmationLoadingTag: String =
+    "workspace_overview_delete_confirmation_loading"
 
 @Composable
 fun DeleteCurrentWorkspaceRoute(

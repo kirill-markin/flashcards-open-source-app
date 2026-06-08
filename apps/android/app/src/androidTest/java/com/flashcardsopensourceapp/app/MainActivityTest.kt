@@ -26,7 +26,6 @@ import com.flashcardsopensourceapp.app.navigation.AiDestination
 import com.flashcardsopensourceapp.app.navigation.CardsDestination
 import com.flashcardsopensourceapp.app.navigation.ReviewDestination
 import com.flashcardsopensourceapp.app.navigation.SettingsDestination
-import com.flashcardsopensourceapp.app.navigation.SettingsNavigationTarget
 import com.flashcardsopensourceapp.app.support.AppStateResetRule
 import com.flashcardsopensourceapp.data.local.model.cards.CardFilter
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
@@ -54,6 +53,7 @@ import com.flashcardsopensourceapp.feature.settings.settingsCurrentWorkspaceRowT
 import com.flashcardsopensourceapp.feature.settings.settingsDecksRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsDeleteAccountRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsDeviceDiagnosticsRowTag
+import com.flashcardsopensourceapp.feature.settings.settingsExportRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsRootScreenTag
 import com.flashcardsopensourceapp.feature.settings.settingsSchedulingRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsTagsRowTag
@@ -66,8 +66,6 @@ import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerSaveButto
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceNameTag
 import com.flashcardsopensourceapp.feature.settings.workspace.export.workspaceExportCsvButtonTag
 import com.flashcardsopensourceapp.feature.settings.workspace.export.workspaceExportScreenTag
-import com.flashcardsopensourceapp.feature.settings.workspace.settings.workspaceSettingsExportRowTag
-import com.flashcardsopensourceapp.feature.settings.workspace.settings.workspaceSettingsScreenTag
 import com.flashcardsopensourceapp.feature.settings.workspace.tags.workspaceTagCardsCountTag
 import com.flashcardsopensourceapp.feature.settings.workspace.tags.workspaceTagRowTag
 import com.flashcardsopensourceapp.feature.settings.workspace.tags.workspaceTagsSearchFieldTag
@@ -346,7 +344,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     }
 
     @Test
-    fun workspaceOverviewShowsRenameNoticeFromEmptyState() {
+    fun currentWorkspaceShowsRenameNoticeFromEmptyState() {
         waitForCardsEmptyState()
 
         openSettingsRow(rowTag = settingsCurrentWorkspaceRowTag)
@@ -403,11 +401,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     fun workspaceExportShowsCsvActionFromEmptyState() {
         waitForCardsEmptyState()
 
-        openWorkspaceSettings()
-        openWorkspaceSettingsRow(
-            rowTag = workspaceSettingsExportRowTag,
-            destinationTag = workspaceExportScreenTag
-        )
+        openSettingsRow(rowTag = settingsExportRowTag, destinationTag = workspaceExportScreenTag)
         waitForTagToExist(tag = workspaceExportCsvButtonTag)
         waitForTextToExist(text = settingsString(SettingsR.string.settings_export_csv_title))
         waitForTextToExist(text = settingsString(SettingsR.string.settings_export_csv_summary))
@@ -787,22 +781,6 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
 
     private fun openSettingsRow(rowTag: String, destinationTag: String) {
         openSettingsRow(rowTag = rowTag)
-        waitForTagToExist(tag = destinationTag)
-    }
-
-    private fun openWorkspaceSettings() {
-        val application = composeRule.activity.application as FlashcardsApplication
-
-        composeRule.runOnIdle {
-            application.appGraph.appHandoffCoordinator.requestSettingsNavigation(
-                target = SettingsNavigationTarget.WORKSPACE
-            )
-        }
-        waitForTagToExist(tag = workspaceSettingsScreenTag)
-    }
-
-    private fun openWorkspaceSettingsRow(rowTag: String, destinationTag: String) {
-        openScrollableRow(containerTag = workspaceSettingsScreenTag, rowTag = rowTag)
         waitForTagToExist(tag = destinationTag)
     }
 

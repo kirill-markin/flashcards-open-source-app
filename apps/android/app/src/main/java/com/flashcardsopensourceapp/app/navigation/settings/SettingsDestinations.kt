@@ -4,24 +4,12 @@ internal data object SettingsRootGraph {
     const val route: String = "settings/root"
 }
 
-internal data object SettingsWorkspaceGraph {
-    const val route: String = "settings/workspace/graph"
-}
-
-internal data object SettingsAccountGraph {
-    const val route: String = "settings/account/graph"
-}
-
 internal data object SettingsAccountAuthGraph {
     const val route: String = "settings/account/auth/graph"
 }
 
 internal data object SettingsAccessGraph {
     const val route: String = "settings/access/graph"
-}
-
-data object SettingsWorkspaceDestination {
-    const val route: String = "settings/workspace"
 }
 
 data object SettingsCurrentWorkspaceDestination {
@@ -40,20 +28,16 @@ data object SettingsFeedbackDestination {
     const val route: String = "settings/feedback"
 }
 
-data object SettingsWorkspaceOverviewDestination {
-    const val route: String = "settings/workspace/overview"
-}
-
 data object SettingsWorkspaceDecksDestination {
-    const val route: String = "settings/workspace/decks"
+    const val route: String = "settings/decks"
 }
 
 data object SettingsWorkspaceAllCardsDeckDetailDestination {
-    const val route: String = "settings/workspace/decks/all-cards"
+    const val route: String = "settings/decks/all-cards"
 }
 
 data object SettingsWorkspaceDeckDetailDestination {
-    const val routePrefix: String = "settings/workspace/decks/detail"
+    const val routePrefix: String = "settings/decks/detail"
     const val routeArgument: String = "deckId"
     const val routePattern: String = "$routePrefix/{$routeArgument}"
 
@@ -63,7 +47,7 @@ data object SettingsWorkspaceDeckDetailDestination {
 }
 
 data object SettingsWorkspaceDeckEditorDestination {
-    const val routePrefix: String = "settings/workspace/decks/editor"
+    const val routePrefix: String = "settings/decks/editor"
     const val routeArgument: String = "deckId"
     const val routePattern: String = "$routePrefix/{$routeArgument}"
 
@@ -73,19 +57,19 @@ data object SettingsWorkspaceDeckEditorDestination {
 }
 
 data object SettingsWorkspaceTagsDestination {
-    const val route: String = "settings/workspace/tags"
+    const val route: String = "settings/tags"
 }
 
 data object SettingsWorkspaceSchedulerDestination {
-    const val route: String = "settings/workspace/scheduler"
+    const val route: String = "settings/scheduling"
 }
 
 data object SettingsWorkspaceNotificationsDestination {
-    const val route: String = "settings/workspace/notifications"
+    const val route: String = "settings/review-reminders"
 }
 
 data object SettingsWorkspaceExportDestination {
-    const val route: String = "settings/workspace/export"
+    const val route: String = "settings/export"
 }
 
 data object SettingsWorkspaceResetStudyProgressDestination {
@@ -96,20 +80,12 @@ data object SettingsWorkspaceDeleteCurrentDestination {
     const val route: String = "settings/workspace/delete-current"
 }
 
-data object SettingsAccountDestination {
-    const val route: String = "settings/account"
-}
-
-data object SettingsAccountAdvancedDestination {
-    const val route: String = "settings/account/advanced"
-}
-
 data object SettingsAccountServerDestination {
-    const val route: String = "settings/account/advanced/server"
+    const val route: String = "settings/server"
 }
 
 data object SettingsAccountStatusDestination {
-    const val route: String = "settings/account/status"
+    const val route: String = "settings/account-status"
 }
 
 data object SettingsAccountSignInEmailDestination {
@@ -125,23 +101,23 @@ data object SettingsAccountPostAuthDestination {
 }
 
 data object SettingsAccountLegalDestination {
-    const val route: String = "settings/account/legal"
+    const val route: String = "settings/legal"
 }
 
 data object SettingsAccountSupportDestination {
-    const val route: String = "settings/account/support"
+    const val route: String = "settings/support"
 }
 
 data object SettingsAccountOpenSourceDestination {
-    const val route: String = "settings/account/open-source"
+    const val route: String = "settings/open-source"
 }
 
 data object SettingsAccountAgentConnectionsDestination {
-    const val route: String = "settings/account/agent-connections"
+    const val route: String = "settings/agent-connections"
 }
 
 data object SettingsAccountDangerZoneDestination {
-    const val route: String = "settings/account/danger-zone"
+    const val route: String = "settings/delete-account"
 }
 
 data object SettingsDeviceDestination {

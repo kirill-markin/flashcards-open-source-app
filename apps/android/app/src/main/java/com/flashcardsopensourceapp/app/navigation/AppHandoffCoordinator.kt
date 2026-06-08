@@ -39,7 +39,6 @@ data class AppNotificationTapHandoffRequest(
 )
 
 enum class SettingsNavigationTarget {
-    WORKSPACE,
     WORKSPACE_DECKS,
     WORKSPACE_TAGS
 }
