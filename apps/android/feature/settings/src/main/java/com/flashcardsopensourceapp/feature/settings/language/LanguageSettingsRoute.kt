@@ -12,12 +12,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsScreenScaffold
 import com.flashcardsopensourceapp.feature.settings.settingsScreenCardSpacing
 import com.flashcardsopensourceapp.feature.settings.settingsScreenContentPadding
+
+const val languageSettingsScreenTag: String = "language_settings_screen"
+const val languageSettingsSupportedLanguagesSectionTag: String = "language_settings_supported_languages_section"
 
 @Composable
 fun LanguageSettingsRoute(
@@ -33,7 +37,9 @@ fun LanguageSettingsRoute(
         LazyColumn(
             contentPadding = settingsScreenContentPadding(innerPadding = innerPadding),
             verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .testTag(tag = languageSettingsScreenTag)
         ) {
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
@@ -60,7 +66,11 @@ fun LanguageSettingsRoute(
             }
 
             item {
-                Card(modifier = Modifier.fillMaxWidth()) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(tag = languageSettingsSupportedLanguagesSectionTag)
+                ) {
                     Column(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.padding(20.dp)

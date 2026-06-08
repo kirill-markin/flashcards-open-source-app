@@ -4,6 +4,7 @@ import androidx.annotation.PluralsRes
 import androidx.annotation.StringRes
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
@@ -400,8 +401,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     fun workspaceExportShowsCsvActionFromEmptyState() {
         waitForCardsEmptyState()
 
-        openSettingsRow(rowTag = settingsExportRowTag)
-        waitForTagToExist(tag = workspaceExportScreenTag)
+        openSettingsRow(rowTag = settingsExportRowTag, destinationTag = workspaceExportScreenTag)
         waitForTagToExist(tag = workspaceExportCsvButtonTag)
         waitForTextToExist(text = settingsString(SettingsR.string.settings_export_csv_title))
         waitForTextToExist(text = settingsString(SettingsR.string.settings_export_csv_summary))
@@ -776,16 +776,22 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
 
     private fun openSettingsRow(rowTag: String) {
         openSettingsTab()
+        val rowMatcher = hasTestTag(rowTag).and(other = hasClickAction())
+
         composeRule.onNodeWithTag(testTag = settingsRootScreenTag)
-            .performScrollToNode(matcher = hasTestTag(rowTag))
+            .performScrollToNode(matcher = rowMatcher)
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodes(
-                matcher = hasTestTag(rowTag).and(other = hasClickAction())
-            ).fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodes(matcher = rowMatcher).fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNode(
-            matcher = hasTestTag(rowTag).and(other = hasClickAction())
-        ).performClick()
+        composeRule.onNode(matcher = rowMatcher).performScrollTo()
+        composeRule.onNode(matcher = rowMatcher).assertIsDisplayed()
+        composeRule.onNode(matcher = rowMatcher).performClick()
+        composeRule.waitForIdle()
+    }
+
+    private fun openSettingsRow(rowTag: String, destinationTag: String) {
+        openSettingsRow(rowTag = rowTag)
+        waitForTagToExist(tag = destinationTag)
     }
 
     private fun scrollToText(text: String) {

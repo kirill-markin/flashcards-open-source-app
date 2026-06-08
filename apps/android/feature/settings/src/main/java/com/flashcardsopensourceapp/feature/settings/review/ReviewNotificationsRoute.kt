@@ -25,6 +25,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -38,6 +39,8 @@ import com.flashcardsopensourceapp.feature.settings.settingsScreenContentPadding
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+
+const val reviewNotificationsScreenTag: String = "review_notifications_screen"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,7 +82,9 @@ fun ReviewNotificationsRoute(
         LazyColumn(
             contentPadding = settingsScreenContentPadding(innerPadding = innerPadding),
             verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .testTag(tag = reviewNotificationsScreenTag)
         ) {
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
