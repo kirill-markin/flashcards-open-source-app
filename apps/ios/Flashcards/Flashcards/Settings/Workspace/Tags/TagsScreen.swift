@@ -10,6 +10,7 @@ private func formatCardsCount(_ cardsCount: Int) -> String {
 
 struct TagsScreen: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
+    @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     @State private var tagsSummary: WorkspaceTagsSummary = WorkspaceTagsSummary(tags: [], totalCards: 0)
@@ -59,17 +60,23 @@ struct TagsScreen: View {
                     )
                 } else {
                     ForEach(self.filteredTags, id: \.tag) { tagSummary in
-                        HStack(spacing: 12) {
-                            Label(tagSummary.tag, systemImage: "tag")
-                                .foregroundStyle(.primary)
+                        Button {
+                            self.openReview(tag: tagSummary.tag)
+                        } label: {
+                            HStack(spacing: 12) {
+                                Label(tagSummary.tag, systemImage: "tag")
+                                    .foregroundStyle(.primary)
 
-                            Spacer()
+                                Spacer()
 
-                            Text(formatCardsCount(tagSummary.cardsCount))
-                                .font(.subheadline.monospacedDigit())
-                                .foregroundStyle(.secondary)
+                                Text(formatCardsCount(tagSummary.cardsCount))
+                                    .font(.subheadline.monospacedDigit())
+                                    .foregroundStyle(.secondary)
+                            }
                         }
+                        .buttonStyle(.plain)
                         .padding(.vertical, 4)
+                        .accessibilityLabel("\(aiSettingsLocalized("settings.workspace.decks.openReview", "Open review")): \(tagSummary.tag)")
                     }
                 }
             }
@@ -132,6 +139,11 @@ struct TagsScreen: View {
 
         self.isLoading = false
     }
+
+    private func openReview(tag: String) {
+        store.selectReviewFilter(reviewFilter: .tag(tag: tag))
+        navigation.selectTab(.review)
+    }
 }
 
 private func workspaceTagSummariesMatchingSearchText(
@@ -152,5 +164,6 @@ private func workspaceTagSummariesMatchingSearchText(
     NavigationStack {
         TagsScreen()
             .environment(FlashcardsStore())
+            .environment(AppNavigationModel())
     }
 }

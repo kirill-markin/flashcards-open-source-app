@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAppData } from "../../../appData";
 import { useI18n } from "../../../i18n";
 import { loadWorkspaceTagsSummary } from "../../../localDb/cards/workspace";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
-import type { WorkspaceTagsSummary } from "../../../types";
+import { reviewRoute } from "../../../routes";
+import type { ReviewFilter, WorkspaceTagsSummary } from "../../../types";
 
 const emptyTagsSummary: WorkspaceTagsSummary = {
   tags: [],
@@ -11,8 +13,9 @@ const emptyTagsSummary: WorkspaceTagsSummary = {
 };
 
 export function TagsScreen(): ReactElement {
-  const { activeWorkspace, cloudSettings, localReadVersion, refreshLocalData, session } = useAppData();
+  const { activeWorkspace, cloudSettings, localReadVersion, openReview, refreshLocalData, session } = useAppData();
   const { t, formatCount, formatNumber } = useI18n();
+  const navigate = useNavigate();
   const [tagsSummary, setTagsSummary] = useState<WorkspaceTagsSummary>(emptyTagsSummary);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -77,6 +80,16 @@ export function TagsScreen(): ReactElement {
     };
   }, [activeWorkspace, localReadVersion]);
 
+  function handleOpenTagReview(tag: string): void {
+    const reviewFilter: ReviewFilter = {
+      kind: "tag",
+      tag,
+    };
+
+    openReview(reviewFilter);
+    navigate(reviewRoute);
+  }
+
   if (isLoading) {
     return (
       <main className="container">
@@ -119,7 +132,13 @@ export function TagsScreen(): ReactElement {
           {tagsSummary.tags.length === 0 ? (
             <div className="content-card">{t("tagsScreen.empty")}</div>
           ) : tagsSummary.tags.map((tagSummary) => (
-            <article key={tagSummary.tag} className="content-card tags-summary-card">
+            <button
+              key={tagSummary.tag}
+              className="content-card tags-summary-card tags-summary-card-button"
+              type="button"
+              onClick={() => handleOpenTagReview(tagSummary.tag)}
+              aria-label={`${t("deckDetail.actions.openReview")}: ${tagSummary.tag}`}
+            >
               <div className="tags-summary-card-head">
                 <strong className="panel-subtitle">{tagSummary.tag}</strong>
                 <span className="badge">{formatCount(tagSummary.cardsCount, {
@@ -127,7 +146,7 @@ export function TagsScreen(): ReactElement {
                   other: t("common.countLabels.card.other"),
                 })}</span>
               </div>
-            </article>
+            </button>
           ))}
         </div>
 

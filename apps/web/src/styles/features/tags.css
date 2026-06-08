@@ -208,6 +208,23 @@
   gap: 10px;
 }
 
+.tags-summary-card-button {
+  width: 100%;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.tags-summary-card-button:hover {
+  border-color: rgba(196, 75, 45, 0.34);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.tags-summary-card-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
 .tags-summary-card-head,
 .tags-total-card-head {
   display: flex;
