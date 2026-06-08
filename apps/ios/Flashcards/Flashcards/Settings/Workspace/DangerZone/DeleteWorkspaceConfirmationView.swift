@@ -17,70 +17,70 @@ struct DeleteWorkspaceConfirmationView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 20) {
-                Text(
-                    aiSettingsLocalizedFormat(
-                        "settings.workspace.deleteConfirmation.warning",
-                        "Warning! This action is permanent. It will delete %d active cards from %@.",
-                        self.preview.activeCardCount,
-                        self.preview.workspaceName
-                    )
-                )
-                    .foregroundStyle(.red)
-                    .font(.headline)
-
-                if self.preview.isLastAccessibleWorkspace {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
                     Text(
-                        aiSettingsLocalized(
-                            "settings.workspace.deleteConfirmation.lastWorkspace",
-                            "A new empty Personal workspace will be created immediately after deletion."
+                        aiSettingsLocalizedFormat(
+                            "settings.workspace.deleteConfirmation.warning",
+                            "Warning! This action is permanent. It will delete %d active cards from %@.",
+                            self.preview.activeCardCount,
+                            self.preview.workspaceName
                         )
                     )
-                        .foregroundStyle(.secondary)
-                }
+                        .foregroundStyle(.red)
+                        .font(.headline)
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(aiSettingsLocalized("common.typePhraseToContinue", "Type this phrase exactly to continue:"))
-                        .foregroundStyle(.secondary)
-                    Text(self.preview.confirmationText)
-                        .font(.body.monospaced())
-                        .accessibilityIdentifier(UITestIdentifier.deleteWorkspaceConfirmationPhrase)
-                }
-
-                TextField(aiSettingsLocalized("settings.workspace.deleteConfirmation.placeholder", "delete workspace"), text: self.$confirmationText)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled(true)
-                    .keyboardType(.asciiCapable)
-                    .textFieldStyle(.roundedBorder)
-                    .submitLabel(.done)
-                    .focused(self.$isConfirmationFieldFocused)
-                    .onSubmit {
-                        self.isConfirmationFieldFocused = false
+                    if self.preview.isLastAccessibleWorkspace {
+                        Text(
+                            aiSettingsLocalized(
+                                "settings.workspace.deleteConfirmation.lastWorkspace",
+                                "A new empty Personal workspace will be created immediately after deletion."
+                            )
+                        )
+                            .foregroundStyle(.secondary)
                     }
-                    .accessibilityIdentifier(UITestIdentifier.deleteWorkspaceConfirmationField)
 
-                if self.errorMessage.isEmpty == false {
-                    CopyableErrorMessageView(message: self.errorMessage)
-                }
-
-                Spacer()
-
-                Button(
-                    self.isDeleting
-                        ? aiSettingsLocalized("settings.workspace.deleteConfirmation.deleting", "Deleting...")
-                        : aiSettingsLocalized("settings.workspace.overview.deleteWorkspace", "Delete workspace"),
-                    role: .destructive
-                ) {
-                    Task {
-                        await self.deleteWorkspace()
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(aiSettingsLocalized("common.typePhraseToContinue", "Type this phrase exactly to continue:"))
+                            .foregroundStyle(.secondary)
+                        ConfirmationPhraseText(text: self.preview.confirmationText)
+                            .accessibilityIdentifier(UITestIdentifier.deleteWorkspaceConfirmationPhrase)
                     }
+
+                    TextField(aiSettingsLocalized("settings.workspace.deleteConfirmation.placeholder", "delete workspace"), text: self.$confirmationText)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled(true)
+                        .keyboardType(.asciiCapable)
+                        .textFieldStyle(.roundedBorder)
+                        .submitLabel(.done)
+                        .focused(self.$isConfirmationFieldFocused)
+                        .onSubmit {
+                            self.isConfirmationFieldFocused = false
+                        }
+                        .accessibilityIdentifier(UITestIdentifier.deleteWorkspaceConfirmationField)
+
+                    if self.errorMessage.isEmpty == false {
+                        CopyableErrorMessageView(message: self.errorMessage)
+                    }
+
+                    Button(
+                        self.isDeleting
+                            ? aiSettingsLocalized("settings.workspace.deleteConfirmation.deleting", "Deleting...")
+                            : aiSettingsLocalized("settings.workspace.overview.deleteWorkspace", "Delete workspace"),
+                        role: .destructive
+                    ) {
+                        Task {
+                            await self.deleteWorkspace()
+                        }
+                    }
+                    .buttonStyle(.glassProminent)
+                    .tint(.red)
+                    .disabled(self.isDeleteEnabled == false)
+                    .accessibilityIdentifier(UITestIdentifier.deleteWorkspaceConfirmationButton)
                 }
-                .buttonStyle(.glassProminent)
-                .tint(.red)
-                .disabled(self.isDeleteEnabled == false)
-                .accessibilityIdentifier(UITestIdentifier.deleteWorkspaceConfirmationButton)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(24)
             }
-            .padding(24)
             .navigationTitle(aiSettingsLocalized("settings.workspace.deleteConfirmation.title", "Delete workspace"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

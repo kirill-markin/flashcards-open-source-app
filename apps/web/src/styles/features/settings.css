@@ -294,14 +294,17 @@
   display: grid;
   place-items: center;
   padding: 20px;
+  overflow-y: auto;
   background: rgba(9, 10, 15, 0.8);
   backdrop-filter: blur(10px);
 }
 
 .settings-delete-dialog {
   width: min(100%, 520px);
+  max-height: calc(100vh - 40px);
   display: grid;
   gap: 18px;
+  overflow-y: auto;
 }
 
 .settings-delete-warning {
@@ -310,8 +313,13 @@
 
 .settings-delete-phrase {
   margin: 0;
+  min-width: 0;
+  max-width: 100%;
   user-select: none;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .settings-workspace-picker {

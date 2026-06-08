@@ -4,8 +4,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -22,6 +25,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.feature.settings.DestructiveActionState
+import com.flashcardsopensourceapp.feature.settings.DestructiveConfirmationPhraseText
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsScreenScaffold
 import com.flashcardsopensourceapp.feature.settings.createSettingsStringResolver
@@ -177,7 +181,12 @@ fun ResetStudyProgressRoute(
                 )
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier
+                        .heightIn(max = 420.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
                     Text(
                         text = stringResource(R.string.settings_workspace_reset_dialog_body),
                         color = MaterialTheme.colorScheme.error
@@ -189,9 +198,10 @@ fun ResetStudyProgressRoute(
                             modifier = Modifier.testTag(tag = workspaceSettingsResetProgressDialogErrorTag)
                         )
                     }
-                    Text(
+                    DestructiveConfirmationPhraseText(
                         text = confirmationPhrase,
-                        modifier = Modifier.testTag(tag = workspaceSettingsResetProgressConfirmationPhraseTag)
+                        testTag = workspaceSettingsResetProgressConfirmationPhraseTag,
+                        modifier = Modifier
                     )
                     OutlinedTextField(
                         value = uiState.resetConfirmationText,
