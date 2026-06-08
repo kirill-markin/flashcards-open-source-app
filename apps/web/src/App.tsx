@@ -31,7 +31,6 @@ import {
   accountDangerZoneRoute,
   accountLegalRoute,
   accountOpenSourceRoute,
-  accountSettingsRoute,
   accountStatusRoute,
   accountSupportRoute,
   buildSettingsDeckDetailRoute,
@@ -52,7 +51,6 @@ import {
   settingsHubRoute,
   settingsLanguageRoute,
   settingsNotificationsRoute,
-  settingsOverviewRoute,
   settingsReviewAnimationsRoute,
   settingsResetStudyProgressRoute,
   settingsSchedulerRoute,
@@ -60,7 +58,6 @@ import {
   settingsTagsRoute,
   settingsTestAnimationsRoute,
   settingsTestRoute,
-  workspaceSettingsRoute,
 } from "./routes";
 import { isWorkspaceManagementLocked } from "./workspaceManagement";
 import { TestModeProvider, useTestMode } from "./testMode";
@@ -80,9 +77,6 @@ const AccessSettingsScreen = lazy(async () => import("./screens/settings/access/
 })));
 const AccountStatusScreen = lazy(async () => import("./screens/settings/account/AccountStatusScreen").then((module) => ({
   default: module.AccountStatusScreen,
-})));
-const AccountSettingsScreen = lazy(async () => import("./screens/settings/account/AccountSettingsScreen").then((module) => ({
-  default: module.AccountSettingsScreen,
 })));
 const AgentConnectionsScreen = lazy(async () => import("./screens/settings/account/AgentConnectionsScreen").then((module) => ({
   default: module.AgentConnectionsScreen,
@@ -147,17 +141,11 @@ const TestSettingsScreen = lazy(async () => import("./screens/settings/TestSetti
 const TagsScreen = lazy(async () => import("./screens/settings/workspace/TagsScreen").then((module) => ({
   default: module.TagsScreen,
 })));
-const WorkspaceOverviewScreen = lazy(async () => import("./screens/settings/workspace/WorkspaceOverviewScreen").then((module) => ({
-  default: module.WorkspaceOverviewScreen,
-})));
 const WorkspaceSchedulerScreen = lazy(async () => import("./screens/settings/workspace/WorkspaceSchedulerScreen").then((module) => ({
   default: module.WorkspaceSchedulerScreen,
 })));
 const WorkspaceExportScreen = lazy(async () => import("./screens/settings/workspace/WorkspaceExportScreen").then((module) => ({
   default: module.WorkspaceExportScreen,
-})));
-const WorkspaceSettingsScreen = lazy(async () => import("./screens/settings/workspace/WorkspaceSettingsScreen").then((module) => ({
-  default: module.WorkspaceSettingsScreen,
 })));
 
 function RouteContentFallback(props: Readonly<{ messageKey: TranslationKey }>): ReactElement {
@@ -615,14 +603,12 @@ export function RoutedShell(): ReactElement {
           <Route path={settingsServerRoute} element={renderDeferredRoute(<ServerSettingsInfoScreen />, "loading.settings")} />
           <Route path={settingsAccessRoute} element={renderDeferredRoute(<AccessSettingsScreen />, "loading.accessSettings")} />
           <Route path={settingsAccessDetailRoutePattern} element={renderDeferredRoute(<AccessPermissionDetailScreen />, "loading.accessDetails")} />
-          <Route path={workspaceSettingsRoute} element={renderDeferredRoute(<WorkspaceSettingsScreen />, "loading.workspaceSettings")} />
           <Route path={settingsNotificationsRoute} element={renderDeferredRoute(<NotificationsSettingsScreen />, "loading.notificationSettings")} />
           <Route path={settingsReviewAnimationsRoute} element={renderDeferredRoute(<ReviewAnimationsSettingsScreen />, "loading.settings")} />
-          <Route path={settingsOverviewRoute} element={renderDeferredRoute(<WorkspaceOverviewScreen />, "loading.workspaceOverview")} />
           <Route path={settingsSchedulerRoute} element={renderDeferredRoute(<WorkspaceSchedulerScreen />, "loading.schedulerSettings")} />
           <Route path={settingsExportRoute} element={renderDeferredRoute(<WorkspaceExportScreen />, "loading.exportSettings")} />
-          <Route path={settingsResetStudyProgressRoute} element={renderDeferredRoute(<ResetStudyProgressScreen />, "loading.workspaceSettings")} />
-          <Route path={settingsDeleteCurrentWorkspaceRoute} element={renderDeferredRoute(<DeleteCurrentWorkspaceScreen />, "loading.workspaceOverview")} />
+          <Route path={settingsResetStudyProgressRoute} element={renderDeferredRoute(<ResetStudyProgressScreen />, "loading.settings")} />
+          <Route path={settingsDeleteCurrentWorkspaceRoute} element={renderDeferredRoute(<DeleteCurrentWorkspaceScreen />, "loading.currentWorkspace")} />
           <Route path={settingsDecksRoute} element={renderDeferredRoute(<DecksScreen />, "loading.decks")} />
           <Route path={settingsDeckNewRoute} element={renderDeferredRoute(<DeckFormScreen />, "loading.deckEditor")} />
           <Route path={`${settingsDecksRoute}/:deckId/edit`} element={renderDeferredRoute(<DeckFormScreen />, "loading.deckEditor")} />
@@ -645,7 +631,6 @@ export function RoutedShell(): ReactElement {
               </TestModeRouteGuard>
             ), "loading.testAnimations")}
           />
-          <Route path={accountSettingsRoute} element={renderDeferredRoute(<AccountSettingsScreen />, "loading.accountSettings")} />
           <Route path={accountStatusRoute} element={renderDeferredRoute(<AccountStatusScreen />, "loading.accountStatus")} />
           <Route path={accountLegalRoute} element={renderDeferredRoute(<LegalScreen />, "loading.legal")} />
           <Route path={accountSupportRoute} element={renderDeferredRoute(<SupportScreen />, "loading.support")} />

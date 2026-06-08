@@ -101,9 +101,7 @@ export const jaCatalog = {
     currentWorkspace: "ワークスペースを読み込んでいます...",
     accessSettings: "アクセス設定を読み込んでいます...",
     accessDetails: "アクセス詳細を読み込んでいます...",
-    workspaceSettings: "ワークスペース設定を読み込んでいます...",
     notificationSettings: "通知設定を読み込んでいます...",
-    workspaceOverview: "ワークスペースの概要を読み込んでいます...",
     schedulerSettings: "スケジューラー設定を読み込んでいます...",
     exportSettings: "エクスポート設定を読み込んでいます...",
     decks: "デッキを読み込んでいます...",
@@ -111,7 +109,6 @@ export const jaCatalog = {
     deckDetails: "デッキ詳細を読み込んでいます...",
     tags: "タグを読み込んでいます...",
     deviceDetails: "デバイス詳細を読み込んでいます...",
-    accountSettings: "アカウント設定を読み込んでいます...",
     accountStatus: "アカウント状態を読み込んでいます...",
     legal: "法務情報を読み込んでいます...",
     support: "サポートを読み込んでいます...",
@@ -215,16 +212,6 @@ export const jaCatalog = {
       title: "言語",
       description: "このブラウザで使うアプリ言語を選択します。",
     },
-    workspaceSettings: {
-      title: "ワークスペース設定",
-      description: "概要、ワークスペースデータ、スケジューラー設定、通知、エクスポートを確認します。",
-      value: "ワークスペース",
-    },
-    accountSettings: {
-      title: "アカウント設定",
-      description: "アカウント状態、サポート、接続、危険な操作を確認します。",
-      value: "アカウント",
-    },
     device: {
       title: "デバイス",
       description: "ブラウザ、ビルド、ストレージ、デバイス内ワークスペースの詳細を確認します。",
@@ -313,14 +300,6 @@ export const jaCatalog = {
     },
   },
   settingsWorkspace: {
-    title: "ワークスペース設定",
-    subtitle: "ワークスペース概要、ワークスペースデータ、学習設定、エクスポートを管理します。",
-    errorSubtitle: "ワークスペースデータ、学習設定、デバイス詳細を管理します。",
-    overview: {
-      title: "概要",
-      description: "ワークスペース名、件数、今日の統計を確認します。",
-    },
-    workspaceDataGroupTitle: "ワークスペースデータ",
     decks: {
       title: "デッキ",
       description: "再利用できる学習範囲を作成、編集、確認します。",
@@ -329,14 +308,7 @@ export const jaCatalog = {
       title: "タグ",
       description: "ワークスペース全体のタグ利用状況とカード数を確認します。",
     },
-    settingsGroupTitle: "設定",
-    scheduler: {
-      title: "スケジューラー",
-      description: "今後の復習に使われるアクティブなスケジューラー設定を確認します。",
-    },
     notifications: {
-      title: "通知",
-      description: "このワークスペースに対する学習通知用のデバイス内リマインダー設定を確認します。",
       value: "このデバイス",
     },
     export: {
@@ -344,7 +316,6 @@ export const jaCatalog = {
       description: "このワークスペース内のすべての有効なカードを標準 CSV ファイルとして保存します。",
       value: "CSV",
     },
-    dangerZoneGroupTitle: "危険な操作",
     resetProgress: {
       title: "学習進捗をリセット",
       description: "このワークスペース内のすべての有効なカードの学習進捗をリセットします。",
@@ -364,30 +335,9 @@ export const jaCatalog = {
         one: "枚",
         other: "枚",
       },
-      deck: {
-        one: "デッキ",
-        other: "デッキ",
-      },
-      tag: {
-        one: "タグ",
-        other: "タグ",
-      },
     },
   },
   workspaceOverview: {
-    title: "概要",
-    subtitle: "ワークスペースの詳細と今日の件数を確認します。",
-    workspaceUnavailable: "ワークスペースを利用できません",
-    loading: "ワークスペース概要を読み込んでいます...",
-    labels: {
-      workspace: "ワークスペース",
-      cards: "カード",
-      decks: "デッキ",
-      tags: "タグ",
-      due: "期限あり",
-      new: "新規",
-      reviewed: "復習済み",
-    },
     rename: {
       title: "ワークスペース名を変更",
       description: "現在のワークスペース名を、リンクされているすべてのクライアントで更新します。",
@@ -857,35 +807,17 @@ export const jaCatalog = {
     },
   },
   accountSettings: {
-    title: "アカウント設定",
-    subtitle: "アカウント状態、サポート、接続、元に戻せない操作を管理します。",
     accountStatus: {
       title: "アカウント状態",
       description: "サインイン中のアカウントと現在のブラウザセッション状態を確認します。",
     },
-    supportGroupTitle: "サポート",
-    legal: {
-      title: "法務",
-      description: "ホスト版アプリのプライバシーと利用規約を確認します。",
-    },
-    support: {
-      title: "サポート",
-      description: "ホスト版サポートリンクとサポート連絡先を開きます。",
-    },
     openSource: {
-      title: "オープンソース",
-      description: "リポジトリ、MIT ライセンス、セルフホスティングのリンクを確認します。",
       value: "GitHub + MIT",
     },
-    connectionsGroupTitle: "接続",
     agentConnections: {
-      title: "エージェント接続",
-      description: "このアカウントの長期間有効なボット接続を確認し、取り消します。",
       value: "接続",
     },
     dangerZone: {
-      title: "危険な操作",
-      description: "アカウントとすべてのクラウドデータを削除します。",
       value: "削除",
     },
   },

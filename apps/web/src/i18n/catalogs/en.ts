@@ -99,9 +99,7 @@ const enCatalog = {
     currentWorkspace: "Loading workspace...",
     accessSettings: "Loading access settings...",
     accessDetails: "Loading access details...",
-    workspaceSettings: "Loading workspace settings...",
     notificationSettings: "Loading notification settings...",
-    workspaceOverview: "Loading workspace overview...",
     schedulerSettings: "Loading scheduler settings...",
     exportSettings: "Loading export settings...",
     decks: "Loading decks...",
@@ -109,7 +107,6 @@ const enCatalog = {
     deckDetails: "Loading deck details...",
     tags: "Loading tags...",
     deviceDetails: "Loading device details...",
-    accountSettings: "Loading account settings...",
     accountStatus: "Loading account status...",
     legal: "Loading legal settings...",
     support: "Loading support settings...",
@@ -213,16 +210,6 @@ const enCatalog = {
       title: "Language",
       description: "Choose the app language for this browser.",
     },
-    workspaceSettings: {
-      title: "Workspace Settings",
-      description: "Review overview, workspace data, scheduler settings, notifications, and export.",
-      value: "Workspace",
-    },
-    accountSettings: {
-      title: "Account Settings",
-      description: "Account status, support, connections, and danger-zone actions.",
-      value: "Account",
-    },
     device: {
       title: "Device",
       description: "Review browser, build, storage, and device-local workspace details.",
@@ -311,14 +298,6 @@ const enCatalog = {
     },
   },
   settingsWorkspace: {
-    title: "Workspace Settings",
-    subtitle: "Manage workspace overview, workspace data, study settings, and export.",
-    errorSubtitle: "Manage workspace data, study settings, and device details.",
-    overview: {
-      title: "Overview",
-      description: "Review workspace name, counts, and today stats.",
-    },
-    workspaceDataGroupTitle: "Workspace Data",
     decks: {
       title: "Decks",
       description: "Create, edit, and review reusable study scopes.",
@@ -327,14 +306,7 @@ const enCatalog = {
       title: "Tags",
       description: "Inspect workspace-wide tag usage and card counts.",
     },
-    settingsGroupTitle: "Settings",
-    scheduler: {
-      title: "Scheduler",
-      description: "Review the active scheduler configuration for future reviews.",
-    },
     notifications: {
-      title: "Notifications",
-      description: "Review device-local reminder settings for study notifications on this workspace.",
       value: "This device",
     },
     export: {
@@ -342,7 +314,6 @@ const enCatalog = {
       description: "Save all active cards from this workspace as a standard CSV file.",
       value: "CSV",
     },
-    dangerZoneGroupTitle: "Danger Zone",
     resetProgress: {
       title: "Reset study progress",
       description: "Reset study progress for every active card in this workspace.",
@@ -362,30 +333,9 @@ const enCatalog = {
         one: "card",
         other: "cards",
       },
-      deck: {
-        one: "deck",
-        other: "decks",
-      },
-      tag: {
-        one: "tag",
-        other: "tags",
-      },
     },
   },
   workspaceOverview: {
-    title: "Overview",
-    subtitle: "Review workspace details and today counts.",
-    workspaceUnavailable: "Workspace unavailable",
-    loading: "Loading workspace overview...",
-    labels: {
-      workspace: "Workspace",
-      cards: "Cards",
-      decks: "Decks",
-      tags: "Tags",
-      due: "Due",
-      new: "New",
-      reviewed: "Reviewed",
-    },
     rename: {
       title: "Rename workspace",
       description: "Update the current workspace name for every linked client.",
@@ -855,35 +805,17 @@ const enCatalog = {
     },
   },
   accountSettings: {
-    title: "Account Settings",
-    subtitle: "Manage account state, support, connections, and irreversible actions.",
     accountStatus: {
       title: "Account Status",
       description: "Review the signed-in account and current browser session state.",
     },
-    supportGroupTitle: "Support",
-    legal: {
-      title: "Legal",
-      description: "Review privacy and terms for the hosted app.",
-    },
-    support: {
-      title: "Support",
-      description: "Open hosted support links and support contact details.",
-    },
     openSource: {
-      title: "Open Source",
-      description: "Review the repository, MIT license, and self-hosting links.",
       value: "GitHub + MIT",
     },
-    connectionsGroupTitle: "Connections",
     agentConnections: {
-      title: "Agent Connections",
-      description: "Review and revoke long-lived bot connections for this account.",
       value: "Connections",
     },
     dangerZone: {
-      title: "Danger Zone",
-      description: "Delete the account and all cloud data.",
       value: "Delete",
     },
   },

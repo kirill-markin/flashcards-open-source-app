@@ -561,16 +561,6 @@ export type DecksListSnapshot = Readonly<{
   allCardsStats: DeckCardStats;
 }>;
 
-export type WorkspaceOverviewSnapshot = Readonly<{
-  workspaceName: string;
-  deckCount: number;
-  tagsCount: number;
-  totalCards: number;
-  dueCount: number;
-  newCount: number;
-  reviewedCount: number;
-}>;
-
 export type WorkspaceTagSummary = Readonly<{
   tag: string;
   cardsCount: number;

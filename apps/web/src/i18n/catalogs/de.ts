@@ -101,9 +101,7 @@ const deCatalog: TranslationCatalog = {
     currentWorkspace: "Arbeitsbereich wird geladen...",
     accessSettings: "Zugriffseinstellungen werden geladen...",
     accessDetails: "Zugriffsdetails werden geladen...",
-    workspaceSettings: "Arbeitsbereichseinstellungen werden geladen...",
     notificationSettings: "Benachrichtigungseinstellungen werden geladen...",
-    workspaceOverview: "Arbeitsbereichsübersicht wird geladen...",
     schedulerSettings: "Planereinstellungen werden geladen...",
     exportSettings: "Exporteinstellungen werden geladen...",
     decks: "Decks werden geladen...",
@@ -111,7 +109,6 @@ const deCatalog: TranslationCatalog = {
     deckDetails: "Deck-Details werden geladen...",
     tags: "Tags werden geladen...",
     deviceDetails: "Gerätedetails werden geladen...",
-    accountSettings: "Kontoeinstellungen werden geladen...",
     accountStatus: "Kontostatus wird geladen...",
     legal: "Rechtliches wird geladen...",
     support: "Support wird geladen...",
@@ -215,16 +212,6 @@ const deCatalog: TranslationCatalog = {
       title: "Sprache",
       description: "Wähle die App-Sprache für diesen Browser.",
     },
-    workspaceSettings: {
-      title: "Arbeitsbereichseinstellungen",
-      description: "Prüfe Übersicht, Arbeitsbereichsdaten, Planer, Benachrichtigungen und Export.",
-      value: "Arbeitsbereich",
-    },
-    accountSettings: {
-      title: "Kontoeinstellungen",
-      description: "Prüfe Kontostatus, Support, Verbindungen und irreversible Aktionen.",
-      value: "Konto",
-    },
     device: {
       title: "Gerät",
       description: "Prüfe Browser, Build, Speicher und gerätelokale Arbeitsbereichsdetails.",
@@ -313,14 +300,6 @@ const deCatalog: TranslationCatalog = {
     },
   },
   settingsWorkspace: {
-    title: "Arbeitsbereichseinstellungen",
-    subtitle: "Verwalte Arbeitsbereichsübersicht, Arbeitsbereichsdaten, Lern-Einstellungen und Export.",
-    errorSubtitle: "Verwalte Arbeitsbereichsdaten, Lern-Einstellungen und Gerätedetails.",
-    overview: {
-      title: "Übersicht",
-      description: "Prüfe Arbeitsbereichsname, Zählwerte und heutige Statistik.",
-    },
-    workspaceDataGroupTitle: "Arbeitsbereichsdaten",
     decks: {
       title: "Decks",
       description: "Erstelle, bearbeite und prüfe wiederverwendbare Lernbereiche.",
@@ -329,14 +308,7 @@ const deCatalog: TranslationCatalog = {
       title: "Tags",
       description: "Prüfe die arbeitsbereichsweite Tag-Nutzung und Kartenanzahl.",
     },
-    settingsGroupTitle: "Einstellungen",
-    scheduler: {
-      title: "Planer",
-      description: "Prüfe die aktive Planer-Konfiguration für zukünftige Wiederholungen.",
-    },
     notifications: {
-      title: "Benachrichtigungen",
-      description: "Prüfe gerätelokale Erinnerungen für Lernbenachrichtigungen in diesem Arbeitsbereich.",
       value: "Dieses Gerät",
     },
     export: {
@@ -344,7 +316,6 @@ const deCatalog: TranslationCatalog = {
       description: "Speichere alle aktiven Karten aus diesem Arbeitsbereich als standardmäßige CSV-Datei.",
       value: "CSV",
     },
-    dangerZoneGroupTitle: "Gefahrenbereich",
     resetProgress: {
       title: "Lernfortschritt zurücksetzen",
       description: "Setze den Lernfortschritt für jede aktive Karte in diesem Arbeitsbereich zurück.",
@@ -364,30 +335,9 @@ const deCatalog: TranslationCatalog = {
         one: "Karte",
         other: "Karten",
       },
-      deck: {
-        one: "Deck",
-        other: "Decks",
-      },
-      tag: {
-        one: "Tag",
-        other: "Tags",
-      },
     },
   },
   workspaceOverview: {
-    title: "Übersicht",
-    subtitle: "Prüfe Arbeitsbereichsdetails und heutige Zählwerte.",
-    workspaceUnavailable: "Arbeitsbereich nicht verfügbar",
-    loading: "Arbeitsbereichsübersicht wird geladen...",
-    labels: {
-      workspace: "Arbeitsbereich",
-      cards: "Karten",
-      decks: "Decks",
-      tags: "Tags",
-      due: "Fällig",
-      new: "Neu",
-      reviewed: "Wiederholt",
-    },
     rename: {
       title: "Arbeitsbereich umbenennen",
       description: "Aktualisiere den Namen des aktuellen Arbeitsbereichs für alle verknüpften Clients.",
@@ -857,35 +807,17 @@ const deCatalog: TranslationCatalog = {
     },
   },
   accountSettings: {
-    title: "Kontoeinstellungen",
-    subtitle: "Verwalte Kontostatus, Support, Verbindungen und irreversible Aktionen.",
     accountStatus: {
       title: "Kontostatus",
       description: "Prüfe das angemeldete Konto und den aktuellen Sitzungsstatus im Browser.",
     },
-    supportGroupTitle: "Support",
-    legal: {
-      title: "Rechtliches",
-      description: "Prüfe Datenschutz und Nutzungsbedingungen für die gehostete App.",
-    },
-    support: {
-      title: "Support",
-      description: "Öffne gehostete Support-Links und Support-Kontaktdaten.",
-    },
     openSource: {
-      title: "Open Source",
-      description: "Prüfe das Repository, die MIT-Lizenz und Self-Hosting-Links.",
       value: "GitHub + MIT",
     },
-    connectionsGroupTitle: "Verbindungen",
     agentConnections: {
-      title: "Agent-Verbindungen",
-      description: "Prüfe und widerrufe langlebige Bot-Verbindungen für dieses Konto.",
       value: "Verbindungen",
     },
     dangerZone: {
-      title: "Gefahrenbereich",
-      description: "Lösche das Konto und alle Cloud-Daten.",
       value: "Löschen",
     },
   },
