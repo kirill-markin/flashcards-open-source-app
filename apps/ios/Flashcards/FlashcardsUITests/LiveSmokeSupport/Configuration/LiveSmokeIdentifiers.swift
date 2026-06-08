@@ -51,15 +51,7 @@ enum LiveSmokeIdentifier {
     static let currentWorkspaceScreen: String = "currentWorkspace.screen"
     static let currentWorkspaceNameField: String = "currentWorkspace.nameField"
     static let currentWorkspaceSaveNameButton: String = "currentWorkspace.saveNameButton"
-    static let accountSettingsAccountStatusRow: String = "accountSettings.accountStatusRow"
-    static let accountSettingsDangerZoneRow: String = "accountSettings.dangerZoneRow"
-    static let workspaceSettingsScreen: String = "workspaceSettings.screen"
-    static let workspaceOverviewScreen: String = "workspaceOverview.screen"
-    static let workspaceOverviewDueCount: String = "workspaceOverview.dueCount"
-    static let workspaceOverviewNewCount: String = "workspaceOverview.newCount"
-    static let workspaceOverviewReviewedCount: String = "workspaceOverview.reviewedCount"
     static let workspaceSettingsResetProgressButton: String = "workspaceSettings.resetProgressButton"
-    static let accountSettingsScreen: String = "accountSettings.screen"
     static let accountStatusScreen: String = "accountStatus.screen"
     static let dangerZoneScreen: String = "dangerZone.screen"
     static let dangerZoneDeleteAccountButton: String = "dangerZone.deleteAccountButton"
@@ -81,9 +73,6 @@ enum LiveSmokeIdentifier {
     static let currentWorkspaceRowButton: String = "currentWorkspace.rowButton"
     static let currentWorkspacePickerScreen: String = "currentWorkspace.pickerScreen"
     static let currentWorkspaceCreateButton: String = "currentWorkspace.createButton"
-    static let workspaceSettingsOverviewRow: String = "workspaceSettings.overviewRow"
-    static let workspaceOverviewNameField: String = "workspaceOverview.nameField"
-    static let workspaceOverviewSaveNameButton: String = "workspaceOverview.saveNameButton"
     static let workspaceOverviewDeleteWorkspaceButton: String = "workspaceOverview.deleteWorkspaceButton"
     static let deleteWorkspaceConfirmationPhrase: String = "deleteWorkspace.confirmationPhrase"
     static let deleteWorkspaceConfirmationField: String = "deleteWorkspace.confirmationField"
@@ -308,11 +297,8 @@ enum LiveSmokeScreen: CaseIterable {
     case currentWorkspace
     case reviewAnimationsSettings
     case languageSettings
-    case workspaceSettings
-    case workspaceOverview
     case resetStudyProgress
     case deleteCurrentWorkspace
-    case accountSettings
     case accountStatus
     case dangerZone
 
@@ -344,16 +330,10 @@ enum LiveSmokeScreen: CaseIterable {
             return LiveSmokeIdentifier.reviewAnimationsSettingsScreen
         case .languageSettings:
             return LiveSmokeIdentifier.languageSettingsScreen
-        case .workspaceSettings:
-            return LiveSmokeIdentifier.workspaceSettingsScreen
-        case .workspaceOverview:
-            return LiveSmokeIdentifier.workspaceOverviewScreen
         case .resetStudyProgress:
             return LiveSmokeIdentifier.resetStudyProgressScreen
         case .deleteCurrentWorkspace:
             return LiveSmokeIdentifier.deleteCurrentWorkspaceScreen
-        case .accountSettings:
-            return LiveSmokeIdentifier.accountSettingsScreen
         case .accountStatus:
             return LiveSmokeIdentifier.accountStatusScreen
         case .dangerZone:
@@ -389,16 +369,10 @@ enum LiveSmokeScreen: CaseIterable {
             return "Review Animations"
         case .languageSettings:
             return "Language"
-        case .workspaceSettings:
-            return "Workspace Settings"
-        case .workspaceOverview:
-            return "Workspace Overview"
         case .resetStudyProgress:
             return "Reset Study Progress"
         case .deleteCurrentWorkspace:
             return "Delete Current Workspace"
-        case .accountSettings:
-            return "Account Settings"
         case .accountStatus:
             return "Account Status"
         case .dangerZone:

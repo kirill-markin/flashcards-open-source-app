@@ -21,12 +21,8 @@ func makeSettingsNavigationPath(destination: SettingsNavigationDestination) -> [
         return [.test]
     case .testAnimations:
         return [.test, .testAnimations]
-    case .workspace:
-        return [.workspace]
     case .workspaceNotifications:
         return [.workspaceNotifications]
-    case .workspaceOverview:
-        return [.workspace, .workspaceOverview]
     case .workspaceScheduler:
         return [.workspaceScheduler]
     case .workspaceExport:
@@ -35,8 +31,6 @@ func makeSettingsNavigationPath(destination: SettingsNavigationDestination) -> [
         return [.workspaceDecks]
     case .workspaceTags:
         return [.workspaceTags]
-    case .account:
-        return [.account]
     case .accountStatus:
         return [.accountStatus]
     case .accountLegal:
@@ -45,8 +39,6 @@ func makeSettingsNavigationPath(destination: SettingsNavigationDestination) -> [
         return [.accountSupport]
     case .accountOpenSource:
         return [.accountOpenSource]
-    case .accountAdvanced:
-        return [.account, .accountAdvanced]
     case .accountServer:
         return [.accountServer]
     case .accountAgentConnections:

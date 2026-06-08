@@ -156,8 +156,6 @@
 "settings.row.deleteCurrentWorkspace" = "वर्तमान कार्यस्थान हटाएं";
 "settings.row.permanent.value" = "स्थायी";
 "settings.row.deleteAccount" = "खाता हटाएं";
-"settings.row.workspaceSettings" = "कार्यस्थान सेटिंग्स";
-"settings.row.accountSettings" = "खाता सेटिंग्स";
 "settings.row.thisDevice" = "डिवाइस";
 "settings.row.access" = "एक्सेस";
 "settings.row.access.itemCount" = "4 आइटम";
@@ -270,20 +268,7 @@
 "settings.access.guidance.limited" = "इस पहुंच की समीक्षा या विस्तार करने के लिए सेटिंग्स खोलें।";
 "settings.access.guidance.unavailable" = "यह एक्सेस वर्तमान डिवाइस पर उपलब्ध नहीं है.";
 
-"settings.account.title" = "खाता सेटिंग";
-"settings.account.row.accountStatus" = "खाता स्थिति";
-"settings.account.row.legal" = "कानूनी";
-"settings.account.row.support" = "समर्थन";
-"settings.account.row.openSource" = "खुला स्रोत";
 "settings.account.row.openSourceValue" = "GitHub + MIT";
-"settings.account.row.advanced" = "उन्नत";
-"settings.account.row.serverValue" = "सर्वर";
-"settings.account.row.agentConnections" = "एजेंट कनेक्शन";
-"settings.account.row.agentConnectionsValue" = "कनेक्शन्स";
-"settings.account.row.dangerZone" = "ख़तरा क्षेत्र";
-"settings.account.row.dangerZoneValue" = "हटाएं";
-"settings.account.section.support" = "समर्थन";
-"settings.account.section.connections" = "कनेक्शन्स";
 "settings.account.status.title" = "खाता स्थिति";
 "settings.account.status.section.accountStatus" = "खाता स्थिति";
 "settings.account.status.state" = "स्थिति";
@@ -365,11 +350,7 @@
 "settings.account.openSource.thirdPartyNoticeWiltedFlowerSource" = "मुरझाए फूल एसेट स्रोत";
 "settings.account.openSource.thirdPartyNoticeLicense" = "Creative Commons Attribution 4.0";
 
-"settings.account.advanced.title" = "उन्नत";
-"settings.account.advanced.section.advanced" = "उन्नत";
-"settings.account.advanced.description" = "ये सेटिंग्स उन तकनीकी उपयोगकर्ताओं के लिए हैं जो ठीक से जानते हैं कि वे किस सर्वर का उपयोग करना चाहते हैं।";
 "settings.account.advanced.server" = "सर्वर";
-"settings.account.advanced.serverValue" = "कस्टम डोमेन";
 
 "settings.account.agentConnections.title" = "एजेंट कनेक्शन";
 "settings.account.agentConnections.section.agentConnections" = "एजेंट कनेक्शन";
@@ -460,31 +441,20 @@
 "settings.account.server.confirmationButton.reset" = "डिस्कनेक्ट और रीसेट करें";
 "settings.account.server.confirmationMessage" = "यह डिवाइस वर्तमान सर्वर से डिस्कनेक्ट हो जाएगा. स्थानीय डेटा इस डिवाइस पर रहता है, सिंक्रोनाइज़ेशन स्वचालित रूप से प्रारंभ नहीं होगा और आपको मैन्युअल रूप से फिर से लॉग इन करना होगा।";
 
-"settings.workspace.title" = "कार्यस्थान सेटिंग्स";
-"settings.workspace.row.overview" = "सारांश";
 "settings.workspace.row.decks" = "डेक";
 "settings.workspace.row.tags" = "टैग";
-"settings.workspace.row.scheduler" = "प्रोग्रामर";
-"settings.workspace.row.notifications" = "सूचनाएं";
 "settings.workspace.row.export" = "निर्यात";
-"settings.workspace.section.workspaceData" = "कार्यस्थान डेटा";
-"settings.workspace.section.settings" = "सेटिंग्स";
-"settings.workspace.section.dangerZone" = "ख़तरा क्षेत्र";
 "settings.workspace.resetProgressDescription" = "इस कार्यक्षेत्र में प्रत्येक कार्ड के लिए अध्ययन प्रगति को स्थायी रूप से रीसेट करता है।";
 "settings.workspace.resetAllProgress" = "सभी प्रगति रीसेट करें";
 "settings.workspace.resetAlertTitle" = "सभी प्रगति रीसेट करें?";
 "settings.workspace.resetAlertMessage" = "यह वर्तमान कार्यक्षेत्र में सभी कार्डों की अध्ययन प्रगति को स्थायी रूप से रीसेट करता है।";
 
-"settings.workspace.overview.section.workspace" = "कार्यक्षेत्र";
 "settings.workspace.overview.workspaceName" = "कार्यस्थल का नाम";
 "settings.workspace.overview.saveName" = "नाम सहेजें";
 "settings.workspace.overview.workspace" = "कार्यक्षेत्र";
 "settings.workspace.overview.cards" = "कार्ड";
-"settings.workspace.overview.section.today" = "आज";
 "settings.workspace.overview.due" = "देय";
 "settings.workspace.overview.new" = "नया";
-"settings.workspace.overview.reviewed" = "समीक्षित";
-"settings.workspace.overview.linkedOnly" = "कार्यस्थान का नाम बदलना और हटाना केवल लिंक किए गए क्लाउड कार्यस्थानों के लिए उपलब्ध है।";
 "settings.workspace.overview.deleteDescription" = "इस कार्यक्षेत्र और इसमें मौजूद सभी कार्ड, डेक, समीक्षा और सिंक इतिहास को स्थायी रूप से हटा दें।";
 "settings.workspace.overview.deleteWorkspace" = "कार्यस्थान हटाएं";
 "settings.workspace.overview.deleteAlertTitle" = "यह कार्यस्थान हटाएं?";

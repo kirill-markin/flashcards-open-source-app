@@ -156,8 +156,6 @@
 "settings.row.deleteCurrentWorkspace" = "حذف مساحة العمل الحالية";
 "settings.row.permanent.value" = "دائم";
 "settings.row.deleteAccount" = "حذف الحساب";
-"settings.row.workspaceSettings" = "إعدادات مساحة العمل";
-"settings.row.accountSettings" = "إعدادات الحساب";
 "settings.row.thisDevice" = "الجهاز";
 "settings.row.access" = "الوصول";
 "settings.row.access.itemCount" = "4 عناصر";
@@ -270,20 +268,7 @@
 "settings.access.guidance.limited" = "افتح \"الإعدادات\" لمراجعة هذا الوصول أو توسيعه.";
 "settings.access.guidance.unavailable" = "هذا الوصول غير متاح على الجهاز الحالي.";
 
-"settings.account.title" = "إعدادات الحساب";
-"settings.account.row.accountStatus" = "حالة الحساب";
-"settings.account.row.legal" = "الشؤون القانونية";
-"settings.account.row.support" = "الدعم";
-"settings.account.row.openSource" = "مفتوح المصدر";
 "settings.account.row.openSourceValue" = "جيثب + معهد ماساتشوستس للتكنولوجيا";
-"settings.account.row.advanced" = "متقدم";
-"settings.account.row.serverValue" = "الخادم";
-"settings.account.row.agentConnections" = "اتصالات الوكيل";
-"settings.account.row.agentConnectionsValue" = "الاتصالات";
-"settings.account.row.dangerZone" = "منطقة الخطر";
-"settings.account.row.dangerZoneValue" = "حذف";
-"settings.account.section.support" = "الدعم";
-"settings.account.section.connections" = "الاتصالات";
 "settings.account.status.title" = "حالة الحساب";
 "settings.account.status.section.accountStatus" = "حالة الحساب";
 "settings.account.status.state" = "الحالة";
@@ -365,11 +350,7 @@
 "settings.account.openSource.thirdPartyNoticeWiltedFlowerSource" = "مصدر الزهرة الذابلة";
 "settings.account.openSource.thirdPartyNoticeLicense" = "Creative Commons Attribution 4.0";
 
-"settings.account.advanced.title" = "متقدم";
-"settings.account.advanced.section.advanced" = "متقدم";
-"settings.account.advanced.description" = "هذه الإعدادات مخصصة للمستخدمين التقنيين الذين يعرفون بالضبط الخادم الذي يريدون استخدامه.";
 "settings.account.advanced.server" = "الخادم";
-"settings.account.advanced.serverValue" = "المجال المخصص";
 
 "settings.account.agentConnections.title" = "اتصالات الوكيل";
 "settings.account.agentConnections.section.agentConnections" = "اتصالات الوكيل";
@@ -460,31 +441,20 @@
 "settings.account.server.confirmationButton.reset" = "قطع الاتصال وإعادة التعيين";
 "settings.account.server.confirmationMessage" = "سيتم قطع اتصال هذا الجهاز بالخادم الحالي. تظل البيانات المحلية موجودة على هذا الجهاز، ولن تبدأ المزامنة تلقائيًا وسيتعين عليك تسجيل الدخول مرة أخرى يدويًا.";
 
-"settings.workspace.title" = "إعدادات مساحة العمل";
-"settings.workspace.row.overview" = "ملخص";
 "settings.workspace.row.decks" = "المجموعات";
 "settings.workspace.row.tags" = "العلامات";
-"settings.workspace.row.scheduler" = "مبرمج";
-"settings.workspace.row.notifications" = "الإخطارات";
 "settings.workspace.row.export" = "تصدير";
-"settings.workspace.section.workspaceData" = "بيانات مساحة العمل";
-"settings.workspace.section.settings" = "الإعدادات";
-"settings.workspace.section.dangerZone" = "منطقة الخطر";
 "settings.workspace.resetProgressDescription" = "يعيد تعيين تقدم الدراسة لكل بطاقة في مساحة العمل هذه بشكل دائم.";
 "settings.workspace.resetAllProgress" = "إعادة تعيين كل التقدم";
 "settings.workspace.resetAlertTitle" = "هل تريد إعادة ضبط كل التقدم؟";
 "settings.workspace.resetAlertMessage" = "يؤدي هذا إلى إعادة تعيين تقدم الدراسة لكافة البطاقات الموجودة في مساحة العمل الحالية بشكل دائم.";
 
-"settings.workspace.overview.section.workspace" = "مساحة العمل";
 "settings.workspace.overview.workspaceName" = "اسم مساحة العمل";
 "settings.workspace.overview.saveName" = "حفظ الاسم";
 "settings.workspace.overview.workspace" = "مساحة العمل";
 "settings.workspace.overview.cards" = "البطاقات";
-"settings.workspace.overview.section.today" = "اليوم";
 "settings.workspace.overview.due" = "مستحقة";
 "settings.workspace.overview.new" = "جديد";
-"settings.workspace.overview.reviewed" = "تمت المراجعة";
-"settings.workspace.overview.linkedOnly" = "إعادة تسمية مساحة العمل وحذفها متاحة فقط لمساحات العمل السحابية المرتبطة.";
 "settings.workspace.overview.deleteDescription" = "احذف مساحة العمل هذه نهائيًا وكل البطاقات والمجموعات والمراجعات ومحفوظات المزامنة التي تحتوي عليها.";
 "settings.workspace.overview.deleteWorkspace" = "حذف مساحة العمل";
 "settings.workspace.overview.deleteAlertTitle" = "هل تريد حذف مساحة العمل هذه؟";

@@ -156,8 +156,6 @@
 "settings.row.deleteCurrentWorkspace" = "删除当前工作空间";
 "settings.row.permanent.value" = "永久";
 "settings.row.deleteAccount" = "删除账户";
-"settings.row.workspaceSettings" = "工作区设置";
-"settings.row.accountSettings" = "账户设置";
 "settings.row.thisDevice" = "设备";
 "settings.row.access" = "访问";
 "settings.row.access.itemCount" = "4 件";
@@ -270,20 +268,7 @@
 "settings.access.guidance.limited" = "打开“设置”以查看或扩展此访问权限。";
 "settings.access.guidance.unavailable" = "此访问在当前设备上不可用。";
 
-"settings.account.title" = "账户设置";
-"settings.account.row.accountStatus" = "账户状态";
-"settings.account.row.legal" = "法律";
-"settings.account.row.support" = "支持";
-"settings.account.row.openSource" = "开源";
 "settings.account.row.openSourceValue" = "GitHub + MIT";
-"settings.account.row.advanced" = "高级";
-"settings.account.row.serverValue" = "服务器";
-"settings.account.row.agentConnections" = "代理连接";
-"settings.account.row.agentConnectionsValue" = "连接";
-"settings.account.row.dangerZone" = "危险区域";
-"settings.account.row.dangerZoneValue" = "删除";
-"settings.account.section.support" = "支持";
-"settings.account.section.connections" = "连接";
 "settings.account.status.title" = "账户状态";
 "settings.account.status.section.accountStatus" = "账户状态";
 "settings.account.status.state" = "状态";
@@ -365,11 +350,7 @@
 "settings.account.openSource.thirdPartyNoticeWiltedFlowerSource" = "枯萎花朵素材来源";
 "settings.account.openSource.thirdPartyNoticeLicense" = "Creative Commons Attribution 4.0";
 
-"settings.account.advanced.title" = "高级";
-"settings.account.advanced.section.advanced" = "高级";
-"settings.account.advanced.description" = "这些设置适用于确切知道自己要使用哪个服务器的技术用户。";
 "settings.account.advanced.server" = "服务器";
-"settings.account.advanced.serverValue" = "自定义域名";
 
 "settings.account.agentConnections.title" = "代理连接";
 "settings.account.agentConnections.section.agentConnections" = "代理连接";
@@ -460,31 +441,20 @@
 "settings.account.server.confirmationButton.reset" = "断开连接并重置";
 "settings.account.server.confirmationMessage" = "该设备将与当前服务器断开连接。本地数据保留在此设备上，同步不会自动开始，您必须手动重新登录。";
 
-"settings.workspace.title" = "工作区设置";
-"settings.workspace.row.overview" = "摘要";
 "settings.workspace.row.decks" = "牌组";
 "settings.workspace.row.tags" = "标签";
-"settings.workspace.row.scheduler" = "调度器";
-"settings.workspace.row.notifications" = "通知";
 "settings.workspace.row.export" = "出口";
-"settings.workspace.section.workspaceData" = "工作区数据";
-"settings.workspace.section.settings" = "设置";
-"settings.workspace.section.dangerZone" = "危险区域";
 "settings.workspace.resetProgressDescription" = "永久重置此工作区中每张卡的学习进度。";
 "settings.workspace.resetAllProgress" = "重置所有进度";
 "settings.workspace.resetAlertTitle" = "重置所有进度？";
 "settings.workspace.resetAlertMessage" = "这将永久重置当前工作区中所有卡片的学习进度。";
 
-"settings.workspace.overview.section.workspace" = "工作区";
 "settings.workspace.overview.workspaceName" = "工作空间名称";
 "settings.workspace.overview.saveName" = "保存名称";
 "settings.workspace.overview.workspace" = "工作空间";
 "settings.workspace.overview.cards" = "卡";
-"settings.workspace.overview.section.today" = "今天";
 "settings.workspace.overview.due" = "到期";
 "settings.workspace.overview.new" = "新";
-"settings.workspace.overview.reviewed" = "已审核";
-"settings.workspace.overview.linkedOnly" = "工作空间重命名和删除仅适用于链接云工作空间。";
 "settings.workspace.overview.deleteDescription" = "永久删除此工作区及其包含的所有卡片、卡片组、评论和同步历史记录。";
 "settings.workspace.overview.deleteWorkspace" = "删除工作区";
 "settings.workspace.overview.deleteAlertTitle" = "删除此工作区？";

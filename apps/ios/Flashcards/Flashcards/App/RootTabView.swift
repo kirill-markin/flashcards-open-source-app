@@ -547,12 +547,8 @@ struct RootTabView: View {
             TestSettingsView()
         case .testAnimations:
             TestAnimationsView()
-        case .workspace:
-            WorkspaceSettingsView()
         case .workspaceNotifications:
             ReviewNotificationsSettingsView()
-        case .workspaceOverview:
-            WorkspaceOverviewView()
         case .workspaceScheduler:
             SchedulerSettingsDetailView()
         case .workspaceExport:
@@ -561,8 +557,6 @@ struct RootTabView: View {
             DecksScreen()
         case .workspaceTags:
             TagsScreen()
-        case .account:
-            AccountSettingsView()
         case .accountStatus:
             AccountStatusView()
         case .accountLegal:
@@ -571,8 +565,6 @@ struct RootTabView: View {
             AccountSupportView()
         case .accountOpenSource:
             AccountOpenSourceView()
-        case .accountAdvanced:
-            AccountAdvancedSettingsView()
         case .accountServer:
             ServerSettingsView()
         case .accountAgentConnections:

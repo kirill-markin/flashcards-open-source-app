@@ -290,16 +290,6 @@ extension LiveSmokeTestCase {
     }
 
     @MainActor
-    func openWorkspaceOverviewFromWorkspaceSettings() throws {
-        try self.assertScreenVisible(screen: .workspaceSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        try self.tapButtonScrollingIntoView(
-            identifier: LiveSmokeIdentifier.workspaceSettingsOverviewRow,
-            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
-        )
-        try self.assertScreenVisible(screen: .workspaceOverview, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-    }
-
-    @MainActor
     func openAccountStatus() throws {
         try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.tapButtonScrollingIntoView(
