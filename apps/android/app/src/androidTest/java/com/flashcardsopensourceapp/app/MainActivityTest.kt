@@ -776,9 +776,8 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
 
     private fun openSettingsRow(rowTag: String) {
         openSettingsTab()
-        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(
-            matcher = hasTestTag(rowTag)
-        )
+        composeRule.onNodeWithTag(testTag = settingsRootScreenTag)
+            .performScrollToNode(matcher = hasTestTag(rowTag))
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodes(
                 matcher = hasTestTag(rowTag).and(other = hasClickAction())
