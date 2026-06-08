@@ -192,6 +192,7 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         storageLabel = "Room + SQLite",
                         syncStatusText = "Local",
                         accountStatusTitle = "Not signed in",
+                        accountStatusAttentionCount = 0,
                         reviewReactionAnimationsEnabled = true,
                         canManageAccountPreferences = canManageAccountPreferences,
                         isTestModeEnabled = isTestModeEnabled

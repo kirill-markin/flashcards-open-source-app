@@ -39,6 +39,7 @@ class AccountStatusRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         isLinkingReady = false,
                         isSyncBlocked = true,
                         syncBlockedMessage = "Cloud sync is blocked for this installation.",
+                        accountStatusPrimaryActionAttentionCount = 0,
                         showLogoutConfirmation = false,
                         errorMessage = "",
                         isSubmitting = false

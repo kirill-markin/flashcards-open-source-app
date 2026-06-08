@@ -51,6 +51,10 @@ class SettingsViewModel(
         cloudAccountRepository.observeAccountPreferences(),
         testModeStore.observeIsEnabled()
     ) { metadata, cloudSettings, accountPreferences, isTestModeEnabled ->
+        val attentionSummary: SettingsAttentionSummary = makeSettingsAttentionSummary(
+            issues = makeSettingsAttentionIssues(cloudState = cloudSettings.cloudState)
+        )
+
         SettingsUiState(
             currentWorkspaceName = strings.resolveWorkspaceName(workspaceName = metadata.currentWorkspaceName),
             workspaceName = strings.resolveWorkspaceName(workspaceName = metadata.workspaceName),
@@ -64,6 +68,7 @@ class SettingsViewModel(
                 CloudAccountState.GUEST -> strings.get(R.string.settings_cloud_status_guest_ai)
                 CloudAccountState.LINKED -> cloudSettings.linkedEmail ?: strings.get(R.string.settings_cloud_status_linked)
             },
+            accountStatusAttentionCount = attentionSummary.accountStatusRowCount,
             reviewReactionAnimationsEnabled = accountPreferences.reviewReactionAnimationsEnabled,
             canManageAccountPreferences = canManageAccountPreferences(cloudState = cloudSettings.cloudState),
             isTestModeEnabled = isTestModeEnabled
@@ -79,6 +84,7 @@ class SettingsViewModel(
             storageLabel = strings.get(R.string.settings_device_storage_room_sqlite),
             syncStatusText = strings.get(R.string.settings_loading),
             accountStatusTitle = strings.get(R.string.settings_loading),
+            accountStatusAttentionCount = 1,
             reviewReactionAnimationsEnabled = true,
             canManageAccountPreferences = false,
             isTestModeEnabled = false

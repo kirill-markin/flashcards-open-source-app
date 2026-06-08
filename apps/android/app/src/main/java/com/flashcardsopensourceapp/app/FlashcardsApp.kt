@@ -84,6 +84,10 @@ import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncSource
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
 import com.flashcardsopensourceapp.feature.review.reaction.rememberReviewReactionLottieConfigurationStore
+import com.flashcardsopensourceapp.feature.settings.SettingsAttentionBadge
+import com.flashcardsopensourceapp.feature.settings.SettingsAttentionSummary
+import com.flashcardsopensourceapp.feature.settings.makeSettingsAttentionIssues
+import com.flashcardsopensourceapp.feature.settings.makeSettingsAttentionSummary
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -246,6 +250,9 @@ fun FlashcardsApp(
         val canRefreshCloudAccountContext = shouldRefreshCloudAccountContext(
             cloudState = cloudSettings.cloudState,
             accountDeletionState = accountDeletionState
+        )
+        val settingsAttentionSummary: SettingsAttentionSummary = makeSettingsAttentionSummary(
+            issues = makeSettingsAttentionIssues(cloudState = cloudSettings.cloudState)
         )
         val currentCanRunImmediateAutoSync by rememberUpdatedState(newValue = canRunImmediateAutoSync)
         val currentCanRefreshCloudAccountContext by rememberUpdatedState(newValue = canRefreshCloudAccountContext)
@@ -454,6 +461,15 @@ fun FlashcardsApp(
             layoutType = navigationSuiteType,
             navigationSuiteItems = {
                 topLevelDestinations.forEach { destination ->
+                    val settingsBadge: (@Composable () -> Unit)? =
+                        if (destination == SettingsDestination && settingsAttentionSummary.settingsTabCount > 0) {
+                            {
+                                SettingsAttentionBadge(count = settingsAttentionSummary.settingsTabCount)
+                            }
+                        } else {
+                            null
+                        }
+
                     item(
                         selected = currentDestination.route == destination.route,
                         onClick = {
@@ -490,7 +506,8 @@ fun FlashcardsApp(
                         },
                         label = {
                             Text(stringResource(destination.labelResId))
-                        }
+                        },
+                        badge = settingsBadge
                     )
                 }
             }
