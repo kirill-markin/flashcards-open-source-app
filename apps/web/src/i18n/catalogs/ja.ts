@@ -98,7 +98,7 @@ export const jaCatalog = {
     redirectingToLogin: "ログインへ移動しています...",
     restoringSession: "セッションを復元しています...",
     settings: "設定を読み込んでいます...",
-    currentWorkspace: "現在のワークスペースを読み込んでいます...",
+    currentWorkspace: "ワークスペースを読み込んでいます...",
     accessSettings: "アクセス設定を読み込んでいます...",
     accessDetails: "アクセス詳細を読み込んでいます...",
     workspaceSettings: "ワークスペース設定を読み込んでいます...",
@@ -113,7 +113,8 @@ export const jaCatalog = {
     deviceDetails: "デバイス詳細を読み込んでいます...",
     accountSettings: "アカウント設定を読み込んでいます...",
     accountStatus: "アカウント状態を読み込んでいます...",
-    legalSupport: "法務/サポート情報を読み込んでいます...",
+    legal: "法務情報を読み込んでいます...",
+    support: "サポートを読み込んでいます...",
     openSourceSettings: "オープンソース設定を読み込んでいます...",
     agentConnections: "エージェント接続を読み込んでいます...",
     dangerZone: "危険な操作を読み込んでいます...",
@@ -180,7 +181,7 @@ export const jaCatalog = {
   },
   accountMenu: {
     openButtonLabel: "アカウントメニューを開く",
-    currentWorkspaceSection: "現在のワークスペース",
+    currentWorkspaceSection: "ワークスペース",
     newWorkspace: "新しいワークスペース",
     workspaceNamePlaceholder: "ワークスペース名",
     workspaceNameRequired: "ワークスペース名は必須です",
@@ -189,7 +190,7 @@ export const jaCatalog = {
   },
   settingsTabs: {
     general: "一般",
-    currentWorkspace: "現在のワークスペース",
+    currentWorkspace: "ワークスペース",
     workspace: "ワークスペース",
     account: "アカウント",
     device: "このデバイス",
@@ -207,7 +208,7 @@ export const jaCatalog = {
       advanced: "詳細",
     },
     currentWorkspace: {
-      title: "現在のワークスペース",
+      title: "ワークスペース",
       description: "アクティブなワークスペースを切り替えるか、このアカウント用に新しいワークスペースを作成します。",
     },
     language: {
@@ -225,7 +226,7 @@ export const jaCatalog = {
       value: "アカウント",
     },
     device: {
-      title: "このデバイス / 診断",
+      title: "デバイス",
       description: "ブラウザ、ビルド、ストレージ、デバイス内ワークスペースの詳細を確認します。",
       value: "デバイス",
     },
@@ -264,7 +265,7 @@ export const jaCatalog = {
     disabledMessage: "テストバージョンが無効になりました。",
   },
   settingsCurrentWorkspace: {
-    title: "現在のワークスペース",
+    title: "ワークスペース",
     subtitle: "このブラウザでどのワークスペースをアクティブにするか選ぶか、このアカウント用に新しいワークスペースを作成します。",
     workspaceCardTitle: "ワークスペース",
     workspaceCardDescription: "アクティブなワークスペースを切り替えるか、このアカウント用に新しいワークスペースを作成します。",
@@ -274,7 +275,7 @@ export const jaCatalog = {
     createWorkspace: "ワークスペースを作成",
   },
   settingsDevice: {
-    title: "このデバイス / 診断",
+    title: "デバイス",
     subtitle: "現在のワークスペースに対するブラウザ内の挙動、ストレージ、デバイス詳細を確認します。",
     languageCardTitle: "言語の上書き設定",
     languageCardDescription: "このブラウザ専用のアプリ言語を選択します。この設定はこのデバイス内にのみ保存されます。",
@@ -863,10 +864,13 @@ export const jaCatalog = {
       description: "サインイン中のアカウントと現在のブラウザセッション状態を確認します。",
     },
     supportGroupTitle: "サポート",
-    legalSupport: {
-      title: "法務とサポート",
-      description: "プライバシー、利用規約、ホスト版サポートリンク、サポート連絡先を確認します。",
-      value: "ポリシー",
+    legal: {
+      title: "法務",
+      description: "ホスト版アプリのプライバシーと利用規約を確認します。",
+    },
+    support: {
+      title: "サポート",
+      description: "ホスト版サポートリンクとサポート連絡先を開きます。",
     },
     openSource: {
       title: "オープンソース",
@@ -902,19 +906,27 @@ export const jaCatalog = {
     },
     logout: "ログアウト",
   },
-  legalSupport: {
-    title: "法務とサポート",
-    subtitle: "ホスト版アプリのポリシーリンクとサポート連絡先を確認します。",
+  legal: {
+    title: "法務",
+    subtitle: "ホスト版アプリのポリシーリンクを確認します。",
     labels: {
       privacyPolicy: "プライバシーポリシー",
       termsOfService: "利用規約",
-      support: "サポート",
-      supportEmail: "サポートメール",
-      hostedAppHelp: "ホスト版アプリのヘルプ",
     },
     actions: {
       openPolicy: "ポリシーを開く",
       openTerms: "利用規約を開く",
+    },
+  },
+  support: {
+    title: "サポート",
+    subtitle: "ホスト版サポートリンクと連絡先を開きます。",
+    labels: {
+      supportPage: "サポート",
+      supportEmail: "サポートメール",
+      hostedAppHelp: "ホスト版アプリのヘルプ",
+    },
+    actions: {
       openSupport: "サポートを開く",
     },
     hostedHelpDescription: "ホスト版アプリに関する質問、アカウント削除の案内、請求やアクセスのフォローアップにはサポートページを利用してください。",

@@ -71,7 +71,8 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
 
         try self.assertTextExistsScrollingIntoView("Support", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         try self.assertElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsFeedbackRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
-        try self.assertElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsLegalSupportRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsLegalRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsSupportRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         try self.assertElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsOpenSourceRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
 
         try self.assertTextExistsScrollingIntoView("Advanced", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
@@ -236,14 +237,14 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
     // routes the tap into a side-swipe hint instead of executing the default action.
 
     @MainActor
-    // TODO: Flatten the Current Workspace flow.
-    // Settings currently opens Current Workspace, which then requires another tap on
+    // TODO: Flatten the Workspace flow.
+    // Settings currently opens Workspace, which then requires another tap on
     // an inner Workspace row before the chooser appears. Replace that nested flow
     // with a direct workspace chooser surface, then restore this smoke test and
     // make it verify linked-workspace creation and persistence again.
     func testLiveSmokeLoginAndLinkedWorkspaceFlow() throws {
         throw XCTSkip(
-            "TODO: Restore after flattening the nested Current Workspace -> Workspace flow and reworking the linked-workspace smoke path."
+            "TODO: Restore after flattening the nested Workspace flow and reworking the linked-workspace smoke path."
         )
     }
 

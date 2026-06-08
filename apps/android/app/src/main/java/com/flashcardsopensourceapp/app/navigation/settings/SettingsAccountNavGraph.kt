@@ -11,8 +11,9 @@ import androidx.navigation.navigation
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.feature.settings.account.AccountAdvancedRoute
 import com.flashcardsopensourceapp.feature.settings.account.AccountDangerZoneRoute
-import com.flashcardsopensourceapp.feature.settings.account.AccountLegalSupportRoute
+import com.flashcardsopensourceapp.feature.settings.account.AccountLegalRoute
 import com.flashcardsopensourceapp.feature.settings.account.AccountOpenSourceRoute
+import com.flashcardsopensourceapp.feature.settings.account.AccountSupportRoute
 import com.flashcardsopensourceapp.feature.settings.account.AccountRoute
 import com.flashcardsopensourceapp.feature.settings.account.AccountStatusRoute
 import com.flashcardsopensourceapp.feature.settings.account.createAccountDangerZoneViewModelFactory
@@ -59,8 +60,11 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
                 onOpenStatus = {
                     navController.navigate(route = SettingsAccountStatusDestination.route)
                 },
-                onOpenLegalSupport = {
-                    navController.navigate(route = SettingsAccountLegalSupportDestination.route)
+                onOpenLegal = {
+                    navController.navigate(route = SettingsAccountLegalDestination.route)
+                },
+                onOpenSupport = {
+                    navController.navigate(route = SettingsAccountSupportDestination.route)
                 },
                 onOpenOpenSource = {
                     navController.navigate(route = SettingsAccountOpenSourceDestination.route)
@@ -161,8 +165,16 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
             )
         }
 
-        composable(route = SettingsAccountLegalSupportDestination.route) {
-            AccountLegalSupportRoute(
+        composable(route = SettingsAccountLegalDestination.route) {
+            AccountLegalRoute(
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(route = SettingsAccountSupportDestination.route) {
+            AccountSupportRoute(
                 onBack = {
                     navController.popBackStack()
                 }

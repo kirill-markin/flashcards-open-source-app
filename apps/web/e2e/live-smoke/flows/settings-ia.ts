@@ -7,6 +7,8 @@ import {
 } from "../../live-smoke.actions";
 import {
   accountStatusRoute,
+  accountLegalRoute,
+  accountSupportRoute,
   settingsAccessRoute,
   settingsCurrentWorkspaceRoute,
   settingsDeviceRoute,
@@ -34,7 +36,7 @@ const settingsDetailTargets: ReadonlyArray<SettingsDetailTarget> = [
   {
     rowTestId: "settings-row-current-workspace",
     route: settingsCurrentWorkspaceRoute,
-    actionName: "open Current workspace settings",
+    actionName: "open Workspace settings",
   },
   {
     rowTestId: "settings-row-language",
@@ -64,7 +66,17 @@ const settingsDetailTargets: ReadonlyArray<SettingsDetailTarget> = [
   {
     rowTestId: "settings-row-device-diagnostics",
     route: settingsDeviceRoute,
-    actionName: "open This device / diagnostics settings",
+    actionName: "open Device settings",
+  },
+  {
+    rowTestId: "settings-row-legal",
+    route: accountLegalRoute,
+    actionName: "open Legal settings",
+  },
+  {
+    rowTestId: "settings-row-support",
+    route: accountSupportRoute,
+    actionName: "open Support settings",
   },
 ];
 
@@ -78,7 +90,8 @@ const rootRowTestIds: ReadonlyArray<string> = [
   "settings-row-tags",
   "settings-row-export",
   "settings-row-feedback",
-  "settings-row-legal-support",
+  "settings-row-legal",
+  "settings-row-support",
   "settings-row-open-source",
   "settings-row-scheduling",
   "settings-row-agent-connections",

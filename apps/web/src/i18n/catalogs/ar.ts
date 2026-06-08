@@ -98,7 +98,7 @@ const arCatalog: TranslationCatalog = {
     redirectingToLogin: "جارٍ إعادة التوجيه إلى تسجيل الدخول...",
     restoringSession: "جارٍ استعادة الجلسة...",
     settings: "جارٍ تحميل الإعدادات...",
-    currentWorkspace: "جارٍ تحميل مساحة العمل الحالية...",
+    currentWorkspace: "جارٍ تحميل مساحة العمل...",
     accessSettings: "جارٍ تحميل إعدادات الوصول...",
     accessDetails: "جارٍ تحميل تفاصيل الوصول...",
     workspaceSettings: "جارٍ تحميل إعدادات مساحة العمل...",
@@ -113,7 +113,8 @@ const arCatalog: TranslationCatalog = {
     deviceDetails: "جارٍ تحميل تفاصيل الجهاز...",
     accountSettings: "جارٍ تحميل إعدادات الحساب...",
     accountStatus: "جارٍ تحميل حالة الحساب...",
-    legalSupport: "جارٍ تحميل الشؤون القانونية والدعم...",
+    legal: "جارٍ تحميل الشؤون القانونية...",
+    support: "جارٍ تحميل الدعم...",
     openSourceSettings: "جارٍ تحميل إعدادات المصدر المفتوح...",
     agentConnections: "جارٍ تحميل اتصالات الوكلاء...",
     dangerZone: "جارٍ تحميل منطقة الخطر...",
@@ -180,7 +181,7 @@ const arCatalog: TranslationCatalog = {
   },
   accountMenu: {
     openButtonLabel: "افتح قائمة الحساب",
-    currentWorkspaceSection: "مساحة العمل الحالية",
+    currentWorkspaceSection: "مساحة العمل",
     newWorkspace: "مساحة عمل جديدة",
     workspaceNamePlaceholder: "اسم مساحة العمل",
     workspaceNameRequired: "اسم مساحة العمل مطلوب",
@@ -189,7 +190,7 @@ const arCatalog: TranslationCatalog = {
   },
   settingsTabs: {
     general: "عام",
-    currentWorkspace: "مساحة العمل الحالية",
+    currentWorkspace: "مساحة العمل",
     workspace: "مساحة العمل",
     account: "الحساب",
     device: "هذا الجهاز",
@@ -207,7 +208,7 @@ const arCatalog: TranslationCatalog = {
       advanced: "متقدم",
     },
     currentWorkspace: {
-      title: "مساحة العمل الحالية",
+      title: "مساحة العمل",
       description: "غيّر مساحة العمل النشطة أو أنشئ مساحة عمل جديدة لهذا الحساب.",
     },
     language: {
@@ -225,7 +226,7 @@ const arCatalog: TranslationCatalog = {
       value: "الحساب",
     },
     device: {
-      title: "هذا الجهاز / التشخيصات",
+      title: "الجهاز",
       description: "راجع المتصفح والإصدار والبناء وتفاصيل مساحة العمل المحلية على الجهاز.",
       value: "الجهاز",
     },
@@ -264,7 +265,7 @@ const arCatalog: TranslationCatalog = {
     disabledMessage: "تم تعطيل إصدار الاختبار.",
   },
   settingsCurrentWorkspace: {
-    title: "مساحة العمل الحالية",
+    title: "مساحة العمل",
     subtitle: "اختر مساحة العمل النشطة في هذا المتصفح أو أنشئ مساحة عمل جديدة لهذا الحساب.",
     workspaceCardTitle: "مساحة العمل",
     workspaceCardDescription: "غيّر مساحة العمل النشطة أو أنشئ مساحة عمل جديدة لهذا الحساب.",
@@ -274,7 +275,7 @@ const arCatalog: TranslationCatalog = {
     createWorkspace: "أنشئ مساحة عمل",
   },
   settingsDevice: {
-    title: "هذا الجهاز / التشخيصات",
+    title: "الجهاز",
     subtitle: "راجع سلوك المتصفح المحلي والتخزين وتفاصيل الجهاز لمساحة العمل الحالية.",
     languageCardTitle: "تجاوز اللغة",
     languageCardDescription: "اختر لغة التطبيق لهذا المتصفح فقط. يبقى هذا التفضيل محليًا على هذا الجهاز.",
@@ -863,10 +864,13 @@ const arCatalog: TranslationCatalog = {
       description: "راجع الحساب الذي تم تسجيل الدخول به وحالة جلسة المتصفح الحالية.",
     },
     supportGroupTitle: "الدعم",
-    legalSupport: {
-      title: "الشؤون القانونية والدعم",
-      description: "راجع الخصوصية والشروط وروابط الدعم المستضاف وتفاصيل التواصل مع الدعم.",
-      value: "السياسات",
+    legal: {
+      title: "الشؤون القانونية",
+      description: "راجع الخصوصية والشروط للتطبيق المستضاف.",
+    },
+    support: {
+      title: "الدعم",
+      description: "افتح روابط الدعم المستضاف وتفاصيل التواصل مع الدعم.",
     },
     openSource: {
       title: "المصدر المفتوح",
@@ -902,19 +906,27 @@ const arCatalog: TranslationCatalog = {
     },
     logout: "تسجيل الخروج",
   },
-  legalSupport: {
-    title: "الشؤون القانونية والدعم",
-    subtitle: "راجع روابط السياسات وتفاصيل التواصل مع الدعم للتطبيق المستضاف.",
+  legal: {
+    title: "الشؤون القانونية",
+    subtitle: "راجع روابط السياسات للتطبيق المستضاف.",
     labels: {
       privacyPolicy: "سياسة الخصوصية",
       termsOfService: "شروط الخدمة",
-      support: "الدعم",
-      supportEmail: "بريد الدعم الإلكتروني",
-      hostedAppHelp: "مساعدة التطبيق المستضاف",
     },
     actions: {
       openPolicy: "فتح السياسة",
       openTerms: "فتح الشروط",
+    },
+  },
+  support: {
+    title: "الدعم",
+    subtitle: "افتح روابط الدعم المستضاف وتفاصيل التواصل.",
+    labels: {
+      supportPage: "الدعم",
+      supportEmail: "بريد الدعم الإلكتروني",
+      hostedAppHelp: "مساعدة التطبيق المستضاف",
+    },
+    actions: {
       openSupport: "فتح الدعم",
     },
     hostedHelpDescription: "استخدم صفحة الدعم للأسئلة المتعلقة بالتطبيق المستضاف، والمساعدة في حذف الحساب، ومتابعة الفوترة أو الوصول.",

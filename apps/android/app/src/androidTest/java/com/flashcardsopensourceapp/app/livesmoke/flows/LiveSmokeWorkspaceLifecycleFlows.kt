@@ -80,7 +80,7 @@ internal data class EphemeralWorkspaceHandle(
 )
 
 internal fun LiveSmokeContext.createEphemeralWorkspace(workspaceName: String): EphemeralWorkspaceHandle {
-    openSettingsRow(rowTag = settingsCurrentWorkspaceRowTag, rowLabel = "Current Workspace")
+    openSettingsRow(rowTag = settingsCurrentWorkspaceRowTag, rowLabel = "Workspace")
     waitForCurrentWorkspaceScreenToSettle()
     waitUntilAtLeastOneExistsOrFail(
         matcher = hasText("Create new workspace"),
@@ -125,7 +125,7 @@ internal fun LiveSmokeContext.createEphemeralWorkspace(workspaceName: String): E
         context = "after renaming the linked workspace"
     )
     tapBackIcon()
-    openSettingsRow(rowTag = settingsCurrentWorkspaceRowTag, rowLabel = "Current Workspace")
+    openSettingsRow(rowTag = settingsCurrentWorkspaceRowTag, rowLabel = "Workspace")
     waitForCurrentWorkspaceScreenToSettle()
     waitForCurrentWorkspaceName(expectedWorkspaceName = workspaceName)
     tapBackIcon()
@@ -146,7 +146,7 @@ internal fun LiveSmokeContext.deleteEphemeralWorkspace(workspaceHandle: Ephemera
         workspaceHandle = workspaceHandle,
         timeoutMillis = externalUiTimeoutMillis
     )
-    openSettingsRow(rowTag = settingsCurrentWorkspaceRowTag, rowLabel = "Current Workspace")
+    openSettingsRow(rowTag = settingsCurrentWorkspaceRowTag, rowLabel = "Workspace")
     waitForCurrentWorkspaceScreenToSettle()
     waitUntilAtLeastOneExistsOrFail(
         matcher = hasText("Create new workspace"),
@@ -186,7 +186,7 @@ internal fun LiveSmokeContext.deleteEphemeralWorkspace(workspaceHandle: Ephemera
         context = "after deleting the isolated linked workspace"
     )
     tapBackIcon()
-    openSettingsRow(rowTag = settingsCurrentWorkspaceRowTag, rowLabel = "Current Workspace")
+    openSettingsRow(rowTag = settingsCurrentWorkspaceRowTag, rowLabel = "Workspace")
     waitForCurrentWorkspaceScreenToSettle()
     try {
         waitUntilWithMitigation(
@@ -248,7 +248,7 @@ internal fun LiveSmokeContext.forceLinkedSyncAndWaitForWorkspace(
         context = "after forcing linked sync before cleanup"
     )
 
-    openSettingsRow(rowTag = settingsCurrentWorkspaceRowTag, rowLabel = "Current Workspace")
+    openSettingsRow(rowTag = settingsCurrentWorkspaceRowTag, rowLabel = "Workspace")
     waitForCurrentWorkspaceScreenToSettle()
     waitForCurrentWorkspaceName(expectedWorkspaceName = workspaceHandle.workspaceName)
     waitForSelectedWorkspaceSummary(
@@ -392,10 +392,10 @@ private fun LiveSmokeContext.waitForCurrentWorkspaceOperationToFinish() {
         }
     } catch (error: Throwable) {
         throw AssertionError(
-            "Current workspace operation did not finish. " +
+            "Workspace operation did not finish. " +
                 "Operation=${currentWorkspaceOperationMessageOrNull()} " +
                 "SelectedRow=${selectedWorkspaceSummaryOrNull()} " +
-                "Current workspace name=${currentWorkspaceNameOrNull()} " +
+                "WorkspaceName=${currentWorkspaceNameOrNull()} " +
                 "Error=${currentWorkspaceErrorMessageOrNull()}",
             error
         )
@@ -415,10 +415,10 @@ private fun LiveSmokeContext.waitForCurrentWorkspaceOperationToLeaveSwitchingSta
         }
     } catch (error: Throwable) {
         throw AssertionError(
-            "Current workspace operation stayed in SWITCHING without progressing. " +
+            "Workspace operation stayed in SWITCHING without progressing. " +
                 "Operation=${currentWorkspaceOperationMessageOrNull()} " +
                 "SelectedRow=${selectedWorkspaceSummaryOrNull()} " +
-                "Current workspace name=${currentWorkspaceNameOrNull()} " +
+                "WorkspaceName=${currentWorkspaceNameOrNull()} " +
                 "Error=${currentWorkspaceErrorMessageOrNull()}",
             error
         )
@@ -436,7 +436,7 @@ private fun LiveSmokeContext.waitForCurrentWorkspaceRenameOutcome(expectedWorksp
         }
     } catch (error: Throwable) {
         throw AssertionError(
-            "Workspace rename did not persist on the Current Workspace screen. " +
+            "Workspace rename did not persist on the Workspace screen. " +
                 "FieldValue=${currentWorkspaceNameFieldValueOrNull()} " +
                 "Error=${currentWorkspaceErrorMessageOrNull()}",
             error
@@ -466,7 +466,7 @@ private fun LiveSmokeContext.waitForCurrentWorkspaceRenameReady(
         }
     } catch (error: Throwable) {
         throw AssertionError(
-            "Current workspace rename controls did not settle $context. " +
+            "Workspace rename controls did not settle $context. " +
                 "ExpectedWorkspaceName=$expectedWorkspaceName " +
                 "FieldValue=${currentWorkspaceNameFieldValueOrNull()} " +
                 "Error=${currentWorkspaceErrorMessageOrNull()}",

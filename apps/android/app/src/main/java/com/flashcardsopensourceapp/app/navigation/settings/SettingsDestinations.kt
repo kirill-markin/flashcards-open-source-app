@@ -124,8 +124,12 @@ data object SettingsAccountPostAuthDestination {
     const val route: String = "settings/account/sign-in/post-auth"
 }
 
-data object SettingsAccountLegalSupportDestination {
-    const val route: String = "settings/account/legal-support"
+data object SettingsAccountLegalDestination {
+    const val route: String = "settings/account/legal"
+}
+
+data object SettingsAccountSupportDestination {
+    const val route: String = "settings/account/support"
 }
 
 data object SettingsAccountOpenSourceDestination {

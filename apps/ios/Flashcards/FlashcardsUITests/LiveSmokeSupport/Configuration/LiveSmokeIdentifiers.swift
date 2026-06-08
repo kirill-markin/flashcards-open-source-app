@@ -33,7 +33,8 @@ enum LiveSmokeIdentifier {
     static let settingsTagsRow: String = "settings.tagsRow"
     static let settingsExportRow: String = "settings.exportRow"
     static let settingsFeedbackRow: String = "settings.feedbackRow"
-    static let settingsLegalSupportRow: String = "settings.legalSupportRow"
+    static let settingsLegalRow: String = "settings.legalRow"
+    static let settingsSupportRow: String = "settings.supportRow"
     static let settingsOpenSourceRow: String = "settings.openSourceRow"
     static let settingsSchedulingRow: String = "settings.schedulingRow"
     static let settingsAgentConnectionsRow: String = "settings.agentConnectionsRow"
@@ -383,7 +384,7 @@ enum LiveSmokeScreen: CaseIterable {
         case .cloudSignInPostAuthFailure:
             return "Cloud Sign In Post-Auth Failure"
         case .currentWorkspace:
-            return "Current Workspace"
+            return "Workspace"
         case .reviewAnimationsSettings:
             return "Review Animations"
         case .languageSettings:

@@ -565,8 +565,10 @@ struct RootTabView: View {
             AccountSettingsView()
         case .accountStatus:
             AccountStatusView()
-        case .accountLegalSupport:
-            AccountLegalSupportView()
+        case .accountLegal:
+            AccountLegalView()
+        case .accountSupport:
+            AccountSupportView()
         case .accountOpenSource:
             AccountOpenSourceView()
         case .accountAdvanced:

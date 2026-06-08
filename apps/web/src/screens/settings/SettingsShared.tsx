@@ -14,7 +14,7 @@ type SettingsShellProps = Readonly<{
 type SettingsNavigationCardProps = Readonly<{
   title: string;
   description: string;
-  value: string;
+  value: string | null;
   to: string;
   testId?: string;
 }>;
@@ -22,7 +22,7 @@ type SettingsNavigationCardProps = Readonly<{
 type SettingsActionCardProps = Readonly<{
   title: string;
   description: string;
-  value: string;
+  value: string | null;
   onClick: () => void;
   testId?: string;
   isMuted?: boolean;
@@ -66,7 +66,7 @@ export function SettingsNavigationCard(props: SettingsNavigationCardProps): Reac
         <strong className="panel-subtitle">{title}</strong>
         <p className="subtitle">{description}</p>
       </div>
-      <span className="badge">{value}</span>
+      {value === null ? null : <span className="badge">{value}</span>}
     </Link>
   );
 }
@@ -88,7 +88,7 @@ export function SettingsActionCard(props: SettingsActionCardProps): ReactElement
         <strong className="panel-subtitle">{title}</strong>
         <p className="subtitle">{description}</p>
       </div>
-      <span className="badge">{value}</span>
+      {value === null ? null : <span className="badge">{value}</span>}
     </button>
   );
 }

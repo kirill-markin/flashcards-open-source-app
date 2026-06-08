@@ -131,7 +131,7 @@
 "settings.section.support" = "सहायता";
 "settings.section.advanced" = "उन्नत";
 "settings.row.accountStatus" = "खाता स्थिति";
-"settings.row.currentWorkspace" = "वर्तमान कार्यक्षेत्र";
+"settings.row.currentWorkspace" = "वर्कस्पेस";
 "settings.row.reviewReminders" = "समीक्षा रिमाइंडर";
 "settings.row.reviewReminders.value" = "यह डिवाइस";
 "settings.row.reviewAnimations" = "समीक्षा एनिमेशन";
@@ -142,15 +142,15 @@
 "settings.row.workspaceScoped.value" = "कार्यस्थान";
 "settings.row.tags" = "टैग";
 "settings.row.export" = "निर्यात";
-"settings.row.legalSupport" = "कानूनी और सहायता";
+"settings.row.legal" = "कानूनी";
+"settings.row.support" = "समर्थन";
 "settings.row.openSource" = "ओपन सोर्स";
 "settings.row.scheduling" = "शेड्यूलिंग / FSRS";
 "settings.row.agentConnections" = "एजेंट कनेक्शन";
 "settings.row.agentConnections.value" = "API कुंजियां";
 "settings.row.server" = "सर्वर";
 "settings.row.server.value" = "डोमेन";
-"settings.row.deviceDiagnostics" = "यह डिवाइस / डायग्नोस्टिक्स";
-"settings.row.deviceDiagnostics.value" = "SwiftUI + SQLite";
+"settings.row.deviceDiagnostics" = "डिवाइस";
 "settings.row.resetStudyProgress" = "अध्ययन प्रगति रीसेट करें";
 "settings.row.resetStudyProgress.value" = "प्रगति";
 "settings.row.deleteCurrentWorkspace" = "वर्तमान कार्यस्थान हटाएं";
@@ -158,7 +158,7 @@
 "settings.row.deleteAccount" = "खाता हटाएं";
 "settings.row.workspaceSettings" = "कार्यस्थान सेटिंग्स";
 "settings.row.accountSettings" = "खाता सेटिंग्स";
-"settings.row.thisDevice" = "यह डिवाइस";
+"settings.row.thisDevice" = "डिवाइस";
 "settings.row.access" = "एक्सेस";
 "settings.row.access.itemCount" = "4 आइटम";
 "settings.section.test" = "टेस्ट";
@@ -207,7 +207,7 @@
 "settings.sync.recoveryGate.eraseAlert.confirm" = "स्थानीय डेटा मिटाएं";
 "settings.sync.recoveryGate.erasing" = "स्थानीय डेटा मिटाया जा रहा है...";
 
-"settings.currentWorkspace.title" = "वर्तमान कार्यक्षेत्र";
+"settings.currentWorkspace.title" = "वर्कस्पेस";
 "settings.currentWorkspace.row.workspace" = "कार्यक्षेत्र";
 "settings.currentWorkspace.loadingWorkspaces" = "कार्यस्थान लोड हो रहा है...";
 "settings.currentWorkspace.loadError" = "लिंक किए गए कार्यस्थान लोड नहीं किए जा सके.";
@@ -217,8 +217,8 @@
 "settings.currentWorkspace.createNew" = "नया कार्यक्षेत्र बनाएं";
 "settings.currentWorkspace.createFromCurrent" = "\\\"%@\\\" से एक नया कार्यक्षेत्र बनाएं";
 
-"settings.thisDevice.title" = "यह डिवाइस";
-"settings.thisDevice.section.thisDevice" = "यह डिवाइस";
+"settings.thisDevice.title" = "डिवाइस";
+"settings.thisDevice.section.thisDevice" = "डिवाइस";
 "settings.thisDevice.workspace" = "कार्यक्षेत्र";
 "settings.thisDevice.operatingSystem" = "ऑपरेटिंग सिस्टम";
 "settings.thisDevice.deviceModel" = "डिवाइस मॉडल";
@@ -271,8 +271,8 @@
 
 "settings.account.title" = "खाता सेटिंग";
 "settings.account.row.accountStatus" = "खाता स्थिति";
-"settings.account.row.legalSupport" = "कानूनी और समर्थन";
-"settings.account.row.legalSupportValue" = "गोपनीयता + समर्थन";
+"settings.account.row.legal" = "कानूनी";
+"settings.account.row.support" = "समर्थन";
 "settings.account.row.openSource" = "खुला स्रोत";
 "settings.account.row.openSourceValue" = "GitHub + MIT";
 "settings.account.row.advanced" = "उन्नत";
@@ -290,7 +290,7 @@
 "settings.account.status.linkedEmail" = "लिंक किया गया ईमेल";
 "settings.account.status.syncStatus" = "सिंक्रनाइज़ेशन स्थिति";
 "settings.account.status.lastSync" = "अंतिम सिंक्रनाइज़ेशन";
-"settings.account.status.description" = "अतिथि और लिंक किए गए खाते क्लाउड का उपयोग करके वर्तमान कार्यक्षेत्र को सिंक करते हैं। लिंक किए गए खाते सेटिंग्स में वर्तमान कार्यस्थान से कार्यस्थान प्रबंधित कर सकते हैं।";
+"settings.account.status.description" = "अतिथि और लिंक किए गए खाते क्लाउड का उपयोग करके वर्तमान कार्यक्षेत्र को सिंक करते हैं। लिंक किए गए खाते सेटिंग्स में वर्कस्पेस से कार्यस्थान प्रबंधित कर सकते हैं।";
 "settings.account.status.signIn" = "लॉग इन करें या खाता बनाएं";
 "settings.account.status.syncNow" = "अभी सिंक करें";
 "settings.account.status.switchAccount" = "खाता बदलें";
@@ -299,15 +299,17 @@
 "settings.account.status.logoutAlertTitle" = "साइन आउट करें और इस डिवाइस को मिटा दें?";
 "settings.account.status.logoutAlertMessage" = "इस डिवाइस से सभी स्थानीय कार्यस्थान और समन्वयित डेटा हटा दिया जाएगा।";
 
-"settings.account.legal.title" = "कानूनी और समर्थन";
+"settings.account.legal.title" = "कानूनी";
+"settings.account.support.title" = "समर्थन";
 "settings.account.legal.section.links" = "लिंक";
-"settings.account.legal.section.supportContact" = "सहायता संपर्क";
+"settings.account.support.section.links" = "लिंक";
+"settings.account.support.section.contact" = "समर्थन संपर्क";
 "settings.account.legal.section.aiDataUse" = "AI डेटा उपयोग";
 "settings.account.legal.githubRepository" = "GitHub रिपोजिटरी";
 "settings.account.legal.statusOnThisDevice" = "इस डिवाइस पर स्थिति";
 "settings.account.legal.accepted" = "स्वीकृत";
 "settings.account.legal.notAccepted" = "स्वीकृत नहीं";
-"settings.account.legal.supportContactDescription" = "होस्ट किए गए ऐप के बारे में प्रश्नों, खाता हटाने में सहायता और ऐप स्टोर समीक्षाओं को ट्रैक करने के लिए सहायता पृष्ठ का उपयोग करें।";
+"settings.account.support.contactDescription" = "होस्ट किए गए ऐप के बारे में प्रश्नों, खाता हटाने में सहायता और ऐप स्टोर समीक्षाओं को ट्रैक करने के लिए सहायता पृष्ठ का उपयोग करें।";
 "settings.account.legal.aiDataUseDescription" = "होस्ट किए गए AI का उपयोग करना वैकल्पिक है। यदि आप इसे इस डिवाइस पर सक्षम करते हैं, तो निम्न अनुरोध डेटा होस्ट की गई AI सेवा को भेजा जा सकता है:";
 "settings.account.legal.disclosureBullet" = "- %@";
 "settings.account.legal.reviewAiDataUse" = "होस्ट किए गए AI का उपयोग करने से पहले AI टैब से AI डेटा की समीक्षा करें और उसके उपयोग पर सहमति दें।";

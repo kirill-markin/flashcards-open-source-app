@@ -35,7 +35,8 @@ enum SettingsNavigationDestination: Hashable, Sendable {
     case workspaceTags
     case account
     case accountStatus
-    case accountLegalSupport
+    case accountLegal
+    case accountSupport
     case accountOpenSource
     case accountAdvanced
     case accountServer

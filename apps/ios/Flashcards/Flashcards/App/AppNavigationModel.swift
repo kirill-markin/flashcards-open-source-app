@@ -39,8 +39,10 @@ func makeSettingsNavigationPath(destination: SettingsNavigationDestination) -> [
         return [.account]
     case .accountStatus:
         return [.accountStatus]
-    case .accountLegalSupport:
-        return [.accountLegalSupport]
+    case .accountLegal:
+        return [.accountLegal]
+    case .accountSupport:
+        return [.accountSupport]
     case .accountOpenSource:
         return [.accountOpenSource]
     case .accountAdvanced:

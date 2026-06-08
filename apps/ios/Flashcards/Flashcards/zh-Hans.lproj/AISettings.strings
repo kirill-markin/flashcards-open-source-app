@@ -131,7 +131,7 @@
 "settings.section.support" = "支持";
 "settings.section.advanced" = "高级";
 "settings.row.accountStatus" = "账户状态";
-"settings.row.currentWorkspace" = "当前工作空间";
+"settings.row.currentWorkspace" = "工作空间";
 "settings.row.reviewReminders" = "复习提醒";
 "settings.row.reviewReminders.value" = "本设备";
 "settings.row.reviewAnimations" = "复习动画";
@@ -142,15 +142,15 @@
 "settings.row.workspaceScoped.value" = "工作空间";
 "settings.row.tags" = "标签";
 "settings.row.export" = "导出";
-"settings.row.legalSupport" = "法律与支持";
+"settings.row.legal" = "法律";
+"settings.row.support" = "支持";
 "settings.row.openSource" = "开源";
 "settings.row.scheduling" = "排程 / FSRS";
 "settings.row.agentConnections" = "智能体连接";
 "settings.row.agentConnections.value" = "API 密钥";
 "settings.row.server" = "服务器";
 "settings.row.server.value" = "域名";
-"settings.row.deviceDiagnostics" = "本设备 / 诊断";
-"settings.row.deviceDiagnostics.value" = "SwiftUI + SQLite";
+"settings.row.deviceDiagnostics" = "设备";
 "settings.row.resetStudyProgress" = "重置学习进度";
 "settings.row.resetStudyProgress.value" = "进度";
 "settings.row.deleteCurrentWorkspace" = "删除当前工作空间";
@@ -158,7 +158,7 @@
 "settings.row.deleteAccount" = "删除账户";
 "settings.row.workspaceSettings" = "工作区设置";
 "settings.row.accountSettings" = "账户设置";
-"settings.row.thisDevice" = "本设备";
+"settings.row.thisDevice" = "设备";
 "settings.row.access" = "访问";
 "settings.row.access.itemCount" = "4 件";
 "settings.section.test" = "测试";
@@ -207,7 +207,7 @@
 "settings.sync.recoveryGate.eraseAlert.confirm" = "抹掉本地数据";
 "settings.sync.recoveryGate.erasing" = "正在抹掉本地数据...";
 
-"settings.currentWorkspace.title" = "当前工作空间";
+"settings.currentWorkspace.title" = "工作空间";
 "settings.currentWorkspace.row.workspace" = "工作空间";
 "settings.currentWorkspace.loadingWorkspaces" = "正在加载工作区...";
 "settings.currentWorkspace.loadError" = "无法加载链接的工作区。";
@@ -217,8 +217,8 @@
 "settings.currentWorkspace.createNew" = "创建新工作区";
 "settings.currentWorkspace.createFromCurrent" = "从\\\"%@\\\"创建新工作区";
 
-"settings.thisDevice.title" = "本设备";
-"settings.thisDevice.section.thisDevice" = "本设备";
+"settings.thisDevice.title" = "设备";
+"settings.thisDevice.section.thisDevice" = "设备";
 "settings.thisDevice.workspace" = "工作空间";
 "settings.thisDevice.operatingSystem" = "操作系统";
 "settings.thisDevice.deviceModel" = "设备型号";
@@ -271,8 +271,8 @@
 
 "settings.account.title" = "账户设置";
 "settings.account.row.accountStatus" = "账户状态";
-"settings.account.row.legalSupport" = "法律与支持";
-"settings.account.row.legalSupportValue" = "隐私+支持";
+"settings.account.row.legal" = "法律";
+"settings.account.row.support" = "支持";
 "settings.account.row.openSource" = "开源";
 "settings.account.row.openSourceValue" = "GitHub + MIT";
 "settings.account.row.advanced" = "高级";
@@ -290,7 +290,7 @@
 "settings.account.status.linkedEmail" = "链接电子邮件";
 "settings.account.status.syncStatus" = "同步状态";
 "settings.account.status.lastSync" = "上次同步";
-"settings.account.status.description" = "访客帐户和链接帐户使用云同步当前工作区。链接的帐户可以从“设置”中的“当前工作区”管理工作区。";
+"settings.account.status.description" = "访客帐户和链接帐户使用云同步当前工作区。链接的帐户可以从“设置”中的“工作区”管理工作区。";
 "settings.account.status.signIn" = "登录或创建账户";
 "settings.account.status.syncNow" = "立即同步";
 "settings.account.status.switchAccount" = "更改账户";
@@ -299,15 +299,17 @@
 "settings.account.status.logoutAlertTitle" = "注销并删除该设备？";
 "settings.account.status.logoutAlertMessage" = "所有本地工作区和同步数据都将从该设备中删除。";
 
-"settings.account.legal.title" = "法律与支持";
-"settings.account.legal.section.links" = "友情链接";
-"settings.account.legal.section.supportContact" = "支持联系";
+"settings.account.legal.title" = "法律";
+"settings.account.support.title" = "支持";
+"settings.account.legal.section.links" = "链接";
+"settings.account.support.section.links" = "链接";
+"settings.account.support.section.contact" = "支持联系";
 "settings.account.legal.section.aiDataUse" = "AI数据使用";
 "settings.account.legal.githubRepository" = "GitHub 存储库";
 "settings.account.legal.statusOnThisDevice" = "该设备的状态";
 "settings.account.legal.accepted" = "已接受";
 "settings.account.legal.notAccepted" = "不接受";
-"settings.account.legal.supportContactDescription" = "使用支持页面询问有关托管应用程序的问题、帮助删除帐户以及跟踪应用程序商店评论。";
+"settings.account.support.contactDescription" = "使用支持页面询问有关托管应用程序的问题、帮助删除帐户以及跟踪应用程序商店评论。";
 "settings.account.legal.aiDataUseDescription" = "使用托管 AI 是可选的。如果您在此设备上启用它，则以下请求数据可能会发送到托管 AI 服务：";
 "settings.account.legal.disclosureBullet" = "- %@";
 "settings.account.legal.reviewAiDataUse" = "使用托管 AI 之前，请查看并同意使用 AI 选项卡中的 AI 数据。";

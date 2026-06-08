@@ -22,15 +22,13 @@ import com.flashcardsopensourceapp.feature.settings.settingsScreenCardSpacing
 import com.flashcardsopensourceapp.feature.settings.settingsScreenContentPadding
 
 @Composable
-fun AccountLegalSupportRoute(onBack: () -> Unit) {
+fun AccountLegalRoute(onBack: () -> Unit) {
     val context = LocalContext.current
     val privacyUrl = stringResource(id = R.string.flashcards_privacy_policy_url)
     val termsUrl = stringResource(id = R.string.flashcards_terms_of_service_url)
-    val supportUrl = stringResource(id = R.string.flashcards_support_url)
-    val supportEmail = stringResource(id = R.string.flashcards_support_email_address)
 
     SettingsScreenScaffold(
-        title = stringResource(R.string.settings_legal_support_title),
+        title = stringResource(R.string.settings_legal_title),
         onBack = onBack,
         isBackEnabled = true
     ) { innerPadding ->
@@ -42,8 +40,8 @@ fun AccountLegalSupportRoute(onBack: () -> Unit) {
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     SettingsLinkItem(
-                        title = stringResource(R.string.settings_legal_support_privacy_title),
-                        summary = stringResource(R.string.settings_legal_support_privacy_summary),
+                        title = stringResource(R.string.settings_legal_privacy_title),
+                        summary = stringResource(R.string.settings_legal_privacy_summary),
                         icon = Icons.Outlined.Description,
                         onClick = {
                             openExternalUrl(context = context, url = privacyUrl)
@@ -55,8 +53,8 @@ fun AccountLegalSupportRoute(onBack: () -> Unit) {
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     SettingsLinkItem(
-                        title = stringResource(R.string.settings_legal_support_terms_title),
-                        summary = stringResource(R.string.settings_legal_support_terms_summary),
+                        title = stringResource(R.string.settings_legal_terms_title),
+                        summary = stringResource(R.string.settings_legal_terms_summary),
                         icon = Icons.Outlined.Description,
                         onClick = {
                             openExternalUrl(context = context, url = termsUrl)
@@ -64,12 +62,32 @@ fun AccountLegalSupportRoute(onBack: () -> Unit) {
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun AccountSupportRoute(onBack: () -> Unit) {
+    val context = LocalContext.current
+    val supportUrl = stringResource(id = R.string.flashcards_support_url)
+    val supportEmail = stringResource(id = R.string.flashcards_support_email_address)
+
+    SettingsScreenScaffold(
+        title = stringResource(R.string.settings_support_title),
+        onBack = onBack,
+        isBackEnabled = true
+    ) { innerPadding ->
+        LazyColumn(
+            contentPadding = settingsScreenContentPadding(innerPadding = innerPadding),
+            verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
+            modifier = Modifier.fillMaxSize()
+        ) {
 
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     SettingsLinkItem(
-                        title = stringResource(R.string.settings_legal_support_support_title),
-                        summary = stringResource(R.string.settings_legal_support_support_summary),
+                        title = stringResource(R.string.settings_support_page_title),
+                        summary = stringResource(R.string.settings_support_page_summary),
                         icon = Icons.AutoMirrored.Outlined.OpenInNew,
                         onClick = {
                             openExternalUrl(context = context, url = supportUrl)
@@ -81,7 +99,7 @@ fun AccountLegalSupportRoute(onBack: () -> Unit) {
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     SettingsLinkItem(
-                        title = stringResource(R.string.settings_legal_support_contact_title),
+                        title = stringResource(R.string.settings_support_contact_title),
                         summary = supportEmail,
                         icon = Icons.Outlined.MailOutline,
                         onClick = {

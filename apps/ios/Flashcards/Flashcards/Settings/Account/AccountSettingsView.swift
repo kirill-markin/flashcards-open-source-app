@@ -23,11 +23,19 @@ struct AccountSettingsView: View {
             }
 
             Section(aiSettingsLocalized("settings.account.section.support", "Support")) {
-                NavigationLink(value: SettingsNavigationDestination.accountLegalSupport) {
+                NavigationLink(value: SettingsNavigationDestination.accountLegal) {
                     SettingsNavigationRow(
-                        title: aiSettingsLocalized("settings.account.row.legalSupport", "Legal & Support"),
-                        value: aiSettingsLocalized("settings.account.row.legalSupportValue", "Privacy + Support"),
+                        title: aiSettingsLocalized("settings.account.row.legal", "Legal"),
+                        value: nil,
                         systemImage: "doc.text"
+                    )
+                }
+
+                NavigationLink(value: SettingsNavigationDestination.accountSupport) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.account.row.support", "Support"),
+                        value: nil,
+                        systemImage: "questionmark.circle"
                     )
                 }
 
