@@ -169,7 +169,8 @@
 "settings.reviewAnimations.title" = "Анимации повторения";
 "settings.reviewAnimations.toggle" = "Показывать анимации после оценки карточки";
 "settings.language.title" = "Язык";
-"settings.language.systemDescription" = "iOS управляет языком приложения. Измените системный язык или язык приложения в Настройках iOS.";
+"settings.language.systemDescription" = "iOS управляет языком приложения. В настройках iOS откройте Flashcards и используйте «Предпочитаемый язык». Если «Предпочитаемый язык» не отображается, сначала добавьте другой язык в «Настройки» > «Основные» > «Язык и регион».";
+"settings.language.action.openAppSettings" = "Открыть настройки Flashcards";
 "settings.language.section.supportedLanguages" = "Поддерживаемые языки";
 "settings.language.supported.english" = "Английский";
 "settings.language.supported.arabic" = "Арабский";

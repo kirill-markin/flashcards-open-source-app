@@ -53,13 +53,13 @@ struct LanguageSettingsView: View {
                 Text(
                     aiSettingsLocalized(
                         "settings.language.systemDescription",
-                        "iOS controls the app language. Change the system language or the app-specific language in iOS Settings."
+                        "iOS controls the app language. In iOS Settings, open Flashcards and use Preferred Language. If Preferred Language is not shown, add another language in Settings > General > Language & Region first."
                     )
                 )
                     .foregroundStyle(.secondary)
                     .accessibilityIdentifier(UITestIdentifier.languageSettingsSystemText)
 
-                Button(aiSettingsLocalized("common.openSettings", "Open Settings")) {
+                Button(aiSettingsLocalized("settings.language.action.openAppSettings", "Open Flashcards settings")) {
                     openApplicationSettings()
                 }
             }

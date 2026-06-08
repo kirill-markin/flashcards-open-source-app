@@ -95,9 +95,9 @@
     <string name="settings_account_preferences_refresh_failed">Could not refresh account preferences.</string>
     <string name="settings_language_title">Language</string>
     <string name="settings_language_summary">Android system and per-app language settings</string>
-    <string name="settings_language_body">Android controls the app language through system and per-app language settings. Change the Android system language or this app\'s language setting, then return to Flashcards.</string>
+    <string name="settings_language_body">This opens Android\'s language setting for Flashcards. To change every app on this device, use Android Settings > System > Languages.</string>
     <string name="settings_language_supported_languages_title">Supported languages</string>
-    <string name="settings_language_open_android_settings">Open Android language settings</string>
+    <string name="settings_language_open_android_settings">Open app language settings</string>
     <string name="settings_decks_summary">Manage decks in this workspace</string>
     <string name="settings_tags_summary">Browse tags used by workspace cards</string>
     <string name="settings_scheduling_title">Scheduling / FSRS</string>

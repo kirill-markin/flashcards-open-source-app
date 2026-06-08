@@ -169,7 +169,8 @@
 "settings.reviewAnimations.title" = "رسوم المراجعة المتحركة";
 "settings.reviewAnimations.toggle" = "إظهار الرسوم المتحركة بعد تقييم بطاقة";
 "settings.language.title" = "اللغة";
-"settings.language.systemDescription" = "يتحكم iOS في لغة التطبيق. غيّر لغة النظام أو لغة التطبيق المحددة من إعدادات iOS.";
+"settings.language.systemDescription" = "يتحكم iOS في لغة التطبيق. في إعدادات iOS، افتح Flashcards واستخدم اللغة المفضلة. إذا لم تظهر اللغة المفضلة، فأضف لغة أخرى أولاً من الإعدادات > عام > اللغة والمنطقة.";
+"settings.language.action.openAppSettings" = "افتح إعدادات Flashcards";
 "settings.language.section.supportedLanguages" = "اللغات المدعومة";
 "settings.language.supported.english" = "الإنجليزية";
 "settings.language.supported.arabic" = "العربية";

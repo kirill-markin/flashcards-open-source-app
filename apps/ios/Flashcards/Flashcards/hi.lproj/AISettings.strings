@@ -169,7 +169,8 @@
 "settings.reviewAnimations.title" = "समीक्षा एनिमेशन";
 "settings.reviewAnimations.toggle" = "कार्ड को रेट करने के बाद एनिमेशन दिखाएं";
 "settings.language.title" = "भाषा";
-"settings.language.systemDescription" = "iOS ऐप की भाषा नियंत्रित करता है। सिस्टम भाषा या ऐप-विशिष्ट भाषा iOS सेटिंग्स में बदलें।";
+"settings.language.systemDescription" = "iOS ऐप की भाषा नियंत्रित करता है। iOS सेटिंग्स में Flashcards खोलें और पसंदीदा भाषा इस्तेमाल करें। अगर पसंदीदा भाषा दिखाई नहीं देती, तो पहले सेटिंग्स > सामान्य > भाषा और क्षेत्र में कोई दूसरी भाषा जोड़ें।";
+"settings.language.action.openAppSettings" = "Flashcards सेटिंग्स खोलें";
 "settings.language.section.supportedLanguages" = "समर्थित भाषाएं";
 "settings.language.supported.english" = "अंग्रेज़ी";
 "settings.language.supported.arabic" = "अरबी";
