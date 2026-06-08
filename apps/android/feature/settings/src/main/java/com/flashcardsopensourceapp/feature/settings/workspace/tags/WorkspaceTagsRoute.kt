@@ -44,6 +44,7 @@ fun workspaceTagCardsCountTag(tag: String): String {
 fun WorkspaceTagsRoute(
     uiState: WorkspaceTagsUiState,
     onSearchQueryChange: (String) -> Unit,
+    onOpenTagReview: (String) -> Unit,
     onBack: () -> Unit
 ) {
     Scaffold(
@@ -102,6 +103,9 @@ fun WorkspaceTagsRoute(
             } else {
                 items(uiState.tags, key = { tag -> tag.tag }) { tagSummary ->
                     Card(
+                        onClick = {
+                            onOpenTagReview(tagSummary.tag)
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag(tag = workspaceTagRowTag(tag = tagSummary.tag))

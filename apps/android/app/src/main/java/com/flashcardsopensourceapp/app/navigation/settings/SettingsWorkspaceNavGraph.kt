@@ -422,6 +422,11 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
             WorkspaceTagsRoute(
                 uiState = uiState,
                 onSearchQueryChange = workspaceTagsViewModel::updateSearchQuery,
+                onOpenTagReview = { tag ->
+                    appGraph.appHandoffCoordinator.requestReviewFilter(
+                        reviewFilter = ReviewFilter.Tag(tag = tag)
+                    )
+                },
                 onBack = {
                     navController.popBackStack()
                 }
