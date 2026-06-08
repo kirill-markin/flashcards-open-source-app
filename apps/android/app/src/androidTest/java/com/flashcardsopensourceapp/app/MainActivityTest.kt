@@ -783,9 +783,9 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodes(matcher = rowMatcher).fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNode(matcher = rowMatcher).performScrollTo()
-        composeRule.onNode(matcher = rowMatcher).assertIsDisplayed()
-        composeRule.onNode(matcher = rowMatcher).performClick()
+        composeRule.onNodeWithTag(testTag = rowTag).performScrollTo()
+        composeRule.onNodeWithTag(testTag = rowTag).assertIsDisplayed()
+        composeRule.onNodeWithTag(testTag = rowTag).performClick()
         composeRule.waitForIdle()
     }
 
@@ -806,7 +806,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
 
     private fun waitForTagToExist(tag: String) {
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithTag(testTag = tag).fetchSemanticsNodes().isNotEmpty()
+            countNodesWithTagInAnySemanticsTree(tag = tag) > 0
         }
     }
 
