@@ -5,7 +5,6 @@ import androidx.annotation.StringRes
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
-import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasScrollToNodeAction
@@ -14,7 +13,6 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -39,6 +37,7 @@ import com.flashcardsopensourceapp.feature.settings.settingsOpenSourceRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsResetStudyProgressRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsReviewAnimationsRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsReviewRemindersRowTag
+import com.flashcardsopensourceapp.feature.settings.settingsRootScreenTag
 import com.flashcardsopensourceapp.feature.settings.settingsSchedulingRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsServerRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsSupportRowTag
@@ -264,9 +263,11 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
     }
 
     private fun assertSectionLabel(sectionTitle: String) {
-        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(matcher = hasText(sectionTitle))
-        composeRule.onNodeWithText(sectionTitle).assertIsDisplayed()
-        composeRule.onNodeWithText(sectionTitle).assert(hasNoClickAction())
+        val sectionLabelMatcher = hasText(sectionTitle).and(other = hasNoClickAction())
+
+        composeRule.onNodeWithTag(testTag = settingsRootScreenTag)
+            .performScrollToNode(matcher = sectionLabelMatcher)
+        composeRule.onNode(matcher = sectionLabelMatcher).assertIsDisplayed()
     }
 
     private fun assertRootRowVisible(rowTag: String) {
