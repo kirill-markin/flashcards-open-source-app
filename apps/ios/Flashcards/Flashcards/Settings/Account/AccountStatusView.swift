@@ -37,6 +37,12 @@ struct AccountStatusView: View {
     @State private var isCloudSignInPresented: Bool = false
     @State private var isLogoutConfirmationPresented: Bool = false
 
+    private var settingsAttentionSummary: SettingsAttentionSummary {
+        makeSettingsAttentionSummary(
+            issues: makeSettingsAttentionIssues(cloudState: store.cloudSettings?.cloudState)
+        )
+    }
+
     var body: some View {
         List {
             if screenErrorMessage.isEmpty == false {
@@ -97,11 +103,13 @@ struct AccountStatusView: View {
                         Button(aiSettingsLocalized("settings.account.status.signIn", "Sign in or sign up")) {
                             self.isCloudSignInPresented = true
                         }
+                        .badge(self.settingsAttentionSummary.accountStatusPrimaryActionCount)
                         .accessibilityIdentifier(UITestIdentifier.accountStatusSignInButton)
                     case .guest:
                         Button(aiSettingsLocalized("settings.account.status.signIn", "Sign in or sign up")) {
                             self.isCloudSignInPresented = true
                         }
+                        .badge(self.settingsAttentionSummary.accountStatusPrimaryActionCount)
                         .accessibilityIdentifier(UITestIdentifier.accountStatusSignInButton)
                     case .linked:
                         Button(aiSettingsLocalized("settings.account.status.syncNow", "Sync now")) {
