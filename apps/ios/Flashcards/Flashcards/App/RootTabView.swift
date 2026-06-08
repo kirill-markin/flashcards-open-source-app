@@ -57,6 +57,12 @@ struct RootTabView: View {
         )
     }
 
+    private var settingsAttentionSummary: SettingsAttentionSummary {
+        makeSettingsAttentionSummary(
+            issues: makeSettingsAttentionIssues(cloudState: store.cloudSettings?.cloudState)
+        )
+    }
+
     private var guestSignInAfterReviewPromptPresentation: Binding<Bool> {
         Binding<Bool>(
             get: {
@@ -523,6 +529,7 @@ struct RootTabView: View {
             )
             .accessibilityIdentifier(UITestIdentifier.rootTabSettingsItem)
         }
+        .badge(self.settingsAttentionSummary.settingsTabCount)
         .tag(AppTab.settings)
     }
 

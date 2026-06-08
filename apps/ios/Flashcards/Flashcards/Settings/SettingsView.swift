@@ -23,6 +23,12 @@ struct SettingsView: View {
         store.workspace?.name ?? aiSettingsLocalized("common.unavailable", "Unavailable")
     }
 
+    private var settingsAttentionSummary: SettingsAttentionSummary {
+        makeSettingsAttentionSummary(
+            issues: makeSettingsAttentionIssues(cloudState: store.cloudSettings?.cloudState)
+        )
+    }
+
     var body: some View {
         List {
             if store.globalErrorMessage.isEmpty == false {
@@ -39,6 +45,7 @@ struct SettingsView: View {
                         systemImage: "person.crop.circle"
                     )
                 }
+                .badge(self.settingsAttentionSummary.accountStatusRowCount)
                 .accessibilityIdentifier(UITestIdentifier.settingsAccountStatusRow)
 
                 NavigationLink(value: SettingsNavigationDestination.currentWorkspace) {
