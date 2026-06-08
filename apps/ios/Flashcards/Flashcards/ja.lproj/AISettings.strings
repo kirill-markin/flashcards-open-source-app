@@ -169,7 +169,8 @@
 "settings.reviewAnimations.title" = "復習アニメーション";
 "settings.reviewAnimations.toggle" = "カード評価後にアニメーションを表示";
 "settings.language.title" = "言語";
-"settings.language.systemDescription" = "iOS がアプリの言語を管理します。システム言語またはアプリ固有の言語は iOS の設定で変更してください。";
+"settings.language.systemDescription" = "iOS がアプリの言語を管理します。iOS の「設定」で Flashcards を開き、「優先する言語」を使用してください。「優先する言語」が表示されない場合は、先に「設定」>「一般」>「言語と地域」で別の言語を追加してください。";
+"settings.language.action.openAppSettings" = "Flashcards の設定を開く";
 "settings.language.section.supportedLanguages" = "対応言語";
 "settings.language.supported.english" = "英語";
 "settings.language.supported.arabic" = "アラビア語";

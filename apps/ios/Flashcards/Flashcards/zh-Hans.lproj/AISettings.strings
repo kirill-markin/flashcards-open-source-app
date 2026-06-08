@@ -169,7 +169,8 @@
 "settings.reviewAnimations.title" = "复习动画";
 "settings.reviewAnimations.toggle" = "给卡片评分后显示动画";
 "settings.language.title" = "语言";
-"settings.language.systemDescription" = "iOS 控制 App 语言。请在 iOS 设置中更改系统语言或 App 专用语言。";
+"settings.language.systemDescription" = "iOS 控制 App 语言。在 iOS 设置中打开 Flashcards，并使用“首选语言”。如果没有显示“首选语言”，请先在“设置”>“通用”>“语言与地区”中添加另一种语言。";
+"settings.language.action.openAppSettings" = "打开 Flashcards 设置";
 "settings.language.section.supportedLanguages" = "支持的语言";
 "settings.language.supported.english" = "英语";
 "settings.language.supported.arabic" = "阿拉伯语";

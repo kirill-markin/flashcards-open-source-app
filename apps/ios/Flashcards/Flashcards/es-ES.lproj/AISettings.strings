@@ -169,7 +169,8 @@
 "settings.reviewAnimations.title" = "Animaciones de repaso";
 "settings.reviewAnimations.toggle" = "Mostrar animaciones despues de valorar una tarjeta";
 "settings.language.title" = "Idioma";
-"settings.language.systemDescription" = "iOS controla el idioma de la app. Cambia el idioma del sistema o el idioma especifico de la app en Ajustes de iOS.";
+"settings.language.systemDescription" = "iOS controla el idioma de la app. En Ajustes de iOS, abre Flashcards y usa Idioma preferido. Si Idioma preferido no aparece, primero añade otro idioma en Ajustes > General > Idioma y región.";
+"settings.language.action.openAppSettings" = "Abrir ajustes de Flashcards";
 "settings.language.section.supportedLanguages" = "Idiomas compatibles";
 "settings.language.supported.english" = "Ingles";
 "settings.language.supported.arabic" = "Arabe";
