@@ -4,8 +4,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -20,12 +23,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.feature.settings.DestructiveActionState
+import com.flashcardsopensourceapp.feature.settings.DestructiveConfirmationPhraseText
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsScreenScaffold
 import com.flashcardsopensourceapp.feature.settings.accountDeletionConfirmationText
 import com.flashcardsopensourceapp.feature.settings.createSettingsStringResolver
 import com.flashcardsopensourceapp.feature.settings.settingsScreenCardSpacing
 import com.flashcardsopensourceapp.feature.settings.settingsScreenContentPadding
+
+const val accountDangerZoneConfirmationPhraseTag: String = "account_danger_zone_confirmation_phrase"
 
 @Composable
 fun AccountDangerZoneRoute(
@@ -148,7 +154,12 @@ fun AccountDangerZoneRoute(
                 Text(stringResource(R.string.settings_account_danger_zone_dialog_title))
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier
+                        .heightIn(max = 420.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
                     Text(
                         text = stringResource(R.string.settings_account_danger_zone_dialog_warning),
                         color = MaterialTheme.colorScheme.error
@@ -162,9 +173,10 @@ fun AccountDangerZoneRoute(
                             color = MaterialTheme.colorScheme.error
                         )
                     }
-                    Text(
+                    DestructiveConfirmationPhraseText(
                         text = accountDeletionConfirmationText(strings = strings),
-                        style = MaterialTheme.typography.bodyMedium
+                        testTag = accountDangerZoneConfirmationPhraseTag,
+                        modifier = Modifier
                     )
                     OutlinedTextField(
                         value = uiState.confirmationText,

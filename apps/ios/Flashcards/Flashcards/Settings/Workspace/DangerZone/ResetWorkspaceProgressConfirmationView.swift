@@ -22,14 +22,17 @@ struct ResetWorkspaceProgressConfirmationView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 20) {
-                if let preview {
-                    self.previewContent(preview: preview)
-                } else {
-                    self.confirmationContent()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    if let preview {
+                        self.previewContent(preview: preview)
+                    } else {
+                        self.confirmationContent()
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(24)
             }
-            .padding(24)
             .navigationTitle(
                 self.preview == nil
                     ? aiSettingsLocalized("settings.workspace.resetAllProgress", "Reset all progress")
@@ -75,8 +78,7 @@ struct ResetWorkspaceProgressConfirmationView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(aiSettingsLocalized("common.typePhraseToContinue", "Type this phrase exactly to continue:"))
                 .foregroundStyle(.secondary)
-            Text(workspaceResetProgressConfirmationText)
-                .font(.body.monospaced())
+            ConfirmationPhraseText(text: workspaceResetProgressConfirmationText)
                 .accessibilityIdentifier(UITestIdentifier.resetWorkspaceProgressConfirmationPhrase)
         }
 
@@ -111,8 +113,6 @@ struct ResetWorkspaceProgressConfirmationView: View {
             Text(aiSettingsLocalized("settings.workspace.resetConfirmation.loadingPreview", "Loading reset preview..."))
                 .foregroundStyle(.secondary)
         }
-
-        Spacer()
 
         Button(
             self.isLoadingPreview
@@ -165,8 +165,6 @@ struct ResetWorkspaceProgressConfirmationView: View {
             Text(aiSettingsLocalized("settings.workspace.resetConfirmation.resetting", "Resetting progress..."))
                 .foregroundStyle(.secondary)
         }
-
-        Spacer()
 
         Button(
             self.isResetting
