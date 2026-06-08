@@ -147,16 +147,7 @@ fun ReviewNotificationsRoute(
                                     Text(stringResource(R.string.settings_notifications_daily_title))
                                 },
                                 supportingContent = {
-                                    Text(
-                                        stringResource(
-                                            R.string.settings_notifications_daily_example,
-                                            formatTimeLabel(
-                                                context = context,
-                                                hour = uiState.settings.daily.hour,
-                                                minute = uiState.settings.daily.minute
-                                            )
-                                        )
-                                    )
+                                    Text(stringResource(R.string.settings_notifications_daily_example))
                                 },
                                 trailingContent = {
                                     TimeValueStepper(
@@ -177,23 +168,7 @@ fun ReviewNotificationsRoute(
                                     Text(stringResource(R.string.settings_notifications_inactivity_title))
                                 },
                                 supportingContent = {
-                                    Text(
-                                        stringResource(
-                                            R.string.settings_notifications_inactivity_example,
-                                            formatTimeLabel(
-                                                context = context,
-                                                hour = uiState.settings.inactivity.windowStartHour,
-                                                minute = uiState.settings.inactivity.windowStartMinute
-                                            ),
-                                            formatTimeLabel(
-                                                context = context,
-                                                hour = uiState.settings.inactivity.windowEndHour,
-                                                minute = uiState.settings.inactivity.windowEndMinute
-                                            ),
-                                            idleMinutesLabel(minutes = uiState.settings.inactivity.idleMinutes),
-                                            idleMinutesLabel(minutes = uiState.settings.inactivity.idleMinutes)
-                                        )
-                                    )
+                                    Text(stringResource(R.string.settings_notifications_inactivity_example))
                                 }
                             )
 
@@ -248,22 +223,26 @@ fun ReviewNotificationsRoute(
                                 }
                             )
                         }
-
-                        ListItem(
-                            headlineContent = {
-                                Text(stringResource(R.string.settings_notifications_show_app_icon_badge_title))
-                            },
-                            supportingContent = {
-                                Text(stringResource(R.string.settings_notifications_show_app_icon_badge_body))
-                            },
-                            trailingContent = {
-                                Switch(
-                                    checked = uiState.settings.showAppIconBadge,
-                                    onCheckedChange = onUpdateShowAppIconBadge
-                                )
-                            }
-                        )
                     }
+                }
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    ListItem(
+                        headlineContent = {
+                            Text(stringResource(R.string.settings_notifications_show_app_icon_badge_title))
+                        },
+                        supportingContent = {
+                            Text(stringResource(R.string.settings_notifications_show_app_icon_badge_body))
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = uiState.settings.showAppIconBadge,
+                                onCheckedChange = onUpdateShowAppIconBadge
+                            )
+                        }
+                    )
                 }
             }
 
