@@ -59,6 +59,7 @@ import com.flashcardsopensourceapp.app.navigation.AppNotificationTapHandoffReque
 import com.flashcardsopensourceapp.app.navigation.AiDestination
 import com.flashcardsopensourceapp.app.navigation.CardsDestination
 import com.flashcardsopensourceapp.app.navigation.ReviewDestination
+import com.flashcardsopensourceapp.app.navigation.SettingsDestination
 import com.flashcardsopensourceapp.app.navigation.TopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.currentVisibleAppScreen
 import com.flashcardsopensourceapp.app.navigation.currentTopLevelDestination
