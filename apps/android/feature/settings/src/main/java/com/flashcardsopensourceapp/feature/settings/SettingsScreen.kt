@@ -338,15 +338,17 @@ private fun SettingsRootRow(
         }
     }
 
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(tag = testTag)
+            .clickable(onClick = onClick)
+    ) {
         ListItem(
             headlineContent = {
                 Text(title)
             },
-            supportingContent = supportingContent,
-            modifier = Modifier
-                .testTag(tag = testTag)
-                .clickable(onClick = onClick)
+            supportingContent = supportingContent
         )
     }
 }
