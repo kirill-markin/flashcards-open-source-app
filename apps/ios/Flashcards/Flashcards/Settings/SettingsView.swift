@@ -43,7 +43,7 @@ struct SettingsView: View {
 
                 NavigationLink(value: SettingsNavigationDestination.currentWorkspace) {
                     SettingsNavigationRow(
-                        title: aiSettingsLocalized("settings.row.currentWorkspace", "Current Workspace"),
+                        title: aiSettingsLocalized("settings.row.currentWorkspace", "Workspace"),
                         value: self.currentWorkspaceValue,
                         systemImage: "square.stack"
                     )
@@ -128,14 +128,23 @@ struct SettingsView: View {
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsFeedbackRow)
 
-                NavigationLink(value: SettingsNavigationDestination.accountLegalSupport) {
+                NavigationLink(value: SettingsNavigationDestination.accountLegal) {
                     SettingsNavigationRow(
-                        title: aiSettingsLocalized("settings.row.legalSupport", "Legal & Support"),
-                        value: aiSettingsLocalized("settings.account.row.legalSupportValue", "Privacy + Support"),
+                        title: aiSettingsLocalized("settings.row.legal", "Legal"),
+                        value: nil,
                         systemImage: "doc.text"
                     )
                 }
-                .accessibilityIdentifier(UITestIdentifier.settingsLegalSupportRow)
+                .accessibilityIdentifier(UITestIdentifier.settingsLegalRow)
+
+                NavigationLink(value: SettingsNavigationDestination.accountSupport) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.row.support", "Support"),
+                        value: nil,
+                        systemImage: "questionmark.circle"
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsSupportRow)
 
                 NavigationLink(value: SettingsNavigationDestination.accountOpenSource) {
                     SettingsNavigationRow(
@@ -177,8 +186,8 @@ struct SettingsView: View {
 
                 NavigationLink(value: SettingsNavigationDestination.device) {
                     SettingsNavigationRow(
-                        title: aiSettingsLocalized("settings.row.deviceDiagnostics", "This Device / Diagnostics"),
-                        value: aiSettingsLocalized("settings.row.deviceDiagnostics.value", "SwiftUI + SQLite"),
+                        title: aiSettingsLocalized("settings.row.deviceDiagnostics", "Device"),
+                        value: nil,
                         systemImage: "internaldrive"
                     )
                 }
@@ -234,7 +243,7 @@ struct SettingsView: View {
 
 struct SettingsNavigationRow: View {
     let title: String
-    let value: String
+    let value: String?
     let systemImage: String
 
     var body: some View {
@@ -243,9 +252,11 @@ struct SettingsNavigationRow: View {
 
             Spacer()
 
-            Text(value)
-                .font(.subheadline.monospacedDigit())
-                .foregroundStyle(.secondary)
+            if let value {
+                Text(value)
+                    .font(.subheadline.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 }

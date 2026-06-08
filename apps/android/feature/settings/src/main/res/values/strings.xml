@@ -77,7 +77,7 @@
     <string name="settings_section_advanced">Advanced</string>
     <string name="settings_section_workspace">Workspace</string>
     <string name="settings_section_device">Device</string>
-    <string name="settings_root_current_workspace_title">Current Workspace</string>
+    <string name="settings_root_current_workspace_title">Workspace</string>
     <string name="settings_root_access_title">Access</string>
     <string name="settings_root_access_summary">Camera, microphone, photos, and files</string>
     <string name="settings_root_feedback_title">Send feedback</string>
@@ -102,7 +102,7 @@
     <string name="settings_tags_summary">Browse tags used by workspace cards</string>
     <string name="settings_scheduling_title">Scheduling / FSRS</string>
     <string name="settings_scheduling_summary">Retention, learning steps, and interval behavior</string>
-    <string name="settings_device_diagnostics_title">This device / diagnostics</string>
+    <string name="settings_device_diagnostics_title">Device</string>
     <string name="settings_reset_study_progress_title">Reset study progress</string>
     <string name="settings_delete_current_workspace_title">Delete current workspace</string>
     <string name="settings_feedback_screen_body">Send an idea, bug report, or rough note about what would make Flashcards better.</string>
@@ -135,7 +135,7 @@
     <string name="settings_current_workspace_load_sign_in_message">Sign in to load linked workspaces.</string>
     <string name="settings_current_workspace_load_failed">Could not load linked workspaces.</string>
     <string name="settings_current_workspace_reconcile_failed">The linked workspace list did not reconcile to the expected current workspace.</string>
-    <string name="settings_current_workspace_switched_message">Current workspace is now %1$s.</string>
+    <string name="settings_current_workspace_switched_message">Workspace is now %1$s.</string>
     <string name="settings_current_workspace_switch_failed">Workspace switch failed.</string>
     <string name="settings_current_workspace_manage_sign_in_message">Sign in to manage linked workspaces.</string>
     <string name="settings_current_workspace_switching">Switching to %1$s...</string>
@@ -145,8 +145,10 @@
     <string name="settings_account_status_title">Account status</string>
     <string name="settings_account_workspace_summary">Workspace: %1$s</string>
     <string name="settings_account_support_section">Support</string>
-    <string name="settings_account_legal_support_title">Legal &amp; support</string>
-    <string name="settings_account_legal_support_summary">Privacy, terms, support, and contact</string>
+    <string name="settings_account_legal_title">Legal</string>
+    <string name="settings_account_legal_summary">Privacy and terms</string>
+    <string name="settings_account_support_title">Support</string>
+    <string name="settings_account_support_summary">Support page and contact</string>
     <string name="settings_account_open_source_title">Open source</string>
     <string name="settings_account_open_source_summary">GitHub repository and self-hosting direction</string>
     <string name="settings_account_advanced_section">Advanced</string>
@@ -414,7 +416,7 @@
     <string name="settings_export_csv_header_back">backText</string>
     <string name="settings_export_csv_header_tags">tags</string>
 
-    <string name="settings_device_title">This Device</string>
+    <string name="settings_device_title">Device</string>
     <string name="settings_device_workspace_name_label">Workspace name</string>
     <string name="settings_device_workspace_id_label">Workspace ID</string>
     <string name="settings_device_app_info_title">App</string>
@@ -499,15 +501,15 @@
     <string name="settings_post_auth_reset_cloud_identity_button">Reset cloud identity</string>
     <string name="settings_post_auth_invalid_recovery_state_cleared_message">Cloud recovery state was reset. Sign in again to continue.</string>
 
-    <string name="settings_legal_support_title">Legal &amp; support</string>
-    <string name="settings_legal_support_privacy_title">Privacy Policy</string>
-    <string name="settings_legal_support_privacy_summary">Read how Flashcards Open Source App handles data.</string>
-    <string name="settings_legal_support_terms_title">Terms of Service</string>
-    <string name="settings_legal_support_terms_summary">Read the terms for the hosted service.</string>
-    <string name="settings_legal_support_support_title">Support</string>
-    <string name="settings_legal_support_support_summary">Open the support page in your browser.</string>
-    <string name="settings_legal_support_contact_title">Contact</string>
-    <string name="settings_legal_support_contact_summary">Send support email from this device.</string>
+    <string name="settings_legal_title">Legal</string>
+    <string name="settings_legal_privacy_title">Privacy Policy</string>
+    <string name="settings_legal_privacy_summary">Read how Flashcards Open Source App handles data.</string>
+    <string name="settings_legal_terms_title">Terms of Service</string>
+    <string name="settings_legal_terms_summary">Read the terms for the hosted service.</string>
+    <string name="settings_support_title">Support</string>
+    <string name="settings_support_page_title">Support</string>
+    <string name="settings_support_page_summary">Open the support page in your browser.</string>
+    <string name="settings_support_contact_title">Contact</string>
 
     <string name="settings_open_source_title">Open source</string>
     <string name="settings_open_source_repository_title">GitHub repository</string>

@@ -94,7 +94,7 @@ struct CurrentWorkspaceView: View {
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.currentWorkspaceScreen)
-        .navigationTitle(aiSettingsLocalized("settings.currentWorkspace.title", "Current Workspace"))
+        .navigationTitle(aiSettingsLocalized("settings.currentWorkspace.title", "Workspace"))
         .task(id: store.workspace?.workspaceId) {
             self.workspaceNameDraft = store.workspace?.name ?? ""
         }

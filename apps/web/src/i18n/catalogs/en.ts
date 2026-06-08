@@ -96,7 +96,7 @@ const enCatalog = {
     redirectingToLogin: "Redirecting to login...",
     restoringSession: "Restoring session...",
     settings: "Loading settings...",
-    currentWorkspace: "Loading current workspace...",
+    currentWorkspace: "Loading workspace...",
     accessSettings: "Loading access settings...",
     accessDetails: "Loading access details...",
     workspaceSettings: "Loading workspace settings...",
@@ -111,7 +111,8 @@ const enCatalog = {
     deviceDetails: "Loading device details...",
     accountSettings: "Loading account settings...",
     accountStatus: "Loading account status...",
-    legalSupport: "Loading legal support...",
+    legal: "Loading legal settings...",
+    support: "Loading support settings...",
     openSourceSettings: "Loading open-source settings...",
     agentConnections: "Loading agent connections...",
     dangerZone: "Loading danger zone...",
@@ -178,7 +179,7 @@ const enCatalog = {
   },
   accountMenu: {
     openButtonLabel: "Open account menu",
-    currentWorkspaceSection: "Current workspace",
+    currentWorkspaceSection: "Workspace",
     newWorkspace: "New workspace",
     workspaceNamePlaceholder: "Workspace name",
     workspaceNameRequired: "Workspace name is required",
@@ -187,7 +188,7 @@ const enCatalog = {
   },
   settingsTabs: {
     general: "General",
-    currentWorkspace: "Current Workspace",
+    currentWorkspace: "Workspace",
     workspace: "Workspace",
     account: "Account",
     device: "Device",
@@ -205,7 +206,7 @@ const enCatalog = {
       advanced: "Advanced",
     },
     currentWorkspace: {
-      title: "Current Workspace",
+      title: "Workspace",
       description: "Change the active workspace or create a new workspace for this account.",
     },
     language: {
@@ -223,7 +224,7 @@ const enCatalog = {
       value: "Account",
     },
     device: {
-      title: "This device / diagnostics",
+      title: "Device",
       description: "Review browser, build, storage, and device-local workspace details.",
       value: "Device",
     },
@@ -262,7 +263,7 @@ const enCatalog = {
     disabledMessage: "Test version disabled.",
   },
   settingsCurrentWorkspace: {
-    title: "Current Workspace",
+    title: "Workspace",
     subtitle: "Choose which workspace is active in this browser or create a new workspace for this account.",
     workspaceCardTitle: "Workspace",
     workspaceCardDescription: "Change the active workspace or create a new workspace for this account.",
@@ -272,7 +273,7 @@ const enCatalog = {
     createWorkspace: "Create workspace",
   },
   settingsDevice: {
-    title: "This device / diagnostics",
+    title: "Device",
     subtitle: "Review browser-local behavior, storage, and device details for the current workspace.",
     languageCardTitle: "Language override",
     languageCardDescription: "Choose the app language for this browser only. This preference stays local to this device.",
@@ -861,10 +862,13 @@ const enCatalog = {
       description: "Review the signed-in account and current browser session state.",
     },
     supportGroupTitle: "Support",
-    legalSupport: {
-      title: "Legal & Support",
-      description: "Review privacy, terms, hosted support links, and support contact details.",
-      value: "Policies",
+    legal: {
+      title: "Legal",
+      description: "Review privacy and terms for the hosted app.",
+    },
+    support: {
+      title: "Support",
+      description: "Open hosted support links and support contact details.",
     },
     openSource: {
       title: "Open Source",
@@ -900,19 +904,27 @@ const enCatalog = {
     },
     logout: "Logout",
   },
-  legalSupport: {
-    title: "Legal & Support",
-    subtitle: "Review policy links and support contact details for the hosted app.",
+  legal: {
+    title: "Legal",
+    subtitle: "Review policy links for the hosted app.",
     labels: {
       privacyPolicy: "Privacy Policy",
       termsOfService: "Terms of Service",
-      support: "Support",
-      supportEmail: "Support Email",
-      hostedAppHelp: "Hosted app help",
     },
     actions: {
       openPolicy: "Open policy",
       openTerms: "Open terms",
+    },
+  },
+  support: {
+    title: "Support",
+    subtitle: "Open hosted support links and contact details.",
+    labels: {
+      supportPage: "Support",
+      supportEmail: "Support Email",
+      hostedAppHelp: "Hosted app help",
+    },
+    actions: {
       openSupport: "Open support",
     },
     hostedHelpDescription: "Use the support page for hosted app questions, account deletion help, and billing or access follow-up.",

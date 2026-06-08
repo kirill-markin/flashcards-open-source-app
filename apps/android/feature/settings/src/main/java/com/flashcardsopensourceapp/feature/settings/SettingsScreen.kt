@@ -85,7 +85,8 @@ fun SettingsRoute(
     onOpenTags: () -> Unit,
     onOpenExport: () -> Unit,
     onOpenFeedback: () -> Unit,
-    onOpenLegalSupport: () -> Unit,
+    onOpenLegal: () -> Unit,
+    onOpenSupport: () -> Unit,
     onOpenOpenSource: () -> Unit,
     onOpenScheduling: () -> Unit,
     onOpenAgentConnections: () -> Unit,
@@ -216,10 +217,19 @@ fun SettingsRoute(
 
             item {
                 SettingsRootRow(
-                    title = stringResource(R.string.settings_account_legal_support_title),
-                    summary = stringResource(R.string.settings_account_legal_support_summary),
-                    testTag = settingsLegalSupportRowTag,
-                    onClick = onOpenLegalSupport
+                    title = stringResource(R.string.settings_account_legal_title),
+                    summary = null,
+                    testTag = settingsLegalRowTag,
+                    onClick = onOpenLegal
+                )
+            }
+
+            item {
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_account_support_title),
+                    summary = null,
+                    testTag = settingsSupportRowTag,
+                    onClick = onOpenSupport
                 )
             }
 
@@ -266,7 +276,7 @@ fun SettingsRoute(
             item {
                 SettingsRootRow(
                     title = stringResource(R.string.settings_device_diagnostics_title),
-                    summary = uiState.storageLabel,
+                    summary = null,
                     testTag = settingsDeviceDiagnosticsRowTag,
                     onClick = onOpenDeviceDiagnostics
                 )
@@ -316,18 +326,22 @@ fun SettingsRoute(
 @Composable
 private fun SettingsRootRow(
     title: String,
-    summary: String,
+    summary: String?,
     testTag: String,
     onClick: () -> Unit
 ) {
+    val supportingContent: (@Composable () -> Unit)? = summary?.let { rowSummary ->
+        {
+            Text(rowSummary)
+        }
+    }
+
     Card(modifier = Modifier.fillMaxWidth()) {
         ListItem(
             headlineContent = {
                 Text(title)
             },
-            supportingContent = {
-                Text(summary)
-            },
+            supportingContent = supportingContent,
             modifier = Modifier
                 .testTag(tag = testTag)
                 .clickable(onClick = onClick)

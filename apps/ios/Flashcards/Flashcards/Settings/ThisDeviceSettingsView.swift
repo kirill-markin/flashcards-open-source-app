@@ -37,7 +37,7 @@ struct ThisDeviceSettingsView: View {
 
     var body: some View {
         List {
-            Section(aiSettingsLocalized("settings.thisDevice.section.thisDevice", "This Device")) {
+            Section(aiSettingsLocalized("settings.thisDevice.section.thisDevice", "Device")) {
                 LabeledContent(aiSettingsLocalized("settings.thisDevice.workspace", "Workspace")) {
                     Text(self.workspaceName)
                 }
@@ -100,7 +100,7 @@ struct ThisDeviceSettingsView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle(aiSettingsLocalized("settings.thisDevice.title", "This Device"))
+        .navigationTitle(aiSettingsLocalized("settings.thisDevice.title", "Device"))
     }
 
     private func handleAppVersionTap(now: Date) {

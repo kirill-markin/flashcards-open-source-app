@@ -37,9 +37,9 @@ internal fun LiveSmokeContext.waitForSelectedWorkspaceSummary(context: String, t
         }
     } catch (error: Throwable) {
         throw AssertionError(
-            "Current workspace selection did not settle $context. " +
+            "Workspace selection did not settle $context. " +
                 "Visible linked workspaces=${captureVisibleWorkspaceRows(rowTag = currentWorkspaceExistingRowTag)} " +
-                "Current workspace name=${currentWorkspaceNameOrNull()}",
+                "WorkspaceName=${currentWorkspaceNameOrNull()}",
             error
         )
     }
@@ -62,9 +62,9 @@ internal fun LiveSmokeContext.waitForSelectedWorkspaceSummaryToChange(
         }
     } catch (error: Throwable) {
         throw AssertionError(
-            "Current workspace selection did not change $context. " +
+            "Workspace selection did not change $context. " +
                 "Before=$beforeSummary After=${selectedWorkspaceSummaryOrNull()} " +
-                "Current workspace name=${currentWorkspaceNameOrNull()} " +
+                "WorkspaceName=${currentWorkspaceNameOrNull()} " +
                 "Error=${currentWorkspaceErrorMessageOrNull()}",
             error
         )
@@ -75,11 +75,11 @@ internal fun LiveSmokeContext.waitForCurrentWorkspaceScreenToSettle() {
     try {
         waitUntilWithMitigation(
             timeoutMillis = externalUiTimeoutMillis,
-            context = "while waiting for the Current Workspace screen to settle"
+            context = "while waiting for the Workspace screen to settle"
         ) {
             val visibleError: String? = currentWorkspaceVisibleErrorMessageOrNull()
             if (visibleError != null) {
-                throw AssertionError("Current Workspace settled with an error: $visibleError")
+                throw AssertionError("Workspace settled with an error: $visibleError")
             }
 
             val isLoading: Boolean = composeRule.onAllNodesWithTag(currentWorkspaceLoadingStateTag)
@@ -96,7 +96,7 @@ internal fun LiveSmokeContext.waitForCurrentWorkspaceScreenToSettle() {
         }
     } catch (error: Throwable) {
         throw AssertionError(
-            "Current Workspace screen did not settle. " +
+            "Workspace screen did not settle. " +
                 "Loading=${composeRule.onAllNodesWithTag(currentWorkspaceLoadingStateTag).fetchSemanticsNodes().isNotEmpty()} " +
                 "Error=${currentWorkspaceVisibleErrorMessageOrNull()} " +
                 "SelectedRow=${selectedWorkspaceSummaryOrNull()}",
@@ -109,13 +109,13 @@ internal fun LiveSmokeContext.waitForCurrentWorkspaceName(expectedWorkspaceName:
     try {
         waitUntilWithMitigation(
             timeoutMillis = internalUiTimeoutMillis,
-            context = "while waiting for Current Workspace top card to update"
+            context = "while waiting for Workspace top card to update"
         ) {
             currentWorkspaceNameOrNull() == expectedWorkspaceName
         }
     } catch (error: Throwable) {
         throw AssertionError(
-            "Current Workspace top card did not update after rename. " +
+            "Workspace top card did not update after rename. " +
                 "TopCard=${currentWorkspaceNameOrNull()} " +
                 "SelectedRow=${selectedWorkspaceSummaryOrNull()}",
             error
@@ -126,7 +126,7 @@ internal fun LiveSmokeContext.waitForCurrentWorkspaceName(expectedWorkspaceName:
 internal fun LiveSmokeContext.selectedWorkspaceSummary(context: String): String {
     val selectedSummary: String? = selectedWorkspaceSummaryOrNull()
     return requireNotNull(selectedSummary) {
-        "Current workspace selection was missing $context."
+        "Workspace selection was missing $context."
     }
 }
 

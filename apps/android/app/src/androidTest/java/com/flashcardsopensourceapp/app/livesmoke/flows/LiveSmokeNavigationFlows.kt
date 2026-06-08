@@ -29,12 +29,13 @@ import com.flashcardsopensourceapp.feature.settings.settingsDeviceDiagnosticsRow
 import com.flashcardsopensourceapp.feature.settings.settingsExportRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsFeedbackRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsLanguageRowTag
-import com.flashcardsopensourceapp.feature.settings.settingsLegalSupportRowTag
+import com.flashcardsopensourceapp.feature.settings.settingsLegalRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsOpenSourceRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsResetStudyProgressRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsReviewRemindersRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsSchedulingRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsServerRowTag
+import com.flashcardsopensourceapp.feature.settings.settingsSupportRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsTagsRowTag
 
 internal fun LiveSmokeContext.openCardsTab() {
@@ -95,7 +96,7 @@ internal fun LiveSmokeContext.assertSettingsInformationArchitecture() {
 
     listOf(
         settingsAccountStatusRowTag to "Account status",
-        settingsCurrentWorkspaceRowTag to "Current Workspace",
+        settingsCurrentWorkspaceRowTag to "Workspace",
         settingsReviewRemindersRowTag to "Review reminders",
         settingsLanguageRowTag to "Language",
         settingsAccessRowTag to "Access",
@@ -103,12 +104,13 @@ internal fun LiveSmokeContext.assertSettingsInformationArchitecture() {
         settingsTagsRowTag to "Tags",
         settingsExportRowTag to "Export",
         settingsFeedbackRowTag to "Send feedback",
-        settingsLegalSupportRowTag to "Legal & support",
+        settingsLegalRowTag to "Legal",
+        settingsSupportRowTag to "Support",
         settingsOpenSourceRowTag to "Open source",
         settingsSchedulingRowTag to "Scheduling / FSRS",
         settingsAgentConnectionsRowTag to "Agent connections",
         settingsServerRowTag to "Server",
-        settingsDeviceDiagnosticsRowTag to "This device / diagnostics",
+        settingsDeviceDiagnosticsRowTag to "Device",
         settingsResetStudyProgressRowTag to "Reset study progress",
         settingsDeleteCurrentWorkspaceRowTag to "Delete current workspace",
         settingsDeleteAccountRowTag to "Delete account"
@@ -133,8 +135,8 @@ internal fun LiveSmokeContext.openSettingsInformationArchitectureDetails() {
         ),
         SettingsDetailProbe(
             rowTag = settingsCurrentWorkspaceRowTag,
-            rowLabel = "Current Workspace",
-            expectedText = "Current Workspace"
+            rowLabel = "Workspace",
+            expectedText = "Cloud status"
         ),
         SettingsDetailProbe(
             rowTag = settingsReviewRemindersRowTag,
@@ -163,7 +165,7 @@ internal fun LiveSmokeContext.openSettingsInformationArchitectureDetails() {
         ),
         SettingsDetailProbe(
             rowTag = settingsDeviceDiagnosticsRowTag,
-            rowLabel = "This device / diagnostics",
+            rowLabel = "Device",
             expectedText = "Workspace ID"
         )
     ).forEach { probe ->

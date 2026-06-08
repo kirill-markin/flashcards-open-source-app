@@ -131,7 +131,7 @@
 "settings.section.support" = "Soporte";
 "settings.section.advanced" = "Avanzado";
 "settings.row.accountStatus" = "Estado de la cuenta";
-"settings.row.currentWorkspace" = "Espacio de trabajo actual";
+"settings.row.currentWorkspace" = "Espacio de trabajo";
 "settings.row.reviewReminders" = "Recordatorios de repaso";
 "settings.row.reviewReminders.value" = "Este dispositivo";
 "settings.row.reviewAnimations" = "Animaciones de repaso";
@@ -142,15 +142,15 @@
 "settings.row.workspaceScoped.value" = "Espacio de trabajo";
 "settings.row.tags" = "Etiquetas";
 "settings.row.export" = "Exportar";
-"settings.row.legalSupport" = "Legal y soporte";
+"settings.row.legal" = "Legal";
+"settings.row.support" = "Soporte";
 "settings.row.openSource" = "Codigo abierto";
 "settings.row.scheduling" = "Programacion / FSRS";
 "settings.row.agentConnections" = "Conexiones de agentes";
 "settings.row.agentConnections.value" = "Claves API";
 "settings.row.server" = "Servidor";
 "settings.row.server.value" = "Dominio";
-"settings.row.deviceDiagnostics" = "Este dispositivo / diagnosticos";
-"settings.row.deviceDiagnostics.value" = "SwiftUI + SQLite";
+"settings.row.deviceDiagnostics" = "Dispositivo";
 "settings.row.resetStudyProgress" = "Restablecer progreso de estudio";
 "settings.row.resetStudyProgress.value" = "Progreso";
 "settings.row.deleteCurrentWorkspace" = "Eliminar espacio de trabajo actual";
@@ -158,7 +158,7 @@
 "settings.row.deleteAccount" = "Eliminar cuenta";
 "settings.row.workspaceSettings" = "Ajustes del espacio de trabajo";
 "settings.row.accountSettings" = "Ajustes de la cuenta";
-"settings.row.thisDevice" = "Este dispositivo";
+"settings.row.thisDevice" = "Dispositivo";
 "settings.row.access" = "Acceso";
 "settings.row.access.itemCount" = "4 elementos";
 "settings.section.test" = "Prueba";
@@ -207,7 +207,7 @@
 "settings.sync.recoveryGate.eraseAlert.confirm" = "Borrar datos locales";
 "settings.sync.recoveryGate.erasing" = "Borrando datos locales...";
 
-"settings.currentWorkspace.title" = "Espacio de trabajo actual";
+"settings.currentWorkspace.title" = "Espacio de trabajo";
 "settings.currentWorkspace.row.workspace" = "Espacio de trabajo";
 "settings.currentWorkspace.loadingWorkspaces" = "Cargando espacios de trabajo...";
 "settings.currentWorkspace.loadError" = "No se pudieron cargar los espacios de trabajo vinculados.";
@@ -217,8 +217,8 @@
 "settings.currentWorkspace.createNew" = "Crear nuevo espacio de trabajo";
 "settings.currentWorkspace.createFromCurrent" = "Crear un nuevo espacio de trabajo a partir de \"%@\"";
 
-"settings.thisDevice.title" = "Este dispositivo";
-"settings.thisDevice.section.thisDevice" = "Este dispositivo";
+"settings.thisDevice.title" = "Dispositivo";
+"settings.thisDevice.section.thisDevice" = "Dispositivo";
 "settings.thisDevice.workspace" = "Espacio de trabajo";
 "settings.thisDevice.operatingSystem" = "Sistema operativo";
 "settings.thisDevice.deviceModel" = "Modelo del dispositivo";
@@ -271,8 +271,8 @@
 
 "settings.account.title" = "Ajustes de la cuenta";
 "settings.account.row.accountStatus" = "Estado de la cuenta";
-"settings.account.row.legalSupport" = "Legal y soporte";
-"settings.account.row.legalSupportValue" = "Privacidad + soporte";
+"settings.account.row.legal" = "Legal";
+"settings.account.row.support" = "Soporte";
 "settings.account.row.openSource" = "Codigo abierto";
 "settings.account.row.openSourceValue" = "GitHub + MIT";
 "settings.account.row.advanced" = "Avanzado";
@@ -290,7 +290,7 @@
 "settings.account.status.linkedEmail" = "Correo vinculado";
 "settings.account.status.syncStatus" = "Estado de sincronizacion";
 "settings.account.status.lastSync" = "Ultima sincronizacion";
-"settings.account.status.description" = "Las cuentas de invitado y vinculadas sincronizan el espacio de trabajo actual mediante la nube. Las cuentas vinculadas pueden gestionar espacios de trabajo desde Espacio de trabajo actual en Ajustes.";
+"settings.account.status.description" = "Las cuentas de invitado y vinculadas sincronizan el espacio de trabajo actual mediante la nube. Las cuentas vinculadas pueden gestionar espacios de trabajo desde Espacio de trabajo en Ajustes.";
 "settings.account.status.signIn" = "Iniciar sesion o crear cuenta";
 "settings.account.status.syncNow" = "Sincronizar ahora";
 "settings.account.status.switchAccount" = "Cambiar de cuenta";
@@ -299,15 +299,17 @@
 "settings.account.status.logoutAlertTitle" = "Cerrar sesion y borrar este dispositivo?";
 "settings.account.status.logoutAlertMessage" = "Todos los espacios de trabajo locales y los datos sincronizados se eliminaran de este dispositivo.";
 
-"settings.account.legal.title" = "Legal y soporte";
+"settings.account.legal.title" = "Legal";
+"settings.account.support.title" = "Soporte";
 "settings.account.legal.section.links" = "Enlaces";
-"settings.account.legal.section.supportContact" = "Contacto de soporte";
+"settings.account.support.section.links" = "Enlaces";
+"settings.account.support.section.contact" = "Contacto de soporte";
 "settings.account.legal.section.aiDataUse" = "Uso de datos de IA";
 "settings.account.legal.githubRepository" = "Repositorio de GitHub";
 "settings.account.legal.statusOnThisDevice" = "Estado en este dispositivo";
 "settings.account.legal.accepted" = "Aceptado";
 "settings.account.legal.notAccepted" = "No aceptado";
-"settings.account.legal.supportContactDescription" = "Usa la pagina de soporte para preguntas sobre la app alojada, ayuda con la eliminacion de cuentas y seguimiento de revisiones de la App Store.";
+"settings.account.support.contactDescription" = "Usa la pagina de soporte para preguntas sobre la app alojada, ayuda con la eliminacion de cuentas y seguimiento de revisiones de la App Store.";
 "settings.account.legal.aiDataUseDescription" = "Usar IA alojada es opcional. Si la activas en este dispositivo, los siguientes datos de solicitud pueden enviarse al servicio de IA alojado:";
 "settings.account.legal.disclosureBullet" = "- %@";
 "settings.account.legal.reviewAiDataUse" = "Revisa y acepta el uso de datos de IA desde la pestana IA antes de usar la IA alojada.";

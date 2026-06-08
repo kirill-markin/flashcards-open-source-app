@@ -98,7 +98,7 @@ const deCatalog: TranslationCatalog = {
     redirectingToLogin: "Weiterleitung zur Anmeldung...",
     restoringSession: "Sitzung wird wiederhergestellt...",
     settings: "Einstellungen werden geladen...",
-    currentWorkspace: "Aktueller Arbeitsbereich wird geladen...",
+    currentWorkspace: "Arbeitsbereich wird geladen...",
     accessSettings: "Zugriffseinstellungen werden geladen...",
     accessDetails: "Zugriffsdetails werden geladen...",
     workspaceSettings: "Arbeitsbereichseinstellungen werden geladen...",
@@ -113,7 +113,8 @@ const deCatalog: TranslationCatalog = {
     deviceDetails: "Gerätedetails werden geladen...",
     accountSettings: "Kontoeinstellungen werden geladen...",
     accountStatus: "Kontostatus wird geladen...",
-    legalSupport: "Rechtliches und Support werden geladen...",
+    legal: "Rechtliches wird geladen...",
+    support: "Support wird geladen...",
     openSourceSettings: "Open-Source-Einstellungen werden geladen...",
     agentConnections: "Agent-Verbindungen werden geladen...",
     dangerZone: "Gefahrenbereich wird geladen...",
@@ -180,7 +181,7 @@ const deCatalog: TranslationCatalog = {
   },
   accountMenu: {
     openButtonLabel: "Kontomenü öffnen",
-    currentWorkspaceSection: "Aktueller Arbeitsbereich",
+    currentWorkspaceSection: "Arbeitsbereich",
     newWorkspace: "Neuer Arbeitsbereich",
     workspaceNamePlaceholder: "Name des Arbeitsbereichs",
     workspaceNameRequired: "Der Name des Arbeitsbereichs ist erforderlich",
@@ -189,7 +190,7 @@ const deCatalog: TranslationCatalog = {
   },
   settingsTabs: {
     general: "Allgemein",
-    currentWorkspace: "Aktueller Arbeitsbereich",
+    currentWorkspace: "Arbeitsbereich",
     workspace: "Arbeitsbereich",
     account: "Konto",
     device: "Dieses Gerät",
@@ -207,7 +208,7 @@ const deCatalog: TranslationCatalog = {
       advanced: "Erweitert",
     },
     currentWorkspace: {
-      title: "Aktueller Arbeitsbereich",
+      title: "Arbeitsbereich",
       description: "Ändere den aktiven Arbeitsbereich oder erstelle einen neuen Arbeitsbereich für dieses Konto.",
     },
     language: {
@@ -225,7 +226,7 @@ const deCatalog: TranslationCatalog = {
       value: "Konto",
     },
     device: {
-      title: "Dieses Gerät / Diagnose",
+      title: "Gerät",
       description: "Prüfe Browser, Build, Speicher und gerätelokale Arbeitsbereichsdetails.",
       value: "Gerät",
     },
@@ -264,7 +265,7 @@ const deCatalog: TranslationCatalog = {
     disabledMessage: "Testversion deaktiviert.",
   },
   settingsCurrentWorkspace: {
-    title: "Aktueller Arbeitsbereich",
+    title: "Arbeitsbereich",
     subtitle: "Wähle, welcher Arbeitsbereich in diesem Browser aktiv ist, oder erstelle einen neuen Arbeitsbereich für dieses Konto.",
     workspaceCardTitle: "Arbeitsbereich",
     workspaceCardDescription: "Ändere den aktiven Arbeitsbereich oder erstelle einen neuen Arbeitsbereich für dieses Konto.",
@@ -274,7 +275,7 @@ const deCatalog: TranslationCatalog = {
     createWorkspace: "Arbeitsbereich erstellen",
   },
   settingsDevice: {
-    title: "Dieses Gerät / Diagnose",
+    title: "Gerät",
     subtitle: "Prüfe browserlokales Verhalten, Speicher und Gerätedetails für den aktuellen Arbeitsbereich.",
     languageCardTitle: "Sprachüberschreibung",
     languageCardDescription: "Wähle die App-Sprache nur für diesen Browser. Diese Einstellung bleibt lokal auf diesem Gerät.",
@@ -863,10 +864,13 @@ const deCatalog: TranslationCatalog = {
       description: "Prüfe das angemeldete Konto und den aktuellen Sitzungsstatus im Browser.",
     },
     supportGroupTitle: "Support",
-    legalSupport: {
-      title: "Rechtliches und Support",
-      description: "Prüfe Datenschutz, Nutzungsbedingungen, gehostete Support-Links und Support-Kontaktdaten.",
-      value: "Richtlinien",
+    legal: {
+      title: "Rechtliches",
+      description: "Prüfe Datenschutz und Nutzungsbedingungen für die gehostete App.",
+    },
+    support: {
+      title: "Support",
+      description: "Öffne gehostete Support-Links und Support-Kontaktdaten.",
     },
     openSource: {
       title: "Open Source",
@@ -902,19 +906,27 @@ const deCatalog: TranslationCatalog = {
     },
     logout: "Abmelden",
   },
-  legalSupport: {
-    title: "Rechtliches und Support",
-    subtitle: "Prüfe Richtlinien-Links und Support-Kontaktdaten für die gehostete App.",
+  legal: {
+    title: "Rechtliches",
+    subtitle: "Prüfe Richtlinien-Links für die gehostete App.",
     labels: {
       privacyPolicy: "Datenschutzerklärung",
       termsOfService: "Nutzungsbedingungen",
-      support: "Support",
-      supportEmail: "Support-E-Mail",
-      hostedAppHelp: "Hilfe zur gehosteten App",
     },
     actions: {
       openPolicy: "Richtlinie öffnen",
       openTerms: "Bedingungen öffnen",
+    },
+  },
+  support: {
+    title: "Support",
+    subtitle: "Öffne gehostete Support-Links und Kontaktdaten.",
+    labels: {
+      supportPage: "Support",
+      supportEmail: "Support-E-Mail",
+      hostedAppHelp: "Hilfe zur gehosteten App",
+    },
+    actions: {
       openSupport: "Support öffnen",
     },
     hostedHelpDescription: "Nutze die Support-Seite für Fragen zur gehosteten App, Hilfe bei der Kontolöschung sowie Rückfragen zu Abrechnung oder Zugriff.",

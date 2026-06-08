@@ -34,13 +34,14 @@ import com.flashcardsopensourceapp.feature.settings.settingsDeviceDiagnosticsRow
 import com.flashcardsopensourceapp.feature.settings.settingsExportRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsFeedbackRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsLanguageRowTag
-import com.flashcardsopensourceapp.feature.settings.settingsLegalSupportRowTag
+import com.flashcardsopensourceapp.feature.settings.settingsLegalRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsOpenSourceRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsResetStudyProgressRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsReviewAnimationsRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsReviewRemindersRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsSchedulingRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsServerRowTag
+import com.flashcardsopensourceapp.feature.settings.settingsSupportRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsTagsRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsTestRowTag
 import org.junit.Assert.assertEquals
@@ -84,7 +85,8 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             settingsTagsRowTag,
             settingsExportRowTag,
             settingsFeedbackRowTag,
-            settingsLegalSupportRowTag,
+            settingsLegalRowTag,
+            settingsSupportRowTag,
             settingsOpenSourceRowTag,
             settingsSchedulingRowTag,
             settingsAgentConnectionsRowTag,
@@ -223,8 +225,11 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onOpenFeedback = {
                         clickedRows += "feedback"
                     },
-                    onOpenLegalSupport = {
+                    onOpenLegal = {
                         clickedRows += "legal_support"
+                    },
+                    onOpenSupport = {
+                        clickedRows += "support"
                     },
                     onOpenOpenSource = {
                         clickedRows += "open_source"

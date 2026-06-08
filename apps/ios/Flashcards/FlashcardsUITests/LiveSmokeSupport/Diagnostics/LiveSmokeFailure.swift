@@ -62,7 +62,7 @@ enum LiveSmokeFailure: LocalizedError {
         case .missingBackButton(let screen, let step):
             return "Back button did not appear during step '\(step)' on screen: \(screen)"
         case .currentWorkspacePickerNotVisible(let screen, let step):
-            return "Current Workspace picker did not appear during step '\(step)'. Current screen: \(screen)"
+            return "Workspace picker did not appear during step '\(step)'. Current screen: \(screen)"
         case .unexpectedAccountState(let message, let screen, let step):
             return "Account state was unexpected during step '\(step)'. Current screen: \(screen). \(message)"
         case .unexpectedReviewState(let message, let screen, let step):

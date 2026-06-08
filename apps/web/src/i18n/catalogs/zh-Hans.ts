@@ -98,7 +98,7 @@ export const zhHansCatalog = {
     redirectingToLogin: "正在跳转到登录页面...",
     restoringSession: "正在恢复会话...",
     settings: "正在加载设置...",
-    currentWorkspace: "正在加载当前工作区...",
+    currentWorkspace: "正在加载工作区...",
     accessSettings: "正在加载访问设置...",
     accessDetails: "正在加载访问详情...",
     workspaceSettings: "正在加载工作区设置...",
@@ -113,7 +113,8 @@ export const zhHansCatalog = {
     deviceDetails: "正在加载设备详情...",
     accountSettings: "正在加载账户设置...",
     accountStatus: "正在加载账户状态...",
-    legalSupport: "正在加载法律与支持信息...",
+    legal: "正在加载法律信息...",
+    support: "正在加载支持...",
     openSourceSettings: "正在加载开源设置...",
     agentConnections: "正在加载代理连接...",
     dangerZone: "正在加载危险区域...",
@@ -180,7 +181,7 @@ export const zhHansCatalog = {
   },
   accountMenu: {
     openButtonLabel: "打开账户菜单",
-    currentWorkspaceSection: "当前工作区",
+    currentWorkspaceSection: "工作区",
     newWorkspace: "新建工作区",
     workspaceNamePlaceholder: "工作区名称",
     workspaceNameRequired: "工作区名称为必填项",
@@ -189,7 +190,7 @@ export const zhHansCatalog = {
   },
   settingsTabs: {
     general: "常规",
-    currentWorkspace: "当前工作区",
+    currentWorkspace: "工作区",
     workspace: "工作区",
     account: "账户",
     device: "此设备",
@@ -207,7 +208,7 @@ export const zhHansCatalog = {
       advanced: "高级",
     },
     currentWorkspace: {
-      title: "当前工作区",
+      title: "工作区",
       description: "切换当前活动工作区，或为此账户创建新的工作区。",
     },
     language: {
@@ -225,7 +226,7 @@ export const zhHansCatalog = {
       value: "账户",
     },
     device: {
-      title: "此设备 / 诊断",
+      title: "设备",
       description: "查看浏览器、构建、存储和设备本地工作区详情。",
       value: "设备",
     },
@@ -264,7 +265,7 @@ export const zhHansCatalog = {
     disabledMessage: "测试版本已停用。",
   },
   settingsCurrentWorkspace: {
-    title: "当前工作区",
+    title: "工作区",
     subtitle: "选择此浏览器中当前活动的工作区，或为此账户创建新的工作区。",
     workspaceCardTitle: "工作区",
     workspaceCardDescription: "切换当前活动工作区，或为此账户创建新的工作区。",
@@ -274,7 +275,7 @@ export const zhHansCatalog = {
     createWorkspace: "创建工作区",
   },
   settingsDevice: {
-    title: "此设备 / 诊断",
+    title: "设备",
     subtitle: "查看当前工作区在浏览器中的本地行为、存储和设备详情。",
     languageCardTitle: "语言覆盖设置",
     languageCardDescription: "仅为此浏览器选择应用语言。该偏好只保存在此设备本地。",
@@ -863,10 +864,13 @@ export const zhHansCatalog = {
       description: "查看当前已登录账户和浏览器会话状态。",
     },
     supportGroupTitle: "支持",
-    legalSupport: {
-      title: "法律与支持",
-      description: "查看隐私政策、条款、托管支持链接和支持联系方式。",
-      value: "政策",
+    legal: {
+      title: "法律",
+      description: "查看托管应用的隐私政策和条款。",
+    },
+    support: {
+      title: "支持",
+      description: "打开托管支持链接和支持联系方式。",
     },
     openSource: {
       title: "开源",
@@ -902,19 +906,27 @@ export const zhHansCatalog = {
     },
     logout: "退出登录",
   },
-  legalSupport: {
-    title: "法律与支持",
-    subtitle: "查看托管应用的政策链接和支持联系方式。",
+  legal: {
+    title: "法律",
+    subtitle: "查看托管应用的政策链接。",
     labels: {
       privacyPolicy: "隐私政策",
       termsOfService: "服务条款",
-      support: "支持",
-      supportEmail: "支持邮箱",
-      hostedAppHelp: "托管应用帮助",
     },
     actions: {
       openPolicy: "打开政策",
       openTerms: "打开条款",
+    },
+  },
+  support: {
+    title: "支持",
+    subtitle: "打开托管支持链接和联系方式。",
+    labels: {
+      supportPage: "支持",
+      supportEmail: "支持邮箱",
+      hostedAppHelp: "托管应用帮助",
+    },
+    actions: {
       openSupport: "打开支持",
     },
     hostedHelpDescription: "如果您对托管应用有疑问、需要账户删除帮助，或需要账单和访问方面的后续支持，请使用支持页面。",

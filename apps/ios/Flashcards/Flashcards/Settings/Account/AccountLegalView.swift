@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct AccountLegalSupportView: View {
+struct AccountLegalView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
     private var hasAcceptedAIDataUse: Bool {
@@ -30,16 +30,6 @@ struct AccountLegalSupportView: View {
                     }
                 }
 
-                if let supportUrl = URL(string: flashcardsSupportUrl) {
-                    Link(destination: supportUrl) {
-                        SettingsNavigationRow(
-                            title: aiSettingsLocalized("common.support", "Support"),
-                            value: aiSettingsLocalized("common.open", "Open"),
-                            systemImage: "questionmark.circle"
-                        )
-                    }
-                }
-
                 if let repositoryUrl = URL(string: flashcardsRepositoryUrl) {
                     Link(destination: repositoryUrl) {
                         SettingsNavigationRow(
@@ -49,28 +39,6 @@ struct AccountLegalSupportView: View {
                         )
                     }
                 }
-            }
-
-            Section(aiSettingsLocalized("settings.account.legal.section.supportContact", "Support Contact")) {
-                if let supportEmailUrl = URL(string: flashcardsSupportEmailUrl) {
-                    Link(destination: supportEmailUrl) {
-                        LabeledContent(aiSettingsLocalized("common.email", "Email")) {
-                            Text(flashcardsSupportEmailAddress)
-                        }
-                    }
-                } else {
-                    LabeledContent(aiSettingsLocalized("common.email", "Email")) {
-                        Text(flashcardsSupportEmailAddress)
-                    }
-                }
-
-                Text(
-                    aiSettingsLocalized(
-                        "settings.account.legal.supportContactDescription",
-                        "Use the support page for hosted app questions, account deletion help, and App Store review follow-up."
-                    )
-                )
-                    .foregroundStyle(.secondary)
             }
 
             Section(aiSettingsLocalized("settings.account.legal.section.aiDataUse", "AI Data Use")) {
@@ -114,21 +82,69 @@ struct AccountLegalSupportView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle(aiSettingsLocalized("settings.account.legal.title", "Legal & Support"))
+        .navigationTitle(aiSettingsLocalized("settings.account.legal.title", "Legal"))
+    }
+}
+
+struct AccountSupportView: View {
+    var body: some View {
+        List {
+            Section(aiSettingsLocalized("settings.account.support.section.links", "Links")) {
+                if let supportUrl = URL(string: flashcardsSupportUrl) {
+                    Link(destination: supportUrl) {
+                        SettingsNavigationRow(
+                            title: aiSettingsLocalized("common.support", "Support"),
+                            value: aiSettingsLocalized("common.open", "Open"),
+                            systemImage: "questionmark.circle"
+                        )
+                    }
+                }
+            }
+
+            Section(aiSettingsLocalized("settings.account.support.section.contact", "Support Contact")) {
+                if let supportEmailUrl = URL(string: flashcardsSupportEmailUrl) {
+                    Link(destination: supportEmailUrl) {
+                        LabeledContent(aiSettingsLocalized("common.email", "Email")) {
+                            Text(flashcardsSupportEmailAddress)
+                        }
+                    }
+                } else {
+                    LabeledContent(aiSettingsLocalized("common.email", "Email")) {
+                        Text(flashcardsSupportEmailAddress)
+                    }
+                }
+
+                Text(
+                    aiSettingsLocalized(
+                        "settings.account.support.contactDescription",
+                        "Use the support page for hosted app questions, account deletion help, and App Store review follow-up."
+                    )
+                )
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .listStyle(.insetGrouped)
+        .navigationTitle(aiSettingsLocalized("settings.account.support.title", "Support"))
     }
 }
 
 #Preview("Default") {
     NavigationStack {
-        AccountLegalSupportView()
+        AccountLegalView()
             .environment(FlashcardsStore())
     }
 }
 
 #Preview("Arabic RTL") {
     NavigationStack {
-        AccountLegalSupportView()
+        AccountLegalView()
             .environment(FlashcardsStore())
     }
     .arabicRTLPreview()
+}
+
+#Preview("Support") {
+    NavigationStack {
+        AccountSupportView()
+    }
 }

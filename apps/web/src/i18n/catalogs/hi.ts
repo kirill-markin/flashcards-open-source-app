@@ -98,7 +98,7 @@ const hiCatalog: TranslationCatalog = {
     redirectingToLogin: "लॉगिन पर भेजा जा रहा है...",
     restoringSession: "सेशन बहाल किया जा रहा है...",
     settings: "सेटिंग्स लोड हो रही हैं...",
-    currentWorkspace: "मौजूदा वर्कस्पेस लोड हो रहा है...",
+    currentWorkspace: "वर्कस्पेस लोड हो रहा है...",
     accessSettings: "एक्सेस सेटिंग्स लोड हो रही हैं...",
     accessDetails: "एक्सेस विवरण लोड हो रहा है...",
     workspaceSettings: "वर्कस्पेस सेटिंग्स लोड हो रही हैं...",
@@ -113,7 +113,8 @@ const hiCatalog: TranslationCatalog = {
     deviceDetails: "डिवाइस विवरण लोड हो रहा है...",
     accountSettings: "खाता सेटिंग्स लोड हो रही हैं...",
     accountStatus: "खाता स्थिति लोड हो रही है...",
-    legalSupport: "कानूनी और सहायता जानकारी लोड हो रही है...",
+    legal: "कानूनी जानकारी लोड हो रही है...",
+    support: "समर्थन लोड हो रहा है...",
     openSourceSettings: "ओपन सोर्स सेटिंग्स लोड हो रही हैं...",
     agentConnections: "एजेंट कनेक्शन लोड हो रहे हैं...",
     dangerZone: "खतरे का क्षेत्र लोड हो रहा है...",
@@ -180,7 +181,7 @@ const hiCatalog: TranslationCatalog = {
   },
   accountMenu: {
     openButtonLabel: "खाता मेनू खोलें",
-    currentWorkspaceSection: "मौजूदा वर्कस्पेस",
+    currentWorkspaceSection: "वर्कस्पेस",
     newWorkspace: "नया वर्कस्पेस",
     workspaceNamePlaceholder: "वर्कस्पेस का नाम",
     workspaceNameRequired: "वर्कस्पेस का नाम आवश्यक है",
@@ -189,7 +190,7 @@ const hiCatalog: TranslationCatalog = {
   },
   settingsTabs: {
     general: "सामान्य",
-    currentWorkspace: "मौजूदा वर्कस्पेस",
+    currentWorkspace: "वर्कस्पेस",
     workspace: "वर्कस्पेस",
     account: "खाता",
     device: "यह डिवाइस",
@@ -207,7 +208,7 @@ const hiCatalog: TranslationCatalog = {
       advanced: "उन्नत",
     },
     currentWorkspace: {
-      title: "मौजूदा वर्कस्पेस",
+      title: "वर्कस्पेस",
       description: "सक्रिय वर्कस्पेस बदलें या इस खाते के लिए नया वर्कस्पेस बनाएँ।",
     },
     language: {
@@ -225,7 +226,7 @@ const hiCatalog: TranslationCatalog = {
       value: "खाता",
     },
     device: {
-      title: "यह डिवाइस / डायग्नॉस्टिक्स",
+      title: "डिवाइस",
       description: "ब्राउज़र, बिल्ड, स्टोरेज और डिवाइस-लोकल वर्कस्पेस विवरण देखें।",
       value: "डिवाइस",
     },
@@ -264,7 +265,7 @@ const hiCatalog: TranslationCatalog = {
     disabledMessage: "टेस्ट संस्करण बंद है।",
   },
   settingsCurrentWorkspace: {
-    title: "मौजूदा वर्कस्पेस",
+    title: "वर्कस्पेस",
     subtitle: "चुनें कि इस ब्राउज़र में कौन-सा वर्कस्पेस सक्रिय है या इस खाते के लिए नया वर्कस्पेस बनाएँ।",
     workspaceCardTitle: "वर्कस्पेस",
     workspaceCardDescription: "सक्रिय वर्कस्पेस बदलें या इस खाते के लिए नया वर्कस्पेस बनाएँ।",
@@ -274,7 +275,7 @@ const hiCatalog: TranslationCatalog = {
     createWorkspace: "वर्कस्पेस बनाएँ",
   },
   settingsDevice: {
-    title: "यह डिवाइस / डायग्नॉस्टिक्स",
+    title: "डिवाइस",
     subtitle: "मौजूदा वर्कस्पेस के लिए ब्राउज़र-लोकल व्यवहार, स्टोरेज और डिवाइस विवरण देखें।",
     languageCardTitle: "भाषा ओवरराइड",
     languageCardDescription: "सिर्फ इस ब्राउज़र के लिए ऐप भाषा चुनें। यह वरीयता इसी डिवाइस पर स्थानीय रहेगी।",
@@ -863,10 +864,13 @@ const hiCatalog: TranslationCatalog = {
       description: "साइन-इन किए गए खाते और मौजूदा ब्राउज़र सेशन की स्थिति देखें।",
     },
     supportGroupTitle: "सहायता",
-    legalSupport: {
-      title: "कानूनी और सहायता",
-      description: "गोपनीयता, शर्तें, होस्टेड सहायता लिंक और सहायता संपर्क विवरण देखें।",
-      value: "नीतियाँ",
+    legal: {
+      title: "कानूनी",
+      description: "होस्टेड ऐप की गोपनीयता और शर्तें देखें।",
+    },
+    support: {
+      title: "समर्थन",
+      description: "होस्टेड सहायता लिंक और सहायता संपर्क विवरण खोलें।",
     },
     openSource: {
       title: "ओपन सोर्स",
@@ -902,20 +906,28 @@ const hiCatalog: TranslationCatalog = {
     },
     logout: "लॉग आउट",
   },
-  legalSupport: {
-    title: "कानूनी और सहायता",
-    subtitle: "होस्टेड ऐप के लिए नीति लिंक और सहायता संपर्क विवरण देखें।",
+  legal: {
+    title: "कानूनी",
+    subtitle: "होस्टेड ऐप के लिए नीति लिंक देखें।",
     labels: {
       privacyPolicy: "गोपनीयता नीति",
       termsOfService: "सेवा की शर्तें",
-      support: "सहायता",
-      supportEmail: "सहायता ईमेल",
-      hostedAppHelp: "होस्टेड ऐप सहायता",
     },
     actions: {
       openPolicy: "नीति खोलें",
       openTerms: "शर्तें खोलें",
-      openSupport: "सहायता खोलें",
+    },
+  },
+  support: {
+    title: "समर्थन",
+    subtitle: "होस्टेड सहायता लिंक और संपर्क विवरण खोलें।",
+    labels: {
+      supportPage: "समर्थन",
+      supportEmail: "समर्थन ईमेल",
+      hostedAppHelp: "होस्टेड ऐप समर्थन",
+    },
+    actions: {
+      openSupport: "समर्थन खोलें",
     },
     hostedHelpDescription: "होस्टेड ऐप से जुड़े सवालों, खाता हटाने में मदद और बिलिंग या एक्सेस फ़ॉलो-अप के लिए सहायता पेज का उपयोग करें।",
   },

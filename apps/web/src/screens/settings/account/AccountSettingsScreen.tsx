@@ -4,9 +4,10 @@ import { useI18n } from "../../../i18n";
 import {
   accountAgentConnectionsRoute,
   accountDangerZoneRoute,
-  accountLegalSupportRoute,
+  accountLegalRoute,
   accountOpenSourceRoute,
   accountStatusRoute,
+  accountSupportRoute,
 } from "../../../routes";
 import { SettingsGroup, SettingsNavigationCard, SettingsShell } from "../SettingsShared";
 
@@ -42,10 +43,16 @@ export function AccountSettingsScreen(): ReactElement {
       <SettingsGroup title={t("accountSettings.supportGroupTitle")}>
         <div className="settings-nav-list">
           <SettingsNavigationCard
-            title={t("accountSettings.legalSupport.title")}
-            description={t("accountSettings.legalSupport.description")}
-            value={t("accountSettings.legalSupport.value")}
-            to={accountLegalSupportRoute}
+            title={t("accountSettings.legal.title")}
+            description={t("accountSettings.legal.description")}
+            value={null}
+            to={accountLegalRoute}
+          />
+          <SettingsNavigationCard
+            title={t("accountSettings.support.title")}
+            description={t("accountSettings.support.description")}
+            value={null}
+            to={accountSupportRoute}
           />
           <SettingsNavigationCard
             title={t("accountSettings.openSource.title")}

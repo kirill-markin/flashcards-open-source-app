@@ -11,9 +11,10 @@ import {
 import {
   accountAgentConnectionsRoute,
   accountDangerZoneRoute,
-  accountLegalSupportRoute,
+  accountLegalRoute,
   accountOpenSourceRoute,
   accountStatusRoute,
+  accountSupportRoute,
   settingsAccessRoute,
   settingsCurrentWorkspaceRoute,
   settingsDecksRoute,
@@ -182,11 +183,18 @@ export function SettingsScreen(): ReactElement {
             testId="settings-row-feedback"
           />
           <SettingsNavigationCard
-            title={t("legalSupport.title")}
-            description={t("legalSupport.subtitle")}
-            value={t("accountSettings.legalSupport.value")}
-            to={accountLegalSupportRoute}
-            testId="settings-row-legal-support"
+            title={t("legal.title")}
+            description={t("legal.subtitle")}
+            value={null}
+            to={accountLegalRoute}
+            testId="settings-row-legal"
+          />
+          <SettingsNavigationCard
+            title={t("support.title")}
+            description={t("support.subtitle")}
+            value={null}
+            to={accountSupportRoute}
+            testId="settings-row-support"
           />
           <SettingsNavigationCard
             title={t("openSourceSettings.title")}
@@ -224,7 +232,7 @@ export function SettingsScreen(): ReactElement {
           <SettingsNavigationCard
             title={t("settingsDevice.title")}
             description={t("settingsDevice.subtitle")}
-            value={t("settingsHome.device.value")}
+            value={null}
             to={settingsDeviceRoute}
             testId="settings-row-device-diagnostics"
           />

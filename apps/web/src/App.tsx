@@ -29,10 +29,11 @@ import { AppErrorBoundary, wrapRoutesComponent } from "./observability/instrumen
 import {
   accountAgentConnectionsRoute,
   accountDangerZoneRoute,
-  accountLegalSupportRoute,
+  accountLegalRoute,
   accountOpenSourceRoute,
   accountSettingsRoute,
   accountStatusRoute,
+  accountSupportRoute,
   buildSettingsDeckDetailRoute,
   buildSettingsDeckEditRoute,
   cardsRoute,
@@ -113,8 +114,11 @@ const LanguageSettingsScreen = lazy(async () => import("./screens/settings/Langu
 const SettingsScreen = lazy(async () => import("./screens/settings/SettingsScreen").then((module) => ({
   default: module.SettingsScreen,
 })));
-const LegalSupportScreen = lazy(async () => import("./screens/settings/account/LegalSupportScreen").then((module) => ({
-  default: module.LegalSupportScreen,
+const LegalScreen = lazy(async () => import("./screens/settings/account/LegalScreen").then((module) => ({
+  default: module.LegalScreen,
+})));
+const SupportScreen = lazy(async () => import("./screens/settings/account/SupportScreen").then((module) => ({
+  default: module.SupportScreen,
 })));
 const OpenSourceSettingsScreen = lazy(async () => import("./screens/settings/account/OpenSourceSettingsScreen").then((module) => ({
   default: module.OpenSourceSettingsScreen,
@@ -643,7 +647,8 @@ export function RoutedShell(): ReactElement {
           />
           <Route path={accountSettingsRoute} element={renderDeferredRoute(<AccountSettingsScreen />, "loading.accountSettings")} />
           <Route path={accountStatusRoute} element={renderDeferredRoute(<AccountStatusScreen />, "loading.accountStatus")} />
-          <Route path={accountLegalSupportRoute} element={renderDeferredRoute(<LegalSupportScreen />, "loading.legalSupport")} />
+          <Route path={accountLegalRoute} element={renderDeferredRoute(<LegalScreen />, "loading.legal")} />
+          <Route path={accountSupportRoute} element={renderDeferredRoute(<SupportScreen />, "loading.support")} />
           <Route path={accountOpenSourceRoute} element={renderDeferredRoute(<OpenSourceSettingsScreen />, "loading.openSourceSettings")} />
           <Route path={accountAgentConnectionsRoute} element={renderDeferredRoute(<AgentConnectionsScreen />, "loading.agentConnections")} />
           <Route path={accountDangerZoneRoute} element={renderDeferredRoute(<DangerZoneScreen />, "loading.dangerZone")} />

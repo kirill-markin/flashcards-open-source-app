@@ -131,7 +131,7 @@
 "settings.section.support" = "サポート";
 "settings.section.advanced" = "詳細";
 "settings.row.accountStatus" = "アカウント状態";
-"settings.row.currentWorkspace" = "現在のワークスペース";
+"settings.row.currentWorkspace" = "ワークスペース";
 "settings.row.reviewReminders" = "復習リマインダー";
 "settings.row.reviewReminders.value" = "このデバイス";
 "settings.row.reviewAnimations" = "復習アニメーション";
@@ -142,15 +142,15 @@
 "settings.row.workspaceScoped.value" = "ワークスペース";
 "settings.row.tags" = "タグ";
 "settings.row.export" = "エクスポート";
-"settings.row.legalSupport" = "法務とサポート";
+"settings.row.legal" = "法務";
+"settings.row.support" = "サポート";
 "settings.row.openSource" = "オープンソース";
 "settings.row.scheduling" = "スケジュール / FSRS";
 "settings.row.agentConnections" = "エージェント接続";
 "settings.row.agentConnections.value" = "APIキー";
 "settings.row.server" = "サーバー";
 "settings.row.server.value" = "ドメイン";
-"settings.row.deviceDiagnostics" = "このデバイス / 診断";
-"settings.row.deviceDiagnostics.value" = "SwiftUI + SQLite";
+"settings.row.deviceDiagnostics" = "デバイス";
 "settings.row.resetStudyProgress" = "学習進捗をリセット";
 "settings.row.resetStudyProgress.value" = "進捗";
 "settings.row.deleteCurrentWorkspace" = "現在のワークスペースを削除";
@@ -158,7 +158,7 @@
 "settings.row.deleteAccount" = "アカウントを削除";
 "settings.row.workspaceSettings" = "ワークスペース設定";
 "settings.row.accountSettings" = "アカウント設定";
-"settings.row.thisDevice" = "このデバイス";
+"settings.row.thisDevice" = "デバイス";
 "settings.row.access" = "アクセス";
 "settings.row.access.itemCount" = "4 アイテム";
 "settings.section.test" = "テスト";
@@ -207,7 +207,7 @@
 "settings.sync.recoveryGate.eraseAlert.confirm" = "ローカルデータを消去";
 "settings.sync.recoveryGate.erasing" = "ローカルデータを消去中...";
 
-"settings.currentWorkspace.title" = "現在のワークスペース";
+"settings.currentWorkspace.title" = "ワークスペース";
 "settings.currentWorkspace.row.workspace" = "ワークスペース";
 "settings.currentWorkspace.loadingWorkspaces" = "ワークスペースを読み込み中...";
 "settings.currentWorkspace.loadError" = "リンクされたワークスペースをロードできませんでした。";
@@ -217,8 +217,8 @@
 "settings.currentWorkspace.createNew" = "新しいワークスペースを作成";
 "settings.currentWorkspace.createFromCurrent" = "\\\"%@\\\"";
 
-"settings.thisDevice.title" = "このデバイス";
-"settings.thisDevice.section.thisDevice" = "このデバイス";
+"settings.thisDevice.title" = "デバイス";
+"settings.thisDevice.section.thisDevice" = "デバイス";
 "settings.thisDevice.workspace" = "ワークスペース";
 "settings.thisDevice.operatingSystem" = "オペレーティング システム";
 "settings.thisDevice.deviceModel" = "デバイスモデル";
@@ -271,8 +271,8 @@
 
 "settings.account.title" = "アカウント設定";
 "settings.account.row.accountStatus" = "アカウント ステータス";
-"settings.account.row.legalSupport" = "法務とサポート";
-"settings.account.row.legalSupportValue" = "プライバシー + サポート";
+"settings.account.row.legal" = "法務";
+"settings.account.row.support" = "サポート";
 "settings.account.row.openSource" = "オープンソース";
 "settings.account.row.openSourceValue" = "GitHub + MIT";
 "settings.account.row.advanced" = "上級";
@@ -290,7 +290,7 @@
 "settings.account.status.linkedEmail" = "リンクされたメール";
 "settings.account.status.syncStatus" = "同期ステータス";
 "settings.account.status.lastSync" = "最終同期";
-"settings.account.status.description" = "ゲスト アカウントとリンクされたアカウントは、クラウドを使用して現在のワークスペースを同期します。リンクされたアカウントは、[設定] の [現在のワークスペース] からワークスペースを管理できます。";
+"settings.account.status.description" = "ゲスト アカウントとリンクされたアカウントは、クラウドを使用して現在のワークスペースを同期します。リンクされたアカウントは、[設定] の [ワークスペース] からワークスペースを管理できます。";
 "settings.account.status.signIn" = "ログインするかアカウントを作成";
 "settings.account.status.syncNow" = "今すぐ同期";
 "settings.account.status.switchAccount" = "アカウントを変更";
@@ -299,15 +299,17 @@
 "settings.account.status.logoutAlertTitle" = "サインアウトしてこのデバイスを消去しますか?";
 "settings.account.status.logoutAlertMessage" = "すべてのローカル ワークスペースと同期データがこのデバイスから削除されます。";
 
-"settings.account.legal.title" = "法務とサポート";
+"settings.account.legal.title" = "法務";
+"settings.account.support.title" = "サポート";
 "settings.account.legal.section.links" = "リンク";
-"settings.account.legal.section.supportContact" = "サポート窓口";
+"settings.account.support.section.links" = "リンク";
+"settings.account.support.section.contact" = "サポート窓口";
 "settings.account.legal.section.aiDataUse" = "AI データの利用";
 "settings.account.legal.githubRepository" = "GitHub リポジトリ";
 "settings.account.legal.statusOnThisDevice" = "このデバイスでの状態";
 "settings.account.legal.accepted" = "承認されました";
 "settings.account.legal.notAccepted" = "未承認";
-"settings.account.legal.supportContactDescription" = "ホストされているアプリに関する質問、アカウント削除のヘルプ、App Store レビューの追跡については、サポート ページをご利用ください。";
+"settings.account.support.contactDescription" = "ホストされているアプリに関する質問、アカウント削除のヘルプ、App Store レビューの追跡については、サポート ページをご利用ください。";
 "settings.account.legal.aiDataUseDescription" = "ホスト型AIの利用は任意です。このデバイスで有効にすると、次のリクエストデータがホスト型AIサービスに送信される場合があります:";
 "settings.account.legal.disclosureBullet" = "- %@";
 "settings.account.legal.reviewAiDataUse" = "Hosted AI を使用する前に、[AI] タブで AI データの使用を確認し、同意します。";

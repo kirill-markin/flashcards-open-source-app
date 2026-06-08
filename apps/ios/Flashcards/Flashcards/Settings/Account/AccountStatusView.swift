@@ -87,7 +87,7 @@ struct AccountStatusView: View {
                     Text(
                         aiSettingsLocalized(
                             "settings.account.status.description",
-                            "Guest and linked accounts sync the current workspace through the cloud. Linked accounts can manage workspaces from Current Workspace in Settings."
+                            "Guest and linked accounts sync the current workspace through the cloud. Linked accounts can manage workspaces from Workspace in Settings."
                         )
                     )
                         .foregroundStyle(.secondary)

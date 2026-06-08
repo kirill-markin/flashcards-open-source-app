@@ -98,7 +98,7 @@ const esEsCatalog: TranslationCatalog = {
     redirectingToLogin: "Redirigiendo al inicio de sesión...",
     restoringSession: "Restaurando la sesión...",
     settings: "Cargando ajustes...",
-    currentWorkspace: "Cargando el espacio de trabajo actual...",
+    currentWorkspace: "Cargando el espacio de trabajo...",
     accessSettings: "Cargando los ajustes de acceso...",
     accessDetails: "Cargando los detalles de acceso...",
     workspaceSettings: "Cargando los ajustes del espacio de trabajo...",
@@ -113,7 +113,8 @@ const esEsCatalog: TranslationCatalog = {
     deviceDetails: "Cargando los detalles del dispositivo...",
     accountSettings: "Cargando los ajustes de la cuenta...",
     accountStatus: "Cargando el estado de la cuenta...",
-    legalSupport: "Cargando la información legal y de soporte...",
+    legal: "Cargando la información legal...",
+    support: "Cargando soporte...",
     openSourceSettings: "Cargando los ajustes de código abierto...",
     agentConnections: "Cargando las conexiones de agentes...",
     dangerZone: "Cargando la zona de peligro...",
@@ -180,7 +181,7 @@ const esEsCatalog: TranslationCatalog = {
   },
   accountMenu: {
     openButtonLabel: "Abrir menú de cuenta",
-    currentWorkspaceSection: "Espacio de trabajo actual",
+    currentWorkspaceSection: "Espacio de trabajo",
     newWorkspace: "Nuevo espacio de trabajo",
     workspaceNamePlaceholder: "Nombre del espacio de trabajo",
     workspaceNameRequired: "El nombre del espacio de trabajo es obligatorio",
@@ -189,7 +190,7 @@ const esEsCatalog: TranslationCatalog = {
   },
   settingsTabs: {
     general: "General",
-    currentWorkspace: "Espacio de trabajo actual",
+    currentWorkspace: "Espacio de trabajo",
     workspace: "Espacio de trabajo",
     account: "Cuenta",
     device: "Este dispositivo",
@@ -207,7 +208,7 @@ const esEsCatalog: TranslationCatalog = {
       advanced: "Avanzado",
     },
     currentWorkspace: {
-      title: "Espacio de trabajo actual",
+      title: "Espacio de trabajo",
       description: "Cambia el espacio de trabajo activo o crea uno nuevo para esta cuenta.",
     },
     language: {
@@ -225,7 +226,7 @@ const esEsCatalog: TranslationCatalog = {
       value: "Cuenta",
     },
     device: {
-      title: "Este dispositivo / diagnósticos",
+      title: "Dispositivo",
       description: "Revisa el navegador, la build, el almacenamiento y los detalles locales del espacio de trabajo.",
       value: "Dispositivo",
     },
@@ -264,7 +265,7 @@ const esEsCatalog: TranslationCatalog = {
     disabledMessage: "Versión de prueba desactivada.",
   },
   settingsCurrentWorkspace: {
-    title: "Espacio de trabajo actual",
+    title: "Espacio de trabajo",
     subtitle: "Elige qué espacio de trabajo está activo en este navegador o crea uno nuevo para esta cuenta.",
     workspaceCardTitle: "Espacio de trabajo",
     workspaceCardDescription: "Cambia el espacio de trabajo activo o crea uno nuevo para esta cuenta.",
@@ -274,7 +275,7 @@ const esEsCatalog: TranslationCatalog = {
     createWorkspace: "Crear espacio de trabajo",
   },
   settingsDevice: {
-    title: "Este dispositivo / diagnósticos",
+    title: "Dispositivo",
     subtitle: "Revisa el comportamiento local del navegador, el almacenamiento y los detalles del dispositivo para el espacio de trabajo actual.",
     languageCardTitle: "Idioma de la app",
     languageCardDescription: "Elige el idioma de la app solo para este navegador. Esta preferencia se guarda únicamente en este dispositivo.",
@@ -863,10 +864,13 @@ const esEsCatalog: TranslationCatalog = {
       description: "Revisa la cuenta que ha iniciado sesión y el estado actual de la sesión del navegador.",
     },
     supportGroupTitle: "Soporte",
-    legalSupport: {
-      title: "Legal y soporte",
-      description: "Revisa privacidad, términos, enlaces de soporte alojado y datos de contacto de soporte.",
-      value: "Políticas",
+    legal: {
+      title: "Legal",
+      description: "Revisa la privacidad y los términos de la app alojada.",
+    },
+    support: {
+      title: "Soporte",
+      description: "Abre enlaces de soporte alojado y datos de contacto de soporte.",
     },
     openSource: {
       title: "Código abierto",
@@ -902,19 +906,27 @@ const esEsCatalog: TranslationCatalog = {
     },
     logout: "Cerrar sesión",
   },
-  legalSupport: {
-    title: "Legal y soporte",
-    subtitle: "Revisa enlaces de políticas y datos de contacto de soporte para la app alojada.",
+  legal: {
+    title: "Legal",
+    subtitle: "Revisa enlaces de políticas para la app alojada.",
     labels: {
       privacyPolicy: "Política de privacidad",
       termsOfService: "Términos del servicio",
-      support: "Soporte",
-      supportEmail: "Correo de soporte",
-      hostedAppHelp: "Ayuda de la app alojada",
     },
     actions: {
       openPolicy: "Abrir política",
       openTerms: "Abrir términos",
+    },
+  },
+  support: {
+    title: "Soporte",
+    subtitle: "Abre enlaces de soporte alojado y datos de contacto.",
+    labels: {
+      supportPage: "Soporte",
+      supportEmail: "Correo de soporte",
+      hostedAppHelp: "Ayuda de la app alojada",
+    },
+    actions: {
       openSupport: "Abrir soporte",
     },
     hostedHelpDescription: "Usa la página de soporte para preguntas sobre la app alojada, ayuda con la eliminación de cuentas y seguimiento de facturación o acceso.",

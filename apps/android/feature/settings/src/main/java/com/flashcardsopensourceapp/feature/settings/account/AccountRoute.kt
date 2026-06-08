@@ -29,7 +29,8 @@ import com.flashcardsopensourceapp.feature.settings.settingsScreenContentPadding
 fun AccountRoute(
     workspaceName: String,
     onOpenStatus: () -> Unit,
-    onOpenLegalSupport: () -> Unit,
+    onOpenLegal: () -> Unit,
+    onOpenSupport: () -> Unit,
     onOpenOpenSource: () -> Unit,
     onOpenAdvanced: () -> Unit,
     onOpenAgentConnections: () -> Unit,
@@ -79,10 +80,10 @@ fun AccountRoute(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = {
-                            Text(stringResource(R.string.settings_account_legal_support_title))
+                            Text(stringResource(R.string.settings_account_legal_title))
                         },
                         supportingContent = {
-                            Text(stringResource(R.string.settings_account_legal_support_summary))
+                            Text(stringResource(R.string.settings_account_legal_summary))
                         },
                         leadingContent = {
                             Icon(
@@ -90,7 +91,27 @@ fun AccountRoute(
                                 contentDescription = null
                             )
                         },
-                        modifier = Modifier.clickable(onClick = onOpenLegalSupport)
+                        modifier = Modifier.clickable(onClick = onOpenLegal)
+                    )
+                }
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    ListItem(
+                        headlineContent = {
+                            Text(stringResource(R.string.settings_account_support_title))
+                        },
+                        supportingContent = {
+                            Text(stringResource(R.string.settings_account_support_summary))
+                        },
+                        leadingContent = {
+                            Icon(
+                                imageVector = Icons.Outlined.Handshake,
+                                contentDescription = null
+                            )
+                        },
+                        modifier = Modifier.clickable(onClick = onOpenSupport)
                     )
                 }
             }

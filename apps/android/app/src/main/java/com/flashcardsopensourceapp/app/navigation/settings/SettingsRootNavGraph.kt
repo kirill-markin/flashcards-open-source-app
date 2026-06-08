@@ -100,8 +100,11 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             onOpenFeedback = {
                 navController.navigate(route = SettingsFeedbackDestination.route)
             },
-            onOpenLegalSupport = {
-                navController.navigate(route = SettingsAccountLegalSupportDestination.route)
+            onOpenLegal = {
+                navController.navigate(route = SettingsAccountLegalDestination.route)
+            },
+            onOpenSupport = {
+                navController.navigate(route = SettingsAccountSupportDestination.route)
             },
             onOpenOpenSource = {
                 navController.navigate(route = SettingsAccountOpenSourceDestination.route)
