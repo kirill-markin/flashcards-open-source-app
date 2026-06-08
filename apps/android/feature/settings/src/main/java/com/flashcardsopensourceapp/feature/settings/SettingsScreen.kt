@@ -121,6 +121,7 @@ fun SettingsRoute(
                 SettingsRootRow(
                     title = stringResource(R.string.settings_account_status_title),
                     summary = uiState.accountStatusTitle,
+                    attentionCount = uiState.accountStatusAttentionCount,
                     testTag = settingsAccountStatusRowTag,
                     onClick = onOpenAccountStatus
                 )
@@ -130,6 +131,7 @@ fun SettingsRoute(
                 SettingsRootRow(
                     title = stringResource(R.string.settings_root_current_workspace_title),
                     summary = uiState.currentWorkspaceName,
+                    attentionCount = null,
                     testTag = settingsCurrentWorkspaceRowTag,
                     onClick = onOpenCurrentWorkspace
                 )
@@ -146,6 +148,7 @@ fun SettingsRoute(
                 SettingsRootRow(
                     title = stringResource(R.string.settings_review_reminders_title),
                     summary = stringResource(R.string.settings_review_reminders_summary),
+                    attentionCount = null,
                     testTag = settingsReviewRemindersRowTag,
                     onClick = onOpenReviewReminders
                 )
@@ -160,6 +163,7 @@ fun SettingsRoute(
                         } else {
                             stringResource(R.string.settings_common_off)
                         },
+                        attentionCount = null,
                         testTag = settingsReviewAnimationsRowTag,
                         onClick = onOpenReviewAnimations
                     )
@@ -170,6 +174,7 @@ fun SettingsRoute(
                 SettingsRootRow(
                     title = stringResource(R.string.settings_language_title),
                     summary = stringResource(R.string.settings_language_summary),
+                    attentionCount = null,
                     testTag = settingsLanguageRowTag,
                     onClick = onOpenLanguage
                 )
@@ -179,6 +184,7 @@ fun SettingsRoute(
                 SettingsRootRow(
                     title = stringResource(R.string.settings_root_access_title),
                     summary = stringResource(R.string.settings_root_access_summary),
+                    attentionCount = null,
                     testTag = settingsAccessRowTag,
                     onClick = onOpenAccess
                 )
@@ -188,6 +194,7 @@ fun SettingsRoute(
                 SettingsRootRow(
                     title = stringResource(R.string.settings_workspace_decks_title),
                     summary = stringResource(R.string.settings_decks_summary),
+                    attentionCount = null,
                     testTag = settingsDecksRowTag,
                     onClick = onOpenDecks
                 )
@@ -197,6 +204,7 @@ fun SettingsRoute(
                 SettingsRootRow(
                     title = stringResource(R.string.settings_workspace_tags_title),
                     summary = stringResource(R.string.settings_tags_summary),
+                    attentionCount = null,
                     testTag = settingsTagsRowTag,
                     onClick = onOpenTags
                 )
@@ -206,6 +214,7 @@ fun SettingsRoute(
                 SettingsRootRow(
                     title = stringResource(R.string.settings_workspace_export_title),
                     summary = stringResource(R.string.settings_export_csv_summary),
+                    attentionCount = null,
                     testTag = settingsExportRowTag,
                     onClick = onOpenExport
                 )
@@ -222,6 +231,7 @@ fun SettingsRoute(
                 SettingsRootRow(
                     title = stringResource(R.string.settings_root_feedback_title),
                     summary = stringResource(R.string.settings_root_feedback_summary),
+                    attentionCount = null,
                     testTag = settingsFeedbackRowTag,
                     onClick = onOpenFeedback
                 )
@@ -231,6 +241,7 @@ fun SettingsRoute(
                 SettingsRootRow(
                     title = stringResource(R.string.settings_account_support_title),
                     summary = null,
+                    attentionCount = null,
                     testTag = settingsSupportRowTag,
                     onClick = onOpenSupport
                 )
@@ -240,6 +251,7 @@ fun SettingsRoute(
                 SettingsRootRow(
                     title = stringResource(R.string.settings_account_legal_title),
                     summary = null,
+                    attentionCount = null,
                     testTag = settingsLegalRowTag,
                     onClick = onOpenLegal
                 )
@@ -249,6 +261,7 @@ fun SettingsRoute(
                 SettingsRootRow(
                     title = stringResource(R.string.settings_account_open_source_title),
                     summary = stringResource(R.string.settings_account_open_source_summary),
+                    attentionCount = null,
                     testTag = settingsOpenSourceRowTag,
                     onClick = onOpenOpenSource
                 )
@@ -265,6 +278,7 @@ fun SettingsRoute(
                 SettingsRootRow(
                     title = stringResource(R.string.settings_scheduling_title),
                     summary = stringResource(R.string.settings_scheduling_summary),
+                    attentionCount = null,
                     testTag = settingsSchedulingRowTag,
                     onClick = onOpenScheduling
                 )
@@ -274,6 +288,7 @@ fun SettingsRoute(
                 SettingsRootRow(
                     title = stringResource(R.string.settings_account_agent_connections_title),
                     summary = stringResource(R.string.settings_account_agent_connections_summary),
+                    attentionCount = null,
                     testTag = settingsAgentConnectionsRowTag,
                     onClick = onOpenAgentConnections
                 )
@@ -283,6 +298,7 @@ fun SettingsRoute(
                 SettingsRootRow(
                     title = stringResource(R.string.settings_server_title),
                     summary = stringResource(R.string.settings_server_summary),
+                    attentionCount = null,
                     testTag = settingsServerRowTag,
                     onClick = onOpenServer
                 )
@@ -292,6 +308,7 @@ fun SettingsRoute(
                 SettingsRootRow(
                     title = stringResource(R.string.settings_device_diagnostics_title),
                     summary = null,
+                    attentionCount = null,
                     testTag = settingsDeviceDiagnosticsRowTag,
                     onClick = onOpenDeviceDiagnostics
                 )
@@ -301,6 +318,7 @@ fun SettingsRoute(
                 SettingsRootRow(
                     title = stringResource(R.string.settings_reset_study_progress_title),
                     summary = stringResource(R.string.settings_workspace_reset_body),
+                    attentionCount = null,
                     testTag = settingsResetStudyProgressRowTag,
                     onClick = onOpenResetStudyProgress
                 )
@@ -310,6 +328,7 @@ fun SettingsRoute(
                 SettingsRootRow(
                     title = stringResource(R.string.settings_delete_current_workspace_title),
                     summary = stringResource(R.string.settings_workspace_delete_body),
+                    attentionCount = null,
                     testTag = settingsDeleteCurrentWorkspaceRowTag,
                     onClick = onOpenDeleteCurrentWorkspace
                 )
@@ -319,6 +338,7 @@ fun SettingsRoute(
                 SettingsRootRow(
                     title = stringResource(R.string.settings_account_danger_zone_dialog_title),
                     summary = stringResource(R.string.settings_account_danger_zone_body),
+                    attentionCount = null,
                     testTag = settingsDeleteAccountRowTag,
                     onClick = onOpenDeleteAccount
                 )
@@ -329,6 +349,7 @@ fun SettingsRoute(
                     SettingsRootRow(
                         title = stringResource(R.string.settings_root_test_title),
                         summary = stringResource(R.string.settings_root_test_summary),
+                        attentionCount = null,
                         testTag = settingsTestRowTag,
                         onClick = onOpenTest
                     )
@@ -349,12 +370,22 @@ private fun SettingsRootSectionTitle(title: String, testTag: String) {
 private fun SettingsRootRow(
     title: String,
     summary: String?,
+    attentionCount: Int?,
     testTag: String,
     onClick: () -> Unit
 ) {
     val supportingContent: (@Composable () -> Unit)? = summary?.let { rowSummary ->
         {
             Text(rowSummary)
+        }
+    }
+    val positiveAttentionCount: Int? = attentionCount?.takeIf { count -> count > 0 }
+    val trailingContent: (@Composable () -> Unit)? = if (positiveAttentionCount == null) {
+        null
+    } else {
+        val badgeCount: Int = positiveAttentionCount
+        {
+            SettingsAttentionBadge(count = badgeCount)
         }
     }
 
@@ -368,7 +399,8 @@ private fun SettingsRootRow(
             headlineContent = {
                 Text(title)
             },
-            supportingContent = supportingContent
+            supportingContent = supportingContent,
+            trailingContent = trailingContent
         )
     }
 }

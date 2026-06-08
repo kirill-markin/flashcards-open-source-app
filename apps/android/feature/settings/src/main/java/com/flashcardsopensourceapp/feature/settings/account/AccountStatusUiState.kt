@@ -12,6 +12,7 @@ data class AccountStatusUiState(
     val isLinkingReady: Boolean,
     val isSyncBlocked: Boolean,
     val syncBlockedMessage: String?,
+    val accountStatusPrimaryActionAttentionCount: Int,
     val showLogoutConfirmation: Boolean,
     val errorMessage: String,
     val isSubmitting: Boolean

@@ -13,10 +13,13 @@ import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import com.flashcardsopensourceapp.feature.settings.R
+import com.flashcardsopensourceapp.feature.settings.SettingsAttentionSummary
 import com.flashcardsopensourceapp.feature.settings.SettingsStringResolver
 import com.flashcardsopensourceapp.feature.settings.cloud.displayCloudAccountStateTitle
 import com.flashcardsopensourceapp.feature.settings.createSettingsStringResolver
 import com.flashcardsopensourceapp.feature.settings.formatTimestampLabel
+import com.flashcardsopensourceapp.feature.settings.makeSettingsAttentionIssues
+import com.flashcardsopensourceapp.feature.settings.makeSettingsAttentionSummary
 import com.flashcardsopensourceapp.feature.settings.resolveAppMetadataSyncStatusText
 import com.flashcardsopensourceapp.feature.settings.resolveWorkspaceName
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,6 +56,10 @@ class AccountStatusViewModel(
         syncRepository.observeSyncStatus(),
         draftState
     ) { metadata, cloudSettings, syncStatus, draft ->
+        val attentionSummary: SettingsAttentionSummary = makeSettingsAttentionSummary(
+            issues = makeSettingsAttentionIssues(cloudState = cloudSettings.cloudState)
+        )
+
         AccountStatusUiState(
             workspaceName = strings.resolveWorkspaceName(workspaceName = metadata.workspaceName),
             cloudStatusTitle = displayCloudAccountStateTitle(
@@ -79,6 +86,10 @@ class AccountStatusViewModel(
             isLinkingReady = cloudSettings.cloudState == CloudAccountState.LINKING_READY,
             isSyncBlocked = syncStatus.status is SyncStatus.Blocked,
             syncBlockedMessage = (syncStatus.status as? SyncStatus.Blocked)?.message,
+            accountStatusPrimaryActionAttentionCount = accountStatusPrimaryActionAttentionCount(
+                cloudState = cloudSettings.cloudState,
+                attentionSummary = attentionSummary
+            ),
             showLogoutConfirmation = draft.showLogoutConfirmation,
             errorMessage = draft.errorMessage,
             isSubmitting = draft.isSubmitting
@@ -98,6 +109,7 @@ class AccountStatusViewModel(
             isLinkingReady = false,
             isSyncBlocked = false,
             syncBlockedMessage = null,
+            accountStatusPrimaryActionAttentionCount = 1,
             showLogoutConfirmation = false,
             errorMessage = "",
             isSubmitting = false
@@ -158,6 +170,17 @@ class AccountStatusViewModel(
             }
         }
     }
+}
+
+private fun accountStatusPrimaryActionAttentionCount(
+    cloudState: CloudAccountState,
+    attentionSummary: SettingsAttentionSummary
+): Int {
+    if (cloudState == CloudAccountState.LINKING_READY) {
+        return 0
+    }
+
+    return attentionSummary.accountStatusPrimaryActionCount
 }
 
 fun createAccountStatusViewModelFactory(
