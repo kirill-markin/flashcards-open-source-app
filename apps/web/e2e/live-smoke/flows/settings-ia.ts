@@ -69,14 +69,14 @@ const settingsDetailTargets: ReadonlyArray<SettingsDetailTarget> = [
     actionName: "open Device settings",
   },
   {
-    rowTestId: "settings-row-legal",
-    route: accountLegalRoute,
-    actionName: "open Legal settings",
-  },
-  {
     rowTestId: "settings-row-support",
     route: accountSupportRoute,
     actionName: "open Support settings",
+  },
+  {
+    rowTestId: "settings-row-legal",
+    route: accountLegalRoute,
+    actionName: "open Legal settings",
   },
 ];
 
@@ -90,8 +90,8 @@ const rootRowTestIds: ReadonlyArray<string> = [
   "settings-row-tags",
   "settings-row-export",
   "settings-row-feedback",
-  "settings-row-legal",
   "settings-row-support",
+  "settings-row-legal",
   "settings-row-open-source",
   "settings-row-scheduling",
   "settings-row-agent-connections",

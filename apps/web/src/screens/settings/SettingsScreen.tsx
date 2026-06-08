@@ -183,18 +183,18 @@ export function SettingsScreen(): ReactElement {
             testId="settings-row-feedback"
           />
           <SettingsNavigationCard
-            title={t("legal.title")}
-            description={t("legal.subtitle")}
-            value={null}
-            to={accountLegalRoute}
-            testId="settings-row-legal"
-          />
-          <SettingsNavigationCard
             title={t("support.title")}
             description={t("support.subtitle")}
             value={null}
             to={accountSupportRoute}
             testId="settings-row-support"
+          />
+          <SettingsNavigationCard
+            title={t("legal.title")}
+            description={t("legal.subtitle")}
+            value={null}
+            to={accountLegalRoute}
+            testId="settings-row-legal"
           />
           <SettingsNavigationCard
             title={t("openSourceSettings.title")}

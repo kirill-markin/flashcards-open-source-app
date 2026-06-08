@@ -219,19 +219,19 @@ fun SettingsRoute(
 
             item {
                 SettingsRootRow(
-                    title = stringResource(R.string.settings_account_legal_title),
+                    title = stringResource(R.string.settings_account_support_title),
                     summary = null,
-                    testTag = settingsLegalRowTag,
-                    onClick = onOpenLegal
+                    testTag = settingsSupportRowTag,
+                    onClick = onOpenSupport
                 )
             }
 
             item {
                 SettingsRootRow(
-                    title = stringResource(R.string.settings_account_support_title),
+                    title = stringResource(R.string.settings_account_legal_title),
                     summary = null,
-                    testTag = settingsSupportRowTag,
-                    onClick = onOpenSupport
+                    testTag = settingsLegalRowTag,
+                    onClick = onOpenLegal
                 )
             }
 

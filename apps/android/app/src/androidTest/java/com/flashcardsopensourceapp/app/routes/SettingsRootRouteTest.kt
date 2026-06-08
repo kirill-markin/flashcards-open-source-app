@@ -84,8 +84,8 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             settingsTagsRowTag,
             settingsExportRowTag,
             settingsFeedbackRowTag,
-            settingsLegalRowTag,
             settingsSupportRowTag,
+            settingsLegalRowTag,
             settingsOpenSourceRowTag,
             settingsSchedulingRowTag,
             settingsAgentConnectionsRowTag,
@@ -104,6 +104,10 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         assertRootRowOrder(
             firstRowTag = settingsReviewAnimationsRowTag,
             secondRowTag = settingsLanguageRowTag
+        )
+        assertRootRowOrder(
+            firstRowTag = settingsSupportRowTag,
+            secondRowTag = settingsLegalRowTag
         )
         composeRule.onAllNodesWithTag(settingsTestRowTag).assertCountEquals(0)
 
