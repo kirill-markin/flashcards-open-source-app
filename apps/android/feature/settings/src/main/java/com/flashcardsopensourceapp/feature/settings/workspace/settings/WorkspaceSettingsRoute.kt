@@ -51,6 +51,8 @@ const val workspaceSettingsResetProgressPreviewBodyTag: String =
     "workspace_settings_reset_progress_preview_body"
 const val workspaceSettingsResetProgressPreviewButtonTag: String =
     "workspace_settings_reset_progress_preview_button"
+const val workspaceSettingsScreenTag: String = "workspace_settings_screen"
+const val workspaceSettingsExportRowTag: String = "workspace_settings_export_row"
 
 @Composable
 fun WorkspaceSettingsRoute(
@@ -80,7 +82,9 @@ fun WorkspaceSettingsRoute(
         LazyColumn(
             contentPadding = settingsScreenContentPadding(innerPadding = innerPadding),
             verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .testTag(tag = workspaceSettingsScreenTag)
         ) {
             if (uiState.errorMessage.isNotEmpty()) {
                 item {
@@ -209,15 +213,19 @@ fun WorkspaceSettingsRoute(
             }
 
             item {
-                Card(modifier = Modifier.fillMaxWidth()) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(tag = workspaceSettingsExportRowTag)
+                        .clickable(onClick = onOpenExport)
+                ) {
                     ListItem(
                         headlineContent = {
                             Text(stringResource(R.string.settings_workspace_export_title))
                         },
                         supportingContent = {
                             Text(uiState.exportSummary)
-                        },
-                        modifier = Modifier.clickable(onClick = onOpenExport)
+                        }
                     )
                 }
             }
