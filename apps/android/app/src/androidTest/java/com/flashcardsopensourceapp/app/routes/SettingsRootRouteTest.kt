@@ -1,15 +1,10 @@
 package com.flashcardsopensourceapp.app.routes
 
 import androidx.activity.ComponentActivity
-import androidx.annotation.StringRes
-import androidx.compose.ui.semantics.SemanticsActions
-import androidx.compose.ui.semantics.getOrNull
-import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasTestTag
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -18,12 +13,13 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.app.FirebaseAppInstrumentationTimeoutTest
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
-import com.flashcardsopensourceapp.feature.settings.R as SettingsR
 import com.flashcardsopensourceapp.feature.settings.SettingsRoute
 import com.flashcardsopensourceapp.feature.settings.SettingsUiState
 import com.flashcardsopensourceapp.feature.settings.settingsAccessRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsAccountStatusRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsAgentConnectionsRowTag
+import com.flashcardsopensourceapp.feature.settings.settingsAccountSectionTag
+import com.flashcardsopensourceapp.feature.settings.settingsAdvancedSectionTag
 import com.flashcardsopensourceapp.feature.settings.settingsCurrentWorkspaceRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsDecksRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsDeleteAccountRowTag
@@ -31,6 +27,7 @@ import com.flashcardsopensourceapp.feature.settings.settingsDeleteCurrentWorkspa
 import com.flashcardsopensourceapp.feature.settings.settingsDeviceDiagnosticsRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsExportRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsFeedbackRowTag
+import com.flashcardsopensourceapp.feature.settings.settingsGeneralSectionTag
 import com.flashcardsopensourceapp.feature.settings.settingsLanguageRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsLegalRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsOpenSourceRowTag
@@ -40,6 +37,7 @@ import com.flashcardsopensourceapp.feature.settings.settingsReviewRemindersRowTa
 import com.flashcardsopensourceapp.feature.settings.settingsRootScreenTag
 import com.flashcardsopensourceapp.feature.settings.settingsSchedulingRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsServerRowTag
+import com.flashcardsopensourceapp.feature.settings.settingsSupportSectionTag
 import com.flashcardsopensourceapp.feature.settings.settingsSupportRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsTagsRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsTestRowTag
@@ -65,12 +63,12 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         )
 
         listOf(
-            settingsString(SettingsR.string.settings_section_account),
-            settingsString(SettingsR.string.settings_section_general),
-            settingsString(SettingsR.string.settings_section_support),
-            settingsString(SettingsR.string.settings_section_advanced)
-        ).forEach { sectionTitle ->
-            assertSectionLabel(sectionTitle = sectionTitle)
+            settingsAccountSectionTag,
+            settingsGeneralSectionTag,
+            settingsSupportSectionTag,
+            settingsAdvancedSectionTag
+        ).forEach { sectionTag ->
+            assertSectionVisible(sectionTag = sectionTag)
         }
 
         listOf(
@@ -158,7 +156,7 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             clickedRows = clickedRows
         )
 
-        assertSectionLabel(sectionTitle = settingsString(SettingsR.string.settings_section_advanced))
+        assertSectionVisible(sectionTag = settingsAdvancedSectionTag)
         assertRootRowVisible(rowTag = settingsTestRowTag)
         assertRowClick(
             rowTag = settingsTestRowTag,
@@ -266,12 +264,10 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         }
     }
 
-    private fun assertSectionLabel(sectionTitle: String) {
-        val sectionLabelMatcher = hasText(sectionTitle).and(other = hasNoClickAction())
-
+    private fun assertSectionVisible(sectionTag: String) {
         composeRule.onNodeWithTag(testTag = settingsRootScreenTag)
-            .performScrollToNode(matcher = sectionLabelMatcher)
-        composeRule.onNode(matcher = sectionLabelMatcher).assertIsDisplayed()
+            .performScrollToNode(matcher = hasTestTag(sectionTag))
+        composeRule.onNodeWithTag(sectionTag).assertIsDisplayed()
     }
 
     private fun assertRootRowVisible(rowTag: String) {
@@ -301,13 +297,4 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         assertEquals(expectedClick, clickedRows.last())
     }
 
-    private fun hasNoClickAction(): SemanticsMatcher {
-        return SemanticsMatcher(description = "has no click action") { node ->
-            node.config.getOrNull(SemanticsActions.OnClick) == null
-        }
-    }
-
-    private fun settingsString(@StringRes resId: Int): String {
-        return composeRule.activity.getString(resId)
-    }
 }
