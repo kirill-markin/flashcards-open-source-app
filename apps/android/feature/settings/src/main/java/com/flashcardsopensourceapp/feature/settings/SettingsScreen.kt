@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.feature.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -110,7 +111,10 @@ fun SettingsRoute(
                 .testTag(tag = settingsRootScreenTag)
         ) {
             item {
-                SectionTitle(text = stringResource(R.string.settings_section_account))
+                SettingsRootSectionTitle(
+                    title = stringResource(R.string.settings_section_account),
+                    testTag = settingsAccountSectionTag
+                )
             }
 
             item {
@@ -132,7 +136,10 @@ fun SettingsRoute(
             }
 
             item {
-                SectionTitle(text = stringResource(R.string.settings_section_general))
+                SettingsRootSectionTitle(
+                    title = stringResource(R.string.settings_section_general),
+                    testTag = settingsGeneralSectionTag
+                )
             }
 
             item {
@@ -205,7 +212,10 @@ fun SettingsRoute(
             }
 
             item {
-                SectionTitle(text = stringResource(R.string.settings_section_support))
+                SettingsRootSectionTitle(
+                    title = stringResource(R.string.settings_section_support),
+                    testTag = settingsSupportSectionTag
+                )
             }
 
             item {
@@ -245,7 +255,10 @@ fun SettingsRoute(
             }
 
             item {
-                SectionTitle(text = stringResource(R.string.settings_section_advanced))
+                SettingsRootSectionTitle(
+                    title = stringResource(R.string.settings_section_advanced),
+                    testTag = settingsAdvancedSectionTag
+                )
             }
 
             item {
@@ -322,6 +335,13 @@ fun SettingsRoute(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SettingsRootSectionTitle(title: String, testTag: String) {
+    Box(modifier = Modifier.testTag(tag = testTag)) {
+        SectionTitle(text = title)
     }
 }
 

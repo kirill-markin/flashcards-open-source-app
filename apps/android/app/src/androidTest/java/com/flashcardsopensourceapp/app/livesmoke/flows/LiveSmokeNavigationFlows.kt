@@ -8,15 +8,12 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickNode
-import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickTag
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickText
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.tapBackIcon
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitForTagToExist
-import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitForTextToExist
 import com.flashcardsopensourceapp.app.livesmoke.support.LiveSmokeContext
 import com.flashcardsopensourceapp.app.livesmoke.support.internalUiTimeoutMillis
 import com.flashcardsopensourceapp.feature.settings.access.accessSettingsScreenTag
@@ -30,6 +27,8 @@ import com.flashcardsopensourceapp.feature.settings.server.serverSettingsScreenT
 import com.flashcardsopensourceapp.feature.settings.settingsAccessRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsAccountStatusRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsAgentConnectionsRowTag
+import com.flashcardsopensourceapp.feature.settings.settingsAccountSectionTag
+import com.flashcardsopensourceapp.feature.settings.settingsAdvancedSectionTag
 import com.flashcardsopensourceapp.feature.settings.settingsCurrentWorkspaceRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsDecksRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsDeleteAccountRowTag
@@ -37,6 +36,7 @@ import com.flashcardsopensourceapp.feature.settings.settingsDeleteCurrentWorkspa
 import com.flashcardsopensourceapp.feature.settings.settingsDeviceDiagnosticsRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsExportRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsFeedbackRowTag
+import com.flashcardsopensourceapp.feature.settings.settingsGeneralSectionTag
 import com.flashcardsopensourceapp.feature.settings.settingsLanguageRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsLegalRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsOpenSourceRowTag
@@ -45,6 +45,7 @@ import com.flashcardsopensourceapp.feature.settings.settingsReviewRemindersRowTa
 import com.flashcardsopensourceapp.feature.settings.settingsRootScreenTag
 import com.flashcardsopensourceapp.feature.settings.settingsSchedulingRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsServerRowTag
+import com.flashcardsopensourceapp.feature.settings.settingsSupportSectionTag
 import com.flashcardsopensourceapp.feature.settings.settingsSupportRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsTagsRowTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceListTag
@@ -79,15 +80,16 @@ internal fun LiveSmokeContext.openSettingsTab() {
 
 internal fun LiveSmokeContext.openSettingsRow(rowTag: String, rowLabel: String) {
     openSettingsTab()
+    val rowMatcher = hasTestTag(rowTag).and(other = hasClickAction())
+
     composeRule.onNodeWithTag(testTag = settingsRootScreenTag)
-        .performScrollToNode(matcher = hasTestTag(rowTag).and(other = hasClickAction()))
+        .performScrollToNode(matcher = rowMatcher)
     waitForTagToExist(
         tag = rowTag,
         timeoutMillis = internalUiTimeoutMillis,
         context = "while waiting for settings row '$rowLabel'"
     )
-    composeRule.onNodeWithTag(testTag = rowTag).performScrollTo()
-    clickTag(tag = rowTag, label = rowLabel)
+    clickNode(matcher = rowMatcher, label = rowLabel)
 }
 
 internal fun LiveSmokeContext.openSettingsRow(rowTag: String, rowLabel: String, destinationTag: String) {
@@ -102,18 +104,19 @@ internal fun LiveSmokeContext.openSettingsRow(rowTag: String, rowLabel: String, 
 internal fun LiveSmokeContext.assertSettingsInformationArchitecture() {
     openSettingsTab()
     listOf(
-        "Account",
-        "General",
-        "Support",
-        "Advanced"
-    ).forEach { sectionTitle ->
+        settingsAccountSectionTag to "Account",
+        settingsGeneralSectionTag to "General",
+        settingsSupportSectionTag to "Support",
+        settingsAdvancedSectionTag to "Advanced"
+    ).forEach { section ->
+        val sectionTag = section.first
+        val sectionLabel = section.second
         composeRule.onNodeWithTag(testTag = settingsRootScreenTag)
-            .performScrollToNode(matcher = hasText(sectionTitle))
-        waitForTextToExist(
-            text = sectionTitle,
-            substring = false,
+            .performScrollToNode(matcher = hasTestTag(sectionTag))
+        waitForTagToExist(
+            tag = sectionTag,
             timeoutMillis = internalUiTimeoutMillis,
-            context = "while verifying settings section '$sectionTitle'"
+            context = "while verifying settings section '$sectionLabel'"
         )
     }
 
