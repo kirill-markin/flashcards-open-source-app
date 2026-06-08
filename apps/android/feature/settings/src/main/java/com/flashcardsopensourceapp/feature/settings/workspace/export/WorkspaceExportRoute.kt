@@ -24,6 +24,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -34,6 +35,9 @@ import com.flashcardsopensourceapp.feature.settings.settingsScreenCardSpacing
 import com.flashcardsopensourceapp.feature.settings.settingsScreenContentPadding
 import java.time.LocalDate
 import kotlinx.coroutines.launch
+
+const val workspaceExportScreenTag: String = "workspace_export_screen"
+const val workspaceExportCsvButtonTag: String = "workspace_export_csv_button"
 
 @Composable
 fun WorkspaceExportRoute(
@@ -85,7 +89,9 @@ fun WorkspaceExportRoute(
         LazyColumn(
             contentPadding = settingsScreenContentPadding(innerPadding = innerPadding),
             verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .testTag(tag = workspaceExportScreenTag)
         ) {
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
@@ -144,7 +150,9 @@ fun WorkspaceExportRoute(
                         }
                     },
                     enabled = uiState.isExporting.not(),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(tag = workspaceExportCsvButtonTag)
                 ) {
                     Text(
                         if (uiState.isExporting) {

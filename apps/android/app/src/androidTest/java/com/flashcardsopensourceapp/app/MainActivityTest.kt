@@ -21,8 +21,13 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.flashcardsopensourceapp.app.R as AppR
+import com.flashcardsopensourceapp.app.navigation.AiDestination
+import com.flashcardsopensourceapp.app.navigation.CardsDestination
+import com.flashcardsopensourceapp.app.navigation.ReviewDestination
+import com.flashcardsopensourceapp.app.navigation.SettingsDestination
 import com.flashcardsopensourceapp.app.support.AppStateResetRule
+import com.flashcardsopensourceapp.data.local.model.cards.CardFilter
+import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.feature.ai.R as AiFeatureR
 import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
 import com.flashcardsopensourceapp.feature.ai.aiConversationLoadingTag
@@ -39,6 +44,7 @@ import com.flashcardsopensourceapp.feature.review.reviewFilterButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewRateGoodButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewShowAnswerButtonTag
 import com.flashcardsopensourceapp.feature.settings.R as SettingsR
+import com.flashcardsopensourceapp.feature.settings.deck.deckCardRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsAccessRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsAccountStatusRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsAgentConnectionsRowTag
@@ -47,6 +53,7 @@ import com.flashcardsopensourceapp.feature.settings.settingsDecksRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsDeleteAccountRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsDeviceDiagnosticsRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsExportRowTag
+import com.flashcardsopensourceapp.feature.settings.settingsRootScreenTag
 import com.flashcardsopensourceapp.feature.settings.settingsSchedulingRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsTagsRowTag
 import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerApplyButtonTag
@@ -56,9 +63,12 @@ import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerMaximumIn
 import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerRelearningStepsFieldTag
 import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerSaveButtonTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceNameTag
+import com.flashcardsopensourceapp.feature.settings.workspace.export.workspaceExportCsvButtonTag
+import com.flashcardsopensourceapp.feature.settings.workspace.export.workspaceExportScreenTag
 import com.flashcardsopensourceapp.feature.settings.workspace.tags.workspaceTagCardsCountTag
 import com.flashcardsopensourceapp.feature.settings.workspace.tags.workspaceTagRowTag
 import com.flashcardsopensourceapp.feature.settings.workspace.tags.workspaceTagsSearchFieldTag
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -71,6 +81,7 @@ import org.junit.runner.RunWith
 class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     companion object {
         private const val uiTimeoutMillis: Long = 20_000L
+        private const val settingsBackStackPopLimit: Int = 6
         private const val emptyCardsMessage: String = "No cards yet. Tap the add button to create the first card."
     }
 
@@ -179,6 +190,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
 
         openAiTabAndAssertConsentGate()
         acceptAiConsentAndWaitForConversationComposer()
+        waitForAiConversationReady()
 
         focusAiComposerAndWaitUntilFocused()
         assertTrue(
@@ -261,30 +273,19 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         waitForCardsEmptyState()
         createCardsForWorkspaceSettingsFlows()
 
+        val deckTitle: String = "Storage deck"
+        val matchingCardFrontText: String = "SQLite note"
+        val matchingCardId: String = requireCardId(frontText = matchingCardFrontText)
+
         openSettingsRow(rowTag = settingsDecksRowTag)
 
         composeRule.onNodeWithContentDescription(settingsString(SettingsR.string.settings_decks_add_content_description)).performClick()
-        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_deck_editor_name_label)).performTextInput("Storage deck")
+        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_deck_editor_name_label)).performTextInput(deckTitle)
         composeRule.onNodeWithText("storage (1)").performClick()
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_save)).performClick()
 
-        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodes(
-                matcher = hasText("Storage deck").and(other = hasClickAction())
-            ).fetchSemanticsNodes().isNotEmpty()
-        }
-
-        composeRule.onNode(
-            matcher = hasText("Storage deck").and(other = hasClickAction())
-        ).performClick()
-        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodes(
-                matcher = hasText("SQLite note").and(other = hasClickAction())
-            ).fetchSemanticsNodes().isNotEmpty()
-        }
-        composeRule.onNode(
-            matcher = hasText("SQLite note").and(other = hasClickAction())
-        ).performClick()
+        waitForTagToExist(tag = deckCardRowTag(cardId = matchingCardId))
+        composeRule.onNodeWithTag(testTag = deckCardRowTag(cardId = matchingCardId)).performClick()
         composeRule.onNodeWithText("Edit card").fetchSemanticsNode()
         composeRule.onNodeWithText("Stored locally.").fetchSemanticsNode()
     }
@@ -400,6 +401,8 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         waitForCardsEmptyState()
 
         openSettingsRow(rowTag = settingsExportRowTag)
+        waitForTagToExist(tag = workspaceExportScreenTag)
+        waitForTagToExist(tag = workspaceExportCsvButtonTag)
         waitForTextToExist(text = settingsString(SettingsR.string.settings_export_csv_title))
         waitForTextToExist(text = settingsString(SettingsR.string.settings_export_csv_summary))
     }
@@ -533,7 +536,8 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
 
     private fun waitUntilComposerIsNotFocused() {
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            aiComposerFocusStateOrNull() == false
+            countNodesWithTagInAnySemanticsTree(tag = aiComposerMessageFieldTag) > 0 &&
+                aiComposerFocusStateOrNull() == false
         }
     }
 
@@ -653,6 +657,23 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         }
     }
 
+    private fun requireCardId(frontText: String): String {
+        val application = composeRule.activity.application as FlashcardsApplication
+        val cards: List<CardSummary> = runBlocking {
+            application.appGraph.cardsRepository.observeCards(
+                searchQuery = "",
+                filter = CardFilter(tags = emptyList(), effort = emptyList())
+            ).first()
+        }
+        val matchingCards: List<CardSummary> = cards.filter { card ->
+            card.frontText == frontText
+        }
+        require(matchingCards.size == 1) {
+            "Expected exactly one test card with front text '$frontText' but found ${matchingCards.size}."
+        }
+        return matchingCards.single().cardId
+    }
+
     private fun createCardsForWorkspaceSettingsFlows() {
         createCard(
             frontText = "SQLite note",
@@ -675,21 +696,15 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     }
 
     private fun openCardsTab() {
-        composeRule.onNode(
-            matcher = hasText("Cards").and(other = hasClickAction())
-        ).performClick()
+        openTopLevelDestination(destinationTag = CardsDestination.testTag)
     }
 
     private fun openReviewTab() {
-        composeRule.onNode(
-            matcher = hasText("Review").and(other = hasClickAction())
-        ).performClick()
+        openTopLevelDestination(destinationTag = ReviewDestination.testTag)
     }
 
     private fun openAiTab() {
-        composeRule.onNode(
-            matcher = hasText("AI").and(other = hasClickAction())
-        ).performClick()
+        openTopLevelDestination(destinationTag = AiDestination.testTag)
     }
 
     private fun openCardFilter() {
@@ -704,8 +719,43 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     }
 
     private fun openSettingsTab() {
+        openTopLevelDestination(destinationTag = SettingsDestination.testTag)
+        waitForSettingsRoot()
+    }
+
+    private fun openTopLevelDestination(destinationTag: String) {
+        composeRule.onNodeWithTag(testTag = destinationTag).performClick()
+    }
+
+    private fun waitForSettingsRoot() {
+        repeat(settingsBackStackPopLimit) {
+            composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+                isSettingsRootVisible() || isSettingsBackButtonVisible()
+            }
+            if (isSettingsRootVisible()) {
+                return
+            }
+            tapSettingsBackButton()
+            composeRule.waitForIdle()
+        }
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            isSettingsRootVisible()
+        }
+    }
+
+    private fun isSettingsRootVisible(): Boolean {
+        return composeRule.onAllNodesWithTag(testTag = settingsRootScreenTag).fetchSemanticsNodes().isNotEmpty()
+    }
+
+    private fun isSettingsBackButtonVisible(): Boolean {
+        return composeRule.onAllNodes(
+            matcher = hasContentDescription(settingsString(SettingsR.string.settings_back_content_description)).and(other = hasClickAction())
+        ).fetchSemanticsNodes().isNotEmpty()
+    }
+
+    private fun tapSettingsBackButton() {
         composeRule.onNode(
-            matcher = hasText(appString(AppR.string.top_level_settings)).and(other = hasClickAction())
+            matcher = hasContentDescription(settingsString(SettingsR.string.settings_back_content_description)).and(other = hasClickAction())
         ).performClick()
     }
 
@@ -719,13 +769,9 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
 
     private fun tapVisibleBackButton() {
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodes(
-                matcher = hasContentDescription(settingsString(SettingsR.string.settings_back_content_description)).and(other = hasClickAction())
-            ).fetchSemanticsNodes().isNotEmpty()
+            isSettingsBackButtonVisible()
         }
-        composeRule.onNode(
-            matcher = hasContentDescription(settingsString(SettingsR.string.settings_back_content_description)).and(other = hasClickAction())
-        ).performClick()
+        tapSettingsBackButton()
     }
 
     private fun openSettingsRow(rowTag: String) {
@@ -734,9 +780,13 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
             matcher = hasTestTag(rowTag)
         )
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithTag(rowTag).fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodes(
+                matcher = hasTestTag(rowTag).and(other = hasClickAction())
+            ).fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithTag(rowTag).performClick()
+        composeRule.onNode(
+            matcher = hasTestTag(rowTag).and(other = hasClickAction())
+        ).performClick()
     }
 
     private fun scrollToText(text: String) {
@@ -749,8 +799,10 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         }
     }
 
-    private fun appString(@StringRes resId: Int): String {
-        return composeRule.activity.getString(resId)
+    private fun waitForTagToExist(tag: String) {
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithTag(testTag = tag).fetchSemanticsNodes().isNotEmpty()
+        }
     }
 
     private fun aiString(@StringRes resId: Int): String {

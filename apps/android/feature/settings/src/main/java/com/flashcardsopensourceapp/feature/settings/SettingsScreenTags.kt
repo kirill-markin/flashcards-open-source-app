@@ -20,6 +20,7 @@ const val settingsDeviceDiagnosticsRowTag: String = "settings_row_device_diagnos
 const val settingsResetStudyProgressRowTag: String = "settings_row_reset_study_progress"
 const val settingsDeleteCurrentWorkspaceRowTag: String = "settings_row_delete_current_workspace"
 const val settingsDeleteAccountRowTag: String = "settings_row_delete_account"
+const val settingsRootScreenTag: String = "settings_root_screen"
 const val settingsTestRowTag: String = "settings_row_test"
 const val testSettingsScreenTag: String = "test_settings_screen"
 const val testSettingsAnimationsRowTag: String = "test_settings_animations_row"

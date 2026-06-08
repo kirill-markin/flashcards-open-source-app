@@ -105,7 +105,9 @@ fun SettingsRoute(
         LazyColumn(
             contentPadding = settingsScreenContentPadding(innerPadding = innerPadding),
             verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .testTag(tag = settingsRootScreenTag)
         ) {
             item {
                 SectionTitle(text = stringResource(R.string.settings_section_account))
