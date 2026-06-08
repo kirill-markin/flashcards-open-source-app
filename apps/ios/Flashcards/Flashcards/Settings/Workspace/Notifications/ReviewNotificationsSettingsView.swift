@@ -14,16 +14,6 @@ struct ReviewNotificationsSettingsView: View {
                 }
             }
 
-            Section {
-                Text(
-                    aiSettingsLocalized(
-                        "settings.notifications.description",
-                        "Workspace review reminders and strict reminders stay enabled inside Flashcards by default. Delivery still depends on the system notification permission. Study notifications contain cards only and never marketing messages."
-                    )
-                )
-                    .foregroundStyle(.secondary)
-            }
-
             Section(aiSettingsLocalized("settings.notifications.section.permission", "Permission")) {
                 LabeledContent(aiSettingsLocalized("settings.access.detail.status", "Status")) {
                     Text(localizedReviewNotificationPermissionStatusTitle(self.permissionStatus))
@@ -54,77 +44,12 @@ struct ReviewNotificationsSettingsView: View {
                         }
                     )
                 )
-
-                Picker(
-                    aiSettingsLocalized("settings.notifications.mode", "Mode"),
-                    selection: Binding(
-                        get: {
-                            store.reviewNotificationsSettings.selectedMode
-                        },
-                        set: { selectedMode in
-                            store.updateReviewNotificationsMode(selectedMode: selectedMode)
-                        }
-                    )
-                ) {
-                    ForEach(ReviewNotificationMode.allCases) { mode in
-                        Text(localizedReviewNotificationModeTitle(mode)).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-
-                Toggle(
-                    aiSettingsLocalized("settings.notifications.appIconBadge.toggle", "Show app icon badge"),
-                    isOn: Binding(
-                        get: {
-                            store.reviewNotificationsSettings.showAppIconBadge
-                        },
-                        set: { isEnabled in
-                            store.updateReviewNotificationsAppIconBadgeEnabled(isEnabled: isEnabled)
-                        }
-                    )
-                )
-
-                Text(
-                    aiSettingsLocalized(
-                        "settings.notifications.appIconBadge.description",
-                        "When a review reminder fires and you haven't reviewed any card yet today, a red 1 appears on the app icon. The badge clears as soon as you review a card or open the app."
-                    )
-                )
-                    .foregroundStyle(.secondary)
-            }
-
-            Section(aiSettingsLocalized("settings.notifications.section.strictReminders", "Strict reminders")) {
-                Toggle(
-                    aiSettingsLocalized("settings.notifications.enableStrictReminders", "Enable strict reminders"),
-                    isOn: Binding(
-                        get: {
-                            store.strictRemindersSettings.isEnabled
-                        },
-                        set: { isEnabled in
-                            store.updateStrictRemindersEnabled(isEnabled: isEnabled)
-                        }
-                    )
-                )
-
-                Text(
-                    aiSettingsLocalized(
-                        "settings.notifications.strictReminders.description",
-                        "If you have not reviewed anywhere in the app on a local day, Flashcards reminds you 4, 3, and 2 hours before that day ends."
-                    )
-                )
-                    .foregroundStyle(.secondary)
-
-                Text(
-                    aiSettingsLocalized(
-                        "settings.notifications.strictReminders.deviceNote",
-                        "Strict reminders are app-level, apply only to this device, and remain internally enabled even if system notification permission is off."
-                    )
-                )
-                    .foregroundStyle(.secondary)
             }
 
             if store.reviewNotificationsSettings.selectedMode == .daily {
                 Section(aiSettingsLocalized("settings.notifications.section.dailyReminder", "Daily Reminder")) {
+                    self.reviewNotificationModePicker
+
                     Text(aiSettingsLocalized("settings.notifications.dailyExample", "Example: send one card every day at the selected local time."))
                         .foregroundStyle(.secondary)
 
@@ -147,9 +72,13 @@ struct ReviewNotificationsSettingsView: View {
                         ),
                         displayedComponents: [.hourAndMinute]
                     )
+
+                    self.appIconBadgeToggle
                 }
             } else {
                 Section(aiSettingsLocalized("settings.notifications.section.inactivityReminder", "Inactivity Reminder")) {
+                    self.reviewNotificationModePicker
+
                     Text(
                         aiSettingsLocalized(
                             "settings.notifications.inactivityExample",
@@ -225,13 +154,98 @@ struct ReviewNotificationsSettingsView: View {
                             Text(formatIdleMinutes(minutes: minutes)).tag(minutes)
                         }
                     }
+
+                    self.appIconBadgeToggle
                 }
+            }
+
+            Section(aiSettingsLocalized("settings.notifications.section.strictReminders", "Strict reminders")) {
+                Toggle(
+                    aiSettingsLocalized("settings.notifications.enableStrictReminders", "Enable strict reminders"),
+                    isOn: Binding(
+                        get: {
+                            store.strictRemindersSettings.isEnabled
+                        },
+                        set: { isEnabled in
+                            store.updateStrictRemindersEnabled(isEnabled: isEnabled)
+                        }
+                    )
+                )
+
+                Text(
+                    aiSettingsLocalized(
+                        "settings.notifications.strictReminders.description",
+                        "If you have not reviewed anywhere in the app on a local day, Flashcards reminds you 4, 3, and 2 hours before that day ends."
+                    )
+                )
+                    .foregroundStyle(.secondary)
+
+                Text(
+                    aiSettingsLocalized(
+                        "settings.notifications.strictReminders.deviceNote",
+                        "Strict reminders are app-level, apply only to this device, and remain internally enabled even if system notification permission is off."
+                    )
+                )
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                Text(
+                    aiSettingsLocalized(
+                        "settings.notifications.description",
+                        "Workspace review reminders and strict reminders stay enabled inside Flashcards by default. Delivery still depends on the system notification permission. Study notifications contain cards only and never marketing messages."
+                    )
+                )
+                    .foregroundStyle(.secondary)
             }
         }
         .listStyle(.insetGrouped)
         .navigationTitle(aiSettingsLocalized("settings.notifications.title", "Notifications"))
         .task(id: store.workspace?.workspaceId) {
             await self.refreshPermissionStatus()
+        }
+    }
+
+    private var reviewNotificationModePicker: some View {
+        Picker(
+            aiSettingsLocalized("settings.notifications.mode", "Mode"),
+            selection: Binding(
+                get: {
+                    store.reviewNotificationsSettings.selectedMode
+                },
+                set: { selectedMode in
+                    store.updateReviewNotificationsMode(selectedMode: selectedMode)
+                }
+            )
+        ) {
+            ForEach(ReviewNotificationMode.allCases) { mode in
+                Text(localizedReviewNotificationModeTitle(mode)).tag(mode)
+            }
+        }
+        .pickerStyle(.segmented)
+    }
+
+    private var appIconBadgeToggle: some View {
+        Group {
+            Toggle(
+                aiSettingsLocalized("settings.notifications.appIconBadge.toggle", "Show app icon badge"),
+                isOn: Binding(
+                    get: {
+                        store.reviewNotificationsSettings.showAppIconBadge
+                    },
+                    set: { isEnabled in
+                        store.updateReviewNotificationsAppIconBadgeEnabled(isEnabled: isEnabled)
+                    }
+                )
+            )
+
+            Text(
+                aiSettingsLocalized(
+                    "settings.notifications.appIconBadge.description",
+                    "When a review reminder fires and you haven't reviewed any card yet today, a red 1 appears on the app icon. The badge clears as soon as you review a card or open the app."
+                )
+            )
+                .foregroundStyle(.secondary)
         }
     }
 
