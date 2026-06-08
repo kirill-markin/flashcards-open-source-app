@@ -49,7 +49,9 @@ fun SchedulerSettingsRoute(
         LazyColumn(
             contentPadding = settingsScreenContentPadding(innerPadding = innerPadding),
             verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .testTag(tag = schedulerSettingsScreenTag)
         ) {
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {

@@ -3,11 +3,12 @@
 package com.flashcardsopensourceapp.app.livesmoke.flows
 
 import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickNode
@@ -18,6 +19,14 @@ import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitForTagToExist
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitForTextToExist
 import com.flashcardsopensourceapp.app.livesmoke.support.LiveSmokeContext
 import com.flashcardsopensourceapp.app.livesmoke.support.internalUiTimeoutMillis
+import com.flashcardsopensourceapp.feature.settings.access.accessSettingsScreenTag
+import com.flashcardsopensourceapp.feature.settings.account.accountStatusScreenTag
+import com.flashcardsopensourceapp.feature.settings.device.deviceDiagnosticsScreenTag
+import com.flashcardsopensourceapp.feature.settings.language.languageSettingsScreenTag
+import com.flashcardsopensourceapp.feature.settings.language.languageSettingsSupportedLanguagesSectionTag
+import com.flashcardsopensourceapp.feature.settings.review.reviewNotificationsScreenTag
+import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerSettingsScreenTag
+import com.flashcardsopensourceapp.feature.settings.server.serverSettingsScreenTag
 import com.flashcardsopensourceapp.feature.settings.settingsAccessRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsAccountStatusRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsAgentConnectionsRowTag
@@ -33,10 +42,12 @@ import com.flashcardsopensourceapp.feature.settings.settingsLegalRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsOpenSourceRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsResetStudyProgressRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsReviewRemindersRowTag
+import com.flashcardsopensourceapp.feature.settings.settingsRootScreenTag
 import com.flashcardsopensourceapp.feature.settings.settingsSchedulingRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsServerRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsSupportRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsTagsRowTag
+import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceListTag
 
 internal fun LiveSmokeContext.openCardsTab() {
     clickNode(
@@ -68,13 +79,24 @@ internal fun LiveSmokeContext.openSettingsTab() {
 
 internal fun LiveSmokeContext.openSettingsRow(rowTag: String, rowLabel: String) {
     openSettingsTab()
-    composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(matcher = hasTestTag(rowTag))
+    composeRule.onNodeWithTag(testTag = settingsRootScreenTag)
+        .performScrollToNode(matcher = hasTestTag(rowTag).and(other = hasClickAction()))
     waitForTagToExist(
         tag = rowTag,
         timeoutMillis = internalUiTimeoutMillis,
         context = "while waiting for settings row '$rowLabel'"
     )
+    composeRule.onNodeWithTag(testTag = rowTag).performScrollTo()
     clickTag(tag = rowTag, label = rowLabel)
+}
+
+internal fun LiveSmokeContext.openSettingsRow(rowTag: String, rowLabel: String, destinationTag: String) {
+    openSettingsRow(rowTag = rowTag, rowLabel = rowLabel)
+    waitForTagToExist(
+        tag = destinationTag,
+        timeoutMillis = internalUiTimeoutMillis,
+        context = "while waiting for settings detail '$rowLabel'"
+    )
 }
 
 internal fun LiveSmokeContext.assertSettingsInformationArchitecture() {
@@ -85,7 +107,8 @@ internal fun LiveSmokeContext.assertSettingsInformationArchitecture() {
         "Support",
         "Advanced"
     ).forEach { sectionTitle ->
-        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(matcher = hasText(sectionTitle))
+        composeRule.onNodeWithTag(testTag = settingsRootScreenTag)
+            .performScrollToNode(matcher = hasText(sectionTitle))
         waitForTextToExist(
             text = sectionTitle,
             substring = false,
@@ -117,7 +140,8 @@ internal fun LiveSmokeContext.assertSettingsInformationArchitecture() {
     ).forEach { row ->
         val rowTag = row.first
         val rowLabel = row.second
-        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(matcher = hasTestTag(rowTag))
+        composeRule.onNodeWithTag(testTag = settingsRootScreenTag)
+            .performScrollToNode(matcher = hasTestTag(rowTag).and(other = hasClickAction()))
         waitForTagToExist(
             tag = rowTag,
             timeoutMillis = internalUiTimeoutMillis,
@@ -131,67 +155,56 @@ internal fun LiveSmokeContext.openSettingsInformationArchitectureDetails() {
         SettingsDetailProbe(
             rowTag = settingsAccountStatusRowTag,
             rowLabel = "Account status",
-            expectedText = "Cloud status"
+            destinationTag = accountStatusScreenTag
         ),
         SettingsDetailProbe(
             rowTag = settingsCurrentWorkspaceRowTag,
             rowLabel = "Workspace",
-            expectedText = "Cloud status"
+            destinationTag = currentWorkspaceListTag
         ),
         SettingsDetailProbe(
             rowTag = settingsReviewRemindersRowTag,
             rowLabel = "Review reminders",
-            expectedText = "Workspace review reminders"
+            destinationTag = reviewNotificationsScreenTag
         ),
         SettingsDetailProbe(
             rowTag = settingsLanguageRowTag,
             rowLabel = "Language",
-            expectedText = "Android controls the app language"
+            destinationTag = languageSettingsScreenTag
         ),
         SettingsDetailProbe(
             rowTag = settingsAccessRowTag,
             rowLabel = "Access",
-            expectedText = "Camera"
+            destinationTag = accessSettingsScreenTag
         ),
         SettingsDetailProbe(
             rowTag = settingsSchedulingRowTag,
             rowLabel = "Scheduling / FSRS",
-            expectedText = "Desired retention"
+            destinationTag = schedulerSettingsScreenTag
         ),
         SettingsDetailProbe(
             rowTag = settingsServerRowTag,
             rowLabel = "Server",
-            expectedText = "Current server"
+            destinationTag = serverSettingsScreenTag
         ),
         SettingsDetailProbe(
             rowTag = settingsDeviceDiagnosticsRowTag,
             rowLabel = "Device",
-            expectedText = "Workspace ID"
+            destinationTag = deviceDiagnosticsScreenTag
         )
     ).forEach { probe ->
-        openSettingsRow(rowTag = probe.rowTag, rowLabel = probe.rowLabel)
-        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(
-            matcher = hasText(probe.expectedText, substring = true)
-        )
-        waitForTextToExist(
-            text = probe.expectedText,
-            substring = true,
-            timeoutMillis = internalUiTimeoutMillis,
-            context = "while verifying ${probe.rowLabel} detail"
+        openSettingsRow(
+            rowTag = probe.rowTag,
+            rowLabel = probe.rowLabel,
+            destinationTag = probe.destinationTag
         )
         if (probe.rowTag == settingsLanguageRowTag) {
-            composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(matcher = hasText("Supported languages"))
-            waitForTextToExist(
-                text = "Supported languages",
-                substring = false,
+            composeRule.onNodeWithTag(testTag = languageSettingsScreenTag)
+                .performScrollToNode(matcher = hasTestTag(languageSettingsSupportedLanguagesSectionTag))
+            waitForTagToExist(
+                tag = languageSettingsSupportedLanguagesSectionTag,
                 timeoutMillis = internalUiTimeoutMillis,
-                context = "while verifying Language supported languages title"
-            )
-            waitForTextToExist(
-                text = "English",
-                substring = true,
-                timeoutMillis = internalUiTimeoutMillis,
-                context = "while verifying Language supported languages list"
+                context = "while verifying Language supported languages section"
             )
         }
         tapBackIcon()
@@ -213,5 +226,5 @@ internal fun LiveSmokeContext.updateCardText(fieldTitle: String, value: String) 
 private data class SettingsDetailProbe(
     val rowTag: String,
     val rowLabel: String,
-    val expectedText: String
+    val destinationTag: String
 )

@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.settings.scheduler
 
+const val schedulerSettingsScreenTag: String = "scheduler_settings_screen"
 const val schedulerDesiredRetentionFieldTag: String = "scheduler_desired_retention_field"
 const val schedulerLearningStepsFieldTag: String = "scheduler_learning_steps_field"
 const val schedulerRelearningStepsFieldTag: String = "scheduler_relearning_steps_field"

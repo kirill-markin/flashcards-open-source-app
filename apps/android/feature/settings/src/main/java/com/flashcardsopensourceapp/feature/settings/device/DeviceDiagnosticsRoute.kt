@@ -12,6 +12,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.feature.settings.DeviceInfoCard
@@ -19,6 +20,8 @@ import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsScreenScaffold
 import com.flashcardsopensourceapp.feature.settings.settingsScreenCardSpacing
 import com.flashcardsopensourceapp.feature.settings.settingsScreenContentPadding
+
+const val deviceDiagnosticsScreenTag: String = "device_diagnostics_screen"
 
 @Composable
 fun DeviceDiagnosticsRoute(
@@ -34,7 +37,9 @@ fun DeviceDiagnosticsRoute(
         LazyColumn(
             contentPadding = settingsScreenContentPadding(innerPadding = innerPadding),
             verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .testTag(tag = deviceDiagnosticsScreenTag)
         ) {
             item {
                 DeviceInfoCard(
