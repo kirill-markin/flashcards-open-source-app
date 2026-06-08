@@ -101,9 +101,7 @@ export const zhHansCatalog = {
     currentWorkspace: "正在加载工作区...",
     accessSettings: "正在加载访问设置...",
     accessDetails: "正在加载访问详情...",
-    workspaceSettings: "正在加载工作区设置...",
     notificationSettings: "正在加载通知设置...",
-    workspaceOverview: "正在加载工作区概览...",
     schedulerSettings: "正在加载调度器设置...",
     exportSettings: "正在加载导出设置...",
     decks: "正在加载牌组...",
@@ -111,7 +109,6 @@ export const zhHansCatalog = {
     deckDetails: "正在加载牌组详情...",
     tags: "正在加载标签...",
     deviceDetails: "正在加载设备详情...",
-    accountSettings: "正在加载账户设置...",
     accountStatus: "正在加载账户状态...",
     legal: "正在加载法律信息...",
     support: "正在加载支持...",
@@ -215,16 +212,6 @@ export const zhHansCatalog = {
       title: "语言",
       description: "为此浏览器选择应用语言。",
     },
-    workspaceSettings: {
-      title: "工作区设置",
-      description: "查看概览、工作区数据、调度器设置、通知和导出。",
-      value: "工作区",
-    },
-    accountSettings: {
-      title: "账户设置",
-      description: "查看账户状态、支持、连接和危险操作。",
-      value: "账户",
-    },
     device: {
       title: "设备",
       description: "查看浏览器、构建、存储和设备本地工作区详情。",
@@ -313,14 +300,6 @@ export const zhHansCatalog = {
     },
   },
   settingsWorkspace: {
-    title: "工作区设置",
-    subtitle: "管理工作区概览、工作区数据、学习设置和导出。",
-    errorSubtitle: "管理工作区数据、学习设置和设备详情。",
-    overview: {
-      title: "概览",
-      description: "查看工作区名称、数量统计和今日数据。",
-    },
-    workspaceDataGroupTitle: "工作区数据",
     decks: {
       title: "牌组",
       description: "创建、编辑和查看可重复使用的学习范围。",
@@ -329,14 +308,7 @@ export const zhHansCatalog = {
       title: "标签",
       description: "查看整个工作区的标签使用情况和卡片数量。",
     },
-    settingsGroupTitle: "设置",
-    scheduler: {
-      title: "调度器",
-      description: "查看用于未来复习的当前调度器配置。",
-    },
     notifications: {
-      title: "通知",
-      description: "查看此工作区在本设备上的学习提醒设置。",
       value: "此设备",
     },
     export: {
@@ -344,7 +316,6 @@ export const zhHansCatalog = {
       description: "将此工作区中的所有活动卡片保存为标准 CSV 文件。",
       value: "CSV",
     },
-    dangerZoneGroupTitle: "危险区域",
     resetProgress: {
       title: "重置学习进度",
       description: "重置此工作区中每张活动卡片的学习进度。",
@@ -364,30 +335,9 @@ export const zhHansCatalog = {
         one: "张卡片",
         other: "张卡片",
       },
-      deck: {
-        one: "个牌组",
-        other: "个牌组",
-      },
-      tag: {
-        one: "个标签",
-        other: "个标签",
-      },
     },
   },
   workspaceOverview: {
-    title: "概览",
-    subtitle: "查看工作区详情和今日统计。",
-    workspaceUnavailable: "工作区不可用",
-    loading: "正在加载工作区概览...",
-    labels: {
-      workspace: "工作区",
-      cards: "卡片",
-      decks: "牌组",
-      tags: "标签",
-      due: "到期",
-      new: "新建",
-      reviewed: "已复习",
-    },
     rename: {
       title: "重命名工作区",
       description: "为所有已连接的客户端更新当前工作区名称。",
@@ -857,35 +807,17 @@ export const zhHansCatalog = {
     },
   },
   accountSettings: {
-    title: "账户设置",
-    subtitle: "管理账户状态、支持、连接和不可逆操作。",
     accountStatus: {
       title: "账户状态",
       description: "查看当前已登录账户和浏览器会话状态。",
     },
-    supportGroupTitle: "支持",
-    legal: {
-      title: "法律",
-      description: "查看托管应用的隐私政策和条款。",
-    },
-    support: {
-      title: "支持",
-      description: "打开托管支持链接和支持联系方式。",
-    },
     openSource: {
-      title: "开源",
-      description: "查看仓库、MIT 许可证和自托管链接。",
       value: "GitHub + MIT",
     },
-    connectionsGroupTitle: "连接",
     agentConnections: {
-      title: "代理连接",
-      description: "查看并撤销此账户的长期机器人连接。",
       value: "连接",
     },
     dangerZone: {
-      title: "危险区域",
-      description: "删除账户和所有云端数据。",
       value: "删除",
     },
   },

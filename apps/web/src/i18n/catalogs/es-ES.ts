@@ -101,9 +101,7 @@ const esEsCatalog: TranslationCatalog = {
     currentWorkspace: "Cargando el espacio de trabajo...",
     accessSettings: "Cargando los ajustes de acceso...",
     accessDetails: "Cargando los detalles de acceso...",
-    workspaceSettings: "Cargando los ajustes del espacio de trabajo...",
     notificationSettings: "Cargando los ajustes de notificaciones...",
-    workspaceOverview: "Cargando la vista general del espacio de trabajo...",
     schedulerSettings: "Cargando los ajustes del programador...",
     exportSettings: "Cargando los ajustes de exportación...",
     decks: "Cargando los mazos...",
@@ -111,7 +109,6 @@ const esEsCatalog: TranslationCatalog = {
     deckDetails: "Cargando los detalles del mazo...",
     tags: "Cargando las etiquetas...",
     deviceDetails: "Cargando los detalles del dispositivo...",
-    accountSettings: "Cargando los ajustes de la cuenta...",
     accountStatus: "Cargando el estado de la cuenta...",
     legal: "Cargando la información legal...",
     support: "Cargando soporte...",
@@ -215,16 +212,6 @@ const esEsCatalog: TranslationCatalog = {
       title: "Idioma",
       description: "Elige el idioma de la app para este navegador.",
     },
-    workspaceSettings: {
-      title: "Ajustes del espacio de trabajo",
-      description: "Revisa el resumen, los datos del espacio de trabajo, el programador, las notificaciones y la exportación.",
-      value: "Espacio de trabajo",
-    },
-    accountSettings: {
-      title: "Ajustes de la cuenta",
-      description: "Revisa el estado de la cuenta, el soporte, las conexiones y las acciones irreversibles.",
-      value: "Cuenta",
-    },
     device: {
       title: "Dispositivo",
       description: "Revisa el navegador, la build, el almacenamiento y los detalles locales del espacio de trabajo.",
@@ -313,14 +300,6 @@ const esEsCatalog: TranslationCatalog = {
     },
   },
   settingsWorkspace: {
-    title: "Ajustes del espacio de trabajo",
-    subtitle: "Gestiona el resumen del espacio de trabajo, los datos de estudio, los ajustes y la exportación.",
-    errorSubtitle: "Gestiona los datos del espacio de trabajo, los ajustes de estudio y los detalles del dispositivo.",
-    overview: {
-      title: "Resumen",
-      description: "Revisa el nombre del espacio de trabajo, los recuentos y las estadísticas de hoy.",
-    },
-    workspaceDataGroupTitle: "Datos del espacio de trabajo",
     decks: {
       title: "Mazos",
       description: "Crea, edita y revisa ámbitos de estudio reutilizables.",
@@ -329,14 +308,7 @@ const esEsCatalog: TranslationCatalog = {
       title: "Etiquetas",
       description: "Consulta el uso de etiquetas y el número de tarjetas de todo el espacio de trabajo.",
     },
-    settingsGroupTitle: "Ajustes",
-    scheduler: {
-      title: "Programador",
-      description: "Revisa la configuración activa del programador para los próximos repasos.",
-    },
     notifications: {
-      title: "Notificaciones",
-      description: "Revisa los recordatorios de estudio de este espacio de trabajo en el dispositivo actual.",
       value: "Este dispositivo",
     },
     export: {
@@ -344,7 +316,6 @@ const esEsCatalog: TranslationCatalog = {
       description: "Guarda todas las tarjetas activas de este espacio de trabajo como un archivo CSV estándar.",
       value: "CSV",
     },
-    dangerZoneGroupTitle: "Zona de peligro",
     resetProgress: {
       title: "Restablecer progreso de estudio",
       description: "Restablece el progreso de estudio de cada tarjeta activa de este espacio de trabajo.",
@@ -364,30 +335,9 @@ const esEsCatalog: TranslationCatalog = {
         one: "tarjeta",
         other: "tarjetas",
       },
-      deck: {
-        one: "mazo",
-        other: "mazos",
-      },
-      tag: {
-        one: "etiqueta",
-        other: "etiquetas",
-      },
     },
   },
   workspaceOverview: {
-    title: "Resumen",
-    subtitle: "Revisa los detalles del espacio de trabajo y los recuentos de hoy.",
-    workspaceUnavailable: "Espacio de trabajo no disponible",
-    loading: "Cargando el resumen del espacio de trabajo...",
-    labels: {
-      workspace: "Espacio de trabajo",
-      cards: "Tarjetas",
-      decks: "Mazos",
-      tags: "Etiquetas",
-      due: "Pendientes",
-      new: "Nuevas",
-      reviewed: "Repasadas",
-    },
     rename: {
       title: "Cambiar nombre del espacio de trabajo",
       description: "Actualiza el nombre del espacio de trabajo actual para todos los clientes vinculados.",
@@ -857,35 +807,17 @@ const esEsCatalog: TranslationCatalog = {
     },
   },
   accountSettings: {
-    title: "Ajustes de la cuenta",
-    subtitle: "Gestiona el estado de la cuenta, el soporte, las conexiones y las acciones irreversibles.",
     accountStatus: {
       title: "Estado de la cuenta",
       description: "Revisa la cuenta que ha iniciado sesión y el estado actual de la sesión del navegador.",
     },
-    supportGroupTitle: "Soporte",
-    legal: {
-      title: "Legal",
-      description: "Revisa la privacidad y los términos de la app alojada.",
-    },
-    support: {
-      title: "Soporte",
-      description: "Abre enlaces de soporte alojado y datos de contacto de soporte.",
-    },
     openSource: {
-      title: "Código abierto",
-      description: "Revisa el repositorio, la licencia MIT y los enlaces de autoalojamiento.",
       value: "GitHub + MIT",
     },
-    connectionsGroupTitle: "Conexiones",
     agentConnections: {
-      title: "Conexiones de agentes",
-      description: "Revisa y revoca conexiones de bots de larga duración para esta cuenta.",
       value: "Conexiones",
     },
     dangerZone: {
-      title: "Zona de peligro",
-      description: "Elimina la cuenta y todos los datos en la nube.",
       value: "Eliminar",
     },
   },

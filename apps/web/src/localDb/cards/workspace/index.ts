@@ -1,9 +1,7 @@
 import type {
   ReviewEvent,
   SyncBootstrapEntry,
-  WorkspaceOverviewSnapshot,
   WorkspaceSchedulerSettings,
-  WorkspaceSummary,
   WorkspaceTagsSummary,
 } from "../../../types";
 import { iterateAllCardTags } from "../tags";
@@ -17,7 +15,7 @@ import {
   type WorkspaceSettingsRecord,
   type WorkspaceSyncStateRecord,
 } from "../../core/database";
-import { loadDecksListSnapshot, putDeckInTransaction } from "../decks";
+import { putDeckInTransaction } from "../decks";
 import { loadProgressCacheState, markProgressCacheDirtyInTransaction } from "../../progress/progress";
 import { putReviewEventInTransaction } from "../../reviews/reviews";
 
@@ -166,23 +164,6 @@ export async function loadWorkspaceTagsSummary(workspaceId: string): Promise<Wor
       totalCards: await loadActiveCardCountWithDatabase(database, workspaceId),
     };
   });
-}
-
-export async function loadWorkspaceOverviewSnapshot(workspace: WorkspaceSummary): Promise<WorkspaceOverviewSnapshot> {
-  const [tagsSummary, decksSnapshot] = await Promise.all([
-    loadWorkspaceTagsSummary(workspace.workspaceId),
-    loadDecksListSnapshot(workspace.workspaceId),
-  ]);
-
-  return {
-    workspaceName: workspace.name,
-    deckCount: decksSnapshot.deckSummaries.length,
-    tagsCount: tagsSummary.tags.length,
-    totalCards: decksSnapshot.allCardsStats.totalCards,
-    dueCount: decksSnapshot.allCardsStats.dueCards,
-    newCount: decksSnapshot.allCardsStats.newCards,
-    reviewedCount: decksSnapshot.allCardsStats.reviewedCards,
-  };
 }
 
 export async function applyHotSyncPage(

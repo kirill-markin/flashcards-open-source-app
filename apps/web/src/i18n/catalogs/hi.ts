@@ -101,9 +101,7 @@ const hiCatalog: TranslationCatalog = {
     currentWorkspace: "वर्कस्पेस लोड हो रहा है...",
     accessSettings: "एक्सेस सेटिंग्स लोड हो रही हैं...",
     accessDetails: "एक्सेस विवरण लोड हो रहा है...",
-    workspaceSettings: "वर्कस्पेस सेटिंग्स लोड हो रही हैं...",
     notificationSettings: "सूचना सेटिंग्स लोड हो रही हैं...",
-    workspaceOverview: "वर्कस्पेस अवलोकन लोड हो रहा है...",
     schedulerSettings: "शेड्यूलर सेटिंग्स लोड हो रही हैं...",
     exportSettings: "एक्सपोर्ट सेटिंग्स लोड हो रही हैं...",
     decks: "डेक लोड हो रहे हैं...",
@@ -111,7 +109,6 @@ const hiCatalog: TranslationCatalog = {
     deckDetails: "डेक विवरण लोड हो रहा है...",
     tags: "टैग लोड हो रहे हैं...",
     deviceDetails: "डिवाइस विवरण लोड हो रहा है...",
-    accountSettings: "खाता सेटिंग्स लोड हो रही हैं...",
     accountStatus: "खाता स्थिति लोड हो रही है...",
     legal: "कानूनी जानकारी लोड हो रही है...",
     support: "समर्थन लोड हो रहा है...",
@@ -215,16 +212,6 @@ const hiCatalog: TranslationCatalog = {
       title: "भाषा",
       description: "इस ब्राउज़र के लिए ऐप भाषा चुनें।",
     },
-    workspaceSettings: {
-      title: "वर्कस्पेस सेटिंग्स",
-      description: "अवलोकन, वर्कस्पेस डेटा, शेड्यूलर, सूचनाएं और एक्सपोर्ट देखें।",
-      value: "वर्कस्पेस",
-    },
-    accountSettings: {
-      title: "खाता सेटिंग्स",
-      description: "खाता स्थिति, सहायता, कनेक्शन और अपरिवर्तनीय कार्रवाइयों की समीक्षा करें।",
-      value: "खाता",
-    },
     device: {
       title: "डिवाइस",
       description: "ब्राउज़र, बिल्ड, स्टोरेज और डिवाइस-लोकल वर्कस्पेस विवरण देखें।",
@@ -313,14 +300,6 @@ const hiCatalog: TranslationCatalog = {
     },
   },
   settingsWorkspace: {
-    title: "वर्कस्पेस सेटिंग्स",
-    subtitle: "वर्कस्पेस अवलोकन, वर्कस्पेस डेटा, अध्ययन सेटिंग्स और एक्सपोर्ट को मैनेज करें।",
-    errorSubtitle: "वर्कस्पेस डेटा, अध्ययन सेटिंग्स और डिवाइस विवरण को मैनेज करें।",
-    overview: {
-      title: "अवलोकन",
-      description: "वर्कस्पेस का नाम, गिनतियां और आज के आँकड़े देखें।",
-    },
-    workspaceDataGroupTitle: "वर्कस्पेस डेटा",
     decks: {
       title: "डेक",
       description: "दोबारा उपयोग किए जा सकने वाले अध्ययन दायरे बनाएँ, संपादित करें और देखें।",
@@ -329,14 +308,7 @@ const hiCatalog: TranslationCatalog = {
       title: "टैग",
       description: "पूरे वर्कस्पेस में टैग उपयोग और कार्ड गिनती देखें।",
     },
-    settingsGroupTitle: "सेटिंग्स",
-    scheduler: {
-      title: "शेड्यूलर",
-      description: "आने वाले रिव्यू के लिए सक्रिय शेड्यूलर कॉन्फ़िगरेशन देखें।",
-    },
     notifications: {
-      title: "सूचनाएं",
-      description: "इस वर्कस्पेस पर अध्ययन सूचनाओं के लिए डिवाइस-लोकल रिमाइंडर सेटिंग्स देखें।",
       value: "यह डिवाइस",
     },
     export: {
@@ -344,7 +316,6 @@ const hiCatalog: TranslationCatalog = {
       description: "इस वर्कस्पेस के सभी सक्रिय कार्ड को मानक CSV फ़ाइल के रूप में सहेजें।",
       value: "CSV",
     },
-    dangerZoneGroupTitle: "खतरे का क्षेत्र",
     resetProgress: {
       title: "अध्ययन प्रगति रीसेट करें",
       description: "इस वर्कस्पेस के हर सक्रिय कार्ड की अध्ययन प्रगति रीसेट करें।",
@@ -364,30 +335,9 @@ const hiCatalog: TranslationCatalog = {
         one: "कार्ड",
         other: "कार्ड",
       },
-      deck: {
-        one: "डेक",
-        other: "डेक",
-      },
-      tag: {
-        one: "टैग",
-        other: "टैग",
-      },
     },
   },
   workspaceOverview: {
-    title: "अवलोकन",
-    subtitle: "वर्कस्पेस विवरण और आज की गिनतियां देखें।",
-    workspaceUnavailable: "वर्कस्पेस उपलब्ध नहीं है",
-    loading: "वर्कस्पेस अवलोकन लोड हो रहा है...",
-    labels: {
-      workspace: "वर्कस्पेस",
-      cards: "कार्ड",
-      decks: "डेक",
-      tags: "टैग",
-      due: "बाकी",
-      new: "नए",
-      reviewed: "रिव्यू किए गए",
-    },
     rename: {
       title: "वर्कस्पेस का नाम बदलें",
       description: "सभी लिंक किए गए क्लाइंट के लिए मौजूदा वर्कस्पेस का नाम अपडेट करें।",
@@ -857,35 +807,17 @@ const hiCatalog: TranslationCatalog = {
     },
   },
   accountSettings: {
-    title: "खाता सेटिंग्स",
-    subtitle: "खाते की स्थिति, सहायता, कनेक्शन और अपरिवर्तनीय कार्रवाइयों को मैनेज करें।",
     accountStatus: {
       title: "खाता स्थिति",
       description: "साइन-इन किए गए खाते और मौजूदा ब्राउज़र सेशन की स्थिति देखें।",
     },
-    supportGroupTitle: "सहायता",
-    legal: {
-      title: "कानूनी",
-      description: "होस्टेड ऐप की गोपनीयता और शर्तें देखें।",
-    },
-    support: {
-      title: "समर्थन",
-      description: "होस्टेड सहायता लिंक और सहायता संपर्क विवरण खोलें।",
-    },
     openSource: {
-      title: "ओपन सोर्स",
-      description: "रिपॉज़िटरी, MIT लाइसेंस और self-hosting लिंक देखें।",
       value: "GitHub + MIT",
     },
-    connectionsGroupTitle: "कनेक्शन",
     agentConnections: {
-      title: "एजेंट कनेक्शन",
-      description: "इस खाते के लिए लंबे समय तक रहने वाले बॉट कनेक्शन देखें और निरस्त करें।",
       value: "कनेक्शन",
     },
     dangerZone: {
-      title: "खतरे का क्षेत्र",
-      description: "खाता और सभी क्लाउड डेटा हटाएँ।",
       value: "हटाएँ",
     },
   },

@@ -101,9 +101,7 @@ const arCatalog: TranslationCatalog = {
     currentWorkspace: "جارٍ تحميل مساحة العمل...",
     accessSettings: "جارٍ تحميل إعدادات الوصول...",
     accessDetails: "جارٍ تحميل تفاصيل الوصول...",
-    workspaceSettings: "جارٍ تحميل إعدادات مساحة العمل...",
     notificationSettings: "جارٍ تحميل إعدادات الإشعارات...",
-    workspaceOverview: "جارٍ تحميل نظرة عامة على مساحة العمل...",
     schedulerSettings: "جارٍ تحميل إعدادات الجدولة...",
     exportSettings: "جارٍ تحميل إعدادات التصدير...",
     decks: "جارٍ تحميل المجموعات...",
@@ -111,7 +109,6 @@ const arCatalog: TranslationCatalog = {
     deckDetails: "جارٍ تحميل تفاصيل المجموعة...",
     tags: "جارٍ تحميل الوسوم...",
     deviceDetails: "جارٍ تحميل تفاصيل الجهاز...",
-    accountSettings: "جارٍ تحميل إعدادات الحساب...",
     accountStatus: "جارٍ تحميل حالة الحساب...",
     legal: "جارٍ تحميل الشؤون القانونية...",
     support: "جارٍ تحميل الدعم...",
@@ -215,16 +212,6 @@ const arCatalog: TranslationCatalog = {
       title: "اللغة",
       description: "اختر لغة التطبيق لهذا المتصفح.",
     },
-    workspaceSettings: {
-      title: "إعدادات مساحة العمل",
-      description: "راجع النظرة العامة وبيانات مساحة العمل وإعدادات الجدولة والإشعارات والتصدير.",
-      value: "مساحة العمل",
-    },
-    accountSettings: {
-      title: "إعدادات الحساب",
-      description: "راجع حالة الحساب والدعم والاتصالات والإجراءات غير القابلة للتراجع.",
-      value: "الحساب",
-    },
     device: {
       title: "الجهاز",
       description: "راجع المتصفح والإصدار والبناء وتفاصيل مساحة العمل المحلية على الجهاز.",
@@ -313,14 +300,6 @@ const arCatalog: TranslationCatalog = {
     },
   },
   settingsWorkspace: {
-    title: "إعدادات مساحة العمل",
-    subtitle: "أدر نظرة عامة على مساحة العمل وبياناتها وإعدادات الدراسة والتصدير.",
-    errorSubtitle: "أدر بيانات مساحة العمل وإعدادات الدراسة وتفاصيل الجهاز.",
-    overview: {
-      title: "نظرة عامة",
-      description: "راجع اسم مساحة العمل والأعداد وإحصاءات اليوم.",
-    },
-    workspaceDataGroupTitle: "بيانات مساحة العمل",
     decks: {
       title: "المجموعات",
       description: "أنشئ نطاقات دراسة قابلة لإعادة الاستخدام وحرّرها وراجعها.",
@@ -329,14 +308,7 @@ const arCatalog: TranslationCatalog = {
       title: "الوسوم",
       description: "افحص استخدام الوسوم على مستوى مساحة العمل وعدد البطاقات.",
     },
-    settingsGroupTitle: "الإعدادات",
-    scheduler: {
-      title: "الجدولة",
-      description: "راجع إعدادات الجدولة النشطة للمراجعات القادمة.",
-    },
     notifications: {
-      title: "الإشعارات",
-      description: "راجع إعدادات التذكير المحلية على الجهاز لإشعارات الدراسة في مساحة العمل هذه.",
       value: "هذا الجهاز",
     },
     export: {
@@ -344,7 +316,6 @@ const arCatalog: TranslationCatalog = {
       description: "احفظ كل البطاقات النشطة من مساحة العمل هذه كملف CSV قياسي.",
       value: "CSV",
     },
-    dangerZoneGroupTitle: "منطقة الخطر",
     resetProgress: {
       title: "إعادة تعيين تقدم الدراسة",
       description: "أعد تعيين تقدم الدراسة لكل بطاقة نشطة في مساحة العمل هذه.",
@@ -364,30 +335,9 @@ const arCatalog: TranslationCatalog = {
         one: "بطاقة",
         other: "بطاقات",
       },
-      deck: {
-        one: "مجموعة",
-        other: "مجموعات",
-      },
-      tag: {
-        one: "وسم",
-        other: "وسوم",
-      },
     },
   },
   workspaceOverview: {
-    title: "نظرة عامة",
-    subtitle: "راجع تفاصيل مساحة العمل وأعداد اليوم.",
-    workspaceUnavailable: "مساحة العمل غير متاحة",
-    loading: "جارٍ تحميل نظرة عامة على مساحة العمل...",
-    labels: {
-      workspace: "مساحة العمل",
-      cards: "بطاقات",
-      decks: "مجموعات",
-      tags: "وسوم",
-      due: "مستحق",
-      new: "جديد",
-      reviewed: "تمت مراجعته",
-    },
     rename: {
       title: "إعادة تسمية مساحة العمل",
       description: "حدّث اسم مساحة العمل الحالية لكل العملاء المرتبطين.",
@@ -857,35 +807,17 @@ const arCatalog: TranslationCatalog = {
     },
   },
   accountSettings: {
-    title: "إعدادات الحساب",
-    subtitle: "أدر حالة الحساب والدعم والاتصالات والإجراءات غير القابلة للتراجع.",
     accountStatus: {
       title: "حالة الحساب",
       description: "راجع الحساب الذي تم تسجيل الدخول به وحالة جلسة المتصفح الحالية.",
     },
-    supportGroupTitle: "الدعم",
-    legal: {
-      title: "الشؤون القانونية",
-      description: "راجع الخصوصية والشروط للتطبيق المستضاف.",
-    },
-    support: {
-      title: "الدعم",
-      description: "افتح روابط الدعم المستضاف وتفاصيل التواصل مع الدعم.",
-    },
     openSource: {
-      title: "المصدر المفتوح",
-      description: "راجع المستودع وترخيص MIT وروابط الاستضافة الذاتية.",
       value: "GitHub + MIT",
     },
-    connectionsGroupTitle: "الاتصالات",
     agentConnections: {
-      title: "اتصالات الوكلاء",
-      description: "راجع وألغِ اتصالات الروبوتات طويلة الأمد لهذا الحساب.",
       value: "الاتصالات",
     },
     dangerZone: {
-      title: "منطقة الخطر",
-      description: "احذف الحساب وكل البيانات السحابية.",
       value: "حذف",
     },
   },
