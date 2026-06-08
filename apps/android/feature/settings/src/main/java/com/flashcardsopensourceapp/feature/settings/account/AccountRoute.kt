@@ -80,26 +80,6 @@ fun AccountRoute(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = {
-                            Text(stringResource(R.string.settings_account_legal_title))
-                        },
-                        supportingContent = {
-                            Text(stringResource(R.string.settings_account_legal_summary))
-                        },
-                        leadingContent = {
-                            Icon(
-                                imageVector = Icons.Outlined.Handshake,
-                                contentDescription = null
-                            )
-                        },
-                        modifier = Modifier.clickable(onClick = onOpenLegal)
-                    )
-                }
-            }
-
-            item {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    ListItem(
-                        headlineContent = {
                             Text(stringResource(R.string.settings_account_support_title))
                         },
                         supportingContent = {
@@ -112,6 +92,26 @@ fun AccountRoute(
                             )
                         },
                         modifier = Modifier.clickable(onClick = onOpenSupport)
+                    )
+                }
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    ListItem(
+                        headlineContent = {
+                            Text(stringResource(R.string.settings_account_legal_title))
+                        },
+                        supportingContent = {
+                            Text(stringResource(R.string.settings_account_legal_summary))
+                        },
+                        leadingContent = {
+                            Icon(
+                                imageVector = Icons.Outlined.Handshake,
+                                contentDescription = null
+                            )
+                        },
+                        modifier = Modifier.clickable(onClick = onOpenLegal)
                     )
                 }
             }

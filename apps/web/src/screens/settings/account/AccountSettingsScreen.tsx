@@ -43,16 +43,16 @@ export function AccountSettingsScreen(): ReactElement {
       <SettingsGroup title={t("accountSettings.supportGroupTitle")}>
         <div className="settings-nav-list">
           <SettingsNavigationCard
-            title={t("accountSettings.legal.title")}
-            description={t("accountSettings.legal.description")}
-            value={null}
-            to={accountLegalRoute}
-          />
-          <SettingsNavigationCard
             title={t("accountSettings.support.title")}
             description={t("accountSettings.support.description")}
             value={null}
             to={accountSupportRoute}
+          />
+          <SettingsNavigationCard
+            title={t("accountSettings.legal.title")}
+            description={t("accountSettings.legal.description")}
+            value={null}
+            to={accountLegalRoute}
           />
           <SettingsNavigationCard
             title={t("accountSettings.openSource.title")}

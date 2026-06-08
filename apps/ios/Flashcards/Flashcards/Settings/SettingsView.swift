@@ -128,15 +128,6 @@ struct SettingsView: View {
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsFeedbackRow)
 
-                NavigationLink(value: SettingsNavigationDestination.accountLegal) {
-                    SettingsNavigationRow(
-                        title: aiSettingsLocalized("settings.row.legal", "Legal"),
-                        value: nil,
-                        systemImage: "doc.text"
-                    )
-                }
-                .accessibilityIdentifier(UITestIdentifier.settingsLegalRow)
-
                 NavigationLink(value: SettingsNavigationDestination.accountSupport) {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.support", "Support"),
@@ -145,6 +136,15 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsSupportRow)
+
+                NavigationLink(value: SettingsNavigationDestination.accountLegal) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.row.legal", "Legal"),
+                        value: nil,
+                        systemImage: "doc.text"
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsLegalRow)
 
                 NavigationLink(value: SettingsNavigationDestination.accountOpenSource) {
                     SettingsNavigationRow(

@@ -284,8 +284,8 @@ describe("SettingsScreen navigation", () => {
       "settings-row-tags",
       "settings-row-export",
       "settings-row-feedback",
-      "settings-row-legal",
       "settings-row-support",
+      "settings-row-legal",
       "settings-row-open-source",
       "settings-row-scheduling",
       "settings-row-agent-connections",
@@ -297,6 +297,7 @@ describe("SettingsScreen navigation", () => {
     ].forEach(expectRowVisible);
     expect(rowIndex("settings-row-review-reminders")).toBeLessThan(rowIndex("settings-row-review-animations"));
     expect(rowIndex("settings-row-review-animations")).toBeLessThan(rowIndex("settings-row-language"));
+    expect(rowIndex("settings-row-support")).toBeLessThan(rowIndex("settings-row-legal"));
     expect(getContainer().querySelector("[data-testid='settings-row-test']")).toBeNull();
   });
 

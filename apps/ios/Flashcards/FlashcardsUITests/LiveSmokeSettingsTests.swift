@@ -71,8 +71,8 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
 
         try self.assertTextExistsScrollingIntoView("Support", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         try self.assertElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsFeedbackRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
-        try self.assertElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsLegalRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         try self.assertElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsSupportRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsLegalRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         try self.assertElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsOpenSourceRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
 
         try self.assertTextExistsScrollingIntoView("Advanced", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
