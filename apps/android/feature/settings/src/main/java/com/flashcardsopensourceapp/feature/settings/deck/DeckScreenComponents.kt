@@ -10,12 +10,21 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.feature.settings.R
+
+fun deckRowTag(deckTargetId: String): String {
+    return "settings_deck_row:$deckTargetId"
+}
+
+fun deckCardRowTag(cardId: String): String {
+    return "settings_deck_card_row:$cardId"
+}
 
 @Composable
 internal fun DeckRow(
@@ -25,6 +34,7 @@ internal fun DeckRow(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .testTag(tag = deckRowTag(deckTargetId = deckEntry.target.id))
             .clickable {
                 onOpenDeck(deckEntry.target)
             }
@@ -79,6 +89,7 @@ internal fun DeckCardRow(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .testTag(tag = deckCardRowTag(cardId = card.cardId))
             .clickable {
                 onOpenCard(card.cardId)
             }
