@@ -3,31 +3,31 @@
  * the server-side Cognito session, then exchanged for a long-lived API key.
  */
 import { Hono } from "hono";
-import { type AuthAppEnv, getRequestId } from "../server/apiErrors.js";
+import { type AuthAppEnv, getRequestId } from "../../server/apiErrors.js";
 import {
   createAgentApiKeyFromIdToken,
   normalizeAgentApiKeyLabel,
   type CreatedAgentApiKey,
-} from "../server/agentApiKeys.js";
-import { createAgentEnvelope, createAgentErrorEnvelope } from "../server/agentEnvelope.js";
-import { getDemoEmailPassword } from "../server/demoEmailAccess.js";
+} from "../../server/agent/agentApiKeys.js";
+import { createAgentEnvelope, createAgentErrorEnvelope } from "../../server/agent/agentEnvelope.js";
+import { getDemoEmailPassword } from "../../server/demoEmailAccess.js";
 import {
   lookupAgentOtpChallenge,
   markAgentOtpChallengeUsed,
   type AgentOtpChallengeLookup,
-} from "../server/agentOtpChallenges.js";
-import { signInWithPassword, verifyEmailOtp, type TokenResult } from "../server/cognitoAuth.js";
-import { getNormalizedCognitoErrorType } from "../server/cognitoErrors.js";
-import { log } from "../server/logger.js";
-import { getPublicApiBaseUrl } from "../server/publicUrls.js";
+} from "../../server/agent/agentOtpChallenges.js";
+import { signInWithPassword, verifyEmailOtp, type TokenResult } from "../../server/cognito/cognitoAuth.js";
+import { getNormalizedCognitoErrorType } from "../../server/cognito/cognitoErrors.js";
+import { log } from "../../server/logger.js";
+import { getPublicApiBaseUrl } from "../../server/publicUrls.js";
 import {
   getOtpVerifyAttemptState,
   MAX_OTP_VERIFY_ATTEMPTS,
   recordOtpVerifyFailure,
   type OtpVerifyAttemptState,
   type OtpVerifyFailureRecordResult,
-} from "../server/otpVerifyAttempts.js";
-import { isTransientDatabaseError } from "../server/databaseErrors.js";
+} from "../../server/otp/otpVerifyAttempts.js";
+import { isTransientDatabaseError } from "../../server/databaseErrors.js";
 
 const CODE_RE = /^\d{8}$/;
 const DEMO_AGENT_PLACEHOLDER_CODE = "00000000";

@@ -7,10 +7,10 @@
  */
 import { Hono } from "hono";
 import { getCookie } from "hono/cookie";
-import { validateSessionToken } from "../server/browserSession.js";
-import { log } from "../server/logger.js";
+import { validateSessionToken } from "../../server/browserSession.js";
+import { log } from "../../server/logger.js";
 import { resolveLoginPageLocale } from "./loginPageLocale.js";
-import { renderLoginPage } from "../templates/login.js";
+import { renderLoginPage } from "../../templates/login.js";
 
 const app = new Hono();
 

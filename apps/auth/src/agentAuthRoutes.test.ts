@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createAgentSendCodeApp } from "./routes/agentSendCode.js";
-import { createAgentVerifyCodeApp } from "./routes/agentVerifyCode.js";
-import type { CreatedAgentApiKey } from "./server/agentApiKeys.js";
-import type { AgentOtpChallengeLookup } from "./server/agentOtpChallenges.js";
-import type { OtpVerifyAttemptState, OtpVerifyFailureRecordResult } from "./server/otpVerifyAttempts.js";
-import type { TokenResult } from "./server/cognitoAuth.js";
+import { createAgentSendCodeApp } from "./routes/agent/agentSendCode.js";
+import { createAgentVerifyCodeApp } from "./routes/agent/agentVerifyCode.js";
+import type { CreatedAgentApiKey } from "./server/agent/agentApiKeys.js";
+import type { AgentOtpChallengeLookup } from "./server/agent/agentOtpChallenges.js";
+import type { OtpVerifyAttemptState, OtpVerifyFailureRecordResult } from "./server/otp/otpVerifyAttempts.js";
+import type { TokenResult } from "./server/cognito/cognitoAuth.js";
 
 type AgentSendCodeResponse = Readonly<{
   ok: boolean;

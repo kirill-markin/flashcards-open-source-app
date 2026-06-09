@@ -3,10 +3,10 @@
  * Accepts a refresh token and revokes it via Cognito.
  */
 import { Hono } from "hono";
-import { clearBrowserSessionCookies } from "../server/browserSession.js";
-import { type AuthAppEnv, getRequestId, jsonAuthError } from "../server/apiErrors.js";
-import { revokeToken } from "../server/cognitoAuth.js";
-import { log } from "../server/logger.js";
+import { clearBrowserSessionCookies } from "../../server/browserSession.js";
+import { type AuthAppEnv, getRequestId, jsonAuthError } from "../../server/apiErrors.js";
+import { revokeToken } from "../../server/cognito/cognitoAuth.js";
+import { log } from "../../server/logger.js";
 
 const app = new Hono<AuthAppEnv>();
 

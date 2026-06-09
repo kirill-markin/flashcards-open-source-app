@@ -4,22 +4,22 @@
  * the full Cognito session blob in the next request.
  */
 import { Hono } from "hono";
-import { initiateEmailOtp } from "../server/cognitoAuth.js";
-import { type AuthAppEnv, getRequestId } from "../server/apiErrors.js";
-import { createAgentEnvelope, createAgentErrorEnvelope } from "../server/agentEnvelope.js";
-import { getDemoEmailPassword } from "../server/demoEmailAccess.js";
+import { initiateEmailOtp } from "../../server/cognito/cognitoAuth.js";
+import { type AuthAppEnv, getRequestId } from "../../server/apiErrors.js";
+import { createAgentEnvelope, createAgentErrorEnvelope } from "../../server/agent/agentEnvelope.js";
+import { getDemoEmailPassword } from "../../server/demoEmailAccess.js";
 import {
   createAgentOtpChallenge,
   reissueLatestAgentOtpChallenge,
-} from "../server/agentOtpChallenges.js";
+} from "../../server/agent/agentOtpChallenges.js";
 import {
   decideOtpRateLimit,
   recordOtpSendDecision,
   type OtpRateLimitDecision,
-} from "../server/otpRateLimit.js";
-import { log, maskEmail } from "../server/logger.js";
-import { getPublicAuthBaseUrl, getPublicApiBaseUrl } from "../server/publicUrls.js";
-import { isTransientDatabaseError } from "../server/databaseErrors.js";
+} from "../../server/otp/otpRateLimit.js";
+import { log, maskEmail } from "../../server/logger.js";
+import { getPublicAuthBaseUrl, getPublicApiBaseUrl } from "../../server/publicUrls.js";
+import { isTransientDatabaseError } from "../../server/databaseErrors.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const POST_EMAIL_DELIVERY_DB_FAILURE_INSTRUCTIONS = "A verification email may already be in the user's inbox, but this response could not create a usable agent verification handle. Do not retry this same send-code request immediately because it may send another email. Ask the user to wait briefly and check their email, including spam or junk. If sign-in is still needed, start a fresh flow with POST /api/agent/send-code and use only the latest email code and latest otpSessionToken.";

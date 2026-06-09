@@ -1,6 +1,6 @@
-import { query, transaction } from "../db.js";
-import { createCrockfordToken, hashOpaqueToken, normalizeCrockfordToken } from "./crockford.js";
-import { getOtpVerifyAttemptState } from "./otpVerifyAttempts.js";
+import { query, transaction } from "../../db.js";
+import { createCrockfordToken, hashOpaqueToken, normalizeCrockfordToken } from "../otp/crockford.js";
+import { getOtpVerifyAttemptState } from "../otp/otpVerifyAttempts.js";
 
 const AGENT_OTP_HANDLE_LENGTH = 20;
 export const AGENT_OTP_HANDLE_TTL_MS = 180_000;

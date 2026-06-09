@@ -1,9 +1,9 @@
 import { Hono } from "hono";
 import { getCookie } from "hono/cookie";
-import { type AuthAppEnv, getRequestId, jsonAuthError } from "../server/apiErrors.js";
-import { clearBrowserSessionCookies, setBrowserSessionCookies } from "../server/browserSession.js";
-import { isTerminalRefreshFailure, refreshTokens } from "../server/cognitoAuth.js";
-import { log } from "../server/logger.js";
+import { type AuthAppEnv, getRequestId, jsonAuthError } from "../../server/apiErrors.js";
+import { clearBrowserSessionCookies, setBrowserSessionCookies } from "../../server/browserSession.js";
+import { isTerminalRefreshFailure, refreshTokens } from "../../server/cognito/cognitoAuth.js";
+import { log } from "../../server/logger.js";
 
 type RefreshSessionDependencies = Readonly<{
   refreshTokens: (refreshToken: string) => Promise<Awaited<ReturnType<typeof refreshTokens>>>;

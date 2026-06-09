@@ -10,7 +10,7 @@ import {
   getCognitoErrorType,
   getNormalizedCognitoErrorType,
 } from "./cognitoErrors.js";
-import { log, maskEmail } from "./logger.js";
+import { log, maskEmail } from "../logger.js";
 
 type CognitoErrorResponse = Readonly<{
   __type?: string;

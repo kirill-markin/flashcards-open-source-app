@@ -5,9 +5,9 @@ import {
   queryWithUserScope,
   transactionWithUserScope,
   type DatabaseExecutor,
-} from "../db.js";
-import { verifySessionTokenIdentity } from "./browserSession.js";
-import { createCrockfordToken } from "./crockford.js";
+} from "../../db.js";
+import { verifySessionTokenIdentity } from "../browserSession.js";
+import { createCrockfordToken } from "../otp/crockford.js";
 
 const AGENT_API_KEY_PREFIX = "fca";
 const AGENT_API_KEY_ID_LENGTH = 8;
