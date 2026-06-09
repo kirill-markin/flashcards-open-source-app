@@ -4,8 +4,10 @@ import com.flashcardsopensourceapp.data.local.model.review.ReviewTimelinePage
 
 internal const val reviewPreviewPageSize: Int = 20
 
-internal fun shouldStartReviewPreview(state: ReviewDraftState): Boolean {
-    return state.isPreviewLoading.not()
+internal fun shouldEnsureReviewPreviewStarted(state: ReviewDraftState): Boolean {
+    return state.isPreviewLoading.not() &&
+        state.previewCards.isEmpty() &&
+        state.previewErrorMessage.isEmpty()
 }
 
 internal fun applyStartReviewPreview(state: ReviewDraftState): ReviewDraftState {

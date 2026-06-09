@@ -145,7 +145,7 @@ class RtlLayoutTest : FirebaseAppInstrumentationTimeoutTest() {
                     isNotificationPermissionPromptVisible = false,
                     isHardAnswerReminderVisible = false
                 ),
-                onStartPreview = {},
+                onEnsurePreviewStarted = {},
                 onLoadNextPreviewPageIfNeeded = { _ -> },
                 onRetryPreview = {},
                 onOpenCard = { _ -> },
