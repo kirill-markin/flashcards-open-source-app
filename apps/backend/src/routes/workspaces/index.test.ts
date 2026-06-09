@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import type { AppEnv } from "../server/app";
-import { isTransientDatabaseError } from "../database/transient";
-import { HttpError } from "../shared/errors";
-import type { RequestContext } from "../server/requestContext";
-import type { WorkspaceSummary } from "../workspaces";
-import { createWorkspaceRoutes } from "./workspaces";
+import type { AppEnv } from "../../server/app";
+import { isTransientDatabaseError } from "../../database/transient";
+import { HttpError } from "../../shared/errors";
+import type { RequestContext } from "../../server/requestContext";
+import type { WorkspaceSummary } from "../../workspaces";
+import { createWorkspaceRoutes } from "./index";
 
 const workspaceId = "11111111-1111-4111-8111-111111111111";
 
