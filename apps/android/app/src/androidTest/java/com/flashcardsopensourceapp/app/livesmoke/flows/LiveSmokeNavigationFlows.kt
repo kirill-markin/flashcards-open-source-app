@@ -8,6 +8,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickNode
@@ -89,6 +90,7 @@ internal fun LiveSmokeContext.openSettingsRow(rowTag: String, rowLabel: String) 
         timeoutMillis = internalUiTimeoutMillis,
         context = "while waiting for settings row '$rowLabel'"
     )
+    composeRule.onNodeWithTag(testTag = rowTag).performScrollTo()
     clickNode(matcher = rowMatcher, label = rowLabel)
 }
 
