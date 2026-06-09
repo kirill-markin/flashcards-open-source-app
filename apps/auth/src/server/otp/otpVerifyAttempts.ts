@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { query, transaction, type DatabaseExecutor } from "../db.js";
+import { query, transaction, type DatabaseExecutor } from "../../db.js";
 
 export const MAX_OTP_VERIFY_ATTEMPTS = 5;
 

@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { Hono } from "hono";
-import { createSendCodeApp } from "./routes/sendCode.js";
-import { createVerifyCodeApp } from "./routes/verifyCode.js";
+import { createSendCodeApp } from "./routes/browser/sendCode.js";
+import { createVerifyCodeApp } from "./routes/browser/verifyCode.js";
 import type { AuthAppEnv } from "./server/apiErrors.js";
-import type { OtpVerifyAttemptState } from "./server/otpVerifyAttempts.js";
+import type { OtpVerifyAttemptState } from "./server/otp/otpVerifyAttempts.js";
 
 type ServiceUnavailableResponse = Readonly<{
   error: string;

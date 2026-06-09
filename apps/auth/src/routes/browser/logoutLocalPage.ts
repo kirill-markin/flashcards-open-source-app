@@ -4,8 +4,8 @@
  * that the web client can use to present the account-deleted completion state.
  */
 import { Hono } from "hono";
-import { clearBrowserSessionCookies } from "../server/browserSession.js";
-import { type AuthAppEnv } from "../server/apiErrors.js";
+import { clearBrowserSessionCookies } from "../../server/browserSession.js";
+import { type AuthAppEnv } from "../../server/apiErrors.js";
 
 const app = new Hono<AuthAppEnv>();
 

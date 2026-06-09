@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { Hono } from "hono";
-import { createRefreshSessionApp } from "./routes/refreshSession.js";
-import { createRefreshTokenApp } from "./routes/refreshToken.js";
+import { createRefreshSessionApp } from "./routes/browser/refreshSession.js";
+import { createRefreshTokenApp } from "./routes/browser/refreshToken.js";
 import type { AuthAppEnv } from "./server/apiErrors.js";
-import { createCognitoTypedError, type CognitoTypedError } from "./server/cognitoErrors.js";
+import { createCognitoTypedError, type CognitoTypedError } from "./server/cognito/cognitoErrors.js";
 
 type RefreshResult = Readonly<{
   idToken: string;

@@ -9,20 +9,20 @@
 import { timingSafeEqual } from "node:crypto";
 import { Hono } from "hono";
 import { deleteCookie, getCookie } from "hono/cookie";
-import { type AuthAppEnv, getRequestId, jsonAuthError } from "../server/apiErrors.js";
-import { verifyEmailOtp } from "../server/cognitoAuth.js";
-import { setBrowserSessionCookies } from "../server/browserSession.js";
-import { getNormalizedCognitoErrorType } from "../server/cognitoErrors.js";
-import { verify } from "../server/crypto.js";
-import { isTransientDatabaseError } from "../server/databaseErrors.js";
-import { log } from "../server/logger.js";
+import { type AuthAppEnv, getRequestId, jsonAuthError } from "../../server/apiErrors.js";
+import { verifyEmailOtp } from "../../server/cognito/cognitoAuth.js";
+import { setBrowserSessionCookies } from "../../server/browserSession.js";
+import { getNormalizedCognitoErrorType } from "../../server/cognito/cognitoErrors.js";
+import { verify } from "../../server/crypto.js";
+import { isTransientDatabaseError } from "../../server/databaseErrors.js";
+import { log } from "../../server/logger.js";
 import {
   getOtpVerifyAttemptState,
   MAX_OTP_VERIFY_ATTEMPTS,
   recordOtpVerifyFailure,
   type OtpVerifyAttemptState,
   type OtpVerifyFailureRecordResult,
-} from "../server/otpVerifyAttempts.js";
+} from "../../server/otp/otpVerifyAttempts.js";
 
 const CODE_RE = /^\d{8}$/;
 const OTP_TTL_MS = 180_000; // 3 minutes

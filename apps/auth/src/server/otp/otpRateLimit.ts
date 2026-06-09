@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { query } from "../db.js";
-import { verify } from "./crypto.js";
+import { query } from "../../db.js";
+import { verify } from "../crypto.js";
 import { getOtpVerifyAttemptState } from "./otpVerifyAttempts.js";
 
 const EMAIL_COOLDOWN_WINDOW_MS = 60_000;

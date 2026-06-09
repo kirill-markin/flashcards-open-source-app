@@ -4,10 +4,10 @@
  */
 import { Hono } from "hono";
 import { getCookie } from "hono/cookie";
-import { clearBrowserSessionCookies } from "../server/browserSession.js";
-import { type AuthAppEnv, getRequestId } from "../server/apiErrors.js";
-import { revokeToken } from "../server/cognitoAuth.js";
-import { log } from "../server/logger.js";
+import { clearBrowserSessionCookies } from "../../server/browserSession.js";
+import { type AuthAppEnv, getRequestId } from "../../server/apiErrors.js";
+import { revokeToken } from "../../server/cognito/cognitoAuth.js";
+import { log } from "../../server/logger.js";
 
 const app = new Hono<AuthAppEnv>();
 

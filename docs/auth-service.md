@@ -8,8 +8,10 @@ Email + OTP authentication via AWS Cognito (passwordless).
 - Key files:
   - `apps/auth/src/app.ts`: shared Hono app factory
   - `apps/auth/src/lambda.ts`: Lambda entry point
-  - `apps/auth/src/routes/`: `sendCode`, `verifyCode`, `refreshToken`, `revokeToken`, `loginPage`, `health`
-  - `apps/auth/src/server/cognitoAuth.ts`: Cognito API client
+  - `apps/auth/src/routes/agent/`: terminal/agent auth route entrypoints
+  - `apps/auth/src/routes/browser/`: browser OTP/session route entrypoints
+  - `apps/auth/src/routes/`: shared `health` and `robots` route entrypoints
+  - `apps/auth/src/server/cognito/cognitoAuth.ts`: Cognito API client
   - `apps/backend/src/auth/index.ts`: JWT verification middleware
   - `apps/backend/src/auth/ensureUser.ts`: auto-provisions `user_settings` and `workspace` on first request
   - `infra/aws/lib/auth.ts`: CDK Cognito User Pool construct

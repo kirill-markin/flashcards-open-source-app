@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { __internal } from "./server/cognitoAuth.js";
+import { __internal } from "./server/cognito/cognitoAuth.js";
 
 const REQUIRED_CLASS_SELECTION_SIZES: readonly number[] = [26, 26, 10, 32];
 

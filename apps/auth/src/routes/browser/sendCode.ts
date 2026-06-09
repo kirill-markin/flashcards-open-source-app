@@ -13,19 +13,19 @@
 import { randomBytes, randomInt } from "node:crypto";
 import { Hono } from "hono";
 import { setCookie } from "hono/cookie";
-import { initiateEmailOtp, signInWithPassword, type TokenResult } from "../server/cognitoAuth.js";
-import { type AuthAppEnv, getRequestId, jsonAuthError } from "../server/apiErrors.js";
-import { setBrowserSessionCookies } from "../server/browserSession.js";
-import { sign, verify } from "../server/crypto.js";
-import { getDemoEmailPassword } from "../server/demoEmailAccess.js";
+import { initiateEmailOtp, signInWithPassword, type TokenResult } from "../../server/cognito/cognitoAuth.js";
+import { type AuthAppEnv, getRequestId, jsonAuthError } from "../../server/apiErrors.js";
+import { setBrowserSessionCookies } from "../../server/browserSession.js";
+import { sign, verify } from "../../server/crypto.js";
+import { getDemoEmailPassword } from "../../server/demoEmailAccess.js";
 import {
   decideOtpRateLimit,
   loadLatestSentOtpSessionToken,
   recordOtpSendDecision,
-} from "../server/otpRateLimit.js";
-import { log, maskEmail } from "../server/logger.js";
-import { isTransientDatabaseError } from "../server/databaseErrors.js";
-import { isRejectedPasswordSignIn } from "../server/passwordSignInErrors.js";
+} from "../../server/otp/otpRateLimit.js";
+import { log, maskEmail } from "../../server/logger.js";
+import { isTransientDatabaseError } from "../../server/databaseErrors.js";
+import { isRejectedPasswordSignIn } from "../../server/cognito/passwordSignInErrors.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const POST_EMAIL_DB_FAILURE_MESSAGE = "A verification email may have been sent, but sign-in could not be prepared.";
