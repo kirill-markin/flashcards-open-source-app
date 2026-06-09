@@ -1,5 +1,4 @@
 import { Hono } from "hono";
-import { HttpError } from "../shared/errors";
 import {
   parseSyncBootstrapInput,
   parseSyncPullInput,
@@ -11,40 +10,43 @@ import {
   processSyncPush,
   processSyncReviewHistoryImport,
   processSyncReviewHistoryPull,
-  type SyncBootstrapInput,
-  type SyncBootstrapPullResult,
-  type SyncBootstrapPushResult,
   type SyncPullInput,
   type SyncPullResult,
   type SyncReviewHistoryPullInput,
   type SyncReviewHistoryPullResult,
-} from "../sync";
+} from "../../sync";
 import {
   assertUserHasWorkspaceAccess,
-} from "../workspaces";
-import { bindGuestSessionPlatform, type GuestSessionPlatform } from "../guestAuth";
+} from "../../workspaces";
+import { bindGuestSessionPlatform } from "../../guestAuth";
 import {
   loadRequestContextFromRequest,
   parseWorkspaceIdParam,
   type RequestContext,
-} from "../server/requestContext";
-import { parseJsonBody } from "../server/requestParsing";
+} from "../../server/requestContext";
+import { parseJsonBody } from "../../server/requestParsing";
 import {
   createBackendFailureDetails,
-} from "../server/logging";
-import { withTransientDatabaseRetry } from "../database/transient";
+} from "../../server/logging";
+import { withTransientDatabaseRetry } from "../../database/transient";
 import {
   addBackendBreadcrumb,
-  createBackendObservationScope,
   normalizeCaughtError,
-  type BackendObservationScope,
-  type BackendSyncConflictDetails,
-  type SyncBootstrapDetails,
-  type SyncPullDetails,
-  type SyncReviewHistoryPullDetails,
-} from "../observability/sentry";
-import { reportBackendExceptionOrBreadcrumb } from "../observability/reporting";
-import type { AppEnv } from "../server/app";
+} from "../../observability/sentry";
+import { reportBackendExceptionOrBreadcrumb } from "../../observability/reporting";
+import type { AppEnv } from "../../server/app";
+import {
+  buildSyncBootstrapDetails,
+  getSyncBootstrapFailureInputDetails,
+} from "./bootstrapDetails";
+import { getSyncConflictLogContext } from "./conflictDetails";
+import { requireSupportedSyncPlatformForTransport } from "./guestPlatform";
+import {
+  createSyncScope,
+  getRequestContextUserId,
+  getSyncPullInputDetails,
+  getSyncReviewHistoryPullInputDetails,
+} from "./observation";
 
 type SyncRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
@@ -56,8 +58,6 @@ type SyncRoutesOptions = Readonly<{
   withTransientDatabaseRetryFn?: typeof withTransientDatabaseRetry;
   bindGuestSessionPlatformFn?: typeof bindGuestSessionPlatform;
 }>;
-
-type SyncClientPlatform = "ios" | "android" | "web";
 
 type SyncPullRouteState = Readonly<{
   requestContext: RequestContext;
@@ -72,238 +72,6 @@ type SyncReviewHistoryPullRouteState = Readonly<{
   input: SyncReviewHistoryPullInput;
   result: SyncReviewHistoryPullResult;
 }>;
-
-function getRequestContextUserId(requestContext: RequestContext | null): string | null {
-  return requestContext === null ? null : requestContext.userId;
-}
-
-function getSyncPullInputDetails(
-  input: SyncPullInput | null,
-): Pick<SyncPullDetails, "installationId" | "platform" | "appVersion" | "afterHotChangeId"> {
-  if (input === null) {
-    return {
-      installationId: null,
-      platform: null,
-      appVersion: null,
-      afterHotChangeId: null,
-    };
-  }
-
-  return {
-    installationId: input.installationId,
-    platform: input.platform,
-    appVersion: input.appVersion ?? null,
-    afterHotChangeId: input.afterHotChangeId,
-  };
-}
-
-function getSyncReviewHistoryPullInputDetails(
-  input: SyncReviewHistoryPullInput | null,
-): Pick<SyncReviewHistoryPullDetails, "installationId" | "platform" | "appVersion" | "afterReviewSequenceId"> {
-  if (input === null) {
-    return {
-      installationId: null,
-      platform: null,
-      appVersion: null,
-      afterReviewSequenceId: null,
-    };
-  }
-
-  return {
-    installationId: input.installationId,
-    platform: input.platform,
-    appVersion: input.appVersion ?? null,
-    afterReviewSequenceId: input.afterReviewSequenceId,
-  };
-}
-
-function buildSyncBootstrapPullDetails(
-  input: Extract<SyncBootstrapInput, Readonly<{ mode: "pull" }>>,
-  result: SyncBootstrapPullResult,
-  durationMs: number,
-): SyncBootstrapDetails {
-  return {
-    statusCode: 200,
-    durationMs,
-    installationId: input.installationId,
-    platform: input.platform,
-    appVersion: input.appVersion ?? null,
-    mode: input.mode,
-    cursorPresent: input.cursor !== null,
-    limit: input.limit,
-    entriesCount: result.entries.length,
-    appliedEntriesCount: null,
-    hasMore: result.hasMore,
-    nextCursorPresent: result.nextCursor !== null,
-    bootstrapHotChangeId: result.bootstrapHotChangeId,
-    remoteIsEmpty: result.remoteIsEmpty,
-  };
-}
-
-function buildSyncBootstrapPushDetails(
-  input: Extract<SyncBootstrapInput, Readonly<{ mode: "push" }>>,
-  result: SyncBootstrapPushResult,
-  durationMs: number,
-): SyncBootstrapDetails {
-  return {
-    statusCode: 200,
-    durationMs,
-    installationId: input.installationId,
-    platform: input.platform,
-    appVersion: input.appVersion ?? null,
-    mode: input.mode,
-    cursorPresent: null,
-    limit: null,
-    entriesCount: input.entries.length,
-    appliedEntriesCount: result.appliedEntriesCount,
-    hasMore: null,
-    nextCursorPresent: null,
-    bootstrapHotChangeId: result.bootstrapHotChangeId,
-    remoteIsEmpty: null,
-  };
-}
-
-function buildSyncBootstrapDetails(
-  input: SyncBootstrapInput,
-  result: SyncBootstrapPullResult | SyncBootstrapPushResult,
-  durationMs: number,
-): SyncBootstrapDetails {
-  if (input.mode === "pull" && result.mode === "pull") {
-    return buildSyncBootstrapPullDetails(input, result, durationMs);
-  }
-
-  if (input.mode === "push" && result.mode === "push") {
-    return buildSyncBootstrapPushDetails(input, result, durationMs);
-  }
-
-  throw new Error(`Sync bootstrap result mode mismatch: input=${input.mode} result=${result.mode}`);
-}
-
-function getSyncBootstrapFailureInputDetails(
-  input: SyncBootstrapInput,
-  durationMs: number,
-): Omit<SyncBootstrapDetails, "statusCode"> {
-  return {
-    durationMs,
-    installationId: input.installationId,
-    platform: input.platform,
-    appVersion: input.appVersion ?? null,
-    mode: input.mode,
-    cursorPresent: input.mode === "pull" ? input.cursor !== null : null,
-    limit: input.mode === "pull" ? input.limit : null,
-    entriesCount: input.mode === "push" ? input.entries.length : null,
-    appliedEntriesCount: null,
-    hasMore: null,
-    nextCursorPresent: null,
-    bootstrapHotChangeId: null,
-    remoteIsEmpty: null,
-  };
-}
-
-function getSyncConflictLogContext(error: HttpError | unknown): BackendSyncConflictDetails {
-  if (!(error instanceof HttpError)) {
-    return emptySyncConflictDetails();
-  }
-
-  const syncConflict = error.details?.syncConflict;
-  if (syncConflict === undefined) {
-    return emptySyncConflictDetails();
-  }
-
-  return {
-    syncConflictPhase: syncConflict.phase,
-    syncConflictEntityType: syncConflict.entityType,
-    syncConflictEntityId: syncConflict.entityId,
-    conflictingWorkspaceId: syncConflict.conflictingWorkspaceId,
-    constraint: syncConflict.constraint,
-    sqlState: syncConflict.sqlState,
-    table: syncConflict.table,
-    entryIndex: syncConflict.entryIndex ?? null,
-    reviewEventIndex: syncConflict.reviewEventIndex ?? null,
-    syncConflictRecoverable: syncConflict.recoverable,
-  };
-}
-
-function emptySyncConflictDetails(): BackendSyncConflictDetails {
-  return {
-    syncConflictPhase: null,
-    syncConflictEntityType: null,
-    syncConflictEntityId: null,
-    conflictingWorkspaceId: null,
-    constraint: null,
-    sqlState: null,
-    table: null,
-    entryIndex: null,
-    reviewEventIndex: null,
-    syncConflictRecoverable: null,
-  };
-}
-
-function createSyncScope(
-  requestId: string,
-  route: string,
-  method: string,
-  userId: string | null,
-  workspaceId: string | null,
-): BackendObservationScope {
-  return createBackendObservationScope(
-    "backend-api",
-    requestId,
-    route,
-    method,
-    userId,
-    workspaceId,
-    null,
-    null,
-    null,
-  );
-}
-
-function toGuestSessionPlatform(platform: SyncClientPlatform): GuestSessionPlatform | null {
-  if (platform === "ios" || platform === "android") {
-    return platform;
-  }
-
-  return null;
-}
-
-async function requireSupportedSyncPlatformForTransport(
-  requestContext: RequestContext,
-  platform: SyncClientPlatform,
-  bindGuestSessionPlatformFn: typeof bindGuestSessionPlatform,
-): Promise<void> {
-  if (requestContext.transport !== "guest") {
-    return;
-  }
-
-  const guestPlatform = toGuestSessionPlatform(platform);
-  if (guestPlatform === null) {
-    throw new HttpError(
-      403,
-      "Guest web sync is not supported. Sign in before syncing from the web app.",
-      "GUEST_WEB_SYNC_UNSUPPORTED",
-    );
-  }
-
-  if (requestContext.guestSessionId === null) {
-    throw new Error("Guest sync request context is missing guestSessionId");
-  }
-
-  if (requestContext.guestPlatform === null) {
-    // Pre-1.7.0 iOS/Android guest sessions are unbound at creation time.
-    // Bind them on first native sync, then remove this path after those versions are no longer supported.
-    await bindGuestSessionPlatformFn(requestContext.guestSessionId, guestPlatform);
-    return;
-  }
-
-  if (requestContext.guestPlatform !== guestPlatform) {
-    throw new HttpError(
-      403,
-      "Guest session platform does not match this sync request. Create a new guest session for this device.",
-      "GUEST_SESSION_PLATFORM_MISMATCH",
-    );
-  }
-}
 
 export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();

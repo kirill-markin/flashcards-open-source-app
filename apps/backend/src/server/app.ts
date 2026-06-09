@@ -15,11 +15,11 @@ import { createAgentRoutes } from "../routes/agent";
 import { createCardsRoutes } from "../routes/cards";
 import { createFeedbackRoutes } from "../routes/feedback";
 import { createGlobalSnapshotRoutes, globalSnapshotPath } from "../routes/globalSnapshot";
-import { createSyncRoutes } from "../routes/sync";
+import { createSyncRoutes } from "../routes/sync/index";
 import { createSystemRoutes } from "../routes/system";
 import { createAdminRoutes } from "../routes/admin";
 import { createGuestAuthRoutes } from "../routes/guestAuth";
-import { createWorkspaceRoutes } from "../routes/workspaces";
+import { createWorkspaceRoutes } from "../routes/workspaces/index";
 import {
   createAgentConnectionManagementErrorEnvelope,
   createAgentSetupErrorEnvelope,

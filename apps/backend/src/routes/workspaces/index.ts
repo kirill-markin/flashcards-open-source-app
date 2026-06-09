@@ -1,18 +1,16 @@
 import { Hono } from "hono";
-import type { AuthTransport } from "../auth";
 import {
   createAgentConnectionListEnvelope,
   createAgentConnectionRevokeEnvelope,
   createAgentWorkspaceReadyEnvelope,
   createAgentWorkspacesEnvelope,
   shouldUseAgentSetupEnvelope,
-} from "../agent/setup";
+} from "../../agent/setup";
 import {
   type AgentApiKeyConnection,
   listAgentApiKeyConnectionsPageForUser,
   revokeAgentApiKeyConnectionForUser,
-} from "../agent/apiKeys";
-import { parseOptionalCursorQuery, parseRequiredPageLimit } from "../shared/pagination";
+} from "../../agent/apiKeys";
 import {
   listUserWorkspacesPageForSelectedWorkspace,
   renameWorkspaceForUser,
@@ -23,39 +21,40 @@ import {
   type ResetWorkspaceProgressResult,
   type WorkspaceResetProgressPreview,
   type WorkspaceSummary,
-} from "../workspaces";
+} from "../../workspaces";
 import {
   createWorkspaceForApiKeyConnectionWithObservationScope,
   createWorkspaceForUserWithObservationScope,
-} from "../workspaces/create";
+} from "../../workspaces/create";
 import {
   deleteWorkspaceForUserWithObservationScope,
   loadWorkspaceDeletePreviewForUserWithObservationScope,
   loadWorkspaceResetProgressPreviewForUserWithObservationScope,
   resetWorkspaceProgressForUserWithObservationScope,
-} from "../workspaces/management";
-import { HttpError } from "../shared/errors";
+} from "../../workspaces/management";
+import { HttpError } from "../../shared/errors";
 import {
   loadRequestContextFromRequest,
   parseWorkspaceIdParam,
   requireAgentConnectionId,
   type RequestContext,
-} from "../server/requestContext";
+} from "../../server/requestContext";
 import {
   expectNonEmptyString,
   expectRecord,
   parseJsonBody,
-} from "../server/requestParsing";
-import { createBackendFailureDetails } from "../server/logging";
-import { withTransientDatabaseRetry } from "../database/transient";
+} from "../../server/requestParsing";
+import { createBackendFailureDetails } from "../../server/logging";
+import { withTransientDatabaseRetry } from "../../database/transient";
 import {
   addBackendBreadcrumb,
-  createBackendObservationScope,
   normalizeCaughtError,
-  type BackendObservationScope,
-} from "../observability/sentry";
-import { reportBackendExceptionOrBreadcrumb } from "../observability/reporting";
-import type { AppEnv } from "../server/app";
+} from "../../observability/sentry";
+import { reportBackendExceptionOrBreadcrumb } from "../../observability/reporting";
+import type { AppEnv } from "../../server/app";
+import { parseConnectionId, requireHumanManagedConnectionAccess } from "./connectionAccess";
+import { parseCursorQueryParams } from "./cursor";
+import { createWorkspaceRouteScope, getRequestContextUserId } from "./observation";
 
 type WorkspaceRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
@@ -63,11 +62,6 @@ type WorkspaceRoutesOptions = Readonly<{
   createWorkspaceForApiKeyConnectionWithObservationScopeFn?: typeof createWorkspaceForApiKeyConnectionWithObservationScope;
   createWorkspaceForUserWithObservationScopeFn?: typeof createWorkspaceForUserWithObservationScope;
   withTransientDatabaseRetryFn?: typeof withTransientDatabaseRetry;
-}>;
-
-type CursorQueryParams = Readonly<{
-  cursor: string | null;
-  limit: number;
 }>;
 
 type WorkspacesPageResponse = Readonly<{
@@ -91,38 +85,6 @@ type WorkspaceCreateRouteState = Readonly<{
   requestContext: RequestContext;
   workspace: WorkspaceSummary;
 }>;
-
-function getRequestContextUserId(requestContext: RequestContext | null): string | null {
-  return requestContext === null ? null : requestContext.userId;
-}
-
-function parseCursorQueryParams(request: Request): CursorQueryParams {
-  const url = new URL(request.url);
-  return {
-    cursor: parseOptionalCursorQuery(url.searchParams.get("cursor") ?? undefined, "cursor"),
-    limit: parseRequiredPageLimit(url.searchParams.get("limit") ?? undefined, "limit", 100),
-  };
-}
-
-function createWorkspaceRouteScope(
-  requestId: string,
-  route: string,
-  method: string,
-  userId: string | null,
-  workspaceId: string | null,
-): BackendObservationScope {
-  return createBackendObservationScope(
-    "backend-api",
-    requestId,
-    route,
-    method,
-    userId,
-    workspaceId,
-    null,
-    null,
-    null,
-  );
-}
 
 export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
@@ -542,27 +504,4 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
   });
 
   return app;
-}
-
-function parseConnectionId(value: string | undefined): string {
-  if (value === undefined) {
-    throw new HttpError(400, "connectionId is required", "AGENT_API_KEY_ID_REQUIRED");
-  }
-
-  const trimmedValue = value.trim();
-  if (trimmedValue === "") {
-    throw new HttpError(400, "connectionId must not be empty", "AGENT_API_KEY_ID_INVALID");
-  }
-
-  return trimmedValue;
-}
-
-function requireHumanManagedConnectionAccess(transport: AuthTransport): void {
-  if (transport === "api_key") {
-    throw new HttpError(403, "Agent connections must be managed from a human session", "AGENT_API_KEY_HUMAN_SESSION_REQUIRED");
-  }
-
-  if (transport === "guest") {
-    throw new HttpError(403, "Sign in with an account before managing workspaces or agent connections.", "ACCOUNT_SIGN_IN_REQUIRED");
-  }
 }
