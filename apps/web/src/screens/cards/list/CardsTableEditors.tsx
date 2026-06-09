@@ -11,10 +11,10 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
-import { useI18n } from "../../i18n";
-import type { EffortLevel, TagSuggestion } from "../../types";
-import { areSameTags, CardTagsInput, type CardTagsInputHandle } from "./CardTagsInput";
-import { formatEffortLevelLabel } from "../shared/featureFormatting";
+import { useI18n } from "../../../i18n";
+import type { EffortLevel, TagSuggestion } from "../../../types";
+import { areSameTags, CardTagsInput, type CardTagsInputHandle } from "../CardTagsInput";
+import { formatEffortLevelLabel } from "../../shared/featureFormatting";
 
 type OverlayRect = Readonly<{
   top: number;
