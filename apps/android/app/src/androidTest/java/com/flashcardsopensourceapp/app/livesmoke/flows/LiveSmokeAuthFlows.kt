@@ -29,41 +29,71 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
 private const val linkedSignInTimeoutMillis: Long = 120_000L
+private const val sendCodeAttemptLimit: Int = 3
+private const val sendCodeAttemptTimeoutMillis: Long = 120_000L
 private const val cloudPostAuthLinkingWorkspaceTitle: String = "Linking workspace"
 private const val cloudPostAuthSyncingWorkspaceTitle: String = "Syncing workspace"
 private const val cloudPostAuthGuestUpgradeTitle: String = "Upgrading guest account"
 private const val cloudPostAuthRetryButtonText: String = "Retry"
 private const val accountStatusSyncNowButtonText: String = "Sync now"
+private const val cloudSignInSendCodeTransportFailedText: String =
+    "We could not confirm that the code was sent. Check your connection and try again."
+private const val cloudSignInSendCodeFailedText: String = "Could not send the sign-in code."
+
+private enum class CloudSignInSendCodeOutcome {
+    READY,
+    SEND_CODE_FAILED
+}
 
 internal fun LiveSmokeContext.signInWithReviewAccount(reviewEmail: String) {
     openSettingsRow(rowTag = settingsAccountStatusRowTag, rowLabel = "Account status")
     clickText(text = "Sign in or sign up", substring = false)
     composeRule.onNodeWithTag(cloudSignInEmailFieldTag).performTextInput(reviewEmail)
-    clickTag(tag = cloudSignInSendCodeButtonTag, label = "Send code")
+    sendReviewAccountCodeWithRetries()
 
-    waitForCloudSignInSurface()
     completeCloudPostAuthWorkspaceSelectionIfNeeded()
     waitForLinkedAccountStatusAfterSignIn()
     tapBackIcon()
     tapBackIcon()
 }
 
-private fun LiveSmokeContext.waitForCloudSignInSurface() {
+private fun LiveSmokeContext.sendReviewAccountCodeWithRetries() {
+    var attemptNumber: Int = 1
+    while (attemptNumber <= sendCodeAttemptLimit) {
+        clickTag(tag = cloudSignInSendCodeButtonTag, label = "Send code")
+        when (waitForCloudSignInSendCodeOutcome()) {
+            CloudSignInSendCodeOutcome.READY -> return
+            CloudSignInSendCodeOutcome.SEND_CODE_FAILED -> {
+                if (attemptNumber < sendCodeAttemptLimit) {
+                    System.err.println(
+                        "event=android_live_smoke_send_code_retry level=warning " +
+                            "attempt=$attemptNumber maxAttempts=$sendCodeAttemptLimit"
+                    )
+                }
+            }
+        }
+        attemptNumber += 1
+    }
+
+    throw AssertionError(
+        "Sign-in send-code failed after $sendCodeAttemptLimit attempts. " +
+            "CloudSettings=${currentCloudSettingsSummary()} " +
+            "CurrentWorkspace=${currentWorkspaceSummaryOrNull()} " +
+            "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}"
+    )
+}
+
+private fun LiveSmokeContext.waitForCloudSignInSendCodeOutcome(): CloudSignInSendCodeOutcome {
     try {
         waitUntilWithMitigation(
-            timeoutMillis = linkedSignInTimeoutMillis,
-            context = "while waiting for sign-in to reach account status or post-auth sync"
+            timeoutMillis = sendCodeAttemptTimeoutMillis,
+            context = "while waiting for sign-in send-code outcome"
         ) {
-            hasVisibleText(text = accountStatusSyncNowButtonText, substring = false) ||
-                hasVisibleText(text = cloudSyncChooserPrompt, substring = false) ||
-                hasVisibleText(text = cloudPostAuthLinkingWorkspaceTitle, substring = false) ||
-                hasVisibleText(text = cloudPostAuthSyncingWorkspaceTitle, substring = false) ||
-                hasVisibleText(text = cloudPostAuthGuestUpgradeTitle, substring = false) ||
-                hasVisibleText(text = cloudPostAuthRetryButtonText, substring = false)
+            isCloudSignInReadySurfaceVisible() || isCloudSignInSendCodeErrorVisible()
         }
     } catch (error: Throwable) {
         throw AssertionError(
-            "Sign-in did not reach account status or post-auth sync. " +
+            "Sign-in send-code did not reach a terminal outcome. " +
                 "CloudSettings=${currentCloudSettingsSummary()} " +
                 "CurrentWorkspace=${currentWorkspaceSummaryOrNull()} " +
                 "VisibleRows=${captureVisibleWorkspaceRows(rowTag = cloudPostAuthWorkspaceRowTag)} " +
@@ -71,6 +101,26 @@ private fun LiveSmokeContext.waitForCloudSignInSurface() {
             error
         )
     }
+
+    return if (isCloudSignInReadySurfaceVisible()) {
+        CloudSignInSendCodeOutcome.READY
+    } else {
+        CloudSignInSendCodeOutcome.SEND_CODE_FAILED
+    }
+}
+
+private fun LiveSmokeContext.isCloudSignInReadySurfaceVisible(): Boolean {
+    return hasVisibleText(text = accountStatusSyncNowButtonText, substring = false) ||
+        hasVisibleText(text = cloudSyncChooserPrompt, substring = false) ||
+        hasVisibleText(text = cloudPostAuthLinkingWorkspaceTitle, substring = false) ||
+        hasVisibleText(text = cloudPostAuthSyncingWorkspaceTitle, substring = false) ||
+        hasVisibleText(text = cloudPostAuthGuestUpgradeTitle, substring = false) ||
+        hasVisibleText(text = cloudPostAuthRetryButtonText, substring = false)
+}
+
+private fun LiveSmokeContext.isCloudSignInSendCodeErrorVisible(): Boolean {
+    return hasVisibleText(text = cloudSignInSendCodeTransportFailedText, substring = false) ||
+        hasVisibleText(text = cloudSignInSendCodeFailedText, substring = false)
 }
 
 private fun LiveSmokeContext.completeCloudPostAuthWorkspaceSelectionIfNeeded() {

@@ -69,7 +69,13 @@ internal fun SettingsScreenScaffold(
             )
         }
     ) { innerPadding ->
-        content(innerPadding)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues = innerPadding)
+        ) {
+            content(PaddingValues(all = 0.dp))
+        }
     }
 }
 
