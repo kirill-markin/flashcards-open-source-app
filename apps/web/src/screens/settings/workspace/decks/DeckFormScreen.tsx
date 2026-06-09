@@ -4,7 +4,7 @@ import { useAppData } from "../../../../appData";
 import { ALL_CARDS_DECK_SLUG, buildDeckFilterDefinition, EFFORT_LEVELS } from "../../../../deckFilters";
 import { useI18n } from "../../../../i18n";
 import { buildSettingsDeckDetailRoute, settingsDecksRoute } from "../../../../routes";
-import { CardFormTagsField } from "../../../cards/CardFormTagsField";
+import { CardFormTagsField } from "../../../cards/form/CardFormTagsField";
 import { loadWorkspaceTagsSummary } from "../../../../localDb/cards/workspace";
 import { captureAppOperationError } from "../../../../observability/appOperationObservation";
 import type { EffortLevel, TagSuggestion, UpdateDeckInput } from "../../../../types";

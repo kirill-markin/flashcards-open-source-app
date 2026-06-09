@@ -61,8 +61,8 @@ import {
 } from "./routes";
 import { isWorkspaceManagementLocked } from "./workspaceManagement";
 import { TestModeProvider, useTestMode } from "./testMode";
-import { CardFormScreen } from "./screens/cards/CardFormScreen";
-import { CardsScreen } from "./screens/cards/CardsScreen";
+import { CardFormScreen } from "./screens/cards/form/CardFormScreen";
+import { CardsScreen } from "./screens/cards/list/CardsScreen";
 import { ProgressScreen } from "./screens/progress/ProgressScreen";
 import { ReviewScreen } from "./screens/review/ReviewScreen";
 

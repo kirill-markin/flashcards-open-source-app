@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { useAppData } from "../../appData";
-import { useAiCardHandoff } from "../../chat/handoff/useAiCardHandoff";
-import { useI18n } from "../../i18n";
+import { useAppData } from "../../../appData";
+import { useAiCardHandoff } from "../../../chat/handoff/useAiCardHandoff";
+import { useI18n } from "../../../i18n";
 import { CardFormFields, isCardFormStateDirty, toCardFormState, type CardFormState } from "./CardForm";
-import type { Card, CreateCardInput, TagSuggestion, UpdateCardInput } from "../../types";
-import { loadCardById } from "../../localDb/cards/cards";
-import { loadWorkspaceTagsSummary } from "../../localDb/cards/workspace";
-import { captureAppOperationError } from "../../observability/appOperationObservation";
-import { cardsRoute } from "../../routes";
+import type { Card, CreateCardInput, TagSuggestion, UpdateCardInput } from "../../../types";
+import { loadCardById } from "../../../localDb/cards/cards";
+import { loadWorkspaceTagsSummary } from "../../../localDb/cards/workspace";
+import { captureAppOperationError } from "../../../observability/appOperationObservation";
+import { cardsRoute } from "../../../routes";
 
 function toTagSuggestions(tags: Awaited<ReturnType<typeof loadWorkspaceTagsSummary>>["tags"]): ReadonlyArray<TagSuggestion> {
   return tags.map((tagSummary) => ({

@@ -35,7 +35,7 @@ import { normalizeCaughtError } from "../../observability/webObservability";
 import { useAiCardHandoff } from "../../chat/handoff/useAiCardHandoff";
 import { useTransientMessage } from "../../useTransientMessage";
 import type { Card, FeedbackPromptEventType, FeedbackSubmissionRequest } from "../../types";
-import { isCardFormStateDirty } from "../cards/CardForm";
+import { isCardFormStateDirty } from "../cards/form/CardForm";
 import type { ReviewEditorModalProps } from "./components/ReviewEditorModal";
 import type { ReviewPaneProps } from "./components/ReviewPane";
 import type { ReviewQueuePanelProps } from "./components/ReviewQueuePanel";

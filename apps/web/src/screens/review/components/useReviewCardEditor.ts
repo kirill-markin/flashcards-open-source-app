@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { TranslationKey } from "../../../i18n";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
-import { toCardFormState, type CardFormState } from "../../cards/CardForm";
+import { toCardFormState, type CardFormState } from "../../cards/form/CardForm";
 import type { Card } from "../../../types";
 
 type UseReviewCardEditorParams = Readonly<{

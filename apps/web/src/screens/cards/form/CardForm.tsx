@@ -1,8 +1,8 @@
 import { type ChangeEvent, type ReactElement } from "react";
-import { useI18n } from "../../i18n";
+import { useI18n } from "../../../i18n";
 import { CardFormTagsField } from "./CardFormTagsField";
-import type { Card, EffortLevel, TagSuggestion } from "../../types";
-import { formatEffortLevelLabel, formatNullableDateTime } from "../shared/featureFormatting";
+import type { Card, EffortLevel, TagSuggestion } from "../../../types";
+import { formatEffortLevelLabel, formatNullableDateTime } from "../../shared/featureFormatting";
 
 export type CardFormState = Readonly<{
   frontText: string;

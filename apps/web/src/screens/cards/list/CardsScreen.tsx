@@ -1,21 +1,21 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
 import { Link } from "react-router-dom";
-import { useAppData } from "../../appData";
-import { getCardFilterActiveDimensionCount, normalizeCardFilter } from "../../cardFilters";
-import { EFFORT_LEVELS } from "../../deckFilters";
-import { useI18n } from "../../i18n";
-import { CardTagsInput, type CardTagsInputHandle } from "./CardTagsInput";
+import { useAppData } from "../../../appData";
+import { getCardFilterActiveDimensionCount, normalizeCardFilter } from "../../../cardFilters";
+import { EFFORT_LEVELS } from "../../../deckFilters";
+import { useI18n } from "../../../i18n";
+import { CardTagsInput, type CardTagsInputHandle } from "../CardTagsInput";
 import { EditableCardEffortCell, EditableCardTagsCell, EditableCardTextCell } from "./CardsTableEditors";
-import { queryLocalCardsPage } from "../../localDb/cards/cards";
-import { loadWorkspaceTagsSummary } from "../../localDb/cards/workspace";
-import { captureAppOperationError } from "../../observability/appOperationObservation";
-import type { Card, CardFilter, CardQuerySort, CardQuerySortDirection, CardQuerySortKey, QueryCardsPage, TagSuggestion, UpdateCardInput } from "../../types";
+import { queryLocalCardsPage } from "../../../localDb/cards/cards";
+import { loadWorkspaceTagsSummary } from "../../../localDb/cards/workspace";
+import { captureAppOperationError } from "../../../observability/appOperationObservation";
+import type { Card, CardFilter, CardQuerySort, CardQuerySortDirection, CardQuerySortKey, QueryCardsPage, TagSuggestion, UpdateCardInput } from "../../../types";
 import {
   buildCardsLoadingRowPreview,
   readCardsLoadingSnapshot,
   writeCardsLoadingSnapshot,
-} from "../shared/loadingSnapshots";
-import { formatCardFilterSummary, formatEffortLevelLabel, formatNullableDateTime, formatTagSummary } from "../shared/featureFormatting";
+} from "../../shared/loadingSnapshots";
+import { formatCardFilterSummary, formatEffortLevelLabel, formatNullableDateTime, formatTagSummary } from "../../shared/featureFormatting";
 
 type CardsQueryState = Readonly<{
   items: ReadonlyArray<Card>;

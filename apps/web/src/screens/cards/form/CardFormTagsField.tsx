@@ -8,9 +8,9 @@ import {
   type ReactElement,
 } from "react";
 import { createPortal } from "react-dom";
-import { useI18n } from "../../i18n";
-import type { TagSuggestion } from "../../types";
-import { areSameTags, CardTagsInput, CardTagsValue, type CardTagsInputHandle } from "./CardTagsInput";
+import { useI18n } from "../../../i18n";
+import type { TagSuggestion } from "../../../types";
+import { areSameTags, CardTagsInput, CardTagsValue, type CardTagsInputHandle } from "../CardTagsInput";
 
 type OverlayRect = Readonly<{
   top: number;
