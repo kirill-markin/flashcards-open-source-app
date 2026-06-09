@@ -1,7 +1,17 @@
 package com.flashcardsopensourceapp.app.navigation.cards
 
-data object CardEditorDestination {
+internal data object CardEditorGraph {
     const val routePrefix: String = "cards/editor"
+    const val routeArgument: String = "cardId"
+    const val routePattern: String = "$routePrefix/{$routeArgument}"
+
+    fun createRoute(cardId: String): String {
+        return "$routePrefix/$cardId"
+    }
+}
+
+data object CardEditorDestination {
+    const val routePrefix: String = "cards/editor/overview"
     const val routeArgument: String = "cardId"
     const val routePattern: String = "$routePrefix/{$routeArgument}"
 

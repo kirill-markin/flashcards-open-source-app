@@ -43,6 +43,7 @@ import com.flashcardsopensourceapp.feature.review.reviewEmptyStateContentTag
 import com.flashcardsopensourceapp.feature.review.reviewEmptyStateTag
 import com.flashcardsopensourceapp.feature.review.reviewFilterButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewRateGoodButtonTag
+import com.flashcardsopensourceapp.feature.review.reviewQueueButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewShowAnswerButtonTag
 import com.flashcardsopensourceapp.feature.settings.R as SettingsR
 import com.flashcardsopensourceapp.feature.settings.deck.deckCardRowTag
@@ -267,6 +268,55 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
             composeRule.onAllNodesWithText("Updated Android card").fetchSemanticsNodes().isEmpty()
         }
         composeRule.onNodeWithText(emptyCardsMessage).fetchSemanticsNode()
+    }
+
+    @Test
+    fun nestedNavigationChildRoutesSurviveActivityRecreation() {
+        waitForCardsEmptyState()
+        createCard(
+            frontText = "Restorable navigation card",
+            backText = "Back text survives navigation recreation.",
+            tags = emptyList()
+        )
+
+        composeRule.onNodeWithText("Restorable navigation card").performClick()
+        composeRule.onNodeWithTag(cardEditorFrontSummaryCardTag).performScrollTo()
+        composeRule.onNodeWithTag(cardEditorFrontSummaryCardTag).performClick()
+        waitForTagToExist(tag = cardEditorFrontTextFieldTag)
+        recreateActivity()
+        waitForTagToExist(tag = cardEditorFrontTextFieldTag)
+        composeRule.onNodeWithTag(cardEditorFrontTextFieldTag).performTextReplacement("Restored navigation card")
+        tapVisibleBackButton()
+
+        composeRule.onNodeWithText("Tags").performClick()
+        waitForTextToExist(text = "Add a tag")
+        recreateActivity()
+        waitForTextToExist(text = "Add a tag")
+        composeRule.onNodeWithText("Add a tag").performTextInput("restored")
+        composeRule.onNodeWithText("Add tag").performClick()
+        tapVisibleBackButton()
+
+        scrollToText(text = "Save")
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodes(
+                matcher = hasClickAction().and(other = hasText("Save"))
+            ).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNode(
+            matcher = hasClickAction().and(other = hasText("Save"))
+        ).performClick()
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithText("Search cards").fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithText("Restored navigation card").fetchSemanticsNodes().isNotEmpty()
+        }
+
+        openReviewTabAndWaitForCard()
+        composeRule.onNodeWithTag(reviewQueueButtonTag).performClick()
+        waitForReviewPreviewCard(frontText = "Restored navigation card")
+        recreateActivity()
+        waitForReviewPreviewCard(frontText = "Restored navigation card")
+        tapVisibleBackButton()
+        waitForTagToExist(tag = reviewShowAnswerButtonTag)
     }
 
     @Test
@@ -703,8 +753,28 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         openTopLevelDestination(destinationTag = ReviewDestination.testTag)
     }
 
+    private fun openReviewTabAndWaitForCard() {
+        openReviewTab()
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithTag(reviewQueueButtonTag).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun waitForReviewPreviewCard(frontText: String) {
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isEmpty() &&
+                composeRule.onAllNodesWithText(frontText).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
     private fun openAiTab() {
         openTopLevelDestination(destinationTag = AiDestination.testTag)
+    }
+
+    private fun recreateActivity() {
+        composeRule.activityRule.scenario.recreate()
+        composeRule.waitForIdle()
     }
 
     private fun openCardFilter() {

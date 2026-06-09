@@ -13,6 +13,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
+import androidx.navigation.navigation
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.navigation.AiDestination
 import com.flashcardsopensourceapp.app.navigation.ProgressDestination
@@ -47,201 +48,222 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
         )
     }
 
-    composable(route = ReviewDestination.route) {
-        val context = LocalContext.current
-        val activity = context as? ComponentActivity
-        val notificationPermissionLauncher = rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.RequestPermission()
-        ) { isGranted ->
-            if (isGranted) {
-                handleNotificationPermissionGranted()
+    navigation(
+        startDestination = ReviewDestination.route,
+        route = ReviewRootGraph.route
+    ) {
+        composable(route = ReviewDestination.route) { backStackEntry ->
+            val context = LocalContext.current
+            val activity = context as? ComponentActivity
+            val notificationPermissionLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.RequestPermission()
+            ) { isGranted ->
+                if (isGranted) {
+                    handleNotificationPermissionGranted()
+                }
             }
-        }
-        val reviewViewModel = viewModel<com.flashcardsopensourceapp.feature.review.ReviewViewModel>(
-            factory = createReviewViewModelFactory(
-                reviewRepository = appGraph.reviewRepository,
-                progressRepository = appGraph.progressRepository,
-                autoSyncEventRepository = appGraph.autoSyncEventRepository,
-                messageController = appGraph.appMessageBus,
-                reviewNotificationsStore = appGraph.reviewNotificationsStore,
-                shouldShowNotificationPermissionPrePrompt = {
-                    hasNotificationPermission(context = context).not()
-                },
-                onReviewNotificationsChanged = { trigger ->
-                    appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotifications(
-                        trigger = trigger,
-                        nowMillis = System.currentTimeMillis()
-                    )
-                },
-                onSuccessfulReviewRecorded = { reviewedAtMillis ->
-                    appGraph.strictRemindersManager.recordSuccessfulReview(
-                        reviewedAtMillis = reviewedAtMillis,
-                        nowMillis = System.currentTimeMillis()
-                    )
-                    appGraph.guestSignInAfterReviewPromptController.requestReevaluation()
-                },
-                onStoreReviewOpportunity = {
-                    val currentActivity = appGraph.storeReviewActivityProvider.currentActivity()
-                    if (currentActivity == null) {
-                        false
-                    } else {
-                        appGraph.storeReviewRequestManager.requestStoreReviewIfEligible(
-                            activity = currentActivity
+            val reviewBackStackEntry = rememberRouteBackStackEntry(
+                navController = navController,
+                currentBackStackEntry = backStackEntry,
+                route = ReviewRootGraph.route
+            )
+            val reviewViewModel = viewModel<com.flashcardsopensourceapp.feature.review.ReviewViewModel>(
+                viewModelStoreOwner = reviewBackStackEntry,
+                factory = createReviewViewModelFactory(
+                    reviewRepository = appGraph.reviewRepository,
+                    progressRepository = appGraph.progressRepository,
+                    autoSyncEventRepository = appGraph.autoSyncEventRepository,
+                    messageController = appGraph.appMessageBus,
+                    reviewNotificationsStore = appGraph.reviewNotificationsStore,
+                    shouldShowNotificationPermissionPrePrompt = {
+                        hasNotificationPermission(context = context).not()
+                    },
+                    onReviewNotificationsChanged = { trigger ->
+                        appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotifications(
+                            trigger = trigger,
+                            nowMillis = System.currentTimeMillis()
                         )
+                    },
+                    onSuccessfulReviewRecorded = { reviewedAtMillis ->
+                        appGraph.strictRemindersManager.recordSuccessfulReview(
+                            reviewedAtMillis = reviewedAtMillis,
+                            nowMillis = System.currentTimeMillis()
+                        )
+                        appGraph.guestSignInAfterReviewPromptController.requestReevaluation()
+                    },
+                    onStoreReviewOpportunity = {
+                        val currentActivity = appGraph.storeReviewActivityProvider.currentActivity()
+                        if (currentActivity == null) {
+                            false
+                        } else {
+                            appGraph.storeReviewRequestManager.requestStoreReviewIfEligible(
+                                activity = currentActivity
+                            )
+                        }
+                    },
+                    onAutomaticFeedbackPromptCandidate = {
+                        appGraph.feedbackPromptController.requestAutomaticReevaluation()
+                    },
+                    onNotificationPermissionGranted = ::handleNotificationPermissionGranted,
+                    reviewPreferencesStore = appGraph.reviewPreferencesStore,
+                    visibleAppScreenRepository = appGraph.visibleAppScreenController,
+                    workspaceRepository = appGraph.workspaceRepository
+                )
+            )
+            val uiState by reviewViewModel.uiState.collectAsStateWithLifecycle()
+            val accountPreferences by appGraph.cloudAccountRepository.observeAccountPreferences().collectAsStateWithLifecycle(
+                initialValue = defaultAccountPreferences()
+            )
+            val reviewFilterRequest by appGraph.appHandoffCoordinator.observeReviewFilter().collectAsStateWithLifecycle()
+
+            LaunchedEffect(reviewFilterRequest?.requestId, uiState) {
+                val request = reviewFilterRequest ?: return@LaunchedEffect
+                val didSelectFilter = reviewViewModel.selectFilterForHandoff(reviewFilter = request.reviewFilter)
+                if (didSelectFilter) {
+                    appGraph.appHandoffCoordinator.consumeReviewFilter(requestId = request.requestId)
+                }
+            }
+
+            ReviewRoute(
+                uiState = uiState,
+                reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore,
+                reviewReactionAnimationsEnabled = accountPreferences.reviewReactionAnimationsEnabled,
+                onSelectFilter = reviewViewModel::selectFilter,
+                onOpenPreview = {
+                    navController.navigate(route = ReviewPreviewDestination.route)
+                },
+                onOpenCurrentCard = { cardId ->
+                    appGraph.appHandoffCoordinator.requestCardEditor(cardId = cardId)
+                },
+                onOpenCurrentCardWithAi = { cardId, frontText, backText, tags, effortLevel ->
+                    AiChatDiagnosticsLogger.info(
+                        event = "review_ai_handoff_requested",
+                        fields = listOf(
+                            "cardId" to cardId,
+                            "frontText" to frontText,
+                            "backTextLength" to backText.length.toString(),
+                            "tagsCount" to tags.size.toString(),
+                            "effortLevel" to effortLevel.name
+                        )
+                    )
+                    appGraph.appHandoffCoordinator.requestAiCardHandoff(
+                        cardId = cardId,
+                        frontText = frontText,
+                        backText = backText,
+                        tags = tags,
+                        effortLevel = effortLevel
+                    )
+                    navigateToTopLevelDestination(
+                        navController = navController,
+                        destination = AiDestination
+                    )
+                },
+                onOpenDeckManagement = {
+                    appGraph.appHandoffCoordinator.requestSettingsNavigation(
+                        target = SettingsNavigationTarget.WORKSPACE_DECKS
+                    )
+                },
+                onCreateCard = {
+                    appGraph.appHandoffCoordinator.requestCardEditor(cardId = null)
+                },
+                onCreateCardWithAi = {
+                    appGraph.appHandoffCoordinator.requestAiEntryPrefill(prefill = com.flashcardsopensourceapp.feature.ai.AiEntryPrefill.CREATE_CARD)
+                    navigateToTopLevelDestination(
+                        navController = navController,
+                        destination = AiDestination
+                    )
+                },
+                onSwitchToAllCards = {
+                    reviewViewModel.selectFilter(reviewFilter = ReviewFilter.AllCards)
+                },
+                onRevealAnswer = reviewViewModel::revealAnswer,
+                onRateAgain = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.review.ReviewRating.AGAIN) },
+                onRateHard = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.review.ReviewRating.HARD) },
+                onRateGood = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.review.ReviewRating.GOOD) },
+                onRateEasy = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.review.ReviewRating.EASY) },
+                onDismissHardAnswerReminder = reviewViewModel::dismissHardAnswerReminder,
+                onDismissErrorMessage = reviewViewModel::dismissErrorMessage,
+                onDismissNotificationPermissionPrompt = reviewViewModel::dismissNotificationPermissionPrompt,
+                onContinueNotificationPermissionPrompt = {
+                    reviewViewModel.continueNotificationPermissionPrompt()
+                    if (activity != null) {
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                     }
                 },
-                onAutomaticFeedbackPromptCandidate = {
-                    appGraph.feedbackPromptController.requestAutomaticReevaluation()
+                onOpenProgress = {
+                    navigateToTopLevelDestination(
+                        navController = navController,
+                        destination = ProgressDestination
+                    )
                 },
-                onNotificationPermissionGranted = ::handleNotificationPermissionGranted,
-                reviewPreferencesStore = appGraph.reviewPreferencesStore,
-                visibleAppScreenRepository = appGraph.visibleAppScreenController,
-                workspaceRepository = appGraph.workspaceRepository
+                onScreenVisible = reviewViewModel::onScreenVisible
             )
-        )
-        val uiState by reviewViewModel.uiState.collectAsStateWithLifecycle()
-        val accountPreferences by appGraph.cloudAccountRepository.observeAccountPreferences().collectAsStateWithLifecycle(
-            initialValue = defaultAccountPreferences()
-        )
-        val reviewFilterRequest by appGraph.appHandoffCoordinator.observeReviewFilter().collectAsStateWithLifecycle()
-
-        LaunchedEffect(reviewFilterRequest?.requestId, uiState) {
-            val request = reviewFilterRequest ?: return@LaunchedEffect
-            val didSelectFilter = reviewViewModel.selectFilterForHandoff(reviewFilter = request.reviewFilter)
-            if (didSelectFilter) {
-                appGraph.appHandoffCoordinator.consumeReviewFilter(requestId = request.requestId)
-            }
         }
 
-        ReviewRoute(
-            uiState = uiState,
-            reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore,
-            reviewReactionAnimationsEnabled = accountPreferences.reviewReactionAnimationsEnabled,
-            onSelectFilter = reviewViewModel::selectFilter,
-            onOpenPreview = {
-                navController.navigate(route = ReviewPreviewDestination.route)
-            },
-            onOpenCurrentCard = { cardId ->
-                appGraph.appHandoffCoordinator.requestCardEditor(cardId = cardId)
-            },
-            onOpenCurrentCardWithAi = { cardId, frontText, backText, tags, effortLevel ->
-                AiChatDiagnosticsLogger.info(
-                    event = "review_ai_handoff_requested",
-                    fields = listOf(
-                        "cardId" to cardId,
-                        "frontText" to frontText,
-                        "backTextLength" to backText.length.toString(),
-                        "tagsCount" to tags.size.toString(),
-                        "effortLevel" to effortLevel.name
-                    )
-                )
-                appGraph.appHandoffCoordinator.requestAiCardHandoff(
-                    cardId = cardId,
-                    frontText = frontText,
-                    backText = backText,
-                    tags = tags,
-                    effortLevel = effortLevel
-                )
-                navigateToTopLevelDestination(
-                    navController = navController,
-                    destination = AiDestination
-                )
-            },
-            onOpenDeckManagement = {
-                appGraph.appHandoffCoordinator.requestSettingsNavigation(
-                    target = SettingsNavigationTarget.WORKSPACE_DECKS
-                )
-            },
-            onCreateCard = {
-                appGraph.appHandoffCoordinator.requestCardEditor(cardId = null)
-            },
-            onCreateCardWithAi = {
-                appGraph.appHandoffCoordinator.requestAiEntryPrefill(prefill = com.flashcardsopensourceapp.feature.ai.AiEntryPrefill.CREATE_CARD)
-                navigateToTopLevelDestination(
-                    navController = navController,
-                    destination = AiDestination
-                )
-            },
-            onSwitchToAllCards = {
-                reviewViewModel.selectFilter(reviewFilter = ReviewFilter.AllCards)
-            },
-            onRevealAnswer = reviewViewModel::revealAnswer,
-            onRateAgain = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.review.ReviewRating.AGAIN) },
-            onRateHard = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.review.ReviewRating.HARD) },
-            onRateGood = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.review.ReviewRating.GOOD) },
-            onRateEasy = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.review.ReviewRating.EASY) },
-            onDismissHardAnswerReminder = reviewViewModel::dismissHardAnswerReminder,
-            onDismissErrorMessage = reviewViewModel::dismissErrorMessage,
-            onDismissNotificationPermissionPrompt = reviewViewModel::dismissNotificationPermissionPrompt,
-            onContinueNotificationPermissionPrompt = {
-                reviewViewModel.continueNotificationPermissionPrompt()
-                if (activity != null) {
-                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                }
-            },
-            onOpenProgress = {
-                navigateToTopLevelDestination(
-                    navController = navController,
-                    destination = ProgressDestination
-                )
-            },
-            onScreenVisible = reviewViewModel::onScreenVisible
-        )
-    }
-
-    composable(route = ReviewPreviewDestination.route) { backStackEntry ->
-        val reviewBackStackEntry = rememberRouteBackStackEntry(
-            navController = navController,
-            currentBackStackEntry = backStackEntry,
-            route = ReviewDestination.route
-        )
-        val reviewViewModel = viewModel<com.flashcardsopensourceapp.feature.review.ReviewViewModel>(
-            viewModelStoreOwner = reviewBackStackEntry,
-            factory = createReviewViewModelFactory(
-                reviewRepository = appGraph.reviewRepository,
-                progressRepository = appGraph.progressRepository,
-                autoSyncEventRepository = appGraph.autoSyncEventRepository,
-                messageController = appGraph.appMessageBus,
-                reviewNotificationsStore = appGraph.reviewNotificationsStore,
-                shouldShowNotificationPermissionPrePrompt = {
-                    false
-                },
-                onReviewNotificationsChanged = { trigger ->
-                    appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotifications(
-                        trigger = trigger,
-                        nowMillis = System.currentTimeMillis()
-                    )
-                },
-                onSuccessfulReviewRecorded = { reviewedAtMillis ->
-                    appGraph.strictRemindersManager.recordSuccessfulReview(
-                        reviewedAtMillis = reviewedAtMillis,
-                        nowMillis = System.currentTimeMillis()
-                    )
-                    appGraph.guestSignInAfterReviewPromptController.requestReevaluation()
-                },
-                onStoreReviewOpportunity = {
-                    false
-                },
-                onAutomaticFeedbackPromptCandidate = {},
-                onNotificationPermissionGranted = ::handleNotificationPermissionGranted,
-                reviewPreferencesStore = appGraph.reviewPreferencesStore,
-                visibleAppScreenRepository = appGraph.visibleAppScreenController,
-                workspaceRepository = appGraph.workspaceRepository
+        composable(route = ReviewPreviewDestination.route) { backStackEntry ->
+            val context = LocalContext.current
+            val reviewBackStackEntry = rememberRouteBackStackEntry(
+                navController = navController,
+                currentBackStackEntry = backStackEntry,
+                route = ReviewRootGraph.route
             )
-        )
-        val uiState by reviewViewModel.uiState.collectAsStateWithLifecycle()
+            val reviewViewModel = viewModel<com.flashcardsopensourceapp.feature.review.ReviewViewModel>(
+                viewModelStoreOwner = reviewBackStackEntry,
+                factory = createReviewViewModelFactory(
+                    reviewRepository = appGraph.reviewRepository,
+                    progressRepository = appGraph.progressRepository,
+                    autoSyncEventRepository = appGraph.autoSyncEventRepository,
+                    messageController = appGraph.appMessageBus,
+                    reviewNotificationsStore = appGraph.reviewNotificationsStore,
+                    shouldShowNotificationPermissionPrePrompt = {
+                        hasNotificationPermission(context = context).not()
+                    },
+                    onReviewNotificationsChanged = { trigger ->
+                        appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotifications(
+                            trigger = trigger,
+                            nowMillis = System.currentTimeMillis()
+                        )
+                    },
+                    onSuccessfulReviewRecorded = { reviewedAtMillis ->
+                        appGraph.strictRemindersManager.recordSuccessfulReview(
+                            reviewedAtMillis = reviewedAtMillis,
+                            nowMillis = System.currentTimeMillis()
+                        )
+                        appGraph.guestSignInAfterReviewPromptController.requestReevaluation()
+                    },
+                    onStoreReviewOpportunity = {
+                        val currentActivity = appGraph.storeReviewActivityProvider.currentActivity()
+                        if (currentActivity == null) {
+                            false
+                        } else {
+                            appGraph.storeReviewRequestManager.requestStoreReviewIfEligible(
+                                activity = currentActivity
+                            )
+                        }
+                    },
+                    onAutomaticFeedbackPromptCandidate = {
+                        appGraph.feedbackPromptController.requestAutomaticReevaluation()
+                    },
+                    onNotificationPermissionGranted = ::handleNotificationPermissionGranted,
+                    reviewPreferencesStore = appGraph.reviewPreferencesStore,
+                    visibleAppScreenRepository = appGraph.visibleAppScreenController,
+                    workspaceRepository = appGraph.workspaceRepository
+                )
+            )
+            val uiState by reviewViewModel.uiState.collectAsStateWithLifecycle()
 
-        ReviewPreviewRoute(
-            uiState = uiState,
-            onStartPreview = reviewViewModel::startPreview,
-            onLoadNextPreviewPageIfNeeded = reviewViewModel::loadNextPreviewPageIfNeeded,
-            onRetryPreview = reviewViewModel::retryPreview,
-            onOpenCard = { cardId ->
-                appGraph.appHandoffCoordinator.requestCardEditor(cardId = cardId)
-            },
-            onBack = {
-                navController.popBackStack()
-            }
-        )
+            ReviewPreviewRoute(
+                uiState = uiState,
+                onStartPreview = reviewViewModel::startPreview,
+                onLoadNextPreviewPageIfNeeded = reviewViewModel::loadNextPreviewPageIfNeeded,
+                onRetryPreview = reviewViewModel::retryPreview,
+                onOpenCard = { cardId ->
+                    appGraph.appHandoffCoordinator.requestCardEditor(cardId = cardId)
+                },
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
     }
 }
