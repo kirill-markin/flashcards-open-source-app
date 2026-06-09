@@ -28,14 +28,14 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun ReviewPreviewRoute(
     uiState: ReviewUiState,
-    onStartPreview: () -> Unit,
+    onEnsurePreviewStarted: () -> Unit,
     onLoadNextPreviewPageIfNeeded: (String) -> Unit,
     onRetryPreview: () -> Unit,
     onOpenCard: (String) -> Unit,
     onBack: () -> Unit
 ) {
     LaunchedEffect(Unit) {
-        onStartPreview()
+        onEnsurePreviewStarted()
     }
 
     Scaffold(

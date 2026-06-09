@@ -240,14 +240,18 @@ class ReviewViewModel(
         onNotificationPermissionGranted()
     }
 
-    fun startPreview() {
+    fun refreshPreview() {
+        draftState.update(::applyStartReviewPreview)
+        loadPreviewPage(offset = 0, replaceCards = true)
+    }
+
+    fun ensurePreviewStarted() {
         val currentState = draftState.value
-        if (shouldStartReviewPreview(state = currentState).not()) {
+        if (shouldEnsureReviewPreviewStarted(state = currentState).not()) {
             return
         }
 
-        draftState.update(::applyStartReviewPreview)
-        loadPreviewPage(offset = 0, replaceCards = true)
+        refreshPreview()
     }
 
     fun loadNextPreviewPageIfNeeded(itemCardId: String) {
@@ -269,7 +273,7 @@ class ReviewViewModel(
     }
 
     fun retryPreview() {
-        startPreview()
+        refreshPreview()
     }
 
     fun rateCard(rating: ReviewRating) {

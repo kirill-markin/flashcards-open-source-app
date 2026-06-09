@@ -130,6 +130,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 reviewReactionAnimationsEnabled = accountPreferences.reviewReactionAnimationsEnabled,
                 onSelectFilter = reviewViewModel::selectFilter,
                 onOpenPreview = {
+                    reviewViewModel.refreshPreview()
                     navController.navigate(route = ReviewPreviewDestination.route)
                 },
                 onOpenCurrentCard = { cardId ->
@@ -254,7 +255,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
 
             ReviewPreviewRoute(
                 uiState = uiState,
-                onStartPreview = reviewViewModel::startPreview,
+                onEnsurePreviewStarted = reviewViewModel::ensurePreviewStarted,
                 onLoadNextPreviewPageIfNeeded = reviewViewModel::loadNextPreviewPageIfNeeded,
                 onRetryPreview = reviewViewModel::retryPreview,
                 onOpenCard = { cardId ->

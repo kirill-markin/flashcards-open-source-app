@@ -28,8 +28,8 @@ class ReviewPreviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.activity.getString(resourceId)
 
     @Test
-    fun loadingStateStartsPreviewWithoutShowingEmptyOrErrorState() {
-        var startPreviewCalls = 0
+    fun loadingStateEnsuresPreviewStartedWithoutShowingEmptyOrErrorState() {
+        var ensurePreviewStartedCalls = 0
         val emptyTitle = reviewString(ReviewStringResources.string.review_preview_empty_title)
 
         composeRule.setContent {
@@ -63,8 +63,8 @@ class ReviewPreviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         isNotificationPermissionPromptVisible = false,
                         isHardAnswerReminderVisible = false
                     ),
-                    onStartPreview = {
-                        startPreviewCalls += 1
+                    onEnsurePreviewStarted = {
+                        ensurePreviewStartedCalls += 1
                     },
                     onLoadNextPreviewPageIfNeeded = {},
                     onRetryPreview = {},
@@ -75,7 +75,7 @@ class ReviewPreviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         }
 
         composeRule.waitUntil(timeoutMillis = 5_000L) {
-            startPreviewCalls == 1
+            ensurePreviewStartedCalls == 1
         }
         composeRule.onNodeWithText("All cards").assertIsDisplayed()
         assertEquals(
@@ -86,7 +86,7 @@ class ReviewPreviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             0,
             composeRule.onAllNodesWithText("Queue couldn't be loaded").fetchSemanticsNodes().size
         )
-        assertEquals(1, startPreviewCalls)
+        assertEquals(1, ensurePreviewStartedCalls)
     }
 
     @Test
@@ -125,7 +125,7 @@ class ReviewPreviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         isNotificationPermissionPromptVisible = false,
                         isHardAnswerReminderVisible = false
                     ),
-                    onStartPreview = {},
+                    onEnsurePreviewStarted = {},
                     onLoadNextPreviewPageIfNeeded = {},
                     onRetryPreview = {},
                     onOpenCard = {},
@@ -173,7 +173,7 @@ class ReviewPreviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         isNotificationPermissionPromptVisible = false,
                         isHardAnswerReminderVisible = false
                     ),
-                    onStartPreview = {},
+                    onEnsurePreviewStarted = {},
                     onLoadNextPreviewPageIfNeeded = {},
                     onRetryPreview = {
                         retryCalls += 1
