@@ -862,6 +862,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodes(matcher = rowMatcher).fetchSemanticsNodes().isNotEmpty()
         }
+        composeRule.onNode(matcher = rowMatcher).performScrollTo()
         composeRule.onNode(matcher = rowMatcher).assertIsDisplayed()
         composeRule.onNode(matcher = rowMatcher).performClick()
         composeRule.waitForIdle()
