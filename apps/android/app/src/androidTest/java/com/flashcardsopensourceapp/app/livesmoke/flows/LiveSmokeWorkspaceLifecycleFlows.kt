@@ -61,6 +61,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
+private const val linkedWorkspaceMutationTimeoutMillis: Long = 120_000L
+
 private enum class DeletePreviewResolution {
     PREVIEW_READY,
     ERROR_VISIBLE
@@ -102,15 +104,17 @@ internal fun LiveSmokeContext.createEphemeralWorkspace(workspaceName: String): E
     clickTag(tag = currentWorkspaceCreateButtonTag, label = "Create new workspace")
     val createdWorkspaceSelection: LinkedWorkspaceSelectionSnapshot = waitForLinkedWorkspaceSelectionToChange(
         previousWorkspaceId = selectedWorkspaceIdBeforeCreate,
-        timeoutMillis = externalUiTimeoutMillis,
+        timeoutMillis = linkedWorkspaceMutationTimeoutMillis,
         context = "after creating a linked workspace"
     )
     waitForSelectedWorkspaceSummaryToChange(
         beforeSummary = selectedWorkspaceSummaryBeforeCreate,
         context = "after creating a linked workspace",
-        timeoutMillis = externalUiTimeoutMillis
+        timeoutMillis = linkedWorkspaceMutationTimeoutMillis
     )
-    waitForCurrentWorkspaceOperationToFinish()
+    waitForCurrentWorkspaceOperationToFinish(
+        timeoutMillis = linkedWorkspaceMutationTimeoutMillis
+    )
     waitForCurrentWorkspaceRenameReady(
         expectedWorkspaceName = workspaceName,
         requireExpectedWorkspaceName = false,
@@ -118,10 +122,13 @@ internal fun LiveSmokeContext.createEphemeralWorkspace(workspaceName: String): E
     )
     composeRule.onNodeWithTag(currentWorkspaceNameFieldTag).performTextReplacement(workspaceName)
     clickTag(tag = currentWorkspaceSaveNameButtonTag, label = "Save workspace name")
-    waitForCurrentWorkspaceRenameOutcome(expectedWorkspaceName = workspaceName)
+    waitForCurrentWorkspaceRenameOutcome(
+        expectedWorkspaceName = workspaceName,
+        timeoutMillis = linkedWorkspaceMutationTimeoutMillis
+    )
     val renamedWorkspaceSelection: LinkedWorkspaceSelectionSnapshot = waitForLinkedWorkspaceName(
         expectedWorkspaceName = workspaceName,
-        timeoutMillis = externalUiTimeoutMillis,
+        timeoutMillis = linkedWorkspaceMutationTimeoutMillis,
         context = "after renaming the linked workspace"
     )
     tapBackIcon()
@@ -379,11 +386,11 @@ private fun LiveSmokeContext.tapDeleteWorkspaceConfirmation(workspaceName: Strin
     }
 }
 
-private fun LiveSmokeContext.waitForCurrentWorkspaceOperationToFinish() {
-    waitForCurrentWorkspaceOperationToLeaveSwitchingState()
+private fun LiveSmokeContext.waitForCurrentWorkspaceOperationToFinish(timeoutMillis: Long) {
+    waitForCurrentWorkspaceOperationToLeaveSwitchingState(timeoutMillis = timeoutMillis)
     try {
         waitUntilWithMitigation(
-            timeoutMillis = externalUiTimeoutMillis,
+            timeoutMillis = timeoutMillis,
             context = "while waiting for current workspace operation to finish"
         ) {
             currentWorkspaceOperationMessageOrNull() == null &&
@@ -402,10 +409,12 @@ private fun LiveSmokeContext.waitForCurrentWorkspaceOperationToFinish() {
     }
 }
 
-private fun LiveSmokeContext.waitForCurrentWorkspaceOperationToLeaveSwitchingState() {
+private fun LiveSmokeContext.waitForCurrentWorkspaceOperationToLeaveSwitchingState(
+    timeoutMillis: Long
+) {
     try {
         waitUntilWithMitigation(
-            timeoutMillis = internalUiTimeoutMillis,
+            timeoutMillis = timeoutMillis,
             context = "while waiting for current workspace operation to leave switching"
         ) {
             currentWorkspaceOperationMessageOrNull()
@@ -425,10 +434,13 @@ private fun LiveSmokeContext.waitForCurrentWorkspaceOperationToLeaveSwitchingSta
     }
 }
 
-private fun LiveSmokeContext.waitForCurrentWorkspaceRenameOutcome(expectedWorkspaceName: String) {
+private fun LiveSmokeContext.waitForCurrentWorkspaceRenameOutcome(
+    expectedWorkspaceName: String,
+    timeoutMillis: Long
+) {
     try {
         waitUntilWithMitigation(
-            timeoutMillis = externalUiTimeoutMillis,
+            timeoutMillis = timeoutMillis,
             context = "while waiting for workspace rename to persist"
         ) {
             currentWorkspaceNameFieldValueOrNull() == expectedWorkspaceName &&

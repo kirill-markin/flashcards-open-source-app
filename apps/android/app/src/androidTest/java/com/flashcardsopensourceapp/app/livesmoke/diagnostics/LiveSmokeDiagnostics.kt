@@ -1,6 +1,5 @@
 package com.flashcardsopensourceapp.app.livesmoke.diagnostics
 
-import android.os.ParcelFileDescriptor
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
@@ -16,7 +15,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
-import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
@@ -27,8 +25,7 @@ import com.flashcardsopensourceapp.app.livesmoke.support.systemDialogAlertTitleR
 import com.flashcardsopensourceapp.app.livesmoke.support.systemDialogCloseAppButtonResourceId
 import com.flashcardsopensourceapp.app.livesmoke.support.systemDialogWaitButtonResourceId
 import com.flashcardsopensourceapp.app.livesmoke.support.deleteCurrentWorkspaceErrorMessageOrNull
-import java.io.BufferedReader
-import java.io.InputStreamReader
+import java.io.ByteArrayOutputStream
 import java.time.Instant
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -97,10 +94,11 @@ private fun formatSemanticsNode(node: SemanticsNode, depth: Int): String {
 }
 
 private fun LiveSmokeContext.captureWindowHierarchy(): String {
-    val dumpPath: String = "/sdcard/Download/flashcards-live-smoke-window-hierarchy.xml"
     return try {
-        val command: String = "uiautomator dump $dumpPath >/dev/null 2>&1 && cat $dumpPath"
-        runShellCommand(command = command).ifBlank { "<empty window hierarchy dump>" }
+        val outputStream = ByteArrayOutputStream()
+        device.dumpWindowHierarchy(outputStream)
+        String(outputStream.toByteArray(), Charsets.UTF_8)
+            .ifBlank { "<empty window hierarchy dump>" }
     } catch (error: Throwable) {
         "<window hierarchy capture failed: ${error.message}>"
     }
@@ -394,15 +392,6 @@ internal fun LiveSmokeContext.dismissExternalSystemDialogIfPresent(): String? {
 
 internal fun LiveSmokeContext.currentBlockingSystemDialogSummaryOrNull(): String? {
     return device.currentBlockingSystemDialogSummaryOrNull()
-}
-
-private fun runShellCommand(command: String): String {
-    val shellOutput = InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand(command)
-    ParcelFileDescriptor.AutoCloseInputStream(shellOutput).use { inputStream ->
-        BufferedReader(InputStreamReader(inputStream)).use { reader ->
-            return reader.readText()
-        }
-    }
 }
 
 internal fun LiveSmokeContext.scrollToText(text: String) {
