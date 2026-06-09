@@ -7,7 +7,7 @@ import androidx.compose.runtime.remember
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
-import com.flashcardsopensourceapp.app.navigation.cards.CardEditorDestination
+import com.flashcardsopensourceapp.app.navigation.cards.CardEditorGraph
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsWorkspaceDecksDestination
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsWorkspaceTagsDestination
 
@@ -24,7 +24,7 @@ internal fun navigateToCardEditor(
     navController: NavHostController,
     cardId: String?
 ) {
-    navController.navigate(route = CardEditorDestination.createRoute(cardId = cardId ?: "new")) {
+    navController.navigate(route = CardEditorGraph.createRoute(cardId = cardId ?: "new")) {
         launchSingleTop = true
     }
 }

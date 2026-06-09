@@ -8,6 +8,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.navigation
 import androidx.navigation.navArgument
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.navigation.AiDestination
@@ -32,202 +33,216 @@ internal fun NavGraphBuilder.registerCardEditorNavGraph(
     navController: NavHostController,
     coroutineScope: CoroutineScope
 ) {
-    composable(
-        route = CardEditorDestination.routePattern,
-        arguments = listOf(navArgument(name = CardEditorDestination.routeArgument) {
+    navigation(
+        startDestination = CardEditorDestination.routePattern,
+        route = CardEditorGraph.routePattern,
+        arguments = listOf(navArgument(name = CardEditorGraph.routeArgument) {
             type = NavType.StringType
         })
-    ) { backStackEntry ->
-        val editingArgument = requireNotNull(backStackEntry.arguments?.getString(CardEditorDestination.routeArgument)) {
-            "Card editor route requires cardId."
-        }
-        val editingCardId = resolveEditingCardId(editingArgument = editingArgument)
-        val editorViewModel = viewModel<com.flashcardsopensourceapp.feature.cards.CardEditorViewModel>(
-            factory = createCardEditorViewModelFactory(
-                cardsRepository = appGraph.cardsRepository,
-                workspaceRepository = appGraph.workspaceRepository,
-                editingCardId = editingCardId
+    ) {
+        composable(
+            route = CardEditorDestination.routePattern,
+            arguments = listOf(navArgument(name = CardEditorDestination.routeArgument) {
+                type = NavType.StringType
+            })
+        ) { backStackEntry ->
+            val editingArgument = requireNotNull(backStackEntry.arguments?.getString(CardEditorDestination.routeArgument)) {
+                "Card editor route requires cardId."
+            }
+            val editingCardId = resolveEditingCardId(editingArgument = editingArgument)
+            val editorBackStackEntry = rememberRouteBackStackEntry(
+                navController = navController,
+                currentBackStackEntry = backStackEntry,
+                route = CardEditorGraph.createRoute(cardId = editingArgument)
             )
-        )
-        val uiState by editorViewModel.uiState.collectAsStateWithLifecycle()
-
-        CardEditorRoute(
-            uiState = uiState,
-            onOpenFrontTextEditor = {
-                navController.navigate(
-                    route = CardEditorTextDestination.createRoute(
-                        cardId = editingArgument,
-                        field = "front"
-                    )
+            val editorViewModel = viewModel<com.flashcardsopensourceapp.feature.cards.CardEditorViewModel>(
+                viewModelStoreOwner = editorBackStackEntry,
+                factory = createCardEditorViewModelFactory(
+                    cardsRepository = appGraph.cardsRepository,
+                    workspaceRepository = appGraph.workspaceRepository,
+                    editingCardId = editingCardId
                 )
-            },
-            onOpenBackTextEditor = {
-                navController.navigate(
-                    route = CardEditorTextDestination.createRoute(
-                        cardId = editingArgument,
-                        field = "back"
-                    )
-                )
-            },
-            onOpenTagsEditor = {
-                navController.navigate(route = CardEditorTagsDestination.createRoute(cardId = editingArgument))
-            },
-            onEditWithAi = if (editingCardId == null) {
-                null
-            } else {
-                {
-                    val handoffCardId = requireNotNull(editingCardId)
-                    coroutineScope.launch {
-                        val savedCardDraft = editorViewModel.save(editingCardId = handoffCardId)
-                        if (savedCardDraft == null) {
-                            return@launch
-                        }
+            )
+            val uiState by editorViewModel.uiState.collectAsStateWithLifecycle()
 
-                        appGraph.appHandoffCoordinator.requestAiCardHandoff(
-                            cardId = handoffCardId,
-                            frontText = savedCardDraft.frontText,
-                            backText = savedCardDraft.backText,
-                            tags = savedCardDraft.tags,
-                            effortLevel = savedCardDraft.effortLevel
+            CardEditorRoute(
+                uiState = uiState,
+                onOpenFrontTextEditor = {
+                    navController.navigate(
+                        route = CardEditorTextDestination.createRoute(
+                            cardId = editingArgument,
+                            field = "front"
                         )
-                        navigateToTopLevelDestination(
-                            navController = navController,
-                            destination = AiDestination
+                    )
+                },
+                onOpenBackTextEditor = {
+                    navController.navigate(
+                        route = CardEditorTextDestination.createRoute(
+                            cardId = editingArgument,
+                            field = "back"
                         )
-                    }
-                }
-            },
-            onRemoveTag = editorViewModel::removeTag,
-            onEffortLevelChange = editorViewModel::updateEffortLevel,
-            onSave = {
-                coroutineScope.launch {
-                    val didSave = editorViewModel.save(editingCardId = editingCardId)
-                    if (didSave != null) {
-                        withContext(Dispatchers.Main.immediate) {
-                            navController.popBackStack()
+                    )
+                },
+                onOpenTagsEditor = {
+                    navController.navigate(route = CardEditorTagsDestination.createRoute(cardId = editingArgument))
+                },
+                onEditWithAi = if (editingCardId == null) {
+                    null
+                } else {
+                    {
+                        val handoffCardId = requireNotNull(editingCardId)
+                        coroutineScope.launch {
+                            val savedCardDraft = editorViewModel.save(editingCardId = handoffCardId)
+                            if (savedCardDraft == null) {
+                                return@launch
+                            }
+
+                            appGraph.appHandoffCoordinator.requestAiCardHandoff(
+                                cardId = handoffCardId,
+                                frontText = savedCardDraft.frontText,
+                                backText = savedCardDraft.backText,
+                                tags = savedCardDraft.tags,
+                                effortLevel = savedCardDraft.effortLevel
+                            )
+                            navigateToTopLevelDestination(
+                                navController = navController,
+                                destination = AiDestination
+                            )
                         }
                     }
-                }
-            },
-            onDelete = if (editingCardId == null) {
-                null
-            } else {
-                {
+                },
+                onRemoveTag = editorViewModel::removeTag,
+                onEffortLevelChange = editorViewModel::updateEffortLevel,
+                onSave = {
                     coroutineScope.launch {
-                        val didDelete = editorViewModel.delete(editingCardId = editingCardId)
-                        if (didDelete) {
+                        val didSave = editorViewModel.save(editingCardId = editingCardId)
+                        if (didSave != null) {
                             withContext(Dispatchers.Main.immediate) {
                                 navController.popBackStack()
                             }
                         }
                     }
+                },
+                onDelete = if (editingCardId == null) {
+                    null
+                } else {
+                    {
+                        coroutineScope.launch {
+                            val didDelete = editorViewModel.delete(editingCardId = editingCardId)
+                            if (didDelete) {
+                                withContext(Dispatchers.Main.immediate) {
+                                    navController.popBackStack()
+                                }
+                            }
+                        }
+                    }
+                },
+                onBack = {
+                    navController.popBackStack()
                 }
-            },
-            onBack = {
-                navController.popBackStack()
-            }
-        )
-    }
-
-    composable(
-        route = CardEditorTextDestination.routePattern,
-        arguments = listOf(
-            navArgument(name = CardEditorTextDestination.cardIdArgument) {
-                type = NavType.StringType
-            },
-            navArgument(name = CardEditorTextDestination.fieldArgument) {
-                type = NavType.StringType
-            }
-        )
-    ) { backStackEntry ->
-        val editingArgument = requireNotNull(
-            backStackEntry.arguments?.getString(CardEditorTextDestination.cardIdArgument)
-        ) {
-            "Card text editor route requires cardId."
-        }
-        val field = requireNotNull(
-            backStackEntry.arguments?.getString(CardEditorTextDestination.fieldArgument)
-        ) {
-            "Card text editor route requires field."
-        }
-        val editorBackStackEntry = rememberRouteBackStackEntry(
-            navController = navController,
-            currentBackStackEntry = backStackEntry,
-            route = CardEditorDestination.createRoute(cardId = editingArgument)
-        )
-        val editorViewModel = viewModel<com.flashcardsopensourceapp.feature.cards.CardEditorViewModel>(
-            viewModelStoreOwner = editorBackStackEntry,
-            factory = createCardEditorViewModelFactory(
-                cardsRepository = appGraph.cardsRepository,
-                workspaceRepository = appGraph.workspaceRepository,
-                editingCardId = resolveEditingCardId(editingArgument = editingArgument)
             )
-        )
-        val uiState by editorViewModel.uiState.collectAsStateWithLifecycle()
-
-        CardTextEditorRoute(
-            title = if (field == "front") {
-                stringResource(id = CardsR.string.cards_front_title)
-            } else {
-                stringResource(id = CardsR.string.cards_back_title)
-            },
-            supportingText = if (field == "front") {
-                stringResource(id = CardsR.string.cards_front_supporting_text)
-            } else {
-                stringResource(id = CardsR.string.cards_back_supporting_text)
-            },
-            text = if (field == "front") uiState.frontText else uiState.backText,
-            textFieldTag = if (field == "front") {
-                cardEditorFrontTextFieldTag
-            } else {
-                cardEditorBackTextFieldTag
-            },
-            onTextChange = if (field == "front") {
-                editorViewModel::updateFrontText
-            } else {
-                editorViewModel::updateBackText
-            },
-            onBack = {
-                navController.popBackStack()
-            }
-        )
-    }
-
-    composable(
-        route = CardEditorTagsDestination.routePattern,
-        arguments = listOf(navArgument(name = CardEditorTagsDestination.routeArgument) {
-            type = NavType.StringType
-        })
-    ) { backStackEntry ->
-        val editingArgument = requireNotNull(
-            backStackEntry.arguments?.getString(CardEditorTagsDestination.routeArgument)
-        ) {
-            "Card tags route requires cardId."
         }
-        val editorBackStackEntry = rememberRouteBackStackEntry(
-            navController = navController,
-            currentBackStackEntry = backStackEntry,
-            route = CardEditorDestination.createRoute(cardId = editingArgument)
-        )
-        val editorViewModel = viewModel<com.flashcardsopensourceapp.feature.cards.CardEditorViewModel>(
-            viewModelStoreOwner = editorBackStackEntry,
-            factory = createCardEditorViewModelFactory(
-                cardsRepository = appGraph.cardsRepository,
-                workspaceRepository = appGraph.workspaceRepository,
-                editingCardId = resolveEditingCardId(editingArgument = editingArgument)
-            )
-        )
-        val uiState by editorViewModel.uiState.collectAsStateWithLifecycle()
 
-        CardTagsRoute(
-            uiState = uiState,
-            onToggleSuggestedTag = editorViewModel::toggleTag,
-            onAddTag = editorViewModel::addTag,
-            onRemoveTag = editorViewModel::removeTag,
-            onBack = {
-                navController.popBackStack()
+        composable(
+            route = CardEditorTextDestination.routePattern,
+            arguments = listOf(
+                navArgument(name = CardEditorTextDestination.cardIdArgument) {
+                    type = NavType.StringType
+                },
+                navArgument(name = CardEditorTextDestination.fieldArgument) {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val editingArgument = requireNotNull(
+                backStackEntry.arguments?.getString(CardEditorTextDestination.cardIdArgument)
+            ) {
+                "Card text editor route requires cardId."
             }
-        )
+            val field = requireNotNull(
+                backStackEntry.arguments?.getString(CardEditorTextDestination.fieldArgument)
+            ) {
+                "Card text editor route requires field."
+            }
+            val editorBackStackEntry = rememberRouteBackStackEntry(
+                navController = navController,
+                currentBackStackEntry = backStackEntry,
+                route = CardEditorGraph.createRoute(cardId = editingArgument)
+            )
+            val editorViewModel = viewModel<com.flashcardsopensourceapp.feature.cards.CardEditorViewModel>(
+                viewModelStoreOwner = editorBackStackEntry,
+                factory = createCardEditorViewModelFactory(
+                    cardsRepository = appGraph.cardsRepository,
+                    workspaceRepository = appGraph.workspaceRepository,
+                    editingCardId = resolveEditingCardId(editingArgument = editingArgument)
+                )
+            )
+            val uiState by editorViewModel.uiState.collectAsStateWithLifecycle()
+
+            CardTextEditorRoute(
+                title = if (field == "front") {
+                    stringResource(id = CardsR.string.cards_front_title)
+                } else {
+                    stringResource(id = CardsR.string.cards_back_title)
+                },
+                supportingText = if (field == "front") {
+                    stringResource(id = CardsR.string.cards_front_supporting_text)
+                } else {
+                    stringResource(id = CardsR.string.cards_back_supporting_text)
+                },
+                text = if (field == "front") uiState.frontText else uiState.backText,
+                textFieldTag = if (field == "front") {
+                    cardEditorFrontTextFieldTag
+                } else {
+                    cardEditorBackTextFieldTag
+                },
+                onTextChange = if (field == "front") {
+                    editorViewModel::updateFrontText
+                } else {
+                    editorViewModel::updateBackText
+                },
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(
+            route = CardEditorTagsDestination.routePattern,
+            arguments = listOf(navArgument(name = CardEditorTagsDestination.routeArgument) {
+                type = NavType.StringType
+            })
+        ) { backStackEntry ->
+            val editingArgument = requireNotNull(
+                backStackEntry.arguments?.getString(CardEditorTagsDestination.routeArgument)
+            ) {
+                "Card tags route requires cardId."
+            }
+            val editorBackStackEntry = rememberRouteBackStackEntry(
+                navController = navController,
+                currentBackStackEntry = backStackEntry,
+                route = CardEditorGraph.createRoute(cardId = editingArgument)
+            )
+            val editorViewModel = viewModel<com.flashcardsopensourceapp.feature.cards.CardEditorViewModel>(
+                viewModelStoreOwner = editorBackStackEntry,
+                factory = createCardEditorViewModelFactory(
+                    cardsRepository = appGraph.cardsRepository,
+                    workspaceRepository = appGraph.workspaceRepository,
+                    editingCardId = resolveEditingCardId(editingArgument = editingArgument)
+                )
+            )
+            val uiState by editorViewModel.uiState.collectAsStateWithLifecycle()
+
+            CardTagsRoute(
+                uiState = uiState,
+                onToggleSuggestedTag = editorViewModel::toggleTag,
+                onAddTag = editorViewModel::addTag,
+                onRemoveTag = editorViewModel::removeTag,
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
     }
 }
 

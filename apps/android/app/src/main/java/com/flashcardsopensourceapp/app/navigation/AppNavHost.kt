@@ -13,6 +13,7 @@ import com.flashcardsopensourceapp.app.navigation.ai.registerAiNavGraph
 import com.flashcardsopensourceapp.app.navigation.cards.registerCardsNavGraph
 import com.flashcardsopensourceapp.app.navigation.progress.registerProgressNavGraph
 import com.flashcardsopensourceapp.app.navigation.review.ReviewPreviewDestination
+import com.flashcardsopensourceapp.app.navigation.review.ReviewRootGraph
 import com.flashcardsopensourceapp.app.navigation.review.registerReviewNavGraph
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsCurrentWorkspaceDestination
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsWorkspaceDeleteCurrentDestination
@@ -85,7 +86,7 @@ fun AppNavHost(
 
     NavHost(
         navController = navController,
-        startDestination = ReviewDestination.route
+        startDestination = ReviewRootGraph.route
     ) {
         registerReviewNavGraph(
             appGraph = appGraph,
