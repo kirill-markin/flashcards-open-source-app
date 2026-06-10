@@ -236,7 +236,7 @@ struct FlashcardsApp: App {
                         store.triggerCloudAccountContextRefreshIfActive(surfacesGlobalErrorMessage: false)
                         store.reconcileReviewNotifications(trigger: .appActive, now: now)
                         store.reconcileStrictReminders(trigger: .appActive, now: now)
-                    } else if nextPhase == .background || nextPhase == .inactive {
+                    } else if nextPhase == .background {
                         store.reconcileReviewNotifications(trigger: .appBackground, now: Date())
                         store.reconcileStrictReminders(trigger: .appBackground, now: Date())
                     }
