@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.app.observability
 
 import android.app.Application
+import android.os.Build
 import com.flashcardsopensourceapp.app.BuildConfig
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.data.local.network.TracePropagationTarget
@@ -36,12 +37,19 @@ data class AndroidObservabilityStartup(
 
 fun startAndroidObservability(application: Application): AndroidObservabilityStartup {
     val sentryDsn = BuildConfig.ANDROID_SENTRY_DSN.trim()
-    val isSentryEnabled = sentryDsn.isNotBlank()
-    SentryAndroid.init(application) { options ->
-        configureSentryOptions(
-            options = options,
-            sentryDsn = sentryDsn
-        )
+    // Run Sentry only on devices at or above the declared minSdk. Reports from lower API levels
+    // come from out-of-contract devices (emulators, cloud test farms, spoofed or sideloaded
+    // installs) where the latest-only codepath is expected to fail and only pollute crash-free
+    // metrics. Sentry recommends skipping init entirely to fully disable the SDK; that also stops
+    // native (NDK) and ANR capture, which a beforeSend filter cannot reach.
+    val isSentryEnabled = sentryDsn.isNotBlank() && isDeviceAtOrAboveMinimumSupportedSdk()
+    if (isSentryEnabled) {
+        SentryAndroid.init(application) { options ->
+            configureSentryOptions(
+                options = options,
+                sentryDsn = sentryDsn
+            )
+        }
     }
 
     return AndroidObservabilityStartup(
@@ -58,11 +66,6 @@ private fun configureSentryOptions(
     options: io.sentry.android.core.SentryAndroidOptions,
     sentryDsn: String
 ) {
-    if (sentryDsn.isBlank()) {
-        options.isEnabled = false
-        return
-    }
-
     options.dsn = sentryDsn
     options.release = "${BuildConfig.APPLICATION_ID}@${BuildConfig.VERSION_NAME}+${BuildConfig.VERSION_CODE}"
     options.dist = BuildConfig.VERSION_CODE.toString()
@@ -81,6 +84,10 @@ private fun configureSentryOptions(
     options.setBeforeBreadcrumb { breadcrumb, _ ->
         sanitizeSentryBreadcrumb(breadcrumb = breadcrumb)
     }
+}
+
+private fun isDeviceAtOrAboveMinimumSupportedSdk(): Boolean {
+    return Build.VERSION.SDK_INT >= BuildConfig.ANDROID_MIN_SDK
 }
 
 private fun sentryEnvironment(): String {
