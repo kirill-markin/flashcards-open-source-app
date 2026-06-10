@@ -27,7 +27,7 @@ data class DeckSummary(
     val updatedAtMillis: Long
 )
 
-// Keep in sync with apps/backend/src/cards/types.ts::Card, apps/web/src/types.ts::Card, and apps/ios/Flashcards/Flashcards/Cards/CardDeckTypes.swift::Card.
+// Keep in sync with apps/backend/src/cards/types.ts::Card, apps/web/src/types.ts::Card, and apps/ios/Flashcards/Flashcards/Cards/Model/CardDeckTypes.swift::Card.
 data class CardSummary(
     val cardId: String,
     val workspaceId: String,
