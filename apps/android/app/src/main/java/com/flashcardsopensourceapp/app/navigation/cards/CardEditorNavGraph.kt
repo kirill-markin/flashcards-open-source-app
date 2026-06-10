@@ -14,13 +14,14 @@ import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.navigation.AiDestination
 import com.flashcardsopensourceapp.app.navigation.navigateToTopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.rememberRouteBackStackEntry
-import com.flashcardsopensourceapp.feature.cards.CardEditorRoute
-import com.flashcardsopensourceapp.feature.cards.CardTagsRoute
-import com.flashcardsopensourceapp.feature.cards.CardTextEditorRoute
 import com.flashcardsopensourceapp.feature.cards.R as CardsR
 import com.flashcardsopensourceapp.feature.cards.cardEditorBackTextFieldTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorFrontTextFieldTag
 import com.flashcardsopensourceapp.feature.cards.createCardEditorViewModelFactory
+import com.flashcardsopensourceapp.feature.cards.editor.CardEditorRoute
+import com.flashcardsopensourceapp.feature.cards.editor.CardEditorViewModel
+import com.flashcardsopensourceapp.feature.cards.editor.CardTagsRoute
+import com.flashcardsopensourceapp.feature.cards.editor.CardTextEditorRoute
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -55,7 +56,7 @@ internal fun NavGraphBuilder.registerCardEditorNavGraph(
                 currentBackStackEntry = backStackEntry,
                 route = CardEditorGraph.createRoute(cardId = editingArgument)
             )
-            val editorViewModel = viewModel<com.flashcardsopensourceapp.feature.cards.CardEditorViewModel>(
+            val editorViewModel = viewModel<CardEditorViewModel>(
                 viewModelStoreOwner = editorBackStackEntry,
                 factory = createCardEditorViewModelFactory(
                     cardsRepository = appGraph.cardsRepository,
@@ -169,7 +170,7 @@ internal fun NavGraphBuilder.registerCardEditorNavGraph(
                 currentBackStackEntry = backStackEntry,
                 route = CardEditorGraph.createRoute(cardId = editingArgument)
             )
-            val editorViewModel = viewModel<com.flashcardsopensourceapp.feature.cards.CardEditorViewModel>(
+            val editorViewModel = viewModel<CardEditorViewModel>(
                 viewModelStoreOwner = editorBackStackEntry,
                 factory = createCardEditorViewModelFactory(
                     cardsRepository = appGraph.cardsRepository,
@@ -223,7 +224,7 @@ internal fun NavGraphBuilder.registerCardEditorNavGraph(
                 currentBackStackEntry = backStackEntry,
                 route = CardEditorGraph.createRoute(cardId = editingArgument)
             )
-            val editorViewModel = viewModel<com.flashcardsopensourceapp.feature.cards.CardEditorViewModel>(
+            val editorViewModel = viewModel<CardEditorViewModel>(
                 viewModelStoreOwner = editorBackStackEntry,
                 factory = createCardEditorViewModelFactory(
                     cardsRepository = appGraph.cardsRepository,
