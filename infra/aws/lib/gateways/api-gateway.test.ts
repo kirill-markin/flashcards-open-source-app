@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import test from "node:test";
 import * as cdk from "aws-cdk-lib";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
@@ -9,6 +11,18 @@ import {
   createGatewayErrorResponseHeaders,
   globalMetricsCorsPreflightOptions,
 } from "./api-gateway";
+
+test("API Gateway predeclares /me/community/profile", () => {
+  const apiGatewayPath = resolve(process.cwd(), "lib/gateways/api-gateway.ts");
+  const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
+
+  assert.match(
+    apiGatewaySource,
+    /const meCommunityProfile = me\.addResource\("community"\)\.addResource\("profile"\);/,
+  );
+  assert.match(apiGatewaySource, /meCommunityProfile\.addMethod\("GET", integration\);/);
+  assert.match(apiGatewaySource, /meCommunityProfile\.addMethod\("PATCH", integration\);/);
+});
 
 test("global snapshot API Gateway mock preflight allows content type and Sentry trace headers", () => {
   const stack = new cdk.Stack();

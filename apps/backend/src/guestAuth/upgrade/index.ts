@@ -28,6 +28,7 @@ import {
   recordGuestUpgradeHistoryInExecutor,
   selectWorkspaceForUserInExecutor,
   transferGuestFeedbackInExecutor,
+  transferGuestPublicProfileInExecutor,
   updateUserEmailInExecutor,
   type GuestSessionRecord,
 } from "../store/index";
@@ -532,13 +533,18 @@ export async function completeGuestUpgradeInExecutor(
     guestUpgradeResolution.targetWorkspaceId,
   );
 
-  // Phase 11: transfer guest-owned support data before deleting source rows.
+  // Phase 11: transfer guest-owned support and community data before deleting source rows.
   await transferGuestFeedbackInExecutor(
     executor,
     guestSession.userId,
     guestUpgradeResolution.guestWorkspaceId,
     guestUpgradeResolution.targetUserId,
     guestUpgradeResolution.targetWorkspaceId,
+  );
+  await transferGuestPublicProfileInExecutor(
+    executor,
+    guestSession.userId,
+    guestUpgradeResolution.targetUserId,
   );
 
   // Phase 12: revoke and delete guest source rows.

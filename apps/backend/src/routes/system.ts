@@ -3,6 +3,11 @@ import { authenticateRequest } from "../auth";
 import { deleteAccountForAuthenticatedUser } from "../auth/accountDeletion";
 import { createAgentDiscoveryEnvelope } from "../agent/discovery";
 import { createAgentAccountEnvelope, shouldUseAgentSetupEnvelope } from "../agent/setup";
+import {
+  ensurePublicProfileForUser,
+  updateLeaderboardParticipation,
+  type PublicProfile,
+} from "../community/publicProfiles";
 import { HttpError } from "../shared/errors";
 import { queryWithUserScope } from "../database";
 import {
@@ -45,6 +50,8 @@ type SystemRoutesOptions = Readonly<{
   loadUserProgressSeriesFn?: typeof loadUserProgressSeries;
   loadUserProgressSummaryFn?: typeof loadUserProgressSummary;
   updateAccountPreferencesFn?: UpdateAccountPreferencesFn;
+  ensurePublicProfileForUserFn?: EnsurePublicProfileForUserFn;
+  updateLeaderboardParticipationFn?: UpdateLeaderboardParticipationFn;
 }>;
 
 type ProgressRequestedParameters = Readonly<{
@@ -61,6 +68,18 @@ type UpdateAccountPreferencesFn = (
   userId: string,
   preferences: AccountPreferences,
 ) => Promise<AccountPreferences>;
+
+type EnsurePublicProfileForUserFn = (userId: string, localeHint: string) => Promise<PublicProfile>;
+
+type UpdateLeaderboardParticipationFn = (
+  userId: string,
+  leaderboardParticipationEnabled: boolean,
+  localeHint: string,
+) => Promise<PublicProfile>;
+
+type CommunityPublicProfileResponse = PublicProfile & Readonly<{
+  linkedAccountRequiredForLeaderboard: boolean;
+}>;
 
 function readRequestedProgressParameters(requestUrl: URL): ProgressRequestedParameters {
   return {
@@ -96,6 +115,16 @@ function assertAccountPreferencesHumanTransport(transport: AuthTransport): void 
   }
 }
 
+function assertCommunityProfileHumanTransport(transport: AuthTransport): void {
+  if (transport !== "session" && transport !== "bearer" && transport !== "guest") {
+    throw new HttpError(
+      403,
+      "This endpoint requires Guest, Bearer, or Session authentication",
+      "COMMUNITY_PROFILE_HUMAN_AUTH_REQUIRED",
+    );
+  }
+}
+
 function parseAccountPreferencesInput(body: Record<string, unknown>): AccountPreferences {
   const unexpectedKey = Object.keys(body).find((key) => key !== "reviewReactionAnimationsEnabled");
   if (unexpectedKey !== undefined) {
@@ -110,6 +139,26 @@ function parseAccountPreferencesInput(body: Record<string, unknown>): AccountPre
     reviewReactionAnimationsEnabled: expectBoolean(
       body.reviewReactionAnimationsEnabled,
       "reviewReactionAnimationsEnabled",
+    ),
+  };
+}
+
+function parseCommunityProfileInput(body: Record<string, unknown>): Readonly<{
+  leaderboardParticipationEnabled: boolean;
+}> {
+  const unexpectedKey = Object.keys(body).find((key) => key !== "leaderboardParticipationEnabled");
+  if (unexpectedKey !== undefined) {
+    throw new HttpError(
+      400,
+      `Unexpected community profile field: ${unexpectedKey}`,
+      "COMMUNITY_PROFILE_FIELD_UNKNOWN",
+    );
+  }
+
+  return {
+    leaderboardParticipationEnabled: expectBoolean(
+      body.leaderboardParticipationEnabled,
+      "leaderboardParticipationEnabled",
     ),
   };
 }
@@ -135,6 +184,16 @@ async function updateAccountPreferences(
   }
 
   return mapAccountPreferencesRow(row);
+}
+
+function createCommunityPublicProfileResponse(
+  profile: PublicProfile,
+  transport: AuthTransport,
+): CommunityPublicProfileResponse {
+  return {
+    ...profile,
+    linkedAccountRequiredForLeaderboard: transport === "guest",
+  };
 }
 
 function createSystemScope(
@@ -163,6 +222,8 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
   const loadUserProgressSeriesFn = options.loadUserProgressSeriesFn ?? loadUserProgressSeries;
   const loadUserProgressSummaryFn = options.loadUserProgressSummaryFn ?? loadUserProgressSummary;
   const updateAccountPreferencesFn = options.updateAccountPreferencesFn ?? updateAccountPreferences;
+  const ensurePublicProfileForUserFn = options.ensurePublicProfileForUserFn ?? ensurePublicProfileForUser;
+  const updateLeaderboardParticipationFn = options.updateLeaderboardParticipationFn ?? updateLeaderboardParticipation;
 
   app.get("/", async (context) => context.json(createAgentDiscoveryEnvelope(context.req.url)));
   app.get("/agent", async (context) => context.json(createAgentDiscoveryEnvelope(context.req.url)));
@@ -218,6 +279,37 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
     return context.json({
       preferences,
     });
+  });
+
+  app.get("/me/community/profile", async (context) => {
+    const { requestContext } = await loadRequestContextFromRequestFn(
+      context.req.raw,
+      options.allowedOrigins,
+    );
+
+    assertCommunityProfileHumanTransport(requestContext.transport);
+
+    const profile = await ensurePublicProfileForUserFn(requestContext.userId, requestContext.locale);
+    return context.json(createCommunityPublicProfileResponse(profile, requestContext.transport));
+  });
+
+  app.patch("/me/community/profile", async (context) => {
+    const { requestContext } = await loadRequestContextFromRequestFn(
+      context.req.raw,
+      options.allowedOrigins,
+    );
+
+    assertCommunityProfileHumanTransport(requestContext.transport);
+
+    const body = expectRecord(await parseJsonBody(context.req.raw));
+    const input = parseCommunityProfileInput(body);
+    const profile = await updateLeaderboardParticipationFn(
+      requestContext.userId,
+      input.leaderboardParticipationEnabled,
+      requestContext.locale,
+    );
+
+    return context.json(createCommunityPublicProfileResponse(profile, requestContext.transport));
   });
 
   app.get("/me/progress/summary", async (context) => {

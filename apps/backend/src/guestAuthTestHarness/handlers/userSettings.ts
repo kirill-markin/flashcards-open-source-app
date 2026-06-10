@@ -79,6 +79,7 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
     if (state.guestSession?.user_id === userId) {
       state.guestSession = null;
     }
+    state.publicProfiles = state.publicProfiles.filter((profile) => profile.user_id !== userId);
     for (const [providerSubject, mappedUserId] of state.identityMappings) {
       if (mappedUserId === userId) {
         state.identityMappings.delete(providerSubject);

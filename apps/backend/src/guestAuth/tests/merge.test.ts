@@ -98,6 +98,155 @@ test("completeGuestUpgradeInExecutor reassigns guest installation ownership duri
   assert.equal(targetReplica?.user_id, targetUserId);
 });
 
+test("completeGuestUpgradeInExecutor transfers guest community profile when target has no profile", async () => {
+  const guestToken = "guest-token-community-profile";
+  const guestUserId = "guest-user-community-profile";
+  const guestWorkspaceId = "guest-workspace-community-profile";
+  const targetUserId = "linked-user-community-profile";
+  const targetWorkspaceId = "target-workspace-community-profile";
+  const targetSubject = "cognito-subject-community-profile";
+  const state = createMergeState({
+    guestToken,
+    guestSessionId: "guest-session-community-profile",
+    guestUserId,
+    guestWorkspaceId,
+    targetSubject,
+    targetUserId,
+    targetWorkspaceId,
+    guestReplicaId: "guest-replica-community-profile",
+    installationId: "installation-community-profile",
+    guestSchedulerUpdatedAt: "2026-04-02T14:00:00.000Z",
+    targetSchedulerUpdatedAt: "2026-04-02T14:05:00.000Z",
+  });
+  state.publicProfiles.push({
+    user_id: guestUserId,
+    public_profile_id: "guest-public-profile-id",
+    leaderboard_participation_enabled: false,
+  });
+
+  const result = await completeGuestUpgradeInExecutor(
+    createGuestUpgradeExecutor(state),
+    guestToken,
+    targetSubject,
+    {
+      type: "existing",
+      workspaceId: targetWorkspaceId,
+    },
+    DROPPED_ENTITIES_UNSUPPORTED,
+  );
+
+  assert.equal(result.targetUserId, targetUserId);
+  assert.deepEqual(state.publicProfiles, [{
+    user_id: targetUserId,
+    public_profile_id: "guest-public-profile-id",
+    leaderboard_participation_enabled: false,
+  }]);
+});
+
+test("completeGuestUpgradeInExecutor preserves target community identity while transferring guest participation preference", async () => {
+  const guestToken = "guest-token-community-profile-existing";
+  const guestUserId = "guest-user-community-profile-existing";
+  const guestWorkspaceId = "guest-workspace-community-profile-existing";
+  const targetUserId = "linked-user-community-profile-existing";
+  const targetWorkspaceId = "target-workspace-community-profile-existing";
+  const targetSubject = "cognito-subject-community-profile-existing";
+  const state = createMergeState({
+    guestToken,
+    guestSessionId: "guest-session-community-profile-existing",
+    guestUserId,
+    guestWorkspaceId,
+    targetSubject,
+    targetUserId,
+    targetWorkspaceId,
+    guestReplicaId: "guest-replica-community-profile-existing",
+    installationId: "installation-community-profile-existing",
+    guestSchedulerUpdatedAt: "2026-04-02T14:00:00.000Z",
+    targetSchedulerUpdatedAt: "2026-04-02T14:05:00.000Z",
+  });
+  state.publicProfiles.push(
+    {
+      user_id: guestUserId,
+      public_profile_id: "guest-public-profile-id",
+      leaderboard_participation_enabled: false,
+    },
+    {
+      user_id: targetUserId,
+      public_profile_id: "target-public-profile-id",
+      leaderboard_participation_enabled: true,
+    },
+  );
+
+  const result = await completeGuestUpgradeInExecutor(
+    createGuestUpgradeExecutor(state),
+    guestToken,
+    targetSubject,
+    {
+      type: "existing",
+      workspaceId: targetWorkspaceId,
+    },
+    DROPPED_ENTITIES_UNSUPPORTED,
+  );
+
+  assert.equal(result.targetUserId, targetUserId);
+  assert.deepEqual(state.publicProfiles, [{
+    user_id: targetUserId,
+    public_profile_id: "target-public-profile-id",
+    leaderboard_participation_enabled: false,
+  }]);
+});
+
+test("completeGuestUpgradeInExecutor does not re-enable an existing target community participation opt-out", async () => {
+  const guestToken = "guest-token-community-profile-target-opt-out";
+  const guestUserId = "guest-user-community-profile-target-opt-out";
+  const guestWorkspaceId = "guest-workspace-community-profile-target-opt-out";
+  const targetUserId = "linked-user-community-profile-target-opt-out";
+  const targetWorkspaceId = "target-workspace-community-profile-target-opt-out";
+  const targetSubject = "cognito-subject-community-profile-target-opt-out";
+  const state = createMergeState({
+    guestToken,
+    guestSessionId: "guest-session-community-profile-target-opt-out",
+    guestUserId,
+    guestWorkspaceId,
+    targetSubject,
+    targetUserId,
+    targetWorkspaceId,
+    guestReplicaId: "guest-replica-community-profile-target-opt-out",
+    installationId: "installation-community-profile-target-opt-out",
+    guestSchedulerUpdatedAt: "2026-04-02T14:00:00.000Z",
+    targetSchedulerUpdatedAt: "2026-04-02T14:05:00.000Z",
+  });
+  state.publicProfiles.push(
+    {
+      user_id: guestUserId,
+      public_profile_id: "guest-public-profile-id",
+      leaderboard_participation_enabled: true,
+    },
+    {
+      user_id: targetUserId,
+      public_profile_id: "target-public-profile-id",
+      leaderboard_participation_enabled: false,
+    },
+  );
+
+  const result = await completeGuestUpgradeInExecutor(
+    createGuestUpgradeExecutor(state),
+    guestToken,
+    targetSubject,
+    {
+      type: "existing",
+      workspaceId: targetWorkspaceId,
+    },
+    DROPPED_ENTITIES_UNSUPPORTED,
+  );
+
+  assert.equal(result.targetUserId, targetUserId);
+  assert.deepEqual(state.publicProfiles, [{
+    user_id: targetUserId,
+    public_profile_id: "target-public-profile-id",
+    leaderboard_participation_enabled: false,
+  }]);
+});
+
 test("completeGuestUpgradeInExecutor locks source and target workspaces in merge order", async () => {
   const guestToken = "guest-token-lock-order";
   const guestUserId = "z-guest-user-lock-order";
