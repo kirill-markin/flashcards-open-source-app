@@ -1,6 +1,12 @@
 package com.flashcardsopensourceapp.app.notifications
 
 import com.flashcardsopensourceapp.data.local.database.review.ReviewLogDao
+import com.flashcardsopensourceapp.core.observability.AndroidBreadcrumbEvent
+import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
+import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
+import com.flashcardsopensourceapp.core.observability.AndroidWorkInfoStateCounts
+import com.flashcardsopensourceapp.core.observability.AppObservability
+import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
 import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.notifications.ScheduledStrictReminderPayload
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersReconcileTrigger
@@ -31,7 +37,10 @@ class StrictRemindersManagerTest {
             strictRemindersStore = store,
             reviewLogDao = FakeReviewLogDao(hasReviewLogsBetween = false),
             scheduler = scheduler,
-            zoneIdProvider = { zoneId }
+            zoneIdProvider = { zoneId },
+            observability = FakeAppObservability(),
+            appVersion = testAppVersion,
+            versionCode = testVersionCode
         )
 
         try {
@@ -69,7 +78,10 @@ class StrictRemindersManagerTest {
             strictRemindersStore = store,
             reviewLogDao = FakeReviewLogDao(hasReviewLogsBetween = true),
             scheduler = scheduler,
-            zoneIdProvider = { zoneId }
+            zoneIdProvider = { zoneId },
+            observability = FakeAppObservability(),
+            appVersion = testAppVersion,
+            versionCode = testVersionCode
         )
 
         try {
@@ -121,7 +133,10 @@ class StrictRemindersManagerTest {
             strictRemindersStore = store,
             reviewLogDao = FakeReviewLogDao(hasReviewLogsBetween = false),
             scheduler = scheduler,
-            zoneIdProvider = { zoneId }
+            zoneIdProvider = { zoneId },
+            observability = FakeAppObservability(),
+            appVersion = testAppVersion,
+            versionCode = testVersionCode
         )
 
         try {
@@ -172,7 +187,10 @@ class StrictRemindersManagerTest {
             strictRemindersStore = store,
             reviewLogDao = FakeReviewLogDao(hasReviewLogsBetween = false),
             scheduler = scheduler,
-            zoneIdProvider = { zoneId }
+            zoneIdProvider = { zoneId },
+            observability = FakeAppObservability(),
+            appVersion = testAppVersion,
+            versionCode = testVersionCode
         )
 
         try {
@@ -197,7 +215,10 @@ class StrictRemindersManagerTest {
             strictRemindersStore = store,
             reviewLogDao = FakeReviewLogDao(hasReviewLogsBetween = false),
             scheduler = scheduler,
-            zoneIdProvider = { zoneId }
+            zoneIdProvider = { zoneId },
+            observability = FakeAppObservability(),
+            appVersion = testAppVersion,
+            versionCode = testVersionCode
         )
 
         manager.close()
@@ -290,6 +311,59 @@ private class FakeStrictRemindersScheduler(
     override suspend fun scheduleReminder(payload: ScheduledStrictReminderPayload, nowMillis: Long) {
         scheduledPayloads.add(payload)
     }
+
+    override suspend fun loadScheduledWorkStateCounts(): AndroidWorkInfoStateCounts {
+        return AndroidWorkInfoStateCounts(
+            enqueued = scheduledPayloads.size,
+            running = 0,
+            blocked = 0,
+            cancelled = 0,
+            failed = 0,
+            succeeded = 0
+        )
+    }
+
+    override suspend fun loadExpectedWorkReadback(
+        requestIds: List<String>
+    ): NotificationExpectedWorkInfoReadback {
+        val scheduledRequestIds: Set<String> = scheduledPayloads.map { payload ->
+            payload.requestId
+        }.toSet()
+        val expectedRequestIds: List<String> = requestIds.distinct()
+        val missingExpectedWorkNameCount: Int = expectedRequestIds.count { requestId ->
+            scheduledRequestIds.contains(requestId).not()
+        }
+
+        return NotificationExpectedWorkInfoReadback(
+            stateCounts = AndroidWorkInfoStateCounts(
+                enqueued = expectedRequestIds.size - missingExpectedWorkNameCount,
+                running = 0,
+                blocked = 0,
+                cancelled = 0,
+                failed = 0,
+                succeeded = 0
+            ),
+            expectedWorkNameCount = expectedRequestIds.size,
+            missingExpectedWorkNameCount = missingExpectedWorkNameCount
+        )
+    }
+}
+
+private class FakeAppObservability : AppObservability {
+    override fun setCloudIdentity(identity: CloudObservationIdentity) {
+    }
+
+    override fun clearCloudIdentity() {
+    }
+
+    override fun addBreadcrumb(event: AndroidBreadcrumbEvent) {
+    }
+
+    override fun captureWarning(event: AndroidWarningIssueEvent) {
+    }
+
+    override fun captureException(event: AndroidExceptionIssueEvent) {
+    }
 }
 
 private class FakeReviewLogDao(
@@ -379,3 +453,6 @@ private suspend fun awaitUntil(predicate: () -> Boolean) {
 private fun parseTimestampMillis(value: String): Long {
     return Instant.parse(value).toEpochMilli()
 }
+
+private const val testAppVersion: String = "1.9.0"
+private const val testVersionCode: Int = 1

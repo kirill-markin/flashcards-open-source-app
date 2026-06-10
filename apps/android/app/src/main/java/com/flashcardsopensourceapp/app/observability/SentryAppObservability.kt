@@ -3,9 +3,11 @@ package com.flashcardsopensourceapp.app.observability
 import android.util.Log
 import com.flashcardsopensourceapp.core.observability.AndroidBreadcrumbEvent
 import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
+import com.flashcardsopensourceapp.core.observability.AndroidNotificationSchedulingDiagnostic
 import com.flashcardsopensourceapp.core.observability.AndroidObservationEvent
 import com.flashcardsopensourceapp.core.observability.AndroidObservationTags
 import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
+import com.flashcardsopensourceapp.core.observability.AndroidWorkInfoStateCounts
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
 import io.sentry.Breadcrumb
@@ -195,6 +197,15 @@ private fun addBreadcrumbData(
                 )
             )
         }
+        is AndroidBreadcrumbEvent.NotificationSchedulingBreadcrumb -> {
+            breadcrumb.setData(
+                "notifications",
+                notificationSchedulingContext(
+                    diagnostic = event.diagnostic,
+                    warningReason = null
+                )
+            )
+        }
     }
 }
 
@@ -212,7 +223,8 @@ private fun warningContext(event: AndroidWarningIssueEvent): SentryAndroidObserv
                 stage = sanitizeSentryContextValue(fieldName = "stage", value = event.stage)
             ),
             ai = null,
-            progress = null
+            progress = null,
+            notifications = null
         )
         is AndroidWarningIssueEvent.HttpUnexpectedClientError -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -226,7 +238,8 @@ private fun warningContext(event: AndroidWarningIssueEvent): SentryAndroidObserv
                 stage = sanitizeSentryContextValue(fieldName = "stage", value = event.stage)
             ),
             ai = null,
-            progress = null
+            progress = null,
+            notifications = null
         )
         is AndroidWarningIssueEvent.AiRemoteError -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -258,7 +271,8 @@ private fun warningContext(event: AndroidWarningIssueEvent): SentryAndroidObserv
                 cardPartCount = null,
                 message = null
             ),
-            progress = null
+            progress = null,
+            notifications = null
         )
         is AndroidWarningIssueEvent.AiLifecycleWarning -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -289,7 +303,8 @@ private fun warningContext(event: AndroidWarningIssueEvent): SentryAndroidObserv
                 cardPartCount = null,
                 message = sanitizeSentryContextValue(fieldName = "message", value = event.message)
             ),
-            progress = null
+            progress = null,
+            notifications = null
         )
         is AndroidWarningIssueEvent.AiSendWarning -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -320,7 +335,8 @@ private fun warningContext(event: AndroidWarningIssueEvent): SentryAndroidObserv
                 cardPartCount = null,
                 message = sanitizeSentryContextValue(fieldName = "message", value = event.message)
             ),
-            progress = null
+            progress = null,
+            notifications = null
         )
         is AndroidWarningIssueEvent.AiBootstrapWarning -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -351,7 +367,8 @@ private fun warningContext(event: AndroidWarningIssueEvent): SentryAndroidObserv
                 cardPartCount = null,
                 message = sanitizeSentryContextValue(fieldName = "message", value = event.message)
             ),
-            progress = null
+            progress = null,
+            notifications = null
         )
         is AndroidWarningIssueEvent.ProgressRefreshWarning -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -363,7 +380,8 @@ private fun warningContext(event: AndroidWarningIssueEvent): SentryAndroidObserv
                 progressAction = sanitizeSentryContextValue(fieldName = "refreshAction", value = event.refreshAction),
                 scopeId = sanitizeSentryIdentifier(value = event.scopeId),
                 source = sanitizeSentryContextValue(fieldName = "source", value = event.source)
-            )
+            ),
+            notifications = null
         )
         is AndroidWarningIssueEvent.ProgressRepositoryWarning -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -375,7 +393,8 @@ private fun warningContext(event: AndroidWarningIssueEvent): SentryAndroidObserv
                 progressAction = sanitizeSentryContextValue(fieldName = "repositoryAction", value = event.repositoryAction),
                 scopeId = sanitizeSentryIdentifier(value = event.scopeId),
                 source = sanitizeSentryContextValue(fieldName = "source", value = event.source)
-            )
+            ),
+            notifications = null
         )
         is AndroidWarningIssueEvent.AiRuntimeWarning -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -406,7 +425,19 @@ private fun warningContext(event: AndroidWarningIssueEvent): SentryAndroidObserv
                 cardPartCount = null,
                 message = sanitizeSentryContextValue(fieldName = "message", value = event.message)
             ),
-            progress = null
+            progress = null,
+            notifications = null
+        )
+        is AndroidWarningIssueEvent.NotificationSchedulingWarning -> SentryAndroidObservationContext(
+            feature = event.feature.tagValue,
+            action = event.action.tagValue,
+            http = null,
+            ai = null,
+            progress = null,
+            notifications = notificationSchedulingContext(
+                diagnostic = event.diagnostic,
+                warningReason = event.warningReason
+            )
         )
     }
 }
@@ -418,14 +449,16 @@ private fun exceptionContext(event: AndroidExceptionIssueEvent): SentryAndroidOb
             action = event.action.tagValue,
             http = null,
             ai = null,
-            progress = null
+            progress = null,
+            notifications = null
         )
         is AndroidExceptionIssueEvent.AppStartupException -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
             action = event.action.tagValue,
             http = null,
             ai = null,
-            progress = null
+            progress = null,
+            notifications = null
         )
         is AndroidExceptionIssueEvent.AiStreamCrash -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -456,7 +489,8 @@ private fun exceptionContext(event: AndroidExceptionIssueEvent): SentryAndroidOb
                 cardPartCount = null,
                 message = null
             ),
-            progress = null
+            progress = null,
+            notifications = null
         )
         is AndroidExceptionIssueEvent.AiLifecycleError -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -487,7 +521,8 @@ private fun exceptionContext(event: AndroidExceptionIssueEvent): SentryAndroidOb
                 cardPartCount = null,
                 message = sanitizeSentryContextValue(fieldName = "message", value = event.message)
             ),
-            progress = null
+            progress = null,
+            notifications = null
         )
         is AndroidExceptionIssueEvent.AiSendError -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -518,7 +553,8 @@ private fun exceptionContext(event: AndroidExceptionIssueEvent): SentryAndroidOb
                 cardPartCount = null,
                 message = sanitizeSentryContextValue(fieldName = "message", value = event.message)
             ),
-            progress = null
+            progress = null,
+            notifications = null
         )
         is AndroidExceptionIssueEvent.AiBootstrapError -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -549,7 +585,8 @@ private fun exceptionContext(event: AndroidExceptionIssueEvent): SentryAndroidOb
                 cardPartCount = null,
                 message = sanitizeSentryContextValue(fieldName = "message", value = event.message)
             ),
-            progress = null
+            progress = null,
+            notifications = null
         )
         is AndroidExceptionIssueEvent.ProgressRefreshException -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -561,7 +598,8 @@ private fun exceptionContext(event: AndroidExceptionIssueEvent): SentryAndroidOb
                 progressAction = sanitizeSentryContextValue(fieldName = "refreshAction", value = event.refreshAction),
                 scopeId = sanitizeSentryIdentifier(value = event.scopeId),
                 source = sanitizeSentryContextValue(fieldName = "source", value = event.source)
-            )
+            ),
+            notifications = null
         )
         is AndroidExceptionIssueEvent.ProgressRepositoryException -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -573,7 +611,8 @@ private fun exceptionContext(event: AndroidExceptionIssueEvent): SentryAndroidOb
                 progressAction = sanitizeSentryContextValue(fieldName = "repositoryAction", value = event.repositoryAction),
                 scopeId = sanitizeSentryIdentifier(value = event.scopeId),
                 source = sanitizeSentryContextValue(fieldName = "source", value = event.source)
-            )
+            ),
+            notifications = null
         )
         is AndroidExceptionIssueEvent.AiRuntimeException -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -604,7 +643,8 @@ private fun exceptionContext(event: AndroidExceptionIssueEvent): SentryAndroidOb
                 cardPartCount = null,
                 message = sanitizeSentryContextValue(fieldName = "message", value = event.message)
             ),
-            progress = null
+            progress = null,
+            notifications = null
         )
     }
 }
@@ -627,6 +667,59 @@ private fun aiObservationHttpContext(
         statusCode = statusCode,
         code = sanitizeSentryContextValue(fieldName = "code", value = code),
         stage = sanitizeSentryContextValue(fieldName = "stage", value = stage)
+    )
+}
+
+private fun notificationSchedulingContext(
+    diagnostic: AndroidNotificationSchedulingDiagnostic,
+    warningReason: String?
+): SentryNotificationSchedulingContext {
+    return SentryNotificationSchedulingContext(
+        notificationKind = sanitizeSentryContextValue(
+            fieldName = "notificationKind",
+            value = diagnostic.notificationKind
+        ),
+        stage = sanitizeSentryContextValue(fieldName = "stage", value = diagnostic.stage),
+        trigger = sanitizeSentryContextValue(fieldName = "trigger", value = diagnostic.trigger),
+        requestId = sanitizeSentryIdentifier(value = diagnostic.requestId),
+        workspaceId = sanitizeSentryIdentifier(value = diagnostic.workspaceId),
+        permissionAllowed = diagnostic.permissionAllowed,
+        plannedCount = diagnostic.plannedCount,
+        workLimit = diagnostic.workLimit,
+        appNotificationWorkLimit = diagnostic.appNotificationWorkLimit,
+        strictReminderWorkLimit = diagnostic.strictReminderWorkLimit,
+        strictRemindersEnabled = diagnostic.strictRemindersEnabled,
+        plannedCountEqualsWorkLimit = diagnostic.plannedCountEqualsWorkLimit,
+        storedScheduledCountBefore = diagnostic.storedScheduledCountBefore,
+        storedScheduledCountAfter = diagnostic.storedScheduledCountAfter,
+        workTag = sanitizeSentryContextValue(fieldName = "workTag", value = diagnostic.workTag),
+        tagWorkStateCounts = sentryWorkInfoStateCounts(counts = diagnostic.tagWorkStateCounts),
+        expectedWorkStateCounts = sentryWorkInfoStateCounts(counts = diagnostic.expectedWorkStateCounts),
+        expectedWorkNameCount = diagnostic.expectedWorkNameCount,
+        missingExpectedWorkNameCount = diagnostic.missingExpectedWorkNameCount,
+        firstScheduledAtMillis = diagnostic.firstScheduledAtMillis,
+        lastScheduledAtMillis = diagnostic.lastScheduledAtMillis,
+        minDelaySeconds = diagnostic.minDelaySeconds,
+        maxDelaySeconds = diagnostic.maxDelaySeconds,
+        generation = diagnostic.generation,
+        managerClosed = diagnostic.managerClosed,
+        enqueueRejected = diagnostic.enqueueRejected,
+        warningReason = sanitizeSentryContextValue(fieldName = "warningReason", value = warningReason)
+    )
+}
+
+private fun sentryWorkInfoStateCounts(counts: AndroidWorkInfoStateCounts?): SentryWorkInfoStateCounts? {
+    if (counts == null) {
+        return null
+    }
+
+    return SentryWorkInfoStateCounts(
+        enqueued = counts.enqueued,
+        running = counts.running,
+        blocked = counts.blocked,
+        cancelled = counts.cancelled,
+        failed = counts.failed,
+        succeeded = counts.succeeded
     )
 }
 
@@ -740,6 +833,7 @@ private fun warningIssueGroupKey(event: AndroidWarningIssueEvent): String? {
         is AndroidWarningIssueEvent.ProgressRefreshWarning -> event.refreshAction
         is AndroidWarningIssueEvent.ProgressRepositoryWarning -> event.repositoryAction
         is AndroidWarningIssueEvent.AiRuntimeWarning -> event.name.tagValue
+        is AndroidWarningIssueEvent.NotificationSchedulingWarning -> event.diagnostic.notificationKind
     }
     return sanitizeSentryTagValue(fieldName = "warningGroup", value = rawGroupKey)
 }
@@ -764,7 +858,8 @@ private data class SentryAndroidObservationContext(
     val action: String,
     val http: SentryHttpContext?,
     val ai: SentryAiContext?,
-    val progress: SentryProgressContext?
+    val progress: SentryProgressContext?,
+    val notifications: SentryNotificationSchedulingContext?
 )
 
 private data class SentryHttpContext(
@@ -801,4 +896,43 @@ private data class SentryProgressContext(
     val progressAction: String?,
     val scopeId: String?,
     val source: String?
+)
+
+private data class SentryNotificationSchedulingContext(
+    val notificationKind: String?,
+    val stage: String?,
+    val trigger: String?,
+    val requestId: String?,
+    val workspaceId: String?,
+    val permissionAllowed: Boolean?,
+    val plannedCount: Int?,
+    val workLimit: Int?,
+    val appNotificationWorkLimit: Int?,
+    val strictReminderWorkLimit: Int?,
+    val strictRemindersEnabled: Boolean?,
+    val plannedCountEqualsWorkLimit: Boolean?,
+    val storedScheduledCountBefore: Int?,
+    val storedScheduledCountAfter: Int?,
+    val workTag: String?,
+    val tagWorkStateCounts: SentryWorkInfoStateCounts?,
+    val expectedWorkStateCounts: SentryWorkInfoStateCounts?,
+    val expectedWorkNameCount: Int?,
+    val missingExpectedWorkNameCount: Int?,
+    val firstScheduledAtMillis: Long?,
+    val lastScheduledAtMillis: Long?,
+    val minDelaySeconds: Long?,
+    val maxDelaySeconds: Long?,
+    val generation: Long?,
+    val managerClosed: Boolean?,
+    val enqueueRejected: Boolean?,
+    val warningReason: String?
+)
+
+private data class SentryWorkInfoStateCounts(
+    val enqueued: Int,
+    val running: Int,
+    val blocked: Int,
+    val cancelled: Int,
+    val failed: Int,
+    val succeeded: Int
 )

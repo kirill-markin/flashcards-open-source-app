@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.app.observability
 
 import com.flashcardsopensourceapp.core.observability.AndroidObservationFeature
+import com.flashcardsopensourceapp.core.observability.AndroidNotificationSchedulingDiagnostic
 import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -145,6 +146,41 @@ class SentryAppObservabilityTest {
                 clientVersion = testAppVersion,
                 versionCode = testVersionCode
             )
+        val notificationWarning: AndroidWarningIssueEvent.NotificationSchedulingWarning =
+            AndroidWarningIssueEvent.NotificationSchedulingWarning(
+                diagnostic = AndroidNotificationSchedulingDiagnostic(
+                    notificationKind = "reviewReminder",
+                    stage = "after_enqueue",
+                    trigger = "app_background",
+                    requestId = null,
+                    workspaceId = "workspace-1",
+                    permissionAllowed = true,
+                    plannedCount = 26,
+                    workLimit = 26,
+                    appNotificationWorkLimit = 50,
+                    strictReminderWorkLimit = 24,
+                    strictRemindersEnabled = true,
+                    plannedCountEqualsWorkLimit = true,
+                    storedScheduledCountBefore = 3,
+                    storedScheduledCountAfter = 26,
+                    workTag = "review-notification",
+                    tagWorkStateCounts = null,
+                    expectedWorkStateCounts = null,
+                    expectedWorkNameCount = 26,
+                    missingExpectedWorkNameCount = 26,
+                    firstScheduledAtMillis = 1_000L,
+                    lastScheduledAtMillis = 2_000L,
+                    minDelaySeconds = 1L,
+                    maxDelaySeconds = 2L,
+                    generation = 7L,
+                    managerClosed = null,
+                    enqueueRejected = null
+                ),
+                warningReason = "expected_work_missing",
+                appVersion = testAppVersion,
+                clientVersion = testAppVersion,
+                versionCode = testVersionCode
+            )
 
         assertEquals(
             listOf(
@@ -167,6 +203,17 @@ class SentryAppObservabilityTest {
                 "413"
             ),
             warningIssueFingerprint(event = httpWarning)
+        )
+        assertEquals(
+            listOf(
+                "android",
+                "notifications",
+                "notification_scheduling_warning",
+                "reviewReminder",
+                "expected_work_missing",
+                "no_status"
+            ),
+            warningIssueFingerprint(event = notificationWarning)
         )
     }
 }

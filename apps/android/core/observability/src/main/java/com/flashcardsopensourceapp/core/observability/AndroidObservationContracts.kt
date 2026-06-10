@@ -8,7 +8,8 @@ enum class AndroidObservationFeature(
     BACKEND(tagValue = "backend"),
     AUTH(tagValue = "auth"),
     AI(tagValue = "ai"),
-    PROGRESS(tagValue = "progress")
+    PROGRESS(tagValue = "progress"),
+    NOTIFICATIONS(tagValue = "notifications")
 }
 
 enum class AndroidObservationAction(
@@ -35,7 +36,9 @@ enum class AndroidObservationAction(
     PROGRESS_REFRESH_WARNING(tagValue = "progress_refresh_warning"),
     PROGRESS_REFRESH_EXCEPTION(tagValue = "progress_refresh_exception"),
     PROGRESS_REPOSITORY_WARNING(tagValue = "progress_repository_warning"),
-    PROGRESS_REPOSITORY_EXCEPTION(tagValue = "progress_repository_exception")
+    PROGRESS_REPOSITORY_EXCEPTION(tagValue = "progress_repository_exception"),
+    NOTIFICATION_SCHEDULING_BREADCRUMB(tagValue = "notification_scheduling_breadcrumb"),
+    NOTIFICATION_SCHEDULING_WARNING(tagValue = "notification_scheduling_warning")
 }
 
 enum class AndroidAiObservationName(
@@ -70,6 +73,44 @@ data class AndroidObservationTags(
     val appVersion: String?,
     val clientVersion: String?,
     val versionCode: Int?
+)
+
+data class AndroidWorkInfoStateCounts(
+    val enqueued: Int,
+    val running: Int,
+    val blocked: Int,
+    val cancelled: Int,
+    val failed: Int,
+    val succeeded: Int
+)
+
+data class AndroidNotificationSchedulingDiagnostic(
+    val notificationKind: String,
+    val stage: String,
+    val trigger: String?,
+    val requestId: String?,
+    val workspaceId: String?,
+    val permissionAllowed: Boolean?,
+    val plannedCount: Int?,
+    val workLimit: Int?,
+    val appNotificationWorkLimit: Int?,
+    val strictReminderWorkLimit: Int?,
+    val strictRemindersEnabled: Boolean?,
+    val plannedCountEqualsWorkLimit: Boolean?,
+    val storedScheduledCountBefore: Int?,
+    val storedScheduledCountAfter: Int?,
+    val workTag: String?,
+    val tagWorkStateCounts: AndroidWorkInfoStateCounts?,
+    val expectedWorkStateCounts: AndroidWorkInfoStateCounts?,
+    val expectedWorkNameCount: Int?,
+    val missingExpectedWorkNameCount: Int?,
+    val firstScheduledAtMillis: Long?,
+    val lastScheduledAtMillis: Long?,
+    val minDelaySeconds: Long?,
+    val maxDelaySeconds: Long?,
+    val generation: Long?,
+    val managerClosed: Boolean?,
+    val enqueueRejected: Boolean?
 )
 
 sealed interface AndroidObservationEvent {
@@ -169,6 +210,26 @@ sealed interface AndroidBreadcrumbEvent : AndroidObservationEvent {
             requestId = null,
             statusCode = null,
             code = name.tagValue,
+            appVersion = appVersion,
+            clientVersion = clientVersion,
+            versionCode = versionCode
+        )
+    }
+
+    data class NotificationSchedulingBreadcrumb(
+        val diagnostic: AndroidNotificationSchedulingDiagnostic,
+        val appVersion: String?,
+        val clientVersion: String?,
+        val versionCode: Int?
+    ) : AndroidBreadcrumbEvent {
+        override val feature: AndroidObservationFeature = AndroidObservationFeature.NOTIFICATIONS
+        override val action: AndroidObservationAction = AndroidObservationAction.NOTIFICATION_SCHEDULING_BREADCRUMB
+        override val tags: AndroidObservationTags = AndroidObservationTags(
+            userId = null,
+            workspaceId = diagnostic.workspaceId,
+            requestId = diagnostic.requestId,
+            statusCode = null,
+            code = diagnostic.stage,
             appVersion = appVersion,
             clientVersion = clientVersion,
             versionCode = versionCode
@@ -415,6 +476,27 @@ sealed interface AndroidWarningIssueEvent : AndroidObservationEvent {
             requestId = requestId,
             statusCode = statusCode,
             code = code ?: name.tagValue,
+            appVersion = appVersion,
+            clientVersion = clientVersion,
+            versionCode = versionCode
+        )
+    }
+
+    data class NotificationSchedulingWarning(
+        val diagnostic: AndroidNotificationSchedulingDiagnostic,
+        val warningReason: String,
+        val appVersion: String?,
+        val clientVersion: String?,
+        val versionCode: Int?
+    ) : AndroidWarningIssueEvent {
+        override val feature: AndroidObservationFeature = AndroidObservationFeature.NOTIFICATIONS
+        override val action: AndroidObservationAction = AndroidObservationAction.NOTIFICATION_SCHEDULING_WARNING
+        override val tags: AndroidObservationTags = AndroidObservationTags(
+            userId = null,
+            workspaceId = diagnostic.workspaceId,
+            requestId = diagnostic.requestId,
+            statusCode = null,
+            code = warningReason,
             appVersion = appVersion,
             clientVersion = clientVersion,
             versionCode = versionCode
