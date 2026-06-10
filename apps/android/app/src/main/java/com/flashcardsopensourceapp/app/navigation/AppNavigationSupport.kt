@@ -1,7 +1,6 @@
 package com.flashcardsopensourceapp.app.navigation
 
 import android.content.Context
-import android.content.pm.PackageManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.navigation.NavBackStackEntry
@@ -66,11 +65,13 @@ internal data class AppPackageInfo(
     val longVersionCode: Long
 )
 
+@Suppress("DEPRECATION")
 internal fun loadPackageInfo(context: Context): AppPackageInfo {
-    val packageInfo = context.packageManager.getPackageInfo(
-        context.packageName,
-        PackageManager.PackageInfoFlags.of(0L)
-    )
+    // Use the overloads available since API 1 on purpose: some out-of-contract devices
+    // (emulators, test farms, spoofed installs) report a higher Build.VERSION.SDK_INT than
+    // their real framework, so SDK_INT-gated newer APIs (PackageInfoFlags API 33,
+    // PackageInfo.longVersionCode API 28) link-fail there with NoSuchMethodError.
+    val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
     val versionName = packageInfo.versionName?.trim().orEmpty()
     require(versionName.isNotEmpty()) {
         "Android package versionName is missing from PackageInfo."
@@ -78,6 +79,6 @@ internal fun loadPackageInfo(context: Context): AppPackageInfo {
 
     return AppPackageInfo(
         versionName = versionName,
-        longVersionCode = packageInfo.longVersionCode
+        longVersionCode = packageInfo.versionCode.toLong()
     )
 }
