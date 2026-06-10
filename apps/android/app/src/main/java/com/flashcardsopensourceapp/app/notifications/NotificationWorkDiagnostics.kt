@@ -11,12 +11,14 @@ import com.flashcardsopensourceapp.core.observability.AndroidNotificationSchedul
 import com.flashcardsopensourceapp.core.observability.AndroidWorkInfoStateCounts
 import com.flashcardsopensourceapp.data.local.notifications.appNotificationWorkLimit
 import com.flashcardsopensourceapp.data.local.notifications.strictReminderWorkLimit
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
 
 internal const val reviewReminderNotificationKind: String = "reviewReminder"
 internal const val strictReminderNotificationKind: String = "strictReminder"
 
-internal data class NotificationExpectedWorkInfoReadback(
+data class NotificationExpectedWorkInfoReadback(
     val stateCounts: AndroidWorkInfoStateCounts,
     val expectedWorkNameCount: Int,
     val missingExpectedWorkNameCount: Int
@@ -33,7 +35,12 @@ internal suspend fun loadWorkInfoStateCountsByTag(
     workManager: WorkManager,
     workTag: String
 ): AndroidWorkInfoStateCounts {
-    return countWorkInfoStates(workInfos = workManager.getWorkInfosByTag(workTag).await())
+    return countWorkInfoStates(
+        workInfos = loadWorkInfosByTag(
+            workManager = workManager,
+            workTag = workTag
+        )
+    )
 }
 
 internal suspend fun loadExpectedWorkInfoReadback(
@@ -42,7 +49,10 @@ internal suspend fun loadExpectedWorkInfoReadback(
 ): NotificationExpectedWorkInfoReadback {
     val distinctWorkNames: List<String> = expectedUniqueWorkNames.distinct()
     val workInfosByName: List<List<WorkInfo>> = distinctWorkNames.map { workName ->
-        workManager.getWorkInfosForUniqueWork(workName).await()
+        loadWorkInfosByUniqueWorkName(
+            workManager = workManager,
+            uniqueWorkName = workName
+        )
     }
     val missingExpectedWorkNameCount = workInfosByName.count { workInfos ->
         workInfos.isEmpty()
@@ -53,6 +63,24 @@ internal suspend fun loadExpectedWorkInfoReadback(
         expectedWorkNameCount = distinctWorkNames.size,
         missingExpectedWorkNameCount = missingExpectedWorkNameCount
     )
+}
+
+private suspend fun loadWorkInfosByTag(
+    workManager: WorkManager,
+    workTag: String
+): List<WorkInfo> {
+    return withContext(Dispatchers.IO) {
+        workManager.getWorkInfosByTag(workTag).get()
+    }
+}
+
+private suspend fun loadWorkInfosByUniqueWorkName(
+    workManager: WorkManager,
+    uniqueWorkName: String
+): List<WorkInfo> {
+    return withContext(Dispatchers.IO) {
+        workManager.getWorkInfosForUniqueWork(uniqueWorkName).get()
+    }
 }
 
 internal fun countWorkInfoStates(workInfos: List<WorkInfo>): AndroidWorkInfoStateCounts {
