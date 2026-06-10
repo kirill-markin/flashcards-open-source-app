@@ -5,6 +5,7 @@
 import type OpenAI from "openai";
 import type { ContentPart, FileContentPart, ImageContentPart } from "../../types";
 import { buildSystemInstructions } from "../../shared";
+import { CHAT_HISTORY_REPLAY_TOKEN_BUDGET } from "../../config";
 import { buildCardContextXml } from "../../cardContext";
 import {
   validateChatFileAttachmentContent,
@@ -139,6 +140,84 @@ async function buildUserInputMessage(
   };
 }
 
+const HISTORY_CHARS_PER_TOKEN = 4;
+const HISTORY_ATTACHMENT_TOKEN_ESTIMATE = 1_500;
+
+function estimateTextTokens(text: string): number {
+  return Math.ceil(text.length / HISTORY_CHARS_PER_TOKEN);
+}
+
+function estimateContentPartTokens(part: ContentPart): number {
+  if (part.type === "text") {
+    return estimateTextTokens(part.text);
+  }
+
+  if (part.type === "image" || part.type === "file") {
+    return HISTORY_ATTACHMENT_TOKEN_ESTIMATE;
+  }
+
+  if (part.type === "card") {
+    return estimateTextTokens(`${part.frontText}${part.backText}${part.tags.join(" ")}`);
+  }
+
+  if (part.type === "tool_call") {
+    return estimateTextTokens(`${part.name}${part.input ?? ""}${part.output ?? ""}`);
+  }
+
+  return estimateTextTokens(part.summary);
+}
+
+/**
+ * Estimates the provider token cost of one persisted message, mirroring how
+ * the input builder replays it: user messages cost their content, assistant
+ * messages cost their stored OpenAI replay items.
+ */
+function estimateMessageTokens(message: ServerChatMessage): number {
+  if (message.role === "assistant") {
+    return message.openaiItems === undefined
+      ? 0
+      : estimateTextTokens(stringifyJson(message.openaiItems));
+  }
+
+  return message.content.reduce(
+    (total, part) => total + estimateContentPartTokens(part),
+    0,
+  );
+}
+
+/**
+ * Caps replayed history to a token budget by dropping the oldest messages.
+ *
+ * Only the provider input is windowed; full history stays in storage and in the
+ * client UI. The kept window always starts at a user-message boundary so an
+ * assistant turn's reasoning/tool-call replay items are never sent without the
+ * originating user turn. Returns the input unchanged when it already fits.
+ */
+function windowHistoryToTokenBudget(
+  history: ReadonlyArray<ServerChatMessage>,
+  budgetTokens: number,
+): ReadonlyArray<ServerChatMessage> {
+  let runningTokens = 0;
+  let keepFrom = history.length;
+  for (let index = history.length - 1; index >= 0; index -= 1) {
+    runningTokens += estimateMessageTokens(history[index]);
+    if (runningTokens > budgetTokens) {
+      break;
+    }
+    keepFrom = index;
+  }
+
+  if (keepFrom === 0) {
+    return history;
+  }
+
+  while (keepFrom < history.length && history[keepFrom].role !== "user") {
+    keepFrom += 1;
+  }
+
+  return history.slice(keepFrom);
+}
+
 /**
  * Builds the complete OpenAI Responses input array for one backend-owned chat run.
  */
@@ -154,7 +233,8 @@ export async function buildChatCompletionInput(
   }];
 
   const normalizedHistory = normalizeHistoryMessages(localMessages, turnInput);
-  for (const message of normalizedHistory) {
+  const windowedHistory = windowHistoryToTokenBudget(normalizedHistory, CHAT_HISTORY_REPLAY_TOKEN_BUDGET);
+  for (const message of windowedHistory) {
     if (message.role === "assistant") {
       input.push(...buildAssistantHistoryItems(message));
       continue;
