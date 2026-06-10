@@ -12,6 +12,7 @@ import com.flashcardsopensourceapp.data.local.ai.remote.isAiChatAttachmentUnsupp
 import com.flashcardsopensourceapp.data.local.ai.remote.isAiChatRequestTooLargeRemoteError
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
 import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.bootstrap.AiChatBootstrapBlockedException
+import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.bootstrap.isLikelyTransientNetworkIoException
 import java.io.IOException
 
 internal data class AiChatContentPartCounts(
@@ -274,7 +275,11 @@ internal fun aiChatFailureIssueDisposition(error: Exception): AiChatFailureIssue
         return AiChatFailureIssueDisposition.NONE
     }
     if (error is IOException) {
-        return AiChatFailureIssueDisposition.WARNING
+        return if (isLikelyTransientNetworkIoException(error = error)) {
+            AiChatFailureIssueDisposition.NONE
+        } else {
+            AiChatFailureIssueDisposition.WARNING
+        }
     }
     if (error is AiChatBootstrapBlockedException) {
         return AiChatFailureIssueDisposition.WARNING

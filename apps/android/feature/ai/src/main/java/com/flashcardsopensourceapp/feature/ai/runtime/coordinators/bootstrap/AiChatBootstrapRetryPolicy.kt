@@ -43,7 +43,7 @@ internal fun isRetryableBootstrapFailure(error: Exception): Boolean {
     if (cloudRemoteError != null) {
         return shouldRetryHttpStatus(statusCode = cloudRemoteError.statusCode)
     }
-    return error is IOException && isLikelyTransientBootstrapIoException(error = error)
+    return error is IOException && isLikelyTransientNetworkIoException(error = error)
 }
 
 internal fun nextBootstrapRetryDelayMillis(retryCount: Int): Long {
@@ -69,7 +69,7 @@ private fun findCloudRemoteCause(error: Throwable): CloudRemoteException? {
     return null
 }
 
-private fun isLikelyTransientBootstrapIoException(error: IOException): Boolean {
+internal fun isLikelyTransientNetworkIoException(error: IOException): Boolean {
     if (error is MalformedURLException || error is ProtocolException) {
         return false
     }
