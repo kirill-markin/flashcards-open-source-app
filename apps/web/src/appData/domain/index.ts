@@ -143,7 +143,7 @@ function findMatchingTag(tags: ReadonlyArray<string>, requestedTag: string): str
   return tags.find((tag) => normalizeTagKey(tag) === requestedTagKey)?.trim() ?? null;
 }
 
-/** Keep deck matching semantics aligned with apps/ios/Flashcards/Flashcards/Cards/CardFilterSupport.swift and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/cards/FilterSupport.kt: effort is inclusive and tags match on any overlap. */
+/** Keep deck matching semantics aligned with apps/ios/Flashcards/Flashcards/Cards/List/CardFilterSupport.swift and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/cards/FilterSupport.kt: effort is inclusive and tags match on any overlap. */
 export function matchesDeckFilterDefinition(filterDefinition: DeckFilterDefinition, card: Card): boolean {
   if (filterDefinition.effortLevels.length > 0 && filterDefinition.effortLevels.includes(card.effortLevel) === false) {
     return false;

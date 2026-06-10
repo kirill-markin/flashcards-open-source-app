@@ -167,7 +167,7 @@ fun matchesCardFilter(filter: CardFilter, card: CardSummary): Boolean {
 }
 
 fun matchesDeckFilterDefinition(filterDefinition: DeckFilterDefinition, card: CardSummary): Boolean {
-    // Keep deck matching semantics aligned with apps/web/src/appData/domain/index.ts::matchesDeckFilterDefinition and apps/ios/Flashcards/Flashcards/Cards/CardFilterSupport.swift::matchesDeckFilterDefinition.
+    // Keep deck matching semantics aligned with apps/web/src/appData/domain/index.ts::matchesDeckFilterDefinition and apps/ios/Flashcards/Flashcards/Cards/List/CardFilterSupport.swift::matchesDeckFilterDefinition.
     if (filterDefinition.effortLevels.isNotEmpty() && filterDefinition.effortLevels.contains(card.effortLevel).not()) {
         return false
     }
