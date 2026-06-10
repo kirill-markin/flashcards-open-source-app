@@ -52,6 +52,10 @@ function mockBrowserTimeZone(timeZone: string): void {
   });
 }
 
+function mockBrowserUtcOffset(offsetMinutes: number): void {
+  vi.spyOn(Date.prototype, "getTimezoneOffset").mockReturnValue(offsetMinutes);
+}
+
 function readCapturedWarning(callIndex: number): WebWarningEvent {
   const event = observabilityMocks.captureWebWarningMock.mock.calls[callIndex]?.[0] as WebWarningEvent | undefined;
   if (event === undefined) {
@@ -78,8 +82,20 @@ describe("progress date context", () => {
     observabilityMocks.captureWebWarningMock.mockReset();
   });
 
-  it("falls back to UTC when the browser timezone is invalid", async () => {
+  it("falls back to the browser offset zone when the timezone is invalid", async () => {
     mockBrowserTimeZone("Etc/Unknown");
+    mockBrowserUtcOffset(180);
+    const { buildProgressDateContext } = await loadProgressDatesModule();
+
+    expect(buildProgressDateContext(new Date("2026-06-08T01:00:00.000Z"))).toEqual({
+      timeZone: "Etc/GMT+3",
+      today: "2026-06-07",
+    });
+  });
+
+  it("falls back to UTC when the browser offset is not a whole hour", async () => {
+    mockBrowserTimeZone("Etc/Unknown");
+    mockBrowserUtcOffset(-330);
     const { buildProgressDateContext } = await loadProgressDatesModule();
 
     expect(buildProgressDateContext(new Date("2026-06-04T12:00:00.000Z"))).toEqual({
@@ -90,6 +106,7 @@ describe("progress date context", () => {
 
   it("emits progress_timezone_invalid for the first invalid timezone", async () => {
     mockBrowserTimeZone("Etc/Unknown");
+    mockBrowserUtcOffset(180);
     const { buildProgressDateContext } = await loadProgressDatesModule();
 
     buildProgressDateContext(new Date("2026-06-04T12:00:00.000Z"));
@@ -100,7 +117,8 @@ describe("progress date context", () => {
       details: {
         eventName: "progress_timezone_invalid",
         observedTimeZone: "Etc/Unknown",
-        fallbackTimeZone: "UTC",
+        observedOffsetMinutes: 180,
+        fallbackTimeZone: "Etc/GMT+3",
         errorName: "RangeError",
       },
     }));
@@ -108,6 +126,7 @@ describe("progress date context", () => {
 
   it("does not emit a second invalid timezone warning within the throttle window after reload", async () => {
     mockBrowserTimeZone("Etc/Unknown");
+    mockBrowserUtcOffset(180);
     const firstModule = await loadProgressDatesModule();
     firstModule.buildProgressDateContext(new Date("2026-06-04T12:00:00.000Z"));
 
@@ -124,6 +143,7 @@ describe("progress date context", () => {
 
   it("emits a new first warning after localStorage is cleared across reloads", async () => {
     mockBrowserTimeZone("Etc/Unknown");
+    mockBrowserUtcOffset(180);
     const firstModule = await loadProgressDatesModule();
     firstModule.buildProgressDateContext(new Date("2026-06-04T12:00:00.000Z"));
 
@@ -141,6 +161,7 @@ describe("progress date context", () => {
   it("includes installationId in the warning scope when localStorage is available", async () => {
     window.localStorage.setItem(INSTALLATION_ID_STORAGE_KEY, "installation-1");
     mockBrowserTimeZone("Etc/Unknown");
+    mockBrowserUtcOffset(180);
     const { buildProgressDateContext } = await loadProgressDatesModule();
 
     buildProgressDateContext(new Date("2026-06-04T12:00:00.000Z"));
