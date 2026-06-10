@@ -189,6 +189,14 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
     bootstrapPageDurationMs,
   });
   let recoveryFailurePhase: SyncLocalDbRecoveryFailurePhase = "pre_bootstrap_storage_read";
+  // The local IndexedDB is a best-effort cache, never a source of truth. Browsers can
+  // evict it at any time — storage pressure, a denied navigator.storage.persist()
+  // grant, or the user clearing site data — so finding it empty while restore history
+  // shows it once held data is an expected condition, not a failure. The backend is the
+  // source of truth and the loop below transparently re-hydrates the full hot state
+  // from it. Because this path self-heals, the "missing" and "recovered" signals are
+  // emitted as silent breadcrumbs (no Sentry issue); only a failed re-hydration (catch
+  // block) escalates to a warning.
   const isLocalDbRecovery = syncStateBefore === null
     && localCardCountBefore === 0
     && restoreHistoryBefore !== null;
