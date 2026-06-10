@@ -3,6 +3,10 @@ import {
   upsertCardSnapshotInExecutor,
 } from "../../cards";
 import {
+  createCurrentUserPublicProfileResolver,
+  type CurrentUserPublicProfileResolver,
+} from "../../community/reviewActivityFacts";
+import {
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
 } from "../../database";
@@ -93,6 +97,7 @@ export async function processOperationInExecutor(
   workspaceId: string,
   replicaId: string,
   operation: SyncPushOperation,
+  resolveReviewedBy: CurrentUserPublicProfileResolver,
 ): Promise<SyncPushOperationResult> {
   let resultingHotChangeId: number | null = null;
   let status: SyncPushOperationResult["status"] = "applied";
@@ -214,6 +219,9 @@ export async function processOperationInExecutor(
       };
     }
 
+    // appendReviewEventSnapshotInExecutor stamps immutable reviewed_by_user_id from
+    // the authenticated syncing user (the request scope, not mutable replica labels)
+    // and upserts the public activity fact in this same operation transaction.
     const mutation = await appendReviewEventSnapshotInExecutor(
       executor,
       workspaceId,
@@ -228,6 +236,7 @@ export async function processOperationInExecutor(
         reviewedAtServer: new Date().toISOString(),
       },
       operation.operationId,
+      resolveReviewedBy,
     );
     status = mutation.applied ? "applied" : "ignored";
     resultingHotChangeId = null;
@@ -258,6 +267,9 @@ export async function processSyncPushOperationsInExecutor(
     replicaId,
     operations.map((operation) => operation.operationId),
   );
+  // Resolve the syncing user's public profile at most once for the whole push batch;
+  // the resolver stays lazy, so a push with no applied review event never creates one.
+  const resolveReviewedBy = createCurrentUserPublicProfileResolver(executor);
   const results: Array<SyncPushOperationResult> = [];
 
   for (const operation of operations) {
@@ -274,7 +286,7 @@ export async function processSyncPushOperationsInExecutor(
       continue;
     }
 
-    results.push(await processOperationInExecutor(executor, workspaceId, replicaId, operation));
+    results.push(await processOperationInExecutor(executor, workspaceId, replicaId, operation, resolveReviewedBy));
   }
 
   return results;

@@ -123,12 +123,10 @@ function createAnonymousDisplayName(
   return createDisplayName(prefix, adjective, noun, wordPools.separator);
 }
 
-async function readPublicProfileForUserInExecutor(
+async function readPublicProfileRowForUserInExecutor(
   executor: DatabaseExecutor,
   userId: string,
-  localeHint: string,
-  dependencies: PublicProfileServiceDependencies,
-): Promise<PublicProfile | null> {
+): Promise<PublicProfileRow | null> {
   const result = await executor.query<PublicProfileRow>(
     [
       "SELECT public_profile_id, leaderboard_participation_enabled",
@@ -139,17 +137,14 @@ async function readPublicProfileForUserInExecutor(
     [userId],
   );
 
-  const row = result.rows[0];
-  return row === undefined ? null : mapPublicProfileRow(row, localeHint, dependencies);
+  return result.rows[0] ?? null;
 }
 
-async function insertPublicProfileCandidateInExecutor(
+async function insertPublicProfileCandidateRowInExecutor(
   executor: DatabaseExecutor,
   userId: string,
   publicProfileId: string,
-  localeHint: string,
-  dependencies: PublicProfileServiceDependencies,
-): Promise<PublicProfile | null> {
+): Promise<PublicProfileRow | null> {
   const result = await executor.query<PublicProfileRow>(
     [
       "WITH inserted_profile AS (",
@@ -171,8 +166,39 @@ async function insertPublicProfileCandidateInExecutor(
     [userId, publicProfileId],
   );
 
-  const row = result.rows[0];
-  return row === undefined ? null : mapPublicProfileRow(row, localeHint, dependencies);
+  return result.rows[0] ?? null;
+}
+
+async function ensurePublicProfileRowForUserInExecutor(
+  executor: DatabaseExecutor,
+  userId: string,
+  dependencies: PublicProfileServiceDependencies,
+): Promise<PublicProfileRow> {
+  assertValidCreateAttemptLimit(dependencies.maxCreateAttempts);
+
+  const existingRow = await readPublicProfileRowForUserInExecutor(executor, userId);
+  if (existingRow !== null) {
+    return existingRow;
+  }
+
+  for (let attempt = 1; attempt <= dependencies.maxCreateAttempts; attempt += 1) {
+    const row = await insertPublicProfileCandidateRowInExecutor(executor, userId, dependencies.randomUuidFn());
+    if (row !== null) {
+      return row;
+    }
+  }
+
+  throw new PublicProfileIdCollisionLimitError(dependencies.maxCreateAttempts);
+}
+
+async function readPublicProfileForUserInExecutor(
+  executor: DatabaseExecutor,
+  userId: string,
+  localeHint: string,
+  dependencies: PublicProfileServiceDependencies,
+): Promise<PublicProfile | null> {
+  const row = await readPublicProfileRowForUserInExecutor(executor, userId);
+  return row === null ? null : mapPublicProfileRow(row, localeHint, dependencies);
 }
 
 async function ensurePublicProfileForUserInExecutorWithDependencies(
@@ -181,27 +207,8 @@ async function ensurePublicProfileForUserInExecutorWithDependencies(
   localeHint: string,
   dependencies: PublicProfileServiceDependencies,
 ): Promise<PublicProfile> {
-  assertValidCreateAttemptLimit(dependencies.maxCreateAttempts);
-
-  const existingProfile = await readPublicProfileForUserInExecutor(executor, userId, localeHint, dependencies);
-  if (existingProfile !== null) {
-    return existingProfile;
-  }
-
-  for (let attempt = 1; attempt <= dependencies.maxCreateAttempts; attempt += 1) {
-    const profile = await insertPublicProfileCandidateInExecutor(
-      executor,
-      userId,
-      dependencies.randomUuidFn(),
-      localeHint,
-      dependencies,
-    );
-    if (profile !== null) {
-      return profile;
-    }
-  }
-
-  throw new PublicProfileIdCollisionLimitError(dependencies.maxCreateAttempts);
+  const row = await ensurePublicProfileRowForUserInExecutor(executor, userId, dependencies);
+  return mapPublicProfileRow(row, localeHint, dependencies);
 }
 
 export async function ensurePublicProfileForUserWithDependencies(
@@ -216,6 +223,60 @@ export async function ensurePublicProfileForUserWithDependencies(
 
 export async function ensurePublicProfileForUser(userId: string, localeHint: string): Promise<PublicProfile> {
   return ensurePublicProfileForUserWithDependencies(userId, localeHint, defaultPublicProfileServiceDependencies);
+}
+
+export class PublicProfileMissingUserScopeError extends Error {
+  readonly name = "PublicProfileMissingUserScopeError";
+
+  constructor() {
+    super("No authenticated user scope is set for the current public profile operation.");
+  }
+}
+
+export type CurrentUserPublicProfileId = Readonly<{
+  userId: string;
+  publicProfileId: string;
+}>;
+
+async function selectCurrentUserIdInExecutor(executor: DatabaseExecutor): Promise<string> {
+  const result = await executor.query<Readonly<{ user_id: string | null }>>(
+    "SELECT security.current_user_id() AS user_id",
+    [],
+  );
+
+  const userId = result.rows[0]?.user_id ?? null;
+  if (userId === null || userId === "") {
+    throw new PublicProfileMissingUserScopeError();
+  }
+
+  return userId;
+}
+
+/**
+ * Ensures and returns the stable public_profile_id for the currently scoped user
+ * without computing or storing any display name. Same-transaction fact writes use
+ * this so authorship and the opaque identity are captured from the authenticated
+ * request scope, never from mutable replica labels.
+ */
+export async function ensurePublicProfileIdForCurrentUserInExecutorWithDependencies(
+  executor: DatabaseExecutor,
+  dependencies: PublicProfileServiceDependencies,
+): Promise<CurrentUserPublicProfileId> {
+  const userId = await selectCurrentUserIdInExecutor(executor);
+  const row = await ensurePublicProfileRowForUserInExecutor(executor, userId, dependencies);
+  return {
+    userId,
+    publicProfileId: row.public_profile_id,
+  };
+}
+
+export async function ensurePublicProfileIdForCurrentUserInExecutor(
+  executor: DatabaseExecutor,
+): Promise<CurrentUserPublicProfileId> {
+  return ensurePublicProfileIdForCurrentUserInExecutorWithDependencies(
+    executor,
+    defaultPublicProfileServiceDependencies,
+  );
 }
 
 export async function readPublicProfileForUserWithDependencies(

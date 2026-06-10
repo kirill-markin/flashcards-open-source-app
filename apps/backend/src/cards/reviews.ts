@@ -1,5 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { transactionWithWorkspaceScope, type DatabaseExecutor } from "../database";
+import {
+  createCurrentUserPublicProfileResolver,
+  recordQualifiedReviewActivityFactInExecutor,
+  type CurrentUserPublicProfileResolver,
+} from "../community/reviewActivityFacts";
 import { HttpError } from "../shared/errors";
 import {
   computeReviewSchedule,
@@ -79,12 +84,13 @@ export async function appendReviewEventSnapshotInExecutor(
   workspaceId: string,
   reviewEvent: ReviewEvent,
   operationId: string,
+  resolveReviewedBy: CurrentUserPublicProfileResolver,
 ): Promise<ReviewEventAppendResult> {
   const insertResult = await executor.query<ReviewHistoryRow>(
     [
       "INSERT INTO content.review_events",
-      "(review_event_id, workspace_id, card_id, replica_id, client_event_id, rating, reviewed_at_client, reviewed_at_server)",
-      "VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8, now()))",
+      "(review_event_id, workspace_id, card_id, replica_id, client_event_id, rating, reviewed_at_client, reviewed_at_server, reviewed_by_user_id)",
+      "VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8, now()), security.current_user_id())",
       "ON CONFLICT DO NOTHING",
       "RETURNING review_event_id, workspace_id, replica_id, client_event_id, card_id, rating, reviewed_at_client, reviewed_at_server",
     ].join(" "),
@@ -103,6 +109,18 @@ export async function appendReviewEventSnapshotInExecutor(
   const insertedRow = insertResult.rows[0];
   if (insertedRow !== undefined) {
     const insertedReviewEvent = mapReviewHistoryItem(insertedRow);
+    // Project the new review event into the public activity fact layer in the same
+    // transaction. Authorship and the opaque identity derive from the authenticated
+    // request scope, so every review-write path (direct review, sync push, review
+    // history import, guest merge) records the fact for the right user. The resolver
+    // is invoked only here, on a real insert, and memoizes across a batch.
+    const reviewedBy = await resolveReviewedBy();
+    await recordQualifiedReviewActivityFactInExecutor(executor, reviewedBy, {
+      reviewEventId: insertedReviewEvent.reviewEventId,
+      rating: insertedReviewEvent.rating,
+      reviewedAtClient: insertedReviewEvent.reviewedAtClient,
+      reviewedAtServer: insertedReviewEvent.reviewedAtServer,
+    });
 
     return {
       reviewEvent: insertedReviewEvent,
@@ -191,6 +209,7 @@ export async function submitReview(
         reviewedAtServer: new Date().toISOString(),
       },
       normalizedMetadata.lastOperationId,
+      createCurrentUserPublicProfileResolver(executor),
     );
 
     const updatedCardResult = await executor.query<CardRow>(

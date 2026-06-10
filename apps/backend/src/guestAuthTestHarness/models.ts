@@ -94,6 +94,9 @@ export type ReviewEventState = Readonly<{
   rating: number;
   reviewed_at_client: string;
   reviewed_at_server: string;
+  // Immutable authorship. Optional because seeded historical fixtures may predate it;
+  // new harness inserts populate it from the request scope, like the real backend.
+  reviewed_by_user_id?: string | null;
 }>;
 
 export type WorkspaceMembershipRole = "owner" | "member";
@@ -147,6 +150,18 @@ export type PublicProfileState = Readonly<{
   leaderboard_participation_enabled: boolean;
 }>;
 
+export type PublicReviewActivityFactState = Readonly<{
+  review_event_id: string;
+  metric_version: string;
+  public_profile_id: string;
+  reviewed_by_user_id: string | null;
+  rating: number;
+  reviewed_at_client: string;
+  reviewed_at_server: string;
+  is_countable: boolean;
+  exclusion_reason: string | null;
+}>;
+
 export type MutableState = {
   currentUserId: string | null;
   currentWorkspaceId: string | null;
@@ -168,6 +183,7 @@ export type MutableState = {
   feedbackPromptEvents: Array<FeedbackPromptEventState>;
   feedbackSubmissions: Array<FeedbackSubmissionState>;
   publicProfiles: Array<PublicProfileState>;
+  publicReviewActivityFacts: Array<PublicReviewActivityFactState>;
 };
 
 export type ReviewEventClientEventDedupMergeFixture = Readonly<{

@@ -10,6 +10,8 @@ import {
   type GuestUpgradeExecutorParam,
   type GuestUpgradeHandlerContext,
   type MutableState,
+  type PublicProfileState,
+  type PublicReviewActivityFactState,
 } from "./models";
 import { createQueryResult } from "./queryResult";
 
@@ -126,6 +128,93 @@ function handleCommunityProfileExecutorQuery<Row extends pg.QueryResultRow>(
   return createQueryResult<Row>([]);
 }
 
+function toPublicProfileRow<Row extends pg.QueryResultRow>(profile: PublicProfileState): Row {
+  return {
+    public_profile_id: profile.public_profile_id,
+    leaderboard_participation_enabled: profile.leaderboard_participation_enabled,
+  } as unknown as Row;
+}
+
+function handleCommunityActivityExecutorQuery<Row extends pg.QueryResultRow>(
+  context: GuestUpgradeHandlerContext,
+  text: string,
+  params: ReadonlyArray<GuestUpgradeExecutorParam>,
+): pg.QueryResult<Row> | null {
+  const { state } = context;
+
+  if (text === "SELECT security.current_user_id() AS user_id") {
+    return createQueryResult<Row>([{ user_id: state.currentUserId } as unknown as Row]);
+  }
+
+  if (
+    text.startsWith("SELECT public_profile_id, leaderboard_participation_enabled")
+    && text.includes("FROM community.public_profiles")
+    && text.includes("WHERE user_id = $1")
+  ) {
+    const userId = typeof params[0] === "string" ? params[0] : null;
+    const profile = state.publicProfiles.find((entry) => entry.user_id === userId);
+    return createQueryResult<Row>(profile === undefined ? [] : [toPublicProfileRow<Row>(profile)]);
+  }
+
+  if (
+    text.startsWith("WITH inserted_profile AS")
+    && text.includes("INSERT INTO community.public_profiles")
+  ) {
+    const userId = typeof params[0] === "string" ? params[0] : null;
+    const publicProfileId = typeof params[1] === "string" ? params[1] : null;
+    if (userId === null || publicProfileId === null) {
+      return createQueryResult<Row>([]);
+    }
+
+    const existingProfile = state.publicProfiles.find((entry) => entry.user_id === userId);
+    if (existingProfile !== undefined) {
+      return createQueryResult<Row>([toPublicProfileRow<Row>(existingProfile)]);
+    }
+
+    if (state.publicProfiles.some((entry) => entry.public_profile_id === publicProfileId)) {
+      return createQueryResult<Row>([]);
+    }
+
+    const insertedProfile: PublicProfileState = {
+      user_id: userId,
+      public_profile_id: publicProfileId,
+      leaderboard_participation_enabled: true,
+    };
+    state.publicProfiles.push(insertedProfile);
+    return createQueryResult<Row>([toPublicProfileRow<Row>(insertedProfile)]);
+  }
+
+  if (
+    text.startsWith("INSERT INTO community.public_review_activity_facts")
+    && text.includes("ON CONFLICT (review_event_id, metric_version) DO NOTHING")
+  ) {
+    const reviewEventId = String(params[0]);
+    const metricVersion = String(params[1]);
+    const alreadyStored = state.publicReviewActivityFacts.some(
+      (fact) => fact.review_event_id === reviewEventId && fact.metric_version === metricVersion,
+    );
+    if (alreadyStored) {
+      return createQueryResult<Row>([]);
+    }
+
+    const insertedFact: PublicReviewActivityFactState = {
+      review_event_id: reviewEventId,
+      metric_version: metricVersion,
+      public_profile_id: String(params[2]),
+      reviewed_by_user_id: params[3] === null ? null : String(params[3]),
+      rating: Number(params[4]),
+      reviewed_at_client: String(params[5]),
+      reviewed_at_server: String(params[6]),
+      is_countable: Boolean(params[7]),
+      exclusion_reason: params[8] === null ? null : String(params[8]),
+    };
+    state.publicReviewActivityFacts.push(insertedFact);
+    return createQueryResult<Row>([]);
+  }
+
+  return null;
+}
+
 function handleSchemaExecutorQuery<Row extends pg.QueryResultRow>(
   text: string,
 ): pg.QueryResult<Row> | null {
@@ -215,6 +304,11 @@ export function createGuestUpgradeExecutor(state: MutableState): DatabaseExecuto
       const communityProfileResult = handleCommunityProfileExecutorQuery<Row>(context, text, params);
       if (communityProfileResult !== null) {
         return communityProfileResult;
+      }
+
+      const communityActivityResult = handleCommunityActivityExecutorQuery<Row>(context, text, params);
+      if (communityActivityResult !== null) {
+        return communityActivityResult;
       }
 
       throw new Error(`Unexpected query: ${text}`);
