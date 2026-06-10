@@ -103,7 +103,17 @@ export function handleContentExecutorQuery<Row extends pg.QueryResultRow>(
   ) {
     const workspaceId = String(params[0]);
     if (text.includes("content.review_events")) {
+      // Mirror the public_review_activity_facts.review_event_id ON DELETE CASCADE so
+      // facts for deleted review events do not survive (matches the real schema).
+      const deletedReviewEventIds = new Set(
+        state.reviewEvents
+          .filter((reviewEvent) => reviewEvent.workspace_id === workspaceId)
+          .map((reviewEvent) => reviewEvent.review_event_id),
+      );
       state.reviewEvents = state.reviewEvents.filter((reviewEvent) => reviewEvent.workspace_id !== workspaceId);
+      state.publicReviewActivityFacts = state.publicReviewActivityFacts.filter(
+        (fact) => !deletedReviewEventIds.has(fact.review_event_id),
+      );
     } else if (text.includes("content.decks")) {
       state.decks = state.decks.filter((deck) => deck.workspace_id !== workspaceId);
     } else {
@@ -272,6 +282,8 @@ export function handleContentExecutorQuery<Row extends pg.QueryResultRow>(
       rating: Number(params[5]),
       reviewed_at_client: String(params[6]),
       reviewed_at_server: String(params[7]),
+      // VALUES (..., security.current_user_id()) — immutable authorship from the scope.
+      reviewed_by_user_id: typeof state.currentUserId === "string" ? state.currentUserId : null,
     };
     state.reviewEvents.push(insertedReviewEvent);
     return createQueryResult<Row>([createReviewEventQueryRow(insertedReviewEvent) as unknown as Row]);

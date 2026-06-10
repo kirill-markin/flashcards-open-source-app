@@ -7,6 +7,7 @@ import {
   type CardSnapshotInput,
   type ReviewEvent,
 } from "../../cards";
+import { createCurrentUserPublicProfileResolver } from "../../community/reviewActivityFacts";
 import {
   applyWorkspaceDatabaseScopeInExecutor,
   type DatabaseExecutor,
@@ -613,6 +614,8 @@ async function mergeReviewEventsIntoTargetInExecutor(
     userId: targetUserId,
     workspaceId: targetWorkspaceId,
   });
+  // Re-inserted events are owned by the target; resolve its public profile once.
+  const resolveReviewedBy = createCurrentUserPublicProfileResolver(executor);
 
   for (const reviewEvent of reviewEvents) {
     if (!mergedCardIds.has(reviewEvent.cardId)) {
@@ -650,6 +653,7 @@ async function mergeReviewEventsIntoTargetInExecutor(
           targetWorkspaceId,
           createReviewEventSnapshot(targetWorkspaceId, reviewEvent, targetReplicaId),
           reviewEvent.reviewEventId,
+          resolveReviewedBy,
         );
         if (result.reviewEvent.reviewEventId === reviewEvent.reviewEventId) {
           return true;

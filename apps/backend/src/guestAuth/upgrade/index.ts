@@ -503,6 +503,16 @@ export async function completeGuestUpgradeInExecutor(
     selection,
   );
 
+  // Move the guest community identity onto the target before the merge below. The
+  // merge re-records public activity facts under the target scope, so the guest public
+  // profile must already belong to the target; otherwise the fact write would mint a
+  // throwaway target profile and discard the guest's stable identity.
+  await transferGuestPublicProfileInExecutor(
+    executor,
+    guestSession.userId,
+    guestUpgradeResolution.targetUserId,
+  );
+
   // Phase 8: merge already-synced guest cloud state into the destination workspace.
   const guestUpgradeMerge = await mergeGuestWorkspaceIntoTargetInExecutor(
     executor,
@@ -533,18 +543,14 @@ export async function completeGuestUpgradeInExecutor(
     guestUpgradeResolution.targetWorkspaceId,
   );
 
-  // Phase 11: transfer guest-owned support and community data before deleting source rows.
+  // Phase 11: transfer remaining guest-owned support data before deleting source rows.
+  // The guest community profile was already transferred ahead of the merge above.
   await transferGuestFeedbackInExecutor(
     executor,
     guestSession.userId,
     guestUpgradeResolution.guestWorkspaceId,
     guestUpgradeResolution.targetUserId,
     guestUpgradeResolution.targetWorkspaceId,
-  );
-  await transferGuestPublicProfileInExecutor(
-    executor,
-    guestSession.userId,
-    guestUpgradeResolution.targetUserId,
   );
 
   // Phase 12: revoke and delete guest source rows.

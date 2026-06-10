@@ -21,6 +21,8 @@ export {
   type HotChangeState,
   type InstallationState,
   type MutableState,
+  type PublicProfileState,
+  type PublicReviewActivityFactState,
   type ReviewEventClientEventDedupMergeFixture,
   type ReviewEventState,
   type UserSettingsState,

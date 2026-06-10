@@ -1,4 +1,5 @@
 import { appendReviewEventSnapshotInExecutor } from "../../cards";
+import { createCurrentUserPublicProfileResolver } from "../../community/reviewActivityFacts";
 import {
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
@@ -72,6 +73,8 @@ export async function processSyncReviewHistoryImportInExecutor(
 ): Promise<SyncReviewHistoryImportResult> {
   let importedCount = 0;
   let duplicateCount = 0;
+  // Resolve the importing user's public profile at most once for the whole import.
+  const resolveReviewedBy = createCurrentUserPublicProfileResolver(executor);
 
   for (const [reviewEventIndex, reviewEvent] of input.reviewEvents.entries()) {
     try {
@@ -89,6 +92,7 @@ export async function processSyncReviewHistoryImportInExecutor(
           reviewedAtServer: reviewEvent.reviewedAtServer,
         },
         reviewEvent.reviewEventId,
+        resolveReviewedBy,
       );
 
       if (mutation.applied) {

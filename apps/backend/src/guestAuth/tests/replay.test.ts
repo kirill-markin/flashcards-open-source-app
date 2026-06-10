@@ -267,6 +267,7 @@ test("completeGuestUpgradeInExecutor rejects a replay from a different subject",
     feedbackPromptEvents: [],
     feedbackSubmissions: [],
     publicProfiles: [],
+    publicReviewActivityFacts: [],
   };
 
   const executor = createGuestUpgradeExecutor(state);
@@ -322,6 +323,7 @@ test("completeGuestUpgradeInExecutor rejects a revoked guest session without rep
     feedbackPromptEvents: [],
     feedbackSubmissions: [],
     publicProfiles: [],
+    publicReviewActivityFacts: [],
   };
 
   const executor = createGuestUpgradeExecutor(state);
