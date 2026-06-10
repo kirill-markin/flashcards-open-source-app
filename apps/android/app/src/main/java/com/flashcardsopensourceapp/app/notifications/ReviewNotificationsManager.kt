@@ -12,6 +12,7 @@ import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import androidx.work.await
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
@@ -286,7 +287,7 @@ class ReviewNotificationsManager(
         return tag.startsWith(reviewReminderNotificationTagPrefix)
     }
 
-    private fun enqueuePayload(
+    private suspend fun enqueuePayload(
         payload: ScheduledReviewNotificationPayload,
         nowMillis: Long
     ) {
@@ -312,11 +313,11 @@ class ReviewNotificationsManager(
             payload.requestId,
             ExistingWorkPolicy.REPLACE,
             request
-        )
+        ).await()
     }
 
-    private fun clearCurrentWorkspaceReviewScheduling(workspaceId: String) {
-        workManager.cancelAllWorkByTag(reviewNotificationWorkTag)
+    private suspend fun clearCurrentWorkspaceReviewScheduling(workspaceId: String) {
+        workManager.cancelAllWorkByTag(reviewNotificationWorkTag).await()
         reviewNotificationsStore.saveScheduledPayloads(workspaceId = workspaceId, payloads = emptyList())
     }
 
