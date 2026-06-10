@@ -211,6 +211,8 @@ function writeProgressTimezoneWarningHistory(
 function observeInvalidProgressTimeZone(
   observedTimeZone: string | null,
   errorName: string,
+  observedOffsetMinutes: number | null,
+  fallbackTimeZone: string,
 ): void {
   const warningKey = `${observedTimeZone ?? "null"}:${errorName}`;
   if (observedInvalidProgressTimeZoneWarnings.has(warningKey)) {
@@ -235,7 +237,8 @@ function observeInvalidProgressTimeZone(
     details: {
       eventName: "progress_timezone_invalid",
       observedTimeZone,
-      fallbackTimeZone: fallbackProgressTimeZone,
+      observedOffsetMinutes,
+      fallbackTimeZone,
       errorName,
     },
   });
@@ -261,6 +264,61 @@ function assertUsableTimeZone(timeZone: string): void {
   formatter.formatToParts(new Date(0));
 }
 
+function readBrowserUtcOffsetMinutes(): number | null {
+  const offsetMinutes = new Date().getTimezoneOffset();
+  return Number.isFinite(offsetMinutes) ? offsetMinutes : null;
+}
+
+function deriveFixedOffsetProgressTimeZone(offsetMinutes: number): string | null {
+  // Date.getTimezoneOffset() reports minutes behind UTC (UTC-3 -> +180), and the
+  // IANA Etc/GMT zones invert the sign the same way (Etc/GMT+3 == UTC-3), so the
+  // sign carries over directly. Only whole-hour offsets map to an Etc/GMT zone.
+  if (offsetMinutes % 60 !== 0) {
+    return null;
+  }
+
+  const offsetHours = offsetMinutes / 60;
+  if (offsetHours === 0) {
+    return fallbackProgressTimeZone;
+  }
+
+  return offsetHours > 0 ? `Etc/GMT+${offsetHours}` : `Etc/GMT${offsetHours}`;
+}
+
+function resolveFallbackProgressTimeZone(offsetMinutes: number | null): string {
+  if (offsetMinutes === null) {
+    return fallbackProgressTimeZone;
+  }
+
+  const fixedOffsetTimeZone = deriveFixedOffsetProgressTimeZone(offsetMinutes);
+  if (fixedOffsetTimeZone === null) {
+    return fallbackProgressTimeZone;
+  }
+
+  try {
+    assertUsableTimeZone(fixedOffsetTimeZone);
+  } catch {
+    return fallbackProgressTimeZone;
+  }
+
+  return fixedOffsetTimeZone;
+}
+
+function fallBackFromInvalidProgressTimeZone(
+  observedTimeZone: string | null,
+  errorName: string,
+): string {
+  const observedOffsetMinutes = readBrowserUtcOffsetMinutes();
+  const fallbackTimeZone = resolveFallbackProgressTimeZone(observedOffsetMinutes);
+  observeInvalidProgressTimeZone(
+    observedTimeZone,
+    errorName,
+    observedOffsetMinutes,
+    fallbackTimeZone,
+  );
+  return fallbackTimeZone;
+}
+
 function getBrowserTimeZone(): string {
   let timeZone: string | null = null;
   try {
@@ -269,20 +327,17 @@ function getBrowserTimeZone(): string {
       ? observedTimeZone
       : null;
   } catch (error) {
-    observeInvalidProgressTimeZone(null, readErrorName(error));
-    return fallbackProgressTimeZone;
+    return fallBackFromInvalidProgressTimeZone(null, readErrorName(error));
   }
 
   if (timeZone === null) {
-    observeInvalidProgressTimeZone(null, "Error");
-    return fallbackProgressTimeZone;
+    return fallBackFromInvalidProgressTimeZone(null, "Error");
   }
 
   try {
     assertUsableTimeZone(timeZone);
   } catch (error) {
-    observeInvalidProgressTimeZone(timeZone, readErrorName(error));
-    return fallbackProgressTimeZone;
+    return fallBackFromInvalidProgressTimeZone(timeZone, readErrorName(error));
   }
 
   return timeZone;

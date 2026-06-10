@@ -566,7 +566,8 @@ export type SyncLocalDbRecoveryFailedWarningDetails = SyncBootstrapTimingDetails
 export type ProgressTimezoneInvalidWarningDetails = Readonly<{
   eventName: "progress_timezone_invalid";
   observedTimeZone: string | null;
-  fallbackTimeZone: "UTC";
+  observedOffsetMinutes: number | null;
+  fallbackTimeZone: string;
   errorName: string;
 }>;
 
