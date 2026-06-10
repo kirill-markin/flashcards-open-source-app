@@ -371,6 +371,9 @@ fun FlashcardsApp(
 
                     Lifecycle.Event.ON_PAUSE -> {
                         isAppResumed = false
+                    }
+
+                    Lifecycle.Event.ON_STOP -> {
                         appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotifications(
                             trigger = ReviewNotificationsReconcileTrigger.APP_BACKGROUND,
                             nowMillis = System.currentTimeMillis()
