@@ -173,6 +173,7 @@ export function createMergeState(params: Readonly<{
     hotChanges: [],
     feedbackPromptEvents: [],
     feedbackSubmissions: [],
+    publicProfiles: [],
   };
 }
 

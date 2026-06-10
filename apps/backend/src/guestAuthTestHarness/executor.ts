@@ -75,6 +75,57 @@ function handleFeedbackExecutorQuery<Row extends pg.QueryResultRow>(
   return createQueryResult<Row>([]);
 }
 
+function handleCommunityProfileExecutorQuery<Row extends pg.QueryResultRow>(
+  context: GuestUpgradeHandlerContext,
+  text: string,
+  params: ReadonlyArray<GuestUpgradeExecutorParam>,
+): pg.QueryResult<Row> | null {
+  if (text !== "SELECT community.transfer_guest_public_profile($1, $2)") {
+    return null;
+  }
+
+  const { state } = context;
+  const sourceGuestUserId = String(params[0]);
+  const targetUserId = String(params[1]);
+  context.scope.requireCurrentUserScope(targetUserId);
+
+  const sourceProfile = state.publicProfiles.find((profile) => profile.user_id === sourceGuestUserId);
+  if (sourceProfile === undefined) {
+    return createQueryResult<Row>([]);
+  }
+
+  const targetProfile = state.publicProfiles.find((profile) => profile.user_id === targetUserId);
+  if (targetProfile === undefined) {
+    state.publicProfiles = state.publicProfiles.map((profile) => {
+      if (profile.user_id !== sourceGuestUserId) {
+        return profile;
+      }
+
+      return {
+        ...profile,
+        user_id: targetUserId,
+      };
+    });
+    return createQueryResult<Row>([]);
+  }
+
+  state.publicProfiles = state.publicProfiles.map((profile) => {
+    if (profile.user_id !== targetUserId) {
+      return profile;
+    }
+
+    return {
+      ...profile,
+      leaderboard_participation_enabled: (
+        profile.leaderboard_participation_enabled
+        && sourceProfile.leaderboard_participation_enabled
+      ),
+    };
+  });
+
+  return createQueryResult<Row>([]);
+}
+
 function handleSchemaExecutorQuery<Row extends pg.QueryResultRow>(
   text: string,
 ): pg.QueryResult<Row> | null {
@@ -161,6 +212,11 @@ export function createGuestUpgradeExecutor(state: MutableState): DatabaseExecuto
         return feedbackResult;
       }
 
+      const communityProfileResult = handleCommunityProfileExecutorQuery<Row>(context, text, params);
+      if (communityProfileResult !== null) {
+        return communityProfileResult;
+      }
+
       throw new Error(`Unexpected query: ${text}`);
     },
   };
@@ -187,6 +243,7 @@ export function isGuestUpgradeMergeOnlyExecutorQuery(text: string): boolean {
     || text.includes("INSERT INTO auth.guest_upgrade_history")
     || text.includes("INSERT INTO auth.guest_replica_aliases")
     || text === "SELECT support.transfer_guest_feedback($1, $2, $3, $4)"
+    || text === "SELECT community.transfer_guest_public_profile($1, $2)"
     || text === "UPDATE auth.guest_sessions SET revoked_at = now() WHERE session_id = $1"
     || text === "SELECT workspace_id FROM sync.find_conflicting_workspace_id($1, $2) LIMIT 1"
     || text.includes("FROM sync.hot_changes")

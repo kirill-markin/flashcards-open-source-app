@@ -141,6 +141,12 @@ export type FeedbackSubmissionState = Readonly<{
   message: string;
 }>;
 
+export type PublicProfileState = Readonly<{
+  user_id: string;
+  public_profile_id: string;
+  leaderboard_participation_enabled: boolean;
+}>;
+
 export type MutableState = {
   currentUserId: string | null;
   currentWorkspaceId: string | null;
@@ -161,6 +167,7 @@ export type MutableState = {
   hotChanges: Array<HotChangeState>;
   feedbackPromptEvents: Array<FeedbackPromptEventState>;
   feedbackSubmissions: Array<FeedbackSubmissionState>;
+  publicProfiles: Array<PublicProfileState>;
 };
 
 export type ReviewEventClientEventDedupMergeFixture = Readonly<{

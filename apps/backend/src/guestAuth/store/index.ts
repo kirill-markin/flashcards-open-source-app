@@ -1,4 +1,5 @@
 export * from "./cards";
+export * from "./communityProfile";
 export * from "./decks";
 export * from "./deletion";
 export * from "./feedback";

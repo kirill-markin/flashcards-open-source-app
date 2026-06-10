@@ -131,6 +131,94 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /me/community/profile:
+    get:
+      tags:
+        - bootstrap
+      summary: Load signed-in community public profile
+      description: >-
+        Ensures the authenticated app user has a stable opaque public community
+        profile and returns only client-safe public profile fields. ApiKey
+        authentication is rejected.
+      security:
+        - BearerAuth: []
+        - GuestAuthorizationHeader: []
+        - SessionCookie: []
+      responses:
+        '200':
+          description: Community public profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommunityPublicProfileResponse'
+              example:
+                publicProfileId: 0cc86d10-18cb-4d64-a2f2-a5fd960b45b2
+                anonymousDisplayName: Silver Bright Harbor
+                leaderboardParticipationEnabled: true
+                linkedAccountRequiredForLeaderboard: false
+        '403':
+          description: Forbidden authentication transport
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags:
+        - bootstrap
+      summary: Update community leaderboard participation preference
+      description: >-
+        Updates only the leaderboard participation preference on the
+        authenticated user's community public profile. Session callers must send
+        a valid X-CSRF-Token header. ApiKey authentication is rejected.
+      security:
+        - BearerAuth: []
+        - GuestAuthorizationHeader: []
+        - SessionCookie: []
+          CsrfTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommunityProfilePatchRequest'
+            example:
+              leaderboardParticipationEnabled: false
+      responses:
+        '200':
+          description: Updated community public profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommunityPublicProfileResponse'
+              example:
+                publicProfileId: 0cc86d10-18cb-4d64-a2f2-a5fd960b45b2
+                anonymousDisplayName: Silver Bright Harbor
+                leaderboardParticipationEnabled: false
+                linkedAccountRequiredForLeaderboard: false
+        '400':
+          description: Invalid community profile payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden authentication transport or invalid session CSRF token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /agent/me:
     $ref: paths/agent_me.yaml
   /agent/workspaces:
@@ -178,6 +266,33 @@ components:
       properties:
         preferences:
           $ref: '#/components/schemas/AccountPreferences'
+    CommunityProfilePatchRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - leaderboardParticipationEnabled
+      properties:
+        leaderboardParticipationEnabled:
+          type: boolean
+          default: true
+    CommunityPublicProfileResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - publicProfileId
+        - anonymousDisplayName
+        - leaderboardParticipationEnabled
+        - linkedAccountRequiredForLeaderboard
+      properties:
+        publicProfileId:
+          $ref: ./components/schemas/UuidString.yaml
+        anonymousDisplayName:
+          type: string
+          description: Locale-aware anonymous display label derived from the public profile id.
+        leaderboardParticipationEnabled:
+          type: boolean
+        linkedAccountRequiredForLeaderboard:
+          type: boolean
     ErrorResponse:
       type: object
       additionalProperties: true
