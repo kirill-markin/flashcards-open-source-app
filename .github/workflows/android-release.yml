@@ -518,7 +518,7 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - uses: gradle/actions/setup-gradle@v6.1.0
+      - uses: gradle/actions/setup-gradle@v6.1.1
 
       - uses: google-github-actions/auth@v3
         id: auth
