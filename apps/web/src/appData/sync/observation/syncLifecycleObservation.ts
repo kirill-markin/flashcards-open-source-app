@@ -164,11 +164,17 @@ export function observeSlowHotBootstrap(input: HotBootstrapSlowObservationInput)
   });
 }
 
+// Expected, self-healing condition: the browser evicted the best-effort local
+// IndexedDB cache and we are about to transparently re-hydrate from the backend
+// (the source of truth). Emitted as a silent breadcrumb, not a warning, so it never
+// raises a Sentry issue on its own — it only adds context to a later capture. See
+// bootstrapHotState for the full rationale; a failed re-hydration is reported as a
+// warning by observeLocalDbRecoveryFailed.
 export function observeLocalDbMissing(input: LocalDbMissingObservationInput): void {
   const indexedDbOpenLifecycleFields = buildIndexedDbOpenLifecycleObservationFields(
     input.indexedDbOpenLifecycleSnapshot,
   );
-  captureWebWarning({
+  addWebBreadcrumb({
     action: "sync_local_db_missing",
     scope: buildSyncObservationScope(input.userId, input.workspaceId, input.installationId),
     details: {
@@ -216,13 +222,16 @@ function persistentStorageStateOrNull(state: PersistentStorageState | null): Per
   return state ?? nullPersistentStorageState();
 }
 
+// Successful transparent re-hydration after the browser evicted the local cache.
+// Like observeLocalDbMissing, this is a silent breadcrumb (no Sentry issue): the app
+// behaved exactly as designed, so it must not raise a warning.
 export function observeLocalDbRecoverySucceeded(input: LocalDbRecoveryObservationInput): void {
   const persistentStorageStateBefore = persistentStorageStateOrNull(input.persistentStorageStateBefore);
   const persistentStorageStateAfter = persistentStorageStateOrNull(input.persistentStorageStateAfter);
   const indexedDbOpenLifecycleFields = buildIndexedDbOpenLifecycleObservationFields(
     input.indexedDbOpenLifecycleSnapshot,
   );
-  captureWebWarning({
+  addWebBreadcrumb({
     action: "sync_local_db_recovery_succeeded",
     scope: buildSyncObservationScope(input.userId, input.workspaceId, input.installationId),
     details: {
@@ -270,6 +279,9 @@ export function observeLocalDbRecoverySucceeded(input: LocalDbRecoveryObservatio
   });
 }
 
+// Real problem: re-hydrating the evicted local cache from the backend failed, so the
+// user is left without their data. Unlike the missing/succeeded breadcrumbs above,
+// this stays a warning so it surfaces as a Sentry issue.
 export function observeLocalDbRecoveryFailed(input: LocalDbRecoveryFailedObservationInput): void {
   const persistentStorageStateBefore = persistentStorageStateOrNull(input.persistentStorageStateBefore);
   const persistentStorageStateAfter = persistentStorageStateOrNull(input.persistentStorageStateAfter);

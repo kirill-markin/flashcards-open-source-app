@@ -189,6 +189,16 @@ export type WebBreadcrumbEvent =
     action: "indexed_db_operation";
     scope: WebObservationScope;
     details: IndexedDbOperationBreadcrumbDetails;
+  }>
+  | Readonly<{
+    action: "sync_local_db_missing";
+    scope: WebObservationScope;
+    details: SyncLocalDbMissingBreadcrumbDetails;
+  }>
+  | Readonly<{
+    action: "sync_local_db_recovery_succeeded";
+    scope: WebObservationScope;
+    details: SyncLocalDbRecoverySucceededBreadcrumbDetails;
   }>;
 
 export type ApiContractFailureDetails = Readonly<{
@@ -427,7 +437,12 @@ export type SyncRestoreWarningDetails = SyncBootstrapTimingDetails & Readonly<{
   remoteIsEmpty: boolean | null;
 }>;
 
-export type SyncLocalDbMissingWarningDetails = Readonly<{
+// Local IndexedDB is a best-effort cache the browser may evict at any time, so
+// detecting it missing and re-hydrating from the backend (the source of truth) is
+// expected, self-healing behavior — not an error. These details are therefore
+// carried as a silent breadcrumb (see WebBreadcrumbEvent), never a warning. Only
+// sync_local_db_recovery_failed escalates to a warning.
+export type SyncLocalDbMissingBreadcrumbDetails = Readonly<{
   eventName: "sync_local_db_missing";
   syncRunId: string;
   workspaceId: string;
@@ -459,7 +474,9 @@ export type SyncLocalDbMissingWarningDetails = Readonly<{
   indexedDbDatabaseUpgraded: boolean | null;
 }>;
 
-export type SyncLocalDbRecoverySucceededWarningDetails = SyncBootstrapTimingDetails & Readonly<{
+// Successful self-healing recovery — emitted as a silent breadcrumb, not a warning
+// (see SyncLocalDbMissingBreadcrumbDetails for the rationale).
+export type SyncLocalDbRecoverySucceededBreadcrumbDetails = SyncBootstrapTimingDetails & Readonly<{
   eventName: "sync_local_db_recovery_succeeded";
   syncRunId: string;
   workspaceId: string;
@@ -587,16 +604,6 @@ export type WebWarningEvent =
     action: "sync_restore_slow";
     scope: WebObservationScope;
     details: SyncRestoreWarningDetails;
-  }>
-  | Readonly<{
-    action: "sync_local_db_missing";
-    scope: WebObservationScope;
-    details: SyncLocalDbMissingWarningDetails;
-  }>
-  | Readonly<{
-    action: "sync_local_db_recovery_succeeded";
-    scope: WebObservationScope;
-    details: SyncLocalDbRecoverySucceededWarningDetails;
   }>
   | Readonly<{
     action: "sync_local_db_recovery_failed";

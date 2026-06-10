@@ -341,7 +341,9 @@ describe("sync lifecycle observation", () => {
   it("does not warn when an empty local database has no restore history", async () => {
     await runWorkspaceRemoteSync(createRemoteSyncInput());
 
-    expect(findCapturedWarning("sync_local_db_missing")).toBeNull();
+    expect(observabilityMocks.addWebBreadcrumbMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ action: "sync_local_db_missing" }),
+    );
   });
 
   it("uses separate page sizes for bootstrap and incremental pulls", async () => {
@@ -373,7 +375,7 @@ describe("sync lifecycle observation", () => {
     );
   });
 
-  it("deduplicates slow warnings for successful local database recovery", async () => {
+  it("emits recovery breadcrumbs and suppresses the slow warning for successful local database recovery", async () => {
     const clock = installMutableDateNow(0);
     const persistentStorageMock = installPersistentStorageMockWithClock(clock, 0, 7, 0);
     apiMocks.bootstrapPullSyncStateMock.mockImplementation(async () => {
@@ -404,7 +406,7 @@ describe("sync lifecycle observation", () => {
       },
     });
 
-    expect(observabilityMocks.captureWebWarningMock).toHaveBeenCalledWith(expect.objectContaining({
+    expect(observabilityMocks.addWebBreadcrumbMock).toHaveBeenCalledWith(expect.objectContaining({
       action: "sync_local_db_missing",
       details: expect.objectContaining({
         eventName: "sync_local_db_missing",
@@ -435,7 +437,7 @@ describe("sync lifecycle observation", () => {
         indexedDbDatabaseUpgraded: false,
       }),
     }));
-    expect(observabilityMocks.captureWebWarningMock).toHaveBeenCalledWith(expect.objectContaining({
+    expect(observabilityMocks.addWebBreadcrumbMock).toHaveBeenCalledWith(expect.objectContaining({
       action: "sync_local_db_recovery_succeeded",
       details: expect.objectContaining({
         eventName: "sync_local_db_recovery_succeeded",
@@ -545,7 +547,9 @@ describe("sync lifecycle observation", () => {
     await runWorkspaceRemoteSync(createRemoteSyncInput());
 
     expect(apiMocks.bootstrapPullSyncStateMock).not.toHaveBeenCalled();
-    expect(findCapturedWarning("sync_local_db_missing")).toBeNull();
+    expect(observabilityMocks.addWebBreadcrumbMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ action: "sync_local_db_missing" }),
+    );
     expect(loadSyncRestoreHistoryEntry({
       userId: "user-1",
       workspaceId: "workspace-1",
