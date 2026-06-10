@@ -19,6 +19,7 @@ const PROVIDER_AUTH_ERROR_MESSAGE = "The AI service could not authenticate the r
 const PROVIDER_RATE_LIMITED_ERROR_MESSAGE = "The AI service is rate limited right now. Please try again in a few minutes.";
 const PROVIDER_UNAVAILABLE_ERROR_MESSAGE = "The AI service is temporarily unavailable. Please try again soon.";
 const PROVIDER_ABORT_ERROR_MESSAGE = "The AI request was interrupted. Please try again.";
+const PROVIDER_CONTEXT_LENGTH_ERROR_MESSAGE = "This conversation has grown too long for the AI to continue. Please start a new chat to keep going.";
 
 type SafeProviderErrorDetails = Pick<
   ChatWorkerLifecycleDetails,
@@ -104,6 +105,10 @@ export function createPublicTerminalErrorMessage(error: unknown): string {
 
   if (isChatAttachmentUnsupportedTypeError(error) || providerErrorCode === "invalid_file") {
     return chatAttachmentUnsupportedTypeMessage;
+  }
+
+  if (providerErrorCode === "context_length_exceeded") {
+    return PROVIDER_CONTEXT_LENGTH_ERROR_MESSAGE;
   }
 
   if (category === "provider_auth") {
