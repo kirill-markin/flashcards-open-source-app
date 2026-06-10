@@ -397,8 +397,10 @@ extension FlashcardsStore {
         }
 
         let payloads = loadResult.payloads
-        let pendingBeforeRequestIdentifiers = await pendingAppNotificationRequestIdentifiers(center: center)
-        let pendingBeforeCount = pendingBeforeRequestIdentifiers.count
+        let pendingBeforeRequestIdentifiers: [String] = await pendingAppNotificationRequestIdentifiers(center: center)
+        let permissionStatusBeforeAdd: ReviewNotificationPermissionStatus =
+            await resolveReviewNotificationPermissionStatus()
+        let appStateBeforeAdd: String = currentAppNotificationApplicationStateDiagnosticValue()
         var addFailure: Error?
         var failedRequestId: String?
 
@@ -441,16 +443,59 @@ extension FlashcardsStore {
             return
         }
 
-        let pendingAfterRequestIdentifiers = await pendingAppNotificationRequestIdentifiers(center: center)
+        let pendingAfterRequestIdentifiers: [String] = await pendingAppNotificationRequestIdentifiers(center: center)
         guard self.reviewNotificationsRescheduleGeneration == generation else {
             return
         }
         guard Task.isCancelled == false else {
             return
         }
-        let acceptedPayloads = acceptedReviewNotificationPayloads(
+        let permissionStatusAfterReadback: ReviewNotificationPermissionStatus =
+            await resolveReviewNotificationPermissionStatus()
+        guard self.reviewNotificationsRescheduleGeneration == generation else {
+            return
+        }
+        guard Task.isCancelled == false else {
+            return
+        }
+        let appStateAfterReadback: String = currentAppNotificationApplicationStateDiagnosticValue()
+        let acceptedPayloads: [ScheduledReviewNotificationPayload] = acceptedReviewNotificationPayloads(
             payloads: payloads,
             pendingRequestIdentifiers: pendingAfterRequestIdentifiers
+        )
+        let hasReadbackMismatch: Bool = addFailure == nil && acceptedPayloads.count != payloads.count
+        var delayedReadback: DelayedNotificationSchedulingReadback?
+        if hasReadbackMismatch {
+            do {
+                delayedReadback = try await delayedNotificationSchedulingReadback(
+                    center: center,
+                    plannedRequestIdentifiers: payloads.map(\.requestId),
+                    delayNanoseconds: notificationSchedulingDelayedReadbackNanoseconds
+                )
+            } catch {
+                return
+            }
+            guard self.reviewNotificationsRescheduleGeneration == generation else {
+                return
+            }
+            guard Task.isCancelled == false else {
+                return
+            }
+        }
+        let diagnostics: NotificationSchedulingDiagnostics = makeNotificationSchedulingDiagnostics(
+            trigger: trigger.diagnosticValue,
+            scheduledAtMillisRange: reviewNotificationScheduledAtMillisRange(payloads: payloads),
+            delaySecondsRange: reviewNotificationSchedulingDelaySecondsRange(
+                payloads: payloads,
+                now: now
+            ),
+            pendingBeforeRequestIdentifiers: pendingBeforeRequestIdentifiers,
+            pendingAfterRequestIdentifiers: pendingAfterRequestIdentifiers,
+            permissionStatusBefore: permissionStatusBeforeAdd,
+            permissionStatusAfter: permissionStatusAfterReadback,
+            appStateBeforeAdd: appStateBeforeAdd,
+            appStateAfterReadback: appStateAfterReadback,
+            delayedReadback: delayedReadback
         )
         if let addFailure {
             FlashcardsObservability.captureWarning(
@@ -474,14 +519,13 @@ extension FlashcardsStore {
                         stage: "add",
                         plannedCount: payloads.count,
                         acceptedCount: acceptedPayloads.count,
-                        pendingBeforeCount: pendingBeforeCount,
-                        pendingAfterCount: pendingAfterRequestIdentifiers.count,
+                        diagnostics: diagnostics,
                         error: addFailure,
                         messageSummary: nil
                     )
                 )
             )
-        } else if acceptedPayloads.count != payloads.count {
+        } else if hasReadbackMismatch {
             FlashcardsObservability.captureWarning(
                 .notificationSchedulingFailed(
                     makeNotificationSchedulingFailureWarning(
@@ -503,8 +547,7 @@ extension FlashcardsStore {
                         stage: "readback",
                         plannedCount: payloads.count,
                         acceptedCount: acceptedPayloads.count,
-                        pendingBeforeCount: pendingBeforeCount,
-                        pendingAfterCount: pendingAfterRequestIdentifiers.count,
+                        diagnostics: diagnostics,
                         error: nil,
                         messageSummary: "Notification Center accepted fewer review reminders than planned"
                     )

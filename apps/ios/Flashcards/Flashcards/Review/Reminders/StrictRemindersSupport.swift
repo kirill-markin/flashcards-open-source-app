@@ -71,6 +71,25 @@ enum StrictRemindersReconcileTrigger: Hashable, Sendable {
             return false
         }
     }
+
+    var diagnosticValue: String {
+        switch self {
+        case .appActive:
+            return "app_active"
+        case .appBackground:
+            return "app_background"
+        case .settingsChanged:
+            return "settings_changed"
+        case .permissionChanged:
+            return "permission_changed"
+        case .reviewRecorded:
+            return "review_recorded"
+        case .reviewHistoryImported:
+            return "review_history_imported"
+        case .workspaceChanged:
+            return "workspace_changed"
+        }
+    }
 }
 
 struct ScheduledStrictReminderPayload: Codable, Hashable, Sendable, Identifiable {
@@ -102,6 +121,7 @@ struct StrictReminderCompletedDayResolution: Sendable {
 
 struct StrictRemindersReconcileRequest: Equatable, Sendable {
     let now: Date
+    let triggers: [StrictRemindersReconcileTrigger]
     let shouldClearDeliveredStrictReminders: Bool
 }
 
@@ -117,8 +137,30 @@ func makeStrictRemindersReconcileRequest(
 ) -> StrictRemindersReconcileRequest {
     StrictRemindersReconcileRequest(
         now: now,
+        triggers: [trigger],
         shouldClearDeliveredStrictReminders: trigger.shouldClearDeliveredStrictReminders
     )
+}
+
+func mergeStrictRemindersReconcileTriggers(
+    pendingTriggers: [StrictRemindersReconcileTrigger],
+    nextTriggers: [StrictRemindersReconcileTrigger]
+) -> [StrictRemindersReconcileTrigger] {
+    var mergedTriggers: [StrictRemindersReconcileTrigger] = []
+    for trigger in pendingTriggers + nextTriggers where mergedTriggers.contains(trigger) == false {
+        mergedTriggers.append(trigger)
+    }
+    return mergedTriggers
+}
+
+func strictRemindersReconcileTriggerDiagnosticValue(
+    triggers: [StrictRemindersReconcileTrigger]
+) -> String {
+    let triggerValues: [String] = triggers.map(\.diagnosticValue)
+    guard triggerValues.isEmpty == false else {
+        return "unknown"
+    }
+    return triggerValues.joined(separator: "+")
 }
 
 func mergeStrictRemindersReconcileRequests(
@@ -131,6 +173,10 @@ func mergeStrictRemindersReconcileRequests(
 
     return StrictRemindersReconcileRequest(
         now: max(pendingRequest.now, nextRequest.now),
+        triggers: mergeStrictRemindersReconcileTriggers(
+            pendingTriggers: pendingRequest.triggers,
+            nextTriggers: nextRequest.triggers
+        ),
         shouldClearDeliveredStrictReminders: pendingRequest.shouldClearDeliveredStrictReminders
             || nextRequest.shouldClearDeliveredStrictReminders
     )
@@ -365,6 +411,24 @@ func acceptedStrictReminderPayloads(
     return payloads.filter { payload in
         pendingRequestIdentifierSet.contains(payload.requestId)
     }
+}
+
+func strictReminderScheduledAtMillisRange(
+    payloads: [ScheduledStrictReminderPayload]
+) -> NotificationScheduledAtMillisRange {
+    notificationScheduledAtMillisRange(
+        scheduledAtMillisValues: payloads.map(\.scheduledAtMillis)
+    )
+}
+
+func strictReminderSchedulingDelaySecondsRange(
+    payloads: [ScheduledStrictReminderPayload],
+    now: Date
+) -> NotificationSchedulingDelaySecondsRange {
+    notificationSchedulingDelaySecondsRange(
+        scheduledAtMillisValues: payloads.map(\.scheduledAtMillis),
+        now: now
+    )
 }
 
 func pendingStrictReminderRequestIdentifiers(

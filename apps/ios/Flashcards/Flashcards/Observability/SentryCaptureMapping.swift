@@ -261,6 +261,7 @@ extension SentryObservabilityAdapter {
             )
         case .notificationSchedulingFailed(let warning):
             let context: [String: Any] = [
+                "trigger": warning.diagnostics.trigger,
                 "notification_kind": warning.notificationKind,
                 "workspace_id": warning.workspaceId ?? "",
                 "notification_request_id": warning.requestId ?? "",
@@ -269,12 +270,33 @@ extension SentryObservabilityAdapter {
                 "accepted_count": String(warning.acceptedCount),
                 "pending_before_count": String(warning.pendingBeforeCount),
                 "pending_after_count": String(warning.pendingAfterCount),
+                "pending_before_total_count": String(warning.diagnostics.pendingBefore.totalCount),
+                "pending_before_review_count": String(warning.diagnostics.pendingBefore.reviewCount),
+                "pending_before_strict_count": String(warning.diagnostics.pendingBefore.strictCount),
+                "pending_before_other_count": String(warning.diagnostics.pendingBefore.otherCount),
+                "pending_after_total_count": String(warning.diagnostics.pendingAfter.totalCount),
+                "pending_after_review_count": String(warning.diagnostics.pendingAfter.reviewCount),
+                "pending_after_strict_count": String(warning.diagnostics.pendingAfter.strictCount),
+                "pending_after_other_count": String(warning.diagnostics.pendingAfter.otherCount),
+                "permission_status_before": warning.diagnostics.permissionStatusBefore,
+                "permission_status_after": warning.diagnostics.permissionStatusAfter,
+                "app_state_before_add": warning.diagnostics.appStateBeforeAdd,
+                "app_state_after_readback": warning.diagnostics.appStateAfterReadback,
+                "first_scheduled_at_millis": warning.diagnostics.scheduledAtMillisRange.firstScheduledAtMillis.map { value in String(value) } ?? "",
+                "last_scheduled_at_millis": warning.diagnostics.scheduledAtMillisRange.lastScheduledAtMillis.map { value in String(value) } ?? "",
+                "min_delay_seconds": warning.diagnostics.delaySecondsRange.minDelaySeconds.map { value in String(value) } ?? "",
+                "max_delay_seconds": warning.diagnostics.delaySecondsRange.maxDelaySeconds.map { value in String(value) } ?? "",
+                "delayed_pending_total_count": warning.diagnostics.delayedReadback.map { readback in String(readback.pending.totalCount) } ?? "",
+                "delayed_pending_review_count": warning.diagnostics.delayedReadback.map { readback in String(readback.pending.reviewCount) } ?? "",
+                "delayed_pending_strict_count": warning.diagnostics.delayedReadback.map { readback in String(readback.pending.strictCount) } ?? "",
+                "delayed_pending_other_count": warning.diagnostics.delayedReadback.map { readback in String(readback.pending.otherCount) } ?? "",
+                "delayed_readback_recovered": warning.diagnostics.delayedReadback.map { readback in String(describing: readback.recovered) } ?? "",
                 "error_domain": warning.errorDomain ?? "",
                 "error_code": warning.errorCode.map { errorCode in String(errorCode) } ?? "",
                 "message_summary": warning.messageSummary ?? ""
             ]
             return ObservationPayload(
-                message: "iOS notification scheduling warning: \(warning.action)",
+                message: "iOS notification scheduling diagnostics: \(warning.action)",
                 action: warning.action,
                 scope: warning.scope,
                 statusCode: nil,

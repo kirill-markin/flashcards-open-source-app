@@ -222,6 +222,41 @@ struct NotificationTapDroppedWarning: Sendable, Hashable {
     let detailSummary: String?
 }
 
+struct AppNotificationPendingRequestBreakdown: Sendable, Hashable {
+    let totalCount: Int
+    let reviewCount: Int
+    let strictCount: Int
+    let otherCount: Int
+}
+
+struct NotificationScheduledAtMillisRange: Sendable, Hashable {
+    let firstScheduledAtMillis: Int64?
+    let lastScheduledAtMillis: Int64?
+}
+
+struct NotificationSchedulingDelaySecondsRange: Sendable, Hashable {
+    let minDelaySeconds: Int?
+    let maxDelaySeconds: Int?
+}
+
+struct DelayedNotificationSchedulingReadback: Sendable, Hashable {
+    let pending: AppNotificationPendingRequestBreakdown
+    let recovered: Bool
+}
+
+struct NotificationSchedulingDiagnostics: Sendable, Hashable {
+    let trigger: String
+    let pendingBefore: AppNotificationPendingRequestBreakdown
+    let pendingAfter: AppNotificationPendingRequestBreakdown
+    let permissionStatusBefore: String
+    let permissionStatusAfter: String
+    let appStateBeforeAdd: String
+    let appStateAfterReadback: String
+    let scheduledAtMillisRange: NotificationScheduledAtMillisRange
+    let delaySecondsRange: NotificationSchedulingDelaySecondsRange
+    let delayedReadback: DelayedNotificationSchedulingReadback?
+}
+
 struct NotificationSchedulingFailureWarning: Sendable, Hashable {
     let action: String
     let scope: IOSObservationScope
@@ -236,6 +271,7 @@ struct NotificationSchedulingFailureWarning: Sendable, Hashable {
     let errorDomain: String?
     let errorCode: Int?
     let messageSummary: String?
+    let diagnostics: NotificationSchedulingDiagnostics
 }
 
 struct CloudRetryWarning: Sendable, Hashable {
