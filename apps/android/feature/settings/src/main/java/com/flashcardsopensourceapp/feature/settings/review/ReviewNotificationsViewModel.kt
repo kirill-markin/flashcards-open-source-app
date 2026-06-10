@@ -24,7 +24,7 @@ class ReviewNotificationsViewModel(
     private val reviewNotificationsStore: ReviewNotificationsStore,
     private val strictRemindersStore: StrictRemindersStore,
     private val onReviewSettingsChanged: () -> Unit,
-    private val onStrictRemindersSettingsChanged: () -> Unit,
+    private val onStrictRemindersSettingsChanged: (Boolean) -> Unit,
     private val onAppIconBadgeDisabled: () -> Unit
 ) : ViewModel() {
     private val refreshVersion = MutableStateFlow(value = 0)
@@ -119,7 +119,7 @@ class ReviewNotificationsViewModel(
         val nextSettings = StrictRemindersSettings(isEnabled = isEnabled)
         strictRemindersStore.saveStrictRemindersSettings(settings = nextSettings)
         refreshVersion.update { version -> version + 1 }
-        onStrictRemindersSettingsChanged()
+        onStrictRemindersSettingsChanged(isEnabled)
     }
 
     fun markSystemPermissionRequested() {
@@ -148,7 +148,7 @@ fun createReviewNotificationsViewModelFactory(
     reviewNotificationsStore: ReviewNotificationsStore,
     strictRemindersStore: StrictRemindersStore,
     onReviewSettingsChanged: () -> Unit,
-    onStrictRemindersSettingsChanged: () -> Unit,
+    onStrictRemindersSettingsChanged: (Boolean) -> Unit,
     onAppIconBadgeDisabled: () -> Unit
 ): ViewModelProvider.Factory {
     return viewModelFactory {

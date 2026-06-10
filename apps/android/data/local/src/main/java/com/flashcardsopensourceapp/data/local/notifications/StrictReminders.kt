@@ -6,6 +6,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 const val strictReminderSchedulingMaxDayOffset: Int = 7
+const val strictReminderWorkLimit: Int = 24
 
 enum class StrictReminderTimeOffset(
     val rawValue: String,
@@ -130,7 +131,9 @@ suspend fun buildStrictReminderPayloads(
             zoneId = zoneId,
             isLocalDateCompleted = isLocalDateCompleted
         )
-    }
+    }.sortedBy { payload ->
+        payload.scheduledAtMillis
+    }.take(strictReminderWorkLimit)
 }
 
 fun makeStrictReminderRequestId(

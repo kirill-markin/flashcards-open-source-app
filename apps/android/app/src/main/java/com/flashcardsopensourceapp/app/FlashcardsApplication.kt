@@ -1,12 +1,14 @@
 package com.flashcardsopensourceapp.app
 
 import android.app.Application
+import androidx.work.Configuration
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.di.AppStartupState
 import com.flashcardsopensourceapp.app.navigation.AppNotificationTapHandoffRequest
 import com.flashcardsopensourceapp.app.notifications.AppNotificationTapRequest
 import com.flashcardsopensourceapp.app.observability.AndroidObservabilityStartup
 import com.flashcardsopensourceapp.app.observability.startAndroidObservability
+import com.flashcardsopensourceapp.data.local.notifications.appNotificationWorkLimit
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +19,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 
-class FlashcardsApplication : Application() {
+class FlashcardsApplication : Application(), Configuration.Provider {
     private val appGraphResetMutex = Mutex()
     private val appGraphLock = Any()
     private val nextAppNotificationTapRequestId = AtomicLong(0L)
@@ -38,6 +40,11 @@ class FlashcardsApplication : Application() {
 
     val appNotificationTapState: StateFlow<AppNotificationTapHandoffRequest?>
         get() = appNotificationTapStateMutable.asStateFlow()
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
+            .setMaxSchedulerLimit(appNotificationWorkLimit)
+            .build()
 
     private var appGraphHolder: AppGraph? = null
 
