@@ -9,6 +9,7 @@ import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import androidx.work.await
 import com.flashcardsopensourceapp.data.local.database.review.ReviewLogDao
 import com.flashcardsopensourceapp.data.local.notifications.ScheduledStrictReminderPayload
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersReconcileTrigger
@@ -38,8 +39,8 @@ const val strictReminderWorkTag: String = "strict-reminder-notification"
 interface StrictRemindersScheduler {
     fun hasNotificationPermission(): Boolean
     fun clearDeliveredNotifications()
-    fun clearScheduledReminders()
-    fun scheduleReminder(payload: ScheduledStrictReminderPayload, nowMillis: Long)
+    suspend fun clearScheduledReminders()
+    suspend fun scheduleReminder(payload: ScheduledStrictReminderPayload, nowMillis: Long)
 }
 
 private sealed interface StrictRemindersCommand {
@@ -88,11 +89,11 @@ class AndroidStrictRemindersScheduler(
         }
     }
 
-    override fun clearScheduledReminders() {
-        workManager.cancelAllWorkByTag(strictReminderWorkTag)
+    override suspend fun clearScheduledReminders() {
+        workManager.cancelAllWorkByTag(strictReminderWorkTag).await()
     }
 
-    override fun scheduleReminder(payload: ScheduledStrictReminderPayload, nowMillis: Long) {
+    override suspend fun scheduleReminder(payload: ScheduledStrictReminderPayload, nowMillis: Long) {
         val delayMillis = maxOf(1L, payload.scheduledAtMillis - nowMillis)
         val inputData = Data.Builder()
             .putString(strictReminderRequestIdDataKey, payload.requestId)
@@ -113,7 +114,7 @@ class AndroidStrictRemindersScheduler(
             payload.requestId,
             ExistingWorkPolicy.REPLACE,
             request
-        )
+        ).await()
     }
 
     private fun isStrictReminderNotification(notification: StatusBarNotification): Boolean {
@@ -334,7 +335,7 @@ class StrictRemindersManager(
         strictRemindersStore.saveScheduledStrictReminderPayloads(payloads = payloads)
     }
 
-    private fun clearIdentityStateNow() {
+    private suspend fun clearIdentityStateNow() {
         scheduler.clearDeliveredNotifications()
         scheduler.clearScheduledReminders()
         strictRemindersStore.clearStrictRemindersIdentityState()

@@ -282,12 +282,12 @@ private class FakeStrictRemindersScheduler(
         clearDeliveredInvocationCount += 1
     }
 
-    override fun clearScheduledReminders() {
+    override suspend fun clearScheduledReminders() {
         clearScheduledInvocationCount += 1
         scheduledPayloads.clear()
     }
 
-    override fun scheduleReminder(payload: ScheduledStrictReminderPayload, nowMillis: Long) {
+    override suspend fun scheduleReminder(payload: ScheduledStrictReminderPayload, nowMillis: Long) {
         scheduledPayloads.add(payload)
     }
 }
