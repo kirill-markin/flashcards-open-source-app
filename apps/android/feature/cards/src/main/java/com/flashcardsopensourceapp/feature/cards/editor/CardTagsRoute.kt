@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.cards
+package com.flashcardsopensourceapp.feature.cards.editor
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,11 +20,11 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -38,6 +38,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.cards.normalizeTagKey
+import com.flashcardsopensourceapp.feature.cards.R
+import com.flashcardsopensourceapp.feature.cards.cardTagsAddButtonTag
+import com.flashcardsopensourceapp.feature.cards.cardTagsInputFieldTag
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

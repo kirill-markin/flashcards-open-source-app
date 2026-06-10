@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.cards
+package com.flashcardsopensourceapp.feature.cards.list
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -39,27 +39,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.cards.CardFilter
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
+import com.flashcardsopensourceapp.data.local.model.cards.buildCardFilter
 import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagSummary
-import com.flashcardsopensourceapp.data.local.model.cards.buildCardFilter
-
-const val cardsCardRowTag: String = "cards_card_row"
-const val cardsCardFrontTextTag: String = "cards_card_front_text"
-const val cardsSearchFieldTag: String = "cards_search_field"
-const val cardsEmptyStateTag: String = "cards_empty_state"
-const val cardsAddCardButtonTag: String = "cards_add_card_button"
-const val cardEditorFrontSummaryCardTag: String = "card_editor_front_summary_card"
-const val cardEditorBackSummaryCardTag: String = "card_editor_back_summary_card"
-const val cardEditorTagsSummaryCardTag: String = "card_editor_tags_summary_card"
-const val cardEditorSaveButtonTag: String = "card_editor_save_button"
-const val cardEditorFrontTextFieldTag: String = "card_editor_front_text_field"
-const val cardEditorBackTextFieldTag: String = "card_editor_back_text_field"
-const val cardTagsInputFieldTag: String = "card_tags_input_field"
-const val cardTagsAddButtonTag: String = "card_tags_add_button"
-
-fun cardEditorEffortLevelTag(effortLevel: EffortLevel): String {
-    return "card_editor_effort_${effortLevel.name.lowercase()}"
-}
+import com.flashcardsopensourceapp.feature.cards.R
+import com.flashcardsopensourceapp.feature.cards.cardsCardFrontTextTag
+import com.flashcardsopensourceapp.feature.cards.cardsCardRowTag
+import com.flashcardsopensourceapp.feature.cards.formatCardsEffortLevelTitle
+import com.flashcardsopensourceapp.feature.cards.formatCardsMetadataSummary
 
 @Composable
 internal fun CardRow(
@@ -303,40 +290,6 @@ internal fun CardsFilterSheet(
                 }
             }
         }
-    }
-}
-
-@Composable
-internal fun NavigationSummaryCard(
-    modifier: Modifier,
-    title: String,
-    summary: String,
-    supportingText: String,
-    icon: @Composable () -> Unit,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-    ) {
-        ListItem(
-            headlineContent = {
-                Text(title)
-            },
-            supportingContent = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(summary)
-                    Text(
-                        text = supportingText,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            },
-            leadingContent = icon
-        )
     }
 }
 

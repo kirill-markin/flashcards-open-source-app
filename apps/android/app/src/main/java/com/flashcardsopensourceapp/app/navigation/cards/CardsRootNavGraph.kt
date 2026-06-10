@@ -8,8 +8,9 @@ import androidx.navigation.compose.composable
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.navigation.CardsDestination
 import com.flashcardsopensourceapp.app.navigation.SettingsNavigationTarget
-import com.flashcardsopensourceapp.feature.cards.CardsRoute
 import com.flashcardsopensourceapp.feature.cards.createCardsViewModelFactory
+import com.flashcardsopensourceapp.feature.cards.list.CardsRoute
+import com.flashcardsopensourceapp.feature.cards.list.CardsViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -18,7 +19,7 @@ internal fun NavGraphBuilder.registerCardsRootDestination(
     coroutineScope: CoroutineScope
 ) {
     composable(route = CardsDestination.route) {
-        val cardsViewModel = viewModel<com.flashcardsopensourceapp.feature.cards.CardsViewModel>(
+        val cardsViewModel = viewModel<CardsViewModel>(
             factory = createCardsViewModelFactory(
                 cardsRepository = appGraph.cardsRepository,
                 workspaceRepository = appGraph.workspaceRepository,

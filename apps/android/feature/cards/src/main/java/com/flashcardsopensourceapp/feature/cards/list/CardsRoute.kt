@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.cards
+package com.flashcardsopensourceapp.feature.cards.list
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -41,6 +41,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.cards.CardFilter
 import com.flashcardsopensourceapp.data.local.model.cards.cardFilterActiveDimensionCount
+import com.flashcardsopensourceapp.feature.cards.R
+import com.flashcardsopensourceapp.feature.cards.cardsAddCardButtonTag
+import com.flashcardsopensourceapp.feature.cards.cardsEmptyStateTag
+import com.flashcardsopensourceapp.feature.cards.cardsSearchFieldTag
+import com.flashcardsopensourceapp.feature.cards.formatCardsFilterSummary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

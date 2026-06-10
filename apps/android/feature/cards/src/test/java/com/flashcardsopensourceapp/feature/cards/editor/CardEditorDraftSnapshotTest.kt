@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.cards
+package com.flashcardsopensourceapp.feature.cards.editor
 
 import com.flashcardsopensourceapp.data.local.model.cards.CardDraft
 import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel

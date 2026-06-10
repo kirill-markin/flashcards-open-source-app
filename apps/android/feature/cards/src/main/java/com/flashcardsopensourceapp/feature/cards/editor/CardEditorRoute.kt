@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.cards
+package com.flashcardsopensourceapp.feature.cards.editor
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.FlowRow
@@ -16,7 +16,6 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,6 +36,15 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
+import com.flashcardsopensourceapp.feature.cards.R
+import com.flashcardsopensourceapp.feature.cards.cardEditorBackSummaryCardTag
+import com.flashcardsopensourceapp.feature.cards.cardEditorEffortLevelTag
+import com.flashcardsopensourceapp.feature.cards.cardEditorFrontSummaryCardTag
+import com.flashcardsopensourceapp.feature.cards.cardEditorSaveButtonTag
+import com.flashcardsopensourceapp.feature.cards.cardEditorTagsSummaryCardTag
+import com.flashcardsopensourceapp.feature.cards.formatCardsEffortLevelTitle
+import com.flashcardsopensourceapp.feature.cards.formatCardsTagSelectionSummary
+import com.flashcardsopensourceapp.feature.cards.formatCardsTextPreview
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
