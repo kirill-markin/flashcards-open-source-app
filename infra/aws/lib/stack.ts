@@ -15,6 +15,7 @@ import { migrationRunner } from "./migration-runner";
 import { authGateway } from "./gateways/auth-gateway";
 import { analyticsAccess, type AnalyticsAccessResult } from "./analytics-access";
 import { globalMetrics } from "./global-metrics";
+import { communityLeaderboard } from "./community-leaderboard";
 
 function getOptionalContextValue(stack: cdk.Stack, key: string): string | undefined {
   const value = stack.node.tryGetContext(key);
@@ -159,6 +160,13 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       reportingDbSecret: dbResult.reportingDbSecret,
       ...sentryContext,
     });
+    const communityLeaderboardResult = communityLeaderboard(this, {
+      vpc: net.vpc,
+      lambdaSg: net.lambdaSg,
+      db: dbResult.db,
+      backendDbSecret: dbResult.backendDbSecret,
+      ...sentryContext,
+    });
     let analyticsAccessResult: AnalyticsAccessResult | undefined;
     if (analyticsAccessRequested) {
       if (analyticsSshPublicKeysValue === undefined) {
@@ -264,6 +272,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       chatWorkerFn: api.chatWorkerFn,
       chatLiveFn: api.chatLiveFn,
       globalMetricsSnapshotFn: globalMetricsResult.snapshotFunction,
+      communityLeaderboardSnapshotFn: communityLeaderboardResult.snapshotFunction,
     });
 
     ciCd(this, {
@@ -274,6 +283,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       demoPasswordSecretArn,
       globalMetricsSnapshotFn: globalMetricsResult.snapshotFunction,
       globalMetricsSnapshotFreshnessCheckerFn: globalMetricsResult.snapshotFreshnessCheckerFunction,
+      communityLeaderboardSnapshotFn: communityLeaderboardResult.snapshotFunction,
       migrationFn,
       userPoolArn: authResult.userPool.userPoolArn,
       webBucket: web.bucket,
@@ -300,6 +310,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       migrationFn,
       globalMetricsSnapshotFunction: globalMetricsResult.snapshotFunction,
       globalMetricsSnapshotFreshnessCheckerFunction: globalMetricsResult.snapshotFreshnessCheckerFunction,
+      communityLeaderboardSnapshotFunction: communityLeaderboardResult.snapshotFunction,
       globalMetricsVisible,
       userPoolId: authResult.userPool.userPoolId,
       userPoolClientId: authResult.userPoolClient.userPoolClientId,

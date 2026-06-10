@@ -13,6 +13,7 @@ export interface CiCdProps {
   demoPasswordSecretArn: string | undefined;
   globalMetricsSnapshotFn: lambda.IFunction;
   globalMetricsSnapshotFreshnessCheckerFn: lambda.IFunction;
+  communityLeaderboardSnapshotFn: lambda.IFunction;
   migrationFn: lambda.IFunction;
   userPoolArn: string;
   webBucket: s3.IBucket;
@@ -126,6 +127,12 @@ export function ciCd(scope: Construct, props: CiCdProps): void {
     sid: "InvokeGlobalMetricsSnapshotFreshnessCheckerLambda",
     actions: ["lambda:InvokeFunction"],
     resources: [props.globalMetricsSnapshotFreshnessCheckerFn.functionArn],
+  }));
+
+  cdkDeployStatements.push(new iam.PolicyStatement({
+    sid: "InvokeCommunityLeaderboardSnapshotLambda",
+    actions: ["lambda:InvokeFunction"],
+    resources: [props.communityLeaderboardSnapshotFn.functionArn],
   }));
 
   const deployRole = new iam.Role(scope, "GithubActionsRole", {

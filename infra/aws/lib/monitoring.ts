@@ -15,6 +15,9 @@ import {
   globalMetricsSnapshotFreshnessMetricNamespace,
   globalMetricsSnapshotFreshnessMetricStackDimensionName,
 } from "./global-metrics";
+import { communityLeaderboardSnapshotScheduleHours } from "./community-leaderboard";
+
+const communityLeaderboardSnapshotStaleEvaluationPeriods = 2;
 
 export interface MonitoringProps {
   alertEmail: string;
@@ -28,6 +31,7 @@ export interface MonitoringProps {
   chatWorkerFn: lambda.IFunction;
   chatLiveFn: lambda.IFunction;
   globalMetricsSnapshotFn: lambda.IFunction;
+  communityLeaderboardSnapshotFn: lambda.IFunction;
 }
 
 export interface MonitoringResult {
@@ -204,6 +208,37 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     alarmDescription:
       `Global metrics snapshot S3 object is older than ${globalMetricsSnapshotFreshnessMaxAgeHours} hours ` +
       "for two consecutive hourly checks or the freshness checker is not reporting",
+    treatMissingData: cloudwatch.TreatMissingData.BREACHING,
+  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+
+  new cloudwatch.Alarm(scope, "CommunityLeaderboardSnapshotLambdaErrorAlarm", {
+    metric: props.communityLeaderboardSnapshotFn.metricErrors({
+      period: cdk.Duration.minutes(15),
+      statistic: "Sum",
+    }),
+    threshold: 1,
+    evaluationPeriods: 1,
+    alarmDescription: "Community leaderboard snapshot Lambda had errors",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+
+  // The leaderboard snapshot lives in Postgres, refreshed by this hourly Lambda. A run
+  // that does not happen leaves the snapshot stale, so a missing hourly invocation for two
+  // consecutive hours (missing data treated as breaching) raises the staleness alarm. Run
+  // failures are caught by the error alarm above because failed runs still count as
+  // invocations.
+  new cloudwatch.Alarm(scope, "CommunityLeaderboardSnapshotStaleAlarm", {
+    metric: props.communityLeaderboardSnapshotFn.metricInvocations({
+      period: cdk.Duration.hours(communityLeaderboardSnapshotScheduleHours),
+      statistic: "Sum",
+    }),
+    threshold: 1,
+    comparisonOperator: cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD,
+    evaluationPeriods: communityLeaderboardSnapshotStaleEvaluationPeriods,
+    datapointsToAlarm: communityLeaderboardSnapshotStaleEvaluationPeriods,
+    alarmDescription:
+      "Community leaderboard snapshot Lambda has not run for two consecutive hours, " +
+      "so the stored leaderboard snapshot is going stale",
     treatMissingData: cloudwatch.TreatMissingData.BREACHING,
   }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
 
