@@ -7,6 +7,7 @@ let defaultDailyReminderHour: Int = 10
 let defaultDailyReminderMinute: Int = 0
 let dailyReminderSchedulingHorizonDays: Int = 7
 let appNotificationPendingRequestsLimit: Int = 64
+let notificationSchedulingDelayedReadbackNanoseconds: UInt64 = 350_000_000
 let defaultInactivityReminderWindowEndHour: Int = 19
 let defaultInactivityReminderWindowEndMinute: Int = 0
 let reviewNotificationFallbackBodyText: String = String(
@@ -69,6 +70,25 @@ enum ReviewNotificationsReconcileTrigger: Hashable, Sendable {
             return true
         case .appBackground, .settingsChanged, .permissionChanged, .filterChanged, .workspaceChanged:
             return false
+        }
+    }
+
+    var diagnosticValue: String {
+        switch self {
+        case .appActive:
+            return "app_active"
+        case .appBackground:
+            return "app_background"
+        case .settingsChanged:
+            return "settings_changed"
+        case .permissionChanged:
+            return "permission_changed"
+        case .reviewRecorded:
+            return "review_recorded"
+        case .filterChanged:
+            return "filter_changed"
+        case .workspaceChanged:
+            return "workspace_changed"
         }
     }
 }
@@ -463,6 +483,96 @@ func filterReviewNotificationRequestIdentifiers(identifiers: [String]) -> [Strin
     identifiers.filter(isReviewNotificationRequestIdentifier)
 }
 
+func appNotificationPendingRequestBreakdown(
+    identifiers: [String]
+) -> AppNotificationPendingRequestBreakdown {
+    let reviewCount: Int = identifiers.filter(isReviewNotificationRequestIdentifier).count
+    let strictCount: Int = identifiers.filter(isStrictReminderRequestIdentifier).count
+    return AppNotificationPendingRequestBreakdown(
+        totalCount: identifiers.count,
+        reviewCount: reviewCount,
+        strictCount: strictCount,
+        otherCount: identifiers.count - reviewCount - strictCount
+    )
+}
+
+func notificationScheduledAtMillisRange(
+    scheduledAtMillisValues: [Int64]
+) -> NotificationScheduledAtMillisRange {
+    NotificationScheduledAtMillisRange(
+        firstScheduledAtMillis: scheduledAtMillisValues.min(),
+        lastScheduledAtMillis: scheduledAtMillisValues.max()
+    )
+}
+
+func reviewNotificationScheduledAtMillisRange(
+    payloads: [ScheduledReviewNotificationPayload]
+) -> NotificationScheduledAtMillisRange {
+    notificationScheduledAtMillisRange(
+        scheduledAtMillisValues: payloads.map(\.scheduledAtMillis)
+    )
+}
+
+func notificationSchedulingDelaySecondsRange(
+    scheduledAtMillisValues: [Int64],
+    now: Date
+) -> NotificationSchedulingDelaySecondsRange {
+    let delaySecondsValues: [Int] = scheduledAtMillisValues.map { scheduledAtMillis in
+        let rawDelaySeconds: TimeInterval = TimeInterval(scheduledAtMillis) / 1_000 - now.timeIntervalSince1970
+        return max(1, Int(rawDelaySeconds.rounded(.up)))
+    }
+
+    return NotificationSchedulingDelaySecondsRange(
+        minDelaySeconds: delaySecondsValues.min(),
+        maxDelaySeconds: delaySecondsValues.max()
+    )
+}
+
+func reviewNotificationSchedulingDelaySecondsRange(
+    payloads: [ScheduledReviewNotificationPayload],
+    now: Date
+) -> NotificationSchedulingDelaySecondsRange {
+    notificationSchedulingDelaySecondsRange(
+        scheduledAtMillisValues: payloads.map(\.scheduledAtMillis),
+        now: now
+    )
+}
+
+func reviewNotificationPermissionStatusDiagnosticValue(
+    status: ReviewNotificationPermissionStatus
+) -> String {
+    switch status {
+    case .allowed:
+        return "allowed"
+    case .notRequested:
+        return "not_requested"
+    case .blocked:
+        return "blocked"
+    }
+}
+
+func appNotificationApplicationStateDiagnosticValue(
+    applicationState: UIApplication.State
+) -> String {
+    switch applicationState {
+    case .active:
+        return "active"
+    case .inactive:
+        return "inactive"
+    case .background:
+        return "background"
+    @unknown default:
+        return "unknown"
+    }
+}
+
+@MainActor
+func currentAppNotificationApplicationStateDiagnosticValue() -> String {
+    appNotificationApplicationStateDiagnosticValue(
+        applicationState: UIApplication.shared.applicationState
+    )
+}
+
 func pendingAppNotificationRequestIdentifiers(
     center: UNUserNotificationCenter
 ) async -> [String] {
@@ -838,6 +948,66 @@ func appNotificationTapType(request: AppNotificationTapRequest) -> String {
     }
 }
 
+func makeDelayedNotificationSchedulingReadback(
+    pendingRequestIdentifiers: [String],
+    plannedRequestIdentifiers: [String]
+) -> DelayedNotificationSchedulingReadback {
+    let pendingRequestIdentifierSet: Set<String> = Set(pendingRequestIdentifiers)
+    return DelayedNotificationSchedulingReadback(
+        pending: appNotificationPendingRequestBreakdown(identifiers: pendingRequestIdentifiers),
+        recovered: plannedRequestIdentifiers.allSatisfy { requestIdentifier in
+            pendingRequestIdentifierSet.contains(requestIdentifier)
+        }
+    )
+}
+
+func delayedNotificationSchedulingReadback(
+    center: UNUserNotificationCenter,
+    plannedRequestIdentifiers: [String],
+    delayNanoseconds: UInt64
+) async throws -> DelayedNotificationSchedulingReadback {
+    try await Task.sleep(nanoseconds: delayNanoseconds)
+    let pendingRequestIdentifiers: [String] = await pendingAppNotificationRequestIdentifiers(center: center)
+    return makeDelayedNotificationSchedulingReadback(
+        pendingRequestIdentifiers: pendingRequestIdentifiers,
+        plannedRequestIdentifiers: plannedRequestIdentifiers
+    )
+}
+
+func makeNotificationSchedulingDiagnostics(
+    trigger: String,
+    scheduledAtMillisRange: NotificationScheduledAtMillisRange,
+    delaySecondsRange: NotificationSchedulingDelaySecondsRange,
+    pendingBeforeRequestIdentifiers: [String],
+    pendingAfterRequestIdentifiers: [String],
+    permissionStatusBefore: ReviewNotificationPermissionStatus,
+    permissionStatusAfter: ReviewNotificationPermissionStatus,
+    appStateBeforeAdd: String,
+    appStateAfterReadback: String,
+    delayedReadback: DelayedNotificationSchedulingReadback?
+) -> NotificationSchedulingDiagnostics {
+    NotificationSchedulingDiagnostics(
+        trigger: trigger,
+        pendingBefore: appNotificationPendingRequestBreakdown(
+            identifiers: pendingBeforeRequestIdentifiers
+        ),
+        pendingAfter: appNotificationPendingRequestBreakdown(
+            identifiers: pendingAfterRequestIdentifiers
+        ),
+        permissionStatusBefore: reviewNotificationPermissionStatusDiagnosticValue(
+            status: permissionStatusBefore
+        ),
+        permissionStatusAfter: reviewNotificationPermissionStatusDiagnosticValue(
+            status: permissionStatusAfter
+        ),
+        appStateBeforeAdd: appStateBeforeAdd,
+        appStateAfterReadback: appStateAfterReadback,
+        scheduledAtMillisRange: scheduledAtMillisRange,
+        delaySecondsRange: delaySecondsRange,
+        delayedReadback: delayedReadback
+    )
+}
+
 func makeNotificationSchedulingFailureWarning(
     action: String,
     scope: IOSObservationScope,
@@ -847,8 +1017,7 @@ func makeNotificationSchedulingFailureWarning(
     stage: String,
     plannedCount: Int,
     acceptedCount: Int,
-    pendingBeforeCount: Int,
-    pendingAfterCount: Int,
+    diagnostics: NotificationSchedulingDiagnostics,
     error: Error?,
     messageSummary: String?
 ) -> NotificationSchedulingFailureWarning {
@@ -870,11 +1039,12 @@ func makeNotificationSchedulingFailureWarning(
         stage: stage,
         plannedCount: plannedCount,
         acceptedCount: acceptedCount,
-        pendingBeforeCount: pendingBeforeCount,
-        pendingAfterCount: pendingAfterCount,
+        pendingBeforeCount: diagnostics.pendingBefore.totalCount,
+        pendingAfterCount: diagnostics.pendingAfter.totalCount,
         errorDomain: safeErrorDomain,
         errorCode: nsError?.code,
-        messageSummary: error.map { value in Flashcards.errorMessage(error: value) } ?? messageSummary
+        messageSummary: error.map { value in Flashcards.errorMessage(error: value) } ?? messageSummary,
+        diagnostics: diagnostics
     )
 }
 

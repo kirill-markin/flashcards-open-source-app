@@ -195,6 +195,7 @@ final class ReviewNotificationsSupportTests: XCTestCase {
             makeStrictRemindersReconcileRequest(trigger: .appActive, now: now),
             StrictRemindersReconcileRequest(
                 now: now,
+                triggers: [.appActive],
                 shouldClearDeliveredStrictReminders: true
             )
         )
@@ -202,6 +203,7 @@ final class ReviewNotificationsSupportTests: XCTestCase {
             makeStrictRemindersReconcileRequest(trigger: .reviewRecorded, now: now),
             StrictRemindersReconcileRequest(
                 now: now,
+                triggers: [.reviewRecorded],
                 shouldClearDeliveredStrictReminders: false
             )
         )
@@ -215,10 +217,12 @@ final class ReviewNotificationsSupportTests: XCTestCase {
         let mergedRequest = mergeStrictRemindersReconcileRequests(
             pendingRequest: StrictRemindersReconcileRequest(
                 now: earlierNow,
+                triggers: [.appActive],
                 shouldClearDeliveredStrictReminders: true
             ),
             nextRequest: StrictRemindersReconcileRequest(
                 now: laterNow,
+                triggers: [.reviewRecorded],
                 shouldClearDeliveredStrictReminders: false
             )
         )
@@ -227,8 +231,13 @@ final class ReviewNotificationsSupportTests: XCTestCase {
             mergedRequest,
             StrictRemindersReconcileRequest(
                 now: laterNow,
+                triggers: [.appActive, .reviewRecorded],
                 shouldClearDeliveredStrictReminders: true
             )
+        )
+        XCTAssertEqual(
+            strictRemindersReconcileTriggerDiagnosticValue(triggers: mergedRequest.triggers),
+            "app_active+review_recorded"
         )
     }
 
@@ -739,6 +748,38 @@ final class ReviewNotificationsSupportTests: XCTestCase {
                 "review-notification::workspace-2::inactivity::2026-04-03-12-00"
             ]
         )
+    }
+
+    func testAppNotificationPendingRequestBreakdownClassifiesReviewStrictAndOtherRequests() {
+        let breakdown: AppNotificationPendingRequestBreakdown = appNotificationPendingRequestBreakdown(
+            identifiers: [
+                "review-notification::workspace-1::daily::2026-04-03-10-00",
+                "strict-reminder::4h::2026-04-03-20-00",
+                "external-notification::news",
+                "strict-reminder::2h::2026-04-04-22-00",
+                "review-notification::workspace-2::inactivity::2026-04-03-12-00"
+            ]
+        )
+
+        XCTAssertEqual(breakdown.totalCount, 5)
+        XCTAssertEqual(breakdown.reviewCount, 2)
+        XCTAssertEqual(breakdown.strictCount, 2)
+        XCTAssertEqual(breakdown.otherCount, 1)
+    }
+
+    func testNotificationSchedulingDelaySecondsRangeRoundsUpAndFloorsAtOneSecond() {
+        let now: Date = Date(timeIntervalSince1970: 1_000)
+        let range: NotificationSchedulingDelaySecondsRange = notificationSchedulingDelaySecondsRange(
+            scheduledAtMillisValues: [
+                999_000,
+                1_060_000,
+                1_360_500
+            ],
+            now: now
+        )
+
+        XCTAssertEqual(range.minDelaySeconds, 1)
+        XCTAssertEqual(range.maxDelaySeconds, 361)
     }
 
     func testAcceptedNotificationPayloadFiltersKeepOnlyPendingReadbackIdentifiers() throws {
