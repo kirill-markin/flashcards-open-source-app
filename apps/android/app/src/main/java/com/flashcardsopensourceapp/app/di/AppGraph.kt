@@ -197,13 +197,19 @@ class AppGraph(
         preferencesStore = cloudPreferencesStore,
         reviewPreferencesStore = reviewPreferencesStore,
         reviewNotificationsStore = reviewNotificationsStore,
-        strictRemindersStore = strictRemindersStore
+        strictRemindersStore = strictRemindersStore,
+        observability = observability,
+        appVersion = appPackageInfo.versionName,
+        versionCode = appPackageInfo.longVersionCode.toInt()
     )
     val strictRemindersManager = StrictRemindersManager(
         strictRemindersStore = strictRemindersStore,
         reviewLogDao = database.reviewLogDao(),
         scheduler = strictRemindersScheduler,
-        zoneIdProvider = ZoneId::systemDefault
+        zoneIdProvider = ZoneId::systemDefault,
+        observability = observability,
+        appVersion = appPackageInfo.versionName,
+        versionCode = appPackageInfo.longVersionCode.toInt()
     )
     val storeReviewRequestManager = StoreReviewRequestManager(
         context = context,

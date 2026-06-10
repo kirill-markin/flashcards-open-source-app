@@ -12,16 +12,35 @@ class ReviewNotificationWorker(
     params: WorkerParameters
 ) : CoroutineWorker(appContext, params) {
     override suspend fun doWork(): Result {
-        if (hasNotificationPermission(context = applicationContext).not()) {
+        val requestId = inputData.getString(reviewNotificationRequestIdDataKey)
+        val workspaceId = inputData.getString(reviewNotificationWorkspaceIdDataKey)
+        val permissionAllowed: Boolean = hasNotificationPermission(context = applicationContext)
+        addWorkerBreadcrumb(
+            stage = "worker_start",
+            requestId = requestId,
+            workspaceId = workspaceId,
+            permissionAllowed = permissionAllowed
+        )
+        if (permissionAllowed.not()) {
+            addWorkerBreadcrumb(
+                stage = "worker_permission_blocked",
+                requestId = requestId,
+                workspaceId = workspaceId,
+                permissionAllowed = permissionAllowed
+            )
             return Result.success()
         }
 
         val frontText = inputData.getString(reviewNotificationFrontTextDataKey)
-            ?: return Result.failure()
-        val requestId = inputData.getString(reviewNotificationRequestIdDataKey)
-            ?: return Result.failure()
-        val workspaceId = inputData.getString(reviewNotificationWorkspaceIdDataKey)
-            ?: return Result.failure()
+        if (frontText == null || requestId == null || workspaceId == null) {
+            addWorkerBreadcrumb(
+                stage = "worker_invalid_input_failure",
+                requestId = requestId,
+                workspaceId = workspaceId,
+                permissionAllowed = permissionAllowed
+            )
+            return Result.failure()
+        }
 
         // Read live so a toggle-off after schedule time wins immediately, even if a
         // worker is already mid-flight.
@@ -33,6 +52,12 @@ class ReviewNotificationWorker(
             frontText = frontText,
             requestId = requestId,
             showAppIconBadge = showAppIconBadge
+        )
+        addWorkerBreadcrumb(
+            stage = "worker_notification_posted",
+            requestId = requestId,
+            workspaceId = workspaceId,
+            permissionAllowed = permissionAllowed
         )
         return Result.success()
     }
@@ -46,5 +71,23 @@ class ReviewNotificationWorker(
         }
         // Cold-start fallback: the worker can fire before Application.onCreate has published the graph.
         return SharedPreferencesReviewNotificationsStore(context = applicationContext)
+    }
+
+    private fun addWorkerBreadcrumb(
+        stage: String,
+        requestId: String?,
+        workspaceId: String?,
+        permissionAllowed: Boolean
+    ) {
+        addNotificationWorkerBreadcrumb(
+            applicationContext = applicationContext,
+            notificationKind = reviewReminderNotificationKind,
+            stage = stage,
+            requestId = requestId,
+            workspaceId = workspaceId,
+            permissionAllowed = permissionAllowed,
+            workTag = reviewNotificationWorkTag,
+            workLimit = null
+        )
     }
 }

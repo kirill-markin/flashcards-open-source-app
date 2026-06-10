@@ -13,6 +13,11 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.await
+import com.flashcardsopensourceapp.core.observability.AndroidBreadcrumbEvent
+import com.flashcardsopensourceapp.core.observability.AndroidNotificationSchedulingDiagnostic
+import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
+import com.flashcardsopensourceapp.core.observability.AndroidWorkInfoStateCounts
+import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
@@ -28,12 +33,14 @@ import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsR
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsStore
 import com.flashcardsopensourceapp.data.local.notifications.ScheduledReviewNotificationPayload
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersStore
+import com.flashcardsopensourceapp.data.local.notifications.appNotificationWorkLimit
 import com.flashcardsopensourceapp.data.local.notifications.buildFallbackDailyReminderPayloads
 import com.flashcardsopensourceapp.data.local.notifications.buildFallbackInactivityReminderPayloads
 import com.flashcardsopensourceapp.data.local.notifications.buildDailyReminderPayloads
 import com.flashcardsopensourceapp.data.local.notifications.buildInactivityReminderPayloads
 import com.flashcardsopensourceapp.data.local.notifications.makePersistedReviewFilter
 import com.flashcardsopensourceapp.data.local.notifications.reviewNotificationWorkLimit
+import com.flashcardsopensourceapp.data.local.notifications.strictReminderWorkLimit
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.loadCurrentWorkspaceOrNull
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.feature.review.reviewTextProvider
@@ -60,7 +67,10 @@ class ReviewNotificationsManager(
     private val preferencesStore: CloudPreferencesStore,
     private val reviewPreferencesStore: ReviewPreferencesStore,
     private val reviewNotificationsStore: ReviewNotificationsStore,
-    private val strictRemindersStore: StrictRemindersStore
+    private val strictRemindersStore: StrictRemindersStore,
+    private val observability: AppObservability,
+    private val appVersion: String?,
+    private val versionCode: Int?
 ) {
     private val workManager: WorkManager = WorkManager.getInstance(context)
     private val scopeJob = SupervisorJob()
@@ -143,21 +153,79 @@ class ReviewNotificationsManager(
             return
         }
 
-        clearCurrentWorkspaceReviewScheduling(workspaceId = workspace.workspaceId)
+        val workspaceId: String = workspace.workspaceId
+        val strictRemindersSettings = strictRemindersStore.loadStrictRemindersSettings()
+        val strictRemindersEnabled: Boolean = strictRemindersSettings.isEnabled
+        val workLimit: Int = reviewNotificationWorkLimit(strictRemindersSettings = strictRemindersSettings)
+        val permissionAllowed: Boolean = hasNotificationPermission(context = context)
+        val storedScheduledCountBefore: Int = reviewNotificationsStore.loadScheduledPayloads(
+            workspaceId = workspaceId
+        ).size
+        emitReviewSchedulingBreadcrumb(
+            diagnostic = makeReviewSchedulingDiagnostic(
+                stage = "reconcile_start",
+                trigger = trigger,
+                workspaceId = workspaceId,
+                permissionAllowed = permissionAllowed,
+                plannedCount = null,
+                workLimit = workLimit,
+                strictRemindersEnabled = strictRemindersEnabled,
+                storedScheduledCountBefore = storedScheduledCountBefore,
+                storedScheduledCountAfter = null,
+                tagWorkStateCounts = null,
+                expectedWorkReadback = null,
+                delayRange = emptyNotificationDelayRange(),
+                generation = generation
+            )
+        )
 
-        val settings = reviewNotificationsStore.loadSettings(workspaceId = workspace.workspaceId)
+        clearCurrentWorkspaceReviewScheduling(workspaceId = workspaceId)
+        emitReviewSchedulingBreadcrumb(
+            diagnostic = makeReviewSchedulingDiagnostic(
+                stage = "after_cancel",
+                trigger = trigger,
+                workspaceId = workspaceId,
+                permissionAllowed = permissionAllowed,
+                plannedCount = null,
+                workLimit = workLimit,
+                strictRemindersEnabled = strictRemindersEnabled,
+                storedScheduledCountBefore = storedScheduledCountBefore,
+                storedScheduledCountAfter = reviewNotificationsStore.loadScheduledPayloads(workspaceId = workspaceId).size,
+                tagWorkStateCounts = loadWorkInfoStateCountsByTag(
+                    workManager = workManager,
+                    workTag = reviewNotificationWorkTag
+                ),
+                expectedWorkReadback = null,
+                delayRange = emptyNotificationDelayRange(),
+                generation = generation
+            )
+        )
+
+        val settings = reviewNotificationsStore.loadSettings(workspaceId = workspaceId)
         if (settings.isEnabled.not()) {
-            reviewNotificationsStore.saveScheduledPayloads(
-                workspaceId = workspace.workspaceId,
-                payloads = emptyList()
+            saveEmptyReviewSchedulingAndEmitSkippedDiagnostic(
+                stage = "settings_disabled",
+                trigger = trigger,
+                workspaceId = workspaceId,
+                permissionAllowed = permissionAllowed,
+                workLimit = workLimit,
+                strictRemindersEnabled = strictRemindersEnabled,
+                storedScheduledCountBefore = storedScheduledCountBefore,
+                generation = generation
             )
             return
         }
-        if (hasNotificationPermission(context = context).not()) {
+        if (permissionAllowed.not()) {
             // Keep the internal setting enabled; Android permission alone gates delivery.
-            reviewNotificationsStore.saveScheduledPayloads(
-                workspaceId = workspace.workspaceId,
-                payloads = emptyList()
+            saveEmptyReviewSchedulingAndEmitSkippedDiagnostic(
+                stage = "permission_blocked",
+                trigger = trigger,
+                workspaceId = workspaceId,
+                permissionAllowed = permissionAllowed,
+                workLimit = workLimit,
+                strictRemindersEnabled = strictRemindersEnabled,
+                storedScheduledCountBefore = storedScheduledCountBefore,
+                generation = generation
             )
             return
         }
@@ -166,37 +234,40 @@ class ReviewNotificationsManager(
         }
 
         val selectedReviewFilter = reviewPreferencesStore.loadSelectedReviewFilter(
-            workspaceId = workspace.workspaceId
+            workspaceId = workspaceId
         )
         val reviewNotificationFilterPlan = loadReviewNotificationFilterPlan(
-            workspaceId = workspace.workspaceId,
+            workspaceId = workspaceId,
             selectedReviewFilter = selectedReviewFilter
         )
         val resolvedReviewFilter = when (reviewNotificationFilterPlan) {
             is ReviewNotificationFilterPlan.Schedule -> reviewNotificationFilterPlan.reviewFilter
             ReviewNotificationFilterPlan.SuppressScheduledPayloads -> {
-                reviewNotificationsStore.saveScheduledPayloads(
-                    workspaceId = workspace.workspaceId,
-                    payloads = emptyList()
+                saveEmptyReviewSchedulingAndEmitSkippedDiagnostic(
+                    stage = "filter_suppressed",
+                    trigger = trigger,
+                    workspaceId = workspaceId,
+                    permissionAllowed = permissionAllowed,
+                    workLimit = workLimit,
+                    strictRemindersEnabled = strictRemindersEnabled,
+                    storedScheduledCountBefore = storedScheduledCountBefore,
+                    generation = generation
                 )
                 return
             }
         }
 
         val currentCard = loadCurrentReviewNotificationCard(
-            workspaceId = workspace.workspaceId,
+            workspaceId = workspaceId,
             reviewFilter = resolvedReviewFilter,
             nowMillis = nowMillis
         )
 
         val zoneId = ZoneId.systemDefault()
-        val workLimit: Int = reviewNotificationWorkLimit(
-            strictRemindersSettings = strictRemindersStore.loadStrictRemindersSettings()
-        )
         val payloads = if (currentCard != null) {
             when (settings.selectedMode) {
                 ReviewNotificationMode.DAILY -> buildDailyReminderPayloads(
-                    workspaceId = workspace.workspaceId,
+                    workspaceId = workspaceId,
                     currentCard = currentCard,
                     nowMillis = nowMillis,
                     zoneId = zoneId,
@@ -206,12 +277,18 @@ class ReviewNotificationsManager(
 
                 ReviewNotificationMode.INACTIVITY -> {
                     val lastActiveAtMillis = reviewNotificationsStore.loadLastActiveAtMillis()
-                        ?: return reviewNotificationsStore.saveScheduledPayloads(
-                            workspaceId = workspace.workspaceId,
-                            payloads = emptyList()
+                        ?: return saveEmptyReviewSchedulingAndEmitSkippedDiagnostic(
+                            stage = "missing_last_active",
+                            trigger = trigger,
+                            workspaceId = workspaceId,
+                            permissionAllowed = permissionAllowed,
+                            workLimit = workLimit,
+                            strictRemindersEnabled = strictRemindersEnabled,
+                            storedScheduledCountBefore = storedScheduledCountBefore,
+                            generation = generation
                         )
                     buildInactivityReminderPayloads(
-                        workspaceId = workspace.workspaceId,
+                        workspaceId = workspaceId,
                         currentCard = currentCard,
                         nowMillis = nowMillis,
                         lastActiveAtMillis = lastActiveAtMillis,
@@ -226,7 +303,7 @@ class ReviewNotificationsManager(
             val fallbackFrontText = reviewTextProvider(context = context).notificationFallbackFrontText
             when (settings.selectedMode) {
                 ReviewNotificationMode.DAILY -> buildFallbackDailyReminderPayloads(
-                    workspaceId = workspace.workspaceId,
+                    workspaceId = workspaceId,
                     reviewFilter = persistedReviewFilter,
                     fallbackFrontText = fallbackFrontText,
                     nowMillis = nowMillis,
@@ -237,12 +314,18 @@ class ReviewNotificationsManager(
 
                 ReviewNotificationMode.INACTIVITY -> {
                     val lastActiveAtMillis = reviewNotificationsStore.loadLastActiveAtMillis()
-                        ?: return reviewNotificationsStore.saveScheduledPayloads(
-                            workspaceId = workspace.workspaceId,
-                            payloads = emptyList()
+                        ?: return saveEmptyReviewSchedulingAndEmitSkippedDiagnostic(
+                            stage = "missing_last_active",
+                            trigger = trigger,
+                            workspaceId = workspaceId,
+                            permissionAllowed = permissionAllowed,
+                            workLimit = workLimit,
+                            strictRemindersEnabled = strictRemindersEnabled,
+                            storedScheduledCountBefore = storedScheduledCountBefore,
+                            generation = generation
                         )
                     buildFallbackInactivityReminderPayloads(
-                        workspaceId = workspace.workspaceId,
+                        workspaceId = workspaceId,
                         reviewFilter = persistedReviewFilter,
                         fallbackFrontText = fallbackFrontText,
                         nowMillis = nowMillis,
@@ -268,8 +351,45 @@ class ReviewNotificationsManager(
             return
         }
         reviewNotificationsStore.saveScheduledPayloads(
-            workspaceId = workspace.workspaceId,
+            workspaceId = workspaceId,
             payloads = payloads
+        )
+        val expectedWorkReadback: NotificationExpectedWorkInfoReadback = loadExpectedWorkInfoReadback(
+            workManager = workManager,
+            expectedUniqueWorkNames = payloads.map { payload ->
+                payload.requestId
+            }
+        )
+        val tagWorkStateCounts: AndroidWorkInfoStateCounts = loadWorkInfoStateCountsByTag(
+            workManager = workManager,
+            workTag = reviewNotificationWorkTag
+        )
+        val delayRange: NotificationDelayRange = calculateNotificationDelayRange(
+            scheduledAtMillisValues = payloads.map { payload ->
+                payload.scheduledAtMillis
+            },
+            nowMillis = nowMillis
+        )
+        val afterEnqueueDiagnostic: AndroidNotificationSchedulingDiagnostic = makeReviewSchedulingDiagnostic(
+            stage = "after_enqueue",
+            trigger = trigger,
+            workspaceId = workspaceId,
+            permissionAllowed = permissionAllowed,
+            plannedCount = payloads.size,
+            workLimit = workLimit,
+            strictRemindersEnabled = strictRemindersEnabled,
+            storedScheduledCountBefore = storedScheduledCountBefore,
+            storedScheduledCountAfter = reviewNotificationsStore.loadScheduledPayloads(workspaceId = workspaceId).size,
+            tagWorkStateCounts = tagWorkStateCounts,
+            expectedWorkReadback = expectedWorkReadback,
+            delayRange = delayRange,
+            generation = generation
+        )
+        emitReviewSchedulingBreadcrumb(diagnostic = afterEnqueueDiagnostic)
+        emitReviewSchedulingWarningIfNeeded(
+            diagnostic = afterEnqueueDiagnostic,
+            plannedCount = payloads.size,
+            expectedWorkReadback = expectedWorkReadback
         )
     }
 
@@ -353,6 +473,127 @@ class ReviewNotificationsManager(
     private suspend fun clearCurrentWorkspaceReviewScheduling(workspaceId: String) {
         workManager.cancelAllWorkByTag(reviewNotificationWorkTag).await()
         reviewNotificationsStore.saveScheduledPayloads(workspaceId = workspaceId, payloads = emptyList())
+    }
+
+    private suspend fun saveEmptyReviewSchedulingAndEmitSkippedDiagnostic(
+        stage: String,
+        trigger: ReviewNotificationsReconcileTrigger,
+        workspaceId: String,
+        permissionAllowed: Boolean,
+        workLimit: Int,
+        strictRemindersEnabled: Boolean,
+        storedScheduledCountBefore: Int,
+        generation: Long
+    ) {
+        reviewNotificationsStore.saveScheduledPayloads(
+            workspaceId = workspaceId,
+            payloads = emptyList()
+        )
+        emitReviewSchedulingBreadcrumb(
+            diagnostic = makeReviewSchedulingDiagnostic(
+                stage = stage,
+                trigger = trigger,
+                workspaceId = workspaceId,
+                permissionAllowed = permissionAllowed,
+                plannedCount = 0,
+                workLimit = workLimit,
+                strictRemindersEnabled = strictRemindersEnabled,
+                storedScheduledCountBefore = storedScheduledCountBefore,
+                storedScheduledCountAfter = reviewNotificationsStore.loadScheduledPayloads(workspaceId = workspaceId).size,
+                tagWorkStateCounts = loadWorkInfoStateCountsByTag(
+                    workManager = workManager,
+                    workTag = reviewNotificationWorkTag
+                ),
+                expectedWorkReadback = null,
+                delayRange = emptyNotificationDelayRange(),
+                generation = generation
+            )
+        )
+    }
+
+    private fun makeReviewSchedulingDiagnostic(
+        stage: String,
+        trigger: ReviewNotificationsReconcileTrigger,
+        workspaceId: String,
+        permissionAllowed: Boolean,
+        plannedCount: Int?,
+        workLimit: Int,
+        strictRemindersEnabled: Boolean,
+        storedScheduledCountBefore: Int?,
+        storedScheduledCountAfter: Int?,
+        tagWorkStateCounts: AndroidWorkInfoStateCounts?,
+        expectedWorkReadback: NotificationExpectedWorkInfoReadback?,
+        delayRange: NotificationDelayRange,
+        generation: Long
+    ): AndroidNotificationSchedulingDiagnostic {
+        return AndroidNotificationSchedulingDiagnostic(
+            notificationKind = reviewReminderNotificationKind,
+            stage = stage,
+            trigger = trigger.name.lowercase(),
+            requestId = null,
+            workspaceId = workspaceId,
+            permissionAllowed = permissionAllowed,
+            plannedCount = plannedCount,
+            workLimit = workLimit,
+            appNotificationWorkLimit = appNotificationWorkLimit,
+            strictReminderWorkLimit = strictReminderWorkLimit,
+            strictRemindersEnabled = strictRemindersEnabled,
+            plannedCountEqualsWorkLimit = plannedCount?.let { count ->
+                count == workLimit
+            },
+            storedScheduledCountBefore = storedScheduledCountBefore,
+            storedScheduledCountAfter = storedScheduledCountAfter,
+            workTag = reviewNotificationWorkTag,
+            tagWorkStateCounts = tagWorkStateCounts,
+            expectedWorkStateCounts = expectedWorkReadback?.stateCounts,
+            expectedWorkNameCount = expectedWorkReadback?.expectedWorkNameCount,
+            missingExpectedWorkNameCount = expectedWorkReadback?.missingExpectedWorkNameCount,
+            firstScheduledAtMillis = delayRange.firstScheduledAtMillis,
+            lastScheduledAtMillis = delayRange.lastScheduledAtMillis,
+            minDelaySeconds = delayRange.minDelaySeconds,
+            maxDelaySeconds = delayRange.maxDelaySeconds,
+            generation = generation,
+            managerClosed = null,
+            enqueueRejected = null
+        )
+    }
+
+    private fun emitReviewSchedulingBreadcrumb(diagnostic: AndroidNotificationSchedulingDiagnostic) {
+        observability.addBreadcrumb(
+            event = AndroidBreadcrumbEvent.NotificationSchedulingBreadcrumb(
+                diagnostic = diagnostic,
+                appVersion = appVersion,
+                clientVersion = appVersion,
+                versionCode = versionCode
+            )
+        )
+    }
+
+    private fun emitReviewSchedulingWarningIfNeeded(
+        diagnostic: AndroidNotificationSchedulingDiagnostic,
+        plannedCount: Int,
+        expectedWorkReadback: NotificationExpectedWorkInfoReadback
+    ) {
+        if (plannedCount == 0) {
+            return
+        }
+
+        val warningReason: String = when {
+            hasMissingExpectedWorkNames(readback = expectedWorkReadback) -> "expected_work_missing"
+            hasOnlyCancelledOrFailedExpectedWork(readback = expectedWorkReadback) -> {
+                "expected_work_cancelled_or_failed"
+            }
+            else -> return
+        }
+        observability.captureWarning(
+            event = AndroidWarningIssueEvent.NotificationSchedulingWarning(
+                diagnostic = diagnostic,
+                warningReason = warningReason,
+                appVersion = appVersion,
+                clientVersion = appVersion,
+                versionCode = versionCode
+            )
+        )
     }
 
     private suspend fun loadCurrentReviewNotificationCard(
