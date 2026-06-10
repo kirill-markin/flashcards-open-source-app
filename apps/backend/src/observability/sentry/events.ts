@@ -3,6 +3,7 @@ export type BackendService =
   | "chat-worker"
   | "chat-live"
   | "global-metrics-snapshot"
+  | "community-leaderboard-snapshot"
   | "migration";
 
 export type BackendObservationScope = Readonly<{
@@ -504,6 +505,18 @@ export type GlobalMetricsSnapshotFailureDetails = Readonly<{
   message: string;
 }>;
 
+export type CommunityLeaderboardSnapshotGeneratedDetails = Readonly<{
+  metricVersion: string;
+  generatedAtUtc: string;
+  asOfServerHourUtc: string;
+  windowCount: number;
+}>;
+
+export type CommunityLeaderboardSnapshotFailureDetails = Readonly<{
+  metricVersion: string;
+  message: string;
+}>;
+
 export type DatabaseTransientRetryDetails = Readonly<{
   attempt: number;
   maxAttempts: number;
@@ -580,6 +593,7 @@ export type BackendBreadcrumbEvent =
   | EventByAction<"admin_query", AdminQueryDetails>
   | EventByAction<"request_error", RequestErrorDetails>
   | EventByAction<"global_metrics_snapshot_generated", GlobalMetricsSnapshotGeneratedDetails>
+  | EventByAction<"community_leaderboard_snapshot_generated", CommunityLeaderboardSnapshotGeneratedDetails>
   | EventByAction<"database_transient_retry", DatabaseTransientRetryDetails>
   | EventByAction<"global_metrics_s3_retry", GlobalMetricsS3RetryDetails>
   | EventByAction<"sync_push", SyncPushDetails>
@@ -733,6 +747,7 @@ export type BackendExceptionEvent =
   | (EventByAction<"chat_worker_dispatch_failed", ChatWorkerDispatchFailureDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"chat_worker_failed", ChatWorkerFailureDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"global_metrics_snapshot_failed", GlobalMetricsSnapshotFailureDetails> & Readonly<{ error: Error }>)
+  | (EventByAction<"community_leaderboard_snapshot_failed", CommunityLeaderboardSnapshotFailureDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"migration_failed", MigrationFailureDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"chat_live_bootstrap_failed", ChatLiveBootstrapFailureDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"chat_live_request_error", ChatLiveRequestDetails> & Readonly<{ error: Error }>)

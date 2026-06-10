@@ -25,6 +25,7 @@ export interface OutputsProps {
   migrationFn: lambda.IFunction;
   globalMetricsSnapshotFunction: lambda.IFunction;
   globalMetricsSnapshotFreshnessCheckerFunction: lambda.IFunction;
+  communityLeaderboardSnapshotFunction: lambda.IFunction;
   globalMetricsVisible: boolean;
   userPoolId: string;
   userPoolClientId: string;
@@ -124,6 +125,11 @@ export function outputs(scope: Construct, props: OutputsProps): void {
   new cdk.CfnOutput(scope, "GlobalMetricsSnapshotFreshnessCheckerFunctionName", {
     value: props.globalMetricsSnapshotFreshnessCheckerFunction.functionName,
     description: "Lambda function name for global metrics snapshot freshness checks",
+  });
+
+  new cdk.CfnOutput(scope, "CommunityLeaderboardSnapshotFunctionName", {
+    value: props.communityLeaderboardSnapshotFunction.functionName,
+    description: "Lambda function name for community leaderboard snapshot generation",
   });
 
   new cdk.CfnOutput(scope, "GlobalMetricsVisible", {
