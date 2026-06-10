@@ -30,6 +30,9 @@ import {
   normalizeCaughtError,
 } from "../../../observability/webObservability";
 import {
+  captureAppOperationError,
+} from "../../../observability/appOperationObservation";
+import {
   getErrorMessage,
   nowIso,
 } from "../../domain";
@@ -109,6 +112,16 @@ function createSyncRunId(): string {
   }
 
   return `sync-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+// Background sync is fire-and-forget from effects and mutations. Failures are
+// already observed (observeSyncFailure) and surfaced (reportSyncError) inside
+// runSyncForWorkspace before it rethrows for awaited callers, so here we attach
+// a no-op catch only to keep the fire-and-forget promise from surfacing as a
+// context-less unhandled rejection (for example "Failed to open IndexedDB" when
+// the browser blocks local storage).
+function runSyncInBackground(syncTask: Promise<void>): void {
+  void syncTask.catch((): void => undefined);
 }
 
 export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
@@ -398,7 +411,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
           const needsResync = needsResyncWorkspaceIdsRef.current.has(workspaceId);
           needsResyncWorkspaceIdsRef.current.delete(workspaceId);
           if (needsResync && discardedSyncWorkspaceIdsRef.current.has(workspaceId) === false) {
-            void runSyncForWorkspace(workspace);
+            runSyncInBackground(runSyncForWorkspace(workspace));
           }
         }
       }
@@ -443,8 +456,17 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
       return;
     }
 
-    void refreshLocalMetadata(activeWorkspace.workspaceId);
-    void runSyncForWorkspace(activeWorkspace);
+    void refreshLocalMetadata(activeWorkspace.workspaceId).catch((error: unknown): void => {
+      captureAppOperationError(error, {
+        feature: "sync",
+        operation: "refresh_local_metadata",
+        userId: session.userId,
+        workspaceId: activeWorkspace.workspaceId,
+        installationId: null,
+        entityId: null,
+      });
+    });
+    runSyncInBackground(runSyncForWorkspace(activeWorkspace));
   }, [activeWorkspace, refreshLocalMetadata, runSyncForWorkspace, session, sessionLoadState, sessionVerificationState]);
 
   const refreshLocalData = useCallback(async function refreshLocalData(): Promise<void> {
@@ -507,7 +529,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     if (mutationResult.didChangeReviewSchedule) {
       invalidateLocalReviewSchedule();
     }
-    void runSyncForWorkspace(activeWorkspace);
+    runSyncInBackground(runSyncForWorkspace(activeWorkspace));
     return mutationResult.card;
   }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runLocalWorkspaceMutation, runSyncForWorkspace]);
 
@@ -522,7 +544,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
       clientUpdatedAt: nowIso(),
     }));
     bumpLocalReadVersion();
-    void runSyncForWorkspace(activeWorkspace);
+    runSyncInBackground(runSyncForWorkspace(activeWorkspace));
     return mutationResult.deck;
   }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runLocalWorkspaceMutation, runSyncForWorkspace]);
 
@@ -541,7 +563,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     if (mutationResult.didChangeReviewSchedule) {
       invalidateLocalReviewSchedule();
     }
-    void runSyncForWorkspace(activeWorkspace);
+    runSyncInBackground(runSyncForWorkspace(activeWorkspace));
     return mutationResult.card;
   }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runLocalWorkspaceMutation, runSyncForWorkspace]);
 
@@ -557,7 +579,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
       clientUpdatedAt: nowIso(),
     }));
     bumpLocalReadVersion();
-    void runSyncForWorkspace(activeWorkspace);
+    runSyncInBackground(runSyncForWorkspace(activeWorkspace));
     return mutationResult.deck;
   }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runLocalWorkspaceMutation, runSyncForWorkspace]);
 
@@ -575,7 +597,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     if (mutationResult.didChangeReviewSchedule) {
       invalidateLocalReviewSchedule();
     }
-    void runSyncForWorkspace(activeWorkspace);
+    runSyncInBackground(runSyncForWorkspace(activeWorkspace));
     return mutationResult.card;
   }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runLocalWorkspaceMutation, runSyncForWorkspace]);
 
@@ -590,7 +612,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
       clientUpdatedAt: nowIso(),
     }));
     bumpLocalReadVersion();
-    void runSyncForWorkspace(activeWorkspace);
+    runSyncInBackground(runSyncForWorkspace(activeWorkspace));
     return mutationResult.deck;
   }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runLocalWorkspaceMutation, runSyncForWorkspace]);
 
@@ -611,7 +633,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     bumpLocalReadVersion();
     invalidateLocalProgress();
     invalidateLocalReviewSchedule();
-    void runSyncForWorkspace(activeWorkspace);
+    runSyncInBackground(runSyncForWorkspace(activeWorkspace));
     return mutationResult.card;
   }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runLocalWorkspaceMutation, runSyncForWorkspace]);
 

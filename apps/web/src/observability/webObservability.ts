@@ -301,7 +301,8 @@ export type WebAppOperation =
   | "workspace_settings_load"
   | "workspace_reset_preview_load"
   | "workspace_reset_execute"
-  | "workspace_export";
+  | "workspace_export"
+  | "refresh_local_metadata";
 
 export type WebAppOperationFailureDetails = Readonly<{
   operation: WebAppOperation;
