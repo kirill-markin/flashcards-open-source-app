@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.app.navigation.settings
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -37,6 +38,8 @@ import com.flashcardsopensourceapp.feature.settings.workspace.tags.createWorkspa
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
@@ -71,22 +74,47 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
     }
 
     composable(route = SettingsWorkspaceNotificationsDestination.route) {
+        val notificationSchedulingMutex = remember { Mutex() }
         val reviewNotificationsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.review.ReviewNotificationsViewModel>(
             factory = createReviewNotificationsViewModelFactory(
                 workspaceRepository = appGraph.workspaceRepository,
                 reviewNotificationsStore = appGraph.reviewNotificationsStore,
                 strictRemindersStore = appGraph.strictRemindersStore,
                 onReviewSettingsChanged = {
-                    appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotifications(
-                        trigger = ReviewNotificationsReconcileTrigger.SETTINGS_CHANGED,
-                        nowMillis = System.currentTimeMillis()
-                    )
+                    coroutineScope.launch {
+                        notificationSchedulingMutex.withLock {
+                            appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotificationsAndWait(
+                                trigger = ReviewNotificationsReconcileTrigger.SETTINGS_CHANGED,
+                                nowMillis = System.currentTimeMillis()
+                            )
+                        }
+                    }
                 },
-                onStrictRemindersSettingsChanged = {
-                    appGraph.strictRemindersManager.reconcileStrictReminders(
-                        trigger = StrictRemindersReconcileTrigger.SETTINGS_CHANGED,
-                        nowMillis = System.currentTimeMillis()
-                    )
+                onStrictRemindersSettingsChanged = { isEnabled ->
+                    coroutineScope.launch {
+                        notificationSchedulingMutex.withLock {
+                            val nowMillis = System.currentTimeMillis()
+                            if (isEnabled) {
+                                appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotificationsAndWait(
+                                    trigger = ReviewNotificationsReconcileTrigger.SETTINGS_CHANGED,
+                                    nowMillis = nowMillis
+                                )
+                                appGraph.strictRemindersManager.reconcileStrictRemindersAndWait(
+                                    trigger = StrictRemindersReconcileTrigger.SETTINGS_CHANGED,
+                                    nowMillis = nowMillis
+                                )
+                            } else {
+                                appGraph.strictRemindersManager.reconcileStrictRemindersAndWait(
+                                    trigger = StrictRemindersReconcileTrigger.SETTINGS_CHANGED,
+                                    nowMillis = nowMillis
+                                )
+                                appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotificationsAndWait(
+                                    trigger = ReviewNotificationsReconcileTrigger.SETTINGS_CHANGED,
+                                    nowMillis = nowMillis
+                                )
+                            }
+                        }
+                    }
                 },
                 onAppIconBadgeDisabled = {
                     appGraph.reviewNotificationsManager.clearDeliveredReviewReminderNotifications()

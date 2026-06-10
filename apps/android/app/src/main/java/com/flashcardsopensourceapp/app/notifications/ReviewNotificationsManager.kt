@@ -27,11 +27,13 @@ import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationMo
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsStore
 import com.flashcardsopensourceapp.data.local.notifications.ScheduledReviewNotificationPayload
+import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersStore
 import com.flashcardsopensourceapp.data.local.notifications.buildFallbackDailyReminderPayloads
 import com.flashcardsopensourceapp.data.local.notifications.buildFallbackInactivityReminderPayloads
 import com.flashcardsopensourceapp.data.local.notifications.buildDailyReminderPayloads
 import com.flashcardsopensourceapp.data.local.notifications.buildInactivityReminderPayloads
 import com.flashcardsopensourceapp.data.local.notifications.makePersistedReviewFilter
+import com.flashcardsopensourceapp.data.local.notifications.reviewNotificationWorkLimit
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.loadCurrentWorkspaceOrNull
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.feature.review.reviewTextProvider
@@ -39,6 +41,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import java.time.ZoneId
@@ -56,7 +59,8 @@ class ReviewNotificationsManager(
     private val database: AppDatabase,
     private val preferencesStore: CloudPreferencesStore,
     private val reviewPreferencesStore: ReviewPreferencesStore,
-    private val reviewNotificationsStore: ReviewNotificationsStore
+    private val reviewNotificationsStore: ReviewNotificationsStore,
+    private val strictRemindersStore: StrictRemindersStore
 ) {
     private val workManager: WorkManager = WorkManager.getInstance(context)
     private val scopeJob = SupervisorJob()
@@ -84,6 +88,29 @@ class ReviewNotificationsManager(
                 nowMillis = nowMillis,
                 generation = generation
             )
+            if (isLatestReconcileGeneration(generation = generation)) {
+                activeReconcileJob = null
+            }
+        }
+    }
+
+    suspend fun reconcileCurrentWorkspaceReviewNotificationsAndWait(
+        trigger: ReviewNotificationsReconcileTrigger,
+        nowMillis: Long
+    ) {
+        val generation = reconcileGeneration.incrementAndGet()
+        activeReconcileJob?.cancelAndJoin()
+        val reconcileJob = scope.async {
+            reconcileCurrentWorkspaceReviewNotifications(
+                trigger = trigger,
+                nowMillis = nowMillis,
+                generation = generation
+            )
+        }
+        activeReconcileJob = reconcileJob
+        try {
+            reconcileJob.await()
+        } finally {
             if (isLatestReconcileGeneration(generation = generation)) {
                 activeReconcileJob = null
             }
@@ -163,6 +190,9 @@ class ReviewNotificationsManager(
         )
 
         val zoneId = ZoneId.systemDefault()
+        val workLimit: Int = reviewNotificationWorkLimit(
+            strictRemindersSettings = strictRemindersStore.loadStrictRemindersSettings()
+        )
         val payloads = if (currentCard != null) {
             when (settings.selectedMode) {
                 ReviewNotificationMode.DAILY -> buildDailyReminderPayloads(
@@ -170,7 +200,8 @@ class ReviewNotificationsManager(
                     currentCard = currentCard,
                     nowMillis = nowMillis,
                     zoneId = zoneId,
-                    settings = settings.daily
+                    settings = settings.daily,
+                    workLimit = workLimit
                 )
 
                 ReviewNotificationMode.INACTIVITY -> {
@@ -185,7 +216,8 @@ class ReviewNotificationsManager(
                         nowMillis = nowMillis,
                         lastActiveAtMillis = lastActiveAtMillis,
                         zoneId = zoneId,
-                        settings = settings.inactivity
+                        settings = settings.inactivity,
+                        workLimit = workLimit
                     )
                 }
             }
@@ -199,7 +231,8 @@ class ReviewNotificationsManager(
                     fallbackFrontText = fallbackFrontText,
                     nowMillis = nowMillis,
                     zoneId = zoneId,
-                    settings = settings.daily
+                    settings = settings.daily,
+                    workLimit = workLimit
                 )
 
                 ReviewNotificationMode.INACTIVITY -> {
@@ -215,7 +248,8 @@ class ReviewNotificationsManager(
                         nowMillis = nowMillis,
                         lastActiveAtMillis = lastActiveAtMillis,
                         zoneId = zoneId,
-                        settings = settings.inactivity
+                        settings = settings.inactivity,
+                        workLimit = workLimit
                     )
                 }
             }

@@ -25,6 +25,30 @@ class ReviewNotificationsStoreTest {
     }
 
     @Test
+    fun reviewNotificationWorkLimitReservesStrictReminderCapacityWhenEnabled() {
+        assertEquals(
+            appNotificationWorkLimit - strictReminderWorkLimit,
+            reviewNotificationWorkLimitWhenStrictRemindersEnabled
+        )
+        assertEquals(
+            reviewNotificationWorkLimitWhenStrictRemindersEnabled,
+            reviewNotificationWorkLimit(
+                strictRemindersSettings = StrictRemindersSettings(isEnabled = true)
+            )
+        )
+    }
+
+    @Test
+    fun reviewNotificationWorkLimitUsesFullLimitWhenStrictRemindersDisabled() {
+        assertEquals(
+            appNotificationWorkLimit,
+            reviewNotificationWorkLimit(
+                strictRemindersSettings = StrictRemindersSettings(isEnabled = false)
+            )
+        )
+    }
+
+    @Test
     fun dailyReminderFallbackPayloadsUseGenericBodyTextAndNullCardId() {
         val zoneId = ZoneId.of("UTC")
         val payloads = buildFallbackDailyReminderPayloads(
@@ -41,7 +65,8 @@ class ReviewNotificationsStoreTest {
             settings = DailyReviewNotificationsSettings(
                 hour = 10,
                 minute = 0
-            )
+            ),
+            workLimit = appNotificationWorkLimit
         )
 
         assertEquals(fallbackFrontText, payloads.first().frontText)
@@ -79,7 +104,8 @@ class ReviewNotificationsStoreTest {
                 windowEndHour = 19,
                 windowEndMinute = 0,
                 idleMinutes = 120
-            )
+            ),
+            workLimit = appNotificationWorkLimit
         )
 
         assertEquals(
@@ -95,6 +121,42 @@ class ReviewNotificationsStoreTest {
                 "2026-04-04T18:00:00Z"
             ),
             payloads.take(9).map { payload ->
+                formatTimestampMillis(
+                    value = payload.scheduledAtMillis,
+                    zoneId = zoneId
+                )
+            }
+        )
+    }
+
+    @Test
+    fun inactivityReminderPayloadsStayWithinPassedWorkLimit() {
+        val zoneId = ZoneId.of("UTC")
+        val workLimit: Int = 3
+        val payloads = buildInactivityReminderPayloads(
+            workspaceId = "workspace-1",
+            currentCard = makeCurrentCard(cardId = "card-a", frontText = "Front A"),
+            nowMillis = parseTimestampMillis(value = "2026-04-03T10:01:00Z"),
+            lastActiveAtMillis = parseTimestampMillis(value = "2026-04-03T10:00:00Z"),
+            zoneId = zoneId,
+            settings = InactivityReviewNotificationsSettings(
+                windowStartHour = 10,
+                windowStartMinute = 0,
+                windowEndHour = 19,
+                windowEndMinute = 0,
+                idleMinutes = 1
+            ),
+            workLimit = workLimit
+        )
+
+        assertEquals(workLimit, payloads.size)
+        assertEquals(
+            listOf(
+                "2026-04-03T10:02:00Z",
+                "2026-04-03T10:03:00Z",
+                "2026-04-03T10:04:00Z"
+            ),
+            payloads.map { payload ->
                 formatTimestampMillis(
                     value = payload.scheduledAtMillis,
                     zoneId = zoneId
@@ -124,7 +186,8 @@ class ReviewNotificationsStoreTest {
                 windowEndHour = 19,
                 windowEndMinute = 0,
                 idleMinutes = 120
-            )
+            ),
+            workLimit = appNotificationWorkLimit
         )
 
         assertEquals(fallbackFrontText, payloads.first().frontText)
@@ -162,7 +225,8 @@ class ReviewNotificationsStoreTest {
                 windowEndHour = 19,
                 windowEndMinute = 0,
                 idleMinutes = 120
-            )
+            ),
+            workLimit = appNotificationWorkLimit
         )
 
         assertEquals(
@@ -218,7 +282,8 @@ class ReviewNotificationsStoreTest {
                 windowEndHour = 19,
                 windowEndMinute = 0,
                 idleMinutes = 120
-            )
+            ),
+            workLimit = appNotificationWorkLimit
         ).take(2)
 
         assertEquals(listOf("card-a", "card-a"), originalPayloads.map { it.cardId })
@@ -239,6 +304,18 @@ class ReviewNotificationsStoreTest {
         )
         assertEquals("effort", persistedFilter.kind)
         assertEquals(EffortLevel.MEDIUM.name, persistedFilter.effortLevel)
+    }
+
+    @Test
+    fun strictReminderPayloadsStayWithinWorkLimit() = runBlocking {
+        val payloads = buildStrictReminderPayloads(
+            nowMillis = parseTimestampMillis(value = "2026-04-03T09:00:00Z"),
+            zoneId = ZoneId.of("UTC"),
+            isLocalDateCompleted = { _ -> false }
+        )
+
+        assertEquals(strictReminderWorkLimit, payloads.size)
+        assertTrue(payloads.size <= appNotificationWorkLimit)
     }
 
     @Test

@@ -15,6 +15,9 @@ const val reviewNotificationPermissionPromptThreshold: Int = 6
 const val defaultDailyReminderHour: Int = 10
 const val defaultDailyReminderMinute: Int = 0
 const val dailyReminderSchedulingHorizonDays: Int = 7
+const val appNotificationWorkLimit: Int = 50
+const val reviewNotificationWorkLimitWhenStrictRemindersEnabled: Int =
+    appNotificationWorkLimit - strictReminderWorkLimit
 const val defaultInactivityReminderWindowEndHour: Int = 19
 const val defaultInactivityReminderWindowEndMinute: Int = 0
 
@@ -117,6 +120,14 @@ fun defaultNotificationPermissionPromptState(): NotificationPermissionPromptStat
         hasRequestedSystemPermission = false,
         hasDismissedPrePrompt = false
     )
+}
+
+fun reviewNotificationWorkLimit(strictRemindersSettings: StrictRemindersSettings): Int {
+    if (strictRemindersSettings.isEnabled.not()) {
+        return appNotificationWorkLimit
+    }
+
+    return reviewNotificationWorkLimitWhenStrictRemindersEnabled
 }
 
 interface ReviewNotificationsStore {
@@ -391,7 +402,8 @@ fun buildDailyReminderPayloads(
     currentCard: CurrentReviewNotificationCard,
     nowMillis: Long,
     zoneId: ZoneId,
-    settings: DailyReviewNotificationsSettings
+    settings: DailyReviewNotificationsSettings,
+    workLimit: Int
 ): List<ScheduledReviewNotificationPayload> {
     val scheduledAtDateTimes = buildDailyReminderScheduledAtDateTimes(
         nowMillis = nowMillis,
@@ -404,7 +416,8 @@ fun buildDailyReminderPayloads(
         cardId = currentCard.cardId,
         frontText = currentCard.frontText,
         scheduledAtDateTimes = scheduledAtDateTimes,
-        mode = ReviewNotificationMode.DAILY
+        mode = ReviewNotificationMode.DAILY,
+        workLimit = workLimit
     )
 }
 
@@ -414,7 +427,8 @@ fun buildFallbackDailyReminderPayloads(
     fallbackFrontText: String,
     nowMillis: Long,
     zoneId: ZoneId,
-    settings: DailyReviewNotificationsSettings
+    settings: DailyReviewNotificationsSettings,
+    workLimit: Int
 ): List<ScheduledReviewNotificationPayload> {
     val scheduledAtDateTimes = buildDailyReminderScheduledAtDateTimes(
         nowMillis = nowMillis,
@@ -427,7 +441,8 @@ fun buildFallbackDailyReminderPayloads(
         cardId = null,
         frontText = fallbackFrontText,
         scheduledAtDateTimes = scheduledAtDateTimes,
-        mode = ReviewNotificationMode.DAILY
+        mode = ReviewNotificationMode.DAILY,
+        workLimit = workLimit
     )
 }
 
@@ -482,7 +497,8 @@ fun buildInactivityReminderPayloads(
     nowMillis: Long,
     lastActiveAtMillis: Long,
     zoneId: ZoneId,
-    settings: InactivityReviewNotificationsSettings
+    settings: InactivityReviewNotificationsSettings,
+    workLimit: Int
 ): List<ScheduledReviewNotificationPayload> {
     val scheduledAtMillisList = buildInactivityReminderTimestampMillisList(
         settings = settings,
@@ -503,7 +519,8 @@ fun buildInactivityReminderPayloads(
         cardId = currentCard.cardId,
         frontText = currentCard.frontText,
         scheduledAtDateTimes = scheduledAtDateTimes,
-        mode = ReviewNotificationMode.INACTIVITY
+        mode = ReviewNotificationMode.INACTIVITY,
+        workLimit = workLimit
     )
 }
 
@@ -514,7 +531,8 @@ fun buildFallbackInactivityReminderPayloads(
     nowMillis: Long,
     lastActiveAtMillis: Long,
     zoneId: ZoneId,
-    settings: InactivityReviewNotificationsSettings
+    settings: InactivityReviewNotificationsSettings,
+    workLimit: Int
 ): List<ScheduledReviewNotificationPayload> {
     val scheduledAtMillisList = buildInactivityReminderTimestampMillisList(
         settings = settings,
@@ -535,7 +553,8 @@ fun buildFallbackInactivityReminderPayloads(
         cardId = null,
         frontText = fallbackFrontText,
         scheduledAtDateTimes = scheduledAtDateTimes,
-        mode = ReviewNotificationMode.INACTIVITY
+        mode = ReviewNotificationMode.INACTIVITY,
+        workLimit = workLimit
     )
 }
 
@@ -649,8 +668,13 @@ private fun buildScheduledReviewNotificationPayloads(
     cardId: String?,
     frontText: String,
     scheduledAtDateTimes: List<ZonedDateTime>,
-    mode: ReviewNotificationMode
+    mode: ReviewNotificationMode,
+    workLimit: Int
 ): List<ScheduledReviewNotificationPayload> {
+    require(workLimit >= 0) {
+        "Review notification work limit must be non-negative. workLimit=$workLimit"
+    }
+
     return scheduledAtDateTimes.map { scheduledAtDateTime ->
         ScheduledReviewNotificationPayload(
             workspaceId = workspaceId,
@@ -664,7 +688,9 @@ private fun buildScheduledReviewNotificationPayloads(
                 suffix = makeNotificationRequestSuffix(scheduledAtDateTime = scheduledAtDateTime)
             )
         )
-    }
+    }.sortedBy { payload ->
+        payload.scheduledAtMillis
+    }.take(workLimit)
 }
 
 private val notificationRequestIdDateTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm")

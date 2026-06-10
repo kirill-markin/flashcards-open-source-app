@@ -46,7 +46,8 @@ interface StrictRemindersScheduler {
 private sealed interface StrictRemindersCommand {
     data class Reconcile(
         val trigger: StrictRemindersReconcileTrigger,
-        val nowMillis: Long
+        val nowMillis: Long,
+        val completion: CompletableDeferred<Unit>?
     ) : StrictRemindersCommand
 
     data class RecordSuccessfulReview(
@@ -153,9 +154,25 @@ class StrictRemindersManager(
         enqueueCommandIfOpen(
             command = StrictRemindersCommand.Reconcile(
                 trigger = trigger,
-                nowMillis = nowMillis
+                nowMillis = nowMillis,
+                completion = null
             )
         )
+    }
+
+    suspend fun reconcileStrictRemindersAndWait(
+        trigger: StrictRemindersReconcileTrigger,
+        nowMillis: Long
+    ) {
+        val completion = CompletableDeferred<Unit>()
+        enqueueRequiredCommand(
+            command = StrictRemindersCommand.Reconcile(
+                trigger = trigger,
+                nowMillis = nowMillis,
+                completion = completion
+            )
+        )
+        completion.await()
     }
 
     fun recordSuccessfulReview(
@@ -204,10 +221,12 @@ class StrictRemindersManager(
     private suspend fun processCommand(command: StrictRemindersCommand) {
         when (command) {
             is StrictRemindersCommand.Reconcile -> {
-                reconcileStrictRemindersNow(
-                    trigger = command.trigger,
-                    nowMillis = command.nowMillis
-                )
+                runCompletableCommand(completion = command.completion) {
+                    reconcileStrictRemindersNow(
+                        trigger = command.trigger,
+                        nowMillis = command.nowMillis
+                    )
+                }
             }
 
             is StrictRemindersCommand.RecordSuccessfulReview -> {
@@ -237,15 +256,24 @@ class StrictRemindersManager(
             }
 
             is StrictRemindersCommand.ClearIdentityState -> {
-                runCatching {
+                runCompletableCommand(completion = command.completion) {
                     clearIdentityStateNow()
-                }.onSuccess {
-                    command.completion.complete(Unit)
-                }.onFailure { error ->
-                    command.completion.completeExceptionally(error)
-                    throw error
                 }
             }
+        }
+    }
+
+    private suspend fun runCompletableCommand(
+        completion: CompletableDeferred<Unit>?,
+        action: suspend () -> Unit
+    ) {
+        runCatching {
+            action()
+        }.onSuccess {
+            completion?.complete(Unit)
+        }.onFailure { error ->
+            completion?.completeExceptionally(error)
+            throw error
         }
     }
 

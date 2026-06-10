@@ -196,7 +196,8 @@ class AppGraph(
         database = database,
         preferencesStore = cloudPreferencesStore,
         reviewPreferencesStore = reviewPreferencesStore,
-        reviewNotificationsStore = reviewNotificationsStore
+        reviewNotificationsStore = reviewNotificationsStore,
+        strictRemindersStore = strictRemindersStore
     )
     val strictRemindersManager = StrictRemindersManager(
         strictRemindersStore = strictRemindersStore,
