@@ -110,6 +110,10 @@ if (isReleaseTaskRequested) {
     }
 }
 
+// Single source for defaultConfig.minSdk, also surfaced to runtime via BuildConfig so
+// observability can skip telemetry from below-minSdk (out-of-contract) devices.
+val androidMinSdk: Int = 34
+
 fun toBuildConfigString(value: String): String {
     return "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
 }
@@ -135,12 +139,13 @@ android {
 
     defaultConfig {
         applicationId = "com.flashcardsopensourceapp.app"
-        minSdk = 34
+        minSdk = androidMinSdk
         targetSdk = 36
         versionCode = androidVersionCode ?: 1
         versionName = "1.9.0"
         testInstrumentationRunner = "com.flashcardsopensourceapp.app.FlashcardsAndroidTestRunner"
         testInstrumentationRunnerArguments["clearPackageData"] = "true"
+        buildConfigField("int", "ANDROID_MIN_SDK", androidMinSdk.toString())
         buildConfigField("String", "ANDROID_SENTRY_DSN", toBuildConfigString(androidSentryDsn))
         buildConfigField(
             "String",
