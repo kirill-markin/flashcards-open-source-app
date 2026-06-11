@@ -165,7 +165,7 @@ export const zhHansCatalog = {
       guestBody: "登录后即可查看你的复习在其他学习者中的排名。",
       signIn: "登录",
       participationDisabledBody: "关闭排行榜参与后，排名将被隐藏。重新开启即可查看其他学习者和你的名次。",
-      openParticipationSettings: "打开账户设置",
+      openParticipationSettings: "打开排行榜设置",
       offlineEmpty: "离线时排行榜不可用。联网后即可查看排名。",
       unavailable: "排行榜暂时不可用。请稍后再来看看。",
     },
@@ -424,6 +424,13 @@ export const zhHansCatalog = {
     subtitle: "控制给卡片评分后的反应动画。",
     toggleTitle: "评分后显示动画",
     toggleDescription: "只影响复习评分后的反应动画。",
+  },
+  leaderboardParticipationSettings: {
+    title: "排行榜参与",
+    subtitle: "控制你是否出现在社区排名中，以及是否可以查看排名。",
+    toggleTitle: "在排行榜中显示我",
+    toggleDescription: "关闭后，你不会出现在排行榜中，也无法查看排行榜排名。",
+    signInRequired: "使用邮箱登录后即可管理排行榜参与。",
   },
   accessSettings: {
     title: "访问权限",
@@ -858,10 +865,6 @@ export const zhHansCatalog = {
       linked: "已连接",
       linkingReady: "可连接",
       disconnected: "未连接",
-    },
-    leaderboardParticipation: {
-      title: "排行榜参与",
-      description: "在社区排行榜中展示你的匿名资料，并查看其他学习者的排名。",
     },
     logout: "退出登录",
   },

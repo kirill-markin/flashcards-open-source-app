@@ -50,6 +50,7 @@ import {
   settingsFeedbackRoute,
   settingsHubRoute,
   settingsLanguageRoute,
+  settingsLeaderboardParticipationRoute,
   settingsNotificationsRoute,
   settingsReviewAnimationsRoute,
   settingsResetStudyProgressRoute,
@@ -104,6 +105,9 @@ const FeedbackSettingsScreen = lazy(async () => import("./screens/settings/Feedb
 })));
 const LanguageSettingsScreen = lazy(async () => import("./screens/settings/LanguageSettingsScreen").then((module) => ({
   default: module.LanguageSettingsScreen,
+})));
+const LeaderboardParticipationSettingsScreen = lazy(async () => import("./screens/settings/LeaderboardParticipationSettingsScreen").then((module) => ({
+  default: module.LeaderboardParticipationSettingsScreen,
 })));
 const SettingsScreen = lazy(async () => import("./screens/settings/SettingsScreen").then((module) => ({
   default: module.SettingsScreen,
@@ -600,6 +604,7 @@ export function RoutedShell(): ReactElement {
           />
           <Route path={settingsFeedbackRoute} element={renderDeferredRoute(<FeedbackSettingsScreen />, "loading.settings")} />
           <Route path={settingsLanguageRoute} element={renderDeferredRoute(<LanguageSettingsScreen />, "loading.deviceDetails")} />
+          <Route path={settingsLeaderboardParticipationRoute} element={renderDeferredRoute(<LeaderboardParticipationSettingsScreen />, "loading.settings")} />
           <Route path={settingsServerRoute} element={renderDeferredRoute(<ServerSettingsInfoScreen />, "loading.settings")} />
           <Route path={settingsAccessRoute} element={renderDeferredRoute(<AccessSettingsScreen />, "loading.accessSettings")} />
           <Route path={settingsAccessDetailRoutePattern} element={renderDeferredRoute(<AccessPermissionDetailScreen />, "loading.accessDetails")} />

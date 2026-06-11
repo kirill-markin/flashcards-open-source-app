@@ -11,6 +11,7 @@ import {
   settingsCurrentWorkspaceRoute,
   settingsFeedbackRoute,
   settingsLanguageRoute,
+  settingsLeaderboardParticipationRoute,
   settingsReviewAnimationsRoute,
   settingsSchedulerRoute,
   settingsServerRoute,
@@ -278,6 +279,7 @@ describe("SettingsScreen navigation", () => {
       "settings-row-current-workspace",
       "settings-row-review-reminders",
       "settings-row-review-animations",
+      "settings-row-leaderboard-participation",
       "settings-row-language",
       "settings-row-access",
       "settings-row-decks",
@@ -296,7 +298,8 @@ describe("SettingsScreen navigation", () => {
       "settings-row-delete-account",
     ].forEach(expectRowVisible);
     expect(rowIndex("settings-row-review-reminders")).toBeLessThan(rowIndex("settings-row-review-animations"));
-    expect(rowIndex("settings-row-review-animations")).toBeLessThan(rowIndex("settings-row-language"));
+    expect(rowIndex("settings-row-review-animations")).toBeLessThan(rowIndex("settings-row-leaderboard-participation"));
+    expect(rowIndex("settings-row-leaderboard-participation")).toBeLessThan(rowIndex("settings-row-language"));
     expect(rowIndex("settings-row-support")).toBeLessThan(rowIndex("settings-row-legal"));
     expect(getContainer().querySelector("[data-testid='settings-row-test']")).toBeNull();
   });
@@ -323,6 +326,9 @@ describe("SettingsScreen navigation", () => {
 
     await clickRow("settings-row-review-animations");
     expect(currentPathname()).toBe(settingsReviewAnimationsRoute);
+
+    await clickRow("settings-row-leaderboard-participation");
+    expect(currentPathname()).toBe(settingsLeaderboardParticipationRoute);
 
     await clickRow("settings-row-scheduling");
     expect(currentPathname()).toBe(settingsSchedulerRoute);

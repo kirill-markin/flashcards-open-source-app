@@ -3016,55 +3016,55 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "افتح الإعدادات"
+            "value" : "افتح إعدادات لوحة الصدارة"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Einstellungen öffnen"
+            "value" : "Bestenlisten-Einstellungen öffnen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Open Settings"
+            "value" : "Open leaderboard settings"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Abrir ajustes"
+            "value" : "Abrir ajustes de la clasificación"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Abrir configuración"
+            "value" : "Abrir configuración de la tabla"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "सेटिंग्स खोलें"
+            "value" : "लीडरबोर्ड सेटिंग खोलें"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "設定を開く"
+            "value" : "リーダーボード設定を開く"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Открыть настройки"
+            "value" : "Открыть настройки таблицы лидеров"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "打开设置"
+            "value" : "打开排行榜设置"
           }
         }
       }

@@ -31,6 +31,8 @@ import com.flashcardsopensourceapp.feature.settings.device.DeviceDiagnosticsRout
 import com.flashcardsopensourceapp.feature.settings.device.createDeviceDiagnosticsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.feedback.FeedbackSettingsRoute
 import com.flashcardsopensourceapp.feature.settings.language.LanguageSettingsRoute
+import com.flashcardsopensourceapp.feature.settings.leaderboard.LeaderboardParticipationRoute
+import com.flashcardsopensourceapp.feature.settings.leaderboard.createLeaderboardParticipationViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.workspace.current.CurrentWorkspaceRoute
 import com.flashcardsopensourceapp.feature.settings.workspace.current.createCurrentWorkspaceViewModelFactory
 import java.util.Locale
@@ -81,6 +83,9 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             },
             onOpenReviewAnimations = {
                 navController.navigate(route = SettingsReviewAnimationsDestination.route)
+            },
+            onOpenLeaderboardParticipation = {
+                navController.navigate(route = SettingsLeaderboardParticipationDestination.route)
             },
             onOpenLanguage = {
                 navController.navigate(route = SettingsLanguageDestination.route)
@@ -164,6 +169,25 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             reviewReactionAnimationsEnabled = uiState.reviewReactionAnimationsEnabled,
             canManageAccountPreferences = uiState.canManageAccountPreferences,
             onUpdateReviewReactionAnimationsEnabled = settingsViewModel::updateReviewReactionAnimationsEnabled,
+            onBack = {
+                navController.popBackStack()
+            }
+        )
+    }
+
+    composable(route = SettingsLeaderboardParticipationDestination.route) {
+        val context = LocalContext.current
+        val leaderboardParticipationViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.leaderboard.LeaderboardParticipationViewModel>(
+            factory = createLeaderboardParticipationViewModelFactory(
+                cloudAccountRepository = appGraph.cloudAccountRepository,
+                applicationContext = context.applicationContext
+            )
+        )
+        val uiState by leaderboardParticipationViewModel.uiState.collectAsStateWithLifecycle()
+
+        LeaderboardParticipationRoute(
+            uiState = uiState,
+            onUpdateLeaderboardParticipation = leaderboardParticipationViewModel::updateLeaderboardParticipation,
             onBack = {
                 navController.popBackStack()
             }

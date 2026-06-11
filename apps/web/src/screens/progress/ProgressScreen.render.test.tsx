@@ -745,7 +745,7 @@ describe("ProgressScreen", () => {
     if (!(settingsLink instanceof HTMLAnchorElement)) {
       throw new Error("Leaderboard participation settings link was not found");
     }
-    expect(settingsLink.getAttribute("href")).toBe("/settings/account-status");
+    expect(settingsLink.getAttribute("href")).toBe("/settings/leaderboard-participation");
     expect(container.querySelector("[data-testid='progress-leaderboard-row-viewer']")).toBeNull();
   });
 

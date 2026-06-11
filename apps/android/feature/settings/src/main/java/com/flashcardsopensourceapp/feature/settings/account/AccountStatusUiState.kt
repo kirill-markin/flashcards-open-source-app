@@ -15,9 +15,5 @@ data class AccountStatusUiState(
     val accountStatusPrimaryActionAttentionCount: Int,
     val showLogoutConfirmation: Boolean,
     val errorMessage: String,
-    val isSubmitting: Boolean,
-    // Null until the community profile loads for a linked account; the leaderboard
-    // participation row is hidden while null.
-    val leaderboardParticipationEnabled: Boolean?,
-    val isLeaderboardParticipationUpdating: Boolean
+    val isSubmitting: Boolean
 )

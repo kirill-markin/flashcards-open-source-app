@@ -165,7 +165,7 @@ const hiCatalog: TranslationCatalog = {
       guestBody: "साइन इन करें और देखें कि अन्य सीखने वालों के बीच आपके रिव्यू कहाँ हैं।",
       signIn: "साइन इन करें",
       participationDisabledBody: "लीडरबोर्ड भागीदारी बंद रहने पर रैंकिंग छिपी रहती है। अन्य सीखने वालों और अपनी रैंक देखने के लिए इसे फिर चालू करें।",
-      openParticipationSettings: "खाता सेटिंग खोलें",
+      openParticipationSettings: "लीडरबोर्ड सेटिंग खोलें",
       offlineEmpty: "ऑफ़लाइन में लीडरबोर्ड उपलब्ध नहीं है। रैंकिंग देखने के लिए इंटरनेट से जुड़ें।",
       unavailable: "लीडरबोर्ड अभी उपलब्ध नहीं है। बाद में फिर देखें।",
     },
@@ -424,6 +424,13 @@ const hiCatalog: TranslationCatalog = {
     subtitle: "कार्ड रेट करने के बाद दिखने वाले रिएक्शन एनिमेशन नियंत्रित करें।",
     toggleTitle: "कार्ड रेट करने के बाद एनिमेशन दिखाएँ",
     toggleDescription: "यह केवल रिव्यू रिएक्शन एनिमेशन को प्रभावित करता है।",
+  },
+  leaderboardParticipationSettings: {
+    title: "लीडरबोर्ड भागीदारी",
+    subtitle: "नियंत्रित करें कि आप समुदाय रैंकिंग में दिखें और उन्हें देख सकें या नहीं.",
+    toggleTitle: "मुझे लीडरबोर्ड पर दिखाएँ",
+    toggleDescription: "यह बंद होने पर आप लीडरबोर्ड पर नहीं दिखेंगे और लीडरबोर्ड रैंकिंग आपसे छिपी रहेगी.",
+    signInRequired: "लीडरबोर्ड भागीदारी प्रबंधित करने के लिए ईमेल से साइन इन करें.",
   },
   accessSettings: {
     title: "एक्सेस",
@@ -858,10 +865,6 @@ const hiCatalog: TranslationCatalog = {
       linked: "लिंक्ड",
       linkingReady: "लिंक करने के लिए तैयार",
       disconnected: "डिस्कनेक्टेड",
-    },
-    leaderboardParticipation: {
-      title: "लीडरबोर्ड भागीदारी",
-      description: "कम्युनिटी लीडरबोर्ड में अपनी अनाम प्रोफ़ाइल दिखाएँ और अन्य सीखने वालों की रैंकिंग देखें।",
     },
     logout: "लॉग आउट",
   },

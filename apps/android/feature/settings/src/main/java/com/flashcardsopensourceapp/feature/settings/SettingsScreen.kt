@@ -86,6 +86,7 @@ fun SettingsRoute(
     onOpenCurrentWorkspace: () -> Unit,
     onOpenReviewReminders: () -> Unit,
     onOpenReviewAnimations: () -> Unit,
+    onOpenLeaderboardParticipation: () -> Unit,
     onOpenLanguage: () -> Unit,
     onOpenAccess: () -> Unit,
     onOpenDecks: () -> Unit,
@@ -174,6 +175,16 @@ fun SettingsRoute(
                         onClick = onOpenReviewAnimations
                     )
                 }
+            }
+
+            item {
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_leaderboard_participation_title),
+                    summary = stringResource(R.string.settings_leaderboard_participation_summary),
+                    attentionCount = null,
+                    testTag = settingsLeaderboardParticipationRowTag,
+                    onClick = onOpenLeaderboardParticipation
+                )
             }
 
             item {

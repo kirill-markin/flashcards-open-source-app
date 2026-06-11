@@ -10,7 +10,7 @@ import { useProgressInvalidationState } from "../../appData/progress/invalidatio
 import { canLoadProgressServerBase, useProgressSource } from "../../appData/progress/progressSource";
 import { resolveLocaleWeekContext, useI18n, type LocaleDirection } from "../../i18n";
 import { parseLocalDate, shiftLocalDate } from "../../progress/progressDates";
-import { accountStatusRoute } from "../../routes";
+import { settingsLeaderboardParticipationRoute } from "../../routes";
 import type {
   DailyReviewPoint,
   ProgressLeaderboardSourceState,
@@ -587,7 +587,7 @@ function ProgressLeaderboardBody(props: ProgressLeaderboardSectionProps): ReactE
     return (
       <div className="progress-leaderboard-placeholder" data-testid="progress-leaderboard-participation-disabled">
         <p className="subtitle">{t("progressScreen.leaderboard.participationDisabledBody")}</p>
-        <Link className="ghost-btn" to={accountStatusRoute}>
+        <Link className="ghost-btn" to={settingsLeaderboardParticipationRoute}>
           {t("progressScreen.leaderboard.openParticipationSettings")}
         </Link>
       </div>

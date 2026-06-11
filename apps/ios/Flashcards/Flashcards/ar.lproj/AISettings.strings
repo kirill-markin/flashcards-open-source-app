@@ -135,6 +135,7 @@
 "settings.row.reviewReminders" = "تذكيرات المراجعة";
 "settings.row.reviewReminders.value" = "هذا الجهاز";
 "settings.row.reviewAnimations" = "رسوم المراجعة المتحركة";
+"settings.row.leaderboardParticipation" = "المشاركة في لوحة الصدارة";
 "settings.row.language" = "اللغة";
 "settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 أذونات";
@@ -166,6 +167,10 @@
 "settings.currentWorkspace.renameLinkedOnly" = "إعادة تسمية مساحة العمل متاحة فقط لمساحات العمل السحابية المرتبطة.";
 "settings.reviewAnimations.title" = "رسوم المراجعة المتحركة";
 "settings.reviewAnimations.toggle" = "إظهار الرسوم المتحركة بعد تقييم بطاقة";
+"settings.leaderboardParticipation.title" = "المشاركة في لوحة الصدارة";
+"settings.leaderboardParticipation.toggle" = "إظهاري في لوحة الصدارة";
+"settings.leaderboardParticipation.description" = "عند إيقاف هذا الخيار، لن تظهر في لوحة الصدارة وستُخفى عنك تصنيفات لوحة الصدارة.";
+"settings.leaderboardParticipation.signInRequired" = "سجّل الدخول بالبريد الإلكتروني لإدارة المشاركة في لوحة الصدارة.";
 "settings.language.title" = "اللغة";
 "settings.language.systemDescription" = "يتحكم iOS في لغة التطبيق. في إعدادات iOS، افتح Flashcards واستخدم اللغة المفضلة. إذا لم تظهر اللغة المفضلة، فأضف لغة أخرى أولاً من الإعدادات > عام > اللغة والمنطقة.";
 "settings.language.action.openAppSettings" = "افتح إعدادات Flashcards";
@@ -284,10 +289,6 @@
 "settings.account.status.unavailable" = "تكوين السحابة غير متاح.";
 "settings.account.status.logoutAlertTitle" = "هل تريد تسجيل الخروج ومسح هذا الجهاز؟";
 "settings.account.status.logoutAlertMessage" = "سيتم حذف كافة مساحات العمل المحلية والبيانات المتزامنة من هذا الجهاز.";
-"settings.account.status.leaderboard.section" = "لوحة الصدارة";
-"settings.account.status.leaderboard.toggle" = "إظهاري في لوحة الصدارة";
-"settings.account.status.leaderboard.description" = "اظهر بشكل مجهول في لوحة صدارة التقدم وقارن نشاط المراجعة مع المتعلمين الآخرين. تُحتسب مراجعات صعب وجيد وسهل، أما مرة أخرى فلا تُحتسب.";
-"settings.account.status.leaderboard.signInRequired" = "سجّل الدخول بالبريد الإلكتروني للانضمام إلى لوحة صدارة التقدم.";
 
 "settings.account.legal.title" = "الشؤون القانونية";
 "settings.account.support.title" = "الدعم";

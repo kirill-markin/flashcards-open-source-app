@@ -193,12 +193,12 @@ struct ProgressLeaderboardSection: View {
             Button(
                 String(
                     localized: "progress.screen.leaderboard.participation_disabled.button",
-                    defaultValue: "Open Settings",
+                    defaultValue: "Open leaderboard settings",
                     table: progressStringsTableName,
                     comment: "Progress leaderboard participation-disabled placeholder button"
                 )
             ) {
-                self.navigation.openSettings(destination: .accountStatus)
+                self.navigation.openSettings(destination: .leaderboardParticipation)
             }
             .accessibilityIdentifier(UITestIdentifier.progressLeaderboardOpenSettingsButton)
         }

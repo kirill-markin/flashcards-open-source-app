@@ -24,6 +24,10 @@ data object SettingsReviewAnimationsDestination {
     const val route: String = "settings/review-animations"
 }
 
+data object SettingsLeaderboardParticipationDestination {
+    const val route: String = "settings/leaderboard-participation"
+}
+
 data object SettingsFeedbackDestination {
     const val route: String = "settings/feedback"
 }

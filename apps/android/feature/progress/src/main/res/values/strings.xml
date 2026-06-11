@@ -44,8 +44,8 @@
     <string name="progress_leaderboard_updated_label">Updated %1$s</string>
     <string name="progress_leaderboard_sign_in_message">Sign up or sign in to see how your reviews rank in the community.</string>
     <string name="progress_leaderboard_sign_in_button">Sign in</string>
-    <string name="progress_leaderboard_participation_disabled_message">Rankings are visible only while you participate in the leaderboard. Turn participation on in account settings.</string>
-    <string name="progress_leaderboard_participation_disabled_button">Open account settings</string>
+    <string name="progress_leaderboard_participation_disabled_message">Rankings are visible only while you participate in the leaderboard. Turn participation on in leaderboard settings.</string>
+    <string name="progress_leaderboard_participation_disabled_button">Open leaderboard settings</string>
     <string name="progress_leaderboard_offline_message">The leaderboard needs a connection. It will load when you are back online.</string>
     <string name="progress_leaderboard_unavailable_message">The leaderboard is not ready yet. Check back soon.</string>
     <string name="progress_today">Today</string>

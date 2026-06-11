@@ -23,6 +23,16 @@ struct SettingsView: View {
         store.workspace?.name ?? aiSettingsLocalized("common.unavailable", "Unavailable")
     }
 
+    private var leaderboardParticipationValue: String? {
+        guard let communityProfile = store.communityPublicProfile else {
+            return nil
+        }
+
+        return communityProfile.leaderboardParticipationEnabled
+            ? aiSettingsLocalized("common.on", "On")
+            : aiSettingsLocalized("common.off", "Off")
+    }
+
     private var settingsAttentionSummary: SettingsAttentionSummary {
         makeSettingsAttentionSummary(
             issues: makeSettingsAttentionIssues(cloudState: store.cloudSettings?.cloudState)
@@ -78,6 +88,15 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsReviewAnimationsRow)
+
+                NavigationLink(value: SettingsNavigationDestination.leaderboardParticipation) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.row.leaderboardParticipation", "Leaderboard participation"),
+                        value: self.leaderboardParticipationValue,
+                        systemImage: "list.number"
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsLeaderboardParticipationRow)
 
                 NavigationLink(value: SettingsNavigationDestination.language) {
                     SettingsNavigationRow(

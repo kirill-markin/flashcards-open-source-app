@@ -42,13 +42,10 @@ class AccountStatusRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         accountStatusPrimaryActionAttentionCount = 0,
                         showLogoutConfirmation = false,
                         errorMessage = "",
-                        isSubmitting = false,
-                        leaderboardParticipationEnabled = null,
-                        isLeaderboardParticipationUpdating = false
+                        isSubmitting = false
                     ),
                     onOpenSignIn = {},
                     onSyncNow = {},
-                    onUpdateLeaderboardParticipation = {},
                     onRequestLogout = {},
                     onDismissLogoutConfirmation = {},
                     onConfirmLogout = {},

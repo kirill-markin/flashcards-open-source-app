@@ -165,7 +165,7 @@ const deCatalog: TranslationCatalog = {
       guestBody: "Melde dich an, um zu sehen, wie deine Wiederholungen im Vergleich zu anderen Lernenden stehen.",
       signIn: "Anmelden",
       participationDisabledBody: "Platzierungen sind ausgeblendet, solange die Teilnahme an der Bestenliste deaktiviert ist. Aktiviere sie wieder, um andere Lernende und deinen Platz zu sehen.",
-      openParticipationSettings: "Kontoeinstellungen öffnen",
+      openParticipationSettings: "Bestenlisten-Einstellungen öffnen",
       offlineEmpty: "Die Bestenliste ist offline nicht verfügbar. Stelle eine Verbindung her, um Platzierungen zu sehen.",
       unavailable: "Die Bestenliste ist gerade nicht verfügbar. Schau später wieder vorbei.",
     },
@@ -424,6 +424,13 @@ const deCatalog: TranslationCatalog = {
     subtitle: "Steuere Reaktionsanimationen nach Kartenbewertungen.",
     toggleTitle: "Animationen nach der Bewertung einer Karte anzeigen",
     toggleDescription: "Betrifft nur die Reaktionsanimationen beim Wiederholen.",
+  },
+  leaderboardParticipationSettings: {
+    title: "Bestenlisten-Teilnahme",
+    subtitle: "Lege fest, ob du in Community-Ranglisten erscheinst und sie sehen kannst.",
+    toggleTitle: "Mich in der Bestenliste anzeigen",
+    toggleDescription: "Wenn diese Einstellung aus ist, erscheinst du nicht in der Bestenliste und die Rangliste wird für dich ausgeblendet.",
+    signInRequired: "Melde dich mit E-Mail an, um die Bestenlisten-Teilnahme zu verwalten.",
   },
   accessSettings: {
     title: "Zugriff",
@@ -858,10 +865,6 @@ const deCatalog: TranslationCatalog = {
       linked: "Verknüpft",
       linkingReady: "Bereit zur Verknüpfung",
       disconnected: "Getrennt",
-    },
-    leaderboardParticipation: {
-      title: "Bestenlisten-Teilnahme",
-      description: "Zeige dein anonymes Profil in der Community-Bestenliste und sieh die Platzierungen anderer Lernender.",
     },
     logout: "Abmelden",
   },

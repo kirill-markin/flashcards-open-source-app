@@ -50,7 +50,7 @@ internal fun LeaderboardSectionCard(
     uiState: ProgressLeaderboardSectionUiState,
     onSelectWindow: (ProgressLeaderboardWindowKey) -> Unit,
     onOpenSignIn: () -> Unit,
-    onOpenAccountSettings: () -> Unit
+    onOpenLeaderboardSettings: () -> Unit
 ) {
     var isInfoDialogVisible by rememberSaveable { mutableStateOf(false) }
 
@@ -115,7 +115,7 @@ internal fun LeaderboardSectionCard(
                     LeaderboardPlaceholder(
                         message = stringResource(id = R.string.progress_leaderboard_participation_disabled_message),
                         buttonLabel = stringResource(id = R.string.progress_leaderboard_participation_disabled_button),
-                        onButtonClick = onOpenAccountSettings
+                        onButtonClick = onOpenLeaderboardSettings
                     )
                 }
 
