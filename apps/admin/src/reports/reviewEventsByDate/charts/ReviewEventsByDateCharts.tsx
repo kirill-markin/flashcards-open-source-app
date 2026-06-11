@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type JSX } from "react";
-import { reviewEventPlatforms, type ReviewEventsByDateUser } from "../../adminApi";
+import { reviewEventPlatforms, type ReviewEventsByDateUser } from "../../../adminApi";
 import {
   getPlatformColor,
   platformLabels,
@@ -15,7 +15,7 @@ import {
   renderPlatformReviewEventsChart,
   renderUserReviewEventsChart,
 } from "./chartRenderers";
-import { formatGeneratedAt } from "./formatting";
+import { formatGeneratedAt } from "../formatting";
 
 type ReviewEventsByDateChartsProps = Readonly<{
   chartModel: ReviewEventsByDateChartModel;

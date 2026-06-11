@@ -6,9 +6,9 @@ import {
   type ReviewEventPlatform,
   type ReviewEventsByDateReport,
 } from "../../adminApi";
-import { buildReviewEventsByDateChartModel } from "./chartModel";
-import { ReviewEventsByDateCharts } from "./ReviewEventsByDateCharts";
-import { ReviewEventsByDateFilters } from "./ReviewEventsByDateFilters";
+import { ReviewEventsByDateCharts } from "./charts/ReviewEventsByDateCharts";
+import { buildReviewEventsByDateChartModel } from "./charts/chartModel";
+import { ReviewEventsByDateFilters } from "./filters/ReviewEventsByDateFilters";
 import {
   buildReviewEventsByDateSummaryCards,
   ReviewEventsByDateSummary,
@@ -20,7 +20,7 @@ import {
   doesUserMatchSearch,
   getNormalizedSearchValue,
   visibleUserFilterOptionLimit,
-} from "./userFilters";
+} from "./filters/userFilters";
 import {
   filterReviewEventsByDateReport,
   type ReviewEventsByDateRange,
