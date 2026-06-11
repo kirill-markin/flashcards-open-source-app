@@ -19,7 +19,7 @@ import com.flashcardsopensourceapp.app.livesmoke.support.appGraph
 import com.flashcardsopensourceapp.app.livesmoke.support.externalUiTimeoutMillis
 import com.flashcardsopensourceapp.app.livesmoke.support.internalUiTimeoutMillis
 import com.flashcardsopensourceapp.app.notifications.hasNotificationPermission
-import com.flashcardsopensourceapp.app.notifications.showReviewReminderNotification
+import com.flashcardsopensourceapp.app.notifications.review.showReviewReminderNotification
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.feature.review.reviewCurrentCardTag
 import com.flashcardsopensourceapp.feature.review.reviewEmptyStateTag

@@ -1,18 +1,26 @@
-package com.flashcardsopensourceapp.app.notifications
+package com.flashcardsopensourceapp.app.notifications.review
 
-import android.Manifest
 import android.app.NotificationManager
 import android.content.Context
-import android.content.pm.PackageManager
 import android.service.notification.StatusBarNotification
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.ContextCompat
 import androidx.work.Constraints
 import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.await
+import com.flashcardsopensourceapp.app.notifications.NotificationDelayRange
+import com.flashcardsopensourceapp.app.notifications.NotificationExpectedWorkInfoReadback
+import com.flashcardsopensourceapp.app.notifications.calculateNotificationDelayRange
+import com.flashcardsopensourceapp.app.notifications.emptyNotificationDelayRange
+import com.flashcardsopensourceapp.app.notifications.hasMissingExpectedWorkNames
+import com.flashcardsopensourceapp.app.notifications.hasNotificationPermission
+import com.flashcardsopensourceapp.app.notifications.hasOnlyCancelledOrFailedExpectedWork
+import com.flashcardsopensourceapp.app.notifications.loadExpectedWorkInfoReadback
+import com.flashcardsopensourceapp.app.notifications.loadWorkInfoStateCountsByTag
+import com.flashcardsopensourceapp.app.notifications.reviewReminderNotificationKind
+import com.flashcardsopensourceapp.app.notifications.reviewNotificationChannelId
 import com.flashcardsopensourceapp.core.observability.AndroidBreadcrumbEvent
 import com.flashcardsopensourceapp.core.observability.AndroidNotificationSchedulingDiagnostic
 import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
@@ -55,7 +63,6 @@ import java.time.ZoneId
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 
-const val reviewNotificationChannelId: String = "review-reminders"
 const val reviewNotificationFrontTextDataKey: String = "frontText"
 const val reviewNotificationRequestIdDataKey: String = "requestId"
 const val reviewNotificationWorkspaceIdDataKey: String = "workspaceId"
@@ -907,58 +914,6 @@ internal fun resolveExactStoredReviewTagNames(
     }.distinct()
 }
 
-fun hasNotificationPermission(context: Context): Boolean {
-    return ContextCompat.checkSelfPermission(
-        context,
-        Manifest.permission.POST_NOTIFICATIONS
-    ) == PackageManager.PERMISSION_GRANTED
-}
-
 fun reviewNotificationWorkspaceTag(workspaceId: String): String {
     return "review-notification::$workspaceId"
-}
-
-internal fun parseAppNotificationTapRequest(
-    getStringExtra: (String) -> String?
-): AppNotificationTapRequest? {
-    val rawNotificationType = getStringExtra("$appNotificationTapExtraPrefix::$appNotificationTapTypeDataKey")
-        ?: return null
-    val notificationType = AppNotificationTapType.fromRawValue(rawValue = rawNotificationType)
-    if (notificationType == null) {
-        logAppNotificationTapFallback(
-            fallback = AppNotificationTapFallback(
-                stage = "parse",
-                reason = "unsupported_notification_type",
-                notificationType = rawNotificationType,
-                details = null
-            )
-        )
-        return null
-    }
-
-    return AppNotificationTapRequest(type = notificationType)
-}
-
-fun parseAppNotificationTapRequest(intent: android.content.Intent): AppNotificationTapRequest? {
-    return parseAppNotificationTapRequest(getStringExtra = intent::getStringExtra)
-}
-
-internal fun consumeAppNotificationTapRequest(
-    getStringExtra: (String) -> String?,
-    removeExtra: (String) -> Unit
-): AppNotificationTapRequest? {
-    val request = parseAppNotificationTapRequest(getStringExtra = getStringExtra) ?: return null
-    clearAppNotificationTapExtras(removeExtra = removeExtra)
-    return request
-}
-
-fun consumeAppNotificationTapRequest(intent: android.content.Intent): AppNotificationTapRequest? {
-    return consumeAppNotificationTapRequest(
-        getStringExtra = intent::getStringExtra,
-        removeExtra = intent::removeExtra
-    )
-}
-
-private fun clearAppNotificationTapExtras(removeExtra: (String) -> Unit) {
-    appNotificationTapIntentExtraKeys.forEach(removeExtra)
 }

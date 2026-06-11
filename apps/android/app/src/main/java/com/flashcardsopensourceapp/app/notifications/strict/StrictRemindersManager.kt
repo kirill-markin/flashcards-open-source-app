@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.app.notifications
+package com.flashcardsopensourceapp.app.notifications.strict
 
 import android.app.NotificationManager
 import android.content.Context
@@ -10,6 +10,17 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.await
+import com.flashcardsopensourceapp.app.notifications.NotificationDelayRange
+import com.flashcardsopensourceapp.app.notifications.NotificationExpectedWorkInfoReadback
+import com.flashcardsopensourceapp.app.notifications.calculateNotificationDelayRange
+import com.flashcardsopensourceapp.app.notifications.emptyNotificationDelayRange
+import com.flashcardsopensourceapp.app.notifications.hasMissingExpectedWorkNames
+import com.flashcardsopensourceapp.app.notifications.hasOnlyCancelledOrFailedExpectedWork
+import com.flashcardsopensourceapp.app.notifications.loadExpectedWorkInfoReadback
+import com.flashcardsopensourceapp.app.notifications.loadWorkInfoStateCountsByTag
+import com.flashcardsopensourceapp.app.notifications.strictReminderNotificationKind
+import com.flashcardsopensourceapp.app.notifications.reviewNotificationChannelId
+import com.flashcardsopensourceapp.app.notifications.hasNotificationPermission as hasNotificationPermissionGranted
 import com.flashcardsopensourceapp.core.observability.AndroidBreadcrumbEvent
 import com.flashcardsopensourceapp.core.observability.AndroidNotificationSchedulingDiagnostic
 import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
@@ -80,7 +91,7 @@ class AndroidStrictRemindersScheduler(
     private val workManager: WorkManager = WorkManager.getInstance(context)
 
     override fun hasNotificationPermission(): Boolean {
-        return hasNotificationPermission(context = context)
+        return hasNotificationPermissionGranted(context = context)
     }
 
     override fun clearDeliveredNotifications() {
