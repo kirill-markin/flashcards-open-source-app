@@ -15,7 +15,9 @@ import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackSubmis
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeCompletion
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeSelection
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCommunityProfile
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
@@ -110,6 +112,19 @@ interface CloudRemoteGateway {
         authorizationHeader: String,
         timeZone: String
     ): CloudProgressReviewSchedule
+    suspend fun loadProgressLeaderboard(
+        apiBaseUrl: String,
+        authorizationHeader: String
+    ): CloudProgressLeaderboard
+    suspend fun loadCommunityProfile(
+        apiBaseUrl: String,
+        authorizationHeader: String
+    ): CloudCommunityProfile
+    suspend fun updateCommunityLeaderboardParticipation(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        leaderboardParticipationEnabled: Boolean
+    ): CloudCommunityProfile
     suspend fun loadFeedbackState(apiBaseUrl: String, authorizationHeader: String): CloudFeedbackState
     suspend fun recordFeedbackPromptEvent(
         apiBaseUrl: String,

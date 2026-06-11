@@ -19,7 +19,9 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeCompl
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeReconciliation
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeSelection
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCommunityProfile
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
@@ -554,6 +556,28 @@ internal class FakeCloudRemoteGateway private constructor(
         authorizationHeader: String,
         timeZone: String
     ): CloudProgressReviewSchedule {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun loadProgressLeaderboard(
+        apiBaseUrl: String,
+        authorizationHeader: String
+    ): CloudProgressLeaderboard {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun loadCommunityProfile(
+        apiBaseUrl: String,
+        authorizationHeader: String
+    ): CloudCommunityProfile {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun updateCommunityLeaderboardParticipation(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        leaderboardParticipationEnabled: Boolean
+    ): CloudCommunityProfile {
         throw UnsupportedOperationException()
     }
 

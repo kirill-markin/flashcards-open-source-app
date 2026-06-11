@@ -4,6 +4,8 @@ import com.flashcardsopensourceapp.data.local.ai.store.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCommunityProfile
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
@@ -57,6 +59,39 @@ internal class CloudProgressRemoteReader(
                 apiBaseUrl = progressSession.apiBaseUrl,
                 authorizationHeader = progressSession.authorizationHeader,
                 timeZone = timeZone
+            )
+        }
+    }
+
+    suspend fun loadProgressLeaderboard(): CloudProgressLeaderboard {
+        return operationCoordinator.runExclusive {
+            val progressSession: ProgressCloudSession = progressSession()
+            remoteService.loadProgressLeaderboard(
+                apiBaseUrl = progressSession.apiBaseUrl,
+                authorizationHeader = progressSession.authorizationHeader
+            )
+        }
+    }
+
+    suspend fun loadCommunityProfile(): CloudCommunityProfile {
+        return operationCoordinator.runExclusive {
+            val progressSession: ProgressCloudSession = progressSession()
+            remoteService.loadCommunityProfile(
+                apiBaseUrl = progressSession.apiBaseUrl,
+                authorizationHeader = progressSession.authorizationHeader
+            )
+        }
+    }
+
+    suspend fun updateCommunityLeaderboardParticipation(
+        leaderboardParticipationEnabled: Boolean
+    ): CloudCommunityProfile {
+        return operationCoordinator.runExclusive {
+            val progressSession: ProgressCloudSession = progressSession()
+            remoteService.updateCommunityLeaderboardParticipation(
+                apiBaseUrl = progressSession.apiBaseUrl,
+                authorizationHeader = progressSession.authorizationHeader,
+                leaderboardParticipationEnabled = leaderboardParticipationEnabled
             )
         }
     }

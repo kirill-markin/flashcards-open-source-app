@@ -164,6 +164,9 @@
     <string name="settings_account_status_logout_failed">Logout failed.</string>
     <string name="settings_account_status_sync_failed">Cloud sync failed.</string>
     <string name="settings_account_status_logged_out_message">Logged out. This device is disconnected.</string>
+    <string name="settings_account_status_leaderboard_toggle_title">Community leaderboard</string>
+    <string name="settings_account_status_leaderboard_toggle_body">Participate anonymously in community rankings on the Progress tab.</string>
+    <string name="settings_account_status_leaderboard_update_failed">Couldn\'t update leaderboard participation.</string>
 
     <string name="settings_server_title">Server</string>
     <string name="settings_server_summary">Official or self-hosted server configuration</string>

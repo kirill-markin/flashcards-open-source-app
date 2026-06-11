@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.feature.settings.account
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -8,6 +9,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCommunityProfile
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
@@ -22,17 +24,24 @@ import com.flashcardsopensourceapp.feature.settings.makeSettingsAttentionIssues
 import com.flashcardsopensourceapp.feature.settings.makeSettingsAttentionSummary
 import com.flashcardsopensourceapp.feature.settings.resolveAppMetadataSyncStatusText
 import com.flashcardsopensourceapp.feature.settings.resolveWorkspaceName
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+
+private const val accountStatusViewModelLogTag: String = "AccountStatusViewModel"
 
 private data class AccountStatusDraftState(
     val errorMessage: String,
     val isSubmitting: Boolean,
-    val showLogoutConfirmation: Boolean
+    val showLogoutConfirmation: Boolean,
+    val isLeaderboardParticipationUpdating: Boolean
 )
 
 class AccountStatusViewModel(
@@ -46,16 +55,37 @@ class AccountStatusViewModel(
         value = AccountStatusDraftState(
             errorMessage = "",
             isSubmitting = false,
-            showLogoutConfirmation = false
+            showLogoutConfirmation = false,
+            isLeaderboardParticipationUpdating = false
         )
     )
+    private val communityProfileState = MutableStateFlow<CloudCommunityProfile?>(null)
+
+    init {
+        // The community leaderboard toggle is shown for linked accounts only, so the
+        // profile loads when the account links and clears when it unlinks. A failed
+        // load keeps the row hidden instead of surfacing an error on screen entry.
+        viewModelScope.launch {
+            cloudAccountRepository.observeCloudSettings()
+                .map { cloudSettings -> cloudSettings.cloudState }
+                .distinctUntilChanged()
+                .collect { cloudState ->
+                    if (cloudState == CloudAccountState.LINKED) {
+                        loadCommunityProfileQuietly()
+                    } else {
+                        communityProfileState.value = null
+                    }
+                }
+        }
+    }
 
     val uiState: StateFlow<AccountStatusUiState> = combine(
         workspaceRepository.observeAppMetadata(),
         cloudAccountRepository.observeCloudSettings(),
         syncRepository.observeSyncStatus(),
+        communityProfileState,
         draftState
-    ) { metadata, cloudSettings, syncStatus, draft ->
+    ) { metadata, cloudSettings, syncStatus, communityProfile, draft ->
         val attentionSummary: SettingsAttentionSummary = makeSettingsAttentionSummary(
             issues = makeSettingsAttentionIssues(cloudState = cloudSettings.cloudState)
         )
@@ -92,7 +122,13 @@ class AccountStatusViewModel(
             ),
             showLogoutConfirmation = draft.showLogoutConfirmation,
             errorMessage = draft.errorMessage,
-            isSubmitting = draft.isSubmitting
+            isSubmitting = draft.isSubmitting,
+            leaderboardParticipationEnabled = if (cloudSettings.cloudState == CloudAccountState.LINKED) {
+                communityProfile?.leaderboardParticipationEnabled
+            } else {
+                null
+            },
+            isLeaderboardParticipationUpdating = draft.isLeaderboardParticipationUpdating
         )
     }.stateIn(
         scope = viewModelScope,
@@ -112,7 +148,9 @@ class AccountStatusViewModel(
             accountStatusPrimaryActionAttentionCount = 1,
             showLogoutConfirmation = false,
             errorMessage = "",
-            isSubmitting = false
+            isSubmitting = false,
+            leaderboardParticipationEnabled = null,
+            isLeaderboardParticipationUpdating = false
         )
     )
 
@@ -146,6 +184,45 @@ class AccountStatusViewModel(
         }
     }
 
+    suspend fun updateLeaderboardParticipation(leaderboardParticipationEnabled: Boolean) {
+        draftState.update { state ->
+            state.copy(
+                isLeaderboardParticipationUpdating = true,
+                errorMessage = ""
+            )
+        }
+        try {
+            communityProfileState.value = cloudAccountRepository.updateCommunityLeaderboardParticipation(
+                leaderboardParticipationEnabled = leaderboardParticipationEnabled
+            )
+            draftState.update { state ->
+                state.copy(isLeaderboardParticipationUpdating = false)
+            }
+        } catch (error: Exception) {
+            draftState.update { state ->
+                state.copy(
+                    isLeaderboardParticipationUpdating = false,
+                    errorMessage = error.message
+                        ?: strings.get(R.string.settings_account_status_leaderboard_update_failed)
+                )
+            }
+        }
+    }
+
+    private suspend fun loadCommunityProfileQuietly() {
+        try {
+            communityProfileState.value = cloudAccountRepository.loadCommunityProfile()
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            communityProfileState.value = null
+            logAccountStatusWarning(
+                event = "settings_community_profile_load_failed",
+                error = error
+            )
+        }
+    }
+
     suspend fun confirmLogout() {
         draftState.update { state ->
             state.copy(
@@ -169,6 +246,22 @@ class AccountStatusViewModel(
                 )
             }
         }
+    }
+}
+
+// Mirrors the guarded warning pattern from ProgressViewModel: android.util.Log is not
+// mocked in JVM unit tests, so the call falls back to stdout instead of throwing.
+private fun logAccountStatusWarning(
+    event: String,
+    error: Throwable
+) {
+    val message = "event=$event"
+    val didLog = runCatching {
+        Log.w(accountStatusViewModelLogTag, message, error)
+    }.isSuccess
+    if (didLog.not()) {
+        println("$accountStatusViewModelLogTag W $message")
+        println(error.stackTraceToString())
     }
 }
 

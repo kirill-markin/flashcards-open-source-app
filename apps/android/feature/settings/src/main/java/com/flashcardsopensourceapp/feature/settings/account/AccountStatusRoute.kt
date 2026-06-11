@@ -17,6 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -28,6 +29,7 @@ import com.flashcardsopensourceapp.feature.settings.DeviceInfoCard
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsAttentionBadge
 import com.flashcardsopensourceapp.feature.settings.SettingsScreenScaffold
+import com.flashcardsopensourceapp.feature.settings.settingsLeaderboardParticipationToggleTag
 import com.flashcardsopensourceapp.feature.settings.settingsScreenCardSpacing
 import com.flashcardsopensourceapp.feature.settings.settingsScreenContentPadding
 
@@ -38,6 +40,7 @@ fun AccountStatusRoute(
     uiState: AccountStatusUiState,
     onOpenSignIn: () -> Unit,
     onSyncNow: () -> Unit,
+    onUpdateLeaderboardParticipation: (Boolean) -> Unit,
     onRequestLogout: () -> Unit,
     onDismissLogoutConfirmation: () -> Unit,
     onConfirmLogout: () -> Unit,
@@ -122,6 +125,31 @@ fun AccountStatusRoute(
                         }
                     }
                 )
+            }
+
+            val leaderboardParticipationEnabled = uiState.leaderboardParticipationEnabled
+            if (leaderboardParticipationEnabled != null) {
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        ListItem(
+                            headlineContent = {
+                                Text(stringResource(R.string.settings_account_status_leaderboard_toggle_title))
+                            },
+                            supportingContent = {
+                                Text(stringResource(R.string.settings_account_status_leaderboard_toggle_body))
+                            },
+                            trailingContent = {
+                                Switch(
+                                    checked = leaderboardParticipationEnabled,
+                                    onCheckedChange = onUpdateLeaderboardParticipation,
+                                    enabled = uiState.isLeaderboardParticipationUpdating.not() &&
+                                        uiState.isSubmitting.not(),
+                                    modifier = Modifier.testTag(tag = settingsLeaderboardParticipationToggleTag)
+                                )
+                            }
+                        )
+                    }
+                }
             }
 
             item {

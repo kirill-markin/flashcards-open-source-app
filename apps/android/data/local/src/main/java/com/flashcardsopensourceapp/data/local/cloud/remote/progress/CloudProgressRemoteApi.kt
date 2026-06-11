@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.data.local.cloud.remote.progress
 
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.CloudJsonHttpClient
+import com.flashcardsopensourceapp.data.local.cloud.remote.transport.buildProgressLeaderboardCloudPath
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.buildProgressReviewScheduleCloudPath
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.buildProgressSeriesCloudPath
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.buildProgressSummaryCloudPath
@@ -14,10 +15,18 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudNullableStr
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudObject
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
 import com.flashcardsopensourceapp.data.local.model.progress.CloudDailyReviewPoint
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardMetric
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRow
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardViewer
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardWindow
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewScheduleBucket
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardParticipantRowKind
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardStatus
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleBucketKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewHistoryWatermark
 import org.json.JSONObject
@@ -76,6 +85,21 @@ internal class CloudProgressRemoteApi(
         return parseCloudProgressReviewScheduleResponse(
             response = response,
             fieldPath = "progress.reviewSchedule"
+        )
+    }
+
+    suspend fun loadProgressLeaderboard(
+        apiBaseUrl: String,
+        authorizationHeader: String
+    ): CloudProgressLeaderboard {
+        val response = httpClient.getJson(
+            baseUrl = apiBaseUrl,
+            path = buildProgressLeaderboardCloudPath(),
+            authorizationHeader = authorizationHeader
+        )
+        return parseCloudProgressLeaderboard(
+            payload = response,
+            fieldPath = "progress.leaderboard"
         )
     }
 }
@@ -249,3 +273,96 @@ private fun requireNonNegativeReviewScheduleInt(
 
     return value
 }
+
+// Shared between the live response and the local payload cache so both sides of the
+// offline-first leaderboard pipeline enforce the same wire contract.
+internal fun parseCloudProgressLeaderboard(
+    payload: JSONObject,
+    fieldPath: String
+): CloudProgressLeaderboard {
+    val status = ProgressLeaderboardStatus.fromWireKey(
+        wireKey = payload.requireCloudString("status", "$fieldPath.status")
+    )
+    val metric = payload.requireCloudObject("metric", "$fieldPath.metric")
+    val windowsArray = payload.requireCloudArray("windows", "$fieldPath.windows")
+    val windows = buildList {
+        for (index in 0 until windowsArray.length()) {
+            add(
+                windowsArray.requireCloudObject(index, "$fieldPath.windows[$index]")
+                    .toCloudProgressLeaderboardWindow(fieldPath = "$fieldPath.windows[$index]")
+            )
+        }
+    }
+
+    return CloudProgressLeaderboard(
+        status = status,
+        metric = CloudProgressLeaderboardMetric(
+            metricVersion = metric.requireCloudString("metricVersion", "$fieldPath.metric.metricVersion"),
+            title = metric.requireCloudString("title", "$fieldPath.metric.title"),
+            description = metric.requireCloudString("description", "$fieldPath.metric.description")
+        ),
+        defaultWindowKey = ProgressLeaderboardWindowKey.fromWireKey(
+            wireKey = payload.requireCloudString("defaultWindowKey", "$fieldPath.defaultWindowKey")
+        ),
+        windows = windows
+    )
+}
+
+private fun JSONObject.toCloudProgressLeaderboardWindow(
+    fieldPath: String
+): CloudProgressLeaderboardWindow {
+    val viewer = requireCloudObject("viewer", "$fieldPath.viewer")
+    val rowsArray = requireCloudArray("rows", "$fieldPath.rows")
+    val rows = buildList {
+        for (index in 0 until rowsArray.length()) {
+            add(
+                rowsArray.requireCloudObject(index, "$fieldPath.rows[$index]")
+                    .toCloudProgressLeaderboardRow(fieldPath = "$fieldPath.rows[$index]")
+            )
+        }
+    }
+
+    return CloudProgressLeaderboardWindow(
+        windowKey = ProgressLeaderboardWindowKey.fromWireKey(
+            wireKey = requireCloudString("windowKey", "$fieldPath.windowKey")
+        ),
+        snapshotId = requireCloudString("snapshotId", "$fieldPath.snapshotId"),
+        snapshotGeneratedAt = requireCloudString("snapshotGeneratedAt", "$fieldPath.snapshotGeneratedAt"),
+        asOfServerHour = requireCloudString("asOfServerHour", "$fieldPath.asOfServerHour"),
+        nextRefreshAfter = requireCloudString("nextRefreshAfter", "$fieldPath.nextRefreshAfter"),
+        participantCount = requireNonNegativeReviewScheduleInt(
+            value = requireCloudInt("participantCount", "$fieldPath.participantCount"),
+            fieldPath = "$fieldPath.participantCount"
+        ),
+        viewer = CloudProgressLeaderboardViewer(
+            publicProfileId = viewer.requireCloudString("publicProfileId", "$fieldPath.viewer.publicProfileId"),
+            rank = viewer.requireCloudInt("rank", "$fieldPath.viewer.rank"),
+            qualifiedReviewCount = requireNonNegativeReviewScheduleInt(
+                value = viewer.requireCloudInt("qualifiedReviewCount", "$fieldPath.viewer.qualifiedReviewCount"),
+                fieldPath = "$fieldPath.viewer.qualifiedReviewCount"
+            )
+        ),
+        rows = rows
+    )
+}
+
+private fun JSONObject.toCloudProgressLeaderboardRow(
+    fieldPath: String
+): CloudProgressLeaderboardRow {
+    val kind = requireCloudString("kind", "$fieldPath.kind")
+    if (kind == "gap") {
+        return CloudProgressLeaderboardRow.Gap
+    }
+
+    return CloudProgressLeaderboardRow.Participant(
+        kind = ProgressLeaderboardParticipantRowKind.fromWireKey(wireKey = kind),
+        publicProfileId = requireCloudString("publicProfileId", "$fieldPath.publicProfileId"),
+        anonymousDisplayName = requireCloudString("anonymousDisplayName", "$fieldPath.anonymousDisplayName"),
+        qualifiedReviewCount = requireNonNegativeReviewScheduleInt(
+            value = requireCloudInt("qualifiedReviewCount", "$fieldPath.qualifiedReviewCount"),
+            fieldPath = "$fieldPath.qualifiedReviewCount"
+        ),
+        rank = requireCloudInt("rank", "$fieldPath.rank")
+    )
+}
+

@@ -9,6 +9,7 @@ import com.flashcardsopensourceapp.data.local.model.ai.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.model.cloud.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.cloud.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCommunityProfile
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSendCodeResult
@@ -23,6 +24,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetPro
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.cloud.shouldRefreshCloudIdToken
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
@@ -289,6 +291,27 @@ class LocalCloudAccountRepository(
 
     override suspend fun loadProgressReviewSchedule(timeZone: String): CloudProgressReviewSchedule {
         return progressRemoteReader.loadProgressReviewSchedule(timeZone = timeZone)
+    }
+
+    override suspend fun loadProgressLeaderboard(): CloudProgressLeaderboard {
+        return progressRemoteReader.loadProgressLeaderboard()
+    }
+
+    override suspend fun loadCommunityProfile(): CloudCommunityProfile {
+        return progressRemoteReader.loadCommunityProfile()
+    }
+
+    override suspend fun updateCommunityLeaderboardParticipation(
+        leaderboardParticipationEnabled: Boolean
+    ): CloudCommunityProfile {
+        val updatedProfile = progressRemoteReader.updateCommunityLeaderboardParticipation(
+            leaderboardParticipationEnabled = leaderboardParticipationEnabled
+        )
+        // A participation change flips the leaderboard payload server-side immediately,
+        // while the cached payload would stay rendered until its hourly nextRefreshAfter.
+        // Dropping the cache makes the next Progress visit refetch the correct status.
+        database.progressRemoteCacheDao().deleteAllProgressLeaderboardCaches()
+        return updatedProfile
     }
 
     override suspend fun deleteAccount(confirmationText: String) {

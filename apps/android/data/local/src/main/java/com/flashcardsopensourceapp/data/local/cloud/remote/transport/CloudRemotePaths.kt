@@ -41,6 +41,14 @@ internal fun buildProgressReviewScheduleCloudPath(timeZone: String): String {
     }
 }
 
+internal fun buildProgressLeaderboardCloudPath(): String {
+    return "/me/progress/leaderboard"
+}
+
+internal fun buildCommunityProfileCloudPath(): String {
+    return "/me/community/profile"
+}
+
 private fun encodeCloudQueryValue(value: String): String {
     return URLEncoder.encode(value, StandardCharsets.UTF_8)
 }

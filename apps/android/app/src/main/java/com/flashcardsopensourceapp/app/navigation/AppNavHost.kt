@@ -103,7 +103,8 @@ fun AppNavHost(
             navController = navController
         )
         registerProgressNavGraph(
-            appGraph = appGraph
+            appGraph = appGraph,
+            navController = navController
         )
         registerSettingsNavGraph(
             appGraph = appGraph,
