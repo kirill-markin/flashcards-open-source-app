@@ -625,7 +625,7 @@ check_api_route_absent() {
   local response_file
   local headers_file
   local http_status
-  local request_id
+  local error_type
 
   response_file=$(mktemp)
   headers_file=$(mktemp)
@@ -636,17 +636,10 @@ check_api_route_absent() {
     "$url" \
     -w "%{http_code}")
 
-  request_id=$(get_header_value "$headers_file" "x-request-id")
+  error_type=$(get_header_value "$headers_file" "x-amzn-errortype")
 
   if [[ "$http_status" == "200" ]]; then
     echo "ERROR: ${description} unexpectedly returned 200: ${url}" >&2
-    cat "$headers_file" >&2 || true
-    cat "$response_file" >&2 || true
-    return 1
-  fi
-
-  if [[ -n "$request_id" ]]; then
-    echo "ERROR: ${description} unexpectedly reached the backend route handler: ${url}" >&2
     cat "$headers_file" >&2 || true
     cat "$response_file" >&2 || true
     return 1
@@ -658,7 +651,15 @@ check_api_route_absent() {
     return 1
   fi
 
-  echo "Public API route absence check passed: ${description} (${url}) returned ${http_status}"
+  if [[ "$http_status" == "403" && "$error_type" == MissingAuthenticationTokenException* ]]; then
+    echo "Public API route absence check passed: ${description} (${url}) returned ${http_status}"
+    return 0
+  fi
+
+  echo "ERROR: ${description} did not return API Gateway MissingAuthenticationTokenException: status ${http_status}, error type ${error_type}, url ${url}" >&2
+  cat "$headers_file" >&2 || true
+  cat "$response_file" >&2 || true
+  return 1
 }
 
 check_redirect_url() {
