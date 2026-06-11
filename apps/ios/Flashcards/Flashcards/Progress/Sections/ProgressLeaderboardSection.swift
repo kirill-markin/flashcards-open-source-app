@@ -1,5 +1,7 @@
 import SwiftUI
 
+private let progressLeaderboardReservedRowCount: Int = 7
+
 struct ProgressLeaderboardSection: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
@@ -120,6 +122,13 @@ struct ProgressLeaderboardSection: View {
                     case .gap:
                         ProgressLeaderboardGapRowView()
                     }
+                }
+
+                ForEach(
+                    0..<progressLeaderboardReservedRowPlaceholderCount(rowCount: selectedWindow.rows.count),
+                    id: \.self
+                ) { _ in
+                    ProgressLeaderboardReservedRowView()
                 }
             }
 
@@ -285,6 +294,10 @@ struct ProgressLeaderboardSection: View {
     }
 }
 
+private func progressLeaderboardReservedRowPlaceholderCount(rowCount: Int) -> Int {
+    max(0, progressLeaderboardReservedRowCount - rowCount)
+}
+
 private struct ProgressLeaderboardParticipantRowView: View {
     let row: ProgressLeaderboardParticipantRowState
 
@@ -339,6 +352,27 @@ private struct ProgressLeaderboardParticipantRowView: View {
             Int64(self.row.rank),
             Int64(self.row.qualifiedReviewCount)
         )
+    }
+}
+
+private struct ProgressLeaderboardReservedRowView: View {
+    var body: some View {
+        HStack(spacing: 10) {
+            Text("0")
+                .font(.subheadline.monospacedDigit())
+                .frame(minWidth: 28, alignment: .leading)
+
+            Text("Reserved leaderboard row")
+                .font(.subheadline)
+                .lineLimit(1)
+
+            Spacer(minLength: 12)
+
+            Text("0")
+                .font(.subheadline.monospacedDigit())
+        }
+        .hidden()
+        .accessibilityHidden(true)
     }
 }
 
