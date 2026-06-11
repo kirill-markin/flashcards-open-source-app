@@ -43,6 +43,7 @@ test("auth API Gateway generated errors expose CORS and supported request id hea
     "gatewayresponse.header.Access-Control-Allow-Origin": "method.request.header.Origin",
     "gatewayresponse.header.Access-Control-Expose-Headers": "'retry-after,x-request-id,x-amzn-requestid,x-amz-apigw-id'",
     "gatewayresponse.header.Vary": "'Origin'",
+    "gatewayresponse.header.X-Request-Id": "context.requestId",
   };
   const gatewayResponses = template.findResources("AWS::ApiGateway::GatewayResponse");
 
