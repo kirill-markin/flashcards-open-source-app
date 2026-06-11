@@ -7,6 +7,8 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 import type { AppEnv } from "../server/app";
 import { HttpError } from "../shared/errors";
 import type {
+  ProgressLeaderboard,
+  ProgressLeaderboardRequest,
   ProgressReviewSchedule,
   ProgressReviewScheduleRequest,
   ProgressSeries,
@@ -34,6 +36,7 @@ type SystemTestAppOptions = Readonly<{
   loadUserProgressReviewScheduleFn?: (args: ProgressReviewScheduleRequest) => Promise<ProgressReviewSchedule>;
   loadUserProgressSeriesFn?: (args: ProgressSeriesRequest) => Promise<ProgressSeries>;
   loadUserProgressSummaryFn?: (args: Readonly<{ userId: string; timeZone: string }>) => Promise<ProgressSummaryResponse>;
+  loadProgressLeaderboardFn?: (args: ProgressLeaderboardRequest) => Promise<ProgressLeaderboard>;
 }>;
 
 function createDefaultAccountPreferences(): AccountPreferences {
@@ -128,6 +131,50 @@ function createProgressReviewSchedule(): ProgressReviewSchedule {
   };
 }
 
+function createProgressLeaderboard(): ProgressLeaderboard {
+  return {
+    status: "ready",
+    metric: {
+      metricVersion: "qualified_reviews_v1",
+      title: "Qualified reviews",
+      description: "Hard, Good, and Easy reviews count toward your rank. Again does not.",
+    },
+    defaultWindowKey: "last_24_hours",
+    windows: [
+      {
+        windowKey: "last_24_hours",
+        snapshotId: "0cc86d10-18cb-4d64-a2f2-a5fd960b45b2",
+        snapshotGeneratedAt: "2026-06-10T14:00:05.000Z",
+        asOfServerHour: "2026-06-10T14:00:00.000Z",
+        nextRefreshAfter: "2026-06-10T15:00:00.000Z",
+        participantCount: 2,
+        viewer: {
+          publicProfileId: "5b9d3f2a-1c4e-4a7b-9f0d-2e6c8a1b4d7f",
+          displayName: "You",
+          rank: 2,
+          qualifiedReviewCount: 3,
+        },
+        rows: [
+          {
+            kind: "top",
+            publicProfileId: "a1d2c3b4-5e6f-4a8b-9c0d-1e2f3a4b5c6d",
+            anonymousDisplayName: "Silver Bright Harbor",
+            qualifiedReviewCount: 5,
+            rank: 1,
+          },
+          {
+            kind: "viewer",
+            publicProfileId: "5b9d3f2a-1c4e-4a7b-9f0d-2e6c8a1b4d7f",
+            anonymousDisplayName: "Jade Swift River",
+            qualifiedReviewCount: 3,
+            rank: 2,
+          },
+        ],
+      },
+    ],
+  };
+}
+
 function createSystemTestApp(options: SystemTestAppOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   app.use("*", async (context, next) => {
@@ -177,6 +224,7 @@ function createSystemTestApp(options: SystemTestAppOptions): Hono<AppEnv> {
     loadUserProgressReviewScheduleFn: options.loadUserProgressReviewScheduleFn,
     loadUserProgressSeriesFn: options.loadUserProgressSeriesFn,
     loadUserProgressSummaryFn: options.loadUserProgressSummaryFn,
+    loadProgressLeaderboardFn: options.loadProgressLeaderboardFn,
   }));
 
   return app;
@@ -640,6 +688,101 @@ test("progress endpoints reject ApiKey authentication", async () => {
       requestId: "request-1",
       code: "PROGRESS_HUMAN_AUTH_REQUIRED",
     });
+  }
+});
+
+test("GET /me/progress/leaderboard returns the leaderboard for Session and Bearer", async () => {
+  const transports: ReadonlyArray<RequestContext["transport"]> = ["session", "bearer"];
+
+  for (const transport of transports) {
+    const app = createSystemTestApp({
+      transport,
+      locale: "es-MX",
+      loadProgressLeaderboardFn: async ({ userId, transport: requestTransport, localeHint }) => {
+        assert.equal(userId, "user-1");
+        assert.equal(requestTransport, transport);
+        assert.equal(localeHint, "es-MX");
+        return createProgressLeaderboard();
+      },
+    });
+    const response = await app.request("http://localhost/me/progress/leaderboard");
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), createProgressLeaderboard());
+  }
+});
+
+test("GET /me/progress/leaderboard returns linked_account_required for Guest", async () => {
+  const app = createSystemTestApp({ transport: "guest" });
+  const response = await app.request("http://localhost/me/progress/leaderboard");
+  const payload = await response.json() as ProgressLeaderboard;
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.status, "linked_account_required");
+  assert.deepEqual(payload.windows, []);
+  assert.equal(payload.defaultWindowKey, "last_24_hours");
+  assert.equal(payload.metric.metricVersion, "qualified_reviews_v1");
+});
+
+test("GET /me/progress/leaderboard rejects ApiKey authentication", async () => {
+  let called = false;
+  const app = createSystemTestApp({
+    transport: "api_key",
+    loadProgressLeaderboardFn: async () => {
+      called = true;
+      return createProgressLeaderboard();
+    },
+  });
+  const response = await app.request("http://localhost/me/progress/leaderboard");
+
+  assert.equal(called, false);
+  assert.equal(response.status, 403);
+  assert.deepEqual(await response.json(), {
+    error: "This endpoint requires Guest, Bearer, or Session authentication",
+    requestId: "request-1",
+    code: "PROGRESS_HUMAN_AUTH_REQUIRED",
+  });
+});
+
+test("API Gateway predeclares /me/progress/leaderboard", () => {
+  const apiGatewayPath = resolve(process.cwd(), "../../infra/aws/lib/gateways/api-gateway.ts");
+  const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
+
+  assert.match(
+    apiGatewaySource,
+    /meProgress\.addResource\("leaderboard"\)\.addMethod\("GET", integration\);/,
+  );
+});
+
+test("published OpenAPI documents the progress leaderboard without internal ids", () => {
+  const openApiDocument = loadOpenApiDocument() as Readonly<{
+    paths?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+    components?: Readonly<{ schemas?: Readonly<Record<string, unknown>> }>;
+  }>;
+  const leaderboardPath = openApiDocument.paths?.["/me/progress/leaderboard"];
+  const schemas = openApiDocument.components?.schemas ?? {};
+  const leaderboardSchemas = Object.fromEntries(
+    Object.entries(schemas).filter(([name]) => name.startsWith("ProgressLeaderboard") || name === "LeaderboardWindowKey"),
+  );
+  const serializedSchemas = JSON.stringify(leaderboardSchemas);
+
+  assert.notEqual(leaderboardPath?.get, undefined);
+  assert.notEqual(schemas.ProgressLeaderboardResponse, undefined);
+  for (const expectedField of [
+    "status",
+    "defaultWindowKey",
+    "metricVersion",
+    "anonymousDisplayName",
+    "publicProfileId",
+    "qualifiedReviewCount",
+    "rank",
+    "nextRefreshAfter",
+    "participantCount",
+  ]) {
+    assert.equal(serializedSchemas.includes(expectedField), true, `OpenAPI must document ${expectedField}`);
+  }
+  for (const internalField of ["userId", "baseSort", "reviewed_by", "reviewedBy", "email"]) {
+    assert.equal(serializedSchemas.includes(internalField), false, `OpenAPI must not expose ${internalField}`);
   }
 });
 

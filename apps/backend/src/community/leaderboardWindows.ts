@@ -84,6 +84,47 @@ export function assertLeaderboardWindowKey(windowKey: string): LeaderboardWindow
 }
 
 /**
+ * Window a client preselects when none is requested. The compact Progress-tab
+ * leaderboard returns every window in one payload, but the default selected
+ * window is never `all_time`: a viewer with stale or no recent activity still
+ * lands on a bounded window so one fresh review can visibly move their rank.
+ */
+export const DEFAULT_COMPACT_LEADERBOARD_WINDOW_KEY: LeaderboardWindowKey = "last_24_hours";
+
+/**
+ * Resolves which window a client preselects from how long ago the viewer's
+ * latest countable review happened. Each bounded window's `lowerBoundHours`
+ * doubles as that window's inclusive upper edge for selection (24h, 72h, 168h,
+ * 720h); anything older clamps to the longest bounded window (`last_30_days`)
+ * and a viewer with no countable review falls back to {@link
+ * DEFAULT_COMPACT_LEADERBOARD_WINDOW_KEY}. `all_time` is never selected so a
+ * fresh review is always visible in the preselected window.
+ */
+export function resolveDefaultLeaderboardWindowKey(
+  elapsedHoursSinceLatestCountableReview: number | null,
+): LeaderboardWindowKey {
+  if (elapsedHoursSinceLatestCountableReview === null) {
+    return DEFAULT_COMPACT_LEADERBOARD_WINDOW_KEY;
+  }
+
+  // LEADERBOARD_WINDOWS is ordered shortest-first with all_time last, so the last
+  // bounded window seen becomes the clamp target for reviews older than 30 days.
+  let longestBoundedWindowKey: LeaderboardWindowKey = DEFAULT_COMPACT_LEADERBOARD_WINDOW_KEY;
+  for (const window of LEADERBOARD_WINDOWS) {
+    if (window.lowerBoundHours === null) {
+      continue;
+    }
+
+    longestBoundedWindowKey = window.windowKey;
+    if (elapsedHoursSinceLatestCountableReview <= window.lowerBoundHours) {
+      return window.windowKey;
+    }
+  }
+
+  return longestBoundedWindowKey;
+}
+
+/**
  * Truncates a wall-clock instant to the start of its UTC hour, matching the SQL
  * `date_trunc('hour', now())` semantics used for `as_of_server_hour`.
  */
