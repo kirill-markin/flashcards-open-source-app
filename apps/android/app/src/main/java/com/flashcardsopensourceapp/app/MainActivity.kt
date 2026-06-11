@@ -23,9 +23,16 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        handleIntent(intent = intent, application = application)
+        if (application.isRuntimeSupported) {
+            handleIntent(intent = intent, application = application)
+        }
 
         setContent {
+            if (application.isRuntimeSupported.not()) {
+                FlashcardsUnsupportedRuntimeScreen()
+                return@setContent
+            }
+
             // The app graph can be replaced while the activity is stopped, so this state
             // must stay current even outside STARTED to avoid reusing a closed graph.
             val currentAppGraph by application.appGraphState.collectAsState()
@@ -75,6 +82,10 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         val application = application as FlashcardsApplication
+        if (application.isRuntimeSupported.not()) {
+            return
+        }
+
         handleIntent(intent = intent, application = application)
     }
 

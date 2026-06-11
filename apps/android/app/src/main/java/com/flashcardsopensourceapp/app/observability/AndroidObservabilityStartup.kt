@@ -1,8 +1,8 @@
 package com.flashcardsopensourceapp.app.observability
 
 import android.app.Application
-import android.os.Build
 import com.flashcardsopensourceapp.app.BuildConfig
+import com.flashcardsopensourceapp.app.runtime.isAndroidRuntimeSupported
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.data.local.network.TracePropagationTarget
 import io.sentry.BaggageHeader
@@ -37,12 +37,11 @@ data class AndroidObservabilityStartup(
 
 fun startAndroidObservability(application: Application): AndroidObservabilityStartup {
     val sentryDsn = BuildConfig.ANDROID_SENTRY_DSN.trim()
-    // Run Sentry only on devices at or above the declared minSdk. Reports from lower API levels
-    // come from out-of-contract devices (emulators, cloud test farms, spoofed or sideloaded
-    // installs) where the latest-only codepath is expected to fail and only pollute crash-free
-    // metrics. Sentry recommends skipping init entirely to fully disable the SDK; that also stops
-    // native (NDK) and ANR capture, which a beforeSend filter cannot reach.
-    val isSentryEnabled = sentryDsn.isNotBlank() && isDeviceAtOrAboveMinimumSupportedSdk()
+    // Run Sentry only on the supported Android runtime. Some out-of-contract environments report
+    // a high SDK level while missing framework methods that AndroidX expects, and those reports
+    // only pollute crash-free metrics. Skipping SentryAndroid.init also stops native (NDK) and ANR
+    // capture, which a beforeSend filter cannot reach.
+    val isSentryEnabled = sentryDsn.isNotBlank() && isAndroidRuntimeSupported()
     if (isSentryEnabled) {
         SentryAndroid.init(application) { options ->
             configureSentryOptions(
@@ -84,10 +83,6 @@ private fun configureSentryOptions(
     options.setBeforeBreadcrumb { breadcrumb, _ ->
         sanitizeSentryBreadcrumb(breadcrumb = breadcrumb)
     }
-}
-
-private fun isDeviceAtOrAboveMinimumSupportedSdk(): Boolean {
-    return Build.VERSION.SDK_INT >= BuildConfig.ANDROID_MIN_SDK
 }
 
 private fun sentryEnvironment(): String {
