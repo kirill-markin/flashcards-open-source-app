@@ -171,6 +171,9 @@ extension FlashcardsStore {
         self.isAccountPreferencesUpdateInFlight = false
         self.accountPreferences = makeDefaultAccountPreferences()
         self.userDefaults.removeObject(forKey: accountPreferencesCacheUserDefaultsKey)
+        self.communityProfileRefreshGeneration += 1
+        self.isCommunityProfileUpdateInFlight = false
+        self.communityPublicProfile = nil
     }
 
     private func updateCloudAccountPreferences(
@@ -211,7 +214,7 @@ extension FlashcardsStore {
         return (updatedPreferences, session)
     }
 
-    private func cloudSessionForAccountContextRefresh() async throws -> CloudLinkedSession? {
+    func cloudSessionForAccountContextRefresh() async throws -> CloudLinkedSession? {
         try self.throwIfCloudCredentialRecoveryRequired()
         switch self.cloudSettings?.cloudState {
         case .linked:

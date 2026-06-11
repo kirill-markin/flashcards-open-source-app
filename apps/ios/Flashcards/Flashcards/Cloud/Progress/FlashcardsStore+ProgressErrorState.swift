@@ -36,6 +36,14 @@ extension FlashcardsStore {
         )
     }
 
+    func beginProgressLeaderboardRefreshErrorScope() {
+        self.applyProgressErrorState(
+            state: progressErrorStateClearingGeneralAndLeaderboardRefreshMessages(
+                state: self.progressErrorState
+            )
+        )
+    }
+
     func clearProgressSummaryRefreshErrorMessage() {
         self.applyProgressErrorState(
             state: progressErrorStateClearingSummaryRefreshMessage(
@@ -98,6 +106,23 @@ extension FlashcardsStore {
     func replaceProgressReviewScheduleRenderErrorMessage(message: String) {
         self.applyProgressErrorState(
             state: progressErrorStateWithReviewScheduleRenderMessage(
+                state: self.progressErrorState,
+                message: message
+            )
+        )
+    }
+
+    func clearProgressLeaderboardRefreshErrorMessage() {
+        self.applyProgressErrorState(
+            state: progressErrorStateClearingLeaderboardRefreshMessage(
+                state: self.progressErrorState
+            )
+        )
+    }
+
+    func replaceProgressLeaderboardRefreshErrorMessage(message: String) {
+        self.applyProgressErrorState(
+            state: progressErrorStateWithLeaderboardRefreshMessage(
                 state: self.progressErrorState,
                 message: message
             )

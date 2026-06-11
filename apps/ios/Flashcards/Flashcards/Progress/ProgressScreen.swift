@@ -57,6 +57,17 @@ struct ProgressScreen: View {
                         .accessibilityIdentifier(UITestIdentifier.progressReviewScheduleSection)
                         .modifier(ProgressCardModifier())
                     }
+
+                    if let leaderboardSnapshot = self.store.progressLeaderboardSnapshot {
+                        VStack(alignment: .leading, spacing: 0) {
+                            ProgressLeaderboardSection(
+                                snapshot: leaderboardSnapshot,
+                                isRefreshing: self.store.isProgressRefreshing
+                            )
+                        }
+                        .accessibilityIdentifier(UITestIdentifier.progressLeaderboardSection)
+                        .modifier(ProgressCardModifier())
+                    }
                 } else if self.store.isProgressRefreshing == false {
                     VStack(alignment: .leading, spacing: 0) {
                         ContentUnavailableView(
@@ -125,5 +136,6 @@ private struct ProgressCardModifier: ViewModifier {
     NavigationStack {
         ProgressScreen()
             .environment(FlashcardsStore())
+            .environment(AppNavigationModel())
     }
 }

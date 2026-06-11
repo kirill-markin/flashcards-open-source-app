@@ -56,6 +56,101 @@ func makeReviewScheduleSnapshot(
     )
 }
 
+func makeProgressLeaderboardPlaceholderSnapshot(
+    scopeKey: ProgressLeaderboardScopeKey,
+    state: ProgressLeaderboardSnapshotState
+) -> ProgressLeaderboardSnapshot {
+    ProgressLeaderboardSnapshot(
+        scopeKey: scopeKey,
+        state: state
+    )
+}
+
+func makeProgressLeaderboardSnapshot(
+    leaderboard: UserProgressLeaderboard,
+    scopeKey: ProgressLeaderboardScopeKey,
+    canonicalQualifiedReviewEvents: [ProgressQualifiedReviewEventSource],
+    pendingQualifiedReviewEvents: [ProgressQualifiedReviewEventSource],
+    now: Date
+) throws -> ProgressLeaderboardSnapshot {
+    try validateProgressLeaderboard(leaderboard: leaderboard)
+
+    switch leaderboard.status {
+    case .linkedAccountRequired:
+        return makeProgressLeaderboardPlaceholderSnapshot(scopeKey: scopeKey, state: .signInRequired)
+    case .participationDisabled:
+        return makeProgressLeaderboardPlaceholderSnapshot(scopeKey: scopeKey, state: .participationDisabled)
+    case .snapshotUnavailable:
+        return makeProgressLeaderboardPlaceholderSnapshot(scopeKey: scopeKey, state: .snapshotUnavailable)
+    case .ready:
+        break
+    }
+
+    let localQualifiedReviewCounts = try progressLeaderboardQualifiedReviewCounts(
+        canonicalQualifiedReviewEvents: canonicalQualifiedReviewEvents,
+        pendingQualifiedReviewEvents: pendingQualifiedReviewEvents,
+        now: now
+    )
+    let windowStates = try leaderboard.windows.map { window in
+        try makeProgressLeaderboardWindowState(
+            window: window,
+            localQualifiedReviewCounts: localQualifiedReviewCounts
+        )
+    }
+
+    return ProgressLeaderboardSnapshot(
+        scopeKey: scopeKey,
+        state: .ready(
+            ProgressLeaderboardReadyState(
+                defaultWindowKey: leaderboard.defaultWindowKey,
+                windows: windowStates
+            )
+        )
+    )
+}
+
+/// The live overlay only lifts the viewer's own count; other rows and every rank
+/// stay exactly as the authoritative server snapshot reported them.
+private func makeProgressLeaderboardWindowState(
+    window: ProgressLeaderboardWindow,
+    localQualifiedReviewCounts: [LeaderboardWindowKey: Int]
+) throws -> ProgressLeaderboardWindowState {
+    guard let localQualifiedReviewCount = localQualifiedReviewCounts[window.windowKey] else {
+        throw LocalStoreError.validation(
+            "Leaderboard local qualified review count is missing for window \(window.windowKey.rawValue)"
+        )
+    }
+
+    let overlaidViewerCount = max(window.viewer.qualifiedReviewCount, localQualifiedReviewCount)
+    let rows = window.rows.map { row -> ProgressLeaderboardRowState in
+        switch row {
+        case .gap:
+            return .gap
+        case .participant(let participantRow):
+            return .participant(
+                ProgressLeaderboardParticipantRowState(
+                    kind: participantRow.kind,
+                    publicProfileId: participantRow.publicProfileId,
+                    anonymousDisplayName: participantRow.anonymousDisplayName,
+                    qualifiedReviewCount: participantRow.kind == .viewer
+                        ? overlaidViewerCount
+                        : participantRow.qualifiedReviewCount,
+                    rank: participantRow.rank
+                )
+            )
+        }
+    }
+
+    return ProgressLeaderboardWindowState(
+        windowKey: window.windowKey,
+        snapshotGeneratedAt: window.snapshotGeneratedAt,
+        participantCount: window.participantCount,
+        viewerRank: window.viewer.rank,
+        viewerQualifiedReviewCount: overlaidViewerCount,
+        rows: rows
+    )
+}
+
 private struct ProgressTimelineDay: Hashable, Sendable {
     let date: Date
     let localDate: String

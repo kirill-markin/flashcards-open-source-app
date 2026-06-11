@@ -57,3 +57,61 @@ struct ReviewScheduleSnapshot: Hashable, Sendable {
     let isApproximate: Bool
     let generatedAt: String?
 }
+
+struct ProgressLeaderboardSnapshot: Hashable, Sendable {
+    let scopeKey: ProgressLeaderboardScopeKey
+    let state: ProgressLeaderboardSnapshotState
+}
+
+enum ProgressLeaderboardSnapshotState: Hashable, Sendable {
+    /// Guest or disconnected accounts, or a server payload requiring a linked account.
+    case signInRequired
+    /// The user opted out of leaderboard participation.
+    case participationDisabled
+    /// The server is reachable but has not generated leaderboard snapshots yet.
+    case snapshotUnavailable
+    /// Linked account without a cached server payload (first load or offline).
+    case awaitingServerData
+    case ready(ProgressLeaderboardReadyState)
+}
+
+struct ProgressLeaderboardReadyState: Hashable, Sendable {
+    let defaultWindowKey: LeaderboardWindowKey
+    let windows: [ProgressLeaderboardWindowState]
+}
+
+struct ProgressLeaderboardWindowState: Hashable, Identifiable, Sendable {
+    let windowKey: LeaderboardWindowKey
+    let snapshotGeneratedAt: String
+    let participantCount: Int
+    let viewerRank: Int
+    /// Server snapshot count overlaid with the local live qualified count for the viewer.
+    let viewerQualifiedReviewCount: Int
+    let rows: [ProgressLeaderboardRowState]
+
+    var id: LeaderboardWindowKey {
+        self.windowKey
+    }
+}
+
+enum ProgressLeaderboardRowState: Hashable, Identifiable, Sendable {
+    case participant(ProgressLeaderboardParticipantRowState)
+    case gap
+
+    var id: String {
+        switch self {
+        case .participant(let row):
+            return "participant-\(row.rank)-\(row.publicProfileId)"
+        case .gap:
+            return "gap"
+        }
+    }
+}
+
+struct ProgressLeaderboardParticipantRowState: Hashable, Sendable {
+    let kind: ProgressLeaderboardParticipantKind
+    let publicProfileId: String
+    let anonymousDisplayName: String
+    let qualifiedReviewCount: Int
+    let rank: Int
+}

@@ -210,3 +210,90 @@ func progressReviewScheduleAccessibilitySummary(snapshot: ReviewScheduleSnapshot
     }
     .joined(separator: ", ")
 }
+
+func progressLeaderboardSectionTitle() -> String {
+    String(
+        localized: "progress.screen.leaderboard.section_title",
+        defaultValue: "Leaderboard",
+        table: progressStringsTableName,
+        comment: "Progress leaderboard section title"
+    )
+}
+
+// Keep the counting rule wording aligned with the backend metric copy in
+// apps/backend/src/community/progressLeaderboard.ts.
+func progressLeaderboardInfoMessage() -> String {
+    String(
+        localized: "progress.screen.leaderboard.info.message",
+        defaultValue: "Hard, Good, and Easy reviews count toward your rank. Again does not.",
+        table: progressStringsTableName,
+        comment: "Progress leaderboard info explanation of which review ratings count"
+    )
+}
+
+func progressLeaderboardViewerRowTitle() -> String {
+    String(
+        localized: "progress.screen.leaderboard.row.you",
+        defaultValue: "You",
+        table: progressStringsTableName,
+        comment: "Progress leaderboard label for the viewer's own row"
+    )
+}
+
+func progressLeaderboardWindowTitle(key: LeaderboardWindowKey) -> String {
+    switch key {
+    case .last24Hours:
+        return String(
+            localized: "progress.screen.leaderboard.window.last_24_hours",
+            defaultValue: "24h",
+            table: progressStringsTableName,
+            comment: "Progress leaderboard period selector label for the last 24 hours"
+        )
+    case .last3Days:
+        return String(
+            localized: "progress.screen.leaderboard.window.last_3_days",
+            defaultValue: "3d",
+            table: progressStringsTableName,
+            comment: "Progress leaderboard period selector label for the last 3 days"
+        )
+    case .last7Days:
+        return String(
+            localized: "progress.screen.leaderboard.window.last_7_days",
+            defaultValue: "7d",
+            table: progressStringsTableName,
+            comment: "Progress leaderboard period selector label for the last 7 days"
+        )
+    case .last30Days:
+        return String(
+            localized: "progress.screen.leaderboard.window.last_30_days",
+            defaultValue: "30d",
+            table: progressStringsTableName,
+            comment: "Progress leaderboard period selector label for the last 30 days"
+        )
+    case .allTime:
+        return String(
+            localized: "progress.screen.leaderboard.window.all_time",
+            defaultValue: "All time",
+            table: progressStringsTableName,
+            comment: "Progress leaderboard period selector label for all time"
+        )
+    }
+}
+
+func progressLeaderboardFreshnessText(snapshotGeneratedAt: String, now: Date) -> String {
+    guard let generatedAtDate = parseIsoTimestamp(value: snapshotGeneratedAt) else {
+        return ""
+    }
+
+    let formatter = RelativeDateTimeFormatter()
+    formatter.locale = Locale.autoupdatingCurrent
+    formatter.unitsStyle = .full
+    let relativeText = formatter.localizedString(for: min(generatedAtDate, now), relativeTo: now)
+    let localizedFormat = String(
+        localized: "progress.screen.leaderboard.updated_at",
+        defaultValue: "Updated %@",
+        table: progressStringsTableName,
+        comment: "Progress leaderboard freshness caption with a relative time such as '2 hours ago'"
+    )
+    return String(format: localizedFormat, locale: Locale.current, relativeText)
+}
