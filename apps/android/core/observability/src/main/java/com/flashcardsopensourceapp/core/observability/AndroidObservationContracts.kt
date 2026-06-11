@@ -20,6 +20,7 @@ enum class AndroidObservationAction(
     CLOUD_IDENTITY_SET(tagValue = "cloud_identity_set"),
     CLOUD_IDENTITY_CLEARED(tagValue = "cloud_identity_cleared"),
     EXPECTED_HTTP_FAILURE(tagValue = "expected_http_failure"),
+    HTTP_TRANSIENT_RETRY(tagValue = "http_transient_retry"),
     HTTP_5XX_WARNING(tagValue = "http_5xx_warning"),
     HTTP_UNEXPECTED_CLIENT_ERROR(tagValue = "http_unexpected_client_error"),
     AI_STREAM_CRASH(tagValue = "ai_stream_crash"),
@@ -168,6 +169,34 @@ sealed interface AndroidBreadcrumbEvent : AndroidObservationEvent {
         val versionCode: Int?
     ) : AndroidBreadcrumbEvent {
         override val action: AndroidObservationAction = AndroidObservationAction.EXPECTED_HTTP_FAILURE
+        override val tags: AndroidObservationTags = AndroidObservationTags(
+            userId = null,
+            workspaceId = null,
+            requestId = requestId,
+            statusCode = statusCode,
+            code = code,
+            appVersion = appVersion,
+            clientVersion = clientVersion,
+            versionCode = versionCode
+        )
+    }
+
+    data class HttpTransientRetry(
+        override val feature: AndroidObservationFeature,
+        val endpointName: String,
+        val method: String,
+        val requestId: String?,
+        val statusCode: Int?,
+        val code: String?,
+        val stage: String,
+        val attemptNumber: Int,
+        val maxAttemptCount: Int,
+        val delayMs: Long,
+        val appVersion: String?,
+        val clientVersion: String?,
+        val versionCode: Int?
+    ) : AndroidBreadcrumbEvent {
+        override val action: AndroidObservationAction = AndroidObservationAction.HTTP_TRANSIENT_RETRY
         override val tags: AndroidObservationTags = AndroidObservationTags(
             userId = null,
             workspaceId = null,

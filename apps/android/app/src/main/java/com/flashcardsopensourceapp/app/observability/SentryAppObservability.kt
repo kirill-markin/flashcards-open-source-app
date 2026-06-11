@@ -173,6 +173,27 @@ private fun addBreadcrumbData(
                 )
             )
         }
+        is AndroidBreadcrumbEvent.HttpTransientRetry -> {
+            breadcrumb.setData(
+                "http",
+                SentryHttpContext(
+                    endpointName = sanitizeSentryContextValue(fieldName = "endpointName", value = event.endpointName),
+                    method = sanitizeSentryContextValue(fieldName = "method", value = event.method),
+                    requestId = sanitizeSentryIdentifier(value = event.requestId),
+                    statusCode = event.statusCode,
+                    code = sanitizeSentryContextValue(fieldName = "code", value = event.code),
+                    stage = sanitizeSentryContextValue(fieldName = "stage", value = event.stage)
+                )
+            )
+            breadcrumb.setData(
+                "retry",
+                SentryHttpRetryContext(
+                    attemptNumber = event.attemptNumber,
+                    maxAttemptCount = event.maxAttemptCount,
+                    delayMs = event.delayMs
+                )
+            )
+        }
         is AndroidBreadcrumbEvent.AiRuntimeBreadcrumb -> {
             breadcrumb.setData(
                 "ai",
@@ -869,6 +890,12 @@ private data class SentryHttpContext(
     val statusCode: Int?,
     val code: String?,
     val stage: String?
+)
+
+private data class SentryHttpRetryContext(
+    val attemptNumber: Int,
+    val maxAttemptCount: Int,
+    val delayMs: Long
 )
 
 private data class SentryAiContext(

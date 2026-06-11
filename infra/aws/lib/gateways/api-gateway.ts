@@ -103,6 +103,7 @@ export interface GatewayErrorResponseHeaders {
   readonly "Access-Control-Allow-Methods": string;
   readonly "Access-Control-Allow-Credentials": string;
   readonly "Access-Control-Expose-Headers": string;
+  readonly "X-Request-Id": string;
 }
 
 const browserCorsAllowHeaders = [
@@ -162,6 +163,7 @@ export function createGatewayErrorResponseHeaders(): GatewayErrorResponseHeaders
     "Access-Control-Allow-Methods": "'GET,POST,PATCH,OPTIONS'",
     "Access-Control-Allow-Credentials": "'true'",
     "Access-Control-Expose-Headers": `'${gatewayErrorCorsExposeHeaders.join(",")}'`,
+    "X-Request-Id": "context.requestId",
   };
 }
 

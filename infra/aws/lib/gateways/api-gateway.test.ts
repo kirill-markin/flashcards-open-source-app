@@ -145,6 +145,7 @@ test("default API Gateway generated errors expose supported request id headers",
     "gatewayresponse.header.Access-Control-Allow-Origin": "method.request.header.Origin",
     "gatewayresponse.header.Access-Control-Expose-Headers": "'x-request-id,x-amzn-requestid,x-amz-apigw-id'",
     "gatewayresponse.header.Vary": "'Origin'",
+    "gatewayresponse.header.X-Request-Id": "context.requestId",
   };
 
   template.hasResourceProperties("AWS::ApiGateway::GatewayResponse", {

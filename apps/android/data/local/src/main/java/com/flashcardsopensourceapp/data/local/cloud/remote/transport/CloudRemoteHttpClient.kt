@@ -19,6 +19,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.job
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -32,11 +33,20 @@ import java.io.IOException
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.TimeUnit
+import kotlin.random.Random
 
 private const val cloudRequestIdHeaderName: String = "X-Request-Id"
+private const val cloudAmazonRequestIdHeaderName: String = "X-Amzn-RequestId"
+private const val cloudApiGatewayRequestIdHeaderName: String = "X-Amz-Apigw-Id"
+private const val cloudHttpTransientRetryMaxAttemptCount: Int = 4
+private const val cloudHttpTransientRetryBaseDelayMs: Long = 250L
+private const val cloudHttpTransientRetryMaxDelayMs: Long = 2_000L
+private const val cloudHttpRetryHttpResponseStage: String = "http_response"
+private const val cloudHttpRetryIoExceptionStage: String = "io_exception"
 private const val officialCloudApiHost: String = "api.flashcards-open-source-app.com"
 private const val officialCloudAuthHost: String = "auth.flashcards-open-source-app.com"
 private val cloudJsonMediaType = "application/json".toMediaType()
+private val transientCloudHttpStatusCodes: Set<Int> = setOf(408, 429, 500, 502, 503, 504)
 private val expectedCloudHttpFailureCodes: Set<String> = setOf(
     "AGENT_API_KEY_INVALID",
     "AGENT_API_KEY_REQUIRED",
@@ -258,81 +268,154 @@ internal class CloudJsonHttpClient(
             authorizationHeader = authorizationHeader,
             body = body
         )
-        val call = httpClient.newCall(request)
-        val coroutineJob = currentCoroutineContext().job
-        val cancellationRequested = AtomicBoolean(false)
-        val cancellationHandle = coroutineJob.invokeOnCompletion(
-            onCancelling = true,
-            invokeImmediately = true
-        ) { cause ->
-            if (cause != null) {
-                cancellationRequested.set(true)
-                call.cancel()
-            }
-        }
+        val retryEligible = isTransientCloudHttpRetryEligible(
+            path = path,
+            method = method,
+            body = body
+        )
+        var attemptNumber = 1
 
-        try {
-            call.awaitOkHttpResponse().use { response ->
-                val statusCode = response.code
-                val requestId = response.header(cloudRequestIdHeaderName)
-                val responseContentType = response.body.contentType()
-                    ?.toString()
-                    ?.trim()
-                    ?.ifEmpty { null }
-                val responseBody = readCloudResponseBody(response = response)
-                if (response.isSuccessful.not()) {
-                    val parsedError = parseCloudErrorPayloadWithHeaderRequestId(
-                        responseBody = responseBody,
-                        requestId = requestId
+        while (true) {
+            val call = httpClient.newCall(request)
+            val coroutineJob = currentCoroutineContext().job
+            val cancellationRequested = AtomicBoolean(false)
+            val cancellationHandle = coroutineJob.invokeOnCompletion(
+                onCancelling = true,
+                invokeImmediately = true
+            ) { cause ->
+                if (cause != null) {
+                    cancellationRequested.set(true)
+                    call.cancel()
+                }
+            }
+            var retryDelayMs: Long? = null
+            var successfulResponse: JSONObject? = null
+
+            try {
+                call.awaitOkHttpResponse().use { response ->
+                    val statusCode = response.code
+                    val requestId = readCloudResponseRequestId(response = response)
+                    val responseContentType = response.body.contentType()
+                        ?.toString()
+                        ?.trim()
+                        ?.ifEmpty { null }
+                    val responseBody = readCloudResponseBody(response = response)
+                    if (response.isSuccessful.not()) {
+                        val parsedError = parseCloudErrorPayloadWithHeaderRequestId(
+                            responseBody = responseBody,
+                            requestId = requestId
+                        )
+                        if (
+                            shouldRetryTransientCloudHttpResponse(
+                                retryEligible = retryEligible,
+                                statusCode = statusCode,
+                                attemptNumber = attemptNumber
+                            )
+                        ) {
+                            val delayMs = calculateCloudHttpTransientRetryDelayMs(attemptNumber)
+                            captureCloudHttpTransientRetryObservation(
+                                observability = observability,
+                                observationVersions = observationVersions,
+                                request = request,
+                                path = path,
+                                method = method.requestMethod,
+                                requestId = parsedError?.requestId,
+                                statusCode = statusCode,
+                                code = parsedError?.code,
+                                stage = cloudHttpRetryHttpResponseStage,
+                                attemptNumber = attemptNumber,
+                                delayMs = delayMs
+                            )
+                            retryDelayMs = delayMs
+                        } else {
+                            captureCloudHttpFailureObservation(
+                                observability = observability,
+                                observationVersions = observationVersions,
+                                request = request,
+                                path = path,
+                                method = method.requestMethod,
+                                requestId = parsedError?.requestId,
+                                statusCode = statusCode,
+                                code = parsedError?.code,
+                                syncConflict = parsedError?.syncConflict
+                            )
+                            throw CloudRemoteException(
+                                message = formatCloudRemoteErrorMessage(
+                                    parsedError = parsedError,
+                                    responseBody = responseBody,
+                                    responseMetadata = CloudErrorResponseMetadata(
+                                        statusCode = statusCode,
+                                        path = cloudObservationEndpointName(path = path),
+                                        requestId = parsedError?.requestId,
+                                        responseBodyLengthBytes = responseBody
+                                            .toByteArray(StandardCharsets.UTF_8)
+                                            .size,
+                                        responseContentType = responseContentType
+                                    )
+                                ),
+                                statusCode = statusCode,
+                                responseBody = responseBody,
+                                errorCode = parsedError?.code,
+                                requestId = parsedError?.requestId,
+                                syncConflict = parsedError?.syncConflict
+                            )
+                        }
+                    } else {
+                        successfulResponse = if (responseBody.isBlank()) {
+                            JSONObject()
+                        } else {
+                            JSONObject(responseBody)
+                        }
+                    }
+                }
+            } catch (error: IOException) {
+                if (cancellationRequested.get() || coroutineJob.isCancelled) {
+                    throw cancellationException(
+                        message = "Cloud request was cancelled.",
+                        cause = error
                     )
-                    captureCloudHttpFailureObservation(
+                }
+                if (
+                    shouldRetryTransientCloudIOException(
+                        retryEligible = retryEligible,
+                        attemptNumber = attemptNumber
+                    )
+                ) {
+                    val delayMs = calculateCloudHttpTransientRetryDelayMs(attemptNumber)
+                    captureCloudHttpTransientRetryObservation(
                         observability = observability,
                         observationVersions = observationVersions,
                         request = request,
                         path = path,
                         method = method.requestMethod,
-                        requestId = parsedError?.requestId,
-                        statusCode = statusCode,
-                        code = parsedError?.code,
-                        syncConflict = parsedError?.syncConflict
+                        requestId = null,
+                        statusCode = null,
+                        code = null,
+                        stage = cloudHttpRetryIoExceptionStage,
+                        attemptNumber = attemptNumber,
+                        delayMs = delayMs
                     )
-                    throw CloudRemoteException(
-                        message = formatCloudRemoteErrorMessage(
-                            parsedError = parsedError,
-                            responseBody = responseBody,
-                            responseMetadata = CloudErrorResponseMetadata(
-                                statusCode = statusCode,
-                                path = cloudObservationEndpointName(path = path),
-                                requestId = parsedError?.requestId,
-                                responseBodyLengthBytes = responseBody
-                                    .toByteArray(StandardCharsets.UTF_8)
-                                    .size,
-                                responseContentType = responseContentType
-                            )
-                        ),
-                        statusCode = statusCode,
-                        responseBody = responseBody,
-                        errorCode = parsedError?.code,
-                        requestId = parsedError?.requestId,
-                        syncConflict = parsedError?.syncConflict
-                    )
-                }
-                if (responseBody.isBlank()) {
-                    JSONObject()
+                    retryDelayMs = delayMs
                 } else {
-                    JSONObject(responseBody)
+                    throw error
                 }
+            } finally {
+                cancellationHandle.dispose()
             }
-        } catch (error: IOException) {
-            if (cancellationRequested.get() || coroutineJob.isCancelled) {
-                throw cancellationException(
-                    message = "Cloud request was cancelled.",
-                    cause = error
-                )
+
+            val completedResponse = successfulResponse
+            if (completedResponse != null) {
+                return@withContext completedResponse
             }
-            throw error
-        } finally {
-            cancellationHandle.dispose()
+
+            val delayMs = retryDelayMs
+            if (delayMs != null) {
+                delay(delayMs)
+                attemptNumber += 1
+                continue
+            }
+
+            throw IllegalStateException("Cloud request attempt finished without a response or retry decision.")
         }
     }
 
@@ -371,6 +454,97 @@ internal class CloudJsonHttpClient(
             reader.readText()
         }
     }
+}
+
+private fun readCloudResponseRequestId(response: Response): String? {
+    return listOf(
+        response.header(cloudRequestIdHeaderName),
+        response.header(cloudAmazonRequestIdHeaderName),
+        response.header(cloudApiGatewayRequestIdHeaderName)
+    ).firstNotNullOfOrNull { value ->
+        value?.trim()?.ifEmpty { null }
+    }
+}
+
+private fun isTransientCloudHttpRetryEligible(
+    path: String,
+    method: CloudHttpMethod,
+    body: JSONObject?
+): Boolean {
+    if (method == CloudHttpMethod.GET) {
+        return true
+    }
+    if (method != CloudHttpMethod.POST) {
+        return false
+    }
+
+    val pathOnly = path.substringBefore(delimiter = "?").trim()
+    return when {
+        pathOnly.endsWith(suffix = "/sync/pull") -> true
+        pathOnly.endsWith(suffix = "/sync/review-history/pull") -> true
+        pathOnly.endsWith(suffix = "/sync/bootstrap") -> body?.optString("mode") == "pull"
+        else -> false
+    }
+}
+
+private fun shouldRetryTransientCloudHttpResponse(
+    retryEligible: Boolean,
+    statusCode: Int,
+    attemptNumber: Int
+): Boolean {
+    return retryEligible &&
+        transientCloudHttpStatusCodes.contains(element = statusCode) &&
+        attemptNumber < cloudHttpTransientRetryMaxAttemptCount
+}
+
+private fun shouldRetryTransientCloudIOException(
+    retryEligible: Boolean,
+    attemptNumber: Int
+): Boolean {
+    return retryEligible && attemptNumber < cloudHttpTransientRetryMaxAttemptCount
+}
+
+private fun calculateCloudHttpTransientRetryDelayMs(attemptNumber: Int): Long {
+    val exponent = (attemptNumber - 1).coerceAtLeast(0).coerceAtMost(30)
+    val exponentialDelayMs = cloudHttpTransientRetryBaseDelayMs * (1L shl exponent)
+    val cappedDelayMs = minOf(exponentialDelayMs, cloudHttpTransientRetryMaxDelayMs)
+    return if (cappedDelayMs <= 1L) {
+        0L
+    } else {
+        Random.nextLong(until = cappedDelayMs)
+    }
+}
+
+private fun captureCloudHttpTransientRetryObservation(
+    observability: AppObservability,
+    observationVersions: CloudHttpObservationVersions,
+    request: Request,
+    path: String,
+    method: String,
+    requestId: String?,
+    statusCode: Int?,
+    code: String?,
+    stage: String,
+    attemptNumber: Int,
+    delayMs: Long
+) {
+    observability.addBreadcrumb(
+        event = AndroidBreadcrumbEvent.HttpTransientRetry(
+            feature = cloudObservationFeature(request = request),
+            endpointName = cloudObservationEndpointName(path = path),
+            method = method,
+            requestId = requestId,
+            statusCode = statusCode,
+            code = code,
+            stage = stage,
+            attemptNumber = attemptNumber,
+            maxAttemptCount = cloudHttpTransientRetryMaxAttemptCount,
+            delayMs = delayMs,
+            appVersion = observationVersions.appVersion,
+            clientVersion = observationVersions.clientVersion,
+            versionCode = observationVersions.versionCode
+        )
+    )
 }
 
 private fun captureCloudHttpFailureObservation(

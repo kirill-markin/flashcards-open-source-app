@@ -36,6 +36,7 @@ export interface AuthGatewayErrorResponseHeaders {
   readonly "Access-Control-Allow-Methods": string;
   readonly "Access-Control-Allow-Credentials": string;
   readonly "Access-Control-Expose-Headers": string;
+  readonly "X-Request-Id": string;
 }
 
 const authCorsAllowHeaders = [
@@ -61,6 +62,7 @@ export function createAuthGatewayErrorResponseHeaders(): AuthGatewayErrorRespons
     "Access-Control-Allow-Methods": "'GET,POST,OPTIONS'",
     "Access-Control-Allow-Credentials": "'true'",
     "Access-Control-Expose-Headers": `'${authGatewayErrorCorsExposeHeaders.join(",")}'`,
+    "X-Request-Id": "context.requestId",
   };
 }
 
