@@ -1,112 +1,166 @@
+import Foundation
 import SwiftUI
+
+private enum ProgressScreenSectionID: Hashable {
+    case leaderboard
+}
+
+private struct ProgressPresentationTaskID: Hashable {
+    let requestID: UUID?
+    let hasLeaderboardSection: Bool
+}
 
 struct ProgressScreen: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
+    @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
+
+    private var isLeaderboardSectionAvailable: Bool {
+        self.store.progressSnapshot != nil && self.store.progressLeaderboardSnapshot != nil
+    }
+
+    private var progressPresentationTaskID: ProgressPresentationTaskID {
+        ProgressPresentationTaskID(
+            requestID: self.navigation.progressPresentationRequest?.id,
+            hasLeaderboardSection: self.isLeaderboardSectionAvailable
+        )
+    }
 
     var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 20) {
-                if self.store.progressErrorMessage.isEmpty == false {
-                    CopyableErrorMessageView(message: self.store.progressErrorMessage)
-                        .modifier(ProgressCardModifier())
-                }
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 20) {
+                    if self.store.progressErrorMessage.isEmpty == false {
+                        CopyableErrorMessageView(message: self.store.progressErrorMessage)
+                            .modifier(ProgressCardModifier())
+                    }
 
-                if let progressSnapshot = self.store.progressSnapshot {
-                    let presentationCalendar = requiredProgressPresentationCalendar(
-                        timeZoneIdentifier: progressSnapshot.scopeKey.timeZone
-                    )
-                    let streakWeeks = requiredProgressStreakWeeks(
-                        progressSnapshot: progressSnapshot,
-                        calendar: presentationCalendar
-                    )
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text(
-                            String(
-                                localized: "progress.screen.streak.section_title",
-                                defaultValue: "Streak",
-                                table: progressStringsTableName,
-                                comment: "Progress streak section title"
-                            )
+                    if let progressSnapshot = self.store.progressSnapshot {
+                        let presentationCalendar = requiredProgressPresentationCalendar(
+                            timeZoneIdentifier: progressSnapshot.scopeKey.timeZone
                         )
-                        .font(.headline)
-
-                        ProgressStreakSection(
-                            weeks: streakWeeks,
-                            badgeState: makeReviewProgressBadgeState(summary: progressSnapshot.summary),
+                        let streakWeeks = requiredProgressStreakWeeks(
+                            progressSnapshot: progressSnapshot,
                             calendar: presentationCalendar
                         )
-                    }
-                    .accessibilityIdentifier(UITestIdentifier.progressStreakSection)
-                    .accessibilityValue(progressSummaryUITestValue(summary: progressSnapshot.summary))
-                    .modifier(ProgressCardModifier())
-
-                    VStack(alignment: .leading, spacing: 0) {
-                        ProgressReviewsSection(
-                            chartDays: progressSnapshot.chartData.chartDays,
-                            chartCalendar: presentationCalendar,
-                            selectionResetKey: progressSnapshot.scopeKey.storageKey
-                        )
-                    }
-                    .accessibilityIdentifier(UITestIdentifier.progressReviewsSection)
-                    .modifier(ProgressCardModifier())
-
-                    if let reviewScheduleSnapshot = self.store.reviewScheduleSnapshot {
-                        VStack(alignment: .leading, spacing: 0) {
-                            ProgressReviewScheduleSection(snapshot: reviewScheduleSnapshot)
-                        }
-                        .accessibilityIdentifier(UITestIdentifier.progressReviewScheduleSection)
-                        .modifier(ProgressCardModifier())
-                    }
-
-                    if let leaderboardSnapshot = self.store.progressLeaderboardSnapshot {
-                        VStack(alignment: .leading, spacing: 0) {
-                            ProgressLeaderboardSection(
-                                snapshot: leaderboardSnapshot,
-                                isRefreshing: self.store.isProgressRefreshing
-                            )
-                        }
-                        .accessibilityIdentifier(UITestIdentifier.progressLeaderboardSection)
-                        .modifier(ProgressCardModifier())
-                    }
-                } else if self.store.isProgressRefreshing == false {
-                    VStack(alignment: .leading, spacing: 0) {
-                        ContentUnavailableView(
-                            String(
-                                localized: "progress.screen.unavailable.title",
-                                defaultValue: "Progress is unavailable",
-                                table: progressStringsTableName,
-                                comment: "Progress unavailable title"
-                            ),
-                            systemImage: "chart.bar.xaxis",
-                            description: Text(
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text(
                                 String(
-                                    localized: "progress.screen.unavailable.description",
-                                    defaultValue: "Open review or reconnect cloud data, then refresh progress.",
+                                    localized: "progress.screen.streak.section_title",
+                                    defaultValue: "Streak",
                                     table: progressStringsTableName,
-                                    comment: "Progress unavailable description"
+                                    comment: "Progress streak section title"
                                 )
                             )
-                        )
+                            .font(.headline)
+
+                            ProgressStreakSection(
+                                weeks: streakWeeks,
+                                badgeState: makeReviewProgressBadgeState(summary: progressSnapshot.summary),
+                                calendar: presentationCalendar
+                            )
+                        }
+                        .accessibilityIdentifier(UITestIdentifier.progressStreakSection)
+                        .accessibilityValue(progressSummaryUITestValue(summary: progressSnapshot.summary))
+                        .modifier(ProgressCardModifier())
+
+                        VStack(alignment: .leading, spacing: 0) {
+                            ProgressReviewsSection(
+                                chartDays: progressSnapshot.chartData.chartDays,
+                                chartCalendar: presentationCalendar,
+                                selectionResetKey: progressSnapshot.scopeKey.storageKey
+                            )
+                        }
+                        .accessibilityIdentifier(UITestIdentifier.progressReviewsSection)
+                        .modifier(ProgressCardModifier())
+
+                        if let reviewScheduleSnapshot = self.store.reviewScheduleSnapshot {
+                            VStack(alignment: .leading, spacing: 0) {
+                                ProgressReviewScheduleSection(snapshot: reviewScheduleSnapshot)
+                            }
+                            .accessibilityIdentifier(UITestIdentifier.progressReviewScheduleSection)
+                            .modifier(ProgressCardModifier())
+                        }
+
+                        if let leaderboardSnapshot = self.store.progressLeaderboardSnapshot {
+                            VStack(alignment: .leading, spacing: 0) {
+                                ProgressLeaderboardSection(
+                                    snapshot: leaderboardSnapshot,
+                                    isRefreshing: self.store.isProgressRefreshing
+                                )
+                            }
+                            .id(ProgressScreenSectionID.leaderboard)
+                            .accessibilityIdentifier(UITestIdentifier.progressLeaderboardSection)
+                            .modifier(ProgressCardModifier())
+                        }
+                    } else if self.store.isProgressRefreshing == false {
+                        VStack(alignment: .leading, spacing: 0) {
+                            ContentUnavailableView(
+                                String(
+                                    localized: "progress.screen.unavailable.title",
+                                    defaultValue: "Progress is unavailable",
+                                    table: progressStringsTableName,
+                                    comment: "Progress unavailable title"
+                                ),
+                                systemImage: "chart.bar.xaxis",
+                                description: Text(
+                                    String(
+                                        localized: "progress.screen.unavailable.description",
+                                        defaultValue: "Open review or reconnect cloud data, then refresh progress.",
+                                        table: progressStringsTableName,
+                                        comment: "Progress unavailable description"
+                                    )
+                                )
+                            )
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .modifier(ProgressCardModifier())
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .modifier(ProgressCardModifier())
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 20)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 20)
-        }
-        .background(Color(uiColor: .systemGroupedBackground))
-        .accessibilityIdentifier(UITestIdentifier.progressScreen)
-        .navigationTitle(
-            String(
-                localized: "progress.screen.title",
-                defaultValue: "Progress",
-                table: progressStringsTableName,
-                comment: "Progress screen title"
+            .background(Color(uiColor: .systemGroupedBackground))
+            .accessibilityIdentifier(UITestIdentifier.progressScreen)
+            .navigationTitle(
+                String(
+                    localized: "progress.screen.title",
+                    defaultValue: "Progress",
+                    table: progressStringsTableName,
+                    comment: "Progress screen title"
+                )
             )
-        )
-        .refreshable {
-            await self.store.refreshProgressManually()
+            .refreshable {
+                await self.store.refreshProgressManually()
+            }
+            .task(id: self.progressPresentationTaskID) {
+                await self.handleProgressPresentationRequest(proxy: proxy)
+            }
+        }
+    }
+
+    @MainActor
+    private func handleProgressPresentationRequest(proxy: ScrollViewProxy) async {
+        guard let request = self.navigation.progressPresentationRequest else {
+            return
+        }
+
+        switch request.target {
+        case .leaderboard:
+            guard self.isLeaderboardSectionAvailable else {
+                return
+            }
+            await Task.yield()
+            guard self.navigation.progressPresentationRequest?.id == request.id else {
+                return
+            }
+            guard self.isLeaderboardSectionAvailable else {
+                return
+            }
+
+            withAnimation {
+                proxy.scrollTo(ProgressScreenSectionID.leaderboard, anchor: .top)
+            }
+            self.navigation.clearProgressPresentationRequest(id: request.id)
         }
     }
 }

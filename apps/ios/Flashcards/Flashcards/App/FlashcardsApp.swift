@@ -195,7 +195,8 @@ struct FlashcardsApp: App {
                 selectedTab: selectedTab,
                 settingsPath: [],
                 cardsPresentationRequest: nil,
-                aiChatPresentationRequest: nil
+                aiChatPresentationRequest: nil,
+                progressPresentationRequest: nil
             )
         )
         _progressContextWatcherRefreshToken = State(initialValue: 0)

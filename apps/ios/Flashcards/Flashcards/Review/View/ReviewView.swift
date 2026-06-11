@@ -184,6 +184,7 @@ struct ReviewView: View {
 
             ToolbarItemGroup(placement: .topBarTrailing) {
                 reviewQueueButton
+                reviewLeaderboardButton
                 reviewProgressBadgeButton
             }
         }
@@ -609,6 +610,36 @@ struct ReviewView: View {
 
     private func reviewProgressBadgeBackgroundColor() -> Color {
         return Color(uiColor: .secondarySystemBackground)
+    }
+
+    private var reviewLeaderboardButton: some View {
+        Button {
+            self.navigation.openProgress(target: .leaderboard)
+        } label: {
+            ZStack {
+                Capsule()
+                    .fill(self.reviewProgressBadgeBackgroundColor())
+
+                Capsule()
+                    .strokeBorder(Color(uiColor: .separator), lineWidth: 1)
+
+                Image(systemName: "trophy")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .frame(width: reviewProgressBadgeSize)
+            .frame(minHeight: reviewProgressBadgeSize)
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(UITestIdentifier.reviewLeaderboardShortcut)
+        .accessibilityLabel(
+            String(
+                localized: "review.leaderboard_shortcut.accessibility_label",
+                defaultValue: "Open leaderboard",
+                table: reviewCardsStringsTableName,
+                comment: "Accessibility label for the Review toolbar shortcut that opens the Progress leaderboard"
+            )
+        )
     }
 
     private func reviewProgressBadgeAccessibilityLabel(badgeState: ReviewProgressBadgeState) -> String {
