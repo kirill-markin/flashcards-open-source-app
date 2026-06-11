@@ -15,3 +15,19 @@ export function ReviewProgressBadgeIcon(): ReactElement {
     </svg>
   );
 }
+
+export function ProgressLeaderboardShortcutIcon(): ReactElement {
+  return (
+    <svg
+      className="review-progress-badge-icon"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M7 3h10v2h4v3.4c0 2.7-1.8 5-4.3 5.7-.7 1.5-2 2.6-3.7 3V20h3v2H8v-2h3v-2.9c-1.7-.4-3-1.5-3.7-3C4.8 13.4 3 11.1 3 8.4V5h4V3Zm0 4H5v1.4c0 1.4.8 2.7 2 3.4V7Zm10 4.8c1.2-.7 2-2 2-3.4V7h-2v4.8ZM9 5v6.5c0 2.1 1.3 3.6 3 3.6s3-1.5 3-3.6V5H9Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}

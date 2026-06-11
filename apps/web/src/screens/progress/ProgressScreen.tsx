@@ -1,5 +1,5 @@
-import { useEffect, useState, type CSSProperties, type ReactElement } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useRef, useState, type CSSProperties, type ReactElement, type Ref } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { buildLoginUrl } from "../../api";
 import { useAppData } from "../../appData";
 import {
@@ -10,7 +10,7 @@ import { useProgressInvalidationState } from "../../appData/progress/invalidatio
 import { canLoadProgressServerBase, useProgressSource } from "../../appData/progress/progressSource";
 import { resolveLocaleWeekContext, useI18n, type LocaleDirection } from "../../i18n";
 import { parseLocalDate, shiftLocalDate } from "../../progress/progressDates";
-import { settingsLeaderboardParticipationRoute } from "../../routes";
+import { progressLeaderboardHash, settingsLeaderboardParticipationRoute } from "../../routes";
 import type {
   DailyReviewPoint,
   ProgressLeaderboardSourceState,
@@ -464,11 +464,16 @@ function getLeaderboardPeriodLabel(windowKey: ProgressLeaderboardWindowKey, t: T
   return t("progressScreen.leaderboard.periods.allTime");
 }
 
-type ProgressLeaderboardSectionProps = Readonly<{
+type ProgressLeaderboardBodyProps = Readonly<{
   sourceState: ProgressLeaderboardSourceState;
   canRenderServerBase: boolean;
   selectedWindowKey: ProgressLeaderboardWindowKey | null;
   onSelectWindowKey: (windowKey: ProgressLeaderboardWindowKey) => void;
+}>;
+
+type ProgressLeaderboardSectionProps = ProgressLeaderboardBodyProps & Readonly<{
+  sectionId: string;
+  sectionRef: Ref<HTMLElement>;
   isInfoVisible: boolean;
   onToggleInfo: () => void;
 }>;
@@ -546,7 +551,7 @@ function ProgressLeaderboardRows(props: Readonly<{
   );
 }
 
-function ProgressLeaderboardBody(props: ProgressLeaderboardSectionProps): ReactElement {
+function ProgressLeaderboardBody(props: ProgressLeaderboardBodyProps): ReactElement {
   const { t } = useI18n();
   const { sourceState, canRenderServerBase, selectedWindowKey, onSelectWindowKey } = props;
   const leaderboard = sourceState.renderedSnapshot;
@@ -639,10 +644,24 @@ function ProgressLeaderboardBody(props: ProgressLeaderboardSectionProps): ReactE
 
 function ProgressLeaderboardSection(props: ProgressLeaderboardSectionProps): ReactElement {
   const { t } = useI18n();
-  const { isInfoVisible, onToggleInfo } = props;
+  const {
+    sourceState,
+    canRenderServerBase,
+    selectedWindowKey,
+    onSelectWindowKey,
+    sectionId,
+    sectionRef,
+    isInfoVisible,
+    onToggleInfo,
+  } = props;
 
   return (
-    <section className="content-card progress-section progress-leaderboard-card" data-testid="progress-leaderboard-card">
+    <section
+      id={sectionId}
+      ref={sectionRef}
+      className="content-card progress-section progress-leaderboard-card"
+      data-testid="progress-leaderboard-card"
+    >
       <div className="progress-section-head">
         <div className="progress-chart-heading">
           <h2 className="progress-section-title">{t("progressScreen.leaderboard.title")}</h2>
@@ -665,7 +684,12 @@ function ProgressLeaderboardSection(props: ProgressLeaderboardSectionProps): Rea
         </p>
       ) : null}
 
-      <ProgressLeaderboardBody {...props} />
+      <ProgressLeaderboardBody
+        sourceState={sourceState}
+        canRenderServerBase={canRenderServerBase}
+        selectedWindowKey={selectedWindowKey}
+        onSelectWindowKey={onSelectWindowKey}
+      />
     </section>
   );
 }
@@ -682,6 +706,7 @@ export function ProgressScreen(): ReactElement {
     progressScheduleLocalVersion,
     progressServerInvalidationVersion,
   } = useProgressInvalidationState();
+  const location = useLocation();
   const { progressSourceState, refreshProgress } = useProgressSource({
     activeWorkspace,
     availableWorkspaces,
@@ -702,6 +727,7 @@ export function ProgressScreen(): ReactElement {
   const [selectedReviewScheduleBucket, setSelectedReviewScheduleBucket] = useState<ProgressReviewScheduleBucketKey | null>(null);
   const [selectedLeaderboardWindowKey, setSelectedLeaderboardWindowKey] = useState<ProgressLeaderboardWindowKey | null>(null);
   const [isLeaderboardInfoVisible, setIsLeaderboardInfoVisible] = useState<boolean>(false);
+  const leaderboardSectionRef = useRef<HTMLElement | null>(null);
   const progressSummary = progressSourceState.summary.renderedSnapshot;
   const progress = progressSourceState.series.renderedSnapshot;
   const reviewSchedule = progressSourceState.reviewSchedule.renderedSnapshot;
@@ -722,6 +748,25 @@ export function ProgressScreen(): ReactElement {
   useEffect(() => {
     setSelectedReviewScheduleBucket(null);
   }, [progressSourceState.reviewSchedule.renderedSnapshot]);
+
+  useEffect(() => {
+    if (location.hash !== `#${progressLeaderboardHash}` || progress === null) {
+      return;
+    }
+
+    const leaderboardSection = leaderboardSectionRef.current;
+    if (leaderboardSection === null) {
+      return;
+    }
+
+    const animationFrameId = window.requestAnimationFrame(() => {
+      leaderboardSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(animationFrameId);
+    };
+  }, [location.hash, progress, progressSourceState.leaderboard.renderedSnapshot]);
 
   const dailyReviews = progress === null ? [] : sortDailyReviews(progress.dailyReviews);
   const today = progress === null ? "" : progress.to;
@@ -1064,6 +1109,8 @@ export function ProgressScreen(): ReactElement {
             ) : null}
 
             <ProgressLeaderboardSection
+              sectionId={progressLeaderboardHash}
+              sectionRef={leaderboardSectionRef}
               sourceState={progressSourceState.leaderboard}
               canRenderServerBase={canRenderLeaderboardServerBase}
               selectedWindowKey={selectedLeaderboardWindowKey}

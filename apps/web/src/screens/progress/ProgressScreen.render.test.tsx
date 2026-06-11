@@ -4,6 +4,7 @@ import ReactDOM from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "../../i18n";
+import { progressLeaderboardHash } from "../../routes";
 import type { AppDataContextValue } from "../../appData";
 import {
   createEmptyProgressLeaderboardSourceState,
@@ -353,6 +354,11 @@ describe("ProgressScreen", () => {
     window.localStorage.clear();
 
     HTMLElement.prototype.scrollIntoView = vi.fn();
+    window.requestAnimationFrame = vi.fn((callback: FrameRequestCallback): number => {
+      callback(0);
+      return 1;
+    });
+    window.cancelAnimationFrame = vi.fn((_animationFrameId: number): void => undefined);
 
     useAppDataMock.mockReturnValue(createAppData());
     useProgressInvalidationStateMock.mockReturnValue({
@@ -716,6 +722,29 @@ describe("ProgressScreen", () => {
     }
     expect(signInLink.textContent).toBe("Sign in");
     expect(container.querySelector("[data-testid='progress-leaderboard-row-viewer']")).toBeNull();
+  });
+
+  it("scrolls to the leaderboard card when the route hash targets it", async () => {
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={[`/progress#${progressLeaderboardHash}`]}>
+          <I18nProvider>
+            <ProgressScreen />
+          </I18nProvider>
+        </MemoryRouter>,
+      );
+    });
+
+    const leaderboardCard = container.querySelector("[data-testid='progress-leaderboard-card']");
+    if (!(leaderboardCard instanceof HTMLElement)) {
+      throw new Error("Leaderboard card was not found");
+    }
+
+    expect(leaderboardCard.id).toBe(progressLeaderboardHash);
+    expect(vi.mocked(HTMLElement.prototype.scrollIntoView)).toHaveBeenCalledWith({
+      behavior: "smooth",
+      block: "start",
+    });
   });
 
   it("renders the leaderboard participation-disabled placeholder with a settings link", async () => {

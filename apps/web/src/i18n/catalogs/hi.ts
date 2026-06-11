@@ -494,6 +494,9 @@ const hiCatalog: TranslationCatalog = {
     errors: {
       schedulerUnavailable: "वर्कस्पेस शेड्यूलर सेटिंग्स लोड नहीं हुई हैं",
     },
+    leaderboardShortcut: {
+      ariaLabel: "लीडरबोर्ड खोलें",
+    },
     progressBadge: {
       ariaLabel: "रिव्यू स्ट्रीक {{streak}} दिन। {{todayStatus}}।",
       notReviewedToday: "आज रिव्यू नहीं किया",

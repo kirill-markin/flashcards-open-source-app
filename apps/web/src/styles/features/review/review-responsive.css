@@ -70,6 +70,21 @@
     width: 100%;
   }
 
+  .review-progress-shortcuts {
+    width: 100%;
+  }
+
+  .review-progress-shortcuts > .review-leaderboard-shortcut {
+    width: 42px;
+    min-width: 42px;
+    flex: 0 0 42px;
+  }
+
+  .review-progress-shortcuts > .review-screen-head-badge:not(.review-leaderboard-shortcut) {
+    width: auto;
+    flex: 1 1 auto;
+  }
+
   .review-pane,
   .review-queue-panel {
     padding: 10px;

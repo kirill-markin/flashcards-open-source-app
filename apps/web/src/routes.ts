@@ -7,6 +7,8 @@
 export const reviewRoute: string = "/review";
 export const chatRoute: string = "/chat";
 export const progressRoute: string = "/progress";
+export const progressLeaderboardHash: string = "leaderboard";
+export const progressLeaderboardRoute: string = `${progressRoute}#${progressLeaderboardHash}`;
 export const cardsRoute: string = "/cards";
 export const settingsHubRoute: string = "/settings";
 export const settingsCurrentWorkspaceRoute: string = "/settings/current-workspace";

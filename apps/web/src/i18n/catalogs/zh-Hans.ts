@@ -494,6 +494,9 @@ export const zhHansCatalog = {
     errors: {
       schedulerUnavailable: "工作区调度器设置尚未加载",
     },
+    leaderboardShortcut: {
+      ariaLabel: "打开排行榜",
+    },
     progressBadge: {
       ariaLabel: "复习连续 {{streak}} 天。{{todayStatus}}。",
       notReviewedToday: "今天还没复习",

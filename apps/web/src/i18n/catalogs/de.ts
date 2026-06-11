@@ -494,6 +494,9 @@ const deCatalog: TranslationCatalog = {
     errors: {
       schedulerUnavailable: "Die Planer-Einstellungen des Arbeitsbereichs sind nicht geladen",
     },
+    leaderboardShortcut: {
+      ariaLabel: "Bestenliste öffnen",
+    },
     progressBadge: {
       ariaLabel: "Lernserie {{streak}} Tage. {{todayStatus}}.",
       notReviewedToday: "Heute noch nicht wiederholt",

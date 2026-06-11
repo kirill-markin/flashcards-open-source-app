@@ -492,6 +492,9 @@ const enCatalog = {
     errors: {
       schedulerUnavailable: "Workspace scheduler settings are not loaded",
     },
+    leaderboardShortcut: {
+      ariaLabel: "Open leaderboard",
+    },
     progressBadge: {
       ariaLabel: "Review streak {{streak}} days. {{todayStatus}}.",
       notReviewedToday: "Not reviewed today",

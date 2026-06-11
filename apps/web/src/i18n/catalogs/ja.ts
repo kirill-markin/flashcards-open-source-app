@@ -494,6 +494,9 @@ export const jaCatalog = {
     errors: {
       schedulerUnavailable: "ワークスペースのスケジューラー設定が読み込まれていません",
     },
+    leaderboardShortcut: {
+      ariaLabel: "リーダーボードを開く",
+    },
     progressBadge: {
       ariaLabel: "復習連続 {{streak}} 日。{{todayStatus}}。",
       notReviewedToday: "今日はまだ復習していません",

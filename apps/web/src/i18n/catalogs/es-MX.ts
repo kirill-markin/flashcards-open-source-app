@@ -494,6 +494,9 @@ const esMxCatalog: TranslationCatalog = {
     errors: {
       schedulerUnavailable: "La configuración del programador del espacio de trabajo no está cargada",
     },
+    leaderboardShortcut: {
+      ariaLabel: "Abrir clasificación",
+    },
     progressBadge: {
       ariaLabel: "Racha de repaso de {{streak}} días. {{todayStatus}}.",
       notReviewedToday: "Sin repaso hoy",
