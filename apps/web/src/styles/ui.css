@@ -43,6 +43,14 @@
   color: #fff5f2;
 }
 
+.review-leaderboard-shortcut {
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  padding-inline: 0;
+  justify-content: center;
+}
+
 .review-progress-badge-icon,
 .review-progress-badge-value {
   line-height: 1;

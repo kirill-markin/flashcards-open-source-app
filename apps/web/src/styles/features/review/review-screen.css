@@ -46,3 +46,14 @@
   padding: 0 16px;
   font-size: 15px;
 }
+
+.review-screen-head-badge.review-leaderboard-shortcut {
+  padding-inline: 0;
+}
+
+.review-progress-shortcuts {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}

@@ -494,6 +494,9 @@ export const ruCatalog = {
     errors: {
       schedulerUnavailable: "Настройки планировщика рабочего пространства не загружены",
     },
+    leaderboardShortcut: {
+      ariaLabel: "Открыть таблицу лидеров",
+    },
     progressBadge: {
       ariaLabel: "Серия повторений: {{streak}} дн. {{todayStatus}}.",
       notReviewedToday: "Сегодня ещё не повторяли",

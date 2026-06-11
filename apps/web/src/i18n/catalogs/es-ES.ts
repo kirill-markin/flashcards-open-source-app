@@ -494,6 +494,9 @@ const esEsCatalog: TranslationCatalog = {
     errors: {
       schedulerUnavailable: "Los ajustes del programador del espacio de trabajo no están cargados",
     },
+    leaderboardShortcut: {
+      ariaLabel: "Abrir clasificación",
+    },
     progressBadge: {
       ariaLabel: "Racha de repaso de {{streak}} días. {{todayStatus}}.",
       notReviewedToday: "Sin repaso hoy",

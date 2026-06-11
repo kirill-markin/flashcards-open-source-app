@@ -494,6 +494,9 @@ const arCatalog: TranslationCatalog = {
     errors: {
       schedulerUnavailable: "لم يتم تحميل إعدادات جدولة مساحة العمل",
     },
+    leaderboardShortcut: {
+      ariaLabel: "فتح لوحة المتصدرين",
+    },
     progressBadge: {
       ariaLabel: "سلسلة المراجعة {{streak}} يومًا. {{todayStatus}}.",
       notReviewedToday: "لم تُراجع اليوم",
