@@ -8,6 +8,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.navigation.ProgressDestination
+import com.flashcardsopensourceapp.app.navigation.ProgressNavigationTarget
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsAccountSignInEmailDestination
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsLeaderboardParticipationDestination
 import com.flashcardsopensourceapp.feature.progress.ProgressRoute
@@ -25,9 +26,14 @@ internal fun NavGraphBuilder.registerProgressNavGraph(
             )
         )
         val uiState by progressViewModel.uiState.collectAsStateWithLifecycle()
+        val progressNavigationRequest by appGraph.appHandoffCoordinator.observeProgressNavigation().collectAsStateWithLifecycle()
 
         ProgressRoute(
             uiState = uiState,
+            leaderboardScrollRequestId = progressNavigationRequest
+                ?.takeIf { request -> request.target == ProgressNavigationTarget.LEADERBOARD }
+                ?.requestId,
+            onLeaderboardScrollRequestConsumed = appGraph.appHandoffCoordinator::consumeProgressNavigation,
             onScreenVisible = progressViewModel::refreshIfInvalidated,
             onRetry = progressViewModel::refreshManually,
             onSelectLeaderboardWindow = progressViewModel::selectLeaderboardWindow,

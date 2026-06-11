@@ -4,12 +4,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -23,6 +25,8 @@ import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboard
 @Composable
 fun ProgressRoute(
     uiState: ProgressUiState,
+    leaderboardScrollRequestId: Long?,
+    onLeaderboardScrollRequestConsumed: (Long) -> Unit,
     onScreenVisible: () -> Unit,
     onRetry: () -> Unit,
     onSelectLeaderboardWindow: (ProgressLeaderboardWindowKey) -> Unit,
@@ -30,7 +34,11 @@ fun ProgressRoute(
     onOpenLeaderboardSettings: () -> Unit
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
+    val listState = rememberLazyListState()
     val currentScreenVisibleAction = rememberUpdatedState(newValue = onScreenVisible)
+    val currentLeaderboardScrollRequestConsumed = rememberUpdatedState(
+        newValue = onLeaderboardScrollRequestConsumed
+    )
 
     DisposableEffect(lifecycleOwner) {
         if (shouldTriggerInitialProgressLoad(lifecycleState = lifecycleOwner.lifecycle.currentState)) {
@@ -49,6 +57,18 @@ fun ProgressRoute(
         }
     }
 
+    LaunchedEffect(leaderboardScrollRequestId, uiState) {
+        val requestId = leaderboardScrollRequestId ?: return@LaunchedEffect
+        val loadedState = uiState as? ProgressUiState.Loaded ?: return@LaunchedEffect
+
+        listState.animateScrollToItem(
+            index = progressLeaderboardItemIndex(
+                hasReviewScheduleSection = loadedState.reviewScheduleSection != null
+            )
+        )
+        currentLeaderboardScrollRequestConsumed.value(requestId)
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -59,6 +79,7 @@ fun ProgressRoute(
         }
     ) { innerPadding ->
         LazyColumn(
+            state = listState,
             contentPadding = PaddingValues(
                 start = 16.dp,
                 top = innerPadding.calculateTopPadding() + 16.dp,
@@ -133,6 +154,16 @@ fun ProgressRoute(
                 }
             }
         }
+    }
+}
+
+internal fun progressLeaderboardItemIndex(
+    hasReviewScheduleSection: Boolean
+): Int {
+    return if (hasReviewScheduleSection) {
+        3
+    } else {
+        2
     }
 }
 
