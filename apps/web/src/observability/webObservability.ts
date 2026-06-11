@@ -96,7 +96,7 @@ export type AuthResetCleanupBreadcrumbDetails = Readonly<{
 
 export type ProgressCacheMissBreadcrumbDetails = Readonly<{
   eventName: "progress_cache_miss";
-  section: "summary" | "series" | "review_schedule";
+  section: "summary" | "series" | "review_schedule" | "leaderboard";
   reason: "invalid_json" | "invalid_shape" | "scope_mismatch" | "time_zone_mismatch";
   workspaceIds: ReadonlyArray<string>;
 }>;
@@ -268,7 +268,8 @@ export type ProgressServerLoadFailureDetails = Readonly<{
   operation:
     | "progress_summary_server_load"
     | "progress_series_server_load"
-    | "progress_review_schedule_server_load";
+    | "progress_review_schedule_server_load"
+    | "progress_leaderboard_server_load";
   workspaceId: string | null;
 }>;
 
@@ -282,6 +283,8 @@ export type WebAppOperation =
   | "agent_connection_revoke"
   | "account_preferences_refresh"
   | "account_preferences_update"
+  | "community_profile_refresh"
+  | "community_profile_update"
   | "card_form_load"
   | "card_save"
   | "card_delete"

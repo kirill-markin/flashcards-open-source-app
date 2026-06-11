@@ -18,8 +18,10 @@ export type {
 export {
   deleteMyAccount,
   listAgentApiKeys,
+  loadCommunityProfile,
   revokeAgentApiKey,
   updateAccountPreferences,
+  updateCommunityProfile,
 } from "./api/endpoints/account";
 export {
   queryCards,
@@ -38,6 +40,7 @@ export {
   submitFeedback,
 } from "./api/endpoints/feedback";
 export {
+  loadProgressLeaderboard,
   loadProgressReviewSchedule,
   loadProgressSeries,
   loadProgressSummary,

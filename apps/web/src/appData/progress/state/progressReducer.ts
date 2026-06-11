@@ -1,5 +1,7 @@
 import type {
   ProgressChartData,
+  ProgressLeaderboardLocalViewerCounts,
+  ProgressLeaderboardSnapshot,
   ProgressReviewScheduleSnapshot,
   ProgressScopeKey,
   ProgressSeriesSnapshot,
@@ -10,11 +12,13 @@ import type {
 } from "../../../types";
 import {
   areProgressSourceStatesEqual,
+  createEmptyProgressLeaderboardSourceState,
   createEmptyProgressReviewScheduleSourceState,
   createEmptyProgressSeriesSourceState,
   createEmptyProgressSourceState,
   createEmptyProgressSummarySourceState,
   createProgressRenderedSeriesSummaryContext,
+  createNextLeaderboardState,
   createNextReviewScheduleState,
   createNextSeriesState,
   createNextSummaryState,
@@ -128,11 +132,49 @@ export type ProgressSourceAction =
     progressScheduleLocalVersion: number;
     canRenderServerBase: boolean;
   }>
+  | Readonly<{ type: "leaderboard_scope_reset" }>
+  | Readonly<{
+    type: "leaderboard_scope_initialized";
+    scopeKey: ProgressScopeKey;
+    serverBase: ProgressLeaderboardSnapshot | null;
+    canRenderServerBase: boolean;
+  }>
+  | Readonly<{
+    type: "leaderboard_local_load_succeeded";
+    scopeKey: ProgressScopeKey;
+    localViewerCounts: ProgressLeaderboardLocalViewerCounts;
+    canRenderServerBase: boolean;
+  }>
+  | Readonly<{
+    type: "leaderboard_local_load_failed";
+    scopeKey: ProgressScopeKey;
+    errorMessage: string;
+    canRenderServerBase: boolean;
+  }>
+  | Readonly<{
+    type: "leaderboard_server_load_succeeded";
+    scopeKey: ProgressScopeKey;
+    serverBase: ProgressLeaderboardSnapshot;
+    canRenderServerBase: boolean;
+  }>
+  | Readonly<{
+    type: "leaderboard_server_load_failed";
+    scopeKey: ProgressScopeKey;
+    errorMessage: string;
+    isNetworkError: boolean;
+    canRenderServerBase: boolean;
+  }>
+  | Readonly<{
+    type: "leaderboard_server_load_skipped";
+    scopeKey: ProgressScopeKey;
+    canRenderServerBase: boolean;
+  }>
   | Readonly<{
     type: "refresh_started";
     summaryScopeKey: ProgressScopeKey | null;
     seriesScopeKey: ProgressScopeKey | null;
     reviewScheduleScopeKey: ProgressScopeKey | null;
+    leaderboardScopeKey: ProgressScopeKey | null;
     progressScheduleLocalVersion: number;
     canRenderServerBase: boolean;
   }>
@@ -462,6 +504,94 @@ function reduceProgressSourceState(
           errorMessage: action.errorMessage,
         }, action.canRenderServerBase),
       };
+    case "leaderboard_scope_reset":
+      return {
+        ...state,
+        leaderboard: createEmptyProgressLeaderboardSourceState(),
+      };
+    case "leaderboard_scope_initialized":
+      return {
+        ...state,
+        // Unlike the sibling sections, local viewer counts are only an overlay,
+        // so `isLoading` tracks the server load alone and stays false for
+        // sessions that can never run one (guest/unverified).
+        leaderboard: createNextLeaderboardState(state.leaderboard, {
+          scopeKey: action.scopeKey,
+          serverBase: action.serverBase,
+          localViewerCounts: null,
+          isLoading: action.canRenderServerBase,
+          errorMessage: "",
+          isNetworkError: false,
+          localViewerCountsErrorMessage: "",
+        }, action.canRenderServerBase),
+      };
+    case "leaderboard_local_load_succeeded":
+      if (state.leaderboard.scopeKey !== action.scopeKey) {
+        return state;
+      }
+
+      return {
+        ...state,
+        leaderboard: createNextLeaderboardState(state.leaderboard, {
+          scopeKey: action.scopeKey,
+          localViewerCounts: action.localViewerCounts,
+          localViewerCountsErrorMessage: "",
+        }, action.canRenderServerBase),
+      };
+    case "leaderboard_local_load_failed":
+      if (state.leaderboard.scopeKey !== action.scopeKey) {
+        return state;
+      }
+
+      return {
+        ...state,
+        leaderboard: createNextLeaderboardState(state.leaderboard, {
+          scopeKey: action.scopeKey,
+          localViewerCounts: null,
+          localViewerCountsErrorMessage: action.errorMessage,
+        }, action.canRenderServerBase),
+      };
+    case "leaderboard_server_load_succeeded":
+      if (state.leaderboard.scopeKey !== action.scopeKey) {
+        return state;
+      }
+
+      return {
+        ...state,
+        leaderboard: createNextLeaderboardState(state.leaderboard, {
+          scopeKey: action.scopeKey,
+          serverBase: action.serverBase,
+          isLoading: false,
+          errorMessage: "",
+          isNetworkError: false,
+        }, action.canRenderServerBase),
+      };
+    case "leaderboard_server_load_failed":
+      if (state.leaderboard.scopeKey !== action.scopeKey) {
+        return state;
+      }
+
+      return {
+        ...state,
+        leaderboard: createNextLeaderboardState(state.leaderboard, {
+          scopeKey: action.scopeKey,
+          isLoading: false,
+          errorMessage: action.errorMessage,
+          isNetworkError: action.isNetworkError,
+        }, action.canRenderServerBase),
+      };
+    case "leaderboard_server_load_skipped":
+      if (state.leaderboard.scopeKey !== action.scopeKey) {
+        return state;
+      }
+
+      return {
+        ...state,
+        leaderboard: createNextLeaderboardState(state.leaderboard, {
+          scopeKey: action.scopeKey,
+          isLoading: false,
+        }, action.canRenderServerBase),
+      };
     case "refresh_started":
       return {
         summary: action.summaryScopeKey === null
@@ -486,6 +616,14 @@ function reduceProgressSourceState(
             isLoading: true,
             errorMessage: "",
           }, action.canRenderServerBase),
+        leaderboard: action.leaderboardScopeKey === null
+          ? state.leaderboard
+          : createNextLeaderboardState(state.leaderboard, {
+            scopeKey: action.leaderboardScopeKey,
+            isLoading: action.canRenderServerBase,
+            errorMessage: "",
+            isNetworkError: false,
+          }, action.canRenderServerBase),
       };
     case "errors_cleared":
       return {
@@ -497,6 +635,11 @@ function reduceProgressSourceState(
         }, action.canRenderServerBase),
         reviewSchedule: createNextReviewScheduleState(state.reviewSchedule, {
           errorMessage: "",
+        }, action.canRenderServerBase),
+        leaderboard: createNextLeaderboardState(state.leaderboard, {
+          errorMessage: "",
+          isNetworkError: false,
+          localViewerCountsErrorMessage: "",
         }, action.canRenderServerBase),
       };
   }

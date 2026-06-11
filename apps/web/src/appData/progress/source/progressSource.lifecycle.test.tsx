@@ -13,10 +13,13 @@ import {
   buildServerSummary,
   createDeferredPromise,
   flushEffects,
+  leaderboardOnlySections,
   linkedCloudSettings,
   linkingReadyCloudSettings,
+  loadLocalLeaderboardViewerCountsMock,
   loadLocalProgressDailyReviewsMock,
   loadLocalProgressSummaryMock,
+  loadProgressLeaderboardMock,
   loadProgressSeriesMock,
   loadProgressSummaryMock,
   noProgressSections,
@@ -43,6 +46,23 @@ describe("useProgressSource lifecycle", () => {
     expect(harness.getApi().progressSourceState.series.serverBase).toBeNull();
     expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.source).toBe("local_only");
     expect(harness.getApi().progressSourceState.series.renderedSnapshot?.source).toBe("local_only");
+  });
+
+  it("keeps the leaderboard idle for linking-ready sessions and skips the viewer-count scan", async () => {
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkingReadyCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: leaderboardOnlySections,
+    });
+
+    await flushEffects();
+
+    expect(loadProgressLeaderboardMock).not.toHaveBeenCalled();
+    expect(loadLocalLeaderboardViewerCountsMock).not.toHaveBeenCalled();
+    const leaderboardState = harness.getApi().progressSourceState.leaderboard;
+    expect(leaderboardState.isLoading).toBe(false);
+    expect(leaderboardState.renderedSnapshot).toBeNull();
   });
 
   it("keeps local progress visible when server eligibility turns off during an in-flight refresh", async () => {

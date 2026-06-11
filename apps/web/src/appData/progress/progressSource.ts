@@ -3,5 +3,5 @@ export {
   parseLocalDate,
   shiftLocalDate,
 } from "../../progress/progressDates";
-export { buildProgressScopeKey } from "./state/progressScope";
+export { buildProgressScopeKey, canLoadProgressServerBase } from "./state/progressScope";
 export { useProgressSource } from "./source/useProgressSource";

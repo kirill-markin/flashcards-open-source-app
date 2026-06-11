@@ -3,6 +3,8 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, vi } from "vitest";
 import type {
   CloudSettings,
+  ProgressLeaderboard,
+  ProgressLeaderboardLocalViewerCounts,
   ProgressReviewSchedule,
   ProgressScopeKey,
   ProgressSeries,
@@ -33,6 +35,8 @@ const progressSourceMocks = vi.hoisted(() => ({
   loadProgressSummaryMock: vi.fn<(input: Readonly<{ timeZone: string; today: string }>) => Promise<ProgressSummaryPayload>>(),
   loadProgressSeriesMock: vi.fn<(input: Readonly<{ timeZone: string; from: string; to: string }>) => Promise<ProgressSeries>>(),
   loadProgressReviewScheduleMock: vi.fn<(input: Readonly<{ timeZone: string; today: string }>) => Promise<ProgressReviewSchedule>>(),
+  loadProgressLeaderboardMock: vi.fn<() => Promise<ProgressLeaderboard>>(),
+  loadLocalLeaderboardViewerCountsMock: vi.fn<(workspaceIds: ReadonlyArray<string>, now: Date) => Promise<ProgressLeaderboardLocalViewerCounts>>(),
   hasPendingProgressReviewEventsMock: vi.fn<(workspaceIds: ReadonlyArray<string>) => Promise<boolean>>(),
   loadLocalProgressActiveDatesMock: vi.fn<(workspaceIds: ReadonlyArray<string>, timeZone: string) => Promise<ReadonlyArray<string>>>(),
   loadLocalProgressSummaryMock: vi.fn<(workspaceIds: ReadonlyArray<string>, input: Readonly<{ timeZone: string; today: string }>) => Promise<ProgressSummary>>(),
@@ -52,6 +56,8 @@ const {
   loadProgressSummaryMock,
   loadProgressSeriesMock,
   loadProgressReviewScheduleMock,
+  loadProgressLeaderboardMock,
+  loadLocalLeaderboardViewerCountsMock,
   hasPendingProgressReviewEventsMock,
   loadLocalProgressActiveDatesMock,
   loadLocalProgressSummaryMock,
@@ -76,6 +82,7 @@ vi.mock("../../../api", async (importOriginal) => {
     loadProgressSummary: progressSourceMocks.loadProgressSummaryMock,
     loadProgressSeries: progressSourceMocks.loadProgressSeriesMock,
     loadProgressReviewSchedule: progressSourceMocks.loadProgressReviewScheduleMock,
+    loadProgressLeaderboard: progressSourceMocks.loadProgressLeaderboardMock,
   };
 });
 
@@ -89,6 +96,7 @@ vi.mock("../../../observability/webObservability", () => ({
 
 vi.mock("../../../localDb/progress/progress", () => ({
   hasPendingProgressReviewEvents: progressSourceMocks.hasPendingProgressReviewEventsMock,
+  loadLocalLeaderboardViewerCounts: progressSourceMocks.loadLocalLeaderboardViewerCountsMock,
   loadLocalProgressActiveDates: progressSourceMocks.loadLocalProgressActiveDatesMock,
   loadLocalProgressSummary: progressSourceMocks.loadLocalProgressSummaryMock,
   loadLocalProgressDailyReviews: progressSourceMocks.loadLocalProgressDailyReviewsMock,
@@ -112,6 +120,7 @@ export type HarnessProps = Readonly<{
     includeSummary: boolean;
     includeSeries: boolean;
     includeReviewSchedule: boolean;
+    includeLeaderboard: boolean;
   }>;
 }>;
 
@@ -184,36 +193,49 @@ export const summaryAndSeriesSections = {
   includeSummary: true,
   includeSeries: true,
   includeReviewSchedule: false,
+  includeLeaderboard: false,
 } as const;
 
 export const summaryOnlySections = {
   includeSummary: true,
   includeSeries: false,
   includeReviewSchedule: false,
+  includeLeaderboard: false,
 } as const;
 
 export const seriesOnlySections = {
   includeSummary: false,
   includeSeries: true,
   includeReviewSchedule: false,
+  includeLeaderboard: false,
 } as const;
 
 export const reviewScheduleOnlySections = {
   includeSummary: false,
   includeSeries: false,
   includeReviewSchedule: true,
+  includeLeaderboard: false,
+} as const;
+
+export const leaderboardOnlySections = {
+  includeSummary: false,
+  includeSeries: false,
+  includeReviewSchedule: false,
+  includeLeaderboard: true,
 } as const;
 
 export const summaryAndSeriesWithInvalidationSections = {
   includeSummary: true,
   includeSeries: true,
   includeReviewSchedule: false,
+  includeLeaderboard: false,
 } as const;
 
 export const noProgressSections = {
   includeSummary: false,
   includeSeries: false,
   includeReviewSchedule: false,
+  includeLeaderboard: false,
 } as const;
 
 let root: Root | null = null;
@@ -520,6 +542,8 @@ beforeEach(() => {
   loadProgressSummaryMock.mockReset();
   loadProgressSeriesMock.mockReset();
   loadProgressReviewScheduleMock.mockReset();
+  loadProgressLeaderboardMock.mockReset();
+  loadLocalLeaderboardViewerCountsMock.mockReset();
   hasPendingProgressReviewEventsMock.mockReset();
   loadLocalProgressActiveDatesMock.mockReset();
   loadLocalProgressSummaryMock.mockReset();
@@ -547,6 +571,13 @@ beforeEach(() => {
   loadLocalProgressDailyReviewsMock.mockResolvedValue([]);
   loadPendingProgressDailyReviewsMock.mockResolvedValue([]);
   loadLocalProgressReviewScheduleMock.mockResolvedValue(buildServerReviewSchedule(0, null));
+  loadLocalLeaderboardViewerCountsMock.mockResolvedValue({
+    last_24_hours: 0,
+    last_3_days: 0,
+    last_7_days: 0,
+    last_30_days: 0,
+    all_time: 0,
+  });
   loadProgressSummaryMock.mockResolvedValue(buildServerSummary(1, "2026-04-18T09:15:00.000Z"));
   loadProgressSeriesMock.mockResolvedValue(buildServerSeries(1, "2026-04-18T09:15:00.000Z"));
   loadProgressReviewScheduleMock.mockResolvedValue(buildServerReviewSchedule(1, "2026-04-18T09:15:00.000Z"));
@@ -573,11 +604,13 @@ export {
   hasCompleteLocalProgressReviewScheduleCoverageMock,
   hasPendingProgressReviewEventsMock,
   hasPendingProgressReviewScheduleCardChangesMock,
+  loadLocalLeaderboardViewerCountsMock,
   loadLocalProgressActiveDatesMock,
   loadLocalProgressDailyReviewsMock,
   loadLocalProgressReviewScheduleMock,
   loadLocalProgressSummaryMock,
   loadPendingProgressDailyReviewsMock,
+  loadProgressLeaderboardMock,
   loadProgressReviewScheduleMock,
   loadProgressSeriesMock,
   loadProgressSummaryMock,

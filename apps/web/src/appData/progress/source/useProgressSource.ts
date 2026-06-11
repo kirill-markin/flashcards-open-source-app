@@ -8,6 +8,7 @@ import {
 } from "react";
 import {
   ApiNetworkError,
+  loadProgressLeaderboard,
   loadProgressReviewSchedule,
   loadProgressSeries,
   loadProgressSummary,
@@ -20,6 +21,7 @@ import {
 } from "../../../observability/webObservability";
 import {
   hasPendingProgressReviewEvents,
+  loadLocalLeaderboardViewerCounts,
   loadLocalProgressActiveDates,
   loadLocalProgressDailyReviews,
   loadLocalProgressSummary,
@@ -33,6 +35,7 @@ import {
 } from "../../../localDb/reviews/reviewSchedule";
 import type {
   CloudSettings,
+  ProgressLeaderboard,
   ProgressReviewScheduleInput,
   ProgressScopeKey,
   ProgressSeriesInput,
@@ -56,6 +59,7 @@ import {
   buildProgressReviewScheduleRefreshKey,
   canLoadProgressServerBase,
   collectAccessibleWorkspaceIds,
+  resolveProgressLeaderboardScopeKey,
   resolveProgressRefreshKey,
   resolveProgressReviewScheduleRefreshKey,
   resolveProgressReviewScheduleScopeKey,
@@ -66,15 +70,18 @@ import {
 import {
   buildLocalFallbackSeries,
   createProgressChartData,
+  createProgressLeaderboardSnapshot,
   createProgressReviewScheduleSnapshot,
   createProgressSeriesSnapshot,
   createProgressSummarySnapshot,
   normalizeProgressSeries,
 } from "../snapshots/progressSnapshots";
 import {
+  loadPersistedProgressLeaderboard,
   loadPersistedProgressReviewSchedule,
   loadPersistedProgressSeries,
   loadPersistedProgressSummary,
+  storePersistedProgressLeaderboard,
   storePersistedProgressReviewSchedule,
   storePersistedProgressSeries,
   storePersistedProgressSummary,
@@ -100,6 +107,29 @@ type ProgressReviewScheduleRefreshRequest = Readonly<{
   refreshKey: string;
   progressScheduleLocalVersion: number;
 }>;
+
+type ProgressLeaderboardRefreshRequest = Readonly<{
+  refreshKey: string;
+  bypassFreshnessGate: boolean;
+}>;
+
+/**
+ * The compact leaderboard snapshot regenerates hourly on the server, so
+ * automatic refreshes are skipped while every cached window's
+ * `nextRefreshAfter` is still in the future. Manual Progress refreshes bypass
+ * this gate, and non-ready payloads (no windows) are never considered fresh so
+ * participation changes propagate on the next automatic load.
+ */
+function isProgressLeaderboardFresh(leaderboard: ProgressLeaderboard | null, nowTimestamp: number): boolean {
+  if (leaderboard === null || leaderboard.windows.length === 0) {
+    return false;
+  }
+
+  return leaderboard.windows.every((window) => {
+    const nextRefreshAfterTimestamp = Date.parse(window.nextRefreshAfter);
+    return Number.isNaN(nextRefreshAfterTimestamp) === false && nextRefreshAfterTimestamp > nowTimestamp;
+  });
+}
 
 type ProgressServerLoadOperation = ProgressServerLoadFailureDetails["operation"];
 
@@ -176,7 +206,7 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     progressServerInvalidationVersion,
     sections,
   } = params;
-  const { includeSummary, includeSeries, includeReviewSchedule } = sections;
+  const { includeSummary, includeSeries, includeReviewSchedule, includeLeaderboard } = sections;
   const [progressSourceState, dispatch] = useReducer(progressSourceReducer, createInitialProgressSourceState());
   const timeContext = useProgressTimeContext();
   const [manualRefreshVersion, setManualRefreshVersion] = useState<number>(0);
@@ -184,16 +214,20 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
   const currentSummaryScopeKeyRef = useRef<ProgressScopeKey | null>(null);
   const currentSeriesScopeKeyRef = useRef<ProgressScopeKey | null>(null);
   const currentReviewScheduleScopeKeyRef = useRef<ProgressScopeKey | null>(null);
+  const currentLeaderboardScopeKeyRef = useRef<ProgressScopeKey | null>(null);
   const canLoadServerBaseRef = useRef<boolean>(false);
   const summaryLocalLoadSequenceRef = useRef<number>(0);
   const seriesLocalLoadSequenceRef = useRef<number>(0);
   const reviewScheduleLocalLoadSequenceRef = useRef<number>(0);
+  const leaderboardLocalLoadSequenceRef = useRef<number>(0);
   const summaryServerRefreshPromisesRef = useRef<Map<ProgressScopeKey, Promise<void>>>(new Map());
   const seriesServerRefreshPromisesRef = useRef<Map<ProgressScopeKey, Promise<void>>>(new Map());
   const reviewScheduleServerRefreshPromisesRef = useRef<Map<ProgressScopeKey, Promise<void>>>(new Map());
+  const leaderboardServerRefreshPromisesRef = useRef<Map<ProgressScopeKey, Promise<void>>>(new Map());
   const requestedSummaryRefreshKeysRef = useRef<Map<ProgressScopeKey, string>>(new Map());
   const requestedSeriesRefreshKeysRef = useRef<Map<ProgressScopeKey, string>>(new Map());
   const requestedReviewScheduleRefreshRequestsRef = useRef<Map<ProgressScopeKey, ProgressReviewScheduleRefreshRequest>>(new Map());
+  const requestedLeaderboardRefreshRequestsRef = useRef<Map<ProgressScopeKey, ProgressLeaderboardRefreshRequest>>(new Map());
   const progressScheduleLocalVersionRef = useRef<number>(0);
 
   const activeWorkspaceId = activeWorkspace?.workspaceId ?? null;
@@ -220,6 +254,7 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     accessibleWorkspaceIds,
     reviewScheduleInput,
   );
+  const leaderboardScopeKey = resolveProgressLeaderboardScopeKey(includeLeaderboard, accessibleWorkspaceIds);
   const canLoadServerBase = canLoadProgressServerBase(sessionVerificationState, cloudSettings);
   const summaryRefreshKey = resolveProgressRefreshKey(
     summaryScopeKey,
@@ -238,6 +273,12 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     canLoadServerBase,
     progressServerInvalidationVersion,
     progressScheduleLocalVersion,
+    manualRefreshVersion,
+  );
+  const leaderboardRefreshKey = resolveProgressRefreshKey(
+    leaderboardScopeKey,
+    canLoadServerBase,
+    progressServerInvalidationVersion,
     manualRefreshVersion,
   );
 
@@ -310,6 +351,26 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
       canRenderServerBase: canLoadServerBaseRef.current,
     });
   }, [canLoadServerBase, reviewScheduleInput.timeZone, reviewScheduleScopeKey]);
+
+  useEffect(() => {
+    currentLeaderboardScopeKeyRef.current = leaderboardScopeKey;
+
+    if (leaderboardScopeKey === null) {
+      dispatch({ type: "leaderboard_scope_reset" });
+      return;
+    }
+
+    const persistedLeaderboard = canLoadServerBase
+      ? loadPersistedProgressLeaderboard(leaderboardScopeKey)
+      : null;
+
+    dispatch({
+      type: "leaderboard_scope_initialized",
+      scopeKey: leaderboardScopeKey,
+      serverBase: persistedLeaderboard === null ? null : createProgressLeaderboardSnapshot(persistedLeaderboard, false),
+      canRenderServerBase: canLoadServerBaseRef.current,
+    });
+  }, [canLoadServerBase, leaderboardScopeKey]);
 
   useEffect(() => {
     if (summaryScopeKey === null) {
@@ -465,6 +526,58 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     progressScheduleLocalVersion,
     reviewScheduleInput,
     reviewScheduleScopeKey,
+  ]);
+
+  useEffect(() => {
+    if (leaderboardScopeKey === null) {
+      return;
+    }
+
+    // The viewer counts only overlay a rendered server snapshot, so skip the
+    // review-event scan entirely while the session cannot load one; the effect
+    // re-runs when `canLoadServerBase` flips after sign-in.
+    if (canLoadServerBase === false) {
+      return;
+    }
+
+    const currentSequence = leaderboardLocalLoadSequenceRef.current + 1;
+    leaderboardLocalLoadSequenceRef.current = currentSequence;
+
+    void loadLocalLeaderboardViewerCounts(accessibleWorkspaceIds, new Date()).then((localViewerCounts) => {
+      if (
+        currentLeaderboardScopeKeyRef.current !== leaderboardScopeKey
+        || leaderboardLocalLoadSequenceRef.current !== currentSequence
+      ) {
+        return;
+      }
+
+      dispatch({
+        type: "leaderboard_local_load_succeeded",
+        scopeKey: leaderboardScopeKey,
+        localViewerCounts,
+        canRenderServerBase: canLoadServerBaseRef.current,
+      });
+    }).catch((error: unknown) => {
+      if (
+        currentLeaderboardScopeKeyRef.current !== leaderboardScopeKey
+        || leaderboardLocalLoadSequenceRef.current !== currentSequence
+      ) {
+        return;
+      }
+
+      dispatch({
+        type: "leaderboard_local_load_failed",
+        scopeKey: leaderboardScopeKey,
+        errorMessage: getErrorMessage(error),
+        canRenderServerBase: canLoadServerBaseRef.current,
+      });
+    });
+  }, [
+    accessibleWorkspaceIds,
+    canLoadServerBase,
+    leaderboardScopeKey,
+    manualRefreshVersion,
+    progressLocalVersion,
   ]);
 
   const refreshProgressSummary = useCallback(async function refreshProgressSummary(
@@ -719,6 +832,108 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     return refreshPromise;
   }, [activeWorkspaceId, cloudSettings?.installationId]);
 
+  const refreshProgressLeaderboard = useCallback(async function refreshProgressLeaderboard(
+    targetScopeKey: ProgressScopeKey,
+    nextRefreshKey: string,
+    bypassFreshnessGate: boolean,
+  ): Promise<void> {
+    requestedLeaderboardRefreshRequestsRef.current.set(targetScopeKey, {
+      refreshKey: nextRefreshKey,
+      bypassFreshnessGate,
+    });
+
+    const inFlightRefresh = leaderboardServerRefreshPromisesRef.current.get(targetScopeKey);
+    if (inFlightRefresh !== undefined) {
+      return inFlightRefresh;
+    }
+
+    const refreshPromise = (async (): Promise<void> => {
+      try {
+        while (true) {
+          const requestedRefresh = requestedLeaderboardRefreshRequestsRef.current.get(targetScopeKey);
+
+          if (requestedRefresh === undefined) {
+            throw new Error(`Missing requested progress leaderboard refresh key for scope ${targetScopeKey}`);
+          }
+
+          if (currentLeaderboardScopeKeyRef.current !== targetScopeKey || canLoadServerBaseRef.current === false) {
+            requestedLeaderboardRefreshRequestsRef.current.delete(targetScopeKey);
+            return;
+          }
+
+          if (
+            requestedRefresh.bypassFreshnessGate === false
+            && isProgressLeaderboardFresh(loadPersistedProgressLeaderboard(targetScopeKey), Date.now())
+          ) {
+            if (requestedLeaderboardRefreshRequestsRef.current.get(targetScopeKey)?.refreshKey === requestedRefresh.refreshKey) {
+              dispatch({
+                type: "leaderboard_server_load_skipped",
+                scopeKey: targetScopeKey,
+                canRenderServerBase: canLoadServerBaseRef.current,
+              });
+              requestedLeaderboardRefreshRequestsRef.current.delete(targetScopeKey);
+              return;
+            }
+
+            continue;
+          }
+
+          try {
+            const serverLeaderboard = await loadProgressLeaderboard();
+            const isCurrentRefreshRequest: boolean = requestedLeaderboardRefreshRequestsRef.current
+              .get(targetScopeKey)?.refreshKey === requestedRefresh.refreshKey;
+
+            if (
+              currentLeaderboardScopeKeyRef.current === targetScopeKey
+              && canLoadServerBaseRef.current
+              && isCurrentRefreshRequest
+            ) {
+              storePersistedProgressLeaderboard(targetScopeKey, serverLeaderboard);
+              dispatch({
+                type: "leaderboard_server_load_succeeded",
+                scopeKey: targetScopeKey,
+                serverBase: createProgressLeaderboardSnapshot(serverLeaderboard, false),
+                canRenderServerBase: canLoadServerBaseRef.current,
+              });
+            }
+          } catch (error: unknown) {
+            const isCurrentRefreshRequest: boolean = requestedLeaderboardRefreshRequestsRef.current
+              .get(targetScopeKey)?.refreshKey === requestedRefresh.refreshKey;
+
+            if (
+              currentLeaderboardScopeKeyRef.current === targetScopeKey
+              && canLoadServerBaseRef.current
+              && isCurrentRefreshRequest
+            ) {
+              dispatch({
+                type: "leaderboard_server_load_failed",
+                scopeKey: targetScopeKey,
+                errorMessage: getErrorMessage(error),
+                isNetworkError: error instanceof ApiNetworkError,
+                canRenderServerBase: canLoadServerBaseRef.current,
+              });
+              captureProgressServerLoadError(error, {
+                operation: "progress_leaderboard_server_load",
+                workspaceId: activeWorkspaceId,
+                installationId: cloudSettings?.installationId ?? null,
+              });
+            }
+          }
+
+          if (requestedLeaderboardRefreshRequestsRef.current.get(targetScopeKey)?.refreshKey === requestedRefresh.refreshKey) {
+            requestedLeaderboardRefreshRequestsRef.current.delete(targetScopeKey);
+            return;
+          }
+        }
+      } finally {
+        leaderboardServerRefreshPromisesRef.current.delete(targetScopeKey);
+      }
+    })();
+
+    leaderboardServerRefreshPromisesRef.current.set(targetScopeKey, refreshPromise);
+    return refreshPromise;
+  }, [activeWorkspaceId, cloudSettings?.installationId]);
+
   useEffect(() => {
     if (summaryScopeKey === null || summaryRefreshKey === null) {
       return;
@@ -769,8 +984,25 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     reviewScheduleScopeKey,
   ]);
 
+  useEffect(() => {
+    if (leaderboardScopeKey === null || leaderboardRefreshKey === null) {
+      return;
+    }
+
+    if (requestedLeaderboardRefreshRequestsRef.current.get(leaderboardScopeKey)?.refreshKey === leaderboardRefreshKey) {
+      return;
+    }
+
+    void refreshProgressLeaderboard(leaderboardScopeKey, leaderboardRefreshKey, false);
+  }, [leaderboardRefreshKey, leaderboardScopeKey, refreshProgressLeaderboard]);
+
   const refreshProgress = useCallback(async function refreshProgress(): Promise<void> {
-    if (summaryScopeKey === null && seriesScopeKey === null && reviewScheduleScopeKey === null) {
+    if (
+      summaryScopeKey === null
+      && seriesScopeKey === null
+      && reviewScheduleScopeKey === null
+      && leaderboardScopeKey === null
+    ) {
       dispatch({
         type: "errors_cleared",
         canRenderServerBase: canLoadServerBase,
@@ -785,6 +1017,7 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
       summaryScopeKey,
       seriesScopeKey,
       reviewScheduleScopeKey,
+      leaderboardScopeKey,
       progressScheduleLocalVersion,
       canRenderServerBase: canLoadServerBase,
     });
@@ -826,11 +1059,21 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
       ));
     }
 
+    if (leaderboardScopeKey !== null) {
+      refreshPromises.push(refreshProgressLeaderboard(
+        leaderboardScopeKey,
+        buildProgressRefreshKey(leaderboardScopeKey, progressServerInvalidationVersion, nextManualRefreshVersion),
+        true,
+      ));
+    }
+
     await Promise.all(refreshPromises);
   }, [
     canLoadServerBase,
+    leaderboardScopeKey,
     progressScheduleLocalVersion,
     progressServerInvalidationVersion,
+    refreshProgressLeaderboard,
     refreshProgressReviewSchedule,
     refreshProgressSeries,
     refreshProgressSummary,

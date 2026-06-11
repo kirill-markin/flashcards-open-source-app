@@ -1,14 +1,27 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import ReactDOM from "react-dom/client";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "../../i18n";
 import type { AppDataContextValue } from "../../appData";
+import {
+  createEmptyProgressLeaderboardSourceState,
+  createNextLeaderboardState,
+  createProgressLeaderboardSnapshot,
+} from "../../appData/progress/snapshots/progressSnapshots";
 import type {
+  CloudSettings,
+  ProgressLeaderboard,
+  ProgressLeaderboardLocalViewerCounts,
+  ProgressLeaderboardSourceState,
+  ProgressLeaderboardWindow,
+  ProgressLeaderboardWindowKey,
   ProgressReviewScheduleSnapshot,
   ProgressSeriesSnapshot,
   ProgressSummarySnapshot,
 } from "../../types";
+import { progressLeaderboardWindowKeys } from "../../types";
 
 const {
   refreshProgressMock,
@@ -219,6 +232,110 @@ function createReviewScheduleSnapshot(): ProgressReviewScheduleSnapshot {
   };
 }
 
+const linkedCloudSettings: CloudSettings = {
+  installationId: "installation-1",
+  cloudState: "linked",
+  linkedUserId: "user-1",
+  linkedWorkspaceId: "workspace-1",
+  linkedEmail: "user@example.com",
+  onboardingCompleted: true,
+  updatedAt: "2026-04-18T09:15:00.000Z",
+};
+
+function createLeaderboardWindow(windowKey: ProgressLeaderboardWindowKey): ProgressLeaderboardWindow {
+  return {
+    windowKey,
+    snapshotId: "0cc86d10-18cb-4d64-a2f2-a5fd960b45b2",
+    snapshotGeneratedAt: "2026-04-21T10:00:05.000Z",
+    asOfServerHour: "2026-04-21T10:00:00.000Z",
+    nextRefreshAfter: "2026-04-21T11:00:00.000Z",
+    participantCount: 128,
+    viewer: {
+      publicProfileId: "viewer-profile",
+      displayName: "You",
+      rank: 42,
+      qualifiedReviewCount: 7,
+    },
+    rows: [
+      { kind: "top", publicProfileId: "profile-1", anonymousDisplayName: "Silver Bright Harbor", qualifiedReviewCount: 51, rank: 1 },
+      { kind: "top", publicProfileId: "profile-2", anonymousDisplayName: "Amber Calm Meadow", qualifiedReviewCount: 44, rank: 2 },
+      { kind: "top", publicProfileId: "profile-3", anonymousDisplayName: "Coral Keen Valley", qualifiedReviewCount: 30, rank: 3 },
+      { kind: "gap" },
+      { kind: "neighbor", publicProfileId: "profile-41", anonymousDisplayName: "Jade Swift River", qualifiedReviewCount: 8, rank: 41 },
+      { kind: "viewer", publicProfileId: "viewer-profile", anonymousDisplayName: "Quiet Maple Grove", qualifiedReviewCount: 7, rank: 42 },
+      { kind: "neighbor", publicProfileId: "profile-43", anonymousDisplayName: "Bold Cedar Crest", qualifiedReviewCount: 7, rank: 43 },
+    ],
+  };
+}
+
+function createLeaderboard(status: ProgressLeaderboard["status"]): ProgressLeaderboard {
+  return {
+    status,
+    metric: {
+      metricVersion: "qualified_reviews_v1",
+      title: "Qualified reviews",
+      description: "Hard, Good, and Easy reviews count toward your rank. Again does not.",
+    },
+    defaultWindowKey: "last_24_hours",
+    windows: status === "ready" ? progressLeaderboardWindowKeys.map(createLeaderboardWindow) : [],
+  };
+}
+
+function createLeaderboardSourceState(
+  status: ProgressLeaderboard["status"],
+  localViewerCounts: ProgressLeaderboardLocalViewerCounts | null,
+): ProgressLeaderboardSourceState {
+  return createNextLeaderboardState(createEmptyProgressLeaderboardSourceState(), {
+    scopeKey: "workspace-1::leaderboard",
+    serverBase: createProgressLeaderboardSnapshot(createLeaderboard(status), false),
+    localViewerCounts,
+  }, true);
+}
+
+function mockProgressSourceStateWithLeaderboard(leaderboard: ProgressLeaderboardSourceState): void {
+  useProgressSourceMock.mockReturnValue({
+    progressSourceState: {
+      summary: {
+        scopeKey: "progress::summary::UTC::2026-04-21",
+        referenceLocalDate: "2026-04-21",
+        localFallback: null,
+        localFallbackActiveDates: [],
+        serverBase: createProgressSummarySnapshot(),
+        hasPendingLocalReviews: false,
+        renderedSeriesContext: null,
+        renderedSnapshot: createProgressSummarySnapshot(),
+        isLoading: false,
+        errorMessage: "",
+      },
+      series: {
+        scopeKey: "progress::series::UTC::2026-04-13::2026-04-21",
+        localFallback: null,
+        serverBase: createProgressSeriesSnapshot(),
+        pendingLocalOverlay: null,
+        renderedSnapshot: createProgressSeriesSnapshot(),
+        isLoading: false,
+        errorMessage: "",
+      },
+      reviewSchedule: {
+        scopeKey: "progress::review-schedule::UTC::2026-04-21",
+        localFallback: null,
+        serverBase: createReviewScheduleSnapshot(),
+        progressScheduleLocalVersion: 0,
+        serverBaseProgressScheduleLocalVersion: 0,
+        serverBaseLocalCardTotalDelta: 0,
+        hasPendingLocalCardChanges: false,
+        hasCompleteLocalCardState: false,
+        pendingLocalCardTotalDelta: 0,
+        renderedSnapshot: createReviewScheduleSnapshot(),
+        isLoading: false,
+        errorMessage: "",
+      },
+      leaderboard,
+    },
+    refreshProgress: refreshProgressMock,
+  });
+}
+
 describe("ProgressScreen", () => {
   let container: HTMLDivElement;
   let root: ReactDOM.Root;
@@ -243,46 +360,7 @@ describe("ProgressScreen", () => {
       progressScheduleLocalVersion: 0,
       progressServerInvalidationVersion: 0,
     });
-    useProgressSourceMock.mockReturnValue({
-      progressSourceState: {
-        summary: {
-          scopeKey: "progress::summary::UTC::2026-04-21",
-          referenceLocalDate: "2026-04-21",
-          localFallback: null,
-          localFallbackActiveDates: [],
-          serverBase: createProgressSummarySnapshot(),
-          hasPendingLocalReviews: false,
-          renderedSeriesContext: null,
-          renderedSnapshot: createProgressSummarySnapshot(),
-          isLoading: false,
-          errorMessage: "",
-        },
-        series: {
-          scopeKey: "progress::series::UTC::2026-04-13::2026-04-21",
-          localFallback: null,
-          serverBase: createProgressSeriesSnapshot(),
-          pendingLocalOverlay: null,
-          renderedSnapshot: createProgressSeriesSnapshot(),
-          isLoading: false,
-          errorMessage: "",
-        },
-        reviewSchedule: {
-          scopeKey: "progress::review-schedule::UTC::2026-04-21",
-          localFallback: null,
-          serverBase: createReviewScheduleSnapshot(),
-          progressScheduleLocalVersion: 0,
-          serverBaseProgressScheduleLocalVersion: 0,
-          serverBaseLocalCardTotalDelta: 0,
-          hasPendingLocalCardChanges: false,
-          hasCompleteLocalCardState: false,
-          pendingLocalCardTotalDelta: 0,
-          renderedSnapshot: createReviewScheduleSnapshot(),
-          isLoading: false,
-          errorMessage: "",
-        },
-      },
-      refreshProgress: refreshProgressMock,
-    });
+    mockProgressSourceStateWithLeaderboard(createEmptyProgressLeaderboardSourceState());
   });
 
   afterEach(async () => {
@@ -296,9 +374,11 @@ describe("ProgressScreen", () => {
   it("renders shared flame SVGs on progress without emoji text", async () => {
     await act(async () => {
       root.render(
-        <I18nProvider>
-          <ProgressScreen />
-        </I18nProvider>,
+        <MemoryRouter>
+          <I18nProvider>
+            <ProgressScreen />
+          </I18nProvider>
+        </MemoryRouter>,
       );
     });
 
@@ -327,9 +407,11 @@ describe("ProgressScreen", () => {
 
     await act(async () => {
       root.render(
-        <I18nProvider>
-          <ProgressScreen />
-        </I18nProvider>,
+        <MemoryRouter>
+          <I18nProvider>
+            <ProgressScreen />
+          </I18nProvider>
+        </MemoryRouter>,
       );
     });
 
@@ -343,9 +425,11 @@ describe("ProgressScreen", () => {
   it("uses the active week local maximum for y-axis labels and bar heights", async () => {
     await act(async () => {
       root.render(
-        <I18nProvider>
-          <ProgressScreen />
-        </I18nProvider>,
+        <MemoryRouter>
+          <I18nProvider>
+            <ProgressScreen />
+          </I18nProvider>
+        </MemoryRouter>,
       );
     });
 
@@ -386,9 +470,11 @@ describe("ProgressScreen", () => {
   it("renders the week header with native locale interval formatting", async () => {
     await act(async () => {
       root.render(
-        <I18nProvider>
-          <ProgressScreen />
-        </I18nProvider>,
+        <MemoryRouter>
+          <I18nProvider>
+            <ProgressScreen />
+          </I18nProvider>
+        </MemoryRouter>,
       );
     });
 
@@ -403,9 +489,11 @@ describe("ProgressScreen", () => {
   it("renders the review schedule donut and ordered bucket list", async () => {
     await act(async () => {
       root.render(
-        <I18nProvider>
-          <ProgressScreen />
-        </I18nProvider>,
+        <MemoryRouter>
+          <I18nProvider>
+            <ProgressScreen />
+          </I18nProvider>
+        </MemoryRouter>,
       );
     });
 
@@ -455,9 +543,11 @@ describe("ProgressScreen", () => {
 
     await act(async () => {
       root.render(
-        <I18nProvider>
-          <ProgressScreen />
-        </I18nProvider>,
+        <MemoryRouter>
+          <I18nProvider>
+            <ProgressScreen />
+          </I18nProvider>
+        </MemoryRouter>,
       );
     });
 
@@ -564,15 +654,18 @@ describe("ProgressScreen", () => {
           isLoading: false,
           errorMessage: "",
         },
+        leaderboard: createEmptyProgressLeaderboardSourceState(),
       },
       refreshProgress: refreshProgressMock,
     });
 
     await act(async () => {
       root.render(
-        <I18nProvider>
-          <ProgressScreen />
-        </I18nProvider>,
+        <MemoryRouter>
+          <I18nProvider>
+            <ProgressScreen />
+          </I18nProvider>
+        </MemoryRouter>,
       );
     });
 
@@ -598,5 +691,220 @@ describe("ProgressScreen", () => {
     expect(container.querySelector("[data-testid='progress-chart-y-label-max']")).not.toBeNull();
     const inactiveWeekBars = container.querySelectorAll("[data-testid^='progress-chart-bar-']");
     expect(inactiveWeekBars).toHaveLength(7);
+  });
+
+  it("renders the leaderboard guest placeholder with a sign-in link for unlinked accounts", async () => {
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <I18nProvider>
+            <ProgressScreen />
+          </I18nProvider>
+        </MemoryRouter>,
+      );
+    });
+
+    const guestPlaceholder = container.querySelector("[data-testid='progress-leaderboard-guest']");
+    if (!(guestPlaceholder instanceof HTMLElement)) {
+      throw new Error("Leaderboard guest placeholder was not found");
+    }
+
+    expect(guestPlaceholder.textContent).toContain("Sign in to see how your reviews rank alongside other learners.");
+    const signInLink = guestPlaceholder.querySelector("a");
+    if (!(signInLink instanceof HTMLAnchorElement)) {
+      throw new Error("Leaderboard guest sign-in link was not found");
+    }
+    expect(signInLink.textContent).toBe("Sign in");
+    expect(container.querySelector("[data-testid='progress-leaderboard-row-viewer']")).toBeNull();
+  });
+
+  it("renders the leaderboard participation-disabled placeholder with a settings link", async () => {
+    useAppDataMock.mockReturnValue({
+      ...createAppData(),
+      cloudSettings: linkedCloudSettings,
+    });
+    mockProgressSourceStateWithLeaderboard(createLeaderboardSourceState("participation_disabled", null));
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <I18nProvider>
+            <ProgressScreen />
+          </I18nProvider>
+        </MemoryRouter>,
+      );
+    });
+
+    const participationPlaceholder = container.querySelector("[data-testid='progress-leaderboard-participation-disabled']");
+    if (!(participationPlaceholder instanceof HTMLElement)) {
+      throw new Error("Leaderboard participation-disabled placeholder was not found");
+    }
+
+    expect(participationPlaceholder.textContent).toContain("Rankings are hidden while leaderboard participation is off.");
+    const settingsLink = participationPlaceholder.querySelector("a");
+    if (!(settingsLink instanceof HTMLAnchorElement)) {
+      throw new Error("Leaderboard participation settings link was not found");
+    }
+    expect(settingsLink.getAttribute("href")).toBe("/settings/account-status");
+    expect(container.querySelector("[data-testid='progress-leaderboard-row-viewer']")).toBeNull();
+  });
+
+  it("renders the ready leaderboard compact rows in server order with the top three before the gap", async () => {
+    useAppDataMock.mockReturnValue({
+      ...createAppData(),
+      cloudSettings: linkedCloudSettings,
+    });
+    mockProgressSourceStateWithLeaderboard(createLeaderboardSourceState("ready", null));
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <I18nProvider>
+            <ProgressScreen />
+          </I18nProvider>
+        </MemoryRouter>,
+      );
+    });
+
+    const rows = [...container.querySelectorAll(".progress-leaderboard-row")];
+    expect(rows.map((row) => row.getAttribute("data-kind"))).toEqual([
+      "top",
+      "top",
+      "top",
+      "gap",
+      "neighbor",
+      "viewer",
+      "neighbor",
+    ]);
+
+    const rowTexts = rows.map((row) => row.textContent);
+    expect(rowTexts[0]).toContain("Silver Bright Harbor");
+    expect(rowTexts[0]).toContain("#1");
+    expect(rowTexts[1]).toContain("Amber Calm Meadow");
+    expect(rowTexts[2]).toContain("Coral Keen Valley");
+    expect(rowTexts[4]).toContain("Jade Swift River");
+    expect(rowTexts[5]).toContain("You");
+    expect(rowTexts[5]).toContain("#42");
+    expect(rowTexts[6]).toContain("Bold Cedar Crest");
+
+    const gapRow = rows[3];
+    if (gapRow === undefined) {
+      throw new Error("Leaderboard gap row was not found");
+    }
+    expect(gapRow.querySelector("button")).toBeNull();
+    expect(gapRow.querySelector("a")).toBeNull();
+  });
+
+  it("reveals the leaderboard info text explaining that Again reviews are excluded", async () => {
+    useAppDataMock.mockReturnValue({
+      ...createAppData(),
+      cloudSettings: linkedCloudSettings,
+    });
+    mockProgressSourceStateWithLeaderboard(createLeaderboardSourceState("ready", null));
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <I18nProvider>
+            <ProgressScreen />
+          </I18nProvider>
+        </MemoryRouter>,
+      );
+    });
+
+    expect(container.querySelector("[data-testid='progress-leaderboard-info']")).toBeNull();
+
+    const infoToggle = container.querySelector("[data-testid='progress-leaderboard-info-toggle']");
+    if (!(infoToggle instanceof HTMLButtonElement)) {
+      throw new Error("Leaderboard info toggle was not found");
+    }
+
+    await act(async () => {
+      infoToggle.click();
+    });
+
+    const infoText = container.querySelector("[data-testid='progress-leaderboard-info']");
+    if (!(infoText instanceof HTMLParagraphElement)) {
+      throw new Error("Leaderboard info text was not found");
+    }
+    expect(infoText.textContent).toContain("Hard, Good, or Easy count");
+    expect(infoText.textContent).toContain("Again reviews are not counted.");
+  });
+
+  it("overlays only the viewer count when the local qualified review count differs", async () => {
+    useAppDataMock.mockReturnValue({
+      ...createAppData(),
+      cloudSettings: linkedCloudSettings,
+    });
+    mockProgressSourceStateWithLeaderboard(createLeaderboardSourceState("ready", {
+      last_24_hours: 9,
+      last_3_days: 9,
+      last_7_days: 9,
+      last_30_days: 9,
+      all_time: 9,
+    }));
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <I18nProvider>
+            <ProgressScreen />
+          </I18nProvider>
+        </MemoryRouter>,
+      );
+    });
+
+    const viewerRow = container.querySelector("[data-testid='progress-leaderboard-row-viewer']");
+    if (!(viewerRow instanceof HTMLElement)) {
+      throw new Error("Leaderboard viewer row was not found");
+    }
+
+    expect(viewerRow.querySelector("[data-testid='progress-leaderboard-count-viewer']")?.textContent).toBe("9");
+    expect(viewerRow.textContent).toContain("#42");
+
+    const neighborCounts = [...container.querySelectorAll("[data-testid='progress-leaderboard-count-neighbor']")]
+      .map((count) => count.textContent);
+    expect(neighborCounts).toEqual(["8", "7"]);
+
+    const topCounts = [...container.querySelectorAll("[data-testid='progress-leaderboard-count-top']")]
+      .map((count) => count.textContent);
+    expect(topCounts).toEqual(["51", "44", "30"]);
+  });
+
+  it("switches the visible leaderboard window with the period control", async () => {
+    useAppDataMock.mockReturnValue({
+      ...createAppData(),
+      cloudSettings: linkedCloudSettings,
+    });
+    mockProgressSourceStateWithLeaderboard(createLeaderboardSourceState("ready", null));
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <I18nProvider>
+            <ProgressScreen />
+          </I18nProvider>
+        </MemoryRouter>,
+      );
+    });
+
+    const defaultPeriodButton = container.querySelector("[data-testid='progress-leaderboard-period-last_24_hours']");
+    if (!(defaultPeriodButton instanceof HTMLButtonElement)) {
+      throw new Error("Default leaderboard period button was not found");
+    }
+    expect(defaultPeriodButton.getAttribute("aria-pressed")).toBe("true");
+
+    const allTimePeriodButton = container.querySelector("[data-testid='progress-leaderboard-period-all_time']");
+    if (!(allTimePeriodButton instanceof HTMLButtonElement)) {
+      throw new Error("All-time leaderboard period button was not found");
+    }
+
+    await act(async () => {
+      allTimePeriodButton.click();
+    });
+
+    expect(allTimePeriodButton.getAttribute("aria-pressed")).toBe("true");
+    expect(defaultPeriodButton.getAttribute("aria-pressed")).toBe("false");
+    expect(container.querySelector("[data-testid='progress-leaderboard-row-viewer']")).not.toBeNull();
   });
 });

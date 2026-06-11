@@ -1,10 +1,12 @@
 import { ApiContractError } from "../../apiContracts/core";
 import {
+  parseProgressLeaderboardResponse,
   parseProgressReviewScheduleResponse,
   parseProgressSeriesResponse,
   parseProgressSummaryResponse,
 } from "../../apiContracts/progress";
 import type {
+  ProgressLeaderboard,
   ProgressReviewSchedule,
   ProgressReviewScheduleInput,
   ProgressSeries,
@@ -42,6 +44,16 @@ export async function loadProgressSeries(input: ProgressSeriesInput): Promise<Pr
     }, allowAuthRecoveryWithTransientNetworkRetry),
     "GET /me/progress/series",
     parseProgressSeriesResponse,
+  );
+}
+
+export async function loadProgressLeaderboard(): Promise<ProgressLeaderboard> {
+  return parseContractResponse(
+    await requestJson("/me/progress/leaderboard", {
+      method: "GET",
+    }, allowAuthRecoveryWithTransientNetworkRetry),
+    "GET /me/progress/leaderboard",
+    parseProgressLeaderboardResponse,
   );
 }
 

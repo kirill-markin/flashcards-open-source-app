@@ -2,6 +2,7 @@ import type {
   AccountPreferences,
   AccountPreferencesEnvelope,
   AgentApiKeyConnection,
+  CommunityPublicProfile,
   DeleteWorkspaceResponse,
   ResetWorkspaceProgressResponse,
   SessionInfo,
@@ -106,6 +107,31 @@ export function parseAccountPreferencesEnvelopeResponse(
   const objectValue = parseObject(value, endpoint, "");
   return {
     preferences: parseRequiredField(objectValue, "preferences", endpoint, "", parseAccountPreferences),
+  };
+}
+
+export function parseCommunityPublicProfileResponse(
+  value: unknown,
+  endpoint: string,
+): CommunityPublicProfile {
+  const objectValue = parseObject(value, endpoint, "");
+  return {
+    publicProfileId: parseRequiredField(objectValue, "publicProfileId", endpoint, "", parseString),
+    anonymousDisplayName: parseRequiredField(objectValue, "anonymousDisplayName", endpoint, "", parseString),
+    leaderboardParticipationEnabled: parseRequiredField(
+      objectValue,
+      "leaderboardParticipationEnabled",
+      endpoint,
+      "",
+      parseBoolean,
+    ),
+    linkedAccountRequiredForLeaderboard: parseRequiredField(
+      objectValue,
+      "linkedAccountRequiredForLeaderboard",
+      endpoint,
+      "",
+      parseBoolean,
+    ),
   };
 }
 

@@ -12,6 +12,7 @@ export type ProgressSourceSections = Readonly<{
   includeSummary: boolean;
   includeSeries: boolean;
   includeReviewSchedule: boolean;
+  includeLeaderboard: boolean;
 }>;
 
 export function collectAccessibleWorkspaceIds(
@@ -86,6 +87,25 @@ export function resolveProgressReviewScheduleScopeKey(
   }
 
   return buildProgressReviewScheduleScopeKey(accessibleWorkspaceIds, input);
+}
+
+// The leaderboard payload is account-scoped, so the scope key only needs the
+// accessible workspace list as an account proxy; time zone and date are irrelevant.
+export function buildProgressLeaderboardScopeKey(
+  workspaceIds: ReadonlyArray<string>,
+): ProgressScopeKey {
+  return `${workspaceIds.join(",")}::leaderboard`;
+}
+
+export function resolveProgressLeaderboardScopeKey(
+  includeLeaderboard: boolean,
+  accessibleWorkspaceIds: ReadonlyArray<string>,
+): ProgressScopeKey | null {
+  if (includeLeaderboard === false || accessibleWorkspaceIds.length === 0) {
+    return null;
+  }
+
+  return buildProgressLeaderboardScopeKey(accessibleWorkspaceIds);
 }
 
 export function canLoadProgressServerBase(

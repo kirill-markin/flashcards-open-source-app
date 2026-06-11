@@ -14,6 +14,7 @@ const REVIEW_PROGRESS_BADGE_SECTIONS = {
   includeSummary: true,
   includeSeries: false,
   includeReviewSchedule: false,
+  includeLeaderboard: false,
 } as const;
 
 export function buildReviewProgressBadgeStateFromSummarySnapshot(
