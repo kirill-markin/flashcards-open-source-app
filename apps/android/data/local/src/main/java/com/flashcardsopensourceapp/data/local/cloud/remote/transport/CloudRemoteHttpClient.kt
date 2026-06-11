@@ -274,8 +274,9 @@ internal class CloudJsonHttpClient(
             body = body
         )
         var attemptNumber = 1
+        var completedResponse: JSONObject? = null
 
-        while (true) {
+        while (completedResponse == null) {
             val call = httpClient.newCall(request)
             val coroutineJob = currentCoroutineContext().job
             val cancellationRequested = AtomicBoolean(false)
@@ -403,20 +404,21 @@ internal class CloudJsonHttpClient(
                 cancellationHandle.dispose()
             }
 
-            val completedResponse = successfulResponse
-            if (completedResponse != null) {
-                return@withContext completedResponse
-            }
+            val attemptResponse = successfulResponse
+            completedResponse = attemptResponse
 
-            val delayMs = retryDelayMs
-            if (delayMs != null) {
-                delay(delayMs)
-                attemptNumber += 1
-                continue
-            }
+            if (attemptResponse == null) {
+                val delayMs = retryDelayMs
+                if (delayMs != null) {
+                    delay(delayMs)
+                    attemptNumber += 1
+                    continue
+                }
 
-            throw IllegalStateException("Cloud request attempt finished without a response or retry decision.")
+                throw IllegalStateException("Cloud request attempt finished without a response or retry decision.")
+            }
         }
+        completedResponse ?: throw IllegalStateException("Cloud request retry loop exited without a response.")
     }
 
     private fun buildCloudRequest(
