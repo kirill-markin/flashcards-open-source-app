@@ -16,6 +16,15 @@ enum AppTab: Hashable, CaseIterable, Sendable {
     case settings
 }
 
+enum ProgressPresentationTarget: Hashable, Sendable {
+    case leaderboard
+}
+
+struct ProgressPresentationRequest: Hashable, Sendable {
+    let id: UUID
+    let target: ProgressPresentationTarget
+}
+
 enum SettingsNavigationDestination: Hashable, Sendable {
     case currentWorkspace
     case reviewAnimations

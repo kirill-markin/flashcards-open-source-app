@@ -61,24 +61,28 @@ final class AppNavigationModel {
     var settingsPath: [SettingsNavigationDestination]
     var cardsPresentationRequest: CardsPresentationRequest?
     var aiChatPresentationRequest: AIChatPresentationRequest?
+    var progressPresentationRequest: ProgressPresentationRequest?
 
     init() {
         self.selectedTab = .review
         self.settingsPath = []
         self.cardsPresentationRequest = nil
         self.aiChatPresentationRequest = nil
+        self.progressPresentationRequest = nil
     }
 
     init(
         selectedTab: AppTab,
         settingsPath: [SettingsNavigationDestination],
         cardsPresentationRequest: CardsPresentationRequest?,
-        aiChatPresentationRequest: AIChatPresentationRequest?
+        aiChatPresentationRequest: AIChatPresentationRequest?,
+        progressPresentationRequest: ProgressPresentationRequest?
     ) {
         self.selectedTab = selectedTab
         self.settingsPath = settingsPath
         self.cardsPresentationRequest = cardsPresentationRequest
         self.aiChatPresentationRequest = aiChatPresentationRequest
+        self.progressPresentationRequest = progressPresentationRequest
     }
 
     func selectTab(_ tab: AppTab) {
@@ -100,6 +104,14 @@ final class AppNavigationModel {
         self.aiChatPresentationRequest = .attachCard(card)
     }
 
+    func openProgress(target: ProgressPresentationTarget) {
+        self.selectedTab = .progress
+        self.progressPresentationRequest = ProgressPresentationRequest(
+            id: UUID(),
+            target: target
+        )
+    }
+
     func openSettings(destination: SettingsNavigationDestination) {
         self.selectedTab = .settings
         self.settingsPath = makeSettingsNavigationPath(destination: destination)
@@ -111,5 +123,13 @@ final class AppNavigationModel {
 
     func clearAIChatPresentationRequest() {
         self.aiChatPresentationRequest = nil
+    }
+
+    func clearProgressPresentationRequest(id: UUID) {
+        guard self.progressPresentationRequest?.id == id else {
+            return
+        }
+
+        self.progressPresentationRequest = nil
     }
 }

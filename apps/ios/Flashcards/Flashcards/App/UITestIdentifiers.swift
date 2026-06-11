@@ -106,6 +106,7 @@ enum UITestIdentifier {
     static let cardEditorSaveButton: String = "cardEditor.saveButton"
     static let cardEditorFrontTextEditor: String = "cardEditor.frontTextEditor"
     static let cardEditorBackTextEditor: String = "cardEditor.backTextEditor"
+    static let reviewLeaderboardShortcut: String = "review.leaderboardShortcut"
     static let reviewProgressBadge: String = "review.progressBadge"
     static let reviewQueueButton: String = "review.queueButton"
     static let reviewShowAnswerButton: String = "review.showAnswerButton"
