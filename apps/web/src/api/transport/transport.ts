@@ -28,9 +28,9 @@ const refreshSessionEndpoint = "POST /api/refresh-session";
 const refreshSessionMaximumAttemptCount = 3;
 const refreshSessionBaseRetryDelayMs = 100;
 const refreshSessionMaximumRetryDelayMs = 500;
-const apiNetworkRetryMaximumAttemptCount = 3;
-const apiNetworkRetryBaseDelayMs = 100;
-const apiNetworkRetryMaximumDelayMs = 500;
+const apiNetworkRetryMaximumAttemptCount = 4;
+const apiNetworkRetryBaseDelayMs = 250;
+const apiNetworkRetryMaximumDelayMs = 2000;
 const uuidPathSegmentPattern = /\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?=\/|$)/giu;
 const transientRefreshSessionStatusCodes: ReadonlySet<number> = new Set([
   408,

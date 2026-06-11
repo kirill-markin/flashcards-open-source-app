@@ -84,14 +84,34 @@ function expectLocalBrowserStateCleared(): void {
   expect(window.localStorage.getItem(LOCALE_PREFERENCE_STORAGE_KEY)).toBe("ar");
 }
 
-function mockBlockedDeleteDatabase(): ReturnType<typeof vi.spyOn> {
-  return vi.spyOn(indexedDB, "deleteDatabase").mockImplementation(() => {
-    const request = {} as IDBOpenDBRequest;
-    queueMicrotask(() => {
-      request.onblocked?.(new Event("blocked"));
-    });
-    return request;
+function createMockOpenDbRequest(fire: (request: IDBOpenDBRequest) => void): IDBOpenDBRequest {
+  const request = {} as IDBOpenDBRequest;
+  queueMicrotask(() => {
+    fire(request);
   });
+  return request;
+}
+
+function mockBlockedThenSuccessfulDeleteDatabase(): void {
+  vi.spyOn(indexedDB, "deleteDatabase").mockImplementation(() => createMockOpenDbRequest((request) => {
+    request.onblocked?.(new Event("blocked"));
+    queueMicrotask(() => {
+      request.onsuccess?.(new Event("success"));
+    });
+  }));
+}
+
+function mockFailingDeleteDatabase(): void {
+  vi.spyOn(indexedDB, "deleteDatabase").mockImplementation(() => createMockOpenDbRequest((request) => {
+    request.onerror?.(new Event("error"));
+  }));
+}
+
+function mockUnavailableIndexedDbOpen(): void {
+  vi.spyOn(indexedDB, "open").mockImplementation(() => createMockOpenDbRequest((request) => {
+    Object.assign(request, { error: new DOMException("IndexedDB unavailable", "UnknownError") });
+    request.onerror?.(new Event("error"));
+  }));
 }
 
 beforeEach(async () => {
@@ -113,11 +133,51 @@ afterEach(async () => {
 });
 
 describe("account deletion local cleanup helpers", () => {
-  it("keeps the reauth guard when IndexedDB cleanup is blocked", async () => {
+  it("completes cleanup when the database delete is blocked before succeeding", async () => {
     seedLocalBrowserState();
-    mockBlockedDeleteDatabase();
+    await putCloudSettings(seededCloudSettings);
+    mockBlockedThenSuccessfulDeleteDatabase();
 
-    await expect(clearAllLocalBrowserData("logout_marker")).rejects.toThrow("Failed to delete IndexedDB: delete request was blocked");
+    await expect(clearAllLocalBrowserData("logout_marker")).resolves.toBeUndefined();
+
+    expectLocalBrowserStateCleared();
+    await expect(loadCloudSettings()).resolves.toBeNull();
+    expect(observabilityMocks.addWebBreadcrumbMock).toHaveBeenCalledWith(expect.objectContaining({
+      action: "local_browser_data_cleanup",
+      details: expect.objectContaining({
+        eventName: "local_browser_data_cleanup_succeeded",
+        reason: "logout_marker",
+        indexedDbCleared: true,
+        localStorageCleared: true,
+      }),
+    }));
+  });
+
+  it("completes cleanup when the database delete fails after stores were wiped", async () => {
+    seedLocalBrowserState();
+    await putCloudSettings(seededCloudSettings);
+    mockFailingDeleteDatabase();
+
+    await expect(clearAllLocalBrowserData("logout_marker")).resolves.toBeUndefined();
+
+    expectLocalBrowserStateCleared();
+    await expect(loadCloudSettings()).resolves.toBeNull();
+    expect(observabilityMocks.addWebBreadcrumbMock).toHaveBeenCalledWith(expect.objectContaining({
+      action: "indexed_db_operation",
+      details: expect.objectContaining({
+        eventName: "indexed_db_delete_lifecycle",
+        indexedDbDeleteOutcome: "delete_error",
+      }),
+    }));
+  });
+
+  it("keeps the reauth guard when the database cannot be wiped or deleted", async () => {
+    seedLocalBrowserState();
+    await putCloudSettings(seededCloudSettings);
+    mockUnavailableIndexedDbOpen();
+    mockFailingDeleteDatabase();
+
+    await expect(clearAllLocalBrowserData("logout_marker")).rejects.toThrow("Failed to open IndexedDB");
     expect(window.localStorage.getItem("flashcards-warm-start-snapshot")).toBeNull();
     expect(window.localStorage.getItem("flashcards-chat-drafts::workspace-1")).toBeNull();
     expect(window.localStorage.getItem(SYNC_RESTORE_HISTORY_STORAGE_KEY)).toBeNull();
@@ -126,6 +186,13 @@ describe("account deletion local cleanup helpers", () => {
     expect(isBrowserReauthRequired()).toBe(true);
     expect(window.localStorage.getItem(INSTALLATION_ID_STORAGE_KEY)).toBe("installation-1");
     expect(window.localStorage.getItem(LOCALE_PREFERENCE_STORAGE_KEY)).toBe("ar");
+    expect(observabilityMocks.addWebBreadcrumbMock).toHaveBeenCalledWith(expect.objectContaining({
+      action: "local_browser_data_cleanup",
+      details: expect.objectContaining({
+        eventName: "local_browser_data_cleanup_failed",
+        errorName: "UnknownError",
+      }),
+    }));
   });
 
   it("clears reauth markers and IndexedDB only during explicit local data cleanup", async () => {

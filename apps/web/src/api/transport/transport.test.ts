@@ -14,7 +14,7 @@ import {
   createStorageMock,
   expectLocalBrowserStatePreserved,
   expectLocalBrowserStatePreservedForReauth,
-  mockBlockedDeleteDatabase,
+  spyOnDeleteDatabase,
   seedLocalBrowserState,
   setNavigatorLanguages,
 } from "../ApiTestSupport";
@@ -311,7 +311,7 @@ describe("session transport auth recovery", () => {
 
   it("redirects to login without attempting IndexedDB cleanup", async () => {
     seedLocalBrowserState();
-    const deleteDatabaseSpy = mockBlockedDeleteDatabase();
+    const deleteDatabaseSpy = spyOnDeleteDatabase();
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(new Response(null, { status: 401 }))
       .mockResolvedValueOnce(new Response(null, { status: 401 }));
@@ -499,7 +499,7 @@ describe("API transport network retry", () => {
     expect(consoleWarnSpy).toHaveBeenCalledWith("API transport retry", expect.objectContaining({
       endpoint: "GET /me",
       attemptCount: 1,
-      maximumAttemptCount: 3,
+      maximumAttemptCount: 4,
       nextAttemptCount: 2,
       originalErrorName: "TypeError",
       originalErrorMessage: "Failed to fetch",
@@ -523,11 +523,11 @@ describe("API transport network retry", () => {
       responseBodyKind: "empty",
       originalErrorName: "TypeError",
       originalErrorMessage: "Failed to fetch",
-      attemptCount: 3,
+      attemptCount: 4,
     } satisfies Partial<ApiNetworkError>);
 
-    expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect(consoleWarnSpy).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(consoleWarnSpy).toHaveBeenCalledTimes(3);
   });
 
   it("retries a transient network failure for workspace bootstrap reads", async () => {
@@ -551,7 +551,7 @@ describe("API transport network retry", () => {
     expect(consoleWarnSpy).toHaveBeenCalledWith("API transport retry", expect.objectContaining({
       endpoint: "GET /workspaces",
       attemptCount: 1,
-      maximumAttemptCount: 3,
+      maximumAttemptCount: 4,
       nextAttemptCount: 2,
       originalErrorName: "TypeError",
       originalErrorMessage: "Failed to fetch",
@@ -574,7 +574,7 @@ describe("API transport network retry", () => {
     expect(consoleWarnSpy).toHaveBeenCalledWith("API transport retry", expect.objectContaining({
       endpoint: "GET /chat",
       attemptCount: 1,
-      maximumAttemptCount: 3,
+      maximumAttemptCount: 4,
       nextAttemptCount: 2,
       originalErrorName: "TypeError",
       originalErrorMessage: "Failed to fetch",
@@ -867,11 +867,11 @@ describe("API transport network retry", () => {
       responseBodyKind: "empty",
       originalErrorName: "TypeError",
       originalErrorMessage: "Failed to fetch",
-      attemptCount: 3,
+      attemptCount: 4,
     } satisfies Partial<ApiNetworkError>);
 
-    expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect(consoleWarnSpy).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(consoleWarnSpy).toHaveBeenCalledTimes(3);
   });
 
   it("does not retry mutating chat stop requests when network retry is not enabled", async () => {

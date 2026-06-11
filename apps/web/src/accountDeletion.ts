@@ -119,6 +119,15 @@ function normalizeCleanupError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
 }
 
+function readCleanupErrorName(error: Error): string {
+  const metadata = error as Readonly<{ indexedDbErrorName?: unknown }>;
+  if (typeof metadata.indexedDbErrorName === "string" && metadata.indexedDbErrorName.trim() !== "") {
+    return metadata.indexedDbErrorName;
+  }
+
+  return error.name;
+}
+
 function getCurrentRoute(): string | null {
   if (typeof window === "undefined") {
     return null;
@@ -151,6 +160,7 @@ function logLocalBrowserDataCleanup(
     reason: LocalBrowserDataCleanupReason;
     indexedDbCleared: boolean;
     localStorageCleared: boolean;
+    errorName: string | null;
     errorMessage: string | null;
   }>,
 ): void {
@@ -246,6 +256,7 @@ export async function clearAllLocalBrowserData(reason: LocalBrowserDataCleanupRe
     reason,
     indexedDbCleared: false,
     localStorageCleared: false,
+    errorName: null,
     errorMessage: null,
   });
 
@@ -268,6 +279,10 @@ export async function clearAllLocalBrowserData(reason: LocalBrowserDataCleanupRe
       reason,
       indexedDbCleared: false,
       localStorageCleared: browserStorage !== null,
+      // The privacy sanitizer redacts errorMessage; errorName stays readable
+      // in Sentry and carries the underlying IndexedDB error name when the
+      // failure originated in the local database layer.
+      errorName: readCleanupErrorName(indexedDbError),
       errorMessage: indexedDbError.message,
     });
     throw indexedDbError;
@@ -278,6 +293,7 @@ export async function clearAllLocalBrowserData(reason: LocalBrowserDataCleanupRe
     reason,
     indexedDbCleared: true,
     localStorageCleared: browserStorage !== null,
+    errorName: null,
     errorMessage: null,
   });
 }

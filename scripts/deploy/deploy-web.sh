@@ -52,7 +52,28 @@ if [[ -z "$WEB_DISTRIBUTION_ID" || "$WEB_DISTRIBUTION_ID" == "None" ]]; then
   exit 1
 fi
 
-aws s3 sync "$RESOLVED_DIST_DIR" "s3://${WEB_BUCKET}" --delete
+# Hashed assets are immutable, so browsers may cache them long-term. Old
+# files are intentionally kept (no --delete): tabs and cached index.html from
+# a previous deploy must keep resolving their chunks until they reload.
+# Bucket growth is unbounded by design (a few MB per deploy); an age-based
+# lifecycle rule would delete the live assets of a dormant deployment, so
+# prune manually if size ever matters. The same applies to removed non-hashed
+# files (favicons and similar): they stay served at their old paths until
+# pruned manually.
+aws s3 sync "${RESOLVED_DIST_DIR}/assets" "s3://${WEB_BUCKET}/assets" \
+  --cache-control "public, max-age=31536000, immutable"
+
+# Non-hashed files must always revalidate; cp (not sync) re-applies the
+# cache-control metadata even when the file content did not change.
+aws s3 cp --recursive "$RESOLVED_DIST_DIR" "s3://${WEB_BUCKET}" \
+  --exclude "assets/*" \
+  --exclude "index.html" \
+  --cache-control "no-cache"
+
+# index.html goes last so it never references assets that are not uploaded yet.
+aws s3 cp "${RESOLVED_DIST_DIR}/index.html" "s3://${WEB_BUCKET}/index.html" \
+  --cache-control "no-cache"
+
 aws cloudfront create-invalidation --distribution-id "$WEB_DISTRIBUTION_ID" --paths "/*" >/dev/null
 
 echo "Web app deployed: ${WEB_PUBLIC_BASE}"

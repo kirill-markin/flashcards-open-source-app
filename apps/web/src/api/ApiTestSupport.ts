@@ -97,14 +97,8 @@ export function expectLocalBrowserStatePreservedForReauth(): void {
   expect(window.localStorage.getItem(LOCALE_PREFERENCE_STORAGE_KEY)).toBe("ar");
 }
 
-export function mockBlockedDeleteDatabase(): ReturnType<typeof vi.spyOn> {
-  return vi.spyOn(indexedDB, "deleteDatabase").mockImplementation(() => {
-    const request = {} as IDBOpenDBRequest;
-    queueMicrotask(() => {
-      request.onblocked?.(new Event("blocked"));
-    });
-    return request;
-  });
+export function spyOnDeleteDatabase(): ReturnType<typeof vi.spyOn> {
+  return vi.spyOn(indexedDB, "deleteDatabase");
 }
 
 export function setNavigatorLanguages(languages: ReadonlyArray<string>, language: string): void {
