@@ -1,17 +1,20 @@
-package com.flashcardsopensourceapp.app.notifications
+package com.flashcardsopensourceapp.app.notifications.review
 
 import android.annotation.SuppressLint
 import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.flashcardsopensourceapp.app.MainActivity
 import com.flashcardsopensourceapp.app.R
+import com.flashcardsopensourceapp.app.notifications.AppNotificationTapType
+import com.flashcardsopensourceapp.app.notifications.appNotificationTapExtraPrefix
+import com.flashcardsopensourceapp.app.notifications.appNotificationTapTypeDataKey
+import com.flashcardsopensourceapp.app.notifications.ensureReviewNotificationChannel
+import com.flashcardsopensourceapp.app.notifications.hasNotificationPermission
+import com.flashcardsopensourceapp.app.notifications.reviewNotificationChannelId
 import com.flashcardsopensourceapp.core.ui.bidiWrap
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 
@@ -136,21 +139,4 @@ private fun reviewReminderNotificationId(requestId: String): Int {
 
 internal fun reviewReminderNotificationTag(requestId: String): String {
     return "$reviewReminderNotificationTagPrefix$requestId"
-}
-
-internal fun ensureReviewNotificationChannel(context: Context) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-        return
-    }
-
-    val manager = context.getSystemService(NotificationManager::class.java)
-    manager.createNotificationChannel(
-        NotificationChannel(
-            reviewNotificationChannelId,
-            context.getString(R.string.review_notification_channel_name),
-            NotificationManager.IMPORTANCE_DEFAULT
-        ).apply {
-            description = context.getString(R.string.review_notification_channel_description)
-        }
-    )
 }

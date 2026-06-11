@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.app.notifications
+package com.flashcardsopensourceapp.app.notifications.strict
 
 import android.annotation.SuppressLint
 import android.app.Notification
@@ -9,6 +9,12 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.flashcardsopensourceapp.app.MainActivity
 import com.flashcardsopensourceapp.app.R
+import com.flashcardsopensourceapp.app.notifications.AppNotificationTapType
+import com.flashcardsopensourceapp.app.notifications.appNotificationTapExtraPrefix
+import com.flashcardsopensourceapp.app.notifications.appNotificationTapTypeDataKey
+import com.flashcardsopensourceapp.app.notifications.ensureReviewNotificationChannel
+import com.flashcardsopensourceapp.app.notifications.hasNotificationPermission
+import com.flashcardsopensourceapp.app.notifications.reviewNotificationChannelId
 import com.flashcardsopensourceapp.data.local.notifications.StrictReminderTimeOffset
 import com.flashcardsopensourceapp.feature.review.reviewTextProvider
 

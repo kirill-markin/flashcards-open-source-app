@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.app.notifications
 
-import com.flashcardsopensourceapp.data.local.database.review.ReviewLogDao
+import com.flashcardsopensourceapp.app.notifications.strict.StrictRemindersManager
+import com.flashcardsopensourceapp.app.notifications.strict.StrictRemindersScheduler
 import com.flashcardsopensourceapp.core.observability.AndroidBreadcrumbEvent
 import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
 import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
@@ -8,6 +9,7 @@ import com.flashcardsopensourceapp.core.observability.AndroidWorkInfoStateCounts
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
 import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
+import com.flashcardsopensourceapp.data.local.database.review.ReviewLogDao
 import com.flashcardsopensourceapp.data.local.notifications.ScheduledStrictReminderPayload
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersReconcileTrigger
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersSettings

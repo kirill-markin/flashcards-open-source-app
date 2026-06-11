@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.app.notifications
 
+import android.content.Intent
 import android.util.Log
 
 const val appNotificationTapTypeDataKey: String = "notificationType"
@@ -52,4 +53,49 @@ private fun buildAppNotificationTapLogMessage(fallback: AppNotificationTapFallba
     return "domain=android_notifications action=notification_tap_fallback " +
         "stage=${fallback.stage} reason=${fallback.reason} " +
         "notificationType=$notificationType details=$details"
+}
+
+internal fun parseAppNotificationTapRequest(
+    getStringExtra: (String) -> String?
+): AppNotificationTapRequest? {
+    val rawNotificationType = getStringExtra("$appNotificationTapExtraPrefix::$appNotificationTapTypeDataKey")
+        ?: return null
+    val notificationType = AppNotificationTapType.fromRawValue(rawValue = rawNotificationType)
+    if (notificationType == null) {
+        logAppNotificationTapFallback(
+            fallback = AppNotificationTapFallback(
+                stage = "parse",
+                reason = "unsupported_notification_type",
+                notificationType = rawNotificationType,
+                details = null
+            )
+        )
+        return null
+    }
+
+    return AppNotificationTapRequest(type = notificationType)
+}
+
+fun parseAppNotificationTapRequest(intent: Intent): AppNotificationTapRequest? {
+    return parseAppNotificationTapRequest(getStringExtra = intent::getStringExtra)
+}
+
+internal fun consumeAppNotificationTapRequest(
+    getStringExtra: (String) -> String?,
+    removeExtra: (String) -> Unit
+): AppNotificationTapRequest? {
+    val request = parseAppNotificationTapRequest(getStringExtra = getStringExtra) ?: return null
+    clearAppNotificationTapExtras(removeExtra = removeExtra)
+    return request
+}
+
+fun consumeAppNotificationTapRequest(intent: Intent): AppNotificationTapRequest? {
+    return consumeAppNotificationTapRequest(
+        getStringExtra = intent::getStringExtra,
+        removeExtra = intent::removeExtra
+    )
+}
+
+private fun clearAppNotificationTapExtras(removeExtra: (String) -> Unit) {
+    appNotificationTapIntentExtraKeys.forEach(removeExtra)
 }
