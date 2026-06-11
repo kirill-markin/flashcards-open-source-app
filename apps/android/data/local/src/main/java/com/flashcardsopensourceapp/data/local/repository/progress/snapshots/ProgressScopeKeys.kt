@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.data.local.repository.progress.snapshots
 
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummaryScopeKey
@@ -46,6 +47,16 @@ internal fun createProgressReviewScheduleScopeKey(
         timeZone = zoneId.id,
         workspaceMembershipKey = createProgressWorkspaceMembershipKey(workspaceIds = workspaceIds),
         referenceLocalDate = today.toString()
+    )
+}
+
+// The leaderboard payload is account-scoped: ranks cover the whole account regardless
+// of time zone or local date, so the scope id alone identifies the cached payload.
+internal fun createProgressLeaderboardScopeKey(
+    cloudSettings: CloudSettings
+): ProgressLeaderboardScopeKey {
+    return ProgressLeaderboardScopeKey(
+        scopeId = createProgressScopeId(cloudSettings = cloudSettings)
     )
 }
 

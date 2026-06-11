@@ -19,8 +19,10 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkContext
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCommunityProfile
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeletePreview
@@ -41,6 +43,7 @@ import com.flashcardsopensourceapp.data.local.model.cards.DeckDraft
 import com.flashcardsopensourceapp.data.local.model.cards.DeckSummary
 import com.flashcardsopensourceapp.data.local.model.sync.DeviceDiagnosticsSummary
 import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
@@ -130,12 +133,15 @@ interface ProgressRepository {
     fun observeSummarySnapshot(): Flow<ProgressSummarySnapshot?>
     fun observeSeriesSnapshot(): Flow<ProgressSeriesSnapshot?>
     fun observeReviewScheduleSnapshot(): Flow<ProgressReviewScheduleSnapshot?>
+    fun observeLeaderboardSnapshot(): Flow<ProgressLeaderboardSnapshot?>
     suspend fun refreshSummaryIfInvalidated()
     suspend fun refreshSeriesIfInvalidated()
     suspend fun refreshReviewScheduleIfInvalidated()
+    suspend fun refreshLeaderboardIfInvalidated()
     suspend fun refreshSummaryManually()
     suspend fun refreshSeriesManually()
     suspend fun refreshReviewScheduleManually()
+    suspend fun refreshLeaderboardManually()
 }
 
 interface FeedbackRepository {
@@ -178,6 +184,11 @@ interface CloudAccountRepository {
     suspend fun loadProgressSummary(timeZone: String): CloudProgressSummary
     suspend fun loadProgressSeries(timeZone: String, from: String, to: String): CloudProgressSeries
     suspend fun loadProgressReviewSchedule(timeZone: String): CloudProgressReviewSchedule
+    suspend fun loadProgressLeaderboard(): CloudProgressLeaderboard
+    suspend fun loadCommunityProfile(): CloudCommunityProfile
+    suspend fun updateCommunityLeaderboardParticipation(
+        leaderboardParticipationEnabled: Boolean
+    ): CloudCommunityProfile
     suspend fun deleteAccount(confirmationText: String)
     suspend fun listLinkedWorkspaces(): List<CloudWorkspaceSummary>
     suspend fun switchLinkedWorkspace(selection: CloudWorkspaceLinkSelection): CloudWorkspaceSummary

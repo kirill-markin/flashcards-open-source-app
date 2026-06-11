@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.data.local.repository.progress
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
@@ -15,6 +16,7 @@ import com.flashcardsopensourceapp.data.local.repository.progress.cache.Progress
 import com.flashcardsopensourceapp.data.local.repository.progress.inputs.ProgressObservedInputs
 import com.flashcardsopensourceapp.data.local.repository.progress.inputs.createProgressClockSnapshot
 import com.flashcardsopensourceapp.data.local.repository.progress.inputs.observeProgressInputs
+import com.flashcardsopensourceapp.data.local.repository.progress.orchestration.ProgressLeaderboardOrchestration
 import com.flashcardsopensourceapp.data.local.repository.progress.orchestration.ProgressReviewScheduleOrchestration
 import com.flashcardsopensourceapp.data.local.repository.progress.orchestration.ProgressSeriesOrchestration
 import com.flashcardsopensourceapp.data.local.repository.progress.orchestration.ProgressSummaryOrchestration
@@ -79,6 +81,13 @@ class LocalProgressRepository(
         observability = observability,
         observationVersions = observationVersions
     )
+    private val leaderboardOrchestration = ProgressLeaderboardOrchestration(
+        database = database,
+        cloudAccountRepository = cloudAccountRepository,
+        timeProvider = timeProvider,
+        observability = observability,
+        observationVersions = observationVersions
+    )
 
     // Captured handle for the input-observation flow so the lifecycle of this
     // long-running collector is explicit rather than hidden inside an init block.
@@ -91,7 +100,8 @@ class LocalProgressRepository(
         observeProgressInputs(
             database = database,
             preferencesStore = preferencesStore,
-            syncRepository = syncRepository
+            syncRepository = syncRepository,
+            timeProvider = timeProvider
         ).collect { inputs ->
             handleProgressInputs(inputs = inputs)
         }
@@ -109,6 +119,10 @@ class LocalProgressRepository(
         return reviewScheduleOrchestration.observeSnapshot()
     }
 
+    override fun observeLeaderboardSnapshot(): Flow<ProgressLeaderboardSnapshot?> {
+        return leaderboardOrchestration.observeSnapshot()
+    }
+
     override suspend fun refreshSummaryIfInvalidated() {
         summaryOrchestration.refreshIfInvalidated()
     }
@@ -121,6 +135,10 @@ class LocalProgressRepository(
         reviewScheduleOrchestration.refreshIfInvalidated()
     }
 
+    override suspend fun refreshLeaderboardIfInvalidated() {
+        leaderboardOrchestration.refreshIfInvalidated()
+    }
+
     override suspend fun refreshSummaryManually() {
         summaryOrchestration.refreshManually()
     }
@@ -131,6 +149,10 @@ class LocalProgressRepository(
 
     override suspend fun refreshReviewScheduleManually() {
         reviewScheduleOrchestration.refreshManually()
+    }
+
+    override suspend fun refreshLeaderboardManually() {
+        leaderboardOrchestration.refreshManually()
     }
 
     private fun handleProgressInputs(
@@ -146,6 +168,12 @@ class LocalProgressRepository(
             clockSnapshot = clockSnapshot
         )
         val reviewScheduleHandledInputs = reviewScheduleOrchestration.handleInputs(
+            inputs = inputs,
+            clockSnapshot = clockSnapshot
+        )
+        // The leaderboard republishes its snapshot here for the viewer-count overlay;
+        // remote refreshes stay gated on nextRefreshAfter, not on sync completion.
+        leaderboardOrchestration.handleInputs(
             inputs = inputs,
             clockSnapshot = clockSnapshot
         )

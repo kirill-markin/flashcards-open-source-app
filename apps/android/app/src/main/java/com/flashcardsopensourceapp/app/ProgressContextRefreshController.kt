@@ -57,6 +57,17 @@ class ProgressContextRefreshController(
                         error = error
                     )
                 }
+
+                try {
+                    progressRepository.refreshLeaderboardIfInvalidated()
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Exception) {
+                    captureProgressRefreshFailure(
+                        refreshAction = "refresh_leaderboard_if_invalidated",
+                        error = error
+                    )
+                }
             }
         }
     }

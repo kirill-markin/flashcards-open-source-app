@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.data.local.cloud.remote
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.data.local.cloud.remote.agent.CloudAgentConnectionRemoteApi
 import com.flashcardsopensourceapp.data.local.cloud.remote.auth.CloudAuthRemoteApi
+import com.flashcardsopensourceapp.data.local.cloud.remote.community.CloudCommunityProfileRemoteApi
 import com.flashcardsopensourceapp.data.local.cloud.remote.feedback.CloudFeedbackRemoteApi
 import com.flashcardsopensourceapp.data.local.cloud.remote.guest.CloudGuestUpgradeRemoteApi
 import com.flashcardsopensourceapp.data.local.cloud.remote.progress.CloudProgressRemoteApi
@@ -27,7 +28,9 @@ import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackSubmis
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeCompletion
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeSelection
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCommunityProfile
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
@@ -81,6 +84,7 @@ class CloudRemoteService private constructor(
     private val guestUpgradeApi = CloudGuestUpgradeRemoteApi(httpClient = httpClient)
     private val accountWorkspaceApi = CloudAccountWorkspaceRemoteApi(httpClient = httpClient)
     private val progressApi = CloudProgressRemoteApi(httpClient = httpClient)
+    private val communityProfileApi = CloudCommunityProfileRemoteApi(httpClient = httpClient)
     private val feedbackApi = CloudFeedbackRemoteApi(httpClient = httpClient)
     private val agentConnectionApi = CloudAgentConnectionRemoteApi(httpClient = httpClient)
     private val syncApi = CloudSyncRemoteApi(httpClient = httpClient)
@@ -293,6 +297,38 @@ class CloudRemoteService private constructor(
             apiBaseUrl = apiBaseUrl,
             authorizationHeader = authorizationHeader,
             timeZone = timeZone
+        )
+    }
+
+    override suspend fun loadProgressLeaderboard(
+        apiBaseUrl: String,
+        authorizationHeader: String
+    ): CloudProgressLeaderboard {
+        return progressApi.loadProgressLeaderboard(
+            apiBaseUrl = apiBaseUrl,
+            authorizationHeader = authorizationHeader
+        )
+    }
+
+    override suspend fun loadCommunityProfile(
+        apiBaseUrl: String,
+        authorizationHeader: String
+    ): CloudCommunityProfile {
+        return communityProfileApi.loadCommunityProfile(
+            apiBaseUrl = apiBaseUrl,
+            authorizationHeader = authorizationHeader
+        )
+    }
+
+    override suspend fun updateCommunityLeaderboardParticipation(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        leaderboardParticipationEnabled: Boolean
+    ): CloudCommunityProfile {
+        return communityProfileApi.updateCommunityLeaderboardParticipation(
+            apiBaseUrl = apiBaseUrl,
+            authorizationHeader = authorizationHeader,
+            leaderboardParticipationEnabled = leaderboardParticipationEnabled
         )
     }
 

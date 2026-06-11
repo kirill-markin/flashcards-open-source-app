@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.feature.settings
 import com.flashcardsopensourceapp.data.local.model.cloud.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.cloud.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCommunityProfile
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryReason
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
@@ -19,6 +20,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetPro
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
@@ -276,6 +278,20 @@ internal class FakeCloudAccountRepository : CloudAccountRepository {
     }
 
     override suspend fun loadProgressReviewSchedule(timeZone: String): CloudProgressReviewSchedule {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun loadProgressLeaderboard(): CloudProgressLeaderboard {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun loadCommunityProfile(): CloudCommunityProfile {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun updateCommunityLeaderboardParticipation(
+        leaderboardParticipationEnabled: Boolean
+    ): CloudCommunityProfile {
         throw UnsupportedOperationException()
     }
 

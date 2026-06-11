@@ -17,13 +17,17 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProgressRoute(
     uiState: ProgressUiState,
     onScreenVisible: () -> Unit,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    onSelectLeaderboardWindow: (ProgressLeaderboardWindowKey) -> Unit,
+    onOpenSignIn: () -> Unit,
+    onOpenAccountSettings: () -> Unit
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentScreenVisibleAction = rememberUpdatedState(newValue = onScreenVisible)
@@ -117,6 +121,14 @@ fun ProgressRoute(
                                 uiState = reviewScheduleSection
                             )
                         }
+                    }
+                    item {
+                        LeaderboardSectionCard(
+                            uiState = uiState.leaderboardSection,
+                            onSelectWindow = onSelectLeaderboardWindow,
+                            onOpenSignIn = onOpenSignIn,
+                            onOpenAccountSettings = onOpenAccountSettings
+                        )
                     }
                 }
             }

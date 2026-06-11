@@ -45,6 +45,17 @@ data class ProgressReviewScheduleCacheEntity(
     val updatedAtMillis: Long
 )
 
+// Caches the last successful compact leaderboard payload per account scope. The raw
+// payload JSON keeps the API-provided anonymous display names so offline renders never
+// regenerate names on the client.
+@Entity(tableName = "progress_leaderboard_cache")
+data class ProgressLeaderboardCacheEntity(
+    @PrimaryKey val scopeKey: String,
+    val scopeId: String,
+    val payloadJson: String,
+    val updatedAtMillis: Long
+)
+
 @Entity(
     tableName = "progress_local_day_counts",
     primaryKeys = ["timeZone", "workspaceId", "localDate"],
@@ -108,4 +119,16 @@ data class ProgressReviewScheduleCardDueEntity(
     val cardId: String,
     val workspaceId: String,
     val dueAtMillis: Long?
+)
+
+// Query projections over review_logs for the leaderboard viewer overlay. Qualified
+// reviews are Hard/Good/Easy; Again never counts.
+data class ProgressQualifiedReviewWorkspaceCountEntity(
+    val workspaceId: String,
+    val qualifiedReviewCount: Int
+)
+
+data class ProgressQualifiedReviewTimeEntity(
+    val workspaceId: String,
+    val reviewedAtMillis: Long
 )

@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.feature.progress
 
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleBucketKey
 import java.time.LocalDate
 
@@ -52,6 +53,48 @@ data class ProgressReviewScheduleSectionUiState(
     val hasCards: Boolean
 )
 
+sealed interface ProgressLeaderboardRowUiState {
+    data class Participant(
+        val rank: Int,
+        val displayName: String,
+        val qualifiedReviewCount: Int,
+        val isViewer: Boolean
+    ) : ProgressLeaderboardRowUiState
+
+    data object Gap : ProgressLeaderboardRowUiState
+}
+
+data class ProgressLeaderboardWindowUiState(
+    val windowKey: ProgressLeaderboardWindowKey,
+    val participantCount: Int,
+    val rows: List<ProgressLeaderboardRowUiState>,
+    val snapshotGeneratedAtMillis: Long?
+)
+
+sealed interface ProgressLeaderboardSectionUiState {
+    data object Loading : ProgressLeaderboardSectionUiState
+
+    data object SignInRequired : ProgressLeaderboardSectionUiState
+
+    data object ParticipationDisabled : ProgressLeaderboardSectionUiState
+
+    data object Offline : ProgressLeaderboardSectionUiState
+
+    data object SnapshotUnavailable : ProgressLeaderboardSectionUiState
+
+    data class Ready(
+        // Server-localized explanation that Hard/Good/Easy count and Again does not;
+        // null falls back to the client string resource.
+        val metricDescription: String?,
+        val selectedWindowKey: ProgressLeaderboardWindowKey,
+        val windows: List<ProgressLeaderboardWindowUiState>,
+        val isStale: Boolean
+    ) : ProgressLeaderboardSectionUiState {
+        val selectedWindow: ProgressLeaderboardWindowUiState?
+            get() = windows.firstOrNull { window -> window.windowKey == selectedWindowKey }
+    }
+}
+
 sealed interface ProgressSummaryUiState {
     data object Loading : ProgressSummaryUiState
 
@@ -75,6 +118,7 @@ sealed interface ProgressUiState {
         val summary: ProgressSummaryUiState,
         val streakSection: ProgressStreakSectionUiState,
         val reviewsSection: ProgressReviewsSectionUiState,
-        val reviewScheduleSection: ProgressReviewScheduleSectionUiState?
+        val reviewScheduleSection: ProgressReviewScheduleSectionUiState?,
+        val leaderboardSection: ProgressLeaderboardSectionUiState
     ) : ProgressUiState
 }

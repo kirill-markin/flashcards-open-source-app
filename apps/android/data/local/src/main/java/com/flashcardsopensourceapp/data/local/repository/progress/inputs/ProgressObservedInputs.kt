@@ -3,8 +3,11 @@ package com.flashcardsopensourceapp.data.local.repository.progress.inputs
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.OutboxEntryEntity
+import com.flashcardsopensourceapp.data.local.database.entities.ProgressLeaderboardCacheEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressLocalCacheStateEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressLocalDayCountEntity
+import com.flashcardsopensourceapp.data.local.database.entities.ProgressQualifiedReviewTimeEntity
+import com.flashcardsopensourceapp.data.local.database.entities.ProgressQualifiedReviewWorkspaceCountEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressReviewHistoryStateEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressReviewScheduleCacheEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressReviewScheduleCardDueEntity
@@ -13,10 +16,25 @@ import com.flashcardsopensourceapp.data.local.database.entities.ProgressSummaryC
 import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
+import com.flashcardsopensourceapp.data.local.repository.shared.TimeProvider
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+
+// Hour-resolution data for the leaderboard viewer overlay. Recent qualified review
+// times cover every bounded rolling window; total counts back the all-time window.
+internal data class ProgressQualifiedReviewActivity(
+    val workspaceCounts: List<ProgressQualifiedReviewWorkspaceCountEntity>,
+    val recentReviewTimes: List<ProgressQualifiedReviewTimeEntity>
+)
+
+// One day above the longest bounded leaderboard window so the recent-times flow,
+// whose lower bound is fixed when observation starts, always covers a full rolling
+// 30-day window measured from any later device time.
+internal val progressLeaderboardRecentQualifiedReviewLookbackMillis: Long =
+    (requireNotNull(ProgressLeaderboardWindowKey.LAST_30_DAYS.rollingWindowHours) + 24L) * 60L * 60L * 1000L
 
 internal data class ProgressObservedInputs(
     val cloudSettings: CloudSettings,
@@ -31,7 +49,9 @@ internal data class ProgressObservedInputs(
     val syncStatus: SyncStatusSnapshot,
     val summaryCaches: List<ProgressSummaryCacheEntity>,
     val seriesCaches: List<ProgressSeriesCacheEntity>,
-    val reviewScheduleCaches: List<ProgressReviewScheduleCacheEntity>
+    val reviewScheduleCaches: List<ProgressReviewScheduleCacheEntity>,
+    val leaderboardCaches: List<ProgressLeaderboardCacheEntity>,
+    val qualifiedReviewActivity: ProgressQualifiedReviewActivity
 )
 
 private data class ProgressObservedBaseInputs(
@@ -80,10 +100,23 @@ private data class ProgressObservedSeriesInputs(
 internal fun observeProgressInputs(
     database: AppDatabase,
     preferencesStore: CloudPreferencesStore,
-    syncRepository: SyncRepository
+    syncRepository: SyncRepository,
+    timeProvider: TimeProvider
 ): Flow<ProgressObservedInputs> {
     val localCacheDao = database.progressLocalCacheDao()
     val remoteCacheDao = database.progressRemoteCacheDao()
+    val qualifiedReviewActivityFlow = combine(
+        localCacheDao.observeProgressQualifiedReviewWorkspaceCounts(),
+        localCacheDao.observeProgressQualifiedReviewTimes(
+            minReviewedAtMillis = timeProvider.currentTimeMillis() -
+                progressLeaderboardRecentQualifiedReviewLookbackMillis
+        )
+    ) { workspaceCounts, recentReviewTimes ->
+        ProgressQualifiedReviewActivity(
+            workspaceCounts = workspaceCounts,
+            recentReviewTimes = recentReviewTimes
+        )
+    }
     val localCacheInputsFlow = combine(
         localCacheDao.observeProgressLocalDayCounts(),
         localCacheDao.observeProgressReviewHistoryStates(),
@@ -156,9 +189,12 @@ internal fun observeProgressInputs(
         )
     }
 
-    return seriesInputsFlow.combine(
-        remoteCacheDao.observeProgressReviewScheduleCaches()
-    ) { seriesInputs, reviewScheduleCaches ->
+    return combine(
+        seriesInputsFlow,
+        remoteCacheDao.observeProgressReviewScheduleCaches(),
+        remoteCacheDao.observeProgressLeaderboardCaches(),
+        qualifiedReviewActivityFlow
+    ) { seriesInputs, reviewScheduleCaches, leaderboardCaches, qualifiedReviewActivity ->
         ProgressObservedInputs(
             cloudSettings = seriesInputs.summaryInputs.baseInputs.cloudSettings,
             workspaces = seriesInputs.summaryInputs.baseInputs.workspaces,
@@ -172,7 +208,9 @@ internal fun observeProgressInputs(
             syncStatus = seriesInputs.summaryInputs.baseInputs.syncStatus,
             summaryCaches = seriesInputs.summaryInputs.summaryCaches,
             seriesCaches = seriesInputs.seriesCaches,
-            reviewScheduleCaches = reviewScheduleCaches
+            reviewScheduleCaches = reviewScheduleCaches,
+            leaderboardCaches = leaderboardCaches,
+            qualifiedReviewActivity = qualifiedReviewActivity
         )
     }
 }

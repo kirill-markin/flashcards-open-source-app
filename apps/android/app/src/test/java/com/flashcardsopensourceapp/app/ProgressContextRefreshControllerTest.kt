@@ -6,6 +6,7 @@ import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
@@ -46,6 +47,7 @@ class ProgressContextRefreshControllerTest {
         assertEquals(1, repository.summaryRefreshCallCount)
         assertEquals(0, repository.seriesRefreshCallCount)
         assertEquals(0, repository.reviewScheduleRefreshCallCount)
+        assertEquals(0, repository.leaderboardRefreshCallCount)
     }
 
     @Test
@@ -66,7 +68,8 @@ class ProgressContextRefreshControllerTest {
             awaitUntil {
                 repository.summaryRefreshCallCount == 1 &&
                     repository.seriesRefreshCallCount == 1 &&
-                    repository.reviewScheduleRefreshCallCount == 1
+                    repository.reviewScheduleRefreshCallCount == 1 &&
+                    repository.leaderboardRefreshCallCount == 1
             }
         } finally {
             appScope.cancel()
@@ -75,6 +78,7 @@ class ProgressContextRefreshControllerTest {
         assertEquals(1, repository.summaryRefreshCallCount)
         assertEquals(1, repository.seriesRefreshCallCount)
         assertEquals(1, repository.reviewScheduleRefreshCallCount)
+        assertEquals(1, repository.leaderboardRefreshCallCount)
     }
 
     @Test
@@ -188,6 +192,9 @@ private class FakeProgressRepository(
     @Volatile
     var reviewScheduleRefreshCallCount: Int = 0
 
+    @Volatile
+    var leaderboardRefreshCallCount: Int = 0
+
     override fun observeSummarySnapshot(): Flow<ProgressSummarySnapshot?> {
         return emptyFlow()
     }
@@ -197,6 +204,10 @@ private class FakeProgressRepository(
     }
 
     override fun observeReviewScheduleSnapshot(): Flow<ProgressReviewScheduleSnapshot?> {
+        return emptyFlow()
+    }
+
+    override fun observeLeaderboardSnapshot(): Flow<ProgressLeaderboardSnapshot?> {
         return emptyFlow()
     }
 
@@ -218,6 +229,10 @@ private class FakeProgressRepository(
         reviewScheduleRefreshCallCount += 1
     }
 
+    override suspend fun refreshLeaderboardIfInvalidated() {
+        leaderboardRefreshCallCount += 1
+    }
+
     override suspend fun refreshSummaryManually() {
         throw UnsupportedOperationException("Not used in ProgressContextRefreshControllerTest.")
     }
@@ -227,6 +242,10 @@ private class FakeProgressRepository(
     }
 
     override suspend fun refreshReviewScheduleManually() {
+        throw UnsupportedOperationException("Not used in ProgressContextRefreshControllerTest.")
+    }
+
+    override suspend fun refreshLeaderboardManually() {
         throw UnsupportedOperationException("Not used in ProgressContextRefreshControllerTest.")
     }
 

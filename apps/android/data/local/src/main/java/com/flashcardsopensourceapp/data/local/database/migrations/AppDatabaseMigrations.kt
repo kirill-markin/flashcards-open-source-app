@@ -24,7 +24,8 @@ fun createAppDatabaseMigrations(): Array<Migration> {
         migration14To15,
         migration15To16,
         migration16To17,
-        migration17To18
+        migration17To18,
+        migration18To19
     )
 }
 
@@ -706,6 +707,21 @@ val migration17To18: Migration = object : Migration(17, 18) {
             """
             ALTER TABLE progress_review_schedule_cache
             ADD COLUMN reviewHistoryWatermarksJson TEXT NOT NULL DEFAULT '[]'
+            """.trimIndent()
+        )
+    }
+}
+
+val migration18To19: Migration = object : Migration(18, 19) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS progress_leaderboard_cache (
+                scopeKey TEXT NOT NULL PRIMARY KEY,
+                scopeId TEXT NOT NULL,
+                payloadJson TEXT NOT NULL,
+                updatedAtMillis INTEGER NOT NULL
+            )
             """.trimIndent()
         )
     }

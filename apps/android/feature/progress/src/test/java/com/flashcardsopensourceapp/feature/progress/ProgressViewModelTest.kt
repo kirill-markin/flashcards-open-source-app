@@ -1,11 +1,22 @@
 package com.flashcardsopensourceapp.feature.progress
 
 import androidx.lifecycle.Lifecycle
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.progress.CloudDailyReviewPoint
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardMetric
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRow
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardViewer
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardWindow
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewScheduleBucket
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardParticipantRowKind
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardScopeKey
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardSnapshot
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardStatus
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleBucketKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleSnapshot
@@ -146,9 +157,11 @@ class ProgressViewModelTest {
             assertEquals(1, repository.refreshSummaryIfInvalidatedCallCount)
             assertEquals(1, repository.refreshSeriesIfInvalidatedCallCount)
             assertEquals(1, repository.refreshReviewScheduleIfInvalidatedCallCount)
+            assertEquals(1, repository.refreshLeaderboardIfInvalidatedCallCount)
             assertEquals(0, repository.refreshSummaryManuallyCallCount)
             assertEquals(0, repository.refreshSeriesManuallyCallCount)
             assertEquals(0, repository.refreshReviewScheduleManuallyCallCount)
+            assertEquals(0, repository.refreshLeaderboardManuallyCallCount)
         } finally {
             Dispatchers.resetMain()
         }
@@ -170,9 +183,11 @@ class ProgressViewModelTest {
             assertEquals(0, repository.refreshSummaryIfInvalidatedCallCount)
             assertEquals(0, repository.refreshSeriesIfInvalidatedCallCount)
             assertEquals(0, repository.refreshReviewScheduleIfInvalidatedCallCount)
+            assertEquals(0, repository.refreshLeaderboardIfInvalidatedCallCount)
             assertEquals(1, repository.refreshSummaryManuallyCallCount)
             assertEquals(1, repository.refreshSeriesManuallyCallCount)
             assertEquals(1, repository.refreshReviewScheduleManuallyCallCount)
+            assertEquals(1, repository.refreshLeaderboardManuallyCallCount)
         } finally {
             Dispatchers.resetMain()
         }
@@ -267,6 +282,134 @@ class ProgressViewModelTest {
         }
     }
 
+    @Test
+    fun leaderboardSnapshotMapsToReadyCompactRowsWithDefaultWindow() = runTest(dispatcher) {
+        Dispatchers.setMain(dispatcher)
+        try {
+            val repository = FakeProgressRepository()
+            val viewModel = ProgressViewModel(
+                progressRepository = repository
+            )
+
+            repository.emitSummarySnapshot(snapshot = createProgressSummarySnapshot())
+            repository.emitSeriesSnapshot(snapshot = createProgressSeriesSnapshot())
+            repository.emitLeaderboardSnapshot(snapshot = createProgressLeaderboardSnapshot())
+            advanceUntilIdle()
+
+            val uiState = viewModel.uiState.value as ProgressUiState.Loaded
+            val leaderboardSection = uiState.leaderboardSection as ProgressLeaderboardSectionUiState.Ready
+            assertEquals(ProgressLeaderboardWindowKey.LAST_24_HOURS, leaderboardSection.selectedWindowKey)
+            val selectedWindow = checkNotNull(leaderboardSection.selectedWindow)
+            assertEquals(128, selectedWindow.participantCount)
+
+            val rows = selectedWindow.rows
+            assertEquals(7, rows.size)
+            val firstRow = rows[0] as ProgressLeaderboardRowUiState.Participant
+            assertEquals(1, firstRow.rank)
+            assertEquals("Silver Bright Harbor", firstRow.displayName)
+            assertEquals(51, firstRow.qualifiedReviewCount)
+            assertEquals(false, firstRow.isViewer)
+            val viewerRow = rows[5] as ProgressLeaderboardRowUiState.Participant
+            assertEquals(42, viewerRow.rank)
+            assertTrue(viewerRow.isViewer)
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
+    fun leaderboardKeepsTopThreeRowsBeforeEllipsisGap() {
+        val sectionUiState = createProgressLeaderboardSectionUiState(
+            snapshot = createProgressLeaderboardSnapshot(),
+            selectedWindowKey = null
+        ) as ProgressLeaderboardSectionUiState.Ready
+
+        val rows = checkNotNull(sectionUiState.selectedWindow).rows
+        val topRows = rows.take(3).map { row -> row as ProgressLeaderboardRowUiState.Participant }
+        assertEquals(listOf(1, 2, 3), topRows.map(ProgressLeaderboardRowUiState.Participant::rank))
+        assertEquals(ProgressLeaderboardRowUiState.Gap, rows[3])
+    }
+
+    @Test
+    fun guestLeaderboardSnapshotMapsToSignInPlaceholder() {
+        val sectionUiState = createProgressLeaderboardSectionUiState(
+            snapshot = createProgressLeaderboardSnapshot(
+                cloudState = CloudAccountState.GUEST,
+                leaderboard = null
+            ),
+            selectedWindowKey = null
+        )
+
+        assertEquals(ProgressLeaderboardSectionUiState.SignInRequired, sectionUiState)
+    }
+
+    @Test
+    fun participationDisabledLeaderboardMapsToParticipationPlaceholder() {
+        val sectionUiState = createProgressLeaderboardSectionUiState(
+            snapshot = createProgressLeaderboardSnapshot(
+                leaderboard = createCloudProgressLeaderboard(
+                    status = ProgressLeaderboardStatus.PARTICIPATION_DISABLED,
+                    windows = emptyList()
+                )
+            ),
+            selectedWindowKey = null
+        )
+
+        assertEquals(ProgressLeaderboardSectionUiState.ParticipationDisabled, sectionUiState)
+    }
+
+    @Test
+    fun leaderboardInfoCopyExplainsAgainExclusion() {
+        val sectionUiState = createProgressLeaderboardSectionUiState(
+            snapshot = createProgressLeaderboardSnapshot(),
+            selectedWindowKey = null
+        ) as ProgressLeaderboardSectionUiState.Ready
+
+        val infoCopy = checkNotNull(sectionUiState.metricDescription)
+        assertTrue(infoCopy.contains("Hard, Good, and Easy"))
+        assertTrue(infoCopy.contains("Again does not"))
+    }
+
+    @Test
+    fun leaderboardLiveOverlayChangesOnlyViewerCount() {
+        val sectionUiState = createProgressLeaderboardSectionUiState(
+            snapshot = createProgressLeaderboardSnapshot(
+                viewerLocalQualifiedCounts = mapOf(
+                    ProgressLeaderboardWindowKey.LAST_24_HOURS to 9
+                )
+            ),
+            selectedWindowKey = null
+        ) as ProgressLeaderboardSectionUiState.Ready
+
+        val rows = checkNotNull(sectionUiState.selectedWindow).rows
+        val participants = rows.filterIsInstance<ProgressLeaderboardRowUiState.Participant>()
+        val viewerRow = participants.single(ProgressLeaderboardRowUiState.Participant::isViewer)
+        assertEquals(9, viewerRow.qualifiedReviewCount)
+        assertEquals(42, viewerRow.rank)
+        assertEquals(
+            listOf(51, 33, 21, 8, 7),
+            participants.filterNot(ProgressLeaderboardRowUiState.Participant::isViewer)
+                .map(ProgressLeaderboardRowUiState.Participant::qualifiedReviewCount)
+        )
+    }
+
+    @Test
+    fun leaderboardLiveOverlayNeverLowersServerViewerCount() {
+        val sectionUiState = createProgressLeaderboardSectionUiState(
+            snapshot = createProgressLeaderboardSnapshot(
+                viewerLocalQualifiedCounts = mapOf(
+                    ProgressLeaderboardWindowKey.LAST_24_HOURS to 2
+                )
+            ),
+            selectedWindowKey = null
+        ) as ProgressLeaderboardSectionUiState.Ready
+
+        val rows = checkNotNull(sectionUiState.selectedWindow).rows
+        val viewerRow = rows.filterIsInstance<ProgressLeaderboardRowUiState.Participant>()
+            .single(ProgressLeaderboardRowUiState.Participant::isViewer)
+        assertEquals(7, viewerRow.qualifiedReviewCount)
+    }
+
     private suspend fun TestScope.assertLoadedUiStateUsesLocaleWeekStart(
         locale: Locale,
         expectedWeekStart: LocalDate
@@ -317,17 +460,22 @@ private class FakeProgressRepository : ProgressRepository {
     private val summarySnapshots = MutableStateFlow<ProgressSummarySnapshot?>(null)
     private val seriesSnapshots = MutableStateFlow<ProgressSeriesSnapshot?>(null)
     private val reviewScheduleSnapshots = MutableStateFlow<ProgressReviewScheduleSnapshot?>(null)
+    private val leaderboardSnapshots = MutableStateFlow<ProgressLeaderboardSnapshot?>(null)
     var refreshSummaryIfInvalidatedCallCount: Int = 0
         private set
     var refreshSeriesIfInvalidatedCallCount: Int = 0
         private set
     var refreshReviewScheduleIfInvalidatedCallCount: Int = 0
         private set
+    var refreshLeaderboardIfInvalidatedCallCount: Int = 0
+        private set
     var refreshSummaryManuallyCallCount: Int = 0
         private set
     var refreshSeriesManuallyCallCount: Int = 0
         private set
     var refreshReviewScheduleManuallyCallCount: Int = 0
+        private set
+    var refreshLeaderboardManuallyCallCount: Int = 0
         private set
 
     fun emitSummarySnapshot(
@@ -348,6 +496,12 @@ private class FakeProgressRepository : ProgressRepository {
         reviewScheduleSnapshots.value = snapshot
     }
 
+    fun emitLeaderboardSnapshot(
+        snapshot: ProgressLeaderboardSnapshot
+    ) {
+        leaderboardSnapshots.value = snapshot
+    }
+
     override fun observeSummarySnapshot(): Flow<ProgressSummarySnapshot?> {
         return summarySnapshots
     }
@@ -358,6 +512,10 @@ private class FakeProgressRepository : ProgressRepository {
 
     override fun observeReviewScheduleSnapshot(): Flow<ProgressReviewScheduleSnapshot?> {
         return reviewScheduleSnapshots
+    }
+
+    override fun observeLeaderboardSnapshot(): Flow<ProgressLeaderboardSnapshot?> {
+        return leaderboardSnapshots
     }
 
     override suspend fun refreshSummaryIfInvalidated() {
@@ -372,6 +530,10 @@ private class FakeProgressRepository : ProgressRepository {
         refreshReviewScheduleIfInvalidatedCallCount += 1
     }
 
+    override suspend fun refreshLeaderboardIfInvalidated() {
+        refreshLeaderboardIfInvalidatedCallCount += 1
+    }
+
     override suspend fun refreshSummaryManually() {
         refreshSummaryManuallyCallCount += 1
     }
@@ -382,6 +544,10 @@ private class FakeProgressRepository : ProgressRepository {
 
     override suspend fun refreshReviewScheduleManually() {
         refreshReviewScheduleManuallyCallCount += 1
+    }
+
+    override suspend fun refreshLeaderboardManually() {
+        refreshLeaderboardManuallyCallCount += 1
     }
 }
 
@@ -508,6 +674,115 @@ private fun createProgressReviewScheduleSnapshot(): ProgressReviewScheduleSnapsh
         serverBase = null,
         source = ProgressSnapshotSource.LOCAL_ONLY,
         isApproximate = true
+    )
+}
+
+private fun createProgressLeaderboardSnapshot(
+    cloudState: CloudAccountState = CloudAccountState.LINKED,
+    leaderboard: CloudProgressLeaderboard? = createCloudProgressLeaderboard(),
+    viewerLocalQualifiedCounts: Map<ProgressLeaderboardWindowKey, Int> = emptyMap()
+): ProgressLeaderboardSnapshot {
+    return ProgressLeaderboardSnapshot(
+        scopeKey = ProgressLeaderboardScopeKey(scopeId = "linked:user-1"),
+        cloudState = cloudState,
+        leaderboard = leaderboard,
+        payloadUpdatedAtMillis = if (leaderboard == null) null else 1_750_000_000_000L,
+        viewerLocalQualifiedCounts = viewerLocalQualifiedCounts,
+        isRefreshDue = false,
+        didLastRemoteLoadFail = false
+    )
+}
+
+private fun createCloudProgressLeaderboard(
+    status: ProgressLeaderboardStatus = ProgressLeaderboardStatus.READY,
+    windows: List<CloudProgressLeaderboardWindow> = listOf(createCloudProgressLeaderboardWindow())
+): CloudProgressLeaderboard {
+    return CloudProgressLeaderboard(
+        status = status,
+        metric = CloudProgressLeaderboardMetric(
+            metricVersion = "qualified_reviews_v1",
+            title = "Qualified reviews",
+            description = "Hard, Good, and Easy reviews count toward your rank. Again does not."
+        ),
+        defaultWindowKey = ProgressLeaderboardWindowKey.LAST_24_HOURS,
+        windows = windows
+    )
+}
+
+private fun createCloudProgressLeaderboardWindow(): CloudProgressLeaderboardWindow {
+    return CloudProgressLeaderboardWindow(
+        windowKey = ProgressLeaderboardWindowKey.LAST_24_HOURS,
+        snapshotId = "snapshot-1",
+        snapshotGeneratedAt = "2026-04-18T14:00:05.000Z",
+        asOfServerHour = "2026-04-18T14:00:00.000Z",
+        nextRefreshAfter = "2026-04-18T15:00:00.000Z",
+        participantCount = 128,
+        viewer = CloudProgressLeaderboardViewer(
+            publicProfileId = "viewer-profile",
+            rank = 42,
+            qualifiedReviewCount = 7
+        ),
+        rows = listOf(
+            createLeaderboardParticipantRow(
+                kind = ProgressLeaderboardParticipantRowKind.TOP,
+                publicProfileId = "top-1",
+                anonymousDisplayName = "Silver Bright Harbor",
+                qualifiedReviewCount = 51,
+                rank = 1
+            ),
+            createLeaderboardParticipantRow(
+                kind = ProgressLeaderboardParticipantRowKind.TOP,
+                publicProfileId = "top-2",
+                anonymousDisplayName = "Amber Calm Meadow",
+                qualifiedReviewCount = 33,
+                rank = 2
+            ),
+            createLeaderboardParticipantRow(
+                kind = ProgressLeaderboardParticipantRowKind.TOP,
+                publicProfileId = "top-3",
+                anonymousDisplayName = "Coral Keen Valley",
+                qualifiedReviewCount = 21,
+                rank = 3
+            ),
+            CloudProgressLeaderboardRow.Gap,
+            createLeaderboardParticipantRow(
+                kind = ProgressLeaderboardParticipantRowKind.NEIGHBOR,
+                publicProfileId = "neighbor-41",
+                anonymousDisplayName = "Jade Swift River",
+                qualifiedReviewCount = 8,
+                rank = 41
+            ),
+            createLeaderboardParticipantRow(
+                kind = ProgressLeaderboardParticipantRowKind.VIEWER,
+                publicProfileId = "viewer-profile",
+                anonymousDisplayName = "Misty Quiet Grove",
+                qualifiedReviewCount = 7,
+                rank = 42
+            ),
+            createLeaderboardParticipantRow(
+                kind = ProgressLeaderboardParticipantRowKind.NEIGHBOR,
+                publicProfileId = "neighbor-43",
+                anonymousDisplayName = "Sunny Brave Cliff",
+                qualifiedReviewCount = 7,
+                rank = 43
+            )
+        )
+    )
+}
+
+private fun createLeaderboardParticipantRow(
+    kind: ProgressLeaderboardParticipantRowKind,
+    publicProfileId: String,
+    anonymousDisplayName: String,
+    qualifiedReviewCount: Int,
+    rank: Int
+): CloudProgressLeaderboardRow.Participant {
+    return CloudProgressLeaderboardRow.Participant(
+        kind = kind,
+        publicProfileId = publicProfileId,
+        anonymousDisplayName = anonymousDisplayName,
+        qualifiedReviewCount = qualifiedReviewCount,
+        rank = rank
     )
 }
 

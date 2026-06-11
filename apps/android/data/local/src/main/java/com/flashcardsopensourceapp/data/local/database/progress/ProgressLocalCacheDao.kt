@@ -6,11 +6,35 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressLocalCacheStateEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressLocalDayCountEntity
+import com.flashcardsopensourceapp.data.local.database.entities.ProgressQualifiedReviewTimeEntity
+import com.flashcardsopensourceapp.data.local.database.entities.ProgressQualifiedReviewWorkspaceCountEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressReviewHistoryStateEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ProgressLocalCacheDao {
+    @Query(
+        """
+        SELECT workspaceId AS workspaceId, COUNT(*) AS qualifiedReviewCount
+        FROM review_logs
+        WHERE rating != 'AGAIN'
+        GROUP BY workspaceId
+        ORDER BY workspaceId ASC
+        """
+    )
+    fun observeProgressQualifiedReviewWorkspaceCounts(): Flow<List<ProgressQualifiedReviewWorkspaceCountEntity>>
+
+    @Query(
+        """
+        SELECT workspaceId AS workspaceId, reviewedAtMillis AS reviewedAtMillis
+        FROM review_logs
+        WHERE rating != 'AGAIN' AND reviewedAtMillis >= :minReviewedAtMillis
+        ORDER BY reviewedAtMillis ASC
+        """
+    )
+    fun observeProgressQualifiedReviewTimes(
+        minReviewedAtMillis: Long
+    ): Flow<List<ProgressQualifiedReviewTimeEntity>>
     @Query("SELECT * FROM progress_local_day_counts ORDER BY timeZone ASC, workspaceId ASC, localDate ASC")
     fun observeProgressLocalDayCounts(): Flow<List<ProgressLocalDayCountEntity>>
 

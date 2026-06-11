@@ -4,9 +4,13 @@ import com.flashcardsopensourceapp.data.local.database.entities.OutboxEntryEntit
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressLocalDayCountEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressReviewScheduleCardDueEntity
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardScopeKey
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardSnapshot
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesScopeKey
@@ -14,7 +18,11 @@ import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesSnaps
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummaryScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
+import com.flashcardsopensourceapp.data.local.repository.progress.cache.ProgressLeaderboardCachedPayload
 import com.flashcardsopensourceapp.data.local.repository.progress.inputs.ProgressPendingReviewLocalDate
+import com.flashcardsopensourceapp.data.local.repository.progress.inputs.ProgressQualifiedReviewActivity
+import com.flashcardsopensourceapp.data.local.repository.progress.runtime.logProgressRepositoryWarning
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -58,6 +66,22 @@ internal data class ProgressReviewScheduleStoreInputs(
     val syncStatus: SyncStatusSnapshot,
     val today: LocalDate,
     val zoneId: ZoneId
+)
+
+internal data class ProgressLeaderboardStoreInputs(
+    val scopeKey: ProgressLeaderboardScopeKey,
+    val cloudState: CloudAccountState,
+    val workspaceIds: List<String>,
+    val serverBase: ProgressLeaderboardCachedPayload?,
+    val qualifiedReviewActivity: ProgressQualifiedReviewActivity,
+    val didLastRemoteLoadFail: Boolean,
+    val currentTimeMillis: Long
+)
+
+internal data class ProgressLeaderboardStoreState(
+    val scopeKey: ProgressLeaderboardScopeKey,
+    val cloudState: CloudAccountState,
+    val snapshot: ProgressLeaderboardSnapshot
 )
 
 internal data class ProgressSummaryStoreState(
@@ -184,6 +208,92 @@ internal fun createProgressReviewScheduleStoreState(
         reviewScheduleFingerprint = inputs.reviewScheduleFingerprint,
         syncStatus = inputs.syncStatus
     )
+}
+
+internal fun createProgressLeaderboardStoreState(
+    inputs: ProgressLeaderboardStoreInputs
+): ProgressLeaderboardStoreState {
+    return ProgressLeaderboardStoreState(
+        scopeKey = inputs.scopeKey,
+        cloudState = inputs.cloudState,
+        snapshot = ProgressLeaderboardSnapshot(
+            scopeKey = inputs.scopeKey,
+            cloudState = inputs.cloudState,
+            leaderboard = inputs.serverBase?.leaderboard,
+            payloadUpdatedAtMillis = inputs.serverBase?.updatedAtMillis,
+            viewerLocalQualifiedCounts = computeProgressLeaderboardViewerLocalQualifiedCounts(
+                qualifiedReviewActivity = inputs.qualifiedReviewActivity,
+                workspaceIds = inputs.workspaceIds,
+                currentTimeMillis = inputs.currentTimeMillis
+            ),
+            isRefreshDue = isProgressLeaderboardRefreshDue(
+                leaderboard = inputs.serverBase?.leaderboard,
+                currentTimeMillis = inputs.currentTimeMillis
+            ),
+            didLastRemoteLoadFail = inputs.didLastRemoteLoadFail
+        )
+    )
+}
+
+// Rolling windows are measured in whole hours backward from the device clock; the
+// unbounded all-time window uses the full qualified count. Only the viewer row count
+// is ever overlaid with these values, server snapshot ranks stay authoritative.
+internal fun computeProgressLeaderboardViewerLocalQualifiedCounts(
+    qualifiedReviewActivity: ProgressQualifiedReviewActivity,
+    workspaceIds: List<String>,
+    currentTimeMillis: Long
+): Map<ProgressLeaderboardWindowKey, Int> {
+    val workspaceIdSet = workspaceIds.toSet()
+    val totalQualifiedCount = qualifiedReviewActivity.workspaceCounts
+        .filter { entry -> workspaceIdSet.contains(entry.workspaceId) }
+        .sumOf { entry -> entry.qualifiedReviewCount }
+    val recentQualifiedTimes = qualifiedReviewActivity.recentReviewTimes
+        .filter { entry -> workspaceIdSet.contains(entry.workspaceId) }
+
+    return ProgressLeaderboardWindowKey.orderedEntries.associateWith { windowKey ->
+        val rollingWindowHours = windowKey.rollingWindowHours
+        if (rollingWindowHours == null) {
+            totalQualifiedCount
+        } else {
+            val windowStartMillis = currentTimeMillis - rollingWindowHours * 60L * 60L * 1000L
+            recentQualifiedTimes.count { entry ->
+                entry.reviewedAtMillis > windowStartMillis && entry.reviewedAtMillis <= currentTimeMillis
+            }
+        }
+    }
+}
+
+// A payload without windows (guest, opted-out, or snapshot-unavailable responses)
+// stays refreshable so the next Progress visit can pick up a changed account state.
+internal fun isProgressLeaderboardRefreshDue(
+    leaderboard: CloudProgressLeaderboard?,
+    currentTimeMillis: Long
+): Boolean {
+    if (leaderboard == null) {
+        return true
+    }
+    if (leaderboard.windows.isEmpty()) {
+        return true
+    }
+
+    val nextRefreshAfterMillis = leaderboard.windows.minOf { window ->
+        parseProgressLeaderboardInstantMillisOrNull(rawInstant = window.nextRefreshAfter)
+            ?: return true
+    }
+    return currentTimeMillis >= nextRefreshAfterMillis
+}
+
+private fun parseProgressLeaderboardInstantMillisOrNull(rawInstant: String): Long? {
+    return runCatching {
+        Instant.parse(rawInstant).toEpochMilli()
+    }.getOrElse { error ->
+        logProgressRepositoryWarning(
+            event = "progress_leaderboard_next_refresh_after_invalid",
+            fields = listOf("nextRefreshAfter" to rawInstant),
+            error = error
+        )
+        null
+    }
 }
 
 internal fun createProgressSeriesStoreState(

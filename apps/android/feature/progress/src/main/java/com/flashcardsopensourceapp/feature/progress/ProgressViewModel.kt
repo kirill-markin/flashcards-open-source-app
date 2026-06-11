@@ -6,9 +6,16 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.progress.CloudDailyReviewPoint
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRow
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardWindow
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardParticipantRowKind
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardSnapshot
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardStatus
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
@@ -23,6 +30,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
+import java.time.Instant
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.time.temporal.WeekFields
@@ -39,23 +47,32 @@ class ProgressViewModel(
 ) : ViewModel() {
     private val uiStateMutable = MutableStateFlow<ProgressUiState>(ProgressUiState.Loading)
     val uiState: StateFlow<ProgressUiState> = uiStateMutable.asStateFlow()
+    private val selectedLeaderboardWindowMutable = MutableStateFlow<ProgressLeaderboardWindowKey?>(null)
 
     init {
         viewModelScope.launch {
             combine(
                 progressRepository.observeSummarySnapshot(),
                 progressRepository.observeSeriesSnapshot(),
-                progressRepository.observeReviewScheduleSnapshot()
-            ) { summarySnapshot, seriesSnapshot, reviewScheduleSnapshot ->
+                progressRepository.observeReviewScheduleSnapshot(),
+                progressRepository.observeLeaderboardSnapshot(),
+                selectedLeaderboardWindowMutable
+            ) { summarySnapshot, seriesSnapshot, reviewScheduleSnapshot, leaderboardSnapshot, selectedLeaderboardWindow ->
                 createProgressUiState(
                     summarySnapshot = summarySnapshot,
                     seriesSnapshot = seriesSnapshot,
-                    reviewScheduleSnapshot = reviewScheduleSnapshot
+                    reviewScheduleSnapshot = reviewScheduleSnapshot,
+                    leaderboardSnapshot = leaderboardSnapshot,
+                    selectedLeaderboardWindowKey = selectedLeaderboardWindow
                 )
             }.collect { uiState ->
                 uiStateMutable.value = uiState
             }
         }
+    }
+
+    fun selectLeaderboardWindow(windowKey: ProgressLeaderboardWindowKey) {
+        selectedLeaderboardWindowMutable.value = windowKey
     }
 
     fun refreshIfInvalidated() {
@@ -68,6 +85,9 @@ class ProgressViewModel(
         launchAndLogFailure(event = "progress_review_schedule_refresh_if_invalidated_failed") {
             progressRepository.refreshReviewScheduleIfInvalidated()
         }
+        launchAndLogFailure(event = "progress_leaderboard_refresh_if_invalidated_failed") {
+            progressRepository.refreshLeaderboardIfInvalidated()
+        }
     }
 
     fun refreshManually() {
@@ -79,6 +99,9 @@ class ProgressViewModel(
         }
         launchAndLogFailure(event = "progress_review_schedule_refresh_manually_failed") {
             progressRepository.refreshReviewScheduleManually()
+        }
+        launchAndLogFailure(event = "progress_leaderboard_refresh_manually_failed") {
+            progressRepository.refreshLeaderboardManually()
         }
     }
 
@@ -113,7 +136,9 @@ private data class ProgressWeekContext(
 private fun createProgressUiState(
     summarySnapshot: ProgressSummarySnapshot?,
     seriesSnapshot: ProgressSeriesSnapshot?,
-    reviewScheduleSnapshot: ProgressReviewScheduleSnapshot?
+    reviewScheduleSnapshot: ProgressReviewScheduleSnapshot?,
+    leaderboardSnapshot: ProgressLeaderboardSnapshot?,
+    selectedLeaderboardWindowKey: ProgressLeaderboardWindowKey?
 ): ProgressUiState {
     if (seriesSnapshot == null) {
         return ProgressUiState.Loading
@@ -123,7 +148,9 @@ private fun createProgressUiState(
         createLoadedProgressUiState(
             summarySnapshot = summarySnapshot,
             seriesSnapshot = seriesSnapshot,
-            reviewScheduleSnapshot = reviewScheduleSnapshot
+            reviewScheduleSnapshot = reviewScheduleSnapshot,
+            leaderboardSnapshot = leaderboardSnapshot,
+            selectedLeaderboardWindowKey = selectedLeaderboardWindowKey
         )
     }.getOrElse { error ->
         logProgressUiStateMappingFailure(
@@ -139,14 +166,101 @@ private fun createProgressUiState(
 private fun createLoadedProgressUiState(
     summarySnapshot: ProgressSummarySnapshot?,
     seriesSnapshot: ProgressSeriesSnapshot,
-    reviewScheduleSnapshot: ProgressReviewScheduleSnapshot?
+    reviewScheduleSnapshot: ProgressReviewScheduleSnapshot?,
+    leaderboardSnapshot: ProgressLeaderboardSnapshot?,
+    selectedLeaderboardWindowKey: ProgressLeaderboardWindowKey?
 ): ProgressUiState {
     val today = LocalDate.parse(seriesSnapshot.renderedSeries.to)
     return seriesSnapshot.renderedSeries.toUiState(
         locale = Locale.getDefault(),
         today = today,
         summary = summarySnapshot?.toUiState() ?: ProgressSummaryUiState.Loading,
-        reviewSchedule = reviewScheduleSnapshot?.renderedSchedule?.toUiState()
+        reviewSchedule = reviewScheduleSnapshot?.renderedSchedule?.toUiState(),
+        leaderboardSection = createProgressLeaderboardSectionUiState(
+            snapshot = leaderboardSnapshot,
+            selectedWindowKey = selectedLeaderboardWindowKey
+        )
+    )
+}
+
+internal fun createProgressLeaderboardSectionUiState(
+    snapshot: ProgressLeaderboardSnapshot?,
+    selectedWindowKey: ProgressLeaderboardWindowKey?
+): ProgressLeaderboardSectionUiState {
+    if (snapshot == null) {
+        return ProgressLeaderboardSectionUiState.Loading
+    }
+    if (snapshot.cloudState != CloudAccountState.LINKED) {
+        return ProgressLeaderboardSectionUiState.SignInRequired
+    }
+
+    val leaderboard = snapshot.leaderboard
+    if (leaderboard == null) {
+        return if (snapshot.didLastRemoteLoadFail) {
+            ProgressLeaderboardSectionUiState.Offline
+        } else {
+            ProgressLeaderboardSectionUiState.Loading
+        }
+    }
+
+    return when (leaderboard.status) {
+        ProgressLeaderboardStatus.LINKED_ACCOUNT_REQUIRED -> ProgressLeaderboardSectionUiState.SignInRequired
+        ProgressLeaderboardStatus.PARTICIPATION_DISABLED -> ProgressLeaderboardSectionUiState.ParticipationDisabled
+        ProgressLeaderboardStatus.SNAPSHOT_UNAVAILABLE -> ProgressLeaderboardSectionUiState.SnapshotUnavailable
+        ProgressLeaderboardStatus.READY -> {
+            val windows = leaderboard.windows.map { window ->
+                window.toUiState(
+                    viewerLocalQualifiedCount = snapshot.viewerLocalQualifiedCounts[window.windowKey] ?: 0
+                )
+            }
+            ProgressLeaderboardSectionUiState.Ready(
+                metricDescription = leaderboard.metric.description.takeIf { description ->
+                    description.isNotBlank()
+                },
+                selectedWindowKey = selectedWindowKey
+                    ?.takeIf { windowKey -> windows.any { window -> window.windowKey == windowKey } }
+                    ?: leaderboard.defaultWindowKey,
+                windows = windows,
+                isStale = snapshot.isRefreshDue
+            )
+        }
+    }
+}
+
+private fun CloudProgressLeaderboardWindow.toUiState(
+    viewerLocalQualifiedCount: Int
+): ProgressLeaderboardWindowUiState {
+    return ProgressLeaderboardWindowUiState(
+        windowKey = windowKey,
+        participantCount = participantCount,
+        rows = rows.map { row ->
+            when (row) {
+                is CloudProgressLeaderboardRow.Gap -> ProgressLeaderboardRowUiState.Gap
+                is CloudProgressLeaderboardRow.Participant -> ProgressLeaderboardRowUiState.Participant(
+                    rank = row.rank,
+                    displayName = row.anonymousDisplayName,
+                    // Only the viewer count is overlaid with the locally observed
+                    // qualified reviews; ranks and other rows stay server-authoritative.
+                    qualifiedReviewCount = if (row.kind == ProgressLeaderboardParticipantRowKind.VIEWER) {
+                        maxOf(row.qualifiedReviewCount, viewerLocalQualifiedCount)
+                    } else {
+                        row.qualifiedReviewCount
+                    },
+                    isViewer = row.kind == ProgressLeaderboardParticipantRowKind.VIEWER
+                )
+            }
+        },
+        snapshotGeneratedAtMillis = runCatching {
+            Instant.parse(snapshotGeneratedAt).toEpochMilli()
+        }.getOrElse { error ->
+            // A malformed timestamp only suppresses the freshness label, but the
+            // contract drift must stay visible in logs instead of failing silently.
+            logProgressViewModelWarning(
+                event = "progress_leaderboard_snapshot_generated_at_invalid",
+                error = error
+            )
+            null
+        }
     )
 }
 
@@ -154,7 +268,8 @@ private fun CloudProgressSeries.toUiState(
     locale: Locale,
     today: LocalDate,
     summary: ProgressSummaryUiState,
-    reviewSchedule: ProgressReviewScheduleSectionUiState?
+    reviewSchedule: ProgressReviewScheduleSectionUiState?,
+    leaderboardSection: ProgressLeaderboardSectionUiState
 ): ProgressUiState {
     val parsedPoints = dailyReviews
         .map { point ->
@@ -183,7 +298,8 @@ private fun CloudProgressSeries.toUiState(
         summary = summary,
         streakSection = streakSection,
         reviewsSection = reviewsSection,
-        reviewScheduleSection = reviewSchedule
+        reviewScheduleSection = reviewSchedule,
+        leaderboardSection = leaderboardSection
     )
 }
 
