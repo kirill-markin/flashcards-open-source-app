@@ -284,6 +284,10 @@
 "settings.account.status.unavailable" = "تكوين السحابة غير متاح.";
 "settings.account.status.logoutAlertTitle" = "هل تريد تسجيل الخروج ومسح هذا الجهاز؟";
 "settings.account.status.logoutAlertMessage" = "سيتم حذف كافة مساحات العمل المحلية والبيانات المتزامنة من هذا الجهاز.";
+"settings.account.status.leaderboard.section" = "لوحة الصدارة";
+"settings.account.status.leaderboard.toggle" = "إظهاري في لوحة الصدارة";
+"settings.account.status.leaderboard.description" = "اظهر بشكل مجهول في لوحة صدارة التقدم وقارن نشاط المراجعة مع المتعلمين الآخرين. تُحتسب مراجعات صعب وجيد وسهل، أما مرة أخرى فلا تُحتسب.";
+"settings.account.status.leaderboard.signInRequired" = "سجّل الدخول بالبريد الإلكتروني للانضمام إلى لوحة صدارة التقدم.";
 
 "settings.account.legal.title" = "الشؤون القانونية";
 "settings.account.support.title" = "الدعم";

@@ -48,9 +48,18 @@ struct PersistedReviewScheduleServerBase: Codable, Hashable, Sendable {
     }
 }
 
+/// Cached compact leaderboard payload exactly as the API returned it, including
+/// the server-generated anonymous display names; the client never regenerates them.
+struct PersistedProgressLeaderboardServerBase: Codable, Hashable, Sendable {
+    let scopeKey: ProgressLeaderboardScopeKey
+    let serverBase: UserProgressLeaderboard
+    let storedAt: String
+}
+
 private let progressSummaryServerBaseCacheUserDefaultsKeyPrefix: String = "progress-summary-server-base"
 private let progressSeriesServerBaseCacheUserDefaultsKeyPrefix: String = "progress-series-server-base"
 private let reviewScheduleServerBaseCacheUserDefaultsKeyPrefix: String = "progress-review-schedule-server-base"
+private let progressLeaderboardServerBaseCacheUserDefaultsKeyPrefix: String = "progress-leaderboard-server-base"
 
 @MainActor
 extension FlashcardsStore {
@@ -78,9 +87,23 @@ extension FlashcardsStore {
         )
     }
 
+    func persistProgressLeaderboardServerBase(serverBase: PersistedProgressLeaderboardServerBase) throws {
+        let data = try self.encoder.encode(serverBase)
+        self.userDefaults.set(
+            data,
+            forKey: progressLeaderboardServerBaseUserDefaultsKey(scopeKey: serverBase.scopeKey)
+        )
+    }
+
     func removePersistedReviewScheduleServerBase(scopeKey: ReviewScheduleScopeKey) {
         self.userDefaults.removeObject(
             forKey: reviewScheduleServerBaseUserDefaultsKey(scopeKey: scopeKey)
+        )
+    }
+
+    func removePersistedProgressLeaderboardServerBase(scopeKey: ProgressLeaderboardScopeKey) {
+        self.userDefaults.removeObject(
+            forKey: progressLeaderboardServerBaseUserDefaultsKey(scopeKey: scopeKey)
         )
     }
 
@@ -226,6 +249,56 @@ extension FlashcardsStore {
         }
     }
 
+    func loadPersistedProgressLeaderboardServerBase(
+        scopeKey: ProgressLeaderboardScopeKey
+    ) -> PersistedProgressLeaderboardServerBase? {
+        let key = progressLeaderboardServerBaseUserDefaultsKey(scopeKey: scopeKey)
+        guard let data = self.userDefaults.data(forKey: key) else {
+            return nil
+        }
+
+        do {
+            let serverBase = try self.decoder.decode(PersistedProgressLeaderboardServerBase.self, from: data)
+            guard serverBase.scopeKey == scopeKey else {
+                self.removeProgressServerBaseCache(
+                    key: key,
+                    cacheKind: "leaderboard",
+                    reason: "scope_mismatch",
+                    expectedScopeKey: scopeKey.storageKey,
+                    actualScopeKey: serverBase.scopeKey.storageKey,
+                    errorMessage: nil
+                )
+                return nil
+            }
+
+            do {
+                try validateProgressLeaderboard(leaderboard: serverBase.serverBase)
+            } catch {
+                self.removeProgressServerBaseCache(
+                    key: key,
+                    cacheKind: "leaderboard",
+                    reason: "validation_failed",
+                    expectedScopeKey: scopeKey.storageKey,
+                    actualScopeKey: serverBase.scopeKey.storageKey,
+                    errorMessage: Flashcards.errorMessage(error: error)
+                )
+                return nil
+            }
+
+            return serverBase
+        } catch {
+            self.removeProgressServerBaseCache(
+                key: key,
+                cacheKind: "leaderboard",
+                reason: "decode_failed",
+                expectedScopeKey: scopeKey.storageKey,
+                actualScopeKey: nil,
+                errorMessage: Flashcards.errorMessage(error: error)
+            )
+            return nil
+        }
+    }
+
     private func removeProgressServerBaseCache(
         key: String,
         cacheKind: String,
@@ -271,4 +344,8 @@ private func progressSeriesServerBaseUserDefaultsKey(scopeKey: ProgressScopeKey)
 
 private func reviewScheduleServerBaseUserDefaultsKey(scopeKey: ReviewScheduleScopeKey) -> String {
     "\(reviewScheduleServerBaseCacheUserDefaultsKeyPrefix)|\(scopeKey.storageKey)"
+}
+
+private func progressLeaderboardServerBaseUserDefaultsKey(scopeKey: ProgressLeaderboardScopeKey) -> String {
+    "\(progressLeaderboardServerBaseCacheUserDefaultsKeyPrefix)|\(scopeKey.storageKey)"
 }

@@ -151,6 +151,35 @@ extension AIChatStoreTestSupport {
             )
         }
 
+        func loadProgressLeaderboard(
+            apiBaseUrl: String,
+            authorizationHeader: String
+        ) async throws -> UserProgressLeaderboard {
+            _ = apiBaseUrl
+            _ = authorizationHeader
+            return makeNonReadyProgressLeaderboardForTests(status: .snapshotUnavailable)
+        }
+
+        func loadCommunityPublicProfile(
+            apiBaseUrl: String,
+            authorizationHeader: String
+        ) async throws -> CommunityPublicProfile {
+            _ = apiBaseUrl
+            _ = authorizationHeader
+            fatalError("Not used in AIChatStoreTestSupport.")
+        }
+
+        func updateCommunityLeaderboardParticipation(
+            apiBaseUrl: String,
+            authorizationHeader: String,
+            isEnabled: Bool
+        ) async throws -> CommunityPublicProfile {
+            _ = apiBaseUrl
+            _ = authorizationHeader
+            _ = isEnabled
+            fatalError("Not used in AIChatStoreTestSupport.")
+        }
+
         func loadFeedbackState(
             apiBaseUrl: String,
             authorizationHeader: String

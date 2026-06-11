@@ -39,6 +39,19 @@ protocol CloudSyncServing {
         authorizationHeader: String,
         timeZone: String
     ) async throws -> UserReviewSchedule
+    func loadProgressLeaderboard(
+        apiBaseUrl: String,
+        authorizationHeader: String
+    ) async throws -> UserProgressLeaderboard
+    func loadCommunityPublicProfile(
+        apiBaseUrl: String,
+        authorizationHeader: String
+    ) async throws -> CommunityPublicProfile
+    func updateCommunityLeaderboardParticipation(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        isEnabled: Bool
+    ) async throws -> CommunityPublicProfile
     func loadFeedbackState(
         apiBaseUrl: String,
         authorizationHeader: String

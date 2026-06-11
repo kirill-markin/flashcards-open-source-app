@@ -284,6 +284,10 @@
 "settings.account.status.unavailable" = "Die Cloud-Konfiguration ist nicht verfügbar.";
 "settings.account.status.logoutAlertTitle" = "Abmelden und dieses Gerät löschen?";
 "settings.account.status.logoutAlertMessage" = "Alle lokalen Arbeitsbereiche und synchronisierten Daten werden von diesem Gerät gelöscht.";
+"settings.account.status.leaderboard.section" = "Bestenliste";
+"settings.account.status.leaderboard.toggle" = "Mich in der Bestenliste anzeigen";
+"settings.account.status.leaderboard.description" = "Erscheine anonym in der Fortschritts-Bestenliste und vergleiche deine Wiederholungsaktivität mit anderen Lernenden. Schwer, Gut und Leicht zählen; Nochmal zählt nicht.";
+"settings.account.status.leaderboard.signInRequired" = "Melde dich mit E-Mail an, um an der Fortschritts-Bestenliste teilzunehmen.";
 
 "settings.account.legal.title" = "Rechtliches";
 "settings.account.support.title" = "Support";

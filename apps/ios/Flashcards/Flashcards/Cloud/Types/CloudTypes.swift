@@ -77,6 +77,19 @@ func makeDefaultAccountPreferences() -> AccountPreferences {
     AccountPreferences(reviewReactionAnimationsEnabled: true)
 }
 
+/// Client-safe community profile from GET/PATCH /me/community/profile.
+/// The anonymous display name is server-generated; clients never create their own.
+struct CommunityPublicProfile: Codable, Hashable, Sendable {
+    let publicProfileId: String
+    let anonymousDisplayName: String
+    let leaderboardParticipationEnabled: Bool
+    let linkedAccountRequiredForLeaderboard: Bool
+}
+
+struct CommunityProfilePatchRequest: Codable, Hashable, Sendable {
+    let leaderboardParticipationEnabled: Bool
+}
+
 struct CloudLinkedSession: Hashable, Sendable {
     let userId: String
     let workspaceId: String

@@ -17,6 +17,9 @@ extension FlashcardsStore {
             self.progressReviewScheduleServerBaseCache = self.loadPersistedReviewScheduleServerBase(
                 scopeKey: reviewScheduleScopeKey(seriesScopeKey: scopeKey)
             )
+            self.progressLeaderboardServerBaseCache = self.loadPersistedProgressLeaderboardServerBase(
+                scopeKey: self.currentProgressLeaderboardScopeKey(seriesScopeKey: scopeKey)
+            )
             self.clearProgressErrorMessage()
             if previousScopeKey != nil {
                 self.invalidateProgress(
@@ -29,9 +32,17 @@ extension FlashcardsStore {
         return scopeKey
     }
 
+    func currentProgressLeaderboardScopeKey(seriesScopeKey: ProgressScopeKey) -> ProgressLeaderboardScopeKey {
+        progressLeaderboardScopeKey(
+            seriesScopeKey: seriesScopeKey,
+            localeIdentifier: progressLeaderboardPreferredLocaleIdentifier()
+        )
+    }
+
     func prepareProgressSnapshot(now: Date) throws -> ProgressScopeKey {
         let scopeKey = try self.prepareProgressScope(now: now)
         let scheduleScopeKey = reviewScheduleScopeKey(seriesScopeKey: scopeKey)
+        let leaderboardScopeKey = self.currentProgressLeaderboardScopeKey(seriesScopeKey: scopeKey)
 
         if self.progressSnapshot?.scopeKey != scopeKey {
             try self.publishProgressSnapshot(scopeKey: scopeKey)
@@ -39,6 +50,13 @@ extension FlashcardsStore {
         if self.reviewScheduleSnapshot?.scopeKey != scheduleScopeKey
             || self.progressReviewScheduleInvalidatedScopeKeys.contains(scheduleScopeKey) {
             self.publishReviewScheduleSnapshotIsolatingErrors(scopeKey: scheduleScopeKey)
+        }
+        // Republish on scope rotation, and also when local review data changed
+        // while the leaderboard publish was skipped (for example a sync pull that
+        // completed on the Review tab), so the viewer overlay never lags the chart.
+        if self.progressLeaderboardSnapshot?.scopeKey != leaderboardScopeKey
+            || self.progressLeaderboardPublishedClientRevision != self.progressReviewedAtClientRevision {
+            self.publishProgressLeaderboardSnapshotIsolatingErrors(scopeKey: leaderboardScopeKey, now: now)
         }
 
         return scopeKey
@@ -288,6 +306,71 @@ extension FlashcardsStore {
         self.applyReviewScheduleSnapshot(snapshot: snapshot)
     }
 
+    /// Renders the leaderboard section state from the local account state and the
+    /// cached server payload, overlaying only the viewer's live qualified count.
+    func publishProgressLeaderboardSnapshot(
+        scopeKey: ProgressLeaderboardScopeKey,
+        now: Date
+    ) throws {
+        let snapshot = try self.makeCurrentProgressLeaderboardSnapshot(scopeKey: scopeKey, now: now)
+        self.applyProgressLeaderboardSnapshot(snapshot: snapshot)
+        self.progressLeaderboardPublishedClientRevision = self.progressReviewedAtClientRevision
+    }
+
+    private func makeCurrentProgressLeaderboardSnapshot(
+        scopeKey: ProgressLeaderboardScopeKey,
+        now: Date
+    ) throws -> ProgressLeaderboardSnapshot {
+        switch scopeKey.cloudState {
+        case .none, .some(.disconnected), .some(.linkingReady), .some(.guest):
+            return makeProgressLeaderboardPlaceholderSnapshot(
+                scopeKey: scopeKey,
+                state: .signInRequired
+            )
+        case .some(.linked):
+            break
+        }
+
+        guard let cachedServerBase = self.progressLeaderboardServerBaseCache,
+              cachedServerBase.scopeKey == scopeKey else {
+            return makeProgressLeaderboardPlaceholderSnapshot(
+                scopeKey: scopeKey,
+                state: .awaitingServerData
+            )
+        }
+
+        let reviewedAtClientSources = try self.loadProgressReviewedAtClientSources()
+        return try makeProgressLeaderboardSnapshot(
+            leaderboard: cachedServerBase.serverBase,
+            scopeKey: scopeKey,
+            canonicalQualifiedReviewEvents: reviewedAtClientSources.canonicalQualifiedReviewEvents,
+            pendingQualifiedReviewEvents: reviewedAtClientSources.pendingQualifiedReviewEvents,
+            now: now
+        )
+    }
+
+    func publishProgressLeaderboardSnapshotIsolatingErrors(
+        scopeKey: ProgressLeaderboardScopeKey,
+        now: Date
+    ) {
+        do {
+            try self.publishProgressLeaderboardSnapshot(scopeKey: scopeKey, now: now)
+        } catch {
+            if isRequestCancellationError(error: error) {
+                return
+            }
+
+            self.applyProgressLeaderboardSnapshot(snapshot: nil)
+            self.replaceProgressLeaderboardRefreshErrorMessage(message: Flashcards.errorMessage(error: error))
+        }
+    }
+
+    func applyProgressLeaderboardSnapshot(snapshot: ProgressLeaderboardSnapshot?) {
+        if self.progressLeaderboardSnapshot != snapshot {
+            self.progressLeaderboardSnapshot = snapshot
+        }
+    }
+
     func publishReviewProgressBadgeState(scopeKey: ProgressScopeKey) throws {
         let reviewedAtClientSources = try self.loadProgressReviewedAtClientSources()
         let renderedProgress = try self.makeProgressRenderedSummaryAndSeries(
@@ -306,6 +389,7 @@ extension FlashcardsStore {
         }
         if snapshot == nil {
             self.applyReviewScheduleSnapshot(snapshot: nil)
+            self.applyProgressLeaderboardSnapshot(snapshot: nil)
         }
 
         self.applyReviewProgressBadgeState(
@@ -422,24 +506,49 @@ extension FlashcardsStore {
         database: LocalDatabase,
         workspaceIds: [String]
     ) throws -> ProgressReviewedAtClientSources {
-        let canonicalReviewedAtClients = try workspaceIds.flatMap { workspaceId in
-            try database.loadReviewEvents(workspaceId: workspaceId).map(\.reviewedAtClient)
+        var canonicalReviewedAtClients: [String] = []
+        var canonicalQualifiedReviewEvents: [ProgressQualifiedReviewEventSource] = []
+        for workspaceId in workspaceIds {
+            for reviewEvent in try database.loadReviewEvents(workspaceId: workspaceId) {
+                canonicalReviewedAtClients.append(reviewEvent.reviewedAtClient)
+                if reviewEvent.rating != .again {
+                    canonicalQualifiedReviewEvents.append(
+                        ProgressQualifiedReviewEventSource(
+                            reviewEventId: reviewEvent.reviewEventId,
+                            reviewedAtClient: reviewEvent.reviewedAtClient
+                        )
+                    )
+                }
+            }
         }
-        let pendingReviewedAtClients: [String]
+
+        var pendingReviewedAtClients: [String] = []
+        var pendingQualifiedReviewEvents: [ProgressQualifiedReviewEventSource] = []
         if let installationId = self.cloudSettings?.installationId {
-            pendingReviewedAtClients = try workspaceIds.flatMap { workspaceId in
-                try database.loadPendingReviewEventPayloads(
+            for workspaceId in workspaceIds {
+                let pendingPayloads = try database.loadPendingReviewEventPayloads(
                     workspaceId: workspaceId,
                     installationId: installationId
-                ).map(\.reviewedAtClient)
+                )
+                for pendingPayload in pendingPayloads {
+                    pendingReviewedAtClients.append(pendingPayload.reviewedAtClient)
+                    if pendingPayload.rating != ReviewRating.again.rawValue {
+                        pendingQualifiedReviewEvents.append(
+                            ProgressQualifiedReviewEventSource(
+                                reviewEventId: pendingPayload.reviewEventId,
+                                reviewedAtClient: pendingPayload.reviewedAtClient
+                            )
+                        )
+                    }
+                }
             }
-        } else {
-            pendingReviewedAtClients = []
         }
 
         return ProgressReviewedAtClientSources(
             canonicalReviewedAtClients: canonicalReviewedAtClients,
-            pendingReviewedAtClients: pendingReviewedAtClients
+            pendingReviewedAtClients: pendingReviewedAtClients,
+            canonicalQualifiedReviewEvents: canonicalQualifiedReviewEvents,
+            pendingQualifiedReviewEvents: pendingQualifiedReviewEvents
         )
     }
 
@@ -552,4 +661,12 @@ extension FlashcardsStore {
 
 private func makeProgressWorkspaceMembershipKey(workspaceIds: [String]) -> String {
     workspaceIds.sorted().joined(separator: ",")
+}
+
+/// Cache-scope key component: a device language change rotates the leaderboard
+/// scope and forces a refetch. Anonymous display names always come verbatim from
+/// the server response, which resolves their language from account settings; the
+/// client never derives or generates names from this locale value.
+func progressLeaderboardPreferredLocaleIdentifier() -> String {
+    Locale.preferredLanguages.first ?? "en"
 }

@@ -3,6 +3,10 @@ import Foundation
 struct ProgressReviewedAtClientSources: Hashable, Sendable {
     let canonicalReviewedAtClients: [String]
     let pendingReviewedAtClients: [String]
+    /// Canonical review events rated Hard, Good, or Easy; Again is excluded.
+    let canonicalQualifiedReviewEvents: [ProgressQualifiedReviewEventSource]
+    /// Pending outbox review events rated Hard, Good, or Easy; Again is excluded.
+    let pendingQualifiedReviewEvents: [ProgressQualifiedReviewEventSource]
 
     var pendingLocalOverlayState: ProgressPendingLocalOverlayState {
         if self.pendingReviewedAtClients.isEmpty {
@@ -11,6 +15,11 @@ struct ProgressReviewedAtClientSources: Hashable, Sendable {
 
         return .present
     }
+}
+
+struct ProgressQualifiedReviewEventSource: Hashable, Sendable {
+    let reviewEventId: String
+    let reviewedAtClient: String
 }
 
 enum ProgressPendingLocalOverlayState: Hashable, Sendable {
@@ -63,6 +72,58 @@ func reviewScheduleScopeKey(seriesScopeKey: ProgressScopeKey) -> ReviewScheduleS
         timeZone: seriesScopeKey.timeZone,
         referenceLocalDate: seriesScopeKey.to
     )
+}
+
+func progressLeaderboardScopeKey(
+    seriesScopeKey: ProgressScopeKey,
+    localeIdentifier: String
+) -> ProgressLeaderboardScopeKey {
+    ProgressLeaderboardScopeKey(
+        cloudState: seriesScopeKey.cloudState,
+        linkedUserId: seriesScopeKey.linkedUserId,
+        localeIdentifier: localeIdentifier
+    )
+}
+
+/// Live viewer overlay input: distinct qualified review events inside each rolling
+/// window anchored at the current device time. Canonical and pending events are
+/// deduplicated by review event id because locally submitted events exist in both.
+/// Every window is counted from one shared pass so each timestamp is parsed once.
+func progressLeaderboardQualifiedReviewCounts(
+    canonicalQualifiedReviewEvents: [ProgressQualifiedReviewEventSource],
+    pendingQualifiedReviewEvents: [ProgressQualifiedReviewEventSource],
+    now: Date
+) throws -> [LeaderboardWindowKey: Int] {
+    var reviewedAtDatesByReviewEventId: [String: Date] = [:]
+    for qualifiedReviewEvent in canonicalQualifiedReviewEvents + pendingQualifiedReviewEvents {
+        guard let reviewedAtDate = parseIsoTimestamp(value: qualifiedReviewEvent.reviewedAtClient) else {
+            throw LocalStoreError.validation(
+                "Leaderboard reviewedAtClient timestamp is invalid: \(qualifiedReviewEvent.reviewedAtClient)"
+            )
+        }
+
+        reviewedAtDatesByReviewEventId[qualifiedReviewEvent.reviewEventId] = reviewedAtDate
+    }
+
+    var qualifiedReviewCounts: [LeaderboardWindowKey: Int] = [:]
+    for windowKey in LeaderboardWindowKey.stableOrder {
+        let windowStart: Date?
+        if let rollingWindowHours = windowKey.rollingWindowHours {
+            windowStart = now.addingTimeInterval(-Double(rollingWindowHours) * 3600)
+        } else {
+            windowStart = nil
+        }
+
+        qualifiedReviewCounts[windowKey] = reviewedAtDatesByReviewEventId.values.count { reviewedAtDate in
+            guard let windowStart else {
+                return true
+            }
+
+            return reviewedAtDate >= windowStart
+        }
+    }
+
+    return qualifiedReviewCounts
 }
 
 func makeProgressRenderedSummary(

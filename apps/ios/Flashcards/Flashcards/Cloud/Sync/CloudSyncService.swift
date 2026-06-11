@@ -204,6 +204,46 @@ final class CloudSyncService: @unchecked Sendable {
         )
     }
 
+    func loadProgressLeaderboard(
+        apiBaseUrl: String,
+        authorizationHeader: String
+    ) async throws -> UserProgressLeaderboard {
+        try await self.transport.request(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: authorizationHeader,
+            path: "/me/progress/leaderboard",
+            method: "GET",
+            body: Optional<String>.none
+        )
+    }
+
+    func loadCommunityPublicProfile(
+        apiBaseUrl: String,
+        authorizationHeader: String
+    ) async throws -> CommunityPublicProfile {
+        try await self.transport.request(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: authorizationHeader,
+            path: "/me/community/profile",
+            method: "GET",
+            body: Optional<String>.none
+        )
+    }
+
+    func updateCommunityLeaderboardParticipation(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        isEnabled: Bool
+    ) async throws -> CommunityPublicProfile {
+        try await self.transport.request(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: authorizationHeader,
+            path: "/me/community/profile",
+            method: "PATCH",
+            body: CommunityProfilePatchRequest(leaderboardParticipationEnabled: isEnabled)
+        )
+    }
+
     func loadFeedbackState(
         apiBaseUrl: String,
         authorizationHeader: String

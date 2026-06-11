@@ -284,6 +284,10 @@
 "settings.account.status.unavailable" = "Облачная конфигурация недоступна.";
 "settings.account.status.logoutAlertTitle" = "Выйти и стереть данные с этого устройства?";
 "settings.account.status.logoutAlertMessage" = "Все локальные рабочие области и синхронизированные данные будут удалены с этого устройства.";
+"settings.account.status.leaderboard.section" = "Таблица лидеров";
+"settings.account.status.leaderboard.toggle" = "Показывать меня в таблице лидеров";
+"settings.account.status.leaderboard.description" = "Анонимно появляйтесь в таблице лидеров на вкладке «Прогресс» и сравнивайте активность повторений с другими учениками. «Трудно», «Хорошо» и «Легко» учитываются; «Снова» не учитывается.";
+"settings.account.status.leaderboard.signInRequired" = "Войдите по электронной почте, чтобы присоединиться к таблице лидеров прогресса.";
 
 "settings.account.legal.title" = "Юридическая информация";
 "settings.account.support.title" = "Поддержка";

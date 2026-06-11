@@ -6,6 +6,7 @@ struct ProgressErrorState: Equatable, Sendable {
     let seriesRefreshMessage: String
     let reviewScheduleRefreshMessage: String
     let reviewScheduleRenderMessage: String
+    let leaderboardRefreshMessage: String
 }
 
 func makeEmptyProgressErrorState() -> ProgressErrorState {
@@ -14,7 +15,8 @@ func makeEmptyProgressErrorState() -> ProgressErrorState {
         summaryRefreshMessage: "",
         seriesRefreshMessage: "",
         reviewScheduleRefreshMessage: "",
-        reviewScheduleRenderMessage: ""
+        reviewScheduleRenderMessage: "",
+        leaderboardRefreshMessage: ""
     )
 }
 
@@ -24,7 +26,8 @@ func progressErrorStateWithOnlyGeneralMessage(message: String) -> ProgressErrorS
         summaryRefreshMessage: "",
         seriesRefreshMessage: "",
         reviewScheduleRefreshMessage: "",
-        reviewScheduleRenderMessage: ""
+        reviewScheduleRenderMessage: "",
+        leaderboardRefreshMessage: ""
     )
 }
 
@@ -34,7 +37,8 @@ func progressErrorStateClearingGeneralAndSummaryRefreshMessages(state: ProgressE
         summaryRefreshMessage: "",
         seriesRefreshMessage: state.seriesRefreshMessage,
         reviewScheduleRefreshMessage: state.reviewScheduleRefreshMessage,
-        reviewScheduleRenderMessage: state.reviewScheduleRenderMessage
+        reviewScheduleRenderMessage: state.reviewScheduleRenderMessage,
+        leaderboardRefreshMessage: state.leaderboardRefreshMessage
     )
 }
 
@@ -44,7 +48,19 @@ func progressErrorStateClearingGeneralAndSeriesRefreshMessages(state: ProgressEr
         summaryRefreshMessage: state.summaryRefreshMessage,
         seriesRefreshMessage: "",
         reviewScheduleRefreshMessage: state.reviewScheduleRefreshMessage,
-        reviewScheduleRenderMessage: state.reviewScheduleRenderMessage
+        reviewScheduleRenderMessage: state.reviewScheduleRenderMessage,
+        leaderboardRefreshMessage: state.leaderboardRefreshMessage
+    )
+}
+
+func progressErrorStateClearingGeneralAndLeaderboardRefreshMessages(state: ProgressErrorState) -> ProgressErrorState {
+    ProgressErrorState(
+        generalMessage: "",
+        summaryRefreshMessage: state.summaryRefreshMessage,
+        seriesRefreshMessage: state.seriesRefreshMessage,
+        reviewScheduleRefreshMessage: state.reviewScheduleRefreshMessage,
+        reviewScheduleRenderMessage: state.reviewScheduleRenderMessage,
+        leaderboardRefreshMessage: ""
     )
 }
 
@@ -54,7 +70,8 @@ func progressErrorStateClearingGeneralMessage(state: ProgressErrorState) -> Prog
         summaryRefreshMessage: state.summaryRefreshMessage,
         seriesRefreshMessage: state.seriesRefreshMessage,
         reviewScheduleRefreshMessage: state.reviewScheduleRefreshMessage,
-        reviewScheduleRenderMessage: state.reviewScheduleRenderMessage
+        reviewScheduleRenderMessage: state.reviewScheduleRenderMessage,
+        leaderboardRefreshMessage: state.leaderboardRefreshMessage
     )
 }
 
@@ -64,7 +81,8 @@ func progressErrorStateClearingSummaryRefreshMessage(state: ProgressErrorState) 
         summaryRefreshMessage: "",
         seriesRefreshMessage: state.seriesRefreshMessage,
         reviewScheduleRefreshMessage: state.reviewScheduleRefreshMessage,
-        reviewScheduleRenderMessage: state.reviewScheduleRenderMessage
+        reviewScheduleRenderMessage: state.reviewScheduleRenderMessage,
+        leaderboardRefreshMessage: state.leaderboardRefreshMessage
     )
 }
 
@@ -74,7 +92,8 @@ func progressErrorStateClearingSeriesRefreshMessage(state: ProgressErrorState) -
         summaryRefreshMessage: state.summaryRefreshMessage,
         seriesRefreshMessage: "",
         reviewScheduleRefreshMessage: state.reviewScheduleRefreshMessage,
-        reviewScheduleRenderMessage: state.reviewScheduleRenderMessage
+        reviewScheduleRenderMessage: state.reviewScheduleRenderMessage,
+        leaderboardRefreshMessage: state.leaderboardRefreshMessage
     )
 }
 
@@ -84,7 +103,8 @@ func progressErrorStateClearingReviewScheduleRefreshMessage(state: ProgressError
         summaryRefreshMessage: state.summaryRefreshMessage,
         seriesRefreshMessage: state.seriesRefreshMessage,
         reviewScheduleRefreshMessage: "",
-        reviewScheduleRenderMessage: state.reviewScheduleRenderMessage
+        reviewScheduleRenderMessage: state.reviewScheduleRenderMessage,
+        leaderboardRefreshMessage: state.leaderboardRefreshMessage
     )
 }
 
@@ -94,7 +114,19 @@ func progressErrorStateClearingReviewScheduleRenderMessage(state: ProgressErrorS
         summaryRefreshMessage: state.summaryRefreshMessage,
         seriesRefreshMessage: state.seriesRefreshMessage,
         reviewScheduleRefreshMessage: state.reviewScheduleRefreshMessage,
-        reviewScheduleRenderMessage: ""
+        reviewScheduleRenderMessage: "",
+        leaderboardRefreshMessage: state.leaderboardRefreshMessage
+    )
+}
+
+func progressErrorStateClearingLeaderboardRefreshMessage(state: ProgressErrorState) -> ProgressErrorState {
+    ProgressErrorState(
+        generalMessage: state.generalMessage,
+        summaryRefreshMessage: state.summaryRefreshMessage,
+        seriesRefreshMessage: state.seriesRefreshMessage,
+        reviewScheduleRefreshMessage: state.reviewScheduleRefreshMessage,
+        reviewScheduleRenderMessage: state.reviewScheduleRenderMessage,
+        leaderboardRefreshMessage: ""
     )
 }
 
@@ -107,7 +139,8 @@ func progressErrorStateWithSummaryRefreshMessage(
         summaryRefreshMessage: message,
         seriesRefreshMessage: state.seriesRefreshMessage,
         reviewScheduleRefreshMessage: state.reviewScheduleRefreshMessage,
-        reviewScheduleRenderMessage: state.reviewScheduleRenderMessage
+        reviewScheduleRenderMessage: state.reviewScheduleRenderMessage,
+        leaderboardRefreshMessage: state.leaderboardRefreshMessage
     )
 }
 
@@ -120,7 +153,8 @@ func progressErrorStateWithSeriesRefreshMessage(
         summaryRefreshMessage: state.summaryRefreshMessage,
         seriesRefreshMessage: message,
         reviewScheduleRefreshMessage: state.reviewScheduleRefreshMessage,
-        reviewScheduleRenderMessage: state.reviewScheduleRenderMessage
+        reviewScheduleRenderMessage: state.reviewScheduleRenderMessage,
+        leaderboardRefreshMessage: state.leaderboardRefreshMessage
     )
 }
 
@@ -133,7 +167,8 @@ func progressErrorStateWithReviewScheduleRefreshMessage(
         summaryRefreshMessage: state.summaryRefreshMessage,
         seriesRefreshMessage: state.seriesRefreshMessage,
         reviewScheduleRefreshMessage: message,
-        reviewScheduleRenderMessage: state.reviewScheduleRenderMessage
+        reviewScheduleRenderMessage: state.reviewScheduleRenderMessage,
+        leaderboardRefreshMessage: state.leaderboardRefreshMessage
     )
 }
 
@@ -146,7 +181,22 @@ func progressErrorStateWithReviewScheduleRenderMessage(
         summaryRefreshMessage: state.summaryRefreshMessage,
         seriesRefreshMessage: state.seriesRefreshMessage,
         reviewScheduleRefreshMessage: state.reviewScheduleRefreshMessage,
-        reviewScheduleRenderMessage: message
+        reviewScheduleRenderMessage: message,
+        leaderboardRefreshMessage: state.leaderboardRefreshMessage
+    )
+}
+
+func progressErrorStateWithLeaderboardRefreshMessage(
+    state: ProgressErrorState,
+    message: String
+) -> ProgressErrorState {
+    ProgressErrorState(
+        generalMessage: "",
+        summaryRefreshMessage: state.summaryRefreshMessage,
+        seriesRefreshMessage: state.seriesRefreshMessage,
+        reviewScheduleRefreshMessage: state.reviewScheduleRefreshMessage,
+        reviewScheduleRenderMessage: state.reviewScheduleRenderMessage,
+        leaderboardRefreshMessage: message
     )
 }
 
@@ -157,6 +207,7 @@ func progressErrorDisplayMessage(state: ProgressErrorState) -> String {
         state.seriesRefreshMessage,
         state.reviewScheduleRefreshMessage,
         state.reviewScheduleRenderMessage,
+        state.leaderboardRefreshMessage,
     ]
         .filter { message in
             message.isEmpty == false

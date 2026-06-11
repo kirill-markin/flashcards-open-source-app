@@ -46,6 +46,24 @@ struct ProgressSummaryScopeKey: Codable, Hashable, Sendable {
     }
 }
 
+struct ProgressLeaderboardScopeKey: Codable, Hashable, Sendable {
+    let cloudState: CloudAccountState?
+    let linkedUserId: String?
+    /// Anonymous display names in the cached payload are server-generated from the
+    /// request locale, so a device language change must rotate the cache scope.
+    let localeIdentifier: String
+
+    var storageKey: String {
+        let cloudStateKey = self.cloudState?.rawValue ?? "none"
+        let linkedUserIdKey = self.linkedUserId ?? "none"
+        return [
+            cloudStateKey,
+            linkedUserIdKey,
+            self.localeIdentifier,
+        ].joined(separator: "|")
+    }
+}
+
 struct ReviewScheduleScopeKey: Codable, Hashable, Sendable {
     let cloudState: CloudAccountState?
     let linkedUserId: String?

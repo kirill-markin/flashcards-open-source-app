@@ -284,6 +284,10 @@
 "settings.account.status.unavailable" = "La configuracion de la nube no esta disponible.";
 "settings.account.status.logoutAlertTitle" = "Cerrar sesion y borrar este dispositivo?";
 "settings.account.status.logoutAlertMessage" = "Todos los espacios de trabajo locales y los datos sincronizados se eliminaran de este dispositivo.";
+"settings.account.status.leaderboard.section" = "Tabla de posiciones";
+"settings.account.status.leaderboard.toggle" = "Mostrarme en la tabla de posiciones";
+"settings.account.status.leaderboard.description" = "Aparece de forma anónima en la tabla de posiciones de Progreso y compara tu actividad de repaso con otros estudiantes. Los repasos Difícil, Bien y Fácil cuentan; De nuevo no cuenta.";
+"settings.account.status.leaderboard.signInRequired" = "Inicia sesión con tu correo para unirte a la tabla de posiciones de Progreso.";
 
 "settings.account.legal.title" = "Legal";
 "settings.account.support.title" = "Soporte";

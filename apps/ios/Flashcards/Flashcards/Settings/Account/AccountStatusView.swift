@@ -36,6 +36,7 @@ struct AccountStatusView: View {
     @State private var screenErrorMessage: String = ""
     @State private var isCloudSignInPresented: Bool = false
     @State private var isLogoutConfirmationPresented: Bool = false
+    @State private var isSavingLeaderboardParticipation: Bool = false
 
     private var settingsAttentionSummary: SettingsAttentionSummary {
         makeSettingsAttentionSummary(
@@ -133,10 +134,17 @@ struct AccountStatusView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+
+            Section(aiSettingsLocalized("settings.account.status.leaderboard.section", "Leaderboard")) {
+                self.leaderboardParticipationContent
+            }
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.accountStatusScreen)
         .navigationTitle(aiSettingsLocalized("settings.account.status.title", "Account Status"))
+        .task {
+            await self.refreshCommunityProfile()
+        }
         .sheet(isPresented: self.$isCloudSignInPresented) {
             CloudSignInSheet(presentationContext: .standard)
                 .environment(store)
@@ -153,6 +161,83 @@ struct AccountStatusView: View {
                     "All local workspaces and synced data will be removed from this device."
                 )
             )
+        }
+    }
+
+    @ViewBuilder
+    private var leaderboardParticipationContent: some View {
+        if store.canManageLeaderboardParticipation {
+            if let communityProfile = store.communityPublicProfile {
+                Toggle(
+                    aiSettingsLocalized(
+                        "settings.account.status.leaderboard.toggle",
+                        "Show me on the leaderboard"
+                    ),
+                    isOn: Binding(
+                        get: {
+                            communityProfile.leaderboardParticipationEnabled
+                        },
+                        set: { isEnabled in
+                            self.updateLeaderboardParticipationEnabled(isEnabled: isEnabled)
+                        }
+                    )
+                )
+                .disabled(self.isSavingLeaderboardParticipation)
+                .accessibilityIdentifier(UITestIdentifier.accountStatusLeaderboardParticipationToggle)
+            } else {
+                LabeledContent(
+                    aiSettingsLocalized(
+                        "settings.account.status.leaderboard.toggle",
+                        "Show me on the leaderboard"
+                    )
+                ) {
+                    ProgressView()
+                }
+            }
+
+            Text(
+                aiSettingsLocalized(
+                    "settings.account.status.leaderboard.description",
+                    "Appear anonymously in the Progress leaderboard and compare review activity with other learners. Hard, Good, and Easy reviews count; Again does not."
+                )
+            )
+            .foregroundStyle(.secondary)
+        } else {
+            Text(
+                aiSettingsLocalized(
+                    "settings.account.status.leaderboard.signInRequired",
+                    "Sign in with email to join the Progress leaderboard."
+                )
+            )
+            .foregroundStyle(.secondary)
+        }
+    }
+
+    private func updateLeaderboardParticipationEnabled(isEnabled: Bool) {
+        guard self.isSavingLeaderboardParticipation == false else {
+            return
+        }
+
+        Task { @MainActor in
+            self.isSavingLeaderboardParticipation = true
+            defer {
+                self.isSavingLeaderboardParticipation = false
+            }
+
+            do {
+                try await store.updateLeaderboardParticipationEnabled(isEnabled: isEnabled)
+                self.screenErrorMessage = ""
+            } catch {
+                self.screenErrorMessage = Flashcards.errorMessage(error: error)
+            }
+        }
+    }
+
+    private func refreshCommunityProfile() async {
+        do {
+            try await store.refreshCommunityPublicProfileIfAvailable()
+        } catch {
+            self.screenErrorMessage = Flashcards.errorMessage(error: error)
         }
     }
 

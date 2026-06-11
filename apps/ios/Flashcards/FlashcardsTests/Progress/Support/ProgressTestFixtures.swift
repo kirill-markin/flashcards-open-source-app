@@ -164,6 +164,79 @@ func makeEmptyReviewScheduleForTests(timeZone: String) -> UserReviewSchedule {
     )
 }
 
+func makeTestProgressLeaderboardMetric() -> ProgressLeaderboardMetric {
+    ProgressLeaderboardMetric(
+        metricVersion: "qualified_reviews_v1",
+        title: "Qualified reviews",
+        description: "Hard, Good, and Easy reviews count toward your rank. Again does not."
+    )
+}
+
+func makeNonReadyProgressLeaderboardForTests(
+    status: ProgressLeaderboardStatus
+) -> UserProgressLeaderboard {
+    UserProgressLeaderboard(
+        status: status,
+        metric: makeTestProgressLeaderboardMetric(),
+        defaultWindowKey: .last24Hours,
+        windows: []
+    )
+}
+
+/// Builds a ready leaderboard where every window carries the same viewer and rows.
+func makeReadyProgressLeaderboardForTests(
+    defaultWindowKey: LeaderboardWindowKey,
+    participantCount: Int,
+    viewer: ProgressLeaderboardViewer,
+    rows: [ProgressLeaderboardRow]
+) -> UserProgressLeaderboard {
+    let windows = LeaderboardWindowKey.stableOrder.map { windowKey in
+        ProgressLeaderboardWindow(
+            windowKey: windowKey,
+            snapshotId: "0cc86d10-18cb-4d64-a2f2-a5fd960b45b2",
+            snapshotGeneratedAt: "2026-06-10T14:00:05.000Z",
+            asOfServerHour: "2026-06-10T14:00:00.000Z",
+            nextRefreshAfter: "2026-06-10T15:00:00.000Z",
+            participantCount: participantCount,
+            viewer: viewer,
+            rows: rows
+        )
+    }
+
+    return UserProgressLeaderboard(
+        status: .ready,
+        metric: makeTestProgressLeaderboardMetric(),
+        defaultWindowKey: defaultWindowKey,
+        windows: windows
+    )
+}
+
+func makeProgressLeaderboardScopeKeyForTests() -> ProgressLeaderboardScopeKey {
+    ProgressLeaderboardScopeKey(
+        cloudState: .linked,
+        linkedUserId: "linked-user-1",
+        localeIdentifier: "en"
+    )
+}
+
+func makeProgressLeaderboardParticipantRowForTests(
+    kind: ProgressLeaderboardParticipantKind,
+    publicProfileId: String,
+    anonymousDisplayName: String,
+    qualifiedReviewCount: Int,
+    rank: Int
+) -> ProgressLeaderboardRow {
+    .participant(
+        ProgressLeaderboardParticipantRow(
+            kind: kind,
+            publicProfileId: publicProfileId,
+            anonymousDisplayName: anonymousDisplayName,
+            qualifiedReviewCount: qualifiedReviewCount,
+            rank: rank
+        )
+    )
+}
+
 func makeProgressScopeKeyForTests(
     timeZone: String,
     from: String,

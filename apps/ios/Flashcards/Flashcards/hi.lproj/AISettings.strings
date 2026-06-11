@@ -284,6 +284,10 @@
 "settings.account.status.unavailable" = "क्लाउड कॉन्फ़िगरेशन उपलब्ध नहीं है.";
 "settings.account.status.logoutAlertTitle" = "साइन आउट करें और इस डिवाइस को मिटा दें?";
 "settings.account.status.logoutAlertMessage" = "इस डिवाइस से सभी स्थानीय कार्यस्थान और समन्वयित डेटा हटा दिया जाएगा।";
+"settings.account.status.leaderboard.section" = "लीडरबोर्ड";
+"settings.account.status.leaderboard.toggle" = "मुझे लीडरबोर्ड पर दिखाएँ";
+"settings.account.status.leaderboard.description" = "प्रगति लीडरबोर्ड पर गुमनाम रूप से दिखें और अन्य शिक्षार्थियों के साथ समीक्षा गतिविधि की तुलना करें। कठिन, अच्छा और आसान समीक्षाएँ गिनी जाती हैं; फिर से नहीं गिना जाता।";
+"settings.account.status.leaderboard.signInRequired" = "प्रगति लीडरबोर्ड में शामिल होने के लिए ईमेल से साइन इन करें।";
 
 "settings.account.legal.title" = "कानूनी";
 "settings.account.support.title" = "समर्थन";

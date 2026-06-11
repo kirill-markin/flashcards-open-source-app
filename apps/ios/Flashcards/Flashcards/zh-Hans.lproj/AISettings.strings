@@ -284,6 +284,10 @@
 "settings.account.status.unavailable" = "云配置不可用。";
 "settings.account.status.logoutAlertTitle" = "注销并删除该设备？";
 "settings.account.status.logoutAlertMessage" = "所有本地工作区和同步数据都将从该设备中删除。";
+"settings.account.status.leaderboard.section" = "排行榜";
+"settings.account.status.leaderboard.toggle" = "在排行榜中显示我";
+"settings.account.status.leaderboard.description" = "匿名出现在进度排行榜中，与其他学习者比较复习活动。“困难”“良好”“简单”计入，“重来”不计入。";
+"settings.account.status.leaderboard.signInRequired" = "使用邮箱登录即可加入进度排行榜。";
 
 "settings.account.legal.title" = "法律";
 "settings.account.support.title" = "支持";

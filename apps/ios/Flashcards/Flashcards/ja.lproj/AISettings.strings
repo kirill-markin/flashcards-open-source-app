@@ -284,6 +284,10 @@
 "settings.account.status.unavailable" = "クラウド構成は利用できません。";
 "settings.account.status.logoutAlertTitle" = "サインアウトしてこのデバイスを消去しますか?";
 "settings.account.status.logoutAlertMessage" = "すべてのローカル ワークスペースと同期データがこのデバイスから削除されます。";
+"settings.account.status.leaderboard.section" = "リーダーボード";
+"settings.account.status.leaderboard.toggle" = "リーダーボードに自分を表示";
+"settings.account.status.leaderboard.description" = "進捗リーダーボードに匿名で表示され、他の学習者と復習の活動を比較できます。「難しい」「良い」「簡単」はカウントされ、「もう一度」はカウントされません。";
+"settings.account.status.leaderboard.signInRequired" = "メールでサインインすると進捗リーダーボードに参加できます。";
 
 "settings.account.legal.title" = "法務";
 "settings.account.support.title" = "サポート";
