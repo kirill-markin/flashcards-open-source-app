@@ -525,7 +525,10 @@ svg.progress-review-schedule-donut {
 
 .progress-leaderboard-list {
   display: grid;
+  align-content: start;
   gap: 4px;
+  /* Six participant rows, one gap row, and six row gaps: the compact worst case. */
+  min-height: 290px;
   margin: 0;
   padding: 0;
   list-style: none;

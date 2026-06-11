@@ -31,10 +31,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -44,6 +46,8 @@ import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
 import java.text.NumberFormat
 import java.util.Locale
+
+private const val leaderboardReservedRowCount: Int = 7
 
 @Composable
 internal fun LeaderboardSectionCard(
@@ -237,6 +241,10 @@ private fun LeaderboardReadyContent(
                     )
                 }
             }
+
+            repeat(leaderboardReservedRowPlaceholderCount(rowCount = selectedWindow.rows.size)) {
+                LeaderboardReservedRow()
+            }
         }
 
         val snapshotGeneratedAtMillis = selectedWindow.snapshotGeneratedAtMillis
@@ -251,6 +259,10 @@ private fun LeaderboardReadyContent(
             )
         }
     }
+}
+
+private fun leaderboardReservedRowPlaceholderCount(rowCount: Int): Int {
+    return maxOf(0, leaderboardReservedRowCount - rowCount)
 }
 
 @Composable
@@ -292,6 +304,35 @@ private fun LeaderboardParticipantRow(
             color = rowColor,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = rowWeight,
+            textAlign = TextAlign.End
+        )
+    }
+}
+
+@Composable
+private fun LeaderboardReservedRow() {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .alpha(0f)
+            .clearAndSetSemantics {}
+    ) {
+        Text(
+            text = "0",
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Text(
+            text = "Reserved leaderboard row",
+            style = MaterialTheme.typography.bodyMedium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = "0",
+            style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.End
         )
     }
