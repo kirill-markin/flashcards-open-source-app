@@ -3660,60 +3660,60 @@
       }
     },
     "progress.screen.leaderboard.updated_at" : {
-      "comment" : "Progress leaderboard freshness caption with a relative time such as '2 hours ago'",
+      "comment" : "Progress leaderboard freshness text with elapsed whole minutes",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "آخر تحديث %@"
+            "value" : "تم التحديث قبل %lld دقيقة"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aktualisiert %@"
+            "value" : "Vor %lld min aktualisiert"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Updated %@"
+            "value" : "Updated %lld min ago"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Actualizado %@"
+            "value" : "Actualizado hace %lld min"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Actualizado %@"
+            "value" : "Actualizado hace %lld min"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "अपडेट किया गया %@"
+            "value" : "%lld मिनट पहले अपडेट किया गया"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@に更新"
+            "value" : "%lld分前に更新"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Обновлено %@"
+            "value" : "Обновлено %lld мин назад"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@更新"
+            "value" : "%lld分钟前更新"
           }
         }
       }

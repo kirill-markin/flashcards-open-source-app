@@ -161,7 +161,7 @@ const esMxCatalog: TranslationCatalog = {
       },
       you: "Tú",
       rankLabel: "n.º {{rank}}",
-      updatedAt: "Actualizado {{time}}",
+      updatedAt: "Actualizado hace {{minutes}} min",
       guestBody: "Inicia sesión para ver cómo se ubican tus repasos frente a otros estudiantes.",
       signIn: "Iniciar sesión",
       participationDisabledBody: "Las posiciones están ocultas mientras la participación en la tabla está desactivada. Actívala de nuevo para ver a otros estudiantes y tu posición.",

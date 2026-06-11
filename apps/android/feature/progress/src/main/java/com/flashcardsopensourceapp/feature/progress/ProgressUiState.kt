@@ -87,8 +87,7 @@ sealed interface ProgressLeaderboardSectionUiState {
         // null falls back to the client string resource.
         val metricDescription: String?,
         val selectedWindowKey: ProgressLeaderboardWindowKey,
-        val windows: List<ProgressLeaderboardWindowUiState>,
-        val isStale: Boolean
+        val windows: List<ProgressLeaderboardWindowUiState>
     ) : ProgressLeaderboardSectionUiState {
         val selectedWindow: ProgressLeaderboardWindowUiState?
             get() = windows.firstOrNull { window -> window.windowKey == selectedWindowKey }

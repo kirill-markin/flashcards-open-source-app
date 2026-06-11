@@ -1,6 +1,4 @@
 package com.flashcardsopensourceapp.feature.progress
-
-import android.text.format.DateUtils
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,6 +46,7 @@ import java.text.NumberFormat
 import java.util.Locale
 
 private const val leaderboardReservedRowCount: Int = 7
+private const val millisecondsPerMinute: Long = 60_000L
 
 @Composable
 internal fun LeaderboardSectionCard(
@@ -160,9 +159,19 @@ internal fun LeaderboardSectionCard(
     }
 
     if (isInfoDialogVisible) {
+        val readyState = uiState as? ProgressLeaderboardSectionUiState.Ready
         val fallbackInfoBody = stringResource(id = R.string.progress_leaderboard_info_fallback_body)
-        val infoBody = (uiState as? ProgressLeaderboardSectionUiState.Ready)?.metricDescription
-            ?: fallbackInfoBody
+        val infoBody = readyState?.metricDescription ?: fallbackInfoBody
+        val selectedSnapshotGeneratedAtMillis = readyState?.selectedWindow?.snapshotGeneratedAtMillis
+        val updatedText = selectedSnapshotGeneratedAtMillis?.let { snapshotGeneratedAtMillis ->
+            stringResource(
+                id = R.string.progress_leaderboard_updated_label,
+                leaderboardElapsedMinutes(
+                    snapshotGeneratedAtMillis = snapshotGeneratedAtMillis,
+                    nowMillis = System.currentTimeMillis()
+                )
+            )
+        }
         AlertDialog(
             onDismissRequest = { isInfoDialogVisible = false },
             confirmButton = {
@@ -174,7 +183,12 @@ internal fun LeaderboardSectionCard(
                 Text(stringResource(id = R.string.progress_leaderboard_info_title))
             },
             text = {
-                Text(infoBody)
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(infoBody)
+                    if (updatedText != null) {
+                        Text(updatedText)
+                    }
+                }
             }
         )
     }
@@ -270,19 +284,11 @@ private fun LeaderboardReadyContent(
                 LeaderboardReservedRow()
             }
         }
-
-        val snapshotGeneratedAtMillis = selectedWindow.snapshotGeneratedAtMillis
-        if (uiState.isStale && snapshotGeneratedAtMillis != null) {
-            Text(
-                text = stringResource(
-                    id = R.string.progress_leaderboard_updated_label,
-                    DateUtils.getRelativeTimeSpanString(snapshotGeneratedAtMillis).toString()
-                ),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodySmall
-            )
-        }
     }
+}
+
+private fun leaderboardElapsedMinutes(snapshotGeneratedAtMillis: Long, nowMillis: Long): Long {
+    return maxOf(0L, nowMillis - snapshotGeneratedAtMillis) / millisecondsPerMinute
 }
 
 private fun leaderboardReservedRowPlaceholderCount(rowCount: Int): Int {
