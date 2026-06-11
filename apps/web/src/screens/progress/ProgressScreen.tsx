@@ -901,6 +901,17 @@ export function ProgressScreen(): ReactElement {
               </div>
             </section>
 
+            <ProgressLeaderboardSection
+              sectionId={progressLeaderboardHash}
+              sectionRef={leaderboardSectionRef}
+              sourceState={progressSourceState.leaderboard}
+              canRenderServerBase={canRenderLeaderboardServerBase}
+              selectedWindowKey={selectedLeaderboardWindowKey}
+              onSelectWindowKey={setSelectedLeaderboardWindowKey}
+              isInfoVisible={isLeaderboardInfoVisible}
+              onToggleInfo={() => setIsLeaderboardInfoVisible((previous) => previous === false)}
+            />
+
             <section className="content-card progress-section">
               <div className="progress-section-head">
                 <div className="progress-chart-heading">
@@ -1107,17 +1118,6 @@ export function ProgressScreen(): ReactElement {
                 </div>
               </section>
             ) : null}
-
-            <ProgressLeaderboardSection
-              sectionId={progressLeaderboardHash}
-              sectionRef={leaderboardSectionRef}
-              sourceState={progressSourceState.leaderboard}
-              canRenderServerBase={canRenderLeaderboardServerBase}
-              selectedWindowKey={selectedLeaderboardWindowKey}
-              onSelectWindowKey={setSelectedLeaderboardWindowKey}
-              isInfoVisible={isLeaderboardInfoVisible}
-              onToggleInfo={() => setIsLeaderboardInfoVisible((previous) => previous === false)}
-            />
           </div>
         ) : null}
       </section>

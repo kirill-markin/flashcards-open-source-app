@@ -11,5 +11,6 @@ const val progressReviewsActivityChartTag: String = "progress_reviews_activity_c
 const val progressReviewScheduleSectionTag: String = "progress_review_schedule_section"
 const val progressReviewScheduleDonutChartTag: String = "progress_review_schedule_donut_chart"
 const val progressLeaderboardSectionTag: String = "progress_leaderboard_section"
+const val progressLeaderboardResolvedContentTag: String = "progress_leaderboard_resolved_content"
 const val progressLeaderboardPeriodSelectorTag: String = "progress_leaderboard_period_selector"
 const val progressLeaderboardInfoButtonTag: String = "progress_leaderboard_info_button"
