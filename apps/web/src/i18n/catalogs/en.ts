@@ -159,7 +159,7 @@ const enCatalog = {
       },
       you: "You",
       rankLabel: "#{{rank}}",
-      updatedAt: "Updated {{time}}",
+      updatedAt: "Updated {{minutes}} min ago",
       guestBody: "Sign in to see how your reviews rank alongside other learners.",
       signIn: "Sign in",
       participationDisabledBody: "Rankings are hidden while leaderboard participation is off. Turn it back on to see other learners and your place.",

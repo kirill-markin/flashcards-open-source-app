@@ -220,8 +220,7 @@ internal fun createProgressLeaderboardSectionUiState(
                 selectedWindowKey = selectedWindowKey
                     ?.takeIf { windowKey -> windows.any { window -> window.windowKey == windowKey } }
                     ?: leaderboard.defaultWindowKey,
-                windows = windows,
-                isStale = snapshot.isRefreshDue
+                windows = windows
             )
         }
     }

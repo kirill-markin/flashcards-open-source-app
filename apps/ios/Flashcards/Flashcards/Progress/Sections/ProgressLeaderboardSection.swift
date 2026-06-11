@@ -50,12 +50,28 @@ struct ProgressLeaderboardSection: View {
                 role: .cancel
             ) {}
         } message: {
-            Text(progressLeaderboardInfoMessage())
+            Text(self.infoMessage)
         }
         .sheet(isPresented: self.$isCloudSignInPresented) {
             CloudSignInSheet(presentationContext: .standard)
                 .environment(self.store)
         }
+    }
+
+    private var infoMessage: String {
+        guard case .ready(let readyState) = self.snapshot.state else {
+            return progressLeaderboardInfoMessage(snapshotGeneratedAt: nil, now: Date())
+        }
+
+        let selectedKey = self.selectedWindowKey ?? readyState.defaultWindowKey
+        let selectedWindow = readyState.windows.first { window in
+            window.windowKey == selectedKey
+        }
+
+        return progressLeaderboardInfoMessage(
+            snapshotGeneratedAt: selectedWindow?.snapshotGeneratedAt,
+            now: Date()
+        )
     }
 
     private var header: some View {
@@ -134,15 +150,6 @@ struct ProgressLeaderboardSection: View {
                     ProgressLeaderboardReservedParticipantRowView()
                 }
             }
-
-            Text(
-                progressLeaderboardFreshnessText(
-                    snapshotGeneratedAt: selectedWindow.snapshotGeneratedAt,
-                    now: Date()
-                )
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
         }
     }
 

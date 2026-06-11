@@ -222,13 +222,20 @@ func progressLeaderboardSectionTitle() -> String {
 
 // Keep the counting rule wording aligned with the backend metric copy in
 // apps/backend/src/community/progressLeaderboard.ts.
-func progressLeaderboardInfoMessage() -> String {
-    String(
+func progressLeaderboardInfoMessage(snapshotGeneratedAt: String?, now: Date) -> String {
+    let baseMessage = String(
         localized: "progress.screen.leaderboard.info.message",
         defaultValue: "Hard, Good, and Easy reviews count toward your rank. Again does not.",
         table: progressStringsTableName,
         comment: "Progress leaderboard info explanation of which review ratings count"
     )
+
+    guard let snapshotGeneratedAt,
+          let updatedText = progressLeaderboardUpdatedText(snapshotGeneratedAt: snapshotGeneratedAt, now: now) else {
+        return baseMessage
+    }
+
+    return "\(baseMessage)\n\n\(updatedText)"
 }
 
 func progressLeaderboardViewerRowTitle() -> String {
@@ -280,20 +287,18 @@ func progressLeaderboardWindowTitle(key: LeaderboardWindowKey) -> String {
     }
 }
 
-func progressLeaderboardFreshnessText(snapshotGeneratedAt: String, now: Date) -> String {
+func progressLeaderboardUpdatedText(snapshotGeneratedAt: String, now: Date) -> String? {
     guard let generatedAtDate = parseIsoTimestamp(value: snapshotGeneratedAt) else {
-        return ""
+        return nil
     }
 
-    let formatter = RelativeDateTimeFormatter()
-    formatter.locale = Locale.autoupdatingCurrent
-    formatter.unitsStyle = .full
-    let relativeText = formatter.localizedString(for: min(generatedAtDate, now), relativeTo: now)
+    let elapsedSeconds = max(0, now.timeIntervalSince(generatedAtDate))
+    let elapsedMinutes = Int64(elapsedSeconds / 60)
     let localizedFormat = String(
         localized: "progress.screen.leaderboard.updated_at",
-        defaultValue: "Updated %@",
+        defaultValue: "Updated %lld min ago",
         table: progressStringsTableName,
-        comment: "Progress leaderboard freshness caption with a relative time such as '2 hours ago'"
+        comment: "Progress leaderboard freshness text with elapsed whole minutes"
     )
-    return String(format: localizedFormat, locale: Locale.current, relativeText)
+    return String(format: localizedFormat, locale: Locale.current, elapsedMinutes)
 }

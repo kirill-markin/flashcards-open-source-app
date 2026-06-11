@@ -26,6 +26,7 @@ import { ReviewProgressBadgeIcon } from "../shared/ReviewProgressBadgeIcon";
 const streakWeekCount = 5;
 const streakWeekLength = 7;
 const chartGuideLineCount = 3;
+const millisecondsPerMinute = 60_000;
 
 type LocaleValue = ReturnType<typeof useI18n>["locale"];
 type DateFormatter = ReturnType<typeof useI18n>["formatDate"];
@@ -464,6 +465,29 @@ function getLeaderboardPeriodLabel(windowKey: ProgressLeaderboardWindowKey, t: T
   return t("progressScreen.leaderboard.periods.allTime");
 }
 
+function getLeaderboardElapsedMinutes(snapshotGeneratedAt: string, now: Date): number {
+  const snapshotTime = new Date(snapshotGeneratedAt).getTime();
+  if (Number.isNaN(snapshotTime)) {
+    throw new Error(`Invalid leaderboard snapshot timestamp: ${snapshotGeneratedAt}`);
+  }
+
+  return Math.floor(Math.max(0, now.getTime() - snapshotTime) / millisecondsPerMinute);
+}
+
+function resolveLeaderboardWindow(
+  sourceState: ProgressLeaderboardSourceState,
+  selectedWindowKey: ProgressLeaderboardWindowKey | null,
+): ProgressLeaderboardWindow | null {
+  const leaderboard = sourceState.renderedSnapshot;
+  if (leaderboard === null || leaderboard.status !== "ready") {
+    return null;
+  }
+
+  const resolvedWindowKey = selectedWindowKey ?? leaderboard.defaultWindowKey;
+
+  return leaderboard.windows.find((window) => window.windowKey === resolvedWindowKey) ?? null;
+}
+
 type ProgressLeaderboardBodyProps = Readonly<{
   sourceState: ProgressLeaderboardSourceState;
   canRenderServerBase: boolean;
@@ -493,61 +517,51 @@ function ProgressLeaderboardSignInPlaceholder(): ReactElement {
 
 function ProgressLeaderboardRows(props: Readonly<{
   window: ProgressLeaderboardWindow;
-  showFreshness: boolean;
 }>): ReactElement {
-  const { t, formatDateTime, formatNumber } = useI18n();
-  const { window: leaderboardWindow, showFreshness } = props;
+  const { t, formatNumber } = useI18n();
+  const { window: leaderboardWindow } = props;
 
   return (
-    <>
-      <ol className="progress-leaderboard-list">
-        {leaderboardWindow.rows.map((row, rowIndex) => {
-          if (row.kind === "gap") {
-            return (
-              <li
-                key={`leaderboard-gap-${rowIndex}`}
-                className="progress-leaderboard-row progress-leaderboard-gap"
-                data-kind="gap"
-                data-testid="progress-leaderboard-row-gap"
-                aria-hidden="true"
-              >
-                <span className="progress-leaderboard-gap-dots">…</span>
-              </li>
-            );
-          }
-
-          const rowClassName = row.kind === "viewer"
-            ? "progress-leaderboard-row progress-leaderboard-row-viewer"
-            : "progress-leaderboard-row";
-
+    <ol className="progress-leaderboard-list">
+      {leaderboardWindow.rows.map((row, rowIndex) => {
+        if (row.kind === "gap") {
           return (
             <li
-              key={`${row.publicProfileId}-${row.rank}`}
-              className={rowClassName}
-              data-kind={row.kind}
-              data-testid={`progress-leaderboard-row-${row.kind}`}
+              key={`leaderboard-gap-${rowIndex}`}
+              className="progress-leaderboard-row progress-leaderboard-gap"
+              data-kind="gap"
+              data-testid="progress-leaderboard-row-gap"
+              aria-hidden="true"
             >
-              <span className="progress-leaderboard-rank">
-                {t("progressScreen.leaderboard.rankLabel", { rank: formatNumber(row.rank) })}
-              </span>
-              <span className="progress-leaderboard-name">
-                {row.kind === "viewer" ? t("progressScreen.leaderboard.you") : row.anonymousDisplayName}
-              </span>
-              <span className="progress-leaderboard-count" data-testid={`progress-leaderboard-count-${row.kind}`}>
-                {formatNumber(row.qualifiedReviewCount)}
-              </span>
+              <span className="progress-leaderboard-gap-dots">…</span>
             </li>
           );
-        })}
-      </ol>
-      {showFreshness ? (
-        <p className="progress-chart-range" data-testid="progress-leaderboard-freshness">
-          {t("progressScreen.leaderboard.updatedAt", {
-            time: formatDateTime(leaderboardWindow.snapshotGeneratedAt),
-          })}
-        </p>
-      ) : null}
-    </>
+        }
+
+        const rowClassName = row.kind === "viewer"
+          ? "progress-leaderboard-row progress-leaderboard-row-viewer"
+          : "progress-leaderboard-row";
+
+        return (
+          <li
+            key={`${row.publicProfileId}-${row.rank}`}
+            className={rowClassName}
+            data-kind={row.kind}
+            data-testid={`progress-leaderboard-row-${row.kind}`}
+          >
+            <span className="progress-leaderboard-rank">
+              {t("progressScreen.leaderboard.rankLabel", { rank: formatNumber(row.rank) })}
+            </span>
+            <span className="progress-leaderboard-name">
+              {row.kind === "viewer" ? t("progressScreen.leaderboard.you") : row.anonymousDisplayName}
+            </span>
+            <span className="progress-leaderboard-count" data-testid={`progress-leaderboard-count-${row.kind}`}>
+              {formatNumber(row.qualifiedReviewCount)}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
@@ -608,7 +622,7 @@ function ProgressLeaderboardBody(props: ProgressLeaderboardBodyProps): ReactElem
   }
 
   const resolvedWindowKey = selectedWindowKey ?? leaderboard.defaultWindowKey;
-  const leaderboardWindow = leaderboard.windows.find((window) => window.windowKey === resolvedWindowKey) ?? null;
+  const leaderboardWindow = resolveLeaderboardWindow(sourceState, selectedWindowKey);
 
   return (
     <>
@@ -633,17 +647,14 @@ function ProgressLeaderboardBody(props: ProgressLeaderboardBodyProps): ReactElem
           {t("progressScreen.leaderboard.unavailable")}
         </p>
       ) : (
-        <ProgressLeaderboardRows
-          window={leaderboardWindow}
-          showFreshness={sourceState.errorMessage !== ""}
-        />
+        <ProgressLeaderboardRows window={leaderboardWindow} />
       )}
     </>
   );
 }
 
 function ProgressLeaderboardSection(props: ProgressLeaderboardSectionProps): ReactElement {
-  const { t } = useI18n();
+  const { t, formatNumber } = useI18n();
   const {
     sourceState,
     canRenderServerBase,
@@ -654,6 +665,12 @@ function ProgressLeaderboardSection(props: ProgressLeaderboardSectionProps): Rea
     isInfoVisible,
     onToggleInfo,
   } = props;
+  const leaderboardWindow = resolveLeaderboardWindow(sourceState, selectedWindowKey);
+  const infoUpdatedAt = leaderboardWindow === null
+    ? null
+    : t("progressScreen.leaderboard.updatedAt", {
+      minutes: formatNumber(getLeaderboardElapsedMinutes(leaderboardWindow.snapshotGeneratedAt, new Date())),
+    });
 
   return (
     <section
@@ -681,6 +698,13 @@ function ProgressLeaderboardSection(props: ProgressLeaderboardSectionProps): Rea
       {isInfoVisible ? (
         <p className="progress-leaderboard-info" data-testid="progress-leaderboard-info">
           {t("progressScreen.leaderboard.info")}
+          {infoUpdatedAt === null ? null : (
+            <>
+              <br />
+              <br />
+              {infoUpdatedAt}
+            </>
+          )}
         </p>
       ) : null}
 

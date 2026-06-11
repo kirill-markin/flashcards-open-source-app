@@ -174,7 +174,10 @@ final class ProgressSnapshotFactoryTests: XCTestCase {
     // The info copy must mention the same localized rating names the review
     // buttons use, in whichever language the test bundle runs.
     func testInfoCopyIncludesAgainExclusion() {
-        let infoMessage = progressLeaderboardInfoMessage()
+        let infoMessage = progressLeaderboardInfoMessage(
+            snapshotGeneratedAt: nil,
+            now: Date()
+        )
 
         XCTAssertTrue(infoMessage.contains(ReviewRating.hard.title))
         XCTAssertTrue(infoMessage.contains(ReviewRating.good.title))

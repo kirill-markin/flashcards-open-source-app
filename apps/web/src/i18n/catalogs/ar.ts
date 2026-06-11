@@ -161,7 +161,7 @@ const arCatalog: TranslationCatalog = {
       },
       you: "أنت",
       rankLabel: "#{{rank}}",
-      updatedAt: "آخر تحديث {{time}}",
+      updatedAt: "تم التحديث قبل {{minutes}} دقيقة",
       guestBody: "سجِّل الدخول لترى ترتيب مراجعاتك بين المتعلمين الآخرين.",
       signIn: "تسجيل الدخول",
       participationDisabledBody: "يُخفى الترتيب ما دامت المشاركة في لوحة الصدارة متوقفة. أعد تفعيلها لترى المتعلمين الآخرين ومكانك.",

@@ -161,7 +161,7 @@ const hiCatalog: TranslationCatalog = {
       },
       you: "आप",
       rankLabel: "#{{rank}}",
-      updatedAt: "{{time}} पर अपडेट किया गया",
+      updatedAt: "{{minutes}} मिनट पहले अपडेट किया गया",
       guestBody: "साइन इन करें और देखें कि अन्य सीखने वालों के बीच आपके रिव्यू कहाँ हैं।",
       signIn: "साइन इन करें",
       participationDisabledBody: "लीडरबोर्ड भागीदारी बंद रहने पर रैंकिंग छिपी रहती है। अन्य सीखने वालों और अपनी रैंक देखने के लिए इसे फिर चालू करें।",

@@ -161,7 +161,7 @@ export const zhHansCatalog = {
       },
       you: "你",
       rankLabel: "第{{rank}}名",
-      updatedAt: "更新于 {{time}}",
+      updatedAt: "{{minutes}}分钟前更新",
       guestBody: "登录后即可查看你的复习在其他学习者中的排名。",
       signIn: "登录",
       participationDisabledBody: "关闭排行榜参与后，排名将被隐藏。重新开启即可查看其他学习者和你的名次。",

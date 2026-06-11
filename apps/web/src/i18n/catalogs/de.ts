@@ -161,7 +161,7 @@ const deCatalog: TranslationCatalog = {
       },
       you: "Du",
       rankLabel: "#{{rank}}",
-      updatedAt: "Aktualisiert {{time}}",
+      updatedAt: "Vor {{minutes}} min aktualisiert",
       guestBody: "Melde dich an, um zu sehen, wie deine Wiederholungen im Vergleich zu anderen Lernenden stehen.",
       signIn: "Anmelden",
       participationDisabledBody: "Platzierungen sind ausgeblendet, solange die Teilnahme an der Bestenliste deaktiviert ist. Aktiviere sie wieder, um andere Lernende und deinen Platz zu sehen.",

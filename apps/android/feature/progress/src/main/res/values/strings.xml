@@ -41,7 +41,7 @@
     <string name="progress_leaderboard_rank_label">#%1$s</string>
     <string name="progress_leaderboard_gap_content_description">Hidden ranks</string>
     <string name="progress_leaderboard_empty_window">No qualified reviews in this period yet.</string>
-    <string name="progress_leaderboard_updated_label">Updated %1$s</string>
+    <string name="progress_leaderboard_updated_label">Updated %1$d min ago</string>
     <string name="progress_leaderboard_sign_in_message">Sign up or sign in to see how your reviews rank in the community.</string>
     <string name="progress_leaderboard_sign_in_button">Sign in</string>
     <string name="progress_leaderboard_participation_disabled_message">Rankings are visible only while you participate in the leaderboard. Turn participation on in leaderboard settings.</string>

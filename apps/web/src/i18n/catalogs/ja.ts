@@ -161,7 +161,7 @@ export const jaCatalog = {
       },
       you: "あなた",
       rankLabel: "{{rank}}位",
-      updatedAt: "更新: {{time}}",
+      updatedAt: "{{minutes}}分前に更新",
       guestBody: "サインインすると、ほかの学習者と比べた自分の順位を確認できます。",
       signIn: "サインイン",
       participationDisabledBody: "リーダーボードへの参加がオフの間、ランキングは表示されません。再びオンにすると、ほかの学習者と自分の順位が見られます。",

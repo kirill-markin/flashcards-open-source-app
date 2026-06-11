@@ -375,6 +375,7 @@ describe("ProgressScreen", () => {
     });
     container.remove();
     vi.clearAllMocks();
+    vi.useRealTimers();
   });
 
   it("renders shared flame SVGs on progress without emoji text", async () => {
@@ -825,6 +826,8 @@ describe("ProgressScreen", () => {
   });
 
   it("reveals the leaderboard info text explaining that Again reviews are excluded", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-21T10:35:05.000Z"));
     useAppDataMock.mockReturnValue({
       ...createAppData(),
       cloudSettings: linkedCloudSettings,
@@ -842,6 +845,7 @@ describe("ProgressScreen", () => {
     });
 
     expect(container.querySelector("[data-testid='progress-leaderboard-info']")).toBeNull();
+    expect(container.querySelector("[data-testid='progress-leaderboard-freshness']")).toBeNull();
 
     const infoToggle = container.querySelector("[data-testid='progress-leaderboard-info-toggle']");
     if (!(infoToggle instanceof HTMLButtonElement)) {
@@ -858,6 +862,8 @@ describe("ProgressScreen", () => {
     }
     expect(infoText.textContent).toContain("Hard, Good, or Easy count");
     expect(infoText.textContent).toContain("Again reviews are not counted.");
+    expect(infoText.textContent).toContain("Updated 35 min ago");
+    expect(container.querySelector("[data-testid='progress-leaderboard-freshness']")).toBeNull();
   });
 
   it("overlays only the viewer count when the local qualified review count differs", async () => {
