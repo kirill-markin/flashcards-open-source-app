@@ -23,6 +23,7 @@ import {
   settingsExportRoute,
   settingsFeedbackRoute,
   settingsLanguageRoute,
+  settingsLeaderboardParticipationRoute,
   settingsNotificationsRoute,
   settingsReviewAnimationsRoute,
   settingsResetStudyProgressRoute,
@@ -134,6 +135,13 @@ export function SettingsScreen(): ReactElement {
             value={session?.preferences.reviewReactionAnimationsEnabled === false ? t("common.off") : t("common.on")}
             to={settingsReviewAnimationsRoute}
             testId="settings-row-review-animations"
+          />
+          <SettingsNavigationCard
+            title={t("leaderboardParticipationSettings.title")}
+            description={t("leaderboardParticipationSettings.subtitle")}
+            value={null}
+            to={settingsLeaderboardParticipationRoute}
+            testId="settings-row-leaderboard-participation"
           />
           <SettingsNavigationCard
             title={t("settingsHome.language.title")}

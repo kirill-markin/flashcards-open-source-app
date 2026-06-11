@@ -50,13 +50,6 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
                     accountStatusViewModel.syncNow()
                 }
             },
-            onUpdateLeaderboardParticipation = { leaderboardParticipationEnabled ->
-                coroutineScope.launch {
-                    accountStatusViewModel.updateLeaderboardParticipation(
-                        leaderboardParticipationEnabled = leaderboardParticipationEnabled
-                    )
-                }
-            },
             onRequestLogout = accountStatusViewModel::requestLogoutConfirmation,
             onDismissLogoutConfirmation = accountStatusViewModel::dismissLogoutConfirmation,
             onConfirmLogout = {

@@ -29,6 +29,7 @@ import com.flashcardsopensourceapp.feature.settings.settingsExportRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsFeedbackRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsGeneralSectionTag
 import com.flashcardsopensourceapp.feature.settings.settingsLanguageRowTag
+import com.flashcardsopensourceapp.feature.settings.settingsLeaderboardParticipationRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsLegalRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsOpenSourceRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsResetStudyProgressRowTag
@@ -76,6 +77,7 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             settingsCurrentWorkspaceRowTag,
             settingsReviewRemindersRowTag,
             settingsReviewAnimationsRowTag,
+            settingsLeaderboardParticipationRowTag,
             settingsLanguageRowTag,
             settingsAccessRowTag,
             settingsDecksRowTag,
@@ -101,6 +103,10 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         )
         assertRootRowOrder(
             firstRowTag = settingsReviewAnimationsRowTag,
+            secondRowTag = settingsLeaderboardParticipationRowTag
+        )
+        assertRootRowOrder(
+            firstRowTag = settingsLeaderboardParticipationRowTag,
             secondRowTag = settingsLanguageRowTag
         )
         assertRootRowOrder(
@@ -122,6 +128,11 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         assertRowClick(
             rowTag = settingsReviewAnimationsRowTag,
             expectedClick = "review_animations",
+            clickedRows = clickedRows
+        )
+        assertRowClick(
+            rowTag = settingsLeaderboardParticipationRowTag,
+            expectedClick = "leaderboard_participation",
             clickedRows = clickedRows
         )
         assertRowClick(
@@ -208,6 +219,9 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     },
                     onOpenReviewAnimations = {
                         clickedRows += "review_animations"
+                    },
+                    onOpenLeaderboardParticipation = {
+                        clickedRows += "leaderboard_participation"
                     },
                     onOpenLanguage = {
                         clickedRows += "language"

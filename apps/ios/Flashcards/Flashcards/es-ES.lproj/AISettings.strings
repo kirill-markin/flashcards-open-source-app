@@ -135,6 +135,7 @@
 "settings.row.reviewReminders" = "Recordatorios de repaso";
 "settings.row.reviewReminders.value" = "Este dispositivo";
 "settings.row.reviewAnimations" = "Animaciones de repaso";
+"settings.row.leaderboardParticipation" = "Participación en la clasificación";
 "settings.row.language" = "Idioma";
 "settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 permisos";
@@ -166,6 +167,10 @@
 "settings.currentWorkspace.renameLinkedOnly" = "El cambio de nombre del espacio de trabajo solo esta disponible para espacios de trabajo en la nube vinculados.";
 "settings.reviewAnimations.title" = "Animaciones de repaso";
 "settings.reviewAnimations.toggle" = "Mostrar animaciones despues de valorar una tarjeta";
+"settings.leaderboardParticipation.title" = "Participación en la clasificación";
+"settings.leaderboardParticipation.toggle" = "Mostrarme en la tabla de clasificación";
+"settings.leaderboardParticipation.description" = "Cuando está desactivado, no apareces en la tabla de clasificación y sus puestos se ocultan para ti.";
+"settings.leaderboardParticipation.signInRequired" = "Inicia sesión con tu correo para gestionar la participación en la tabla de clasificación.";
 "settings.language.title" = "Idioma";
 "settings.language.systemDescription" = "iOS controla el idioma de la app. En Ajustes de iOS, abre Flashcards y usa Idioma preferido. Si Idioma preferido no aparece, primero añade otro idioma en Ajustes > General > Idioma y región.";
 "settings.language.action.openAppSettings" = "Abrir ajustes de Flashcards";
@@ -284,10 +289,6 @@
 "settings.account.status.unavailable" = "La configuracion de la nube no esta disponible.";
 "settings.account.status.logoutAlertTitle" = "Cerrar sesion y borrar este dispositivo?";
 "settings.account.status.logoutAlertMessage" = "Todos los espacios de trabajo locales y los datos sincronizados se eliminaran de este dispositivo.";
-"settings.account.status.leaderboard.section" = "Tabla de clasificación";
-"settings.account.status.leaderboard.toggle" = "Mostrarme en la tabla de clasificación";
-"settings.account.status.leaderboard.description" = "Aparece de forma anónima en la tabla de clasificación de Progreso y compara tu actividad de repaso con otros estudiantes. Los repasos Difícil, Bien y Fácil cuentan; De nuevo no cuenta.";
-"settings.account.status.leaderboard.signInRequired" = "Inicia sesión con tu correo para unirte a la tabla de clasificación de Progreso.";
 
 "settings.account.legal.title" = "Legal";
 "settings.account.support.title" = "Soporte";

@@ -91,6 +91,13 @@
     <string name="settings_review_animations_toggle_title">Show animations after rating a card</string>
     <string name="settings_review_animations_toggle_body">Review reaction animations appear briefly after Again, Hard, Good, and Easy.</string>
     <string name="settings_review_animations_update_failed">Could not update review animations.</string>
+    <string name="settings_leaderboard_participation_title">Leaderboard participation</string>
+    <string name="settings_leaderboard_participation_summary">Control community leaderboard visibility</string>
+    <string name="settings_leaderboard_participation_toggle_title">Show me on the leaderboard</string>
+    <string name="settings_leaderboard_participation_toggle_body">When this is off, you will not appear on the leaderboard and leaderboard rankings will be hidden from you.</string>
+    <string name="settings_leaderboard_participation_sign_in_required">Sign in with email to manage leaderboard participation.</string>
+    <string name="settings_leaderboard_participation_load_failed">Could not load leaderboard participation.</string>
+    <string name="settings_leaderboard_participation_update_failed">Couldn\'t update leaderboard participation.</string>
     <string name="settings_account_preferences_refresh_failed">Could not refresh account preferences.</string>
     <string name="settings_language_title">Language</string>
     <string name="settings_language_summary">Android system and per-app language settings</string>
@@ -164,10 +171,6 @@
     <string name="settings_account_status_logout_failed">Logout failed.</string>
     <string name="settings_account_status_sync_failed">Cloud sync failed.</string>
     <string name="settings_account_status_logged_out_message">Logged out. This device is disconnected.</string>
-    <string name="settings_account_status_leaderboard_toggle_title">Community leaderboard</string>
-    <string name="settings_account_status_leaderboard_toggle_body">Participate anonymously in community rankings on the Progress tab.</string>
-    <string name="settings_account_status_leaderboard_update_failed">Couldn\'t update leaderboard participation.</string>
-
     <string name="settings_server_title">Server</string>
     <string name="settings_server_summary">Official or self-hosted server configuration</string>
     <string name="settings_server_current_title">Current server</string>

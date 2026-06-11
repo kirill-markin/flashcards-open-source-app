@@ -165,7 +165,7 @@ const arCatalog: TranslationCatalog = {
       guestBody: "سجِّل الدخول لترى ترتيب مراجعاتك بين المتعلمين الآخرين.",
       signIn: "تسجيل الدخول",
       participationDisabledBody: "يُخفى الترتيب ما دامت المشاركة في لوحة الصدارة متوقفة. أعد تفعيلها لترى المتعلمين الآخرين ومكانك.",
-      openParticipationSettings: "فتح إعدادات الحساب",
+      openParticipationSettings: "فتح إعدادات لوحة الصدارة",
       offlineEmpty: "لوحة الصدارة غير متاحة دون اتصال. اتصل بالإنترنت لرؤية الترتيب.",
       unavailable: "لوحة الصدارة غير متاحة الآن. عُد لاحقًا.",
     },
@@ -424,6 +424,13 @@ const arCatalog: TranslationCatalog = {
     subtitle: "تحكم في رسوم التفاعل المتحركة بعد تقييم البطاقات.",
     toggleTitle: "إظهار الرسوم المتحركة بعد تقييم بطاقة",
     toggleDescription: "ينطبق هذا فقط على رسوم التفاعل المتحركة في المراجعة.",
+  },
+  leaderboardParticipationSettings: {
+    title: "المشاركة في لوحة الصدارة",
+    subtitle: "تحكم في ظهورك في تصنيفات المجتمع وإمكانية رؤيتها.",
+    toggleTitle: "إظهاري في لوحة الصدارة",
+    toggleDescription: "عند إيقاف هذا الخيار، لن تظهر في لوحة الصدارة وستُخفى عنك تصنيفات لوحة الصدارة.",
+    signInRequired: "سجّل الدخول بالبريد الإلكتروني لإدارة المشاركة في لوحة الصدارة.",
   },
   accessSettings: {
     title: "الوصول",
@@ -858,10 +865,6 @@ const arCatalog: TranslationCatalog = {
       linked: "مرتبط",
       linkingReady: "جاهز للربط",
       disconnected: "غير متصل",
-    },
-    leaderboardParticipation: {
-      title: "المشاركة في لوحة الصدارة",
-      description: "اعرض ملفك المجهول في لوحة صدارة المجتمع وشاهد ترتيب المتعلمين الآخرين.",
     },
     logout: "تسجيل الخروج",
   },

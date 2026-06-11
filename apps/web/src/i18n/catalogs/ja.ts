@@ -165,7 +165,7 @@ export const jaCatalog = {
       guestBody: "サインインすると、ほかの学習者と比べた自分の順位を確認できます。",
       signIn: "サインイン",
       participationDisabledBody: "リーダーボードへの参加がオフの間、ランキングは表示されません。再びオンにすると、ほかの学習者と自分の順位が見られます。",
-      openParticipationSettings: "アカウント設定を開く",
+      openParticipationSettings: "リーダーボード設定を開く",
       offlineEmpty: "オフラインではリーダーボードを利用できません。接続するとランキングが表示されます。",
       unavailable: "リーダーボードは現在利用できません。しばらくしてからもう一度ご確認ください。",
     },
@@ -424,6 +424,13 @@ export const jaCatalog = {
     subtitle: "カード評価後のリアクションアニメーションを設定します。",
     toggleTitle: "カード評価後にアニメーションを表示",
     toggleDescription: "復習時のリアクションアニメーションだけに適用されます。",
+  },
+  leaderboardParticipationSettings: {
+    title: "リーダーボード参加",
+    subtitle: "コミュニティランキングに表示されるか、ランキングを見られるかを管理します。",
+    toggleTitle: "リーダーボードに自分を表示",
+    toggleDescription: "オフにすると、リーダーボードに表示されず、ランキングも見られなくなります。",
+    signInRequired: "リーダーボード参加を管理するにはメールでサインインしてください。",
   },
   accessSettings: {
     title: "アクセス",
@@ -858,10 +865,6 @@ export const jaCatalog = {
       linked: "リンク済み",
       linkingReady: "リンク可能",
       disconnected: "未接続",
-    },
-    leaderboardParticipation: {
-      title: "リーダーボードへの参加",
-      description: "コミュニティのリーダーボードに匿名プロフィールを表示し、ほかの学習者の順位を確認できます。",
     },
     logout: "ログアウト",
   },

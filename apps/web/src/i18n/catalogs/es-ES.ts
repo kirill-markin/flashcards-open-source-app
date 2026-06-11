@@ -165,7 +165,7 @@ const esEsCatalog: TranslationCatalog = {
       guestBody: "Inicia sesión para ver cómo se sitúan tus repasos frente a otros estudiantes.",
       signIn: "Iniciar sesión",
       participationDisabledBody: "Los puestos están ocultos mientras la participación en la clasificación está desactivada. Actívala de nuevo para ver a otros estudiantes y tu puesto.",
-      openParticipationSettings: "Abrir ajustes de la cuenta",
+      openParticipationSettings: "Abrir ajustes de la clasificación",
       offlineEmpty: "La clasificación no está disponible sin conexión. Conéctate para ver los puestos.",
       unavailable: "La clasificación no está disponible ahora mismo. Vuelve más tarde.",
     },
@@ -424,6 +424,13 @@ const esEsCatalog: TranslationCatalog = {
     subtitle: "Controla las animaciones de reacción después de calificar tarjetas.",
     toggleTitle: "Mostrar animaciones después de calificar una tarjeta",
     toggleDescription: "Solo afecta a las animaciones de reacción del repaso.",
+  },
+  leaderboardParticipationSettings: {
+    title: "Participación en la clasificación",
+    subtitle: "Controla si apareces en las clasificaciones de la comunidad y si puedes verlas.",
+    toggleTitle: "Mostrarme en la clasificación",
+    toggleDescription: "Cuando está desactivado, no apareces en la clasificación y sus puestos se ocultan para ti.",
+    signInRequired: "Inicia sesión con tu correo para gestionar la participación en la clasificación.",
   },
   accessSettings: {
     title: "Acceso",
@@ -858,10 +865,6 @@ const esEsCatalog: TranslationCatalog = {
       linked: "Vinculada",
       linkingReady: "Lista para vincular",
       disconnected: "Desconectada",
-    },
-    leaderboardParticipation: {
-      title: "Participación en la clasificación",
-      description: "Muestra tu perfil anónimo en la clasificación de la comunidad y ve los puestos de otros estudiantes.",
     },
     logout: "Cerrar sesión",
   },

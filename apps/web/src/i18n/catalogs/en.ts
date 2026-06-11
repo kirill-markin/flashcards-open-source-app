@@ -163,7 +163,7 @@ const enCatalog = {
       guestBody: "Sign in to see how your reviews rank alongside other learners.",
       signIn: "Sign in",
       participationDisabledBody: "Rankings are hidden while leaderboard participation is off. Turn it back on to see other learners and your place.",
-      openParticipationSettings: "Open account settings",
+      openParticipationSettings: "Open leaderboard settings",
       offlineEmpty: "The leaderboard is not available offline. Reconnect to see rankings.",
       unavailable: "The leaderboard is not available right now. Check back later.",
     },
@@ -422,6 +422,13 @@ const enCatalog = {
     subtitle: "Control the reaction animations shown after rating cards.",
     toggleTitle: "Show animations after rating a card",
     toggleDescription: "Only the review reaction animations are affected.",
+  },
+  leaderboardParticipationSettings: {
+    title: "Leaderboard participation",
+    subtitle: "Control whether you appear in and can view community rankings.",
+    toggleTitle: "Show me on the leaderboard",
+    toggleDescription: "When this is off, you will not appear on the leaderboard and leaderboard rankings will be hidden from you.",
+    signInRequired: "Sign in with email to manage leaderboard participation.",
   },
   accessSettings: {
     title: "Access",
@@ -856,10 +863,6 @@ const enCatalog = {
       linked: "Linked",
       linkingReady: "Linking ready",
       disconnected: "Disconnected",
-    },
-    leaderboardParticipation: {
-      title: "Leaderboard participation",
-      description: "Show your anonymous profile on the community leaderboard and see other learners' rankings.",
     },
     logout: "Logout",
   },

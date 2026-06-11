@@ -135,6 +135,7 @@
 "settings.row.reviewReminders" = "समीक्षा रिमाइंडर";
 "settings.row.reviewReminders.value" = "यह डिवाइस";
 "settings.row.reviewAnimations" = "समीक्षा एनिमेशन";
+"settings.row.leaderboardParticipation" = "लीडरबोर्ड भागीदारी";
 "settings.row.language" = "भाषा";
 "settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 अनुमतियां";
@@ -166,6 +167,10 @@
 "settings.currentWorkspace.renameLinkedOnly" = "कार्यस्थान का नाम बदलना केवल लिंक किए गए क्लाउड कार्यस्थानों के लिए उपलब्ध है।";
 "settings.reviewAnimations.title" = "समीक्षा एनिमेशन";
 "settings.reviewAnimations.toggle" = "कार्ड को रेट करने के बाद एनिमेशन दिखाएं";
+"settings.leaderboardParticipation.title" = "लीडरबोर्ड भागीदारी";
+"settings.leaderboardParticipation.toggle" = "मुझे लीडरबोर्ड पर दिखाएँ";
+"settings.leaderboardParticipation.description" = "यह बंद होने पर आप लीडरबोर्ड पर नहीं दिखेंगे और लीडरबोर्ड रैंकिंग आपसे छिपी रहेगी.";
+"settings.leaderboardParticipation.signInRequired" = "लीडरबोर्ड भागीदारी प्रबंधित करने के लिए ईमेल से साइन इन करें.";
 "settings.language.title" = "भाषा";
 "settings.language.systemDescription" = "iOS ऐप की भाषा नियंत्रित करता है। iOS सेटिंग्स में Flashcards खोलें और पसंदीदा भाषा इस्तेमाल करें। अगर पसंदीदा भाषा दिखाई नहीं देती, तो पहले सेटिंग्स > सामान्य > भाषा और क्षेत्र में कोई दूसरी भाषा जोड़ें।";
 "settings.language.action.openAppSettings" = "Flashcards सेटिंग्स खोलें";
@@ -284,10 +289,6 @@
 "settings.account.status.unavailable" = "क्लाउड कॉन्फ़िगरेशन उपलब्ध नहीं है.";
 "settings.account.status.logoutAlertTitle" = "साइन आउट करें और इस डिवाइस को मिटा दें?";
 "settings.account.status.logoutAlertMessage" = "इस डिवाइस से सभी स्थानीय कार्यस्थान और समन्वयित डेटा हटा दिया जाएगा।";
-"settings.account.status.leaderboard.section" = "लीडरबोर्ड";
-"settings.account.status.leaderboard.toggle" = "मुझे लीडरबोर्ड पर दिखाएँ";
-"settings.account.status.leaderboard.description" = "प्रगति लीडरबोर्ड पर गुमनाम रूप से दिखें और अन्य शिक्षार्थियों के साथ समीक्षा गतिविधि की तुलना करें। कठिन, अच्छा और आसान समीक्षाएँ गिनी जाती हैं; फिर से नहीं गिना जाता।";
-"settings.account.status.leaderboard.signInRequired" = "प्रगति लीडरबोर्ड में शामिल होने के लिए ईमेल से साइन इन करें।";
 
 "settings.account.legal.title" = "कानूनी";
 "settings.account.support.title" = "समर्थन";

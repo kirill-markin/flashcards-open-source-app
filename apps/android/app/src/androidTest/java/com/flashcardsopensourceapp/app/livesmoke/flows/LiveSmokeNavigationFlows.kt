@@ -22,6 +22,7 @@ import com.flashcardsopensourceapp.feature.settings.account.accountStatusScreenT
 import com.flashcardsopensourceapp.feature.settings.device.deviceDiagnosticsScreenTag
 import com.flashcardsopensourceapp.feature.settings.language.languageSettingsScreenTag
 import com.flashcardsopensourceapp.feature.settings.language.languageSettingsSupportedLanguagesSectionTag
+import com.flashcardsopensourceapp.feature.settings.leaderboard.leaderboardParticipationScreenTag
 import com.flashcardsopensourceapp.feature.settings.review.reviewNotificationsScreenTag
 import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerSettingsScreenTag
 import com.flashcardsopensourceapp.feature.settings.server.serverSettingsScreenTag
@@ -39,6 +40,7 @@ import com.flashcardsopensourceapp.feature.settings.settingsExportRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsFeedbackRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsGeneralSectionTag
 import com.flashcardsopensourceapp.feature.settings.settingsLanguageRowTag
+import com.flashcardsopensourceapp.feature.settings.settingsLeaderboardParticipationRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsLegalRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsOpenSourceRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsResetStudyProgressRowTag
@@ -126,6 +128,7 @@ internal fun LiveSmokeContext.assertSettingsInformationArchitecture() {
         settingsAccountStatusRowTag to "Account status",
         settingsCurrentWorkspaceRowTag to "Workspace",
         settingsReviewRemindersRowTag to "Review reminders",
+        settingsLeaderboardParticipationRowTag to "Leaderboard participation",
         settingsLanguageRowTag to "Language",
         settingsAccessRowTag to "Access",
         settingsDecksRowTag to "Decks",
@@ -171,6 +174,11 @@ internal fun LiveSmokeContext.openSettingsInformationArchitectureDetails() {
             rowTag = settingsReviewRemindersRowTag,
             rowLabel = "Review reminders",
             destinationTag = reviewNotificationsScreenTag
+        ),
+        SettingsDetailProbe(
+            rowTag = settingsLeaderboardParticipationRowTag,
+            rowLabel = "Leaderboard participation",
+            destinationTag = leaderboardParticipationScreenTag
         ),
         SettingsDetailProbe(
             rowTag = settingsLanguageRowTag,

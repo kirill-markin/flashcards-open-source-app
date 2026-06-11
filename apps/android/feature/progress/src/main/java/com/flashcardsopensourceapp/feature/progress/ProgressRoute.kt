@@ -27,7 +27,7 @@ fun ProgressRoute(
     onRetry: () -> Unit,
     onSelectLeaderboardWindow: (ProgressLeaderboardWindowKey) -> Unit,
     onOpenSignIn: () -> Unit,
-    onOpenAccountSettings: () -> Unit
+    onOpenLeaderboardSettings: () -> Unit
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentScreenVisibleAction = rememberUpdatedState(newValue = onScreenVisible)
@@ -127,7 +127,7 @@ fun ProgressRoute(
                             uiState = uiState.leaderboardSection,
                             onSelectWindow = onSelectLeaderboardWindow,
                             onOpenSignIn = onOpenSignIn,
-                            onOpenAccountSettings = onOpenAccountSettings
+                            onOpenLeaderboardSettings = onOpenLeaderboardSettings
                         )
                     }
                 }

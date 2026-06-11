@@ -135,6 +135,7 @@
 "settings.row.reviewReminders" = "復習リマインダー";
 "settings.row.reviewReminders.value" = "このデバイス";
 "settings.row.reviewAnimations" = "復習アニメーション";
+"settings.row.leaderboardParticipation" = "リーダーボード参加";
 "settings.row.language" = "言語";
 "settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3件の権限";
@@ -166,6 +167,10 @@
 "settings.currentWorkspace.renameLinkedOnly" = "ワークスペース名の変更は、リンク済みのクラウドワークスペースでのみ利用できます。";
 "settings.reviewAnimations.title" = "復習アニメーション";
 "settings.reviewAnimations.toggle" = "カード評価後にアニメーションを表示";
+"settings.leaderboardParticipation.title" = "リーダーボード参加";
+"settings.leaderboardParticipation.toggle" = "リーダーボードに自分を表示";
+"settings.leaderboardParticipation.description" = "オフにすると、リーダーボードに表示されず、ランキングも見られなくなります。";
+"settings.leaderboardParticipation.signInRequired" = "リーダーボード参加を管理するにはメールでサインインしてください。";
 "settings.language.title" = "言語";
 "settings.language.systemDescription" = "iOS がアプリの言語を管理します。iOS の「設定」で Flashcards を開き、「優先する言語」を使用してください。「優先する言語」が表示されない場合は、先に「設定」>「一般」>「言語と地域」で別の言語を追加してください。";
 "settings.language.action.openAppSettings" = "Flashcards の設定を開く";
@@ -284,10 +289,6 @@
 "settings.account.status.unavailable" = "クラウド構成は利用できません。";
 "settings.account.status.logoutAlertTitle" = "サインアウトしてこのデバイスを消去しますか?";
 "settings.account.status.logoutAlertMessage" = "すべてのローカル ワークスペースと同期データがこのデバイスから削除されます。";
-"settings.account.status.leaderboard.section" = "リーダーボード";
-"settings.account.status.leaderboard.toggle" = "リーダーボードに自分を表示";
-"settings.account.status.leaderboard.description" = "進捗リーダーボードに匿名で表示され、他の学習者と復習の活動を比較できます。「難しい」「良い」「簡単」はカウントされ、「もう一度」はカウントされません。";
-"settings.account.status.leaderboard.signInRequired" = "メールでサインインすると進捗リーダーボードに参加できます。";
 
 "settings.account.legal.title" = "法務";
 "settings.account.support.title" = "サポート";

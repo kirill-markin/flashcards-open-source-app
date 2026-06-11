@@ -51,6 +51,10 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
         try self.assertScreenVisible(screen: .reviewAnimationsSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.returnToSettingsRoot()
 
+        try self.openSettingsRootRow(identifier: LiveSmokeIdentifier.settingsLeaderboardParticipationRow)
+        try self.assertScreenVisible(screen: .leaderboardParticipationSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.returnToSettingsRoot()
+
         try self.openSettingsRootRow(identifier: LiveSmokeIdentifier.settingsLanguageRow)
         try self.assertScreenVisible(screen: .languageSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.assertElementExists(
@@ -129,19 +133,24 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
         try self.assertElementExistsScrollingIntoView(
+            identifier: LiveSmokeIdentifier.settingsLeaderboardParticipationRow,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+        try self.assertElementExistsScrollingIntoView(
             identifier: LiveSmokeIdentifier.settingsLanguageRow,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
 
         let remindersFrame = self.app.buttons[LiveSmokeIdentifier.settingsReviewRemindersRow].firstMatch.frame
         let animationsFrame = self.app.buttons[LiveSmokeIdentifier.settingsReviewAnimationsRow].firstMatch.frame
+        let leaderboardFrame = self.app.buttons[LiveSmokeIdentifier.settingsLeaderboardParticipationRow].firstMatch.frame
         let languageFrame = self.app.buttons[LiveSmokeIdentifier.settingsLanguageRow].firstMatch.frame
-        if remindersFrame.minY < animationsFrame.minY && animationsFrame.minY < languageFrame.minY {
+        if remindersFrame.minY < animationsFrame.minY && animationsFrame.minY < leaderboardFrame.minY && leaderboardFrame.minY < languageFrame.minY {
             return
         }
 
         throw LiveSmokeFailure.unexpectedAccountState(
-            message: "Review Animations row should appear after Review Reminders and before Language.",
+            message: "General settings rows should appear as Review Reminders, Review Animations, Leaderboard participation, then Language.",
             screen: self.currentScreenSummary(),
             step: self.currentStepTitle
         )

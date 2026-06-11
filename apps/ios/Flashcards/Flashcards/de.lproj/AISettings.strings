@@ -135,6 +135,7 @@
 "settings.row.reviewReminders" = "Wiederholungserinnerungen";
 "settings.row.reviewReminders.value" = "Dieses Gerät";
 "settings.row.reviewAnimations" = "Wiederholungsanimationen";
+"settings.row.leaderboardParticipation" = "Bestenlisten-Teilnahme";
 "settings.row.language" = "Sprache";
 "settings.row.language.value" = "iOS";
 "settings.row.access.permissionsCount" = "3 Berechtigungen";
@@ -166,6 +167,10 @@
 "settings.currentWorkspace.renameLinkedOnly" = "Das Umbenennen von Arbeitsbereichen ist nur fur verknupfte Cloud-Arbeitsbereiche verfugbar.";
 "settings.reviewAnimations.title" = "Wiederholungsanimationen";
 "settings.reviewAnimations.toggle" = "Animationen nach dem Bewerten einer Karte anzeigen";
+"settings.leaderboardParticipation.title" = "Bestenlisten-Teilnahme";
+"settings.leaderboardParticipation.toggle" = "Mich in der Bestenliste anzeigen";
+"settings.leaderboardParticipation.description" = "Wenn diese Einstellung aus ist, erscheinst du nicht in der Bestenliste und die Rangliste wird für dich ausgeblendet.";
+"settings.leaderboardParticipation.signInRequired" = "Melde dich mit E-Mail an, um die Bestenlisten-Teilnahme zu verwalten.";
 "settings.language.title" = "Sprache";
 "settings.language.systemDescription" = "iOS steuert die App-Sprache. Öffne in den iOS-Einstellungen Flashcards und verwende Bevorzugte Sprache. Wenn Bevorzugte Sprache nicht angezeigt wird, füge zuerst unter Einstellungen > Allgemein > Sprache & Region eine weitere Sprache hinzu.";
 "settings.language.action.openAppSettings" = "Einstellungen für Flashcards öffnen";
@@ -284,10 +289,6 @@
 "settings.account.status.unavailable" = "Die Cloud-Konfiguration ist nicht verfügbar.";
 "settings.account.status.logoutAlertTitle" = "Abmelden und dieses Gerät löschen?";
 "settings.account.status.logoutAlertMessage" = "Alle lokalen Arbeitsbereiche und synchronisierten Daten werden von diesem Gerät gelöscht.";
-"settings.account.status.leaderboard.section" = "Bestenliste";
-"settings.account.status.leaderboard.toggle" = "Mich in der Bestenliste anzeigen";
-"settings.account.status.leaderboard.description" = "Erscheine anonym in der Fortschritts-Bestenliste und vergleiche deine Wiederholungsaktivität mit anderen Lernenden. Schwer, Gut und Leicht zählen; Nochmal zählt nicht.";
-"settings.account.status.leaderboard.signInRequired" = "Melde dich mit E-Mail an, um an der Fortschritts-Bestenliste teilzunehmen.";
 
 "settings.account.legal.title" = "Rechtliches";
 "settings.account.support.title" = "Support";
