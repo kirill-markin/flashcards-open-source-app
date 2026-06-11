@@ -6,6 +6,8 @@ import type pg from "pg";
 import { HttpError } from "../shared/errors";
 import { loadOpenApiDocument } from "../shared/openapi";
 import {
+  loadProgressLeaderboard,
+  loadProgressLeaderboardInExecutor,
   loadUserProgressReviewScheduleInExecutor,
   loadUserProgressSeriesInExecutor,
   loadUserProgressSummaryInExecutor,
@@ -1030,4 +1032,33 @@ test("published contract excludes progress endpoints while the API Gateway resou
   assert.match(apiGatewaySource, /meProgress\.addResource\("summary"\)\.addMethod\("GET", integration\);/);
   assert.match(apiGatewaySource, /meProgress\.addResource\("review-schedule"\)\.addMethod\("GET", integration\);/);
   assert.match(apiGatewaySource, /meProgress\.addResource\("series"\)\.addMethod\("GET", integration\);/);
+});
+
+test("progress barrel re-exports the community leaderboard loaders", async () => {
+  assert.equal(typeof loadProgressLeaderboardInExecutor, "function");
+
+  // The re-export resolves to the real loader: a guest returns the linked-account
+  // state without opening a transaction, so this runs offline.
+  const guestLeaderboard = await loadProgressLeaderboard({
+    userId: "user-guest",
+    transport: "guest",
+    localeHint: "en",
+  });
+
+  assert.equal(guestLeaderboard.status, "linked_account_required");
+  assert.deepEqual(guestLeaderboard.windows, []);
+});
+
+test("published contract documents the progress leaderboard and the API Gateway predeclares it", () => {
+  const openApiDocument = loadOpenApiDocument() as Readonly<{
+    paths?: Readonly<Record<string, unknown>>;
+  }>;
+  assert.notEqual(openApiDocument.paths?.["/me/progress/leaderboard"], undefined);
+
+  const apiGatewayPath = path.resolve(process.cwd(), "../../infra/aws/lib/gateways/api-gateway.ts");
+  const apiGatewaySource = fs.readFileSync(apiGatewayPath, "utf8");
+  assert.match(
+    apiGatewaySource,
+    /meProgress\.addResource\("leaderboard"\)\.addMethod\("GET", integration\);/,
+  );
 });

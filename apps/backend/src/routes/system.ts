@@ -11,12 +11,14 @@ import {
 import { HttpError } from "../shared/errors";
 import { queryWithUserScope } from "../database";
 import {
+  loadProgressLeaderboard,
   loadUserProgressReviewSchedule,
   loadUserProgressSeries,
   loadUserProgressSummary,
   parseProgressReviewScheduleInputFromRequest,
   parseProgressSeriesInputFromRequest,
   parseProgressSummaryInputFromRequest,
+  type ProgressLeaderboard,
   type ProgressReviewSchedule,
   type ProgressSeries,
   type ProgressSummaryResponse,
@@ -49,6 +51,7 @@ type SystemRoutesOptions = Readonly<{
   loadUserProgressReviewScheduleFn?: typeof loadUserProgressReviewSchedule;
   loadUserProgressSeriesFn?: typeof loadUserProgressSeries;
   loadUserProgressSummaryFn?: typeof loadUserProgressSummary;
+  loadProgressLeaderboardFn?: typeof loadProgressLeaderboard;
   updateAccountPreferencesFn?: UpdateAccountPreferencesFn;
   ensurePublicProfileForUserFn?: EnsurePublicProfileForUserFn;
   updateLeaderboardParticipationFn?: UpdateLeaderboardParticipationFn;
@@ -221,6 +224,7 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
   const loadUserProgressReviewScheduleFn = options.loadUserProgressReviewScheduleFn ?? loadUserProgressReviewSchedule;
   const loadUserProgressSeriesFn = options.loadUserProgressSeriesFn ?? loadUserProgressSeries;
   const loadUserProgressSummaryFn = options.loadUserProgressSummaryFn ?? loadUserProgressSummary;
+  const loadProgressLeaderboardFn = options.loadProgressLeaderboardFn ?? loadProgressLeaderboard;
   const updateAccountPreferencesFn = options.updateAccountPreferencesFn ?? updateAccountPreferences;
   const ensurePublicProfileForUserFn = options.ensurePublicProfileForUserFn ?? ensurePublicProfileForUser;
   const updateLeaderboardParticipationFn = options.updateLeaderboardParticipationFn ?? updateLeaderboardParticipation;
@@ -471,6 +475,55 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
         error,
         { action: "me_progress_series_error", error: normalizeCaughtError(error), scope, details },
         { action: "me_progress_series_error", scope, details },
+      );
+      throw error;
+    }
+  });
+
+  app.get("/me/progress/leaderboard", async (context) => {
+    const { requestContext } = await loadRequestContextFromRequestFn(
+      context.req.raw,
+      options.allowedOrigins,
+    );
+    const requestId = context.get("requestId");
+
+    try {
+      assertProgressHumanTransport(requestContext.transport);
+
+      const leaderboard = await loadProgressLeaderboardFn({
+        userId: requestContext.userId,
+        transport: requestContext.transport,
+        localeHint: requestContext.locale,
+      });
+
+      addBackendBreadcrumb({
+        action: "me_progress_leaderboard",
+        scope: createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId),
+        details: {
+          statusCode: 200,
+          authTransport: requestContext.transport,
+          status: leaderboard.status,
+          metricVersion: leaderboard.metric.metricVersion,
+          defaultWindowKey: leaderboard.defaultWindowKey,
+          windowCount: leaderboard.windows.length,
+        },
+      });
+
+      return context.json(leaderboard satisfies ProgressLeaderboard);
+    } catch (error) {
+      const scope = createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId);
+      const details = {
+        authTransport: requestContext.transport,
+        status: null,
+        metricVersion: null,
+        defaultWindowKey: null,
+        windowCount: null,
+        ...createBackendFailureDetails(error),
+      };
+      reportBackendExceptionOrBreadcrumb(
+        error,
+        { action: "me_progress_leaderboard_error", error: normalizeCaughtError(error), scope, details },
+        { action: "me_progress_leaderboard_error", scope, details },
       );
       throw error;
     }

@@ -219,6 +219,84 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /me/progress/leaderboard:
+    get:
+      tags:
+        - bootstrap
+      summary: Load the compact community Progress leaderboard
+      description: >-
+        Returns all five leaderboard windows in one payload for the Progress tab,
+        each with viewer-perspective ranks, the per-viewer tie rule, and the
+        server-computed compact rows so every client renders the same list.
+        Guests receive status linked_account_required and opted-out users receive
+        participation_disabled, both with no other users' rows. ApiKey
+        authentication is rejected. Only opaque public profile ids and
+        locale-derived anonymous display names are returned; internal user ids and
+        raw review timestamps are never exposed.
+      security:
+        - BearerAuth: []
+        - GuestAuthorizationHeader: []
+        - SessionCookie: []
+      responses:
+        '200':
+          description: Compact community leaderboard
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgressLeaderboardResponse'
+              example:
+                status: ready
+                metric:
+                  metricVersion: qualified_reviews_v1
+                  title: Qualified reviews
+                  description: Hard, Good, and Easy reviews count toward your rank. Again does not.
+                defaultWindowKey: last_24_hours
+                windows:
+                  - windowKey: last_24_hours
+                    snapshotId: 0cc86d10-18cb-4d64-a2f2-a5fd960b45b2
+                    snapshotGeneratedAt: '2026-06-10T14:00:05.000Z'
+                    asOfServerHour: '2026-06-10T14:00:00.000Z'
+                    nextRefreshAfter: '2026-06-10T15:00:00.000Z'
+                    participantCount: 128
+                    viewer:
+                      publicProfileId: 5b9d3f2a-1c4e-4a7b-9f0d-2e6c8a1b4d7f
+                      displayName: You
+                      rank: 42
+                      qualifiedReviewCount: 7
+                    rows:
+                      - kind: top
+                        publicProfileId: a1d2c3b4-5e6f-4a8b-9c0d-1e2f3a4b5c6d
+                        anonymousDisplayName: Silver Bright Harbor
+                        qualifiedReviewCount: 51
+                        rank: 1
+                      - kind: gap
+                      - kind: neighbor
+                        publicProfileId: b2c3d4e5-6f70-4b9c-8d1e-2f3a4b5c6d7e
+                        anonymousDisplayName: Amber Calm Meadow
+                        qualifiedReviewCount: 8
+                        rank: 41
+                      - kind: viewer
+                        publicProfileId: 5b9d3f2a-1c4e-4a7b-9f0d-2e6c8a1b4d7f
+                        anonymousDisplayName: Jade Swift River
+                        qualifiedReviewCount: 7
+                        rank: 42
+                      - kind: neighbor
+                        publicProfileId: c3d4e5f6-7081-4c0d-9e2f-3a4b5c6d7e8f
+                        anonymousDisplayName: Coral Keen Valley
+                        qualifiedReviewCount: 7
+                        rank: 43
+        '403':
+          description: Forbidden authentication transport
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /agent/me:
     $ref: paths/agent_me.yaml
   /agent/workspaces:
@@ -293,6 +371,158 @@ components:
           type: boolean
         linkedAccountRequiredForLeaderboard:
           type: boolean
+    LeaderboardWindowKey:
+      type: string
+      enum:
+        - last_24_hours
+        - last_3_days
+        - last_7_days
+        - last_30_days
+        - all_time
+    ProgressLeaderboardMetric:
+      type: object
+      additionalProperties: false
+      required:
+        - metricVersion
+        - title
+        - description
+      properties:
+        metricVersion:
+          type: string
+          enum:
+            - qualified_reviews_v1
+        title:
+          type: string
+        description:
+          type: string
+          description: Communicates that Hard, Good, and Easy reviews count while Again does not.
+    ProgressLeaderboardViewer:
+      type: object
+      additionalProperties: false
+      required:
+        - publicProfileId
+        - displayName
+        - rank
+        - qualifiedReviewCount
+      properties:
+        publicProfileId:
+          $ref: ./components/schemas/UuidString.yaml
+        displayName:
+          type: string
+          enum:
+            - You
+          description: Always "You"; clients render the viewer row using the row kind.
+        rank:
+          type: integer
+          minimum: 1
+        qualifiedReviewCount:
+          type: integer
+          minimum: 0
+    ProgressLeaderboardParticipantRow:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - publicProfileId
+        - anonymousDisplayName
+        - qualifiedReviewCount
+        - rank
+      properties:
+        kind:
+          type: string
+          enum:
+            - top
+            - neighbor
+            - viewer
+        publicProfileId:
+          $ref: ./components/schemas/UuidString.yaml
+        anonymousDisplayName:
+          type: string
+          description: Locale-aware anonymous display label derived from the public profile id.
+        qualifiedReviewCount:
+          type: integer
+          minimum: 0
+        rank:
+          type: integer
+          minimum: 1
+    ProgressLeaderboardGapRow:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+      properties:
+        kind:
+          type: string
+          enum:
+            - gap
+    ProgressLeaderboardRow:
+      oneOf:
+        - $ref: '#/components/schemas/ProgressLeaderboardParticipantRow'
+        - $ref: '#/components/schemas/ProgressLeaderboardGapRow'
+    ProgressLeaderboardWindow:
+      type: object
+      additionalProperties: false
+      required:
+        - windowKey
+        - snapshotId
+        - snapshotGeneratedAt
+        - asOfServerHour
+        - nextRefreshAfter
+        - participantCount
+        - viewer
+        - rows
+      properties:
+        windowKey:
+          $ref: '#/components/schemas/LeaderboardWindowKey'
+        snapshotId:
+          $ref: ./components/schemas/UuidString.yaml
+        snapshotGeneratedAt:
+          type: string
+          format: date-time
+        asOfServerHour:
+          type: string
+          format: date-time
+        nextRefreshAfter:
+          type: string
+          format: date-time
+        participantCount:
+          type: integer
+          minimum: 0
+          description: >-
+            Size of the viewer-perspective ranking. Always includes the viewer
+            (with count 0 when absent from the snapshot), so the viewer rank is
+            never greater than this value.
+        viewer:
+          $ref: '#/components/schemas/ProgressLeaderboardViewer'
+        rows:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProgressLeaderboardRow'
+    ProgressLeaderboardResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - metric
+        - defaultWindowKey
+        - windows
+      properties:
+        status:
+          type: string
+          enum:
+            - ready
+            - linked_account_required
+            - participation_disabled
+            - snapshot_unavailable
+        metric:
+          $ref: '#/components/schemas/ProgressLeaderboardMetric'
+        defaultWindowKey:
+          $ref: '#/components/schemas/LeaderboardWindowKey'
+        windows:
+          type: array
+          description: Empty unless status is ready; otherwise one item per leaderboard window.
+          items:
+            $ref: '#/components/schemas/ProgressLeaderboardWindow'
     ErrorResponse:
       type: object
       additionalProperties: true

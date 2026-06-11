@@ -112,7 +112,13 @@ function readDeterministicPoolValue(
   return readPoolValue(pool, poolName, hash.readUInt32BE(offset) % pool.length);
 }
 
-function createAnonymousDisplayName(
+/**
+ * Derives the deterministic locale-aware anonymous display name for a public
+ * profile id. Exported so cross-user community reads (for example the Progress
+ * leaderboard) render the exact same names as `/me/community/profile` from the
+ * same word-pool logic, resolving the pools once per request.
+ */
+export function createAnonymousDisplayName(
   publicProfileId: string,
   wordPools: AnonymousDisplayNameWordPools,
 ): string {
@@ -274,6 +280,40 @@ export async function ensurePublicProfileIdForCurrentUserInExecutor(
   executor: DatabaseExecutor,
 ): Promise<CurrentUserPublicProfileId> {
   return ensurePublicProfileIdForCurrentUserInExecutorWithDependencies(
+    executor,
+    defaultPublicProfileServiceDependencies,
+  );
+}
+
+export type CurrentUserPublicProfile = Readonly<{
+  userId: string;
+  publicProfileId: string;
+  leaderboardParticipationEnabled: boolean;
+}>;
+
+/**
+ * Ensures and returns the scoped user's stable public profile together with the
+ * leaderboard participation preference, without computing a display name. The
+ * Progress leaderboard read needs both the opaque viewer identity and the opt-out
+ * flag in the same scoped transaction before deciding whether to expose any rows.
+ */
+export async function ensurePublicProfileForCurrentUserInExecutorWithDependencies(
+  executor: DatabaseExecutor,
+  dependencies: PublicProfileServiceDependencies,
+): Promise<CurrentUserPublicProfile> {
+  const userId = await selectCurrentUserIdInExecutor(executor);
+  const row = await ensurePublicProfileRowForUserInExecutor(executor, userId, dependencies);
+  return {
+    userId,
+    publicProfileId: row.public_profile_id,
+    leaderboardParticipationEnabled: row.leaderboard_participation_enabled,
+  };
+}
+
+export async function ensurePublicProfileForCurrentUserInExecutor(
+  executor: DatabaseExecutor,
+): Promise<CurrentUserPublicProfile> {
+  return ensurePublicProfileForCurrentUserInExecutorWithDependencies(
     executor,
     defaultPublicProfileServiceDependencies,
   );

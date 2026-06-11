@@ -8,6 +8,16 @@ import { unsafeRepeatableReadTransaction } from "../database/unsafe";
 import { HttpError } from "../shared/errors";
 import { listUserWorkspaceIdsInExecutor } from "../workspaces/queries";
 
+// The compact Progress-tab community leaderboard lives in the community module
+// (next to the snapshot writer) but is re-exported here so every /me/progress/*
+// loader is imported from one place by the route layer.
+export {
+  loadProgressLeaderboard,
+  loadProgressLeaderboardInExecutor,
+  type ProgressLeaderboard,
+  type ProgressLeaderboardRequest,
+} from "../community/progressLeaderboard";
+
 export type ProgressSummaryInput = Readonly<{
   timeZone: string;
 }>;
