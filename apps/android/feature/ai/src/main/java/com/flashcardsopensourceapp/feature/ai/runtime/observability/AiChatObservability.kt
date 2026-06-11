@@ -11,8 +11,8 @@ import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRequestTooLargeExc
 import com.flashcardsopensourceapp.data.local.ai.remote.isAiChatAttachmentUnsupportedTypeRemoteError
 import com.flashcardsopensourceapp.data.local.ai.remote.isAiChatRequestTooLargeRemoteError
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
+import com.flashcardsopensourceapp.data.local.network.isLikelyTransientNetworkIoException
 import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.bootstrap.AiChatBootstrapBlockedException
-import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.bootstrap.isLikelyTransientNetworkIoException
 import java.io.IOException
 
 internal data class AiChatContentPartCounts(
