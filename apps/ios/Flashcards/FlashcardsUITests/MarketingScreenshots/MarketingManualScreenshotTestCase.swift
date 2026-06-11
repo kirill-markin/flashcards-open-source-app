@@ -263,7 +263,7 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
         try self.assertElementExists(
-            identifier: LiveSmokeIdentifier.progressReviewsSection,
+            identifier: LiveSmokeIdentifier.progressLeaderboardSection,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
         let progressStreakSection = self.app.descendants(matching: .any)

@@ -63,6 +63,18 @@ struct ProgressScreen: View {
                         .accessibilityValue(progressSummaryUITestValue(summary: progressSnapshot.summary))
                         .modifier(ProgressCardModifier())
 
+                        if let leaderboardSnapshot = self.store.progressLeaderboardSnapshot {
+                            VStack(alignment: .leading, spacing: 0) {
+                                ProgressLeaderboardSection(
+                                    snapshot: leaderboardSnapshot,
+                                    isRefreshing: self.store.isProgressRefreshing
+                                )
+                            }
+                            .id(ProgressScreenSectionID.leaderboard)
+                            .accessibilityIdentifier(UITestIdentifier.progressLeaderboardSection)
+                            .modifier(ProgressCardModifier())
+                        }
+
                         VStack(alignment: .leading, spacing: 0) {
                             ProgressReviewsSection(
                                 chartDays: progressSnapshot.chartData.chartDays,
@@ -78,18 +90,6 @@ struct ProgressScreen: View {
                                 ProgressReviewScheduleSection(snapshot: reviewScheduleSnapshot)
                             }
                             .accessibilityIdentifier(UITestIdentifier.progressReviewScheduleSection)
-                            .modifier(ProgressCardModifier())
-                        }
-
-                        if let leaderboardSnapshot = self.store.progressLeaderboardSnapshot {
-                            VStack(alignment: .leading, spacing: 0) {
-                                ProgressLeaderboardSection(
-                                    snapshot: leaderboardSnapshot,
-                                    isRefreshing: self.store.isProgressRefreshing
-                                )
-                            }
-                            .id(ProgressScreenSectionID.leaderboard)
-                            .accessibilityIdentifier(UITestIdentifier.progressLeaderboardSection)
                             .modifier(ProgressCardModifier())
                         }
                     } else if self.store.isProgressRefreshing == false {

@@ -131,6 +131,14 @@ fun ProgressRoute(
                         )
                     }
                     item {
+                        LeaderboardSectionCard(
+                            uiState = uiState.leaderboardSection,
+                            onSelectWindow = onSelectLeaderboardWindow,
+                            onOpenSignIn = onOpenSignIn,
+                            onOpenLeaderboardSettings = onOpenLeaderboardSettings
+                        )
+                    }
+                    item {
                         ReviewsSectionCard(
                             uiState = uiState.reviewsSection
                         )
@@ -142,14 +150,6 @@ fun ProgressRoute(
                                 uiState = reviewScheduleSection
                             )
                         }
-                    }
-                    item {
-                        LeaderboardSectionCard(
-                            uiState = uiState.leaderboardSection,
-                            onSelectWindow = onSelectLeaderboardWindow,
-                            onOpenSignIn = onOpenSignIn,
-                            onOpenLeaderboardSettings = onOpenLeaderboardSettings
-                        )
                     }
                 }
             }

@@ -108,42 +108,52 @@ internal fun LeaderboardSectionCard(
                 }
 
                 ProgressLeaderboardSectionUiState.SignInRequired -> {
-                    LeaderboardPlaceholder(
-                        message = stringResource(id = R.string.progress_leaderboard_sign_in_message),
-                        buttonLabel = stringResource(id = R.string.progress_leaderboard_sign_in_button),
-                        onButtonClick = onOpenSignIn
-                    )
+                    LeaderboardResolvedContent {
+                        LeaderboardPlaceholder(
+                            message = stringResource(id = R.string.progress_leaderboard_sign_in_message),
+                            buttonLabel = stringResource(id = R.string.progress_leaderboard_sign_in_button),
+                            onButtonClick = onOpenSignIn
+                        )
+                    }
                 }
 
                 ProgressLeaderboardSectionUiState.ParticipationDisabled -> {
-                    LeaderboardPlaceholder(
-                        message = stringResource(id = R.string.progress_leaderboard_participation_disabled_message),
-                        buttonLabel = stringResource(id = R.string.progress_leaderboard_participation_disabled_button),
-                        onButtonClick = onOpenLeaderboardSettings
-                    )
+                    LeaderboardResolvedContent {
+                        LeaderboardPlaceholder(
+                            message = stringResource(id = R.string.progress_leaderboard_participation_disabled_message),
+                            buttonLabel = stringResource(id = R.string.progress_leaderboard_participation_disabled_button),
+                            onButtonClick = onOpenLeaderboardSettings
+                        )
+                    }
                 }
 
                 ProgressLeaderboardSectionUiState.Offline -> {
-                    LeaderboardPlaceholder(
-                        message = stringResource(id = R.string.progress_leaderboard_offline_message),
-                        buttonLabel = null,
-                        onButtonClick = null
-                    )
+                    LeaderboardResolvedContent {
+                        LeaderboardPlaceholder(
+                            message = stringResource(id = R.string.progress_leaderboard_offline_message),
+                            buttonLabel = null,
+                            onButtonClick = null
+                        )
+                    }
                 }
 
                 ProgressLeaderboardSectionUiState.SnapshotUnavailable -> {
-                    LeaderboardPlaceholder(
-                        message = stringResource(id = R.string.progress_leaderboard_unavailable_message),
-                        buttonLabel = null,
-                        onButtonClick = null
-                    )
+                    LeaderboardResolvedContent {
+                        LeaderboardPlaceholder(
+                            message = stringResource(id = R.string.progress_leaderboard_unavailable_message),
+                            buttonLabel = null,
+                            onButtonClick = null
+                        )
+                    }
                 }
 
                 is ProgressLeaderboardSectionUiState.Ready -> {
-                    LeaderboardReadyContent(
-                        uiState = uiState,
-                        onSelectWindow = onSelectWindow
-                    )
+                    LeaderboardResolvedContent {
+                        LeaderboardReadyContent(
+                            uiState = uiState,
+                            onSelectWindow = onSelectWindow
+                        )
+                    }
                 }
             }
         }
@@ -167,6 +177,20 @@ internal fun LeaderboardSectionCard(
                 Text(infoBody)
             }
         )
+    }
+}
+
+@Composable
+private fun LeaderboardResolvedContent(
+    content: @Composable () -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(progressLeaderboardResolvedContentTag)
+    ) {
+        content()
     }
 }
 

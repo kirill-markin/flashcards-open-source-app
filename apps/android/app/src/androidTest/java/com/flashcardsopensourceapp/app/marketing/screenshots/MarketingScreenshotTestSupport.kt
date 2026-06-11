@@ -39,8 +39,8 @@ import com.flashcardsopensourceapp.feature.ai.aiComposerSendButtonTag
 import com.flashcardsopensourceapp.feature.ai.aiConversationSurfaceTag
 import com.flashcardsopensourceapp.feature.cards.cardsCardFrontTextTag
 import com.flashcardsopensourceapp.feature.cards.cardsSearchFieldTag
-import com.flashcardsopensourceapp.feature.progress.progressReviewsActivityChartTag
-import com.flashcardsopensourceapp.feature.progress.progressReviewsSectionTag
+import com.flashcardsopensourceapp.feature.progress.progressLeaderboardResolvedContentTag
+import com.flashcardsopensourceapp.feature.progress.progressLeaderboardSectionTag
 import com.flashcardsopensourceapp.feature.progress.progressStreakSectionTag
 import com.flashcardsopensourceapp.feature.progress.R as ProgressFeatureR
 import com.flashcardsopensourceapp.feature.review.reviewRateAgainButtonTag
@@ -201,7 +201,7 @@ internal class MarketingScreenshotRobot(
         expectedReviewedToday: Boolean
     ) {
         openProgressTab()
-        waitForLoadedProgressWithReviewActivity()
+        waitForLoadedProgressWithLeaderboard()
         waitForProgressStreakSummary(
             expectedProgressStreakDays = expectedProgressStreakDays,
             expectedReviewedToday = expectedReviewedToday
@@ -315,11 +315,11 @@ internal class MarketingScreenshotRobot(
         }
     }
 
-    private fun waitForLoadedProgressWithReviewActivity() {
+    private fun waitForLoadedProgressWithLeaderboard() {
         waitUntilWithSystemDialogMitigation(timeoutMillis = progressScreenshotUiTimeoutMillis) {
             composeRule.onAllNodesWithTag(progressStreakSectionTag).fetchSemanticsNodes().isNotEmpty() &&
-                composeRule.onAllNodesWithTag(progressReviewsSectionTag).fetchSemanticsNodes().isNotEmpty() &&
-                composeRule.onAllNodesWithTag(progressReviewsActivityChartTag).fetchSemanticsNodes().isNotEmpty()
+                composeRule.onAllNodesWithTag(progressLeaderboardSectionTag).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithTag(progressLeaderboardResolvedContentTag).fetchSemanticsNodes().isNotEmpty()
         }
     }
 
