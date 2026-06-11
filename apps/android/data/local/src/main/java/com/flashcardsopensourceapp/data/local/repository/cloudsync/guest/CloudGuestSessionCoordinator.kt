@@ -1,7 +1,7 @@
 package com.flashcardsopensourceapp.data.local.repository.cloudsync.guest
 
-import com.flashcardsopensourceapp.data.local.ai.store.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.ai.remote.GuestCloudSessionCreator
+import com.flashcardsopensourceapp.data.local.ai.store.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.bootstrap.ensureLocalWorkspaceShell
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
@@ -10,6 +10,7 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteBootstrapP
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceEntity
+import com.flashcardsopensourceapp.data.local.model.ai.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryReason
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryRequiredException
@@ -17,11 +18,14 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecover
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
-import com.flashcardsopensourceapp.data.local.model.ai.StoredGuestAiSession
+import com.flashcardsopensourceapp.data.local.network.isLikelyTransientNetworkIoException
+import com.flashcardsopensourceapp.data.local.network.isRetryableHttpStatusCode
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.CloudIdentityResetCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.androidClientPlatform
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.loadCurrentWorkspaceOrNull
+import java.io.IOException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 
@@ -41,6 +45,9 @@ data class EnsuredGuestCloudSession(
     val workspaceId: String
 )
 
+private typealias GuestCloudLinkFinisher = suspend (StoredGuestAiSession, String?) -> Boolean
+private typealias GuestBootstrapProbeLoader = suspend (StoredGuestAiSession, String) -> RemoteBootstrapPullResponse
+
 class CloudGuestSessionCoordinator(
     private val database: AppDatabase,
     private val preferencesStore: CloudPreferencesStore,
@@ -53,7 +60,11 @@ class CloudGuestSessionCoordinator(
     private val appVersion: String
 ) {
     suspend fun reconcilePersistedCloudStateForStartup() {
-        reconcilePersistedCloudState()
+        operationCoordinator.runExclusive {
+            reconcilePersistedCloudStateLocked(
+                finishGuestCloudLink = ::finishGuestCloudLinkForStartupNonCancellableLocked
+            )
+        }
     }
 
     suspend fun ensureGuestCloudSession(workspaceId: String): EnsuredGuestCloudSession {
@@ -91,6 +102,14 @@ class CloudGuestSessionCoordinator(
     }
 
     internal suspend fun reconcilePersistedCloudStateLocked(): CloudIdentityReconciliationResult {
+        return reconcilePersistedCloudStateLocked(
+            finishGuestCloudLink = ::finishGuestCloudLinkNonCancellableLocked
+        )
+    }
+
+    private suspend fun reconcilePersistedCloudStateLocked(
+        finishGuestCloudLink: GuestCloudLinkFinisher
+    ): CloudIdentityReconciliationResult {
         val activeRecoveryState = preferencesStore.loadCloudCredentialRecoveryState()
         if (activeRecoveryState == null || activeRecoveryState.isPendingGuestUpgradeRecovery()) {
             val recoveredGuestUpgrade: CloudWorkspaceSummary? = resumePendingGuestUpgradeRecoveryIfNeeded(
@@ -179,10 +198,7 @@ class CloudGuestSessionCoordinator(
                         didRunSync = false
                     )
                 } else {
-                    val shouldSync = finishGuestCloudLinkNonCancellableLocked(
-                        session = storedGuestSession,
-                        workspaceId = storedGuestSession.workspaceId
-                    )
+                    val shouldSync = finishGuestCloudLink(storedGuestSession, storedGuestSession.workspaceId)
                     preferencesStore.clearCloudCredentialRecoveryState()
                     CloudIdentityReconciliationResult(
                         cloudSettings = preferencesStore.currentCloudSettings(),
@@ -327,7 +343,21 @@ class CloudGuestSessionCoordinator(
         return withContext(NonCancellable) {
             finishGuestCloudLinkIfNeededLocked(
                 session = session,
-                workspaceId = workspaceId
+                workspaceId = workspaceId,
+                bootstrapProbeLoader = ::loadRequiredGuestBootstrapProbe
+            )
+        }
+    }
+
+    private suspend fun finishGuestCloudLinkForStartupNonCancellableLocked(
+        session: StoredGuestAiSession,
+        workspaceId: String?
+    ): Boolean {
+        return withContext(NonCancellable) {
+            finishGuestCloudLinkIfNeededLocked(
+                session = session,
+                workspaceId = workspaceId,
+                bootstrapProbeLoader = ::loadStartupGuestBootstrapProbe
             )
         }
     }
@@ -352,7 +382,8 @@ class CloudGuestSessionCoordinator(
 
     private suspend fun finishGuestCloudLinkIfNeededLocked(
         session: StoredGuestAiSession,
-        workspaceId: String?
+        workspaceId: String?,
+        bootstrapProbeLoader: GuestBootstrapProbeLoader
     ): Boolean {
         val currentCloudSettings = preferencesStore.currentCloudSettings()
         val currentWorkspace = loadCurrentWorkspaceForRestoreOrNull(workspaceId = workspaceId)
@@ -367,9 +398,9 @@ class CloudGuestSessionCoordinator(
             return false
         }
 
-        val bootstrapProbe = runGuestBootstrapPull(
-            session = session,
-            installationId = currentCloudSettings.installationId
+        val bootstrapProbe: RemoteBootstrapPullResponse = bootstrapProbeLoader(
+            session,
+            currentCloudSettings.installationId
         )
         val workspaceSummary = guestWorkspaceSummary(
             currentWorkspaceId = currentWorkspace?.workspaceId,
@@ -455,6 +486,39 @@ class CloudGuestSessionCoordinator(
         )
     }
 
+    private suspend fun loadRequiredGuestBootstrapProbe(
+        session: StoredGuestAiSession,
+        installationId: String
+    ): RemoteBootstrapPullResponse {
+        return runGuestBootstrapPull(
+            session = session,
+            installationId = installationId
+        )
+    }
+
+    private suspend fun loadStartupGuestBootstrapProbe(
+        session: StoredGuestAiSession,
+        installationId: String
+    ): RemoteBootstrapPullResponse {
+        return try {
+            loadRequiredGuestBootstrapProbe(
+                session = session,
+                installationId = installationId
+            )
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            if (isRetryableStartupCloudReconciliationFailure(error = error).not()) {
+                throw error
+            }
+            markStartupCloudReconciliationFailure(error = error)
+            throw IllegalStateException(
+                startupCloudReconciliationFailureMessage(error = error),
+                error
+            )
+        }
+    }
+
     private fun guestWorkspaceSummary(
         currentWorkspaceId: String?,
         currentWorkspaceName: String?,
@@ -524,5 +588,66 @@ class CloudGuestSessionCoordinator(
             linkedEmail = null,
             activeWorkspaceId = cloudSettings.activeWorkspaceId
         )
+    }
+
+    private fun isRetryableStartupCloudReconciliationFailure(error: Exception): Boolean {
+        val cloudRemoteError: CloudRemoteException? = error as? CloudRemoteException
+            ?: findCloudRemoteCause(error = error)
+        if (cloudRemoteError != null) {
+            return isRetryableHttpStatusCode(statusCode = cloudRemoteError.statusCode)
+        }
+        val ioError: IOException? = error as? IOException ?: findIoCause(error = error)
+        return ioError != null && isLikelyTransientNetworkIoException(error = ioError)
+    }
+
+    private fun findCloudRemoteCause(error: Throwable): CloudRemoteException? {
+        var currentCause: Throwable? = error.cause
+        while (currentCause != null) {
+            if (currentCause is CloudRemoteException) {
+                return currentCause
+            }
+            currentCause = currentCause.cause
+        }
+        return null
+    }
+
+    private fun findIoCause(error: Throwable): IOException? {
+        var currentCause: Throwable? = error.cause
+        while (currentCause != null) {
+            if (currentCause is IOException) {
+                return currentCause
+            }
+            currentCause = currentCause.cause
+        }
+        return null
+    }
+
+    private suspend fun markStartupCloudReconciliationFailure(error: Exception) {
+        val cloudSettings: CloudSettings = preferencesStore.currentCloudSettings()
+        val workspaceId: String = localWorkspaceIdForSyncFailure(cloudSettings = cloudSettings) ?: return
+        syncLocalStore.markSyncFailure(
+            workspaceId = workspaceId,
+            errorMessage = startupCloudReconciliationFailureMessage(error = error)
+        )
+    }
+
+    private suspend fun localWorkspaceIdForSyncFailure(cloudSettings: CloudSettings): String? {
+        val candidateWorkspaceIds: List<String> = listOfNotNull(
+            cloudSettings.activeWorkspaceId,
+            cloudSettings.linkedWorkspaceId
+        ).distinct()
+        return candidateWorkspaceIds.firstOrNull { workspaceId ->
+            database.workspaceDao().loadWorkspaceById(workspaceId = workspaceId) != null
+        }
+    }
+
+    private fun startupCloudReconciliationFailureMessage(error: Exception): String {
+        val retryableCause: Throwable = findIoCause(error = error)
+            ?: findCloudRemoteCause(error = error)
+            ?: error
+        val causeMessage: String = retryableCause.message?.trim()?.takeIf { message -> message.isNotEmpty() }
+            ?: retryableCause::class.java.simpleName
+        return "Startup cloud reconciliation could not finish because cloud sync is temporarily unavailable. " +
+            "Check your connection and reopen the app. Cause=$causeMessage"
     }
 }

@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.ai.remote.GuestCloudSessionCreator
 import com.flashcardsopensourceapp.data.local.cloud.PendingGuestUpgradeState
+import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
+import com.flashcardsopensourceapp.data.local.model.ai.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryReason
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryRequiredException
@@ -12,15 +14,16 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeCompl
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
-import com.flashcardsopensourceapp.data.local.model.ai.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.CloudIdentityTestEnvironment
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.FakeCloudRemoteGateway
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.RestartedCloudGuestSessionRuntime
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createCloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createCloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createStoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createStoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createSyncCardOutboxEntry
+import java.net.SocketTimeoutException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -264,6 +267,69 @@ class CloudGuestSessionCoordinatorTest {
     }
 
     @Test
+    fun startupReconciliationFailsTransientGuestBootstrapFailureBeforeUnsafeGuestWorkspaceMigration() = runBlocking {
+        val localWorkspaceId: String = environment.requireLocalWorkspaceId()
+        val guestSession: StoredGuestAiSession = createStoredGuestAiSession(
+            workspaceId = "remote-guest-workspace",
+            configurationMode = CloudServiceConfigurationMode.OFFICIAL,
+            apiBaseUrl = "https://api.flashcards-open-source-app.com/v1",
+            guestToken = "guest-token",
+            userId = "guest-user"
+        )
+        environment.cloudPreferencesStore.updateCloudSettings(
+            cloudState = CloudAccountState.GUEST,
+            linkedUserId = guestSession.userId,
+            linkedWorkspaceId = guestSession.workspaceId,
+            linkedEmail = null,
+            activeWorkspaceId = guestSession.workspaceId
+        )
+        environment.guestAiSessionStore.saveSession(
+            localWorkspaceId = guestSession.workspaceId,
+            session = guestSession
+        )
+        val restartedRuntime: RestartedCloudGuestSessionRuntime =
+            environment.createRestartedCloudGuestSessionRuntime(
+                remoteGateway = FakeCloudRemoteGateway.forBootstrapPullError(
+                    bootstrapPullError = SocketTimeoutException("startup bootstrap timed out")
+                )
+            )
+
+        try {
+            restartedRuntime.cloudGuestSessionCoordinator.reconcilePersistedCloudStateForStartup()
+            throw AssertionError("Expected transient guest bootstrap failure to fail startup before unsafe migration.")
+        } catch (error: IllegalStateException) {
+            assertTrue(
+                error.message?.contains("Startup cloud reconciliation could not finish") == true
+            )
+            assertTrue(
+                error.message?.contains("startup bootstrap timed out") == true
+            )
+        }
+
+        val syncState: SyncStateEntity = requireNotNull(
+            environment.database.syncStateDao().loadSyncState(localWorkspaceId)
+        )
+        assertEquals(CloudAccountState.GUEST, restartedRuntime.cloudPreferencesStore.currentCloudSettings().cloudState)
+        assertEquals(localWorkspaceId, restartedRuntime.cloudPreferencesStore.currentCloudSettings().activeWorkspaceId)
+        assertEquals(
+            guestSession.workspaceId,
+            restartedRuntime.cloudPreferencesStore.currentCloudSettings().linkedWorkspaceId
+        )
+        assertEquals(localWorkspaceId, environment.database.workspaceDao().loadAnyWorkspace()?.workspaceId)
+        assertNotNull(
+            restartedRuntime.guestAiSessionStore.loadAnySession(
+                configuration = makeOfficialCloudServiceConfiguration()
+            )
+        )
+        assertTrue(
+            syncState.lastSyncError?.contains("Startup cloud reconciliation could not finish") == true
+        )
+        assertTrue(
+            syncState.lastSyncError?.contains("startup bootstrap timed out") == true
+        )
+    }
+
+    @Test
     fun corruptCredentialRecoveryStateDoesNotPreventStoreRestartAndLoadsInvalidRecovery() = runBlocking {
         val localWorkspaceId = environment.requireLocalWorkspaceId()
         val metadataPreferences = environment.context.getSharedPreferences(
@@ -503,6 +569,95 @@ class CloudGuestSessionCoordinatorTest {
                 configuration = makeOfficialCloudServiceConfiguration()
             )
         )
+    }
+
+    @Test
+    fun startupReconciliationFailsPendingGuestUpgradeHydrationTransientFailure() = runBlocking {
+        val localWorkspaceId: String = environment.requireLocalWorkspaceId()
+        val linkedWorkspace = createCloudWorkspaceSummary(
+            workspaceId = "workspace-linked",
+            name = "Linked Workspace",
+            createdAtMillis = 200L,
+            isSelected = true
+        )
+        val accountSnapshot = createCloudAccountSnapshot(
+            userId = "user-1",
+            email = "user@example.com",
+            workspaces = listOf(linkedWorkspace)
+        )
+        val credentials = createStoredCloudCredentials(idTokenExpiresAtMillis = Long.MAX_VALUE)
+        val guestSession: StoredGuestAiSession = createStoredGuestAiSession(
+            workspaceId = localWorkspaceId,
+            configurationMode = CloudServiceConfigurationMode.OFFICIAL,
+            apiBaseUrl = "https://api.flashcards-open-source-app.com/v1",
+            guestToken = "guest-token",
+            userId = "guest-user"
+        )
+        environment.cloudPreferencesStore.updateCloudSettings(
+            cloudState = CloudAccountState.GUEST,
+            linkedUserId = guestSession.userId,
+            linkedWorkspaceId = localWorkspaceId,
+            linkedEmail = null,
+            activeWorkspaceId = localWorkspaceId
+        )
+        environment.guestAiSessionStore.saveSession(
+            localWorkspaceId = localWorkspaceId,
+            session = guestSession
+        )
+        environment.cloudPreferencesStore.savePendingGuestUpgrade(
+            pendingGuestUpgradeState = PendingGuestUpgradeState(
+                configuration = makeOfficialCloudServiceConfiguration(),
+                credentials = credentials,
+                accountSnapshot = accountSnapshot,
+                guestSession = guestSession,
+                guestUpgradeMode = CloudGuestUpgradeMode.MERGE_REQUIRED,
+                selection = CloudWorkspaceLinkSelection.Existing(workspaceId = linkedWorkspace.workspaceId),
+                completion = CloudGuestUpgradeCompletion(
+                    workspace = linkedWorkspace,
+                    reconciliation = null
+                )
+            )
+        )
+        environment.cloudPreferencesStore.saveCloudCredentialRecoveryState(
+            recoveryState = CloudCredentialRecoveryState(
+                reason = CloudCredentialRecoveryReason.LINKED_CREDENTIALS_MISSING,
+                previousCloudState = CloudAccountState.GUEST,
+                installationId = environment.cloudPreferencesStore.currentCloudSettings().installationId,
+                linkedUserId = guestSession.userId,
+                linkedWorkspaceId = localWorkspaceId,
+                activeWorkspaceId = localWorkspaceId,
+                linkedEmail = null,
+                configurationMode = CloudServiceConfigurationMode.OFFICIAL,
+                apiBaseUrl = "https://api.flashcards-open-source-app.com/v1",
+                detectedAtMillis = 500L
+            )
+        )
+        val restartedRuntime: RestartedCloudGuestSessionRuntime =
+            environment.createRestartedCloudGuestSessionRuntime(
+                remoteGateway = FakeCloudRemoteGateway.forBootstrapPullError(
+                    bootstrapPullError = SocketTimeoutException("pending guest upgrade hydration timed out")
+                )
+            )
+
+        try {
+            restartedRuntime.cloudGuestSessionCoordinator.reconcilePersistedCloudStateForStartup()
+            throw AssertionError("Expected pending guest upgrade hydration failure to fail startup explicitly.")
+        } catch (error: IllegalStateException) {
+            assertTrue(
+                error.message?.contains("Guest upgrade completed on the server") == true
+            )
+            assertTrue(
+                error.message?.contains("pending guest upgrade hydration timed out") == true
+            )
+        }
+
+        assertEquals(CloudAccountState.LINKED, restartedRuntime.cloudPreferencesStore.currentCloudSettings().cloudState)
+        assertEquals(
+            linkedWorkspace.workspaceId,
+            restartedRuntime.cloudPreferencesStore.currentCloudSettings().activeWorkspaceId
+        )
+        assertNotNull(restartedRuntime.cloudPreferencesStore.loadPendingGuestUpgrade())
+        assertNotNull(restartedRuntime.cloudPreferencesStore.loadCredentials())
     }
 
     @Test
