@@ -68,6 +68,7 @@ fun ReviewRoute(
     onDismissErrorMessage: () -> Unit,
     onDismissNotificationPermissionPrompt: () -> Unit,
     onContinueNotificationPermissionPrompt: () -> Unit,
+    onOpenLeaderboard: () -> Unit,
     onOpenProgress: () -> Unit,
     onScreenVisible: () -> Unit
 ) {
@@ -200,6 +201,7 @@ fun ReviewRoute(
                     isFilterSheetVisible = true
                 },
                 onOpenPreview = onOpenPreview,
+                onOpenLeaderboard = onOpenLeaderboard,
                 onOpenProgress = onOpenProgress
             )
         },

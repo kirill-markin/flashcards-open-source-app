@@ -20,6 +20,7 @@ import com.flashcardsopensourceapp.feature.review.ReviewEmptyState
 import com.flashcardsopensourceapp.feature.review.ReviewProgressBadgeState
 import com.flashcardsopensourceapp.feature.review.ReviewRoute
 import com.flashcardsopensourceapp.feature.review.ReviewUiState
+import com.flashcardsopensourceapp.feature.review.reviewLeaderboardShortcutTag
 import com.flashcardsopensourceapp.feature.review.reviewProgressBadgeTag
 import com.flashcardsopensourceapp.feature.review.reviewQueueButtonTag
 import com.flashcardsopensourceapp.feature.review.reaction.rememberReviewReactionLottieConfigurationStore
@@ -39,10 +40,14 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
     }
 
     @Test
-    fun reviewRouteShowsProgressBadgeSemanticsAndNavigatesToProgress() {
+    fun reviewRouteShowsTopBarShortcutSemanticsAndNavigatesToProgress() {
+        var openLeaderboardCalls = 0
         var openProgressCalls = 0
         var openPreviewCalls = 0
         var screenVisibleCalls = 0
+        val leaderboardShortcutContentDescription = reviewString(
+            ReviewStringResources.string.review_leaderboard_shortcut_content_description
+        )
         val streakContentDescription = composeRule.activity.resources.getQuantityString(
             ReviewStringResources.plurals.review_progress_badge_content_description,
             120,
@@ -94,6 +99,9 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onOpenCurrentCard = {},
                     onOpenCurrentCardWithAi = { _, _, _, _, _ -> },
                     onOpenDeckManagement = {},
+                    onOpenLeaderboard = {
+                        openLeaderboardCalls += 1
+                    },
                     onOpenProgress = {
                         openProgressCalls += 1
                     },
@@ -124,6 +132,15 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             .assertIsDisplayed()
             .performClick()
         composeRule.onNodeWithText("99+").assertIsDisplayed()
+        composeRule.onNodeWithTag(reviewLeaderboardShortcutTag)
+            .assertIsDisplayed()
+            .assert(
+                hasSemanticsValue(
+                    key = SemanticsProperties.ContentDescription,
+                    expectedValue = listOf(leaderboardShortcutContentDescription)
+                )
+            )
+            .performClick()
         composeRule.onNodeWithTag(reviewProgressBadgeTag)
             .assertIsDisplayed()
             .assert(
@@ -141,6 +158,7 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             .performClick()
 
         assertTrue(screenVisibleCalls > 0)
+        assertEquals(1, openLeaderboardCalls)
         assertEquals(1, openPreviewCalls)
         assertEquals(1, openProgressCalls)
     }

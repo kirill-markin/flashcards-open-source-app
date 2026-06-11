@@ -33,6 +33,15 @@ data class ReviewFilterRequest(
     val reviewFilter: ReviewFilter
 )
 
+enum class ProgressNavigationTarget {
+    LEADERBOARD
+}
+
+data class ProgressNavigationRequest(
+    val requestId: Long,
+    val target: ProgressNavigationTarget
+)
+
 data class AppNotificationTapHandoffRequest(
     val requestId: Long,
     val request: AppNotificationTapRequest
@@ -54,6 +63,7 @@ class AppHandoffCoordinator {
     private val aiCardHandoffState = MutableStateFlow<AiCardHandoffRequest?>(value = null)
     private val cardEditorState = MutableStateFlow<CardEditorRequest?>(value = null)
     private val reviewFilterState = MutableStateFlow<ReviewFilterRequest?>(value = null)
+    private val progressNavigationState = MutableStateFlow<ProgressNavigationRequest?>(value = null)
     private val settingsNavigationState = MutableStateFlow<SettingsNavigationRequest?>(value = null)
 
     fun observeAiEntryPrefill(): StateFlow<AiEntryPrefillRequest?> {
@@ -70,6 +80,10 @@ class AppHandoffCoordinator {
 
     fun observeReviewFilter(): StateFlow<ReviewFilterRequest?> {
         return reviewFilterState.asStateFlow()
+    }
+
+    fun observeProgressNavigation(): StateFlow<ProgressNavigationRequest?> {
+        return progressNavigationState.asStateFlow()
     }
 
     fun observeSettingsNavigation(): StateFlow<SettingsNavigationRequest?> {
@@ -144,6 +158,21 @@ class AppHandoffCoordinator {
         }
 
         reviewFilterState.value = null
+    }
+
+    fun requestProgressNavigation(target: ProgressNavigationTarget) {
+        progressNavigationState.value = ProgressNavigationRequest(
+            requestId = nextRequestId.incrementAndGet(),
+            target = target
+        )
+    }
+
+    fun consumeProgressNavigation(requestId: Long) {
+        if (progressNavigationState.value?.requestId != requestId) {
+            return
+        }
+
+        progressNavigationState.value = null
     }
 
     fun requestSettingsNavigation(target: SettingsNavigationTarget) {

@@ -17,6 +17,7 @@ import androidx.navigation.navigation
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.navigation.AiDestination
 import com.flashcardsopensourceapp.app.navigation.ProgressDestination
+import com.flashcardsopensourceapp.app.navigation.ProgressNavigationTarget
 import com.flashcardsopensourceapp.app.navigation.ReviewDestination
 import com.flashcardsopensourceapp.app.navigation.SettingsNavigationTarget
 import com.flashcardsopensourceapp.app.navigation.navigateToTopLevelDestination
@@ -190,6 +191,15 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                     if (activity != null) {
                         notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                     }
+                },
+                onOpenLeaderboard = {
+                    appGraph.appHandoffCoordinator.requestProgressNavigation(
+                        target = ProgressNavigationTarget.LEADERBOARD
+                    )
+                    navigateToTopLevelDestination(
+                        navController = navController,
+                        destination = ProgressDestination
+                    )
                 },
                 onOpenProgress = {
                     navigateToTopLevelDestination(

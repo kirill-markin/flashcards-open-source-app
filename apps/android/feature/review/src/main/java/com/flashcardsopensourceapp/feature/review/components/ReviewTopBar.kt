@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.HourglassBottom
 import androidx.compose.material.icons.outlined.LocalFireDepartment
@@ -19,6 +20,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -48,6 +50,7 @@ internal fun ReviewTopBar(
     selectedFilterTitle: String,
     onOpenFilter: () -> Unit,
     onOpenPreview: () -> Unit,
+    onOpenLeaderboard: () -> Unit,
     onOpenProgress: () -> Unit
 ) {
     val resources = LocalContext.current.resources
@@ -96,6 +99,18 @@ internal fun ReviewTopBar(
                 totalCount = totalCount,
                 onOpenPreview = onOpenPreview
             )
+
+            IconButton(
+                onClick = onOpenLeaderboard,
+                modifier = Modifier.testTag(reviewLeaderboardShortcutTag)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.EmojiEvents,
+                    contentDescription = stringResource(
+                        id = R.string.review_leaderboard_shortcut_content_description
+                    )
+                )
+            }
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
