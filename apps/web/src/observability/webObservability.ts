@@ -4,6 +4,7 @@ import { ApiNetworkError } from "../api";
 import { isWebSentryEnabled } from "./instrument";
 
 export type WebObservationFeature =
+  | "app"
   | "auth"
   | "workspace"
   | "sync"
@@ -116,6 +117,7 @@ export type LocalBrowserDataCleanupBreadcrumbDetails = Readonly<{
   reason: LocalBrowserDataCleanupReason;
   indexedDbCleared: boolean;
   localStorageCleared: boolean;
+  errorName: string | null;
   errorMessage: string | null;
 }>;
 
@@ -129,7 +131,7 @@ export type PersistentStorageBreadcrumbDetails = Readonly<{
   storagePersistGranted: boolean | null;
 }>;
 
-export type IndexedDbOperation = "open";
+export type IndexedDbOperation = "open" | "clear";
 
 export type IndexedDbOperationFailedBreadcrumbDetails = Readonly<{
   eventName: "indexed_db_operation_failed";
@@ -150,9 +152,23 @@ export type IndexedDbOpenLifecycleBreadcrumbDetails = Readonly<{
   indexedDbDatabaseUpgraded: boolean;
 }>;
 
+export type StaleBundleReloadBreadcrumbDetails = Readonly<{
+  eventName: "stale_bundle_reload_recovered";
+  reloadAgeMs: number | null;
+}>;
+
+export type IndexedDbDeleteLifecycleBreadcrumbDetails = Readonly<{
+  eventName: "indexed_db_delete_lifecycle";
+  databaseName: string;
+  databaseVersion: number;
+  indexedDbDeleteOutcome: "blocked_timeout" | "delete_error";
+  indexedDbErrorName: string | null;
+}>;
+
 export type IndexedDbOperationBreadcrumbDetails =
   | IndexedDbOperationFailedBreadcrumbDetails
-  | IndexedDbOpenLifecycleBreadcrumbDetails;
+  | IndexedDbOpenLifecycleBreadcrumbDetails
+  | IndexedDbDeleteLifecycleBreadcrumbDetails;
 
 export type WebBreadcrumbEvent =
   | Readonly<{
@@ -199,6 +215,11 @@ export type WebBreadcrumbEvent =
     action: "sync_local_db_recovery_succeeded";
     scope: WebObservationScope;
     details: SyncLocalDbRecoverySucceededBreadcrumbDetails;
+  }>
+  | Readonly<{
+    action: "stale_bundle_reload";
+    scope: WebObservationScope;
+    details: StaleBundleReloadBreadcrumbDetails;
   }>;
 
 export type ApiContractFailureDetails = Readonly<{
@@ -678,7 +699,10 @@ export function addWebBreadcrumb(event: WebBreadcrumbEvent): void {
   Sentry.addBreadcrumb({
     category: `web.${event.action}`,
     level: "info",
-    message: event.details.eventName,
+    // The `web.` prefix marks the message as safe app telemetry for the
+    // privacy sanitizer; unprefixed messages arrive in Sentry as
+    // "[Filtered message]".
+    message: `web.${event.details.eventName}`,
     data: {
       ...scopeToContext(event.scope),
       ...detailsToContext(event.details),
@@ -706,6 +730,12 @@ export function captureWebException(event: WebExceptionEvent): void {
 
   Sentry.withScope((scope: Scope): void => {
     applyObservationScope(scope, event.scope, event.action);
+    // Network-level failures are environmental (offline, captive portal,
+    // blocked API host), not app defects; keep them out of the error level.
+    if (event.error instanceof ApiNetworkError) {
+      scope.setLevel("warning");
+    }
+
     scope.setFingerprint(buildWebExceptionFingerprint(event));
     scope.setContext("web.exception", detailsToContext(event.details));
     scope.setContext("web.error", errorMetadataToContext(readErrorMetadata(event.error)));

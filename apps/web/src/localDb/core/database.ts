@@ -96,6 +96,7 @@ export type IndexedDbOpenLifecycleSnapshot = Readonly<{
 
 const databaseName = "flashcards-web-sync";
 const databaseVersion = 13;
+const deleteDatabaseBlockedWaitMs = 3000;
 const activeDatabaseOperationPromises = new Set<Promise<unknown>>();
 let isDatabaseDeleteInProgress = false;
 let activeDatabaseDeletePromise: Promise<void> | null = null;
@@ -516,6 +517,13 @@ export function openDatabase(): Promise<IDBDatabase> {
     };
 
     request.onsuccess = () => {
+      // Release the connection as soon as another context requests a database
+      // delete or upgrade; otherwise that request stays blocked for as long as
+      // this connection lives (other tabs, or a cleanup in this tab).
+      request.result.onversionchange = () => {
+        request.result.close();
+      };
+
       const indexedDbOpenLifecycleSnapshot: IndexedDbOpenLifecycleSnapshot = {
         observedAt: new Date().toISOString(),
         databaseName,
@@ -651,24 +659,159 @@ export async function closeDatabaseAfterWrite(
   });
 }
 
-function requestDeleteDatabase(): Promise<void> {
+function clearAllObjectStores(database: IDBDatabase): Promise<void> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.deleteDatabase(databaseName);
-
-    request.onerror = () => {
-      reject(describeIndexedDbError("Failed to delete IndexedDB", request.error));
-    };
-
-    request.onsuccess = () => {
+    const storeNames = [...database.objectStoreNames];
+    if (storeNames.length === 0) {
       resolve();
+      return;
+    }
+
+    let transaction: IDBTransaction;
+    try {
+      transaction = database.transaction(storeNames, "readwrite");
+      for (const storeName of storeNames) {
+        transaction.objectStore(storeName).clear();
+      }
+    } catch (error) {
+      // transaction() and clear() throw synchronously when the connection was
+      // closed concurrently (e.g. by the versionchange auto-close).
+      const wrappedError = describeIndexedDbOperationError("Failed to clear IndexedDB stores", error, "clear");
+      addIndexedDbOperationFailedBreadcrumb("clear", error, wrappedError);
+      reject(wrappedError);
+      return;
+    }
+
+    // Every failure path ends in `abort`: failed clear requests abort the
+    // transaction, and forced closes or commit-time quota errors fire only
+    // `abort`. Rejecting there (not in `error`) matters because
+    // `transaction.error` is populated only once `abort` fires.
+    transaction.onabort = () => {
+      const error = describeIndexedDbOperationError("Failed to clear IndexedDB stores", transaction.error, "clear");
+      addIndexedDbOperationFailedBreadcrumb("clear", transaction.error, error);
+      reject(error);
     };
 
-    request.onblocked = () => {
-      reject(new Error("Failed to delete IndexedDB: delete request was blocked"));
+    transaction.oncomplete = () => {
+      resolve();
     };
   });
 }
 
+async function wipeAllObjectStores(): Promise<void> {
+  const database = await openDatabase();
+  try {
+    await clearAllObjectStores(database);
+  } finally {
+    database.close();
+  }
+}
+
+async function databaseExists(): Promise<boolean> {
+  if (typeof indexedDB.databases !== "function") {
+    // Capability missing in older browsers: assume the database exists; the
+    // wipe open below creates it when absent, which is harmless.
+    return true;
+  }
+
+  try {
+    const databases = await indexedDB.databases();
+    return databases.some((databaseInfo) => databaseInfo.name === databaseName);
+  } catch (error) {
+    // Enumeration failure is non-fatal: proceed with the wipe open, which
+    // raises an actionable open error when storage is actually broken.
+    console.warn("IndexedDB databases() enumeration failed", {
+      databaseName,
+      errorName: getIndexedDbErrorName(error),
+    });
+    return true;
+  }
+}
+
+type DeleteDatabaseOutcome = "deleted" | "blocked_timeout" | "delete_error";
+
+function addIndexedDbDeleteOutcomeBreadcrumb(
+  outcome: Exclude<DeleteDatabaseOutcome, "deleted">,
+  sourceError: unknown,
+): void {
+  addWebBreadcrumb({
+    action: "indexed_db_operation",
+    scope: buildIndexedDbObservationScope(),
+    details: {
+      eventName: "indexed_db_delete_lifecycle",
+      databaseName,
+      databaseVersion,
+      indexedDbDeleteOutcome: outcome,
+      indexedDbErrorName: getIndexedDbErrorName(sourceError),
+    },
+  });
+}
+
+/**
+ * Requests full database deletion and reports the outcome instead of throwing.
+ *
+ * A `blocked` event is informational: the browser keeps the delete queued and
+ * completes it once the remaining connections close. Safari also fires
+ * `blocked` for connections that are already closing, so treating it as a
+ * failure produced unrecoverable cleanup loops. After a bounded wait the
+ * promise resolves anyway because user data was already wiped from the stores.
+ *
+ * On `blocked_timeout` the delete request stays queued in the browser, so the
+ * next database open may wait briefly until the blocking connection closes
+ * and the queued deletion completes.
+ */
+function requestDeleteDatabaseBestEffort(): Promise<DeleteDatabaseOutcome> {
+  return new Promise((resolve) => {
+    const request = indexedDB.deleteDatabase(databaseName);
+    let blockedWaitTimeoutId: number | null = null;
+    let isSettled = false;
+
+    const settle = (outcome: DeleteDatabaseOutcome, sourceError: unknown): void => {
+      if (isSettled) {
+        return;
+      }
+
+      isSettled = true;
+      if (blockedWaitTimeoutId !== null) {
+        window.clearTimeout(blockedWaitTimeoutId);
+      }
+
+      if (outcome !== "deleted") {
+        addIndexedDbDeleteOutcomeBreadcrumb(outcome, sourceError);
+      }
+
+      resolve(outcome);
+    };
+
+    request.onsuccess = () => {
+      settle("deleted", null);
+    };
+
+    request.onerror = () => {
+      settle("delete_error", request.error);
+    };
+
+    request.onblocked = () => {
+      if (isSettled || blockedWaitTimeoutId !== null) {
+        return;
+      }
+
+      blockedWaitTimeoutId = window.setTimeout(() => {
+        settle("blocked_timeout", null);
+      }, deleteDatabaseBlockedWaitMs);
+    };
+  });
+}
+
+/**
+ * Resets the local database for user-scoped cleanup.
+ *
+ * Object stores are wiped through a readwrite transaction first because store
+ * clearing cannot be blocked by other open connections, then the database file
+ * itself is deleted as a best-effort full reset. The cleanup succeeds when
+ * either step removed the data; it fails only when the stores could not be
+ * wiped and the database was not confirmed deleted.
+ */
 export function deleteDatabase(): Promise<void> {
   const activeDelete = activeDatabaseDeletePromise;
   if (activeDelete !== null) {
@@ -679,7 +822,22 @@ export function deleteDatabase(): Promise<void> {
     isDatabaseDeleteInProgress = true;
     try {
       await Promise.allSettled([...activeDatabaseOperationPromises]);
-      await requestDeleteDatabase();
+
+      let wipeError: Error | null = null;
+      try {
+        // A missing database has nothing to wipe; skipping avoids creating
+        // the full schema just to delete it on fresh browsers.
+        if (await databaseExists()) {
+          await wipeAllObjectStores();
+        }
+      } catch (error) {
+        wipeError = error instanceof Error ? error : new Error(String(error));
+      }
+
+      const deleteOutcome = await requestDeleteDatabaseBestEffort();
+      if (wipeError !== null && deleteOutcome !== "deleted") {
+        throw wipeError;
+      }
     } finally {
       activeDatabaseDeletePromise = null;
       isDatabaseDeleteInProgress = false;
