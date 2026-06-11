@@ -266,8 +266,12 @@ private fun LeaderboardReadyContent(
                 }
             }
 
-            repeat(leaderboardReservedRowPlaceholderCount(rowCount = selectedWindow.rows.size)) {
-                LeaderboardReservedRow()
+            val reservedRows = leaderboardReservedRows(rows = selectedWindow.rows)
+            repeat(reservedRows.gapRowCount) {
+                LeaderboardReservedGapRow()
+            }
+            repeat(reservedRows.participantRowCount) {
+                LeaderboardReservedParticipantRow()
             }
         }
 
@@ -285,8 +289,26 @@ private fun LeaderboardReadyContent(
     }
 }
 
-private fun leaderboardReservedRowPlaceholderCount(rowCount: Int): Int {
-    return maxOf(0, leaderboardReservedRowCount - rowCount)
+private data class LeaderboardReservedRows(
+    val participantRowCount: Int,
+    val gapRowCount: Int
+)
+
+private fun leaderboardReservedRows(rows: List<ProgressLeaderboardRowUiState>): LeaderboardReservedRows {
+    val reservedRowCount = maxOf(0, leaderboardReservedRowCount - rows.size)
+    val containsGapRow = rows.any { row ->
+        row == ProgressLeaderboardRowUiState.Gap
+    }
+    val gapRowCount = if (containsGapRow) {
+        0
+    } else {
+        minOf(1, reservedRowCount)
+    }
+
+    return LeaderboardReservedRows(
+        participantRowCount = reservedRowCount - gapRowCount,
+        gapRowCount = gapRowCount
+    )
 }
 
 @Composable
@@ -334,7 +356,7 @@ private fun LeaderboardParticipantRow(
 }
 
 @Composable
-private fun LeaderboardReservedRow() {
+private fun LeaderboardReservedParticipantRow() {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -360,6 +382,20 @@ private fun LeaderboardReservedRow() {
             textAlign = TextAlign.End
         )
     }
+}
+
+@Composable
+private fun LeaderboardReservedGapRow() {
+    Text(
+        text = "⋯",
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = MaterialTheme.typography.bodyMedium,
+        textAlign = TextAlign.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .alpha(0f)
+            .clearAndSetSemantics {}
+    )
 }
 
 @Composable
