@@ -7,7 +7,7 @@ import {
   type ReviewEventsByDateReport,
   type ReviewEventsByDateUniqueUserCohort,
   type ReviewEventsByDateUser,
-} from "../../adminApi";
+} from "../../../adminApi";
 
 export type ChartTooltipState = Readonly<{
   visible: boolean;

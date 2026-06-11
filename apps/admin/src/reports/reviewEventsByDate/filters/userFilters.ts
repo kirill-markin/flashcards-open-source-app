@@ -1,4 +1,4 @@
-import type { ReviewEventsByDateUser } from "../../adminApi";
+import type { ReviewEventsByDateUser } from "../../../adminApi";
 
 export type ActiveUserFilter = Readonly<{
   userId: string;

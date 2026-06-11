@@ -5,14 +5,14 @@ import {
   type ReviewEventCohort,
   type ReviewEventPlatform,
   type ReviewEventsByDateUser,
-} from "../../adminApi";
+} from "../../../adminApi";
 import {
   getPlatformColor,
   platformLabels,
   uniqueUserCohortColors,
   uniqueUserCohortLabels,
-} from "./chartModel";
-import type { ReviewEventsByDateRange } from "./query";
+} from "../charts/chartModel";
+import type { ReviewEventsByDateRange } from "../query";
 import { getUserFilterLabel, type ActiveUserFilter } from "./userFilters";
 
 type ReviewEventsByDateFilterPopover = "time" | "users" | "cohort" | "platform";
