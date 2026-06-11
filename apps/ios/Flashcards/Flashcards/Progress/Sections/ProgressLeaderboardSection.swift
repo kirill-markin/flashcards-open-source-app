@@ -114,6 +114,8 @@ struct ProgressLeaderboardSection: View {
         if let selectedWindow = readyState.windows.first(where: { window in
             window.windowKey == selectedKey
         }) {
+            let reservedRows = progressLeaderboardReservedRows(rows: selectedWindow.rows)
+
             VStack(alignment: .leading, spacing: 10) {
                 ForEach(selectedWindow.rows) { row in
                     switch row {
@@ -124,11 +126,12 @@ struct ProgressLeaderboardSection: View {
                     }
                 }
 
-                ForEach(
-                    0..<progressLeaderboardReservedRowPlaceholderCount(rowCount: selectedWindow.rows.count),
-                    id: \.self
-                ) { _ in
-                    ProgressLeaderboardReservedRowView()
+                ForEach(0..<reservedRows.gapRowCount, id: \.self) { _ in
+                    ProgressLeaderboardReservedGapRowView()
+                }
+
+                ForEach(0..<reservedRows.participantRowCount, id: \.self) { _ in
+                    ProgressLeaderboardReservedParticipantRowView()
                 }
             }
 
@@ -294,8 +297,25 @@ struct ProgressLeaderboardSection: View {
     }
 }
 
-private func progressLeaderboardReservedRowPlaceholderCount(rowCount: Int) -> Int {
-    max(0, progressLeaderboardReservedRowCount - rowCount)
+private struct ProgressLeaderboardReservedRows: Hashable {
+    let participantRowCount: Int
+    let gapRowCount: Int
+}
+
+private func progressLeaderboardReservedRows(rows: [ProgressLeaderboardRowState]) -> ProgressLeaderboardReservedRows {
+    let reservedRowCount = max(0, progressLeaderboardReservedRowCount - rows.count)
+    let containsGapRow = rows.contains { row in
+        if case .gap = row {
+            return true
+        }
+        return false
+    }
+    let gapRowCount = containsGapRow ? 0 : min(1, reservedRowCount)
+
+    return ProgressLeaderboardReservedRows(
+        participantRowCount: reservedRowCount - gapRowCount,
+        gapRowCount: gapRowCount
+    )
 }
 
 private struct ProgressLeaderboardParticipantRowView: View {
@@ -355,7 +375,7 @@ private struct ProgressLeaderboardParticipantRowView: View {
     }
 }
 
-private struct ProgressLeaderboardReservedRowView: View {
+private struct ProgressLeaderboardReservedParticipantRowView: View {
     var body: some View {
         HStack(spacing: 10) {
             Text("0")
@@ -373,6 +393,14 @@ private struct ProgressLeaderboardReservedRowView: View {
         }
         .hidden()
         .accessibilityHidden(true)
+    }
+}
+
+private struct ProgressLeaderboardReservedGapRowView: View {
+    var body: some View {
+        ProgressLeaderboardGapRowView()
+            .hidden()
+            .accessibilityHidden(true)
     }
 }
 
