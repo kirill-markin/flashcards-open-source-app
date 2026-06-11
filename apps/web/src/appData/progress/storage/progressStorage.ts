@@ -1,5 +1,12 @@
 import type {
   DailyReviewPoint,
+  ProgressLeaderboard,
+  ProgressLeaderboardMetric,
+  ProgressLeaderboardRow,
+  ProgressLeaderboardStatus,
+  ProgressLeaderboardViewer,
+  ProgressLeaderboardWindow,
+  ProgressLeaderboardWindowKey,
   ProgressReviewHistoryWatermark,
   ProgressReviewSchedule,
   ProgressReviewScheduleBucket,
@@ -9,16 +16,25 @@ import type {
 } from "../../../types";
 import { INSTALLATION_ID_STORAGE_KEY } from "../../../clientIdentity";
 import { addWebBreadcrumb, type WebObservationScope } from "../../../observability/webObservability";
-import { progressReviewScheduleBucketKeys } from "../../../types";
+import {
+  progressLeaderboardParticipantRowKinds,
+  progressLeaderboardStatuses,
+  progressLeaderboardWindowKeys,
+  progressReviewScheduleBucketKeys,
+} from "../../../types";
 import { findProgressReviewScheduleValidationIssue } from "../../../progress/progressReviewScheduleValidation";
 import { normalizeProgressSeries } from "../snapshots/progressSnapshots";
 
 const progressSummaryStorageKeyPrefix = "flashcards-progress-server-summary";
 const progressSeriesStorageKeyPrefix = "flashcards-progress-server-series";
 const progressReviewScheduleStorageKeyPrefix = "flashcards-progress-server-review-schedule";
+// Single fixed key: the leaderboard payload is account-scoped, so one cache slot
+// is enough and lets settings clear it without knowing the active scope key.
+const progressLeaderboardStorageKey = "flashcards-progress-server-leaderboard";
 const progressServerSummaryVersion = 2;
 const progressServerSeriesVersion = 2;
 const progressServerReviewScheduleVersion = 2;
+const progressServerLeaderboardVersion = 1;
 
 type PersistedProgressSummary = Readonly<{
   version: 2;
@@ -41,12 +57,19 @@ type PersistedProgressReviewSchedule = Readonly<{
   serverBase: ProgressReviewSchedule;
 }>;
 
+type PersistedProgressLeaderboard = Readonly<{
+  version: 1;
+  scopeKey: ProgressScopeKey;
+  savedAt: string;
+  serverBase: ProgressLeaderboard;
+}>;
+
 type LocalStorageLike = Storage & Record<string, string | undefined> & Readonly<{
   getItem?: (key: string) => string | null;
   setItem?: (key: string, value: string) => void;
 }>;
 
-type ProgressCacheSection = "summary" | "series" | "review_schedule";
+type ProgressCacheSection = "summary" | "series" | "review_schedule" | "leaderboard";
 type ProgressCacheMissReason = "empty" | "invalid_json" | "invalid_shape" | "scope_mismatch" | "time_zone_mismatch";
 
 type ProgressCacheReadResult<TValue> =
@@ -173,6 +196,16 @@ function writeLocalStorageValue(key: string, value: string): void {
   }
 
   fallbackLocalStorageState.set(key, value);
+}
+
+function removeLocalStorageValue(key: string): void {
+  const storage = window.localStorage as LocalStorageLike;
+  if (typeof storage.removeItem === "function") {
+    storage.removeItem(key);
+    return;
+  }
+
+  fallbackLocalStorageState.delete(key);
 }
 
 function getCurrentRoute(): string | null {
@@ -505,6 +538,189 @@ function parsePersistedProgressReviewSchedule(
   };
 }
 
+function isProgressLeaderboardStatusValue(value: unknown): value is ProgressLeaderboardStatus {
+  return typeof value === "string" && progressLeaderboardStatuses.includes(value as ProgressLeaderboardStatus);
+}
+
+function isProgressLeaderboardWindowKeyValue(value: unknown): value is ProgressLeaderboardWindowKey {
+  return typeof value === "string" && progressLeaderboardWindowKeys.includes(value as ProgressLeaderboardWindowKey);
+}
+
+function isNonNegativeSafeIntegerValue(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+}
+
+function parsePersistedProgressLeaderboardMetric(value: unknown): ProgressLeaderboardMetric | null {
+  if (
+    isRecord(value) === false
+    || value.metricVersion !== "qualified_reviews_v1"
+    || typeof value.title !== "string"
+    || typeof value.description !== "string"
+  ) {
+    return null;
+  }
+
+  return {
+    metricVersion: "qualified_reviews_v1",
+    title: value.title,
+    description: value.description,
+  };
+}
+
+function parsePersistedProgressLeaderboardViewer(value: unknown): ProgressLeaderboardViewer | null {
+  if (
+    isRecord(value) === false
+    || typeof value.publicProfileId !== "string"
+    || typeof value.displayName !== "string"
+    || isNonNegativeSafeIntegerValue(value.rank) === false
+    || value.rank < 1
+    || isNonNegativeSafeIntegerValue(value.qualifiedReviewCount) === false
+  ) {
+    return null;
+  }
+
+  return {
+    publicProfileId: value.publicProfileId,
+    displayName: value.displayName,
+    rank: value.rank,
+    qualifiedReviewCount: value.qualifiedReviewCount,
+  };
+}
+
+function parsePersistedProgressLeaderboardRow(value: unknown): ProgressLeaderboardRow | null {
+  if (isRecord(value) === false) {
+    return null;
+  }
+
+  if (value.kind === "gap") {
+    return { kind: "gap" };
+  }
+
+  if (
+    progressLeaderboardParticipantRowKinds.includes(value.kind as typeof progressLeaderboardParticipantRowKinds[number]) === false
+    || typeof value.publicProfileId !== "string"
+    || typeof value.anonymousDisplayName !== "string"
+    || isNonNegativeSafeIntegerValue(value.qualifiedReviewCount) === false
+    || isNonNegativeSafeIntegerValue(value.rank) === false
+    || value.rank < 1
+  ) {
+    return null;
+  }
+
+  return {
+    kind: value.kind as typeof progressLeaderboardParticipantRowKinds[number],
+    publicProfileId: value.publicProfileId,
+    anonymousDisplayName: value.anonymousDisplayName,
+    qualifiedReviewCount: value.qualifiedReviewCount,
+    rank: value.rank,
+  };
+}
+
+function parsePersistedProgressLeaderboardWindow(value: unknown): ProgressLeaderboardWindow | null {
+  if (
+    isRecord(value) === false
+    || isProgressLeaderboardWindowKeyValue(value.windowKey) === false
+    || typeof value.snapshotId !== "string"
+    || typeof value.snapshotGeneratedAt !== "string"
+    || typeof value.asOfServerHour !== "string"
+    || typeof value.nextRefreshAfter !== "string"
+    || isNonNegativeSafeIntegerValue(value.participantCount) === false
+    || Array.isArray(value.rows) === false
+  ) {
+    return null;
+  }
+
+  const viewer = parsePersistedProgressLeaderboardViewer(value.viewer);
+  if (viewer === null) {
+    return null;
+  }
+
+  const rows = value.rows
+    .map(parsePersistedProgressLeaderboardRow)
+    .filter((row): row is ProgressLeaderboardRow => row !== null);
+
+  if (rows.length !== value.rows.length) {
+    return null;
+  }
+
+  return {
+    windowKey: value.windowKey,
+    snapshotId: value.snapshotId,
+    snapshotGeneratedAt: value.snapshotGeneratedAt,
+    asOfServerHour: value.asOfServerHour,
+    nextRefreshAfter: value.nextRefreshAfter,
+    participantCount: value.participantCount,
+    viewer,
+    rows,
+  };
+}
+
+function parsePersistedProgressLeaderboard(
+  rawValue: string | null,
+): ProgressCacheReadResult<PersistedProgressLeaderboard> {
+  if (rawValue === null) {
+    return {
+      status: "miss",
+      reason: "empty",
+    };
+  }
+
+  const parsedRecord = parseJsonRecord(rawValue);
+  if (parsedRecord.status === "miss") {
+    return parsedRecord;
+  }
+
+  const parsedValue = parsedRecord.value;
+  if (
+    parsedValue.version !== progressServerLeaderboardVersion
+    || typeof parsedValue.scopeKey !== "string"
+    || typeof parsedValue.savedAt !== "string"
+    || isRecord(parsedValue.serverBase) === false
+    || isProgressLeaderboardStatusValue(parsedValue.serverBase.status) === false
+    || isProgressLeaderboardWindowKeyValue(parsedValue.serverBase.defaultWindowKey) === false
+    || Array.isArray(parsedValue.serverBase.windows) === false
+  ) {
+    return {
+      status: "miss",
+      reason: "invalid_shape",
+    };
+  }
+
+  const metric = parsePersistedProgressLeaderboardMetric(parsedValue.serverBase.metric);
+  if (metric === null) {
+    return {
+      status: "miss",
+      reason: "invalid_shape",
+    };
+  }
+
+  const windows = parsedValue.serverBase.windows
+    .map(parsePersistedProgressLeaderboardWindow)
+    .filter((window): window is ProgressLeaderboardWindow => window !== null);
+
+  if (windows.length !== parsedValue.serverBase.windows.length) {
+    return {
+      status: "miss",
+      reason: "invalid_shape",
+    };
+  }
+
+  return {
+    status: "hit",
+    value: {
+      version: 1,
+      scopeKey: parsedValue.scopeKey,
+      savedAt: parsedValue.savedAt,
+      serverBase: {
+        status: parsedValue.serverBase.status,
+        metric,
+        defaultWindowKey: parsedValue.serverBase.defaultWindowKey,
+        windows,
+      },
+    },
+  };
+}
+
 export function loadPersistedProgressSummary(scopeKey: ProgressScopeKey): ProgressSummaryPayload | null {
   const storageKey = buildProgressSummaryStorageKey(scopeKey);
   const persistedValue = parsePersistedProgressSummary(readLocalStorageValue(storageKey));
@@ -619,4 +835,38 @@ export function storePersistedProgressReviewSchedule(
   };
 
   writeLocalStorageValue(buildProgressReviewScheduleStorageKey(scopeKey), JSON.stringify(persistedValue));
+}
+
+export function loadPersistedProgressLeaderboard(scopeKey: ProgressScopeKey): ProgressLeaderboard | null {
+  const persistedValue = parsePersistedProgressLeaderboard(readLocalStorageValue(progressLeaderboardStorageKey));
+
+  if (persistedValue.status === "miss") {
+    if (persistedValue.reason !== "empty") {
+      addProgressCacheMissBreadcrumb("leaderboard", scopeKey, persistedValue.reason);
+    }
+
+    return null;
+  }
+
+  if (persistedValue.value.scopeKey !== scopeKey) {
+    addProgressCacheMissBreadcrumb("leaderboard", scopeKey, "scope_mismatch");
+    return null;
+  }
+
+  return persistedValue.value.serverBase;
+}
+
+export function storePersistedProgressLeaderboard(scopeKey: ProgressScopeKey, serverBase: ProgressLeaderboard): void {
+  const persistedValue: PersistedProgressLeaderboard = {
+    version: 1,
+    scopeKey,
+    savedAt: new Date().toISOString(),
+    serverBase,
+  };
+
+  writeLocalStorageValue(progressLeaderboardStorageKey, JSON.stringify(persistedValue));
+}
+
+export function clearPersistedProgressLeaderboard(): void {
+  removeLocalStorageValue(progressLeaderboardStorageKey);
 }

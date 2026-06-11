@@ -2,6 +2,7 @@ import {
   parseAgentApiKeyConnectionsEnvelopeResponse,
   parseAgentApiKeyRevokeResponse,
   parseAccountPreferencesEnvelopeResponse,
+  parseCommunityPublicProfileResponse,
   parseDeleteAccountResponse,
 } from "../../apiContracts/account";
 import type {
@@ -10,6 +11,8 @@ import type {
   AgentApiKeyConnection,
   AgentApiKeyConnectionsResponse,
   AgentApiKeyRevokeResponse,
+  CommunityProfilePatch,
+  CommunityPublicProfile,
 } from "../../types";
 import { parseContractResponse } from "../transport/response";
 import { allowAuthRecovery, requestJson } from "../transport/transport";
@@ -60,6 +63,21 @@ export async function updateAccountPreferences(
     method: "PATCH",
     body: JSON.stringify(request),
   }, allowAuthRecovery), "PATCH /me/preferences", parseAccountPreferencesEnvelopeResponse);
+}
+
+export async function loadCommunityProfile(): Promise<CommunityPublicProfile> {
+  return parseContractResponse(await requestJson("/me/community/profile", {
+    method: "GET",
+  }, allowAuthRecovery), "GET /me/community/profile", parseCommunityPublicProfileResponse);
+}
+
+export async function updateCommunityProfile(
+  request: CommunityProfilePatch,
+): Promise<CommunityPublicProfile> {
+  return parseContractResponse(await requestJson("/me/community/profile", {
+    method: "PATCH",
+    body: JSON.stringify(request),
+  }, allowAuthRecovery), "PATCH /me/community/profile", parseCommunityPublicProfileResponse);
 }
 
 export async function deleteMyAccount(confirmationText: string): Promise<Readonly<{ ok: true }>> {

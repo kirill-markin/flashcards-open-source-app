@@ -1,14 +1,26 @@
 import type {
+  ProgressLeaderboard,
+  ProgressLeaderboardMetric,
+  ProgressLeaderboardRow,
+  ProgressLeaderboardViewer,
+  ProgressLeaderboardWindow,
+  ProgressLeaderboardWindowKey,
   ProgressReviewHistoryWatermark,
   ProgressReviewSchedule,
   ProgressSeries,
   ProgressSummaryPayload,
 } from "../types";
-import { progressReviewScheduleBucketKeys } from "../types";
+import {
+  progressLeaderboardParticipantRowKinds,
+  progressLeaderboardStatuses,
+  progressLeaderboardWindowKeys,
+  progressReviewScheduleBucketKeys,
+} from "../types";
 import { findProgressReviewScheduleValidationIssue } from "../progress/progressReviewScheduleValidation";
 import {
   ApiContractError,
   describePath,
+  joinPath,
   type JsonObject,
   parseArray,
   parseBoolean,
@@ -176,6 +188,125 @@ export function parseProgressSummaryResponse(value: unknown, endpoint: string): 
       "",
     ),
     summary: parseRequiredField(objectValue, "summary", endpoint, "", parseProgressSummary),
+  };
+}
+
+function parseNonNegativeSafeInteger(value: unknown, endpoint: string, path: string): number {
+  const numberValue = parseNumber(value, endpoint, path);
+
+  if (Number.isSafeInteger(numberValue) === false || numberValue < 0) {
+    throw new ApiContractError(endpoint, describePath(path), "a non-negative safe integer");
+  }
+
+  return numberValue;
+}
+
+function parseLeaderboardRank(value: unknown, endpoint: string, path: string): number {
+  const rank = parseNonNegativeSafeInteger(value, endpoint, path);
+
+  if (rank < 1) {
+    throw new ApiContractError(endpoint, describePath(path), "a positive safe integer");
+  }
+
+  return rank;
+}
+
+function parseProgressLeaderboardWindowKey(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ProgressLeaderboardWindowKey {
+  return parseEnum(value, endpoint, path, progressLeaderboardWindowKeys);
+}
+
+function parseProgressLeaderboardMetric(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ProgressLeaderboardMetric {
+  const objectValue = parseObject(value, endpoint, path);
+  return {
+    metricVersion: parseEnum(objectValue.metricVersion, endpoint, joinPath(path, "metricVersion"), ["qualified_reviews_v1"] as const),
+    title: parseRequiredField(objectValue, "title", endpoint, path, parseString),
+    description: parseRequiredField(objectValue, "description", endpoint, path, parseString),
+  };
+}
+
+function parseProgressLeaderboardViewer(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ProgressLeaderboardViewer {
+  const objectValue = parseObject(value, endpoint, path);
+  return {
+    publicProfileId: parseRequiredField(objectValue, "publicProfileId", endpoint, path, parseString),
+    displayName: parseRequiredField(objectValue, "displayName", endpoint, path, parseString),
+    rank: parseRequiredField(objectValue, "rank", endpoint, path, parseLeaderboardRank),
+    qualifiedReviewCount: parseRequiredField(objectValue, "qualifiedReviewCount", endpoint, path, parseNonNegativeSafeInteger),
+  };
+}
+
+function parseProgressLeaderboardRow(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ProgressLeaderboardRow {
+  const objectValue = parseObject(value, endpoint, path);
+
+  if (objectValue.kind === "gap") {
+    return { kind: "gap" };
+  }
+
+  return {
+    kind: parseEnum(objectValue.kind, endpoint, joinPath(path, "kind"), progressLeaderboardParticipantRowKinds),
+    publicProfileId: parseRequiredField(objectValue, "publicProfileId", endpoint, path, parseString),
+    anonymousDisplayName: parseRequiredField(objectValue, "anonymousDisplayName", endpoint, path, parseString),
+    qualifiedReviewCount: parseRequiredField(objectValue, "qualifiedReviewCount", endpoint, path, parseNonNegativeSafeInteger),
+    rank: parseRequiredField(objectValue, "rank", endpoint, path, parseLeaderboardRank),
+  };
+}
+
+function parseProgressLeaderboardRowArray(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ReadonlyArray<ProgressLeaderboardRow> {
+  return parseArray(value, endpoint, path, parseProgressLeaderboardRow);
+}
+
+function parseProgressLeaderboardWindow(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ProgressLeaderboardWindow {
+  const objectValue = parseObject(value, endpoint, path);
+  return {
+    windowKey: parseRequiredField(objectValue, "windowKey", endpoint, path, parseProgressLeaderboardWindowKey),
+    snapshotId: parseRequiredField(objectValue, "snapshotId", endpoint, path, parseString),
+    snapshotGeneratedAt: parseRequiredField(objectValue, "snapshotGeneratedAt", endpoint, path, parseString),
+    asOfServerHour: parseRequiredField(objectValue, "asOfServerHour", endpoint, path, parseString),
+    nextRefreshAfter: parseRequiredField(objectValue, "nextRefreshAfter", endpoint, path, parseString),
+    participantCount: parseRequiredField(objectValue, "participantCount", endpoint, path, parseNonNegativeSafeInteger),
+    viewer: parseRequiredField(objectValue, "viewer", endpoint, path, parseProgressLeaderboardViewer),
+    rows: parseRequiredField(objectValue, "rows", endpoint, path, parseProgressLeaderboardRowArray),
+  };
+}
+
+function parseProgressLeaderboardWindowArray(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ReadonlyArray<ProgressLeaderboardWindow> {
+  return parseArray(value, endpoint, path, parseProgressLeaderboardWindow);
+}
+
+export function parseProgressLeaderboardResponse(value: unknown, endpoint: string): ProgressLeaderboard {
+  const objectValue = parseObject(value, endpoint, "");
+  return {
+    status: parseEnum(objectValue.status, endpoint, "status", progressLeaderboardStatuses),
+    metric: parseRequiredField(objectValue, "metric", endpoint, "", parseProgressLeaderboardMetric),
+    defaultWindowKey: parseRequiredField(objectValue, "defaultWindowKey", endpoint, "", parseProgressLeaderboardWindowKey),
+    windows: parseRequiredField(objectValue, "windows", endpoint, "", parseProgressLeaderboardWindowArray),
   };
 }
 

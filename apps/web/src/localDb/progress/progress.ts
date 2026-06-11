@@ -1,10 +1,16 @@
 import type {
   DailyReviewPoint,
+  ProgressLeaderboardLocalViewerCounts,
+  ProgressLeaderboardWindowKey,
   ProgressSeriesInput,
   ProgressSummary,
   ProgressSummaryInput,
   ReviewEvent,
   SyncPushOperation,
+} from "../../types";
+import {
+  progressLeaderboardWindowKeys,
+  progressLeaderboardWindowLowerBoundHours,
 } from "../../types";
 import type { ProgressCacheStateRecord, ProgressDailyCountRecord } from "../core/database";
 import {
@@ -295,6 +301,122 @@ export async function loadPendingProgressDailyReviews(
       reviewCount,
     }))
     .sort((leftDay, rightDay) => leftDay.date.localeCompare(rightDay.date));
+}
+
+const millisecondsPerHour = 3_600_000;
+
+function parseReviewedAtClientTimestamp(reviewedAtClient: string): number {
+  const reviewedAtTimestamp = new Date(reviewedAtClient).getTime();
+
+  if (Number.isNaN(reviewedAtTimestamp)) {
+    throw new Error(`Invalid reviewedAtClient timestamp: ${reviewedAtClient}`);
+  }
+
+  return reviewedAtTimestamp;
+}
+
+function createEmptyLeaderboardViewerCounts(): Record<ProgressLeaderboardWindowKey, number> {
+  return {
+    last_24_hours: 0,
+    last_3_days: 0,
+    last_7_days: 0,
+    last_30_days: 0,
+    all_time: 0,
+  };
+}
+
+function addQualifiedReviewToViewerCounts(
+  viewerCounts: Record<ProgressLeaderboardWindowKey, number>,
+  reviewedAtClient: string,
+  nowTimestamp: number,
+): void {
+  const reviewedAtTimestamp = parseReviewedAtClientTimestamp(reviewedAtClient);
+
+  if (reviewedAtTimestamp > nowTimestamp) {
+    return;
+  }
+
+  for (const windowKey of progressLeaderboardWindowKeys) {
+    const lowerBoundHours = progressLeaderboardWindowLowerBoundHours[windowKey];
+
+    if (lowerBoundHours === null || reviewedAtTimestamp > nowTimestamp - lowerBoundHours * millisecondsPerHour) {
+      viewerCounts[windowKey] += 1;
+    }
+  }
+}
+
+async function loadWorkspaceReviewEvents(
+  database: IDBDatabase,
+  workspaceId: string,
+): Promise<ReadonlyArray<ReviewEvent>> {
+  const keyRange = IDBKeyRange.bound([workspaceId, ""], [workspaceId, progressRecordKeyHighValue]);
+
+  return runReadonly(
+    database,
+    "reviewEvents",
+    (store) => store.getAll(keyRange),
+  ) as Promise<ReadonlyArray<ReviewEvent>>;
+}
+
+/**
+ * Counts the viewer's local qualified reviews (rating !== 0, Again excluded) per
+ * leaderboard window using rolling `(now - lowerBoundHours, now]` bounds on
+ * `reviewedAtClient`, mirroring apps/backend/src/community/leaderboardWindows.ts.
+ * Pending outbox review events are deduplicated against the local review event
+ * store by `(workspaceId, reviewEventId)` because review submission writes both.
+ */
+export async function loadLocalLeaderboardViewerCounts(
+  workspaceIds: ReadonlyArray<string>,
+  now: Date,
+): Promise<ProgressLeaderboardLocalViewerCounts> {
+  const viewerCounts = createEmptyLeaderboardViewerCounts();
+
+  if (workspaceIds.length === 0) {
+    return viewerCounts;
+  }
+
+  const nowTimestamp = now.getTime();
+  const storedQualifiedEventKeys = new Set<string>();
+
+  await closeDatabaseAfter(async (database) => {
+    const reviewEvents = (
+      await Promise.all(
+        workspaceIds.map((workspaceId) => loadWorkspaceReviewEvents(database, workspaceId)),
+      )
+    ).flat();
+
+    for (const reviewEvent of reviewEvents) {
+      if (reviewEvent.rating === 0) {
+        continue;
+      }
+
+      storedQualifiedEventKeys.add(`${reviewEvent.workspaceId}::${reviewEvent.reviewEventId}`);
+      addQualifiedReviewToViewerCounts(viewerCounts, reviewEvent.reviewedAtClient, nowTimestamp);
+    }
+
+    return null;
+  });
+
+  const outboxRecords = await listOutboxRecordsForWorkspaces(workspaceIds);
+
+  for (const outboxRecord of outboxRecords) {
+    if (isPendingReviewEventOperation(outboxRecord.operation) === false) {
+      continue;
+    }
+
+    const pendingPayload = outboxRecord.operation.payload;
+    if (pendingPayload.rating === 0) {
+      continue;
+    }
+
+    if (storedQualifiedEventKeys.has(`${outboxRecord.workspaceId}::${pendingPayload.reviewEventId}`)) {
+      continue;
+    }
+
+    addQualifiedReviewToViewerCounts(viewerCounts, pendingPayload.reviewedAtClient, nowTimestamp);
+  }
+
+  return viewerCounts;
 }
 
 export async function hasPendingProgressReviewEvents(

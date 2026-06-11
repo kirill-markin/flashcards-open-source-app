@@ -1,6 +1,14 @@
 import type {
   DailyReviewPoint,
   ProgressChartData,
+  ProgressLeaderboard,
+  ProgressLeaderboardLocalViewerCounts,
+  ProgressLeaderboardMetric,
+  ProgressLeaderboardRow,
+  ProgressLeaderboardSnapshot,
+  ProgressLeaderboardSourceState,
+  ProgressLeaderboardViewer,
+  ProgressLeaderboardWindow,
   ProgressReviewSchedule,
   ProgressReviewScheduleBucket,
   ProgressReviewScheduleSnapshot,
@@ -17,6 +25,7 @@ import type {
   ProgressSummarySnapshot,
   ProgressSummarySourceState,
 } from "../../../types";
+import { progressLeaderboardWindowKeys } from "../../../types";
 import { shiftLocalDate } from "../../../progress/progressDates";
 
 export function createProgressChartData(dailyReviews: ReadonlyArray<DailyReviewPoint>): ProgressChartData {
@@ -115,6 +124,90 @@ export function createProgressReviewScheduleSnapshot(
     source,
     isApproximate,
   };
+}
+
+export function createProgressLeaderboardSnapshot(
+  leaderboard: ProgressLeaderboard,
+  isApproximate: boolean,
+): ProgressLeaderboardSnapshot {
+  return {
+    status: leaderboard.status,
+    metric: leaderboard.metric,
+    defaultWindowKey: leaderboard.defaultWindowKey,
+    windows: leaderboard.windows,
+    source: "server",
+    isApproximate,
+  };
+}
+
+function overlayProgressLeaderboardWindowViewerCount(
+  window: ProgressLeaderboardWindow,
+  localViewerCount: number,
+): ProgressLeaderboardWindow {
+  return {
+    ...window,
+    viewer: {
+      ...window.viewer,
+      qualifiedReviewCount: localViewerCount,
+    },
+    rows: window.rows.map((row): ProgressLeaderboardRow => (
+      row.kind === "viewer"
+        ? {
+          ...row,
+          qualifiedReviewCount: localViewerCount,
+        }
+        : row
+    )),
+  };
+}
+
+/**
+ * Replaces only the viewer's qualified review count with the locally computed
+ * live count. Ranks, participant counts, and all other users' rows stay exactly
+ * as the server snapshot reported them, so a diverging local count never
+ * invents a new rank.
+ */
+function mergeProgressLeaderboardWithLocalViewerCounts(
+  serverBase: ProgressLeaderboardSnapshot,
+  localViewerCounts: ProgressLeaderboardLocalViewerCounts | null,
+): ProgressLeaderboardSnapshot {
+  if (localViewerCounts === null || serverBase.status !== "ready") {
+    return serverBase;
+  }
+
+  let hasOverlay = false;
+  const windows = serverBase.windows.map((window): ProgressLeaderboardWindow => {
+    const localViewerCount = localViewerCounts[window.windowKey];
+
+    if (localViewerCount === window.viewer.qualifiedReviewCount) {
+      return window;
+    }
+
+    hasOverlay = true;
+    return overlayProgressLeaderboardWindowViewerCount(window, localViewerCount);
+  });
+
+  if (hasOverlay === false) {
+    return serverBase;
+  }
+
+  return {
+    ...serverBase,
+    windows,
+    isApproximate: true,
+  };
+}
+
+function buildRenderedLeaderboard(
+  serverBase: ProgressLeaderboardSnapshot | null,
+  localViewerCounts: ProgressLeaderboardLocalViewerCounts | null,
+  canRenderServerBase: boolean,
+): ProgressLeaderboardSnapshot | null {
+  if (canRenderServerBase === false || serverBase === null) {
+    return null;
+  }
+
+  return mergeProgressLeaderboardWithLocalViewerCounts(serverBase, localViewerCounts);
 }
 
 export function buildLocalFallbackSeries(
@@ -892,6 +985,147 @@ function areProgressReviewScheduleSnapshotsEqual(
     && left.isApproximate === right.isApproximate;
 }
 
+function areProgressLeaderboardMetricsEqual(
+  left: ProgressLeaderboardMetric,
+  right: ProgressLeaderboardMetric,
+): boolean {
+  return left.metricVersion === right.metricVersion
+    && left.title === right.title
+    && left.description === right.description;
+}
+
+function areProgressLeaderboardViewersEqual(
+  left: ProgressLeaderboardViewer,
+  right: ProgressLeaderboardViewer,
+): boolean {
+  return left.publicProfileId === right.publicProfileId
+    && left.displayName === right.displayName
+    && left.rank === right.rank
+    && left.qualifiedReviewCount === right.qualifiedReviewCount;
+}
+
+function areProgressLeaderboardRowsEqual(
+  left: ProgressLeaderboardRow,
+  right: ProgressLeaderboardRow,
+): boolean {
+  if (left.kind === "gap" || right.kind === "gap") {
+    return left.kind === right.kind;
+  }
+
+  return left.kind === right.kind
+    && left.publicProfileId === right.publicProfileId
+    && left.anonymousDisplayName === right.anonymousDisplayName
+    && left.qualifiedReviewCount === right.qualifiedReviewCount
+    && left.rank === right.rank;
+}
+
+function areProgressLeaderboardRowArraysEqual(
+  left: ReadonlyArray<ProgressLeaderboardRow>,
+  right: ReadonlyArray<ProgressLeaderboardRow>,
+): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  for (let index = 0; index < left.length; index += 1) {
+    const leftRow = left[index];
+    const rightRow = right[index];
+
+    if (leftRow === undefined || rightRow === undefined || areProgressLeaderboardRowsEqual(leftRow, rightRow) === false) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function areProgressLeaderboardWindowsEqual(
+  left: ProgressLeaderboardWindow,
+  right: ProgressLeaderboardWindow,
+): boolean {
+  return left.windowKey === right.windowKey
+    && left.snapshotId === right.snapshotId
+    && left.snapshotGeneratedAt === right.snapshotGeneratedAt
+    && left.asOfServerHour === right.asOfServerHour
+    && left.nextRefreshAfter === right.nextRefreshAfter
+    && left.participantCount === right.participantCount
+    && areProgressLeaderboardViewersEqual(left.viewer, right.viewer)
+    && areProgressLeaderboardRowArraysEqual(left.rows, right.rows);
+}
+
+function areProgressLeaderboardWindowArraysEqual(
+  left: ReadonlyArray<ProgressLeaderboardWindow>,
+  right: ReadonlyArray<ProgressLeaderboardWindow>,
+): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  for (let index = 0; index < left.length; index += 1) {
+    const leftWindow = left[index];
+    const rightWindow = right[index];
+
+    if (
+      leftWindow === undefined
+      || rightWindow === undefined
+      || areProgressLeaderboardWindowsEqual(leftWindow, rightWindow) === false
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function areProgressLeaderboardSnapshotsEqual(
+  left: ProgressLeaderboardSnapshot | null,
+  right: ProgressLeaderboardSnapshot | null,
+): boolean {
+  if (left === right) {
+    return true;
+  }
+
+  if (left === null || right === null) {
+    return false;
+  }
+
+  return left.status === right.status
+    && left.defaultWindowKey === right.defaultWindowKey
+    && left.source === right.source
+    && left.isApproximate === right.isApproximate
+    && areProgressLeaderboardMetricsEqual(left.metric, right.metric)
+    && areProgressLeaderboardWindowArraysEqual(left.windows, right.windows);
+}
+
+function areProgressLeaderboardLocalViewerCountsEqual(
+  left: ProgressLeaderboardLocalViewerCounts | null,
+  right: ProgressLeaderboardLocalViewerCounts | null,
+): boolean {
+  if (left === right) {
+    return true;
+  }
+
+  if (left === null || right === null) {
+    return false;
+  }
+
+  return progressLeaderboardWindowKeys.every((windowKey) => left[windowKey] === right[windowKey]);
+}
+
+function areProgressLeaderboardSourceStatesEqual(
+  left: ProgressLeaderboardSourceState,
+  right: ProgressLeaderboardSourceState,
+): boolean {
+  return left.scopeKey === right.scopeKey
+    && left.isLoading === right.isLoading
+    && left.errorMessage === right.errorMessage
+    && left.isNetworkError === right.isNetworkError
+    && left.localViewerCountsErrorMessage === right.localViewerCountsErrorMessage
+    && areProgressLeaderboardSnapshotsEqual(left.serverBase, right.serverBase)
+    && areProgressLeaderboardLocalViewerCountsEqual(left.localViewerCounts, right.localViewerCounts)
+    && areProgressLeaderboardSnapshotsEqual(left.renderedSnapshot, right.renderedSnapshot);
+}
+
 function areProgressSummarySourceStatesEqual(
   left: ProgressSummarySourceState,
   right: ProgressSummarySourceState,
@@ -942,7 +1176,8 @@ function areProgressReviewScheduleSourceStatesEqual(
 export function areProgressSourceStatesEqual(left: ProgressSourceState, right: ProgressSourceState): boolean {
   return areProgressSummarySourceStatesEqual(left.summary, right.summary)
     && areProgressSeriesSourceStatesEqual(left.series, right.series)
-    && areProgressReviewScheduleSourceStatesEqual(left.reviewSchedule, right.reviewSchedule);
+    && areProgressReviewScheduleSourceStatesEqual(left.reviewSchedule, right.reviewSchedule)
+    && areProgressLeaderboardSourceStatesEqual(left.leaderboard, right.leaderboard);
 }
 
 export function createEmptyProgressSummarySourceState(): ProgressSummarySourceState {
@@ -989,11 +1224,25 @@ export function createEmptyProgressReviewScheduleSourceState(): ProgressReviewSc
   };
 }
 
+export function createEmptyProgressLeaderboardSourceState(): ProgressLeaderboardSourceState {
+  return {
+    scopeKey: null,
+    serverBase: null,
+    localViewerCounts: null,
+    renderedSnapshot: null,
+    isLoading: false,
+    errorMessage: "",
+    isNetworkError: false,
+    localViewerCountsErrorMessage: "",
+  };
+}
+
 export function createEmptyProgressSourceState(): ProgressSourceState {
   return {
     summary: createEmptyProgressSummarySourceState(),
     series: createEmptyProgressSeriesSourceState(),
     reviewSchedule: createEmptyProgressReviewScheduleSourceState(),
+    leaderboard: createEmptyProgressLeaderboardSourceState(),
   };
 }
 
@@ -1037,6 +1286,26 @@ export function createNextSeriesState(
       nextStateWithoutRenderedSnapshot.serverBase,
       nextStateWithoutRenderedSnapshot.localFallback,
       nextStateWithoutRenderedSnapshot.pendingLocalOverlay,
+      canRenderServerBase,
+    ),
+  };
+}
+
+export function createNextLeaderboardState(
+  currentState: ProgressLeaderboardSourceState,
+  patch: Readonly<Partial<Omit<ProgressLeaderboardSourceState, "renderedSnapshot">>>,
+  canRenderServerBase: boolean,
+): ProgressLeaderboardSourceState {
+  const nextStateWithoutRenderedSnapshot = {
+    ...currentState,
+    ...patch,
+  };
+
+  return {
+    ...nextStateWithoutRenderedSnapshot,
+    renderedSnapshot: buildRenderedLeaderboard(
+      nextStateWithoutRenderedSnapshot.serverBase,
+      nextStateWithoutRenderedSnapshot.localViewerCounts,
       canRenderServerBase,
     ),
   };
