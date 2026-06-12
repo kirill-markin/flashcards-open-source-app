@@ -520,6 +520,7 @@ const arCatalog: TranslationCatalog = {
     },
     queue: {
       cards: "{{count}} بطاقة",
+      close: "إغلاق قائمة الانتظار",
       loading: "جارٍ التحميل",
       title: "قائمة الانتظار",
       upcoming: "القادمة",

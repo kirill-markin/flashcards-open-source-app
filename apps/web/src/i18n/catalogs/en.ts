@@ -518,6 +518,7 @@ const enCatalog = {
     },
     queue: {
       cards: "{{count}} cards",
+      close: "Close queue",
       loading: "loading",
       title: "Queue",
       upcoming: "Upcoming",

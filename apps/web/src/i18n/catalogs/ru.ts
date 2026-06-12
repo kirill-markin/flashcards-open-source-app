@@ -520,6 +520,7 @@ export const ruCatalog = {
     },
     queue: {
       cards: "{{count}} карточек",
+      close: "Закрыть очередь",
       loading: "загрузка",
       title: "Очередь",
       upcoming: "Далее",

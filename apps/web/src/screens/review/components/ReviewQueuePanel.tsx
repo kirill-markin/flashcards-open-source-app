@@ -8,8 +8,10 @@ import { formatEffortLevelLabel, formatNullableDateTime, formatTagSummary } from
 
 export type ReviewQueuePanelProps = Readonly<{
   isInitialReviewLoad: boolean;
+  isReviewQueuePanelOpen: boolean;
   loadingReviewCurrentCard: ReviewLoadingSnapshot["currentCard"];
   nowTimestamp: number;
+  onClose: () => void;
   queueCards: ReadonlyArray<Card>;
   reviewLoadingSnapshot: ReviewLoadingSnapshot | null;
   selectedCardId: string | null;
@@ -28,27 +30,42 @@ function isReviewLoadingPreviewDue(dueAt: string | null, nowTimestamp: number): 
 export function ReviewQueuePanel(props: ReviewQueuePanelProps): ReactElement {
   const {
     isInitialReviewLoad,
+    isReviewQueuePanelOpen,
     loadingReviewCurrentCard,
     nowTimestamp,
+    onClose,
     queueCards,
     reviewLoadingSnapshot,
     selectedCardId,
     visibleQueueCardsCount,
   } = props;
   const { t, formatCount, formatDateTime } = useI18n();
+  const closeLabel = t("reviewScreen.queue.close");
 
   return (
-    <aside className="review-queue-panel" id="review-queue-panel">
+    <aside className={`review-queue-panel${isReviewQueuePanelOpen ? " review-queue-panel-open" : ""}`} id="review-queue-panel">
       <div className="review-queue-head">
-        <h2 className="panel-subtitle">{t("reviewScreen.queue.title")}</h2>
-        <span className="review-queue-caption">
-          {isInitialReviewLoad && reviewLoadingSnapshot === null
-            ? t("reviewScreen.queue.loading")
-            : formatCount(visibleQueueCardsCount, {
-              one: t("common.countLabels.card.one"),
-              other: t("common.countLabels.card.other"),
-            })}
-        </span>
+        <div className="review-queue-title-group">
+          <h2 className="panel-subtitle">{t("reviewScreen.queue.title")}</h2>
+          <span className="review-queue-caption">
+            {isInitialReviewLoad && reviewLoadingSnapshot === null
+              ? t("reviewScreen.queue.loading")
+              : formatCount(visibleQueueCardsCount, {
+                one: t("common.countLabels.card.one"),
+                other: t("common.countLabels.card.other"),
+              })}
+          </span>
+        </div>
+        <button
+          className="ghost-btn review-queue-close-btn"
+          type="button"
+          aria-label={closeLabel}
+          title={closeLabel}
+          data-testid="review-queue-close"
+          onClick={onClose}
+        >
+          <span aria-hidden="true">&times;</span>
+        </button>
       </div>
       {isInitialReviewLoad ? (
         reviewLoadingSnapshot !== null && reviewLoadingSnapshot.queuePreview.length > 0 ? (

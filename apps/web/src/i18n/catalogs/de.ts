@@ -520,6 +520,7 @@ const deCatalog: TranslationCatalog = {
     },
     queue: {
       cards: "{{count}} Karten",
+      close: "Warteschlange schließen",
       loading: "lädt",
       title: "Warteschlange",
       upcoming: "Anstehend",

@@ -1,7 +1,7 @@
 .review-queue-head {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: flex-start;
   gap: 10px;
   position: sticky;
   top: 0;
@@ -10,11 +10,30 @@
   background: transparent;
 }
 
+.review-queue-title-group {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
 .review-queue-caption {
   color: var(--text-tertiary);
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
+}
+
+.review-queue-close-btn {
+  display: none;
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  min-height: 30px;
+  padding: 0;
+  flex-shrink: 0;
+  border-radius: var(--radius-pill);
+  font-size: 22px;
+  line-height: 1;
 }
 
 .review-queue-list {

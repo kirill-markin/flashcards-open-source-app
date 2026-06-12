@@ -520,6 +520,7 @@ export const zhHansCatalog = {
     },
     queue: {
       cards: "{{count}} 张卡片",
+      close: "关闭队列",
       loading: "加载中",
       title: "队列",
       upcoming: "即将到来",
