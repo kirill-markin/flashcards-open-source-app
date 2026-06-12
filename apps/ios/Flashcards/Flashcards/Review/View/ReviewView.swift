@@ -5,7 +5,6 @@ private let reviewBottomBarHorizontalPadding: CGFloat = 20
 private let reviewBottomBarTopPadding: CGFloat = 8
 private let reviewBottomBarBottomPadding: CGFloat = 8
 private let reviewBottomBarButtonSpacing: CGFloat = 10
-private let reviewToolbarButtonSpacing: CGFloat = 8
 private let reviewAnswerButtonMinHeight: CGFloat = 40
 private let showAnswerButtonMinHeight: CGFloat = 56
 let emptyBackTextPlaceholder: String = String(localized: "No back text", table: reviewCardsStringsTableName)
@@ -181,12 +180,10 @@ struct ReviewView: View {
                 reviewFilterMenu
             }
 
-            ToolbarItem(placement: .topBarTrailing) {
-                HStack(spacing: reviewToolbarButtonSpacing) {
-                    reviewQueueButton
-                    reviewLeaderboardButton
-                    reviewProgressBadgeButton
-                }
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                reviewQueueButton
+                reviewLeaderboardButton
+                reviewProgressBadgeButton
             }
             .sharedBackgroundVisibility(.hidden)
         }
