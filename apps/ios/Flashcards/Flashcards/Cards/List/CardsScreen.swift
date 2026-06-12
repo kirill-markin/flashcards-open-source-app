@@ -1,6 +1,41 @@
+import OSLog
 import SwiftUI
 
 private let reviewCardsStringsTableName: String = "ReviewCards"
+private let cardsAIHandoffLogger: Logger = Logger(
+    subsystem: appBundleIdentifier(),
+    category: "ai_handoff"
+)
+
+private enum CardsAIHandoffEvent: String {
+    case capture
+    case saveFailed = "save_failed"
+    case open
+}
+
+private func cardsAIHandoffDiagnosticIdSuffix(_ value: String) -> String {
+    let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard trimmedValue.isEmpty == false else {
+        return "-"
+    }
+
+    return String(trimmedValue.suffix(8))
+}
+
+private func cardsAIHandoffAppTabDiagnosticValue(_ tab: AppTab) -> String {
+    switch tab {
+    case .review:
+        return "review"
+    case .progress:
+        return "progress"
+    case .ai:
+        return "ai"
+    case .cards:
+        return "cards"
+    case .settings:
+        return "settings"
+    }
+}
 
 enum CardEditorPresentation: Hashable, Identifiable {
     case create
@@ -173,26 +208,7 @@ struct CardsScreen: View {
                     formState: self.$cardFormState,
                     onEditWithAI: presentation.editingCardId.map { editingCardId in
                         {
-                            let cardReference: AIChatCardReference?
-                            if self.isEditingCardDirty() {
-                                cardReference = self.saveEditingCardForAIHandoff()
-                            } else {
-                                let normalizedInput = self.normalizedCardEditorInput()
-                                cardReference = AIChatCardReference(
-                                    cardId: editingCardId,
-                                    frontText: normalizedInput.frontText,
-                                    backText: normalizedInput.backText,
-                                    tags: normalizedInput.tags,
-                                    effortLevel: normalizedInput.effortLevel
-                                )
-                            }
-                            guard let cardReference else {
-                                return
-                            }
-                            self.editorPresentation = nil
-                            Task { @MainActor in
-                                self.navigation.openAICardHandoff(card: cardReference)
-                            }
+                            self.openEditingCardWithAI(editingCardId: editingCardId)
                         }
                     },
                     onCancel: {
@@ -329,6 +345,62 @@ struct CardsScreen: View {
             self.screenErrorMessage = Flashcards.errorMessage(error: error)
             return nil
         }
+    }
+
+    private func openEditingCardWithAI(editingCardId: String) {
+        let isDirty = self.isEditingCardDirty()
+        self.logCardsAIHandoff(
+            event: .capture,
+            cardId: editingCardId,
+            isDirty: isDirty
+        )
+
+        let cardReference: AIChatCardReference?
+        if isDirty {
+            cardReference = self.saveEditingCardForAIHandoff()
+        } else {
+            let normalizedInput = self.normalizedCardEditorInput()
+            cardReference = AIChatCardReference(
+                cardId: editingCardId,
+                frontText: normalizedInput.frontText,
+                backText: normalizedInput.backText,
+                tags: normalizedInput.tags,
+                effortLevel: normalizedInput.effortLevel
+            )
+        }
+
+        guard let cardReference else {
+            self.logCardsAIHandoff(
+                event: .saveFailed,
+                cardId: editingCardId,
+                isDirty: isDirty
+            )
+            return
+        }
+
+        self.navigation.openAICardHandoff(card: cardReference)
+        self.logCardsAIHandoff(
+            event: .open,
+            cardId: cardReference.cardId,
+            isDirty: isDirty
+        )
+        self.editorPresentation = nil
+    }
+
+    private func logCardsAIHandoff(
+        event: CardsAIHandoffEvent,
+        cardId: String,
+        isDirty: Bool
+    ) {
+        cardsAIHandoffLogger.log(
+            """
+            event=cards_\(event.rawValue, privacy: .public) \
+            cardIdSuffix=\(cardsAIHandoffDiagnosticIdSuffix(cardId), privacy: .public) \
+            isDirty=\(String(isDirty), privacy: .public) \
+            selectedTab=\(cardsAIHandoffAppTabDiagnosticValue(self.navigation.selectedTab), privacy: .public) \
+            hasRequest=\(String(self.navigation.aiChatPresentationRequest != nil), privacy: .public)
+            """
+        )
     }
 
     private func dismissCardsSearch() {

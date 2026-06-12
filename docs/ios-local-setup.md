@@ -70,7 +70,7 @@ Optional Sentry values:
 
 - `XCODE_CLOUD_SENTRY_ENVIRONMENT` (defaults to `production` in Xcode Cloud and `local` outside it)
 - `XCODE_CLOUD_SENTRY_TRACES_SAMPLE_RATE` (defaults to `0.0`)
-- `SENTRY_URL` (only needed for a non-default Sentry endpoint)
+- `SENTRY_URL` (only needed for a non-default Sentry endpoint; the URL must match the endpoint that issued `SENTRY_AUTH_TOKEN`)
 
 `apps/ios/Flashcards/ci_scripts/ci_post_clone.sh` writes those values into the generated `Config/Local.xcconfig` file during Xcode Cloud builds.
 The same script can be run locally and will read the repo-root `.env` when those
