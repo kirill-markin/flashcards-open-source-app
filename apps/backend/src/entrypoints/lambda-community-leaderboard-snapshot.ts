@@ -7,7 +7,7 @@ import {
   normalizeCaughtError,
   wrapBackendHandler,
 } from "../observability/sentry";
-import { LEADERBOARD_SNAPSHOT_METRIC_VERSION } from "../community/leaderboardWindows";
+import { LEADERBOARD_SNAPSHOT_METRIC_VERSION } from "../community/leaderboard/leaderboardWindows";
 
 initializeBackendSentry("community-leaderboard-snapshot");
 
@@ -20,13 +20,13 @@ type CommunityLeaderboardSnapshotResponse = Readonly<{
 }>;
 
 type CommunityLeaderboardSnapshotRuntime = Readonly<{
-  generateLeaderboardSnapshots: typeof import("../community/leaderboardSnapshots").generateLeaderboardSnapshots;
+  generateLeaderboardSnapshots: typeof import("../community/leaderboard/leaderboardSnapshots").generateLeaderboardSnapshots;
 }>;
 
 let communityLeaderboardSnapshotRuntimePromise: Promise<CommunityLeaderboardSnapshotRuntime> | null = null;
 
 async function createCommunityLeaderboardSnapshotRuntime(): Promise<CommunityLeaderboardSnapshotRuntime> {
-  const { generateLeaderboardSnapshots } = await import("../community/leaderboardSnapshots");
+  const { generateLeaderboardSnapshots } = await import("../community/leaderboard/leaderboardSnapshots");
   return {
     generateLeaderboardSnapshots,
   };
