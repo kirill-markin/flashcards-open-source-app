@@ -6,6 +6,8 @@ private let reviewBottomBarTopPadding: CGFloat = 8
 private let reviewBottomBarBottomPadding: CGFloat = 8
 private let reviewBottomBarButtonSpacing: CGFloat = 10
 private let reviewFilterMenuTitleMaxWidth: CGFloat = 180
+private let reviewToolbarActionIconFont: Font = .body
+private let reviewToolbarBadgeValueFont: Font = .body
 private let reviewAnswerButtonMinHeight: CGFloat = 40
 private let showAnswerButtonMinHeight: CGFloat = 56
 let emptyBackTextPlaceholder: String = String(localized: "No back text", table: reviewCardsStringsTableName)
@@ -182,12 +184,14 @@ struct ReviewView: View {
             }
 
             ToolbarItemGroup(placement: .topBarTrailing) {
-                reviewQueueButton
+                // TODO: Revisit the queue shortcut placement. Keeping a third glass toolbar action
+                // makes iOS collapse the trailing Review actions into overflow too aggressively.
                 reviewLeaderboardButton
                 reviewProgressBadgeButton
             }
             .sharedBackgroundVisibility(.hidden)
         }
+        // TODO: This preview is unreachable from Review while the queue toolbar shortcut is withheld.
         .fullScreenCover(isPresented: self.$isQueuePreviewPresented) {
             NavigationStack {
                 ReviewQueuePreviewScreen(
@@ -524,7 +528,13 @@ struct ReviewView: View {
             Button {
                 self.isQueuePreviewPresented = true
             } label: {
-                Label(self.reviewQueueButtonTitle, systemImage: "list.bullet")
+                Label {
+                    Text(self.reviewQueueButtonTitle)
+                } icon: {
+                    Image(systemName: "list.bullet")
+                        .font(reviewToolbarActionIconFont)
+                        .imageScale(.medium)
+                }
                     .labelStyle(.iconOnly)
             }
             .buttonStyle(.glass)
@@ -559,10 +569,13 @@ struct ReviewView: View {
         } label: {
             Label {
                 Text(formatReviewProgressBadgeValue(badgeState: badgeState))
+                    .font(reviewToolbarBadgeValueFont)
                     .monospacedDigit()
                     .lineLimit(1)
             } icon: {
                 Image(systemName: makeReviewProgressBadgePresentation(badgeState: badgeState).iconSystemName)
+                    .font(reviewToolbarActionIconFont)
+                    .imageScale(.medium)
                     .foregroundStyle(self.reviewProgressBadgeToolbarIconColor(badgeState: badgeState))
             }
             .labelStyle(.titleAndIcon)
@@ -588,7 +601,13 @@ struct ReviewView: View {
         Button {
             self.navigation.openProgress(target: .leaderboard)
         } label: {
-            Label(self.reviewLeaderboardButtonTitle, systemImage: "trophy")
+            Label {
+                Text(self.reviewLeaderboardButtonTitle)
+            } icon: {
+                Image(systemName: "trophy")
+                    .font(reviewToolbarActionIconFont)
+                    .imageScale(.medium)
+            }
                 .labelStyle(.iconOnly)
         }
         .buttonStyle(.glass)
