@@ -540,8 +540,8 @@ svg.progress-review-schedule-donut {
   display: grid;
   align-content: start;
   gap: 4px;
-  /* Six participant rows, two gap rows, and seven row gaps: the compact worst case. */
-  min-height: 300px;
+  /* Seven participant rows, two gap rows, and eight row gaps: the compact worst case. */
+  min-height: 364px;
   margin: 0;
   padding: 0;
   list-style: none;

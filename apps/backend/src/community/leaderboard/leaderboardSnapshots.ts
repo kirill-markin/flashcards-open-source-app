@@ -12,12 +12,14 @@ import {
 /**
  * Community leaderboard snapshot generation.
  *
- * Each hourly job run regenerates every window's snapshot from
- * community.public_review_activity_facts. The cross-user read, exclusion rules, tie-neutral
- * ordering, and atomic entry replacement live in the SECURITY DEFINER function
- * community.refresh_leaderboard_snapshot (see db/migrations/0059_leaderboard_snapshots.sql);
- * this module owns the injectable clock, the window set, metric-version validation, and
- * sequencing the per-window refreshes inside one transaction.
+ * Each hourly job run regenerates every window's snapshot from opted-in linked
+ * public profiles plus their countable community.public_review_activity_facts.
+ * The cross-user read, exclusion rules, tie-neutral ordering, and atomic entry
+ * replacement live in the SECURITY DEFINER function
+ * community.refresh_leaderboard_snapshot (see db/migrations/0059_leaderboard_snapshots.sql
+ * and db/migrations/0060_leaderboard_zero_count_participants.sql); this module owns
+ * the injectable clock, the window set, metric-version validation, and sequencing
+ * the per-window refreshes inside one transaction.
  */
 
 type RefreshLeaderboardSnapshotParams = Readonly<{

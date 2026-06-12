@@ -1,6 +1,6 @@
 import SwiftUI
 
-private let progressLeaderboardReservedRowCount: Int = 8
+private let progressLeaderboardReservedRowCount: Int = 9
 private let progressLeaderboardReservedGapRowCount: Int = 2
 
 struct ProgressLeaderboardSection: View {

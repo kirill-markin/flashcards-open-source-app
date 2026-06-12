@@ -228,7 +228,8 @@ paths:
         Returns all five leaderboard windows in one payload for the Progress tab,
         each with viewer-perspective ranks, the per-viewer tie rule, and the
         server-computed compact rows so every client renders the same list,
-        including gap rows for hidden ranks between and after visible groups.
+        including gap rows for hidden ranks and a final last-place row when
+        hidden participants remain below the viewer-neighbor group.
         Guests receive status linked_account_required and opted-out users receive
         participation_disabled, both with no other users' rows. ApiKey
         authentication is rejected. Only opaque public profile ids and
@@ -297,6 +298,11 @@ paths:
                         qualifiedReviewCount: 7
                         rank: 43
                       - kind: gap
+                      - kind: neighbor
+                        publicProfileId: f6a7b8c9-0314-4f20-805d-6e7f8091a2b3
+                        anonymousDisplayName: Blue Final Harbor
+                        qualifiedReviewCount: 0
+                        rank: 128
         '403':
           description: Forbidden authentication transport
           content:
@@ -501,9 +507,9 @@ components:
           type: integer
           minimum: 0
           description: >-
-            Size of the viewer-perspective ranking. Always includes the viewer
-            (with count 0 when absent from the snapshot), so the viewer rank is
-            never greater than this value.
+            Size of the viewer-perspective ranking. Includes all opted-in linked
+            non-demo public profiles, including profiles with count 0, and always
+            includes the viewer so the viewer rank is never greater than this value.
         viewer:
           $ref: '#/components/schemas/ProgressLeaderboardViewer'
         rows:

@@ -365,7 +365,7 @@ test("equal counts rank the viewer below other users with the same count", async
   );
 });
 
-test("compact rows show the top three, gaps, and the viewer with its neighbors", async () => {
+test("compact rows show the top three, gaps, the viewer group, and the last-place row", async () => {
   const otherEntries: ReadonlyArray<SnapshotEntryRow> = [
     { public_profile_id: "00000000-0000-4000-8000-0000000000d1", qualified_review_count: 100, base_sort_position: 1 },
     { public_profile_id: "00000000-0000-4000-8000-0000000000d2", qualified_review_count: 90, base_sort_position: 2 },
@@ -406,13 +406,46 @@ test("compact rows show the top three, gaps, and the viewer with its neighbors",
     "viewer:6",
     "neighbor:7",
     "gap",
+    "neighbor:10",
   ]);
 
   // The top three rows always precede the first hidden-rank gap row.
   assert.equal(window.rows[0]?.kind, "top");
   assert.equal(window.rows[3]?.kind, "gap");
   assert.equal(window.rows[7]?.kind, "gap");
+  assert.equal(window.rows[8]?.kind, "neighbor");
   assert.equal(window.rows.filter((row) => row.kind === "gap").length, 2);
+});
+
+test("compact rows skip the viewer-neighbor group when the viewer is already in the top three", async () => {
+  const { executor } = createLeaderboardExecutor({
+    viewerUserId: VIEWER_USER_ID,
+    viewerProfile: { publicProfileId: VIEWER_PROFILE_ID, leaderboardParticipationEnabled: true },
+    latestReviewedAtClient: null,
+    headers: createReadyHeaders(),
+    entriesBySnapshotId: createEntriesForWindow("last_24_hours", [
+      { public_profile_id: "00000000-0000-4000-8000-000000000101", qualified_review_count: 90, base_sort_position: 1 },
+      { public_profile_id: VIEWER_PROFILE_ID, qualified_review_count: 80, base_sort_position: 2 },
+      { public_profile_id: "00000000-0000-4000-8000-000000000103", qualified_review_count: 70, base_sort_position: 3 },
+      { public_profile_id: "00000000-0000-4000-8000-000000000104", qualified_review_count: 60, base_sort_position: 4 },
+      { public_profile_id: "00000000-0000-4000-8000-000000000105", qualified_review_count: 50, base_sort_position: 5 },
+      { public_profile_id: "00000000-0000-4000-8000-000000000106", qualified_review_count: 0, base_sort_position: 6 },
+    ]),
+  });
+
+  const leaderboard = await loadProgressLeaderboardInExecutor(
+    executor,
+    { userId: VIEWER_USER_ID, transport: "session", localeHint: "en" },
+    NOW,
+  );
+
+  const window = findWindow(leaderboard, "last_24_hours");
+  assert.equal(window.viewer.rank, 2);
+  assert.deepEqual(
+    window.rows.map((row) => (row.kind === "gap" ? "gap" : `${row.kind}:${row.rank}`)),
+    ["top:1", "viewer:2", "top:3", "gap", "neighbor:6"],
+  );
+  assert.equal(window.rows.filter((row) => row.kind === "gap").length, 1);
 });
 
 test("a viewer near the top produces contiguous rows with no gap", async () => {
