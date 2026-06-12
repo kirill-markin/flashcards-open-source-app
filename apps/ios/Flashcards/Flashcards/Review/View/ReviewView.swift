@@ -5,6 +5,7 @@ private let reviewBottomBarHorizontalPadding: CGFloat = 20
 private let reviewBottomBarTopPadding: CGFloat = 8
 private let reviewBottomBarBottomPadding: CGFloat = 8
 private let reviewBottomBarButtonSpacing: CGFloat = 10
+private let reviewToolbarButtonSpacing: CGFloat = 8
 private let reviewAnswerButtonMinHeight: CGFloat = 40
 private let showAnswerButtonMinHeight: CGFloat = 56
 let emptyBackTextPlaceholder: String = String(localized: "No back text", table: reviewCardsStringsTableName)
@@ -180,10 +181,12 @@ struct ReviewView: View {
                 reviewFilterMenu
             }
 
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                reviewQueueButton
-                reviewLeaderboardButton
-                reviewProgressBadgeButton
+            ToolbarItem(placement: .topBarTrailing) {
+                HStack(spacing: reviewToolbarButtonSpacing) {
+                    reviewQueueButton
+                    reviewLeaderboardButton
+                    reviewProgressBadgeButton
+                }
             }
             .sharedBackgroundVisibility(.hidden)
         }
@@ -522,14 +525,18 @@ struct ReviewView: View {
             Button {
                 self.isQueuePreviewPresented = true
             } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "list.bullet")
-
+                Label {
                     Text(self.reviewQueueTotalButtonTitle)
                         .monospacedDigit()
+                        .lineLimit(1)
+                } icon: {
+                    Image(systemName: "list.bullet")
                 }
+                .labelStyle(.titleAndIcon)
+                .fixedSize(horizontal: true, vertical: false)
             }
             .buttonStyle(.glass)
+            .controlSize(.large)
             .disabled(store.reviewTotalCount == 0)
             .accessibilityIdentifier(UITestIdentifier.reviewQueueButton)
             .accessibilityLabel(
@@ -554,15 +561,19 @@ struct ReviewView: View {
             self.store.prepareVisibleTabForPresentation(tab: .progress, now: Date())
             self.navigation.openProgress(target: .streak)
         } label: {
-            HStack(spacing: 4) {
-                Image(systemName: makeReviewProgressBadgePresentation(badgeState: badgeState).iconSystemName)
-                    .foregroundStyle(self.reviewProgressBadgeToolbarIconColor(badgeState: badgeState))
-
+            Label {
                 Text(formatReviewProgressBadgeValue(badgeState: badgeState))
                     .monospacedDigit()
+                    .lineLimit(1)
+            } icon: {
+                Image(systemName: makeReviewProgressBadgePresentation(badgeState: badgeState).iconSystemName)
+                    .foregroundStyle(self.reviewProgressBadgeToolbarIconColor(badgeState: badgeState))
             }
+            .labelStyle(.titleAndIcon)
+            .fixedSize(horizontal: true, vertical: false)
         }
         .buttonStyle(.glass)
+        .controlSize(.large)
         .disabled(badgeState.isInteractive == false)
         .accessibilityIdentifier(UITestIdentifier.reviewProgressBadge)
         .accessibilityLabel(self.reviewProgressBadgeAccessibilityLabel(badgeState: badgeState))
@@ -584,6 +595,7 @@ struct ReviewView: View {
             Image(systemName: "trophy")
         }
         .buttonStyle(.glass)
+        .controlSize(.large)
         .accessibilityIdentifier(UITestIdentifier.reviewLeaderboardShortcut)
         .accessibilityLabel(self.reviewLeaderboardButtonTitle)
     }
