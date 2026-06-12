@@ -30,6 +30,10 @@ internal fun NavGraphBuilder.registerProgressNavGraph(
 
         ProgressRoute(
             uiState = uiState,
+            streakScrollRequestId = progressNavigationRequest
+                ?.takeIf { request -> request.target == ProgressNavigationTarget.STREAK }
+                ?.requestId,
+            onStreakScrollRequestConsumed = appGraph.appHandoffCoordinator::consumeProgressNavigation,
             leaderboardScrollRequestId = progressNavigationRequest
                 ?.takeIf { request -> request.target == ProgressNavigationTarget.LEADERBOARD }
                 ?.requestId,

@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactElement } from "react";
+import type { CSSProperties, ReactElement, Ref } from "react";
 import { ReviewProgressBadgeIcon } from "../../shared/ReviewProgressBadgeIcon";
 import type { StreakDay } from "./progressStreakModel";
 
@@ -24,6 +24,8 @@ export type ProgressStreakSummaryView = Readonly<{
 
 type ProgressStreakSectionProps = Readonly<{
   title: string;
+  sectionId: string;
+  sectionRef: Ref<HTMLElement>;
   summary: ProgressStreakSummaryView | null;
   streakWeeks: ReadonlyArray<ReadonlyArray<StreakDay>>;
 }>;
@@ -91,10 +93,15 @@ function ProgressStreakSummary(props: Readonly<{
 }
 
 export function ProgressStreakSection(props: ProgressStreakSectionProps): ReactElement {
-  const { title, summary, streakWeeks } = props;
+  const { title, sectionId, sectionRef, summary, streakWeeks } = props;
 
   return (
-    <section className="content-card progress-section">
+    <section
+      id={sectionId}
+      ref={sectionRef}
+      className="content-card progress-section"
+      data-testid="progress-streak-card"
+    >
       <div className="progress-section-head">
         <h2 className="progress-section-title">{title}</h2>
       </div>

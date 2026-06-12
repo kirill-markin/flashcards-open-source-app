@@ -139,6 +139,7 @@ export function useReviewScreenController(
     localWorkspaceCardCount,
     queueCards,
     resolvedReviewFilter,
+    reviewCounts,
     reviewLoadErrorMessage,
     reviewLoadingSnapshot,
     reviewTagSummaries,
@@ -628,6 +629,9 @@ export function useReviewScreenController(
       },
       hasLoadedReviewData,
       onRetry: handleRetryReviewLoad,
+      reviewQueueTotalCount: isInitialReviewLoad && reviewLoadingSnapshot !== null
+        ? reviewLoadingSnapshot.reviewCounts.totalCount
+        : reviewCounts.totalCount,
       reviewLoadErrorMessage,
       reviewProgressBadge,
       reviewSpeechMessage: reviewFeedbackMessage !== "" ? reviewFeedbackMessage : reviewSpeechMessage,

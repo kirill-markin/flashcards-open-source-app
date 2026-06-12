@@ -6,6 +6,10 @@
   .review-queue-panel {
     display: none;
   }
+
+  .review-queue-panel:target {
+    display: grid;
+  }
 }
 
 @media (max-width: 768px) {

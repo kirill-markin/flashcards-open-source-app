@@ -193,7 +193,6 @@ fun ReviewRoute(
         topBar = {
             ReviewTopBar(
                 isLoading = uiState.isLoading,
-                remainingCount = uiState.remainingCount,
                 totalCount = uiState.totalCount,
                 reviewProgressBadge = uiState.reviewProgressBadge,
                 selectedFilterTitle = uiState.selectedFilterTitle,

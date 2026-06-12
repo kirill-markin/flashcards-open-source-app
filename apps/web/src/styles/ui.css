@@ -51,6 +51,11 @@
   justify-content: center;
 }
 
+.review-queue-shortcut[aria-disabled="true"] {
+  pointer-events: none;
+  opacity: 0.64;
+}
+
 .review-progress-badge-icon,
 .review-progress-badge-value {
   line-height: 1;

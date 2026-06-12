@@ -26,7 +26,6 @@
     <string name="review_create_card">Create card</string>
     <string name="review_create_with_ai">Create with AI</string>
     <string name="review_switch_to_all_cards">Switch to all cards</string>
-    <string name="review_progress_fraction">%1$d / %2$d</string>
     <string name="review_leaderboard_shortcut_content_description">Open leaderboard</string>
     <string name="review_progress_badge_reviewed_today">Reviewed today</string>
     <string name="review_progress_badge_not_reviewed_today">Not reviewed today</string>
@@ -86,5 +85,9 @@
     <plurals name="review_progress_badge_content_description">
         <item quantity="one">Review streak %d day.</item>
         <item quantity="other">Review streak %d days.</item>
+    </plurals>
+    <plurals name="review_queue_button_content_description">
+        <item quantity="one">Review queue %d card.</item>
+        <item quantity="other">Review queue %d cards.</item>
     </plurals>
 </resources>

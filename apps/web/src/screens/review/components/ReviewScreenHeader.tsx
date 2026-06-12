@@ -1,9 +1,9 @@
-import type { ComponentProps, ReactElement } from "react";
+import type { ComponentProps, MouseEvent, ReactElement } from "react";
 import { Link } from "react-router-dom";
 import { formatReviewProgressBadgeValue } from "../../../appData/progress/badge/reviewProgressBadge";
 import { useI18n } from "../../../i18n";
-import { progressLeaderboardRoute, progressRoute } from "../../../routes";
-import { ProgressLeaderboardShortcutIcon, ReviewProgressBadgeIcon } from "../../shared/ReviewProgressBadgeIcon";
+import { progressLeaderboardRoute, progressStreakRoute } from "../../../routes";
+import { ProgressLeaderboardShortcutIcon, ReviewProgressBadgeIcon, ReviewQueueShortcutIcon } from "../../shared/ReviewProgressBadgeIcon";
 import { ReviewFilterMenu } from "../filters/ReviewFilterMenu";
 
 type ReviewProgressBadgeState = Readonly<{
@@ -16,6 +16,7 @@ export type ReviewScreenHeaderProps = Readonly<{
   filterMenuProps: ComponentProps<typeof ReviewFilterMenu>;
   hasLoadedReviewData: boolean;
   onRetry: () => void;
+  reviewQueueTotalCount: number;
   reviewLoadErrorMessage: string;
   reviewProgressBadge: ReviewProgressBadgeState;
   reviewSpeechMessage: string;
@@ -26,11 +27,17 @@ export function ReviewScreenHeader(props: ReviewScreenHeaderProps): ReactElement
     filterMenuProps,
     hasLoadedReviewData,
     onRetry,
+    reviewQueueTotalCount,
     reviewLoadErrorMessage,
     reviewProgressBadge,
     reviewSpeechMessage,
   } = props;
-  const { t, formatNumber } = useI18n();
+  const { t, formatCount, formatNumber } = useI18n();
+  const reviewQueueCountLabel = formatCount(reviewQueueTotalCount, {
+    one: t("common.countLabels.card.one"),
+    other: t("common.countLabels.card.other"),
+  });
+  const reviewQueueAriaLabel = `${t("reviewScreen.queue.title")}: ${reviewQueueCountLabel}`;
   const reviewProgressBadgeTodayStatus = reviewProgressBadge.hasReviewedToday
     ? t("reviewScreen.progressBadge.reviewedToday")
     : t("reviewScreen.progressBadge.notReviewedToday");
@@ -39,6 +46,13 @@ export function ReviewScreenHeader(props: ReviewScreenHeaderProps): ReactElement
     todayStatus: reviewProgressBadgeTodayStatus,
   });
   const leaderboardShortcutAriaLabel = t("reviewScreen.leaderboardShortcut.ariaLabel");
+  const isReviewQueueShortcutDisabled = reviewQueueTotalCount === 0;
+
+  function handleReviewQueueShortcutClick(event: MouseEvent<HTMLAnchorElement>): void {
+    if (isReviewQueueShortcutDisabled) {
+      event.preventDefault();
+    }
+  }
 
   return (
     <div className="screen-head review-screen-head">
@@ -56,8 +70,21 @@ export function ReviewScreenHeader(props: ReviewScreenHeaderProps): ReactElement
       <div className="screen-actions review-screen-head-actions">
         <ReviewFilterMenu {...filterMenuProps} />
         <div className="review-filter-summary-wrap">
-          <span className="review-filter-label">{t("reviewScreen.progressBadge.title")}</span>
+          <span className="review-filter-label">{t("common.status")}</span>
           <div className="review-progress-shortcuts">
+            <a
+              className="badge review-progress-badge review-screen-head-badge review-queue-shortcut"
+              href="#review-queue-panel"
+              aria-label={reviewQueueAriaLabel}
+              title={reviewQueueAriaLabel}
+              data-testid="review-queue-badge"
+              aria-disabled={isReviewQueueShortcutDisabled ? "true" : undefined}
+              tabIndex={isReviewQueueShortcutDisabled ? -1 : undefined}
+              onClick={handleReviewQueueShortcutClick}
+            >
+              <ReviewQueueShortcutIcon />
+              <span className="review-progress-badge-value">{formatNumber(reviewQueueTotalCount)}</span>
+            </a>
             <Link
               className="badge review-progress-badge review-screen-head-badge review-leaderboard-shortcut"
               to={progressLeaderboardRoute}
@@ -69,7 +96,7 @@ export function ReviewScreenHeader(props: ReviewScreenHeaderProps): ReactElement
             </Link>
             <Link
               className={`badge review-progress-badge review-screen-head-badge${reviewProgressBadge.hasReviewedToday ? " review-progress-badge-active" : ""}`}
-              to={progressRoute}
+              to={progressStreakRoute}
               aria-label={reviewProgressBadgeAriaLabel}
               title={reviewProgressBadgeAriaLabel}
               data-testid="review-progress-badge"

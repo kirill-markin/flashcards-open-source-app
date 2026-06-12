@@ -38,7 +38,7 @@ export function ReviewQueuePanel(props: ReviewQueuePanelProps): ReactElement {
   const { t, formatCount, formatDateTime } = useI18n();
 
   return (
-    <aside className="review-queue-panel">
+    <aside className="review-queue-panel" id="review-queue-panel">
       <div className="review-queue-head">
         <h2 className="panel-subtitle">{t("reviewScreen.queue.title")}</h2>
         <span className="review-queue-caption">

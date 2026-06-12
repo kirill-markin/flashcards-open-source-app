@@ -1,5 +1,21 @@
 import type { ReactElement } from "react";
 
+export function ReviewQueueShortcutIcon(): ReactElement {
+  return (
+    <svg
+      className="review-progress-badge-icon"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M4 6.5A1.5 1.5 0 1 1 7 6.5 1.5 1.5 0 0 1 4 6.5Zm5-.9h11v1.8H9V5.6ZM4 12a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Zm5-.9h11v1.8H9v-1.8Zm-5 6.4a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Zm5-.9h11v1.8H9v-1.8Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
 export function ReviewProgressBadgeIcon(): ReactElement {
   return (
     <svg

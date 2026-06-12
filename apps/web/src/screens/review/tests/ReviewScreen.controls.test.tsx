@@ -182,9 +182,15 @@ describe("ReviewScreen controls", () => {
     expect(progressBadge.className).toContain("review-progress-badge-active");
     expect(progressBadge.className).not.toContain("review-progress-badge-approximate");
     expect(progressBadge.textContent).not.toContain("🔥");
-    expect(getContainer().querySelector("[data-testid='review-queue-badge']")).toBeNull();
+    const queueBadge = getContainer().querySelector("[data-testid='review-queue-badge']");
+    if (!(queueBadge instanceof HTMLAnchorElement)) {
+      throw new Error("Review queue badge was not found");
+    }
+    expect(queueBadge.textContent).toContain("1");
+    expect(queueBadge.getAttribute("href")).toBe("#review-queue-panel");
     expect(getContainer().querySelector("[data-testid='review-screen-toolbar']")).toBeNull();
     expect(headerActions.contains(scopeTrigger)).toBe(true);
+    expect(headerActions.contains(queueBadge)).toBe(true);
     expect(headerActions.contains(progressBadge)).toBe(true);
     expect(scopeTrigger.compareDocumentPosition(progressBadge) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
     const progressBadgeIcon = progressBadge.querySelector("svg.review-progress-badge-icon");
