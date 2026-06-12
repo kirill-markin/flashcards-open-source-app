@@ -121,7 +121,11 @@ final class AppNavigationModel {
         self.cardsPresentationRequest = nil
     }
 
-    func clearAIChatPresentationRequest() {
+    func clearAIChatPresentationRequest(request: AIChatPresentationRequest) {
+        guard self.aiChatPresentationRequest == request else {
+            return
+        }
+
         self.aiChatPresentationRequest = nil
     }
 
