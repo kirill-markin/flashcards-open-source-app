@@ -1,9 +1,11 @@
 package com.flashcardsopensourceapp.app
 
+import android.os.SystemClock
 import androidx.annotation.PluralsRes
 import androidx.annotation.StringRes
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
@@ -83,6 +85,8 @@ import org.junit.runner.RunWith
 class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     companion object {
         private const val uiTimeoutMillis: Long = 20_000L
+        private const val aiConversationReadyStableMillis: Long = 1_500L
+        private const val aiComposerFocusAttemptMillis: Long = 2_000L
         private const val settingsBackStackPopLimit: Int = 6
         private const val emptyCardsMessage: String = "No cards yet. Tap the add button to create the first card."
     }
@@ -191,8 +195,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         waitForCardsEmptyState()
 
         openAiTabAndAssertConsentGate()
-        acceptAiConsentAndWaitForConversationComposer()
-        waitForAiConversationReady()
+        acceptAiConsentAndWaitForConversationReady()
 
         focusAiComposerAndWaitUntilFocused()
         assertTrue(
@@ -564,23 +567,10 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         waitForAiConversationReady()
     }
 
-    private fun acceptAiConsentAndWaitForConversationComposer() {
-        composeRule.onNodeWithText(aiString(AiFeatureR.string.ai_consent_accept)).performClick()
-        waitForAiConversationComposer()
-    }
-
     private fun waitForAiConversationSurface() {
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText(aiString(AiFeatureR.string.ai_consent_title)).fetchSemanticsNodes().isEmpty() &&
                 countNodesWithTagInAnySemanticsTree(tag = aiConversationSurfaceTag) > 0
-        }
-    }
-
-    private fun waitForAiConversationComposer() {
-        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithText(aiString(AiFeatureR.string.ai_consent_title)).fetchSemanticsNodes().isEmpty() &&
-                countNodesWithTagInAnySemanticsTree(tag = aiConversationSurfaceTag) > 0 &&
-                countNodesWithTagInAnySemanticsTree(tag = aiComposerMessageFieldTag) > 0
         }
     }
 
@@ -592,20 +582,107 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     }
 
     private fun waitForAiConversationReady() {
-        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithText(aiString(AiFeatureR.string.ai_consent_title)).fetchSemanticsNodes().isEmpty() &&
-                countNodesWithTagInAnySemanticsTree(tag = aiConversationLoadingTag) == 0 &&
-                countNodesWithTagInAnySemanticsTree(tag = aiConversationSurfaceTag) > 0 &&
-                countNodesWithTagInAnySemanticsTree(tag = aiComposerMessageFieldTag) > 0
-        }
+        waitUntilAiConversationReadyIsStable(timeoutMillis = uiTimeoutMillis)
     }
 
     private fun focusAiComposerAndWaitUntilFocused() {
-        waitForAiConversationComposer()
-        composeRule.onNodeWithTag(aiComposerMessageFieldTag).performClick()
-        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            aiComposerFocusStateOrNull() == true
+        val deadlineMillis: Long = SystemClock.elapsedRealtime() + uiTimeoutMillis
+        var lastFocusState: Boolean? = null
+
+        while (SystemClock.elapsedRealtime() < deadlineMillis) {
+            waitUntilAiConversationReadyIsStable(timeoutMillis = remainingTimeoutMillis(deadlineMillis = deadlineMillis))
+            composeRule.onNodeWithTag(aiComposerMessageFieldTag).performClick()
+            composeRule.waitForIdle()
+
+            if (
+                waitUntilAiComposerFocusedOrConversationInterrupted(
+                    timeoutMillis = minOf(
+                        aiComposerFocusAttemptMillis,
+                        remainingTimeoutMillis(deadlineMillis = deadlineMillis)
+                    )
+                )
+            ) {
+                return
+            }
+
+            lastFocusState = aiComposerFocusStateOrNull()
         }
+
+        throw AssertionError(
+            "AI composer did not become focused after retrying while the conversation was ready. " +
+                "LastFocusState=$lastFocusState " +
+                "LoadingNodes=${countNodesWithTagInAnySemanticsTree(tag = aiConversationLoadingTag)} " +
+                "ComposerNodes=${countNodesWithTagInAnySemanticsTree(tag = aiComposerMessageFieldTag)}"
+        )
+    }
+
+    private fun waitUntilAiComposerFocusedOrConversationInterrupted(timeoutMillis: Long): Boolean {
+        if (timeoutMillis <= 0L) {
+            return false
+        }
+
+        var wasInterrupted: Boolean = false
+        return try {
+            composeRule.waitUntil(timeoutMillis = timeoutMillis) {
+                val isFocused: Boolean = aiComposerFocusStateOrNull() == true
+                if (isFocused) {
+                    true
+                } else {
+                    val isInterrupted: Boolean = aiConversationIsReady().not()
+                    wasInterrupted = isInterrupted
+                    isInterrupted
+                }
+            }
+            wasInterrupted.not() && aiComposerFocusStateOrNull() == true
+        } catch (_: ComposeTimeoutException) {
+            false
+        }
+    }
+
+    private fun waitUntilAiConversationReadyIsStable(timeoutMillis: Long) {
+        var readySinceMillis: Long? = null
+        composeRule.waitUntil(timeoutMillis = timeoutMillis) {
+            val nowMillis: Long = SystemClock.elapsedRealtime()
+            if (aiConversationIsReady()) {
+                if (readySinceMillis == null) {
+                    readySinceMillis = nowMillis
+                }
+                nowMillis - checkNotNull(readySinceMillis) >= aiConversationReadyStableMillis
+            } else {
+                readySinceMillis = null
+                false
+            }
+        }
+    }
+
+    private fun aiConversationIsReady(): Boolean {
+        val consentGateIsHidden: Boolean = composeRule
+            .onAllNodesWithText(aiString(AiFeatureR.string.ai_consent_title))
+            .fetchSemanticsNodes()
+            .isEmpty()
+
+        return consentGateIsHidden &&
+            countNodesWithTagInAnySemanticsTree(tag = aiConversationLoadingTag) == 0 &&
+            countNodesWithTagInAnySemanticsTree(tag = aiConversationSurfaceTag) > 0 &&
+            aiComposerIsEditable()
+    }
+
+    private fun aiComposerIsEditable(): Boolean {
+        val mergedNode = composeRule.onAllNodesWithTag(aiComposerMessageFieldTag)
+            .fetchSemanticsNodes()
+            .firstOrNull()
+        if (mergedNode != null) {
+            return mergedNode.config.contains(SemanticsProperties.Disabled).not()
+        }
+
+        val unmergedNode = composeRule.onAllNodesWithTag(aiComposerMessageFieldTag, useUnmergedTree = true)
+            .fetchSemanticsNodes()
+            .firstOrNull()
+        return unmergedNode != null && unmergedNode.config.contains(SemanticsProperties.Disabled).not()
+    }
+
+    private fun remainingTimeoutMillis(deadlineMillis: Long): Long {
+        return deadlineMillis - SystemClock.elapsedRealtime()
     }
 
     private fun aiComposerFocusStateOrNull(): Boolean? {
