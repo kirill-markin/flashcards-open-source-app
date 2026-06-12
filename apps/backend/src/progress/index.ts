@@ -16,7 +16,7 @@ export {
   loadProgressLeaderboardInExecutor,
   type ProgressLeaderboard,
   type ProgressLeaderboardRequest,
-} from "../community/progressLeaderboard";
+} from "../community/leaderboard/progressLeaderboard";
 
 export type ProgressSummaryInput = Readonly<{
   timeZone: string;

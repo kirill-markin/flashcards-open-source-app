@@ -221,7 +221,7 @@ func progressLeaderboardSectionTitle() -> String {
 }
 
 // Keep the counting rule wording aligned with the backend metric copy in
-// apps/backend/src/community/progressLeaderboard.ts.
+// apps/backend/src/community/leaderboard/progressLeaderboard.ts.
 func progressLeaderboardInfoMessage(snapshotGeneratedAt: String?, now: Date) -> String {
     let baseMessage = String(
         localized: "progress.screen.leaderboard.info.message",
