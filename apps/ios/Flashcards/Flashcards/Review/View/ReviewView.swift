@@ -601,7 +601,7 @@ struct ReviewView: View {
     private var reviewLeaderboardButton: some View {
         let badgeState = self.store.reviewLeaderboardBadgeState
 
-        Button {
+        return Button {
             self.store.prepareVisibleTabForPresentation(tab: .progress, now: Date())
             self.navigation.openProgress(target: .leaderboard)
         } label: {
