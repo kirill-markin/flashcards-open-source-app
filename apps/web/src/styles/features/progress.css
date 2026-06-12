@@ -593,8 +593,8 @@ svg.progress-review-schedule-donut {
 
 .progress-leaderboard-gap {
   min-height: 26px;
-  justify-items: start;
-  grid-template-columns: minmax(3.5ch, auto) minmax(0, 1fr) auto;
+  justify-items: center;
+  grid-template-columns: minmax(0, 1fr);
   border-bottom: 0;
 }
 

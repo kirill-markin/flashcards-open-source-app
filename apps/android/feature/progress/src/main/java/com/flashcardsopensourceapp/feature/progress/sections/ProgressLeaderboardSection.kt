@@ -393,36 +393,32 @@ private fun LeaderboardReservedParticipantRow() {
 
 @Composable
 private fun LeaderboardReservedGapRow() {
-    Row(
+    Text(
+        text = "⋯",
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = MaterialTheme.typography.bodyMedium,
+        textAlign = TextAlign.Center,
         modifier = Modifier
             .fillMaxWidth()
             .alpha(0f)
             .clearAndSetSemantics {}
-    ) {
-        Text(
-            text = "⋯",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.bodyMedium
-        )
-    }
+    )
 }
 
 @Composable
 private fun LeaderboardGapRow() {
     val gapContentDescription = stringResource(id = R.string.progress_leaderboard_gap_content_description)
-    Row(
+    Text(
+        text = "⋯",
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = MaterialTheme.typography.bodyMedium,
+        textAlign = TextAlign.Center,
         modifier = Modifier
             .fillMaxWidth()
             .clearAndSetSemantics {
                 contentDescription = gapContentDescription
             }
-    ) {
-        Text(
-            text = "⋯",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.bodyMedium
-        )
-    }
+    )
 }
 
 @Composable
