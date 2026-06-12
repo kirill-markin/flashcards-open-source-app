@@ -117,13 +117,15 @@ class ReviewViewModel(
         reviewSessionState,
         draftState,
         appMetadataState,
-        progressRepository.observeSummarySnapshot()
-    ) { reviewSessionState, state, appMetadata, progressSummarySnapshot ->
+        progressRepository.observeSummarySnapshot(),
+        progressRepository.observeLeaderboardSnapshot()
+    ) { reviewSessionState, state, appMetadata, progressSummarySnapshot, progressLeaderboardSnapshot ->
         mapToReviewUiState(
             sessionSnapshot = reviewSessionState.sessionSnapshot,
             state = state,
             appMetadata = appMetadata,
             progressSummarySnapshot = progressSummarySnapshot,
+            progressLeaderboardSnapshot = progressLeaderboardSnapshot,
             textProvider = textProvider
         )
     }.stateIn(
@@ -233,6 +235,9 @@ class ReviewViewModel(
     fun onScreenVisible() {
         viewModelScope.launch {
             progressRepository.refreshSummaryIfInvalidated()
+        }
+        viewModelScope.launch {
+            progressRepository.refreshLeaderboardForReviewShortcut()
         }
     }
 

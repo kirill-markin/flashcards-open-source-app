@@ -102,6 +102,44 @@ data class CloudProgressLeaderboard(
     val windows: List<CloudProgressLeaderboardWindow>
 )
 
+data class ProgressLeaderboardBestPlacement(
+    val windowKey: ProgressLeaderboardWindowKey,
+    val rank: Int
+)
+
+fun resolveBestLeaderboardPlacement(
+    leaderboard: CloudProgressLeaderboard?
+): ProgressLeaderboardBestPlacement? {
+    if (leaderboard == null || leaderboard.status != ProgressLeaderboardStatus.READY) {
+        return null
+    }
+
+    var bestPlacement: ProgressLeaderboardBestPlacement? = null
+
+    ProgressLeaderboardWindowKey.orderedEntries.forEach { windowKey ->
+        val window = leaderboard.windows.firstOrNull { candidate ->
+            candidate.windowKey == windowKey
+        } ?: return@forEach
+        val currentBestPlacement = bestPlacement
+        if (currentBestPlacement != null && window.viewer.rank >= currentBestPlacement.rank) {
+            return@forEach
+        }
+
+        bestPlacement = ProgressLeaderboardBestPlacement(
+            windowKey = window.windowKey,
+            rank = window.viewer.rank
+        )
+    }
+
+    return bestPlacement
+}
+
+fun resolveBestLeaderboardPlacement(
+    snapshot: ProgressLeaderboardSnapshot?
+): ProgressLeaderboardBestPlacement? {
+    return resolveBestLeaderboardPlacement(leaderboard = snapshot?.leaderboard)
+}
+
 data class ProgressLeaderboardScopeKey(
     val scopeId: String
 )

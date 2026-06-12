@@ -11,6 +11,7 @@ import type {
   Card,
   Deck,
   DecksListSnapshot,
+  ReviewLeaderboardBadgeState,
   ReviewProgressBadgeState,
   ReviewQueueSnapshot,
   ReviewTimelinePage,
@@ -32,6 +33,7 @@ const {
   storeFeedbackSubmittedAtMock,
   storeFetchedFeedbackStateMock,
   useAppDataMock,
+  useReviewLeaderboardBadgeMock,
   useReviewProgressBadgeMock,
 } = vi.hoisted(() => ({
   buildFeedbackPromptIdentityKeyMock: vi.fn(),
@@ -53,11 +55,13 @@ const {
   storeFeedbackSubmittedAtMock: vi.fn(),
   storeFetchedFeedbackStateMock: vi.fn(),
   useAppDataMock: vi.fn(),
+  useReviewLeaderboardBadgeMock: vi.fn(),
   useReviewProgressBadgeMock: vi.fn(),
 }));
 
 vi.mock("../../../appData", () => ({
   useAppData: useAppDataMock,
+  useReviewLeaderboardBadge: useReviewLeaderboardBadgeMock,
   useReviewProgressBadge: useReviewProgressBadgeMock,
 }));
 
@@ -109,6 +113,7 @@ export type ReviewScreenTestState = {
   appData: ReviewScreenAppData;
   cards: Array<Card>;
   decks: Array<Deck>;
+  reviewLeaderboardBadge: ReviewLeaderboardBadgeState;
   reviewProgressBadge: ReviewProgressBadgeState;
   reviewQueue: Array<Card>;
   reviewTimeline: Array<Card>;
@@ -264,6 +269,11 @@ function createDefaultReviewScreenTestState(): ReviewScreenTestState {
     appData: null as unknown as ReviewScreenAppData,
     cards: [],
     decks: [],
+    reviewLeaderboardBadge: {
+      rank: null,
+      windowKey: null,
+      isInteractive: true,
+    },
     reviewProgressBadge: {
       streakDays: 0,
       hasReviewedToday: false,
@@ -536,9 +546,11 @@ export function setupReviewScreenTest(): ReviewScreenTestHarness {
     storeAutomaticFeedbackPromptShownAtMock.mockReset();
     storeFeedbackSubmittedAtMock.mockReset();
     storeFetchedFeedbackStateMock.mockReset();
+    useReviewLeaderboardBadgeMock.mockReset();
     useReviewProgressBadgeMock.mockReset();
 
     useAppDataMock.mockImplementation(() => state.appData);
+    useReviewLeaderboardBadgeMock.mockImplementation(() => state.reviewLeaderboardBadge);
     useReviewProgressBadgeMock.mockImplementation(() => state.reviewProgressBadge);
     buildFeedbackPromptIdentityKeyMock.mockReturnValue("test-feedback-prompt-identity");
     loadFeedbackPromptStateMock.mockResolvedValue(feedbackPromptStateForTest);
@@ -641,5 +653,6 @@ export {
   loadReviewTimelinePageMock,
   loadWorkspaceTagsSummaryMock,
   useAppDataMock,
+  useReviewLeaderboardBadgeMock,
   useReviewProgressBadgeMock,
 };

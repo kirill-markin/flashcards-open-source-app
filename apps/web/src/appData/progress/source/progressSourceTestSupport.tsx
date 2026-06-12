@@ -256,6 +256,7 @@ export function renderHarness(props: HarnessProps): Readonly<{
       progressLocalVersion: 0,
       progressScheduleLocalVersion: 0,
       progressServerInvalidationVersion: currentProps.progressServerInvalidationVersion,
+      leaderboardAutoRefreshEnabled: true,
       sections: currentProps.sections,
     });
     return null;
@@ -304,6 +305,7 @@ export function renderInvalidationHarness(props: HarnessProps): Readonly<{
       progressLocalVersion,
       progressScheduleLocalVersion,
       progressServerInvalidationVersion,
+      leaderboardAutoRefreshEnabled: true,
       sections: currentProps.sections,
     });
     return null;

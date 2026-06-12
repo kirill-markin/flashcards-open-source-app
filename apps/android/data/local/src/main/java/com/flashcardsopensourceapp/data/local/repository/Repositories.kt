@@ -138,6 +138,7 @@ interface ProgressRepository {
     suspend fun refreshSeriesIfInvalidated()
     suspend fun refreshReviewScheduleIfInvalidated()
     suspend fun refreshLeaderboardIfInvalidated()
+    suspend fun refreshLeaderboardForReviewShortcut()
     suspend fun refreshSummaryManually()
     suspend fun refreshSeriesManually()
     suspend fun refreshReviewScheduleManually()

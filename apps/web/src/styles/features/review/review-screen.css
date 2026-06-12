@@ -56,6 +56,11 @@
   justify-content: center;
 }
 
+.review-screen-head-badge.review-leaderboard-shortcut-ranked {
+  width: auto;
+  padding-inline: 12px 14px;
+}
+
 .review-progress-shortcuts {
   display: flex;
   align-items: center;

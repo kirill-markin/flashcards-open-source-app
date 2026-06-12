@@ -536,6 +536,10 @@ components:
           $ref: '#/components/schemas/ProgressLeaderboardMetric'
         defaultWindowKey:
           $ref: '#/components/schemas/LeaderboardWindowKey'
+          description: >-
+            Client default selection. Ready responses choose the window where
+            the viewer has the lowest rank number; tied ranks prefer the
+            shortest period in canonical window order.
         windows:
           type: array
           description: Empty unless status is ready; otherwise one item per leaderboard window.

@@ -143,6 +143,12 @@ export type ReviewProgressBadgeState = Readonly<{
   isInteractive: boolean;
 }>;
 
+export type ReviewLeaderboardBadgeState = Readonly<{
+  rank: number | null;
+  windowKey: ProgressLeaderboardWindowKey | null;
+  isInteractive: boolean;
+}>;
+
 export type ProgressChartData = Readonly<{
   dailyReviews: ReadonlyArray<DailyReviewPoint>;
 }>;

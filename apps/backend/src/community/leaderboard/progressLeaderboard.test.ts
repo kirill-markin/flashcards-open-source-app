@@ -2,10 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type pg from "pg";
 import type { DatabaseExecutor, SqlValue } from "../../database";
-import {
-  LEADERBOARD_WINDOW_KEYS,
-  resolveDefaultLeaderboardWindowKey,
-} from "./leaderboardWindows";
+import { LEADERBOARD_WINDOW_KEYS } from "./leaderboardWindows";
 import {
   loadProgressLeaderboard,
   loadProgressLeaderboardInExecutor,
@@ -143,12 +140,6 @@ function createLeaderboardExecutor(
         throw new Error("viewer profile was pre-seeded; no insert expected");
       }
 
-      if (text.includes("community.read_current_user_latest_leaderboard_review($1)")) {
-        return createQueryResult([
-          { latest_reviewed_at_client: fixture.latestReviewedAtClient },
-        ]) as unknown as pg.QueryResult<Row>;
-      }
-
       if (
         text.includes("FROM community.leaderboard_snapshots")
         && text.includes("DISTINCT ON (snapshots.window_key)")
@@ -199,20 +190,6 @@ function participantRows(
 function includesQuery(recordedQueries: ReadonlyArray<RecordedQuery>, substring: string): boolean {
   return recordedQueries.some((query) => query.text.includes(substring));
 }
-
-test("resolveDefaultLeaderboardWindowKey maps elapsed hours to a bounded window and never all_time", () => {
-  assert.equal(resolveDefaultLeaderboardWindowKey(null), "last_24_hours");
-  assert.equal(resolveDefaultLeaderboardWindowKey(0), "last_24_hours");
-  assert.equal(resolveDefaultLeaderboardWindowKey(24), "last_24_hours");
-  assert.equal(resolveDefaultLeaderboardWindowKey(24.5), "last_3_days");
-  assert.equal(resolveDefaultLeaderboardWindowKey(72), "last_3_days");
-  assert.equal(resolveDefaultLeaderboardWindowKey(100), "last_7_days");
-  assert.equal(resolveDefaultLeaderboardWindowKey(168), "last_7_days");
-  assert.equal(resolveDefaultLeaderboardWindowKey(200), "last_30_days");
-  assert.equal(resolveDefaultLeaderboardWindowKey(720), "last_30_days");
-  // Older than 30 days clamps to last_30_days, never all_time.
-  assert.equal(resolveDefaultLeaderboardWindowKey(5000), "last_30_days");
-});
 
 test("guest viewers receive linked_account_required with no rows and no database access", async () => {
   const leaderboard = await loadProgressLeaderboard({
@@ -268,17 +245,25 @@ test("missing snapshots yield snapshot_unavailable without reading entries", asy
   assert.equal(includesQuery(recordedQueries, "community.leaderboard_snapshot_entries"), false);
 });
 
-test("ready response defaults to the window of the viewer's latest countable review", async () => {
-  // 100 hours before NOW falls inside the 7-day window but outside the 3-day window.
-  const latestReviewedAtClient = new Date(NOW.getTime() - 100 * MILLISECONDS_PER_HOUR);
+test("ready response defaults to the viewer's best rank, ignoring latest activity", async () => {
   const { executor } = createLeaderboardExecutor({
     viewerUserId: VIEWER_USER_ID,
     viewerProfile: { publicProfileId: VIEWER_PROFILE_ID, leaderboardParticipationEnabled: true },
-    latestReviewedAtClient,
+    latestReviewedAtClient: new Date(NOW.getTime() - 2 * MILLISECONDS_PER_HOUR),
     headers: createReadyHeaders(),
-    entriesBySnapshotId: createEntriesForWindow("last_7_days", [
-      { public_profile_id: VIEWER_PROFILE_ID, qualified_review_count: 9, base_sort_position: 1 },
-    ]),
+    entriesBySnapshotId: {
+      ...createEntriesForWindow("last_24_hours", [
+        { public_profile_id: "00000000-0000-4000-8000-0000000000d1", qualified_review_count: 10, base_sort_position: 1 },
+        { public_profile_id: VIEWER_PROFILE_ID, qualified_review_count: 1, base_sort_position: 2 },
+      ]),
+      ...createEntriesForWindow("last_3_days", [
+        { public_profile_id: "00000000-0000-4000-8000-0000000000d2", qualified_review_count: 10, base_sort_position: 1 },
+        { public_profile_id: VIEWER_PROFILE_ID, qualified_review_count: 7, base_sort_position: 2 },
+      ]),
+      ...createEntriesForWindow("last_7_days", [
+        { public_profile_id: VIEWER_PROFILE_ID, qualified_review_count: 9, base_sort_position: 1 },
+      ]),
+    },
   });
 
   const leaderboard = await loadProgressLeaderboardInExecutor(
@@ -298,16 +283,54 @@ test("ready response defaults to the window of the viewer's latest countable rev
   assert.equal(window.viewer.rank, 1);
 });
 
-test("a zero-count viewer defaults to last_24_hours and still appears ranked last with zero", async () => {
+test("ready response defaults to the shortest window when best ranks tie", async () => {
+  const sameRankEntries: ReadonlyArray<SnapshotEntryRow> = [
+    { public_profile_id: "00000000-0000-4000-8000-0000000000e1", qualified_review_count: 10, base_sort_position: 1 },
+    { public_profile_id: VIEWER_PROFILE_ID, qualified_review_count: 5, base_sort_position: 2 },
+  ];
   const { executor } = createLeaderboardExecutor({
     viewerUserId: VIEWER_USER_ID,
     viewerProfile: { publicProfileId: VIEWER_PROFILE_ID, leaderboardParticipationEnabled: true },
     latestReviewedAtClient: null,
     headers: createReadyHeaders(),
-    entriesBySnapshotId: createEntriesForWindow("last_24_hours", [
-      { public_profile_id: "00000000-0000-4000-8000-0000000000b1", qualified_review_count: 5, base_sort_position: 1 },
-      { public_profile_id: "00000000-0000-4000-8000-0000000000b2", qualified_review_count: 3, base_sort_position: 2 },
-    ]),
+    entriesBySnapshotId: {
+      ...createEntriesForWindow("last_24_hours", sameRankEntries),
+      ...createEntriesForWindow("last_3_days", sameRankEntries),
+      ...createEntriesForWindow("last_7_days", sameRankEntries),
+      ...createEntriesForWindow("last_30_days", sameRankEntries),
+      ...createEntriesForWindow("all_time", sameRankEntries),
+    },
+  });
+
+  const leaderboard = await loadProgressLeaderboardInExecutor(
+    executor,
+    { userId: VIEWER_USER_ID, transport: "session", localeHint: "en" },
+    NOW,
+  );
+
+  assert.equal(leaderboard.status, "ready");
+  assert.equal(leaderboard.defaultWindowKey, "last_24_hours");
+  assert.equal(findWindow(leaderboard, "last_24_hours").viewer.rank, 2);
+  assert.equal(findWindow(leaderboard, "all_time").viewer.rank, 2);
+});
+
+test("a zero-count viewer with tied ranks defaults to last_24_hours and still appears ranked last with zero", async () => {
+  const zeroCountEntries: ReadonlyArray<SnapshotEntryRow> = [
+    { public_profile_id: "00000000-0000-4000-8000-0000000000b1", qualified_review_count: 5, base_sort_position: 1 },
+    { public_profile_id: "00000000-0000-4000-8000-0000000000b2", qualified_review_count: 3, base_sort_position: 2 },
+  ];
+  const { executor } = createLeaderboardExecutor({
+    viewerUserId: VIEWER_USER_ID,
+    viewerProfile: { publicProfileId: VIEWER_PROFILE_ID, leaderboardParticipationEnabled: true },
+    latestReviewedAtClient: null,
+    headers: createReadyHeaders(),
+    entriesBySnapshotId: {
+      ...createEntriesForWindow("last_24_hours", zeroCountEntries),
+      ...createEntriesForWindow("last_3_days", zeroCountEntries),
+      ...createEntriesForWindow("last_7_days", zeroCountEntries),
+      ...createEntriesForWindow("last_30_days", zeroCountEntries),
+      ...createEntriesForWindow("all_time", zeroCountEntries),
+    },
   });
 
   const leaderboard = await loadProgressLeaderboardInExecutor(

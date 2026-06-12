@@ -75,6 +75,7 @@ final class FlashcardsStore {
     var progressSnapshot: ProgressSnapshot?
     var reviewScheduleSnapshot: ReviewScheduleSnapshot?
     var progressLeaderboardSnapshot: ProgressLeaderboardSnapshot?
+    var reviewLeaderboardBadgeState: ReviewLeaderboardBadgeState
     var reviewProgressBadgeState: ReviewProgressBadgeState
     var progressErrorMessage: String
     var isProgressRefreshing: Bool
@@ -368,6 +369,7 @@ final class FlashcardsStore {
         self.progressSnapshot = nil
         self.reviewScheduleSnapshot = nil
         self.progressLeaderboardSnapshot = nil
+        self.reviewLeaderboardBadgeState = makeEmptyReviewLeaderboardBadgeState()
         self.reviewProgressBadgeState = makeEmptyReviewProgressBadgeState()
         self.progressErrorMessage = ""
         self.isProgressRefreshing = false

@@ -15,6 +15,7 @@ private struct ProgressPresentationTaskID: Hashable {
 struct ProgressScreen: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
+    @State private var selectedLeaderboardWindowKey: LeaderboardWindowKey?
 
     private var isLeaderboardSectionAvailable: Bool {
         self.store.progressSnapshot != nil && self.store.progressLeaderboardSnapshot != nil
@@ -75,7 +76,8 @@ struct ProgressScreen: View {
                             VStack(alignment: .leading, spacing: 0) {
                                 ProgressLeaderboardSection(
                                     snapshot: leaderboardSnapshot,
-                                    isRefreshing: self.store.isProgressRefreshing
+                                    isRefreshing: self.store.isProgressRefreshing,
+                                    selectedWindowKey: self.$selectedLeaderboardWindowKey
                                 )
                             }
                             .id(ProgressScreenSectionID.leaderboard)
@@ -150,6 +152,9 @@ struct ProgressScreen: View {
     private func handleProgressPresentationRequest(proxy: ScrollViewProxy) async {
         guard let request = self.navigation.progressPresentationRequest else {
             return
+        }
+        if request.target == .leaderboard {
+            self.selectedLeaderboardWindowKey = nil
         }
 
         guard self.isProgressPresentationTargetAvailable(target: request.target) else {

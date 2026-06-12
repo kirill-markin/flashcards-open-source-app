@@ -59,23 +59,33 @@ internal class ProgressLeaderboardOrchestration(
     }
 
     suspend fun refreshIfInvalidated() {
-        refreshFromCurrentStoreState()
+        refreshFromCurrentStoreState(forceRemoteLoad = false)
     }
 
     suspend fun refreshManually() {
-        refreshFromCurrentStoreState()
+        refreshFromCurrentStoreState(forceRemoteLoad = false)
+    }
+
+    suspend fun refreshForReviewShortcut() {
+        refreshFromCurrentStoreState(forceRemoteLoad = true)
     }
 
     // The whole five-window payload arrives in one request and the server regenerates
-    // snapshots hourly, so both refresh entry points respect nextRefreshAfter instead
-    // of re-fetching per period or per pull-to-refresh.
-    private suspend fun refreshFromCurrentStoreState() {
+    // snapshots hourly, so the Progress refresh entry points respect nextRefreshAfter
+    // instead of re-fetching per period or per pull-to-refresh.
+    private suspend fun refreshFromCurrentStoreState(
+        forceRemoteLoad: Boolean
+    ) {
         val storeState = currentStoreState() ?: return
         publishSnapshotIfChanged(snapshot = storeState.snapshot)
         if (storeState.cloudState != CloudAccountState.LINKED) {
             return
         }
-        if (storeState.snapshot.leaderboard != null && storeState.snapshot.isRefreshDue.not()) {
+        if (
+            forceRemoteLoad.not() &&
+            storeState.snapshot.leaderboard != null &&
+            storeState.snapshot.isRefreshDue.not()
+        ) {
             return
         }
 

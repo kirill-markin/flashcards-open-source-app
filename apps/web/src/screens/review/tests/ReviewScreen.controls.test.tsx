@@ -169,6 +169,10 @@ describe("ReviewScreen controls", () => {
     if (!(progressBadge instanceof HTMLAnchorElement)) {
       throw new Error("Review progress badge was not found");
     }
+    const leaderboardShortcut = getContainer().querySelector("[data-testid='review-leaderboard-shortcut']");
+    if (!(leaderboardShortcut instanceof HTMLAnchorElement)) {
+      throw new Error("Review leaderboard shortcut was not found");
+    }
     const headerActions = getContainer().querySelector(".review-screen-head-actions");
     if (!(headerActions instanceof HTMLDivElement)) {
       throw new Error("Review screen header actions were not found");
@@ -192,6 +196,11 @@ describe("ReviewScreen controls", () => {
     expect(queueBadge.getAttribute("aria-expanded")).toBe("false");
     expect(queueBadge.getAttribute("href")).toBeNull();
     expect(queueBadge.disabled).toBe(false);
+    expect(leaderboardShortcut.className).toContain("review-leaderboard-shortcut");
+    expect(leaderboardShortcut.className).not.toContain("review-leaderboard-shortcut-ranked");
+    expect(leaderboardShortcut.querySelector(".review-progress-badge-value")).toBeNull();
+    expect(leaderboardShortcut.getAttribute("aria-label")).toBe("Open leaderboard");
+    expect(leaderboardShortcut.getAttribute("href")).toBe("/progress#leaderboard");
     const queuePanel = getContainer().querySelector("#review-queue-panel");
     if (!(queuePanel instanceof HTMLElement)) {
       throw new Error("Review queue panel was not found");
@@ -205,6 +214,7 @@ describe("ReviewScreen controls", () => {
     expect(getContainer().querySelector("[data-testid='review-screen-toolbar']")).toBeNull();
     expect(headerActions.contains(scopeTrigger)).toBe(true);
     expect(headerActions.contains(queueBadge)).toBe(true);
+    expect(headerActions.contains(leaderboardShortcut)).toBe(true);
     expect(headerActions.contains(progressBadge)).toBe(true);
     expect(scopeTrigger.compareDocumentPosition(progressBadge) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
     const progressBadgeIcon = progressBadge.querySelector("svg.review-progress-badge-icon");
@@ -232,6 +242,38 @@ describe("ReviewScreen controls", () => {
     expect(queueBadge.getAttribute("aria-expanded")).toBe("false");
     expect(queuePanel.className).not.toContain("review-queue-panel-open");
     expect(window.location.hash).toBe("");
+  });
+
+  it("renders the review leaderboard rank when the cached leaderboard snapshot has a placement", async () => {
+    const state = getState();
+    const card = createCard({
+      cardId: "card-leaderboard-badge",
+      frontText: "Question",
+      backText: "Answer",
+    });
+    state.cards = [card];
+    state.reviewQueue = [card];
+    state.reviewTimeline = [card];
+    state.reviewLeaderboardBadge = {
+      rank: 3,
+      windowKey: "last_24_hours",
+      isInteractive: true,
+    };
+
+    await renderReviewScreen();
+
+    const leaderboardShortcut = getContainer().querySelector("[data-testid='review-leaderboard-shortcut']");
+    if (!(leaderboardShortcut instanceof HTMLAnchorElement)) {
+      throw new Error("Review leaderboard shortcut was not found");
+    }
+    const leaderboardShortcutValue = leaderboardShortcut.querySelector(".review-progress-badge-value");
+    if (!(leaderboardShortcutValue instanceof HTMLSpanElement)) {
+      throw new Error("Review leaderboard shortcut value was not found");
+    }
+
+    expect(leaderboardShortcut.className).toContain("review-leaderboard-shortcut-ranked");
+    expect(leaderboardShortcutValue.textContent).toBe("3");
+    expect(leaderboardShortcut.getAttribute("aria-label")).toContain("#3");
   });
 
   it("reveals the answer with Space and submits the selected rating shortcut", async () => {

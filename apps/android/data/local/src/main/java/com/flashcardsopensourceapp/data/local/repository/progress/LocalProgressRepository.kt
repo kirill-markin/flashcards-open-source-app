@@ -139,6 +139,10 @@ class LocalProgressRepository(
         leaderboardOrchestration.refreshIfInvalidated()
     }
 
+    override suspend fun refreshLeaderboardForReviewShortcut() {
+        leaderboardOrchestration.refreshForReviewShortcut()
+    }
+
     override suspend fun refreshSummaryManually() {
         summaryOrchestration.refreshManually()
     }

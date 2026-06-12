@@ -12,8 +12,8 @@ struct ProgressLeaderboardSection: View {
     /// first leaderboard fetch starts only after summary and series complete, and
     /// the offline placeholder must stay hidden while any of them is in flight.
     let isRefreshing: Bool
+    @Binding var selectedWindowKey: LeaderboardWindowKey?
 
-    @State private var selectedWindowKey: LeaderboardWindowKey?
     @State private var isInfoAlertPresented: Bool = false
     @State private var isCloudSignInPresented: Bool = false
 
@@ -64,7 +64,7 @@ struct ProgressLeaderboardSection: View {
             return progressLeaderboardInfoMessage(snapshotGeneratedAt: nil, now: Date())
         }
 
-        let selectedKey = self.selectedWindowKey ?? readyState.defaultWindowKey
+        let selectedKey = self.resolveSelectedWindowKey(readyState: readyState)
         let selectedWindow = readyState.windows.first { window in
             window.windowKey == selectedKey
         }
@@ -102,7 +102,7 @@ struct ProgressLeaderboardSection: View {
 
     @ViewBuilder
     private func readyContent(readyState: ProgressLeaderboardReadyState) -> some View {
-        let selectedKey = self.selectedWindowKey ?? readyState.defaultWindowKey
+        let selectedKey = self.resolveSelectedWindowKey(readyState: readyState)
         let selectionBinding = Binding<LeaderboardWindowKey>(
             get: {
                 selectedKey
@@ -152,6 +152,12 @@ struct ProgressLeaderboardSection: View {
                 }
             }
         }
+    }
+
+    private func resolveSelectedWindowKey(readyState: ProgressLeaderboardReadyState) -> LeaderboardWindowKey {
+        self.selectedWindowKey
+            ?? resolveBestLeaderboardPlacement(readyState: readyState)?.windowKey
+            ?? readyState.defaultWindowKey
     }
 
     private var signInRequiredContent: some View {

@@ -233,6 +233,10 @@ private class FakeProgressRepository(
         leaderboardRefreshCallCount += 1
     }
 
+    override suspend fun refreshLeaderboardForReviewShortcut() {
+        throw UnsupportedOperationException("Not used in ProgressContextRefreshControllerTest.")
+    }
+
     override suspend fun refreshSummaryManually() {
         throw UnsupportedOperationException("Not used in ProgressContextRefreshControllerTest.")
     }

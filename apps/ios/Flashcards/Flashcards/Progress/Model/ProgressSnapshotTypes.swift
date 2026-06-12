@@ -80,6 +80,44 @@ struct ProgressLeaderboardReadyState: Hashable, Sendable {
     let windows: [ProgressLeaderboardWindowState]
 }
 
+struct ProgressLeaderboardBestPlacement: Hashable, Sendable {
+    let windowKey: LeaderboardWindowKey
+    let rank: Int
+}
+
+func resolveBestLeaderboardPlacement(readyState: ProgressLeaderboardReadyState) -> ProgressLeaderboardBestPlacement? {
+    var bestPlacement: ProgressLeaderboardBestPlacement?
+
+    for windowKey in LeaderboardWindowKey.stableOrder {
+        guard let window = readyState.windows.first(where: { candidate in
+            candidate.windowKey == windowKey
+        }) else {
+            continue
+        }
+
+        if let currentBestPlacement = bestPlacement,
+           window.viewerRank >= currentBestPlacement.rank {
+            continue
+        }
+
+        bestPlacement = ProgressLeaderboardBestPlacement(
+            windowKey: window.windowKey,
+            rank: window.viewerRank
+        )
+    }
+
+    return bestPlacement
+}
+
+func resolveBestLeaderboardPlacement(snapshot: ProgressLeaderboardSnapshot?) -> ProgressLeaderboardBestPlacement? {
+    guard let snapshot,
+          case .ready(let readyState) = snapshot.state else {
+        return nil
+    }
+
+    return resolveBestLeaderboardPlacement(readyState: readyState)
+}
+
 struct ProgressLeaderboardWindowState: Hashable, Identifiable, Sendable {
     let windowKey: LeaderboardWindowKey
     let snapshotGeneratedAt: String

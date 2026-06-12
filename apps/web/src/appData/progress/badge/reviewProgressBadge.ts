@@ -63,6 +63,7 @@ export function useReviewProgressBadge(): ReviewProgressBadgeState {
     progressLocalVersion,
     progressScheduleLocalVersion: 0,
     progressServerInvalidationVersion,
+    leaderboardAutoRefreshEnabled: true,
     sections: REVIEW_PROGRESS_BADGE_SECTIONS,
   });
 

@@ -52,6 +52,11 @@
   justify-content: center;
 }
 
+.review-leaderboard-shortcut-ranked {
+  width: auto;
+  padding-inline: 10px 12px;
+}
+
 .review-queue-shortcut:disabled {
   pointer-events: none;
   opacity: 0.64;
