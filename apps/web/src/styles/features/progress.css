@@ -1,33 +1,40 @@
 .progress-panel {
-  max-width: 980px;
+  --progress-panel-max-width: 1600px;
+  width: min(100%, var(--progress-panel-max-width));
+  max-width: none;
   margin: 0 auto;
+  container: progress-panel / inline-size;
 }
 
 .progress-layout {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
+  align-items: start;
 }
 
 .progress-section {
   display: grid;
   gap: 18px;
-  padding: 18px;
+  min-width: 0;
+  padding: 16px;
 }
 
 .progress-section-head {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  align-items: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
 }
 
 .progress-section-title {
   margin: 0;
   color: var(--text);
-  font-size: 22px;
+  font-size: 20px;
   line-height: 1.15;
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
 }
 
 .progress-streak-summary {
@@ -63,23 +70,25 @@
 
 .progress-streak-weeks {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .progress-streak-week {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 .progress-streak-day {
   display: grid;
   justify-items: center;
-  gap: 12px;
-  min-height: 88px;
-  padding: 12px 8px;
+  align-content: center;
+  gap: 7px;
+  min-height: 58px;
+  aspect-ratio: 1;
+  padding: 7px 4px;
   border: 1px solid var(--panel-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.03);
 }
 
@@ -97,11 +106,11 @@
 
 .progress-streak-weekday {
   color: var(--text-tertiary);
-  font-size: 11px;
+  font-size: 10px;
   line-height: 1;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
 }
 
 .progress-streak-day-complete .progress-streak-weekday {
@@ -116,13 +125,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   border: 1px solid transparent;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.08);
   color: var(--text);
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -154,8 +163,8 @@
 }
 
 .progress-streak-marker-flame .review-progress-badge-icon {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
 }
 
 .progress-streak-marker-day-value {
@@ -164,8 +173,8 @@
 
 .progress-chart-shell {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr);
-  gap: 14px;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 10px;
   align-items: stretch;
 }
 
@@ -205,8 +214,8 @@
 .progress-chart-y-axis {
   display: grid;
   grid-template-rows: repeat(3, 1fr);
-  min-height: 248px;
-  padding: 12px 0 40px;
+  min-height: 216px;
+  padding: 10px 0 36px;
 }
 
 .progress-chart-y-label {
@@ -223,12 +232,12 @@
 .progress-chart-plot {
   position: relative;
   width: 100%;
-  padding-top: 12px;
+  padding-top: 10px;
 }
 
 .progress-chart-guides {
   position: absolute;
-  inset: 12px 0 40px;
+  inset: 10px 0 36px;
   display: grid;
   grid-template-rows: repeat(3, 1fr);
   pointer-events: none;
@@ -246,17 +255,17 @@
   position: relative;
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
   align-items: end;
-  min-height: 248px;
+  min-height: 216px;
   width: 100%;
 }
 
 .progress-chart-column {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
-  gap: 10px;
-  height: 248px;
+  gap: 8px;
+  height: 216px;
 }
 
 .progress-chart-column-today .progress-chart-bar-shell {
@@ -269,9 +278,9 @@
   align-items: flex-end;
   justify-content: center;
   height: 100%;
-  padding: 8px 4px 0;
+  padding: 8px 3px 0;
   border: 1px solid transparent;
-  border-radius: 16px;
+  border-radius: 12px;
 }
 
 .progress-chart-bar {
@@ -294,9 +303,9 @@
 
 .progress-chart-labels {
   display: grid;
-  gap: 3px;
+  gap: 2px;
   justify-items: center;
-  min-height: 42px;
+  min-height: 36px;
 }
 
 .progress-chart-month,
@@ -333,13 +342,13 @@
 
 .progress-review-schedule {
   display: grid;
-  grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
-  gap: 18px;
+  grid-template-columns: minmax(120px, 160px) minmax(0, 1fr);
+  gap: 14px;
   align-items: center;
 }
 
 .progress-review-schedule-donut {
-  width: min(100%, 220px);
+  width: min(100%, 160px);
   aspect-ratio: 1;
   justify-self: center;
   display: block;
@@ -434,10 +443,13 @@ svg.progress-review-schedule-donut {
 
 .progress-review-schedule-label {
   min-width: 0;
+  overflow: hidden;
   color: var(--text-secondary);
   font-size: 14px;
   line-height: 1.25;
   font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .progress-review-schedule-values {
@@ -500,7 +512,7 @@ svg.progress-review-schedule-donut {
 }
 
 .progress-leaderboard-period-btn {
-  padding: 6px 14px;
+  padding: 6px 12px;
   border: 1px solid var(--panel-border);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.03);
@@ -528,7 +540,7 @@ svg.progress-review-schedule-donut {
   align-content: start;
   gap: 4px;
   /* Six participant rows, two gap rows, and seven row gaps: the compact worst case. */
-  min-height: 320px;
+  min-height: 300px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -616,6 +628,14 @@ svg.progress-review-schedule-donut {
 }
 
 @media (max-width: 768px) {
+  .progress-panel {
+    width: 100%;
+  }
+
+  .progress-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .progress-section {
     padding: 16px;
   }
@@ -625,8 +645,8 @@ svg.progress-review-schedule-donut {
   }
 
   .progress-streak-day {
-    min-height: 76px;
-    gap: 10px;
+    min-height: 54px;
+    gap: 6px;
     padding: 10px 4px;
   }
 
@@ -645,5 +665,21 @@ svg.progress-review-schedule-donut {
 
   .progress-review-schedule-donut {
     max-width: 180px;
+  }
+}
+
+@container progress-panel (max-width: 1040px) {
+  .progress-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@container progress-panel (max-width: 980px) {
+  .progress-review-schedule {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .progress-review-schedule-donut {
+    max-width: 150px;
   }
 }
