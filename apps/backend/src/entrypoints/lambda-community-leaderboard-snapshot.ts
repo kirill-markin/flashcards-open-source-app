@@ -8,6 +8,7 @@ import {
   wrapBackendHandler,
 } from "../observability/sentry";
 import { LEADERBOARD_SNAPSHOT_METRIC_VERSION } from "../community/leaderboard/leaderboardWindows";
+import { withTransientDatabaseRetry } from "../database/transient";
 
 initializeBackendSentry("community-leaderboard-snapshot");
 
@@ -57,7 +58,10 @@ const communityLeaderboardSnapshotHandler: Handler<
   );
   try {
     const runtime = await getCommunityLeaderboardSnapshotRuntime();
-    const result = await runtime.generateLeaderboardSnapshots();
+    const result = await withTransientDatabaseRetry(
+      () => runtime.generateLeaderboardSnapshots(),
+      () => observationScope,
+    );
 
     addBackendBreadcrumb({
       action: "community_leaderboard_snapshot_generated",

@@ -351,8 +351,9 @@ function buildParticipantRow(
 
 /**
  * Selects the compact rows server-side so every client renders the same list:
- * the top three rows (when that many participants exist), the viewer-neighbor
- * group when the viewer is outside the top block, and the last-place row.
+ * the top three rows (when that many participants exist), the next row when
+ * the viewer is exactly third, the viewer-neighbor group when the viewer is
+ * outside the top block, and the last-place row.
  * Overlapping groups are de-duplicated by rank and gap rows are inserted
  * wherever hidden ranks sit between visible groups.
  */
@@ -374,6 +375,8 @@ function buildCompactRows(
         shownRanks.add(candidate);
       }
     }
+  } else if (viewerRank === topRowCount && viewerRank < total) {
+    shownRanks.add(viewerRank + 1);
   }
   if (total > topRowCount) {
     shownRanks.add(total);
@@ -437,10 +440,7 @@ async function readViewerLatestCountableReviewInExecutor(
 ): Promise<string | null> {
   const result = await executor.query<ViewerLatestReviewRow>(
     [
-      "SELECT MAX(facts.reviewed_at_client) AS latest_reviewed_at_client",
-      "FROM community.public_review_activity_facts AS facts",
-      "WHERE facts.metric_version = $1",
-      "AND facts.is_countable = TRUE",
+      "SELECT community.read_current_user_latest_leaderboard_review($1) AS latest_reviewed_at_client",
     ].join(" "),
     [LEADERBOARD_SNAPSHOT_METRIC_VERSION],
   );

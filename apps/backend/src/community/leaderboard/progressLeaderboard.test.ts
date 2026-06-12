@@ -143,7 +143,7 @@ function createLeaderboardExecutor(
         throw new Error("viewer profile was pre-seeded; no insert expected");
       }
 
-      if (text.includes("MAX(facts.reviewed_at_client)")) {
+      if (text.includes("community.read_current_user_latest_leaderboard_review($1)")) {
         return createQueryResult([
           { latest_reviewed_at_client: fixture.latestReviewedAtClient },
         ]) as unknown as pg.QueryResult<Row>;
@@ -362,6 +362,36 @@ test("equal counts rank the viewer below other users with the same count", async
       { kind: "viewer", rank: 3, count: 5 },
       { kind: "neighbor", rank: 4, count: 3 },
     ],
+  );
+});
+
+test("compact rows show the next rank when the viewer is exactly third", async () => {
+  const { executor } = createLeaderboardExecutor({
+    viewerUserId: VIEWER_USER_ID,
+    viewerProfile: { publicProfileId: VIEWER_PROFILE_ID, leaderboardParticipationEnabled: true },
+    latestReviewedAtClient: null,
+    headers: createReadyHeaders(),
+    entriesBySnapshotId: createEntriesForWindow("last_24_hours", [
+      { public_profile_id: "00000000-0000-4000-8000-000000000131", qualified_review_count: 30, base_sort_position: 1 },
+      { public_profile_id: "00000000-0000-4000-8000-000000000132", qualified_review_count: 20, base_sort_position: 2 },
+      { public_profile_id: VIEWER_PROFILE_ID, qualified_review_count: 10, base_sort_position: 3 },
+      { public_profile_id: "00000000-0000-4000-8000-000000000134", qualified_review_count: 8, base_sort_position: 4 },
+      { public_profile_id: "00000000-0000-4000-8000-000000000135", qualified_review_count: 4, base_sort_position: 5 },
+      { public_profile_id: "00000000-0000-4000-8000-000000000136", qualified_review_count: 0, base_sort_position: 6 },
+    ]),
+  });
+
+  const leaderboard = await loadProgressLeaderboardInExecutor(
+    executor,
+    { userId: VIEWER_USER_ID, transport: "session", localeHint: "en" },
+    NOW,
+  );
+
+  const window = findWindow(leaderboard, "last_24_hours");
+  assert.equal(window.viewer.rank, 3);
+  assert.deepEqual(
+    window.rows.map((row) => (row.kind === "gap" ? "gap" : `${row.kind}:${row.rank}`)),
+    ["top:1", "top:2", "viewer:3", "neighbor:4", "gap", "neighbor:6"],
   );
 });
 
