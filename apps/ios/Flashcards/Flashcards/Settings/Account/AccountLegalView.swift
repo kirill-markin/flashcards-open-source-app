@@ -15,7 +15,8 @@ struct AccountLegalView: View {
                         SettingsNavigationRow(
                             title: aiSettingsLocalized("common.privacyPolicy", "Privacy Policy"),
                             value: aiSettingsLocalized("common.open", "Open"),
-                            systemImage: "hand.raised"
+                            systemImage: "hand.raised",
+                            attentionCount: nil
                         )
                     }
                 }
@@ -25,7 +26,8 @@ struct AccountLegalView: View {
                         SettingsNavigationRow(
                             title: aiSettingsLocalized("common.termsOfService", "Terms of Service"),
                             value: aiSettingsLocalized("common.open", "Open"),
-                            systemImage: "doc.text"
+                            systemImage: "doc.text",
+                            attentionCount: nil
                         )
                     }
                 }
@@ -35,7 +37,8 @@ struct AccountLegalView: View {
                         SettingsNavigationRow(
                             title: aiSettingsLocalized("settings.account.legal.githubRepository", "GitHub Repository"),
                             value: aiSettingsLocalized("common.open", "Open"),
-                            systemImage: "chevron.left.forwardslash.chevron.right"
+                            systemImage: "chevron.left.forwardslash.chevron.right",
+                            attentionCount: nil
                         )
                     }
                 }
@@ -95,7 +98,8 @@ struct AccountSupportView: View {
                         SettingsNavigationRow(
                             title: aiSettingsLocalized("common.support", "Support"),
                             value: aiSettingsLocalized("common.open", "Open"),
-                            systemImage: "questionmark.circle"
+                            systemImage: "questionmark.circle",
+                            attentionCount: nil
                         )
                     }
                 }

@@ -226,7 +226,8 @@ struct AccountOpenSourceView: View {
                         SettingsNavigationRow(
                             title: aiSettingsLocalized("settings.account.openSource.repository", "GitHub Repository (MIT License)"),
                             value: aiSettingsLocalized("common.open", "Open"),
-                            systemImage: "arrow.up.forward.square"
+                            systemImage: "arrow.up.forward.square",
+                            attentionCount: nil
                         )
                     }
                 }
@@ -256,7 +257,8 @@ struct AccountOpenSourceView: View {
                         SettingsNavigationRow(
                             title: aiSettingsLocalized("settings.account.openSource.thirdPartyNoticeFull", "Full Third-Party Notices"),
                             value: aiSettingsLocalized("common.open", "Open"),
-                            systemImage: "arrow.up.forward.square"
+                            systemImage: "arrow.up.forward.square",
+                            attentionCount: nil
                         )
                     }
                 }
@@ -267,7 +269,8 @@ struct AccountOpenSourceView: View {
                             SettingsNavigationRow(
                                 title: aiSettingsLocalized(sourceLink.localizationKey, sourceLink.fallbackTitle),
                                 value: aiSettingsLocalized("common.open", "Open"),
-                                systemImage: "arrow.up.forward.square"
+                                systemImage: "arrow.up.forward.square",
+                                attentionCount: nil
                             )
                         }
                     }
@@ -278,7 +281,8 @@ struct AccountOpenSourceView: View {
                         SettingsNavigationRow(
                             title: aiSettingsLocalized("settings.account.openSource.thirdPartyNoticeLicense", "Creative Commons Attribution 4.0"),
                             value: aiSettingsLocalized("common.open", "Open"),
-                            systemImage: "arrow.up.forward.square"
+                            systemImage: "arrow.up.forward.square",
+                            attentionCount: nil
                         )
                     }
                 }

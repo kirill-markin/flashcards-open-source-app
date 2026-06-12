@@ -44,7 +44,8 @@ struct CurrentWorkspaceView: View {
                         value: self.isWorkspacePickerLoading
                             ? aiSettingsLocalized("common.loading", "Loading...")
                             : self.currentWorkspaceName,
-                        systemImage: "square.stack"
+                        systemImage: "square.stack",
+                        attentionCount: nil
                     )
                 }
                 .buttonStyle(.plain)

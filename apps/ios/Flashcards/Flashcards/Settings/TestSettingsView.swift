@@ -10,7 +10,8 @@ struct TestSettingsView: View {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.test.animations", "Animations"),
                         value: aiSettingsLocalized("settings.test.animations.itemCount", "38 items"),
-                        systemImage: "sparkles"
+                        systemImage: "sparkles",
+                        attentionCount: nil
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.testSettingsAnimationsRow)
@@ -21,7 +22,8 @@ struct TestSettingsView: View {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.test.storeReviewPromptReset", "Reset App Store review prompt"),
                         value: aiSettingsLocalized("settings.test.storeReviewPromptReset.value", "Local state"),
-                        systemImage: "star.bubble"
+                        systemImage: "star.bubble",
+                        attentionCount: nil
                     )
                 }
             }
