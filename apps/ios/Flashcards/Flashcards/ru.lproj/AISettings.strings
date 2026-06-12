@@ -169,8 +169,8 @@
 "settings.reviewAnimations.toggle" = "Показывать анимации после оценки карточки";
 "settings.leaderboardParticipation.title" = "Участие в таблице лидеров";
 "settings.leaderboardParticipation.toggle" = "Показывать меня в таблице лидеров";
-"settings.leaderboardParticipation.description" = "Когда настройка выключена, вы не появляетесь в таблице лидеров, а рейтинг таблицы лидеров скрыт от вас.";
-"settings.leaderboardParticipation.signInRequired" = "Войдите по электронной почте, чтобы управлять участием в таблице лидеров.";
+"settings.leaderboardParticipation.description" = "Когда настройка выключена, ваша обезличенная активность не появляется в таблице лидеров.";
+"settings.leaderboardParticipation.signInRequired" = "Подключите облачную синхронизацию, чтобы управлять участием в таблице лидеров.";
 "settings.language.title" = "Язык";
 "settings.language.systemDescription" = "iOS управляет языком приложения. В настройках iOS откройте Flashcards и используйте «Предпочитаемый язык». Если «Предпочитаемый язык» не отображается, сначала добавьте другой язык в «Настройки» > «Основные» > «Язык и регион».";
 "settings.language.action.openAppSettings" = "Открыть настройки Flashcards";

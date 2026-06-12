@@ -169,8 +169,8 @@
 "settings.reviewAnimations.toggle" = "إظهار الرسوم المتحركة بعد تقييم بطاقة";
 "settings.leaderboardParticipation.title" = "المشاركة في لوحة الصدارة";
 "settings.leaderboardParticipation.toggle" = "إظهاري في لوحة الصدارة";
-"settings.leaderboardParticipation.description" = "عند إيقاف هذا الخيار، لن تظهر في لوحة الصدارة وستُخفى عنك تصنيفات لوحة الصدارة.";
-"settings.leaderboardParticipation.signInRequired" = "سجّل الدخول بالبريد الإلكتروني لإدارة المشاركة في لوحة الصدارة.";
+"settings.leaderboardParticipation.description" = "عند إيقاف هذا الخيار، لن يظهر نشاطك المجهول في لوحة الصدارة.";
+"settings.leaderboardParticipation.signInRequired" = "اتصل بالمزامنة السحابية لإدارة المشاركة في لوحة الصدارة.";
 "settings.language.title" = "اللغة";
 "settings.language.systemDescription" = "يتحكم iOS في لغة التطبيق. في إعدادات iOS، افتح Flashcards واستخدم اللغة المفضلة. إذا لم تظهر اللغة المفضلة، فأضف لغة أخرى أولاً من الإعدادات > عام > اللغة والمنطقة.";
 "settings.language.action.openAppSettings" = "افتح إعدادات Flashcards";

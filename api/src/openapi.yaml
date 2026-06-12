@@ -135,11 +135,13 @@ paths:
     get:
       tags:
         - bootstrap
-      summary: Load signed-in community public profile
+      summary: Load community public profile
       description: >-
-        Ensures the authenticated app user has a stable opaque public community
-        profile and returns only client-safe public profile fields. ApiKey
-        authentication is rejected.
+        Ensures the authenticated app user or guest has a stable opaque public
+        community profile and returns only client-safe public profile fields.
+        Guest callers can manage anonymous leaderboard visibility but still
+        receive linkedAccountRequiredForLeaderboard=true until they link an
+        account. ApiKey authentication is rejected.
       security:
         - BearerAuth: []
         - GuestAuthorizationHeader: []
@@ -174,8 +176,9 @@ paths:
       summary: Update community leaderboard participation preference
       description: >-
         Updates only the leaderboard participation preference on the
-        authenticated user's community public profile. Session callers must send
-        a valid X-CSRF-Token header. ApiKey authentication is rejected.
+        authenticated app user's or guest's community public profile. Session
+        callers must send a valid X-CSRF-Token header. ApiKey authentication is
+        rejected.
       security:
         - BearerAuth: []
         - GuestAuthorizationHeader: []

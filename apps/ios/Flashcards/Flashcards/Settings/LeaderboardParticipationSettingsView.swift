@@ -60,7 +60,7 @@ struct LeaderboardParticipationSettingsView: View {
             Text(
                 aiSettingsLocalized(
                     "settings.leaderboardParticipation.description",
-                    "When this is off, you will not appear on the leaderboard and leaderboard rankings will be hidden from you."
+                    "When this is off, your anonymous activity will not appear on the leaderboard."
                 )
             )
             .foregroundStyle(.secondary)
@@ -68,7 +68,7 @@ struct LeaderboardParticipationSettingsView: View {
             Text(
                 aiSettingsLocalized(
                     "settings.leaderboardParticipation.signInRequired",
-                    "Sign in with email to manage leaderboard participation."
+                    "Connect cloud sync to manage leaderboard participation."
                 )
             )
             .foregroundStyle(.secondary)

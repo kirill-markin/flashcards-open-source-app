@@ -564,8 +564,8 @@ export async function loadProgressLeaderboard(
   request: ProgressLeaderboardRequest,
 ): Promise<ProgressLeaderboard> {
   if (request.transport === "guest") {
-    // Guests get the linked-account-required state with no rows and never open a
-    // transaction, since they are excluded from leaderboard participation.
+    // Guests can contribute opted-in anonymous activity to leaderboard snapshots,
+    // but viewing leaderboard rows still requires a linked account.
     return buildNonReadyProgressLeaderboard("linked_account_required", request.localeHint);
   }
 

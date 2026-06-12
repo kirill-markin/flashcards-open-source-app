@@ -1,12 +1,17 @@
 import Foundation
 
 /// Community public profile lifecycle for the leaderboard participation setting.
-/// Participation only affects linked accounts: guests never appear on the
-/// leaderboard, so the toggle is exposed for linked accounts only.
+/// Participation controls anonymous leaderboard visibility for linked and guest
+/// accounts. Guests can manage visibility, but still cannot view leaderboard rows.
 @MainActor
 extension FlashcardsStore {
     var canManageLeaderboardParticipation: Bool {
-        self.cloudSettings?.cloudState == .linked
+        switch self.cloudSettings?.cloudState {
+        case .guest, .linked:
+            return true
+        case .disconnected, .linkingReady, nil:
+            return false
+        }
     }
 
     func refreshCommunityPublicProfileIfAvailable() async throws {
@@ -39,7 +44,7 @@ extension FlashcardsStore {
 
     func updateLeaderboardParticipationEnabled(isEnabled: Bool) async throws {
         guard self.canManageLeaderboardParticipation else {
-            throw LocalStoreError.uninitialized("Leaderboard participation requires a linked account")
+            throw LocalStoreError.uninitialized("Leaderboard participation requires a cloud account")
         }
 
         // Apply the optimistic value before any await so the toggle reflects the

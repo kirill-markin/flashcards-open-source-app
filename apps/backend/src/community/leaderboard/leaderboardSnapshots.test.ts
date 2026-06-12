@@ -124,14 +124,6 @@ function readNullableHoursParam(params: ReadonlyArray<SqlValue>, index: number, 
 
 const MILLISECONDS_PER_HOUR = 60 * 60 * 1000;
 
-function isLinkedNonDemoEmail(email: string | null): boolean {
-  if (email === null) {
-    return false;
-  }
-
-  return !email.trim().toLowerCase().endsWith("@example.com");
-}
-
 function isNonDemoEmailOrUnknown(email: string | null): boolean {
   return email === null || !email.trim().toLowerCase().endsWith("@example.com");
 }
@@ -162,7 +154,7 @@ function computeEligibleEntries(
     }
 
     const user = state.usersById.get(profile.userId);
-    if (user === undefined || !isLinkedNonDemoEmail(user.email)) {
+    if (user === undefined || !isNonDemoEmailOrUnknown(user.email)) {
       continue;
     }
 
@@ -212,7 +204,7 @@ function computeEligibleEntries(
 
 /**
  * In-memory fake of the SECURITY DEFINER community.refresh_leaderboard_snapshot function.
- * It reproduces the documented contract (countable + linked + opted-in + non-demo, window
+ * It reproduces the documented contract (countable + opted-in + non-demo, window
  * bound, tie-neutral ordering, upsert by (metric, window, hour), atomic entry replace) so
  * the production SQL string, parameter order, and orchestration are exercised offline.
  *
@@ -429,7 +421,7 @@ test("generateLeaderboardSnapshots refreshes every window once with the matching
   }
 });
 
-test("last_24_hours snapshot includes opted-in linked accounts even with zero countable reviews", async () => {
+test("last_24_hours snapshot includes opted-in public profiles even with zero countable reviews", async () => {
   const state = createLeaderboardStoreState();
   seedLeaderboardFixture(state);
 
@@ -437,11 +429,13 @@ test("last_24_hours snapshot includes opted-in linked accounts even with zero co
 
   // profile-b has 3 countable reviews in 24h; profile-a has 2 (1h-before plus the as_of
   // boundary fact); the again fact, the 25h fact, and the future fact are all excluded.
+  // profile-d is an unlinked guest and still appears as an anonymized participant.
   // profile-f is linked and opted in, so it appears with zero real-client countable reviews.
   assert.deepEqual(entriesForWindow(state, "last_24_hours"), [
     { publicProfileId: PROFILE_B, qualifiedReviewCount: 3, baseSortPosition: 1 },
     { publicProfileId: PROFILE_A, qualifiedReviewCount: 2, baseSortPosition: 2 },
-    { publicProfileId: PROFILE_F, qualifiedReviewCount: 0, baseSortPosition: 3 },
+    { publicProfileId: PROFILE_D, qualifiedReviewCount: 1, baseSortPosition: 3 },
+    { publicProfileId: PROFILE_F, qualifiedReviewCount: 0, baseSortPosition: 4 },
   ]);
 });
 
@@ -456,17 +450,18 @@ test("all_time snapshot includes older reviews and breaks count ties by public_p
   assert.deepEqual(entriesForWindow(state, "all_time"), [
     { publicProfileId: PROFILE_A, qualifiedReviewCount: 3, baseSortPosition: 1 },
     { publicProfileId: PROFILE_B, qualifiedReviewCount: 3, baseSortPosition: 2 },
-    { publicProfileId: PROFILE_F, qualifiedReviewCount: 0, baseSortPosition: 3 },
+    { publicProfileId: PROFILE_D, qualifiedReviewCount: 1, baseSortPosition: 3 },
+    { publicProfileId: PROFILE_F, qualifiedReviewCount: 0, baseSortPosition: 4 },
   ]);
 });
 
-test("opted-out, unlinked guest, and demo profiles are excluded from every window", async () => {
+test("opted-out and demo profiles are excluded while unlinked guests participate", async () => {
   const state = createLeaderboardStoreState();
   seedLeaderboardFixture(state);
 
   await generateWithFake(state, LEADERBOARD_SNAPSHOT_METRIC_VERSION, NOW);
 
-  const excludedProfileIds = new Set([PROFILE_C, PROFILE_D, PROFILE_E]);
+  const excludedProfileIds = new Set([PROFILE_C, PROFILE_E]);
   for (const window of LEADERBOARD_WINDOWS) {
     const profileIdsInWindow = entriesForWindow(state, window.windowKey).map((entry) => entry.publicProfileId);
     for (const excludedProfileId of excludedProfileIds) {
@@ -476,6 +471,7 @@ test("opted-out, unlinked guest, and demo profiles are excluded from every windo
         `${excludedProfileId} must not appear in ${window.windowKey}`,
       );
     }
+    assert.equal(profileIdsInWindow.includes(PROFILE_D), true, `${PROFILE_D} must appear in ${window.windowKey}`);
     assert.equal(profileIdsInWindow.includes(PROFILE_F), true, `${PROFILE_F} must appear in ${window.windowKey}`);
   }
 });
@@ -486,7 +482,7 @@ test("every window uses the same eligible participant universe", async () => {
 
   await generateWithFake(state, LEADERBOARD_SNAPSHOT_METRIC_VERSION, NOW);
 
-  const expectedProfileIds = [PROFILE_A, PROFILE_B, PROFILE_F].sort();
+  const expectedProfileIds = [PROFILE_A, PROFILE_B, PROFILE_D, PROFILE_F].sort();
   for (const window of LEADERBOARD_WINDOWS) {
     const profileIdsInWindow = entriesForWindow(state, window.windowKey)
       .map((entry) => entry.publicProfileId)
@@ -512,7 +508,8 @@ test("regenerating the same server hour reuses snapshots and replaces entries id
   assert.deepEqual(entriesForWindow(state, "last_24_hours"), [
     { publicProfileId: PROFILE_B, qualifiedReviewCount: 3, baseSortPosition: 1 },
     { publicProfileId: PROFILE_A, qualifiedReviewCount: 2, baseSortPosition: 2 },
-    { publicProfileId: PROFILE_F, qualifiedReviewCount: 0, baseSortPosition: 3 },
+    { publicProfileId: PROFILE_D, qualifiedReviewCount: 1, baseSortPosition: 3 },
+    { publicProfileId: PROFILE_F, qualifiedReviewCount: 0, baseSortPosition: 4 },
   ]);
 });
 
@@ -659,4 +656,22 @@ test("0061 migration counts only real client-app activity without shrinking the 
   assert.match(sql, /CREATE OR REPLACE FUNCTION community\.read_current_user_latest_leaderboard_review/);
   assert.match(sql, /WHERE facts\.reviewed_by_user_id = security\.current_user_id\(\)/);
   assert.match(sql, /GRANT EXECUTE ON FUNCTION community\.read_current_user_latest_leaderboard_review\(TEXT\) TO backend_app/);
+});
+
+test("0062 migration includes unlinked guest public profiles in snapshots", () => {
+  const migrationPath = resolve(
+    process.cwd(),
+    "../../db/migrations/0062_leaderboard_guest_participants.sql",
+  );
+  const sql = readFileSync(migrationPath, "utf8").replace(/\s+/g, " ");
+
+  assert.match(sql, /CREATE OR REPLACE FUNCTION community\.refresh_leaderboard_snapshot/);
+  assert.match(sql, /FROM community\.public_profiles AS profiles/);
+  assert.match(sql, /LEFT JOIN \( SELECT facts\.public_profile_id FROM community\.public_review_activity_facts AS facts/);
+  assert.match(sql, /fact_user_settings\.email IS NULL OR LOWER\(btrim\(fact_user_settings\.email\)\) NOT LIKE '%@example\.com'/);
+  assert.match(sql, /COUNT\(countable_facts\.public_profile_id\)::int AS qualified_review_count/);
+  assert.match(sql, /profiles\.leaderboard_participation_enabled = TRUE/);
+  assert.match(sql, /user_settings\.email IS NULL OR LOWER\(btrim\(user_settings\.email\)\) NOT LIKE '%@example\.com'/);
+  assert.equal(/user_settings\.email IS NOT NULL/.test(sql), false);
+  assert.match(sql, /GRANT EXECUTE ON FUNCTION community\.refresh_leaderboard_snapshot\(TEXT, TEXT, INTEGER, TIMESTAMPTZ, TIMESTAMPTZ\) TO backend_app/);
 });

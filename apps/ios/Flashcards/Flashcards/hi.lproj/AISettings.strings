@@ -169,8 +169,8 @@
 "settings.reviewAnimations.toggle" = "कार्ड को रेट करने के बाद एनिमेशन दिखाएं";
 "settings.leaderboardParticipation.title" = "लीडरबोर्ड भागीदारी";
 "settings.leaderboardParticipation.toggle" = "मुझे लीडरबोर्ड पर दिखाएँ";
-"settings.leaderboardParticipation.description" = "यह बंद होने पर आप लीडरबोर्ड पर नहीं दिखेंगे और लीडरबोर्ड रैंकिंग आपसे छिपी रहेगी.";
-"settings.leaderboardParticipation.signInRequired" = "लीडरबोर्ड भागीदारी प्रबंधित करने के लिए ईमेल से साइन इन करें.";
+"settings.leaderboardParticipation.description" = "यह बंद होने पर आपकी गुमनाम गतिविधि लीडरबोर्ड पर नहीं दिखेगी.";
+"settings.leaderboardParticipation.signInRequired" = "लीडरबोर्ड भागीदारी प्रबंधित करने के लिए क्लाउड सिंक कनेक्ट करें.";
 "settings.language.title" = "भाषा";
 "settings.language.systemDescription" = "iOS ऐप की भाषा नियंत्रित करता है। iOS सेटिंग्स में Flashcards खोलें और पसंदीदा भाषा इस्तेमाल करें। अगर पसंदीदा भाषा दिखाई नहीं देती, तो पहले सेटिंग्स > सामान्य > भाषा और क्षेत्र में कोई दूसरी भाषा जोड़ें।";
 "settings.language.action.openAppSettings" = "Flashcards सेटिंग्स खोलें";
