@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildStreakWeeks } from "./ProgressScreen";
+import { buildStreakWeeks } from "./streak/progressStreakModel";
 
 type DateFormatter = (
   value: Date | number | string,
