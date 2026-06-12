@@ -415,11 +415,12 @@ private struct ProgressLeaderboardReservedGapRowView: View {
 
 private struct ProgressLeaderboardGapRowView: View {
     var body: some View {
-        HStack(spacing: 10) {
+        HStack {
+            Spacer(minLength: 0)
+
             Image(systemName: "ellipsis")
                 .font(.subheadline)
                 .foregroundStyle(.tertiary)
-                .frame(minWidth: 28, alignment: .leading)
 
             Spacer(minLength: 0)
         }
