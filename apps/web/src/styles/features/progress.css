@@ -527,8 +527,8 @@ svg.progress-review-schedule-donut {
   display: grid;
   align-content: start;
   gap: 4px;
-  /* Six participant rows, one gap row, and six row gaps: the compact worst case. */
-  min-height: 290px;
+  /* Six participant rows, two gap rows, and seven row gaps: the compact worst case. */
+  min-height: 320px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -593,8 +593,8 @@ svg.progress-review-schedule-donut {
 
 .progress-leaderboard-gap {
   min-height: 26px;
-  justify-items: center;
-  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
+  grid-template-columns: minmax(3.5ch, auto) minmax(0, 1fr) auto;
   border-bottom: 0;
 }
 

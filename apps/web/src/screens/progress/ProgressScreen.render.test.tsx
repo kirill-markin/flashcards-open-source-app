@@ -265,6 +265,7 @@ function createLeaderboardWindow(windowKey: ProgressLeaderboardWindowKey): Progr
       { kind: "neighbor", publicProfileId: "profile-41", anonymousDisplayName: "Jade Swift River", qualifiedReviewCount: 8, rank: 41 },
       { kind: "viewer", publicProfileId: "viewer-profile", anonymousDisplayName: "Quiet Maple Grove", qualifiedReviewCount: 7, rank: 42 },
       { kind: "neighbor", publicProfileId: "profile-43", anonymousDisplayName: "Bold Cedar Crest", qualifiedReviewCount: 7, rank: 43 },
+      { kind: "gap" },
     ],
   };
 }
@@ -805,6 +806,7 @@ describe("ProgressScreen", () => {
       "neighbor",
       "viewer",
       "neighbor",
+      "gap",
     ]);
 
     const rowTexts = rows.map((row) => row.textContent);
@@ -817,12 +819,15 @@ describe("ProgressScreen", () => {
     expect(rowTexts[5]).toContain("#42");
     expect(rowTexts[6]).toContain("Bold Cedar Crest");
 
-    const gapRow = rows[3];
-    if (gapRow === undefined) {
-      throw new Error("Leaderboard gap row was not found");
+    const topGapRow = rows[3];
+    const bottomGapRow = rows[7];
+    if (topGapRow === undefined || bottomGapRow === undefined) {
+      throw new Error("Leaderboard gap rows were not found");
     }
-    expect(gapRow.querySelector("button")).toBeNull();
-    expect(gapRow.querySelector("a")).toBeNull();
+    expect(topGapRow.querySelector("button")).toBeNull();
+    expect(topGapRow.querySelector("a")).toBeNull();
+    expect(bottomGapRow.querySelector("button")).toBeNull();
+    expect(bottomGapRow.querySelector("a")).toBeNull();
   });
 
   it("reveals the leaderboard info text explaining that Again reviews are excluded", async () => {

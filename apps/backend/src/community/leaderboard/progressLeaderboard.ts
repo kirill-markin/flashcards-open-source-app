@@ -353,8 +353,9 @@ function buildParticipantRow(
  * Selects the compact rows server-side so every client renders the same list:
  * the top three rows (when that many participants exist), the row before the
  * viewer, the viewer, and the row after the viewer. Overlapping groups are
- * de-duplicated by rank and a single gap row is inserted only when hidden ranks
- * sit between the top block and the viewer-neighbor block.
+ * de-duplicated by rank, a gap row is inserted when hidden ranks sit between
+ * the top block and the viewer-neighbor block, and a trailing gap row is
+ * inserted when more participants remain below the last shown row.
  */
 function buildCompactRows(
   ranked: ReadonlyArray<RankedParticipant>,
@@ -389,6 +390,10 @@ function buildCompactRows(
 
     rows.push(buildParticipantRow(participant, topRowCount, resolveName));
     previousRank = rank;
+  }
+
+  if (previousRank < total) {
+    rows.push({ kind: "gap" });
   }
 
   return rows;

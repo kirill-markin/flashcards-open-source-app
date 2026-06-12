@@ -50,6 +50,7 @@ final class ProgressSnapshotFactoryTests: XCTestCase {
                 qualifiedReviewCount: 7,
                 rank: 43
             ),
+            .gap,
         ]
     }
 
@@ -91,7 +92,7 @@ final class ProgressSnapshotFactoryTests: XCTestCase {
         XCTAssertEqual(128, window.participantCount)
         XCTAssertEqual(42, window.viewerRank)
         XCTAssertEqual(7, window.viewerQualifiedReviewCount)
-        XCTAssertEqual(7, window.rows.count)
+        XCTAssertEqual(8, window.rows.count)
 
         guard case .participant(let firstRow) = window.rows[0] else {
             XCTFail("Expected a participant row first, received \(window.rows[0])")
@@ -146,7 +147,18 @@ final class ProgressSnapshotFactoryTests: XCTestCase {
             XCTAssertEqual(index + 1, row.rank)
         }
 
-        XCTAssertEqual(.gap, window.rows[3])
+        guard case .gap(let firstGapRow) = window.rows[3] else {
+            XCTFail("Expected a gap row at index 3, received \(window.rows[3])")
+            return
+        }
+        guard case .gap(let secondGapRow) = window.rows[7] else {
+            XCTFail("Expected a gap row at index 7, received \(window.rows[7])")
+            return
+        }
+
+        XCTAssertEqual("gap-3", firstGapRow.id)
+        XCTAssertEqual("gap-7", secondGapRow.id)
+        XCTAssertNotEqual(firstGapRow.id, secondGapRow.id)
     }
 
     func testGuestAndParticipationDisabledStatusesMapToPlaceholders() throws {

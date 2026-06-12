@@ -303,7 +303,7 @@ class ProgressViewModelTest {
             assertEquals(128, selectedWindow.participantCount)
 
             val rows = selectedWindow.rows
-            assertEquals(7, rows.size)
+            assertEquals(8, rows.size)
             val firstRow = rows[0] as ProgressLeaderboardRowUiState.Participant
             assertEquals(1, firstRow.rank)
             assertEquals("Silver Bright Harbor", firstRow.displayName)
@@ -328,6 +328,7 @@ class ProgressViewModelTest {
         val topRows = rows.take(3).map { row -> row as ProgressLeaderboardRowUiState.Participant }
         assertEquals(listOf(1, 2, 3), topRows.map(ProgressLeaderboardRowUiState.Participant::rank))
         assertEquals(ProgressLeaderboardRowUiState.Gap, rows[3])
+        assertEquals(ProgressLeaderboardRowUiState.Gap, rows[7])
     }
 
     @Test
@@ -765,7 +766,8 @@ private fun createCloudProgressLeaderboardWindow(): CloudProgressLeaderboardWind
                 anonymousDisplayName = "Sunny Brave Cliff",
                 qualifiedReviewCount = 7,
                 rank = 43
-            )
+            ),
+            CloudProgressLeaderboardRow.Gap
         )
     )
 }

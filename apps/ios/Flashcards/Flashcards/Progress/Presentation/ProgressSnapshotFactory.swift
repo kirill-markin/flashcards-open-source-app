@@ -122,10 +122,10 @@ private func makeProgressLeaderboardWindowState(
     }
 
     let overlaidViewerCount = max(window.viewer.qualifiedReviewCount, localQualifiedReviewCount)
-    let rows = window.rows.map { row -> ProgressLeaderboardRowState in
+    let rows = window.rows.enumerated().map { index, row -> ProgressLeaderboardRowState in
         switch row {
         case .gap:
-            return .gap
+            return .gap(ProgressLeaderboardGapRowState(id: "gap-\(index)"))
         case .participant(let participantRow):
             return .participant(
                 ProgressLeaderboardParticipantRowState(

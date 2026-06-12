@@ -227,7 +227,8 @@ paths:
       description: >-
         Returns all five leaderboard windows in one payload for the Progress tab,
         each with viewer-perspective ranks, the per-viewer tie rule, and the
-        server-computed compact rows so every client renders the same list.
+        server-computed compact rows so every client renders the same list,
+        including gap rows for hidden ranks between and after visible groups.
         Guests receive status linked_account_required and opted-out users receive
         participation_disabled, both with no other users' rows. ApiKey
         authentication is rejected. Only opaque public profile ids and
@@ -269,6 +270,16 @@ paths:
                         anonymousDisplayName: Silver Bright Harbor
                         qualifiedReviewCount: 51
                         rank: 1
+                      - kind: top
+                        publicProfileId: d4e5f6a7-8192-4d0e-af3b-4c5d6e7f8091
+                        anonymousDisplayName: Violet Calm Ridge
+                        qualifiedReviewCount: 44
+                        rank: 2
+                      - kind: top
+                        publicProfileId: e5f6a7b8-9203-4e1f-b04c-5d6e7f8091a2
+                        anonymousDisplayName: Indigo Clear Grove
+                        qualifiedReviewCount: 30
+                        rank: 3
                       - kind: gap
                       - kind: neighbor
                         publicProfileId: b2c3d4e5-6f70-4b9c-8d1e-2f3a4b5c6d7e
@@ -285,6 +296,7 @@ paths:
                         anonymousDisplayName: Coral Keen Valley
                         qualifiedReviewCount: 7
                         rank: 43
+                      - kind: gap
         '403':
           description: Forbidden authentication transport
           content:

@@ -96,16 +96,20 @@ struct ProgressLeaderboardWindowState: Hashable, Identifiable, Sendable {
 
 enum ProgressLeaderboardRowState: Hashable, Identifiable, Sendable {
     case participant(ProgressLeaderboardParticipantRowState)
-    case gap
+    case gap(ProgressLeaderboardGapRowState)
 
     var id: String {
         switch self {
         case .participant(let row):
             return "participant-\(row.rank)-\(row.publicProfileId)"
-        case .gap:
-            return "gap"
+        case .gap(let row):
+            return row.id
         }
     }
+}
+
+struct ProgressLeaderboardGapRowState: Hashable, Sendable {
+    let id: String
 }
 
 struct ProgressLeaderboardParticipantRowState: Hashable, Sendable {
