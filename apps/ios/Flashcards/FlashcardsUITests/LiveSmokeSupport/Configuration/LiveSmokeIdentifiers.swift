@@ -410,7 +410,8 @@ enum LiveSmokeLaunchFixtureData {
 }
 
 let aiComposerPlaceholderText: String = "Ask about cards, review history, or propose a change..."
-let aiCreatePromptText: String = "I give you all permissions. Please create one test flashcard now."
+let aiCreatePromptText: String = "Create exactly one flashcard with frontText \"What is the smoke test AI card?\" "
+    + "and backText \"The smoke test AI card was created successfully.\"; I approve the create operation; do not ask a follow-up."
 let aiResetPromptText: String = "Reply with exactly: reset ok"
 let aiCreatePromptMaximumAttempts: Int = 3
 let aiResetPromptMaximumAttempts: Int = 3

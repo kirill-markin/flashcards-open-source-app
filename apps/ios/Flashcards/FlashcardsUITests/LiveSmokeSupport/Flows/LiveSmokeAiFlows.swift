@@ -46,6 +46,14 @@ extension LiveSmokeTestCase {
                 aiCreatePromptText,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
+            let messageRowsBeforeSend = self.app.descendants(matching: .any)
+                .matching(identifier: LiveSmokeIdentifier.aiMessageRow)
+                .count
+            let completedMarkerCountBeforeWait = self.app.descendants(matching: .any)
+                .matching(identifier: LiveSmokeIdentifier.aiToolCallCompletedStatus)
+                .count
+            let errorMarkerCountBeforeWait = self.visibleAssistantErrorMessageCount()
+            let assistantTextCountBeforeWait = self.visibleMeaningfulAssistantTextMessages().count
             try self.assertElementEnabled(
                 identifier: LiveSmokeIdentifier.aiComposerSendButton,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
@@ -60,6 +68,16 @@ extension LiveSmokeTestCase {
                 identifier: LiveSmokeIdentifier.aiComposerSendButton,
                 result: "success",
                 note: "AI create request sent"
+            )
+            try self.assertAiRunStartedOrFinished(
+                timeout: LiveSmokeConfiguration.longUiTimeoutSeconds,
+                completedMarkerCountBeforeWait: completedMarkerCountBeforeWait,
+                errorMarkerCountBeforeWait: errorMarkerCountBeforeWait,
+                assistantTextCountBeforeWait: assistantTextCountBeforeWait
+            )
+            try self.waitForUserAiMessageRowCountIncrease(
+                previousCount: messageRowsBeforeSend,
+                timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
             )
             latestCompletedSqlSummaries = try self.waitForCompletedAiInsertToolCall(
                 timeout: aiCreateRunCompletionTimeoutSeconds
@@ -448,7 +466,7 @@ extension LiveSmokeTestCase {
             note: "previous=\(previousCount) current=\(currentCount)"
         )
         throw LiveSmokeFailure.unexpectedAiConversationState(
-            message: "Expected at least one new user AI message row before reset, but the count stayed at \(currentCount).",
+            message: "Expected at least one new user AI message row after sending the prompt, but the count stayed at \(currentCount).",
             screen: self.currentScreenSummary(),
             step: self.currentStepTitle
         )
