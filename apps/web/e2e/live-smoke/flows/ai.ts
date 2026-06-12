@@ -54,7 +54,8 @@ async function runAiCardCreationWithConfirmation(session: LiveSmokeSession): Pro
   const messageField = page.getByTestId("chat-composer-input");
   const sendButton = page.getByTestId("chat-send-button");
   const stopButton = page.getByTestId("chat-stop-button");
-  const createPrompt = "I give you all permissions. Please create one test flashcard now.";
+  const createPrompt = "Create exactly one flashcard with frontText \"What is the smoke test AI card?\" "
+    + "and backText \"The smoke test AI card was created successfully.\"; I approve the create operation; do not ask a follow-up.";
   const bootstrapTransportObserver = createAiTransportObserver(page);
   const transportObserver = createAiTransportObserver(page);
 

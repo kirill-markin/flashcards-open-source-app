@@ -45,7 +45,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
 private const val aiCreatePromptText: String =
-    "I give you all permissions. Please create one test flashcard now."
+    "Create exactly one flashcard with frontText \"What is the smoke test AI card?\" " +
+        "and backText \"The smoke test AI card was created successfully.\"; I approve the create operation; do not ask a follow-up."
 private const val aiResetPromptText: String =
     "Please reply with one short sentence so I can verify this chat resets."
 
