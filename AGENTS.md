@@ -46,6 +46,7 @@ For the optional private analytical DB access path, granted reporting permission
 ## Release Gates and Monitoring
 
 Pushes to `main` use three independent release streams: AWS/web, Android, and iOS.
+Keep the Xcode Cloud `Test - iOS` action non-required on purpose so TestFlight can receive builds even when smoke tests fail.
 Details, rollback rules, and live smoke references: [docs/release-gates.md](docs/release-gates.md).
 
 ## Repository Strategy

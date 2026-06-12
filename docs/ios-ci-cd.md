@@ -52,7 +52,7 @@ Optional Sentry environment values:
 
 - `XCODE_CLOUD_SENTRY_ENVIRONMENT` (defaults to `production` in Xcode Cloud)
 - `XCODE_CLOUD_SENTRY_TRACES_SAMPLE_RATE` (defaults to `0.0`)
-- `SENTRY_URL` (only needed for a non-default Sentry endpoint)
+- `SENTRY_URL` (only needed for a non-default Sentry endpoint; the URL must match the endpoint that issued `SENTRY_AUTH_TOKEN`)
 
 `ci_post_clone.sh` fails the build before `xcodebuild` if any required build-time variable is missing or if any URL value is malformed for `.xcconfig` usage. `ci_post_xcodebuild.sh` fails the archive if any required Sentry upload value is missing, if `sentry-cli` cannot be downloaded, or if the downloaded binary fails SHA-256 verification.
 
