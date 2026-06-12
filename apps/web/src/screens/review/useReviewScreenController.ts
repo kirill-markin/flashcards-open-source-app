@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReviewRating } from "../../../../backend/src/scheduling";
 import {
   loadFeedbackState,
@@ -56,8 +56,6 @@ import { useReviewKeyboardShortcuts } from "./input/useReviewKeyboardShortcuts";
 import { useReviewRatingReactions, type UseReviewRatingReactionsResult } from "./reactions/useReviewRatingReactions";
 import { makeReviewSpeakableText, useReviewSpeech } from "./speech/reviewSpeech";
 
-const reviewQueuePanelHash = "#review-queue-panel";
-
 export type UseReviewScreenControllerResult = Readonly<{
   dismissReviewReactions: UseReviewRatingReactionsResult["dismissReactions"];
   editorModalProps: ReviewEditorModalProps;
@@ -73,16 +71,6 @@ export type UseReviewScreenControllerResult = Readonly<{
 export type UseReviewScreenControllerParams = Readonly<{
   reviewReactionAnimationsEnabled: boolean;
 }>;
-
-function isReviewQueuePanelHashActive(): boolean {
-  return window.location.hash === reviewQueuePanelHash;
-}
-
-function clearReviewQueuePanelHash(): void {
-  if (isReviewQueuePanelHashActive()) {
-    window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
-  }
-}
 
 type AutomaticFeedbackPromptUiState = Readonly<{
   isEditorPresented: boolean;
@@ -123,7 +111,7 @@ export function useReviewScreenController(
   const [feedbackMessage, setFeedbackMessage] = useState<string>("");
   const [feedbackErrorMessage, setFeedbackErrorMessage] = useState<string>("");
   const [isFeedbackSubmitting, setIsFeedbackSubmitting] = useState<boolean>(false);
-  const [isReviewQueuePanelOpen, setIsReviewQueuePanelOpen] = useState<boolean>(() => isReviewQueuePanelHashActive());
+  const [isReviewQueuePanelOpen, setIsReviewQueuePanelOpen] = useState<boolean>(false);
   const [hardReminderLastShownAt, setHardReminderLastShownAt] = useState<number | null>(() => loadReviewHardReminderLastShownAt());
   const automaticFeedbackPromptUiStateRef = useRef<AutomaticFeedbackPromptUiState>({
     isEditorPresented: false,
@@ -253,15 +241,6 @@ export function useReviewScreenController(
   let reviewButtonErrorMessage: string = "";
   let reviewButtonScheduleError: Error | null = null;
 
-  useEffect(() => {
-    function handleHashChange(): void {
-      setIsReviewQueuePanelOpen(isReviewQueuePanelHashActive());
-    }
-
-    window.addEventListener("hashchange", handleHashChange);
-    return () => window.removeEventListener("hashchange", handleHashChange);
-  }, []);
-
   function captureFeedbackOperationError(
     error: unknown,
     operation: "feedback_activity_load" | "feedback_state_load" | "feedback_prompt_event" | "feedback_submit",
@@ -285,19 +264,11 @@ export function useReviewScreenController(
       || uiState.isReviewFilterMenuOpen;
   }
 
-  function handleReviewQueueShortcutClick(event: MouseEvent<HTMLAnchorElement>): void {
-    if (isReviewQueuePanelOpen || isReviewQueuePanelHashActive()) {
-      event.preventDefault();
-      clearReviewQueuePanelHash();
-      setIsReviewQueuePanelOpen(false);
-      return;
-    }
-
-    setIsReviewQueuePanelOpen(true);
+  function handleReviewQueueShortcutClick(): void {
+    setIsReviewQueuePanelOpen((currentIsReviewQueuePanelOpen) => !currentIsReviewQueuePanelOpen);
   }
 
   function handleReviewQueuePanelClose(): void {
-    clearReviewQueuePanelHash();
     setIsReviewQueuePanelOpen(false);
   }
 

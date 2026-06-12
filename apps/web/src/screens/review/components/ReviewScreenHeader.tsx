@@ -1,4 +1,4 @@
-import type { ComponentProps, MouseEvent, ReactElement } from "react";
+import type { ComponentProps, ReactElement } from "react";
 import { Link } from "react-router-dom";
 import { formatReviewProgressBadgeValue } from "../../../appData/progress/badge/reviewProgressBadge";
 import { useI18n } from "../../../i18n";
@@ -17,7 +17,7 @@ export type ReviewScreenHeaderProps = Readonly<{
   hasLoadedReviewData: boolean;
   isReviewQueuePanelOpen: boolean;
   onRetry: () => void;
-  onReviewQueueShortcutClick: (event: MouseEvent<HTMLAnchorElement>) => void;
+  onReviewQueueShortcutClick: () => void;
   reviewQueueTotalCount: number;
   reviewLoadErrorMessage: string;
   reviewProgressBadge: ReviewProgressBadgeState;
@@ -52,15 +52,6 @@ export function ReviewScreenHeader(props: ReviewScreenHeaderProps): ReactElement
   const leaderboardShortcutAriaLabel = t("reviewScreen.leaderboardShortcut.ariaLabel");
   const isReviewQueueShortcutDisabled = reviewQueueTotalCount === 0;
 
-  function handleReviewQueueShortcutClick(event: MouseEvent<HTMLAnchorElement>): void {
-    if (isReviewQueueShortcutDisabled) {
-      event.preventDefault();
-      return;
-    }
-
-    onReviewQueueShortcutClick(event);
-  }
-
   return (
     <div className="screen-head review-screen-head">
       <div>
@@ -79,20 +70,19 @@ export function ReviewScreenHeader(props: ReviewScreenHeaderProps): ReactElement
         <div className="review-filter-summary-wrap">
           <span className="review-filter-label">{t("common.status")}</span>
           <div className="review-progress-shortcuts">
-            <a
+            <button
               className="badge review-progress-badge review-screen-head-badge review-queue-shortcut"
-              href="#review-queue-panel"
+              type="button"
               aria-controls="review-queue-panel"
               aria-expanded={isReviewQueueShortcutDisabled ? undefined : isReviewQueuePanelOpen}
               aria-label={reviewQueueAriaLabel}
               title={reviewQueueAriaLabel}
               data-testid="review-queue-badge"
-              aria-disabled={isReviewQueueShortcutDisabled ? "true" : undefined}
-              tabIndex={isReviewQueueShortcutDisabled ? -1 : undefined}
-              onClick={handleReviewQueueShortcutClick}
+              disabled={isReviewQueueShortcutDisabled}
+              onClick={onReviewQueueShortcutClick}
             >
               <ReviewQueueShortcutIcon />
-            </a>
+            </button>
             <Link
               className="badge review-progress-badge review-screen-head-badge review-leaderboard-shortcut"
               to={progressLeaderboardRoute}

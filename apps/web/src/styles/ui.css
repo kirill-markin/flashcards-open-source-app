@@ -20,6 +20,7 @@
   flex-shrink: 0;
   padding-inline: 10px 12px;
   color: var(--text-secondary);
+  cursor: pointer;
   text-decoration: none;
 }
 
@@ -51,7 +52,7 @@
   justify-content: center;
 }
 
-.review-queue-shortcut[aria-disabled="true"] {
+.review-queue-shortcut:disabled {
   pointer-events: none;
   opacity: 0.64;
 }
