@@ -34,6 +34,7 @@ data class ReviewFilterRequest(
 )
 
 enum class ProgressNavigationTarget {
+    STREAK,
     LEADERBOARD
 }
 

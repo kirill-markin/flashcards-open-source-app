@@ -56,6 +56,11 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         val reviewedTodayDescription = reviewString(
             ReviewStringResources.string.review_progress_badge_not_reviewed_today
         )
+        val reviewQueueContentDescription = composeRule.activity.resources.getQuantityString(
+            ReviewStringResources.plurals.review_queue_button_content_description,
+            10,
+            10
+        )
 
         composeRule.setContent {
             FlashcardsTheme {
@@ -130,7 +135,14 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
 
         composeRule.onNodeWithTag(reviewQueueButtonTag)
             .assertIsDisplayed()
+            .assert(
+                hasSemanticsValue(
+                    key = SemanticsProperties.ContentDescription,
+                    expectedValue = listOf(reviewQueueContentDescription)
+                )
+            )
             .performClick()
+        composeRule.onNodeWithText("10").assertIsDisplayed()
         composeRule.onNodeWithText("99+").assertIsDisplayed()
         composeRule.onNodeWithTag(reviewLeaderboardShortcutTag)
             .assertIsDisplayed()

@@ -68,6 +68,12 @@ class ProgressViewModelTest {
     }
 
     @Test
+    fun progressSectionScrollIndexesMatchLoadedRouteOrder() {
+        assertEquals(0, progressStreakItemIndex())
+        assertEquals(1, progressLeaderboardItemIndex())
+    }
+
+    @Test
     fun repositorySnapshotsMapToLoadedUiState() = runTest(dispatcher) {
         Dispatchers.setMain(dispatcher)
         try {

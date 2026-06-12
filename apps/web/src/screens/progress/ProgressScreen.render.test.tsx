@@ -4,7 +4,7 @@ import ReactDOM from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "../../i18n";
-import { progressLeaderboardHash } from "../../routes";
+import { progressLeaderboardHash, progressStreakHash } from "../../routes";
 import type { AppDataContextValue } from "../../appData";
 import {
   createEmptyProgressLeaderboardSourceState,
@@ -743,6 +743,29 @@ describe("ProgressScreen", () => {
     }
 
     expect(leaderboardCard.id).toBe(progressLeaderboardHash);
+    expect(vi.mocked(HTMLElement.prototype.scrollIntoView)).toHaveBeenCalledWith({
+      behavior: "smooth",
+      block: "start",
+    });
+  });
+
+  it("scrolls to the streak card when the route hash targets it", async () => {
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={[`/progress#${progressStreakHash}`]}>
+          <I18nProvider>
+            <ProgressScreen />
+          </I18nProvider>
+        </MemoryRouter>,
+      );
+    });
+
+    const streakCard = container.querySelector("[data-testid='progress-streak-card']");
+    if (!(streakCard instanceof HTMLElement)) {
+      throw new Error("Streak card was not found");
+    }
+
+    expect(streakCard.id).toBe(progressStreakHash);
     expect(vi.mocked(HTMLElement.prototype.scrollIntoView)).toHaveBeenCalledWith({
       behavior: "smooth",
       block: "start",

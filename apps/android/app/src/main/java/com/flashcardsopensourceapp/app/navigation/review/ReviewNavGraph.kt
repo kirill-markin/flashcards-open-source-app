@@ -202,6 +202,9 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                     )
                 },
                 onOpenProgress = {
+                    appGraph.appHandoffCoordinator.requestProgressNavigation(
+                        target = ProgressNavigationTarget.STREAK
+                    )
                     navigateToTopLevelDestination(
                         navController = navController,
                         destination = ProgressDestination

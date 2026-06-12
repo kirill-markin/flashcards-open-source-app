@@ -32,6 +32,8 @@ import com.flashcardsopensourceapp.feature.progress.sections.StreakSectionCard
 @Composable
 fun ProgressRoute(
     uiState: ProgressUiState,
+    streakScrollRequestId: Long?,
+    onStreakScrollRequestConsumed: (Long) -> Unit,
     leaderboardScrollRequestId: Long?,
     onLeaderboardScrollRequestConsumed: (Long) -> Unit,
     onScreenVisible: () -> Unit,
@@ -43,6 +45,9 @@ fun ProgressRoute(
     val lifecycleOwner = LocalLifecycleOwner.current
     val listState = rememberLazyListState()
     val currentScreenVisibleAction = rememberUpdatedState(newValue = onScreenVisible)
+    val currentStreakScrollRequestConsumed = rememberUpdatedState(
+        newValue = onStreakScrollRequestConsumed
+    )
     val currentLeaderboardScrollRequestConsumed = rememberUpdatedState(
         newValue = onLeaderboardScrollRequestConsumed
     )
@@ -64,15 +69,19 @@ fun ProgressRoute(
         }
     }
 
+    LaunchedEffect(streakScrollRequestId, uiState) {
+        val requestId = streakScrollRequestId ?: return@LaunchedEffect
+        uiState as? ProgressUiState.Loaded ?: return@LaunchedEffect
+
+        listState.animateScrollToItem(index = progressStreakItemIndex())
+        currentStreakScrollRequestConsumed.value(requestId)
+    }
+
     LaunchedEffect(leaderboardScrollRequestId, uiState) {
         val requestId = leaderboardScrollRequestId ?: return@LaunchedEffect
-        val loadedState = uiState as? ProgressUiState.Loaded ?: return@LaunchedEffect
+        uiState as? ProgressUiState.Loaded ?: return@LaunchedEffect
 
-        listState.animateScrollToItem(
-            index = progressLeaderboardItemIndex(
-                hasReviewScheduleSection = loadedState.reviewScheduleSection != null
-            )
-        )
+        listState.animateScrollToItem(index = progressLeaderboardItemIndex())
         currentLeaderboardScrollRequestConsumed.value(requestId)
     }
 
@@ -164,14 +173,12 @@ fun ProgressRoute(
     }
 }
 
-internal fun progressLeaderboardItemIndex(
-    hasReviewScheduleSection: Boolean
-): Int {
-    return if (hasReviewScheduleSection) {
-        3
-    } else {
-        2
-    }
+internal fun progressStreakItemIndex(): Int {
+    return 0
+}
+
+internal fun progressLeaderboardItemIndex(): Int {
+    return 1
 }
 
 internal fun shouldTriggerInitialProgressLoad(

@@ -8,7 +8,7 @@ import {
 import { useProgressInvalidationState } from "../../appData/progress/invalidation/progressInvalidation";
 import { canLoadProgressServerBase, useProgressSource } from "../../appData/progress/progressSource";
 import { resolveLocaleWeekContext, useI18n } from "../../i18n";
-import { progressLeaderboardHash } from "../../routes";
+import { progressLeaderboardHash, progressStreakHash } from "../../routes";
 import type {
   DailyReviewPoint,
   ProgressLeaderboardWindowKey,
@@ -70,6 +70,7 @@ export function ProgressScreen(): ReactElement {
   const [selectedReviewScheduleBucket, setSelectedReviewScheduleBucket] = useState<ProgressReviewScheduleBucketKey | null>(null);
   const [selectedLeaderboardWindowKey, setSelectedLeaderboardWindowKey] = useState<ProgressLeaderboardWindowKey | null>(null);
   const [isLeaderboardInfoVisible, setIsLeaderboardInfoVisible] = useState<boolean>(false);
+  const streakSectionRef = useRef<HTMLElement | null>(null);
   const leaderboardSectionRef = useRef<HTMLElement | null>(null);
   const progressSummary = progressSourceState.summary.renderedSnapshot;
   const progress = progressSourceState.series.renderedSnapshot;
@@ -93,23 +94,27 @@ export function ProgressScreen(): ReactElement {
   }, [progressSourceState.reviewSchedule.renderedSnapshot]);
 
   useEffect(() => {
-    if (location.hash !== `#${progressLeaderboardHash}` || progress === null) {
+    if (progress === null) {
       return;
     }
 
-    const leaderboardSection = leaderboardSectionRef.current;
-    if (leaderboardSection === null) {
+    const targetSection = location.hash === `#${progressStreakHash}`
+      ? streakSectionRef.current
+      : location.hash === `#${progressLeaderboardHash}`
+        ? leaderboardSectionRef.current
+        : null;
+    if (targetSection === null) {
       return;
     }
 
     const animationFrameId = window.requestAnimationFrame(() => {
-      leaderboardSection.scrollIntoView({ behavior: "smooth", block: "start" });
+      targetSection.scrollIntoView({ behavior: "smooth", block: "start" });
     });
 
     return () => {
       window.cancelAnimationFrame(animationFrameId);
     };
-  }, [location.hash, progress, progressSourceState.leaderboard.renderedSnapshot]);
+  }, [location.hash, progress]);
 
   const dailyReviews = progress === null ? [] : sortDailyReviews(progress.dailyReviews);
   const today = progress === null ? "" : progress.to;
@@ -198,6 +203,8 @@ export function ProgressScreen(): ReactElement {
           <div className="progress-layout">
             <ProgressStreakSection
               title={t("progressScreen.streakTitle")}
+              sectionId={progressStreakHash}
+              sectionRef={streakSectionRef}
               summary={progressStreakSummary}
               streakWeeks={streakWeeks}
             />

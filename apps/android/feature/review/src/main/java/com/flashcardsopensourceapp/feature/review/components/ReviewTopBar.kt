@@ -13,7 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.FilterList
-import androidx.compose.material.icons.outlined.HourglassBottom
+import androidx.compose.material.icons.outlined.FormatListBulleted
 import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -44,7 +44,6 @@ private val reviewTopBarFilterMaxWidth = 160.dp
 @Composable
 internal fun ReviewTopBar(
     isLoading: Boolean,
-    remainingCount: Int,
     totalCount: Int,
     reviewProgressBadge: ReviewProgressBadgeState,
     selectedFilterTitle: String,
@@ -95,7 +94,6 @@ internal fun ReviewTopBar(
 
             ReviewQueueAction(
                 isLoading = isLoading,
-                remainingCount = remainingCount,
                 totalCount = totalCount,
                 onOpenPreview = onOpenPreview
             )
@@ -147,7 +145,6 @@ internal fun ReviewTopBar(
 @Composable
 private fun ReviewQueueAction(
     isLoading: Boolean,
-    remainingCount: Int,
     totalCount: Int,
     onOpenPreview: () -> Unit
 ) {
@@ -160,6 +157,12 @@ private fun ReviewQueueAction(
         )
         return
     }
+    val resources = LocalContext.current.resources
+    val queueContentDescription = resources.getQuantityString(
+        R.plurals.review_queue_button_content_description,
+        totalCount,
+        totalCount
+    )
 
     TextButton(
         onClick = onOpenPreview,
@@ -168,19 +171,17 @@ private fun ReviewQueueAction(
             contentColor = MaterialTheme.colorScheme.onSurfaceVariant
         ),
         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-        modifier = Modifier.testTag(reviewQueueButtonTag)
+        modifier = Modifier
+            .testTag(reviewQueueButtonTag)
+            .semantics {
+                contentDescription = queueContentDescription
+            }
     ) {
         Icon(
-            imageVector = Icons.Outlined.HourglassBottom,
+            imageVector = Icons.Outlined.FormatListBulleted,
             contentDescription = null
         )
         Spacer(modifier = Modifier.size(6.dp))
-        Text(
-            text = stringResource(
-                id = R.string.review_progress_fraction,
-                remainingCount,
-                totalCount
-            )
-        )
+        Text(text = totalCount.toString())
     }
 }
