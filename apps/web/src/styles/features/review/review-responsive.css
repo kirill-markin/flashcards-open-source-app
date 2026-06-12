@@ -78,13 +78,14 @@
     width: 100%;
   }
 
-  .review-progress-shortcuts > .review-leaderboard-shortcut {
+  .review-progress-shortcuts > .review-leaderboard-shortcut,
+  .review-progress-shortcuts > .review-queue-shortcut {
     width: 42px;
     min-width: 42px;
     flex: 0 0 42px;
   }
 
-  .review-progress-shortcuts > .review-screen-head-badge:not(.review-leaderboard-shortcut) {
+  .review-progress-shortcuts > .review-screen-head-badge:not(.review-leaderboard-shortcut):not(.review-queue-shortcut) {
     width: auto;
     flex: 1 1 auto;
   }

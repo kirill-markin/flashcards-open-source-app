@@ -6,6 +6,7 @@ import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -142,7 +143,7 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                 )
             )
             .performClick()
-        composeRule.onNodeWithText("10").assertIsDisplayed()
+        composeRule.onNodeWithText("10").assertDoesNotExist()
         composeRule.onNodeWithText("99+").assertIsDisplayed()
         composeRule.onNodeWithTag(reviewLeaderboardShortcutTag)
             .assertIsDisplayed()

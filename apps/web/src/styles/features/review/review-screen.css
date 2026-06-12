@@ -47,7 +47,10 @@
   font-size: 15px;
 }
 
-.review-screen-head-badge.review-leaderboard-shortcut {
+.review-screen-head-badge.review-leaderboard-shortcut,
+.review-screen-head-badge.review-queue-shortcut {
+  min-width: 42px;
+  width: 42px;
   padding-inline: 0;
 }
 
