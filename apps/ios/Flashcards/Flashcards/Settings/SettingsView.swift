@@ -52,17 +52,18 @@ struct SettingsView: View {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.accountStatus", "Account Status"),
                         value: self.accountStatusValue,
-                        systemImage: "person.crop.circle"
+                        systemImage: "person.crop.circle",
+                        attentionCount: self.settingsAttentionSummary.accountStatusRowCount
                     )
                 }
-                .badge(self.settingsAttentionSummary.accountStatusRowCount)
                 .accessibilityIdentifier(UITestIdentifier.settingsAccountStatusRow)
 
                 NavigationLink(value: SettingsNavigationDestination.currentWorkspace) {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.currentWorkspace", "Workspace"),
                         value: self.currentWorkspaceValue,
-                        systemImage: "square.stack"
+                        systemImage: "square.stack",
+                        attentionCount: nil
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsCurrentWorkspaceRow)
@@ -73,7 +74,8 @@ struct SettingsView: View {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.reviewReminders", "Review Reminders"),
                         value: aiSettingsLocalized("settings.row.reviewReminders.value", "This Device"),
-                        systemImage: "bell.badge"
+                        systemImage: "bell.badge",
+                        attentionCount: nil
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsReviewRemindersRow)
@@ -84,7 +86,8 @@ struct SettingsView: View {
                         value: store.accountPreferences.reviewReactionAnimationsEnabled
                             ? aiSettingsLocalized("common.on", "On")
                             : aiSettingsLocalized("common.off", "Off"),
-                        systemImage: "sparkles"
+                        systemImage: "sparkles",
+                        attentionCount: nil
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsReviewAnimationsRow)
@@ -93,7 +96,8 @@ struct SettingsView: View {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.leaderboardParticipation", "Leaderboard participation"),
                         value: self.leaderboardParticipationValue,
-                        systemImage: "list.number"
+                        systemImage: "list.number",
+                        attentionCount: nil
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsLeaderboardParticipationRow)
@@ -102,7 +106,8 @@ struct SettingsView: View {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.language", "Language"),
                         value: aiSettingsLocalized("settings.row.language.value", "iOS"),
-                        systemImage: "globe"
+                        systemImage: "globe",
+                        attentionCount: nil
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsLanguageRow)
@@ -111,7 +116,8 @@ struct SettingsView: View {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.access", "Access"),
                         value: aiSettingsLocalized("settings.row.access.permissionsCount", "3 permissions"),
-                        systemImage: "hand.raised"
+                        systemImage: "hand.raised",
+                        attentionCount: nil
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsAccessRow)
@@ -120,7 +126,8 @@ struct SettingsView: View {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.decks", "Decks"),
                         value: aiSettingsLocalized("settings.row.workspaceScoped.value", "Workspace"),
-                        systemImage: "rectangle.stack"
+                        systemImage: "rectangle.stack",
+                        attentionCount: nil
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsDecksRow)
@@ -129,7 +136,8 @@ struct SettingsView: View {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.tags", "Tags"),
                         value: aiSettingsLocalized("settings.row.workspaceScoped.value", "Workspace"),
-                        systemImage: "tag"
+                        systemImage: "tag",
+                        attentionCount: nil
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsTagsRow)
@@ -138,7 +146,8 @@ struct SettingsView: View {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.export", "Export"),
                         value: "CSV",
-                        systemImage: "square.and.arrow.up"
+                        systemImage: "square.and.arrow.up",
+                        attentionCount: nil
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsExportRow)
@@ -149,7 +158,8 @@ struct SettingsView: View {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.sendFeedback", "Send Feedback"),
                         value: aiSettingsLocalized("settings.row.sendFeedback.value", "Share an idea"),
-                        systemImage: "text.bubble"
+                        systemImage: "text.bubble",
+                        attentionCount: nil
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsFeedbackRow)
@@ -158,7 +168,8 @@ struct SettingsView: View {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.support", "Support"),
                         value: nil,
-                        systemImage: "questionmark.circle"
+                        systemImage: "questionmark.circle",
+                        attentionCount: nil
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsSupportRow)
@@ -167,7 +178,8 @@ struct SettingsView: View {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.legal", "Legal"),
                         value: nil,
-                        systemImage: "doc.text"
+                        systemImage: "doc.text",
+                        attentionCount: nil
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsLegalRow)
@@ -176,7 +188,8 @@ struct SettingsView: View {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.openSource", "Open Source"),
                         value: aiSettingsLocalized("settings.account.row.openSourceValue", "GitHub + MIT"),
-                        systemImage: "chevron.left.forwardslash.chevron.right"
+                        systemImage: "chevron.left.forwardslash.chevron.right",
+                        attentionCount: nil
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsOpenSourceRow)
@@ -187,7 +200,8 @@ struct SettingsView: View {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.scheduling", "Scheduling / FSRS"),
                         value: "FSRS",
-                        systemImage: "calendar.badge.clock"
+                        systemImage: "calendar.badge.clock",
+                        attentionCount: nil
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsSchedulingRow)
@@ -196,7 +210,8 @@ struct SettingsView: View {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.agentConnections", "Agent Connections"),
                         value: aiSettingsLocalized("settings.row.agentConnections.value", "API keys"),
-                        systemImage: "link"
+                        systemImage: "link",
+                        attentionCount: nil
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsAgentConnectionsRow)
@@ -205,7 +220,8 @@ struct SettingsView: View {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.server", "Server"),
                         value: aiSettingsLocalized("settings.row.server.value", "Domain"),
-                        systemImage: "network"
+                        systemImage: "network",
+                        attentionCount: nil
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsServerRow)
@@ -214,7 +230,8 @@ struct SettingsView: View {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.deviceDiagnostics", "Device"),
                         value: nil,
-                        systemImage: "internaldrive"
+                        systemImage: "internaldrive",
+                        attentionCount: nil
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsDeviceDiagnosticsRow)
@@ -223,7 +240,8 @@ struct SettingsView: View {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.resetStudyProgress", "Reset Study Progress"),
                         value: aiSettingsLocalized("settings.row.resetStudyProgress.value", "Progress"),
-                        systemImage: "arrow.counterclockwise.circle"
+                        systemImage: "arrow.counterclockwise.circle",
+                        attentionCount: nil
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsResetStudyProgressRow)
@@ -232,7 +250,8 @@ struct SettingsView: View {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.deleteCurrentWorkspace", "Delete Current Workspace"),
                         value: aiSettingsLocalized("settings.row.permanent.value", "Permanent"),
-                        systemImage: "trash"
+                        systemImage: "trash",
+                        attentionCount: nil
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsDeleteCurrentWorkspaceRow)
@@ -241,7 +260,8 @@ struct SettingsView: View {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.deleteAccount", "Delete Account"),
                         value: aiSettingsLocalized("settings.row.permanent.value", "Permanent"),
-                        systemImage: "person.crop.circle.badge.xmark"
+                        systemImage: "person.crop.circle.badge.xmark",
+                        attentionCount: nil
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsDeleteAccountRow)
@@ -251,7 +271,8 @@ struct SettingsView: View {
                         SettingsNavigationRow(
                             title: aiSettingsLocalized("settings.row.test", "Test"),
                             value: aiSettingsLocalized("settings.row.test.itemCount", "2 items"),
-                            systemImage: "wrench.and.screwdriver"
+                            systemImage: "wrench.and.screwdriver",
+                            attentionCount: nil
                         )
                     }
                     .accessibilityIdentifier(UITestIdentifier.settingsTestRow)
@@ -271,6 +292,7 @@ struct SettingsNavigationRow: View {
     let title: String
     let value: String?
     let systemImage: String
+    let attentionCount: Int?
 
     var body: some View {
         HStack(spacing: 12) {
@@ -282,6 +304,10 @@ struct SettingsNavigationRow: View {
                 Text(value)
                     .font(.subheadline.monospacedDigit())
                     .foregroundStyle(.secondary)
+            }
+
+            if let attentionCount, attentionCount > 0 {
+                SettingsAttentionBadgeView(count: attentionCount)
             }
         }
     }

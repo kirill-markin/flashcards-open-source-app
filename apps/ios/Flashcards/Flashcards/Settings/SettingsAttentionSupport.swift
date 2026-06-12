@@ -1,4 +1,4 @@
-import Foundation
+import SwiftUI
 
 enum SettingsAttentionIssue: Hashable, Sendable {
     case accountNotLinked
@@ -14,6 +14,21 @@ struct SettingsAttentionSummary: Equatable, Sendable {
     let settingsTabCount: Int
     let accountStatusRowCount: Int
     let accountStatusPrimaryActionCount: Int
+}
+
+struct SettingsAttentionBadgeView: View {
+    let count: Int
+
+    var body: some View {
+        Text(count.formatted())
+            .font(.caption2.weight(.bold))
+            .monospacedDigit()
+            .foregroundStyle(.white)
+            .padding(.horizontal, 6)
+            .frame(minWidth: 22, minHeight: 22)
+            .background(Capsule().fill(Color(.systemRed)))
+            .fixedSize()
+    }
 }
 
 func makeSettingsAttentionIssues(cloudState: CloudAccountState?) -> [SettingsAttentionIssue] {

@@ -100,16 +100,24 @@ struct AccountStatusView: View {
 
                     switch cloudSettings.cloudState {
                     case .disconnected, .linkingReady:
-                        Button(aiSettingsLocalized("settings.account.status.signIn", "Sign in or sign up")) {
+                        Button {
                             self.isCloudSignInPresented = true
+                        } label: {
+                            AccountStatusPrimaryActionLabel(
+                                title: aiSettingsLocalized("settings.account.status.signIn", "Sign in or sign up"),
+                                attentionCount: self.settingsAttentionSummary.accountStatusPrimaryActionCount
+                            )
                         }
-                        .badge(self.settingsAttentionSummary.accountStatusPrimaryActionCount)
                         .accessibilityIdentifier(UITestIdentifier.accountStatusSignInButton)
                     case .guest:
-                        Button(aiSettingsLocalized("settings.account.status.signIn", "Sign in or sign up")) {
+                        Button {
                             self.isCloudSignInPresented = true
+                        } label: {
+                            AccountStatusPrimaryActionLabel(
+                                title: aiSettingsLocalized("settings.account.status.signIn", "Sign in or sign up"),
+                                attentionCount: self.settingsAttentionSummary.accountStatusPrimaryActionCount
+                            )
                         }
-                        .badge(self.settingsAttentionSummary.accountStatusPrimaryActionCount)
                         .accessibilityIdentifier(UITestIdentifier.accountStatusSignInButton)
                     case .linked:
                         Button(aiSettingsLocalized("settings.account.status.syncNow", "Sync now")) {
@@ -189,6 +197,24 @@ struct AccountStatusView: View {
             return true
         }
         return false
+    }
+}
+
+private struct AccountStatusPrimaryActionLabel: View {
+    let title: String
+    let attentionCount: Int
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text(title)
+
+            Spacer()
+
+            if attentionCount > 0 {
+                SettingsAttentionBadgeView(count: attentionCount)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

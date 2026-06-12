@@ -20,7 +20,8 @@ struct FeedbackSettingsView: View {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.sendFeedback", "Send Feedback"),
                         value: aiSettingsLocalized("settings.row.sendFeedback.value", "Share an idea"),
-                        systemImage: "text.bubble"
+                        systemImage: "text.bubble",
+                        attentionCount: nil
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.feedbackSettingsOpenFeedbackButton)
