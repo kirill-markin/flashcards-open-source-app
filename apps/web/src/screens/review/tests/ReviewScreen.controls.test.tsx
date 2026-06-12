@@ -183,14 +183,15 @@ describe("ReviewScreen controls", () => {
     expect(progressBadge.className).not.toContain("review-progress-badge-approximate");
     expect(progressBadge.textContent).not.toContain("🔥");
     const queueBadge = getContainer().querySelector("[data-testid='review-queue-badge']");
-    if (!(queueBadge instanceof HTMLAnchorElement)) {
+    if (!(queueBadge instanceof HTMLButtonElement)) {
       throw new Error("Review queue badge was not found");
     }
     expect(queueBadge.querySelector(".review-progress-badge-value")).toBeNull();
     expect(queueBadge.getAttribute("aria-label")).toContain("1 card");
     expect(queueBadge.getAttribute("aria-controls")).toBe("review-queue-panel");
     expect(queueBadge.getAttribute("aria-expanded")).toBe("false");
-    expect(queueBadge.getAttribute("href")).toBe("#review-queue-panel");
+    expect(queueBadge.getAttribute("href")).toBeNull();
+    expect(queueBadge.disabled).toBe(false);
     const queuePanel = getContainer().querySelector("#review-queue-panel");
     if (!(queuePanel instanceof HTMLElement)) {
       throw new Error("Review queue panel was not found");
@@ -216,17 +217,21 @@ describe("ReviewScreen controls", () => {
     await clickElementAsync(queueBadge);
     expect(queueBadge.getAttribute("aria-expanded")).toBe("true");
     expect(queuePanel.className).toContain("review-queue-panel-open");
+    expect(window.location.hash).toBe("");
 
     await clickElementAsync(queueCloseButton);
     expect(queueBadge.getAttribute("aria-expanded")).toBe("false");
     expect(queuePanel.className).not.toContain("review-queue-panel-open");
+    expect(window.location.hash).toBe("");
 
     await clickElementAsync(queueBadge);
     expect(queueBadge.getAttribute("aria-expanded")).toBe("true");
+    expect(window.location.hash).toBe("");
 
     await clickElementAsync(queueBadge);
     expect(queueBadge.getAttribute("aria-expanded")).toBe("false");
     expect(queuePanel.className).not.toContain("review-queue-panel-open");
+    expect(window.location.hash).toBe("");
   });
 
   it("reveals the answer with Space and submits the selected rating shortcut", async () => {

@@ -7,7 +7,6 @@
     display: none;
   }
 
-  .review-queue-panel:target,
   .review-queue-panel.review-queue-panel-open {
     display: grid;
   }
