@@ -83,7 +83,6 @@ export function ReviewScreenHeader(props: ReviewScreenHeaderProps): ReactElement
               onClick={handleReviewQueueShortcutClick}
             >
               <ReviewQueueShortcutIcon />
-              <span className="review-progress-badge-value">{formatNumber(reviewQueueTotalCount)}</span>
             </a>
             <Link
               className="badge review-progress-badge review-screen-head-badge review-leaderboard-shortcut"

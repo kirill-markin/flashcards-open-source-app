@@ -5,6 +5,7 @@ private let reviewBottomBarHorizontalPadding: CGFloat = 20
 private let reviewBottomBarTopPadding: CGFloat = 8
 private let reviewBottomBarBottomPadding: CGFloat = 8
 private let reviewBottomBarButtonSpacing: CGFloat = 10
+private let reviewFilterMenuTitleMaxWidth: CGFloat = 180
 private let reviewAnswerButtonMinHeight: CGFloat = 40
 private let showAnswerButtonMinHeight: CGFloat = 56
 let emptyBackTextPlaceholder: String = String(localized: "No back text", table: reviewCardsStringsTableName)
@@ -389,6 +390,7 @@ struct ReviewView: View {
                 Text(self.selectedReviewFilterTitle)
                     .lineLimit(1)
                     .truncationMode(.tail)
+                    .frame(maxWidth: reviewFilterMenuTitleMaxWidth, alignment: .leading)
                 Image(systemName: "chevron.down")
                     .font(.caption.weight(.semibold))
             }
@@ -522,15 +524,8 @@ struct ReviewView: View {
             Button {
                 self.isQueuePreviewPresented = true
             } label: {
-                Label {
-                    Text(self.reviewQueueTotalButtonTitle)
-                        .monospacedDigit()
-                        .lineLimit(1)
-                } icon: {
-                    Image(systemName: "list.bullet")
-                }
-                .labelStyle(.titleAndIcon)
-                .fixedSize(horizontal: true, vertical: false)
+                Label(self.reviewQueueButtonTitle, systemImage: "list.bullet")
+                    .labelStyle(.iconOnly)
             }
             .buttonStyle(.glass)
             .controlSize(.large)
@@ -547,8 +542,12 @@ struct ReviewView: View {
         }
     }
 
-    private var reviewQueueTotalButtonTitle: String {
-        store.reviewTotalCount.formatted()
+    private var reviewQueueButtonTitle: String {
+        String(
+            localized: "Review queue",
+            table: reviewCardsStringsTableName,
+            comment: "Toolbar shortcut title for opening the Review queue preview"
+        )
     }
 
     private var reviewProgressBadgeButton: some View {
@@ -589,7 +588,8 @@ struct ReviewView: View {
         Button {
             self.navigation.openProgress(target: .leaderboard)
         } label: {
-            Image(systemName: "trophy")
+            Label(self.reviewLeaderboardButtonTitle, systemImage: "trophy")
+                .labelStyle(.iconOnly)
         }
         .buttonStyle(.glass)
         .controlSize(.large)

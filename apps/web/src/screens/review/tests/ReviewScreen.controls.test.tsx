@@ -186,7 +186,8 @@ describe("ReviewScreen controls", () => {
     if (!(queueBadge instanceof HTMLAnchorElement)) {
       throw new Error("Review queue badge was not found");
     }
-    expect(queueBadge.textContent).toContain("1");
+    expect(queueBadge.querySelector(".review-progress-badge-value")).toBeNull();
+    expect(queueBadge.getAttribute("aria-label")).toContain("1 card");
     expect(queueBadge.getAttribute("href")).toBe("#review-queue-panel");
     expect(getContainer().querySelector("[data-testid='review-screen-toolbar']")).toBeNull();
     expect(headerActions.contains(scopeTrigger)).toBe(true);

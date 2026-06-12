@@ -2,9 +2,7 @@ package com.flashcardsopensourceapp.feature.review
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -15,7 +13,6 @@ import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.FormatListBulleted
 import androidx.compose.material.icons.outlined.LocalFireDepartment
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -23,7 +20,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -164,13 +160,9 @@ private fun ReviewQueueAction(
         totalCount
     )
 
-    TextButton(
+    IconButton(
         onClick = onOpenPreview,
         enabled = totalCount > 0,
-        colors = ButtonDefaults.textButtonColors(
-            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-        ),
-        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
         modifier = Modifier
             .testTag(reviewQueueButtonTag)
             .semantics {
@@ -181,7 +173,5 @@ private fun ReviewQueueAction(
             imageVector = Icons.Outlined.FormatListBulleted,
             contentDescription = null
         )
-        Spacer(modifier = Modifier.size(6.dp))
-        Text(text = totalCount.toString())
     }
 }
