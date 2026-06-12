@@ -20,6 +20,13 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
+import com.flashcardsopensourceapp.feature.progress.sections.ErrorCard
+import com.flashcardsopensourceapp.feature.progress.sections.GuidanceCard
+import com.flashcardsopensourceapp.feature.progress.sections.LeaderboardSectionCard
+import com.flashcardsopensourceapp.feature.progress.sections.LoadingCard
+import com.flashcardsopensourceapp.feature.progress.sections.ReviewScheduleSectionCard
+import com.flashcardsopensourceapp.feature.progress.sections.ReviewsSectionCard
+import com.flashcardsopensourceapp.feature.progress.sections.StreakSectionCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

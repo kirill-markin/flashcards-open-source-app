@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.progress
+package com.flashcardsopensourceapp.feature.progress.sections
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -33,6 +33,10 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.flashcardsopensourceapp.feature.progress.ProgressStreakDayUiState
+import com.flashcardsopensourceapp.feature.progress.ProgressStreakSectionUiState
+import com.flashcardsopensourceapp.feature.progress.ProgressSummaryUiState
+import com.flashcardsopensourceapp.feature.progress.R
 
 private const val progressStreakOverflowThreshold: Int = 99
 

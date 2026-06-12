@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.progress
+package com.flashcardsopensourceapp.feature.progress.sections
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -49,6 +49,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleBucketKey
+import com.flashcardsopensourceapp.feature.progress.ProgressReviewScheduleBucketUiState
+import com.flashcardsopensourceapp.feature.progress.ProgressReviewScheduleSectionUiState
+import com.flashcardsopensourceapp.feature.progress.R
 import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.atan2

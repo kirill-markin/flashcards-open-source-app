@@ -1,4 +1,5 @@
-package com.flashcardsopensourceapp.feature.progress
+package com.flashcardsopensourceapp.feature.progress.sections
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -42,6 +43,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
+import com.flashcardsopensourceapp.feature.progress.ProgressLeaderboardRowUiState
+import com.flashcardsopensourceapp.feature.progress.ProgressLeaderboardSectionUiState
+import com.flashcardsopensourceapp.feature.progress.R
 import java.text.NumberFormat
 import java.util.Locale
 
