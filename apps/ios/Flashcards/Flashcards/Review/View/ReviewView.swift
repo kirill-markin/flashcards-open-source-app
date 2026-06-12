@@ -7,8 +7,6 @@ private let reviewBottomBarBottomPadding: CGFloat = 8
 private let reviewBottomBarButtonSpacing: CGFloat = 10
 private let reviewAnswerButtonMinHeight: CGFloat = 40
 private let showAnswerButtonMinHeight: CGFloat = 56
-private let reviewProgressBadgeSize: CGFloat = 34
-private let reviewProgressBadgeHorizontalPadding: CGFloat = 8
 let emptyBackTextPlaceholder: String = String(localized: "No back text", table: reviewCardsStringsTableName)
 private let reviewQueuePreviewPageSize: Int = 50
 
@@ -187,6 +185,7 @@ struct ReviewView: View {
                 reviewLeaderboardButton
                 reviewProgressBadgeButton
             }
+            .sharedBackgroundVisibility(.hidden)
         }
         .fullScreenCover(isPresented: self.$isQueuePreviewPresented) {
             NavigationStack {
@@ -517,16 +516,20 @@ struct ReviewView: View {
         if store.isReviewCountsLoading {
             ProgressView()
                 .controlSize(.small)
-                .frame(minWidth: reviewProgressBadgeSize, minHeight: reviewProgressBadgeSize)
                 .accessibilityIdentifier(UITestIdentifier.reviewQueueButton)
                 .accessibilityLabel(String(localized: "Loading review queue", table: reviewCardsStringsTableName))
         } else {
             Button {
                 self.isQueuePreviewPresented = true
             } label: {
-                reviewQueueButtonLabel
+                Label {
+                    Text(self.reviewQueueButtonTitle)
+                        .monospacedDigit()
+                } icon: {
+                    Image(systemName: "list.bullet")
+                }
+                .labelStyle(.titleAndIcon)
             }
-            .buttonStyle(.plain)
             .disabled(store.reviewTotalCount == 0)
             .accessibilityIdentifier(UITestIdentifier.reviewQueueButton)
             .accessibilityLabel(
@@ -540,29 +543,8 @@ struct ReviewView: View {
         }
     }
 
-    private var reviewQueueButtonLabel: some View {
-        ZStack {
-            Capsule()
-                .fill(self.reviewProgressBadgeBackgroundColor())
-
-            Capsule()
-                .strokeBorder(Color(uiColor: .separator), lineWidth: 1)
-
-            HStack(spacing: 4) {
-                Image(systemName: "list.bullet")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
-
-                Text("\(store.displayedReviewDueCount) / \(store.reviewTotalCount)")
-                    .font(.caption2.weight(.semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(.primary)
-                    .minimumScaleFactor(0.65)
-            }
-            .padding(.horizontal, reviewProgressBadgeHorizontalPadding)
-        }
-        .frame(minHeight: reviewProgressBadgeSize)
-        .fixedSize(horizontal: true, vertical: false)
+    private var reviewQueueButtonTitle: String {
+        "\(store.displayedReviewDueCount.formatted()) / \(store.reviewTotalCount.formatted())"
     }
 
     private var reviewProgressBadgeButton: some View {
@@ -572,73 +554,36 @@ struct ReviewView: View {
             self.store.prepareVisibleTabForPresentation(tab: .progress, now: Date())
             self.navigation.selectTab(.progress)
         } label: {
-            reviewProgressBadgeLabel(badgeState: badgeState)
+            Label {
+                Text(formatReviewProgressBadgeValue(badgeState: badgeState))
+                    .monospacedDigit()
+            } icon: {
+                Image(systemName: makeReviewProgressBadgePresentation(badgeState: badgeState).iconSystemName)
+            }
+            .labelStyle(.titleAndIcon)
         }
-        .buttonStyle(.plain)
         .disabled(badgeState.isInteractive == false)
         .accessibilityIdentifier(UITestIdentifier.reviewProgressBadge)
         .accessibilityLabel(self.reviewProgressBadgeAccessibilityLabel(badgeState: badgeState))
         .accessibilityValue(self.reviewProgressBadgeAccessibilityValue(badgeState: badgeState))
     }
 
-    private func reviewProgressBadgeLabel(badgeState: ReviewProgressBadgeState) -> some View {
-        let presentation = makeReviewProgressBadgePresentation(badgeState: badgeState)
-
-        return ZStack {
-            Capsule()
-                .fill(self.reviewProgressBadgeBackgroundColor())
-
-            Capsule()
-                .strokeBorder(presentation.borderColor, lineWidth: 1)
-
-            HStack(spacing: 3) {
-                Image(systemName: presentation.iconSystemName)
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(presentation.iconColor)
-
-                Text(formatReviewProgressBadgeValue(badgeState: badgeState))
-                    .font(.caption2.weight(.semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(presentation.textColor)
-                    .minimumScaleFactor(0.65)
-            }
-            .padding(.horizontal, reviewProgressBadgeHorizontalPadding)
-        }
-        .frame(minHeight: reviewProgressBadgeSize)
-        .fixedSize(horizontal: true, vertical: false)
-    }
-
-    private func reviewProgressBadgeBackgroundColor() -> Color {
-        return Color(uiColor: .secondarySystemBackground)
-    }
-
     private var reviewLeaderboardButton: some View {
         Button {
             self.navigation.openProgress(target: .leaderboard)
         } label: {
-            ZStack {
-                Capsule()
-                    .fill(self.reviewProgressBadgeBackgroundColor())
-
-                Capsule()
-                    .strokeBorder(Color(uiColor: .separator), lineWidth: 1)
-
-                Image(systemName: "trophy")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
-            }
-            .frame(width: reviewProgressBadgeSize)
-            .frame(minHeight: reviewProgressBadgeSize)
+            Label(self.reviewLeaderboardButtonTitle, systemImage: "trophy")
         }
-        .buttonStyle(.plain)
         .accessibilityIdentifier(UITestIdentifier.reviewLeaderboardShortcut)
-        .accessibilityLabel(
-            String(
-                localized: "review.leaderboard_shortcut.accessibility_label",
-                defaultValue: "Open leaderboard",
-                table: reviewCardsStringsTableName,
-                comment: "Accessibility label for the Review toolbar shortcut that opens the Progress leaderboard"
-            )
+        .accessibilityLabel(self.reviewLeaderboardButtonTitle)
+    }
+
+    private var reviewLeaderboardButtonTitle: String {
+        String(
+            localized: "review.leaderboard_shortcut.accessibility_label",
+            defaultValue: "Open leaderboard",
+            table: reviewCardsStringsTableName,
+            comment: "Accessibility label for the Review toolbar shortcut that opens the Progress leaderboard"
         )
     }
 
