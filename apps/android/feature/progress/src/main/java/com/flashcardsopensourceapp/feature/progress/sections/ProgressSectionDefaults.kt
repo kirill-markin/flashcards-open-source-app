@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.progress
+package com.flashcardsopensourceapp.feature.progress.sections
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp

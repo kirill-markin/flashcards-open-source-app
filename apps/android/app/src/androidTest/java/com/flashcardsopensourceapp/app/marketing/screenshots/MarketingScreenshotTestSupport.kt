@@ -39,10 +39,10 @@ import com.flashcardsopensourceapp.feature.ai.aiComposerSendButtonTag
 import com.flashcardsopensourceapp.feature.ai.aiConversationSurfaceTag
 import com.flashcardsopensourceapp.feature.cards.cardsCardFrontTextTag
 import com.flashcardsopensourceapp.feature.cards.cardsSearchFieldTag
-import com.flashcardsopensourceapp.feature.progress.progressLeaderboardResolvedContentTag
-import com.flashcardsopensourceapp.feature.progress.progressLeaderboardSectionTag
-import com.flashcardsopensourceapp.feature.progress.progressStreakSectionTag
 import com.flashcardsopensourceapp.feature.progress.R as ProgressFeatureR
+import com.flashcardsopensourceapp.feature.progress.sections.progressLeaderboardResolvedContentTag
+import com.flashcardsopensourceapp.feature.progress.sections.progressLeaderboardSectionTag
+import com.flashcardsopensourceapp.feature.progress.sections.progressStreakSectionTag
 import com.flashcardsopensourceapp.feature.review.reviewRateAgainButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewRateEasyButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewRateGoodButtonTag

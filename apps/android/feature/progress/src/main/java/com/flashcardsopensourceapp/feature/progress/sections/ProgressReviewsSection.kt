@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.progress
+package com.flashcardsopensourceapp.feature.progress.sections
 
 import android.icu.text.DateIntervalFormat
 import android.icu.util.DateInterval
@@ -46,6 +46,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.flashcardsopensourceapp.feature.progress.ProgressHistoryDayUiState
+import com.flashcardsopensourceapp.feature.progress.ProgressReviewsSectionUiState
+import com.flashcardsopensourceapp.feature.progress.R
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.util.Locale
