@@ -266,6 +266,7 @@ function createLeaderboardWindow(windowKey: ProgressLeaderboardWindowKey): Progr
       { kind: "viewer", publicProfileId: "viewer-profile", anonymousDisplayName: "Quiet Maple Grove", qualifiedReviewCount: 7, rank: 42 },
       { kind: "neighbor", publicProfileId: "profile-43", anonymousDisplayName: "Bold Cedar Crest", qualifiedReviewCount: 7, rank: 43 },
       { kind: "gap" },
+      { kind: "neighbor", publicProfileId: "profile-128", anonymousDisplayName: "Blue Final Harbor", qualifiedReviewCount: 0, rank: 128 },
     ],
   };
 }
@@ -830,6 +831,7 @@ describe("ProgressScreen", () => {
       "viewer",
       "neighbor",
       "gap",
+      "neighbor",
     ]);
 
     const rowTexts = rows.map((row) => row.textContent);
@@ -841,6 +843,9 @@ describe("ProgressScreen", () => {
     expect(rowTexts[5]).toContain("You");
     expect(rowTexts[5]).toContain("#42");
     expect(rowTexts[6]).toContain("Bold Cedar Crest");
+    expect(rowTexts[8]).toContain("Blue Final Harbor");
+    expect(rowTexts[8]).toContain("#128");
+    expect(rowTexts[8]).toContain("0");
 
     const topGapRow = rows[3];
     const bottomGapRow = rows[7];
@@ -927,7 +932,7 @@ describe("ProgressScreen", () => {
 
     const neighborCounts = [...container.querySelectorAll("[data-testid='progress-leaderboard-count-neighbor']")]
       .map((count) => count.textContent);
-    expect(neighborCounts).toEqual(["8", "7"]);
+    expect(neighborCounts).toEqual(["8", "7", "0"]);
 
     const topCounts = [...container.querySelectorAll("[data-testid='progress-leaderboard-count-top']")]
       .map((count) => count.textContent);

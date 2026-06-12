@@ -48,7 +48,7 @@ import com.flashcardsopensourceapp.feature.progress.R
 import java.text.NumberFormat
 import java.util.Locale
 
-private const val leaderboardReservedRowCount: Int = 8
+private const val leaderboardReservedRowCount: Int = 9
 private const val leaderboardReservedGapRowCount: Int = 2
 private const val millisecondsPerMinute: Long = 60_000L
 
