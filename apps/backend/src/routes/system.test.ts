@@ -448,6 +448,41 @@ test("PATCH /me/community/profile updates only leaderboard participation", async
   });
 });
 
+test("PATCH /me/community/profile lets guest accounts manage leaderboard participation", async () => {
+  let persistedProfile = createPublicProfile(true);
+  const app = createSystemTestApp({
+    transport: "guest",
+    locale: "ru",
+    updateLeaderboardParticipationFn: async (userId, leaderboardParticipationEnabled, localeHint) => {
+      assert.equal(userId, "user-1");
+      assert.equal(localeHint, "ru");
+      persistedProfile = {
+        ...persistedProfile,
+        leaderboardParticipationEnabled,
+      };
+      return persistedProfile;
+    },
+  });
+
+  const response = await app.request("http://localhost/me/community/profile", {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      leaderboardParticipationEnabled: false,
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    publicProfileId: "00000000-0000-4000-8000-000000000001",
+    anonymousDisplayName: "Silver Bright Harbor",
+    leaderboardParticipationEnabled: false,
+    linkedAccountRequiredForLeaderboard: true,
+  });
+});
+
 test("PATCH /me/community/profile rejects attempts to update public identity fields", async () => {
   let updateCalled = false;
   const app = createSystemTestApp({

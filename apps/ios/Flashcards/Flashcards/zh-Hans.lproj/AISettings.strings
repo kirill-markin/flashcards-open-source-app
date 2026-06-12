@@ -169,8 +169,8 @@
 "settings.reviewAnimations.toggle" = "给卡片评分后显示动画";
 "settings.leaderboardParticipation.title" = "排行榜参与";
 "settings.leaderboardParticipation.toggle" = "在排行榜中显示我";
-"settings.leaderboardParticipation.description" = "关闭后，你不会出现在排行榜中，也无法查看排行榜排名。";
-"settings.leaderboardParticipation.signInRequired" = "使用邮箱登录后即可管理排行榜参与。";
+"settings.leaderboardParticipation.description" = "关闭后，你的匿名活动不会显示在排行榜中。";
+"settings.leaderboardParticipation.signInRequired" = "连接云同步后即可管理排行榜参与。";
 "settings.language.title" = "语言";
 "settings.language.systemDescription" = "iOS 控制 App 语言。在 iOS 设置中打开 Flashcards，并使用“首选语言”。如果没有显示“首选语言”，请先在“设置”>“通用”>“语言与地区”中添加另一种语言。";
 "settings.language.action.openAppSettings" = "打开 Flashcards 设置";

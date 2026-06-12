@@ -169,8 +169,8 @@
 "settings.reviewAnimations.toggle" = "Animationen nach dem Bewerten einer Karte anzeigen";
 "settings.leaderboardParticipation.title" = "Bestenlisten-Teilnahme";
 "settings.leaderboardParticipation.toggle" = "Mich in der Bestenliste anzeigen";
-"settings.leaderboardParticipation.description" = "Wenn diese Einstellung aus ist, erscheinst du nicht in der Bestenliste und die Rangliste wird für dich ausgeblendet.";
-"settings.leaderboardParticipation.signInRequired" = "Melde dich mit E-Mail an, um die Bestenlisten-Teilnahme zu verwalten.";
+"settings.leaderboardParticipation.description" = "Wenn diese Einstellung aus ist, erscheint deine anonyme Aktivität nicht in der Bestenliste.";
+"settings.leaderboardParticipation.signInRequired" = "Verbinde die Cloud-Synchronisierung, um die Bestenlisten-Teilnahme zu verwalten.";
 "settings.language.title" = "Sprache";
 "settings.language.systemDescription" = "iOS steuert die App-Sprache. Öffne in den iOS-Einstellungen Flashcards und verwende Bevorzugte Sprache. Wenn Bevorzugte Sprache nicht angezeigt wird, füge zuerst unter Einstellungen > Allgemein > Sprache & Region eine weitere Sprache hinzu.";
 "settings.language.action.openAppSettings" = "Einstellungen für Flashcards öffnen";

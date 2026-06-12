@@ -136,7 +136,7 @@ class LeaderboardParticipationViewModel(
 }
 
 private fun canManageLeaderboardParticipation(cloudState: CloudAccountState): Boolean {
-    return cloudState == CloudAccountState.LINKED
+    return cloudState == CloudAccountState.GUEST || cloudState == CloudAccountState.LINKED
 }
 
 fun createLeaderboardParticipationViewModelFactory(

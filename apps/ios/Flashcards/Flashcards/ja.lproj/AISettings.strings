@@ -169,8 +169,8 @@
 "settings.reviewAnimations.toggle" = "カード評価後にアニメーションを表示";
 "settings.leaderboardParticipation.title" = "リーダーボード参加";
 "settings.leaderboardParticipation.toggle" = "リーダーボードに自分を表示";
-"settings.leaderboardParticipation.description" = "オフにすると、リーダーボードに表示されず、ランキングも見られなくなります。";
-"settings.leaderboardParticipation.signInRequired" = "リーダーボード参加を管理するにはメールでサインインしてください。";
+"settings.leaderboardParticipation.description" = "オフにすると、匿名のアクティビティはリーダーボードに表示されません。";
+"settings.leaderboardParticipation.signInRequired" = "リーダーボード参加を管理するにはクラウド同期に接続してください。";
 "settings.language.title" = "言語";
 "settings.language.systemDescription" = "iOS がアプリの言語を管理します。iOS の「設定」で Flashcards を開き、「優先する言語」を使用してください。「優先する言語」が表示されない場合は、先に「設定」>「一般」>「言語と地域」で別の言語を追加してください。";
 "settings.language.action.openAppSettings" = "Flashcards の設定を開く";

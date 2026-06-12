@@ -169,8 +169,8 @@
 "settings.reviewAnimations.toggle" = "Mostrar animaciones despues de valorar una tarjeta";
 "settings.leaderboardParticipation.title" = "Participación en la clasificación";
 "settings.leaderboardParticipation.toggle" = "Mostrarme en la tabla de clasificación";
-"settings.leaderboardParticipation.description" = "Cuando está desactivado, no apareces en la tabla de clasificación y sus puestos se ocultan para ti.";
-"settings.leaderboardParticipation.signInRequired" = "Inicia sesión con tu correo para gestionar la participación en la tabla de clasificación.";
+"settings.leaderboardParticipation.description" = "Cuando está desactivado, tu actividad anónima no aparece en la tabla de clasificación.";
+"settings.leaderboardParticipation.signInRequired" = "Conecta la sincronización en la nube para gestionar la participación en la tabla de clasificación.";
 "settings.language.title" = "Idioma";
 "settings.language.systemDescription" = "iOS controla el idioma de la app. En Ajustes de iOS, abre Flashcards y usa Idioma preferido. Si Idioma preferido no aparece, primero añade otro idioma en Ajustes > General > Idioma y región.";
 "settings.language.action.openAppSettings" = "Abrir ajustes de Flashcards";

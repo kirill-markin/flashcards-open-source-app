@@ -94,8 +94,8 @@
     <string name="settings_leaderboard_participation_title">Leaderboard participation</string>
     <string name="settings_leaderboard_participation_summary">Control community leaderboard visibility</string>
     <string name="settings_leaderboard_participation_toggle_title">Show me on the leaderboard</string>
-    <string name="settings_leaderboard_participation_toggle_body">When this is off, you will not appear on the leaderboard and leaderboard rankings will be hidden from you.</string>
-    <string name="settings_leaderboard_participation_sign_in_required">Sign in with email to manage leaderboard participation.</string>
+    <string name="settings_leaderboard_participation_toggle_body">When this is off, your anonymous activity will not appear on the leaderboard.</string>
+    <string name="settings_leaderboard_participation_sign_in_required">Connect cloud sync to manage leaderboard participation.</string>
     <string name="settings_leaderboard_participation_load_failed">Could not load leaderboard participation.</string>
     <string name="settings_leaderboard_participation_update_failed">Couldn\'t update leaderboard participation.</string>
     <string name="settings_account_preferences_refresh_failed">Could not refresh account preferences.</string>
