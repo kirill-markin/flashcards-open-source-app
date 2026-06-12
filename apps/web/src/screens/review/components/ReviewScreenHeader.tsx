@@ -15,7 +15,9 @@ type ReviewProgressBadgeState = Readonly<{
 export type ReviewScreenHeaderProps = Readonly<{
   filterMenuProps: ComponentProps<typeof ReviewFilterMenu>;
   hasLoadedReviewData: boolean;
+  isReviewQueuePanelOpen: boolean;
   onRetry: () => void;
+  onReviewQueueShortcutClick: (event: MouseEvent<HTMLAnchorElement>) => void;
   reviewQueueTotalCount: number;
   reviewLoadErrorMessage: string;
   reviewProgressBadge: ReviewProgressBadgeState;
@@ -26,7 +28,9 @@ export function ReviewScreenHeader(props: ReviewScreenHeaderProps): ReactElement
   const {
     filterMenuProps,
     hasLoadedReviewData,
+    isReviewQueuePanelOpen,
     onRetry,
+    onReviewQueueShortcutClick,
     reviewQueueTotalCount,
     reviewLoadErrorMessage,
     reviewProgressBadge,
@@ -51,7 +55,10 @@ export function ReviewScreenHeader(props: ReviewScreenHeaderProps): ReactElement
   function handleReviewQueueShortcutClick(event: MouseEvent<HTMLAnchorElement>): void {
     if (isReviewQueueShortcutDisabled) {
       event.preventDefault();
+      return;
     }
+
+    onReviewQueueShortcutClick(event);
   }
 
   return (
@@ -75,6 +82,8 @@ export function ReviewScreenHeader(props: ReviewScreenHeaderProps): ReactElement
             <a
               className="badge review-progress-badge review-screen-head-badge review-queue-shortcut"
               href="#review-queue-panel"
+              aria-controls="review-queue-panel"
+              aria-expanded={isReviewQueueShortcutDisabled ? undefined : isReviewQueuePanelOpen}
               aria-label={reviewQueueAriaLabel}
               title={reviewQueueAriaLabel}
               data-testid="review-queue-badge"

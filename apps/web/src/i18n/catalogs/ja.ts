@@ -520,6 +520,7 @@ export const jaCatalog = {
     },
     queue: {
       cards: "{{count}} 枚",
+      close: "キューを閉じる",
       loading: "読み込み中",
       title: "キュー",
       upcoming: "予定",

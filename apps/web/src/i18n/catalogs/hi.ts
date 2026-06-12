@@ -520,6 +520,7 @@ const hiCatalog: TranslationCatalog = {
     },
     queue: {
       cards: "{{count}} कार्ड",
+      close: "कतार बंद करें",
       loading: "लोड हो रहा है",
       title: "कतार",
       upcoming: "आने वाले",

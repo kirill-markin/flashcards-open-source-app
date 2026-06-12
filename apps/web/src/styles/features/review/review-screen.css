@@ -52,6 +52,8 @@
   min-width: 42px;
   width: 42px;
   padding-inline: 0;
+  align-items: center;
+  justify-content: center;
 }
 
 .review-progress-shortcuts {

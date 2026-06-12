@@ -188,7 +188,19 @@ describe("ReviewScreen controls", () => {
     }
     expect(queueBadge.querySelector(".review-progress-badge-value")).toBeNull();
     expect(queueBadge.getAttribute("aria-label")).toContain("1 card");
+    expect(queueBadge.getAttribute("aria-controls")).toBe("review-queue-panel");
+    expect(queueBadge.getAttribute("aria-expanded")).toBe("false");
     expect(queueBadge.getAttribute("href")).toBe("#review-queue-panel");
+    const queuePanel = getContainer().querySelector("#review-queue-panel");
+    if (!(queuePanel instanceof HTMLElement)) {
+      throw new Error("Review queue panel was not found");
+    }
+    const queueCloseButton = getContainer().querySelector("[data-testid='review-queue-close']");
+    if (!(queueCloseButton instanceof HTMLButtonElement)) {
+      throw new Error("Review queue close button was not found");
+    }
+    expect(queuePanel.className).not.toContain("review-queue-panel-open");
+    expect(queueCloseButton.getAttribute("aria-label")).toBe("Close queue");
     expect(getContainer().querySelector("[data-testid='review-screen-toolbar']")).toBeNull();
     expect(headerActions.contains(scopeTrigger)).toBe(true);
     expect(headerActions.contains(queueBadge)).toBe(true);
@@ -200,6 +212,21 @@ describe("ReviewScreen controls", () => {
     }
 
     expect(progressBadgeIcon.getAttribute("aria-hidden")).toBe("true");
+
+    await clickElementAsync(queueBadge);
+    expect(queueBadge.getAttribute("aria-expanded")).toBe("true");
+    expect(queuePanel.className).toContain("review-queue-panel-open");
+
+    await clickElementAsync(queueCloseButton);
+    expect(queueBadge.getAttribute("aria-expanded")).toBe("false");
+    expect(queuePanel.className).not.toContain("review-queue-panel-open");
+
+    await clickElementAsync(queueBadge);
+    expect(queueBadge.getAttribute("aria-expanded")).toBe("true");
+
+    await clickElementAsync(queueBadge);
+    expect(queueBadge.getAttribute("aria-expanded")).toBe("false");
+    expect(queuePanel.className).not.toContain("review-queue-panel-open");
   });
 
   it("reveals the answer with Space and submits the selected rating shortcut", async () => {

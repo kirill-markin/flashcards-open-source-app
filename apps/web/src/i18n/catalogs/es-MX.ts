@@ -520,6 +520,7 @@ const esMxCatalog: TranslationCatalog = {
     },
     queue: {
       cards: "{{count}} tarjetas",
+      close: "Cerrar cola",
       loading: "cargando",
       title: "Cola",
       upcoming: "Próximas",
