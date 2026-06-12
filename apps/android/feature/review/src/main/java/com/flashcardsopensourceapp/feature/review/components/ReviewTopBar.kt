@@ -41,6 +41,7 @@ private val reviewTopBarFilterMaxWidth = 160.dp
 internal fun ReviewTopBar(
     isLoading: Boolean,
     totalCount: Int,
+    reviewLeaderboardBadge: ReviewLeaderboardBadgeState,
     reviewProgressBadge: ReviewProgressBadgeState,
     selectedFilterTitle: String,
     onOpenFilter: () -> Unit,
@@ -94,17 +95,10 @@ internal fun ReviewTopBar(
                 onOpenPreview = onOpenPreview
             )
 
-            IconButton(
-                onClick = onOpenLeaderboard,
-                modifier = Modifier.testTag(reviewLeaderboardShortcutTag)
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.EmojiEvents,
-                    contentDescription = stringResource(
-                        id = R.string.review_leaderboard_shortcut_content_description
-                    )
-                )
-            }
+            ReviewLeaderboardAction(
+                reviewLeaderboardBadge = reviewLeaderboardBadge,
+                onOpenLeaderboard = onOpenLeaderboard
+            )
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -136,6 +130,48 @@ internal fun ReviewTopBar(
             }
         }
     )
+}
+
+@Composable
+private fun ReviewLeaderboardAction(
+    reviewLeaderboardBadge: ReviewLeaderboardBadgeState,
+    onOpenLeaderboard: () -> Unit
+) {
+    val rank = reviewLeaderboardBadge.rank
+    val contentDescription = if (rank == null) {
+        stringResource(id = R.string.review_leaderboard_shortcut_content_description)
+    } else {
+        stringResource(
+            id = R.string.review_leaderboard_shortcut_rank_content_description,
+            rank
+        )
+    }
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = Modifier
+            .testTag(reviewLeaderboardShortcutTag)
+            .semantics {
+                this.contentDescription = contentDescription
+            }
+            .clip(CircleShape)
+            .clickable(
+                enabled = reviewLeaderboardBadge.isInteractive,
+                onClick = onOpenLeaderboard
+            )
+            .heightIn(min = 48.dp)
+            .widthIn(min = 48.dp)
+            .padding(start = 8.dp, end = if (rank == null) 8.dp else 16.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.EmojiEvents,
+            contentDescription = null
+        )
+        if (rank != null) {
+            Text(text = rank.toString())
+        }
+    }
 }
 
 @Composable

@@ -11,6 +11,7 @@ import com.flashcardsopensourceapp.app.FirebaseAppInstrumentationTimeoutTest
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.feature.review.R as ReviewStringResources
+import com.flashcardsopensourceapp.feature.review.ReviewLeaderboardBadgeState
 import com.flashcardsopensourceapp.feature.review.ReviewPreviewRoute
 import com.flashcardsopensourceapp.feature.review.ReviewProgressBadgeState
 import com.flashcardsopensourceapp.feature.review.ReviewUiState
@@ -49,6 +50,11 @@ class ReviewPreviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         availableDeckFilters = emptyList(),
                         availableEffortFilters = emptyList(),
                         availableTagFilters = emptyList(),
+                        reviewLeaderboardBadge = ReviewLeaderboardBadgeState(
+                            rank = null,
+                            windowKey = null,
+                            isInteractive = true
+                        ),
                         reviewProgressBadge = ReviewProgressBadgeState(
                             streakDays = 0,
                             hasReviewedToday = false,
@@ -111,6 +117,11 @@ class ReviewPreviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         availableDeckFilters = emptyList(),
                         availableEffortFilters = emptyList(),
                         availableTagFilters = emptyList(),
+                        reviewLeaderboardBadge = ReviewLeaderboardBadgeState(
+                            rank = null,
+                            windowKey = null,
+                            isInteractive = true
+                        ),
                         reviewProgressBadge = ReviewProgressBadgeState(
                             streakDays = 0,
                             hasReviewedToday = false,
@@ -159,6 +170,11 @@ class ReviewPreviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         availableDeckFilters = emptyList(),
                         availableEffortFilters = emptyList(),
                         availableTagFilters = emptyList(),
+                        reviewLeaderboardBadge = ReviewLeaderboardBadgeState(
+                            rank = null,
+                            windowKey = null,
+                            isInteractive = true
+                        ),
                         reviewProgressBadge = ReviewProgressBadgeState(
                             streakDays = 0,
                             hasReviewedToday = false,

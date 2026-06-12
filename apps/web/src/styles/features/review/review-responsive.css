@@ -89,6 +89,12 @@
     flex: 0 0 42px;
   }
 
+  .review-progress-shortcuts > .review-leaderboard-shortcut-ranked {
+    width: auto;
+    min-width: 42px;
+    flex: 0 0 auto;
+  }
+
   .review-progress-shortcuts > .review-screen-head-badge:not(.review-leaderboard-shortcut):not(.review-queue-shortcut) {
     width: auto;
     flex: 1 1 auto;

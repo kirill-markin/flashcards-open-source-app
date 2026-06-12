@@ -95,6 +95,7 @@ type UseProgressSourceParams = Readonly<{
   progressLocalVersion: number;
   progressScheduleLocalVersion: number;
   progressServerInvalidationVersion: number;
+  leaderboardAutoRefreshEnabled: boolean;
   sections: ProgressSourceSections;
 }>;
 
@@ -204,6 +205,7 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     progressLocalVersion,
     progressScheduleLocalVersion,
     progressServerInvalidationVersion,
+    leaderboardAutoRefreshEnabled,
     sections,
   } = params;
   const { includeSummary, includeSeries, includeReviewSchedule, includeLeaderboard } = sections;
@@ -985,6 +987,10 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
   ]);
 
   useEffect(() => {
+    if (leaderboardAutoRefreshEnabled === false) {
+      return;
+    }
+
     if (leaderboardScopeKey === null || leaderboardRefreshKey === null) {
       return;
     }
@@ -994,7 +1000,12 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     }
 
     void refreshProgressLeaderboard(leaderboardScopeKey, leaderboardRefreshKey, false);
-  }, [leaderboardRefreshKey, leaderboardScopeKey, refreshProgressLeaderboard]);
+  }, [
+    leaderboardAutoRefreshEnabled,
+    leaderboardRefreshKey,
+    leaderboardScopeKey,
+    refreshProgressLeaderboard,
+  ]);
 
   const refreshProgress = useCallback(async function refreshProgress(): Promise<void> {
     if (

@@ -194,6 +194,7 @@ fun ReviewRoute(
             ReviewTopBar(
                 isLoading = uiState.isLoading,
                 totalCount = uiState.totalCount,
+                reviewLeaderboardBadge = uiState.reviewLeaderboardBadge,
                 reviewProgressBadge = uiState.reviewProgressBadge,
                 selectedFilterTitle = uiState.selectedFilterTitle,
                 onOpenFilter = {

@@ -70,6 +70,93 @@ final class ProgressSnapshotFactoryTests: XCTestCase {
         )
     }
 
+    private func makeReadyLeaderboardState(
+        viewerRanksByWindow: [LeaderboardWindowKey: Int]
+    ) -> ProgressLeaderboardReadyState {
+        ProgressLeaderboardReadyState(
+            defaultWindowKey: .last24Hours,
+            windows: LeaderboardWindowKey.stableOrder.map { windowKey in
+                ProgressLeaderboardWindowState(
+                    windowKey: windowKey,
+                    snapshotGeneratedAt: "2026-06-10T14:00:05.000Z",
+                    participantCount: 128,
+                    viewerRank: viewerRanksByWindow[windowKey] ?? 42,
+                    viewerQualifiedReviewCount: 7,
+                    rows: []
+                )
+            }
+        )
+    }
+
+    func testBestLeaderboardPlacementChoosesLowestViewerRank() throws {
+        let readyState = self.makeReadyLeaderboardState(
+            viewerRanksByWindow: [
+                .last24Hours: 7,
+                .last3Days: 4,
+                .last7Days: 2,
+                .last30Days: 5,
+                .allTime: 3,
+            ]
+        )
+
+        let placement = try XCTUnwrap(resolveBestLeaderboardPlacement(readyState: readyState))
+
+        XCTAssertEqual(.last7Days, placement.windowKey)
+        XCTAssertEqual(2, placement.rank)
+    }
+
+    func testBestLeaderboardPlacementTiesChooseShortestWindow() throws {
+        let readyState = self.makeReadyLeaderboardState(
+            viewerRanksByWindow: [
+                .last24Hours: 4,
+                .last3Days: 2,
+                .last7Days: 2,
+                .last30Days: 3,
+                .allTime: 2,
+            ]
+        )
+
+        let placement = try XCTUnwrap(resolveBestLeaderboardPlacement(readyState: readyState))
+
+        XCTAssertEqual(.last3Days, placement.windowKey)
+        XCTAssertEqual(2, placement.rank)
+    }
+
+    func testReviewLeaderboardBadgeStateUsesBestReadyPlacementAndHidesUnknownRank() {
+        let unknownSnapshot = ProgressLeaderboardSnapshot(
+            scopeKey: self.scopeKey,
+            state: .awaitingServerData
+        )
+        XCTAssertEqual(
+            makeEmptyReviewLeaderboardBadgeState(),
+            makeReviewLeaderboardBadgeState(progressLeaderboardSnapshot: unknownSnapshot)
+        )
+
+        let readySnapshot = ProgressLeaderboardSnapshot(
+            scopeKey: self.scopeKey,
+            state: .ready(
+                self.makeReadyLeaderboardState(
+                    viewerRanksByWindow: [
+                        .last24Hours: 3,
+                        .last3Days: 5,
+                        .last7Days: 4,
+                        .last30Days: 2,
+                        .allTime: 2,
+                    ]
+                )
+            )
+        )
+
+        XCTAssertEqual(
+            ReviewLeaderboardBadgeState(
+                rank: 2,
+                windowKey: .last30Days,
+                isInteractive: true
+            ),
+            makeReviewLeaderboardBadgeState(progressLeaderboardSnapshot: readySnapshot)
+        )
+    }
+
     func testFactoryMapsReadyCompactRows() throws {
         let leaderboard = makeReadyProgressLeaderboardForTests(
             defaultWindowKey: .last7Days,

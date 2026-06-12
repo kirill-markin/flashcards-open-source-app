@@ -284,13 +284,37 @@ function createLeaderboard(status: ProgressLeaderboard["status"]): ProgressLeade
   };
 }
 
+function createLeaderboardWithViewerRanks(
+  viewerRanks: Readonly<Partial<Record<ProgressLeaderboardWindowKey, number>>>,
+): ProgressLeaderboard {
+  const leaderboard = createLeaderboard("ready");
+
+  return {
+    ...leaderboard,
+    windows: leaderboard.windows.map((window) => ({
+      ...window,
+      viewer: {
+        ...window.viewer,
+        rank: viewerRanks[window.windowKey] ?? window.viewer.rank,
+      },
+    })),
+  };
+}
+
 function createLeaderboardSourceState(
   status: ProgressLeaderboard["status"],
   localViewerCounts: ProgressLeaderboardLocalViewerCounts | null,
 ): ProgressLeaderboardSourceState {
+  return createLeaderboardSourceStateFromLeaderboard(createLeaderboard(status), localViewerCounts);
+}
+
+function createLeaderboardSourceStateFromLeaderboard(
+  leaderboard: ProgressLeaderboard,
+  localViewerCounts: ProgressLeaderboardLocalViewerCounts | null,
+): ProgressLeaderboardSourceState {
   return createNextLeaderboardState(createEmptyProgressLeaderboardSourceState(), {
     scopeKey: "workspace-1::leaderboard",
-    serverBase: createProgressLeaderboardSnapshot(createLeaderboard(status), false),
+    serverBase: createProgressLeaderboardSnapshot(leaderboard, false),
     localViewerCounts,
   }, true);
 }
@@ -937,6 +961,45 @@ describe("ProgressScreen", () => {
     const topCounts = [...container.querySelectorAll("[data-testid='progress-leaderboard-count-top']")]
       .map((count) => count.textContent);
     expect(topCounts).toEqual(["51", "44", "30"]);
+  });
+
+  it("auto-selects the leaderboard window where the viewer has the best rank", async () => {
+    useAppDataMock.mockReturnValue({
+      ...createAppData(),
+      cloudSettings: linkedCloudSettings,
+    });
+    mockProgressSourceStateWithLeaderboard(createLeaderboardSourceStateFromLeaderboard(
+      createLeaderboardWithViewerRanks({
+        last_24_hours: 9,
+        last_3_days: 8,
+        last_7_days: 3,
+        last_30_days: 11,
+        all_time: 4,
+      }),
+      null,
+    ));
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <I18nProvider>
+            <ProgressScreen />
+          </I18nProvider>
+        </MemoryRouter>,
+      );
+    });
+
+    const bestPeriodButton = container.querySelector("[data-testid='progress-leaderboard-period-last_7_days']");
+    if (!(bestPeriodButton instanceof HTMLButtonElement)) {
+      throw new Error("Best leaderboard period button was not found");
+    }
+    const fallbackPeriodButton = container.querySelector("[data-testid='progress-leaderboard-period-last_24_hours']");
+    if (!(fallbackPeriodButton instanceof HTMLButtonElement)) {
+      throw new Error("Fallback leaderboard period button was not found");
+    }
+
+    expect(bestPeriodButton.getAttribute("aria-pressed")).toBe("true");
+    expect(fallbackPeriodButton.getAttribute("aria-pressed")).toBe("false");
   });
 
   it("switches the visible leaderboard window with the period control", async () => {

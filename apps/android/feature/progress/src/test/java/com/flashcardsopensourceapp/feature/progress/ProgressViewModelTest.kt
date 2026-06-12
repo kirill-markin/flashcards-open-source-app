@@ -341,6 +341,31 @@ class ProgressViewModelTest {
     }
 
     @Test
+    fun leaderboardAutoSelectsBestViewerRank() {
+        val sectionUiState = createProgressLeaderboardSectionUiState(
+            snapshot = createProgressLeaderboardSnapshot(
+                leaderboard = createCloudProgressLeaderboard(
+                    windows = ProgressLeaderboardWindowKey.orderedEntries.map { windowKey ->
+                        createCloudProgressLeaderboardWindow(
+                            windowKey = windowKey,
+                            viewerRank = when (windowKey) {
+                                ProgressLeaderboardWindowKey.LAST_24_HOURS -> 9
+                                ProgressLeaderboardWindowKey.LAST_3_DAYS -> 4
+                                ProgressLeaderboardWindowKey.LAST_7_DAYS -> 2
+                                ProgressLeaderboardWindowKey.LAST_30_DAYS -> 6
+                                ProgressLeaderboardWindowKey.ALL_TIME -> 3
+                            }
+                        )
+                    }
+                )
+            ),
+            selectedWindowKey = null
+        ) as ProgressLeaderboardSectionUiState.Ready
+
+        assertEquals(ProgressLeaderboardWindowKey.LAST_7_DAYS, sectionUiState.selectedWindowKey)
+    }
+
+    @Test
     fun guestLeaderboardSnapshotMapsToSignInPlaceholder() {
         val sectionUiState = createProgressLeaderboardSectionUiState(
             snapshot = createProgressLeaderboardSnapshot(
@@ -479,6 +504,8 @@ private class FakeProgressRepository : ProgressRepository {
         private set
     var refreshLeaderboardIfInvalidatedCallCount: Int = 0
         private set
+    var refreshLeaderboardForReviewShortcutCallCount: Int = 0
+        private set
     var refreshSummaryManuallyCallCount: Int = 0
         private set
     var refreshSeriesManuallyCallCount: Int = 0
@@ -542,6 +569,10 @@ private class FakeProgressRepository : ProgressRepository {
 
     override suspend fun refreshLeaderboardIfInvalidated() {
         refreshLeaderboardIfInvalidatedCallCount += 1
+    }
+
+    override suspend fun refreshLeaderboardForReviewShortcut() {
+        refreshLeaderboardForReviewShortcutCallCount += 1
     }
 
     override suspend fun refreshSummaryManually() {
@@ -720,8 +751,18 @@ private fun createCloudProgressLeaderboard(
 }
 
 private fun createCloudProgressLeaderboardWindow(): CloudProgressLeaderboardWindow {
-    return CloudProgressLeaderboardWindow(
+    return createCloudProgressLeaderboardWindow(
         windowKey = ProgressLeaderboardWindowKey.LAST_24_HOURS,
+        viewerRank = 42
+    )
+}
+
+private fun createCloudProgressLeaderboardWindow(
+    windowKey: ProgressLeaderboardWindowKey,
+    viewerRank: Int
+): CloudProgressLeaderboardWindow {
+    return CloudProgressLeaderboardWindow(
+        windowKey = windowKey,
         snapshotId = "snapshot-1",
         snapshotGeneratedAt = "2026-04-18T14:00:05.000Z",
         asOfServerHour = "2026-04-18T14:00:00.000Z",
@@ -729,7 +770,7 @@ private fun createCloudProgressLeaderboardWindow(): CloudProgressLeaderboardWind
         participantCount = 128,
         viewer = CloudProgressLeaderboardViewer(
             publicProfileId = "viewer-profile",
-            rank = 42,
+            rank = viewerRank,
             qualifiedReviewCount = 7
         ),
         rows = listOf(
@@ -767,7 +808,7 @@ private fun createCloudProgressLeaderboardWindow(): CloudProgressLeaderboardWind
                 publicProfileId = "viewer-profile",
                 anonymousDisplayName = "Misty Quiet Grove",
                 qualifiedReviewCount = 7,
-                rank = 42
+                rank = viewerRank
             ),
             createLeaderboardParticipantRow(
                 kind = ProgressLeaderboardParticipantRowKind.NEIGHBOR,

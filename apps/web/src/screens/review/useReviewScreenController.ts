@@ -5,7 +5,7 @@ import {
   recordFeedbackPromptEvent,
   submitFeedback,
 } from "../../api";
-import { useAppData, useReviewProgressBadge } from "../../appData";
+import { useAppData, useReviewLeaderboardBadge, useReviewProgressBadge } from "../../appData";
 import { ALL_CARDS_REVIEW_FILTER, currentReviewCard } from "../../appData/domain";
 import {
   buildNextAutomaticFeedbackPromptAt,
@@ -100,6 +100,7 @@ export function useReviewScreenController(
     deleteCardItem,
     setErrorMessage,
   } = useAppData();
+  const reviewLeaderboardBadge = useReviewLeaderboardBadge();
   const reviewProgressBadge = useReviewProgressBadge();
   const { locale, t, formatCount } = useI18n();
   const [isAnswerVisible, setIsAnswerVisible] = useState<boolean>(false);
@@ -644,6 +645,7 @@ export function useReviewScreenController(
         ? reviewLoadingSnapshot.reviewCounts.totalCount
         : reviewCounts.totalCount,
       reviewLoadErrorMessage,
+      reviewLeaderboardBadge,
       reviewProgressBadge,
       reviewSpeechMessage: reviewFeedbackMessage !== "" ? reviewFeedbackMessage : reviewSpeechMessage,
     },

@@ -21,6 +21,7 @@ import com.flashcardsopensourceapp.data.local.model.review.ReviewCardQueueStatus
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.feature.review.PreparedReviewPreviewCardPresentation
 import com.flashcardsopensourceapp.feature.review.R as ReviewR
+import com.flashcardsopensourceapp.feature.review.ReviewLeaderboardBadgeState
 import com.flashcardsopensourceapp.feature.review.ReviewPreviewListItem
 import com.flashcardsopensourceapp.feature.review.ReviewPreviewRoute
 import com.flashcardsopensourceapp.feature.review.ReviewProgressBadgeState
@@ -104,6 +105,11 @@ class RtlLayoutTest : FirebaseAppInstrumentationTimeoutTest() {
                     availableDeckFilters = emptyList(),
                     availableEffortFilters = emptyList(),
                     availableTagFilters = emptyList(),
+                    reviewLeaderboardBadge = ReviewLeaderboardBadgeState(
+                        rank = null,
+                        windowKey = null,
+                        isInteractive = true
+                    ),
                     reviewProgressBadge = ReviewProgressBadgeState(
                         streakDays = 0,
                         hasReviewedToday = false,

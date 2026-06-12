@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.app.navigation.progress
 
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -27,6 +28,13 @@ internal fun NavGraphBuilder.registerProgressNavGraph(
         )
         val uiState by progressViewModel.uiState.collectAsStateWithLifecycle()
         val progressNavigationRequest by appGraph.appHandoffCoordinator.observeProgressNavigation().collectAsStateWithLifecycle()
+
+        LaunchedEffect(progressNavigationRequest?.requestId) {
+            val request = progressNavigationRequest ?: return@LaunchedEffect
+            if (request.target == ProgressNavigationTarget.LEADERBOARD) {
+                progressViewModel.resetLeaderboardWindowSelection()
+            }
+        }
 
         ProgressRoute(
             uiState = uiState,

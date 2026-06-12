@@ -19,6 +19,7 @@ import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
+import com.flashcardsopensourceapp.data.local.model.progress.resolveBestLeaderboardPlacement
 import com.flashcardsopensourceapp.data.local.repository.ProgressRepository
 import com.flashcardsopensourceapp.data.local.repository.progress.progressHistoryDayCount
 import kotlinx.coroutines.CancellationException
@@ -73,6 +74,10 @@ class ProgressViewModel(
 
     fun selectLeaderboardWindow(windowKey: ProgressLeaderboardWindowKey) {
         selectedLeaderboardWindowMutable.value = windowKey
+    }
+
+    fun resetLeaderboardWindowSelection() {
+        selectedLeaderboardWindowMutable.value = null
     }
 
     fun refreshIfInvalidated() {
@@ -219,6 +224,7 @@ internal fun createProgressLeaderboardSectionUiState(
                 },
                 selectedWindowKey = selectedWindowKey
                     ?.takeIf { windowKey -> windows.any { window -> window.windowKey == windowKey } }
+                    ?: resolveBestLeaderboardPlacement(leaderboard = leaderboard)?.windowKey
                     ?: leaderboard.defaultWindowKey,
                 windows = windows
             )

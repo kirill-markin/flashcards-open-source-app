@@ -369,6 +369,9 @@ extension FlashcardsStore {
         if self.progressLeaderboardSnapshot != snapshot {
             self.progressLeaderboardSnapshot = snapshot
         }
+        self.applyReviewLeaderboardBadgeState(
+            badgeState: makeReviewLeaderboardBadgeState(progressLeaderboardSnapshot: snapshot)
+        )
     }
 
     func publishReviewProgressBadgeState(scopeKey: ProgressScopeKey) throws {
@@ -406,6 +409,12 @@ extension FlashcardsStore {
     private func applyReviewProgressBadgeState(badgeState: ReviewProgressBadgeState) {
         if self.reviewProgressBadgeState != badgeState {
             self.reviewProgressBadgeState = badgeState
+        }
+    }
+
+    private func applyReviewLeaderboardBadgeState(badgeState: ReviewLeaderboardBadgeState) {
+        if self.reviewLeaderboardBadgeState != badgeState {
+            self.reviewLeaderboardBadgeState = badgeState
         }
     }
 

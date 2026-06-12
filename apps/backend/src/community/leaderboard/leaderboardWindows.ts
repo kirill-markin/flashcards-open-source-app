@@ -84,44 +84,46 @@ export function assertLeaderboardWindowKey(windowKey: string): LeaderboardWindow
 }
 
 /**
- * Window a client preselects when none is requested. The compact Progress-tab
- * leaderboard returns every window in one payload, but the default selected
- * window is never `all_time`: a viewer with stale or no recent activity still
- * lands on a bounded window so one fresh review can visibly move their rank.
+ * Fallback window when a payload cannot rank the viewer yet. Ready payloads
+ * compute their default from the viewer's best placement across all windows.
  */
 export const DEFAULT_COMPACT_LEADERBOARD_WINDOW_KEY: LeaderboardWindowKey = "last_24_hours";
 
-/**
- * Resolves which window a client preselects from how long ago the viewer's
- * latest countable review happened. Each bounded window's `lowerBoundHours`
- * doubles as that window's inclusive upper edge for selection (24h, 72h, 168h,
- * 720h); anything older clamps to the longest bounded window (`last_30_days`)
- * and a viewer with no countable review falls back to {@link
- * DEFAULT_COMPACT_LEADERBOARD_WINDOW_KEY}. `all_time` is never selected so a
- * fresh review is always visible in the preselected window.
- */
-export function resolveDefaultLeaderboardWindowKey(
-  elapsedHoursSinceLatestCountableReview: number | null,
-): LeaderboardWindowKey {
-  if (elapsedHoursSinceLatestCountableReview === null) {
-    return DEFAULT_COMPACT_LEADERBOARD_WINDOW_KEY;
-  }
+export type LeaderboardPlacementCandidate = Readonly<{
+  windowKey: LeaderboardWindowKey;
+  rank: number;
+}>;
 
-  // LEADERBOARD_WINDOWS is ordered shortest-first with all_time last, so the last
-  // bounded window seen becomes the clamp target for reviews older than 30 days.
-  let longestBoundedWindowKey: LeaderboardWindowKey = DEFAULT_COMPACT_LEADERBOARD_WINDOW_KEY;
-  for (const window of LEADERBOARD_WINDOWS) {
-    if (window.lowerBoundHours === null) {
+export type LeaderboardBestPlacement = Readonly<{
+  windowKey: LeaderboardWindowKey;
+  rank: number;
+}>;
+
+/**
+ * Resolves the viewer's strongest leaderboard placement. Lower rank wins, and
+ * ties keep the shortest window because LEADERBOARD_WINDOW_KEYS is ordered from
+ * shortest to longest.
+ */
+export function resolveBestLeaderboardPlacement(
+  candidates: ReadonlyArray<LeaderboardPlacementCandidate>,
+): LeaderboardBestPlacement | null {
+  let bestPlacement: LeaderboardBestPlacement | null = null;
+
+  for (const windowKey of LEADERBOARD_WINDOW_KEYS) {
+    const candidate = candidates.find((entry) => entry.windowKey === windowKey);
+    if (candidate === undefined) {
       continue;
     }
 
-    longestBoundedWindowKey = window.windowKey;
-    if (elapsedHoursSinceLatestCountableReview <= window.lowerBoundHours) {
-      return window.windowKey;
+    if (bestPlacement === null || candidate.rank < bestPlacement.rank) {
+      bestPlacement = {
+        windowKey: candidate.windowKey,
+        rank: candidate.rank,
+      };
     }
   }
 
-  return longestBoundedWindowKey;
+  return bestPlacement;
 }
 
 /**

@@ -599,22 +599,42 @@ struct ReviewView: View {
     }
 
     private var reviewLeaderboardButton: some View {
+        let badgeState = self.store.reviewLeaderboardBadgeState
+
         Button {
+            self.store.prepareVisibleTabForPresentation(tab: .progress, now: Date())
             self.navigation.openProgress(target: .leaderboard)
         } label: {
-            Label {
-                Text(self.reviewLeaderboardButtonTitle)
-            } icon: {
-                Image(systemName: "trophy")
-                    .font(reviewToolbarActionIconFont)
-                    .imageScale(.medium)
-            }
+            if let rank = badgeState.rank {
+                Label {
+                    Text(rank.formatted())
+                        .font(reviewToolbarBadgeValueFont)
+                        .monospacedDigit()
+                        .lineLimit(1)
+                } icon: {
+                    Image(systemName: "trophy")
+                        .font(reviewToolbarActionIconFont)
+                        .imageScale(.medium)
+                }
+                .labelStyle(.titleAndIcon)
+                .fixedSize(horizontal: true, vertical: false)
+            } else {
+                Label {
+                    Text(self.reviewLeaderboardButtonTitle)
+                } icon: {
+                    Image(systemName: "trophy")
+                        .font(reviewToolbarActionIconFont)
+                        .imageScale(.medium)
+                }
                 .labelStyle(.iconOnly)
+            }
         }
         .buttonStyle(.glass)
         .controlSize(.large)
+        .disabled(badgeState.isInteractive == false)
         .accessibilityIdentifier(UITestIdentifier.reviewLeaderboardShortcut)
-        .accessibilityLabel(self.reviewLeaderboardButtonTitle)
+        .accessibilityLabel(self.reviewLeaderboardButtonAccessibilityLabel(badgeState: badgeState))
+        .accessibilityValue(self.reviewLeaderboardButtonAccessibilityValue(badgeState: badgeState))
     }
 
     private var reviewLeaderboardButtonTitle: String {
@@ -624,6 +644,31 @@ struct ReviewView: View {
             table: reviewCardsStringsTableName,
             comment: "Accessibility label for the Review toolbar shortcut that opens the Progress leaderboard"
         )
+    }
+
+    private func reviewLeaderboardButtonAccessibilityLabel(badgeState: ReviewLeaderboardBadgeState) -> String {
+        guard let rank = badgeState.rank else {
+            return self.reviewLeaderboardButtonTitle
+        }
+
+        let localizedFormat = String(
+            localized: "review.leaderboard_shortcut.accessibility_label_ranked",
+            defaultValue: "Open leaderboard. Best rank %@.",
+            table: reviewCardsStringsTableName,
+            comment: "Accessibility label for the Review toolbar leaderboard shortcut when the user's best rank is known"
+        )
+        return String(format: localizedFormat, locale: Locale.current, rank.formatted())
+    }
+
+    private func reviewLeaderboardButtonAccessibilityValue(badgeState: ReviewLeaderboardBadgeState) -> String {
+        let rankValue = badgeState.rank.map { rank in
+            "\(rank)"
+        } ?? "nil"
+        let windowKeyValue = badgeState.windowKey?.rawValue ?? "nil"
+        return [
+            "rank=\(rankValue)",
+            "windowKey=\(windowKeyValue)"
+        ].joined(separator: ";")
     }
 
     private func reviewProgressBadgeAccessibilityLabel(badgeState: ReviewProgressBadgeState) -> String {

@@ -239,7 +239,9 @@ struct RootTabView: View {
     private func refreshSelectedTabIfNeeded(nextTab: AppTab) async {
         switch nextTab {
         case .review:
-            await self.store.refreshReviewProgressBadgeIfNeeded()
+            async let refreshProgressBadge: Void = self.store.refreshReviewProgressBadgeIfNeeded()
+            async let refreshLeaderboardBadge: Void = self.store.refreshReviewLeaderboardBadgeIfNeeded()
+            _ = await (refreshProgressBadge, refreshLeaderboardBadge)
         case .progress:
             await self.store.refreshProgressIfNeeded()
         case .ai, .cards, .settings:

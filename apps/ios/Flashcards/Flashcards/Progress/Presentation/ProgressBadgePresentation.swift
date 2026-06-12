@@ -8,6 +8,12 @@ struct ReviewProgressBadgeState: Hashable, Sendable {
     let isInteractive: Bool
 }
 
+struct ReviewLeaderboardBadgeState: Hashable, Sendable {
+    let rank: Int?
+    let windowKey: LeaderboardWindowKey?
+    let isInteractive: Bool
+}
+
 struct ReviewProgressBadgePresentation {
     let iconSystemName: String
     let borderColor: Color
@@ -19,6 +25,14 @@ func makeEmptyReviewProgressBadgeState() -> ReviewProgressBadgeState {
     ReviewProgressBadgeState(
         streakDays: 0,
         hasReviewedToday: false,
+        isInteractive: true
+    )
+}
+
+func makeEmptyReviewLeaderboardBadgeState() -> ReviewLeaderboardBadgeState {
+    ReviewLeaderboardBadgeState(
+        rank: nil,
+        windowKey: nil,
         isInteractive: true
     )
 }
@@ -56,6 +70,18 @@ func makeReviewProgressBadgeState(summary: ProgressSummary) -> ReviewProgressBad
     ReviewProgressBadgeState(
         streakDays: summary.currentStreakDays,
         hasReviewedToday: summary.hasReviewedToday,
+        isInteractive: true
+    )
+}
+
+func makeReviewLeaderboardBadgeState(progressLeaderboardSnapshot: ProgressLeaderboardSnapshot?) -> ReviewLeaderboardBadgeState {
+    guard let bestPlacement = resolveBestLeaderboardPlacement(snapshot: progressLeaderboardSnapshot) else {
+        return makeEmptyReviewLeaderboardBadgeState()
+    }
+
+    return ReviewLeaderboardBadgeState(
+        rank: bestPlacement.rank,
+        windowKey: bestPlacement.windowKey,
         isInteractive: true
     )
 }

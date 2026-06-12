@@ -19,7 +19,7 @@ import {
   LEADERBOARD_WINDOW_KEYS,
   assertLeaderboardWindowKey,
   isLeaderboardWindowKey,
-  resolveDefaultLeaderboardWindowKey,
+  resolveBestLeaderboardPlacement,
   truncateToServerHour,
   type LeaderboardWindowKey,
 } from "./leaderboardWindows";
@@ -200,10 +200,6 @@ type LeaderboardSnapshotEntryRow = Readonly<{
   base_sort_position: number | string;
 }>;
 
-type ViewerLatestReviewRow = Readonly<{
-  latest_reviewed_at_client: Date | string | null;
-}>;
-
 function resolveProgressLeaderboardMetric(localeHint: string): ProgressLeaderboardMetric {
   const copy = PROGRESS_LEADERBOARD_METRIC_COPY_BY_LOCALE[resolveAnonymousDisplayNameLocale(localeHint)];
   return {
@@ -260,17 +256,6 @@ function computeNextRefreshAfter(now: Date): string {
   // this hint in the future even if the hourly job lags and serves an older
   // snapshot; in healthy operation it equals as_of_server_hour + 1h.
   return new Date(truncateToServerHour(now).getTime() + MILLISECONDS_PER_HOUR).toISOString();
-}
-
-function computeElapsedHoursSinceReview(
-  latestReviewedAtClient: string | null,
-  now: Date,
-): number | null {
-  if (latestReviewedAtClient === null) {
-    return null;
-  }
-
-  return (now.getTime() - Date.parse(latestReviewedAtClient)) / MILLISECONDS_PER_HOUR;
 }
 
 /**
@@ -435,20 +420,6 @@ function buildLeaderboardWindow(
   };
 }
 
-async function readViewerLatestCountableReviewInExecutor(
-  executor: DatabaseExecutor,
-): Promise<string | null> {
-  const result = await executor.query<ViewerLatestReviewRow>(
-    [
-      "SELECT community.read_current_user_latest_leaderboard_review($1) AS latest_reviewed_at_client",
-    ].join(" "),
-    [LEADERBOARD_SNAPSHOT_METRIC_VERSION],
-  );
-
-  const value = result.rows[0]?.latest_reviewed_at_client ?? null;
-  return value === null ? null : normalizeTimestamp(value);
-}
-
 async function readLatestLeaderboardSnapshotHeadersInExecutor(
   executor: DatabaseExecutor,
 ): Promise<ReadonlyArray<LeaderboardSnapshotHeader>> {
@@ -560,11 +531,6 @@ export async function loadProgressLeaderboardInExecutor(
     return buildNonReadyProgressLeaderboard("snapshot_unavailable", request.localeHint);
   }
 
-  const latestReviewedAtClient = await readViewerLatestCountableReviewInExecutor(executor);
-  const defaultWindowKey = resolveDefaultLeaderboardWindowKey(
-    computeElapsedHoursSinceReview(latestReviewedAtClient, now),
-  );
-
   const entriesBySnapshotId = await readLeaderboardSnapshotEntriesInExecutor(
     executor,
     completeHeaders.map((header) => header.snapshotId),
@@ -579,6 +545,12 @@ export async function loadProgressLeaderboardInExecutor(
     resolveName,
     now,
   ));
+  const defaultWindowKey = resolveBestLeaderboardPlacement(
+    windows.map((window) => ({
+      windowKey: window.windowKey,
+      rank: window.viewer.rank,
+    })),
+  )?.windowKey ?? DEFAULT_COMPACT_LEADERBOARD_WINDOW_KEY;
 
   return {
     status: "ready",

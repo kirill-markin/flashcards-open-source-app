@@ -12,6 +12,11 @@ type ReviewProgressBadgeState = Readonly<{
   streakDays: number;
 }>;
 
+type ReviewLeaderboardBadgeState = Readonly<{
+  isInteractive: boolean;
+  rank: number | null;
+}>;
+
 export type ReviewScreenHeaderProps = Readonly<{
   filterMenuProps: ComponentProps<typeof ReviewFilterMenu>;
   hasLoadedReviewData: boolean;
@@ -20,6 +25,7 @@ export type ReviewScreenHeaderProps = Readonly<{
   onReviewQueueShortcutClick: () => void;
   reviewQueueTotalCount: number;
   reviewLoadErrorMessage: string;
+  reviewLeaderboardBadge: ReviewLeaderboardBadgeState;
   reviewProgressBadge: ReviewProgressBadgeState;
   reviewSpeechMessage: string;
 }>;
@@ -33,6 +39,7 @@ export function ReviewScreenHeader(props: ReviewScreenHeaderProps): ReactElement
     onReviewQueueShortcutClick,
     reviewQueueTotalCount,
     reviewLoadErrorMessage,
+    reviewLeaderboardBadge,
     reviewProgressBadge,
     reviewSpeechMessage,
   } = props;
@@ -49,7 +56,12 @@ export function ReviewScreenHeader(props: ReviewScreenHeaderProps): ReactElement
     streak: formatNumber(reviewProgressBadge.streakDays),
     todayStatus: reviewProgressBadgeTodayStatus,
   });
-  const leaderboardShortcutAriaLabel = t("reviewScreen.leaderboardShortcut.ariaLabel");
+  const leaderboardShortcutRankLabel = reviewLeaderboardBadge.rank === null
+    ? null
+    : t("progressScreen.leaderboard.rankLabel", { rank: formatNumber(reviewLeaderboardBadge.rank) });
+  const leaderboardShortcutAriaLabel = leaderboardShortcutRankLabel === null
+    ? t("reviewScreen.leaderboardShortcut.ariaLabel")
+    : `${t("reviewScreen.leaderboardShortcut.ariaLabel")}. ${leaderboardShortcutRankLabel}`;
   const isReviewQueueShortcutDisabled = reviewQueueTotalCount === 0;
 
   return (
@@ -84,13 +96,17 @@ export function ReviewScreenHeader(props: ReviewScreenHeaderProps): ReactElement
               <ReviewQueueShortcutIcon />
             </button>
             <Link
-              className="badge review-progress-badge review-screen-head-badge review-leaderboard-shortcut"
+              className={`badge review-progress-badge review-screen-head-badge review-leaderboard-shortcut${reviewLeaderboardBadge.rank === null ? "" : " review-leaderboard-shortcut-ranked"}`}
               to={progressLeaderboardRoute}
               aria-label={leaderboardShortcutAriaLabel}
               title={leaderboardShortcutAriaLabel}
               data-testid="review-leaderboard-shortcut"
+              aria-disabled={reviewLeaderboardBadge.isInteractive ? undefined : "true"}
             >
               <ProgressLeaderboardShortcutIcon />
+              {reviewLeaderboardBadge.rank === null ? null : (
+                <span className="review-progress-badge-value">{formatNumber(reviewLeaderboardBadge.rank)}</span>
+              )}
             </Link>
             <Link
               className={`badge review-progress-badge review-screen-head-badge${reviewProgressBadge.hasReviewedToday ? " review-progress-badge-active" : ""}`}

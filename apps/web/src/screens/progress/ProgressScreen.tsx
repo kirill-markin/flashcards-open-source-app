@@ -58,6 +58,7 @@ export function ProgressScreen(): ReactElement {
     progressLocalVersion,
     progressScheduleLocalVersion,
     progressServerInvalidationVersion,
+    leaderboardAutoRefreshEnabled: true,
     sections: {
       includeSummary: true,
       includeSeries: true,
@@ -92,6 +93,12 @@ export function ProgressScreen(): ReactElement {
   useEffect(() => {
     setSelectedReviewScheduleBucket(null);
   }, [progressSourceState.reviewSchedule.renderedSnapshot]);
+
+  useEffect(() => {
+    if (location.hash === `#${progressLeaderboardHash}`) {
+      setSelectedLeaderboardWindowKey(null);
+    }
+  }, [location.hash, location.key]);
 
   useEffect(() => {
     if (progress === null) {

@@ -22,6 +22,10 @@ extension FlashcardsStore {
         await self.refreshReviewProgressBadgeIfNeeded(now: Date())
     }
 
+    func refreshReviewLeaderboardBadgeIfNeeded() async {
+        await self.refreshReviewLeaderboardBadgeIfNeeded(now: Date())
+    }
+
     func refreshProgressIfNeeded() async {
         await self.refreshProgressIfNeeded(now: Date())
     }
@@ -53,6 +57,36 @@ extension FlashcardsStore {
             }
 
             self.replaceProgressErrorMessage(message: Flashcards.errorMessage(error: error))
+        }
+    }
+
+    func refreshReviewLeaderboardBadgeIfNeeded(now: Date) async {
+        do {
+            let scopeKey = try self.prepareProgressScope(now: now)
+            let leaderboardScopeKey = self.currentProgressLeaderboardScopeKey(seriesScopeKey: scopeKey)
+            self.publishProgressLeaderboardSnapshotIsolatingErrors(
+                scopeKey: leaderboardScopeKey,
+                now: now
+            )
+
+            guard leaderboardScopeKey.cloudState == .linked else {
+                return
+            }
+
+            guard let activeSession = self.activeProgressCloudSession(scopeKey: scopeKey) else {
+                return
+            }
+
+            await self.refreshProgressLeaderboardServerBase(
+                scopeKey: leaderboardScopeKey,
+                linkedSession: activeSession
+            )
+        } catch {
+            if isRequestCancellationError(error: error) {
+                return
+            }
+
+            self.replaceProgressLeaderboardRefreshErrorMessage(message: Flashcards.errorMessage(error: error))
         }
     }
 
@@ -382,7 +416,9 @@ extension FlashcardsStore {
     private func refreshVisibleProgressIfNeeded(now: Date) async {
         switch self.currentVisibleTab {
         case .review:
-            await self.refreshReviewProgressBadgeIfNeeded(now: now)
+            async let refreshProgressBadge: Void = self.refreshReviewProgressBadgeIfNeeded(now: now)
+            async let refreshLeaderboardBadge: Void = self.refreshReviewLeaderboardBadgeIfNeeded(now: now)
+            _ = await (refreshProgressBadge, refreshLeaderboardBadge)
         case .progress:
             await self.refreshProgressIfNeeded(now: now)
         case .cards, .ai, .settings:

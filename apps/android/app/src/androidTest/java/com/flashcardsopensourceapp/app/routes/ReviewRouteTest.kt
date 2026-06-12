@@ -16,9 +16,11 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.app.FirebaseAppInstrumentationTimeoutTest
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.feature.review.R as ReviewStringResources
 import com.flashcardsopensourceapp.feature.review.ReviewEmptyState
+import com.flashcardsopensourceapp.feature.review.ReviewLeaderboardBadgeState
 import com.flashcardsopensourceapp.feature.review.ReviewProgressBadgeState
 import com.flashcardsopensourceapp.feature.review.ReviewRoute
 import com.flashcardsopensourceapp.feature.review.ReviewUiState
@@ -47,8 +49,10 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         var openProgressCalls = 0
         var openPreviewCalls = 0
         var screenVisibleCalls = 0
-        val leaderboardShortcutContentDescription = reviewString(
-            ReviewStringResources.string.review_leaderboard_shortcut_content_description
+        val leaderboardRank = 3
+        val leaderboardShortcutContentDescription = composeRule.activity.getString(
+            ReviewStringResources.string.review_leaderboard_shortcut_rank_content_description,
+            leaderboardRank
         )
         val streakContentDescription = composeRule.activity.resources.getQuantityString(
             ReviewStringResources.plurals.review_progress_badge_content_description,
@@ -83,6 +87,11 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         availableDeckFilters = emptyList(),
                         availableEffortFilters = emptyList(),
                         availableTagFilters = emptyList(),
+                        reviewLeaderboardBadge = ReviewLeaderboardBadgeState(
+                            rank = leaderboardRank,
+                            windowKey = ProgressLeaderboardWindowKey.LAST_24_HOURS,
+                            isInteractive = true
+                        ),
                         isPreviewLoading = false,
                         previewItems = emptyList(),
                         hasMorePreviewCards = false,
@@ -146,6 +155,7 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             .performClick()
         composeRule.onAllNodesWithText("10").assertCountEquals(0)
         composeRule.onNodeWithText("99+").assertIsDisplayed()
+        composeRule.onNodeWithText("3").assertIsDisplayed()
         composeRule.onNodeWithTag(reviewLeaderboardShortcutTag)
             .assertIsDisplayed()
             .assert(

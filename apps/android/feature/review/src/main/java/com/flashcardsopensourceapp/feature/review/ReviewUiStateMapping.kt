@@ -1,13 +1,14 @@
 package com.flashcardsopensourceapp.feature.review
 
-import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataStorage
-import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataSummary
-import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataSyncStatus
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
 import com.flashcardsopensourceapp.data.local.model.review.ReviewAnswerOption
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionSnapshot
+import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataStorage
+import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataSummary
+import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataSyncStatus
 
 internal fun initialReviewAppMetadataSummary(textProvider: ReviewTextProvider): AppMetadataSummary {
     return AppMetadataSummary(
@@ -35,6 +36,7 @@ internal fun initialReviewUiState(textProvider: ReviewTextProvider): ReviewUiSta
         availableDeckFilters = emptyList(),
         availableEffortFilters = emptyList(),
         availableTagFilters = emptyList(),
+        reviewLeaderboardBadge = createEmptyReviewLeaderboardBadgeState(),
         reviewProgressBadge = createEmptyReviewProgressBadgeState(),
         isPreviewLoading = false,
         previewItems = emptyList(),
@@ -72,6 +74,7 @@ internal fun mapToReviewUiState(
     state: ReviewDraftState,
     appMetadata: AppMetadataSummary,
     progressSummarySnapshot: ProgressSummarySnapshot?,
+    progressLeaderboardSnapshot: ProgressLeaderboardSnapshot?,
     textProvider: ReviewTextProvider
 ): ReviewUiState {
     val displayedCurrentCard = state.optimisticPreparedCurrentCard?.card
@@ -123,6 +126,8 @@ internal fun mapToReviewUiState(
         availableDeckFilters = sessionSnapshot.availableDeckFilters,
         availableEffortFilters = sessionSnapshot.availableEffortFilters,
         availableTagFilters = sessionSnapshot.availableTagFilters,
+        reviewLeaderboardBadge = progressLeaderboardSnapshot?.toReviewLeaderboardBadgeState()
+            ?: createEmptyReviewLeaderboardBadgeState(),
         reviewProgressBadge = progressSummarySnapshot?.toReviewProgressBadgeState()
             ?: createEmptyReviewProgressBadgeState(),
         isPreviewLoading = state.isPreviewLoading,

@@ -1,6 +1,7 @@
 import type { ReactElement, Ref } from "react";
 import { Link } from "react-router-dom";
 import { buildLoginUrl } from "../../../api";
+import { resolveBestLeaderboardPlacement } from "../../../appData/progress/leaderboardPlacement";
 import { useI18n } from "../../../i18n";
 import { settingsLeaderboardParticipationRoute } from "../../../routes";
 import type {
@@ -50,9 +51,25 @@ function resolveLeaderboardWindow(
     return null;
   }
 
-  const resolvedWindowKey = selectedWindowKey ?? leaderboard.defaultWindowKey;
+  const resolvedWindowKey = selectedWindowKey
+    ?? resolveBestLeaderboardPlacement(leaderboard)?.windowKey
+    ?? leaderboard.defaultWindowKey;
 
   return leaderboard.windows.find((window) => window.windowKey === resolvedWindowKey) ?? null;
+}
+
+function resolveSelectedLeaderboardWindowKey(
+  sourceState: ProgressLeaderboardSourceState,
+  selectedWindowKey: ProgressLeaderboardWindowKey | null,
+): ProgressLeaderboardWindowKey | null {
+  const leaderboard = sourceState.renderedSnapshot;
+  if (leaderboard === null || leaderboard.status !== "ready") {
+    return null;
+  }
+
+  return selectedWindowKey
+    ?? resolveBestLeaderboardPlacement(leaderboard)?.windowKey
+    ?? leaderboard.defaultWindowKey;
 }
 
 type ProgressLeaderboardBodyProps = Readonly<{
@@ -188,7 +205,7 @@ function ProgressLeaderboardBody(props: ProgressLeaderboardBodyProps): ReactElem
     );
   }
 
-  const resolvedWindowKey = selectedWindowKey ?? leaderboard.defaultWindowKey;
+  const resolvedWindowKey = resolveSelectedLeaderboardWindowKey(sourceState, selectedWindowKey) ?? leaderboard.defaultWindowKey;
   const leaderboardWindow = resolveLeaderboardWindow(sourceState, selectedWindowKey);
 
   return (
