@@ -582,7 +582,7 @@ struct ReviewView: View {
             .fixedSize(horizontal: true, vertical: false)
         }
         .buttonStyle(.glass)
-        .controlSize(.large)
+        .controlSize(.regular)
         .disabled(badgeState.isInteractive == false)
         .accessibilityIdentifier(UITestIdentifier.reviewProgressBadge)
         .accessibilityLabel(self.reviewProgressBadgeAccessibilityLabel(badgeState: badgeState))
@@ -611,7 +611,7 @@ struct ReviewView: View {
                 .labelStyle(.iconOnly)
         }
         .buttonStyle(.glass)
-        .controlSize(.large)
+        .controlSize(.regular)
         .accessibilityIdentifier(UITestIdentifier.reviewLeaderboardShortcut)
         .accessibilityLabel(self.reviewLeaderboardButtonTitle)
     }
