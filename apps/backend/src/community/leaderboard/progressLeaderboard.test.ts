@@ -365,7 +365,7 @@ test("equal counts rank the viewer below other users with the same count", async
   );
 });
 
-test("compact rows show the top three, a single gap, and the viewer with its neighbors", async () => {
+test("compact rows show the top three, gaps, and the viewer with its neighbors", async () => {
   const otherEntries: ReadonlyArray<SnapshotEntryRow> = [
     { public_profile_id: "00000000-0000-4000-8000-0000000000d1", qualified_review_count: 100, base_sort_position: 1 },
     { public_profile_id: "00000000-0000-4000-8000-0000000000d2", qualified_review_count: 90, base_sort_position: 2 },
@@ -405,12 +405,14 @@ test("compact rows show the top three, a single gap, and the viewer with its nei
     "neighbor:5",
     "viewer:6",
     "neighbor:7",
+    "gap",
   ]);
 
-  // The top three rows always precede the single gap row.
+  // The top three rows always precede the first hidden-rank gap row.
   assert.equal(window.rows[0]?.kind, "top");
   assert.equal(window.rows[3]?.kind, "gap");
-  assert.equal(window.rows.filter((row) => row.kind === "gap").length, 1);
+  assert.equal(window.rows[7]?.kind, "gap");
+  assert.equal(window.rows.filter((row) => row.kind === "gap").length, 2);
 });
 
 test("a viewer near the top produces contiguous rows with no gap", async () => {

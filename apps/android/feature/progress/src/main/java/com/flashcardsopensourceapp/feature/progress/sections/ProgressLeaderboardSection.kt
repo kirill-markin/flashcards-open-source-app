@@ -37,7 +37,6 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -49,7 +48,8 @@ import com.flashcardsopensourceapp.feature.progress.R
 import java.text.NumberFormat
 import java.util.Locale
 
-private const val leaderboardReservedRowCount: Int = 7
+private const val leaderboardReservedRowCount: Int = 8
+private const val leaderboardReservedGapRowCount: Int = 2
 private const val millisecondsPerMinute: Long = 60_000L
 
 @Composable
@@ -306,14 +306,11 @@ private data class LeaderboardReservedRows(
 
 private fun leaderboardReservedRows(rows: List<ProgressLeaderboardRowUiState>): LeaderboardReservedRows {
     val reservedRowCount = maxOf(0, leaderboardReservedRowCount - rows.size)
-    val containsGapRow = rows.any { row ->
+    val visibleGapRowCount = rows.count { row ->
         row == ProgressLeaderboardRowUiState.Gap
     }
-    val gapRowCount = if (containsGapRow) {
-        0
-    } else {
-        minOf(1, reservedRowCount)
-    }
+    val missingGapRowCount = maxOf(0, leaderboardReservedGapRowCount - visibleGapRowCount)
+    val gapRowCount = minOf(missingGapRowCount, reservedRowCount)
 
     return LeaderboardReservedRows(
         participantRowCount = reservedRowCount - gapRowCount,
@@ -396,32 +393,36 @@ private fun LeaderboardReservedParticipantRow() {
 
 @Composable
 private fun LeaderboardReservedGapRow() {
-    Text(
-        text = "⋯",
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        style = MaterialTheme.typography.bodyMedium,
-        textAlign = TextAlign.Center,
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .alpha(0f)
             .clearAndSetSemantics {}
-    )
+    ) {
+        Text(
+            text = "⋯",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyMedium
+        )
+    }
 }
 
 @Composable
 private fun LeaderboardGapRow() {
     val gapContentDescription = stringResource(id = R.string.progress_leaderboard_gap_content_description)
-    Text(
-        text = "⋯",
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        style = MaterialTheme.typography.bodyMedium,
-        textAlign = TextAlign.Center,
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .semantics {
+            .clearAndSetSemantics {
                 contentDescription = gapContentDescription
             }
-    )
+    ) {
+        Text(
+            text = "⋯",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyMedium
+        )
+    }
 }
 
 @Composable

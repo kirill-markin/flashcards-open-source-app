@@ -1,6 +1,7 @@
 import SwiftUI
 
-private let progressLeaderboardReservedRowCount: Int = 7
+private let progressLeaderboardReservedRowCount: Int = 8
+private let progressLeaderboardReservedGapRowCount: Int = 2
 
 struct ProgressLeaderboardSection: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
@@ -137,7 +138,7 @@ struct ProgressLeaderboardSection: View {
                     switch row {
                     case .participant(let participantRow):
                         ProgressLeaderboardParticipantRowView(row: participantRow)
-                    case .gap:
+                    case .gap(_):
                         ProgressLeaderboardGapRowView()
                     }
                 }
@@ -311,13 +312,14 @@ private struct ProgressLeaderboardReservedRows: Hashable {
 
 private func progressLeaderboardReservedRows(rows: [ProgressLeaderboardRowState]) -> ProgressLeaderboardReservedRows {
     let reservedRowCount = max(0, progressLeaderboardReservedRowCount - rows.count)
-    let containsGapRow = rows.contains { row in
-        if case .gap = row {
-            return true
+    let visibleGapRowCount = rows.reduce(0) { count, row in
+        if case .gap(_) = row {
+            return count + 1
         }
-        return false
+        return count
     }
-    let gapRowCount = containsGapRow ? 0 : min(1, reservedRowCount)
+    let missingGapRowCount = max(0, progressLeaderboardReservedGapRowCount - visibleGapRowCount)
+    let gapRowCount = min(missingGapRowCount, reservedRowCount)
 
     return ProgressLeaderboardReservedRows(
         participantRowCount: reservedRowCount - gapRowCount,
@@ -413,11 +415,12 @@ private struct ProgressLeaderboardReservedGapRowView: View {
 
 private struct ProgressLeaderboardGapRowView: View {
     var body: some View {
-        HStack {
-            Spacer(minLength: 0)
+        HStack(spacing: 10) {
             Image(systemName: "ellipsis")
                 .font(.subheadline)
                 .foregroundStyle(.tertiary)
+                .frame(minWidth: 28, alignment: .leading)
+
             Spacer(minLength: 0)
         }
         .accessibilityHidden(true)

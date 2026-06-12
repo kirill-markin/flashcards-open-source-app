@@ -1,5 +1,7 @@
 import Foundation
 
+private let progressLeaderboardMaximumGapRowCount: Int = 2
+
 // Wire contract for GET /me/progress/leaderboard.
 // Keep aligned with api/src/openapi.yaml and
 // apps/backend/src/community/leaderboard/progressLeaderboard.ts.
@@ -134,7 +136,7 @@ enum ProgressLeaderboardValidationError: LocalizedError {
     case invalidViewerRank(windowKey: String, rank: Int, participantCount: Int)
     case negativeReviewCount(windowKey: String, reviewCount: Int)
     case invalidRowRank(windowKey: String, rank: Int)
-    case multipleGapRows(windowKey: String, gapRowCount: Int)
+    case tooManyGapRows(windowKey: String, gapRowCount: Int)
     case viewerRowMismatch(windowKey: String)
 
     var errorDescription: String? {
@@ -153,8 +155,8 @@ enum ProgressLeaderboardValidationError: LocalizedError {
             return "Leaderboard window \(windowKey) contained a negative review count: \(reviewCount)."
         case .invalidRowRank(let windowKey, let rank):
             return "Leaderboard window \(windowKey) contained an invalid row rank: \(rank)."
-        case .multipleGapRows(let windowKey, let gapRowCount):
-            return "Leaderboard window \(windowKey) contained \(gapRowCount) gap rows. At most one is allowed."
+        case .tooManyGapRows(let windowKey, let gapRowCount):
+            return "Leaderboard window \(windowKey) contained \(gapRowCount) gap rows. At most \(progressLeaderboardMaximumGapRowCount) are allowed."
         case .viewerRowMismatch(let windowKey):
             return "Leaderboard window \(windowKey) rows did not contain exactly one viewer row matching the viewer."
         }
@@ -276,10 +278,10 @@ private func validateProgressLeaderboardWindow(window: ProgressLeaderboardWindow
         }
     }
 
-    // The compact-row contract emits at most one ellipsis gap, and the gap row
-    // renders with a constant SwiftUI identity, so duplicates must never pass.
-    guard gapRowCount <= 1 else {
-        throw ProgressLeaderboardValidationError.multipleGapRows(
+    // The compact-row contract emits at most two ellipsis gaps; extras would
+    // stretch the leaderboard beyond its reserved compact height.
+    guard gapRowCount <= progressLeaderboardMaximumGapRowCount else {
+        throw ProgressLeaderboardValidationError.tooManyGapRows(
             windowKey: windowKey,
             gapRowCount: gapRowCount
         )
