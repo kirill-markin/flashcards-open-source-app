@@ -8,16 +8,17 @@
 
 .progress-layout {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
   align-items: start;
 }
 
 .progress-section {
   display: grid;
-  gap: 18px;
+  gap: 14px;
   min-width: 0;
-  padding: 16px;
+  padding: 14px;
+  container: progress-section / inline-size;
 }
 
 .progress-section-head {
@@ -634,6 +635,7 @@ svg.progress-review-schedule-donut {
 
   .progress-layout {
     grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
   }
 
   .progress-section {
@@ -668,18 +670,64 @@ svg.progress-review-schedule-donut {
   }
 }
 
-@container progress-panel (max-width: 1040px) {
-  .progress-layout {
-    grid-template-columns: minmax(0, 1fr);
+@container progress-section (max-width: 440px) {
+  .progress-streak-weeks,
+  .progress-streak-week {
+    gap: 6px;
   }
-}
 
-@container progress-panel (max-width: 980px) {
+  .progress-streak-day {
+    min-height: 44px;
+    gap: 4px;
+    padding: 5px 3px;
+  }
+
+  .progress-streak-weekday {
+    font-size: 9px;
+  }
+
+  .progress-streak-marker {
+    width: 22px;
+    height: 22px;
+    font-size: 12px;
+  }
+
+  .progress-streak-marker-flame .review-progress-badge-icon {
+    width: 12px;
+    height: 12px;
+  }
+
+  .progress-chart-y-axis,
+  .progress-chart-columns {
+    min-height: 180px;
+  }
+
+  .progress-chart-column {
+    height: 180px;
+  }
+
+  .progress-chart-columns {
+    gap: 6px;
+  }
+
   .progress-review-schedule {
     grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
   }
 
   .progress-review-schedule-donut {
-    max-width: 150px;
+    max-width: 140px;
+  }
+}
+
+@container progress-panel (max-width: 1400px) {
+  .progress-layout {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container progress-panel (max-width: 740px) {
+  .progress-layout {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
