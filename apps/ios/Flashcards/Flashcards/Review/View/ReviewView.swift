@@ -6,7 +6,6 @@ private let reviewBottomBarTopPadding: CGFloat = 8
 private let reviewBottomBarBottomPadding: CGFloat = 8
 private let reviewBottomBarButtonSpacing: CGFloat = 10
 private let reviewFilterMenuTitleMaxWidth: CGFloat = 180
-private let reviewFilterMenuVerticalPadding: CGFloat = 2
 private let reviewToolbarActionIconFont: Font = .body
 private let reviewToolbarBadgeValueFont: Font = .body
 private let reviewAnswerButtonMinHeight: CGFloat = 40
@@ -399,8 +398,8 @@ struct ReviewView: View {
                 Image(systemName: "chevron.down")
                     .font(.caption.weight(.semibold))
             }
-            .padding(.vertical, reviewFilterMenuVerticalPadding)
         }
+        .buttonStyle(.glass)
         .controlSize(.large)
     }
 
