@@ -19,11 +19,23 @@ import {
 
 type QueryResultRow = pg.QueryResultRow;
 
+type StoredActivityActorKind =
+  | "client_installation"
+  | "workspace_seed"
+  | "workspace_reset"
+  | "agent_connection"
+  | "ai_chat";
+
+type StoredActivityPlatform = "web" | "android" | "ios" | "system";
+
 type StoredFact = Readonly<{
   publicProfileId: string;
   metricVersion: string;
   isCountable: boolean;
   reviewedAtClient: string;
+  actorKind: StoredActivityActorKind;
+  platform: StoredActivityPlatform;
+  reviewedByEmail: string | null;
 }>;
 
 type StoredProfile = Readonly<{
@@ -120,6 +132,20 @@ function isLinkedNonDemoEmail(email: string | null): boolean {
   return !email.trim().toLowerCase().endsWith("@example.com");
 }
 
+function isNonDemoEmailOrUnknown(email: string | null): boolean {
+  return email === null || !email.trim().toLowerCase().endsWith("@example.com");
+}
+
+function isSupportedClientPlatform(platform: StoredActivityPlatform): boolean {
+  return platform === "web" || platform === "android" || platform === "ios";
+}
+
+function isRealClientActivityFact(fact: StoredFact): boolean {
+  return fact.actorKind === "client_installation"
+    && isSupportedClientPlatform(fact.platform)
+    && isNonDemoEmailOrUnknown(fact.reviewedByEmail);
+}
+
 function computeEligibleEntries(
   state: MutableLeaderboardStoreState,
   call: RefreshCall,
@@ -145,6 +171,9 @@ function computeEligibleEntries(
 
   for (const fact of state.facts) {
     if (fact.metricVersion !== call.metricVersion || !fact.isCountable) {
+      continue;
+    }
+    if (!isRealClientActivityFact(fact)) {
       continue;
     }
 
@@ -244,6 +273,42 @@ const PROFILE_F = "00000000-0000-4000-8000-00000000000f";
 const NOW = new Date("2026-06-10T14:30:00.000Z");
 const AS_OF = "2026-06-10T14:00:00.000Z";
 
+function createWebClientFact(
+  publicProfileId: string,
+  metricVersion: string,
+  isCountable: boolean,
+  reviewedAtClient: string,
+  reviewedByEmail: string | null,
+): StoredFact {
+  return {
+    publicProfileId,
+    metricVersion,
+    isCountable,
+    reviewedAtClient,
+    actorKind: "client_installation",
+    platform: "web",
+    reviewedByEmail,
+  };
+}
+
+function createSystemFact(
+  publicProfileId: string,
+  metricVersion: string,
+  isCountable: boolean,
+  reviewedAtClient: string,
+  reviewedByEmail: string | null,
+): StoredFact {
+  return {
+    publicProfileId,
+    metricVersion,
+    isCountable,
+    reviewedAtClient,
+    actorKind: "workspace_seed",
+    platform: "system",
+    reviewedByEmail,
+  };
+}
+
 function seedLeaderboardFixture(state: MutableLeaderboardStoreState): void {
   state.profilesById.set(PROFILE_A, { publicProfileId: PROFILE_A, userId: "user-a", participationEnabled: true });
   state.profilesById.set(PROFILE_B, { publicProfileId: PROFILE_B, userId: "user-b", participationEnabled: true });
@@ -262,27 +327,30 @@ function seedLeaderboardFixture(state: MutableLeaderboardStoreState): void {
   const metricVersion = LEADERBOARD_SNAPSHOT_METRIC_VERSION;
   state.facts.push(
     // profile-a: 1h before as_of (in every window).
-    { publicProfileId: PROFILE_A, metricVersion, isCountable: true, reviewedAtClient: "2026-06-10T13:00:00.000Z" },
+    createWebClientFact(PROFILE_A, metricVersion, true, "2026-06-10T13:00:00.000Z", "a@real.test"),
     // profile-a: again (rating 0) is never countable.
-    { publicProfileId: PROFILE_A, metricVersion, isCountable: false, reviewedAtClient: "2026-06-10T13:30:00.000Z" },
+    createWebClientFact(PROFILE_A, metricVersion, false, "2026-06-10T13:30:00.000Z", "a@real.test"),
     // profile-a: 25h before as_of (excluded from 24h, included from 3 days on).
-    { publicProfileId: PROFILE_A, metricVersion, isCountable: true, reviewedAtClient: "2026-06-09T13:00:00.000Z" },
+    createWebClientFact(PROFILE_A, metricVersion, true, "2026-06-09T13:00:00.000Z", "a@real.test"),
     // profile-a: exactly at as_of (included by the <= upper bound).
-    { publicProfileId: PROFILE_A, metricVersion, isCountable: true, reviewedAtClient: "2026-06-10T14:00:00.000Z" },
+    createWebClientFact(PROFILE_A, metricVersion, true, "2026-06-10T14:00:00.000Z", "a@real.test"),
     // profile-a: after as_of (excluded everywhere).
-    { publicProfileId: PROFILE_A, metricVersion, isCountable: true, reviewedAtClient: "2026-06-10T15:00:00.000Z" },
+    createWebClientFact(PROFILE_A, metricVersion, true, "2026-06-10T15:00:00.000Z", "a@real.test"),
+    // profile-a: demo fact author activity is excluded by the public metrics email filter.
+    createWebClientFact(PROFILE_A, metricVersion, true, "2026-06-10T13:15:00.000Z", "demo@example.com"),
     // profile-b: three countable reviews inside 24h.
-    { publicProfileId: PROFILE_B, metricVersion, isCountable: true, reviewedAtClient: "2026-06-10T11:00:00.000Z" },
-    { publicProfileId: PROFILE_B, metricVersion, isCountable: true, reviewedAtClient: "2026-06-10T12:00:00.000Z" },
-    { publicProfileId: PROFILE_B, metricVersion, isCountable: true, reviewedAtClient: "2026-06-10T12:30:00.000Z" },
+    createWebClientFact(PROFILE_B, metricVersion, true, "2026-06-10T11:00:00.000Z", "b@real.test"),
+    createWebClientFact(PROFILE_B, metricVersion, true, "2026-06-10T12:00:00.000Z", "b@real.test"),
+    createWebClientFact(PROFILE_B, metricVersion, true, "2026-06-10T12:30:00.000Z", "b@real.test"),
     // profile-c: opted out of leaderboard participation.
-    { publicProfileId: PROFILE_C, metricVersion, isCountable: true, reviewedAtClient: "2026-06-10T13:00:00.000Z" },
+    createWebClientFact(PROFILE_C, metricVersion, true, "2026-06-10T13:00:00.000Z", "c@real.test"),
     // profile-d: unlinked guest (email IS NULL).
-    { publicProfileId: PROFILE_D, metricVersion, isCountable: true, reviewedAtClient: "2026-06-10T13:00:00.000Z" },
+    createWebClientFact(PROFILE_D, metricVersion, true, "2026-06-10T13:00:00.000Z", null),
     // profile-e: demo example.com account.
-    { publicProfileId: PROFILE_E, metricVersion, isCountable: true, reviewedAtClient: "2026-06-10T13:00:00.000Z" },
-    // profile-f: only an again fact, so it never qualifies.
-    { publicProfileId: PROFILE_F, metricVersion, isCountable: false, reviewedAtClient: "2026-06-10T13:00:00.000Z" },
+    createWebClientFact(PROFILE_E, metricVersion, true, "2026-06-10T13:00:00.000Z", "demo@example.com"),
+    // profile-f: again and system facts do not count, but the linked opted-in profile still appears with zero.
+    createWebClientFact(PROFILE_F, metricVersion, false, "2026-06-10T13:00:00.000Z", "f@real.test"),
+    createSystemFact(PROFILE_F, metricVersion, true, "2026-06-10T13:15:00.000Z", "f@real.test"),
   );
 }
 
@@ -369,7 +437,7 @@ test("last_24_hours snapshot includes opted-in linked accounts even with zero co
 
   // profile-b has 3 countable reviews in 24h; profile-a has 2 (1h-before plus the as_of
   // boundary fact); the again fact, the 25h fact, and the future fact are all excluded.
-  // profile-f is linked and opted in, so it appears with zero countable reviews.
+  // profile-f is linked and opted in, so it appears with zero real-client countable reviews.
   assert.deepEqual(entriesForWindow(state, "last_24_hours"), [
     { publicProfileId: PROFILE_B, qualifiedReviewCount: 3, baseSortPosition: 1 },
     { publicProfileId: PROFILE_A, qualifiedReviewCount: 2, baseSortPosition: 2 },
@@ -412,6 +480,21 @@ test("opted-out, unlinked guest, and demo profiles are excluded from every windo
   }
 });
 
+test("every window uses the same eligible participant universe", async () => {
+  const state = createLeaderboardStoreState();
+  seedLeaderboardFixture(state);
+
+  await generateWithFake(state, LEADERBOARD_SNAPSHOT_METRIC_VERSION, NOW);
+
+  const expectedProfileIds = [PROFILE_A, PROFILE_B, PROFILE_F].sort();
+  for (const window of LEADERBOARD_WINDOWS) {
+    const profileIdsInWindow = entriesForWindow(state, window.windowKey)
+      .map((entry) => entry.publicProfileId)
+      .sort();
+    assert.deepEqual(profileIdsInWindow, expectedProfileIds, window.windowKey);
+  }
+});
+
 test("regenerating the same server hour reuses snapshots and replaces entries idempotently", async () => {
   const state = createLeaderboardStoreState();
   seedLeaderboardFixture(state);
@@ -442,6 +525,28 @@ test("generateLeaderboardSnapshots rejects an unsupported metric version before 
     UnsupportedLeaderboardMetricVersionError,
   );
   assert.equal(state.refreshCalls.length, 0);
+});
+
+test("production leaderboard snapshot generation uses one repeatable-read transaction", () => {
+  const sourcePath = resolve(
+    process.cwd(),
+    "src/community/leaderboard/leaderboardSnapshots.ts",
+  );
+  const source = readFileSync(sourcePath, "utf8").replace(/\s+/g, " ");
+
+  assert.match(source, /import \{ unsafeRepeatableReadTransaction \} from "\.\.\/\.\.\/database\/unsafe"/);
+  assert.match(source, /withTransactionFn: unsafeRepeatableReadTransaction/);
+});
+
+test("community leaderboard snapshot Lambda retries transient database failures", () => {
+  const sourcePath = resolve(
+    process.cwd(),
+    "src/entrypoints/lambda-community-leaderboard-snapshot.ts",
+  );
+  const source = readFileSync(sourcePath, "utf8").replace(/\s+/g, " ");
+
+  assert.match(source, /import \{ withTransientDatabaseRetry \} from "\.\.\/database\/transient"/);
+  assert.match(source, /const result = await withTransientDatabaseRetry\( \(\) => runtime\.generateLeaderboardSnapshots\(\), \(\) => observationScope, \)/);
 });
 
 test("assertLeaderboardWindowKey accepts known keys and rejects unknown ones", () => {
@@ -528,4 +633,30 @@ test("0060 migration includes zero-count linked opted-in profiles in snapshots",
   assert.match(sql, /NOT LIKE '%@example\.com'/);
   assert.match(sql, /ROW_NUMBER\(\) OVER \( ORDER BY eligible\.qualified_review_count DESC, eligible\.public_profile_id ASC \)/);
   assert.match(sql, /GRANT EXECUTE ON FUNCTION community\.refresh_leaderboard_snapshot\(TEXT, TEXT, INTEGER, TIMESTAMPTZ, TIMESTAMPTZ\) TO backend_app/);
+});
+
+test("0061 migration counts only real client-app activity without shrinking the participant universe", () => {
+  const migrationPath = resolve(
+    process.cwd(),
+    "../../db/migrations/0061_leaderboard_real_client_activity.sql",
+  );
+  const sql = readFileSync(migrationPath, "utf8").replace(/\s+/g, " ");
+
+  assert.match(sql, /CREATE OR REPLACE FUNCTION community\.refresh_leaderboard_snapshot/);
+  assert.match(sql, /FROM community\.public_profiles AS profiles/);
+  assert.match(sql, /LEFT JOIN \( SELECT facts\.public_profile_id FROM community\.public_review_activity_facts AS facts/);
+  assert.match(sql, /INNER JOIN content\.review_events AS review_events/);
+  assert.match(sql, /INNER JOIN sync\.workspace_replicas AS workspace_replicas/);
+  assert.match(sql, /ON fact_user_settings\.user_id = facts\.reviewed_by_user_id/);
+  assert.match(sql, /workspace_replicas\.actor_kind = 'client_installation'/);
+  assert.match(sql, /workspace_replicas\.platform IN \('web', 'android', 'ios'\)/);
+  assert.match(sql, /fact_user_settings\.email IS NULL OR LOWER\(btrim\(fact_user_settings\.email\)\) NOT LIKE '%@example\.com'/);
+  assert.match(sql, /COUNT\(countable_facts\.public_profile_id\)::int AS qualified_review_count/);
+  assert.match(sql, /profiles\.leaderboard_participation_enabled = TRUE/);
+  assert.match(sql, /user_settings\.email IS NOT NULL/);
+  assert.match(sql, /LOWER\(btrim\(user_settings\.email\)\) NOT LIKE '%@example\.com'/);
+  assert.match(sql, /GRANT EXECUTE ON FUNCTION community\.refresh_leaderboard_snapshot\(TEXT, TEXT, INTEGER, TIMESTAMPTZ, TIMESTAMPTZ\) TO backend_app/);
+  assert.match(sql, /CREATE OR REPLACE FUNCTION community\.read_current_user_latest_leaderboard_review/);
+  assert.match(sql, /WHERE facts\.reviewed_by_user_id = security\.current_user_id\(\)/);
+  assert.match(sql, /GRANT EXECUTE ON FUNCTION community\.read_current_user_latest_leaderboard_review\(TEXT\) TO backend_app/);
 });

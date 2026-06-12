@@ -1,4 +1,4 @@
-import { unsafeTransaction } from "../../database/unsafe";
+import { unsafeRepeatableReadTransaction } from "../../database/unsafe";
 import { type DatabaseExecutor } from "../../database";
 import {
   LEADERBOARD_SNAPSHOT_METRIC_VERSION,
@@ -17,9 +17,9 @@ import {
  * The cross-user read, exclusion rules, tie-neutral ordering, and atomic entry
  * replacement live in the SECURITY DEFINER function
  * community.refresh_leaderboard_snapshot (see db/migrations/0059_leaderboard_snapshots.sql
- * and db/migrations/0060_leaderboard_zero_count_participants.sql); this module owns
- * the injectable clock, the window set, metric-version validation, and sequencing
- * the per-window refreshes inside one transaction.
+ * through db/migrations/0061_leaderboard_real_client_activity.sql); this module
+ * owns the injectable clock, the window set, metric-version validation, and
+ * sequencing the per-window refreshes inside one repeatable-read transaction.
  */
 
 type RefreshLeaderboardSnapshotParams = Readonly<{
@@ -122,7 +122,7 @@ export async function generateLeaderboardSnapshots(): Promise<LeaderboardSnapsho
   return generateLeaderboardSnapshotsWithDependencies({
     metricVersion: LEADERBOARD_SNAPSHOT_METRIC_VERSION,
     now: () => new Date(),
-    withTransactionFn: unsafeTransaction,
+    withTransactionFn: unsafeRepeatableReadTransaction,
     refreshLeaderboardSnapshotFn: refreshLeaderboardSnapshotInExecutor,
   });
 }
