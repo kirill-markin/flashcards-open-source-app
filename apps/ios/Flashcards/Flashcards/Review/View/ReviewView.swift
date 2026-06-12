@@ -522,14 +522,14 @@ struct ReviewView: View {
             Button {
                 self.isQueuePreviewPresented = true
             } label: {
-                Label {
-                    Text(self.reviewQueueButtonTitle)
-                        .monospacedDigit()
-                } icon: {
+                HStack(spacing: 4) {
                     Image(systemName: "list.bullet")
+
+                    Text(self.reviewQueueTotalButtonTitle)
+                        .monospacedDigit()
                 }
-                .labelStyle(.titleAndIcon)
             }
+            .buttonStyle(.glass)
             .disabled(store.reviewTotalCount == 0)
             .accessibilityIdentifier(UITestIdentifier.reviewQueueButton)
             .accessibilityLabel(
@@ -543,8 +543,8 @@ struct ReviewView: View {
         }
     }
 
-    private var reviewQueueButtonTitle: String {
-        "\(store.displayedReviewDueCount.formatted()) / \(store.reviewTotalCount.formatted())"
+    private var reviewQueueTotalButtonTitle: String {
+        store.reviewTotalCount.formatted()
     }
 
     private var reviewProgressBadgeButton: some View {
@@ -552,28 +552,38 @@ struct ReviewView: View {
 
         return Button {
             self.store.prepareVisibleTabForPresentation(tab: .progress, now: Date())
-            self.navigation.selectTab(.progress)
+            self.navigation.openProgress(target: .streak)
         } label: {
-            Label {
+            HStack(spacing: 4) {
+                Image(systemName: makeReviewProgressBadgePresentation(badgeState: badgeState).iconSystemName)
+                    .foregroundStyle(self.reviewProgressBadgeToolbarIconColor(badgeState: badgeState))
+
                 Text(formatReviewProgressBadgeValue(badgeState: badgeState))
                     .monospacedDigit()
-            } icon: {
-                Image(systemName: makeReviewProgressBadgePresentation(badgeState: badgeState).iconSystemName)
             }
-            .labelStyle(.titleAndIcon)
         }
+        .buttonStyle(.glass)
         .disabled(badgeState.isInteractive == false)
         .accessibilityIdentifier(UITestIdentifier.reviewProgressBadge)
         .accessibilityLabel(self.reviewProgressBadgeAccessibilityLabel(badgeState: badgeState))
         .accessibilityValue(self.reviewProgressBadgeAccessibilityValue(badgeState: badgeState))
     }
 
+    private func reviewProgressBadgeToolbarIconColor(badgeState: ReviewProgressBadgeState) -> Color {
+        if badgeState.hasReviewedToday {
+            return .accentColor
+        }
+
+        return .primary
+    }
+
     private var reviewLeaderboardButton: some View {
         Button {
             self.navigation.openProgress(target: .leaderboard)
         } label: {
-            Label(self.reviewLeaderboardButtonTitle, systemImage: "trophy")
+            Image(systemName: "trophy")
         }
+        .buttonStyle(.glass)
         .accessibilityIdentifier(UITestIdentifier.reviewLeaderboardShortcut)
         .accessibilityLabel(self.reviewLeaderboardButtonTitle)
     }

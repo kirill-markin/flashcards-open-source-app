@@ -17,6 +17,7 @@ enum AppTab: Hashable, CaseIterable, Sendable {
 }
 
 enum ProgressPresentationTarget: Hashable, Sendable {
+    case streak
     case leaderboard
 }
 
