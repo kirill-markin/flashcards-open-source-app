@@ -2,11 +2,13 @@ import Foundation
 import SwiftUI
 
 private enum ProgressScreenSectionID: Hashable {
+    case streak
     case leaderboard
 }
 
 private struct ProgressPresentationTaskID: Hashable {
     let requestID: UUID?
+    let hasStreakSection: Bool
     let hasLeaderboardSection: Bool
 }
 
@@ -18,9 +20,14 @@ struct ProgressScreen: View {
         self.store.progressSnapshot != nil && self.store.progressLeaderboardSnapshot != nil
     }
 
+    private var isStreakSectionAvailable: Bool {
+        self.store.progressSnapshot != nil
+    }
+
     private var progressPresentationTaskID: ProgressPresentationTaskID {
         ProgressPresentationTaskID(
             requestID: self.navigation.progressPresentationRequest?.id,
+            hasStreakSection: self.isStreakSectionAvailable,
             hasLeaderboardSection: self.isLeaderboardSectionAvailable
         )
     }
@@ -59,6 +66,7 @@ struct ProgressScreen: View {
                                 calendar: presentationCalendar
                             )
                         }
+                        .id(ProgressScreenSectionID.streak)
                         .accessibilityIdentifier(UITestIdentifier.progressStreakSection)
                         .accessibilityValue(progressSummaryUITestValue(summary: progressSnapshot.summary))
                         .modifier(ProgressCardModifier())
@@ -144,23 +152,38 @@ struct ProgressScreen: View {
             return
         }
 
-        switch request.target {
-        case .leaderboard:
-            guard self.isLeaderboardSectionAvailable else {
-                return
-            }
-            await Task.yield()
-            guard self.navigation.progressPresentationRequest?.id == request.id else {
-                return
-            }
-            guard self.isLeaderboardSectionAvailable else {
-                return
-            }
+        guard self.isProgressPresentationTargetAvailable(target: request.target) else {
+            return
+        }
+        await Task.yield()
+        guard self.navigation.progressPresentationRequest?.id == request.id else {
+            return
+        }
+        guard self.isProgressPresentationTargetAvailable(target: request.target) else {
+            return
+        }
 
-            withAnimation {
-                proxy.scrollTo(ProgressScreenSectionID.leaderboard, anchor: .top)
-            }
-            self.navigation.clearProgressPresentationRequest(id: request.id)
+        withAnimation {
+            proxy.scrollTo(self.progressScreenSectionID(target: request.target), anchor: .top)
+        }
+        self.navigation.clearProgressPresentationRequest(id: request.id)
+    }
+
+    private func isProgressPresentationTargetAvailable(target: ProgressPresentationTarget) -> Bool {
+        switch target {
+        case .streak:
+            return self.isStreakSectionAvailable
+        case .leaderboard:
+            return self.isLeaderboardSectionAvailable
+        }
+    }
+
+    private func progressScreenSectionID(target: ProgressPresentationTarget) -> ProgressScreenSectionID {
+        switch target {
+        case .streak:
+            return .streak
+        case .leaderboard:
+            return .leaderboard
         }
     }
 }
