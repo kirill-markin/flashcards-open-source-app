@@ -189,7 +189,6 @@ struct CardsScreen: View {
                             guard let cardReference else {
                                 return
                             }
-                            _ = self.store.aiChatStore.prepareCardHandoff(card: cardReference)
                             self.editorPresentation = nil
                             Task { @MainActor in
                                 self.navigation.openAICardHandoff(card: cardReference)

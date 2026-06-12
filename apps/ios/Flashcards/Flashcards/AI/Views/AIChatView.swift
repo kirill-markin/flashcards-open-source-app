@@ -1,8 +1,97 @@
 import AVFoundation
+import OSLog
 import PhotosUI
 import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
+
+private let aiChatPresentationLifecycleLogger: Logger = Logger(
+    subsystem: appBundleIdentifier(),
+    category: "ai_handoff"
+)
+
+private enum AIChatPresentationLifecycleEvent: String {
+    case capture
+    case waitingForAITab = "waiting_for_ai_tab"
+    case waitingForConsent = "waiting_for_consent"
+    case waitingForInteractiveChat = "waiting_for_interactive_chat"
+    case alreadyApplied = "already_applied"
+    case applyAttempt = "apply_attempt"
+    case postSurfaceSyncConfirmed = "post_surface_sync_confirmed"
+    case postSurfaceSyncMissing = "post_surface_sync_missing"
+    case reapplyAttempt = "reapply_attempt"
+    case reapplyPostSurfaceSyncMissing = "reapply_post_surface_sync_missing"
+    case complete
+}
+
+private enum AIChatPresentationLifecycleSource: String {
+    case acceptedExternalAIConsent = "accepted_external_ai_consent"
+    case viewAppear = "view_appear"
+    case navigationRequestChange = "navigation_request_change"
+    case bootstrapReady = "bootstrap_ready"
+    case composerPhaseReady = "composer_phase_ready"
+    case externalProviderConsentGranted = "external_provider_consent_granted"
+    case sceneActive = "scene_active"
+    case surfaceInputsChanged = "surface_inputs_changed"
+    case selectedAITab = "selected_ai_tab"
+    case dictationIdle = "dictation_idle"
+}
+
+private func aiChatPresentationRequestDiagnosticKind(_ request: AIChatPresentationRequest) -> String {
+    switch request {
+    case .createCard:
+        return "create_card"
+    case .attachCard:
+        return "attach_card"
+    }
+}
+
+private func aiChatPresentationRequestDiagnosticCardIdSuffix(_ request: AIChatPresentationRequest) -> String {
+    switch request {
+    case .createCard:
+        return "-"
+    case .attachCard(let card):
+        return aiChatDiagnosticIdSuffix(card.cardId)
+    }
+}
+
+private func aiChatDiagnosticIdSuffix(_ value: String?) -> String {
+    guard let value else {
+        return "-"
+    }
+    let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard trimmedValue.isEmpty == false else {
+        return "-"
+    }
+
+    return String(trimmedValue.suffix(8))
+}
+
+private func aiChatBootstrapPhaseDiagnosticValue(_ phase: AIChatBootstrapPhase) -> String {
+    switch phase {
+    case .ready:
+        return "ready"
+    case .loading:
+        return "loading"
+    case .failed:
+        return "failed"
+    }
+}
+
+private func appTabDiagnosticValue(_ tab: AppTab) -> String {
+    switch tab {
+    case .review:
+        return "review"
+    case .progress:
+        return "progress"
+    case .ai:
+        return "ai"
+    case .cards:
+        return "cards"
+    case .settings:
+        return "settings"
+    }
+}
 
 struct AIChatView: View {
     @Environment(FlashcardsStore.self) var flashcardsStore: FlashcardsStore
@@ -463,7 +552,10 @@ struct AIChatView: View {
 
         self.chatStore.acceptExternalProviderConsent()
         self.syncChatSurface(refreshConsent: false)
-        self.handleAIChatPresentationRequest(request: self.navigation.aiChatPresentationRequest)
+        self.handleAIChatPresentationRequest(
+            request: self.navigation.aiChatPresentationRequest,
+            source: .acceptedExternalAIConsent
+        )
     }
 
     func refreshExternalAIConsentState() {
@@ -501,49 +593,221 @@ struct AIChatView: View {
         return true
     }
 
-    func captureAIChatPresentationRequest(request: AIChatPresentationRequest?) {
+    private func captureAIChatPresentationRequest(
+        request: AIChatPresentationRequest?,
+        source: AIChatPresentationLifecycleSource
+    ) {
         guard let request else {
             return
         }
 
         self.deferredPresentationRequest = request
+        self.logAIChatPresentationLifecycle(
+            event: .capture,
+            source: source,
+            request: request,
+            didApply: nil,
+            surfaceSynced: false
+        )
     }
 
-    func handleAIChatPresentationRequest(request: AIChatPresentationRequest?) {
+    private func handleAIChatPresentationRequest(
+        request: AIChatPresentationRequest?,
+        source: AIChatPresentationLifecycleSource
+    ) {
         let resolvedRequest = request ?? self.navigation.aiChatPresentationRequest ?? self.deferredPresentationRequest
         guard let resolvedRequest else {
             return
         }
-        self.captureAIChatPresentationRequest(request: resolvedRequest)
+        self.captureAIChatPresentationRequest(
+            request: resolvedRequest,
+            source: source
+        )
         guard self.navigation.selectedTab == .ai else {
+            self.logAIChatPresentationLifecycle(
+                event: .waitingForAITab,
+                source: source,
+                request: resolvedRequest,
+                didApply: nil,
+                surfaceSynced: false
+            )
             return
         }
         guard self.chatStore.hasExternalProviderConsent else {
+            self.logAIChatPresentationLifecycle(
+                event: .waitingForConsent,
+                source: source,
+                request: resolvedRequest,
+                didApply: nil,
+                surfaceSynced: false
+            )
             return
         }
         guard self.chatStore.isChatInteractive else {
+            self.logAIChatPresentationLifecycle(
+                event: .waitingForInteractiveChat,
+                source: source,
+                request: resolvedRequest,
+                didApply: nil,
+                surfaceSynced: false
+            )
             return
         }
 
-        if self.chatStore.hasAppliedPresentationRequest(request: resolvedRequest) {
-            self.completeAIChatPresentationRequest()
+        guard self.applyAIChatPresentationRequestIfNeeded(
+            request: resolvedRequest,
+            source: source
+        ) else {
+            return
+        }
+        if self.confirmAIChatPresentationRequestAfterSurfaceSync(
+            request: resolvedRequest,
+            source: source,
+            missingEvent: .postSurfaceSyncMissing
+        ) {
+            self.completeAIChatPresentationRequest(
+                request: resolvedRequest,
+                source: source
+            )
             return
         }
 
-        let didApplyRequest = self.chatStore.applyPresentationRequest(request: resolvedRequest)
-        guard didApplyRequest else {
+        let didReapplyRequest = self.chatStore.applyPresentationRequest(request: resolvedRequest)
+        self.logAIChatPresentationLifecycle(
+            event: .reapplyAttempt,
+            source: source,
+            request: resolvedRequest,
+            didApply: didReapplyRequest,
+            surfaceSynced: false
+        )
+        guard didReapplyRequest else {
             return
         }
-        guard self.chatStore.hasAppliedPresentationRequest(request: resolvedRequest) else {
+        guard self.confirmAIChatPresentationRequestAfterSurfaceSync(
+            request: resolvedRequest,
+            source: source,
+            missingEvent: .reapplyPostSurfaceSyncMissing
+        ) else {
             return
         }
-        self.completeAIChatPresentationRequest()
+        self.completeAIChatPresentationRequest(
+            request: resolvedRequest,
+            source: source
+        )
     }
 
-    func completeAIChatPresentationRequest() {
-        self.deferredPresentationRequest = nil
+    private func applyAIChatPresentationRequestIfNeeded(
+        request: AIChatPresentationRequest,
+        source: AIChatPresentationLifecycleSource
+    ) -> Bool {
+        if self.chatStore.hasAppliedPresentationRequest(request: request) {
+            self.logAIChatPresentationLifecycle(
+                event: .alreadyApplied,
+                source: source,
+                request: request,
+                didApply: nil,
+                surfaceSynced: false
+            )
+            return true
+        }
+
+        let didApplyRequest = self.chatStore.applyPresentationRequest(request: request)
+        self.logAIChatPresentationLifecycle(
+            event: .applyAttempt,
+            source: source,
+            request: request,
+            didApply: didApplyRequest,
+            surfaceSynced: false
+        )
+        return didApplyRequest
+    }
+
+    private func confirmAIChatPresentationRequestAfterSurfaceSync(
+        request: AIChatPresentationRequest,
+        source: AIChatPresentationLifecycleSource,
+        missingEvent: AIChatPresentationLifecycleEvent
+    ) -> Bool {
+        self.syncChatSurface(refreshConsent: false)
+        guard self.chatStore.hasAppliedPresentationRequest(request: request) else {
+            self.logAIChatPresentationLifecycle(
+                event: missingEvent,
+                source: source,
+                request: request,
+                didApply: nil,
+                surfaceSynced: true
+            )
+            return false
+        }
+
+        self.logAIChatPresentationLifecycle(
+            event: .postSurfaceSyncConfirmed,
+            source: source,
+            request: request,
+            didApply: nil,
+            surfaceSynced: true
+        )
+        return true
+    }
+
+    private func completeAIChatPresentationRequest(
+        request: AIChatPresentationRequest,
+        source: AIChatPresentationLifecycleSource
+    ) {
+        self.logAIChatPresentationLifecycle(
+            event: .complete,
+            source: source,
+            request: request,
+            didApply: nil,
+            surfaceSynced: true
+        )
+        if self.deferredPresentationRequest == request {
+            self.deferredPresentationRequest = nil
+        }
         self.isComposerFocused = true
-        self.navigation.clearAIChatPresentationRequest()
+        self.navigation.clearAIChatPresentationRequest(request: request)
+    }
+
+    private func logAIChatPresentationLifecycle(
+        event: AIChatPresentationLifecycleEvent,
+        source: AIChatPresentationLifecycleSource,
+        request: AIChatPresentationRequest,
+        didApply: Bool?,
+        surfaceSynced: Bool
+    ) {
+        let didApplyValue = didApply.map { didApply in String(didApply) } ?? "-"
+        let isAppliedValue = String(self.chatStore.hasAppliedPresentationRequest(request: request))
+        let surfaceSyncedValue = String(surfaceSynced)
+        let hasConsentValue = String(self.chatStore.hasExternalProviderConsent)
+        let isInteractiveValue = String(self.chatStore.isChatInteractive)
+        let canAttachCardValue = String(self.chatStore.canAttachCardToDraft)
+        let selectedTab = appTabDiagnosticValue(self.navigation.selectedTab)
+        let bootstrapPhase = aiChatBootstrapPhaseDiagnosticValue(self.chatStore.bootstrapPhase)
+        let cloudState = self.flashcardsStore.cloudSettings?.cloudState.rawValue ?? "-"
+        let workspaceIdSuffix = aiChatDiagnosticIdSuffix(self.flashcardsStore.workspace?.workspaceId)
+        let activeWorkspaceIdSuffix = aiChatDiagnosticIdSuffix(self.flashcardsStore.cloudSettings?.activeWorkspaceId)
+        aiChatPresentationLifecycleLogger.log(
+            """
+            event=\(event.rawValue, privacy: .public) \
+            source=\(source.rawValue, privacy: .public) \
+            requestKind=\(aiChatPresentationRequestDiagnosticKind(request), privacy: .public) \
+            cardIdSuffix=\(aiChatPresentationRequestDiagnosticCardIdSuffix(request), privacy: .public) \
+            selectedTab=\(selectedTab, privacy: .public) \
+            hasConsent=\(hasConsentValue, privacy: .public) \
+            isInteractive=\(isInteractiveValue, privacy: .public) \
+            bootstrapPhase=\(bootstrapPhase, privacy: .public) \
+            composerPhase=\(self.chatStore.composerPhase.rawValue, privacy: .public) \
+            pendingAttachmentCount=\(self.chatStore.pendingAttachments.count, privacy: .public) \
+            inputTextLength=\(self.chatStore.inputText.count, privacy: .public) \
+            messageCount=\(self.chatStore.messages.count, privacy: .public) \
+            isApplied=\(isAppliedValue, privacy: .public) \
+            didApply=\(didApplyValue, privacy: .public) \
+            surfaceSynced=\(surfaceSyncedValue, privacy: .public) \
+            canAttachCard=\(canAttachCardValue, privacy: .public) \
+            cloudState=\(cloudState, privacy: .public) \
+            workspaceIdSuffix=\(workspaceIdSuffix, privacy: .public) \
+            activeWorkspaceIdSuffix=\(activeWorkspaceIdSuffix, privacy: .public)
+            """
+        )
     }
 
     func repairStatus(for message: AIChatMessage) -> AIChatRepairAttemptStatus? {
@@ -597,22 +861,37 @@ struct AIChatView: View {
 
     func handleViewAppear() {
         self.syncChatSurface(refreshConsent: true)
-        self.captureAIChatPresentationRequest(request: self.navigation.aiChatPresentationRequest)
-        self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
+        self.captureAIChatPresentationRequest(
+            request: self.navigation.aiChatPresentationRequest,
+            source: .viewAppear
+        )
+        self.handleAIChatPresentationRequest(
+            request: self.deferredPresentationRequest,
+            source: .viewAppear
+        )
     }
 
     func handlePresentationRequestChange(request: AIChatPresentationRequest?) {
-        self.captureAIChatPresentationRequest(request: request)
+        self.captureAIChatPresentationRequest(
+            request: request,
+            source: .navigationRequestChange
+        )
         guard self.deferredPresentationRequest != nil else {
             return
         }
         guard self.navigation.selectedTab == .ai else {
-            self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
+            self.handleAIChatPresentationRequest(
+                request: self.deferredPresentationRequest,
+                source: .navigationRequestChange
+            )
             return
         }
 
         self.syncChatSurface(refreshConsent: false)
-        self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
+        self.handleAIChatPresentationRequest(
+            request: self.deferredPresentationRequest,
+            source: .navigationRequestChange
+        )
     }
 
     func handleBootstrapPhaseChange(nextPhase: AIChatBootstrapPhase) {
@@ -620,7 +899,10 @@ struct AIChatView: View {
             return
         }
 
-        self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
+        self.handleAIChatPresentationRequest(
+            request: self.deferredPresentationRequest,
+            source: .bootstrapReady
+        )
     }
 
     func handleComposerPhaseChange(nextPhase: AIChatComposerPhase) {
@@ -628,7 +910,10 @@ struct AIChatView: View {
             return
         }
 
-        self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
+        self.handleAIChatPresentationRequest(
+            request: self.deferredPresentationRequest,
+            source: .composerPhaseReady
+        )
     }
 
     func handleExternalProviderConsentChange(hasConsent: Bool) {
@@ -637,7 +922,10 @@ struct AIChatView: View {
         }
 
         self.syncChatSurface(refreshConsent: false)
-        self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
+        self.handleAIChatPresentationRequest(
+            request: self.deferredPresentationRequest,
+            source: .externalProviderConsentGranted
+        )
     }
 
     func handleScenePhaseChange(nextPhase: ScenePhase) {
@@ -647,12 +935,18 @@ struct AIChatView: View {
         }
 
         self.syncChatSurface(refreshConsent: true)
-        self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
+        self.handleAIChatPresentationRequest(
+            request: self.deferredPresentationRequest,
+            source: .sceneActive
+        )
     }
 
     func handleSurfaceInputsChange() {
         self.syncChatSurface(refreshConsent: false)
-        self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
+        self.handleAIChatPresentationRequest(
+            request: self.deferredPresentationRequest,
+            source: .surfaceInputsChanged
+        )
     }
 
     func handleSelectedTabChange(nextTab: AppTab) {
@@ -663,7 +957,10 @@ struct AIChatView: View {
         }
 
         self.syncChatSurface(refreshConsent: true)
-        self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
+        self.handleAIChatPresentationRequest(
+            request: self.deferredPresentationRequest,
+            source: .selectedAITab
+        )
         self.scheduleDeferredBottomSyncIfNeeded()
     }
 
@@ -672,7 +969,10 @@ struct AIChatView: View {
             return
         }
 
-        self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
+        self.handleAIChatPresentationRequest(
+            request: self.deferredPresentationRequest,
+            source: .dictationIdle
+        )
     }
 
     func handleCompletedDictationTranscriptChange(
