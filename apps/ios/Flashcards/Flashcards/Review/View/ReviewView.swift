@@ -399,6 +399,7 @@ struct ReviewView: View {
                     .font(.caption.weight(.semibold))
             }
         }
+        .controlSize(.large)
     }
 
     private var reviewLoadingView: some View {
@@ -582,7 +583,7 @@ struct ReviewView: View {
             .fixedSize(horizontal: true, vertical: false)
         }
         .buttonStyle(.glass)
-        .controlSize(.regular)
+        .controlSize(.large)
         .disabled(badgeState.isInteractive == false)
         .accessibilityIdentifier(UITestIdentifier.reviewProgressBadge)
         .accessibilityLabel(self.reviewProgressBadgeAccessibilityLabel(badgeState: badgeState))
@@ -611,7 +612,7 @@ struct ReviewView: View {
                 .labelStyle(.iconOnly)
         }
         .buttonStyle(.glass)
-        .controlSize(.regular)
+        .controlSize(.large)
         .accessibilityIdentifier(UITestIdentifier.reviewLeaderboardShortcut)
         .accessibilityLabel(self.reviewLeaderboardButtonTitle)
     }
