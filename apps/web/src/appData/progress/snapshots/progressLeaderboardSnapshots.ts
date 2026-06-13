@@ -1,10 +1,21 @@
 import type {
   ProgressLeaderboard,
   ProgressLeaderboardLocalViewerCounts,
+  ProgressLeaderboardParticipantRow,
+  ProgressLeaderboardRankingRow,
   ProgressLeaderboardRow,
   ProgressLeaderboardSnapshot,
   ProgressLeaderboardWindow,
+  ProgressLeaderboardWindowKey,
 } from "../../../types";
+import { progressLeaderboardWindowKeys } from "../../../types";
+
+type ProgressLeaderboardRanklessRankingRow = Readonly<{
+  kind: ProgressLeaderboardRankingRow["kind"];
+  publicProfileId: string;
+  anonymousDisplayName: string;
+  qualifiedReviewCount: number;
+}>;
 
 export function createProgressLeaderboardSnapshot(
   leaderboard: ProgressLeaderboard,
@@ -20,32 +31,217 @@ export function createProgressLeaderboardSnapshot(
   };
 }
 
-function overlayProgressLeaderboardWindowViewerCount(
+function findViewerRankingRow(
   window: ProgressLeaderboardWindow,
-  localViewerCount: number,
+): ProgressLeaderboardRankingRow {
+  const viewerRankingRow = window.rankingRows.find((row) => (
+    row.kind === "viewer" && row.publicProfileId === window.viewer.publicProfileId
+  )) ?? null;
+
+  if (viewerRankingRow === null) {
+    throw new Error(`Leaderboard window ${window.windowKey} rankingRows must include viewer ${window.viewer.publicProfileId}.`);
+  }
+
+  return viewerRankingRow;
+}
+
+function buildOtherRankingRows(
+  window: ProgressLeaderboardWindow,
+): ReadonlyArray<ProgressLeaderboardRankingRow> {
+  return window.rankingRows.filter((row) => {
+    if (row.kind === "viewer" && row.publicProfileId !== window.viewer.publicProfileId) {
+      throw new Error(`Leaderboard window ${window.windowKey} rankingRows contains a viewer row for ${row.publicProfileId}, expected ${window.viewer.publicProfileId}.`);
+    }
+
+    if (row.kind === "participant" && row.publicProfileId === window.viewer.publicProfileId) {
+      throw new Error(`Leaderboard window ${window.windowKey} rankingRows contains viewer ${window.viewer.publicProfileId} as a participant row.`);
+    }
+
+    return row.publicProfileId !== window.viewer.publicProfileId;
+  });
+}
+
+function toRanklessRankingRow(
+  row: ProgressLeaderboardRankingRow,
+): ProgressLeaderboardRanklessRankingRow {
+  return {
+    kind: row.kind,
+    publicProfileId: row.publicProfileId,
+    anonymousDisplayName: row.anonymousDisplayName,
+    qualifiedReviewCount: row.qualifiedReviewCount,
+  };
+}
+
+function findViewerInsertionIndex(
+  rows: ReadonlyArray<ProgressLeaderboardRankingRow>,
+  viewerCount: number,
+): number {
+  const index = rows.findIndex((row) => row.qualifiedReviewCount < viewerCount);
+  return index === -1 ? rows.length : index;
+}
+
+function buildProjectedRankingRows(
+  window: ProgressLeaderboardWindow,
+  viewerCount: number,
+): ReadonlyArray<ProgressLeaderboardRankingRow> {
+  const viewerRankingRow = findViewerRankingRow(window);
+  const otherRows = buildOtherRankingRows(window);
+  const viewerInsertionIndex = findViewerInsertionIndex(otherRows, viewerCount);
+  const projectedRows: Array<ProgressLeaderboardRanklessRankingRow> = [];
+  const projectedViewerRow: ProgressLeaderboardRanklessRankingRow = {
+    kind: "viewer",
+    publicProfileId: window.viewer.publicProfileId,
+    anonymousDisplayName: viewerRankingRow.anonymousDisplayName,
+    qualifiedReviewCount: viewerCount,
+  };
+
+  otherRows.forEach((row, index) => {
+    if (index === viewerInsertionIndex) {
+      projectedRows.push(projectedViewerRow);
+    }
+
+    projectedRows.push(toRanklessRankingRow(row));
+  });
+
+  if (viewerInsertionIndex === otherRows.length) {
+    projectedRows.push(projectedViewerRow);
+  }
+
+  return projectedRows.map((row, index): ProgressLeaderboardRankingRow => ({
+    ...row,
+    rank: index + 1,
+  }));
+}
+
+function buildProgressLeaderboardParticipantRow(
+  row: ProgressLeaderboardRankingRow,
+  topRowCount: number,
+): ProgressLeaderboardParticipantRow {
+  return {
+    kind: row.kind === "viewer" ? "viewer" : row.rank <= topRowCount ? "top" : "neighbor",
+    publicProfileId: row.publicProfileId,
+    anonymousDisplayName: row.anonymousDisplayName,
+    qualifiedReviewCount: row.qualifiedReviewCount,
+    rank: row.rank,
+  };
+}
+
+function buildShownRankList(total: number, viewerRank: number): ReadonlyArray<number> {
+  const topRowCount = Math.min(3, total);
+  const shownRanks = new Set<number>();
+
+  for (let rank = 1; rank <= topRowCount; rank += 1) {
+    shownRanks.add(rank);
+  }
+
+  if (viewerRank > topRowCount) {
+    for (const candidate of [viewerRank - 1, viewerRank, viewerRank + 1]) {
+      if (candidate >= 1 && candidate <= total) {
+        shownRanks.add(candidate);
+      }
+    }
+  } else if (viewerRank === topRowCount && viewerRank < total) {
+    shownRanks.add(viewerRank + 1);
+  }
+
+  if (total > topRowCount) {
+    shownRanks.add(total);
+  }
+
+  return [...shownRanks].sort((left, right) => left - right);
+}
+
+function buildCompactRows(
+  rankingRows: ReadonlyArray<ProgressLeaderboardRankingRow>,
+): ReadonlyArray<ProgressLeaderboardRow> {
+  const viewerRankingRow = rankingRows.find((row) => row.kind === "viewer") ?? null;
+  if (viewerRankingRow === null) {
+    throw new Error("Projected leaderboard rankingRows must include a viewer row.");
+  }
+
+  const total = rankingRows.length;
+  const topRowCount = Math.min(3, total);
+  const shownRanks = buildShownRankList(total, viewerRankingRow.rank);
+  const rows: Array<ProgressLeaderboardRow> = [];
+  let previousRank = 0;
+
+  for (const rank of shownRanks) {
+    if (previousRank !== 0 && rank > previousRank + 1) {
+      rows.push({ kind: "gap" });
+    }
+
+    const rankingRow = rankingRows[rank - 1];
+    if (rankingRow === undefined) {
+      throw new Error(`Projected leaderboard rankingRows is missing rank ${rank}.`);
+    }
+
+    rows.push(buildProgressLeaderboardParticipantRow(rankingRow, topRowCount));
+    previousRank = rank;
+  }
+
+  if (previousRank < total) {
+    rows.push({ kind: "gap" });
+  }
+
+  return rows;
+}
+
+function projectProgressLeaderboardWindow(
+  window: ProgressLeaderboardWindow,
+  localViewerCounts: ProgressLeaderboardLocalViewerCounts,
 ): ProgressLeaderboardWindow {
+  const viewerCount = Math.max(
+    window.viewer.qualifiedReviewCount,
+    localViewerCounts[window.windowKey],
+  );
+
+  if (viewerCount === window.viewer.qualifiedReviewCount) {
+    return window;
+  }
+
+  const projectedRankingRows = buildProjectedRankingRows(window, viewerCount);
+  const projectedViewerRow = projectedRankingRows.find((row) => row.kind === "viewer") ?? null;
+  if (projectedViewerRow === null) {
+    throw new Error(`Projected leaderboard window ${window.windowKey} rankingRows must include a viewer row.`);
+  }
+
   return {
     ...window,
     viewer: {
       ...window.viewer,
-      qualifiedReviewCount: localViewerCount,
+      rank: projectedViewerRow.rank,
+      qualifiedReviewCount: viewerCount,
     },
-    rows: window.rows.map((row): ProgressLeaderboardRow => (
-      row.kind === "viewer"
-        ? {
-          ...row,
-          qualifiedReviewCount: localViewerCount,
-        }
-        : row
-    )),
+    rows: buildCompactRows(projectedRankingRows),
+    rankingRows: window.rankingRows,
   };
 }
 
+function resolveProjectedDefaultWindowKey(
+  windows: ReadonlyArray<ProgressLeaderboardWindow>,
+  currentDefaultWindowKey: ProgressLeaderboardWindowKey,
+): ProgressLeaderboardWindowKey {
+  let bestWindow: ProgressLeaderboardWindow | null = null;
+
+  for (const windowKey of progressLeaderboardWindowKeys) {
+    const window = windows.find((candidate) => candidate.windowKey === windowKey);
+    if (window === undefined) {
+      continue;
+    }
+
+    if (bestWindow === null || window.viewer.rank < bestWindow.viewer.rank) {
+      bestWindow = window;
+    }
+  }
+
+  return bestWindow === null ? currentDefaultWindowKey : bestWindow.windowKey;
+}
+
 /**
- * Replaces only the viewer's qualified review count with the locally computed
- * live count. Ranks, participant counts, and all other users' rows stay exactly
- * as the server snapshot reported them, so a diverging local count never
- * invents a new rank.
+ * Projects a live viewer-only count onto the server-frozen ranking rows. Other
+ * participants retain server order; the viewer is reinserted below equal counts
+ * and above the first lower count, then compact rows are rebuilt from that
+ * projected rank list.
  */
 function mergeProgressLeaderboardWithLocalViewerCounts(
   serverBase: ProgressLeaderboardSnapshot,
@@ -57,14 +253,13 @@ function mergeProgressLeaderboardWithLocalViewerCounts(
 
   let hasOverlay = false;
   const windows = serverBase.windows.map((window): ProgressLeaderboardWindow => {
-    const localViewerCount = localViewerCounts[window.windowKey];
+    const projectedWindow = projectProgressLeaderboardWindow(window, localViewerCounts);
 
-    if (localViewerCount === window.viewer.qualifiedReviewCount) {
-      return window;
+    if (projectedWindow !== window) {
+      hasOverlay = true;
     }
 
-    hasOverlay = true;
-    return overlayProgressLeaderboardWindowViewerCount(window, localViewerCount);
+    return projectedWindow;
   });
 
   if (hasOverlay === false) {
@@ -73,6 +268,7 @@ function mergeProgressLeaderboardWithLocalViewerCounts(
 
   return {
     ...serverBase,
+    defaultWindowKey: resolveProjectedDefaultWindowKey(windows, serverBase.defaultWindowKey),
     windows,
     isApproximate: true,
   };

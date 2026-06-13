@@ -272,6 +272,18 @@ export type ProgressLeaderboardGapRow = Readonly<{
 
 export type ProgressLeaderboardRow = ProgressLeaderboardParticipantRow | ProgressLeaderboardGapRow;
 
+export const progressLeaderboardRankingRowKinds = ["participant", "viewer"] as const;
+
+export type ProgressLeaderboardRankingRowKind = typeof progressLeaderboardRankingRowKinds[number];
+
+export type ProgressLeaderboardRankingRow = Readonly<{
+  kind: ProgressLeaderboardRankingRowKind;
+  publicProfileId: string;
+  anonymousDisplayName: string;
+  qualifiedReviewCount: number;
+  rank: number;
+}>;
+
 export type ProgressLeaderboardWindow = Readonly<{
   windowKey: ProgressLeaderboardWindowKey;
   snapshotId: string;
@@ -281,6 +293,7 @@ export type ProgressLeaderboardWindow = Readonly<{
   participantCount: number;
   viewer: ProgressLeaderboardViewer;
   rows: ReadonlyArray<ProgressLeaderboardRow>;
+  rankingRows: ReadonlyArray<ProgressLeaderboardRankingRow>;
 }>;
 
 export type ProgressLeaderboard = Readonly<{

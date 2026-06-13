@@ -2,6 +2,7 @@ import type {
   DailyReviewPoint,
   ProgressLeaderboard,
   ProgressLeaderboardMetric,
+  ProgressLeaderboardRankingRow,
   ProgressLeaderboardRow,
   ProgressLeaderboardStatus,
   ProgressLeaderboardViewer,
@@ -18,6 +19,7 @@ import { INSTALLATION_ID_STORAGE_KEY } from "../../../clientIdentity";
 import { addWebBreadcrumb, type WebObservationScope } from "../../../observability/webObservability";
 import {
   progressLeaderboardParticipantRowKinds,
+  progressLeaderboardRankingRowKinds,
   progressLeaderboardStatuses,
   progressLeaderboardWindowKeys,
   progressReviewScheduleBucketKeys,
@@ -34,7 +36,7 @@ const progressLeaderboardStorageKey = "flashcards-progress-server-leaderboard";
 const progressServerSummaryVersion = 2;
 const progressServerSeriesVersion = 2;
 const progressServerReviewScheduleVersion = 2;
-const progressServerLeaderboardVersion = 1;
+const progressServerLeaderboardVersion = 2;
 
 type PersistedProgressSummary = Readonly<{
   version: 2;
@@ -58,7 +60,7 @@ type PersistedProgressReviewSchedule = Readonly<{
 }>;
 
 type PersistedProgressLeaderboard = Readonly<{
-  version: 1;
+  version: 2;
   scopeKey: ProgressScopeKey;
   savedAt: string;
   serverBase: ProgressLeaderboard;
@@ -616,6 +618,74 @@ function parsePersistedProgressLeaderboardRow(value: unknown): ProgressLeaderboa
   };
 }
 
+function parsePersistedProgressLeaderboardRankingRow(value: unknown): ProgressLeaderboardRankingRow | null {
+  if (
+    isRecord(value) === false
+    || progressLeaderboardRankingRowKinds.includes(value.kind as typeof progressLeaderboardRankingRowKinds[number]) === false
+    || typeof value.publicProfileId !== "string"
+    || typeof value.anonymousDisplayName !== "string"
+    || isNonNegativeSafeIntegerValue(value.qualifiedReviewCount) === false
+    || isNonNegativeSafeIntegerValue(value.rank) === false
+    || value.rank < 1
+  ) {
+    return null;
+  }
+
+  return {
+    kind: value.kind as typeof progressLeaderboardRankingRowKinds[number],
+    publicProfileId: value.publicProfileId,
+    anonymousDisplayName: value.anonymousDisplayName,
+    qualifiedReviewCount: value.qualifiedReviewCount,
+    rank: value.rank,
+  };
+}
+
+function isValidPersistedProgressLeaderboardRankingRows(
+  participantCount: number,
+  viewer: ProgressLeaderboardViewer,
+  rankingRows: ReadonlyArray<ProgressLeaderboardRankingRow>,
+): boolean {
+  if (rankingRows.length !== participantCount) {
+    return false;
+  }
+
+  let viewerRowCount = 0;
+  let previousQualifiedReviewCount: number | null = null;
+
+  for (let index = 0; index < rankingRows.length; index += 1) {
+    const row = rankingRows[index];
+    if (row === undefined) {
+      return false;
+    }
+
+    if (row.rank !== index + 1) {
+      return false;
+    }
+
+    if (previousQualifiedReviewCount !== null && row.qualifiedReviewCount > previousQualifiedReviewCount) {
+      return false;
+    }
+
+    previousQualifiedReviewCount = row.qualifiedReviewCount;
+
+    if (row.kind === "viewer") {
+      viewerRowCount += 1;
+
+      if (
+        row.publicProfileId !== viewer.publicProfileId
+        || row.rank !== viewer.rank
+        || row.qualifiedReviewCount !== viewer.qualifiedReviewCount
+      ) {
+        return false;
+      }
+    } else if (row.publicProfileId === viewer.publicProfileId) {
+      return false;
+    }
+  }
+
+  return viewerRowCount === 1;
+}
+
 function parsePersistedProgressLeaderboardWindow(value: unknown): ProgressLeaderboardWindow | null {
   if (
     isRecord(value) === false
@@ -626,6 +696,7 @@ function parsePersistedProgressLeaderboardWindow(value: unknown): ProgressLeader
     || typeof value.nextRefreshAfter !== "string"
     || isNonNegativeSafeIntegerValue(value.participantCount) === false
     || Array.isArray(value.rows) === false
+    || Array.isArray(value.rankingRows) === false
   ) {
     return null;
   }
@@ -643,6 +714,18 @@ function parsePersistedProgressLeaderboardWindow(value: unknown): ProgressLeader
     return null;
   }
 
+  const rankingRows = value.rankingRows
+    .map(parsePersistedProgressLeaderboardRankingRow)
+    .filter((row): row is ProgressLeaderboardRankingRow => row !== null);
+
+  if (rankingRows.length !== value.rankingRows.length) {
+    return null;
+  }
+
+  if (isValidPersistedProgressLeaderboardRankingRows(value.participantCount, viewer, rankingRows) === false) {
+    return null;
+  }
+
   return {
     windowKey: value.windowKey,
     snapshotId: value.snapshotId,
@@ -652,6 +735,7 @@ function parsePersistedProgressLeaderboardWindow(value: unknown): ProgressLeader
     participantCount: value.participantCount,
     viewer,
     rows,
+    rankingRows,
   };
 }
 
@@ -708,7 +792,7 @@ function parsePersistedProgressLeaderboard(
   return {
     status: "hit",
     value: {
-      version: 1,
+      version: 2,
       scopeKey: parsedValue.scopeKey,
       savedAt: parsedValue.savedAt,
       serverBase: {
@@ -858,7 +942,7 @@ export function loadPersistedProgressLeaderboard(scopeKey: ProgressScopeKey): Pr
 
 export function storePersistedProgressLeaderboard(scopeKey: ProgressScopeKey, serverBase: ProgressLeaderboard): void {
   const persistedValue: PersistedProgressLeaderboard = {
-    version: 1,
+    version: 2,
     scopeKey,
     savedAt: new Date().toISOString(),
     serverBase,

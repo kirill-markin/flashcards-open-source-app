@@ -15,6 +15,7 @@ import type {
   CloudSettings,
   ProgressLeaderboard,
   ProgressLeaderboardLocalViewerCounts,
+  ProgressLeaderboardRankingRow,
   ProgressLeaderboardSourceState,
   ProgressLeaderboardWindow,
   ProgressLeaderboardWindowKey,
@@ -243,6 +244,59 @@ const linkedCloudSettings: CloudSettings = {
   updatedAt: "2026-04-18T09:15:00.000Z",
 };
 
+function createRankingParticipantRow(
+  rank: number,
+  publicProfileId: string,
+  anonymousDisplayName: string,
+  qualifiedReviewCount: number,
+): ProgressLeaderboardRankingRow {
+  return {
+    kind: "participant",
+    publicProfileId,
+    anonymousDisplayName,
+    qualifiedReviewCount,
+    rank,
+  };
+}
+
+function createHiddenRankingParticipantRow(rank: number, qualifiedReviewCount: number): ProgressLeaderboardRankingRow {
+  return createRankingParticipantRow(
+    rank,
+    `profile-${rank}`,
+    `Hidden Rank ${rank}`,
+    qualifiedReviewCount,
+  );
+}
+
+function createLeaderboardRankingRows(): ReadonlyArray<ProgressLeaderboardRankingRow> {
+  const hiddenRowsAboveViewer = Array.from(
+    { length: 37 },
+    (_value, index): ProgressLeaderboardRankingRow => createHiddenRankingParticipantRow(index + 4, 10),
+  );
+  const hiddenRowsBelowViewer = Array.from(
+    { length: 84 },
+    (_value, index): ProgressLeaderboardRankingRow => createHiddenRankingParticipantRow(index + 44, 1),
+  );
+
+  return [
+    createRankingParticipantRow(1, "profile-1", "Silver Bright Harbor", 51),
+    createRankingParticipantRow(2, "profile-2", "Amber Calm Meadow", 44),
+    createRankingParticipantRow(3, "profile-3", "Coral Keen Valley", 30),
+    ...hiddenRowsAboveViewer,
+    createRankingParticipantRow(41, "profile-41", "Jade Swift River", 8),
+    {
+      kind: "viewer",
+      publicProfileId: "viewer-profile",
+      anonymousDisplayName: "Quiet Maple Grove",
+      qualifiedReviewCount: 7,
+      rank: 42,
+    },
+    createRankingParticipantRow(43, "profile-43", "Bold Cedar Crest", 7),
+    ...hiddenRowsBelowViewer,
+    createRankingParticipantRow(128, "profile-128", "Blue Final Harbor", 0),
+  ];
+}
+
 function createLeaderboardWindow(windowKey: ProgressLeaderboardWindowKey): ProgressLeaderboardWindow {
   return {
     windowKey,
@@ -268,6 +322,7 @@ function createLeaderboardWindow(windowKey: ProgressLeaderboardWindowKey): Progr
       { kind: "gap" },
       { kind: "neighbor", publicProfileId: "profile-128", anonymousDisplayName: "Blue Final Harbor", qualifiedReviewCount: 0, rank: 128 },
     ],
+    rankingRows: createLeaderboardRankingRows(),
   };
 }
 
@@ -923,7 +978,7 @@ describe("ProgressScreen", () => {
     expect(container.querySelector("[data-testid='progress-leaderboard-freshness']")).toBeNull();
   });
 
-  it("overlays only the viewer count when the local qualified review count differs", async () => {
+  it("reranks the viewer and renders new neighbors when the local qualified review count moves higher", async () => {
     useAppDataMock.mockReturnValue({
       ...createAppData(),
       cloudSettings: linkedCloudSettings,
@@ -952,11 +1007,21 @@ describe("ProgressScreen", () => {
     }
 
     expect(viewerRow.querySelector("[data-testid='progress-leaderboard-count-viewer']")?.textContent).toBe("9");
-    expect(viewerRow.textContent).toContain("#42");
+    expect(viewerRow.textContent).toContain("#41");
+
+    const rows = [...container.querySelectorAll(".progress-leaderboard-row")];
+    const rowTexts = rows.map((row) => row.textContent);
+    expect(rowTexts[4]).toContain("Hidden Rank 40");
+    expect(rowTexts[4]).toContain("#40");
+    expect(rowTexts[5]).toContain("You");
+    expect(rowTexts[5]).toContain("#41");
+    expect(rowTexts[6]).toContain("Jade Swift River");
+    expect(rowTexts[6]).toContain("#42");
+    expect(container.textContent).not.toContain("Bold Cedar Crest");
 
     const neighborCounts = [...container.querySelectorAll("[data-testid='progress-leaderboard-count-neighbor']")]
       .map((count) => count.textContent);
-    expect(neighborCounts).toEqual(["8", "7", "0"]);
+    expect(neighborCounts).toEqual(["10", "8", "0"]);
 
     const topCounts = [...container.querySelectorAll("[data-testid='progress-leaderboard-count-top']")]
       .map((count) => count.textContent);

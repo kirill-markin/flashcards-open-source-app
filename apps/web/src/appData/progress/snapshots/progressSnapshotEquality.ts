@@ -3,6 +3,7 @@ import type {
   ProgressChartData,
   ProgressLeaderboardLocalViewerCounts,
   ProgressLeaderboardMetric,
+  ProgressLeaderboardRankingRow,
   ProgressLeaderboardRow,
   ProgressLeaderboardSnapshot,
   ProgressLeaderboardSourceState,
@@ -306,6 +307,37 @@ function areProgressLeaderboardRowArraysEqual(
   return true;
 }
 
+function areProgressLeaderboardRankingRowsEqual(
+  left: ProgressLeaderboardRankingRow,
+  right: ProgressLeaderboardRankingRow,
+): boolean {
+  return left.kind === right.kind
+    && left.publicProfileId === right.publicProfileId
+    && left.anonymousDisplayName === right.anonymousDisplayName
+    && left.qualifiedReviewCount === right.qualifiedReviewCount
+    && left.rank === right.rank;
+}
+
+function areProgressLeaderboardRankingRowArraysEqual(
+  left: ReadonlyArray<ProgressLeaderboardRankingRow>,
+  right: ReadonlyArray<ProgressLeaderboardRankingRow>,
+): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  for (let index = 0; index < left.length; index += 1) {
+    const leftRow = left[index];
+    const rightRow = right[index];
+
+    if (leftRow === undefined || rightRow === undefined || areProgressLeaderboardRankingRowsEqual(leftRow, rightRow) === false) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 function areProgressLeaderboardWindowsEqual(
   left: ProgressLeaderboardWindow,
   right: ProgressLeaderboardWindow,
@@ -317,7 +349,8 @@ function areProgressLeaderboardWindowsEqual(
     && left.nextRefreshAfter === right.nextRefreshAfter
     && left.participantCount === right.participantCount
     && areProgressLeaderboardViewersEqual(left.viewer, right.viewer)
-    && areProgressLeaderboardRowArraysEqual(left.rows, right.rows);
+    && areProgressLeaderboardRowArraysEqual(left.rows, right.rows)
+    && areProgressLeaderboardRankingRowArraysEqual(left.rankingRows, right.rankingRows);
 }
 
 function areProgressLeaderboardWindowArraysEqual(

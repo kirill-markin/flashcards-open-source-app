@@ -27,7 +27,10 @@ import {
   buildProgressSeriesInputForDateContext,
   buildProgressSummaryInputForDateContext,
 } from "../../../progress/progressDates";
-import { buildProgressSummaryScopeKey } from "../state/progressScope";
+import {
+  buildProgressLeaderboardScopeKey,
+  buildProgressSummaryScopeKey,
+} from "../state/progressScope";
 import { resetProgressTimeContextStateForTests } from "../time/progressTimeContext";
 import type { SessionVerificationState } from "../../session/workspaceSessionTypes";
 
@@ -469,6 +472,10 @@ export function buildCurrentReviewScheduleScopeKey(): ProgressScopeKey {
   );
 }
 
+export function buildCurrentLeaderboardScopeKey(): ProgressScopeKey {
+  return buildProgressLeaderboardScopeKey([workspace.workspaceId]);
+}
+
 export function storePersistedProgressSummaryForTest(
   scopeKey: ProgressScopeKey,
   serverBase: ProgressSummaryPayload,
@@ -498,6 +505,18 @@ export function storePersistedProgressReviewScheduleForTest(
   serverBase: ProgressReviewSchedule,
 ): void {
   window.localStorage.setItem(`flashcards-progress-server-review-schedule:${scopeKey}`, JSON.stringify({
+    version: 2,
+    scopeKey,
+    savedAt: "2026-04-18T09:00:00.000Z",
+    serverBase,
+  }));
+}
+
+export function storePersistedProgressLeaderboardForTest(
+  scopeKey: ProgressScopeKey,
+  serverBase: ProgressLeaderboard,
+): void {
+  window.localStorage.setItem("flashcards-progress-server-leaderboard", JSON.stringify({
     version: 2,
     scopeKey,
     savedAt: "2026-04-18T09:00:00.000Z",
