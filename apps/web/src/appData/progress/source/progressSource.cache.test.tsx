@@ -1,12 +1,14 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
 import type {
+  ProgressLeaderboard,
   ProgressReviewSchedule,
   ProgressSeries,
   ProgressSummaryPayload,
 } from "../../../types";
 import {
   addWebBreadcrumbMock,
+  buildCurrentLeaderboardScopeKey,
   buildCurrentReviewScheduleInput,
   buildCurrentReviewScheduleScopeKey,
   buildCurrentSeriesInput,
@@ -17,7 +19,9 @@ import {
   buildServerSummary,
   createDeferredPromise,
   flushEffects,
+  leaderboardOnlySections,
   linkedCloudSettings,
+  loadProgressLeaderboardMock,
   loadProgressReviewScheduleMock,
   loadProgressSeriesMock,
   loadProgressSummaryMock,
@@ -25,6 +29,7 @@ import {
   replaceProgressReviewScheduleBucketCount,
   reviewScheduleOnlySections,
   seriesOnlySections,
+  storePersistedProgressLeaderboardForTest,
   storePersistedProgressReviewScheduleForTest,
   storePersistedProgressSeriesForTest,
   storePersistedProgressSummaryForTest,
@@ -32,7 +37,7 @@ import {
   swapFirstProgressReviewScheduleBuckets,
 } from "./progressSourceTestSupport";
 
-type ExpectedProgressCacheMissSection = "summary" | "series" | "review_schedule";
+type ExpectedProgressCacheMissSection = "summary" | "series" | "review_schedule" | "leaderboard";
 type ExpectedProgressCacheMissReason = "invalid_json" | "invalid_shape" | "scope_mismatch" | "time_zone_mismatch";
 
 function expectProgressCacheMissBreadcrumb(
@@ -55,6 +60,44 @@ function expectProgressCacheMissBreadcrumb(
       workspaceIds: ["workspace-1"],
     }),
   }));
+}
+
+function buildCachedLeaderboard(): ProgressLeaderboard {
+  return {
+    status: "ready",
+    metric: {
+      metricVersion: "qualified_reviews_v1",
+      title: "Qualified reviews",
+      description: "Hard, Good, and Easy reviews count toward your rank. Again does not.",
+    },
+    defaultWindowKey: "last_24_hours",
+    windows: [
+      {
+        windowKey: "last_24_hours",
+        snapshotId: "0cc86d10-18cb-4d64-a2f2-a5fd960b45b2",
+        snapshotGeneratedAt: "2026-04-18T09:10:00.000Z",
+        asOfServerHour: "2026-04-18T09:00:00.000Z",
+        nextRefreshAfter: "2026-04-18T10:00:00.000Z",
+        participantCount: 3,
+        viewer: {
+          publicProfileId: "viewer-profile",
+          displayName: "You",
+          rank: 2,
+          qualifiedReviewCount: 5,
+        },
+        rows: [
+          { kind: "top", publicProfileId: "profile-1", anonymousDisplayName: "Silver Bright Harbor", qualifiedReviewCount: 7, rank: 1 },
+          { kind: "viewer", publicProfileId: "viewer-profile", anonymousDisplayName: "Quiet Maple Grove", qualifiedReviewCount: 5, rank: 2 },
+          { kind: "top", publicProfileId: "profile-3", anonymousDisplayName: "Coral Keen Valley", qualifiedReviewCount: 1, rank: 3 },
+        ],
+        rankingRows: [
+          { kind: "participant", publicProfileId: "profile-1", anonymousDisplayName: "Silver Bright Harbor", qualifiedReviewCount: 7, rank: 1 },
+          { kind: "viewer", publicProfileId: "viewer-profile", anonymousDisplayName: "Quiet Maple Grove", qualifiedReviewCount: 5, rank: 2 },
+          { kind: "participant", publicProfileId: "profile-3", anonymousDisplayName: "Coral Keen Valley", qualifiedReviewCount: 1, rank: 3 },
+        ],
+      },
+    ],
+  };
 }
 
 describe("useProgressSource cache", () => {
@@ -94,6 +137,38 @@ describe("useProgressSource cache", () => {
       date: buildCurrentSeriesInput().to,
       reviewCount: 7,
     });
+  });
+
+  it("hydrates matching leaderboard cache with rankingRows before remote refresh completes", async () => {
+    const cachedLeaderboard = buildCachedLeaderboard();
+    const deferredLeaderboard = createDeferredPromise<ProgressLeaderboard>();
+    storePersistedProgressLeaderboardForTest(buildCurrentLeaderboardScopeKey(), cachedLeaderboard);
+    loadProgressLeaderboardMock.mockImplementation(() => deferredLeaderboard.promise);
+
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: leaderboardOnlySections,
+    });
+
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.leaderboard.serverBase?.windows[0]?.rankingRows).toEqual(
+      cachedLeaderboard.windows[0]?.rankingRows,
+    );
+    expect(harness.getApi().progressSourceState.leaderboard.renderedSnapshot?.windows[0]?.viewer.rank).toBe(2);
+
+    deferredLeaderboard.resolve({
+      ...cachedLeaderboard,
+      windows: cachedLeaderboard.windows.map((window) => ({
+        ...window,
+        snapshotGeneratedAt: "2026-04-18T09:11:00.000Z",
+      })),
+    });
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.leaderboard.serverBase?.windows[0]?.snapshotGeneratedAt).toBe("2026-04-18T09:11:00.000Z");
   });
 
   it("treats corrupt and mismatched cache entries as misses", async () => {

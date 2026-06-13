@@ -1,6 +1,7 @@
 import type {
   ProgressLeaderboard,
   ProgressLeaderboardMetric,
+  ProgressLeaderboardRankingRow,
   ProgressLeaderboardRow,
   ProgressLeaderboardViewer,
   ProgressLeaderboardWindow,
@@ -12,6 +13,7 @@ import type {
 } from "../types";
 import {
   progressLeaderboardParticipantRowKinds,
+  progressLeaderboardRankingRowKinds,
   progressLeaderboardStatuses,
   progressLeaderboardWindowKeys,
   progressReviewScheduleBucketKeys,
@@ -20,6 +22,7 @@ import { findProgressReviewScheduleValidationIssue } from "../progress/progressR
 import {
   ApiContractError,
   describePath,
+  joinIndexPath,
   joinPath,
   type JsonObject,
   parseArray,
@@ -274,21 +277,101 @@ function parseProgressLeaderboardRowArray(
   return parseArray(value, endpoint, path, parseProgressLeaderboardRow);
 }
 
+function parseProgressLeaderboardRankingRow(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ProgressLeaderboardRankingRow {
+  const objectValue = parseObject(value, endpoint, path);
+
+  return {
+    kind: parseEnum(objectValue.kind, endpoint, joinPath(path, "kind"), progressLeaderboardRankingRowKinds),
+    publicProfileId: parseRequiredField(objectValue, "publicProfileId", endpoint, path, parseString),
+    anonymousDisplayName: parseRequiredField(objectValue, "anonymousDisplayName", endpoint, path, parseString),
+    qualifiedReviewCount: parseRequiredField(objectValue, "qualifiedReviewCount", endpoint, path, parseNonNegativeSafeInteger),
+    rank: parseRequiredField(objectValue, "rank", endpoint, path, parseLeaderboardRank),
+  };
+}
+
+function parseProgressLeaderboardRankingRowArray(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ReadonlyArray<ProgressLeaderboardRankingRow> {
+  return parseArray(value, endpoint, path, parseProgressLeaderboardRankingRow);
+}
+
+function validateProgressLeaderboardRankingRows(
+  participantCount: number,
+  viewer: ProgressLeaderboardViewer,
+  rankingRows: ReadonlyArray<ProgressLeaderboardRankingRow>,
+  endpoint: string,
+  path: string,
+): void {
+  const rankingRowsPath = joinPath(path, "rankingRows");
+
+  if (rankingRows.length !== participantCount) {
+    throw new ApiContractError(endpoint, describePath(rankingRowsPath), "one row per participant");
+  }
+
+  let viewerRowCount = 0;
+  let previousQualifiedReviewCount: number | null = null;
+
+  rankingRows.forEach((row, index) => {
+    const rowPath = joinIndexPath(rankingRowsPath, index);
+
+    if (row.rank !== index + 1) {
+      throw new ApiContractError(endpoint, describePath(joinPath(rowPath, "rank")), "a contiguous rank matching array order");
+    }
+
+    if (previousQualifiedReviewCount !== null && row.qualifiedReviewCount > previousQualifiedReviewCount) {
+      throw new ApiContractError(endpoint, describePath(joinPath(rowPath, "qualifiedReviewCount")), "non-increasing ranking order");
+    }
+
+    previousQualifiedReviewCount = row.qualifiedReviewCount;
+
+    if (row.kind === "viewer") {
+      viewerRowCount += 1;
+
+      if (
+        row.publicProfileId !== viewer.publicProfileId
+        || row.rank !== viewer.rank
+        || row.qualifiedReviewCount !== viewer.qualifiedReviewCount
+      ) {
+        throw new ApiContractError(endpoint, describePath(rowPath), "the current viewer row");
+      }
+    } else if (row.publicProfileId === viewer.publicProfileId) {
+      throw new ApiContractError(endpoint, describePath(rowPath), "a non-viewer participant");
+    }
+  });
+
+  if (viewerRowCount !== 1) {
+    throw new ApiContractError(endpoint, describePath(rankingRowsPath), "exactly one current viewer row");
+  }
+}
+
 function parseProgressLeaderboardWindow(
   value: unknown,
   endpoint: string,
   path: string,
 ): ProgressLeaderboardWindow {
   const objectValue = parseObject(value, endpoint, path);
+  const participantCount = parseRequiredField(objectValue, "participantCount", endpoint, path, parseNonNegativeSafeInteger);
+  const viewer = parseRequiredField(objectValue, "viewer", endpoint, path, parseProgressLeaderboardViewer);
+  const rankingRows = parseRequiredField(objectValue, "rankingRows", endpoint, path, parseProgressLeaderboardRankingRowArray);
+
+  validateProgressLeaderboardRankingRows(participantCount, viewer, rankingRows, endpoint, path);
+
   return {
     windowKey: parseRequiredField(objectValue, "windowKey", endpoint, path, parseProgressLeaderboardWindowKey),
     snapshotId: parseRequiredField(objectValue, "snapshotId", endpoint, path, parseString),
     snapshotGeneratedAt: parseRequiredField(objectValue, "snapshotGeneratedAt", endpoint, path, parseString),
     asOfServerHour: parseRequiredField(objectValue, "asOfServerHour", endpoint, path, parseString),
     nextRefreshAfter: parseRequiredField(objectValue, "nextRefreshAfter", endpoint, path, parseString),
-    participantCount: parseRequiredField(objectValue, "participantCount", endpoint, path, parseNonNegativeSafeInteger),
-    viewer: parseRequiredField(objectValue, "viewer", endpoint, path, parseProgressLeaderboardViewer),
+    participantCount,
+    viewer,
     rows: parseRequiredField(objectValue, "rows", endpoint, path, parseProgressLeaderboardRowArray),
+    rankingRows,
   };
 }
 
