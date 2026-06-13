@@ -90,7 +90,7 @@ func logCloudFlowPhase(
     FlashcardsObservability.addBreadcrumb(.cloudFlow(observation))
 }
 
-private func cloudObservationFeature(phase: CloudFlowPhase) -> IOSObservationFeature {
+func cloudObservationFeature(phase: CloudFlowPhase) -> IOSObservationFeature {
     switch phase {
     case .authSendCode,
             .authRefreshToken,

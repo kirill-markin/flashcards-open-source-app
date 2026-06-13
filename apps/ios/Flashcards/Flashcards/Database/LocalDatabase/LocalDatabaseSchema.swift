@@ -1,7 +1,7 @@
 import Foundation
 
 enum LocalDatabaseSchema {
-    static let currentVersion: Int = 16
+    static let currentVersion: Int = 17
 
     static var baseMigrationSQL: String {
         let defaultEnableFuzzValue: Int = defaultSchedulerSettingsConfig.enableFuzz ? 1 : 0
@@ -111,6 +111,7 @@ enum LocalDatabaseSchema {
             last_applied_review_sequence_id INTEGER NOT NULL DEFAULT 0, -- highest append-only review-history sequence already imported locally
             has_hydrated_hot_state INTEGER NOT NULL DEFAULT 0, -- whether the blocking current-state bootstrap already completed locally
             has_hydrated_review_history INTEGER NOT NULL DEFAULT 0, -- whether the background review-history backfill already completed locally
+            pending_review_history_import INTEGER NOT NULL DEFAULT 0 CHECK (pending_review_history_import IN (0, 1)), -- whether an empty-remote bootstrap still needs local review-history import before pull
             updated_at TEXT NOT NULL -- last time the local pull cursor state changed
         );
 

@@ -26,6 +26,7 @@ extension LocalDatabase {
                     last_applied_review_sequence_id = 0,
                     has_hydrated_hot_state = 0,
                     has_hydrated_review_history = 0,
+                    pending_review_history_import = 0,
                     updated_at = ?
                 WHERE workspace_id = ?
                 """,
@@ -44,9 +45,10 @@ extension LocalDatabase {
                         last_applied_review_sequence_id,
                         has_hydrated_hot_state,
                         has_hydrated_review_history,
+                        pending_review_history_import,
                         updated_at
                     )
-                    VALUES (?, 0, 0, 0, 0, ?)
+                    VALUES (?, 0, 0, 0, 0, 0, ?)
                     """,
                     values: [
                         .text(workspaceId),
@@ -109,6 +111,17 @@ extension LocalDatabase {
         try self.outboxStore.setHasHydratedReviewHistory(
             workspaceId: workspaceId,
             hasHydratedReviewHistory: hasHydratedReviewHistory
+        )
+    }
+
+    func hasPendingReviewHistoryImport(workspaceId: String) throws -> Bool {
+        try self.outboxStore.hasPendingReviewHistoryImport(workspaceId: workspaceId)
+    }
+
+    func setPendingReviewHistoryImport(workspaceId: String, pendingReviewHistoryImport: Bool) throws {
+        try self.outboxStore.setPendingReviewHistoryImport(
+            workspaceId: workspaceId,
+            pendingReviewHistoryImport: pendingReviewHistoryImport
         )
     }
 

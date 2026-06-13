@@ -55,23 +55,15 @@ struct CloudSyncRunner {
     }
 
     func runLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
-        try await self.runLinkedSync(
-            linkedSession: linkedSession,
-            importsLocalReviewHistoryBeforeReviewPull: false
-        )
+        try await self.runLinkedSyncWithRecovery(linkedSession: linkedSession)
     }
 
     func runGuestLocalRecoveryLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
-        try await self.runLinkedSync(
-            linkedSession: linkedSession,
-            importsLocalReviewHistoryBeforeReviewPull: true
-        )
+        try self.markLegacyGuestLocalReviewHistoryImportIfNeeded(workspaceId: linkedSession.workspaceId)
+        return try await self.runLinkedSyncWithRecovery(linkedSession: linkedSession)
     }
 
-    private func runLinkedSync(
-        linkedSession: CloudLinkedSession,
-        importsLocalReviewHistoryBeforeReviewPull: Bool
-    ) async throws -> CloudSyncResult {
+    private func runLinkedSyncWithRecovery(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
         let cloudSettings = try self.database.loadBootstrapSnapshot().cloudSettings
         let workspaceId = linkedSession.workspaceId
         let syncBasePath = "/workspaces/\(workspaceId)/sync"
@@ -84,8 +76,7 @@ struct CloudSyncRunner {
                     linkedSession: linkedSession,
                     workspaceId: workspaceId,
                     installationId: cloudSettings.installationId,
-                    syncBasePath: syncBasePath,
-                    importsLocalReviewHistoryBeforeReviewPull: importsLocalReviewHistoryBeforeReviewPull
+                    syncBasePath: syncBasePath
                 )
 
                 guard publicWorkspaceForkRepairEntityTypes.isEmpty == false else {
@@ -126,8 +117,7 @@ struct CloudSyncRunner {
         linkedSession: CloudLinkedSession,
         workspaceId: String,
         installationId: String,
-        syncBasePath: String,
-        importsLocalReviewHistoryBeforeReviewPull: Bool
+        syncBasePath: String
     ) async throws -> CloudSyncResult {
         var syncResult = try self.cleanupStaleReviewEventOutboxEntries(
             workspaceId: workspaceId,
@@ -173,13 +163,11 @@ struct CloudSyncRunner {
             )
         }
         syncResult = syncResult.merging(hotPullResult)
-        if importsLocalReviewHistoryBeforeReviewPull,
-            try self.database.hasHydratedReviewHistory(workspaceId: workspaceId) == false {
-            // Guest local recovery creates a new workspace. If review history is
-            // still unhydrated here, an earlier attempt may have pushed hot state
-            // before review-history import completed.
+        let hasHydratedReviewHistory = try self.database.hasHydratedReviewHistory(workspaceId: workspaceId)
+        let hasPendingReviewHistoryImport = try self.database.hasPendingReviewHistoryImport(workspaceId: workspaceId)
+        if hasHydratedReviewHistory == false && hasPendingReviewHistoryImport {
             syncResult = syncResult.merging(
-                try await self.importLocalReviewHistory(
+                try await self.importPendingLocalReviewHistory(
                     linkedSession: linkedSession,
                     workspaceId: workspaceId,
                     installationId: installationId,
@@ -197,6 +185,30 @@ struct CloudSyncRunner {
         )
 
         return syncResult
+    }
+
+    private func markLegacyGuestLocalReviewHistoryImportIfNeeded(workspaceId: String) throws {
+        guard try self.database.hasHydratedHotState(workspaceId: workspaceId) else {
+            return
+        }
+        guard try self.database.hasHydratedReviewHistory(workspaceId: workspaceId) == false else {
+            return
+        }
+        guard try self.database.hasPendingReviewHistoryImport(workspaceId: workspaceId) == false else {
+            return
+        }
+        guard try self.database.loadReviewEvents(workspaceId: workspaceId).isEmpty == false else {
+            return
+        }
+
+        // Legacy iOS guest-local recovery predates `pending_review_history_import`.
+        // A device can upgrade after local hot state was committed to the new cloud
+        // workspace but before local review history was imported. Convert that
+        // partial state to the marker-driven recovery path used by current builds.
+        try self.database.setPendingReviewHistoryImport(
+            workspaceId: workspaceId,
+            pendingReviewHistoryImport: true
+        )
     }
 
     private func repairPublicWorkspaceForkConflictIfNeeded(
@@ -556,6 +568,13 @@ struct CloudSyncRunner {
         }.count
         let pendingReviewScheduleImpactingOutboxCount = pendingOutboxEntries.filter(\.reviewScheduleImpact).count
 
+        if reviewEvents.isEmpty == false {
+            try self.database.setPendingReviewHistoryImport(
+                workspaceId: workspaceId,
+                pendingReviewHistoryImport: true
+            )
+        }
+
         var bootstrapHotChangeId: Int64 = 0
         if bootstrapEntries.isEmpty == false {
             let response: RemoteBootstrapPushResponseEnvelope = try await self.transport.request(
@@ -580,35 +599,16 @@ struct CloudSyncRunner {
             bootstrapHotChangeId = responseHotChangeId
         }
 
-        let nextReviewSequenceId = try await self.importReviewEventsToRemote(
-            linkedSession: linkedSession,
-            installationId: installationId,
-            syncBasePath: syncBasePath,
-            initialReviewSequenceId: 0,
-            reviewEvents: reviewEvents
-        )
-
         try self.database.deleteAllOutboxEntries(workspaceId: workspaceId)
         try self.database.setLastAppliedHotChangeId(
             workspaceId: workspaceId,
             changeId: bootstrapHotChangeId
         )
-        try self.database.setLastAppliedReviewSequenceId(
-            workspaceId: workspaceId,
-            reviewSequenceId: nextReviewSequenceId
-        )
         try self.database.setHasHydratedHotState(workspaceId: workspaceId, hasHydratedHotState: true)
-        try self.database.setHasHydratedReviewHistory(
-            workspaceId: workspaceId,
-            hasHydratedReviewHistory: true
-        )
 
         var changedEntityTypes = Set<SyncEntityType>()
         if bootstrapEntries.isEmpty == false {
             changedEntityTypes.formUnion(bootstrapEntries.map(\.entityType))
-        }
-        if reviewEvents.isEmpty == false {
-            changedEntityTypes.insert(.reviewEvent)
         }
 
         return CloudSyncResult(
@@ -625,7 +625,7 @@ struct CloudSyncRunner {
         )
     }
 
-    private func importLocalReviewHistory(
+    private func importPendingLocalReviewHistory(
         linkedSession: CloudLinkedSession,
         workspaceId: String,
         installationId: String,
@@ -633,26 +633,26 @@ struct CloudSyncRunner {
     ) async throws -> CloudSyncResult {
         let reviewEvents = try self.database.loadReviewEvents(workspaceId: workspaceId)
         let currentReviewSequenceId = try self.database.loadLastAppliedReviewSequenceId(workspaceId: workspaceId)
-        let nextReviewSequenceId = try await self.importReviewEventsToRemote(
+
+        guard reviewEvents.isEmpty == false else {
+            try self.database.setPendingReviewHistoryImport(
+                workspaceId: workspaceId,
+                pendingReviewHistoryImport: false
+            )
+            return .noChanges
+        }
+
+        _ = try await self.importReviewEventsToRemote(
             linkedSession: linkedSession,
             installationId: installationId,
             syncBasePath: syncBasePath,
             initialReviewSequenceId: currentReviewSequenceId,
             reviewEvents: reviewEvents
         )
-
-        try self.database.setLastAppliedReviewSequenceId(
+        try self.database.setPendingReviewHistoryImport(
             workspaceId: workspaceId,
-            reviewSequenceId: nextReviewSequenceId
+            pendingReviewHistoryImport: false
         )
-        try self.database.setHasHydratedReviewHistory(
-            workspaceId: workspaceId,
-            hasHydratedReviewHistory: true
-        )
-
-        guard reviewEvents.isEmpty == false else {
-            return .noChanges
-        }
 
         return CloudSyncResult(
             appliedPullChangeCount: 0,
@@ -926,6 +926,12 @@ struct CloudSyncRunner {
             )
 
             if reviewHistoryEnvelope.hasMore == false {
+                if try self.database.hasPendingReviewHistoryImport(workspaceId: workspaceId) {
+                    try self.database.setPendingReviewHistoryImport(
+                        workspaceId: workspaceId,
+                        pendingReviewHistoryImport: false
+                    )
+                }
                 if try self.database.hasHydratedReviewHistory(workspaceId: workspaceId) == false {
                     try self.database.setHasHydratedReviewHistory(
                         workspaceId: workspaceId,

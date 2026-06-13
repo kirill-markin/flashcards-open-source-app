@@ -139,9 +139,10 @@ struct WorkspaceShellStore {
                     last_applied_review_sequence_id,
                     has_hydrated_hot_state,
                     has_hydrated_review_history,
+                    pending_review_history_import,
                     updated_at
                 )
-                VALUES (?, 0, 0, 0, 0, ?)
+                VALUES (?, 0, 0, 0, 0, 0, ?)
                 """,
                 values: [
                     .text(workspaceId),

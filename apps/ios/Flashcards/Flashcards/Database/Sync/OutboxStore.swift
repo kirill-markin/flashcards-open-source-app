@@ -70,6 +70,7 @@ private struct SyncStateRow {
     let lastAppliedReviewSequenceId: Int64
     let hasHydratedHotState: Bool
     let hasHydratedReviewHistory: Bool
+    let pendingReviewHistoryImport: Bool
 }
 
 struct OutboxStore {
@@ -289,6 +290,10 @@ struct OutboxStore {
         try self.loadSyncState(workspaceId: workspaceId).hasHydratedReviewHistory
     }
 
+    func hasPendingReviewHistoryImport(workspaceId: String) throws -> Bool {
+        try self.loadSyncState(workspaceId: workspaceId).pendingReviewHistoryImport
+    }
+
     private func loadSyncState(workspaceId: String) throws -> SyncStateRow {
         try self.ensureSyncStateExists(workspaceId: workspaceId)
 
@@ -298,7 +303,8 @@ struct OutboxStore {
                 last_applied_hot_change_id,
                 last_applied_review_sequence_id,
                 has_hydrated_hot_state,
-                has_hydrated_review_history
+                has_hydrated_review_history,
+                pending_review_history_import
             FROM sync_state
             WHERE workspace_id = ?
             LIMIT 1
@@ -309,7 +315,8 @@ struct OutboxStore {
                 lastAppliedHotChangeId: DatabaseCore.columnInt64(statement: statement, index: 0),
                 lastAppliedReviewSequenceId: DatabaseCore.columnInt64(statement: statement, index: 1),
                 hasHydratedHotState: DatabaseCore.columnInt64(statement: statement, index: 2) != 0,
-                hasHydratedReviewHistory: DatabaseCore.columnInt64(statement: statement, index: 3) != 0
+                hasHydratedReviewHistory: DatabaseCore.columnInt64(statement: statement, index: 3) != 0,
+                pendingReviewHistoryImport: DatabaseCore.columnInt64(statement: statement, index: 4) != 0
             )
         }
 
@@ -345,9 +352,10 @@ struct OutboxStore {
                 last_applied_review_sequence_id,
                 has_hydrated_hot_state,
                 has_hydrated_review_history,
+                pending_review_history_import,
                 updated_at
             )
-            VALUES (?, 0, 0, 0, 0, ?)
+            VALUES (?, 0, 0, 0, 0, 0, ?)
             """,
             values: [
                 .text(workspaceId),
@@ -414,6 +422,22 @@ struct OutboxStore {
             """,
             values: [
                 .integer(hasHydratedReviewHistory ? 1 : 0),
+                .text(nowIsoTimestamp()),
+                .text(workspaceId)
+            ]
+        )
+    }
+
+    func setPendingReviewHistoryImport(workspaceId: String, pendingReviewHistoryImport: Bool) throws {
+        try self.updateSyncState(
+            workspaceId: workspaceId,
+            sql: """
+            UPDATE sync_state
+            SET pending_review_history_import = ?, updated_at = ?
+            WHERE workspace_id = ?
+            """,
+            values: [
+                .integer(pendingReviewHistoryImport ? 1 : 0),
                 .text(nowIsoTimestamp()),
                 .text(workspaceId)
             ]

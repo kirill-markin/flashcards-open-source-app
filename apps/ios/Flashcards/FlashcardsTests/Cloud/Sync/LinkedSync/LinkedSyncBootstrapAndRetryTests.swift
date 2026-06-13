@@ -412,7 +412,7 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
         XCTAssertTrue(syncState.hasHydratedHotState)
     }
 
-    func testGuestLocalRecoveryLinkedSyncImportsReviewHistoryWhenHotStateAlreadyHydrated() async throws {
+    func testLinkedSyncImportsPendingReviewHistoryWhenHotStateAlreadyHydrated() async throws {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let savedCard = try database.saveCard(
@@ -439,6 +439,7 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
         try database.setLastAppliedReviewSequenceId(workspaceId: workspace.workspaceId, reviewSequenceId: 0)
         try database.setHasHydratedHotState(workspaceId: workspace.workspaceId, hasHydratedHotState: true)
         try database.setHasHydratedReviewHistory(workspaceId: workspace.workspaceId, hasHydratedReviewHistory: false)
+        try database.setPendingReviewHistoryImport(workspaceId: workspace.workspaceId, pendingReviewHistoryImport: true)
 
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [CloudSyncRunnerTestURLProtocol.self]
@@ -447,9 +448,65 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
             decoder: makeFlashcardsRemoteJSONDecoder()
         )
         CloudSyncRunnerTestURLProtocol.requestHandler = { request in
-            try LinkedSyncRunnerTestTransportSupport.handleGuestLocalRecoveryReviewHistoryImportRetryRequest(
+            try LinkedSyncRunnerTestTransportSupport.handleReviewHistoryImportRecoveryRequest(
                 request: request,
-                reviewEventId: reviewEvent.reviewEventId
+                reviewEvent: reviewEvent
+            )
+        }
+
+        let syncResult = try await CloudSyncRunner(database: database, transport: transport).runLinkedSync(
+            linkedSession: self.makeLinkedSession(workspaceId: workspace.workspaceId)
+        )
+
+        let syncState = try XCTUnwrap(try self.loadSyncState(database: database, workspaceId: workspace.workspaceId))
+        XCTAssertEqual([1], CloudSyncRunnerTestURLProtocol.reviewHistoryImportEventCounts)
+        XCTAssertEqual([0], CloudSyncRunnerTestURLProtocol.reviewHistoryPullAfterSequenceIds)
+        XCTAssertTrue(syncResult.changedEntityTypes.contains(.reviewEvent))
+        XCTAssertEqual(5, syncState.lastAppliedReviewSequenceId)
+        XCTAssertTrue(syncState.hasHydratedHotState)
+        XCTAssertTrue(syncState.hasHydratedReviewHistory)
+        XCTAssertFalse(try database.hasPendingReviewHistoryImport(workspaceId: workspace.workspaceId))
+    }
+
+    func testGuestLocalRecoveryImportsLegacyUnmarkedReviewHistoryWhenHotStateAlreadyHydrated() async throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let savedCard = try database.saveCard(
+            workspaceId: workspace.workspaceId,
+            input: CardEditorInput(
+                frontText: "Question",
+                backText: "Answer",
+                tags: [],
+                effortLevel: .medium
+            ),
+            cardId: nil
+        )
+        _ = try database.submitReview(
+            workspaceId: workspace.workspaceId,
+            reviewSubmission: ReviewSubmission(
+                cardId: savedCard.cardId,
+                rating: .good,
+                reviewedAtClient: "2026-04-01T00:00:00.000Z"
+            )
+        )
+        let reviewEvent = try XCTUnwrap(try database.loadReviewEvents(workspaceId: workspace.workspaceId).first)
+        try database.deleteAllOutboxEntries(workspaceId: workspace.workspaceId)
+        try database.setLastAppliedHotChangeId(workspaceId: workspace.workspaceId, changeId: 20)
+        try database.setLastAppliedReviewSequenceId(workspaceId: workspace.workspaceId, reviewSequenceId: 0)
+        try database.setHasHydratedHotState(workspaceId: workspace.workspaceId, hasHydratedHotState: true)
+        try database.setHasHydratedReviewHistory(workspaceId: workspace.workspaceId, hasHydratedReviewHistory: false)
+        try database.setPendingReviewHistoryImport(workspaceId: workspace.workspaceId, pendingReviewHistoryImport: false)
+
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [CloudSyncRunnerTestURLProtocol.self]
+        let transport = CloudSyncTransport(
+            session: URLSession(configuration: configuration),
+            decoder: makeFlashcardsRemoteJSONDecoder()
+        )
+        CloudSyncRunnerTestURLProtocol.requestHandler = { request in
+            try LinkedSyncRunnerTestTransportSupport.handleReviewHistoryImportRecoveryRequest(
+                request: request,
+                reviewEvent: reviewEvent
             )
         }
 
@@ -459,11 +516,79 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
 
         let syncState = try XCTUnwrap(try self.loadSyncState(database: database, workspaceId: workspace.workspaceId))
         XCTAssertEqual([1], CloudSyncRunnerTestURLProtocol.reviewHistoryImportEventCounts)
-        XCTAssertEqual([5], CloudSyncRunnerTestURLProtocol.reviewHistoryPullAfterSequenceIds)
+        XCTAssertEqual([0], CloudSyncRunnerTestURLProtocol.reviewHistoryPullAfterSequenceIds)
         XCTAssertTrue(syncResult.changedEntityTypes.contains(.reviewEvent))
         XCTAssertEqual(5, syncState.lastAppliedReviewSequenceId)
         XCTAssertTrue(syncState.hasHydratedHotState)
         XCTAssertTrue(syncState.hasHydratedReviewHistory)
+        XCTAssertFalse(try database.hasPendingReviewHistoryImport(workspaceId: workspace.workspaceId))
+    }
+
+    func testLinkedSyncPullsReviewHistoryWithoutImportWhenNoPendingImportMarker() async throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let savedCard = try database.saveCard(
+            workspaceId: workspace.workspaceId,
+            input: CardEditorInput(
+                frontText: "Question",
+                backText: "Answer",
+                tags: [],
+                effortLevel: .medium
+            ),
+            cardId: nil
+        )
+        _ = try database.submitReview(
+            workspaceId: workspace.workspaceId,
+            reviewSubmission: ReviewSubmission(
+                cardId: savedCard.cardId,
+                rating: .good,
+                reviewedAtClient: "2026-04-01T00:00:00.000Z"
+            )
+        )
+        try database.deleteAllOutboxEntries(workspaceId: workspace.workspaceId)
+        try database.setLastAppliedHotChangeId(workspaceId: workspace.workspaceId, changeId: 20)
+        try database.setLastAppliedReviewSequenceId(workspaceId: workspace.workspaceId, reviewSequenceId: 0)
+        try database.setHasHydratedHotState(workspaceId: workspace.workspaceId, hasHydratedHotState: true)
+        try database.setHasHydratedReviewHistory(workspaceId: workspace.workspaceId, hasHydratedReviewHistory: false)
+        try database.setPendingReviewHistoryImport(workspaceId: workspace.workspaceId, pendingReviewHistoryImport: false)
+
+        let remoteReviewEvent = ReviewEvent(
+            reviewEventId: "remote-review-event",
+            workspaceId: workspace.workspaceId,
+            cardId: savedCard.cardId,
+            replicaId: "remote-replica",
+            clientEventId: "remote-client-event",
+            rating: .easy,
+            reviewedAtClient: "2026-04-02T00:00:00.000Z",
+            reviewedAtServer: "2026-04-02T00:00:01.000Z"
+        )
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [CloudSyncRunnerTestURLProtocol.self]
+        let transport = CloudSyncTransport(
+            session: URLSession(configuration: configuration),
+            decoder: makeFlashcardsRemoteJSONDecoder()
+        )
+        CloudSyncRunnerTestURLProtocol.requestHandler = { request in
+            try LinkedSyncRunnerTestTransportSupport.handleReviewHistoryPullHydrationRequest(
+                request: request,
+                remoteReviewEvent: remoteReviewEvent,
+                nextReviewSequenceId: 2
+            )
+        }
+
+        let syncResult = try await CloudSyncRunner(database: database, transport: transport).runLinkedSync(
+            linkedSession: self.makeLinkedSession(workspaceId: workspace.workspaceId)
+        )
+
+        let syncState = try XCTUnwrap(try self.loadSyncState(database: database, workspaceId: workspace.workspaceId))
+        let reviewEvents = try database.loadReviewEvents(workspaceId: workspace.workspaceId)
+        XCTAssertTrue(syncResult.changedEntityTypes.contains(.reviewEvent))
+        XCTAssertTrue(reviewEvents.contains { event in event.reviewEventId == remoteReviewEvent.reviewEventId })
+        XCTAssertTrue(CloudSyncRunnerTestURLProtocol.reviewHistoryImportEventCounts.isEmpty)
+        XCTAssertEqual([0], CloudSyncRunnerTestURLProtocol.reviewHistoryPullAfterSequenceIds)
+        XCTAssertEqual(2, syncState.lastAppliedReviewSequenceId)
+        XCTAssertTrue(syncState.hasHydratedReviewHistory)
+        XCTAssertFalse(try database.hasPendingReviewHistoryImport(workspaceId: workspace.workspaceId))
     }
 }
 
