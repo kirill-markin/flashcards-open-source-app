@@ -3,6 +3,15 @@ import Foundation
 private let collectionPageLimit: Int = 100
 private let cloudSyncResponseDecodingFailedCode: String = "RESPONSE_DECODING_FAILED"
 private let cloudSyncResponseDecodingFailedMessage: String = "Failed to decode cloud sync response"
+private let cloudSyncTransportMaxAttempts: Int = 3
+private let cloudSyncTransportRetryDelayNanoseconds: UInt64 = 500_000_000
+
+private protocol CloudSyncBootstrapModeRequest {
+    var mode: String { get }
+}
+
+extension BootstrapPullRequest: CloudSyncBootstrapModeRequest {}
+extension BootstrapPushRequest: CloudSyncBootstrapModeRequest {}
 
 struct CloudSyncTransport {
     private let session: URLSession
@@ -117,12 +126,17 @@ struct CloudSyncTransport {
             request.httpBody = try JSONEncoder().encode(body)
         }
 
-        let phase = self.phase(for: path, method: method)
+        let phase = self.phase(for: path, method: method, body: body)
         logCloudFlowPhase(phase: phase, outcome: "start")
         let data: Data
         let response: URLResponse
         do {
-            (data, response) = try await self.session.data(for: request)
+            (data, response) = try await self.sendRequestWithRetry(
+                request: request,
+                phase: phase,
+                apiBaseUrl: apiBaseUrl,
+                allowsRetry: self.allowsRetry(path: path, method: method, body: body)
+            )
         } catch {
             logCloudFlowPhase(
                 phase: phase,
@@ -182,7 +196,59 @@ struct CloudSyncTransport {
         return url
     }
 
-    private func phase(for path: String, method: String) -> CloudFlowPhase {
+    private func sendRequestWithRetry(
+        request: URLRequest,
+        phase: CloudFlowPhase,
+        apiBaseUrl: String,
+        allowsRetry: Bool
+    ) async throws -> (Data, URLResponse) {
+        var lastError: Error?
+        for attempt in 1...cloudSyncTransportMaxAttempts {
+            do {
+                return try await self.session.data(for: request)
+            } catch let error as CancellationError {
+                throw error
+            } catch {
+                lastError = error
+                guard allowsRetry
+                    && isRetryableNetworkTransportFailure(error: error)
+                    && attempt < cloudSyncTransportMaxAttempts else {
+                    throw error
+                }
+
+                FlashcardsObservability.captureWarning(
+                    .cloudRetry(
+                        CloudRetryWarning(
+                            action: "cloud_sync_transport_retry",
+                            scope: IOSObservationScope(
+                                feature: cloudObservationFeature(phase: phase),
+                                userId: nil,
+                                workspaceId: nil,
+                                requestId: nil,
+                                clientRequestId: nil,
+                                sessionId: nil,
+                                runId: nil,
+                                cloudState: nil,
+                                configurationMode: nil
+                            ),
+                            attempt: attempt,
+                            maxAttempts: cloudSyncTransportMaxAttempts,
+                            apiBaseUrl: apiBaseUrl,
+                            messageSummary: Flashcards.errorMessage(error: error)
+                        )
+                    )
+                )
+                try await Task.sleep(nanoseconds: cloudSyncTransportRetryDelayNanoseconds)
+            }
+        }
+
+        guard let lastError else {
+            throw LocalStoreError.database("Cloud sync transport retry failed without an error")
+        }
+        throw lastError
+    }
+
+    private func phase<Body: Encodable>(for path: String, method: String, body: Body?) -> CloudFlowPhase {
         let requestPath = self.requestPath(from: path)
 
         if requestPath == "/workspaces" && method == "GET" {
@@ -202,6 +268,11 @@ struct CloudSyncTransport {
         }
 
         if requestPath.hasSuffix("/sync/bootstrap") {
+            if let body,
+                let bootstrapRequest = body as? any CloudSyncBootstrapModeRequest,
+                bootstrapRequest.mode == "push" {
+                return .initialPush
+            }
             return .initialPull
         }
 
@@ -218,6 +289,33 @@ struct CloudSyncTransport {
         }
 
         return .cloudSyncRequest
+    }
+
+    private func allowsRetry<Body: Encodable>(path: String, method: String, body: Body?) -> Bool {
+        let requestPath = self.requestPath(from: path)
+        if method == "GET" {
+            return true
+        }
+        if requestPath.hasSuffix("/sync/push") {
+            return true
+        }
+        if requestPath.hasSuffix("/sync/pull") {
+            return true
+        }
+        if requestPath.hasSuffix("/sync/review-history/import") {
+            return true
+        }
+        if requestPath.hasSuffix("/sync/review-history/pull") {
+            return true
+        }
+        if requestPath.hasSuffix("/sync/bootstrap") {
+            guard let body,
+                let bootstrapRequest = body as? any CloudSyncBootstrapModeRequest else {
+                return false
+            }
+            return bootstrapRequest.mode == "pull"
+        }
+        return false
     }
 
     private func requestPath(from path: String) -> String {

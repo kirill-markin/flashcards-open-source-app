@@ -671,9 +671,9 @@ enum LinkedSyncRunnerTestTransportSupport {
         throw URLError(.badURL)
     }
 
-    static func handleGuestLocalRecoveryReviewHistoryImportRetryRequest(
+    static func handleReviewHistoryImportRecoveryRequest(
         request: URLRequest,
-        reviewEventId: String
+        reviewEvent: ReviewEvent
     ) throws -> (HTTPURLResponse, Data) {
         let path = try XCTUnwrap(request.url?.path)
         if path.hasSuffix("/sync/pull") {
@@ -695,7 +695,7 @@ enum LinkedSyncRunnerTestTransportSupport {
             let reviewEvents = try XCTUnwrap(body["reviewEvents"] as? [[String: Any]])
             let importedReviewEvent = try XCTUnwrap(reviewEvents.first)
             XCTAssertEqual(1, reviewEvents.count)
-            XCTAssertEqual(reviewEventId, importedReviewEvent["reviewEventId"] as? String)
+            XCTAssertEqual(reviewEvent.reviewEventId, importedReviewEvent["reviewEventId"] as? String)
             CloudSyncRunnerTestURLProtocol.reviewHistoryImportEventCounts.append(reviewEvents.count)
             return try Self.jsonResponse(
                 request: request,
@@ -719,8 +719,76 @@ enum LinkedSyncRunnerTestTransportSupport {
                 statusCode: 200,
                 body: """
                 {
-                  "reviewEvents": [],
+                  "reviewEvents": [
+                    {
+                      "reviewEventId": "\(reviewEvent.reviewEventId)",
+                      "workspaceId": "\(reviewEvent.workspaceId)",
+                      "cardId": "\(reviewEvent.cardId)",
+                      "replicaId": "\(reviewEvent.replicaId)",
+                      "clientEventId": "\(reviewEvent.clientEventId)",
+                      "rating": \(reviewEvent.rating.rawValue),
+                      "reviewedAtClient": "\(reviewEvent.reviewedAtClient)",
+                      "reviewedAtServer": "\(reviewEvent.reviewedAtServer)"
+                    }
+                  ],
                   "nextReviewSequenceId": 5,
+                  "hasMore": false
+                }
+                """
+            )
+        }
+
+        XCTFail("Unexpected sync request path: \(path)")
+        throw URLError(.badURL)
+    }
+
+    static func handleReviewHistoryPullHydrationRequest(
+        request: URLRequest,
+        remoteReviewEvent: ReviewEvent,
+        nextReviewSequenceId: Int64
+    ) throws -> (HTTPURLResponse, Data) {
+        let path = try XCTUnwrap(request.url?.path)
+        if path.hasSuffix("/sync/pull") {
+            return try Self.jsonResponse(
+                request: request,
+                statusCode: 200,
+                body: """
+                {
+                  "changes": [],
+                  "nextHotChangeId": 20,
+                  "hasMore": false
+                }
+                """
+            )
+        }
+
+        if path.hasSuffix("/sync/review-history/import") {
+            XCTFail("Review history import should require a pending import marker")
+            throw URLError(.badURL)
+        }
+
+        if path.hasSuffix("/sync/review-history/pull") {
+            let body = try Self.jsonObjectBody(request: request)
+            let afterReviewSequenceId = try XCTUnwrap(body["afterReviewSequenceId"] as? NSNumber).int64Value
+            CloudSyncRunnerTestURLProtocol.reviewHistoryPullAfterSequenceIds.append(afterReviewSequenceId)
+            return try Self.jsonResponse(
+                request: request,
+                statusCode: 200,
+                body: """
+                {
+                  "reviewEvents": [
+                    {
+                      "reviewEventId": "\(remoteReviewEvent.reviewEventId)",
+                      "workspaceId": "\(remoteReviewEvent.workspaceId)",
+                      "cardId": "\(remoteReviewEvent.cardId)",
+                      "replicaId": "\(remoteReviewEvent.replicaId)",
+                      "clientEventId": "\(remoteReviewEvent.clientEventId)",
+                      "rating": \(remoteReviewEvent.rating.rawValue),
+                      "reviewedAtClient": "\(remoteReviewEvent.reviewedAtClient)",
+                      "reviewedAtServer": "\(remoteReviewEvent.reviewedAtServer)"
+                    }
+                  ],
+                  "nextReviewSequenceId": \(nextReviewSequenceId),
                   "hasMore": false
                 }
                 """

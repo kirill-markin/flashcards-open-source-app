@@ -165,10 +165,24 @@ final class LocalDatabaseSchemaVersion14To15MigrationTests: LocalDatabaseTestCas
             )
         )
         XCTAssertTrue(
+            try self.hasColumn(
+                database: migratedDatabase,
+                tableName: "sync_state",
+                columnName: "pending_review_history_import"
+            )
+        )
+        XCTAssertTrue(
             try self.hasIndex(
                 database: migratedDatabase,
                 tableName: "cards",
                 indexName: "idx_cards_workspace_fsrs_last_reviewed_millis_due_active"
+            )
+        )
+        XCTAssertEqual(
+            0,
+            try migratedDatabase.core.scalarInt(
+                sql: "SELECT pending_review_history_import FROM sync_state WHERE workspace_id = ?",
+                values: [.text(workspace.workspaceId)]
             )
         )
         XCTAssertEqual(
@@ -379,4 +393,3 @@ final class LocalDatabaseSchemaVersion14To15MigrationTests: LocalDatabaseTestCas
         }
     }
 }
-
