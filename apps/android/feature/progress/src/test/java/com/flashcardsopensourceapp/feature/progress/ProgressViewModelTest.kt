@@ -5,6 +5,8 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.progress.CloudDailyReviewPoint
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardMetric
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRankingRow
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRankingRowKind
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRow
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardViewer
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardWindow
@@ -25,6 +27,7 @@ import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesSnaps
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSnapshotSource
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummaryScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
+import com.flashcardsopensourceapp.data.local.model.progress.createRenderedProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.repository.ProgressRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -406,7 +409,7 @@ class ProgressViewModelTest {
     }
 
     @Test
-    fun leaderboardLiveOverlayChangesOnlyViewerCount() {
+    fun leaderboardLiveProjectionMovesViewerRankAndRows() {
         val sectionUiState = createProgressLeaderboardSectionUiState(
             snapshot = createProgressLeaderboardSnapshot(
                 viewerLocalQualifiedCounts = mapOf(
@@ -420,16 +423,20 @@ class ProgressViewModelTest {
         val participants = rows.filterIsInstance<ProgressLeaderboardRowUiState.Participant>()
         val viewerRow = participants.single(ProgressLeaderboardRowUiState.Participant::isViewer)
         assertEquals(9, viewerRow.qualifiedReviewCount)
-        assertEquals(42, viewerRow.rank)
+        assertEquals(41, viewerRow.rank)
         assertEquals(
-            listOf(51, 33, 21, 8, 7, 0),
+            listOf(1, 2, 3, 40, 41, 42, 128),
+            participants.map(ProgressLeaderboardRowUiState.Participant::rank)
+        )
+        assertEquals(
+            listOf(51, 33, 21, 9, 8, 0),
             participants.filterNot(ProgressLeaderboardRowUiState.Participant::isViewer)
                 .map(ProgressLeaderboardRowUiState.Participant::qualifiedReviewCount)
         )
     }
 
     @Test
-    fun leaderboardLiveOverlayNeverLowersServerViewerCount() {
+    fun leaderboardLiveProjectionNeverLowersServerViewerCount() {
         val sectionUiState = createProgressLeaderboardSectionUiState(
             snapshot = createProgressLeaderboardSnapshot(
                 viewerLocalQualifiedCounts = mapOf(
@@ -727,6 +734,10 @@ private fun createProgressLeaderboardSnapshot(
         scopeKey = ProgressLeaderboardScopeKey(scopeId = "linked:user-1"),
         cloudState = cloudState,
         leaderboard = leaderboard,
+        renderedLeaderboard = createRenderedProgressLeaderboard(
+            leaderboard = leaderboard,
+            viewerLocalQualifiedCounts = viewerLocalQualifiedCounts
+        ),
         payloadUpdatedAtMillis = if (leaderboard == null) null else 1_750_000_000_000L,
         viewerLocalQualifiedCounts = viewerLocalQualifiedCounts,
         isRefreshDue = false,
@@ -761,6 +772,11 @@ private fun createCloudProgressLeaderboardWindow(
     windowKey: ProgressLeaderboardWindowKey,
     viewerRank: Int
 ): CloudProgressLeaderboardWindow {
+    val rankingRows = createLeaderboardRankingRows(
+        viewerRank = viewerRank,
+        viewerQualifiedReviewCount = 7,
+        participantCount = 128
+    )
     return CloudProgressLeaderboardWindow(
         windowKey = windowKey,
         snapshotId = "snapshot-1",
@@ -773,59 +789,136 @@ private fun createCloudProgressLeaderboardWindow(
             rank = viewerRank,
             qualifiedReviewCount = 7
         ),
-        rows = listOf(
-            createLeaderboardParticipantRow(
-                kind = ProgressLeaderboardParticipantRowKind.TOP,
-                publicProfileId = "top-1",
-                anonymousDisplayName = "Silver Bright Harbor",
-                qualifiedReviewCount = 51,
-                rank = 1
-            ),
-            createLeaderboardParticipantRow(
-                kind = ProgressLeaderboardParticipantRowKind.TOP,
-                publicProfileId = "top-2",
-                anonymousDisplayName = "Amber Calm Meadow",
-                qualifiedReviewCount = 33,
-                rank = 2
-            ),
-            createLeaderboardParticipantRow(
-                kind = ProgressLeaderboardParticipantRowKind.TOP,
-                publicProfileId = "top-3",
-                anonymousDisplayName = "Coral Keen Valley",
-                qualifiedReviewCount = 21,
-                rank = 3
-            ),
-            CloudProgressLeaderboardRow.Gap,
-            createLeaderboardParticipantRow(
-                kind = ProgressLeaderboardParticipantRowKind.NEIGHBOR,
-                publicProfileId = "neighbor-41",
-                anonymousDisplayName = "Jade Swift River",
-                qualifiedReviewCount = 8,
-                rank = 41
-            ),
-            createLeaderboardParticipantRow(
-                kind = ProgressLeaderboardParticipantRowKind.VIEWER,
-                publicProfileId = "viewer-profile",
-                anonymousDisplayName = "Misty Quiet Grove",
-                qualifiedReviewCount = 7,
-                rank = viewerRank
-            ),
-            createLeaderboardParticipantRow(
-                kind = ProgressLeaderboardParticipantRowKind.NEIGHBOR,
-                publicProfileId = "neighbor-43",
-                anonymousDisplayName = "Sunny Brave Cliff",
-                qualifiedReviewCount = 7,
-                rank = 43
-            ),
-            CloudProgressLeaderboardRow.Gap,
-            createLeaderboardParticipantRow(
-                kind = ProgressLeaderboardParticipantRowKind.NEIGHBOR,
-                publicProfileId = "last-128",
-                anonymousDisplayName = "Blue Final Harbor",
-                qualifiedReviewCount = 0,
-                rank = 128
-            )
+        rows = createLeaderboardCompactRows(rankingRows = rankingRows),
+        rankingRows = rankingRows
+    )
+}
+
+private fun createLeaderboardRankingRows(
+    viewerRank: Int,
+    viewerQualifiedReviewCount: Int,
+    participantCount: Int
+): List<CloudProgressLeaderboardRankingRow> {
+    return (1..participantCount).map { rank ->
+        val isViewer = rank == viewerRank
+        CloudProgressLeaderboardRankingRow(
+            kind = if (isViewer) {
+                CloudProgressLeaderboardRankingRowKind.VIEWER
+            } else {
+                CloudProgressLeaderboardRankingRowKind.PARTICIPANT
+            },
+            publicProfileId = if (isViewer) {
+                "viewer-profile"
+            } else {
+                "participant-$rank"
+            },
+            anonymousDisplayName = if (isViewer) {
+                "Misty Quiet Grove"
+            } else {
+                leaderboardDisplayNameForRank(rank = rank)
+            },
+            qualifiedReviewCount = if (isViewer) {
+                viewerQualifiedReviewCount
+            } else {
+                leaderboardQualifiedReviewCountForRank(
+                    rank = rank,
+                    viewerRank = viewerRank,
+                    viewerQualifiedReviewCount = viewerQualifiedReviewCount,
+                    participantCount = participantCount
+                )
+            },
+            rank = rank
         )
+    }
+}
+
+private fun leaderboardDisplayNameForRank(rank: Int): String {
+    return when (rank) {
+        1 -> "Silver Bright Harbor"
+        2 -> "Amber Calm Meadow"
+        3 -> "Coral Keen Valley"
+        40 -> "Teal Steady Summit"
+        41 -> "Jade Swift River"
+        42 -> "Misty Quiet Grove"
+        43 -> "Sunny Brave Cliff"
+        128 -> "Blue Final Harbor"
+        else -> "Participant $rank"
+    }
+}
+
+private fun leaderboardQualifiedReviewCountForRank(
+    rank: Int,
+    viewerRank: Int,
+    viewerQualifiedReviewCount: Int,
+    participantCount: Int
+): Int {
+    return when {
+        rank == 1 -> 51
+        rank == 2 -> 33
+        rank == 3 -> 21
+        rank == participantCount -> 0
+        rank < viewerRank - 1 -> viewerQualifiedReviewCount + 2
+        rank < viewerRank -> viewerQualifiedReviewCount + 1
+        else -> maxOf(0, viewerQualifiedReviewCount - 1)
+    }
+}
+
+private fun createLeaderboardCompactRows(
+    rankingRows: List<CloudProgressLeaderboardRankingRow>
+): List<CloudProgressLeaderboardRow> {
+    val totalRowCount = rankingRows.size
+    val topRowCount = minOf(3, totalRowCount)
+    val viewerRank = checkNotNull(
+        rankingRows.firstOrNull { row -> row.kind == CloudProgressLeaderboardRankingRowKind.VIEWER }?.rank
+    )
+    val shownRanks = mutableSetOf<Int>()
+    (1..topRowCount).forEach { rank ->
+        shownRanks.add(rank)
+    }
+    if (viewerRank > topRowCount) {
+        listOf(viewerRank - 1, viewerRank, viewerRank + 1).forEach { rank ->
+            if (rank >= 1 && rank <= totalRowCount) {
+                shownRanks.add(rank)
+            }
+        }
+    } else if (viewerRank == topRowCount && viewerRank < totalRowCount) {
+        shownRanks.add(viewerRank + 1)
+    }
+    if (totalRowCount > topRowCount) {
+        shownRanks.add(totalRowCount)
+    }
+
+    val rowsByRank = rankingRows.associateBy { row -> row.rank }
+    return buildList {
+        var previousRank = 0
+        shownRanks.sorted().forEach { rank ->
+            if (previousRank != 0 && rank > previousRank + 1) {
+                add(CloudProgressLeaderboardRow.Gap)
+            }
+
+            add(
+                checkNotNull(rowsByRank[rank]).toLeaderboardParticipantRow(
+                    topRowCount = topRowCount
+                )
+            )
+            previousRank = rank
+        }
+    }
+}
+
+private fun CloudProgressLeaderboardRankingRow.toLeaderboardParticipantRow(
+    topRowCount: Int
+): CloudProgressLeaderboardRow.Participant {
+    return createLeaderboardParticipantRow(
+        kind = when {
+            kind == CloudProgressLeaderboardRankingRowKind.VIEWER -> ProgressLeaderboardParticipantRowKind.VIEWER
+            rank <= topRowCount -> ProgressLeaderboardParticipantRowKind.TOP
+            else -> ProgressLeaderboardParticipantRowKind.NEIGHBOR
+        },
+        publicProfileId = publicProfileId,
+        anonymousDisplayName = anonymousDisplayName,
+        qualifiedReviewCount = qualifiedReviewCount,
+        rank = rank
     )
 }
 

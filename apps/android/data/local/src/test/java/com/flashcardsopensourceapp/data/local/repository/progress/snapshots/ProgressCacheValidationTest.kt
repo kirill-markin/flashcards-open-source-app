@@ -5,15 +5,21 @@ import com.flashcardsopensourceapp.data.local.database.entities.ProgressSeriesCa
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressSummaryCacheEntity
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.progress.CloudDailyReviewPoint
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRankingRowKind
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardScopeKey
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewHistoryWatermark
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.findProgressReviewScheduleServerBase
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.toCacheEntity
+import com.flashcardsopensourceapp.data.local.repository.progress.cache.toCloudProgressLeaderboardOrNull
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.toCloudProgressReviewScheduleOrNull
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.toCloudProgressSeriesOrNull
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.toCloudProgressSummaryOrNull
 import com.flashcardsopensourceapp.data.local.repository.progress.createCloudSettings
+import com.flashcardsopensourceapp.data.local.repository.progress.createProgressLeaderboardForTest
+import com.flashcardsopensourceapp.data.local.repository.progress.createProgressLeaderboardRankingRowForTest
 import com.flashcardsopensourceapp.data.local.repository.progress.createReviewSchedule
 import java.time.LocalDate
 import java.time.ZoneId
@@ -204,5 +210,43 @@ class ProgressCacheValidationTest {
                 updatedAtMillis = 1L
             ).toCloudProgressReviewScheduleOrNull()?.reviewHistoryWatermarks
         )
+    }
+
+    @Test
+    fun progressLeaderboardCachePreservesRankingRows(): Unit {
+        val leaderboard = createProgressLeaderboardForTest(
+            windowKey = ProgressLeaderboardWindowKey.LAST_24_HOURS,
+            rankingRows = listOf(
+                createProgressLeaderboardRankingRowForTest(
+                    kind = CloudProgressLeaderboardRankingRowKind.PARTICIPANT,
+                    publicProfileId = "participant-1",
+                    anonymousDisplayName = "Silver Bright Harbor",
+                    qualifiedReviewCount = 9,
+                    rank = 1
+                ),
+                createProgressLeaderboardRankingRowForTest(
+                    kind = CloudProgressLeaderboardRankingRowKind.VIEWER,
+                    publicProfileId = "viewer-profile",
+                    anonymousDisplayName = "Misty Quiet Grove",
+                    qualifiedReviewCount = 7,
+                    rank = 2
+                )
+            )
+        )
+
+        val restoredLeaderboard = leaderboard.toCacheEntity(
+            scopeKey = ProgressLeaderboardScopeKey(scopeId = "linked:user-1"),
+            updatedAtMillis = 1L
+        ).toCloudProgressLeaderboardOrNull()
+
+        val restoredRows = checkNotNull(restoredLeaderboard).windows.single().rankingRows
+        assertEquals(
+            listOf(
+                CloudProgressLeaderboardRankingRowKind.PARTICIPANT,
+                CloudProgressLeaderboardRankingRowKind.VIEWER
+            ),
+            restoredRows.map { row -> row.kind }
+        )
+        assertEquals(listOf(1, 2), restoredRows.map { row -> row.rank })
     }
 }

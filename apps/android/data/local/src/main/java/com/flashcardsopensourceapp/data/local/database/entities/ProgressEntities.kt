@@ -121,7 +121,7 @@ data class ProgressReviewScheduleCardDueEntity(
     val dueAtMillis: Long?
 )
 
-// Query projections over review_logs for the leaderboard viewer overlay. Qualified
+// Query projections over review_logs for the leaderboard viewer projection. Qualified
 // reviews are Hard/Good/Easy; Again never counts.
 data class ProgressQualifiedReviewWorkspaceCountEntity(
     val workspaceId: String,

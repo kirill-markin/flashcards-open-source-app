@@ -7,6 +7,7 @@ import com.flashcardsopensourceapp.data.local.database.entities.ProgressSeriesCa
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressSummaryCacheEntity
 import com.flashcardsopensourceapp.data.local.model.progress.CloudDailyReviewPoint
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRankingRow
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRow
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewScheduleBucket
@@ -205,6 +206,14 @@ internal fun serializeCloudProgressLeaderboard(
                                     }
                                 }
                             )
+                            .put(
+                                "rankingRows",
+                                JSONArray().apply {
+                                    window.rankingRows.forEach { row ->
+                                        put(row.toCacheJson())
+                                    }
+                                }
+                            )
                     )
                 }
             }
@@ -221,6 +230,15 @@ private fun CloudProgressLeaderboardRow.toCacheJson(): JSONObject {
             .put("qualifiedReviewCount", qualifiedReviewCount)
             .put("rank", rank)
     }
+}
+
+private fun CloudProgressLeaderboardRankingRow.toCacheJson(): JSONObject {
+    return JSONObject()
+        .put("kind", kind.wireKey)
+        .put("publicProfileId", publicProfileId)
+        .put("anonymousDisplayName", anonymousDisplayName)
+        .put("qualifiedReviewCount", qualifiedReviewCount)
+        .put("rank", rank)
 }
 
 internal fun findProgressReviewScheduleServerBase(

@@ -23,7 +23,7 @@ import com.flashcardsopensourceapp.data.local.repository.shared.TimeProvider
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 
-// Hour-resolution data for the leaderboard viewer overlay. Recent qualified review
+// Hour-resolution data for the leaderboard viewer projection. Recent qualified review
 // times cover every bounded rolling window; total counts back the all-time window.
 internal data class ProgressQualifiedReviewActivity(
     val workspaceCounts: List<ProgressQualifiedReviewWorkspaceCountEntity>,

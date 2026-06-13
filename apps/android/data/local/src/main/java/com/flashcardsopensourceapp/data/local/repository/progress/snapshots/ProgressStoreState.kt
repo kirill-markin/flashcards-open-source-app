@@ -17,6 +17,7 @@ import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesScope
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummaryScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
+import com.flashcardsopensourceapp.data.local.model.progress.createRenderedProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.ProgressLeaderboardCachedPayload
 import com.flashcardsopensourceapp.data.local.repository.progress.inputs.ProgressPendingReviewLocalDate
@@ -213,6 +214,11 @@ internal fun createProgressReviewScheduleStoreState(
 internal fun createProgressLeaderboardStoreState(
     inputs: ProgressLeaderboardStoreInputs
 ): ProgressLeaderboardStoreState {
+    val viewerLocalQualifiedCounts = computeProgressLeaderboardViewerLocalQualifiedCounts(
+        qualifiedReviewActivity = inputs.qualifiedReviewActivity,
+        workspaceIds = inputs.workspaceIds,
+        currentTimeMillis = inputs.currentTimeMillis
+    )
     return ProgressLeaderboardStoreState(
         scopeKey = inputs.scopeKey,
         cloudState = inputs.cloudState,
@@ -220,12 +226,12 @@ internal fun createProgressLeaderboardStoreState(
             scopeKey = inputs.scopeKey,
             cloudState = inputs.cloudState,
             leaderboard = inputs.serverBase?.leaderboard,
-            payloadUpdatedAtMillis = inputs.serverBase?.updatedAtMillis,
-            viewerLocalQualifiedCounts = computeProgressLeaderboardViewerLocalQualifiedCounts(
-                qualifiedReviewActivity = inputs.qualifiedReviewActivity,
-                workspaceIds = inputs.workspaceIds,
-                currentTimeMillis = inputs.currentTimeMillis
+            renderedLeaderboard = createRenderedProgressLeaderboard(
+                leaderboard = inputs.serverBase?.leaderboard,
+                viewerLocalQualifiedCounts = viewerLocalQualifiedCounts
             ),
+            payloadUpdatedAtMillis = inputs.serverBase?.updatedAtMillis,
+            viewerLocalQualifiedCounts = viewerLocalQualifiedCounts,
             isRefreshDue = isProgressLeaderboardRefreshDue(
                 leaderboard = inputs.serverBase?.leaderboard,
                 currentTimeMillis = inputs.currentTimeMillis
