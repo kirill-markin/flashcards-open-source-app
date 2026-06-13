@@ -213,7 +213,7 @@ function projectProgressLeaderboardWindow(
       qualifiedReviewCount: viewerCount,
     },
     rows: buildCompactRows(projectedRankingRows),
-    rankingRows: window.rankingRows,
+    rankingRows: projectedRankingRows,
   };
 }
 
