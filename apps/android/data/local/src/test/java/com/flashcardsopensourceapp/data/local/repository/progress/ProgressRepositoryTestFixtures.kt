@@ -7,9 +7,19 @@ import com.flashcardsopensourceapp.data.local.database.entities.ProgressReviewSc
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressReviewHistoryStateEntity
 import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardMetric
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRankingRow
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRankingRowKind
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRow
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardViewer
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardWindow
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewScheduleBucket
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardParticipantRowKind
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardStatus
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleBucketKey
 import java.time.LocalDate
 import java.time.ZoneId
@@ -130,6 +140,89 @@ internal fun createReviewSchedule(
         reviewHistoryWatermarks = emptyList(),
         totalCards = buckets.sumOf(CloudProgressReviewScheduleBucket::count),
         buckets = buckets
+    )
+}
+
+internal fun createProgressLeaderboardForTest(
+    windowKey: ProgressLeaderboardWindowKey,
+    rankingRows: List<CloudProgressLeaderboardRankingRow>
+): CloudProgressLeaderboard {
+    return CloudProgressLeaderboard(
+        status = ProgressLeaderboardStatus.READY,
+        metric = CloudProgressLeaderboardMetric(
+            metricVersion = "qualified_reviews_v1",
+            title = "Qualified reviews",
+            description = "Hard, Good, and Easy reviews count toward your rank. Again does not."
+        ),
+        defaultWindowKey = windowKey,
+        windows = listOf(
+            createProgressLeaderboardWindowForTest(
+                windowKey = windowKey,
+                rankingRows = rankingRows
+            )
+        )
+    )
+}
+
+internal fun createProgressLeaderboardWindowForTest(
+    windowKey: ProgressLeaderboardWindowKey,
+    rankingRows: List<CloudProgressLeaderboardRankingRow>
+): CloudProgressLeaderboardWindow {
+    val viewerRow = requireNotNull(
+        rankingRows.firstOrNull { row -> row.kind == CloudProgressLeaderboardRankingRowKind.VIEWER }
+    )
+    return CloudProgressLeaderboardWindow(
+        windowKey = windowKey,
+        snapshotId = "snapshot-1",
+        snapshotGeneratedAt = "2026-04-18T14:00:05.000Z",
+        asOfServerHour = "2026-04-18T14:00:00.000Z",
+        nextRefreshAfter = "2026-04-18T15:00:00.000Z",
+        participantCount = rankingRows.size,
+        viewer = CloudProgressLeaderboardViewer(
+            publicProfileId = viewerRow.publicProfileId,
+            rank = viewerRow.rank,
+            qualifiedReviewCount = viewerRow.qualifiedReviewCount
+        ),
+        rows = rankingRows.map { row ->
+            createProgressLeaderboardParticipantRowForTest(
+                kind = when {
+                    row.kind == CloudProgressLeaderboardRankingRowKind.VIEWER -> ProgressLeaderboardParticipantRowKind.VIEWER
+                    row.rank <= 3 -> ProgressLeaderboardParticipantRowKind.TOP
+                    else -> ProgressLeaderboardParticipantRowKind.NEIGHBOR
+                },
+                rankingRow = row
+            )
+        },
+        rankingRows = rankingRows
+    )
+}
+
+internal fun createProgressLeaderboardRankingRowForTest(
+    kind: CloudProgressLeaderboardRankingRowKind,
+    publicProfileId: String,
+    anonymousDisplayName: String,
+    qualifiedReviewCount: Int,
+    rank: Int
+): CloudProgressLeaderboardRankingRow {
+    return CloudProgressLeaderboardRankingRow(
+        kind = kind,
+        publicProfileId = publicProfileId,
+        anonymousDisplayName = anonymousDisplayName,
+        qualifiedReviewCount = qualifiedReviewCount,
+        rank = rank
+    )
+}
+
+private fun createProgressLeaderboardParticipantRowForTest(
+    kind: ProgressLeaderboardParticipantRowKind,
+    rankingRow: CloudProgressLeaderboardRankingRow
+): CloudProgressLeaderboardRow.Participant {
+    return CloudProgressLeaderboardRow.Participant(
+        kind = kind,
+        publicProfileId = rankingRow.publicProfileId,
+        anonymousDisplayName = rankingRow.anonymousDisplayName,
+        qualifiedReviewCount = rankingRow.qualifiedReviewCount,
+        rank = rankingRow.rank
     )
 }
 

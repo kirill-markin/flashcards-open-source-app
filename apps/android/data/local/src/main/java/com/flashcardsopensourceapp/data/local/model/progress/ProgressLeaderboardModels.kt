@@ -60,6 +60,20 @@ enum class ProgressLeaderboardParticipantRowKind(
     }
 }
 
+enum class CloudProgressLeaderboardRankingRowKind(
+    val wireKey: String
+) {
+    PARTICIPANT("participant"),
+    VIEWER("viewer");
+
+    companion object {
+        fun fromWireKey(wireKey: String): CloudProgressLeaderboardRankingRowKind {
+            return entries.firstOrNull { kind -> kind.wireKey == wireKey }
+                ?: throw IllegalArgumentException("Unknown leaderboard ranking row kind '$wireKey'.")
+        }
+    }
+}
+
 data class CloudProgressLeaderboardMetric(
     val metricVersion: String,
     val title: String,
@@ -84,6 +98,14 @@ sealed interface CloudProgressLeaderboardRow {
     data object Gap : CloudProgressLeaderboardRow
 }
 
+data class CloudProgressLeaderboardRankingRow(
+    val kind: CloudProgressLeaderboardRankingRowKind,
+    val publicProfileId: String,
+    val anonymousDisplayName: String,
+    val qualifiedReviewCount: Int,
+    val rank: Int
+)
+
 data class CloudProgressLeaderboardWindow(
     val windowKey: ProgressLeaderboardWindowKey,
     val snapshotId: String,
@@ -92,7 +114,8 @@ data class CloudProgressLeaderboardWindow(
     val nextRefreshAfter: String,
     val participantCount: Int,
     val viewer: CloudProgressLeaderboardViewer,
-    val rows: List<CloudProgressLeaderboardRow>
+    val rows: List<CloudProgressLeaderboardRow>,
+    val rankingRows: List<CloudProgressLeaderboardRankingRow>
 )
 
 data class CloudProgressLeaderboard(
@@ -137,7 +160,7 @@ fun resolveBestLeaderboardPlacement(
 fun resolveBestLeaderboardPlacement(
     snapshot: ProgressLeaderboardSnapshot?
 ): ProgressLeaderboardBestPlacement? {
-    return resolveBestLeaderboardPlacement(leaderboard = snapshot?.leaderboard)
+    return resolveBestLeaderboardPlacement(leaderboard = snapshot?.renderedLeaderboard)
 }
 
 data class ProgressLeaderboardScopeKey(
@@ -147,14 +170,142 @@ data class ProgressLeaderboardScopeKey(
 data class ProgressLeaderboardSnapshot(
     val scopeKey: ProgressLeaderboardScopeKey,
     val cloudState: CloudAccountState,
-    // Last successfully fetched payload for this scope; server ranks stay authoritative.
+    // Last successfully fetched payload for this scope.
     val leaderboard: CloudProgressLeaderboard?,
+    // Server payload projected with locally observed viewer reviews for display.
+    val renderedLeaderboard: CloudProgressLeaderboard?,
     val payloadUpdatedAtMillis: Long?,
     // Locally computed qualified review counts (rating != again) per rolling window,
-    // used only to overlay the viewer row count.
+    // used to project only the current viewer row.
     val viewerLocalQualifiedCounts: Map<ProgressLeaderboardWindowKey, Int>,
     // True once the device clock passed the payload's earliest nextRefreshAfter, so a
     // still-rendered cached payload means the refresh could not happen (e.g. offline).
     val isRefreshDue: Boolean,
     val didLastRemoteLoadFail: Boolean
 )
+
+fun createRenderedProgressLeaderboard(
+    leaderboard: CloudProgressLeaderboard?,
+    viewerLocalQualifiedCounts: Map<ProgressLeaderboardWindowKey, Int>
+): CloudProgressLeaderboard? {
+    if (leaderboard == null || leaderboard.status != ProgressLeaderboardStatus.READY) {
+        return leaderboard
+    }
+
+    return leaderboard.copy(
+        windows = leaderboard.windows.map { window ->
+            window.toRenderedProgressLeaderboardWindow(
+                viewerLocalQualifiedCounts = viewerLocalQualifiedCounts
+            )
+        }
+    )
+}
+
+private fun CloudProgressLeaderboardWindow.toRenderedProgressLeaderboardWindow(
+    viewerLocalQualifiedCounts: Map<ProgressLeaderboardWindowKey, Int>
+): CloudProgressLeaderboardWindow {
+    val viewerRankingRow = requireNotNull(
+        rankingRows.firstOrNull { row -> row.kind == CloudProgressLeaderboardRankingRowKind.VIEWER }
+    ) {
+        "Leaderboard rankingRows for window '${windowKey.wireKey}' must include viewer '${viewer.publicProfileId}'."
+    }
+    val viewerCount = maxOf(
+        viewer.qualifiedReviewCount,
+        viewerLocalQualifiedCounts[windowKey] ?: 0
+    )
+    val participantRows = rankingRows.filter { row ->
+        row.kind != CloudProgressLeaderboardRankingRowKind.VIEWER
+    }
+    val viewerInsertionIndex = participantRows.indexOfFirst { row ->
+        row.qualifiedReviewCount < viewerCount
+    }.let { index ->
+        if (index == -1) {
+            participantRows.size
+        } else {
+            index
+        }
+    }
+    val unrankedRows = participantRows.toMutableList().apply {
+        add(
+            viewerInsertionIndex,
+            viewerRankingRow.copy(qualifiedReviewCount = viewerCount)
+        )
+    }
+    val projectedRankingRows = unrankedRows.mapIndexed { index, row ->
+        row.copy(rank = index + 1)
+    }
+    val projectedViewer = requireNotNull(
+        projectedRankingRows.firstOrNull { row -> row.kind == CloudProgressLeaderboardRankingRowKind.VIEWER }
+    ) {
+        "Projected leaderboard rankingRows for window '${windowKey.wireKey}' must include viewer '${viewer.publicProfileId}'."
+    }
+
+    return copy(
+        viewer = viewer.copy(
+            rank = projectedViewer.rank,
+            qualifiedReviewCount = projectedViewer.qualifiedReviewCount
+        ),
+        rows = buildProgressLeaderboardCompactRows(rankingRows = projectedRankingRows),
+        rankingRows = projectedRankingRows
+    )
+}
+
+private fun buildProgressLeaderboardCompactRows(
+    rankingRows: List<CloudProgressLeaderboardRankingRow>
+): List<CloudProgressLeaderboardRow> {
+    val totalRowCount = rankingRows.size
+    val topRowCount = minOf(3, totalRowCount)
+    val viewerRank = requireNotNull(
+        rankingRows.firstOrNull { row -> row.kind == CloudProgressLeaderboardRankingRowKind.VIEWER }?.rank
+    ) {
+        "Projected leaderboard rankingRows must include a viewer row."
+    }
+    val shownRanks = mutableSetOf<Int>()
+    (1..topRowCount).forEach { rank ->
+        shownRanks.add(rank)
+    }
+    if (viewerRank > topRowCount) {
+        listOf(viewerRank - 1, viewerRank, viewerRank + 1).forEach { rank ->
+            if (rank >= 1 && rank <= totalRowCount) {
+                shownRanks.add(rank)
+            }
+        }
+    } else if (viewerRank == topRowCount && viewerRank < totalRowCount) {
+        shownRanks.add(viewerRank + 1)
+    }
+    if (totalRowCount > topRowCount) {
+        shownRanks.add(totalRowCount)
+    }
+
+    val rowsByRank = rankingRows.associateBy { row -> row.rank }
+    return buildList {
+        var previousRank = 0
+        shownRanks.sorted().forEach { rank ->
+            if (previousRank != 0 && rank > previousRank + 1) {
+                add(CloudProgressLeaderboardRow.Gap)
+            }
+
+            val rankingRow = requireNotNull(rowsByRank[rank]) {
+                "Projected leaderboard rankingRows must include rank $rank."
+            }
+            add(rankingRow.toCompactProgressLeaderboardRow(topRowCount = topRowCount))
+            previousRank = rank
+        }
+    }
+}
+
+private fun CloudProgressLeaderboardRankingRow.toCompactProgressLeaderboardRow(
+    topRowCount: Int
+): CloudProgressLeaderboardRow.Participant {
+    return CloudProgressLeaderboardRow.Participant(
+        kind = when {
+            kind == CloudProgressLeaderboardRankingRowKind.VIEWER -> ProgressLeaderboardParticipantRowKind.VIEWER
+            rank <= topRowCount -> ProgressLeaderboardParticipantRowKind.TOP
+            else -> ProgressLeaderboardParticipantRowKind.NEIGHBOR
+        },
+        publicProfileId = publicProfileId,
+        anonymousDisplayName = anonymousDisplayName,
+        qualifiedReviewCount = qualifiedReviewCount,
+        rank = rank
+    )
+}

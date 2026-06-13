@@ -17,6 +17,8 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
 import com.flashcardsopensourceapp.data.local.model.progress.CloudDailyReviewPoint
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardMetric
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRankingRow
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRankingRowKind
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRow
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardViewer
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardWindow
@@ -321,6 +323,15 @@ private fun JSONObject.toCloudProgressLeaderboardWindow(
             )
         }
     }
+    val rankingRowsArray = requireCloudArray("rankingRows", "$fieldPath.rankingRows")
+    val rankingRows = buildList {
+        for (index in 0 until rankingRowsArray.length()) {
+            add(
+                rankingRowsArray.requireCloudObject(index, "$fieldPath.rankingRows[$index]")
+                    .toCloudProgressLeaderboardRankingRow(fieldPath = "$fieldPath.rankingRows[$index]")
+            )
+        }
+    }
 
     return CloudProgressLeaderboardWindow(
         windowKey = ProgressLeaderboardWindowKey.fromWireKey(
@@ -336,13 +347,17 @@ private fun JSONObject.toCloudProgressLeaderboardWindow(
         ),
         viewer = CloudProgressLeaderboardViewer(
             publicProfileId = viewer.requireCloudString("publicProfileId", "$fieldPath.viewer.publicProfileId"),
-            rank = viewer.requireCloudInt("rank", "$fieldPath.viewer.rank"),
+            rank = requirePositiveLeaderboardRank(
+                value = viewer.requireCloudInt("rank", "$fieldPath.viewer.rank"),
+                fieldPath = "$fieldPath.viewer.rank"
+            ),
             qualifiedReviewCount = requireNonNegativeReviewScheduleInt(
                 value = viewer.requireCloudInt("qualifiedReviewCount", "$fieldPath.viewer.qualifiedReviewCount"),
                 fieldPath = "$fieldPath.viewer.qualifiedReviewCount"
             )
         ),
-        rows = rows
+        rows = rows,
+        rankingRows = rankingRows
     )
 }
 
@@ -362,7 +377,40 @@ private fun JSONObject.toCloudProgressLeaderboardRow(
             value = requireCloudInt("qualifiedReviewCount", "$fieldPath.qualifiedReviewCount"),
             fieldPath = "$fieldPath.qualifiedReviewCount"
         ),
-        rank = requireCloudInt("rank", "$fieldPath.rank")
+        rank = requirePositiveLeaderboardRank(
+            value = requireCloudInt("rank", "$fieldPath.rank"),
+            fieldPath = "$fieldPath.rank"
+        )
     )
 }
 
+private fun JSONObject.toCloudProgressLeaderboardRankingRow(
+    fieldPath: String
+): CloudProgressLeaderboardRankingRow {
+    return CloudProgressLeaderboardRankingRow(
+        kind = CloudProgressLeaderboardRankingRowKind.fromWireKey(
+            wireKey = requireCloudString("kind", "$fieldPath.kind")
+        ),
+        publicProfileId = requireCloudString("publicProfileId", "$fieldPath.publicProfileId"),
+        anonymousDisplayName = requireCloudString("anonymousDisplayName", "$fieldPath.anonymousDisplayName"),
+        qualifiedReviewCount = requireNonNegativeReviewScheduleInt(
+            value = requireCloudInt("qualifiedReviewCount", "$fieldPath.qualifiedReviewCount"),
+            fieldPath = "$fieldPath.qualifiedReviewCount"
+        ),
+        rank = requirePositiveLeaderboardRank(
+            value = requireCloudInt("rank", "$fieldPath.rank"),
+            fieldPath = "$fieldPath.rank"
+        )
+    )
+}
+
+private fun requirePositiveLeaderboardRank(
+    value: Int,
+    fieldPath: String
+): Int {
+    if (value < 1) {
+        throw CloudContractMismatchException("$fieldPath must be at least 1.")
+    }
+
+    return value
+}

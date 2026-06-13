@@ -199,7 +199,7 @@ internal fun createProgressLeaderboardSectionUiState(
         return ProgressLeaderboardSectionUiState.SignInRequired
     }
 
-    val leaderboard = snapshot.leaderboard
+    val leaderboard = snapshot.renderedLeaderboard
     if (leaderboard == null) {
         return if (snapshot.didLastRemoteLoadFail) {
             ProgressLeaderboardSectionUiState.Offline
@@ -214,9 +214,7 @@ internal fun createProgressLeaderboardSectionUiState(
         ProgressLeaderboardStatus.SNAPSHOT_UNAVAILABLE -> ProgressLeaderboardSectionUiState.SnapshotUnavailable
         ProgressLeaderboardStatus.READY -> {
             val windows = leaderboard.windows.map { window ->
-                window.toUiState(
-                    viewerLocalQualifiedCount = snapshot.viewerLocalQualifiedCounts[window.windowKey] ?: 0
-                )
+                window.toUiState()
             }
             ProgressLeaderboardSectionUiState.Ready(
                 metricDescription = leaderboard.metric.description.takeIf { description ->
@@ -224,7 +222,7 @@ internal fun createProgressLeaderboardSectionUiState(
                 },
                 selectedWindowKey = selectedWindowKey
                     ?.takeIf { windowKey -> windows.any { window -> window.windowKey == windowKey } }
-                    ?: resolveBestLeaderboardPlacement(leaderboard = leaderboard)?.windowKey
+                    ?: resolveBestLeaderboardPlacement(snapshot = snapshot)?.windowKey
                     ?: leaderboard.defaultWindowKey,
                 windows = windows
             )
@@ -232,9 +230,7 @@ internal fun createProgressLeaderboardSectionUiState(
     }
 }
 
-private fun CloudProgressLeaderboardWindow.toUiState(
-    viewerLocalQualifiedCount: Int
-): ProgressLeaderboardWindowUiState {
+private fun CloudProgressLeaderboardWindow.toUiState(): ProgressLeaderboardWindowUiState {
     return ProgressLeaderboardWindowUiState(
         windowKey = windowKey,
         participantCount = participantCount,
@@ -244,13 +240,7 @@ private fun CloudProgressLeaderboardWindow.toUiState(
                 is CloudProgressLeaderboardRow.Participant -> ProgressLeaderboardRowUiState.Participant(
                     rank = row.rank,
                     displayName = row.anonymousDisplayName,
-                    // Only the viewer count is overlaid with the locally observed
-                    // qualified reviews; ranks and other rows stay server-authoritative.
-                    qualifiedReviewCount = if (row.kind == ProgressLeaderboardParticipantRowKind.VIEWER) {
-                        maxOf(row.qualifiedReviewCount, viewerLocalQualifiedCount)
-                    } else {
-                        row.qualifiedReviewCount
-                    },
+                    qualifiedReviewCount = row.qualifiedReviewCount,
                     isViewer = row.kind == ProgressLeaderboardParticipantRowKind.VIEWER
                 )
             }

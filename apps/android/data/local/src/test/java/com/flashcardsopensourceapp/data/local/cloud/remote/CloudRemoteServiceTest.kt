@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.data.local.cloud.remote
 
 import com.flashcardsopensourceapp.data.local.cloud.identity.syncWorkspaceForkRequiredErrorCode
 import com.flashcardsopensourceapp.data.local.cloud.remote.guest.buildGuestUpgradeCompleteRequest
+import com.flashcardsopensourceapp.data.local.cloud.remote.progress.parseCloudProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.cloud.remote.progress.parseCloudProgressReviewScheduleResponse
 import com.flashcardsopensourceapp.data.local.cloud.remote.progress.parseCloudProgressSeriesResponse
 import com.flashcardsopensourceapp.data.local.cloud.remote.progress.parseCloudProgressSummaryResponse
@@ -9,6 +10,8 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.sync.parseRemotePushR
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.parseCloudErrorPayload
 import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeSelection
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRankingRowKind
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleBucketKey
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import org.json.JSONObject
@@ -257,6 +260,81 @@ class CloudRemoteServiceTest {
         )
 
         assertTrue(schedule.reviewHistoryWatermarks.isEmpty())
+    }
+
+    @Test
+    fun parseCloudProgressLeaderboardReadsRankingRows() {
+        val response = JSONObject(
+            """
+            {
+              "status": "ready",
+              "metric": {
+                "metricVersion": "qualified_reviews_v1",
+                "title": "Qualified reviews",
+                "description": "Hard, Good, and Easy reviews count toward your rank. Again does not."
+              },
+              "defaultWindowKey": "last_24_hours",
+              "windows": [
+                {
+                  "windowKey": "last_24_hours",
+                  "snapshotId": "snapshot-1",
+                  "snapshotGeneratedAt": "2026-04-18T14:00:05.000Z",
+                  "asOfServerHour": "2026-04-18T14:00:00.000Z",
+                  "nextRefreshAfter": "2026-04-18T15:00:00.000Z",
+                  "participantCount": 2,
+                  "viewer": {
+                    "publicProfileId": "viewer-profile",
+                    "rank": 2,
+                    "qualifiedReviewCount": 7
+                  },
+                  "rows": [
+                    {
+                      "kind": "top",
+                      "publicProfileId": "participant-1",
+                      "anonymousDisplayName": "Silver Bright Harbor",
+                      "qualifiedReviewCount": 9,
+                      "rank": 1
+                    },
+                    {
+                      "kind": "viewer",
+                      "publicProfileId": "viewer-profile",
+                      "anonymousDisplayName": "Misty Quiet Grove",
+                      "qualifiedReviewCount": 7,
+                      "rank": 2
+                    }
+                  ],
+                  "rankingRows": [
+                    {
+                      "kind": "participant",
+                      "publicProfileId": "participant-1",
+                      "anonymousDisplayName": "Silver Bright Harbor",
+                      "qualifiedReviewCount": 9,
+                      "rank": 1
+                    },
+                    {
+                      "kind": "viewer",
+                      "publicProfileId": "viewer-profile",
+                      "anonymousDisplayName": "Misty Quiet Grove",
+                      "qualifiedReviewCount": 7,
+                      "rank": 2
+                    }
+                  ]
+                }
+              ]
+            }
+            """.trimIndent()
+        )
+
+        val leaderboard = parseCloudProgressLeaderboard(
+            payload = response,
+            fieldPath = "progress.leaderboard"
+        )
+
+        val window = leaderboard.windows.single()
+        assertEquals(ProgressLeaderboardWindowKey.LAST_24_HOURS, window.windowKey)
+        assertEquals(2, window.rankingRows.size)
+        assertEquals(CloudProgressLeaderboardRankingRowKind.VIEWER, window.rankingRows[1].kind)
+        assertEquals("viewer-profile", window.rankingRows[1].publicProfileId)
     }
 
     @Test

@@ -27,8 +27,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 // Compact community leaderboard pipeline. Unlike the other progress surfaces there is
-// no local fallback: the server snapshot is the only source of ranks and anonymous
-// names, the device only caches the last payload and overlays the viewer count.
+// no local fallback: the server snapshot provides participant ranking and anonymous
+// names, while the device projects only the current viewer from local review counts.
 internal class ProgressLeaderboardOrchestration(
     private val database: AppDatabase,
     private val cloudAccountRepository: CloudAccountRepository,

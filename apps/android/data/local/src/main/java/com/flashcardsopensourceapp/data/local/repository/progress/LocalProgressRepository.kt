@@ -175,7 +175,7 @@ class LocalProgressRepository(
             inputs = inputs,
             clockSnapshot = clockSnapshot
         )
-        // The leaderboard republishes its snapshot here for the viewer-count overlay;
+        // The leaderboard republishes its snapshot here for the viewer projection;
         // remote refreshes stay gated on nextRefreshAfter, not on sync completion.
         leaderboardOrchestration.handleInputs(
             inputs = inputs,
