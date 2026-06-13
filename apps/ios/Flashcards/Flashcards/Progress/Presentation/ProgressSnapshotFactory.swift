@@ -1,6 +1,7 @@
 import Foundation
 
 private let progressStreakWeekCount: Int = 5
+private let progressLeaderboardTopRowCount: Int = 3
 
 func makeProgressSnapshot(
     summary: ProgressSummary,
@@ -97,20 +98,21 @@ func makeProgressLeaderboardSnapshot(
             localQualifiedReviewCounts: localQualifiedReviewCounts
         )
     }
+    let defaultWindowKey = try resolveProgressLeaderboardDefaultWindowKey(windowStates: windowStates)
 
     return ProgressLeaderboardSnapshot(
         scopeKey: scopeKey,
         state: .ready(
             ProgressLeaderboardReadyState(
-                defaultWindowKey: leaderboard.defaultWindowKey,
+                defaultWindowKey: defaultWindowKey,
                 windows: windowStates
             )
         )
     )
 }
 
-/// The live overlay only lifts the viewer's own count; other rows and every rank
-/// stay exactly as the authoritative server snapshot reported them.
+/// The live overlay only reranks the current viewer against the frozen server
+/// ranking; other participants stay in the server-provided order.
 private func makeProgressLeaderboardWindowState(
     window: ProgressLeaderboardWindow,
     localQualifiedReviewCounts: [LeaderboardWindowKey: Int]
@@ -122,33 +124,196 @@ private func makeProgressLeaderboardWindowState(
     }
 
     let overlaidViewerCount = max(window.viewer.qualifiedReviewCount, localQualifiedReviewCount)
-    let rows = window.rows.enumerated().map { index, row -> ProgressLeaderboardRowState in
-        switch row {
-        case .gap:
-            return .gap(ProgressLeaderboardGapRowState(id: "gap-\(index)"))
-        case .participant(let participantRow):
-            return .participant(
-                ProgressLeaderboardParticipantRowState(
-                    kind: participantRow.kind,
-                    publicProfileId: participantRow.publicProfileId,
-                    anonymousDisplayName: participantRow.anonymousDisplayName,
-                    qualifiedReviewCount: participantRow.kind == .viewer
-                        ? overlaidViewerCount
-                        : participantRow.qualifiedReviewCount,
-                    rank: participantRow.rank
-                )
-            )
-        }
-    }
+    let projectedRankingRows = try makeProjectedProgressLeaderboardRankingRows(
+        window: window,
+        viewerQualifiedReviewCount: overlaidViewerCount
+    )
+    let projectedViewerRank = try progressLeaderboardViewerRank(rankingRows: projectedRankingRows)
+    let rows = try makeCompactProgressLeaderboardRowStates(
+        rankingRows: projectedRankingRows,
+        viewerRank: projectedViewerRank
+    )
 
     return ProgressLeaderboardWindowState(
         windowKey: window.windowKey,
         snapshotGeneratedAt: window.snapshotGeneratedAt,
         participantCount: window.participantCount,
-        viewerRank: window.viewer.rank,
+        viewerRank: projectedViewerRank,
         viewerQualifiedReviewCount: overlaidViewerCount,
         rows: rows
     )
+}
+
+private func makeProjectedProgressLeaderboardRankingRows(
+    window: ProgressLeaderboardWindow,
+    viewerQualifiedReviewCount: Int
+) throws -> [ProgressLeaderboardRankingRow] {
+    guard let serverViewerRow = window.rankingRows.first(where: { rankingRow in
+        rankingRow.kind == .viewer
+    }) else {
+        throw LocalStoreError.validation(
+            "Leaderboard ranking rows are missing the viewer for window \(window.windowKey.rawValue)"
+        )
+    }
+
+    let participantRows = window.rankingRows.filter { rankingRow in
+        rankingRow.kind == .participant
+    }
+    let projectedViewerRow = ProgressLeaderboardRankingRow(
+        kind: .viewer,
+        publicProfileId: serverViewerRow.publicProfileId,
+        anonymousDisplayName: serverViewerRow.anonymousDisplayName,
+        qualifiedReviewCount: viewerQualifiedReviewCount,
+        rank: serverViewerRow.rank
+    )
+    let insertionIndex = participantRows.firstIndex { rankingRow in
+        rankingRow.qualifiedReviewCount < viewerQualifiedReviewCount
+    } ?? participantRows.count
+    let projectedRows = Array(participantRows.prefix(insertionIndex))
+        + [projectedViewerRow]
+        + Array(participantRows.suffix(participantRows.count - insertionIndex))
+
+    return projectedRows.enumerated().map { index, rankingRow in
+        ProgressLeaderboardRankingRow(
+            kind: rankingRow.kind,
+            publicProfileId: rankingRow.publicProfileId,
+            anonymousDisplayName: rankingRow.anonymousDisplayName,
+            qualifiedReviewCount: rankingRow.qualifiedReviewCount,
+            rank: index + 1
+        )
+    }
+}
+
+private func progressLeaderboardViewerRank(
+    rankingRows: [ProgressLeaderboardRankingRow]
+) throws -> Int {
+    guard let viewerRow = rankingRows.first(where: { rankingRow in
+        rankingRow.kind == .viewer
+    }) else {
+        throw LocalStoreError.validation("Projected leaderboard ranking rows are missing the viewer")
+    }
+
+    return viewerRow.rank
+}
+
+private func makeCompactProgressLeaderboardRowStates(
+    rankingRows: [ProgressLeaderboardRankingRow],
+    viewerRank: Int
+) throws -> [ProgressLeaderboardRowState] {
+    let participantCount = rankingRows.count
+    let topRowCount = min(progressLeaderboardTopRowCount, participantCount)
+    var shownRanks: Set<Int> = []
+
+    if topRowCount > 0 {
+        for rank in 1...topRowCount {
+            shownRanks.insert(rank)
+        }
+    }
+
+    if viewerRank > topRowCount {
+        for rank in [viewerRank - 1, viewerRank, viewerRank + 1] {
+            guard rank >= 1, rank <= participantCount else {
+                continue
+            }
+
+            shownRanks.insert(rank)
+        }
+    } else if viewerRank == topRowCount && viewerRank < participantCount {
+        shownRanks.insert(viewerRank + 1)
+    }
+
+    if participantCount > topRowCount {
+        shownRanks.insert(participantCount)
+    }
+
+    var rows: [ProgressLeaderboardRowState] = []
+    var previousRank: Int = 0
+    for rank in shownRanks.sorted() {
+        if previousRank != 0, rank > previousRank + 1 {
+            rows.append(.gap(ProgressLeaderboardGapRowState(id: "gap-\(rows.count)")))
+        }
+
+        let rankingRowIndex = rank - 1
+        guard rankingRows.indices.contains(rankingRowIndex) else {
+            throw LocalStoreError.validation("Projected leaderboard ranking rows are missing rank \(rank)")
+        }
+
+        rows.append(
+            .participant(
+                makeProgressLeaderboardParticipantRowState(
+                    rankingRow: rankingRows[rankingRowIndex],
+                    topRowCount: topRowCount
+                )
+            )
+        )
+        previousRank = rank
+    }
+
+    if previousRank < participantCount {
+        rows.append(.gap(ProgressLeaderboardGapRowState(id: "gap-\(rows.count)")))
+    }
+
+    return rows
+}
+
+private func makeProgressLeaderboardParticipantRowState(
+    rankingRow: ProgressLeaderboardRankingRow,
+    topRowCount: Int
+) -> ProgressLeaderboardParticipantRowState {
+    ProgressLeaderboardParticipantRowState(
+        kind: progressLeaderboardParticipantKind(
+            rankingRow: rankingRow,
+            topRowCount: topRowCount
+        ),
+        publicProfileId: rankingRow.publicProfileId,
+        anonymousDisplayName: rankingRow.anonymousDisplayName,
+        qualifiedReviewCount: rankingRow.qualifiedReviewCount,
+        rank: rankingRow.rank
+    )
+}
+
+private func progressLeaderboardParticipantKind(
+    rankingRow: ProgressLeaderboardRankingRow,
+    topRowCount: Int
+) -> ProgressLeaderboardParticipantKind {
+    if rankingRow.kind == .viewer {
+        return .viewer
+    }
+
+    if rankingRow.rank <= topRowCount {
+        return .top
+    }
+
+    return .neighbor
+}
+
+private func resolveProgressLeaderboardDefaultWindowKey(
+    windowStates: [ProgressLeaderboardWindowState]
+) throws -> LeaderboardWindowKey {
+    var bestWindowKey: LeaderboardWindowKey?
+    var bestRank: Int?
+
+    for windowKey in LeaderboardWindowKey.stableOrder {
+        guard let window = windowStates.first(where: { candidate in
+            candidate.windowKey == windowKey
+        }) else {
+            continue
+        }
+
+        if let currentBestRank = bestRank,
+           window.viewerRank >= currentBestRank {
+            continue
+        }
+
+        bestWindowKey = window.windowKey
+        bestRank = window.viewerRank
+    }
+
+    guard let bestWindowKey else {
+        throw LocalStoreError.validation("Projected leaderboard windows are missing a default window")
+    }
+
+    return bestWindowKey
 }
 
 private struct ProgressTimelineDay: Hashable, Sendable {
