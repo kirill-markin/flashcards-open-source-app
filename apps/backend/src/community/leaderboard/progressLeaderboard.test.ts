@@ -8,6 +8,7 @@ import {
   loadProgressLeaderboardInExecutor,
   type ProgressLeaderboard,
   type ProgressLeaderboardParticipantRow,
+  type ProgressLeaderboardRankingRow,
   type ProgressLeaderboardRow,
 } from "./progressLeaderboard";
 
@@ -40,6 +41,13 @@ type LeaderboardExecutorFixture = Readonly<{
 }>;
 
 type RecordedQuery = Readonly<{ text: string; params: ReadonlyArray<SqlValue> }>;
+
+type RankingSummary = Readonly<{
+  kind: ProgressLeaderboardRankingRow["kind"];
+  publicProfileId: string;
+  count: number;
+  rank: number;
+}>;
 
 const VIEWER_USER_ID = "user-viewer";
 const VIEWER_PROFILE_ID = "00000000-0000-4000-8000-0000000000a1";
@@ -185,6 +193,20 @@ function participantRows(
   rows: ReadonlyArray<ProgressLeaderboardRow>,
 ): ReadonlyArray<ProgressLeaderboardParticipantRow> {
   return rows.filter((row): row is ProgressLeaderboardParticipantRow => row.kind !== "gap");
+}
+
+function summarizeRankingRows(rows: ReadonlyArray<ProgressLeaderboardRankingRow>): ReadonlyArray<RankingSummary> {
+  return rows.map((row) => ({
+    kind: row.kind,
+    publicProfileId: row.publicProfileId,
+    count: row.qualifiedReviewCount,
+    rank: row.rank,
+  }));
+}
+
+function assertRankingRowsHaveNoGaps(rows: ReadonlyArray<ProgressLeaderboardRankingRow>): void {
+  assert.deepEqual(rows.map((row) => row.rank), rows.map((_row, index) => index + 1));
+  assert.equal(JSON.stringify(rows).includes("\"gap\""), false);
 }
 
 function includesQuery(recordedQueries: ReadonlyArray<RecordedQuery>, substring: string): boolean {
@@ -350,6 +372,27 @@ test("a zero-count viewer with tied ranks defaults to last_24_hours and still ap
   assert.equal(viewerRow?.qualifiedReviewCount, 0);
   assert.equal(viewerRow?.rank, 3);
   assert.equal(viewerRow?.publicProfileId, VIEWER_PROFILE_ID);
+  assertRankingRowsHaveNoGaps(window.rankingRows);
+  assert.deepEqual(summarizeRankingRows(window.rankingRows), [
+    {
+      kind: "participant",
+      publicProfileId: "00000000-0000-4000-8000-0000000000b1",
+      count: 5,
+      rank: 1,
+    },
+    {
+      kind: "participant",
+      publicProfileId: "00000000-0000-4000-8000-0000000000b2",
+      count: 3,
+      rank: 2,
+    },
+    {
+      kind: "viewer",
+      publicProfileId: VIEWER_PROFILE_ID,
+      count: 0,
+      rank: 3,
+    },
+  ]);
 });
 
 test("equal counts rank the viewer below other users with the same count", async () => {
@@ -384,6 +427,36 @@ test("equal counts rank the viewer below other users with the same count", async
       { kind: "top", rank: 2, count: 5 },
       { kind: "viewer", rank: 3, count: 5 },
       { kind: "neighbor", rank: 4, count: 3 },
+    ],
+  );
+  assertRankingRowsHaveNoGaps(window.rankingRows);
+  assert.deepEqual(
+    summarizeRankingRows(window.rankingRows),
+    [
+      {
+        kind: "participant",
+        publicProfileId: "00000000-0000-4000-8000-0000000000c1",
+        count: 5,
+        rank: 1,
+      },
+      {
+        kind: "participant",
+        publicProfileId: "00000000-0000-4000-8000-0000000000c2",
+        count: 5,
+        rank: 2,
+      },
+      {
+        kind: "viewer",
+        publicProfileId: VIEWER_PROFILE_ID,
+        count: 5,
+        rank: 3,
+      },
+      {
+        kind: "participant",
+        publicProfileId: "00000000-0000-4000-8000-0000000000c4",
+        count: 3,
+        rank: 4,
+      },
     ],
   );
 });
@@ -448,6 +521,26 @@ test("compact rows show the top three, gaps, the viewer group, and the last-plac
   const window = findWindow(leaderboard, "last_24_hours");
   assert.equal(window.participantCount, 10);
   assert.equal(window.viewer.rank, 6);
+  assertRankingRowsHaveNoGaps(window.rankingRows);
+  assert.deepEqual(
+    window.rankingRows.map((row) => row.publicProfileId),
+    otherEntries.map((entry) => entry.public_profile_id),
+  );
+  assert.deepEqual(
+    window.rankingRows.map((row) => row.kind),
+    [
+      "participant",
+      "participant",
+      "participant",
+      "participant",
+      "participant",
+      "viewer",
+      "participant",
+      "participant",
+      "participant",
+      "participant",
+    ],
+  );
 
   const kindsAndRanks = window.rows.map((row) => (row.kind === "gap" ? "gap" : `${row.kind}:${row.rank}`));
   assert.deepEqual(kindsAndRanks, [
@@ -576,10 +669,11 @@ test("anonymous names change with locale while ids, counts, and ranks stay stabl
 });
 
 test("ready response serializes only public fields, never internal identifiers", async () => {
+  const rawReviewTimestamp = new Date("2026-06-10T12:12:34.567Z");
   const { executor } = createLeaderboardExecutor({
     viewerUserId: VIEWER_USER_ID,
     viewerProfile: { publicProfileId: VIEWER_PROFILE_ID, leaderboardParticipationEnabled: true },
-    latestReviewedAtClient: new Date(NOW.getTime() - 2 * MILLISECONDS_PER_HOUR),
+    latestReviewedAtClient: rawReviewTimestamp,
     headers: createReadyHeaders(),
     entriesBySnapshotId: createEntriesForWindow("last_24_hours", [
       { public_profile_id: "00000000-0000-4000-8000-000000000aa1", qualified_review_count: 7, base_sort_position: 1 },
@@ -597,8 +691,10 @@ test("ready response serializes only public fields, never internal identifiers",
   assert.equal(serialized.includes("publicProfileId"), true);
   assert.equal(serialized.includes("anonymousDisplayName"), true);
   assert.equal(serialized.includes("qualifiedReviewCount"), true);
+  assert.equal(serialized.includes("rankingRows"), true);
   for (const internalField of [
     VIEWER_USER_ID,
+    rawReviewTimestamp.toISOString(),
     "user_id",
     "userId",
     "reviewed_by",
