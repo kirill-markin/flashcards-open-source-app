@@ -88,6 +88,14 @@ export type ProgressLeaderboardGapRow = Readonly<{
 
 export type ProgressLeaderboardRow = ProgressLeaderboardParticipantRow | ProgressLeaderboardGapRow;
 
+export type ProgressLeaderboardRankingRow = Readonly<{
+  kind: "participant" | "viewer";
+  publicProfileId: string;
+  anonymousDisplayName: string;
+  qualifiedReviewCount: number;
+  rank: number;
+}>;
+
 export type ProgressLeaderboardWindow = Readonly<{
   windowKey: LeaderboardWindowKey;
   snapshotId: string;
@@ -97,6 +105,7 @@ export type ProgressLeaderboardWindow = Readonly<{
   participantCount: number;
   viewer: ProgressLeaderboardViewer;
   rows: ReadonlyArray<ProgressLeaderboardRow>;
+  rankingRows: ReadonlyArray<ProgressLeaderboardRankingRow>;
 }>;
 
 export type ProgressLeaderboard = Readonly<{
@@ -334,6 +343,26 @@ function buildParticipantRow(
   };
 }
 
+function buildRankingRow(
+  participant: RankedParticipant,
+  resolveName: (publicProfileId: string) => string,
+): ProgressLeaderboardRankingRow {
+  return {
+    kind: participant.isViewer ? "viewer" : "participant",
+    publicProfileId: participant.publicProfileId,
+    anonymousDisplayName: resolveName(participant.publicProfileId),
+    qualifiedReviewCount: participant.qualifiedReviewCount,
+    rank: participant.rank,
+  };
+}
+
+function buildRankingRows(
+  ranked: ReadonlyArray<RankedParticipant>,
+  resolveName: (publicProfileId: string) => string,
+): ReadonlyArray<ProgressLeaderboardRankingRow> {
+  return ranked.map((participant) => buildRankingRow(participant, resolveName));
+}
+
 /**
  * Selects the compact rows server-side so every client renders the same list:
  * the top three rows (when that many participants exist), the next row when
@@ -417,6 +446,7 @@ function buildLeaderboardWindow(
       qualifiedReviewCount: ranking.viewerCount,
     },
     rows: buildCompactRows(ranking.ranked, ranking.viewerRank, resolveName),
+    rankingRows: buildRankingRows(ranking.ranked, resolveName),
   };
 }
 

@@ -170,6 +170,22 @@ function createProgressLeaderboard(): ProgressLeaderboard {
             rank: 2,
           },
         ],
+        rankingRows: [
+          {
+            kind: "participant",
+            publicProfileId: "a1d2c3b4-5e6f-4a8b-9c0d-1e2f3a4b5c6d",
+            anonymousDisplayName: "Silver Bright Harbor",
+            qualifiedReviewCount: 5,
+            rank: 1,
+          },
+          {
+            kind: "viewer",
+            publicProfileId: "5b9d3f2a-1c4e-4a7b-9f0d-2e6c8a1b4d7f",
+            anonymousDisplayName: "Jade Swift River",
+            qualifiedReviewCount: 3,
+            rank: 2,
+          },
+        ],
       },
     ],
   };
@@ -813,6 +829,7 @@ test("published OpenAPI documents the progress leaderboard without internal ids"
     "rank",
     "nextRefreshAfter",
     "participantCount",
+    "rankingRows",
   ]) {
     assert.equal(serializedSchemas.includes(expectedField), true, `OpenAPI must document ${expectedField}`);
   }
