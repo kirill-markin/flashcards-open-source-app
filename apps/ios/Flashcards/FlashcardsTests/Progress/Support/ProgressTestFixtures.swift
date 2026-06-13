@@ -188,7 +188,8 @@ func makeReadyProgressLeaderboardForTests(
     defaultWindowKey: LeaderboardWindowKey,
     participantCount: Int,
     viewer: ProgressLeaderboardViewer,
-    rows: [ProgressLeaderboardRow]
+    rows: [ProgressLeaderboardRow],
+    rankingRows: [ProgressLeaderboardRankingRow]
 ) -> UserProgressLeaderboard {
     let windows = LeaderboardWindowKey.stableOrder.map { windowKey in
         ProgressLeaderboardWindow(
@@ -199,7 +200,8 @@ func makeReadyProgressLeaderboardForTests(
             nextRefreshAfter: "2026-06-10T15:00:00.000Z",
             participantCount: participantCount,
             viewer: viewer,
-            rows: rows
+            rows: rows,
+            rankingRows: rankingRows
         )
     }
 
@@ -234,6 +236,22 @@ func makeProgressLeaderboardParticipantRowForTests(
             qualifiedReviewCount: qualifiedReviewCount,
             rank: rank
         )
+    )
+}
+
+func makeProgressLeaderboardRankingRowForTests(
+    kind: ProgressLeaderboardRankingRowKind,
+    publicProfileId: String,
+    anonymousDisplayName: String,
+    qualifiedReviewCount: Int,
+    rank: Int
+) -> ProgressLeaderboardRankingRow {
+    ProgressLeaderboardRankingRow(
+        kind: kind,
+        publicProfileId: publicProfileId,
+        anonymousDisplayName: anonymousDisplayName,
+        qualifiedReviewCount: qualifiedReviewCount,
+        rank: rank
     )
 }
 

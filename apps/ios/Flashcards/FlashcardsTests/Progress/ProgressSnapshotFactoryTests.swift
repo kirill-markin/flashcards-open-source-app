@@ -47,7 +47,7 @@ final class ProgressSnapshotFactoryTests: XCTestCase {
                 kind: .neighbor,
                 publicProfileId: "profile-neighbor-43",
                 anonymousDisplayName: "Lilac Bold Summit",
-                qualifiedReviewCount: 7,
+                qualifiedReviewCount: 6,
                 rank: 43
             ),
             .gap,
@@ -59,6 +59,94 @@ final class ProgressSnapshotFactoryTests: XCTestCase {
                 rank: 128
             ),
         ]
+    }
+
+    private var rankingRows: [ProgressLeaderboardRankingRow] {
+        (1...128).map { rank in
+            switch rank {
+            case 1:
+                return makeProgressLeaderboardRankingRowForTests(
+                    kind: .participant,
+                    publicProfileId: "profile-top-1",
+                    anonymousDisplayName: "Silver Bright Harbor",
+                    qualifiedReviewCount: 51,
+                    rank: rank
+                )
+            case 2:
+                return makeProgressLeaderboardRankingRowForTests(
+                    kind: .participant,
+                    publicProfileId: "profile-top-2",
+                    anonymousDisplayName: "Amber Calm Meadow",
+                    qualifiedReviewCount: 44,
+                    rank: rank
+                )
+            case 3:
+                return makeProgressLeaderboardRankingRowForTests(
+                    kind: .participant,
+                    publicProfileId: "profile-top-3",
+                    anonymousDisplayName: "Coral Keen Valley",
+                    qualifiedReviewCount: 39,
+                    rank: rank
+                )
+            case 4...40:
+                return makeProgressLeaderboardRankingRowForTests(
+                    kind: .participant,
+                    publicProfileId: "profile-mid-\(rank)",
+                    anonymousDisplayName: "Rank \(rank)",
+                    qualifiedReviewCount: 9,
+                    rank: rank
+                )
+            case 41:
+                return makeProgressLeaderboardRankingRowForTests(
+                    kind: .participant,
+                    publicProfileId: "profile-neighbor-41",
+                    anonymousDisplayName: "Jade Swift River",
+                    qualifiedReviewCount: 8,
+                    rank: rank
+                )
+            case 42:
+                return makeProgressLeaderboardRankingRowForTests(
+                    kind: .viewer,
+                    publicProfileId: "profile-viewer",
+                    anonymousDisplayName: "Indigo Quiet Field",
+                    qualifiedReviewCount: 7,
+                    rank: rank
+                )
+            case 43:
+                return makeProgressLeaderboardRankingRowForTests(
+                    kind: .participant,
+                    publicProfileId: "profile-neighbor-43",
+                    anonymousDisplayName: "Lilac Bold Summit",
+                    qualifiedReviewCount: 6,
+                    rank: rank
+                )
+            case 44...127:
+                return makeProgressLeaderboardRankingRowForTests(
+                    kind: .participant,
+                    publicProfileId: "profile-tail-\(rank)",
+                    anonymousDisplayName: "Rank \(rank)",
+                    qualifiedReviewCount: 1,
+                    rank: rank
+                )
+            case 128:
+                return makeProgressLeaderboardRankingRowForTests(
+                    kind: .participant,
+                    publicProfileId: "profile-last-128",
+                    anonymousDisplayName: "Blue Final Harbor",
+                    qualifiedReviewCount: 0,
+                    rank: rank
+                )
+            default:
+                XCTFail("Unexpected leaderboard rank \(rank)")
+                return makeProgressLeaderboardRankingRowForTests(
+                    kind: .participant,
+                    publicProfileId: "profile-invalid-\(rank)",
+                    anonymousDisplayName: "Invalid Rank",
+                    qualifiedReviewCount: 0,
+                    rank: rank
+                )
+            }
+        }
     }
 
     private var viewer: ProgressLeaderboardViewer {
@@ -162,7 +250,8 @@ final class ProgressSnapshotFactoryTests: XCTestCase {
             defaultWindowKey: .last7Days,
             participantCount: 128,
             viewer: self.viewer,
-            rows: self.compactRows
+            rows: self.compactRows,
+            rankingRows: self.rankingRows
         )
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-06-10T15:00:00.000Z"))
 
@@ -179,7 +268,7 @@ final class ProgressSnapshotFactoryTests: XCTestCase {
             return
         }
 
-        XCTAssertEqual(.last7Days, readyState.defaultWindowKey)
+        XCTAssertEqual(.last24Hours, readyState.defaultWindowKey)
         XCTAssertEqual(LeaderboardWindowKey.stableOrder, readyState.windows.map(\.windowKey))
 
         let window = try XCTUnwrap(readyState.windows.first)
@@ -213,7 +302,8 @@ final class ProgressSnapshotFactoryTests: XCTestCase {
             defaultWindowKey: .last24Hours,
             participantCount: 128,
             viewer: self.viewer,
-            rows: self.compactRows
+            rows: self.compactRows,
+            rankingRows: self.rankingRows
         )
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-06-10T15:00:00.000Z"))
 
@@ -297,12 +387,13 @@ final class ProgressSnapshotFactoryTests: XCTestCase {
         XCTAssertTrue(infoMessage.contains(ReviewRating.again.title))
     }
 
-    func testLiveOverlayChangesOnlyViewerCount() throws {
+    func testLiveOverlayReranksOnlyViewerFromRankingRows() throws {
         let leaderboard = makeReadyProgressLeaderboardForTests(
             defaultWindowKey: .last24Hours,
             participantCount: 128,
             viewer: self.viewer,
-            rows: self.compactRows
+            rows: self.compactRows,
+            rankingRows: self.rankingRows
         )
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-06-10T15:00:00.000Z"))
         let qualifiedReviewEvents = (0 ..< 9).map { index in
@@ -329,26 +420,79 @@ final class ProgressSnapshotFactoryTests: XCTestCase {
 
         for window in readyState.windows {
             XCTAssertEqual(9, window.viewerQualifiedReviewCount)
-            XCTAssertEqual(42, window.viewerRank)
+            XCTAssertEqual(41, window.viewerRank)
             XCTAssertEqual(128, window.participantCount)
 
-            for row in window.rows {
+            let participantRows = window.rows.compactMap { row -> ProgressLeaderboardParticipantRowState? in
                 guard case .participant(let participantRow) = row else {
-                    continue
+                    return nil
                 }
 
-                if participantRow.kind == .viewer {
-                    XCTAssertEqual(9, participantRow.qualifiedReviewCount)
-                    XCTAssertEqual(42, participantRow.rank)
-                } else if participantRow.rank == 1 {
-                    XCTAssertEqual(51, participantRow.qualifiedReviewCount)
-                } else if participantRow.rank == 41 {
-                    XCTAssertEqual(8, participantRow.qualifiedReviewCount)
-                } else if participantRow.rank == 43 {
-                    XCTAssertEqual(7, participantRow.qualifiedReviewCount)
-                }
+                return participantRow
             }
+            let viewerRow = try XCTUnwrap(participantRows.first { row in
+                row.kind == .viewer
+            })
+            let promotedNeighborRow = try XCTUnwrap(participantRows.first { row in
+                row.rank == 42
+            })
+
+            XCTAssertEqual(9, viewerRow.qualifiedReviewCount)
+            XCTAssertEqual(41, viewerRow.rank)
+            XCTAssertEqual("profile-viewer", viewerRow.publicProfileId)
+            XCTAssertEqual("profile-neighbor-41", promotedNeighborRow.publicProfileId)
+            XCTAssertEqual(8, promotedNeighborRow.qualifiedReviewCount)
         }
+    }
+
+    func testFactoryRecomputesDefaultWindowKeyFromProjectedRanks() throws {
+        let leaderboard = makeReadyProgressLeaderboardForTests(
+            defaultWindowKey: .last24Hours,
+            participantCount: 128,
+            viewer: self.viewer,
+            rows: self.compactRows,
+            rankingRows: self.rankingRows
+        )
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-06-10T15:00:00.000Z"))
+        let qualifiedReviewEvents = (0 ..< 40).map { index in
+            ProgressQualifiedReviewEventSource(
+                reviewEventId: "review-event-\(index)",
+                reviewedAtClient: "2026-06-08T15:00:00.000Z"
+            )
+        }
+
+        let snapshot = try makeProgressLeaderboardSnapshot(
+            leaderboard: leaderboard,
+            scopeKey: self.scopeKey,
+            canonicalQualifiedReviewEvents: qualifiedReviewEvents,
+            pendingQualifiedReviewEvents: [],
+            now: now
+        )
+
+        guard case .ready(let readyState) = snapshot.state else {
+            XCTFail("Expected ready leaderboard state, received \(snapshot.state)")
+            return
+        }
+
+        let last24HoursWindow = try XCTUnwrap(readyState.windows.first { window in
+            window.windowKey == .last24Hours
+        })
+        let last3DaysWindow = try XCTUnwrap(readyState.windows.first { window in
+            window.windowKey == .last3Days
+        })
+        let badgeState = makeReviewLeaderboardBadgeState(progressLeaderboardSnapshot: snapshot)
+
+        XCTAssertEqual(.last3Days, readyState.defaultWindowKey)
+        XCTAssertEqual(42, last24HoursWindow.viewerRank)
+        XCTAssertEqual(3, last3DaysWindow.viewerRank)
+        XCTAssertEqual(
+            ReviewLeaderboardBadgeState(
+                rank: 3,
+                windowKey: .last3Days,
+                isInteractive: true
+            ),
+            badgeState
+        )
     }
 
     func testLiveOverlayNeverLowersServerViewerCount() throws {
@@ -356,7 +500,8 @@ final class ProgressSnapshotFactoryTests: XCTestCase {
             defaultWindowKey: .last24Hours,
             participantCount: 128,
             viewer: self.viewer,
-            rows: self.compactRows
+            rows: self.compactRows,
+            rankingRows: self.rankingRows
         )
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-06-10T15:00:00.000Z"))
         let qualifiedReviewEvents = (0 ..< 2).map { index in
@@ -381,6 +526,105 @@ final class ProgressSnapshotFactoryTests: XCTestCase {
 
         for window in readyState.windows {
             XCTAssertEqual(7, window.viewerQualifiedReviewCount)
+            XCTAssertEqual(42, window.viewerRank)
+        }
+    }
+
+    func testFactoryRejectsRankingRowsWithoutViewerRow() throws {
+        let rankingRowsWithoutViewer = self.rankingRows.map { rankingRow in
+            if rankingRow.kind == .viewer {
+                return makeProgressLeaderboardRankingRowForTests(
+                    kind: .participant,
+                    publicProfileId: rankingRow.publicProfileId,
+                    anonymousDisplayName: rankingRow.anonymousDisplayName,
+                    qualifiedReviewCount: rankingRow.qualifiedReviewCount,
+                    rank: rankingRow.rank
+                )
+            }
+
+            return rankingRow
+        }
+        let leaderboard = makeReadyProgressLeaderboardForTests(
+            defaultWindowKey: .last24Hours,
+            participantCount: 128,
+            viewer: self.viewer,
+            rows: self.compactRows,
+            rankingRows: rankingRowsWithoutViewer
+        )
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-06-10T15:00:00.000Z"))
+
+        XCTAssertThrowsError(
+            try makeProgressLeaderboardSnapshot(
+                leaderboard: leaderboard,
+                scopeKey: self.scopeKey,
+                canonicalQualifiedReviewEvents: [],
+                pendingQualifiedReviewEvents: [],
+                now: now
+            )
+        ) { error in
+            guard let validationError = error as? ProgressLeaderboardValidationError else {
+                XCTFail("Expected ProgressLeaderboardValidationError, received \(error)")
+                return
+            }
+
+            guard case .viewerRankingRowMismatch(windowKey: let windowKey) = validationError else {
+                XCTFail("Expected viewerRankingRowMismatch, received \(error)")
+                return
+            }
+
+            XCTAssertEqual(LeaderboardWindowKey.last24Hours.rawValue, windowKey)
+        }
+    }
+
+    func testFactoryRejectsNonContiguousRankingRowRanks() throws {
+        let rankingRowsWithSkippedRank = self.rankingRows.map { rankingRow in
+            if rankingRow.rank == 3 {
+                return makeProgressLeaderboardRankingRowForTests(
+                    kind: rankingRow.kind,
+                    publicProfileId: rankingRow.publicProfileId,
+                    anonymousDisplayName: rankingRow.anonymousDisplayName,
+                    qualifiedReviewCount: rankingRow.qualifiedReviewCount,
+                    rank: 4
+                )
+            }
+
+            return rankingRow
+        }
+        let leaderboard = makeReadyProgressLeaderboardForTests(
+            defaultWindowKey: .last24Hours,
+            participantCount: 128,
+            viewer: self.viewer,
+            rows: self.compactRows,
+            rankingRows: rankingRowsWithSkippedRank
+        )
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-06-10T15:00:00.000Z"))
+
+        XCTAssertThrowsError(
+            try makeProgressLeaderboardSnapshot(
+                leaderboard: leaderboard,
+                scopeKey: self.scopeKey,
+                canonicalQualifiedReviewEvents: [],
+                pendingQualifiedReviewEvents: [],
+                now: now
+            )
+        ) { error in
+            guard let validationError = error as? ProgressLeaderboardValidationError else {
+                XCTFail("Expected ProgressLeaderboardValidationError, received \(error)")
+                return
+            }
+
+            guard case .invalidRankingRowRank(
+                windowKey: let windowKey,
+                expectedRank: let expectedRank,
+                actualRank: let actualRank
+            ) = validationError else {
+                XCTFail("Expected invalidRankingRowRank, received \(error)")
+                return
+            }
+
+            XCTAssertEqual(LeaderboardWindowKey.last24Hours.rawValue, windowKey)
+            XCTAssertEqual(3, expectedRank)
+            XCTAssertEqual(4, actualRank)
         }
     }
 }

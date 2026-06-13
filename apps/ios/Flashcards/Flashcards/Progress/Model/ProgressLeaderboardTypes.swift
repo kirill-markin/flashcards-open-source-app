@@ -77,6 +77,21 @@ struct ProgressLeaderboardParticipantRow: Codable, Hashable, Sendable {
     let rank: Int
 }
 
+enum ProgressLeaderboardRankingRowKind: String, Codable, Hashable, Sendable {
+    case participant
+    case viewer
+}
+
+struct ProgressLeaderboardRankingRow: Codable, Hashable, Sendable {
+    let kind: ProgressLeaderboardRankingRowKind
+    let publicProfileId: String
+    /// Server-generated from the public profile id and the request locale.
+    /// Clients must never generate or persist their own anonymous names.
+    let anonymousDisplayName: String
+    let qualifiedReviewCount: Int
+    let rank: Int
+}
+
 enum ProgressLeaderboardRow: Codable, Hashable, Sendable {
     case participant(ProgressLeaderboardParticipantRow)
     case gap
@@ -118,6 +133,7 @@ struct ProgressLeaderboardWindow: Codable, Hashable, Sendable {
     let participantCount: Int
     let viewer: ProgressLeaderboardViewer
     let rows: [ProgressLeaderboardRow]
+    let rankingRows: [ProgressLeaderboardRankingRow]
 }
 
 struct UserProgressLeaderboard: Codable, Hashable, Sendable {
@@ -136,8 +152,12 @@ enum ProgressLeaderboardValidationError: LocalizedError {
     case invalidViewerRank(windowKey: String, rank: Int, participantCount: Int)
     case negativeReviewCount(windowKey: String, reviewCount: Int)
     case invalidRowRank(windowKey: String, rank: Int)
+    case rankingRowCountMismatch(windowKey: String, participantCount: Int, rankingRowCount: Int)
+    case invalidRankingRowRank(windowKey: String, expectedRank: Int, actualRank: Int)
+    case unorderedRankingRows(windowKey: String, previousRank: Int, previousReviewCount: Int, rank: Int, reviewCount: Int)
     case tooManyGapRows(windowKey: String, gapRowCount: Int)
     case viewerRowMismatch(windowKey: String)
+    case viewerRankingRowMismatch(windowKey: String)
 
     var errorDescription: String? {
         switch self {
@@ -155,10 +175,18 @@ enum ProgressLeaderboardValidationError: LocalizedError {
             return "Leaderboard window \(windowKey) contained a negative review count: \(reviewCount)."
         case .invalidRowRank(let windowKey, let rank):
             return "Leaderboard window \(windowKey) contained an invalid row rank: \(rank)."
+        case .rankingRowCountMismatch(let windowKey, let participantCount, let rankingRowCount):
+            return "Leaderboard window \(windowKey) participant count \(participantCount) did not match ranking row count \(rankingRowCount)."
+        case .invalidRankingRowRank(let windowKey, let expectedRank, let actualRank):
+            return "Leaderboard window \(windowKey) expected ranking row rank \(expectedRank), received \(actualRank)."
+        case .unorderedRankingRows(let windowKey, let previousRank, let previousReviewCount, let rank, let reviewCount):
+            return "Leaderboard window \(windowKey) ranking row \(rank) count \(reviewCount) exceeded previous rank \(previousRank) count \(previousReviewCount)."
         case .tooManyGapRows(let windowKey, let gapRowCount):
             return "Leaderboard window \(windowKey) contained \(gapRowCount) gap rows. At most \(progressLeaderboardMaximumGapRowCount) are allowed."
         case .viewerRowMismatch(let windowKey):
             return "Leaderboard window \(windowKey) rows did not contain exactly one viewer row matching the viewer."
+        case .viewerRankingRowMismatch(let windowKey):
+            return "Leaderboard window \(windowKey) ranking rows did not contain exactly one viewer row matching the viewer."
         }
     }
 }
@@ -251,6 +279,8 @@ private func validateProgressLeaderboardWindow(window: ProgressLeaderboardWindow
         )
     }
 
+    try validateProgressLeaderboardRankingRows(window: window)
+
     var viewerRows: [ProgressLeaderboardParticipantRow] = []
     var gapRowCount: Int = 0
     for row in window.rows {
@@ -295,5 +325,64 @@ private func validateProgressLeaderboardWindow(window: ProgressLeaderboardWindow
         viewerRow.qualifiedReviewCount == window.viewer.qualifiedReviewCount
     else {
         throw ProgressLeaderboardValidationError.viewerRowMismatch(windowKey: windowKey)
+    }
+}
+
+private func validateProgressLeaderboardRankingRows(window: ProgressLeaderboardWindow) throws {
+    let windowKey = window.windowKey.rawValue
+
+    guard window.rankingRows.count == window.participantCount else {
+        throw ProgressLeaderboardValidationError.rankingRowCountMismatch(
+            windowKey: windowKey,
+            participantCount: window.participantCount,
+            rankingRowCount: window.rankingRows.count
+        )
+    }
+
+    var viewerRows: [ProgressLeaderboardRankingRow] = []
+    var previousRankingRow: ProgressLeaderboardRankingRow?
+    for (index, rankingRow) in window.rankingRows.enumerated() {
+        guard rankingRow.qualifiedReviewCount >= 0 else {
+            throw ProgressLeaderboardValidationError.negativeReviewCount(
+                windowKey: windowKey,
+                reviewCount: rankingRow.qualifiedReviewCount
+            )
+        }
+
+        let expectedRank = index + 1
+        guard rankingRow.rank == expectedRank else {
+            throw ProgressLeaderboardValidationError.invalidRankingRowRank(
+                windowKey: windowKey,
+                expectedRank: expectedRank,
+                actualRank: rankingRow.rank
+            )
+        }
+
+        if let previousRankingRow,
+           rankingRow.qualifiedReviewCount > previousRankingRow.qualifiedReviewCount {
+            throw ProgressLeaderboardValidationError.unorderedRankingRows(
+                windowKey: windowKey,
+                previousRank: previousRankingRow.rank,
+                previousReviewCount: previousRankingRow.qualifiedReviewCount,
+                rank: rankingRow.rank,
+                reviewCount: rankingRow.qualifiedReviewCount
+            )
+        }
+
+        if rankingRow.kind == .viewer {
+            viewerRows.append(rankingRow)
+        }
+
+        previousRankingRow = rankingRow
+    }
+
+    guard
+        viewerRows.count == 1,
+        let viewerRow = viewerRows.first,
+        viewerRow.publicProfileId == window.viewer.publicProfileId,
+        viewerRow.rank == window.viewer.rank,
+        viewerRow.qualifiedReviewCount == window.viewer.qualifiedReviewCount
+    else {
+        throw ProgressLeaderboardValidationError.viewerRankingRowMismatch(windowKey: windowKey)
     }
 }

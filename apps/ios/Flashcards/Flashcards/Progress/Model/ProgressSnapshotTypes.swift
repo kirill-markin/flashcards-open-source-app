@@ -122,6 +122,7 @@ struct ProgressLeaderboardWindowState: Hashable, Identifiable, Sendable {
     let windowKey: LeaderboardWindowKey
     let snapshotGeneratedAt: String
     let participantCount: Int
+    /// Viewer rank after applying the local live qualified count to the frozen ranking.
     let viewerRank: Int
     /// Server snapshot count overlaid with the local live qualified count for the viewer.
     let viewerQualifiedReviewCount: Int

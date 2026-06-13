@@ -73,6 +73,10 @@ extension FlashcardsStore {
                 return
             }
 
+            guard self.shouldRefreshProgressLeaderboard(scopeKey: leaderboardScopeKey, now: now) else {
+                return
+            }
+
             guard let activeSession = self.activeProgressCloudSession(scopeKey: scopeKey) else {
                 return
             }

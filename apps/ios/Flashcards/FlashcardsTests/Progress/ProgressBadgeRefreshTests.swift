@@ -4,6 +4,140 @@ import XCTest
 
 final class ProgressBadgeRefreshTests: ProgressStoreTestCase {
     @MainActor
+    func testRefreshReviewLeaderboardBadgeReranksViewerFromCachedServerBaseWithoutNetworkRefresh() async throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
+
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-06-10T14:45:00.000Z"))
+        try self.addReviewedCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            reviewedAtClient: "2026-06-10T14:30:00.000Z"
+        )
+        try self.addReviewedCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            reviewedAtClient: "2026-06-10T14:31:00.000Z"
+        )
+
+        let timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let requestRange = try makeTestProgressRequestRange(
+            now: now,
+            timeZone: timeZone,
+            dayCount: 140
+        )
+        let serverSeries = try makeTestProgressSeries(
+            requestRange: requestRange,
+            reviewCountsByDate: [:],
+            generatedAt: "2026-06-10T14:00:00.000Z"
+        )
+        let serverSummary = try makeTestProgressSummary(
+            timeZone: requestRange.timeZone,
+            reviewDates: [],
+            generatedAt: "2026-06-10T14:00:00.000Z"
+        )
+        let context = try self.makeProgressStoreContext(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            installationId: cloudSettings.installationId,
+            serverSummary: serverSummary,
+            serverSeries: serverSeries,
+            loadProgressSummaryError: nil,
+            loadProgressSeriesError: nil,
+            cloudState: .linked
+        )
+        defer { context.tearDown() }
+
+        let linkedUserId = try XCTUnwrap(context.store.cloudSettings?.linkedUserId)
+        context.store.cloudRuntime.setActiveCloudSession(
+            linkedSession: CloudLinkedSession(
+                userId: linkedUserId,
+                workspaceId: workspace.workspaceId,
+                email: nil,
+                configurationMode: .official,
+                apiBaseUrl: context.apiBaseUrl,
+                authorization: .bearer("id-token-1")
+            )
+        )
+
+        let scopeKey = try context.store.prepareProgressScope(now: now)
+        let leaderboardScopeKey = context.store.currentProgressLeaderboardScopeKey(seriesScopeKey: scopeKey)
+        context.store.progressLeaderboardServerBaseCache = PersistedProgressLeaderboardServerBase(
+            scopeKey: leaderboardScopeKey,
+            serverBase: makeReadyProgressLeaderboardForTests(
+                defaultWindowKey: .last24Hours,
+                participantCount: 3,
+                viewer: ProgressLeaderboardViewer(
+                    publicProfileId: "profile-viewer",
+                    displayName: "You",
+                    rank: 3,
+                    qualifiedReviewCount: 1
+                ),
+                rows: [
+                    makeProgressLeaderboardParticipantRowForTests(
+                        kind: .top,
+                        publicProfileId: "profile-top-1",
+                        anonymousDisplayName: "Silver Bright Harbor",
+                        qualifiedReviewCount: 5,
+                        rank: 1
+                    ),
+                    makeProgressLeaderboardParticipantRowForTests(
+                        kind: .top,
+                        publicProfileId: "profile-peer-2",
+                        anonymousDisplayName: "Amber Calm Meadow",
+                        qualifiedReviewCount: 1,
+                        rank: 2
+                    ),
+                    makeProgressLeaderboardParticipantRowForTests(
+                        kind: .viewer,
+                        publicProfileId: "profile-viewer",
+                        anonymousDisplayName: "Indigo Quiet Field",
+                        qualifiedReviewCount: 1,
+                        rank: 3
+                    ),
+                ],
+                rankingRows: [
+                    makeProgressLeaderboardRankingRowForTests(
+                        kind: .participant,
+                        publicProfileId: "profile-top-1",
+                        anonymousDisplayName: "Silver Bright Harbor",
+                        qualifiedReviewCount: 5,
+                        rank: 1
+                    ),
+                    makeProgressLeaderboardRankingRowForTests(
+                        kind: .participant,
+                        publicProfileId: "profile-peer-2",
+                        anonymousDisplayName: "Amber Calm Meadow",
+                        qualifiedReviewCount: 1,
+                        rank: 2
+                    ),
+                    makeProgressLeaderboardRankingRowForTests(
+                        kind: .viewer,
+                        publicProfileId: "profile-viewer",
+                        anonymousDisplayName: "Indigo Quiet Field",
+                        qualifiedReviewCount: 1,
+                        rank: 3
+                    ),
+                ]
+            ),
+            storedAt: "2026-06-10T14:00:05.000Z"
+        )
+
+        await context.store.refreshReviewLeaderboardBadgeIfNeeded(now: now)
+
+        XCTAssertEqual(
+            ReviewLeaderboardBadgeState(
+                rank: 2,
+                windowKey: .last24Hours,
+                isInteractive: true
+            ),
+            context.store.reviewLeaderboardBadgeState
+        )
+        XCTAssertEqual(0, context.cloudSyncService.loadProgressLeaderboardCallCount)
+    }
+
+    @MainActor
     func testRefreshReviewProgressBadgeKeepsLocalTodayReviewWhenServerSummaryIsStale() async throws {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
