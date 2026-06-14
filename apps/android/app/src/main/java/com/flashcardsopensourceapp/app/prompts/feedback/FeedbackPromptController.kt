@@ -2,12 +2,19 @@ package com.flashcardsopensourceapp.app.prompts.feedback
 
 import android.content.Context
 import com.flashcardsopensourceapp.app.R
+import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
+import com.flashcardsopensourceapp.core.observability.AndroidFeedbackPromptAction
+import com.flashcardsopensourceapp.core.observability.AndroidFeedbackPromptTrigger
+import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryRequiredException
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackState
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackTrigger
 import com.flashcardsopensourceapp.data.local.model.feedback.cloudFeedbackMessageMaximumLength
 import com.flashcardsopensourceapp.data.local.repository.FeedbackRepository
 import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
+import java.io.IOException
 import java.time.ZoneId
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CancellationException
@@ -36,6 +43,9 @@ class FeedbackPromptController(
     private val reviewRepository: ReviewRepository,
     private val promptStore: FeedbackPromptStore,
     private val messageController: TransientMessageController,
+    private val observability: AppObservability,
+    private val appVersion: String,
+    private val versionCode: Int,
     private val feedbackPromptIdentityKeyProvider: () -> FeedbackPromptIdentityKey
 ) {
     private val applicationContext = context.applicationContext
@@ -325,6 +335,10 @@ class FeedbackPromptController(
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
+            captureAutomaticFeedbackPromptException(
+                error = error,
+                promptAction = AndroidFeedbackPromptAction.AUTOMATIC_FEEDBACK_STATE_LOAD_FAILED
+            )
             FeedbackStateFetchResult.Failed
         }
     }
@@ -335,8 +349,32 @@ class FeedbackPromptController(
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
+            captureAutomaticFeedbackPromptException(
+                error = error,
+                promptAction = AndroidFeedbackPromptAction.AUTOMATIC_PROMPT_SHOWN_RECORD_FAILED
+            )
             null
         }
+    }
+
+    private fun captureAutomaticFeedbackPromptException(
+        error: Exception,
+        promptAction: AndroidFeedbackPromptAction
+    ) {
+        if (shouldSkipAutomaticFeedbackPromptExceptionCapture(error = error)) {
+            return
+        }
+
+        observability.captureException(
+            event = AndroidExceptionIssueEvent.FeedbackPromptException(
+                throwable = error,
+                promptAction = promptAction,
+                trigger = AndroidFeedbackPromptTrigger.AUTOMATIC,
+                appVersion = appVersion,
+                clientVersion = appVersion,
+                versionCode = versionCode
+            )
+        )
     }
 
     private fun validateFeedbackMessage(message: String): String? {
@@ -352,6 +390,22 @@ class FeedbackPromptController(
 
         return null
     }
+}
+
+private fun shouldSkipAutomaticFeedbackPromptExceptionCapture(error: Throwable): Boolean {
+    var currentError: Throwable? = error
+    while (currentError != null) {
+        if (
+            currentError is CloudRemoteException ||
+            currentError is CloudCredentialRecoveryRequiredException ||
+            currentError is IOException
+        ) {
+            return true
+        }
+        currentError = currentError.cause
+    }
+
+    return false
 }
 
 private fun isAutomaticPromptContextBlocked(context: FeedbackPromptContext): Boolean {

@@ -317,6 +317,9 @@ class AppGraph(
         reviewRepository = reviewRepository,
         promptStore = feedbackPromptStore,
         messageController = appMessageBus,
+        observability = observability,
+        appVersion = appPackageInfo.versionName,
+        versionCode = appPackageInfo.longVersionCode.toInt(),
         feedbackPromptIdentityKeyProvider = {
             feedbackPromptIdentityKey(cloudSettings = cloudPreferencesStore.currentCloudSettings())
         }

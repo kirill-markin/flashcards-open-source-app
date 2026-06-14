@@ -9,6 +9,7 @@ enum class AndroidObservationFeature(
     AUTH(tagValue = "auth"),
     AI(tagValue = "ai"),
     PROGRESS(tagValue = "progress"),
+    FEEDBACK(tagValue = "feedback"),
     NOTIFICATIONS(tagValue = "notifications")
 }
 
@@ -38,6 +39,7 @@ enum class AndroidObservationAction(
     PROGRESS_REFRESH_EXCEPTION(tagValue = "progress_refresh_exception"),
     PROGRESS_REPOSITORY_WARNING(tagValue = "progress_repository_warning"),
     PROGRESS_REPOSITORY_EXCEPTION(tagValue = "progress_repository_exception"),
+    FEEDBACK_PROMPT_EXCEPTION(tagValue = "feedback_prompt_exception"),
     NOTIFICATION_SCHEDULING_BREADCRUMB(tagValue = "notification_scheduling_breadcrumb"),
     NOTIFICATION_SCHEDULING_WARNING(tagValue = "notification_scheduling_warning")
 }
@@ -63,6 +65,19 @@ enum class AndroidAiObservationName(
     RUNTIME_HANDOFF_APPLIED_TO_RUNNING_DRAFT(tagValue = "ai_runtime_handoff_applied_to_running_draft"),
     RUNTIME_HANDOFF_START_FRESH_CONVERSATION(tagValue = "ai_runtime_handoff_start_fresh_conversation"),
     RUNTIME_HANDOFF_APPLIED_TO_EXISTING_SESSION(tagValue = "ai_runtime_handoff_applied_to_existing_session")
+}
+
+enum class AndroidFeedbackPromptAction(
+    val tagValue: String
+) {
+    AUTOMATIC_FEEDBACK_STATE_LOAD_FAILED(tagValue = "automatic_feedback_state_load_failed"),
+    AUTOMATIC_PROMPT_SHOWN_RECORD_FAILED(tagValue = "automatic_prompt_shown_record_failed")
+}
+
+enum class AndroidFeedbackPromptTrigger(
+    val tagValue: String
+) {
+    AUTOMATIC(tagValue = "automatic")
 }
 
 data class AndroidObservationTags(
@@ -771,6 +786,28 @@ sealed interface AndroidExceptionIssueEvent : AndroidObservationEvent {
             requestId = requestId,
             statusCode = statusCode,
             code = code ?: name.tagValue,
+            appVersion = appVersion,
+            clientVersion = clientVersion,
+            versionCode = versionCode
+        )
+    }
+
+    data class FeedbackPromptException(
+        override val throwable: Throwable,
+        val promptAction: AndroidFeedbackPromptAction,
+        val trigger: AndroidFeedbackPromptTrigger,
+        val appVersion: String?,
+        val clientVersion: String?,
+        val versionCode: Int?
+    ) : AndroidExceptionIssueEvent {
+        override val feature: AndroidObservationFeature = AndroidObservationFeature.FEEDBACK
+        override val action: AndroidObservationAction = AndroidObservationAction.FEEDBACK_PROMPT_EXCEPTION
+        override val tags: AndroidObservationTags = AndroidObservationTags(
+            userId = null,
+            workspaceId = null,
+            requestId = null,
+            statusCode = null,
+            code = promptAction.tagValue,
             appVersion = appVersion,
             clientVersion = clientVersion,
             versionCode = versionCode
