@@ -93,6 +93,12 @@
   box-shadow: var(--shadow-soft);
 }
 
+.chat-main-content > .container > .panel {
+  border-color: transparent;
+  background: var(--bg);
+  box-shadow: none;
+}
+
 .panel-center {
   max-width: 520px;
   margin: 0 auto;

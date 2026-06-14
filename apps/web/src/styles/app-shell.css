@@ -12,9 +12,8 @@
   z-index: 50;
   flex-shrink: 0;
   padding: var(--shell-frame-gap) var(--header-inline-padding) 0;
-  background:
-    linear-gradient(180deg, rgba(5, 5, 5, 0.96), rgba(5, 5, 5, 0.72) 80%, transparent);
-  backdrop-filter: var(--blur);
+  background: var(--bg);
+  backdrop-filter: none;
 }
 
 .topbar-shell {
@@ -22,10 +21,10 @@
   position: relative;
   width: 100%;
   padding: 10px var(--topbar-shell-inline-padding);
-  border: 1px solid var(--panel-border);
+  border: 1px solid transparent;
   border-radius: var(--radius-lg);
-  background: var(--surface-glass);
-  box-shadow: var(--shadow-soft);
+  background: var(--bg);
+  box-shadow: none;
 }
 
 .topbar {

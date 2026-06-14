@@ -44,10 +44,10 @@
   max-height: 100%;
   position: relative;
   overflow: hidden;
-  border: 1px solid var(--panel-border);
+  border: 1px solid transparent;
   border-radius: var(--chat-sidebar-radius);
-  background: rgba(19, 19, 23, 0.96);
-  box-shadow: var(--shadow);
+  background: var(--bg);
+  box-shadow: none;
 }
 
 .chat-sidebar {
