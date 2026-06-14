@@ -37,7 +37,6 @@
 .topbar-brand-block {
   min-width: 0;
   display: grid;
-  gap: 4px;
 }
 
 .topbar-brand-row {
@@ -51,20 +50,16 @@
   display: inline-flex;
   align-items: center;
   width: fit-content;
+  max-width: 100%;
   color: var(--text);
-  font-size: 15px;
-  font-weight: 650;
-  letter-spacing: -0.02em;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1.08;
 }
 
 .topbar-brand:hover {
   color: var(--text);
-}
-
-.topbar-workspace {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 13px;
 }
 
 .topbar-sync-status {
