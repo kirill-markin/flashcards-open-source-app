@@ -38,7 +38,7 @@
 
 .review-queue-list {
   display: grid;
-  gap: 6px;
+  gap: 8px;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -48,10 +48,10 @@
 .review-queue-card {
   display: grid;
   gap: 6px;
-  padding: 10px;
+  padding: 14px;
   border: 0;
-  border-radius: var(--review-pane-inner-radius, var(--radius-md));
-  background: var(--surface-hover);
+  border-radius: var(--radius-md);
+  background: var(--surface);
   color: var(--text);
   text-align: start;
   cursor: pointer;

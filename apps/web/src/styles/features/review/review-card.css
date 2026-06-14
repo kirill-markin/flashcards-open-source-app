@@ -3,6 +3,7 @@
   --review-pane-padding: 12px;
   --review-pane-radius: var(--panel-inner-radius, var(--radius-lg));
   --review-pane-inner-radius: max(0px, calc(var(--review-pane-radius) - var(--review-pane-padding)));
+  --review-card-radius: var(--panel-inner-radius, var(--radius-lg));
   display: grid;
   gap: 10px;
   min-width: 0;
@@ -20,7 +21,7 @@
   flex-direction: column;
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-gutter: stable both-edges;
+  scrollbar-gutter: auto;
   scroll-padding-bottom: 132px;
   background: transparent;
 }
@@ -28,6 +29,7 @@
 .review-queue-panel {
   grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
+  background: transparent;
 }
 
 .review-pane-head {
@@ -101,16 +103,18 @@
 
 .review-card-stack {
   display: grid;
+  width: 100%;
   min-width: 0;
   gap: 10px;
 }
 
 .review-card-surface {
   min-height: 112px;
+  width: 100%;
   min-width: 0;
   padding: 12px;
   border: 0;
-  border-radius: var(--review-pane-inner-radius, var(--radius-sm));
+  border-radius: var(--review-card-radius);
   background: var(--surface);
   display: grid;
   grid-template-rows: auto minmax(64px, 1fr);
