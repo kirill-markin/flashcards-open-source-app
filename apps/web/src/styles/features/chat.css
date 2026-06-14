@@ -33,6 +33,9 @@
 
 .chat-sidebar,
 .chat-sidebar-fullscreen {
+  --chat-sidebar-padding: 12px;
+  --chat-sidebar-radius: var(--radius-xl);
+  --chat-sidebar-inner-radius: max(0px, calc(var(--chat-sidebar-radius) - var(--chat-sidebar-padding)));
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -40,7 +43,7 @@
   position: relative;
   overflow: hidden;
   border: 1px solid var(--panel-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--chat-sidebar-radius);
   background: rgba(19, 19, 23, 0.96);
   box-shadow: var(--shadow);
 }
@@ -160,7 +163,7 @@
 .chat-empty {
   padding: 12px;
   border: 1px solid var(--panel-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--chat-sidebar-inner-radius, var(--radius-md));
   background: rgba(255, 255, 255, 0.04);
   color: var(--text-secondary);
   font-size: 14px;
@@ -214,13 +217,16 @@
 }
 
 .chat-msg {
+  --chat-msg-padding-block: 11px;
+  --chat-msg-radius: var(--radius-md);
+  --chat-msg-inner-radius: max(0px, calc(var(--chat-msg-radius) - var(--chat-msg-padding-block)));
   font-size: 15px;
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
   max-width: min(720px, 88%);
-  padding: 11px 13px;
-  border-radius: var(--radius-md);
+  padding: var(--chat-msg-padding-block) 13px;
+  border-radius: var(--chat-msg-radius);
   border: 1px solid transparent;
 }
 
@@ -265,7 +271,7 @@
   display: block;
   overflow: hidden;
   border: 1px solid var(--panel-border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--chat-msg-inner-radius, var(--radius-sm));
   margin: 10px 0 6px;
   background: rgba(255, 255, 255, 0.03);
   font-size: 12px;
@@ -397,7 +403,7 @@
 
 .chat-composer-notice {
   border: 1px solid rgba(196, 75, 45, 0.32);
-  border-radius: var(--radius-md);
+  border-radius: var(--chat-sidebar-inner-radius, var(--radius-md));
   padding: 10px 12px;
   background: rgba(196, 75, 45, 0.08);
   color: var(--text-secondary);
@@ -407,7 +413,7 @@
 
 .chat-loading-composer {
   min-height: 110px;
-  border-radius: var(--radius-md);
+  border-radius: var(--chat-sidebar-inner-radius, var(--radius-md));
 }
 
 .chat-loading-controls {
@@ -469,7 +475,7 @@
   font-size: 16px;
   padding: 11px 13px;
   border: 1px solid var(--panel-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--chat-sidebar-inner-radius, var(--radius-md));
   background: rgba(0, 0, 0, 0.28);
   color: var(--text);
   min-height: 84px;
@@ -593,7 +599,7 @@
   min-height: 84px;
   padding: 14px 16px;
   border: 1px solid rgba(196, 75, 45, 0.32);
-  border-radius: var(--radius-md);
+  border-radius: var(--chat-sidebar-inner-radius, var(--radius-md));
   background:
     radial-gradient(circle at top, rgba(196, 75, 45, 0.16), transparent 48%),
     rgba(0, 0, 0, 0.28);
@@ -743,11 +749,13 @@
 }
 
 .chat-card-part {
+  --chat-card-part-padding: 12px;
+  --chat-card-part-inner-radius: max(0px, calc(var(--chat-msg-inner-radius, var(--radius-sm)) - var(--chat-card-part-padding)));
   display: block;
   margin: 10px 0 6px;
   overflow: hidden;
   border: 1px solid var(--panel-border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--chat-msg-inner-radius, var(--radius-sm));
   background: rgba(255, 255, 255, 0.04);
 }
 
@@ -786,7 +794,7 @@
 .chat-card-part-body {
   display: grid;
   gap: 10px;
-  padding: 0 12px 12px;
+  padding: 0 var(--chat-card-part-padding) var(--chat-card-part-padding);
 }
 
 .chat-card-part-meta {
@@ -800,7 +808,7 @@
 .chat-card-part-xml {
   margin: 0;
   padding: 12px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--chat-card-part-inner-radius, var(--radius-sm));
   background: rgba(255, 255, 255, 0.03);
   color: var(--text-secondary);
   font-size: 12px;
@@ -810,7 +818,7 @@
 
 .chat-card-part-context {
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: var(--radius-sm);
+  border-radius: var(--chat-card-part-inner-radius, var(--radius-sm));
   background: rgba(255, 255, 255, 0.02);
   overflow: hidden;
 }

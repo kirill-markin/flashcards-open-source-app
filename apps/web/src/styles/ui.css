@@ -81,11 +81,14 @@
 }
 
 .panel {
+  --panel-padding: 16px;
+  --panel-radius: var(--radius-xl);
+  --panel-inner-radius: max(0px, calc(var(--panel-radius) - var(--panel-padding)));
   display: grid;
   gap: 16px;
-  padding: 16px;
+  padding: var(--panel-padding);
   border: 1px solid var(--panel-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--panel-radius);
   background: var(--panel);
   box-shadow: var(--shadow-soft);
 }
@@ -96,9 +99,13 @@
 }
 
 .content-card {
-  padding: 12px 14px;
+  --content-card-padding-block: 12px;
+  --content-card-padding-inline: 14px;
+  --content-card-radius: var(--panel-inner-radius, var(--radius-md));
+  --content-card-inner-radius: max(0px, calc(var(--content-card-radius) - var(--content-card-padding-block)));
+  padding: var(--content-card-padding-block) var(--content-card-padding-inline);
   border: 1px solid var(--panel-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--content-card-radius);
   background: var(--surface-elevated);
 }
 
@@ -373,12 +380,13 @@
 
 @media (max-width: 768px) {
   .panel {
-    padding: 14px;
-    border-radius: var(--radius-md);
+    --panel-padding: 14px;
   }
 
   .content-card,
   .content-card-section {
+    --content-card-padding-block: 12px;
+    --content-card-padding-inline: 12px;
     padding: 12px;
   }
 

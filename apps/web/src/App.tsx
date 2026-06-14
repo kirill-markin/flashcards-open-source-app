@@ -69,6 +69,19 @@ import { ReviewScreen } from "./screens/review/ReviewScreen";
 
 const SentryRoutes = wrapRoutesComponent(RouterRoutes);
 
+type PrimaryNavigationItem = {
+  readonly route: string;
+  readonly labelKey: TranslationKey;
+};
+
+const primaryNavigationItems: ReadonlyArray<PrimaryNavigationItem> = [
+  { route: reviewRoute, labelKey: "navigation.review" },
+  { route: progressRoute, labelKey: "navigation.progress" },
+  { route: chatRoute, labelKey: "navigation.aiChat" },
+  { route: cardsRoute, labelKey: "navigation.cards" },
+  { route: settingsHubRoute, labelKey: "navigation.settings" },
+];
+
 const ChatPanel = lazy(async () => import("./chat/ChatPanel").then((module) => ({ default: module.ChatPanel })));
 const AccessPermissionDetailScreen = lazy(async () => import("./screens/settings/access/AccessPermissionDetailScreen").then((module) => ({
   default: module.AccessPermissionDetailScreen,
@@ -297,6 +310,7 @@ function TestModeRouteGuard(props: Readonly<{ children: ReactElement }>): ReactE
 }
 
 export function AppShell(): ReactElement {
+  const location = useLocation();
   const { locale, t, formatDateTime } = useI18n();
   const {
     sessionLoadState,
@@ -317,6 +331,7 @@ export function AppShell(): ReactElement {
   const [isAccountDeletionPendingState, setIsAccountDeletionPendingState] = useState<boolean>(isAccountDeletionPending);
   const [accountDeletionErrorMessage, setAccountDeletionErrorMessage] = useState<string>("");
   const [isAccountDeletionSubmitting, setIsAccountDeletionSubmitting] = useState<boolean>(false);
+  const [isMobileNavigationOpen, setIsMobileNavigationOpen] = useState<boolean>(false);
   const sessionRestoringMessage = sessionVerificationState === "unverified" ? t("loading.restoringSession") : "";
   const isWorkspaceLocked = isWorkspaceManagementLocked(isSessionVerified, cloudSettings);
   const workspaceManagementLockedMessage = t("workspaceManagement.lockedMessage");
@@ -375,6 +390,28 @@ export function AppShell(): ReactElement {
   }), []);
 
   useEffect(() => {
+    setIsMobileNavigationOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (isMobileNavigationOpen === false) {
+      return undefined;
+    }
+
+    function closeMobileNavigationOnEscape(event: KeyboardEvent): void {
+      if (event.key === "Escape") {
+        setIsMobileNavigationOpen(false);
+      }
+    }
+
+    window.addEventListener("keydown", closeMobileNavigationOnEscape);
+
+    return () => {
+      window.removeEventListener("keydown", closeMobileNavigationOnEscape);
+    };
+  }, [isMobileNavigationOpen]);
+
+  useEffect(() => {
     if (
       isSessionVerified
       && isAccountDeletionPendingState
@@ -384,6 +421,10 @@ export function AppShell(): ReactElement {
       void completeAccountDeletion();
     }
   }, [accountDeletionErrorMessage, completeAccountDeletion, isAccountDeletionPendingState, isAccountDeletionSubmitting, isSessionVerified]);
+
+  function toggleMobileNavigation(): void {
+    setIsMobileNavigationOpen((currentValue: boolean): boolean => !currentValue);
+  }
 
   if (isAccountDeletionPendingState) {
     return (
@@ -499,23 +540,25 @@ export function AppShell(): ReactElement {
               </p>
             </div>
             <nav className="nav" aria-label={t("shell.primaryNavigation")}>
-              <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={reviewRoute}>
-                {t("navigation.review")}
-              </NavLink>
-              <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={progressRoute}>
-                {t("navigation.progress")}
-              </NavLink>
-              <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={chatRoute}>
-                {t("navigation.aiChat")}
-              </NavLink>
-              <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={cardsRoute}>
-                {t("navigation.cards")}
-              </NavLink>
-              <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={settingsHubRoute}>
-                {t("navigation.settings")}
-              </NavLink>
+              {primaryNavigationItems.map((item) => (
+                <NavLink key={item.route} className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={item.route}>
+                  {t(item.labelKey)}
+                </NavLink>
+              ))}
             </nav>
             <div className="topbar-actions">
+              <button
+                className="mobile-nav-toggle"
+                type="button"
+                aria-label={t("shell.primaryNavigation")}
+                aria-expanded={isMobileNavigationOpen}
+                aria-controls="mobile-primary-navigation"
+                onClick={toggleMobileNavigation}
+              >
+                <span className="mobile-nav-toggle-line" aria-hidden="true" />
+                <span className="mobile-nav-toggle-line" aria-hidden="true" />
+                <span className="mobile-nav-toggle-line" aria-hidden="true" />
+              </button>
               <AccountMenu
                 workspaces={availableWorkspaces}
                 currentWorkspaceId={activeWorkspace?.workspaceId ?? ""}
@@ -530,6 +573,20 @@ export function AppShell(): ReactElement {
               />
             </div>
           </div>
+          {isMobileNavigationOpen ? (
+            <nav id="mobile-primary-navigation" className="mobile-nav-menu" aria-label={t("shell.primaryNavigation")}>
+              {primaryNavigationItems.map((item) => (
+                <NavLink
+                  key={item.route}
+                  className={({ isActive }) => `mobile-nav-link${isActive ? " mobile-nav-link-active" : ""}`}
+                  to={item.route}
+                  onClick={() => setIsMobileNavigationOpen(false)}
+                >
+                  {t(item.labelKey)}
+                </NavLink>
+              ))}
+            </nav>
+          ) : null}
         </header>
       </div>
       {errorMessage !== "" ? (
