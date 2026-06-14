@@ -49,9 +49,9 @@
   display: grid;
   gap: 6px;
   padding: 10px;
-  border: 1px solid var(--panel-border);
+  border: 0;
   border-radius: var(--review-pane-inner-radius, var(--radius-md));
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-hover);
   color: var(--text);
   text-align: start;
   cursor: pointer;
@@ -62,12 +62,10 @@
 }
 
 .review-queue-card:hover {
-  border-color: var(--panel-border-strong);
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--surface-pressed);
 }
 
 .review-queue-card-active {
-  border-color: rgba(196, 75, 45, 0.28);
   background: var(--accent-soft);
 }
 

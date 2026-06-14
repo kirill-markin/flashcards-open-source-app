@@ -1,9 +1,11 @@
 :root {
   color-scheme: dark;
-  --bg: #050505;
-  --bg-elevated: #0a0a0c;
-  --surface: linear-gradient(180deg, rgba(24, 24, 30, 0.96), rgba(17, 17, 22, 0.98));
-  --surface-elevated: linear-gradient(180deg, rgba(30, 30, 36, 0.96), rgba(18, 18, 22, 0.98));
+  --bg: #000000;
+  --bg-elevated: #000000;
+  --surface: #1c1c1e;
+  --surface-elevated: #1c1c1e;
+  --surface-hover: #242426;
+  --surface-pressed: #2c2c2e;
   --surface-glass: rgba(26, 26, 30, 0.78);
   --surface-muted: rgba(255, 255, 255, 0.04);
   --panel: var(--surface);

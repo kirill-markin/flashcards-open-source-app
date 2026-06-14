@@ -1,6 +1,10 @@
 .review-screen-panel {
   --review-screen-panel-height: var(--chat-shell-pane-height, calc(100dvh - 128px));
   position: relative;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   container-type: inline-size;
   container-name: review-screen;
   grid-template-rows: auto minmax(0, 1fr);

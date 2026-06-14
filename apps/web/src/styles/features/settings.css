@@ -6,6 +6,10 @@
 .settings-panel {
   max-width: 980px;
   align-content: start;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .settings-summary-grid {
@@ -123,9 +127,9 @@
 .settings-nav-card-button {
   width: 100%;
   padding: 18px 20px;
-  border: 1px solid var(--panel-border);
+  border: 0;
   border-radius: var(--panel-inner-radius, var(--radius-md));
-  background: rgba(20, 20, 24, 0.92);
+  background: var(--surface);
   color: inherit;
   cursor: pointer;
   font: inherit;
@@ -140,14 +144,12 @@
 
 .settings-nav-card-button:disabled:hover {
   transform: none;
-  border-color: var(--panel-border);
-  background: rgba(20, 20, 24, 0.92);
+  background: var(--surface);
 }
 
 .settings-nav-card:hover {
   transform: translateY(-1px);
-  border-color: var(--panel-border-strong);
-  background: linear-gradient(180deg, rgba(34, 34, 40, 0.98), rgba(22, 22, 28, 0.98));
+  background: var(--surface-hover);
 }
 
 .settings-nav-card-muted {
@@ -225,9 +227,9 @@
   justify-content: space-between;
   width: 100%;
   padding: 16px 18px;
-  border: 1px solid var(--panel-border);
+  border: 0;
   border-radius: var(--panel-inner-radius, var(--radius-md));
-  background: rgba(20, 20, 24, 0.92);
+  background: var(--surface);
   color: inherit;
   cursor: pointer;
   font: inherit;
@@ -240,8 +242,7 @@
 
 .settings-test-animation-row:hover {
   transform: translateY(-1px);
-  border-color: var(--panel-border-strong);
-  background: linear-gradient(180deg, rgba(34, 34, 40, 0.98), rgba(22, 22, 28, 0.98));
+  background: var(--surface-hover);
 }
 
 .settings-test-animation-name {
@@ -264,7 +265,7 @@
 .settings-danger-card {
   display: grid;
   gap: 16px;
-  border-color: rgba(196, 75, 45, 0.45);
+  background: rgba(196, 75, 45, 0.12);
 }
 
 .settings-danger-btn {
@@ -339,9 +340,9 @@
   align-items: center;
   min-height: 48px;
   padding: 12px 14px;
-  border: 1px solid var(--panel-border);
+  border: 0;
   border-radius: var(--panel-inner-radius, var(--radius-md));
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface);
   color: var(--text);
   cursor: pointer;
   text-align: start;
@@ -349,8 +350,7 @@
 }
 
 .settings-workspace-choice:hover:not(:disabled) {
-  border-color: var(--panel-border-strong);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-hover);
 }
 
 .settings-workspace-choice:disabled {

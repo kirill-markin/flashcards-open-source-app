@@ -111,13 +111,14 @@
   --content-card-radius: var(--panel-inner-radius, var(--radius-md));
   --content-card-inner-radius: max(0px, calc(var(--content-card-radius) - var(--content-card-padding-block)));
   padding: var(--content-card-padding-block) var(--content-card-padding-inline);
-  border: 1px solid var(--panel-border);
+  border: 0;
   border-radius: var(--content-card-radius);
-  background: var(--surface-elevated);
+  background: var(--surface);
+  box-shadow: none;
 }
 
 .content-card-muted {
-  background: linear-gradient(180deg, rgba(30, 30, 36, 0.64), rgba(22, 22, 26, 0.92));
+  background: var(--surface);
 }
 
 .content-card-section {
@@ -272,25 +273,25 @@
 }
 
 .txn-row td {
-  background: var(--surface-elevated);
-  border-top: 1px solid var(--panel-border);
-  border-bottom: 1px solid var(--panel-border);
+  background: var(--surface);
+  border-top: 0;
+  border-bottom: 0;
 }
 
 .txn-row td:first-child {
-  border-inline-start: 1px solid var(--panel-border);
+  border-inline-start: 0;
   border-start-start-radius: var(--radius-md);
   border-end-start-radius: var(--radius-md);
 }
 
 .txn-row td:last-child {
-  border-inline-end: 1px solid var(--panel-border);
+  border-inline-end: 0;
   border-start-end-radius: var(--radius-md);
   border-end-end-radius: var(--radius-md);
 }
 
 .txn-row:hover td {
-  background: linear-gradient(180deg, rgba(34, 34, 40, 0.98), rgba(22, 22, 28, 0.98));
+  background: var(--surface-hover);
 }
 
 .txn-cell {

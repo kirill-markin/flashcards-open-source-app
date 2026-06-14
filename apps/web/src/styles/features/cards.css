@@ -5,6 +5,10 @@
   height: 100%;
   min-height: 0;
   max-height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   overflow: hidden;
 }
 
@@ -277,7 +281,7 @@
   display: block;
   min-height: 14px;
   border-radius: var(--radius-pill);
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.05));
+  background: var(--surface-hover);
 }
 
 .cards-loading-line-wide {
@@ -435,20 +439,18 @@
 
 .deck-card {
   padding: 18px;
-  border: 1px solid var(--panel-border);
+  border: 0;
   border-radius: var(--panel-inner-radius, var(--radius-md));
-  background: var(--surface-elevated);
-  box-shadow: var(--shadow-soft);
+  background: var(--surface);
+  box-shadow: none;
   transition:
-    border-color 140ms ease,
     transform 140ms ease,
     background 140ms ease;
 }
 
 .deck-card-link:hover .deck-card {
-  border-color: var(--panel-border-strong);
   transform: translateY(-1px);
-  background: linear-gradient(180deg, rgba(34, 34, 40, 0.98), rgba(22, 22, 28, 0.98));
+  background: var(--surface-hover);
 }
 
 .deck-card-head {
