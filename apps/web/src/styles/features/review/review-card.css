@@ -17,7 +17,6 @@
   flex-direction: column;
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-gutter: stable;
   scroll-padding-bottom: 132px;
 }
 

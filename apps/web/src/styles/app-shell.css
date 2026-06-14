@@ -166,7 +166,6 @@
   box-shadow: var(--shadow);
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-gutter: stable;
   z-index: 200;
 }
 
