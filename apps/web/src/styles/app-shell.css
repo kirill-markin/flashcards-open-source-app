@@ -282,8 +282,10 @@
 .container {
   width: 100%;
   min-width: 0;
-  min-height: 100%;
+  height: var(--chat-shell-content-height, 100%);
+  min-height: 0;
   padding: var(--chat-shell-pane-top, 12px) 0 var(--chat-shell-pane-bottom, 12px);
+  overflow: hidden;
 }
 
 .chat-layout-shell-sidebar-open .chat-main-content > .container {
@@ -293,6 +295,13 @@
 
 .chat-layout-shell-sidebar-open .chat-main-content > .container > .panel {
   min-height: 100%;
+}
+
+.chat-main-content > .container > .panel {
+  min-height: 0;
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .page-state {
