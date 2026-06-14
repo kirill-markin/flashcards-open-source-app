@@ -51,7 +51,7 @@
   gap: 6px;
   padding: 10px;
   border: 1px solid var(--panel-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--review-pane-inner-radius, var(--radius-md));
   background: rgba(255, 255, 255, 0.04);
   color: var(--text);
   text-align: start;

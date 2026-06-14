@@ -102,7 +102,7 @@
 
   .review-pane,
   .review-queue-panel {
-    padding: 10px;
+    --review-pane-padding: 10px;
   }
 
   .review-pane-head-actions {

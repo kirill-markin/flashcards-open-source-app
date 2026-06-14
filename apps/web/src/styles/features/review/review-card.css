@@ -1,12 +1,15 @@
 .review-pane,
 .review-queue-panel {
+  --review-pane-padding: 12px;
+  --review-pane-radius: var(--panel-inner-radius, var(--radius-lg));
+  --review-pane-inner-radius: max(0px, calc(var(--review-pane-radius) - var(--review-pane-padding)));
   display: grid;
   gap: 10px;
   min-width: 0;
   min-height: 0;
-  padding: 12px;
+  padding: var(--review-pane-padding);
   border: 1px solid var(--panel-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--review-pane-radius);
   background: var(--surface-elevated);
   box-shadow: var(--shadow-soft);
 }
@@ -106,7 +109,7 @@
   min-width: 0;
   padding: 12px;
   border: 1px solid var(--panel-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--review-pane-inner-radius, var(--radius-sm));
   background:
     radial-gradient(circle at top, rgba(255, 255, 255, 0.06), transparent 44%),
     linear-gradient(180deg, rgba(33, 33, 39, 0.96), rgba(23, 23, 28, 0.98));

@@ -39,6 +39,8 @@
 }
 
 .cards-filter-popover {
+  --cards-filter-popover-padding: 16px;
+  --cards-filter-popover-radius: var(--radius-xl);
   position: absolute;
   top: calc(100% + 10px);
   inset-inline-end: 0;
@@ -47,9 +49,9 @@
   gap: 16px;
   width: min(420px, calc(100vw - 32px));
   max-height: min(520px, calc(100dvh - 32px));
-  padding: 16px;
+  padding: var(--cards-filter-popover-padding);
   border: 1px solid var(--panel-border-strong);
-  border-radius: var(--radius-lg);
+  border-radius: var(--cards-filter-popover-radius);
   background: rgba(20, 20, 24, 0.98);
   box-shadow: var(--shadow);
   overflow-y: auto;
@@ -86,7 +88,7 @@
   min-height: 42px;
   padding: 0 14px;
   border: 1px solid var(--panel-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--panel-inner-radius, var(--radius-md));
   background: rgba(255, 255, 255, 0.04);
   color: var(--text);
   font: inherit;
@@ -352,6 +354,9 @@
 }
 
 .cell-select-overlay {
+  --cell-select-overlay-padding: 6px;
+  --cell-select-overlay-radius: var(--radius-md);
+  --cell-select-overlay-inner-radius: max(0px, calc(var(--cell-select-overlay-radius) - var(--cell-select-overlay-padding)));
   position: fixed;
   z-index: 200;
   max-height: 320px;
@@ -359,7 +364,7 @@
   flex-direction: column;
   background: rgba(20, 20, 24, 0.98);
   border: 1px solid var(--panel-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--cell-select-overlay-radius);
   box-shadow: var(--shadow);
   box-sizing: border-box;
   font-size: 14px;
@@ -391,7 +396,7 @@
   min-height: 38px;
   padding: 8px 10px;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--cell-select-overlay-inner-radius);
   background: transparent;
   color: var(--text);
   font-family: inherit;
@@ -424,7 +429,7 @@
 .deck-card {
   padding: 18px;
   border: 1px solid var(--panel-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--panel-inner-radius, var(--radius-md));
   background: var(--surface-elevated);
   box-shadow: var(--shadow-soft);
   transition:

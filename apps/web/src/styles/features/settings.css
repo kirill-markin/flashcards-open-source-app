@@ -124,7 +124,7 @@
   width: 100%;
   padding: 18px 20px;
   border: 1px solid var(--panel-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--panel-inner-radius, var(--radius-md));
   background: rgba(20, 20, 24, 0.92);
   color: inherit;
   cursor: pointer;
@@ -169,7 +169,7 @@
   margin: 0 0 4px;
   padding: 13px 16px;
   border: 1px solid rgba(196, 75, 45, 0.35);
-  border-radius: var(--radius-md);
+  border-radius: var(--panel-inner-radius, var(--radius-md));
   background: rgba(196, 75, 45, 0.12);
   color: #ffd7cb;
 }
@@ -227,7 +227,7 @@
   width: 100%;
   padding: 16px 18px;
   border: 1px solid var(--panel-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--panel-inner-radius, var(--radius-md));
   background: rgba(20, 20, 24, 0.92);
   color: inherit;
   cursor: pointer;
@@ -341,7 +341,7 @@
   min-height: 48px;
   padding: 12px 14px;
   border: 1px solid var(--panel-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--panel-inner-radius, var(--radius-md));
   background: rgba(255, 255, 255, 0.03);
   color: var(--text);
   cursor: pointer;

@@ -14,7 +14,7 @@
 .card-meta-panel {
   padding: 18px;
   border: 1px solid var(--panel-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--panel-inner-radius, var(--radius-md));
   background: var(--surface-elevated);
   box-shadow: var(--shadow-soft);
 }

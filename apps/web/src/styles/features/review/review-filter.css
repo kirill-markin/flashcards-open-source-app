@@ -47,6 +47,9 @@
 }
 
 .review-filter-menu {
+  --review-filter-menu-padding: 10px;
+  --review-filter-menu-radius: var(--radius-lg);
+  --review-filter-menu-inner-radius: max(0px, calc(var(--review-filter-menu-radius) - var(--review-filter-menu-padding)));
   position: absolute;
   top: calc(100% + 10px);
   inset-inline-end: 0;
@@ -56,9 +59,9 @@
   min-width: 100%;
   width: min(320px, calc(100vw - 32px));
   max-height: min(420px, calc(100dvh - 32px));
-  padding: 10px;
+  padding: var(--review-filter-menu-padding);
   border: 1px solid var(--panel-border-strong);
-  border-radius: var(--radius-lg);
+  border-radius: var(--review-filter-menu-radius);
   background: rgba(20, 20, 24, 0.98);
   box-shadow: var(--shadow);
   overflow-y: auto;
@@ -85,7 +88,7 @@
   min-height: 40px;
   padding: 0 12px;
   border: 1px solid var(--panel-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--review-filter-menu-inner-radius);
   background: rgba(255, 255, 255, 0.04);
   color: var(--text);
   font: inherit;
@@ -106,7 +109,7 @@
   min-height: 44px;
   padding: 10px 14px;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--review-filter-menu-inner-radius);
   background: transparent;
   color: var(--text-secondary);
   font-size: 14px;
@@ -167,7 +170,7 @@
 .review-filter-menu-empty {
   min-height: 40px;
   padding: 10px 14px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--review-filter-menu-inner-radius);
   color: var(--text-tertiary);
   font-size: 14px;
 }

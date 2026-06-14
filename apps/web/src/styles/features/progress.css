@@ -14,6 +14,8 @@
 }
 
 .progress-section {
+  --content-card-padding-block: 14px;
+  --content-card-padding-inline: 14px;
   display: grid;
   gap: 14px;
   min-width: 0;
@@ -89,7 +91,7 @@
   aspect-ratio: 1;
   padding: 7px 4px;
   border: 1px solid var(--panel-border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--content-card-inner-radius, var(--radius-sm));
   background: rgba(255, 255, 255, 0.03);
 }
 
@@ -394,7 +396,7 @@ svg.progress-review-schedule-donut {
 
 .progress-review-schedule-row {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
+  border-radius: var(--content-card-inner-radius, 8px);
   transition: background-color 120ms ease, opacity 120ms ease;
 }
 
@@ -422,7 +424,7 @@ svg.progress-review-schedule-donut {
   width: 100%;
   box-sizing: border-box;
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: var(--content-card-inner-radius, 8px);
 }
 
 .progress-review-schedule-row-button:focus-visible {
@@ -499,7 +501,7 @@ svg.progress-review-schedule-donut {
   margin: 0;
   padding: 10px 12px;
   border: 1px solid var(--panel-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--content-card-inner-radius, var(--radius-md));
   background: rgba(255, 255, 255, 0.04);
   color: var(--text-secondary);
   font-size: 13px;
@@ -554,7 +556,7 @@ svg.progress-review-schedule-donut {
   align-items: center;
   min-height: 40px;
   padding: 8px 10px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--content-card-inner-radius, var(--radius-sm));
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
