@@ -20,10 +20,12 @@
 }
 
 .chat-main-content {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-width: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .chat-layout-shell-sidebar-closed .chat-main-content,

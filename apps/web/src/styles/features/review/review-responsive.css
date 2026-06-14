@@ -17,42 +17,8 @@
 }
 
 @media (max-width: 768px) {
-  .review-screen-panel {
-    height: auto;
-    min-height: 0;
-    max-height: none;
-    overflow: visible;
-  }
-
-  .chat-layout-shell-sidebar-open .review-screen-panel {
-    height: auto;
-    min-height: 0;
-    max-height: none;
-  }
-
   .review-layout {
     grid-template-columns: 1fr;
-  }
-
-  .review-pane {
-    overflow: visible;
-    scrollbar-gutter: auto;
-    scroll-padding-bottom: 0;
-  }
-
-  .review-queue-panel {
-    overflow: visible;
-  }
-
-  .review-queue-head {
-    position: static;
-    padding-bottom: 0;
-  }
-
-  .review-queue-list {
-    overflow: visible;
-    scrollbar-gutter: auto;
-    padding-inline-end: 0;
   }
 
   .review-editor-overlay {
