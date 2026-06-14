@@ -16,11 +16,14 @@ enum IOSObservationFeature: String, Sendable {
     case cards = "cards"
     case cloudAuth = "cloud_auth"
     case cloudSync = "cloud_sync"
+    case feedback = "feedback"
     case aiChat = "ai_chat"
     case aiLive = "ai_live"
     case notifications = "notifications"
     case localData = "local_data"
+    case prompts = "prompts"
     case progress = "progress"
+    case storeReview = "store_review"
 }
 
 struct IOSObservationScope: Sendable, Hashable {
@@ -64,6 +67,7 @@ enum IOSExceptionEvent {
     case aiLiveStreamFailed(error: Error, scope: IOSObservationScope, details: AILiveStreamFailureDetails)
     case notificationSchedulingFailed(error: Error, scope: IOSObservationScope, details: NotificationFailureDetails)
     case localDataRepairFailed(error: Error, scope: IOSObservationScope, details: LocalDataRepairFailureDetails)
+    case silentFailure(error: Error, scope: IOSObservationScope, details: SilentFailureDetails)
 }
 
 struct CloudFlowObservation: Sendable, Hashable {
@@ -370,5 +374,14 @@ struct LocalDataRepairFailureDetails: Sendable, Hashable {
     let workspaceId: String?
     let entityId: String?
     let reason: String
+    let messageSummary: String?
+}
+
+struct SilentFailureDetails: Sendable, Hashable {
+    let action: String
+    let stage: String?
+    let statusCode: Int?
+    let backendCode: String?
+    let requestId: String?
     let messageSummary: String?
 }

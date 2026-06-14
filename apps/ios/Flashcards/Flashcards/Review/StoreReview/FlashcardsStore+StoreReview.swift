@@ -6,6 +6,25 @@ extension FlashcardsStore {
         do {
             try self.prepareStoreReviewRequestAttemptIfEligible(now: now)
         } catch {
+            FlashcardsObservability.captureSilentFailure(
+                error: error,
+                scope: IOSObservationScope(
+                    feature: .storeReview,
+                    userId: self.cloudSettings?.linkedUserId,
+                    workspaceId: self.workspace?.workspaceId,
+                    requestId: nil,
+                    clientRequestId: nil,
+                    sessionId: nil,
+                    runId: nil,
+                    cloudState: self.cloudSettings?.cloudState,
+                    configurationMode: try? self.currentCloudServiceConfiguration().mode
+                ),
+                action: "store_review_request_prepare_after_successful_review",
+                stage: "eligibility",
+                statusCode: nil,
+                backendCode: nil,
+                requestId: nil
+            )
             assertionFailure("Store review eligibility failed: \(Flashcards.errorMessage(error: error))")
         }
     }

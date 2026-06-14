@@ -132,6 +132,14 @@ func loadGuestSignInAfterReviewPromptState(
     do {
         return try decoder.decode(GuestSignInAfterReviewPromptState.self, from: data)
     } catch {
+        captureGuestSignInAfterReviewPromptSilentFailure(
+            error: error,
+            action: "guest_sign_in_after_review_prompt_state_load",
+            stage: "decode",
+            cloudSettings: nil,
+            workspaceId: nil,
+            configurationMode: nil
+        )
         userDefaults.removeObject(forKey: guestSignInAfterReviewPromptUserDefaultsKey)
         return makeDefaultGuestSignInAfterReviewPromptState()
     }

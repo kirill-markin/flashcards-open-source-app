@@ -193,6 +193,14 @@ func loadStrictRemindersSettings(
     do {
         return try decoder.decode(StrictRemindersSettings.self, from: data)
     } catch {
+        captureStrictRemindersSilentFailure(
+            error: error,
+            action: "strict_reminders_settings_load",
+            stage: "decode",
+            cloudSettings: nil,
+            workspaceId: nil,
+            configurationMode: nil
+        )
         userDefaults.removeObject(forKey: strictRemindersSettingsUserDefaultsKey)
         return makeDefaultStrictRemindersSettings()
     }
@@ -209,9 +217,46 @@ func loadScheduledStrictReminders(
     do {
         return try decoder.decode([ScheduledStrictReminderPayload].self, from: data)
     } catch {
+        captureStrictRemindersSilentFailure(
+            error: error,
+            action: "strict_reminders_scheduled_payloads_load",
+            stage: "decode",
+            cloudSettings: nil,
+            workspaceId: nil,
+            configurationMode: nil
+        )
         userDefaults.removeObject(forKey: strictReminderScheduledPayloadsUserDefaultsKey)
         return []
     }
+}
+
+func captureStrictRemindersSilentFailure(
+    error: Error,
+    action: String,
+    stage: String,
+    cloudSettings: CloudSettings?,
+    workspaceId: String?,
+    configurationMode: CloudServiceConfigurationMode?
+) {
+    FlashcardsObservability.captureSilentFailure(
+        error: error,
+        scope: IOSObservationScope(
+            feature: .notifications,
+            userId: cloudSettings?.linkedUserId,
+            workspaceId: workspaceId,
+            requestId: nil,
+            clientRequestId: nil,
+            sessionId: nil,
+            runId: nil,
+            cloudState: cloudSettings?.cloudState,
+            configurationMode: configurationMode
+        ),
+        action: action,
+        stage: stage,
+        statusCode: nil,
+        backendCode: nil,
+        requestId: nil
+    )
 }
 
 func strictReminderDayStartMillis(date: Date) -> Int64 {

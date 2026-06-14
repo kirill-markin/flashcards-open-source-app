@@ -38,6 +38,7 @@ enum AppConfigurationError: LocalizedError, Equatable {
 let customCloudServerOverrideUserDefaultsKey: String = "custom-cloud-server-override"
 let pendingCloudServerBootstrapUserDefaultsKey: String = "pending-cloud-server-bootstrap"
 let cloudCredentialRecoveryStateUserDefaultsKey: String = "cloud-credential-recovery-state"
+let cloudCredentialRecoveryStateSilentFailureDigestUserDefaultsKey: String = "cloud-credential-recovery-state-silent-failure-digest"
 let guestLocalRecoveryWorkspaceCheckpointUserDefaultsKey: String = "guest-local-recovery-workspace-checkpoint"
 let flashcardsRepositoryUrl: String = "https://github.com/kirill-markin/flashcards-open-source-app"
 
@@ -157,8 +158,43 @@ func loadCloudCredentialRecoveryState(
     do {
         return try decoder.decode(CloudCredentialRecoveryState.self, from: storedData)
     } catch {
+        let payloadDigest = stableCloudCredentialRecoveryStatePayloadDigest(data: storedData)
+        if userDefaults.string(forKey: cloudCredentialRecoveryStateSilentFailureDigestUserDefaultsKey) != payloadDigest {
+            captureCloudCredentialRecoveryStateSilentFailure(
+                error: error,
+                action: "cloud_credential_recovery_state_load",
+                stage: "decode"
+            )
+            userDefaults.set(payloadDigest, forKey: cloudCredentialRecoveryStateSilentFailureDigestUserDefaultsKey)
+        }
         return invalidStoredCloudCredentialRecoveryState()
     }
+}
+
+private func captureCloudCredentialRecoveryStateSilentFailure(
+    error: Error,
+    action: String,
+    stage: String
+) {
+    FlashcardsObservability.captureSilentFailure(
+        error: error,
+        scope: IOSObservationScope(
+            feature: .cloudAuth,
+            userId: nil,
+            workspaceId: nil,
+            requestId: nil,
+            clientRequestId: nil,
+            sessionId: nil,
+            runId: nil,
+            cloudState: nil,
+            configurationMode: nil
+        ),
+        action: action,
+        stage: stage,
+        statusCode: nil,
+        backendCode: nil,
+        requestId: nil
+    )
 }
 
 private func invalidStoredCloudCredentialRecoveryState() -> CloudCredentialRecoveryState {
@@ -176,6 +212,15 @@ private func invalidStoredCloudCredentialRecoveryState() -> CloudCredentialRecov
     )
 }
 
+private func stableCloudCredentialRecoveryStatePayloadDigest(data: Data) -> String {
+    var hash: UInt64 = 1_469_598_103_934_665_603
+    for byte in data {
+        hash ^= UInt64(byte)
+        hash &*= 1_099_511_628_211
+    }
+    return "\(data.count):\(String(hash, radix: 16))"
+}
+
 func saveCloudCredentialRecoveryState(
     state: CloudCredentialRecoveryState,
     userDefaults: UserDefaults,
@@ -184,6 +229,7 @@ func saveCloudCredentialRecoveryState(
     do {
         let storedData = try encoder.encode(state)
         userDefaults.set(storedData, forKey: cloudCredentialRecoveryStateUserDefaultsKey)
+        userDefaults.removeObject(forKey: cloudCredentialRecoveryStateSilentFailureDigestUserDefaultsKey)
     } catch {
         throw LocalStoreError.validation(
             "Cloud credential recovery state could not be saved: \(Flashcards.errorMessage(error: error))"
@@ -193,6 +239,7 @@ func saveCloudCredentialRecoveryState(
 
 func clearCloudCredentialRecoveryState(userDefaults: UserDefaults) {
     userDefaults.removeObject(forKey: cloudCredentialRecoveryStateUserDefaultsKey)
+    userDefaults.removeObject(forKey: cloudCredentialRecoveryStateSilentFailureDigestUserDefaultsKey)
     clearGuestLocalRecoveryWorkspaceCheckpoint(userDefaults: userDefaults)
 }
 

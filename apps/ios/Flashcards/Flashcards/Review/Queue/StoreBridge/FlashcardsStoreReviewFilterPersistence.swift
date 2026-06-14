@@ -84,8 +84,45 @@ extension FlashcardsStore {
             let persistedReviewFilter = try decoder.decode(PersistedReviewFilter.self, from: data)
             return try makeReviewFilter(persistedReviewFilter: persistedReviewFilter)
         } catch {
+            captureReviewFilterPersistenceSilentFailure(
+                error: error,
+                action: "review_filter_load",
+                stage: "decode",
+                cloudSettings: nil,
+                workspaceId: workspaceId,
+                configurationMode: nil
+            )
             userDefaults.removeObject(forKey: makeSelectedReviewFilterUserDefaultsKey(workspaceId: workspaceId))
             return .allCards
         }
     }
+}
+
+func captureReviewFilterPersistenceSilentFailure(
+    error: Error,
+    action: String,
+    stage: String,
+    cloudSettings: CloudSettings?,
+    workspaceId: String?,
+    configurationMode: CloudServiceConfigurationMode?
+) {
+    FlashcardsObservability.captureSilentFailure(
+        error: error,
+        scope: IOSObservationScope(
+            feature: .localData,
+            userId: cloudSettings?.linkedUserId,
+            workspaceId: workspaceId,
+            requestId: nil,
+            clientRequestId: nil,
+            sessionId: nil,
+            runId: nil,
+            cloudState: cloudSettings?.cloudState,
+            configurationMode: configurationMode
+        ),
+        action: action,
+        stage: stage,
+        statusCode: nil,
+        backendCode: nil,
+        requestId: nil
+    )
 }

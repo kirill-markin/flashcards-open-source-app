@@ -288,6 +288,14 @@ extension FlashcardsStore {
             let data = try self.encoder.encode(self.reviewNotificationsSettings)
             self.userDefaults.set(data, forKey: makeReviewNotificationsSettingsUserDefaultsKey(workspaceId: workspaceId))
         } catch {
+            captureReviewNotificationsSilentFailure(
+                error: error,
+                action: "review_notifications_settings_save",
+                stage: "encode",
+                cloudSettings: self.cloudSettings,
+                workspaceId: workspaceId,
+                configurationMode: try? self.currentCloudServiceConfiguration().mode
+            )
             self.userDefaults.removeObject(forKey: makeReviewNotificationsSettingsUserDefaultsKey(workspaceId: workspaceId))
         }
     }
@@ -299,6 +307,14 @@ extension FlashcardsStore {
             let data = try self.encoder.encode(state)
             self.userDefaults.set(data, forKey: reviewNotificationPromptStateUserDefaultsKey)
         } catch {
+            captureReviewNotificationsSilentFailure(
+                error: error,
+                action: "review_notification_permission_prompt_state_save",
+                stage: "encode",
+                cloudSettings: self.cloudSettings,
+                workspaceId: self.workspace?.workspaceId,
+                configurationMode: try? self.currentCloudServiceConfiguration().mode
+            )
             self.userDefaults.removeObject(forKey: reviewNotificationPromptStateUserDefaultsKey)
         }
     }
@@ -472,7 +488,17 @@ extension FlashcardsStore {
                     plannedRequestIdentifiers: payloads.map(\.requestId),
                     delayNanoseconds: notificationSchedulingDelayedReadbackNanoseconds
                 )
+            } catch is CancellationError {
+                return
             } catch {
+                captureReviewNotificationsSilentFailure(
+                    error: error,
+                    action: "review_notifications_delayed_readback",
+                    stage: "readback",
+                    cloudSettings: self.cloudSettings,
+                    workspaceId: workspaceId,
+                    configurationMode: try? self.currentCloudServiceConfiguration().mode
+                )
                 return
             }
             guard self.reviewNotificationsRescheduleGeneration == generation else {
@@ -566,6 +592,14 @@ extension FlashcardsStore {
             let data = try self.encoder.encode(payloads)
             self.userDefaults.set(data, forKey: makeScheduledReviewNotificationsUserDefaultsKey(workspaceId: workspaceId))
         } catch {
+            captureReviewNotificationsSilentFailure(
+                error: error,
+                action: "review_notifications_scheduled_payloads_save",
+                stage: "encode",
+                cloudSettings: self.cloudSettings,
+                workspaceId: workspaceId,
+                configurationMode: try? self.currentCloudServiceConfiguration().mode
+            )
             self.userDefaults.removeObject(forKey: makeScheduledReviewNotificationsUserDefaultsKey(workspaceId: workspaceId))
         }
     }

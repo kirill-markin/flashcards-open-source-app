@@ -237,6 +237,14 @@ extension FlashcardsStore {
             let data = try self.encoder.encode(persistedReviewFilter)
             self.userDefaults.set(data, forKey: makeSelectedReviewFilterUserDefaultsKey(workspaceId: workspaceId))
         } catch {
+            captureReviewFilterPersistenceSilentFailure(
+                error: error,
+                action: "review_filter_save",
+                stage: "encode",
+                cloudSettings: self.cloudSettings,
+                workspaceId: workspaceId,
+                configurationMode: try? self.currentCloudServiceConfiguration().mode
+            )
             self.userDefaults.removeObject(forKey: makeSelectedReviewFilterUserDefaultsKey(workspaceId: workspaceId))
         }
     }

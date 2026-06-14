@@ -152,6 +152,14 @@ func loadScheduledReviewNotifications(
     do {
         return try decoder.decode([ScheduledReviewNotificationPayload].self, from: data)
     } catch {
+        captureReviewNotificationsSilentFailure(
+            error: error,
+            action: "review_notifications_scheduled_payloads_load",
+            stage: "decode",
+            cloudSettings: nil,
+            workspaceId: workspaceId,
+            configurationMode: nil
+        )
         userDefaults.removeObject(forKey: makeScheduledReviewNotificationsUserDefaultsKey(workspaceId: workspaceId))
         return []
     }

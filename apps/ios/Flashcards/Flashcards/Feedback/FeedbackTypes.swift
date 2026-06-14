@@ -4,6 +4,7 @@ let feedbackMessageMaximumCharacters: Int = 5000
 let feedbackAutomaticReviewThreshold: Int = 15
 let feedbackAutomaticPromptCooldownSeconds: TimeInterval = 30 * 24 * 60 * 60
 let feedbackServerStateStaleSeconds: TimeInterval = 24 * 60 * 60
+let feedbackAutomaticPromptFailureBackoffSeconds: TimeInterval = 30 * 60
 
 enum FeedbackTrigger: String, Codable, Hashable, Sendable {
     case settings

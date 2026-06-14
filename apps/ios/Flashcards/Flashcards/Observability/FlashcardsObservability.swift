@@ -20,5 +20,29 @@ enum FlashcardsObservability {
     static func captureException(_ event: IOSExceptionEvent) {
         SentryObservabilityAdapter.captureException(event)
     }
-}
 
+    static func captureSilentFailure(
+        error: Error,
+        scope: IOSObservationScope,
+        action: String,
+        stage: String?,
+        statusCode: Int?,
+        backendCode: String?,
+        requestId: String?
+    ) {
+        self.captureException(
+            .silentFailure(
+                error: error,
+                scope: scope,
+                details: SilentFailureDetails(
+                    action: action,
+                    stage: stage,
+                    statusCode: statusCode,
+                    backendCode: backendCode,
+                    requestId: requestId,
+                    messageSummary: Flashcards.errorMessage(error: error)
+                )
+            )
+        )
+    }
+}
