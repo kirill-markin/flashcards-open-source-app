@@ -1,18 +1,13 @@
 .review-screen-panel {
+  --review-screen-panel-height: var(--chat-shell-pane-height, calc(100dvh - 128px));
   position: relative;
   container-type: inline-size;
   container-name: review-screen;
   grid-template-rows: auto minmax(0, 1fr);
-  height: min(880px, calc(100dvh - 76px));
-  min-height: min(760px, calc(100dvh - 76px));
-  max-height: calc(100dvh - 72px);
+  height: var(--review-screen-panel-height);
+  min-height: var(--review-screen-panel-height);
+  max-height: var(--review-screen-panel-height);
   overflow: hidden;
-}
-
-.chat-layout-shell-sidebar-open .review-screen-panel {
-  height: var(--chat-shell-pane-height);
-  min-height: var(--chat-shell-pane-height);
-  max-height: none;
 }
 
 .review-layout {
