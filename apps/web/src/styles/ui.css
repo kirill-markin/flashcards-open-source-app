@@ -95,6 +95,7 @@
 
 .chat-main-content > .container > .panel {
   border-color: transparent;
+  border-radius: 0;
   background: var(--bg);
   box-shadow: none;
 }
