@@ -119,6 +119,13 @@ internal class AiChatRuntime(
                     resumeDiagnostics = resumeDiagnostics
                 )
             },
+            startFreshConversation = {
+                sessionCoordinator.startFreshConversation(
+                    draftMessage = "",
+                    pendingAttachments = emptyList(),
+                    shouldFocusComposer = false
+                )
+            },
             detachLiveStream = { reason ->
                 liveStreamCoordinator.detachLiveStream(reason = reason)
             },

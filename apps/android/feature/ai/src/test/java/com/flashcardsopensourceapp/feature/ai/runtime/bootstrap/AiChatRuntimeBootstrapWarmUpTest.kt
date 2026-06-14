@@ -41,6 +41,7 @@ class AiChatRuntimeBootstrapWarmUpTest {
             startConversationBootstrap = { _, _ ->
                 bootstrapCalls += 1
             },
+            startFreshConversation = {},
             detachLiveStream = { _ -> },
             cancelActiveDictation = { _ -> }
         )
