@@ -337,7 +337,6 @@ export function AppShell(): ReactElement {
   const workspaceManagementLockedMessage = t("workspaceManagement.lockedMessage");
   const activeWorkspaceId: string | null = activeWorkspace?.workspaceId ?? null;
   const activeWorkspaceName: string | null = activeWorkspace?.name ?? null;
-  const activeWorkspaceLabel: string = activeWorkspaceName ?? t("app.workspaceUnavailable");
 
   const completeAccountDeletion = useCallback(async function completeAccountDeletion(): Promise<void> {
     if (isSessionVerified === false) {
@@ -522,22 +521,20 @@ export function AppShell(): ReactElement {
             <div className="topbar-brand-block">
               <div className="topbar-brand-row">
                 <a className="topbar-brand" href={reviewRoute}>
-                  <span className="brand-full">flashcards-open-source-app</span>
-                  <span className="brand-short">flashcards</span>
+                  <span className="brand-full">Flashcards Open Source App</span>
+                  <span className="brand-short">Flashcards</span>
                 </a>
                 {isSyncing ? <span className="topbar-sync-status">{t("app.syncing")}</span> : null}
                 {!isSyncing && sessionRestoringMessage !== "" ? <span className="topbar-sync-status">{sessionRestoringMessage}</span> : null}
               </div>
               <span data-testid="topbar-active-workspace-id-value" hidden>{activeWorkspaceId ?? ""}</span>
               <span data-testid="topbar-active-workspace-value" hidden>{activeWorkspaceName ?? ""}</span>
-              <p
-                className="topbar-workspace"
+              <span
                 data-testid="topbar-active-workspace"
                 data-workspace-id={activeWorkspaceId ?? ""}
                 data-workspace-name={activeWorkspaceName ?? ""}
-              >
-                {activeWorkspaceLabel}
-              </p>
+                hidden
+              />
             </div>
             <nav className="nav" aria-label={t("shell.primaryNavigation")}>
               {primaryNavigationItems.map((item) => (
