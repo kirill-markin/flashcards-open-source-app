@@ -5,8 +5,10 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatResumeDiagnostics
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.feature.ai.runtime.AiChatRuntimeContext
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiAccessContext
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiChatRuntimeState
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiComposerPhase
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiConversationBootstrapState
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.isAiChatConversationStale
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.makeAiDraftState
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.normalizeAiChatPersistedStateForWorkspace
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.resolveAiChatSessionIdForWorkspace
@@ -34,6 +36,7 @@ import kotlinx.coroutines.launch
 internal class AiChatRuntimeLifecycleCoordinator(
     private val context: AiChatRuntimeContext,
     private val startConversationBootstrap: (Boolean, AiChatResumeDiagnostics?) -> Unit,
+    private val startFreshConversation: () -> Unit,
     private val detachLiveStream: (String) -> Unit,
     private val cancelActiveDictation: (String) -> Unit
 ) {
@@ -86,7 +89,6 @@ internal class AiChatRuntimeLifecycleCoordinator(
                 workspaceId = accessContext.workspaceId,
                 persistedState = context.aiChatRepository.loadPersistedState(workspaceId = accessContext.workspaceId)
             )
-            val currentState = context.runtimeStateMutable.value
             val persistedSessionId = resolveAiChatSessionIdForWorkspace(
                 workspaceId = accessContext.workspaceId,
                 sessionId = persistedState.chatSessionId
@@ -117,6 +119,15 @@ internal class AiChatRuntimeLifecycleCoordinator(
             context.runtimeStateMutable.value = nextState
             context.persistCurrentState()
             if (accessContext.workspaceId == null) {
+                return@launch
+            }
+            if (
+                shouldStartFreshConversationForStaleState(
+                    state = nextState,
+                    accessContext = accessContext
+                )
+            ) {
+                startFreshConversation()
                 return@launch
             }
             if (shouldPrepareGuestAccess(
@@ -169,6 +180,15 @@ internal class AiChatRuntimeLifecycleCoordinator(
             return
         }
         if (context.activeWarmUpJob != null) {
+            return
+        }
+        if (
+            shouldStartFreshConversationForStaleState(
+                state = currentState,
+                accessContext = accessContext
+            )
+        ) {
+            startFreshConversation()
             return
         }
         if (
@@ -304,6 +324,31 @@ internal class AiChatRuntimeLifecycleCoordinator(
         return shouldPrepareGuestAccess(
             accessContext = context.activeAccessContext,
             hasConsent = context.hasConsent()
+        )
+    }
+
+    private fun shouldStartFreshConversationForStaleState(
+        state: AiChatRuntimeState,
+        accessContext: AiAccessContext
+    ): Boolean {
+        val hasConsent = context.hasConsent()
+        val canUseAi = shouldPrepareGuestAccess(
+            accessContext = accessContext,
+            hasConsent = hasConsent
+        ) || shouldBootstrapConversation(
+            accessContext = accessContext,
+            hasConsent = hasConsent
+        )
+        if (canUseAi.not()) {
+            return false
+        }
+        if (context.activeFreshSessionJob != null) {
+            return false
+        }
+
+        return isAiChatConversationStale(
+            messages = state.persistedState.messages,
+            nowMillis = System.currentTimeMillis()
         )
     }
 }

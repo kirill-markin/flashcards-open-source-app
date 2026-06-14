@@ -19,6 +19,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -341,7 +342,7 @@ class AiChatRuntimeWorkspaceSessionTest {
     }
 
     @Test
-    fun stalePersistedChatPreservesCurrentBootstrapPath() = runTest {
+    fun stalePersistedChatStartsFreshConversation() = runTest {
         val repository = FakeAiChatRepository()
         val nowMillis = System.currentTimeMillis()
         val staleTimestamp = nowMillis - aiChatStalenessThresholdMillis - 1_000L
@@ -359,18 +360,66 @@ class AiChatRuntimeWorkspaceSessionTest {
                 )
             )
         )
-        repository.bootstrapResponses += makeBootstrapResponse(
-            sessionId = oldSessionId,
-            activeRun = null
+        repository.draftStates[defaultTestWorkspaceId to oldSessionId] = AiChatDraftState(
+            draftMessage = "Keep this old draft",
+            pendingAttachments = emptyList()
         )
         val runtime = makeRuntime(scope = this, repository = repository)
 
         runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
         advanceUntilIdle()
 
-        assertEquals(1, repository.loadBootstrapCalls)
+        val freshSessionId = repository.createNewSessionRequests.single()
+        assertNotEquals(oldSessionId, freshSessionId)
+        assertEquals(0, repository.loadBootstrapCalls)
+        assertTrue(repository.loadBootstrapSessionIds.isEmpty())
+        assertEquals(freshSessionId, runtime.state.value.persistedState.chatSessionId)
+        assertTrue(runtime.state.value.persistedState.messages.isEmpty())
+        assertEquals("", runtime.state.value.draftMessage)
+        assertEquals(
+            "Keep this old draft",
+            repository.draftStates[defaultTestWorkspaceId to oldSessionId]?.draftMessage
+        )
+        assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
+    }
+
+    @Test
+    fun stalePersistedChatStartsFreshConversationAfterConsentWarmUp() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.consent.value = false
+        val nowMillis = System.currentTimeMillis()
+        val staleTimestamp = nowMillis - aiChatStalenessThresholdMillis - 1_000L
+        val oldSessionId = "session-old"
+        repository.setPersistedState(
+            workspaceId = defaultTestWorkspaceId,
+            state = makeDefaultAiChatPersistedState().copy(
+                chatSessionId = oldSessionId,
+                messages = listOf(
+                    makeUserMessage(
+                        content = listOf(AiChatContentPart.Text(text = "Stale question")),
+                        timestampMillis = staleTimestamp
+                    )
+                )
+            )
+        )
+        val runtime = makeRuntime(scope = this, repository = repository)
+
+        runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
+        advanceUntilIdle()
+
         assertTrue(repository.createNewSessionRequests.isEmpty())
+        assertEquals(0, repository.loadBootstrapCalls)
         assertEquals(oldSessionId, runtime.state.value.persistedState.chatSessionId)
+
+        repository.updateConsent(hasConsent = true)
+        runtime.warmUpLinkedSessionIfNeeded(resumeDiagnostics = null)
+        advanceUntilIdle()
+
+        val freshSessionId = repository.createNewSessionRequests.single()
+        assertNotEquals(oldSessionId, freshSessionId)
+        assertEquals(0, repository.loadBootstrapCalls)
+        assertTrue(repository.loadBootstrapSessionIds.isEmpty())
+        assertEquals(freshSessionId, runtime.state.value.persistedState.chatSessionId)
         assertTrue(runtime.state.value.persistedState.messages.isEmpty())
         assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
     }

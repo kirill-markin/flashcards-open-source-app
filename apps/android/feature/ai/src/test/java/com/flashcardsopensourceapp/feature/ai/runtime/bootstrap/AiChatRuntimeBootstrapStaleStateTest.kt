@@ -27,6 +27,7 @@ class AiChatRuntimeBootstrapStaleStateTest {
     @Test
     fun sameSessionRefreshSessionMismatchFailurePreservesExistingConversationState() = runTest {
         val repository = FakeAiChatRepository()
+        val nowMillis = System.currentTimeMillis()
         val attachment = AiChatAttachment.Binary(
             id = "attachment-1",
             fileName = "notes.txt",
@@ -36,9 +37,9 @@ class AiChatRuntimeBootstrapStaleStateTest {
         val messages = listOf(
             makeUserMessage(
                 content = listOf(AiChatContentPart.Text(text = "Existing question")),
-                timestampMillis = 1L
+                timestampMillis = nowMillis - 2_000L
             ),
-            makeAssistantStatusMessage(timestampMillis = 2L)
+            makeAssistantStatusMessage(timestampMillis = nowMillis - 1_000L)
         )
         val activeRun = makeActiveRun(runId = "run-1", cursor = "0")
         repository.persistedStates[defaultTestWorkspaceId] = makeDefaultAiChatPersistedState().copy(

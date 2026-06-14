@@ -80,14 +80,15 @@ class AiChatRuntimeGuestQuotaPromptTest {
     @Test
     fun guestQuotaSendFailureAppendsUpgradePromptAfterRealAssistantReply() = runTest {
         val repository = FakeAiChatRepository()
+        val nowMillis = System.currentTimeMillis()
         val restoredMessages = listOf(
             makeUserMessage(
                 content = listOf(AiChatContentPart.Text(text = "Original question")),
-                timestampMillis = 1L
+                timestampMillis = nowMillis - 1_000L
             ),
             makeAssistantTextMessage(
                 text = "Original answer",
-                timestampMillis = 2L
+                timestampMillis = nowMillis
             )
         )
         repository.persistedStates[defaultTestWorkspaceId] = makeDefaultAiChatPersistedState().copy(
@@ -125,12 +126,13 @@ class AiChatRuntimeGuestQuotaPromptTest {
     @Test
     fun guestQuotaSendFailureReplacesOptimisticAssistantPlaceholderWithUpgradePrompt() = runTest {
         val repository = FakeAiChatRepository()
+        val nowMillis = System.currentTimeMillis()
         val restoredMessages = listOf(
             makeUserMessage(
                 content = listOf(AiChatContentPart.Text(text = "Original question")),
-                timestampMillis = 1L
+                timestampMillis = nowMillis - 1_000L
             ),
-            makeAssistantStatusMessage(timestampMillis = 2L)
+            makeAssistantStatusMessage(timestampMillis = nowMillis)
         )
         repository.persistedStates[defaultTestWorkspaceId] = makeDefaultAiChatPersistedState().copy(
             chatSessionId = "session-1",

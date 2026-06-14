@@ -62,6 +62,7 @@ class AiChatRuntimeConversationResetRaceTest {
     @Test
     fun clearConversationKeepsFreshLocalSessionWhileBootstrapReloadIsInFlight() = runTest {
         val repository = FakeAiChatRepository()
+        val nowMillis = System.currentTimeMillis()
         repository.persistedStates[defaultTestWorkspaceId] = makeDefaultAiChatPersistedState().copy(
             chatSessionId = "session-1"
         )
@@ -73,9 +74,9 @@ class AiChatRuntimeConversationResetRaceTest {
                 messages = listOf(
                     makeUserMessage(
                         content = listOf(AiChatContentPart.Text(text = "Hello")),
-                        timestampMillis = 1L
+                        timestampMillis = nowMillis - 2_000L
                     ),
-                    makeAssistantStatusMessage(timestampMillis = 2L)
+                    makeAssistantStatusMessage(timestampMillis = nowMillis - 1_000L)
                 ),
                 updatedAtMillis = 100L,
                 mainContentInvalidationVersion = 0L,
@@ -100,7 +101,7 @@ class AiChatRuntimeConversationResetRaceTest {
                 messages = listOf(
                     makeUserMessage(
                         content = listOf(AiChatContentPart.Text(text = "Reloaded")),
-                        timestampMillis = 3L
+                        timestampMillis = nowMillis
                     )
                 ),
                 updatedAtMillis = 100L,
