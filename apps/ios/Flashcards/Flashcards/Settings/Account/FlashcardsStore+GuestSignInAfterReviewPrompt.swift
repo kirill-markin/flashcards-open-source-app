@@ -78,7 +78,44 @@ extension FlashcardsStore {
             let data: Data = try self.encoder.encode(state)
             self.userDefaults.set(data, forKey: guestSignInAfterReviewPromptUserDefaultsKey)
         } catch {
+            captureGuestSignInAfterReviewPromptSilentFailure(
+                error: error,
+                action: "guest_sign_in_after_review_prompt_state_save",
+                stage: "encode",
+                cloudSettings: self.cloudSettings,
+                workspaceId: self.workspace?.workspaceId,
+                configurationMode: try? self.currentCloudServiceConfiguration().mode
+            )
             self.userDefaults.removeObject(forKey: guestSignInAfterReviewPromptUserDefaultsKey)
         }
     }
+}
+
+func captureGuestSignInAfterReviewPromptSilentFailure(
+    error: Error,
+    action: String,
+    stage: String,
+    cloudSettings: CloudSettings?,
+    workspaceId: String?,
+    configurationMode: CloudServiceConfigurationMode?
+) {
+    FlashcardsObservability.captureSilentFailure(
+        error: error,
+        scope: IOSObservationScope(
+            feature: .prompts,
+            userId: cloudSettings?.linkedUserId,
+            workspaceId: workspaceId,
+            requestId: nil,
+            clientRequestId: nil,
+            sessionId: nil,
+            runId: nil,
+            cloudState: cloudSettings?.cloudState,
+            configurationMode: configurationMode
+        ),
+        action: action,
+        stage: stage,
+        statusCode: nil,
+        backendCode: nil,
+        requestId: nil
+    )
 }

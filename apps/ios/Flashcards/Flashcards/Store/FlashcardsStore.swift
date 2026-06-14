@@ -165,6 +165,7 @@ final class FlashcardsStore {
     @ObservationIgnored var progressReviewedAtClientCache: ProgressReviewedAtClientCacheEntry?
     @ObservationIgnored var progressReviewScheduleLocalCache: ProgressReviewScheduleLocalCacheEntry?
     @ObservationIgnored var activeAutomaticFeedbackPromptTask: Task<Void, Never>?
+    @ObservationIgnored var nextAutomaticFeedbackPromptRetryAt: Date?
 
     var aiChatStore: AIChatStore {
         if let cachedAIChatStore {
@@ -484,6 +485,7 @@ final class FlashcardsStore {
         self.progressReviewedAtClientCache = nil
         self.progressReviewScheduleLocalCache = nil
         self.activeAutomaticFeedbackPromptTask = nil
+        self.nextAutomaticFeedbackPromptRetryAt = nil
 
         if database != nil && initialGlobalErrorMessage.isEmpty {
             do {

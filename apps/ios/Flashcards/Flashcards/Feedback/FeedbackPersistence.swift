@@ -26,6 +26,11 @@ func loadFeedbackPromptState(
     do {
         return try decoder.decode(PersistedFeedbackPromptState.self, from: data)
     } catch {
+        captureFeedbackPersistenceSilentFailure(
+            error: error,
+            action: "feedback_prompt_state_load",
+            stage: "decode"
+        )
         userDefaults.removeObject(forKey: storageKey)
         return makeDefaultFeedbackPromptState()
     }
@@ -42,6 +47,11 @@ func saveFeedbackPromptState(
         let data = try encoder.encode(state)
         userDefaults.set(data, forKey: storageKey)
     } catch {
+        captureFeedbackPersistenceSilentFailure(
+            error: error,
+            action: "feedback_prompt_state_save",
+            stage: "encode"
+        )
         userDefaults.removeObject(forKey: storageKey)
     }
 }
@@ -82,4 +92,30 @@ func clearFeedbackPromptPersistence(
     userDefaults.removeObject(forKey: feedbackDraftUserDefaultsKey(identityKey: identityKey))
     userDefaults.removeObject(forKey: legacyFeedbackPromptStateUserDefaultsKey)
     userDefaults.removeObject(forKey: legacyFeedbackDraftUserDefaultsKey)
+}
+
+private func captureFeedbackPersistenceSilentFailure(
+    error: Error,
+    action: String,
+    stage: String
+) {
+    FlashcardsObservability.captureSilentFailure(
+        error: error,
+        scope: IOSObservationScope(
+            feature: .feedback,
+            userId: nil,
+            workspaceId: nil,
+            requestId: nil,
+            clientRequestId: nil,
+            sessionId: nil,
+            runId: nil,
+            cloudState: nil,
+            configurationMode: nil
+        ),
+        action: action,
+        stage: stage,
+        statusCode: nil,
+        backendCode: nil,
+        requestId: nil
+    )
 }

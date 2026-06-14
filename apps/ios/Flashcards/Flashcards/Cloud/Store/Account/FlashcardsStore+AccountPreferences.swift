@@ -355,6 +355,11 @@ extension FlashcardsStore {
         do {
             return try self.decoder.decode(PersistedAccountPreferencesCache.self, from: data)
         } catch {
+            self.captureAccountPreferencesSilentFailure(
+                error: error,
+                action: "account_preferences_cache_load",
+                stage: "decode"
+            )
             self.userDefaults.removeObject(forKey: accountPreferencesCacheUserDefaultsKey)
             return PersistedAccountPreferencesCache(preferencesByIdentityKey: [:])
         }
@@ -365,6 +370,11 @@ extension FlashcardsStore {
             let data = try self.encoder.encode(cache)
             self.userDefaults.set(data, forKey: accountPreferencesCacheUserDefaultsKey)
         } catch {
+            self.captureAccountPreferencesSilentFailure(
+                error: error,
+                action: "account_preferences_cache_save",
+                stage: "encode"
+            )
             self.userDefaults.removeObject(forKey: accountPreferencesCacheUserDefaultsKey)
         }
     }
@@ -376,5 +386,31 @@ extension FlashcardsStore {
         var cache = self.loadPersistedAccountPreferencesCache()
         cache.preferencesByIdentityKey[identityKey] = preferences
         self.savePersistedAccountPreferencesCache(cache)
+    }
+
+    private func captureAccountPreferencesSilentFailure(
+        error: Error,
+        action: String,
+        stage: String
+    ) {
+        FlashcardsObservability.captureSilentFailure(
+            error: error,
+            scope: IOSObservationScope(
+                feature: .cloudAuth,
+                userId: self.cloudSettings?.linkedUserId,
+                workspaceId: self.workspace?.workspaceId,
+                requestId: nil,
+                clientRequestId: nil,
+                sessionId: nil,
+                runId: nil,
+                cloudState: self.cloudSettings?.cloudState,
+                configurationMode: try? self.currentCloudServiceConfiguration().mode
+            ),
+            action: action,
+            stage: stage,
+            statusCode: nil,
+            backendCode: nil,
+            requestId: nil
+        )
     }
 }

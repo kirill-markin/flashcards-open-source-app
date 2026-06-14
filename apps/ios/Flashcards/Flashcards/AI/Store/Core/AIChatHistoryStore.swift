@@ -178,6 +178,13 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
                 suppressDraftRestore: state.suppressDraftRestore
             )
         } catch {
+            self.captureAIChatPersistenceSilentFailure(
+                error: error,
+                action: "ai_chat_history_state_load",
+                stage: "decode",
+                workspaceId: workspaceId,
+                sessionId: nil
+            )
             self.userDefaults.removeObject(forKey: storageKey)
             return AIChatPersistedState(
                 messages: [],
@@ -205,6 +212,13 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
                 state: state
             )
         } catch {
+            self.captureAIChatPersistenceSilentFailure(
+                error: error,
+                action: "ai_chat_history_state_save",
+                stage: "encode",
+                workspaceId: workspaceId,
+                sessionId: state.chatSessionId
+            )
             self.userDefaults.removeObject(forKey: aiChatHistoryStorageKeyForWorkspace(workspaceId: workspaceId))
         }
     }
@@ -231,6 +245,13 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
             do {
                 return try self.decoder.decode(AIChatComposerDraft.self, from: data)
             } catch {
+                self.captureAIChatPersistenceSilentFailure(
+                    error: error,
+                    action: "ai_chat_draft_load",
+                    stage: "decode",
+                    workspaceId: workspaceId,
+                    sessionId: normalizedSessionId
+                )
                 self.userDefaults.removeObject(forKey: resolvedKey)
                 return AIChatComposerDraft(inputText: "", pendingAttachments: [])
             }
@@ -273,6 +294,13 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
             guard let normalizedSessionId = normalizedAIChatDraftSessionId(sessionId: sessionId) else {
                 return
             }
+            self.captureAIChatPersistenceSilentFailure(
+                error: error,
+                action: "ai_chat_draft_save",
+                stage: "encode",
+                workspaceId: workspaceId,
+                sessionId: normalizedSessionId
+            )
             self.userDefaults.removeObject(
                 forKey: aiChatDraftStorageKeyForWorkspace(
                     workspaceId: workspaceId,
@@ -297,6 +325,34 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
 
     private func storageKey() -> String {
         aiChatHistoryStorageKeyForWorkspace(workspaceId: self.currentWorkspaceId)
+    }
+
+    private func captureAIChatPersistenceSilentFailure(
+        error: Error,
+        action: String,
+        stage: String,
+        workspaceId: String?,
+        sessionId: String?
+    ) {
+        FlashcardsObservability.captureSilentFailure(
+            error: error,
+            scope: IOSObservationScope(
+                feature: .aiChat,
+                userId: nil,
+                workspaceId: workspaceId,
+                requestId: nil,
+                clientRequestId: nil,
+                sessionId: sessionId,
+                runId: nil,
+                cloudState: nil,
+                configurationMode: nil
+            ),
+            action: action,
+            stage: stage,
+            statusCode: nil,
+            backendCode: nil,
+            requestId: nil
+        )
     }
 }
 

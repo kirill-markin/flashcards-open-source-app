@@ -195,6 +195,14 @@ func loadReviewNotificationsSettings(
     do {
         return try decoder.decode(ReviewNotificationsSettings.self, from: data)
     } catch {
+        captureReviewNotificationsSilentFailure(
+            error: error,
+            action: "review_notifications_settings_load",
+            stage: "decode",
+            cloudSettings: nil,
+            workspaceId: workspaceId,
+            configurationMode: nil
+        )
         userDefaults.removeObject(forKey: makeReviewNotificationsSettingsUserDefaultsKey(workspaceId: workspaceId))
         return makeDefaultReviewNotificationsSettings()
     }
@@ -211,7 +219,44 @@ func loadNotificationPermissionPromptState(
     do {
         return try decoder.decode(NotificationPermissionPromptState.self, from: data)
     } catch {
+        captureReviewNotificationsSilentFailure(
+            error: error,
+            action: "review_notification_permission_prompt_state_load",
+            stage: "decode",
+            cloudSettings: nil,
+            workspaceId: nil,
+            configurationMode: nil
+        )
         userDefaults.removeObject(forKey: reviewNotificationPromptStateUserDefaultsKey)
         return makeDefaultNotificationPermissionPromptState()
     }
+}
+
+func captureReviewNotificationsSilentFailure(
+    error: Error,
+    action: String,
+    stage: String,
+    cloudSettings: CloudSettings?,
+    workspaceId: String?,
+    configurationMode: CloudServiceConfigurationMode?
+) {
+    FlashcardsObservability.captureSilentFailure(
+        error: error,
+        scope: IOSObservationScope(
+            feature: .notifications,
+            userId: cloudSettings?.linkedUserId,
+            workspaceId: workspaceId,
+            requestId: nil,
+            clientRequestId: nil,
+            sessionId: nil,
+            runId: nil,
+            cloudState: cloudSettings?.cloudState,
+            configurationMode: configurationMode
+        ),
+        action: action,
+        stage: stage,
+        statusCode: nil,
+        backendCode: nil,
+        requestId: nil
+    )
 }

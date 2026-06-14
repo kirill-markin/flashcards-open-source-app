@@ -508,6 +508,26 @@ extension SentryObservabilityAdapter {
                     localFields: stringifyContext(context)
                 )
             )
+        case .silentFailure(let error, let scope, let details):
+            let context: [String: Any] = [
+                "stage": details.stage ?? "",
+                "status_code": details.statusCode.map { statusCode in String(statusCode) } ?? "",
+                "backend_code": details.backendCode ?? "",
+                "request_id": details.requestId ?? "",
+                "message_summary": details.messageSummary ?? ""
+            ]
+            return ExceptionPayload(
+                error: error,
+                observation: ObservationPayload(
+                    message: "iOS silent failure: \(details.action)",
+                    action: details.action,
+                    scope: scope,
+                    statusCode: details.statusCode,
+                    backendCode: details.backendCode,
+                    context: context,
+                    localFields: stringifyContext(context)
+                )
+            )
         }
     }
 

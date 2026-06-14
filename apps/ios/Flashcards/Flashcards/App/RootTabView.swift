@@ -196,6 +196,25 @@ struct RootTabView: View {
         } catch is CancellationError {
             return
         } catch {
+            FlashcardsObservability.captureSilentFailure(
+                error: error,
+                scope: IOSObservationScope(
+                    feature: .prompts,
+                    userId: store.cloudSettings?.linkedUserId,
+                    workspaceId: store.workspace?.workspaceId,
+                    requestId: nil,
+                    clientRequestId: nil,
+                    sessionId: nil,
+                    runId: nil,
+                    cloudState: store.cloudSettings?.cloudState,
+                    configurationMode: try? store.currentCloudServiceConfiguration().mode
+                ),
+                action: "guest_sign_in_after_review_prompt_recheck_sleep",
+                stage: "sleep",
+                statusCode: nil,
+                backendCode: nil,
+                requestId: nil
+            )
             assertionFailure("Unexpected guest sign-in prompt recheck sleep failure: \(error)")
             return
         }

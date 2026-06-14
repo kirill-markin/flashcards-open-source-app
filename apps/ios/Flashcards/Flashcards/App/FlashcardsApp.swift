@@ -480,6 +480,25 @@ struct FlashcardsApp: App {
             } catch is CancellationError {
                 return
             } catch {
+                FlashcardsObservability.captureSilentFailure(
+                    error: error,
+                    scope: IOSObservationScope(
+                        feature: .cloudSync,
+                        userId: self.store.cloudSettings?.linkedUserId,
+                        workspaceId: self.store.workspace?.workspaceId,
+                        requestId: nil,
+                        clientRequestId: nil,
+                        sessionId: nil,
+                        runId: nil,
+                        cloudState: self.store.cloudSettings?.cloudState,
+                        configurationMode: try? self.store.currentCloudServiceConfiguration().mode
+                    ),
+                    action: "cloud_sync_polling_loop_sleep",
+                    stage: "sleep",
+                    statusCode: nil,
+                    backendCode: nil,
+                    requestId: nil
+                )
                 return
             }
 
@@ -533,6 +552,25 @@ struct FlashcardsApp: App {
             } catch is CancellationError {
                 return
             } catch {
+                FlashcardsObservability.captureSilentFailure(
+                    error: error,
+                    scope: IOSObservationScope(
+                        feature: .progress,
+                        userId: self.store.cloudSettings?.linkedUserId,
+                        workspaceId: self.store.workspace?.workspaceId,
+                        requestId: nil,
+                        clientRequestId: nil,
+                        sessionId: nil,
+                        runId: nil,
+                        cloudState: self.store.cloudSettings?.cloudState,
+                        configurationMode: try? self.store.currentCloudServiceConfiguration().mode
+                    ),
+                    action: "progress_context_watcher_sleep",
+                    stage: "sleep",
+                    statusCode: nil,
+                    backendCode: nil,
+                    requestId: nil
+                )
                 return
             }
 

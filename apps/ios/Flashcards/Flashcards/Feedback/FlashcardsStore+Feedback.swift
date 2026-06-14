@@ -91,6 +91,12 @@ extension FlashcardsStore {
         guard self.activeAutomaticFeedbackPromptTask == nil else {
             return
         }
+        if let nextRetryAt = self.nextAutomaticFeedbackPromptRetryAt {
+            guard now >= nextRetryAt else {
+                return
+            }
+            self.nextAutomaticFeedbackPromptRetryAt = nil
+        }
         guard self.isAutomaticFeedbackPromptBlockedByModal == false else {
             return
         }
@@ -115,6 +121,7 @@ extension FlashcardsStore {
         self.feedbackPromptState = makeDefaultFeedbackPromptState()
         self.activeAutomaticFeedbackPromptTask?.cancel()
         self.activeAutomaticFeedbackPromptTask = nil
+        self.nextAutomaticFeedbackPromptRetryAt = nil
         clearFeedbackPromptPersistence(
             identityKey: self.feedbackPromptIdentityKey,
             userDefaults: self.userDefaults
@@ -122,6 +129,7 @@ extension FlashcardsStore {
     }
 
     func reloadFeedbackPromptStateForCurrentIdentity() {
+        self.nextAutomaticFeedbackPromptRetryAt = nil
         self.feedbackPromptState = loadFeedbackPromptState(
             identityKey: self.feedbackPromptIdentityKey,
             userDefaults: self.userDefaults,
@@ -130,31 +138,39 @@ extension FlashcardsStore {
     }
 
     private func runAutomaticFeedbackPromptCheck(now: Date) async {
+        var failureStage: String = "start"
         do {
+            failureStage = "resolve_workspace"
             guard let workspaceId = self.workspace?.workspaceId else {
                 return
             }
+            failureStage = "modal_gate"
             guard self.isAutomaticFeedbackPromptBlockedByModal == false else {
                 return
             }
+            failureStage = "local_cooldown_gate"
             guard isFeedbackAutomaticCooldownExpired(promptState: self.feedbackPromptState, now: now) else {
                 return
             }
 
+            failureStage = "load_review_activity"
             let database = try requireLocalDatabase(database: self.database)
             let reviewActivity = try database.loadFeedbackReviewActivitySummary(
                 workspaceId: workspaceId,
                 now: now,
                 timeZone: TimeZone.current
             )
+            failureStage = "previous_review_day_gate"
             guard reviewActivity.hasPreviousLocalReviewDay else {
                 return
             }
+            failureStage = "current_day_review_count_gate"
             guard reviewActivity.currentLocalDayReviewCount >= feedbackAutomaticReviewThreshold else {
                 return
             }
 
             if shouldFetchFeedbackServerState(promptState: self.feedbackPromptState, now: now) {
+                failureStage = "load_feedback_state"
                 let feedbackState = try await self.loadFeedbackStateFromServer()
                 self.updateFeedbackPromptState(
                     state: applyFeedbackServerState(
@@ -164,13 +180,16 @@ extension FlashcardsStore {
                     )
                 )
             }
+            failureStage = "post_server_cooldown_gate"
             guard isFeedbackAutomaticCooldownExpired(promptState: self.feedbackPromptState, now: Date()) else {
                 return
             }
+            failureStage = "post_server_modal_gate"
             guard self.isAutomaticFeedbackPromptBlockedByModal == false else {
                 return
             }
 
+            failureStage = "record_prompt_shown"
             let shownAt = Date()
             let feedbackState = try await self.recordAutomaticFeedbackPromptShown(now: shownAt)
             self.updateFeedbackPromptState(
@@ -180,8 +199,23 @@ extension FlashcardsStore {
                     shownAt: shownAt
                 )
             )
+            failureStage = "present_sheet"
+            self.nextAutomaticFeedbackPromptRetryAt = nil
             self.presentFeedbackSheet(trigger: .automatic)
+        } catch is CancellationError {
+            return
         } catch {
+            if self.shouldRetryAutomaticFeedbackPromptSilently(error: error, stage: failureStage) {
+                self.nextAutomaticFeedbackPromptRetryAt = Date().addingTimeInterval(
+                    feedbackAutomaticPromptFailureBackoffSeconds
+                )
+                return
+            }
+            self.captureFeedbackSilentFailure(
+                error: error,
+                action: "automatic_feedback_prompt_check",
+                stage: failureStage
+            )
             return
         }
     }
@@ -255,4 +289,121 @@ extension FlashcardsStore {
     private var feedbackPromptIdentityKey: FeedbackPromptIdentityKey {
         makeFeedbackPromptIdentityKey(cloudSettings: self.cloudSettings)
     }
+
+    private func shouldRetryAutomaticFeedbackPromptSilently(
+        error: Error,
+        stage: String
+    ) -> Bool {
+        guard isFeedbackAutomaticPromptServerStage(stage: stage) else {
+            return false
+        }
+        if isRequestCancellationError(error: error) {
+            return true
+        }
+        if isRetryableNetworkTransportFailure(error: error) {
+            return true
+        }
+        if let statusCode = feedbackFailureDiagnostics(error: error).statusCode,
+           isRetryableFeedbackAutomaticPromptStatusCode(statusCode) {
+            return true
+        }
+        return self.isAutomaticFeedbackPromptBlockedGateFailure(error: error)
+    }
+
+    private func isAutomaticFeedbackPromptBlockedGateFailure(error: Error) -> Bool {
+        guard case .blocked(let blockedMessage) = self.syncStatus else {
+            return false
+        }
+        guard let localStoreError = error as? LocalStoreError else {
+            return false
+        }
+        guard case .validation(let message) = localStoreError else {
+            return false
+        }
+        return message == blockedMessage
+    }
+
+    private func captureFeedbackSilentFailure(
+        error: Error,
+        action: String,
+        stage: String
+    ) {
+        let diagnostics = feedbackFailureDiagnostics(error: error)
+        FlashcardsObservability.captureSilentFailure(
+            error: error,
+            scope: IOSObservationScope(
+                feature: .feedback,
+                userId: self.cloudSettings?.linkedUserId,
+                workspaceId: self.workspace?.workspaceId,
+                requestId: diagnostics.requestId,
+                clientRequestId: nil,
+                sessionId: nil,
+                runId: nil,
+                cloudState: self.cloudSettings?.cloudState,
+                configurationMode: try? self.currentCloudServiceConfiguration().mode
+            ),
+            action: action,
+            stage: stage,
+            statusCode: diagnostics.statusCode,
+            backendCode: diagnostics.backendCode,
+            requestId: diagnostics.requestId
+        )
+    }
+}
+
+private struct FeedbackFailureDiagnostics {
+    let statusCode: Int?
+    let backendCode: String?
+    let requestId: String?
+}
+
+private func feedbackFailureDiagnostics(error: Error) -> FeedbackFailureDiagnostics {
+    if let syncError = error as? CloudSyncError {
+        switch syncError {
+        case .invalidResponse(let details, let statusCode):
+            return FeedbackFailureDiagnostics(
+                statusCode: statusCode,
+                backendCode: details.code,
+                requestId: details.requestId
+            )
+        case .invalidBaseUrl:
+            return FeedbackFailureDiagnostics(statusCode: nil, backendCode: nil, requestId: nil)
+        }
+    }
+
+    if let authError = error as? CloudAuthError {
+        switch authError {
+        case .invalidResponse(let details, let statusCode):
+            return FeedbackFailureDiagnostics(
+                statusCode: statusCode,
+                backendCode: details.code,
+                requestId: details.requestId
+            )
+        case .invalidBaseUrl, .invalidResponseBody:
+            return FeedbackFailureDiagnostics(statusCode: nil, backendCode: nil, requestId: nil)
+        }
+    }
+
+    if let guestAuthError = error as? GuestCloudAuthError {
+        switch guestAuthError {
+        case .invalidResponse(let details, let statusCode):
+            return FeedbackFailureDiagnostics(
+                statusCode: statusCode,
+                backendCode: details.code,
+                requestId: details.requestId
+            )
+        case .invalidBaseUrl, .invalidResponseBody:
+            return FeedbackFailureDiagnostics(statusCode: nil, backendCode: nil, requestId: nil)
+        }
+    }
+
+    return FeedbackFailureDiagnostics(statusCode: nil, backendCode: nil, requestId: nil)
+}
+
+private func isFeedbackAutomaticPromptServerStage(stage: String) -> Bool {
+    stage == "load_feedback_state" || stage == "record_prompt_shown"
+}
+
+private func isRetryableFeedbackAutomaticPromptStatusCode(_ statusCode: Int) -> Bool {
+    statusCode == 408 || statusCode == 429 || (statusCode >= 500 && statusCode <= 599)
 }

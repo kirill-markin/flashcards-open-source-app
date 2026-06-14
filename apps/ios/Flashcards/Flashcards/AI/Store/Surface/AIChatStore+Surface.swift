@@ -688,9 +688,11 @@ extension AIChatStore {
         }
 
         Task {
+            var refreshedSessionId: String?
             do {
                 let session = try await self.flashcardsStore.cloudSessionForAI()
                 let sessionId = try await self.ensureRemoteSessionIfNeeded(session: session)
+                refreshedSessionId = sessionId
                 let refreshedBaselineState = self.currentPersistedState()
                 let bootstrap = try await self.chatService.loadBootstrap(
                     session: session,
@@ -707,9 +709,57 @@ extension AIChatStore {
                     session: session,
                     resumeAttemptDiagnostics: nil
                 )
+            } catch is CancellationError {
+                return
             } catch {
+                if self.shouldIgnoreAIChatPassiveSnapshotRefreshFailure(error: error) {
+                    return
+                }
+                let diagnostics = (error as? any AIChatFailureDiagnosticProviding)?.diagnostics
+                FlashcardsObservability.captureSilentFailure(
+                    error: error,
+                    scope: IOSObservationScope(
+                        feature: .aiChat,
+                        userId: nil,
+                        workspaceId: self.flashcardsStore.workspace?.workspaceId,
+                        requestId: diagnostics?.backendRequestId,
+                        clientRequestId: diagnostics?.clientRequestId,
+                        sessionId: refreshedSessionId,
+                        runId: self.activeRunId,
+                        cloudState: self.flashcardsStore.cloudSettings?.cloudState,
+                        configurationMode: nil
+                    ),
+                    action: "ai_chat_passive_snapshot_refresh",
+                    stage: diagnostics?.stage.rawValue ?? "refresh",
+                    statusCode: diagnostics?.statusCode,
+                    backendCode: nil,
+                    requestId: diagnostics?.backendRequestId
+                )
             }
         }
+    }
+
+    private func shouldIgnoreAIChatPassiveSnapshotRefreshFailure(error: Error) -> Bool {
+        if isAIChatRequestCancellationError(error: error) {
+            return true
+        }
+        if isRetryableNetworkTransportFailure(error: error) {
+            return true
+        }
+        return self.isAIChatPassiveSnapshotRefreshBlockedGateFailure(error: error)
+    }
+
+    private func isAIChatPassiveSnapshotRefreshBlockedGateFailure(error: Error) -> Bool {
+        guard case .blocked(let blockedMessage) = self.flashcardsStore.syncStatus else {
+            return false
+        }
+        guard let localStoreError = error as? LocalStoreError else {
+            return false
+        }
+        guard case .validation(let message) = localStoreError else {
+            return false
+        }
+        return message == blockedMessage
     }
 }
 

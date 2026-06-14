@@ -88,6 +88,14 @@ extension FlashcardsStore {
             let data = try self.encoder.encode(self.strictRemindersSettings)
             self.userDefaults.set(data, forKey: strictRemindersSettingsUserDefaultsKey)
         } catch {
+            captureStrictRemindersSilentFailure(
+                error: error,
+                action: "strict_reminders_settings_save",
+                stage: "encode",
+                cloudSettings: self.cloudSettings,
+                workspaceId: self.workspace?.workspaceId,
+                configurationMode: try? self.currentCloudServiceConfiguration().mode
+            )
             self.userDefaults.removeObject(forKey: strictRemindersSettingsUserDefaultsKey)
         }
     }
@@ -97,6 +105,14 @@ extension FlashcardsStore {
             let data = try self.encoder.encode(payloads)
             self.userDefaults.set(data, forKey: strictReminderScheduledPayloadsUserDefaultsKey)
         } catch {
+            captureStrictRemindersSilentFailure(
+                error: error,
+                action: "strict_reminders_scheduled_payloads_save",
+                stage: "encode",
+                cloudSettings: self.cloudSettings,
+                workspaceId: self.workspace?.workspaceId,
+                configurationMode: try? self.currentCloudServiceConfiguration().mode
+            )
             self.userDefaults.removeObject(forKey: strictReminderScheduledPayloadsUserDefaultsKey)
         }
     }
@@ -279,7 +295,17 @@ extension FlashcardsStore {
                     plannedRequestIdentifiers: payloads.map(\.requestId),
                     delayNanoseconds: notificationSchedulingDelayedReadbackNanoseconds
                 )
+            } catch is CancellationError {
+                return
             } catch {
+                captureStrictRemindersSilentFailure(
+                    error: error,
+                    action: "strict_reminders_delayed_readback",
+                    stage: "readback",
+                    cloudSettings: self.cloudSettings,
+                    workspaceId: self.workspace?.workspaceId,
+                    configurationMode: try? self.currentCloudServiceConfiguration().mode
+                )
                 return
             }
             guard Task.isCancelled == false else {
