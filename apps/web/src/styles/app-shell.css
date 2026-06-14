@@ -22,7 +22,6 @@
   width: 100%;
   padding: 10px var(--topbar-shell-inline-padding);
   border: 1px solid transparent;
-  border-radius: var(--radius-lg);
   background: var(--bg);
   box-shadow: none;
 }

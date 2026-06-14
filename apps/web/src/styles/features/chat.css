@@ -45,7 +45,6 @@
   position: relative;
   overflow: hidden;
   border: 1px solid transparent;
-  border-radius: var(--chat-sidebar-radius);
   background: var(--bg);
   box-shadow: none;
 }
@@ -99,7 +98,7 @@
   gap: 12px;
   padding: 12px 14px;
   border-bottom: 1px solid var(--divider);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--bg);
   flex-shrink: 0;
 }
 
@@ -394,9 +393,7 @@
   gap: 12px;
   flex-shrink: 0;
   min-height: 0;
-  background:
-    radial-gradient(circle at top, rgba(196, 75, 45, 0.08), transparent 42%),
-    rgba(255, 255, 255, 0.02);
+  background: var(--bg);
 }
 
 .chat-input-area-loading {
