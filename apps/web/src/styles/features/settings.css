@@ -200,8 +200,8 @@
 }
 
 .chat-layout-shell-sidebar-open .settings-panel-test-animations {
-  height: var(--chat-shell-pane-height);
-  min-height: var(--chat-shell-pane-height);
+  height: 100%;
+  min-height: 100%;
   max-height: none;
 }
 

@@ -11,7 +11,7 @@
   top: 0;
   z-index: 50;
   flex-shrink: 0;
-  padding: 18px var(--header-inline-padding) 0;
+  padding: var(--shell-frame-gap) var(--header-inline-padding) 0;
   background:
     linear-gradient(180deg, rgba(5, 5, 5, 0.96), rgba(5, 5, 5, 0.72) 80%, transparent);
   backdrop-filter: var(--blur);
@@ -266,7 +266,7 @@
 
 .global-error-wrap {
   width: 100%;
-  padding: 14px var(--desktop-shell-gutter) 0;
+  padding: var(--shell-frame-gap) var(--desktop-shell-gutter) 0;
 }
 
 .global-error {
@@ -282,16 +282,17 @@
 .container {
   width: 100%;
   min-width: 0;
-  min-height: calc(100dvh - 104px);
+  min-height: 100%;
   padding: var(--chat-shell-pane-top, 12px) 0 var(--chat-shell-pane-bottom, 12px);
 }
 
 .chat-layout-shell-sidebar-open .chat-main-content > .container {
+  height: var(--chat-shell-content-height);
   min-height: var(--chat-shell-content-height);
 }
 
 .chat-layout-shell-sidebar-open .chat-main-content > .container > .panel {
-  min-height: var(--chat-shell-pane-height);
+  min-height: 100%;
 }
 
 .page-state {
@@ -330,8 +331,8 @@
 
 @media (max-width: 768px) {
   .header-sticky {
-    --header-inline-padding: 18px;
-    padding: 14px 18px 0;
+    --header-inline-padding: var(--shell-frame-gap);
+    padding: var(--shell-frame-gap) var(--header-inline-padding) 0;
   }
 
   .topbar-shell,
@@ -339,10 +340,6 @@
   .page-state,
   .global-error-wrap {
     width: 100%;
-  }
-
-  .container {
-    min-height: calc(100dvh - 104px);
   }
 
   .chat-layout-shell-sidebar-open .chat-main-content > .container > .panel {

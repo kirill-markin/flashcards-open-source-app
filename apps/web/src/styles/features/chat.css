@@ -1,13 +1,13 @@
 .chat-page {
   display: flex;
   justify-content: center;
-  padding: 24px 0 40px;
+  padding: var(--shell-frame-gap) 0;
 }
 
 .chat-layout-shell {
-  --chat-shell-pane-top: 12px;
-  --chat-shell-pane-bottom: 12px;
-  --chat-shell-content-height: calc(100dvh - 104px);
+  --chat-shell-pane-top: var(--shell-frame-gap);
+  --chat-shell-pane-bottom: var(--shell-frame-gap);
+  --chat-shell-content-height: 100%;
   --chat-shell-pane-offset: calc(var(--chat-shell-pane-top) + var(--chat-shell-pane-bottom));
   --chat-shell-pane-height: calc(var(--chat-shell-content-height) - var(--chat-shell-pane-offset));
   display: flex;
@@ -15,8 +15,8 @@
   min-height: 0;
   overflow: hidden;
   align-items: stretch;
-  gap: var(--desktop-shell-gutter);
-  padding-inline: var(--desktop-shell-gutter);
+  gap: var(--shell-frame-gap);
+  padding-inline: var(--shell-frame-gap);
 }
 
 .chat-main-content {
@@ -844,8 +844,8 @@
 
 .chat-toggle-floating {
   position: fixed;
-  bottom: 24px;
-  inset-inline-start: 24px;
+  bottom: var(--shell-frame-gap);
+  inset-inline-start: var(--shell-frame-gap);
   z-index: 60;
   min-height: 52px;
   padding: 0 22px;
@@ -865,21 +865,21 @@
 
 @media (max-width: 768px) {
   .chat-page {
-    padding-inline: 18px;
+    padding-inline: 0;
   }
 
   .chat-layout-shell {
     gap: 0;
-    padding-inline: 0;
+    padding-inline: var(--shell-frame-gap);
   }
 
   .chat-sidebar {
     position: fixed;
-    top: 14px;
-    inset-inline-start: 14px;
-    width: calc(100% - 28px) !important;
-    height: calc(100dvh - 28px);
-    max-height: calc(100dvh - 28px);
+    top: var(--shell-frame-gap);
+    inset-inline-start: var(--shell-frame-gap);
+    width: calc(100% - (2 * var(--shell-frame-gap))) !important;
+    height: calc(100dvh - (2 * var(--shell-frame-gap)));
+    max-height: calc(100dvh - (2 * var(--shell-frame-gap)));
     z-index: 100;
     margin: 0;
   }

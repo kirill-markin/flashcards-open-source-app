@@ -10,6 +10,10 @@
   overflow: hidden;
 }
 
+.chat-layout-shell-sidebar-open .review-screen-panel {
+  --review-screen-panel-height: 100%;
+}
+
 .review-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
