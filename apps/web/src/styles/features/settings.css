@@ -211,7 +211,6 @@
   min-height: 0;
   overflow-y: auto;
   padding-inline-end: 4px;
-  scrollbar-gutter: stable;
 }
 
 .settings-test-animation-rows {

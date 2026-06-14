@@ -54,7 +54,6 @@
   box-shadow: var(--shadow);
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-gutter: stable;
 }
 
 .cards-filter-section {

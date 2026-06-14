@@ -14,6 +14,9 @@
   --text-primary: #f6f6f8;
   --text-secondary: rgba(235, 235, 245, 0.62);
   --text-tertiary: rgba(235, 235, 245, 0.38);
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: rgba(235, 235, 245, 0.22);
+  --scrollbar-thumb-hover: rgba(235, 235, 245, 0.36);
   --muted: var(--text-secondary);
   --accent: #c44b2d;
   --accent-strong: #d65a38;
