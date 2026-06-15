@@ -86,7 +86,7 @@ private func makeReviewMarkdownTheme(surfaceStyle: ReviewCardSurfaceStyle) -> Th
                 configuration.label
                     .fixedSize(horizontal: false, vertical: true)
                     .markdownTextStyle {
-                        ForegroundColor(reviewMarkdownSecondaryTextColor(surfaceStyle: surfaceStyle))
+                        ForegroundColor(reviewMarkdownTextColor(surfaceStyle: surfaceStyle))
                     }
             }
             .padding(.vertical, 2)
