@@ -373,6 +373,7 @@ private fun JSONObject.toCloudProgressLeaderboardRow(
         kind = ProgressLeaderboardParticipantRowKind.fromWireKey(wireKey = kind),
         publicProfileId = requireCloudString("publicProfileId", "$fieldPath.publicProfileId"),
         anonymousDisplayName = requireCloudString("anonymousDisplayName", "$fieldPath.anonymousDisplayName"),
+        friendDisplayName = optCloudStringOrNull("friendDisplayName", "$fieldPath.friendDisplayName"),
         qualifiedReviewCount = requireNonNegativeReviewScheduleInt(
             value = requireCloudInt("qualifiedReviewCount", "$fieldPath.qualifiedReviewCount"),
             fieldPath = "$fieldPath.qualifiedReviewCount"
@@ -393,6 +394,7 @@ private fun JSONObject.toCloudProgressLeaderboardRankingRow(
         ),
         publicProfileId = requireCloudString("publicProfileId", "$fieldPath.publicProfileId"),
         anonymousDisplayName = requireCloudString("anonymousDisplayName", "$fieldPath.anonymousDisplayName"),
+        friendDisplayName = optCloudStringOrNull("friendDisplayName", "$fieldPath.friendDisplayName"),
         qualifiedReviewCount = requireNonNegativeReviewScheduleInt(
             value = requireCloudInt("qualifiedReviewCount", "$fieldPath.qualifiedReviewCount"),
             fieldPath = "$fieldPath.qualifiedReviewCount"

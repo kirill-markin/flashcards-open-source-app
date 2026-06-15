@@ -1,6 +1,8 @@
 package com.flashcardsopensourceapp.data.local.cloud.remote
 
 import com.flashcardsopensourceapp.data.local.cloud.identity.syncWorkspaceForkRequiredErrorCode
+import com.flashcardsopensourceapp.data.local.cloud.remote.community.buildCloudFriendInvitationCreateRequest
+import com.flashcardsopensourceapp.data.local.cloud.remote.community.parseCloudFriendInvitationCreateResponse
 import com.flashcardsopensourceapp.data.local.cloud.remote.guest.buildGuestUpgradeCompleteRequest
 import com.flashcardsopensourceapp.data.local.cloud.remote.progress.parseCloudProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.cloud.remote.progress.parseCloudProgressReviewScheduleResponse
@@ -9,7 +11,9 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.progress.parseCloudPr
 import com.flashcardsopensourceapp.data.local.cloud.remote.sync.parseRemotePushResponse
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.parseCloudErrorPayload
 import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationCreateRequest
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeSelection
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRow
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRankingRowKind
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleBucketKey
@@ -35,6 +39,38 @@ class CloudRemoteServiceTest {
         assertEquals(true, request.getBoolean("supportsDroppedEntities"))
         assertEquals("existing", request.getJSONObject("selection").getString("type"))
         assertEquals("workspace-linked", request.getJSONObject("selection").getString("workspaceId"))
+    }
+
+    @Test
+    fun buildCloudFriendInvitationCreateRequestUsesInviteeDisplayName() {
+        val request = buildCloudFriendInvitationCreateRequest(
+            request = CloudFriendInvitationCreateRequest(
+                inviteeDisplayName = "Priya \uD83C\uDFAF"
+            )
+        )
+
+        assertEquals("Priya \uD83C\uDFAF", request.getString("inviteeDisplayName"))
+        assertEquals(1, request.length())
+    }
+
+    @Test
+    fun parseCloudFriendInvitationCreateResponseReadsShareUrlAndExpiry() {
+        val response = JSONObject(
+            """
+            {
+              "inviteUrl": "https://app.flashcards-open-source-app.com/invite/raw-token",
+              "expiresAt": "2026-06-17T10:00:00.000Z"
+            }
+            """.trimIndent()
+        )
+
+        val invitation = parseCloudFriendInvitationCreateResponse(
+            response = response,
+            fieldPath = "friendInvitation"
+        )
+
+        assertEquals("https://app.flashcards-open-source-app.com/invite/raw-token", invitation.inviteUrl)
+        assertEquals("2026-06-17T10:00:00.000Z", invitation.expiresAt)
     }
 
     @Test
@@ -292,6 +328,7 @@ class CloudRemoteServiceTest {
                       "kind": "top",
                       "publicProfileId": "participant-1",
                       "anonymousDisplayName": "Silver Bright Harbor",
+                      "friendDisplayName": "Kai",
                       "qualifiedReviewCount": 9,
                       "rank": 1
                     },
@@ -308,6 +345,7 @@ class CloudRemoteServiceTest {
                       "kind": "participant",
                       "publicProfileId": "participant-1",
                       "anonymousDisplayName": "Silver Bright Harbor",
+                      "friendDisplayName": "Kai",
                       "qualifiedReviewCount": 9,
                       "rank": 1
                     },
@@ -335,6 +373,9 @@ class CloudRemoteServiceTest {
         assertEquals(2, window.rankingRows.size)
         assertEquals(CloudProgressLeaderboardRankingRowKind.VIEWER, window.rankingRows[1].kind)
         assertEquals("viewer-profile", window.rankingRows[1].publicProfileId)
+        assertEquals("Kai", window.rankingRows[0].friendDisplayName)
+        val participantRow = window.rows[0] as CloudProgressLeaderboardRow.Participant
+        assertEquals("Kai", participantRow.friendDisplayName)
     }
 
     @Test

@@ -49,6 +49,10 @@ internal fun buildCommunityProfileCloudPath(): String {
     return "/me/community/profile"
 }
 
+internal fun buildCommunityFriendInvitationsCloudPath(): String {
+    return "/me/community/friend-invitations"
+}
+
 private fun encodeCloudQueryValue(value: String): String {
     return URLEncoder.encode(value, StandardCharsets.UTF_8)
 }

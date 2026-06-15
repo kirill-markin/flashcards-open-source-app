@@ -53,6 +53,48 @@ data class ProgressReviewScheduleSectionUiState(
     val hasCards: Boolean
 )
 
+enum class ProgressFriendInvitationDisplayNameError {
+    EMPTY,
+    TOO_LONG,
+    CONTROL_CHARACTER
+}
+
+enum class ProgressFriendInvitationCreateError {
+    LIMIT_REACHED,
+    SIGN_IN_REQUIRED,
+    INVALID_DISPLAY_NAME,
+    GENERIC
+}
+
+sealed interface ProgressFriendInvitationDisplayNameValidation {
+    data class Valid(
+        val trimmedDisplayName: String
+    ) : ProgressFriendInvitationDisplayNameValidation
+
+    data class Invalid(
+        val error: ProgressFriendInvitationDisplayNameError
+    ) : ProgressFriendInvitationDisplayNameValidation
+}
+
+sealed interface ProgressFriendInvitationUiState {
+    data object Idle : ProgressFriendInvitationUiState
+
+    data object Creating : ProgressFriendInvitationUiState
+
+    data class Created(
+        val shareId: Long,
+        val inviteUrl: String
+    ) : ProgressFriendInvitationUiState
+
+    data class ValidationFailed(
+        val error: ProgressFriendInvitationDisplayNameError
+    ) : ProgressFriendInvitationUiState
+
+    data class CreateFailed(
+        val error: ProgressFriendInvitationCreateError
+    ) : ProgressFriendInvitationUiState
+}
+
 sealed interface ProgressLeaderboardRowUiState {
     data class Participant(
         val rank: Int,
@@ -87,7 +129,8 @@ sealed interface ProgressLeaderboardSectionUiState {
         // null falls back to the client string resource.
         val metricDescription: String?,
         val selectedWindowKey: ProgressLeaderboardWindowKey,
-        val windows: List<ProgressLeaderboardWindowUiState>
+        val windows: List<ProgressLeaderboardWindowUiState>,
+        val reservedRowCount: Int
     ) : ProgressLeaderboardSectionUiState {
         val selectedWindow: ProgressLeaderboardWindowUiState?
             get() = windows.firstOrNull { window -> window.windowKey == selectedWindowKey }

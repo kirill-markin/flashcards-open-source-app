@@ -178,6 +178,7 @@ private fun createProgressLeaderboardRankingRowForBadgeTest(
         kind = kind,
         publicProfileId = publicProfileId,
         anonymousDisplayName = anonymousDisplayName,
+        friendDisplayName = null,
         qualifiedReviewCount = qualifiedReviewCount,
         rank = rank
     )
@@ -191,6 +192,7 @@ private fun createProgressLeaderboardRowForBadgeTest(
         kind = kind,
         publicProfileId = rankingRow.publicProfileId,
         anonymousDisplayName = rankingRow.anonymousDisplayName,
+        friendDisplayName = null,
         qualifiedReviewCount = rankingRow.qualifiedReviewCount,
         rank = rankingRow.rank
     )

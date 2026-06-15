@@ -165,7 +165,7 @@ internal fun ProgressLeaderboardCacheEntity.toCloudProgressLeaderboardOrNull(): 
 
 // The cached payload reuses the wire shape so parseCloudProgressLeaderboard reads both
 // the live response and this serialized copy, including the API-provided anonymous
-// display names.
+// display names and viewer-private friend labels.
 internal fun serializeCloudProgressLeaderboard(
     leaderboard: CloudProgressLeaderboard
 ): JSONObject {
@@ -227,6 +227,7 @@ private fun CloudProgressLeaderboardRow.toCacheJson(): JSONObject {
             .put("kind", kind.wireKey)
             .put("publicProfileId", publicProfileId)
             .put("anonymousDisplayName", anonymousDisplayName)
+            .putOptionalCloudString(name = "friendDisplayName", value = friendDisplayName)
             .put("qualifiedReviewCount", qualifiedReviewCount)
             .put("rank", rank)
     }
@@ -237,8 +238,16 @@ private fun CloudProgressLeaderboardRankingRow.toCacheJson(): JSONObject {
         .put("kind", kind.wireKey)
         .put("publicProfileId", publicProfileId)
         .put("anonymousDisplayName", anonymousDisplayName)
+        .putOptionalCloudString(name = "friendDisplayName", value = friendDisplayName)
         .put("qualifiedReviewCount", qualifiedReviewCount)
         .put("rank", rank)
+}
+
+private fun JSONObject.putOptionalCloudString(name: String, value: String?): JSONObject {
+    if (value != null) {
+        put(name, value)
+    }
+    return this
 }
 
 internal fun findProgressReviewScheduleServerBase(

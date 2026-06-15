@@ -6,7 +6,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationCreateRequest
 import com.flashcardsopensourceapp.data.local.model.progress.CloudDailyReviewPoint
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRow
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardWindow
@@ -20,6 +22,7 @@ import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewSched
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.resolveBestLeaderboardPlacement
+import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.ProgressRepository
 import com.flashcardsopensourceapp.data.local.repository.progress.progressHistoryDayCount
 import kotlinx.coroutines.CancellationException
@@ -35,20 +38,33 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.time.temporal.WeekFields
-import kotlin.math.ceil
 import java.util.Locale
+import kotlin.math.ceil
 
 private const val streakWeekCount: Int = 5
 private const val daysPerWeek: Int = 7
+private const val friendInvitationDisplayNameMaxCodePointCount: Int = 30
+private const val accountSignInRequiredErrorCode: String = "ACCOUNT_SIGN_IN_REQUIRED"
+private const val authUnauthorizedErrorCode: String = "AUTH_UNAUTHORIZED"
+private const val friendInvitationDisplayNameInvalidErrorCode: String = "FRIEND_INVITATION_DISPLAY_NAME_INVALID"
+private const val friendInvitationHumanAuthRequiredErrorCode: String = "FRIEND_INVITATION_HUMAN_AUTH_REQUIRED"
+private const val friendInvitationLimitReachedErrorCode: String = "FRIEND_INVITATION_LIMIT_REACHED"
 private const val progressViewModelLogTag: String = "ProgressViewModel"
 private const val progressViewModelLogMaxValueLength: Int = 240
 
 class ProgressViewModel(
-    private val progressRepository: ProgressRepository
+    private val progressRepository: ProgressRepository,
+    private val cloudAccountRepository: CloudAccountRepository
 ) : ViewModel() {
     private val uiStateMutable = MutableStateFlow<ProgressUiState>(ProgressUiState.Loading)
     val uiState: StateFlow<ProgressUiState> = uiStateMutable.asStateFlow()
+    private val friendInvitationUiStateMutable = MutableStateFlow<ProgressFriendInvitationUiState>(
+        ProgressFriendInvitationUiState.Idle
+    )
+    val friendInvitationUiState: StateFlow<ProgressFriendInvitationUiState> =
+        friendInvitationUiStateMutable.asStateFlow()
     private val selectedLeaderboardWindowMutable = MutableStateFlow<ProgressLeaderboardWindowKey?>(null)
+    private var nextFriendInvitationShareId: Long = 1L
 
     init {
         viewModelScope.launch {
@@ -110,6 +126,66 @@ class ProgressViewModel(
         }
     }
 
+    fun createFriendInvitation(inviteeDisplayName: String) {
+        if (friendInvitationUiStateMutable.value is ProgressFriendInvitationUiState.Creating) {
+            return
+        }
+
+        val validation = validateFriendInvitationDisplayName(displayName = inviteeDisplayName)
+        if (validation is ProgressFriendInvitationDisplayNameValidation.Invalid) {
+            friendInvitationUiStateMutable.value = ProgressFriendInvitationUiState.ValidationFailed(
+                error = validation.error
+            )
+            return
+        }
+
+        val validValidation = validation as ProgressFriendInvitationDisplayNameValidation.Valid
+        val trimmedDisplayName = validValidation.trimmedDisplayName
+        friendInvitationUiStateMutable.value = ProgressFriendInvitationUiState.Creating
+        viewModelScope.launch {
+            try {
+                val invitation = cloudAccountRepository.createFriendInvitation(
+                    request = CloudFriendInvitationCreateRequest(
+                        inviteeDisplayName = trimmedDisplayName
+                    )
+                )
+                val shareId = nextFriendInvitationShareId
+                nextFriendInvitationShareId += 1
+                friendInvitationUiStateMutable.value = ProgressFriendInvitationUiState.Created(
+                    shareId = shareId,
+                    inviteUrl = invitation.inviteUrl
+                )
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                logProgressViewModelWarning(
+                    event = "progress_friend_invitation_create_failed",
+                    error = error
+                )
+                friendInvitationUiStateMutable.value = ProgressFriendInvitationUiState.CreateFailed(
+                    error = resolveFriendInvitationCreateError(error = error)
+                )
+            }
+        }
+    }
+
+    fun clearFriendInvitationFailure() {
+        val currentState = friendInvitationUiStateMutable.value
+        if (
+            currentState is ProgressFriendInvitationUiState.ValidationFailed ||
+            currentState is ProgressFriendInvitationUiState.CreateFailed
+        ) {
+            friendInvitationUiStateMutable.value = ProgressFriendInvitationUiState.Idle
+        }
+    }
+
+    fun markFriendInvitationShared(shareId: Long) {
+        val currentState = friendInvitationUiStateMutable.value
+        if (currentState is ProgressFriendInvitationUiState.Created && currentState.shareId == shareId) {
+            friendInvitationUiStateMutable.value = ProgressFriendInvitationUiState.Idle
+        }
+    }
+
     // viewModelScope has a SupervisorJob but no CoroutineExceptionHandler, so any
     // uncaught throw from the suspend body would crash the process. This helper
     // re-throws CancellationException to keep structured concurrency intact and
@@ -125,6 +201,20 @@ class ProgressViewModel(
                 logProgressViewModelWarning(event = event, error = error)
             }
         }
+    }
+}
+
+private fun resolveFriendInvitationCreateError(
+    error: Exception
+): ProgressFriendInvitationCreateError {
+    val remoteError = error as? CloudRemoteException
+    return when (remoteError?.errorCode) {
+        friendInvitationLimitReachedErrorCode -> ProgressFriendInvitationCreateError.LIMIT_REACHED
+        accountSignInRequiredErrorCode,
+        authUnauthorizedErrorCode,
+        friendInvitationHumanAuthRequiredErrorCode -> ProgressFriendInvitationCreateError.SIGN_IN_REQUIRED
+        friendInvitationDisplayNameInvalidErrorCode -> ProgressFriendInvitationCreateError.INVALID_DISPLAY_NAME
+        else -> ProgressFriendInvitationCreateError.GENERIC
     }
 }
 
@@ -224,7 +314,8 @@ internal fun createProgressLeaderboardSectionUiState(
                     ?.takeIf { windowKey -> windows.any { window -> window.windowKey == windowKey } }
                     ?: resolveBestLeaderboardPlacement(snapshot = snapshot)?.windowKey
                     ?: leaderboard.defaultWindowKey,
-                windows = windows
+                windows = windows,
+                reservedRowCount = windows.maxOfOrNull { window -> window.rows.size } ?: 0
             )
         }
     }
@@ -239,7 +330,7 @@ private fun CloudProgressLeaderboardWindow.toUiState(): ProgressLeaderboardWindo
                 is CloudProgressLeaderboardRow.Gap -> ProgressLeaderboardRowUiState.Gap
                 is CloudProgressLeaderboardRow.Participant -> ProgressLeaderboardRowUiState.Participant(
                     rank = row.rank,
-                    displayName = row.anonymousDisplayName,
+                    displayName = row.friendDisplayName ?: row.anonymousDisplayName,
                     qualifiedReviewCount = row.qualifiedReviewCount,
                     isViewer = row.kind == ProgressLeaderboardParticipantRowKind.VIEWER
                 )
@@ -296,6 +387,39 @@ private fun CloudProgressSeries.toUiState(
         reviewScheduleSection = reviewSchedule,
         leaderboardSection = leaderboardSection
     )
+}
+
+internal fun validateFriendInvitationDisplayName(
+    displayName: String
+): ProgressFriendInvitationDisplayNameValidation {
+    val trimmedDisplayName = displayName.trim()
+    if (trimmedDisplayName.isEmpty()) {
+        return ProgressFriendInvitationDisplayNameValidation.Invalid(
+            error = ProgressFriendInvitationDisplayNameError.EMPTY
+        )
+    }
+    if (containsFriendInvitationControlCharacter(displayName = displayName)) {
+        return ProgressFriendInvitationDisplayNameValidation.Invalid(
+            error = ProgressFriendInvitationDisplayNameError.CONTROL_CHARACTER
+        )
+    }
+    if (trimmedDisplayName.codePointCount(0, trimmedDisplayName.length) > friendInvitationDisplayNameMaxCodePointCount) {
+        return ProgressFriendInvitationDisplayNameValidation.Invalid(
+            error = ProgressFriendInvitationDisplayNameError.TOO_LONG
+        )
+    }
+
+    return ProgressFriendInvitationDisplayNameValidation.Valid(
+        trimmedDisplayName = trimmedDisplayName
+    )
+}
+
+private fun containsFriendInvitationControlCharacter(
+    displayName: String
+): Boolean {
+    return displayName.any { character ->
+        character.code <= 0x1F || character.code == 0x7F
+    }
 }
 
 private fun ProgressSummarySnapshot.toUiState(): ProgressSummaryUiState {
@@ -601,12 +725,14 @@ private fun sanitizeProgressViewModelLogValue(
 }
 
 fun createProgressViewModelFactory(
-    progressRepository: ProgressRepository
+    progressRepository: ProgressRepository,
+    cloudAccountRepository: CloudAccountRepository
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
             ProgressViewModel(
-                progressRepository = progressRepository
+                progressRepository = progressRepository,
+                cloudAccountRepository = cloudAccountRepository
             )
         }
     }
