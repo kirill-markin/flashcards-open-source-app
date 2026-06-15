@@ -38,9 +38,16 @@ class ProgressCacheValidationTest {
             generatedAt = "2026-04-18T10:00:00Z",
             reviewHistoryWatermarksJson = """[]""",
             currentStreakDays = 2,
+            longestStreakDays = 2,
             hasReviewedToday = true,
             lastReviewedOn = "not-a-date",
             activeReviewDays = 4,
+            streakFreezeAvailableCredits = 2,
+            streakFreezeCapacity = 2,
+            streakFreezeBalanceUnits = 20,
+            streakFreezeUnitsPerCredit = 10,
+            streakFreezeNextCreditProgressUnits = 0,
+            streakFreezeNextCreditRequiredUnits = 10,
             updatedAtMillis = 1L
         )
 
@@ -58,6 +65,7 @@ class ProgressCacheValidationTest {
             generatedAt = "2026-04-18T10:00:00Z",
             reviewHistoryWatermarksJson = """[]""",
             dailyReviewsJson = "{not-json}",
+            streakDaysJson = """[]""",
             updatedAtMillis = 1L
         )
 
@@ -164,9 +172,11 @@ class ProgressCacheValidationTest {
         )
         val summary = CloudProgressSummary(
             currentStreakDays = 3,
+            longestStreakDays = 3,
             hasReviewedToday = true,
             lastReviewedOn = "2026-04-18",
             activeReviewDays = 9,
+            streakFreeze = createInitialProgressStreakFreeze(),
             reviewHistoryWatermarks = watermarks
         )
         val series = CloudProgressSeries(
@@ -182,6 +192,12 @@ class ProgressCacheValidationTest {
                     goodCount = 1,
                     easyCount = 0
                 )
+            ),
+            streakDays = createProgressStreakDaysForRange(
+                activeReviewDateSet = setOf(seriesScopeKey.to),
+                from = seriesScopeKey.from,
+                to = seriesScopeKey.to,
+                today = LocalDate.parse(seriesScopeKey.to)
             ),
             generatedAt = "2026-04-18T10:00:00Z",
             reviewHistoryWatermarks = watermarks,
@@ -211,6 +227,13 @@ class ProgressCacheValidationTest {
         assertEquals(
             1,
             cachedSeries?.dailyReviews?.single()?.againCount
+        )
+        assertEquals(
+            series.streakDays,
+            series.toCacheEntity(
+                scopeKey = seriesScopeKey,
+                updatedAtMillis = 1L
+            ).toCloudProgressSeriesOrNull()?.streakDays
         )
         assertEquals(
             watermarks,

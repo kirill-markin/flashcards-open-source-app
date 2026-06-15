@@ -98,6 +98,8 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         emptyState = ReviewEmptyState.SESSION_COMPLETE,
                         reviewProgressBadge = ReviewProgressBadgeState(
                             streakDays = 120,
+                            freezeAvailableCredits = 0,
+                            freezeCapacity = 0,
                             hasReviewedToday = false,
                             isInteractive = true
                         ),

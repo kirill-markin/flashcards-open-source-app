@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.feature.progress
 
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakDayState
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleBucketKey
 import java.time.LocalDate
@@ -28,6 +29,7 @@ data class ProgressStreakDayUiState(
     val date: LocalDate?,
     val dayOfMonthLabel: String?,
     val reviewCount: Int,
+    val state: CloudProgressStreakDayState?,
     val isToday: Boolean,
     val isPlaceholder: Boolean
 )
@@ -36,9 +38,17 @@ data class ProgressStreakWeekUiState(
     val days: List<ProgressStreakDayUiState>
 )
 
+data class ProgressFreezeBankUiState(
+    val availableCredits: Int,
+    val capacity: Int,
+    val nextCreditProgressUnits: Int,
+    val nextCreditRequiredUnits: Int
+)
+
 data class ProgressStreakSectionUiState(
     val weekdayLabels: List<String>,
-    val weeks: List<ProgressStreakWeekUiState>
+    val weeks: List<ProgressStreakWeekUiState>,
+    val freezeBankSummary: ProgressFreezeBankUiState?
 )
 
 data class ProgressReviewsSectionUiState(
@@ -145,7 +155,8 @@ sealed interface ProgressSummaryUiState {
     data object Loading : ProgressSummaryUiState
 
     data class Loaded(
-        val summary: CloudProgressSummary
+        val summary: CloudProgressSummary,
+        val freezeBankSummary: ProgressFreezeBankUiState
     ) : ProgressSummaryUiState
 }
 

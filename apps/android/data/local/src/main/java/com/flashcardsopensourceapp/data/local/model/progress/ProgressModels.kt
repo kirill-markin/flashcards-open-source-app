@@ -32,6 +32,43 @@ data class CloudDailyReviewPoint(
     }
 }
 
+enum class CloudProgressStreakDayState(
+    val wireKey: String
+) {
+    REVIEWED("reviewed"),
+    FROZEN("frozen"),
+    MISSED("missed"),
+    PENDING("pending");
+
+    companion object {
+        private val orderedEntries: List<CloudProgressStreakDayState> = listOf(
+            REVIEWED,
+            FROZEN,
+            MISSED,
+            PENDING
+        )
+
+        fun fromWireKey(wireKey: String): CloudProgressStreakDayState {
+            return orderedEntries.firstOrNull { state -> state.wireKey == wireKey }
+                ?: throw IllegalArgumentException("Unknown progress streak day state '$wireKey'.")
+        }
+    }
+}
+
+data class CloudProgressStreakDay(
+    val date: String,
+    val state: CloudProgressStreakDayState
+)
+
+data class CloudProgressStreakFreeze(
+    val availableCredits: Int,
+    val capacity: Int,
+    val balanceUnits: Int,
+    val unitsPerCredit: Int,
+    val nextCreditProgressUnits: Int,
+    val nextCreditRequiredUnits: Int
+)
+
 data class ProgressReviewHistoryWatermark(
     val workspaceId: String,
     val reviewSequenceId: Long
@@ -39,9 +76,11 @@ data class ProgressReviewHistoryWatermark(
 
 data class CloudProgressSummary(
     val currentStreakDays: Int,
+    val longestStreakDays: Int,
     val hasReviewedToday: Boolean,
     val lastReviewedOn: String?,
     val activeReviewDays: Int,
+    val streakFreeze: CloudProgressStreakFreeze,
     val reviewHistoryWatermarks: List<ProgressReviewHistoryWatermark>
 )
 
@@ -50,6 +89,7 @@ data class CloudProgressSeries(
     val from: String,
     val to: String,
     val dailyReviews: List<CloudDailyReviewPoint>,
+    val streakDays: List<CloudProgressStreakDay>,
     val generatedAt: String?,
     val reviewHistoryWatermarks: List<ProgressReviewHistoryWatermark>,
     val summary: CloudProgressSummary?

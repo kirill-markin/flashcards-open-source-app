@@ -10,6 +10,8 @@ import java.time.ZoneId
 
 internal const val marketingScreenshotExpectedStreakDays: Int = 8
 internal const val marketingScreenshotExpectedActiveReviewDays: Int = 16
+internal const val marketingScreenshotExpectedFreezeAvailableCredits: Int = 2
+internal const val marketingScreenshotExpectedFreezeCapacity: Int = 2
 
 private data class MarketingReviewTimestamp(
     val daysAgo: Long,

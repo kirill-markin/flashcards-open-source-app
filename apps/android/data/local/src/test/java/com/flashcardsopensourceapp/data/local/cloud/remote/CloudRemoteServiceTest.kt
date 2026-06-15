@@ -103,9 +103,18 @@ class CloudRemoteServiceTest {
               "timeZone": "Europe/Madrid",
               "summary": {
                 "currentStreakDays": 8,
+                "longestStreakDays": 10,
                 "hasReviewedToday": true,
                 "lastReviewedOn": "2026-04-18",
-                "activeReviewDays": 21
+                "activeReviewDays": 21,
+                "streakFreeze": {
+                  "availableCredits": 2,
+                  "capacity": 2,
+                  "balanceUnits": 20,
+                  "unitsPerCredit": 10,
+                  "nextCreditProgressUnits": 0,
+                  "nextCreditRequiredUnits": 10
+                }
               },
               "reviewHistoryWatermarks": [
                 { "workspaceId": "workspace-1", "reviewSequenceId": 42 }
@@ -121,9 +130,11 @@ class CloudRemoteServiceTest {
         )
 
         assertEquals(8, summary.currentStreakDays)
+        assertEquals(10, summary.longestStreakDays)
         assertEquals(true, summary.hasReviewedToday)
         assertEquals("2026-04-18", summary.lastReviewedOn)
         assertEquals(21, summary.activeReviewDays)
+        assertEquals(2, summary.streakFreeze.availableCredits)
         assertEquals(42L, summary.reviewHistoryWatermarks.single().reviewSequenceId)
     }
 
@@ -135,9 +146,18 @@ class CloudRemoteServiceTest {
               "timeZone": "Europe/Madrid",
               "summary": {
                 "currentStreakDays": 8,
+                "longestStreakDays": 10,
                 "hasReviewedToday": true,
                 "lastReviewedOn": "2026-04-18",
-                "activeReviewDays": 21
+                "activeReviewDays": 21,
+                "streakFreeze": {
+                  "availableCredits": 2,
+                  "capacity": 2,
+                  "balanceUnits": 20,
+                  "unitsPerCredit": 10,
+                  "nextCreditProgressUnits": 0,
+                  "nextCreditRequiredUnits": 10
+                }
               },
               "generatedAt": "2026-04-18T12:00:00Z"
             }
@@ -159,6 +179,7 @@ class CloudRemoteServiceTest {
             {
               "timeZone": "Europe/Madrid",
               "currentStreakDays": 8,
+              "longestStreakDays": 10,
               "hasReviewedToday": true,
               "lastReviewedOn": "2026-04-18",
               "activeReviewDays": 21,
@@ -187,6 +208,11 @@ class CloudRemoteServiceTest {
               "dailyReviews": [
                 { "date": "2026-04-01", "reviewCount": 3, "againCount": 1, "hardCount": 1, "goodCount": 1, "easyCount": 0 }
               ],
+              "streakDays": [
+                { "date": "2026-04-01", "state": "reviewed" },
+                { "date": "2026-04-02", "state": "frozen" },
+                { "date": "2026-04-03", "state": "pending" }
+              ],
               "reviewHistoryWatermarks": [
                 { "workspaceId": "workspace-1", "reviewSequenceId": 42 }
               ],
@@ -205,6 +231,7 @@ class CloudRemoteServiceTest {
         assertEquals("2026-04-03", series.to)
         assertEquals(3, series.dailyReviews.single().reviewCount)
         assertEquals(1, series.dailyReviews.single().againCount)
+        assertEquals("frozen", series.streakDays[1].state.wireKey)
         assertEquals(42L, series.reviewHistoryWatermarks.single().reviewSequenceId)
     }
 
@@ -218,6 +245,11 @@ class CloudRemoteServiceTest {
               "to": "2026-04-03",
               "dailyReviews": [
                 { "date": "2026-04-01", "reviewCount": 3, "againCount": 0, "hardCount": 1, "goodCount": 2, "easyCount": 0 }
+              ],
+              "streakDays": [
+                { "date": "2026-04-01", "state": "reviewed" },
+                { "date": "2026-04-02", "state": "frozen" },
+                { "date": "2026-04-03", "state": "pending" }
               ],
               "generatedAt": "2026-04-18T12:00:00Z"
             }
@@ -387,9 +419,18 @@ class CloudRemoteServiceTest {
               "timeZone": "Europe/Madrid",
               "summary": {
                 "currentStreakDays": 8,
+                "longestStreakDays": 10,
                 "hasReviewedToday": true,
                 "lastReviewedOn": "2026-04-18",
-                "activeReviewDays": 21
+                "activeReviewDays": 21,
+                "streakFreeze": {
+                  "availableCredits": 2,
+                  "capacity": 2,
+                  "balanceUnits": 20,
+                  "unitsPerCredit": 10,
+                  "nextCreditProgressUnits": 0,
+                  "nextCreditRequiredUnits": 10
+                }
               },
               "reviewHistoryWatermarks": [
                 { "workspaceId": "workspace-1", "reviewSequenceId": -1 }
@@ -417,9 +458,18 @@ class CloudRemoteServiceTest {
               "timeZone": "Europe/Madrid",
               "summary": {
                 "currentStreakDays": 8,
+                "longestStreakDays": 10,
                 "hasReviewedToday": true,
                 "lastReviewedOn": "2026-04-18",
-                "activeReviewDays": 21
+                "activeReviewDays": 21,
+                "streakFreeze": {
+                  "availableCredits": 2,
+                  "capacity": 2,
+                  "balanceUnits": 20,
+                  "unitsPerCredit": 10,
+                  "nextCreditProgressUnits": 0,
+                  "nextCreditRequiredUnits": 10
+                }
               },
               "reviewHistoryWatermarks": [
                 "not-an-object"

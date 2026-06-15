@@ -52,15 +52,17 @@ internal fun createLocalFallbackSummary(
     ).sorted()
     val activeReviewDateSet = activeReviewDates.toSet()
     val lastReviewedOn = activeReviewDates.lastOrNull()
-    val currentStreakDays = computeCurrentStreakDays(
-        activeReviewDateSet = activeReviewDateSet,
+    val streakEvaluation = evaluateProgressStreakFreeze(
+        sortedActiveReviewLocalDates = activeReviewDates,
         today = today
     )
     return CloudProgressSummary(
-        currentStreakDays = currentStreakDays,
+        currentStreakDays = streakEvaluation.currentStreakDays,
+        longestStreakDays = streakEvaluation.longestStreakDays,
         hasReviewedToday = activeReviewDateSet.contains(today.toString()),
         lastReviewedOn = lastReviewedOn,
         activeReviewDays = activeReviewDates.size,
+        streakFreeze = streakEvaluation.streakFreeze,
         reviewHistoryWatermarks = emptyList()
     )
 }
@@ -70,13 +72,31 @@ internal fun createLocalFallbackActiveDates(
     localDayCounts: List<ProgressLocalDayCountEntity>,
     workspaceIds: List<String>
 ): Set<String> {
+    return createActiveReviewDatesForLocalDayCounts(
+        timeZone = scopeKey.timeZone,
+        localDayCounts = localDayCounts,
+        workspaceIds = workspaceIds
+    )
+}
+
+internal fun createProgressActiveReviewDateSet(
+    timeZone: String,
+    localDayCounts: List<ProgressLocalDayCountEntity>,
+    pendingReviewLocalDates: List<ProgressPendingReviewLocalDate>,
+    workspaceIds: List<String>
+): Set<String> {
     val workspaceIdSet = workspaceIds.toSet()
-    return localDayCounts.filter { dayCount ->
-        dayCount.timeZone == scopeKey.timeZone &&
-            workspaceIdSet.contains(dayCount.workspaceId) &&
-            dayCount.reviewCount > 0
-    }.map(ProgressLocalDayCountEntity::localDate)
+    val localActiveDates = createActiveReviewDatesForLocalDayCounts(
+        timeZone = timeZone,
+        localDayCounts = localDayCounts,
+        workspaceIds = workspaceIds
+    )
+    val pendingActiveDates = pendingReviewLocalDates.filter { pendingReview ->
+        workspaceIdSet.contains(pendingReview.workspaceId)
+    }.map(ProgressPendingReviewLocalDate::localDate)
         .toSet()
+
+    return localActiveDates + pendingActiveDates
 }
 
 internal fun createLocalFallbackSeries(
@@ -109,44 +129,23 @@ internal fun createLocalFallbackSeries(
             easyCount = existingPoint.easyCount + dayCount.easyCount
         )
     }
-
-    return CloudProgressSeries(
+    val activeReviewDates = createActiveReviewDatesForLocalDayCounts(
         timeZone = scopeKey.timeZone,
-        from = scopeKey.from,
-        to = scopeKey.to,
-        dailyReviews = reviewPointsByDate.values.toList(),
-        generatedAt = null,
-        reviewHistoryWatermarks = emptyList(),
-        summary = null
+        localDayCounts = localDayCounts,
+        workspaceIds = workspaceIds
     )
-}
-
-internal fun createPendingLocalOverlaySeries(
-    scopeKey: ProgressSeriesScopeKey,
-    pendingReviewLocalDates: List<ProgressPendingReviewLocalDate>,
-    workspaceIds: List<String>
-): CloudProgressSeries {
-    val workspaceIdSet = workspaceIds.toSet()
-    val reviewPointsByDate = createInclusiveLocalDateRange(
-        from = scopeKey.from,
-        to = scopeKey.to
-    ).associateWith { date -> createEmptyDailyReviewPoint(date = date) }.toMutableMap()
-
-    pendingReviewLocalDates.forEach { pendingReview ->
-        if (workspaceIdSet.contains(pendingReview.workspaceId).not()) {
-            return@forEach
-        }
-        val existingPoint = reviewPointsByDate[pendingReview.localDate] ?: return@forEach
-        reviewPointsByDate[pendingReview.localDate] = existingPoint.incrementDailyReviewPoint(
-            rating = pendingReview.rating
-        )
-    }
 
     return CloudProgressSeries(
         timeZone = scopeKey.timeZone,
         from = scopeKey.from,
         to = scopeKey.to,
         dailyReviews = reviewPointsByDate.values.toList(),
+        streakDays = createProgressStreakDaysForRange(
+            activeReviewDateSet = activeReviewDates,
+            from = scopeKey.from,
+            to = scopeKey.to,
+            today = parseLocalDate(rawDate = scopeKey.to)
+        ),
         generatedAt = null,
         reviewHistoryWatermarks = emptyList(),
         summary = null
@@ -193,12 +192,55 @@ internal fun createLocalFallbackReviewSchedule(
     )
 }
 
+internal fun createPendingLocalOverlaySeries(
+    scopeKey: ProgressSeriesScopeKey,
+    pendingReviewLocalDates: List<ProgressPendingReviewLocalDate>,
+    workspaceIds: List<String>
+): CloudProgressSeries {
+    val workspaceIdSet = workspaceIds.toSet()
+    val reviewPointsByDate = createInclusiveLocalDateRange(
+        from = scopeKey.from,
+        to = scopeKey.to
+    ).associateWith { date -> createEmptyDailyReviewPoint(date = date) }.toMutableMap()
+
+    pendingReviewLocalDates.forEach { pendingReview ->
+        if (workspaceIdSet.contains(pendingReview.workspaceId).not()) {
+            return@forEach
+        }
+        val existingPoint = reviewPointsByDate[pendingReview.localDate] ?: return@forEach
+        reviewPointsByDate[pendingReview.localDate] = existingPoint.incrementDailyReviewPoint(
+            rating = pendingReview.rating
+        )
+    }
+    val activeReviewDates = reviewPointsByDate.filter { entry ->
+        entry.value.reviewCount > 0
+    }.keys.toSet()
+
+    return CloudProgressSeries(
+        timeZone = scopeKey.timeZone,
+        from = scopeKey.from,
+        to = scopeKey.to,
+        dailyReviews = reviewPointsByDate.values.toList(),
+        streakDays = createProgressStreakDaysForRange(
+            activeReviewDateSet = activeReviewDates,
+            from = scopeKey.from,
+            to = scopeKey.to,
+            today = parseLocalDate(rawDate = scopeKey.to)
+        ),
+        generatedAt = null,
+        reviewHistoryWatermarks = emptyList(),
+        summary = null
+    )
+}
+
 internal fun createEmptyProgressSummary(): CloudProgressSummary {
     return CloudProgressSummary(
         currentStreakDays = 0,
+        longestStreakDays = 0,
         hasReviewedToday = false,
         lastReviewedOn = null,
         activeReviewDays = 0,
+        streakFreeze = createInitialProgressStreakFreeze(),
         reviewHistoryWatermarks = emptyList()
     )
 }
@@ -216,6 +258,12 @@ internal fun createEmptyProgressSeries(
         ).map { date ->
             createEmptyDailyReviewPoint(date = date)
         },
+        streakDays = createProgressStreakDaysForRange(
+            activeReviewDateSet = emptySet(),
+            from = scopeKey.from,
+            to = scopeKey.to,
+            today = parseLocalDate(rawDate = scopeKey.to)
+        ),
         generatedAt = null,
         reviewHistoryWatermarks = emptyList(),
         summary = null
@@ -262,4 +310,18 @@ internal fun createEmptyProgressReviewSchedule(
             )
         }
     )
+}
+
+private fun createActiveReviewDatesForLocalDayCounts(
+    timeZone: String,
+    localDayCounts: List<ProgressLocalDayCountEntity>,
+    workspaceIds: List<String>
+): Set<String> {
+    val workspaceIdSet = workspaceIds.toSet()
+    return localDayCounts.filter { dayCount ->
+        dayCount.timeZone == timeZone &&
+            workspaceIdSet.contains(dayCount.workspaceId) &&
+            dayCount.reviewCount > 0
+    }.map(ProgressLocalDayCountEntity::localDate)
+        .toSet()
 }
