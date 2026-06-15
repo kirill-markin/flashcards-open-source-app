@@ -591,9 +591,34 @@ svg.progress-review-schedule-donut {
   font-weight: 600;
 }
 
-.progress-leaderboard-info-btn {
+.progress-leaderboard-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.progress-leaderboard-info-btn,
+.progress-leaderboard-invite-btn {
   min-width: 34px;
   padding: 0 10px;
+}
+
+.progress-leaderboard-invite-btn {
+  gap: 6px;
+}
+
+.progress-leaderboard-invite-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 700;
 }
 
 .progress-leaderboard-info-icon {
@@ -682,6 +707,15 @@ svg.progress-review-schedule-donut {
   background: var(--accent-soft);
 }
 
+.progress-leaderboard-row-friend {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.progress-leaderboard-row-padding {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .progress-leaderboard-rank {
   color: var(--text-tertiary);
   font-size: 13px;
@@ -742,6 +776,63 @@ svg.progress-review-schedule-donut {
   margin: 0;
 }
 
+.progress-leaderboard-invite-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  overflow-y: auto;
+  background: rgba(9, 10, 15, 0.8);
+  backdrop-filter: blur(10px);
+}
+
+.progress-leaderboard-invite-dialog {
+  width: min(100%, 540px);
+  max-height: calc(100vh - 40px);
+  display: grid;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+.progress-leaderboard-invite-dialog-head,
+.progress-leaderboard-invite-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.progress-leaderboard-invite-dialog-head > .panel-subtitle,
+.progress-leaderboard-invite-note,
+.progress-leaderboard-invite-status {
+  margin: 0;
+}
+
+.progress-leaderboard-invite-close {
+  min-height: 38px;
+}
+
+.progress-leaderboard-invite-field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.progress-leaderboard-invite-note,
+.progress-leaderboard-invite-status {
+  color: var(--text-tertiary);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.progress-leaderboard-invite-url {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 @media (max-width: 768px) {
   .progress-panel {
     width: 100%;
@@ -781,6 +872,10 @@ svg.progress-review-schedule-donut {
 
   .progress-review-schedule-donut {
     max-width: 180px;
+  }
+
+  .progress-leaderboard-invite-actions > .ghost-btn {
+    flex: 1 1 160px;
   }
 }
 

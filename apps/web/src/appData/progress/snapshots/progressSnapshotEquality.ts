@@ -290,6 +290,7 @@ function areProgressLeaderboardRowsEqual(
   return left.kind === right.kind
     && left.publicProfileId === right.publicProfileId
     && left.anonymousDisplayName === right.anonymousDisplayName
+    && left.friendDisplayName === right.friendDisplayName
     && left.qualifiedReviewCount === right.qualifiedReviewCount
     && left.rank === right.rank;
 }
@@ -321,6 +322,7 @@ function areProgressLeaderboardRankingRowsEqual(
   return left.kind === right.kind
     && left.publicProfileId === right.publicProfileId
     && left.anonymousDisplayName === right.anonymousDisplayName
+    && left.friendDisplayName === right.friendDisplayName
     && left.qualifiedReviewCount === right.qualifiedReviewCount
     && left.rank === right.rank;
 }

@@ -278,6 +278,7 @@ function parseProgressLeaderboardRow(
     kind: parseEnum(objectValue.kind, endpoint, joinPath(path, "kind"), progressLeaderboardParticipantRowKinds),
     publicProfileId: parseRequiredField(objectValue, "publicProfileId", endpoint, path, parseString),
     anonymousDisplayName: parseRequiredField(objectValue, "anonymousDisplayName", endpoint, path, parseString),
+    friendDisplayName: parseOptionalField(objectValue, "friendDisplayName", endpoint, path, parseString),
     qualifiedReviewCount: parseRequiredField(objectValue, "qualifiedReviewCount", endpoint, path, parseNonNegativeSafeInteger),
     rank: parseRequiredField(objectValue, "rank", endpoint, path, parseLeaderboardRank),
   };
@@ -302,6 +303,7 @@ function parseProgressLeaderboardRankingRow(
     kind: parseEnum(objectValue.kind, endpoint, joinPath(path, "kind"), progressLeaderboardRankingRowKinds),
     publicProfileId: parseRequiredField(objectValue, "publicProfileId", endpoint, path, parseString),
     anonymousDisplayName: parseRequiredField(objectValue, "anonymousDisplayName", endpoint, path, parseString),
+    friendDisplayName: parseOptionalField(objectValue, "friendDisplayName", endpoint, path, parseString),
     qualifiedReviewCount: parseRequiredField(objectValue, "qualifiedReviewCount", endpoint, path, parseNonNegativeSafeInteger),
     rank: parseRequiredField(objectValue, "rank", endpoint, path, parseLeaderboardRank),
   };

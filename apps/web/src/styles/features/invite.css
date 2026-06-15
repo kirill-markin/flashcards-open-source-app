@@ -1,0 +1,47 @@
+.invite-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.invite-panel {
+  width: min(100%, 560px);
+  display: grid;
+  gap: 16px;
+}
+
+.invite-panel > .title,
+.invite-panel > .subtitle,
+.invite-note {
+  margin: 0;
+}
+
+.invite-field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.invite-link-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.invite-note {
+  color: var(--text-tertiary);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+@media (max-width: 640px) {
+  .invite-page {
+    padding: 16px;
+    align-items: start;
+  }
+
+  .invite-link-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

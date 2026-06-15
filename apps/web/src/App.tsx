@@ -37,6 +37,7 @@ import {
   buildSettingsDeckEditRoute,
   cardsRoute,
   chatRoute,
+  friendInviteRoutePattern,
   progressRoute,
   reviewRoute,
   settingsAccessRoute,
@@ -64,6 +65,7 @@ import { isWorkspaceManagementLocked } from "./workspaceManagement";
 import { TestModeProvider, useTestMode } from "./testMode";
 import { CardFormScreen } from "./screens/cards/form/CardFormScreen";
 import { CardsScreen } from "./screens/cards/list/CardsScreen";
+import { FriendInviteScreen } from "./screens/invite/FriendInviteScreen";
 import { ProgressScreen } from "./screens/progress/ProgressScreen";
 import { ReviewScreen } from "./screens/review/ReviewScreen";
 
@@ -718,22 +720,31 @@ export function RoutedShell(): ReactElement {
   );
 }
 
+function AuthenticatedApp(): ReactElement {
+  return (
+    <AppDataProvider>
+      <ChatLayoutProvider>
+        <ChatSessionControllerProvider>
+          <ChatDraftProvider>
+            <AppShell />
+          </ChatDraftProvider>
+        </ChatSessionControllerProvider>
+      </ChatLayoutProvider>
+    </AppDataProvider>
+  );
+}
+
 export default function App(): ReactElement {
   return (
     <AppErrorBoundary fallback={<AppCrashFallback />}>
-      <TestModeProvider>
-        <AppDataProvider>
-          <ChatLayoutProvider>
-            <ChatSessionControllerProvider>
-              <ChatDraftProvider>
-                <BrowserRouter>
-                  <AppShell />
-                </BrowserRouter>
-              </ChatDraftProvider>
-            </ChatSessionControllerProvider>
-          </ChatLayoutProvider>
-        </AppDataProvider>
-      </TestModeProvider>
+      <BrowserRouter>
+        <TestModeProvider>
+          <SentryRoutes>
+            <Route path={friendInviteRoutePattern} element={<FriendInviteScreen />} />
+            <Route path="/*" element={<AuthenticatedApp />} />
+          </SentryRoutes>
+        </TestModeProvider>
+      </BrowserRouter>
     </AppErrorBoundary>
   );
 }
