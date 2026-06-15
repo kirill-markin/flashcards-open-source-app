@@ -11,6 +11,8 @@ import com.flashcardsopensourceapp.data.local.model.cloud.AgentApiKeyConnections
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCommunityProfile
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationCreateRequest
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationCreateResponse
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
@@ -312,6 +314,19 @@ class LocalCloudAccountRepository(
         // Dropping the cache makes the next Progress visit refetch the correct status.
         database.progressRemoteCacheDao().deleteAllProgressLeaderboardCaches()
         return updatedProfile
+    }
+
+    override suspend fun createFriendInvitation(
+        request: CloudFriendInvitationCreateRequest
+    ): CloudFriendInvitationCreateResponse {
+        return operationCoordinator.runExclusive {
+            val authenticatedSession = sessionProvider.authenticatedSession()
+            remoteService.createFriendInvitation(
+                apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
+                authorizationHeader = "Bearer ${authenticatedSession.credentials.idToken}",
+                request = request
+            )
+        }
     }
 
     override suspend fun deleteAccount(confirmationText: String) {

@@ -16,6 +16,8 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeCompl
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeSelection
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCommunityProfile
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationCreateRequest
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationCreateResponse
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
@@ -125,6 +127,11 @@ interface CloudRemoteGateway {
         authorizationHeader: String,
         leaderboardParticipationEnabled: Boolean
     ): CloudCommunityProfile
+    suspend fun createFriendInvitation(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        request: CloudFriendInvitationCreateRequest
+    ): CloudFriendInvitationCreateResponse
     suspend fun loadFeedbackState(apiBaseUrl: String, authorizationHeader: String): CloudFeedbackState
     suspend fun recordFeedbackPromptEvent(
         apiBaseUrl: String,

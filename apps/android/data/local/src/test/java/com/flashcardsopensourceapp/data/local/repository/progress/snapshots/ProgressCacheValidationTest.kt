@@ -232,7 +232,7 @@ class ProgressCacheValidationTest {
                     anonymousDisplayName = "Silver Bright Harbor",
                     qualifiedReviewCount = 9,
                     rank = 1
-                ),
+                ).copy(friendDisplayName = "Kai"),
                 createProgressLeaderboardRankingRowForTest(
                     kind = CloudProgressLeaderboardRankingRowKind.VIEWER,
                     publicProfileId = "viewer-profile",
@@ -257,5 +257,6 @@ class ProgressCacheValidationTest {
             restoredRows.map { row -> row.kind }
         )
         assertEquals(listOf(1, 2), restoredRows.map { row -> row.rank })
+        assertEquals(listOf("Kai", null), restoredRows.map { row -> row.friendDisplayName })
     }
 }

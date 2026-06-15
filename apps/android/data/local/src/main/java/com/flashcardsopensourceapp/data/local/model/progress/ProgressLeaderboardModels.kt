@@ -91,6 +91,7 @@ sealed interface CloudProgressLeaderboardRow {
         val kind: ProgressLeaderboardParticipantRowKind,
         val publicProfileId: String,
         val anonymousDisplayName: String,
+        val friendDisplayName: String?,
         val qualifiedReviewCount: Int,
         val rank: Int
     ) : CloudProgressLeaderboardRow
@@ -102,6 +103,7 @@ data class CloudProgressLeaderboardRankingRow(
     val kind: CloudProgressLeaderboardRankingRowKind,
     val publicProfileId: String,
     val anonymousDisplayName: String,
+    val friendDisplayName: String?,
     val qualifiedReviewCount: Int,
     val rank: Int
 )
@@ -276,6 +278,11 @@ private fun buildProgressLeaderboardCompactRows(
     if (totalRowCount > topRowCount) {
         shownRanks.add(totalRowCount)
     }
+    rankingRows.forEach { row ->
+        if (row.friendDisplayName != null) {
+            shownRanks.add(row.rank)
+        }
+    }
 
     val rowsByRank = rankingRows.associateBy { row -> row.rank }
     return buildList {
@@ -305,6 +312,7 @@ private fun CloudProgressLeaderboardRankingRow.toCompactProgressLeaderboardRow(
         },
         publicProfileId = publicProfileId,
         anonymousDisplayName = anonymousDisplayName,
+        friendDisplayName = friendDisplayName,
         qualifiedReviewCount = qualifiedReviewCount,
         rank = rank
     )

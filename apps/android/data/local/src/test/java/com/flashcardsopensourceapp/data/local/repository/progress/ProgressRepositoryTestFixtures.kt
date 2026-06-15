@@ -212,6 +212,7 @@ internal fun createProgressLeaderboardRankingRowForTest(
         kind = kind,
         publicProfileId = publicProfileId,
         anonymousDisplayName = anonymousDisplayName,
+        friendDisplayName = null,
         qualifiedReviewCount = qualifiedReviewCount,
         rank = rank
     )
@@ -225,6 +226,7 @@ private fun createProgressLeaderboardParticipantRowForTest(
         kind = kind,
         publicProfileId = rankingRow.publicProfileId,
         anonymousDisplayName = rankingRow.anonymousDisplayName,
+        friendDisplayName = rankingRow.friendDisplayName,
         qualifiedReviewCount = rankingRow.qualifiedReviewCount,
         rank = rankingRow.rank
     )

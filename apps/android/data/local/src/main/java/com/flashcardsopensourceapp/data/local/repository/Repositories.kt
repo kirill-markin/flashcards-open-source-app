@@ -20,6 +20,8 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkCont
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCommunityProfile
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationCreateRequest
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationCreateResponse
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
@@ -190,6 +192,7 @@ interface CloudAccountRepository {
     suspend fun updateCommunityLeaderboardParticipation(
         leaderboardParticipationEnabled: Boolean
     ): CloudCommunityProfile
+    suspend fun createFriendInvitation(request: CloudFriendInvitationCreateRequest): CloudFriendInvitationCreateResponse
     suspend fun deleteAccount(confirmationText: String)
     suspend fun listLinkedWorkspaces(): List<CloudWorkspaceSummary>
     suspend fun switchLinkedWorkspace(selection: CloudWorkspaceLinkSelection): CloudWorkspaceSummary

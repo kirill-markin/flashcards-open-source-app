@@ -23,10 +23,12 @@ internal fun NavGraphBuilder.registerProgressNavGraph(
     composable(route = ProgressDestination.route) {
         val progressViewModel = viewModel<ProgressViewModel>(
             factory = createProgressViewModelFactory(
-                progressRepository = appGraph.progressRepository
+                progressRepository = appGraph.progressRepository,
+                cloudAccountRepository = appGraph.cloudAccountRepository
             )
         )
         val uiState by progressViewModel.uiState.collectAsStateWithLifecycle()
+        val friendInvitationUiState by progressViewModel.friendInvitationUiState.collectAsStateWithLifecycle()
         val progressNavigationRequest by appGraph.appHandoffCoordinator.observeProgressNavigation().collectAsStateWithLifecycle()
 
         LaunchedEffect(progressNavigationRequest?.requestId) {
@@ -38,6 +40,7 @@ internal fun NavGraphBuilder.registerProgressNavGraph(
 
         ProgressRoute(
             uiState = uiState,
+            friendInvitationUiState = friendInvitationUiState,
             streakScrollRequestId = progressNavigationRequest
                 ?.takeIf { request -> request.target == ProgressNavigationTarget.STREAK }
                 ?.requestId,
@@ -49,6 +52,9 @@ internal fun NavGraphBuilder.registerProgressNavGraph(
             onScreenVisible = progressViewModel::refreshIfInvalidated,
             onRetry = progressViewModel::refreshManually,
             onSelectLeaderboardWindow = progressViewModel::selectLeaderboardWindow,
+            onCreateFriendInvitation = progressViewModel::createFriendInvitation,
+            onClearFriendInvitationFailure = progressViewModel::clearFriendInvitationFailure,
+            onFriendInvitationShared = progressViewModel::markFriendInvitationShared,
             onOpenSignIn = {
                 navController.navigate(route = SettingsAccountSignInEmailDestination.route)
             },

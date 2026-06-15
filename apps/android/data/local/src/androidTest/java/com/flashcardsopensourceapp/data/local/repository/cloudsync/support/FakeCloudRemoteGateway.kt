@@ -20,6 +20,8 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeReconciliation
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeSelection
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCommunityProfile
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationCreateRequest
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationCreateResponse
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
@@ -578,6 +580,14 @@ internal class FakeCloudRemoteGateway private constructor(
         authorizationHeader: String,
         leaderboardParticipationEnabled: Boolean
     ): CloudCommunityProfile {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun createFriendInvitation(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        request: CloudFriendInvitationCreateRequest
+    ): CloudFriendInvitationCreateResponse {
         throw UnsupportedOperationException()
     }
 
