@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A1000000000000000000003E /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = A1000000000000000000003F /* Lottie */; };
 		A1000000000000000000003B /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = A1000000000000000000003D /* Sentry */; };
+		A1000000000000000000003E /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = A1000000000000000000003F /* Lottie */; };
 		ED45BBBE2F61DADF00E259C4 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = A1000000000000000000002C /* MarkdownUI */; };
 /* End PBXBuildFile section */
 
@@ -195,7 +195,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2600;
-				LastUpgradeCheck = 2630;
+				LastUpgradeCheck = 2650;
 				TargetAttributes = {
 					A10000000000000000000004 = {
 						CreatedOnToolsVersion = 26.3;
@@ -217,12 +217,12 @@
 				ar,
 				de,
 				en,
-				es-ES,
-				es-MX,
+				"es-ES",
+				"es-MX",
 				hi,
 				ja,
 				ru,
-				zh-Hans,
+				"zh-Hans",
 				Base,
 			);
 			mainGroup = A10000000000000000000002;
@@ -311,6 +311,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
@@ -360,6 +361,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
@@ -551,6 +553,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		A1000000000000000000002B /* XCRemoteSwiftPackageReference "swift-markdown-ui" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/gonzalezreal/swift-markdown-ui";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.4.1;
+			};
+		};
 		A1000000000000000000003C /* XCRemoteSwiftPackageReference "sentry-cocoa" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/getsentry/sentry-cocoa.git";
@@ -567,17 +577,14 @@
 				minimumVersion = 4.6.0;
 			};
 		};
-		A1000000000000000000002B /* XCRemoteSwiftPackageReference "swift-markdown-ui" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/gonzalezreal/swift-markdown-ui";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.4.1;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		A1000000000000000000002C /* MarkdownUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A1000000000000000000002B /* XCRemoteSwiftPackageReference "swift-markdown-ui" */;
+			productName = MarkdownUI;
+		};
 		A1000000000000000000003D /* Sentry */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = A1000000000000000000003C /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
@@ -587,11 +594,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = A10000000000000000000040 /* XCRemoteSwiftPackageReference "lottie-spm" */;
 			productName = Lottie;
-		};
-		A1000000000000000000002C /* MarkdownUI */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A1000000000000000000002B /* XCRemoteSwiftPackageReference "swift-markdown-ui" */;
-			productName = MarkdownUI;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
