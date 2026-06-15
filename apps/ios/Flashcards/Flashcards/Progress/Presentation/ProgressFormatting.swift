@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 
 let progressStringsTableName: String = "Foundation"
+let progressReviewRatingChartOrder: [ReviewRating] = [.again, .hard, .good, .easy]
 
 func progressReviewChartPageDateRange(
     page: ProgressReviewChartPage,
@@ -73,12 +74,46 @@ func progressReviewChartDayLabel(date: Date, calendar: Calendar) -> String {
     return formatter.string(from: date)
 }
 
-func progressChartBarStyle(day: ProgressChartDay) -> AnyShapeStyle {
-    if day.reviewCount > 0 {
-        return AnyShapeStyle(Color.accentColor)
+func progressReviewRatingTitle(rating: ReviewRating) -> String {
+    rating.title
+}
+
+func progressReviewRatingColor(rating: ReviewRating) -> Color {
+    switch rating {
+    case .again:
+        return Color(red: 0xD7 / 255, green: 0x26 / 255, blue: 0x3D / 255)
+    case .hard:
+        return Color(red: 0xE6 / 255, green: 0x9F / 255, blue: 0x00 / 255)
+    case .good:
+        return Color(red: 0x2B / 255, green: 0xB6 / 255, blue: 0x73 / 255)
+    case .easy:
+        return Color(red: 0x3F / 255, green: 0x7C / 255, blue: 0xC8 / 255)
+    }
+}
+
+func progressReviewRatingCount(day: ProgressChartDay, rating: ReviewRating) -> Int {
+    switch rating {
+    case .again:
+        return day.againCount
+    case .hard:
+        return day.hardCount
+    case .good:
+        return day.goodCount
+    case .easy:
+        return day.easyCount
+    }
+}
+
+func progressReviewRatingPercentage(
+    count: Int,
+    totalReviewCount: Int
+) -> String {
+    guard totalReviewCount > 0 else {
+        return Double(0).formatted(.percent.precision(.fractionLength(0)))
     }
 
-    return AnyShapeStyle(Color(uiColor: .tertiarySystemFill))
+    let ratio = Double(count) / Double(totalReviewCount)
+    return ratio.formatted(.percent.precision(.fractionLength(0)))
 }
 
 func progressReviewScheduleBucketTitle(key: ReviewScheduleBucketKey) -> String {

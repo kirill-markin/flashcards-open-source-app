@@ -80,7 +80,11 @@ func makeTestProgressSeries(
         dailyReviews.append(
             ProgressDay(
                 date: localDate,
-                reviewCount: reviewCountsByDate[localDate] ?? 0
+                reviewCount: reviewCountsByDate[localDate] ?? 0,
+                againCount: 0,
+                hardCount: 0,
+                goodCount: reviewCountsByDate[localDate] ?? 0,
+                easyCount: 0
             )
         )
         currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate)!
