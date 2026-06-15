@@ -13,6 +13,7 @@ import {
 } from "../../appData/progress/snapshots/progressSnapshots";
 import type {
   CloudSettings,
+  DailyReviewPoint,
   ProgressLeaderboard,
   ProgressLeaderboardLocalViewerCounts,
   ProgressLeaderboardRankingRow,
@@ -185,17 +186,40 @@ function createProgressSummarySnapshot(): ProgressSummarySnapshot {
   };
 }
 
+function createDailyReviewPoint(
+  date: string,
+  reviewCount: number,
+  againCount: number,
+  hardCount: number,
+  goodCount: number,
+  easyCount: number,
+): DailyReviewPoint {
+  const ratingCountSum = againCount + hardCount + goodCount + easyCount;
+  if (reviewCount !== ratingCountSum) {
+    throw new Error(`Invalid progress screen test fixture for ${date}: reviewCount ${reviewCount} must equal rating count sum ${ratingCountSum}`);
+  }
+
+  return {
+    date,
+    reviewCount,
+    againCount,
+    hardCount,
+    goodCount,
+    easyCount,
+  };
+}
+
 function createProgressSeriesSnapshot(): ProgressSeriesSnapshot {
   const dailyReviews = [
-    { date: "2026-04-13", reviewCount: 0 },
-    { date: "2026-04-14", reviewCount: 40 },
-    { date: "2026-04-15", reviewCount: 0 },
-    { date: "2026-04-16", reviewCount: 0 },
-    { date: "2026-04-17", reviewCount: 0 },
-    { date: "2026-04-18", reviewCount: 0 },
-    { date: "2026-04-19", reviewCount: 0 },
-    { date: "2026-04-20", reviewCount: 0 },
-    { date: "2026-04-21", reviewCount: 9 },
+    createDailyReviewPoint("2026-04-13", 0, 0, 0, 0, 0),
+    createDailyReviewPoint("2026-04-14", 40, 5, 10, 20, 5),
+    createDailyReviewPoint("2026-04-15", 0, 0, 0, 0, 0),
+    createDailyReviewPoint("2026-04-16", 0, 0, 0, 0, 0),
+    createDailyReviewPoint("2026-04-17", 0, 0, 0, 0, 0),
+    createDailyReviewPoint("2026-04-18", 0, 0, 0, 0, 0),
+    createDailyReviewPoint("2026-04-19", 0, 0, 0, 0, 0),
+    createDailyReviewPoint("2026-04-20", 3, 0, 3, 0, 0),
+    createDailyReviewPoint("2026-04-21", 9, 1, 2, 4, 2),
   ] as const;
 
   return {
@@ -555,6 +579,88 @@ describe("ProgressScreen", () => {
     expect(previousWeekBar.style.height).toContain("90.909");
   });
 
+  it("renders stacked review ratings and supports day and rating selection", async () => {
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <I18nProvider>
+            <ProgressScreen />
+          </I18nProvider>
+        </MemoryRouter>,
+      );
+    });
+
+    const goodSegment = container.querySelector("[data-testid='progress-chart-segment-2026-04-21-good']");
+    if (!(goodSegment instanceof HTMLSpanElement)) {
+      throw new Error("Good rating segment was not found");
+    }
+    expect(goodSegment.style.backgroundColor).toBe("rgb(43, 182, 115)");
+
+    const day20Bar = container.querySelector("[data-testid='progress-chart-bar-2026-04-20']");
+    if (!(day20Bar instanceof HTMLSpanElement)) {
+      throw new Error("Day 20 progress bar was not found");
+    }
+
+    await act(async () => {
+      day20Bar.click();
+    });
+
+    const chartRange = container.querySelector("[data-testid='progress-chart-range']");
+    if (!(chartRange instanceof HTMLParagraphElement)) {
+      throw new Error("Progress chart range was not found");
+    }
+    expect(chartRange.textContent).toBe("Apr 20, 2026");
+
+    const againButton = container.querySelector("[data-testid='progress-chart-rating-again']");
+    if (!(againButton instanceof HTMLButtonElement)) {
+      throw new Error("Again rating legend button was not found");
+    }
+    expect(againButton.disabled).toBe(true);
+    expect(againButton.textContent).toBe("Again0 (0%)");
+
+    const hardButton = container.querySelector("[data-testid='progress-chart-rating-hard']");
+    if (!(hardButton instanceof HTMLButtonElement)) {
+      throw new Error("Hard rating legend button was not found");
+    }
+    expect(hardButton.textContent).toBe("Hard3 (100%)");
+
+    const dimmedHardSegment = container.querySelector("[data-testid='progress-chart-segment-2026-04-21-hard']");
+    if (!(dimmedHardSegment instanceof HTMLSpanElement)) {
+      throw new Error("Dimmed hard rating segment was not found");
+    }
+    expect(dimmedHardSegment.style.backgroundColor).toBe("rgb(122, 128, 136)");
+
+    await act(async () => {
+      hardButton.click();
+    });
+
+    expect(hardButton.closest("li")?.className).toContain("is-selected");
+    expect(againButton.closest("li")?.className).toContain("is-dimmed");
+    expect(container.querySelector("[data-testid='progress-chart-segment-2026-04-21-good']")).toBeNull();
+
+    const filteredLatestWeekBar = container.querySelector("[data-testid='progress-chart-bar-2026-04-21']");
+    if (!(filteredLatestWeekBar instanceof HTMLSpanElement)) {
+      throw new Error("Filtered latest week bar was not found");
+    }
+    expect(filteredLatestWeekBar.style.height).toBe("50%");
+
+    const enabledAgainButton = container.querySelector("[data-testid='progress-chart-rating-again']");
+    if (!(enabledAgainButton instanceof HTMLButtonElement)) {
+      throw new Error("Enabled again rating legend button was not found");
+    }
+
+    await act(async () => {
+      enabledAgainButton.click();
+    });
+
+    const filteredDayWithoutAgainBar = container.querySelector("[data-testid='progress-chart-bar-2026-04-20']");
+    if (!(filteredDayWithoutAgainBar instanceof HTMLSpanElement)) {
+      throw new Error("Filtered day without again bar was not found");
+    }
+    expect(filteredDayWithoutAgainBar.style.height).toBe("0%");
+    expect(filteredDayWithoutAgainBar.className).not.toContain("progress-chart-bar-active");
+  });
+
   it("renders the week header with native locale interval formatting", async () => {
     await act(async () => {
       root.render(
@@ -676,24 +782,24 @@ describe("ProgressScreen", () => {
             ...createProgressSeriesSnapshot(),
             from: "2026-04-06",
             dailyReviews: [
-              { date: "2026-04-06", reviewCount: 0 },
-              { date: "2026-04-07", reviewCount: 0 },
-              { date: "2026-04-08", reviewCount: 0 },
-              { date: "2026-04-09", reviewCount: 0 },
-              { date: "2026-04-10", reviewCount: 0 },
-              { date: "2026-04-11", reviewCount: 0 },
-              { date: "2026-04-12", reviewCount: 0 },
+              createDailyReviewPoint("2026-04-06", 0, 0, 0, 0, 0),
+              createDailyReviewPoint("2026-04-07", 0, 0, 0, 0, 0),
+              createDailyReviewPoint("2026-04-08", 0, 0, 0, 0, 0),
+              createDailyReviewPoint("2026-04-09", 0, 0, 0, 0, 0),
+              createDailyReviewPoint("2026-04-10", 0, 0, 0, 0, 0),
+              createDailyReviewPoint("2026-04-11", 0, 0, 0, 0, 0),
+              createDailyReviewPoint("2026-04-12", 0, 0, 0, 0, 0),
               ...createProgressSeriesSnapshot().dailyReviews,
             ],
             chartData: {
               dailyReviews: [
-                { date: "2026-04-06", reviewCount: 0 },
-                { date: "2026-04-07", reviewCount: 0 },
-                { date: "2026-04-08", reviewCount: 0 },
-                { date: "2026-04-09", reviewCount: 0 },
-                { date: "2026-04-10", reviewCount: 0 },
-                { date: "2026-04-11", reviewCount: 0 },
-                { date: "2026-04-12", reviewCount: 0 },
+                createDailyReviewPoint("2026-04-06", 0, 0, 0, 0, 0),
+                createDailyReviewPoint("2026-04-07", 0, 0, 0, 0, 0),
+                createDailyReviewPoint("2026-04-08", 0, 0, 0, 0, 0),
+                createDailyReviewPoint("2026-04-09", 0, 0, 0, 0, 0),
+                createDailyReviewPoint("2026-04-10", 0, 0, 0, 0, 0),
+                createDailyReviewPoint("2026-04-11", 0, 0, 0, 0, 0),
+                createDailyReviewPoint("2026-04-12", 0, 0, 0, 0, 0),
                 ...createProgressSeriesSnapshot().dailyReviews,
               ],
             },
@@ -703,24 +809,24 @@ describe("ProgressScreen", () => {
             ...createProgressSeriesSnapshot(),
             from: "2026-04-06",
             dailyReviews: [
-              { date: "2026-04-06", reviewCount: 0 },
-              { date: "2026-04-07", reviewCount: 0 },
-              { date: "2026-04-08", reviewCount: 0 },
-              { date: "2026-04-09", reviewCount: 0 },
-              { date: "2026-04-10", reviewCount: 0 },
-              { date: "2026-04-11", reviewCount: 0 },
-              { date: "2026-04-12", reviewCount: 0 },
+              createDailyReviewPoint("2026-04-06", 0, 0, 0, 0, 0),
+              createDailyReviewPoint("2026-04-07", 0, 0, 0, 0, 0),
+              createDailyReviewPoint("2026-04-08", 0, 0, 0, 0, 0),
+              createDailyReviewPoint("2026-04-09", 0, 0, 0, 0, 0),
+              createDailyReviewPoint("2026-04-10", 0, 0, 0, 0, 0),
+              createDailyReviewPoint("2026-04-11", 0, 0, 0, 0, 0),
+              createDailyReviewPoint("2026-04-12", 0, 0, 0, 0, 0),
               ...createProgressSeriesSnapshot().dailyReviews,
             ],
             chartData: {
               dailyReviews: [
-                { date: "2026-04-06", reviewCount: 0 },
-                { date: "2026-04-07", reviewCount: 0 },
-                { date: "2026-04-08", reviewCount: 0 },
-                { date: "2026-04-09", reviewCount: 0 },
-                { date: "2026-04-10", reviewCount: 0 },
-                { date: "2026-04-11", reviewCount: 0 },
-                { date: "2026-04-12", reviewCount: 0 },
+                createDailyReviewPoint("2026-04-06", 0, 0, 0, 0, 0),
+                createDailyReviewPoint("2026-04-07", 0, 0, 0, 0, 0),
+                createDailyReviewPoint("2026-04-08", 0, 0, 0, 0, 0),
+                createDailyReviewPoint("2026-04-09", 0, 0, 0, 0, 0),
+                createDailyReviewPoint("2026-04-10", 0, 0, 0, 0, 0),
+                createDailyReviewPoint("2026-04-11", 0, 0, 0, 0, 0),
+                createDailyReviewPoint("2026-04-12", 0, 0, 0, 0, 0),
                 ...createProgressSeriesSnapshot().dailyReviews,
               ],
             },

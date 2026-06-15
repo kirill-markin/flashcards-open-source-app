@@ -208,14 +208,26 @@ describe("progress API endpoints", () => {
           {
             date: "2026-04-01",
             reviewCount: 3,
+            againCount: 1,
+            hardCount: 1,
+            goodCount: 1,
+            easyCount: 0,
           },
           {
             date: "2026-04-02",
             reviewCount: 0,
+            againCount: 0,
+            hardCount: 0,
+            goodCount: 0,
+            easyCount: 0,
           },
           {
             date: "2026-04-03",
             reviewCount: 1,
+            againCount: 0,
+            hardCount: 0,
+            goodCount: 1,
+            easyCount: 0,
           },
         ],
       }), {
@@ -242,14 +254,26 @@ describe("progress API endpoints", () => {
         {
           date: "2026-04-01",
           reviewCount: 3,
+          againCount: 1,
+          hardCount: 1,
+          goodCount: 1,
+          easyCount: 0,
         },
         {
           date: "2026-04-02",
           reviewCount: 0,
+          againCount: 0,
+          hardCount: 0,
+          goodCount: 0,
+          easyCount: 0,
         },
         {
           date: "2026-04-03",
           reviewCount: 1,
+          againCount: 0,
+          hardCount: 0,
+          goodCount: 1,
+          easyCount: 0,
         },
       ],
     });
@@ -266,14 +290,26 @@ describe("progress API endpoints", () => {
           {
             date: "2026-04-01",
             reviewCount: 3,
+            againCount: 1,
+            hardCount: 1,
+            goodCount: 1,
+            easyCount: 0,
           },
           {
             date: "2026-04-02",
             reviewCount: 0,
+            againCount: 0,
+            hardCount: 0,
+            goodCount: 0,
+            easyCount: 0,
           },
           {
             date: "2026-04-03",
             reviewCount: 1,
+            againCount: 0,
+            hardCount: 0,
+            goodCount: 1,
+            easyCount: 0,
           },
         ],
       }), {
@@ -298,17 +334,62 @@ describe("progress API endpoints", () => {
         {
           date: "2026-04-01",
           reviewCount: 3,
+          againCount: 1,
+          hardCount: 1,
+          goodCount: 1,
+          easyCount: 0,
         },
         {
           date: "2026-04-02",
           reviewCount: 0,
+          againCount: 0,
+          hardCount: 0,
+          goodCount: 0,
+          easyCount: 0,
         },
         {
           date: "2026-04-03",
           reviewCount: 1,
+          againCount: 0,
+          hardCount: 0,
+          goodCount: 1,
+          easyCount: 0,
         },
       ],
     });
+  });
+
+  it("rejects progress series responses with missing rating counts", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        timeZone: "Europe/Madrid",
+        from: "2026-04-01",
+        to: "2026-04-03",
+        generatedAt: "2026-04-18T09:15:00.000Z",
+        dailyReviews: [
+          {
+            date: "2026-04-01",
+            reviewCount: 3,
+            hardCount: 1,
+            goodCount: 1,
+            easyCount: 1,
+          },
+        ],
+      }), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressSeries({
+      timeZone: "Europe/Madrid",
+      from: "2026-04-01",
+      to: "2026-04-03",
+    })).rejects.toThrow(
+      "Invalid API response for GET /me/progress/series: dailyReviews[0].againCount must be number",
+    );
   });
 
   it("decodes review schedule responses and sends only the timezone query", async () => {
@@ -489,9 +570,9 @@ describe("progress API endpoints", () => {
         to: "2026-04-03",
         generatedAt: null,
         dailyReviews: [
-          { date: "2026-04-01", reviewCount: 0 },
-          { date: "2026-04-02", reviewCount: 0 },
-          { date: "2026-04-03", reviewCount: 0 },
+          { date: "2026-04-01", reviewCount: 0, againCount: 0, hardCount: 0, goodCount: 0, easyCount: 0 },
+          { date: "2026-04-02", reviewCount: 0, againCount: 0, hardCount: 0, goodCount: 0, easyCount: 0 },
+          { date: "2026-04-03", reviewCount: 0, againCount: 0, hardCount: 0, goodCount: 0, easyCount: 0 },
         ],
       }), {
         status: 200,

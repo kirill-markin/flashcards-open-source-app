@@ -131,6 +131,9 @@ export const jaCatalog = {
     weekRangeValue: "{{from}} - {{to}}",
     previousWeek: "前の週",
     nextWeek: "次の週",
+    reviewsBreakdown: {
+      legendLabel: "レビュー評価",
+    },
     reviewSchedule: {
       title: "復習スケジュール",
       totalCards: "合計カード数: {{count}}",

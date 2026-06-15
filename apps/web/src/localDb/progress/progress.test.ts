@@ -160,6 +160,10 @@ describe("localDb progress", () => {
       {
         date: "2025-01-08",
         reviewCount: 2,
+        againCount: 0,
+        hardCount: 1,
+        goodCount: 0,
+        easyCount: 1,
       },
     ]);
   });
@@ -226,6 +230,10 @@ describe("localDb progress", () => {
       {
         date: "2025-01-08",
         reviewCount: 2,
+        againCount: 0,
+        hardCount: 0,
+        goodCount: 1,
+        easyCount: 1,
       },
     ]);
   });

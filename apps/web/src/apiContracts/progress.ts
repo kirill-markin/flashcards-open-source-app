@@ -36,16 +36,40 @@ import {
   parseString,
 } from "./core";
 
+function parseNonNegativeSafeInteger(value: unknown, endpoint: string, path: string): number {
+  const numberValue = parseNumber(value, endpoint, path);
+
+  if (Number.isSafeInteger(numberValue) === false || numberValue < 0) {
+    throw new ApiContractError(endpoint, describePath(path), "a non-negative safe integer");
+  }
+
+  return numberValue;
+}
+
 function parseDailyReviewPoint(
   value: unknown,
   endpoint: string,
   path: string,
 ): ProgressSeries["dailyReviews"][number] {
   const objectValue = parseObject(value, endpoint, path);
-  return {
+  const dailyReviewPoint = {
     date: parseRequiredField(objectValue, "date", endpoint, path, parseString),
-    reviewCount: parseRequiredField(objectValue, "reviewCount", endpoint, path, parseNumber),
+    reviewCount: parseRequiredField(objectValue, "reviewCount", endpoint, path, parseNonNegativeSafeInteger),
+    againCount: parseRequiredField(objectValue, "againCount", endpoint, path, parseNonNegativeSafeInteger),
+    hardCount: parseRequiredField(objectValue, "hardCount", endpoint, path, parseNonNegativeSafeInteger),
+    goodCount: parseRequiredField(objectValue, "goodCount", endpoint, path, parseNonNegativeSafeInteger),
+    easyCount: parseRequiredField(objectValue, "easyCount", endpoint, path, parseNonNegativeSafeInteger),
   };
+  const ratingCountSum = dailyReviewPoint.againCount
+    + dailyReviewPoint.hardCount
+    + dailyReviewPoint.goodCount
+    + dailyReviewPoint.easyCount;
+
+  if (dailyReviewPoint.reviewCount !== ratingCountSum) {
+    throw new ApiContractError(endpoint, describePath(joinPath(path, "reviewCount")), `rating count sum (${ratingCountSum})`);
+  }
+
+  return dailyReviewPoint;
 }
 
 function parseProgressReviewHistoryWatermarkSequenceId(
@@ -192,16 +216,6 @@ export function parseProgressSummaryResponse(value: unknown, endpoint: string): 
     ),
     summary: parseRequiredField(objectValue, "summary", endpoint, "", parseProgressSummary),
   };
-}
-
-function parseNonNegativeSafeInteger(value: unknown, endpoint: string, path: string): number {
-  const numberValue = parseNumber(value, endpoint, path);
-
-  if (Number.isSafeInteger(numberValue) === false || numberValue < 0) {
-    throw new ApiContractError(endpoint, describePath(path), "a non-negative safe integer");
-  }
-
-  return numberValue;
 }
 
 function parseLeaderboardRank(value: unknown, endpoint: string, path: string): number {

@@ -31,6 +31,7 @@ type LegacyStoredCard = Omit<StoredCard, "dueAt" | "dueAtMillis" | "dueAtBucketM
 }>;
 
 const webSyncDatabaseName = "flashcards-web-sync";
+const currentWebSyncDatabaseVersion = 14;
 const legacyNullDueAtBucketMillis = -1;
 const legacyMalformedDueAtBucketMillis = -2;
 
@@ -277,7 +278,7 @@ describe("localDb core migrations", () => {
       await expect(openTask).rejects.toMatchObject({
         indexedDbOperation: "open",
         databaseName: webSyncDatabaseName,
-        databaseVersion: 13,
+        databaseVersion: currentWebSyncDatabaseVersion,
         indexedDbErrorName: "InvalidStateError",
       });
       expect(observabilityMocks.addWebBreadcrumbMock).toHaveBeenCalledWith(expect.objectContaining({
@@ -286,7 +287,7 @@ describe("localDb core migrations", () => {
           eventName: "indexed_db_operation_failed",
           indexedDbOperation: "open",
           databaseName: webSyncDatabaseName,
-          databaseVersion: 13,
+          databaseVersion: currentWebSyncDatabaseVersion,
           indexedDbErrorName: "InvalidStateError",
         }),
       }));
@@ -305,9 +306,9 @@ describe("localDb core migrations", () => {
     expect(readLastIndexedDbOpenLifecycleSnapshot()).toEqual(expect.objectContaining({
       observedAt: expect.any(String),
       databaseName: webSyncDatabaseName,
-      databaseVersion: 13,
+      databaseVersion: currentWebSyncDatabaseVersion,
       oldVersion: 0,
-      newVersion: 13,
+      newVersion: currentWebSyncDatabaseVersion,
       databaseCreated: true,
       databaseUpgraded: false,
     }));
@@ -316,9 +317,9 @@ describe("localDb core migrations", () => {
       details: expect.objectContaining({
         eventName: "indexed_db_open_lifecycle",
         databaseName: webSyncDatabaseName,
-        databaseVersion: 13,
+        databaseVersion: currentWebSyncDatabaseVersion,
         indexedDbOldVersion: 0,
-        indexedDbNewVersion: 13,
+        indexedDbNewVersion: currentWebSyncDatabaseVersion,
         indexedDbDatabaseCreated: true,
         indexedDbDatabaseUpgraded: false,
       }),
@@ -329,17 +330,17 @@ describe("localDb core migrations", () => {
 
     expect(readLastIndexedDbOpenLifecycleSnapshot()).toEqual(expect.objectContaining({
       databaseName: webSyncDatabaseName,
-      databaseVersion: 13,
+      databaseVersion: currentWebSyncDatabaseVersion,
       oldVersion: null,
-      newVersion: 13,
+      newVersion: currentWebSyncDatabaseVersion,
       databaseCreated: false,
       databaseUpgraded: false,
     }));
     expect(readIndexedDbOpenLifecycleSnapshotForDiagnostics()).toEqual(expect.objectContaining({
       databaseName: webSyncDatabaseName,
-      databaseVersion: 13,
+      databaseVersion: currentWebSyncDatabaseVersion,
       oldVersion: 0,
-      newVersion: 13,
+      newVersion: currentWebSyncDatabaseVersion,
       databaseCreated: true,
       databaseUpgraded: false,
     }));

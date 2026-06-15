@@ -273,14 +273,37 @@
 
 .progress-chart-column {
   display: grid;
+  height: 216px;
+}
+
+.progress-chart-column-button {
+  all: unset;
+  display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
   gap: 8px;
   height: 216px;
+  min-width: 0;
+  cursor: pointer;
+  border-radius: var(--content-card-inner-radius, 8px);
+}
+
+.progress-chart-column-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .progress-chart-column-today .progress-chart-bar-shell {
   border-color: var(--accent-muted);
   background: var(--accent-soft);
+}
+
+.progress-chart-column.is-selected .progress-chart-bar-shell {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.progress-chart-column.is-dimmed .progress-chart-labels {
+  opacity: 0.45;
 }
 
 .progress-chart-bar-shell {
@@ -294,21 +317,26 @@
 }
 
 .progress-chart-bar {
+  display: flex;
+  flex-direction: column-reverse;
   width: 100%;
   height: 0;
   border-radius: var(--radius-sm) var(--radius-sm) 4px 4px;
-  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
   transition: height 180ms ease;
 }
 
 .progress-chart-bar-active {
   min-height: 8px;
-  background: var(--accent);
+  background: rgba(255, 255, 255, 0.1);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
-.progress-chart-column-today .progress-chart-bar {
-  background: var(--accent);
+.progress-chart-bar-segment {
+  display: block;
+  width: 100%;
+  min-height: 1px;
+  transition: background-color 120ms ease, height 180ms ease;
 }
 
 .progress-chart-labels {
@@ -348,6 +376,84 @@
 .progress-chart-column-today .progress-chart-weekday {
   color: var(--accent);
   font-weight: 700;
+}
+
+.progress-chart-rating-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.progress-chart-rating-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--content-card-inner-radius, 8px);
+  transition: background-color 120ms ease, opacity 120ms ease;
+}
+
+.progress-chart-rating-row:last-child {
+  border-bottom: 0;
+}
+
+.progress-chart-rating-row.is-selected {
+  background: var(--accent-soft);
+  border-bottom-color: transparent;
+}
+
+.progress-chart-rating-row.is-dimmed {
+  opacity: 0.35;
+}
+
+.progress-chart-rating-row-button {
+  all: unset;
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 34px;
+  width: 100%;
+  padding: 7px 8px;
+  box-sizing: border-box;
+  border-radius: var(--content-card-inner-radius, 8px);
+  cursor: pointer;
+}
+
+.progress-chart-rating-row-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.progress-chart-rating-row-button:disabled {
+  cursor: default;
+}
+
+.progress-chart-rating-swatch {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08);
+}
+
+.progress-chart-rating-label {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.25;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.progress-chart-rating-value {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
 }
 
 .progress-review-schedule {
@@ -711,6 +817,10 @@ svg.progress-review-schedule-donut {
   }
 
   .progress-chart-column {
+    height: 180px;
+  }
+
+  .progress-chart-column-button {
     height: 180px;
   }
 

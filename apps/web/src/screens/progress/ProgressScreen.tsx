@@ -25,10 +25,14 @@ import {
   type ProgressReviewsChartNavigationState,
 } from "./reviewsChart/ProgressReviewsChartSection";
 import {
+  buildChartRatingLegendItems,
   buildChartGuideLabels,
   buildChartPages,
+  formatChartDayLabel,
   formatChartRangeLabel,
   resolveChartNavigationArrow,
+  type ProgressReviewsChartRatingKey,
+  type ProgressReviewsChartSelection,
 } from "./reviewsChart/progressReviewsChartModel";
 import { ProgressStreakSection, type ProgressStreakSummaryView } from "./streak/ProgressStreakSection";
 import { buildStreakWeeks } from "./streak/progressStreakModel";
@@ -68,6 +72,7 @@ export function ProgressScreen(): ReactElement {
   });
   const { locale, matchedBrowserLanguageTag, direction, t, formatDate, formatNumber } = useI18n();
   const [selectedPageStartLocalDate, setSelectedPageStartLocalDate] = useState<string | null>(null);
+  const [reviewsChartSelection, setReviewsChartSelection] = useState<ProgressReviewsChartSelection>({ kind: "none" });
   const [selectedReviewScheduleBucket, setSelectedReviewScheduleBucket] = useState<ProgressReviewScheduleBucketKey | null>(null);
   const [selectedLeaderboardWindowKey, setSelectedLeaderboardWindowKey] = useState<ProgressLeaderboardWindowKey | null>(null);
   const [isLeaderboardInfoVisible, setIsLeaderboardInfoVisible] = useState<boolean>(false);
@@ -88,6 +93,7 @@ export function ProgressScreen(): ReactElement {
 
   useEffect(() => {
     setSelectedPageStartLocalDate(null);
+    setReviewsChartSelection({ kind: "none" });
   }, [progressSourceState.series.renderedSnapshot]);
 
   useEffect(() => {
@@ -127,20 +133,39 @@ export function ProgressScreen(): ReactElement {
   const today = progress === null ? "" : progress.to;
   const weekContext = resolveLocaleWeekContext(matchedBrowserLanguageTag ?? locale, locale);
   const streakWeeks = progress === null ? [] : buildStreakWeeks(dailyReviews, today, formatDate, weekContext);
-  const chartPages = progress === null ? [] : buildChartPages(dailyReviews, today, formatDate, weekContext);
+  const selectedReviewsChartRatingKey = reviewsChartSelection.kind === "rating"
+    ? reviewsChartSelection.ratingKey
+    : null;
+  const chartPages = progress === null
+    ? []
+    : buildChartPages(dailyReviews, today, formatDate, weekContext, selectedReviewsChartRatingKey);
   const selectedPageIndex = chartPages.findIndex((page) => page.startLocalDate === selectedPageStartLocalDate);
   const visiblePage = chartPages.length === 0
     ? null
     : selectedPageStartLocalDate === null || selectedPageIndex === -1
       ? chartPages[chartPages.length - 1]
       : chartPages[selectedPageIndex];
+  const visiblePageHasSelectedDay = reviewsChartSelection.kind === "day"
+    && visiblePage !== null
+    && visiblePage.days.some((day) => day.date === reviewsChartSelection.date);
+  const visibleReviewsChartSelection: ProgressReviewsChartSelection = reviewsChartSelection.kind === "day" && visiblePageHasSelectedDay === false
+    ? { kind: "none" }
+    : reviewsChartSelection;
   const resolvedSelectedPageIndex = visiblePage === null
     ? 0
     : chartPages.findIndex((page) => page.startLocalDate === visiblePage.startLocalDate);
   const chartGuideLabels = buildChartGuideLabels(visiblePage?.upperBound ?? 1, formatNumber);
   const pageRangeLabel = visiblePage === null
     ? ""
+    : visibleReviewsChartSelection.kind === "day"
+      ? formatChartDayLabel(visibleReviewsChartSelection.date, locale)
     : formatChartRangeLabel(visiblePage.startDate, visiblePage.endDate, locale);
+  const chartRatingLegendItems = buildChartRatingLegendItems(
+    visiblePage,
+    visibleReviewsChartSelection,
+    t,
+    formatNumber,
+  );
   const reviewProgressBadgeTodayStatus = reviewProgressBadge.hasReviewedToday
     ? t("reviewScreen.progressBadge.reviewedToday")
     : t("reviewScreen.progressBadge.notReviewedToday");
@@ -177,6 +202,27 @@ export function ProgressScreen(): ReactElement {
     : buildReviewScheduleBucketViews(reviewSchedule, t, formatNumber);
   const reviewScheduleDonutSegments = buildReviewScheduleDonutSegments(reviewScheduleBucketViews);
   const canRenderLeaderboardServerBase = canLoadProgressServerBase(sessionVerificationState, cloudSettings);
+  const handleSelectChartPageStartLocalDate = (pageStartLocalDate: string | null): void => {
+    setSelectedPageStartLocalDate(pageStartLocalDate);
+    setReviewsChartSelection({ kind: "none" });
+  };
+  const handleSelectReviewsChartDay = (date: string): void => {
+    setReviewsChartSelection((previousSelection) => (
+      previousSelection.kind === "day" && previousSelection.date === date
+        ? { kind: "none" }
+        : { kind: "day", date }
+    ));
+  };
+  const handleSelectReviewsChartRating = (ratingKey: ProgressReviewsChartRatingKey): void => {
+    setReviewsChartSelection((previousSelection) => (
+      previousSelection.kind === "rating" && previousSelection.ratingKey === ratingKey
+        ? { kind: "none" }
+        : { kind: "rating", ratingKey }
+    ));
+  };
+  const handleClearReviewsChartSelection = (): void => {
+    setReviewsChartSelection({ kind: "none" });
+  };
   const handleSelectReviewScheduleBucket = (bucketKey: ProgressReviewScheduleBucketKey): void => {
     setSelectedReviewScheduleBucket((previous) => (previous === bucketKey ? null : bucketKey));
   };
@@ -232,8 +278,14 @@ export function ProgressScreen(): ReactElement {
               pageRangeLabel={pageRangeLabel}
               visiblePage={visiblePage}
               chartGuideLabels={chartGuideLabels}
+              legendLabel={t("progressScreen.reviewsBreakdown.legendLabel")}
+              ratingLegendItems={chartRatingLegendItems}
+              selection={visibleReviewsChartSelection}
               navigation={chartNavigation}
-              onSelectPageStartLocalDate={setSelectedPageStartLocalDate}
+              onSelectPageStartLocalDate={handleSelectChartPageStartLocalDate}
+              onSelectDay={handleSelectReviewsChartDay}
+              onSelectRating={handleSelectReviewsChartRating}
+              onClearSelection={handleClearReviewsChartSelection}
             />
 
             {reviewSchedule !== null ? (

@@ -34,7 +34,7 @@ const progressReviewScheduleStorageKeyPrefix = "flashcards-progress-server-revie
 // is enough and lets settings clear it without knowing the active scope key.
 const progressLeaderboardStorageKey = "flashcards-progress-server-leaderboard";
 const progressServerSummaryVersion = 2;
-const progressServerSeriesVersion = 2;
+const progressServerSeriesVersion = 3;
 const progressServerReviewScheduleVersion = 2;
 const progressServerLeaderboardVersion = 2;
 
@@ -46,7 +46,7 @@ type PersistedProgressSummary = Readonly<{
 }>;
 
 type PersistedProgressSeries = Readonly<{
-  version: 2;
+  version: 3;
   scopeKey: ProgressScopeKey;
   savedAt: string;
   serverBase: ProgressSeries;
@@ -83,6 +83,10 @@ const localDatePattern = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && Array.isArray(value) === false;
+}
+
+function isNonNegativeSafeIntegerValue(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 }
 
 function isValidProgressReviewHistoryWatermark(value: unknown): value is ProgressReviewHistoryWatermark {
@@ -389,13 +393,37 @@ function parsePersistedProgressSeries(rawValue: string | null): ProgressCacheRea
 
   const dailyReviews = parsedValue.serverBase.dailyReviews
     .map((day): DailyReviewPoint | null => {
-      if (isRecord(day) === false || typeof day.date !== "string" || typeof day.reviewCount !== "number") {
+      if (isRecord(day) === false || typeof day.date !== "string") {
+        return null;
+      }
+
+      const reviewCount = day.reviewCount;
+      const againCount = day.againCount;
+      const hardCount = day.hardCount;
+      const goodCount = day.goodCount;
+      const easyCount = day.easyCount;
+      if (
+        isNonNegativeSafeIntegerValue(reviewCount) === false
+        || isNonNegativeSafeIntegerValue(againCount) === false
+        || isNonNegativeSafeIntegerValue(hardCount) === false
+        || isNonNegativeSafeIntegerValue(goodCount) === false
+        || isNonNegativeSafeIntegerValue(easyCount) === false
+      ) {
+        return null;
+      }
+
+      const ratingCountSum = againCount + hardCount + goodCount + easyCount;
+      if (reviewCount !== ratingCountSum) {
         return null;
       }
 
       return {
         date: day.date,
-        reviewCount: day.reviewCount,
+        reviewCount,
+        againCount,
+        hardCount,
+        goodCount,
+        easyCount,
       };
     })
     .filter((day): day is DailyReviewPoint => day !== null);
@@ -435,7 +463,7 @@ function parsePersistedProgressSeries(rawValue: string | null): ProgressCacheRea
   return {
     status: "hit",
     value: {
-      version: 2,
+      version: progressServerSeriesVersion,
       scopeKey: parsedValue.scopeKey,
       savedAt: parsedValue.savedAt,
       serverBase: normalizedServerBase.value,
@@ -546,10 +574,6 @@ function isProgressLeaderboardStatusValue(value: unknown): value is ProgressLead
 
 function isProgressLeaderboardWindowKeyValue(value: unknown): value is ProgressLeaderboardWindowKey {
   return typeof value === "string" && progressLeaderboardWindowKeys.includes(value as ProgressLeaderboardWindowKey);
-}
-
-function isNonNegativeSafeIntegerValue(value: unknown): value is number {
-  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 }
 
 function parsePersistedProgressLeaderboardMetric(value: unknown): ProgressLeaderboardMetric | null {
@@ -895,7 +919,7 @@ export function storePersistedProgressSummary(scopeKey: ProgressScopeKey, server
 
 export function storePersistedProgressSeries(scopeKey: ProgressScopeKey, serverBase: ProgressSeries): void {
   const persistedValue: PersistedProgressSeries = {
-    version: 2,
+    version: progressServerSeriesVersion,
     scopeKey,
     savedAt: new Date().toISOString(),
     serverBase: normalizeProgressSeries(serverBase),

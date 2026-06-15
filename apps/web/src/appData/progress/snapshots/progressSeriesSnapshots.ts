@@ -25,18 +25,53 @@ export function buildDailyReviewCountMap(
   return counts;
 }
 
+function createEmptyDailyReviewPoint(date: string): DailyReviewPoint {
+  return {
+    date,
+    reviewCount: 0,
+    againCount: 0,
+    hardCount: 0,
+    goodCount: 0,
+    easyCount: 0,
+  };
+}
+
+function buildDailyReviewPointMap(
+  dailyReviews: ReadonlyArray<DailyReviewPoint>,
+): Map<string, DailyReviewPoint> {
+  const dailyReviewsByDate = new Map<string, DailyReviewPoint>();
+
+  for (const day of dailyReviews) {
+    dailyReviewsByDate.set(day.date, day);
+  }
+
+  return dailyReviewsByDate;
+}
+
+function addDailyReviewPoints(left: DailyReviewPoint, right: DailyReviewPoint): DailyReviewPoint {
+  if (left.date !== right.date) {
+    throw new Error(`Cannot merge progress days with different dates: ${left.date}, ${right.date}`);
+  }
+
+  return {
+    date: left.date,
+    reviewCount: left.reviewCount + right.reviewCount,
+    againCount: left.againCount + right.againCount,
+    hardCount: left.hardCount + right.hardCount,
+    goodCount: left.goodCount + right.goodCount,
+    easyCount: left.easyCount + right.easyCount,
+  };
+}
+
 function expandProgressDailyReviews(
   input: ProgressSeriesInput,
   dailyReviews: ReadonlyArray<DailyReviewPoint>,
 ): ReadonlyArray<DailyReviewPoint> {
-  const dailyReviewCountMap = buildDailyReviewCountMap(dailyReviews);
+  const dailyReviewPointMap = buildDailyReviewPointMap(dailyReviews);
   const expandedDailyReviews: Array<DailyReviewPoint> = [];
 
   for (let currentDate = input.from; currentDate <= input.to; currentDate = shiftLocalDate(currentDate, 1)) {
-    expandedDailyReviews.push({
-      date: currentDate,
-      reviewCount: dailyReviewCountMap.get(currentDate) ?? 0,
-    });
+    expandedDailyReviews.push(dailyReviewPointMap.get(currentDate) ?? createEmptyDailyReviewPoint(currentDate));
   }
 
   return expandedDailyReviews;
@@ -98,27 +133,26 @@ function mergeProgressSeriesWithOverlay(
   overlay: ProgressChartData | null,
   localFallback: ProgressSeriesSnapshot | null,
 ): ProgressSeriesMergeResult {
-  const pendingReviewCounts = buildDailyReviewCountMap(overlay?.dailyReviews ?? []);
+  const pendingReviewCounts = buildDailyReviewPointMap(overlay?.dailyReviews ?? []);
   const localFallbackReviewCounts = localFallback === null
-    ? new Map<string, number>()
-    : buildDailyReviewCountMap(localFallback.dailyReviews);
+    ? new Map<string, DailyReviewPoint>()
+    : buildDailyReviewPointMap(localFallback.dailyReviews);
   const normalizedServerBase = normalizeProgressSeries(serverBase);
   let hasOverlay = false;
   const dailyReviews = normalizedServerBase.dailyReviews.map((day) => {
-    const pendingReviewCount = pendingReviewCounts.get(day.date) ?? 0;
-    const localFallbackReviewCount = localFallbackReviewCounts.get(day.date) ?? 0;
-    const reviewCountWithPendingOverlay = day.reviewCount + pendingReviewCount;
-    const reviewCount = Math.max(reviewCountWithPendingOverlay, localFallbackReviewCount);
+    const pendingReviewCount = pendingReviewCounts.get(day.date) ?? createEmptyDailyReviewPoint(day.date);
+    const localFallbackReviewCount = localFallbackReviewCounts.get(day.date) ?? createEmptyDailyReviewPoint(day.date);
+    const dayWithPendingOverlay = addDailyReviewPoints(day, pendingReviewCount);
+    const reviewCount = Math.max(dayWithPendingOverlay.reviewCount, localFallbackReviewCount.reviewCount);
 
     if (reviewCount === day.reviewCount) {
       return day;
     }
 
     hasOverlay = true;
-    return {
-      date: day.date,
-      reviewCount,
-    };
+    return localFallbackReviewCount.reviewCount > dayWithPendingOverlay.reviewCount
+      ? localFallbackReviewCount
+      : dayWithPendingOverlay;
   });
 
   if (hasOverlay === false) {

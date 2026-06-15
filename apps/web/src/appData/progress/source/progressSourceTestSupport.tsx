@@ -3,6 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, vi } from "vitest";
 import type {
   CloudSettings,
+  DailyReviewPoint,
   ProgressLeaderboard,
   ProgressLeaderboardLocalViewerCounts,
   ProgressReviewSchedule,
@@ -43,8 +44,8 @@ const progressSourceMocks = vi.hoisted(() => ({
   hasPendingProgressReviewEventsMock: vi.fn<(workspaceIds: ReadonlyArray<string>) => Promise<boolean>>(),
   loadLocalProgressActiveDatesMock: vi.fn<(workspaceIds: ReadonlyArray<string>, timeZone: string) => Promise<ReadonlyArray<string>>>(),
   loadLocalProgressSummaryMock: vi.fn<(workspaceIds: ReadonlyArray<string>, input: Readonly<{ timeZone: string; today: string }>) => Promise<ProgressSummary>>(),
-  loadLocalProgressDailyReviewsMock: vi.fn<(workspaceIds: ReadonlyArray<string>, input: Readonly<{ timeZone: string; from: string; to: string }>) => Promise<ReadonlyArray<Readonly<{ date: string; reviewCount: number }>>>>(),
-  loadPendingProgressDailyReviewsMock: vi.fn<(workspaceIds: ReadonlyArray<string>, input: Readonly<{ timeZone: string; from: string; to: string }>) => Promise<ReadonlyArray<Readonly<{ date: string; reviewCount: number }>>>>(),
+  loadLocalProgressDailyReviewsMock: vi.fn<(workspaceIds: ReadonlyArray<string>, input: Readonly<{ timeZone: string; from: string; to: string }>) => Promise<ReadonlyArray<DailyReviewPoint>>>(),
+  loadPendingProgressDailyReviewsMock: vi.fn<(workspaceIds: ReadonlyArray<string>, input: Readonly<{ timeZone: string; from: string; to: string }>) => Promise<ReadonlyArray<DailyReviewPoint>>>(),
   hasCompleteLocalProgressReviewScheduleCoverageMock: vi.fn<(workspaceIds: ReadonlyArray<string>) => Promise<boolean>>(),
   hasPendingProgressReviewScheduleCardChangesMock: vi.fn<(workspaceIds: ReadonlyArray<string>) => Promise<boolean>>(),
   calculatePendingProgressReviewScheduleCardTotalDeltaMock: vi.fn<(workspaceIds: ReadonlyArray<string>) => Promise<number>>(),
@@ -367,6 +368,33 @@ export function buildServerSummary(activeReviewDays: number, generatedAt: string
   };
 }
 
+export function buildDailyReviewPoint(
+  date: string,
+  reviewCount: number,
+  againCount: number,
+  hardCount: number,
+  goodCount: number,
+  easyCount: number,
+): DailyReviewPoint {
+  const ratingCountSum = againCount + hardCount + goodCount + easyCount;
+  if (reviewCount !== ratingCountSum) {
+    throw new Error(`Invalid progress daily review test fixture for ${date}: reviewCount ${reviewCount} must equal rating count sum ${ratingCountSum}`);
+  }
+
+  return {
+    date,
+    reviewCount,
+    againCount,
+    hardCount,
+    goodCount,
+    easyCount,
+  };
+}
+
+export function buildGoodDailyReviewPoint(date: string, reviewCount: number): DailyReviewPoint {
+  return buildDailyReviewPoint(date, reviewCount, 0, 0, reviewCount, 0);
+}
+
 export function buildServerSeries(reviewCount: number, generatedAt: string): ProgressSeries {
   const input: ProgressSeriesInput = buildCurrentSeriesInput();
 
@@ -379,10 +407,7 @@ export function buildServerSeries(reviewCount: number, generatedAt: string): Pro
       { workspaceId: workspace.workspaceId, reviewSequenceId: reviewCount },
     ],
     dailyReviews: [
-      {
-        date: input.to,
-        reviewCount,
-      },
+      buildGoodDailyReviewPoint(input.to, reviewCount),
     ],
   };
 }
@@ -493,7 +518,7 @@ export function storePersistedProgressSeriesForTest(
   serverBase: ProgressSeries,
 ): void {
   window.localStorage.setItem(`flashcards-progress-server-series:${scopeKey}`, JSON.stringify({
-    version: 2,
+    version: 3,
     scopeKey,
     savedAt: "2026-04-18T09:00:00.000Z",
     serverBase,

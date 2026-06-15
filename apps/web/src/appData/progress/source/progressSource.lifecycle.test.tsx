@@ -9,6 +9,7 @@ import {
   buildCurrentSeriesInput,
   buildCurrentSeriesScopeKey,
   buildCurrentSummaryScopeKey,
+  buildGoodDailyReviewPoint,
   buildServerSeries,
   buildServerSummary,
   createDeferredPromise,
@@ -78,10 +79,7 @@ describe("useProgressSource lifecycle", () => {
       activeReviewDays: 4,
     });
     loadLocalProgressDailyReviewsMock.mockResolvedValue([
-      {
-        date: currentSeriesInput.to,
-        reviewCount: 2,
-      },
+      buildGoodDailyReviewPoint(currentSeriesInput.to, 2),
     ]);
 
     const harness = renderHarness({
@@ -115,10 +113,10 @@ describe("useProgressSource lifecycle", () => {
     expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.source).toBe("local_only");
     expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(4);
     expect(harness.getApi().progressSourceState.series.renderedSnapshot?.source).toBe("local_only");
-    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual(expect.objectContaining({
       date: currentSeriesInput.to,
       reviewCount: 2,
-    });
+    }));
 
     deferredSummary.resolve(buildServerSummary(9, "2026-04-18T09:19:00.000Z"));
     deferredSeries.resolve(buildServerSeries(9, "2026-04-18T09:19:00.000Z"));
@@ -129,10 +127,10 @@ describe("useProgressSource lifecycle", () => {
     expect(harness.getApi().progressSourceState.summary.isLoading).toBe(false);
     expect(harness.getApi().progressSourceState.series.isLoading).toBe(false);
     expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(4);
-    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual(expect.objectContaining({
       date: currentSeriesInput.to,
       reviewCount: 2,
-    });
+    }));
   });
 
   it("ignores server responses after sections disable their scopes", async () => {
@@ -241,10 +239,10 @@ describe("useProgressSource lifecycle", () => {
     expect(loadProgressSummaryMock).toHaveBeenCalledTimes(2);
     expect(loadProgressSeriesMock).toHaveBeenCalledTimes(2);
     expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(1);
-    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual(expect.objectContaining({
       date: currentSeriesInput.to,
       reviewCount: 1,
-    });
+    }));
     expect(window.localStorage.getItem(summaryCacheKey)).not.toContain("2026-04-18T09:20:00.000Z");
     expect(window.localStorage.getItem(seriesCacheKey)).not.toContain("2026-04-18T09:20:00.000Z");
 
@@ -256,10 +254,10 @@ describe("useProgressSource lifecycle", () => {
     await flushEffects();
 
     expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(9);
-    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual(expect.objectContaining({
       date: currentSeriesInput.to,
       reviewCount: 9,
-    });
+    }));
     expect(window.localStorage.getItem(summaryCacheKey)).toContain("2026-04-18T09:21:00.000Z");
     expect(window.localStorage.getItem(summaryCacheKey)).not.toContain("2026-04-18T09:20:00.000Z");
     expect(window.localStorage.getItem(seriesCacheKey)).toContain("2026-04-18T09:21:00.000Z");
@@ -316,10 +314,10 @@ describe("useProgressSource lifecycle", () => {
     expect(harness.getApi().progressSourceState.summary.errorMessage).toBe("");
     expect(harness.getApi().progressSourceState.series.errorMessage).toBe("");
     expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(5);
-    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual(expect.objectContaining({
       date: buildCurrentSeriesInput().to,
       reviewCount: 5,
-    });
+    }));
   });
 
   it("refreshes only once per endpoint when the local day rolls over", async () => {

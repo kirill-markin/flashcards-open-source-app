@@ -16,9 +16,9 @@ describe("ProgressScreen streak weeks", () => {
   it("marks future dates in the current locale-aligned week as placeholders", () => {
     const weeks = buildStreakWeeks(
       [
-        { date: "2026-04-18", reviewCount: 3 },
-        { date: "2026-04-20", reviewCount: 2 },
-        { date: "2026-04-21", reviewCount: 4 },
+        { date: "2026-04-18", reviewCount: 3, againCount: 0, hardCount: 0, goodCount: 3, easyCount: 0 },
+        { date: "2026-04-20", reviewCount: 2, againCount: 0, hardCount: 0, goodCount: 2, easyCount: 0 },
+        { date: "2026-04-21", reviewCount: 4, againCount: 0, hardCount: 0, goodCount: 4, easyCount: 0 },
       ],
       "2026-04-21",
       createDateFormatter("en-US"),

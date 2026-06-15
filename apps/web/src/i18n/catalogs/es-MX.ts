@@ -131,6 +131,9 @@ const esMxCatalog: TranslationCatalog = {
     weekRangeValue: "{{from}} - {{to}}",
     previousWeek: "Semana anterior",
     nextWeek: "Semana siguiente",
+    reviewsBreakdown: {
+      legendLabel: "Calificaciones de repaso",
+    },
     reviewSchedule: {
       title: "Calendario de repasos",
       totalCards: "Tarjetas totales: {{count}}",

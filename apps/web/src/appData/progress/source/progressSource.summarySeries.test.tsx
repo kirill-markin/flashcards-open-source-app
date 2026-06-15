@@ -2,6 +2,8 @@
 import { describe, expect, it } from "vitest";
 import {
   buildCurrentSeriesInput,
+  buildDailyReviewPoint,
+  buildGoodDailyReviewPoint,
   buildServerSeries,
   buildServerSummary,
   createDeferredPromise,
@@ -36,10 +38,10 @@ describe("useProgressSource summary and series", () => {
     expect(harness.getApi().progressSourceState.summary.serverBase?.source).toBe("server");
     expect(harness.getApi().progressSourceState.series.serverBase?.source).toBe("server");
     expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(1);
-    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual(expect.objectContaining({
       date: buildCurrentSeriesInput().to,
       reviewCount: 1,
-    });
+    }));
   });
 
   it("updates summary and series independently when remote responses arrive in different orders", async () => {
@@ -58,10 +60,10 @@ describe("useProgressSource summary and series", () => {
 
     expect(harness.getApi().progressSourceState.series.serverBase?.generatedAt).toBe("2026-04-18T09:16:00.000Z");
     expect(harness.getApi().progressSourceState.summary.serverBase?.generatedAt).not.toBe("2026-04-18T09:17:00.000Z");
-    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual(expect.objectContaining({
       date: buildCurrentSeriesInput().to,
       reviewCount: 3,
-    });
+    }));
 
     deferredSummary.resolve(buildServerSummary(4, "2026-04-18T09:17:00.000Z"));
     await flushEffects();
@@ -119,10 +121,7 @@ describe("useProgressSource summary and series", () => {
         { workspaceId: "workspace-1", reviewSequenceId: 42 },
       ],
       dailyReviews: [
-        {
-          date: currentSeriesInput.to,
-          reviewCount: 0,
-        },
+        buildGoodDailyReviewPoint(currentSeriesInput.to, 0),
       ],
     });
     loadLocalProgressSummaryMock.mockResolvedValue({
@@ -132,10 +131,7 @@ describe("useProgressSource summary and series", () => {
       activeReviewDays: 8,
     });
     loadLocalProgressDailyReviewsMock.mockResolvedValue([
-      {
-        date: currentSeriesInput.to,
-        reviewCount: 1,
-      },
+      buildDailyReviewPoint(currentSeriesInput.to, 1, 1, 0, 0, 0),
     ]);
 
     const harness = renderHarness({
@@ -157,15 +153,19 @@ describe("useProgressSource summary and series", () => {
       lastReviewedOn: "2026-04-20",
       activeReviewDays: 8,
     });
-    expect(harness.getApi().progressSourceState.series.serverBase?.dailyReviews).toContainEqual({
+    expect(harness.getApi().progressSourceState.series.serverBase?.dailyReviews).toContainEqual(expect.objectContaining({
       date: currentSeriesInput.to,
       reviewCount: 0,
-    });
+    }));
     expect(harness.getApi().progressSourceState.series.renderedSnapshot?.source).toBe("server");
     expect(harness.getApi().progressSourceState.series.renderedSnapshot?.isApproximate).toBe(true);
     expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
       date: currentSeriesInput.to,
       reviewCount: 1,
+      againCount: 1,
+      hardCount: 0,
+      goodCount: 0,
+      easyCount: 0,
     });
   });
 
@@ -193,10 +193,7 @@ describe("useProgressSource summary and series", () => {
         { workspaceId: "workspace-1", reviewSequenceId: 42 },
       ],
       dailyReviews: [
-        {
-          date: "2026-04-19",
-          reviewCount: 1,
-        },
+        buildGoodDailyReviewPoint("2026-04-19", 1),
       ],
     });
     loadLocalProgressSummaryMock.mockResolvedValue({
@@ -207,10 +204,7 @@ describe("useProgressSource summary and series", () => {
     });
     loadLocalProgressActiveDatesMock.mockResolvedValue(["2026-04-20"]);
     loadLocalProgressDailyReviewsMock.mockResolvedValue([
-      {
-        date: "2026-04-20",
-        reviewCount: 1,
-      },
+      buildGoodDailyReviewPoint("2026-04-20", 1),
     ]);
 
     const harness = renderHarness({
@@ -256,10 +250,7 @@ describe("useProgressSource summary and series", () => {
         { workspaceId: "workspace-1", reviewSequenceId: 42 },
       ],
       dailyReviews: [
-        {
-          date: "2026-04-18",
-          reviewCount: 1,
-        },
+        buildGoodDailyReviewPoint("2026-04-18", 1),
       ],
     });
     loadLocalProgressSummaryMock.mockResolvedValue({
@@ -273,14 +264,8 @@ describe("useProgressSource summary and series", () => {
       "2026-04-20",
     ]);
     loadLocalProgressDailyReviewsMock.mockResolvedValue([
-      {
-        date: "2026-04-19",
-        reviewCount: 1,
-      },
-      {
-        date: "2026-04-20",
-        reviewCount: 1,
-      },
+      buildGoodDailyReviewPoint("2026-04-19", 1),
+      buildGoodDailyReviewPoint("2026-04-20", 1),
     ]);
 
     const harness = renderHarness({
@@ -375,10 +360,7 @@ describe("useProgressSource summary and series", () => {
         { workspaceId: "workspace-1", reviewSequenceId: 42 },
       ],
       dailyReviews: [
-        {
-          date: "2026-04-20",
-          reviewCount: 1,
-        },
+        buildGoodDailyReviewPoint("2026-04-20", 1),
       ],
     });
     loadLocalProgressSummaryMock.mockResolvedValue({
@@ -389,10 +371,7 @@ describe("useProgressSource summary and series", () => {
     });
     loadLocalProgressActiveDatesMock.mockResolvedValue(["2026-04-20"]);
     loadLocalProgressDailyReviewsMock.mockResolvedValue([
-      {
-        date: "2026-04-20",
-        reviewCount: 1,
-      },
+      buildGoodDailyReviewPoint("2026-04-20", 1),
     ]);
 
     const harness = renderHarness({
@@ -438,10 +417,7 @@ describe("useProgressSource summary and series", () => {
         { workspaceId: "workspace-1", reviewSequenceId: 42 },
       ],
       dailyReviews: [
-        {
-          date: "2026-04-18",
-          reviewCount: 1,
-        },
+        buildGoodDailyReviewPoint("2026-04-18", 1),
       ],
     });
     loadLocalProgressSummaryMock.mockResolvedValue({
@@ -452,10 +428,7 @@ describe("useProgressSource summary and series", () => {
     });
     loadLocalProgressActiveDatesMock.mockResolvedValue(["2026-04-19"]);
     loadLocalProgressDailyReviewsMock.mockResolvedValue([
-      {
-        date: "2026-04-19",
-        reviewCount: 1,
-      },
+      buildDailyReviewPoint("2026-04-19", 1, 0, 1, 0, 0),
     ]);
 
     const harness = renderHarness({
@@ -473,13 +446,17 @@ describe("useProgressSource summary and series", () => {
       lastReviewedOn: "2026-04-19",
       activeReviewDays: 201,
     });
-    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual(expect.objectContaining({
       date: "2026-04-18",
       reviewCount: 1,
-    });
+    }));
     expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
       date: "2026-04-19",
       reviewCount: 1,
+      againCount: 0,
+      hardCount: 1,
+      goodCount: 0,
+      easyCount: 0,
     });
   });
 
@@ -487,10 +464,7 @@ describe("useProgressSource summary and series", () => {
     const currentSeriesInput = buildCurrentSeriesInput();
     loadProgressSeriesMock.mockResolvedValue(buildServerSeries(4, "2026-04-18T09:18:00.000Z"));
     loadPendingProgressDailyReviewsMock.mockResolvedValue([
-      {
-        date: currentSeriesInput.to,
-        reviewCount: 3,
-      },
+      buildDailyReviewPoint(currentSeriesInput.to, 3, 1, 1, 0, 1),
     ]);
 
     const harness = renderHarness({
@@ -502,15 +476,19 @@ describe("useProgressSource summary and series", () => {
 
     await flushEffects();
 
-    expect(harness.getApi().progressSourceState.series.serverBase?.dailyReviews).toContainEqual({
+    expect(harness.getApi().progressSourceState.series.serverBase?.dailyReviews).toContainEqual(expect.objectContaining({
       date: currentSeriesInput.to,
       reviewCount: 4,
-    });
+    }));
     expect(harness.getApi().progressSourceState.series.renderedSnapshot?.source).toBe("server");
     expect(harness.getApi().progressSourceState.series.renderedSnapshot?.isApproximate).toBe(true);
     expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
       date: currentSeriesInput.to,
       reviewCount: 7,
+      againCount: 1,
+      hardCount: 1,
+      goodCount: 4,
+      easyCount: 1,
     });
   });
 

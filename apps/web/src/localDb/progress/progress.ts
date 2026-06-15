@@ -5,6 +5,7 @@ import type {
   ProgressSeriesInput,
   ProgressSummary,
   ProgressSummaryInput,
+  ReviewRating,
   ReviewEvent,
   SyncPushOperation,
 } from "../../types";
@@ -58,18 +59,107 @@ function createEmptyProgressSummary(): ProgressSummary {
   };
 }
 
+function createEmptyDailyReviewPoint(date: string): DailyReviewPoint {
+  return {
+    date,
+    reviewCount: 0,
+    againCount: 0,
+    hardCount: 0,
+    goodCount: 0,
+    easyCount: 0,
+  };
+}
+
+export function createEmptyProgressDailyCountRecord(
+  workspaceId: string,
+  localDate: string,
+): ProgressDailyCountRecord {
+  return {
+    workspaceId,
+    localDate,
+    reviewCount: 0,
+    againCount: 0,
+    hardCount: 0,
+    goodCount: 0,
+    easyCount: 0,
+  };
+}
+
+function addReviewRatingToDailyReviewPoint(
+  dailyReviewPoint: DailyReviewPoint,
+  rating: ReviewRating,
+): DailyReviewPoint {
+  if (rating === 0) {
+    return {
+      ...dailyReviewPoint,
+      reviewCount: dailyReviewPoint.reviewCount + 1,
+      againCount: dailyReviewPoint.againCount + 1,
+    };
+  }
+
+  if (rating === 1) {
+    return {
+      ...dailyReviewPoint,
+      reviewCount: dailyReviewPoint.reviewCount + 1,
+      hardCount: dailyReviewPoint.hardCount + 1,
+    };
+  }
+
+  if (rating === 2) {
+    return {
+      ...dailyReviewPoint,
+      reviewCount: dailyReviewPoint.reviewCount + 1,
+      goodCount: dailyReviewPoint.goodCount + 1,
+    };
+  }
+
+  if (rating === 3) {
+    return {
+      ...dailyReviewPoint,
+      reviewCount: dailyReviewPoint.reviewCount + 1,
+      easyCount: dailyReviewPoint.easyCount + 1,
+    };
+  }
+
+  throw new Error(`Invalid review rating for progress aggregation: ${String(rating)}`);
+}
+
+export function addReviewRatingToProgressDailyCountRecord(
+  progressDailyCount: ProgressDailyCountRecord,
+  rating: ReviewRating,
+): ProgressDailyCountRecord {
+  const dailyReviewPoint = addReviewRatingToDailyReviewPoint({
+    date: progressDailyCount.localDate,
+    reviewCount: progressDailyCount.reviewCount,
+    againCount: progressDailyCount.againCount,
+    hardCount: progressDailyCount.hardCount,
+    goodCount: progressDailyCount.goodCount,
+    easyCount: progressDailyCount.easyCount,
+  }, rating);
+
+  return {
+    workspaceId: progressDailyCount.workspaceId,
+    localDate: progressDailyCount.localDate,
+    reviewCount: dailyReviewPoint.reviewCount,
+    againCount: dailyReviewPoint.againCount,
+    hardCount: dailyReviewPoint.hardCount,
+    goodCount: dailyReviewPoint.goodCount,
+    easyCount: dailyReviewPoint.easyCount,
+  };
+}
+
 function buildProgressActiveDates(
-  dailyReviewCounts: ReadonlyMap<string, number>,
+  dailyReviewCounts: ReadonlyMap<string, DailyReviewPoint>,
 ): ReadonlyArray<string> {
   return [...dailyReviewCounts.entries()]
-    .filter(([, reviewCount]) => reviewCount > 0)
+    .filter(([, dailyReviewPoint]) => dailyReviewPoint.reviewCount > 0)
     .map(([date]) => date)
     .sort((leftDate, rightDate) => leftDate.localeCompare(rightDate));
 }
 
 function buildProgressSummary(
   today: string,
-  dailyReviewCounts: ReadonlyMap<string, number>,
+  dailyReviewCounts: ReadonlyMap<string, DailyReviewPoint>,
 ): ProgressSummary {
   const reviewDates = buildProgressActiveDates(dailyReviewCounts);
 
@@ -111,27 +201,27 @@ function aggregateReviewEventsByWorkspaceAndLocalDate(
   reviewEvents: ReadonlyArray<ReviewEvent>,
   timeZone: string,
 ): ReadonlyArray<ProgressDailyCountRecord> {
-  const counts = new Map<string, number>();
+  const counts = new Map<string, ProgressDailyCountRecord>();
 
   for (const reviewEvent of reviewEvents) {
     const localDate = mapReviewedAtClientToLocalDate(reviewEvent.reviewedAtClient, timeZone);
     const countKey = `${reviewEvent.workspaceId}::${localDate}`;
-    counts.set(countKey, (counts.get(countKey) ?? 0) + 1);
+    const currentCount = counts.get(countKey) ?? createEmptyProgressDailyCountRecord(
+      reviewEvent.workspaceId,
+      localDate,
+    );
+    counts.set(countKey, addReviewRatingToProgressDailyCountRecord(currentCount, reviewEvent.rating));
   }
 
   return [...counts.entries()]
-    .map(([countKey, reviewCount]): ProgressDailyCountRecord => {
+    .map(([countKey, progressDailyCount]): ProgressDailyCountRecord => {
       const separatorIndex = countKey.indexOf("::");
 
       if (separatorIndex === -1) {
         throw new Error(`Invalid progress aggregate key: ${countKey}`);
       }
 
-      return {
-        workspaceId: countKey.slice(0, separatorIndex),
-        localDate: countKey.slice(separatorIndex + 2),
-        reviewCount,
-      };
+      return progressDailyCount;
     })
     .sort((leftRecord, rightRecord) => {
       const workspaceDifference = leftRecord.workspaceId.localeCompare(rightRecord.workspaceId);
@@ -175,14 +265,19 @@ async function ensureLocalProgressCacheReady(
 
 function buildMergedDailyReviewMap(
   progressDailyCounts: ReadonlyArray<ProgressDailyCountRecord>,
-): Map<string, number> {
-  const counts = new Map<string, number>();
+): Map<string, DailyReviewPoint> {
+  const counts = new Map<string, DailyReviewPoint>();
 
   for (const progressDailyCount of progressDailyCounts) {
-    counts.set(
-      progressDailyCount.localDate,
-      (counts.get(progressDailyCount.localDate) ?? 0) + progressDailyCount.reviewCount,
-    );
+    const currentCount = counts.get(progressDailyCount.localDate) ?? createEmptyDailyReviewPoint(progressDailyCount.localDate);
+    counts.set(progressDailyCount.localDate, {
+      date: progressDailyCount.localDate,
+      reviewCount: currentCount.reviewCount + progressDailyCount.reviewCount,
+      againCount: currentCount.againCount + progressDailyCount.againCount,
+      hardCount: currentCount.hardCount + progressDailyCount.hardCount,
+      goodCount: currentCount.goodCount + progressDailyCount.goodCount,
+      easyCount: currentCount.easyCount + progressDailyCount.easyCount,
+    });
   }
 
   return counts;
@@ -263,10 +358,7 @@ export async function loadLocalProgressDailyReviews(
 
     return [...mergedDailyReviewMap.entries()]
       .filter(([date]) => isDateWithinRange(date, input))
-      .map(([date, reviewCount]): DailyReviewPoint => ({
-        date,
-        reviewCount,
-      }))
+      .map(([, dailyReviewPoint]): DailyReviewPoint => dailyReviewPoint)
       .sort((leftDay, rightDay) => leftDay.date.localeCompare(rightDay.date));
   });
 }
@@ -280,7 +372,7 @@ export async function loadPendingProgressDailyReviews(
   }
 
   const outboxRecords = await listOutboxRecordsForWorkspaces(workspaceIds);
-  const counts = new Map<string, number>();
+  const counts = new Map<string, DailyReviewPoint>();
 
   for (const outboxRecord of outboxRecords) {
     if (isPendingReviewEventOperation(outboxRecord.operation) === false) {
@@ -292,14 +384,12 @@ export async function loadPendingProgressDailyReviews(
       continue;
     }
 
-    counts.set(localDate, (counts.get(localDate) ?? 0) + 1);
+    const currentCount = counts.get(localDate) ?? createEmptyDailyReviewPoint(localDate);
+    counts.set(localDate, addReviewRatingToDailyReviewPoint(currentCount, outboxRecord.operation.payload.rating));
   }
 
   return [...counts.entries()]
-    .map(([date, reviewCount]): DailyReviewPoint => ({
-      date,
-      reviewCount,
-    }))
+    .map(([, dailyReviewPoint]): DailyReviewPoint => dailyReviewPoint)
     .sort((leftDay, rightDay) => leftDay.date.localeCompare(rightDay.date));
 }
 

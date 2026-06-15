@@ -120,9 +120,15 @@ export type ProgressReviewScheduleInput = Readonly<{
 
 export type ProgressScopeKey = string;
 
+export type ReviewRating = 0 | 1 | 2 | 3;
+
 export type DailyReviewPoint = Readonly<{
   date: string;
   reviewCount: number;
+  againCount: number;
+  hardCount: number;
+  goodCount: number;
+  easyCount: number;
 }>;
 
 export type ProgressSummary = Readonly<{
@@ -788,7 +794,7 @@ export type ReviewEvent = Readonly<{
   cardId: string;
   replicaId: string;
   clientEventId: string;
-  rating: 0 | 1 | 2 | 3;
+  rating: ReviewRating;
   reviewedAtClient: string;
   reviewedAtServer: string;
 }>;
@@ -861,7 +867,7 @@ export type SyncPushOperation =
       reviewEventId: string;
       cardId: string;
       clientEventId: string;
-      rating: 0 | 1 | 2 | 3;
+      rating: ReviewRating;
       reviewedAtClient: string;
     }>;
   }>;

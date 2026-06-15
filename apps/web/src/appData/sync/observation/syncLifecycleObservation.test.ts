@@ -42,6 +42,8 @@ vi.mock("../../../api", () => ({
   pushSyncOperations: apiMocks.pushSyncOperationsMock,
 }));
 
+const currentWebSyncDatabaseVersion = 14;
+
 function createRemoteSyncInput(): WorkspaceRemoteSyncInput {
   return {
     userId: "user-1",
@@ -432,7 +434,7 @@ describe("sync lifecycle observation", () => {
         storagePersistGranted: null,
         indexedDbOpenObservedAt: expect.any(String),
         indexedDbOpenOldVersion: 0,
-        indexedDbOpenNewVersion: 13,
+        indexedDbOpenNewVersion: currentWebSyncDatabaseVersion,
         indexedDbDatabaseCreated: true,
         indexedDbDatabaseUpgraded: false,
       }),
@@ -457,7 +459,7 @@ describe("sync lifecycle observation", () => {
         bootstrapPageDurationMs: [40],
         indexedDbOpenObservedAt: expect.any(String),
         indexedDbOpenOldVersion: 0,
-        indexedDbOpenNewVersion: 13,
+        indexedDbOpenNewVersion: currentWebSyncDatabaseVersion,
         indexedDbDatabaseCreated: true,
         indexedDbDatabaseUpgraded: false,
       }),

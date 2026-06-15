@@ -131,6 +131,9 @@ const hiCatalog: TranslationCatalog = {
     weekRangeValue: "{{from}} - {{to}}",
     previousWeek: "पिछला सप्ताह",
     nextWeek: "अगला सप्ताह",
+    reviewsBreakdown: {
+      legendLabel: "रिव्यू रेटिंग",
+    },
     reviewSchedule: {
       title: "रिव्यू शेड्यूल",
       totalCards: "कुल कार्ड: {{count}}",
