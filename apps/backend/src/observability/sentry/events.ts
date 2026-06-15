@@ -141,9 +141,16 @@ export type ProgressSummaryDetails = Readonly<{
   authTransport: string;
   timeZone: string | null;
   currentStreakDays: number | null;
+  longestStreakDays: number | null;
   hasReviewedToday: boolean | null;
   lastReviewedOn: string | null;
   activeReviewDays: number | null;
+  streakFreezeAvailableCredits: number | null;
+  streakFreezeCapacity: number | null;
+  streakFreezeBalanceUnits: number | null;
+  streakFreezeUnitsPerCredit: number | null;
+  streakFreezeNextCreditProgressUnits: number | null;
+  streakFreezeNextCreditRequiredUnits: number | null;
   generatedAt: string | null;
 }>;
 

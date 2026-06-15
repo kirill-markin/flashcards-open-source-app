@@ -7,6 +7,13 @@ import {
 import { unsafeRepeatableReadTransaction } from "../database/unsafe";
 import { HttpError } from "../shared/errors";
 import { listUserWorkspaceIdsInExecutor } from "../workspaces/queries";
+import {
+  evaluateStreakFreeze,
+  streakFreezePolicy,
+  type StreakDay,
+  type StreakDayState,
+  type StreakFreeze,
+} from "./streakFreeze";
 
 // The compact Progress-tab community leaderboard lives in the community module
 // (next to the snapshot writer) but is re-exported here so every /me/progress/*
@@ -69,9 +76,11 @@ export type ReviewScheduleBucket = Readonly<{
 
 export type ProgressSummary = Readonly<{
   currentStreakDays: number;
+  longestStreakDays: number;
   hasReviewedToday: boolean;
   lastReviewedOn: string | null;
   activeReviewDays: number;
+  streakFreeze: StreakFreeze;
 }>;
 
 export type ProgressReviewHistoryWatermark = Readonly<{
@@ -94,6 +103,7 @@ export type ProgressSeries = Readonly<{
   from: string;
   to: string;
   dailyReviews: ReadonlyArray<DailyReviewPoint>;
+  streakDays: ReadonlyArray<StreakDay>;
   generatedAt: string;
 }> & ProgressReviewHistoryWatermarkPayload;
 
@@ -156,10 +166,6 @@ type WorkspaceProgressReviewScheduleRequest = Readonly<{
 type WorkspaceProgressSeriesRequest = Readonly<{
   workspaceId: string;
 }> & ProgressSeriesInput;
-
-type CurrentStreakInfo = Readonly<{
-  streakDayCount: number;
-}>;
 
 const maximumInclusiveProgressRangeDays = 366;
 const localDatePattern = /^\d{4}-\d{2}-\d{2}$/;
@@ -511,6 +517,32 @@ function createDailyReviews(
   }));
 }
 
+function createSortedActiveReviewLocalDates(reviewDates: ReadonlySet<string>): ReadonlyArray<string> {
+  return [...reviewDates].sort((left, right) => left.localeCompare(right));
+}
+
+function createStreakDays(
+  range: ReadonlyArray<string>,
+  activeReviewDates: ReadonlySet<string>,
+  evaluatedStreakDays: ReadonlyArray<StreakDay>,
+  today: string,
+): ReadonlyArray<StreakDay> {
+  const evaluatedStatesByDate: ReadonlyMap<string, StreakDayState> = new Map(
+    evaluatedStreakDays.map((day) => [day.date, day.state]),
+  );
+
+  return range.map((date) => {
+    const state: StreakDayState = activeReviewDates.has(date)
+      ? "reviewed"
+      : evaluatedStatesByDate.get(date) ?? (date >= today ? "pending" : "missed");
+
+    return {
+      date,
+      state,
+    };
+  });
+}
+
 async function loadReviewHistoryWatermarksInExecutor(
   executor: DatabaseExecutor,
   workspaceIds: ReadonlyArray<string>,
@@ -639,25 +671,6 @@ async function loadAllReviewDateRowsInExecutor(
   return result.rows;
 }
 
-function calculateCurrentStreakInfo(
-  reviewDates: ReadonlySet<string>,
-  timeZone: string,
-  now: Date,
-): CurrentStreakInfo {
-  const today = formatDateAsTimeZoneLocalDate(now, timeZone);
-  let currentDate = reviewDates.has(today) ? today : shiftLocalDate(today, -1);
-  let streakDayCount = 0;
-
-  while (reviewDates.has(currentDate)) {
-    streakDayCount += 1;
-    currentDate = shiftLocalDate(currentDate, -1);
-  }
-
-  return {
-    streakDayCount,
-  };
-}
-
 function findLatestReviewedOn(
   currentLatest: string | null,
   candidateLatest: string | null,
@@ -676,14 +689,18 @@ function findLatestReviewedOn(
 function createProgressSummary(
   activeReviewDayCount: number,
   currentStreakDays: number,
+  longestStreakDays: number,
   hasReviewedToday: boolean,
   lastReviewedOn: string | null,
+  streakFreeze: StreakFreeze,
 ): ProgressSummary {
   return {
     currentStreakDays,
+    longestStreakDays,
     hasReviewedToday,
     lastReviewedOn,
     activeReviewDays: activeReviewDayCount,
+    streakFreeze,
   };
 }
 
@@ -720,15 +737,21 @@ async function buildUserProgressSummaryInExecutor(
   // Future-dated rows can appear when a client clock is ahead, so today must
   // be checked against the full normalized date set instead of the latest date.
   const hasReviewedToday = reviewDates.has(today);
-  const currentStreakInfo = calculateCurrentStreakInfo(reviewDates, request.timeZone, generatedAtDate);
+  const streakFreezeEvaluation = evaluateStreakFreeze(
+    createSortedActiveReviewLocalDates(reviewDates),
+    today,
+    streakFreezePolicy,
+  );
 
   return {
     timeZone: request.timeZone,
     summary: createProgressSummary(
       reviewDates.size,
-      currentStreakInfo.streakDayCount,
+      streakFreezeEvaluation.currentStreakDays,
+      streakFreezeEvaluation.longestStreakDays,
       hasReviewedToday,
       lastReviewedOn,
+      streakFreezeEvaluation.streakFreeze,
     ),
     generatedAt: generatedAtDate.toISOString(),
     reviewHistoryWatermarks: sortReviewHistoryWatermarks(reviewHistoryWatermarks),
@@ -776,6 +799,7 @@ async function buildUserProgressSeriesInExecutor(
   generatedAtDate: Date,
 ): Promise<ProgressSeries> {
   const dailyReviewCounts = new Map<string, number>();
+  const reviewDates = new Set<string>();
   await applyUserDatabaseScopeInExecutor(executor, { userId: request.userId });
   const workspaceIds = await listUserWorkspaceIdsInExecutor(executor, request.userId);
   let reviewHistoryWatermarks: ReadonlyArray<ProgressReviewHistoryWatermark> = [];
@@ -794,18 +818,39 @@ async function buildUserProgressSeriesInExecutor(
       to: request.to,
     });
     accumulateDailyReviewCounts(dailyReviewCounts, rows);
+    accumulateReviewDates(
+      reviewDates,
+      await loadAllReviewDateRowsInExecutor(executor, {
+        workspaceId,
+        timeZone: request.timeZone,
+      }),
+    );
     reviewHistoryWatermarks = reviewHistoryWatermarks.concat(
       await loadReviewHistoryWatermarksInExecutor(executor, [workspaceId]),
     );
   }
+
+  const range = createInclusiveLocalDateRange(request.from, request.to);
+  const today = formatDateAsTimeZoneLocalDate(generatedAtDate, request.timeZone);
+  const streakFreezeEvaluation = evaluateStreakFreeze(
+    createSortedActiveReviewLocalDates(reviewDates),
+    today,
+    streakFreezePolicy,
+  );
 
   return {
     timeZone: request.timeZone,
     from: request.from,
     to: request.to,
     dailyReviews: createDailyReviews(
-      createInclusiveLocalDateRange(request.from, request.to),
+      range,
       dailyReviewCounts,
+    ),
+    streakDays: createStreakDays(
+      range,
+      reviewDates,
+      streakFreezeEvaluation.streakDays,
+      today,
     ),
     generatedAt: generatedAtDate.toISOString(),
     reviewHistoryWatermarks: sortReviewHistoryWatermarks(reviewHistoryWatermarks),
