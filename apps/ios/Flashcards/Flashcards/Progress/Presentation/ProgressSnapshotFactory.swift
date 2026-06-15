@@ -163,6 +163,7 @@ private func makeProjectedProgressLeaderboardRankingRows(
         kind: .viewer,
         publicProfileId: serverViewerRow.publicProfileId,
         anonymousDisplayName: serverViewerRow.anonymousDisplayName,
+        friendDisplayName: serverViewerRow.friendDisplayName,
         qualifiedReviewCount: viewerQualifiedReviewCount,
         rank: serverViewerRow.rank
     )
@@ -178,6 +179,7 @@ private func makeProjectedProgressLeaderboardRankingRows(
             kind: rankingRow.kind,
             publicProfileId: rankingRow.publicProfileId,
             anonymousDisplayName: rankingRow.anonymousDisplayName,
+            friendDisplayName: rankingRow.friendDisplayName,
             qualifiedReviewCount: rankingRow.qualifiedReviewCount,
             rank: index + 1
         )
@@ -225,6 +227,9 @@ private func makeCompactProgressLeaderboardRowStates(
     if participantCount > topRowCount {
         shownRanks.insert(participantCount)
     }
+    for rankingRow in rankingRows where isProgressLeaderboardFriendRow(rankingRow: rankingRow) {
+        shownRanks.insert(rankingRow.rank)
+    }
 
     var rows: [ProgressLeaderboardRowState] = []
     var previousRank: Int = 0
@@ -267,9 +272,21 @@ private func makeProgressLeaderboardParticipantRowState(
         ),
         publicProfileId: rankingRow.publicProfileId,
         anonymousDisplayName: rankingRow.anonymousDisplayName,
+        friendDisplayName: rankingRow.friendDisplayName,
         qualifiedReviewCount: rankingRow.qualifiedReviewCount,
         rank: rankingRow.rank
     )
+}
+
+private func isProgressLeaderboardFriendRow(
+    rankingRow: ProgressLeaderboardRankingRow
+) -> Bool {
+    guard rankingRow.kind == .participant,
+          let friendDisplayName = rankingRow.friendDisplayName else {
+        return false
+    }
+
+    return friendDisplayName.isEmpty == false
 }
 
 private func progressLeaderboardParticipantKind(

@@ -1,8 +1,5 @@
 import SwiftUI
 
-private let progressLeaderboardReservedRowCount: Int = 9
-private let progressLeaderboardReservedGapRowCount: Int = 2
-
 struct ProgressLeaderboardSection: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
@@ -16,6 +13,7 @@ struct ProgressLeaderboardSection: View {
 
     @State private var isInfoAlertPresented: Bool = false
     @State private var isCloudSignInPresented: Bool = false
+    @State private var isFriendInvitePresented: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -57,6 +55,10 @@ struct ProgressLeaderboardSection: View {
             CloudSignInSheet(presentationContext: .standard)
                 .environment(self.store)
         }
+        .sheet(isPresented: self.$isFriendInvitePresented) {
+            ProgressFriendInviteSheet()
+                .environment(self.store)
+        }
     }
 
     private var infoMessage: String {
@@ -81,6 +83,23 @@ struct ProgressLeaderboardSection: View {
                 .font(.headline)
 
             Spacer(minLength: 12)
+
+            Button {
+                self.openFriendInviteFlow()
+            } label: {
+                Image(systemName: "person.badge.plus")
+                    .font(.body)
+            }
+            .buttonStyle(.borderless)
+            .accessibilityIdentifier(UITestIdentifier.progressLeaderboardInviteFriendButton)
+            .accessibilityLabel(
+                String(
+                    localized: "progress.screen.leaderboard.invite.accessibility_label",
+                    defaultValue: "Invite a friend",
+                    table: progressStringsTableName,
+                    comment: "Accessibility label for the leaderboard friend invite button"
+                )
+            )
 
             Button {
                 self.isInfoAlertPresented = true
@@ -131,7 +150,10 @@ struct ProgressLeaderboardSection: View {
         if let selectedWindow = readyState.windows.first(where: { window in
             window.windowKey == selectedKey
         }) {
-            let reservedRows = progressLeaderboardReservedRows(rows: selectedWindow.rows)
+            let reservedRows = progressLeaderboardReservedRows(
+                rows: selectedWindow.rows,
+                windows: readyState.windows
+            )
 
             VStack(alignment: .leading, spacing: 10) {
                 ForEach(selectedWindow.rows) { row in
@@ -152,6 +174,15 @@ struct ProgressLeaderboardSection: View {
                 }
             }
         }
+    }
+
+    private func openFriendInviteFlow() {
+        guard self.store.cloudSettings?.cloudState == .linked else {
+            self.isCloudSignInPresented = true
+            return
+        }
+
+        self.isFriendInvitePresented = true
     }
 
     private func resolveSelectedWindowKey(readyState: ProgressLeaderboardReadyState) -> LeaderboardWindowKey {
@@ -316,21 +347,50 @@ private struct ProgressLeaderboardReservedRows: Hashable {
     let gapRowCount: Int
 }
 
-private func progressLeaderboardReservedRows(rows: [ProgressLeaderboardRowState]) -> ProgressLeaderboardReservedRows {
-    let reservedRowCount = max(0, progressLeaderboardReservedRowCount - rows.count)
-    let visibleGapRowCount = rows.reduce(0) { count, row in
-        if case .gap(_) = row {
-            return count + 1
-        }
-        return count
-    }
-    let missingGapRowCount = max(0, progressLeaderboardReservedGapRowCount - visibleGapRowCount)
+private func progressLeaderboardReservedRows(
+    rows: [ProgressLeaderboardRowState],
+    windows: [ProgressLeaderboardWindowState]
+) -> ProgressLeaderboardReservedRows {
+    let reservedRowCount = max(0, progressLeaderboardMaximumRowCount(windows: windows) - rows.count)
+    let missingGapRowCount = max(
+        0,
+        progressLeaderboardMaximumGapRowCount(windows: windows) - progressLeaderboardGapRowCount(rows: rows)
+    )
     let gapRowCount = min(missingGapRowCount, reservedRowCount)
 
     return ProgressLeaderboardReservedRows(
         participantRowCount: reservedRowCount - gapRowCount,
         gapRowCount: gapRowCount
     )
+}
+
+private func progressLeaderboardMaximumRowCount(
+    windows: [ProgressLeaderboardWindowState]
+) -> Int {
+    windows.map { window in
+        window.rows.count
+    }
+    .max() ?? 0
+}
+
+private func progressLeaderboardMaximumGapRowCount(
+    windows: [ProgressLeaderboardWindowState]
+) -> Int {
+    windows.map { window in
+        progressLeaderboardGapRowCount(rows: window.rows)
+    }
+    .max() ?? 0
+}
+
+private func progressLeaderboardGapRowCount(
+    rows: [ProgressLeaderboardRowState]
+) -> Int {
+    rows.reduce(0) { count, row in
+        if case .gap(_) = row {
+            return count + 1
+        }
+        return count
+    }
 }
 
 private struct ProgressLeaderboardParticipantRowView: View {
@@ -341,7 +401,11 @@ private struct ProgressLeaderboardParticipantRowView: View {
     }
 
     private var displayName: String {
-        self.isViewer ? progressLeaderboardViewerRowTitle() : self.row.anonymousDisplayName
+        if self.isViewer {
+            return progressLeaderboardViewerRowTitle()
+        }
+
+        return self.row.friendDisplayName ?? self.row.anonymousDisplayName
     }
 
     var body: some View {

@@ -73,6 +73,8 @@ struct ProgressLeaderboardParticipantRow: Codable, Hashable, Sendable {
     /// Server-generated from the public profile id and the request locale.
     /// Clients must never generate or persist their own anonymous names.
     let anonymousDisplayName: String
+    /// Viewer-private friend label shown only for current opted-in friends.
+    let friendDisplayName: String?
     let qualifiedReviewCount: Int
     let rank: Int
 }
@@ -88,6 +90,8 @@ struct ProgressLeaderboardRankingRow: Codable, Hashable, Sendable {
     /// Server-generated from the public profile id and the request locale.
     /// Clients must never generate or persist their own anonymous names.
     let anonymousDisplayName: String
+    /// Viewer-private friend label shown only for current opted-in friends.
+    let friendDisplayName: String?
     let qualifiedReviewCount: Int
     let rank: Int
 }

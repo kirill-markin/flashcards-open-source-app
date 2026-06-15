@@ -155,6 +155,7 @@ struct ProgressLeaderboardParticipantRowState: Hashable, Sendable {
     let kind: ProgressLeaderboardParticipantKind
     let publicProfileId: String
     let anonymousDisplayName: String
+    let friendDisplayName: String?
     let qualifiedReviewCount: Int
     let rank: Int
 }
