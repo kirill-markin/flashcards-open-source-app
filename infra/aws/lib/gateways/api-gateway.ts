@@ -615,15 +615,26 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   const me = restApi.root.addResource("me");
   me.addMethod("GET", integration);
   me.addResource("preferences").addMethod("PATCH", integration);
-  const meCommunityProfile = me.addResource("community").addResource("profile");
+  const meCommunity = me.addResource("community");
+  const meCommunityProfile = meCommunity.addResource("profile");
   meCommunityProfile.addMethod("GET", integration);
   meCommunityProfile.addMethod("PATCH", integration);
+  const meCommunityFriendInvitations = meCommunity.addResource("friend-invitations");
+  meCommunityFriendInvitations.addMethod("POST", integration);
+  meCommunityFriendInvitations
+    .addResource("{inviteToken}")
+    .addResource("accept")
+    .addMethod("POST", integration);
   const meProgress = me.addResource("progress");
   meProgress.addResource("summary").addMethod("GET", integration);
   meProgress.addResource("review-schedule").addMethod("GET", integration);
   meProgress.addResource("series").addMethod("GET", integration);
   meProgress.addResource("leaderboard").addMethod("GET", integration);
   me.addResource("delete").addMethod("POST", integration);
+
+  const community = restApi.root.addResource("community");
+  const communityFriendInvitations = community.addResource("friend-invitations");
+  communityFriendInvitations.addResource("{inviteToken}").addMethod("GET", integration);
 
   const feedback = restApi.root.addResource("feedback");
   feedback.addResource("state").addMethod("GET", integration);

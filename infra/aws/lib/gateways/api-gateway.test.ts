@@ -18,10 +18,33 @@ test("API Gateway predeclares /me/community/profile", () => {
 
   assert.match(
     apiGatewaySource,
-    /const meCommunityProfile = me\.addResource\("community"\)\.addResource\("profile"\);/,
+    /const meCommunityProfile = meCommunity\.addResource\("profile"\);/,
   );
   assert.match(apiGatewaySource, /meCommunityProfile\.addMethod\("GET", integration\);/);
   assert.match(apiGatewaySource, /meCommunityProfile\.addMethod\("PATCH", integration\);/);
+});
+
+test("API Gateway predeclares friend invitation routes", () => {
+  const apiGatewayPath = resolve(process.cwd(), "lib/gateways/api-gateway.ts");
+  const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
+
+  assert.match(
+    apiGatewaySource,
+    /const meCommunityFriendInvitations = meCommunity\.addResource\("friend-invitations"\);/,
+  );
+  assert.match(apiGatewaySource, /meCommunityFriendInvitations\.addMethod\("POST", integration\);/);
+  assert.match(
+    apiGatewaySource,
+    /meCommunityFriendInvitations\s*\.addResource\("\{inviteToken\}"\)\s*\.addResource\("accept"\)\s*\.addMethod\("POST", integration\);/,
+  );
+  assert.match(
+    apiGatewaySource,
+    /const communityFriendInvitations = community\.addResource\("friend-invitations"\);/,
+  );
+  assert.match(
+    apiGatewaySource,
+    /communityFriendInvitations\.addResource\("\{inviteToken\}"\)\.addMethod\("GET", integration\);/,
+  );
 });
 
 test("API Gateway predeclares /me/progress/leaderboard", () => {
