@@ -21,6 +21,10 @@ type QueryResultRow = pg.QueryResultRow;
 type DailyReviewCountRow = Readonly<{
   review_date: string;
   review_count: string | number;
+  again_count: string | number;
+  hard_count: string | number;
+  good_count: string | number;
+  easy_count: string | number;
 }>;
 
 type ReviewDateRow = Readonly<{
@@ -123,6 +127,10 @@ function createDailyReviewCountRows(from: string, to: string): ReadonlyArray<Dai
   return createReviewDateRows(from, to).map((row) => ({
     review_date: row.review_date,
     review_count: 1,
+    again_count: 0,
+    hard_count: 0,
+    good_count: 1,
+    easy_count: 0,
   }));
 }
 
@@ -427,9 +435,9 @@ test("loadUserProgressSeriesInExecutor returns a zero-filled series for an empty
     from: "2026-04-11",
     to: "2026-04-13",
     dailyReviews: [
-      { date: "2026-04-11", reviewCount: 0 },
-      { date: "2026-04-12", reviewCount: 0 },
-      { date: "2026-04-13", reviewCount: 0 },
+      { date: "2026-04-11", reviewCount: 0, againCount: 0, hardCount: 0, goodCount: 0, easyCount: 0 },
+      { date: "2026-04-12", reviewCount: 0, againCount: 0, hardCount: 0, goodCount: 0, easyCount: 0 },
+      { date: "2026-04-13", reviewCount: 0, againCount: 0, hardCount: 0, goodCount: 0, easyCount: 0 },
     ],
     streakDays: [
       { date: "2026-04-11", state: "missed" },
@@ -524,7 +532,14 @@ test("loadUserProgressSeriesInExecutor marks today without review as pending", a
     },
     reviewRowsByRequest: {
       [`workspace-1|${timeZone}|${yesterday}|${today}`]: [
-        { review_date: yesterday, review_count: 1 },
+        {
+          review_date: yesterday,
+          review_count: 1,
+          again_count: 0,
+          hard_count: 0,
+          good_count: 1,
+          easy_count: 0,
+        },
       ],
     },
     allReviewDateRowsByRequest: {
@@ -546,8 +561,8 @@ test("loadUserProgressSeriesInExecutor marks today without review as pending", a
   });
 
   assert.deepEqual(progress.dailyReviews, [
-    { date: yesterday, reviewCount: 1 },
-    { date: today, reviewCount: 0 },
+    { date: yesterday, reviewCount: 1, againCount: 0, hardCount: 0, goodCount: 1, easyCount: 0 },
+    { date: today, reviewCount: 0, againCount: 0, hardCount: 0, goodCount: 0, easyCount: 0 },
   ]);
   assert.deepEqual(progress.streakDays, [
     { date: yesterday, state: "reviewed" },
@@ -565,8 +580,22 @@ test("loadUserProgressSummaryInExecutor resets a gap larger than available freez
     },
     reviewRowsByRequest: {
       [`workspace-1|${timeZone}|${sixDaysAgo}|${today}`]: [
-        { review_date: sixDaysAgo, review_count: 1 },
-        { review_date: today, review_count: 1 },
+        {
+          review_date: sixDaysAgo,
+          review_count: 1,
+          again_count: 0,
+          hard_count: 0,
+          good_count: 1,
+          easy_count: 0,
+        },
+        {
+          review_date: today,
+          review_count: 1,
+          again_count: 0,
+          hard_count: 0,
+          good_count: 1,
+          easy_count: 0,
+        },
       ],
     },
     allReviewDateRowsByRequest: {
@@ -751,19 +780,47 @@ test("loadUserProgressSummaryInExecutor raises workspace context for invalid rev
   );
 });
 
-test("loadUserProgressSeriesInExecutor fills gaps and merges review counts across multiple workspaces", async () => {
+test("loadUserProgressSeriesInExecutor fills gaps and merges rating breakdowns across multiple workspaces", async () => {
   const { executor } = createProgressExecutor({
     workspaceIdsByUser: {
       "user-1": ["workspace-1", "workspace-2"],
     },
     reviewRowsByRequest: {
       "workspace-1|Europe/Madrid|2026-04-11|2026-04-14": [
-        { review_date: "2026-04-11", review_count: 1 },
-        { review_date: "2026-04-13", review_count: "4" },
+        {
+          review_date: "2026-04-11",
+          review_count: 1,
+          again_count: 0,
+          hard_count: 0,
+          good_count: 1,
+          easy_count: 0,
+        },
+        {
+          review_date: "2026-04-13",
+          review_count: "4",
+          again_count: "1",
+          hard_count: "1",
+          good_count: "1",
+          easy_count: "1",
+        },
       ],
       "workspace-2|Europe/Madrid|2026-04-11|2026-04-14": [
-        { review_date: "2026-04-11", review_count: 2 },
-        { review_date: "2026-04-14", review_count: 3 },
+        {
+          review_date: "2026-04-11",
+          review_count: 2,
+          again_count: 1,
+          hard_count: 1,
+          good_count: 0,
+          easy_count: 0,
+        },
+        {
+          review_date: "2026-04-14",
+          review_count: 3,
+          again_count: 1,
+          hard_count: 0,
+          good_count: 1,
+          easy_count: 1,
+        },
       ],
     },
     allReviewDateRowsByRequest: {},
@@ -782,11 +839,19 @@ test("loadUserProgressSeriesInExecutor fills gaps and merges review counts acros
   });
 
   assert.deepEqual(progress.dailyReviews, [
-    { date: "2026-04-11", reviewCount: 3 },
-    { date: "2026-04-12", reviewCount: 0 },
-    { date: "2026-04-13", reviewCount: 4 },
-    { date: "2026-04-14", reviewCount: 3 },
+    { date: "2026-04-11", reviewCount: 3, againCount: 1, hardCount: 1, goodCount: 1, easyCount: 0 },
+    { date: "2026-04-12", reviewCount: 0, againCount: 0, hardCount: 0, goodCount: 0, easyCount: 0 },
+    { date: "2026-04-13", reviewCount: 4, againCount: 1, hardCount: 1, goodCount: 1, easyCount: 1 },
+    { date: "2026-04-14", reviewCount: 3, againCount: 1, hardCount: 0, goodCount: 1, easyCount: 1 },
   ]);
+  const mixedRatingDay = progress.dailyReviews[0];
+  if (mixedRatingDay === undefined) {
+    assert.fail("Expected the mixed-rating day to be returned");
+  }
+  assert.equal(
+    mixedRatingDay.reviewCount,
+    mixedRatingDay.againCount + mixedRatingDay.hardCount + mixedRatingDay.goodCount + mixedRatingDay.easyCount,
+  );
   assert.deepEqual(progress.reviewHistoryWatermarks, [
     { workspaceId: "workspace-1", reviewSequenceId: 4 },
     { workspaceId: "workspace-2", reviewSequenceId: 3 },
@@ -966,7 +1031,14 @@ test("loadUserProgressSeriesInExecutor buckets review counts by reviewed_at_clie
     },
     reviewRowsByRequest: {
       "workspace-1|America/Los_Angeles|2026-04-11|2026-04-12": [
-        { review_date: "2026-04-11", review_count: 1 },
+        {
+          review_date: "2026-04-11",
+          review_count: 1,
+          again_count: 0,
+          hard_count: 0,
+          good_count: 1,
+          easy_count: 0,
+        },
       ],
     },
     allReviewDateRowsByRequest: {},
@@ -988,6 +1060,11 @@ test("loadUserProgressSeriesInExecutor buckets review counts by reviewed_at_clie
     assert.fail("Expected a review_events chart query to be recorded");
   }
   assert.match(reviewQuery.text, /timezone\(\$2, review_events\.reviewed_at_client\)::date/);
+  assert.match(reviewQuery.text, /COUNT\(\*\)::int AS review_count/);
+  assert.match(reviewQuery.text, /COUNT\(\*\) FILTER \(WHERE review_events\.rating = 0\)::int AS again_count/);
+  assert.match(reviewQuery.text, /COUNT\(\*\) FILTER \(WHERE review_events\.rating = 1\)::int AS hard_count/);
+  assert.match(reviewQuery.text, /COUNT\(\*\) FILTER \(WHERE review_events\.rating = 2\)::int AS good_count/);
+  assert.match(reviewQuery.text, /COUNT\(\*\) FILTER \(WHERE review_events\.rating = 3\)::int AS easy_count/);
   assert.match(reviewQuery.text, /review_events\.reviewed_at_client >= \(\(\$3::date\)::timestamp AT TIME ZONE \$2\)/);
   assert.match(reviewQuery.text, /review_events\.reviewed_at_client < \(\(\(\(\$4::date\) \+ 1\)::timestamp\) AT TIME ZONE \$2\)/);
   assert.doesNotMatch(reviewQuery.text, /reviewed_at_server/);
@@ -1042,10 +1119,24 @@ test("loadUserProgressSeriesInExecutor applies user scope for memberships and wo
     },
     reviewRowsByRequest: {
       "workspace-1|Europe/Madrid|2026-04-11|2026-04-14": [
-        { review_date: "2026-04-11", review_count: 3 },
+        {
+          review_date: "2026-04-11",
+          review_count: 3,
+          again_count: 1,
+          hard_count: 1,
+          good_count: 1,
+          easy_count: 0,
+        },
       ],
       "workspace-2|Europe/Madrid|2026-04-11|2026-04-14": [
-        { review_date: "2026-04-14", review_count: 1 },
+        {
+          review_date: "2026-04-14",
+          review_count: 1,
+          again_count: 0,
+          hard_count: 0,
+          good_count: 0,
+          easy_count: 1,
+        },
       ],
     },
     allReviewDateRowsByRequest: {},
