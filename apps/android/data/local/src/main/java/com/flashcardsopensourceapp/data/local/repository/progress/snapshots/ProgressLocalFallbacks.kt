@@ -13,6 +13,7 @@ import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewSched
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummaryScopeKey
+import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.repository.progress.inputs.ProgressPendingReviewLocalDate
 import java.time.LocalDate
 import java.time.ZoneId
@@ -88,9 +89,9 @@ internal fun createLocalFallbackSeries(
         from = scopeKey.from,
         to = scopeKey.to
     )
-    val reviewCountsByDate = linkedMapOf<String, Int>()
+    val reviewPointsByDate = linkedMapOf<String, CloudDailyReviewPoint>()
     dateRange.forEach { date ->
-        reviewCountsByDate[date] = 0
+        reviewPointsByDate[date] = createEmptyDailyReviewPoint(date = date)
     }
     localDayCounts.forEach { dayCount ->
         if (dayCount.timeZone != scopeKey.timeZone) {
@@ -99,22 +100,53 @@ internal fun createLocalFallbackSeries(
         if (workspaceIdSet.contains(dayCount.workspaceId).not()) {
             return@forEach
         }
-        if (reviewCountsByDate.containsKey(dayCount.localDate).not()) {
-            return@forEach
-        }
-        reviewCountsByDate[dayCount.localDate] = (reviewCountsByDate[dayCount.localDate] ?: 0) + dayCount.reviewCount
+        val existingPoint = reviewPointsByDate[dayCount.localDate] ?: return@forEach
+        reviewPointsByDate[dayCount.localDate] = existingPoint.copy(
+            reviewCount = existingPoint.reviewCount + dayCount.reviewCount,
+            againCount = existingPoint.againCount + dayCount.againCount,
+            hardCount = existingPoint.hardCount + dayCount.hardCount,
+            goodCount = existingPoint.goodCount + dayCount.goodCount,
+            easyCount = existingPoint.easyCount + dayCount.easyCount
+        )
     }
 
     return CloudProgressSeries(
         timeZone = scopeKey.timeZone,
         from = scopeKey.from,
         to = scopeKey.to,
-        dailyReviews = reviewCountsByDate.map { (date, reviewCount) ->
-            CloudDailyReviewPoint(
-                date = date,
-                reviewCount = reviewCount
-            )
-        },
+        dailyReviews = reviewPointsByDate.values.toList(),
+        generatedAt = null,
+        reviewHistoryWatermarks = emptyList(),
+        summary = null
+    )
+}
+
+internal fun createPendingLocalOverlaySeries(
+    scopeKey: ProgressSeriesScopeKey,
+    pendingReviewLocalDates: List<ProgressPendingReviewLocalDate>,
+    workspaceIds: List<String>
+): CloudProgressSeries {
+    val workspaceIdSet = workspaceIds.toSet()
+    val reviewPointsByDate = createInclusiveLocalDateRange(
+        from = scopeKey.from,
+        to = scopeKey.to
+    ).associateWith { date -> createEmptyDailyReviewPoint(date = date) }.toMutableMap()
+
+    pendingReviewLocalDates.forEach { pendingReview ->
+        if (workspaceIdSet.contains(pendingReview.workspaceId).not()) {
+            return@forEach
+        }
+        val existingPoint = reviewPointsByDate[pendingReview.localDate] ?: return@forEach
+        reviewPointsByDate[pendingReview.localDate] = existingPoint.incrementDailyReviewPoint(
+            rating = pendingReview.rating
+        )
+    }
+
+    return CloudProgressSeries(
+        timeZone = scopeKey.timeZone,
+        from = scopeKey.from,
+        to = scopeKey.to,
+        dailyReviews = reviewPointsByDate.values.toList(),
         generatedAt = null,
         reviewHistoryWatermarks = emptyList(),
         summary = null
@@ -161,44 +193,6 @@ internal fun createLocalFallbackReviewSchedule(
     )
 }
 
-internal fun createPendingLocalOverlaySeries(
-    scopeKey: ProgressSeriesScopeKey,
-    pendingReviewLocalDates: List<ProgressPendingReviewLocalDate>,
-    workspaceIds: List<String>
-): CloudProgressSeries {
-    val workspaceIdSet = workspaceIds.toSet()
-    val reviewCountsByDate = createInclusiveLocalDateRange(
-        from = scopeKey.from,
-        to = scopeKey.to
-    ).associateWith { 0 }.toMutableMap()
-
-    pendingReviewLocalDates.forEach { pendingReview ->
-        if (workspaceIdSet.contains(pendingReview.workspaceId).not()) {
-            return@forEach
-        }
-        if (reviewCountsByDate.containsKey(pendingReview.localDate).not()) {
-            return@forEach
-        }
-
-        reviewCountsByDate[pendingReview.localDate] = (reviewCountsByDate[pendingReview.localDate] ?: 0) + 1
-    }
-
-    return CloudProgressSeries(
-        timeZone = scopeKey.timeZone,
-        from = scopeKey.from,
-        to = scopeKey.to,
-        dailyReviews = reviewCountsByDate.map { (date, reviewCount) ->
-            CloudDailyReviewPoint(
-                date = date,
-                reviewCount = reviewCount
-            )
-        },
-        generatedAt = null,
-        reviewHistoryWatermarks = emptyList(),
-        summary = null
-    )
-}
-
 internal fun createEmptyProgressSummary(): CloudProgressSummary {
     return CloudProgressSummary(
         currentStreakDays = 0,
@@ -220,14 +214,36 @@ internal fun createEmptyProgressSeries(
             from = scopeKey.from,
             to = scopeKey.to
         ).map { date ->
-            CloudDailyReviewPoint(
-                date = date,
-                reviewCount = 0
-            )
+            createEmptyDailyReviewPoint(date = date)
         },
         generatedAt = null,
         reviewHistoryWatermarks = emptyList(),
         summary = null
+    )
+}
+
+private fun createEmptyDailyReviewPoint(
+    date: String
+): CloudDailyReviewPoint {
+    return CloudDailyReviewPoint(
+        date = date,
+        reviewCount = 0,
+        againCount = 0,
+        hardCount = 0,
+        goodCount = 0,
+        easyCount = 0
+    )
+}
+
+private fun CloudDailyReviewPoint.incrementDailyReviewPoint(
+    rating: ReviewRating
+): CloudDailyReviewPoint {
+    return copy(
+        reviewCount = reviewCount + 1,
+        againCount = againCount + if (rating == ReviewRating.AGAIN) 1 else 0,
+        hardCount = hardCount + if (rating == ReviewRating.HARD) 1 else 0,
+        goodCount = goodCount + if (rating == ReviewRating.GOOD) 1 else 0,
+        easyCount = easyCount + if (rating == ReviewRating.EASY) 1 else 0
     )
 }
 

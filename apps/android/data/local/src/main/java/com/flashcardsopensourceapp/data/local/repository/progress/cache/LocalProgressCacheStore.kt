@@ -6,6 +6,7 @@ import com.flashcardsopensourceapp.data.local.database.entities.ProgressLocalCac
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressLocalDayCountEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressReviewHistoryStateEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
+import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.repository.shared.TimeProvider
 import java.time.Instant
 import java.time.ZoneId
@@ -31,7 +32,7 @@ class LocalProgressCacheStore(
                 reviewedAtMillis = reviewLog.reviewedAtMillis,
                 zoneId = zoneId
             ),
-            delta = 1
+            countDelta = createProgressRatingCountDelta(rating = reviewLog.rating)
         )
         database.progressLocalCacheDao().insertProgressReviewHistoryState(
             entry = ProgressReviewHistoryStateEntity(
@@ -77,7 +78,8 @@ class LocalProgressCacheStore(
             }
             if (
                 existingReviewLog.workspaceId != reviewLog.workspaceId ||
-                existingReviewLog.reviewedAtMillis != reviewLog.reviewedAtMillis
+                existingReviewLog.reviewedAtMillis != reviewLog.reviewedAtMillis ||
+                existingReviewLog.rating != reviewLog.rating
             ) {
                 replacementWorkspaceIds.add(existingReviewLog.workspaceId)
                 replacementWorkspaceIds.add(reviewLog.workspaceId)
@@ -117,7 +119,7 @@ class LocalProgressCacheStore(
                     timeZone = timeZone,
                     workspaceId = workspaceId,
                     localDate = localDate,
-                    delta = dateReviewLogs.size
+                    countDelta = createProgressRatingCountDelta(reviewLogs = dateReviewLogs)
                 )
             }
 
@@ -281,11 +283,16 @@ class LocalProgressCacheStore(
                 zoneId = zoneId
             )
         }.map { (localDate, dateReviewLogs) ->
+            val countDelta = createProgressRatingCountDelta(reviewLogs = dateReviewLogs)
             ProgressLocalDayCountEntity(
                 timeZone = timeZone,
                 workspaceId = workspaceId,
                 localDate = localDate,
-                reviewCount = dateReviewLogs.size
+                reviewCount = countDelta.reviewCount,
+                againCount = countDelta.againCount,
+                hardCount = countDelta.hardCount,
+                goodCount = countDelta.goodCount,
+                easyCount = countDelta.easyCount
             )
         }
         database.progressLocalCacheDao().insertProgressLocalDayCounts(entries = dayCounts)
@@ -313,20 +320,24 @@ class LocalProgressCacheStore(
         timeZone: String,
         workspaceId: String,
         localDate: String,
-        delta: Int
+        countDelta: ProgressRatingCountDelta
     ) {
         val existingEntry = database.progressLocalCacheDao().loadProgressLocalDayCount(
             timeZone = timeZone,
             workspaceId = workspaceId,
             localDate = localDate
         )
-        val nextReviewCount = (existingEntry?.reviewCount ?: 0) + delta
+        val nextReviewCount = (existingEntry?.reviewCount ?: 0) + countDelta.reviewCount
         database.progressLocalCacheDao().insertProgressLocalDayCount(
             entry = ProgressLocalDayCountEntity(
                 timeZone = timeZone,
                 workspaceId = workspaceId,
                 localDate = localDate,
-                reviewCount = nextReviewCount
+                reviewCount = nextReviewCount,
+                againCount = (existingEntry?.againCount ?: 0) + countDelta.againCount,
+                hardCount = (existingEntry?.hardCount ?: 0) + countDelta.hardCount,
+                goodCount = (existingEntry?.goodCount ?: 0) + countDelta.goodCount,
+                easyCount = (existingEntry?.easyCount ?: 0) + countDelta.easyCount
             )
         )
     }
@@ -345,6 +356,39 @@ class LocalProgressCacheStore(
         )
         return cacheState?.historyVersion == previousHistoryVersion
     }
+}
+
+private data class ProgressRatingCountDelta(
+    val reviewCount: Int,
+    val againCount: Int,
+    val hardCount: Int,
+    val goodCount: Int,
+    val easyCount: Int
+)
+
+private fun createProgressRatingCountDelta(
+    reviewLogs: List<ReviewLogEntity>
+): ProgressRatingCountDelta {
+    val ratingCounts = reviewLogs.groupingBy(ReviewLogEntity::rating).eachCount()
+    return ProgressRatingCountDelta(
+        reviewCount = reviewLogs.size,
+        againCount = ratingCounts[ReviewRating.AGAIN] ?: 0,
+        hardCount = ratingCounts[ReviewRating.HARD] ?: 0,
+        goodCount = ratingCounts[ReviewRating.GOOD] ?: 0,
+        easyCount = ratingCounts[ReviewRating.EASY] ?: 0
+    )
+}
+
+private fun createProgressRatingCountDelta(
+    rating: ReviewRating
+): ProgressRatingCountDelta {
+    return ProgressRatingCountDelta(
+        reviewCount = 1,
+        againCount = if (rating == ReviewRating.AGAIN) 1 else 0,
+        hardCount = if (rating == ReviewRating.HARD) 1 else 0,
+        goodCount = if (rating == ReviewRating.GOOD) 1 else 0,
+        easyCount = if (rating == ReviewRating.EASY) 1 else 0
+    )
 }
 
 private fun toLocalDate(

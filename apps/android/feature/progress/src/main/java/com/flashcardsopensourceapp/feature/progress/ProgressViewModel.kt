@@ -130,7 +130,11 @@ class ProgressViewModel(
 
 private data class ParsedProgressPoint(
     val date: LocalDate,
-    val reviewCount: Int
+    val reviewCount: Int,
+    val againCount: Int,
+    val hardCount: Int,
+    val goodCount: Int,
+    val easyCount: Int
 )
 
 private data class ProgressWeekContext(
@@ -325,7 +329,11 @@ private fun CloudProgressReviewSchedule.toUiState(): ProgressReviewScheduleSecti
 private fun CloudDailyReviewPoint.toParsedProgressPoint(): ParsedProgressPoint {
     return ParsedProgressPoint(
         date = parseProgressDate(rawDate = date),
-        reviewCount = reviewCount
+        reviewCount = reviewCount,
+        againCount = againCount,
+        hardCount = hardCount,
+        goodCount = goodCount,
+        easyCount = easyCount
     )
 }
 
@@ -350,6 +358,10 @@ private fun List<ParsedProgressPoint>.toReviewDays(
             date = point.date,
             dayOfMonthLabel = point.date.dayOfMonth.toString(),
             reviewCount = point.reviewCount,
+            againCount = point.againCount,
+            hardCount = point.hardCount,
+            goodCount = point.goodCount,
+            easyCount = point.easyCount,
             isToday = point.date == today
         )
     }
@@ -438,6 +450,10 @@ private fun padReviewPageDaysToFullWeek(
             date = date,
             dayOfMonthLabel = date.dayOfMonth.toString(),
             reviewCount = 0,
+            againCount = 0,
+            hardCount = 0,
+            goodCount = 0,
+            easyCount = 0,
             isToday = date == today
         )
     }

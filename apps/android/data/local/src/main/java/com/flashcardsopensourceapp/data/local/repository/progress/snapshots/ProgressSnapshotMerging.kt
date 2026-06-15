@@ -223,17 +223,19 @@ internal fun mergeProgressSeries(
         pendingLocalOverlay = pendingLocalOverlay,
         localFallback = localFallback
     )
-    val pendingCountsByDate = buildProgressSeriesReviewCountsByDate(series = pendingLocalOverlay)
-    val localFallbackCountsByDate = buildProgressSeriesReviewCountsByDate(series = localFallback)
+    val pendingCountsByDate = buildProgressSeriesCountVectorsByDate(series = pendingLocalOverlay)
+    val localFallbackCountsByDate = buildProgressSeriesCountVectorsByDate(series = localFallback)
     val mergedDailyReviews = base.dailyReviews.map { point ->
-        val serverPlusPending = point.reviewCount + (pendingCountsByDate[point.date] ?: 0)
-        CloudDailyReviewPoint(
-            date = point.date,
-            reviewCount = maxOf(
-                serverPlusPending,
-                localFallbackCountsByDate[point.date] ?: 0
-            )
-        )
+        val serverPlusPending = point.toProgressSeriesCountVector()
+            .plus(pendingCountsByDate[point.date] ?: createEmptyProgressSeriesCountVector())
+        val localFallbackPoint = localFallbackCountsByDate[point.date] ?: createEmptyProgressSeriesCountVector()
+        val mergedPoint = if (localFallbackPoint.reviewCount > serverPlusPending.reviewCount) {
+            localFallbackPoint
+        } else {
+            serverPlusPending
+        }
+
+        mergedPoint.toCloudDailyReviewPoint(date = point.date)
     }
     return CloudProgressSeries(
         timeZone = base.timeZone,
@@ -504,6 +506,68 @@ private fun buildProgressSeriesReviewCountsByDate(
     return reviewCountsByDate
 }
 
+private data class ProgressSeriesCountVector(
+    val reviewCount: Int,
+    val againCount: Int,
+    val hardCount: Int,
+    val goodCount: Int,
+    val easyCount: Int
+) {
+    fun plus(other: ProgressSeriesCountVector): ProgressSeriesCountVector {
+        return ProgressSeriesCountVector(
+            reviewCount = reviewCount + other.reviewCount,
+            againCount = againCount + other.againCount,
+            hardCount = hardCount + other.hardCount,
+            goodCount = goodCount + other.goodCount,
+            easyCount = easyCount + other.easyCount
+        )
+    }
+}
+
+private fun createEmptyProgressSeriesCountVector(): ProgressSeriesCountVector {
+    return ProgressSeriesCountVector(
+        reviewCount = 0,
+        againCount = 0,
+        hardCount = 0,
+        goodCount = 0,
+        easyCount = 0
+    )
+}
+
+private fun buildProgressSeriesCountVectorsByDate(
+    series: CloudProgressSeries
+): Map<String, ProgressSeriesCountVector> {
+    val countVectorsByDate = linkedMapOf<String, ProgressSeriesCountVector>()
+    series.dailyReviews.forEach { point ->
+        countVectorsByDate[point.date] = (countVectorsByDate[point.date] ?: createEmptyProgressSeriesCountVector())
+            .plus(point.toProgressSeriesCountVector())
+    }
+    return countVectorsByDate
+}
+
+private fun CloudDailyReviewPoint.toProgressSeriesCountVector(): ProgressSeriesCountVector {
+    return ProgressSeriesCountVector(
+        reviewCount = reviewCount,
+        againCount = againCount,
+        hardCount = hardCount,
+        goodCount = goodCount,
+        easyCount = easyCount
+    )
+}
+
+private fun ProgressSeriesCountVector.toCloudDailyReviewPoint(
+    date: String
+): CloudDailyReviewPoint {
+    return CloudDailyReviewPoint(
+        date = date,
+        reviewCount = reviewCount,
+        againCount = againCount,
+        hardCount = hardCount,
+        goodCount = goodCount,
+        easyCount = easyCount
+    )
+}
+
 private fun hasProgressSeriesOverlay(
     base: CloudProgressSeries,
     renderedSeries: CloudProgressSeries
@@ -514,6 +578,10 @@ private fun hasProgressSeriesOverlay(
 
     return base.dailyReviews.zip(renderedSeries.dailyReviews).any { pair ->
         pair.first.date != pair.second.date ||
-            pair.first.reviewCount != pair.second.reviewCount
+            pair.first.reviewCount != pair.second.reviewCount ||
+            pair.first.againCount != pair.second.againCount ||
+            pair.first.hardCount != pair.second.hardCount ||
+            pair.first.goodCount != pair.second.goodCount ||
+            pair.first.easyCount != pair.second.easyCount
     }
 }

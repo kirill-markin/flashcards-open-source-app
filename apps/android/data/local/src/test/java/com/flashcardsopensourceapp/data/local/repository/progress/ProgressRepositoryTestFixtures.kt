@@ -47,7 +47,11 @@ internal fun createProgressLocalDayCount(
         timeZone = "Europe/Madrid",
         workspaceId = workspaceId,
         localDate = localDate,
-        reviewCount = reviewCount
+        reviewCount = reviewCount,
+        againCount = 0,
+        hardCount = 0,
+        goodCount = reviewCount,
+        easyCount = 0
     )
 }
 
