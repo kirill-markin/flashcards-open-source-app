@@ -609,10 +609,15 @@ function parsePersistedProgressLeaderboardRow(value: unknown): ProgressLeaderboa
     return null;
   }
 
+  if (value.friendDisplayName !== undefined && typeof value.friendDisplayName !== "string") {
+    return null;
+  }
+
   return {
     kind: value.kind as typeof progressLeaderboardParticipantRowKinds[number],
     publicProfileId: value.publicProfileId,
     anonymousDisplayName: value.anonymousDisplayName,
+    friendDisplayName: value.friendDisplayName,
     qualifiedReviewCount: value.qualifiedReviewCount,
     rank: value.rank,
   };
@@ -624,6 +629,7 @@ function parsePersistedProgressLeaderboardRankingRow(value: unknown): ProgressLe
     || progressLeaderboardRankingRowKinds.includes(value.kind as typeof progressLeaderboardRankingRowKinds[number]) === false
     || typeof value.publicProfileId !== "string"
     || typeof value.anonymousDisplayName !== "string"
+    || (value.friendDisplayName !== undefined && typeof value.friendDisplayName !== "string")
     || isNonNegativeSafeIntegerValue(value.qualifiedReviewCount) === false
     || isNonNegativeSafeIntegerValue(value.rank) === false
     || value.rank < 1
@@ -635,6 +641,7 @@ function parsePersistedProgressLeaderboardRankingRow(value: unknown): ProgressLe
     kind: value.kind as typeof progressLeaderboardRankingRowKinds[number],
     publicProfileId: value.publicProfileId,
     anonymousDisplayName: value.anonymousDisplayName,
+    friendDisplayName: value.friendDisplayName,
     qualifiedReviewCount: value.qualifiedReviewCount,
     rank: value.rank,
   };

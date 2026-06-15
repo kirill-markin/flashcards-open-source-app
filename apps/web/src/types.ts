@@ -262,6 +262,7 @@ export type ProgressLeaderboardParticipantRow = Readonly<{
   kind: ProgressLeaderboardParticipantRowKind;
   publicProfileId: string;
   anonymousDisplayName: string;
+  friendDisplayName?: string;
   qualifiedReviewCount: number;
   rank: number;
 }>;
@@ -280,6 +281,7 @@ export type ProgressLeaderboardRankingRow = Readonly<{
   kind: ProgressLeaderboardRankingRowKind;
   publicProfileId: string;
   anonymousDisplayName: string;
+  friendDisplayName?: string;
   qualifiedReviewCount: number;
   rank: number;
 }>;
@@ -310,6 +312,28 @@ export type ProgressLeaderboardSnapshot = ProgressLeaderboard & Readonly<{
   source: "server";
   isApproximate: boolean;
 }>;
+
+export type FriendInvitationCreateRequest = Readonly<{
+  inviteeDisplayName: string;
+}>;
+
+export type FriendInvitationCreateResponse = Readonly<{
+  inviteUrl: string;
+  expiresAt: string;
+}>;
+
+export type FriendInvitationPreviewResponse =
+  | Readonly<{ status: "active"; expiresAt: string }>
+  | Readonly<{ status: "inactive" }>;
+
+export type FriendInvitationAcceptRequest = Readonly<{
+  inviterDisplayName: string;
+}>;
+
+export type FriendInvitationAcceptResponse =
+  | Readonly<{ status: "accepted" }>
+  | Readonly<{ status: "already_friends"; existingFriendDisplayName: string }>
+  | Readonly<{ status: "inactive" }>;
 
 export type ProgressRenderedSeriesSummaryContext = Readonly<{
   lowerBoundSummary: ProgressSummary;

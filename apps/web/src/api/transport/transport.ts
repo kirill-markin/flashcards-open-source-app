@@ -72,6 +72,8 @@ export const allowAuthRecoveryWithTransientNetworkRetry: RequestOptions = {
   prepareForAuthRedirect,
 };
 
+export const skipAuthRecoveryWithTransientNetworkRetry: RequestOptions = createSkipAuthRecoveryOptions("transient");
+
 function createSkipAuthRecoveryOptions(networkRetryMode: NetworkRetryMode): RequestOptions {
   return {
     authRecoveryMode: "skip",
@@ -626,6 +628,18 @@ export async function requestJson(
  */
 export async function getSession(): Promise<SessionInfo> {
   return loadSessionInfoWithRecovery(allowAuthRecoveryWithTransientNetworkRetry);
+}
+
+export async function getOptionalSession(): Promise<SessionInfo | null> {
+  try {
+    return await loadSessionInfoWithoutRecovery("transient");
+  } catch (error) {
+    if (error instanceof ApiError && error.statusCode === 401) {
+      return null;
+    }
+
+    throw error;
+  }
 }
 
 /**

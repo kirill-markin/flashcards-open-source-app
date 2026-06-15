@@ -40,6 +40,11 @@ export {
   submitFeedback,
 } from "./api/endpoints/feedback";
 export {
+  acceptFriendInvitation,
+  createFriendInvitation,
+  previewFriendInvitation,
+} from "./api/endpoints/communityFriends";
+export {
   loadProgressLeaderboard,
   loadProgressReviewSchedule,
   loadProgressSeries,
@@ -55,6 +60,7 @@ export {
 } from "./api/endpoints/sync";
 export {
   getCachedSessionCsrfToken,
+  getOptionalSession,
   getSession,
   isAuthRedirectError,
   primeSessionCsrfToken,

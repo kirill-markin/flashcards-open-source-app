@@ -297,6 +297,38 @@ function createLeaderboardRankingRows(): ReadonlyArray<ProgressLeaderboardRankin
   ];
 }
 
+function addFriendDisplayNameToRankingRows(
+  rankingRows: ReadonlyArray<ProgressLeaderboardRankingRow>,
+  rank: number,
+  friendDisplayName: string,
+): ReadonlyArray<ProgressLeaderboardRankingRow> {
+  return rankingRows.map((row): ProgressLeaderboardRankingRow => (
+    row.rank === rank
+      ? {
+        ...row,
+        friendDisplayName,
+      }
+      : row
+  ));
+}
+
+function addFriendDisplayNamesToRankingRows(
+  rankingRows: ReadonlyArray<ProgressLeaderboardRankingRow>,
+  friendDisplayNamesByRank: ReadonlyMap<number, string>,
+): ReadonlyArray<ProgressLeaderboardRankingRow> {
+  return rankingRows.map((row): ProgressLeaderboardRankingRow => {
+    const friendDisplayName = friendDisplayNamesByRank.get(row.rank);
+    if (friendDisplayName === undefined) {
+      return row;
+    }
+
+    return {
+      ...row,
+      friendDisplayName,
+    };
+  });
+}
+
 function createLeaderboardWindow(windowKey: ProgressLeaderboardWindowKey): ProgressLeaderboardWindow {
   return {
     windowKey,
@@ -323,6 +355,25 @@ function createLeaderboardWindow(windowKey: ProgressLeaderboardWindowKey): Progr
       { kind: "neighbor", publicProfileId: "profile-128", anonymousDisplayName: "Blue Final Harbor", qualifiedReviewCount: 0, rank: 128 },
     ],
     rankingRows: createLeaderboardRankingRows(),
+  };
+}
+
+function createLeaderboardWithWindowRankingRows(
+  windowKey: ProgressLeaderboardWindowKey,
+  rankingRows: ReadonlyArray<ProgressLeaderboardRankingRow>,
+): ProgressLeaderboard {
+  const leaderboard = createLeaderboard("ready");
+
+  return {
+    ...leaderboard,
+    windows: leaderboard.windows.map((window): ProgressLeaderboardWindow => (
+      window.windowKey === windowKey
+        ? {
+          ...window,
+          rankingRows,
+        }
+        : window
+    )),
   };
 }
 
@@ -806,6 +857,72 @@ describe("ProgressScreen", () => {
     expect(container.querySelector("[data-testid='progress-leaderboard-row-viewer']")).toBeNull();
   });
 
+  it("renders the invite sign-in prompt for unlinked accounts", async () => {
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <I18nProvider>
+            <ProgressScreen />
+          </I18nProvider>
+        </MemoryRouter>,
+      );
+    });
+
+    const inviteOpenButton = container.querySelector("[data-testid='progress-leaderboard-invite-open']");
+    if (!(inviteOpenButton instanceof HTMLButtonElement)) {
+      throw new Error("Leaderboard invite button was not found");
+    }
+
+    await act(async () => {
+      inviteOpenButton.click();
+    });
+
+    const signInPrompt = document.body.querySelector("[data-testid='progress-leaderboard-invite-sign-in']");
+    if (!(signInPrompt instanceof HTMLElement)) {
+      throw new Error("Leaderboard invite sign-in prompt was not found");
+    }
+
+    expect(signInPrompt.querySelector("a")).not.toBeNull();
+  });
+
+  it("requires a friend name before creating a leaderboard invite", async () => {
+    useAppDataMock.mockReturnValue({
+      ...createAppData(),
+      cloudSettings: linkedCloudSettings,
+    });
+    mockProgressSourceStateWithLeaderboard(createLeaderboardSourceState("ready", null));
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <I18nProvider>
+            <ProgressScreen />
+          </I18nProvider>
+        </MemoryRouter>,
+      );
+    });
+
+    const inviteOpenButton = container.querySelector("[data-testid='progress-leaderboard-invite-open']");
+    if (!(inviteOpenButton instanceof HTMLButtonElement)) {
+      throw new Error("Leaderboard invite button was not found");
+    }
+
+    await act(async () => {
+      inviteOpenButton.click();
+    });
+
+    const createButton = document.body.querySelector("[data-testid='progress-leaderboard-invite-create']");
+    if (!(createButton instanceof HTMLButtonElement)) {
+      throw new Error("Leaderboard invite create button was not found");
+    }
+
+    await act(async () => {
+      createButton.click();
+    });
+
+    expect(document.body.querySelector("[data-testid='progress-leaderboard-invite-name-error']")?.textContent).not.toBe("");
+  });
+
   it("scrolls to the leaderboard card when the route hash targets it", async () => {
     await act(async () => {
       root.render(
@@ -935,6 +1052,78 @@ describe("ProgressScreen", () => {
     expect(topGapRow.querySelector("a")).toBeNull();
     expect(bottomGapRow.querySelector("button")).toBeNull();
     expect(bottomGapRow.querySelector("a")).toBeNull();
+  });
+
+  it("renders friend rows from ranking rows and dedupes already visible friends", async () => {
+    useAppDataMock.mockReturnValue({
+      ...createAppData(),
+      cloudSettings: linkedCloudSettings,
+    });
+    const friendRankingRows = addFriendDisplayNamesToRankingRows(
+      createLeaderboardRankingRows(),
+      new Map([
+        [2, "Mina"],
+        [12, "Ari"],
+        [41, "Kai"],
+      ]),
+    );
+    mockProgressSourceStateWithLeaderboard(createLeaderboardSourceStateFromLeaderboard(
+      createLeaderboardWithWindowRankingRows("last_24_hours", friendRankingRows),
+      null,
+    ));
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <I18nProvider>
+            <ProgressScreen />
+          </I18nProvider>
+        </MemoryRouter>,
+      );
+    });
+
+    const rows = [...container.querySelectorAll(".progress-leaderboard-row:not(.progress-leaderboard-row-padding)")];
+    const rowTexts = rows.map((row) => row.textContent ?? "");
+
+    expect(rowTexts.filter((text) => text.includes("Mina"))).toHaveLength(1);
+    expect(rowTexts.filter((text) => text.includes("Kai"))).toHaveLength(1);
+    expect(rowTexts).toEqual(expect.arrayContaining([
+      expect.stringContaining("Ari"),
+    ]));
+    expect(container.textContent).not.toContain("Hidden Rank 12");
+    expect(rowTexts.findIndex((text) => text.includes("#12"))).toBeLessThan(
+      rowTexts.findIndex((text) => text.includes("#41")),
+    );
+  });
+
+  it("pads the selected leaderboard period to the largest friend-expanded row count", async () => {
+    useAppDataMock.mockReturnValue({
+      ...createAppData(),
+      cloudSettings: linkedCloudSettings,
+    });
+    const allTimeFriendRows = addFriendDisplayNameToRankingRows(
+      addFriendDisplayNameToRankingRows(createLeaderboardRankingRows(), 12, "Ari"),
+      20,
+      "Noor",
+    );
+    mockProgressSourceStateWithLeaderboard(createLeaderboardSourceStateFromLeaderboard(
+      createLeaderboardWithWindowRankingRows("all_time", allTimeFriendRows),
+      null,
+    ));
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <I18nProvider>
+            <ProgressScreen />
+          </I18nProvider>
+        </MemoryRouter>,
+      );
+    });
+
+    expect(container.querySelectorAll("[data-testid='progress-leaderboard-row-padding']")).toHaveLength(4);
+    expect(container.textContent).not.toContain("Ari");
+    expect(container.textContent).not.toContain("Noor");
   });
 
   it("reveals the leaderboard info text explaining that Again reviews are excluded", async () => {
