@@ -222,6 +222,183 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /me/community/friend-invitations:
+    post:
+      tags:
+        - bootstrap
+      summary: Create a friend invitation link
+      description: >-
+        Creates a single-use friend invitation link for the signed-in human
+        account. The invitee display name is private to the inviter and is
+        normalized with trim before storage. ApiKey and Guest authentication are
+        rejected. Session callers must send a valid X-CSRF-Token header.
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+          CsrfTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FriendInvitationCreateRequest'
+            example:
+              inviteeDisplayName: Priya
+      responses:
+        '200':
+          description: Created friend invitation link
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FriendInvitationCreateResponse'
+              example:
+                inviteUrl: https://app.flashcards-open-source-app.com/invite/LjCTCGK7DLEh6IJeujO4GtcZD2VN7z5oFMVozdjlggo
+                expiresAt: '2026-06-17T10:00:00.000Z'
+        '400':
+          description: Invalid friend invitation payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden authentication transport or invalid session CSRF token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Active invitation limit reached
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /community/friend-invitations/{inviteToken}:
+    get:
+      tags:
+        - bootstrap
+      summary: Preview a friend invitation link
+      description: >-
+        Public no-auth preview for a raw friend invite token. The response is
+        intentionally small: active links return only status and expiry; unknown,
+        expired, inactive, or accepted links return only inactive status. Inviter
+        identity, email, public profile id, and private stored display names are
+        never returned.
+      security: []
+      parameters:
+        - name: inviteToken
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Raw invite token from the app invite URL path.
+      responses:
+        '200':
+          description: Friend invitation preview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FriendInvitationPreviewResponse'
+              examples:
+                active:
+                  value:
+                    status: active
+                    expiresAt: '2026-06-17T10:00:00.000Z'
+                inactive:
+                  value:
+                    status: inactive
+        '403':
+          description: ApiKey authentication is not supported for public preview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /me/community/friend-invitations/{inviteToken}/accept:
+    post:
+      tags:
+        - bootstrap
+      summary: Accept a friend invitation link
+      description: >-
+        Accepts an active friend invitation link for the signed-in human account
+        and creates the directed friendship rows. The inviter display name is
+        private to the invitee and is normalized with trim before storage. ApiKey
+        and Guest authentication are rejected. Session callers must send a valid
+        X-CSRF-Token header.
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+          CsrfTokenHeader: []
+      parameters:
+        - name: inviteToken
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Raw invite token from the app invite URL path.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FriendInvitationAcceptRequest'
+            example:
+              inviterDisplayName: Alex
+      responses:
+        '200':
+          description: Friend invitation acceptance status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FriendInvitationAcceptResponse'
+              examples:
+                accepted:
+                  value:
+                    status: accepted
+                alreadyFriends:
+                  value:
+                    status: already_friends
+                    existingFriendDisplayName: Alex
+                inactive:
+                  value:
+                    status: inactive
+        '400':
+          description: Invalid friend invitation payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden authentication transport or invalid session CSRF token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Invitation cannot be accepted by this account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: This is your own invitation link.
+                code: FRIEND_INVITATION_SELF
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /me/progress/leaderboard:
     get:
       tags:
@@ -435,6 +612,109 @@ components:
           type: boolean
         linkedAccountRequiredForLeaderboard:
           type: boolean
+    FriendInvitationDisplayName:
+      type: string
+      minLength: 1
+      maxLength: 30
+      description: >-
+        User-entered private display name after server trim normalization.
+        Unicode and emoji are allowed; control characters and newlines are
+        rejected.
+    FriendInvitationCreateRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - inviteeDisplayName
+      properties:
+        inviteeDisplayName:
+          $ref: '#/components/schemas/FriendInvitationDisplayName'
+    FriendInvitationCreateResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - inviteUrl
+        - expiresAt
+      properties:
+        inviteUrl:
+          type: string
+          format: uri
+        expiresAt:
+          type: string
+          format: date-time
+    FriendInvitationPreviewActiveResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - expiresAt
+      properties:
+        status:
+          type: string
+          enum:
+            - active
+        expiresAt:
+          type: string
+          format: date-time
+    FriendInvitationPreviewInactiveResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - inactive
+    FriendInvitationPreviewResponse:
+      oneOf:
+        - $ref: '#/components/schemas/FriendInvitationPreviewActiveResponse'
+        - $ref: '#/components/schemas/FriendInvitationPreviewInactiveResponse'
+    FriendInvitationAcceptRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - inviterDisplayName
+      properties:
+        inviterDisplayName:
+          $ref: '#/components/schemas/FriendInvitationDisplayName'
+    FriendInvitationAcceptedResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - accepted
+    FriendInvitationAlreadyFriendsResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - existingFriendDisplayName
+      properties:
+        status:
+          type: string
+          enum:
+            - already_friends
+        existingFriendDisplayName:
+          $ref: '#/components/schemas/FriendInvitationDisplayName'
+    FriendInvitationInactiveAcceptResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - inactive
+    FriendInvitationAcceptResponse:
+      oneOf:
+        - $ref: '#/components/schemas/FriendInvitationAcceptedResponse'
+        - $ref: '#/components/schemas/FriendInvitationAlreadyFriendsResponse'
+        - $ref: '#/components/schemas/FriendInvitationInactiveAcceptResponse'
     LeaderboardWindowKey:
       type: string
       enum:

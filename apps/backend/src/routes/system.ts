@@ -8,6 +8,17 @@ import {
   updateLeaderboardParticipation,
   type PublicProfile,
 } from "../community/publicProfiles";
+import {
+  acceptFriendInvitation,
+  createFriendInvitation,
+  parseFriendInvitationDisplayName,
+  previewFriendInvitation,
+  type FriendInvitationAcceptInput,
+  type FriendInvitationAcceptResponse,
+  type FriendInvitationCreateInput,
+  type FriendInvitationCreateResponse,
+  type FriendInvitationPreviewResponse,
+} from "../community/friendInvitations";
 import { HttpError } from "../shared/errors";
 import { queryWithUserScope } from "../database";
 import {
@@ -55,6 +66,9 @@ type SystemRoutesOptions = Readonly<{
   updateAccountPreferencesFn?: UpdateAccountPreferencesFn;
   ensurePublicProfileForUserFn?: EnsurePublicProfileForUserFn;
   updateLeaderboardParticipationFn?: UpdateLeaderboardParticipationFn;
+  createFriendInvitationFn?: CreateFriendInvitationFn;
+  previewFriendInvitationFn?: PreviewFriendInvitationFn;
+  acceptFriendInvitationFn?: AcceptFriendInvitationFn;
 }>;
 
 type ProgressRequestedParameters = Readonly<{
@@ -79,6 +93,12 @@ type UpdateLeaderboardParticipationFn = (
   leaderboardParticipationEnabled: boolean,
   localeHint: string,
 ) => Promise<PublicProfile>;
+
+type CreateFriendInvitationFn = (input: FriendInvitationCreateInput) => Promise<FriendInvitationCreateResponse>;
+
+type PreviewFriendInvitationFn = (rawInviteToken: string) => Promise<FriendInvitationPreviewResponse>;
+
+type AcceptFriendInvitationFn = (input: FriendInvitationAcceptInput) => Promise<FriendInvitationAcceptResponse>;
 
 type CommunityPublicProfileResponse = PublicProfile & Readonly<{
   linkedAccountRequiredForLeaderboard: boolean;
@@ -128,6 +148,27 @@ function assertCommunityProfileHumanTransport(transport: AuthTransport): void {
   }
 }
 
+function assertFriendInvitationHumanTransport(transport: AuthTransport): void {
+  if (transport !== "session" && transport !== "bearer" && transport !== "none") {
+    throw new HttpError(
+      403,
+      "This endpoint requires signed-in human authentication",
+      "FRIEND_INVITATION_HUMAN_AUTH_REQUIRED",
+    );
+  }
+}
+
+function assertFriendInvitationPublicPreviewTransport(request: Request): void {
+  const authorizationHeader = request.headers.get("authorization");
+  if (authorizationHeader !== null && authorizationHeader.startsWith("ApiKey ")) {
+    throw new HttpError(
+      403,
+      "Friend invitation preview does not support ApiKey authentication",
+      "FRIEND_INVITATION_API_KEY_AUTH_UNSUPPORTED",
+    );
+  }
+}
+
 function parseAccountPreferencesInput(body: Record<string, unknown>): AccountPreferences {
   const unexpectedKey = Object.keys(body).find((key) => key !== "reviewReactionAnimationsEnabled");
   if (unexpectedKey !== undefined) {
@@ -164,6 +205,52 @@ function parseCommunityProfileInput(body: Record<string, unknown>): Readonly<{
       "leaderboardParticipationEnabled",
     ),
   };
+}
+
+function parseFriendInvitationCreateInput(body: Record<string, unknown>): Readonly<{
+  inviteeDisplayName: string;
+}> {
+  const unexpectedKey = Object.keys(body).find((key) => key !== "inviteeDisplayName");
+  if (unexpectedKey !== undefined) {
+    throw new HttpError(
+      400,
+      `Unexpected friend invitation field: ${unexpectedKey}`,
+      "FRIEND_INVITATION_FIELD_UNKNOWN",
+    );
+  }
+
+  return {
+    inviteeDisplayName: parseFriendInvitationDisplayName(body.inviteeDisplayName, "inviteeDisplayName"),
+  };
+}
+
+function parseFriendInvitationAcceptInput(body: Record<string, unknown>): Readonly<{
+  inviterDisplayName: string;
+}> {
+  const unexpectedKey = Object.keys(body).find((key) => key !== "inviterDisplayName");
+  if (unexpectedKey !== undefined) {
+    throw new HttpError(
+      400,
+      `Unexpected friend invitation field: ${unexpectedKey}`,
+      "FRIEND_INVITATION_FIELD_UNKNOWN",
+    );
+  }
+
+  return {
+    inviterDisplayName: parseFriendInvitationDisplayName(body.inviterDisplayName, "inviterDisplayName"),
+  };
+}
+
+function parseInviteTokenParam(value: string | undefined): string {
+  if (value === undefined || value.trim() === "") {
+    throw new HttpError(
+      400,
+      "inviteToken is required",
+      "FRIEND_INVITATION_TOKEN_REQUIRED",
+    );
+  }
+
+  return value;
 }
 
 async function updateAccountPreferences(
@@ -228,6 +315,9 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
   const updateAccountPreferencesFn = options.updateAccountPreferencesFn ?? updateAccountPreferences;
   const ensurePublicProfileForUserFn = options.ensurePublicProfileForUserFn ?? ensurePublicProfileForUser;
   const updateLeaderboardParticipationFn = options.updateLeaderboardParticipationFn ?? updateLeaderboardParticipation;
+  const createFriendInvitationFn = options.createFriendInvitationFn ?? createFriendInvitation;
+  const previewFriendInvitationFn = options.previewFriendInvitationFn ?? previewFriendInvitation;
+  const acceptFriendInvitationFn = options.acceptFriendInvitationFn ?? acceptFriendInvitation;
 
   app.get("/", async (context) => context.json(createAgentDiscoveryEnvelope(context.req.url)));
   app.get("/agent", async (context) => context.json(createAgentDiscoveryEnvelope(context.req.url)));
@@ -314,6 +404,51 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
     );
 
     return context.json(createCommunityPublicProfileResponse(profile, requestContext.transport));
+  });
+
+  app.post("/me/community/friend-invitations", async (context) => {
+    const { requestContext } = await loadRequestContextFromRequestFn(
+      context.req.raw,
+      options.allowedOrigins,
+    );
+
+    assertFriendInvitationHumanTransport(requestContext.transport);
+
+    const body = expectRecord(await parseJsonBody(context.req.raw));
+    const input = parseFriendInvitationCreateInput(body);
+    const invitation = await createFriendInvitationFn({
+      userId: requestContext.userId,
+      inviteeDisplayName: input.inviteeDisplayName,
+    });
+
+    return context.json(invitation satisfies FriendInvitationCreateResponse);
+  });
+
+  app.get("/community/friend-invitations/:inviteToken", async (context) => {
+    assertFriendInvitationPublicPreviewTransport(context.req.raw);
+    const rawInviteToken = parseInviteTokenParam(context.req.param("inviteToken"));
+    const invitation = await previewFriendInvitationFn(rawInviteToken);
+    return context.json(invitation satisfies FriendInvitationPreviewResponse);
+  });
+
+  app.post("/me/community/friend-invitations/:inviteToken/accept", async (context) => {
+    const { requestContext } = await loadRequestContextFromRequestFn(
+      context.req.raw,
+      options.allowedOrigins,
+    );
+
+    assertFriendInvitationHumanTransport(requestContext.transport);
+
+    const rawInviteToken = parseInviteTokenParam(context.req.param("inviteToken"));
+    const body = expectRecord(await parseJsonBody(context.req.raw));
+    const input = parseFriendInvitationAcceptInput(body);
+    const invitation = await acceptFriendInvitationFn({
+      userId: requestContext.userId,
+      rawInviteToken,
+      inviterDisplayName: input.inviterDisplayName,
+    });
+
+    return context.json(invitation satisfies FriendInvitationAcceptResponse);
   });
 
   app.get("/me/progress/summary", async (context) => {
