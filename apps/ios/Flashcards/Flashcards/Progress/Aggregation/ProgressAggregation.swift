@@ -1,20 +1,26 @@
 import Foundation
 
 struct ProgressReviewedAtClientSources: Hashable, Sendable {
-    let canonicalReviewedAtClients: [String]
-    let pendingReviewedAtClients: [String]
+    let canonicalReviewEvents: [ProgressReviewEventSource]
+    let pendingReviewEvents: [ProgressReviewEventSource]
     /// Canonical review events rated Hard, Good, or Easy; Again is excluded.
     let canonicalQualifiedReviewEvents: [ProgressQualifiedReviewEventSource]
     /// Pending outbox review events rated Hard, Good, or Easy; Again is excluded.
     let pendingQualifiedReviewEvents: [ProgressQualifiedReviewEventSource]
 
     var pendingLocalOverlayState: ProgressPendingLocalOverlayState {
-        if self.pendingReviewedAtClients.isEmpty {
+        if self.pendingReviewEvents.isEmpty {
             return .empty
         }
 
         return .present
     }
+}
+
+struct ProgressReviewEventSource: Hashable, Sendable {
+    let reviewEventId: String
+    let reviewedAtClient: String
+    let rating: ReviewRating
 }
 
 struct ProgressQualifiedReviewEventSource: Hashable, Sendable {
@@ -479,22 +485,18 @@ private func validateProgressSeriesPairInputs(
     }
 }
 
-private func progressCountsByLocalDate(
+private func progressReviewRatingCountsByLocalDate(
     series: UserProgressSeries,
     sourceName: String
-) throws -> [String: Int] {
-    var countsByLocalDate: [String: Int] = [:]
+) throws -> [String: ProgressReviewRatingCounts] {
+    var countsByLocalDate: [String: ProgressReviewRatingCounts] = [:]
     for progressDay in series.dailyReviews {
-        guard progressDay.reviewCount >= 0 else {
-            throw LocalStoreError.validation(
-                """
-                Progress merge \(sourceName) contained a negative review count. \
-                localDate=\(progressDay.date), reviewCount=\(progressDay.reviewCount).
-                """
-            )
-        }
+        let ratingCounts = try progressReviewRatingCounts(
+            progressDay: progressDay,
+            sourceName: sourceName
+        )
 
-        guard countsByLocalDate.updateValue(progressDay.reviewCount, forKey: progressDay.date) == nil else {
+        guard countsByLocalDate.updateValue(ratingCounts, forKey: progressDay.date) == nil else {
             throw LocalStoreError.validation(
                 "Progress merge \(sourceName) contained a duplicate local date. localDate=\(progressDay.date)."
             )
@@ -504,13 +506,61 @@ private func progressCountsByLocalDate(
     return countsByLocalDate
 }
 
+private func progressReviewRatingCounts(
+    progressDay: ProgressDay,
+    sourceName: String
+) throws -> ProgressReviewRatingCounts {
+    guard progressDay.reviewCount >= 0 else {
+        throw LocalStoreError.validation(
+            """
+            Progress merge \(sourceName) contained a negative review count. \
+            localDate=\(progressDay.date), reviewCount=\(progressDay.reviewCount).
+            """
+        )
+    }
+
+    let ratingCounts = ProgressReviewRatingCounts(
+        againCount: progressDay.againCount,
+        hardCount: progressDay.hardCount,
+        goodCount: progressDay.goodCount,
+        easyCount: progressDay.easyCount
+    )
+    let values: [(rating: String, count: Int)] = [
+        ("again", ratingCounts.againCount),
+        ("hard", ratingCounts.hardCount),
+        ("good", ratingCounts.goodCount),
+        ("easy", ratingCounts.easyCount),
+    ]
+    for value in values {
+        guard value.count >= 0 else {
+            throw LocalStoreError.validation(
+                """
+                Progress merge \(sourceName) contained a negative \(value.rating) review count. \
+                localDate=\(progressDay.date), count=\(value.count).
+                """
+            )
+        }
+    }
+
+    guard progressDay.reviewCount == ratingCounts.reviewCount else {
+        throw LocalStoreError.validation(
+            """
+            Progress merge \(sourceName) review count must equal its rating-count total. \
+            localDate=\(progressDay.date), reviewCount=\(progressDay.reviewCount), ratingTotal=\(ratingCounts.reviewCount).
+            """
+        )
+    }
+
+    return ratingCounts
+}
+
 private func validateProgressCountsInRange(
-    countsByLocalDate: [String: Int],
+    localDates: Dictionary<String, ProgressReviewRatingCounts>.Keys,
     rangeLocalDates: Set<String>,
     sourceName: String,
     rangeDescription: String
 ) throws {
-    for localDate in countsByLocalDate.keys where rangeLocalDates.contains(localDate) == false {
+    for localDate in localDates where rangeLocalDates.contains(localDate) == false {
         throw LocalStoreError.validation(
             """
             Progress merge \(sourceName) contained a local date outside the merge range. \
@@ -563,9 +613,9 @@ private func makeProgressSummaryLowerBoundFromSeries(
 }
 
 private func progressActiveDatesFromSeries(series: UserProgressSeries) throws -> Set<String> {
-    let countsByLocalDate = try progressCountsByLocalDate(series: series, sourceName: "renderedSeries")
-    return Set(countsByLocalDate.compactMap { localDate, reviewCount in
-        reviewCount > 0 ? localDate : nil
+    let countsByLocalDate = try progressReviewRatingCountsByLocalDate(series: series, sourceName: "renderedSeries")
+    return Set(countsByLocalDate.compactMap { localDate, ratingCounts in
+        ratingCounts.reviewCount > 0 ? localDate : nil
     })
 }
 
@@ -578,8 +628,8 @@ private func progressActiveDatesMissingFromServerBase(
         renderedSeries: renderedSeries
     )
 
-    let serverCounts = try progressCountsByLocalDate(series: serverBase, sourceName: "serverBase")
-    let renderedCounts = try progressCountsByLocalDate(series: renderedSeries, sourceName: "renderedSeries")
+    let serverCounts = try progressReviewRatingCountsByLocalDate(series: serverBase, sourceName: "serverBase")
+    let renderedCounts = try progressReviewRatingCountsByLocalDate(series: renderedSeries, sourceName: "renderedSeries")
     let zeroFilledDays = try makeZeroFilledProgressDays(
         requestRange: ProgressRequestRange(
             timeZone: serverBase.timeZone,
@@ -590,51 +640,43 @@ private func progressActiveDatesMissingFromServerBase(
     let rangeLocalDates = Set(zeroFilledDays.map(\.date))
     let rangeDescription = "\(serverBase.from)...\(serverBase.to)"
     try validateProgressCountsInRange(
-        countsByLocalDate: serverCounts,
+        localDates: serverCounts.keys,
         rangeLocalDates: rangeLocalDates,
         sourceName: "serverBase",
         rangeDescription: rangeDescription
     )
     try validateProgressCountsInRange(
-        countsByLocalDate: renderedCounts,
+        localDates: renderedCounts.keys,
         rangeLocalDates: rangeLocalDates,
         sourceName: "renderedSeries",
         rangeDescription: rangeDescription
     )
 
     return Set(zeroFilledDays.compactMap { progressDay in
-        let serverCount = serverCounts[progressDay.date] ?? 0
-        let renderedCount = renderedCounts[progressDay.date] ?? 0
+        let serverCount = serverCounts[progressDay.date]?.reviewCount ?? 0
+        let renderedCount = renderedCounts[progressDay.date]?.reviewCount ?? 0
         return renderedCount > 0 && serverCount == 0 ? progressDay.date : nil
     })
 }
 
-func makeProgressSeriesFromReviewedAtClients(
-    reviewedAtClients: [String],
+func makeProgressSeriesFromReviewEvents(
+    reviewEvents: [ProgressReviewEventSource],
     requestRange: ProgressRequestRange
 ) throws -> UserProgressSeries {
-    let timeZone = try progressTimeZone(identifier: requestRange.timeZone)
-    let calendar = makeProgressStoreCalendar(timeZone: timeZone)
-    var reviewCountsByLocalDate: [String: Int] = [:]
-
-    for reviewedAtClient in reviewedAtClients {
-        guard let reviewedAtDate = parseIsoTimestamp(value: reviewedAtClient) else {
-            throw LocalStoreError.validation("Progress reviewedAtClient timestamp is invalid: \(reviewedAtClient)")
-        }
-
-        let localDate = progressLocalDateStringForStore(date: reviewedAtDate, calendar: calendar)
-        if localDate < requestRange.from || localDate > requestRange.to {
-            continue
-        }
-
-        reviewCountsByLocalDate[localDate, default: 0] += 1
-    }
-
+    let ratingCountsByLocalDate = try progressReviewRatingCountsByLocalDate(
+        reviewEvents: reviewEvents,
+        requestRange: requestRange
+    )
     let zeroFilledDays = try makeZeroFilledProgressDays(requestRange: requestRange)
     let progressDays = zeroFilledDays.map { progressDay in
+        let ratingCounts = ratingCountsByLocalDate[progressDay.date] ?? zeroProgressReviewRatingCounts()
         ProgressDay(
             date: progressDay.date,
-            reviewCount: reviewCountsByLocalDate[progressDay.date] ?? 0
+            reviewCount: ratingCounts.reviewCount,
+            againCount: ratingCounts.againCount,
+            hardCount: ratingCounts.hardCount,
+            goodCount: ratingCounts.goodCount,
+            easyCount: ratingCounts.easyCount
         )
     }
 
@@ -649,36 +691,107 @@ func makeProgressSeriesFromReviewedAtClients(
     )
 }
 
-func progressActiveDatesFromReviewedAtClients(
-    reviewedAtClients: [String],
+private func progressReviewRatingCountsByLocalDate(
+    reviewEvents: [ProgressReviewEventSource],
+    requestRange: ProgressRequestRange
+) throws -> [String: ProgressReviewRatingCounts] {
+    let timeZone = try progressTimeZone(identifier: requestRange.timeZone)
+    let calendar = makeProgressStoreCalendar(timeZone: timeZone)
+    var ratingCountsByLocalDate: [String: ProgressReviewRatingCounts] = [:]
+
+    for reviewEvent in reviewEvents {
+        guard let reviewedAtDate = parseIsoTimestamp(value: reviewEvent.reviewedAtClient) else {
+            throw LocalStoreError.validation(
+                "Progress reviewedAtClient timestamp is invalid: \(reviewEvent.reviewedAtClient)"
+            )
+        }
+
+        let localDate = progressLocalDateStringForStore(date: reviewedAtDate, calendar: calendar)
+        if localDate < requestRange.from || localDate > requestRange.to {
+            continue
+        }
+
+        let currentCounts = ratingCountsByLocalDate[localDate] ?? zeroProgressReviewRatingCounts()
+        ratingCountsByLocalDate[localDate] = progressReviewRatingCountsByAddingRating(
+            counts: currentCounts,
+            rating: reviewEvent.rating
+        )
+    }
+
+    return ratingCountsByLocalDate
+}
+
+func progressActiveDatesFromReviewEvents(
+    reviewEvents: [ProgressReviewEventSource],
     timeZone: String
 ) throws -> Set<String> {
     let resolvedTimeZone = try progressTimeZone(identifier: timeZone)
     let calendar = makeProgressStoreCalendar(timeZone: resolvedTimeZone)
-    return try Set(reviewedAtClients.map { reviewedAtClient in
-        guard let reviewedAtDate = parseIsoTimestamp(value: reviewedAtClient) else {
-            throw LocalStoreError.validation("Progress reviewedAtClient timestamp is invalid: \(reviewedAtClient)")
+    return try Set(reviewEvents.map { reviewEvent in
+        guard let reviewedAtDate = parseIsoTimestamp(value: reviewEvent.reviewedAtClient) else {
+            throw LocalStoreError.validation(
+                "Progress reviewedAtClient timestamp is invalid: \(reviewEvent.reviewedAtClient)"
+            )
         }
 
         return progressLocalDateStringForStore(date: reviewedAtDate, calendar: calendar)
     })
 }
 
-func makeProgressSummaryFromReviewedAtClients(
-    reviewedAtClients: [String],
-    timeZone: String,
-    referenceLocalDate: String
-) throws -> ProgressSummary {
-    return try makeProgressSummary(
-        reviewDates: progressActiveDatesFromReviewedAtClients(
-            reviewedAtClients: reviewedAtClients,
-            timeZone: timeZone
-        ),
-        timeZone: timeZone,
-        generatedAt: progressReferenceDate(
-            localDate: referenceLocalDate,
-            timeZoneIdentifier: timeZone
+private func zeroProgressReviewRatingCounts() -> ProgressReviewRatingCounts {
+    ProgressReviewRatingCounts(
+        againCount: 0,
+        hardCount: 0,
+        goodCount: 0,
+        easyCount: 0
+    )
+}
+
+private func progressReviewRatingCountsByAddingRating(
+    counts: ProgressReviewRatingCounts,
+    rating: ReviewRating
+) -> ProgressReviewRatingCounts {
+    switch rating {
+    case .again:
+        return ProgressReviewRatingCounts(
+            againCount: counts.againCount + 1,
+            hardCount: counts.hardCount,
+            goodCount: counts.goodCount,
+            easyCount: counts.easyCount
         )
+    case .hard:
+        return ProgressReviewRatingCounts(
+            againCount: counts.againCount,
+            hardCount: counts.hardCount + 1,
+            goodCount: counts.goodCount,
+            easyCount: counts.easyCount
+        )
+    case .good:
+        return ProgressReviewRatingCounts(
+            againCount: counts.againCount,
+            hardCount: counts.hardCount,
+            goodCount: counts.goodCount + 1,
+            easyCount: counts.easyCount
+        )
+    case .easy:
+        return ProgressReviewRatingCounts(
+            againCount: counts.againCount,
+            hardCount: counts.hardCount,
+            goodCount: counts.goodCount,
+            easyCount: counts.easyCount + 1
+        )
+    }
+}
+
+private func addProgressReviewRatingCounts(
+    left: ProgressReviewRatingCounts,
+    right: ProgressReviewRatingCounts
+) -> ProgressReviewRatingCounts {
+    ProgressReviewRatingCounts(
+        againCount: left.againCount + right.againCount,
+        hardCount: left.hardCount + right.hardCount,
+        goodCount: left.goodCount + right.goodCount,
+        easyCount: left.easyCount + right.easyCount
     )
 }
 
@@ -693,9 +806,9 @@ func mergeProgressSeries(
         localFallback: localFallback
     )
 
-    let serverCounts = try progressCountsByLocalDate(series: serverBase, sourceName: "serverBase")
-    let pendingCounts = try progressCountsByLocalDate(series: pendingLocalOverlay, sourceName: "pendingLocalOverlay")
-    let localFallbackCounts = try progressCountsByLocalDate(series: localFallback, sourceName: "localFallback")
+    let serverCounts = try progressReviewRatingCountsByLocalDate(series: serverBase, sourceName: "serverBase")
+    let pendingCounts = try progressReviewRatingCountsByLocalDate(series: pendingLocalOverlay, sourceName: "pendingLocalOverlay")
+    let localFallbackCounts = try progressReviewRatingCountsByLocalDate(series: localFallback, sourceName: "localFallback")
     let zeroFilledDays = try makeZeroFilledProgressDays(
         requestRange: ProgressRequestRange(
             timeZone: serverBase.timeZone,
@@ -706,29 +819,39 @@ func mergeProgressSeries(
     let rangeLocalDates = Set(zeroFilledDays.map(\.date))
     let rangeDescription = "\(serverBase.from)...\(serverBase.to)"
     try validateProgressCountsInRange(
-        countsByLocalDate: serverCounts,
+        localDates: serverCounts.keys,
         rangeLocalDates: rangeLocalDates,
         sourceName: "serverBase",
         rangeDescription: rangeDescription
     )
     try validateProgressCountsInRange(
-        countsByLocalDate: pendingCounts,
+        localDates: pendingCounts.keys,
         rangeLocalDates: rangeLocalDates,
         sourceName: "pendingLocalOverlay",
         rangeDescription: rangeDescription
     )
     try validateProgressCountsInRange(
-        countsByLocalDate: localFallbackCounts,
+        localDates: localFallbackCounts.keys,
         rangeLocalDates: rangeLocalDates,
         sourceName: "localFallback",
         rangeDescription: rangeDescription
     )
     let mergedDailyReviews: [ProgressDay] = zeroFilledDays.map { progressDay in
-        let serverOverlayCount = (serverCounts[progressDay.date] ?? 0) + (pendingCounts[progressDay.date] ?? 0)
-        let localFallbackCount = localFallbackCounts[progressDay.date] ?? 0
+        let serverOverlayCounts = addProgressReviewRatingCounts(
+            left: serverCounts[progressDay.date] ?? zeroProgressReviewRatingCounts(),
+            right: pendingCounts[progressDay.date] ?? zeroProgressReviewRatingCounts()
+        )
+        let localFallbackRatingCounts = localFallbackCounts[progressDay.date] ?? zeroProgressReviewRatingCounts()
+        let ratingCounts = localFallbackRatingCounts.reviewCount > serverOverlayCounts.reviewCount
+            ? localFallbackRatingCounts
+            : serverOverlayCounts
         return ProgressDay(
             date: progressDay.date,
-            reviewCount: max(serverOverlayCount, localFallbackCount)
+            reviewCount: ratingCounts.reviewCount,
+            againCount: ratingCounts.againCount,
+            hardCount: ratingCounts.hardCount,
+            goodCount: ratingCounts.goodCount,
+            easyCount: ratingCounts.easyCount
         )
     }
 
@@ -746,7 +869,8 @@ func mergeProgressSeries(
 func patchProgressSnapshot(
     snapshot: ProgressSnapshot,
     scopeKey: ProgressScopeKey,
-    reviewedAtClient: String
+    reviewedAtClient: String,
+    rating: ReviewRating
 ) throws -> ProgressSnapshot {
     guard snapshot.scopeKey.timeZone == scopeKey.timeZone else {
         return snapshot
@@ -776,9 +900,22 @@ func patchProgressSnapshot(
         progressDay.date == reviewedLocalDate
     }) {
         let progressDay = dailyReviews[dayIndex]
+        let ratingCounts = progressReviewRatingCountsByAddingRating(
+            counts: ProgressReviewRatingCounts(
+                againCount: progressDay.againCount,
+                hardCount: progressDay.hardCount,
+                goodCount: progressDay.goodCount,
+                easyCount: progressDay.easyCount
+            ),
+            rating: rating
+        )
         dailyReviews[dayIndex] = ProgressDay(
             date: progressDay.date,
-            reviewCount: progressDay.reviewCount + 1
+            reviewCount: ratingCounts.reviewCount,
+            againCount: ratingCounts.againCount,
+            hardCount: ratingCounts.hardCount,
+            goodCount: ratingCounts.goodCount,
+            easyCount: ratingCounts.easyCount
         )
     }
 
@@ -827,8 +964,8 @@ private func makeSnapshotProgressDailyReviews(
     scopeKey: ProgressScopeKey,
     calendar: Calendar
 ) throws -> [ProgressDay] {
-    let reviewCountsByLocalDate = Dictionary(uniqueKeysWithValues: snapshot.chartData.chartDays.map { chartDay in
-        (chartDay.localDate, chartDay.reviewCount)
+    let chartDaysByLocalDate = Dictionary(uniqueKeysWithValues: snapshot.chartData.chartDays.map { chartDay in
+        (chartDay.localDate, chartDay)
     })
     let startDate = try progressDateForStore(localDate: scopeKey.from, calendar: calendar)
     let endDate = try progressDateForStore(localDate: scopeKey.to, calendar: calendar)
@@ -837,10 +974,15 @@ private func makeSnapshotProgressDailyReviews(
 
     while currentDate <= endDate {
         let localDate = progressLocalDateStringForStore(date: currentDate, calendar: calendar)
+        let chartDay = chartDaysByLocalDate[localDate]
         progressDays.append(
             ProgressDay(
                 date: localDate,
-                reviewCount: reviewCountsByLocalDate[localDate] ?? 0
+                reviewCount: chartDay?.reviewCount ?? 0,
+                againCount: chartDay?.againCount ?? 0,
+                hardCount: chartDay?.hardCount ?? 0,
+                goodCount: chartDay?.goodCount ?? 0,
+                easyCount: chartDay?.easyCount ?? 0
             )
         )
         guard let nextDate = calendar.date(byAdding: .day, value: 1, to: currentDate) else {

@@ -238,7 +238,8 @@ extension FlashcardsStore {
 
     func handleProgressLocalMutation(
         now: Date,
-        reviewedAtClient: String
+        reviewedAtClient: String,
+        rating: ReviewRating
     ) {
         do {
             let scopeKey = try self.prepareProgressScope(now: now)
@@ -269,7 +270,8 @@ extension FlashcardsStore {
             let patchedSnapshot = try patchProgressSnapshot(
                 snapshot: progressSnapshot,
                 scopeKey: scopeKey,
-                reviewedAtClient: reviewedAtClient
+                reviewedAtClient: reviewedAtClient,
+                rating: rating
             )
             self.applyProgressSnapshot(snapshot: patchedSnapshot)
             self.clearProgressErrorMessage()

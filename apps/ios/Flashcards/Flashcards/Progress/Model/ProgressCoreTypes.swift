@@ -5,9 +5,24 @@ let progressDaysPerWeek: Int = 7
 struct ProgressDay: Codable, Hashable, Identifiable, Sendable {
     let date: String
     let reviewCount: Int
+    let againCount: Int
+    let hardCount: Int
+    let goodCount: Int
+    let easyCount: Int
 
     var id: String {
         self.date
+    }
+}
+
+struct ProgressReviewRatingCounts: Hashable, Sendable {
+    let againCount: Int
+    let hardCount: Int
+    let goodCount: Int
+    let easyCount: Int
+
+    var reviewCount: Int {
+        self.againCount + self.hardCount + self.goodCount + self.easyCount
     }
 }
 
@@ -278,6 +293,8 @@ enum ProgressPresentationError: LocalizedError {
     case invalidTimeZone(String)
     case invalidRange(String, String)
     case negativeReviewCount(String, Int)
+    case negativeReviewRatingCount(localDate: String, rating: String, count: Int)
+    case reviewCountBreakdownMismatch(localDate: String, reviewCount: Int, ratingTotal: Int)
     case duplicateReviewScheduleBucket(String)
     case invalidReviewScheduleBucketOrder([String])
     case negativeReviewScheduleBucketCount(String, Int)
@@ -298,6 +315,10 @@ enum ProgressPresentationError: LocalizedError {
             return "Progress contained an invalid date range from \(from) to \(to)."
         case .negativeReviewCount(let localDate, let reviewCount):
             return "Progress contained a negative review count for \(localDate): \(reviewCount)."
+        case .negativeReviewRatingCount(let localDate, let rating, let count):
+            return "Progress contained a negative \(rating) review count for \(localDate): \(count)."
+        case .reviewCountBreakdownMismatch(let localDate, let reviewCount, let ratingTotal):
+            return "Progress review count for \(localDate) must equal its rating-count total. reviewCount=\(reviewCount), ratingTotal=\(ratingTotal)."
         case .duplicateReviewScheduleBucket(let bucketKey):
             return "Review schedule contained a duplicate bucket: \(bucketKey)."
         case .invalidReviewScheduleBucketOrder(let bucketKeys):

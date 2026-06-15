@@ -90,8 +90,8 @@ extension FlashcardsStore {
         renderedSeries: ProgressRenderedSeries
     ) {
         let summaryScopeKey = progressSummaryScopeKey(seriesScopeKey: scopeKey)
-        let localFallbackActiveDates = try progressActiveDatesFromReviewedAtClients(
-            reviewedAtClients: reviewedAtClientSources.canonicalReviewedAtClients,
+        let localFallbackActiveDates = try progressActiveDatesFromReviewEvents(
+            reviewEvents: reviewedAtClientSources.canonicalReviewEvents,
             timeZone: summaryScopeKey.timeZone
         )
         let localFallbackSummary = try makeProgressSummary(
@@ -102,12 +102,12 @@ extension FlashcardsStore {
                 timeZoneIdentifier: summaryScopeKey.timeZone
             )
         )
-        let localFallbackSeries = try makeProgressSeriesFromReviewedAtClients(
-            reviewedAtClients: reviewedAtClientSources.canonicalReviewedAtClients,
+        let localFallbackSeries = try makeProgressSeriesFromReviewEvents(
+            reviewEvents: reviewedAtClientSources.canonicalReviewEvents,
             requestRange: progressRequestRange(scopeKey: scopeKey)
         )
-        let pendingLocalOverlaySeries = try makeProgressSeriesFromReviewedAtClients(
-            reviewedAtClients: reviewedAtClientSources.pendingReviewedAtClients,
+        let pendingLocalOverlaySeries = try makeProgressSeriesFromReviewEvents(
+            reviewEvents: reviewedAtClientSources.pendingReviewEvents,
             requestRange: progressRequestRange(scopeKey: scopeKey)
         )
         let renderedSeries = try makeProgressRenderedSeries(
@@ -515,11 +515,17 @@ extension FlashcardsStore {
         database: LocalDatabase,
         workspaceIds: [String]
     ) throws -> ProgressReviewedAtClientSources {
-        var canonicalReviewedAtClients: [String] = []
+        var canonicalReviewEvents: [ProgressReviewEventSource] = []
         var canonicalQualifiedReviewEvents: [ProgressQualifiedReviewEventSource] = []
         for workspaceId in workspaceIds {
             for reviewEvent in try database.loadReviewEvents(workspaceId: workspaceId) {
-                canonicalReviewedAtClients.append(reviewEvent.reviewedAtClient)
+                canonicalReviewEvents.append(
+                    ProgressReviewEventSource(
+                        reviewEventId: reviewEvent.reviewEventId,
+                        reviewedAtClient: reviewEvent.reviewedAtClient,
+                        rating: reviewEvent.rating
+                    )
+                )
                 if reviewEvent.rating != .again {
                     canonicalQualifiedReviewEvents.append(
                         ProgressQualifiedReviewEventSource(
@@ -531,7 +537,7 @@ extension FlashcardsStore {
             }
         }
 
-        var pendingReviewedAtClients: [String] = []
+        var pendingReviewEvents: [ProgressReviewEventSource] = []
         var pendingQualifiedReviewEvents: [ProgressQualifiedReviewEventSource] = []
         if let installationId = self.cloudSettings?.installationId {
             for workspaceId in workspaceIds {
@@ -540,8 +546,20 @@ extension FlashcardsStore {
                     installationId: installationId
                 )
                 for pendingPayload in pendingPayloads {
-                    pendingReviewedAtClients.append(pendingPayload.reviewedAtClient)
-                    if pendingPayload.rating != ReviewRating.again.rawValue {
+                    guard let pendingRating = ReviewRating(rawValue: pendingPayload.rating) else {
+                        throw LocalStoreError.validation(
+                            "Pending review event rating is invalid: \(pendingPayload.rating)"
+                        )
+                    }
+
+                    pendingReviewEvents.append(
+                        ProgressReviewEventSource(
+                            reviewEventId: pendingPayload.reviewEventId,
+                            reviewedAtClient: pendingPayload.reviewedAtClient,
+                            rating: pendingRating
+                        )
+                    )
+                    if pendingRating != .again {
                         pendingQualifiedReviewEvents.append(
                             ProgressQualifiedReviewEventSource(
                                 reviewEventId: pendingPayload.reviewEventId,
@@ -554,8 +572,8 @@ extension FlashcardsStore {
         }
 
         return ProgressReviewedAtClientSources(
-            canonicalReviewedAtClients: canonicalReviewedAtClients,
-            pendingReviewedAtClients: pendingReviewedAtClients,
+            canonicalReviewEvents: canonicalReviewEvents,
+            pendingReviewEvents: pendingReviewEvents,
             canonicalQualifiedReviewEvents: canonicalQualifiedReviewEvents,
             pendingQualifiedReviewEvents: pendingQualifiedReviewEvents
         )

@@ -29,6 +29,10 @@ struct ProgressChartDay: Hashable, Identifiable, Sendable {
     let date: Date
     let localDate: String
     let reviewCount: Int
+    let againCount: Int
+    let hardCount: Int
+    let goodCount: Int
+    let easyCount: Int
     let isToday: Bool
 
     var id: String {

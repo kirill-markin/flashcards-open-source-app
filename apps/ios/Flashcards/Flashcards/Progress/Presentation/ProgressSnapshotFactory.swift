@@ -23,6 +23,10 @@ func makeProgressSnapshot(
             date: timelineDay.date,
             localDate: timelineDay.localDate,
             reviewCount: timelineDay.reviewCount,
+            againCount: timelineDay.againCount,
+            hardCount: timelineDay.hardCount,
+            goodCount: timelineDay.goodCount,
+            easyCount: timelineDay.easyCount,
             isToday: timelineDay.localDate == todayLocalDate
         )
     }
@@ -320,6 +324,10 @@ private struct ProgressTimelineDay: Hashable, Sendable {
     let date: Date
     let localDate: String
     let reviewCount: Int
+    let againCount: Int
+    let hardCount: Int
+    let goodCount: Int
+    let easyCount: Int
 }
 
 private func makeProgressTimeline(
@@ -333,15 +341,13 @@ private func makeProgressTimeline(
         throw ProgressPresentationError.invalidRange(series.from, series.to)
     }
 
-    var reviewCountsByLocalDate: [String: Int] = [:]
+    var reviewsByLocalDate: [String: ProgressDay] = [:]
     for day in series.dailyReviews {
         _ = try progressDate(localDate: day.date, calendar: calendar)
 
-        guard day.reviewCount >= 0 else {
-            throw ProgressPresentationError.negativeReviewCount(day.date, day.reviewCount)
-        }
+        try validateProgressDayCounts(day: day)
 
-        if reviewCountsByLocalDate.updateValue(day.reviewCount, forKey: day.date) != nil {
+        if reviewsByLocalDate.updateValue(day, forKey: day.date) != nil {
             throw ProgressPresentationError.duplicateDay(day.date)
         }
     }
@@ -354,7 +360,11 @@ private func makeProgressTimeline(
             ProgressTimelineDay(
                 date: currentDate,
                 localDate: localDate,
-                reviewCount: reviewCountsByLocalDate[localDate] ?? 0
+                reviewCount: reviewsByLocalDate[localDate]?.reviewCount ?? 0,
+                againCount: reviewsByLocalDate[localDate]?.againCount ?? 0,
+                hardCount: reviewsByLocalDate[localDate]?.hardCount ?? 0,
+                goodCount: reviewsByLocalDate[localDate]?.goodCount ?? 0,
+                easyCount: reviewsByLocalDate[localDate]?.easyCount ?? 0
             )
         )
 
@@ -365,6 +375,39 @@ private func makeProgressTimeline(
     }
 
     return timeline
+}
+
+private func validateProgressDayCounts(day: ProgressDay) throws {
+    guard day.reviewCount >= 0 else {
+        throw ProgressPresentationError.negativeReviewCount(day.date, day.reviewCount)
+    }
+
+    let ratingCounts: [(rating: String, count: Int)] = [
+        ("again", day.againCount),
+        ("hard", day.hardCount),
+        ("good", day.goodCount),
+        ("easy", day.easyCount),
+    ]
+    for ratingCount in ratingCounts {
+        guard ratingCount.count >= 0 else {
+            throw ProgressPresentationError.negativeReviewRatingCount(
+                localDate: day.date,
+                rating: ratingCount.rating,
+                count: ratingCount.count
+            )
+        }
+    }
+
+    let ratingTotal = ratingCounts.reduce(0) { total, ratingCount in
+        total + ratingCount.count
+    }
+    guard day.reviewCount == ratingTotal else {
+        throw ProgressPresentationError.reviewCountBreakdownMismatch(
+            localDate: day.date,
+            reviewCount: day.reviewCount,
+            ratingTotal: ratingTotal
+        )
+    }
 }
 
 func validateProgressSeries(
