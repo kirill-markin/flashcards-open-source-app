@@ -132,13 +132,43 @@ internal fun parseCloudProgressSeriesResponse(
         dailyReviews = buildList {
             for (index in 0 until dailyReviews.length()) {
                 val point = dailyReviews.requireCloudObject(index, "$fieldPath.dailyReviews[$index]")
+                val pointFieldPath = "$fieldPath.dailyReviews[$index]"
+                val reviewCount = requireNonNegativeProgressCount(
+                    value = point.requireCloudInt("reviewCount", "$pointFieldPath.reviewCount"),
+                    fieldPath = "$pointFieldPath.reviewCount"
+                )
+                val againCount = requireNonNegativeProgressCount(
+                    value = point.requireCloudInt("againCount", "$pointFieldPath.againCount"),
+                    fieldPath = "$pointFieldPath.againCount"
+                )
+                val hardCount = requireNonNegativeProgressCount(
+                    value = point.requireCloudInt("hardCount", "$pointFieldPath.hardCount"),
+                    fieldPath = "$pointFieldPath.hardCount"
+                )
+                val goodCount = requireNonNegativeProgressCount(
+                    value = point.requireCloudInt("goodCount", "$pointFieldPath.goodCount"),
+                    fieldPath = "$pointFieldPath.goodCount"
+                )
+                val easyCount = requireNonNegativeProgressCount(
+                    value = point.requireCloudInt("easyCount", "$pointFieldPath.easyCount"),
+                    fieldPath = "$pointFieldPath.easyCount"
+                )
+                requireDailyReviewCountVector(
+                    reviewCount = reviewCount,
+                    againCount = againCount,
+                    hardCount = hardCount,
+                    goodCount = goodCount,
+                    easyCount = easyCount,
+                    fieldPath = pointFieldPath
+                )
                 add(
                     CloudDailyReviewPoint(
-                        date = point.requireCloudString("date", "$fieldPath.dailyReviews[$index].date"),
-                        reviewCount = point.requireCloudInt(
-                            "reviewCount",
-                            "$fieldPath.dailyReviews[$index].reviewCount"
-                        )
+                        date = point.requireCloudString("date", "$pointFieldPath.date"),
+                        reviewCount = reviewCount,
+                        againCount = againCount,
+                        hardCount = hardCount,
+                        goodCount = goodCount,
+                        easyCount = easyCount
                     )
                 )
             }
@@ -274,6 +304,33 @@ private fun requireNonNegativeReviewScheduleInt(
     }
 
     return value
+}
+
+private fun requireNonNegativeProgressCount(
+    value: Int,
+    fieldPath: String
+): Int {
+    if (value < 0) {
+        throw CloudContractMismatchException("$fieldPath must not be negative.")
+    }
+
+    return value
+}
+
+private fun requireDailyReviewCountVector(
+    reviewCount: Int,
+    againCount: Int,
+    hardCount: Int,
+    goodCount: Int,
+    easyCount: Int,
+    fieldPath: String
+) {
+    val ratingCountTotal = againCount + hardCount + goodCount + easyCount
+    if (reviewCount != ratingCountTotal) {
+        throw CloudContractMismatchException(
+            "$fieldPath.reviewCount expected rating bucket sum $ratingCountTotal but got $reviewCount."
+        )
+    }
 }
 
 // Shared between the live response and the local payload cache so both sides of the

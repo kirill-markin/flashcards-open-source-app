@@ -73,7 +73,11 @@ data class ProgressLocalDayCountEntity(
     val timeZone: String,
     val workspaceId: String,
     val localDate: String,
-    val reviewCount: Int
+    val reviewCount: Int,
+    val againCount: Int,
+    val hardCount: Int,
+    val goodCount: Int,
+    val easyCount: Int
 )
 
 @Entity(

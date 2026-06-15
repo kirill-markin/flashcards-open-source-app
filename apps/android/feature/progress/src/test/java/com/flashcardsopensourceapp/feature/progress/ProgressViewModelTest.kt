@@ -265,15 +265,15 @@ class ProgressViewModelTest {
                     from = "2026-04-13",
                     to = "2026-04-21",
                     dailyReviews = listOf(
-                        CloudDailyReviewPoint(date = "2026-04-13", reviewCount = 0),
-                        CloudDailyReviewPoint(date = "2026-04-14", reviewCount = 40),
-                        CloudDailyReviewPoint(date = "2026-04-15", reviewCount = 0),
-                        CloudDailyReviewPoint(date = "2026-04-16", reviewCount = 0),
-                        CloudDailyReviewPoint(date = "2026-04-17", reviewCount = 0),
-                        CloudDailyReviewPoint(date = "2026-04-18", reviewCount = 0),
-                        CloudDailyReviewPoint(date = "2026-04-19", reviewCount = 0),
-                        CloudDailyReviewPoint(date = "2026-04-20", reviewCount = 0),
-                        CloudDailyReviewPoint(date = "2026-04-21", reviewCount = 9)
+                        createDailyReviewPoint(date = "2026-04-13", reviewCount = 0),
+                        createDailyReviewPoint(date = "2026-04-14", reviewCount = 40),
+                        createDailyReviewPoint(date = "2026-04-15", reviewCount = 0),
+                        createDailyReviewPoint(date = "2026-04-16", reviewCount = 0),
+                        createDailyReviewPoint(date = "2026-04-17", reviewCount = 0),
+                        createDailyReviewPoint(date = "2026-04-18", reviewCount = 0),
+                        createDailyReviewPoint(date = "2026-04-19", reviewCount = 0),
+                        createDailyReviewPoint(date = "2026-04-20", reviewCount = 0),
+                        createDailyReviewPoint(date = "2026-04-21", reviewCount = 9)
                     )
                 )
             )
@@ -637,7 +637,7 @@ private fun createProgressSeriesSnapshot(): ProgressSeriesSnapshot {
         from = "2026-04-18",
         to = "2026-04-18",
         dailyReviews = listOf(
-            CloudDailyReviewPoint(
+            createDailyReviewPoint(
                 date = "2026-04-18",
                 reviewCount = 3
             )
@@ -675,7 +675,10 @@ private fun createProgressSeriesSnapshot(
             from = scopeKey.from,
             to = scopeKey.to,
             dailyReviews = dailyReviews.map { point ->
-                point.copy(reviewCount = 0)
+                createDailyReviewPoint(
+                    date = point.date,
+                    reviewCount = 0
+                )
             },
             generatedAt = null,
             reviewHistoryWatermarks = emptyList(),
@@ -950,9 +953,23 @@ private fun createDailyReviewPoints(
             nextDate
         }
     }.map { date ->
-        CloudDailyReviewPoint(
+        createDailyReviewPoint(
             date = date.toString(),
             reviewCount = 1
         )
     }.toList()
+}
+
+private fun createDailyReviewPoint(
+    date: String,
+    reviewCount: Int
+): CloudDailyReviewPoint {
+    return CloudDailyReviewPoint(
+        date = date,
+        reviewCount = reviewCount,
+        againCount = 0,
+        hardCount = 0,
+        goodCount = reviewCount,
+        easyCount = 0
+    )
 }

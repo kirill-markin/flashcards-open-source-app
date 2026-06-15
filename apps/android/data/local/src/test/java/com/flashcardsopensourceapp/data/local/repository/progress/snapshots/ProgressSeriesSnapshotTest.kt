@@ -112,6 +112,7 @@ class ProgressSeriesSnapshotTest {
 
         assertEquals(0, overlay.dailyReviews.first().reviewCount)
         assertEquals(1, overlay.dailyReviews.last().reviewCount)
+        assertEquals(1, overlay.dailyReviews.last().goodCount)
         assertEquals(3, snapshot.renderedSeries.dailyReviews.first().reviewCount)
         assertEquals(3, snapshot.renderedSeries.dailyReviews.last().reviewCount)
         assertEquals(ProgressSnapshotSource.SERVER_BASE_WITH_LOCAL_OVERLAY, snapshot.source)
@@ -124,9 +125,12 @@ class ProgressSeriesSnapshotTest {
         val localFallback = createSeries(
             scopeKey = scopeKey,
             dailyReviews = listOf(
-                createPoint(
+                createRatedPoint(
                     date = "2026-04-18",
-                    reviewCount = 1
+                    againCount = 0,
+                    hardCount = 1,
+                    goodCount = 0,
+                    easyCount = 0
                 )
             ),
             generatedAt = null
@@ -161,6 +165,8 @@ class ProgressSeriesSnapshotTest {
         )
 
         assertEquals(1, snapshot.renderedSeries.dailyReviews.single().reviewCount)
+        assertEquals(1, snapshot.renderedSeries.dailyReviews.single().hardCount)
+        assertEquals(0, snapshot.renderedSeries.dailyReviews.single().goodCount)
         assertEquals(ProgressSnapshotSource.SERVER_BASE_WITH_LOCAL_OVERLAY, snapshot.source)
         assertEquals(true, snapshot.isApproximate)
         assertEquals("2026-04-18T12:00:00Z", snapshot.renderedSeries.generatedAt)
@@ -220,9 +226,12 @@ class ProgressSeriesSnapshotTest {
         val localFallback = createSeries(
             scopeKey = scopeKey,
             dailyReviews = listOf(
-                createPoint(
+                createRatedPoint(
                     date = "2026-04-18",
-                    reviewCount = 2
+                    againCount = 2,
+                    hardCount = 0,
+                    goodCount = 0,
+                    easyCount = 0
                 )
             ),
             generatedAt = null
@@ -230,9 +239,12 @@ class ProgressSeriesSnapshotTest {
         val serverBase = createSeries(
             scopeKey = scopeKey,
             dailyReviews = listOf(
-                createPoint(
+                createRatedPoint(
                     date = "2026-04-18",
-                    reviewCount = 2
+                    againCount = 0,
+                    hardCount = 1,
+                    goodCount = 1,
+                    easyCount = 0
                 )
             ),
             generatedAt = "2026-04-18T12:00:00Z"
@@ -240,9 +252,12 @@ class ProgressSeriesSnapshotTest {
         val pendingLocalOverlay = createSeries(
             scopeKey = scopeKey,
             dailyReviews = listOf(
-                createPoint(
+                createRatedPoint(
                     date = "2026-04-18",
-                    reviewCount = 1
+                    againCount = 0,
+                    hardCount = 0,
+                    goodCount = 0,
+                    easyCount = 1
                 )
             ),
             generatedAt = null
@@ -257,6 +272,10 @@ class ProgressSeriesSnapshotTest {
         )
 
         assertEquals(3, snapshot.renderedSeries.dailyReviews.single().reviewCount)
+        assertEquals(0, snapshot.renderedSeries.dailyReviews.single().againCount)
+        assertEquals(1, snapshot.renderedSeries.dailyReviews.single().hardCount)
+        assertEquals(1, snapshot.renderedSeries.dailyReviews.single().goodCount)
+        assertEquals(1, snapshot.renderedSeries.dailyReviews.single().easyCount)
         assertEquals(ProgressSnapshotSource.SERVER_BASE_WITH_LOCAL_OVERLAY, snapshot.source)
         assertEquals(true, snapshot.isApproximate)
     }
@@ -422,7 +441,28 @@ class ProgressSeriesSnapshotTest {
     ): CloudDailyReviewPoint {
         return CloudDailyReviewPoint(
             date = date,
-            reviewCount = reviewCount
+            reviewCount = reviewCount,
+            againCount = 0,
+            hardCount = 0,
+            goodCount = reviewCount,
+            easyCount = 0
+        )
+    }
+
+    private fun createRatedPoint(
+        date: String,
+        againCount: Int,
+        hardCount: Int,
+        goodCount: Int,
+        easyCount: Int
+    ): CloudDailyReviewPoint {
+        return CloudDailyReviewPoint(
+            date = date,
+            reviewCount = againCount + hardCount + goodCount + easyCount,
+            againCount = againCount,
+            hardCount = hardCount,
+            goodCount = goodCount,
+            easyCount = easyCount
         )
     }
 }

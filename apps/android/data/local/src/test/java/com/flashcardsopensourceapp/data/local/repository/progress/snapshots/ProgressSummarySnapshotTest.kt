@@ -654,10 +654,15 @@ class ProgressSummarySnapshotTest {
         val endDate = LocalDate.parse(scopeKey.to)
         while (date <= endDate) {
             val localDate = date.toString()
+            val reviewCount = reviewCountsByDate[localDate] ?: 0
             dailyReviews.add(
                 CloudDailyReviewPoint(
                     date = localDate,
-                    reviewCount = reviewCountsByDate[localDate] ?: 0
+                    reviewCount = reviewCount,
+                    againCount = 0,
+                    hardCount = 0,
+                    goodCount = reviewCount,
+                    easyCount = 0
                 )
             )
             date = date.plusDays(1L)

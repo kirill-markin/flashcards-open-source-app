@@ -176,7 +176,11 @@ class ProgressCacheValidationTest {
             dailyReviews = listOf(
                 CloudDailyReviewPoint(
                     date = seriesScopeKey.to,
-                    reviewCount = 2
+                    reviewCount = 2,
+                    againCount = 1,
+                    hardCount = 0,
+                    goodCount = 1,
+                    easyCount = 0
                 )
             ),
             generatedAt = "2026-04-18T10:00:00Z",
@@ -188,6 +192,10 @@ class ProgressCacheValidationTest {
             newCount = 1,
             todayCount = 2
         ).copy(reviewHistoryWatermarks = watermarks)
+        val cachedSeries = series.toCacheEntity(
+            scopeKey = seriesScopeKey,
+            updatedAtMillis = 1L
+        ).toCloudProgressSeriesOrNull()
 
         assertEquals(
             watermarks,
@@ -198,10 +206,11 @@ class ProgressCacheValidationTest {
         )
         assertEquals(
             watermarks,
-            series.toCacheEntity(
-                scopeKey = seriesScopeKey,
-                updatedAtMillis = 1L
-            ).toCloudProgressSeriesOrNull()?.reviewHistoryWatermarks
+            cachedSeries?.reviewHistoryWatermarks
+        )
+        assertEquals(
+            1,
+            cachedSeries?.dailyReviews?.single()?.againCount
         )
         assertEquals(
             watermarks,

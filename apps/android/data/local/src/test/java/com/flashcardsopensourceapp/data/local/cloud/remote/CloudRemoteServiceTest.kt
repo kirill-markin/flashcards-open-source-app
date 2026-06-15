@@ -149,7 +149,7 @@ class CloudRemoteServiceTest {
               "from": "2026-04-01",
               "to": "2026-04-03",
               "dailyReviews": [
-                { "date": "2026-04-01", "reviewCount": 3 }
+                { "date": "2026-04-01", "reviewCount": 3, "againCount": 1, "hardCount": 1, "goodCount": 1, "easyCount": 0 }
               ],
               "reviewHistoryWatermarks": [
                 { "workspaceId": "workspace-1", "reviewSequenceId": 42 }
@@ -168,6 +168,7 @@ class CloudRemoteServiceTest {
         assertEquals("2026-04-01", series.from)
         assertEquals("2026-04-03", series.to)
         assertEquals(3, series.dailyReviews.single().reviewCount)
+        assertEquals(1, series.dailyReviews.single().againCount)
         assertEquals(42L, series.reviewHistoryWatermarks.single().reviewSequenceId)
     }
 
@@ -180,7 +181,7 @@ class CloudRemoteServiceTest {
               "from": "2026-04-01",
               "to": "2026-04-03",
               "dailyReviews": [
-                { "date": "2026-04-01", "reviewCount": 3 }
+                { "date": "2026-04-01", "reviewCount": 3, "againCount": 0, "hardCount": 1, "goodCount": 2, "easyCount": 0 }
               ],
               "generatedAt": "2026-04-18T12:00:00Z"
             }

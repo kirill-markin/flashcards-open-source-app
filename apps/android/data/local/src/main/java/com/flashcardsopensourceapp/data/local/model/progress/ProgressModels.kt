@@ -2,8 +2,35 @@ package com.flashcardsopensourceapp.data.local.model.progress
 
 data class CloudDailyReviewPoint(
     val date: String,
-    val reviewCount: Int
-)
+    val reviewCount: Int,
+    val againCount: Int,
+    val hardCount: Int,
+    val goodCount: Int,
+    val easyCount: Int
+) {
+    init {
+        require(reviewCount >= 0) {
+            "Daily review point '$date' reviewCount must not be negative."
+        }
+        require(againCount >= 0) {
+            "Daily review point '$date' againCount must not be negative."
+        }
+        require(hardCount >= 0) {
+            "Daily review point '$date' hardCount must not be negative."
+        }
+        require(goodCount >= 0) {
+            "Daily review point '$date' goodCount must not be negative."
+        }
+        require(easyCount >= 0) {
+            "Daily review point '$date' easyCount must not be negative."
+        }
+
+        val ratingCountTotal = againCount + hardCount + goodCount + easyCount
+        require(reviewCount == ratingCountTotal) {
+            "Daily review point '$date' reviewCount must equal rating count sum $ratingCountTotal."
+        }
+    }
+}
 
 data class ProgressReviewHistoryWatermark(
     val workspaceId: String,

@@ -70,6 +70,10 @@ internal fun CloudProgressSeries.toCacheEntity(
                     JSONObject()
                         .put("date", point.date)
                         .put("reviewCount", point.reviewCount)
+                        .put("againCount", point.againCount)
+                        .put("hardCount", point.hardCount)
+                        .put("goodCount", point.goodCount)
+                        .put("easyCount", point.easyCount)
                 )
             }
         }.toString(),
@@ -415,7 +419,11 @@ internal fun ProgressSeriesCacheEntity.toCloudProgressSeriesOrNull(): CloudProgr
                     add(
                         CloudDailyReviewPoint(
                             date = date,
-                            reviewCount = point.getInt("reviewCount")
+                            reviewCount = point.getInt("reviewCount"),
+                            againCount = point.getInt("againCount"),
+                            hardCount = point.getInt("hardCount"),
+                            goodCount = point.getInt("goodCount"),
+                            easyCount = point.getInt("easyCount")
                         )
                     )
                 }

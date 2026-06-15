@@ -9,6 +9,10 @@ data class ProgressHistoryDayUiState(
     val date: LocalDate,
     val dayOfMonthLabel: String,
     val reviewCount: Int,
+    val againCount: Int,
+    val hardCount: Int,
+    val goodCount: Int,
+    val easyCount: Int,
     val isToday: Boolean
 )
 

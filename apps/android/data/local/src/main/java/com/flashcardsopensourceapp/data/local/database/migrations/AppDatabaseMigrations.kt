@@ -25,7 +25,8 @@ fun createAppDatabaseMigrations(): Array<Migration> {
         migration15To16,
         migration16To17,
         migration17To18,
-        migration18To19
+        migration18To19,
+        migration19To20
     )
 }
 
@@ -724,5 +725,23 @@ val migration18To19: Migration = object : Migration(18, 19) {
             )
             """.trimIndent()
         )
+    }
+}
+
+val migration19To20: Migration = object : Migration(19, 20) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "ALTER TABLE progress_local_day_counts ADD COLUMN againCount INTEGER NOT NULL DEFAULT 0"
+        )
+        db.execSQL(
+            "ALTER TABLE progress_local_day_counts ADD COLUMN hardCount INTEGER NOT NULL DEFAULT 0"
+        )
+        db.execSQL(
+            "ALTER TABLE progress_local_day_counts ADD COLUMN goodCount INTEGER NOT NULL DEFAULT 0"
+        )
+        db.execSQL(
+            "ALTER TABLE progress_local_day_counts ADD COLUMN easyCount INTEGER NOT NULL DEFAULT 0"
+        )
+        db.execSQL("DELETE FROM progress_local_cache_state")
     }
 }
