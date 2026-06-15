@@ -416,8 +416,10 @@ paths:
         Guests receive status linked_account_required and opted-out users receive
         participation_disabled, both with no other users' rows. ApiKey
         authentication is rejected. Only opaque public profile ids and
-        locale-derived anonymous display names are returned; internal user ids and
-        raw review timestamps are never exposed.
+        locale-derived anonymous display names are returned by default. Rows can
+        also include a viewer-private friendDisplayName when the participant is
+        a current opted-in friend of the viewer. Internal user ids, invitation
+        ids, emails, and raw review timestamps are never exposed.
       security:
         - BearerAuth: []
         - GuestAuthorizationHeader: []
@@ -783,6 +785,9 @@ components:
         anonymousDisplayName:
           type: string
           description: Locale-aware anonymous display label derived from the public profile id.
+        friendDisplayName:
+          type: string
+          description: Viewer-private friend label shown only for current opted-in friends.
         qualifiedReviewCount:
           type: integer
           minimum: 0
@@ -823,6 +828,9 @@ components:
         anonymousDisplayName:
           type: string
           description: Locale-aware anonymous display label derived from the public profile id.
+        friendDisplayName:
+          type: string
+          description: Viewer-private friend label shown only for current opted-in friends.
         qualifiedReviewCount:
           type: integer
           minimum: 0

@@ -78,6 +78,7 @@ export type ProgressLeaderboardParticipantRow = Readonly<{
   kind: "top" | "neighbor" | "viewer";
   publicProfileId: string;
   anonymousDisplayName: string;
+  friendDisplayName?: string;
   qualifiedReviewCount: number;
   rank: number;
 }>;
@@ -92,6 +93,7 @@ export type ProgressLeaderboardRankingRow = Readonly<{
   kind: "participant" | "viewer";
   publicProfileId: string;
   anonymousDisplayName: string;
+  friendDisplayName?: string;
   qualifiedReviewCount: number;
   rank: number;
 }>;
@@ -209,6 +211,11 @@ type LeaderboardSnapshotEntryRow = Readonly<{
   base_sort_position: number | string;
 }>;
 
+type LeaderboardFriendDisplayNameRow = Readonly<{
+  friend_public_profile_id: string;
+  friend_display_name: string;
+}>;
+
 function resolveProgressLeaderboardMetric(localeHint: string): ProgressLeaderboardMetric {
   const copy = PROGRESS_LEADERBOARD_METRIC_COPY_BY_LOCALE[resolveAnonymousDisplayNameLocale(localeHint)];
   return {
@@ -257,6 +264,15 @@ function normalizeNonNegativeInteger(value: number | string, field: string): num
   }
 
   return parsed;
+}
+
+function normalizeFriendDisplayName(value: string, publicProfileId: string): string {
+  const displayNameLength = Array.from(value.trim()).length;
+  if (displayNameLength < 1 || displayNameLength > 30 || /[\u0000-\u001F\u007F]/u.test(value)) {
+    throw new Error(`Invalid friend display name for public profile ${publicProfileId}.`);
+  }
+
+  return value;
 }
 
 function computeNextRefreshAfter(now: Date): string {
@@ -327,17 +343,20 @@ function buildParticipantRow(
   participant: RankedParticipant,
   topRowCount: number,
   resolveName: (publicProfileId: string) => string,
+  friendDisplayNamesByPublicProfileId: ReadonlyMap<string, string>,
 ): ProgressLeaderboardParticipantRow {
   const kind: "top" | "neighbor" | "viewer" = participant.isViewer
     ? "viewer"
     : participant.rank <= topRowCount
       ? "top"
       : "neighbor";
+  const friendDisplayName = friendDisplayNamesByPublicProfileId.get(participant.publicProfileId);
 
   return {
     kind,
     publicProfileId: participant.publicProfileId,
     anonymousDisplayName: resolveName(participant.publicProfileId),
+    ...(friendDisplayName === undefined ? {} : { friendDisplayName }),
     qualifiedReviewCount: participant.qualifiedReviewCount,
     rank: participant.rank,
   };
@@ -346,11 +365,15 @@ function buildParticipantRow(
 function buildRankingRow(
   participant: RankedParticipant,
   resolveName: (publicProfileId: string) => string,
+  friendDisplayNamesByPublicProfileId: ReadonlyMap<string, string>,
 ): ProgressLeaderboardRankingRow {
+  const friendDisplayName = friendDisplayNamesByPublicProfileId.get(participant.publicProfileId);
+
   return {
     kind: participant.isViewer ? "viewer" : "participant",
     publicProfileId: participant.publicProfileId,
     anonymousDisplayName: resolveName(participant.publicProfileId),
+    ...(friendDisplayName === undefined ? {} : { friendDisplayName }),
     qualifiedReviewCount: participant.qualifiedReviewCount,
     rank: participant.rank,
   };
@@ -359,8 +382,11 @@ function buildRankingRow(
 function buildRankingRows(
   ranked: ReadonlyArray<RankedParticipant>,
   resolveName: (publicProfileId: string) => string,
+  friendDisplayNamesByPublicProfileId: ReadonlyMap<string, string>,
 ): ReadonlyArray<ProgressLeaderboardRankingRow> {
-  return ranked.map((participant) => buildRankingRow(participant, resolveName));
+  return ranked.map((participant) => (
+    buildRankingRow(participant, resolveName, friendDisplayNamesByPublicProfileId)
+  ));
 }
 
 /**
@@ -375,6 +401,7 @@ function buildCompactRows(
   ranked: ReadonlyArray<RankedParticipant>,
   viewerRank: number,
   resolveName: (publicProfileId: string) => string,
+  friendDisplayNamesByPublicProfileId: ReadonlyMap<string, string>,
 ): ReadonlyArray<ProgressLeaderboardRow> {
   const total = ranked.length;
   const topRowCount = Math.min(3, total);
@@ -409,7 +436,7 @@ function buildCompactRows(
       throw new Error(`Missing ranked participant for rank ${rank}.`);
     }
 
-    rows.push(buildParticipantRow(participant, topRowCount, resolveName));
+    rows.push(buildParticipantRow(participant, topRowCount, resolveName, friendDisplayNamesByPublicProfileId));
     previousRank = rank;
   }
 
@@ -425,6 +452,7 @@ function buildLeaderboardWindow(
   entries: ReadonlyArray<LeaderboardSnapshotEntry>,
   viewerPublicProfileId: string,
   resolveName: (publicProfileId: string) => string,
+  friendDisplayNamesByPublicProfileId: ReadonlyMap<string, string>,
   now: Date,
 ): ProgressLeaderboardWindow {
   const ranking = buildViewerPerspectiveRanking(entries, viewerPublicProfileId);
@@ -445,8 +473,13 @@ function buildLeaderboardWindow(
       rank: ranking.viewerRank,
       qualifiedReviewCount: ranking.viewerCount,
     },
-    rows: buildCompactRows(ranking.ranked, ranking.viewerRank, resolveName),
-    rankingRows: buildRankingRows(ranking.ranked, resolveName),
+    rows: buildCompactRows(
+      ranking.ranked,
+      ranking.viewerRank,
+      resolveName,
+      friendDisplayNamesByPublicProfileId,
+    ),
+    rankingRows: buildRankingRows(ranking.ranked, resolveName, friendDisplayNamesByPublicProfileId),
   };
 }
 
@@ -513,6 +546,31 @@ async function readLeaderboardSnapshotEntriesInExecutor(
   return entriesBySnapshotId;
 }
 
+async function readViewerFriendDisplayNamesInExecutor(
+  executor: DatabaseExecutor,
+): Promise<ReadonlyMap<string, string>> {
+  const result = await executor.query<LeaderboardFriendDisplayNameRow>(
+    [
+      "SELECT",
+      "friend_labels.friend_public_profile_id::text AS friend_public_profile_id,",
+      "friend_labels.friend_display_name AS friend_display_name",
+      "FROM community.read_current_user_leaderboard_friend_labels() AS friend_labels",
+      "ORDER BY friend_labels.friend_public_profile_id",
+    ].join(" "),
+    [],
+  );
+
+  const friendDisplayNamesByPublicProfileId = new Map<string, string>();
+  for (const row of result.rows) {
+    friendDisplayNamesByPublicProfileId.set(
+      row.friend_public_profile_id,
+      normalizeFriendDisplayName(row.friend_display_name, row.friend_public_profile_id),
+    );
+  }
+
+  return friendDisplayNamesByPublicProfileId;
+}
+
 function indexSnapshotHeadersByWindowKey(
   headers: ReadonlyArray<LeaderboardSnapshotHeader>,
 ): ReadonlyMap<LeaderboardWindowKey, LeaderboardSnapshotHeader> {
@@ -561,6 +619,7 @@ export async function loadProgressLeaderboardInExecutor(
     return buildNonReadyProgressLeaderboard("snapshot_unavailable", request.localeHint);
   }
 
+  const friendDisplayNamesByPublicProfileId = await readViewerFriendDisplayNamesInExecutor(executor);
   const entriesBySnapshotId = await readLeaderboardSnapshotEntriesInExecutor(
     executor,
     completeHeaders.map((header) => header.snapshotId),
@@ -573,6 +632,7 @@ export async function loadProgressLeaderboardInExecutor(
     entriesBySnapshotId.get(header.snapshotId) ?? [],
     viewerProfile.publicProfileId,
     resolveName,
+    friendDisplayNamesByPublicProfileId,
     now,
   ));
   const defaultWindowKey = resolveBestLeaderboardPlacement(
