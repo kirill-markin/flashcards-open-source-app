@@ -145,11 +145,18 @@ internal fun createProgressSummaryStoreState(
             pendingReviewLocalDates = inputs.pendingReviewLocalDates,
             workspaceIds = inputs.workspaceIds
         )
+        val activeReviewDateSet = createProgressActiveReviewDateSet(
+            timeZone = inputs.seriesScopeKey.timeZone,
+            localDayCounts = inputs.localDayCounts,
+            pendingReviewLocalDates = inputs.pendingReviewLocalDates,
+            workspaceIds = inputs.workspaceIds
+        )
         val renderedSeries = createProgressSeriesSnapshot(
             scopeKey = inputs.seriesScopeKey,
             localFallback = localFallbackSeries,
             serverBase = inputs.seriesServerBase,
             pendingLocalOverlay = pendingLocalOverlay,
+            activeReviewDateSet = activeReviewDateSet,
             cloudState = inputs.cloudState
         ).renderedSeries
         createProgressRenderedSeriesSummaryContext(
@@ -323,6 +330,16 @@ internal fun createProgressSeriesStoreState(
     } else {
         createEmptyProgressSeries(scopeKey = inputs.scopeKey)
     }
+    val activeReviewDateSet = if (inputs.isLocalCacheReady) {
+        createProgressActiveReviewDateSet(
+            timeZone = inputs.scopeKey.timeZone,
+            localDayCounts = inputs.localDayCounts,
+            pendingReviewLocalDates = inputs.pendingReviewLocalDates,
+            workspaceIds = inputs.workspaceIds
+        )
+    } else {
+        emptySet()
+    }
     return ProgressSeriesStoreState(
         scopeKey = inputs.scopeKey,
         cloudState = inputs.cloudState,
@@ -332,6 +349,7 @@ internal fun createProgressSeriesStoreState(
                 localFallback = localFallback,
                 serverBase = inputs.serverBase,
                 pendingLocalOverlay = pendingLocalOverlay,
+                activeReviewDateSet = activeReviewDateSet,
                 cloudState = inputs.cloudState
             )
         } else {

@@ -26,7 +26,8 @@ fun createAppDatabaseMigrations(): Array<Migration> {
         migration16To17,
         migration17To18,
         migration18To19,
-        migration19To20
+        migration19To20,
+        migration20To21
     )
 }
 
@@ -743,5 +744,60 @@ val migration19To20: Migration = object : Migration(19, 20) {
             "ALTER TABLE progress_local_day_counts ADD COLUMN easyCount INTEGER NOT NULL DEFAULT 0"
         )
         db.execSQL("DELETE FROM progress_local_cache_state")
+    }
+}
+
+val migration20To21: Migration = object : Migration(20, 21) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("DELETE FROM progress_summary_cache")
+        db.execSQL("DELETE FROM progress_series_cache")
+        db.execSQL(
+            """
+            ALTER TABLE progress_summary_cache
+            ADD COLUMN longestStreakDays INTEGER NOT NULL DEFAULT 0
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            ALTER TABLE progress_summary_cache
+            ADD COLUMN streakFreezeAvailableCredits INTEGER NOT NULL DEFAULT 0
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            ALTER TABLE progress_summary_cache
+            ADD COLUMN streakFreezeCapacity INTEGER NOT NULL DEFAULT 0
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            ALTER TABLE progress_summary_cache
+            ADD COLUMN streakFreezeBalanceUnits INTEGER NOT NULL DEFAULT 0
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            ALTER TABLE progress_summary_cache
+            ADD COLUMN streakFreezeUnitsPerCredit INTEGER NOT NULL DEFAULT 1
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            ALTER TABLE progress_summary_cache
+            ADD COLUMN streakFreezeNextCreditProgressUnits INTEGER NOT NULL DEFAULT 0
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            ALTER TABLE progress_summary_cache
+            ADD COLUMN streakFreezeNextCreditRequiredUnits INTEGER NOT NULL DEFAULT 1
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            ALTER TABLE progress_series_cache
+            ADD COLUMN streakDaysJson TEXT NOT NULL DEFAULT '[]'
+            """.trimIndent()
+        )
     }
 }

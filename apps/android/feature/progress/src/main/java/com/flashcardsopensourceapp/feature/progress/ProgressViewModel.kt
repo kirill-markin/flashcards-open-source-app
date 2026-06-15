@@ -14,6 +14,7 @@ import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeader
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardWindow
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakDayState
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardParticipantRowKind
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardStatus
@@ -368,6 +369,9 @@ private fun CloudProgressSeries.toUiState(
         .sortedBy { point -> point.date }
         .takeLast(progressHistoryDayCount.toInt())
     val progressPointsByDate = parsedPoints.associateBy { point -> point.date }
+    val streakStatesByDate = streakDays.associate { day ->
+        parseProgressDate(rawDate = day.date) to day.state
+    }
     val weekContext = createProgressWeekContext(locale = locale)
     val reviewsSection = ProgressReviewsSectionUiState(
         pages = parsedPoints.toReviewPages(
@@ -380,8 +384,10 @@ private fun CloudProgressSeries.toUiState(
         weeks = createStreakWeeks(
             weekContext = weekContext,
             today = today,
-            progressPointsByDate = progressPointsByDate
-        )
+            progressPointsByDate = progressPointsByDate,
+            streakStatesByDate = streakStatesByDate
+        ),
+        freezeBankSummary = summary.freezeBankSummaryOrNull()
     )
 
     return ProgressUiState.Loaded(
@@ -428,7 +434,24 @@ private fun containsFriendInvitationControlCharacter(
 
 private fun ProgressSummarySnapshot.toUiState(): ProgressSummaryUiState {
     return ProgressSummaryUiState.Loaded(
-        summary = renderedSummary
+        summary = renderedSummary,
+        freezeBankSummary = renderedSummary.toFreezeBankUiState()
+    )
+}
+
+private fun ProgressSummaryUiState.freezeBankSummaryOrNull(): ProgressFreezeBankUiState? {
+    return when (this) {
+        ProgressSummaryUiState.Loading -> null
+        is ProgressSummaryUiState.Loaded -> freezeBankSummary
+    }
+}
+
+private fun CloudProgressSummary.toFreezeBankUiState(): ProgressFreezeBankUiState {
+    return ProgressFreezeBankUiState(
+        availableCredits = streakFreeze.availableCredits,
+        capacity = streakFreeze.capacity,
+        nextCreditProgressUnits = streakFreeze.nextCreditProgressUnits,
+        nextCreditRequiredUnits = streakFreeze.nextCreditRequiredUnits
     )
 }
 
@@ -613,7 +636,8 @@ private fun createProgressWeekContext(
 private fun createStreakWeeks(
     weekContext: ProgressWeekContext,
     today: LocalDate,
-    progressPointsByDate: Map<LocalDate, ParsedProgressPoint>
+    progressPointsByDate: Map<LocalDate, ParsedProgressPoint>,
+    streakStatesByDate: Map<LocalDate, CloudProgressStreakDayState>
 ): List<ProgressStreakWeekUiState> {
     val streakWindowStart = weekContext.startOfWeek(date = today)
         .minusDays(((streakWeekCount - 1) * daysPerWeek).toLong())
@@ -630,22 +654,41 @@ private fun createStreakWeeks(
                         date = null,
                         dayOfMonthLabel = null,
                         reviewCount = 0,
+                        state = null,
                         isToday = false,
                         isPlaceholder = true
                     )
                 }
 
                 val point = progressPointsByDate[date]
+                val reviewCount = point?.reviewCount ?: 0
 
                 ProgressStreakDayUiState(
                     date = date,
                     dayOfMonthLabel = date.dayOfMonth.toString(),
-                    reviewCount = point?.reviewCount ?: 0,
+                    reviewCount = reviewCount,
+                    state = streakStatesByDate[date] ?: createFallbackStreakDayState(
+                        date = date,
+                        today = today,
+                        reviewCount = reviewCount
+                    ),
                     isToday = date == today,
                     isPlaceholder = false
                 )
             }
         )
+    }
+}
+
+private fun createFallbackStreakDayState(
+    date: LocalDate,
+    today: LocalDate,
+    reviewCount: Int
+): CloudProgressStreakDayState {
+    return when {
+        reviewCount > 0 -> CloudProgressStreakDayState.REVIEWED
+        date == today -> CloudProgressStreakDayState.PENDING
+        else -> CloudProgressStreakDayState.MISSED
     }
 }
 

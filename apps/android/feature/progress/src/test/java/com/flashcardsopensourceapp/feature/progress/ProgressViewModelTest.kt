@@ -33,6 +33,9 @@ import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeader
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewScheduleBucket
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakDay
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakDayState
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakFreeze
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardParticipantRowKind
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardScopeKey
@@ -1030,27 +1033,9 @@ private fun createProgressSummarySnapshot(): ProgressSummarySnapshot {
             timeZone = "Europe/Madrid",
             referenceLocalDate = "2026-04-18"
         ),
-        renderedSummary = CloudProgressSummary(
-            currentStreakDays = 12,
-            hasReviewedToday = true,
-            lastReviewedOn = "2026-04-18",
-            activeReviewDays = 50,
-            reviewHistoryWatermarks = emptyList()
-        ),
-        localFallback = CloudProgressSummary(
-            currentStreakDays = 12,
-            hasReviewedToday = true,
-            lastReviewedOn = "2026-04-18",
-            activeReviewDays = 50,
-            reviewHistoryWatermarks = emptyList()
-        ),
-        serverBase = CloudProgressSummary(
-            currentStreakDays = 12,
-            hasReviewedToday = true,
-            lastReviewedOn = "2026-04-18",
-            activeReviewDays = 50,
-            reviewHistoryWatermarks = emptyList()
-        ),
+        renderedSummary = createProgressSummaryForTest(),
+        localFallback = createProgressSummaryForTest(),
+        serverBase = createProgressSummaryForTest(),
         source = ProgressSnapshotSource.SERVER_BASE,
         isApproximate = false
     )
@@ -1085,6 +1070,10 @@ private fun createProgressSeriesSnapshot(
         from = scopeKey.from,
         to = scopeKey.to,
         dailyReviews = dailyReviews,
+        streakDays = createProgressStreakDaysForTest(
+            dailyReviews = dailyReviews,
+            today = to
+        ),
         generatedAt = null,
         reviewHistoryWatermarks = emptyList(),
         summary = null
@@ -1104,6 +1093,12 @@ private fun createProgressSeriesSnapshot(
                     reviewCount = 0
                 )
             },
+            streakDays = createProgressStreakDaysForTest(
+                dailyReviews = dailyReviews.map { point ->
+                    point.copy(reviewCount = 0)
+                },
+                today = to
+            ),
             generatedAt = null,
             reviewHistoryWatermarks = emptyList(),
             summary = null
@@ -1111,6 +1106,45 @@ private fun createProgressSeriesSnapshot(
         source = ProgressSnapshotSource.LOCAL_ONLY,
         isApproximate = true
     )
+}
+
+private fun createProgressSummaryForTest(): CloudProgressSummary {
+    return CloudProgressSummary(
+        currentStreakDays = 12,
+        longestStreakDays = 12,
+        hasReviewedToday = true,
+        lastReviewedOn = "2026-04-18",
+        activeReviewDays = 50,
+        streakFreeze = createProgressStreakFreezeForTest(),
+        reviewHistoryWatermarks = emptyList()
+    )
+}
+
+private fun createProgressStreakFreezeForTest(): CloudProgressStreakFreeze {
+    return CloudProgressStreakFreeze(
+        availableCredits = 2,
+        capacity = 2,
+        balanceUnits = 20,
+        unitsPerCredit = 10,
+        nextCreditProgressUnits = 0,
+        nextCreditRequiredUnits = 10
+    )
+}
+
+private fun createProgressStreakDaysForTest(
+    dailyReviews: List<CloudDailyReviewPoint>,
+    today: String
+): List<CloudProgressStreakDay> {
+    return dailyReviews.map { point ->
+        CloudProgressStreakDay(
+            date = point.date,
+            state = when {
+                point.reviewCount > 0 -> CloudProgressStreakDayState.REVIEWED
+                point.date == today -> CloudProgressStreakDayState.PENDING
+                else -> CloudProgressStreakDayState.MISSED
+            }
+        )
+    }
 }
 
 private fun createProgressReviewScheduleSnapshot(): ProgressReviewScheduleSnapshot {
