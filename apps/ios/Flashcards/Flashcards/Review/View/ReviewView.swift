@@ -6,8 +6,6 @@ private let reviewBottomBarTopPadding: CGFloat = 8
 private let reviewBottomBarBottomPadding: CGFloat = 8
 private let reviewBottomBarButtonSpacing: CGFloat = 10
 private let reviewFilterMenuTitleMaxWidth: CGFloat = 180
-private let reviewToolbarActionIconFont: Font = .body
-private let reviewToolbarBadgeValueFont: Font = .body
 private let reviewAnswerButtonMinHeight: CGFloat = 40
 private let showAnswerButtonMinHeight: CGFloat = 56
 let emptyBackTextPlaceholder: String = String(localized: "No back text", table: reviewCardsStringsTableName)
@@ -189,7 +187,6 @@ struct ReviewView: View {
                 reviewLeaderboardButton
                 reviewProgressBadgeButton
             }
-            .sharedBackgroundVisibility(.hidden)
         }
         // TODO: This preview is unreachable from Review while the queue toolbar shortcut is withheld.
         .fullScreenCover(isPresented: self.$isQueuePreviewPresented) {
@@ -399,8 +396,6 @@ struct ReviewView: View {
                     .font(.caption.weight(.semibold))
             }
         }
-        .buttonStyle(.glass)
-        .controlSize(.large)
     }
 
     private var reviewLoadingView: some View {
@@ -534,13 +529,9 @@ struct ReviewView: View {
                     Text(self.reviewQueueButtonTitle)
                 } icon: {
                     Image(systemName: "list.bullet")
-                        .font(reviewToolbarActionIconFont)
-                        .imageScale(.medium)
                 }
                     .labelStyle(.iconOnly)
             }
-            .buttonStyle(.glass)
-            .controlSize(.large)
             .disabled(store.reviewTotalCount == 0)
             .accessibilityIdentifier(UITestIdentifier.reviewQueueButton)
             .accessibilityLabel(
@@ -571,20 +562,15 @@ struct ReviewView: View {
         } label: {
             Label {
                 Text(formatReviewProgressBadgeValue(badgeState: badgeState))
-                    .font(reviewToolbarBadgeValueFont)
                     .monospacedDigit()
                     .lineLimit(1)
             } icon: {
                 Image(systemName: makeReviewProgressBadgePresentation(badgeState: badgeState).iconSystemName)
-                    .font(reviewToolbarActionIconFont)
-                    .imageScale(.medium)
                     .foregroundStyle(self.reviewProgressBadgeToolbarIconColor(badgeState: badgeState))
             }
             .labelStyle(.titleAndIcon)
             .fixedSize(horizontal: true, vertical: false)
         }
-        .buttonStyle(.glass)
-        .controlSize(.large)
         .disabled(badgeState.isInteractive == false)
         .accessibilityIdentifier(UITestIdentifier.reviewProgressBadge)
         .accessibilityLabel(self.reviewProgressBadgeAccessibilityLabel(badgeState: badgeState))
@@ -609,13 +595,11 @@ struct ReviewView: View {
             if let rank = badgeState.rank {
                 Label {
                     Text(rank.formatted())
-                        .font(reviewToolbarBadgeValueFont)
                         .monospacedDigit()
                         .lineLimit(1)
                 } icon: {
-                    Image(systemName: "trophy")
-                        .font(reviewToolbarActionIconFont)
-                        .imageScale(.medium)
+                    Image(systemName: "trophy.fill")
+                        .foregroundStyle(.yellow)
                 }
                 .labelStyle(.titleAndIcon)
                 .fixedSize(horizontal: true, vertical: false)
@@ -623,15 +607,12 @@ struct ReviewView: View {
                 Label {
                     Text(self.reviewLeaderboardButtonTitle)
                 } icon: {
-                    Image(systemName: "trophy")
-                        .font(reviewToolbarActionIconFont)
-                        .imageScale(.medium)
+                    Image(systemName: "trophy.fill")
+                        .foregroundStyle(.yellow)
                 }
                 .labelStyle(.iconOnly)
             }
         }
-        .buttonStyle(.glass)
-        .controlSize(.large)
         .disabled(badgeState.isInteractive == false)
         .accessibilityIdentifier(UITestIdentifier.reviewLeaderboardShortcut)
         .accessibilityLabel(self.reviewLeaderboardButtonAccessibilityLabel(badgeState: badgeState))
