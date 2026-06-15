@@ -14,6 +14,7 @@ import {
   buildCurrentSeriesInput,
   buildCurrentSeriesScopeKey,
   buildCurrentSummaryScopeKey,
+  buildGoodDailyReviewPoint,
   buildServerReviewSchedule,
   buildServerSeries,
   buildServerSummary,
@@ -123,20 +124,20 @@ describe("useProgressSource cache", () => {
     expect(harness.getApi().progressSourceState.summary.serverBase?.generatedAt).toBe("2026-04-18T09:10:00.000Z");
     expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(6);
     expect(harness.getApi().progressSourceState.series.serverBase?.generatedAt).toBe("2026-04-18T09:10:00.000Z");
-    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual(expect.objectContaining({
       date: buildCurrentSeriesInput().to,
       reviewCount: 6,
-    });
+    }));
 
     deferredSummary.resolve(buildServerSummary(7, "2026-04-18T09:11:00.000Z"));
     deferredSeries.resolve(buildServerSeries(7, "2026-04-18T09:11:00.000Z"));
     await flushEffects();
 
     expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(7);
-    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual(expect.objectContaining({
       date: buildCurrentSeriesInput().to,
       reviewCount: 7,
-    });
+    }));
   });
 
   it("hydrates matching leaderboard cache with rankingRows before remote refresh completes", async () => {
@@ -201,7 +202,7 @@ describe("useProgressSource cache", () => {
     const currentSeriesInput = buildCurrentSeriesInput();
     const seriesScopeKey = buildCurrentSeriesScopeKey();
     const malformedCachedSeries = {
-      version: 2,
+      version: 3,
       scopeKey: seriesScopeKey,
       savedAt: "2026-04-18T09:00:00.000Z",
       serverBase: {
@@ -213,10 +214,7 @@ describe("useProgressSource cache", () => {
           { workspaceId: "workspace-1", reviewSequenceId: 12 },
         ],
         dailyReviews: [
-          {
-            date: currentSeriesInput.to,
-            reviewCount: 12,
-          },
+          buildGoodDailyReviewPoint(currentSeriesInput.to, 12),
         ],
       },
     } as const;
@@ -238,10 +236,10 @@ describe("useProgressSource cache", () => {
     expectProgressCacheMissBreadcrumb("series", "invalid_shape");
     expect(loadProgressSeriesMock).toHaveBeenCalledWith(currentSeriesInput);
     expect(harness.getApi().progressSourceState.series.serverBase?.generatedAt).toBe("2026-04-18T09:23:00.000Z");
-    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual(expect.objectContaining({
       date: currentSeriesInput.to,
       reviewCount: 8,
-    });
+    }));
   });
 
   const invalidProgressReviewScheduleCacheCases: ReadonlyArray<Readonly<{

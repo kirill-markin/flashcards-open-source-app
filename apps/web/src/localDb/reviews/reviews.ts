@@ -37,6 +37,8 @@ import {
   loadPendingProgressDailyReviews,
   mapReviewedAtClientToLocalDate,
   markProgressCacheDirtyInTransaction,
+  addReviewRatingToProgressDailyCountRecord,
+  createEmptyProgressDailyCountRecord,
 } from "../progress/progress";
 import { decodeCursor, encodeCursor } from "../core/queryShared";
 
@@ -815,14 +817,16 @@ export async function putReviewEvent(reviewEvent: ReviewEvent): Promise<void> {
       "progressDailyCounts",
       [reviewEvent.workspaceId, localDate],
     );
+    const currentProgressDailyCount = existingProgressDailyCount ?? createEmptyProgressDailyCountRecord(
+      reviewEvent.workspaceId,
+      localDate,
+    );
 
     await runReadwrite(database, ["reviewEvents", "progressDailyCounts"], (transaction) => {
       putReviewEventInTransaction(transaction, reviewEvent);
-      transaction.objectStore("progressDailyCounts").put({
-        workspaceId: reviewEvent.workspaceId,
-        localDate,
-        reviewCount: (existingProgressDailyCount?.reviewCount ?? 0) + 1,
-      });
+      transaction.objectStore("progressDailyCounts").put(
+        addReviewRatingToProgressDailyCountRecord(currentProgressDailyCount, reviewEvent.rating),
+      );
       return null;
     });
   });

@@ -61,7 +61,7 @@ describe("ReviewScreen feedback observability", () => {
     state.appData.submitReviewItem.mockImplementation(async (): Promise<Card> => card);
     progressMocks.loadLocalProgressSummaryMock.mockRejectedValue(activityLoadError);
     progressMocks.loadLocalProgressDailyReviewsMock.mockResolvedValue([
-      { date: "2026-03-10", reviewCount: 15 },
+      { date: "2026-03-10", reviewCount: 15, againCount: 0, hardCount: 0, goodCount: 15, easyCount: 0 },
     ]);
 
     await renderReviewScreen();

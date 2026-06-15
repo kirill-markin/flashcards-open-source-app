@@ -131,6 +131,9 @@ export const zhHansCatalog = {
     weekRangeValue: "{{from}} - {{to}}",
     previousWeek: "上一周",
     nextWeek: "下一周",
+    reviewsBreakdown: {
+      legendLabel: "复习评分",
+    },
     reviewSchedule: {
       title: "复习计划",
       totalCards: "卡片总数：{{count}}",

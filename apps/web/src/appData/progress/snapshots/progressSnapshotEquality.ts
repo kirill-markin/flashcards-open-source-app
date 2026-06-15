@@ -38,7 +38,14 @@ function areDailyReviewsEqual(
     const leftDay = left[index];
     const rightDay = right[index];
 
-    if (leftDay?.date !== rightDay?.date || leftDay?.reviewCount !== rightDay?.reviewCount) {
+    if (
+      leftDay?.date !== rightDay?.date
+      || leftDay?.reviewCount !== rightDay?.reviewCount
+      || leftDay?.againCount !== rightDay?.againCount
+      || leftDay?.hardCount !== rightDay?.hardCount
+      || leftDay?.goodCount !== rightDay?.goodCount
+      || leftDay?.easyCount !== rightDay?.easyCount
+    ) {
       return false;
     }
   }
