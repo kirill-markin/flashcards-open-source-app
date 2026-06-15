@@ -351,6 +351,84 @@ final class ProgressSnapshotFactoryTests: XCTestCase {
         XCTAssertEqual(0, lastRow.qualifiedReviewCount)
     }
 
+    func testFactoryIncludesFriendRowsFromRankingRows() throws {
+        let friendRankingRows = self.rankingRows.map { rankingRow in
+            switch rankingRow.rank {
+            case 2:
+                return ProgressLeaderboardRankingRow(
+                    kind: rankingRow.kind,
+                    publicProfileId: rankingRow.publicProfileId,
+                    anonymousDisplayName: rankingRow.anonymousDisplayName,
+                    friendDisplayName: "Ari",
+                    qualifiedReviewCount: rankingRow.qualifiedReviewCount,
+                    rank: rankingRow.rank
+                )
+            case 20:
+                return ProgressLeaderboardRankingRow(
+                    kind: rankingRow.kind,
+                    publicProfileId: rankingRow.publicProfileId,
+                    anonymousDisplayName: rankingRow.anonymousDisplayName,
+                    friendDisplayName: "Mina 🎯",
+                    qualifiedReviewCount: rankingRow.qualifiedReviewCount,
+                    rank: rankingRow.rank
+                )
+            default:
+                return rankingRow
+            }
+        }
+        let leaderboard = makeReadyProgressLeaderboardForTests(
+            defaultWindowKey: .last24Hours,
+            participantCount: 128,
+            viewer: self.viewer,
+            rows: self.compactRows,
+            rankingRows: friendRankingRows
+        )
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-06-10T15:00:00.000Z"))
+
+        let snapshot = try makeProgressLeaderboardSnapshot(
+            leaderboard: leaderboard,
+            scopeKey: self.scopeKey,
+            canonicalQualifiedReviewEvents: [],
+            pendingQualifiedReviewEvents: [],
+            now: now
+        )
+
+        guard case .ready(let readyState) = snapshot.state else {
+            XCTFail("Expected ready leaderboard state, received \(snapshot.state)")
+            return
+        }
+
+        let window = try XCTUnwrap(readyState.windows.first)
+        let participantRows = window.rows.compactMap { row -> ProgressLeaderboardParticipantRowState? in
+            guard case .participant(let participantRow) = row else {
+                return nil
+            }
+
+            return participantRow
+        }
+        let gapCount = window.rows.reduce(0) { count, row in
+            if case .gap(_) = row {
+                return count + 1
+            }
+
+            return count
+        }
+
+        XCTAssertEqual([1, 2, 3, 20, 41, 42, 43, 128], participantRows.map(\.rank))
+        XCTAssertEqual(3, gapCount)
+
+        let topFriendRow = try XCTUnwrap(participantRows.first { row in
+            row.rank == 2
+        })
+        let insertedFriendRow = try XCTUnwrap(participantRows.first { row in
+            row.rank == 20
+        })
+
+        XCTAssertEqual("Ari", topFriendRow.friendDisplayName)
+        XCTAssertEqual("Mina 🎯", insertedFriendRow.friendDisplayName)
+        XCTAssertEqual(.neighbor, insertedFriendRow.kind)
+    }
+
     func testGuestAndParticipationDisabledStatusesMapToPlaceholders() throws {
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-06-10T15:00:00.000Z"))
         let expectedStatesByStatus: [ProgressLeaderboardStatus: ProgressLeaderboardSnapshotState] = [

@@ -237,6 +237,7 @@ func makeProgressLeaderboardParticipantRowForTests(
             kind: kind,
             publicProfileId: publicProfileId,
             anonymousDisplayName: anonymousDisplayName,
+            friendDisplayName: nil,
             qualifiedReviewCount: qualifiedReviewCount,
             rank: rank
         )
@@ -254,6 +255,7 @@ func makeProgressLeaderboardRankingRowForTests(
         kind: kind,
         publicProfileId: publicProfileId,
         anonymousDisplayName: anonymousDisplayName,
+        friendDisplayName: nil,
         qualifiedReviewCount: qualifiedReviewCount,
         rank: rank
     )

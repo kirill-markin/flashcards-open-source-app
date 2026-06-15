@@ -90,6 +90,15 @@ struct CommunityProfilePatchRequest: Codable, Hashable, Sendable {
     let leaderboardParticipationEnabled: Bool
 }
 
+struct FriendInvitationCreateRequest: Codable, Hashable, Sendable {
+    let inviteeDisplayName: String
+}
+
+struct FriendInvitationCreateResponse: Codable, Hashable, Sendable {
+    let inviteUrl: URL
+    let expiresAt: String
+}
+
 struct CloudLinkedSession: Hashable, Sendable {
     let userId: String
     let workspaceId: String

@@ -52,6 +52,11 @@ protocol CloudSyncServing {
         authorizationHeader: String,
         isEnabled: Bool
     ) async throws -> CommunityPublicProfile
+    func createFriendInvitation(
+        apiBaseUrl: String,
+        bearerToken: String,
+        inviteeDisplayName: String
+    ) async throws -> FriendInvitationCreateResponse
     func loadFeedbackState(
         apiBaseUrl: String,
         authorizationHeader: String
@@ -153,6 +158,17 @@ extension CloudSyncServing {
         _ = authorizationHeader
         _ = preferences
         throw LocalStoreError.validation("Account preferences update is unavailable")
+    }
+
+    func createFriendInvitation(
+        apiBaseUrl: String,
+        bearerToken: String,
+        inviteeDisplayName: String
+    ) async throws -> FriendInvitationCreateResponse {
+        _ = apiBaseUrl
+        _ = bearerToken
+        _ = inviteeDisplayName
+        throw LocalStoreError.validation("Friend invitation creation is unavailable")
     }
 }
 

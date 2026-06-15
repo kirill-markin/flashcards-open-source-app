@@ -1,6 +1,7 @@
 import Foundation
 
 private let collectionPageLimit: Int = 100
+private let cloudSyncClientPlatform: String = "ios"
 private let cloudSyncResponseDecodingFailedCode: String = "RESPONSE_DECODING_FAILED"
 private let cloudSyncResponseDecodingFailedMessage: String = "Failed to decode cloud sync response"
 private let cloudSyncTransportMaxAttempts: Int = 3
@@ -121,6 +122,8 @@ struct CloudSyncTransport {
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(authorizationHeader, forHTTPHeaderField: "Authorization")
+        request.setValue(cloudSyncClientPlatform, forHTTPHeaderField: "X-Client-Platform")
+        request.setValue(self.appVersion(), forHTTPHeaderField: "X-Client-Version")
 
         if let body {
             request.httpBody = try JSONEncoder().encode(body)
