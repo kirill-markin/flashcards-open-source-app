@@ -6,6 +6,7 @@ private let reviewBottomBarTopPadding: CGFloat = 8
 private let reviewBottomBarBottomPadding: CGFloat = 8
 private let reviewBottomBarButtonSpacing: CGFloat = 10
 private let reviewFilterMenuTitleMaxWidth: CGFloat = 180
+private let reviewToolbarBadgeSpacing: CGFloat = 4
 private let reviewAnswerButtonMinHeight: CGFloat = 40
 private let showAnswerButtonMinHeight: CGFloat = 56
 let emptyBackTextPlaceholder: String = String(localized: "No back text", table: reviewCardsStringsTableName)
@@ -555,20 +556,19 @@ struct ReviewView: View {
 
     private var reviewProgressBadgeButton: some View {
         let badgeState = self.store.reviewProgressBadgeState
+        let badgePresentation = makeReviewProgressBadgePresentation(badgeState: badgeState)
 
         return Button {
             self.store.prepareVisibleTabForPresentation(tab: .progress, now: Date())
             self.navigation.openProgress(target: .streak)
         } label: {
-            Label {
+            HStack(spacing: reviewToolbarBadgeSpacing) {
+                Image(systemName: badgePresentation.iconSystemName)
+                    .foregroundStyle(self.reviewProgressBadgeToolbarIconColor(badgeState: badgeState))
                 Text(formatReviewProgressBadgeValue(badgeState: badgeState))
                     .monospacedDigit()
                     .lineLimit(1)
-            } icon: {
-                Image(systemName: makeReviewProgressBadgePresentation(badgeState: badgeState).iconSystemName)
-                    .foregroundStyle(self.reviewProgressBadgeToolbarIconColor(badgeState: badgeState))
             }
-            .labelStyle(.titleAndIcon)
             .fixedSize(horizontal: true, vertical: false)
         }
         .disabled(badgeState.isInteractive == false)
@@ -593,24 +593,17 @@ struct ReviewView: View {
             self.navigation.openProgress(target: .leaderboard)
         } label: {
             if let rank = badgeState.rank {
-                Label {
+                HStack(spacing: reviewToolbarBadgeSpacing) {
+                    Image(systemName: "trophy.fill")
+                        .foregroundStyle(Color.yellow)
                     Text(rank.formatted())
                         .monospacedDigit()
                         .lineLimit(1)
-                } icon: {
-                    Image(systemName: "trophy.fill")
-                        .foregroundStyle(.yellow)
                 }
-                .labelStyle(.titleAndIcon)
                 .fixedSize(horizontal: true, vertical: false)
             } else {
-                Label {
-                    Text(self.reviewLeaderboardButtonTitle)
-                } icon: {
-                    Image(systemName: "trophy.fill")
-                        .foregroundStyle(.yellow)
-                }
-                .labelStyle(.iconOnly)
+                Image(systemName: "trophy.fill")
+                    .foregroundStyle(Color.yellow)
             }
         }
         .disabled(badgeState.isInteractive == false)
