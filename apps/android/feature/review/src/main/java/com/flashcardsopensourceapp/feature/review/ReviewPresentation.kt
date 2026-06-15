@@ -13,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -315,6 +316,8 @@ fun ReviewRenderedContentView(
         }
 
         is ReviewRenderedContent.Rich -> {
+            val contentColor = MaterialTheme.colorScheme.onSurface
+
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = modifier.fillMaxWidth()
@@ -323,7 +326,9 @@ fun ReviewRenderedContentView(
                     when (block) {
                         is ReviewRichBlock.Paragraph -> InlineSegmentsText(
                             segments = block.segments,
-                            style = MaterialTheme.typography.bodyLarge
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = contentColor,
+                            modifier = Modifier
                         )
 
                         is ReviewRichBlock.Heading -> InlineSegmentsText(
@@ -332,7 +337,9 @@ fun ReviewRenderedContentView(
                                 1 -> MaterialTheme.typography.headlineSmall
                                 2 -> MaterialTheme.typography.titleLarge
                                 else -> MaterialTheme.typography.titleMedium
-                            }
+                            },
+                            color = contentColor,
+                            modifier = Modifier
                         )
 
                         is ReviewRichBlock.BulletList -> Column(
@@ -345,11 +352,13 @@ fun ReviewRenderedContentView(
                                     Text(
                                         text = if (block.ordered) "${index + 1}." else "•",
                                         style = MaterialTheme.typography.bodyLarge,
+                                        color = contentColor,
                                         modifier = Modifier.padding(end = 8.dp)
                                     )
                                     InlineSegmentsText(
                                         segments = item,
                                         style = MaterialTheme.typography.bodyLarge,
+                                        color = contentColor,
                                         modifier = Modifier.weight(weight = 1f)
                                     )
                                 }
@@ -363,13 +372,14 @@ fun ReviewRenderedContentView(
                                 modifier = Modifier
                                     .padding(end = 12.dp)
                                     .background(
-                                        color = MaterialTheme.colorScheme.outlineVariant
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     .padding(horizontal = 2.dp, vertical = 24.dp)
                             )
                             InlineSegmentsText(
                                 segments = block.segments,
                                 style = MaterialTheme.typography.bodyLarge,
+                                color = contentColor,
                                 modifier = Modifier.weight(weight = 1f)
                             )
                         }
@@ -412,7 +422,8 @@ fun ReviewRenderedContentView(
 private fun InlineSegmentsText(
     segments: List<ReviewInlineSegment>,
     style: androidx.compose.ui.text.TextStyle,
-    modifier: Modifier = Modifier
+    color: Color,
+    modifier: Modifier
 ) {
     val codeStyle = SpanStyle(
         fontFamily = FontFamily.Monospace,
@@ -432,6 +443,7 @@ private fun InlineSegmentsText(
             }
         },
         style = style,
+        color = color,
         modifier = modifier
     )
 }
