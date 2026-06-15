@@ -163,6 +163,42 @@ function createEmptyReviewScheduleCountRow(): ReviewScheduleCountRow {
   });
 }
 
+function createFullStreakFreeze(): Readonly<{
+  availableCredits: number;
+  capacity: number;
+  balanceUnits: number;
+  unitsPerCredit: number;
+  nextCreditProgressUnits: number;
+  nextCreditRequiredUnits: number;
+}> {
+  return {
+    availableCredits: 2,
+    capacity: 2,
+    balanceUnits: 20,
+    unitsPerCredit: 10,
+    nextCreditProgressUnits: 0,
+    nextCreditRequiredUnits: 10,
+  };
+}
+
+function createStreakFreezeAfterOneFrozenDay(): Readonly<{
+  availableCredits: number;
+  capacity: number;
+  balanceUnits: number;
+  unitsPerCredit: number;
+  nextCreditProgressUnits: number;
+  nextCreditRequiredUnits: number;
+}> {
+  return {
+    availableCredits: 1,
+    capacity: 2,
+    balanceUnits: 11,
+    unitsPerCredit: 10,
+    nextCreditProgressUnits: 1,
+    nextCreditRequiredUnits: 10,
+  };
+}
+
 function createInclusiveLocalDateRange(from: string, to: string): ReadonlyArray<string> {
   const dates: Array<string> = [];
   let currentDate = from;
@@ -384,6 +420,7 @@ test("loadUserProgressSeriesInExecutor returns a zero-filled series for an empty
     from: progress.from,
     to: progress.to,
     dailyReviews: progress.dailyReviews,
+    streakDays: progress.streakDays,
     reviewHistoryWatermarks: progress.reviewHistoryWatermarks,
   }, {
     timeZone: "Europe/Madrid",
@@ -393,6 +430,11 @@ test("loadUserProgressSeriesInExecutor returns a zero-filled series for an empty
       { date: "2026-04-11", reviewCount: 0 },
       { date: "2026-04-12", reviewCount: 0 },
       { date: "2026-04-13", reviewCount: 0 },
+    ],
+    streakDays: [
+      { date: "2026-04-11", state: "missed" },
+      { date: "2026-04-12", state: "missed" },
+      { date: "2026-04-13", state: "missed" },
     ],
     reviewHistoryWatermarks: [
       { workspaceId: "workspace-1", reviewSequenceId: 0 },
@@ -423,9 +465,11 @@ test("loadUserProgressSummaryInExecutor returns zero summary metrics for an empt
     timeZone: "Europe/Madrid",
     summary: {
       currentStreakDays: 0,
+      longestStreakDays: 0,
       hasReviewedToday: false,
       lastReviewedOn: null,
       activeReviewDays: 0,
+      streakFreeze: createFullStreakFreeze(),
     },
     generatedAt: progress.generatedAt,
     reviewHistoryWatermarks: [
@@ -433,6 +477,138 @@ test("loadUserProgressSummaryInExecutor returns zero summary metrics for an empt
     ],
   });
   assert.match(progress.generatedAt, /^\d{4}-\d{2}-\d{2}T/);
+});
+
+test("loadUserProgressSummaryInExecutor freezes one completed missed day and recharges progress", async () => {
+  const timeZone = "Europe/Madrid";
+  const today = formatDateAsTimeZoneLocalDate(new Date(), timeZone);
+  const twoDaysAgo = shiftLocalDate(today, -2);
+  const { executor } = createProgressExecutor({
+    workspaceIdsByUser: {
+      "user-1": ["workspace-1"],
+    },
+    reviewRowsByRequest: {},
+    allReviewDateRowsByRequest: {
+      [`workspace-1|${timeZone}`]: [
+        { review_date: twoDaysAgo },
+      ],
+    },
+    reviewScheduleRowsByRequest: {},
+    reviewSequenceIdsByWorkspaceId: {
+      "workspace-1": 1,
+    },
+  });
+
+  const progress = await loadUserProgressSummaryInExecutor(executor, {
+    userId: "user-1",
+    timeZone,
+  });
+
+  assert.deepEqual(progress.summary, {
+    currentStreakDays: 2,
+    longestStreakDays: 2,
+    hasReviewedToday: false,
+    lastReviewedOn: twoDaysAgo,
+    activeReviewDays: 1,
+    streakFreeze: createStreakFreezeAfterOneFrozenDay(),
+  });
+});
+
+test("loadUserProgressSeriesInExecutor marks today without review as pending", async () => {
+  const timeZone = "Europe/Madrid";
+  const today = formatDateAsTimeZoneLocalDate(new Date(), timeZone);
+  const yesterday = shiftLocalDate(today, -1);
+  const { executor } = createProgressExecutor({
+    workspaceIdsByUser: {
+      "user-1": ["workspace-1"],
+    },
+    reviewRowsByRequest: {
+      [`workspace-1|${timeZone}|${yesterday}|${today}`]: [
+        { review_date: yesterday, review_count: 1 },
+      ],
+    },
+    allReviewDateRowsByRequest: {
+      [`workspace-1|${timeZone}`]: [
+        { review_date: yesterday },
+      ],
+    },
+    reviewScheduleRowsByRequest: {},
+    reviewSequenceIdsByWorkspaceId: {
+      "workspace-1": 1,
+    },
+  });
+
+  const progress = await loadUserProgressSeriesInExecutor(executor, {
+    userId: "user-1",
+    timeZone,
+    from: yesterday,
+    to: today,
+  });
+
+  assert.deepEqual(progress.dailyReviews, [
+    { date: yesterday, reviewCount: 1 },
+    { date: today, reviewCount: 0 },
+  ]);
+  assert.deepEqual(progress.streakDays, [
+    { date: yesterday, state: "reviewed" },
+    { date: today, state: "pending" },
+  ]);
+});
+
+test("loadUserProgressSummaryInExecutor resets a gap larger than available freezes before the next review", async () => {
+  const timeZone = "Europe/Madrid";
+  const today = formatDateAsTimeZoneLocalDate(new Date(), timeZone);
+  const sixDaysAgo = shiftLocalDate(today, -6);
+  const { executor } = createProgressExecutor({
+    workspaceIdsByUser: {
+      "user-1": ["workspace-1"],
+    },
+    reviewRowsByRequest: {
+      [`workspace-1|${timeZone}|${sixDaysAgo}|${today}`]: [
+        { review_date: sixDaysAgo, review_count: 1 },
+        { review_date: today, review_count: 1 },
+      ],
+    },
+    allReviewDateRowsByRequest: {
+      [`workspace-1|${timeZone}`]: [
+        { review_date: today },
+        { review_date: sixDaysAgo },
+      ],
+    },
+    reviewScheduleRowsByRequest: {},
+    reviewSequenceIdsByWorkspaceId: {
+      "workspace-1": 2,
+    },
+  });
+
+  const summary = await loadUserProgressSummaryInExecutor(executor, {
+    userId: "user-1",
+    timeZone,
+  });
+  const series = await loadUserProgressSeriesInExecutor(executor, {
+    userId: "user-1",
+    timeZone,
+    from: sixDaysAgo,
+    to: today,
+  });
+
+  assert.deepEqual(summary.summary, {
+    currentStreakDays: 1,
+    longestStreakDays: 3,
+    hasReviewedToday: true,
+    lastReviewedOn: today,
+    activeReviewDays: 2,
+    streakFreeze: createFullStreakFreeze(),
+  });
+  assert.deepEqual(series.streakDays, [
+    { date: sixDaysAgo, state: "reviewed" },
+    { date: shiftLocalDate(sixDaysAgo, 1), state: "frozen" },
+    { date: shiftLocalDate(sixDaysAgo, 2), state: "frozen" },
+    { date: shiftLocalDate(sixDaysAgo, 3), state: "missed" },
+    { date: shiftLocalDate(sixDaysAgo, 4), state: "missed" },
+    { date: shiftLocalDate(sixDaysAgo, 5), state: "missed" },
+    { date: today, state: "reviewed" },
+  ]);
 });
 
 test("loadUserProgressReviewScheduleInExecutor returns stable zero buckets for an empty schedule", async () => {
@@ -722,9 +898,11 @@ test("loadUserProgressSummaryInExecutor merges all-time review dates across work
 
   assert.deepEqual(progress.summary, {
     currentStreakDays: 0,
+    longestStreakDays: 6,
     hasReviewedToday: false,
     lastReviewedOn: "2026-04-14",
     activeReviewDays: 4,
+    streakFreeze: createFullStreakFreeze(),
   });
   assert.deepEqual(progress.reviewHistoryWatermarks, [
     { workspaceId: "workspace-1", reviewSequenceId: 3 },
@@ -971,9 +1149,11 @@ test("loadUserProgressSummaryInExecutor keeps summary independent from the reque
 
   assert.deepEqual(progress.summary, {
     currentStreakDays: 3,
+    longestStreakDays: 3,
     hasReviewedToday: true,
     lastReviewedOn: today,
     activeReviewDays: 4,
+    streakFreeze: createFullStreakFreeze(),
   });
 });
 
@@ -1007,9 +1187,11 @@ test("loadUserProgressSummaryInExecutor keeps hasReviewedToday true when a futur
 
   assert.deepEqual(progress.summary, {
     currentStreakDays: 2,
+    longestStreakDays: 2,
     hasReviewedToday: true,
     lastReviewedOn: tomorrow,
     activeReviewDays: 3,
+    streakFreeze: createFullStreakFreeze(),
   });
 });
 

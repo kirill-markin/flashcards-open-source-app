@@ -70,9 +70,18 @@ function createProgressSummaryResponse(): ProgressSummaryResponse {
     timeZone: "Europe/Madrid",
     summary: {
       currentStreakDays: 3,
+      longestStreakDays: 8,
       hasReviewedToday: true,
       lastReviewedOn: "2026-04-17",
       activeReviewDays: 12,
+      streakFreeze: {
+        availableCredits: 2,
+        capacity: 2,
+        balanceUnits: 20,
+        unitsPerCredit: 10,
+        nextCreditProgressUnits: 0,
+        nextCreditRequiredUnits: 10,
+      },
     },
     generatedAt: "2026-04-17T10:11:12.000Z",
     reviewHistoryWatermarks: [
@@ -102,6 +111,15 @@ function createProgressSeries(): ProgressSeries {
       { date: "2026-04-15", reviewCount: 0 },
       { date: "2026-04-16", reviewCount: 0 },
       { date: "2026-04-17", reviewCount: 4 },
+    ],
+    streakDays: [
+      { date: "2026-04-11", state: "missed" },
+      { date: "2026-04-12", state: "reviewed" },
+      { date: "2026-04-13", state: "frozen" },
+      { date: "2026-04-14", state: "reviewed" },
+      { date: "2026-04-15", state: "frozen" },
+      { date: "2026-04-16", state: "frozen" },
+      { date: "2026-04-17", state: "reviewed" },
     ],
     generatedAt: "2026-04-17T10:11:12.000Z",
     reviewHistoryWatermarks: [
