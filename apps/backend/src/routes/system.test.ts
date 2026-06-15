@@ -1172,6 +1172,7 @@ test("published OpenAPI documents the progress leaderboard without internal ids"
     "defaultWindowKey",
     "metricVersion",
     "anonymousDisplayName",
+    "friendDisplayName",
     "publicProfileId",
     "qualifiedReviewCount",
     "rank",
@@ -1181,7 +1182,22 @@ test("published OpenAPI documents the progress leaderboard without internal ids"
   ]) {
     assert.equal(serializedSchemas.includes(expectedField), true, `OpenAPI must document ${expectedField}`);
   }
-  for (const internalField of ["userId", "baseSort", "reviewed_by", "reviewedBy", "email"]) {
+  for (const internalField of [
+    "userId",
+    "friend_user_id",
+    "friendUserId",
+    "friend_public_profile_id",
+    "friendPublicProfileId",
+    "created_from_invitation_id",
+    "friendInvitationId",
+    "inviter_user_id",
+    "inviterUserId",
+    "createdFromInvitationId",
+    "baseSort",
+    "reviewed_by",
+    "reviewedBy",
+    "email",
+  ]) {
     assert.equal(serializedSchemas.includes(internalField), false, `OpenAPI must not expose ${internalField}`);
   }
 });
