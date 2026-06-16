@@ -213,7 +213,10 @@ internal fun createProgressSeriesSnapshot(
             },
             streakDays = createProgressStreakDaysForTest(
                 dailyReviews = dailyReviews.map { point ->
-                    point.copy(reviewCount = 0)
+                    createDailyReviewPoint(
+                        date = point.date,
+                        reviewCount = 0
+                    )
                 },
                 today = to
             ),
