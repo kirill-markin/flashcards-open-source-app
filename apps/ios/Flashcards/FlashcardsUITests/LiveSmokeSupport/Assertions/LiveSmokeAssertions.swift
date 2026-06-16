@@ -321,6 +321,41 @@ extension LiveSmokeTestCase {
         expectedValue: String,
         timeout: TimeInterval
     ) throws -> Bool {
+        return try self.waitForElementValueMatching(
+            element,
+            identifier: identifier,
+            expectedValue: expectedValue,
+            timeout: timeout
+        ) { currentValue in
+            currentValue == expectedValue || currentValue.contains(expectedValue)
+        }
+    }
+
+    @MainActor
+    func waitForElementValue(
+        _ element: XCUIElement,
+        identifier: String,
+        expectedValue: String,
+        timeout: TimeInterval
+    ) throws -> Bool {
+        return try self.waitForElementValueMatching(
+            element,
+            identifier: identifier,
+            expectedValue: expectedValue,
+            timeout: timeout
+        ) { currentValue in
+            currentValue == expectedValue
+        }
+    }
+
+    @MainActor
+    private func waitForElementValueMatching(
+        _ element: XCUIElement,
+        identifier: String,
+        expectedValue: String,
+        timeout: TimeInterval,
+        matchesExpectedValue: (String) -> Bool
+    ) throws -> Bool {
         self.logSmokeBreadcrumb(
             event: "wait_start",
             action: "wait_for_element_value",
@@ -335,7 +370,7 @@ extension LiveSmokeTestCase {
 
         while Date() < deadline {
             let currentValue = self.elementValue(element: element)
-            if currentValue == expectedValue || currentValue.contains(expectedValue) {
+            if matchesExpectedValue(currentValue) {
                 let durationSeconds = Date().timeIntervalSince(startedAt)
                 self.logSmokeBreadcrumb(
                     event: "wait_end",

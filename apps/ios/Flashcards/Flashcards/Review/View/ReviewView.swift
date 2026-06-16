@@ -563,23 +563,11 @@ struct ReviewView: View {
             self.navigation.openProgress(target: .streak)
         } label: {
             HStack(spacing: reviewToolbarBadgeSpacing) {
-                HStack(spacing: 3) {
-                    Image(systemName: badgePresentation.iconSystemName)
-                        .foregroundStyle(self.reviewProgressBadgeToolbarIconColor(badgeState: badgeState))
-                    Text(formatReviewProgressBadgeValue(badgeState: badgeState))
-                        .monospacedDigit()
-                        .lineLimit(1)
-                }
-
-                if badgeState.showsStreakFreezeBank {
-                    HStack(spacing: 3) {
-                        Image(systemName: reviewProgressFreezeBankSystemImageName())
-                            .foregroundStyle(Color(red: 0x2A / 255, green: 0x7F / 255, blue: 0xC2 / 255))
-                        Text(formatReviewProgressFreezeBankValue(badgeState: badgeState))
-                            .monospacedDigit()
-                            .lineLimit(1)
-                    }
-                }
+                Image(systemName: badgePresentation.iconSystemName)
+                    .foregroundStyle(self.reviewProgressBadgeToolbarIconColor(badgeState: badgeState))
+                Text(formatReviewProgressBadgeValue(badgeState: badgeState))
+                    .monospacedDigit()
+                    .lineLimit(1)
             }
             .fixedSize(horizontal: true, vertical: false)
         }
@@ -681,39 +669,15 @@ struct ReviewView: View {
             locale: Locale.current,
             badgeState.streakDays.formatted()
         )
-        guard badgeState.showsStreakFreezeBank else {
-            return streakLabel
-        }
-
-        return "\(streakLabel) \(self.reviewProgressFreezeBankAccessibilityLabel(badgeState: badgeState))"
+        return streakLabel
     }
 
     private func reviewProgressBadgeAccessibilityValue(badgeState: ReviewProgressBadgeState) -> String {
-        var components: [String] = [
+        let components: [String] = [
             "streakDays=\(badgeState.streakDays)",
             "hasReviewedToday=\(badgeState.hasReviewedToday ? "true" : "false")"
         ]
-        if badgeState.showsStreakFreezeBank {
-            components.append("streakFreezeAvailableCredits=\(badgeState.streakFreezeAvailableCredits)")
-            components.append("streakFreezeCapacity=\(badgeState.streakFreezeCapacity)")
-        }
-
         return components.joined(separator: ";")
-    }
-
-    private func reviewProgressFreezeBankAccessibilityLabel(badgeState: ReviewProgressBadgeState) -> String {
-        let localizedFormat = String(
-            localized: "progress.freeze_bank.accessibility",
-            defaultValue: "Freeze bank %@ of %@ available.",
-            table: progressStringsTableName,
-            comment: "Accessibility label for the current streak freeze credit bank"
-        )
-        return String(
-            format: localizedFormat,
-            locale: Locale.current,
-            badgeState.streakFreezeAvailableCredits.formatted(),
-            badgeState.streakFreezeCapacity.formatted()
-        )
     }
 
     private func reviewBottomBarContainer<Content: View>(
