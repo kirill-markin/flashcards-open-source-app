@@ -4,6 +4,88 @@ import XCTest
 
 final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
     @MainActor
+    func testRefreshProgressIfNeededRefreshesLinkedCredentialsBeforeServerLoads() async throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
+        let timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T12:00:00.000Z"))
+        let requestRange = try makeTestProgressRequestRange(
+            now: now,
+            timeZone: timeZone,
+            dayCount: 140
+        )
+        let serverSeries = try makeTestProgressSeries(
+            requestRange: requestRange,
+            reviewCountsByDate: [:],
+            generatedAt: "2026-04-18T11:59:00.000Z"
+        )
+        let serverSummary = try makeTestProgressSummary(
+            timeZone: requestRange.timeZone,
+            reviewDates: [],
+            generatedAt: "2026-04-18T11:59:00.000Z"
+        )
+        let refreshedToken = CloudIdentityToken(
+            idToken: "id-token-refreshed",
+            idTokenExpiresAt: "2099-01-01T00:00:00.000Z"
+        )
+        let cloudAuthService = ProgressCloudAuthService(refreshedToken: refreshedToken)
+        let suiteName = "progress-auth-refresh-\(UUID().uuidString.lowercased())"
+        let userDefaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        let context = try self.makeProgressStoreContext(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            installationId: cloudSettings.installationId,
+            serverSummary: serverSummary,
+            serverSeries: serverSeries,
+            loadProgressSummaryError: nil,
+            loadProgressSeriesError: nil,
+            cloudState: .linked,
+            suiteName: suiteName,
+            userDefaults: userDefaults,
+            cloudAuthService: cloudAuthService
+        )
+        defer { context.tearDown() }
+
+        try context.credentialStore.saveCredentials(
+            credentials: StoredCloudCredentials(
+                refreshToken: "refresh-token-1",
+                idToken: "id-token-expired",
+                idTokenExpiresAt: "2020-01-01T00:00:00.000Z"
+            )
+        )
+        let linkedUserId = try XCTUnwrap(context.store.cloudSettings?.linkedUserId)
+        context.store.cloudRuntime.setActiveCloudSession(
+            linkedSession: CloudLinkedSession(
+                userId: linkedUserId,
+                workspaceId: workspace.workspaceId,
+                email: nil,
+                configurationMode: .official,
+                apiBaseUrl: context.apiBaseUrl,
+                authorization: .bearer("id-token-expired")
+            )
+        )
+
+        await context.store.refreshProgressIfNeeded(now: now)
+
+        XCTAssertEqual(1, cloudAuthService.refreshIdTokenCallCount)
+        XCTAssertEqual("refresh-token-1", cloudAuthService.lastRefreshToken)
+        XCTAssertEqual(
+            "Bearer id-token-refreshed",
+            context.cloudSyncService.lastLoadProgressSummaryRequest?.authorizationHeader
+        )
+        XCTAssertEqual(
+            "Bearer id-token-refreshed",
+            context.cloudSyncService.lastLoadProgressSeriesRequest?.authorizationHeader
+        )
+        XCTAssertEqual(
+            "Bearer id-token-refreshed",
+            context.cloudSyncService.lastLoadProgressReviewScheduleRequest?.authorizationHeader
+        )
+        XCTAssertEqual("", context.store.progressErrorMessage)
+    }
+
+    @MainActor
     func testRefreshProgressIfNeededExtendsLongServerSummaryWhenRenderedSeriesAddsToday() async throws {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()

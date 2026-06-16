@@ -2,6 +2,47 @@ import Foundation
 import XCTest
 @testable import Flashcards
 
+@MainActor
+final class ProgressCloudAuthService: CloudAuthServing {
+    let refreshedToken: CloudIdentityToken
+    private(set) var refreshIdTokenCallCount: Int
+    private(set) var lastRefreshToken: String?
+    private(set) var lastAuthBaseUrl: String?
+
+    init(refreshedToken: CloudIdentityToken) {
+        self.refreshedToken = refreshedToken
+        self.refreshIdTokenCallCount = 0
+        self.lastRefreshToken = nil
+        self.lastAuthBaseUrl = nil
+    }
+
+    func sendCode(email: String, authBaseUrl: String) async throws -> CloudSendCodeResult {
+        _ = email
+        _ = authBaseUrl
+        fatalError("Not used in progress tests.")
+    }
+
+    func verifyCode(
+        challenge: CloudOtpChallenge,
+        code: String,
+        authBaseUrl: String
+    ) async throws -> StoredCloudCredentials {
+        _ = challenge
+        _ = code
+        _ = authBaseUrl
+        fatalError("Not used in progress tests.")
+    }
+
+    func refreshIdToken(refreshToken: String, authBaseUrl: String) async throws -> CloudIdentityToken {
+        self.refreshIdTokenCallCount += 1
+        self.lastRefreshToken = refreshToken
+        self.lastAuthBaseUrl = authBaseUrl
+        return self.refreshedToken
+    }
+
+    func resetChallengeSession() {}
+}
+
 struct ProgressSummaryLoadRequest: Equatable {
     let apiBaseUrl: String
     let authorizationHeader: String
