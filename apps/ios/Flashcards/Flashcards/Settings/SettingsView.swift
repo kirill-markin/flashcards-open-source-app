@@ -306,14 +306,16 @@ struct SettingsView: View {
         Button {
             self.openFriendInviteFlow()
         } label: {
-            Label(
-                aiSettingsLocalized("settings.inviteFriend.button", "Invite Friend"),
-                systemImage: "person.badge.plus"
-            )
-            .frame(maxWidth: .infinity)
+            HStack(spacing: 8) {
+                Image(systemName: "person.crop.circle.badge.plus")
+                    .accessibilityHidden(true)
+                Text(aiSettingsLocalized("settings.inviteFriend.button", "Invite Friend"))
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
         }
         .buttonStyle(.borderedProminent)
         .accessibilityIdentifier(UITestIdentifier.settingsInviteFriendButton)
+        .accessibilityLabel(aiSettingsLocalized("settings.inviteFriend.button", "Invite Friend"))
     }
 
     private func openFriendInviteFlow() {

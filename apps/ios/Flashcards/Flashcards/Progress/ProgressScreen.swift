@@ -16,6 +16,8 @@ struct ProgressScreen: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
     @State private var selectedLeaderboardWindowKey: LeaderboardWindowKey?
+    @State private var isCloudSignInPresented: Bool = false
+    @State private var isFriendInvitePresented: Bool = false
 
     private var isLeaderboardSectionAvailable: Bool {
         self.store.progressSnapshot != nil && self.store.progressLeaderboardSnapshot != nil
@@ -78,7 +80,10 @@ struct ProgressScreen: View {
                                 ProgressLeaderboardSection(
                                     snapshot: leaderboardSnapshot,
                                     isRefreshing: self.store.isProgressRefreshing,
-                                    selectedWindowKey: self.$selectedLeaderboardWindowKey
+                                    leaderboardRefreshMessage: self.store.progressErrorState.leaderboardRefreshMessage,
+                                    selectedWindowKey: self.$selectedLeaderboardWindowKey,
+                                    onOpenCloudSignIn: self.openCloudSignInFlow,
+                                    onOpenFriendInvite: self.openFriendInviteFlow
                                 )
                             }
                             .id(ProgressScreenSectionID.leaderboard)
@@ -147,6 +152,27 @@ struct ProgressScreen: View {
                 await self.handleProgressPresentationRequest(proxy: proxy)
             }
         }
+        .sheet(isPresented: self.$isCloudSignInPresented) {
+            CloudSignInSheet(presentationContext: .standard)
+                .environment(self.store)
+        }
+        .sheet(isPresented: self.$isFriendInvitePresented) {
+            ProgressFriendInviteSheet()
+                .environment(self.store)
+        }
+    }
+
+    private func openCloudSignInFlow() {
+        self.isCloudSignInPresented = true
+    }
+
+    private func openFriendInviteFlow() {
+        guard self.store.cloudSettings?.cloudState == .linked else {
+            self.isCloudSignInPresented = true
+            return
+        }
+
+        self.isFriendInvitePresented = true
     }
 
     @MainActor

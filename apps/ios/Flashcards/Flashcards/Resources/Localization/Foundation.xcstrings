@@ -2892,61 +2892,120 @@
         }
       }
     },
+    "progress.friend_invite.description" : {
+      "comment" : "Body text explaining friend invite creation before the display name field",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "أنشئ رابط صديق خاصًا للوحة الصدارة."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erstelle einen privaten Freundeslink für die Bestenliste."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create a private friend link for the leaderboard."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea un enlace privado de amigo para la tabla de clasificación."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea un enlace privado de amigo para la tabla de posiciones."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "लीडरबोर्ड के लिए एक निजी दोस्त लिंक बनाएं।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リーダーボード用の非公開の友だちリンクを作成します。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Создайте личную ссылку для друга для таблицы лидеров."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "为排行榜创建一个私密好友链接。"
+          }
+        }
+      }
+    },
     "progress.friend_invite.display_name.footer" : {
       "comment" : "Footer explaining private friend invite display names and expiration",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "يظهر هذا الاسم الخاص في لوحة الصدارة لديك فقط. تنتهي صلاحية روابط الدعوة خلال يومين."
+            "value" : "أنت فقط ترى هذا الاسم في لوحة الصدارة لديك. يختار صديقك اسمك عند قبول الدعوة. تنتهي صلاحية روابط الدعوة خلال يومين."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dieser private Name erscheint nur auf deiner Bestenliste. Einladungslinks laufen in 2 Tagen ab."
+            "value" : "Nur du siehst diesen Namen in deiner Bestenliste. Dein Freund wählt beim Annehmen aus, wie er dich nennt. Einladungslinks laufen in 2 Tagen ab."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This private name appears only on your leaderboard. Invite links expire in 2 days."
+            "value" : "Only you see this name in your leaderboard. Your friend chooses what to call you when accepting. Invite links expire in 2 days."
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Este nombre privado aparece solo en tu tabla de clasificación. Los enlaces de invitación caducan en 2 días."
+            "value" : "Solo tú ves este nombre en tu tabla de clasificación. Tu amigo elige cómo llamarte al aceptar. Los enlaces de invitación caducan en 2 días."
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Este nombre privado aparece solo en tu tabla de posiciones. Los enlaces de invitación vencen en 2 días."
+            "value" : "Solo tú ves este nombre en tu tabla de posiciones. Tu amigo elige cómo llamarte al aceptar. Los enlaces de invitación vencen en 2 días."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "यह निजी नाम केवल आपके लीडरबोर्ड पर दिखता है। आमंत्रण लिंक 2 दिनों में समाप्त हो जाते हैं।"
+            "value" : "यह नाम केवल आपको अपने लीडरबोर्ड में दिखता है। स्वीकार करते समय आपका दोस्त चुनता है कि आपको क्या नाम देना है। आमंत्रण लिंक 2 दिनों में समाप्त हो जाते हैं।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "この非公開名はあなたのリーダーボードにのみ表示されます。招待リンクは2日で期限切れになります。"
+            "value" : "この名前はあなたのリーダーボードにだけ表示されます。友だちは承認時にあなたの呼び名を選びます。招待リンクは2日で期限切れになります。"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Это личное имя видно только в вашей таблице лидеров. Ссылки-приглашения истекают через 2 дня."
+            "value" : "Только вы видите это имя в своей таблице лидеров. Друг выберет ваше имя у себя при принятии приглашения. Ссылки-приглашения истекают через 2 дня."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "这个私密名称只会显示在你的排行榜中。邀请链接将在 2 天后过期。"
+            "value" : "只有你会在自己的排行榜中看到这个名称。你的朋友接受邀请时会选择如何称呼你。邀请链接将在 2 天后过期。"
           }
         }
       }
@@ -2957,55 +3016,55 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "اسم الصديق"
+            "value" : "اسم الصديق في لوحة الصدارة لديك"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Name des Freundes"
+            "value" : "Name des Freundes in deiner Bestenliste"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Friend name"
+            "value" : "Friend name on your leaderboard"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nombre del amigo"
+            "value" : "Nombre del amigo en tu tabla de clasificación"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nombre del amigo"
+            "value" : "Nombre del amigo en tu tabla de posiciones"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "दोस्त का नाम"
+            "value" : "आपके लीडरबोर्ड पर दोस्त का नाम"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "友達の名前"
+            "value" : "自分のリーダーボードで表示する友だちの名前"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Имя друга"
+            "value" : "Имя друга в вашей таблице лидеров"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "朋友名称"
+            "value" : "你的排行榜上的好友名称"
           }
         }
       }
@@ -3016,55 +3075,55 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "مطلوب"
+            "value" : "اسم صديقك"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Erforderlich"
+            "value" : "Name deines Freundes"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Required"
+            "value" : "Your friend's name"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Obligatorio"
+            "value" : "Nombre de tu amigo"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Obligatorio"
+            "value" : "Nombre de tu amigo"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "आवश्यक"
+            "value" : "आपके दोस्त का नाम"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "必須"
+            "value" : "友だちの名前"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Обязательно"
+            "value" : "Имя вашего друга"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "必填"
+            "value" : "你朋友的名字"
           }
         }
       }
