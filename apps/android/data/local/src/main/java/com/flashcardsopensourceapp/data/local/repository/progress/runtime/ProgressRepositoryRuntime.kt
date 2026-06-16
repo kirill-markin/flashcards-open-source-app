@@ -3,10 +3,14 @@ package com.flashcardsopensourceapp.data.local.repository.progress.runtime
 import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
 import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
 import com.flashcardsopensourceapp.core.observability.AppObservability
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.network.isLikelyTransientNetworkIoException
+import com.flashcardsopensourceapp.data.local.network.isRetryableHttpStatusCode
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressReviewScheduleStoreState
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressSeriesStoreState
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressSummaryStoreState
+import java.io.IOException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -91,25 +95,64 @@ internal fun logProgressRefreshWarning(
     fields: List<Pair<String, String?>>,
     error: Throwable
 ) {
-    observability.captureWarning(
-        event = AndroidWarningIssueEvent.ProgressRefreshWarning(
-            workspaceId = extractProgressWorkspaceId(
-                fields = fields,
-                scopeId = scopeId
-            ),
-            refreshAction = event,
-            scopeId = scopeId,
-            source = source,
-            appVersion = observationVersions.appVersion,
-            clientVersion = observationVersions.clientVersion,
-            versionCode = observationVersions.versionCode
+    if (shouldCaptureProgressRefreshWarning(error = error)) {
+        observability.captureWarning(
+            event = AndroidWarningIssueEvent.ProgressRefreshWarning(
+                workspaceId = extractProgressWorkspaceId(
+                    fields = fields,
+                    scopeId = scopeId
+                ),
+                refreshAction = event,
+                scopeId = scopeId,
+                source = source,
+                appVersion = observationVersions.appVersion,
+                clientVersion = observationVersions.clientVersion,
+                versionCode = observationVersions.versionCode
+            )
         )
-    )
+    }
     logProgressRepositoryWarning(
         event = event,
         fields = fields,
         error = error
     )
+}
+
+internal fun shouldCaptureProgressRefreshWarning(error: Throwable): Boolean {
+    return isTransientProgressRefreshFailure(error = error).not()
+}
+
+private fun isTransientProgressRefreshFailure(error: Throwable): Boolean {
+    val cloudRemoteError: CloudRemoteException? = error as? CloudRemoteException
+        ?: findProgressCloudRemoteCause(error = error)
+    if (cloudRemoteError != null) {
+        return isRetryableHttpStatusCode(statusCode = cloudRemoteError.statusCode)
+    }
+
+    val ioError: IOException? = error as? IOException ?: findProgressIoCause(error = error)
+    return ioError != null && isLikelyTransientNetworkIoException(error = ioError)
+}
+
+private fun findProgressCloudRemoteCause(error: Throwable): CloudRemoteException? {
+    var currentCause: Throwable? = error.cause
+    while (currentCause != null) {
+        if (currentCause is CloudRemoteException) {
+            return currentCause
+        }
+        currentCause = currentCause.cause
+    }
+    return null
+}
+
+private fun findProgressIoCause(error: Throwable): IOException? {
+    var currentCause: Throwable? = error.cause
+    while (currentCause != null) {
+        if (currentCause is IOException) {
+            return currentCause
+        }
+        currentCause = currentCause.cause
+    }
+    return null
 }
 
 internal fun supportsServerRefresh(

@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.data.local.repository.progress
 
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleScopeKey
@@ -9,12 +10,14 @@ import com.flashcardsopensourceapp.data.local.model.progress.ProgressSnapshotSou
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummaryScopeKey
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
+import com.flashcardsopensourceapp.data.local.repository.progress.runtime.shouldCaptureProgressRefreshWarning
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.shouldSuppressProgressReviewScheduleRemoteLoadWarning
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.shouldSuppressProgressSeriesRemoteLoadWarning
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.shouldSuppressProgressSummaryRemoteLoadWarning
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressReviewScheduleStoreState
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressSeriesStoreState
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressSummaryStoreState
+import java.net.UnknownHostException
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -213,6 +216,40 @@ class ProgressRemoteLoadWarningSuppressionTest {
             shouldSuppressProgressReviewScheduleRemoteLoadWarning(
                 latestStoreState = disconnectedStoreState,
                 refreshStoreState = refreshStoreState
+            )
+        )
+    }
+
+    @Test
+    fun progressRefreshWarningIsNotCapturedForTransientNetworkFailure(): Unit {
+        assertFalse(
+            shouldCaptureProgressRefreshWarning(
+                error = UnknownHostException("Unable to resolve host api.flashcards-open-source-app.com")
+            )
+        )
+    }
+
+    @Test
+    fun progressRefreshWarningIsNotCapturedForRetryableHttpFailure(): Unit {
+        assertFalse(
+            shouldCaptureProgressRefreshWarning(
+                error = CloudRemoteException(
+                    message = "Gateway timeout.",
+                    statusCode = 504,
+                    responseBody = "",
+                    errorCode = null,
+                    requestId = "request-1",
+                    syncConflict = null
+                )
+            )
+        )
+    }
+
+    @Test
+    fun progressRefreshWarningIsCapturedForNonTransientFailure(): Unit {
+        assertTrue(
+            shouldCaptureProgressRefreshWarning(
+                error = IllegalStateException("Progress response is invalid.")
             )
         )
     }
