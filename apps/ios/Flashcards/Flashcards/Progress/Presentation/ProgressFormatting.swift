@@ -17,6 +17,16 @@ func progressReviewChartPageDateRange(
     return formatter.string(from: page.startDate, to: page.endDate)
 }
 
+func progressReviewChartDateLabel(date: Date, calendar: Calendar) -> String {
+    let formatter = DateFormatter()
+    formatter.calendar = calendar
+    formatter.locale = Locale.autoupdatingCurrent
+    formatter.timeZone = calendar.timeZone
+    formatter.dateStyle = .medium
+    formatter.timeStyle = .none
+    return formatter.string(from: date)
+}
+
 func requiredProgressPresentationCalendar(
     timeZoneIdentifier: String
 ) -> Calendar {
