@@ -97,6 +97,7 @@ Details and key files: [docs/auth-service.md](docs/auth-service.md).
 - Prefer pure functions for domain logic.
 - Use strict typing across services.
 - Keep changes minimal and scoped.
+- Offline-first clients may apply narrow local overlays for pending changes, but complex product/domain rules must stay server-owned unless explicitly required; do not reimplement full backend algorithms in clients.
 - Machine API documentation is intentionally duplicated across the discovery envelope (`actions` and `instructions`) and the published specs (`/v1/openapi.json`, `/v1/swagger.json`, generated from `api/src/openapi.yaml`). When changing the machine API, keep all of these in sync in the same change.
 - Flashcard side contract is mandatory across all clients and APIs: `frontText` is only a question/review prompt (never the answer), and `backText` contains the answer (optionally with a concrete example, preferably in a fenced markdown code block when helpful).
 - We align the functional contract across iOS and Android, but we do not synchronize the designs between them. The iOS UI should stay maximally native to iOS, and the Android UI should stay maximally native to Android and Material 3.
