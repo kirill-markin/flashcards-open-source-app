@@ -1,0 +1,383 @@
+// @vitest-environment jsdom
+import { act } from "react";
+import { describe, expect, it, vi } from "vitest";
+import {
+  addFriendDisplayNameToRankingRows,
+  addFriendDisplayNamesToRankingRows,
+  createAppData,
+  createLeaderboardRankingRows,
+  createLeaderboardSourceState,
+  createLeaderboardSourceStateFromLeaderboard,
+  createLeaderboardWithViewerRanks,
+  createLeaderboardWithWindowRankingRows,
+  createProgressScreenRenderTestContext,
+  linkedCloudSettings,
+  mockProgressSourceStateWithLeaderboard,
+  useAppDataMock,
+} from "./ProgressScreenTestSupport";
+
+describe("ProgressScreen leaderboard", () => {
+  const progressScreen = createProgressScreenRenderTestContext();
+
+  it("renders the leaderboard guest placeholder with a sign-in link for unlinked accounts", async () => {
+    await progressScreen.renderProgressScreen();
+    const container = progressScreen.getContainer();
+
+    const guestPlaceholder = container.querySelector("[data-testid='progress-leaderboard-guest']");
+    if (!(guestPlaceholder instanceof HTMLElement)) {
+      throw new Error("Leaderboard guest placeholder was not found");
+    }
+
+    expect(guestPlaceholder.textContent).toContain("Sign in to see how your reviews rank alongside other learners.");
+    const signInLink = guestPlaceholder.querySelector("a");
+    if (!(signInLink instanceof HTMLAnchorElement)) {
+      throw new Error("Leaderboard guest sign-in link was not found");
+    }
+    expect(signInLink.textContent).toBe("Sign in");
+    expect(container.querySelector("[data-testid='progress-leaderboard-row-viewer']")).toBeNull();
+  });
+
+  it("renders the invite sign-in prompt for unlinked accounts", async () => {
+    await progressScreen.renderProgressScreen();
+    const container = progressScreen.getContainer();
+
+    const inviteOpenButton = container.querySelector("[data-testid='progress-leaderboard-invite-open']");
+    if (!(inviteOpenButton instanceof HTMLButtonElement)) {
+      throw new Error("Leaderboard invite button was not found");
+    }
+
+    await act(async () => {
+      inviteOpenButton.click();
+    });
+
+    const signInPrompt = document.body.querySelector("[data-testid='progress-leaderboard-invite-sign-in']");
+    if (!(signInPrompt instanceof HTMLElement)) {
+      throw new Error("Leaderboard invite sign-in prompt was not found");
+    }
+
+    expect(signInPrompt.querySelector("a")).not.toBeNull();
+  });
+
+  it("requires a friend name before creating a leaderboard invite", async () => {
+    useAppDataMock.mockReturnValue({
+      ...createAppData(),
+      cloudSettings: linkedCloudSettings,
+    });
+    mockProgressSourceStateWithLeaderboard(createLeaderboardSourceState("ready", null));
+
+    await progressScreen.renderProgressScreen();
+    const container = progressScreen.getContainer();
+
+    const inviteOpenButton = container.querySelector("[data-testid='progress-leaderboard-invite-open']");
+    if (!(inviteOpenButton instanceof HTMLButtonElement)) {
+      throw new Error("Leaderboard invite button was not found");
+    }
+
+    await act(async () => {
+      inviteOpenButton.click();
+    });
+
+    const createButton = document.body.querySelector("[data-testid='progress-leaderboard-invite-create']");
+    if (!(createButton instanceof HTMLButtonElement)) {
+      throw new Error("Leaderboard invite create button was not found");
+    }
+
+    await act(async () => {
+      createButton.click();
+    });
+
+    expect(document.body.querySelector("[data-testid='progress-leaderboard-invite-name-error']")?.textContent).not.toBe("");
+  });
+
+  it("renders the leaderboard participation-disabled placeholder with a settings link", async () => {
+    useAppDataMock.mockReturnValue({
+      ...createAppData(),
+      cloudSettings: linkedCloudSettings,
+    });
+    mockProgressSourceStateWithLeaderboard(createLeaderboardSourceState("participation_disabled", null));
+
+    await progressScreen.renderProgressScreen();
+    const container = progressScreen.getContainer();
+
+    const participationPlaceholder = container.querySelector("[data-testid='progress-leaderboard-participation-disabled']");
+    if (!(participationPlaceholder instanceof HTMLElement)) {
+      throw new Error("Leaderboard participation-disabled placeholder was not found");
+    }
+
+    expect(participationPlaceholder.textContent).toContain("Rankings are hidden while leaderboard participation is off.");
+    const settingsLink = participationPlaceholder.querySelector("a");
+    if (!(settingsLink instanceof HTMLAnchorElement)) {
+      throw new Error("Leaderboard participation settings link was not found");
+    }
+    expect(settingsLink.getAttribute("href")).toBe("/settings/leaderboard-participation");
+    expect(container.querySelector("[data-testid='progress-leaderboard-row-viewer']")).toBeNull();
+  });
+
+  it("renders the ready leaderboard compact rows in server order with the top three before the gap", async () => {
+    useAppDataMock.mockReturnValue({
+      ...createAppData(),
+      cloudSettings: linkedCloudSettings,
+    });
+    mockProgressSourceStateWithLeaderboard(createLeaderboardSourceState("ready", null));
+
+    await progressScreen.renderProgressScreen();
+    const container = progressScreen.getContainer();
+
+    const leaderboardCard = container.querySelector("[data-testid='progress-leaderboard-card']");
+    if (!(leaderboardCard instanceof HTMLElement)) {
+      throw new Error("Leaderboard card was not found");
+    }
+
+    const headerActions = leaderboardCard.querySelector(".progress-leaderboard-head-actions");
+    if (!(headerActions instanceof HTMLElement)) {
+      throw new Error("Leaderboard header actions were not found");
+    }
+    expect(headerActions.querySelector("[data-testid='progress-leaderboard-invite-open']")).toBeNull();
+
+    const inviteOpenButton = leaderboardCard.querySelector("[data-testid='progress-leaderboard-invite-open']");
+    if (!(inviteOpenButton instanceof HTMLButtonElement)) {
+      throw new Error("Leaderboard invite button was not found");
+    }
+    expect(inviteOpenButton.textContent).toBe("Invite friend");
+    expect(inviteOpenButton.className).toContain("primary-btn");
+
+    const periodSelector = leaderboardCard.querySelector(".progress-leaderboard-periods");
+    if (!(periodSelector instanceof HTMLElement)) {
+      throw new Error("Leaderboard period selector was not found");
+    }
+    expect(inviteOpenButton.compareDocumentPosition(periodSelector) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+
+    const rows = [...container.querySelectorAll(".progress-leaderboard-row")];
+    expect(rows.map((row) => row.getAttribute("data-kind"))).toEqual([
+      "top",
+      "top",
+      "top",
+      "gap",
+      "neighbor",
+      "viewer",
+      "neighbor",
+      "gap",
+      "neighbor",
+    ]);
+
+    const rowTexts = rows.map((row) => row.textContent);
+    expect(rowTexts[0]).toContain("Silver Bright Harbor");
+    expect(rowTexts[0]).toContain("#1");
+    expect(rowTexts[1]).toContain("Amber Calm Meadow");
+    expect(rowTexts[2]).toContain("Coral Keen Valley");
+    expect(rowTexts[4]).toContain("Jade Swift River");
+    expect(rowTexts[5]).toContain("You");
+    expect(rowTexts[5]).toContain("#42");
+    expect(rowTexts[6]).toContain("Bold Cedar Crest");
+    expect(rowTexts[8]).toContain("Blue Final Harbor");
+    expect(rowTexts[8]).toContain("#128");
+    expect(rowTexts[8]).toContain("0");
+
+    const topGapRow = rows[3];
+    const bottomGapRow = rows[7];
+    if (topGapRow === undefined || bottomGapRow === undefined) {
+      throw new Error("Leaderboard gap rows were not found");
+    }
+    expect(topGapRow.querySelector("button")).toBeNull();
+    expect(topGapRow.querySelector("a")).toBeNull();
+    expect(bottomGapRow.querySelector("button")).toBeNull();
+    expect(bottomGapRow.querySelector("a")).toBeNull();
+  });
+
+  it("renders friend rows from ranking rows and dedupes already visible friends", async () => {
+    useAppDataMock.mockReturnValue({
+      ...createAppData(),
+      cloudSettings: linkedCloudSettings,
+    });
+    const friendRankingRows = addFriendDisplayNamesToRankingRows(
+      createLeaderboardRankingRows(),
+      new Map([
+        [2, "Mina"],
+        [12, "Ari"],
+        [41, "Kai"],
+      ]),
+    );
+    mockProgressSourceStateWithLeaderboard(createLeaderboardSourceStateFromLeaderboard(
+      createLeaderboardWithWindowRankingRows("last_24_hours", friendRankingRows),
+      null,
+    ));
+
+    await progressScreen.renderProgressScreen();
+    const container = progressScreen.getContainer();
+
+    const rows = [...container.querySelectorAll(".progress-leaderboard-row:not(.progress-leaderboard-row-padding)")];
+    const rowTexts = rows.map((row) => row.textContent ?? "");
+
+    expect(rowTexts.filter((text) => text.includes("Mina"))).toHaveLength(1);
+    expect(rowTexts.filter((text) => text.includes("Kai"))).toHaveLength(1);
+    expect(rowTexts).toEqual(expect.arrayContaining([
+      expect.stringContaining("Ari"),
+    ]));
+    expect(container.textContent).not.toContain("Hidden Rank 12");
+    expect(rowTexts.findIndex((text) => text.includes("#12"))).toBeLessThan(
+      rowTexts.findIndex((text) => text.includes("#41")),
+    );
+  });
+
+  it("pads the selected leaderboard period to the largest friend-expanded row count", async () => {
+    useAppDataMock.mockReturnValue({
+      ...createAppData(),
+      cloudSettings: linkedCloudSettings,
+    });
+    const allTimeFriendRows = addFriendDisplayNameToRankingRows(
+      addFriendDisplayNameToRankingRows(createLeaderboardRankingRows(), 12, "Ari"),
+      20,
+      "Noor",
+    );
+    mockProgressSourceStateWithLeaderboard(createLeaderboardSourceStateFromLeaderboard(
+      createLeaderboardWithWindowRankingRows("all_time", allTimeFriendRows),
+      null,
+    ));
+
+    await progressScreen.renderProgressScreen();
+    const container = progressScreen.getContainer();
+
+    expect(container.querySelectorAll("[data-testid='progress-leaderboard-row-padding']")).toHaveLength(4);
+    expect(container.textContent).not.toContain("Ari");
+    expect(container.textContent).not.toContain("Noor");
+  });
+
+  it("reveals the leaderboard info text explaining that Again reviews are excluded", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-21T10:35:05.000Z"));
+    useAppDataMock.mockReturnValue({
+      ...createAppData(),
+      cloudSettings: linkedCloudSettings,
+    });
+    mockProgressSourceStateWithLeaderboard(createLeaderboardSourceState("ready", null));
+
+    await progressScreen.renderProgressScreen();
+    const container = progressScreen.getContainer();
+
+    expect(container.querySelector("[data-testid='progress-leaderboard-info']")).toBeNull();
+    expect(container.querySelector("[data-testid='progress-leaderboard-freshness']")).toBeNull();
+
+    const infoToggle = container.querySelector("[data-testid='progress-leaderboard-info-toggle']");
+    if (!(infoToggle instanceof HTMLButtonElement)) {
+      throw new Error("Leaderboard info toggle was not found");
+    }
+
+    await act(async () => {
+      infoToggle.click();
+    });
+
+    const infoText = container.querySelector("[data-testid='progress-leaderboard-info']");
+    if (!(infoText instanceof HTMLParagraphElement)) {
+      throw new Error("Leaderboard info text was not found");
+    }
+    expect(infoText.textContent).toContain("Hard, Good, or Easy count");
+    expect(infoText.textContent).toContain("Again reviews are not counted.");
+    expect(infoText.textContent).toContain("Updated 35 min ago");
+    expect(container.querySelector("[data-testid='progress-leaderboard-freshness']")).toBeNull();
+  });
+
+  it("reranks the viewer and renders new neighbors when the local qualified review count moves higher", async () => {
+    useAppDataMock.mockReturnValue({
+      ...createAppData(),
+      cloudSettings: linkedCloudSettings,
+    });
+    mockProgressSourceStateWithLeaderboard(createLeaderboardSourceState("ready", {
+      last_24_hours: 9,
+      last_3_days: 9,
+      last_7_days: 9,
+      last_30_days: 9,
+      all_time: 9,
+    }));
+
+    await progressScreen.renderProgressScreen();
+    const container = progressScreen.getContainer();
+
+    const viewerRow = container.querySelector("[data-testid='progress-leaderboard-row-viewer']");
+    if (!(viewerRow instanceof HTMLElement)) {
+      throw new Error("Leaderboard viewer row was not found");
+    }
+
+    expect(viewerRow.querySelector("[data-testid='progress-leaderboard-count-viewer']")?.textContent).toBe("9");
+    expect(viewerRow.textContent).toContain("#41");
+
+    const rows = [...container.querySelectorAll(".progress-leaderboard-row")];
+    const rowTexts = rows.map((row) => row.textContent);
+    expect(rowTexts[4]).toContain("Hidden Rank 40");
+    expect(rowTexts[4]).toContain("#40");
+    expect(rowTexts[5]).toContain("You");
+    expect(rowTexts[5]).toContain("#41");
+    expect(rowTexts[6]).toContain("Jade Swift River");
+    expect(rowTexts[6]).toContain("#42");
+    expect(container.textContent).not.toContain("Bold Cedar Crest");
+
+    const neighborCounts = [...container.querySelectorAll("[data-testid='progress-leaderboard-count-neighbor']")]
+      .map((count) => count.textContent);
+    expect(neighborCounts).toEqual(["10", "8", "0"]);
+
+    const topCounts = [...container.querySelectorAll("[data-testid='progress-leaderboard-count-top']")]
+      .map((count) => count.textContent);
+    expect(topCounts).toEqual(["51", "44", "30"]);
+  });
+
+  it("auto-selects the leaderboard window where the viewer has the best rank", async () => {
+    useAppDataMock.mockReturnValue({
+      ...createAppData(),
+      cloudSettings: linkedCloudSettings,
+    });
+    mockProgressSourceStateWithLeaderboard(createLeaderboardSourceStateFromLeaderboard(
+      createLeaderboardWithViewerRanks({
+        last_24_hours: 9,
+        last_3_days: 8,
+        last_7_days: 3,
+        last_30_days: 11,
+        all_time: 4,
+      }),
+      null,
+    ));
+
+    await progressScreen.renderProgressScreen();
+    const container = progressScreen.getContainer();
+
+    const bestPeriodButton = container.querySelector("[data-testid='progress-leaderboard-period-last_7_days']");
+    if (!(bestPeriodButton instanceof HTMLButtonElement)) {
+      throw new Error("Best leaderboard period button was not found");
+    }
+    const fallbackPeriodButton = container.querySelector("[data-testid='progress-leaderboard-period-last_24_hours']");
+    if (!(fallbackPeriodButton instanceof HTMLButtonElement)) {
+      throw new Error("Fallback leaderboard period button was not found");
+    }
+
+    expect(bestPeriodButton.getAttribute("aria-pressed")).toBe("true");
+    expect(fallbackPeriodButton.getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("switches the visible leaderboard window with the period control", async () => {
+    useAppDataMock.mockReturnValue({
+      ...createAppData(),
+      cloudSettings: linkedCloudSettings,
+    });
+    mockProgressSourceStateWithLeaderboard(createLeaderboardSourceState("ready", null));
+
+    await progressScreen.renderProgressScreen();
+    const container = progressScreen.getContainer();
+
+    const defaultPeriodButton = container.querySelector("[data-testid='progress-leaderboard-period-last_24_hours']");
+    if (!(defaultPeriodButton instanceof HTMLButtonElement)) {
+      throw new Error("Default leaderboard period button was not found");
+    }
+    expect(defaultPeriodButton.getAttribute("aria-pressed")).toBe("true");
+
+    const allTimePeriodButton = container.querySelector("[data-testid='progress-leaderboard-period-all_time']");
+    if (!(allTimePeriodButton instanceof HTMLButtonElement)) {
+      throw new Error("All-time leaderboard period button was not found");
+    }
+
+    await act(async () => {
+      allTimePeriodButton.click();
+    });
+
+    expect(allTimePeriodButton.getAttribute("aria-pressed")).toBe("true");
+    expect(defaultPeriodButton.getAttribute("aria-pressed")).toBe("false");
+    expect(container.querySelector("[data-testid='progress-leaderboard-row-viewer']")).not.toBeNull();
+  });
+});
