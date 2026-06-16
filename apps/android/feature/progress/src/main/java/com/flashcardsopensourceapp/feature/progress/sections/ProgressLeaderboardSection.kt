@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -19,14 +20,12 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,14 +45,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
-import com.flashcardsopensourceapp.feature.progress.ProgressFriendInvitationCreateError
-import com.flashcardsopensourceapp.feature.progress.ProgressFriendInvitationDisplayNameError
-import com.flashcardsopensourceapp.feature.progress.ProgressFriendInvitationDisplayNameValidation
-import com.flashcardsopensourceapp.feature.progress.ProgressFriendInvitationUiState
+import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationDialog
+import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationUiState
 import com.flashcardsopensourceapp.feature.progress.ProgressLeaderboardRowUiState
 import com.flashcardsopensourceapp.feature.progress.ProgressLeaderboardSectionUiState
 import com.flashcardsopensourceapp.feature.progress.R
-import com.flashcardsopensourceapp.feature.progress.validateFriendInvitationDisplayName
+import com.flashcardsopensourceapp.feature.friendinvite.R as FriendInviteR
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -63,7 +60,7 @@ private const val millisecondsPerMinute: Long = 60_000L
 @Composable
 internal fun LeaderboardSectionCard(
     uiState: ProgressLeaderboardSectionUiState,
-    friendInvitationUiState: ProgressFriendInvitationUiState,
+    friendInvitationUiState: FriendInvitationUiState,
     onSelectWindow: (ProgressLeaderboardWindowKey) -> Unit,
     onCreateFriendInvitation: (String) -> Unit,
     onClearFriendInvitationFailure: () -> Unit,
@@ -72,16 +69,6 @@ internal fun LeaderboardSectionCard(
 ) {
     var isInfoDialogVisible by rememberSaveable { mutableStateOf(false) }
     var isInviteDialogVisible by rememberSaveable { mutableStateOf(false) }
-    var inviteeDisplayName by rememberSaveable { mutableStateOf("") }
-    var didAttemptInviteCreate by rememberSaveable { mutableStateOf(false) }
-
-    LaunchedEffect(friendInvitationUiState) {
-        if (friendInvitationUiState is ProgressFriendInvitationUiState.Created) {
-            isInviteDialogVisible = false
-            inviteeDisplayName = ""
-            didAttemptInviteCreate = false
-        }
-    }
 
     Card(
         modifier = Modifier
@@ -108,24 +95,6 @@ internal fun LeaderboardSectionCard(
                     modifier = Modifier.weight(1f)
                 )
                 IconButton(
-                    onClick = {
-                        if (uiState == ProgressLeaderboardSectionUiState.SignInRequired) {
-                            onOpenSignIn()
-                        } else {
-                            onClearFriendInvitationFailure()
-                            isInviteDialogVisible = true
-                        }
-                    },
-                    modifier = Modifier.testTag(progressLeaderboardInviteButtonTag)
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.PersonAdd,
-                        contentDescription = stringResource(
-                            id = R.string.progress_friend_invite_button_content_description
-                        )
-                    )
-                }
-                IconButton(
                     onClick = { isInfoDialogVisible = true },
                     modifier = Modifier.testTag(progressLeaderboardInfoButtonTag)
                 ) {
@@ -136,6 +105,27 @@ internal fun LeaderboardSectionCard(
                         )
                     )
                 }
+            }
+
+            FilledTonalButton(
+                onClick = {
+                    if (uiState == ProgressLeaderboardSectionUiState.SignInRequired) {
+                        onOpenSignIn()
+                    } else {
+                        onClearFriendInvitationFailure()
+                        isInviteDialogVisible = true
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(progressLeaderboardInviteButtonTag)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.PersonAdd,
+                    contentDescription = null
+                )
+                Spacer(modifier = Modifier.size(8.dp))
+                Text(stringResource(id = FriendInviteR.string.friend_invite_button))
             }
 
             when (uiState) {
@@ -239,25 +229,11 @@ internal fun LeaderboardSectionCard(
 
     if (isInviteDialogVisible) {
         FriendInvitationDialog(
-            displayName = inviteeDisplayName,
-            didAttemptCreate = didAttemptInviteCreate,
             uiState = friendInvitationUiState,
-            onDisplayNameChange = { updatedDisplayName ->
-                inviteeDisplayName = updatedDisplayName
-                onClearFriendInvitationFailure()
-            },
-            onCreate = { trimmedDisplayName ->
-                didAttemptInviteCreate = true
-                onCreateFriendInvitation(trimmedDisplayName)
-            },
-            onDismiss = {
-                if (friendInvitationUiState !is ProgressFriendInvitationUiState.Creating) {
-                    isInviteDialogVisible = false
-                    inviteeDisplayName = ""
-                    didAttemptInviteCreate = false
-                    onClearFriendInvitationFailure()
-                }
-            }
+            displayNameFieldTag = progressLeaderboardInviteDisplayNameFieldTag,
+            onCreateFriendInvitation = onCreateFriendInvitation,
+            onClearFriendInvitationFailure = onClearFriendInvitationFailure,
+            onDismiss = { isInviteDialogVisible = false }
         )
     }
 }
@@ -364,120 +340,6 @@ private fun LeaderboardReadyContent(
 
 private fun leaderboardElapsedMinutes(snapshotGeneratedAtMillis: Long, nowMillis: Long): Long {
     return maxOf(0L, nowMillis - snapshotGeneratedAtMillis) / millisecondsPerMinute
-}
-
-@Composable
-private fun FriendInvitationDialog(
-    displayName: String,
-    didAttemptCreate: Boolean,
-    uiState: ProgressFriendInvitationUiState,
-    onDisplayNameChange: (String) -> Unit,
-    onCreate: (String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val validation = validateFriendInvitationDisplayName(displayName = displayName)
-    val validationError = (validation as? ProgressFriendInvitationDisplayNameValidation.Invalid)?.error
-    val failedValidationError = (uiState as? ProgressFriendInvitationUiState.ValidationFailed)?.error
-    val displayedError = validationError?.takeIf {
-        didAttemptCreate || displayName.isNotEmpty()
-    } ?: failedValidationError
-    val createError = (uiState as? ProgressFriendInvitationUiState.CreateFailed)?.error
-    val isCreating = uiState is ProgressFriendInvitationUiState.Creating
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(
-                enabled = isCreating.not(),
-                onClick = {
-                    if (validation is ProgressFriendInvitationDisplayNameValidation.Valid) {
-                        onCreate(validation.trimmedDisplayName)
-                    } else {
-                        onCreate(displayName)
-                    }
-                }
-            ) {
-                if (isCreating) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp))
-                } else {
-                    Text(stringResource(id = R.string.progress_friend_invite_create_button))
-                }
-            }
-        },
-        dismissButton = {
-            TextButton(
-                enabled = isCreating.not(),
-                onClick = onDismiss
-            ) {
-                Text(stringResource(id = R.string.progress_friend_invite_cancel_button))
-            }
-        },
-        title = {
-            Text(stringResource(id = R.string.progress_friend_invite_dialog_title))
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = displayName,
-                    onValueChange = onDisplayNameChange,
-                    singleLine = true,
-                    enabled = isCreating.not(),
-                    isError = displayedError != null,
-                    label = {
-                        Text(stringResource(id = R.string.progress_friend_invite_display_name_label))
-                    },
-                    supportingText = {
-                        val error = displayedError
-                        if (error != null) {
-                            Text(friendInvitationDisplayNameErrorLabel(error = error))
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag(progressLeaderboardInviteDisplayNameFieldTag)
-                )
-                Text(
-                    text = stringResource(id = R.string.progress_friend_invite_expiry_note),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodySmall
-                )
-                if (createError != null) {
-                    Text(
-                        text = friendInvitationCreateErrorLabel(error = createError),
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
-        }
-    )
-}
-
-@Composable
-private fun friendInvitationCreateErrorLabel(
-    error: ProgressFriendInvitationCreateError
-): String {
-    val stringResId = when (error) {
-        ProgressFriendInvitationCreateError.LIMIT_REACHED -> R.string.progress_friend_invite_create_limit_reached
-        ProgressFriendInvitationCreateError.SIGN_IN_REQUIRED -> R.string.progress_friend_invite_create_sign_in_required
-        ProgressFriendInvitationCreateError.INVALID_DISPLAY_NAME -> R.string.progress_friend_invite_create_invalid_name
-        ProgressFriendInvitationCreateError.GENERIC -> R.string.progress_friend_invite_create_failed
-    }
-    return stringResource(id = stringResId)
-}
-
-@Composable
-private fun friendInvitationDisplayNameErrorLabel(
-    error: ProgressFriendInvitationDisplayNameError
-): String {
-    val stringResId = when (error) {
-        ProgressFriendInvitationDisplayNameError.EMPTY -> R.string.progress_friend_invite_display_name_empty
-        ProgressFriendInvitationDisplayNameError.TOO_LONG -> R.string.progress_friend_invite_display_name_too_long
-        ProgressFriendInvitationDisplayNameError.CONTROL_CHARACTER -> {
-            R.string.progress_friend_invite_display_name_control_character
-        }
-    }
-    return stringResource(id = stringResId)
 }
 
 private data class LeaderboardReservedRows(

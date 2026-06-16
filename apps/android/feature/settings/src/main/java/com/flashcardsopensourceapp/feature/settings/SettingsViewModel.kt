@@ -69,6 +69,7 @@ class SettingsViewModel(
                 CloudAccountState.LINKED -> cloudSettings.linkedEmail ?: strings.get(R.string.settings_cloud_status_linked)
             },
             accountStatusAttentionCount = attentionSummary.accountStatusRowCount,
+            friendInviteAvailability = friendInviteAvailability(cloudState = cloudSettings.cloudState),
             reviewReactionAnimationsEnabled = accountPreferences.reviewReactionAnimationsEnabled,
             canManageAccountPreferences = canManageAccountPreferences(cloudState = cloudSettings.cloudState),
             isTestModeEnabled = isTestModeEnabled
@@ -85,6 +86,7 @@ class SettingsViewModel(
             syncStatusText = strings.get(R.string.settings_loading),
             accountStatusTitle = strings.get(R.string.settings_loading),
             accountStatusAttentionCount = 1,
+            friendInviteAvailability = SettingsFriendInviteAvailability.LOADING,
             reviewReactionAnimationsEnabled = true,
             canManageAccountPreferences = false,
             isTestModeEnabled = false
@@ -206,6 +208,15 @@ private fun buildSettingsVisibleSignature(uiState: SettingsUiState): SettingsVis
 
 private fun canManageAccountPreferences(cloudState: CloudAccountState): Boolean {
     return cloudState == CloudAccountState.LINKED || cloudState == CloudAccountState.GUEST
+}
+
+private fun friendInviteAvailability(cloudState: CloudAccountState): SettingsFriendInviteAvailability {
+    return when (cloudState) {
+        CloudAccountState.LINKED -> SettingsFriendInviteAvailability.AVAILABLE
+        CloudAccountState.DISCONNECTED,
+        CloudAccountState.LINKING_READY,
+        CloudAccountState.GUEST -> SettingsFriendInviteAvailability.SIGN_IN_REQUIRED
+    }
 }
 
 fun createSettingsViewModelFactory(

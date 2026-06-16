@@ -28,6 +28,7 @@ android {
 dependencies {
     implementation(project(":core:ui"))
     implementation(project(":data:local"))
+    implementation(project(":feature:friendinvite"))
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)

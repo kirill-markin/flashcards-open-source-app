@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.app.routes
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasTestTag
@@ -13,6 +14,7 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.app.FirebaseAppInstrumentationTimeoutTest
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
+import com.flashcardsopensourceapp.feature.settings.SettingsFriendInviteAvailability
 import com.flashcardsopensourceapp.feature.settings.SettingsRoute
 import com.flashcardsopensourceapp.feature.settings.SettingsUiState
 import com.flashcardsopensourceapp.feature.settings.settingsAccessRowTag
@@ -28,6 +30,7 @@ import com.flashcardsopensourceapp.feature.settings.settingsDeviceDiagnosticsRow
 import com.flashcardsopensourceapp.feature.settings.settingsExportRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsFeedbackRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsGeneralSectionTag
+import com.flashcardsopensourceapp.feature.settings.settingsInviteFriendButtonTag
 import com.flashcardsopensourceapp.feature.settings.settingsLanguageRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsLeaderboardParticipationRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsLegalRowTag
@@ -60,6 +63,7 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         renderSettingsRoute(
             isTestModeEnabled = false,
             canManageAccountPreferences = true,
+            friendInviteAvailability = SettingsFriendInviteAvailability.AVAILABLE,
             clickedRows = clickedRows
         )
 
@@ -73,6 +77,7 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         }
 
         listOf(
+            settingsInviteFriendButtonTag,
             settingsAccountStatusRowTag,
             settingsCurrentWorkspaceRowTag,
             settingsReviewRemindersRowTag,
@@ -98,6 +103,10 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             assertRootRowVisible(rowTag = rowTag)
         }
         assertRootRowOrder(
+            firstRowTag = settingsInviteFriendButtonTag,
+            secondRowTag = settingsAccountSectionTag
+        )
+        assertRootRowOrder(
             firstRowTag = settingsReviewRemindersRowTag,
             secondRowTag = settingsReviewAnimationsRowTag
         )
@@ -115,6 +124,11 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         )
         composeRule.onAllNodesWithTag(settingsTestRowTag).assertCountEquals(0)
 
+        assertRowClick(
+            rowTag = settingsInviteFriendButtonTag,
+            expectedClick = "friend_invite",
+            clickedRows = clickedRows
+        )
         assertRowClick(
             rowTag = settingsAccountStatusRowTag,
             expectedClick = "account_status",
@@ -164,6 +178,7 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         renderSettingsRoute(
             isTestModeEnabled = true,
             canManageAccountPreferences = true,
+            friendInviteAvailability = SettingsFriendInviteAvailability.AVAILABLE,
             clickedRows = clickedRows
         )
 
@@ -181,15 +196,30 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         renderSettingsRoute(
             isTestModeEnabled = false,
             canManageAccountPreferences = false,
+            friendInviteAvailability = SettingsFriendInviteAvailability.SIGN_IN_REQUIRED,
             clickedRows = mutableListOf()
         )
 
         composeRule.onAllNodesWithTag(settingsReviewAnimationsRowTag).assertCountEquals(0)
     }
 
+    @Test
+    fun inviteButtonIsDisabledWhileAccountStateLoads() {
+        renderSettingsRoute(
+            isTestModeEnabled = false,
+            canManageAccountPreferences = false,
+            friendInviteAvailability = SettingsFriendInviteAvailability.LOADING,
+            clickedRows = mutableListOf()
+        )
+
+        assertRootRowVisible(rowTag = settingsInviteFriendButtonTag)
+        composeRule.onNodeWithTag(settingsInviteFriendButtonTag).assertIsNotEnabled()
+    }
+
     private fun renderSettingsRoute(
         isTestModeEnabled: Boolean,
         canManageAccountPreferences: Boolean,
+        friendInviteAvailability: SettingsFriendInviteAvailability,
         clickedRows: MutableList<String>
     ) {
         composeRule.setContent {
@@ -204,10 +234,14 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         syncStatusText = "Local",
                         accountStatusTitle = "Not signed in",
                         accountStatusAttentionCount = 0,
+                        friendInviteAvailability = friendInviteAvailability,
                         reviewReactionAnimationsEnabled = true,
                         canManageAccountPreferences = canManageAccountPreferences,
                         isTestModeEnabled = isTestModeEnabled
                     ),
+                    onOpenFriendInvite = {
+                        clickedRows += "friend_invite"
+                    },
                     onOpenAccountStatus = {
                         clickedRows += "account_status"
                     },

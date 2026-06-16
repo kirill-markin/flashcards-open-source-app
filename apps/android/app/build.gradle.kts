@@ -273,6 +273,7 @@ dependencies {
     implementation(project(":feature:review"))
     implementation(project(":feature:cards"))
     implementation(project(":feature:ai"))
+    implementation(project(":feature:friendinvite"))
     implementation(project(":feature:progress"))
     implementation(project(":feature:settings"))
 

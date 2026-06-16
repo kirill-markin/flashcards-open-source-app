@@ -1,0 +1,16 @@
+<resources>
+    <string name="friend_invite_button">Invite friend</string>
+    <string name="friend_invite_dialog_title">Invite a friend</string>
+    <string name="friend_invite_display_name_label">Friend display name</string>
+    <string name="friend_invite_expiry_note">Invite links expire in 2 days.</string>
+    <string name="friend_invite_create_button">Create link</string>
+    <string name="friend_invite_cancel_button">Cancel</string>
+    <string name="friend_invite_share_title">Share invite link</string>
+    <string name="friend_invite_display_name_empty">Enter a name.</string>
+    <string name="friend_invite_display_name_too_long">Use 30 characters or fewer.</string>
+    <string name="friend_invite_display_name_control_character">Remove line breaks and control characters.</string>
+    <string name="friend_invite_create_limit_reached">You already have too many active invite links. Wait for one to expire or be accepted before creating another.</string>
+    <string name="friend_invite_create_sign_in_required">Sign in again to create an invite link.</string>
+    <string name="friend_invite_create_invalid_name">Check the display name and try again.</string>
+    <string name="friend_invite_create_failed">Could not create the invite link. Try again.</string>
+</resources>

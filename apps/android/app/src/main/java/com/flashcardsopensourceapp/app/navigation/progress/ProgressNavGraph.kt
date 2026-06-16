@@ -12,6 +12,8 @@ import com.flashcardsopensourceapp.app.navigation.ProgressDestination
 import com.flashcardsopensourceapp.app.navigation.ProgressNavigationTarget
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsAccountSignInEmailDestination
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsLeaderboardParticipationDestination
+import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationViewModel
+import com.flashcardsopensourceapp.feature.friendinvite.createFriendInvitationViewModelFactory
 import com.flashcardsopensourceapp.feature.progress.ProgressRoute
 import com.flashcardsopensourceapp.feature.progress.ProgressViewModel
 import com.flashcardsopensourceapp.feature.progress.createProgressViewModelFactory
@@ -23,12 +25,16 @@ internal fun NavGraphBuilder.registerProgressNavGraph(
     composable(route = ProgressDestination.route) {
         val progressViewModel = viewModel<ProgressViewModel>(
             factory = createProgressViewModelFactory(
-                progressRepository = appGraph.progressRepository,
+                progressRepository = appGraph.progressRepository
+            )
+        )
+        val friendInvitationViewModel = viewModel<FriendInvitationViewModel>(
+            factory = createFriendInvitationViewModelFactory(
                 cloudAccountRepository = appGraph.cloudAccountRepository
             )
         )
         val uiState by progressViewModel.uiState.collectAsStateWithLifecycle()
-        val friendInvitationUiState by progressViewModel.friendInvitationUiState.collectAsStateWithLifecycle()
+        val friendInvitationUiState by friendInvitationViewModel.uiState.collectAsStateWithLifecycle()
         val progressNavigationRequest by appGraph.appHandoffCoordinator.observeProgressNavigation().collectAsStateWithLifecycle()
 
         LaunchedEffect(progressNavigationRequest?.requestId) {
@@ -52,9 +58,9 @@ internal fun NavGraphBuilder.registerProgressNavGraph(
             onScreenVisible = progressViewModel::refreshIfInvalidated,
             onRetry = progressViewModel::refreshManually,
             onSelectLeaderboardWindow = progressViewModel::selectLeaderboardWindow,
-            onCreateFriendInvitation = progressViewModel::createFriendInvitation,
-            onClearFriendInvitationFailure = progressViewModel::clearFriendInvitationFailure,
-            onFriendInvitationShared = progressViewModel::markFriendInvitationShared,
+            onCreateFriendInvitation = friendInvitationViewModel::createFriendInvitation,
+            onClearFriendInvitationFailure = friendInvitationViewModel::clearFriendInvitationFailure,
+            onFriendInvitationShared = friendInvitationViewModel::markFriendInvitationShared,
             onOpenSignIn = {
                 navController.navigate(route = SettingsAccountSignInEmailDestination.route)
             },
