@@ -36,7 +36,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         )
         let serverSummary = UserProgressSummary(
             timeZone: requestRange.timeZone,
-            summary: ProgressSummary(
+            summary: makeTestProgressSummaryValue(
                 currentStreakDays: 200,
                 hasReviewedToday: false,
                 lastReviewedOn: "2026-04-17",
@@ -69,7 +69,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
     }
 
     @MainActor
-    func testRefreshProgressIfNeededExtendsLongServerSummaryThroughConsecutiveLocalDates() async throws {
+    func testRefreshProgressIfNeededReplacesFrozenDayAndExtendsLongServerSummary() async throws {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
@@ -110,7 +110,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         )
         let serverSummary = UserProgressSummary(
             timeZone: requestRange.timeZone,
-            summary: ProgressSummary(
+            summary: makeTestProgressSummaryValue(
                 currentStreakDays: 200,
                 hasReviewedToday: false,
                 lastReviewedOn: "2026-04-16",
@@ -136,7 +136,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
         XCTAssertEqual(.serverBaseWithPendingLocalOverlay, progressSnapshot.summarySourceState)
         XCTAssertEqual(.serverBaseWithPendingLocalOverlay, progressSnapshot.seriesSourceState)
-        XCTAssertEqual(202, progressSnapshot.summary.currentStreakDays)
+        XCTAssertEqual(201, progressSnapshot.summary.currentStreakDays)
         XCTAssertTrue(progressSnapshot.summary.hasReviewedToday)
         XCTAssertEqual("2026-04-18", progressSnapshot.summary.lastReviewedOn)
         XCTAssertEqual(202, progressSnapshot.summary.activeReviewDays)
@@ -178,7 +178,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         )
         let serverSummary = UserProgressSummary(
             timeZone: requestRange.timeZone,
-            summary: ProgressSummary(
+            summary: makeTestProgressSummaryValue(
                 currentStreakDays: 200,
                 hasReviewedToday: false,
                 lastReviewedOn: "2026-04-18",
@@ -236,7 +236,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         )
         let serverSummary = UserProgressSummary(
             timeZone: requestRange.timeZone,
-            summary: ProgressSummary(
+            summary: makeTestProgressSummaryValue(
                 currentStreakDays: 200,
                 hasReviewedToday: false,
                 lastReviewedOn: "2026-04-17",
@@ -301,7 +301,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         )
         let serverSummary = UserProgressSummary(
             timeZone: requestRange.timeZone,
-            summary: ProgressSummary(
+            summary: makeTestProgressSummaryValue(
                 currentStreakDays: 0,
                 hasReviewedToday: false,
                 lastReviewedOn: "2025-11-14",
@@ -366,7 +366,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         )
         let serverSummary = UserProgressSummary(
             timeZone: requestRange.timeZone,
-            summary: ProgressSummary(
+            summary: makeTestProgressSummaryValue(
                 currentStreakDays: 0,
                 hasReviewedToday: false,
                 lastReviewedOn: "2026-04-16",
@@ -431,7 +431,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         )
         let serverSummary = UserProgressSummary(
             timeZone: requestRange.timeZone,
-            summary: ProgressSummary(
+            summary: makeTestProgressSummaryValue(
                 currentStreakDays: 200,
                 hasReviewedToday: true,
                 lastReviewedOn: "2026-04-18",
@@ -497,13 +497,14 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
             from: staleServerSeries.from,
             to: staleServerSeries.to,
             dailyReviews: staleServerSeries.dailyReviews,
+            streakDays: staleServerSeries.streakDays,
             summary: staleServerSeries.summary,
             generatedAt: staleServerSeries.generatedAt,
             reviewHistoryWatermarks: makeTestProgressReviewHistoryWatermarks(reviewSequenceId: 41)
         )
         let serverSummary = UserProgressSummary(
             timeZone: requestRange.timeZone,
-            summary: ProgressSummary(
+            summary: makeTestProgressSummaryValue(
                 currentStreakDays: 1,
                 hasReviewedToday: false,
                 lastReviewedOn: "2026-04-17",
@@ -648,7 +649,8 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         let mergedSeries = try mergeProgressSeries(
             serverBase: serverBase,
             pendingLocalOverlay: pendingLocalOverlay,
-            localFallback: localFallback
+            localFallback: localFallback,
+            mergedActiveReviewDates: ["2026-04-15", "2026-04-16", "2026-04-17", "2026-04-18"]
         )
         let mergedCountsByDate = Dictionary(uniqueKeysWithValues: mergedSeries.dailyReviews.map { progressDay in
             (progressDay.date, progressDay.reviewCount)
@@ -675,7 +677,8 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
             serverBase: persistedServerBase,
             scopeKey: scopeKey,
             localFallbackSeries: localFallback,
-            pendingLocalOverlaySeries: pendingLocalOverlay
+            pendingLocalOverlaySeries: pendingLocalOverlay,
+            mergedActiveReviewDates: ["2026-04-15", "2026-04-16", "2026-04-17", "2026-04-18"]
         )
         let emptyPendingLocalOverlay = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -686,11 +689,219 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
             serverBase: persistedServerBase,
             scopeKey: scopeKey,
             localFallbackSeries: serverBase,
-            pendingLocalOverlaySeries: emptyPendingLocalOverlay
+            pendingLocalOverlaySeries: emptyPendingLocalOverlay,
+            mergedActiveReviewDates: ["2026-04-16", "2026-04-17", "2026-04-18"]
         )
 
         XCTAssertEqual(.serverBaseWithPendingLocalOverlay, renderedOverlaySeries.sourceState)
         XCTAssertEqual(.serverBase, renderedServerSeries.sourceState)
+    }
+
+    func testMergeProgressSeriesRecomputesFreezeStatesAfterLocalOverlayChangesEarlierDay() throws {
+        let requestRange = ProgressSeriesLoadRequest(
+            apiBaseUrl: "",
+            authorizationHeader: "",
+            timeZone: "UTC",
+            from: "2026-04-16",
+            to: "2026-04-20"
+        )
+        let serverBase = try makeTestProgressSeries(
+            requestRange: requestRange,
+            reviewCountsByDate: [
+                "2026-04-16": 1
+            ],
+            generatedAt: "2026-04-20T12:00:00.000Z"
+        )
+        let pendingLocalOverlay = try makeTestProgressSeries(
+            requestRange: requestRange,
+            reviewCountsByDate: [:],
+            generatedAt: "2026-04-20T12:00:00.000Z"
+        )
+        let localFallback = try makeTestProgressSeries(
+            requestRange: requestRange,
+            reviewCountsByDate: [
+                "2026-04-16": 1,
+                "2026-04-17": 1,
+            ],
+            generatedAt: "2026-04-20T12:00:00.000Z"
+        )
+
+        let mergedSeries = try mergeProgressSeries(
+            serverBase: serverBase,
+            pendingLocalOverlay: pendingLocalOverlay,
+            localFallback: localFallback,
+            mergedActiveReviewDates: ["2026-04-16", "2026-04-17"]
+        )
+        let mergedStatesByDate = Dictionary(uniqueKeysWithValues: mergedSeries.streakDays.map { streakDay in
+            (streakDay.date, streakDay.state)
+        })
+
+        XCTAssertEqual(.reviewed, try XCTUnwrap(mergedStatesByDate["2026-04-16"]))
+        XCTAssertEqual(.reviewed, try XCTUnwrap(mergedStatesByDate["2026-04-17"]))
+        XCTAssertEqual(.frozen, try XCTUnwrap(mergedStatesByDate["2026-04-18"]))
+        XCTAssertEqual(.frozen, try XCTUnwrap(mergedStatesByDate["2026-04-19"]))
+        XCTAssertEqual(.pending, try XCTUnwrap(mergedStatesByDate["2026-04-20"]))
+    }
+
+    func testMergeProgressSeriesRecomputesFreezeStatesFromAllTimeActiveDatesOutsideRange() throws {
+        let requestRange = ProgressSeriesLoadRequest(
+            apiBaseUrl: "",
+            authorizationHeader: "",
+            timeZone: "UTC",
+            from: "2026-04-18",
+            to: "2026-04-20"
+        )
+        let serverBase = try makeTestProgressSeries(
+            requestRange: requestRange,
+            reviewCountsByDate: [:],
+            generatedAt: "2026-04-20T12:00:00.000Z"
+        )
+        let pendingLocalOverlay = try makeTestProgressSeries(
+            requestRange: requestRange,
+            reviewCountsByDate: [:],
+            generatedAt: "2026-04-20T12:00:00.000Z"
+        )
+        let localFallback = try makeTestProgressSeries(
+            requestRange: requestRange,
+            reviewCountsByDate: [:],
+            generatedAt: "2026-04-20T12:00:00.000Z"
+        )
+
+        let mergedSeries = try mergeProgressSeries(
+            serverBase: serverBase,
+            pendingLocalOverlay: pendingLocalOverlay,
+            localFallback: localFallback,
+            mergedActiveReviewDates: ["2026-04-16"]
+        )
+        let mergedStatesByDate = Dictionary(uniqueKeysWithValues: mergedSeries.streakDays.map { streakDay in
+            (streakDay.date, streakDay.state)
+        })
+
+        XCTAssertEqual(.frozen, try XCTUnwrap(mergedStatesByDate["2026-04-18"]))
+        XCTAssertEqual(.missed, try XCTUnwrap(mergedStatesByDate["2026-04-19"]))
+        XCTAssertEqual(.pending, try XCTUnwrap(mergedStatesByDate["2026-04-20"]))
+    }
+
+    func testMergeProgressSeriesPreservesServerStreakStatesBeforeLocalOverlayChange() throws {
+        let requestRange = ProgressSeriesLoadRequest(
+            apiBaseUrl: "",
+            authorizationHeader: "",
+            timeZone: "UTC",
+            from: "2026-04-16",
+            to: "2026-04-20"
+        )
+        let dailyReviews = try makeZeroFilledProgressDays(
+            requestRange: ProgressRequestRange(
+                timeZone: requestRange.timeZone,
+                from: requestRange.from,
+                to: requestRange.to
+            )
+        )
+        let serverBase = makeProgressSeries(
+            timeZone: requestRange.timeZone,
+            from: requestRange.from,
+            to: requestRange.to,
+            dailyReviews: dailyReviews,
+            streakDays: [
+                ProgressStreakDay(date: "2026-04-16", state: .frozen),
+                ProgressStreakDay(date: "2026-04-17", state: .frozen),
+                ProgressStreakDay(date: "2026-04-18", state: .missed),
+                ProgressStreakDay(date: "2026-04-19", state: .missed),
+                ProgressStreakDay(date: "2026-04-20", state: .pending),
+            ],
+            summary: nil,
+            generatedAt: "2026-04-20T12:00:00.000Z",
+            reviewHistoryWatermarks: makeTestProgressReviewHistoryWatermarks(reviewSequenceId: 42)
+        )
+        let pendingLocalOverlay = try makeTestProgressSeries(
+            requestRange: requestRange,
+            reviewCountsByDate: [
+                "2026-04-20": 1
+            ],
+            generatedAt: "2026-04-20T12:00:00.000Z"
+        )
+        let localFallback = try makeTestProgressSeries(
+            requestRange: requestRange,
+            reviewCountsByDate: [:],
+            generatedAt: "2026-04-20T12:00:00.000Z"
+        )
+
+        let mergedSeries = try mergeProgressSeries(
+            serverBase: serverBase,
+            pendingLocalOverlay: pendingLocalOverlay,
+            localFallback: localFallback,
+            mergedActiveReviewDates: ["2026-04-20"]
+        )
+        let mergedStatesByDate = Dictionary(uniqueKeysWithValues: mergedSeries.streakDays.map { streakDay in
+            (streakDay.date, streakDay.state)
+        })
+
+        XCTAssertEqual(.frozen, try XCTUnwrap(mergedStatesByDate["2026-04-16"]))
+        XCTAssertEqual(.frozen, try XCTUnwrap(mergedStatesByDate["2026-04-17"]))
+        XCTAssertEqual(.missed, try XCTUnwrap(mergedStatesByDate["2026-04-18"]))
+        XCTAssertEqual(.missed, try XCTUnwrap(mergedStatesByDate["2026-04-19"]))
+        XCTAssertEqual(.reviewed, try XCTUnwrap(mergedStatesByDate["2026-04-20"]))
+    }
+
+    func testMergeProgressSeriesRecomputesSuffixFromServerFreezeBalanceAfterLocalOverlayChange() throws {
+        let requestRange = ProgressSeriesLoadRequest(
+            apiBaseUrl: "",
+            authorizationHeader: "",
+            timeZone: "UTC",
+            from: "2026-04-16",
+            to: "2026-04-20"
+        )
+        let dailyReviews = try makeZeroFilledProgressDays(
+            requestRange: ProgressRequestRange(
+                timeZone: requestRange.timeZone,
+                from: requestRange.from,
+                to: requestRange.to
+            )
+        )
+        let serverBase = makeProgressSeries(
+            timeZone: requestRange.timeZone,
+            from: requestRange.from,
+            to: requestRange.to,
+            dailyReviews: dailyReviews,
+            streakDays: [
+                ProgressStreakDay(date: "2026-04-16", state: .frozen),
+                ProgressStreakDay(date: "2026-04-17", state: .frozen),
+                ProgressStreakDay(date: "2026-04-18", state: .missed),
+                ProgressStreakDay(date: "2026-04-19", state: .missed),
+                ProgressStreakDay(date: "2026-04-20", state: .pending),
+            ],
+            summary: nil,
+            generatedAt: "2026-04-20T12:00:00.000Z",
+            reviewHistoryWatermarks: makeTestProgressReviewHistoryWatermarks(reviewSequenceId: 42)
+        )
+        let pendingLocalOverlay = try makeTestProgressSeries(
+            requestRange: requestRange,
+            reviewCountsByDate: [:],
+            generatedAt: "2026-04-20T12:00:00.000Z"
+        )
+        let localFallback = try makeTestProgressSeries(
+            requestRange: requestRange,
+            reviewCountsByDate: [
+                "2026-04-18": 1
+            ],
+            generatedAt: "2026-04-20T12:00:00.000Z"
+        )
+
+        let mergedSeries = try mergeProgressSeries(
+            serverBase: serverBase,
+            pendingLocalOverlay: pendingLocalOverlay,
+            localFallback: localFallback,
+            mergedActiveReviewDates: ["2026-04-18"]
+        )
+        let mergedStatesByDate = Dictionary(uniqueKeysWithValues: mergedSeries.streakDays.map { streakDay in
+            (streakDay.date, streakDay.state)
+        })
+
+        XCTAssertEqual(.frozen, try XCTUnwrap(mergedStatesByDate["2026-04-16"]))
+        XCTAssertEqual(.frozen, try XCTUnwrap(mergedStatesByDate["2026-04-17"]))
+        XCTAssertEqual(.reviewed, try XCTUnwrap(mergedStatesByDate["2026-04-18"]))
+        XCTAssertEqual(.missed, try XCTUnwrap(mergedStatesByDate["2026-04-19"]))
+        XCTAssertEqual(.pending, try XCTUnwrap(mergedStatesByDate["2026-04-20"]))
     }
 
     @MainActor

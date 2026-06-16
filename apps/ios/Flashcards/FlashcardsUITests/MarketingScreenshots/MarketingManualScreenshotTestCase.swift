@@ -45,14 +45,19 @@ enum MarketingScreenshotEnvironment {
 }
 
 private let marketingExpectedProgressSummaryValue: String = [
-    "currentStreakDays=8",
+    "currentStreakDays=12",
+    "longestStreakDays=12",
     "hasReviewedToday=true",
-    "activeReviewDays=16"
+    "activeReviewDays=16",
+    "streakFreezeAvailableCredits=1",
+    "streakFreezeCapacity=2"
 ].joined(separator: ";")
 
 private let marketingExpectedReviewProgressBadgeValue: String = [
-    "streakDays=8",
-    "hasReviewedToday=true"
+    "streakDays=12",
+    "hasReviewedToday=true",
+    "streakFreezeAvailableCredits=1",
+    "streakFreezeCapacity=2"
 ].joined(separator: ";")
 
 private let marketingAiHandoffFirstCardValue: String = "first_card"

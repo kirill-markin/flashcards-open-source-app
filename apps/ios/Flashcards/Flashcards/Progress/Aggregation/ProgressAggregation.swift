@@ -51,6 +51,7 @@ struct ProgressRenderedSeriesSummaryContext: Hashable, Sendable {
     let lowerBoundSummary: ProgressSummary
     let activeDates: Set<String>
     let activeDatesMissingFromServerBase: Set<String>
+    let serverBaseStreakDays: [ProgressStreakDay]
     let serverBaseReviewHistoryWatermarks: [ProgressReviewHistoryWatermark]?
 }
 
@@ -177,7 +178,8 @@ func makeProgressRenderedSeries(
     serverBase: PersistedProgressSeriesServerBase?,
     scopeKey: ProgressScopeKey,
     localFallbackSeries: UserProgressSeries,
-    pendingLocalOverlaySeries: UserProgressSeries
+    pendingLocalOverlaySeries: UserProgressSeries,
+    mergedActiveReviewDates: Set<String>
 ) throws -> ProgressRenderedSeries {
     guard let serverBaseSeries = serverBase?.serverBase,
           serverBase?.scopeKey == scopeKey else {
@@ -190,7 +192,8 @@ func makeProgressRenderedSeries(
     let renderedSeries = try mergeProgressSeries(
         serverBase: serverBaseSeries,
         pendingLocalOverlay: pendingLocalOverlaySeries,
-        localFallback: localFallbackSeries
+        localFallback: localFallbackSeries,
+        mergedActiveReviewDates: mergedActiveReviewDates
     )
 
     return ProgressRenderedSeries(
@@ -256,7 +259,8 @@ private func progressSeriesSourceState(
     serverBase: UserProgressSeries,
     renderedSeries: UserProgressSeries
 ) -> ProgressSourceState {
-    if serverBase.dailyReviews == renderedSeries.dailyReviews {
+    if serverBase.dailyReviews == renderedSeries.dailyReviews,
+       serverBase.streakDays == renderedSeries.streakDays {
         return .serverBase
     }
 
@@ -288,19 +292,49 @@ private func mergeProgressSummary(
             serverAndSeriesShareReviewHistoryBase: serverAndSeriesShareReviewHistoryBase,
             referenceLocalDate: referenceLocalDate
         )
-    let serverCurrentStreakDaysWithRenderedDelta = try progressCurrentStreakDaysWithRenderedDelta(
+    let allServerSummaryDeltaActiveDates = localFallbackActiveDates.union(renderedSeriesContext?.activeDates ?? Set<String>())
+    let serverBaseStreakDaysForRenderedDelta: [ProgressStreakDay]
+    let serverSummaryDeltaActiveDates: Set<String>
+    if serverAndSeriesShareReviewHistoryBase,
+       let renderedSeriesContext,
+       renderedSeriesContext.serverBaseStreakDays.isEmpty == false {
+        serverBaseStreakDaysForRenderedDelta = renderedSeriesContext.serverBaseStreakDays
+        serverSummaryDeltaActiveDates = allServerSummaryDeltaActiveDates
+    } else {
+        serverBaseStreakDaysForRenderedDelta = []
+        serverSummaryDeltaActiveDates = allServerSummaryDeltaActiveDates.contains(referenceLocalDate)
+            ? Set([referenceLocalDate])
+            : Set<String>()
+    }
+    let serverSummaryWithRenderedDelta = try progressSummaryWithRenderedDelta(
         serverBase: serverBase,
-        localFallbackActiveDates: localFallbackActiveDates,
-        renderedSeriesActiveDates: renderedSeriesContext?.activeDates,
+        serverBaseStreakDays: serverBaseStreakDaysForRenderedDelta,
+        activeDates: serverSummaryDeltaActiveDates,
+        activeReviewDays: serverActiveReviewDaysWithRenderedDelta,
         referenceLocalDate: referenceLocalDate
     )
 
+    let renderedSeriesCandidates = [renderedSeriesLowerBound].compactMap { summary in
+        summary
+    }
+    let dominantSummary = progressDominantProgressSummary(
+        first: serverSummaryWithRenderedDelta,
+        rest: [localFallback] + renderedSeriesCandidates
+    )
+    let mergedCurrentStreakDays = max(
+        serverSummaryWithRenderedDelta.currentStreakDays,
+        localFallback.currentStreakDays,
+        renderedSeriesLowerBound?.currentStreakDays ?? 0
+    )
+    let mergedLongestStreakDays = max(
+        serverSummaryWithRenderedDelta.longestStreakDays,
+        localFallback.longestStreakDays,
+        renderedSeriesLowerBound?.longestStreakDays ?? 0
+    )
+
     return ProgressSummary(
-        currentStreakDays: max(
-            serverCurrentStreakDaysWithRenderedDelta,
-            localFallback.currentStreakDays,
-            renderedSeriesLowerBound?.currentStreakDays ?? 0
-        ),
+        currentStreakDays: mergedCurrentStreakDays,
+        longestStreakDays: mergedLongestStreakDays,
         hasReviewedToday: serverBase.hasReviewedToday
             || localFallback.hasReviewedToday
             || (renderedSeriesLowerBound?.hasReviewedToday ?? false),
@@ -315,8 +349,30 @@ private func mergeProgressSummary(
             serverActiveReviewDaysWithRenderedDelta,
             localFallback.activeReviewDays,
             renderedSeriesLowerBound?.activeReviewDays ?? 0
-        )
+        ),
+        streakFreeze: dominantSummary.streakFreeze
     )
+}
+
+private func progressDominantProgressSummary(
+    first: ProgressSummary,
+    rest: [ProgressSummary]
+) -> ProgressSummary {
+    rest.reduce(first) { current, candidate in
+        if candidate.currentStreakDays != current.currentStreakDays {
+            return candidate.currentStreakDays > current.currentStreakDays ? candidate : current
+        }
+
+        if candidate.streakFreeze.balanceUnits != current.streakFreeze.balanceUnits {
+            return candidate.streakFreeze.balanceUnits > current.streakFreeze.balanceUnits ? candidate : current
+        }
+
+        if candidate.longestStreakDays != current.longestStreakDays {
+            return candidate.longestStreakDays > current.longestStreakDays ? candidate : current
+        }
+
+        return current
+    }
 }
 
 private func progressServerAndSeriesShareReviewHistoryBase(
@@ -406,34 +462,32 @@ private func progressShouldApplyActiveReviewDayDelta(
     return localDate > lastReviewedOn
 }
 
-private func progressCurrentStreakDaysWithRenderedDelta(
+private func progressSummaryWithRenderedDelta(
     serverBase: ProgressSummary,
-    localFallbackActiveDates: Set<String>,
-    renderedSeriesActiveDates: Set<String>?,
+    serverBaseStreakDays: [ProgressStreakDay],
+    activeDates: Set<String>,
+    activeReviewDays: Int,
     referenceLocalDate: String
-) throws -> Int {
-    guard serverBase.hasReviewedToday == false else {
-        return serverBase.currentStreakDays
-    }
+) throws -> ProgressSummary {
+    let streakFreezeEvaluation = try evaluateProgressStreakFreeze(
+        baseSummary: serverBase,
+        baseStreakDays: serverBaseStreakDays,
+        activeReviewLocalDates: activeDates,
+        today: referenceLocalDate,
+        policy: progressStreakFreezePolicy
+    )
 
-    guard serverBase.currentStreakDays > 0 else {
-        return serverBase.currentStreakDays
-    }
-
-    guard let lastReviewedOn = serverBase.lastReviewedOn else {
-        return serverBase.currentStreakDays
-    }
-
-    let activeDates = localFallbackActiveDates.union(renderedSeriesActiveDates ?? Set<String>())
-    var currentDate = try progressShiftLocalDateForStore(value: lastReviewedOn, offsetDays: 1)
-    var localDelta = 0
-
-    while currentDate <= referenceLocalDate, activeDates.contains(currentDate) {
-        localDelta += 1
-        currentDate = try progressShiftLocalDateForStore(value: currentDate, offsetDays: 1)
-    }
-
-    return serverBase.currentStreakDays + localDelta
+    return ProgressSummary(
+        currentStreakDays: streakFreezeEvaluation.currentStreakDays,
+        longestStreakDays: streakFreezeEvaluation.longestStreakDays,
+        hasReviewedToday: serverBase.hasReviewedToday || activeDates.contains(referenceLocalDate),
+        lastReviewedOn: maxProgressLocalDate(
+            left: serverBase.lastReviewedOn,
+            right: activeDates.max()
+        ),
+        activeReviewDays: activeReviewDays,
+        streakFreeze: streakFreezeEvaluation.streakFreeze
+    )
 }
 
 private func validateProgressSeriesMergeInputs(
@@ -527,6 +581,7 @@ func makeProgressRenderedSeriesSummaryContext(
 ) throws -> ProgressRenderedSeriesSummaryContext {
     let activeDates = try progressActiveDatesFromSeries(series: series)
     let activeDatesMissingFromServerBase: Set<String>
+    let serverBaseStreakDays: [ProgressStreakDay]
     let serverBaseReviewHistoryWatermarks: [ProgressReviewHistoryWatermark]?
     if let serverBaseSeries = serverBase?.serverBase,
        serverBase?.scopeKey == scopeKey {
@@ -534,9 +589,11 @@ func makeProgressRenderedSeriesSummaryContext(
             serverBase: serverBaseSeries,
             renderedSeries: series
         )
+        serverBaseStreakDays = serverBaseSeries.streakDays
         serverBaseReviewHistoryWatermarks = serverBaseSeries.reviewHistoryWatermarks
     } else {
         activeDatesMissingFromServerBase = []
+        serverBaseStreakDays = []
         serverBaseReviewHistoryWatermarks = nil
     }
 
@@ -544,6 +601,7 @@ func makeProgressRenderedSeriesSummaryContext(
         lowerBoundSummary: try makeProgressSummaryLowerBoundFromSeries(series: series, activeDates: activeDates),
         activeDates: activeDates,
         activeDatesMissingFromServerBase: activeDatesMissingFromServerBase,
+        serverBaseStreakDays: serverBaseStreakDays,
         serverBaseReviewHistoryWatermarks: serverBaseReviewHistoryWatermarks
     )
 }
@@ -616,6 +674,7 @@ func makeProgressSeriesFromReviewedAtClients(
     let timeZone = try progressTimeZone(identifier: requestRange.timeZone)
     let calendar = makeProgressStoreCalendar(timeZone: timeZone)
     var reviewCountsByLocalDate: [String: Int] = [:]
+    var activeReviewLocalDates: Set<String> = []
 
     for reviewedAtClient in reviewedAtClients {
         guard let reviewedAtDate = parseIsoTimestamp(value: reviewedAtClient) else {
@@ -623,6 +682,7 @@ func makeProgressSeriesFromReviewedAtClients(
         }
 
         let localDate = progressLocalDateStringForStore(date: reviewedAtDate, calendar: calendar)
+        activeReviewLocalDates.insert(localDate)
         if localDate < requestRange.from || localDate > requestRange.to {
             continue
         }
@@ -637,12 +697,23 @@ func makeProgressSeriesFromReviewedAtClients(
             reviewCount: reviewCountsByLocalDate[progressDay.date] ?? 0
         )
     }
+    let streakFreezeEvaluation = try evaluateProgressStreakFreeze(
+        sortedActiveReviewLocalDates: activeReviewLocalDates.sorted(),
+        today: requestRange.to,
+        policy: progressStreakFreezePolicy
+    )
 
     return makeProgressSeries(
         timeZone: requestRange.timeZone,
         from: requestRange.from,
         to: requestRange.to,
         dailyReviews: progressDays,
+        streakDays: makeProgressStreakDays(
+            range: zeroFilledDays.map(\.date),
+            activeReviewDates: activeReviewLocalDates,
+            evaluatedStreakDays: streakFreezeEvaluation.streakDays,
+            today: requestRange.to
+        ),
         summary: nil,
         generatedAt: nil,
         reviewHistoryWatermarks: []
@@ -685,7 +756,8 @@ func makeProgressSummaryFromReviewedAtClients(
 func mergeProgressSeries(
     serverBase: UserProgressSeries,
     pendingLocalOverlay: UserProgressSeries,
-    localFallback: UserProgressSeries
+    localFallback: UserProgressSeries,
+    mergedActiveReviewDates: Set<String>
 ) throws -> UserProgressSeries {
     try validateProgressSeriesMergeInputs(
         serverBase: serverBase,
@@ -731,16 +803,93 @@ func mergeProgressSeries(
             reviewCount: max(serverOverlayCount, localFallbackCount)
         )
     }
+    let rangeActiveReviewDates: Set<String> = Set(
+        mergedDailyReviews.compactMap { progressDay in
+            progressDay.reviewCount > 0 ? progressDay.date : nil
+        }
+    )
+    let activeReviewDates = mergedActiveReviewDates.union(rangeActiveReviewDates)
+    let streakDays = try makeMergedProgressSeriesStreakDays(
+        serverBase: serverBase,
+        zeroFilledDays: zeroFilledDays,
+        mergedDailyReviews: mergedDailyReviews,
+        activeReviewDates: activeReviewDates,
+        rangeActiveReviewDates: rangeActiveReviewDates
+    )
 
     return makeProgressSeries(
         timeZone: serverBase.timeZone,
         from: serverBase.from,
         to: serverBase.to,
         dailyReviews: mergedDailyReviews,
+        streakDays: streakDays,
         summary: nil,
         generatedAt: serverBase.generatedAt,
         reviewHistoryWatermarks: serverBase.reviewHistoryWatermarks
     )
+}
+
+private func makeMergedProgressSeriesStreakDays(
+    serverBase: UserProgressSeries,
+    zeroFilledDays: [ProgressDay],
+    mergedDailyReviews: [ProgressDay],
+    activeReviewDates: Set<String>,
+    rangeActiveReviewDates: Set<String>
+) throws -> [ProgressStreakDay] {
+    let serverCounts = try progressCountsByLocalDate(series: serverBase, sourceName: "serverBase")
+    let mergedCounts = Dictionary(uniqueKeysWithValues: mergedDailyReviews.map { progressDay in
+        (progressDay.date, progressDay.reviewCount)
+    })
+    let firstChangedLocalDate = zeroFilledDays.compactMap { progressDay in
+        ((serverCounts[progressDay.date] ?? 0) > 0) == ((mergedCounts[progressDay.date] ?? 0) > 0)
+            ? nil
+            : progressDay.date
+    }.min()
+
+    guard let recomputeFromLocalDate = firstChangedLocalDate ?? zeroFilledDays.first?.date else {
+        return serverBase.streakDays
+    }
+
+    if firstChangedLocalDate == nil,
+       activeReviewDates.isSubset(of: rangeActiveReviewDates) {
+        return serverBase.streakDays
+    }
+
+    let evaluatedStreakDays: [ProgressStreakDay]
+    if let firstChangedLocalDate {
+        evaluatedStreakDays = try evaluateProgressStreakDaysFromServerBasePrefix(
+            serverBaseStreakDays: serverBase.streakDays,
+            activeReviewLocalDates: activeReviewDates,
+            today: serverBase.to,
+            recomputeFromLocalDate: firstChangedLocalDate,
+            policy: progressStreakFreezePolicy
+        )
+    } else {
+        let streakFreezeEvaluation = try evaluateProgressStreakFreeze(
+            sortedActiveReviewLocalDates: activeReviewDates.sorted(),
+            today: serverBase.to,
+            policy: progressStreakFreezePolicy
+        )
+        evaluatedStreakDays = streakFreezeEvaluation.streakDays
+    }
+    let recomputedStreakDays = makeProgressStreakDays(
+        range: zeroFilledDays.map(\.date),
+        activeReviewDates: activeReviewDates,
+        evaluatedStreakDays: evaluatedStreakDays,
+        today: serverBase.to
+    )
+    let serverStatesByDate = Dictionary(uniqueKeysWithValues: serverBase.streakDays.map { streakDay in
+        (streakDay.date, streakDay.state)
+    })
+
+    return recomputedStreakDays.map { streakDay in
+        guard streakDay.date < recomputeFromLocalDate,
+              let serverState = serverStatesByDate[streakDay.date] else {
+            return streakDay
+        }
+
+        return ProgressStreakDay(date: streakDay.date, state: serverState)
+    }
 }
 
 func patchProgressSnapshot(
@@ -748,24 +897,24 @@ func patchProgressSnapshot(
     scopeKey: ProgressScopeKey,
     reviewedAtClient: String
 ) throws -> ProgressSnapshot {
-    guard snapshot.scopeKey.timeZone == scopeKey.timeZone else {
-        return snapshot
+    guard snapshot.scopeKey == scopeKey else {
+        throw LocalStoreError.validation(
+            """
+            Progress snapshot patch scope mismatched. \
+            expected=\(scopeKey.storageKey), actual=\(snapshot.scopeKey.storageKey).
+            """
+        )
     }
 
     let timeZone = try progressTimeZone(identifier: scopeKey.timeZone)
     let calendar = makeProgressStoreCalendar(timeZone: timeZone)
     let reviewedAtDate = try reviewedAtDateForProgressMutation(reviewedAtClient: reviewedAtClient)
     let reviewedLocalDate = progressLocalDateStringForStore(date: reviewedAtDate, calendar: calendar)
-    let previousRangeActiveDates = Set(
+    let previousRangeActiveDates: Set<String> = Set(
         snapshot.chartData.chartDays.compactMap { chartDay in
             chartDay.reviewCount > 0 ? chartDay.localDate : nil
         }
     )
-    let previousRangeStreakDays = try progressCurrentStreakDays(
-        reviewDates: previousRangeActiveDates,
-        todayLocalDate: snapshot.scopeKey.to
-    )
-    let streakExtensionDays = max(0, snapshot.summary.currentStreakDays - previousRangeStreakDays)
 
     var dailyReviews = try makeSnapshotProgressDailyReviews(
         snapshot: snapshot,
@@ -782,31 +931,67 @@ func patchProgressSnapshot(
         )
     }
 
-    let nextRangeActiveDates = Set(
+    let nextRangeActiveDates: Set<String> = Set(
         dailyReviews.compactMap { progressDay in
             progressDay.reviewCount > 0 ? progressDay.date : nil
         }
     )
-    let nextRangeStreakDays = try progressCurrentStreakDays(
-        reviewDates: nextRangeActiveDates,
-        todayLocalDate: scopeKey.to
+    let streakFreezeEvaluation = try evaluateProgressStreakFreeze(
+        baseSummary: snapshot.summary,
+        baseStreakDays: snapshot.chartData.chartDays.map { chartDay in
+            ProgressStreakDay(date: chartDay.localDate, state: chartDay.streakState)
+        },
+        activeReviewLocalDates: nextRangeActiveDates,
+        today: scopeKey.to,
+        policy: progressStreakFreezePolicy
     )
-    let didAddActiveReviewDay = previousRangeActiveDates.contains(reviewedLocalDate) == false
-        && nextRangeActiveDates.contains(reviewedLocalDate)
-    let patchedSummary = ProgressSummary(
-        currentStreakDays: nextRangeStreakDays + streakExtensionDays,
-        hasReviewedToday: nextRangeActiveDates.contains(scopeKey.to),
+    let localLowerBoundSummary = try makeProgressSummary(
+        reviewDates: nextRangeActiveDates,
+        timeZone: scopeKey.timeZone,
+        generatedAt: progressReferenceDate(
+            localDate: scopeKey.to,
+            timeZoneIdentifier: scopeKey.timeZone
+        )
+    )
+    let projectedSummary = ProgressSummary(
+        currentStreakDays: streakFreezeEvaluation.currentStreakDays,
+        longestStreakDays: streakFreezeEvaluation.longestStreakDays,
+        hasReviewedToday: snapshot.summary.hasReviewedToday || nextRangeActiveDates.contains(scopeKey.to),
         lastReviewedOn: maxProgressLocalDate(
             left: snapshot.summary.lastReviewedOn,
             right: nextRangeActiveDates.max()
         ),
-        activeReviewDays: snapshot.summary.activeReviewDays + (didAddActiveReviewDay ? 1 : 0)
+        activeReviewDays: snapshot.summary.activeReviewDays,
+        streakFreeze: streakFreezeEvaluation.streakFreeze
+    )
+    let dominantSummary = progressDominantProgressSummary(
+        first: projectedSummary,
+        rest: [localLowerBoundSummary]
+    )
+    let didAddActiveReviewDay = previousRangeActiveDates.contains(reviewedLocalDate) == false
+        && nextRangeActiveDates.contains(reviewedLocalDate)
+    let patchedSummary = ProgressSummary(
+        currentStreakDays: dominantSummary.currentStreakDays,
+        longestStreakDays: max(projectedSummary.longestStreakDays, localLowerBoundSummary.longestStreakDays),
+        hasReviewedToday: projectedSummary.hasReviewedToday || localLowerBoundSummary.hasReviewedToday,
+        lastReviewedOn: maxProgressLocalDate(
+            left: projectedSummary.lastReviewedOn,
+            right: localLowerBoundSummary.lastReviewedOn
+        ),
+        activeReviewDays: snapshot.summary.activeReviewDays + (didAddActiveReviewDay ? 1 : 0),
+        streakFreeze: dominantSummary.streakFreeze
     )
     let patchedSeries = makeProgressSeries(
         timeZone: scopeKey.timeZone,
         from: scopeKey.from,
         to: scopeKey.to,
         dailyReviews: dailyReviews,
+        streakDays: makePatchedSnapshotProgressStreakDays(
+            snapshot: snapshot,
+            dailyReviews: dailyReviews,
+            evaluatedStreakDays: streakFreezeEvaluation.streakDays,
+            today: scopeKey.to
+        ),
         summary: nil,
         generatedAt: snapshot.generatedAt,
         reviewHistoryWatermarks: []
@@ -820,6 +1005,37 @@ func patchProgressSnapshot(
         seriesSourceState: patchedProgressSourceState(sourceState: snapshot.seriesSourceState),
         calendar: calendar
     )
+}
+
+private func makePatchedSnapshotProgressStreakDays(
+    snapshot: ProgressSnapshot,
+    dailyReviews: [ProgressDay],
+    evaluatedStreakDays: [ProgressStreakDay],
+    today: String
+) -> [ProgressStreakDay] {
+    let existingStatesByLocalDate = Dictionary(uniqueKeysWithValues: snapshot.chartData.chartDays.map { chartDay in
+        (chartDay.localDate, chartDay.streakState)
+    })
+    let evaluatedStatesByLocalDate = Dictionary(uniqueKeysWithValues: evaluatedStreakDays.map { streakDay in
+        (streakDay.date, streakDay.state)
+    })
+
+    return dailyReviews.map { progressDay in
+        let state: ProgressStreakDayState
+        if progressDay.reviewCount > 0 {
+            state = .reviewed
+        } else if let evaluatedState = evaluatedStatesByLocalDate[progressDay.date] {
+            state = evaluatedState
+        } else if let existingState = existingStatesByLocalDate[progressDay.date] {
+            state = existingState
+        } else if progressDay.date >= today {
+            state = .pending
+        } else {
+            state = .missed
+        }
+
+        return ProgressStreakDay(date: progressDay.date, state: state)
+    }
 }
 
 private func makeSnapshotProgressDailyReviews(
@@ -868,23 +1084,6 @@ private func reviewedAtDateForProgressMutation(reviewedAtClient: String) throws 
     }
 
     return reviewedAtDate
-}
-
-private func progressCurrentStreakDays(
-    reviewDates: Set<String>,
-    todayLocalDate: String
-) throws -> Int {
-    var currentDate = reviewDates.contains(todayLocalDate)
-        ? todayLocalDate
-        : try progressShiftLocalDateForStore(value: todayLocalDate, offsetDays: -1)
-    var streakDayCount = 0
-
-    while reviewDates.contains(currentDate) {
-        streakDayCount += 1
-        currentDate = try progressShiftLocalDateForStore(value: currentDate, offsetDays: -1)
-    }
-
-    return streakDayCount
 }
 
 private func maxProgressLocalDate(left: String?, right: String?) -> String? {

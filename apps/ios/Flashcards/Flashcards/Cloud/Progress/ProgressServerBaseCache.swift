@@ -129,6 +129,23 @@ extension FlashcardsStore {
                 return nil
             }
 
+            do {
+                try validateProgressSummaryMetadata(
+                    summary: serverBase.serverBase,
+                    scopeKey: scopeKey
+                )
+            } catch {
+                self.removeProgressServerBaseCache(
+                    key: key,
+                    cacheKind: "summary",
+                    reason: "validation_failed",
+                    expectedScopeKey: scopeKey.storageKey,
+                    actualScopeKey: serverBase.scopeKey.storageKey,
+                    errorMessage: Flashcards.errorMessage(error: error)
+                )
+                return nil
+            }
+
             return serverBase
         } catch {
             self.removeProgressServerBaseCache(

@@ -125,6 +125,7 @@ private func padReviewChartPageToFullWeek(
             date: date,
             localDate: localDate,
             reviewCount: 0,
+            streakState: isToday ? .pending : .missed,
             isToday: isToday
         )
     }

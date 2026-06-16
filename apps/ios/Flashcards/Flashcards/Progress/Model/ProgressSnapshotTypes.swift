@@ -4,6 +4,7 @@ struct ProgressCalendarDay: Hashable, Identifiable, Sendable {
     let date: Date
     let localDate: String
     let reviewCount: Int
+    let streakState: ProgressStreakDayState
     let isToday: Bool
     let isFuturePlaceholder: Bool
     let dayNumber: Int
@@ -29,6 +30,7 @@ struct ProgressChartDay: Hashable, Identifiable, Sendable {
     let date: Date
     let localDate: String
     let reviewCount: Int
+    let streakState: ProgressStreakDayState
     let isToday: Bool
 
     var id: String {

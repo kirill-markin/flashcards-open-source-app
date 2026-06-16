@@ -5606,6 +5606,65 @@
         }
       }
     },
+    "progress.freeze_bank.accessibility" : {
+      "comment" : "Accessibility label for the current streak freeze credit bank",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بنك التجميد %@ من %@ متاح."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Freeze-Vorrat: %@ von %@ verfügbar."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Freeze bank %@ of %@ available."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Banco de congelación: %@ de %@ disponible."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Banco de congelación: %@ de %@ disponible."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "फ़्रीज़ बैंक में %@ में से %@ उपलब्ध हैं."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フリーズ残数は%@/%@です。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Банк заморозок: %@ из %@ доступно."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "冻结库可用 %@/%@。"
+          }
+        }
+      }
+    },
     "progress.screen.streak.section_title" : {
       "comment" : "Progress streak section title",
       "localizations" : {
@@ -5661,6 +5720,65 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "连续记录"
+          }
+        }
+      }
+    },
+    "progress.screen.streak.frozen_day.accessibility" : {
+      "comment" : "Accessibility label component for a streak day preserved by a freeze credit",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يوم مجمّد"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eingefrorener Tag"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frozen day"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Día congelado"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Día congelado"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "फ़्रीज़ किया गया दिन"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フリーズした日"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Замороженный день"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已冻结的一天"
           }
         }
       }

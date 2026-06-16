@@ -196,8 +196,11 @@ struct ProgressScreen: View {
 private func progressSummaryUITestValue(summary: ProgressSummary) -> String {
     let components: [String] = [
         "currentStreakDays=\(summary.currentStreakDays)",
+        "longestStreakDays=\(summary.longestStreakDays)",
         "hasReviewedToday=\(summary.hasReviewedToday ? "true" : "false")",
-        "activeReviewDays=\(summary.activeReviewDays)"
+        "activeReviewDays=\(summary.activeReviewDays)",
+        "streakFreezeAvailableCredits=\(summary.streakFreeze.availableCredits)",
+        "streakFreezeCapacity=\(summary.streakFreeze.capacity)"
     ]
     return components.joined(separator: ";")
 }

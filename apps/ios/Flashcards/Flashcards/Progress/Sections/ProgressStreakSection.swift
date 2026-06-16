@@ -100,10 +100,30 @@ private struct ProgressStreakSummaryBadge: View {
             )
         }
 
-        return String(
+        let streakLabel = String(
             format: localizedFormat,
             locale: Locale.current,
             self.badgeState.streakDays.formatted()
+        )
+        guard self.badgeState.showsStreakFreezeBank else {
+            return streakLabel
+        }
+
+        return "\(streakLabel) \(self.freezeBankAccessibilityLabel)"
+    }
+
+    private var freezeBankAccessibilityLabel: String {
+        let localizedFormat = String(
+            localized: "progress.freeze_bank.accessibility",
+            defaultValue: "Freeze bank %@ of %@ available.",
+            table: progressStringsTableName,
+            comment: "Accessibility label for the current streak freeze credit bank"
+        )
+        return String(
+            format: localizedFormat,
+            locale: Locale.current,
+            self.badgeState.streakFreezeAvailableCredits.formatted(),
+            self.badgeState.streakFreezeCapacity.formatted()
         )
     }
 }
@@ -128,6 +148,10 @@ private struct ProgressStreakDayCell: View {
                 Image(systemName: "flame.fill")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(self.foregroundColor)
+            } else if self.isFrozenDay {
+                Image(systemName: reviewProgressFreezeBankSystemImageName())
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(self.foregroundColor)
             } else {
                 Text(self.day.dayNumber.formatted())
                     .font(.footnote.weight(self.day.isToday ? .semibold : .regular))
@@ -150,7 +174,11 @@ private struct ProgressStreakDayCell: View {
             return .accentColor
         }
 
-        return self.day.isToday ? .accentColor : Color(uiColor: .secondarySystemGroupedBackground)
+        if self.isFrozenDay {
+            return .white
+        }
+
+        return Color(uiColor: .secondarySystemGroupedBackground)
     }
 
     private var borderColor: Color {
@@ -162,8 +190,12 @@ private struct ProgressStreakDayCell: View {
             return .accentColor
         }
 
+        if self.isFrozenDay {
+            return Color(red: 0x9D / 255, green: 0xD8 / 255, blue: 0xFF / 255)
+        }
+
         if self.day.isToday {
-            return Color.white.opacity(0.92)
+            return .accentColor
         }
 
         return Color(uiColor: .separator).opacity(0.35)
@@ -178,15 +210,23 @@ private struct ProgressStreakDayCell: View {
             return .white
         }
 
+        if self.isFrozenDay {
+            return Color(red: 0x2A / 255, green: 0x7F / 255, blue: 0xC2 / 255)
+        }
+
         if self.day.isToday {
-            return .white
+            return .accentColor
         }
 
         return .primary
     }
 
     private var isActiveFlameDay: Bool {
-        self.day.reviewCount > 0
+        self.day.streakState == .reviewed
+    }
+
+    private var isFrozenDay: Bool {
+        self.day.streakState == .frozen
     }
 
     private var borderLineWidth: CGFloat {
@@ -214,11 +254,31 @@ private struct ProgressStreakDayCell: View {
             ),
             Int64(self.day.reviewCount)
         )
-
-        if self.day.isToday {
-            return "\(dateTitle), \(todayTitle), \(reviewsTitle)"
+        let streakStateTitle: String?
+        switch self.day.streakState {
+        case .reviewed:
+            streakStateTitle = nil
+        case .frozen:
+            streakStateTitle = String(
+                localized: "progress.screen.streak.frozen_day.accessibility",
+                defaultValue: "Frozen day",
+                table: progressStringsTableName,
+                comment: "Accessibility label component for a streak day preserved by a freeze credit"
+            )
+        case .missed:
+            streakStateTitle = nil
+        case .pending:
+            streakStateTitle = nil
         }
 
-        return "\(dateTitle), \(reviewsTitle)"
+        if self.day.isToday {
+            return [dateTitle, todayTitle, streakStateTitle, reviewsTitle]
+                .compactMap { component in component }
+                .joined(separator: ", ")
+        }
+
+        return [dateTitle, streakStateTitle, reviewsTitle]
+            .compactMap { component in component }
+            .joined(separator: ", ")
     }
 }

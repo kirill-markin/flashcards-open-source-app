@@ -95,12 +95,28 @@ func makeTestProgressSeries(
         timeZone: requestRange.timeZone,
         generatedAt: generatedAtDate
     )
+    let activeReviewDates = Set(
+        dailyReviews.compactMap { progressDay in
+            progressDay.reviewCount > 0 ? progressDay.date : nil
+        }
+    )
+    let streakFreezeEvaluation = try evaluateProgressStreakFreeze(
+        sortedActiveReviewLocalDates: activeReviewDates.sorted(),
+        today: requestRange.to,
+        policy: progressStreakFreezePolicy
+    )
 
     return makeProgressSeries(
         timeZone: requestRange.timeZone,
         from: requestRange.from,
         to: requestRange.to,
         dailyReviews: dailyReviews,
+        streakDays: makeProgressStreakDays(
+            range: dailyReviews.map(\.date),
+            activeReviewDates: activeReviewDates,
+            evaluatedStreakDays: streakFreezeEvaluation.streakDays,
+            today: requestRange.to
+        ),
         summary: summary,
         generatedAt: generatedAt,
         reviewHistoryWatermarks: makeTestProgressReviewHistoryWatermarks(reviewSequenceId: 42)
@@ -154,6 +170,43 @@ func makeTestProgressReviewHistoryWatermarks(reviewSequenceId: Int64) -> [Progre
             reviewSequenceId: reviewSequenceId
         ),
     ]
+}
+
+func makeTestProgressStreakFreeze(
+    availableCredits: Int,
+    balanceUnits: Int
+) -> ProgressStreakFreeze {
+    let nextCreditProgressUnits: Int
+    if availableCredits >= progressStreakFreezePolicy.maxCapacity {
+        nextCreditProgressUnits = 0
+    } else {
+        nextCreditProgressUnits = balanceUnits % progressStreakFreezePolicy.unitsPerCredit
+    }
+
+    ProgressStreakFreeze(
+        availableCredits: availableCredits,
+        capacity: progressStreakFreezePolicy.maxCapacity,
+        balanceUnits: balanceUnits,
+        unitsPerCredit: progressStreakFreezePolicy.unitsPerCredit,
+        nextCreditProgressUnits: nextCreditProgressUnits,
+        nextCreditRequiredUnits: progressStreakFreezePolicy.unitsPerCredit
+    )
+}
+
+func makeTestProgressSummaryValue(
+    currentStreakDays: Int,
+    hasReviewedToday: Bool,
+    lastReviewedOn: String?,
+    activeReviewDays: Int
+) -> ProgressSummary {
+    ProgressSummary(
+        currentStreakDays: currentStreakDays,
+        longestStreakDays: currentStreakDays,
+        hasReviewedToday: hasReviewedToday,
+        lastReviewedOn: lastReviewedOn,
+        activeReviewDays: activeReviewDays,
+        streakFreeze: makeTestProgressStreakFreeze(availableCredits: 2, balanceUnits: 20)
+    )
 }
 
 func makeEmptyReviewScheduleForTests(timeZone: String) -> UserReviewSchedule {
@@ -273,9 +326,11 @@ func makeProgressScopeKeyForTests(
 func makeEmptyProgressSummaryForTests() -> ProgressSummary {
     ProgressSummary(
         currentStreakDays: 0,
+        longestStreakDays: 0,
         hasReviewedToday: false,
         lastReviewedOn: nil,
-        activeReviewDays: 0
+        activeReviewDays: 0,
+        streakFreeze: makeTestProgressStreakFreeze(availableCredits: 2, balanceUnits: 20)
     )
 }
 

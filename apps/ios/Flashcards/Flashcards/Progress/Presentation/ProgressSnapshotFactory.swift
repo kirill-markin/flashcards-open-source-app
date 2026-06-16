@@ -23,6 +23,7 @@ func makeProgressSnapshot(
             date: timelineDay.date,
             localDate: timelineDay.localDate,
             reviewCount: timelineDay.reviewCount,
+            streakState: timelineDay.streakState,
             isToday: timelineDay.localDate == todayLocalDate
         )
     }
@@ -320,6 +321,7 @@ private struct ProgressTimelineDay: Hashable, Sendable {
     let date: Date
     let localDate: String
     let reviewCount: Int
+    let streakState: ProgressStreakDayState
 }
 
 private func makeProgressTimeline(
@@ -345,16 +347,37 @@ private func makeProgressTimeline(
             throw ProgressPresentationError.duplicateDay(day.date)
         }
     }
+    var streakStatesByLocalDate: [String: ProgressStreakDayState] = [:]
+    for day in series.streakDays {
+        _ = try progressDate(localDate: day.date, calendar: calendar)
+
+        if streakStatesByLocalDate.updateValue(day.state, forKey: day.date) != nil {
+            throw ProgressPresentationError.duplicateStreakDay(day.date)
+        }
+    }
 
     var timeline: [ProgressTimelineDay] = []
     var currentDate = startDate
     while currentDate <= endDate {
         let localDate = progressLocalDateString(date: currentDate, calendar: calendar)
+        let reviewCount = reviewCountsByLocalDate[localDate] ?? 0
+        guard let streakState = streakStatesByLocalDate[localDate] else {
+            throw ProgressPresentationError.missingStreakDay(localDate)
+        }
+        guard (reviewCount > 0) == (streakState == .reviewed) else {
+            throw ProgressPresentationError.inconsistentStreakDay(
+                localDate: localDate,
+                reviewCount: reviewCount,
+                streakState: streakState
+            )
+        }
+
         timeline.append(
             ProgressTimelineDay(
                 date: currentDate,
                 localDate: localDate,
-                reviewCount: reviewCountsByLocalDate[localDate] ?? 0
+                reviewCount: reviewCount,
+                streakState: streakState
             )
         )
 
@@ -451,6 +474,7 @@ func makeProgressStreakWeeks(
         let localDate = progressLocalDateString(date: date, calendar: calendar)
         let isFuturePlaceholder = date > today
         let reviewCount: Int
+        let streakState: ProgressStreakDayState
 
         if isFuturePlaceholder == false {
             guard let chartDay = chartDaysByLocalDate[localDate] else {
@@ -458,14 +482,17 @@ func makeProgressStreakWeeks(
             }
 
             reviewCount = chartDay.reviewCount
+            streakState = chartDay.streakState
         } else {
             reviewCount = 0
+            streakState = .pending
         }
 
         return ProgressCalendarDay(
             date: date,
             localDate: localDate,
             reviewCount: reviewCount,
+            streakState: streakState,
             isToday: localDate == todayLocalDate,
             isFuturePlaceholder: isFuturePlaceholder,
             dayNumber: calendar.component(.day, from: date)
