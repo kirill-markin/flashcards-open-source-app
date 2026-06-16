@@ -567,6 +567,7 @@ const hiCatalog: TranslationCatalog = {
     },
     progressBadge: {
       ariaLabel: "रिव्यू स्ट्रीक {{streak}} दिन। {{todayStatus}}। {{freezeBank}}।",
+      reviewAriaLabel: "रिव्यू स्ट्रीक {{streak}} दिन। {{todayStatus}}।",
       freezeBank: "फ़्रीज़ बैंक {{available}} में से {{capacity}}",
       notReviewedToday: "आज रिव्यू नहीं किया",
       reviewedToday: "आज रिव्यू किया",

@@ -567,6 +567,7 @@ export const ruCatalog = {
     },
     progressBadge: {
       ariaLabel: "Серия повторений: {{streak}} дн. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Серия повторений: {{streak}} дн. {{todayStatus}}.",
       freezeBank: "Запас заморозок {{available}} из {{capacity}}",
       notReviewedToday: "Сегодня ещё не повторяли",
       reviewedToday: "Сегодня уже повторяли",

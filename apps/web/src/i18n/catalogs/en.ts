@@ -565,6 +565,7 @@ const enCatalog = {
     },
     progressBadge: {
       ariaLabel: "Review streak {{streak}} days. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Review streak {{streak}} days. {{todayStatus}}.",
       freezeBank: "Freeze bank {{available}} of {{capacity}}",
       notReviewedToday: "Not reviewed today",
       reviewedToday: "Reviewed today",
