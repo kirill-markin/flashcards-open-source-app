@@ -14,6 +14,7 @@ import {
   parseProgressReviewScheduleInputFromRequest,
   reviewScheduleBucketKeys,
 } from "./index";
+import { streakFreezePolicy } from "./streakFreeze";
 import type { DatabaseExecutor, SqlValue } from "../database";
 
 type QueryResultRow = pg.QueryResultRow;
@@ -176,6 +177,7 @@ function createFullStreakFreeze(): Readonly<{
   capacity: number;
   balanceUnits: number;
   unitsPerCredit: number;
+  earnedUnitsPerStreakDay: number;
   nextCreditProgressUnits: number;
   nextCreditRequiredUnits: number;
 }> {
@@ -184,6 +186,7 @@ function createFullStreakFreeze(): Readonly<{
     capacity: 2,
     balanceUnits: 20,
     unitsPerCredit: 10,
+    earnedUnitsPerStreakDay: streakFreezePolicy.earnedUnitsPerStreakDay,
     nextCreditProgressUnits: 0,
     nextCreditRequiredUnits: 10,
   };
@@ -194,6 +197,7 @@ function createStreakFreezeAfterOneFrozenDay(): Readonly<{
   capacity: number;
   balanceUnits: number;
   unitsPerCredit: number;
+  earnedUnitsPerStreakDay: number;
   nextCreditProgressUnits: number;
   nextCreditRequiredUnits: number;
 }> {
@@ -202,6 +206,7 @@ function createStreakFreezeAfterOneFrozenDay(): Readonly<{
     capacity: 2,
     balanceUnits: 11,
     unitsPerCredit: 10,
+    earnedUnitsPerStreakDay: streakFreezePolicy.earnedUnitsPerStreakDay,
     nextCreditProgressUnits: 1,
     nextCreditRequiredUnits: 10,
   };
@@ -449,6 +454,7 @@ test("loadUserProgressSeriesInExecutor returns a zero-filled series for an empty
     ],
   });
   assert.match(progress.generatedAt, /^\d{4}-\d{2}-\d{2}T/);
+  assert.equal(progress.streakDays.length, 3);
 });
 
 test("loadUserProgressSummaryInExecutor returns zero summary metrics for an empty history", async () => {
@@ -485,6 +491,10 @@ test("loadUserProgressSummaryInExecutor returns zero summary metrics for an empt
     ],
   });
   assert.match(progress.generatedAt, /^\d{4}-\d{2}-\d{2}T/);
+  assert.equal(
+    progress.summary.streakFreeze.earnedUnitsPerStreakDay,
+    streakFreezePolicy.earnedUnitsPerStreakDay,
+  );
 });
 
 test("loadUserProgressSummaryInExecutor freezes one completed missed day and recharges progress", async () => {
@@ -520,6 +530,12 @@ test("loadUserProgressSummaryInExecutor freezes one completed missed day and rec
     activeReviewDays: 1,
     streakFreeze: createStreakFreezeAfterOneFrozenDay(),
   });
+  assert.equal(progress.summary.streakFreeze.balanceUnits, 11);
+  assert.equal(progress.summary.streakFreeze.nextCreditProgressUnits, 1);
+  assert.equal(
+    progress.summary.streakFreeze.earnedUnitsPerStreakDay,
+    streakFreezePolicy.earnedUnitsPerStreakDay,
+  );
 });
 
 test("loadUserProgressSeriesInExecutor marks today without review as pending", async () => {
@@ -568,6 +584,7 @@ test("loadUserProgressSeriesInExecutor marks today without review as pending", a
     { date: yesterday, state: "reviewed" },
     { date: today, state: "pending" },
   ]);
+  assert.equal(progress.streakDays.length, 2);
 });
 
 test("loadUserProgressSummaryInExecutor resets a gap larger than available freezes before the next review", async () => {

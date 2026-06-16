@@ -89,6 +89,7 @@ function createProgressSummaryResponse(): ProgressSummaryResponse {
         capacity: 2,
         balanceUnits: 20,
         unitsPerCredit: 10,
+        earnedUnitsPerStreakDay: 1,
         nextCreditProgressUnits: 0,
         nextCreditRequiredUnits: 10,
       },
@@ -998,7 +999,9 @@ test("GET /me/progress/summary returns 200 for Session, Bearer, and Guest authen
     );
 
     assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), createProgressSummaryResponse());
+    const payload = await response.json() as ProgressSummaryResponse;
+    assert.deepEqual(payload, createProgressSummaryResponse());
+    assert.equal(payload.summary.streakFreeze.earnedUnitsPerStreakDay, 1);
   }
 });
 

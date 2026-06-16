@@ -26,6 +26,7 @@ export type StreakFreeze = Readonly<{
   capacity: number;
   balanceUnits: number;
   unitsPerCredit: number;
+  earnedUnitsPerStreakDay: number;
   nextCreditProgressUnits: number;
   nextCreditRequiredUnits: number;
 }>;
@@ -151,6 +152,7 @@ function createStreakFreeze(balanceUnits: number, policy: StreakFreezePolicy): S
     capacity: policy.maxCapacity,
     balanceUnits: clampedBalanceUnits,
     unitsPerCredit: policy.unitsPerCredit,
+    earnedUnitsPerStreakDay: policy.earnedUnitsPerStreakDay,
     nextCreditProgressUnits: availableCredits >= policy.maxCapacity ? 0 : clampedBalanceUnits % policy.unitsPerCredit,
     nextCreditRequiredUnits: policy.unitsPerCredit,
   };

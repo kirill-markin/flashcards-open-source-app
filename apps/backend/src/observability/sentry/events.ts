@@ -149,6 +149,7 @@ export type ProgressSummaryDetails = Readonly<{
   streakFreezeCapacity: number | null;
   streakFreezeBalanceUnits: number | null;
   streakFreezeUnitsPerCredit: number | null;
+  streakFreezeEarnedUnitsPerStreakDay: number | null;
   streakFreezeNextCreditProgressUnits: number | null;
   streakFreezeNextCreditRequiredUnits: number | null;
   generatedAt: string | null;
