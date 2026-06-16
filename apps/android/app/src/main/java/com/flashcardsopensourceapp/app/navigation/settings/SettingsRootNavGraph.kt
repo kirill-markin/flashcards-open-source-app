@@ -8,7 +8,10 @@ import android.provider.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -21,10 +24,15 @@ import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.navigation.AppPackageInfo
 import com.flashcardsopensourceapp.app.navigation.SettingsDestination
 import com.flashcardsopensourceapp.app.navigation.rememberRouteBackStackEntry
+import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationDialog
+import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationShareEffect
+import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationViewModel
+import com.flashcardsopensourceapp.feature.friendinvite.createFriendInvitationViewModelFactory
 import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionLottieConfigurationStore
 import com.flashcardsopensourceapp.feature.review.reaction.TestAnimationsRoute
 import com.flashcardsopensourceapp.feature.settings.review.ReviewAnimationsRoute
 import com.flashcardsopensourceapp.feature.settings.SettingsRoute
+import com.flashcardsopensourceapp.feature.settings.SettingsFriendInviteAvailability
 import com.flashcardsopensourceapp.feature.settings.TestSettingsRoute
 import com.flashcardsopensourceapp.feature.settings.createSettingsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.device.DeviceDiagnosticsRoute
@@ -33,6 +41,7 @@ import com.flashcardsopensourceapp.feature.settings.feedback.FeedbackSettingsRou
 import com.flashcardsopensourceapp.feature.settings.language.LanguageSettingsRoute
 import com.flashcardsopensourceapp.feature.settings.leaderboard.LeaderboardParticipationRoute
 import com.flashcardsopensourceapp.feature.settings.leaderboard.createLeaderboardParticipationViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.settingsInviteFriendDisplayNameFieldTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.CurrentWorkspaceRoute
 import com.flashcardsopensourceapp.feature.settings.workspace.current.createCurrentWorkspaceViewModelFactory
 import java.util.Locale
@@ -64,14 +73,41 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
                 applicationContext = context.applicationContext
             )
         )
+        val friendInvitationViewModel = viewModel<FriendInvitationViewModel>(
+            viewModelStoreOwner = settingsRootBackStackEntry,
+            factory = createFriendInvitationViewModelFactory(
+                cloudAccountRepository = appGraph.cloudAccountRepository
+            )
+        )
         val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
+        val friendInvitationUiState by friendInvitationViewModel.uiState.collectAsStateWithLifecycle()
+        var isFriendInvitationDialogVisible by rememberSaveable { mutableStateOf(false) }
 
         LaunchedEffect(settingsViewModel) {
             settingsViewModel.refreshAccountContextAsync()
         }
 
+        FriendInvitationShareEffect(
+            uiState = friendInvitationUiState,
+            onFriendInvitationShared = friendInvitationViewModel::markFriendInvitationShared
+        )
+
         SettingsRoute(
             uiState = uiState,
+            onOpenFriendInvite = {
+                when (uiState.friendInviteAvailability) {
+                    SettingsFriendInviteAvailability.AVAILABLE -> {
+                        friendInvitationViewModel.clearFriendInvitationFailure()
+                        isFriendInvitationDialogVisible = true
+                    }
+
+                    SettingsFriendInviteAvailability.SIGN_IN_REQUIRED -> {
+                        navController.navigate(route = SettingsAccountSignInEmailDestination.route)
+                    }
+
+                    SettingsFriendInviteAvailability.LOADING -> Unit
+                }
+            },
             onOpenAccountStatus = {
                 navController.navigate(route = SettingsAccountStatusDestination.route)
             },
@@ -139,6 +175,16 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
                 navController.navigate(route = SettingsTestDestination.route)
             }
         )
+
+        if (isFriendInvitationDialogVisible) {
+            FriendInvitationDialog(
+                uiState = friendInvitationUiState,
+                displayNameFieldTag = settingsInviteFriendDisplayNameFieldTag,
+                onCreateFriendInvitation = friendInvitationViewModel::createFriendInvitation,
+                onClearFriendInvitationFailure = friendInvitationViewModel::clearFriendInvitationFailure,
+                onDismiss = { isFriendInvitationDialogVisible = false }
+            )
+        }
     }
 
     composable(route = SettingsReviewAnimationsDestination.route) { backStackEntry ->

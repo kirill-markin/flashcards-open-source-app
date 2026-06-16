@@ -4,14 +4,18 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -25,6 +29,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.core.ui.components.SectionTitle
+import com.flashcardsopensourceapp.feature.friendinvite.R as FriendInviteR
 
 internal val settingsScreenCardSpacing = 16.dp
 internal val settingsScreenHorizontalPadding = 16.dp
@@ -82,6 +87,7 @@ internal fun SettingsScreenScaffold(
 @Composable
 fun SettingsRoute(
     uiState: SettingsUiState,
+    onOpenFriendInvite: () -> Unit,
     onOpenAccountStatus: () -> Unit,
     onOpenCurrentWorkspace: () -> Unit,
     onOpenReviewReminders: () -> Unit,
@@ -117,6 +123,13 @@ fun SettingsRoute(
                 .fillMaxSize()
                 .testTag(tag = settingsRootScreenTag)
         ) {
+            item {
+                SettingsInviteFriendButton(
+                    isEnabled = uiState.friendInviteAvailability != SettingsFriendInviteAvailability.LOADING,
+                    onClick = onOpenFriendInvite
+                )
+            }
+
             item {
                 SettingsRootSectionTitle(
                     title = stringResource(R.string.settings_section_account),
@@ -373,6 +386,27 @@ fun SettingsRoute(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SettingsInviteFriendButton(
+    isEnabled: Boolean,
+    onClick: () -> Unit
+) {
+    FilledTonalButton(
+        enabled = isEnabled,
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(tag = settingsInviteFriendButtonTag)
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.PersonAdd,
+            contentDescription = null
+        )
+        Spacer(modifier = Modifier.size(8.dp))
+        Text(stringResource(FriendInviteR.string.friend_invite_button))
     }
 }
 

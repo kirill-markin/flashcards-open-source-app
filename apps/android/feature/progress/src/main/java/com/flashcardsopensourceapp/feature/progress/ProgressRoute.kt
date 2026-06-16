@@ -1,6 +1,5 @@
 package com.flashcardsopensourceapp.feature.progress
 
-import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,13 +14,14 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
+import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationShareEffect
+import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationUiState
 import com.flashcardsopensourceapp.feature.progress.sections.ErrorCard
 import com.flashcardsopensourceapp.feature.progress.sections.GuidanceCard
 import com.flashcardsopensourceapp.feature.progress.sections.LeaderboardSectionCard
@@ -34,7 +34,7 @@ import com.flashcardsopensourceapp.feature.progress.sections.StreakSectionCard
 @Composable
 fun ProgressRoute(
     uiState: ProgressUiState,
-    friendInvitationUiState: ProgressFriendInvitationUiState,
+    friendInvitationUiState: FriendInvitationUiState,
     streakScrollRequestId: Long?,
     onStreakScrollRequestConsumed: (Long) -> Unit,
     leaderboardScrollRequestId: Long?,
@@ -48,7 +48,6 @@ fun ProgressRoute(
     onOpenSignIn: () -> Unit,
     onOpenLeaderboardSettings: () -> Unit
 ) {
-    val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val listState = rememberLazyListState()
     val currentScreenVisibleAction = rememberUpdatedState(newValue = onScreenVisible)
@@ -92,20 +91,10 @@ fun ProgressRoute(
         currentLeaderboardScrollRequestConsumed.value(requestId)
     }
 
-    LaunchedEffect(friendInvitationUiState) {
-        val createdState = friendInvitationUiState as? ProgressFriendInvitationUiState.Created
-            ?: return@LaunchedEffect
-        val shareIntent = Intent(Intent.ACTION_SEND)
-            .setType("text/plain")
-            .putExtra(Intent.EXTRA_TEXT, createdState.inviteUrl)
-        context.startActivity(
-            Intent.createChooser(
-                shareIntent,
-                context.getString(R.string.progress_friend_invite_share_title)
-            )
-        )
-        onFriendInvitationShared(createdState.shareId)
-    }
+    FriendInvitationShareEffect(
+        uiState = friendInvitationUiState,
+        onFriendInvitationShared = onFriendInvitationShared
+    )
 
     Scaffold(
         topBar = {

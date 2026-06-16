@@ -67,48 +67,6 @@ data class ProgressReviewScheduleSectionUiState(
     val hasCards: Boolean
 )
 
-enum class ProgressFriendInvitationDisplayNameError {
-    EMPTY,
-    TOO_LONG,
-    CONTROL_CHARACTER
-}
-
-enum class ProgressFriendInvitationCreateError {
-    LIMIT_REACHED,
-    SIGN_IN_REQUIRED,
-    INVALID_DISPLAY_NAME,
-    GENERIC
-}
-
-sealed interface ProgressFriendInvitationDisplayNameValidation {
-    data class Valid(
-        val trimmedDisplayName: String
-    ) : ProgressFriendInvitationDisplayNameValidation
-
-    data class Invalid(
-        val error: ProgressFriendInvitationDisplayNameError
-    ) : ProgressFriendInvitationDisplayNameValidation
-}
-
-sealed interface ProgressFriendInvitationUiState {
-    data object Idle : ProgressFriendInvitationUiState
-
-    data object Creating : ProgressFriendInvitationUiState
-
-    data class Created(
-        val shareId: Long,
-        val inviteUrl: String
-    ) : ProgressFriendInvitationUiState
-
-    data class ValidationFailed(
-        val error: ProgressFriendInvitationDisplayNameError
-    ) : ProgressFriendInvitationUiState
-
-    data class CreateFailed(
-        val error: ProgressFriendInvitationCreateError
-    ) : ProgressFriendInvitationUiState
-}
-
 sealed interface ProgressLeaderboardRowUiState {
     data class Participant(
         val rank: Int,

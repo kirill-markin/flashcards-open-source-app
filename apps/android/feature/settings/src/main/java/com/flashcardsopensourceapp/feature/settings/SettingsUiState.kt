@@ -1,5 +1,11 @@
 package com.flashcardsopensourceapp.feature.settings
 
+enum class SettingsFriendInviteAvailability {
+    LOADING,
+    AVAILABLE,
+    SIGN_IN_REQUIRED
+}
+
 data class SettingsUiState(
     val currentWorkspaceName: String,
     val workspaceName: String,
@@ -9,6 +15,7 @@ data class SettingsUiState(
     val syncStatusText: String,
     val accountStatusTitle: String,
     val accountStatusAttentionCount: Int,
+    val friendInviteAvailability: SettingsFriendInviteAvailability,
     val reviewReactionAnimationsEnabled: Boolean,
     val canManageAccountPreferences: Boolean,
     val isTestModeEnabled: Boolean

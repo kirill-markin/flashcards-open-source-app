@@ -1,27 +1,7 @@
 package com.flashcardsopensourceapp.feature.progress
 
 import androidx.lifecycle.Lifecycle
-import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
-import com.flashcardsopensourceapp.data.local.model.cloud.AccountDeletionState
-import com.flashcardsopensourceapp.data.local.model.cloud.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudCommunityProfile
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationCreateRequest
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationCreateResponse
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudSendCodeResult
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeletePreview
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeleteResult
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkContext
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetProgressPreview
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetProgressResult
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
-import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
-import com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.progress.CloudDailyReviewPoint
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardMetric
@@ -51,15 +31,11 @@ import com.flashcardsopensourceapp.data.local.model.progress.ProgressSnapshotSou
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummaryScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.createRenderedProgressLeaderboard
-import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
-import com.flashcardsopensourceapp.data.local.model.sync.defaultAccountPreferences
-import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.ProgressRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -522,135 +498,6 @@ class ProgressViewModelTest {
         assertEquals(13, sectionUiState.reservedRowCount)
     }
 
-    @Test
-    fun friendInvitationDisplayNameValidationTrimsEmojiAndRejectsControlCharacters() {
-        val valid = validateFriendInvitationDisplayName(displayName = "  Priya \uD83C\uDFAF  ")
-            as ProgressFriendInvitationDisplayNameValidation.Valid
-        val invalid = validateFriendInvitationDisplayName(displayName = "Line\nBreak")
-            as ProgressFriendInvitationDisplayNameValidation.Invalid
-
-        assertEquals("Priya \uD83C\uDFAF", valid.trimmedDisplayName)
-        assertEquals(ProgressFriendInvitationDisplayNameError.CONTROL_CHARACTER, invalid.error)
-    }
-
-    @Test
-    fun createFriendInvitationTrimsNameAndEmitsShareState() = runTest(dispatcher) {
-        Dispatchers.setMain(dispatcher)
-        try {
-            val progressRepository = FakeProgressRepository()
-            val cloudAccountRepository = FakeCloudAccountRepositoryForProgress()
-            val viewModel = createProgressViewModelForTest(
-                progressRepository = progressRepository,
-                cloudAccountRepository = cloudAccountRepository
-            )
-            advanceUntilIdle()
-
-            viewModel.createFriendInvitation(inviteeDisplayName = "  Priya \uD83C\uDFAF  ")
-            advanceUntilIdle()
-
-            assertEquals(
-                "Priya \uD83C\uDFAF",
-                cloudAccountRepository.createFriendInvitationRequests.single().inviteeDisplayName
-            )
-            val createdState = viewModel.friendInvitationUiState.value as ProgressFriendInvitationUiState.Created
-            assertEquals("https://app.flashcards-open-source-app.com/invite/raw-token", createdState.inviteUrl)
-
-            viewModel.markFriendInvitationShared(shareId = createdState.shareId)
-            assertEquals(ProgressFriendInvitationUiState.Idle, viewModel.friendInvitationUiState.value)
-        } finally {
-            Dispatchers.resetMain()
-        }
-    }
-
-    @Test
-    fun createFriendInvitationRejectsInvalidNameBeforeRepositoryCall() = runTest(dispatcher) {
-        Dispatchers.setMain(dispatcher)
-        try {
-            val progressRepository = FakeProgressRepository()
-            val cloudAccountRepository = FakeCloudAccountRepositoryForProgress()
-            val viewModel = createProgressViewModelForTest(
-                progressRepository = progressRepository,
-                cloudAccountRepository = cloudAccountRepository
-            )
-            advanceUntilIdle()
-
-            viewModel.createFriendInvitation(inviteeDisplayName = "Line\nBreak")
-            advanceUntilIdle()
-
-            assertTrue(cloudAccountRepository.createFriendInvitationRequests.isEmpty())
-            val failedState =
-                viewModel.friendInvitationUiState.value as ProgressFriendInvitationUiState.ValidationFailed
-            assertEquals(ProgressFriendInvitationDisplayNameError.CONTROL_CHARACTER, failedState.error)
-        } finally {
-            Dispatchers.resetMain()
-        }
-    }
-
-    @Test
-    fun createFriendInvitationIgnoresDuplicateRequestWhileCreating() = runTest(dispatcher) {
-        Dispatchers.setMain(dispatcher)
-        try {
-            val progressRepository = FakeProgressRepository()
-            val cloudAccountRepository = FakeCloudAccountRepositoryForProgress()
-            val viewModel = createProgressViewModelForTest(
-                progressRepository = progressRepository,
-                cloudAccountRepository = cloudAccountRepository
-            )
-            advanceUntilIdle()
-
-            viewModel.createFriendInvitation(inviteeDisplayName = "Priya")
-            viewModel.createFriendInvitation(inviteeDisplayName = "Priya")
-            advanceUntilIdle()
-
-            assertEquals(1, cloudAccountRepository.createFriendInvitationRequests.size)
-            assertTrue(viewModel.friendInvitationUiState.value is ProgressFriendInvitationUiState.Created)
-        } finally {
-            Dispatchers.resetMain()
-        }
-    }
-
-    @Test
-    fun createFriendInvitationMapsRemoteErrorCodesToActionableFailures() = runTest(dispatcher) {
-        val cases = listOf(
-            "FRIEND_INVITATION_LIMIT_REACHED" to ProgressFriendInvitationCreateError.LIMIT_REACHED,
-            "FRIEND_INVITATION_HUMAN_AUTH_REQUIRED" to ProgressFriendInvitationCreateError.SIGN_IN_REQUIRED,
-            "ACCOUNT_SIGN_IN_REQUIRED" to ProgressFriendInvitationCreateError.SIGN_IN_REQUIRED,
-            "AUTH_UNAUTHORIZED" to ProgressFriendInvitationCreateError.SIGN_IN_REQUIRED,
-            "FRIEND_INVITATION_DISPLAY_NAME_INVALID" to ProgressFriendInvitationCreateError.INVALID_DISPLAY_NAME,
-            "FRIEND_INVITATION_FIELD_UNKNOWN" to ProgressFriendInvitationCreateError.GENERIC
-        )
-
-        Dispatchers.setMain(dispatcher)
-        try {
-            for ((errorCode, expectedError) in cases) {
-                val progressRepository = FakeProgressRepository()
-                val cloudAccountRepository = FakeCloudAccountRepositoryForProgress()
-                cloudAccountRepository.enqueueCreateFriendInvitationError(
-                    error = createFriendInvitationRemoteException(
-                        errorCode = errorCode,
-                        statusCode = 400
-                    )
-                )
-                val viewModel = createProgressViewModelForTest(
-                    progressRepository = progressRepository,
-                    cloudAccountRepository = cloudAccountRepository
-                )
-                advanceUntilIdle()
-
-                viewModel.createFriendInvitation(inviteeDisplayName = "Priya")
-                advanceUntilIdle()
-
-                assertEquals(1, cloudAccountRepository.createFriendInvitationRequests.size)
-                assertEquals(
-                    ProgressFriendInvitationUiState.CreateFailed(error = expectedError),
-                    viewModel.friendInvitationUiState.value
-                )
-            }
-        } finally {
-            Dispatchers.resetMain()
-        }
-    }
-
     private suspend fun TestScope.assertLoadedUiStateUsesLocaleWeekStart(
         locale: Locale,
         expectedWeekStart: LocalDate
@@ -698,33 +545,8 @@ class ProgressViewModelTest {
 private fun createProgressViewModelForTest(
     progressRepository: FakeProgressRepository
 ): ProgressViewModel {
-    return createProgressViewModelForTest(
-        progressRepository = progressRepository,
-        cloudAccountRepository = FakeCloudAccountRepositoryForProgress()
-    )
-}
-
-private fun createProgressViewModelForTest(
-    progressRepository: FakeProgressRepository,
-    cloudAccountRepository: FakeCloudAccountRepositoryForProgress
-): ProgressViewModel {
     return ProgressViewModel(
-        progressRepository = progressRepository,
-        cloudAccountRepository = cloudAccountRepository
-    )
-}
-
-private fun createFriendInvitationRemoteException(
-    errorCode: String,
-    statusCode: Int
-): CloudRemoteException {
-    return CloudRemoteException(
-        message = "Friend invitation create failed.",
-        statusCode = statusCode,
-        responseBody = "{\"code\":\"$errorCode\"}",
-        errorCode = errorCode,
-        requestId = "req-1",
-        syncConflict = null
+        progressRepository = progressRepository
     )
 }
 
@@ -826,203 +648,6 @@ private class FakeProgressRepository : ProgressRepository {
 
     override suspend fun refreshLeaderboardManually() {
         refreshLeaderboardManuallyCallCount += 1
-    }
-}
-
-private class FakeCloudAccountRepositoryForProgress : CloudAccountRepository {
-    val createFriendInvitationRequests: MutableList<CloudFriendInvitationCreateRequest> = mutableListOf()
-    private val createFriendInvitationErrors: ArrayDeque<Exception> = ArrayDeque()
-
-    fun enqueueCreateFriendInvitationError(error: Exception) {
-        createFriendInvitationErrors.add(error)
-    }
-
-    override fun observeCloudSettings(): Flow<CloudSettings> {
-        return flowOf(
-            CloudSettings(
-                installationId = "installation-1",
-                cloudState = CloudAccountState.LINKED,
-                linkedUserId = "user-1",
-                linkedWorkspaceId = "workspace-1",
-                linkedEmail = "user@example.com",
-                activeWorkspaceId = "workspace-1",
-                updatedAtMillis = 0L
-            )
-        )
-    }
-
-    override fun observeAccountPreferences(): Flow<AccountPreferences> {
-        return flowOf(defaultAccountPreferences())
-    }
-
-    override fun observeAccountDeletionState(): Flow<AccountDeletionState> {
-        return flowOf(AccountDeletionState.Hidden)
-    }
-
-    override fun observeServerConfiguration(): Flow<CloudServiceConfiguration> {
-        return flowOf(makeOfficialCloudServiceConfiguration())
-    }
-
-    override fun observeCloudCredentialRecoveryState(): Flow<CloudCredentialRecoveryState?> {
-        return flowOf(null)
-    }
-
-    override suspend fun eraseLocalDataForCredentialRecovery() {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun beginAccountDeletion() {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun resumePendingAccountDeletionIfNeeded() {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun retryPendingAccountDeletion() {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun refreshAccountContext() {
-    }
-
-    override suspend fun updateAccountPreferences(preferences: AccountPreferences): AccountPreferences {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun sendCode(email: String): CloudSendCodeResult {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun prepareVerifiedSignIn(credentials: StoredCloudCredentials): CloudWorkspaceLinkContext {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun verifyCode(challenge: CloudOtpChallenge, code: String): CloudWorkspaceLinkContext {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun completeCloudLink(
-        linkContext: CloudWorkspaceLinkContext,
-        selection: CloudWorkspaceLinkSelection
-    ): CloudWorkspaceSummary {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun completeGuestUpgrade(
-        linkContext: CloudWorkspaceLinkContext,
-        selection: CloudWorkspaceLinkSelection
-    ): CloudWorkspaceSummary {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun completeLinkedWorkspaceTransition(
-        selection: CloudWorkspaceLinkSelection
-    ): CloudWorkspaceSummary {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun resetInvalidCloudCredentialRecoveryState() {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun logout() {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun renameCurrentWorkspace(name: String): CloudWorkspaceSummary {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun loadCurrentWorkspaceDeletePreview(): CloudWorkspaceDeletePreview {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun deleteCurrentWorkspace(confirmationText: String): CloudWorkspaceDeleteResult {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun loadCurrentWorkspaceResetProgressPreview(): CloudWorkspaceResetProgressPreview {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun resetCurrentWorkspaceProgress(confirmationText: String): CloudWorkspaceResetProgressResult {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun loadProgressSummary(timeZone: String): CloudProgressSummary {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun loadProgressSeries(timeZone: String, from: String, to: String): CloudProgressSeries {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun loadProgressReviewSchedule(timeZone: String): CloudProgressReviewSchedule {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun loadProgressLeaderboard(): CloudProgressLeaderboard {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun loadCommunityProfile(): CloudCommunityProfile {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun updateCommunityLeaderboardParticipation(
-        leaderboardParticipationEnabled: Boolean
-    ): CloudCommunityProfile {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun createFriendInvitation(
-        request: CloudFriendInvitationCreateRequest
-    ): CloudFriendInvitationCreateResponse {
-        createFriendInvitationRequests += request
-        if (createFriendInvitationErrors.isNotEmpty()) {
-            throw createFriendInvitationErrors.removeFirst()
-        }
-        return CloudFriendInvitationCreateResponse(
-            inviteUrl = "https://app.flashcards-open-source-app.com/invite/raw-token",
-            expiresAt = "2026-06-17T10:00:00.000Z"
-        )
-    }
-
-    override suspend fun deleteAccount(confirmationText: String) {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun listLinkedWorkspaces(): List<CloudWorkspaceSummary> {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun switchLinkedWorkspace(selection: CloudWorkspaceLinkSelection): CloudWorkspaceSummary {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun listAgentConnections(): AgentApiKeyConnectionsResult {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun revokeAgentConnection(connectionId: String): AgentApiKeyConnectionsResult {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun currentServerConfiguration(): CloudServiceConfiguration {
-        return makeOfficialCloudServiceConfiguration()
-    }
-
-    override suspend fun validateCustomServer(customOrigin: String): CloudServiceConfiguration {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun applyCustomServer(configuration: CloudServiceConfiguration) {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun resetToOfficialServer() {
-        throw UnsupportedOperationException()
     }
 }
 
