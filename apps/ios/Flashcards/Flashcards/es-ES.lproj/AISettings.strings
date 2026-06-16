@@ -126,6 +126,7 @@
 "common.unavailable" = "No disponible";
 
 "settings.title" = "Ajustes";
+"settings.inviteFriend.button" = "Invitar amigo";
 "settings.section.account" = "Cuenta";
 "settings.section.general" = "General";
 "settings.section.support" = "Soporte";

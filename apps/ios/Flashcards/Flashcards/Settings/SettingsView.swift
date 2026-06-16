@@ -15,6 +15,9 @@ struct SyncStatusPresentation: Equatable {
 struct SettingsView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
+    @State private var isCloudSignInPresented: Bool = false
+    @State private var isFriendInvitePresented: Bool = false
+
     private var accountStatusValue: String {
         displayCloudAccountStateTitle(cloudState: store.cloudSettings?.cloudState ?? .disconnected)
     }
@@ -41,6 +44,10 @@ struct SettingsView: View {
 
     var body: some View {
         List {
+            Section {
+                self.friendInviteButton
+            }
+
             if store.globalErrorMessage.isEmpty == false {
                 Section {
                     CopyableErrorMessageView(message: store.globalErrorMessage)
@@ -285,6 +292,37 @@ struct SettingsView: View {
         .onAppear {
             store.triggerCloudAccountContextRefreshIfActive(surfacesGlobalErrorMessage: false)
         }
+        .sheet(isPresented: self.$isCloudSignInPresented) {
+            CloudSignInSheet(presentationContext: .standard)
+                .environment(self.store)
+        }
+        .sheet(isPresented: self.$isFriendInvitePresented) {
+            ProgressFriendInviteSheet()
+                .environment(self.store)
+        }
+    }
+
+    private var friendInviteButton: some View {
+        Button {
+            self.openFriendInviteFlow()
+        } label: {
+            Label(
+                aiSettingsLocalized("settings.inviteFriend.button", "Invite Friend"),
+                systemImage: "person.badge.plus"
+            )
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .accessibilityIdentifier(UITestIdentifier.settingsInviteFriendButton)
+    }
+
+    private func openFriendInviteFlow() {
+        guard self.store.cloudSettings?.cloudState == .linked else {
+            self.isCloudSignInPresented = true
+            return
+        }
+
+        self.isFriendInvitePresented = true
     }
 }
 

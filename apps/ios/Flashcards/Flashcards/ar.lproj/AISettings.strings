@@ -126,6 +126,7 @@
 "common.unavailable" = "غير متاح";
 
 "settings.title" = "الإعدادات";
+"settings.inviteFriend.button" = "دعوة صديق";
 "settings.section.account" = "الحساب";
 "settings.section.general" = "عام";
 "settings.section.support" = "الدعم";
