@@ -43,7 +43,7 @@ extension FlashcardsStore {
                 return
             }
 
-            guard let activeSession = self.activeProgressCloudSession(scopeKey: scopeKey) else {
+            guard let activeSession = try await self.progressCloudSession(scopeKey: scopeKey) else {
                 return
             }
 
@@ -77,7 +77,7 @@ extension FlashcardsStore {
                 return
             }
 
-            guard let activeSession = self.activeProgressCloudSession(scopeKey: scopeKey) else {
+            guard let activeSession = try await self.progressCloudSession(scopeKey: scopeKey) else {
                 return
             }
 
@@ -115,7 +115,7 @@ extension FlashcardsStore {
                 return
             }
 
-            guard let activeSession = self.activeProgressCloudSession(scopeKey: scopeKey) else {
+            guard let activeSession = try await self.progressCloudSession(scopeKey: scopeKey) else {
                 return
             }
 
@@ -186,7 +186,7 @@ extension FlashcardsStore {
             let leaderboardScopeKey = self.currentProgressLeaderboardScopeKey(seriesScopeKey: scopeKey)
 
             self.invalidateProgress(scopeKey: scopeKey, summaryScopeKey: summaryScopeKey)
-            guard let activeSession = self.activeProgressCloudSession(scopeKey: scopeKey) else {
+            guard let activeSession = try await self.progressCloudSession(scopeKey: scopeKey) else {
                 return
             }
 

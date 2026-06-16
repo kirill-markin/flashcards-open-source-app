@@ -158,7 +158,8 @@ class ProgressStoreTestCase: XCTestCase {
             loadProgressSeriesError: loadProgressSeriesError,
             cloudState: cloudState,
             suiteName: suiteName,
-            userDefaults: userDefaults
+            userDefaults: userDefaults,
+            cloudAuthService: CloudAuthService()
         )
     }
 
@@ -174,6 +175,35 @@ class ProgressStoreTestCase: XCTestCase {
         cloudState: CloudAccountState,
         suiteName: String,
         userDefaults: UserDefaults
+    ) throws -> ProgressStoreTestContext {
+        try self.makeProgressStoreContext(
+            database: database,
+            workspaceId: workspaceId,
+            installationId: installationId,
+            serverSummary: serverSummary,
+            serverSeries: serverSeries,
+            loadProgressSummaryError: loadProgressSummaryError,
+            loadProgressSeriesError: loadProgressSeriesError,
+            cloudState: cloudState,
+            suiteName: suiteName,
+            userDefaults: userDefaults,
+            cloudAuthService: CloudAuthService()
+        )
+    }
+
+    @MainActor
+    func makeProgressStoreContext(
+        database: LocalDatabase,
+        workspaceId: String,
+        installationId: String,
+        serverSummary: UserProgressSummary,
+        serverSeries: UserProgressSeries,
+        loadProgressSummaryError: Error?,
+        loadProgressSeriesError: Error?,
+        cloudState: CloudAccountState,
+        suiteName: String,
+        userDefaults: UserDefaults,
+        cloudAuthService: any CloudAuthServing
     ) throws -> ProgressStoreTestContext {
         let cloudSyncService = ProgressCloudSyncService(
             serverSummary: serverSummary,
@@ -192,7 +222,7 @@ class ProgressStoreTestCase: XCTestCase {
             encoder: JSONEncoder(),
             decoder: JSONDecoder(),
             database: database,
-            cloudAuthService: CloudAuthService(),
+            cloudAuthService: cloudAuthService,
             cloudSyncService: cloudSyncService,
             credentialStore: credentialStore,
             guestCloudAuthService: GuestCloudAuthService(),
@@ -215,6 +245,15 @@ class ProgressStoreTestCase: XCTestCase {
             apiBaseUrl: configuration.apiBaseUrl
         )
         try guestCredentialStore.saveGuestSession(session: guestSession)
+        if cloudState == .linked {
+            try credentialStore.saveCredentials(
+                credentials: StoredCloudCredentials(
+                    refreshToken: "refresh-token-1",
+                    idToken: "id-token-1",
+                    idTokenExpiresAt: "2099-01-01T00:00:00.000Z"
+                )
+            )
+        }
         store.workspace = Workspace(
             workspaceId: workspaceId,
             name: "Workspace",

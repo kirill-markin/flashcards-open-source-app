@@ -29,7 +29,7 @@ extension FlashcardsStore {
         }
 
         do {
-            let serverBase = try await self.loadProgressSummaryServerBase(
+            let serverBase = try await self.loadProgressSummaryServerBaseWithSessionRecovery(
                 scopeKey: scopeKey,
                 linkedSession: linkedSession
             )
@@ -99,7 +99,7 @@ extension FlashcardsStore {
         }
 
         do {
-            let serverBase = try await self.loadProgressSeriesServerBase(
+            let serverBase = try await self.loadProgressSeriesServerBaseWithSessionRecovery(
                 scopeKey: scopeKey,
                 linkedSession: linkedSession
             )
@@ -158,7 +158,7 @@ extension FlashcardsStore {
         }
 
         do {
-            let serverBase = try await self.loadProgressReviewScheduleServerBase(
+            let serverBase = try await self.loadProgressReviewScheduleServerBaseWithSessionRecovery(
                 scopeKey: scopeKey,
                 linkedSession: linkedSession
             )
@@ -224,7 +224,9 @@ extension FlashcardsStore {
         }
 
         do {
-            let serverBase = try await self.loadProgressLeaderboardServerBase(linkedSession: linkedSession)
+            let serverBase = try await self.loadProgressLeaderboardServerBaseWithSessionRecovery(
+                linkedSession: linkedSession
+            )
 
             guard self.isCurrentProgressLeaderboardRefresh(scopeKey: scopeKey, refreshToken: refreshToken) else {
                 return
@@ -343,6 +345,16 @@ extension FlashcardsStore {
         return activeSession
     }
 
+    func progressCloudSession(scopeKey: ProgressScopeKey) async throws -> CloudLinkedSession? {
+        guard let activeSession = self.activeProgressCloudSession(scopeKey: scopeKey) else {
+            return nil
+        }
+
+        return try await self.withCloudSessionPreservingStableContext(linkedSession: activeSession) { session in
+            session
+        }
+    }
+
     func invalidateProgress(
         scopeKey: ProgressScopeKey,
         summaryScopeKey: ProgressSummaryScopeKey
@@ -440,6 +452,18 @@ extension FlashcardsStore {
         return summary
     }
 
+    private func loadProgressSummaryServerBaseWithSessionRecovery(
+        scopeKey: ProgressSummaryScopeKey,
+        linkedSession: CloudLinkedSession
+    ) async throws -> UserProgressSummary {
+        try await self.withCloudSessionPreservingStableContext(linkedSession: linkedSession) { refreshedSession in
+            try await self.loadProgressSummaryServerBase(
+                scopeKey: scopeKey,
+                linkedSession: refreshedSession
+            )
+        }
+    }
+
     private func loadProgressSeriesServerBase(
         scopeKey: ProgressScopeKey,
         linkedSession: CloudLinkedSession
@@ -461,6 +485,18 @@ extension FlashcardsStore {
         return series
     }
 
+    private func loadProgressSeriesServerBaseWithSessionRecovery(
+        scopeKey: ProgressScopeKey,
+        linkedSession: CloudLinkedSession
+    ) async throws -> UserProgressSeries {
+        try await self.withCloudSessionPreservingStableContext(linkedSession: linkedSession) { refreshedSession in
+            try await self.loadProgressSeriesServerBase(
+                scopeKey: scopeKey,
+                linkedSession: refreshedSession
+            )
+        }
+    }
+
     private func loadProgressReviewScheduleServerBase(
         scopeKey: ReviewScheduleScopeKey,
         linkedSession: CloudLinkedSession
@@ -478,6 +514,18 @@ extension FlashcardsStore {
         return schedule
     }
 
+    private func loadProgressReviewScheduleServerBaseWithSessionRecovery(
+        scopeKey: ReviewScheduleScopeKey,
+        linkedSession: CloudLinkedSession
+    ) async throws -> UserReviewSchedule {
+        try await self.withCloudSessionPreservingStableContext(linkedSession: linkedSession) { refreshedSession in
+            try await self.loadProgressReviewScheduleServerBase(
+                scopeKey: scopeKey,
+                linkedSession: refreshedSession
+            )
+        }
+    }
+
     private func loadProgressLeaderboardServerBase(
         linkedSession: CloudLinkedSession
     ) async throws -> UserProgressLeaderboard {
@@ -488,6 +536,14 @@ extension FlashcardsStore {
         )
         try validateProgressLeaderboard(leaderboard: leaderboard)
         return leaderboard
+    }
+
+    private func loadProgressLeaderboardServerBaseWithSessionRecovery(
+        linkedSession: CloudLinkedSession
+    ) async throws -> UserProgressLeaderboard {
+        try await self.withCloudSessionPreservingStableContext(linkedSession: linkedSession) { refreshedSession in
+            try await self.loadProgressLeaderboardServerBase(linkedSession: refreshedSession)
+        }
     }
 
     private func isCurrentProgressSummaryRefresh(
