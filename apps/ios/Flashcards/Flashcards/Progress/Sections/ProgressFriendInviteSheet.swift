@@ -90,11 +90,29 @@ struct ProgressFriendInviteSheet: View {
 
                 if let invitation {
                     Section {
-                        ShareLink(item: invitation.inviteUrl) {
+                        ShareLink(
+                            item: invitation.inviteUrl,
+                            subject: Text(
+                                String(
+                                    localized: "progress.friend_invite.share_subject",
+                                    defaultValue: "Flashcards friend invite",
+                                    table: progressStringsTableName,
+                                    comment: "Subject for sharing a created friend invite link"
+                                )
+                            ),
+                            message: Text(
+                                String(
+                                    localized: "progress.friend_invite.share_message",
+                                    defaultValue: "Open this Flashcards invite, sign in or sign up, and we will see each other in the app.",
+                                    table: progressStringsTableName,
+                                    comment: "Message for sharing a created friend invite link"
+                                )
+                            )
+                        ) {
                             Label(
                                 String(
                                     localized: "progress.friend_invite.share_button",
-                                    defaultValue: "Share Invite Link",
+                                    defaultValue: "Send Invite Link",
                                     table: progressStringsTableName,
                                     comment: "Button title for sharing a created friend invite link"
                                 ),
@@ -106,7 +124,7 @@ struct ProgressFriendInviteSheet: View {
                         Text(
                             String(
                                 localized: "progress.friend_invite.created_message",
-                                defaultValue: "Send this link to your friend. Invite links expire in 2 days.",
+                                defaultValue: "They can open it, sign in or sign up, and then you will see each other in the app. Invite links expire in 2 days.",
                                 table: progressStringsTableName,
                                 comment: "Message shown after creating a friend invite link"
                             )
@@ -117,7 +135,7 @@ struct ProgressFriendInviteSheet: View {
                         Text(
                             String(
                                 localized: "progress.friend_invite.created_title",
-                                defaultValue: "Invite link ready",
+                                defaultValue: "Send this link to your friend",
                                 table: progressStringsTableName,
                                 comment: "Section header shown after a friend invite link is created"
                             )
