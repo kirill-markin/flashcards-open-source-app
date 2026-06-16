@@ -17,7 +17,10 @@ fun FriendInvitationShareEffect(
             ?: return@LaunchedEffect
         val shareIntent = Intent(Intent.ACTION_SEND)
             .setType("text/plain")
-            .putExtra(Intent.EXTRA_TEXT, createdState.inviteUrl)
+            .putExtra(
+                Intent.EXTRA_TEXT,
+                context.getString(R.string.friend_invite_share_text, createdState.inviteUrl)
+            )
         context.startActivity(
             Intent.createChooser(
                 shareIntent,
