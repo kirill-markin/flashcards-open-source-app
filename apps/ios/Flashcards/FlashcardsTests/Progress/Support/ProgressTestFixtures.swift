@@ -63,6 +63,24 @@ func makeReviewedAtClientForTests(
     return formatIsoTimestamp(date: reviewedAt)
 }
 
+func makeProgressSeriesFromReviewedAtClients(
+    reviewedAtClients: [String],
+    requestRange: ProgressRequestRange
+) throws -> UserProgressSeries {
+    let reviewEvents: [ProgressReviewEventSource] = reviewedAtClients.enumerated().map { index, reviewedAtClient in
+        ProgressReviewEventSource(
+            reviewEventId: "test-review-event-\(index + 1)",
+            reviewedAtClient: reviewedAtClient,
+            rating: .good
+        )
+    }
+
+    return try makeProgressSeriesFromReviewEvents(
+        reviewEvents: reviewEvents,
+        requestRange: requestRange
+    )
+}
+
 func makeTestProgressSeries(
     requestRange: ProgressSeriesLoadRequest,
     reviewCountsByDate: [String: Int],
