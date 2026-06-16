@@ -123,6 +123,25 @@ struct ProgressReviewsSection: View {
         )
     }
 
+    private var visibleDateLabel: String? {
+        guard let visiblePage else {
+            return nil
+        }
+
+        if let selectedDayLocalDate,
+           let selectedDay = visiblePage.day(localDate: selectedDayLocalDate) {
+            return progressReviewChartDateLabel(
+                date: selectedDay.date,
+                calendar: self.chartCalendar
+            )
+        }
+
+        return progressReviewChartPageDateRange(
+            page: visiblePage,
+            calendar: self.chartCalendar
+        )
+    }
+
     private var visiblePageUpperBound: Int {
         guard let visiblePage else {
             return 1
@@ -155,13 +174,21 @@ struct ProgressReviewsSection: View {
             return []
         }
 
-        let totalReviewCount = visiblePage.days.reduce(0) { total, day in
+        let legendDays: [ProgressChartDay]
+        if let selectedDayLocalDate,
+           let selectedDay = visiblePage.day(localDate: selectedDayLocalDate) {
+            legendDays = [selectedDay]
+        } else {
+            legendDays = visiblePage.days
+        }
+
+        let totalReviewCount = legendDays.reduce(0) { total, day in
             total + day.reviewCount
         }
         return progressReviewRatingChartOrder.map { rating in
             ProgressReviewRatingLegendEntry(
                 rating: rating,
-                count: visiblePage.days.reduce(0) { total, day in
+                count: legendDays.reduce(0) { total, day in
                     total + progressReviewRatingCount(day: day, rating: rating)
                 },
                 totalReviewCount: totalReviewCount
@@ -183,12 +210,9 @@ struct ProgressReviewsSection: View {
                     )
                     .font(.headline)
 
-                    if let visiblePage = self.visiblePage {
+                    if let visibleDateLabel = self.visibleDateLabel {
                         Text(
-                            progressReviewChartPageDateRange(
-                                page: visiblePage,
-                                calendar: self.chartCalendar
-                            )
+                            visibleDateLabel
                         )
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
@@ -263,6 +287,7 @@ struct ProgressReviewsSection: View {
                 }
                 .chartLegend(.hidden)
                 .chartXSelection(value: self.chartDaySelectionBinding)
+                .chartXScale(domain: visiblePage.xAxisValues)
                 .chartYScale(domain: 0 ... self.visiblePageUpperBound)
                 .chartXAxis {
                     AxisMarks(values: visiblePage.xAxisValues) { value in
@@ -319,13 +344,6 @@ struct ProgressReviewsSection: View {
             }
         }
         .padding(.vertical, 4)
-        .background(
-            Color.clear
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    self.selection = nil
-                }
-        )
         .onChange(of: self.pageSelectionResetToken) { _, _ in
             self.selectedPageStartLocalDate = nil
             self.selection = nil

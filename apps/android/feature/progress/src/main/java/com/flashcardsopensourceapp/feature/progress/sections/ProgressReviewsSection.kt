@@ -148,11 +148,12 @@ internal fun ReviewsSectionCard(
     }
     val visiblePage = uiState.pages.getOrNull(selectedPageIndex)
     val hasChartSelection = selectedReviewDateKey != null || selectedRatingKey != null
-    val legendRows = remember(visiblePage, selectedRatingKey, locale) {
+    val legendRows = remember(visiblePage, selectedRatingKey, selectedReviewDateKey, locale) {
         visiblePage?.let { page ->
             createReviewRatingLegendRows(
                 page = page,
                 selectedRatingKey = selectedRatingKey,
+                selectedReviewDateKey = selectedReviewDateKey,
                 locale = locale
             )
         } ?: emptyList()
@@ -213,10 +214,10 @@ internal fun ReviewsSectionCard(
                         style = MaterialTheme.typography.titleLarge
                     )
                     visiblePage?.let { page ->
-                        val pageRangeLabel = remember(page.startDate, page.endDate, locale) {
-                            formatProgressReviewPageRange(
-                                startDate = page.startDate,
-                                endDate = page.endDate,
+                        val pageRangeLabel = remember(page, selectedReviewDateKey, locale) {
+                            formatProgressReviewVisibleDateLabel(
+                                page = page,
+                                selectedReviewDateKey = selectedReviewDateKey,
                                 locale = locale
                             )
                         }
@@ -238,6 +239,8 @@ internal fun ReviewsSectionCard(
                             onClick = {
                                 if (selectedPageIndex > 0) {
                                     selectedPageStartDateKey = uiState.pages[selectedPageIndex - 1].startDateKey
+                                    selectedReviewDateKey = null
+                                    selectedRatingKey = null
                                 }
                             }
                         ) {
@@ -254,6 +257,8 @@ internal fun ReviewsSectionCard(
                             onClick = {
                                 if (selectedPageIndex < uiState.pages.lastIndex) {
                                     selectedPageStartDateKey = uiState.pages[selectedPageIndex + 1].startDateKey
+                                    selectedReviewDateKey = null
+                                    selectedRatingKey = null
                                 }
                             }
                         ) {
@@ -340,7 +345,11 @@ internal fun ReviewsSectionCard(
                                         isSelected = isSelectedDay,
                                         isDimmed = selectedReviewDateKey != null && isSelectedDay.not(),
                                         onClick = {
-                                            selectedReviewDateKey = dayKey
+                                            selectedReviewDateKey = if (isSelectedDay) {
+                                                null
+                                            } else {
+                                                dayKey
+                                            }
                                             selectedRatingKey = null
                                         },
                                         modifier = Modifier
@@ -377,7 +386,11 @@ internal fun ReviewsSectionCard(
                         ReviewRatingLegend(
                             rows = legendRows,
                             onSelectRating = { ratingKey ->
-                                selectedRatingKey = ratingKey
+                                selectedRatingKey = if (selectedRatingKey == ratingKey) {
+                                    null
+                                } else {
+                                    ratingKey
+                                }
                                 selectedReviewDateKey = null
                             },
                             modifier = Modifier.fillMaxWidth()
@@ -670,11 +683,20 @@ private fun createReviewChartBarSegments(
 private fun createReviewRatingLegendRows(
     page: ProgressReviewPageUiState,
     selectedRatingKey: ReviewRatingChartKey?,
+    selectedReviewDateKey: String?,
     locale: Locale
 ): List<ReviewRatingLegendRowUiState> {
-    val totalReviewCount = page.days.sumOf(ProgressHistoryDayUiState::reviewCount)
+    val selectedDay = selectedReviewDateKey?.let { dateKey ->
+        page.days.firstOrNull { day -> day.date.toString() == dateKey }
+    }
+    val legendDays = if (selectedDay == null) {
+        page.days
+    } else {
+        listOf(selectedDay)
+    }
+    val totalReviewCount = legendDays.sumOf(ProgressHistoryDayUiState::reviewCount)
     return ReviewRatingChartKey.entries.map { ratingKey ->
-        val count = page.days.sumOf { day ->
+        val count = legendDays.sumOf { day ->
             ratingKey.reviewCount(day = day)
         }
         ReviewRatingLegendRowUiState(
@@ -690,6 +712,29 @@ private fun createReviewRatingLegendRows(
             isSelected = selectedRatingKey == ratingKey
         )
     }
+}
+
+private fun formatProgressReviewVisibleDateLabel(
+    page: ProgressReviewPageUiState,
+    selectedReviewDateKey: String?,
+    locale: Locale
+): String {
+    val selectedDay = selectedReviewDateKey?.let { dateKey ->
+        page.days.firstOrNull { day -> day.date.toString() == dateKey }
+    }
+
+    if (selectedDay != null) {
+        return formatProgressReviewDayContentDescriptionLabel(
+            date = selectedDay.date,
+            locale = locale
+        )
+    }
+
+    return formatProgressReviewPageRange(
+        startDate = page.startDate,
+        endDate = page.endDate,
+        locale = locale
+    )
 }
 
 private fun calculateVisibleReviewChartUpperBound(
