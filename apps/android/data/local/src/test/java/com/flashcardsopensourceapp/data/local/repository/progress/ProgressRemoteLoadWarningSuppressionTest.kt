@@ -17,6 +17,7 @@ import com.flashcardsopensourceapp.data.local.repository.progress.runtime.should
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressReviewScheduleStoreState
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressSeriesStoreState
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressSummaryStoreState
+import java.net.MalformedURLException
 import java.net.UnknownHostException
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -230,6 +231,18 @@ class ProgressRemoteLoadWarningSuppressionTest {
     }
 
     @Test
+    fun progressRefreshWarningIsNotCapturedForNestedTransientNetworkFailure(): Unit {
+        assertFalse(
+            shouldCaptureProgressRefreshWarning(
+                error = IllegalStateException(
+                    "Cloud sync failed.",
+                    UnknownHostException("Unable to resolve host api.flashcards-open-source-app.com")
+                )
+            )
+        )
+    }
+
+    @Test
     fun progressRefreshWarningIsNotCapturedForRetryableHttpFailure(): Unit {
         assertFalse(
             shouldCaptureProgressRefreshWarning(
@@ -241,6 +254,31 @@ class ProgressRemoteLoadWarningSuppressionTest {
                     requestId = "request-1",
                     syncConflict = null
                 )
+            )
+        )
+    }
+
+    @Test
+    fun progressRefreshWarningIsCapturedForNonRetryableHttpFailure(): Unit {
+        assertTrue(
+            shouldCaptureProgressRefreshWarning(
+                error = CloudRemoteException(
+                    message = "Bad request.",
+                    statusCode = 400,
+                    responseBody = "",
+                    errorCode = null,
+                    requestId = "request-1",
+                    syncConflict = null
+                )
+            )
+        )
+    }
+
+    @Test
+    fun progressRefreshWarningIsCapturedForNonTransientIoFailure(): Unit {
+        assertTrue(
+            shouldCaptureProgressRefreshWarning(
+                error = MalformedURLException("bad://url")
             )
         )
     }
