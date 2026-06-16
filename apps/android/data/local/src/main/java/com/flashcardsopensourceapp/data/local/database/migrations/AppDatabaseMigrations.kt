@@ -27,7 +27,8 @@ fun createAppDatabaseMigrations(): Array<Migration> {
         migration17To18,
         migration18To19,
         migration19To20,
-        migration20To21
+        migration20To21,
+        migration21To22
     )
 }
 
@@ -797,6 +798,18 @@ val migration20To21: Migration = object : Migration(20, 21) {
             """
             ALTER TABLE progress_series_cache
             ADD COLUMN streakDaysJson TEXT NOT NULL DEFAULT '[]'
+            """.trimIndent()
+        )
+    }
+}
+
+val migration21To22: Migration = object : Migration(21, 22) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("DELETE FROM progress_summary_cache")
+        db.execSQL(
+            """
+            ALTER TABLE progress_summary_cache
+            ADD COLUMN streakFreezeEarnedUnitsPerStreakDay INTEGER NOT NULL DEFAULT 1
             """.trimIndent()
         )
     }

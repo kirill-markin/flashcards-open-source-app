@@ -160,8 +160,6 @@ internal fun createProgressSummaryStoreState(
             cloudState = inputs.cloudState
         ).renderedSeries
         createProgressRenderedSeriesSummaryContext(
-            serverBase = inputs.seriesServerBase,
-            scopeKey = inputs.seriesScopeKey,
             renderedSeries = renderedSeries
         )
     } else {

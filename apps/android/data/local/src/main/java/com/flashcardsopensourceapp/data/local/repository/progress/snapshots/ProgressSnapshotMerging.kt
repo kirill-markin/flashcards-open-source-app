@@ -5,9 +5,10 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.progress.CloudDailyReviewPoint
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakDay
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakDayState
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakFreeze
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
-import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewHistoryWatermark
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesScopeKey
@@ -17,10 +18,7 @@ import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummaryScop
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
 
 internal data class ProgressRenderedSeriesSummaryContext(
-    val lowerBoundSummary: CloudProgressSummary,
-    val activeDates: Set<String>,
-    val activeDatesMissingFromServerBase: Set<String>,
-    val serverBaseReviewHistoryWatermarks: List<ProgressReviewHistoryWatermark>?
+    val activeDates: Set<String>
 )
 
 internal fun createProgressSummarySnapshot(
@@ -35,7 +33,6 @@ internal fun createProgressSummarySnapshot(
         serverBase == null -> localFallback
         else -> mergeProgressSummary(
             base = serverBase,
-            localFallback = localFallback,
             localFallbackActiveDates = localFallbackActiveDates,
             renderedSeriesContext = renderedSeriesContext,
             referenceLocalDate = scopeKey.referenceLocalDate
@@ -161,72 +158,35 @@ internal fun createProgressReviewScheduleSnapshot(
 
 internal fun mergeProgressSummary(
     base: CloudProgressSummary,
-    localFallback: CloudProgressSummary,
     localFallbackActiveDates: Set<String>,
     renderedSeriesContext: ProgressRenderedSeriesSummaryContext?,
     referenceLocalDate: String
 ): CloudProgressSummary {
-    val renderedSeriesLowerBound = renderedSeriesContext?.lowerBoundSummary
-    val serverAndSeriesShareReviewHistoryBase = progressServerAndSeriesShareReviewHistoryBase(
-        serverBaseReviewHistoryWatermarks = base.reviewHistoryWatermarks,
-        renderedSeriesContext = renderedSeriesContext
-    )
-    val serverActiveReviewDaysWithRenderedDelta = base.activeReviewDays +
-        progressActiveReviewDayDelta(
-            activeReviewDayDeltaCandidates = progressActiveReviewDayDeltaCandidates(
-                renderedSeriesContext = renderedSeriesContext,
-                localFallbackActiveDates = localFallbackActiveDates,
-                serverBase = base,
-                serverAndSeriesShareReviewHistoryBase = serverAndSeriesShareReviewHistoryBase
-            ),
-            serverBase = base,
-            serverAndSeriesShareReviewHistoryBase = serverAndSeriesShareReviewHistoryBase,
-            referenceLocalDate = referenceLocalDate
-        )
-    val serverCurrentStreakDaysWithRenderedDelta = progressCurrentStreakDaysWithRenderedDelta(
+    val hasReferenceDateReviewOverlay = progressHasReferenceDateReviewOverlay(
         serverBase = base,
         localFallbackActiveDates = localFallbackActiveDates,
         renderedSeriesActiveDates = renderedSeriesContext?.activeDates,
         referenceLocalDate = referenceLocalDate
     )
-    val renderedCurrentStreakDays = maxOf(
-        serverCurrentStreakDaysWithRenderedDelta,
-        localFallback.currentStreakDays,
-        renderedSeriesLowerBound?.currentStreakDays ?: 0
-    )
+    val referenceDateReviewDelta = if (hasReferenceDateReviewOverlay) 1 else 0
+    val renderedCurrentStreakDays = base.currentStreakDays + referenceDateReviewDelta
 
     return CloudProgressSummary(
         currentStreakDays = renderedCurrentStreakDays,
         longestStreakDays = maxOf(
             base.longestStreakDays,
-            localFallback.longestStreakDays,
-            renderedSeriesLowerBound?.longestStreakDays ?: 0,
             renderedCurrentStreakDays
         ),
-        hasReviewedToday = base.hasReviewedToday ||
-            localFallback.hasReviewedToday ||
-            (renderedSeriesLowerBound?.hasReviewedToday == true),
-        lastReviewedOn = maxLocalDate(
-            first = maxLocalDate(
-                first = base.lastReviewedOn,
-                second = localFallback.lastReviewedOn
-            ),
-            second = renderedSeriesLowerBound?.lastReviewedOn
-        ),
-        activeReviewDays = maxOf(
-            serverActiveReviewDaysWithRenderedDelta,
-            localFallback.activeReviewDays,
-            renderedSeriesLowerBound?.activeReviewDays ?: 0
-        ),
-        streakFreeze = selectProgressStreakFreeze(
+        hasReviewedToday = base.hasReviewedToday || hasReferenceDateReviewOverlay,
+        lastReviewedOn = if (hasReferenceDateReviewOverlay) {
+            referenceLocalDate
+        } else {
+            base.lastReviewedOn
+        },
+        activeReviewDays = base.activeReviewDays + referenceDateReviewDelta,
+        streakFreeze = progressStreakFreezeWithReferenceDateOverlay(
             base = base,
-            localFallback = localFallback,
-            localFallbackActiveDates = localFallbackActiveDates,
-            renderedSeriesLowerBound = renderedSeriesLowerBound,
-            renderedSeriesActiveDates = renderedSeriesContext?.activeDates,
-            renderedCurrentStreakDays = renderedCurrentStreakDays,
-            serverCurrentStreakDaysWithRenderedDelta = serverCurrentStreakDaysWithRenderedDelta,
-            referenceLocalDate = referenceLocalDate
+            hasReferenceDateReviewOverlay = hasReferenceDateReviewOverlay
         ),
         reviewHistoryWatermarks = base.reviewHistoryWatermarks
     )
@@ -260,11 +220,9 @@ internal fun mergeProgressSeries(
     val visibleMergedActiveDateSet = mergedDailyReviews.filter { point ->
         point.reviewCount > 0
     }.map(CloudDailyReviewPoint::date).toSet()
-    val mergedStreakDays = createProgressStreakDaysForRange(
-        activeReviewDateSet = activeReviewDateSet + visibleMergedActiveDateSet,
-        from = base.from,
-        to = base.to,
-        today = parseLocalDate(rawDate = base.to)
+    val mergedStreakDays = patchProgressSeriesTodayStreakDay(
+        base = base,
+        mergedActiveDateSet = activeReviewDateSet + visibleMergedActiveDateSet
     )
     return CloudProgressSeries(
         timeZone = base.timeZone,
@@ -279,126 +237,22 @@ internal fun mergeProgressSeries(
 }
 
 internal fun createProgressRenderedSeriesSummaryContext(
-    serverBase: CloudProgressSeries?,
-    scopeKey: ProgressSeriesScopeKey,
     renderedSeries: CloudProgressSeries
 ): ProgressRenderedSeriesSummaryContext {
-    val activeDates = progressActiveDatesFromSeries(series = renderedSeries)
-    val activeDatesMissingFromServerBase: Set<String>
-    val serverBaseReviewHistoryWatermarks: List<ProgressReviewHistoryWatermark>?
-    if (serverBase != null && isProgressSeriesInScope(series = serverBase, scopeKey = scopeKey)) {
-        activeDatesMissingFromServerBase = progressActiveDatesMissingFromServerBase(
-            serverBase = serverBase,
-            renderedSeries = renderedSeries
-        )
-        serverBaseReviewHistoryWatermarks = serverBase.reviewHistoryWatermarks
-    } else {
-        activeDatesMissingFromServerBase = emptySet()
-        serverBaseReviewHistoryWatermarks = null
-    }
-
     return ProgressRenderedSeriesSummaryContext(
-        lowerBoundSummary = createProgressSummaryLowerBoundFromSeries(
-            series = renderedSeries,
-            activeDates = activeDates
-        ),
-        activeDates = activeDates,
-        activeDatesMissingFromServerBase = activeDatesMissingFromServerBase,
-        serverBaseReviewHistoryWatermarks = serverBaseReviewHistoryWatermarks
+        activeDates = progressActiveDatesFromSeries(series = renderedSeries)
     )
 }
 
-private fun createProgressSummaryLowerBoundFromSeries(
-    series: CloudProgressSeries,
-    activeDates: Set<String>
-): CloudProgressSummary {
-    val today = parseLocalDate(rawDate = series.to)
-    val sortedActiveDates = activeDates.sorted()
-    val streakEvaluation = evaluateProgressStreakFreeze(
-        sortedActiveReviewLocalDates = sortedActiveDates,
-        today = today
-    )
-
-    return CloudProgressSummary(
-        currentStreakDays = streakEvaluation.currentStreakDays,
-        longestStreakDays = streakEvaluation.longestStreakDays,
-        hasReviewedToday = activeDates.contains(series.to),
-        lastReviewedOn = sortedActiveDates.lastOrNull(),
-        activeReviewDays = activeDates.size,
-        streakFreeze = streakEvaluation.streakFreeze,
-        reviewHistoryWatermarks = emptyList()
-    )
-}
-
-private fun selectProgressStreakFreeze(
+private fun progressStreakFreezeWithReferenceDateOverlay(
     base: CloudProgressSummary,
-    localFallback: CloudProgressSummary,
-    localFallbackActiveDates: Set<String>,
-    renderedSeriesLowerBound: CloudProgressSummary?,
-    renderedSeriesActiveDates: Set<String>?,
-    renderedCurrentStreakDays: Int,
-    serverCurrentStreakDaysWithRenderedDelta: Int,
-    referenceLocalDate: String
+    hasReferenceDateReviewOverlay: Boolean
 ): CloudProgressStreakFreeze {
-    val baseWithRenderedOverlay = progressStreakFreezeWithRenderedOverlay(
-        base = base,
-        localFallbackActiveDates = localFallbackActiveDates,
-        renderedSeriesActiveDates = renderedSeriesActiveDates,
-        referenceLocalDate = referenceLocalDate
-    )
-    if (serverCurrentStreakDaysWithRenderedDelta == renderedCurrentStreakDays) {
-        return baseWithRenderedOverlay
-    }
-
-    val matchingCandidate = listOfNotNull(
-        renderedSeriesLowerBound,
-        localFallback
-    ).firstOrNull { candidate ->
-        candidate.currentStreakDays == renderedCurrentStreakDays
-    }
-    if (matchingCandidate != null) {
-        return matchingCandidate.streakFreeze
-    }
-
-    return baseWithRenderedOverlay
-}
-
-private fun progressStreakFreezeWithRenderedOverlay(
-    base: CloudProgressSummary,
-    localFallbackActiveDates: Set<String>,
-    renderedSeriesActiveDates: Set<String>?,
-    referenceLocalDate: String
-): CloudProgressStreakFreeze {
-    if (base.hasReviewedToday || base.currentStreakDays <= 0) {
+    if (hasReferenceDateReviewOverlay.not()) {
         return base.streakFreeze
     }
 
-    val activeDates = localFallbackActiveDates + (renderedSeriesActiveDates ?: emptySet())
-    val completedOverlayDates = progressCompletedOverlayDatesAfterServerLastReview(
-        activeDates = activeDates,
-        base = base,
-        referenceLocalDate = referenceLocalDate
-    )
-    val freezeAfterCompletedOverlay = completedOverlayDates.fold(base.streakFreeze) { streakFreeze, _ ->
-        refundSpentProgressStreakFreezeCredit(streakFreeze = streakFreeze)
-    }
-    if (activeDates.contains(referenceLocalDate).not()) {
-        return freezeAfterCompletedOverlay
-    }
-
-    return addReviewedDayProgressStreakFreezeCredit(streakFreeze = freezeAfterCompletedOverlay)
-}
-
-private fun progressCompletedOverlayDatesAfterServerLastReview(
-    activeDates: Set<String>,
-    base: CloudProgressSummary,
-    referenceLocalDate: String
-): List<String> {
-    val lastReviewedOn = base.lastReviewedOn ?: return emptyList()
-    return activeDates.filter { localDate ->
-        isLocalDateAfter(first = localDate, second = lastReviewedOn) &&
-            isLocalDateAfter(first = referenceLocalDate, second = localDate)
-    }.sorted()
+    return addProgressStreakFreezeEarnedUnits(streakFreeze = base.streakFreeze)
 }
 
 private fun progressActiveDatesFromSeries(
@@ -410,146 +264,64 @@ private fun progressActiveDatesFromSeries(
     }.keys.toSet()
 }
 
-private fun progressActiveDatesMissingFromServerBase(
-    serverBase: CloudProgressSeries,
-    renderedSeries: CloudProgressSeries
-): Set<String> {
-    validateProgressSeriesPairInputs(
-        base = serverBase,
-        renderedSeries = renderedSeries
-    )
-
-    val serverCountsByDate = buildProgressSeriesReviewCountsByDate(series = serverBase)
-    val renderedCountsByDate = buildProgressSeriesReviewCountsByDate(series = renderedSeries)
-    return createInclusiveLocalDateRange(
-        from = serverBase.from,
-        to = serverBase.to
-    ).filter { date ->
-        (renderedCountsByDate[date] ?: 0) > 0 &&
-            (serverCountsByDate[date] ?: 0) == 0
-    }.toSet()
-}
-
-private fun validateProgressSeriesPairInputs(
-    base: CloudProgressSeries,
-    renderedSeries: CloudProgressSeries
-) {
-    validateProgressSeriesMergeInput(
-        base = base,
-        candidate = renderedSeries,
-        candidateName = "renderedSeries"
-    )
-}
-
-private fun isProgressSeriesInScope(
-    series: CloudProgressSeries,
-    scopeKey: ProgressSeriesScopeKey
-): Boolean {
-    return series.timeZone == scopeKey.timeZone &&
-        series.from == scopeKey.from &&
-        series.to == scopeKey.to
-}
-
-private fun progressServerAndSeriesShareReviewHistoryBase(
-    serverBaseReviewHistoryWatermarks: List<ProgressReviewHistoryWatermark>,
-    renderedSeriesContext: ProgressRenderedSeriesSummaryContext?
-): Boolean {
-    val seriesBaseReviewHistoryWatermarks = renderedSeriesContext?.serverBaseReviewHistoryWatermarks ?: return false
-    if (serverBaseReviewHistoryWatermarks.isEmpty() || seriesBaseReviewHistoryWatermarks.isEmpty()) {
-        return false
-    }
-    return seriesBaseReviewHistoryWatermarks == serverBaseReviewHistoryWatermarks
-}
-
-private fun progressActiveReviewDayDeltaCandidates(
-    renderedSeriesContext: ProgressRenderedSeriesSummaryContext?,
-    localFallbackActiveDates: Set<String>,
-    serverBase: CloudProgressSummary,
-    serverAndSeriesShareReviewHistoryBase: Boolean
-): Set<String> {
-    val renderedSeriesCandidates: Set<String> = if (renderedSeriesContext != null) {
-        if (serverAndSeriesShareReviewHistoryBase) {
-            renderedSeriesContext.activeDatesMissingFromServerBase
-        } else {
-            renderedSeriesContext.activeDates
-        }
-    } else {
-        emptySet()
-    }
-
-    return renderedSeriesCandidates + progressLocalFallbackActiveReviewDayDeltaCandidates(
-        localFallbackActiveDates = localFallbackActiveDates,
-        serverBase = serverBase
-    )
-}
-
-private fun progressLocalFallbackActiveReviewDayDeltaCandidates(
-    localFallbackActiveDates: Set<String>,
-    serverBase: CloudProgressSummary
-): Set<String> {
-    val lastReviewedOn = serverBase.lastReviewedOn ?: return localFallbackActiveDates
-    return localFallbackActiveDates.filter { localDate ->
-        isLocalDateAfter(
-            first = localDate,
-            second = lastReviewedOn
-        )
-    }.toSet()
-}
-
-private fun progressActiveReviewDayDelta(
-    activeReviewDayDeltaCandidates: Set<String>,
-    serverBase: CloudProgressSummary,
-    serverAndSeriesShareReviewHistoryBase: Boolean,
-    referenceLocalDate: String
-): Int {
-    return activeReviewDayDeltaCandidates.count { localDate ->
-        progressShouldApplyActiveReviewDayDelta(
-            localDate = localDate,
-            serverBase = serverBase,
-            serverAndSeriesShareReviewHistoryBase = serverAndSeriesShareReviewHistoryBase,
-            referenceLocalDate = referenceLocalDate
-        )
-    }
-}
-
-private fun progressShouldApplyActiveReviewDayDelta(
-    localDate: String,
-    serverBase: CloudProgressSummary,
-    serverAndSeriesShareReviewHistoryBase: Boolean,
-    referenceLocalDate: String
-): Boolean {
-    if (localDate == referenceLocalDate && serverBase.hasReviewedToday) {
-        return false
-    }
-    if (serverAndSeriesShareReviewHistoryBase) {
-        return true
-    }
-
-    val lastReviewedOn = serverBase.lastReviewedOn ?: return true
-    return isLocalDateAfter(
-        first = localDate,
-        second = lastReviewedOn
-    )
-}
-
-private fun progressCurrentStreakDaysWithRenderedDelta(
+private fun progressHasReferenceDateReviewOverlay(
     serverBase: CloudProgressSummary,
     localFallbackActiveDates: Set<String>,
     renderedSeriesActiveDates: Set<String>?,
     referenceLocalDate: String
-): Int {
+): Boolean {
     if (serverBase.hasReviewedToday) {
-        return serverBase.currentStreakDays
-    }
-    if (serverBase.currentStreakDays <= 0) {
-        return serverBase.currentStreakDays
-    }
-    val activeDates: Set<String> = localFallbackActiveDates + (renderedSeriesActiveDates ?: emptySet())
-    if (activeDates.contains(referenceLocalDate).not()) {
-        return serverBase.currentStreakDays
+        return false
     }
 
-    return serverBase.currentStreakDays + 1
+    val activeDates: Set<String> = localFallbackActiveDates + (renderedSeriesActiveDates ?: emptySet())
+    return activeDates.contains(referenceLocalDate)
+}
+
+private fun addProgressStreakFreezeEarnedUnits(
+    streakFreeze: CloudProgressStreakFreeze
+): CloudProgressStreakFreeze {
+    val balanceUnits = minOf(
+        streakFreeze.balanceUnits.toLong() + streakFreeze.earnedUnitsPerStreakDay.toLong(),
+        streakFreeze.capacity.toLong() * streakFreeze.unitsPerCredit.toLong(),
+        Int.MAX_VALUE.toLong()
+    ).toInt()
+    val availableCredits = minOf(
+        streakFreeze.capacity,
+        balanceUnits / streakFreeze.unitsPerCredit
+    )
+
+    return streakFreeze.copy(
+        availableCredits = availableCredits,
+        balanceUnits = balanceUnits,
+        nextCreditProgressUnits = if (availableCredits >= streakFreeze.capacity) {
+            0
+        } else {
+            balanceUnits % streakFreeze.unitsPerCredit
+        },
+        nextCreditRequiredUnits = streakFreeze.unitsPerCredit
+    )
+}
+
+private fun patchProgressSeriesTodayStreakDay(
+    base: CloudProgressSeries,
+    mergedActiveDateSet: Set<String>
+): List<CloudProgressStreakDay> {
+    if (mergedActiveDateSet.contains(base.to).not()) {
+        return base.streakDays
+    }
+    val serverTodayReviewCount = buildProgressSeriesReviewCountsByDate(series = base)[base.to] ?: 0
+    if (serverTodayReviewCount > 0) {
+        return base.streakDays
+    }
+
+    return base.streakDays.map { day ->
+        if (day.date == base.to) {
+            day.copy(state = CloudProgressStreakDayState.REVIEWED)
+        } else {
+            day
+        }
+    }
 }
 
 private fun validateProgressSeriesMergeInputs(

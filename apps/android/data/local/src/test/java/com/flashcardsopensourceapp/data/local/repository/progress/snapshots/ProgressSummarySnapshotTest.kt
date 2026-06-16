@@ -8,8 +8,10 @@ import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummar
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewHistoryWatermark
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSnapshotSource
+import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.repository.progress.createCloudSettings
 import com.flashcardsopensourceapp.data.local.repository.progress.createProgressLocalDayCount
+import com.flashcardsopensourceapp.data.local.repository.progress.inputs.ProgressPendingReviewLocalDate
 import java.time.LocalDate
 import java.time.ZoneId
 import org.junit.Assert.assertEquals
@@ -161,6 +163,7 @@ class ProgressSummarySnapshotTest {
                 capacity = 2,
                 balanceUnits = 2,
                 unitsPerCredit = 10,
+                earnedUnitsPerStreakDay = 1,
                 nextCreditProgressUnits = 2,
                 nextCreditRequiredUnits = 10
             ),
@@ -259,7 +262,90 @@ class ProgressSummarySnapshotTest {
     }
 
     @Test
-    fun longServerStreakRefundsFrozenYesterdayAndCreditsLocalToday() {
+    fun pendingTodayReviewUpdatesServerBaseSummaryAndClampsFreezeCapacity() {
+        val summaryScopeKey = createProgressSummaryScopeKey(
+            cloudSettings = createCloudSettings(cloudState = CloudAccountState.LINKED),
+            today = LocalDate.parse("2026-04-18"),
+            zoneId = ZoneId.of("Europe/Madrid")
+        )
+        val seriesScopeKey = createProgressSeriesScopeKey(
+            cloudSettings = createCloudSettings(cloudState = CloudAccountState.LINKED),
+            today = LocalDate.parse("2026-04-18"),
+            zoneId = ZoneId.of("Europe/Madrid")
+        )
+        val localFallback = createLocalFallbackSummary(
+            scopeKey = summaryScopeKey,
+            localDayCounts = emptyList(),
+            workspaceIds = listOf("workspace-1"),
+            today = LocalDate.parse("2026-04-18")
+        )
+        val serverWatermarks = createWatermarks(reviewSequenceId = 42L)
+        val serverSeries = createSeries(
+            scopeKey = seriesScopeKey,
+            reviewCountsByDate = emptyMap(),
+            reviewHistoryWatermarks = serverWatermarks
+        )
+        val renderedSeriesContext = createRenderedSeriesContext(
+            scopeKey = seriesScopeKey,
+            serverBase = serverSeries,
+            localFallback = createLocalFallbackSeries(
+                scopeKey = seriesScopeKey,
+                localDayCounts = emptyList(),
+                workspaceIds = listOf("workspace-1")
+            ),
+            pendingLocalOverlay = createPendingLocalOverlaySeries(
+                scopeKey = seriesScopeKey,
+                pendingReviewLocalDates = listOf(
+                    ProgressPendingReviewLocalDate(
+                        workspaceId = "workspace-1",
+                        localDate = "2026-04-18",
+                        rating = ReviewRating.GOOD
+                    )
+                ),
+                workspaceIds = listOf("workspace-1")
+            )
+        )
+        val serverBase = CloudProgressSummary(
+            currentStreakDays = 0,
+            longestStreakDays = 0,
+            hasReviewedToday = false,
+            lastReviewedOn = null,
+            activeReviewDays = 0,
+            streakFreeze = CloudProgressStreakFreeze(
+                availableCredits = 2,
+                capacity = 3,
+                balanceUnits = 29,
+                unitsPerCredit = 10,
+                earnedUnitsPerStreakDay = 2,
+                nextCreditProgressUnits = 9,
+                nextCreditRequiredUnits = 10
+            ),
+            reviewHistoryWatermarks = serverWatermarks
+        )
+
+        val snapshot = createProgressSummarySnapshot(
+            scopeKey = summaryScopeKey,
+            localFallback = localFallback,
+            localFallbackActiveDates = emptySet(),
+            serverBase = serverBase,
+            renderedSeriesContext = renderedSeriesContext,
+            cloudState = CloudAccountState.LINKED
+        )
+
+        assertEquals(ProgressSnapshotSource.SERVER_BASE_WITH_LOCAL_OVERLAY, snapshot.source)
+        assertEquals(1, snapshot.renderedSummary.currentStreakDays)
+        assertEquals(1, snapshot.renderedSummary.longestStreakDays)
+        assertEquals(true, snapshot.renderedSummary.hasReviewedToday)
+        assertEquals("2026-04-18", snapshot.renderedSummary.lastReviewedOn)
+        assertEquals(1, snapshot.renderedSummary.activeReviewDays)
+        assertEquals(3, snapshot.renderedSummary.streakFreeze.capacity)
+        assertEquals(3, snapshot.renderedSummary.streakFreeze.availableCredits)
+        assertEquals(30, snapshot.renderedSummary.streakFreeze.balanceUnits)
+        assertEquals(0, snapshot.renderedSummary.streakFreeze.nextCreditProgressUnits)
+    }
+
+    @Test
+    fun longServerStreakCreditsLocalTodayWithoutRefundingFrozenYesterday() {
         val summaryScopeKey = createProgressSummaryScopeKey(
             cloudSettings = createCloudSettings(cloudState = CloudAccountState.LINKED),
             today = LocalDate.parse("2026-04-20"),
@@ -332,14 +418,14 @@ class ProgressSummarySnapshotTest {
         assertEquals(201, snapshot.renderedSummary.currentStreakDays)
         assertEquals(true, snapshot.renderedSummary.hasReviewedToday)
         assertEquals("2026-04-20", snapshot.renderedSummary.lastReviewedOn)
-        assertEquals(202, snapshot.renderedSummary.activeReviewDays)
-        assertEquals(2, snapshot.renderedSummary.streakFreeze.availableCredits)
-        assertEquals(20, snapshot.renderedSummary.streakFreeze.balanceUnits)
-        assertEquals(0, snapshot.renderedSummary.streakFreeze.nextCreditProgressUnits)
+        assertEquals(201, snapshot.renderedSummary.activeReviewDays)
+        assertEquals(1, snapshot.renderedSummary.streakFreeze.availableCredits)
+        assertEquals(12, snapshot.renderedSummary.streakFreeze.balanceUnits)
+        assertEquals(2, snapshot.renderedSummary.streakFreeze.nextCreditProgressUnits)
     }
 
     @Test
-    fun longServerStreakRefundsFrozenYesterdayWithoutChangingCurrentStreak() {
+    fun olderLocalActiveDateDoesNotChangeServerBaseSummary() {
         val summaryScopeKey = createProgressSummaryScopeKey(
             cloudSettings = createCloudSettings(cloudState = CloudAccountState.LINKED),
             today = LocalDate.parse("2026-04-20"),
@@ -403,18 +489,18 @@ class ProgressSummarySnapshotTest {
             cloudState = CloudAccountState.LINKED
         )
 
-        assertEquals(ProgressSnapshotSource.SERVER_BASE_WITH_LOCAL_OVERLAY, snapshot.source)
+        assertEquals(ProgressSnapshotSource.SERVER_BASE, snapshot.source)
         assertEquals(200, snapshot.renderedSummary.currentStreakDays)
         assertEquals(false, snapshot.renderedSummary.hasReviewedToday)
-        assertEquals("2026-04-19", snapshot.renderedSummary.lastReviewedOn)
-        assertEquals(201, snapshot.renderedSummary.activeReviewDays)
-        assertEquals(2, snapshot.renderedSummary.streakFreeze.availableCredits)
-        assertEquals(20, snapshot.renderedSummary.streakFreeze.balanceUnits)
-        assertEquals(0, snapshot.renderedSummary.streakFreeze.nextCreditProgressUnits)
+        assertEquals("2026-04-18", snapshot.renderedSummary.lastReviewedOn)
+        assertEquals(200, snapshot.renderedSummary.activeReviewDays)
+        assertEquals(1, snapshot.renderedSummary.streakFreeze.availableCredits)
+        assertEquals(11, snapshot.renderedSummary.streakFreeze.balanceUnits)
+        assertEquals(1, snapshot.renderedSummary.streakFreeze.nextCreditProgressUnits)
     }
 
     @Test
-    fun localActiveDateOutsideVisibleChartRangeExtendsActiveDays() {
+    fun localActiveDateOutsideVisibleChartRangeDoesNotChangeServerBaseSummary() {
         val summaryScopeKey = createProgressSummaryScopeKey(
             cloudSettings = createCloudSettings(cloudState = CloudAccountState.LINKED),
             today = LocalDate.parse("2026-04-18"),
@@ -478,10 +564,11 @@ class ProgressSummarySnapshotTest {
             cloudState = CloudAccountState.LINKED
         )
 
+        assertEquals(ProgressSnapshotSource.SERVER_BASE, snapshot.source)
         assertEquals(0, snapshot.renderedSummary.currentStreakDays)
         assertEquals(false, snapshot.renderedSummary.hasReviewedToday)
-        assertEquals("2025-12-02", snapshot.renderedSummary.lastReviewedOn)
-        assertEquals(201, snapshot.renderedSummary.activeReviewDays)
+        assertEquals("2025-12-01", snapshot.renderedSummary.lastReviewedOn)
+        assertEquals(200, snapshot.renderedSummary.activeReviewDays)
     }
 
     @Test
@@ -557,7 +644,7 @@ class ProgressSummarySnapshotTest {
     }
 
     @Test
-    fun disjointVisibleServerAndLocalDatesKeepSummaryConsistentWithRenderedSeries() {
+    fun disjointVisibleServerAndLocalDatesOnlyApplyTodayStreakDelta() {
         val summaryScopeKey = createProgressSummaryScopeKey(
             cloudSettings = createCloudSettings(cloudState = CloudAccountState.LINKED),
             today = LocalDate.parse("2026-04-18"),
@@ -621,7 +708,7 @@ class ProgressSummarySnapshotTest {
             cloudState = CloudAccountState.LINKED
         )
 
-        assertEquals(3, snapshot.renderedSummary.currentStreakDays)
+        assertEquals(1, snapshot.renderedSummary.currentStreakDays)
         assertEquals(true, snapshot.renderedSummary.hasReviewedToday)
         assertEquals("2026-04-18", snapshot.renderedSummary.lastReviewedOn)
         assertEquals(2, snapshot.renderedSummary.activeReviewDays)
@@ -697,7 +784,7 @@ class ProgressSummarySnapshotTest {
             cloudState = CloudAccountState.LINKED
         )
 
-        assertEquals(3, snapshot.renderedSummary.currentStreakDays)
+        assertEquals(2, snapshot.renderedSummary.currentStreakDays)
         assertEquals(true, snapshot.renderedSummary.hasReviewedToday)
         assertEquals("2026-04-18", snapshot.renderedSummary.lastReviewedOn)
         assertEquals(201, snapshot.renderedSummary.activeReviewDays)
@@ -721,8 +808,6 @@ class ProgressSummarySnapshotTest {
             cloudState = CloudAccountState.LINKED
         ).renderedSeries
         return createProgressRenderedSeriesSummaryContext(
-            serverBase = serverBase,
-            scopeKey = scopeKey,
             renderedSeries = renderedSeries
         )
     }
@@ -797,6 +882,7 @@ class ProgressSummarySnapshotTest {
             capacity = 2,
             balanceUnits = 11,
             unitsPerCredit = 10,
+            earnedUnitsPerStreakDay = 1,
             nextCreditProgressUnits = 1,
             nextCreditRequiredUnits = 10
         )

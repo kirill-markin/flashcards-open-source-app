@@ -7,6 +7,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.progress.CloudDailyReviewPoint
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRankingRowKind
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakFreeze
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
@@ -46,6 +47,7 @@ class ProgressCacheValidationTest {
             streakFreezeCapacity = 2,
             streakFreezeBalanceUnits = 20,
             streakFreezeUnitsPerCredit = 10,
+            streakFreezeEarnedUnitsPerStreakDay = 1,
             streakFreezeNextCreditProgressUnits = 0,
             streakFreezeNextCreditRequiredUnits = 10,
             updatedAtMillis = 1L
@@ -87,6 +89,42 @@ class ProgressCacheValidationTest {
         )
 
         assertEquals(null, cacheEntity.toCloudProgressReviewScheduleOrNull())
+    }
+
+    @Test
+    fun progressSummaryCachePreservesServerStreakFreezePolicy(): Unit {
+        val scopeKey = createProgressSummaryScopeKey(
+            cloudSettings = createCloudSettings(cloudState = CloudAccountState.LINKED),
+            today = LocalDate.parse("2026-04-18"),
+            zoneId = ZoneId.of("Europe/Madrid")
+        )
+        val summary = CloudProgressSummary(
+            currentStreakDays = 4,
+            longestStreakDays = 4,
+            hasReviewedToday = false,
+            lastReviewedOn = "2026-04-17",
+            activeReviewDays = 9,
+            streakFreeze = CloudProgressStreakFreeze(
+                availableCredits = 2,
+                capacity = 3,
+                balanceUnits = 25,
+                unitsPerCredit = 10,
+                earnedUnitsPerStreakDay = 2,
+                nextCreditProgressUnits = 5,
+                nextCreditRequiredUnits = 10
+            ),
+            reviewHistoryWatermarks = emptyList()
+        )
+
+        val restoredSummary = summary.toCacheEntity(
+            scopeKey = scopeKey,
+            updatedAtMillis = 1L
+        ).toCloudProgressSummaryOrNull()
+
+        assertEquals(3, restoredSummary?.streakFreeze?.capacity)
+        assertEquals(25, restoredSummary?.streakFreeze?.balanceUnits)
+        assertEquals(2, restoredSummary?.streakFreeze?.earnedUnitsPerStreakDay)
+        assertEquals(5, restoredSummary?.streakFreeze?.nextCreditProgressUnits)
     }
 
     @Test

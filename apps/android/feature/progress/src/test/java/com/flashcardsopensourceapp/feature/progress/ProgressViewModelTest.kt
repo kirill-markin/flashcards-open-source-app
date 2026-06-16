@@ -751,6 +751,7 @@ private fun createProgressStreakFreezeForTest(): CloudProgressStreakFreeze {
         capacity = 2,
         balanceUnits = 20,
         unitsPerCredit = 10,
+        earnedUnitsPerStreakDay = 1,
         nextCreditProgressUnits = 0,
         nextCreditRequiredUnits = 10
     )

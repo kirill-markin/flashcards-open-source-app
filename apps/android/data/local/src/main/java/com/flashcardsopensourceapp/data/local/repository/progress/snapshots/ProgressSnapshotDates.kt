@@ -143,49 +143,6 @@ internal fun createInitialProgressStreakFreeze(): CloudProgressStreakFreeze {
     )
 }
 
-internal fun addReviewedDayProgressStreakFreezeCredit(
-    streakFreeze: CloudProgressStreakFreeze
-): CloudProgressStreakFreeze {
-    return addProgressStreakFreezeBalanceUnits(
-        streakFreeze = streakFreeze,
-        addedBalanceUnits = progressStreakFreezePolicy.earnedUnitsPerStreakDay
-    )
-}
-
-internal fun refundSpentProgressStreakFreezeCredit(
-    streakFreeze: CloudProgressStreakFreeze
-): CloudProgressStreakFreeze {
-    return addProgressStreakFreezeBalanceUnits(
-        streakFreeze = streakFreeze,
-        addedBalanceUnits = streakFreeze.unitsPerCredit
-    )
-}
-
-private fun addProgressStreakFreezeBalanceUnits(
-    streakFreeze: CloudProgressStreakFreeze,
-    addedBalanceUnits: Int
-): CloudProgressStreakFreeze {
-    val balanceUnits = minOf(
-        streakFreeze.balanceUnits + addedBalanceUnits,
-        streakFreeze.capacity * streakFreeze.unitsPerCredit
-    )
-    val availableCredits = minOf(
-        streakFreeze.capacity,
-        balanceUnits / streakFreeze.unitsPerCredit
-    )
-
-    return streakFreeze.copy(
-        availableCredits = availableCredits,
-        balanceUnits = balanceUnits,
-        nextCreditProgressUnits = if (availableCredits >= streakFreeze.capacity) {
-            0
-        } else {
-            balanceUnits % streakFreeze.unitsPerCredit
-        },
-        nextCreditRequiredUnits = streakFreeze.unitsPerCredit
-    )
-}
-
 private fun validateProgressStreakFreezePolicy(
     policy: ProgressStreakFreezePolicy
 ) {
@@ -406,6 +363,7 @@ private fun createProgressStreakFreeze(
         capacity = policy.maxCapacity,
         balanceUnits = clampedBalanceUnits,
         unitsPerCredit = policy.unitsPerCredit,
+        earnedUnitsPerStreakDay = policy.earnedUnitsPerStreakDay,
         nextCreditProgressUnits = if (availableCredits >= policy.maxCapacity) {
             0
         } else {
@@ -456,27 +414,4 @@ private fun clampBalanceUnits(
     policy: ProgressStreakFreezePolicy
 ): Int {
     return minOf(balanceUnits, policy.maxCapacity * policy.unitsPerCredit)
-}
-
-internal fun isLocalDateAfter(
-    first: String?,
-    second: String?
-): Boolean {
-    return when {
-        first == null -> false
-        second == null -> true
-        else -> parseLocalDate(rawDate = first).isAfter(parseLocalDate(rawDate = second))
-    }
-}
-
-internal fun maxLocalDate(
-    first: String?,
-    second: String?
-): String? {
-    return when {
-        first == null -> second
-        second == null -> first
-        parseLocalDate(rawDate = first).isAfter(parseLocalDate(rawDate = second)) -> first
-        else -> second
-    }
 }
