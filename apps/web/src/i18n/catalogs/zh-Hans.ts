@@ -175,7 +175,7 @@ export const zhHansCatalog = {
       unavailable: "排行榜暂时不可用。请稍后再来看看。",
       invite: {
         actionLabel: "创建好友邀请",
-        actionText: "邀请",
+        actionText: "邀请好友",
         title: "邀请好友",
         body: "为排行榜创建一个私密好友链接。",
         friendNameLabel: "你在评分中看到的好友名称",
@@ -285,6 +285,10 @@ export const zhHansCatalog = {
   settingsHome: {
     title: "设置",
     subtitle: "管理账户、工作区、支持和高级 Web 设置。",
+    inviteFriend: {
+      actionText: "邀请好友",
+      ariaLabel: "创建好友邀请",
+    },
     groups: {
       account: "账户",
       general: "通用",

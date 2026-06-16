@@ -175,7 +175,7 @@ const esEsCatalog: TranslationCatalog = {
       unavailable: "La clasificación no está disponible ahora mismo. Vuelve más tarde.",
       invite: {
         actionLabel: "Crear invitación de amigo",
-        actionText: "Invitar",
+        actionText: "Invitar a un amigo",
         title: "Invitar a un amigo",
         body: "Crea un enlace privado de amigo para la clasificación.",
         friendNameLabel: "Nombre del amigo en tus puntuaciones",
@@ -285,6 +285,10 @@ const esEsCatalog: TranslationCatalog = {
   settingsHome: {
     title: "Ajustes",
     subtitle: "Gestiona la cuenta, el espacio de trabajo, el soporte y los ajustes web avanzados.",
+    inviteFriend: {
+      actionText: "Invitar a un amigo",
+      ariaLabel: "Crear invitación de amigo",
+    },
     groups: {
       account: "Cuenta",
       general: "General",

@@ -175,7 +175,7 @@ const deCatalog: TranslationCatalog = {
       unavailable: "Die Bestenliste ist gerade nicht verfügbar. Schau später wieder vorbei.",
       invite: {
         actionLabel: "Freundes-Einladung erstellen",
-        actionText: "Einladen",
+        actionText: "Freund einladen",
         title: "Freund einladen",
         body: "Erstelle einen privaten Freundeslink für die Bestenliste.",
         friendNameLabel: "Freundesname in deinen Wertungen",
@@ -285,6 +285,10 @@ const deCatalog: TranslationCatalog = {
   settingsHome: {
     title: "Einstellungen",
     subtitle: "Verwalte Konto, Arbeitsbereich, Support und erweiterte Web-Einstellungen.",
+    inviteFriend: {
+      actionText: "Freund einladen",
+      ariaLabel: "Freundes-Einladung erstellen",
+    },
     groups: {
       account: "Konto",
       general: "Allgemein",

@@ -175,7 +175,7 @@ const arCatalog: TranslationCatalog = {
       unavailable: "لوحة الصدارة غير متاحة الآن. عُد لاحقًا.",
       invite: {
         actionLabel: "إنشاء دعوة صديق",
-        actionText: "دعوة",
+        actionText: "دعوة صديق",
         title: "دعوة صديق",
         body: "أنشئ رابط صديق خاصًا للوحة الصدارة.",
         friendNameLabel: "اسم الصديق في تقييماتك",
@@ -285,6 +285,10 @@ const arCatalog: TranslationCatalog = {
   settingsHome: {
     title: "الإعدادات",
     subtitle: "أدر الحساب ومساحة العمل والدعم وإعدادات الويب المتقدمة.",
+    inviteFriend: {
+      actionText: "دعوة صديق",
+      ariaLabel: "إنشاء دعوة صديق",
+    },
     groups: {
       account: "الحساب",
       general: "عام",

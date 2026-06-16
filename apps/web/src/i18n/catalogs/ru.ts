@@ -175,7 +175,7 @@ export const ruCatalog = {
       unavailable: "Таблица лидеров сейчас недоступна. Загляните позже.",
       invite: {
         actionLabel: "Создать приглашение для друга",
-        actionText: "Пригласить",
+        actionText: "Пригласить друга",
         title: "Пригласить друга",
         body: "Создайте приватную ссылку для таблицы лидеров.",
         friendNameLabel: "Имя друга в ваших рейтингах",
@@ -285,6 +285,10 @@ export const ruCatalog = {
   settingsHome: {
     title: "Настройки",
     subtitle: "Управляйте аккаунтом, рабочим пространством, поддержкой и расширенными веб-настройками.",
+    inviteFriend: {
+      actionText: "Пригласить друга",
+      ariaLabel: "Создать приглашение для друга",
+    },
     groups: {
       account: "Аккаунт",
       general: "Общие",
