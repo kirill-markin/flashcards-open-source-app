@@ -145,6 +145,7 @@ export type StreakFreeze = Readonly<{
   capacity: number;
   balanceUnits: number;
   unitsPerCredit: number;
+  earnedUnitsPerStreakDay: number;
   nextCreditProgressUnits: number;
   nextCreditRequiredUnits: number;
 }>;
@@ -370,10 +371,8 @@ export type FriendInvitationAcceptResponse =
 
 export type ProgressRenderedSeriesSummaryContext = Readonly<{
   lowerBoundSummary: ProgressSummary;
-  exactStreakFreeze: StreakFreeze | null;
   activeDates: ReadonlyArray<string>;
   activeDatesMissingFromServerBase: ReadonlyArray<string>;
-  serverBaseReviewHistoryWatermarks: ReadonlyArray<ProgressReviewHistoryWatermark> | null;
 }>;
 
 export type ProgressSummarySourceState = Readonly<{

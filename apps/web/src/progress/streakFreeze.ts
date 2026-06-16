@@ -25,15 +25,13 @@ export type StreakFreezeEvaluation = Readonly<{
   streakDays: ReadonlyArray<StreakDay>;
 }>;
 
-export type StreakFreezeCarryState = Readonly<{
+type StreakComputationState = Readonly<{
   balanceUnits: number;
   currentStreakDays: number;
   longestStreakDays: number;
   hasActiveSegment: boolean;
   lastEvaluatedDate: string | null;
 }>;
-
-type StreakComputationState = StreakFreezeCarryState;
 
 const localDatePattern = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -95,32 +93,6 @@ function validateStreakFreezePolicy(policy: StreakFreezePolicy): void {
   }
 }
 
-function validateStreakFreezeCarryState(state: StreakFreezeCarryState, policy: StreakFreezePolicy): void {
-  if (Number.isInteger(state.balanceUnits) === false || state.balanceUnits < 0) {
-    throw new Error("streak freeze carry balanceUnits must be a non-negative integer");
-  }
-
-  if (state.balanceUnits > getMaximumBalanceUnits(policy)) {
-    throw new Error("streak freeze carry balanceUnits must not exceed maximum balance units");
-  }
-
-  if (Number.isInteger(state.currentStreakDays) === false || state.currentStreakDays < 0) {
-    throw new Error("streak freeze carry currentStreakDays must be a non-negative integer");
-  }
-
-  if (Number.isInteger(state.longestStreakDays) === false || state.longestStreakDays < state.currentStreakDays) {
-    throw new Error("streak freeze carry longestStreakDays must be at least currentStreakDays");
-  }
-
-  if (state.hasActiveSegment === false && state.currentStreakDays !== 0) {
-    throw new Error("streak freeze inactive carry state must have zero currentStreakDays");
-  }
-
-  if (state.lastEvaluatedDate !== null) {
-    assertLocalDate(state.lastEvaluatedDate, "streak freeze carry lastEvaluatedDate");
-  }
-}
-
 function isNonNegativeSafeInteger(value: number): boolean {
   return Number.isSafeInteger(value) && value >= 0;
 }
@@ -131,17 +103,17 @@ export function isCoherentStreakFreeze(streakFreeze: StreakFreeze): boolean {
     || isNonNegativeSafeInteger(streakFreeze.capacity) === false
     || isNonNegativeSafeInteger(streakFreeze.balanceUnits) === false
     || isNonNegativeSafeInteger(streakFreeze.unitsPerCredit) === false
+    || isNonNegativeSafeInteger(streakFreeze.earnedUnitsPerStreakDay) === false
     || isNonNegativeSafeInteger(streakFreeze.nextCreditProgressUnits) === false
     || isNonNegativeSafeInteger(streakFreeze.nextCreditRequiredUnits) === false
-    || streakFreeze.capacity !== streakFreezePolicy.maxCapacity
-    || streakFreeze.unitsPerCredit !== streakFreezePolicy.unitsPerCredit
-    || streakFreeze.nextCreditRequiredUnits !== streakFreezePolicy.unitsPerCredit
+    || streakFreeze.unitsPerCredit <= 0
+    || streakFreeze.nextCreditRequiredUnits !== streakFreeze.unitsPerCredit
   ) {
     return false;
   }
 
   const maximumBalanceUnits = streakFreeze.capacity * streakFreeze.unitsPerCredit;
-  if (streakFreeze.balanceUnits > maximumBalanceUnits) {
+  if (Number.isSafeInteger(maximumBalanceUnits) === false || streakFreeze.balanceUnits > maximumBalanceUnits) {
     return false;
   }
 
@@ -190,18 +162,34 @@ function getAvailableCredits(balanceUnits: number, policy: StreakFreezePolicy): 
   return Math.min(policy.maxCapacity, Math.floor(balanceUnits / policy.unitsPerCredit));
 }
 
-function createStreakFreeze(balanceUnits: number, policy: StreakFreezePolicy): StreakFreeze {
-  const clampedBalanceUnits = clampBalanceUnits(balanceUnits, policy);
-  const availableCredits = getAvailableCredits(clampedBalanceUnits, policy);
+function createStreakFreezeFromFields(
+  balanceUnits: number,
+  capacity: number,
+  unitsPerCredit: number,
+  earnedUnitsPerStreakDay: number,
+): StreakFreeze {
+  const maximumBalanceUnits = capacity * unitsPerCredit;
+  const clampedBalanceUnits = Math.min(balanceUnits, maximumBalanceUnits);
+  const availableCredits = Math.min(capacity, Math.floor(clampedBalanceUnits / unitsPerCredit));
 
   return {
     availableCredits,
-    capacity: policy.maxCapacity,
+    capacity,
     balanceUnits: clampedBalanceUnits,
-    unitsPerCredit: policy.unitsPerCredit,
-    nextCreditProgressUnits: availableCredits >= policy.maxCapacity ? 0 : clampedBalanceUnits % policy.unitsPerCredit,
-    nextCreditRequiredUnits: policy.unitsPerCredit,
+    unitsPerCredit,
+    earnedUnitsPerStreakDay,
+    nextCreditProgressUnits: availableCredits >= capacity ? 0 : clampedBalanceUnits % unitsPerCredit,
+    nextCreditRequiredUnits: unitsPerCredit,
   };
+}
+
+function createStreakFreeze(balanceUnits: number, policy: StreakFreezePolicy): StreakFreeze {
+  return createStreakFreezeFromFields(
+    clampBalanceUnits(balanceUnits, policy),
+    policy.maxCapacity,
+    policy.unitsPerCredit,
+    policy.earnedUnitsPerStreakDay,
+  );
 }
 
 function createInitialState(policy: StreakFreezePolicy): StreakComputationState {
@@ -354,9 +342,15 @@ export function createDefaultStreakFreeze(): StreakFreeze {
 }
 
 export function addReviewedDayToStreakFreeze(streakFreeze: StreakFreeze): StreakFreeze {
-  return createStreakFreeze(
-    streakFreeze.balanceUnits + streakFreezePolicy.earnedUnitsPerStreakDay,
-    streakFreezePolicy,
+  if (isCoherentStreakFreeze(streakFreeze) === false) {
+    throw new Error("Cannot add reviewed day to incoherent streak freeze object");
+  }
+
+  return createStreakFreezeFromFields(
+    streakFreeze.balanceUnits + streakFreeze.earnedUnitsPerStreakDay,
+    streakFreeze.capacity,
+    streakFreeze.unitsPerCredit,
+    streakFreeze.earnedUnitsPerStreakDay,
   );
 }
 
@@ -368,34 +362,6 @@ export function evaluateProgressStreakFreeze(
   assertLocalDate(today, "today");
   assertSortedActiveReviewLocalDates(sortedActiveReviewLocalDates);
 
-  return evaluateProgressStreakFreezeFromCarryState(
-    sortedActiveReviewLocalDates,
-    today,
-    createInitialState(streakFreezePolicy),
-  );
-}
-
-export function evaluateProgressStreakFreezeFromCarryState(
-  sortedActiveReviewLocalDates: ReadonlyArray<string>,
-  today: string,
-  carryState: StreakFreezeCarryState,
-): StreakFreezeEvaluation {
-  validateStreakFreezePolicy(streakFreezePolicy);
-  validateStreakFreezeCarryState(carryState, streakFreezePolicy);
-  assertLocalDate(today, "today");
-  assertSortedActiveReviewLocalDates(sortedActiveReviewLocalDates);
-
-  if (carryState.lastEvaluatedDate !== null && carryState.lastEvaluatedDate >= today) {
-    throw new Error("streak freeze carry lastEvaluatedDate must be before today");
-  }
-
-  const staleActiveReviewDate = sortedActiveReviewLocalDates.find((reviewDate) => (
-    carryState.lastEvaluatedDate !== null && reviewDate <= carryState.lastEvaluatedDate
-  ));
-  if (staleActiveReviewDate !== undefined) {
-    throw new Error(`active review local date must be after carry lastEvaluatedDate: ${staleActiveReviewDate}`);
-  }
-
   const statesByDate = new Map<string, StreakDayState>();
   const activeReviewLocalDatesThroughToday = sortedActiveReviewLocalDates.filter((reviewDate) => reviewDate <= today);
   const stateAfterReviews = activeReviewLocalDatesThroughToday.reduce<StreakComputationState>(
@@ -405,7 +371,7 @@ export function evaluateProgressStreakFreezeFromCarryState(
       streakFreezePolicy,
       statesByDate,
     ),
-    carryState,
+    createInitialState(streakFreezePolicy),
   );
   const finalState = addTrailingDaysThroughToday(stateAfterReviews, today, streakFreezePolicy, statesByDate);
 

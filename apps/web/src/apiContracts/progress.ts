@@ -175,6 +175,7 @@ function parseProgressStreakFreeze(
     capacity: parseRequiredField(objectValue, "capacity", endpoint, path, parseNonNegativeSafeInteger),
     balanceUnits: parseRequiredField(objectValue, "balanceUnits", endpoint, path, parseNonNegativeSafeInteger),
     unitsPerCredit: parseRequiredField(objectValue, "unitsPerCredit", endpoint, path, parseNonNegativeSafeInteger),
+    earnedUnitsPerStreakDay: parseRequiredField(objectValue, "earnedUnitsPerStreakDay", endpoint, path, parseNonNegativeSafeInteger),
     nextCreditProgressUnits: parseRequiredField(objectValue, "nextCreditProgressUnits", endpoint, path, parseNonNegativeSafeInteger),
     nextCreditRequiredUnits: parseRequiredField(objectValue, "nextCreditRequiredUnits", endpoint, path, parseNonNegativeSafeInteger),
   };

@@ -81,20 +81,9 @@ function areStreakFreezesEqual(left: StreakFreeze, right: StreakFreeze): boolean
     && left.capacity === right.capacity
     && left.balanceUnits === right.balanceUnits
     && left.unitsPerCredit === right.unitsPerCredit
+    && left.earnedUnitsPerStreakDay === right.earnedUnitsPerStreakDay
     && left.nextCreditProgressUnits === right.nextCreditProgressUnits
     && left.nextCreditRequiredUnits === right.nextCreditRequiredUnits;
-}
-
-function areNullableStreakFreezesEqual(left: StreakFreeze | null, right: StreakFreeze | null): boolean {
-  if (left === right) {
-    return true;
-  }
-
-  if (left === null || right === null) {
-    return false;
-  }
-
-  return areStreakFreezesEqual(left, right);
 }
 
 function areStreakDaysEqual(
@@ -201,19 +190,9 @@ function areProgressRenderedSeriesSummaryContextsEqual(
     return false;
   }
 
-  const watermarksAreEqual = left.serverBaseReviewHistoryWatermarks === null
-    ? right.serverBaseReviewHistoryWatermarks === null
-    : right.serverBaseReviewHistoryWatermarks !== null
-      && areProgressReviewHistoryWatermarksEqual(
-        left.serverBaseReviewHistoryWatermarks,
-        right.serverBaseReviewHistoryWatermarks,
-      );
-
   return areProgressSummariesEqual(left.lowerBoundSummary, right.lowerBoundSummary)
-    && areNullableStreakFreezesEqual(left.exactStreakFreeze, right.exactStreakFreeze)
     && areStringArraysEqual(left.activeDates, right.activeDates)
-    && areStringArraysEqual(left.activeDatesMissingFromServerBase, right.activeDatesMissingFromServerBase)
-    && watermarksAreEqual;
+    && areStringArraysEqual(left.activeDatesMissingFromServerBase, right.activeDatesMissingFromServerBase);
 }
 
 function areProgressSeriesEqual(left: ProgressSeries | null, right: ProgressSeries | null): boolean {

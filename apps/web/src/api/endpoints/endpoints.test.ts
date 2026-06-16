@@ -87,6 +87,7 @@ function createFullStreakFreeze(): Readonly<{
   capacity: number;
   balanceUnits: number;
   unitsPerCredit: number;
+  earnedUnitsPerStreakDay: number;
   nextCreditProgressUnits: number;
   nextCreditRequiredUnits: number;
 }> {
@@ -95,6 +96,7 @@ function createFullStreakFreeze(): Readonly<{
     capacity: 2,
     balanceUnits: 20,
     unitsPerCredit: 10,
+    earnedUnitsPerStreakDay: 1,
     nextCreditProgressUnits: 0,
     nextCreditRequiredUnits: 10,
   };
@@ -354,6 +356,44 @@ describe("progress API endpoints", () => {
       generatedAt: "2026-04-18T09:15:00.000Z",
       reviewHistoryWatermarks: [],
       summary: createProgressSummaryValue(1, true, "2026-04-03", 2),
+    });
+  });
+
+  it("decodes progress summary streak freeze policies with capacity above the local default", async () => {
+    const streakFreeze = {
+      availableCredits: 2,
+      capacity: 3,
+      balanceUnits: 28,
+      unitsPerCredit: 10,
+      earnedUnitsPerStreakDay: 2,
+      nextCreditProgressUnits: 8,
+      nextCreditRequiredUnits: 10,
+    } as const;
+    const summary = {
+      ...createProgressSummaryValue(1, true, "2026-04-03", 2),
+      streakFreeze,
+    };
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        timeZone: "Europe/Madrid",
+        generatedAt: "2026-04-18T09:15:00.000Z",
+        summary,
+      }), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressSummary({
+      timeZone: "Europe/Madrid",
+      today: "2026-04-18",
+    })).resolves.toEqual({
+      timeZone: "Europe/Madrid",
+      generatedAt: "2026-04-18T09:15:00.000Z",
+      reviewHistoryWatermarks: [],
+      summary,
     });
   });
 

@@ -564,7 +564,7 @@ export function storePersistedProgressSummaryForTest(
   serverBase: ProgressSummaryPayload,
 ): void {
   window.localStorage.setItem(`flashcards-progress-server-summary:${scopeKey}`, JSON.stringify({
-    version: 3,
+    version: 4,
     scopeKey,
     savedAt: "2026-04-18T09:00:00.000Z",
     serverBase,
