@@ -85,7 +85,7 @@ extension AIChatStoreTestSupport {
             )
             return UserProgressSummary(
                 timeZone: timeZone,
-                summary: ProgressSummary(
+                summary: makeTestProgressSummaryValue(
                     currentStreakDays: 0,
                     hasReviewedToday: false,
                     lastReviewedOn: nil,
@@ -112,19 +112,13 @@ extension AIChatStoreTestSupport {
                     to: to
                 )
             )
-            return UserProgressSeries(
-                timeZone: timeZone,
-                from: from,
-                to: to,
-                dailyReviews: [],
-                summary: ProgressSummary(
-                    currentStreakDays: 0,
-                    hasReviewedToday: false,
-                    lastReviewedOn: nil,
-                    activeReviewDays: 0
-                ),
-                generatedAt: "2026-04-25T00:00:00.000Z",
-                reviewHistoryWatermarks: []
+            return try makeProgressSeriesFromReviewedAtClients(
+                reviewedAtClients: [],
+                requestRange: ProgressRequestRange(
+                    timeZone: timeZone,
+                    from: from,
+                    to: to
+                )
             )
         }
 

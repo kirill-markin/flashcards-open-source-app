@@ -94,6 +94,11 @@ extension FlashcardsStore {
             reviewEvents: reviewedAtClientSources.canonicalReviewEvents,
             timeZone: summaryScopeKey.timeZone
         )
+        let pendingLocalOverlayActiveDates = try progressActiveDatesFromReviewedAtClients(
+            reviewedAtClients: reviewedAtClientSources.pendingReviewedAtClients,
+            timeZone: summaryScopeKey.timeZone
+        )
+        let mergedActiveReviewDates = localFallbackActiveDates.union(pendingLocalOverlayActiveDates)
         let localFallbackSummary = try makeProgressSummary(
             reviewDates: localFallbackActiveDates,
             timeZone: summaryScopeKey.timeZone,
@@ -114,13 +119,14 @@ extension FlashcardsStore {
             serverBase: self.progressSeriesServerBaseCache,
             scopeKey: scopeKey,
             localFallbackSeries: localFallbackSeries,
-            pendingLocalOverlaySeries: pendingLocalOverlaySeries
+            pendingLocalOverlaySeries: pendingLocalOverlaySeries,
+            mergedActiveReviewDates: mergedActiveReviewDates
         )
         let renderedSummary = try makeProgressRenderedSummary(
             serverBase: self.progressSummaryServerBaseCache,
             scopeKey: summaryScopeKey,
             localFallbackSummary: localFallbackSummary,
-            localFallbackActiveDates: localFallbackActiveDates,
+            localFallbackActiveDates: mergedActiveReviewDates,
             renderedSeriesContext: try makeProgressRenderedSeriesSummaryContext(
                 serverBase: self.progressSeriesServerBaseCache,
                 scopeKey: scopeKey,

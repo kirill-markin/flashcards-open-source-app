@@ -208,6 +208,9 @@ final class ProgressContextChangeTests: ProgressStoreTestCase {
             ReviewProgressBadgeState(
                 streakDays: 1,
                 hasReviewedToday: true,
+                streakFreezeAvailableCredits: 2,
+                streakFreezeCapacity: 2,
+                showsStreakFreezeBank: true,
                 isInteractive: true
             ),
             context.store.reviewProgressBadgeState

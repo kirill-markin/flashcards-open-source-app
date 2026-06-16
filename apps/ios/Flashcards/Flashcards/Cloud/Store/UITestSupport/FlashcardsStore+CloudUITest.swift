@@ -760,7 +760,7 @@ extension FlashcardsStore {
         }
 
         return [
-            // Canonical 30-day-ish pattern with gaps, 16 active days, and a final 8-day streak ending today.
+            // Canonical 30-day-ish pattern with gaps, 16 active days, and a freeze-aware 12-day streak ending today.
             FlashcardsUITestMarketingReviewHistorySeed(supportCardIndex: 0, reviewedAtDayOffset: -29, rating: .easy),
             FlashcardsUITestMarketingReviewHistorySeed(supportCardIndex: 1, reviewedAtDayOffset: -26, rating: .easy),
             FlashcardsUITestMarketingReviewHistorySeed(supportCardIndex: 2, reviewedAtDayOffset: -22, rating: .easy),

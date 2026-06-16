@@ -28,9 +28,36 @@ struct ProgressReviewRatingCounts: Hashable, Sendable {
 
 struct ProgressSummary: Codable, Hashable, Sendable {
     let currentStreakDays: Int
+    let longestStreakDays: Int
     let hasReviewedToday: Bool
     let lastReviewedOn: String?
     let activeReviewDays: Int
+    let streakFreeze: ProgressStreakFreeze
+}
+
+struct ProgressStreakFreeze: Codable, Hashable, Sendable {
+    let availableCredits: Int
+    let capacity: Int
+    let balanceUnits: Int
+    let unitsPerCredit: Int
+    let nextCreditProgressUnits: Int
+    let nextCreditRequiredUnits: Int
+}
+
+enum ProgressStreakDayState: String, Codable, Hashable, Sendable {
+    case reviewed
+    case frozen
+    case missed
+    case pending
+}
+
+struct ProgressStreakDay: Codable, Hashable, Identifiable, Sendable {
+    let date: String
+    let state: ProgressStreakDayState
+
+    var id: String {
+        self.date
+    }
 }
 
 struct ProgressReviewHistoryWatermark: Codable, Hashable, Sendable {
@@ -91,9 +118,11 @@ struct UserProgressSummary: Codable, Hashable, Sendable {
         case generatedAt
         case reviewHistoryWatermarks
         case currentStreakDays
+        case longestStreakDays
         case hasReviewedToday
         case lastReviewedOn
         case activeReviewDays
+        case streakFreeze
     }
 
     init(
@@ -127,9 +156,11 @@ struct UserProgressSummary: Codable, Hashable, Sendable {
             timeZone: try container.decodeIfPresent(String.self, forKey: .timeZone),
             summary: ProgressSummary(
                 currentStreakDays: try container.decode(Int.self, forKey: .currentStreakDays),
+                longestStreakDays: try container.decode(Int.self, forKey: .longestStreakDays),
                 hasReviewedToday: try container.decode(Bool.self, forKey: .hasReviewedToday),
                 lastReviewedOn: try container.decodeIfPresent(String.self, forKey: .lastReviewedOn),
-                activeReviewDays: try container.decode(Int.self, forKey: .activeReviewDays)
+                activeReviewDays: try container.decode(Int.self, forKey: .activeReviewDays),
+                streakFreeze: try container.decode(ProgressStreakFreeze.self, forKey: .streakFreeze)
             ),
             generatedAt: try container.decodeIfPresent(String.self, forKey: .generatedAt),
             reviewHistoryWatermarks: try decodeProgressReviewHistoryWatermarksIfAvailable(
@@ -153,6 +184,7 @@ struct UserProgressSeries: Codable, Hashable, Sendable {
     let from: String
     let to: String
     let dailyReviews: [ProgressDay]
+    let streakDays: [ProgressStreakDay]
     let summary: ProgressSummary?
     let generatedAt: String?
     let reviewHistoryWatermarks: [ProgressReviewHistoryWatermark]
@@ -162,6 +194,7 @@ struct UserProgressSeries: Codable, Hashable, Sendable {
         case from
         case to
         case dailyReviews
+        case streakDays
         case summary
         case generatedAt
         case reviewHistoryWatermarks
@@ -172,6 +205,7 @@ struct UserProgressSeries: Codable, Hashable, Sendable {
         from: String,
         to: String,
         dailyReviews: [ProgressDay],
+        streakDays: [ProgressStreakDay],
         summary: ProgressSummary?,
         generatedAt: String?,
         reviewHistoryWatermarks: [ProgressReviewHistoryWatermark]
@@ -180,6 +214,7 @@ struct UserProgressSeries: Codable, Hashable, Sendable {
         self.from = from
         self.to = to
         self.dailyReviews = dailyReviews
+        self.streakDays = streakDays
         self.summary = summary
         self.generatedAt = generatedAt
         self.reviewHistoryWatermarks = reviewHistoryWatermarks
@@ -192,6 +227,7 @@ struct UserProgressSeries: Codable, Hashable, Sendable {
             from: try container.decode(String.self, forKey: .from),
             to: try container.decode(String.self, forKey: .to),
             dailyReviews: try container.decode([ProgressDay].self, forKey: .dailyReviews),
+            streakDays: try container.decode([ProgressStreakDay].self, forKey: .streakDays),
             summary: try container.decodeIfPresent(ProgressSummary.self, forKey: .summary),
             generatedAt: try container.decodeIfPresent(String.self, forKey: .generatedAt),
             reviewHistoryWatermarks: try decodeProgressReviewHistoryWatermarksIfAvailable(
@@ -289,6 +325,9 @@ enum ProgressSourceState: String, Codable, Hashable, Sendable {
 
 enum ProgressPresentationError: LocalizedError {
     case duplicateDay(String)
+    case duplicateStreakDay(String)
+    case missingStreakDay(String)
+    case inconsistentStreakDay(localDate: String, reviewCount: Int, streakState: ProgressStreakDayState)
     case invalidLocalDate(String)
     case invalidTimeZone(String)
     case invalidRange(String, String)
@@ -307,6 +346,12 @@ enum ProgressPresentationError: LocalizedError {
         switch self {
         case .duplicateDay(let localDate):
             return "Progress contained duplicate daily entries for \(localDate)."
+        case .duplicateStreakDay(let localDate):
+            return "Progress contained duplicate streak entries for \(localDate)."
+        case .missingStreakDay(let localDate):
+            return "Progress did not contain a streak entry for \(localDate)."
+        case .inconsistentStreakDay(let localDate, let reviewCount, let streakState):
+            return "Progress streak entry for \(localDate) mismatched review count \(reviewCount): \(streakState.rawValue)."
         case .invalidLocalDate(let localDate):
             return "Progress contained an invalid local date: \(localDate)."
         case .invalidTimeZone(let timeZoneIdentifier):
@@ -348,14 +393,18 @@ func makeProgressSummary(
         timeZoneIdentifier: timeZone
     )
     let lastReviewedOn = sortedReviewDates.last
+    let streakFreezeEvaluation = try evaluateProgressStreakFreeze(
+        sortedActiveReviewLocalDates: sortedReviewDates,
+        today: today,
+        policy: progressStreakFreezePolicy
+    )
     return ProgressSummary(
-        currentStreakDays: try calculateProgressCurrentStreakDays(
-            reviewDates: reviewDates,
-            todayLocalDate: today
-        ),
+        currentStreakDays: streakFreezeEvaluation.currentStreakDays,
+        longestStreakDays: streakFreezeEvaluation.longestStreakDays,
         hasReviewedToday: reviewDates.contains(today),
         lastReviewedOn: lastReviewedOn,
-        activeReviewDays: sortedReviewDates.count
+        activeReviewDays: sortedReviewDates.count,
+        streakFreeze: streakFreezeEvaluation.streakFreeze
     )
 }
 
@@ -364,6 +413,7 @@ func makeProgressSeries(
     from: String,
     to: String,
     dailyReviews: [ProgressDay],
+    streakDays: [ProgressStreakDay],
     summary: ProgressSummary?,
     generatedAt: String?,
     reviewHistoryWatermarks: [ProgressReviewHistoryWatermark]
@@ -373,6 +423,7 @@ func makeProgressSeries(
         from: from,
         to: to,
         dailyReviews: dailyReviews,
+        streakDays: streakDays,
         summary: summary,
         generatedAt: generatedAt,
         reviewHistoryWatermarks: reviewHistoryWatermarks
@@ -399,6 +450,8 @@ func validateProgressSummaryMetadata(
     summary: UserProgressSummary,
     scopeKey: ProgressSummaryScopeKey
 ) throws {
+    try validateProgressSummaryStreakContract(summary: summary.summary)
+
     guard let actualTimeZone = summary.timeZone else {
         return
     }

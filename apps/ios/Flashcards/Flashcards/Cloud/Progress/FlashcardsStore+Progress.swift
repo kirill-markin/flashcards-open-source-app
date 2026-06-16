@@ -267,6 +267,12 @@ extension FlashcardsStore {
                 return
             }
 
+            guard progressSnapshot.scopeKey == scopeKey else {
+                try self.publishProgressSnapshot(scopeKey: scopeKey)
+                self.clearProgressErrorMessage()
+                return
+            }
+
             let patchedSnapshot = try patchProgressSnapshot(
                 snapshot: progressSnapshot,
                 scopeKey: scopeKey,

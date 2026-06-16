@@ -1,10 +1,14 @@
 import SwiftUI
+import UIKit
 
 let reviewProgressBadgeOverflowThreshold: Int = 99
 
 struct ReviewProgressBadgeState: Hashable, Sendable {
     let streakDays: Int
     let hasReviewedToday: Bool
+    let streakFreezeAvailableCredits: Int
+    let streakFreezeCapacity: Int
+    let showsStreakFreezeBank: Bool
     let isInteractive: Bool
 }
 
@@ -25,6 +29,9 @@ func makeEmptyReviewProgressBadgeState() -> ReviewProgressBadgeState {
     ReviewProgressBadgeState(
         streakDays: 0,
         hasReviewedToday: false,
+        streakFreezeAvailableCredits: 0,
+        streakFreezeCapacity: 0,
+        showsStreakFreezeBank: false,
         isInteractive: true
     )
 }
@@ -54,6 +61,18 @@ func formatReviewProgressBadgeValue(badgeState: ReviewProgressBadgeState) -> Str
     return badgeState.streakDays.formatted()
 }
 
+func reviewProgressFreezeBankSystemImageName() -> String {
+    if UIImage(systemName: "ice.cube") != nil {
+        return "ice.cube"
+    }
+
+    return "snowflake"
+}
+
+func formatReviewProgressFreezeBankValue(badgeState: ReviewProgressBadgeState) -> String {
+    "\(badgeState.streakFreezeAvailableCredits)/\(badgeState.streakFreezeCapacity)"
+}
+
 func makeReviewProgressBadgeState(progressSnapshot: ProgressSnapshot?) -> ReviewProgressBadgeState {
     guard let progressSnapshot else {
         return makeEmptyReviewProgressBadgeState()
@@ -62,6 +81,9 @@ func makeReviewProgressBadgeState(progressSnapshot: ProgressSnapshot?) -> Review
     return ReviewProgressBadgeState(
         streakDays: progressSnapshot.summary.currentStreakDays,
         hasReviewedToday: progressSnapshot.summary.hasReviewedToday,
+        streakFreezeAvailableCredits: progressSnapshot.summary.streakFreeze.availableCredits,
+        streakFreezeCapacity: progressSnapshot.summary.streakFreeze.capacity,
+        showsStreakFreezeBank: true,
         isInteractive: true
     )
 }
@@ -70,6 +92,9 @@ func makeReviewProgressBadgeState(summary: ProgressSummary) -> ReviewProgressBad
     ReviewProgressBadgeState(
         streakDays: summary.currentStreakDays,
         hasReviewedToday: summary.hasReviewedToday,
+        streakFreezeAvailableCredits: summary.streakFreeze.availableCredits,
+        streakFreezeCapacity: summary.streakFreeze.capacity,
+        showsStreakFreezeBank: true,
         isInteractive: true
     )
 }
