@@ -567,6 +567,7 @@ const esMxCatalog: TranslationCatalog = {
     },
     progressBadge: {
       ariaLabel: "Racha de repaso de {{streak}} días. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Racha de repaso de {{streak}} días. {{todayStatus}}.",
       freezeBank: "Banco de congelaciones {{available}} de {{capacity}}",
       notReviewedToday: "Sin repaso hoy",
       reviewedToday: "Repasado hoy",

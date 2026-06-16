@@ -567,6 +567,7 @@ const deCatalog: TranslationCatalog = {
     },
     progressBadge: {
       ariaLabel: "Lernserie {{streak}} Tage. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Lernserie {{streak}} Tage. {{todayStatus}}.",
       freezeBank: "Frostbank {{available}} von {{capacity}}",
       notReviewedToday: "Heute noch nicht wiederholt",
       reviewedToday: "Heute wiederholt",

@@ -567,6 +567,7 @@ export const jaCatalog = {
     },
     progressBadge: {
       ariaLabel: "復習連続 {{streak}} 日。{{todayStatus}}。{{freezeBank}}。",
+      reviewAriaLabel: "復習連続 {{streak}} 日。{{todayStatus}}。",
       freezeBank: "フリーズ残数 {{available}} / {{capacity}}",
       notReviewedToday: "今日はまだ復習していません",
       reviewedToday: "今日は復習済み",

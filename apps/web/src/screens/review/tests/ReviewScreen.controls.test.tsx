@@ -195,7 +195,11 @@ describe("ReviewScreen controls", () => {
     expect(progressBadge.className).toContain("review-progress-badge-active");
     expect(progressBadge.className).not.toContain("review-progress-badge-approximate");
     expect(progressBadge.textContent).not.toContain("🔥");
-    expect(progressBadge.textContent).toContain("1/2");
+    expect(progressBadge.textContent).toContain("12");
+    expect(progressBadge.textContent).not.toContain("1/2");
+    expect(progressBadge.querySelector(".review-progress-freeze-indicator")).toBeNull();
+    expect(progressBadge.getAttribute("aria-label")).toBe("Review streak 12 days. Reviewed today.");
+    expect(progressBadge.getAttribute("title")).toBe("Review streak 12 days. Reviewed today.");
     const queueBadge = getContainer().querySelector("[data-testid='review-queue-badge']");
     if (!(queueBadge instanceof HTMLButtonElement)) {
       throw new Error("Review queue badge was not found");
@@ -211,6 +215,10 @@ describe("ReviewScreen controls", () => {
     expect(leaderboardShortcut.querySelector(".review-progress-badge-value")).toBeNull();
     expect(leaderboardShortcut.getAttribute("aria-label")).toBe("Open leaderboard");
     expect(leaderboardShortcut.getAttribute("href")).toBe("/progress#leaderboard");
+    expect(reviewStylesContain(
+      ".review-leaderboard-shortcut .review-progress-badge-icon",
+      "color: #fbbf24",
+    )).toBe(true);
     const queuePanel = getContainer().querySelector("#review-queue-panel");
     if (!(queuePanel instanceof HTMLElement)) {
       throw new Error("Review queue panel was not found");

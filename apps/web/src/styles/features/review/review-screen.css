@@ -64,6 +64,10 @@
   padding-inline: 12px 14px;
 }
 
+.review-leaderboard-shortcut .review-progress-badge-icon {
+  color: #fbbf24;
+}
+
 .review-progress-shortcuts {
   display: flex;
   align-items: center;

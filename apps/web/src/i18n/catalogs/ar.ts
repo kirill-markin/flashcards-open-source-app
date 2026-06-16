@@ -567,6 +567,7 @@ const arCatalog: TranslationCatalog = {
     },
     progressBadge: {
       ariaLabel: "سلسلة المراجعة {{streak}} يومًا. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "سلسلة المراجعة {{streak}} يومًا. {{todayStatus}}.",
       freezeBank: "رصيد التجميد {{available}} من {{capacity}}",
       notReviewedToday: "لم تُراجع اليوم",
       reviewedToday: "راجعت اليوم",

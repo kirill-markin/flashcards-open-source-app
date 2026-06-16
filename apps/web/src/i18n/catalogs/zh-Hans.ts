@@ -567,6 +567,7 @@ export const zhHansCatalog = {
     },
     progressBadge: {
       ariaLabel: "复习连续 {{streak}} 天。{{todayStatus}}。{{freezeBank}}。",
+      reviewAriaLabel: "复习连续 {{streak}} 天。{{todayStatus}}。",
       freezeBank: "冻结额度 {{available}} / {{capacity}}",
       notReviewedToday: "今天还没复习",
       reviewedToday: "今天已复习",
