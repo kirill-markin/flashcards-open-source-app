@@ -48,11 +48,25 @@ struct ProgressFriendInviteSheet: View {
                     }
                 }
 
+                if self.invitation == nil {
+                    Section {
+                        Text(
+                            String(
+                                localized: "progress.friend_invite.description",
+                                defaultValue: "Create a private friend link for the leaderboard.",
+                                table: progressStringsTableName,
+                                comment: "Body text explaining friend invite creation before the display name field"
+                            )
+                        )
+                        .foregroundStyle(.secondary)
+                    }
+                }
+
                 Section {
                     TextField(
                         String(
                             localized: "progress.friend_invite.display_name.label",
-                            defaultValue: "Friend name",
+                            defaultValue: "Friend name on your leaderboard",
                             table: progressStringsTableName,
                             comment: "Text field label for the private friend invite display name"
                         ),
@@ -60,7 +74,7 @@ struct ProgressFriendInviteSheet: View {
                         prompt: Text(
                             String(
                                 localized: "progress.friend_invite.display_name.prompt",
-                                defaultValue: "Required",
+                                defaultValue: "Your friend's name",
                                 table: progressStringsTableName,
                                 comment: "Prompt for an empty friend invite display name field"
                             )
@@ -81,7 +95,7 @@ struct ProgressFriendInviteSheet: View {
                     Text(
                         String(
                             localized: "progress.friend_invite.display_name.footer",
-                            defaultValue: "This private name appears only on your leaderboard. Invite links expire in 2 days.",
+                            defaultValue: "Only you see this name in your leaderboard. Your friend chooses what to call you when accepting. Invite links expire in 2 days.",
                             table: progressStringsTableName,
                             comment: "Footer explaining private friend invite display names and expiration"
                         )

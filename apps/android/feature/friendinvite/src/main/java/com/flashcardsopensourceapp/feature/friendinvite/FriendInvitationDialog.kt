@@ -94,6 +94,11 @@ fun FriendInvitationDialog(
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = stringResource(id = R.string.friend_invite_dialog_body),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium
+                )
                 OutlinedTextField(
                     value = displayName,
                     onValueChange = { updatedDisplayName ->

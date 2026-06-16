@@ -1,8 +1,9 @@
 <resources>
     <string name="friend_invite_button">Invite friend</string>
     <string name="friend_invite_dialog_title">Invite a friend</string>
-    <string name="friend_invite_display_name_label">Friend display name</string>
-    <string name="friend_invite_expiry_note">Invite links expire in 2 days.</string>
+    <string name="friend_invite_dialog_body">Create a private friend link for the leaderboard.</string>
+    <string name="friend_invite_display_name_label">Friend name on your leaderboard</string>
+    <string name="friend_invite_expiry_note">Only you see this name on your leaderboard. Your friend chooses what to call you when accepting. Invite links expire in 2 days.</string>
     <string name="friend_invite_create_button">Create link</string>
     <string name="friend_invite_cancel_button">Cancel</string>
     <string name="friend_invite_share_title">Send this link to your friend</string>

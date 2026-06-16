@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct ProgressLeaderboardSection: View {
-    @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
 
     let snapshot: ProgressLeaderboardSnapshot
@@ -9,11 +8,12 @@ struct ProgressLeaderboardSection: View {
     /// first leaderboard fetch starts only after summary and series complete, and
     /// the offline placeholder must stay hidden while any of them is in flight.
     let isRefreshing: Bool
+    let leaderboardRefreshMessage: String
     @Binding var selectedWindowKey: LeaderboardWindowKey?
+    let onOpenCloudSignIn: () -> Void
+    let onOpenFriendInvite: () -> Void
 
     @State private var isInfoAlertPresented: Bool = false
-    @State private var isCloudSignInPresented: Bool = false
-    @State private var isFriendInvitePresented: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -51,14 +51,6 @@ struct ProgressLeaderboardSection: View {
             ) {}
         } message: {
             Text(self.infoMessage)
-        }
-        .sheet(isPresented: self.$isCloudSignInPresented) {
-            CloudSignInSheet(presentationContext: .standard)
-                .environment(self.store)
-        }
-        .sheet(isPresented: self.$isFriendInvitePresented) {
-            ProgressFriendInviteSheet()
-                .environment(self.store)
         }
     }
 
@@ -105,18 +97,21 @@ struct ProgressLeaderboardSection: View {
 
     private var friendInviteButton: some View {
         Button {
-            self.openFriendInviteFlow()
+            self.onOpenFriendInvite()
         } label: {
-            Label(
-                String(
-                    localized: "progress.screen.leaderboard.invite.button",
-                    defaultValue: "Invite Friend",
-                    table: progressStringsTableName,
-                    comment: "Button title for creating a leaderboard friend invite link"
-                ),
-                systemImage: "person.badge.plus"
-            )
-            .frame(maxWidth: .infinity)
+            HStack(spacing: 8) {
+                Image(systemName: "person.crop.circle.badge.plus")
+                    .accessibilityHidden(true)
+                Text(
+                    String(
+                        localized: "progress.screen.leaderboard.invite.button",
+                        defaultValue: "Invite Friend",
+                        table: progressStringsTableName,
+                        comment: "Button title for creating a leaderboard friend invite link"
+                    )
+                )
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
         }
         .buttonStyle(.borderedProminent)
         .accessibilityIdentifier(UITestIdentifier.progressLeaderboardInviteFriendButton)
@@ -187,15 +182,6 @@ struct ProgressLeaderboardSection: View {
         }
     }
 
-    private func openFriendInviteFlow() {
-        guard self.store.cloudSettings?.cloudState == .linked else {
-            self.isCloudSignInPresented = true
-            return
-        }
-
-        self.isFriendInvitePresented = true
-    }
-
     private func resolveSelectedWindowKey(readyState: ProgressLeaderboardReadyState) -> LeaderboardWindowKey {
         self.selectedWindowKey
             ?? resolveBestLeaderboardPlacement(readyState: readyState)?.windowKey
@@ -231,7 +217,7 @@ struct ProgressLeaderboardSection: View {
                     comment: "Progress leaderboard sign-in placeholder button"
                 )
             ) {
-                self.isCloudSignInPresented = true
+                self.onOpenCloudSignIn()
             }
             .accessibilityIdentifier(UITestIdentifier.progressLeaderboardSignInButton)
         }
@@ -304,7 +290,7 @@ struct ProgressLeaderboardSection: View {
                 Spacer(minLength: 0)
             }
             .padding(.vertical, 24)
-        } else if self.store.progressErrorState.leaderboardRefreshMessage.isEmpty == false {
+        } else if self.leaderboardRefreshMessage.isEmpty == false {
             // The fetch failed for a non-connectivity reason; the offline copy
             // would be misleading. The exact error renders in the Progress error
             // banner, so this placeholder stays generic.
