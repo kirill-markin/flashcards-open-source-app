@@ -94,23 +94,21 @@ internal fun logProgressRefreshWarning(
     source: String,
     fields: List<Pair<String, String?>>,
     error: Throwable
-) {
-    if (shouldCaptureProgressRefreshWarning(error = error)) {
-        observability.captureWarning(
-            event = AndroidWarningIssueEvent.ProgressRefreshWarning(
-                workspaceId = extractProgressWorkspaceId(
-                    fields = fields,
-                    scopeId = scopeId
-                ),
-                refreshAction = event,
-                scopeId = scopeId,
-                source = source,
-                appVersion = observationVersions.appVersion,
-                clientVersion = observationVersions.clientVersion,
-                versionCode = observationVersions.versionCode
-            )
+): Unit {
+    observability.captureWarning(
+        event = AndroidWarningIssueEvent.ProgressRefreshWarning(
+            workspaceId = extractProgressWorkspaceId(
+                fields = fields,
+                scopeId = scopeId
+            ),
+            refreshAction = event,
+            scopeId = scopeId,
+            source = source,
+            appVersion = observationVersions.appVersion,
+            clientVersion = observationVersions.clientVersion,
+            versionCode = observationVersions.versionCode
         )
-    }
+    )
     logProgressRepositoryWarning(
         event = event,
         fields = fields,
@@ -118,41 +116,57 @@ internal fun logProgressRefreshWarning(
     )
 }
 
-internal fun shouldCaptureProgressRefreshWarning(error: Throwable): Boolean {
-    return isTransientProgressRefreshFailure(error = error).not()
-}
-
-private fun isTransientProgressRefreshFailure(error: Throwable): Boolean {
-    val cloudRemoteError: CloudRemoteException? = error as? CloudRemoteException
-        ?: findProgressCloudRemoteCause(error = error)
-    if (cloudRemoteError != null) {
-        return isRetryableHttpStatusCode(statusCode = cloudRemoteError.statusCode)
+internal fun logProgressSyncBeforeRemoteLoadFailure(
+    observability: AppObservability,
+    observationVersions: ProgressObservationVersions,
+    event: String,
+    scopeId: String,
+    source: String,
+    fields: List<Pair<String, String?>>,
+    error: Throwable
+): Unit {
+    if (isExpectedTransientProgressSyncBeforeRemoteLoadError(error = error)) {
+        logProgressRepositoryWarning(
+            event = event,
+            fields = fields + listOf(
+                "sentryWarningSuppressed" to "true",
+                "suppressionReason" to "transient_sync_before_remote_load_failure"
+            ),
+            error = error
+        )
+        return
     }
 
-    val ioError: IOException? = error as? IOException ?: findProgressIoCause(error = error)
-    return ioError != null && isLikelyTransientNetworkIoException(error = ioError)
+    logProgressRefreshWarning(
+        observability = observability,
+        observationVersions = observationVersions,
+        event = event,
+        scopeId = scopeId,
+        source = source,
+        fields = fields,
+        error = error
+    )
 }
 
-private fun findProgressCloudRemoteCause(error: Throwable): CloudRemoteException? {
-    var currentCause: Throwable? = error.cause
-    while (currentCause != null) {
-        if (currentCause is CloudRemoteException) {
-            return currentCause
+internal fun isExpectedTransientProgressSyncBeforeRemoteLoadError(error: Throwable): Boolean {
+    var currentError: Throwable? = error
+    while (currentError != null) {
+        if (
+            currentError is CloudRemoteException &&
+            isRetryableHttpStatusCode(statusCode = currentError.statusCode)
+        ) {
+            return true
         }
-        currentCause = currentCause.cause
-    }
-    return null
-}
-
-private fun findProgressIoCause(error: Throwable): IOException? {
-    var currentCause: Throwable? = error.cause
-    while (currentCause != null) {
-        if (currentCause is IOException) {
-            return currentCause
+        if (
+            currentError is IOException &&
+            isLikelyTransientNetworkIoException(error = currentError)
+        ) {
+            return true
         }
-        currentCause = currentCause.cause
+        currentError = currentError.cause
     }
-    return null
+
+    return false
 }
 
 internal fun supportsServerRefresh(

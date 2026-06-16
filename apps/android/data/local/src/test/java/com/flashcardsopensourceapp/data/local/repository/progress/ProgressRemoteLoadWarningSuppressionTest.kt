@@ -10,20 +10,60 @@ import com.flashcardsopensourceapp.data.local.model.progress.ProgressSnapshotSou
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummaryScopeKey
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
-import com.flashcardsopensourceapp.data.local.repository.progress.runtime.shouldCaptureProgressRefreshWarning
+import com.flashcardsopensourceapp.data.local.repository.progress.runtime.isExpectedTransientProgressSyncBeforeRemoteLoadError
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.shouldSuppressProgressReviewScheduleRemoteLoadWarning
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.shouldSuppressProgressSeriesRemoteLoadWarning
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.shouldSuppressProgressSummaryRemoteLoadWarning
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressReviewScheduleStoreState
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressSeriesStoreState
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressSummaryStoreState
-import java.net.MalformedURLException
 import java.net.UnknownHostException
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ProgressRemoteLoadWarningSuppressionTest {
+    @Test
+    fun syncBeforeRemoteLoadWarningIsSuppressedOnlyForExpectedTransientFailures(): Unit {
+        assertTrue(
+            isExpectedTransientProgressSyncBeforeRemoteLoadError(
+                error = CloudRemoteException(
+                    message = "Gateway timeout",
+                    statusCode = 504,
+                    responseBody = "",
+                    errorCode = null,
+                    requestId = "request-1",
+                    syncConflict = null
+                )
+            )
+        )
+        assertTrue(
+            isExpectedTransientProgressSyncBeforeRemoteLoadError(
+                error = IllegalStateException(
+                    "Wrapped network error",
+                    UnknownHostException("Unable to resolve host")
+                )
+            )
+        )
+        assertFalse(
+            isExpectedTransientProgressSyncBeforeRemoteLoadError(
+                error = CloudRemoteException(
+                    message = "Invalid sync request",
+                    statusCode = 400,
+                    responseBody = """{"code":"SYNC_INVALID_INPUT"}""",
+                    errorCode = "SYNC_INVALID_INPUT",
+                    requestId = "request-2",
+                    syncConflict = null
+                )
+            )
+        )
+        assertFalse(
+            isExpectedTransientProgressSyncBeforeRemoteLoadError(
+                error = IllegalStateException("Progress sync invariant failed.")
+            )
+        )
+    }
+
     @Test
     fun summaryRemoteLoadWarningIsSuppressedOnlyForStaleState(): Unit {
         val refreshStoreState: ProgressSummaryStoreState = createSummaryStoreState(
@@ -221,76 +261,6 @@ class ProgressRemoteLoadWarningSuppressionTest {
         )
     }
 
-    @Test
-    fun progressRefreshWarningIsNotCapturedForTransientNetworkFailure(): Unit {
-        assertFalse(
-            shouldCaptureProgressRefreshWarning(
-                error = UnknownHostException("Unable to resolve host api.flashcards-open-source-app.com")
-            )
-        )
-    }
-
-    @Test
-    fun progressRefreshWarningIsNotCapturedForNestedTransientNetworkFailure(): Unit {
-        assertFalse(
-            shouldCaptureProgressRefreshWarning(
-                error = IllegalStateException(
-                    "Cloud sync failed.",
-                    UnknownHostException("Unable to resolve host api.flashcards-open-source-app.com")
-                )
-            )
-        )
-    }
-
-    @Test
-    fun progressRefreshWarningIsNotCapturedForRetryableHttpFailure(): Unit {
-        assertFalse(
-            shouldCaptureProgressRefreshWarning(
-                error = CloudRemoteException(
-                    message = "Gateway timeout.",
-                    statusCode = 504,
-                    responseBody = "",
-                    errorCode = null,
-                    requestId = "request-1",
-                    syncConflict = null
-                )
-            )
-        )
-    }
-
-    @Test
-    fun progressRefreshWarningIsCapturedForNonRetryableHttpFailure(): Unit {
-        assertTrue(
-            shouldCaptureProgressRefreshWarning(
-                error = CloudRemoteException(
-                    message = "Bad request.",
-                    statusCode = 400,
-                    responseBody = "",
-                    errorCode = null,
-                    requestId = "request-1",
-                    syncConflict = null
-                )
-            )
-        )
-    }
-
-    @Test
-    fun progressRefreshWarningIsCapturedForNonTransientIoFailure(): Unit {
-        assertTrue(
-            shouldCaptureProgressRefreshWarning(
-                error = MalformedURLException("bad://url")
-            )
-        )
-    }
-
-    @Test
-    fun progressRefreshWarningIsCapturedForNonTransientFailure(): Unit {
-        assertTrue(
-            shouldCaptureProgressRefreshWarning(
-                error = IllegalStateException("Progress response is invalid.")
-            )
-        )
-    }
 }
 
 private fun createSummaryStoreState(
