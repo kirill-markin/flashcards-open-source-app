@@ -17,10 +17,7 @@ import type {
   FriendInvitationPreviewResponse,
   SessionInfo,
 } from "../../types";
-import {
-  friendInvitationDisplayNameMaxLength,
-  validateFriendInvitationDisplayName,
-} from "./friendInvitationDisplayName";
+import { validateFriendInvitationDisplayName } from "./friendInvitationDisplayName";
 
 type InviteLoadState = "loading" | "inactive" | "error" | "signed_out" | "ready" | "success";
 
@@ -253,7 +250,6 @@ export function FriendInviteScreen(): ReactElement {
             type="text"
             value={friendDisplayName}
             disabled={isSubmitting}
-            maxLength={friendInvitationDisplayNameMaxLength + 1}
             onChange={(event) => {
               setFriendDisplayName(event.target.value);
               setFieldErrorMessage("");

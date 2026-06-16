@@ -17,10 +17,7 @@ import type {
   ProgressLeaderboardWindowKey,
 } from "../../../types";
 import { progressLeaderboardWindowKeys } from "../../../types";
-import {
-  friendInvitationDisplayNameMaxLength,
-  validateFriendInvitationDisplayName,
-} from "../../invite/friendInvitationDisplayName";
+import { validateFriendInvitationDisplayName } from "../../invite/friendInvitationDisplayName";
 
 const millisecondsPerMinute = 60_000;
 
@@ -234,7 +231,6 @@ function ProgressLeaderboardInviteDialog(props: Readonly<{
                   type="text"
                   value={friendDisplayName}
                   disabled={isSubmitting}
-                  maxLength={friendInvitationDisplayNameMaxLength + 1}
                   onChange={(event) => {
                     setFriendDisplayName(event.target.value);
                     setFieldErrorMessage("");
