@@ -55,9 +55,7 @@ private let marketingExpectedProgressSummaryValue: String = [
 
 private let marketingExpectedReviewProgressBadgeValue: String = [
     "streakDays=12",
-    "hasReviewedToday=true",
-    "streakFreezeAvailableCredits=1",
-    "streakFreezeCapacity=2"
+    "hasReviewedToday=true"
 ].joined(separator: ";")
 
 private let marketingAiHandoffFirstCardValue: String = "first_card"
@@ -208,7 +206,7 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
     @MainActor
     func assertReviewProgressBadge() throws {
         let reviewProgressBadge = self.app.buttons[LiveSmokeIdentifier.reviewProgressBadge]
-        if try self.waitForElementValueContaining(
+        if try self.waitForElementValue(
             reviewProgressBadge,
             identifier: LiveSmokeIdentifier.reviewProgressBadge,
             expectedValue: marketingExpectedReviewProgressBadgeValue,
