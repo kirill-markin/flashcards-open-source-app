@@ -29,6 +29,7 @@ export function createEmptyProgressSeriesSourceState(): ProgressSeriesSourceStat
   return {
     scopeKey: null,
     localFallback: null,
+    localFallbackActiveDates: [],
     serverBase: null,
     pendingLocalOverlay: null,
     renderedSnapshot: null,
@@ -115,6 +116,7 @@ export function createNextSeriesState(
     renderedSnapshot: buildRenderedSeries(
       nextStateWithoutRenderedSnapshot.serverBase,
       nextStateWithoutRenderedSnapshot.localFallback,
+      nextStateWithoutRenderedSnapshot.localFallbackActiveDates,
       nextStateWithoutRenderedSnapshot.pendingLocalOverlay,
       canRenderServerBase,
     ),

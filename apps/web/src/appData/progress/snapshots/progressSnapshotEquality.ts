@@ -23,6 +23,8 @@ import type {
   ProgressSummaryPayload,
   ProgressSummarySnapshot,
   ProgressSummarySourceState,
+  StreakDay,
+  StreakFreeze,
 } from "../../../types";
 import { progressLeaderboardWindowKeys } from "../../../types";
 
@@ -67,9 +69,52 @@ function areProgressChartDataEqual(left: ProgressChartData | null, right: Progre
 
 export function areProgressSummariesEqual(left: ProgressSummary, right: ProgressSummary): boolean {
   return left.currentStreakDays === right.currentStreakDays
+    && left.longestStreakDays === right.longestStreakDays
     && left.hasReviewedToday === right.hasReviewedToday
     && left.lastReviewedOn === right.lastReviewedOn
-    && left.activeReviewDays === right.activeReviewDays;
+    && left.activeReviewDays === right.activeReviewDays
+    && areStreakFreezesEqual(left.streakFreeze, right.streakFreeze);
+}
+
+function areStreakFreezesEqual(left: StreakFreeze, right: StreakFreeze): boolean {
+  return left.availableCredits === right.availableCredits
+    && left.capacity === right.capacity
+    && left.balanceUnits === right.balanceUnits
+    && left.unitsPerCredit === right.unitsPerCredit
+    && left.nextCreditProgressUnits === right.nextCreditProgressUnits
+    && left.nextCreditRequiredUnits === right.nextCreditRequiredUnits;
+}
+
+function areNullableStreakFreezesEqual(left: StreakFreeze | null, right: StreakFreeze | null): boolean {
+  if (left === right) {
+    return true;
+  }
+
+  if (left === null || right === null) {
+    return false;
+  }
+
+  return areStreakFreezesEqual(left, right);
+}
+
+function areStreakDaysEqual(
+  left: ReadonlyArray<StreakDay>,
+  right: ReadonlyArray<StreakDay>,
+): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  for (let index = 0; index < left.length; index += 1) {
+    const leftDay = left[index];
+    const rightDay = right[index];
+
+    if (leftDay?.date !== rightDay?.date || leftDay?.state !== rightDay?.state) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 export function areProgressReviewHistoryWatermarksEqual(
@@ -165,6 +210,7 @@ function areProgressRenderedSeriesSummaryContextsEqual(
       );
 
   return areProgressSummariesEqual(left.lowerBoundSummary, right.lowerBoundSummary)
+    && areNullableStreakFreezesEqual(left.exactStreakFreeze, right.exactStreakFreeze)
     && areStringArraysEqual(left.activeDates, right.activeDates)
     && areStringArraysEqual(left.activeDatesMissingFromServerBase, right.activeDatesMissingFromServerBase)
     && watermarksAreEqual;
@@ -184,7 +230,8 @@ function areProgressSeriesEqual(left: ProgressSeries | null, right: ProgressSeri
     && left.to === right.to
     && left.generatedAt === right.generatedAt
     && areProgressReviewHistoryWatermarksEqual(left.reviewHistoryWatermarks, right.reviewHistoryWatermarks)
-    && areDailyReviewsEqual(left.dailyReviews, right.dailyReviews);
+    && areDailyReviewsEqual(left.dailyReviews, right.dailyReviews)
+    && areStreakDaysEqual(left.streakDays, right.streakDays);
 }
 
 function areProgressSeriesSnapshotsEqual(
@@ -458,6 +505,7 @@ function areProgressSeriesSourceStatesEqual(
   return left.scopeKey === right.scopeKey
     && left.isLoading === right.isLoading
     && left.errorMessage === right.errorMessage
+    && areStringArraysEqual(left.localFallbackActiveDates, right.localFallbackActiveDates)
     && areProgressSeriesSnapshotsEqual(left.localFallback, right.localFallback)
     && areProgressSeriesSnapshotsEqual(left.serverBase, right.serverBase)
     && areProgressChartDataEqual(left.pendingLocalOverlay, right.pendingLocalOverlay)

@@ -47,3 +47,19 @@ export function ProgressLeaderboardShortcutIcon(): ReactElement {
     </svg>
   );
 }
+
+export function StreakFreezeIcon(): ReactElement {
+  return (
+    <svg
+      className="review-progress-badge-icon streak-freeze-icon"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M11 2h2v5.1l3.4-3.4 1.4 1.4-4.1 4.1 4.6-1.2.5 1.9-5.6 1.5 5.6 1.5-.5 1.9-4.6-1.2 4.1 4.1-1.4 1.4L13 15.7V21h-2v-5.3l-3.4 3.4-1.4-1.4 4.1-4.1-4.6 1.2-.5-1.9 5.6-1.5-5.6-1.5.5-1.9 4.6 1.2-4.1-4.1 1.4-1.4L11 7.1V2Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}

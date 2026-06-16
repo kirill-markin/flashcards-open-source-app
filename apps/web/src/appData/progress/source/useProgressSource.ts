@@ -435,8 +435,9 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
 
     void Promise.all([
       loadLocalProgressDailyReviews(accessibleWorkspaceIds, seriesInput),
+      loadLocalProgressActiveDates(accessibleWorkspaceIds, seriesInput.timeZone),
       loadPendingProgressDailyReviews(accessibleWorkspaceIds, seriesInput),
-    ]).then(([localDailyReviews, pendingLocalDailyReviews]) => {
+    ]).then(([localDailyReviews, localActiveDates, pendingLocalDailyReviews]) => {
       if (currentSeriesScopeKeyRef.current !== seriesScopeKey || seriesLocalLoadSequenceRef.current !== currentSequence) {
         return;
       }
@@ -444,7 +445,12 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
       dispatch({
         type: "series_local_load_succeeded",
         scopeKey: seriesScopeKey,
-        localFallback: createProgressSeriesSnapshot(buildLocalFallbackSeries(seriesInput, localDailyReviews), "local_only", true),
+        localFallback: createProgressSeriesSnapshot(
+          buildLocalFallbackSeries(seriesInput, localDailyReviews, localActiveDates),
+          "local_only",
+          true,
+        ),
+        localFallbackActiveDates: localActiveDates,
         pendingLocalOverlay: createProgressChartData(pendingLocalDailyReviews),
         canRenderServerBase: canLoadServerBaseRef.current,
       });

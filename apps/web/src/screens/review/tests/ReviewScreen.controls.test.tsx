@@ -160,6 +160,14 @@ describe("ReviewScreen controls", () => {
     state.reviewProgressBadge = {
       streakDays: 12,
       hasReviewedToday: true,
+      streakFreeze: {
+        availableCredits: 1,
+        capacity: 2,
+        balanceUnits: 10,
+        unitsPerCredit: 10,
+        nextCreditProgressUnits: 0,
+        nextCreditRequiredUnits: 10,
+      },
       isInteractive: true,
     };
 
@@ -186,6 +194,7 @@ describe("ReviewScreen controls", () => {
     expect(progressBadge.className).toContain("review-progress-badge-active");
     expect(progressBadge.className).not.toContain("review-progress-badge-approximate");
     expect(progressBadge.textContent).not.toContain("🔥");
+    expect(progressBadge.textContent).toContain("1/2");
     const queueBadge = getContainer().querySelector("[data-testid='review-queue-badge']");
     if (!(queueBadge instanceof HTMLButtonElement)) {
       throw new Error("Review queue badge was not found");

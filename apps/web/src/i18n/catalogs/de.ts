@@ -124,6 +124,8 @@ const deCatalog: TranslationCatalog = {
     title: "Fortschritt",
     subtitle: "Verfolge deine aktuelle Serie und deinen täglichen Wiederholungsverlauf.",
     streakTitle: "Serie",
+    streakInfoToggleLabel: "Über Serien-Frost",
+    streakInfo: "Frostbank {{available}}/{{capacity}}. Nächste Aufladung {{progress}}/{{required}}.",
     reviewsTitle: "Wiederholungen",
     lastThirtyDays: "Letzte 30 Tage",
     empty: "Für diesen 30-Tage-Zeitraum wurden keine Wiederholungen erfasst.",
@@ -559,7 +561,8 @@ const deCatalog: TranslationCatalog = {
       ariaLabel: "Bestenliste öffnen",
     },
     progressBadge: {
-      ariaLabel: "Lernserie {{streak}} Tage. {{todayStatus}}.",
+      ariaLabel: "Lernserie {{streak}} Tage. {{todayStatus}}. {{freezeBank}}.",
+      freezeBank: "Frostbank {{available}} von {{capacity}}",
       notReviewedToday: "Heute noch nicht wiederholt",
       reviewedToday: "Heute wiederholt",
       title: "Serie",

@@ -80,6 +80,32 @@
   font-variant-numeric: tabular-nums;
 }
 
+.review-progress-freeze-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding-inline-start: 2px;
+  color: #bfeaff;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.review-progress-badge-active .review-progress-freeze-indicator {
+  color: #e8f8ff;
+}
+
+.review-progress-freeze-indicator .review-progress-badge-icon {
+  width: 13px;
+  height: 13px;
+}
+
+.review-progress-freeze-value {
+  display: inline-flex;
+  align-items: center;
+}
+
 .panel {
   --panel-padding: 16px;
   --panel-radius: var(--radius-xl);

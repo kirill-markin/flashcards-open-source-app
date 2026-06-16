@@ -124,6 +124,8 @@ export const jaCatalog = {
     title: "進捗",
     subtitle: "直近の連続日数と日ごとの復習履歴を確認できます。",
     streakTitle: "連続日数",
+    streakInfoToggleLabel: "連続フリーズについて",
+    streakInfo: "フリーズ残数 {{available}}/{{capacity}}。次の回復 {{progress}}/{{required}}。",
     reviewsTitle: "復習回数",
     lastThirtyDays: "過去30日間",
     empty: "この30日間では復習が記録されていません。",
@@ -559,7 +561,8 @@ export const jaCatalog = {
       ariaLabel: "リーダーボードを開く",
     },
     progressBadge: {
-      ariaLabel: "復習連続 {{streak}} 日。{{todayStatus}}。",
+      ariaLabel: "復習連続 {{streak}} 日。{{todayStatus}}。{{freezeBank}}。",
+      freezeBank: "フリーズ残数 {{available}} / {{capacity}}",
       notReviewedToday: "今日はまだ復習していません",
       reviewedToday: "今日は復習済み",
       title: "連続",

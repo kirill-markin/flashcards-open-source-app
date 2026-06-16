@@ -6,6 +6,7 @@ import type {
   ProgressSeries,
   ProgressSummaryPayload,
 } from "../../../types";
+import type { ProgressCacheMissBreadcrumbDetails } from "../../../observability/webObservability";
 import {
   addWebBreadcrumbMock,
   buildCurrentLeaderboardScopeKey,
@@ -35,11 +36,12 @@ import {
   storePersistedProgressSeriesForTest,
   storePersistedProgressSummaryForTest,
   summaryAndSeriesSections,
+  summaryOnlySections,
   swapFirstProgressReviewScheduleBuckets,
 } from "./progressSourceTestSupport";
 
 type ExpectedProgressCacheMissSection = "summary" | "series" | "review_schedule" | "leaderboard";
-type ExpectedProgressCacheMissReason = "invalid_json" | "invalid_shape" | "scope_mismatch" | "time_zone_mismatch";
+type ExpectedProgressCacheMissReason = ProgressCacheMissBreadcrumbDetails["reason"];
 
 function expectProgressCacheMissBreadcrumb(
   section: ExpectedProgressCacheMissSection,
@@ -198,6 +200,124 @@ describe("useProgressSource cache", () => {
     expectProgressCacheMissBreadcrumb("series", "invalid_json");
   });
 
+  it("treats pre-freeze summary and series cache versions as version-mismatch misses", async () => {
+    const summaryScopeKey = buildCurrentSummaryScopeKey();
+    const seriesScopeKey = buildCurrentSeriesScopeKey();
+    const currentSeriesInput = buildCurrentSeriesInput();
+    window.localStorage.setItem(`flashcards-progress-server-summary:${summaryScopeKey}`, JSON.stringify({
+      version: 2,
+      scopeKey: summaryScopeKey,
+      savedAt: "2026-04-18T09:00:00.000Z",
+      serverBase: {
+        timeZone: "Europe/Madrid",
+        generatedAt: "2026-04-18T09:10:00.000Z",
+        reviewHistoryWatermarks: [
+          { workspaceId: "workspace-1", reviewSequenceId: 12 },
+        ],
+        summary: {
+          currentStreakDays: 12,
+          hasReviewedToday: true,
+          lastReviewedOn: currentSeriesInput.to,
+          activeReviewDays: 12,
+        },
+      },
+    }));
+    window.localStorage.setItem(`flashcards-progress-server-series:${seriesScopeKey}`, JSON.stringify({
+      version: 2,
+      scopeKey: seriesScopeKey,
+      savedAt: "2026-04-18T09:00:00.000Z",
+      serverBase: {
+        timeZone: currentSeriesInput.timeZone,
+        from: currentSeriesInput.from,
+        to: currentSeriesInput.to,
+        generatedAt: "2026-04-18T09:10:00.000Z",
+        reviewHistoryWatermarks: [
+          { workspaceId: "workspace-1", reviewSequenceId: 12 },
+        ],
+        dailyReviews: [
+          {
+            date: currentSeriesInput.to,
+            reviewCount: 12,
+          },
+        ],
+      },
+    }));
+
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: summaryAndSeriesSections,
+    });
+
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.summary.serverBase?.summary.activeReviewDays).toBe(1);
+    expect(harness.getApi().progressSourceState.series.serverBase?.dailyReviews).toContainEqual(expect.objectContaining({
+      date: currentSeriesInput.to,
+      reviewCount: 1,
+    }));
+    expectProgressCacheMissBreadcrumb("summary", "version_mismatch");
+    expectProgressCacheMissBreadcrumb("series", "version_mismatch");
+  });
+
+  it("treats cached summaries with incoherent streak freeze metadata as invalid-shape misses", async () => {
+    const summaryScopeKey = buildCurrentSummaryScopeKey();
+    const cachedSummary = buildServerSummary(6, "2026-04-18T09:10:00.000Z");
+    const remoteSummary = buildServerSummary(8, "2026-04-18T09:23:00.000Z");
+    storePersistedProgressSummaryForTest(summaryScopeKey, {
+      ...cachedSummary,
+      summary: {
+        ...cachedSummary.summary,
+        streakFreeze: {
+          ...cachedSummary.summary.streakFreeze,
+          balanceUnits: 19,
+        },
+      },
+    });
+    loadProgressSummaryMock.mockResolvedValueOnce(remoteSummary);
+
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: summaryOnlySections,
+    });
+
+    await flushEffects();
+
+    expectProgressCacheMissBreadcrumb("summary", "invalid_shape");
+    expect(harness.getApi().progressSourceState.summary.serverBase?.generatedAt).toBe("2026-04-18T09:23:00.000Z");
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(8);
+  });
+
+  it("treats cached summaries with incoherent streak length metadata as invalid-shape misses", async () => {
+    const summaryScopeKey = buildCurrentSummaryScopeKey();
+    const cachedSummary = buildServerSummary(6, "2026-04-18T09:10:00.000Z");
+    const remoteSummary = buildServerSummary(8, "2026-04-18T09:23:00.000Z");
+    storePersistedProgressSummaryForTest(summaryScopeKey, {
+      ...cachedSummary,
+      summary: {
+        ...cachedSummary.summary,
+        longestStreakDays: cachedSummary.summary.currentStreakDays - 1,
+      },
+    });
+    loadProgressSummaryMock.mockResolvedValueOnce(remoteSummary);
+
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: summaryOnlySections,
+    });
+
+    await flushEffects();
+
+    expectProgressCacheMissBreadcrumb("summary", "invalid_shape");
+    expect(harness.getApi().progressSourceState.summary.serverBase?.generatedAt).toBe("2026-04-18T09:23:00.000Z");
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(8);
+  });
+
   it("treats malformed cached series dates as invalid-shape misses before loading remote series", async () => {
     const currentSeriesInput = buildCurrentSeriesInput();
     const seriesScopeKey = buildCurrentSeriesScopeKey();
@@ -215,6 +335,12 @@ describe("useProgressSource cache", () => {
         ],
         dailyReviews: [
           buildGoodDailyReviewPoint(currentSeriesInput.to, 12),
+        ],
+        streakDays: [
+          {
+            date: currentSeriesInput.to,
+            state: "reviewed",
+          },
         ],
       },
     } as const;

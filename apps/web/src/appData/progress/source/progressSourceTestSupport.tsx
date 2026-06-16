@@ -12,6 +12,8 @@ import type {
   ProgressSeriesInput,
   ProgressSummary,
   ProgressSummaryPayload,
+  StreakDay,
+  StreakDayState,
   WorkspaceSummary,
 } from "../../../types";
 import {
@@ -27,7 +29,12 @@ import {
   buildProgressDateContext,
   buildProgressSeriesInputForDateContext,
   buildProgressSummaryInputForDateContext,
+  shiftLocalDate,
 } from "../../../progress/progressDates";
+import {
+  createDefaultStreakFreeze,
+  evaluateProgressStreakFreeze,
+} from "../../../progress/streakFreeze";
 import {
   buildProgressLeaderboardScopeKey,
   buildProgressSummaryScopeKey,
@@ -361,9 +368,11 @@ export function buildServerSummary(activeReviewDays: number, generatedAt: string
     ],
     summary: {
       currentStreakDays: activeReviewDays,
+      longestStreakDays: activeReviewDays,
       hasReviewedToday: true,
       lastReviewedOn: "2026-04-18",
       activeReviewDays,
+      streakFreeze: createDefaultStreakFreeze(),
     },
   };
 }
@@ -395,8 +404,39 @@ export function buildGoodDailyReviewPoint(date: string, reviewCount: number): Da
   return buildDailyReviewPoint(date, reviewCount, 0, 0, reviewCount, 0);
 }
 
+function buildServerSeriesStreakDays(
+  input: ProgressSeriesInput,
+  dailyReviews: ProgressSeries["dailyReviews"],
+): ReadonlyArray<StreakDay> {
+  const activeDates = dailyReviews
+    .filter((day) => day.reviewCount > 0)
+    .map((day) => day.date)
+    .sort((leftDate, rightDate) => leftDate.localeCompare(rightDate));
+  const activeDateSet = new Set(activeDates);
+  const evaluatedStreakDayStates = new Map<string, StreakDayState>(
+    evaluateProgressStreakFreeze(activeDates, input.to).streakDays.map((day) => [day.date, day.state]),
+  );
+  const streakDays: Array<StreakDay> = [];
+
+  for (let currentDate = input.from; currentDate <= input.to; currentDate = shiftLocalDate(currentDate, 1)) {
+    const state: StreakDayState = activeDateSet.has(currentDate)
+      ? "reviewed"
+      : evaluatedStreakDayStates.get(currentDate) ?? (currentDate >= input.to ? "pending" : "missed");
+
+    streakDays.push({
+      date: currentDate,
+      state,
+    });
+  }
+
+  return streakDays;
+}
+
 export function buildServerSeries(reviewCount: number, generatedAt: string): ProgressSeries {
   const input: ProgressSeriesInput = buildCurrentSeriesInput();
+  const dailyReviews = [
+    buildGoodDailyReviewPoint(input.to, reviewCount),
+  ];
 
   return {
     timeZone: input.timeZone,
@@ -406,9 +446,27 @@ export function buildServerSeries(reviewCount: number, generatedAt: string): Pro
     reviewHistoryWatermarks: [
       { workspaceId: workspace.workspaceId, reviewSequenceId: reviewCount },
     ],
-    dailyReviews: [
-      buildGoodDailyReviewPoint(input.to, reviewCount),
+    dailyReviews,
+    streakDays: buildServerSeriesStreakDays(input, dailyReviews),
+  };
+}
+
+export function buildServerSeriesWithDailyReviews(
+  dailyReviews: ProgressSeries["dailyReviews"],
+  generatedAt: string,
+): ProgressSeries {
+  const input: ProgressSeriesInput = buildCurrentSeriesInput();
+
+  return {
+    timeZone: input.timeZone,
+    from: input.from,
+    to: input.to,
+    generatedAt,
+    reviewHistoryWatermarks: [
+      { workspaceId: workspace.workspaceId, reviewSequenceId: dailyReviews.length },
     ],
+    dailyReviews,
+    streakDays: buildServerSeriesStreakDays(input, dailyReviews),
   };
 }
 
@@ -506,7 +564,7 @@ export function storePersistedProgressSummaryForTest(
   serverBase: ProgressSummaryPayload,
 ): void {
   window.localStorage.setItem(`flashcards-progress-server-summary:${scopeKey}`, JSON.stringify({
-    version: 2,
+    version: 3,
     scopeKey,
     savedAt: "2026-04-18T09:00:00.000Z",
     serverBase,
@@ -609,9 +667,11 @@ beforeEach(() => {
   calculatePendingProgressReviewScheduleCardTotalDeltaMock.mockResolvedValue(0);
   loadLocalProgressSummaryMock.mockResolvedValue({
     currentStreakDays: 0,
+    longestStreakDays: 0,
     hasReviewedToday: false,
     lastReviewedOn: null,
     activeReviewDays: 0,
+    streakFreeze: createDefaultStreakFreeze(),
   });
   loadLocalProgressActiveDatesMock.mockResolvedValue([]);
   loadLocalProgressDailyReviewsMock.mockResolvedValue([]);

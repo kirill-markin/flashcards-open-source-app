@@ -124,6 +124,8 @@ const esMxCatalog: TranslationCatalog = {
     title: "Progreso",
     subtitle: "Sigue tu racha reciente y el historial diario de repasos.",
     streakTitle: "Racha",
+    streakInfoToggleLabel: "Acerca de las congelaciones de racha",
+    streakInfo: "Banco de congelaciones {{available}}/{{capacity}}. Próxima recarga {{progress}}/{{required}}.",
     reviewsTitle: "Repasos",
     lastThirtyDays: "Últimos 30 días",
     empty: "No se registraron repasos en este rango de 30 días.",
@@ -559,7 +561,8 @@ const esMxCatalog: TranslationCatalog = {
       ariaLabel: "Abrir clasificación",
     },
     progressBadge: {
-      ariaLabel: "Racha de repaso de {{streak}} días. {{todayStatus}}.",
+      ariaLabel: "Racha de repaso de {{streak}} días. {{todayStatus}}. {{freezeBank}}.",
+      freezeBank: "Banco de congelaciones {{available}} de {{capacity}}",
       notReviewedToday: "Sin repaso hoy",
       reviewedToday: "Repasado hoy",
       title: "Racha",

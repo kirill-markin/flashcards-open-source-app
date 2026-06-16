@@ -277,9 +277,18 @@ describe("localDb progress", () => {
 
     expect(result).toEqual({
       currentStreakDays: 3,
+      longestStreakDays: 3,
       hasReviewedToday: true,
       lastReviewedOn: "2025-01-08",
       activeReviewDays: 3,
+      streakFreeze: {
+        availableCredits: 2,
+        capacity: 2,
+        balanceUnits: 20,
+        unitsPerCredit: 10,
+        nextCreditProgressUnits: 0,
+        nextCreditRequiredUnits: 10,
+      },
     });
   });
 

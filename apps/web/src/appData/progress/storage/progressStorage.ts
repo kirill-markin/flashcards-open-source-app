@@ -14,6 +14,8 @@ import type {
   ProgressScopeKey,
   ProgressSeries,
   ProgressSummaryPayload,
+  StreakDay,
+  StreakFreeze,
 } from "../../../types";
 import { INSTALLATION_ID_STORAGE_KEY } from "../../../clientIdentity";
 import { addWebBreadcrumb, type WebObservationScope } from "../../../observability/webObservability";
@@ -23,8 +25,10 @@ import {
   progressLeaderboardStatuses,
   progressLeaderboardWindowKeys,
   progressReviewScheduleBucketKeys,
+  streakDayStates,
 } from "../../../types";
 import { findProgressReviewScheduleValidationIssue } from "../../../progress/progressReviewScheduleValidation";
+import { isCoherentStreakFreeze } from "../../../progress/streakFreeze";
 import { normalizeProgressSeries } from "../snapshots/progressSnapshots";
 
 const progressSummaryStorageKeyPrefix = "flashcards-progress-server-summary";
@@ -33,13 +37,13 @@ const progressReviewScheduleStorageKeyPrefix = "flashcards-progress-server-revie
 // Single fixed key: the leaderboard payload is account-scoped, so one cache slot
 // is enough and lets settings clear it without knowing the active scope key.
 const progressLeaderboardStorageKey = "flashcards-progress-server-leaderboard";
-const progressServerSummaryVersion = 2;
+const progressServerSummaryVersion = 3;
 const progressServerSeriesVersion = 3;
 const progressServerReviewScheduleVersion = 2;
 const progressServerLeaderboardVersion = 2;
 
 type PersistedProgressSummary = Readonly<{
-  version: 2;
+  version: 3;
   scopeKey: ProgressScopeKey;
   savedAt: string;
   serverBase: ProgressSummaryPayload;
@@ -72,7 +76,7 @@ type LocalStorageLike = Storage & Record<string, string | undefined> & Readonly<
 }>;
 
 type ProgressCacheSection = "summary" | "series" | "review_schedule" | "leaderboard";
-type ProgressCacheMissReason = "empty" | "invalid_json" | "invalid_shape" | "scope_mismatch" | "time_zone_mismatch";
+type ProgressCacheMissReason = "empty" | "invalid_json" | "invalid_shape" | "scope_mismatch" | "time_zone_mismatch" | "version_mismatch";
 
 type ProgressCacheReadResult<TValue> =
   | Readonly<{ status: "hit"; value: TValue }>
@@ -149,6 +153,7 @@ function normalizePersistedProgressSeries(
     || isValidLocalDateValue(serverBase.to) === false
     || serverBase.from > serverBase.to
     || serverBase.dailyReviews.some((day) => isValidLocalDateValue(day.date) === false)
+    || serverBase.streakDays.some((day) => isValidLocalDateValue(day.date) === false)
   ) {
     return {
       status: "miss",
@@ -162,7 +167,13 @@ function normalizePersistedProgressSeries(
       value: normalizeProgressSeries(serverBase),
     };
   } catch (error: unknown) {
-    if (error instanceof Error && error.message.startsWith("Invalid local date:")) {
+    if (
+      error instanceof Error
+      && (
+        error.message.startsWith("Invalid local date:")
+        || error.message.startsWith("Progress series streakDays")
+      )
+    ) {
       return {
         status: "miss",
         reason: "invalid_shape",
@@ -296,6 +307,68 @@ function parseJsonRecord(rawValue: string): ProgressCacheReadResult<Record<strin
   }
 }
 
+function parsePersistedStreakFreeze(value: unknown): StreakFreeze | null {
+  if (
+    isRecord(value) === false
+    || isNonNegativeSafeIntegerValue(value.availableCredits) === false
+    || isNonNegativeSafeIntegerValue(value.capacity) === false
+    || isNonNegativeSafeIntegerValue(value.balanceUnits) === false
+    || isNonNegativeSafeIntegerValue(value.unitsPerCredit) === false
+    || isNonNegativeSafeIntegerValue(value.nextCreditProgressUnits) === false
+    || isNonNegativeSafeIntegerValue(value.nextCreditRequiredUnits) === false
+  ) {
+    return null;
+  }
+
+  const streakFreeze: StreakFreeze = {
+    availableCredits: value.availableCredits,
+    capacity: value.capacity,
+    balanceUnits: value.balanceUnits,
+    unitsPerCredit: value.unitsPerCredit,
+    nextCreditProgressUnits: value.nextCreditProgressUnits,
+    nextCreditRequiredUnits: value.nextCreditRequiredUnits,
+  };
+
+  if (isCoherentStreakFreeze(streakFreeze) === false) {
+    return null;
+  }
+
+  return streakFreeze;
+}
+
+function isStreakDayStateValue(value: unknown): value is StreakDay["state"] {
+  return typeof value === "string" && streakDayStates.includes(value as StreakDay["state"]);
+}
+
+function parsePersistedStreakDays(value: unknown): ReadonlyArray<StreakDay> | null {
+  if (Array.isArray(value) === false) {
+    return null;
+  }
+
+  const streakDays = value
+    .map((day): StreakDay | null => {
+      if (
+        isRecord(day) === false
+        || typeof day.date !== "string"
+        || isStreakDayStateValue(day.state) === false
+      ) {
+        return null;
+      }
+
+      return {
+        date: day.date,
+        state: day.state,
+      };
+    })
+    .filter((day): day is StreakDay => day !== null);
+
+  if (streakDays.length !== value.length) {
+    return null;
+  }
+
+  return streakDays;
+}
+
 function parsePersistedProgressSummary(rawValue: string | null): ProgressCacheReadResult<PersistedProgressSummary> {
   if (rawValue === null) {
     return {
@@ -310,18 +383,25 @@ function parsePersistedProgressSummary(rawValue: string | null): ProgressCacheRe
   }
 
   const parsedValue = parsedRecord.value;
+  if (parsedValue.version !== progressServerSummaryVersion) {
+    return {
+      status: "miss",
+      reason: "version_mismatch",
+    };
+  }
+
   if (
-    parsedValue.version !== progressServerSummaryVersion
-    || typeof parsedValue.scopeKey !== "string"
+    typeof parsedValue.scopeKey !== "string"
     || typeof parsedValue.savedAt !== "string"
     || isRecord(parsedValue.serverBase) === false
     || typeof parsedValue.serverBase.timeZone !== "string"
     || (parsedValue.serverBase.generatedAt !== null && typeof parsedValue.serverBase.generatedAt !== "string")
     || isRecord(parsedValue.serverBase.summary) === false
-    || typeof parsedValue.serverBase.summary.currentStreakDays !== "number"
+    || isNonNegativeSafeIntegerValue(parsedValue.serverBase.summary.currentStreakDays) === false
+    || isNonNegativeSafeIntegerValue(parsedValue.serverBase.summary.longestStreakDays) === false
     || typeof parsedValue.serverBase.summary.hasReviewedToday !== "boolean"
     || (parsedValue.serverBase.summary.lastReviewedOn !== null && typeof parsedValue.serverBase.summary.lastReviewedOn !== "string")
-    || typeof parsedValue.serverBase.summary.activeReviewDays !== "number"
+    || isNonNegativeSafeIntegerValue(parsedValue.serverBase.summary.activeReviewDays) === false
   ) {
     return {
       status: "miss",
@@ -339,10 +419,25 @@ function parsePersistedProgressSummary(rawValue: string | null): ProgressCacheRe
     };
   }
 
+  const streakFreeze = parsePersistedStreakFreeze(parsedValue.serverBase.summary.streakFreeze);
+  if (streakFreeze === null) {
+    return {
+      status: "miss",
+      reason: "invalid_shape",
+    };
+  }
+
+  if (parsedValue.serverBase.summary.longestStreakDays < parsedValue.serverBase.summary.currentStreakDays) {
+    return {
+      status: "miss",
+      reason: "invalid_shape",
+    };
+  }
+
   return {
     status: "hit",
     value: {
-      version: 2,
+      version: 3,
       scopeKey: parsedValue.scopeKey,
       savedAt: parsedValue.savedAt,
       serverBase: {
@@ -351,9 +446,11 @@ function parsePersistedProgressSummary(rawValue: string | null): ProgressCacheRe
         reviewHistoryWatermarks,
         summary: {
           currentStreakDays: parsedValue.serverBase.summary.currentStreakDays,
+          longestStreakDays: parsedValue.serverBase.summary.longestStreakDays,
           hasReviewedToday: parsedValue.serverBase.summary.hasReviewedToday,
           lastReviewedOn: parsedValue.serverBase.summary.lastReviewedOn,
           activeReviewDays: parsedValue.serverBase.summary.activeReviewDays,
+          streakFreeze,
         },
       },
     },
@@ -374,9 +471,15 @@ function parsePersistedProgressSeries(rawValue: string | null): ProgressCacheRea
   }
 
   const parsedValue = parsedRecord.value;
+  if (parsedValue.version !== progressServerSeriesVersion) {
+    return {
+      status: "miss",
+      reason: "version_mismatch",
+    };
+  }
+
   if (
-    parsedValue.version !== progressServerSeriesVersion
-    || typeof parsedValue.scopeKey !== "string"
+    typeof parsedValue.scopeKey !== "string"
     || typeof parsedValue.savedAt !== "string"
     || isRecord(parsedValue.serverBase) === false
     || typeof parsedValue.serverBase.timeZone !== "string"
@@ -384,6 +487,7 @@ function parsePersistedProgressSeries(rawValue: string | null): ProgressCacheRea
     || typeof parsedValue.serverBase.to !== "string"
     || (parsedValue.serverBase.generatedAt !== null && typeof parsedValue.serverBase.generatedAt !== "string")
     || Array.isArray(parsedValue.serverBase.dailyReviews) === false
+    || Array.isArray(parsedValue.serverBase.streakDays) === false
   ) {
     return {
       status: "miss",
@@ -435,6 +539,14 @@ function parsePersistedProgressSeries(rawValue: string | null): ProgressCacheRea
     };
   }
 
+  const streakDays = parsePersistedStreakDays(parsedValue.serverBase.streakDays);
+  if (streakDays === null) {
+    return {
+      status: "miss",
+      reason: "invalid_shape",
+    };
+  }
+
   const reviewHistoryWatermarks = parsePersistedProgressReviewHistoryWatermarks(
     parsedValue.serverBase.reviewHistoryWatermarks,
   );
@@ -452,6 +564,7 @@ function parsePersistedProgressSeries(rawValue: string | null): ProgressCacheRea
     generatedAt: parsedValue.serverBase.generatedAt,
     reviewHistoryWatermarks,
     dailyReviews,
+    streakDays,
   });
   if (normalizedServerBase.status === "miss") {
     return {
@@ -915,7 +1028,7 @@ function assertProgressReviewScheduleTimeZone(
 
 export function storePersistedProgressSummary(scopeKey: ProgressScopeKey, serverBase: ProgressSummaryPayload): void {
   const persistedValue: PersistedProgressSummary = {
-    version: 2,
+    version: 3,
     scopeKey,
     savedAt: new Date().toISOString(),
     serverBase,
