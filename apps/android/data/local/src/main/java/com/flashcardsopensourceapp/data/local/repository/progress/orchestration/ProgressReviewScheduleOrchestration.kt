@@ -20,6 +20,7 @@ import com.flashcardsopensourceapp.data.local.repository.progress.runtime.Progre
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.ProgressRemoteRefreshSyncMode
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.createProgressRemoteRefreshSyncMode
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.logProgressRefreshWarning
+import com.flashcardsopensourceapp.data.local.repository.progress.runtime.logProgressSyncBeforeRemoteLoadFailure
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.shouldSuppressProgressReviewScheduleRemoteLoadWarning
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.supportsServerRefresh
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressReviewScheduleStoreInputs
@@ -229,7 +230,7 @@ internal class ProgressReviewScheduleOrchestration(
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
-                logProgressRefreshWarning(
+                logProgressSyncBeforeRemoteLoadFailure(
                     observability = observability,
                     observationVersions = observationVersions,
                     event = "progress_review_schedule_sync_before_remote_load_failed",
