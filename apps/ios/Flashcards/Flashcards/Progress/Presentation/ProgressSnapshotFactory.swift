@@ -24,6 +24,10 @@ func makeProgressSnapshot(
             localDate: timelineDay.localDate,
             reviewCount: timelineDay.reviewCount,
             streakState: timelineDay.streakState,
+            againCount: timelineDay.againCount,
+            hardCount: timelineDay.hardCount,
+            goodCount: timelineDay.goodCount,
+            easyCount: timelineDay.easyCount,
             isToday: timelineDay.localDate == todayLocalDate
         )
     }
@@ -164,6 +168,7 @@ private func makeProjectedProgressLeaderboardRankingRows(
         kind: .viewer,
         publicProfileId: serverViewerRow.publicProfileId,
         anonymousDisplayName: serverViewerRow.anonymousDisplayName,
+        friendDisplayName: serverViewerRow.friendDisplayName,
         qualifiedReviewCount: viewerQualifiedReviewCount,
         rank: serverViewerRow.rank
     )
@@ -179,6 +184,7 @@ private func makeProjectedProgressLeaderboardRankingRows(
             kind: rankingRow.kind,
             publicProfileId: rankingRow.publicProfileId,
             anonymousDisplayName: rankingRow.anonymousDisplayName,
+            friendDisplayName: rankingRow.friendDisplayName,
             qualifiedReviewCount: rankingRow.qualifiedReviewCount,
             rank: index + 1
         )
@@ -226,6 +232,9 @@ private func makeCompactProgressLeaderboardRowStates(
     if participantCount > topRowCount {
         shownRanks.insert(participantCount)
     }
+    for rankingRow in rankingRows where isProgressLeaderboardFriendRow(rankingRow: rankingRow) {
+        shownRanks.insert(rankingRow.rank)
+    }
 
     var rows: [ProgressLeaderboardRowState] = []
     var previousRank: Int = 0
@@ -268,9 +277,21 @@ private func makeProgressLeaderboardParticipantRowState(
         ),
         publicProfileId: rankingRow.publicProfileId,
         anonymousDisplayName: rankingRow.anonymousDisplayName,
+        friendDisplayName: rankingRow.friendDisplayName,
         qualifiedReviewCount: rankingRow.qualifiedReviewCount,
         rank: rankingRow.rank
     )
+}
+
+private func isProgressLeaderboardFriendRow(
+    rankingRow: ProgressLeaderboardRankingRow
+) -> Bool {
+    guard rankingRow.kind == .participant,
+          let friendDisplayName = rankingRow.friendDisplayName else {
+        return false
+    }
+
+    return friendDisplayName.isEmpty == false
 }
 
 private func progressLeaderboardParticipantKind(
@@ -322,6 +343,10 @@ private struct ProgressTimelineDay: Hashable, Sendable {
     let localDate: String
     let reviewCount: Int
     let streakState: ProgressStreakDayState
+    let againCount: Int
+    let hardCount: Int
+    let goodCount: Int
+    let easyCount: Int
 }
 
 private func makeProgressTimeline(
@@ -335,15 +360,13 @@ private func makeProgressTimeline(
         throw ProgressPresentationError.invalidRange(series.from, series.to)
     }
 
-    var reviewCountsByLocalDate: [String: Int] = [:]
+    var reviewsByLocalDate: [String: ProgressDay] = [:]
     for day in series.dailyReviews {
         _ = try progressDate(localDate: day.date, calendar: calendar)
 
-        guard day.reviewCount >= 0 else {
-            throw ProgressPresentationError.negativeReviewCount(day.date, day.reviewCount)
-        }
+        try validateProgressDayCounts(day: day)
 
-        if reviewCountsByLocalDate.updateValue(day.reviewCount, forKey: day.date) != nil {
+        if reviewsByLocalDate.updateValue(day, forKey: day.date) != nil {
             throw ProgressPresentationError.duplicateDay(day.date)
         }
     }
@@ -360,7 +383,8 @@ private func makeProgressTimeline(
     var currentDate = startDate
     while currentDate <= endDate {
         let localDate = progressLocalDateString(date: currentDate, calendar: calendar)
-        let reviewCount = reviewCountsByLocalDate[localDate] ?? 0
+        let progressDay = reviewsByLocalDate[localDate]
+        let reviewCount = progressDay?.reviewCount ?? 0
         guard let streakState = streakStatesByLocalDate[localDate] else {
             throw ProgressPresentationError.missingStreakDay(localDate)
         }
@@ -377,7 +401,11 @@ private func makeProgressTimeline(
                 date: currentDate,
                 localDate: localDate,
                 reviewCount: reviewCount,
-                streakState: streakState
+                streakState: streakState,
+                againCount: progressDay?.againCount ?? 0,
+                hardCount: progressDay?.hardCount ?? 0,
+                goodCount: progressDay?.goodCount ?? 0,
+                easyCount: progressDay?.easyCount ?? 0
             )
         )
 
@@ -388,6 +416,39 @@ private func makeProgressTimeline(
     }
 
     return timeline
+}
+
+private func validateProgressDayCounts(day: ProgressDay) throws {
+    guard day.reviewCount >= 0 else {
+        throw ProgressPresentationError.negativeReviewCount(day.date, day.reviewCount)
+    }
+
+    let ratingCounts: [(rating: String, count: Int)] = [
+        ("again", day.againCount),
+        ("hard", day.hardCount),
+        ("good", day.goodCount),
+        ("easy", day.easyCount),
+    ]
+    for ratingCount in ratingCounts {
+        guard ratingCount.count >= 0 else {
+            throw ProgressPresentationError.negativeReviewRatingCount(
+                localDate: day.date,
+                rating: ratingCount.rating,
+                count: ratingCount.count
+            )
+        }
+    }
+
+    let ratingTotal = ratingCounts.reduce(0) { total, ratingCount in
+        total + ratingCount.count
+    }
+    guard day.reviewCount == ratingTotal else {
+        throw ProgressPresentationError.reviewCountBreakdownMismatch(
+            localDate: day.date,
+            reviewCount: day.reviewCount,
+            ratingTotal: ratingTotal
+        )
+    }
 }
 
 func validateProgressSeries(

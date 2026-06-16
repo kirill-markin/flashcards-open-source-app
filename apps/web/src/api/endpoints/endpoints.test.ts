@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ProgressReviewSchedule } from "../../types";
+import type { ProgressReviewSchedule, StreakDay } from "../../types";
 import { persistLocalePreference } from "../../i18n/runtime";
 import {
   createChatSnapshotResponse,
@@ -31,10 +31,16 @@ import {
   submitFeedback,
 } from "./feedback";
 import {
+  loadProgressLeaderboard,
   loadProgressReviewSchedule,
   loadProgressSeries,
   loadProgressSummary,
 } from "./progress";
+import {
+  acceptFriendInvitation,
+  createFriendInvitation,
+  previewFriendInvitation,
+} from "./communityFriends";
 import { primeSessionCsrfToken, resetApiClientStateForTests } from "../transport/transport";
 
 const observabilityMocks = vi.hoisted(() => ({
@@ -75,6 +81,55 @@ afterEach(() => {
   resetApiClientStateForTests();
   vi.restoreAllMocks();
 });
+
+function createFullStreakFreeze(): Readonly<{
+  availableCredits: number;
+  capacity: number;
+  balanceUnits: number;
+  unitsPerCredit: number;
+  nextCreditProgressUnits: number;
+  nextCreditRequiredUnits: number;
+}> {
+  return {
+    availableCredits: 2,
+    capacity: 2,
+    balanceUnits: 20,
+    unitsPerCredit: 10,
+    nextCreditProgressUnits: 0,
+    nextCreditRequiredUnits: 10,
+  };
+}
+
+function createProgressSummaryValue(
+  currentStreakDays: number,
+  hasReviewedToday: boolean,
+  lastReviewedOn: string | null,
+  activeReviewDays: number,
+): Readonly<{
+  currentStreakDays: number;
+  longestStreakDays: number;
+  hasReviewedToday: boolean;
+  lastReviewedOn: string | null;
+  activeReviewDays: number;
+  streakFreeze: ReturnType<typeof createFullStreakFreeze>;
+}> {
+  return {
+    currentStreakDays,
+    longestStreakDays: currentStreakDays,
+    hasReviewedToday,
+    lastReviewedOn,
+    activeReviewDays,
+    streakFreeze: createFullStreakFreeze(),
+  };
+}
+
+function createThreeDayStreakDays(): ReadonlyArray<StreakDay> {
+  return [
+    { date: "2026-04-01", state: "reviewed" },
+    { date: "2026-04-02", state: "frozen" },
+    { date: "2026-04-03", state: "reviewed" },
+  ];
+}
 
 describe("auth URL endpoints", () => {
   it("prefers the stored app locale over raw browser detection", () => {
@@ -118,6 +173,134 @@ describe("auth URL endpoints", () => {
   });
 });
 
+describe("community friend API endpoints", () => {
+  it("decodes friend invitation create, preview, and accept responses", async () => {
+    primeSessionCsrfToken("csrf-token-1");
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createJsonResponse({
+        inviteUrl: "https://app.flashcards-open-source-app.com/invite/raw-token",
+        expiresAt: "2026-04-22T10:00:00.000Z",
+      }))
+      .mockResolvedValueOnce(createJsonResponse({
+        status: "active",
+        expiresAt: "2026-04-22T10:00:00.000Z",
+      }))
+      .mockResolvedValueOnce(createJsonResponse({
+        status: "already_friends",
+        existingFriendDisplayName: "Alex",
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(createFriendInvitation({
+      inviteeDisplayName: "Priya",
+    })).resolves.toEqual({
+      inviteUrl: "https://app.flashcards-open-source-app.com/invite/raw-token",
+      expiresAt: "2026-04-22T10:00:00.000Z",
+    });
+    await expect(previewFriendInvitation("raw-token")).resolves.toEqual({
+      status: "active",
+      expiresAt: "2026-04-22T10:00:00.000Z",
+    });
+    await expect(acceptFriendInvitation("raw-token", {
+      inviterDisplayName: "Alex",
+    })).resolves.toEqual({
+      status: "already_friends",
+      existingFriendDisplayName: "Alex",
+    });
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "http://localhost:8080/v1/me/community/friend-invitations",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ inviteeDisplayName: "Priya" }),
+      }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "http://localhost:8080/v1/community/friend-invitations/raw-token",
+      expect.objectContaining({ method: "GET" }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      "http://localhost:8080/v1/me/community/friend-invitations/raw-token/accept",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ inviterDisplayName: "Alex" }),
+      }),
+    );
+  });
+
+  it("decodes optional friend display names on leaderboard rows", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createJsonResponse({
+        status: "ready",
+        metric: {
+          metricVersion: "qualified_reviews_v1",
+          title: "Qualified reviews",
+          description: "Hard, Good, and Easy reviews count toward your rank. Again does not.",
+        },
+        defaultWindowKey: "last_24_hours",
+        windows: [{
+          windowKey: "last_24_hours",
+          snapshotId: "0cc86d10-18cb-4d64-a2f2-a5fd960b45b2",
+          snapshotGeneratedAt: "2026-04-21T10:00:05.000Z",
+          asOfServerHour: "2026-04-21T10:00:00.000Z",
+          nextRefreshAfter: "2026-04-21T11:00:00.000Z",
+          participantCount: 2,
+          viewer: {
+            publicProfileId: "viewer-profile",
+            displayName: "You",
+            rank: 2,
+            qualifiedReviewCount: 7,
+          },
+          rows: [
+            {
+              kind: "top",
+              publicProfileId: "friend-profile",
+              anonymousDisplayName: "Silver Bright Harbor",
+              friendDisplayName: "Mina",
+              qualifiedReviewCount: 8,
+              rank: 1,
+            },
+            {
+              kind: "viewer",
+              publicProfileId: "viewer-profile",
+              anonymousDisplayName: "Quiet Maple Grove",
+              qualifiedReviewCount: 7,
+              rank: 2,
+            },
+          ],
+          rankingRows: [
+            {
+              kind: "participant",
+              publicProfileId: "friend-profile",
+              anonymousDisplayName: "Silver Bright Harbor",
+              friendDisplayName: "Mina",
+              qualifiedReviewCount: 8,
+              rank: 1,
+            },
+            {
+              kind: "viewer",
+              publicProfileId: "viewer-profile",
+              anonymousDisplayName: "Quiet Maple Grove",
+              qualifiedReviewCount: 7,
+              rank: 2,
+            },
+          ],
+        }],
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const leaderboard = await loadProgressLeaderboard();
+
+    expect(leaderboard.windows[0]?.rows[0]?.friendDisplayName).toBe("Mina");
+    expect(leaderboard.windows[0]?.rows[1]?.friendDisplayName).toBeUndefined();
+    expect(leaderboard.windows[0]?.rankingRows[0]?.friendDisplayName).toBe("Mina");
+    expect(leaderboard.windows[0]?.rankingRows[1]?.friendDisplayName).toBeUndefined();
+  });
+});
+
 describe("progress API endpoints", () => {
   it("decodes progress summary responses with generatedAt metadata", async () => {
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
@@ -127,12 +310,7 @@ describe("progress API endpoints", () => {
         reviewHistoryWatermarks: [
           { workspaceId: "workspace-1", reviewSequenceId: 42 },
         ],
-        summary: {
-          currentStreakDays: 1,
-          hasReviewedToday: true,
-          lastReviewedOn: "2026-04-03",
-          activeReviewDays: 2,
-        },
+        summary: createProgressSummaryValue(1, true, "2026-04-03", 2),
       }), {
         status: 200,
         headers: {
@@ -150,12 +328,7 @@ describe("progress API endpoints", () => {
       reviewHistoryWatermarks: [
         { workspaceId: "workspace-1", reviewSequenceId: 42 },
       ],
-      summary: {
-        currentStreakDays: 1,
-        hasReviewedToday: true,
-        lastReviewedOn: "2026-04-03",
-        activeReviewDays: 2,
-      },
+      summary: createProgressSummaryValue(1, true, "2026-04-03", 2),
     });
   });
 
@@ -164,12 +337,7 @@ describe("progress API endpoints", () => {
       .mockResolvedValueOnce(new Response(JSON.stringify({
         timeZone: "Europe/Madrid",
         generatedAt: "2026-04-18T09:15:00.000Z",
-        summary: {
-          currentStreakDays: 1,
-          hasReviewedToday: true,
-          lastReviewedOn: "2026-04-03",
-          activeReviewDays: 2,
-        },
+        summary: createProgressSummaryValue(1, true, "2026-04-03", 2),
       }), {
         status: 200,
         headers: {
@@ -185,12 +353,7 @@ describe("progress API endpoints", () => {
       timeZone: "Europe/Madrid",
       generatedAt: "2026-04-18T09:15:00.000Z",
       reviewHistoryWatermarks: [],
-      summary: {
-        currentStreakDays: 1,
-        hasReviewedToday: true,
-        lastReviewedOn: "2026-04-03",
-        activeReviewDays: 2,
-      },
+      summary: createProgressSummaryValue(1, true, "2026-04-03", 2),
     });
   });
 
@@ -208,16 +371,29 @@ describe("progress API endpoints", () => {
           {
             date: "2026-04-01",
             reviewCount: 3,
+            againCount: 1,
+            hardCount: 1,
+            goodCount: 1,
+            easyCount: 0,
           },
           {
             date: "2026-04-02",
             reviewCount: 0,
+            againCount: 0,
+            hardCount: 0,
+            goodCount: 0,
+            easyCount: 0,
           },
           {
             date: "2026-04-03",
             reviewCount: 1,
+            againCount: 0,
+            hardCount: 0,
+            goodCount: 1,
+            easyCount: 0,
           },
         ],
+        streakDays: createThreeDayStreakDays(),
       }), {
         status: 200,
         headers: {
@@ -242,16 +418,29 @@ describe("progress API endpoints", () => {
         {
           date: "2026-04-01",
           reviewCount: 3,
+          againCount: 1,
+          hardCount: 1,
+          goodCount: 1,
+          easyCount: 0,
         },
         {
           date: "2026-04-02",
           reviewCount: 0,
+          againCount: 0,
+          hardCount: 0,
+          goodCount: 0,
+          easyCount: 0,
         },
         {
           date: "2026-04-03",
           reviewCount: 1,
+          againCount: 0,
+          hardCount: 0,
+          goodCount: 1,
+          easyCount: 0,
         },
       ],
+      streakDays: createThreeDayStreakDays(),
     });
   });
 
@@ -266,16 +455,29 @@ describe("progress API endpoints", () => {
           {
             date: "2026-04-01",
             reviewCount: 3,
+            againCount: 1,
+            hardCount: 1,
+            goodCount: 1,
+            easyCount: 0,
           },
           {
             date: "2026-04-02",
             reviewCount: 0,
+            againCount: 0,
+            hardCount: 0,
+            goodCount: 0,
+            easyCount: 0,
           },
           {
             date: "2026-04-03",
             reviewCount: 1,
+            againCount: 0,
+            hardCount: 0,
+            goodCount: 1,
+            easyCount: 0,
           },
         ],
+        streakDays: createThreeDayStreakDays(),
       }), {
         status: 200,
         headers: {
@@ -298,17 +500,63 @@ describe("progress API endpoints", () => {
         {
           date: "2026-04-01",
           reviewCount: 3,
+          againCount: 1,
+          hardCount: 1,
+          goodCount: 1,
+          easyCount: 0,
         },
         {
           date: "2026-04-02",
           reviewCount: 0,
+          againCount: 0,
+          hardCount: 0,
+          goodCount: 0,
+          easyCount: 0,
         },
         {
           date: "2026-04-03",
           reviewCount: 1,
+          againCount: 0,
+          hardCount: 0,
+          goodCount: 1,
+          easyCount: 0,
         },
       ],
+      streakDays: createThreeDayStreakDays(),
     });
+  });
+
+  it("rejects progress series responses with missing rating counts", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        timeZone: "Europe/Madrid",
+        from: "2026-04-01",
+        to: "2026-04-03",
+        generatedAt: "2026-04-18T09:15:00.000Z",
+        dailyReviews: [
+          {
+            date: "2026-04-01",
+            reviewCount: 3,
+            hardCount: 1,
+            goodCount: 1,
+            easyCount: 1,
+          },
+        ],
+      }), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressSeries({
+      timeZone: "Europe/Madrid",
+      from: "2026-04-01",
+      to: "2026-04-03",
+    })).rejects.toThrow(
+      "Invalid API response for GET /me/progress/series: dailyReviews[0].againCount must be number",
+    );
   });
 
   it("decodes review schedule responses and sends only the timezone query", async () => {
@@ -489,9 +737,9 @@ describe("progress API endpoints", () => {
         to: "2026-04-03",
         generatedAt: null,
         dailyReviews: [
-          { date: "2026-04-01", reviewCount: 0 },
-          { date: "2026-04-02", reviewCount: 0 },
-          { date: "2026-04-03", reviewCount: 0 },
+          { date: "2026-04-01", reviewCount: 0, againCount: 0, hardCount: 0, goodCount: 0, easyCount: 0 },
+          { date: "2026-04-02", reviewCount: 0, againCount: 0, hardCount: 0, goodCount: 0, easyCount: 0 },
+          { date: "2026-04-03", reviewCount: 0, againCount: 0, hardCount: 0, goodCount: 0, easyCount: 0 },
         ],
       }), {
         status: 200,
@@ -533,6 +781,55 @@ describe("progress API endpoints", () => {
       today: "2026-04-18",
     })).rejects.toThrow(
       "Invalid API response for GET /me/progress/summary: reviewHistoryWatermarks[0].reviewSequenceId must be a non-negative safe integer",
+    );
+  });
+
+  it("rejects progress summary responses with incoherent streak freeze metadata", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        timeZone: "Europe/Madrid",
+        generatedAt: "2026-04-18T09:15:00.000Z",
+        summary: {
+          ...createProgressSummaryValue(1, true, "2026-04-03", 2),
+          streakFreeze: {
+            ...createFullStreakFreeze(),
+            balanceUnits: 19,
+          },
+        },
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressSummary({
+      timeZone: "Europe/Madrid",
+      today: "2026-04-18",
+    })).rejects.toThrow(
+      "Invalid API response for GET /me/progress/summary: summary.streakFreeze must be a coherent streak freeze object",
+    );
+  });
+
+  it("rejects progress summary responses with incoherent streak length metadata", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        timeZone: "Europe/Madrid",
+        generatedAt: "2026-04-18T09:15:00.000Z",
+        summary: {
+          ...createProgressSummaryValue(5, true, "2026-04-03", 5),
+          longestStreakDays: 4,
+        },
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressSummary({
+      timeZone: "Europe/Madrid",
+      today: "2026-04-18",
+    })).rejects.toThrow(
+      "Invalid API response for GET /me/progress/summary: summary must be a coherent progress summary object",
     );
   });
 });

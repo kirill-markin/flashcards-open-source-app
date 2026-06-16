@@ -12,6 +12,9 @@ import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeader
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewScheduleBucket
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakDay
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakDayState
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakFreeze
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewHistoryWatermark
@@ -20,6 +23,7 @@ import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewSched
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummaryScopeKey
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.logProgressRepositoryWarning
+import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.createInclusiveLocalDateRange
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.parseLocalDate
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.serializeProgressReviewScheduleScopeKey
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.serializeProgressReviewScheduleServerCacheKey
@@ -43,9 +47,16 @@ internal fun CloudProgressSummary.toCacheEntity(
             watermarks = reviewHistoryWatermarks
         ),
         currentStreakDays = currentStreakDays,
+        longestStreakDays = longestStreakDays,
         hasReviewedToday = hasReviewedToday,
         lastReviewedOn = lastReviewedOn,
         activeReviewDays = activeReviewDays,
+        streakFreezeAvailableCredits = streakFreeze.availableCredits,
+        streakFreezeCapacity = streakFreeze.capacity,
+        streakFreezeBalanceUnits = streakFreeze.balanceUnits,
+        streakFreezeUnitsPerCredit = streakFreeze.unitsPerCredit,
+        streakFreezeNextCreditProgressUnits = streakFreeze.nextCreditProgressUnits,
+        streakFreezeNextCreditRequiredUnits = streakFreeze.nextCreditRequiredUnits,
         updatedAtMillis = updatedAtMillis
     )
 }
@@ -70,9 +81,14 @@ internal fun CloudProgressSeries.toCacheEntity(
                     JSONObject()
                         .put("date", point.date)
                         .put("reviewCount", point.reviewCount)
+                        .put("againCount", point.againCount)
+                        .put("hardCount", point.hardCount)
+                        .put("goodCount", point.goodCount)
+                        .put("easyCount", point.easyCount)
                 )
             }
         }.toString(),
+        streakDaysJson = serializeProgressStreakDays(streakDays = streakDays),
         updatedAtMillis = updatedAtMillis
     )
 }
@@ -165,7 +181,7 @@ internal fun ProgressLeaderboardCacheEntity.toCloudProgressLeaderboardOrNull(): 
 
 // The cached payload reuses the wire shape so parseCloudProgressLeaderboard reads both
 // the live response and this serialized copy, including the API-provided anonymous
-// display names.
+// display names and viewer-private friend labels.
 internal fun serializeCloudProgressLeaderboard(
     leaderboard: CloudProgressLeaderboard
 ): JSONObject {
@@ -227,6 +243,7 @@ private fun CloudProgressLeaderboardRow.toCacheJson(): JSONObject {
             .put("kind", kind.wireKey)
             .put("publicProfileId", publicProfileId)
             .put("anonymousDisplayName", anonymousDisplayName)
+            .putOptionalCloudString(name = "friendDisplayName", value = friendDisplayName)
             .put("qualifiedReviewCount", qualifiedReviewCount)
             .put("rank", rank)
     }
@@ -237,8 +254,16 @@ private fun CloudProgressLeaderboardRankingRow.toCacheJson(): JSONObject {
         .put("kind", kind.wireKey)
         .put("publicProfileId", publicProfileId)
         .put("anonymousDisplayName", anonymousDisplayName)
+        .putOptionalCloudString(name = "friendDisplayName", value = friendDisplayName)
         .put("qualifiedReviewCount", qualifiedReviewCount)
         .put("rank", rank)
+}
+
+private fun JSONObject.putOptionalCloudString(name: String, value: String?): JSONObject {
+    if (value != null) {
+        put(name, value)
+    }
+    return this
 }
 
 internal fun findProgressReviewScheduleServerBase(
@@ -324,10 +349,46 @@ internal fun ProgressSummaryCacheEntity.toCloudProgressSummaryOrNull(): CloudPro
             rawJson = reviewHistoryWatermarksJson
         )
         CloudProgressSummary(
-            currentStreakDays = currentStreakDays,
+            currentStreakDays = requireNonNegativeProgressCacheInt(
+                value = currentStreakDays,
+                fieldPath = "progressSummaryCache.currentStreakDays"
+            ),
+            longestStreakDays = requireNonNegativeProgressCacheInt(
+                value = longestStreakDays,
+                fieldPath = "progressSummaryCache.longestStreakDays"
+            ),
             hasReviewedToday = hasReviewedToday,
             lastReviewedOn = lastReviewedOn,
-            activeReviewDays = activeReviewDays,
+            activeReviewDays = requireNonNegativeProgressCacheInt(
+                value = activeReviewDays,
+                fieldPath = "progressSummaryCache.activeReviewDays"
+            ),
+            streakFreeze = CloudProgressStreakFreeze(
+                availableCredits = requireNonNegativeProgressCacheInt(
+                    value = streakFreezeAvailableCredits,
+                    fieldPath = "progressSummaryCache.streakFreezeAvailableCredits"
+                ),
+                capacity = requireNonNegativeProgressCacheInt(
+                    value = streakFreezeCapacity,
+                    fieldPath = "progressSummaryCache.streakFreezeCapacity"
+                ),
+                balanceUnits = requireNonNegativeProgressCacheInt(
+                    value = streakFreezeBalanceUnits,
+                    fieldPath = "progressSummaryCache.streakFreezeBalanceUnits"
+                ),
+                unitsPerCredit = requirePositiveProgressCacheInt(
+                    value = streakFreezeUnitsPerCredit,
+                    fieldPath = "progressSummaryCache.streakFreezeUnitsPerCredit"
+                ),
+                nextCreditProgressUnits = requireNonNegativeProgressCacheInt(
+                    value = streakFreezeNextCreditProgressUnits,
+                    fieldPath = "progressSummaryCache.streakFreezeNextCreditProgressUnits"
+                ),
+                nextCreditRequiredUnits = requirePositiveProgressCacheInt(
+                    value = streakFreezeNextCreditRequiredUnits,
+                    fieldPath = "progressSummaryCache.streakFreezeNextCreditRequiredUnits"
+                )
+            ),
             reviewHistoryWatermarks = reviewHistoryWatermarks
         )
     }.getOrElse { error ->
@@ -400,6 +461,12 @@ internal fun ProgressSeriesCacheEntity.toCloudProgressSeriesOrNull(): CloudProgr
         }
 
         val dailyReviewsArray = JSONArray(dailyReviewsJson)
+        val streakDays = parseProgressStreakDays(rawJson = streakDaysJson)
+        validateProgressStreakDaysForRange(
+            streakDays = streakDays,
+            from = fromLocalDate,
+            to = toLocalDate
+        )
         val reviewHistoryWatermarks = parseProgressReviewHistoryWatermarks(
             rawJson = reviewHistoryWatermarksJson
         )
@@ -415,11 +482,16 @@ internal fun ProgressSeriesCacheEntity.toCloudProgressSeriesOrNull(): CloudProgr
                     add(
                         CloudDailyReviewPoint(
                             date = date,
-                            reviewCount = point.getInt("reviewCount")
+                            reviewCount = point.getInt("reviewCount"),
+                            againCount = point.getInt("againCount"),
+                            hardCount = point.getInt("hardCount"),
+                            goodCount = point.getInt("goodCount"),
+                            easyCount = point.getInt("easyCount")
                         )
                     )
                 }
             },
+            streakDays = streakDays,
             generatedAt = generatedAt,
             reviewHistoryWatermarks = reviewHistoryWatermarks,
             summary = null
@@ -436,6 +508,58 @@ internal fun ProgressSeriesCacheEntity.toCloudProgressSeriesOrNull(): CloudProgr
             error = error
         )
         null
+    }
+}
+
+private fun serializeProgressStreakDays(
+    streakDays: List<CloudProgressStreakDay>
+): String {
+    return JSONArray().apply {
+        streakDays.forEach { day ->
+            put(
+                JSONObject()
+                    .put("date", day.date)
+                    .put("state", day.state.wireKey)
+            )
+        }
+    }.toString()
+}
+
+private fun parseProgressStreakDays(
+    rawJson: String
+): List<CloudProgressStreakDay> {
+    val streakDaysArray = JSONArray(rawJson)
+    return buildList {
+        for (index in 0 until streakDaysArray.length()) {
+            val day = streakDaysArray.getJSONObject(index)
+            val date = day.getString("date")
+            parseLocalDate(rawDate = date)
+            add(
+                CloudProgressStreakDay(
+                    date = date,
+                    state = CloudProgressStreakDayState.fromWireKey(
+                        wireKey = day.getString("state")
+                    )
+                )
+            )
+        }
+    }
+}
+
+private fun validateProgressStreakDaysForRange(
+    streakDays: List<CloudProgressStreakDay>,
+    from: String,
+    to: String
+) {
+    val expectedDates = createInclusiveLocalDateRange(
+        from = from,
+        to = to
+    )
+    val actualDates = streakDays.map(CloudProgressStreakDay::date)
+    if (actualDates != expectedDates) {
+        throw IllegalArgumentException(
+            "Progress series cache streakDays must cover the cached range from '$from' to '$to'."
+        )
     }
 }
 
@@ -488,4 +612,26 @@ private fun parseProgressReviewHistorySequenceId(watermark: JSONObject): Long {
     }
 
     return longValue
+}
+
+private fun requireNonNegativeProgressCacheInt(
+    value: Int,
+    fieldPath: String
+): Int {
+    if (value < 0) {
+        throw IllegalArgumentException("$fieldPath must not be negative.")
+    }
+
+    return value
+}
+
+private fun requirePositiveProgressCacheInt(
+    value: Int,
+    fieldPath: String
+): Int {
+    if (value <= 0) {
+        throw IllegalArgumentException("$fieldPath must be positive.")
+    }
+
+    return value
 }

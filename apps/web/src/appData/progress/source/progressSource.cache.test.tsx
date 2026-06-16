@@ -6,6 +6,7 @@ import type {
   ProgressSeries,
   ProgressSummaryPayload,
 } from "../../../types";
+import type { ProgressCacheMissBreadcrumbDetails } from "../../../observability/webObservability";
 import {
   addWebBreadcrumbMock,
   buildCurrentLeaderboardScopeKey,
@@ -14,6 +15,7 @@ import {
   buildCurrentSeriesInput,
   buildCurrentSeriesScopeKey,
   buildCurrentSummaryScopeKey,
+  buildGoodDailyReviewPoint,
   buildServerReviewSchedule,
   buildServerSeries,
   buildServerSummary,
@@ -34,11 +36,12 @@ import {
   storePersistedProgressSeriesForTest,
   storePersistedProgressSummaryForTest,
   summaryAndSeriesSections,
+  summaryOnlySections,
   swapFirstProgressReviewScheduleBuckets,
 } from "./progressSourceTestSupport";
 
 type ExpectedProgressCacheMissSection = "summary" | "series" | "review_schedule" | "leaderboard";
-type ExpectedProgressCacheMissReason = "invalid_json" | "invalid_shape" | "scope_mismatch" | "time_zone_mismatch";
+type ExpectedProgressCacheMissReason = ProgressCacheMissBreadcrumbDetails["reason"];
 
 function expectProgressCacheMissBreadcrumb(
   section: ExpectedProgressCacheMissSection,
@@ -123,20 +126,20 @@ describe("useProgressSource cache", () => {
     expect(harness.getApi().progressSourceState.summary.serverBase?.generatedAt).toBe("2026-04-18T09:10:00.000Z");
     expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(6);
     expect(harness.getApi().progressSourceState.series.serverBase?.generatedAt).toBe("2026-04-18T09:10:00.000Z");
-    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual(expect.objectContaining({
       date: buildCurrentSeriesInput().to,
       reviewCount: 6,
-    });
+    }));
 
     deferredSummary.resolve(buildServerSummary(7, "2026-04-18T09:11:00.000Z"));
     deferredSeries.resolve(buildServerSeries(7, "2026-04-18T09:11:00.000Z"));
     await flushEffects();
 
     expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(7);
-    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual(expect.objectContaining({
       date: buildCurrentSeriesInput().to,
       reviewCount: 7,
-    });
+    }));
   });
 
   it("hydrates matching leaderboard cache with rankingRows before remote refresh completes", async () => {
@@ -197,11 +200,129 @@ describe("useProgressSource cache", () => {
     expectProgressCacheMissBreadcrumb("series", "invalid_json");
   });
 
+  it("treats pre-freeze summary and series cache versions as version-mismatch misses", async () => {
+    const summaryScopeKey = buildCurrentSummaryScopeKey();
+    const seriesScopeKey = buildCurrentSeriesScopeKey();
+    const currentSeriesInput = buildCurrentSeriesInput();
+    window.localStorage.setItem(`flashcards-progress-server-summary:${summaryScopeKey}`, JSON.stringify({
+      version: 2,
+      scopeKey: summaryScopeKey,
+      savedAt: "2026-04-18T09:00:00.000Z",
+      serverBase: {
+        timeZone: "Europe/Madrid",
+        generatedAt: "2026-04-18T09:10:00.000Z",
+        reviewHistoryWatermarks: [
+          { workspaceId: "workspace-1", reviewSequenceId: 12 },
+        ],
+        summary: {
+          currentStreakDays: 12,
+          hasReviewedToday: true,
+          lastReviewedOn: currentSeriesInput.to,
+          activeReviewDays: 12,
+        },
+      },
+    }));
+    window.localStorage.setItem(`flashcards-progress-server-series:${seriesScopeKey}`, JSON.stringify({
+      version: 2,
+      scopeKey: seriesScopeKey,
+      savedAt: "2026-04-18T09:00:00.000Z",
+      serverBase: {
+        timeZone: currentSeriesInput.timeZone,
+        from: currentSeriesInput.from,
+        to: currentSeriesInput.to,
+        generatedAt: "2026-04-18T09:10:00.000Z",
+        reviewHistoryWatermarks: [
+          { workspaceId: "workspace-1", reviewSequenceId: 12 },
+        ],
+        dailyReviews: [
+          {
+            date: currentSeriesInput.to,
+            reviewCount: 12,
+          },
+        ],
+      },
+    }));
+
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: summaryAndSeriesSections,
+    });
+
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.summary.serverBase?.summary.activeReviewDays).toBe(1);
+    expect(harness.getApi().progressSourceState.series.serverBase?.dailyReviews).toContainEqual(expect.objectContaining({
+      date: currentSeriesInput.to,
+      reviewCount: 1,
+    }));
+    expectProgressCacheMissBreadcrumb("summary", "version_mismatch");
+    expectProgressCacheMissBreadcrumb("series", "version_mismatch");
+  });
+
+  it("treats cached summaries with incoherent streak freeze metadata as invalid-shape misses", async () => {
+    const summaryScopeKey = buildCurrentSummaryScopeKey();
+    const cachedSummary = buildServerSummary(6, "2026-04-18T09:10:00.000Z");
+    const remoteSummary = buildServerSummary(8, "2026-04-18T09:23:00.000Z");
+    storePersistedProgressSummaryForTest(summaryScopeKey, {
+      ...cachedSummary,
+      summary: {
+        ...cachedSummary.summary,
+        streakFreeze: {
+          ...cachedSummary.summary.streakFreeze,
+          balanceUnits: 19,
+        },
+      },
+    });
+    loadProgressSummaryMock.mockResolvedValueOnce(remoteSummary);
+
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: summaryOnlySections,
+    });
+
+    await flushEffects();
+
+    expectProgressCacheMissBreadcrumb("summary", "invalid_shape");
+    expect(harness.getApi().progressSourceState.summary.serverBase?.generatedAt).toBe("2026-04-18T09:23:00.000Z");
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(8);
+  });
+
+  it("treats cached summaries with incoherent streak length metadata as invalid-shape misses", async () => {
+    const summaryScopeKey = buildCurrentSummaryScopeKey();
+    const cachedSummary = buildServerSummary(6, "2026-04-18T09:10:00.000Z");
+    const remoteSummary = buildServerSummary(8, "2026-04-18T09:23:00.000Z");
+    storePersistedProgressSummaryForTest(summaryScopeKey, {
+      ...cachedSummary,
+      summary: {
+        ...cachedSummary.summary,
+        longestStreakDays: cachedSummary.summary.currentStreakDays - 1,
+      },
+    });
+    loadProgressSummaryMock.mockResolvedValueOnce(remoteSummary);
+
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: summaryOnlySections,
+    });
+
+    await flushEffects();
+
+    expectProgressCacheMissBreadcrumb("summary", "invalid_shape");
+    expect(harness.getApi().progressSourceState.summary.serverBase?.generatedAt).toBe("2026-04-18T09:23:00.000Z");
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(8);
+  });
+
   it("treats malformed cached series dates as invalid-shape misses before loading remote series", async () => {
     const currentSeriesInput = buildCurrentSeriesInput();
     const seriesScopeKey = buildCurrentSeriesScopeKey();
     const malformedCachedSeries = {
-      version: 2,
+      version: 3,
       scopeKey: seriesScopeKey,
       savedAt: "2026-04-18T09:00:00.000Z",
       serverBase: {
@@ -213,9 +334,12 @@ describe("useProgressSource cache", () => {
           { workspaceId: "workspace-1", reviewSequenceId: 12 },
         ],
         dailyReviews: [
+          buildGoodDailyReviewPoint(currentSeriesInput.to, 12),
+        ],
+        streakDays: [
           {
             date: currentSeriesInput.to,
-            reviewCount: 12,
+            state: "reviewed",
           },
         ],
       },
@@ -238,10 +362,10 @@ describe("useProgressSource cache", () => {
     expectProgressCacheMissBreadcrumb("series", "invalid_shape");
     expect(loadProgressSeriesMock).toHaveBeenCalledWith(currentSeriesInput);
     expect(harness.getApi().progressSourceState.series.serverBase?.generatedAt).toBe("2026-04-18T09:23:00.000Z");
-    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual(expect.objectContaining({
       date: currentSeriesInput.to,
       reviewCount: 8,
-    });
+    }));
   });
 
   const invalidProgressReviewScheduleCacheCases: ReadonlyArray<Readonly<{

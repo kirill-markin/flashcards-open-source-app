@@ -14,6 +14,7 @@ type ProgressLeaderboardRanklessRankingRow = Readonly<{
   kind: ProgressLeaderboardRankingRow["kind"];
   publicProfileId: string;
   anonymousDisplayName: string;
+  friendDisplayName?: string;
   qualifiedReviewCount: number;
 }>;
 
@@ -25,7 +26,9 @@ export function createProgressLeaderboardSnapshot(
     status: leaderboard.status,
     metric: leaderboard.metric,
     defaultWindowKey: leaderboard.defaultWindowKey,
-    windows: leaderboard.windows,
+    windows: leaderboard.status === "ready"
+      ? leaderboard.windows.map(rebuildProgressLeaderboardWindowRows)
+      : leaderboard.windows,
     source: "server",
     isApproximate,
   };
@@ -68,6 +71,7 @@ function toRanklessRankingRow(
     kind: row.kind,
     publicProfileId: row.publicProfileId,
     anonymousDisplayName: row.anonymousDisplayName,
+    friendDisplayName: row.friendDisplayName,
     qualifiedReviewCount: row.qualifiedReviewCount,
   };
 }
@@ -92,6 +96,7 @@ function buildProjectedRankingRows(
     kind: "viewer",
     publicProfileId: window.viewer.publicProfileId,
     anonymousDisplayName: viewerRankingRow.anonymousDisplayName,
+    friendDisplayName: viewerRankingRow.friendDisplayName,
     qualifiedReviewCount: viewerCount,
   };
 
@@ -121,6 +126,7 @@ function buildProgressLeaderboardParticipantRow(
     kind: row.kind === "viewer" ? "viewer" : row.rank <= topRowCount ? "top" : "neighbor",
     publicProfileId: row.publicProfileId,
     anonymousDisplayName: row.anonymousDisplayName,
+    friendDisplayName: row.friendDisplayName,
     qualifiedReviewCount: row.qualifiedReviewCount,
     rank: row.rank,
   };
@@ -151,6 +157,45 @@ function buildShownRankList(total: number, viewerRank: number): ReadonlyArray<nu
   return [...shownRanks].sort((left, right) => left - right);
 }
 
+function isFriendRankingRow(row: ProgressLeaderboardRankingRow): boolean {
+  return row.friendDisplayName !== undefined;
+}
+
+function addShownRankingRow(
+  rowsByPublicProfileId: Map<string, ProgressLeaderboardRankingRow>,
+  row: ProgressLeaderboardRankingRow,
+): void {
+  if (rowsByPublicProfileId.has(row.publicProfileId)) {
+    return;
+  }
+
+  rowsByPublicProfileId.set(row.publicProfileId, row);
+}
+
+function buildShownRankingRows(
+  rankingRows: ReadonlyArray<ProgressLeaderboardRankingRow>,
+  shownRanks: ReadonlyArray<number>,
+): ReadonlyArray<ProgressLeaderboardRankingRow> {
+  const rowsByPublicProfileId = new Map<string, ProgressLeaderboardRankingRow>();
+
+  for (const rank of shownRanks) {
+    const rankingRow = rankingRows[rank - 1];
+    if (rankingRow === undefined) {
+      throw new Error(`Projected leaderboard rankingRows is missing rank ${rank}.`);
+    }
+
+    addShownRankingRow(rowsByPublicProfileId, rankingRow);
+  }
+
+  rankingRows.forEach((row) => {
+    if (isFriendRankingRow(row)) {
+      addShownRankingRow(rowsByPublicProfileId, row);
+    }
+  });
+
+  return [...rowsByPublicProfileId.values()].sort((left, right) => left.rank - right.rank);
+}
+
 function buildCompactRows(
   rankingRows: ReadonlyArray<ProgressLeaderboardRankingRow>,
 ): ReadonlyArray<ProgressLeaderboardRow> {
@@ -162,21 +207,17 @@ function buildCompactRows(
   const total = rankingRows.length;
   const topRowCount = Math.min(3, total);
   const shownRanks = buildShownRankList(total, viewerRankingRow.rank);
+  const shownRankingRows = buildShownRankingRows(rankingRows, shownRanks);
   const rows: Array<ProgressLeaderboardRow> = [];
   let previousRank = 0;
 
-  for (const rank of shownRanks) {
-    if (previousRank !== 0 && rank > previousRank + 1) {
+  for (const rankingRow of shownRankingRows) {
+    if (previousRank !== 0 && rankingRow.rank > previousRank + 1) {
       rows.push({ kind: "gap" });
     }
 
-    const rankingRow = rankingRows[rank - 1];
-    if (rankingRow === undefined) {
-      throw new Error(`Projected leaderboard rankingRows is missing rank ${rank}.`);
-    }
-
     rows.push(buildProgressLeaderboardParticipantRow(rankingRow, topRowCount));
-    previousRank = rank;
+    previousRank = rankingRow.rank;
   }
 
   if (previousRank < total) {
@@ -184,6 +225,15 @@ function buildCompactRows(
   }
 
   return rows;
+}
+
+function rebuildProgressLeaderboardWindowRows(
+  window: ProgressLeaderboardWindow,
+): ProgressLeaderboardWindow {
+  return {
+    ...window,
+    rows: buildCompactRows(window.rankingRows),
+  };
 }
 
 function projectProgressLeaderboardWindow(

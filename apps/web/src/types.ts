@@ -120,16 +120,47 @@ export type ProgressReviewScheduleInput = Readonly<{
 
 export type ProgressScopeKey = string;
 
+export type ReviewRating = 0 | 1 | 2 | 3;
+
 export type DailyReviewPoint = Readonly<{
   date: string;
   reviewCount: number;
+  againCount: number;
+  hardCount: number;
+  goodCount: number;
+  easyCount: number;
+}>;
+
+export const streakDayStates = [
+  "reviewed",
+  "frozen",
+  "missed",
+  "pending",
+] as const;
+
+export type StreakDayState = typeof streakDayStates[number];
+
+export type StreakFreeze = Readonly<{
+  availableCredits: number;
+  capacity: number;
+  balanceUnits: number;
+  unitsPerCredit: number;
+  nextCreditProgressUnits: number;
+  nextCreditRequiredUnits: number;
+}>;
+
+export type StreakDay = Readonly<{
+  date: string;
+  state: StreakDayState;
 }>;
 
 export type ProgressSummary = Readonly<{
   currentStreakDays: number;
+  longestStreakDays: number;
   hasReviewedToday: boolean;
   lastReviewedOn: string | null;
   activeReviewDays: number;
+  streakFreeze: StreakFreeze;
 }>;
 
 export type ProgressReviewHistoryWatermark = Readonly<{
@@ -140,6 +171,7 @@ export type ProgressReviewHistoryWatermark = Readonly<{
 export type ReviewProgressBadgeState = Readonly<{
   streakDays: number;
   hasReviewedToday: boolean;
+  streakFreeze: StreakFreeze;
   isInteractive: boolean;
 }>;
 
@@ -167,6 +199,7 @@ export type ProgressSeries = Readonly<{
   generatedAt: string | null;
   reviewHistoryWatermarks: ReadonlyArray<ProgressReviewHistoryWatermark>;
   dailyReviews: ReadonlyArray<DailyReviewPoint>;
+  streakDays: ReadonlyArray<StreakDay>;
 }>;
 
 /** Canonical bucket order for the progress chart and the runtime validation set for incoming bucket keys. Reordering or removing entries is a breaking change for the UI. */
@@ -262,6 +295,7 @@ export type ProgressLeaderboardParticipantRow = Readonly<{
   kind: ProgressLeaderboardParticipantRowKind;
   publicProfileId: string;
   anonymousDisplayName: string;
+  friendDisplayName?: string;
   qualifiedReviewCount: number;
   rank: number;
 }>;
@@ -280,6 +314,7 @@ export type ProgressLeaderboardRankingRow = Readonly<{
   kind: ProgressLeaderboardRankingRowKind;
   publicProfileId: string;
   anonymousDisplayName: string;
+  friendDisplayName?: string;
   qualifiedReviewCount: number;
   rank: number;
 }>;
@@ -311,8 +346,31 @@ export type ProgressLeaderboardSnapshot = ProgressLeaderboard & Readonly<{
   isApproximate: boolean;
 }>;
 
+export type FriendInvitationCreateRequest = Readonly<{
+  inviteeDisplayName: string;
+}>;
+
+export type FriendInvitationCreateResponse = Readonly<{
+  inviteUrl: string;
+  expiresAt: string;
+}>;
+
+export type FriendInvitationPreviewResponse =
+  | Readonly<{ status: "active"; expiresAt: string }>
+  | Readonly<{ status: "inactive" }>;
+
+export type FriendInvitationAcceptRequest = Readonly<{
+  inviterDisplayName: string;
+}>;
+
+export type FriendInvitationAcceptResponse =
+  | Readonly<{ status: "accepted" }>
+  | Readonly<{ status: "already_friends"; existingFriendDisplayName: string }>
+  | Readonly<{ status: "inactive" }>;
+
 export type ProgressRenderedSeriesSummaryContext = Readonly<{
   lowerBoundSummary: ProgressSummary;
+  exactStreakFreeze: StreakFreeze | null;
   activeDates: ReadonlyArray<string>;
   activeDatesMissingFromServerBase: ReadonlyArray<string>;
   serverBaseReviewHistoryWatermarks: ReadonlyArray<ProgressReviewHistoryWatermark> | null;
@@ -334,6 +392,7 @@ export type ProgressSummarySourceState = Readonly<{
 export type ProgressSeriesSourceState = Readonly<{
   scopeKey: ProgressScopeKey | null;
   localFallback: ProgressSeriesSnapshot | null;
+  localFallbackActiveDates: ReadonlyArray<string>;
   serverBase: ProgressSeriesSnapshot | null;
   pendingLocalOverlay: ProgressChartData | null;
   renderedSnapshot: ProgressSeriesSnapshot | null;
@@ -788,7 +847,7 @@ export type ReviewEvent = Readonly<{
   cardId: string;
   replicaId: string;
   clientEventId: string;
-  rating: 0 | 1 | 2 | 3;
+  rating: ReviewRating;
   reviewedAtClient: string;
   reviewedAtServer: string;
 }>;
@@ -861,7 +920,7 @@ export type SyncPushOperation =
       reviewEventId: string;
       cardId: string;
       clientEventId: string;
-      rating: 0 | 1 | 2 | 3;
+      rating: ReviewRating;
       reviewedAtClient: string;
     }>;
   }>;

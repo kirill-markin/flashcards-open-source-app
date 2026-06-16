@@ -40,7 +40,11 @@ final class ProgressSnapshotValidationTests: XCTestCase {
           "dailyReviews": [
             {
               "date": "2026-04-01",
-              "reviewCount": 3
+              "reviewCount": 3,
+              "againCount": 1,
+              "hardCount": 1,
+              "goodCount": 1,
+              "easyCount": 0
             }
           ],
           "streakDays": [
@@ -224,7 +228,11 @@ final class ProgressSnapshotValidationTests: XCTestCase {
                 dailyReviews: [
                     ProgressDay(
                         date: localDate,
-                        reviewCount: 1
+                        reviewCount: 1,
+                        againCount: 0,
+                        hardCount: 0,
+                        goodCount: 1,
+                        easyCount: 0
                     )
                 ],
                 streakDays: [],
@@ -266,8 +274,22 @@ final class ProgressSnapshotValidationTests: XCTestCase {
             from: scopeKey.from,
             to: scopeKey.to,
             dailyReviews: [
-                ProgressDay(date: "2026-02-03", reviewCount: 1),
-                ProgressDay(date: "2026-02-03", reviewCount: 2),
+                ProgressDay(
+                    date: "2026-02-03",
+                    reviewCount: 1,
+                    againCount: 0,
+                    hardCount: 0,
+                    goodCount: 1,
+                    easyCount: 0
+                ),
+                ProgressDay(
+                    date: "2026-02-03",
+                    reviewCount: 2,
+                    againCount: 0,
+                    hardCount: 0,
+                    goodCount: 2,
+                    easyCount: 0
+                ),
             ],
             streakDays: [],
             summary: nil,
@@ -307,7 +329,14 @@ final class ProgressSnapshotValidationTests: XCTestCase {
             from: scopeKey.from,
             to: scopeKey.to,
             dailyReviews: [
-                ProgressDay(date: "2026-02-03", reviewCount: -1)
+                ProgressDay(
+                    date: "2026-02-03",
+                    reviewCount: -1,
+                    againCount: 0,
+                    hardCount: 0,
+                    goodCount: 0,
+                    easyCount: 0
+                )
             ],
             streakDays: [],
             summary: nil,

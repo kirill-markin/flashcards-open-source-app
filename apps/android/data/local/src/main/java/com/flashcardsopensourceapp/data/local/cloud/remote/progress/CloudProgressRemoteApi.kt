@@ -25,12 +25,17 @@ import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeader
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewScheduleBucket
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakDay
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakDayState
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakFreeze
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardParticipantRowKind
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardStatus
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleBucketKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewHistoryWatermark
+import java.time.LocalDate
+import java.time.format.DateTimeParseException
 import org.json.JSONObject
 
 internal class CloudProgressRemoteApi(
@@ -124,25 +129,68 @@ internal fun parseCloudProgressSeriesResponse(
     fieldPath: String
 ): CloudProgressSeries {
     val dailyReviews = response.requireCloudArray("dailyReviews", "$fieldPath.dailyReviews")
+    val from = response.requireCloudString("from", "$fieldPath.from")
+    val to = response.requireCloudString("to", "$fieldPath.to")
+    val streakDays = response.toCloudProgressStreakDays(
+        fieldPath = fieldPath
+    )
+    validateCloudProgressStreakDaysForRange(
+        streakDays = streakDays,
+        from = from,
+        to = to,
+        streakDaysFieldPath = "$fieldPath.streakDays",
+        rangeFieldPath = fieldPath
+    )
 
     return CloudProgressSeries(
         timeZone = response.requireCloudString("timeZone", "$fieldPath.timeZone"),
-        from = response.requireCloudString("from", "$fieldPath.from"),
-        to = response.requireCloudString("to", "$fieldPath.to"),
+        from = from,
+        to = to,
         dailyReviews = buildList {
             for (index in 0 until dailyReviews.length()) {
                 val point = dailyReviews.requireCloudObject(index, "$fieldPath.dailyReviews[$index]")
+                val pointFieldPath = "$fieldPath.dailyReviews[$index]"
+                val reviewCount = requireNonNegativeProgressCount(
+                    value = point.requireCloudInt("reviewCount", "$pointFieldPath.reviewCount"),
+                    fieldPath = "$pointFieldPath.reviewCount"
+                )
+                val againCount = requireNonNegativeProgressCount(
+                    value = point.requireCloudInt("againCount", "$pointFieldPath.againCount"),
+                    fieldPath = "$pointFieldPath.againCount"
+                )
+                val hardCount = requireNonNegativeProgressCount(
+                    value = point.requireCloudInt("hardCount", "$pointFieldPath.hardCount"),
+                    fieldPath = "$pointFieldPath.hardCount"
+                )
+                val goodCount = requireNonNegativeProgressCount(
+                    value = point.requireCloudInt("goodCount", "$pointFieldPath.goodCount"),
+                    fieldPath = "$pointFieldPath.goodCount"
+                )
+                val easyCount = requireNonNegativeProgressCount(
+                    value = point.requireCloudInt("easyCount", "$pointFieldPath.easyCount"),
+                    fieldPath = "$pointFieldPath.easyCount"
+                )
+                requireDailyReviewCountVector(
+                    reviewCount = reviewCount,
+                    againCount = againCount,
+                    hardCount = hardCount,
+                    goodCount = goodCount,
+                    easyCount = easyCount,
+                    fieldPath = pointFieldPath
+                )
                 add(
                     CloudDailyReviewPoint(
-                        date = point.requireCloudString("date", "$fieldPath.dailyReviews[$index].date"),
-                        reviewCount = point.requireCloudInt(
-                            "reviewCount",
-                            "$fieldPath.dailyReviews[$index].reviewCount"
-                        )
+                        date = point.requireCloudString("date", "$pointFieldPath.date"),
+                        reviewCount = reviewCount,
+                        againCount = againCount,
+                        hardCount = hardCount,
+                        goodCount = goodCount,
+                        easyCount = easyCount
                     )
                 )
             }
         },
+        streakDays = streakDays,
         generatedAt = response.optCloudStringOrNull("generatedAt", "$fieldPath.generatedAt"),
         reviewHistoryWatermarks = response.requireProgressReviewHistoryWatermarks(
             fieldPath = fieldPath
@@ -156,12 +204,132 @@ private fun JSONObject.toCloudProgressSummary(
     reviewHistoryWatermarks: List<ProgressReviewHistoryWatermark>
 ): CloudProgressSummary {
     return CloudProgressSummary(
-        currentStreakDays = requireCloudInt("currentStreakDays", "$fieldPath.currentStreakDays"),
+        currentStreakDays = requireNonNegativeProgressInt(
+            value = requireCloudInt("currentStreakDays", "$fieldPath.currentStreakDays"),
+            fieldPath = "$fieldPath.currentStreakDays"
+        ),
+        longestStreakDays = requireNonNegativeProgressInt(
+            value = requireCloudInt("longestStreakDays", "$fieldPath.longestStreakDays"),
+            fieldPath = "$fieldPath.longestStreakDays"
+        ),
         hasReviewedToday = requireCloudBoolean("hasReviewedToday", "$fieldPath.hasReviewedToday"),
         lastReviewedOn = requireCloudNullableString("lastReviewedOn", "$fieldPath.lastReviewedOn"),
-        activeReviewDays = requireCloudInt("activeReviewDays", "$fieldPath.activeReviewDays"),
+        activeReviewDays = requireNonNegativeProgressInt(
+            value = requireCloudInt("activeReviewDays", "$fieldPath.activeReviewDays"),
+            fieldPath = "$fieldPath.activeReviewDays"
+        ),
+        streakFreeze = requireCloudObject("streakFreeze", "$fieldPath.streakFreeze").toCloudProgressStreakFreeze(
+            fieldPath = "$fieldPath.streakFreeze"
+        ),
         reviewHistoryWatermarks = reviewHistoryWatermarks
     )
+}
+
+private fun JSONObject.toCloudProgressStreakFreeze(
+    fieldPath: String
+): CloudProgressStreakFreeze {
+    return CloudProgressStreakFreeze(
+        availableCredits = requireNonNegativeProgressInt(
+            value = requireCloudInt("availableCredits", "$fieldPath.availableCredits"),
+            fieldPath = "$fieldPath.availableCredits"
+        ),
+        capacity = requireNonNegativeProgressInt(
+            value = requireCloudInt("capacity", "$fieldPath.capacity"),
+            fieldPath = "$fieldPath.capacity"
+        ),
+        balanceUnits = requireNonNegativeProgressInt(
+            value = requireCloudInt("balanceUnits", "$fieldPath.balanceUnits"),
+            fieldPath = "$fieldPath.balanceUnits"
+        ),
+        unitsPerCredit = requirePositiveProgressInt(
+            value = requireCloudInt("unitsPerCredit", "$fieldPath.unitsPerCredit"),
+            fieldPath = "$fieldPath.unitsPerCredit"
+        ),
+        nextCreditProgressUnits = requireNonNegativeProgressInt(
+            value = requireCloudInt("nextCreditProgressUnits", "$fieldPath.nextCreditProgressUnits"),
+            fieldPath = "$fieldPath.nextCreditProgressUnits"
+        ),
+        nextCreditRequiredUnits = requirePositiveProgressInt(
+            value = requireCloudInt("nextCreditRequiredUnits", "$fieldPath.nextCreditRequiredUnits"),
+            fieldPath = "$fieldPath.nextCreditRequiredUnits"
+        )
+    )
+}
+
+private fun JSONObject.toCloudProgressStreakDays(
+    fieldPath: String
+): List<CloudProgressStreakDay> {
+    val streakDays = requireCloudArray("streakDays", "$fieldPath.streakDays")
+    return buildList {
+        for (index in 0 until streakDays.length()) {
+            val day = streakDays.requireCloudObject(index, "$fieldPath.streakDays[$index]")
+            add(
+                CloudProgressStreakDay(
+                    date = day.requireCloudString("date", "$fieldPath.streakDays[$index].date"),
+                    state = CloudProgressStreakDayState.fromWireKey(
+                        wireKey = day.requireCloudString("state", "$fieldPath.streakDays[$index].state")
+                    )
+                )
+            )
+        }
+    }
+}
+
+private fun validateCloudProgressStreakDaysForRange(
+    streakDays: List<CloudProgressStreakDay>,
+    from: String,
+    to: String,
+    streakDaysFieldPath: String,
+    rangeFieldPath: String
+) {
+    val expectedDates = createCloudProgressDateRange(
+        from = from,
+        to = to,
+        fieldPath = rangeFieldPath
+    )
+    val actualDates = streakDays.map(CloudProgressStreakDay::date)
+    if (actualDates != expectedDates) {
+        throw CloudContractMismatchException(
+            "$streakDaysFieldPath must cover every date from '$from' to '$to'."
+        )
+    }
+}
+
+private fun createCloudProgressDateRange(
+    from: String,
+    to: String,
+    fieldPath: String
+): List<String> {
+    val startDate = parseCloudProgressLocalDate(
+        value = from,
+        fieldPath = "$fieldPath.from"
+    )
+    val endDate = parseCloudProgressLocalDate(
+        value = to,
+        fieldPath = "$fieldPath.to"
+    )
+    if (startDate.isAfter(endDate)) {
+        throw CloudContractMismatchException("$fieldPath range start must not be after range end.")
+    }
+
+    val dates = mutableListOf<String>()
+    var currentDate = startDate
+    while (currentDate <= endDate) {
+        dates.add(currentDate.toString())
+        currentDate = currentDate.plusDays(1L)
+    }
+    return dates
+}
+
+private fun parseCloudProgressLocalDate(
+    value: String,
+    fieldPath: String
+): LocalDate {
+    return try {
+        LocalDate.parse(value)
+    } catch (error: DateTimeParseException) {
+        throw CloudContractMismatchException("$fieldPath must be a YYYY-MM-DD date.", error)
+    }
 }
 
 internal fun parseCloudProgressReviewScheduleResponse(
@@ -276,6 +444,55 @@ private fun requireNonNegativeReviewScheduleInt(
     return value
 }
 
+private fun requireNonNegativeProgressCount(
+    value: Int,
+    fieldPath: String
+): Int {
+    if (value < 0) {
+        throw CloudContractMismatchException("$fieldPath must not be negative.")
+    }
+
+    return value
+}
+
+private fun requireNonNegativeProgressInt(
+    value: Int,
+    fieldPath: String
+): Int {
+    if (value < 0) {
+        throw CloudContractMismatchException("$fieldPath must not be negative.")
+    }
+
+    return value
+}
+
+private fun requireDailyReviewCountVector(
+    reviewCount: Int,
+    againCount: Int,
+    hardCount: Int,
+    goodCount: Int,
+    easyCount: Int,
+    fieldPath: String
+) {
+    val ratingCountTotal = againCount + hardCount + goodCount + easyCount
+    if (reviewCount != ratingCountTotal) {
+        throw CloudContractMismatchException(
+            "$fieldPath.reviewCount expected rating bucket sum $ratingCountTotal but got $reviewCount."
+        )
+    }
+}
+
+private fun requirePositiveProgressInt(
+    value: Int,
+    fieldPath: String
+): Int {
+    if (value <= 0) {
+        throw CloudContractMismatchException("$fieldPath must be positive.")
+    }
+
+    return value
+}
+
 // Shared between the live response and the local payload cache so both sides of the
 // offline-first leaderboard pipeline enforce the same wire contract.
 internal fun parseCloudProgressLeaderboard(
@@ -373,6 +590,7 @@ private fun JSONObject.toCloudProgressLeaderboardRow(
         kind = ProgressLeaderboardParticipantRowKind.fromWireKey(wireKey = kind),
         publicProfileId = requireCloudString("publicProfileId", "$fieldPath.publicProfileId"),
         anonymousDisplayName = requireCloudString("anonymousDisplayName", "$fieldPath.anonymousDisplayName"),
+        friendDisplayName = optCloudStringOrNull("friendDisplayName", "$fieldPath.friendDisplayName"),
         qualifiedReviewCount = requireNonNegativeReviewScheduleInt(
             value = requireCloudInt("qualifiedReviewCount", "$fieldPath.qualifiedReviewCount"),
             fieldPath = "$fieldPath.qualifiedReviewCount"
@@ -393,6 +611,7 @@ private fun JSONObject.toCloudProgressLeaderboardRankingRow(
         ),
         publicProfileId = requireCloudString("publicProfileId", "$fieldPath.publicProfileId"),
         anonymousDisplayName = requireCloudString("anonymousDisplayName", "$fieldPath.anonymousDisplayName"),
+        friendDisplayName = optCloudStringOrNull("friendDisplayName", "$fieldPath.friendDisplayName"),
         qualifiedReviewCount = requireNonNegativeReviewScheduleInt(
             value = requireCloudInt("qualifiedReviewCount", "$fieldPath.qualifiedReviewCount"),
             fieldPath = "$fieldPath.qualifiedReviewCount"

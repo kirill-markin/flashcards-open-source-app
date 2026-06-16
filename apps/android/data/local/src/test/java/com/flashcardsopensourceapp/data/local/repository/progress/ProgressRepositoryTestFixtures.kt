@@ -47,7 +47,11 @@ internal fun createProgressLocalDayCount(
         timeZone = "Europe/Madrid",
         workspaceId = workspaceId,
         localDate = localDate,
-        reviewCount = reviewCount
+        reviewCount = reviewCount,
+        againCount = 0,
+        hardCount = 0,
+        goodCount = reviewCount,
+        easyCount = 0
     )
 }
 
@@ -208,6 +212,7 @@ internal fun createProgressLeaderboardRankingRowForTest(
         kind = kind,
         publicProfileId = publicProfileId,
         anonymousDisplayName = anonymousDisplayName,
+        friendDisplayName = null,
         qualifiedReviewCount = qualifiedReviewCount,
         rank = rank
     )
@@ -221,6 +226,7 @@ private fun createProgressLeaderboardParticipantRowForTest(
         kind = kind,
         publicProfileId = rankingRow.publicProfileId,
         anonymousDisplayName = rankingRow.anonymousDisplayName,
+        friendDisplayName = rankingRow.friendDisplayName,
         qualifiedReviewCount = rankingRow.qualifiedReviewCount,
         rank = rankingRow.rank
     )

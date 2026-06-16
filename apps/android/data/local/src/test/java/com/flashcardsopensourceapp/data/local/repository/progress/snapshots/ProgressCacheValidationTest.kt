@@ -38,9 +38,16 @@ class ProgressCacheValidationTest {
             generatedAt = "2026-04-18T10:00:00Z",
             reviewHistoryWatermarksJson = """[]""",
             currentStreakDays = 2,
+            longestStreakDays = 2,
             hasReviewedToday = true,
             lastReviewedOn = "not-a-date",
             activeReviewDays = 4,
+            streakFreezeAvailableCredits = 2,
+            streakFreezeCapacity = 2,
+            streakFreezeBalanceUnits = 20,
+            streakFreezeUnitsPerCredit = 10,
+            streakFreezeNextCreditProgressUnits = 0,
+            streakFreezeNextCreditRequiredUnits = 10,
             updatedAtMillis = 1L
         )
 
@@ -58,6 +65,7 @@ class ProgressCacheValidationTest {
             generatedAt = "2026-04-18T10:00:00Z",
             reviewHistoryWatermarksJson = """[]""",
             dailyReviewsJson = "{not-json}",
+            streakDaysJson = """[]""",
             updatedAtMillis = 1L
         )
 
@@ -164,9 +172,11 @@ class ProgressCacheValidationTest {
         )
         val summary = CloudProgressSummary(
             currentStreakDays = 3,
+            longestStreakDays = 3,
             hasReviewedToday = true,
             lastReviewedOn = "2026-04-18",
             activeReviewDays = 9,
+            streakFreeze = createInitialProgressStreakFreeze(),
             reviewHistoryWatermarks = watermarks
         )
         val series = CloudProgressSeries(
@@ -176,8 +186,18 @@ class ProgressCacheValidationTest {
             dailyReviews = listOf(
                 CloudDailyReviewPoint(
                     date = seriesScopeKey.to,
-                    reviewCount = 2
+                    reviewCount = 2,
+                    againCount = 1,
+                    hardCount = 0,
+                    goodCount = 1,
+                    easyCount = 0
                 )
+            ),
+            streakDays = createProgressStreakDaysForRange(
+                activeReviewDateSet = setOf(seriesScopeKey.to),
+                from = seriesScopeKey.from,
+                to = seriesScopeKey.to,
+                today = LocalDate.parse(seriesScopeKey.to)
             ),
             generatedAt = "2026-04-18T10:00:00Z",
             reviewHistoryWatermarks = watermarks,
@@ -188,6 +208,10 @@ class ProgressCacheValidationTest {
             newCount = 1,
             todayCount = 2
         ).copy(reviewHistoryWatermarks = watermarks)
+        val cachedSeries = series.toCacheEntity(
+            scopeKey = seriesScopeKey,
+            updatedAtMillis = 1L
+        ).toCloudProgressSeriesOrNull()
 
         assertEquals(
             watermarks,
@@ -198,10 +222,18 @@ class ProgressCacheValidationTest {
         )
         assertEquals(
             watermarks,
+            cachedSeries?.reviewHistoryWatermarks
+        )
+        assertEquals(
+            1,
+            cachedSeries?.dailyReviews?.single()?.againCount
+        )
+        assertEquals(
+            series.streakDays,
             series.toCacheEntity(
                 scopeKey = seriesScopeKey,
                 updatedAtMillis = 1L
-            ).toCloudProgressSeriesOrNull()?.reviewHistoryWatermarks
+            ).toCloudProgressSeriesOrNull()?.streakDays
         )
         assertEquals(
             watermarks,
@@ -223,7 +255,7 @@ class ProgressCacheValidationTest {
                     anonymousDisplayName = "Silver Bright Harbor",
                     qualifiedReviewCount = 9,
                     rank = 1
-                ),
+                ).copy(friendDisplayName = "Kai"),
                 createProgressLeaderboardRankingRowForTest(
                     kind = CloudProgressLeaderboardRankingRowKind.VIEWER,
                     publicProfileId = "viewer-profile",
@@ -248,5 +280,6 @@ class ProgressCacheValidationTest {
             restoredRows.map { row -> row.kind }
         )
         assertEquals(listOf(1, 2), restoredRows.map { row -> row.rank })
+        assertEquals(listOf("Kai", null), restoredRows.map { row -> row.friendDisplayName })
     }
 }

@@ -9,6 +9,7 @@ import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeader
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRow
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardViewer
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardWindow
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakFreeze
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardParticipantRowKind
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardScopeKey
@@ -33,6 +34,8 @@ class ReviewProgressBadgeStateTest {
         assertEquals(
             ReviewProgressBadgeState(
                 streakDays = 14,
+                freezeAvailableCredits = 2,
+                freezeCapacity = 2,
                 hasReviewedToday = true,
                 isInteractive = true
             ),
@@ -178,6 +181,7 @@ private fun createProgressLeaderboardRankingRowForBadgeTest(
         kind = kind,
         publicProfileId = publicProfileId,
         anonymousDisplayName = anonymousDisplayName,
+        friendDisplayName = null,
         qualifiedReviewCount = qualifiedReviewCount,
         rank = rank
     )
@@ -191,6 +195,7 @@ private fun createProgressLeaderboardRowForBadgeTest(
         kind = kind,
         publicProfileId = rankingRow.publicProfileId,
         anonymousDisplayName = rankingRow.anonymousDisplayName,
+        friendDisplayName = null,
         qualifiedReviewCount = rankingRow.qualifiedReviewCount,
         rank = rankingRow.rank
     )
@@ -202,9 +207,18 @@ private fun createProgressSummarySnapshot(
 ): ProgressSummarySnapshot {
     val renderedSummary = CloudProgressSummary(
         currentStreakDays = currentStreakDays,
+        longestStreakDays = currentStreakDays,
         hasReviewedToday = hasReviewedToday,
         lastReviewedOn = "2026-04-18",
         activeReviewDays = 32,
+        streakFreeze = CloudProgressStreakFreeze(
+            availableCredits = 2,
+            capacity = 2,
+            balanceUnits = 20,
+            unitsPerCredit = 10,
+            nextCreditProgressUnits = 0,
+            nextCreditRequiredUnits = 10
+        ),
         reviewHistoryWatermarks = emptyList()
     )
 

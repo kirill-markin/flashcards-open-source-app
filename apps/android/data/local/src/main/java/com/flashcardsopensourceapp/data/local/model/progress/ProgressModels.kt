@@ -2,7 +2,71 @@ package com.flashcardsopensourceapp.data.local.model.progress
 
 data class CloudDailyReviewPoint(
     val date: String,
-    val reviewCount: Int
+    val reviewCount: Int,
+    val againCount: Int,
+    val hardCount: Int,
+    val goodCount: Int,
+    val easyCount: Int
+) {
+    init {
+        require(reviewCount >= 0) {
+            "Daily review point '$date' reviewCount must not be negative."
+        }
+        require(againCount >= 0) {
+            "Daily review point '$date' againCount must not be negative."
+        }
+        require(hardCount >= 0) {
+            "Daily review point '$date' hardCount must not be negative."
+        }
+        require(goodCount >= 0) {
+            "Daily review point '$date' goodCount must not be negative."
+        }
+        require(easyCount >= 0) {
+            "Daily review point '$date' easyCount must not be negative."
+        }
+
+        val ratingCountTotal = againCount + hardCount + goodCount + easyCount
+        require(reviewCount == ratingCountTotal) {
+            "Daily review point '$date' reviewCount must equal rating count sum $ratingCountTotal."
+        }
+    }
+}
+
+enum class CloudProgressStreakDayState(
+    val wireKey: String
+) {
+    REVIEWED("reviewed"),
+    FROZEN("frozen"),
+    MISSED("missed"),
+    PENDING("pending");
+
+    companion object {
+        private val orderedEntries: List<CloudProgressStreakDayState> = listOf(
+            REVIEWED,
+            FROZEN,
+            MISSED,
+            PENDING
+        )
+
+        fun fromWireKey(wireKey: String): CloudProgressStreakDayState {
+            return orderedEntries.firstOrNull { state -> state.wireKey == wireKey }
+                ?: throw IllegalArgumentException("Unknown progress streak day state '$wireKey'.")
+        }
+    }
+}
+
+data class CloudProgressStreakDay(
+    val date: String,
+    val state: CloudProgressStreakDayState
+)
+
+data class CloudProgressStreakFreeze(
+    val availableCredits: Int,
+    val capacity: Int,
+    val balanceUnits: Int,
+    val unitsPerCredit: Int,
+    val nextCreditProgressUnits: Int,
+    val nextCreditRequiredUnits: Int
 )
 
 data class ProgressReviewHistoryWatermark(
@@ -12,9 +76,11 @@ data class ProgressReviewHistoryWatermark(
 
 data class CloudProgressSummary(
     val currentStreakDays: Int,
+    val longestStreakDays: Int,
     val hasReviewedToday: Boolean,
     val lastReviewedOn: String?,
     val activeReviewDays: Int,
+    val streakFreeze: CloudProgressStreakFreeze,
     val reviewHistoryWatermarks: List<ProgressReviewHistoryWatermark>
 )
 
@@ -23,6 +89,7 @@ data class CloudProgressSeries(
     val from: String,
     val to: String,
     val dailyReviews: List<CloudDailyReviewPoint>,
+    val streakDays: List<CloudProgressStreakDay>,
     val generatedAt: String?,
     val reviewHistoryWatermarks: List<ProgressReviewHistoryWatermark>,
     val summary: CloudProgressSummary?

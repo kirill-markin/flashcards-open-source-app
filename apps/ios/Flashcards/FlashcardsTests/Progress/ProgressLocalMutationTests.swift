@@ -46,7 +46,8 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
 
         context.store.handleProgressLocalMutation(
             now: now,
-            reviewedAtClient: "2026-04-18T12:30:00.000Z"
+            reviewedAtClient: "2026-04-18T12:30:00.000Z",
+            rating: .good
         )
 
         XCTAssertEqual(1, context.cloudSyncService.loadProgressSummaryCallCount)
@@ -98,7 +99,8 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
 
         context.store.handleProgressLocalMutation(
             now: now,
-            reviewedAtClient: "2026-04-18T12:30:00.000Z"
+            reviewedAtClient: "2026-04-18T12:30:00.000Z",
+            rating: .good
         )
 
         XCTAssertNil(context.store.progressSnapshot)
@@ -172,7 +174,8 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
 
         context.store.handleProgressLocalMutation(
             now: now,
-            reviewedAtClient: formatIsoTimestamp(date: yesterdayReviewDate)
+            reviewedAtClient: formatIsoTimestamp(date: yesterdayReviewDate),
+            rating: .good
         )
 
         let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)

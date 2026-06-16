@@ -243,7 +243,11 @@ final class ProgressServerValidationRefreshTests: ProgressStoreTestCase {
             dailyReviews: [
                 ProgressDay(
                     date: "2026-02-31",
-                    reviewCount: 1
+                    reviewCount: 1,
+                    againCount: 0,
+                    hardCount: 0,
+                    goodCount: 1,
+                    easyCount: 0
                 )
             ],
             streakDays: [],

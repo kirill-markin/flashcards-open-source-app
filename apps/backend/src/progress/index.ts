@@ -54,6 +54,10 @@ export type ProgressSeriesRequest = Readonly<{
 export type DailyReviewPoint = Readonly<{
   date: string;
   reviewCount: number;
+  againCount: number;
+  hardCount: number;
+  goodCount: number;
+  easyCount: number;
 }>;
 
 export const reviewScheduleBucketKeys = [
@@ -117,6 +121,10 @@ export type ProgressReviewSchedule = Readonly<{
 type DailyReviewCountRow = Readonly<{
   review_date: string;
   review_count: string | number;
+  again_count: string | number;
+  hard_count: string | number;
+  good_count: string | number;
+  easy_count: string | number;
 }>;
 
 type ReviewDateRow = Readonly<{
@@ -140,6 +148,14 @@ type ReviewHistoryWatermarkRow = Readonly<{
 }>;
 
 type ReviewScheduleBucketCounts = Readonly<Record<ReviewScheduleBucketKey, number>>;
+
+type DailyReviewCounts = Readonly<{
+  reviewCount: number;
+  againCount: number;
+  hardCount: number;
+  goodCount: number;
+  easyCount: number;
+}>;
 
 const reviewScheduleSqlColumnByBucketKey: Readonly<Record<ReviewScheduleBucketKey, keyof ReviewScheduleCountRow>> = {
   new: "new_count",
@@ -487,15 +503,57 @@ function calculateReviewScheduleTotalCards(counts: ReviewScheduleBucketCounts): 
   );
 }
 
-function accumulateDailyReviewCounts(
-  aggregate: Map<string, number>,
+function createEmptyDailyReviewCounts(): DailyReviewCounts {
+  return {
+    reviewCount: 0,
+    againCount: 0,
+    hardCount: 0,
+    goodCount: 0,
+    easyCount: 0,
+  };
+}
+
+function addDailyReviewCounts(
+  left: DailyReviewCounts,
+  right: DailyReviewCounts,
+): DailyReviewCounts {
+  return {
+    reviewCount: left.reviewCount + right.reviewCount,
+    againCount: left.againCount + right.againCount,
+    hardCount: left.hardCount + right.hardCount,
+    goodCount: left.goodCount + right.goodCount,
+    easyCount: left.easyCount + right.easyCount,
+  };
+}
+
+function mapDailyReviewCountRow(row: DailyReviewCountRow): DailyReviewCounts {
+  return {
+    reviewCount: normalizeNonNegativeIntegerFromQuery(row.review_count, `${row.review_date}.review_count`),
+    againCount: normalizeNonNegativeIntegerFromQuery(row.again_count, `${row.review_date}.again_count`),
+    hardCount: normalizeNonNegativeIntegerFromQuery(row.hard_count, `${row.review_date}.hard_count`),
+    goodCount: normalizeNonNegativeIntegerFromQuery(row.good_count, `${row.review_date}.good_count`),
+    easyCount: normalizeNonNegativeIntegerFromQuery(row.easy_count, `${row.review_date}.easy_count`),
+  };
+}
+
+function addDailyReviewCountRows(
+  aggregate: ReadonlyMap<string, DailyReviewCounts>,
   rows: ReadonlyArray<DailyReviewCountRow>,
-): void {
+): ReadonlyMap<string, DailyReviewCounts> {
+  const nextAggregate = new Map(aggregate);
+
   for (const row of rows) {
     const reviewDate = row.review_date;
-    const reviewCount = normalizeNonNegativeIntegerFromQuery(row.review_count, reviewDate);
-    aggregate.set(reviewDate, (aggregate.get(reviewDate) ?? 0) + reviewCount);
+    nextAggregate.set(
+      reviewDate,
+      addDailyReviewCounts(
+        nextAggregate.get(reviewDate) ?? createEmptyDailyReviewCounts(),
+        mapDailyReviewCountRow(row),
+      ),
+    );
   }
+
+  return nextAggregate;
 }
 
 function accumulateReviewDates(
@@ -509,12 +567,19 @@ function accumulateReviewDates(
 
 function createDailyReviews(
   range: ReadonlyArray<string>,
-  aggregate: ReadonlyMap<string, number>,
+  aggregate: ReadonlyMap<string, DailyReviewCounts>,
 ): ReadonlyArray<DailyReviewPoint> {
-  return range.map((date) => ({
-    date,
-    reviewCount: aggregate.get(date) ?? 0,
-  }));
+  return range.map((date) => {
+    const counts = aggregate.get(date) ?? createEmptyDailyReviewCounts();
+    return {
+      date,
+      reviewCount: counts.reviewCount,
+      againCount: counts.againCount,
+      hardCount: counts.hardCount,
+      goodCount: counts.goodCount,
+      easyCount: counts.easyCount,
+    };
+  });
 }
 
 function createSortedActiveReviewLocalDates(reviewDates: ReadonlySet<string>): ReadonlyArray<string> {
@@ -588,7 +653,11 @@ async function loadDailyReviewCountRowsInExecutor(
     [
       "SELECT",
       "to_char(timezone($2, review_events.reviewed_at_client)::date, 'YYYY-MM-DD') AS review_date,",
-      "COUNT(*)::int AS review_count",
+      "COUNT(*)::int AS review_count,",
+      "COUNT(*) FILTER (WHERE review_events.rating = 0)::int AS again_count,",
+      "COUNT(*) FILTER (WHERE review_events.rating = 1)::int AS hard_count,",
+      "COUNT(*) FILTER (WHERE review_events.rating = 2)::int AS good_count,",
+      "COUNT(*) FILTER (WHERE review_events.rating = 3)::int AS easy_count",
       "FROM content.review_events AS review_events",
       "WHERE review_events.workspace_id = $1",
       "AND review_events.reviewed_at_client >= (($3::date)::timestamp AT TIME ZONE $2)",
@@ -798,7 +867,7 @@ async function buildUserProgressSeriesInExecutor(
   request: ProgressSeriesRequest,
   generatedAtDate: Date,
 ): Promise<ProgressSeries> {
-  const dailyReviewCounts = new Map<string, number>();
+  let dailyReviewCounts: ReadonlyMap<string, DailyReviewCounts> = new Map<string, DailyReviewCounts>();
   const reviewDates = new Set<string>();
   await applyUserDatabaseScopeInExecutor(executor, { userId: request.userId });
   const workspaceIds = await listUserWorkspaceIdsInExecutor(executor, request.userId);
@@ -817,7 +886,7 @@ async function buildUserProgressSeriesInExecutor(
       from: request.from,
       to: request.to,
     });
-    accumulateDailyReviewCounts(dailyReviewCounts, rows);
+    dailyReviewCounts = addDailyReviewCountRows(dailyReviewCounts, rows);
     accumulateReviewDates(
       reviewDates,
       await loadAllReviewDateRowsInExecutor(executor, {

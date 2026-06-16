@@ -13,9 +13,16 @@ data class ProgressSummaryCacheEntity(
     val generatedAt: String?,
     val reviewHistoryWatermarksJson: String,
     val currentStreakDays: Int,
+    val longestStreakDays: Int,
     val hasReviewedToday: Boolean,
     val lastReviewedOn: String?,
     val activeReviewDays: Int,
+    val streakFreezeAvailableCredits: Int,
+    val streakFreezeCapacity: Int,
+    val streakFreezeBalanceUnits: Int,
+    val streakFreezeUnitsPerCredit: Int,
+    val streakFreezeNextCreditProgressUnits: Int,
+    val streakFreezeNextCreditRequiredUnits: Int,
     val updatedAtMillis: Long
 )
 
@@ -29,6 +36,7 @@ data class ProgressSeriesCacheEntity(
     val generatedAt: String?,
     val reviewHistoryWatermarksJson: String,
     val dailyReviewsJson: String,
+    val streakDaysJson: String,
     val updatedAtMillis: Long
 )
 
@@ -73,7 +81,11 @@ data class ProgressLocalDayCountEntity(
     val timeZone: String,
     val workspaceId: String,
     val localDate: String,
-    val reviewCount: Int
+    val reviewCount: Int,
+    val againCount: Int,
+    val hardCount: Int,
+    val goodCount: Int,
+    val easyCount: Int
 )
 
 @Entity(

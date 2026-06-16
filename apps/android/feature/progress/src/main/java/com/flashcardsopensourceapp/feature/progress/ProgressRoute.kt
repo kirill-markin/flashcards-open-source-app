@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.progress
 
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,6 +15,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -32,6 +34,7 @@ import com.flashcardsopensourceapp.feature.progress.sections.StreakSectionCard
 @Composable
 fun ProgressRoute(
     uiState: ProgressUiState,
+    friendInvitationUiState: ProgressFriendInvitationUiState,
     streakScrollRequestId: Long?,
     onStreakScrollRequestConsumed: (Long) -> Unit,
     leaderboardScrollRequestId: Long?,
@@ -39,9 +42,13 @@ fun ProgressRoute(
     onScreenVisible: () -> Unit,
     onRetry: () -> Unit,
     onSelectLeaderboardWindow: (ProgressLeaderboardWindowKey) -> Unit,
+    onCreateFriendInvitation: (String) -> Unit,
+    onClearFriendInvitationFailure: () -> Unit,
+    onFriendInvitationShared: (Long) -> Unit,
     onOpenSignIn: () -> Unit,
     onOpenLeaderboardSettings: () -> Unit
 ) {
+    val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val listState = rememberLazyListState()
     val currentScreenVisibleAction = rememberUpdatedState(newValue = onScreenVisible)
@@ -83,6 +90,21 @@ fun ProgressRoute(
 
         listState.animateScrollToItem(index = progressLeaderboardItemIndex())
         currentLeaderboardScrollRequestConsumed.value(requestId)
+    }
+
+    LaunchedEffect(friendInvitationUiState) {
+        val createdState = friendInvitationUiState as? ProgressFriendInvitationUiState.Created
+            ?: return@LaunchedEffect
+        val shareIntent = Intent(Intent.ACTION_SEND)
+            .setType("text/plain")
+            .putExtra(Intent.EXTRA_TEXT, createdState.inviteUrl)
+        context.startActivity(
+            Intent.createChooser(
+                shareIntent,
+                context.getString(R.string.progress_friend_invite_share_title)
+            )
+        )
+        onFriendInvitationShared(createdState.shareId)
     }
 
     Scaffold(
@@ -149,7 +171,10 @@ fun ProgressRoute(
                     item {
                         LeaderboardSectionCard(
                             uiState = uiState.leaderboardSection,
+                            friendInvitationUiState = friendInvitationUiState,
                             onSelectWindow = onSelectLeaderboardWindow,
+                            onCreateFriendInvitation = onCreateFriendInvitation,
+                            onClearFriendInvitationFailure = onClearFriendInvitationFailure,
                             onOpenSignIn = onOpenSignIn,
                             onOpenLeaderboardSettings = onOpenLeaderboardSettings
                         )

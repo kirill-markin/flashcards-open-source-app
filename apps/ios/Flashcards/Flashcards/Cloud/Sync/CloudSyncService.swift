@@ -244,6 +244,20 @@ final class CloudSyncService: @unchecked Sendable {
         )
     }
 
+    func createFriendInvitation(
+        apiBaseUrl: String,
+        bearerToken: String,
+        inviteeDisplayName: String
+    ) async throws -> FriendInvitationCreateResponse {
+        try await self.transport.request(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: "Bearer \(bearerToken)",
+            path: "/me/community/friend-invitations",
+            method: "POST",
+            body: FriendInvitationCreateRequest(inviteeDisplayName: inviteeDisplayName)
+        )
+    }
+
     func loadFeedbackState(
         apiBaseUrl: String,
         authorizationHeader: String

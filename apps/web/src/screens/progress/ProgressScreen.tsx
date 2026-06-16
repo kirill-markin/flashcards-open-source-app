@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { useAppData } from "../../appData";
 import {
   buildReviewProgressBadgeStateFromSummarySnapshot,
+  formatReviewProgressFreezeValue,
   formatReviewProgressBadgeValue,
 } from "../../appData/progress/badge/reviewProgressBadge";
 import { useProgressInvalidationState } from "../../appData/progress/invalidation/progressInvalidation";
@@ -25,10 +26,14 @@ import {
   type ProgressReviewsChartNavigationState,
 } from "./reviewsChart/ProgressReviewsChartSection";
 import {
+  buildChartRatingLegendItems,
   buildChartGuideLabels,
   buildChartPages,
+  formatChartDayLabel,
   formatChartRangeLabel,
   resolveChartNavigationArrow,
+  type ProgressReviewsChartRatingKey,
+  type ProgressReviewsChartSelection,
 } from "./reviewsChart/progressReviewsChartModel";
 import { ProgressStreakSection, type ProgressStreakSummaryView } from "./streak/ProgressStreakSection";
 import { buildStreakWeeks } from "./streak/progressStreakModel";
@@ -68,8 +73,10 @@ export function ProgressScreen(): ReactElement {
   });
   const { locale, matchedBrowserLanguageTag, direction, t, formatDate, formatNumber } = useI18n();
   const [selectedPageStartLocalDate, setSelectedPageStartLocalDate] = useState<string | null>(null);
+  const [reviewsChartSelection, setReviewsChartSelection] = useState<ProgressReviewsChartSelection>({ kind: "none" });
   const [selectedReviewScheduleBucket, setSelectedReviewScheduleBucket] = useState<ProgressReviewScheduleBucketKey | null>(null);
   const [selectedLeaderboardWindowKey, setSelectedLeaderboardWindowKey] = useState<ProgressLeaderboardWindowKey | null>(null);
+  const [isStreakInfoVisible, setIsStreakInfoVisible] = useState<boolean>(false);
   const [isLeaderboardInfoVisible, setIsLeaderboardInfoVisible] = useState<boolean>(false);
   const streakSectionRef = useRef<HTMLElement | null>(null);
   const leaderboardSectionRef = useRef<HTMLElement | null>(null);
@@ -88,6 +95,7 @@ export function ProgressScreen(): ReactElement {
 
   useEffect(() => {
     setSelectedPageStartLocalDate(null);
+    setReviewsChartSelection({ kind: "none" });
   }, [progressSourceState.series.renderedSnapshot]);
 
   useEffect(() => {
@@ -126,28 +134,60 @@ export function ProgressScreen(): ReactElement {
   const dailyReviews = progress === null ? [] : sortDailyReviews(progress.dailyReviews);
   const today = progress === null ? "" : progress.to;
   const weekContext = resolveLocaleWeekContext(matchedBrowserLanguageTag ?? locale, locale);
-  const streakWeeks = progress === null ? [] : buildStreakWeeks(dailyReviews, today, formatDate, weekContext);
-  const chartPages = progress === null ? [] : buildChartPages(dailyReviews, today, formatDate, weekContext);
+  const streakWeeks = progress === null ? [] : buildStreakWeeks(dailyReviews, progress.streakDays, today, formatDate, weekContext);
+  const selectedReviewsChartRatingKey = reviewsChartSelection.kind === "rating"
+    ? reviewsChartSelection.ratingKey
+    : null;
+  const chartPages = progress === null
+    ? []
+    : buildChartPages(dailyReviews, today, formatDate, weekContext, selectedReviewsChartRatingKey);
   const selectedPageIndex = chartPages.findIndex((page) => page.startLocalDate === selectedPageStartLocalDate);
   const visiblePage = chartPages.length === 0
     ? null
     : selectedPageStartLocalDate === null || selectedPageIndex === -1
       ? chartPages[chartPages.length - 1]
       : chartPages[selectedPageIndex];
+  const visiblePageHasSelectedDay = reviewsChartSelection.kind === "day"
+    && visiblePage !== null
+    && visiblePage.days.some((day) => day.date === reviewsChartSelection.date);
+  const visibleReviewsChartSelection: ProgressReviewsChartSelection = reviewsChartSelection.kind === "day" && visiblePageHasSelectedDay === false
+    ? { kind: "none" }
+    : reviewsChartSelection;
   const resolvedSelectedPageIndex = visiblePage === null
     ? 0
     : chartPages.findIndex((page) => page.startLocalDate === visiblePage.startLocalDate);
   const chartGuideLabels = buildChartGuideLabels(visiblePage?.upperBound ?? 1, formatNumber);
   const pageRangeLabel = visiblePage === null
     ? ""
+    : visibleReviewsChartSelection.kind === "day"
+      ? formatChartDayLabel(visibleReviewsChartSelection.date, locale)
     : formatChartRangeLabel(visiblePage.startDate, visiblePage.endDate, locale);
+  const chartRatingLegendItems = buildChartRatingLegendItems(
+    visiblePage,
+    visibleReviewsChartSelection,
+    t,
+    formatNumber,
+  );
   const reviewProgressBadgeTodayStatus = reviewProgressBadge.hasReviewedToday
     ? t("reviewScreen.progressBadge.reviewedToday")
     : t("reviewScreen.progressBadge.notReviewedToday");
+  const reviewProgressFreezeStatus = t("reviewScreen.progressBadge.freezeBank", {
+    available: formatNumber(reviewProgressBadge.streakFreeze.availableCredits),
+    capacity: formatNumber(reviewProgressBadge.streakFreeze.capacity),
+  });
   const reviewProgressBadgeAriaLabel = t("reviewScreen.progressBadge.ariaLabel", {
     streak: formatNumber(reviewProgressBadge.streakDays),
     todayStatus: reviewProgressBadgeTodayStatus,
+    freezeBank: reviewProgressFreezeStatus,
   });
+  const progressStreakInfoText = progressSummary === null
+    ? null
+    : t("progressScreen.streakInfo", {
+      available: formatNumber(progressSummary.summary.streakFreeze.availableCredits),
+      capacity: formatNumber(progressSummary.summary.streakFreeze.capacity),
+      progress: formatNumber(progressSummary.summary.streakFreeze.nextCreditProgressUnits),
+      required: formatNumber(progressSummary.summary.streakFreeze.nextCreditRequiredUnits),
+    });
   const progressStreakSummary: ProgressStreakSummaryView | null = progressSummary === null
     ? null
     : {
@@ -156,6 +196,7 @@ export function ProgressScreen(): ReactElement {
       hasReviewedToday: reviewProgressBadge.hasReviewedToday,
       ariaLabel: reviewProgressBadgeAriaLabel,
       formattedStreakValue: formatReviewProgressBadgeValue(reviewProgressBadge.streakDays),
+      formattedFreezeValue: formatReviewProgressFreezeValue(reviewProgressBadge.streakFreeze, formatNumber),
     };
   const previousWeekArrow = resolveChartNavigationArrow(direction, "previous");
   const nextWeekArrow = resolveChartNavigationArrow(direction, "next");
@@ -177,6 +218,27 @@ export function ProgressScreen(): ReactElement {
     : buildReviewScheduleBucketViews(reviewSchedule, t, formatNumber);
   const reviewScheduleDonutSegments = buildReviewScheduleDonutSegments(reviewScheduleBucketViews);
   const canRenderLeaderboardServerBase = canLoadProgressServerBase(sessionVerificationState, cloudSettings);
+  const handleSelectChartPageStartLocalDate = (pageStartLocalDate: string | null): void => {
+    setSelectedPageStartLocalDate(pageStartLocalDate);
+    setReviewsChartSelection({ kind: "none" });
+  };
+  const handleSelectReviewsChartDay = (date: string): void => {
+    setReviewsChartSelection((previousSelection) => (
+      previousSelection.kind === "day" && previousSelection.date === date
+        ? { kind: "none" }
+        : { kind: "day", date }
+    ));
+  };
+  const handleSelectReviewsChartRating = (ratingKey: ProgressReviewsChartRatingKey): void => {
+    setReviewsChartSelection((previousSelection) => (
+      previousSelection.kind === "rating" && previousSelection.ratingKey === ratingKey
+        ? { kind: "none" }
+        : { kind: "rating", ratingKey }
+    ));
+  };
+  const handleClearReviewsChartSelection = (): void => {
+    setReviewsChartSelection({ kind: "none" });
+  };
   const handleSelectReviewScheduleBucket = (bucketKey: ProgressReviewScheduleBucketKey): void => {
     setSelectedReviewScheduleBucket((previous) => (previous === bucketKey ? null : bucketKey));
   };
@@ -213,6 +275,10 @@ export function ProgressScreen(): ReactElement {
               sectionId={progressStreakHash}
               sectionRef={streakSectionRef}
               summary={progressStreakSummary}
+              infoText={progressStreakInfoText}
+              infoToggleLabel={t("progressScreen.streakInfoToggleLabel")}
+              isInfoVisible={isStreakInfoVisible}
+              onToggleInfo={() => setIsStreakInfoVisible((previous) => previous === false)}
               streakWeeks={streakWeeks}
             />
 
@@ -232,8 +298,14 @@ export function ProgressScreen(): ReactElement {
               pageRangeLabel={pageRangeLabel}
               visiblePage={visiblePage}
               chartGuideLabels={chartGuideLabels}
+              legendLabel={t("progressScreen.reviewsBreakdown.legendLabel")}
+              ratingLegendItems={chartRatingLegendItems}
+              selection={visibleReviewsChartSelection}
               navigation={chartNavigation}
-              onSelectPageStartLocalDate={setSelectedPageStartLocalDate}
+              onSelectPageStartLocalDate={handleSelectChartPageStartLocalDate}
+              onSelectDay={handleSelectReviewsChartDay}
+              onSelectRating={handleSelectReviewsChartRating}
+              onClearSelection={handleClearReviewsChartSelection}
             />
 
             {reviewSchedule !== null ? (

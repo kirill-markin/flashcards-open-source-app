@@ -37,6 +37,9 @@ import {
   buildSettingsDeckEditRoute,
   cardsRoute,
   chatRoute,
+  friendInviteRoutePattern,
+  friendInvitePreviewIndexRoute,
+  friendInvitePreviewRoutePattern,
   progressRoute,
   reviewRoute,
   settingsAccessRoute,
@@ -64,6 +67,7 @@ import { isWorkspaceManagementLocked } from "./workspaceManagement";
 import { TestModeProvider, useTestMode } from "./testMode";
 import { CardFormScreen } from "./screens/cards/form/CardFormScreen";
 import { CardsScreen } from "./screens/cards/list/CardsScreen";
+import { FriendInviteScreen } from "./screens/invite/FriendInviteScreen";
 import { ProgressScreen } from "./screens/progress/ProgressScreen";
 import { ReviewScreen } from "./screens/review/ReviewScreen";
 
@@ -83,6 +87,9 @@ const primaryNavigationItems: ReadonlyArray<PrimaryNavigationItem> = [
 ];
 
 const ChatPanel = lazy(async () => import("./chat/ChatPanel").then((module) => ({ default: module.ChatPanel })));
+const FriendInvitePreviewScreen = lazy(async () => import("./dev/previews/invite/FriendInvitePreviewScreen").then((module) => ({
+  default: module.FriendInvitePreviewScreen,
+})));
 const AccessPermissionDetailScreen = lazy(async () => import("./screens/settings/access/AccessPermissionDetailScreen").then((module) => ({
   default: module.AccessPermissionDetailScreen,
 })));
@@ -718,22 +725,39 @@ export function RoutedShell(): ReactElement {
   );
 }
 
+function AuthenticatedApp(): ReactElement {
+  return (
+    <AppDataProvider>
+      <ChatLayoutProvider>
+        <ChatSessionControllerProvider>
+          <ChatDraftProvider>
+            <AppShell />
+          </ChatDraftProvider>
+        </ChatSessionControllerProvider>
+      </ChatLayoutProvider>
+    </AppDataProvider>
+  );
+}
+
 export default function App(): ReactElement {
   return (
     <AppErrorBoundary fallback={<AppCrashFallback />}>
-      <TestModeProvider>
-        <AppDataProvider>
-          <ChatLayoutProvider>
-            <ChatSessionControllerProvider>
-              <ChatDraftProvider>
-                <BrowserRouter>
-                  <AppShell />
-                </BrowserRouter>
-              </ChatDraftProvider>
-            </ChatSessionControllerProvider>
-          </ChatLayoutProvider>
-        </AppDataProvider>
-      </TestModeProvider>
+      <BrowserRouter>
+        <TestModeProvider>
+          <SentryRoutes>
+            <Route
+              path={friendInvitePreviewIndexRoute}
+              element={renderDeferredRoute(<FriendInvitePreviewScreen />, "friendInvite.loading")}
+            />
+            <Route
+              path={friendInvitePreviewRoutePattern}
+              element={renderDeferredRoute(<FriendInvitePreviewScreen />, "friendInvite.loading")}
+            />
+            <Route path={friendInviteRoutePattern} element={<FriendInviteScreen />} />
+            <Route path="/*" element={<AuthenticatedApp />} />
+          </SentryRoutes>
+        </TestModeProvider>
+      </BrowserRouter>
     </AppErrorBoundary>
   );
 }

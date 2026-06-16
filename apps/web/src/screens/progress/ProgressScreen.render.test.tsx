@@ -4,6 +4,7 @@ import ReactDOM from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "../../i18n";
+import { shiftLocalDate } from "../../progress/progressDates";
 import { progressLeaderboardHash, progressStreakHash } from "../../routes";
 import type { AppDataContextValue } from "../../appData";
 import {
@@ -13,6 +14,7 @@ import {
 } from "../../appData/progress/snapshots/progressSnapshots";
 import type {
   CloudSettings,
+  DailyReviewPoint,
   ProgressLeaderboard,
   ProgressLeaderboardLocalViewerCounts,
   ProgressLeaderboardRankingRow,
@@ -22,6 +24,8 @@ import type {
   ProgressReviewScheduleSnapshot,
   ProgressSeriesSnapshot,
   ProgressSummarySnapshot,
+  StreakDay,
+  StreakDayState,
 } from "../../types";
 import { progressLeaderboardWindowKeys } from "../../types";
 
@@ -169,6 +173,45 @@ function createAppData(): AppDataContextValue {
   };
 }
 
+function createPartialStreakFreeze(): Readonly<{
+  availableCredits: number;
+  capacity: number;
+  balanceUnits: number;
+  unitsPerCredit: number;
+  nextCreditProgressUnits: number;
+  nextCreditRequiredUnits: number;
+}> {
+  return {
+    availableCredits: 1,
+    capacity: 2,
+    balanceUnits: 11,
+    unitsPerCredit: 10,
+    nextCreditProgressUnits: 1,
+    nextCreditRequiredUnits: 10,
+  };
+}
+
+function createProgressStreakDaysForTest(from: string, to: string): ReadonlyArray<StreakDay> {
+  const reviewedDates = new Set(["2026-04-14", "2026-04-21"]);
+  const frozenDates = new Set(["2026-04-15", "2026-04-16"]);
+  const streakDays: Array<StreakDay> = [];
+
+  for (let currentDate = from; currentDate <= to; currentDate = shiftLocalDate(currentDate, 1)) {
+    const state: StreakDayState = reviewedDates.has(currentDate)
+      ? "reviewed"
+      : frozenDates.has(currentDate)
+        ? "frozen"
+        : "missed";
+
+    streakDays.push({
+      date: currentDate,
+      state,
+    });
+  }
+
+  return streakDays;
+}
+
 function createProgressSummarySnapshot(): ProgressSummarySnapshot {
   return {
     timeZone: "UTC",
@@ -176,26 +219,51 @@ function createProgressSummarySnapshot(): ProgressSummarySnapshot {
     reviewHistoryWatermarks: [],
     summary: {
       currentStreakDays: 2,
+      longestStreakDays: 3,
       hasReviewedToday: true,
       lastReviewedOn: "2026-04-21",
       activeReviewDays: 2,
+      streakFreeze: createPartialStreakFreeze(),
     },
     source: "server",
     isApproximate: false,
   };
 }
 
+function createDailyReviewPoint(
+  date: string,
+  reviewCount: number,
+  againCount: number,
+  hardCount: number,
+  goodCount: number,
+  easyCount: number,
+): DailyReviewPoint {
+  const ratingCountSum = againCount + hardCount + goodCount + easyCount;
+  if (reviewCount !== ratingCountSum) {
+    throw new Error(`Invalid progress screen test fixture for ${date}: reviewCount ${reviewCount} must equal rating count sum ${ratingCountSum}`);
+  }
+
+  return {
+    date,
+    reviewCount,
+    againCount,
+    hardCount,
+    goodCount,
+    easyCount,
+  };
+}
+
 function createProgressSeriesSnapshot(): ProgressSeriesSnapshot {
   const dailyReviews = [
-    { date: "2026-04-13", reviewCount: 0 },
-    { date: "2026-04-14", reviewCount: 40 },
-    { date: "2026-04-15", reviewCount: 0 },
-    { date: "2026-04-16", reviewCount: 0 },
-    { date: "2026-04-17", reviewCount: 0 },
-    { date: "2026-04-18", reviewCount: 0 },
-    { date: "2026-04-19", reviewCount: 0 },
-    { date: "2026-04-20", reviewCount: 0 },
-    { date: "2026-04-21", reviewCount: 9 },
+    createDailyReviewPoint("2026-04-13", 0, 0, 0, 0, 0),
+    createDailyReviewPoint("2026-04-14", 40, 5, 10, 20, 5),
+    createDailyReviewPoint("2026-04-15", 0, 0, 0, 0, 0),
+    createDailyReviewPoint("2026-04-16", 0, 0, 0, 0, 0),
+    createDailyReviewPoint("2026-04-17", 0, 0, 0, 0, 0),
+    createDailyReviewPoint("2026-04-18", 0, 0, 0, 0, 0),
+    createDailyReviewPoint("2026-04-19", 0, 0, 0, 0, 0),
+    createDailyReviewPoint("2026-04-20", 3, 0, 3, 0, 0),
+    createDailyReviewPoint("2026-04-21", 9, 1, 2, 4, 2),
   ] as const;
 
   return {
@@ -205,6 +273,7 @@ function createProgressSeriesSnapshot(): ProgressSeriesSnapshot {
     generatedAt: "2026-04-21T10:00:00.000Z",
     reviewHistoryWatermarks: [],
     dailyReviews,
+    streakDays: createProgressStreakDaysForTest("2026-03-21", "2026-04-21"),
     chartData: {
       dailyReviews,
     },
@@ -297,6 +366,38 @@ function createLeaderboardRankingRows(): ReadonlyArray<ProgressLeaderboardRankin
   ];
 }
 
+function addFriendDisplayNameToRankingRows(
+  rankingRows: ReadonlyArray<ProgressLeaderboardRankingRow>,
+  rank: number,
+  friendDisplayName: string,
+): ReadonlyArray<ProgressLeaderboardRankingRow> {
+  return rankingRows.map((row): ProgressLeaderboardRankingRow => (
+    row.rank === rank
+      ? {
+        ...row,
+        friendDisplayName,
+      }
+      : row
+  ));
+}
+
+function addFriendDisplayNamesToRankingRows(
+  rankingRows: ReadonlyArray<ProgressLeaderboardRankingRow>,
+  friendDisplayNamesByRank: ReadonlyMap<number, string>,
+): ReadonlyArray<ProgressLeaderboardRankingRow> {
+  return rankingRows.map((row): ProgressLeaderboardRankingRow => {
+    const friendDisplayName = friendDisplayNamesByRank.get(row.rank);
+    if (friendDisplayName === undefined) {
+      return row;
+    }
+
+    return {
+      ...row,
+      friendDisplayName,
+    };
+  });
+}
+
 function createLeaderboardWindow(windowKey: ProgressLeaderboardWindowKey): ProgressLeaderboardWindow {
   return {
     windowKey,
@@ -323,6 +424,25 @@ function createLeaderboardWindow(windowKey: ProgressLeaderboardWindowKey): Progr
       { kind: "neighbor", publicProfileId: "profile-128", anonymousDisplayName: "Blue Final Harbor", qualifiedReviewCount: 0, rank: 128 },
     ],
     rankingRows: createLeaderboardRankingRows(),
+  };
+}
+
+function createLeaderboardWithWindowRankingRows(
+  windowKey: ProgressLeaderboardWindowKey,
+  rankingRows: ReadonlyArray<ProgressLeaderboardRankingRow>,
+): ProgressLeaderboard {
+  const leaderboard = createLeaderboard("ready");
+
+  return {
+    ...leaderboard,
+    windows: leaderboard.windows.map((window): ProgressLeaderboardWindow => (
+      window.windowKey === windowKey
+        ? {
+          ...window,
+          rankingRows,
+        }
+        : window
+    )),
   };
 }
 
@@ -392,6 +512,7 @@ function mockProgressSourceStateWithLeaderboard(leaderboard: ProgressLeaderboard
       series: {
         scopeKey: "progress::series::UTC::2026-04-13::2026-04-21",
         localFallback: null,
+        localFallbackActiveDates: [],
         serverBase: createProgressSeriesSnapshot(),
         pendingLocalOverlay: null,
         renderedSnapshot: createProgressSeriesSnapshot(),
@@ -480,6 +601,10 @@ describe("ProgressScreen", () => {
     const streakMarkerIcons = [...container.querySelectorAll(".progress-streak-marker-flame .review-progress-badge-icon")];
     expect(streakMarkerIcons.length).toBeGreaterThan(0);
     expect(streakMarkerIcons.every((icon) => icon instanceof SVGSVGElement)).toBe(true);
+
+    const frozenMarkerIcons = [...container.querySelectorAll(".progress-streak-marker-freeze .review-progress-badge-icon")];
+    expect(frozenMarkerIcons.length).toBeGreaterThan(0);
+    expect(frozenMarkerIcons.every((icon) => icon instanceof SVGSVGElement)).toBe(true);
   });
 
   it("uses the schedule-specific progress version for review schedule refreshes", async () => {
@@ -553,6 +678,88 @@ describe("ProgressScreen", () => {
       throw new Error("Previous week bar was not found");
     }
     expect(previousWeekBar.style.height).toContain("90.909");
+  });
+
+  it("renders stacked review ratings and supports day and rating selection", async () => {
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <I18nProvider>
+            <ProgressScreen />
+          </I18nProvider>
+        </MemoryRouter>,
+      );
+    });
+
+    const goodSegment = container.querySelector("[data-testid='progress-chart-segment-2026-04-21-good']");
+    if (!(goodSegment instanceof HTMLSpanElement)) {
+      throw new Error("Good rating segment was not found");
+    }
+    expect(goodSegment.style.backgroundColor).toBe("rgb(43, 182, 115)");
+
+    const day20Bar = container.querySelector("[data-testid='progress-chart-bar-2026-04-20']");
+    if (!(day20Bar instanceof HTMLSpanElement)) {
+      throw new Error("Day 20 progress bar was not found");
+    }
+
+    await act(async () => {
+      day20Bar.click();
+    });
+
+    const chartRange = container.querySelector("[data-testid='progress-chart-range']");
+    if (!(chartRange instanceof HTMLParagraphElement)) {
+      throw new Error("Progress chart range was not found");
+    }
+    expect(chartRange.textContent).toBe("Apr 20, 2026");
+
+    const againButton = container.querySelector("[data-testid='progress-chart-rating-again']");
+    if (!(againButton instanceof HTMLButtonElement)) {
+      throw new Error("Again rating legend button was not found");
+    }
+    expect(againButton.disabled).toBe(true);
+    expect(againButton.textContent).toBe("Again0 (0%)");
+
+    const hardButton = container.querySelector("[data-testid='progress-chart-rating-hard']");
+    if (!(hardButton instanceof HTMLButtonElement)) {
+      throw new Error("Hard rating legend button was not found");
+    }
+    expect(hardButton.textContent).toBe("Hard3 (100%)");
+
+    const dimmedHardSegment = container.querySelector("[data-testid='progress-chart-segment-2026-04-21-hard']");
+    if (!(dimmedHardSegment instanceof HTMLSpanElement)) {
+      throw new Error("Dimmed hard rating segment was not found");
+    }
+    expect(dimmedHardSegment.style.backgroundColor).toBe("rgb(122, 128, 136)");
+
+    await act(async () => {
+      hardButton.click();
+    });
+
+    expect(hardButton.closest("li")?.className).toContain("is-selected");
+    expect(againButton.closest("li")?.className).toContain("is-dimmed");
+    expect(container.querySelector("[data-testid='progress-chart-segment-2026-04-21-good']")).toBeNull();
+
+    const filteredLatestWeekBar = container.querySelector("[data-testid='progress-chart-bar-2026-04-21']");
+    if (!(filteredLatestWeekBar instanceof HTMLSpanElement)) {
+      throw new Error("Filtered latest week bar was not found");
+    }
+    expect(filteredLatestWeekBar.style.height).toBe("50%");
+
+    const enabledAgainButton = container.querySelector("[data-testid='progress-chart-rating-again']");
+    if (!(enabledAgainButton instanceof HTMLButtonElement)) {
+      throw new Error("Enabled again rating legend button was not found");
+    }
+
+    await act(async () => {
+      enabledAgainButton.click();
+    });
+
+    const filteredDayWithoutAgainBar = container.querySelector("[data-testid='progress-chart-bar-2026-04-20']");
+    if (!(filteredDayWithoutAgainBar instanceof HTMLSpanElement)) {
+      throw new Error("Filtered day without again bar was not found");
+    }
+    expect(filteredDayWithoutAgainBar.style.height).toBe("0%");
+    expect(filteredDayWithoutAgainBar.className).not.toContain("progress-chart-bar-active");
   });
 
   it("renders the week header with native locale interval formatting", async () => {
@@ -672,28 +879,29 @@ describe("ProgressScreen", () => {
         series: {
           scopeKey: "progress::series::UTC::2026-04-06::2026-04-21",
           localFallback: null,
+          localFallbackActiveDates: [],
           serverBase: {
             ...createProgressSeriesSnapshot(),
             from: "2026-04-06",
             dailyReviews: [
-              { date: "2026-04-06", reviewCount: 0 },
-              { date: "2026-04-07", reviewCount: 0 },
-              { date: "2026-04-08", reviewCount: 0 },
-              { date: "2026-04-09", reviewCount: 0 },
-              { date: "2026-04-10", reviewCount: 0 },
-              { date: "2026-04-11", reviewCount: 0 },
-              { date: "2026-04-12", reviewCount: 0 },
+              createDailyReviewPoint("2026-04-06", 0, 0, 0, 0, 0),
+              createDailyReviewPoint("2026-04-07", 0, 0, 0, 0, 0),
+              createDailyReviewPoint("2026-04-08", 0, 0, 0, 0, 0),
+              createDailyReviewPoint("2026-04-09", 0, 0, 0, 0, 0),
+              createDailyReviewPoint("2026-04-10", 0, 0, 0, 0, 0),
+              createDailyReviewPoint("2026-04-11", 0, 0, 0, 0, 0),
+              createDailyReviewPoint("2026-04-12", 0, 0, 0, 0, 0),
               ...createProgressSeriesSnapshot().dailyReviews,
             ],
             chartData: {
               dailyReviews: [
-                { date: "2026-04-06", reviewCount: 0 },
-                { date: "2026-04-07", reviewCount: 0 },
-                { date: "2026-04-08", reviewCount: 0 },
-                { date: "2026-04-09", reviewCount: 0 },
-                { date: "2026-04-10", reviewCount: 0 },
-                { date: "2026-04-11", reviewCount: 0 },
-                { date: "2026-04-12", reviewCount: 0 },
+                createDailyReviewPoint("2026-04-06", 0, 0, 0, 0, 0),
+                createDailyReviewPoint("2026-04-07", 0, 0, 0, 0, 0),
+                createDailyReviewPoint("2026-04-08", 0, 0, 0, 0, 0),
+                createDailyReviewPoint("2026-04-09", 0, 0, 0, 0, 0),
+                createDailyReviewPoint("2026-04-10", 0, 0, 0, 0, 0),
+                createDailyReviewPoint("2026-04-11", 0, 0, 0, 0, 0),
+                createDailyReviewPoint("2026-04-12", 0, 0, 0, 0, 0),
                 ...createProgressSeriesSnapshot().dailyReviews,
               ],
             },
@@ -703,24 +911,24 @@ describe("ProgressScreen", () => {
             ...createProgressSeriesSnapshot(),
             from: "2026-04-06",
             dailyReviews: [
-              { date: "2026-04-06", reviewCount: 0 },
-              { date: "2026-04-07", reviewCount: 0 },
-              { date: "2026-04-08", reviewCount: 0 },
-              { date: "2026-04-09", reviewCount: 0 },
-              { date: "2026-04-10", reviewCount: 0 },
-              { date: "2026-04-11", reviewCount: 0 },
-              { date: "2026-04-12", reviewCount: 0 },
+              createDailyReviewPoint("2026-04-06", 0, 0, 0, 0, 0),
+              createDailyReviewPoint("2026-04-07", 0, 0, 0, 0, 0),
+              createDailyReviewPoint("2026-04-08", 0, 0, 0, 0, 0),
+              createDailyReviewPoint("2026-04-09", 0, 0, 0, 0, 0),
+              createDailyReviewPoint("2026-04-10", 0, 0, 0, 0, 0),
+              createDailyReviewPoint("2026-04-11", 0, 0, 0, 0, 0),
+              createDailyReviewPoint("2026-04-12", 0, 0, 0, 0, 0),
               ...createProgressSeriesSnapshot().dailyReviews,
             ],
             chartData: {
               dailyReviews: [
-                { date: "2026-04-06", reviewCount: 0 },
-                { date: "2026-04-07", reviewCount: 0 },
-                { date: "2026-04-08", reviewCount: 0 },
-                { date: "2026-04-09", reviewCount: 0 },
-                { date: "2026-04-10", reviewCount: 0 },
-                { date: "2026-04-11", reviewCount: 0 },
-                { date: "2026-04-12", reviewCount: 0 },
+                createDailyReviewPoint("2026-04-06", 0, 0, 0, 0, 0),
+                createDailyReviewPoint("2026-04-07", 0, 0, 0, 0, 0),
+                createDailyReviewPoint("2026-04-08", 0, 0, 0, 0, 0),
+                createDailyReviewPoint("2026-04-09", 0, 0, 0, 0, 0),
+                createDailyReviewPoint("2026-04-10", 0, 0, 0, 0, 0),
+                createDailyReviewPoint("2026-04-11", 0, 0, 0, 0, 0),
+                createDailyReviewPoint("2026-04-12", 0, 0, 0, 0, 0),
                 ...createProgressSeriesSnapshot().dailyReviews,
               ],
             },
@@ -804,6 +1012,72 @@ describe("ProgressScreen", () => {
     }
     expect(signInLink.textContent).toBe("Sign in");
     expect(container.querySelector("[data-testid='progress-leaderboard-row-viewer']")).toBeNull();
+  });
+
+  it("renders the invite sign-in prompt for unlinked accounts", async () => {
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <I18nProvider>
+            <ProgressScreen />
+          </I18nProvider>
+        </MemoryRouter>,
+      );
+    });
+
+    const inviteOpenButton = container.querySelector("[data-testid='progress-leaderboard-invite-open']");
+    if (!(inviteOpenButton instanceof HTMLButtonElement)) {
+      throw new Error("Leaderboard invite button was not found");
+    }
+
+    await act(async () => {
+      inviteOpenButton.click();
+    });
+
+    const signInPrompt = document.body.querySelector("[data-testid='progress-leaderboard-invite-sign-in']");
+    if (!(signInPrompt instanceof HTMLElement)) {
+      throw new Error("Leaderboard invite sign-in prompt was not found");
+    }
+
+    expect(signInPrompt.querySelector("a")).not.toBeNull();
+  });
+
+  it("requires a friend name before creating a leaderboard invite", async () => {
+    useAppDataMock.mockReturnValue({
+      ...createAppData(),
+      cloudSettings: linkedCloudSettings,
+    });
+    mockProgressSourceStateWithLeaderboard(createLeaderboardSourceState("ready", null));
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <I18nProvider>
+            <ProgressScreen />
+          </I18nProvider>
+        </MemoryRouter>,
+      );
+    });
+
+    const inviteOpenButton = container.querySelector("[data-testid='progress-leaderboard-invite-open']");
+    if (!(inviteOpenButton instanceof HTMLButtonElement)) {
+      throw new Error("Leaderboard invite button was not found");
+    }
+
+    await act(async () => {
+      inviteOpenButton.click();
+    });
+
+    const createButton = document.body.querySelector("[data-testid='progress-leaderboard-invite-create']");
+    if (!(createButton instanceof HTMLButtonElement)) {
+      throw new Error("Leaderboard invite create button was not found");
+    }
+
+    await act(async () => {
+      createButton.click();
+    });
+
+    expect(document.body.querySelector("[data-testid='progress-leaderboard-invite-name-error']")?.textContent).not.toBe("");
   });
 
   it("scrolls to the leaderboard card when the route hash targets it", async () => {
@@ -935,6 +1209,78 @@ describe("ProgressScreen", () => {
     expect(topGapRow.querySelector("a")).toBeNull();
     expect(bottomGapRow.querySelector("button")).toBeNull();
     expect(bottomGapRow.querySelector("a")).toBeNull();
+  });
+
+  it("renders friend rows from ranking rows and dedupes already visible friends", async () => {
+    useAppDataMock.mockReturnValue({
+      ...createAppData(),
+      cloudSettings: linkedCloudSettings,
+    });
+    const friendRankingRows = addFriendDisplayNamesToRankingRows(
+      createLeaderboardRankingRows(),
+      new Map([
+        [2, "Mina"],
+        [12, "Ari"],
+        [41, "Kai"],
+      ]),
+    );
+    mockProgressSourceStateWithLeaderboard(createLeaderboardSourceStateFromLeaderboard(
+      createLeaderboardWithWindowRankingRows("last_24_hours", friendRankingRows),
+      null,
+    ));
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <I18nProvider>
+            <ProgressScreen />
+          </I18nProvider>
+        </MemoryRouter>,
+      );
+    });
+
+    const rows = [...container.querySelectorAll(".progress-leaderboard-row:not(.progress-leaderboard-row-padding)")];
+    const rowTexts = rows.map((row) => row.textContent ?? "");
+
+    expect(rowTexts.filter((text) => text.includes("Mina"))).toHaveLength(1);
+    expect(rowTexts.filter((text) => text.includes("Kai"))).toHaveLength(1);
+    expect(rowTexts).toEqual(expect.arrayContaining([
+      expect.stringContaining("Ari"),
+    ]));
+    expect(container.textContent).not.toContain("Hidden Rank 12");
+    expect(rowTexts.findIndex((text) => text.includes("#12"))).toBeLessThan(
+      rowTexts.findIndex((text) => text.includes("#41")),
+    );
+  });
+
+  it("pads the selected leaderboard period to the largest friend-expanded row count", async () => {
+    useAppDataMock.mockReturnValue({
+      ...createAppData(),
+      cloudSettings: linkedCloudSettings,
+    });
+    const allTimeFriendRows = addFriendDisplayNameToRankingRows(
+      addFriendDisplayNameToRankingRows(createLeaderboardRankingRows(), 12, "Ari"),
+      20,
+      "Noor",
+    );
+    mockProgressSourceStateWithLeaderboard(createLeaderboardSourceStateFromLeaderboard(
+      createLeaderboardWithWindowRankingRows("all_time", allTimeFriendRows),
+      null,
+    ));
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <I18nProvider>
+            <ProgressScreen />
+          </I18nProvider>
+        </MemoryRouter>,
+      );
+    });
+
+    expect(container.querySelectorAll("[data-testid='progress-leaderboard-row-padding']")).toHaveLength(4);
+    expect(container.textContent).not.toContain("Ari");
+    expect(container.textContent).not.toContain("Noor");
   });
 
   it("reveals the leaderboard info text explaining that Again reviews are excluded", async () => {

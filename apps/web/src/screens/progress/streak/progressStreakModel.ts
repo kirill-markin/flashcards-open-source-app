@@ -1,6 +1,6 @@
 import type { LocaleWeekContext } from "../../../i18n";
 import { parseLocalDate, shiftLocalDate } from "../../../progress/progressDates";
-import type { DailyReviewPoint } from "../../../types";
+import type { DailyReviewPoint, StreakDay as ProgressStreakDay, StreakDayState } from "../../../types";
 
 const streakWeekCount = 5;
 const streakWeekLength = 7;
@@ -10,6 +10,7 @@ type DateFormatter = (value: Date | number | string, options?: Readonly<Intl.Dat
 export type StreakDay = Readonly<{
   date: string;
   reviewCount: number;
+  state: StreakDayState;
   isFuture: boolean;
   isToday: boolean;
   weekdayLabel: string;
@@ -50,6 +51,33 @@ function createDailyReviewCountMap(dailyReviews: ReadonlyArray<DailyReviewPoint>
   return reviewCounts;
 }
 
+function createStreakDayStateMap(streakDays: ReadonlyArray<ProgressStreakDay>): ReadonlyMap<string, StreakDayState> {
+  const states = new Map<string, StreakDayState>();
+
+  for (const streakDay of streakDays) {
+    states.set(streakDay.date, streakDay.state);
+  }
+
+  return states;
+}
+
+function resolveStreakDayState(
+  date: string,
+  today: string,
+  stateMap: ReadonlyMap<string, StreakDayState>,
+): StreakDayState {
+  if (date > today) {
+    return "pending";
+  }
+
+  const state = stateMap.get(date);
+  if (state === undefined) {
+    throw new Error(`Missing progress streak day state for ${date}`);
+  }
+
+  return state;
+}
+
 function getDayOfWeek(value: string): number {
   return parseLocalDate(value).getUTCDay();
 }
@@ -63,6 +91,7 @@ function getStartOfWeek(value: string, weekContext: LocaleWeekContext): string {
 
 export function buildStreakWeeks(
   dailyReviews: ReadonlyArray<DailyReviewPoint>,
+  streakDays: ReadonlyArray<ProgressStreakDay>,
   today: string,
   formatDate: DateFormatter,
   weekContext: LocaleWeekContext,
@@ -70,6 +99,7 @@ export function buildStreakWeeks(
   const currentWeekStart = getStartOfWeek(today, weekContext);
   const streakWindowStart = shiftLocalDate(currentWeekStart, -((streakWeekCount - 1) * streakWeekLength));
   const reviewCounts = createDailyReviewCountMap(dailyReviews);
+  const streakDayStates = createStreakDayStateMap(streakDays);
   const streakWeeks: Array<ReadonlyArray<StreakDay>> = [];
 
   for (let weekIndex = 0; weekIndex < streakWeekCount; weekIndex += 1) {
@@ -81,6 +111,7 @@ export function buildStreakWeeks(
       weekDays.push({
         date,
         reviewCount: reviewCounts.get(date) ?? 0,
+        state: resolveStreakDayState(date, today, streakDayStates),
         isFuture: date > today,
         isToday: date === today,
         weekdayLabel: formatWeekdayLabel(date, formatDate),

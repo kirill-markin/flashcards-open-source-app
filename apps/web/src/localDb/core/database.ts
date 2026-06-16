@@ -64,6 +64,10 @@ export type ProgressDailyCountRecord = Readonly<{
   workspaceId: string;
   localDate: string;
   reviewCount: number;
+  againCount: number;
+  hardCount: number;
+  goodCount: number;
+  easyCount: number;
 }>;
 
 export type ProgressCacheStateRecord = Readonly<{
@@ -95,7 +99,8 @@ export type IndexedDbOpenLifecycleSnapshot = Readonly<{
 }>;
 
 const databaseName = "flashcards-web-sync";
-const databaseVersion = 13;
+const databaseVersion = 14;
+const progressCacheStateKey = "progress_cache_state";
 const deleteDatabaseBlockedWaitMs = 3000;
 const activeDatabaseOperationPromises = new Set<Promise<unknown>>();
 let isDatabaseDeleteInProgress = false;
@@ -429,6 +434,28 @@ function upgradeToVersion13(transaction: IDBTransaction): void {
   migrateCardsDueAtDerivedFields(cardsStore, "IndexedDB fsrsLastReviewedAtMillis migration failed");
 }
 
+function upgradeToVersion14(transaction: IDBTransaction): void {
+  transaction.objectStore("progressDailyCounts").clear();
+  const metaStore = transaction.objectStore("meta");
+  const cacheStateRequest = metaStore.get(progressCacheStateKey);
+
+  cacheStateRequest.onerror = () => {
+    throw describeIndexedDbError("IndexedDB progress rating-count migration failed", cacheStateRequest.error);
+  };
+  cacheStateRequest.onsuccess = () => {
+    const cacheState = cacheStateRequest.result as ProgressCacheStateRecord | undefined;
+    if (cacheState === undefined) {
+      return;
+    }
+
+    metaStore.put({
+      ...cacheState,
+      needsRebuild: true,
+      updatedAt: new Date().toISOString(),
+    });
+  };
+}
+
 export function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(databaseName, databaseVersion);
@@ -512,6 +539,15 @@ export function openDatabase(): Promise<IDBDatabase> {
         }
 
         upgradeToVersion13(transaction);
+      }
+
+      if (oldVersion < 14) {
+        const transaction = request.transaction;
+        if (transaction === null) {
+          throw new Error("IndexedDB upgrade transaction is unavailable");
+        }
+
+        upgradeToVersion14(transaction);
       }
 
     };

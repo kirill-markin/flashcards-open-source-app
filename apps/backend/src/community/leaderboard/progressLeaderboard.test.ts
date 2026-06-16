@@ -27,6 +27,12 @@ type SnapshotEntryRow = Readonly<{
   base_sort_position: number;
 }>;
 
+type FriendshipFixture = Readonly<{
+  friendPublicProfileId: string;
+  friendDisplayName: string;
+  leaderboardParticipationEnabled: boolean;
+}>;
+
 type ViewerProfileFixture = Readonly<{
   publicProfileId: string;
   leaderboardParticipationEnabled: boolean;
@@ -36,6 +42,7 @@ type LeaderboardExecutorFixture = Readonly<{
   viewerUserId: string;
   viewerProfile: ViewerProfileFixture;
   latestReviewedAtClient: Date | null;
+  friendships: ReadonlyArray<FriendshipFixture>;
   headers: ReadonlyArray<SnapshotHeaderRow>;
   entriesBySnapshotId: Readonly<Record<string, ReadonlyArray<SnapshotEntryRow>>>;
 }>;
@@ -51,6 +58,7 @@ type RankingSummary = Readonly<{
 
 const VIEWER_USER_ID = "user-viewer";
 const VIEWER_PROFILE_ID = "00000000-0000-4000-8000-0000000000a1";
+const FRIEND_PROFILE_ID = "00000000-0000-4000-8000-000000000fa1";
 const AS_OF_SERVER_HOUR = new Date("2026-06-10T14:00:00.000Z");
 const SNAPSHOT_GENERATED_AT = new Date("2026-06-10T14:00:05.000Z");
 const EXPECTED_AS_OF_ISO = "2026-06-10T14:00:00.000Z";
@@ -148,6 +156,27 @@ function createLeaderboardExecutor(
         throw new Error("viewer profile was pre-seeded; no insert expected");
       }
 
+      if (text.includes("FROM community.read_current_user_leaderboard_friend_labels() AS friend_labels")) {
+        if (scopedUserId !== fixture.viewerUserId) {
+          throw new Error("friendship read requires the viewer user scope");
+        }
+        if (params.length !== 0) {
+          throw new Error("friendship read helper does not accept request parameters");
+        }
+        if (text.includes("friend_user_id")) {
+          throw new Error("friendship leaderboard read must not select internal friend user ids");
+        }
+
+        return createQueryResult(
+          fixture.friendships
+            .filter((friendship) => friendship.leaderboardParticipationEnabled)
+            .map((friendship) => ({
+              friend_public_profile_id: friendship.friendPublicProfileId,
+              friend_display_name: friendship.friendDisplayName,
+            })),
+        ) as unknown as pg.QueryResult<Row>;
+      }
+
       if (
         text.includes("FROM community.leaderboard_snapshots")
         && text.includes("DISTINCT ON (snapshots.window_key)")
@@ -213,6 +242,12 @@ function includesQuery(recordedQueries: ReadonlyArray<RecordedQuery>, substring:
   return recordedQueries.some((query) => query.text.includes(substring));
 }
 
+function assertNoFriendDisplayName(
+  row: ProgressLeaderboardParticipantRow | ProgressLeaderboardRankingRow,
+): void {
+  assert.equal("friendDisplayName" in row, false);
+}
+
 test("guest viewers receive linked_account_required with no rows and no database access", async () => {
   const leaderboard = await loadProgressLeaderboard({
     userId: VIEWER_USER_ID,
@@ -231,6 +266,7 @@ test("opted-out viewers receive participation_disabled without reading any other
     viewerUserId: VIEWER_USER_ID,
     viewerProfile: { publicProfileId: VIEWER_PROFILE_ID, leaderboardParticipationEnabled: false },
     latestReviewedAtClient: null,
+    friendships: [],
     headers: createReadyHeaders(),
     entriesBySnapshotId: {},
   });
@@ -252,6 +288,7 @@ test("missing snapshots yield snapshot_unavailable without reading entries", asy
     viewerUserId: VIEWER_USER_ID,
     viewerProfile: { publicProfileId: VIEWER_PROFILE_ID, leaderboardParticipationEnabled: true },
     latestReviewedAtClient: null,
+    friendships: [],
     headers: [],
     entriesBySnapshotId: {},
   });
@@ -267,11 +304,154 @@ test("missing snapshots yield snapshot_unavailable without reading entries", asy
   assert.equal(includesQuery(recordedQueries, "community.leaderboard_snapshot_entries"), false);
 });
 
+test("ready response without friendships preserves the old row shape", async () => {
+  const otherProfileId = "00000000-0000-4000-8000-000000000a01";
+  const { executor } = createLeaderboardExecutor({
+    viewerUserId: VIEWER_USER_ID,
+    viewerProfile: { publicProfileId: VIEWER_PROFILE_ID, leaderboardParticipationEnabled: true },
+    latestReviewedAtClient: null,
+    friendships: [],
+    headers: createReadyHeaders(),
+    entriesBySnapshotId: createEntriesForWindow("last_24_hours", [
+      { public_profile_id: otherProfileId, qualified_review_count: 8, base_sort_position: 1 },
+      { public_profile_id: VIEWER_PROFILE_ID, qualified_review_count: 3, base_sort_position: 2 },
+    ]),
+  });
+
+  const leaderboard = await loadProgressLeaderboardInExecutor(
+    executor,
+    { userId: VIEWER_USER_ID, transport: "session", localeHint: "en" },
+    NOW,
+  );
+
+  const window = findWindow(leaderboard, "last_24_hours");
+  const compactRow = participantRows(window.rows).find((row) => row.publicProfileId === otherProfileId);
+  const rankingRow = window.rankingRows.find((row) => row.publicProfileId === otherProfileId);
+
+  if (compactRow === undefined || rankingRow === undefined) {
+    throw new Error("Expected no-friendship leaderboard rows to include the non-viewer participant.");
+  }
+
+  assertNoFriendDisplayName(compactRow);
+  assertNoFriendDisplayName(rankingRow);
+  assert.equal(JSON.stringify(leaderboard).includes("friendDisplayName"), false);
+});
+
+test("friend in rankingRows receives the viewer-private friend display name", async () => {
+  const { executor } = createLeaderboardExecutor({
+    viewerUserId: VIEWER_USER_ID,
+    viewerProfile: { publicProfileId: VIEWER_PROFILE_ID, leaderboardParticipationEnabled: true },
+    latestReviewedAtClient: null,
+    friendships: [
+      {
+        friendPublicProfileId: FRIEND_PROFILE_ID,
+        friendDisplayName: "Ari",
+        leaderboardParticipationEnabled: true,
+      },
+    ],
+    headers: createReadyHeaders(),
+    entriesBySnapshotId: createEntriesForWindow("last_24_hours", [
+      { public_profile_id: VIEWER_PROFILE_ID, qualified_review_count: 50, base_sort_position: 1 },
+      { public_profile_id: "00000000-0000-4000-8000-000000000a11", qualified_review_count: 40, base_sort_position: 2 },
+      { public_profile_id: "00000000-0000-4000-8000-000000000a12", qualified_review_count: 30, base_sort_position: 3 },
+      { public_profile_id: FRIEND_PROFILE_ID, qualified_review_count: 20, base_sort_position: 4 },
+      { public_profile_id: "00000000-0000-4000-8000-000000000a13", qualified_review_count: 10, base_sort_position: 5 },
+    ]),
+  });
+
+  const leaderboard = await loadProgressLeaderboardInExecutor(
+    executor,
+    { userId: VIEWER_USER_ID, transport: "session", localeHint: "en" },
+    NOW,
+  );
+
+  const window = findWindow(leaderboard, "last_24_hours");
+  const friendRankingRow = window.rankingRows.find((row) => row.publicProfileId === FRIEND_PROFILE_ID);
+
+  assert.equal(window.rankingRows.length, window.participantCount);
+  assert.notEqual(friendRankingRow, undefined);
+  assert.equal(friendRankingRow?.kind, "participant");
+  assert.equal(friendRankingRow?.friendDisplayName, "Ari");
+  assert.equal(participantRows(window.rows).some((row) => row.publicProfileId === FRIEND_PROFILE_ID), false);
+});
+
+test("friend in compact rows keeps the old row kind and receives optional metadata", async () => {
+  const { executor } = createLeaderboardExecutor({
+    viewerUserId: VIEWER_USER_ID,
+    viewerProfile: { publicProfileId: VIEWER_PROFILE_ID, leaderboardParticipationEnabled: true },
+    latestReviewedAtClient: null,
+    friendships: [
+      {
+        friendPublicProfileId: FRIEND_PROFILE_ID,
+        friendDisplayName: "Mina",
+        leaderboardParticipationEnabled: true,
+      },
+    ],
+    headers: createReadyHeaders(),
+    entriesBySnapshotId: createEntriesForWindow("last_24_hours", [
+      { public_profile_id: FRIEND_PROFILE_ID, qualified_review_count: 12, base_sort_position: 1 },
+      { public_profile_id: VIEWER_PROFILE_ID, qualified_review_count: 6, base_sort_position: 2 },
+    ]),
+  });
+
+  const leaderboard = await loadProgressLeaderboardInExecutor(
+    executor,
+    { userId: VIEWER_USER_ID, transport: "session", localeHint: "en" },
+    NOW,
+  );
+
+  const window = findWindow(leaderboard, "last_24_hours");
+  const friendCompactRow = participantRows(window.rows).find((row) => row.publicProfileId === FRIEND_PROFILE_ID);
+
+  assert.notEqual(friendCompactRow, undefined);
+  assert.equal(friendCompactRow?.kind, "top");
+  assert.equal(friendCompactRow?.friendDisplayName, "Mina");
+});
+
+test("opted-out friends keep anonymous labels without friend display metadata", async () => {
+  const { executor } = createLeaderboardExecutor({
+    viewerUserId: VIEWER_USER_ID,
+    viewerProfile: { publicProfileId: VIEWER_PROFILE_ID, leaderboardParticipationEnabled: true },
+    latestReviewedAtClient: null,
+    friendships: [
+      {
+        friendPublicProfileId: FRIEND_PROFILE_ID,
+        friendDisplayName: "Noor",
+        leaderboardParticipationEnabled: false,
+      },
+    ],
+    headers: createReadyHeaders(),
+    entriesBySnapshotId: createEntriesForWindow("last_24_hours", [
+      { public_profile_id: FRIEND_PROFILE_ID, qualified_review_count: 12, base_sort_position: 1 },
+      { public_profile_id: VIEWER_PROFILE_ID, qualified_review_count: 6, base_sort_position: 2 },
+    ]),
+  });
+
+  const leaderboard = await loadProgressLeaderboardInExecutor(
+    executor,
+    { userId: VIEWER_USER_ID, transport: "session", localeHint: "en" },
+    NOW,
+  );
+
+  const window = findWindow(leaderboard, "last_24_hours");
+  const friendCompactRow = participantRows(window.rows).find((row) => row.publicProfileId === FRIEND_PROFILE_ID);
+  const friendRankingRow = window.rankingRows.find((row) => row.publicProfileId === FRIEND_PROFILE_ID);
+
+  if (friendCompactRow === undefined || friendRankingRow === undefined) {
+    throw new Error("Expected opted-out friend to remain in the snapshot rows without friend metadata.");
+  }
+
+  assertNoFriendDisplayName(friendCompactRow);
+  assertNoFriendDisplayName(friendRankingRow);
+  assert.notEqual(friendCompactRow.anonymousDisplayName, "");
+});
+
 test("ready response defaults to the viewer's best rank, ignoring latest activity", async () => {
   const { executor } = createLeaderboardExecutor({
     viewerUserId: VIEWER_USER_ID,
     viewerProfile: { publicProfileId: VIEWER_PROFILE_ID, leaderboardParticipationEnabled: true },
     latestReviewedAtClient: new Date(NOW.getTime() - 2 * MILLISECONDS_PER_HOUR),
+    friendships: [],
     headers: createReadyHeaders(),
     entriesBySnapshotId: {
       ...createEntriesForWindow("last_24_hours", [
@@ -314,6 +494,7 @@ test("ready response defaults to the shortest window when best ranks tie", async
     viewerUserId: VIEWER_USER_ID,
     viewerProfile: { publicProfileId: VIEWER_PROFILE_ID, leaderboardParticipationEnabled: true },
     latestReviewedAtClient: null,
+    friendships: [],
     headers: createReadyHeaders(),
     entriesBySnapshotId: {
       ...createEntriesForWindow("last_24_hours", sameRankEntries),
@@ -345,6 +526,7 @@ test("a zero-count viewer with tied ranks defaults to last_24_hours and still ap
     viewerUserId: VIEWER_USER_ID,
     viewerProfile: { publicProfileId: VIEWER_PROFILE_ID, leaderboardParticipationEnabled: true },
     latestReviewedAtClient: null,
+    friendships: [],
     headers: createReadyHeaders(),
     entriesBySnapshotId: {
       ...createEntriesForWindow("last_24_hours", zeroCountEntries),
@@ -400,6 +582,7 @@ test("equal counts rank the viewer below other users with the same count", async
     viewerUserId: VIEWER_USER_ID,
     viewerProfile: { publicProfileId: VIEWER_PROFILE_ID, leaderboardParticipationEnabled: true },
     latestReviewedAtClient: null,
+    friendships: [],
     headers: createReadyHeaders(),
     entriesBySnapshotId: createEntriesForWindow("last_24_hours", [
       { public_profile_id: "00000000-0000-4000-8000-0000000000c1", qualified_review_count: 5, base_sort_position: 1 },
@@ -466,6 +649,7 @@ test("compact rows show the next rank when the viewer is exactly third", async (
     viewerUserId: VIEWER_USER_ID,
     viewerProfile: { publicProfileId: VIEWER_PROFILE_ID, leaderboardParticipationEnabled: true },
     latestReviewedAtClient: null,
+    friendships: [],
     headers: createReadyHeaders(),
     entriesBySnapshotId: createEntriesForWindow("last_24_hours", [
       { public_profile_id: "00000000-0000-4000-8000-000000000131", qualified_review_count: 30, base_sort_position: 1 },
@@ -508,6 +692,7 @@ test("compact rows show the top three, gaps, the viewer group, and the last-plac
     viewerUserId: VIEWER_USER_ID,
     viewerProfile: { publicProfileId: VIEWER_PROFILE_ID, leaderboardParticipationEnabled: true },
     latestReviewedAtClient: null,
+    friendships: [],
     headers: createReadyHeaders(),
     entriesBySnapshotId: createEntriesForWindow("last_24_hours", otherEntries),
   });
@@ -568,6 +753,7 @@ test("compact rows skip the viewer-neighbor group when the viewer is already in 
     viewerUserId: VIEWER_USER_ID,
     viewerProfile: { publicProfileId: VIEWER_PROFILE_ID, leaderboardParticipationEnabled: true },
     latestReviewedAtClient: null,
+    friendships: [],
     headers: createReadyHeaders(),
     entriesBySnapshotId: createEntriesForWindow("last_24_hours", [
       { public_profile_id: "00000000-0000-4000-8000-000000000101", qualified_review_count: 90, base_sort_position: 1 },
@@ -599,6 +785,7 @@ test("a viewer near the top produces contiguous rows with no gap", async () => {
     viewerUserId: VIEWER_USER_ID,
     viewerProfile: { publicProfileId: VIEWER_PROFILE_ID, leaderboardParticipationEnabled: true },
     latestReviewedAtClient: null,
+    friendships: [],
     headers: createReadyHeaders(),
     entriesBySnapshotId: createEntriesForWindow("last_24_hours", [
       { public_profile_id: "00000000-0000-4000-8000-0000000000e1", qualified_review_count: 30, base_sort_position: 1 },
@@ -634,6 +821,7 @@ test("anonymous names change with locale while ids, counts, and ranks stay stabl
     viewerUserId: VIEWER_USER_ID,
     viewerProfile: { publicProfileId: VIEWER_PROFILE_ID, leaderboardParticipationEnabled: true },
     latestReviewedAtClient: null,
+    friendships: [],
     headers: createReadyHeaders(),
     entriesBySnapshotId: entries,
   });
@@ -674,9 +862,16 @@ test("ready response serializes only public fields, never internal identifiers",
     viewerUserId: VIEWER_USER_ID,
     viewerProfile: { publicProfileId: VIEWER_PROFILE_ID, leaderboardParticipationEnabled: true },
     latestReviewedAtClient: rawReviewTimestamp,
+    friendships: [
+      {
+        friendPublicProfileId: FRIEND_PROFILE_ID,
+        friendDisplayName: "Kai",
+        leaderboardParticipationEnabled: true,
+      },
+    ],
     headers: createReadyHeaders(),
     entriesBySnapshotId: createEntriesForWindow("last_24_hours", [
-      { public_profile_id: "00000000-0000-4000-8000-000000000aa1", qualified_review_count: 7, base_sort_position: 1 },
+      { public_profile_id: FRIEND_PROFILE_ID, qualified_review_count: 7, base_sort_position: 1 },
       { public_profile_id: VIEWER_PROFILE_ID, qualified_review_count: 2, base_sort_position: 2 },
     ]),
   });
@@ -690,6 +885,8 @@ test("ready response serializes only public fields, never internal identifiers",
 
   assert.equal(serialized.includes("publicProfileId"), true);
   assert.equal(serialized.includes("anonymousDisplayName"), true);
+  assert.equal(serialized.includes("friendDisplayName"), true);
+  assert.equal(serialized.includes("Kai"), true);
   assert.equal(serialized.includes("qualifiedReviewCount"), true);
   assert.equal(serialized.includes("rankingRows"), true);
   for (const internalField of [
@@ -697,6 +894,15 @@ test("ready response serializes only public fields, never internal identifiers",
     rawReviewTimestamp.toISOString(),
     "user_id",
     "userId",
+    "friend_user_id",
+    "friendUserId",
+    "friend_public_profile_id",
+    "friendPublicProfileId",
+    "created_from_invitation_id",
+    "createdFromInvitationId",
+    "friendInvitationId",
+    "inviter_user_id",
+    "inviterUserId",
     "reviewed_by",
     "reviewedBy",
     "base_sort",

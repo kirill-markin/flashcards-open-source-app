@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AcUnit
 import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -33,12 +34,16 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakDayState
+import com.flashcardsopensourceapp.feature.progress.ProgressFreezeBankUiState
 import com.flashcardsopensourceapp.feature.progress.ProgressStreakDayUiState
 import com.flashcardsopensourceapp.feature.progress.ProgressStreakSectionUiState
 import com.flashcardsopensourceapp.feature.progress.ProgressSummaryUiState
 import com.flashcardsopensourceapp.feature.progress.R
 
 private const val progressStreakOverflowThreshold: Int = 99
+private val frozenStreakBorderColor = Color(0xFF90CAF9)
+private val frozenStreakContentColor = Color(0xFF1E88E5)
 
 @Composable
 internal fun StreakSectionCard(
@@ -72,7 +77,10 @@ internal fun StreakSectionCard(
                 )
             }
 
-            ProgressStreakSummary(summary = summary)
+            ProgressStreakSummary(
+                summary = summary,
+                freezeBankSummary = uiState.freezeBankSummary
+            )
 
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -110,58 +118,113 @@ internal fun StreakSectionCard(
 
 @Composable
 private fun ProgressStreakSummary(
-    summary: ProgressSummaryUiState
+    summary: ProgressSummaryUiState,
+    freezeBankSummary: ProgressFreezeBankUiState?
 ) {
     when (summary) {
         ProgressSummaryUiState.Loading -> Unit
 
         is ProgressSummaryUiState.Loaded -> {
-            val streakDays = summary.summary.currentStreakDays
-            val contentColor = if (summary.summary.hasReviewedToday) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            }
-            val contentDescription = pluralStringResource(
-                id = R.plurals.progress_streak_summary_content_description,
-                count = streakDays,
-                streakDays
-            )
-            val stateDescription = stringResource(
-                id = if (summary.summary.hasReviewedToday) {
-                    R.string.progress_streak_summary_reviewed_today
-                } else {
-                    R.string.progress_streak_summary_not_reviewed_today
-                }
-            )
-
             Row(
-                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .semantics(mergeDescendants = true) {
-                        this.contentDescription = contentDescription
-                        this.stateDescription = stateDescription
-                    }
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.LocalFireDepartment,
-                    contentDescription = null,
-                    tint = contentColor
-                )
-                Text(
-                    text = formatProgressStreakValue(
-                        streakDays = streakDays
-                    ),
-                    color = contentColor,
-                    fontWeight = FontWeight.SemiBold,
-                    style = MaterialTheme.typography.titleMedium
-                )
+                ProgressStreakValueChip(summary = summary)
+                freezeBankSummary?.let { freezeBank ->
+                    ProgressFreezeBankChip(freezeBank = freezeBank)
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun ProgressStreakValueChip(
+    summary: ProgressSummaryUiState.Loaded
+) {
+    val streakDays = summary.summary.currentStreakDays
+    val contentColor = if (summary.summary.hasReviewedToday) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val contentDescription = pluralStringResource(
+        id = R.plurals.progress_streak_summary_content_description,
+        count = streakDays,
+        streakDays
+    )
+    val stateDescription = stringResource(
+        id = if (summary.summary.hasReviewedToday) {
+            R.string.progress_streak_summary_reviewed_today
+        } else {
+            R.string.progress_streak_summary_not_reviewed_today
+        }
+    )
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .semantics(mergeDescendants = true) {
+                this.contentDescription = contentDescription
+                this.stateDescription = stateDescription
+            }
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.LocalFireDepartment,
+            contentDescription = null,
+            tint = contentColor
+        )
+        Text(
+            text = formatProgressStreakValue(
+                streakDays = streakDays
+            ),
+            color = contentColor,
+            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.titleMedium
+        )
+    }
+}
+
+@Composable
+private fun ProgressFreezeBankChip(
+    freezeBank: ProgressFreezeBankUiState
+) {
+    val contentDescription = stringResource(
+        id = R.string.progress_streak_freeze_bank_content_description,
+        freezeBank.availableCredits,
+        freezeBank.capacity
+    )
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier
+            .semantics(mergeDescendants = true) {
+                this.contentDescription = contentDescription
+            }
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.AcUnit,
+            contentDescription = null,
+            tint = frozenStreakContentColor
+        )
+        Text(
+            text = stringResource(
+                id = R.string.progress_streak_freeze_bank_value,
+                freezeBank.availableCredits,
+                freezeBank.capacity
+            ),
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.titleMedium
+        )
     }
 }
 
@@ -177,9 +240,11 @@ private fun StreakDayCell(
         return
     }
 
-    val hasReviews = day.reviewCount > 0
+    val state = day.state ?: CloudProgressStreakDayState.MISSED
+    val date = checkNotNull(day.date)
     val highlightColor = when {
-        hasReviews -> Color.Transparent
+        state == CloudProgressStreakDayState.REVIEWED -> Color.Transparent
+        state == CloudProgressStreakDayState.FROZEN -> Color.Transparent
         day.isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
         else -> Color.Transparent
     }
@@ -189,54 +254,121 @@ private fun StreakDayCell(
         day.isToday -> MaterialTheme.colorScheme.primary
         else -> MaterialTheme.colorScheme.onSurface
     }
+    val contentDescription = when (state) {
+        CloudProgressStreakDayState.REVIEWED -> stringResource(
+            id = R.string.progress_streak_day_reviewed_content_description,
+            date.toString()
+        )
+        CloudProgressStreakDayState.FROZEN -> stringResource(
+            id = R.string.progress_streak_day_frozen_content_description,
+            date.toString()
+        )
+        CloudProgressStreakDayState.PENDING -> stringResource(
+            id = R.string.progress_streak_day_pending_content_description,
+            date.toString()
+        )
+        CloudProgressStreakDayState.MISSED -> stringResource(
+            id = R.string.progress_streak_day_missed_content_description,
+            date.toString()
+        )
+    }
 
     Box(
         modifier = modifier
             .aspectRatio(1f)
+            .semantics {
+                this.contentDescription = contentDescription
+            }
             .clip(RoundedCornerShape(18.dp))
             .background(highlightColor),
         contentAlignment = Alignment.Center
     ) {
-        if (hasReviews) {
-            Box(
-                modifier = Modifier
-                    .size(34.dp)
-                    .clip(CircleShape)
-                    .background(markerColor),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.LocalFireDepartment,
-                    contentDescription = null,
-                    tint = markerContentColor
-                )
-            }
-        } else {
-            val todayOutlineModifier = if (day.isToday) {
-                Modifier.border(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.primary,
-                    shape = CircleShape
-                )
-            } else {
-                Modifier
-            }
+        when (state) {
+            CloudProgressStreakDayState.REVIEWED -> ReviewedStreakMarker(
+                markerColor = markerColor,
+                markerContentColor = markerContentColor
+            )
+            CloudProgressStreakDayState.FROZEN -> FrozenStreakMarker()
+            CloudProgressStreakDayState.MISSED,
+            CloudProgressStreakDayState.PENDING -> DateStreakMarker(
+                day = day,
+                dateTextColor = dateTextColor
+            )
+        }
+    }
+}
 
-            Box(
-                modifier = Modifier
-                    .size(34.dp)
-                    .then(todayOutlineModifier),
-                contentAlignment = Alignment.Center
-            ) {
-                day.dayOfMonthLabel?.let { dayOfMonthLabel ->
-                    Text(
-                        text = dayOfMonthLabel,
-                        color = dateTextColor,
-                        fontWeight = if (day.isToday) FontWeight.SemiBold else FontWeight.Normal,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
+@Composable
+private fun ReviewedStreakMarker(
+    markerColor: Color,
+    markerContentColor: Color
+) {
+    Box(
+        modifier = Modifier
+            .size(34.dp)
+            .clip(CircleShape)
+            .background(markerColor),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.LocalFireDepartment,
+            contentDescription = null,
+            tint = markerContentColor
+        )
+    }
+}
+
+@Composable
+private fun FrozenStreakMarker() {
+    Box(
+        modifier = Modifier
+            .size(34.dp)
+            .clip(CircleShape)
+            .background(Color.White)
+            .border(
+                width = 1.dp,
+                color = frozenStreakBorderColor,
+                shape = CircleShape
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.AcUnit,
+            contentDescription = null,
+            tint = frozenStreakContentColor,
+            modifier = Modifier.size(20.dp)
+        )
+    }
+}
+
+@Composable
+private fun DateStreakMarker(
+    day: ProgressStreakDayUiState,
+    dateTextColor: Color
+) {
+    val todayOutlineModifier = if (day.isToday) {
+        Modifier.border(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.primary,
+            shape = CircleShape
+        )
+    } else {
+        Modifier
+    }
+
+    Box(
+        modifier = Modifier
+            .size(34.dp)
+            .then(todayOutlineModifier),
+        contentAlignment = Alignment.Center
+    ) {
+        day.dayOfMonthLabel?.let { dayOfMonthLabel ->
+            Text(
+                text = dayOfMonthLabel,
+                color = dateTextColor,
+                fontWeight = if (day.isToday) FontWeight.SemiBold else FontWeight.Normal,
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
     }
 }

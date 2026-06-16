@@ -114,6 +114,11 @@
   background: var(--accent-soft);
 }
 
+.progress-streak-day-frozen {
+  border-color: rgba(125, 211, 252, 0.45);
+  background: rgba(125, 211, 252, 0.08);
+}
+
 .progress-streak-weekday {
   color: var(--text-tertiary);
   font-size: 10px;
@@ -129,6 +134,10 @@
 
 .progress-streak-day-today .progress-streak-weekday {
   color: var(--accent);
+}
+
+.progress-streak-day-frozen .progress-streak-weekday {
+  color: rgba(191, 234, 255, 0.86);
 }
 
 .progress-streak-marker {
@@ -163,7 +172,17 @@
     0 0 0 3px var(--accent-soft);
 }
 
+.progress-streak-day-frozen .progress-streak-marker {
+  border-color: rgba(125, 211, 252, 0.9);
+  background: #ffffff;
+  color: #0284c7;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 0 0 3px rgba(125, 211, 252, 0.14);
+}
+
 .progress-streak-marker-flame,
+.progress-streak-marker-freeze,
 .progress-streak-marker-day-value {
   display: inline-flex;
   align-items: center;
@@ -173,6 +192,11 @@
 }
 
 .progress-streak-marker-flame .review-progress-badge-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.progress-streak-marker-freeze .review-progress-badge-icon {
   width: 15px;
   height: 15px;
 }
@@ -273,14 +297,37 @@
 
 .progress-chart-column {
   display: grid;
+  height: 216px;
+}
+
+.progress-chart-column-button {
+  all: unset;
+  display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
   gap: 8px;
   height: 216px;
+  min-width: 0;
+  cursor: pointer;
+  border-radius: var(--content-card-inner-radius, 8px);
+}
+
+.progress-chart-column-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .progress-chart-column-today .progress-chart-bar-shell {
   border-color: var(--accent-muted);
   background: var(--accent-soft);
+}
+
+.progress-chart-column.is-selected .progress-chart-bar-shell {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.progress-chart-column.is-dimmed .progress-chart-labels {
+  opacity: 0.45;
 }
 
 .progress-chart-bar-shell {
@@ -294,21 +341,26 @@
 }
 
 .progress-chart-bar {
+  display: flex;
+  flex-direction: column-reverse;
   width: 100%;
   height: 0;
   border-radius: var(--radius-sm) var(--radius-sm) 4px 4px;
-  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
   transition: height 180ms ease;
 }
 
 .progress-chart-bar-active {
   min-height: 8px;
-  background: var(--accent);
+  background: rgba(255, 255, 255, 0.1);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
-.progress-chart-column-today .progress-chart-bar {
-  background: var(--accent);
+.progress-chart-bar-segment {
+  display: block;
+  width: 100%;
+  min-height: 1px;
+  transition: background-color 120ms ease, height 180ms ease;
 }
 
 .progress-chart-labels {
@@ -348,6 +400,84 @@
 .progress-chart-column-today .progress-chart-weekday {
   color: var(--accent);
   font-weight: 700;
+}
+
+.progress-chart-rating-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.progress-chart-rating-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--content-card-inner-radius, 8px);
+  transition: background-color 120ms ease, opacity 120ms ease;
+}
+
+.progress-chart-rating-row:last-child {
+  border-bottom: 0;
+}
+
+.progress-chart-rating-row.is-selected {
+  background: var(--accent-soft);
+  border-bottom-color: transparent;
+}
+
+.progress-chart-rating-row.is-dimmed {
+  opacity: 0.35;
+}
+
+.progress-chart-rating-row-button {
+  all: unset;
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 34px;
+  width: 100%;
+  padding: 7px 8px;
+  box-sizing: border-box;
+  border-radius: var(--content-card-inner-radius, 8px);
+  cursor: pointer;
+}
+
+.progress-chart-rating-row-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.progress-chart-rating-row-button:disabled {
+  cursor: default;
+}
+
+.progress-chart-rating-swatch {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08);
+}
+
+.progress-chart-rating-label {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.25;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.progress-chart-rating-value {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
 }
 
 .progress-review-schedule {
@@ -485,11 +615,38 @@ svg.progress-review-schedule-donut {
   font-weight: 600;
 }
 
-.progress-leaderboard-info-btn {
+.progress-leaderboard-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.progress-streak-info-btn,
+.progress-leaderboard-info-btn,
+.progress-leaderboard-invite-btn {
   min-width: 34px;
   padding: 0 10px;
 }
 
+.progress-leaderboard-invite-btn {
+  gap: 6px;
+}
+
+.progress-leaderboard-invite-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.progress-streak-info-icon,
 .progress-leaderboard-info-icon {
   display: inline-flex;
   align-items: center;
@@ -504,6 +661,7 @@ svg.progress-review-schedule-donut {
   font-style: italic;
 }
 
+.progress-streak-info,
 .progress-leaderboard-info {
   margin: 0;
   padding: 10px 12px;
@@ -576,6 +734,15 @@ svg.progress-review-schedule-donut {
   background: var(--accent-soft);
 }
 
+.progress-leaderboard-row-friend {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.progress-leaderboard-row-padding {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .progress-leaderboard-rank {
   color: var(--text-tertiary);
   font-size: 13px;
@@ -636,6 +803,63 @@ svg.progress-review-schedule-donut {
   margin: 0;
 }
 
+.progress-leaderboard-invite-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  overflow-y: auto;
+  background: rgba(9, 10, 15, 0.8);
+  backdrop-filter: blur(10px);
+}
+
+.progress-leaderboard-invite-dialog {
+  width: min(100%, 540px);
+  max-height: calc(100vh - 40px);
+  display: grid;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+.progress-leaderboard-invite-dialog-head,
+.progress-leaderboard-invite-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.progress-leaderboard-invite-dialog-head > .panel-subtitle,
+.progress-leaderboard-invite-note,
+.progress-leaderboard-invite-status {
+  margin: 0;
+}
+
+.progress-leaderboard-invite-close {
+  min-height: 38px;
+}
+
+.progress-leaderboard-invite-field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.progress-leaderboard-invite-note,
+.progress-leaderboard-invite-status {
+  color: var(--text-tertiary);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.progress-leaderboard-invite-url {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 @media (max-width: 768px) {
   .progress-panel {
     width: 100%;
@@ -676,6 +900,10 @@ svg.progress-review-schedule-donut {
   .progress-review-schedule-donut {
     max-width: 180px;
   }
+
+  .progress-leaderboard-invite-actions > .ghost-btn {
+    flex: 1 1 160px;
+  }
 }
 
 @container progress-section (max-width: 440px) {
@@ -705,12 +933,21 @@ svg.progress-review-schedule-donut {
     height: 12px;
   }
 
+  .progress-streak-marker-freeze .review-progress-badge-icon {
+    width: 12px;
+    height: 12px;
+  }
+
   .progress-chart-y-axis,
   .progress-chart-columns {
     min-height: 180px;
   }
 
   .progress-chart-column {
+    height: 180px;
+  }
+
+  .progress-chart-column-button {
     height: 180px;
   }
 

@@ -1,15 +1,23 @@
-import type { ReactElement, Ref } from "react";
+import { useState, type ReactElement, type Ref } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
-import { buildLoginUrl } from "../../../api";
+import {
+  buildLoginUrl,
+  createFriendInvitation,
+  isAuthRedirectError,
+} from "../../../api";
 import { resolveBestLeaderboardPlacement } from "../../../appData/progress/leaderboardPlacement";
 import { useI18n } from "../../../i18n";
 import { settingsLeaderboardParticipationRoute } from "../../../routes";
+import type { FriendInvitationCreateResponse } from "../../../types";
 import type {
+  ProgressLeaderboard,
   ProgressLeaderboardSourceState,
   ProgressLeaderboardWindow,
   ProgressLeaderboardWindowKey,
 } from "../../../types";
 import { progressLeaderboardWindowKeys } from "../../../types";
+import { validateFriendInvitationDisplayName } from "../../invite/friendInvitationDisplayName";
 
 const millisecondsPerMinute = 60_000;
 
@@ -99,11 +107,221 @@ function ProgressLeaderboardSignInPlaceholder(): ReactElement {
   );
 }
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function ProgressLeaderboardInviteDialog(props: Readonly<{
+  canCreateInvite: boolean;
+  onClose: () => void;
+}>): ReactElement {
+  const { canCreateInvite, onClose } = props;
+  const { locale, t, formatDateTime } = useI18n();
+  const [friendDisplayName, setFriendDisplayName] = useState<string>("");
+  const [fieldErrorMessage, setFieldErrorMessage] = useState<string>("");
+  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [statusMessage, setStatusMessage] = useState<string>("");
+  const [createdInvite, setCreatedInvite] = useState<FriendInvitationCreateResponse | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isCopying, setIsCopying] = useState<boolean>(false);
+  const [isSharing, setIsSharing] = useState<boolean>(false);
+
+  async function submitInviteCreate(): Promise<void> {
+    const validationMessage = validateFriendInvitationDisplayName(friendDisplayName, {
+      required: t("progressScreen.leaderboard.invite.validation.required"),
+      singleLine: t("progressScreen.leaderboard.invite.validation.singleLine"),
+      tooLong: t("progressScreen.leaderboard.invite.validation.tooLong"),
+    });
+    setFieldErrorMessage(validationMessage);
+    if (validationMessage !== "") {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMessage("");
+    setStatusMessage("");
+
+    try {
+      const response = await createFriendInvitation({
+        inviteeDisplayName: friendDisplayName.trim(),
+      });
+      setCreatedInvite(response);
+      setStatusMessage("");
+    } catch (error) {
+      if (isAuthRedirectError(error)) {
+        return;
+      }
+
+      setErrorMessage(getErrorMessage(error));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function copyInviteLink(): Promise<void> {
+    if (createdInvite === null) {
+      throw new Error("Cannot copy a friend invite before it is created.");
+    }
+
+    setIsCopying(true);
+    setErrorMessage("");
+    setStatusMessage("");
+
+    try {
+      if (typeof navigator.clipboard?.writeText !== "function") {
+        throw new Error(t("progressScreen.leaderboard.invite.clipboardUnavailable"));
+      }
+
+      await navigator.clipboard.writeText(createdInvite.inviteUrl);
+      setStatusMessage(t("progressScreen.leaderboard.invite.copied"));
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error));
+    } finally {
+      setIsCopying(false);
+    }
+  }
+
+  async function shareInviteLink(): Promise<void> {
+    if (createdInvite === null) {
+      throw new Error("Cannot share a friend invite before it is created.");
+    }
+
+    setIsSharing(true);
+    setErrorMessage("");
+    setStatusMessage("");
+
+    try {
+      if (typeof navigator.share !== "function") {
+        throw new Error(t("progressScreen.leaderboard.invite.shareUnavailable"));
+      }
+
+      await navigator.share({
+        title: t("progressScreen.leaderboard.invite.shareTitle"),
+        text: t("progressScreen.leaderboard.invite.shareText"),
+        url: createdInvite.inviteUrl,
+      });
+      setStatusMessage(t("progressScreen.leaderboard.invite.shared"));
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error));
+    } finally {
+      setIsSharing(false);
+    }
+  }
+
+  return createPortal(
+    <div className="progress-leaderboard-invite-backdrop" role="dialog" aria-modal="true" aria-labelledby="progress-leaderboard-invite-title">
+      <section className="content-card progress-leaderboard-invite-dialog">
+        <div className="progress-leaderboard-invite-dialog-head">
+          <h2 id="progress-leaderboard-invite-title" className="panel-subtitle">
+            {t("progressScreen.leaderboard.invite.title")}
+          </h2>
+          <button className="ghost-btn progress-leaderboard-invite-close" type="button" onClick={onClose}>
+            {t("common.cancel")}
+          </button>
+        </div>
+
+        {canCreateInvite ? (
+          createdInvite === null ? (
+            <>
+              <p className="subtitle">{t("progressScreen.leaderboard.invite.body")}</p>
+              <label className="form-label progress-leaderboard-invite-field">
+                <span>{t("progressScreen.leaderboard.invite.friendNameLabel")}</span>
+                <input
+                  className="text-input"
+                  type="text"
+                  value={friendDisplayName}
+                  disabled={isSubmitting}
+                  onChange={(event) => {
+                    setFriendDisplayName(event.target.value);
+                    setFieldErrorMessage("");
+                  }}
+                  data-testid="progress-leaderboard-invite-name-input"
+                />
+              </label>
+              <p className="progress-leaderboard-invite-note">{t("progressScreen.leaderboard.invite.expiryNote")}</p>
+              {fieldErrorMessage !== "" ? (
+                <p className="error-banner" role="alert" data-testid="progress-leaderboard-invite-name-error">
+                  {fieldErrorMessage}
+                </p>
+              ) : null}
+              <button
+                className="primary-btn"
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => void submitInviteCreate()}
+                data-testid="progress-leaderboard-invite-create"
+              >
+                {isSubmitting ? t("progressScreen.leaderboard.invite.creating") : t("progressScreen.leaderboard.invite.create")}
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="subtitle">
+                {t("progressScreen.leaderboard.invite.readyBody", {
+                  expiresAt: formatDateTime(createdInvite.expiresAt),
+                })}
+              </p>
+              <input
+                className="text-input progress-leaderboard-invite-url"
+                type="text"
+                readOnly
+                value={createdInvite.inviteUrl}
+                aria-label={t("progressScreen.leaderboard.invite.linkLabel")}
+                data-testid="progress-leaderboard-invite-url"
+              />
+              <div className="progress-leaderboard-invite-actions">
+                <button
+                  className="ghost-btn"
+                  type="button"
+                  disabled={isCopying}
+                  onClick={() => void copyInviteLink()}
+                  data-testid="progress-leaderboard-invite-copy"
+                >
+                  {isCopying ? t("progressScreen.leaderboard.invite.copying") : t("progressScreen.leaderboard.invite.copy")}
+                </button>
+                <button
+                  className="ghost-btn"
+                  type="button"
+                  disabled={isSharing}
+                  onClick={() => void shareInviteLink()}
+                  data-testid="progress-leaderboard-invite-share"
+                >
+                  {isSharing ? t("progressScreen.leaderboard.invite.sharing") : t("progressScreen.leaderboard.invite.share")}
+                </button>
+              </div>
+            </>
+          )
+        ) : (
+          <div className="progress-leaderboard-placeholder" data-testid="progress-leaderboard-invite-sign-in">
+            <p className="subtitle">{t("progressScreen.leaderboard.invite.signInBody")}</p>
+            <a className="primary-btn" href={buildLoginUrl(window.location.href, locale)}>
+              {t("progressScreen.leaderboard.signIn")}
+            </a>
+          </div>
+        )}
+
+        {statusMessage !== "" ? <p className="progress-leaderboard-invite-status">{statusMessage}</p> : null}
+        {errorMessage !== "" ? <p className="error-banner" role="alert">{errorMessage}</p> : null}
+      </section>
+    </div>,
+    document.body,
+  );
+}
+
+function resolveLeaderboardReservedRowCount(leaderboard: ProgressLeaderboard): number {
+  return leaderboard.windows.reduce(
+    (currentMax, window) => Math.max(currentMax, window.rows.length),
+    0,
+  );
+}
+
 function ProgressLeaderboardRows(props: Readonly<{
   window: ProgressLeaderboardWindow;
+  reservedRowCount: number;
 }>): ReactElement {
   const { t, formatNumber } = useI18n();
-  const { window: leaderboardWindow } = props;
+  const { window: leaderboardWindow, reservedRowCount } = props;
+  const paddingRowCount = Math.max(0, reservedRowCount - leaderboardWindow.rows.length);
 
   return (
     <ol className="progress-leaderboard-list">
@@ -124,20 +342,26 @@ function ProgressLeaderboardRows(props: Readonly<{
 
         const rowClassName = row.kind === "viewer"
           ? "progress-leaderboard-row progress-leaderboard-row-viewer"
-          : "progress-leaderboard-row";
+          : row.friendDisplayName === undefined
+            ? "progress-leaderboard-row"
+            : "progress-leaderboard-row progress-leaderboard-row-friend";
+        const displayName = row.kind === "viewer"
+          ? t("progressScreen.leaderboard.you")
+          : row.friendDisplayName ?? row.anonymousDisplayName;
 
         return (
           <li
             key={`${row.publicProfileId}-${row.rank}`}
             className={rowClassName}
             data-kind={row.kind}
+            data-friend={row.friendDisplayName === undefined ? "false" : "true"}
             data-testid={`progress-leaderboard-row-${row.kind}`}
           >
             <span className="progress-leaderboard-rank">
               {t("progressScreen.leaderboard.rankLabel", { rank: formatNumber(row.rank) })}
             </span>
             <span className="progress-leaderboard-name">
-              {row.kind === "viewer" ? t("progressScreen.leaderboard.you") : row.anonymousDisplayName}
+              {displayName}
             </span>
             <span className="progress-leaderboard-count" data-testid={`progress-leaderboard-count-${row.kind}`}>
               {formatNumber(row.qualifiedReviewCount)}
@@ -145,6 +369,15 @@ function ProgressLeaderboardRows(props: Readonly<{
           </li>
         );
       })}
+      {Array.from({ length: paddingRowCount }, (_value, index) => (
+        <li
+          key={`leaderboard-padding-${index}`}
+          className="progress-leaderboard-row progress-leaderboard-row-padding"
+          data-kind="padding"
+          data-testid="progress-leaderboard-row-padding"
+          aria-hidden="true"
+        />
+      ))}
     </ol>
   );
 }
@@ -207,6 +440,7 @@ function ProgressLeaderboardBody(props: ProgressLeaderboardBodyProps): ReactElem
 
   const resolvedWindowKey = resolveSelectedLeaderboardWindowKey(sourceState, selectedWindowKey) ?? leaderboard.defaultWindowKey;
   const leaderboardWindow = resolveLeaderboardWindow(sourceState, selectedWindowKey);
+  const reservedRowCount = resolveLeaderboardReservedRowCount(leaderboard);
 
   return (
     <>
@@ -231,7 +465,7 @@ function ProgressLeaderboardBody(props: ProgressLeaderboardBodyProps): ReactElem
           {t("progressScreen.leaderboard.unavailable")}
         </p>
       ) : (
-        <ProgressLeaderboardRows window={leaderboardWindow} />
+        <ProgressLeaderboardRows window={leaderboardWindow} reservedRowCount={reservedRowCount} />
       )}
     </>
   );
@@ -239,6 +473,7 @@ function ProgressLeaderboardBody(props: ProgressLeaderboardBodyProps): ReactElem
 
 export function ProgressLeaderboardSection(props: ProgressLeaderboardSectionProps): ReactElement {
   const { t, formatNumber } = useI18n();
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState<boolean>(false);
   const {
     sourceState,
     canRenderServerBase,
@@ -267,16 +502,29 @@ export function ProgressLeaderboardSection(props: ProgressLeaderboardSectionProp
         <div className="progress-chart-heading">
           <h2 className="progress-section-title">{t("progressScreen.leaderboard.title")}</h2>
         </div>
-        <button
-          type="button"
-          className="ghost-btn progress-leaderboard-info-btn"
-          aria-expanded={isInfoVisible}
-          aria-label={t("progressScreen.leaderboard.infoToggleLabel")}
-          onClick={onToggleInfo}
-          data-testid="progress-leaderboard-info-toggle"
-        >
-          <span className="progress-leaderboard-info-icon" aria-hidden="true">i</span>
-        </button>
+        <div className="progress-leaderboard-head-actions">
+          <button
+            type="button"
+            className="ghost-btn progress-leaderboard-invite-btn"
+            aria-label={t("progressScreen.leaderboard.invite.actionLabel")}
+            title={t("progressScreen.leaderboard.invite.actionLabel")}
+            onClick={() => setIsInviteDialogOpen(true)}
+            data-testid="progress-leaderboard-invite-open"
+          >
+            <span className="progress-leaderboard-invite-icon" aria-hidden="true">+</span>
+            <span>{t("progressScreen.leaderboard.invite.actionText")}</span>
+          </button>
+          <button
+            type="button"
+            className="ghost-btn progress-leaderboard-info-btn"
+            aria-expanded={isInfoVisible}
+            aria-label={t("progressScreen.leaderboard.infoToggleLabel")}
+            onClick={onToggleInfo}
+            data-testid="progress-leaderboard-info-toggle"
+          >
+            <span className="progress-leaderboard-info-icon" aria-hidden="true">i</span>
+          </button>
+        </div>
       </div>
 
       {isInfoVisible ? (
@@ -298,6 +546,13 @@ export function ProgressLeaderboardSection(props: ProgressLeaderboardSectionProp
         selectedWindowKey={selectedWindowKey}
         onSelectWindowKey={onSelectWindowKey}
       />
+
+      {isInviteDialogOpen ? (
+        <ProgressLeaderboardInviteDialog
+          canCreateInvite={canRenderServerBase}
+          onClose={() => setIsInviteDialogOpen(false)}
+        />
+      ) : null}
     </section>
   );
 }

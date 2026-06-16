@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.feature.progress
 
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakDayState
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleBucketKey
 import java.time.LocalDate
@@ -9,6 +10,10 @@ data class ProgressHistoryDayUiState(
     val date: LocalDate,
     val dayOfMonthLabel: String,
     val reviewCount: Int,
+    val againCount: Int,
+    val hardCount: Int,
+    val goodCount: Int,
+    val easyCount: Int,
     val isToday: Boolean
 )
 
@@ -24,6 +29,7 @@ data class ProgressStreakDayUiState(
     val date: LocalDate?,
     val dayOfMonthLabel: String?,
     val reviewCount: Int,
+    val state: CloudProgressStreakDayState?,
     val isToday: Boolean,
     val isPlaceholder: Boolean
 )
@@ -32,9 +38,17 @@ data class ProgressStreakWeekUiState(
     val days: List<ProgressStreakDayUiState>
 )
 
+data class ProgressFreezeBankUiState(
+    val availableCredits: Int,
+    val capacity: Int,
+    val nextCreditProgressUnits: Int,
+    val nextCreditRequiredUnits: Int
+)
+
 data class ProgressStreakSectionUiState(
     val weekdayLabels: List<String>,
-    val weeks: List<ProgressStreakWeekUiState>
+    val weeks: List<ProgressStreakWeekUiState>,
+    val freezeBankSummary: ProgressFreezeBankUiState?
 )
 
 data class ProgressReviewsSectionUiState(
@@ -52,6 +66,48 @@ data class ProgressReviewScheduleSectionUiState(
     val buckets: List<ProgressReviewScheduleBucketUiState>,
     val hasCards: Boolean
 )
+
+enum class ProgressFriendInvitationDisplayNameError {
+    EMPTY,
+    TOO_LONG,
+    CONTROL_CHARACTER
+}
+
+enum class ProgressFriendInvitationCreateError {
+    LIMIT_REACHED,
+    SIGN_IN_REQUIRED,
+    INVALID_DISPLAY_NAME,
+    GENERIC
+}
+
+sealed interface ProgressFriendInvitationDisplayNameValidation {
+    data class Valid(
+        val trimmedDisplayName: String
+    ) : ProgressFriendInvitationDisplayNameValidation
+
+    data class Invalid(
+        val error: ProgressFriendInvitationDisplayNameError
+    ) : ProgressFriendInvitationDisplayNameValidation
+}
+
+sealed interface ProgressFriendInvitationUiState {
+    data object Idle : ProgressFriendInvitationUiState
+
+    data object Creating : ProgressFriendInvitationUiState
+
+    data class Created(
+        val shareId: Long,
+        val inviteUrl: String
+    ) : ProgressFriendInvitationUiState
+
+    data class ValidationFailed(
+        val error: ProgressFriendInvitationDisplayNameError
+    ) : ProgressFriendInvitationUiState
+
+    data class CreateFailed(
+        val error: ProgressFriendInvitationCreateError
+    ) : ProgressFriendInvitationUiState
+}
 
 sealed interface ProgressLeaderboardRowUiState {
     data class Participant(
@@ -87,7 +143,8 @@ sealed interface ProgressLeaderboardSectionUiState {
         // null falls back to the client string resource.
         val metricDescription: String?,
         val selectedWindowKey: ProgressLeaderboardWindowKey,
-        val windows: List<ProgressLeaderboardWindowUiState>
+        val windows: List<ProgressLeaderboardWindowUiState>,
+        val reservedRowCount: Int
     ) : ProgressLeaderboardSectionUiState {
         val selectedWindow: ProgressLeaderboardWindowUiState?
             get() = windows.firstOrNull { window -> window.windowKey == selectedWindowKey }
@@ -98,7 +155,8 @@ sealed interface ProgressSummaryUiState {
     data object Loading : ProgressSummaryUiState
 
     data class Loaded(
-        val summary: CloudProgressSummary
+        val summary: CloudProgressSummary,
+        val freezeBankSummary: ProgressFreezeBankUiState
     ) : ProgressSummaryUiState
 }
 

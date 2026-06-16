@@ -31,6 +31,10 @@ struct ProgressChartDay: Hashable, Identifiable, Sendable {
     let localDate: String
     let reviewCount: Int
     let streakState: ProgressStreakDayState
+    let againCount: Int
+    let hardCount: Int
+    let goodCount: Int
+    let easyCount: Int
     let isToday: Bool
 
     var id: String {
@@ -157,6 +161,7 @@ struct ProgressLeaderboardParticipantRowState: Hashable, Sendable {
     let kind: ProgressLeaderboardParticipantKind
     let publicProfileId: String
     let anonymousDisplayName: String
+    let friendDisplayName: String?
     let qualifiedReviewCount: Int
     let rank: Int
 }

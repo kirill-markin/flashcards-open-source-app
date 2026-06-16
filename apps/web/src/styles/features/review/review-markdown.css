@@ -70,8 +70,8 @@
 
 .review-markdown-blockquote {
   padding-inline-start: 1em;
-  border-inline-start: 3px solid rgba(255, 255, 255, 0.18);
-  color: var(--text-secondary);
+  border-inline-start: 3px solid rgba(255, 255, 255, 0.28);
+  color: var(--text);
 }
 
 .review-markdown-code {

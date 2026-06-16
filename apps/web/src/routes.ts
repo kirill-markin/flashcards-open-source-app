@@ -11,6 +11,12 @@ export const progressStreakHash: string = "streak";
 export const progressStreakRoute: string = `${progressRoute}#${progressStreakHash}`;
 export const progressLeaderboardHash: string = "leaderboard";
 export const progressLeaderboardRoute: string = `${progressRoute}#${progressLeaderboardHash}`;
+export const friendInviteRoutePrefix: string = "/invite";
+export const friendInviteRoutePattern: string = `${friendInviteRoutePrefix}/:token`;
+export const devPreviewsRoutePrefix: string = "/dev/previews";
+export const friendInvitePreviewRoutePrefix: string = `${devPreviewsRoutePrefix}/invite`;
+export const friendInvitePreviewIndexRoute: string = friendInvitePreviewRoutePrefix;
+export const friendInvitePreviewRoutePattern: string = `${friendInvitePreviewRoutePrefix}/:state`;
 export const cardsRoute: string = "/cards";
 export const settingsHubRoute: string = "/settings";
 export const settingsCurrentWorkspaceRoute: string = "/settings/current-workspace";
@@ -45,6 +51,14 @@ export function buildSettingsDeckDetailRoute(deckId: string): string {
 
 export function buildSettingsDeckEditRoute(deckId: string): string {
   return `${settingsDecksRoute}/${deckId}/edit`;
+}
+
+export function buildFriendInviteRoute(token: string): string {
+  return `${friendInviteRoutePrefix}/${encodeURIComponent(token)}`;
+}
+
+export function buildFriendInvitePreviewRoute(state: string): string {
+  return `${friendInvitePreviewRoutePrefix}/${encodeURIComponent(state)}`;
 }
 
 export function buildSettingsAccessDetailRoute(accessKind: "camera" | "microphone" | "photos-and-files"): string {

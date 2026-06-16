@@ -79,3 +79,27 @@ test("0063 migration creates friend invitations, directed friendships, and narro
   assert.match(sql, /REVOKE ALL ON FUNCTION community\.accept_friend_invitation\(TEXT, TEXT\) FROM PUBLIC/);
   assert.match(sql, /GRANT EXECUTE ON FUNCTION community\.accept_friend_invitation\(TEXT, TEXT\) TO backend_app/);
 });
+
+test("0064 migration exposes only current viewer leaderboard friend labels", () => {
+  const migrationPath = resolve(
+    process.cwd(),
+    "../../db/migrations/0064_leaderboard_friend_labels.sql",
+  );
+  const sql = readFileSync(migrationPath, "utf8").replace(/\s+/g, " ");
+
+  assert.match(sql, /CREATE OR REPLACE FUNCTION community\.read_current_user_leaderboard_friend_labels\(\)/);
+  assert.match(sql, /RETURNS TABLE \( friend_public_profile_id UUID, friend_display_name TEXT \)/);
+  assert.match(sql, /SECURITY DEFINER/);
+  assert.match(sql, /SET search_path = pg_catalog, public/);
+  assert.match(sql, /FROM community\.friendships AS friendships/);
+  assert.match(sql, /INNER JOIN community\.public_profiles AS friend_profiles/);
+  assert.match(sql, /friend_profiles\.public_profile_id = friendships\.friend_public_profile_id/);
+  assert.match(sql, /friendships\.viewer_user_id = security\.current_user_id\(\)/);
+  assert.match(sql, /friend_profiles\.leaderboard_participation_enabled = TRUE/);
+  assert.match(sql, /REVOKE ALL ON FUNCTION community\.read_current_user_leaderboard_friend_labels\(\) FROM PUBLIC/);
+  assert.match(sql, /GRANT EXECUTE ON FUNCTION community\.read_current_user_leaderboard_friend_labels\(\) TO backend_app/);
+  assert.equal(sql.includes("friend_user_id"), false);
+  assert.equal(sql.includes("created_from_invitation_id"), false);
+  assert.equal(sql.includes("inviter_user_id"), false);
+  assert.equal(sql.includes("email"), false);
+});

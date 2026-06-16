@@ -1097,7 +1097,11 @@ func makeZeroFilledProgressDays(requestRange: ProgressRequestRange) throws -> [P
         progressDays.append(
             ProgressDay(
                 date: progressLocalDateStringForStore(date: currentDate, calendar: calendar),
-                reviewCount: 0
+                reviewCount: 0,
+                againCount: 0,
+                hardCount: 0,
+                goodCount: 0,
+                easyCount: 0
             )
         )
 

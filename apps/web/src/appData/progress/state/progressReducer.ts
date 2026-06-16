@@ -85,6 +85,7 @@ export type ProgressSourceAction =
     type: "series_local_load_succeeded";
     scopeKey: ProgressScopeKey;
     localFallback: ProgressSeriesSnapshot;
+    localFallbackActiveDates: ReadonlyArray<string>;
     pendingLocalOverlay: ProgressChartData;
     canRenderServerBase: boolean;
   }>
@@ -243,6 +244,7 @@ function reduceProgressSourceState(
       const nextSeriesState = createNextSeriesState(state.series, {
         scopeKey: action.scopeKey,
         localFallback: null,
+        localFallbackActiveDates: [],
         serverBase: action.serverBase,
         pendingLocalOverlay: null,
         isLoading: true,
@@ -317,6 +319,7 @@ function reduceProgressSourceState(
       const nextSeriesState = createNextSeriesState(state.series, {
         scopeKey: action.scopeKey,
         localFallback: action.localFallback,
+        localFallbackActiveDates: action.localFallbackActiveDates,
         pendingLocalOverlay: action.pendingLocalOverlay,
         isLoading: false,
       }, action.canRenderServerBase);
@@ -339,6 +342,7 @@ function reduceProgressSourceState(
       const nextSeriesState = createNextSeriesState(state.series, {
         scopeKey: action.scopeKey,
         localFallback: null,
+        localFallbackActiveDates: [],
         pendingLocalOverlay: null,
         isLoading: false,
         errorMessage: action.errorMessage,

@@ -10,6 +10,8 @@ private const val reviewProgressBadgeOverflowThreshold: Int = 99
 internal fun createEmptyReviewProgressBadgeState(): ReviewProgressBadgeState {
     return ReviewProgressBadgeState(
         streakDays = 0,
+        freezeAvailableCredits = 0,
+        freezeCapacity = 0,
         hasReviewedToday = false,
         isInteractive = true
     )
@@ -26,6 +28,8 @@ internal fun createEmptyReviewLeaderboardBadgeState(): ReviewLeaderboardBadgeSta
 internal fun ProgressSummarySnapshot.toReviewProgressBadgeState(): ReviewProgressBadgeState {
     return ReviewProgressBadgeState(
         streakDays = renderedSummary.currentStreakDays,
+        freezeAvailableCredits = renderedSummary.streakFreeze.availableCredits,
+        freezeCapacity = renderedSummary.streakFreeze.capacity,
         hasReviewedToday = renderedSummary.hasReviewedToday,
         isInteractive = true
     )

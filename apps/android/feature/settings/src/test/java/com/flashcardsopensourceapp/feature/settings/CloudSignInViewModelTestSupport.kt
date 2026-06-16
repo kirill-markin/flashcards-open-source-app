@@ -7,6 +7,8 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudCommunityProfile
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryReason
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationCreateRequest
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationCreateResponse
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
@@ -292,6 +294,12 @@ internal class FakeCloudAccountRepository : CloudAccountRepository {
     override suspend fun updateCommunityLeaderboardParticipation(
         leaderboardParticipationEnabled: Boolean
     ): CloudCommunityProfile {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun createFriendInvitation(
+        request: CloudFriendInvitationCreateRequest
+    ): CloudFriendInvitationCreateResponse {
         throw UnsupportedOperationException()
     }
 

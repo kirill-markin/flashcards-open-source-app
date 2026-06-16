@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactElement, Ref } from "react";
-import { ReviewProgressBadgeIcon } from "../../shared/ReviewProgressBadgeIcon";
+import { ReviewProgressBadgeIcon, StreakFreezeIcon } from "../../shared/ReviewProgressBadgeIcon";
 import type { StreakDay } from "./progressStreakModel";
 
 const futureStreakDayStyle: Readonly<CSSProperties> = {
@@ -20,6 +20,7 @@ export type ProgressStreakSummaryView = Readonly<{
   hasReviewedToday: boolean;
   ariaLabel: string;
   formattedStreakValue: string;
+  formattedFreezeValue: string;
 }>;
 
 type ProgressStreakSectionProps = Readonly<{
@@ -27,6 +28,10 @@ type ProgressStreakSectionProps = Readonly<{
   sectionId: string;
   sectionRef: Ref<HTMLElement>;
   summary: ProgressStreakSummaryView | null;
+  infoText: string | null;
+  infoToggleLabel: string;
+  isInfoVisible: boolean;
+  onToggleInfo: () => void;
   streakWeeks: ReadonlyArray<ReadonlyArray<StreakDay>>;
 }>;
 
@@ -36,8 +41,9 @@ function ProgressStreakDay(props: Readonly<{
   const { day } = props;
   const dayClassName = [
     "progress-streak-day",
-    day.reviewCount > 0 ? "progress-streak-day-complete" : "",
-    day.isToday && day.reviewCount === 0 ? "progress-streak-day-today" : "",
+    day.state === "reviewed" ? "progress-streak-day-complete" : "",
+    day.state === "frozen" ? "progress-streak-day-frozen" : "",
+    day.isToday && day.state === "pending" ? "progress-streak-day-today" : "",
   ]
     .filter((className) => className !== "")
     .join(" ");
@@ -46,7 +52,7 @@ function ProgressStreakDay(props: Readonly<{
     <div
       className={dayClassName}
       title={day.title}
-      data-streak-state={day.isFuture ? "future" : "active"}
+      data-streak-state={day.isFuture ? "future" : day.state}
       style={day.isFuture ? futureStreakDayStyle : undefined}
     >
       <span className="progress-streak-weekday">{day.weekdayLabel}</span>
@@ -55,9 +61,13 @@ function ProgressStreakDay(props: Readonly<{
         aria-hidden="true"
         style={day.isFuture ? futureStreakMarkerStyle : undefined}
       >
-        {day.reviewCount > 0 ? (
+        {day.state === "reviewed" ? (
           <span className="progress-streak-marker-flame">
             <ReviewProgressBadgeIcon />
+          </span>
+        ) : day.state === "frozen" ? (
+          <span className="progress-streak-marker-freeze">
+            <StreakFreezeIcon />
           </span>
         ) : day.isFuture ? null : (
           <span className="progress-streak-marker-day-value">{day.dayLabel}</span>
@@ -87,13 +97,27 @@ function ProgressStreakSummary(props: Readonly<{
         <span className="review-progress-badge-value">
           {summary.formattedStreakValue}
         </span>
+        <span className="review-progress-freeze-indicator" aria-hidden="true">
+          <StreakFreezeIcon />
+          <span className="review-progress-freeze-value">{summary.formattedFreezeValue}</span>
+        </span>
       </span>
     </div>
   );
 }
 
 export function ProgressStreakSection(props: ProgressStreakSectionProps): ReactElement {
-  const { title, sectionId, sectionRef, summary, streakWeeks } = props;
+  const {
+    title,
+    sectionId,
+    sectionRef,
+    summary,
+    infoText,
+    infoToggleLabel,
+    isInfoVisible,
+    onToggleInfo,
+    streakWeeks,
+  } = props;
 
   return (
     <section
@@ -104,9 +128,27 @@ export function ProgressStreakSection(props: ProgressStreakSectionProps): ReactE
     >
       <div className="progress-section-head">
         <h2 className="progress-section-title">{title}</h2>
+        {infoText === null ? null : (
+          <button
+            type="button"
+            className="ghost-btn progress-streak-info-btn"
+            aria-expanded={isInfoVisible}
+            aria-label={infoToggleLabel}
+            onClick={onToggleInfo}
+            data-testid="progress-streak-info-toggle"
+          >
+            <span className="progress-streak-info-icon" aria-hidden="true">i</span>
+          </button>
+        )}
       </div>
 
       {summary === null ? null : <ProgressStreakSummary summary={summary} />}
+
+      {infoText !== null && isInfoVisible ? (
+        <p className="progress-streak-info" data-testid="progress-streak-info">
+          {infoText}
+        </p>
+      ) : null}
 
       <div className="progress-streak-weeks">
         {streakWeeks.map((week, weekIndex) => (
