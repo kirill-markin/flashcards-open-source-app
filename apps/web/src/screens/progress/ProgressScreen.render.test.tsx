@@ -178,14 +178,16 @@ function createPartialStreakFreeze(): Readonly<{
   capacity: number;
   balanceUnits: number;
   unitsPerCredit: number;
+  earnedUnitsPerStreakDay: number;
   nextCreditProgressUnits: number;
   nextCreditRequiredUnits: number;
 }> {
   return {
     availableCredits: 1,
-    capacity: 2,
+    capacity: 3,
     balanceUnits: 11,
     unitsPerCredit: 10,
+    earnedUnitsPerStreakDay: 1,
     nextCreditProgressUnits: 1,
     nextCreditRequiredUnits: 10,
   };
@@ -592,6 +594,7 @@ describe("ProgressScreen", () => {
     });
 
     expect(container.textContent).not.toContain("🔥");
+    expect(container.textContent).toContain("1/3");
 
     const summaryBadgeIcon = container.querySelector(".progress-streak-summary .review-progress-badge-icon");
     if (!(summaryBadgeIcon instanceof SVGSVGElement)) {

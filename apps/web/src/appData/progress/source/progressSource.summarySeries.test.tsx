@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import type { DailyReviewPoint, ProgressSummary, StreakFreeze } from "../../../types";
+import type { ProgressSummary, StreakFreeze } from "../../../types";
 import { shiftLocalDate } from "../../../progress/progressDates";
 import { createDefaultStreakFreeze } from "../../../progress/streakFreeze";
 import {
@@ -58,16 +58,6 @@ function createProgressSummaryWithFreeze(
   };
 }
 
-function createDailyReviewsForRange(from: string, to: string): ReadonlyArray<DailyReviewPoint> {
-  const dailyReviews: Array<DailyReviewPoint> = [];
-
-  for (let currentDate = from; currentDate <= to; currentDate = shiftLocalDate(currentDate, 1)) {
-    dailyReviews.push(buildGoodDailyReviewPoint(currentDate, 1));
-  }
-
-  return dailyReviews;
-}
-
 describe("useProgressSource summary and series", () => {
   it("loads split server summary and series for linked verified sessions", async () => {
     const harness = renderHarness({
@@ -118,9 +108,18 @@ describe("useProgressSource summary and series", () => {
     expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(4);
   });
 
-  it("keeps rendered summary local when pending review uploads make the server summary stale", async () => {
+  it("marks server summary approximate without replacing it for non-today pending uploads", async () => {
     hasPendingProgressReviewEventsMock.mockResolvedValue(true);
-    loadLocalProgressSummaryMock.mockResolvedValue(createProgressSummary(2, true, "2026-04-18", 8));
+    loadProgressSummaryMock.mockResolvedValue({
+      timeZone: "Europe/Madrid",
+      generatedAt: "2026-04-20T09:15:00.000Z",
+      reviewHistoryWatermarks: [
+        { workspaceId: "workspace-1", reviewSequenceId: 42 },
+      ],
+      summary: createProgressSummary(2, false, "2026-04-19", 7),
+    });
+    loadLocalProgressSummaryMock.mockResolvedValue(createProgressSummary(2, false, "2026-04-19", 8));
+    loadLocalProgressActiveDatesMock.mockResolvedValue(["2026-04-19"]);
 
     const harness = renderHarness({
       sessionVerificationState: "verified",
@@ -134,7 +133,9 @@ describe("useProgressSource summary and series", () => {
     expect(harness.getApi().progressSourceState.summary.serverBase?.source).toBe("server");
     expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.source).toBe("server");
     expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.isApproximate).toBe(true);
-    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(8);
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary).toEqual(
+      createProgressSummary(2, false, "2026-04-19", 7),
+    );
   });
 
   it("keeps reviewed-today summary visible after pending uploads clear before the server summary catches up", async () => {
@@ -185,6 +186,10 @@ describe("useProgressSource summary and series", () => {
       hardCount: 0,
       goodCount: 0,
       easyCount: 0,
+    });
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.streakDays).toContainEqual({
+      date: currentSeriesInput.to,
+      state: "reviewed",
     });
   });
 
@@ -254,11 +259,11 @@ describe("useProgressSource summary and series", () => {
     await flushEffects();
 
     expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary).toEqual(
-      createProgressSummary(202, true, "2026-04-20", 202),
+      createProgressSummary(202, true, "2026-04-20", 201),
     );
   });
 
-  it("adds local active dates after server last reviewed even outside the visible chart range", async () => {
+  it("does not apply non-today local active dates to server summary", async () => {
     loadProgressSummaryMock.mockResolvedValue({
       timeZone: "Europe/Madrid",
       generatedAt: "2026-04-20T09:15:00.000Z",
@@ -282,7 +287,7 @@ describe("useProgressSource summary and series", () => {
     await flushEffects();
 
     expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary).toEqual(
-      createProgressSummary(0, false, "2025-11-16", 201),
+      createProgressSummary(0, false, "2025-11-15", 200),
     );
   });
 
@@ -348,7 +353,7 @@ describe("useProgressSource summary and series", () => {
     await flushEffects();
 
     expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary).toEqual(
-      createProgressSummary(2, false, "2026-04-19", 201),
+      createProgressSummary(2, false, "2026-04-18", 200),
     );
     expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual(expect.objectContaining({
       date: "2026-04-18",
@@ -396,7 +401,7 @@ describe("useProgressSource summary and series", () => {
     });
   });
 
-  it("preserves server freeze states when pending local reviews overlay a later day", async () => {
+  it("does not recompute historical streak states when pending local reviews overlay a non-today day", async () => {
     const serverSeries = buildServerSeriesWithDailyReviews([
       buildGoodDailyReviewPoint("2026-04-16", 1),
     ], "2026-04-18T09:18:00.000Z");
@@ -415,13 +420,17 @@ describe("useProgressSource summary and series", () => {
 
     await flushEffects();
 
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual(expect.objectContaining({
+      date: "2026-04-18",
+      reviewCount: 1,
+    }));
     expect(harness.getApi().progressSourceState.series.renderedSnapshot?.streakDays).toContainEqual({
       date: "2026-04-18",
-      state: "reviewed",
+      state: "frozen",
     });
     expect(harness.getApi().progressSourceState.series.renderedSnapshot?.streakDays).toContainEqual({
       date: "2026-04-19",
-      state: "frozen",
+      state: "missed",
     });
     expect(serverSeries.streakDays).toContainEqual({
       date: "2026-04-19",
@@ -429,7 +438,7 @@ describe("useProgressSource summary and series", () => {
     });
   });
 
-  it("keeps server carry-in streak states before a local review overlay", async () => {
+  it("keeps server streak states before a non-today local review overlay", async () => {
     const currentSeriesInput = buildCurrentSeriesInput();
     const localReviewDate = "2026-04-18";
     const serverSeries = buildServerSeriesWithDailyReviews([], "2026-04-18T09:18:00.000Z");
@@ -464,17 +473,15 @@ describe("useProgressSource summary and series", () => {
     });
     expect(harness.getApi().progressSourceState.series.renderedSnapshot?.streakDays).toContainEqual({
       date: localReviewDate,
-      state: "reviewed",
+      state: "missed",
     });
   });
 
-  it("recomputes visible carry-in streak states when a local review replaces a frozen day", async () => {
-    const currentSeriesInput = buildCurrentSeriesInput();
+  it("keeps future historical server streak states when a local review replaces a frozen day", async () => {
     const localReviewDate = "2026-04-17";
-    const serverSeries = buildServerSeriesWithDailyReviews(
-      createDailyReviewsForRange(currentSeriesInput.from, "2026-04-16"),
-      "2026-04-18T09:18:00.000Z",
-    );
+    const serverSeries = buildServerSeriesWithDailyReviews([
+      buildGoodDailyReviewPoint("2026-04-16", 1),
+    ], "2026-04-18T09:18:00.000Z");
     loadProgressSeriesMock.mockResolvedValue(serverSeries);
     loadLocalProgressActiveDatesMock.mockResolvedValue([localReviewDate]);
     loadLocalProgressDailyReviewsMock.mockResolvedValue([
@@ -496,11 +503,11 @@ describe("useProgressSource summary and series", () => {
     });
     expect(harness.getApi().progressSourceState.series.renderedSnapshot?.streakDays).toContainEqual({
       date: localReviewDate,
-      state: "reviewed",
+      state: "frozen",
     });
     expect(harness.getApi().progressSourceState.series.renderedSnapshot?.streakDays).toContainEqual({
       date: "2026-04-19",
-      state: "frozen",
+      state: "missed",
     });
   });
 
@@ -527,7 +534,7 @@ describe("useProgressSource summary and series", () => {
     });
   });
 
-  it("marks server series approximate when local carry-in changes only streak states", async () => {
+  it("keeps server series exact when local carry-in only changes local-only streak evaluation", async () => {
     const currentSeriesInput = buildCurrentSeriesInput();
     const localCarryInDate = shiftLocalDate(currentSeriesInput.from, -1);
     loadProgressSeriesMock.mockResolvedValue(buildServerSeriesWithDailyReviews([], "2026-04-18T09:18:00.000Z"));
@@ -544,14 +551,14 @@ describe("useProgressSource summary and series", () => {
     await flushEffects();
 
     expect(harness.getApi().progressSourceState.series.renderedSnapshot?.source).toBe("server");
-    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.isApproximate).toBe(true);
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.isApproximate).toBe(false);
     expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual(expect.objectContaining({
       date: currentSeriesInput.from,
       reviewCount: 0,
     }));
     expect(harness.getApi().progressSourceState.series.renderedSnapshot?.streakDays).toContainEqual({
       date: currentSeriesInput.from,
-      state: "frozen",
+      state: "missed",
     });
   });
 
@@ -561,6 +568,7 @@ describe("useProgressSource summary and series", () => {
       capacity: 2,
       balanceUnits: 10,
       unitsPerCredit: 10,
+      earnedUnitsPerStreakDay: 1,
       nextCreditProgressUnits: 0,
       nextCreditRequiredUnits: 10,
     };
@@ -588,38 +596,29 @@ describe("useProgressSource summary and series", () => {
     );
   });
 
-  it("uses exact series freeze overlay for multi-day local review deltas", async () => {
-    const sharedWatermark = [
-      { workspaceId: "workspace-1", reviewSequenceId: 42 },
-    ];
-    const staleServerFreeze: StreakFreeze = {
+  it("recharges server freeze with only today's local review from series overlay", async () => {
+    const serverFreeze: StreakFreeze = {
       availableCredits: 1,
-      capacity: 2,
-      balanceUnits: 11,
+      capacity: 3,
+      balanceUnits: 18,
       unitsPerCredit: 10,
-      nextCreditProgressUnits: 1,
+      earnedUnitsPerStreakDay: 2,
+      nextCreditProgressUnits: 8,
       nextCreditRequiredUnits: 10,
-    };
-    const serverSeries = {
-      ...buildServerSeriesWithDailyReviews([
-        buildGoodDailyReviewPoint("2026-04-18", 1),
-      ], "2026-04-20T09:15:00.000Z"),
-      reviewHistoryWatermarks: sharedWatermark,
     };
     loadProgressSummaryMock.mockResolvedValue({
       timeZone: "Europe/Madrid",
       generatedAt: "2026-04-20T09:15:00.000Z",
-      reviewHistoryWatermarks: sharedWatermark,
-      summary: createProgressSummaryWithFreeze(2, false, "2026-04-18", 200, staleServerFreeze),
+      reviewHistoryWatermarks: [
+        { workspaceId: "workspace-1", reviewSequenceId: 42 },
+      ],
+      summary: createProgressSummaryWithFreeze(2, false, "2026-04-19", 200, serverFreeze),
     });
-    loadProgressSeriesMock.mockResolvedValue(serverSeries);
-    loadLocalProgressSummaryMock.mockResolvedValue(createProgressSummary(2, true, "2026-04-20", 2));
-    loadLocalProgressActiveDatesMock.mockResolvedValue([
-      "2026-04-19",
-      "2026-04-20",
-    ]);
-    loadLocalProgressDailyReviewsMock.mockResolvedValue([
+    loadProgressSeriesMock.mockResolvedValue(buildServerSeriesWithDailyReviews([
       buildGoodDailyReviewPoint("2026-04-19", 1),
+    ], "2026-04-20T09:15:00.000Z"));
+    loadLocalProgressSummaryMock.mockResolvedValue(createProgressSummary(1, true, "2026-04-20", 1));
+    loadLocalProgressDailyReviewsMock.mockResolvedValue([
       buildGoodDailyReviewPoint("2026-04-20", 1),
     ]);
 
@@ -633,18 +632,28 @@ describe("useProgressSource summary and series", () => {
     await flushEffects();
 
     expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.currentStreakDays).toBe(3);
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(201);
     expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.streakFreeze).toEqual(
-      createDefaultStreakFreeze(),
+      {
+        availableCredits: 2,
+        capacity: 3,
+        balanceUnits: 20,
+        unitsPerCredit: 10,
+        earnedUnitsPerStreakDay: 2,
+        nextCreditProgressUnits: 0,
+        nextCreditRequiredUnits: 10,
+      },
     );
   });
 
-  it("uses exact summary-only freeze overlay for multi-day local review deltas", async () => {
-    const staleServerFreeze: StreakFreeze = {
-      availableCredits: 1,
-      capacity: 2,
-      balanceUnits: 10,
+  it("recharges server freeze with only today's local review in summary-only mode", async () => {
+    const serverFreeze: StreakFreeze = {
+      availableCredits: 2,
+      capacity: 3,
+      balanceUnits: 28,
       unitsPerCredit: 10,
-      nextCreditProgressUnits: 0,
+      earnedUnitsPerStreakDay: 2,
+      nextCreditProgressUnits: 8,
       nextCreditRequiredUnits: 10,
     };
     loadProgressSummaryMock.mockResolvedValue({
@@ -653,13 +662,10 @@ describe("useProgressSource summary and series", () => {
       reviewHistoryWatermarks: [
         { workspaceId: "workspace-1", reviewSequenceId: 42 },
       ],
-      summary: createProgressSummaryWithFreeze(200, false, "2026-04-18", 200, staleServerFreeze),
+      summary: createProgressSummaryWithFreeze(200, false, "2026-04-19", 200, serverFreeze),
     });
-    loadLocalProgressSummaryMock.mockResolvedValue(createProgressSummary(2, true, "2026-04-20", 2));
-    loadLocalProgressActiveDatesMock.mockResolvedValue([
-      "2026-04-19",
-      "2026-04-20",
-    ]);
+    loadLocalProgressSummaryMock.mockResolvedValue(createProgressSummary(1, true, "2026-04-20", 1));
+    loadLocalProgressActiveDatesMock.mockResolvedValue(["2026-04-20"]);
 
     const harness = renderHarness({
       sessionVerificationState: "verified",
@@ -671,8 +677,17 @@ describe("useProgressSource summary and series", () => {
     await flushEffects();
 
     expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.currentStreakDays).toBe(201);
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(201);
     expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.streakFreeze).toEqual(
-      createDefaultStreakFreeze(),
+      {
+        availableCredits: 3,
+        capacity: 3,
+        balanceUnits: 30,
+        unitsPerCredit: 10,
+        earnedUnitsPerStreakDay: 2,
+        nextCreditProgressUnits: 0,
+        nextCreditRequiredUnits: 10,
+      },
     );
   });
 

@@ -37,13 +37,13 @@ const progressReviewScheduleStorageKeyPrefix = "flashcards-progress-server-revie
 // Single fixed key: the leaderboard payload is account-scoped, so one cache slot
 // is enough and lets settings clear it without knowing the active scope key.
 const progressLeaderboardStorageKey = "flashcards-progress-server-leaderboard";
-const progressServerSummaryVersion = 3;
+const progressServerSummaryVersion = 4;
 const progressServerSeriesVersion = 3;
 const progressServerReviewScheduleVersion = 2;
 const progressServerLeaderboardVersion = 2;
 
 type PersistedProgressSummary = Readonly<{
-  version: 3;
+  version: 4;
   scopeKey: ProgressScopeKey;
   savedAt: string;
   serverBase: ProgressSummaryPayload;
@@ -314,6 +314,7 @@ function parsePersistedStreakFreeze(value: unknown): StreakFreeze | null {
     || isNonNegativeSafeIntegerValue(value.capacity) === false
     || isNonNegativeSafeIntegerValue(value.balanceUnits) === false
     || isNonNegativeSafeIntegerValue(value.unitsPerCredit) === false
+    || isNonNegativeSafeIntegerValue(value.earnedUnitsPerStreakDay) === false
     || isNonNegativeSafeIntegerValue(value.nextCreditProgressUnits) === false
     || isNonNegativeSafeIntegerValue(value.nextCreditRequiredUnits) === false
   ) {
@@ -325,6 +326,7 @@ function parsePersistedStreakFreeze(value: unknown): StreakFreeze | null {
     capacity: value.capacity,
     balanceUnits: value.balanceUnits,
     unitsPerCredit: value.unitsPerCredit,
+    earnedUnitsPerStreakDay: value.earnedUnitsPerStreakDay,
     nextCreditProgressUnits: value.nextCreditProgressUnits,
     nextCreditRequiredUnits: value.nextCreditRequiredUnits,
   };
@@ -437,7 +439,7 @@ function parsePersistedProgressSummary(rawValue: string | null): ProgressCacheRe
   return {
     status: "hit",
     value: {
-      version: 3,
+      version: progressServerSummaryVersion,
       scopeKey: parsedValue.scopeKey,
       savedAt: parsedValue.savedAt,
       serverBase: {
@@ -1028,7 +1030,7 @@ function assertProgressReviewScheduleTimeZone(
 
 export function storePersistedProgressSummary(scopeKey: ProgressScopeKey, serverBase: ProgressSummaryPayload): void {
   const persistedValue: PersistedProgressSummary = {
-    version: 3,
+    version: progressServerSummaryVersion,
     scopeKey,
     savedAt: new Date().toISOString(),
     serverBase,
