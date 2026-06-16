@@ -4,7 +4,9 @@
 }
 
 .settings-panel {
+  width: 100%;
   max-width: 980px;
+  justify-self: center;
   align-content: start;
   border: 0;
   border-radius: 0;
