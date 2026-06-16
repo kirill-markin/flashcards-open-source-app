@@ -157,7 +157,7 @@ class ProgressContextRefreshControllerTest {
     }
 }
 
-private const val testAppVersion: String = "1.10.0"
+private const val testAppVersion: String = "1.11.0"
 private const val testVersionCode: Int = 1
 
 private class TestAppObservability : AppObservability {

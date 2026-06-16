@@ -48,7 +48,7 @@ internal class CloudIdentityTestEnvironment private constructor(
     val resetCoordinator: CloudIdentityResetCoordinator,
     val aiChatRemoteService: AiChatRemoteService
 ) {
-    private val appVersion: String = "1.10.0"
+    private val appVersion: String = "1.11.0"
 
     companion object {
         suspend fun create(): CloudIdentityTestEnvironment {
