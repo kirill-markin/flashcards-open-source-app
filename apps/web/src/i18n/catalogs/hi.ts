@@ -175,7 +175,7 @@ const hiCatalog: TranslationCatalog = {
       unavailable: "लीडरबोर्ड अभी उपलब्ध नहीं है। बाद में फिर देखें।",
       invite: {
         actionLabel: "दोस्त का आमंत्रण बनाएं",
-        actionText: "आमंत्रित करें",
+        actionText: "दोस्त को आमंत्रित करें",
         title: "दोस्त को आमंत्रित करें",
         body: "लीडरबोर्ड के लिए निजी दोस्त लिंक बनाएं।",
         friendNameLabel: "आपकी रेटिंग में दोस्त का नाम",
@@ -285,6 +285,10 @@ const hiCatalog: TranslationCatalog = {
   settingsHome: {
     title: "सेटिंग्स",
     subtitle: "खाता, वर्कस्पेस, सहायता और उन्नत वेब सेटिंग्स मैनेज करें।",
+    inviteFriend: {
+      actionText: "दोस्त को आमंत्रित करें",
+      ariaLabel: "दोस्त का आमंत्रण बनाएं",
+    },
     groups: {
       account: "खाता",
       general: "सामान्य",

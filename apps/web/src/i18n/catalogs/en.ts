@@ -173,7 +173,7 @@ const enCatalog = {
       unavailable: "The leaderboard is not available right now. Check back later.",
       invite: {
         actionLabel: "Create friend invite",
-        actionText: "Invite",
+        actionText: "Invite friend",
         title: "Invite a friend",
         body: "Create a private friend link for the leaderboard.",
         friendNameLabel: "Friend name in your ratings",
@@ -283,6 +283,10 @@ const enCatalog = {
   settingsHome: {
     title: "Settings",
     subtitle: "Manage account, workspace, support, and advanced web settings.",
+    inviteFriend: {
+      actionText: "Invite friend",
+      ariaLabel: "Create friend invite",
+    },
     groups: {
       account: "Account",
       general: "General",

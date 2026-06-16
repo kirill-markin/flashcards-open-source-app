@@ -1,6 +1,7 @@
-import { useEffect, type ReactElement } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import { isAuthRedirectError } from "../../api";
 import { useAppData } from "../../appData";
+import { canLoadProgressServerBase } from "../../appData/progress/progressSource";
 import {
   autoLocalePreference,
   type Locale,
@@ -33,6 +34,7 @@ import {
   settingsTestRoute,
 } from "../../routes";
 import { useTestMode } from "../../testMode";
+import { FriendInviteCreateDialog } from "../friends/FriendInviteCreateDialog";
 import {
   SettingsGroup,
   SettingsNavigationCard,
@@ -71,15 +73,18 @@ export function SettingsScreen(): ReactElement {
     isSessionVerified,
     refreshAccountPreferences,
     session,
+    sessionVerificationState,
     setErrorMessage,
     workspaceSettings,
   } = useAppData();
   const { localePreference, t } = useI18n();
   const { isTestModeEnabled } = useTestMode();
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState<boolean>(false);
   const currentWorkspaceName = activeWorkspace?.name ?? t("common.unavailable");
   const accountStatus = accountStatusValue(cloudSettings?.linkedEmail ?? session?.profile.email ?? null, t("common.unavailable"));
   const languagePreferenceLabel = formatLocalePreferenceLabel(localePreference, t);
   const schedulerValue = workspaceSettings === null ? t("common.unavailable") : workspaceSettings.algorithm.toUpperCase();
+  const canCreateInvite = canLoadProgressServerBase(sessionVerificationState, cloudSettings);
 
   useEffect(() => {
     if (session === null || isSessionVerified === false) {
@@ -101,6 +106,18 @@ export function SettingsScreen(): ReactElement {
       subtitle={t("settingsHome.subtitle")}
       activeTab="general"
     >
+      <div className="settings-invite-row">
+        <button
+          className="primary-btn settings-invite-btn"
+          type="button"
+          aria-label={t("settingsHome.inviteFriend.ariaLabel")}
+          onClick={() => setIsInviteDialogOpen(true)}
+          data-testid="settings-invite-open"
+        >
+          {t("settingsHome.inviteFriend.actionText")}
+        </button>
+      </div>
+
       <SettingsGroup title={t("settingsHome.groups.account")}>
         <div className="settings-nav-list">
           <SettingsNavigationCard
@@ -276,6 +293,14 @@ export function SettingsScreen(): ReactElement {
           ) : null}
         </div>
       </SettingsGroup>
+
+      {isInviteDialogOpen ? (
+        <FriendInviteCreateDialog
+          canCreateInvite={canCreateInvite}
+          authRedirectUrl={window.location.href}
+          onClose={() => setIsInviteDialogOpen(false)}
+        />
+      ) : null}
     </SettingsShell>
   );
 }

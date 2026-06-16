@@ -111,6 +111,15 @@
   gap: 14px;
 }
 
+.settings-invite-row {
+  display: grid;
+}
+
+.settings-invite-btn {
+  width: 100%;
+  min-height: 52px;
+}
+
 .settings-nav-card {
   display: flex;
   gap: 16px;

@@ -175,7 +175,7 @@ const esMxCatalog: TranslationCatalog = {
       unavailable: "La tabla de posiciones no está disponible por ahora. Vuelve más tarde.",
       invite: {
         actionLabel: "Crear invitación de amigo",
-        actionText: "Invitar",
+        actionText: "Invitar a un amigo",
         title: "Invitar a un amigo",
         body: "Crea un enlace privado de amigo para la tabla de posiciones.",
         friendNameLabel: "Nombre del amigo en tus calificaciones",
@@ -285,6 +285,10 @@ const esMxCatalog: TranslationCatalog = {
   settingsHome: {
     title: "Configuración",
     subtitle: "Administra la cuenta, el espacio de trabajo, el soporte y la configuración web avanzada.",
+    inviteFriend: {
+      actionText: "Invitar a un amigo",
+      ariaLabel: "Crear invitación de amigo",
+    },
     groups: {
       account: "Cuenta",
       general: "General",

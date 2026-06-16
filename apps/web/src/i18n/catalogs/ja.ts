@@ -175,7 +175,7 @@ export const jaCatalog = {
       unavailable: "リーダーボードは現在利用できません。しばらくしてからもう一度ご確認ください。",
       invite: {
         actionLabel: "友だち招待を作成",
-        actionText: "招待",
+        actionText: "友だちを招待",
         title: "友だちを招待",
         body: "リーダーボード用の非公開友だちリンクを作成します。",
         friendNameLabel: "自分の評価で表示する友だちの名前",
@@ -285,6 +285,10 @@ export const jaCatalog = {
   settingsHome: {
     title: "設定",
     subtitle: "アカウント、ワークスペース、サポート、詳細な Web 設定を管理します。",
+    inviteFriend: {
+      actionText: "友だちを招待",
+      ariaLabel: "友だち招待を作成",
+    },
     groups: {
       account: "アカウント",
       general: "一般",

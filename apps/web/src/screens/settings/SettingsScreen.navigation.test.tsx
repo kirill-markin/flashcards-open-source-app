@@ -242,6 +242,17 @@ function expectRowVisible(testId: string): void {
   expect(getContainer().querySelector(`[data-testid='${testId}']`)).not.toBeNull();
 }
 
+async function clickButton(testId: string): Promise<void> {
+  const button = getContainer().querySelector(`[data-testid='${testId}']`);
+  if (!(button instanceof HTMLButtonElement)) {
+    throw new Error(`Settings button ${testId} was not found`);
+  }
+
+  await act(async () => {
+    clickElement(button);
+  });
+}
+
 function rowIndex(testId: string): number {
   const rows = Array.from(getContainer().querySelectorAll("[data-testid]"));
   const index = rows.findIndex((row) => row.getAttribute("data-testid") === testId);
@@ -297,6 +308,9 @@ describe("SettingsScreen navigation", () => {
       "settings-row-delete-current-workspace",
       "settings-row-delete-account",
     ].forEach(expectRowVisible);
+    expectRowVisible("settings-invite-open");
+    expect(getContainer().querySelector("[data-testid='settings-invite-open']")?.textContent).toBe("Invite friend");
+    expect(rowIndex("settings-invite-open")).toBeLessThan(rowIndex("settings-row-account-status"));
     expect(rowIndex("settings-row-review-reminders")).toBeLessThan(rowIndex("settings-row-review-animations"));
     expect(rowIndex("settings-row-review-animations")).toBeLessThan(rowIndex("settings-row-leaderboard-participation"));
     expect(rowIndex("settings-row-leaderboard-participation")).toBeLessThan(rowIndex("settings-row-language"));
@@ -310,6 +324,27 @@ describe("SettingsScreen navigation", () => {
     await renderSettingsScreen();
 
     expectRowVisible("settings-row-test");
+  });
+
+  it("opens the shared friend invite dialog from Settings", async () => {
+    await renderSettingsScreen();
+
+    await clickButton("settings-invite-open");
+
+    expect(document.body.querySelector("[data-testid='progress-leaderboard-invite-name-input']")).not.toBeNull();
+  });
+
+  it("opens the invite sign-in prompt from Settings for unlinked accounts", async () => {
+    useAppDataMock.mockReturnValue({
+      ...createAppData(),
+      cloudSettings: null,
+    });
+
+    await renderSettingsScreen();
+
+    await clickButton("settings-invite-open");
+
+    expect(document.body.querySelector("[data-testid='progress-leaderboard-invite-sign-in']")).not.toBeNull();
   });
 
   it("navigates representative root rows to their detail routes", async () => {

@@ -623,27 +623,17 @@ svg.progress-review-schedule-donut {
 }
 
 .progress-streak-info-btn,
-.progress-leaderboard-info-btn,
-.progress-leaderboard-invite-btn {
+.progress-leaderboard-info-btn {
   min-width: 34px;
   padding: 0 10px;
 }
 
-.progress-leaderboard-invite-btn {
-  gap: 6px;
+.progress-leaderboard-invite-row {
+  display: grid;
 }
 
-.progress-leaderboard-invite-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  border: 1px solid currentColor;
-  border-radius: 50%;
-  font-size: 16px;
-  line-height: 1;
-  font-weight: 700;
+.progress-leaderboard-invite-cta {
+  width: 100%;
 }
 
 .progress-streak-info-icon,

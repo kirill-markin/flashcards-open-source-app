@@ -1174,6 +1174,30 @@ describe("ProgressScreen", () => {
       );
     });
 
+    const leaderboardCard = container.querySelector("[data-testid='progress-leaderboard-card']");
+    if (!(leaderboardCard instanceof HTMLElement)) {
+      throw new Error("Leaderboard card was not found");
+    }
+
+    const headerActions = leaderboardCard.querySelector(".progress-leaderboard-head-actions");
+    if (!(headerActions instanceof HTMLElement)) {
+      throw new Error("Leaderboard header actions were not found");
+    }
+    expect(headerActions.querySelector("[data-testid='progress-leaderboard-invite-open']")).toBeNull();
+
+    const inviteOpenButton = leaderboardCard.querySelector("[data-testid='progress-leaderboard-invite-open']");
+    if (!(inviteOpenButton instanceof HTMLButtonElement)) {
+      throw new Error("Leaderboard invite button was not found");
+    }
+    expect(inviteOpenButton.textContent).toBe("Invite friend");
+    expect(inviteOpenButton.className).toContain("primary-btn");
+
+    const periodSelector = leaderboardCard.querySelector(".progress-leaderboard-periods");
+    if (!(periodSelector instanceof HTMLElement)) {
+      throw new Error("Leaderboard period selector was not found");
+    }
+    expect(inviteOpenButton.compareDocumentPosition(periodSelector) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+
     const rows = [...container.querySelectorAll(".progress-leaderboard-row")];
     expect(rows.map((row) => row.getAttribute("data-kind"))).toEqual([
       "top",
