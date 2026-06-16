@@ -38,6 +38,8 @@ import {
   cardsRoute,
   chatRoute,
   friendInviteRoutePattern,
+  friendInvitePreviewIndexRoute,
+  friendInvitePreviewRoutePattern,
   progressRoute,
   reviewRoute,
   settingsAccessRoute,
@@ -85,6 +87,9 @@ const primaryNavigationItems: ReadonlyArray<PrimaryNavigationItem> = [
 ];
 
 const ChatPanel = lazy(async () => import("./chat/ChatPanel").then((module) => ({ default: module.ChatPanel })));
+const FriendInvitePreviewScreen = lazy(async () => import("./dev/previews/invite/FriendInvitePreviewScreen").then((module) => ({
+  default: module.FriendInvitePreviewScreen,
+})));
 const AccessPermissionDetailScreen = lazy(async () => import("./screens/settings/access/AccessPermissionDetailScreen").then((module) => ({
   default: module.AccessPermissionDetailScreen,
 })));
@@ -740,6 +745,14 @@ export default function App(): ReactElement {
       <BrowserRouter>
         <TestModeProvider>
           <SentryRoutes>
+            <Route
+              path={friendInvitePreviewIndexRoute}
+              element={renderDeferredRoute(<FriendInvitePreviewScreen />, "friendInvite.loading")}
+            />
+            <Route
+              path={friendInvitePreviewRoutePattern}
+              element={renderDeferredRoute(<FriendInvitePreviewScreen />, "friendInvite.loading")}
+            />
             <Route path={friendInviteRoutePattern} element={<FriendInviteScreen />} />
             <Route path="/*" element={<AuthenticatedApp />} />
           </SentryRoutes>

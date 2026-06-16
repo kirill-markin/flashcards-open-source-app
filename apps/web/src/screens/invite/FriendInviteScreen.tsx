@@ -70,6 +70,163 @@ function InviteSuccessLinks(): ReactElement {
   );
 }
 
+type FriendInviteRetryPanelProps = Readonly<{
+  errorMessage: string;
+  onRetry: () => void;
+}>;
+
+type FriendInviteSignedOutPanelProps = Readonly<{
+  loginHref: string;
+}>;
+
+type FriendInviteSuccessPanelProps = Readonly<{
+  acceptedResponse: FriendInvitationAcceptResponse | null;
+}>;
+
+type FriendInviteReadyPanelProps = Readonly<{
+  friendDisplayName: string;
+  fieldErrorMessage: string;
+  errorMessage: string;
+  isSubmitting: boolean;
+  canAccept: boolean;
+  onFriendDisplayNameChange: (value: string) => void;
+  onAccept: () => void;
+}>;
+
+// Dev previews for these production panels are documented in docs/web-invite-previews.md.
+export function FriendInviteLoadingPanel(): ReactElement {
+  const { t } = useI18n();
+
+  return (
+    <main className="invite-page">
+      <section className="content-card invite-panel">
+        <p className="subtitle" data-testid="friend-invite-loading">{t("friendInvite.loading")}</p>
+      </section>
+    </main>
+  );
+}
+
+export function FriendInviteInactivePanel({ errorMessage, onRetry }: FriendInviteRetryPanelProps): ReactElement {
+  const { t } = useI18n();
+
+  return (
+    <main className="invite-page">
+      <section className="content-card invite-panel" data-testid="friend-invite-inactive">
+        <h1 className="title">{t("friendInvite.inactiveTitle")}</h1>
+        <p className="subtitle">{t("friendInvite.inactiveBody")}</p>
+        {errorMessage !== "" ? <p className="error-banner" role="alert">{errorMessage}</p> : null}
+        <button className="ghost-btn" type="button" onClick={onRetry}>
+          {t("common.retry")}
+        </button>
+      </section>
+    </main>
+  );
+}
+
+export function FriendInviteErrorPanel({ errorMessage, onRetry }: FriendInviteRetryPanelProps): ReactElement {
+  const { t } = useI18n();
+
+  return (
+    <main className="invite-page">
+      <section className="content-card invite-panel" data-testid="friend-invite-error">
+        <h1 className="title">{t("friendInvite.errorTitle")}</h1>
+        <p className="subtitle">{t("friendInvite.errorBody")}</p>
+        {errorMessage !== "" ? <p className="error-banner" role="alert">{errorMessage}</p> : null}
+        <button className="ghost-btn" type="button" onClick={onRetry}>
+          {t("common.retry")}
+        </button>
+      </section>
+    </main>
+  );
+}
+
+export function FriendInviteSignedOutPanel({ loginHref }: FriendInviteSignedOutPanelProps): ReactElement {
+  const { t } = useI18n();
+
+  return (
+    <main className="invite-page">
+      <section className="content-card invite-panel" data-testid="friend-invite-signed-out">
+        <h1 className="title">{t("friendInvite.signInTitle")}</h1>
+        <p className="subtitle">{t("friendInvite.signInBody")}</p>
+        <a className="primary-btn" href={loginHref}>
+          {t("friendInvite.signInButton")}
+        </a>
+      </section>
+    </main>
+  );
+}
+
+export function FriendInviteSuccessPanel({ acceptedResponse }: FriendInviteSuccessPanelProps): ReactElement {
+  const { t } = useI18n();
+  const isAlreadyFriends = acceptedResponse?.status === "already_friends";
+
+  return (
+    <main className="invite-page">
+      <section className="content-card invite-panel" data-testid="friend-invite-success">
+        <h1 className="title">
+          {isAlreadyFriends ? t("friendInvite.alreadyFriendsTitle") : t("friendInvite.successTitle")}
+        </h1>
+        <p className="subtitle">
+          {isAlreadyFriends && acceptedResponse?.status === "already_friends"
+            ? t("friendInvite.alreadyFriendsBody", { name: acceptedResponse.existingFriendDisplayName })
+            : t("friendInvite.successBody")}
+        </p>
+        <InviteSuccessLinks />
+        <InviteMobileLinksNotice />
+      </section>
+    </main>
+  );
+}
+
+export function FriendInviteReadyPanel({
+  friendDisplayName,
+  fieldErrorMessage,
+  errorMessage,
+  isSubmitting,
+  canAccept,
+  onFriendDisplayNameChange,
+  onAccept,
+}: FriendInviteReadyPanelProps): ReactElement {
+  const { t } = useI18n();
+
+  return (
+    <main className="invite-page">
+      <section className="content-card invite-panel" data-testid="friend-invite-ready">
+        <h1 className="title">{t("friendInvite.formTitle")}</h1>
+        <p className="subtitle">{t("friendInvite.formBody")}</p>
+        <label className="form-label invite-field">
+          <span>{t("friendInvite.displayNameLabel")}</span>
+          <input
+            className="text-input"
+            type="text"
+            value={friendDisplayName}
+            disabled={isSubmitting}
+            onChange={(event) => {
+              onFriendDisplayNameChange(event.target.value);
+            }}
+            data-testid="friend-invite-display-name-input"
+          />
+        </label>
+        {fieldErrorMessage !== "" ? (
+          <p className="error-banner" role="alert" data-testid="friend-invite-display-name-error">
+            {fieldErrorMessage}
+          </p>
+        ) : null}
+        {errorMessage !== "" ? <p className="error-banner" role="alert">{errorMessage}</p> : null}
+        <button
+          className="primary-btn"
+          type="button"
+          disabled={isSubmitting || !canAccept}
+          onClick={onAccept}
+          data-testid="friend-invite-accept-button"
+        >
+          {isSubmitting ? t("friendInvite.accepting") : t("friendInvite.accept")}
+        </button>
+      </section>
+    </main>
+  );
+}
+
 export function FriendInviteScreen(): ReactElement {
   const { token } = useParams();
   const inviteToken = readInviteTokenParam(token);
@@ -163,116 +320,48 @@ export function FriendInviteScreen(): ReactElement {
     }
   }
 
+  function retryInviteLoad(): void {
+    void loadInvite();
+  }
+
+  function updateFriendDisplayName(value: string): void {
+    setFriendDisplayName(value);
+    setFieldErrorMessage("");
+  }
+
+  function acceptInvite(): void {
+    void submitInviteAcceptance();
+  }
+
   if (loadState === "loading") {
-    return (
-      <main className="invite-page">
-        <section className="content-card invite-panel">
-          <p className="subtitle" data-testid="friend-invite-loading">{t("friendInvite.loading")}</p>
-        </section>
-      </main>
-    );
+    return <FriendInviteLoadingPanel />;
   }
 
   if (loadState === "inactive") {
-    return (
-      <main className="invite-page">
-        <section className="content-card invite-panel" data-testid="friend-invite-inactive">
-          <h1 className="title">{t("friendInvite.inactiveTitle")}</h1>
-          <p className="subtitle">{t("friendInvite.inactiveBody")}</p>
-          {errorMessage !== "" ? <p className="error-banner" role="alert">{errorMessage}</p> : null}
-          <button className="ghost-btn" type="button" onClick={() => void loadInvite()}>
-            {t("common.retry")}
-          </button>
-        </section>
-      </main>
-    );
+    return <FriendInviteInactivePanel errorMessage={errorMessage} onRetry={retryInviteLoad} />;
   }
 
   if (loadState === "error") {
-    return (
-      <main className="invite-page">
-        <section className="content-card invite-panel" data-testid="friend-invite-error">
-          <h1 className="title">{t("friendInvite.errorTitle")}</h1>
-          <p className="subtitle">{t("friendInvite.errorBody")}</p>
-          {errorMessage !== "" ? <p className="error-banner" role="alert">{errorMessage}</p> : null}
-          <button className="ghost-btn" type="button" onClick={() => void loadInvite()}>
-            {t("common.retry")}
-          </button>
-        </section>
-      </main>
-    );
+    return <FriendInviteErrorPanel errorMessage={errorMessage} onRetry={retryInviteLoad} />;
   }
 
   if (loadState === "signed_out") {
-    return (
-      <main className="invite-page">
-        <section className="content-card invite-panel" data-testid="friend-invite-signed-out">
-          <h1 className="title">{t("friendInvite.signInTitle")}</h1>
-          <p className="subtitle">{t("friendInvite.signInBody")}</p>
-          <a className="primary-btn" href={buildLoginUrl(window.location.href, locale)}>
-            {t("friendInvite.signInButton")}
-          </a>
-        </section>
-      </main>
-    );
+    return <FriendInviteSignedOutPanel loginHref={buildLoginUrl(window.location.href, locale)} />;
   }
 
   if (loadState === "success") {
-    const isAlreadyFriends = acceptedResponse?.status === "already_friends";
-
-    return (
-      <main className="invite-page">
-        <section className="content-card invite-panel" data-testid="friend-invite-success">
-          <h1 className="title">
-            {isAlreadyFriends ? t("friendInvite.alreadyFriendsTitle") : t("friendInvite.successTitle")}
-          </h1>
-          <p className="subtitle">
-            {isAlreadyFriends && acceptedResponse?.status === "already_friends"
-              ? t("friendInvite.alreadyFriendsBody", { name: acceptedResponse.existingFriendDisplayName })
-              : t("friendInvite.successBody")}
-          </p>
-          <InviteSuccessLinks />
-          <InviteMobileLinksNotice />
-        </section>
-      </main>
-    );
+    return <FriendInviteSuccessPanel acceptedResponse={acceptedResponse} />;
   }
 
   return (
-    <main className="invite-page">
-      <section className="content-card invite-panel" data-testid="friend-invite-ready">
-        <h1 className="title">{t("friendInvite.formTitle")}</h1>
-        <p className="subtitle">{t("friendInvite.formBody")}</p>
-        <label className="form-label invite-field">
-          <span>{t("friendInvite.displayNameLabel")}</span>
-          <input
-            className="text-input"
-            type="text"
-            value={friendDisplayName}
-            disabled={isSubmitting}
-            onChange={(event) => {
-              setFriendDisplayName(event.target.value);
-              setFieldErrorMessage("");
-            }}
-            data-testid="friend-invite-display-name-input"
-          />
-        </label>
-        {fieldErrorMessage !== "" ? (
-          <p className="error-banner" role="alert" data-testid="friend-invite-display-name-error">
-            {fieldErrorMessage}
-          </p>
-        ) : null}
-        {errorMessage !== "" ? <p className="error-banner" role="alert">{errorMessage}</p> : null}
-        <button
-          className="primary-btn"
-          type="button"
-          disabled={isSubmitting || preview?.status !== "active"}
-          onClick={() => void submitInviteAcceptance()}
-          data-testid="friend-invite-accept-button"
-        >
-          {isSubmitting ? t("friendInvite.accepting") : t("friendInvite.accept")}
-        </button>
-      </section>
-    </main>
+    <FriendInviteReadyPanel
+      friendDisplayName={friendDisplayName}
+      fieldErrorMessage={fieldErrorMessage}
+      errorMessage={errorMessage}
+      isSubmitting={isSubmitting}
+      canAccept={preview?.status === "active"}
+      onFriendDisplayNameChange={updateFriendDisplayName}
+      onAccept={acceptInvite}
+    />
   );
 }
