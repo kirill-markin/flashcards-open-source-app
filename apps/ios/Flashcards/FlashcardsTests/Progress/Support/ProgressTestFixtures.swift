@@ -192,6 +192,7 @@ func makeTestProgressStreakFreeze(
         capacity: progressStreakFreezePolicy.maxCapacity,
         balanceUnits: balanceUnits,
         unitsPerCredit: progressStreakFreezePolicy.unitsPerCredit,
+        earnedUnitsPerStreakDay: progressStreakFreezePolicy.earnedUnitsPerStreakDay,
         nextCreditProgressUnits: nextCreditProgressUnits,
         nextCreditRequiredUnits: progressStreakFreezePolicy.unitsPerCredit
     )

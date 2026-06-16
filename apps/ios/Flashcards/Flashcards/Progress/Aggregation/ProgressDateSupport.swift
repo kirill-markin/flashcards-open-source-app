@@ -60,11 +60,6 @@ private struct ProgressStreakEvaluationAccumulator: Hashable, Sendable {
     let statesByDate: [String: ProgressStreakDayState]
 }
 
-private struct ProgressStreakReplayCandidate: Hashable, Sendable {
-    let state: ProgressStreakComputationState
-    let seedState: ProgressStreakComputationState?
-}
-
 func makeProgressRequestRange(
     now: Date,
     timeZone: TimeZone,
@@ -220,256 +215,6 @@ func evaluateProgressStreakFreeze(
     )
 }
 
-func evaluateProgressStreakFreeze(
-    baseSummary: ProgressSummary,
-    baseStreakDays: [ProgressStreakDay],
-    activeReviewLocalDates: Set<String>,
-    today: String,
-    policy: ProgressStreakFreezePolicy
-) throws -> ProgressStreakFreezeEvaluation {
-    try validateProgressStreakFreezePolicy(policy: policy)
-    try validateProgressSummaryStreakContract(summary: baseSummary)
-    try validateProgressStreakLocalDate(value: today, fieldName: "today")
-    for activeReviewLocalDate in activeReviewLocalDates {
-        try validateProgressStreakLocalDate(value: activeReviewLocalDate, fieldName: "active review local date")
-    }
-
-    let baseStreakStatesByDate = Dictionary(uniqueKeysWithValues: baseStreakDays.map { streakDay in
-        (streakDay.date, streakDay.state)
-    })
-    let frozenReplacementDates = Set(
-        activeReviewLocalDates.filter { activeReviewLocalDate in
-            activeReviewLocalDate <= today
-                && baseStreakStatesByDate[activeReviewLocalDate] == .frozen
-        }
-    )
-    let sortedDeltaReviewDates = activeReviewLocalDates
-        .filter { activeReviewLocalDate in
-            frozenReplacementDates.contains(activeReviewLocalDate) == false
-                && progressShouldApplyBaseSummaryReviewDelta(
-                    baseSummary: baseSummary,
-                    activeReviewLocalDate: activeReviewLocalDate,
-                    today: today
-                )
-        }
-        .sorted()
-    let refundedBaseBalanceUnits = clampedProgressStreakBalanceUnits(
-        balanceUnits: baseSummary.streakFreeze.balanceUnits + frozenReplacementDates.count * policy.unitsPerCredit,
-        policy: policy
-    )
-    let replacementStreakDays = frozenReplacementDates.map { replacementDate in
-        ProgressStreakDay(date: replacementDate, state: .reviewed)
-    }
-    guard let firstDeltaReviewDate = sortedDeltaReviewDates.first else {
-        let todayState: ProgressStreakDayState = baseSummary.hasReviewedToday ? .reviewed : .pending
-        let replacementDates = Set(frozenReplacementDates)
-        let streakDays = replacementStreakDays + (
-            replacementDates.contains(today)
-                ? []
-                : [ProgressStreakDay(date: today, state: todayState)]
-        )
-        return ProgressStreakFreezeEvaluation(
-            currentStreakDays: baseSummary.currentStreakDays,
-            longestStreakDays: baseSummary.longestStreakDays,
-            streakFreeze: makeProgressStreakFreeze(
-                balanceUnits: refundedBaseBalanceUnits,
-                policy: policy
-            ),
-            streakDays: streakDays.sorted { left, right in
-                left.date < right.date
-            }
-        )
-    }
-
-    let baseLastEvaluatedDate = try progressShiftLocalDateForStore(value: firstDeltaReviewDate, offsetDays: -1)
-    let baseState = ProgressStreakComputationState(
-        balanceUnits: refundedBaseBalanceUnits,
-        currentStreakDays: baseSummary.currentStreakDays,
-        longestStreakDays: baseSummary.longestStreakDays,
-        hasActiveSegment: baseSummary.currentStreakDays > 0,
-        lastEvaluatedDate: baseLastEvaluatedDate
-    )
-    let accumulatorAfterReviews = try sortedDeltaReviewDates.reduce(
-        ProgressStreakEvaluationAccumulator(
-            state: baseState,
-            statesByDate: [:]
-        )
-    ) { accumulator, reviewDate in
-        let beforeReview = try addNonReviewedProgressStreakDaysBeforeReview(
-            state: accumulator.state,
-            nextReviewDate: reviewDate,
-            policy: policy
-        )
-        var statesByDate = accumulator.statesByDate
-        for (date, state) in beforeReview.statesByDate {
-            statesByDate[date] = state
-        }
-        statesByDate[reviewDate] = .reviewed
-
-        return ProgressStreakEvaluationAccumulator(
-            state: addReviewedProgressStreakDay(
-                state: beforeReview.state,
-                date: reviewDate,
-                policy: policy
-            ),
-            statesByDate: statesByDate
-        )
-    }
-    let finalState = try addTrailingProgressStreakDaysThroughToday(
-        state: accumulatorAfterReviews.state,
-        today: today,
-        policy: policy
-    )
-    var statesByDate = Dictionary(uniqueKeysWithValues: replacementStreakDays.map { streakDay in
-        (streakDay.date, streakDay.state)
-    })
-    for (date, state) in accumulatorAfterReviews.statesByDate {
-        statesByDate[date] = state
-    }
-    for (date, state) in finalState.statesByDate {
-        statesByDate[date] = state
-    }
-    for replacementStreakDay in replacementStreakDays {
-        statesByDate[replacementStreakDay.date] = replacementStreakDay.state
-    }
-
-    return ProgressStreakFreezeEvaluation(
-        currentStreakDays: finalState.state.currentStreakDays,
-        longestStreakDays: finalState.state.longestStreakDays,
-        streakFreeze: makeProgressStreakFreeze(
-            balanceUnits: finalState.state.balanceUnits,
-            policy: policy
-        ),
-        streakDays: makeProgressStreakDays(statesByDate: statesByDate)
-    )
-}
-
-func evaluateProgressStreakDaysFromServerBasePrefix(
-    serverBaseStreakDays: [ProgressStreakDay],
-    activeReviewLocalDates: Set<String>,
-    today: String,
-    recomputeFromLocalDate: String,
-    policy: ProgressStreakFreezePolicy
-) throws -> [ProgressStreakDay] {
-    try validateProgressStreakFreezePolicy(policy: policy)
-    try validateProgressStreakLocalDate(value: today, fieldName: "today")
-    try validateProgressStreakLocalDate(value: recomputeFromLocalDate, fieldName: "recomputeFromLocalDate")
-    guard recomputeFromLocalDate <= today else {
-        throw LocalStoreError.validation(
-            """
-            Progress recomputeFromLocalDate must not be after today. \
-            recomputeFromLocalDate=\(recomputeFromLocalDate), today=\(today).
-            """
-        )
-    }
-    for activeReviewLocalDate in activeReviewLocalDates {
-        try validateProgressStreakLocalDate(value: activeReviewLocalDate, fieldName: "active review local date")
-    }
-
-    let sortedServerBaseStreakDays = try sortedValidatedProgressStreakDays(
-        streakDays: serverBaseStreakDays,
-        sourceName: "serverBase"
-    )
-    let seedState = try makeProgressStreakReplaySeed(
-        sortedServerBaseStreakDays: sortedServerBaseStreakDays,
-        today: today,
-        recomputeFromLocalDate: recomputeFromLocalDate,
-        policy: policy
-    )
-    let sortedDeltaReviewDates = activeReviewLocalDates
-        .filter { activeReviewLocalDate in
-            activeReviewLocalDate >= recomputeFromLocalDate
-                && activeReviewLocalDate <= today
-        }
-        .sorted()
-
-    let evaluation = try evaluateProgressStreakFreeze(
-        seedState: seedState,
-        sortedActiveReviewLocalDates: sortedDeltaReviewDates,
-        today: today,
-        policy: policy
-    )
-
-    return evaluation.streakDays
-}
-
-private func evaluateProgressStreakFreeze(
-    seedState: ProgressStreakComputationState,
-    sortedActiveReviewLocalDates: [String],
-    today: String,
-    policy: ProgressStreakFreezePolicy
-) throws -> ProgressStreakFreezeEvaluation {
-    try validateSortedProgressStreakActiveReviewLocalDates(
-        sortedActiveReviewLocalDates: sortedActiveReviewLocalDates
-    )
-    let accumulatorAfterReviews = try sortedActiveReviewLocalDates.reduce(
-        ProgressStreakEvaluationAccumulator(
-            state: seedState,
-            statesByDate: [:]
-        )
-    ) { accumulator, reviewDate in
-        let beforeReview = try addNonReviewedProgressStreakDaysBeforeReview(
-            state: accumulator.state,
-            nextReviewDate: reviewDate,
-            policy: policy
-        )
-        var statesByDate = accumulator.statesByDate
-        for (date, state) in beforeReview.statesByDate {
-            statesByDate[date] = state
-        }
-        statesByDate[reviewDate] = .reviewed
-
-        return ProgressStreakEvaluationAccumulator(
-            state: addReviewedProgressStreakDay(
-                state: beforeReview.state,
-                date: reviewDate,
-                policy: policy
-            ),
-            statesByDate: statesByDate
-        )
-    }
-    let finalState = try addTrailingProgressStreakDaysThroughToday(
-        state: accumulatorAfterReviews.state,
-        today: today,
-        policy: policy
-    )
-    var statesByDate = accumulatorAfterReviews.statesByDate
-    for (date, state) in finalState.statesByDate {
-        statesByDate[date] = state
-    }
-
-    return ProgressStreakFreezeEvaluation(
-        currentStreakDays: finalState.state.currentStreakDays,
-        longestStreakDays: finalState.state.longestStreakDays,
-        streakFreeze: makeProgressStreakFreeze(
-            balanceUnits: finalState.state.balanceUnits,
-            policy: policy
-        ),
-        streakDays: makeProgressStreakDays(statesByDate: statesByDate)
-    )
-}
-
-private func progressShouldApplyBaseSummaryReviewDelta(
-    baseSummary: ProgressSummary,
-    activeReviewLocalDate: String,
-    today: String
-) -> Bool {
-    guard activeReviewLocalDate <= today else {
-        return false
-    }
-
-    if activeReviewLocalDate == today,
-       baseSummary.hasReviewedToday {
-        return false
-    }
-
-    guard let lastReviewedOn = baseSummary.lastReviewedOn else {
-        return true
-    }
-
-    return activeReviewLocalDate > lastReviewedOn
-}
-
 func makeProgressStreakDays(
     range: [String],
     activeReviewDates: Set<String>,
@@ -549,6 +294,14 @@ func validateProgressStreakFreeze(streakFreeze: ProgressStreakFreeze) throws {
             "Progress streakFreeze.unitsPerCredit must be positive: \(streakFreeze.unitsPerCredit)"
         )
     }
+    guard streakFreeze.earnedUnitsPerStreakDay >= 0 else {
+        throw LocalStoreError.validation(
+            """
+            Progress streakFreeze.earnedUnitsPerStreakDay must not be negative: \
+            \(streakFreeze.earnedUnitsPerStreakDay).
+            """
+        )
+    }
     guard streakFreeze.nextCreditProgressUnits >= 0 else {
         throw LocalStoreError.validation(
             """
@@ -565,42 +318,31 @@ func validateProgressStreakFreeze(streakFreeze: ProgressStreakFreeze) throws {
             """
         )
     }
-    guard streakFreeze.capacity == progressStreakFreezePolicy.maxCapacity else {
-        throw LocalStoreError.validation(
-            """
-            Progress streakFreeze.capacity must match the current policy. \
-            expected=\(progressStreakFreezePolicy.maxCapacity), actual=\(streakFreeze.capacity).
-            """
-        )
-    }
-    guard streakFreeze.unitsPerCredit == progressStreakFreezePolicy.unitsPerCredit else {
-        throw LocalStoreError.validation(
-            """
-            Progress streakFreeze.unitsPerCredit must match the current policy. \
-            expected=\(progressStreakFreezePolicy.unitsPerCredit), actual=\(streakFreeze.unitsPerCredit).
-            """
-        )
-    }
-    guard streakFreeze.nextCreditRequiredUnits == progressStreakFreezePolicy.unitsPerCredit else {
+    guard streakFreeze.nextCreditRequiredUnits == streakFreeze.unitsPerCredit else {
         throw LocalStoreError.validation(
             """
             Progress streakFreeze.nextCreditRequiredUnits must match unitsPerCredit. \
-            expected=\(progressStreakFreezePolicy.unitsPerCredit), actual=\(streakFreeze.nextCreditRequiredUnits).
+            expected=\(streakFreeze.unitsPerCredit), actual=\(streakFreeze.nextCreditRequiredUnits).
             """
         )
     }
-    guard streakFreeze.balanceUnits <= maximumProgressStreakBalanceUnits(policy: progressStreakFreezePolicy) else {
+    let maximumBalanceUnits = try maximumProgressStreakBalanceUnits(
+        capacity: streakFreeze.capacity,
+        unitsPerCredit: streakFreeze.unitsPerCredit
+    )
+    guard streakFreeze.balanceUnits <= maximumBalanceUnits else {
         throw LocalStoreError.validation(
             """
-            Progress streakFreeze.balanceUnits must not exceed the policy maximum. \
-            balanceUnits=\(streakFreeze.balanceUnits), maximum=\(maximumProgressStreakBalanceUnits(policy: progressStreakFreezePolicy)).
+            Progress streakFreeze.balanceUnits must not exceed capacity times unitsPerCredit. \
+            balanceUnits=\(streakFreeze.balanceUnits), maximum=\(maximumBalanceUnits).
             """
         )
     }
 
     let expectedAvailableCredits = availableProgressStreakFreezeCredits(
         balanceUnits: streakFreeze.balanceUnits,
-        policy: progressStreakFreezePolicy
+        capacity: streakFreeze.capacity,
+        unitsPerCredit: streakFreeze.unitsPerCredit
     )
     guard streakFreeze.availableCredits == expectedAvailableCredits else {
         throw LocalStoreError.validation(
@@ -668,53 +410,24 @@ private func validateSortedProgressStreakActiveReviewLocalDates(
     }
 }
 
-private func sortedValidatedProgressStreakDays(
-    streakDays: [ProgressStreakDay],
-    sourceName: String
-) throws -> [ProgressStreakDay] {
-    var statesByDate: [String: ProgressStreakDayState] = [:]
-    for streakDay in streakDays {
-        try validateProgressStreakLocalDate(value: streakDay.date, fieldName: "\(sourceName) streak day date")
-        guard statesByDate.updateValue(streakDay.state, forKey: streakDay.date) == nil else {
-            throw LocalStoreError.validation(
-                "Progress \(sourceName) streak days contained a duplicate local date: \(streakDay.date)"
-            )
-        }
-    }
-
-    let sortedStreakDays = try statesByDate.keys.sorted().map { date in
-        guard let state = statesByDate[date] else {
-            throw LocalStoreError.validation("Progress \(sourceName) streak day state is missing for date: \(date)")
-        }
-
-        ProgressStreakDay(date: date, state: state)
-    }
-    try validateConsecutiveProgressStreakDays(streakDays: sortedStreakDays, sourceName: sourceName)
-    return sortedStreakDays
-}
-
-private func validateConsecutiveProgressStreakDays(
-    streakDays: [ProgressStreakDay],
-    sourceName: String
-) throws {
-    var previousDate: String?
-    for streakDay in streakDays {
-        if let previousDate,
-           try progressShiftLocalDateForStore(value: previousDate, offsetDays: 1) != streakDay.date {
-            throw LocalStoreError.validation(
-                """
-                Progress \(sourceName) streak days must be consecutive. \
-                previousDate=\(previousDate), nextDate=\(streakDay.date).
-                """
-            )
-        }
-
-        previousDate = streakDay.date
-    }
-}
-
 private func maximumProgressStreakBalanceUnits(policy: ProgressStreakFreezePolicy) -> Int {
     policy.maxCapacity * policy.unitsPerCredit
+}
+
+private func maximumProgressStreakBalanceUnits(
+    capacity: Int,
+    unitsPerCredit: Int
+) throws -> Int {
+    guard capacity <= Int.max / unitsPerCredit else {
+        throw LocalStoreError.validation(
+            """
+            Progress streakFreeze capacity and unitsPerCredit are too large to multiply. \
+            capacity=\(capacity), unitsPerCredit=\(unitsPerCredit).
+            """
+        )
+    }
+
+    return capacity * unitsPerCredit
 }
 
 private func initialProgressStreakBalanceUnits(policy: ProgressStreakFreezePolicy) -> Int {
@@ -742,7 +455,19 @@ private func availableProgressStreakFreezeCredits(
     balanceUnits: Int,
     policy: ProgressStreakFreezePolicy
 ) -> Int {
-    min(policy.maxCapacity, balanceUnits / policy.unitsPerCredit)
+    availableProgressStreakFreezeCredits(
+        balanceUnits: balanceUnits,
+        capacity: policy.maxCapacity,
+        unitsPerCredit: policy.unitsPerCredit
+    )
+}
+
+private func availableProgressStreakFreezeCredits(
+    balanceUnits: Int,
+    capacity: Int,
+    unitsPerCredit: Int
+) -> Int {
+    min(capacity, balanceUnits / unitsPerCredit)
 }
 
 private func makeProgressStreakFreeze(
@@ -750,14 +475,56 @@ private func makeProgressStreakFreeze(
     policy: ProgressStreakFreezePolicy
 ) -> ProgressStreakFreeze {
     let clampedBalanceUnits: Int = clampedProgressStreakBalanceUnits(balanceUnits: balanceUnits, policy: policy)
-    let availableCredits: Int = availableProgressStreakFreezeCredits(balanceUnits: clampedBalanceUnits, policy: policy)
+    return makeProgressStreakFreeze(
+        balanceUnits: clampedBalanceUnits,
+        capacity: policy.maxCapacity,
+        unitsPerCredit: policy.unitsPerCredit,
+        earnedUnitsPerStreakDay: policy.earnedUnitsPerStreakDay
+    )
+}
+
+private func makeProgressStreakFreeze(
+    balanceUnits: Int,
+    capacity: Int,
+    unitsPerCredit: Int,
+    earnedUnitsPerStreakDay: Int
+) -> ProgressStreakFreeze {
+    let availableCredits: Int = availableProgressStreakFreezeCredits(
+        balanceUnits: balanceUnits,
+        capacity: capacity,
+        unitsPerCredit: unitsPerCredit
+    )
     return ProgressStreakFreeze(
         availableCredits: availableCredits,
-        capacity: policy.maxCapacity,
-        balanceUnits: clampedBalanceUnits,
-        unitsPerCredit: policy.unitsPerCredit,
-        nextCreditProgressUnits: availableCredits >= policy.maxCapacity ? 0 : clampedBalanceUnits % policy.unitsPerCredit,
-        nextCreditRequiredUnits: policy.unitsPerCredit
+        capacity: capacity,
+        balanceUnits: balanceUnits,
+        unitsPerCredit: unitsPerCredit,
+        earnedUnitsPerStreakDay: earnedUnitsPerStreakDay,
+        nextCreditProgressUnits: availableCredits >= capacity ? 0 : balanceUnits % unitsPerCredit,
+        nextCreditRequiredUnits: unitsPerCredit
+    )
+}
+
+func progressStreakFreezeAfterEarningStreakDay(streakFreeze: ProgressStreakFreeze) throws -> ProgressStreakFreeze {
+    try validateProgressStreakFreeze(streakFreeze: streakFreeze)
+    let maximumBalanceUnits = try maximumProgressStreakBalanceUnits(
+        capacity: streakFreeze.capacity,
+        unitsPerCredit: streakFreeze.unitsPerCredit
+    )
+    guard streakFreeze.balanceUnits <= Int.max - streakFreeze.earnedUnitsPerStreakDay else {
+        throw LocalStoreError.validation(
+            """
+            Progress streakFreeze balanceUnits and earnedUnitsPerStreakDay are too large to add. \
+            balanceUnits=\(streakFreeze.balanceUnits), earnedUnitsPerStreakDay=\(streakFreeze.earnedUnitsPerStreakDay).
+            """
+        )
+    }
+
+    return makeProgressStreakFreeze(
+        balanceUnits: min(streakFreeze.balanceUnits + streakFreeze.earnedUnitsPerStreakDay, maximumBalanceUnits),
+        capacity: streakFreeze.capacity,
+        unitsPerCredit: streakFreeze.unitsPerCredit,
+        earnedUnitsPerStreakDay: streakFreeze.earnedUnitsPerStreakDay
     )
 }
 
@@ -771,155 +538,6 @@ private func createInitialProgressStreakComputationState(
         hasActiveSegment: false,
         lastEvaluatedDate: nil
     )
-}
-
-private func makeInitialProgressStreakReplayCandidates(
-    policy: ProgressStreakFreezePolicy
-) -> [ProgressStreakReplayCandidate] {
-    let inactiveCandidate = ProgressStreakReplayCandidate(
-        state: createInitialProgressStreakComputationState(policy: policy),
-        seedState: nil
-    )
-    let activeCandidates = (0 ... maximumProgressStreakBalanceUnits(policy: policy)).map { balanceUnits in
-        ProgressStreakReplayCandidate(
-            state: ProgressStreakComputationState(
-                balanceUnits: balanceUnits,
-                currentStreakDays: 0,
-                longestStreakDays: 0,
-                hasActiveSegment: true,
-                lastEvaluatedDate: nil
-            ),
-            seedState: nil
-        )
-    }
-
-    return [inactiveCandidate] + activeCandidates
-}
-
-private func makeProgressStreakReplaySeed(
-    sortedServerBaseStreakDays: [ProgressStreakDay],
-    today: String,
-    recomputeFromLocalDate: String,
-    policy: ProgressStreakFreezePolicy
-) throws -> ProgressStreakComputationState {
-    let replayedCandidates = try sortedServerBaseStreakDays.reduce(
-        makeInitialProgressStreakReplayCandidates(policy: policy)
-    ) { candidates, streakDay in
-        let nextCandidates: [ProgressStreakReplayCandidate] = try candidates.compactMap { candidate in
-            let seedState = candidate.seedState ?? (
-                streakDay.date == recomputeFromLocalDate
-                    ? candidate.state
-                    : nil
-            )
-            guard let nextState = try progressStreakStateAfterMatchingServerBaseDay(
-                state: candidate.state,
-                streakDay: streakDay,
-                today: today,
-                policy: policy
-            ) else {
-                return nil
-            }
-
-            return ProgressStreakReplayCandidate(
-                state: nextState,
-                seedState: seedState
-            )
-        }
-        let uniqueNextCandidates = Array(Set(nextCandidates))
-        guard uniqueNextCandidates.isEmpty == false else {
-            throw LocalStoreError.validation(
-                "Progress serverBase streak days cannot be replayed under the current freeze policy at \(streakDay.date)"
-            )
-        }
-
-        return uniqueNextCandidates
-    }
-    let seedStates = Set(
-        replayedCandidates.compactMap { candidate in
-            candidate.seedState
-        }
-    )
-    guard seedStates.isEmpty == false else {
-        throw LocalStoreError.validation(
-            "Progress serverBase streak days did not include recomputeFromLocalDate: \(recomputeFromLocalDate)"
-        )
-    }
-
-    return progressConservativeStreakReplaySeed(seedStates: Array(seedStates))
-}
-
-private func progressConservativeStreakReplaySeed(
-    seedStates: [ProgressStreakComputationState]
-) -> ProgressStreakComputationState {
-    let sortedSeedStates = seedStates.sorted { left, right in
-        if left.balanceUnits != right.balanceUnits {
-            return left.balanceUnits < right.balanceUnits
-        }
-
-        if left.hasActiveSegment != right.hasActiveSegment {
-            return left.hasActiveSegment == false
-        }
-
-        if left.currentStreakDays != right.currentStreakDays {
-            return left.currentStreakDays < right.currentStreakDays
-        }
-
-        return left.longestStreakDays < right.longestStreakDays
-    }
-    guard let firstSeedState = sortedSeedStates.first else {
-        preconditionFailure("Progress conservative streak replay seed requires at least one seed state")
-    }
-
-    return firstSeedState
-}
-
-private func progressStreakStateAfterMatchingServerBaseDay(
-    state: ProgressStreakComputationState,
-    streakDay: ProgressStreakDay,
-    today: String,
-    policy: ProgressStreakFreezePolicy
-) throws -> ProgressStreakComputationState? {
-    switch streakDay.state {
-    case .reviewed:
-        return addReviewedProgressStreakDay(
-            state: state,
-            date: streakDay.date,
-            policy: policy
-        )
-    case .frozen:
-        guard state.hasActiveSegment,
-              availableProgressStreakFreezeCredits(balanceUnits: state.balanceUnits, policy: policy) > 0 else {
-            return nil
-        }
-
-        return addFrozenProgressStreakDay(
-            state: state,
-            date: streakDay.date,
-            policy: policy
-        )
-    case .missed:
-        guard state.hasActiveSegment == false
-                || availableProgressStreakFreezeCredits(balanceUnits: state.balanceUnits, policy: policy) == 0 else {
-            return nil
-        }
-
-        return addMissedProgressStreakDay(
-            state: state,
-            date: streakDay.date,
-            policy: policy
-        )
-    case .pending:
-        guard streakDay.date == today else {
-            throw LocalStoreError.validation(
-                "Progress serverBase streak day cannot be pending before today: \(streakDay.date)"
-            )
-        }
-
-        return addPendingProgressStreakDay(
-            state: state,
-            date: streakDay.date
-        )
-    }
 }
 
 private func addReviewedProgressStreakDay(

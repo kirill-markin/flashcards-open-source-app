@@ -19,6 +19,7 @@ final class ProgressSnapshotValidationTests: XCTestCase {
               "capacity": 2,
               "balanceUnits": 20,
               "unitsPerCredit": 10,
+              "earnedUnitsPerStreakDay": 1,
               "nextCreditProgressUnits": 0,
               "nextCreditRequiredUnits": 10
             }
@@ -112,6 +113,7 @@ final class ProgressSnapshotValidationTests: XCTestCase {
               "capacity": 2,
               "balanceUnits": 20,
               "unitsPerCredit": 10,
+              "earnedUnitsPerStreakDay": 1,
               "nextCreditProgressUnits": 0,
               "nextCreditRequiredUnits": 10
             }
@@ -178,6 +180,7 @@ final class ProgressSnapshotValidationTests: XCTestCase {
                     capacity: 2,
                     balanceUnits: 20,
                     unitsPerCredit: 10,
+                    earnedUnitsPerStreakDay: 1,
                     nextCreditProgressUnits: 0,
                     nextCreditRequiredUnits: 10
                 )
@@ -196,6 +199,45 @@ final class ProgressSnapshotValidationTests: XCTestCase {
         XCTAssertThrowsError(
             try validateProgressSummaryMetadata(summary: summary, scopeKey: scopeKey)
         )
+    }
+
+    func testProgressSummaryValidationAcceptsServerFreezeCapacityAboveLocalPolicy() throws {
+        let summary = UserProgressSummary(
+            timeZone: "UTC",
+            summary: ProgressSummary(
+                currentStreakDays: 4,
+                longestStreakDays: 4,
+                hasReviewedToday: true,
+                lastReviewedOn: "2026-04-18",
+                activeReviewDays: 4,
+                streakFreeze: ProgressStreakFreeze(
+                    availableCredits: 3,
+                    capacity: 3,
+                    balanceUnits: 30,
+                    unitsPerCredit: 10,
+                    earnedUnitsPerStreakDay: 2,
+                    nextCreditProgressUnits: 0,
+                    nextCreditRequiredUnits: 10
+                )
+            ),
+            generatedAt: "2026-04-18T09:15:00.000Z",
+            reviewHistoryWatermarks: []
+        )
+        let scopeKey = ProgressSummaryScopeKey(
+            cloudState: nil,
+            linkedUserId: nil,
+            workspaceMembershipKey: "test-workspace",
+            timeZone: "UTC",
+            referenceLocalDate: "2026-04-18"
+        )
+
+        XCTAssertNoThrow(
+            try validateProgressSummaryMetadata(summary: summary, scopeKey: scopeKey)
+        )
+        let badgeState = makeReviewProgressBadgeState(summary: summary.summary)
+        XCTAssertEqual(3, badgeState.streakFreezeAvailableCredits)
+        XCTAssertEqual(3, badgeState.streakFreezeCapacity)
+        XCTAssertEqual("3/3", formatReviewProgressFreezeBankValue(badgeState: badgeState))
     }
 
     func testProgressSnapshotRejectsInvalidDailyReviewDates() throws {
