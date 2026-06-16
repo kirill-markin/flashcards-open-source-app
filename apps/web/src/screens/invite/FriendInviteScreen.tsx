@@ -23,6 +23,8 @@ type InviteLoadState = "loading" | "inactive" | "error" | "signed_out" | "ready"
 
 const iosAppLink = "https://apps.apple.com/us/app/flashcards-open-source-app/id6760538964";
 const androidAppLink = "https://play.google.com/store/apps/details?id=com.flashcardsopensourceapp.app&pcampaignid=web_share";
+const appStoreBadgeSrc = "/home/app-store-badge.svg";
+const googlePlayLockupSrc = "/home/google-play-lockup.png";
 
 function readInviteTokenParam(token: string | undefined): string {
   if (token === undefined || token === "") {
@@ -50,20 +52,64 @@ function InviteMobileLinksNotice(): ReactElement {
   );
 }
 
+function WebAppIcon(): ReactElement {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="1.8"
+      className="invite-platform-icon"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="8.25" />
+      <path d="M3.75 12h16.5" />
+      <path d="M12 3.75c2.2 2.2 3.5 5.13 3.5 8.25S14.2 18.05 12 20.25c-2.2-2.2-3.5-5.13-3.5-8.25S9.8 5.95 12 3.75Z" />
+    </svg>
+  );
+}
+
 function InviteSuccessLinks(): ReactElement {
   const { t } = useI18n();
   const webHref = `${getAppConfig().appBaseUrl}${progressLeaderboardRoute}`;
 
   return (
     <div className="invite-link-grid" data-testid="friend-invite-success-links">
-      <a className="ghost-btn" href={iosAppLink} rel="noreferrer" target="_blank">
-        {t("friendInvite.links.ios")}
+      <a
+        className="invite-platform-link"
+        href={iosAppLink}
+        rel="noreferrer"
+        target="_blank"
+        aria-label={t("friendInvite.links.ios")}
+      >
+        <img
+          alt=""
+          className="invite-platform-badge invite-platform-badge-app-store"
+          height={40}
+          src={appStoreBadgeSrc}
+          width={120}
+        />
       </a>
-      <a className="ghost-btn" href={androidAppLink} rel="noreferrer" target="_blank">
-        {t("friendInvite.links.android")}
+      <a
+        className="invite-platform-link"
+        href={androidAppLink}
+        rel="noreferrer"
+        target="_blank"
+        aria-label={t("friendInvite.links.android")}
+      >
+        <img
+          alt=""
+          className="invite-platform-badge invite-platform-badge-google-play"
+          height={61}
+          src={googlePlayLockupSrc}
+          width={300}
+        />
       </a>
-      <Link className="primary-btn" to={progressLeaderboardRoute}>
-        {t("friendInvite.links.web")}
+      <Link className="invite-platform-link" to={progressLeaderboardRoute} aria-label={t("friendInvite.links.web")}>
+        <WebAppIcon />
+        <span className="invite-platform-label">{t("friendInvite.links.web")}</span>
       </Link>
       <span data-testid="friend-invite-web-link-value" hidden>{webHref}</span>
     </div>
@@ -188,6 +234,7 @@ export function FriendInviteReadyPanel({
   onAccept,
 }: FriendInviteReadyPanelProps): ReactElement {
   const { t } = useI18n();
+  const hasFriendDisplayName = friendDisplayName.trim() !== "";
 
   return (
     <main className="invite-page">
@@ -201,6 +248,8 @@ export function FriendInviteReadyPanel({
             type="text"
             value={friendDisplayName}
             disabled={isSubmitting}
+            placeholder={t("friendInvite.displayNamePlaceholder")}
+            required
             onChange={(event) => {
               onFriendDisplayNameChange(event.target.value);
             }}
@@ -216,7 +265,7 @@ export function FriendInviteReadyPanel({
         <button
           className="primary-btn"
           type="button"
-          disabled={isSubmitting || !canAccept}
+          disabled={isSubmitting || !canAccept || !hasFriendDisplayName}
           onClick={onAccept}
           data-testid="friend-invite-accept-button"
         >
