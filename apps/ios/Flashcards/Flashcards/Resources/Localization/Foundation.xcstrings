@@ -6609,6 +6609,183 @@
         }
       }
     },
+    "progress.freeze_bank.info.accessibility_hint" : {
+      "comment" : "Accessibility hint for the streak freeze bank info button",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يعرض كيفية عمل تجميدات السلسلة."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeigt, wie Serien-Freezes funktionieren."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows how streak freezes work."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muestra cómo funcionan las congelaciones de racha."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muestra cómo funcionan las congelaciones de racha."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "दिखाता है कि स्ट्रीक फ़्रीज़ कैसे काम करते हैं."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ストリークフリーズの仕組みを表示します。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывает, как работают заморозки серии."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示连续记录冻结的工作方式。"
+          }
+        }
+      }
+    },
+    "progress.freeze_bank.info.message" : {
+      "comment" : "Body for the streak freeze bank explanation alert. Parameters are available credits, capacity, next credit progress, and next credit required units.",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "المتاح: %@/%@. إعادة الشحن: %@/%@. تحمي التجميدات الأيام الفائتة وتُعاد شحنها مع استمرار سلسلتك."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verfügbar: %@/%@. Aufladung: %@/%@. Freezes schützen verpasste Tage und laden sich auf, während deine Serie weiterläuft."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Available: %@/%@. Recharge: %@/%@. Freezes protect missed days and recharge as your streak continues."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disponibles: %@/%@. Recarga: %@/%@. Las congelaciones protegen días perdidos y se recargan a medida que continúa tu racha."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disponibles: %@/%@. Recarga: %@/%@. Las congelaciones protegen días perdidos y se recargan a medida que continúa tu racha."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "उपलब्ध: %@/%@. रीचार्ज: %@/%@. फ़्रीज़ छूटे हुए दिनों की रक्षा करते हैं और आपकी श्रृंखला जारी रहने पर रीचार्ज होते हैं."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "利用可能: %@/%@。リチャージ: %@/%@。フリーズは逃した日を保護し、連続記録が続くと回復します。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступно: %@/%@. Перезарядка: %@/%@. Заморозки защищают пропущенные дни и восстанавливаются по мере продолжения серии."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可用：%@/%@。恢复进度：%@/%@。冻结可保护错过的日期，并会随着连续记录继续而恢复。"
+          }
+        }
+      }
+    },
+    "progress.freeze_bank.info.title" : {
+      "comment" : "Title for the streak freeze bank explanation alert",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تجميدات السلسلة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serien-Freezes"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streak freezes"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Congelaciones de racha"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Congelaciones de racha"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "स्ट्रीक फ़्रीज़"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ストリークフリーズ"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заморозки серии"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连续记录冻结"
+          }
+        }
+      }
+    },
     "progress.screen.streak.section_title" : {
       "comment" : "Progress streak section title",
       "localizations" : {

@@ -64,6 +64,7 @@ struct ProgressScreen: View {
                             ProgressStreakSection(
                                 weeks: streakWeeks,
                                 badgeState: makeReviewProgressBadgeState(summary: progressSnapshot.summary),
+                                streakFreeze: progressSnapshot.summary.streakFreeze,
                                 calendar: presentationCalendar
                             )
                         }

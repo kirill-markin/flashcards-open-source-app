@@ -14,13 +14,21 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AcUnit
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.LocalFireDepartment
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -193,6 +201,7 @@ private fun ProgressStreakValueChip(
 private fun ProgressFreezeBankChip(
     freezeBank: ProgressFreezeBankUiState
 ) {
+    var isInfoDialogVisible by rememberSaveable { mutableStateOf(false) }
     val contentDescription = stringResource(
         id = R.string.progress_streak_freeze_bank_content_description,
         freezeBank.availableCredits,
@@ -203,27 +212,71 @@ private fun ProgressFreezeBankChip(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         modifier = Modifier
-            .semantics(mergeDescendants = true) {
-                this.contentDescription = contentDescription
-            }
             .clip(RoundedCornerShape(18.dp))
             .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-            .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
-        Icon(
-            imageVector = Icons.Outlined.AcUnit,
-            contentDescription = null,
-            tint = frozenStreakContentColor
-        )
-        Text(
-            text = stringResource(
-                id = R.string.progress_streak_freeze_bank_value,
-                freezeBank.availableCredits,
-                freezeBank.capacity
-            ),
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.SemiBold,
-            style = MaterialTheme.typography.titleMedium
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier
+                .semantics(mergeDescendants = true) {
+                    this.contentDescription = contentDescription
+                }
+                .padding(start = 12.dp, top = 8.dp, bottom = 8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.AcUnit,
+                contentDescription = null,
+                tint = frozenStreakContentColor
+            )
+            Text(
+                text = stringResource(
+                    id = R.string.progress_streak_freeze_bank_value,
+                    freezeBank.availableCredits,
+                    freezeBank.capacity
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
+        IconButton(
+            onClick = { isInfoDialogVisible = true },
+            modifier = Modifier.size(36.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Info,
+                contentDescription = stringResource(
+                    id = R.string.progress_streak_freeze_bank_info_button_content_description
+                ),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+    }
+
+    if (isInfoDialogVisible) {
+        AlertDialog(
+            onDismissRequest = { isInfoDialogVisible = false },
+            confirmButton = {
+                TextButton(onClick = { isInfoDialogVisible = false }) {
+                    Text(stringResource(id = R.string.progress_streak_freeze_bank_info_dismiss))
+                }
+            },
+            title = {
+                Text(stringResource(id = R.string.progress_streak_freeze_bank_info_title))
+            },
+            text = {
+                Text(
+                    stringResource(
+                        id = R.string.progress_streak_freeze_bank_info_body,
+                        freezeBank.availableCredits,
+                        freezeBank.capacity,
+                        freezeBank.nextCreditProgressUnits,
+                        freezeBank.nextCreditRequiredUnits
+                    )
+                )
+            }
         )
     }
 }

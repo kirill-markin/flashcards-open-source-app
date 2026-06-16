@@ -4,11 +4,16 @@ private let progressCalendarColumnCount: Int = 7
 private let progressReviewCardsStringsTableName: String = "ReviewCards"
 private let progressStreakBadgeSize: CGFloat = 34
 private let progressStreakBadgeHorizontalPadding: CGFloat = 8
+private let progressFrozenStreakBorderColor = Color(red: 0x9D / 255, green: 0xD8 / 255, blue: 0xFF / 255)
+private let progressFrozenStreakContentColor = Color(red: 0x2A / 255, green: 0x7F / 255, blue: 0xC2 / 255)
 
 struct ProgressStreakSection: View {
     let weeks: [ProgressCalendarWeek]
     let badgeState: ReviewProgressBadgeState
+    let streakFreeze: ProgressStreakFreeze
     let calendar: Calendar
+
+    @State private var isFreezeInfoAlertPresented: Bool = false
 
     private var columns: [GridItem] {
         Array(repeating: GridItem(.flexible(), spacing: 10, alignment: .center), count: progressCalendarColumnCount)
@@ -26,6 +31,12 @@ struct ProgressStreakSection: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 ProgressStreakSummaryBadge(badgeState: self.badgeState)
+                if self.badgeState.showsStreakFreezeBank {
+                    ProgressFreezeBankChip(
+                        badgeState: self.badgeState,
+                        onShowInfo: { self.isFreezeInfoAlertPresented = true }
+                    )
+                }
                 Spacer(minLength: 0)
             }
 
@@ -45,6 +56,47 @@ struct ProgressStreakSection: View {
             }
         }
         .padding(.vertical, 4)
+        .alert(
+            self.freezeInfoTitle,
+            isPresented: self.$isFreezeInfoAlertPresented
+        ) {
+            Button(
+                String(
+                    localized: "shared.ok",
+                    table: progressStringsTableName,
+                    comment: "Confirmation button title"
+                ),
+                role: .cancel
+            ) {}
+        } message: {
+            Text(self.freezeInfoMessage)
+        }
+    }
+
+    private var freezeInfoTitle: String {
+        String(
+            localized: "progress.freeze_bank.info.title",
+            defaultValue: "Streak freezes",
+            table: progressStringsTableName,
+            comment: "Title for the streak freeze bank explanation alert"
+        )
+    }
+
+    private var freezeInfoMessage: String {
+        let localizedFormat = String(
+            localized: "progress.freeze_bank.info.message",
+            defaultValue: "Available: %@/%@. Recharge: %@/%@. Freezes protect missed days and recharge as your streak continues.",
+            table: progressStringsTableName,
+            comment: "Body for the streak freeze bank explanation alert. Parameters are available credits, capacity, next credit progress, and next credit required units."
+        )
+        return String(
+            format: localizedFormat,
+            locale: Locale.current,
+            self.streakFreeze.availableCredits.formatted(),
+            self.streakFreeze.capacity.formatted(),
+            self.streakFreeze.nextCreditProgressUnits.formatted(),
+            self.streakFreeze.nextCreditRequiredUnits.formatted()
+        )
     }
 }
 
@@ -100,19 +152,62 @@ private struct ProgressStreakSummaryBadge: View {
             )
         }
 
-        let streakLabel = String(
+        return String(
             format: localizedFormat,
             locale: Locale.current,
             self.badgeState.streakDays.formatted()
         )
-        guard self.badgeState.showsStreakFreezeBank else {
-            return streakLabel
-        }
+    }
+}
 
-        return "\(streakLabel) \(self.freezeBankAccessibilityLabel)"
+private struct ProgressFreezeBankChip: View {
+    let badgeState: ReviewProgressBadgeState
+    let onShowInfo: () -> Void
+
+    var body: some View {
+        Button {
+            self.onShowInfo()
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: reviewProgressFreezeBankSystemImageName())
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(progressFrozenStreakContentColor)
+
+                Text(formatReviewProgressFreezeBankValue(badgeState: self.badgeState))
+                    .font(.caption2.weight(.semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(.primary)
+                    .minimumScaleFactor(0.65)
+
+                Image(systemName: "info.circle")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, progressStreakBadgeHorizontalPadding)
+            .frame(minHeight: progressStreakBadgeSize)
+            .background {
+                Capsule()
+                    .fill(Color(uiColor: .secondarySystemBackground))
+            }
+            .overlay {
+                Capsule()
+                    .strokeBorder(progressFrozenStreakBorderColor, lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .fixedSize(horizontal: true, vertical: false)
+        .accessibilityLabel(self.accessibilityLabel)
+        .accessibilityHint(
+            String(
+                localized: "progress.freeze_bank.info.accessibility_hint",
+                defaultValue: "Shows how streak freezes work.",
+                table: progressStringsTableName,
+                comment: "Accessibility hint for the streak freeze bank info button"
+            )
+        )
     }
 
-    private var freezeBankAccessibilityLabel: String {
+    private var accessibilityLabel: String {
         let localizedFormat = String(
             localized: "progress.freeze_bank.accessibility",
             defaultValue: "Freeze bank %@ of %@ available.",
@@ -191,7 +286,7 @@ private struct ProgressStreakDayCell: View {
         }
 
         if self.isFrozenDay {
-            return Color(red: 0x9D / 255, green: 0xD8 / 255, blue: 0xFF / 255)
+            return progressFrozenStreakBorderColor
         }
 
         if self.day.isToday {
@@ -211,7 +306,7 @@ private struct ProgressStreakDayCell: View {
         }
 
         if self.isFrozenDay {
-            return Color(red: 0x2A / 255, green: 0x7F / 255, blue: 0xC2 / 255)
+            return progressFrozenStreakContentColor
         }
 
         if self.day.isToday {
