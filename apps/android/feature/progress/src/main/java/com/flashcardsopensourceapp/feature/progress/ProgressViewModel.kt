@@ -13,6 +13,7 @@ import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeader
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakDayState
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardParticipantRowKind
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardStatus
