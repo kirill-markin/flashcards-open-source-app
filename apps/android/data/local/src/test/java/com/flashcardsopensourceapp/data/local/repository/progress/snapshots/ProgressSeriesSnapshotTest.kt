@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.data.local.repository.progress.snapshots
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.progress.CloudDailyReviewPoint
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakDay
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakDayState
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSnapshotSource
@@ -154,12 +155,13 @@ class ProgressSeriesSnapshotTest {
         assertEquals(1, overlay.dailyReviews.last().goodCount)
         assertEquals(3, snapshot.renderedSeries.dailyReviews.first().reviewCount)
         assertEquals(3, snapshot.renderedSeries.dailyReviews.last().reviewCount)
+        assertEquals(CloudProgressStreakDayState.REVIEWED, snapshot.renderedSeries.streakDays.last().state)
         assertEquals(ProgressSnapshotSource.SERVER_BASE_WITH_LOCAL_OVERLAY, snapshot.source)
         assertEquals(true, snapshot.isApproximate)
     }
 
     @Test
-    fun mergedStreakDaysUseFullActiveHistoryBeforeVisibleRange() {
+    fun serverBaseSeriesPatchesOnlyTodayStreakDayForLocalOverlay() {
         val scopeKey = ProgressSeriesScopeKey(
             scopeId = "local:installation-1",
             timeZone = "Europe/Madrid",
@@ -202,13 +204,13 @@ class ProgressSeriesSnapshotTest {
         val statesByDate = snapshot.renderedSeries.streakDays.associate { day ->
             day.date to day.state
         }
-        assertEquals(CloudProgressStreakDayState.FROZEN, statesByDate["2026-04-16"])
-        assertEquals(CloudProgressStreakDayState.FROZEN, statesByDate["2026-04-17"])
+        assertEquals(CloudProgressStreakDayState.MISSED, statesByDate["2026-04-16"])
+        assertEquals(CloudProgressStreakDayState.MISSED, statesByDate["2026-04-17"])
         assertEquals(CloudProgressStreakDayState.REVIEWED, statesByDate["2026-04-18"])
     }
 
     @Test
-    fun mergedStreakDaysUsePreRangeHistoryWhenVisibleCountsAreUnchanged() {
+    fun serverBaseSeriesIgnoresPreRangeHistoryWhenVisibleCountsAreUnchanged() {
         val scopeKey = ProgressSeriesScopeKey(
             scopeId = "local:installation-1",
             timeZone = "Europe/Madrid",
@@ -248,6 +250,80 @@ class ProgressSeriesSnapshotTest {
         val statesByDate = snapshot.renderedSeries.streakDays.associate { day ->
             day.date to day.state
         }
+        assertEquals(CloudProgressStreakDayState.MISSED, statesByDate["2026-04-16"])
+        assertEquals(CloudProgressStreakDayState.MISSED, statesByDate["2026-04-17"])
+        assertEquals(CloudProgressStreakDayState.PENDING, statesByDate["2026-04-18"])
+        assertEquals(ProgressSnapshotSource.SERVER_BASE, snapshot.source)
+        assertEquals(false, snapshot.isApproximate)
+    }
+
+    @Test
+    fun olderLocalActiveDateDoesNotRewriteHistoricalServerStreakDays() {
+        val scopeKey = ProgressSeriesScopeKey(
+            scopeId = "local:installation-1",
+            timeZone = "Europe/Madrid",
+            from = "2026-04-16",
+            to = "2026-04-18"
+        )
+        val serverBase = createSeries(
+            scopeKey = scopeKey,
+            dailyReviews = listOf(
+                createPoint(date = "2026-04-16", reviewCount = 0),
+                createPoint(date = "2026-04-17", reviewCount = 0),
+                createPoint(date = "2026-04-18", reviewCount = 0)
+            ),
+            generatedAt = "2026-04-18T12:00:00Z"
+        ).copy(
+            streakDays = listOf(
+                CloudProgressStreakDay(
+                    date = "2026-04-16",
+                    state = CloudProgressStreakDayState.FROZEN
+                ),
+                CloudProgressStreakDay(
+                    date = "2026-04-17",
+                    state = CloudProgressStreakDayState.FROZEN
+                ),
+                CloudProgressStreakDay(
+                    date = "2026-04-18",
+                    state = CloudProgressStreakDayState.PENDING
+                )
+            )
+        )
+        val localFallback = createSeries(
+            scopeKey = scopeKey,
+            dailyReviews = listOf(
+                createPoint(date = "2026-04-16", reviewCount = 0),
+                createPoint(date = "2026-04-17", reviewCount = 1),
+                createPoint(date = "2026-04-18", reviewCount = 0)
+            ),
+            generatedAt = null
+        )
+        val pendingLocalOverlay = createSeries(
+            scopeKey = scopeKey,
+            dailyReviews = listOf(
+                createPoint(date = "2026-04-16", reviewCount = 0),
+                createPoint(date = "2026-04-17", reviewCount = 0),
+                createPoint(date = "2026-04-18", reviewCount = 0)
+            ),
+            generatedAt = null
+        )
+
+        val snapshot = createProgressSeriesSnapshot(
+            scopeKey = scopeKey,
+            localFallback = localFallback,
+            serverBase = serverBase,
+            pendingLocalOverlay = pendingLocalOverlay,
+            activeReviewDateSet = createActiveReviewDateSet(
+                series = localFallback,
+                additionalDates = emptySet()
+            ),
+            cloudState = CloudAccountState.LINKED
+        )
+
+        val statesByDate = snapshot.renderedSeries.streakDays.associate { day ->
+            day.date to day.state
+        }
+        assertEquals(1, snapshot.renderedSeries.dailyReviews[1].reviewCount)
         assertEquals(CloudProgressStreakDayState.FROZEN, statesByDate["2026-04-16"])
         assertEquals(CloudProgressStreakDayState.FROZEN, statesByDate["2026-04-17"])
         assertEquals(CloudProgressStreakDayState.PENDING, statesByDate["2026-04-18"])

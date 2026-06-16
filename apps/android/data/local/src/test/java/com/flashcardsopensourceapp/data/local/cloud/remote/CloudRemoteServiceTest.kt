@@ -109,10 +109,11 @@ class CloudRemoteServiceTest {
                 "activeReviewDays": 21,
                 "streakFreeze": {
                   "availableCredits": 2,
-                  "capacity": 2,
-                  "balanceUnits": 20,
+                  "capacity": 3,
+                  "balanceUnits": 25,
                   "unitsPerCredit": 10,
-                  "nextCreditProgressUnits": 0,
+                  "earnedUnitsPerStreakDay": 2,
+                  "nextCreditProgressUnits": 5,
                   "nextCreditRequiredUnits": 10
                 }
               },
@@ -135,6 +136,9 @@ class CloudRemoteServiceTest {
         assertEquals("2026-04-18", summary.lastReviewedOn)
         assertEquals(21, summary.activeReviewDays)
         assertEquals(2, summary.streakFreeze.availableCredits)
+        assertEquals(3, summary.streakFreeze.capacity)
+        assertEquals(2, summary.streakFreeze.earnedUnitsPerStreakDay)
+        assertEquals(5, summary.streakFreeze.nextCreditProgressUnits)
         assertEquals(42L, summary.reviewHistoryWatermarks.single().reviewSequenceId)
     }
 
@@ -155,6 +159,7 @@ class CloudRemoteServiceTest {
                   "capacity": 2,
                   "balanceUnits": 20,
                   "unitsPerCredit": 10,
+                  "earnedUnitsPerStreakDay": 1,
                   "nextCreditProgressUnits": 0,
                   "nextCreditRequiredUnits": 10
                 }
@@ -170,6 +175,44 @@ class CloudRemoteServiceTest {
         )
 
         assertTrue(summary.reviewHistoryWatermarks.isEmpty())
+    }
+
+    @Test
+    fun parseCloudProgressSummaryResponseRejectsIncoherentStreakFreezePayload() {
+        val response = JSONObject(
+            """
+            {
+              "timeZone": "Europe/Madrid",
+              "summary": {
+                "currentStreakDays": 8,
+                "longestStreakDays": 10,
+                "hasReviewedToday": true,
+                "lastReviewedOn": "2026-04-18",
+                "activeReviewDays": 21,
+                "streakFreeze": {
+                  "availableCredits": 1,
+                  "capacity": 3,
+                  "balanceUnits": 25,
+                  "unitsPerCredit": 10,
+                  "earnedUnitsPerStreakDay": 2,
+                  "nextCreditProgressUnits": 5,
+                  "nextCreditRequiredUnits": 10
+                }
+              },
+              "generatedAt": "2026-04-18T12:00:00Z"
+            }
+            """.trimIndent()
+        )
+
+        val error = assertThrows(CloudContractMismatchException::class.java) {
+            parseCloudProgressSummaryResponse(
+                response = response,
+                fieldPath = "progressSummary"
+            )
+        }
+
+        assertTrue(error.message.orEmpty().contains("progressSummary.summary.streakFreeze"))
+        assertTrue(error.message.orEmpty().contains("availableCredits"))
     }
 
     @Test(expected = CloudContractMismatchException::class)
@@ -428,6 +471,7 @@ class CloudRemoteServiceTest {
                   "capacity": 2,
                   "balanceUnits": 20,
                   "unitsPerCredit": 10,
+                  "earnedUnitsPerStreakDay": 1,
                   "nextCreditProgressUnits": 0,
                   "nextCreditRequiredUnits": 10
                 }
@@ -467,6 +511,7 @@ class CloudRemoteServiceTest {
                   "capacity": 2,
                   "balanceUnits": 20,
                   "unitsPerCredit": 10,
+                  "earnedUnitsPerStreakDay": 1,
                   "nextCreditProgressUnits": 0,
                   "nextCreditRequiredUnits": 10
                 }

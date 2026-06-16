@@ -55,6 +55,7 @@ internal fun CloudProgressSummary.toCacheEntity(
         streakFreezeCapacity = streakFreeze.capacity,
         streakFreezeBalanceUnits = streakFreeze.balanceUnits,
         streakFreezeUnitsPerCredit = streakFreeze.unitsPerCredit,
+        streakFreezeEarnedUnitsPerStreakDay = streakFreeze.earnedUnitsPerStreakDay,
         streakFreezeNextCreditProgressUnits = streakFreeze.nextCreditProgressUnits,
         streakFreezeNextCreditRequiredUnits = streakFreeze.nextCreditRequiredUnits,
         updatedAtMillis = updatedAtMillis
@@ -379,6 +380,10 @@ internal fun ProgressSummaryCacheEntity.toCloudProgressSummaryOrNull(): CloudPro
                 unitsPerCredit = requirePositiveProgressCacheInt(
                     value = streakFreezeUnitsPerCredit,
                     fieldPath = "progressSummaryCache.streakFreezeUnitsPerCredit"
+                ),
+                earnedUnitsPerStreakDay = requireNonNegativeProgressCacheInt(
+                    value = streakFreezeEarnedUnitsPerStreakDay,
+                    fieldPath = "progressSummaryCache.streakFreezeEarnedUnitsPerStreakDay"
                 ),
                 nextCreditProgressUnits = requireNonNegativeProgressCacheInt(
                     value = streakFreezeNextCreditProgressUnits,

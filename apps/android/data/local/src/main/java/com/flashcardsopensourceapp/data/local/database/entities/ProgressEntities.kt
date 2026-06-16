@@ -21,6 +21,7 @@ data class ProgressSummaryCacheEntity(
     val streakFreezeCapacity: Int,
     val streakFreezeBalanceUnits: Int,
     val streakFreezeUnitsPerCredit: Int,
+    val streakFreezeEarnedUnitsPerStreakDay: Int,
     val streakFreezeNextCreditProgressUnits: Int,
     val streakFreezeNextCreditRequiredUnits: Int,
     val updatedAtMillis: Long

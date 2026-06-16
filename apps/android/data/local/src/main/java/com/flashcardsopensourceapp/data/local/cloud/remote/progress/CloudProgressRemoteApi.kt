@@ -228,32 +228,43 @@ private fun JSONObject.toCloudProgressSummary(
 private fun JSONObject.toCloudProgressStreakFreeze(
     fieldPath: String
 ): CloudProgressStreakFreeze {
-    return CloudProgressStreakFreeze(
-        availableCredits = requireNonNegativeProgressInt(
-            value = requireCloudInt("availableCredits", "$fieldPath.availableCredits"),
-            fieldPath = "$fieldPath.availableCredits"
-        ),
-        capacity = requireNonNegativeProgressInt(
-            value = requireCloudInt("capacity", "$fieldPath.capacity"),
-            fieldPath = "$fieldPath.capacity"
-        ),
-        balanceUnits = requireNonNegativeProgressInt(
-            value = requireCloudInt("balanceUnits", "$fieldPath.balanceUnits"),
-            fieldPath = "$fieldPath.balanceUnits"
-        ),
-        unitsPerCredit = requirePositiveProgressInt(
-            value = requireCloudInt("unitsPerCredit", "$fieldPath.unitsPerCredit"),
-            fieldPath = "$fieldPath.unitsPerCredit"
-        ),
-        nextCreditProgressUnits = requireNonNegativeProgressInt(
-            value = requireCloudInt("nextCreditProgressUnits", "$fieldPath.nextCreditProgressUnits"),
-            fieldPath = "$fieldPath.nextCreditProgressUnits"
-        ),
-        nextCreditRequiredUnits = requirePositiveProgressInt(
-            value = requireCloudInt("nextCreditRequiredUnits", "$fieldPath.nextCreditRequiredUnits"),
-            fieldPath = "$fieldPath.nextCreditRequiredUnits"
+    try {
+        return CloudProgressStreakFreeze(
+            availableCredits = requireNonNegativeProgressInt(
+                value = requireCloudInt("availableCredits", "$fieldPath.availableCredits"),
+                fieldPath = "$fieldPath.availableCredits"
+            ),
+            capacity = requireNonNegativeProgressInt(
+                value = requireCloudInt("capacity", "$fieldPath.capacity"),
+                fieldPath = "$fieldPath.capacity"
+            ),
+            balanceUnits = requireNonNegativeProgressInt(
+                value = requireCloudInt("balanceUnits", "$fieldPath.balanceUnits"),
+                fieldPath = "$fieldPath.balanceUnits"
+            ),
+            unitsPerCredit = requirePositiveProgressInt(
+                value = requireCloudInt("unitsPerCredit", "$fieldPath.unitsPerCredit"),
+                fieldPath = "$fieldPath.unitsPerCredit"
+            ),
+            earnedUnitsPerStreakDay = requireNonNegativeProgressInt(
+                value = requireCloudInt("earnedUnitsPerStreakDay", "$fieldPath.earnedUnitsPerStreakDay"),
+                fieldPath = "$fieldPath.earnedUnitsPerStreakDay"
+            ),
+            nextCreditProgressUnits = requireNonNegativeProgressInt(
+                value = requireCloudInt("nextCreditProgressUnits", "$fieldPath.nextCreditProgressUnits"),
+                fieldPath = "$fieldPath.nextCreditProgressUnits"
+            ),
+            nextCreditRequiredUnits = requirePositiveProgressInt(
+                value = requireCloudInt("nextCreditRequiredUnits", "$fieldPath.nextCreditRequiredUnits"),
+                fieldPath = "$fieldPath.nextCreditRequiredUnits"
+            )
         )
-    )
+    } catch (error: IllegalArgumentException) {
+        throw CloudContractMismatchException(
+            "$fieldPath is not a coherent streak freeze payload: ${error.message}",
+            error
+        )
+    }
 }
 
 private fun JSONObject.toCloudProgressStreakDays(

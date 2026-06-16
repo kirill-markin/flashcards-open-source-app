@@ -65,9 +65,56 @@ data class CloudProgressStreakFreeze(
     val capacity: Int,
     val balanceUnits: Int,
     val unitsPerCredit: Int,
+    val earnedUnitsPerStreakDay: Int,
     val nextCreditProgressUnits: Int,
     val nextCreditRequiredUnits: Int
-)
+) {
+    init {
+        require(availableCredits >= 0) {
+            "Progress streak freeze availableCredits must not be negative."
+        }
+        require(capacity >= 0) {
+            "Progress streak freeze capacity must not be negative."
+        }
+        require(balanceUnits >= 0) {
+            "Progress streak freeze balanceUnits must not be negative."
+        }
+        require(unitsPerCredit > 0) {
+            "Progress streak freeze unitsPerCredit must be positive."
+        }
+        require(earnedUnitsPerStreakDay >= 0) {
+            "Progress streak freeze earnedUnitsPerStreakDay must not be negative."
+        }
+        require(nextCreditProgressUnits >= 0) {
+            "Progress streak freeze nextCreditProgressUnits must not be negative."
+        }
+        require(nextCreditRequiredUnits > 0) {
+            "Progress streak freeze nextCreditRequiredUnits must be positive."
+        }
+
+        val capacityBalanceUnits: Long = capacity.toLong() * unitsPerCredit.toLong()
+        require(balanceUnits.toLong() <= capacityBalanceUnits) {
+            "Progress streak freeze balanceUnits must not exceed capacity * unitsPerCredit."
+        }
+
+        val expectedAvailableCredits = minOf(capacity, balanceUnits / unitsPerCredit)
+        require(availableCredits == expectedAvailableCredits) {
+            "Progress streak freeze availableCredits must match balanceUnits and unitsPerCredit."
+        }
+
+        val expectedNextCreditProgressUnits = if (availableCredits >= capacity) {
+            0
+        } else {
+            balanceUnits % unitsPerCredit
+        }
+        require(nextCreditProgressUnits == expectedNextCreditProgressUnits) {
+            "Progress streak freeze nextCreditProgressUnits must match balanceUnits and capacity."
+        }
+        require(nextCreditRequiredUnits == unitsPerCredit) {
+            "Progress streak freeze nextCreditRequiredUnits must equal unitsPerCredit."
+        }
+    }
+}
 
 data class ProgressReviewHistoryWatermark(
     val workspaceId: String,
