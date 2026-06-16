@@ -14,6 +14,10 @@
     <string name="progress_streak_summary_not_reviewed_today">Not reviewed today</string>
     <string name="progress_streak_freeze_bank_value">%1$d/%2$d</string>
     <string name="progress_streak_freeze_bank_content_description">Streak freezes %1$d of %2$d available.</string>
+    <string name="progress_streak_freeze_bank_info_button_content_description">About streak freezes</string>
+    <string name="progress_streak_freeze_bank_info_title">Streak freezes</string>
+    <string name="progress_streak_freeze_bank_info_body">Available: %1$d/%2$d. Recharge: %3$d/%4$d. Freezes protect missed days and recharge as your streak continues.</string>
+    <string name="progress_streak_freeze_bank_info_dismiss">OK</string>
     <string name="progress_streak_day_reviewed_content_description">%1$s reviewed.</string>
     <string name="progress_streak_day_frozen_content_description">%1$s protected by a streak freeze.</string>
     <string name="progress_streak_day_pending_content_description">%1$s pending.</string>
