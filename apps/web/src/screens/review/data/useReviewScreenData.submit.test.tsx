@@ -20,6 +20,7 @@ const {
   dispatchDocumentKeydown,
   getContainer,
   getState,
+  openReviewQueue,
   renderReviewScreen,
   rerenderReviewScreen,
   revealAnswer,
@@ -714,6 +715,7 @@ describe("useReviewScreenData submit", () => {
       await Promise.resolve();
     });
 
+    await openReviewQueue();
     const queueTitlesAfterRefresh = [...getContainer().querySelectorAll(".review-queue-card-title")].map((element) => element.textContent);
     expect(getContainer().textContent).toContain("Race next front");
     expect(getContainer().textContent).not.toContain("Race current original front");

@@ -57,7 +57,7 @@ export function ReviewScreenHeader(props: ReviewScreenHeaderProps): ReactElement
   const leaderboardShortcutAriaLabel = leaderboardShortcutRankLabel === null
     ? t("reviewScreen.leaderboardShortcut.ariaLabel")
     : `${t("reviewScreen.leaderboardShortcut.ariaLabel")}. ${leaderboardShortcutRankLabel}`;
-  const isReviewQueueShortcutDisabled = reviewQueueTotalCount === 0;
+  const isReviewQueueShortcutDisabled = reviewQueueTotalCount === 0 && isReviewQueuePanelOpen === false;
 
   return (
     <div className="screen-head review-screen-head">
@@ -80,7 +80,7 @@ export function ReviewScreenHeader(props: ReviewScreenHeaderProps): ReactElement
             <button
               className="badge review-progress-badge review-screen-head-badge review-queue-shortcut"
               type="button"
-              aria-controls="review-queue-panel"
+              aria-controls={isReviewQueuePanelOpen ? "review-queue-panel" : undefined}
               aria-expanded={isReviewQueueShortcutDisabled ? undefined : isReviewQueuePanelOpen}
               aria-label={reviewQueueAriaLabel}
               title={reviewQueueAriaLabel}

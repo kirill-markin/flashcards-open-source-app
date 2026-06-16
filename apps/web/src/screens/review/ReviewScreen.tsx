@@ -38,12 +38,16 @@ export function ReviewScreen(): ReactElement {
     dismissReviewReactions();
   }, [dismissReviewReactions, reviewReactionAnimationsEnabled]);
 
+  const reviewLayoutClassName = queuePanelProps.isReviewQueuePanelOpen
+    ? "review-layout review-layout-queue-open"
+    : "review-layout";
+
   return (
     <main className="container" data-testid="review-screen" onPointerDownCapture={dismissReviewReactions}>
       <section className="panel review-screen-panel">
         <ReviewScreenHeader {...headerProps} />
 
-        <div className="review-layout">
+        <div className={reviewLayoutClassName}>
           <div className="review-pane-reaction-frame">
             <ReviewPane {...paneProps} />
             <ReviewRatingReactionLayer
@@ -51,7 +55,7 @@ export function ReviewScreen(): ReactElement {
               onReactionEventFallback={reviewReactionFallbackHandler}
             />
           </div>
-          <ReviewQueuePanel {...queuePanelProps} />
+          {queuePanelProps.isReviewQueuePanelOpen ? <ReviewQueuePanel {...queuePanelProps} /> : null}
         </div>
       </section>
 
