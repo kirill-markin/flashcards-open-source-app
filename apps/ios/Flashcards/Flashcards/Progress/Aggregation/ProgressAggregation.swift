@@ -432,9 +432,9 @@ func makeProgressSeriesFromReviewEvents(
         timeZone: requestRange.timeZone
     )
     let zeroFilledDays = try makeZeroFilledProgressDays(requestRange: requestRange)
-    let progressDays = zeroFilledDays.map { progressDay in
+    let progressDays: [ProgressDay] = zeroFilledDays.map { progressDay in
         let ratingCounts = ratingCountsByLocalDate[progressDay.date] ?? zeroProgressReviewRatingCounts()
-        ProgressDay(
+        return ProgressDay(
             date: progressDay.date,
             reviewCount: ratingCounts.reviewCount,
             againCount: ratingCounts.againCount,
