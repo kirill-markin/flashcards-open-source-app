@@ -73,9 +73,7 @@ class MarketingAllScreenshotsScript {
 
         robot.prepareOpportunityCostReviewCardForReview(
             expectedReviewStreakDays = marketingScreenshotExpectedStreakDays,
-            expectedReviewedToday = true,
-            expectedFreezeAvailableCredits = marketingScreenshotExpectedFreezeAvailableCredits,
-            expectedFreezeCapacity = marketingScreenshotExpectedFreezeCapacity
+            expectedReviewedToday = true
         )
         assertScreenshotSaved(
             robot = robot,

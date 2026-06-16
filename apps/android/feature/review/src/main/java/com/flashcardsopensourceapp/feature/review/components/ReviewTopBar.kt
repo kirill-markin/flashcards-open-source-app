@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AcUnit
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.FormatListBulleted
@@ -37,7 +36,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
 private val reviewTopBarFilterMaxWidth = 160.dp
-private val reviewProgressFreezeColor = Color(0xFF90CAF9)
+private val reviewLeaderboardTrophyColor = Color(0xFFFFD60A)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,16 +57,6 @@ internal fun ReviewTopBar(
         reviewProgressBadge.streakDays,
         reviewProgressBadge.streakDays
     )
-    val freezeBankContentDescription = stringResource(
-        id = R.string.review_progress_badge_freeze_bank_content_description,
-        reviewProgressBadge.freezeAvailableCredits,
-        reviewProgressBadge.freezeCapacity
-    )
-    val progressBadgeFullContentDescription = if (reviewProgressBadge.freezeCapacity > 0) {
-        "$progressBadgeContentDescription $freezeBankContentDescription"
-    } else {
-        progressBadgeContentDescription
-    }
     val progressBadgeStateDescription = stringResource(
         id = if (reviewProgressBadge.hasReviewedToday) {
             R.string.review_progress_badge_reviewed_today
@@ -119,7 +108,7 @@ internal fun ReviewTopBar(
                 modifier = Modifier
                     .testTag(reviewProgressBadgeTag)
                     .semantics {
-                        contentDescription = progressBadgeFullContentDescription
+                        contentDescription = progressBadgeContentDescription
                         stateDescription = progressBadgeStateDescription
                     }
                     .clip(CircleShape)
@@ -140,35 +129,9 @@ internal fun ReviewTopBar(
                     }
                 )
                 Text(text = formatReviewProgressBadgeValue(streakDays = reviewProgressBadge.streakDays))
-                ReviewProgressFreezeBankIndicator(reviewProgressBadge = reviewProgressBadge)
             }
         }
     )
-}
-
-@Composable
-private fun ReviewProgressFreezeBankIndicator(
-    reviewProgressBadge: ReviewProgressBadgeState
-) {
-    if (reviewProgressBadge.freezeCapacity <= 0) {
-        return
-    }
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(2.dp)
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.AcUnit,
-            contentDescription = null,
-            tint = reviewProgressFreezeColor,
-            modifier = Modifier.size(18.dp)
-        )
-        Text(
-            text = reviewProgressBadge.freezeAvailableCredits.toString(),
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
 }
 
 @Composable
@@ -205,7 +168,8 @@ private fun ReviewLeaderboardAction(
     ) {
         Icon(
             imageVector = Icons.Outlined.EmojiEvents,
-            contentDescription = null
+            contentDescription = null,
+            tint = reviewLeaderboardTrophyColor
         )
         if (rank != null) {
             Text(text = rank.toString())

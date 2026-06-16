@@ -160,17 +160,13 @@ internal class MarketingScreenshotRobot(
 
     fun prepareOpportunityCostReviewCardForReview(
         expectedReviewStreakDays: Int,
-        expectedReviewedToday: Boolean,
-        expectedFreezeAvailableCredits: Int,
-        expectedFreezeCapacity: Int
+        expectedReviewedToday: Boolean
     ) {
         openReviewTab()
         waitForReviewPrompt(frontText = localeConfig.reviewCard.frontText)
         waitForReviewProgressBadge(
             expectedReviewStreakDays = expectedReviewStreakDays,
-            expectedReviewedToday = expectedReviewedToday,
-            expectedFreezeAvailableCredits = expectedFreezeAvailableCredits,
-            expectedFreezeCapacity = expectedFreezeCapacity
+            expectedReviewedToday = expectedReviewedToday
         )
     }
 
@@ -329,25 +325,13 @@ internal class MarketingScreenshotRobot(
 
     private fun waitForReviewProgressBadge(
         expectedReviewStreakDays: Int,
-        expectedReviewedToday: Boolean,
-        expectedFreezeAvailableCredits: Int,
-        expectedFreezeCapacity: Int
+        expectedReviewedToday: Boolean
     ) {
-        val expectedStreakContentDescription = composeRule.activity.resources.getQuantityString(
+        val expectedContentDescription = composeRule.activity.resources.getQuantityString(
             ReviewFeatureR.plurals.review_progress_badge_content_description,
             expectedReviewStreakDays,
             expectedReviewStreakDays
         )
-        val expectedContentDescription = if (expectedFreezeCapacity > 0) {
-            val expectedFreezeContentDescription = composeRule.activity.getString(
-                ReviewFeatureR.string.review_progress_badge_freeze_bank_content_description,
-                expectedFreezeAvailableCredits,
-                expectedFreezeCapacity
-            )
-            "$expectedStreakContentDescription $expectedFreezeContentDescription"
-        } else {
-            expectedStreakContentDescription
-        }
         val expectedStateDescription = composeRule.activity.getString(
             if (expectedReviewedToday) {
                 ReviewFeatureR.string.review_progress_badge_reviewed_today

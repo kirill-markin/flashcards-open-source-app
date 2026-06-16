@@ -8,8 +8,6 @@ import com.flashcardsopensourceapp.data.local.model.review.ReviewTagFilterOption
 
 data class ReviewProgressBadgeState(
     val streakDays: Int,
-    val freezeAvailableCredits: Int,
-    val freezeCapacity: Int,
     val hasReviewedToday: Boolean,
     val isInteractive: Boolean
 )
