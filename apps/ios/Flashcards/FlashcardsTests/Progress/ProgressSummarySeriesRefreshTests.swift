@@ -151,7 +151,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
     }
 
     @MainActor
-    func testRefreshProgressIfNeededReplacesFrozenDayAndExtendsLongServerSummary() async throws {
+    func testRefreshProgressIfNeededPatchesTodayOnlyWhenOlderLocalDateExists() async throws {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
@@ -221,14 +221,19 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         XCTAssertEqual(201, progressSnapshot.summary.currentStreakDays)
         XCTAssertTrue(progressSnapshot.summary.hasReviewedToday)
         XCTAssertEqual("2026-04-18", progressSnapshot.summary.lastReviewedOn)
-        XCTAssertEqual(202, progressSnapshot.summary.activeReviewDays)
+        XCTAssertEqual(201, progressSnapshot.summary.activeReviewDays)
         XCTAssertEqual(1, progressReviewCount(snapshot: progressSnapshot, localDate: "2026-04-16"))
-        XCTAssertEqual(1, progressReviewCount(snapshot: progressSnapshot, localDate: "2026-04-17"))
+        XCTAssertEqual(0, progressReviewCount(snapshot: progressSnapshot, localDate: "2026-04-17"))
         XCTAssertEqual(1, progressReviewCount(snapshot: progressSnapshot, localDate: "2026-04-18"))
+        let streakStatesByDate = Dictionary(uniqueKeysWithValues: progressSnapshot.chartData.chartDays.map { chartDay in
+            (chartDay.localDate, chartDay.streakState)
+        })
+        XCTAssertEqual(.frozen, try XCTUnwrap(streakStatesByDate["2026-04-17"]))
+        XCTAssertEqual(.reviewed, try XCTUnwrap(streakStatesByDate["2026-04-18"]))
     }
 
     @MainActor
-    func testRefreshProgressIfNeededExtendsLongServerSummaryThroughYesterdayWhenTodayIsInactive() async throws {
+    func testRefreshProgressIfNeededDoesNotExtendLongServerSummaryThroughYesterdayWhenTodayIsInactive() async throws {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
@@ -284,19 +289,19 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         await context.store.refreshProgressIfNeeded(now: now)
 
         let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
-        XCTAssertEqual(.serverBaseWithPendingLocalOverlay, progressSnapshot.summarySourceState)
-        XCTAssertEqual(.serverBaseWithPendingLocalOverlay, progressSnapshot.seriesSourceState)
-        XCTAssertEqual(201, progressSnapshot.summary.currentStreakDays)
+        XCTAssertEqual(.serverBase, progressSnapshot.summarySourceState)
+        XCTAssertEqual(.serverBase, progressSnapshot.seriesSourceState)
+        XCTAssertEqual(200, progressSnapshot.summary.currentStreakDays)
         XCTAssertFalse(progressSnapshot.summary.hasReviewedToday)
-        XCTAssertEqual("2026-04-19", progressSnapshot.summary.lastReviewedOn)
-        XCTAssertEqual(201, progressSnapshot.summary.activeReviewDays)
+        XCTAssertEqual("2026-04-18", progressSnapshot.summary.lastReviewedOn)
+        XCTAssertEqual(200, progressSnapshot.summary.activeReviewDays)
         XCTAssertEqual(1, progressReviewCount(snapshot: progressSnapshot, localDate: "2026-04-18"))
-        XCTAssertEqual(1, progressReviewCount(snapshot: progressSnapshot, localDate: "2026-04-19"))
+        XCTAssertEqual(0, progressReviewCount(snapshot: progressSnapshot, localDate: "2026-04-19"))
         XCTAssertEqual(0, progressReviewCount(snapshot: progressSnapshot, localDate: "2026-04-20"))
     }
 
     @MainActor
-    func testRefreshProgressIfNeededExtendsStaleSummaryActiveDaysWhenServerSeriesIsFresher() async throws {
+    func testRefreshProgressIfNeededKeepsStaleSummaryAuthoritativeWhenServerSeriesIsFresher() async throws {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
@@ -342,18 +347,18 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         await context.store.refreshProgressIfNeeded(now: now)
 
         let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
-        XCTAssertEqual(.serverBaseWithPendingLocalOverlay, progressSnapshot.summarySourceState)
+        XCTAssertEqual(.serverBase, progressSnapshot.summarySourceState)
         XCTAssertEqual(.serverBase, progressSnapshot.seriesSourceState)
-        XCTAssertEqual(201, progressSnapshot.summary.currentStreakDays)
-        XCTAssertTrue(progressSnapshot.summary.hasReviewedToday)
-        XCTAssertEqual("2026-04-18", progressSnapshot.summary.lastReviewedOn)
-        XCTAssertEqual(201, progressSnapshot.summary.activeReviewDays)
+        XCTAssertEqual(200, progressSnapshot.summary.currentStreakDays)
+        XCTAssertFalse(progressSnapshot.summary.hasReviewedToday)
+        XCTAssertEqual("2026-04-17", progressSnapshot.summary.lastReviewedOn)
+        XCTAssertEqual(200, progressSnapshot.summary.activeReviewDays)
         XCTAssertEqual(1, progressReviewCount(snapshot: progressSnapshot, localDate: "2026-04-17"))
         XCTAssertEqual(1, progressReviewCount(snapshot: progressSnapshot, localDate: "2026-04-18"))
     }
 
     @MainActor
-    func testRefreshProgressIfNeededExtendsActiveDaysForLocalDateOutsideRenderedSeriesRange() async throws {
+    func testRefreshProgressIfNeededKeepsServerSummaryForLocalDateOutsideRenderedSeriesRange() async throws {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
@@ -407,16 +412,16 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         await context.store.refreshProgressIfNeeded(now: now)
 
         let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
-        XCTAssertEqual(.serverBaseWithPendingLocalOverlay, progressSnapshot.summarySourceState)
+        XCTAssertEqual(.serverBase, progressSnapshot.summarySourceState)
         XCTAssertEqual(.serverBase, progressSnapshot.seriesSourceState)
         XCTAssertEqual(0, progressSnapshot.summary.currentStreakDays)
         XCTAssertFalse(progressSnapshot.summary.hasReviewedToday)
-        XCTAssertEqual("2025-11-15", progressSnapshot.summary.lastReviewedOn)
-        XCTAssertEqual(201, progressSnapshot.summary.activeReviewDays)
+        XCTAssertEqual("2025-11-14", progressSnapshot.summary.lastReviewedOn)
+        XCTAssertEqual(200, progressSnapshot.summary.activeReviewDays)
     }
 
     @MainActor
-    func testRefreshProgressIfNeededUsesRenderedSeriesLowerBoundWhenStaleServerSummaryAddsYesterday() async throws {
+    func testRefreshProgressIfNeededDoesNotUseRenderedSeriesLowerBoundWhenStaleServerSummaryAddsYesterday() async throws {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
@@ -472,12 +477,12 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         await context.store.refreshProgressIfNeeded(now: now)
 
         let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
-        XCTAssertEqual(.serverBaseWithPendingLocalOverlay, progressSnapshot.summarySourceState)
-        XCTAssertEqual(.serverBaseWithPendingLocalOverlay, progressSnapshot.seriesSourceState)
-        XCTAssertEqual(2, progressSnapshot.summary.currentStreakDays)
+        XCTAssertEqual(.serverBase, progressSnapshot.summarySourceState)
+        XCTAssertEqual(.serverBase, progressSnapshot.seriesSourceState)
+        XCTAssertEqual(0, progressSnapshot.summary.currentStreakDays)
         XCTAssertFalse(progressSnapshot.summary.hasReviewedToday)
-        XCTAssertEqual("2026-04-17", progressSnapshot.summary.lastReviewedOn)
-        XCTAssertEqual(201, progressSnapshot.summary.activeReviewDays)
+        XCTAssertEqual("2026-04-16", progressSnapshot.summary.lastReviewedOn)
+        XCTAssertEqual(200, progressSnapshot.summary.activeReviewDays)
     }
 
     @MainActor
@@ -611,12 +616,12 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
 
         let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
         XCTAssertEqual(.serverBase, progressSnapshot.summarySourceState)
-        XCTAssertEqual(.serverBaseWithPendingLocalOverlay, progressSnapshot.seriesSourceState)
+        XCTAssertEqual(.serverBase, progressSnapshot.seriesSourceState)
         XCTAssertEqual(1, progressSnapshot.summary.currentStreakDays)
         XCTAssertFalse(progressSnapshot.summary.hasReviewedToday)
         XCTAssertEqual("2026-04-17", progressSnapshot.summary.lastReviewedOn)
         XCTAssertEqual(200, progressSnapshot.summary.activeReviewDays)
-        XCTAssertEqual(1, progressReviewCount(snapshot: progressSnapshot, localDate: "2026-04-17"))
+        XCTAssertEqual(0, progressReviewCount(snapshot: progressSnapshot, localDate: "2026-04-17"))
     }
 
     @MainActor
@@ -685,15 +690,15 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         XCTAssertEqual(3, progressSnapshot.summary.currentStreakDays)
         XCTAssertTrue(progressSnapshot.summary.hasReviewedToday)
         XCTAssertEqual("2026-04-18", progressSnapshot.summary.lastReviewedOn)
-        XCTAssertEqual(3, progressSnapshot.summary.activeReviewDays)
+        XCTAssertEqual(2, progressSnapshot.summary.activeReviewDays)
         XCTAssertEqual(1, progressReviewCount(snapshot: progressSnapshot, localDate: "2026-04-16"))
-        XCTAssertEqual(1, progressReviewCount(snapshot: progressSnapshot, localDate: "2026-04-17"))
+        XCTAssertEqual(0, progressReviewCount(snapshot: progressSnapshot, localDate: "2026-04-17"))
         XCTAssertEqual(1, progressReviewCount(snapshot: progressSnapshot, localDate: "2026-04-18"))
         XCTAssertEqual(1, context.cloudSyncService.loadProgressSummaryCallCount)
         XCTAssertEqual(1, context.cloudSyncService.loadProgressSeriesCallCount)
     }
 
-    func testMergeProgressSeriesUsesLocalFallbackAsFloorWithoutDoubleCounting() throws {
+    func testMergeProgressSeriesAppliesOnlyTodayLocalOverlay() throws {
         let requestRange = ProgressSeriesLoadRequest(
             apiBaseUrl: "",
             authorizationHeader: "",
@@ -738,9 +743,9 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
             (progressDay.date, progressDay.reviewCount)
         })
 
-        XCTAssertEqual(1, mergedCountsByDate["2026-04-15"])
+        XCTAssertEqual(0, mergedCountsByDate["2026-04-15"])
         XCTAssertEqual(1, mergedCountsByDate["2026-04-16"])
-        XCTAssertEqual(3, mergedCountsByDate["2026-04-17"])
+        XCTAssertEqual(2, mergedCountsByDate["2026-04-17"])
         XCTAssertEqual(2, mergedCountsByDate["2026-04-18"])
         XCTAssertEqual(serverBase.generatedAt, mergedSeries.generatedAt)
         XCTAssertEqual(serverBase.reviewHistoryWatermarks, mergedSeries.reviewHistoryWatermarks)
@@ -775,11 +780,11 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
             mergedActiveReviewDates: ["2026-04-16", "2026-04-17", "2026-04-18"]
         )
 
-        XCTAssertEqual(.serverBaseWithPendingLocalOverlay, renderedOverlaySeries.sourceState)
+        XCTAssertEqual(.serverBase, renderedOverlaySeries.sourceState)
         XCTAssertEqual(.serverBase, renderedServerSeries.sourceState)
     }
 
-    func testMergeProgressSeriesRecomputesFreezeStatesAfterLocalOverlayChangesEarlierDay() throws {
+    func testMergeProgressSeriesPreservesServerFreezeStatesAfterLocalOverlayChangesEarlierDay() throws {
         let requestRange = ProgressSeriesLoadRequest(
             apiBaseUrl: "",
             authorizationHeader: "",
@@ -819,13 +824,13 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         })
 
         XCTAssertEqual(.reviewed, try XCTUnwrap(mergedStatesByDate["2026-04-16"]))
-        XCTAssertEqual(.reviewed, try XCTUnwrap(mergedStatesByDate["2026-04-17"]))
+        XCTAssertEqual(.frozen, try XCTUnwrap(mergedStatesByDate["2026-04-17"]))
         XCTAssertEqual(.frozen, try XCTUnwrap(mergedStatesByDate["2026-04-18"]))
-        XCTAssertEqual(.frozen, try XCTUnwrap(mergedStatesByDate["2026-04-19"]))
+        XCTAssertEqual(.missed, try XCTUnwrap(mergedStatesByDate["2026-04-19"]))
         XCTAssertEqual(.pending, try XCTUnwrap(mergedStatesByDate["2026-04-20"]))
     }
 
-    func testMergeProgressSeriesRecomputesFreezeStatesFromAllTimeActiveDatesOutsideRange() throws {
+    func testMergeProgressSeriesIgnoresAllTimeActiveDatesOutsideRange() throws {
         let requestRange = ProgressSeriesLoadRequest(
             apiBaseUrl: "",
             authorizationHeader: "",
@@ -859,7 +864,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
             (streakDay.date, streakDay.state)
         })
 
-        XCTAssertEqual(.frozen, try XCTUnwrap(mergedStatesByDate["2026-04-18"]))
+        XCTAssertEqual(.missed, try XCTUnwrap(mergedStatesByDate["2026-04-18"]))
         XCTAssertEqual(.missed, try XCTUnwrap(mergedStatesByDate["2026-04-19"]))
         XCTAssertEqual(.pending, try XCTUnwrap(mergedStatesByDate["2026-04-20"]))
     }
@@ -925,7 +930,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         XCTAssertEqual(.reviewed, try XCTUnwrap(mergedStatesByDate["2026-04-20"]))
     }
 
-    func testMergeProgressSeriesRecomputesSuffixFromServerFreezeBalanceAfterLocalOverlayChange() throws {
+    func testMergeProgressSeriesPreservesServerFreezeHistoryForOlderLocalOverlayChange() throws {
         let requestRange = ProgressSeriesLoadRequest(
             apiBaseUrl: "",
             authorizationHeader: "",
@@ -981,7 +986,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
 
         XCTAssertEqual(.frozen, try XCTUnwrap(mergedStatesByDate["2026-04-16"]))
         XCTAssertEqual(.frozen, try XCTUnwrap(mergedStatesByDate["2026-04-17"]))
-        XCTAssertEqual(.reviewed, try XCTUnwrap(mergedStatesByDate["2026-04-18"]))
+        XCTAssertEqual(.missed, try XCTUnwrap(mergedStatesByDate["2026-04-18"]))
         XCTAssertEqual(.missed, try XCTUnwrap(mergedStatesByDate["2026-04-19"]))
         XCTAssertEqual(.pending, try XCTUnwrap(mergedStatesByDate["2026-04-20"]))
     }
@@ -1046,11 +1051,11 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         XCTAssertTrue(context.cloudSyncService.recordedOperations.contains(.loadProgressReviewSchedule))
         let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
         XCTAssertEqual(.serverBaseWithPendingLocalOverlay, progressSnapshot.summarySourceState)
-        XCTAssertEqual(.serverBaseWithPendingLocalOverlay, progressSnapshot.seriesSourceState)
+        XCTAssertEqual(.serverBase, progressSnapshot.seriesSourceState)
         XCTAssertFalse(progressSnapshot.isApproximate)
-        XCTAssertEqual(2, progressSnapshot.summary.activeReviewDays)
+        XCTAssertEqual(1, progressSnapshot.summary.activeReviewDays)
         XCTAssertFalse(progressSnapshot.summary.hasReviewedToday)
-        XCTAssertEqual("2026-04-02", progressSnapshot.summary.lastReviewedOn)
+        XCTAssertEqual("2026-04-01", progressSnapshot.summary.lastReviewedOn)
         XCTAssertEqual(1, context.cloudSyncService.loadProgressSummaryCallCount)
         XCTAssertEqual(1, context.cloudSyncService.loadProgressSeriesCallCount)
     }

@@ -273,11 +273,17 @@ extension FlashcardsStore {
                 return
             }
 
+            let reviewedAtClientSources = try self.loadProgressReviewedAtClientSources()
+            let activeReviewLocalDates = try progressActiveDatesFromReviewedAtClientSources(
+                sources: reviewedAtClientSources,
+                timeZone: scopeKey.timeZone
+            )
             let patchedSnapshot = try patchProgressSnapshot(
                 snapshot: progressSnapshot,
                 scopeKey: scopeKey,
                 reviewedAtClient: reviewedAtClient,
-                rating: rating
+                rating: rating,
+                activeReviewLocalDates: activeReviewLocalDates
             )
             self.applyProgressSnapshot(snapshot: patchedSnapshot)
             self.clearProgressErrorMessage()

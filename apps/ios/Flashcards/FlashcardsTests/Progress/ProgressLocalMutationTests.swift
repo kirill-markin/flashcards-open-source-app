@@ -63,6 +63,171 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
     }
 
     @MainActor
+    func testHandleProgressLocalMutationPatchesLocalOnlySeriesInMixedSnapshot() async throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
+        let timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T12:00:00.000Z"))
+        let requestRange = try makeTestProgressRequestRange(
+            now: now,
+            timeZone: timeZone,
+            dayCount: 140
+        )
+        try self.addReviewedCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            reviewedAtClient: try makeReviewedAtClientForTests(
+                localDate: "2026-04-02",
+                hour: 12,
+                timeZoneIdentifier: requestRange.timeZone
+            )
+        )
+        let outboxEntries = try database.loadOutboxEntries(workspaceId: workspace.workspaceId, limit: Int.max)
+        try database.deleteOutboxEntries(operationIds: outboxEntries.map(\.operationId))
+
+        let serverSeries = try makeTestProgressSeries(
+            requestRange: requestRange,
+            reviewCountsByDate: [:],
+            generatedAt: "2026-04-18T11:59:00.000Z"
+        )
+        let serverSummary = try makeTestProgressSummary(
+            timeZone: requestRange.timeZone,
+            reviewDates: ["2026-04-01"],
+            generatedAt: "2026-04-18T11:59:00.000Z"
+        )
+        let context = try self.makeProgressStoreContext(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            installationId: cloudSettings.installationId,
+            serverSummary: serverSummary,
+            serverSeries: serverSeries,
+            loadProgressSummaryError: nil,
+            loadProgressSeriesError: LocalStoreError.validation("Series refresh failed"),
+            cloudState: .guest
+        )
+        defer { context.tearDown() }
+
+        await context.store.refreshProgressIfNeeded(now: now)
+        let initialSnapshot = try XCTUnwrap(context.store.progressSnapshot)
+        XCTAssertEqual(.serverBase, initialSnapshot.summarySourceState)
+        XCTAssertEqual(.localOnly, initialSnapshot.seriesSourceState)
+        XCTAssertEqual(1, progressReviewCount(snapshot: initialSnapshot, localDate: "2026-04-02"))
+
+        let reviewedAtClient = try makeReviewedAtClientForTests(
+            localDate: "2026-04-03",
+            hour: 12,
+            timeZoneIdentifier: requestRange.timeZone
+        )
+        try self.addReviewedCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            reviewedAtClient: reviewedAtClient
+        )
+
+        context.store.handleProgressLocalMutation(
+            now: now,
+            reviewedAtClient: reviewedAtClient,
+            rating: .good
+        )
+
+        let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
+        XCTAssertEqual(.serverBase, progressSnapshot.summarySourceState)
+        XCTAssertEqual(.localOnly, progressSnapshot.seriesSourceState)
+        XCTAssertEqual(1, progressReviewCount(snapshot: progressSnapshot, localDate: "2026-04-02"))
+        XCTAssertEqual(1, progressReviewCount(snapshot: progressSnapshot, localDate: "2026-04-03"))
+        XCTAssertEqual(1, progressSnapshot.summary.activeReviewDays)
+        XCTAssertEqual("2026-04-01", progressSnapshot.summary.lastReviewedOn)
+    }
+
+    @MainActor
+    func testHandleProgressLocalMutationPreservesLocalOnlyStreakBeyondVisibleRange() async throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
+        let timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T12:00:00.000Z"))
+        let requestRange = try makeTestProgressRequestRange(
+            now: now,
+            timeZone: timeZone,
+            dayCount: 140
+        )
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        let todayDate = try XCTUnwrap(progressDateForTests(localDate: requestRange.to, calendar: calendar))
+        let firstReviewDate = try XCTUnwrap(calendar.date(byAdding: .day, value: -150, to: todayDate))
+        for dayOffset in 0..<150 {
+            let reviewDate = try XCTUnwrap(calendar.date(byAdding: .day, value: dayOffset, to: firstReviewDate))
+            let localDate = progressLocalDateStringForTests(date: reviewDate, calendar: calendar)
+            try self.addReviewedCard(
+                database: database,
+                workspaceId: workspace.workspaceId,
+                reviewedAtClient: try makeReviewedAtClientForTests(
+                    localDate: localDate,
+                    hour: 12,
+                    timeZoneIdentifier: requestRange.timeZone
+                )
+            )
+        }
+
+        let serverSeries = try makeTestProgressSeries(
+            requestRange: requestRange,
+            reviewCountsByDate: [:],
+            generatedAt: "2026-04-18T11:59:00.000Z"
+        )
+        let serverSummary = try makeTestProgressSummary(
+            timeZone: requestRange.timeZone,
+            reviewDates: [],
+            generatedAt: "2026-04-18T11:59:00.000Z"
+        )
+        let context = try self.makeProgressStoreContext(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            installationId: cloudSettings.installationId,
+            serverSummary: serverSummary,
+            serverSeries: serverSeries,
+            loadProgressSummaryError: nil,
+            loadProgressSeriesError: nil,
+            cloudState: .disconnected
+        )
+        defer { context.tearDown() }
+
+        await context.store.refreshProgressIfNeeded(now: now)
+        let initialSnapshot = try XCTUnwrap(context.store.progressSnapshot)
+        XCTAssertEqual(.localOnly, initialSnapshot.summarySourceState)
+        XCTAssertEqual(.localOnly, initialSnapshot.seriesSourceState)
+        XCTAssertEqual(150, initialSnapshot.summary.currentStreakDays)
+        XCTAssertEqual(150, initialSnapshot.summary.activeReviewDays)
+
+        let reviewedAtClient = try makeReviewedAtClientForTests(
+            localDate: requestRange.to,
+            hour: 12,
+            timeZoneIdentifier: requestRange.timeZone
+        )
+        try self.addReviewedCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            reviewedAtClient: reviewedAtClient
+        )
+
+        context.store.handleProgressLocalMutation(
+            now: now,
+            reviewedAtClient: reviewedAtClient,
+            rating: .good
+        )
+
+        let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
+        XCTAssertEqual(.localOnly, progressSnapshot.summarySourceState)
+        XCTAssertEqual(.localOnly, progressSnapshot.seriesSourceState)
+        XCTAssertEqual(151, progressSnapshot.summary.currentStreakDays)
+        XCTAssertEqual(151, progressSnapshot.summary.longestStreakDays)
+        XCTAssertEqual(151, progressSnapshot.summary.activeReviewDays)
+        XCTAssertTrue(progressSnapshot.summary.hasReviewedToday)
+        XCTAssertEqual(requestRange.to, progressSnapshot.summary.lastReviewedOn)
+        XCTAssertEqual(1, progressReviewCount(snapshot: progressSnapshot, localDate: requestRange.to))
+    }
+
+    @MainActor
     func testHandleProgressLocalMutationDoesNotForceLoadSnapshotWhenMissing() async throws {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
@@ -122,7 +287,7 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
     }
 
     @MainActor
-    func testHandleProgressLocalMutationPatchesYesterdayBucketFromLoadedSnapshot() async throws {
+    func testHandleProgressLocalMutationDoesNotPatchYesterdayBucketFromLoadedServerSnapshot() async throws {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
@@ -179,16 +344,16 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
         )
 
         let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
-        XCTAssertEqual(1, progressReviewCount(snapshot: progressSnapshot, localDate: yesterdayLocalDate))
+        XCTAssertEqual(0, progressReviewCount(snapshot: progressSnapshot, localDate: yesterdayLocalDate))
         XCTAssertEqual(0, progressReviewCount(snapshot: progressSnapshot, localDate: todayLocalDate))
-        XCTAssertEqual(1, progressSnapshot.summary.currentStreakDays)
+        XCTAssertEqual(0, progressSnapshot.summary.currentStreakDays)
         XCTAssertFalse(progressSnapshot.summary.hasReviewedToday)
-        XCTAssertEqual(yesterdayLocalDate, progressSnapshot.summary.lastReviewedOn)
-        XCTAssertEqual(1, progressSnapshot.summary.activeReviewDays)
+        XCTAssertNil(progressSnapshot.summary.lastReviewedOn)
+        XCTAssertEqual(0, progressSnapshot.summary.activeReviewDays)
     }
 
     @MainActor
-    func testHandleProgressLocalMutationRecomputesFrozenStateForBackdatedReview() async throws {
+    func testHandleProgressLocalMutationDoesNotRecomputeFrozenStateForBackdatedServerSnapshotReview() async throws {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
@@ -231,17 +396,18 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
                 localDate: "2026-04-16",
                 hour: 12,
                 timeZoneIdentifier: requestRange.timeZone
-            )
+            ),
+            rating: .good
         )
 
         let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
-        XCTAssertEqual(.reviewed, progressStreakState(snapshot: progressSnapshot, localDate: "2026-04-16"))
-        XCTAssertEqual(.frozen, progressStreakState(snapshot: progressSnapshot, localDate: "2026-04-17"))
+        XCTAssertEqual(.missed, progressStreakState(snapshot: progressSnapshot, localDate: "2026-04-16"))
+        XCTAssertEqual(.missed, progressStreakState(snapshot: progressSnapshot, localDate: "2026-04-17"))
         XCTAssertEqual(.pending, progressStreakState(snapshot: progressSnapshot, localDate: "2026-04-18"))
-        XCTAssertEqual(2, progressSnapshot.summary.currentStreakDays)
+        XCTAssertEqual(0, progressSnapshot.summary.currentStreakDays)
         XCTAssertFalse(progressSnapshot.summary.hasReviewedToday)
-        XCTAssertEqual("2026-04-16", progressSnapshot.summary.lastReviewedOn)
-        XCTAssertEqual(1, progressSnapshot.summary.activeReviewDays)
+        XCTAssertNil(progressSnapshot.summary.lastReviewedOn)
+        XCTAssertEqual(0, progressSnapshot.summary.activeReviewDays)
     }
 
     @MainActor
@@ -303,7 +469,8 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
                 localDate: requestRange.to,
                 hour: 12,
                 timeZoneIdentifier: requestRange.timeZone
-            )
+            ),
+            rating: .good
         )
 
         let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
@@ -370,7 +537,8 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
 
         context.store.handleProgressLocalMutation(
             now: rolloverNow,
-            reviewedAtClient: reviewedAtClient
+            reviewedAtClient: reviewedAtClient,
+            rating: .good
         )
 
         let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)

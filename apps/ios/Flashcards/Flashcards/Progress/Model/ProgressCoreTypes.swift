@@ -40,6 +40,7 @@ struct ProgressStreakFreeze: Codable, Hashable, Sendable {
     let capacity: Int
     let balanceUnits: Int
     let unitsPerCredit: Int
+    let earnedUnitsPerStreakDay: Int
     let nextCreditProgressUnits: Int
     let nextCreditRequiredUnits: Int
 }

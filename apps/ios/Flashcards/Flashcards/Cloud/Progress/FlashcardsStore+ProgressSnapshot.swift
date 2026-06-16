@@ -94,8 +94,8 @@ extension FlashcardsStore {
             reviewEvents: reviewedAtClientSources.canonicalReviewEvents,
             timeZone: summaryScopeKey.timeZone
         )
-        let pendingLocalOverlayActiveDates = try progressActiveDatesFromReviewedAtClients(
-            reviewedAtClients: reviewedAtClientSources.pendingReviewedAtClients,
+        let pendingLocalOverlayActiveDates = try progressActiveDatesFromReviewEvents(
+            reviewEvents: reviewedAtClientSources.pendingReviewEvents,
             timeZone: summaryScopeKey.timeZone
         )
         let mergedActiveReviewDates = localFallbackActiveDates.union(pendingLocalOverlayActiveDates)
@@ -127,11 +127,6 @@ extension FlashcardsStore {
             scopeKey: summaryScopeKey,
             localFallbackSummary: localFallbackSummary,
             localFallbackActiveDates: mergedActiveReviewDates,
-            renderedSeriesContext: try makeProgressRenderedSeriesSummaryContext(
-                serverBase: self.progressSeriesServerBaseCache,
-                scopeKey: scopeKey,
-                series: renderedSeries.series
-            ),
             pendingLocalOverlayState: reviewedAtClientSources.pendingLocalOverlayState
         )
 
@@ -424,7 +419,7 @@ extension FlashcardsStore {
         }
     }
 
-    private func loadProgressReviewedAtClientSources() throws -> ProgressReviewedAtClientSources {
+    func loadProgressReviewedAtClientSources() throws -> ProgressReviewedAtClientSources {
         let database = try requireLocalDatabase(database: self.database)
         let workspaceIds = try self.loadCanonicalProgressWorkspaceIds(database: database)
         return try self.ensureProgressReviewedAtClientCacheEntry(
