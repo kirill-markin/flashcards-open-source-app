@@ -124,6 +124,7 @@ type ReviewScreenTestHarness = Readonly<{
   dispatchDocumentKeydown: (key: string) => Promise<void>;
   getContainer: () => HTMLDivElement;
   getState: () => ReviewScreenTestState;
+  openReviewQueue: () => Promise<void>;
   openReviewFilterMenu: () => Promise<void>;
   renderReviewScreen: () => Promise<void>;
   rerenderReviewScreen: () => Promise<void>;
@@ -619,6 +620,21 @@ export function setupReviewScreenTest(): ReviewScreenTestHarness {
     });
   }
 
+  async function openReviewQueue(): Promise<void> {
+    const queueBadge = getContainer().querySelector("[data-testid='review-queue-badge']");
+    if (!(queueBadge instanceof HTMLButtonElement)) {
+      throw new Error("Review queue badge was not found");
+    }
+
+    if (queueBadge.getAttribute("aria-expanded") === "true") {
+      return;
+    }
+
+    await act(async () => {
+      clickElement(queueBadge);
+    });
+  }
+
   async function revealAnswer(): Promise<void> {
     const revealButton = getContainer().querySelector(".review-reveal-btn");
     if (!(revealButton instanceof HTMLButtonElement)) {
@@ -640,6 +656,7 @@ export function setupReviewScreenTest(): ReviewScreenTestHarness {
     dispatchDocumentKeydown,
     getContainer,
     getState: (): ReviewScreenTestState => state,
+    openReviewQueue,
     openReviewFilterMenu,
     renderReviewScreen,
     rerenderReviewScreen: renderReviewScreen,

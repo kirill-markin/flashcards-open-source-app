@@ -10,6 +10,7 @@ const {
   dispatchDocumentKeydown,
   getContainer,
   getState,
+  openReviewQueue,
   renderReviewScreen,
   rerenderReviewScreen,
   revealAnswer,
@@ -65,6 +66,7 @@ describe("ReviewScreen presented card preservation", () => {
 
     expect(state.appData.getCardById).toHaveBeenCalledWith("card-current");
     expect(getContainer().textContent).toContain("Current front");
+    await openReviewQueue();
     const queueTitlesAfterRefresh = [...getContainer().querySelectorAll(".review-queue-card-title")].map((element) => element.textContent);
     expect(queueTitlesAfterRefresh).toEqual([
       "Current front",
@@ -85,6 +87,7 @@ describe("ReviewScreen presented card preservation", () => {
 
     await rerenderReviewScreen();
 
+    await openReviewQueue();
     const queueTitlesAfterReappearance = [...getContainer().querySelectorAll(".review-queue-card-title")].map((element) => element.textContent);
     expect(queueTitlesAfterReappearance).toEqual([
       "Recent due 1 front",
@@ -146,6 +149,7 @@ describe("ReviewScreen presented card preservation", () => {
     expect(state.appData.getCardById).toHaveBeenCalledWith("card-current-filter");
     expect(getContainer().textContent).toContain("Filter head 1 front");
     expect(getContainer().textContent).not.toContain("Current filter front");
+    await openReviewQueue();
     const queueTitlesAfterRefresh = [...getContainer().querySelectorAll(".review-queue-card-title")].map((element) => element.textContent);
     expect(queueTitlesAfterRefresh).toEqual(canonicalCards.map((card) => card.frontText));
   });
@@ -201,6 +205,7 @@ describe("ReviewScreen presented card preservation", () => {
     expect(state.appData.getCardById).toHaveBeenCalledWith("card-current-not-due");
     expect(reviewPane.textContent).toContain("Not due head 1 front");
     expect(reviewPane.textContent).not.toContain("Current not due front");
+    await openReviewQueue();
     const queueTitlesAfterRefresh = [...getContainer().querySelectorAll(".review-queue-card-title")].map((element) => element.textContent);
     expect(queueTitlesAfterRefresh).toEqual([
       ...canonicalCards.map((card) => card.frontText),
@@ -247,6 +252,7 @@ describe("ReviewScreen presented card preservation", () => {
     expect(getContainer().textContent).toContain("Missing head 1 front");
     expect(getContainer().textContent).not.toContain("Current missing front");
     expect(getContainer().textContent).not.toContain("Card not found: card-current-missing");
+    await openReviewQueue();
     const queueTitlesAfterRefresh = [...getContainer().querySelectorAll(".review-queue-card-title")].map((element) => element.textContent);
     expect(queueTitlesAfterRefresh).toEqual(canonicalCards.map((card) => card.frontText));
   });

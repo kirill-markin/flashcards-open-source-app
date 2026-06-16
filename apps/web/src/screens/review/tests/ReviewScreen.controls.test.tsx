@@ -25,6 +25,7 @@ const {
   getState,
   openReviewFilterMenu,
   renderReviewScreen,
+  rerenderReviewScreen,
   revealAnswer,
 } = setupReviewScreenTest();
 
@@ -206,7 +207,7 @@ describe("ReviewScreen controls", () => {
     }
     expect(queueBadge.querySelector(".review-progress-badge-value")).toBeNull();
     expect(queueBadge.getAttribute("aria-label")).toContain("1 card");
-    expect(queueBadge.getAttribute("aria-controls")).toBe("review-queue-panel");
+    expect(queueBadge.getAttribute("aria-controls")).toBeNull();
     expect(queueBadge.getAttribute("aria-expanded")).toBe("false");
     expect(queueBadge.getAttribute("href")).toBeNull();
     expect(queueBadge.disabled).toBe(false);
@@ -219,16 +220,13 @@ describe("ReviewScreen controls", () => {
       ".review-leaderboard-shortcut .review-progress-badge-icon",
       "color: #fbbf24",
     )).toBe(true);
-    const queuePanel = getContainer().querySelector("#review-queue-panel");
-    if (!(queuePanel instanceof HTMLElement)) {
-      throw new Error("Review queue panel was not found");
+    const reviewLayout = getContainer().querySelector(".review-layout");
+    if (!(reviewLayout instanceof HTMLElement)) {
+      throw new Error("Review layout was not found");
     }
-    const queueCloseButton = getContainer().querySelector("[data-testid='review-queue-close']");
-    if (!(queueCloseButton instanceof HTMLButtonElement)) {
-      throw new Error("Review queue close button was not found");
-    }
-    expect(queuePanel.className).not.toContain("review-queue-panel-open");
-    expect(queueCloseButton.getAttribute("aria-label")).toBe("Close queue");
+    expect(reviewLayout.className).not.toContain("review-layout-queue-open");
+    expect(getContainer().querySelector("#review-queue-panel")).toBeNull();
+    expect(getContainer().querySelectorAll("[data-testid='review-queue-card']")).toHaveLength(0);
     expect(getContainer().querySelector("[data-testid='review-screen-toolbar']")).toBeNull();
     expect(headerActions.contains(scopeTrigger)).toBe(true);
     expect(headerActions.contains(queueBadge)).toBe(true);
@@ -243,22 +241,39 @@ describe("ReviewScreen controls", () => {
     expect(progressBadgeIcon.getAttribute("aria-hidden")).toBe("true");
 
     await clickElementAsync(queueBadge);
+    expect(queueBadge.getAttribute("aria-controls")).toBe("review-queue-panel");
     expect(queueBadge.getAttribute("aria-expanded")).toBe("true");
-    expect(queuePanel.className).toContain("review-queue-panel-open");
+    expect(reviewLayout.className).toContain("review-layout-queue-open");
+    const queuePanelAfterOpen = getContainer().querySelector("#review-queue-panel");
+    if (!(queuePanelAfterOpen instanceof HTMLElement)) {
+      throw new Error("Review queue panel was not found after opening");
+    }
+    const queueCloseButton = getContainer().querySelector("[data-testid='review-queue-close']");
+    if (!(queueCloseButton instanceof HTMLButtonElement)) {
+      throw new Error("Review queue close button was not found");
+    }
+    expect(queuePanelAfterOpen.className).toContain("review-queue-panel-open");
+    expect(queueCloseButton.getAttribute("aria-label")).toBe("Close queue");
+    expect(getContainer().querySelectorAll("[data-testid='review-queue-card']")).toHaveLength(1);
     expect(window.location.hash).toBe("");
 
     await clickElementAsync(queueCloseButton);
+    expect(queueBadge.getAttribute("aria-controls")).toBeNull();
     expect(queueBadge.getAttribute("aria-expanded")).toBe("false");
-    expect(queuePanel.className).not.toContain("review-queue-panel-open");
+    expect(reviewLayout.className).not.toContain("review-layout-queue-open");
+    expect(getContainer().querySelector("#review-queue-panel")).toBeNull();
+    expect(getContainer().querySelectorAll("[data-testid='review-queue-card']")).toHaveLength(0);
     expect(window.location.hash).toBe("");
 
     await clickElementAsync(queueBadge);
     expect(queueBadge.getAttribute("aria-expanded")).toBe("true");
+    expect(getContainer().querySelector("#review-queue-panel")).not.toBeNull();
     expect(window.location.hash).toBe("");
 
     await clickElementAsync(queueBadge);
     expect(queueBadge.getAttribute("aria-expanded")).toBe("false");
-    expect(queuePanel.className).not.toContain("review-queue-panel-open");
+    expect(getContainer().querySelector("#review-queue-panel")).toBeNull();
+    expect(getContainer().querySelectorAll("[data-testid='review-queue-card']")).toHaveLength(0);
     expect(window.location.hash).toBe("");
   });
 
@@ -292,6 +307,71 @@ describe("ReviewScreen controls", () => {
     expect(leaderboardShortcut.className).toContain("review-leaderboard-shortcut-ranked");
     expect(leaderboardShortcutValue.textContent).toBe("3");
     expect(leaderboardShortcut.getAttribute("aria-label")).toContain("#3");
+  });
+
+  it("keeps an open empty queue closable from the header shortcut", async () => {
+    const state = getState();
+    const card = createCard({
+      cardId: "card-empty-open-queue",
+      frontText: "Question",
+      backText: "Answer",
+    });
+    state.cards = [card];
+    state.reviewQueue = [card];
+    state.reviewTimeline = [card];
+
+    await renderReviewScreen();
+
+    const queueBadge = getContainer().querySelector("[data-testid='review-queue-badge']");
+    if (!(queueBadge instanceof HTMLButtonElement)) {
+      throw new Error("Review queue badge was not found");
+    }
+
+    await clickElementAsync(queueBadge);
+    expect(queueBadge.disabled).toBe(false);
+    expect(queueBadge.getAttribute("aria-expanded")).toBe("true");
+    expect(getContainer().querySelector("#review-queue-panel")).not.toBeNull();
+
+    state.reviewQueue = [];
+    state.reviewTimeline = [];
+    state.appData.selectedReviewFilter = {
+      kind: "tag",
+      tag: "empty",
+    };
+    state.appData.localReadVersion = 1;
+
+    await rerenderReviewScreen();
+    await flushReviewScreenPromises();
+    await vi.waitFor(() => {
+      const refreshedQueueBadge = getContainer().querySelector("[data-testid='review-queue-badge']");
+      if (!(refreshedQueueBadge instanceof HTMLButtonElement)) {
+        throw new Error("Review queue badge was not found while waiting for empty queue");
+      }
+
+      expect(refreshedQueueBadge.getAttribute("aria-label")).toContain("0 cards");
+    });
+
+    const emptyQueueBadge = getContainer().querySelector("[data-testid='review-queue-badge']");
+    if (!(emptyQueueBadge instanceof HTMLButtonElement)) {
+      throw new Error("Review queue badge was not found after queue emptied");
+    }
+
+    expect(emptyQueueBadge.disabled).toBe(false);
+    expect(emptyQueueBadge.getAttribute("aria-controls")).toBe("review-queue-panel");
+    expect(emptyQueueBadge.getAttribute("aria-expanded")).toBe("true");
+    expect(getContainer().querySelector("#review-queue-panel")).not.toBeNull();
+
+    await clickElementAsync(emptyQueueBadge);
+
+    const closedEmptyQueueBadge = getContainer().querySelector("[data-testid='review-queue-badge']");
+    if (!(closedEmptyQueueBadge instanceof HTMLButtonElement)) {
+      throw new Error("Review queue badge was not found after closing empty queue");
+    }
+
+    expect(closedEmptyQueueBadge.disabled).toBe(true);
+    expect(closedEmptyQueueBadge.getAttribute("aria-controls")).toBeNull();
+    expect(closedEmptyQueueBadge.getAttribute("aria-expanded")).toBeNull();
+    expect(getContainer().querySelector("#review-queue-panel")).toBeNull();
   });
 
   it("reveals the answer with Space and submits the selected rating shortcut", async () => {

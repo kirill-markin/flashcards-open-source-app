@@ -67,6 +67,7 @@ async function reviewSeededCardFromQueue(session: LiveSmokeSession): Promise<voi
   if (reviewedCardId === null || reviewedCardId === "") {
     throw new Error(`Review current card id is unavailable for ${scenario.seededFrontText}`);
   }
+  await trackedClick(diagnostics, "open review queue for post-review observation", page.getByTestId("review-queue-badge"));
   await trackedClick(diagnostics, "reveal review answer", page.getByTestId("review-reveal-answer"));
   await trackedClick(diagnostics, "submit Good review answer", page.getByTestId("review-rate-good"));
   await session.diagnostics.runAction(`confirm review pane and queue update after reviewing ${scenario.seededFrontText}`, async () => {
