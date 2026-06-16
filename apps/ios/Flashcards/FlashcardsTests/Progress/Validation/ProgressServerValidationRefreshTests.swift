@@ -131,7 +131,14 @@ final class ProgressServerValidationRefreshTests: ProgressStoreTestCase {
                 from: requestRange.from,
                 to: requestRange.to,
                 dailyReviews: [
-                    ProgressDay(date: requestRange.to, reviewCount: 1)
+                    ProgressDay(
+                        date: requestRange.to,
+                        reviewCount: 1,
+                        againCount: 0,
+                        hardCount: 0,
+                        goodCount: 1,
+                        easyCount: 0
+                    )
                 ],
                 summary: nil,
                 generatedAt: "2026-04-18T10:00:00.000Z",

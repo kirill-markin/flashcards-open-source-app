@@ -419,7 +419,14 @@ final class ProgressSnapshotValidationTests: XCTestCase {
             from: scopeKey.from,
             to: scopeKey.to,
             dailyReviews: [
-                ProgressDay(date: "2026-02-03", reviewCount: 1)
+                ProgressDay(
+                    date: "2026-02-03",
+                    reviewCount: 1,
+                    againCount: 0,
+                    hardCount: 0,
+                    goodCount: 1,
+                    easyCount: 0
+                )
             ],
             streakDays: [
                 ProgressStreakDay(date: "2026-02-03", state: .frozen)
@@ -467,7 +474,14 @@ final class ProgressSnapshotValidationTests: XCTestCase {
             from: scopeKey.from,
             to: scopeKey.to,
             dailyReviews: [
-                ProgressDay(date: "2026-02-03", reviewCount: 0)
+                ProgressDay(
+                    date: "2026-02-03",
+                    reviewCount: 0,
+                    againCount: 0,
+                    hardCount: 0,
+                    goodCount: 0,
+                    easyCount: 0
+                )
             ],
             streakDays: [
                 ProgressStreakDay(date: "2026-02-03", state: .reviewed)
