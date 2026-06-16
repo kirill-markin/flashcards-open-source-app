@@ -126,6 +126,7 @@
 "common.unavailable" = "उपलब्ध नहीं है";
 
 "settings.title" = "सेटिंग्स";
+"settings.inviteFriend.button" = "दोस्त को आमंत्रित करें";
 "settings.section.account" = "खाता";
 "settings.section.general" = "सामान्य";
 "settings.section.support" = "सहायता";

@@ -126,6 +126,7 @@
 "common.unavailable" = "利用できません";
 
 "settings.title" = "設定";
+"settings.inviteFriend.button" = "友達を招待";
 "settings.section.account" = "アカウント";
 "settings.section.general" = "一般";
 "settings.section.support" = "サポート";

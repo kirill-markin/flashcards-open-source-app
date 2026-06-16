@@ -126,6 +126,7 @@
 "common.unavailable" = "Недоступно";
 
 "settings.title" = "Настройки";
+"settings.inviteFriend.button" = "Пригласить друга";
 "settings.section.account" = "Аккаунт";
 "settings.section.general" = "Общие";
 "settings.section.support" = "Поддержка";

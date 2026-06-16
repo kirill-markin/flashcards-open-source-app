@@ -18,6 +18,7 @@ struct ProgressLeaderboardSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             self.header
+            self.friendInviteButton
 
             switch self.snapshot.state {
             case .ready(let readyState):
@@ -85,23 +86,6 @@ struct ProgressLeaderboardSection: View {
             Spacer(minLength: 12)
 
             Button {
-                self.openFriendInviteFlow()
-            } label: {
-                Image(systemName: "person.badge.plus")
-                    .font(.body)
-            }
-            .buttonStyle(.borderless)
-            .accessibilityIdentifier(UITestIdentifier.progressLeaderboardInviteFriendButton)
-            .accessibilityLabel(
-                String(
-                    localized: "progress.screen.leaderboard.invite.accessibility_label",
-                    defaultValue: "Invite a friend",
-                    table: progressStringsTableName,
-                    comment: "Accessibility label for the leaderboard friend invite button"
-                )
-            )
-
-            Button {
                 self.isInfoAlertPresented = true
             } label: {
                 Image(systemName: "info.circle")
@@ -117,6 +101,33 @@ struct ProgressLeaderboardSection: View {
                 )
             )
         }
+    }
+
+    private var friendInviteButton: some View {
+        Button {
+            self.openFriendInviteFlow()
+        } label: {
+            Label(
+                String(
+                    localized: "progress.screen.leaderboard.invite.button",
+                    defaultValue: "Invite Friend",
+                    table: progressStringsTableName,
+                    comment: "Button title for creating a leaderboard friend invite link"
+                ),
+                systemImage: "person.badge.plus"
+            )
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .accessibilityIdentifier(UITestIdentifier.progressLeaderboardInviteFriendButton)
+        .accessibilityLabel(
+            String(
+                localized: "progress.screen.leaderboard.invite.accessibility_label",
+                defaultValue: "Invite a friend",
+                table: progressStringsTableName,
+                comment: "Accessibility label for the leaderboard friend invite button"
+            )
+        )
     }
 
     @ViewBuilder
