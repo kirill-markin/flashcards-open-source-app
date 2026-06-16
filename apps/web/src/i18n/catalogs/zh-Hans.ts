@@ -124,6 +124,8 @@ export const zhHansCatalog = {
     title: "进度",
     subtitle: "查看你最近的连续学习天数和每日复习记录。",
     streakTitle: "连续天数",
+    streakInfoToggleLabel: "关于连续冻结",
+    streakInfo: "冻结额度 {{available}}/{{capacity}}。下次补充 {{progress}}/{{required}}。",
     reviewsTitle: "复习次数",
     lastThirtyDays: "最近 30 天",
     empty: "在这 30 天范围内没有记录到任何复习。",
@@ -559,7 +561,8 @@ export const zhHansCatalog = {
       ariaLabel: "打开排行榜",
     },
     progressBadge: {
-      ariaLabel: "复习连续 {{streak}} 天。{{todayStatus}}。",
+      ariaLabel: "复习连续 {{streak}} 天。{{todayStatus}}。{{freezeBank}}。",
+      freezeBank: "冻结额度 {{available}} / {{capacity}}",
       notReviewedToday: "今天还没复习",
       reviewedToday: "今天已复习",
       title: "连续",

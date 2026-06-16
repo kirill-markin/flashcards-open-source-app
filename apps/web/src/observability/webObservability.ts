@@ -98,7 +98,7 @@ export type AuthResetCleanupBreadcrumbDetails = Readonly<{
 export type ProgressCacheMissBreadcrumbDetails = Readonly<{
   eventName: "progress_cache_miss";
   section: "summary" | "series" | "review_schedule" | "leaderboard";
-  reason: "invalid_json" | "invalid_shape" | "scope_mismatch" | "time_zone_mismatch";
+  reason: "invalid_json" | "invalid_shape" | "scope_mismatch" | "time_zone_mismatch" | "version_mismatch";
   workspaceIds: ReadonlyArray<string>;
 }>;
 

@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { useAppData } from "../../appData";
 import {
   buildReviewProgressBadgeStateFromSummarySnapshot,
+  formatReviewProgressFreezeValue,
   formatReviewProgressBadgeValue,
 } from "../../appData/progress/badge/reviewProgressBadge";
 import { useProgressInvalidationState } from "../../appData/progress/invalidation/progressInvalidation";
@@ -75,6 +76,7 @@ export function ProgressScreen(): ReactElement {
   const [reviewsChartSelection, setReviewsChartSelection] = useState<ProgressReviewsChartSelection>({ kind: "none" });
   const [selectedReviewScheduleBucket, setSelectedReviewScheduleBucket] = useState<ProgressReviewScheduleBucketKey | null>(null);
   const [selectedLeaderboardWindowKey, setSelectedLeaderboardWindowKey] = useState<ProgressLeaderboardWindowKey | null>(null);
+  const [isStreakInfoVisible, setIsStreakInfoVisible] = useState<boolean>(false);
   const [isLeaderboardInfoVisible, setIsLeaderboardInfoVisible] = useState<boolean>(false);
   const streakSectionRef = useRef<HTMLElement | null>(null);
   const leaderboardSectionRef = useRef<HTMLElement | null>(null);
@@ -132,7 +134,7 @@ export function ProgressScreen(): ReactElement {
   const dailyReviews = progress === null ? [] : sortDailyReviews(progress.dailyReviews);
   const today = progress === null ? "" : progress.to;
   const weekContext = resolveLocaleWeekContext(matchedBrowserLanguageTag ?? locale, locale);
-  const streakWeeks = progress === null ? [] : buildStreakWeeks(dailyReviews, today, formatDate, weekContext);
+  const streakWeeks = progress === null ? [] : buildStreakWeeks(dailyReviews, progress.streakDays, today, formatDate, weekContext);
   const selectedReviewsChartRatingKey = reviewsChartSelection.kind === "rating"
     ? reviewsChartSelection.ratingKey
     : null;
@@ -169,10 +171,23 @@ export function ProgressScreen(): ReactElement {
   const reviewProgressBadgeTodayStatus = reviewProgressBadge.hasReviewedToday
     ? t("reviewScreen.progressBadge.reviewedToday")
     : t("reviewScreen.progressBadge.notReviewedToday");
+  const reviewProgressFreezeStatus = t("reviewScreen.progressBadge.freezeBank", {
+    available: formatNumber(reviewProgressBadge.streakFreeze.availableCredits),
+    capacity: formatNumber(reviewProgressBadge.streakFreeze.capacity),
+  });
   const reviewProgressBadgeAriaLabel = t("reviewScreen.progressBadge.ariaLabel", {
     streak: formatNumber(reviewProgressBadge.streakDays),
     todayStatus: reviewProgressBadgeTodayStatus,
+    freezeBank: reviewProgressFreezeStatus,
   });
+  const progressStreakInfoText = progressSummary === null
+    ? null
+    : t("progressScreen.streakInfo", {
+      available: formatNumber(progressSummary.summary.streakFreeze.availableCredits),
+      capacity: formatNumber(progressSummary.summary.streakFreeze.capacity),
+      progress: formatNumber(progressSummary.summary.streakFreeze.nextCreditProgressUnits),
+      required: formatNumber(progressSummary.summary.streakFreeze.nextCreditRequiredUnits),
+    });
   const progressStreakSummary: ProgressStreakSummaryView | null = progressSummary === null
     ? null
     : {
@@ -181,6 +196,7 @@ export function ProgressScreen(): ReactElement {
       hasReviewedToday: reviewProgressBadge.hasReviewedToday,
       ariaLabel: reviewProgressBadgeAriaLabel,
       formattedStreakValue: formatReviewProgressBadgeValue(reviewProgressBadge.streakDays),
+      formattedFreezeValue: formatReviewProgressFreezeValue(reviewProgressBadge.streakFreeze, formatNumber),
     };
   const previousWeekArrow = resolveChartNavigationArrow(direction, "previous");
   const nextWeekArrow = resolveChartNavigationArrow(direction, "next");
@@ -259,6 +275,10 @@ export function ProgressScreen(): ReactElement {
               sectionId={progressStreakHash}
               sectionRef={streakSectionRef}
               summary={progressStreakSummary}
+              infoText={progressStreakInfoText}
+              infoToggleLabel={t("progressScreen.streakInfoToggleLabel")}
+              isInfoVisible={isStreakInfoVisible}
+              onToggleInfo={() => setIsStreakInfoVisible((previous) => previous === false)}
               streakWeeks={streakWeeks}
             />
 

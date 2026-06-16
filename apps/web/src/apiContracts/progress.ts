@@ -17,8 +17,10 @@ import {
   progressLeaderboardStatuses,
   progressLeaderboardWindowKeys,
   progressReviewScheduleBucketKeys,
+  streakDayStates,
 } from "../types";
 import { findProgressReviewScheduleValidationIssue } from "../progress/progressReviewScheduleValidation";
+import { isCoherentStreakFreeze } from "../progress/streakFreeze";
 import {
   ApiContractError,
   describePath,
@@ -162,18 +164,76 @@ function parseProgressReviewScheduleBucketArray(
   return parseArray(value, endpoint, path, parseProgressReviewScheduleBucket);
 }
 
+function parseProgressStreakFreeze(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ProgressSummaryPayload["summary"]["streakFreeze"] {
+  const objectValue = parseObject(value, endpoint, path);
+  const streakFreeze = {
+    availableCredits: parseRequiredField(objectValue, "availableCredits", endpoint, path, parseNonNegativeSafeInteger),
+    capacity: parseRequiredField(objectValue, "capacity", endpoint, path, parseNonNegativeSafeInteger),
+    balanceUnits: parseRequiredField(objectValue, "balanceUnits", endpoint, path, parseNonNegativeSafeInteger),
+    unitsPerCredit: parseRequiredField(objectValue, "unitsPerCredit", endpoint, path, parseNonNegativeSafeInteger),
+    nextCreditProgressUnits: parseRequiredField(objectValue, "nextCreditProgressUnits", endpoint, path, parseNonNegativeSafeInteger),
+    nextCreditRequiredUnits: parseRequiredField(objectValue, "nextCreditRequiredUnits", endpoint, path, parseNonNegativeSafeInteger),
+  };
+
+  if (isCoherentStreakFreeze(streakFreeze) === false) {
+    throw new ApiContractError(endpoint, describePath(path), "a coherent streak freeze object");
+  }
+
+  return streakFreeze;
+}
+
 function parseProgressSummary(
   value: unknown,
   endpoint: string,
   path: string,
 ): ProgressSummaryPayload["summary"] {
   const objectValue = parseObject(value, endpoint, path);
-  return {
-    currentStreakDays: parseRequiredField(objectValue, "currentStreakDays", endpoint, path, parseNumber),
+  const summary: ProgressSummaryPayload["summary"] = {
+    currentStreakDays: parseRequiredField(objectValue, "currentStreakDays", endpoint, path, parseNonNegativeSafeInteger),
+    longestStreakDays: parseRequiredField(objectValue, "longestStreakDays", endpoint, path, parseNonNegativeSafeInteger),
     hasReviewedToday: parseRequiredField(objectValue, "hasReviewedToday", endpoint, path, parseBoolean),
     lastReviewedOn: parseRequiredField(objectValue, "lastReviewedOn", endpoint, path, parseNullableString),
-    activeReviewDays: parseRequiredField(objectValue, "activeReviewDays", endpoint, path, parseNumber),
+    activeReviewDays: parseRequiredField(objectValue, "activeReviewDays", endpoint, path, parseNonNegativeSafeInteger),
+    streakFreeze: parseRequiredField(objectValue, "streakFreeze", endpoint, path, parseProgressStreakFreeze),
   };
+
+  if (summary.longestStreakDays < summary.currentStreakDays) {
+    throw new ApiContractError(endpoint, describePath(path), "a coherent progress summary object");
+  }
+
+  return summary;
+}
+
+function parseStreakDayState(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ProgressSeries["streakDays"][number]["state"] {
+  return parseEnum(value, endpoint, path, streakDayStates);
+}
+
+function parseStreakDay(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ProgressSeries["streakDays"][number] {
+  const objectValue = parseObject(value, endpoint, path);
+  return {
+    date: parseRequiredField(objectValue, "date", endpoint, path, parseString),
+    state: parseRequiredField(objectValue, "state", endpoint, path, parseStreakDayState),
+  };
+}
+
+function parseStreakDayArray(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ProgressSeries["streakDays"] {
+  return parseArray(value, endpoint, path, parseStreakDay);
 }
 
 // Wire-shape note: the backend always emits `generatedAt` as a non-null ISO string for
@@ -200,6 +260,7 @@ export function parseProgressSeriesResponse(value: unknown, endpoint: string): P
       "",
     ),
     dailyReviews: parseRequiredField(objectValue, "dailyReviews", endpoint, "", parseDailyReviewPointArray),
+    streakDays: parseRequiredField(objectValue, "streakDays", endpoint, "", parseStreakDayArray),
   };
 }
 

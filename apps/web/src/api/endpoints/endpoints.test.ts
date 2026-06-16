@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ProgressReviewSchedule } from "../../types";
+import type { ProgressReviewSchedule, StreakDay } from "../../types";
 import { persistLocalePreference } from "../../i18n/runtime";
 import {
   createChatSnapshotResponse,
@@ -81,6 +81,55 @@ afterEach(() => {
   resetApiClientStateForTests();
   vi.restoreAllMocks();
 });
+
+function createFullStreakFreeze(): Readonly<{
+  availableCredits: number;
+  capacity: number;
+  balanceUnits: number;
+  unitsPerCredit: number;
+  nextCreditProgressUnits: number;
+  nextCreditRequiredUnits: number;
+}> {
+  return {
+    availableCredits: 2,
+    capacity: 2,
+    balanceUnits: 20,
+    unitsPerCredit: 10,
+    nextCreditProgressUnits: 0,
+    nextCreditRequiredUnits: 10,
+  };
+}
+
+function createProgressSummaryValue(
+  currentStreakDays: number,
+  hasReviewedToday: boolean,
+  lastReviewedOn: string | null,
+  activeReviewDays: number,
+): Readonly<{
+  currentStreakDays: number;
+  longestStreakDays: number;
+  hasReviewedToday: boolean;
+  lastReviewedOn: string | null;
+  activeReviewDays: number;
+  streakFreeze: ReturnType<typeof createFullStreakFreeze>;
+}> {
+  return {
+    currentStreakDays,
+    longestStreakDays: currentStreakDays,
+    hasReviewedToday,
+    lastReviewedOn,
+    activeReviewDays,
+    streakFreeze: createFullStreakFreeze(),
+  };
+}
+
+function createThreeDayStreakDays(): ReadonlyArray<StreakDay> {
+  return [
+    { date: "2026-04-01", state: "reviewed" },
+    { date: "2026-04-02", state: "frozen" },
+    { date: "2026-04-03", state: "reviewed" },
+  ];
+}
 
 describe("auth URL endpoints", () => {
   it("prefers the stored app locale over raw browser detection", () => {
@@ -261,12 +310,7 @@ describe("progress API endpoints", () => {
         reviewHistoryWatermarks: [
           { workspaceId: "workspace-1", reviewSequenceId: 42 },
         ],
-        summary: {
-          currentStreakDays: 1,
-          hasReviewedToday: true,
-          lastReviewedOn: "2026-04-03",
-          activeReviewDays: 2,
-        },
+        summary: createProgressSummaryValue(1, true, "2026-04-03", 2),
       }), {
         status: 200,
         headers: {
@@ -284,12 +328,7 @@ describe("progress API endpoints", () => {
       reviewHistoryWatermarks: [
         { workspaceId: "workspace-1", reviewSequenceId: 42 },
       ],
-      summary: {
-        currentStreakDays: 1,
-        hasReviewedToday: true,
-        lastReviewedOn: "2026-04-03",
-        activeReviewDays: 2,
-      },
+      summary: createProgressSummaryValue(1, true, "2026-04-03", 2),
     });
   });
 
@@ -298,12 +337,7 @@ describe("progress API endpoints", () => {
       .mockResolvedValueOnce(new Response(JSON.stringify({
         timeZone: "Europe/Madrid",
         generatedAt: "2026-04-18T09:15:00.000Z",
-        summary: {
-          currentStreakDays: 1,
-          hasReviewedToday: true,
-          lastReviewedOn: "2026-04-03",
-          activeReviewDays: 2,
-        },
+        summary: createProgressSummaryValue(1, true, "2026-04-03", 2),
       }), {
         status: 200,
         headers: {
@@ -319,12 +353,7 @@ describe("progress API endpoints", () => {
       timeZone: "Europe/Madrid",
       generatedAt: "2026-04-18T09:15:00.000Z",
       reviewHistoryWatermarks: [],
-      summary: {
-        currentStreakDays: 1,
-        hasReviewedToday: true,
-        lastReviewedOn: "2026-04-03",
-        activeReviewDays: 2,
-      },
+      summary: createProgressSummaryValue(1, true, "2026-04-03", 2),
     });
   });
 
@@ -364,6 +393,7 @@ describe("progress API endpoints", () => {
             easyCount: 0,
           },
         ],
+        streakDays: createThreeDayStreakDays(),
       }), {
         status: 200,
         headers: {
@@ -410,6 +440,7 @@ describe("progress API endpoints", () => {
           easyCount: 0,
         },
       ],
+      streakDays: createThreeDayStreakDays(),
     });
   });
 
@@ -446,6 +477,7 @@ describe("progress API endpoints", () => {
             easyCount: 0,
           },
         ],
+        streakDays: createThreeDayStreakDays(),
       }), {
         status: 200,
         headers: {
@@ -490,6 +522,7 @@ describe("progress API endpoints", () => {
           easyCount: 0,
         },
       ],
+      streakDays: createThreeDayStreakDays(),
     });
   });
 
@@ -748,6 +781,55 @@ describe("progress API endpoints", () => {
       today: "2026-04-18",
     })).rejects.toThrow(
       "Invalid API response for GET /me/progress/summary: reviewHistoryWatermarks[0].reviewSequenceId must be a non-negative safe integer",
+    );
+  });
+
+  it("rejects progress summary responses with incoherent streak freeze metadata", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        timeZone: "Europe/Madrid",
+        generatedAt: "2026-04-18T09:15:00.000Z",
+        summary: {
+          ...createProgressSummaryValue(1, true, "2026-04-03", 2),
+          streakFreeze: {
+            ...createFullStreakFreeze(),
+            balanceUnits: 19,
+          },
+        },
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressSummary({
+      timeZone: "Europe/Madrid",
+      today: "2026-04-18",
+    })).rejects.toThrow(
+      "Invalid API response for GET /me/progress/summary: summary.streakFreeze must be a coherent streak freeze object",
+    );
+  });
+
+  it("rejects progress summary responses with incoherent streak length metadata", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        timeZone: "Europe/Madrid",
+        generatedAt: "2026-04-18T09:15:00.000Z",
+        summary: {
+          ...createProgressSummaryValue(5, true, "2026-04-03", 5),
+          longestStreakDays: 4,
+        },
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressSummary({
+      timeZone: "Europe/Madrid",
+      today: "2026-04-18",
+    })).rejects.toThrow(
+      "Invalid API response for GET /me/progress/summary: summary must be a coherent progress summary object",
     );
   });
 });

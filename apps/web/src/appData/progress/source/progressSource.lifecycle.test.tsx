@@ -5,6 +5,7 @@ import type {
   ProgressSeries,
   ProgressSummaryPayload,
 } from "../../../types";
+import { createDefaultStreakFreeze } from "../../../progress/streakFreeze";
 import {
   buildCurrentSeriesInput,
   buildCurrentSeriesScopeKey,
@@ -74,9 +75,11 @@ describe("useProgressSource lifecycle", () => {
     loadProgressSeriesMock.mockImplementation(() => deferredSeries.promise);
     loadLocalProgressSummaryMock.mockResolvedValue({
       currentStreakDays: 3,
+      longestStreakDays: 3,
       hasReviewedToday: true,
       lastReviewedOn: currentSeriesInput.to,
       activeReviewDays: 4,
+      streakFreeze: createDefaultStreakFreeze(),
     });
     loadLocalProgressDailyReviewsMock.mockResolvedValue([
       buildGoodDailyReviewPoint(currentSeriesInput.to, 2),
@@ -174,6 +177,7 @@ describe("useProgressSource lifecycle", () => {
     expect(harness.getApi().progressSourceState.series).toEqual({
       scopeKey: null,
       localFallback: null,
+      localFallbackActiveDates: [],
       serverBase: null,
       pendingLocalOverlay: null,
       renderedSnapshot: null,

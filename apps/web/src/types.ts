@@ -131,11 +131,36 @@ export type DailyReviewPoint = Readonly<{
   easyCount: number;
 }>;
 
+export const streakDayStates = [
+  "reviewed",
+  "frozen",
+  "missed",
+  "pending",
+] as const;
+
+export type StreakDayState = typeof streakDayStates[number];
+
+export type StreakFreeze = Readonly<{
+  availableCredits: number;
+  capacity: number;
+  balanceUnits: number;
+  unitsPerCredit: number;
+  nextCreditProgressUnits: number;
+  nextCreditRequiredUnits: number;
+}>;
+
+export type StreakDay = Readonly<{
+  date: string;
+  state: StreakDayState;
+}>;
+
 export type ProgressSummary = Readonly<{
   currentStreakDays: number;
+  longestStreakDays: number;
   hasReviewedToday: boolean;
   lastReviewedOn: string | null;
   activeReviewDays: number;
+  streakFreeze: StreakFreeze;
 }>;
 
 export type ProgressReviewHistoryWatermark = Readonly<{
@@ -146,6 +171,7 @@ export type ProgressReviewHistoryWatermark = Readonly<{
 export type ReviewProgressBadgeState = Readonly<{
   streakDays: number;
   hasReviewedToday: boolean;
+  streakFreeze: StreakFreeze;
   isInteractive: boolean;
 }>;
 
@@ -173,6 +199,7 @@ export type ProgressSeries = Readonly<{
   generatedAt: string | null;
   reviewHistoryWatermarks: ReadonlyArray<ProgressReviewHistoryWatermark>;
   dailyReviews: ReadonlyArray<DailyReviewPoint>;
+  streakDays: ReadonlyArray<StreakDay>;
 }>;
 
 /** Canonical bucket order for the progress chart and the runtime validation set for incoming bucket keys. Reordering or removing entries is a breaking change for the UI. */
@@ -343,6 +370,7 @@ export type FriendInvitationAcceptResponse =
 
 export type ProgressRenderedSeriesSummaryContext = Readonly<{
   lowerBoundSummary: ProgressSummary;
+  exactStreakFreeze: StreakFreeze | null;
   activeDates: ReadonlyArray<string>;
   activeDatesMissingFromServerBase: ReadonlyArray<string>;
   serverBaseReviewHistoryWatermarks: ReadonlyArray<ProgressReviewHistoryWatermark> | null;
@@ -364,6 +392,7 @@ export type ProgressSummarySourceState = Readonly<{
 export type ProgressSeriesSourceState = Readonly<{
   scopeKey: ProgressScopeKey | null;
   localFallback: ProgressSeriesSnapshot | null;
+  localFallbackActiveDates: ReadonlyArray<string>;
   serverBase: ProgressSeriesSnapshot | null;
   pendingLocalOverlay: ProgressChartData | null;
   renderedSnapshot: ProgressSeriesSnapshot | null;

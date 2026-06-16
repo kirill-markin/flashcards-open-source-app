@@ -6,7 +6,16 @@ import type {
   ProgressSummary,
   ProgressSummaryPayload,
   ProgressSummarySnapshot,
+  StreakFreeze,
 } from "../../../types";
+import {
+  addReviewedDayToStreakFreeze,
+  createDefaultStreakFreeze,
+  evaluateProgressStreakFreeze,
+  evaluateProgressStreakFreezeFromCarryState,
+  streakFreezePolicy,
+  type StreakFreezeCarryState,
+} from "../../../progress/streakFreeze";
 import { shiftLocalDate } from "../../../progress/progressDates";
 import {
   areProgressReviewHistoryWatermarksEqual,
@@ -14,6 +23,7 @@ import {
 } from "./progressSnapshotEquality";
 import {
   buildDailyReviewCountMap,
+  createExactRenderedSeriesStreakFreeze,
   normalizeProgressSeries,
 } from "./progressSeriesSnapshots";
 
@@ -50,9 +60,11 @@ function maxLocalDate(
 function createEmptyProgressSummary(): ProgressSummary {
   return {
     currentStreakDays: 0,
+    longestStreakDays: 0,
     hasReviewedToday: false,
     lastReviewedOn: null,
     activeReviewDays: 0,
+    streakFreeze: createDefaultStreakFreeze(),
   };
 }
 
@@ -83,20 +95,16 @@ function summaryLowerBoundFromActiveDates(
   }
 
   const activeDateSet = new Set(sortedActiveDates);
+  const streakFreezeEvaluation = evaluateProgressStreakFreeze(sortedActiveDates, today);
   const hasReviewedToday = activeDateSet.has(today);
-  let currentDate = hasReviewedToday ? today : shiftLocalDate(today, -1);
-  let currentStreakDays = 0;
-
-  while (activeDateSet.has(currentDate)) {
-    currentStreakDays += 1;
-    currentDate = shiftLocalDate(currentDate, -1);
-  }
 
   return {
-    currentStreakDays,
+    currentStreakDays: streakFreezeEvaluation.currentStreakDays,
+    longestStreakDays: streakFreezeEvaluation.longestStreakDays,
     hasReviewedToday,
     lastReviewedOn: sortedActiveDates.at(-1) ?? null,
     activeReviewDays: sortedActiveDates.length,
+    streakFreeze: streakFreezeEvaluation.streakFreeze,
   };
 }
 
@@ -144,9 +152,13 @@ export function createProgressRenderedSeriesSummaryContext(
   const activeDatesMissingFromServerBaseResult = serverBase === null
     ? []
     : activeDatesMissingFromServerBase(serverBase, renderedSeries);
+  const exactStreakFreeze = serverBase === null
+    ? null
+    : createExactRenderedSeriesStreakFreeze(serverBase, renderedSeries);
 
   return {
     lowerBoundSummary: summaryLowerBoundFromActiveDates(activeDates, renderedSeries.to),
+    exactStreakFreeze,
     activeDates,
     activeDatesMissingFromServerBase: activeDatesMissingFromServerBaseResult,
     serverBaseReviewHistoryWatermarks: serverBase?.reviewHistoryWatermarks ?? null,
@@ -221,47 +233,160 @@ function shouldApplyActiveReviewDayDelta(
   return localDate > serverBase.lastReviewedOn;
 }
 
-function activeReviewDayDelta(
-  deltaCandidates: ReadonlyArray<string>,
-  serverBase: ProgressSummary,
-  hasSharedServerAndSeriesReviewHistoryBase: boolean,
-  referenceLocalDate: string,
-): number {
-  return deltaCandidates.filter((localDate) => shouldApplyActiveReviewDayDelta(
-    localDate,
-    serverBase,
-    hasSharedServerAndSeriesReviewHistoryBase,
-    referenceLocalDate,
-  )).length;
-}
-
 function currentStreakDaysWithLocalDelta(
   serverBase: ProgressSummary,
-  localFallbackActiveDates: ReadonlyArray<string>,
-  renderedSeriesActiveDates: ReadonlyArray<string>,
+  appliedActiveReviewDayDeltaCandidates: ReadonlyArray<string>,
   referenceLocalDate: string,
 ): number {
-  if (serverBase.hasReviewedToday || serverBase.currentStreakDays === 0) {
+  if (serverBase.hasReviewedToday) {
     return serverBase.currentStreakDays;
   }
 
-  if (serverBase.lastReviewedOn === null) {
+  if (appliedActiveReviewDayDeltaCandidates.includes(referenceLocalDate) === false) {
     return serverBase.currentStreakDays;
   }
 
-  const activeDateSet = new Set([
-    ...localFallbackActiveDates,
-    ...renderedSeriesActiveDates,
-  ]);
-  let currentDate = shiftLocalDate(serverBase.lastReviewedOn, 1);
-  let continuousLocalDelta = 0;
-
-  while (currentDate <= referenceLocalDate && activeDateSet.has(currentDate)) {
-    continuousLocalDelta += 1;
-    currentDate = shiftLocalDate(currentDate, 1);
+  if (serverBase.currentStreakDays <= 0) {
+    return 1;
   }
 
-  return serverBase.currentStreakDays + continuousLocalDelta;
+  return serverBase.currentStreakDays + 1;
+}
+
+function countCompletedNonReviewedDaysAfterLastReview(
+  lastReviewedOn: string,
+  referenceLocalDate: string,
+): number {
+  let completedDays = 0;
+
+  for (
+    let localDate = shiftLocalDate(lastReviewedOn, 1);
+    localDate < referenceLocalDate;
+    localDate = shiftLocalDate(localDate, 1)
+  ) {
+    completedDays += 1;
+  }
+
+  return completedDays;
+}
+
+function reverseFrozenDayBalanceUnits(balanceUnits: number): number | null {
+  const reversedBalanceUnits = balanceUnits
+    + streakFreezePolicy.unitsPerCredit
+    - streakFreezePolicy.earnedUnitsPerStreakDay;
+  const maximumBalanceUnits = streakFreezePolicy.maxCapacity * streakFreezePolicy.unitsPerCredit;
+
+  return reversedBalanceUnits > maximumBalanceUnits
+    ? null
+    : reversedBalanceUnits;
+}
+
+function createCarryStateAtLastReviewedDate(
+  serverBase: ProgressSummary,
+  referenceLocalDate: string,
+): StreakFreezeCarryState | null {
+  if (serverBase.lastReviewedOn === null || serverBase.lastReviewedOn >= referenceLocalDate) {
+    return null;
+  }
+
+  const completedNonReviewedDays = countCompletedNonReviewedDaysAfterLastReview(
+    serverBase.lastReviewedOn,
+    referenceLocalDate,
+  );
+  if (serverBase.currentStreakDays <= completedNonReviewedDays) {
+    return null;
+  }
+
+  let balanceUnits = serverBase.streakFreeze.balanceUnits;
+  for (let index = 0; index < completedNonReviewedDays; index += 1) {
+    const reversedBalanceUnits = reverseFrozenDayBalanceUnits(balanceUnits);
+    if (reversedBalanceUnits === null) {
+      return null;
+    }
+
+    balanceUnits = reversedBalanceUnits;
+  }
+
+  const currentStreakDays = serverBase.currentStreakDays - completedNonReviewedDays;
+
+  return {
+    balanceUnits,
+    currentStreakDays,
+    longestStreakDays: Math.max(serverBase.longestStreakDays, currentStreakDays),
+    hasActiveSegment: true,
+    lastEvaluatedDate: serverBase.lastReviewedOn,
+  };
+}
+
+function exactServerSummaryWithLocalDelta(
+  serverBase: ProgressSummary,
+  appliedActiveReviewDayDeltaCandidates: ReadonlyArray<string>,
+  referenceLocalDate: string,
+): ProgressSummary | null {
+  if (appliedActiveReviewDayDeltaCandidates.length === 0) {
+    return serverBase;
+  }
+
+  const carryState = createCarryStateAtLastReviewedDate(serverBase, referenceLocalDate);
+  if (carryState === null) {
+    return null;
+  }
+
+  const activeDates = appliedActiveReviewDayDeltaCandidates.filter((localDate) => (
+    carryState.lastEvaluatedDate !== null && localDate > carryState.lastEvaluatedDate
+  ));
+  if (activeDates.length !== appliedActiveReviewDayDeltaCandidates.length) {
+    return null;
+  }
+
+  const evaluation = evaluateProgressStreakFreezeFromCarryState(
+    activeDates,
+    referenceLocalDate,
+    carryState,
+  );
+
+  return {
+    ...serverBase,
+    currentStreakDays: evaluation.currentStreakDays,
+    longestStreakDays: Math.max(serverBase.longestStreakDays, evaluation.longestStreakDays),
+    hasReviewedToday: serverBase.hasReviewedToday || activeDates.includes(referenceLocalDate),
+    lastReviewedOn: maxLocalDate(serverBase.lastReviewedOn, activeDates.at(-1) ?? null),
+    activeReviewDays: serverBase.activeReviewDays + activeDates.length,
+    streakFreeze: evaluation.streakFreeze,
+  };
+}
+
+function streakFreezeWithLocalDelta(
+  serverBase: ProgressSummary,
+  appliedActiveReviewDayDeltaCandidates: ReadonlyArray<string>,
+  referenceLocalDate: string,
+  exactStreakFreeze: StreakFreeze | null,
+  exactServerSummary: ProgressSummary | null,
+): StreakFreeze {
+  if (appliedActiveReviewDayDeltaCandidates.length === 0) {
+    return serverBase.streakFreeze;
+  }
+
+  if (exactStreakFreeze !== null) {
+    return exactStreakFreeze;
+  }
+
+  if (exactServerSummary !== null) {
+    return exactServerSummary.streakFreeze;
+  }
+
+  if (serverBase.hasReviewedToday) {
+    return serverBase.streakFreeze;
+  }
+
+  if (
+    appliedActiveReviewDayDeltaCandidates.length === 1
+    && appliedActiveReviewDayDeltaCandidates[0] === referenceLocalDate
+  ) {
+    return addReviewedDayToStreakFreeze(serverBase.streakFreeze);
+  }
+
+  return serverBase.streakFreeze;
 }
 
 function hasProgressSummaryOverlay(
@@ -284,22 +409,54 @@ function mergeProgressSummary(
     serverBase.reviewHistoryWatermarks,
     renderedSeriesContext,
   );
-  const serverActiveReviewDaysWithLocalDelta = serverBase.summary.activeReviewDays + activeReviewDayDelta(
-    activeReviewDayDeltaCandidates(
-      renderedSeriesContext,
-      localFallbackActiveDates,
-      serverBase.summary,
-      hasSharedServerAndSeriesReviewHistoryBase,
-    ),
+  const exactStreakFreeze = hasSharedServerAndSeriesReviewHistoryBase
+    ? renderedSeriesContext?.exactStreakFreeze ?? null
+    : null;
+  const reviewDayDeltaCandidates = activeReviewDayDeltaCandidates(
+    renderedSeriesContext,
+    localFallbackActiveDates,
     serverBase.summary,
     hasSharedServerAndSeriesReviewHistoryBase,
+  );
+  const appliedActiveReviewDayDeltaCandidates = reviewDayDeltaCandidates.filter((localDate) => (
+    shouldApplyActiveReviewDayDelta(
+      localDate,
+      serverBase.summary,
+      hasSharedServerAndSeriesReviewHistoryBase,
+      referenceLocalDate,
+    )
+  ));
+  const serverActiveReviewDaysWithLocalDelta = serverBase.summary.activeReviewDays
+    + appliedActiveReviewDayDeltaCandidates.length;
+  const exactServerSummary = exactServerSummaryWithLocalDelta(
+    serverBase.summary,
+    appliedActiveReviewDayDeltaCandidates,
     referenceLocalDate,
   );
   const serverCurrentStreakDaysWithLocalDelta = currentStreakDaysWithLocalDelta(
     serverBase.summary,
-    localFallbackActiveDates,
-    renderedSeriesContext?.activeDates ?? [],
+    appliedActiveReviewDayDeltaCandidates,
     referenceLocalDate,
+  );
+  const serverSummaryWithLocalDelta: ProgressSummary = {
+    ...serverBase.summary,
+    currentStreakDays: exactServerSummary?.currentStreakDays ?? serverCurrentStreakDaysWithLocalDelta,
+    longestStreakDays: Math.max(
+      serverBase.summary.longestStreakDays,
+      exactServerSummary?.longestStreakDays ?? serverCurrentStreakDaysWithLocalDelta,
+    ),
+    streakFreeze: streakFreezeWithLocalDelta(
+      serverBase.summary,
+      appliedActiveReviewDayDeltaCandidates,
+      referenceLocalDate,
+      exactStreakFreeze,
+      exactServerSummary,
+    ),
+  };
+  const mergedCurrentStreakDays = Math.max(
+    serverSummaryWithLocalDelta.currentStreakDays,
+    localFallbackSummary.currentStreakDays,
+    renderedSeriesLowerBound?.currentStreakDays ?? 0,
   );
 
   return {
@@ -307,10 +464,12 @@ function mergeProgressSummary(
     generatedAt: serverBase.generatedAt,
     reviewHistoryWatermarks: serverBase.reviewHistoryWatermarks,
     summary: {
-      currentStreakDays: Math.max(
-        serverCurrentStreakDaysWithLocalDelta,
-        localFallbackSummary.currentStreakDays,
-        renderedSeriesLowerBound?.currentStreakDays ?? 0,
+      currentStreakDays: mergedCurrentStreakDays,
+      longestStreakDays: Math.max(
+        serverSummaryWithLocalDelta.longestStreakDays,
+        localFallbackSummary.longestStreakDays,
+        renderedSeriesLowerBound?.longestStreakDays ?? 0,
+        mergedCurrentStreakDays,
       ),
       hasReviewedToday: serverBase.summary.hasReviewedToday
         || localFallbackSummary.hasReviewedToday
@@ -327,6 +486,7 @@ function mergeProgressSummary(
         localFallbackSummary.activeReviewDays,
         renderedSeriesLowerBound?.activeReviewDays ?? 0,
       ),
+      streakFreeze: serverSummaryWithLocalDelta.streakFreeze,
     },
   };
 }

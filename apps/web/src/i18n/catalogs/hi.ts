@@ -124,6 +124,8 @@ const hiCatalog: TranslationCatalog = {
     title: "प्रगति",
     subtitle: "अपनी हाल की स्ट्रीक और दैनिक रिव्यू इतिहास को ट्रैक करें।",
     streakTitle: "स्ट्रीक",
+    streakInfoToggleLabel: "स्ट्रीक फ़्रीज़ के बारे में",
+    streakInfo: "फ़्रीज़ बैंक {{available}}/{{capacity}}। अगला रीचार्ज {{progress}}/{{required}}।",
     reviewsTitle: "रिव्यू",
     lastThirtyDays: "पिछले 30 दिन",
     empty: "इन 30 दिनों की अवधि में कोई रिव्यू दर्ज नहीं किया गया।",
@@ -559,7 +561,8 @@ const hiCatalog: TranslationCatalog = {
       ariaLabel: "लीडरबोर्ड खोलें",
     },
     progressBadge: {
-      ariaLabel: "रिव्यू स्ट्रीक {{streak}} दिन। {{todayStatus}}।",
+      ariaLabel: "रिव्यू स्ट्रीक {{streak}} दिन। {{todayStatus}}। {{freezeBank}}।",
+      freezeBank: "फ़्रीज़ बैंक {{available}} में से {{capacity}}",
       notReviewedToday: "आज रिव्यू नहीं किया",
       reviewedToday: "आज रिव्यू किया",
       title: "स्ट्रीक",

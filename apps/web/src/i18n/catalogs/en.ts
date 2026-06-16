@@ -122,6 +122,8 @@ const enCatalog = {
     title: "Progress",
     subtitle: "Track your recent streak and daily review history.",
     streakTitle: "Streak",
+    streakInfoToggleLabel: "About streak freezes",
+    streakInfo: "Freeze bank {{available}}/{{capacity}}. Next recharge {{progress}}/{{required}}.",
     reviewsTitle: "Reviews",
     lastThirtyDays: "Last 30 days",
     empty: "No reviews were recorded for this 30-day range.",
@@ -557,7 +559,8 @@ const enCatalog = {
       ariaLabel: "Open leaderboard",
     },
     progressBadge: {
-      ariaLabel: "Review streak {{streak}} days. {{todayStatus}}.",
+      ariaLabel: "Review streak {{streak}} days. {{todayStatus}}. {{freezeBank}}.",
+      freezeBank: "Freeze bank {{available}} of {{capacity}}",
       notReviewedToday: "Not reviewed today",
       reviewedToday: "Reviewed today",
       title: "Streak",

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { ProgressSummarySnapshot, ProgressSummarySourceState, ReviewProgressBadgeState } from "../../../types";
+import { createDefaultStreakFreeze } from "../../../progress/streakFreeze";
 import { useProgressInvalidationState } from "../invalidation/progressInvalidation";
 import { useProgressSource } from "../progressSource";
 import { useAppData } from "../../context/provider";
@@ -7,6 +8,7 @@ import { useAppData } from "../../context/provider";
 const EMPTY_REVIEW_PROGRESS_BADGE_STATE: ReviewProgressBadgeState = {
   streakDays: 0,
   hasReviewedToday: false,
+  streakFreeze: createDefaultStreakFreeze(),
   isInteractive: true,
 };
 
@@ -27,6 +29,7 @@ export function buildReviewProgressBadgeStateFromSummarySnapshot(
   return {
     streakDays: summarySnapshot.summary.currentStreakDays,
     hasReviewedToday: summarySnapshot.summary.hasReviewedToday,
+    streakFreeze: summarySnapshot.summary.streakFreeze,
     isInteractive: true,
   };
 }
@@ -45,6 +48,13 @@ export function formatReviewProgressBadgeValue(streakDays: number): string {
   }
 
   return streakDays.toString();
+}
+
+export function formatReviewProgressFreezeValue(
+  streakFreeze: ReviewProgressBadgeState["streakFreeze"],
+  formatNumber: (value: number) => string,
+): string {
+  return `${formatNumber(streakFreeze.availableCredits)}/${formatNumber(streakFreeze.capacity)}`;
 }
 
 export function useReviewProgressBadge(): ReviewProgressBadgeState {

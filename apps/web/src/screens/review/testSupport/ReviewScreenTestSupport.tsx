@@ -5,6 +5,7 @@ import ReactDOM from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, vi } from "vitest";
 import { I18nProvider } from "../../../i18n";
+import { createDefaultStreakFreeze } from "../../../progress/streakFreeze";
 import type { AppDataContextValue } from "../../../appData";
 import { clearLoadingSnapshotFallbackStorage } from "../../shared/loadingSnapshots";
 import type {
@@ -277,6 +278,7 @@ function createDefaultReviewScreenTestState(): ReviewScreenTestState {
     reviewProgressBadge: {
       streakDays: 0,
       hasReviewedToday: false,
+      streakFreeze: createDefaultStreakFreeze(),
       isInteractive: true,
     },
     reviewQueue: [],

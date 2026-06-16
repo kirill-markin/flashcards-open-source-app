@@ -1,16 +1,14 @@
 import type { ComponentProps, ReactElement } from "react";
 import { Link } from "react-router-dom";
-import { formatReviewProgressBadgeValue } from "../../../appData/progress/badge/reviewProgressBadge";
+import {
+  formatReviewProgressBadgeValue,
+  formatReviewProgressFreezeValue,
+} from "../../../appData/progress/badge/reviewProgressBadge";
 import { useI18n } from "../../../i18n";
 import { progressLeaderboardRoute, progressStreakRoute } from "../../../routes";
-import { ProgressLeaderboardShortcutIcon, ReviewProgressBadgeIcon, ReviewQueueShortcutIcon } from "../../shared/ReviewProgressBadgeIcon";
+import type { ReviewProgressBadgeState } from "../../../types";
+import { ProgressLeaderboardShortcutIcon, ReviewProgressBadgeIcon, ReviewQueueShortcutIcon, StreakFreezeIcon } from "../../shared/ReviewProgressBadgeIcon";
 import { ReviewFilterMenu } from "../filters/ReviewFilterMenu";
-
-type ReviewProgressBadgeState = Readonly<{
-  hasReviewedToday: boolean;
-  isInteractive: boolean;
-  streakDays: number;
-}>;
 
 type ReviewLeaderboardBadgeState = Readonly<{
   isInteractive: boolean;
@@ -52,9 +50,15 @@ export function ReviewScreenHeader(props: ReviewScreenHeaderProps): ReactElement
   const reviewProgressBadgeTodayStatus = reviewProgressBadge.hasReviewedToday
     ? t("reviewScreen.progressBadge.reviewedToday")
     : t("reviewScreen.progressBadge.notReviewedToday");
+  const reviewProgressFreezeValue = formatReviewProgressFreezeValue(reviewProgressBadge.streakFreeze, formatNumber);
+  const reviewProgressFreezeStatus = t("reviewScreen.progressBadge.freezeBank", {
+    available: formatNumber(reviewProgressBadge.streakFreeze.availableCredits),
+    capacity: formatNumber(reviewProgressBadge.streakFreeze.capacity),
+  });
   const reviewProgressBadgeAriaLabel = t("reviewScreen.progressBadge.ariaLabel", {
     streak: formatNumber(reviewProgressBadge.streakDays),
     todayStatus: reviewProgressBadgeTodayStatus,
+    freezeBank: reviewProgressFreezeStatus,
   });
   const leaderboardShortcutRankLabel = reviewLeaderboardBadge.rank === null
     ? null
@@ -118,6 +122,10 @@ export function ReviewScreenHeader(props: ReviewScreenHeaderProps): ReactElement
             >
               <ReviewProgressBadgeIcon />
               <span className="review-progress-badge-value">{formatReviewProgressBadgeValue(reviewProgressBadge.streakDays)}</span>
+              <span className="review-progress-freeze-indicator" aria-hidden="true">
+                <StreakFreezeIcon />
+                <span className="review-progress-freeze-value">{reviewProgressFreezeValue}</span>
+              </span>
             </Link>
           </div>
         </div>

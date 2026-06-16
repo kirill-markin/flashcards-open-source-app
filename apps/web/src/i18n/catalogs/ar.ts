@@ -124,6 +124,8 @@ const arCatalog: TranslationCatalog = {
     title: "التقدم",
     subtitle: "تتبّع سلسلة الأيام الأخيرة وسجل المراجعات اليومي.",
     streakTitle: "السلسلة",
+    streakInfoToggleLabel: "حول تجميد السلسلة",
+    streakInfo: "رصيد التجميد {{available}}/{{capacity}}. الشحن التالي {{progress}}/{{required}}.",
     reviewsTitle: "المراجعات",
     lastThirtyDays: "آخر 30 يومًا",
     empty: "لم تُسجَّل أي مراجعات خلال نطاق الثلاثين يومًا هذا.",
@@ -559,7 +561,8 @@ const arCatalog: TranslationCatalog = {
       ariaLabel: "فتح لوحة المتصدرين",
     },
     progressBadge: {
-      ariaLabel: "سلسلة المراجعة {{streak}} يومًا. {{todayStatus}}.",
+      ariaLabel: "سلسلة المراجعة {{streak}} يومًا. {{todayStatus}}. {{freezeBank}}.",
+      freezeBank: "رصيد التجميد {{available}} من {{capacity}}",
       notReviewedToday: "لم تُراجع اليوم",
       reviewedToday: "راجعت اليوم",
       title: "السلسلة",

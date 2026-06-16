@@ -124,6 +124,8 @@ export const ruCatalog = {
     title: "Прогресс",
     subtitle: "Отслеживайте недавнюю серию и ежедневную историю повторений.",
     streakTitle: "Серия",
+    streakInfoToggleLabel: "О заморозках серии",
+    streakInfo: "Запас заморозок {{available}}/{{capacity}}. Следующее пополнение {{progress}}/{{required}}.",
     reviewsTitle: "Повторения",
     lastThirtyDays: "Последние 30 дней",
     empty: "За этот 30-дневный период повторения не были записаны.",
@@ -559,7 +561,8 @@ export const ruCatalog = {
       ariaLabel: "Открыть таблицу лидеров",
     },
     progressBadge: {
-      ariaLabel: "Серия повторений: {{streak}} дн. {{todayStatus}}.",
+      ariaLabel: "Серия повторений: {{streak}} дн. {{todayStatus}}. {{freezeBank}}.",
+      freezeBank: "Запас заморозок {{available}} из {{capacity}}",
       notReviewedToday: "Сегодня ещё не повторяли",
       reviewedToday: "Сегодня уже повторяли",
       title: "Серия",

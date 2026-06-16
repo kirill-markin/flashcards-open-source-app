@@ -4,6 +4,7 @@ import ReactDOM from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "../../i18n";
+import { shiftLocalDate } from "../../progress/progressDates";
 import { progressLeaderboardHash, progressStreakHash } from "../../routes";
 import type { AppDataContextValue } from "../../appData";
 import {
@@ -23,6 +24,8 @@ import type {
   ProgressReviewScheduleSnapshot,
   ProgressSeriesSnapshot,
   ProgressSummarySnapshot,
+  StreakDay,
+  StreakDayState,
 } from "../../types";
 import { progressLeaderboardWindowKeys } from "../../types";
 
@@ -170,6 +173,45 @@ function createAppData(): AppDataContextValue {
   };
 }
 
+function createPartialStreakFreeze(): Readonly<{
+  availableCredits: number;
+  capacity: number;
+  balanceUnits: number;
+  unitsPerCredit: number;
+  nextCreditProgressUnits: number;
+  nextCreditRequiredUnits: number;
+}> {
+  return {
+    availableCredits: 1,
+    capacity: 2,
+    balanceUnits: 11,
+    unitsPerCredit: 10,
+    nextCreditProgressUnits: 1,
+    nextCreditRequiredUnits: 10,
+  };
+}
+
+function createProgressStreakDaysForTest(from: string, to: string): ReadonlyArray<StreakDay> {
+  const reviewedDates = new Set(["2026-04-14", "2026-04-21"]);
+  const frozenDates = new Set(["2026-04-15", "2026-04-16"]);
+  const streakDays: Array<StreakDay> = [];
+
+  for (let currentDate = from; currentDate <= to; currentDate = shiftLocalDate(currentDate, 1)) {
+    const state: StreakDayState = reviewedDates.has(currentDate)
+      ? "reviewed"
+      : frozenDates.has(currentDate)
+        ? "frozen"
+        : "missed";
+
+    streakDays.push({
+      date: currentDate,
+      state,
+    });
+  }
+
+  return streakDays;
+}
+
 function createProgressSummarySnapshot(): ProgressSummarySnapshot {
   return {
     timeZone: "UTC",
@@ -177,9 +219,11 @@ function createProgressSummarySnapshot(): ProgressSummarySnapshot {
     reviewHistoryWatermarks: [],
     summary: {
       currentStreakDays: 2,
+      longestStreakDays: 3,
       hasReviewedToday: true,
       lastReviewedOn: "2026-04-21",
       activeReviewDays: 2,
+      streakFreeze: createPartialStreakFreeze(),
     },
     source: "server",
     isApproximate: false,
@@ -229,6 +273,7 @@ function createProgressSeriesSnapshot(): ProgressSeriesSnapshot {
     generatedAt: "2026-04-21T10:00:00.000Z",
     reviewHistoryWatermarks: [],
     dailyReviews,
+    streakDays: createProgressStreakDaysForTest("2026-03-21", "2026-04-21"),
     chartData: {
       dailyReviews,
     },
@@ -467,6 +512,7 @@ function mockProgressSourceStateWithLeaderboard(leaderboard: ProgressLeaderboard
       series: {
         scopeKey: "progress::series::UTC::2026-04-13::2026-04-21",
         localFallback: null,
+        localFallbackActiveDates: [],
         serverBase: createProgressSeriesSnapshot(),
         pendingLocalOverlay: null,
         renderedSnapshot: createProgressSeriesSnapshot(),
@@ -555,6 +601,10 @@ describe("ProgressScreen", () => {
     const streakMarkerIcons = [...container.querySelectorAll(".progress-streak-marker-flame .review-progress-badge-icon")];
     expect(streakMarkerIcons.length).toBeGreaterThan(0);
     expect(streakMarkerIcons.every((icon) => icon instanceof SVGSVGElement)).toBe(true);
+
+    const frozenMarkerIcons = [...container.querySelectorAll(".progress-streak-marker-freeze .review-progress-badge-icon")];
+    expect(frozenMarkerIcons.length).toBeGreaterThan(0);
+    expect(frozenMarkerIcons.every((icon) => icon instanceof SVGSVGElement)).toBe(true);
   });
 
   it("uses the schedule-specific progress version for review schedule refreshes", async () => {
@@ -829,6 +879,7 @@ describe("ProgressScreen", () => {
         series: {
           scopeKey: "progress::series::UTC::2026-04-06::2026-04-21",
           localFallback: null,
+          localFallbackActiveDates: [],
           serverBase: {
             ...createProgressSeriesSnapshot(),
             from: "2026-04-06",

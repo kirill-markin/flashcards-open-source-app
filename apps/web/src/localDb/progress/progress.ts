@@ -24,8 +24,11 @@ import {
 import { listOutboxRecordsForWorkspaces } from "../sync/outbox";
 import {
   formatDateAsLocalDate,
-  shiftLocalDate,
 } from "../../progress/progressDates";
+import {
+  createDefaultStreakFreeze,
+  evaluateProgressStreakFreeze,
+} from "../../progress/streakFreeze";
 
 const progressCacheStateKey = "progress_cache_state";
 const progressRecordKeyHighValue = "\uffff";
@@ -53,9 +56,11 @@ function isPendingReviewEventOperation(
 function createEmptyProgressSummary(): ProgressSummary {
   return {
     currentStreakDays: 0,
+    longestStreakDays: 0,
     hasReviewedToday: false,
     lastReviewedOn: null,
     activeReviewDays: 0,
+    streakFreeze: createDefaultStreakFreeze(),
   };
 }
 
@@ -168,20 +173,16 @@ function buildProgressSummary(
   }
 
   const reviewDateSet = new Set(reviewDates);
+  const streakFreezeEvaluation = evaluateProgressStreakFreeze(reviewDates, today);
   const hasReviewedToday = reviewDateSet.has(today);
-  let currentDate = hasReviewedToday ? today : shiftLocalDate(today, -1);
-  let currentStreakDays = 0;
-
-  while (reviewDateSet.has(currentDate)) {
-    currentStreakDays += 1;
-    currentDate = shiftLocalDate(currentDate, -1);
-  }
 
   return {
-    currentStreakDays,
+    currentStreakDays: streakFreezeEvaluation.currentStreakDays,
+    longestStreakDays: streakFreezeEvaluation.longestStreakDays,
     hasReviewedToday,
     lastReviewedOn: reviewDates.at(-1) ?? null,
     activeReviewDays: reviewDates.length,
+    streakFreeze: streakFreezeEvaluation.streakFreeze,
   };
 }
 
