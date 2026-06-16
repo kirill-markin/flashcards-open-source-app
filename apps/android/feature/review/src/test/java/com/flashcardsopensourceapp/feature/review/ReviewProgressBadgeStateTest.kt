@@ -25,7 +25,7 @@ import org.junit.Test
 
 class ReviewProgressBadgeStateTest {
     @Test
-    fun reviewProgressBadgeStateUsesRenderedSummaryFields() {
+    fun reviewProgressBadgeStateUsesRenderedStreakAndIgnoresFreezeBank() {
         val badgeState = createProgressSummarySnapshot(
             currentStreakDays = 14,
             hasReviewedToday = true
@@ -34,8 +34,6 @@ class ReviewProgressBadgeStateTest {
         assertEquals(
             ReviewProgressBadgeState(
                 streakDays = 14,
-                freezeAvailableCredits = 2,
-                freezeCapacity = 2,
                 hasReviewedToday = true,
                 isInteractive = true
             ),
