@@ -171,7 +171,7 @@ describe("FriendInviteScreen", () => {
     expect(container.querySelector("a[href='/progress#leaderboard']")).not.toBeNull();
   });
 
-  it("requires a display name before accepting", async () => {
+  it("keeps accept disabled until a display name is entered", async () => {
     previewFriendInvitationMock.mockResolvedValue({
       status: "active",
       expiresAt: "2026-04-22T10:00:00.000Z",
@@ -185,12 +185,7 @@ describe("FriendInviteScreen", () => {
       throw new Error("Invite accept button was not found");
     }
 
-    await act(async () => {
-      acceptButton.click();
-      await Promise.resolve();
-    });
-
-    expect(container.querySelector("[data-testid='friend-invite-display-name-error']")?.textContent).toContain("Enter a name.");
+    expect(acceptButton.disabled).toBe(true);
     expect(acceptFriendInvitationMock).not.toHaveBeenCalled();
   });
 });

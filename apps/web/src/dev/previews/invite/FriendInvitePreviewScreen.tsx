@@ -153,7 +153,7 @@ function renderFriendInvitePreviewState(
 // Non-production preview routes are documented in docs/web-invite-previews.md.
 export function FriendInvitePreviewScreen(): ReactElement {
   const { state } = useParams();
-  const [friendDisplayName, setFriendDisplayName] = useState<string>("Alex");
+  const [friendDisplayName, setFriendDisplayName] = useState<string>("");
 
   if (!isFriendInvitePreviewEnabled()) {
     return <Navigate replace to={reviewRoute} />;
