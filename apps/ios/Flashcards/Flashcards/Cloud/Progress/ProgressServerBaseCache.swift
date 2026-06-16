@@ -59,7 +59,8 @@ struct PersistedProgressLeaderboardServerBase: Codable, Hashable, Sendable {
 private let progressSummaryServerBaseCacheUserDefaultsKeyPrefix: String = "progress-summary-server-base"
 private let progressSeriesServerBaseCacheUserDefaultsKeyPrefix: String = "progress-series-server-base"
 private let reviewScheduleServerBaseCacheUserDefaultsKeyPrefix: String = "progress-review-schedule-server-base"
-private let progressLeaderboardServerBaseCacheUserDefaultsKeyPrefix: String = "progress-leaderboard-server-base"
+private let legacyProgressLeaderboardServerBaseCacheUserDefaultsKeyPrefix: String = "progress-leaderboard-server-base"
+private let progressLeaderboardServerBaseCacheUserDefaultsKeyPrefix: String = "progress-leaderboard-server-base-v2"
 
 @MainActor
 extension FlashcardsStore {
@@ -93,6 +94,7 @@ extension FlashcardsStore {
             data,
             forKey: progressLeaderboardServerBaseUserDefaultsKey(scopeKey: serverBase.scopeKey)
         )
+        self.removeLegacyProgressLeaderboardServerBase(scopeKey: serverBase.scopeKey)
     }
 
     func removePersistedReviewScheduleServerBase(scopeKey: ReviewScheduleScopeKey) {
@@ -105,6 +107,7 @@ extension FlashcardsStore {
         self.userDefaults.removeObject(
             forKey: progressLeaderboardServerBaseUserDefaultsKey(scopeKey: scopeKey)
         )
+        self.removeLegacyProgressLeaderboardServerBase(scopeKey: scopeKey)
     }
 
     func loadPersistedProgressSummaryServerBase(
@@ -269,6 +272,8 @@ extension FlashcardsStore {
     func loadPersistedProgressLeaderboardServerBase(
         scopeKey: ProgressLeaderboardScopeKey
     ) -> PersistedProgressLeaderboardServerBase? {
+        self.removeLegacyProgressLeaderboardServerBase(scopeKey: scopeKey)
+
         let key = progressLeaderboardServerBaseUserDefaultsKey(scopeKey: scopeKey)
         guard let data = self.userDefaults.data(forKey: key) else {
             return nil
@@ -314,6 +319,13 @@ extension FlashcardsStore {
             )
             return nil
         }
+    }
+
+    private func removeLegacyProgressLeaderboardServerBase(scopeKey: ProgressLeaderboardScopeKey) {
+        // The unversioned cache predates rankingRows, which the current renderer requires.
+        self.userDefaults.removeObject(
+            forKey: legacyProgressLeaderboardServerBaseUserDefaultsKey(scopeKey: scopeKey)
+        )
     }
 
     private func removeProgressServerBaseCache(
@@ -365,4 +377,8 @@ private func reviewScheduleServerBaseUserDefaultsKey(scopeKey: ReviewScheduleSco
 
 private func progressLeaderboardServerBaseUserDefaultsKey(scopeKey: ProgressLeaderboardScopeKey) -> String {
     "\(progressLeaderboardServerBaseCacheUserDefaultsKeyPrefix)|\(scopeKey.storageKey)"
+}
+
+private func legacyProgressLeaderboardServerBaseUserDefaultsKey(scopeKey: ProgressLeaderboardScopeKey) -> String {
+    "\(legacyProgressLeaderboardServerBaseCacheUserDefaultsKeyPrefix)|\(scopeKey.storageKey)"
 }
