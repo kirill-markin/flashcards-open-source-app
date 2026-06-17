@@ -2,7 +2,7 @@
 agp = "9.2.1"
 kotlin = "2.3.21"
 ksp = "2.3.9"
-coreKtx = "1.19.0"
+coreKtx = "1.18.0"
 splashscreen = "1.2.0"
 activityCompose = "1.13.0"
 lifecycle = "2.10.0"
