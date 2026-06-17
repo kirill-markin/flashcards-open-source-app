@@ -182,6 +182,9 @@ struct CloudOtpVerificationSheet: View {
                 self.authErrorPresentation = nil
                 self.onVerified(verifiedContext)
             } catch {
+                if isRequestCancellationError(error: error) {
+                    return
+                }
                 self.applyOtpErrorState(error: error)
                 self.authErrorPresentation = makeCloudAuthInlineErrorPresentation(
                     error: error,
@@ -212,6 +215,9 @@ struct CloudOtpVerificationSheet: View {
                     throw LocalStoreError.validation("Demo review sign-in cannot resend an OTP challenge")
                 }
             } catch {
+                if isRequestCancellationError(error: error) {
+                    return
+                }
                 self.authErrorPresentation = makeCloudAuthInlineErrorPresentation(
                     error: error,
                     context: .sendCode

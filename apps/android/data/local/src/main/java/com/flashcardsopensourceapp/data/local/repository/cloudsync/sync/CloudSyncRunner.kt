@@ -81,6 +81,8 @@ internal suspend fun runCloudSyncCore(
                         )
                     }
                     syncLocalStore.deleteOutboxEntries(acknowledgedOperationIds)
+                } catch (error: CancellationException) {
+                    throw error
                 } catch (error: Exception) {
                     val recoveredState = recoverWorkspaceForkConflictIfNeeded(
                         workspaceId = workspaceId,
@@ -259,6 +261,8 @@ private suspend fun runBootstrapHydrationWithForkRecovery(
                                 .put("entries", bootstrapEntries)
                         )
                         lastHotCursor = bootstrapPushResponse.bootstrapHotChangeId ?: lastHotCursor
+                    } catch (error: CancellationException) {
+                        throw error
                     } catch (error: Exception) {
                         val recoveredState = recoverWorkspaceForkConflictIfNeeded(
                             workspaceId = workspaceId,
@@ -403,6 +407,8 @@ private suspend fun importReviewHistoryWithForkRecovery(
                 lastReviewSequenceId = lastReviewSequenceId,
                 workspaceForkRecoveryState = recoveryState
             )
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: Exception) {
             val recoveredState = recoverWorkspaceForkConflictIfNeeded(
                 workspaceId = workspaceId,
@@ -453,6 +459,9 @@ private suspend fun pullAndApplyReviewHistoryBatch(
         }
         syncLocalStore.flushReviewHistoryChangeBatch()
         return lastReviewSequenceId
+    } catch (error: CancellationException) {
+        syncLocalStore.discardReviewHistoryChangeBatch()
+        throw error
     } catch (error: Exception) {
         syncLocalStore.discardReviewHistoryChangeBatch()
         throw error

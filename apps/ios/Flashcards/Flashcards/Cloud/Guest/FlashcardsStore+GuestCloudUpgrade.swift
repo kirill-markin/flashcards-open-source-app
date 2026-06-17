@@ -688,6 +688,10 @@ extension FlashcardsStore {
             )
             try self.reload()
         } catch {
+            if isRequestCancellationError(error: error) {
+                self.syncStatus = .idle
+                throw error
+            }
             if didCompleteLocalLink == false {
                 logCloudFlowPhase(
                     phase: .linkLocalWorkspace,

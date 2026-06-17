@@ -61,6 +61,8 @@ internal class CloudAccountDeletionCoordinator(
                     bearerToken = authenticatedSession.credentials.idToken,
                     confirmationText = confirmationText
                 )
+            } catch (error: CancellationException) {
+                throw error
             } catch (error: Exception) {
                 if (isRemoteAccountDeletedError(error = error)) {
                     resetCoordinator.resetLocalStateForCloudIdentityChange()
@@ -86,6 +88,8 @@ internal class CloudAccountDeletionCoordinator(
                     bearerToken = authenticatedSession.credentials.idToken,
                     confirmationText = accountDeletionConfirmationTextForCloudApi
                 )
+            } catch (error: CancellationException) {
+                throw error
             } catch (error: Exception) {
                 if (isRemoteAccountDeletedError(error = error).not()) {
                     preferencesStore.markAccountDeletionFailed(

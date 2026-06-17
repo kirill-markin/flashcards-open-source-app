@@ -18,6 +18,7 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.CloudSyn
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.CloudWorkspaceForkRecoveryMode
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.androidClientPlatform
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.runCloudSyncCore
+import kotlinx.coroutines.CancellationException
 import org.json.JSONObject
 
 internal class CloudLinkedWorkspaceTransitionCoordinator(
@@ -150,6 +151,8 @@ internal class CloudLinkedWorkspaceTransitionCoordinator(
                 syncLocalStore = syncLocalStore,
                 workspaceForkRecoveryMode = CloudWorkspaceForkRecoveryMode.ENABLED
             )
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: Exception) {
             val preservesBlockedSyncState: Boolean = error is CloudSyncBlockedException || isCloudIdentityConflictError(
                 error = error

@@ -40,6 +40,7 @@ import com.flashcardsopensourceapp.feature.settings.cloud.postAuth.requiresCloud
 import com.flashcardsopensourceapp.feature.settings.cloud.postAuth.resolveCloudPostAuthFailureAction
 import com.flashcardsopensourceapp.feature.settings.createSettingsStringResolver
 import java.io.IOException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -240,6 +241,11 @@ class CloudSignInViewModel(
                     }
                 }
             }
+        } catch (error: CancellationException) {
+            draftState.update { state ->
+                cancelCloudSendCodeAttempt(state = state, authAttemptId = authAttemptId)
+            }
+            throw error
         } catch (error: Exception) {
             if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
                 return CloudSendCodeNavigationOutcome.NoNavigation
@@ -275,6 +281,11 @@ class CloudSignInViewModel(
                 isSendingCode = false,
                 isVerifyingCode = false
             )
+        } catch (error: CancellationException) {
+            draftState.update { state ->
+                cancelCloudVerifyCodeAttempt(state = state, authAttemptId = authAttemptId)
+            }
+            throw error
         } catch (error: Exception) {
             if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
                 return false
@@ -463,6 +474,16 @@ class CloudSignInViewModel(
                     workspaceTitle = completion.workspaceTitle
                 )
             }
+        } catch (error: CancellationException) {
+            failPostAuthCancellationIfStillProcessing(
+                authAttemptId = authAttemptId,
+                errorMessage = if (requiresCloudGuestUpgrade(linkContext = linkContext)) {
+                    strings.get(R.string.settings_post_auth_guest_upgrade_failed)
+                } else {
+                    strings.get(R.string.settings_post_auth_setup_failed)
+                }
+            )
+            throw error
         } catch (error: Exception) {
             if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
                 return
@@ -524,6 +545,12 @@ class CloudSignInViewModel(
                 authAttemptId = authAttemptId,
                 workspaceTitle = completion.workspaceTitle
             )
+        } catch (error: CancellationException) {
+            failPostAuthCancellationIfStillProcessing(
+                authAttemptId = authAttemptId,
+                errorMessage = strings.get(R.string.settings_post_auth_guest_local_recovery_failed)
+            )
+            throw error
         } catch (error: Exception) {
             if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
                 return
@@ -583,6 +610,12 @@ class CloudSignInViewModel(
                 authAttemptId = authAttemptId,
                 workspaceTitle = workspaceTitle
             )
+        } catch (error: CancellationException) {
+            failPostAuthCancellationIfStillProcessing(
+                authAttemptId = authAttemptId,
+                errorMessage = strings.get(R.string.settings_post_auth_sync_failed)
+            )
+            throw error
         } catch (error: Exception) {
             if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
                 return
@@ -600,6 +633,25 @@ class CloudSignInViewModel(
                     errorMessage = errorMessage,
                     recoveryErrorBlocked = recoveryError != null,
                     postAuthResetAllowed = isInvalidCloudCredentialRecovery(error = recoveryError)
+                )
+            }
+        }
+    }
+
+    private fun failPostAuthCancellationIfStillProcessing(
+        authAttemptId: Long,
+        errorMessage: String
+    ) {
+        draftState.update { state ->
+            if (state.authAttemptId != authAttemptId || state.processingTitle.isEmpty()) {
+                state
+            } else {
+                failCloudPostAuth(
+                    state = state,
+                    authAttemptId = authAttemptId,
+                    errorMessage = errorMessage,
+                    recoveryErrorBlocked = false,
+                    postAuthResetAllowed = false
                 )
             }
         }

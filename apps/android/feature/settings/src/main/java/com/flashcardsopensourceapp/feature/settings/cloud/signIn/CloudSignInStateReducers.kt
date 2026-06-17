@@ -131,6 +131,16 @@ internal fun failCloudSendCode(
     )
 }
 
+internal fun cancelCloudSendCodeAttempt(
+    state: CloudSignInDraftState,
+    authAttemptId: Long
+): CloudSignInDraftState {
+    if (state.authAttemptId != authAttemptId) {
+        return state
+    }
+    return state.copy(isSendingCode = false)
+}
+
 internal fun startCloudVerifyCodeAttempt(
     state: CloudSignInDraftState,
     authAttemptId: Long
@@ -166,6 +176,16 @@ internal fun failCloudVerifyCode(
         errorMessage = errorPresentation.message,
         errorTechnicalDetails = errorPresentation.technicalDetails
     )
+}
+
+internal fun cancelCloudVerifyCodeAttempt(
+    state: CloudSignInDraftState,
+    authAttemptId: Long
+): CloudSignInDraftState {
+    if (state.authAttemptId != authAttemptId) {
+        return state
+    }
+    return state.copy(isVerifyingCode = false)
 }
 
 internal fun publishCloudVerifiedLinkContext(

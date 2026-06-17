@@ -141,6 +141,9 @@ struct CloudSyncTransport {
                 allowsRetry: self.allowsRetry(path: path, method: method, body: body)
             )
         } catch {
+            if isRequestCancellationError(error: error) {
+                throw error
+            }
             logCloudFlowPhase(
                 phase: phase,
                 outcome: "failure",
@@ -212,6 +215,9 @@ struct CloudSyncTransport {
             } catch let error as CancellationError {
                 throw error
             } catch {
+                if isRequestCancellationError(error: error) {
+                    throw error
+                }
                 lastError = error
                 guard allowsRetry
                     && isRetryableNetworkTransportFailure(error: error)

@@ -10,6 +10,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.cloud.shouldRefreshCloudIdToken
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.CloudIdentityResetCoordinator
+import kotlinx.coroutines.CancellationException
 
 internal data class AuthenticatedCloudSession(
     val configuration: CloudServiceConfiguration,
@@ -55,6 +56,8 @@ internal class CloudSessionProvider(
                 credentials = refreshedCredentials,
                 accountSnapshot = accountSnapshot
             )
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: Exception) {
             if (isRemoteAccountDeletedError(error = error)) {
                 resetLocalStateForDeletedAccount()
@@ -93,6 +96,8 @@ internal class CloudSessionProvider(
                 credentials = refreshedCredentials,
                 accountSnapshot = accountSnapshot
             )
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: Exception) {
             if (isRemoteAccountDeletedError(error = error)) {
                 resetLocalStateForDeletedAccount()
