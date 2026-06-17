@@ -163,6 +163,7 @@ final class AIChatStore {
     @ObservationIgnored var activeDictationTask: Task<Void, Never>?
     @ObservationIgnored var activeWarmUpTask: Task<Void, Never>?
     @ObservationIgnored var activeBootstrapTask: Task<Void, Never>?
+    @ObservationIgnored var activePassiveSnapshotRefreshTask: Task<Void, Never>?
     @ObservationIgnored var activeNewSessionTask: Task<Void, Never>?
     @ObservationIgnored var activeRemoteSessionProvisionRequest: AIChatRemoteSessionProvisionRequest?
     @ObservationIgnored var activePersistTask: Task<Void, Never>?
@@ -180,6 +181,7 @@ final class AIChatStore {
     @ObservationIgnored var activeToolRunPostSyncTask: Task<Void, Never>?
     @ObservationIgnored var nextResumeAttemptSequence: Int
     @ObservationIgnored var nextBootstrapRequestSequence: Int
+    @ObservationIgnored var nextPassiveSnapshotRefreshSequence: Int
     @ObservationIgnored var nextNewSessionRequestSequence: Int
     @ObservationIgnored var activeResumeErrorAttemptSequence: Int?
     @ObservationIgnored var activeLiveResumeAttemptSequence: Int?
@@ -640,6 +642,7 @@ final class AIChatStore {
         self.activeDictationTask = nil
         self.activeWarmUpTask = nil
         self.activeBootstrapTask = nil
+        self.activePassiveSnapshotRefreshTask = nil
         self.activeNewSessionTask = nil
         self.activeRemoteSessionProvisionRequest = nil
         self.activePersistTask = nil
@@ -656,6 +659,7 @@ final class AIChatStore {
         self.activeToolRunPostSyncTask = nil
         self.nextResumeAttemptSequence = 0
         self.nextBootstrapRequestSequence = 0
+        self.nextPassiveSnapshotRefreshSequence = 0
         self.nextNewSessionRequestSequence = 0
         self.activeResumeErrorAttemptSequence = nil
         self.activeLiveResumeAttemptSequence = nil

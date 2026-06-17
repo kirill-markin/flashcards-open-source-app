@@ -142,6 +142,7 @@ extension AIChatStore {
 
     func shutdownForTests() {
         self.invalidateActiveBootstrapTask()
+        self.invalidateActivePassiveSnapshotRefreshTask()
         self.activeWarmUpTask?.cancel()
         self.activeWarmUpTask = nil
         self.invalidatePendingNewSessionRequest()
