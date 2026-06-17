@@ -327,6 +327,8 @@ class CloudGuestSessionCoordinator(
                 apiBaseUrl = storedGuestSession.apiBaseUrl,
                 guestToken = storedGuestSession.guestToken
             )
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: Exception) {
             if (isGuestSessionInvalidError(error = error).not()) {
                 throw error

@@ -13,6 +13,7 @@ import com.flashcardsopensourceapp.feature.settings.cloud.postAuth.CloudPostAuth
 import com.flashcardsopensourceapp.feature.settings.cloud.signIn.CloudSendCodeNavigationOutcome
 import com.flashcardsopensourceapp.feature.settings.cloud.signIn.CloudSignInViewModel
 import java.io.IOException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -571,6 +572,181 @@ class CloudSignInViewModelTest {
         assertEquals(false, viewModel.postAuthUiState.value.canLogout)
 
         postAuthCollection.cancel()
+    }
+
+    @Test
+    fun postAuthWorkspaceSetupCancellationRethrowsWithRetryState() = runTest(dispatcher) {
+        Dispatchers.setMain(dispatcher)
+        val repository = FakeCloudAccountRepository()
+        repository.enqueueCompleteCloudLinkError(CancellationException("Cloud request was cancelled."))
+        val viewModel = CloudSignInViewModel(
+            cloudAccountRepository = repository,
+            syncRepository = FakeSyncRepository(),
+            messageController = TransientMessageController { },
+            strings = strings
+        )
+        val postAuthCollection = backgroundScope.async {
+            viewModel.postAuthUiState.collect()
+        }
+        val credentials = makeCredentials(idToken = "id-token-setup-cancelled")
+        repository.enqueueSendCodeResult(CloudSendCodeResult.Verified(credentials = credentials))
+        repository.enqueuePreparedLinkContext(
+            idToken = credentials.idToken,
+            result = CompletableDeferred(
+                makeLinkContext(
+                    credentials = credentials,
+                    email = "person@example.com",
+                    workspaceId = "workspace-recovered",
+                    workspaceName = "Recovered",
+                    postAuthRoute = CloudWorkspacePostAuthRoute.LINKED_CREDENTIAL_RESTORE,
+                    preferredWorkspaceId = "workspace-recovered"
+                )
+            )
+        )
+
+        viewModel.updateEmail("person@example.com")
+        assertEquals(CloudSendCodeNavigationOutcome.Verified, viewModel.sendCode())
+        advanceUntilIdle()
+
+        val error = try {
+            viewModel.completePendingPostAuthIfNeeded()
+            null
+        } catch (caught: CancellationException) {
+            caught
+        }
+
+        assertNotNull(error)
+        assertEquals(CloudPostAuthMode.FAILED, viewModel.postAuthUiState.value.mode)
+        assertEquals("Cloud workspace setup failed.", viewModel.postAuthUiState.value.errorMessage)
+        assertEquals("", viewModel.postAuthUiState.value.processingTitle)
+        assertEquals(true, viewModel.postAuthUiState.value.canRetry)
+
+        postAuthCollection.cancel()
+    }
+
+    @Test
+    fun postAuthInitialSyncCancellationRethrowsWithRetryState() = runTest(dispatcher) {
+        Dispatchers.setMain(dispatcher)
+        val repository = FakeCloudAccountRepository()
+        val syncRepository = FakeSyncRepository()
+        syncRepository.enqueueSyncError(CancellationException("Cloud request was cancelled."))
+        val viewModel = CloudSignInViewModel(
+            cloudAccountRepository = repository,
+            syncRepository = syncRepository,
+            messageController = TransientMessageController { },
+            strings = strings
+        )
+        val postAuthCollection = backgroundScope.async {
+            viewModel.postAuthUiState.collect()
+        }
+        val credentials = makeCredentials(idToken = "id-token-sync-cancelled")
+        repository.enqueueSendCodeResult(CloudSendCodeResult.Verified(credentials = credentials))
+        repository.enqueuePreparedLinkContext(
+            idToken = credentials.idToken,
+            result = CompletableDeferred(
+                makeLinkContext(
+                    credentials = credentials,
+                    email = "person@example.com",
+                    workspaceId = "workspace-remote",
+                    workspaceName = "Remote",
+                    postAuthRoute = CloudWorkspacePostAuthRoute.NONE,
+                    preferredWorkspaceId = "workspace-remote"
+                )
+            )
+        )
+
+        viewModel.updateEmail("person@example.com")
+        assertEquals(CloudSendCodeNavigationOutcome.Verified, viewModel.sendCode())
+        advanceUntilIdle()
+
+        val error = try {
+            viewModel.completePendingPostAuthIfNeeded()
+            null
+        } catch (caught: CancellationException) {
+            caught
+        }
+
+        assertNotNull(error)
+        assertEquals(1, syncRepository.syncNowCalls)
+        assertEquals(CloudPostAuthMode.FAILED, viewModel.postAuthUiState.value.mode)
+        assertEquals("", viewModel.postAuthUiState.value.processingTitle)
+        assertEquals("Initial sync failed.", viewModel.postAuthUiState.value.errorMessage)
+        assertEquals(true, viewModel.postAuthUiState.value.canRetry)
+
+        postAuthCollection.cancel()
+    }
+
+    @Test
+    fun sendCodeCancellationRethrowsWithoutLoadingState() = runTest(dispatcher) {
+        Dispatchers.setMain(dispatcher)
+        val repository = FakeCloudAccountRepository()
+        repository.enqueueSendCodeError(CancellationException("Cloud request was cancelled."))
+        val viewModel = CloudSignInViewModel(
+            cloudAccountRepository = repository,
+            syncRepository = FakeSyncRepository(),
+            messageController = TransientMessageController { },
+            strings = strings
+        )
+        val uiStateCollection = backgroundScope.async {
+            viewModel.uiState.collect()
+        }
+
+        viewModel.updateEmail("person@example.com")
+        val error = try {
+            viewModel.sendCode()
+            null
+        } catch (caught: CancellationException) {
+            caught
+        }
+        advanceUntilIdle()
+
+        assertNotNull(error)
+        assertEquals(false, viewModel.uiState.value.isSendingCode)
+        assertEquals("", viewModel.uiState.value.errorMessage)
+
+        uiStateCollection.cancel()
+    }
+
+    @Test
+    fun verifyCodeCancellationRethrowsWithoutLoadingState() = runTest(dispatcher) {
+        Dispatchers.setMain(dispatcher)
+        val repository = FakeCloudAccountRepository()
+        repository.enqueueSendCodeResult(
+            CloudSendCodeResult.OtpRequired(
+                challenge = CloudOtpChallenge(
+                    email = "person@example.com",
+                    csrfToken = "csrf-token",
+                    otpSessionToken = "otp-session-token"
+                )
+            )
+        )
+        repository.enqueueVerifyCodeError(CancellationException("Cloud request was cancelled."))
+        val viewModel = CloudSignInViewModel(
+            cloudAccountRepository = repository,
+            syncRepository = FakeSyncRepository(),
+            messageController = TransientMessageController { },
+            strings = strings
+        )
+        val uiStateCollection = backgroundScope.async {
+            viewModel.uiState.collect()
+        }
+
+        viewModel.updateEmail("person@example.com")
+        assertEquals(CloudSendCodeNavigationOutcome.OtpRequired, viewModel.sendCode())
+        viewModel.updateCode("12345678")
+        val error = try {
+            viewModel.verifyCode()
+            null
+        } catch (caught: CancellationException) {
+            caught
+        }
+        advanceUntilIdle()
+
+        assertNotNull(error)
+        assertEquals(false, viewModel.uiState.value.isVerifyingCode)
+        assertEquals("", viewModel.uiState.value.errorMessage)
+
+        uiStateCollection.cancel()
     }
 
     @Test

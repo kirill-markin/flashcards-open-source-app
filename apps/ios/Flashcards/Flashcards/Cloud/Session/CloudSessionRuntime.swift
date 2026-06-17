@@ -414,6 +414,10 @@ final class CloudSessionRuntime {
             do {
                 _ = try await activeCloudSyncTask.task.value
             } catch {
+                if isRequestCancellationError(error: error) {
+                    self.clearActiveCloudSyncTaskIfCurrent(id: activeCloudSyncTask.id)
+                    continue
+                }
                 FlashcardsObservability.captureWarning(
                     .cloudRetry(
                         CloudRetryWarning(

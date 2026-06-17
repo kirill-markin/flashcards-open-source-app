@@ -80,6 +80,10 @@ extension FlashcardsStore {
                 trigger: trigger
             )
         } catch {
+            if isRequestCancellationError(error: error) {
+                self.syncStatus = .idle
+                throw error
+            }
             try self.throwIfCloudCredentialRecoveryRequired()
             let failureError: Error
             do {
@@ -167,6 +171,9 @@ extension FlashcardsStore {
 
             try await self.syncCloudNow(trigger: trigger)
         } catch {
+            if isRequestCancellationError(error: error) {
+                return
+            }
             if self.isCloudAccountDeletedError(error) {
                 self.handleRemoteAccountDeletedCleanup()
                 return
@@ -488,6 +495,9 @@ extension FlashcardsStore {
     }
 
     private func shouldCaptureCloudSyncFailure(error: Error, trigger: CloudSyncTrigger) -> Bool {
+        if isRequestCancellationError(error: error) {
+            return false
+        }
         if isRetryableNetworkTransportFailure(error: error) {
             return false
         }

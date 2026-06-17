@@ -20,6 +20,9 @@ extension FlashcardsStore {
             self.globalErrorMessage = ""
             return result
         } catch {
+            if isRequestCancellationError(error: error) {
+                throw error
+            }
             self.captureCloudAuthFailure(
                 error: error,
                 configuration: configuration,
@@ -40,6 +43,9 @@ extension FlashcardsStore {
             self.globalErrorMessage = ""
             return context
         } catch {
+            if isRequestCancellationError(error: error) {
+                throw error
+            }
             self.captureCloudAuthFailure(
                 error: error,
                 configuration: configuration,
@@ -746,6 +752,10 @@ extension FlashcardsStore {
             )
             try self.reload()
         } catch {
+            if isRequestCancellationError(error: error) {
+                self.syncStatus = .idle
+                throw error
+            }
             if didCompleteLocalLink == false {
                 logCloudFlowPhase(
                     phase: .linkLocalWorkspace,

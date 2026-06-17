@@ -1,5 +1,10 @@
 import SwiftUI
 
+private struct CloudSignInPostAuthTaskHandle {
+    let stateId: String
+    let task: Task<Void, Never>
+}
+
 struct CloudSignInSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
@@ -19,6 +24,9 @@ struct CloudSignInSheet: View {
     @State private var isSendingCode: Bool = false
     @State private var isLogoutConfirmationPresented: Bool = false
     @State private var hasRecordedActivePresentation: Bool = false
+    @State private var postAuthLoadingTask: CloudSignInPostAuthTaskHandle?
+    @State private var postAuthGuestLocalRecoveryPreparationTask: CloudSignInPostAuthTaskHandle?
+    @State private var postAuthSyncTask: CloudSignInPostAuthTaskHandle?
 
     init(presentationContext: CloudSignInPresentationContext) {
         self.presentationContext = presentationContext
@@ -89,10 +97,8 @@ struct CloudSignInSheet: View {
                         self.handleVerifiedAuthContext(verifiedContext)
                     },
                     onReturnToEmail: {
+                        self.cancelPostAuthTasksAndClearInFlightState()
                         self.otpSheetState = nil
-                        self.postAuthLoadingState = nil
-                        self.postAuthGuestLocalRecoveryPreparationState = nil
-                        self.postAuthSyncState = nil
                         self.workspaceLinkContext = nil
                         self.postAuthRecoveryNeededState = nil
                         self.postAuthFailureState = nil
@@ -104,23 +110,14 @@ struct CloudSignInSheet: View {
             .sheet(item: self.$postAuthLoadingState) { loadingState in
                 CloudPostAuthLoadingSheet()
                     .interactiveDismissDisabled(true)
-                    .task(id: loadingState.id) {
-                        await self.prepareCloudLink(verifiedContext: loadingState.verifiedContext)
-                    }
             }
             .sheet(item: self.$postAuthGuestLocalRecoveryPreparationState) { recoveryState in
                 CloudPostAuthGuestLocalRecoveryPreparationSheet()
                     .interactiveDismissDisabled(true)
-                    .task(id: recoveryState.id) {
-                        await self.runGuestLocalRecoveryPreparation(recoveryState)
-                    }
             }
             .sheet(item: self.$postAuthSyncState) { syncState in
                 CloudPostAuthSyncSheet(operation: syncState.operation)
                     .interactiveDismissDisabled(true)
-                    .task(id: syncState.id) {
-                        await self.runPostAuthSync(syncState)
-                    }
             }
             .sheet(item: self.$workspaceLinkContext) { linkContext in
                 CloudWorkspaceSelectionSheet(
@@ -183,6 +180,7 @@ struct CloudSignInSheet: View {
                 self.scheduleEmailFieldFocus()
             }
             .onDisappear {
+                self.cancelPostAuthTasksAndClearInFlightState()
                 self.clearActivePresentationIfNeeded()
             }
         }
@@ -193,6 +191,76 @@ struct CloudSignInSheet: View {
         self.postAuthLoadingState != nil
             || self.postAuthGuestLocalRecoveryPreparationState != nil
             || self.postAuthSyncState != nil
+    }
+
+    private func cancelPostAuthTasks() {
+        self.postAuthLoadingTask?.task.cancel()
+        self.postAuthLoadingTask = nil
+        self.postAuthGuestLocalRecoveryPreparationTask?.task.cancel()
+        self.postAuthGuestLocalRecoveryPreparationTask = nil
+        self.postAuthSyncTask?.task.cancel()
+        self.postAuthSyncTask = nil
+    }
+
+    private func cancelPostAuthTasksAndClearInFlightState() {
+        self.cancelPostAuthTasks()
+        self.postAuthLoadingState = nil
+        self.postAuthGuestLocalRecoveryPreparationState = nil
+        self.postAuthSyncState = nil
+    }
+
+    private func clearPostAuthLoadingTaskIfCurrent(stateId: String) {
+        guard self.postAuthLoadingTask?.stateId == stateId else {
+            return
+        }
+        self.postAuthLoadingTask = nil
+    }
+
+    private func clearPostAuthGuestLocalRecoveryPreparationTaskIfCurrent(stateId: String) {
+        guard self.postAuthGuestLocalRecoveryPreparationTask?.stateId == stateId else {
+            return
+        }
+        self.postAuthGuestLocalRecoveryPreparationTask = nil
+    }
+
+    private func clearPostAuthSyncTaskIfCurrent(stateId: String) {
+        guard self.postAuthSyncTask?.stateId == stateId else {
+            return
+        }
+        self.postAuthSyncTask = nil
+    }
+
+    private func startPostAuthLoadingTask(_ loadingState: CloudPostAuthLoadingState) {
+        self.postAuthLoadingTask?.task.cancel()
+        let task = Task { @MainActor in
+            await self.prepareCloudLink(loadingState)
+            self.clearPostAuthLoadingTaskIfCurrent(stateId: loadingState.id)
+        }
+        self.postAuthLoadingTask = CloudSignInPostAuthTaskHandle(stateId: loadingState.id, task: task)
+    }
+
+    private func startPostAuthGuestLocalRecoveryPreparationTask(
+        _ recoveryState: CloudPostAuthGuestLocalRecoveryPreparationState
+    ) {
+        self.postAuthGuestLocalRecoveryPreparationTask?.task.cancel()
+        let task = Task { @MainActor in
+            await Task.yield()
+            await self.runGuestLocalRecoveryPreparation(recoveryState)
+            self.clearPostAuthGuestLocalRecoveryPreparationTaskIfCurrent(stateId: recoveryState.id)
+        }
+        self.postAuthGuestLocalRecoveryPreparationTask = CloudSignInPostAuthTaskHandle(
+            stateId: recoveryState.id,
+            task: task
+        )
+    }
+
+    private func startPostAuthSyncTask(_ syncState: CloudPostAuthSyncState) {
+        self.postAuthSyncTask?.task.cancel()
+        let task = Task { @MainActor in
+            await self.runPostAuthSync(syncState)
+            self.clearPostAuthSyncTaskIfCurrent(stateId: syncState.id)
+        }
+        self.postAuthSyncTask = CloudSignInPostAuthTaskHandle(stateId: syncState.id, task: task)
     }
 
     private func scheduleEmailFieldFocus() {
@@ -265,6 +333,12 @@ struct CloudSignInSheet: View {
                     )
                 }
             } catch {
+                if isRequestCancellationError(error: error) {
+                    if self.otpSheetState?.id == nextOtpSheetState.id {
+                        self.otpSheetState = nil
+                    }
+                    return
+                }
                 if self.otpSheetState?.id == nextOtpSheetState.id {
                     self.otpSheetState = nil
                 }
@@ -286,10 +360,12 @@ struct CloudSignInSheet: View {
         switch makeCloudWorkspacePostAuthRoute(linkContext: linkContext) {
         case .autoLink(let selection):
             if linkContext.postAuthRecoveryRoute == .guestLocalRecovery {
-                self.postAuthGuestLocalRecoveryPreparationState = CloudPostAuthGuestLocalRecoveryPreparationState(
+                let nextState = CloudPostAuthGuestLocalRecoveryPreparationState(
                     linkContext: linkContext,
                     selection: selection
                 )
+                self.postAuthGuestLocalRecoveryPreparationState = nextState
+                self.startPostAuthGuestLocalRecoveryPreparationTask(nextState)
             } else {
                 self.completeLink(linkContext: linkContext, selection: selection)
             }
@@ -305,27 +381,36 @@ struct CloudSignInSheet: View {
     }
 
     private func handleVerifiedAuthContext(_ verifiedContext: CloudVerifiedAuthContext) {
+        let loadingState = CloudPostAuthLoadingState(verifiedContext: verifiedContext)
         self.otpSheetState = nil
-        self.postAuthLoadingState = CloudPostAuthLoadingState(verifiedContext: verifiedContext)
+        self.postAuthLoadingState = loadingState
         self.postAuthGuestLocalRecoveryPreparationState = nil
         self.postAuthSyncState = nil
         self.workspaceLinkContext = nil
         self.postAuthRecoveryNeededState = nil
         self.authErrorPresentation = nil
+
+        self.startPostAuthLoadingTask(loadingState)
     }
 
-    private func prepareCloudLink(verifiedContext: CloudVerifiedAuthContext) async {
+    private func prepareCloudLink(_ loadingState: CloudPostAuthLoadingState) async {
         do {
-            let linkContext = try await self.store.prepareCloudLink(verifiedContext: verifiedContext)
+            let linkContext = try await self.store.prepareCloudLink(verifiedContext: loadingState.verifiedContext)
+            guard self.postAuthLoadingState?.id == loadingState.id else {
+                return
+            }
             self.postAuthFailureState = nil
             self.handlePreparedLinkContext(linkContext)
         } catch {
+            guard self.postAuthLoadingState?.id == loadingState.id else {
+                return
+            }
             self.postAuthLoadingState = nil
             self.postAuthGuestLocalRecoveryPreparationState = nil
             self.postAuthSyncState = nil
             if self.store.cloudCredentialRecoveryState?.reason == .guestSessionMissing {
                 let failurePresentation = makeGuestLocalRecoveryPostAuthFailurePresentation(
-                    retryAction: .prepareLink(verifiedContext: verifiedContext)
+                    retryAction: .prepareLink(verifiedContext: loadingState.verifiedContext)
                 )
                 self.presentPostAuthFailure(
                     title: failurePresentation.title,
@@ -339,7 +424,7 @@ struct CloudSignInSheet: View {
                     title: aiSettingsLocalized("settings.account.cloudSignIn.failure.cloudSetupFailed", "Signed in, but cloud setup failed."),
                     message: Flashcards.errorMessage(error: error),
                     technicalDetails: nil,
-                    retryAction: .prepareLink(verifiedContext: verifiedContext),
+                    retryAction: .prepareLink(verifiedContext: loadingState.verifiedContext),
                     kind: .standard
                 )
             }
@@ -377,7 +462,9 @@ struct CloudSignInSheet: View {
 
         switch failureState.retryAction {
         case .prepareLink(let verifiedContext):
-            self.postAuthLoadingState = CloudPostAuthLoadingState(verifiedContext: verifiedContext)
+            let loadingState = CloudPostAuthLoadingState(verifiedContext: verifiedContext)
+            self.postAuthLoadingState = loadingState
+            self.startPostAuthLoadingTask(loadingState)
         case .completeLink(let linkContext, let selection):
             self.completeLink(linkContext: linkContext, selection: selection)
         case .completeGuestLink(let linkContext, let selection):
@@ -398,6 +485,8 @@ struct CloudSignInSheet: View {
         self.postAuthRecoveryNeededState = nil
         self.postAuthFailureState = nil
         self.postAuthSyncState = nextState
+
+        self.startPostAuthSyncTask(nextState)
     }
 
     private func runPostAuthSync(_ syncState: CloudPostAuthSyncState) async {
@@ -462,6 +551,7 @@ struct CloudSignInSheet: View {
         retryAction: CloudPostAuthRetryAction,
         kind: CloudPostAuthFailureKind
     ) {
+        self.cancelPostAuthTasks()
         self.authErrorPresentation = nil
         self.postAuthLoadingState = nil
         self.postAuthGuestLocalRecoveryPreparationState = nil
@@ -477,6 +567,7 @@ struct CloudSignInSheet: View {
     }
 
     private func logoutAndDismiss() {
+        self.cancelPostAuthTasksAndClearInFlightState()
         do {
             try self.store.logoutCloudAccount()
         } catch {
@@ -486,9 +577,6 @@ struct CloudSignInSheet: View {
             )
         }
 
-        self.postAuthLoadingState = nil
-        self.postAuthGuestLocalRecoveryPreparationState = nil
-        self.postAuthSyncState = nil
         self.postAuthFailureState = nil
         self.workspaceLinkContext = nil
         self.postAuthRecoveryNeededState = nil
