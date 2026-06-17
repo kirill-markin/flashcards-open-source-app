@@ -546,6 +546,12 @@ extension FlashcardsStore {
     func runFreshLinkedSyncAfterActiveSyncSettles(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
         try self.enforceCloudCredentialRecoveryGateOutsideIdentityResolution(detectedAt: Date())
         do {
+            if try self.shouldRunGuestLocalRecoveryLinkedSync(linkedSession: linkedSession) {
+                return try await self.cloudRuntime.runFreshGuestLocalRecoveryLinkedSyncAfterActiveSyncSettles(
+                    linkedSession: linkedSession
+                )
+            }
+
             return try await self.cloudRuntime.runFreshLinkedSyncAfterActiveSyncSettles(linkedSession: linkedSession)
         } catch {
             throw try self.failureErrorAfterApplyingLocalIdRepairSideEffectsIfNeeded(

@@ -409,6 +409,171 @@ final class CloudLinkedCredentialRecoveryTests: CloudCredentialRecoveryTestCase 
     }
 
     @MainActor
+    func testSameWorkspaceCloudLinkRunsFreshSyncAfterCancelledActiveSync() async throws {
+        let suiteName: String = "same-workspace-link-fresh-sync-\(UUID().uuidString)"
+        let userDefaults: UserDefaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        let encoder: JSONEncoder = JSONEncoder()
+        let decoder: JSONDecoder = JSONDecoder()
+        try saveCloudServerOverride(
+            override: CloudServerOverride(customOrigin: "https://example.test"),
+            userDefaults: userDefaults,
+            encoder: encoder
+        )
+        let database: LocalDatabase = try self.makeDatabase()
+        let workspace: Workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let savedCard: Card = try self.saveRecoveryTestCard(database: database, workspaceId: workspace.workspaceId)
+        let outboxCountBefore: Int = try self.loadOutboxCount(database: database)
+        let workspaceIdsBefore: [String] = try self.loadWorkspaceIds(database: database)
+        try database.updateCloudSettings(
+            cloudState: .linked,
+            linkedUserId: "linked-user",
+            linkedWorkspaceId: workspace.workspaceId,
+            activeWorkspaceId: workspace.workspaceId,
+            linkedEmail: "user@example.com"
+        )
+        let credentialStore: CloudCredentialStore = self.makeCredentialStore(
+            suiteName: suiteName,
+            encoder: encoder,
+            decoder: decoder
+        )
+        let guestCredentialStore: GuestCloudCredentialStore = self.makeGuestCredentialStore(
+            suiteName: suiteName,
+            userDefaults: userDefaults,
+            encoder: encoder,
+            decoder: decoder
+        )
+        let configuration: CloudServiceConfiguration = try makeCustomCloudServiceConfiguration(
+            customOrigin: "https://example.test"
+        )
+        let credentials: StoredCloudCredentials = StoredCloudCredentials(
+            refreshToken: "refresh-token",
+            idToken: "id-token",
+            idTokenExpiresAt: "2099-01-01T00:00:00.000Z"
+        )
+        let staleCredentials: StoredCloudCredentials = StoredCloudCredentials(
+            refreshToken: "stale-refresh-token",
+            idToken: "stale-id-token",
+            idTokenExpiresAt: "2099-01-01T00:00:00.000Z"
+        )
+        try credentialStore.saveCredentials(credentials: staleCredentials)
+        let expectedWorkspace = CloudWorkspaceSummary(
+            workspaceId: workspace.workspaceId,
+            name: workspace.name,
+            createdAt: workspace.createdAt,
+            isSelected: true
+        )
+        let activeSyncStarted: XCTestExpectation = expectation(description: "active linked sync started")
+        let freshRestoreSyncStarted: XCTestExpectation = expectation(description: "fresh restore sync started")
+        let workspaceSelected: XCTestExpectation = expectation(description: "workspace selected")
+        let allowActiveSyncCancellation = GuestUpgradeAsyncGate()
+        let cloudSyncService: GuestUpgradeDrainCloudSyncService = GuestUpgradeDrainCloudSyncService()
+        var activeSyncSettled: Bool = false
+        cloudSyncService.selectWorkspaceHandler = { apiBaseUrl, bearerToken, workspaceId in
+            XCTAssertEqual(configuration.apiBaseUrl, apiBaseUrl)
+            XCTAssertEqual(credentials.idToken, bearerToken)
+            XCTAssertEqual(expectedWorkspace.workspaceId, workspaceId)
+            workspaceSelected.fulfill()
+            return expectedWorkspace
+        }
+        cloudSyncService.runLinkedSyncHandler = { _ in
+            if cloudSyncService.runLinkedSyncCallCount == 1 {
+                activeSyncStarted.fulfill()
+                await allowActiveSyncCancellation.wait()
+                activeSyncSettled = true
+                throw CancellationError()
+            }
+            if cloudSyncService.runLinkedSyncCallCount == 2 {
+                XCTAssertTrue(activeSyncSettled)
+                freshRestoreSyncStarted.fulfill()
+            }
+            return .noChanges
+        }
+        let store: FlashcardsStore = self.makeRecoveryStore(
+            userDefaults: userDefaults,
+            encoder: encoder,
+            decoder: decoder,
+            database: database,
+            credentialStore: credentialStore,
+            guestCredentialStore: guestCredentialStore,
+            guestCloudAuthService: GuestCloudAuthService(),
+            cloudSyncService: cloudSyncService
+        )
+        defer {
+            store.shutdownForTests()
+            try? credentialStore.clearCredentials()
+            try? guestCredentialStore.clearGuestSession()
+            userDefaults.removePersistentDomain(forName: suiteName)
+        }
+
+        let staleLinkedSession = CloudLinkedSession(
+            userId: "linked-user",
+            workspaceId: workspace.workspaceId,
+            email: "user@example.com",
+            configurationMode: configuration.mode,
+            apiBaseUrl: configuration.apiBaseUrl,
+            authorization: .bearer("stale-id-token")
+        )
+        let activeSyncTask: Task<Void, Error> = Task { @MainActor in
+            _ = try await store.runLinkedSync(linkedSession: staleLinkedSession)
+        }
+        await fulfillment(of: [activeSyncStarted], timeout: 2)
+
+        let linkContext = CloudWorkspaceLinkContext(
+            userId: "linked-user",
+            email: "user@example.com",
+            apiBaseUrl: configuration.apiBaseUrl,
+            credentials: credentials,
+            workspaces: [expectedWorkspace],
+            preferences: makeDefaultAccountPreferences(),
+            guestUpgradeMode: nil,
+            postAuthRecoveryRoute: .none
+        )
+        let completionTask: Task<Void, Error> = Task { @MainActor in
+            try await store.completeCloudLink(
+                linkContext: linkContext,
+                selection: .existing(workspaceId: expectedWorkspace.workspaceId)
+            )
+        }
+        await fulfillment(of: [workspaceSelected], timeout: 2)
+        for _ in 0..<20 {
+            if store.syncStatus == .syncing {
+                break
+            }
+            await Task.yield()
+        }
+
+        XCTAssertEqual(.syncing, store.syncStatus)
+        XCTAssertEqual([.bearer("stale-id-token")], cloudSyncService.runLinkedSyncAuthorizations)
+        XCTAssertNotNil(store.cloudRuntime.state.activeCloudSyncTask)
+        XCTAssertFalse(activeSyncSettled)
+        await allowActiveSyncCancellation.open()
+        do {
+            try await activeSyncTask.value
+            XCTFail("Expected the stale active sync to be cancelled.")
+        } catch is CancellationError {
+        } catch {
+            XCTFail("Unexpected active sync error: \(Flashcards.errorMessage(error: error))")
+        }
+        await fulfillment(of: [freshRestoreSyncStarted], timeout: 2)
+        try await completionTask.value
+
+        XCTAssertEqual(1, cloudSyncService.selectWorkspaceCallCount)
+        XCTAssertEqual(2, cloudSyncService.runLinkedSyncCallCount)
+        XCTAssertEqual(
+            [.bearer("stale-id-token"), .bearer(credentials.idToken)],
+            cloudSyncService.runLinkedSyncAuthorizations
+        )
+        XCTAssertNil(store.cloudCredentialRecoveryState)
+        XCTAssertNil(userDefaults.data(forKey: cloudCredentialRecoveryStateUserDefaultsKey))
+        XCTAssertEqual(credentials, try credentialStore.loadCredentials())
+        XCTAssertEqual(outboxCountBefore, try self.loadOutboxCount(database: database))
+        XCTAssertEqual(workspaceIdsBefore, try self.loadWorkspaceIds(database: database))
+        XCTAssertTrue(try database.loadActiveCards(workspaceId: workspace.workspaceId).contains { card in
+            card.cardId == savedCard.cardId
+        })
+    }
+
+    @MainActor
     func testLinkedRecoveryRejectsMissingExpectedWorkspaceBeforeWorkspaceSideEffects() async throws {
         let suiteName: String = "linked-recovery-missing-workspace-\(UUID().uuidString)"
         let userDefaults: UserDefaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))

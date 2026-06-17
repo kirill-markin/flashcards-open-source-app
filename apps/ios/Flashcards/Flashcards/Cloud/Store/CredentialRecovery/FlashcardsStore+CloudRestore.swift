@@ -15,7 +15,7 @@ extension FlashcardsStore {
 
         do {
             self.cloudRuntime.setActiveCloudSession(linkedSession: linkedSession)
-            let syncResult = try await self.runLinkedSync(linkedSession: linkedSession)
+            let syncResult = try await self.runFreshLinkedSyncAfterActiveSyncSettles(linkedSession: linkedSession)
             try await self.applySyncResultWithoutBlockingReset(
                 syncResult: syncResult,
                 now: Date(),
