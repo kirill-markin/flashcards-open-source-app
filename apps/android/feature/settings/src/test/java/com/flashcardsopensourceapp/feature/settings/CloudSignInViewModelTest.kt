@@ -614,6 +614,7 @@ class CloudSignInViewModelTest {
         } catch (caught: CancellationException) {
             caught
         }
+        advanceUntilIdle()
 
         assertNotNull(error)
         assertEquals(CloudPostAuthMode.FAILED, viewModel.postAuthUiState.value.mode)
@@ -665,6 +666,7 @@ class CloudSignInViewModelTest {
         } catch (caught: CancellationException) {
             caught
         }
+        advanceUntilIdle()
 
         assertNotNull(error)
         assertEquals(1, syncRepository.syncNowCalls)
