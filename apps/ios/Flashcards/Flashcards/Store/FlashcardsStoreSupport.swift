@@ -250,6 +250,16 @@ struct AIChatSessionPreparationState {
     let task: Task<CloudLinkedSession, Error>
 }
 
+struct GuestCloudSessionRestoreResult {
+    let session: CloudLinkedSession
+    let didRunSync: Bool
+}
+
+struct GuestCloudSessionPreparationState {
+    let id: String
+    let task: Task<GuestCloudSessionRestoreResult, Error>
+}
+
 struct CloudLinkTransitionState {
     let id: String
     let task: Task<Void, Error>

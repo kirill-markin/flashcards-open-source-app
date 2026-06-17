@@ -227,7 +227,19 @@ extension FlashcardsStore {
 
     func restoreGuestCloudSessionIfNeeded(
         trigger: CloudSyncTrigger
-    ) async throws -> (session: CloudLinkedSession, didRunSync: Bool) {
+    ) async throws -> GuestCloudSessionRestoreResult {
+        try await self.cloudRuntime.prepareGuestCloudSession { [weak self] in
+            guard let self else {
+                throw LocalStoreError.uninitialized("Flashcards store is unavailable")
+            }
+
+            return try await self.performRestoreGuestCloudSessionIfNeeded(trigger: trigger)
+        }
+    }
+
+    private func performRestoreGuestCloudSessionIfNeeded(
+        trigger: CloudSyncTrigger
+    ) async throws -> GuestCloudSessionRestoreResult {
         let guestSession = try await self.loadOrCreateGuestCloudSession()
         let isAlreadyGuestLinked = self.cloudSettings?.cloudState == .guest
             && self.workspace?.workspaceId == guestSession.workspaceId
@@ -237,13 +249,13 @@ extension FlashcardsStore {
             self.cloudRuntime.setActiveCloudSession(linkedSession: guestSession)
             if case .failed = self.syncStatus {
                 try await self.performSameWorkspaceCloudRestore(linkedSession: guestSession, trigger: trigger)
-                return (guestSession, true)
+                return GuestCloudSessionRestoreResult(session: guestSession, didRunSync: true)
             }
-            return (guestSession, false)
+            return GuestCloudSessionRestoreResult(session: guestSession, didRunSync: false)
         }
 
         try await self.finishCloudLink(linkedSession: guestSession, trigger: trigger)
-        return (guestSession, true)
+        return GuestCloudSessionRestoreResult(session: guestSession, didRunSync: true)
     }
 
     func prepareAuthenticatedCloudSessionForAI() async throws -> CloudLinkedSession {

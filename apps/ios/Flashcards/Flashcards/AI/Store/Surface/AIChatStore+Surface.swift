@@ -240,6 +240,7 @@ extension AIChatStore {
 
         if self.shouldPreserveActiveGuestSendDuringAccessContextChange(nextAccessContext: nextAccessContext) {
             self.surfaceState.activeAccessContext = nextAccessContext
+            self.invalidateActivePassiveSnapshotRefreshTask()
             self.historyStore.activateWorkspace(workspaceId: self.historyWorkspaceId())
             self.schedulePersistCurrentState()
             return
@@ -247,6 +248,7 @@ extension AIChatStore {
 
         self.surfaceState.activeAccessContext = nextAccessContext
         self.invalidatePendingNewSessionRequest()
+        self.invalidateActivePassiveSnapshotRefreshTask()
         self.invalidatePendingRemoteSessionProvisionRequest()
         self.invalidateActiveBootstrapTask()
         self.cancelStreaming()
@@ -400,8 +402,33 @@ extension AIChatStore {
         self.nextBootstrapRequestSequence += 1
     }
 
+    func beginPassiveSnapshotRefreshSequence() -> Int {
+        self.activePassiveSnapshotRefreshTask?.cancel()
+        self.activePassiveSnapshotRefreshTask = nil
+        self.nextPassiveSnapshotRefreshSequence += 1
+        return self.nextPassiveSnapshotRefreshSequence
+    }
+
+    func invalidateActivePassiveSnapshotRefreshTask() {
+        self.activePassiveSnapshotRefreshTask?.cancel()
+        self.activePassiveSnapshotRefreshTask = nil
+        self.nextPassiveSnapshotRefreshSequence += 1
+    }
+
     func isCurrentBootstrapRequest(sequence: Int) -> Bool {
         self.nextBootstrapRequestSequence == sequence
+    }
+
+    func isCurrentPassiveSnapshotRefresh(sequence: Int) -> Bool {
+        self.nextPassiveSnapshotRefreshSequence == sequence
+    }
+
+    func isCurrentPassiveSnapshotRefreshRequest(
+        sequence: Int,
+        accessContext: AIChatAccessContext
+    ) -> Bool {
+        self.isCurrentPassiveSnapshotRefresh(sequence: sequence)
+            && self.surfaceState.activeAccessContext == accessContext
     }
 
     func isCurrentLinkedBootstrapRequest(
@@ -466,6 +493,7 @@ extension AIChatStore {
 
     private func prepareLocalHistoryStateReset() {
         self.invalidateActiveBootstrapTask()
+        self.invalidateActivePassiveSnapshotRefreshTask()
         self.activeWarmUpTask?.cancel()
         self.activeWarmUpTask = nil
         self.invalidatePendingRemoteSessionProvisionRequest()
@@ -506,6 +534,7 @@ extension AIChatStore {
         pendingAttachments: [AIChatAttachment]
     ) {
         self.invalidateActiveBootstrapTask()
+        self.invalidateActivePassiveSnapshotRefreshTask()
         self.activeWarmUpTask?.cancel()
         self.activeWarmUpTask = nil
         self.activeSendTask?.cancel()
@@ -687,12 +716,41 @@ extension AIChatStore {
             return
         }
 
-        Task {
+        let requestSequence = self.beginPassiveSnapshotRefreshSequence()
+        let refreshAccessContext = self.surfaceState.activeAccessContext ?? self.currentAccessContext()
+        let task = Task {
+            defer {
+                if self.isCurrentPassiveSnapshotRefresh(sequence: requestSequence) {
+                    self.activePassiveSnapshotRefreshTask = nil
+                }
+            }
+
             var refreshedSessionId: String?
             do {
+                guard self.isCurrentPassiveSnapshotRefreshRequest(
+                    sequence: requestSequence,
+                    accessContext: refreshAccessContext
+                ) else {
+                    throw CancellationError()
+                }
+
                 let session = try await self.flashcardsStore.cloudSessionForAI()
+                guard self.isCurrentPassiveSnapshotRefreshRequest(
+                    sequence: requestSequence,
+                    accessContext: refreshAccessContext
+                ) else {
+                    throw CancellationError()
+                }
+
                 let sessionId = try await self.ensureRemoteSessionIfNeeded(session: session)
                 refreshedSessionId = sessionId
+                guard self.isCurrentPassiveSnapshotRefreshRequest(
+                    sequence: requestSequence,
+                    accessContext: refreshAccessContext
+                ), self.chatSessionId == sessionId else {
+                    throw CancellationError()
+                }
+
                 let refreshedBaselineState = self.currentPersistedState()
                 let bootstrap = try await self.chatService.loadBootstrap(
                     session: session,
@@ -700,7 +758,11 @@ extension AIChatStore {
                     limit: aiChatBootstrapPageLimit,
                     resumeAttemptDiagnostics: nil
                 )
-                guard self.currentPersistedState() == refreshedBaselineState else {
+                guard self.isCurrentPassiveSnapshotRefreshRequest(
+                    sequence: requestSequence,
+                    accessContext: refreshAccessContext
+                ), self.chatSessionId == sessionId,
+                    self.currentPersistedState() == refreshedBaselineState else {
                     return
                 }
                 self.applyBootstrap(bootstrap)
@@ -712,6 +774,13 @@ extension AIChatStore {
             } catch is CancellationError {
                 return
             } catch {
+                guard self.isCurrentPassiveSnapshotRefreshRequest(
+                    sequence: requestSequence,
+                    accessContext: refreshAccessContext
+                ) else {
+                    return
+                }
+
                 if self.shouldIgnoreAIChatPassiveSnapshotRefreshFailure(error: error) {
                     return
                 }
@@ -737,6 +806,7 @@ extension AIChatStore {
                 )
             }
         }
+        self.activePassiveSnapshotRefreshTask = task
     }
 
     private func shouldIgnoreAIChatPassiveSnapshotRefreshFailure(error: Error) -> Bool {

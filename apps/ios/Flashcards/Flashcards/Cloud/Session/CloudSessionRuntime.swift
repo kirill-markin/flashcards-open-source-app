@@ -14,6 +14,7 @@ struct CloudSessionRuntimeState {
     var activeCloudLinkTask: CloudLinkTransitionState?
     var activeWorkspaceCompletionTask: CloudWorkspaceCompletionState?
     var activeAIChatSessionPreparation: AIChatSessionPreparationState?
+    var activeGuestCloudSessionPreparation: GuestCloudSessionPreparationState?
 }
 
 @MainActor
@@ -37,7 +38,8 @@ final class CloudSessionRuntime {
             pendingCloudResync: false,
             activeCloudLinkTask: nil,
             activeWorkspaceCompletionTask: nil,
-            activeAIChatSessionPreparation: nil
+            activeAIChatSessionPreparation: nil,
+            activeGuestCloudSessionPreparation: nil
         )
     }
 
@@ -161,7 +163,6 @@ final class CloudSessionRuntime {
         }
 
         let needsRestore = self.state.activeCloudSession == nil
-
         let preparation = AIChatSessionPreparationState(
             id: UUID().uuidString.lowercased(),
             task: Task { @MainActor in
@@ -183,6 +184,35 @@ final class CloudSessionRuntime {
         } catch {
             if self.state.activeAIChatSessionPreparation?.id == preparation.id {
                 self.state.activeAIChatSessionPreparation = nil
+            }
+            throw error
+        }
+    }
+
+    func prepareGuestCloudSession(
+        operation: @escaping @MainActor () async throws -> GuestCloudSessionRestoreResult
+    ) async throws -> GuestCloudSessionRestoreResult {
+        if let activePreparation = self.state.activeGuestCloudSessionPreparation {
+            return try await activePreparation.task.value
+        }
+
+        let preparation = GuestCloudSessionPreparationState(
+            id: UUID().uuidString.lowercased(),
+            task: Task { @MainActor in
+                try await operation()
+            }
+        )
+        self.state.activeGuestCloudSessionPreparation = preparation
+
+        do {
+            let result = try await preparation.task.value
+            if self.state.activeGuestCloudSessionPreparation?.id == preparation.id {
+                self.state.activeGuestCloudSessionPreparation = nil
+            }
+            return result
+        } catch {
+            if self.state.activeGuestCloudSessionPreparation?.id == preparation.id {
+                self.state.activeGuestCloudSessionPreparation = nil
             }
             throw error
         }
@@ -490,6 +520,8 @@ final class CloudSessionRuntime {
         self.state.pendingCloudResync = false
         self.state.activeAIChatSessionPreparation?.task.cancel()
         self.state.activeAIChatSessionPreparation = nil
+        self.state.activeGuestCloudSessionPreparation?.task.cancel()
+        self.state.activeGuestCloudSessionPreparation = nil
     }
 
     func cancelForAccountDeletion() {
@@ -500,6 +532,8 @@ final class CloudSessionRuntime {
         self.state.pendingCloudResync = false
         self.state.activeAIChatSessionPreparation?.task.cancel()
         self.state.activeAIChatSessionPreparation = nil
+        self.state.activeGuestCloudSessionPreparation?.task.cancel()
+        self.state.activeGuestCloudSessionPreparation = nil
         self.state.activeCloudSession = nil
         self.cloudAuthService.resetChallengeSession()
         FlashcardsObservability.setIdentity(nil)
