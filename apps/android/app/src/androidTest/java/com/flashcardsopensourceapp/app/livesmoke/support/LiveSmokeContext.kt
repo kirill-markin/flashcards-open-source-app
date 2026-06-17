@@ -8,6 +8,7 @@ import com.flashcardsopensourceapp.app.livesmoke.diagnostics.emitInlineRawScreen
 import org.junit.rules.TestName
 
 internal const val externalUiTimeoutMillis: Long = 30_000L
+internal const val externalCloudWorkspaceTimeoutMillis: Long = 120_000L
 internal const val externalAiRunTimeoutMillis: Long = 60_000L
 internal const val internalUiTimeoutMillis: Long = 10_000L
 internal const val reviewEmailArgumentKey: String = "FLASHCARDS_LIVE_REVIEW_EMAIL"

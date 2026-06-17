@@ -68,10 +68,10 @@ internal fun LiveSmokeContext.waitForSelectedWorkspaceSummaryToChange(
     }
 }
 
-internal fun LiveSmokeContext.waitForCurrentWorkspaceScreenToSettle() {
+internal fun LiveSmokeContext.waitForCurrentWorkspaceScreenToSettle(timeoutMillis: Long) {
     try {
         waitUntilWithMitigation(
-            timeoutMillis = externalUiTimeoutMillis,
+            timeoutMillis = timeoutMillis,
             context = "while waiting for the Workspace screen to settle"
         ) {
             val visibleError: String? = currentWorkspaceVisibleErrorMessageOrNull()

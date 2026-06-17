@@ -30,6 +30,7 @@ import com.flashcardsopensourceapp.app.livesmoke.support.currentWorkspaceErrorMe
 import com.flashcardsopensourceapp.app.livesmoke.support.currentWorkspaceNameOrNull
 import com.flashcardsopensourceapp.app.livesmoke.support.currentWorkspaceOperationMessageOrNull
 import com.flashcardsopensourceapp.app.livesmoke.support.currentWorkspaceSummaryOrNull
+import com.flashcardsopensourceapp.app.livesmoke.support.externalCloudWorkspaceTimeoutMillis
 import com.flashcardsopensourceapp.app.livesmoke.support.externalUiTimeoutMillis
 import com.flashcardsopensourceapp.app.livesmoke.support.internalUiTimeoutMillis
 import com.flashcardsopensourceapp.app.livesmoke.support.selectedWorkspaceSummary
@@ -61,8 +62,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
-private const val linkedWorkspaceMutationTimeoutMillis: Long = 120_000L
-
 private enum class DeletePreviewResolution {
     PREVIEW_READY,
     ERROR_VISIBLE
@@ -83,7 +82,7 @@ internal data class EphemeralWorkspaceHandle(
 
 internal fun LiveSmokeContext.createEphemeralWorkspace(workspaceName: String): EphemeralWorkspaceHandle {
     openSettingsRow(rowTag = settingsCurrentWorkspaceRowTag, rowLabel = "Workspace")
-    waitForCurrentWorkspaceScreenToSettle()
+    waitForCurrentWorkspaceScreenToSettle(timeoutMillis = externalCloudWorkspaceTimeoutMillis)
     waitUntilAtLeastOneExistsOrFail(
         matcher = hasText("Create new workspace"),
         timeoutMillis = internalUiTimeoutMillis
@@ -104,16 +103,16 @@ internal fun LiveSmokeContext.createEphemeralWorkspace(workspaceName: String): E
     clickTag(tag = currentWorkspaceCreateButtonTag, label = "Create new workspace")
     val createdWorkspaceSelection: LinkedWorkspaceSelectionSnapshot = waitForLinkedWorkspaceSelectionToChange(
         previousWorkspaceId = selectedWorkspaceIdBeforeCreate,
-        timeoutMillis = linkedWorkspaceMutationTimeoutMillis,
+        timeoutMillis = externalCloudWorkspaceTimeoutMillis,
         context = "after creating a linked workspace"
     )
     waitForSelectedWorkspaceSummaryToChange(
         beforeSummary = selectedWorkspaceSummaryBeforeCreate,
         context = "after creating a linked workspace",
-        timeoutMillis = linkedWorkspaceMutationTimeoutMillis
+        timeoutMillis = externalCloudWorkspaceTimeoutMillis
     )
     waitForCurrentWorkspaceOperationToFinish(
-        timeoutMillis = linkedWorkspaceMutationTimeoutMillis
+        timeoutMillis = externalCloudWorkspaceTimeoutMillis
     )
     waitForCurrentWorkspaceRenameReady(
         expectedWorkspaceName = workspaceName,
@@ -124,16 +123,16 @@ internal fun LiveSmokeContext.createEphemeralWorkspace(workspaceName: String): E
     clickTag(tag = currentWorkspaceSaveNameButtonTag, label = "Save workspace name")
     waitForCurrentWorkspaceRenameOutcome(
         expectedWorkspaceName = workspaceName,
-        timeoutMillis = linkedWorkspaceMutationTimeoutMillis
+        timeoutMillis = externalCloudWorkspaceTimeoutMillis
     )
     val renamedWorkspaceSelection: LinkedWorkspaceSelectionSnapshot = waitForLinkedWorkspaceName(
         expectedWorkspaceName = workspaceName,
-        timeoutMillis = linkedWorkspaceMutationTimeoutMillis,
+        timeoutMillis = externalCloudWorkspaceTimeoutMillis,
         context = "after renaming the linked workspace"
     )
     tapBackIcon()
     openSettingsRow(rowTag = settingsCurrentWorkspaceRowTag, rowLabel = "Workspace")
-    waitForCurrentWorkspaceScreenToSettle()
+    waitForCurrentWorkspaceScreenToSettle(timeoutMillis = externalCloudWorkspaceTimeoutMillis)
     waitForCurrentWorkspaceName(expectedWorkspaceName = workspaceName)
     tapBackIcon()
 
@@ -151,10 +150,10 @@ internal fun LiveSmokeContext.createEphemeralWorkspace(workspaceName: String): E
 internal fun LiveSmokeContext.deleteEphemeralWorkspace(workspaceHandle: EphemeralWorkspaceHandle) {
     forceLinkedSyncAndWaitForWorkspace(
         workspaceHandle = workspaceHandle,
-        timeoutMillis = externalUiTimeoutMillis
+        timeoutMillis = externalCloudWorkspaceTimeoutMillis
     )
     openSettingsRow(rowTag = settingsCurrentWorkspaceRowTag, rowLabel = "Workspace")
-    waitForCurrentWorkspaceScreenToSettle()
+    waitForCurrentWorkspaceScreenToSettle(timeoutMillis = externalCloudWorkspaceTimeoutMillis)
     waitUntilAtLeastOneExistsOrFail(
         matcher = hasText("Create new workspace"),
         timeoutMillis = internalUiTimeoutMillis
@@ -189,15 +188,15 @@ internal fun LiveSmokeContext.deleteEphemeralWorkspace(workspaceHandle: Ephemera
     tapDeleteWorkspaceConfirmation(workspaceName = workspaceHandle.workspaceName)
     waitForLinkedWorkspaceSelectionToChange(
         previousWorkspaceId = workspaceHandle.workspaceId,
-        timeoutMillis = externalUiTimeoutMillis,
+        timeoutMillis = externalCloudWorkspaceTimeoutMillis,
         context = "after deleting the isolated linked workspace"
     )
     tapBackIcon()
     openSettingsRow(rowTag = settingsCurrentWorkspaceRowTag, rowLabel = "Workspace")
-    waitForCurrentWorkspaceScreenToSettle()
+    waitForCurrentWorkspaceScreenToSettle(timeoutMillis = externalCloudWorkspaceTimeoutMillis)
     try {
         waitUntilWithMitigation(
-            timeoutMillis = externalUiTimeoutMillis,
+            timeoutMillis = externalCloudWorkspaceTimeoutMillis,
             context = "while waiting for workspace deletion to finish"
         ) {
             val currentWorkspaceName: String? = currentWorkspaceNameOrNull()
@@ -220,7 +219,7 @@ internal fun LiveSmokeContext.deleteEphemeralWorkspace(workspaceHandle: Ephemera
     }
     waitForSelectedWorkspaceSummary(
         context = "after deleting the isolated linked workspace",
-        timeoutMillis = externalUiTimeoutMillis
+        timeoutMillis = externalCloudWorkspaceTimeoutMillis
     )
     tapBackIcon()
 }
@@ -256,7 +255,7 @@ internal fun LiveSmokeContext.forceLinkedSyncAndWaitForWorkspace(
     )
 
     openSettingsRow(rowTag = settingsCurrentWorkspaceRowTag, rowLabel = "Workspace")
-    waitForCurrentWorkspaceScreenToSettle()
+    waitForCurrentWorkspaceScreenToSettle(timeoutMillis = timeoutMillis)
     waitForCurrentWorkspaceName(expectedWorkspaceName = workspaceHandle.workspaceName)
     waitForSelectedWorkspaceSummary(
         context = "after forcing linked sync before cleanup",
@@ -300,7 +299,7 @@ private fun LiveSmokeContext.waitForDeletePreviewResolution(
 ): DeletePreviewResolution {
     try {
         waitUntilWithMitigation(
-            timeoutMillis = externalUiTimeoutMillis,
+            timeoutMillis = externalCloudWorkspaceTimeoutMillis,
             context = "while waiting for delete preview resolution for '$workspaceName'"
         ) {
             isDeletePreviewDialogVisible() || deleteCurrentWorkspaceErrorMessageOrNull() != null
@@ -358,7 +357,7 @@ private fun LiveSmokeContext.tapDeleteWorkspaceConfirmation(workspaceName: Strin
     composeRule.waitForIdle()
     try {
         waitUntilWithMitigation(
-            timeoutMillis = externalUiTimeoutMillis,
+            timeoutMillis = externalCloudWorkspaceTimeoutMillis,
             context = "while waiting for delete confirmation completion for '$workspaceName'"
         ) {
             val confirmationError: String? = deleteConfirmationErrorOrNull()

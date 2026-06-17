@@ -7,12 +7,12 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTextReplacement
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickTag
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.nodeSummary
-import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitForTagToDisappear
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitForTagToExist
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitUntilWithMitigation
 import com.flashcardsopensourceapp.app.livesmoke.support.LiveSmokeContext
 import com.flashcardsopensourceapp.app.livesmoke.support.currentCloudSettingsSummary
 import com.flashcardsopensourceapp.app.livesmoke.support.currentWorkspaceSummaryOrNull
+import com.flashcardsopensourceapp.app.livesmoke.support.externalCloudWorkspaceTimeoutMillis
 import com.flashcardsopensourceapp.app.livesmoke.support.externalUiTimeoutMillis
 import com.flashcardsopensourceapp.feature.settings.settingsResetStudyProgressRowTag
 import com.flashcardsopensourceapp.feature.settings.workspace.reset.workspaceSettingsResetProgressButtonTag
@@ -20,6 +20,7 @@ import com.flashcardsopensourceapp.feature.settings.workspace.reset.workspaceSet
 import com.flashcardsopensourceapp.feature.settings.workspace.reset.workspaceSettingsResetProgressConfirmationDialogTag
 import com.flashcardsopensourceapp.feature.settings.workspace.reset.workspaceSettingsResetProgressConfirmationFieldTag
 import com.flashcardsopensourceapp.feature.settings.workspace.reset.workspaceSettingsResetProgressConfirmationPhraseTag
+import com.flashcardsopensourceapp.feature.settings.workspace.reset.workspaceSettingsResetProgressDialogErrorTag
 import com.flashcardsopensourceapp.feature.settings.workspace.reset.workspaceSettingsResetProgressErrorTag
 import com.flashcardsopensourceapp.feature.settings.workspace.reset.workspaceSettingsResetProgressPreviewBodyTag
 import com.flashcardsopensourceapp.feature.settings.workspace.reset.workspaceSettingsResetProgressPreviewButtonTag
@@ -43,11 +44,7 @@ internal fun LiveSmokeContext.resetWorkspaceProgressFromSettings(expectedCardsTo
 
     waitForResetProgressPreviewReady(expectedCardsToResetCount = expectedCardsToResetCount)
     clickTag(tag = workspaceSettingsResetProgressPreviewButtonTag, label = "Confirm reset progress")
-    waitForTagToDisappear(
-        tag = workspaceSettingsResetProgressPreviewDialogTag,
-        timeoutMillis = externalUiTimeoutMillis,
-        context = "while waiting for reset progress to complete"
-    )
+    waitForResetProgressCompletion()
 }
 
 private fun LiveSmokeContext.waitForResetProgressConfirmationReady() {
@@ -84,11 +81,11 @@ private fun LiveSmokeContext.waitForResetProgressPreviewReady(expectedCardsToRes
     try {
         waitForTagToExist(
             tag = workspaceSettingsResetProgressPreviewDialogTag,
-            timeoutMillis = externalUiTimeoutMillis,
+            timeoutMillis = externalCloudWorkspaceTimeoutMillis,
             context = "while waiting for reset progress preview dialog"
         )
         waitUntilWithMitigation(
-            timeoutMillis = externalUiTimeoutMillis,
+            timeoutMillis = externalCloudWorkspaceTimeoutMillis,
             context = "while waiting for reset progress preview body"
         ) {
             val previewBodyText = readTaggedTextOrNull(workspaceSettingsResetProgressPreviewBodyTag)
@@ -100,6 +97,33 @@ private fun LiveSmokeContext.waitForResetProgressPreviewReady(expectedCardsToRes
             "Reset progress preview did not become ready. " +
                 "PreviewBody=${readTaggedTextOrNull(workspaceSettingsResetProgressPreviewBodyTag)} " +
                 "PreviewError=${workspaceSettingsResetProgressErrorTextOrNull()} " +
+                "CloudSettings=${currentCloudSettingsSummary()} " +
+                "CurrentWorkspace=${currentWorkspaceSummaryOrNull()}",
+            error
+        )
+    }
+}
+
+private fun LiveSmokeContext.waitForResetProgressCompletion() {
+    try {
+        waitUntilWithMitigation(
+            timeoutMillis = externalCloudWorkspaceTimeoutMillis,
+            context = "while waiting for reset progress to complete"
+        ) {
+            val resetDialogErrorText: String? = workspaceSettingsResetProgressDialogErrorTextOrNull()
+            if (resetDialogErrorText != null) {
+                throw AssertionError("Reset progress failed: $resetDialogErrorText")
+            }
+            composeRule.onAllNodesWithTag(workspaceSettingsResetProgressPreviewDialogTag)
+                .fetchSemanticsNodes()
+                .isEmpty()
+        }
+    } catch (error: Throwable) {
+        throw AssertionError(
+            "Reset progress did not complete. " +
+                "PreviewDialogVisible=${isResetProgressPreviewDialogVisible()} " +
+                "PreviewError=${workspaceSettingsResetProgressDialogErrorTextOrNull()} " +
+                "ScreenError=${workspaceSettingsResetProgressErrorTextOrNull()} " +
                 "CloudSettings=${currentCloudSettingsSummary()} " +
                 "CurrentWorkspace=${currentWorkspaceSummaryOrNull()}",
             error
@@ -129,12 +153,26 @@ private fun LiveSmokeContext.readTaggedTextOrNull(tag: String): String? {
         ?.takeIf { text -> text.isNotBlank() }
 }
 
+private fun LiveSmokeContext.workspaceSettingsResetProgressDialogErrorTextOrNull(): String? {
+    return composeRule.onAllNodesWithTag(workspaceSettingsResetProgressDialogErrorTag).fetchSemanticsNodes()
+        .singleOrNull()
+        ?.let(::nodeSummary)
+        ?.trim()
+        ?.takeIf { text -> text.isNotBlank() }
+}
+
 private fun LiveSmokeContext.workspaceSettingsResetProgressErrorTextOrNull(): String? {
     return composeRule.onAllNodesWithTag(workspaceSettingsResetProgressErrorTag).fetchSemanticsNodes()
         .singleOrNull()
         ?.let(::nodeSummary)
         ?.trim()
         ?.takeIf { text -> text.isNotBlank() }
+}
+
+private fun LiveSmokeContext.isResetProgressPreviewDialogVisible(): Boolean {
+    return composeRule.onAllNodesWithTag(workspaceSettingsResetProgressPreviewDialogTag)
+        .fetchSemanticsNodes()
+        .isNotEmpty()
 }
 
 private fun extractResetProgressCount(previewBodyText: String): Int {
