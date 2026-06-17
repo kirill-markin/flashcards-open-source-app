@@ -10,14 +10,14 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@aws-sdk/client-secrets-manager": "^3.1065.0",
-    "@hono/node-server": "^2.0.4",
+    "@aws-sdk/client-secrets-manager": "^3.1070.0",
+    "@hono/node-server": "^2.0.5",
     "aws-jwt-verify": "^5.2.1",
     "hono": "^4.12.25",
     "pg": "^8.21.0"
   },
   "devDependencies": {
-    "@types/node": "^24.13.1",
+    "@types/node": "^24.13.2",
     "@types/pg": "^8.20.0",
     "tsx": "^4.22.4",
     "typescript": "^6.0.3"
