@@ -49,7 +49,7 @@ class CloudRemoteHttpClientTest {
             val client = CloudJsonHttpClient(
                 okHttpClient = OkHttpClient(),
                 observability = observability,
-                appVersion = "1.12.0",
+                appVersion = "1.13.0",
                 versionCode = 123
             )
             val response = client.postJson(
@@ -59,7 +59,7 @@ class CloudRemoteHttpClientTest {
                 body = JSONObject()
                     .put("installationId", "installation-1")
                     .put("platform", "android")
-                    .put("appVersion", "1.12.0")
+                    .put("appVersion", "1.13.0")
                     .put("afterHotChangeId", 0)
                     .put("limit", 200)
             )
@@ -102,7 +102,7 @@ class CloudRemoteHttpClientTest {
             val client = CloudJsonHttpClient(
                 okHttpClient = OkHttpClient(),
                 observability = observability,
-                appVersion = "1.12.0",
+                appVersion = "1.13.0",
                 versionCode = 123
             )
             var thrownError: CloudRemoteException? = null
@@ -115,7 +115,7 @@ class CloudRemoteHttpClientTest {
                         .put("mode", "push")
                         .put("installationId", "installation-1")
                         .put("platform", "android")
-                        .put("appVersion", "1.12.0")
+                        .put("appVersion", "1.13.0")
                         .put("entries", JSONArray())
                 )
             } catch (error: CloudRemoteException) {
