@@ -456,5 +456,5 @@ private fun parseTimestampMillis(value: String): Long {
     return Instant.parse(value).toEpochMilli()
 }
 
-private const val testAppVersion: String = "1.12.0"
+private const val testAppVersion: String = "1.13.0"
 private const val testVersionCode: Int = 1
