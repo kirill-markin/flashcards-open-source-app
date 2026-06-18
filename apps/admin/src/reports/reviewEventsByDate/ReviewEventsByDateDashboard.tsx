@@ -208,17 +208,21 @@ export function ReviewEventsByDateDashboard(
     [matchingUserFilterOptions],
   );
   const hiddenUserFilterOptionCount = matchingUserFilterOptions.length - visibleUserFilterOptions.length;
-  const chartModel = useMemo(
+  const reviewChartModel = useMemo(
     () => buildReviewEventsByDateChartModel(filteredReport, props.report.users),
     [filteredReport, props.report.users],
+  );
+  const communityChartModel = useMemo(
+    () => buildReviewEventsByDateChartModel(props.report, props.report.users),
+    [props.report],
   );
   const summaryCards = useMemo(
     () => buildReviewEventsByDateSummaryCards(
       filteredReport,
-      chartModel.peakDailyVolume,
-      chartModel.peakDailyUniqueUsers,
+      reviewChartModel.peakDailyVolume,
+      reviewChartModel.peakDailyUniqueUsers,
     ),
-    [chartModel.peakDailyUniqueUsers, chartModel.peakDailyVolume, filteredReport],
+    [reviewChartModel.peakDailyUniqueUsers, reviewChartModel.peakDailyVolume, filteredReport],
   );
 
   return (
@@ -229,7 +233,7 @@ export function ReviewEventsByDateDashboard(
           <h1>Review Events By Date</h1>
         </div>
         <p className="subhead">
-          Daily unique reviewers and stacked review-event volume by calendar date. The first two charts show overall user activity and per-user event volume. The two platform charts below compare active users and review events across <strong>web</strong>, <strong>android</strong>, and <strong>ios</strong>. Dates are grouped in <strong>UTC</strong>.
+          Daily unique reviewers, stacked review-event volume, platform activity, friend invite links, and existing friend connections by calendar date. Dates are grouped in <strong>UTC</strong>.
         </p>
         <div className="hero-meta">
           <span className="hero-badge">Signed in as {props.adminEmail}</span>
@@ -259,7 +263,7 @@ export function ReviewEventsByDateDashboard(
         matchingUserFilterOptionCount={matchingUserFilterOptions.length}
         hiddenUserFilterOptionCount={hiddenUserFilterOptionCount}
         activeUserFilters={activeUserFilters}
-        userColorScale={chartModel.userColorScale}
+        userColorScale={reviewChartModel.userColorScale}
         onFromDateChange={handleFromDateChange}
         onToDateChange={handleToDateChange}
         onDateRangeSubmit={handleDateRangeSubmit}
@@ -276,7 +280,8 @@ export function ReviewEventsByDateDashboard(
       <ReviewEventsByDateSummary cards={summaryCards} />
 
       <ReviewEventsByDateCharts
-        chartModel={chartModel}
+        reviewChartModel={reviewChartModel}
+        communityChartModel={communityChartModel}
         generatedAtUtc={props.report.generatedAtUtc}
         isReportLoading={props.isReportLoading}
         userById={filteredUserById}
