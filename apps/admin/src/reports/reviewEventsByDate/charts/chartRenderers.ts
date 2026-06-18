@@ -7,6 +7,7 @@ import {
 import {
   chartMargin,
   chartWidth,
+  communityMetricColors,
   getPlatformColor,
   platformLabels,
   simpleChartHeight,
@@ -14,6 +15,7 @@ import {
   uniqueUserCohortColors,
   uniqueUserCohortKeys,
   uniqueUserCohortLabels,
+  type DailyValueEntry,
   type GroupedChartRectEntry,
   type MatrixChartEntry,
   type StackedChartRectEntry,
@@ -27,11 +29,25 @@ type ChartFrameParams = Readonly<{
   y: d3.ScaleLinear<number, number>;
   tickDates: ReadonlyArray<string>;
   yAxisLabel: string;
+  xAxisLabel: string;
 }>;
 
 type ChartTooltipHandlers = Readonly<{
   showTooltip: (html: string, clientX: number, clientY: number) => void;
   hideTooltip: () => void;
+}>;
+
+type RenderDailyValueBarChartParams = Readonly<{
+  svgElement: SVGSVGElement;
+  dates: ReadonlyArray<string>;
+  tickDates: ReadonlyArray<string>;
+  values: ReadonlyArray<DailyValueEntry>;
+  peakValue: number;
+  color: string;
+  yAxisLabel: string;
+  tooltipSubtitle: string;
+  tooltipMetricLabel: string;
+  tooltipHandlers: ChartTooltipHandlers;
 }>;
 
 export type RenderDailyUniqueUsersChartParams = Readonly<{
@@ -57,6 +73,24 @@ export type RenderUserReviewEventsChartParams = Readonly<{
   peakDailyVolume: number;
   isReportLoading: boolean;
   onUserFilterApply: (userId: string) => void;
+  tooltipHandlers: ChartTooltipHandlers;
+}>;
+
+export type RenderDailyFriendInvitationsChartParams = Readonly<{
+  svgElement: SVGSVGElement;
+  dates: ReadonlyArray<string>;
+  tickDates: ReadonlyArray<string>;
+  friendInvitationCounts: ReadonlyArray<DailyValueEntry>;
+  peakDailyFriendInvitations: number;
+  tooltipHandlers: ChartTooltipHandlers;
+}>;
+
+export type RenderDailyFriendshipsChartParams = Readonly<{
+  svgElement: SVGSVGElement;
+  dates: ReadonlyArray<string>;
+  tickDates: ReadonlyArray<string>;
+  friendshipCounts: ReadonlyArray<DailyValueEntry>;
+  peakDailyFriendships: number;
   tooltipHandlers: ChartTooltipHandlers;
 }>;
 
@@ -164,9 +198,52 @@ function renderChartFrame(
     .attr("x", innerWidth / 2)
     .attr("y", innerHeight + 74)
     .attr("text-anchor", "middle")
-    .text("Review date");
+    .text(params.xAxisLabel);
 
   return group;
+}
+
+function renderDailyValueBarChart(params: RenderDailyValueBarChartParams): void {
+  const svg = d3.select(params.svgElement);
+  const x = createDateScale(params.dates);
+  const innerHeight = getInnerHeight(simpleChartHeight);
+  const y = d3.scaleLinear()
+    .domain([0, Math.max(1, params.peakValue)])
+    .nice()
+    .range([innerHeight, 0]);
+  const group = renderChartFrame(svg, {
+    chartHeight: simpleChartHeight,
+    x,
+    y,
+    tickDates: params.tickDates,
+    yAxisLabel: params.yAxisLabel,
+    xAxisLabel: "Date",
+  });
+
+  group.selectAll<SVGRectElement, DailyValueEntry>(".bar-segment")
+    .data(params.values.filter((entry) => entry.value > 0))
+    .join("rect")
+    .attr("class", "bar-segment")
+    .attr("fill", params.color)
+    .attr("x", (entry) => x(entry.date) ?? 0)
+    .attr("y", (entry) => y(entry.value))
+    .attr("width", x.bandwidth())
+    .attr("height", (entry) => Math.max(0, innerHeight - y(entry.value)))
+    .attr("rx", 3)
+    .attr("stroke", "rgba(255, 255, 255, 0.18)")
+    .attr("stroke-width", 1)
+    .on("mousemove", (event, entry: DailyValueEntry) => {
+      params.tooltipHandlers.showTooltip(
+        [
+          `<p class="tooltip-title">${escapeHtml(formatDateRangeLabel(entry.date))}</p>`,
+          `<p class="tooltip-subtitle">${escapeHtml(params.tooltipSubtitle)}</p>`,
+          `<div class="tooltip-metric"><span>${escapeHtml(params.tooltipMetricLabel)}</span><strong>${numberFormatter(entry.value)}</strong></div>`,
+        ].join(""),
+        event.clientX,
+        event.clientY,
+      );
+    })
+    .on("mouseleave", params.tooltipHandlers.hideTooltip);
 }
 
 export function renderDailyUniqueUsersChart(params: RenderDailyUniqueUsersChartParams): void {
@@ -183,6 +260,7 @@ export function renderDailyUniqueUsersChart(params: RenderDailyUniqueUsersChartP
     y,
     tickDates: params.tickDates,
     yAxisLabel: "Unique users",
+    xAxisLabel: "Review date",
   });
   const series = d3.stack<MatrixChartEntry>()
     .keys(uniqueUserCohortKeys)
@@ -242,6 +320,7 @@ export function renderUserReviewEventsChart(params: RenderUserReviewEventsChartP
     y,
     tickDates: params.tickDates,
     yAxisLabel: "Review events",
+    xAxisLabel: "Review date",
   });
   const series = d3.stack<MatrixChartEntry>()
     .keys(params.userIds)
@@ -296,6 +375,36 @@ export function renderUserReviewEventsChart(params: RenderUserReviewEventsChartP
   }
 }
 
+export function renderDailyFriendInvitationsChart(params: RenderDailyFriendInvitationsChartParams): void {
+  renderDailyValueBarChart({
+    svgElement: params.svgElement,
+    dates: params.dates,
+    tickDates: params.tickDates,
+    values: params.friendInvitationCounts,
+    peakValue: params.peakDailyFriendInvitations,
+    color: communityMetricColors.friendInvitations,
+    yAxisLabel: "Invite links",
+    tooltipSubtitle: "Invite links",
+    tooltipMetricLabel: "Created invite links",
+    tooltipHandlers: params.tooltipHandlers,
+  });
+}
+
+export function renderDailyFriendshipsChart(params: RenderDailyFriendshipsChartParams): void {
+  renderDailyValueBarChart({
+    svgElement: params.svgElement,
+    dates: params.dates,
+    tickDates: params.tickDates,
+    values: params.friendshipCounts,
+    peakValue: params.peakDailyFriendships,
+    color: communityMetricColors.friendships,
+    yAxisLabel: "Friendships",
+    tooltipSubtitle: "Friendships",
+    tooltipMetricLabel: "Existing friendships at end of day",
+    tooltipHandlers: params.tooltipHandlers,
+  });
+}
+
 export function renderPlatformActiveUsersChart(params: RenderPlatformActiveUsersChartParams): void {
   const svg = d3.select(params.svgElement);
   const x = createDateScale(params.dates);
@@ -315,6 +424,7 @@ export function renderPlatformActiveUsersChart(params: RenderPlatformActiveUsers
     y,
     tickDates: params.tickDates,
     yAxisLabel: "Active users",
+    xAxisLabel: "Review date",
   });
   const bars = params.platformActiveUsersMatrix.flatMap((entry) => reviewEventPlatforms.map((platform) => ({
     key: platform,
@@ -361,6 +471,7 @@ export function renderPlatformReviewEventsChart(params: RenderPlatformReviewEven
     y,
     tickDates: params.tickDates,
     yAxisLabel: "Review events",
+    xAxisLabel: "Review date",
   });
   const series = d3.stack<MatrixChartEntry>()
     .keys(reviewEventPlatforms)

@@ -4,6 +4,8 @@ import {
   reviewEventPlatforms,
   type ReviewEventCohort,
   type ReviewEventPlatform,
+  type ReviewEventsByDateFriendInvitationTotal,
+  type ReviewEventsByDateFriendshipTotal,
   type ReviewEventsByDateReport,
   type ReviewEventsByDateUniqueUserCohort,
   type ReviewEventsByDateUser,
@@ -46,6 +48,8 @@ export type ReviewEventsByDateChartModel = Readonly<{
   userIds: ReadonlyArray<string>;
   userColorScale: d3.ScaleOrdinal<string, string>;
   dailyUniqueUserCohortMatrix: ReadonlyArray<MatrixChartEntry>;
+  friendInvitationCounts: ReadonlyArray<DailyValueEntry>;
+  friendshipCounts: ReadonlyArray<DailyValueEntry>;
   userMatrix: ReadonlyArray<MatrixChartEntry>;
   platformActiveUsersMatrix: ReadonlyArray<MatrixChartEntry>;
   platformReviewEventsMatrix: ReadonlyArray<MatrixChartEntry>;
@@ -53,6 +57,8 @@ export type ReviewEventsByDateChartModel = Readonly<{
   dailyUniqueUsersByDate: ReadonlyMap<string, number>;
   totalPlatformReviewEventsByDate: ReadonlyMap<string, number>;
   peakDailyUniqueUsers: number;
+  peakDailyFriendInvitations: number;
+  peakDailyFriendships: number;
   peakDailyVolume: number;
   peakDailyPlatformUsers: number;
   peakDailyPlatformReviewEvents: number;
@@ -88,6 +94,11 @@ export const uniqueUserCohortColors: Readonly<Record<UniqueUserCohortKey, string
   new: "#2e6f95",
 };
 
+export const communityMetricColors = {
+  friendInvitations: "#76b7b2",
+  friendships: "#edc948",
+} as const;
+
 const userColorPalette: ReadonlyArray<string> = [
   ...d3.schemeTableau10,
   ...d3.schemeSet2,
@@ -112,6 +123,8 @@ export function buildReviewEventsByDateChartModel(
     date: item.date,
     value: item.newReviewingUsers + item.returningReviewingUsers,
   }));
+  const friendInvitationCounts = buildFriendInvitationCounts(report.friendInvitationTotals);
+  const friendshipCounts = buildFriendshipCounts(report.friendshipTotals);
   const userMatrix = buildUserMatrix(report);
   const platformActiveUsersMatrix = buildPlatformMatrix(
     report.platformActiveUserTotals,
@@ -127,6 +140,8 @@ export function buildReviewEventsByDateChartModel(
   const dailyUniqueUsersByDate = new Map(dailyUniqueUserTotals.map((item) => [item.date, item.value]));
   const totalPlatformReviewEventsByDate = buildTotalsByDate(platformReviewEventsMatrix);
   const peakDailyUniqueUsers = getPeakDailyValue(dailyUniqueUserTotals);
+  const peakDailyFriendInvitations = getPeakDailyValue(friendInvitationCounts);
+  const peakDailyFriendships = getPeakDailyValue(friendshipCounts);
   const peakDailyVolume = d3.max(report.dateTotals, (item) => item.totalReviewEvents) ?? 0;
   const peakDailyPlatformUsers = getPeakGroupedValue(platformActiveUsersMatrix);
   const peakDailyPlatformReviewEvents = getPeakStackedValue(platformReviewEventsMatrix);
@@ -137,6 +152,8 @@ export function buildReviewEventsByDateChartModel(
     userIds,
     userColorScale,
     dailyUniqueUserCohortMatrix,
+    friendInvitationCounts,
+    friendshipCounts,
     userMatrix,
     platformActiveUsersMatrix,
     platformReviewEventsMatrix,
@@ -144,6 +161,8 @@ export function buildReviewEventsByDateChartModel(
     dailyUniqueUsersByDate,
     totalPlatformReviewEventsByDate,
     peakDailyUniqueUsers,
+    peakDailyFriendInvitations,
+    peakDailyFriendships,
     peakDailyVolume,
     peakDailyPlatformUsers,
     peakDailyPlatformReviewEvents,
@@ -167,6 +186,24 @@ function buildDailyUniqueUserCohortMatrix(
       returning: cohort.returningReviewingUsers,
       new: cohort.newReviewingUsers,
     },
+  }));
+}
+
+function buildFriendInvitationCounts(
+  totals: ReadonlyArray<ReviewEventsByDateFriendInvitationTotal>,
+): ReadonlyArray<DailyValueEntry> {
+  return totals.map((total) => ({
+    date: total.date,
+    value: total.friendInvitationCount,
+  }));
+}
+
+function buildFriendshipCounts(
+  totals: ReadonlyArray<ReviewEventsByDateFriendshipTotal>,
+): ReadonlyArray<DailyValueEntry> {
+  return totals.map((total) => ({
+    date: total.date,
+    value: total.friendshipCount,
   }));
 }
 

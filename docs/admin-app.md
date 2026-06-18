@@ -68,10 +68,12 @@ The query payload includes:
 Current v1 attribution contract for `review-events-by-date`:
 
 - the report is intended for the current single-effective-learner workspace model
-- the default chart range starts on the first calendar day with any `content.review_events.reviewed_at_server` row and ends on today, inclusive, in the report timezone
-- dashboard filters can narrow date range, user, new/returning cohort, and platform; Reset all returns date range to the same first-review-day-through-today default and restores all local filters
+- the default chart range starts on the first calendar day with any `content.review_events.reviewed_at_server`, `community.friend_invitations.created_at`, or `community.friendships.created_at` row and ends on today, inclusive, in the report timezone
+- dashboard filters can narrow date range, user, new/returning cohort, and platform; date filters apply to every chart, while user, cohort, and platform filters apply only to review-event charts; Reset all returns date range to the same first-activity-day-through-today default and restores all local filters
 - `users[]` and `rows[].userId` are derived from the current `sync.workspace_replicas.user_id` label for stacked per-user event volume
 - platform charts derive `web` / `android` / `ios` from `content.review_events.replica_id -> sync.workspace_replicas.platform`
+- friend invite charts count `community.friend_invitations` rows created on each UTC date
+- friend connection charts count friendship pairs that exist at the end of each UTC date; directed `community.friendships` rows are not double-counted
 - that label is acceptable for today's product shape, but it is not a durable historical review-author field
 - do not interpret this report as collaborative per-user analytics unless review authorship is stored immutably on each review event
 
@@ -143,10 +145,10 @@ The admin frontend fails fast on any other non-local hostname. Do not serve the 
 - a listed admin email loads the dashboard
 - a signed-in non-admin sees the access denied page
 - network traces show `POST /v1/admin/reports/query` for dashboard data
-- the default date filter starts on the first review-event day and ends on today
+- the default date filter starts on the first review, friend invite, or friendship day and ends on today
 - date, user, new/returning cohort, and platform filters open as popups from the compact filter row
 - the dashboard does not show a persistent email or user list outside the user filter popup
-- unique-users, stacked-by-user, platform-users, and platform-events charts all render
+- unique-users, stacked-by-user, platform-users, platform-events, friend-invite-links, and friend-connections charts all render
 - narrowing the date filter reloads all charts, and Reset all restores the default range and all local filters
 - stacked-by-user hover tooltips may reveal the current email and user ID for the hovered segment
 - backend logs do not show writes through the reporting path
