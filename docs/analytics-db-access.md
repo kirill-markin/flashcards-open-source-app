@@ -105,7 +105,7 @@ The baseline schema migration creates a dedicated login role and its read-only g
 - role name: `reporting_readonly`
 - login enabled
 - `CONNECT` on database `flashcards`
-- `USAGE` on schemas `org`, `content`, `sync`, `support`
+- `USAGE` on schemas `org`, `content`, `sync`, `support`, `community`, `auth`, `ai`
 - `SELECT` only on the allowed tables listed below
 
 The baseline schema migration also enforces the persistent runtime policy for this role:
@@ -131,6 +131,9 @@ The role gets `USAGE` on these schemas:
 - `content`
 - `sync`
 - `support`
+- `community`
+- `auth`
+- `ai`
 
 ## Granted tables
 
@@ -146,14 +149,33 @@ The role gets `SELECT` on these tables only:
 - `sync.installations`
 - `support.feedback_submissions`
 - `support.feedback_prompt_events`
+- `community.public_profiles`
+- `community.public_review_activity_facts`
+- `community.leaderboard_snapshots`
+- `community.leaderboard_snapshot_entries`
+- selected audit columns on `community.friend_invitations`
+- selected audit columns on `community.friendships`
+- selected operational columns on `auth.user_identities`
+- selected operational columns on `auth.guest_sessions`
+- `auth.guest_ai_monthly_usage`
+- selected audit columns on `auth.guest_upgrade_history`
+- `auth.guest_replica_aliases`
+- selected metadata columns on `ai.chat_sessions`
+- selected metadata columns on `ai.chat_runs`
+- selected metadata columns on `ai.chat_composer_suggestion_generations`
+- `sync.workspace_sync_metadata`
+- selected metadata columns on `sync.hot_changes`
+- selected metadata columns on `sync.applied_operations_current`
 
 No write access is granted.
 
 ## Row-level security behavior
 
-The baseline schema migration creates explicit `FOR SELECT` policies for `reporting_readonly` on the same tables listed above.
+For granted tables that have row-level security enabled, migrations create explicit `FOR SELECT` policies for `reporting_readonly`.
 
 Those policies currently use `USING (true)`, which means the role is allowed to read all rows from those allowed tables. This is intentional for manual operator analytics.
+
+The granted `auth` analytics tables currently do not have row-level security enabled. Their `reporting_readonly` access is limited by explicit read-only column grants instead.
 
 ## Manual local workflow
 
@@ -255,3 +277,42 @@ Use support tables when the investigation needs submitted product feedback or au
 
 - `support.feedback_submissions`
 - `support.feedback_prompt_events`
+
+Use community tables when the investigation needs leaderboard participation, public community activity, friend invitation status, or friendship counts:
+
+- `community.public_profiles`
+- `community.public_review_activity_facts`
+- `community.leaderboard_snapshots`
+- `community.leaderboard_snapshot_entries`
+- `community.friend_invitations`
+- `community.friendships`
+
+Friend invitation analytics intentionally expose invitation ids, inviter ids, created/expiry timestamps, acceptance timestamps, and accepted-by user ids. They do not expose `community.friend_invitations.invite_token_hash`.
+
+Friendship analytics intentionally expose directed relationship ids and creation metadata. One accepted friendship normally creates two `community.friendships` rows, one per viewer, so aggregate reports should count unordered pairs or divide symmetric directed rows by two when they need a human friendship count.
+
+Use guest and account-conversion tables when the investigation needs guest activity, guest AI quota usage, or guest-to-account upgrade funnel data:
+
+- `auth.user_identities`
+- `auth.guest_sessions`
+- `auth.guest_ai_monthly_usage`
+- `auth.guest_upgrade_history`
+- `auth.guest_replica_aliases`
+
+Guest analytics intentionally do not expose guest session secret hashes, replay secret hashes, raw provider subjects, OTP challenge state, API key hashes, or admin entitlement rows.
+
+Use AI operational tables when the investigation needs chat session volume, run health, model/cost-policy distribution, or stuck/failed run timing:
+
+- `ai.chat_sessions`
+- `ai.chat_runs`
+- `ai.chat_composer_suggestion_generations`
+
+AI operational analytics intentionally expose metadata only. They do not expose `ai.chat_items`, `ai.chat_items.payload`, `ai.chat_runs.turn_input`, `ai.chat_runs.last_error_message`, `ai.chat_sessions.composer_suggestions`, or `ai.chat_composer_suggestion_generations.suggestions`.
+
+Use current sync diagnostic tables when the investigation needs sync retention metadata, hot-state mutation volume, or idempotency ledger diagnostics:
+
+- `sync.workspace_sync_metadata`
+- `sync.hot_changes`
+- `sync.applied_operations_current`
+
+Sync diagnostics intentionally do not expose the superseded `sync.changes` payload feed or legacy `sync.applied_operations` table.
