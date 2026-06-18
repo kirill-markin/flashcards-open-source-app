@@ -103,3 +103,33 @@ test("0064 migration exposes only current viewer leaderboard friend labels", () 
   assert.equal(sql.includes("inviter_user_id"), false);
   assert.equal(sql.includes("email"), false);
 });
+
+test("0065 migration grants reporting access to community analytics without invite token hashes", () => {
+  const migrationPath = resolve(
+    process.cwd(),
+    "../../db/migrations/0065_reporting_readonly_community_analytics.sql",
+  );
+  const sql = readFileSync(migrationPath, "utf8").replace(/\s+/g, " ");
+
+  assert.match(sql, /GRANT USAGE ON SCHEMA community TO reporting_readonly/);
+  assert.match(sql, /REVOKE SELECT ON ALL TABLES IN SCHEMA community FROM reporting_readonly/);
+  assert.match(sql, /ALTER DEFAULT PRIVILEGES IN SCHEMA community REVOKE SELECT ON TABLES FROM reporting_readonly/);
+
+  assert.match(sql, /GRANT SELECT \([^)]*user_id,[^)]*public_profile_id,[^)]*leaderboard_participation_enabled[^)]*\) ON TABLE community\.public_profiles TO reporting_readonly/);
+  assert.match(sql, /GRANT SELECT \([^)]*review_event_id,[^)]*metric_version,[^)]*public_profile_id,[^)]*reviewed_by_user_id[^)]*\) ON TABLE community\.public_review_activity_facts TO reporting_readonly/);
+  assert.match(sql, /GRANT SELECT \([^)]*snapshot_id,[^)]*metric_version,[^)]*window_key[^)]*\) ON TABLE community\.leaderboard_snapshots TO reporting_readonly/);
+  assert.match(sql, /GRANT SELECT \([^)]*snapshot_id,[^)]*public_profile_id,[^)]*qualified_review_count[^)]*\) ON TABLE community\.leaderboard_snapshot_entries TO reporting_readonly/);
+  assert.match(sql, /GRANT SELECT \([^)]*friend_invitation_id,[^)]*inviter_user_id,[^)]*accepted_at,[^)]*accepted_by_user_id[^)]*\) ON TABLE community\.friend_invitations TO reporting_readonly/);
+  assert.match(sql, /GRANT SELECT \([^)]*viewer_user_id,[^)]*friend_user_id,[^)]*friend_public_profile_id,[^)]*created_from_invitation_id[^)]*\) ON TABLE community\.friendships TO reporting_readonly/);
+
+  assert.match(sql, /CREATE POLICY public_profiles_reporting_readonly_select ON community\.public_profiles FOR SELECT TO reporting_readonly USING \(true\)/);
+  assert.match(sql, /CREATE POLICY public_review_activity_facts_reporting_readonly_select ON community\.public_review_activity_facts FOR SELECT TO reporting_readonly USING \(true\)/);
+  assert.match(sql, /CREATE POLICY leaderboard_snapshots_reporting_readonly_select ON community\.leaderboard_snapshots FOR SELECT TO reporting_readonly USING \(true\)/);
+  assert.match(sql, /CREATE POLICY leaderboard_snapshot_entries_reporting_readonly_select ON community\.leaderboard_snapshot_entries FOR SELECT TO reporting_readonly USING \(true\)/);
+  assert.match(sql, /CREATE POLICY friend_invitations_reporting_readonly_select ON community\.friend_invitations FOR SELECT TO reporting_readonly USING \(true\)/);
+  assert.match(sql, /CREATE POLICY friendships_reporting_readonly_select ON community\.friendships FOR SELECT TO reporting_readonly USING \(true\)/);
+
+  assert.equal(sql.includes("invite_token_hash"), false);
+  assert.equal(sql.includes("invitee_display_name_for_inviter"), false);
+  assert.equal(sql.includes("friend_display_name"), false);
+});
