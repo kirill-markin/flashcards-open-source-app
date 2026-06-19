@@ -12,6 +12,7 @@ enum LiveSmokeIdentifier {
     static let cloudSignInPostAuthFailureMessage: String = "cloudSignIn.postAuthFailure.message"
     static let cloudSignInExistingWorkspacePrefix: String = "cloudSignIn.existingWorkspace."
     static let rootTabReviewItem: String = "rootTab.review.item"
+    static let rootTabReviewReminderBadge: String = "rootTab.review.reminderBadge"
     static let rootTabAIItem: String = "rootTab.ai.item"
     static let rootTabProgressItem: String = "rootTab.progress.item"
     static let rootTabCardsItem: String = "rootTab.cards.item"
@@ -114,6 +115,7 @@ enum LiveSmokeIdentifier {
 enum LiveSmokeLaunchScenario: String {
     case guestEmptyWorkspace = "guest_empty_workspace"
     case guestManualReviewCard = "guest_manual_review_card"
+    case guestManualReviewCardWithReminderAttention = "guest_manual_review_card_with_reminder_attention"
     case guestAIReviewCard = "guest_ai_review_card"
     case marketingScreenshots = "marketing_screenshots"
     case marketingGuestSessionCleanup = "marketing_guest_session_cleanup"

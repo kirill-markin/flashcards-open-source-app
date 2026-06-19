@@ -9,6 +9,101 @@ private struct LiveSmokeTabBarItemCandidate {
 
 extension LiveSmokeTestCase {
     @MainActor
+    func assertReviewReminderTabBadgeVisible(timeout: TimeInterval) throws {
+        try self.runWithInlineRawScreenStateOnFailure(action: "assert_review_reminder_tab_badge_visible") {
+            let badge = self.app.descendants(matching: .any)
+                .matching(identifier: LiveSmokeIdentifier.rootTabReviewReminderBadge)
+                .firstMatch
+            if self.waitForOptionalElement(
+                badge,
+                identifier: LiveSmokeIdentifier.rootTabReviewReminderBadge,
+                timeout: timeout
+            ) == false {
+                throw LiveSmokeFailure.missingElement(
+                    identifier: LiveSmokeIdentifier.rootTabReviewReminderBadge,
+                    timeoutSeconds: timeout,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+
+            if try self.waitForElementValue(
+                badge,
+                identifier: LiveSmokeIdentifier.rootTabReviewReminderBadge,
+                expectedValue: "1",
+                timeout: LiveSmokeConfiguration.optionalProbeTimeoutSeconds
+            ) == false {
+                throw LiveSmokeFailure.unexpectedElementValue(
+                    identifier: LiveSmokeIdentifier.rootTabReviewReminderBadge,
+                    expectedValue: "1",
+                    actualValue: self.elementValue(element: badge),
+                    timeoutSeconds: LiveSmokeConfiguration.optionalProbeTimeoutSeconds,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+        }
+    }
+
+    @MainActor
+    func assertReviewReminderTabBadgeHidden(timeout: TimeInterval) throws {
+        try self.runWithInlineRawScreenStateOnFailure(action: "assert_review_reminder_tab_badge_hidden") {
+            let badge = self.app.descendants(matching: .any)
+                .matching(identifier: LiveSmokeIdentifier.rootTabReviewReminderBadge)
+                .firstMatch
+            let startedAt = Date()
+            let deadline = startedAt.addingTimeInterval(timeout)
+
+            self.logSmokeBreadcrumb(
+                event: "wait_start",
+                action: "wait_for_element_to_disappear",
+                identifier: LiveSmokeIdentifier.rootTabReviewReminderBadge,
+                timeoutSeconds: formatDuration(seconds: timeout),
+                durationSeconds: "-",
+                result: "start",
+                note: "waiting for badge marker to disappear"
+            )
+
+            while Date() < deadline {
+                if badge.exists == false {
+                    let durationSeconds = Date().timeIntervalSince(startedAt)
+                    self.logSmokeBreadcrumb(
+                        event: "wait_end",
+                        action: "wait_for_element_to_disappear",
+                        identifier: LiveSmokeIdentifier.rootTabReviewReminderBadge,
+                        timeoutSeconds: formatDuration(seconds: timeout),
+                        durationSeconds: formatDuration(seconds: durationSeconds),
+                        result: "success",
+                        note: "badge marker disappeared"
+                    )
+                    return
+                }
+
+                RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
+            }
+
+            let durationSeconds = Date().timeIntervalSince(startedAt)
+            self.logSmokeBreadcrumb(
+                event: "wait_end",
+                action: "wait_for_element_to_disappear",
+                identifier: LiveSmokeIdentifier.rootTabReviewReminderBadge,
+                timeoutSeconds: formatDuration(seconds: timeout),
+                durationSeconds: formatDuration(seconds: durationSeconds),
+                result: "failure",
+                note: "badge marker still exists value=\(self.elementValue(element: badge))"
+            )
+            throw LiveSmokeFailure.unexpectedElementValue(
+                identifier: LiveSmokeIdentifier.rootTabReviewReminderBadge,
+                expectedValue: "missing",
+                actualValue: self.elementValue(element: badge),
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+    }
+
+    @MainActor
     func tapTabBarItem(selectedTab: LiveSmokeSelectedTab, timeout: TimeInterval) throws {
         try self.runWithInlineRawScreenStateOnFailure(action: "tap_tab.\(selectedTab.rawValue)") {
             let tabBarItemLookup = selectedTab.tabBarItemLookup(localization: self.currentLaunchLocalization)
