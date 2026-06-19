@@ -5,14 +5,18 @@ import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
 import android.os.ParcelFileDescriptor
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.core.app.NotificationManagerCompat
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.Until
+import com.flashcardsopensourceapp.app.navigation.reviewReminderAttentionBadgeTag
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.countNodesWithTagInAnySemanticsTree
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.currentBlockingSystemDialogSummaryOrNull
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.dismissExternalSystemDialogIfPresent
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.nodeSummaryIncludingDescendants
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitForFlowValue
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitForTagToDisappear
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitUntilWithMitigation
 import com.flashcardsopensourceapp.app.livesmoke.support.LiveSmokeContext
 import com.flashcardsopensourceapp.app.livesmoke.support.appGraph
@@ -25,6 +29,7 @@ import com.flashcardsopensourceapp.feature.review.reviewCurrentCardTag
 import com.flashcardsopensourceapp.feature.review.reviewEmptyStateTag
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import kotlinx.coroutines.runBlocking
 
 private const val notificationPermissionUserFixedFlag: String = "user-fixed"
 private const val notificationPermissionUserSetFlag: String = "user-set"
@@ -86,6 +91,28 @@ internal fun LiveSmokeContext.postReviewReminderNotification(
     return notificationId
 }
 
+internal fun LiveSmokeContext.postReviewReminderNotificationWithAttention(
+    context: Context,
+    frontText: String,
+    requestId: String
+): Int {
+    val notificationId = postReviewReminderNotification(
+        context = context,
+        frontText = frontText,
+        requestId = requestId
+    )
+    appGraph().reviewReminderAttentionController.markDeliveredReviewReminder(
+        workspaceId = requireCurrentWorkspaceIdForNotificationSmoke(),
+        requestId = requestId,
+        deliveredAtMillis = System.currentTimeMillis()
+    )
+    return notificationId
+}
+
+internal fun LiveSmokeContext.clearReviewReminderAttentionForNotificationSmoke() {
+    appGraph().reviewReminderAttentionController.clearAfterSuccessfulReview()
+}
+
 internal fun LiveSmokeContext.activeAppNotificationIds(context: Context): Set<Int> {
     return activeNotificationIds(context = context)
 }
@@ -142,10 +169,65 @@ internal fun LiveSmokeContext.waitForReviewScreenAfterNotificationTap() {
     }
 }
 
+internal fun LiveSmokeContext.waitForReviewReminderBadgeValue(expectedText: String) {
+    try {
+        waitUntilWithMitigation(
+            timeoutMillis = internalUiTimeoutMillis,
+            context = "while waiting for the review reminder badge to show '$expectedText'"
+        ) {
+            reviewReminderBadgeTexts().contains(expectedText)
+        }
+    } catch (error: Throwable) {
+        throw AssertionError(
+            "Review reminder badge did not show '$expectedText'. " +
+                "BadgeTexts=${reviewReminderBadgeTexts()}",
+            error
+        )
+    }
+}
+
+internal fun LiveSmokeContext.waitForReviewReminderBadgeToDisappear() {
+    try {
+        waitForTagToDisappear(
+            tag = reviewReminderAttentionBadgeTag,
+            timeoutMillis = internalUiTimeoutMillis,
+            context = "while waiting for the review reminder badge to disappear"
+        )
+    } catch (error: Throwable) {
+        throw AssertionError(
+            "Review reminder badge did not disappear. BadgeTexts=${reviewReminderBadgeTexts()}",
+            error
+        )
+    }
+}
+
 private fun activeNotificationIds(context: Context): Set<Int> {
     val notificationManager = context.getSystemService(NotificationManager::class.java)
     return notificationManager.activeNotifications
         .map { statusBarNotification -> statusBarNotification.id }
+        .toSet()
+}
+
+private fun LiveSmokeContext.requireCurrentWorkspaceIdForNotificationSmoke(): String {
+    return runBlocking {
+        requireNotNull(appGraph().database.workspaceDao().loadAnyWorkspace()?.workspaceId) {
+            "Expected a current workspace before posting a review reminder notification."
+        }
+    }
+}
+
+private fun LiveSmokeContext.reviewReminderBadgeTexts(): Set<String> {
+    val mergedNodes = composeRule.onAllNodesWithTag(reviewReminderAttentionBadgeTag)
+        .fetchSemanticsNodes()
+    val unmergedNodes = composeRule.onAllNodesWithTag(
+        testTag = reviewReminderAttentionBadgeTag,
+        useUnmergedTree = true
+    ).fetchSemanticsNodes()
+    return (mergedNodes + unmergedNodes)
+        .map(::nodeSummaryIncludingDescendants)
+        .flatMap { text -> text.split(" | ") }
+        .map(String::trim)
+        .filter(String::isNotBlank)
         .toSet()
 }
 

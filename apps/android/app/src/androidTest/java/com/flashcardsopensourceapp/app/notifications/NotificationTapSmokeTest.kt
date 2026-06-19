@@ -16,9 +16,12 @@ import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitUntilAtLeastOne
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitUntilWithMitigation
 import com.flashcardsopensourceapp.app.livesmoke.flows.openCardsTab
 import com.flashcardsopensourceapp.app.livesmoke.support.LiveSmokeContext
+import com.flashcardsopensourceapp.app.livesmoke.support.assertCardReachableInReview
 import com.flashcardsopensourceapp.app.livesmoke.support.appGraph
 import com.flashcardsopensourceapp.app.livesmoke.support.externalUiTimeoutMillis
 import com.flashcardsopensourceapp.app.livesmoke.support.internalUiTimeoutMillis
+import com.flashcardsopensourceapp.app.livesmoke.support.rateVisibleReviewCardGood
+import com.flashcardsopensourceapp.app.livesmoke.support.seedCardViaRepository
 import com.flashcardsopensourceapp.app.livesmoke.support.step
 import com.flashcardsopensourceapp.app.support.AppStateResetRule
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
@@ -121,6 +124,71 @@ class NotificationTapSmokeTest : FirebaseAppInstrumentationTimeoutTest() {
                 }
             }
         } finally {
+            liveSmokeContext.clearAppNotifications(context = appContext)
+        }
+    }
+
+    @Test
+    fun reviewReminderNotificationBadgeClearsAfterReview() {
+        val appContext = ApplicationProvider.getApplicationContext<Context>()
+        val markerSuffix = System.currentTimeMillis().toString()
+        val requestId = "android-notification-badge-smoke-$markerSuffix"
+        val markerText = "Android notif badge $markerSuffix"
+        val markerTag = "android-notification-badge-smoke-$markerSuffix"
+
+        try {
+            liveSmokeContext.step("clear stale review reminder badge baseline") {
+                liveSmokeContext.clearReviewReminderAttentionForNotificationSmoke()
+            }
+
+            liveSmokeContext.step("prepare one reviewable card") {
+                liveSmokeContext.seedCardViaRepository(
+                    frontText = markerText,
+                    backText = "Back for $markerText",
+                    markerTag = markerTag
+                )
+                liveSmokeContext.assertCardReachableInReview(
+                    expectedFrontText = markerText,
+                    timeoutMillis = internalUiTimeoutMillis
+                )
+            }
+
+            liveSmokeContext.step("verify the review reminder badge is absent before posting") {
+                liveSmokeContext.waitForReviewReminderBadgeToDisappear()
+            }
+
+            liveSmokeContext.step("grant notification permission and clear old notifications") {
+                liveSmokeContext.grantNotificationPermissionOrThrow(context = appContext)
+                liveSmokeContext.clearAppNotifications(context = appContext)
+            }
+
+            liveSmokeContext.step("background app and post one real review reminder notification") {
+                liveSmokeContext.pressHomeAndWaitForLauncher()
+                liveSmokeContext.postReviewReminderNotificationWithAttention(
+                    context = appContext,
+                    frontText = markerText,
+                    requestId = requestId
+                )
+            }
+
+            liveSmokeContext.step("open the app from the posted review reminder") {
+                liveSmokeContext.openNotificationShadeAndTap(frontText = markerText)
+                liveSmokeContext.waitForReviewScreenAfterNotificationTap()
+            }
+
+            liveSmokeContext.step("verify the review destination shows one reminder badge") {
+                liveSmokeContext.waitForReviewReminderBadgeValue(expectedText = "1")
+            }
+
+            liveSmokeContext.step("complete one real review") {
+                liveSmokeContext.rateVisibleReviewCardGood()
+            }
+
+            liveSmokeContext.step("verify the review reminder badge clears after review") {
+                liveSmokeContext.waitForReviewReminderBadgeToDisappear()
+            }
+        } finally {
+            liveSmokeContext.clearReviewReminderAttentionForNotificationSmoke()
             liveSmokeContext.clearAppNotifications(context = appContext)
         }
     }

@@ -1,9 +1,9 @@
 package com.flashcardsopensourceapp.app.livesmoke.support
 
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithTag
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
@@ -28,6 +28,7 @@ import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.feature.cards.cardsCardFrontTextTag
 import com.flashcardsopensourceapp.feature.review.reviewCurrentCardFrontContentTag
+import com.flashcardsopensourceapp.feature.review.reviewEmptyStateTag
 import com.flashcardsopensourceapp.feature.review.reviewEmptyStateTitleTag
 import com.flashcardsopensourceapp.feature.review.reviewRateGoodButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewShowAnswerButtonTag
@@ -72,7 +73,7 @@ internal fun LiveSmokeContext.createManualCard(
 
 internal fun LiveSmokeContext.rateVisibleReviewCardGood() {
     waitUntilAtLeastOneExistsOrFail(
-        matcher = hasText("Show answer"),
+        matcher = hasTestTag(reviewShowAnswerButtonTag),
         timeoutMillis = internalUiTimeoutMillis
     )
     clickTag(tag = reviewShowAnswerButtonTag, label = "Show answer")
@@ -82,7 +83,7 @@ internal fun LiveSmokeContext.rateVisibleReviewCardGood() {
         context = "while waiting for the review queue to advance"
     ) {
         composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty() ||
-            composeRule.onAllNodesWithText("Session complete").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithTag(reviewEmptyStateTag).fetchSemanticsNodes().isNotEmpty()
     }
 }
 

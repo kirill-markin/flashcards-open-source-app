@@ -17,6 +17,7 @@ import com.flashcardsopensourceapp.app.livesmoke.diagnostics.tapBackIcon
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitForTagToExist
 import com.flashcardsopensourceapp.app.livesmoke.support.LiveSmokeContext
 import com.flashcardsopensourceapp.app.livesmoke.support.internalUiTimeoutMillis
+import com.flashcardsopensourceapp.app.navigation.ReviewDestination
 import com.flashcardsopensourceapp.feature.settings.access.accessSettingsScreenTag
 import com.flashcardsopensourceapp.feature.settings.account.accountStatusScreenTag
 import com.flashcardsopensourceapp.feature.settings.device.deviceDiagnosticsScreenTag
@@ -62,7 +63,7 @@ internal fun LiveSmokeContext.openCardsTab() {
 
 internal fun LiveSmokeContext.openReviewTab() {
     clickNode(
-        matcher = hasText("Review").and(other = hasClickAction()),
+        matcher = hasTestTag(ReviewDestination.testTag).and(other = hasClickAction()),
         label = "Review tab"
     )
 }
