@@ -1,15 +1,16 @@
 package com.flashcardsopensourceapp.feature.ai.runtime
 
-import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataSummary
-import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataStorage
-import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataSyncStatus
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatMessage
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatServerConfig
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.ai.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.ai.effectiveAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.ai.isSendableAiChatAttachment
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataSummary
+import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataStorage
+import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataSyncStatus
 import com.flashcardsopensourceapp.feature.ai.AiUiState
 import com.flashcardsopensourceapp.feature.ai.emptyAiBootstrapErrorPresentation
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiAccessContext
@@ -100,6 +101,7 @@ internal fun mapToAiUiState(
 
     return AiUiState(
         currentWorkspaceName = metadata.currentWorkspaceName ?: textProvider.unavailableLabel,
+        conversationScrollStateKey = aiConversationScrollStateKey(runtimeState = runtimeState),
         messages = runtimeState.persistedState.messages,
         pendingAttachments = runtimeState.pendingAttachments,
         draftMessage = runtimeState.draftMessage,
@@ -143,6 +145,7 @@ internal fun mapToAiUiState(
 internal fun makeInitialAiUiState(hasConsent: Boolean, textProvider: AiTextProvider): AiUiState {
     return AiUiState(
         currentWorkspaceName = textProvider.loadingLabel,
+        conversationScrollStateKey = emptyAiConversationScrollStateKey(),
         messages = emptyList(),
         pendingAttachments = emptyList(),
         draftMessage = "",
@@ -187,4 +190,27 @@ private fun canToggleDictation(
     return chatConfig.features.dictationEnabled && canPrepareAiDraftInComposerPhase(
         composerPhase = runtimeState.composerPhase
     ) && runtimeState.conversationBootstrapState == AiConversationBootstrapState.READY
+}
+
+private fun aiConversationScrollStateKey(runtimeState: AiChatRuntimeState): String {
+    val chatSessionId: String = runtimeState.persistedState.chatSessionId.trim()
+    if (chatSessionId.isNotEmpty()) {
+        return "session:$chatSessionId"
+    }
+
+    val conversationScopeId: String? = runtimeState.conversationScopeId?.trim()
+    if (conversationScopeId != null && conversationScopeId.isNotEmpty()) {
+        return "scope:$conversationScopeId"
+    }
+
+    return aiConversationMessageSetScrollStateKey(messages = runtimeState.persistedState.messages)
+}
+
+private fun aiConversationMessageSetScrollStateKey(messages: List<AiChatMessage>): String {
+    val firstMessage: AiChatMessage = messages.firstOrNull() ?: return emptyAiConversationScrollStateKey()
+    return "messages:${firstMessage.messageId}:${firstMessage.timestampMillis}"
+}
+
+private fun emptyAiConversationScrollStateKey(): String {
+    return "empty"
 }
