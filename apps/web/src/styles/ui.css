@@ -266,6 +266,55 @@
   font-size: 14px;
 }
 
+.app-error-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-index-app-modal-top);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  overflow-y: auto;
+  background: rgba(9, 10, 15, 0.8);
+  backdrop-filter: blur(10px);
+}
+
+.app-error-dialog {
+  width: min(100%, 520px);
+  max-height: calc(100vh - 40px);
+  display: grid;
+  gap: 18px;
+  overflow-y: auto;
+}
+
+.app-error-dialog-details {
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+}
+
+.app-error-dialog-details > summary {
+  padding: 11px 14px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-weight: 650;
+}
+
+.app-error-dialog-details > summary:hover {
+  color: var(--text);
+}
+
+.app-error-dialog-details > pre {
+  margin: 0;
+  padding: 0 14px 14px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .txn-scroll {
   overflow-x: auto;
   width: 100%;

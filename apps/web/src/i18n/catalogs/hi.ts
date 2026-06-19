@@ -81,6 +81,25 @@ const hiCatalog: TranslationCatalog = {
   shell: {
     primaryNavigation: "मुख्य नेविगेशन",
   },
+  appError: {
+    technicalError: {
+      title: "कुछ गलत हो गया",
+      message: "एक तकनीकी त्रुटि हुई। फिर से कोशिश करें या ऐप फिर से शुरू करें।",
+      detailsToggle: "तकनीकी विवरण",
+      close: "बंद करें",
+      labels: {
+        name: "नाम",
+        message: "संदेश",
+        endpoint: "एंडपॉइंट",
+        requestId: "अनुरोध ID",
+        statusCode: "स्थिति कोड",
+        code: "कोड",
+        bodyKind: "बॉडी प्रकार",
+        attemptCount: "कोशिशों की संख्या",
+        originalErrorName: "मूल त्रुटि",
+      },
+    },
+  },
   filters: {
     allCards: "सभी कार्ड",
     and: "और",
@@ -388,6 +407,11 @@ const hiCatalog: TranslationCatalog = {
       screenSubtitle: "रिव्यू रिएक्शन वैरिएंट सीधे चलाएं।",
       probability: "{{percent}} संभावना",
       playAccessibility: "{{variant}} ऐनिमेशन चलाएं, {{probability}}",
+    },
+    technicalError: {
+      title: "तकनीकी त्रुटि डायलॉग",
+      description: "साझा तकनीकी-त्रुटि डायलॉग का प्रीव्यू देखें।",
+      value: "प्रीव्यू",
     },
   },
   settingsWorkspace: {

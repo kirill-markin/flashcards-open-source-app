@@ -9,6 +9,7 @@ import {
   subscribeToAccountDeletionPending,
 } from "./accountDeletion";
 import { AppDataProvider, useAppData } from "./appData";
+import { AppErrorDialogProvider } from "./appError/AppErrorContext";
 import {
   ApiError,
   ApiContractError,
@@ -743,20 +744,22 @@ export default function App(): ReactElement {
   return (
     <AppErrorBoundary fallback={<AppCrashFallback />}>
       <BrowserRouter>
-        <TestModeProvider>
-          <SentryRoutes>
-            <Route
-              path={friendInvitePreviewIndexRoute}
-              element={renderDeferredRoute(<FriendInvitePreviewScreen />, "friendInvite.loading")}
-            />
-            <Route
-              path={friendInvitePreviewRoutePattern}
-              element={renderDeferredRoute(<FriendInvitePreviewScreen />, "friendInvite.loading")}
-            />
-            <Route path={friendInviteRoutePattern} element={<FriendInviteScreen />} />
-            <Route path="/*" element={<AuthenticatedApp />} />
-          </SentryRoutes>
-        </TestModeProvider>
+        <AppErrorDialogProvider>
+          <TestModeProvider>
+            <SentryRoutes>
+              <Route
+                path={friendInvitePreviewIndexRoute}
+                element={renderDeferredRoute(<FriendInvitePreviewScreen />, "friendInvite.loading")}
+              />
+              <Route
+                path={friendInvitePreviewRoutePattern}
+                element={renderDeferredRoute(<FriendInvitePreviewScreen />, "friendInvite.loading")}
+              />
+              <Route path={friendInviteRoutePattern} element={<FriendInviteScreen />} />
+              <Route path="/*" element={<AuthenticatedApp />} />
+            </SentryRoutes>
+          </TestModeProvider>
+        </AppErrorDialogProvider>
       </BrowserRouter>
     </AppErrorBoundary>
   );

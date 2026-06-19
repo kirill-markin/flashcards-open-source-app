@@ -81,6 +81,25 @@ export const zhHansCatalog = {
   shell: {
     primaryNavigation: "主导航",
   },
+  appError: {
+    technicalError: {
+      title: "出了点问题",
+      message: "发生技术错误。请重试或重新启动应用。",
+      detailsToggle: "技术详情",
+      close: "关闭",
+      labels: {
+        name: "名称",
+        message: "消息",
+        endpoint: "端点",
+        requestId: "请求 ID",
+        statusCode: "状态码",
+        code: "代码",
+        bodyKind: "正文类型",
+        attemptCount: "尝试次数",
+        originalErrorName: "原始错误",
+      },
+    },
+  },
   filters: {
     allCards: "所有卡片",
     and: "AND",
@@ -388,6 +407,11 @@ export const zhHansCatalog = {
       screenSubtitle: "直接播放复习反应变体。",
       probability: "{{percent}} 概率",
       playAccessibility: "播放 {{variant}} 动画，{{probability}}",
+    },
+    technicalError: {
+      title: "技术错误对话框",
+      description: "预览共享技术错误对话框。",
+      value: "预览",
     },
   },
   settingsWorkspace: {
