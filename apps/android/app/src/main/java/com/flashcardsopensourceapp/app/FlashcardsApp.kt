@@ -257,9 +257,7 @@ fun FlashcardsApp(
         val settingsAttentionSummary: SettingsAttentionSummary = makeSettingsAttentionSummary(
             issues = makeSettingsAttentionIssues(cloudState = cloudSettings.cloudState)
         )
-        val reviewReminderAttentionState by appGraph.reviewReminderAttentionController.attentionState.collectAsStateWithLifecycle(
-            initialValue = appGraph.reviewReminderAttentionController.attentionState.value
-        )
+        val reviewReminderAttentionState by appGraph.reviewReminderAttentionController.attentionState.collectAsStateWithLifecycle()
         val currentCanRunImmediateAutoSync by rememberUpdatedState(newValue = canRunImmediateAutoSync)
         val currentCanRefreshCloudAccountContext by rememberUpdatedState(newValue = canRefreshCloudAccountContext)
         val currentVisibleAppScreenState by rememberUpdatedState(newValue = currentVisibleAppScreen)
