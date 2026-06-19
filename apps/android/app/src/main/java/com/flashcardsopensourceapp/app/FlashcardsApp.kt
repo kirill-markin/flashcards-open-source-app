@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -64,6 +65,7 @@ import com.flashcardsopensourceapp.app.navigation.TopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.currentVisibleAppScreen
 import com.flashcardsopensourceapp.app.navigation.currentTopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.navigateToTopLevelDestination
+import com.flashcardsopensourceapp.app.navigation.reviewReminderAttentionBadgeTag
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsAccountSignInEmailDestination
 import com.flashcardsopensourceapp.app.navigation.topLevelDestinations
 import com.flashcardsopensourceapp.app.prompts.feedback.FeedbackPromptContext
@@ -255,6 +257,9 @@ fun FlashcardsApp(
         val settingsAttentionSummary: SettingsAttentionSummary = makeSettingsAttentionSummary(
             issues = makeSettingsAttentionIssues(cloudState = cloudSettings.cloudState)
         )
+        val reviewReminderAttentionState by appGraph.reviewReminderAttentionController.attentionState.collectAsStateWithLifecycle(
+            initialValue = appGraph.reviewReminderAttentionController.attentionState.value
+        )
         val currentCanRunImmediateAutoSync by rememberUpdatedState(newValue = canRunImmediateAutoSync)
         val currentCanRefreshCloudAccountContext by rememberUpdatedState(newValue = canRefreshCloudAccountContext)
         val currentVisibleAppScreenState by rememberUpdatedState(newValue = currentVisibleAppScreen)
@@ -278,6 +283,15 @@ fun FlashcardsApp(
             appGraph.visibleAppScreenController.updateVisibleAppScreen(
                 screen = currentVisibleAppScreen
             )
+        }
+
+        LaunchedEffect(isAppResumed, appGraph.reviewReminderAttentionController) {
+            if (isAppResumed.not()) {
+                return@LaunchedEffect
+            }
+
+            appGraph.reviewReminderAttentionController.reloadFromStore()
+            appGraph.reviewReminderAttentionController.reconcileWithReviewHistory()
         }
 
         LaunchedEffect(
@@ -465,14 +479,19 @@ fun FlashcardsApp(
             layoutType = navigationSuiteType,
             navigationSuiteItems = {
                 topLevelDestinations.forEach { destination ->
-                    val settingsBadge: (@Composable () -> Unit)? =
-                        if (destination == SettingsDestination && settingsAttentionSummary.settingsTabCount > 0) {
+                    val destinationBadge: (@Composable () -> Unit)? = when {
+                        destination == ReviewDestination && reviewReminderAttentionState != null -> {
+                            {
+                                ReviewReminderAttentionBadge()
+                            }
+                        }
+                        destination == SettingsDestination && settingsAttentionSummary.settingsTabCount > 0 -> {
                             {
                                 SettingsAttentionBadge(count = settingsAttentionSummary.settingsTabCount)
                             }
-                        } else {
-                            null
                         }
+                        else -> null
+                    }
 
                     item(
                         selected = currentDestination.route == destination.route,
@@ -511,7 +530,7 @@ fun FlashcardsApp(
                         label = {
                             Text(stringResource(destination.labelResId))
                         },
-                        badge = settingsBadge
+                        badge = destinationBadge
                     )
                 }
             }
@@ -593,6 +612,17 @@ private fun shouldHideNavigationSuite(
     return destination == AiDestination &&
         navigationSuiteType == NavigationSuiteType.NavigationBar &&
         isImeVisible
+}
+
+@Composable
+private fun ReviewReminderAttentionBadge() {
+    Badge(
+        modifier = Modifier.testTag(reviewReminderAttentionBadgeTag),
+        containerColor = MaterialTheme.colorScheme.error,
+        contentColor = MaterialTheme.colorScheme.onError
+    ) {
+        Text(text = "1")
+    }
 }
 
 private fun shouldRefreshCloudAccountContext(

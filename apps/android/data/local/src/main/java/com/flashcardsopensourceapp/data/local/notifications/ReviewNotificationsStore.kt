@@ -30,6 +30,7 @@ private const val strictRemindersLastCompletedReviewAtKey: String = "strict-remi
 private const val reviewNotificationsPromptStateKey: String = "review-notifications-prompt-state"
 private const val reviewNotificationsSuccessfulReviewCountKey: String = "review-notifications-successful-review-count"
 private const val reviewNotificationsLastActiveAtKey: String = "review-notifications-last-active-at"
+private const val reviewReminderAttentionStateKey: String = "review-reminder-attention-state"
 private const val reviewNotificationsModeDaily: String = "daily"
 private const val reviewNotificationsModeInactivity: String = "inactivity"
 private const val reviewFilterKindKey: String = "kind"
@@ -95,6 +96,24 @@ data class CurrentReviewNotificationCard(
     val frontText: String
 )
 
+data class ReviewReminderAttentionState(
+    val workspaceId: String,
+    val requestId: String,
+    val deliveredAtMillis: Long
+) {
+    init {
+        require(workspaceId.isNotBlank()) {
+            "Review reminder attention state requires a workspaceId."
+        }
+        require(requestId.isNotBlank()) {
+            "Review reminder attention state requires a requestId."
+        }
+        require(deliveredAtMillis >= 0L) {
+            "Review reminder attention state requires a non-negative deliveredAtMillis."
+        }
+    }
+}
+
 fun defaultReviewNotificationsSettings(): ReviewNotificationsSettings {
     return ReviewNotificationsSettings(
         isEnabled = true,
@@ -140,6 +159,9 @@ interface ReviewNotificationsStore {
     fun loadLastActiveAtMillis(): Long?
     fun saveLastActiveAtMillis(timestampMillis: Long)
     fun clearLastActiveAtMillis()
+    fun loadReviewReminderAttentionState(): ReviewReminderAttentionState?
+    fun markReviewReminderAttention(state: ReviewReminderAttentionState)
+    fun clearReviewReminderAttention()
     fun loadScheduledPayloads(workspaceId: String): List<ScheduledReviewNotificationPayload>
     fun saveScheduledPayloads(workspaceId: String, payloads: List<ScheduledReviewNotificationPayload>)
 }
@@ -276,6 +298,35 @@ class SharedPreferencesReviewNotificationsStore(
     override fun clearLastActiveAtMillis() {
         preferences.edit(commit = true) {
             remove(reviewNotificationsLastActiveAtKey)
+        }
+    }
+
+    override fun loadReviewReminderAttentionState(): ReviewReminderAttentionState? {
+        val rawValue = preferences.getString(reviewReminderAttentionStateKey, null)
+            ?: return null
+
+        return try {
+            decodeReviewReminderAttentionState(rawValue = rawValue)
+        } catch (_: Exception) {
+            preferences.edit(commit = true) {
+                remove(reviewReminderAttentionStateKey)
+            }
+            null
+        }
+    }
+
+    override fun markReviewReminderAttention(state: ReviewReminderAttentionState) {
+        preferences.edit(commit = true) {
+            putString(
+                reviewReminderAttentionStateKey,
+                encodeReviewReminderAttentionState(state = state)
+            )
+        }
+    }
+
+    override fun clearReviewReminderAttention() {
+        preferences.edit(commit = true) {
+            remove(reviewReminderAttentionStateKey)
         }
     }
 
@@ -790,6 +841,23 @@ private fun decodePromptState(rawValue: String): NotificationPermissionPromptSta
         hasShownPrePrompt = payload.getBoolean("hasShownPrePrompt"),
         hasRequestedSystemPermission = payload.getBoolean("hasRequestedSystemPermission"),
         hasDismissedPrePrompt = payload.getBoolean("hasDismissedPrePrompt")
+    )
+}
+
+private fun encodeReviewReminderAttentionState(state: ReviewReminderAttentionState): String {
+    return JSONObject().apply {
+        put("workspaceId", state.workspaceId)
+        put("requestId", state.requestId)
+        put("deliveredAtMillis", state.deliveredAtMillis)
+    }.toString()
+}
+
+private fun decodeReviewReminderAttentionState(rawValue: String): ReviewReminderAttentionState {
+    val payload = JSONObject(rawValue)
+    return ReviewReminderAttentionState(
+        workspaceId = payload.getString("workspaceId"),
+        requestId = payload.getString("requestId"),
+        deliveredAtMillis = payload.getLong("deliveredAtMillis")
     )
 }
 

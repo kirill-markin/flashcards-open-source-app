@@ -24,6 +24,7 @@ import com.flashcardsopensourceapp.core.ui.AppMessageBus
 import com.flashcardsopensourceapp.core.ui.TestModeStore
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenController
 import com.flashcardsopensourceapp.app.navigation.AppHandoffCoordinator
+import com.flashcardsopensourceapp.app.notifications.review.ReviewReminderAttentionController
 import com.flashcardsopensourceapp.app.notifications.review.ReviewNotificationsManager
 import com.flashcardsopensourceapp.app.notifications.strict.AndroidStrictRemindersScheduler
 import com.flashcardsopensourceapp.app.notifications.strict.StrictRemindersManager
@@ -162,6 +163,10 @@ class AppGraph(
     private val notificationsStore = SharedPreferencesReviewNotificationsStore(context = context)
     val reviewNotificationsStore: ReviewNotificationsStore = notificationsStore
     val strictRemindersStore: StrictRemindersStore = notificationsStore
+    val reviewReminderAttentionController = ReviewReminderAttentionController(
+        reviewNotificationsStore = reviewNotificationsStore,
+        reviewLogDao = database.reviewLogDao()
+    )
     private val aiCoroutineDispatchers = AiCoroutineDispatchers(io = Dispatchers.IO)
     private val localProgressCacheStore = LocalProgressCacheStore(
         database = database,
@@ -388,6 +393,7 @@ class AppGraph(
                         importedReviewAtMillis = latestReviewedAtMillis,
                         nowMillis = nowMillis
                     )
+                    reviewReminderAttentionController.reconcileWithReviewHistory()
                 } else {
                     strictRemindersManager.reconcileStrictReminders(
                         trigger = StrictRemindersReconcileTrigger.REVIEW_HISTORY_IMPORTED,
