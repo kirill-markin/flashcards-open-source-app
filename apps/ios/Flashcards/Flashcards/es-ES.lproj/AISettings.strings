@@ -518,7 +518,7 @@
 "settings.notifications.reviewReminders.description" = "Estos recordatorios usan solo el espacio de trabajo actual y se quedan en este dispositivo.";
 "settings.notifications.enableWorkspaceReminders" = "Activar recordatorios del espacio de trabajo";
 "settings.notifications.appIconBadge.toggle" = "Mostrar la insignia en el icono de la app";
-"settings.notifications.appIconBadge.description" = "Muestra un 1 rojo en el icono de la app cuando llega un recordatorio y aún no has repasado hoy. Desaparece cuando repasas o abres la app.";
+"settings.notifications.appIconBadge.description" = "Muestra un 1 rojo en el icono de la app cuando llega un recordatorio y aún no has repasado hoy. Al abrir la app se borran los recordatorios de repaso entregados; la insignia desaparece después de repasar o desactivar esto.";
 "settings.notifications.section.appIconBadge" = "Insignia del icono de la app";
 "settings.notifications.section.strictReminders" = "Recordatorios de racha";
 "settings.notifications.enableStrictReminders" = "Activar recordatorios de racha";

@@ -518,7 +518,7 @@
 "settings.notifications.reviewReminders.description" = "Эти напоминания используют только текущее рабочее пространство и остаются на этом устройстве.";
 "settings.notifications.enableWorkspaceReminders" = "Включить напоминания рабочего пространства";
 "settings.notifications.appIconBadge.toggle" = "Показывать бейдж на иконке приложения";
-"settings.notifications.appIconBadge.description" = "Показывать красную 1 на иконке приложения, когда приходит напоминание, а вы ещё не повторяли сегодня. Она исчезнет после повторения или открытия приложения.";
+"settings.notifications.appIconBadge.description" = "Показывать красную 1 на иконке приложения, когда приходит напоминание, а вы ещё не повторяли сегодня. При открытии приложения доставленные напоминания о повторении очищаются; бейдж исчезает после повторения или отключения этого параметра.";
 "settings.notifications.section.appIconBadge" = "Бейдж на иконке приложения";
 "settings.notifications.section.strictReminders" = "Напоминания о серии";
 "settings.notifications.enableStrictReminders" = "Включить напоминания о серии";

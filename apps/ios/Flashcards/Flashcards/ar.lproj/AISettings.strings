@@ -518,7 +518,7 @@
 "settings.notifications.reviewReminders.description" = "تستخدم هذه التذكيرات مساحة العمل الحالية فقط وتبقى على هذا الجهاز.";
 "settings.notifications.enableWorkspaceReminders" = "تفعيل تذكيرات مساحة العمل";
 "settings.notifications.appIconBadge.toggle" = "إظهار شارة أيقونة التطبيق";
-"settings.notifications.appIconBadge.description" = "أظهر رقم 1 أحمر على أيقونة التطبيق عندما يصدر تذكير ولم تراجع اليوم. يختفي عندما تراجع أو تفتح التطبيق.";
+"settings.notifications.appIconBadge.description" = "أظهر رقم 1 أحمر على أيقونة التطبيق عندما يصدر تذكير ولم تراجع اليوم. فتح التطبيق يمسح تذكيرات المراجعة المسلّمة؛ وتمسح الشارة بعد أن تراجع أو توقف هذا الخيار.";
 "settings.notifications.section.appIconBadge" = "شارة أيقونة التطبيق";
 "settings.notifications.section.strictReminders" = "تذكيرات السلسلة";
 "settings.notifications.enableStrictReminders" = "تفعيل تذكيرات السلسلة";
