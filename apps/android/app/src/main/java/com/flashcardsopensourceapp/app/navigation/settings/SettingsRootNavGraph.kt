@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -24,6 +25,7 @@ import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.navigation.AppPackageInfo
 import com.flashcardsopensourceapp.app.navigation.SettingsDestination
 import com.flashcardsopensourceapp.app.navigation.rememberRouteBackStackEntry
+import com.flashcardsopensourceapp.app.notifications.loadNotificationDiagnosticsUiState
 import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationDialog
 import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationShareEffect
 import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationViewModel
@@ -41,10 +43,13 @@ import com.flashcardsopensourceapp.feature.settings.feedback.FeedbackSettingsRou
 import com.flashcardsopensourceapp.feature.settings.language.LanguageSettingsRoute
 import com.flashcardsopensourceapp.feature.settings.leaderboard.LeaderboardParticipationRoute
 import com.flashcardsopensourceapp.feature.settings.leaderboard.createLeaderboardParticipationViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.notifications.NotificationDiagnosticsRoute
+import com.flashcardsopensourceapp.feature.settings.notifications.NotificationDiagnosticsUiState
 import com.flashcardsopensourceapp.feature.settings.settingsInviteFriendDisplayNameFieldTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.CurrentWorkspaceRoute
 import com.flashcardsopensourceapp.feature.settings.workspace.current.createCurrentWorkspaceViewModelFactory
 import java.util.Locale
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import org.xmlpull.v1.XmlPullParser
 
@@ -350,6 +355,9 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             onOpenAnimations = {
                 navController.navigate(route = SettingsTestAnimationsDestination.route)
             },
+            onOpenNotificationDiagnostics = {
+                navController.navigate(route = SettingsNotificationDiagnosticsDestination.route)
+            },
             onBack = {
                 navController.popBackStack()
             }
@@ -359,6 +367,35 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
     composable(route = SettingsTestAnimationsDestination.route) {
         TestAnimationsRoute(
             reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore,
+            onBack = {
+                navController.popBackStack()
+            }
+        )
+    }
+
+    composable(route = SettingsNotificationDiagnosticsDestination.route) {
+        val context = LocalContext.current
+        val uiState by produceState<NotificationDiagnosticsUiState>(
+            initialValue = NotificationDiagnosticsUiState.Loading,
+            key1 = appGraph,
+            key2 = context
+        ) {
+            value = try {
+                loadNotificationDiagnosticsUiState(
+                    context = context.applicationContext,
+                    appGraph = appGraph
+                )
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                NotificationDiagnosticsUiState.Failed(
+                    message = error.message ?: "Notification diagnostics failed."
+                )
+            }
+        }
+
+        NotificationDiagnosticsRoute(
+            uiState = uiState,
             onBack = {
                 navController.popBackStack()
             }
