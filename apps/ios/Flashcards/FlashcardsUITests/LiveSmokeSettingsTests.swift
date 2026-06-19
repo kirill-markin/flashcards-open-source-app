@@ -43,7 +43,7 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
 
         try self.assertTextExistsScrollingIntoView("General", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         try self.openSettingsRootRow(identifier: LiveSmokeIdentifier.settingsReviewRemindersRow)
-        try self.assertTextExistsScrollingIntoView("Workspace Review Reminders", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertTextExistsScrollingIntoView("Permission", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         try self.returnToSettingsRoot()
 
         try self.assertReviewAnimationsRowOrder()
@@ -150,7 +150,7 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
         }
 
         throw LiveSmokeFailure.unexpectedAccountState(
-            message: "General settings rows should appear as Review Reminders, Review Animations, Leaderboard participation, then Language.",
+            message: "General settings rows should appear as Reminders, Review Animations, Leaderboard participation, then Language.",
             screen: self.currentScreenSummary(),
             step: self.currentStepTitle
         )
