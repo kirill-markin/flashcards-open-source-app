@@ -37,6 +37,10 @@ private func cardsAIHandoffAppTabDiagnosticValue(_ tab: AppTab) -> String {
     }
 }
 
+private func localizedCardsLoadFailedMessage() -> String {
+    String(localized: "Cards couldn't load. Try again.", table: reviewCardsStringsTableName)
+}
+
 enum CardEditorPresentation: Hashable, Identifiable {
     case create
     case edit(cardId: String)
@@ -96,6 +100,7 @@ struct CardsScreen: View {
         effortLevel: .fast
     )
     @State private var screenErrorMessage: String = ""
+    @State private var cardsLoadErrorMessage: String = ""
     @State private var cardsSnapshot: CardsListSnapshot = CardsListSnapshot(cards: [], totalCount: 0)
     @State private var availableTagSuggestions: [TagSuggestion] = []
     @State private var isLoading: Bool = true
@@ -121,6 +126,9 @@ struct CardsScreen: View {
             Section {
                 if self.isLoading {
                     Text(String(localized: "Loading cards…", table: reviewCardsStringsTableName))
+                        .foregroundStyle(.secondary)
+                } else if self.cardsLoadErrorMessage.isEmpty == false {
+                    Text(self.cardsLoadErrorMessage)
                         .foregroundStyle(.secondary)
                 } else if self.cardsSnapshot.totalCount == 0 {
                     Text(String(localized: "You haven't created any cards yet.", table: reviewCardsStringsTableName))
@@ -220,6 +228,7 @@ struct CardsScreen: View {
                     }
                 )
             }
+            .technicalErrorSheet(store: self.store)
             .accessibilityIdentifier(UITestIdentifier.cardEditorScreen)
         }
         .sheet(isPresented: $isFilterSheetPresented) {
@@ -340,7 +349,12 @@ struct CardsScreen: View {
                 effortLevel: normalizedInput.effortLevel
             )
         } catch {
-            self.screenErrorMessage = Flashcards.errorMessage(error: error)
+            if let inlineErrorMessage = cardEditorInlineErrorMessage(error: error) {
+                self.screenErrorMessage = inlineErrorMessage
+            } else {
+                self.screenErrorMessage = ""
+                store.presentTechnicalError(error)
+            }
             return nil
         }
     }
@@ -417,7 +431,12 @@ struct CardsScreen: View {
                 await self.reloadCardsSnapshot()
             }
         } catch {
-            self.screenErrorMessage = Flashcards.errorMessage(error: error)
+            if let inlineErrorMessage = cardEditorInlineErrorMessage(error: error) {
+                self.screenErrorMessage = inlineErrorMessage
+            } else {
+                self.screenErrorMessage = ""
+                store.presentTechnicalError(error)
+            }
         }
     }
 
@@ -426,7 +445,12 @@ struct CardsScreen: View {
             try store.deleteCard(cardId: cardId)
             self.screenErrorMessage = ""
         } catch {
-            self.screenErrorMessage = Flashcards.errorMessage(error: error)
+            if let inlineErrorMessage = cardEditorInlineErrorMessage(error: error) {
+                self.screenErrorMessage = inlineErrorMessage
+            } else {
+                self.screenErrorMessage = ""
+                store.presentTechnicalError(error)
+            }
         }
     }
 
@@ -441,7 +465,12 @@ struct CardsScreen: View {
             self.screenErrorMessage = ""
             self.editorPresentation = nil
         } catch {
-            self.screenErrorMessage = Flashcards.errorMessage(error: error)
+            if let inlineErrorMessage = cardEditorInlineErrorMessage(error: error) {
+                self.screenErrorMessage = inlineErrorMessage
+            } else {
+                self.screenErrorMessage = ""
+                store.presentTechnicalError(error)
+            }
         }
     }
 
@@ -470,6 +499,7 @@ struct CardsScreen: View {
     @MainActor
     private func reloadCardsSnapshot() async {
         guard let database = store.database, let workspaceId = store.workspace?.workspaceId else {
+            self.cardsLoadErrorMessage = ""
             self.cardsSnapshot = CardsListSnapshot(cards: [], totalCount: 0)
             self.availableTagSuggestions = []
             self.isLoading = false
@@ -488,6 +518,7 @@ struct CardsScreen: View {
                 filter: self.committedFilter
             )
             let tagsSummary = try database.loadWorkspaceTagsSummary(workspaceId: workspaceId)
+            self.cardsLoadErrorMessage = ""
             self.availableTagSuggestions = tagsSummary.tags.map { tagSummary in
                 TagSuggestion(
                     tag: tagSummary.tag,
@@ -495,7 +526,9 @@ struct CardsScreen: View {
                 )
             }
         } catch {
-            self.screenErrorMessage = Flashcards.errorMessage(error: error)
+            self.screenErrorMessage = ""
+            self.cardsLoadErrorMessage = localizedCardsLoadFailedMessage()
+            store.presentTechnicalError(error)
         }
 
         self.isLoading = false
