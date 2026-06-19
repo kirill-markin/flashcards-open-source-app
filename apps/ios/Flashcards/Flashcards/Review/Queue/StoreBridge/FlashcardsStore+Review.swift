@@ -293,6 +293,12 @@ extension FlashcardsStore {
                 )
             )
             let now = Date()
+            let reviewedAt = parseIsoTimestamp(value: request.reviewedAtClient) ?? now
+            let reviewCount = self.recordSuccessfulReviewNotificationEffects(
+                reviewedAt: reviewedAt,
+                workspaceId: request.workspaceId,
+                now: now
+            )
             guard self.reviewSubmissionRequestMatchesCurrentContext(request: request, now: now) else {
                 self.applyStaleReviewSubmissionCompletion(request: request)
                 return
@@ -339,10 +345,8 @@ extension FlashcardsStore {
                 )
             }
 
-            let reviewedAt = parseIsoTimestamp(value: request.reviewedAtClient) ?? now
             let shouldShowReviewNotificationPrePrompt = await self.resolveSuccessfulReviewNotificationPrePromptDecision(
-                reviewedAt: reviewedAt,
-                now: now
+                reviewCount: reviewCount
             )
             guard self.successfulReviewSubmissionPromptContextMatchesCurrentState(
                 request: request,

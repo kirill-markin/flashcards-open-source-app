@@ -7,6 +7,7 @@ let reviewNotificationFallbackBodyText: String = String(
 )
 
 let reviewNotificationScheduledPayloadsUserDefaultsKeyPrefix: String = "review-notification-scheduled-payloads::"
+let reviewNotificationRequestIdentifierPrefix: String = "review-notification::"
 
 struct ScheduledReviewNotificationPayload: Hashable, Sendable, Identifiable {
     let workspaceId: String
@@ -166,12 +167,34 @@ func loadScheduledReviewNotifications(
 }
 
 func makeReviewNotificationRequestIdentifier(workspaceId: String, kind: String, suffix: String) -> String {
-    "review-notification::\(workspaceId)::\(kind)::\(suffix)"
+    "\(reviewNotificationRequestIdentifierPrefix)\(workspaceId)::\(kind)::\(suffix)"
 }
 
 /// Review reminders are identified by the shared `review-notification::` identifier prefix.
 func isReviewNotificationRequestIdentifier(identifier: String) -> Bool {
-    identifier.hasPrefix("review-notification::")
+    identifier.hasPrefix(reviewNotificationRequestIdentifierPrefix)
+}
+
+func reviewNotificationRequestWorkspaceId(identifier: String) -> String? {
+    guard identifier.hasPrefix(reviewNotificationRequestIdentifierPrefix) else {
+        return nil
+    }
+
+    let prefixEndIndex = identifier.index(
+        identifier.startIndex,
+        offsetBy: reviewNotificationRequestIdentifierPrefix.count
+    )
+    let suffix = identifier[prefixEndIndex...]
+    guard let separatorRange = suffix.range(of: "::") else {
+        return nil
+    }
+
+    let workspaceId = String(suffix[..<separatorRange.lowerBound])
+    guard workspaceId.isEmpty == false else {
+        return nil
+    }
+
+    return workspaceId
 }
 
 /// Keeps only identifiers that belong to review reminders.

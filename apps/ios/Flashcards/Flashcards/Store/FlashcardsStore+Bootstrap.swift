@@ -133,6 +133,8 @@ extension FlashcardsStore {
         self.globalErrorMessage = ""
         self.reloadReviewNotificationsSettings()
         self.reloadStrictRemindersSettings()
+        self.reloadReviewReminderAttentionState()
+        self.reconcileReviewReminderAttentionAfterReviewLogs(now: now)
         self.localReadVersion += 1
         if refreshVisibleProgress {
             self.prepareProgressForCurrentVisibleTabAndRefreshIfNeeded(now: now)
@@ -202,6 +204,8 @@ extension FlashcardsStore {
         self.globalErrorMessage = ""
         self.reloadReviewNotificationsSettings()
         self.reloadStrictRemindersSettings()
+        self.reloadReviewReminderAttentionState()
+        self.reconcileReviewReminderAttentionAfterReviewLogs(now: now)
         if workspaceChanged {
             self.resetReviewHardReminderSession()
         }

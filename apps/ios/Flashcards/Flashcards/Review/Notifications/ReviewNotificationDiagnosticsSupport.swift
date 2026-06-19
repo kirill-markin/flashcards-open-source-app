@@ -122,6 +122,21 @@ func deliveredReviewNotificationRequestIdentifiers(
     }
 }
 
+func deliveredReviewReminderNotifications(
+    center: UNUserNotificationCenter
+) async -> [UNNotification] {
+    await withCheckedContinuation { continuation in
+        center.getDeliveredNotifications { notifications in
+            continuation.resume(
+                returning: notifications.filter { notification in
+                    isReviewNotificationRequestIdentifier(identifier: notification.request.identifier)
+                        && parseAppNotificationTapRequest(userInfo: notification.request.content.userInfo) == .openReviewReminder
+                }
+            )
+        }
+    }
+}
+
 /// Removes delivered review reminders from Notification Center.
 func removeDeliveredReviewNotifications(
     center: UNUserNotificationCenter

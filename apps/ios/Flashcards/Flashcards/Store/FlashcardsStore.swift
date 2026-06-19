@@ -95,6 +95,7 @@ final class FlashcardsStore {
     var isTestModeEnabled: Bool
     var reviewNotificationsSettings: ReviewNotificationsSettings
     var strictRemindersSettings: StrictRemindersSettings
+    var reviewReminderAttentionState: ReviewReminderAttentionState?
     var notificationPermissionPromptState: NotificationPermissionPromptState
     var isReviewNotificationPrePromptPresented: Bool
     var guestSignInAfterReviewPromptState: GuestSignInAfterReviewPromptState
@@ -397,6 +398,10 @@ final class FlashcardsStore {
         self.isTestModeEnabled = userDefaults.bool(forKey: testModeEnabledUserDefaultsKey)
         self.reviewNotificationsSettings = makeDefaultReviewNotificationsSettings()
         self.strictRemindersSettings = loadStrictRemindersSettings(
+            userDefaults: userDefaults,
+            decoder: decoder
+        )
+        self.reviewReminderAttentionState = loadReviewReminderAttentionState(
             userDefaults: userDefaults,
             decoder: decoder
         )

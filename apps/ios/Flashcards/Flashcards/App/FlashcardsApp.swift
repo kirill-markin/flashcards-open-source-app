@@ -251,6 +251,11 @@ struct FlashcardsApp: App {
                 .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
                     self.handleProgressContextSystemChange()
                 }
+                .onReceive(NotificationCenter.default.publisher(for: reviewReminderAttentionStateDidChangeNotificationName)) { _ in
+                    let now = Date()
+                    self.store.reloadReviewReminderAttentionState()
+                    self.store.reconcileReviewReminderAttentionAfterReviewLogs(now: now)
+                }
                 .task(id: self.isAppNotificationTapConsumptionReady) {
                     await self.consumePendingAppNotificationTapIfNeeded()
                 }
