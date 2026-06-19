@@ -385,6 +385,10 @@ export function queryChatSendButton(container: ParentNode): HTMLButtonElement | 
   return container.querySelector('.chat-send-btn[aria-label="Send message"]') as HTMLButtonElement | null;
 }
 
+export function queryChatSendButtonBusyIndicator(container: ParentNode): HTMLSpanElement | null {
+  return container.querySelector('[data-testid="chat-send-button-busy-indicator"]') as HTMLSpanElement | null;
+}
+
 export function queryChatStopButton(container: ParentNode): HTMLButtonElement | null {
   return container.querySelector('.chat-stop-btn[aria-label="Stop response"]') as HTMLButtonElement | null;
 }

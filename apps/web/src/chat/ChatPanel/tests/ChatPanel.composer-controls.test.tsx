@@ -16,6 +16,7 @@ import {
   queryChatComposerState,
   queryChatMicrophoneButton,
   queryChatSendButton,
+  queryChatSendButtonBusyIndicator,
   queryChatStopButton,
   readStoredDraftPendingAttachmentCount,
   setTextareaValue,
@@ -288,9 +289,14 @@ describe("ChatPanel composer controls", () => {
 
     const composerState = queryChatComposerState(getContainer());
     const attachButton = queryChatAttachButton(getContainer());
+    const sendButton = queryChatSendButton(getContainer());
     expect(composerState?.getAttribute("data-send-phase")).toBe("preparingSend");
     expect(attachButton).not.toBeNull();
     expect(attachButton?.disabled).toBe(true);
+    expect(sendButton).not.toBeNull();
+    expect(sendButton?.disabled).toBe(true);
+    expect(sendButton?.getAttribute("aria-busy")).toBe("true");
+    expect(queryChatSendButtonBusyIndicator(getContainer())).not.toBeNull();
 
     await dispatchChatPanelDragEvent(getContainer(), createDropEvent(new File(["pending"], "pending.txt", { type: "text/plain" })));
     await flushAsync();
@@ -331,7 +337,11 @@ describe("ChatPanel composer controls", () => {
     await flushAsync();
 
     const composerState = queryChatComposerState(getContainer());
+    const sendButton = queryChatSendButton(getContainer());
     expect(composerState?.getAttribute("data-send-phase")).toBe("preparingSend");
+    expect(sendButton).not.toBeNull();
+    expect(sendButton?.getAttribute("aria-busy")).toBe("true");
+    expect(queryChatSendButtonBusyIndicator(getContainer())).not.toBeNull();
     expect(resolveDelayedAttachment).not.toBeNull();
 
     await act(async () => {

@@ -510,9 +510,33 @@
 }
 
 .chat-send-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   background: var(--accent);
   color: #fff4ef;
   border-color: transparent;
+}
+
+.chat-send-btn-spinner {
+  inline-size: 12px;
+  block-size: 12px;
+  flex: 0 0 12px;
+  border: 1.5px solid rgba(255, 255, 255, 0.24);
+  border-block-start-color: currentColor;
+  border-radius: 999px;
+  animation: chat-send-btn-spin 0.8s linear infinite;
+}
+
+@keyframes chat-send-btn-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .chat-send-btn:hover {
