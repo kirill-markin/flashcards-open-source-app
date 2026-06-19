@@ -261,7 +261,7 @@
     <string name="settings_notifications_reminders_title">Workspace review reminders</string>
     <string name="settings_notifications_reminders_body">Send cards from the current workspace on this device.</string>
     <string name="settings_notifications_show_app_icon_badge_title">Show app icon badge</string>
-    <string name="settings_notifications_show_app_icon_badge_body">Show a red 1 on the app icon when a reminder fires and you have not reviewed today. It clears when you review or open the app.</string>
+    <string name="settings_notifications_show_app_icon_badge_body">Supported launchers may show a red 1 or dot while a review reminder notification is active. Opening the app or completing a review clears delivered review reminders.</string>
     <string name="settings_notifications_mode_daily">Daily</string>
     <string name="settings_notifications_mode_inactivity">Cards</string>
     <string name="settings_notifications_daily_title">Daily reminder</string>
