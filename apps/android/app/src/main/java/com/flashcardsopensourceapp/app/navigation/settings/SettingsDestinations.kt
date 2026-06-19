@@ -140,6 +140,10 @@ data object SettingsTestAnimationsDestination {
     const val route: String = "settings/test/animations"
 }
 
+data object SettingsNotificationDiagnosticsDestination {
+    const val route: String = "settings/test/notification-diagnostics"
+}
+
 data object SettingsAccessDetailDestination {
     const val routePrefix: String = "settings/access/detail"
     const val routeArgument: String = "capability"
