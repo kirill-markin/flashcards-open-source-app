@@ -1,8 +1,13 @@
 // @vitest-environment jsdom
+import { act, createElement, useLayoutEffect, useRef, type ReactElement } from "react";
+import ReactDOM from "react-dom/client";
 import { describe, expect, it, vi } from "vitest";
 import {
   ApiErrorMock,
+  configureMessagesScroller,
   captureWebExceptionMock,
+  consumeChatLiveStreamMock,
+  createChatActiveRun,
   createChatSnapshot,
   createNewChatSessionMock,
   getChatSnapshotMock,
@@ -15,13 +20,88 @@ import {
   createUnverifiedWorkspaceAppDataMock,
   createVerifiedWorkspaceAppDataMock,
 } from "../support/ChatPanelTestFixtures";
+import { useChatAutoScroll } from "../../../history/useChatAutoScroll";
+import type { StoredMessage } from "../../../history/useChatHistory";
 import { storeChatSessionWarmStartSnapshot } from "../../../sessionController/lifecycle/warmStart";
+import type { ChatLiveEvent } from "../../../streaming/liveStream";
 
 const {
   flushAsync,
   getContainer,
+  hideChatPanel,
   renderChatPanel,
+  setMessagesScrollerMetrics,
 } = setupChatPanelTest();
+
+function queryMessagesScroller(container: ParentNode): HTMLDivElement {
+  const scroller = container.querySelector('[data-testid="chat-messages"]') as HTMLDivElement | null;
+  expect(scroller).not.toBeNull();
+  if (scroller === null) {
+    throw new Error("Expected chat messages scroller");
+  }
+
+  return scroller;
+}
+
+async function finishProgrammaticScrollSuppression(): Promise<void> {
+  await act(async () => {
+    vi.advanceTimersByTime(1_000);
+    await Promise.resolve();
+  });
+}
+
+async function detachMessagesScroller(scroller: HTMLDivElement, scrollTop: number): Promise<void> {
+  await act(async () => {
+    scroller.dispatchEvent(new Event("wheel", { bubbles: true }));
+    scroller.scrollTop = scrollTop;
+    scroller.dispatchEvent(new Event("scroll", { bubbles: true }));
+    await Promise.resolve();
+  });
+}
+
+const emptyStoredMessages: ReadonlyArray<StoredMessage> = [];
+
+type AutoScrollHarnessProps = Readonly<{
+  metrics: Readonly<{
+    scrollTop: number;
+    scrollHeight: number;
+    clientHeight: number;
+  }>;
+  scrollKey: string;
+}>;
+
+function AutoScrollHarness(props: AutoScrollHarnessProps): ReactElement {
+  const { metrics, scrollKey } = props;
+  const messagesRef = useRef<HTMLDivElement>(null);
+  const messagesContentRef = useRef<HTMLDivElement>(null);
+  const { handleMessagesScroll } = useChatAutoScroll({
+    isHydrated: true,
+    isStreaming: false,
+    messages: emptyStoredMessages,
+    messagesRef,
+    messagesContentRef,
+    scrollKey,
+  });
+
+  useLayoutEffect(() => {
+    const element = messagesRef.current;
+    if (element === null) {
+      return;
+    }
+
+    configureMessagesScroller(element, metrics);
+  }, [metrics]);
+
+  return createElement(
+    "div",
+    {
+      "data-testid": "auto-scroll-harness",
+      onScroll: handleMessagesScroll,
+      ref: messagesRef,
+    },
+    createElement("div", { ref: messagesContentRef }),
+  );
+}
 
 describe("ChatPanel hydration lifecycle", () => {
   it("shows loading UI instead of empty suggestions while the initial chat history is unresolved", async () => {
@@ -319,6 +399,479 @@ describe("ChatPanel hydration lifecycle", () => {
 
     expect(getChatSnapshotMock).toHaveBeenCalledTimes(1);
     expect(getContainer().textContent).toContain("Existing response");
+  });
+
+  it("preserves detached middle scroll when a hydrated session remounts", async () => {
+    const sessionId = "session-scroll-remount";
+    const freshTimestamp = Date.now();
+    getChatSnapshotMock.mockImplementation(() => new Promise(() => undefined));
+    storeChatSessionWarmStartSnapshot("workspace-1", createChatSnapshot({
+      sessionId,
+      conversationScopeId: sessionId,
+      conversation: {
+        updatedAt: freshTimestamp,
+        mainContentInvalidationVersion: 0,
+        messages: [
+          {
+            role: "user",
+            content: [{ type: "text", text: "Older question" }],
+            timestamp: freshTimestamp,
+            isError: false,
+            isStopped: false,
+          },
+          {
+            role: "assistant",
+            content: [{ type: "text", text: "Older answer" }],
+            timestamp: freshTimestamp + 1,
+            isError: false,
+            isStopped: false,
+          },
+        ],
+      },
+    }), false);
+
+    setMessagesScrollerMetrics({
+      scrollTop: 600,
+      scrollHeight: 1_000,
+      clientHeight: 400,
+    });
+    await renderChatPanel();
+    await flushAsync();
+
+    const scroller = queryMessagesScroller(getContainer());
+    await finishProgrammaticScrollSuppression();
+    await detachMessagesScroller(scroller, 320);
+
+    expect(scroller.scrollTop).toBe(320);
+
+    await hideChatPanel();
+    setMessagesScrollerMetrics({
+      scrollTop: 600,
+      scrollHeight: 1_000,
+      clientHeight: 400,
+    });
+    await renderChatPanel();
+    await flushAsync();
+
+    const remountedScroller = queryMessagesScroller(getContainer());
+    expect(remountedScroller.scrollTop).toBe(320);
+  });
+
+  it("keeps detached scroll state attached to the previous key when the scroll key changes", async () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = ReactDOM.createRoot(host);
+
+    async function renderHarness(scrollKey: string, scrollTop: number): Promise<HTMLDivElement> {
+      await act(async () => {
+        root.render(createElement(AutoScrollHarness, {
+          metrics: {
+            scrollTop,
+            scrollHeight: 1_000,
+            clientHeight: 400,
+          },
+          scrollKey,
+        }));
+        await Promise.resolve();
+      });
+
+      const scroller = host.querySelector('[data-testid="auto-scroll-harness"]') as HTMLDivElement | null;
+      expect(scroller).not.toBeNull();
+      if (scroller === null) {
+        throw new Error("Expected auto-scroll harness scroller");
+      }
+
+      return scroller;
+    }
+
+    try {
+      const firstScroller = await renderHarness("session-key-a", 600);
+      await finishProgrammaticScrollSuppression();
+      await detachMessagesScroller(firstScroller, 320);
+
+      const secondScroller = await renderHarness("session-key-b", 600);
+      expect(secondScroller.scrollTop).toBe(1_000);
+
+      const restoredFirstScroller = await renderHarness("session-key-a", 600);
+      expect(restoredFirstScroller.scrollTop).toBe(320);
+    } finally {
+      await act(async () => {
+        root.unmount();
+        await Promise.resolve();
+      });
+      host.remove();
+    }
+  });
+
+  it("preserves detached scroll anchor when hydration replaces the visible snapshot", async () => {
+    const sessionId = "session-scroll-snapshot";
+    const freshTimestamp = Date.now();
+    let resolveHydrationSnapshot: ((snapshot: ReturnType<typeof createChatSnapshot>) => void) | null = null;
+    getChatSnapshotMock.mockImplementation(() => new Promise((resolve) => {
+      resolveHydrationSnapshot = resolve;
+    }));
+    storeChatSessionWarmStartSnapshot("workspace-1", createChatSnapshot({
+      sessionId,
+      conversationScopeId: sessionId,
+      conversation: {
+        updatedAt: freshTimestamp,
+        mainContentInvalidationVersion: 0,
+        messages: [
+          {
+            role: "user",
+            content: [{ type: "text", text: "Warm question" }],
+            timestamp: freshTimestamp,
+            isError: false,
+            isStopped: false,
+          },
+          {
+            role: "assistant",
+            content: [{ type: "text", text: "Warm answer" }],
+            timestamp: freshTimestamp + 1,
+            isError: false,
+            isStopped: false,
+          },
+        ],
+      },
+    }), false);
+
+    setMessagesScrollerMetrics({
+      scrollTop: 600,
+      scrollHeight: 1_000,
+      clientHeight: 400,
+    });
+    await renderChatPanel();
+    await flushAsync();
+
+    const scroller = queryMessagesScroller(getContainer());
+    await finishProgrammaticScrollSuppression();
+    await detachMessagesScroller(scroller, 300);
+    setMessagesScrollerMetrics({
+      scrollTop: scroller.scrollTop,
+      scrollHeight: 1_300,
+      clientHeight: 400,
+    });
+    configureMessagesScroller(scroller, {
+      scrollTop: scroller.scrollTop,
+      scrollHeight: 1_300,
+      clientHeight: 400,
+    });
+
+    expect(resolveHydrationSnapshot).not.toBeNull();
+    if (resolveHydrationSnapshot === null) {
+      throw new Error("Expected pending hydration snapshot request");
+    }
+
+    await act(async () => {
+      resolveHydrationSnapshot(createChatSnapshot({
+        sessionId,
+        conversationScopeId: sessionId,
+        conversation: {
+          updatedAt: freshTimestamp + 2,
+          mainContentInvalidationVersion: 0,
+          messages: [
+            {
+              role: "user",
+              content: [{ type: "text", text: "Warm question" }],
+              timestamp: freshTimestamp,
+              isError: false,
+              isStopped: false,
+            },
+            {
+              role: "assistant",
+              content: [{ type: "text", text: "Warm answer with refreshed details" }],
+              timestamp: freshTimestamp + 1,
+              isError: false,
+              isStopped: false,
+            },
+          ],
+        },
+      }));
+      await Promise.resolve();
+    });
+    await flushAsync();
+    await flushAsync();
+
+    expect(scroller.scrollTop).toBe(600);
+  });
+
+  it("keeps detached scroll fixed when a fresh-object snapshot only appends messages", async () => {
+    const sessionId = "session-scroll-append-snapshot";
+    const freshTimestamp = Date.now();
+    let resolveHydrationSnapshot: ((snapshot: ReturnType<typeof createChatSnapshot>) => void) | null = null;
+    getChatSnapshotMock.mockImplementation(() => new Promise((resolve) => {
+      resolveHydrationSnapshot = resolve;
+    }));
+    storeChatSessionWarmStartSnapshot("workspace-1", createChatSnapshot({
+      sessionId,
+      conversationScopeId: sessionId,
+      conversation: {
+        updatedAt: freshTimestamp,
+        mainContentInvalidationVersion: 0,
+        messages: [
+          {
+            role: "user",
+            content: [{ type: "text", text: "Warm question" }],
+            timestamp: freshTimestamp,
+            isError: false,
+            isStopped: false,
+          },
+          {
+            role: "assistant",
+            content: [{ type: "text", text: "Warm answer" }],
+            timestamp: freshTimestamp + 1,
+            isError: false,
+            isStopped: false,
+          },
+        ],
+      },
+    }), false);
+
+    setMessagesScrollerMetrics({
+      scrollTop: 600,
+      scrollHeight: 1_000,
+      clientHeight: 400,
+    });
+    await renderChatPanel();
+    await flushAsync();
+
+    const scroller = queryMessagesScroller(getContainer());
+    await finishProgrammaticScrollSuppression();
+    await detachMessagesScroller(scroller, 300);
+    setMessagesScrollerMetrics({
+      scrollTop: scroller.scrollTop,
+      scrollHeight: 1_300,
+      clientHeight: 400,
+    });
+    configureMessagesScroller(scroller, {
+      scrollTop: scroller.scrollTop,
+      scrollHeight: 1_300,
+      clientHeight: 400,
+    });
+
+    expect(resolveHydrationSnapshot).not.toBeNull();
+    if (resolveHydrationSnapshot === null) {
+      throw new Error("Expected pending hydration snapshot request");
+    }
+
+    await act(async () => {
+      resolveHydrationSnapshot(createChatSnapshot({
+        sessionId,
+        conversationScopeId: sessionId,
+        conversation: {
+          updatedAt: freshTimestamp + 2,
+          mainContentInvalidationVersion: 0,
+          messages: [
+            {
+              role: "user",
+              content: [{ type: "text", text: "Warm question" }],
+              timestamp: freshTimestamp,
+              isError: false,
+              isStopped: false,
+            },
+            {
+              role: "assistant",
+              content: [{ type: "text", text: "Warm answer" }],
+              timestamp: freshTimestamp + 1,
+              isError: false,
+              isStopped: false,
+            },
+            {
+              role: "assistant",
+              content: [{ type: "text", text: "Appended answer detail" }],
+              timestamp: freshTimestamp + 2,
+              isError: false,
+              isStopped: false,
+            },
+          ],
+        },
+      }));
+      await Promise.resolve();
+    });
+    await flushAsync();
+    await flushAsync();
+
+    expect(scroller.scrollTop).toBe(300);
+  });
+
+  it("keeps detached scroll fixed while an active stream advances the assistant cursor", async () => {
+    const sessionId = "session-streaming-detached";
+    const freshTimestamp = Date.now();
+    let emitLiveEvent: ((event: ChatLiveEvent) => void) | null = null;
+    consumeChatLiveStreamMock.mockImplementation((params: Readonly<{
+      onEvent: (event: ChatLiveEvent) => void;
+    }>) => {
+      emitLiveEvent = params.onEvent;
+      return new Promise(() => undefined);
+    });
+    getChatSnapshotMock.mockResolvedValue(createChatSnapshot({
+      sessionId,
+      conversationScopeId: sessionId,
+      activeRun: createChatActiveRun(),
+      conversation: {
+        updatedAt: freshTimestamp,
+        mainContentInvalidationVersion: 0,
+        messages: [
+          {
+            role: "user",
+            content: [{ type: "text", text: "Streaming question" }],
+            timestamp: freshTimestamp,
+            isError: false,
+            isStopped: false,
+          },
+          {
+            role: "assistant",
+            content: [{ type: "text", text: "Streaming answer" }],
+            timestamp: freshTimestamp + 1,
+            isError: false,
+            isStopped: false,
+            cursor: "cursor-0",
+            itemId: "item-1",
+          },
+        ],
+      },
+    }));
+
+    setMessagesScrollerMetrics({
+      scrollTop: 600,
+      scrollHeight: 1_000,
+      clientHeight: 400,
+    });
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    const scroller = queryMessagesScroller(getContainer());
+    await finishProgrammaticScrollSuppression();
+    await detachMessagesScroller(scroller, 300);
+    setMessagesScrollerMetrics({
+      scrollTop: scroller.scrollTop,
+      scrollHeight: 1_300,
+      clientHeight: 400,
+    });
+    configureMessagesScroller(scroller, {
+      scrollTop: scroller.scrollTop,
+      scrollHeight: 1_300,
+      clientHeight: 400,
+    });
+
+    expect(emitLiveEvent).not.toBeNull();
+    if (emitLiveEvent === null) {
+      throw new Error("Expected active chat live stream");
+    }
+
+    await act(async () => {
+      emitLiveEvent({
+        type: "assistant_delta",
+        sessionId,
+        conversationScopeId: sessionId,
+        runId: "run-1",
+        sequenceNumber: 1,
+        streamEpoch: "epoch-1",
+        text: " with more content",
+        cursor: "cursor-1",
+        itemId: "item-1",
+      });
+      await Promise.resolve();
+    });
+    await flushAsync();
+
+    expect(scroller.scrollTop).toBe(300);
+  });
+
+  it("keeps bottom follow when a streaming session remounts before pending scroll flushes", async () => {
+    const sessionId = "session-streaming-remount";
+    const freshTimestamp = Date.now();
+    let emitLiveEvent: ((event: ChatLiveEvent) => void) | null = null;
+    consumeChatLiveStreamMock.mockImplementation((params: Readonly<{
+      onEvent: (event: ChatLiveEvent) => void;
+    }>) => {
+      emitLiveEvent = params.onEvent;
+      return new Promise(() => undefined);
+    });
+    getChatSnapshotMock.mockResolvedValue(createChatSnapshot({
+      sessionId,
+      conversationScopeId: sessionId,
+      activeRun: createChatActiveRun(),
+      conversation: {
+        updatedAt: freshTimestamp,
+        mainContentInvalidationVersion: 0,
+        messages: [
+          {
+            role: "user",
+            content: [{ type: "text", text: "Streaming question" }],
+            timestamp: freshTimestamp,
+            isError: false,
+            isStopped: false,
+          },
+          {
+            role: "assistant",
+            content: [{ type: "text", text: "Streaming answer" }],
+            timestamp: freshTimestamp + 1,
+            isError: false,
+            isStopped: false,
+            cursor: "cursor-0",
+            itemId: "item-1",
+          },
+        ],
+      },
+    }));
+
+    setMessagesScrollerMetrics({
+      scrollTop: 600,
+      scrollHeight: 1_000,
+      clientHeight: 400,
+    });
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    const scroller = queryMessagesScroller(getContainer());
+    setMessagesScrollerMetrics({
+      scrollTop: 600,
+      scrollHeight: 1_300,
+      clientHeight: 400,
+    });
+    configureMessagesScroller(scroller, {
+      scrollTop: 600,
+      scrollHeight: 1_300,
+      clientHeight: 400,
+    });
+
+    expect(emitLiveEvent).not.toBeNull();
+    if (emitLiveEvent === null) {
+      throw new Error("Expected active chat live stream");
+    }
+
+    await act(async () => {
+      emitLiveEvent({
+        type: "assistant_delta",
+        sessionId,
+        conversationScopeId: sessionId,
+        runId: "run-1",
+        sequenceNumber: 1,
+        streamEpoch: "epoch-1",
+        text: " with more content",
+        cursor: "cursor-1",
+        itemId: "item-1",
+      });
+      await Promise.resolve();
+    });
+    await flushAsync();
+
+    expect(scroller.scrollTop).toBe(600);
+
+    await hideChatPanel();
+    setMessagesScrollerMetrics({
+      scrollTop: 600,
+      scrollHeight: 1_300,
+      clientHeight: 400,
+    });
+    await renderChatPanel();
+    await flushAsync();
+
+    const remountedScroller = queryMessagesScroller(getContainer());
+    expect(remountedScroller.scrollTop).toBe(1_300);
   });
 
   it("does not reuse the previous workspace session id when hydrating a new workspace", async () => {

@@ -81,6 +81,7 @@ export function ChatPanel(props: Props): ReactElement {
     messages,
     messagesRef,
     messagesContentRef,
+    scrollKey: currentSessionId,
   });
   const isInitialHistoryLoading = !isHistoryLoaded && messages.length === 0;
   const attachmentLimitMessage = t("chatPanel.alerts.attachmentLimit", {
@@ -280,7 +281,7 @@ export function ChatPanel(props: Props): ReactElement {
         </div>
       </div>
 
-      <div className="chat-messages" ref={messagesRef} onScroll={handleMessagesScroll}>
+      <div className="chat-messages" ref={messagesRef} onScroll={handleMessagesScroll} data-testid="chat-messages">
         <div className="chat-messages-content" ref={messagesContentRef}>
           {isInitialHistoryLoading ? (
             <div className="chat-empty chat-empty-loading" aria-live="polite">
