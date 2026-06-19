@@ -15,6 +15,7 @@ enum UITestIdentifier {
     static let cloudCredentialRecoveryGateEraseButton: String = "cloudCredentialRecoveryGate.eraseButton"
     static let cloudCredentialRecoveryGateEraseProgress: String = "cloudCredentialRecoveryGate.eraseProgress"
     static let rootTabReviewItem: String = "rootTab.review.item"
+    static let rootTabReviewReminderBadge: String = "rootTab.review.reminderBadge"
     static let rootTabAIItem: String = "rootTab.ai.item"
     static let rootTabProgressItem: String = "rootTab.progress.item"
     static let rootTabCardsItem: String = "rootTab.cards.item"

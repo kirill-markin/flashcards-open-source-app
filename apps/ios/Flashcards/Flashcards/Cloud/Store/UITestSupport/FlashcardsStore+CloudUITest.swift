@@ -5,13 +5,14 @@ private let marketingScreenshotLocalizationEnvironmentKey: String = "FLASHCARDS_
 enum FlashcardsUITestLaunchScenario: String {
     case guestEmptyWorkspace = "guest_empty_workspace"
     case guestManualReviewCard = "guest_manual_review_card"
+    case guestManualReviewCardWithReminderAttention = "guest_manual_review_card_with_reminder_attention"
     case guestAIReviewCard = "guest_ai_review_card"
     case marketingScreenshots = "marketing_screenshots"
     case marketingGuestSessionCleanup = "marketing_guest_session_cleanup"
 
     var requiresGuestCloudBootstrap: Bool {
         switch self {
-        case .guestEmptyWorkspace, .guestManualReviewCard, .guestAIReviewCard:
+        case .guestEmptyWorkspace, .guestManualReviewCard, .guestManualReviewCardWithReminderAttention, .guestAIReviewCard:
             return false
         case .marketingScreenshots:
             return true
@@ -24,7 +25,7 @@ enum FlashcardsUITestLaunchScenario: String {
         switch self {
         case .marketingScreenshots, .marketingGuestSessionCleanup:
             return true
-        case .guestEmptyWorkspace, .guestManualReviewCard, .guestAIReviewCard:
+        case .guestEmptyWorkspace, .guestManualReviewCard, .guestManualReviewCardWithReminderAttention, .guestAIReviewCard:
             return false
         }
     }
@@ -646,6 +647,13 @@ extension FlashcardsStore {
             return
         case .guestManualReviewCard:
             try self.createUITestCard(card: FlashcardsUITestLaunchScenarioData.manualReviewCard, context: context)
+        case .guestManualReviewCardWithReminderAttention:
+            try self.createUITestCard(card: FlashcardsUITestLaunchScenarioData.manualReviewCard, context: context)
+            self.markReviewReminderAttention(
+                workspaceId: context.workspaceId,
+                requestId: "ui-test-review-reminder-attention",
+                deliveredAtMillis: epochMillis(date: Date())
+            )
         case .guestAIReviewCard:
             try self.createUITestCard(card: FlashcardsUITestLaunchScenarioData.aiReviewCard, context: context)
         case .marketingScreenshots:

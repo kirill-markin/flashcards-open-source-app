@@ -1,5 +1,8 @@
+import Foundation
 import StoreKit
 import SwiftUI
+
+private let rootTabUITestLaunchScenarioEnvironmentKey: String = "FLASHCARDS_UI_TEST_LAUNCH_SCENARIO"
 
 private struct StoreReviewRequestTaskID: Hashable {
     let isSceneActive: Bool
@@ -68,6 +71,10 @@ struct RootTabView: View {
             state: store.reviewReminderAttentionState,
             workspaceId: store.workspace?.workspaceId
         ) ? 1 : 0
+    }
+
+    private var shouldExposeReviewReminderAttentionBadgeMarker: Bool {
+        ProcessInfo.processInfo.environment[rootTabUITestLaunchScenarioEnvironmentKey] != nil
     }
 
     private var guestSignInAfterReviewPromptPresentation: Binding<Bool> {
@@ -467,6 +474,9 @@ struct RootTabView: View {
     private var reviewTab: some View {
         NavigationStack {
             ReviewView()
+                .overlay(alignment: .topLeading) {
+                    self.reviewReminderAttentionBadgeMarker
+                }
         }
         .tabItem {
             Label(
@@ -481,6 +491,18 @@ struct RootTabView: View {
         }
         .badge(self.reviewReminderAttentionBadgeCount)
         .tag(AppTab.review)
+    }
+
+    @ViewBuilder
+    private var reviewReminderAttentionBadgeMarker: some View {
+        if self.shouldExposeReviewReminderAttentionBadgeMarker && self.reviewReminderAttentionBadgeCount > 0 {
+            Color.clear
+                .frame(width: 1, height: 1)
+                .allowsHitTesting(false)
+                .accessibilityElement(children: .ignore)
+                .accessibilityIdentifier(UITestIdentifier.rootTabReviewReminderBadge)
+                .accessibilityValue(String(self.reviewReminderAttentionBadgeCount))
+        }
     }
 
     private var progressTab: some View {
