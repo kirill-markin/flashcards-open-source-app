@@ -81,6 +81,25 @@ const deCatalog: TranslationCatalog = {
   shell: {
     primaryNavigation: "Primäre Navigation",
   },
+  appError: {
+    technicalError: {
+      title: "Etwas ist schiefgelaufen",
+      message: "Ein technischer Fehler ist aufgetreten. Versuche es erneut oder starte die App neu.",
+      detailsToggle: "Technische Details",
+      close: "Schließen",
+      labels: {
+        name: "Name",
+        message: "Meldung",
+        endpoint: "Endpunkt",
+        requestId: "Anfrage-ID",
+        statusCode: "Statuscode",
+        code: "Code",
+        bodyKind: "Body-Typ",
+        attemptCount: "Anzahl der Versuche",
+        originalErrorName: "Ursprünglicher Fehler",
+      },
+    },
+  },
   filters: {
     allCards: "Alle Karten",
     and: "UND",
@@ -388,6 +407,11 @@ const deCatalog: TranslationCatalog = {
       screenSubtitle: "Spiele Wiederholungsreaktions-Varianten direkt ab.",
       probability: "{{percent}} Wahrscheinlichkeit",
       playAccessibility: "Animation {{variant}} abspielen, {{probability}}",
+    },
+    technicalError: {
+      title: "Dialog für technischen Fehler",
+      description: "Zeige eine Vorschau des gemeinsamen Dialogs für technische Fehler.",
+      value: "Vorschau",
     },
   },
   settingsWorkspace: {
