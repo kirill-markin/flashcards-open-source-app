@@ -84,7 +84,9 @@ import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersReconcileTrigger
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncSource
+import com.flashcardsopensourceapp.core.ui.AppTechnicalError
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
+import com.flashcardsopensourceapp.core.ui.components.AppTechnicalErrorDialog
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
 import com.flashcardsopensourceapp.feature.review.reaction.rememberReviewReactionLottieConfigurationStore
 import com.flashcardsopensourceapp.feature.settings.SettingsAttentionBadge
@@ -132,6 +134,19 @@ fun FlashcardsApp(
                 snackbarHostState.showSnackbar(message = message)
             }
         }
+        val activeTechnicalError by appGraph.appMessageBus.activeTechnicalError.collectAsStateWithLifecycle()
+        val activeTechnicalErrorPreview by appGraph.testTechnicalErrorDialogPreviewController
+            .activePreviewTechnicalError
+            .collectAsStateWithLifecycle()
+        val displayedTechnicalError: AppTechnicalError? = activeTechnicalError ?: activeTechnicalErrorPreview
+        val dismissDisplayedTechnicalError: () -> Unit = {
+            if (activeTechnicalError != null) {
+                appGraph.appMessageBus.dismissTechnicalError()
+                appGraph.testTechnicalErrorDialogPreviewController.dismissTestPreview()
+            } else {
+                appGraph.testTechnicalErrorDialogPreviewController.dismissTestPreview()
+            }
+        }
 
         val cloudCredentialRecoveryState by appGraph.cloudAccountRepository
             .observeCloudCredentialRecoveryState()
@@ -167,6 +182,10 @@ fun FlashcardsApp(
                     modifier = Modifier
                         .align(alignment = Alignment.BottomCenter)
                         .padding(horizontal = 16.dp, vertical = 24.dp)
+                )
+                AppTechnicalErrorDialogHost(
+                    error = displayedTechnicalError,
+                    onDismiss = dismissDisplayedTechnicalError
                 )
             }
             return@FlashcardsTheme
@@ -265,7 +284,8 @@ fun FlashcardsApp(
             isAuthFlowActive = isGuestSignInAfterReviewPromptAuthRoute(route = currentRoute),
             isAppModalActive = isGuestSignInAfterReviewPromptModalActive(
                 accountDeletionState = accountDeletionState,
-                isFeedbackPromptVisible = feedbackPromptUiState.isVisible
+                isFeedbackPromptVisible = feedbackPromptUiState.isVisible,
+                isTechnicalErrorVisible = displayedTechnicalError != null
             )
         )
         val feedbackPromptContext = FeedbackPromptContext(
@@ -273,7 +293,8 @@ fun FlashcardsApp(
             isAuthFlowActive = isFeedbackPromptAuthRoute(route = currentRoute),
             isAppModalActive = isFeedbackPromptModalActive(
                 accountDeletionState = accountDeletionState,
-                isGuestSignInAfterReviewPromptVisible = guestSignInAfterReviewPromptUiState.isVisible
+                isGuestSignInAfterReviewPromptVisible = guestSignInAfterReviewPromptUiState.isVisible,
+                isTechnicalErrorVisible = displayedTechnicalError != null
             )
         )
 
@@ -582,6 +603,10 @@ fun FlashcardsApp(
                         onDismiss = appGraph.feedbackPromptController::dismiss
                     )
                 }
+                AppTechnicalErrorDialogHost(
+                    error = displayedTechnicalError,
+                    onDismiss = dismissDisplayedTechnicalError
+                )
             }
         }
     }
@@ -647,9 +672,12 @@ private fun isGuestSignInAfterReviewPromptAuthRoute(route: String?): Boolean {
 
 private fun isGuestSignInAfterReviewPromptModalActive(
     accountDeletionState: AccountDeletionState,
-    isFeedbackPromptVisible: Boolean
+    isFeedbackPromptVisible: Boolean,
+    isTechnicalErrorVisible: Boolean
 ): Boolean {
-    return accountDeletionState != AccountDeletionState.Hidden || isFeedbackPromptVisible
+    return accountDeletionState != AccountDeletionState.Hidden ||
+        isFeedbackPromptVisible ||
+        isTechnicalErrorVisible
 }
 
 private fun isFeedbackPromptAuthRoute(route: String?): Boolean {
@@ -658,9 +686,27 @@ private fun isFeedbackPromptAuthRoute(route: String?): Boolean {
 
 private fun isFeedbackPromptModalActive(
     accountDeletionState: AccountDeletionState,
-    isGuestSignInAfterReviewPromptVisible: Boolean
+    isGuestSignInAfterReviewPromptVisible: Boolean,
+    isTechnicalErrorVisible: Boolean
 ): Boolean {
-    return accountDeletionState != AccountDeletionState.Hidden || isGuestSignInAfterReviewPromptVisible
+    return accountDeletionState != AccountDeletionState.Hidden ||
+        isGuestSignInAfterReviewPromptVisible ||
+        isTechnicalErrorVisible
+}
+
+@Composable
+private fun AppTechnicalErrorDialogHost(
+    error: AppTechnicalError?,
+    onDismiss: () -> Unit
+) {
+    val activeError = error ?: return
+    AppTechnicalErrorDialog(
+        error = activeError,
+        showDetailsLabel = stringResource(id = R.string.technical_error_dialog_show_details),
+        hideDetailsLabel = stringResource(id = R.string.technical_error_dialog_hide_details),
+        dismissLabel = stringResource(id = R.string.technical_error_dialog_close),
+        onDismiss = onDismiss
+    )
 }
 
 @Composable

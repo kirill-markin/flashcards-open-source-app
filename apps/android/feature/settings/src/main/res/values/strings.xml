@@ -83,7 +83,7 @@
     <string name="settings_root_feedback_title">Send feedback</string>
     <string name="settings_root_feedback_summary">Share an idea to improve the app</string>
     <string name="settings_root_test_title">Test</string>
-    <string name="settings_root_test_summary">2 items</string>
+    <string name="settings_root_test_summary">3 items</string>
     <string name="settings_review_reminders_title">Reminders</string>
     <string name="settings_review_reminders_summary">Workspace reminders and streak reminders</string>
     <string name="settings_review_animations_title">Review Animations</string>
@@ -120,6 +120,8 @@
     <string name="settings_test_tools_section">Tools</string>
     <string name="settings_test_animations_title">Animations</string>
     <string name="settings_test_animations_summary">38 items</string>
+    <string name="settings_test_technical_error_title">Technical error dialog</string>
+    <string name="settings_test_technical_error_summary">Preview the shared technical-error dialog</string>
     <string name="settings_test_notification_diagnostics_title">Notification diagnostics</string>
     <string name="settings_test_notification_diagnostics_summary">Read-only Android reminder state</string>
     <string name="settings_notification_diagnostics_title">Notification diagnostics</string>

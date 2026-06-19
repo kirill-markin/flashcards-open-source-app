@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
@@ -21,6 +22,7 @@ import com.flashcardsopensourceapp.core.ui.components.SectionTitle
 @Composable
 fun TestSettingsRoute(
     onOpenAnimations: () -> Unit,
+    onShowTechnicalErrorDialogPreview: () -> Unit,
     onOpenNotificationDiagnostics: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -58,6 +60,28 @@ fun TestSettingsRoute(
                         modifier = Modifier
                             .testTag(tag = testSettingsAnimationsRowTag)
                             .clickable(onClick = onOpenAnimations)
+                    )
+                }
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    ListItem(
+                        headlineContent = {
+                            Text(stringResource(R.string.settings_test_technical_error_title))
+                        },
+                        supportingContent = {
+                            Text(stringResource(R.string.settings_test_technical_error_summary))
+                        },
+                        leadingContent = {
+                            Icon(
+                                imageVector = Icons.Outlined.BugReport,
+                                contentDescription = null
+                            )
+                        },
+                        modifier = Modifier
+                            .testTag(tag = testSettingsTechnicalErrorRowTag)
+                            .clickable(onClick = onShowTechnicalErrorDialogPreview)
                     )
                 }
             }
