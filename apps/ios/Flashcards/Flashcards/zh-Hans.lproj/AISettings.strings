@@ -133,8 +133,7 @@
 "settings.section.advanced" = "高级";
 "settings.row.accountStatus" = "账户状态";
 "settings.row.currentWorkspace" = "工作空间";
-"settings.row.reviewReminders" = "复习提醒";
-"settings.row.reviewReminders.value" = "本设备";
+"settings.row.reviewReminders" = "提醒";
 "settings.row.reviewAnimations" = "复习动画";
 "settings.row.leaderboardParticipation" = "排行榜参与";
 "settings.row.language" = "语言";
@@ -243,6 +242,8 @@
 "settings.test.animations.title" = "动画";
 "settings.test.animations.probability" = "%@ 概率";
 "settings.test.animations.playAccessibility" = "播放 %@ 动画，%@";
+"settings.test.technicalErrorPreview" = "技术错误预览";
+"settings.test.technicalErrorPreview.value" = "预览表单";
 "settings.test.storeReviewPromptReset" = "重置 App Store 评论提示";
 "settings.test.storeReviewPromptReset.value" = "本地状态";
 "settings.test.notificationDiagnostics" = "通知诊断";
@@ -561,8 +562,8 @@
 "settings.notifications.title" = "通知";
 "settings.notifications.description" = "学习提醒保留在此设备上，只包含卡片，绝不包含营销内容。";
 "settings.notifications.section.permission" = "权限";
-"settings.notifications.section.reviewReminders" = "工作区复习提醒";
-"settings.notifications.reviewReminders.description" = "这些提醒只使用当前工作区，并且仅保留在此设备上。";
+"settings.notifications.section.reviewReminders" = "工作区提醒";
+"settings.notifications.reviewReminders.description" = "这些提醒仅使用当前工作区。";
 "settings.notifications.enableWorkspaceReminders" = "启用工作区提醒";
 "settings.notifications.appIconBadge.toggle" = "在应用图标上显示徽章";
 "settings.notifications.appIconBadge.description" = "当提醒到达且你今天还未复习时，在应用图标上显示红色 1。打开应用会清除已送达的复习提醒；徽章会在复习后或关闭此开关后清除。";
@@ -570,7 +571,6 @@
 "settings.notifications.section.strictReminders" = "连续记录提醒";
 "settings.notifications.enableStrictReminders" = "启用连续记录提醒";
 "settings.notifications.strictReminders.description" = "如果你今天还未复习，Flashcards 会在午夜前 4、3、2 小时提醒你，帮助你保持连续记录。";
-"settings.notifications.strictReminders.deviceNote" = "在此设备上的整个应用中生效。";
 "settings.notifications.section.dailyReminder" = "每日提醒";
 "settings.notifications.section.inactivityReminder" = "卡片提醒";
 "settings.notifications.permission.allowed" = "允许";

@@ -133,8 +133,7 @@
 "settings.section.advanced" = "उन्नत";
 "settings.row.accountStatus" = "खाता स्थिति";
 "settings.row.currentWorkspace" = "वर्कस्पेस";
-"settings.row.reviewReminders" = "समीक्षा रिमाइंडर";
-"settings.row.reviewReminders.value" = "यह डिवाइस";
+"settings.row.reviewReminders" = "रिमाइंडर";
 "settings.row.reviewAnimations" = "समीक्षा एनिमेशन";
 "settings.row.leaderboardParticipation" = "लीडरबोर्ड भागीदारी";
 "settings.row.language" = "भाषा";
@@ -243,6 +242,8 @@
 "settings.test.animations.title" = "ऐनिमेशन";
 "settings.test.animations.probability" = "%@ संभावना";
 "settings.test.animations.playAccessibility" = "%@ ऐनिमेशन चलाएं, %@";
+"settings.test.technicalErrorPreview" = "तकनीकी त्रुटि पूर्वावलोकन";
+"settings.test.technicalErrorPreview.value" = "पूर्वावलोकन शीट";
 "settings.test.storeReviewPromptReset" = "App Store समीक्षा प्रॉम्प्ट रीसेट करें";
 "settings.test.storeReviewPromptReset.value" = "स्थानीय स्थिति";
 "settings.test.notificationDiagnostics" = "सूचना निदान";
@@ -561,8 +562,8 @@
 "settings.notifications.title" = "सूचनाएं";
 "settings.notifications.description" = "स्टडी रिमाइंडर इस डिवाइस पर रहते हैं और उनमें सिर्फ कार्ड होते हैं, मार्केटिंग कभी नहीं।";
 "settings.notifications.section.permission" = "अनुमति";
-"settings.notifications.section.reviewReminders" = "वर्कस्पेस रिव्यू रिमाइंडर";
-"settings.notifications.reviewReminders.description" = "ये रिमाइंडर केवल मौजूदा वर्कस्पेस का उपयोग करते हैं और इसी डिवाइस पर रहते हैं।";
+"settings.notifications.section.reviewReminders" = "वर्कस्पेस रिमाइंडर";
+"settings.notifications.reviewReminders.description" = "ये रिमाइंडर केवल मौजूदा वर्कस्पेस का उपयोग करते हैं।";
 "settings.notifications.enableWorkspaceReminders" = "वर्कस्पेस रिमाइंडर चालू करें";
 "settings.notifications.appIconBadge.toggle" = "ऐप आइकन बैज दिखाएं";
 "settings.notifications.appIconBadge.description" = "जब रिमाइंडर आए और आपने आज रिव्यू नहीं किया हो, तो ऐप आइकन पर लाल 1 दिखाएं। ऐप खोलने पर डिलीवर हुए रिव्यू रिमाइंडर साफ हो जाते हैं; बैज रिव्यू करने या इसे बंद करने के बाद हटता है।";
@@ -570,7 +571,6 @@
 "settings.notifications.section.strictReminders" = "स्ट्रीक रिमाइंडर";
 "settings.notifications.enableStrictReminders" = "स्ट्रीक रिमाइंडर चालू करें";
 "settings.notifications.strictReminders.description" = "अगर आपने आज रिव्यू नहीं किया है, तो Flashcards आधी रात से 4, 3 और 2 घंटे पहले याद दिलाता है ताकि आपकी स्ट्रीक बनी रहे।";
-"settings.notifications.strictReminders.deviceNote" = "इस डिवाइस पर पूरे ऐप में काम करता है।";
 "settings.notifications.section.dailyReminder" = "दैनिक अनुस्मारक";
 "settings.notifications.section.inactivityReminder" = "कार्ड रिमाइंडर";
 "settings.notifications.permission.allowed" = "अनुमति है";

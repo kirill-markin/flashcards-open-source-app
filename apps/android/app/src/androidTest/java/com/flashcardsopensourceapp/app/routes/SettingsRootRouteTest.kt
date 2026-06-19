@@ -17,6 +17,7 @@ import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
 import com.flashcardsopensourceapp.feature.settings.SettingsFriendInviteAvailability
 import com.flashcardsopensourceapp.feature.settings.SettingsRoute
 import com.flashcardsopensourceapp.feature.settings.SettingsUiState
+import com.flashcardsopensourceapp.feature.settings.TestSettingsRoute
 import com.flashcardsopensourceapp.feature.settings.settingsAccessRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsAccountStatusRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsAgentConnectionsRowTag
@@ -45,6 +46,9 @@ import com.flashcardsopensourceapp.feature.settings.settingsSupportSectionTag
 import com.flashcardsopensourceapp.feature.settings.settingsSupportRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsTagsRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsTestRowTag
+import com.flashcardsopensourceapp.feature.settings.testSettingsAnimationsRowTag
+import com.flashcardsopensourceapp.feature.settings.testSettingsNotificationDiagnosticsRowTag
+import com.flashcardsopensourceapp.feature.settings.testSettingsScreenTag
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -187,6 +191,35 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         assertRowClick(
             rowTag = settingsTestRowTag,
             expectedClick = "test",
+            clickedRows = clickedRows
+        )
+    }
+
+    @Test
+    fun testSettingsRowsOpenDiagnosticTools() {
+        val clickedRows = mutableListOf<String>()
+
+        composeRule.setContent {
+            FlashcardsTheme {
+                TestSettingsRoute(
+                    onOpenAnimations = {
+                        clickedRows += "animations"
+                    },
+                    onOpenNotificationDiagnostics = {
+                        clickedRows += "notification_diagnostics"
+                    },
+                    onBack = {
+                        clickedRows += "back"
+                    }
+                )
+            }
+        }
+
+        assertTestSettingsRowVisible(rowTag = testSettingsAnimationsRowTag)
+        assertTestSettingsRowVisible(rowTag = testSettingsNotificationDiagnosticsRowTag)
+        assertTestSettingsRowClick(
+            rowTag = testSettingsNotificationDiagnosticsRowTag,
+            expectedClick = "notification_diagnostics",
             clickedRows = clickedRows
         )
     }
@@ -342,6 +375,22 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         clickedRows: MutableList<String>
     ) {
         assertRootRowVisible(rowTag = rowTag)
+        composeRule.onNodeWithTag(rowTag).performClick()
+        assertEquals(expectedClick, clickedRows.last())
+    }
+
+    private fun assertTestSettingsRowVisible(rowTag: String) {
+        composeRule.onNodeWithTag(testTag = testSettingsScreenTag)
+            .performScrollToNode(matcher = hasTestTag(rowTag))
+        composeRule.onNodeWithTag(rowTag).assertIsDisplayed()
+    }
+
+    private fun assertTestSettingsRowClick(
+        rowTag: String,
+        expectedClick: String,
+        clickedRows: MutableList<String>
+    ) {
+        assertTestSettingsRowVisible(rowTag = rowTag)
         composeRule.onNodeWithTag(rowTag).performClick()
         assertEquals(expectedClick, clickedRows.last())
     }

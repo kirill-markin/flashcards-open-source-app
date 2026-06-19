@@ -133,8 +133,7 @@
 "settings.section.advanced" = "詳細";
 "settings.row.accountStatus" = "アカウント状態";
 "settings.row.currentWorkspace" = "ワークスペース";
-"settings.row.reviewReminders" = "復習リマインダー";
-"settings.row.reviewReminders.value" = "このデバイス";
+"settings.row.reviewReminders" = "リマインダー";
 "settings.row.reviewAnimations" = "復習アニメーション";
 "settings.row.leaderboardParticipation" = "リーダーボード参加";
 "settings.row.language" = "言語";
@@ -163,7 +162,7 @@
 "settings.row.access.itemCount" = "4 アイテム";
 "settings.section.test" = "テスト";
 "settings.row.test" = "テスト";
-"settings.row.test.itemCount" = "3件";
+"settings.row.test.itemCount" = "3項目";
 "settings.currentWorkspace.section.rename" = "名前を変更";
 "settings.currentWorkspace.renameLinkedOnly" = "ワークスペース名の変更は、リンク済みのクラウドワークスペースでのみ利用できます。";
 "settings.reviewAnimations.title" = "復習アニメーション";
@@ -243,6 +242,8 @@
 "settings.test.animations.title" = "アニメーション";
 "settings.test.animations.probability" = "確率 %@";
 "settings.test.animations.playAccessibility" = "%@ のアニメーションを再生、%@";
+"settings.test.technicalErrorPreview" = "技術エラーのプレビュー";
+"settings.test.technicalErrorPreview.value" = "プレビューシート";
 "settings.test.storeReviewPromptReset" = "App Storeレビューのプロンプトをリセット";
 "settings.test.storeReviewPromptReset.value" = "ローカル状態";
 "settings.test.notificationDiagnostics" = "通知診断";
@@ -561,8 +562,8 @@
 "settings.notifications.title" = "通知";
 "settings.notifications.description" = "学習リマインダーはこのデバイス上に残り、カードだけを含み、マーケティングは含みません。";
 "settings.notifications.section.permission" = "許可";
-"settings.notifications.section.reviewReminders" = "ワークスペースの復習リマインダー";
-"settings.notifications.reviewReminders.description" = "これらのリマインダーは現在のワークスペースだけを使い、このデバイスに保存されます。";
+"settings.notifications.section.reviewReminders" = "ワークスペースのリマインダー";
+"settings.notifications.reviewReminders.description" = "これらのリマインダーは現在のワークスペースだけを使います。";
 "settings.notifications.enableWorkspaceReminders" = "ワークスペースのリマインダーを有効にする";
 "settings.notifications.appIconBadge.toggle" = "アプリアイコンにバッジを表示";
 "settings.notifications.appIconBadge.description" = "リマインダーが届き、今日まだ復習していない場合、アプリアイコンに赤い 1 を表示します。アプリを開くと配信済みの復習リマインダーは消えます。バッジは復習後、またはこれをオフにすると消えます。";
@@ -570,7 +571,6 @@
 "settings.notifications.section.strictReminders" = "ストリークリマインダー";
 "settings.notifications.enableStrictReminders" = "ストリークリマインダーを有効にする";
 "settings.notifications.strictReminders.description" = "今日まだ復習していない場合、連続記録を保てるように、Flashcards が午前0時の4、3、2時間前に通知します。";
-"settings.notifications.strictReminders.deviceNote" = "このデバイス上でアプリ全体に適用されます。";
 "settings.notifications.section.dailyReminder" = "毎日のリマインダー";
 "settings.notifications.section.inactivityReminder" = "カードリマインダー";
 "settings.notifications.permission.allowed" = "許可";

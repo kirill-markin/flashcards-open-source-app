@@ -33,6 +33,24 @@ struct TestSettingsView: View {
                 .accessibilityIdentifier(UITestIdentifier.testSettingsNotificationDiagnosticsRow)
 
                 Button {
+                    store.presentTechnicalErrorPreview()
+                } label: {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized(
+                            "settings.test.technicalErrorPreview",
+                            "Technical error preview"
+                        ),
+                        value: aiSettingsLocalized(
+                            "settings.test.technicalErrorPreview.value",
+                            "Preview sheet"
+                        ),
+                        systemImage: "exclamationmark.triangle",
+                        attentionCount: nil
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.testSettingsTechnicalErrorPreviewRow)
+
+                Button {
                     store.clearStoreReviewPromptStateForTests()
                 } label: {
                     SettingsNavigationRow(

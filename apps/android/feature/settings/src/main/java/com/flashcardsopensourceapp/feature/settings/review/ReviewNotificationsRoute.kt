@@ -23,6 +23,11 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -30,6 +35,9 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationMode
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsScreenScaffold
@@ -60,15 +68,35 @@ fun ReviewNotificationsRoute(
 ) {
     val context = LocalContext.current
     val activity = context as? ComponentActivity
-    val permissionStatus = when {
-        activity == null -> ReviewNotificationPermissionUiStatus.BLOCKED
-        hasNotificationPermission(context = context) -> ReviewNotificationPermissionUiStatus.ALLOWED
-        uiState.hasRequestedSystemPermission -> ReviewNotificationPermissionUiStatus.BLOCKED
-        else -> ReviewNotificationPermissionUiStatus.NOT_REQUESTED
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var permissionRefreshVersion by remember {
+        mutableStateOf(value = 0)
+    }
+    val permissionStatus = if (activity == null) {
+        ReviewNotificationPermissionUiStatus.BLOCKED
+    } else {
+        permissionRefreshVersion
+        when {
+            hasNotificationPermission(context = context) -> ReviewNotificationPermissionUiStatus.ALLOWED
+            uiState.hasRequestedSystemPermission -> ReviewNotificationPermissionUiStatus.BLOCKED
+            else -> ReviewNotificationPermissionUiStatus.NOT_REQUESTED
+        }
+    }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                permissionRefreshVersion += 1
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
+        permissionRefreshVersion += 1
         if (isGranted) {
             onPermissionGranted()
         }
@@ -123,167 +151,165 @@ fun ReviewNotificationsRoute(
                 }
             }
 
-            item {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column {
-                        ListItem(
-                            headlineContent = {
-                                Text(stringResource(R.string.settings_notifications_reminders_title))
-                            },
-                            supportingContent = {
-                                Text(stringResource(R.string.settings_notifications_reminders_body))
-                            },
-                            trailingContent = {
-                                Switch(
-                                    checked = uiState.settings.isEnabled,
-                                    onCheckedChange = onUpdateEnabled
+            if (permissionStatus == ReviewNotificationPermissionUiStatus.ALLOWED) {
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column {
+                            ListItem(
+                                headlineContent = {
+                                    Text(stringResource(R.string.settings_notifications_reminders_title))
+                                },
+                                supportingContent = {
+                                    Text(stringResource(R.string.settings_notifications_reminders_body))
+                                },
+                                trailingContent = {
+                                    Switch(
+                                        checked = uiState.settings.isEnabled,
+                                        onCheckedChange = onUpdateEnabled
+                                    )
+                                }
+                            )
+
+                            if (uiState.settings.selectedMode == ReviewNotificationMode.DAILY) {
+                                ReviewNotificationModeSelector(
+                                    selectedMode = uiState.settings.selectedMode,
+                                    onUpdateMode = onUpdateMode
                                 )
-                            }
-                        )
 
-                        if (uiState.settings.selectedMode == ReviewNotificationMode.DAILY) {
-                            ReviewNotificationModeSelector(
-                                selectedMode = uiState.settings.selectedMode,
-                                onUpdateMode = onUpdateMode
-                            )
+                                ListItem(
+                                    headlineContent = {
+                                        Text(stringResource(R.string.settings_notifications_daily_title))
+                                    },
+                                    supportingContent = {
+                                        Text(stringResource(R.string.settings_notifications_daily_example))
+                                    },
+                                    trailingContent = {
+                                        TimeValueStepper(
+                                            hour = uiState.settings.daily.hour,
+                                            minute = uiState.settings.daily.minute,
+                                            onValueChange = onUpdateDailyTime
+                                        )
+                                    }
+                                )
+                            } else {
+                                ReviewNotificationModeSelector(
+                                    selectedMode = uiState.settings.selectedMode,
+                                    onUpdateMode = onUpdateMode
+                                )
 
-                            ListItem(
-                                headlineContent = {
-                                    Text(stringResource(R.string.settings_notifications_daily_title))
-                                },
-                                supportingContent = {
-                                    Text(stringResource(R.string.settings_notifications_daily_example))
-                                },
-                                trailingContent = {
-                                    TimeValueStepper(
-                                        hour = uiState.settings.daily.hour,
-                                        minute = uiState.settings.daily.minute,
-                                        onValueChange = onUpdateDailyTime
-                                    )
-                                }
-                            )
-                        } else {
-                            ReviewNotificationModeSelector(
-                                selectedMode = uiState.settings.selectedMode,
-                                onUpdateMode = onUpdateMode
-                            )
+                                ListItem(
+                                    headlineContent = {
+                                        Text(stringResource(R.string.settings_notifications_inactivity_title))
+                                    },
+                                    supportingContent = {
+                                        Text(stringResource(R.string.settings_notifications_inactivity_example))
+                                    }
+                                )
 
-                            ListItem(
-                                headlineContent = {
-                                    Text(stringResource(R.string.settings_notifications_inactivity_title))
-                                },
-                                supportingContent = {
-                                    Text(stringResource(R.string.settings_notifications_inactivity_example))
-                                }
-                            )
+                                ListItem(
+                                    headlineContent = {
+                                        Text(stringResource(R.string.settings_notifications_from_title))
+                                    },
+                                    trailingContent = {
+                                        TimeValueStepper(
+                                            hour = uiState.settings.inactivity.windowStartHour,
+                                            minute = uiState.settings.inactivity.windowStartMinute,
+                                            onValueChange = onUpdateInactivityWindowStart
+                                        )
+                                    }
+                                )
 
-                            ListItem(
-                                headlineContent = {
-                                    Text(stringResource(R.string.settings_notifications_from_title))
-                                },
-                                trailingContent = {
-                                    TimeValueStepper(
-                                        hour = uiState.settings.inactivity.windowStartHour,
-                                        minute = uiState.settings.inactivity.windowStartMinute,
-                                        onValueChange = onUpdateInactivityWindowStart
-                                    )
-                                }
-                            )
+                                ListItem(
+                                    headlineContent = {
+                                        Text(stringResource(R.string.settings_notifications_to_title))
+                                    },
+                                    trailingContent = {
+                                        TimeValueStepper(
+                                            hour = uiState.settings.inactivity.windowEndHour,
+                                            minute = uiState.settings.inactivity.windowEndMinute,
+                                            onValueChange = onUpdateInactivityWindowEnd
+                                        )
+                                    }
+                                )
 
-                            ListItem(
-                                headlineContent = {
-                                    Text(stringResource(R.string.settings_notifications_to_title))
-                                },
-                                trailingContent = {
-                                    TimeValueStepper(
-                                        hour = uiState.settings.inactivity.windowEndHour,
-                                        minute = uiState.settings.inactivity.windowEndMinute,
-                                        onValueChange = onUpdateInactivityWindowEnd
-                                    )
-                                }
-                            )
-
-                            ListItem(
-                                headlineContent = {
-                                    Text(stringResource(R.string.settings_notifications_remind_after_title))
-                                },
-                                trailingContent = {
-                                    SingleChoiceSegmentedButtonRow {
-                                        listOf(60, 120, 180).forEachIndexed { index, value ->
-                                            SegmentedButton(
-                                                selected = uiState.settings.inactivity.idleMinutes == value,
-                                                onClick = {
-                                                    onUpdateIdleMinutes(value)
-                                                },
-                                                shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(
-                                                    index = index,
-                                                    count = 3
-                                                ),
-                                                label = {
-                                                    Text(idleMinutesLabel(minutes = value))
-                                                }
-                                            )
+                                ListItem(
+                                    headlineContent = {
+                                        Text(stringResource(R.string.settings_notifications_remind_after_title))
+                                    },
+                                    trailingContent = {
+                                        SingleChoiceSegmentedButtonRow {
+                                            listOf(60, 120, 180).forEachIndexed { index, value ->
+                                                SegmentedButton(
+                                                    selected = uiState.settings.inactivity.idleMinutes == value,
+                                                    onClick = {
+                                                        onUpdateIdleMinutes(value)
+                                                    },
+                                                    shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(
+                                                        index = index,
+                                                        count = 3
+                                                    ),
+                                                    label = {
+                                                        Text(idleMinutesLabel(minutes = value))
+                                                    }
+                                                )
+                                            }
                                         }
                                     }
-                                }
-                            )
+                                )
+                            }
                         }
                     }
                 }
-            }
 
-            item {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    ListItem(
-                        headlineContent = {
-                            Text(stringResource(R.string.settings_notifications_show_app_icon_badge_title))
-                        },
-                        supportingContent = {
-                            Text(stringResource(R.string.settings_notifications_show_app_icon_badge_body))
-                        },
-                        trailingContent = {
-                            Switch(
-                                checked = uiState.settings.showAppIconBadge,
-                                onCheckedChange = onUpdateShowAppIconBadge
-                            )
-                        }
-                    )
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        ListItem(
+                            headlineContent = {
+                                Text(stringResource(R.string.settings_notifications_show_app_icon_badge_title))
+                            },
+                            supportingContent = {
+                                Text(stringResource(R.string.settings_notifications_show_app_icon_badge_body))
+                            },
+                            trailingContent = {
+                                Switch(
+                                    checked = uiState.settings.showAppIconBadge,
+                                    onCheckedChange = onUpdateShowAppIconBadge
+                                )
+                            }
+                        )
+                    }
                 }
-            }
 
-            item {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    ListItem(
-                        headlineContent = {
-                            Text(stringResource(R.string.settings_notifications_strict_reminders_title))
-                        },
-                        supportingContent = {
-                            Text(
-                                stringResource(R.string.settings_notifications_strict_reminders_body) +
-                                    "\n\n" +
-                                    stringResource(R.string.settings_notifications_strict_reminders_device_note)
-                            )
-                        },
-                        trailingContent = {
-                            Switch(
-                                checked = uiState.strictRemindersSettings.isEnabled,
-                                onCheckedChange = onUpdateStrictRemindersEnabled
-                            )
-                        }
-                    )
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        ListItem(
+                            headlineContent = {
+                                Text(stringResource(R.string.settings_notifications_strict_reminders_title))
+                            },
+                            supportingContent = {
+                                Text(stringResource(R.string.settings_notifications_strict_reminders_body))
+                            },
+                            trailingContent = {
+                                Switch(
+                                    checked = uiState.strictRemindersSettings.isEnabled,
+                                    onCheckedChange = onUpdateStrictRemindersEnabled
+                                )
+                            }
+                        )
+                    }
                 }
-            }
 
-            item {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    ListItem(
-                        headlineContent = {
-                            Text(stringResource(R.string.settings_notifications_this_device_title))
-                        },
-                        supportingContent = {
-                            Text(stringResource(R.string.settings_notifications_this_device_body))
-                        }
-                    )
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        ListItem(
+                            headlineContent = {
+                                Text(stringResource(R.string.settings_notifications_this_device_title))
+                            },
+                            supportingContent = {
+                                Text(stringResource(R.string.settings_notifications_this_device_body))
+                            }
+                        )
+                    }
                 }
             }
         }

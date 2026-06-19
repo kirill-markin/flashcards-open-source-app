@@ -133,8 +133,7 @@
 "settings.section.advanced" = "متقدم";
 "settings.row.accountStatus" = "حالة الحساب";
 "settings.row.currentWorkspace" = "مساحة العمل";
-"settings.row.reviewReminders" = "تذكيرات المراجعة";
-"settings.row.reviewReminders.value" = "هذا الجهاز";
+"settings.row.reviewReminders" = "التذكيرات";
 "settings.row.reviewAnimations" = "رسوم المراجعة المتحركة";
 "settings.row.leaderboardParticipation" = "المشاركة في لوحة الصدارة";
 "settings.row.language" = "اللغة";
@@ -243,6 +242,8 @@
 "settings.test.animations.title" = "الرسوم المتحركة";
 "settings.test.animations.probability" = "احتمال %@";
 "settings.test.animations.playAccessibility" = "تشغيل حركة %@، %@";
+"settings.test.technicalErrorPreview" = "معاينة الخطأ الفني";
+"settings.test.technicalErrorPreview.value" = "ورقة المعاينة";
 "settings.test.storeReviewPromptReset" = "إعادة ضبط مطالبة مراجعة App Store";
 "settings.test.storeReviewPromptReset.value" = "الحالة المحلية";
 "settings.test.notificationDiagnostics" = "تشخيص الإشعارات";
@@ -561,8 +562,8 @@
 "settings.notifications.title" = "الإخطارات";
 "settings.notifications.description" = "تبقى تذكيرات الدراسة على هذا الجهاز وتحتوي على بطاقات فقط، ولا تتضمن تسويقًا.";
 "settings.notifications.section.permission" = "إذن";
-"settings.notifications.section.reviewReminders" = "تذكيرات مراجعة مساحة العمل";
-"settings.notifications.reviewReminders.description" = "تستخدم هذه التذكيرات مساحة العمل الحالية فقط وتبقى على هذا الجهاز.";
+"settings.notifications.section.reviewReminders" = "تذكيرات مساحة العمل";
+"settings.notifications.reviewReminders.description" = "تستخدم هذه التذكيرات مساحة العمل الحالية فقط.";
 "settings.notifications.enableWorkspaceReminders" = "تفعيل تذكيرات مساحة العمل";
 "settings.notifications.appIconBadge.toggle" = "إظهار شارة أيقونة التطبيق";
 "settings.notifications.appIconBadge.description" = "أظهر رقم 1 أحمر على أيقونة التطبيق عندما يصدر تذكير ولم تراجع اليوم. فتح التطبيق يمسح تذكيرات المراجعة المسلّمة؛ وتمسح الشارة بعد أن تراجع أو توقف هذا الخيار.";
@@ -570,7 +571,6 @@
 "settings.notifications.section.strictReminders" = "تذكيرات السلسلة";
 "settings.notifications.enableStrictReminders" = "تفعيل تذكيرات السلسلة";
 "settings.notifications.strictReminders.description" = "إذا لم تراجع اليوم، يذكرك Flashcards قبل منتصف الليل بـ 4 و3 و2 ساعة كي تحافظ على سلسلتك.";
-"settings.notifications.strictReminders.deviceNote" = "تعمل في كل التطبيق على هذا الجهاز.";
 "settings.notifications.section.dailyReminder" = "تذكير يومي";
 "settings.notifications.section.inactivityReminder" = "تذكير البطاقات";
 "settings.notifications.permission.allowed" = "مسموح";
