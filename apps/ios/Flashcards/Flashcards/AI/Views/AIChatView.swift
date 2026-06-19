@@ -252,7 +252,7 @@ struct AIChatView: View {
 
     @ViewBuilder
     var bottomBarContent: some View {
-        if self.accessState == .ready && self.chatStore.isChatInteractive {
+        if self.accessState == .ready && self.chatStore.shouldShowComposerAccessory {
             self.composerAccessory
         }
     }
@@ -353,7 +353,11 @@ struct AIChatView: View {
         Group {
             switch self.chatStore.bootstrapPhase {
             case .loading:
-                self.loadingChatState
+                if self.chatStore.hasLocalTranscriptDuringBootstrap {
+                    self.chatScrollSurface
+                } else {
+                    self.loadingChatState
+                }
             case .failed:
                 self.failedChatState
             case .ready:

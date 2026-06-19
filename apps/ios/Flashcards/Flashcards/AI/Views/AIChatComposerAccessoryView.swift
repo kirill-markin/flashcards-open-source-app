@@ -147,7 +147,8 @@ extension AIChatView {
                     Button {
                         self.handlePrimaryComposerAction()
                     } label: {
-                        if self.chatStore.composerPhase == .preparingSend {
+                        if self.chatStore.bootstrapPhase == .loading
+                            || self.chatStore.composerPhase == .preparingSend {
                             ProgressView()
                                 .controlSize(.small)
                                 .frame(
@@ -166,11 +167,7 @@ extension AIChatView {
                     }
                     .buttonStyle(.plain)
                     .disabled(self.primaryComposerButtonDisabled)
-                    .accessibilityLabel(
-                        self.chatStore.canStopResponse
-                            ? aiSettingsLocalized("ai.composer.stopResponse", "Stop response")
-                            : aiSettingsLocalized("ai.composer.sendMessage", "Send message")
-                    )
+                    .accessibilityLabel(self.primaryComposerButtonAccessibilityLabel)
                     .accessibilityIdentifier(UITestIdentifier.aiComposerSendButton)
                     .padding(.trailing, aiChatComposerSendButtonInset)
                     .padding(.bottom, aiChatComposerSendButtonInset)
@@ -254,6 +251,16 @@ extension AIChatView {
 
     var primaryComposerButtonDisabled: Bool {
         self.chatStore.canStopResponse == false && self.chatStore.canSendMessage == false
+    }
+
+    var primaryComposerButtonAccessibilityLabel: String {
+        guard self.chatStore.bootstrapPhase != .loading else {
+            return aiSettingsLocalized("ai.loading.title", "Loading chat")
+        }
+
+        return self.chatStore.canStopResponse
+            ? aiSettingsLocalized("ai.composer.stopResponse", "Stop response")
+            : aiSettingsLocalized("ai.composer.sendMessage", "Send message")
     }
 
     var composerTextFieldDisabled: Bool {

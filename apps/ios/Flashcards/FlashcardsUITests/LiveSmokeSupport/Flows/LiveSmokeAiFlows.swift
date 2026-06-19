@@ -143,14 +143,14 @@ extension LiveSmokeTestCase {
     @MainActor
     func waitForAiComposerAfterConsent() throws {
         let consentButton = self.app.buttons[LiveSmokeIdentifier.aiConsentAcceptButton]
-        let composerTextField = self.app.descendants(matching: .any)
-            .matching(identifier: LiveSmokeIdentifier.aiComposerTextField)
-            .firstMatch
         let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.longUiTimeoutSeconds)
         var nextConsentRetryTapAt = Date()
 
         while Date() < deadline {
-            if consentButton.exists == false && composerTextField.exists {
+            if consentButton.exists == false {
+                _ = try self.waitForAiComposerUsable(
+                    timeout: deadline.timeIntervalSinceNow
+                )
                 return
             }
 
@@ -170,11 +170,8 @@ extension LiveSmokeTestCase {
             )
         }
 
-        throw LiveSmokeFailure.missingElement(
-            identifier: LiveSmokeIdentifier.aiComposerTextField,
-            timeoutSeconds: LiveSmokeConfiguration.longUiTimeoutSeconds,
-            screen: self.currentScreenSummary(),
-            step: self.currentStepTitle
+        _ = try self.waitForAiComposerUsable(
+            timeout: LiveSmokeConfiguration.optionalProbeTimeoutSeconds
         )
     }
 
@@ -243,7 +240,7 @@ extension LiveSmokeTestCase {
 
     @MainActor
     func replaceAiComposerText(_ text: String, timeout: TimeInterval) throws {
-        let element = self.aiComposerTextFieldElement()
+        let element = try self.waitForAiComposerUsable(timeout: timeout)
         try self.replaceTextSafely(
             text,
             inElement: element,
@@ -255,12 +252,9 @@ extension LiveSmokeTestCase {
 
     @MainActor
     func prepareAiComposerForResetConversation(timeout: TimeInterval) throws {
-        let element = self.aiComposerTextFieldElement()
-
         for _ in 1...aiResetPromptMaximumAttempts {
             try self.clearAndTypeAiComposerTextWithoutExactValueAssertion(
                 aiResetPromptText,
-                element: element,
                 timeout: timeout
             )
 
@@ -284,14 +278,71 @@ extension LiveSmokeTestCase {
     }
 
     @MainActor
+    func waitForAiComposerUsable(timeout: TimeInterval) throws -> XCUIElement {
+        let element = self.aiComposerTextFieldElement()
+        let startedAt = Date()
+        let deadline = startedAt.addingTimeInterval(timeout)
+        self.logSmokeBreadcrumb(
+            event: "wait_start",
+            action: "wait_for_ai_composer_usable",
+            identifier: LiveSmokeIdentifier.aiComposerTextField,
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: "-",
+            result: "start",
+            note: "waiting for composer text input to become usable"
+        )
+
+        while Date() < deadline {
+            if element.exists && element.isEnabled && element.isHittable {
+                let durationSeconds = Date().timeIntervalSince(startedAt)
+                self.logSmokeBreadcrumb(
+                    event: "wait_end",
+                    action: "wait_for_ai_composer_usable",
+                    identifier: LiveSmokeIdentifier.aiComposerTextField,
+                    timeoutSeconds: formatDuration(seconds: timeout),
+                    durationSeconds: formatDuration(seconds: durationSeconds),
+                    result: "success",
+                    note: "composer text input is enabled and hittable"
+                )
+                return element
+            }
+
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
+        }
+
+        let durationSeconds = Date().timeIntervalSince(startedAt)
+        self.logSmokeBreadcrumb(
+            event: "wait_end",
+            action: "wait_for_ai_composer_usable",
+            identifier: LiveSmokeIdentifier.aiComposerTextField,
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: formatDuration(seconds: durationSeconds),
+            result: "failure",
+            note: "enabled=\(element.isEnabled) \(self.textInputFailureNote(element: element))"
+        )
+        throw LiveSmokeFailure.textInputNotReady(
+            identifier: LiveSmokeIdentifier.aiComposerTextField,
+            timeoutSeconds: timeout,
+            screen: self.currentScreenSummary(),
+            step: self.currentStepTitle,
+            exists: element.exists,
+            hittable: element.isHittable,
+            hasKeyboardFocus: self.elementHasKeyboardFocus(element: element),
+            softwareKeyboardVisible: self.softwareKeyboardIsVisible(),
+            elementLabel: element.label,
+            elementValue: self.elementValue(element: element)
+        )
+    }
+
+    @MainActor
     func clearAndTypeAiComposerTextWithoutExactValueAssertion(
         _ text: String,
-        element: XCUIElement,
         timeout: TimeInterval
     ) throws {
         try self.runWithInlineRawScreenStateOnFailure(
             action: "replace_text_without_exact_match.\(LiveSmokeIdentifier.aiComposerTextField)"
         ) {
+            let element = try self.waitForAiComposerUsable(timeout: timeout)
             try self.focusElementForTextInput(
                 element,
                 identifier: LiveSmokeIdentifier.aiComposerTextField,
@@ -405,10 +456,8 @@ extension LiveSmokeTestCase {
 
     @MainActor
     func clearAiComposerText(timeout: TimeInterval) throws {
-        let element = self.aiComposerTextFieldElement()
         try self.clearAndTypeAiComposerTextWithoutExactValueAssertion(
             "",
-            element: element,
             timeout: timeout
         )
     }
