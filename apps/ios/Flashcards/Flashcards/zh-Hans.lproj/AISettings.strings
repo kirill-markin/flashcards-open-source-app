@@ -163,7 +163,7 @@
 "settings.row.access.itemCount" = "4 件";
 "settings.section.test" = "测试";
 "settings.row.test" = "测试";
-"settings.row.test.itemCount" = "2 项";
+"settings.row.test.itemCount" = "3 项";
 "settings.currentWorkspace.section.rename" = "重命名";
 "settings.currentWorkspace.renameLinkedOnly" = "只有已关联的云端工作空间可以重命名。";
 "settings.reviewAnimations.title" = "复习动画";
@@ -243,6 +243,8 @@
 "settings.test.animations.title" = "动画";
 "settings.test.animations.probability" = "%@ 概率";
 "settings.test.animations.playAccessibility" = "播放 %@ 动画，%@";
+"settings.test.technicalErrorPreview" = "技术错误预览";
+"settings.test.technicalErrorPreview.value" = "预览表单";
 "settings.test.storeReviewPromptReset" = "重置 App Store 评论提示";
 "settings.test.storeReviewPromptReset.value" = "本地状态";
 

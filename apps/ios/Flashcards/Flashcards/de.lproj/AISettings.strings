@@ -163,7 +163,7 @@
 "settings.row.access.itemCount" = "4 Artikel";
 "settings.section.test" = "Test";
 "settings.row.test" = "Test";
-"settings.row.test.itemCount" = "2 Elemente";
+"settings.row.test.itemCount" = "3 Elemente";
 "settings.currentWorkspace.section.rename" = "Umbenennen";
 "settings.currentWorkspace.renameLinkedOnly" = "Das Umbenennen von Arbeitsbereichen ist nur fur verknupfte Cloud-Arbeitsbereiche verfugbar.";
 "settings.reviewAnimations.title" = "Wiederholungsanimationen";
@@ -243,6 +243,8 @@
 "settings.test.animations.title" = "Animationen";
 "settings.test.animations.probability" = "%@ Wahrscheinlichkeit";
 "settings.test.animations.playAccessibility" = "Animation %@ abspielen, %@";
+"settings.test.technicalErrorPreview" = "Vorschau für technischen Fehler";
+"settings.test.technicalErrorPreview.value" = "Sheet-Vorschau";
 "settings.test.storeReviewPromptReset" = "App-Store-Bewertungsanfrage zurücksetzen";
 "settings.test.storeReviewPromptReset.value" = "Lokaler Status";
 

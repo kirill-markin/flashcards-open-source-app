@@ -18,6 +18,13 @@ func errorMessage(error: Error) -> String {
     return String(describing: error)
 }
 
+func makeTechnicalErrorPresentation(error: Error) -> TechnicalErrorPresentation {
+    makeTechnicalErrorPresentation(
+        id: UUID().uuidString.lowercased(),
+        technicalDetails: errorMessage(error: error)
+    )
+}
+
 func isRequestCancellationError(error: Error) -> Bool {
     if error is CancellationError {
         return true
