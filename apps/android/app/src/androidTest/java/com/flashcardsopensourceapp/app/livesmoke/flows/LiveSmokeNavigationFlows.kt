@@ -128,7 +128,7 @@ internal fun LiveSmokeContext.assertSettingsInformationArchitecture() {
     listOf(
         settingsAccountStatusRowTag to "Account status",
         settingsCurrentWorkspaceRowTag to "Workspace",
-        settingsReviewRemindersRowTag to "Review reminders",
+        settingsReviewRemindersRowTag to "Reminders",
         settingsLeaderboardParticipationRowTag to "Leaderboard participation",
         settingsLanguageRowTag to "Language",
         settingsAccessRowTag to "Access",
@@ -173,7 +173,7 @@ internal fun LiveSmokeContext.openSettingsInformationArchitectureDetails() {
         ),
         SettingsDetailProbe(
             rowTag = settingsReviewRemindersRowTag,
-            rowLabel = "Review reminders",
+            rowLabel = "Reminders",
             destinationTag = reviewNotificationsScreenTag
         ),
         SettingsDetailProbe(
