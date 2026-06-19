@@ -162,7 +162,7 @@
 "settings.row.access.itemCount" = "4 アイテム";
 "settings.section.test" = "テスト";
 "settings.row.test" = "テスト";
-"settings.row.test.itemCount" = "3項目";
+"settings.row.test.itemCount" = "4項目";
 "settings.currentWorkspace.section.rename" = "名前を変更";
 "settings.currentWorkspace.renameLinkedOnly" = "ワークスペース名の変更は、リンク済みのクラウドワークスペースでのみ利用できます。";
 "settings.reviewAnimations.title" = "復習アニメーション";

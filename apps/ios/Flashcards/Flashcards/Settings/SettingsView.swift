@@ -277,7 +277,7 @@ struct SettingsView: View {
                     NavigationLink(value: SettingsNavigationDestination.test) {
                         SettingsNavigationRow(
                             title: aiSettingsLocalized("settings.row.test", "Test"),
-                            value: aiSettingsLocalized("settings.row.test.itemCount", "3 items"),
+                            value: aiSettingsLocalized("settings.row.test.itemCount", "4 items"),
                             systemImage: "wrench.and.screwdriver",
                             attentionCount: nil
                         )
