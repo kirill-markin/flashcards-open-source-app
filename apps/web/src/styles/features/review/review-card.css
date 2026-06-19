@@ -73,8 +73,16 @@
 }
 
 .review-empty {
+  flex: 1 1 auto;
+  display: grid;
   min-height: 220px;
   align-content: center;
+  justify-items: center;
+  text-align: center;
+}
+
+.review-empty > .subtitle {
+  max-width: 560px;
 }
 
 .review-empty-actions {
