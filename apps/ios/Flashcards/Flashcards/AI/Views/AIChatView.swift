@@ -103,6 +103,8 @@ struct AIChatView: View {
     @State var isPhotoPickerPresented: Bool
     @State var selectedPhotoItem: PhotosPickerItem?
     @State var isAutoFollowEnabled: Bool
+    @State var currentScrollState: AIChatScrollState?
+    @State var hasActiveUserScrollGesture: Bool
     @State var scrollPosition: ScrollPosition
     @State var autoScrollTask: Task<Void, Never>?
     @State var deferredBottomSyncTask: Task<Void, Never>?
@@ -118,6 +120,8 @@ struct AIChatView: View {
         self.isPhotoPickerPresented = false
         self.selectedPhotoItem = nil
         self.isAutoFollowEnabled = true
+        self.currentScrollState = nil
+        self.hasActiveUserScrollGesture = false
         self.scrollPosition = ScrollPosition(idType: String.self)
         self.autoScrollTask = nil
         self.deferredBottomSyncTask = nil
@@ -463,30 +467,44 @@ struct AIChatView: View {
             self.dismissComposerFocus()
         }
         .onScrollPhaseChange { _, nextPhase, context in
-            let nextScrollState = aiChatScrollState(
+            let nextScrollState: AIChatScrollState = aiChatScrollState(
                 scrollPhase: nextPhase,
                 scrollGeometry: context.geometry,
                 bottomThreshold: aiChatAutoScrollBottomThreshold
             )
+            self.currentScrollState = nextScrollState
 
-            // Only user-driven scroll phases can detach auto-follow. Animated scrolls
-            // are app-driven and should not flip the latch while the assistant content grows.
-            if nextScrollState.isUserInitiatedScroll && nextScrollState.isNearBottom == false {
-                self.isAutoFollowEnabled = false
-                return
+            // Only user-driven scrolls can detach auto-follow. Animated scrolls are
+            // app-driven and should not flip the latch while assistant content grows.
+            if nextScrollState.isUserInitiatedScroll {
+                self.hasActiveUserScrollGesture = true
+                if nextScrollState.isNearBottom == false {
+                    self.detachAutoFollow()
+                    return
+                }
             }
 
-            if nextPhase == .idle && nextScrollState.isNearBottom {
+            if nextPhase == .idle {
+                let didCompleteUserScrollGesture: Bool = self.hasActiveUserScrollGesture
+                self.hasActiveUserScrollGesture = false
+                guard nextScrollState.isNearBottom else {
+                    if didCompleteUserScrollGesture {
+                        self.detachAutoFollow()
+                    }
+                    return
+                }
+
                 self.isAutoFollowEnabled = true
                 if self.chatStore.isStreaming {
                     self.scrollToBottomIfNeeded(isAnimated: false)
                 }
+                return
             }
         }
         .onAppear {
-            // Keep the one-shot deferred sync for initial presentation and tab re-entry.
-            // That fixes the earlier first-layout gap without fighting keyboard-driven
-            // size changes or overriding a deliberate manual scroll-away later.
+            // Keep the one-shot deferred sync only when the previous geometry already
+            // proved the reader was at the bottom, so tab return cannot override a
+            // deliberate manual scroll-away.
             self.scheduleDeferredBottomSyncIfNeeded()
             if self.chatStore.isStreaming {
                 self.startAutoScrollTask()
@@ -496,13 +514,27 @@ struct AIChatView: View {
             self.cancelDeferredBottomSync()
             self.stopAutoScrollTask()
         }
-        .onChange(of: self.chatStore.messages) { _, messages in
+        .onChange(of: self.chatStore.messages) { previousMessages, messages in
             guard messages.isEmpty == false else {
                 self.isAutoFollowEnabled = true
+                self.currentScrollState = nil
+                self.hasActiveUserScrollGesture = false
                 self.scrollToBottom(isAnimated: false)
                 return
             }
 
+            let didAppendTail: Bool = aiChatMessageListUpdateAppendsTail(
+                previousMessages: previousMessages,
+                nextMessages: messages
+            )
+            let didChangeStreamingTail: Bool = self.chatStore.isStreaming
+                && aiChatMessageListUpdateChangesExistingTail(
+                    previousMessages: previousMessages,
+                    nextMessages: messages
+                )
+            guard didAppendTail || didChangeStreamingTail else {
+                return
+            }
             self.scrollToBottomIfNeeded(isAnimated: self.chatStore.isStreaming == false)
         }
         .onChange(of: self.chatStore.isStreaming) { _, isStreaming in

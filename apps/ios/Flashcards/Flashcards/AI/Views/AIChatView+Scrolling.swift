@@ -27,10 +27,65 @@ func aiChatScrollState(
     )
 }
 
+func aiChatScrollStateAllowsDeferredBottomSync(
+    scrollState: AIChatScrollState?,
+    messages: [AIChatMessage]
+) -> Bool {
+    guard messages.isEmpty == false else {
+        return true
+    }
+    guard let scrollState else {
+        return false
+    }
+
+    return scrollState.isNearBottom
+}
+
+func aiChatMessageListUpdateAppendsTail(
+    previousMessages: [AIChatMessage],
+    nextMessages: [AIChatMessage]
+) -> Bool {
+    guard nextMessages.count > previousMessages.count else {
+        return false
+    }
+
+    return zip(previousMessages, nextMessages).allSatisfy { previousMessage, nextMessage in
+        previousMessage == nextMessage
+    }
+}
+
+func aiChatMessageListUpdateChangesExistingTail(
+    previousMessages: [AIChatMessage],
+    nextMessages: [AIChatMessage]
+) -> Bool {
+    guard previousMessages.isEmpty == false else {
+        return false
+    }
+    guard previousMessages.count == nextMessages.count else {
+        return false
+    }
+    guard let previousTail = previousMessages.last,
+          let nextTail = nextMessages.last else {
+        return false
+    }
+    guard previousTail.id == nextTail.id, previousTail != nextTail else {
+        return false
+    }
+
+    return zip(previousMessages.dropLast(), nextMessages.dropLast())
+        .allSatisfy { previousMessage, nextMessage in
+            previousMessage == nextMessage
+        }
+}
+
 extension AIChatView {
-    func detachAutoFollowForExpandedContent() {
+    func detachAutoFollow() {
         self.isAutoFollowEnabled = false
         self.cancelDeferredBottomSync()
+    }
+
+    func detachAutoFollowForExpandedContent() {
+        self.detachAutoFollow()
     }
 
     func scheduleDeferredBottomSyncIfNeeded() {
@@ -44,6 +99,12 @@ extension AIChatView {
             return
         }
         guard self.isAutoFollowEnabled else {
+            return
+        }
+        guard aiChatScrollStateAllowsDeferredBottomSync(
+            scrollState: self.currentScrollState,
+            messages: self.chatStore.messages
+        ) else {
             return
         }
 
@@ -63,6 +124,17 @@ extension AIChatView {
                 return
             }
             guard self.chatStore.bootstrapPhase == .ready else {
+                self.deferredBottomSyncTask = nil
+                return
+            }
+            guard self.isAutoFollowEnabled else {
+                self.deferredBottomSyncTask = nil
+                return
+            }
+            guard aiChatScrollStateAllowsDeferredBottomSync(
+                scrollState: self.currentScrollState,
+                messages: self.chatStore.messages
+            ) else {
                 self.deferredBottomSyncTask = nil
                 return
             }
