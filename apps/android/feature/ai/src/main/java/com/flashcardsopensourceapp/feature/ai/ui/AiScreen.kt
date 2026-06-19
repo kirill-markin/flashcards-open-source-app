@@ -400,6 +400,7 @@ internal fun AiRouteContent(
                 modifier = contentModifier
             ) {
                 AiConversation(
+                    conversationScrollStateKey = uiState.conversationScrollStateKey,
                     messages = uiState.messages,
                     currentWorkspaceName = uiState.currentWorkspaceName,
                     isStreaming = uiState.isStreaming,

@@ -756,6 +756,7 @@ private fun makeAiUiState(
         isStreaming.not()
     return AiUiState(
         currentWorkspaceName = "Personal",
+        conversationScrollStateKey = "test-conversation",
         messages = messages,
         pendingAttachments = emptyList(),
         draftMessage = draftMessage,

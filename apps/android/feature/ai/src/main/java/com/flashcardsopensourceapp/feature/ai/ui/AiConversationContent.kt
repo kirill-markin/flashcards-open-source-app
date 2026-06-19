@@ -10,13 +10,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -47,6 +48,7 @@ private val aiEmptyStateMaxWidth = 420.dp
 
 @Composable
 internal fun AiConversation(
+    conversationScrollStateKey: String,
     messages: List<AiChatMessage>,
     currentWorkspaceName: String,
     isStreaming: Boolean,
@@ -55,7 +57,37 @@ internal fun AiConversation(
     contentPadding: PaddingValues,
     modifier: Modifier
 ) {
-    val listState = rememberLazyListState()
+    key(conversationScrollStateKey) {
+        AiConversationStatefulContent(
+            messages = messages,
+            currentWorkspaceName = currentWorkspaceName,
+            isStreaming = isStreaming,
+            onOpenAccountStatus = onOpenAccountStatus,
+            onDismissComposerFocus = onDismissComposerFocus,
+            contentPadding = contentPadding,
+            modifier = modifier
+        )
+    }
+}
+
+@Composable
+private fun AiConversationStatefulContent(
+    messages: List<AiChatMessage>,
+    currentWorkspaceName: String,
+    isStreaming: Boolean,
+    onOpenAccountStatus: () -> Unit,
+    onDismissComposerFocus: () -> Unit,
+    contentPadding: PaddingValues,
+    modifier: Modifier
+) {
+    val listState = rememberSaveable(
+        saver = LazyListState.Saver
+    ) {
+        LazyListState(
+            firstVisibleItemIndex = 0,
+            firstVisibleItemScrollOffset = 0
+        )
+    }
     val currentMessages by rememberUpdatedState(messages)
     val currentStreamingState by rememberUpdatedState(isStreaming)
     val interactionSource = remember { MutableInteractionSource() }

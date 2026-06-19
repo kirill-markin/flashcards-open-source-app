@@ -22,6 +22,7 @@ fun emptyAiBootstrapErrorPresentation(): AiBootstrapErrorPresentation {
 
 data class AiUiState(
     val currentWorkspaceName: String,
+    val conversationScrollStateKey: String,
     val messages: List<AiChatMessage>,
     val pendingAttachments: List<AiChatAttachment>,
     val draftMessage: String,
