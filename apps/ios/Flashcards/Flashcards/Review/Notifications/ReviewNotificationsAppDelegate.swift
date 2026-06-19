@@ -15,7 +15,12 @@ final class ReviewNotificationsAppDelegate: NSObject, UIApplicationDelegate, UNU
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification
     ) async -> UNNotificationPresentationOptions {
-        [.banner, .sound]
+        persistReviewReminderAttentionState(
+            notification: notification,
+            userDefaults: .standard,
+            encoder: JSONEncoder()
+        )
+        return [.banner, .sound]
     }
 
     nonisolated func userNotificationCenter(
@@ -45,6 +50,13 @@ final class ReviewNotificationsAppDelegate: NSObject, UIApplicationDelegate, UNU
             logAppNotificationTapEvent(action: "notification_tap_dropped", metadata: droppedMetadata)
             completionHandler()
             return
+        }
+        if request == .openReviewReminder {
+            persistReviewReminderAttentionState(
+                notification: response.notification,
+                userDefaults: .standard,
+                encoder: JSONEncoder()
+            )
         }
 
         let receivedMetadata = makeAppNotificationTapLogMetadata(

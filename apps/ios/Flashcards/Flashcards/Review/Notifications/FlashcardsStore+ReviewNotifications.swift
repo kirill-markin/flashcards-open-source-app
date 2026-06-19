@@ -101,6 +101,85 @@ extension FlashcardsStore {
         }
     }
 
+    func markReviewReminderAttention(
+        workspaceId: String,
+        requestId: String,
+        deliveredAtMillis: Int64
+    ) {
+        let state = makeReviewReminderAttentionState(
+            workspaceId: workspaceId,
+            requestId: requestId,
+            deliveredAtMillis: deliveredAtMillis
+        )
+        self.reviewReminderAttentionState = state
+        saveReviewReminderAttentionState(
+            state: state,
+            userDefaults: self.userDefaults,
+            encoder: self.encoder
+        )
+    }
+
+    func clearReviewReminderAttention(workspaceId: String) {
+        guard self.reviewReminderAttentionState?.workspaceId == workspaceId else {
+            return
+        }
+
+        self.reviewReminderAttentionState = nil
+        clearReviewReminderAttentionState(userDefaults: self.userDefaults)
+    }
+
+    func reloadReviewReminderAttentionState() {
+        self.reviewReminderAttentionState = loadReviewReminderAttentionState(
+            userDefaults: self.userDefaults,
+            decoder: self.decoder
+        )
+    }
+
+    func reconcileReviewReminderAttentionAfterReviewLogs(now _: Date) {
+        guard let state = self.reviewReminderAttentionState else {
+            return
+        }
+        guard isReviewReminderAttentionVisible(
+            state: state,
+            workspaceId: self.workspace?.workspaceId
+        ) else {
+            return
+        }
+        guard let database = self.database else {
+            return
+        }
+
+        do {
+            let deliveredAt = Date(timeIntervalSince1970: TimeInterval(state.deliveredAtMillis) / 1_000)
+            if try database.hasReviewEvent(workspaceId: state.workspaceId, after: deliveredAt) {
+                self.clearReviewReminderAttention(workspaceId: state.workspaceId)
+            }
+        } catch {
+            FlashcardsObservability.captureWarning(
+                .localDataRepair(
+                    LocalDataRepairWarning(
+                        action: "review_reminder_attention_reconcile_failed",
+                        scope: IOSObservationScope(
+                            feature: .notifications,
+                            userId: nil,
+                            workspaceId: state.workspaceId,
+                            requestId: nil,
+                            clientRequestId: nil,
+                            sessionId: nil,
+                            runId: nil,
+                            cloudState: self.cloudSettings?.cloudState,
+                            configurationMode: nil
+                        ),
+                        workspaceId: state.workspaceId,
+                        cardId: nil,
+                        reason: Flashcards.errorMessage(error: error),
+                        repair: "keep_review_reminder_attention_state"
+                    )
+                )
+            )
+        }
+    }
+
     func dismissReviewNotificationPrePrompt(markDismissed: Bool) {
         self.isReviewNotificationPrePromptPresented = false
         if markDismissed {
@@ -184,20 +263,30 @@ extension FlashcardsStore {
         switch request {
         case .fallback(let fallback):
             logAppNotificationTapFallback(fallback: fallback)
-        case .openReviewReminder, .openStrictReminder:
+        case .openReviewReminder:
+            self.reloadReviewReminderAttentionState()
+            navigation.selectTab(.review)
+        case .openStrictReminder:
             navigation.selectTab(.review)
         }
     }
 
-    func resolveSuccessfulReviewNotificationPrePromptDecision(reviewedAt: Date, now: Date) async -> Bool {
+    func recordSuccessfulReviewNotificationEffects(
+        reviewedAt: Date,
+        workspaceId: String,
+        now: Date
+    ) -> Int {
         let nextCount = self.userDefaults.integer(forKey: reviewNotificationSuccessfulReviewCountUserDefaultsKey) + 1
         self.userDefaults.set(nextCount, forKey: reviewNotificationSuccessfulReviewCountUserDefaultsKey)
         self.userDefaults.set(now.timeIntervalSince1970, forKey: reviewNotificationLastActiveAtUserDefaultsKey)
         self.reconcileReviewNotifications(trigger: .reviewRecorded, now: now)
+        self.clearReviewReminderAttention(workspaceId: workspaceId)
         self.clearAppIconBadge()
         self.recordSuccessfulStrictReminderReview(reviewedAt: reviewedAt, now: now)
-        let reviewCount = self.loadReviewNotificationPromptReviewCount(persistedReviewCount: nextCount)
+        return self.loadReviewNotificationPromptReviewCount(persistedReviewCount: nextCount)
+    }
 
+    func resolveSuccessfulReviewNotificationPrePromptDecision(reviewCount: Int) async -> Bool {
         defer {
             self.requestGuestSignInAfterReviewPromptReconciliation()
         }
@@ -336,6 +425,14 @@ extension FlashcardsStore {
 
         let center = UNUserNotificationCenter.current()
         let pendingRequestIdentifiers = await pendingReviewNotificationRequestIdentifiers(center: center)
+        if trigger.shouldClearDeliveredReviewNotifications {
+            let deliveredReviewNotifications = await deliveredReviewReminderNotifications(center: center)
+            self.markReviewReminderAttentionFromDeliveredNotifications(
+                notifications: deliveredReviewNotifications,
+                workspaceId: workspaceId
+            )
+            self.reconcileReviewReminderAttentionAfterReviewLogs(now: now)
+        }
         if pendingRequestIdentifiers.isEmpty == false {
             center.removePendingNotificationRequests(withIdentifiers: pendingRequestIdentifiers)
         }
@@ -581,6 +678,31 @@ extension FlashcardsStore {
             )
         }
         self.persistScheduledReviewNotifications(payloads: acceptedPayloads)
+    }
+
+    private func markReviewReminderAttentionFromDeliveredNotifications(
+        notifications: [UNNotification],
+        workspaceId: String
+    ) {
+        let states = notifications.compactMap { notification in
+            makeReviewReminderAttentionState(
+                notification: notification
+            )
+        }
+        let currentWorkspaceStates = states.filter { state in
+            state.workspaceId == workspaceId
+        }
+        guard let latestState = currentWorkspaceStates.max(by: { lhs, rhs in
+            lhs.deliveredAtMillis < rhs.deliveredAtMillis
+        }) else {
+            return
+        }
+
+        self.markReviewReminderAttention(
+            workspaceId: latestState.workspaceId,
+            requestId: latestState.requestId,
+            deliveredAtMillis: latestState.deliveredAtMillis
+        )
     }
 
     private func persistScheduledReviewNotifications(payloads: [ScheduledReviewNotificationPayload]) {

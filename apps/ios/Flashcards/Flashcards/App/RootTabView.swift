@@ -63,6 +63,13 @@ struct RootTabView: View {
         )
     }
 
+    private var reviewReminderAttentionBadgeCount: Int {
+        isReviewReminderAttentionVisible(
+            state: store.reviewReminderAttentionState,
+            workspaceId: store.workspace?.workspaceId
+        ) ? 1 : 0
+    }
+
     private var guestSignInAfterReviewPromptPresentation: Binding<Bool> {
         Binding<Bool>(
             get: {
@@ -472,6 +479,7 @@ struct RootTabView: View {
             )
             .accessibilityIdentifier(UITestIdentifier.rootTabReviewItem)
         }
+        .badge(self.reviewReminderAttentionBadgeCount)
         .tag(AppTab.review)
     }
 

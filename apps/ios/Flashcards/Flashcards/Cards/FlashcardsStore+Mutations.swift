@@ -102,17 +102,23 @@ extension FlashcardsStore {
     func submitReview(cardId: String, rating: ReviewRating) throws {
         let context = try self.requireLocalOutboxMutationContext()
         let now = Date()
+        let reviewedAtClient = nowIsoTimestamp()
         _ = try context.database.submitReview(
             workspaceId: context.workspaceId,
             reviewSubmission: ReviewSubmission(
                 cardId: cardId,
                 rating: rating,
-                reviewedAtClient: nowIsoTimestamp()
+                reviewedAtClient: reviewedAtClient
             )
+        )
+        let reviewedAt = parseIsoTimestamp(value: reviewedAtClient) ?? now
+        _ = self.recordSuccessfulReviewNotificationEffects(
+            reviewedAt: reviewedAt,
+            workspaceId: context.workspaceId,
+            now: now
         )
         self.handleReviewScheduleLocalCardStateDidChange(now: now)
         self.refreshLocalReadModels(now: now)
-        self.recordSuccessfulStrictReminderReview(reviewedAt: now, now: now)
         self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
     }
 
