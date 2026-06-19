@@ -13,6 +13,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.core.ui.nextAppTechnicalErrorReportId
+import com.flashcardsopensourceapp.core.ui.renderTechnicalErrorDetails
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.feature.settings.cloud.CloudCredentialRecoveryGateRoute
 import com.flashcardsopensourceapp.feature.settings.cloud.CloudCredentialRecoveryGateStep
@@ -62,12 +64,20 @@ internal fun CloudCredentialRecoveryGateContainer(
     var eraseErrorMessage: String by rememberSaveable {
         mutableStateOf("")
     }
+    var eraseErrorTechnicalDetails: String? by rememberSaveable {
+        mutableStateOf(null)
+    }
+    var eraseErrorTechnicalDetailsReportId: String? by rememberSaveable {
+        mutableStateOf(null)
+    }
 
     LaunchedEffect(recoveryState) {
         gateStep = CloudCredentialRecoveryGateStep.OVERVIEW
         isEraseConfirmationVisible = false
         isErasing = false
         eraseErrorMessage = ""
+        eraseErrorTechnicalDetails = null
+        eraseErrorTechnicalDetailsReportId = null
         signInViewModel.cancelSignIn()
     }
 
@@ -92,9 +102,13 @@ internal fun CloudCredentialRecoveryGateContainer(
         isEraseConfirmationVisible = isEraseConfirmationVisible,
         isErasing = isErasing,
         eraseErrorMessage = eraseErrorMessage,
+        eraseErrorTechnicalDetails = eraseErrorTechnicalDetails,
+        eraseErrorTechnicalDetailsReportId = eraseErrorTechnicalDetailsReportId,
         onSignIn = {
             signInViewModel.cancelSignIn()
             eraseErrorMessage = ""
+            eraseErrorTechnicalDetails = null
+            eraseErrorTechnicalDetailsReportId = null
             isEraseConfirmationVisible = false
             gateStep = CloudCredentialRecoveryGateStep.EMAIL
         },
@@ -135,8 +149,18 @@ internal fun CloudCredentialRecoveryGateContainer(
         onBackToEmail = {
             gateStep = CloudCredentialRecoveryGateStep.EMAIL
         },
+        onShowTechnicalDetails = { technicalDetails, reportId ->
+            appGraph.showTechnicalErrorDialog(
+                reportId = reportId,
+                title = context.getString(R.string.technical_error_dialog_default_title),
+                message = context.getString(R.string.technical_error_dialog_default_message),
+                technicalDetails = technicalDetails
+            )
+        },
         onRequestEraseConfirmation = {
             eraseErrorMessage = ""
+            eraseErrorTechnicalDetails = null
+            eraseErrorTechnicalDetailsReportId = null
             isEraseConfirmationVisible = true
         },
         onDismissEraseConfirmation = {
@@ -148,6 +172,8 @@ internal fun CloudCredentialRecoveryGateContainer(
             coroutineScope.launch {
                 isErasing = true
                 eraseErrorMessage = ""
+                eraseErrorTechnicalDetails = null
+                eraseErrorTechnicalDetailsReportId = null
                 try {
                     appGraph.cloudAccountRepository.eraseLocalDataForCredentialRecovery()
                     signInViewModel.cancelSignIn()
@@ -156,7 +182,11 @@ internal fun CloudCredentialRecoveryGateContainer(
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Exception) {
-                    eraseErrorMessage = error.message ?: eraseFailedMessage
+                    eraseErrorMessage = eraseFailedMessage
+                    eraseErrorTechnicalDetails = renderTechnicalErrorDetails(error = error)
+                    eraseErrorTechnicalDetailsReportId = nextAppTechnicalErrorReportId(
+                        source = "cloud-credential-recovery-erase"
+                    )
                 } finally {
                     isErasing = false
                 }

@@ -62,10 +62,12 @@ class RtlLayoutTest : FirebaseAppInstrumentationTimeoutTest() {
                     isVerifyingCode = false,
                     errorMessage = "",
                     errorTechnicalDetails = null,
+                    errorTechnicalDetailsReportId = null,
                     challengeEmail = "rtl@example.com"
                 ),
                 onCodeChange = { _ -> },
                 onVerifyCode = {},
+                onShowTechnicalDetails = { _, _ -> },
                 onBack = {}
             )
         }

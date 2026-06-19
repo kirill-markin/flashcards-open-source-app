@@ -28,6 +28,7 @@ fun CloudSignInEmailRoute(
     uiState: CloudSignInUiState,
     onEmailChange: (String) -> Unit,
     onSendCode: () -> Unit,
+    onShowTechnicalDetails: (String, String) -> Unit,
     onBack: () -> Unit
 ) {
     SettingsScreenScaffold(
@@ -59,7 +60,9 @@ fun CloudSignInEmailRoute(
                     CloudSignInErrorCard(
                         message = uiState.errorMessage,
                         technicalDetails = uiState.errorTechnicalDetails,
-                        modifier = Modifier.fillMaxWidth()
+                        technicalDetailsReportId = uiState.errorTechnicalDetailsReportId,
+                        modifier = Modifier.fillMaxWidth(),
+                        onShowTechnicalDetails = onShowTechnicalDetails
                     )
                 }
             }

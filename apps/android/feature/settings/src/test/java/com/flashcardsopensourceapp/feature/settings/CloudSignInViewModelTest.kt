@@ -266,7 +266,14 @@ class CloudSignInViewModelTest {
         advanceUntilIdle()
 
         assertEquals(CloudPostAuthMode.FAILED, viewModel.postAuthUiState.value.mode)
-        assertEquals("Temporary recovery failure.", viewModel.postAuthUiState.value.errorMessage)
+        assertEquals(
+            "Local data recovery failed. Try again; local data stays on this device.",
+            viewModel.postAuthUiState.value.errorMessage
+        )
+        assertEquals(
+            "java.lang.IllegalStateException: Temporary recovery failure.",
+            viewModel.postAuthUiState.value.errorTechnicalDetails
+        )
         assertEquals(true, viewModel.postAuthUiState.value.isGuestLocalRecovery)
         assertEquals(true, viewModel.postAuthUiState.value.canRetry)
         assertEquals(false, viewModel.postAuthUiState.value.canLogout)
@@ -468,7 +475,11 @@ class CloudSignInViewModelTest {
         advanceUntilIdle()
 
         assertEquals(CloudPostAuthMode.FAILED, viewModel.postAuthUiState.value.mode)
-        assertEquals("Temporary setup failure.", viewModel.postAuthUiState.value.errorMessage)
+        assertEquals("Cloud workspace setup failed.", viewModel.postAuthUiState.value.errorMessage)
+        assertEquals(
+            "java.lang.IllegalStateException: Temporary setup failure.",
+            viewModel.postAuthUiState.value.errorTechnicalDetails
+        )
         assertEquals(true, viewModel.postAuthUiState.value.canRetry)
         assertEquals(false, viewModel.postAuthUiState.value.canLogout)
 
@@ -775,13 +786,16 @@ class CloudSignInViewModelTest {
             "We could not confirm that the code was sent. Check your connection and try again.",
             viewModel.uiState.value.errorMessage
         )
-        assertEquals("Software caused connection abort", viewModel.uiState.value.errorTechnicalDetails)
+        assertEquals(
+            "java.io.IOException: Software caused connection abort",
+            viewModel.uiState.value.errorTechnicalDetails
+        )
 
         uiStateCollection.cancel()
     }
 
     @Test
-    fun sendCodeServerErrorKeepsFriendlyMessageWithoutTechnicalDisclosure() = runTest(dispatcher) {
+    fun sendCodeInvalidEmailKeepsInlineMessageWithoutTechnicalDisclosure() = runTest(dispatcher) {
         Dispatchers.setMain(dispatcher)
         val repository = FakeCloudAccountRepository()
         repository.enqueueSendCodeError(
@@ -789,7 +803,7 @@ class CloudSignInViewModelTest {
                 message = "Enter a valid email address. Reference: req-123",
                 statusCode = 400,
                 responseBody = "{\"error\":\"bad request\"}",
-                errorCode = "VALIDATION_ERROR",
+                errorCode = "INVALID_EMAIL",
                 requestId = "req-123",
                 syncConflict = null
             )
@@ -808,8 +822,47 @@ class CloudSignInViewModelTest {
         viewModel.sendCode()
         advanceUntilIdle()
 
-        assertEquals("Enter a valid email address. Reference: req-123", viewModel.uiState.value.errorMessage)
+        assertEquals("Enter a valid email address.", viewModel.uiState.value.errorMessage)
         assertNull(viewModel.uiState.value.errorTechnicalDetails)
+        assertNull(viewModel.uiState.value.errorTechnicalDetailsReportId)
+
+        uiStateCollection.cancel()
+    }
+
+    @Test
+    fun sendCodeUnknownClientErrorShowsSafeMessageAndTechnicalDetails() = runTest(dispatcher) {
+        Dispatchers.setMain(dispatcher)
+        val repository = FakeCloudAccountRepository()
+        repository.enqueueSendCodeError(
+            CloudRemoteException(
+                message = "Cloud request failed: statusCode=404 path=sendCode requestId=req-404",
+                statusCode = 404,
+                responseBody = "not found",
+                errorCode = null,
+                requestId = "req-404",
+                syncConflict = null
+            )
+        )
+        val viewModel = CloudSignInViewModel(
+            cloudAccountRepository = repository,
+            syncRepository = FakeSyncRepository(),
+            messageController = TransientMessageController { },
+            strings = strings
+        )
+        val uiStateCollection = backgroundScope.async {
+            viewModel.uiState.collect()
+        }
+
+        viewModel.updateEmail("person@example.com")
+        viewModel.sendCode()
+        advanceUntilIdle()
+
+        assertEquals("Could not send the sign-in code.", viewModel.uiState.value.errorMessage)
+        assertEquals(
+            "com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException: " +
+                "Cloud request failed: statusCode=404 path=sendCode requestId=req-404",
+            viewModel.uiState.value.errorTechnicalDetails
+        )
 
         uiStateCollection.cancel()
     }
@@ -849,7 +902,57 @@ class CloudSignInViewModelTest {
             "We could not verify the code right now. Check your connection and try again.",
             viewModel.uiState.value.errorMessage
         )
-        assertEquals("Connection reset by peer", viewModel.uiState.value.errorTechnicalDetails)
+        assertEquals(
+            "java.io.IOException: Connection reset by peer",
+            viewModel.uiState.value.errorTechnicalDetails
+        )
+
+        uiStateCollection.cancel()
+    }
+
+    @Test
+    fun verifyCodeOtpVerifyFailedKeepsInlineMessageWithoutTechnicalDisclosure() = runTest(dispatcher) {
+        Dispatchers.setMain(dispatcher)
+        val repository = FakeCloudAccountRepository()
+        repository.enqueueSendCodeResult(
+            CloudSendCodeResult.OtpRequired(
+                challenge = CloudOtpChallenge(
+                    email = "person@example.com",
+                    csrfToken = "csrf-token",
+                    otpSessionToken = "otp-session-token"
+                )
+            )
+        )
+        repository.enqueueVerifyCodeError(
+            CloudRemoteException(
+                message = "Could not verify the code. Reference: req-verify",
+                statusCode = 400,
+                responseBody = "{\"error\":\"bad request\"}",
+                errorCode = "OTP_VERIFY_FAILED",
+                requestId = "req-verify",
+                syncConflict = null
+            )
+        )
+        val viewModel = CloudSignInViewModel(
+            cloudAccountRepository = repository,
+            syncRepository = FakeSyncRepository(),
+            messageController = TransientMessageController { },
+            strings = strings
+        )
+        val uiStateCollection = backgroundScope.async {
+            viewModel.uiState.collect()
+        }
+
+        viewModel.updateEmail("person@example.com")
+        assertEquals(CloudSendCodeNavigationOutcome.OtpRequired, viewModel.sendCode())
+        viewModel.updateCode("123456")
+        val didVerify = viewModel.verifyCode()
+        advanceUntilIdle()
+
+        assertEquals(false, didVerify)
+        assertEquals("Could not verify the code.", viewModel.uiState.value.errorMessage)
+        assertNull(viewModel.uiState.value.errorTechnicalDetails)
+        assertNull(viewModel.uiState.value.errorTechnicalDetailsReportId)
 
         uiStateCollection.cancel()
     }
