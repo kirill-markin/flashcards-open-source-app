@@ -125,9 +125,14 @@ internal fun AiRouteContent(
     val dismissComposerFocus: () -> Unit = {
         focusManager.clearFocus(force = true)
     }
-    val showInteractiveConversation = uiState.isConsentRequired.not() &&
-        uiState.isConversationReady &&
-        uiState.isConversationLoading.not()
+    val hasLocalConversationContent = uiState.messages.isNotEmpty() ||
+        uiState.draftMessage.isNotEmpty() ||
+        uiState.pendingAttachments.isNotEmpty()
+    val isColdConversationLoading = uiState.isConversationLoading &&
+        hasLocalConversationContent.not()
+    val showConversation = uiState.isConversationReady ||
+        (uiState.isConversationLoading && hasLocalConversationContent)
+    val showComposer = uiState.isConsentRequired.not() && showConversation
 
     val takePictureLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
@@ -359,11 +364,11 @@ internal fun AiRouteContent(
                 onAcceptConsent = onAcceptConsent,
                 modifier = contentModifier
             )
-        } else if (uiState.isConversationLoading) {
+        } else if (isColdConversationLoading) {
             AiConversationLoading(
                 modifier = contentModifier
             )
-        } else if (uiState.isConversationReady.not()) {
+        } else if (showConversation.not()) {
             Box(
                 modifier = contentModifier
             ) {
@@ -409,7 +414,7 @@ internal fun AiRouteContent(
                         .weight(weight = 1f)
                 )
 
-                if (showInteractiveConversation) {
+                if (showComposer) {
                     AiComposer(
                         uiState = uiState,
                         onDraftMessageChange = onDraftMessageChange,
