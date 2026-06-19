@@ -16,6 +16,22 @@ struct TestSettingsView: View {
                 }
                 .accessibilityIdentifier(UITestIdentifier.testSettingsAnimationsRow)
 
+                NavigationLink(value: SettingsNavigationDestination.notificationDiagnostics) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized(
+                            "settings.test.notificationDiagnostics",
+                            "Notification Diagnostics"
+                        ),
+                        value: aiSettingsLocalized(
+                            "settings.test.notificationDiagnostics.value",
+                            "Read-only"
+                        ),
+                        systemImage: "bell.badge",
+                        attentionCount: nil
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.testSettingsNotificationDiagnosticsRow)
+
                 Button {
                     store.clearStoreReviewPromptStateForTests()
                 } label: {
