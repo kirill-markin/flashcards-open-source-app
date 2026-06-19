@@ -102,6 +102,7 @@ final class FlashcardsStore {
     var isGuestSignInAfterReviewPromptPresented: Bool
     var guestSignInAfterReviewPromptReconciliationToken: Int
     var feedbackPresentation: FeedbackPresentation?
+    private(set) var presentedTechnicalError: TechnicalErrorPresentation?
     var feedbackPromptState: PersistedFeedbackPromptState
     var activeCloudSignInSheetCount: Int
     var accountDeletionState: AccountDeletionState
@@ -417,6 +418,7 @@ final class FlashcardsStore {
         self.isGuestSignInAfterReviewPromptPresented = false
         self.guestSignInAfterReviewPromptReconciliationToken = 0
         self.feedbackPresentation = nil
+        self.presentedTechnicalError = nil
         self.feedbackPromptState = loadFeedbackPromptState(
             identityKey: makeFeedbackPromptIdentityKey(cloudSettings: nil),
             userDefaults: userDefaults,
@@ -528,6 +530,42 @@ final class FlashcardsStore {
             currentDeadline: self.cloudSyncFastPollingUntil,
             now: now,
             duration: cloudSyncFastPollingDurationSeconds
+        )
+    }
+
+    func presentTechnicalError(_ error: Error) {
+        let presentation: TechnicalErrorPresentation = makeTechnicalErrorPresentation(error: error)
+        self.capturePresentedTechnicalError(error: error)
+        self.presentedTechnicalError = presentation
+    }
+
+    func presentTechnicalErrorPreview() {
+        self.presentedTechnicalError = makeTechnicalErrorPreviewPresentation()
+    }
+
+    func dismissTechnicalError() {
+        self.presentedTechnicalError = nil
+    }
+
+    private func capturePresentedTechnicalError(error: Error) {
+        FlashcardsObservability.captureSilentFailure(
+            error: error,
+            scope: IOSObservationScope(
+                feature: .prompts,
+                userId: self.cloudSettings?.linkedUserId,
+                workspaceId: self.workspace?.workspaceId,
+                requestId: nil,
+                clientRequestId: nil,
+                sessionId: nil,
+                runId: nil,
+                cloudState: self.cloudSettings?.cloudState,
+                configurationMode: try? self.currentCloudServiceConfiguration().mode
+            ),
+            action: "technical_error_presented",
+            stage: "presentation",
+            statusCode: nil,
+            backendCode: nil,
+            requestId: nil
         )
     }
 }

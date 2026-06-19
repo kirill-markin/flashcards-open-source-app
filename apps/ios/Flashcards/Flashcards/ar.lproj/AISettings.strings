@@ -163,7 +163,7 @@
 "settings.row.access.itemCount" = "4 عناصر";
 "settings.section.test" = "اختبار";
 "settings.row.test" = "اختبار";
-"settings.row.test.itemCount" = "عنصران";
+"settings.row.test.itemCount" = "3 عناصر";
 "settings.currentWorkspace.section.rename" = "إعادة تسمية";
 "settings.currentWorkspace.renameLinkedOnly" = "إعادة تسمية مساحة العمل متاحة فقط لمساحات العمل السحابية المرتبطة.";
 "settings.reviewAnimations.title" = "رسوم المراجعة المتحركة";
@@ -243,6 +243,8 @@
 "settings.test.animations.title" = "الرسوم المتحركة";
 "settings.test.animations.probability" = "احتمال %@";
 "settings.test.animations.playAccessibility" = "تشغيل حركة %@، %@";
+"settings.test.technicalErrorPreview" = "معاينة الخطأ الفني";
+"settings.test.technicalErrorPreview.value" = "ورقة المعاينة";
 "settings.test.storeReviewPromptReset" = "إعادة ضبط مطالبة مراجعة App Store";
 "settings.test.storeReviewPromptReset.value" = "الحالة المحلية";
 

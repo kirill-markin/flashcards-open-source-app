@@ -163,7 +163,7 @@
 "settings.row.access.itemCount" = "4 आइटम";
 "settings.section.test" = "टेस्ट";
 "settings.row.test" = "टेस्ट";
-"settings.row.test.itemCount" = "2 आइटम";
+"settings.row.test.itemCount" = "3 आइटम";
 "settings.currentWorkspace.section.rename" = "नाम बदलें";
 "settings.currentWorkspace.renameLinkedOnly" = "कार्यस्थान का नाम बदलना केवल लिंक किए गए क्लाउड कार्यस्थानों के लिए उपलब्ध है।";
 "settings.reviewAnimations.title" = "समीक्षा एनिमेशन";
@@ -243,6 +243,8 @@
 "settings.test.animations.title" = "ऐनिमेशन";
 "settings.test.animations.probability" = "%@ संभावना";
 "settings.test.animations.playAccessibility" = "%@ ऐनिमेशन चलाएं, %@";
+"settings.test.technicalErrorPreview" = "तकनीकी त्रुटि पूर्वावलोकन";
+"settings.test.technicalErrorPreview.value" = "पूर्वावलोकन शीट";
 "settings.test.storeReviewPromptReset" = "App Store समीक्षा प्रॉम्प्ट रीसेट करें";
 "settings.test.storeReviewPromptReset.value" = "स्थानीय स्थिति";
 

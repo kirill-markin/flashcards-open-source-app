@@ -163,7 +163,7 @@
 "settings.row.access.itemCount" = "4 アイテム";
 "settings.section.test" = "テスト";
 "settings.row.test" = "テスト";
-"settings.row.test.itemCount" = "2項目";
+"settings.row.test.itemCount" = "3項目";
 "settings.currentWorkspace.section.rename" = "名前を変更";
 "settings.currentWorkspace.renameLinkedOnly" = "ワークスペース名の変更は、リンク済みのクラウドワークスペースでのみ利用できます。";
 "settings.reviewAnimations.title" = "復習アニメーション";
@@ -243,6 +243,8 @@
 "settings.test.animations.title" = "アニメーション";
 "settings.test.animations.probability" = "確率 %@";
 "settings.test.animations.playAccessibility" = "%@ のアニメーションを再生、%@";
+"settings.test.technicalErrorPreview" = "技術エラーのプレビュー";
+"settings.test.technicalErrorPreview.value" = "プレビューシート";
 "settings.test.storeReviewPromptReset" = "App Storeレビューのプロンプトをリセット";
 "settings.test.storeReviewPromptReset.value" = "ローカル状態";
 
