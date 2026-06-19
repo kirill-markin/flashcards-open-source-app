@@ -68,7 +68,10 @@ extension FlashcardsStore {
                 return
             }
 
-            self.replaceProgressSummaryRefreshErrorMessage(message: Flashcards.errorMessage(error: error))
+            self.presentTechnicalError(error)
+            self.replaceProgressSummaryRefreshErrorMessage(
+                message: localizedProgressSummaryRefreshErrorMessage()
+            )
         }
     }
 
@@ -127,7 +130,10 @@ extension FlashcardsStore {
                 return
             }
 
-            self.replaceProgressSeriesRefreshErrorMessage(message: Flashcards.errorMessage(error: error))
+            self.presentTechnicalError(error)
+            self.replaceProgressSeriesRefreshErrorMessage(
+                message: localizedProgressSeriesRefreshErrorMessage()
+            )
         }
     }
 
@@ -193,7 +199,10 @@ extension FlashcardsStore {
                 return
             }
 
-            self.replaceProgressReviewScheduleRefreshErrorMessage(message: Flashcards.errorMessage(error: error))
+            self.presentTechnicalError(error)
+            self.replaceProgressReviewScheduleRefreshErrorMessage(
+                message: localizedProgressReviewScheduleRefreshErrorMessage()
+            )
         }
     }
 
@@ -257,7 +266,10 @@ extension FlashcardsStore {
                 return
             }
 
-            self.replaceProgressLeaderboardRefreshErrorMessage(message: Flashcards.errorMessage(error: error))
+            self.presentTechnicalError(error)
+            self.replaceProgressLeaderboardRefreshErrorMessage(
+                message: localizedProgressLeaderboardRefreshErrorMessage()
+            )
         }
     }
 

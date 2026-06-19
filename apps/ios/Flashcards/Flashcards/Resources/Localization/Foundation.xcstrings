@@ -6609,6 +6609,360 @@
         }
       }
     },
+    "progress.error.leaderboard_refresh_failed" : {
+      "comment" : "Generic progress card message when leaderboard refresh fails",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذر تحديث لوحة الصدارة. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestenliste konnte nicht aktualisiert werden. Zum erneuten Versuch ziehen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leaderboard couldn't refresh. Pull to try again."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo actualizar la tabla de clasificación. Desliza para intentarlo de nuevo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo actualizar la tabla de posiciones. Desliza para intentarlo de nuevo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "लीडरबोर्ड रीफ़्रेश नहीं हो सका। फिर से कोशिश करने के लिए खींचें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リーダーボードを更新できませんでした。もう一度試すには下に引いてください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось обновить таблицу лидеров. Потяните, чтобы повторить попытку."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法刷新排行榜。下拉重试。"
+          }
+        }
+      }
+    },
+    "progress.error.review_schedule_refresh_failed" : {
+      "comment" : "Generic progress card message when review schedule refresh fails",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذر تحديث جدول المراجعة. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiederholungsplan konnte nicht aktualisiert werden. Zum erneuten Versuch ziehen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review schedule couldn't refresh. Pull to try again."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo actualizar el calendario de repaso. Desliza para intentarlo de nuevo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo actualizar el calendario de repaso. Desliza para intentarlo de nuevo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "समीक्षा शेड्यूल रीफ़्रेश नहीं हो सका। फिर से कोशिश करने के लिए खींचें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "復習スケジュールを更新できませんでした。もう一度試すには下に引いてください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось обновить расписание повторений. Потяните, чтобы повторить попытку."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法刷新复习计划。下拉重试。"
+          }
+        }
+      }
+    },
+    "progress.error.review_schedule_render_failed" : {
+      "comment" : "Generic progress card message when review schedule rendering fails",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذر عرض جدول المراجعة. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiederholungsplan konnte nicht angezeigt werden. Zum erneuten Versuch ziehen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review schedule couldn't be shown. Pull to try again."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo mostrar el calendario de repaso. Desliza para intentarlo de nuevo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo mostrar el calendario de repaso. Desliza para intentarlo de nuevo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "समीक्षा शेड्यूल नहीं दिखाया जा सका। फिर से कोशिश करने के लिए खींचें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "復習スケジュールを表示できませんでした。もう一度試すには下に引いてください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось показать расписание повторений. Потяните, чтобы повторить попытку."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法显示复习计划。下拉重试。"
+          }
+        }
+      }
+    },
+    "progress.error.series_refresh_failed" : {
+      "comment" : "Generic progress card message when chart refresh fails",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذر تحديث مخطط التقدم. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fortschrittsdiagramm konnte nicht aktualisiert werden. Zum erneuten Versuch ziehen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progress chart couldn't refresh. Pull to try again."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo actualizar el gráfico de progreso. Desliza para intentarlo de nuevo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo actualizar el gráfico de progreso. Desliza para intentarlo de nuevo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "प्रगति चार्ट रीफ़्रेश नहीं हो सका। फिर से कोशिश करने के लिए खींचें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "進捗グラフを更新できませんでした。もう一度試すには下に引いてください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось обновить график прогресса. Потяните, чтобы повторить попытку."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法刷新进度图表。下拉重试。"
+          }
+        }
+      }
+    },
+    "progress.error.summary_refresh_failed" : {
+      "comment" : "Generic progress card message when summary refresh fails",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذر تحديث ملخص التقدم. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fortschrittsübersicht konnte nicht aktualisiert werden. Zum erneuten Versuch ziehen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progress summary couldn't refresh. Pull to try again."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo actualizar el resumen de progreso. Desliza para intentarlo de nuevo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo actualizar el resumen de progreso. Desliza para intentarlo de nuevo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "प्रगति सारांश रीफ़्रेश नहीं हो सका। फिर से कोशिश करने के लिए खींचें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "進捗サマリーを更新できませんでした。もう一度試すには下に引いてください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось обновить сводку прогресса. Потяните, чтобы повторить попытку."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法刷新进度摘要。下拉重试。"
+          }
+        }
+      }
+    },
+    "progress.error.unavailable" : {
+      "comment" : "Generic progress card message when progress cannot be prepared",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "التقدم غير متاح. اسحب للتحديث وحاول مرة أخرى."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fortschritt ist nicht verfügbar. Zum Aktualisieren ziehen und erneut versuchen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progress is unavailable. Pull to refresh and try again."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El progreso no está disponible. Desliza para actualizar e inténtalo de nuevo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El progreso no está disponible. Desliza para actualizar e inténtalo de nuevo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "प्रगति उपलब्ध नहीं है। रीफ़्रेश करने के लिए खींचें और फिर से कोशिश करें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "進捗を利用できません。下に引いて更新し、もう一度お試しください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прогресс недоступен. Потяните, чтобы обновить, и попробуйте снова."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "进度不可用。下拉刷新后重试。"
+          }
+        }
+      }
+    },
     "progress.freeze_bank.accessibility" : {
       "comment" : "Accessibility label for the current streak freeze credit bank",
       "localizations" : {

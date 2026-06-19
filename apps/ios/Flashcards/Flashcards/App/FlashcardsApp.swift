@@ -265,14 +265,7 @@ struct FlashcardsApp: App {
                 .task(id: self.cloudSyncPollingTaskID) {
                     await self.runCloudSyncPollingLoop()
                 }
-                .sheet(item: self.technicalErrorPresentation) { presentation in
-                    TechnicalErrorSheet(
-                        presentation: presentation,
-                        onClose: {
-                            self.store.dismissTechnicalError()
-                        }
-                    )
-                }
+                .technicalErrorSheet(store: self.store)
         }
     }
 
@@ -304,19 +297,6 @@ struct FlashcardsApp: App {
 
     private var isCloudCredentialRecoveryGateActive: Bool {
         self.store.cloudCredentialRecoveryState != nil
-    }
-
-    private var technicalErrorPresentation: Binding<TechnicalErrorPresentation?> {
-        Binding<TechnicalErrorPresentation?>(
-            get: {
-                self.store.presentedTechnicalError
-            },
-            set: { presentation in
-                if presentation == nil {
-                    self.store.dismissTechnicalError()
-                }
-            }
-        )
     }
 
     @MainActor

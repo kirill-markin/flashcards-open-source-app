@@ -10,6 +10,11 @@ struct PreparedReviewRevealState {
     let reviewAnswerOptionsErrorMessage: String?
 }
 
+struct PreparedReviewRevealStatePreparation {
+    let state: PreparedReviewRevealState
+    let technicalError: Error?
+}
+
 func makePreparedReviewRevealStateId(
     card: Card,
     schedulerSettings: WorkspaceSchedulerSettings?
@@ -32,11 +37,11 @@ func makePreparedReviewRevealStatesTaskId(
     return "\(currentCardStateId)|\(nextCardStateId)"
 }
 
-func makePreparedReviewRevealState(
+func makePreparedReviewRevealStatePreparation(
     card: Card,
     schedulerSettings: WorkspaceSchedulerSettings?,
     now: Date
-) -> PreparedReviewRevealState {
+) -> PreparedReviewRevealStatePreparation {
     let frontContent = makeReviewRenderedContent(text: card.frontText)
     let backText = card.backText.isEmpty ? emptyBackTextPlaceholder : card.backText
     let backContent = makeReviewRenderedContent(text: backText)
@@ -44,39 +49,53 @@ func makePreparedReviewRevealState(
     let backSpeakableText = makeReviewSpeakableText(text: card.backText)
 
     guard let schedulerSettings else {
-        return PreparedReviewRevealState(
-            id: makePreparedReviewRevealStateId(card: card, schedulerSettings: nil),
-            frontContent: frontContent,
-            backContent: backContent,
-            frontSpeakableText: frontSpeakableText,
-            backSpeakableText: backSpeakableText,
-            reviewAnswerGridOptions: nil,
-            reviewAnswerOptionsErrorMessage: "Scheduler settings are unavailable"
+        let error = ReviewViewError.schedulerSettingsUnavailable
+        return PreparedReviewRevealStatePreparation(
+            state: PreparedReviewRevealState(
+                id: makePreparedReviewRevealStateId(card: card, schedulerSettings: nil),
+                frontContent: frontContent,
+                backContent: backContent,
+                frontSpeakableText: frontSpeakableText,
+                backSpeakableText: backSpeakableText,
+                reviewAnswerGridOptions: nil,
+                reviewAnswerOptionsErrorMessage: localizedReviewActionUnavailableMessage()
+            ),
+            technicalError: error
         )
     }
 
     do {
         let options = try makeReviewAnswerOptions(card: card, schedulerSettings: schedulerSettings, now: now)
-        return PreparedReviewRevealState(
-            id: makePreparedReviewRevealStateId(card: card, schedulerSettings: schedulerSettings),
-            frontContent: frontContent,
-            backContent: backContent,
-            frontSpeakableText: frontSpeakableText,
-            backSpeakableText: backSpeakableText,
-            reviewAnswerGridOptions: try ReviewAnswerGridOptions(options: options),
-            reviewAnswerOptionsErrorMessage: nil
+        return PreparedReviewRevealStatePreparation(
+            state: PreparedReviewRevealState(
+                id: makePreparedReviewRevealStateId(card: card, schedulerSettings: schedulerSettings),
+                frontContent: frontContent,
+                backContent: backContent,
+                frontSpeakableText: frontSpeakableText,
+                backSpeakableText: backSpeakableText,
+                reviewAnswerGridOptions: try ReviewAnswerGridOptions(options: options),
+                reviewAnswerOptionsErrorMessage: nil
+            ),
+            technicalError: nil
         )
     } catch {
-        return PreparedReviewRevealState(
-            id: makePreparedReviewRevealStateId(card: card, schedulerSettings: schedulerSettings),
-            frontContent: frontContent,
-            backContent: backContent,
-            frontSpeakableText: frontSpeakableText,
-            backSpeakableText: backSpeakableText,
-            reviewAnswerGridOptions: nil,
-            reviewAnswerOptionsErrorMessage: Flashcards.errorMessage(error: error)
+        return PreparedReviewRevealStatePreparation(
+            state: PreparedReviewRevealState(
+                id: makePreparedReviewRevealStateId(card: card, schedulerSettings: schedulerSettings),
+                frontContent: frontContent,
+                backContent: backContent,
+                frontSpeakableText: frontSpeakableText,
+                backSpeakableText: backSpeakableText,
+                reviewAnswerGridOptions: nil,
+                reviewAnswerOptionsErrorMessage: localizedReviewActionUnavailableMessage()
+            ),
+            technicalError: error
         )
     }
+}
+
+private func localizedReviewActionUnavailableMessage() -> String {
+    String(localized: "Review actions are unavailable. Try again later.", table: "ReviewCards")
 }
 
 struct ReviewAnswerGridOptions {
@@ -115,10 +134,13 @@ struct ReviewAnswerGridOptions {
 }
 
 enum ReviewViewError: LocalizedError {
+    case schedulerSettingsUnavailable
     case missingReviewAnswerOption(ReviewRating)
 
     var errorDescription: String? {
         switch self {
+        case .schedulerSettingsUnavailable:
+            return "Scheduler settings are unavailable"
         case .missingReviewAnswerOption(let rating):
             return "Missing review answer option for \(rating.title)"
         }

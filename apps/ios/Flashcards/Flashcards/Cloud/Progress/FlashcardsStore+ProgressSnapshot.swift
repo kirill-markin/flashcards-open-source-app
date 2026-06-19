@@ -169,7 +169,10 @@ extension FlashcardsStore {
             }
 
             self.applyReviewScheduleSnapshot(snapshot: nil)
-            self.replaceProgressReviewScheduleRenderErrorMessage(message: Flashcards.errorMessage(error: error))
+            self.presentTechnicalError(error)
+            self.replaceProgressReviewScheduleRenderErrorMessage(
+                message: localizedProgressReviewScheduleRenderErrorMessage()
+            )
         }
     }
 
@@ -362,7 +365,10 @@ extension FlashcardsStore {
             }
 
             self.applyProgressLeaderboardSnapshot(snapshot: nil)
-            self.replaceProgressLeaderboardRefreshErrorMessage(message: Flashcards.errorMessage(error: error))
+            self.presentTechnicalError(error)
+            self.replaceProgressLeaderboardRefreshErrorMessage(
+                message: localizedProgressLeaderboardRefreshErrorMessage()
+            )
         }
     }
 
