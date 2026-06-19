@@ -133,8 +133,7 @@
 "settings.section.advanced" = "Avanzado";
 "settings.row.accountStatus" = "Estado de la cuenta";
 "settings.row.currentWorkspace" = "Espacio de trabajo";
-"settings.row.reviewReminders" = "Recordatorios de repaso";
-"settings.row.reviewReminders.value" = "Este dispositivo";
+"settings.row.reviewReminders" = "Recordatorios";
 "settings.row.reviewAnimations" = "Animaciones de repaso";
 "settings.row.leaderboardParticipation" = "Participación en la tabla";
 "settings.row.language" = "Idioma";
@@ -516,8 +515,8 @@
 "settings.notifications.title" = "Notificaciones";
 "settings.notifications.description" = "Los recordatorios de estudio permanecen en este dispositivo y contienen solo tarjetas, nunca marketing.";
 "settings.notifications.section.permission" = "Permiso";
-"settings.notifications.section.reviewReminders" = "Recordatorios de repaso del espacio de trabajo";
-"settings.notifications.reviewReminders.description" = "Estos recordatorios usan solo el espacio de trabajo actual y se quedan en este dispositivo.";
+"settings.notifications.section.reviewReminders" = "Recordatorios del espacio de trabajo";
+"settings.notifications.reviewReminders.description" = "Estos recordatorios usan solo el espacio de trabajo actual.";
 "settings.notifications.enableWorkspaceReminders" = "Activar recordatorios del espacio de trabajo";
 "settings.notifications.appIconBadge.toggle" = "Mostrar la insignia en el ícono de la app";
 "settings.notifications.appIconBadge.description" = "Muestra un 1 rojo en el ícono de la app cuando llega un recordatorio y aún no has repasado hoy. Al abrir la app se borran los recordatorios de repaso entregados; la insignia desaparece después de repasar o desactivar esto.";
@@ -525,7 +524,6 @@
 "settings.notifications.section.strictReminders" = "Recordatorios de racha";
 "settings.notifications.enableStrictReminders" = "Activar recordatorios de racha";
 "settings.notifications.strictReminders.description" = "Si aún no has repasado hoy, Flashcards te recuerda 4, 3 y 2 horas antes de medianoche para que mantengas tu racha.";
-"settings.notifications.strictReminders.deviceNote" = "Funciona en toda la app en este dispositivo.";
 "settings.notifications.section.dailyReminder" = "Recordatorio diario";
 "settings.notifications.section.inactivityReminder" = "Recordatorio de tarjetas";
 "settings.notifications.permission.allowed" = "Permitido";

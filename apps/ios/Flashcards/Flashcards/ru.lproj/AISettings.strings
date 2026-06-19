@@ -133,8 +133,7 @@
 "settings.section.advanced" = "Дополнительно";
 "settings.row.accountStatus" = "Статус аккаунта";
 "settings.row.currentWorkspace" = "Рабочая область";
-"settings.row.reviewReminders" = "Напоминания о повторении";
-"settings.row.reviewReminders.value" = "Это устройство";
+"settings.row.reviewReminders" = "Напоминания";
 "settings.row.reviewAnimations" = "Анимации повторения";
 "settings.row.leaderboardParticipation" = "Участие в таблице лидеров";
 "settings.row.language" = "Язык";
@@ -516,8 +515,8 @@
 "settings.notifications.title" = "Уведомления";
 "settings.notifications.description" = "Учебные напоминания остаются на этом устройстве и содержат только карточки, без маркетинга.";
 "settings.notifications.section.permission" = "Разрешение";
-"settings.notifications.section.reviewReminders" = "Напоминания о повторении для рабочего пространства";
-"settings.notifications.reviewReminders.description" = "Эти напоминания используют только текущее рабочее пространство и остаются на этом устройстве.";
+"settings.notifications.section.reviewReminders" = "Напоминания рабочего пространства";
+"settings.notifications.reviewReminders.description" = "Эти напоминания используют только текущее рабочее пространство.";
 "settings.notifications.enableWorkspaceReminders" = "Включить напоминания рабочего пространства";
 "settings.notifications.appIconBadge.toggle" = "Показывать бейдж на иконке приложения";
 "settings.notifications.appIconBadge.description" = "Показывать красную 1 на иконке приложения, когда приходит напоминание, а вы ещё не повторяли сегодня. При открытии приложения доставленные напоминания о повторении очищаются; бейдж исчезает после повторения или отключения этого параметра.";
@@ -525,7 +524,6 @@
 "settings.notifications.section.strictReminders" = "Напоминания о серии";
 "settings.notifications.enableStrictReminders" = "Включить напоминания о серии";
 "settings.notifications.strictReminders.description" = "Если вы сегодня ещё не повторяли, Flashcards напомнит за 4, 3 и 2 часа до полуночи, чтобы вы сохранили серию.";
-"settings.notifications.strictReminders.deviceNote" = "Работают во всём приложении на этом устройстве.";
 "settings.notifications.section.dailyReminder" = "Ежедневное напоминание";
 "settings.notifications.section.inactivityReminder" = "Напоминание с карточками";
 "settings.notifications.permission.allowed" = "Разрешено";
