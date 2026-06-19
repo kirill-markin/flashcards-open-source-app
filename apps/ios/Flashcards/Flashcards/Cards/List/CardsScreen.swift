@@ -86,7 +86,6 @@ struct CardsScreen: View {
 
     @State private var editorPresentation: CardEditorPresentation? = nil
     @State private var isFilterSheetPresented: Bool = false
-    @State private var isSearchPresented: Bool = false
     @State private var searchText: String = ""
     @State private var committedFilter: CardFilter? = nil
     @State private var draftFilter: CardFilter? = nil
@@ -164,7 +163,6 @@ struct CardsScreen: View {
         .navigationTitle(String(localized: "Cards", table: reviewCardsStringsTableName))
         .searchable(
             text: self.$searchText,
-            isPresented: self.$isSearchPresented,
             placement: .automatic,
             prompt: String(localized: "Search cards", table: reviewCardsStringsTableName)
         )
@@ -404,11 +402,7 @@ struct CardsScreen: View {
     }
 
     private func dismissCardsSearch() {
-        guard self.isSearchPresented else {
-            return
-        }
         self.dismissSearch()
-        self.isSearchPresented = false
     }
 
     private func saveCard() {
