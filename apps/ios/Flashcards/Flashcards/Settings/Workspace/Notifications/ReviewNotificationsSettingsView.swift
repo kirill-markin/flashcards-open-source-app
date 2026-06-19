@@ -242,7 +242,7 @@ struct ReviewNotificationsSettingsView: View {
             Text(
                 aiSettingsLocalized(
                     "settings.notifications.appIconBadge.description",
-                    "Show a red 1 on the app icon when a reminder fires and you have not reviewed today. It clears when you review or open the app."
+                    "Show a red 1 on the app icon when a reminder fires and you have not reviewed today. Opening the app clears delivered review reminders; the badge clears after you review or turn this off."
                 )
             )
                 .foregroundStyle(.secondary)

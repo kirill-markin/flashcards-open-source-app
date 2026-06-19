@@ -518,7 +518,7 @@
 "settings.notifications.reviewReminders.description" = "这些提醒只使用当前工作区，并且仅保留在此设备上。";
 "settings.notifications.enableWorkspaceReminders" = "启用工作区提醒";
 "settings.notifications.appIconBadge.toggle" = "在应用图标上显示徽章";
-"settings.notifications.appIconBadge.description" = "当提醒到达且你今天还未复习时，在应用图标上显示红色 1。复习或打开应用后会消失。";
+"settings.notifications.appIconBadge.description" = "当提醒到达且你今天还未复习时，在应用图标上显示红色 1。打开应用会清除已送达的复习提醒；徽章会在复习后或关闭此开关后清除。";
 "settings.notifications.section.appIconBadge" = "应用图标徽章";
 "settings.notifications.section.strictReminders" = "连续记录提醒";
 "settings.notifications.enableStrictReminders" = "启用连续记录提醒";

@@ -518,7 +518,7 @@
 "settings.notifications.reviewReminders.description" = "これらのリマインダーは現在のワークスペースだけを使い、このデバイスに保存されます。";
 "settings.notifications.enableWorkspaceReminders" = "ワークスペースのリマインダーを有効にする";
 "settings.notifications.appIconBadge.toggle" = "アプリアイコンにバッジを表示";
-"settings.notifications.appIconBadge.description" = "リマインダーが届き、今日まだ復習していない場合、アプリアイコンに赤い 1 を表示します。復習するかアプリを開くと消えます。";
+"settings.notifications.appIconBadge.description" = "リマインダーが届き、今日まだ復習していない場合、アプリアイコンに赤い 1 を表示します。アプリを開くと配信済みの復習リマインダーは消えます。バッジは復習後、またはこれをオフにすると消えます。";
 "settings.notifications.section.appIconBadge" = "アプリアイコンバッジ";
 "settings.notifications.section.strictReminders" = "ストリークリマインダー";
 "settings.notifications.enableStrictReminders" = "ストリークリマインダーを有効にする";

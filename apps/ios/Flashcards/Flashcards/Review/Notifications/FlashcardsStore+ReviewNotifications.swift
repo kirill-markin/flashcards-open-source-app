@@ -242,7 +242,7 @@ extension FlashcardsStore {
     ///
     /// The reconciler is idempotent and safe to call from multiple triggers. It clears
     /// pending review reminders before rescheduling, and it clears already delivered
-    /// review reminders only when the app becomes active.
+    /// review reminders when the app becomes active or a review is recorded.
     func reconcileReviewNotifications(trigger: ReviewNotificationsReconcileTrigger, now: Date) {
         self.reviewNotificationsRescheduleGeneration += 1
         let generation = self.reviewNotificationsRescheduleGeneration

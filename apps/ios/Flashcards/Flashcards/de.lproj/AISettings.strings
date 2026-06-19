@@ -518,7 +518,7 @@
 "settings.notifications.reviewReminders.description" = "Diese Erinnerungen verwenden nur den aktuellen Arbeitsbereich und bleiben auf diesem Gerät.";
 "settings.notifications.enableWorkspaceReminders" = "Arbeitsbereichserinnerungen aktivieren";
 "settings.notifications.appIconBadge.toggle" = "App-Symbol-Badge anzeigen";
-"settings.notifications.appIconBadge.description" = "Zeigt eine rote 1 auf dem App-Symbol, wenn eine Erinnerung kommt und du heute noch nicht wiederholt hast. Sie verschwindet, wenn du wiederholst oder die App öffnest.";
+"settings.notifications.appIconBadge.description" = "Zeigt eine rote 1 auf dem App-Symbol, wenn eine Erinnerung kommt und du heute noch nicht wiederholt hast. Wenn du die App öffnest, werden zugestellte Wiederholungserinnerungen gelöscht; das Badge verschwindet nach dem Wiederholen oder wenn du dies ausschaltest.";
 "settings.notifications.section.appIconBadge" = "App-Symbol-Badge";
 "settings.notifications.section.strictReminders" = "Serien-Erinnerungen";
 "settings.notifications.enableStrictReminders" = "Serien-Erinnerungen aktivieren";
