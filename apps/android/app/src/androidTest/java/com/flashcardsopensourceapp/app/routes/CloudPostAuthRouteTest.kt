@@ -45,6 +45,8 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         processingTitle = "",
                         processingMessage = "",
                         errorMessage = "",
+                        errorTechnicalDetails = null,
+                        errorTechnicalDetailsReportId = null,
                         canRetry = false,
                         canLogout = false,
                         failureActionLabel = "Log out",
@@ -56,6 +58,7 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onSelectWorkspace = {},
                     onRetry = {},
                     onFailureAction = {},
+                    onShowTechnicalDetails = { _, _ -> },
                     onBack = {},
                     canNavigateBack = true
                 )
@@ -102,6 +105,8 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         processingTitle = "",
                         processingMessage = "",
                         errorMessage = "",
+                        errorTechnicalDetails = null,
+                        errorTechnicalDetailsReportId = null,
                         canRetry = false,
                         canLogout = false,
                         failureActionLabel = "Log out",
@@ -113,6 +118,7 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     },
                     onRetry = {},
                     onFailureAction = {},
+                    onShowTechnicalDetails = { _, _ -> },
                     onBack = {},
                     canNavigateBack = true
                 )
@@ -150,6 +156,8 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         processingTitle = "",
                         processingMessage = "",
                         errorMessage = "Cloud sync could not finish.",
+                        errorTechnicalDetails = "Cloud sync could not finish.",
+                        errorTechnicalDetailsReportId = "test-cloud-post-auth-failure",
                         canRetry = true,
                         canLogout = true,
                         failureActionLabel = "Log out",
@@ -163,6 +171,7 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onFailureAction = {
                         logoutCalls += 1
                     },
+                    onShowTechnicalDetails = { _, _ -> },
                     onBack = {},
                     canNavigateBack = true
                 )
@@ -196,6 +205,8 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         processingTitle = "",
                         processingMessage = "",
                         errorMessage = "",
+                        errorTechnicalDetails = null,
+                        errorTechnicalDetailsReportId = null,
                         canRetry = false,
                         canLogout = false,
                         failureActionLabel = "Log out",
@@ -207,6 +218,7 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onSelectWorkspace = {},
                     onRetry = {},
                     onFailureAction = {},
+                    onShowTechnicalDetails = { _, _ -> },
                     onBack = {},
                     canNavigateBack = true
                 )
@@ -242,6 +254,8 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         processingTitle = "",
                         processingMessage = "",
                         errorMessage = "Local data recovery failed. Try again; local data stays on this device.",
+                        errorTechnicalDetails = "Local data recovery failed. Try again; local data stays on this device.",
+                        errorTechnicalDetailsReportId = "test-cloud-post-auth-recovery-failure",
                         canRetry = true,
                         canLogout = false,
                         failureActionLabel = "Log out",
@@ -255,6 +269,7 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onFailureAction = {
                         failureActionCalls += 1
                     },
+                    onShowTechnicalDetails = { _, _ -> },
                     onBack = {},
                     canNavigateBack = true
                 )

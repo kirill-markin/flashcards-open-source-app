@@ -8,5 +8,6 @@ data class CloudSignInUiState(
     val isVerifyingCode: Boolean,
     val errorMessage: String,
     val errorTechnicalDetails: String?,
+    val errorTechnicalDetailsReportId: String?,
     val challengeEmail: String?
 )

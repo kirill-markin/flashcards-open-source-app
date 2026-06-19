@@ -32,6 +32,8 @@ internal fun prepareCloudPostAuthWorkspaceCompletion(
             strings.get(R.string.settings_post_auth_linking_body)
         },
         postAuthErrorMessage = "",
+        postAuthErrorTechnicalDetails = null,
+        postAuthErrorTechnicalDetailsReportId = null,
         postAuthRecoveryBlocked = false,
         postAuthResetAllowed = false,
         retryAction = if (requiresCloudGuestUpgrade(linkContext = linkContext)) {
@@ -64,6 +66,8 @@ internal fun prepareCloudPostAuthGuestLocalRecovery(
         processingTitle = strings.get(R.string.settings_post_auth_recovering_local_data_title),
         processingMessage = strings.get(R.string.settings_post_auth_recovering_local_data_body),
         postAuthErrorMessage = "",
+        postAuthErrorTechnicalDetails = null,
+        postAuthErrorTechnicalDetailsReportId = null,
         postAuthRecoveryBlocked = false,
         postAuthResetAllowed = false,
         retryAction = CloudPostAuthRetryAction.CompleteGuestLocalRecovery(
@@ -86,6 +90,8 @@ internal fun prepareCloudPostAuthSyncOnly(
         processingTitle = strings.get(R.string.settings_post_auth_syncing_title),
         processingMessage = strings.get(R.string.settings_post_auth_syncing_body),
         postAuthErrorMessage = "",
+        postAuthErrorTechnicalDetails = null,
+        postAuthErrorTechnicalDetailsReportId = null,
         postAuthRecoveryBlocked = false,
         postAuthResetAllowed = false,
         retryAction = CloudPostAuthRetryAction.SyncOnly(
@@ -99,6 +105,8 @@ internal fun failCloudPostAuth(
     state: CloudSignInDraftState,
     authAttemptId: Long,
     errorMessage: String,
+    errorTechnicalDetails: String?,
+    errorTechnicalDetailsReportId: String?,
     recoveryErrorBlocked: Boolean,
     postAuthResetAllowed: Boolean
 ): CloudSignInDraftState {
@@ -109,6 +117,8 @@ internal fun failCloudPostAuth(
         processingTitle = "",
         processingMessage = "",
         postAuthErrorMessage = errorMessage,
+        postAuthErrorTechnicalDetails = errorTechnicalDetails,
+        postAuthErrorTechnicalDetailsReportId = errorTechnicalDetailsReportId,
         postAuthRecoveryBlocked = recoveryErrorBlocked,
         postAuthResetAllowed = postAuthResetAllowed,
         retryAction = if (recoveryErrorBlocked) {
@@ -136,6 +146,8 @@ internal fun finishCloudPostAuthSuccess(
         processingTitle = "",
         processingMessage = "",
         postAuthErrorMessage = "",
+        postAuthErrorTechnicalDetails = null,
+        postAuthErrorTechnicalDetailsReportId = null,
         postAuthRecoveryBlocked = false,
         postAuthResetAllowed = false,
         retryAction = null,

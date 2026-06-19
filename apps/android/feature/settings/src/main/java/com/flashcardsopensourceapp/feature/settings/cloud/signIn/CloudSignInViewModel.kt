@@ -7,6 +7,9 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
+import com.flashcardsopensourceapp.core.ui.nextAppTechnicalErrorReportId
+import com.flashcardsopensourceapp.core.ui.renderTechnicalErrorDetails
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryRequiredException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkContext
@@ -51,6 +54,19 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+private val cloudSendCodeUserCorrectableErrorCodes: Set<String> = setOf(
+    "INVALID_EMAIL",
+    "RATE_LIMITED"
+)
+
+private val cloudVerifyCodeUserCorrectableErrorCodes: Set<String> = setOf(
+    "OTP_CHALLENGE_CONSUMED",
+    "OTP_CODE_INVALID",
+    "OTP_SESSION_EXPIRED",
+    "OTP_TOO_MANY_ATTEMPTS",
+    "OTP_VERIFY_FAILED"
+)
+
 class CloudSignInViewModel(
     private val cloudAccountRepository: CloudAccountRepository,
     private val syncRepository: SyncRepository,
@@ -73,6 +89,7 @@ class CloudSignInViewModel(
                 isVerifyingCode = draft.isVerifyingCode,
                 errorMessage = draft.errorMessage,
                 errorTechnicalDetails = draft.errorTechnicalDetails,
+                errorTechnicalDetailsReportId = draft.errorTechnicalDetailsReportId,
                 challengeEmail = draft.challenge?.email
             )
         },
@@ -84,6 +101,7 @@ class CloudSignInViewModel(
             isVerifyingCode = false,
             errorMessage = "",
             errorTechnicalDetails = null,
+            errorTechnicalDetailsReportId = null,
             challengeEmail = null
         )
     )
@@ -129,6 +147,8 @@ class CloudSignInViewModel(
                 processingTitle = draft.processingTitle,
                 processingMessage = draft.processingMessage,
                 errorMessage = draft.postAuthErrorMessage,
+                errorTechnicalDetails = draft.postAuthErrorTechnicalDetails,
+                errorTechnicalDetailsReportId = draft.postAuthErrorTechnicalDetailsReportId,
                 canRetry = draft.retryAction != null && draft.postAuthRecoveryBlocked.not(),
                 canLogout = canRunCloudPostAuthFailureAction(draft = draft),
                 failureActionLabel = cloudPostAuthFailureActionLabel(
@@ -148,6 +168,8 @@ class CloudSignInViewModel(
             processingTitle = "",
             processingMessage = "",
             errorMessage = "",
+            errorTechnicalDetails = null,
+            errorTechnicalDetailsReportId = null,
             canRetry = false,
             canLogout = false,
             failureActionLabel = strings.get(R.string.settings_logout),
@@ -169,6 +191,27 @@ class CloudSignInViewModel(
 
     private fun nextAuthAttemptId(state: CloudSignInDraftState): Long {
         return nextCloudAuthAttemptId(state = state)
+    }
+
+    private fun technicalDetailsReportIdFor(
+        source: String,
+        technicalDetails: String?
+    ): String? {
+        if (technicalDetails.isNullOrBlank()) {
+            return null
+        }
+        return nextAppTechnicalErrorReportId(source = source)
+    }
+
+    private fun CloudSignInErrorPresentation.withTechnicalDetailsReportId(
+        source: String
+    ): CloudSignInErrorPresentation {
+        return copy(
+            technicalDetailsReportId = technicalDetailsReportIdFor(
+                source = source,
+                technicalDetails = technicalDetails
+            )
+        )
     }
 
     private fun isCurrentAuthAttempt(authAttemptId: Long): Boolean {
@@ -250,7 +293,10 @@ class CloudSignInViewModel(
             if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
                 return CloudSendCodeNavigationOutcome.NoNavigation
             }
-            val errorPresentation = createSendCodeErrorPresentation(error = error, strings = strings)
+            val errorPresentation = createSendCodeErrorPresentation(
+                error = error,
+                strings = strings
+            ).withTechnicalDetailsReportId(source = "cloud-sign-in-send-code")
             draftState.update { state ->
                 failCloudSendCode(
                     state = state,
@@ -290,7 +336,10 @@ class CloudSignInViewModel(
             if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
                 return false
             }
-            val errorPresentation = createVerifyCodeErrorPresentation(error = error, strings = strings)
+            val errorPresentation = createVerifyCodeErrorPresentation(
+                error = error,
+                strings = strings
+            ).withTechnicalDetailsReportId(source = "cloud-sign-in-verify-code")
             draftState.update { state ->
                 failCloudVerifyCode(
                     state = state,
@@ -489,20 +538,34 @@ class CloudSignInViewModel(
                 return
             }
             val recoveryError = error as? CloudCredentialRecoveryRequiredException
-            val errorMessage = if (recoveryError != null) {
-                cloudPostAuthRecoveryExceptionMessage(error = recoveryError, strings = strings)
+            val errorPresentation = if (recoveryError != null) {
+                CloudPostAuthErrorPresentation(
+                    message = cloudPostAuthRecoveryExceptionMessage(error = recoveryError, strings = strings),
+                    technicalDetails = null,
+                    technicalDetailsReportId = null
+                )
             } else {
-                error.message ?: if (requiresCloudGuestUpgrade(linkContext = linkContext)) {
-                    strings.get(R.string.settings_post_auth_guest_upgrade_failed)
-                } else {
-                    strings.get(R.string.settings_post_auth_setup_failed)
-                }
+                val technicalDetails = technicalDetailsFor(error = error)
+                CloudPostAuthErrorPresentation(
+                    message = if (requiresCloudGuestUpgrade(linkContext = linkContext)) {
+                        strings.get(R.string.settings_post_auth_guest_upgrade_failed)
+                    } else {
+                        strings.get(R.string.settings_post_auth_setup_failed)
+                    },
+                    technicalDetails = technicalDetails,
+                    technicalDetailsReportId = technicalDetailsReportIdFor(
+                        source = "cloud-post-auth-complete",
+                        technicalDetails = technicalDetails
+                    )
+                )
             }
             draftState.update { state ->
                 failCloudPostAuth(
                     state = state,
                     authAttemptId = authAttemptId,
-                    errorMessage = errorMessage,
+                    errorMessage = errorPresentation.message,
+                    errorTechnicalDetails = errorPresentation.technicalDetails,
+                    errorTechnicalDetailsReportId = errorPresentation.technicalDetailsReportId,
                     recoveryErrorBlocked = recoveryError != null,
                     postAuthResetAllowed = isInvalidCloudCredentialRecovery(error = recoveryError)
                 )
@@ -556,16 +619,30 @@ class CloudSignInViewModel(
                 return
             }
             val recoveryError = error as? CloudCredentialRecoveryRequiredException
-            val errorMessage = if (recoveryError != null) {
-                cloudPostAuthRecoveryExceptionMessage(error = recoveryError, strings = strings)
+            val errorPresentation = if (recoveryError != null) {
+                CloudPostAuthErrorPresentation(
+                    message = cloudPostAuthRecoveryExceptionMessage(error = recoveryError, strings = strings),
+                    technicalDetails = null,
+                    technicalDetailsReportId = null
+                )
             } else {
-                error.message ?: strings.get(R.string.settings_post_auth_guest_local_recovery_failed)
+                val technicalDetails = technicalDetailsFor(error = error)
+                CloudPostAuthErrorPresentation(
+                    message = strings.get(R.string.settings_post_auth_guest_local_recovery_failed),
+                    technicalDetails = technicalDetails,
+                    technicalDetailsReportId = technicalDetailsReportIdFor(
+                        source = "cloud-post-auth-guest-local-recovery",
+                        technicalDetails = technicalDetails
+                    )
+                )
             }
             draftState.update { state ->
                 failCloudPostAuth(
                     state = state,
                     authAttemptId = authAttemptId,
-                    errorMessage = errorMessage,
+                    errorMessage = errorPresentation.message,
+                    errorTechnicalDetails = errorPresentation.technicalDetails,
+                    errorTechnicalDetailsReportId = errorPresentation.technicalDetailsReportId,
                     recoveryErrorBlocked = recoveryError != null,
                     postAuthResetAllowed = isInvalidCloudCredentialRecovery(error = recoveryError)
                 )
@@ -621,16 +698,30 @@ class CloudSignInViewModel(
                 return
             }
             val recoveryError = error as? CloudCredentialRecoveryRequiredException
-            val errorMessage = if (recoveryError != null) {
-                cloudPostAuthRecoveryExceptionMessage(error = recoveryError, strings = strings)
+            val errorPresentation = if (recoveryError != null) {
+                CloudPostAuthErrorPresentation(
+                    message = cloudPostAuthRecoveryExceptionMessage(error = recoveryError, strings = strings),
+                    technicalDetails = null,
+                    technicalDetailsReportId = null
+                )
             } else {
-                error.message ?: strings.get(R.string.settings_post_auth_sync_failed)
+                val technicalDetails = technicalDetailsFor(error = error)
+                CloudPostAuthErrorPresentation(
+                    message = strings.get(R.string.settings_post_auth_sync_failed),
+                    technicalDetails = technicalDetails,
+                    technicalDetailsReportId = technicalDetailsReportIdFor(
+                        source = "cloud-post-auth-sync",
+                        technicalDetails = technicalDetails
+                    )
+                )
             }
             draftState.update { state ->
                 failCloudPostAuth(
                     state = state,
                     authAttemptId = authAttemptId,
-                    errorMessage = errorMessage,
+                    errorMessage = errorPresentation.message,
+                    errorTechnicalDetails = errorPresentation.technicalDetails,
+                    errorTechnicalDetailsReportId = errorPresentation.technicalDetailsReportId,
                     recoveryErrorBlocked = recoveryError != null,
                     postAuthResetAllowed = isInvalidCloudCredentialRecovery(error = recoveryError)
                 )
@@ -650,6 +741,8 @@ class CloudSignInViewModel(
                     state = state,
                     authAttemptId = authAttemptId,
                     errorMessage = errorMessage,
+                    errorTechnicalDetails = null,
+                    errorTechnicalDetailsReportId = null,
                     recoveryErrorBlocked = false,
                     postAuthResetAllowed = false
                 )
@@ -687,16 +780,34 @@ private fun createSendCodeErrorPresentation(
     error: Exception,
     strings: SettingsStringResolver
 ): CloudSignInErrorPresentation {
-    return if (isCloudTransportFailure(error = error)) {
-        CloudSignInErrorPresentation(
-            message = strings.get(R.string.settings_sign_in_send_code_transport_failed),
-            technicalDetails = error.message?.trim().takeUnless { it.isNullOrEmpty() }
-        )
-    } else {
-        CloudSignInErrorPresentation(
-            message = error.message ?: strings.get(R.string.settings_sign_in_send_code_failed),
-            technicalDetails = null
-        )
+    val expectedUserFailureMessage = expectedCloudSendCodeUserFailureMessage(
+        error = error,
+        strings = strings
+    )
+    return when {
+        expectedUserFailureMessage != null -> {
+            CloudSignInErrorPresentation(
+                message = expectedUserFailureMessage,
+                technicalDetails = null,
+                technicalDetailsReportId = null
+            )
+        }
+
+        isCloudTransportFailure(error = error) -> {
+            CloudSignInErrorPresentation(
+                message = strings.get(R.string.settings_sign_in_send_code_transport_failed),
+                technicalDetails = technicalDetailsFor(error = error),
+                technicalDetailsReportId = null
+            )
+        }
+
+        else -> {
+            CloudSignInErrorPresentation(
+                message = strings.get(R.string.settings_sign_in_send_code_failed),
+                technicalDetails = technicalDetailsFor(error = error),
+                technicalDetailsReportId = null
+            )
+        }
     }
 }
 
@@ -704,21 +815,65 @@ private fun createVerifyCodeErrorPresentation(
     error: Exception,
     strings: SettingsStringResolver
 ): CloudSignInErrorPresentation {
-    return if (isCloudTransportFailure(error = error)) {
-        CloudSignInErrorPresentation(
-            message = strings.get(R.string.settings_sign_in_verify_transport_failed),
-            technicalDetails = error.message?.trim().takeUnless { it.isNullOrEmpty() }
-        )
-    } else {
-        CloudSignInErrorPresentation(
-            message = error.message ?: strings.get(R.string.settings_sign_in_verify_failed),
-            technicalDetails = null
-        )
+    return when {
+        isExpectedCloudVerifyCodeUserFailure(error = error) -> {
+            CloudSignInErrorPresentation(
+                message = strings.get(R.string.settings_sign_in_verify_failed),
+                technicalDetails = null,
+                technicalDetailsReportId = null
+            )
+        }
+
+        isCloudTransportFailure(error = error) -> {
+            CloudSignInErrorPresentation(
+                message = strings.get(R.string.settings_sign_in_verify_transport_failed),
+                technicalDetails = technicalDetailsFor(error = error),
+                technicalDetailsReportId = null
+            )
+        }
+
+        else -> {
+            CloudSignInErrorPresentation(
+                message = strings.get(R.string.settings_sign_in_verify_failed),
+                technicalDetails = technicalDetailsFor(error = error),
+                technicalDetailsReportId = null
+            )
+        }
     }
+}
+
+private fun expectedCloudSendCodeUserFailureMessage(
+    error: Exception,
+    strings: SettingsStringResolver
+): String? {
+    val remoteError = error as? CloudRemoteException ?: return null
+    if (remoteError.statusCode !in 400..499) {
+        return null
+    }
+    val errorCode = remoteError.errorCode ?: return null
+    if (errorCode !in cloudSendCodeUserCorrectableErrorCodes) {
+        return null
+    }
+    return when (errorCode) {
+        "INVALID_EMAIL" -> strings.get(R.string.settings_sign_in_send_code_invalid_email)
+        "RATE_LIMITED" -> strings.get(R.string.settings_sign_in_send_code_rate_limited)
+        else -> strings.get(R.string.settings_sign_in_send_code_failed)
+    }
+}
+
+private fun isExpectedCloudVerifyCodeUserFailure(error: Exception): Boolean {
+    val remoteError = error as? CloudRemoteException ?: return false
+    val errorCode = remoteError.errorCode ?: return false
+    return remoteError.statusCode in 400..499 &&
+        errorCode in cloudVerifyCodeUserCorrectableErrorCodes
 }
 
 private fun isCloudTransportFailure(error: Exception): Boolean {
     return error is IOException
+}
+
+private fun technicalDetailsFor(error: Exception): String {
+    return renderTechnicalErrorDetails(error = error)
 }
 
 fun createCloudSignInViewModelFactory(

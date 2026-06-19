@@ -353,6 +353,8 @@ internal class TestSettingsStringResolver : SettingsStringResolver {
             }
 
             R.string.settings_sign_in_send_code_failed -> "Could not send the sign-in code."
+            R.string.settings_sign_in_send_code_invalid_email -> "Enter a valid email address."
+            R.string.settings_sign_in_send_code_rate_limited -> "Too many sign-in attempts. Try again later."
             R.string.settings_sign_in_verify_transport_failed -> {
                 "We could not verify the code right now. Check your connection and try again."
             }
