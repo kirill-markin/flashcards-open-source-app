@@ -1,4 +1,4 @@
-import { StrictMode, act, createElement, useEffect, type ReactNode } from "react";
+import { StrictMode, act, createElement, useEffect, useLayoutEffect, type ReactNode } from "react";
 import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, expect, vi } from "vitest";
 import { I18nProvider, useI18n } from "../../../../i18n";
@@ -190,6 +190,7 @@ type ChatPanelTestHarness = Readonly<{
   getScrollToMock: () => ReturnType<typeof vi.fn>;
   getClipboardWriteTextMock: () => ReturnType<typeof vi.fn>;
   getAlertMock: () => ReturnType<typeof vi.fn>;
+  setMessagesScrollerMetrics: (metrics: MessagesScrollerMetrics) => void;
   setMobileViewport: (isMobile: boolean) => void;
   flushAsync: () => Promise<void>;
   renderChatPanel: (mode?: "sidebar" | "fullscreen") => Promise<void>;
@@ -208,6 +209,12 @@ type TextareaKeyboardParams = Readonly<{
   key: string;
   shiftKey: boolean;
   repeat: boolean;
+}>;
+
+export type MessagesScrollerMetrics = Readonly<{
+  scrollTop: number;
+  scrollHeight: number;
+  clientHeight: number;
 }>;
 
 export {
@@ -318,16 +325,16 @@ export function pressTextareaKey(
   return keyboardEvent;
 }
 
-export function configureMessagesScroller(element: HTMLDivElement): void {
-  let scrollTop = 600;
+export function configureMessagesScroller(element: HTMLDivElement, metrics: MessagesScrollerMetrics): void {
+  let scrollTop = metrics.scrollTop;
 
   Object.defineProperty(element, "scrollHeight", {
     configurable: true,
-    get: () => 1_000,
+    get: () => metrics.scrollHeight,
   });
   Object.defineProperty(element, "clientHeight", {
     configurable: true,
-    get: () => 400,
+    get: () => metrics.clientHeight,
   });
   Object.defineProperty(element, "scrollTop", {
     configurable: true,
@@ -470,12 +477,14 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
   let scrollToMock: ReturnType<typeof vi.fn> | null = null;
   let clipboardWriteTextMock: ReturnType<typeof vi.fn> | null = null;
   let alertMock: ReturnType<typeof vi.fn> | null = null;
+  let messagesScrollerMetrics: MessagesScrollerMetrics | null = null;
   let setLocalePreferenceRef: ((localePreference: LocalePreference) => void) | null = null;
   let isMobileViewport = false;
   const matchMediaListeners = new Set<(event: MediaQueryListEvent) => void>();
 
   beforeEach(() => {
     isMobileViewport = false;
+    messagesScrollerMetrics = null;
     matchMediaListeners.clear();
     const localStorageState = new Map<string, string>();
     const localStorageMock: Storage = {
@@ -743,6 +752,10 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     return alertMock;
   }
 
+  function setMessagesScrollerMetrics(metrics: MessagesScrollerMetrics): void {
+    messagesScrollerMetrics = metrics;
+  }
+
   function setMobileViewport(nextIsMobile: boolean): void {
     isMobileViewport = nextIsMobile;
     const changeEvent = { matches: isMobileViewport, media: "(max-width: 768px)" } as MediaQueryListEvent;
@@ -770,6 +783,22 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     return null;
   }
 
+  function MessagesScrollerMetricsConfigurator(): null {
+    useLayoutEffect(() => {
+      const mountedContainer = container;
+      if (mountedContainer === null || messagesScrollerMetrics === null) {
+        return;
+      }
+
+      const messagesScroller = mountedContainer.querySelector('[data-testid="chat-messages"]') as HTMLDivElement | null;
+      if (messagesScroller !== null) {
+        configureMessagesScroller(messagesScroller, messagesScrollerMetrics);
+      }
+    });
+
+    return null;
+  }
+
   async function renderChatPanelShell(panel: ReactNode, shouldUseStrictMode: boolean): Promise<void> {
     expect(root).not.toBeNull();
     await act(async () => {
@@ -782,6 +811,7 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
           createElement(
             ChatDraftProvider,
             null,
+            createElement(MessagesScrollerMetricsConfigurator),
             createElement(LocalePreferenceProbe),
             panel,
           ),
@@ -897,6 +927,7 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     getScrollToMock,
     getClipboardWriteTextMock,
     getAlertMock,
+    setMessagesScrollerMetrics,
     setMobileViewport,
     flushAsync,
     renderChatPanel,
