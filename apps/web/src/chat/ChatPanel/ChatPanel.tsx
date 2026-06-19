@@ -203,6 +203,7 @@ export function ChatPanel(props: Props): ReactElement {
     isStopping,
     sendPhase,
   });
+  const isSendButtonBusy = sendPhase === "preparingSend" || sendPhase === "startingRun";
   const canShowComposerSuggestions = getCanShowComposerSuggestions({
     composerAction,
     composerSuggestionsCount: composerSuggestions.length,
@@ -467,10 +468,18 @@ export function ChatPanel(props: Props): ReactElement {
                 type="button"
                 className="chat-send-btn"
                 aria-label={t("chatPanel.actions.sendAriaLabel")}
+                aria-busy={isSendButtonBusy ? "true" : "false"}
                 onClick={() => void sendPendingMessage()}
                 disabled={!canSendPendingMessage}
                 data-testid="chat-send-button"
               >
+                {isSendButtonBusy ? (
+                  <span
+                    className="chat-send-btn-spinner"
+                    aria-hidden="true"
+                    data-testid="chat-send-button-busy-indicator"
+                  />
+                ) : null}
                 {t("chatPanel.actions.send")}
               </button>
             )}
