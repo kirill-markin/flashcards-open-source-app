@@ -48,6 +48,7 @@ import com.flashcardsopensourceapp.feature.settings.settingsTagsRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsTestRowTag
 import com.flashcardsopensourceapp.feature.settings.testSettingsAnimationsRowTag
 import com.flashcardsopensourceapp.feature.settings.testSettingsNotificationDiagnosticsRowTag
+import com.flashcardsopensourceapp.feature.settings.testSettingsTechnicalErrorRowTag
 import com.flashcardsopensourceapp.feature.settings.testSettingsScreenTag
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -205,6 +206,9 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onOpenAnimations = {
                         clickedRows += "animations"
                     },
+                    onShowTechnicalErrorDialogPreview = {
+                        clickedRows += "technical_error"
+                    },
                     onOpenNotificationDiagnostics = {
                         clickedRows += "notification_diagnostics"
                     },
@@ -216,7 +220,13 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         }
 
         assertTestSettingsRowVisible(rowTag = testSettingsAnimationsRowTag)
+        assertTestSettingsRowVisible(rowTag = testSettingsTechnicalErrorRowTag)
         assertTestSettingsRowVisible(rowTag = testSettingsNotificationDiagnosticsRowTag)
+        assertTestSettingsRowClick(
+            rowTag = testSettingsTechnicalErrorRowTag,
+            expectedClick = "technical_error",
+            clickedRows = clickedRows
+        )
         assertTestSettingsRowClick(
             rowTag = testSettingsNotificationDiagnosticsRowTag,
             expectedClick = "notification_diagnostics",

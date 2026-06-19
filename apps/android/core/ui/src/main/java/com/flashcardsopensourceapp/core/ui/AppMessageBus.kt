@@ -4,7 +4,10 @@ import android.content.res.Resources
 import androidx.core.text.BidiFormatter
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.util.Locale
 
 fun interface TransientMessageController {
@@ -22,15 +25,31 @@ fun bidiWrap(
     return BidiFormatter.getInstance(locale).unicodeWrap(text)
 }
 
-class AppMessageBus : TransientMessageController {
+class AppMessageBus(
+    private val reportTechnicalError: (Throwable) -> Unit
+) : TransientMessageController, AppTechnicalErrorController {
     private val messagesFlow = MutableSharedFlow<String>(
         replay = 0,
         extraBufferCapacity = 32
     )
+    private val activeTechnicalErrorFlow = MutableStateFlow<AppTechnicalError?>(value = null)
 
     val messages: Flow<String> = messagesFlow.asSharedFlow()
+    val activeTechnicalError: StateFlow<AppTechnicalError?> = activeTechnicalErrorFlow.asStateFlow()
 
     override fun showMessage(message: String) {
         messagesFlow.tryEmit(message)
+    }
+
+    override fun showTechnicalError(
+        error: AppTechnicalError,
+        throwable: Throwable
+    ) {
+        reportTechnicalError(throwable)
+        activeTechnicalErrorFlow.value = error
+    }
+
+    fun dismissTechnicalError() {
+        activeTechnicalErrorFlow.value = null
     }
 }

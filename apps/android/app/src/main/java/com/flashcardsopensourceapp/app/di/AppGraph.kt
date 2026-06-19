@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import com.flashcardsopensourceapp.app.AutoSyncController
+import com.flashcardsopensourceapp.app.TestTechnicalErrorDialogPreviewController
 import com.flashcardsopensourceapp.app.navigation.AppPackageInfo
 import com.flashcardsopensourceapp.app.navigation.loadPackageInfo
 import com.flashcardsopensourceapp.app.ProgressContextRefreshController
@@ -134,7 +135,10 @@ class AppGraph(
     private var reviewHistoryAppliedObserverJob: Job? = null
 
     internal val appPackageInfo: AppPackageInfo = loadPackageInfo(context = context)
-    val appMessageBus = AppMessageBus()
+    val appMessageBus = AppMessageBus(
+        reportTechnicalError = ::captureTechnicalErrorDialogException
+    )
+    val testTechnicalErrorDialogPreviewController = TestTechnicalErrorDialogPreviewController()
     val testModeStore = TestModeStore(context = context.applicationContext)
     val visibleAppScreenController = VisibleAppScreenController()
     val storeReviewActivityProvider = StoreReviewActivityProvider()
@@ -478,6 +482,17 @@ class AppGraph(
 
     fun retryStartup() {
         startStartup()
+    }
+
+    private fun captureTechnicalErrorDialogException(throwable: Throwable) {
+        observability.captureException(
+            event = AndroidExceptionIssueEvent.AppTechnicalErrorDialogException(
+                throwable = throwable,
+                appVersion = appPackageInfo.versionName,
+                clientVersion = appPackageInfo.versionName,
+                versionCode = appPackageInfo.longVersionCode.toInt()
+            )
+        )
     }
 
     fun refreshAccountContextInBackground(source: String) {
