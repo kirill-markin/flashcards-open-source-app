@@ -87,6 +87,8 @@ internal fun AiComposer(
             R.string.ai_send
         }
     )
+    val showPrimaryActionProgress = (uiState.isConversationLoading || uiState.isComposerBusy) &&
+        uiState.canStopStreaming.not()
     val dictationActionLabel = stringResource(
         id = if (uiState.dictationState == AiChatDictationState.RECORDING) {
             R.string.ai_stop
@@ -244,14 +246,21 @@ internal fun AiComposer(
                             }
                             .testTag(tag = aiComposerSendButtonTag)
                     ) {
-                        Icon(
-                            imageVector = if (uiState.canStopStreaming) {
-                                Icons.Outlined.Stop
-                            } else {
-                                Icons.AutoMirrored.Outlined.Send
-                            },
-                            contentDescription = null
-                        )
+                        if (showPrimaryActionProgress) {
+                            CircularProgressIndicator(
+                                strokeWidth = 2.dp,
+                                modifier = Modifier.size(aiComposerProgressSize)
+                            )
+                        } else {
+                            Icon(
+                                imageVector = if (uiState.canStopStreaming) {
+                                    Icons.Outlined.Stop
+                                } else {
+                                    Icons.AutoMirrored.Outlined.Send
+                                },
+                                contentDescription = null
+                            )
+                        }
                     }
                 },
                 modifier = Modifier

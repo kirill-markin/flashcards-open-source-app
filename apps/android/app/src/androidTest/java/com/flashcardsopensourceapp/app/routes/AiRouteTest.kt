@@ -11,12 +11,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasProgressBarRangeInfo
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -385,7 +387,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
     }
 
     @Test
-    fun loadingStateDoesNotExposeConversationOrComposerSemantics() {
+    fun coldStartLoadingStateDoesNotExposeConversationOrComposerSemantics() {
         val loadingTitle = composeRule.activity.getString(AiFeatureR.string.ai_loading_chat_title)
         val loadingBody = composeRule.activity.getString(AiFeatureR.string.ai_loading_chat_body)
 
@@ -393,7 +395,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             FlashcardsTheme {
                 AiRoute(
                     uiState = makeAiUiState(
-                        isConversationReady = true,
+                        isConversationReady = false,
                         isConversationLoading = true
                     ),
                     onAcceptConsent = {},
@@ -427,6 +429,67 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         assertTrue(composeRule.onAllNodesWithTag(aiConversationSurfaceTag).fetchSemanticsNodes().isEmpty())
         assertTrue(composeRule.onAllNodesWithTag(aiComposerMessageFieldTag).fetchSemanticsNodes().isEmpty())
         assertTrue(composeRule.onAllNodesWithTag(aiComposerSendButtonTag).fetchSemanticsNodes().isEmpty())
+    }
+
+    @Test
+    fun warmLoadingStatePreservesConversationAndDisablesComposerSend() {
+        composeRule.setContent {
+            FlashcardsTheme {
+                AiRoute(
+                    uiState = makeAiUiState(
+                        messages = listOf(
+                            AiChatMessage(
+                                messageId = "user-warm-loading",
+                                role = AiChatRole.USER,
+                                content = listOf(AiChatContentPart.Text(text = "Build a deck from this note.")),
+                                timestampMillis = 1L,
+                                isError = false,
+                                isStopped = false,
+                                cursor = null,
+                                itemId = null
+                            )
+                        ),
+                        draftMessage = "Add examples.",
+                        isConversationReady = false,
+                        isConversationLoading = true
+                    ),
+                    onAcceptConsent = {},
+                    onDraftMessageChange = {},
+                    onApplyComposerSuggestion = {},
+                    onSendMessage = {},
+                    onCancelStreaming = {},
+                    onNewChat = {},
+                    onOpenAccountStatus = {},
+                    onDismissErrorMessage = {},
+                    onDismissAlert = {},
+                    onAddPendingAttachment = {},
+                    onRemovePendingAttachment = {},
+                    onStartDictationPermissionRequest = {},
+                    onStartDictationRecording = {},
+                    onTranscribeRecordedAudio = { _, _, _ -> },
+                    onCancelDictation = {},
+                    onScreenVisible = {},
+                    onScreenHidden = {},
+                    onWarmUpSessionIfNeeded = {},
+                    onRetryConversationLoad = {},
+                    onShowAlert = {},
+                    onShowErrorMessage = {}
+                )
+            }
+        }
+
+        assertTrue(composeRule.onAllNodesWithTag(aiConversationLoadingTag).fetchSemanticsNodes().isEmpty())
+        composeRule.onNodeWithTag(aiConversationSurfaceTag).assertIsDisplayed()
+        composeRule.onNodeWithTag(aiUserMessageBubbleTag, useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag(aiComposerMessageFieldTag).assertIsDisplayed()
+        composeRule.onNodeWithTag(aiComposerSendButtonTag).assertIsDisplayed()
+        composeRule.onNodeWithTag(aiComposerSendButtonTag).assertIsNotEnabled()
+        assertTrue(
+            composeRule.onAllNodes(
+                matcher = hasProgressBarRangeInfo(ProgressBarRangeInfo.Indeterminate),
+                useUnmergedTree = true
+            ).fetchSemanticsNodes().isNotEmpty()
+        )
     }
 
     @Test
